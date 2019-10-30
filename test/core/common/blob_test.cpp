@@ -7,7 +7,7 @@
 
 #include <gtest/gtest.h>
 
-using namespace filecoin::common;
+using namespace fc::common;
 
 /**
  * @given hex string

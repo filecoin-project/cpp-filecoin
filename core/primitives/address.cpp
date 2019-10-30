@@ -5,6 +5,6 @@
 
 #include "primitives/address.hpp"
 
-namespace filecoin::primitives {
+namespace fc::primitives {
   // implementation
 }

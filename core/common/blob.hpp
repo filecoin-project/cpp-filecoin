@@ -12,7 +12,7 @@
 #include <boost/functional/hash.hpp>
 #include "common/hexutil.hpp"
 
-namespace filecoin::common {
+namespace fc::common {
 
   /**
    * Error codes for exceptions that may occur during blob initialization
@@ -165,12 +165,12 @@ namespace filecoin::common {
 }  // namespace filecoin::common
 
 template <size_t N>
-struct std::hash<filecoin::common::Blob<N>> {
-  auto operator()(const filecoin::common::Blob<N> &blob) const {
+struct std::hash<fc::common::Blob<N>> {
+  auto operator()(const fc::common::Blob<N> &blob) const {
     return boost::hash_range(blob.data(), blob.data() + N);  // NOLINT
   }
 };
 
-OUTCOME_HPP_DECLARE_ERROR(filecoin::common, BlobError);
+OUTCOME_HPP_DECLARE_ERROR(fc::common, BlobError);
 
 #endif  // CPP_FILECOIN_CORE_COMMON_BLOB_HPP

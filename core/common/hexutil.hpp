@@ -12,7 +12,7 @@
 #include <gsl/span>
 #include <outcome/outcome.hpp>
 
-namespace filecoin::common {
+namespace fc::common {
 
   /**
    * @brief error codes for exceptions that may occur during unhexing
@@ -56,6 +56,6 @@ namespace filecoin::common {
 
 }  // namespace filecoin::common
 
-OUTCOME_HPP_DECLARE_ERROR(filecoin::common, UnhexError);
+OUTCOME_HPP_DECLARE_ERROR(fc::common, UnhexError);
 
 #endif  // CPP_FILECOIN_CORE_COMMON_HEXUTIL_HPP

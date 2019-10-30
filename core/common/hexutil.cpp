@@ -9,8 +9,8 @@
 #include <boost/format.hpp>
 #include <gsl/span>
 
-OUTCOME_CPP_DEFINE_CATEGORY(filecoin::common, UnhexError, e) {
-  using filecoin::common::UnhexError;
+OUTCOME_CPP_DEFINE_CATEGORY(fc::common, UnhexError, e) {
+  using fc::common::UnhexError;
   switch (e) {
     case UnhexError::NON_HEX_INPUT:
       return "Input contains non-hex characters";
@@ -21,7 +21,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(filecoin::common, UnhexError, e) {
   }
 }
 
-namespace filecoin::common {
+namespace fc::common {
 
   std::string int_to_hex(uint64_t n, size_t fixed_width) noexcept {
     std::stringstream result;

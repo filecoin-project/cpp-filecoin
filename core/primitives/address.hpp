@@ -6,7 +6,7 @@
 #ifndef CMAKE_HUNTER_SEED_CORE_ADDRESS_ADDRESS_HPP
 #define CMAKE_HUNTER_SEED_CORE_ADDRESS_ADDRESS_HPP
 
-namespace filecoin::primitives {
+namespace fc::primitives {
 
   class Address {
    public:
