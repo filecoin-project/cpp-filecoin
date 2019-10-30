@@ -5,8 +5,8 @@
 
 #include "common/blob.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(filecoin::common, BlobError, e) {
-  using filecoin::common::BlobError;
+OUTCOME_CPP_DEFINE_CATEGORY(fc::common, BlobError, e) {
+  using fc::common::BlobError;
 
   switch (e) {
     case BlobError::INCORRECT_LENGTH:
@@ -16,7 +16,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(filecoin::common, BlobError, e) {
   return "Unknown error";
 }
 
-namespace filecoin::common {
+namespace fc::common {
 
   // explicit instantiations for the most frequently used blobs
   template class Blob<8ul>;

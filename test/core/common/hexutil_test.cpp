@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
 
-using namespace filecoin::common;
+using namespace fc::common;
 using namespace std::string_literals;
 
 /**
