@@ -3,4 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(blake2)
+add_library(blake2
+    blake2s.c
+    blake2b.c
+    )

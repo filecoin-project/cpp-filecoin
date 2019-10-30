@@ -98,6 +98,8 @@ if(CLANG_FORMAT)
   include(cmake/clang-format.cmake)
 endif()
 
+add_subdirectory(deps)
+
 include_directories(
     # project includes
     ${PROJECT_SOURCE_DIR}/core
