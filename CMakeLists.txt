@@ -20,9 +20,10 @@ include("cmake/Hunter/init.cmake")
 HunterGate(
     URL "https://github.com/cpp-pm/hunter/archive/v0.23.217.tar.gz"
     SHA1 "4b36c0f8ffc8f3b5718d5e24629fb40c56c99b13"
+    LOCAL
 )
 
-project(cmake_hunter_seed)
+project(cpp_filecoin)
 
 if(NOT EXISTS "${CMAKE_TOOLCHAIN_FILE}")
   # https://cgold.readthedocs.io/en/latest/tutorials/toolchain/globals/cxx-standard.html#summary
@@ -97,9 +98,20 @@ if(CLANG_FORMAT)
   include(cmake/clang-format.cmake)
 endif()
 
+add_subdirectory(deps)
 
+include_directories(
+    # project includes
+    ${PROJECT_SOURCE_DIR}/core
+)
 
-add_subdirectory(src)
+include_directories(
+    SYSTEM
+    # system includes
+    deps/outcome
+)
+
+add_subdirectory(core)
 
 
 if(TESTING)
