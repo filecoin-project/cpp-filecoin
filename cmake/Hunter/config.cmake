@@ -17,8 +17,13 @@ hunter_config(
 )
 
 hunter_config(
-    libp2p
-    URL https://github.com/soramitsu/libp2p/archive/d67d8355bfb16f4730c70e2c8fad4a87e60bb4b5.zip
-    SHA1 b5ac58f102b6bffb981050583d6a3ca70e9da461
-    CMAKE_ARGS TESTING=OFF
+    tsl_hat_trie
+    URL https://github.com/masterjedy/hat-trie/archive/343e0dac54fc8491065e8a059a02db9a2b1248ab.zip
+    SHA1 7b0051e9388d629f382752dd6a12aa8918cdc022
 )
+
+hunter_config(libp2p
+    URL https://github.com/soramitsu/libp2p/archive/00ec26288abe3c70c3fab4b0529e02302a77fd20.zip
+    SHA1 b818125aa885a877d1f51836b8f632689b25766b
+    CMAKE_ARGS TESTING=OFF
+    )
