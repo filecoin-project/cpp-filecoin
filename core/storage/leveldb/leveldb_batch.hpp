@@ -1,0 +1,38 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef FILECOIN_LEVELDB_BATCH_HPP
+#define FILECOIN_LEVELDB_BATCH_HPP
+
+#include <leveldb/write_batch.h>
+#include "storage/leveldb/leveldb.hpp"
+
+namespace fc::storage {
+
+  /**
+   * @brief Class that is used to implement efficient bulk (batch) modifications
+   * of the Map.
+   */
+  class LevelDB::Batch : public BufferBatch {
+   public:
+    explicit Batch(LevelDB &db);
+
+    outcome::result<void> put(const Buffer &key, const Buffer &value) override;
+    outcome::result<void> put(const Buffer &key, Buffer &&value) override;
+
+    outcome::result<void> remove(const Buffer &key) override;
+
+    outcome::result<void> commit() override;
+
+    void clear() override;
+
+   private:
+    LevelDB &db_;
+    leveldb::WriteBatch batch_;
+  };
+
+}  // namespace fc::storage
+
+#endif  // FILECOIN_LEVELDB_BATCH_HPP
