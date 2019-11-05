@@ -12,4 +12,3 @@ target_link_libraries(leveldb
     buffer
     logger
     )
-filecoin_install(leveldb)

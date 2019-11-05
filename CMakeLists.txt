@@ -98,9 +98,6 @@ if(CLANG_FORMAT)
   include(cmake/clang-format.cmake)
 endif()
 
-include(GNUInstallDirs)
-include(cmake/install.cmake)
-
 add_subdirectory(deps)
 
 include_directories(
