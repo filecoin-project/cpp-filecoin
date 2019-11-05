@@ -7,4 +7,3 @@ add_library(in_memory_storage
 target_link_libraries(in_memory_storage
     buffer
     )
-#kagome_install(in_memory_storage)

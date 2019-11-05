@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_IN_MEMORY_BATCH_HPP
-#define FILECOIN_IN_MEMORY_BATCH_HPP
+#ifndef CPP_FILECOIN_IN_MEMORY_BATCH_HPP
+#define CPP_FILECOIN_IN_MEMORY_BATCH_HPP
 
 #include "common/buffer.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -53,4 +53,4 @@ namespace fc::storage {
   };
 }  // namespace fc::storage
 
-#endif  // FILECOIN_IN_MEMORY_BATCH_HPP
+#endif  // CPP_FILECOIN_IN_MEMORY_BATCH_HPP

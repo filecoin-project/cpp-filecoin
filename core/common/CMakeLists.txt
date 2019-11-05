@@ -19,3 +19,19 @@ add_library(blob
 target_link_libraries(blob
     hexutil
     )
+
+add_library(buffer
+    buffer.hpp
+    buffer.cpp
+    buffer_back_insert_iterator.cpp
+    )
+target_link_libraries(buffer
+    hexutil
+    )
+
+add_library(logger
+    logger.cpp
+    )
+target_link_libraries(logger
+    spdlog::spdlog
+    )
