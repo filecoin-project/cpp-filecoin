@@ -8,10 +8,10 @@
 
 #include <libp2p/outcome/outcome.hpp>
 
-namespace outcome {
+namespace fc::outcome {
   using libp2p::outcome::failure;
   using libp2p::outcome::result;
   using libp2p::outcome::success;
-}  // namespace outcome
+}  // namespace fc::outcome
 
 #endif // CPP_FILECOIN_CORE_COMMON_OUTCOME_HPP

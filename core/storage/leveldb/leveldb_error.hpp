@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_LEVELDB_ERROR_HPP
 #define CPP_FILECOIN_LEVELDB_ERROR_HPP
 
-#include <outcome/outcome.hpp>
+#include "common/outcome.hpp"
 
 namespace fc::storage {
 

@@ -8,7 +8,7 @@
 
 #include <memory>
 
-#include <outcome/outcome.hpp>
+#include "common/outcome.hpp"
 #include "common/buffer.hpp"
 #include "storage/face/persistent_map.hpp"
 

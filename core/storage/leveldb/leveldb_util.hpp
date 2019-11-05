@@ -8,7 +8,7 @@
 
 #include <leveldb/status.h>
 #include <gsl/span>
-#include <outcome/outcome.hpp>
+#include "common/outcome.hpp"
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "storage/leveldb/leveldb_error.hpp"
