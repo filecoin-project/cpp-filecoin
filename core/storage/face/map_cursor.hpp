@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_MAP_CURSOR_HPP
-#define FILECOIN_MAP_CURSOR_HPP
+#ifndef CPP_FILECOIN_MAP_CURSOR_HPP
+#define CPP_FILECOIN_MAP_CURSOR_HPP
 
 namespace fc::storage::face {
 

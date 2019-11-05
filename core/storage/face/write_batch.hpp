@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_WRITE_BATCH_HPP
-#define FILECOIN_WRITE_BATCH_HPP
+#ifndef CPP_FILECOIN_WRITE_BATCH_HPP
+#define CPP_FILECOIN_WRITE_BATCH_HPP
 
 #include "storage/face/writeable_map.hpp"
 
@@ -31,4 +31,4 @@ namespace fc::storage::face {
 
 }  // namespace fc::storage::face
 
-#endif  // FILECOIN_WRITE_BATCH_HPP
+#endif  // CPP_FILECOIN_WRITE_BATCH_HPP
