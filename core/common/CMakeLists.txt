@@ -19,3 +19,8 @@ add_library(blob
 target_link_libraries(blob
     hexutil
     )
+
+add_library(outcome INTERFACE)
+target_link_libraries(outcome INTERFACE
+    Boost::boost
+    )
