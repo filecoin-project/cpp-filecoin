@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_LEVELDB_CURSOR_HPP
-#define FILECOIN_LEVELDB_CURSOR_HPP
+#ifndef CPP_FILECOIN_LEVELDB_CURSOR_HPP
+#define CPP_FILECOIN_LEVELDB_CURSOR_HPP
 
 #include <leveldb/iterator.h>
 #include "storage/leveldb/leveldb.hpp"
@@ -43,4 +43,4 @@ namespace fc::storage {
 
 }  // namespace fc::storage
 
-#endif  // FILECOIN_LEVELDB_CURSOR_HPP
+#endif  // CPP_FILECOIN_LEVELDB_CURSOR_HPP

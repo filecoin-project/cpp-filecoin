@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_LEVELDB_UTIL_HPP
-#define FILECOIN_LEVELDB_UTIL_HPP
+#ifndef CPP_FILECOIN_LEVELDB_UTIL_HPP
+#define CPP_FILECOIN_LEVELDB_UTIL_HPP
 
 #include <leveldb/status.h>
 #include <gsl/span>
@@ -69,4 +69,4 @@ namespace fc::storage {
 
 }  // namespace fc::storage
 
-#endif  // FILECOIN_LEVELDB_UTIL_HPP
+#endif  // CPP_FILECOIN_LEVELDB_UTIL_HPP

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_GENERIC_ITERATOR_HPP
-#define FILECOIN_GENERIC_ITERATOR_HPP
+#ifndef CPP_FILECOIN_GENERIC_ITERATOR_HPP
+#define CPP_FILECOIN_GENERIC_ITERATOR_HPP
 
 #include <memory>
 
@@ -48,4 +48,4 @@ namespace fc::face {
 
 }  // namespace fc::face
 
-#endif  // FILECOIN_GENERIC_ITERATOR_HPP
+#endif  // CPP_FILECOIN_GENERIC_ITERATOR_HPP

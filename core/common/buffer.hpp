@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_BUFFER_HPP
-#define FILECOIN_BUFFER_HPP
+#ifndef CPP_FILECOIN_BUFFER_HPP
+#define CPP_FILECOIN_BUFFER_HPP
 
 #include <boost/container_hash/hash.hpp>
 #include <boost/operators.hpp>
@@ -258,4 +258,4 @@ namespace std {
   };
 }  // namespace std
 
-#endif  // FILECOIN_BUFFER_HPP
+#endif  // CPP_FILECOIN_BUFFER_HPP

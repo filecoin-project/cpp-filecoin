@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_BUFFER_MAP_HPP
-#define FILECOIN_BUFFER_MAP_HPP
+#ifndef CPP_FILECOIN_BUFFER_MAP_HPP
+#define CPP_FILECOIN_BUFFER_MAP_HPP
 
 /**
  * This file contains:
@@ -34,4 +34,4 @@ namespace fc::storage {
 
 }  // namespace fc::storage
 
-#endif  // FILECOIN_BUFFER_MAP_HPP
+#endif  // CPP_FILECOIN_BUFFER_MAP_HPP

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_PERSISTENT_MAP_HPP
-#define FILECOIN_PERSISTENT_MAP_HPP
+#ifndef CPP_FILECOIN_PERSISTENT_MAP_HPP
+#define CPP_FILECOIN_PERSISTENT_MAP_HPP
 
 #include "storage/face/generic_map.hpp"
 #include "storage/face/write_batch.hpp"
@@ -28,4 +28,4 @@ namespace fc::storage::face {
 
 }  // namespace fc::storage::face
 
-#endif  // FILECOIN_PERSISTENT_MAP_HPP
+#endif  // CPP_FILECOIN_PERSISTENT_MAP_HPP
