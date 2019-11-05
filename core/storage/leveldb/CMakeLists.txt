@@ -12,4 +12,4 @@ target_link_libraries(leveldb
     buffer
     logger
     )
-#kagome_install(leveldb)
+filecoin_install(leveldb)
