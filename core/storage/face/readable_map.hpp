@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_READABLE_MAP_HPP
-#define FILECOIN_READABLE_MAP_HPP
+#ifndef CPP_FILECOIN_READABLE_MAP_HPP
+#define CPP_FILECOIN_READABLE_MAP_HPP
 
 #include <outcome/outcome.hpp>
 #include "storage/face/map_cursor.hpp"
@@ -37,4 +37,4 @@ namespace fc::storage::face {
 
 }  // namespace fc::storage::face
 
-#endif  // FILECOIN_WRITEABLE_KEY_VALUE_HPP
+#endif  // CPP_FILECOIN_WRITEABLE_KEY_VALUE_HPP

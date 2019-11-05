@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_ITERABLE_MAP_HPP
-#define FILECOIN_ITERABLE_MAP_HPP
+#ifndef CPP_FILECOIN_ITERABLE_MAP_HPP
+#define CPP_FILECOIN_ITERABLE_MAP_HPP
 
 #include <memory>
 
@@ -30,4 +30,4 @@ namespace fc::storage::face {
 
 }  // namespace fc::storage::face
 
-#endif  // FILECOIN_ITERABLE_MAP_HPP
+#endif  // CPP_FILECOIN_ITERABLE_MAP_HPP

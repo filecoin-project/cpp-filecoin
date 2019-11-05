@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_GENERIC_LIST_HPP
-#define FILECOIN_GENERIC_LIST_HPP
+#ifndef CPP_FILECOIN_GENERIC_LIST_HPP
+#define CPP_FILECOIN_GENERIC_LIST_HPP
 
 #include <cstddef>
 #include <memory>
@@ -139,4 +139,4 @@ namespace fc::face {
 
 }  // namespace fc::face
 
-#endif  // FILECOIN_GENERIC_LIST_HPP
+#endif  // CPP_FILECOIN_GENERIC_LIST_HPP
