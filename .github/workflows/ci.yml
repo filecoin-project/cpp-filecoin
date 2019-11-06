@@ -1,0 +1,62 @@
+name: CI
+
+on: 
+  push:
+    branches:
+    - master
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # 3 jobs in total
+        os: [ubuntu-18.04, macOS-10.14]
+        compiler: [{
+          "cc": "gcc",
+          "cxx": "g++"
+         }, {
+          "cc": "clang",
+          "cxx": "clang++"
+        }]
+        exclude:
+          - os: macOS-10.14
+            compiler:
+              cc: gcc
+    steps:
+    - uses: actions/checkout@v1
+      name: checkout
+      with:
+        submodules: true
+        clean: true
+        fetch-depth: 1
+    - name: install dependencies
+      run: |
+        set -e
+        if [ "$RUNNER_OS" = "macOS" ]; then
+          brew install ninja
+        else
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+        fi
+
+        sudo python3 -m pip install --upgrade pip
+        sudo pip3 install scikit-build cmake requests gitpython gcovr pyyaml
+    - name: cmake
+      env:
+        CC: ${{ matrix.compiler.cc }}
+        CXX: ${{ matrix.compiler.cxx }}
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
+        GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
+        GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
+      run: cmake . -GNinja -Bbuild
+    - name: build
+      run: cmake --build build -- -j4
+    - name: test
+      env:
+        CTEST_OUTPUT_ON_FAILURE: 1
+      run: cmake --build build --target test
