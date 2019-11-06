@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_WRITEABLE_MAP_HPP
 #define CPP_FILECOIN_WRITEABLE_MAP_HPP
 
-#include <outcome/outcome.hpp>
+#include "common/outcome.hpp"
 
 namespace fc::storage::face {
 

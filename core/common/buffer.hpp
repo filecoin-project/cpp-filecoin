@@ -9,9 +9,9 @@
 #include <boost/container_hash/hash.hpp>
 #include <boost/operators.hpp>
 #include <gsl/span>
-#include <outcome/outcome.hpp>
 #include <string_view>
 #include <vector>
+#include "common/outcome.hpp"
 
 namespace fc::common {
 
