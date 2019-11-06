@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "storage/leveldb/leveldb.hpp"
+
 #include <utility>
 
-#include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/leveldb_batch.hpp"
 #include "storage/leveldb/leveldb_cursor.hpp"
 #include "storage/leveldb/leveldb_util.hpp"
@@ -19,7 +20,8 @@ namespace fc::storage {
     if (status.ok()) {
       auto l = std::make_unique<LevelDB>();
       l->db_ = std::unique_ptr<leveldb::DB>(db);
-      return l;
+//      return l;
+      return std::move(l);
     }
 
     return error_as_result<std::unique_ptr<LevelDB>>(status);
