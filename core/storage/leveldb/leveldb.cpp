@@ -20,8 +20,7 @@ namespace fc::storage {
     if (status.ok()) {
       auto l = std::make_unique<LevelDB>();
       l->db_ = std::unique_ptr<leveldb::DB>(db);
-//      return l;
-      return std::move(l);
+      return std::move(l); // clang 6.0.1 issue
     }
 
     return error_as_result<std::unique_ptr<LevelDB>>(status);
