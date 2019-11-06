@@ -55,7 +55,7 @@ jobs:
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
       run: cmake . -GNinja -Bbuild
     - name: build
-      run: cmake --build build -- -j4
+      run: cmake --build build -- -j2
     - name: test
       env:
         CTEST_OUTPUT_ON_FAILURE: 1
