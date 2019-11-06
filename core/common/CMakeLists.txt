@@ -20,6 +20,12 @@ target_link_libraries(blob
     hexutil
     )
 
+add_library(outcome INTERFACE)
+target_link_libraries(outcome INTERFACE
+    Boost::boost
+    p2p::p2p
+    )
+
 add_library(buffer
     buffer.hpp
     buffer.cpp

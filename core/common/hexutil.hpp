@@ -10,7 +10,7 @@
 #include <vector>
 
 #include <gsl/span>
-#include <outcome/outcome.hpp>
+#include "common/outcome.hpp"
 
 namespace fc::common {
 
