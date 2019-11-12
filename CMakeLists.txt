@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.12)
 
 find_program(CCACHE_FOUND ccache)
-if(CCACHE_FOUND)
+if (CCACHE_FOUND)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE ccache)
   set_property(GLOBAL PROPERTY RULE_LAUNCH_LINK ccache)
-endif(CCACHE_FOUND)
+endif (CCACHE_FOUND)
 
 
 set(
@@ -25,13 +25,13 @@ HunterGate(
 
 project(cpp_filecoin)
 
-if(NOT EXISTS "${CMAKE_TOOLCHAIN_FILE}")
+if (NOT EXISTS "${CMAKE_TOOLCHAIN_FILE}")
   # https://cgold.readthedocs.io/en/latest/tutorials/toolchain/globals/cxx-standard.html#summary
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_EXTENSIONS OFF)
   set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
-endif()
+endif ()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
@@ -39,21 +39,25 @@ include(CheckCXXCompilerFlag)
 include(cmake/toolchain-util.cmake)
 include(cmake/dependencies.cmake)
 include(cmake/functions.cmake)
+include(cmake/san.cmake)
+
+# export compile commands for clang-tidy to analyse only changed files
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 print("C flags: ${CMAKE_C_FLAGS}")
 print("CXX flags: ${CMAKE_CXX_FLAGS}")
 print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 
-option(TESTING      "Build tests"                                 ON )
-option(CLANG_FORMAT "Enable clang-format target"                  ON )
-option(CLANG_TIDY   "Enable clang-tidy checks during compilation" OFF)
-option(COVERAGE     "Enable generation of coverage info"          OFF)
+option(TESTING "Build tests" ON)
+option(CLANG_FORMAT "Enable clang-format target" ON)
+option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
+option(COVERAGE "Enable generation of coverage info" OFF)
 # sanitizers will be enabled only for Filecoin, and will be disabled for dependencies
-option(ASAN         "Enable address sanitizer"                    OFF)
-option(LSAN         "Enable leak sanitizer"                       OFF)
-option(MSAN         "Enable memory sanitizer"                     OFF)
-option(TSAN         "Enable thread sanitizer"                     OFF)
-option(UBSAN        "Enable UB sanitizer"                         OFF)
+option(ASAN "Enable address sanitizer" OFF)
+option(LSAN "Enable leak sanitizer" OFF)
+option(MSAN "Enable memory sanitizer" OFF)
+option(TSAN "Enable thread sanitizer" OFF)
+option(UBSAN "Enable UB sanitizer" OFF)
 
 
 ## setup compilation flags
@@ -86,17 +90,17 @@ if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
 elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   # using Visual Studio C++
   # TODO(warchant): add flags https://github.com/lefticus/cppbestpractices/blob/master/02-Use_the_Tools_Available.md#msvc
-endif()
+endif ()
 
-if(COVERAGE)
+if (COVERAGE)
   include(cmake/coverage.cmake)
-endif()
-if(CLANG_TIDY)
+endif ()
+if (CLANG_TIDY)
   include(cmake/clang-tidy.cmake)
-endif()
-if(CLANG_FORMAT)
+endif ()
+if (CLANG_FORMAT)
   include(cmake/clang-format.cmake)
-endif()
+endif ()
 
 add_subdirectory(deps)
 
@@ -114,7 +118,7 @@ include_directories(
 add_subdirectory(core)
 
 
-if(TESTING)
+if (TESTING)
   enable_testing()
   add_subdirectory(test)
-endif()
+endif ()
