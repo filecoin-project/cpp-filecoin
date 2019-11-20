@@ -1,0 +1,17 @@
+name: Sonar
+
+on: push
+
+jobs:
+  build:
+    name: sonar
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+      - name: sonar
+        uses: sonarsource/sonarcloud-github-action@master
+        with:
+          projectBaseDir: ./core
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
