@@ -22,19 +22,42 @@ namespace test {
    */
   struct BaseFS_Test : public ::testing::Test {
     // not explicit, intentionally
-    BaseFS_Test(fs::path path);
-
-    void clear();
-
-    void mkdir();
-
-    std::string getPathString() const;
+    explicit BaseFS_Test(fs::path path);
 
     ~BaseFS_Test() override;
 
-    void TearDown() override;
+    /**
+     * @brief Delete directory and all containing files
+     */
+    void clear();
 
+    /**
+     * @brief Create testing directory
+     */
+    void mkdir();
+
+    /**
+     * @brief Get test directory path
+     * @return path to test directory
+     */
+    std::string getPathString() const;
+
+    /**
+     * @brief create file in test directory
+     * @param filename is a name of created file
+     * @return full pathname to the new file
+     */
+    fs::path createFile(const fs::path &filename) const;
+
+    /**
+     * @brief Create and clear directory before tests
+     */
     void SetUp() override;
+
+    /**
+    * @brief Clear directory after tests
+    */
+    void TearDown() override;
 
    protected:
     fs::path base_path;
