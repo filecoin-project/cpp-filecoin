@@ -3,5 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(cbor)
-add_subdirectory(leb128)
+add_library(cbor
+    cbor_encode_stream.cpp
+    )
+target_link_libraries(cbor
+    tinycbor
+    )
