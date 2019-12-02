@@ -8,6 +8,22 @@
 namespace fc::codec::cbor {
   CborEncodeStream::CborEncodeStream(CborStreamType type) : type_(type) {}
 
+  CborEncodeStream &CborEncodeStream::operator<<(
+      const CborEncodeStream &other) {
+    switch (other.type_) {
+      case CborStreamType::SINGLE:
+      case CborStreamType::LIST:
+        addCount(1);
+        break;
+      case CborStreamType::FLAT:
+        addCount(other.count_);
+        break;
+    }
+    auto other_data = other.data();
+    data_.insert(data_.end(), other_data.begin(), other_data.end());
+    return *this;
+  }
+
   std::vector<uint8_t> CborEncodeStream::data() const {
     switch (type_) {
       case CborStreamType::SINGLE:
@@ -30,5 +46,11 @@ namespace fc::codec::cbor {
             + cbor_encoder_get_buffer_size(&container, prefix.data()));
     result.insert(result.end(), data_.begin(), data_.end());
     return result;
+  }
+
+  void CborEncodeStream::addCount(size_t count) {
+    if (type_ == CborStreamType::SINGLE && count_ + count != 1) {
+    }
+    count_ += count;
   }
 }  // namespace fc::codec::cbor

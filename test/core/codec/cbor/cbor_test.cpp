@@ -46,3 +46,23 @@ TEST(CborEncoder, List) {
   s << 1;
   EXPECT_EQ(s.data(), "8101"_unhex);
 }
+
+TEST(CborEncoder, ListNest) {
+  CborEncodeStream s{LIST};
+  EXPECT_EQ(s.data(), "80"_unhex);
+  s << (CborEncodeStream(LIST) << 1 << 2);
+  EXPECT_EQ(s.data(), "81820102"_unhex);
+  s << (CborEncodeStream(SINGLE) << 3);
+  EXPECT_EQ(s.data(), "8282010203"_unhex);
+  s << (CborEncodeStream(FLAT) << 4 << 5);
+  EXPECT_EQ(s.data(), "84820102030405"_unhex);
+}
+
+TEST(CborEncoder, SingleNest) {
+  CborEncodeStream s1{SINGLE};
+  s1 << 1;
+  EXPECT_EQ(s1.data(), "01"_unhex);
+  CborEncodeStream s2{SINGLE};
+  s2 << s1;
+  EXPECT_EQ(s2.data(), "01"_unhex);
+}

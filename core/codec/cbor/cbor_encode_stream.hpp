@@ -23,6 +23,7 @@ namespace fc::codec::cbor {
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     CborEncodeStream &operator<<(T num) {
+      addCount(1);
       std::array<uint8_t, 9> buffer{0};
       CborEncoder encoder;
       cbor_encoder_init(&encoder, buffer.data(), buffer.size(), 0);
@@ -37,15 +38,15 @@ namespace fc::codec::cbor {
                    buffer.begin(),
                    buffer.begin()
                        + cbor_encoder_get_buffer_size(&encoder, buffer.data()));
-      ++count_;
       return *this;
     }
 
+    CborEncodeStream &operator<<(const CborEncodeStream &other);
     std::vector<uint8_t> data() const;
 
    private:
-
     std::vector<uint8_t> list() const;
+    void addCount(size_t count);
 
     CborStreamType type_;
     std::vector<uint8_t> data_{};
