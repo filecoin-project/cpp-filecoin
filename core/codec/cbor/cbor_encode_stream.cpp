@@ -31,7 +31,6 @@ namespace fc::codec::cbor {
   CborEncodeStream &CborEncodeStream::operator<<(
       const CborEncodeStream &other) {
     switch (other.type_) {
-      case CborStreamType::SINGLE:
       case CborStreamType::LIST:
         addCount(1);
         break;
@@ -46,7 +45,6 @@ namespace fc::codec::cbor {
 
   std::vector<uint8_t> CborEncodeStream::data() const {
     switch (type_) {
-      case CborStreamType::SINGLE:
       case CborStreamType::FLAT:
         return data_;
       case CborStreamType::LIST:
@@ -69,8 +67,6 @@ namespace fc::codec::cbor {
   }
 
   void CborEncodeStream::addCount(size_t count) {
-    if (type_ == CborStreamType::SINGLE && count_ + count != 1) {
-    }
     count_ += count;
   }
 }  // namespace fc::codec::cbor

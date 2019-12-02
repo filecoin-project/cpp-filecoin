@@ -15,7 +15,6 @@
 
 namespace fc::codec::cbor {
   enum class CborStreamType {
-    SINGLE,
     LIST,
     FLAT
   };

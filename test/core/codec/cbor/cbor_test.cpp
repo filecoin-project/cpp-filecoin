@@ -13,7 +13,6 @@ using fc::codec::cbor::CborEncodeStream;
 using fc::codec::cbor::CborStreamType;
 
 constexpr auto LIST = CborStreamType::LIST;
-constexpr auto SINGLE = CborStreamType::SINGLE;
 constexpr auto FLAT = CborStreamType::FLAT;
 
 auto kCidRaw = "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
@@ -21,7 +20,7 @@ auto kCidCbor = "D82A582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF5
 
 template<typename T>
 auto encodeOne(const T &value) {
-  return (CborEncodeStream(SINGLE) << value).data();
+  return (CborEncodeStream(FLAT) << value).data();
 }
 
 TEST(CborEncoder, Integral) {
@@ -56,19 +55,17 @@ TEST(CborEncoder, ListNest) {
   EXPECT_EQ(s.data(), "80"_unhex);
   s << (CborEncodeStream(LIST) << 1 << 2);
   EXPECT_EQ(s.data(), "81820102"_unhex);
-  s << (CborEncodeStream(SINGLE) << 3);
-  EXPECT_EQ(s.data(), "8282010203"_unhex);
-  s << (CborEncodeStream(FLAT) << 4 << 5);
+  s << (CborEncodeStream(FLAT) << 3 << 4 << 5);
   EXPECT_EQ(s.data(), "84820102030405"_unhex);
 }
 
-TEST(CborEncoder, SingleNest) {
-  CborEncodeStream s1{SINGLE};
-  s1 << 1;
-  EXPECT_EQ(s1.data(), "01"_unhex);
-  CborEncodeStream s2{SINGLE};
+TEST(CborEncoder, FlatNest) {
+  CborEncodeStream s1{FLAT};
+  s1 << 1 << 2;
+  EXPECT_EQ(s1.data(), "0102"_unhex);
+  CborEncodeStream s2{FLAT};
   s2 << s1;
-  EXPECT_EQ(s2.data(), "01"_unhex);
+  EXPECT_EQ(s2.data(), "0102"_unhex);
 }
 
 TEST(CborEncoder, Cid) {
