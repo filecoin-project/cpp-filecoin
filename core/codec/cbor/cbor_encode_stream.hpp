@@ -11,8 +11,16 @@
 #include <vector>
 
 namespace fc::codec::cbor {
+  enum class CborStreamType {
+    SINGLE,
+    LIST,
+    FLAT
+  };
+
   class CborEncodeStream {
    public:
+    explicit CborEncodeStream(CborStreamType type);
+
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     CborEncodeStream &operator<<(T num) {
       std::array<uint8_t, 9> buffer{0};
@@ -25,16 +33,21 @@ namespace fc::codec::cbor {
       } else {
         cbor_encode_int(&encoder, static_cast<int64_t>(num));
       }
-      data_.insert(data_.end(), buffer.begin(), buffer.begin() + cbor_encoder_get_buffer_size(&encoder, buffer.data()));
+      data_.insert(data_.end(),
+                   buffer.begin(),
+                   buffer.begin()
+                       + cbor_encoder_get_buffer_size(&encoder, buffer.data()));
       ++count_;
       return *this;
     }
 
-    std::vector<uint8_t> list() const;
-
-    std::vector<uint8_t> single() const;
+    std::vector<uint8_t> data() const;
 
    private:
+
+    std::vector<uint8_t> list() const;
+
+    CborStreamType type_;
     std::vector<uint8_t> data_{};
     size_t count_{0};
   };
