@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 using fc::codec::cbor::CborEncodeStream;
 using fc::codec::cbor::CborStreamType;
@@ -15,8 +16,11 @@ constexpr auto LIST = CborStreamType::LIST;
 constexpr auto SINGLE = CborStreamType::SINGLE;
 constexpr auto FLAT = CborStreamType::FLAT;
 
+auto kCidRaw = "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
+auto kCidCbor = "D82A582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
+
 template<typename T>
-auto encodeOne(const T &&value) {
+auto encodeOne(const T &value) {
   return (CborEncodeStream(SINGLE) << value).data();
 }
 
@@ -65,4 +69,9 @@ TEST(CborEncoder, SingleNest) {
   CborEncodeStream s2{SINGLE};
   s2 << s1;
   EXPECT_EQ(s2.data(), "01"_unhex);
+}
+
+TEST(CborEncoder, Cid) {
+  EXPECT_OUTCOME_TRUE_2(cid, libp2p::multi::ContentIdentifierCodec::decode(kCidRaw));
+  EXPECT_EQ(encodeOne(cid), kCidCbor);
 }

@@ -9,6 +9,26 @@ namespace fc::codec::cbor {
   CborEncodeStream::CborEncodeStream(CborStreamType type) : type_(type) {}
 
   CborEncodeStream &CborEncodeStream::operator<<(
+      const libp2p::multi::ContentIdentifier &cid) {
+    addCount(1);
+
+    auto maybe_cid_bytes = libp2p::multi::ContentIdentifierCodec::encode(cid);
+    auto cid_bytes = maybe_cid_bytes.value();
+    cid_bytes.insert(cid_bytes.begin(), 0);
+
+    std::vector<uint8_t> encoded(18 + cid_bytes.size());
+    CborEncoder encoder;
+    cbor_encoder_init(&encoder, encoded.data(), encoded.size(), 0);
+    cbor_encode_tag(&encoder, kCidTag);
+    cbor_encode_byte_string(&encoder, cid_bytes.data(), cid_bytes.size());
+    data_.insert(data_.end(),
+                 encoded.begin(),
+                 encoded.begin()
+                     + cbor_encoder_get_buffer_size(&encoder, encoded.data()));
+    return *this;
+  }
+
+  CborEncodeStream &CborEncodeStream::operator<<(
       const CborEncodeStream &other) {
     switch (other.type_) {
       case CborStreamType::SINGLE:

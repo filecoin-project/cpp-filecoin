@@ -6,8 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_ENCODE_STREAM_HPP
 #define CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_ENCODE_STREAM_HPP
 
+#include "codec/cbor/cbor_common.hpp"
+
 #include <array>
 #include <cbor.h>
+#include <libp2p/multi/content_identifier.hpp>
 #include <vector>
 
 namespace fc::codec::cbor {
@@ -41,6 +44,7 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    CborEncodeStream &operator<<(const libp2p::multi::ContentIdentifier &cid);
     CborEncodeStream &operator<<(const CborEncodeStream &other);
     std::vector<uint8_t> data() const;
 

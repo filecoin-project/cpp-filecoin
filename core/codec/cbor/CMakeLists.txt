@@ -7,5 +7,7 @@ add_library(cbor
     cbor_encode_stream.cpp
     )
 target_link_libraries(cbor
+    outcome
+    p2p::p2p_cid
     tinycbor
     )
