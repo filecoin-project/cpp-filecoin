@@ -21,6 +21,14 @@ namespace test {
     return fs::canonical(base_path).string();
   }
 
+  fs::path BaseFS_Test::createFile(const fs::path &filename) const {
+    auto pathname =  base_path;
+    pathname /= filename;
+    boost::filesystem::ofstream ofs(pathname);
+    ofs.close();
+    return pathname;
+  }
+
   BaseFS_Test::~BaseFS_Test() {
     clear();
   }
