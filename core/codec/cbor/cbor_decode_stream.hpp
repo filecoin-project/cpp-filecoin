@@ -51,6 +51,7 @@ namespace fc::codec::cbor {
     CborDecodeStream &operator>>(libp2p::multi::ContentIdentifier &cid);
 
    private:
+    CborStreamType type_;
     std::vector<uint8_t> data_;
     CborParser parser_{};
     CborValue value_{};
