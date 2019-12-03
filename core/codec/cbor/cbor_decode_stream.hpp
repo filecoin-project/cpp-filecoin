@@ -57,6 +57,7 @@ namespace fc::codec::cbor {
     CborDecodeStream &operator>>(libp2p::multi::ContentIdentifier &cid);
     CborDecodeStream list();
     void next();
+    bool isCid() const;
 
    private:
     CborStreamType type_;

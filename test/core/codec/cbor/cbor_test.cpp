@@ -175,3 +175,9 @@ TEST(CborDecoder, CidErrors) {
   // invalid cid
   EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CID, CborDecodeStream("D82A420000"_unhex) >> actual);
 }
+
+TEST(CborDecoder, IsCid) {
+  EXPECT_TRUE(CborDecodeStream(kCidCbor).isCid());
+  EXPECT_TRUE(CborDecodeStream("D82A"_unhex).isCid());
+  EXPECT_FALSE(CborDecodeStream("01"_unhex).isCid());
+}

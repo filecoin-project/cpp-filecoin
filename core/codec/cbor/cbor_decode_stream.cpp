@@ -95,4 +95,13 @@ namespace fc::codec::cbor {
       }
     }
   }
+
+  bool CborDecodeStream::isCid() const {
+    if (!cbor_value_is_tag(&value_)) {
+      return false;
+    }
+    CborTag tag;
+    cbor_value_get_tag(&value_, &tag);
+    return tag == kCidTag;
+  }
 }  // namespace fc::codec::cbor
