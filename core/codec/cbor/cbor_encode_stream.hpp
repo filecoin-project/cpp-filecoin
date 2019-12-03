@@ -10,7 +10,6 @@
 
 #include <array>
 #include <cbor.h>
-#include <libp2p/multi/content_identifier.hpp>
 #include <vector>
 
 namespace fc::codec::cbor {

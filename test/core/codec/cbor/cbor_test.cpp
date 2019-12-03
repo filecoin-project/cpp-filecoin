@@ -13,10 +13,13 @@
 using fc::codec::cbor::CborDecodeStream;
 using fc::codec::cbor::CborEncodeStream;
 using fc::codec::cbor::CborStreamType;
+using libp2p::multi::ContentIdentifier;
+using libp2p::multi::ContentIdentifierCodec;
 
 constexpr auto LIST = CborStreamType::LIST;
 constexpr auto FLAT = CborStreamType::FLAT;
 
+auto kCidEmptyRaw = "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC00"_unhex;
 auto kCidRaw = "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
 auto kCidCbor = "D82A582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
 
@@ -78,7 +81,7 @@ TEST(CborEncoder, FlatNest) {
 }
 
 TEST(CborEncoder, Cid) {
-  EXPECT_OUTCOME_TRUE_2(cid, libp2p::multi::ContentIdentifierCodec::decode(kCidRaw));
+  EXPECT_OUTCOME_TRUE_2(cid, ContentIdentifierCodec::decode(kCidRaw));
   EXPECT_EQ(encodeOne(cid), kCidCbor);
 }
 
@@ -91,4 +94,13 @@ TEST(CborDecoder, Integral) {
   expectDecodeOne("20"_unhex, -1);
   expectDecodeOne("F4"_unhex, false);
   expectDecodeOne("F5"_unhex, true);
+}
+
+TEST(CborDecoder, Cid) {
+  EXPECT_OUTCOME_TRUE_2(expected, ContentIdentifierCodec::decode(kCidRaw));
+  // libp2p::multi::ContentIdentifier is not default constructible and must be initialized somehow
+  EXPECT_OUTCOME_TRUE_2(actual, ContentIdentifierCodec::decode(kCidEmptyRaw));
+  EXPECT_NE(actual, expected);
+  CborDecodeStream(kCidCbor) >> actual;
+  EXPECT_EQ(actual, expected);
 }
