@@ -21,35 +21,42 @@ namespace fc::codec::cbor {
     CborDecodeStream &operator>>(T &num) {
       if (std::is_same_v<T, bool>) {
         if (!cbor_value_is_boolean(&value_)) {
+          outcome::raise(CborDecodeError::WRONG_TYPE);
         }
         bool bool_value;
         cbor_value_get_boolean(&value_, &bool_value);
         num = bool_value;
       } else {
         if (!cbor_value_is_integer(&value_)) {
+          outcome::raise(CborDecodeError::WRONG_TYPE);
         }
         if (std::is_unsigned_v<T>) {
           if (!cbor_value_is_unsigned_integer(&value_)) {
+            outcome::raise(CborDecodeError::INT_OVERFLOW);
           }
           uint64_t num64;
           cbor_value_get_uint64(&value_, &num64);
           if (num64 > std::numeric_limits<T>::max()) {
+            outcome::raise(CborDecodeError::INT_OVERFLOW);
           }
           num = static_cast<T>(num64);
         } else {
           int64_t num64;
           cbor_value_get_int64(&value_, &num64);
           if (num64 > std::numeric_limits<T>::max() || num64 < std::numeric_limits<T>::min()) {
+            outcome::raise(CborDecodeError::INT_OVERFLOW);
           }
           num = static_cast<T>(num64);
         }
       }
-      cbor_value_advance(&value_);
+      next();
       return *this;
     }
 
+    CborDecodeStream &operator>>(std::vector<uint8_t> &bytes);
     CborDecodeStream &operator>>(libp2p::multi::ContentIdentifier &cid);
     CborDecodeStream list();
+    void next();
 
    private:
     CborStreamType type_;

@@ -13,6 +13,9 @@ namespace fc::codec::cbor {
     addCount(1);
 
     auto maybe_cid_bytes = libp2p::multi::ContentIdentifierCodec::encode(cid);
+    if (maybe_cid_bytes.has_error()) {
+      outcome::raise(CborEncodeError::INVALID_CID);
+    }
     auto cid_bytes = maybe_cid_bytes.value();
     cid_bytes.insert(cid_bytes.begin(), 0);
 
