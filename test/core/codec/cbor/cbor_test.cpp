@@ -104,3 +104,11 @@ TEST(CborDecoder, Cid) {
   CborDecodeStream(kCidCbor) >> actual;
   EXPECT_EQ(actual, expected);
 }
+
+TEST(CborDecoder, Flat) {
+  CborDecodeStream s("0504"_unhex);
+  int a, b;
+  s >> a >> b;
+  EXPECT_EQ(a, 5);
+  EXPECT_EQ(b, 4);
+}
