@@ -112,3 +112,15 @@ TEST(CborDecoder, Flat) {
   EXPECT_EQ(a, 5);
   EXPECT_EQ(b, 4);
 }
+
+TEST(CborDecoder, List) {
+  CborDecodeStream s1("82050403"_unhex);
+  auto s2 = s1.list();
+  int a, b;
+  s2 >> a >> b;
+  EXPECT_EQ(a, 5);
+  EXPECT_EQ(b, 4);
+  int c;
+  s1 >> c;
+  EXPECT_EQ(c, 3);
+}

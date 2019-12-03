@@ -38,4 +38,17 @@ namespace fc::codec::cbor {
     cid = maybe_cid.value();
     return *this;
   }
+
+  CborDecodeStream CborDecodeStream::list() {
+    if (!cbor_value_is_array(&value_)) {
+    }
+    auto stream = *this;
+    stream.type_ = CborStreamType::LIST;
+    stream.value_.parser = &stream.parser_;
+    if (CborNoError != cbor_value_enter_container(&value_, &stream.value_)) {
+    }
+    if (CborNoError != cbor_value_advance(&value_)) {
+    }
+    return stream;
+  }
 }  // namespace fc::codec::cbor
