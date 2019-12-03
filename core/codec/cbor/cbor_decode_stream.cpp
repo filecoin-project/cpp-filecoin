@@ -14,7 +14,8 @@ namespace fc::codec::cbor {
     value_.remaining = UINT32_MAX;
   }
 
-  CborDecodeStream &CborDecodeStream::operator>>(libp2p::multi::ContentIdentifier &cid) {
+  CborDecodeStream &CborDecodeStream::operator>>(
+      libp2p::multi::ContentIdentifier &cid) {
     if (!cbor_value_is_tag(&value_)) {
     }
     CborTag tag;
@@ -29,7 +30,9 @@ namespace fc::codec::cbor {
     if (CborNoError != cbor_value_get_string_length(&value_, &bytes_length)) {
     }
     std::vector<uint8_t> bytes(bytes_length);
-    if (CborNoError != cbor_value_copy_byte_string(&value_, bytes.data(), &bytes_length, nullptr)) {
+    if (CborNoError
+        != cbor_value_copy_byte_string(
+            &value_, bytes.data(), &bytes_length, nullptr)) {
     }
     if (bytes[0] != 0) {
     }
