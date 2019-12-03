@@ -3,12 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "codec/cbor/cbor_decode_stream.hpp"
 #include "codec/cbor/cbor_encode_stream.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using fc::codec::cbor::CborDecodeStream;
 using fc::codec::cbor::CborEncodeStream;
 using fc::codec::cbor::CborStreamType;
 
@@ -21,6 +23,13 @@ auto kCidCbor = "D82A582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF5
 template<typename T>
 auto encodeOne(const T &value) {
   return (CborEncodeStream(FLAT) << value).data();
+}
+
+template<typename T>
+void expectDecodeOne(const std::vector<uint8_t> &encoded, const T &expected) {
+  T actual;
+  CborDecodeStream(encoded) >> actual;
+  EXPECT_EQ(actual, expected);
 }
 
 TEST(CborEncoder, Integral) {
@@ -71,4 +80,15 @@ TEST(CborEncoder, FlatNest) {
 TEST(CborEncoder, Cid) {
   EXPECT_OUTCOME_TRUE_2(cid, libp2p::multi::ContentIdentifierCodec::decode(kCidRaw));
   EXPECT_EQ(encodeOne(cid), kCidCbor);
+}
+
+TEST(CborDecoder, Integral) {
+  expectDecodeOne("00"_unhex, 0ull);
+  expectDecodeOne("00"_unhex, 0ll);
+  expectDecodeOne("01"_unhex, 1);
+  expectDecodeOne("17"_unhex, 23);
+  expectDecodeOne("1818"_unhex, 24);
+  expectDecodeOne("20"_unhex, -1);
+  expectDecodeOne("F4"_unhex, false);
+  expectDecodeOne("F5"_unhex, true);
 }

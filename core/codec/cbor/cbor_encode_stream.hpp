@@ -14,11 +14,6 @@
 #include <vector>
 
 namespace fc::codec::cbor {
-  enum class CborStreamType {
-    LIST,
-    FLAT
-  };
-
   class CborEncodeStream {
    public:
     explicit CborEncodeStream(CborStreamType type);

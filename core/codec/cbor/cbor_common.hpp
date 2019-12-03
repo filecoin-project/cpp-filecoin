@@ -10,6 +10,11 @@
 #include <libp2p/multi/content_identifier_codec.hpp>
 
 namespace fc::codec::cbor {
+  enum class CborStreamType {
+    LIST,
+    FLAT
+  };
+
   constexpr uint64_t kCidTag = 42;
 }  // namespace fc::codec::cbor
 

@@ -4,6 +4,7 @@
 #
 
 add_library(cbor
+    cbor_decode_stream.cpp
     cbor_encode_stream.cpp
     )
 target_link_libraries(cbor
