@@ -110,6 +110,15 @@ TEST(CborDecoder, Cid) {
   EXPECT_EQ(actual, expected);
 }
 
+TEST(CborDecoder, CidNext) {
+  auto bytes = kCidCbor;
+  bytes.push_back(0x01);
+  CborDecodeStream s(bytes);
+  s.next();
+  int i;
+  s >> i;
+}
+
 TEST(CborDecoder, Flat) {
   CborDecodeStream s("0504"_unhex);
   int a, b;

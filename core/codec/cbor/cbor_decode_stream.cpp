@@ -93,6 +93,11 @@ namespace fc::codec::cbor {
   }
 
   void CborDecodeStream::next() {
+    if (isCid()) {
+      if (CborNoError != cbor_value_skip_tag(&value_)) {
+        outcome::raise(CborDecodeError::INVALID_CBOR);
+      }
+    }
     auto remaining = value_.remaining;
     value_.remaining = 1;
     if (CborNoError != cbor_value_advance(&value_)) {
