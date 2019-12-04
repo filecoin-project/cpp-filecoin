@@ -8,11 +8,11 @@
 namespace fc::codec::cbor {
   CborDecodeStream::CborDecodeStream(gsl::span<const uint8_t> data)
       : type_(CborStreamType::FLAT),
-        data_(
-            std::make_shared<std::vector<uint8_t>>(data.begin(), data.end())) {
+        data_(std::make_shared<std::vector<uint8_t>>(data.begin(), data.end())),
+        parser_(std::make_shared<CborParser>()) {
     if (CborNoError
         != cbor_parser_init(
-            data_->data(), data_->size(), 0, &parser_, &value_)) {
+            data_->data(), data_->size(), 0, parser_.get(), &value_)) {
       outcome::raise(CborDecodeError::INVALID_CBOR);
     }
     value_.remaining = UINT32_MAX;
@@ -72,7 +72,6 @@ namespace fc::codec::cbor {
     }
     auto stream = *this;
     stream.type_ = CborStreamType::LIST;
-    stream.value_.parser = &stream.parser_;
     if (CborNoError != cbor_value_enter_container(&value_, &stream.value_)) {
       outcome::raise(CborDecodeError::INVALID_CBOR);
     }
@@ -88,9 +87,14 @@ namespace fc::codec::cbor {
     if (CborNoError != cbor_value_advance(&value_)) {
       outcome::raise(CborDecodeError::INVALID_CBOR);
     }
-    if (type_ == CborStreamType::FLAT && value_.ptr != parser_.end) {
+    if (type_ == CborStreamType::FLAT && value_.ptr != parser_->end) {
       value_.remaining = remaining + value_.remaining - 1;
-      if (CborNoError != cbor_parser_init(value_.ptr, parser_.end - value_.ptr, 0, &parser_, &value_)) {
+      if (CborNoError
+          != cbor_parser_init(value_.ptr,
+                              parser_->end - value_.ptr,
+                              0,
+                              parser_.get(),
+                              &value_)) {
         outcome::raise(CborDecodeError::INVALID_CBOR);
       }
     }

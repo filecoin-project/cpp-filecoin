@@ -62,7 +62,7 @@ namespace fc::codec::cbor {
    private:
     CborStreamType type_;
     std::shared_ptr<std::vector<uint8_t>> data_;
-    CborParser parser_{};
+    std::shared_ptr<CborParser> parser_;
     CborValue value_{};
   };
 }  // namespace fc::codec::cbor
