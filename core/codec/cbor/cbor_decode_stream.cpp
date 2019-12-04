@@ -35,6 +35,24 @@ namespace fc::codec::cbor {
     return *this;
   }
 
+  CborDecodeStream &CborDecodeStream::operator>>(std::string &str) {
+    if (!cbor_value_is_text_string(&value_)) {
+      outcome::raise(CborDecodeError::WRONG_TYPE);
+    }
+    size_t size;
+    if (CborNoError != cbor_value_get_string_length(&value_, &size)) {
+      outcome::raise(CborDecodeError::INVALID_CBOR);
+    }
+    str.resize(size);
+    auto value = value_;
+    value.remaining = 1;
+    if (CborNoError != cbor_value_copy_text_string(&value, str.data(), &size, nullptr)) {
+      outcome::raise(CborDecodeError::INVALID_CBOR);
+    }
+    next();
+    return *this;
+  }
+
   CborDecodeStream &CborDecodeStream::operator>>(
       libp2p::multi::ContentIdentifier &cid) {
     if (!cbor_value_is_tag(&value_)) {

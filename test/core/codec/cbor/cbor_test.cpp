@@ -130,6 +130,12 @@ TEST(CborDecoder, List) {
   EXPECT_EQ(c, 3);
 }
 
+TEST(CborDecoder, String) {
+  std::string s;
+  CborDecodeStream("63666F6F"_unhex) >> s;
+  EXPECT_EQ(s, "foo");
+}
+
 TEST(CborDecoder, InitErrors) {
   EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("FF"_unhex));
   EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("18"_unhex));
