@@ -203,3 +203,11 @@ TEST(CborDecoder, IsCid) {
   EXPECT_TRUE(CborDecodeStream("D82A"_unhex).isCid());
   EXPECT_FALSE(CborDecodeStream("01"_unhex).isCid());
 }
+
+TEST(CborDecoder, Misc) {
+  EXPECT_TRUE(CborDecodeStream("80"_unhex).isList());
+  EXPECT_EQ(CborDecodeStream("820101"_unhex).listLength(), 2);
+  EXPECT_FALSE(CborDecodeStream("80"_unhex).isMap());
+  EXPECT_TRUE(CborDecodeStream("A0"_unhex).isMap());
+  EXPECT_EQ(CborDecodeStream("810201"_unhex).raw(), "8102"_unhex);
+}

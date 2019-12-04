@@ -126,6 +126,29 @@ namespace fc::codec::cbor {
     return tag == kCidTag;
   }
 
+  bool CborDecodeStream::isList() const {
+    return cbor_value_is_array(&value_);
+  }
+
+  bool CborDecodeStream::isMap() const {
+    return cbor_value_is_map(&value_);
+  }
+
+  size_t CborDecodeStream::listLength() const {
+    size_t length;
+    if (CborNoError != cbor_value_get_array_length(&value_, &length)) {
+      outcome::raise(CborDecodeError::INVALID_CBOR);
+    }
+    return length;
+  }
+
+  std::vector<uint8_t> CborDecodeStream::raw() const {
+    auto stream = *this;
+    auto begin = stream.value_.ptr;
+    stream.next();
+    return {begin, stream.value_.ptr};
+  }
+
   std::map<std::string, CborDecodeStream> CborDecodeStream::map() {
     if (!cbor_value_is_map(&value_)) {
       outcome::raise(CborDecodeError::WRONG_TYPE);

@@ -59,6 +59,10 @@ namespace fc::codec::cbor {
     CborDecodeStream list();
     void next();
     bool isCid() const;
+    bool isList() const;
+    bool isMap() const;
+    size_t listLength() const;
+    std::vector<uint8_t> raw() const;
     std::map<std::string, CborDecodeStream> map();
 
    private:
