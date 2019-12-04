@@ -5,6 +5,7 @@
 
 #include "codec/cbor/cbor_decode_stream.hpp"
 #include "codec/cbor/cbor_encode_stream.hpp"
+#include "codec/cbor/cbor_resolve.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
@@ -13,7 +14,9 @@
 using fc::codec::cbor::CborDecodeError;
 using fc::codec::cbor::CborDecodeStream;
 using fc::codec::cbor::CborEncodeStream;
+using fc::codec::cbor::CborResolveError;
 using fc::codec::cbor::CborStreamType;
+using fc::codec::cbor::resolve;
 using libp2p::multi::ContentIdentifier;
 using libp2p::multi::ContentIdentifierCodec;
 
@@ -39,6 +42,9 @@ void expectDecodeOne(const std::vector<uint8_t> &encoded, const T &expected) {
 #define EXPECT_OUTCOME_RAISE(ecode, statement) \
   try { statement; FAIL() << "Line " << __LINE__ << ": " << #ecode << " not raised"; } \
   catch (std::system_error &e) { EXPECT_EQ(e.code(), ecode); }
+
+#define EXPECT_OUTCOME_ERROR(ecode, expr) \
+  { EXPECT_OUTCOME_FALSE_2(e, expr); EXPECT_EQ(e, ecode); }
 
 TEST(CborEncoder, Integral) {
   EXPECT_EQ(encodeOne(0ull), "00"_unhex);
@@ -210,4 +216,44 @@ TEST(CborDecoder, Misc) {
   EXPECT_FALSE(CborDecodeStream("80"_unhex).isMap());
   EXPECT_TRUE(CborDecodeStream("A0"_unhex).isMap());
   EXPECT_EQ(CborDecodeStream("810201"_unhex).raw(), "8102"_unhex);
+}
+
+TEST(CborResolve, Root) {
+  auto a = "80"_unhex;
+  EXPECT_OUTCOME_TRUE_2(b, resolve(a, {}));
+  EXPECT_EQ(b.first, a);
+  EXPECT_EQ(b.second.size(), 0);
+}
+
+TEST(CborResolve, Cid) {
+  EXPECT_OUTCOME_TRUE_2(b, resolve(kCidCbor, {"a"}));
+  EXPECT_EQ(b.first, kCidCbor);
+  EXPECT_EQ(b.second.size(), 1);
+}
+
+TEST(CborResolve, IntKey) {
+  auto a = "8405060708"_unhex;
+
+  EXPECT_OUTCOME_TRUE_2(b, resolve(a, {"2"}));
+  EXPECT_EQ(b.first, "07"_unhex);
+  EXPECT_EQ(b.second.size(), 0);
+
+  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, {"a"}));
+  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, {"1a"}));
+  EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, {"4"}));
+}
+
+TEST(CborResolve, StringKey) {
+  auto a = "A3616103616204616305"_unhex;
+
+  EXPECT_OUTCOME_TRUE_2(b, resolve(a, {"b"}));
+  EXPECT_EQ(b.first, "04"_unhex);
+  EXPECT_EQ(b.second.size(), 0);
+
+  EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, {"1"}));
+}
+
+TEST(CborResolve, Errors) {
+  EXPECT_OUTCOME_ERROR(CborResolveError::CONTAINER_EXPECTED, resolve("01"_unhex, {"0"}));
+  EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CBOR, resolve("8281"_unhex, {"1"}));
 }
