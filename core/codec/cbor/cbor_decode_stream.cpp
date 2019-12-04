@@ -87,10 +87,7 @@ namespace fc::codec::cbor {
     if (!cbor_value_is_array(&value_)) {
       outcome::raise(CborDecodeError::WRONG_TYPE);
     }
-    auto stream = *this;
-    if (CborNoError != cbor_value_enter_container(&value_, &stream.value_)) {
-      outcome::raise(CborDecodeError::INVALID_CBOR);
-    }
+    auto stream = container();
     next();
     return stream;
   }
@@ -102,7 +99,7 @@ namespace fc::codec::cbor {
       outcome::raise(CborDecodeError::INVALID_CBOR);
     }
     if (value_.ptr != parser_->end) {
-      value_.remaining = remaining + value_.remaining - 1;
+      remaining += value_.remaining - 1;
       if (CborNoError
           != cbor_parser_init(value_.ptr,
                               parser_->end - value_.ptr,
@@ -111,6 +108,7 @@ namespace fc::codec::cbor {
                               &value_)) {
         outcome::raise(CborDecodeError::INVALID_CBOR);
       }
+      value_.remaining = remaining;
     }
   }
 
@@ -121,5 +119,41 @@ namespace fc::codec::cbor {
     CborTag tag;
     cbor_value_get_tag(&value_, &tag);
     return tag == kCidTag;
+  }
+
+  std::map<std::string, CborDecodeStream> CborDecodeStream::map() {
+    if (!cbor_value_is_map(&value_)) {
+      outcome::raise(CborDecodeError::WRONG_TYPE);
+    }
+    auto stream = container();
+    next();
+    std::map<std::string, CborDecodeStream> map;
+    std::string key;
+    const uint8_t *begin;
+    while (!cbor_value_at_end(&stream.value_)) {
+      stream >> key;
+      begin = stream.value_.ptr;
+      auto stream2 = stream;
+      stream2.parser_ = std::make_shared<CborParser>();
+      if (CborNoError != cbor_value_skip_tag(&stream.value_)) {
+        outcome::raise(CborDecodeError::INVALID_CBOR);
+      }
+      if (CborNoError != cbor_value_advance(&stream.value_)) {
+        outcome::raise(CborDecodeError::INVALID_CBOR);
+      }
+      if (CborNoError != cbor_parser_init(begin, stream.value_.ptr - begin, 0, stream2.parser_.get(), &stream2.value_)) {
+        outcome::raise(CborDecodeError::INVALID_CBOR);
+      }
+      map.insert(std::make_pair(key, stream2));
+    }
+    return map;
+  }
+
+  CborDecodeStream CborDecodeStream::container() const {
+    auto stream = *this;
+    if (CborNoError != cbor_value_enter_container(&value_, &stream.value_)) {
+      outcome::raise(CborDecodeError::INVALID_CBOR);
+    }
+    return stream;
   }
 }  // namespace fc::codec::cbor

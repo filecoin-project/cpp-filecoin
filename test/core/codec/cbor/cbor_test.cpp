@@ -136,6 +136,13 @@ TEST(CborDecoder, String) {
   EXPECT_EQ(s, "foo");
 }
 
+TEST(CborDecoder, Map) {
+  auto m = CborDecodeStream("A261610261628101"_unhex).map();
+  int a, b;
+  m.at("a") >> a;
+  m.at("b").list() >> b;
+}
+
 TEST(CborDecoder, InitErrors) {
   EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("FF"_unhex));
   EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("18"_unhex));

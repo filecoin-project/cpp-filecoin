@@ -59,8 +59,11 @@ namespace fc::codec::cbor {
     CborDecodeStream list();
     void next();
     bool isCid() const;
+    std::map<std::string, CborDecodeStream> map();
 
    private:
+    CborDecodeStream container() const;
+
     std::shared_ptr<std::vector<uint8_t>> data_;
     std::shared_ptr<CborParser> parser_;
     CborValue value_{};
