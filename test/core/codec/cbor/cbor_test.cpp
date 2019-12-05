@@ -15,13 +15,9 @@ using fc::codec::cbor::CborDecodeError;
 using fc::codec::cbor::CborDecodeStream;
 using fc::codec::cbor::CborEncodeStream;
 using fc::codec::cbor::CborResolveError;
-using fc::codec::cbor::CborStreamType;
 using fc::codec::cbor::resolve;
 using libp2p::multi::ContentIdentifier;
 using libp2p::multi::ContentIdentifierCodec;
-
-constexpr auto LIST = CborStreamType::LIST;
-constexpr auto FLAT = CborStreamType::FLAT;
 
 auto kCidEmptyRaw = "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC00"_unhex;
 auto kCidRaw = "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
@@ -29,7 +25,7 @@ auto kCidCbor = "D82A582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF5
 
 template<typename T>
 auto encodeOne(const T &value) {
-  return (CborEncodeStream(FLAT) << value).data();
+  return (CborEncodeStream() << value).data();
 }
 
 template<typename T>
@@ -58,7 +54,7 @@ TEST(CborEncoder, Integral) {
 }
 
 TEST(CborEncoder, Flat) {
-  CborEncodeStream s{FLAT};
+  CborEncodeStream s;
   EXPECT_EQ(s.data(), ""_unhex);
   s << 1;
   EXPECT_EQ(s.data(), "01"_unhex);
@@ -67,26 +63,26 @@ TEST(CborEncoder, Flat) {
 }
 
 TEST(CborEncoder, List) {
-  CborEncodeStream s{LIST};
+  auto s = CborEncodeStream().list();
   EXPECT_EQ(s.data(), "80"_unhex);
   s << 1;
   EXPECT_EQ(s.data(), "8101"_unhex);
 }
 
 TEST(CborEncoder, ListNest) {
-  CborEncodeStream s{LIST};
+  auto s = CborEncodeStream().list();
   EXPECT_EQ(s.data(), "80"_unhex);
-  s << (CborEncodeStream(LIST) << 1 << 2);
+  s << (s.list() << 1 << 2);
   EXPECT_EQ(s.data(), "81820102"_unhex);
-  s << (CborEncodeStream(FLAT) << 3 << 4 << 5);
+  s << (CborEncodeStream() << 3 << 4 << 5);
   EXPECT_EQ(s.data(), "84820102030405"_unhex);
 }
 
 TEST(CborEncoder, FlatNest) {
-  CborEncodeStream s1{FLAT};
+  CborEncodeStream s1;
   s1 << 1 << 2;
   EXPECT_EQ(s1.data(), "0102"_unhex);
-  CborEncodeStream s2{FLAT};
+  CborEncodeStream s2;
   s2 << s1;
   EXPECT_EQ(s2.data(), "0102"_unhex);
 }

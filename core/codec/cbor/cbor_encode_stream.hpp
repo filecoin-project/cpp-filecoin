@@ -15,8 +15,6 @@
 namespace fc::codec::cbor {
   class CborEncodeStream {
    public:
-    explicit CborEncodeStream(CborStreamType type);
-
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     CborEncodeStream &operator<<(T num) {
       addCount(1);
@@ -40,12 +38,12 @@ namespace fc::codec::cbor {
     CborEncodeStream &operator<<(const libp2p::multi::ContentIdentifier &cid);
     CborEncodeStream &operator<<(const CborEncodeStream &other);
     std::vector<uint8_t> data() const;
+    static CborEncodeStream list();
 
    private:
-    std::vector<uint8_t> list() const;
     void addCount(size_t count);
 
-    CborStreamType type_;
+    bool is_list_{false};
     std::vector<uint8_t> data_{};
     size_t count_{0};
   };
