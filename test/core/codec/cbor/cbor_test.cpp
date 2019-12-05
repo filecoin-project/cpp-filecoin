@@ -92,6 +92,10 @@ TEST(CborEncoder, Cid) {
   EXPECT_EQ(encodeOne(cid), kCidCbor);
 }
 
+TEST(CborEncoder, String) {
+  EXPECT_EQ(encodeOne(std::string("foo")), "63666F6F"_unhex);
+}
+
 TEST(CborDecoder, Integral) {
   expectDecodeOne("00"_unhex, 0ull);
   expectDecodeOne("00"_unhex, 0ll);

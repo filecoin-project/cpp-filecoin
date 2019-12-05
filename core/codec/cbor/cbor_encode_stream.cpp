@@ -6,6 +6,20 @@
 #include "codec/cbor/cbor_encode_stream.hpp"
 
 namespace fc::codec::cbor {
+  CborEncodeStream &CborEncodeStream::operator<<(const std::string &str) {
+    addCount(1);
+
+    std::vector<uint8_t> encoded(9 + str.size());
+    CborEncoder encoder;
+    cbor_encoder_init(&encoder, encoded.data(), encoded.size(), 0);
+    cbor_encode_text_string(&encoder, str.data(), str.size());
+    data_.insert(data_.end(),
+                 encoded.begin(),
+                 encoded.begin()
+                     + cbor_encoder_get_buffer_size(&encoder, encoded.data()));
+    return *this;
+  }
+
   CborEncodeStream &CborEncodeStream::operator<<(
       const libp2p::multi::ContentIdentifier &cid) {
     addCount(1);

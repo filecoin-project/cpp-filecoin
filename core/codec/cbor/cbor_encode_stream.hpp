@@ -35,6 +35,7 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    CborEncodeStream &operator<<(const std::string &str);
     CborEncodeStream &operator<<(const libp2p::multi::ContentIdentifier &cid);
     CborEncodeStream &operator<<(const CborEncodeStream &other);
     std::vector<uint8_t> data() const;
