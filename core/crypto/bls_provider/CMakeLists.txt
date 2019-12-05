@@ -3,5 +3,4 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(blake2)
-add_subdirectory(bls_provider)
+add_subdirectory(impl)
