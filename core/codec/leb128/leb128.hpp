@@ -43,12 +43,11 @@ namespace fc::codec::leb128 {
     if (input.empty()) {
       return outcome::failure(LEB128DecodeError::INPUT_EMPTY);
     }
-    const size_t requestedCapacity = input.size() * 7 - 7;
-    constexpr size_t currentCapacity = sizeof(T) * 8;
-    if (requestedCapacity > currentCapacity) {
+    try {
+      decoder >> data;
+    } catch (std::exception&) {
       return outcome::failure(LEB128DecodeError::INPUT_TOO_BIG);
     }
-    decoder >> data;
     return data;
   }
 

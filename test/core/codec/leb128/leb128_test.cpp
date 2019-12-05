@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <gtest/gtest.h>
-
 #include "core/codec/leb128/leb128_codec_tester.hpp"
+
+#include <gtest/gtest.h>
+#include "testutil/outcome.hpp"
 
 using boost::math::tools::max_value;
 using boost::math::tools::min_value;
@@ -64,14 +65,14 @@ TYPED_TEST(LEB128CodecTester, DecodeEmptyVectorFailure) {
 }
 
 /**
- * @given Byte-vector to be decoded, which is greater than decoded value
+ * @given LEB128-encoded value (2^64), next after max value of the uint64_t (2^64 - 1)
  * @when Decoding value with LEB128 codec
  * @then Attempt to decode too big value must be failed
  */
-TYPED_TEST(LEB128CodecTester, DecodeTooBigVectorFailure) {
+TEST(LEB128CodecTest, DecodeSampleOverflowFailure) {
+  std::vector<uint8_t> encoded{0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x02};
   int expected =
       static_cast<int>(fc::codec::leb128::LEB128DecodeError::INPUT_TOO_BIG);
-  constexpr size_t outsize = (sizeof(TypeParam) + 1) * 2;
-  std::vector<uint8_t> tooBig(outsize);
-  ASSERT_TRUE(this->checkDecodeFail(tooBig, expected));
+  EXPECT_OUTCOME_FALSE_3(result, error_code, fc::codec::leb128::decode<uint64_t>(encoded));
+  ASSERT_EQ(expected, error_code.value());
 }

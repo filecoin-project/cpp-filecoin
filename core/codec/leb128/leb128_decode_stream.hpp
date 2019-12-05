@@ -6,6 +6,7 @@
 #ifndef FILECOIN_CORE_CODECS_LEB128DECODESTREAM_HPP
 #define FILECOIN_CORE_CODECS_LEB128DECODESTREAM_HPP
 
+#include <stdexcept>
 #include <vector>
 
 #include "primitives/boost_multiprecision.hpp"
@@ -32,12 +33,18 @@ namespace fc::codec::leb128 {
      * @tparam T - type of decoded data
      * @param output - decoded data
      * @return Decoded stream
+     * @throw std::ivalid_argument if encoded data is too big
      */
     template <typename T>
     LEB128DecodeStream &operator>>(T &output) {
       output = 0;
       size_t index = 0;
+      constexpr size_t capacity = sizeof(T) * 8;
       for (const auto &byte : data_) {
+        T slice = byte & 0x7f;
+        if (index >= capacity || slice << index >> index != slice) {
+          throw std::invalid_argument("Output value overflow");
+        }
         output += static_cast<T>((byte & 0x7f)) << index;
         index += 7;
       }
