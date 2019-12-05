@@ -19,6 +19,8 @@ Target C++ compilers are:
 To clone repository execute
 ```
 git clone https://github.com/filecoin-project/cpp-filecoin.git
+cd cpp-filecoin
+git submodule update --init --recursive
 ```
 
 ## Development

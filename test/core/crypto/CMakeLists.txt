@@ -10,3 +10,10 @@ target_link_libraries(blake2_test
     blake2
     hexutil
     )
+
+addtest(bls_provider_test
+    bls_provider_test.cpp
+    )
+target_link_libraries(bls_provider_test
+    bls_provider
+    )

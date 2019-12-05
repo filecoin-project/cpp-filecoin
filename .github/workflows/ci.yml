@@ -27,6 +27,10 @@ jobs:
           - os: macOS-10.14
             compiler:
               cc: gcc
+        include:
+          - os: macOS-10.14
+            env:
+              CFLAGS: "-I /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
     steps:
     - uses: actions/checkout@v1
       name: checkout
@@ -34,6 +38,7 @@ jobs:
         submodules: true
         clean: true
         fetch-depth: 1
+        token: ${{ secrets.CI_TOKEN }}
     - name: install dependencies
       run: |
         set -e
@@ -46,6 +51,7 @@ jobs:
 
         sudo python3 -m pip install --upgrade pip
         sudo pip3 install scikit-build cmake requests gitpython gcovr pyyaml
+        sudo curl https://sh.rustup.rs -sSf | sh -s -- -y
     - name: cmake
       env:
         CC: ${{ matrix.compiler.cc }}
