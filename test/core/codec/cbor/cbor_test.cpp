@@ -13,6 +13,7 @@
 
 using fc::codec::cbor::CborDecodeError;
 using fc::codec::cbor::CborDecodeStream;
+using fc::codec::cbor::CborEncodeError;
 using fc::codec::cbor::CborEncodeStream;
 using fc::codec::cbor::CborResolveError;
 using fc::codec::cbor::resolve;
@@ -94,6 +95,26 @@ TEST(CborEncoder, Cid) {
 
 TEST(CborEncoder, String) {
   EXPECT_EQ(encodeOne(std::string("foo")), "63666F6F"_unhex);
+}
+
+TEST(CborEncoder, Map) {
+  CborEncodeStream s;
+  auto map = s.map();
+  map["aa"] << 1;
+  map["b"] << 2;
+  map["c"] << 3;
+  s << map;
+  EXPECT_EQ(s.data(), "A361620261630362616101"_unhex);
+}
+
+TEST(CborEncoder, MapErrors) {
+  CborEncodeStream s;
+  auto map1 = s.map();
+  map1["a"] << 1 << 2;
+  EXPECT_OUTCOME_RAISE(CborEncodeError::EXPECTED_MAP_VALUE_SINGLE, CborEncodeStream() << map1);
+  auto map2 = s.map();
+  map2["a"];
+  EXPECT_OUTCOME_RAISE(CborEncodeError::EXPECTED_MAP_VALUE_SINGLE, CborEncodeStream() << map2);
 }
 
 TEST(CborDecoder, Integral) {
