@@ -15,6 +15,8 @@
 namespace fc::codec::cbor {
   class CborDecodeStream {
    public:
+    static constexpr auto is_cbor_decoder_stream = true;
+
     explicit CborDecodeStream(gsl::span<const uint8_t> data);
 
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>

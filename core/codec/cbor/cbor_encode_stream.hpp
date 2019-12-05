@@ -15,6 +15,8 @@
 namespace fc::codec::cbor {
   class CborEncodeStream {
    public:
+    static constexpr auto is_cbor_encoder_stream = true;
+
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     CborEncodeStream &operator<<(T num) {
       addCount(1);
