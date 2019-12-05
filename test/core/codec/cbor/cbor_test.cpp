@@ -107,6 +107,13 @@ TEST(CborEncoder, Map) {
   EXPECT_EQ(s.data(), "A361620261630362616101"_unhex);
 }
 
+TEST(CborEncoder, CidErrors) {
+  using namespace libp2p::multi;
+  EXPECT_OUTCOME_TRUE_2(hash, Multihash::create(HashType::identity, {}));
+  ContentIdentifier cid(ContentIdentifier::Version::V0, MulticodecType::Code::IDENTITY, hash);
+  EXPECT_OUTCOME_RAISE(CborEncodeError::INVALID_CID, CborEncodeStream() << cid);
+}
+
 TEST(CborEncoder, MapErrors) {
   CborEncodeStream s;
   auto map1 = s.map();
