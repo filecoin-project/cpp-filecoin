@@ -21,6 +21,7 @@ To clone repository execute
 git clone https://github.com/filecoin-project/cpp-filecoin.git
 cd cpp-filecoin
 git submodule update --init --recursive
+curl -sSf https://sh.rustup.rs | sh
 ```
 
 ## Development
