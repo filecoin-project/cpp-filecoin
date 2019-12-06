@@ -13,8 +13,7 @@ using fc::codec::leb128::LEB128EncodeStream;
 LEB128EncodeStream s;
 uint64_t data = 481516u;
 s << data;
-std::vector<uint8_t> output; // Byte-vector for encoded data
-s >> output;
+std::vector<uint8_t> encoded = s.data();
 ```
 
 ## LEB128DecodeStream
