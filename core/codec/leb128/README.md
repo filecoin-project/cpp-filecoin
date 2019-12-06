@@ -1,32 +1,40 @@
-# LEB128 codec
-> Primitive types encode/decode user guide
+# LEB128 codec C++ implementation
 
-### Encoding stream
+Encoding and decoding the following data types:
+* `uint8_t, uint16_t, uint32_t, uint64_t`
+* `uint128_t, uint256_t, uint512_t, uint1024_t` (boost::multiprecision) 
 
+## LEB128EncodeStream
+Class LEB128EncodeStream is in charge of encoding data
 ```c
 #include "codec/leb128/leb128_encode_stream.hpp"
 using fc::codec::leb128::LEB128EncodeStream;
 
-LEB128EncodeStream encoder;
-T data;                      // Some numeric type to encode
-encoder << data;
+LEB128EncodeStream s;
+uint64_t data = 481516u;
+s << data;
 std::vector<uint8_t> output; // Byte-vector for encoded data
-encoder >> output;
+s >> output;
 ```
 
-### Decoding stream
-
+## LEB128DecodeStream
+Class LEB128 is in charge of decoding data
 ```c
 #include "codec/leb128/leb128_decode_stream.hpp"
 using fc::codec::leb128::LEB128DecodeStream;
 
-std::vector<uint8_t> encoded; // Byte-vector with encoded data
-LEB128DecodeStream decoder{ encoded };
-T data;                       // Some numeric type for decoded data
-decoder >> data;              // Decode can throw exception, use here try/catch
+std::vector<uint8_t> encoded{0x88, 0xA1, 0x02};
+LEB128DecodeStream s{ encoded };
+uint16_t data;
+try {
+  s >> data;
+} catch (std::exception &) {
+  // handle error
+}
 ```
 
-### Free functions
+## Convenience functions
+Wrappers around encode/decode streams
 
 ```c
 #include "codec/leb128/leb128.hpp"
