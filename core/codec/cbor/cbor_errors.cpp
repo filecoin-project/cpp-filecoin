@@ -10,6 +10,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::cbor, CborEncodeError, e) {
   switch (e) {
     case CborEncodeError::INVALID_CID:
       return "Invalid CID";
+    case CborEncodeError::EXPECTED_MAP_VALUE_SINGLE:
+      return "Expected map value single";
     default:
       return "Unknown error";
   }
