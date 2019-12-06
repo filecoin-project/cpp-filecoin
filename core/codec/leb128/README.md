@@ -34,6 +34,6 @@ using fc::codec::leb128::encode;
 using fc::codec::leb128::decode;
 
 T data;
-OUTCOME_TRY(encoded, encode(data));
+std::vector<uint8_t> encoded = encode(data);
 OUTCOME_TRY(decoded, decode(encoded));
 ```
