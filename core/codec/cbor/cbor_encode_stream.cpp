@@ -52,7 +52,8 @@ namespace fc::codec::cbor {
   }
 
   struct LessCborKey {
-    bool operator()(const std::vector<uint8_t> &lhs, const std::vector<uint8_t> &rhs) const {
+    bool operator()(const std::vector<uint8_t> &lhs,
+                    const std::vector<uint8_t> &rhs) const {
       ssize_t diff = lhs.size() - rhs.size();
       if (diff != 0) {
         return diff < 0;
@@ -61,7 +62,8 @@ namespace fc::codec::cbor {
     }
   };
 
-  CborEncodeStream &CborEncodeStream::operator<<(const std::map<std::string, CborEncodeStream> &map) {
+  CborEncodeStream &CborEncodeStream::operator<<(
+      const std::map<std::string, CborEncodeStream> &map) {
     addCount(1);
 
     std::array<uint8_t, 9> prefix{0};
@@ -69,14 +71,18 @@ namespace fc::codec::cbor {
     CborEncoder container;
     cbor_encoder_init(&encoder, prefix.data(), prefix.size(), 0);
     cbor_encoder_create_map(&encoder, &container, map.size());
-    data_.insert(data_.end(), prefix.begin(), prefix.begin() + cbor_encoder_get_buffer_size(&container, prefix.data()));
+    data_.insert(data_.end(),
+                 prefix.begin(),
+                 prefix.begin()
+                     + cbor_encoder_get_buffer_size(&container, prefix.data()));
 
     std::map<std::vector<uint8_t>, std::vector<uint8_t>, LessCborKey> sorted;
     for (const auto &pair : map) {
       if (pair.second.count_ != 1) {
         outcome::raise(CborEncodeError::EXPECTED_MAP_VALUE_SINGLE);
       }
-      sorted.insert(std::make_pair((CborEncodeStream() << pair.first).data(), pair.second.data()));
+      sorted.insert(std::make_pair((CborEncodeStream() << pair.first).data(),
+                                   pair.second.data()));
     }
     for (const auto &pair : sorted) {
       data_.insert(data_.end(), pair.first.begin(), pair.first.end());

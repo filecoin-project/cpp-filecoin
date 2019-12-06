@@ -28,7 +28,8 @@ namespace fc::codec::cbor {
     bytes.resize(size);
     auto value = value_;
     value.remaining = 1;
-    if (CborNoError != cbor_value_copy_byte_string(&value, bytes.data(), &size, nullptr)) {
+    if (CborNoError
+        != cbor_value_copy_byte_string(&value, bytes.data(), &size, nullptr)) {
       outcome::raise(CborDecodeError::INVALID_CBOR);
     }
     next();
@@ -46,7 +47,8 @@ namespace fc::codec::cbor {
     str.resize(size);
     auto value = value_;
     value.remaining = 1;
-    if (CborNoError != cbor_value_copy_text_string(&value, str.data(), &size, nullptr)) {
+    if (CborNoError
+        != cbor_value_copy_text_string(&value, str.data(), &size, nullptr)) {
       outcome::raise(CborDecodeError::INVALID_CBOR);
     }
     next();
@@ -169,7 +171,12 @@ namespace fc::codec::cbor {
       if (CborNoError != cbor_value_advance(&stream.value_)) {
         outcome::raise(CborDecodeError::INVALID_CBOR);
       }
-      if (CborNoError != cbor_parser_init(begin, stream.value_.ptr - begin, 0, stream2.parser_.get(), &stream2.value_)) {
+      if (CborNoError
+          != cbor_parser_init(begin,
+                              stream.value_.ptr - begin,
+                              0,
+                              stream2.parser_.get(),
+                              &stream2.value_)) {
         outcome::raise(CborDecodeError::INVALID_CBOR);
       }
       map.insert(std::make_pair(key, stream2));

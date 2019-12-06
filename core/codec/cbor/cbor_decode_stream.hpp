@@ -45,7 +45,8 @@ namespace fc::codec::cbor {
         } else {
           int64_t num64;
           cbor_value_get_int64(&value_, &num64);
-          if (num64 > std::numeric_limits<T>::max() || num64 < std::numeric_limits<T>::min()) {
+          if (num64 > std::numeric_limits<T>::max()
+              || num64 < std::numeric_limits<T>::min()) {
             outcome::raise(CborDecodeError::INT_OVERFLOW);
           }
           num = static_cast<T>(num64);

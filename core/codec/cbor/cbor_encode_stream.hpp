@@ -40,7 +40,8 @@ namespace fc::codec::cbor {
     CborEncodeStream &operator<<(const std::string &str);
     CborEncodeStream &operator<<(const libp2p::multi::ContentIdentifier &cid);
     CborEncodeStream &operator<<(const CborEncodeStream &other);
-    CborEncodeStream &operator<<(const std::map<std::string, CborEncodeStream> &map);
+    CborEncodeStream &operator<<(
+        const std::map<std::string, CborEncodeStream> &map);
     std::vector<uint8_t> data() const;
     static CborEncodeStream list();
     static std::map<std::string, CborEncodeStream> map();
