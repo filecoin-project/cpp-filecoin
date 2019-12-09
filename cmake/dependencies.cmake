@@ -41,3 +41,7 @@ find_package(leveldb CONFIG REQUIRED)
 # https://github.com/soramitsu/libp2p
 hunter_add_package(libp2p)
 find_package(libp2p CONFIG REQUIRED)
+
+# https://docs.hunter.sh/en/latest/packages/pkg/cppcodec.html
+hunter_add_package(cppcodec)
+find_package(cppcodec CONFIG REQUIRED)
