@@ -8,6 +8,8 @@
 
 #include <memory>
 #include <string>
+#include <vector>
+
 #include "common/outcome.hpp"
 #include "storage/filestore/file.hpp"
 #include "storage/filestore/path.hpp"
