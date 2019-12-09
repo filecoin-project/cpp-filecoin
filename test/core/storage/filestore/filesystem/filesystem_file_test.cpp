@@ -115,7 +115,7 @@ TEST_F(FileSystemFileTest, CloseFile) {
 }
 
 /**
- * @given file exists
+ * @given an existing file
  * @when try to write 0 bytes to file
  * @then 0 size written is returned
  */
@@ -266,8 +266,7 @@ TEST_F(FileSystemFileTest, ReadFileFrom) {
   size_t read_size = 3;
   char expected[]{'C', '+', '+'};
   std::vector<char> data_read(read_size);
-  EXPECT_OUTCOME_TRUE(read_res,
-                      empty_file->read(read_from, data_read));
+  EXPECT_OUTCOME_TRUE(read_res, empty_file->read(read_from, data_read));
   ASSERT_EQ(read_size, read_res);
   ASSERT_TRUE(memcmp(expected, data_read.data(), read_size) == 0);
 }
