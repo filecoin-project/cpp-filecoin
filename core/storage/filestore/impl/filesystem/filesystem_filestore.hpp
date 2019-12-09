@@ -17,6 +17,9 @@ namespace fc::storage::filestore {
    public:
     ~FileSystemFileStore() override = default;
 
+    /** @copydoc FileStore::exists() */
+    outcome::result<bool> exists(const Path &path) const noexcept override;
+
     /** @copydoc FileStore::open() */
     outcome::result<std::shared_ptr<File>> open(
         const Path &path) noexcept override;
@@ -27,6 +30,10 @@ namespace fc::storage::filestore {
 
     /** @copydoc FileStore::remove() */
     fc::outcome::result<void> remove(const Path &path) noexcept override;
+
+    /** @copydoc FileStore::list() */
+    outcome::result<std::vector<Path>> list(
+        const Path &directory) noexcept override;
   };
 
 }  // namespace fc::storage::filestore

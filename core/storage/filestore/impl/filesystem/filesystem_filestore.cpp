@@ -12,22 +12,34 @@ using fc::storage::filestore::File;
 using fc::storage::filestore::FileStoreError;
 using fc::storage::filestore::FileSystemFile;
 using fc::storage::filestore::FileSystemFileStore;
+using fc::storage::filestore::Path;
+
+fc::outcome::result<bool> FileSystemFileStore::exists(const Path &path) const
+    noexcept {
+  return boost::filesystem::exists(path);
+}
 
 fc::outcome::result<std::shared_ptr<File>> FileSystemFileStore::open(
     const Path &path) noexcept {
-  auto file = std::make_shared<FileSystemFile>(path);
-  OUTCOME_TRY(file->open());
-
-  return file;
+  try {
+    auto file = std::make_shared<FileSystemFile>(path);
+    OUTCOME_TRY(file->open());
+    return file;
+  } catch (std::exception &) {
+    return FileStoreError::UNKNOWN;
+  }
 }
 
 fc::outcome::result<std::shared_ptr<File>> FileSystemFileStore::create(
     const Path &path) noexcept {
-  // create file
-  boost::filesystem::ofstream os(path);
-  os.close();
-
-  return open(path);
+  try {
+    // create file
+    boost::filesystem::ofstream os(path);
+    os.close();
+    return open(path);
+  } catch (std::exception &) {
+    return FileStoreError::UNKNOWN;
+  }
 }
 
 fc::outcome::result<void> FileSystemFileStore::remove(
@@ -41,4 +53,20 @@ fc::outcome::result<void> FileSystemFileStore::remove(
     return FileStoreError::UNKNOWN;
 
   return fc::outcome::success();
+}
+
+fc::outcome::result<std::vector<Path>> FileSystemFileStore::list(
+    const Path &directory) noexcept {
+  if (!boost::filesystem::exists(directory))
+    return FileStoreError::DIRECTORY_NOT_FOUND;
+  if (!boost::filesystem::is_directory(directory))
+    return FileStoreError::NOT_DIRECTORY;
+  std::vector<Path> res{};
+  for (boost::filesystem::directory_iterator itr(directory);
+       itr != boost::filesystem::directory_iterator();
+       ++itr) {
+    res.push_back(boost::filesystem::canonical(itr->path()).string());
+  }
+
+  return std::move(res);
 }

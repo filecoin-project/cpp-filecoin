@@ -8,6 +8,7 @@
 
 #include "storage/filestore/path.hpp"
 
+#include <gsl/span>
 #include "common/outcome.hpp"
 
 namespace fc::storage::filestore {
@@ -44,24 +45,20 @@ namespace fc::storage::filestore {
     /**
      * @brief read bytes from the file
      * @param offset start position to read from
-     * @param size number bytes to read
      * @param buffer pointer to the first element to be read
      * @return number of bytes read
      */
     virtual fc::outcome::result<size_t> read(size_t offset,
-                                             size_t size,
-                                             char *buffer) noexcept = 0;
+                                             const gsl::span<char> &buffer) noexcept = 0;
 
     /**
      * @brief write to the file
      * @param offset start position to write to
-     * @param size number of bytes to write
      * @param buffer pointer to the first element of array to be written
      * @return number of bytes written
      */
     virtual fc::outcome::result<size_t> write(size_t offset,
-                                              size_t size,
-                                              char *buffer) noexcept = 0;
+                                              const gsl::span<const char> &buffer) noexcept = 0;
 
     /**
      * @brief Whether the file is open

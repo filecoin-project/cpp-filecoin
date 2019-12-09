@@ -8,6 +8,7 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "storage/filestore/filestore_error.hpp"
+#include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
 using fc::storage::filestore::File;
@@ -44,21 +45,20 @@ TEST_F(FileSystemFileTest, FileNotFound) {
   Path path("not/found/file.txt");
   auto file = std::make_shared<FileSystemFile>(path);
   auto res = file->open();
-
   ASSERT_FALSE(res);
-  ASSERT_FALSE(file->is_open());
   ASSERT_EQ(FileStoreError::FILE_NOT_FOUND, res.error());
+  ASSERT_FALSE(file->is_open());
 
   auto res_size = file->size();
   ASSERT_FALSE(res_size);
 
-  char buff[] = "abc";
-
-  auto write_res = file->write(0, 3, buff);
+  std::vector<char> buff{'a', 'b', 'c'};
+  auto write_res = file->write(0, buff);
   ASSERT_FALSE(write_res);
   ASSERT_EQ(FileStoreError::FILE_NOT_FOUND, write_res.error());
 
-  auto read_res = file->read(0, 3, buff);
+  std::array<char, 3> read_buff{};
+  auto read_res = file->read(0, read_buff);
   ASSERT_FALSE(read_res);
   ASSERT_EQ(FileStoreError::FILE_NOT_FOUND, read_res.error());
 
@@ -73,17 +73,15 @@ TEST_F(FileSystemFileTest, FileNotFound) {
  * @then error CANNOT_OPEN returned
  */
 TEST_F(FileSystemFileTest, DoubleOpen) {
-  auto open_res = empty_file->open();
-  ASSERT_TRUE(open_res);
+  EXPECT_OUTCOME_TRUE_1(empty_file->open());
   ASSERT_TRUE(empty_file->is_open());
   ASSERT_EQ(empty_file_path, empty_file->path());
 
   // open again
-  open_res = empty_file->open();
-
+  auto open_res = empty_file->open();
   ASSERT_FALSE(open_res);
-  ASSERT_TRUE(empty_file->is_open());
   ASSERT_EQ(FileStoreError::CANNOT_OPEN, open_res.error());
+  ASSERT_TRUE(empty_file->is_open());
 }
 
 /**
@@ -92,20 +90,18 @@ TEST_F(FileSystemFileTest, DoubleOpen) {
  * @then error FILE_CLOSED returned on method calls
  */
 TEST_F(FileSystemFileTest, CloseFile) {
-  auto open_res = empty_file->open();
-  ASSERT_TRUE(open_res);
+  EXPECT_OUTCOME_TRUE_1(empty_file->open());
 
-  auto close_res = empty_file->close();
-  ASSERT_TRUE(close_res);
+  EXPECT_OUTCOME_TRUE_1(empty_file->close());
   ASSERT_FALSE(empty_file->is_open());
 
-  char buff[] = "abc";
-
-  auto write_res = empty_file->write(0, strlen(buff), buff);
+  std::vector<char> buff{'A', 'B', 'C'};
+  auto write_res = empty_file->write(0, buff);
   ASSERT_FALSE(write_res);
   ASSERT_EQ(FileStoreError::FILE_CLOSED, write_res.error());
 
-  auto read_res = empty_file->read(0, strlen(buff), buff);
+  std::array<char, 3> read_buff{};
+  auto read_res = empty_file->read(0, read_buff);
   ASSERT_FALSE(read_res);
   ASSERT_EQ(FileStoreError::FILE_CLOSED, read_res.error());
 
@@ -119,21 +115,31 @@ TEST_F(FileSystemFileTest, CloseFile) {
 }
 
 /**
+ * @given an existing file
+ * @when try to write 0 bytes to file
+ * @then 0 size written is returned
+ */
+TEST_F(FileSystemFileTest, WriteZeroBytesToFile) {
+  EXPECT_OUTCOME_TRUE_1(empty_file->open());
+
+  std::vector<char> buff;
+  EXPECT_OUTCOME_TRUE(write_res, empty_file->write(0, buff));
+  ASSERT_EQ(0, write_res);
+}
+
+/**
  * @given file exists
  * @when try to write data to file
  * @then data is written and actual size written is returned
  */
 TEST_F(FileSystemFileTest, WriteToFile) {
-  auto open_res = empty_file->open();
-  ASSERT_TRUE(open_res);
+  EXPECT_OUTCOME_TRUE_1(empty_file->open());
 
-  char buff[] = "hello world";
-  size_t buff_size = strlen(buff);
+  std::vector<char> buff{'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
+  const size_t buff_size = buff.size();
 
-  auto write_res = empty_file->write(0, buff_size, buff);
-
-  ASSERT_TRUE(write_res);
-  ASSERT_EQ(buff_size, write_res.value());
+  EXPECT_OUTCOME_TRUE(write_res, empty_file->write(0, buff));
+  ASSERT_EQ(buff_size, write_res);
 
   auto check_file = std::ifstream(empty_file_path);
   char data_read[buff_size];
@@ -141,12 +147,11 @@ TEST_F(FileSystemFileTest, WriteToFile) {
   auto read_count = check_file.gcount();
 
   ASSERT_EQ(read_count, buff_size);
-  ASSERT_TRUE(memcmp(buff, data_read, buff_size) == 0);
+  ASSERT_TRUE(memcmp(buff.data(), data_read, buff_size) == 0);
 
   // check file size
-  auto size_res = empty_file->size();
-  ASSERT_TRUE(size_res);
-  ASSERT_EQ(buff_size, size_res.value());
+  EXPECT_OUTCOME_TRUE(size_res, empty_file->size());
+  ASSERT_EQ(buff_size, size_res);
 }
 
 /**
@@ -155,16 +160,14 @@ TEST_F(FileSystemFileTest, WriteToFile) {
  * @then data is written and actual size written is returned
  */
 TEST_F(FileSystemFileTest, WriteAtPos) {
-  auto open_res = empty_file->open();
-  ASSERT_TRUE(open_res);
+  EXPECT_OUTCOME_TRUE_1(empty_file->open());
 
   size_t start = 12;
-  char data[] = "hello world";
-  size_t data_size = strlen(data);
+  std::vector<char> data{'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
+  size_t data_size = data.size();
 
-  auto write_res = empty_file->write(start, data_size, data);
-  ASSERT_TRUE(write_res);
-  ASSERT_EQ(data_size, write_res.value());
+  EXPECT_OUTCOME_TRUE(write_res, empty_file->write(start, data));
+  ASSERT_EQ(data_size, write_res);
 
   auto check_file = std::ifstream(empty_file_path);
   char data_read[start + data_size];
@@ -176,12 +179,11 @@ TEST_F(FileSystemFileTest, WriteAtPos) {
   ASSERT_THAT(zeroes, testing::Each(0));
 
   ASSERT_EQ(read_count, start + data_size);
-  ASSERT_TRUE(memcmp(data, data_read + start, data_size) == 0);
+  ASSERT_TRUE(memcmp(data.data(), data_read + start, data_size) == 0);
 
   // check file size
-  auto size_res = empty_file->size();
-  ASSERT_TRUE(size_res);
-  ASSERT_EQ(start + data_size, size_res.value());
+  EXPECT_OUTCOME_TRUE(size_res, empty_file->size());
+  ASSERT_EQ(start + data_size, size_res);
 }
 
 /**
@@ -190,27 +192,36 @@ TEST_F(FileSystemFileTest, WriteAtPos) {
  * @then data is written and actual size written is returned
  */
 TEST_F(FileSystemFileTest, OverwriteAtPos) {
-  auto open_res = empty_file->open();
-  ASSERT_TRUE(open_res);
+  EXPECT_OUTCOME_TRUE_1(empty_file->open());
 
   size_t start = 0;
-  char data[] = "hello world";
-  size_t data_size = strlen(data);
+  std::vector<char> data{'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
 
-  auto write_res = empty_file->write(start, data_size, data);
-  ASSERT_TRUE(write_res);
-  ASSERT_EQ(data_size, write_res.value());
+  EXPECT_OUTCOME_TRUE(write_res, empty_file->write(start, data));
+  ASSERT_EQ(data.size(), write_res);
 
   start = 6;
-  char more_data[] = "beauty C++ world";
-  size_t more_data_size = strlen(more_data);
+  std::vector<char> more_data{'C', '+', '+', ' ', 'w', 'o', 'r', 'l', 'd'};
 
-  write_res = empty_file->write(start, more_data_size, more_data);
-  ASSERT_TRUE(write_res);
-  ASSERT_EQ(more_data_size, write_res.value());
+  EXPECT_OUTCOME_TRUE(write_res2, empty_file->write(start, more_data));
+  ASSERT_EQ(more_data.size(), write_res2);
 
-  char expected[] = "hello beauty C++ world";
-  size_t expected_size = strlen(expected);
+  std::vector<char> expected{'h',
+                             'e',
+                             'l',
+                             'l',
+                             'o',
+                             ' ',
+                             'C',
+                             '+',
+                             '+',
+                             ' ',
+                             'w',
+                             'o',
+                             'r',
+                             'l',
+                             'd'};
+  const size_t expected_size = expected.size();
   auto check_file = std::ifstream(empty_file_path);
   char data_read[expected_size];
   check_file.read(data_read, expected_size);
@@ -218,7 +229,7 @@ TEST_F(FileSystemFileTest, OverwriteAtPos) {
 
   // first *start* symbols are 0
   ASSERT_EQ(read_count, expected_size);
-  ASSERT_TRUE(memcmp(expected, data_read, expected_size) == 0);
+  ASSERT_TRUE(memcmp(expected.data(), data_read, expected_size) == 0);
 
   // check file size
   auto size_res = empty_file->size();
@@ -229,17 +240,14 @@ TEST_F(FileSystemFileTest, OverwriteAtPos) {
 /**
  * @given empty file
  * @when try to read
- * @then read call is successfull, 0 bytes read
+ * @then read call is successful, 0 bytes read
  */
 TEST_F(FileSystemFileTest, ReadEmptyFile) {
-  auto open_res = empty_file->open();
-  ASSERT_TRUE(open_res);
+  EXPECT_OUTCOME_TRUE_1(empty_file->open());
 
-  char data[32];
-  auto read_res = empty_file->read(0, 12, data);
-
-  ASSERT_TRUE(read_res);
-  ASSERT_EQ(0, read_res.value());
+  std::vector<char> data(32);
+  EXPECT_OUTCOME_TRUE(read_res, empty_file->read(0, data));
+  ASSERT_EQ(0, read_res);
 }
 
 /**
@@ -248,8 +256,7 @@ TEST_F(FileSystemFileTest, ReadEmptyFile) {
  * @then substring "C++" is read
  */
 TEST_F(FileSystemFileTest, ReadFileFrom) {
-  auto open_res = empty_file->open();
-  ASSERT_TRUE(open_res);
+  EXPECT_OUTCOME_TRUE_1(empty_file->open());
 
   std::ofstream file(empty_file_path);
   file << "Hello C++ world";
@@ -257,10 +264,9 @@ TEST_F(FileSystemFileTest, ReadFileFrom) {
 
   size_t read_from = 6;
   size_t read_size = 3;
-  char expected[] = "C++";
-  char data_read[32];
-  auto read_res = empty_file->read(read_from, read_size, data_read);
-  ASSERT_TRUE(read_res);
-  ASSERT_EQ(read_size, read_res.value());
-  ASSERT_TRUE(memcmp(expected, data_read, read_size) == 0);
+  char expected[]{'C', '+', '+'};
+  std::vector<char> data_read(read_size);
+  EXPECT_OUTCOME_TRUE(read_res, empty_file->read(read_from, data_read));
+  ASSERT_EQ(read_size, read_res);
+  ASSERT_TRUE(memcmp(expected, data_read.data(), read_size) == 0);
 }

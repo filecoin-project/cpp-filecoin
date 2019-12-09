@@ -15,6 +15,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::filestore, FileStoreError, e) {
       return "FileStore: cannot open file";
     case (FileStoreError::FILE_CLOSED):
       return "FileStore: file closed";
+    case (FileStoreError::DIRECTORY_NOT_FOUND):
+      return "FileStore: directory not found";
+    case (FileStoreError::NOT_DIRECTORY):
+      return "FileStore: not a directory";
     default:
       return "FileStore: unknown error";
   }

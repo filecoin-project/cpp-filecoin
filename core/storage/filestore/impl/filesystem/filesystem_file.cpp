@@ -37,40 +37,42 @@ fc::outcome::result<void> FileSystemFile::open() noexcept {
 
 fc::outcome::result<void> FileSystemFile::close() noexcept {
   OUTCOME_TRY(file_exists, exists());
-  if (!file_exists) return FileStoreError::FILE_NOT_FOUND;
-  if (!fstream_.is_open()) return FileStoreError::FILE_CLOSED;
+  try {
+    if (!file_exists) return FileStoreError::FILE_NOT_FOUND;
+    if (!fstream_.is_open()) return FileStoreError::FILE_CLOSED;
 
-  fstream_.close();
+    fstream_.close();
 
-  if (fstream_.fail()) return FileStoreError::UNKNOWN;
-  return fc::outcome::success();
+    if (fstream_.fail()) return FileStoreError::UNKNOWN;
+    return fc::outcome::success();
+  } catch (std::exception &) {
+    return FileStoreError::UNKNOWN;
+  }
 }
 
-fc::outcome::result<size_t> FileSystemFile::read(size_t offset,
-                                                 size_t size,
-                                                 char *buffer) noexcept {
+fc::outcome::result<size_t> FileSystemFile::read(
+    size_t offset, const gsl::span<char> &buffer) noexcept {
   OUTCOME_TRY(file_exists, exists());
   if (!file_exists) return FileStoreError::FILE_NOT_FOUND;
   if (!fstream_.is_open()) return FileStoreError::FILE_CLOSED;
   if (fstream_.fail()) return FileStoreError::UNKNOWN;
 
   fstream_.seekg(offset, std::ios_base::beg);
-  fstream_.read(buffer, size);
+  fstream_.read(buffer.data(), buffer.size());
   auto res = fstream_.gcount();
 
   return res;
 }
 
-fc::outcome::result<size_t> FileSystemFile::write(size_t offset,
-                                                  size_t size,
-                                                  char *buffer) noexcept {
+fc::outcome::result<size_t> FileSystemFile::write(
+    size_t offset, const gsl::span<const char> &buffer) noexcept {
   OUTCOME_TRY(file_exists, exists());
   if (!file_exists) return FileStoreError::FILE_NOT_FOUND;
   if (!fstream_.is_open()) return FileStoreError::FILE_CLOSED;
   if (fstream_.fail()) return FileStoreError::UNKNOWN;
 
   fstream_.seekp(offset, std::ios_base::beg);
-  fstream_.write(buffer, size);
+  fstream_.write(buffer.data(), buffer.size());
   fstream_.flush();
   auto pos = fstream_.tellp();
   if (pos == -1) return FileStoreError::UNKNOWN;
