@@ -7,6 +7,7 @@
 #define FILECOIN_CORE_STORAGE_FILESTORE_FILESYSTEM_FILE_HPP
 
 #include <string>
+
 #include "boost/filesystem.hpp"
 #include "storage/filestore/file.hpp"
 
@@ -34,14 +35,12 @@ namespace fc::storage::filestore {
     outcome::result<void> close() noexcept override;
 
     /** \copydoc File::read() */
-    fc::outcome::result<size_t> read(size_t offset,
-                                     size_t size,
-                                     char *buffer) noexcept override;
+    fc::outcome::result<size_t> read(
+        size_t offset, const gsl::span<char> &buffer) noexcept override;
 
     /** \copydoc File::write() */
-    fc::outcome::result<size_t> write(size_t offset,
-                                      size_t size,
-                                      char *buffer) noexcept override;
+    fc::outcome::result<size_t> write(
+        size_t offset, const gsl::span<const char> &buffer) noexcept override;
 
     /** \copydoc File::is_open() */
     bool is_open() const noexcept override;
