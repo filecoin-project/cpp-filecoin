@@ -49,7 +49,7 @@ namespace fc::storage::filestore {
      * @return number of bytes read
      */
     virtual fc::outcome::result<size_t> read(size_t offset,
-                                             const gsl::span<char> &buffer) noexcept = 0;
+                                             const gsl::span<uint8_t> &buffer) noexcept = 0;
 
     /**
      * @brief write to the file
@@ -58,7 +58,7 @@ namespace fc::storage::filestore {
      * @return number of bytes written
      */
     virtual fc::outcome::result<size_t> write(size_t offset,
-                                              const gsl::span<const char> &buffer) noexcept = 0;
+                                              const gsl::span<const uint8_t> &buffer) noexcept = 0;
 
     /**
      * @brief Whether the file is open

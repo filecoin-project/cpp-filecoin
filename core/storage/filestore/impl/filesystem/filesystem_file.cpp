@@ -51,28 +51,30 @@ fc::outcome::result<void> FileSystemFile::close() noexcept {
 }
 
 fc::outcome::result<size_t> FileSystemFile::read(
-    size_t offset, const gsl::span<char> &buffer) noexcept {
+    size_t offset, const gsl::span<uint8_t> &buffer) noexcept {
   OUTCOME_TRY(file_exists, exists());
   if (!file_exists) return FileStoreError::FILE_NOT_FOUND;
   if (!fstream_.is_open()) return FileStoreError::FILE_CLOSED;
   if (fstream_.fail()) return FileStoreError::UNKNOWN;
 
   fstream_.seekg(offset, std::ios_base::beg);
-  fstream_.read(buffer.data(), buffer.size());
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  fstream_.read(reinterpret_cast<char *>(buffer.data()), buffer.size());
   auto res = fstream_.gcount();
 
   return res;
 }
 
 fc::outcome::result<size_t> FileSystemFile::write(
-    size_t offset, const gsl::span<const char> &buffer) noexcept {
+    size_t offset, const gsl::span<const uint8_t> &buffer) noexcept {
   OUTCOME_TRY(file_exists, exists());
   if (!file_exists) return FileStoreError::FILE_NOT_FOUND;
   if (!fstream_.is_open()) return FileStoreError::FILE_CLOSED;
   if (fstream_.fail()) return FileStoreError::UNKNOWN;
 
   fstream_.seekp(offset, std::ios_base::beg);
-  fstream_.write(buffer.data(), buffer.size());
+  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+  fstream_.write(reinterpret_cast<const char *>(buffer.data()), buffer.size());
   fstream_.flush();
   auto pos = fstream_.tellp();
   if (pos == -1) return FileStoreError::UNKNOWN;
