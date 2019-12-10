@@ -3,9 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "codec/cbor/cbor_decode_stream.hpp"
-#include "codec/cbor/cbor_encode_stream.hpp"
-#include "codec/cbor/cbor_resolve.hpp"
+#include "codec/cbor/cbor.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
@@ -16,6 +14,8 @@ using fc::codec::cbor::CborDecodeStream;
 using fc::codec::cbor::CborEncodeError;
 using fc::codec::cbor::CborEncodeStream;
 using fc::codec::cbor::CborResolveError;
+using fc::codec::cbor::decode;
+using fc::codec::cbor::encode;
 using fc::codec::cbor::resolve;
 using libp2p::multi::ContentIdentifier;
 using libp2p::multi::ContentIdentifierCodec;
@@ -25,14 +25,8 @@ auto kCidRaw = "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504
 auto kCidCbor = "D82A582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
 
 template<typename T>
-auto encodeOne(const T &value) {
-  return (CborEncodeStream() << value).data();
-}
-
-template<typename T>
 void expectDecodeOne(const std::vector<uint8_t> &encoded, const T &expected) {
-  T actual;
-  CborDecodeStream(encoded) >> actual;
+  EXPECT_OUTCOME_TRUE_2(actual, decode<T>(encoded));
   EXPECT_EQ(actual, expected);
 }
 
@@ -44,19 +38,32 @@ void expectDecodeOne(const std::vector<uint8_t> &encoded, const T &expected) {
   { EXPECT_OUTCOME_FALSE_2(e, expr); EXPECT_EQ(e, ecode); }
 
 /**
+ * @given Element or CBOR
+ * @when encode decode
+ * @then As expected
+ */
+TEST(Cbor, EncodeDecode) {
+  EXPECT_EQ(encode(1), "01"_unhex);
+  EXPECT_EQ(decode<int>("01"_unhex).value(), 1);
+  EXPECT_EQ(encode(decode<int>("01"_unhex).value()), "01"_unhex);
+  EXPECT_EQ(decode<int>(encode(1)).value(), 1);
+  EXPECT_OUTCOME_ERROR(CborDecodeError::WRONG_TYPE, decode<int>("80"_unhex));
+}
+
+/**
  * @given Integers and bool
  * @when Encode
  * @then Encoded as expected
  */
 TEST(CborEncoder, Integral) {
-  EXPECT_EQ(encodeOne(0ull), "00"_unhex);
-  EXPECT_EQ(encodeOne(0ll), "00"_unhex);
-  EXPECT_EQ(encodeOne(1), "01"_unhex);
-  EXPECT_EQ(encodeOne(23), "17"_unhex);
-  EXPECT_EQ(encodeOne(24), "1818"_unhex);
-  EXPECT_EQ(encodeOne(-1), "20"_unhex);
-  EXPECT_EQ(encodeOne(false), "F4"_unhex);
-  EXPECT_EQ(encodeOne(true), "F5"_unhex);
+  EXPECT_EQ(encode(0ull), "00"_unhex);
+  EXPECT_EQ(encode(0ll), "00"_unhex);
+  EXPECT_EQ(encode(1), "01"_unhex);
+  EXPECT_EQ(encode(23), "17"_unhex);
+  EXPECT_EQ(encode(24), "1818"_unhex);
+  EXPECT_EQ(encode(-1), "20"_unhex);
+  EXPECT_EQ(encode(false), "F4"_unhex);
+  EXPECT_EQ(encode(true), "F5"_unhex);
 }
 
 /**
@@ -120,7 +127,7 @@ TEST(CborEncoder, FlatNest) {
  */
 TEST(CborEncoder, Cid) {
   EXPECT_OUTCOME_TRUE_2(cid, ContentIdentifierCodec::decode(kCidRaw));
-  EXPECT_EQ(encodeOne(cid), kCidCbor);
+  EXPECT_EQ(encode(cid), kCidCbor);
 }
 
 /**
@@ -129,7 +136,7 @@ TEST(CborEncoder, Cid) {
  * @then Encoded as expected
  */
 TEST(CborEncoder, String) {
-  EXPECT_EQ(encodeOne(std::string("foo")), "63666F6F"_unhex);
+  EXPECT_EQ(encode(std::string("foo")), "63666F6F"_unhex);
 }
 
 /**
