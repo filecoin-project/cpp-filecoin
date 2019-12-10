@@ -14,10 +14,12 @@
 #include <cbor.h>
 
 namespace fc::codec::cbor {
+  /** Encodes CBOR */
   class CborEncodeStream {
    public:
     static constexpr auto is_cbor_encoder_stream = true;
 
+    /** Encodes integer or bool */
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     CborEncodeStream &operator<<(T num) {
       addCount(1);
@@ -38,13 +40,20 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    /** Encodes string */
     CborEncodeStream &operator<<(const std::string &str);
+    /** Encodes CID */
     CborEncodeStream &operator<<(const libp2p::multi::ContentIdentifier &cid);
+    /** Encodes list container encode substream */
     CborEncodeStream &operator<<(const CborEncodeStream &other);
+    /** Encodes map container encode substream map */
     CborEncodeStream &operator<<(
         const std::map<std::string, CborEncodeStream> &map);
+    /** Returns CBOR bytes of encoded elements */
     std::vector<uint8_t> data() const;
+    /** Creates list container encode substream */
     static CborEncodeStream list();
+    /** Creates map container encode substream map */
     static std::map<std::string, CborEncodeStream> map();
 
    private:

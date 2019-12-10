@@ -14,12 +14,14 @@
 #include <gsl/span>
 
 namespace fc::codec::cbor {
+  /** Decodes CBOR */
   class CborDecodeStream {
    public:
     static constexpr auto is_cbor_decoder_stream = true;
 
     explicit CborDecodeStream(gsl::span<const uint8_t> data);
 
+    /** Decodes integer or bool */
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     CborDecodeStream &operator>>(T &num) {
       if (std::is_same_v<T, bool>) {
@@ -57,16 +59,27 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    /** Decodes bytes */
     CborDecodeStream &operator>>(std::vector<uint8_t> &bytes);
+    /** Decodes string */
     CborDecodeStream &operator>>(std::string &str);
+    /** Decodes CID */
     CborDecodeStream &operator>>(libp2p::multi::ContentIdentifier &cid);
+    /** Creates list container decode substream */
     CborDecodeStream list();
+    /** Skips current element */
     void next();
+    /** Checks if current element is CID */
     bool isCid() const;
+    /** Checks if current element is list container */
     bool isList() const;
+    /** Checks if current element is map container */
     bool isMap() const;
+    /** Returns count of items in current element list container */
     size_t listLength() const;
+    /** Returns CBOR bytes of current element */
     std::vector<uint8_t> raw() const;
+    /** Creates map container decode substream map */
     std::map<std::string, CborDecodeStream> map();
 
    private:
