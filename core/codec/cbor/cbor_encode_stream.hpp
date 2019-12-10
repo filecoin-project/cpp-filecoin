@@ -9,8 +9,9 @@
 #include "codec/cbor/cbor_common.hpp"
 
 #include <array>
-#include <cbor.h>
 #include <vector>
+
+#include <cbor.h>
 
 namespace fc::codec::cbor {
   class CborEncodeStream {

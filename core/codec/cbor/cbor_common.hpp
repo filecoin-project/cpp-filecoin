@@ -6,10 +6,12 @@
 #ifndef CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_COMMON_HPP
 #define CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_COMMON_HPP
 
+#include <cstdint>
+
+#include <libp2p/multi/content_identifier_codec.hpp>
+
 #include "codec/cbor/cbor_errors.hpp"
 #include "common/outcome_throw.hpp"
-#include <cstdint>
-#include <libp2p/multi/content_identifier_codec.hpp>
 
 namespace fc::codec::cbor {
   constexpr uint64_t kCidTag = 42;

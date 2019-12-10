@@ -8,9 +8,10 @@
 
 #include "codec/cbor/cbor_common.hpp"
 
+#include <vector>
+
 #include <cbor.h>
 #include <gsl/span>
-#include <vector>
 
 namespace fc::codec::cbor {
   class CborDecodeStream {
