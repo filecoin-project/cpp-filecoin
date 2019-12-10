@@ -43,6 +43,11 @@ void expectDecodeOne(const std::vector<uint8_t> &encoded, const T &expected) {
 #define EXPECT_OUTCOME_ERROR(ecode, expr) \
   { EXPECT_OUTCOME_FALSE_2(e, expr); EXPECT_EQ(e, ecode); }
 
+/**
+ * @given Integers and bool
+ * @when Encode
+ * @then Encoded as expected
+ */
 TEST(CborEncoder, Integral) {
   EXPECT_EQ(encodeOne(0ull), "00"_unhex);
   EXPECT_EQ(encodeOne(0ll), "00"_unhex);
@@ -54,6 +59,11 @@ TEST(CborEncoder, Integral) {
   EXPECT_EQ(encodeOne(true), "F5"_unhex);
 }
 
+/**
+ * @given Sequence
+ * @when Encode
+ * @then Encoded as expected
+ */
 TEST(CborEncoder, Flat) {
   CborEncodeStream s;
   EXPECT_EQ(s.data(), ""_unhex);
@@ -63,6 +73,11 @@ TEST(CborEncoder, Flat) {
   EXPECT_EQ(s.data(), "0102"_unhex);
 }
 
+/**
+ * @given List
+ * @when Encode
+ * @then Encoded as expected
+ */
 TEST(CborEncoder, List) {
   auto s = CborEncodeStream().list();
   EXPECT_EQ(s.data(), "80"_unhex);
@@ -70,6 +85,11 @@ TEST(CborEncoder, List) {
   EXPECT_EQ(s.data(), "8101"_unhex);
 }
 
+/**
+ * @given Nested list and sequence containers
+ * @when Encode
+ * @then Encoded as expected
+ */
 TEST(CborEncoder, ListNest) {
   auto s = CborEncodeStream().list();
   EXPECT_EQ(s.data(), "80"_unhex);
@@ -79,6 +99,11 @@ TEST(CborEncoder, ListNest) {
   EXPECT_EQ(s.data(), "84820102030405"_unhex);
 }
 
+/**
+ * @given Nested sequence containers
+ * @when Encode
+ * @then Encoded as expected
+ */
 TEST(CborEncoder, FlatNest) {
   CborEncodeStream s1;
   s1 << 1 << 2;
@@ -88,15 +113,30 @@ TEST(CborEncoder, FlatNest) {
   EXPECT_EQ(s2.data(), "0102"_unhex);
 }
 
+/**
+ * @given CID
+ * @when Encode
+ * @then Encoded as expected
+ */
 TEST(CborEncoder, Cid) {
   EXPECT_OUTCOME_TRUE_2(cid, ContentIdentifierCodec::decode(kCidRaw));
   EXPECT_EQ(encodeOne(cid), kCidCbor);
 }
 
+/**
+ * @given String
+ * @when Encode
+ * @then Encoded as expected
+ */
 TEST(CborEncoder, String) {
   EXPECT_EQ(encodeOne(std::string("foo")), "63666F6F"_unhex);
 }
 
+/**
+ * @given Map container
+ * @when Encode
+ * @then Encoded as expected
+ */
 TEST(CborEncoder, Map) {
   CborEncodeStream s;
   auto map = s.map();
@@ -107,6 +147,11 @@ TEST(CborEncoder, Map) {
   EXPECT_EQ(s.data(), "A361620261630362616101"_unhex);
 }
 
+/**
+ * @given Invalid CID
+ * @when Encode
+ * @then Error
+ */
 TEST(CborEncoder, CidErrors) {
   using namespace libp2p::multi;
   EXPECT_OUTCOME_TRUE_2(hash, Multihash::create(HashType::identity, {}));
@@ -114,6 +159,11 @@ TEST(CborEncoder, CidErrors) {
   EXPECT_OUTCOME_RAISE(CborEncodeError::INVALID_CID, CborEncodeStream() << cid);
 }
 
+/**
+ * @given Invalid map container
+ * @when Encode
+ * @then Error
+ */
 TEST(CborEncoder, MapErrors) {
   CborEncodeStream s;
   auto map1 = s.map();
@@ -124,6 +174,11 @@ TEST(CborEncoder, MapErrors) {
   EXPECT_OUTCOME_RAISE(CborEncodeError::EXPECTED_MAP_VALUE_SINGLE, CborEncodeStream() << map2);
 }
 
+/**
+ * @given Integer and bool CBOR
+ * @when Decode integer and bool
+ * @then Decoded as expected
+ */
 TEST(CborDecoder, Integral) {
   expectDecodeOne("00"_unhex, 0ull);
   expectDecodeOne("00"_unhex, 0ll);
@@ -135,6 +190,11 @@ TEST(CborDecoder, Integral) {
   expectDecodeOne("F5"_unhex, true);
 }
 
+/**
+ * @given CID CBOR
+ * @when Decode CID
+ * @then Decoded as expected
+ */
 TEST(CborDecoder, Cid) {
   EXPECT_OUTCOME_TRUE_2(expected, ContentIdentifierCodec::decode(kCidRaw));
   // libp2p::multi::ContentIdentifier is not default constructible and must be initialized somehow
@@ -144,6 +204,11 @@ TEST(CborDecoder, Cid) {
   EXPECT_EQ(actual, expected);
 }
 
+/**
+ * @given CID CBOR
+ * @when Skip CID
+ * @then Skipped as expected
+ */
 TEST(CborDecoder, CidNext) {
   auto bytes = kCidCbor;
   bytes.push_back(0x01);
@@ -153,6 +218,11 @@ TEST(CborDecoder, CidNext) {
   s >> i;
 }
 
+/**
+ * @given Sequence CBOR
+ * @when Decode sequence
+ * @then Decoded as expected
+ */
 TEST(CborDecoder, Flat) {
   CborDecodeStream s("0504"_unhex);
   int a, b;
@@ -161,6 +231,11 @@ TEST(CborDecoder, Flat) {
   EXPECT_EQ(b, 4);
 }
 
+/**
+ * @given List CBOR
+ * @when Decode list container
+ * @then Decoded as expected
+ */
 TEST(CborDecoder, List) {
   CborDecodeStream s1("82050403"_unhex);
   auto s2 = s1.list();
@@ -173,12 +248,22 @@ TEST(CborDecoder, List) {
   EXPECT_EQ(c, 3);
 }
 
+/**
+ * @given String CBOR
+ * @when Decode string
+ * @then Decoded as expected
+ */
 TEST(CborDecoder, String) {
   std::string s;
   CborDecodeStream("63666F6F"_unhex) >> s;
   EXPECT_EQ(s, "foo");
 }
 
+/**
+ * @given Map CBOR
+ * @when Decode map container
+ * @then Decoded as expected
+ */
 TEST(CborDecoder, Map) {
   auto m = CborDecodeStream("A261610261628101"_unhex).map();
   int a, b;
@@ -186,11 +271,21 @@ TEST(CborDecoder, Map) {
   m.at("b").list() >> b;
 }
 
+/**
+ * @given Invalid CBOR
+ * @when Init decoder
+ * @then Error
+ */
 TEST(CborDecoder, InitErrors) {
   EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("FF"_unhex));
   EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("18"_unhex));
 }
 
+/**
+ * @given Invalid CBOR or wrong type
+ * @when Decode integer and bool
+ * @then Error
+ */
 TEST(CborDecoder, IntErrors) {
   bool b;
   uint8_t u8;
@@ -202,19 +297,33 @@ TEST(CborDecoder, IntErrors) {
   EXPECT_OUTCOME_RAISE(CborDecodeError::INT_OVERFLOW, CborDecodeStream("1880"_unhex) >> i8);
 }
 
+/**
+ * @given Sequence and list CBOR
+ * @when Decode after end of sequence or list
+ * @then Error
+ */
 TEST(CborDecoder, FlatErrors) {
   int i;
   EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE, CborDecodeStream("01"_unhex).list() >> i >> i);
+  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE, CborDecodeStream("80"_unhex).list() >> i);
 }
 
+/**
+ * @given Invalid list CBOR
+ * @when Decode list container
+ * @then Error
+ */
 TEST(CborDecoder, ListErrors) {
   EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE, CborDecodeStream("01"_unhex).list());
   EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("81"_unhex).list());
   EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("8018"_unhex).list());
-  int i;
-  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE, CborDecodeStream("80"_unhex).list() >> i);
 }
 
+/**
+ * @given Invalid CID CBOR
+ * @when Decode CID
+ * @then Error
+ */
 TEST(CborDecoder, CidErrors) {
   // libp2p::multi::ContentIdentifier is not default constructible and must be initialized somehow
   EXPECT_OUTCOME_TRUE_2(actual, ContentIdentifierCodec::decode(kCidEmptyRaw));
@@ -232,12 +341,22 @@ TEST(CborDecoder, CidErrors) {
   EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CID, CborDecodeStream("D82A420000"_unhex) >> actual);
 }
 
+/**
+ * @given CBOR
+ * @when isCid
+ * @then As expected
+ */
 TEST(CborDecoder, IsCid) {
   EXPECT_TRUE(CborDecodeStream(kCidCbor).isCid());
   EXPECT_TRUE(CborDecodeStream("D82A"_unhex).isCid());
   EXPECT_FALSE(CborDecodeStream("01"_unhex).isCid());
 }
 
+/**
+ * @given CBOR 
+ * @when isList, listLength, isMap, raw
+ * @then As expected
+ */
 TEST(CborDecoder, Misc) {
   EXPECT_TRUE(CborDecodeStream("80"_unhex).isList());
   EXPECT_EQ(CborDecodeStream("820101"_unhex).listLength(), 2);
@@ -246,6 +365,11 @@ TEST(CborDecoder, Misc) {
   EXPECT_EQ(CborDecodeStream("810201"_unhex).raw(), "8102"_unhex);
 }
 
+/**
+ * @given CBOR and empty path
+ * @when Resolve
+ * @then Returned whole CBOR
+ */
 TEST(CborResolve, Root) {
   auto a = "80"_unhex;
   EXPECT_OUTCOME_TRUE_2(b, resolve(a, {}));
@@ -253,12 +377,22 @@ TEST(CborResolve, Root) {
   EXPECT_EQ(b.second.size(), 0);
 }
 
+/**
+ * @given CBOR and path through CID
+ * @when Resolve
+ * @then Returns CID CBOR and rest of path
+ */
 TEST(CborResolve, Cid) {
   EXPECT_OUTCOME_TRUE_2(b, resolve(kCidCbor, {"a"}));
   EXPECT_EQ(b.first, kCidCbor);
   EXPECT_EQ(b.second.size(), 1);
 }
 
+/**
+ * @given List CBOR and path
+ * @when Resolve
+ * @then As expected
+ */
 TEST(CborResolve, IntKey) {
   auto a = "8405060708"_unhex;
 
@@ -271,6 +405,11 @@ TEST(CborResolve, IntKey) {
   EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, {"4"}));
 }
 
+/**
+ * @given Map CBOR and path
+ * @when Resolve
+ * @then As expected
+ */
 TEST(CborResolve, StringKey) {
   auto a = "A3616103616204616305"_unhex;
 
@@ -281,6 +420,11 @@ TEST(CborResolve, StringKey) {
   EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, {"1"}));
 }
 
+/**
+ * @given Invalid CBOR or wrong type
+ * @when Resolve
+ * @then Error
+ */
 TEST(CborResolve, Errors) {
   EXPECT_OUTCOME_ERROR(CborResolveError::CONTAINER_EXPECTED, resolve("01"_unhex, {"0"}));
   EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CBOR, resolve("8281"_unhex, {"1"}));
