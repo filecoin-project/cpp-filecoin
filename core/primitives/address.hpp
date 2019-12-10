@@ -26,12 +26,12 @@ namespace fc::primitives {
   /**
    * @brief Supported networks inside which addresses make sense
    */
-  enum Network : uint8_t { mainnet = 0x0, testnet = 0x1 };
+  enum Network : uint8_t { MAINNET = 0x0, TESTNET = 0x1 };
 
   /**
    * @brief Known Address protocols
    */
-  enum Protocol : uint8_t { ID = 0x0, SECP256K1 = 0x1, Actor = 0x2, BLS = 0x3 };
+  enum Protocol : uint8_t { ID = 0x0, SECP256K1 = 0x1, ACTOR = 0x2, BLS = 0x3 };
 
   struct Secp256k1PublicKeyHash : public common::Blob<20> {
     using Blob::Blob;
@@ -45,26 +45,29 @@ namespace fc::primitives {
     using Blob::Blob;
   };
 
-  using Payload = boost::variant<uint64_t, Secp256k1PublicKeyHash, ActorExecHash, BLSPublicKeyHash>;
+  using Payload = boost::variant<uint64_t,
+                                 Secp256k1PublicKeyHash,
+                                 ActorExecHash,
+                                 BLSPublicKeyHash>;
 
   /**
    * @brief Address refers to an actor in the Filecoin state
    */
   struct Address {
     /**
-     * @brief Returns the address protocol: ID, Secp256k1, Actor or BLS
+     * @brief Returns the address protocol: ID, Secp256k1, ACTOR or BLS
      */
-    Protocol GetProtocol() const;
+    Protocol getProtocol() const;
 
     /**
      * @brief Public API method as in
      * https://filecoin-project.github.io/specs/#systems__filecoin_vm__actor__address
      * @return true if the address represents a public key
      */
-    bool IsKeyType() const;
+    bool isKeyType() const;
 
-    Network network_;
-    Payload data_;
+    Network network;
+    Payload data;
   };
 
   /**

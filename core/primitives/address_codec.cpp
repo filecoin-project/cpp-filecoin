@@ -14,22 +14,22 @@
 
 namespace fc::primitives {
 
-  const size_t kBlake2b160HashSize{20};
-  const size_t kBLSHashSize{48};
+  static const size_t kBlake2b160HashSize{20};
+  static const size_t kBLSHashSize{48};
 
   using common::Blob;
   using base32 = cppcodec::base32_rfc4648;
 
   std::vector<uint8_t> encode(const Address &address) {
     std::vector<uint8_t> res{};
-    res.push_back(address.network_);
-    res.push_back(address.GetProtocol());
-    std::vector<uint8_t> payload = visit_in_place(
-        address.data_,
-        [](uint64_t v) { return codec::leb128::encode(v); },
-        [](const Secp256k1PublicKeyHash &v) { return std::vector<uint8_t>(v.begin(), v.end()); },
-        [](const ActorExecHash &v) { return std::vector<uint8_t>(v.begin(), v.end()); },
-        [](const BLSPublicKeyHash &v) { return std::vector<uint8_t>(v.begin(), v.end()); });
+    res.push_back(address.network);
+    res.push_back(address.getProtocol());
+    std::vector<uint8_t> payload =
+        visit_in_place(address.data,
+                       [](uint64_t v) { return codec::leb128::encode(v); },
+                       [](const auto &v) {
+                         return std::vector<uint8_t>(v.begin(), v.end());
+                       });
     res.insert(res.end(), payload.begin(), payload.end());
     return res;
   }
@@ -39,7 +39,7 @@ namespace fc::primitives {
     auto pos = v.begin();
 
     auto net = static_cast<Network>(*(pos++));
-    if (!(net == Network::testnet || net == Network::mainnet)) {
+    if (!(net == Network::TESTNET || net == Network::MAINNET)) {
       return outcome::failure(AddressError::UNKNOWN_NETWORK);
     }
 
@@ -61,7 +61,7 @@ namespace fc::primitives {
         std::copy_n(payload.begin(), kBlake2b160HashSize, hash.begin());
         return outcome::success(Address{net, hash});
       }
-      case Protocol::Actor: {
+      case Protocol::ACTOR: {
         if (payload.size() != kBlake2b160HashSize) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
@@ -86,36 +86,40 @@ namespace fc::primitives {
     std::string res{};
 
     char networkPrefix = 'f';
-    if (address.network_ == Network::testnet) networkPrefix = 't';
+    if (address.network == Network::TESTNET) networkPrefix = 't';
     res.push_back(networkPrefix);
 
-    Protocol p = address.GetProtocol();
+    Protocol p = address.getProtocol();
     res.append(std::to_string(p));
 
     if (p == Protocol::ID) {
-      const uint64_t *data_ptr = boost::get<uint64_t>(&address.data_);
+      const uint64_t *data_ptr = boost::get<uint64_t>(&address.data);
       if (data_ptr != nullptr) res.append(std::to_string(*data_ptr));
       return res;
     }
 
     std::vector<uint8_t> payload = visit_in_place(
-        address.data_,
+        address.data,
         [](uint64_t v) { return codec::leb128::encode(v); },
-        [](const Secp256k1PublicKeyHash &v) { return std::vector<uint8_t>(v.begin(), v.end()); },
-        [](const ActorExecHash &v) { return std::vector<uint8_t>(v.begin(), v.end()); },
-        [](const BLSPublicKeyHash &v) { return std::vector<uint8_t>(v.begin(), v.end()); });
+        [](const auto &v) { return std::vector<uint8_t>(v.begin(), v.end()); });
 
     std::vector chksum = checksum(address);
 
     payload.insert(payload.end(), chksum.begin(), chksum.end());
     auto encoded = base32::encode(payload);
 
-    // Convert to lower case, as the spec requires: https://filecoin-project.github.io/specs/#payload
+    // Convert to lower case, as the spec requires:
+    // https://filecoin-project.github.io/specs/#payload
     std::transform(
-        encoded.begin(), encoded.end(), encoded.begin(), [](unsigned char c) { return std::tolower(c); });
+        encoded.begin(), encoded.end(), encoded.begin(), [](unsigned char c) {
+          return std::tolower(c);
+        });
     res.append(encoded);
     // Remove padding '=' symbols
-    res.erase(std::remove_if(res.begin(), res.end(), [](unsigned char x) { return x == '='; }), res.end());
+    res.erase(
+        std::remove_if(
+            res.begin(), res.end(), [](unsigned char x) { return x == '='; }),
+        res.end());
     return res;
   }
 
@@ -123,14 +127,15 @@ namespace fc::primitives {
     if (s.size() < 3) return outcome::failure(AddressError::INVALID_PAYLOAD);
 
     std::vector<uint8_t> buffer{};
-    Network net{Network::mainnet};
+    Network net{Network::MAINNET};
 
-    if (s[0] != 'f' && s[0] != 't') return outcome::failure(AddressError::UNKNOWN_NETWORK);
+    if (s[0] != 'f' && s[0] != 't')
+      return outcome::failure(AddressError::UNKNOWN_NETWORK);
     if (s[0] == 'f')
-      buffer.push_back(static_cast<uint8_t>(Network::mainnet));
+      buffer.push_back(static_cast<uint8_t>(Network::MAINNET));
     else {
-      buffer.push_back(static_cast<uint8_t>(Network::testnet));
-      net = Network::testnet;
+      buffer.push_back(static_cast<uint8_t>(Network::TESTNET));
+      net = Network::TESTNET;
     }
 
     int protocol = int(s[1]) - int('0');
@@ -154,7 +159,9 @@ namespace fc::primitives {
     buffer.push_back(static_cast<uint8_t>(protocol));
 
     // transform the base32-encoded part of the input to upper case
-    std::transform(tail.begin(), tail.end(), tail.begin(), [](char c) { return std::toupper(c); });
+    std::transform(tail.begin(), tail.end(), tail.begin(), [](char c) {
+      return std::toupper(c);
+    });
 
     // Pad spayload with '=' on the right to make its length a multiple of 8
     auto numPads = 8l - static_cast<int64_t>(tail.size() % 8);
@@ -163,9 +170,11 @@ namespace fc::primitives {
 
     auto payload = base32::decode(tail);
 
-    if (payload.size() < 4) return outcome::failure(AddressError::INVALID_PAYLOAD);
+    if (payload.size() < 4)
+      return outcome::failure(AddressError::INVALID_PAYLOAD);
 
-    // Copy the decoded payload except last 4 bytes of the checksum to the buffer
+    // Copy the decoded payload except last 4 bytes of the checksum to the
+    // buffer
     buffer.insert(buffer.end(), payload.begin(), payload.end() - 4);
 
     return decode(buffer);
@@ -174,7 +183,7 @@ namespace fc::primitives {
   std::vector<uint8_t> checksum(const Address &address) {
     std::vector<uint8_t> res{};
 
-    Protocol p = address.GetProtocol();
+    Protocol p = address.getProtocol();
     if (p == Protocol::ID) {
       // Checksum is not defined for an ID Address
       return res;
@@ -186,17 +195,9 @@ namespace fc::primitives {
 
     ingest.push_back(p);
 
-    ingest = visit_in_place(address.data_,
+    ingest = visit_in_place(address.data,
                             [&ingest](uint64_t v) { return ingest; },
-                            [&ingest](const Secp256k1PublicKeyHash &v) {
-                              ingest.insert(ingest.end(), v.begin(), v.end());
-                              return ingest;
-                            },
-                            [&ingest](const ActorExecHash &v) {
-                              ingest.insert(ingest.end(), v.begin(), v.end());
-                              return ingest;
-                            },
-                            [&ingest](const BLSPublicKeyHash &v) {
+                            [&ingest](const auto &v) {
                               ingest.insert(ingest.end(), v.begin(), v.end());
                               return ingest;
                             });
@@ -206,7 +207,8 @@ namespace fc::primitives {
     return res;
   }
 
-  bool validateChecksum(const Address &address, const std::vector<uint8_t> &expect) {
+  bool validateChecksum(const Address &address,
+                        const std::vector<uint8_t> &expect) {
     std::vector<uint8_t> digest = checksum(address);
     return digest == expect;
   }

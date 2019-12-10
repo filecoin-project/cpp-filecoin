@@ -36,14 +36,16 @@ namespace fc::primitives {
   outcome::result<Address> decodeFromString(const std::string &s);
 
   /**
-   * @brief A helper function that calculates a checksum of an Address protocol + payload
+   * @brief A helper function that calculates a checksum of an Address protocol
+   * + payload
    */
   std::vector<uint8_t> checksum(const Address &address);
 
   /**
    * @brief Validates whether the Address' checksum matches the provided expect
    */
-  bool validateChecksum(const Address &address, const std::vector<uint8_t> &expect);
+  bool validateChecksum(const Address &address,
+                        const std::vector<uint8_t> &expect);
 
 };  // namespace fc::primitives
 
