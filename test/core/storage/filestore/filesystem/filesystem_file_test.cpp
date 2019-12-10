@@ -52,12 +52,12 @@ TEST_F(FileSystemFileTest, FileNotFound) {
   auto res_size = file->size();
   ASSERT_FALSE(res_size);
 
-  std::vector<char> buff{'a', 'b', 'c'};
+  std::vector<uint8_t> buff{'a', 'b', 'c'};
   auto write_res = file->write(0, buff);
   ASSERT_FALSE(write_res);
   ASSERT_EQ(FileStoreError::FILE_NOT_FOUND, write_res.error());
 
-  std::array<char, 3> read_buff{};
+  std::array<uint8_t, 3> read_buff{};
   auto read_res = file->read(0, read_buff);
   ASSERT_FALSE(read_res);
   ASSERT_EQ(FileStoreError::FILE_NOT_FOUND, read_res.error());
@@ -95,12 +95,12 @@ TEST_F(FileSystemFileTest, CloseFile) {
   EXPECT_OUTCOME_TRUE_1(empty_file->close());
   ASSERT_FALSE(empty_file->is_open());
 
-  std::vector<char> buff{'A', 'B', 'C'};
+  std::vector<uint8_t> buff{'A', 'B', 'C'};
   auto write_res = empty_file->write(0, buff);
   ASSERT_FALSE(write_res);
   ASSERT_EQ(FileStoreError::FILE_CLOSED, write_res.error());
 
-  std::array<char, 3> read_buff{};
+  std::array<uint8_t, 3> read_buff{};
   auto read_res = empty_file->read(0, read_buff);
   ASSERT_FALSE(read_res);
   ASSERT_EQ(FileStoreError::FILE_CLOSED, read_res.error());
@@ -122,7 +122,7 @@ TEST_F(FileSystemFileTest, CloseFile) {
 TEST_F(FileSystemFileTest, WriteZeroBytesToFile) {
   EXPECT_OUTCOME_TRUE_1(empty_file->open());
 
-  std::vector<char> buff;
+  std::vector<uint8_t> buff;
   EXPECT_OUTCOME_TRUE(write_res, empty_file->write(0, buff));
   ASSERT_EQ(0, write_res);
 }
@@ -135,7 +135,7 @@ TEST_F(FileSystemFileTest, WriteZeroBytesToFile) {
 TEST_F(FileSystemFileTest, WriteToFile) {
   EXPECT_OUTCOME_TRUE_1(empty_file->open());
 
-  std::vector<char> buff{'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
+  std::vector<uint8_t> buff{'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
   const size_t buff_size = buff.size();
 
   EXPECT_OUTCOME_TRUE(write_res, empty_file->write(0, buff));
@@ -163,7 +163,7 @@ TEST_F(FileSystemFileTest, WriteAtPos) {
   EXPECT_OUTCOME_TRUE_1(empty_file->open());
 
   size_t start = 12;
-  std::vector<char> data{'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
+  std::vector<uint8_t> data{'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
   size_t data_size = data.size();
 
   EXPECT_OUTCOME_TRUE(write_res, empty_file->write(start, data));
@@ -175,7 +175,7 @@ TEST_F(FileSystemFileTest, WriteAtPos) {
   auto read_count = check_file.gcount();
 
   // first *start* symbols are 0
-  std::vector<char> zeroes(data_read, data_read + start);
+  std::vector<uint8_t> zeroes(data_read, data_read + start);
   ASSERT_THAT(zeroes, testing::Each(0));
 
   ASSERT_EQ(read_count, start + data_size);
@@ -195,18 +195,18 @@ TEST_F(FileSystemFileTest, OverwriteAtPos) {
   EXPECT_OUTCOME_TRUE_1(empty_file->open());
 
   size_t start = 0;
-  std::vector<char> data{'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
+  std::vector<uint8_t> data{'h', 'e', 'l', 'l', 'o', ' ', 'w', 'o', 'r', 'l', 'd'};
 
   EXPECT_OUTCOME_TRUE(write_res, empty_file->write(start, data));
   ASSERT_EQ(data.size(), write_res);
 
   start = 6;
-  std::vector<char> more_data{'C', '+', '+', ' ', 'w', 'o', 'r', 'l', 'd'};
+  std::vector<uint8_t> more_data{'C', '+', '+', ' ', 'w', 'o', 'r', 'l', 'd'};
 
   EXPECT_OUTCOME_TRUE(write_res2, empty_file->write(start, more_data));
   ASSERT_EQ(more_data.size(), write_res2);
 
-  std::vector<char> expected{'h',
+  std::vector<uint8_t> expected{'h',
                              'e',
                              'l',
                              'l',
@@ -245,7 +245,7 @@ TEST_F(FileSystemFileTest, OverwriteAtPos) {
 TEST_F(FileSystemFileTest, ReadEmptyFile) {
   EXPECT_OUTCOME_TRUE_1(empty_file->open());
 
-  std::vector<char> data(32);
+  std::vector<uint8_t> data(32);
   EXPECT_OUTCOME_TRUE(read_res, empty_file->read(0, data));
   ASSERT_EQ(0, read_res);
 }
@@ -265,7 +265,7 @@ TEST_F(FileSystemFileTest, ReadFileFrom) {
   size_t read_from = 6;
   size_t read_size = 3;
   char expected[]{'C', '+', '+'};
-  std::vector<char> data_read(read_size);
+  std::vector<uint8_t> data_read(read_size);
   EXPECT_OUTCOME_TRUE(read_res, empty_file->read(read_from, data_read));
   ASSERT_EQ(read_size, read_res);
   ASSERT_TRUE(memcmp(expected, data_read.data(), read_size) == 0);

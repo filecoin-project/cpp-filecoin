@@ -36,11 +36,11 @@ namespace fc::storage::filestore {
 
     /** \copydoc File::read() */
     fc::outcome::result<size_t> read(
-        size_t offset, const gsl::span<char> &buffer) noexcept override;
+        size_t offset, const gsl::span<uint8_t> &buffer) noexcept override;
 
     /** \copydoc File::write() */
     fc::outcome::result<size_t> write(
-        size_t offset, const gsl::span<const char> &buffer) noexcept override;
+        size_t offset, const gsl::span<const uint8_t> &buffer) noexcept override;
 
     /** \copydoc File::is_open() */
     bool is_open() const noexcept override;
