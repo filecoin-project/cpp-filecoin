@@ -24,13 +24,13 @@ namespace fc::primitives {
     std::vector<uint8_t> res{};
     res.push_back(address.network);
     res.push_back(address.getProtocol());
-    std::vector<uint8_t> payload =
-        visit_in_place(address.data,
-                       [](uint64_t v) { return codec::leb128::encode(v); },
-                       [](const auto &v) {
-                         return std::vector<uint8_t>(v.begin(), v.end());
-                       });
-    res.insert(res.end(), payload.begin(), payload.end());
+    std::vector<uint8_t> payload = visit_in_place(
+        address.data,
+        [](uint64_t v) { return codec::leb128::encode(v); },
+        [](const auto &v) { return std::vector<uint8_t>(v.begin(), v.end()); });
+    res.insert(res.end(),
+               std::make_move_iterator(payload.begin()),
+               std::make_move_iterator(payload.end()));
     return res;
   }
 
@@ -47,35 +47,38 @@ namespace fc::primitives {
     std::vector<uint8_t> payload(pos, v.end());
     switch (p) {
       case Protocol::ID: {
-        auto decoded = codec::leb128::decode<uint64_t>(payload);
-        if (!decoded) {
-          return outcome::failure(AddressError::INVALID_PAYLOAD);
-        }
-        return outcome::success(Address{net, decoded.value()});
+        OUTCOME_TRY(value, codec::leb128::decode<uint64_t>(payload));
+        return Address{net, value};
       }
       case Protocol::SECP256K1: {
         if (payload.size() != kBlake2b160HashSize) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
         Secp256k1PublicKeyHash hash{};
-        std::copy_n(payload.begin(), kBlake2b160HashSize, hash.begin());
-        return outcome::success(Address{net, hash});
+        std::copy_n(std::make_move_iterator(payload.begin()),
+                    kBlake2b160HashSize,
+                    hash.begin());
+        return Address{net, hash};
       }
       case Protocol::ACTOR: {
         if (payload.size() != kBlake2b160HashSize) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
         ActorExecHash hash{};
-        std::copy_n(payload.begin(), kBlake2b160HashSize, hash.begin());
-        return outcome::success(Address{net, hash});
+        std::copy_n(std::make_move_iterator(payload.begin()),
+                    kBlake2b160HashSize,
+                    hash.begin());
+        return Address{net, hash};
       }
       case Protocol::BLS: {
         if (payload.size() != kBLSHashSize) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
         BLSPublicKeyHash hash{};
-        std::copy_n(payload.begin(), kBLSHashSize, hash.begin());
-        return outcome::success(Address{net, hash});
+        std::copy_n(std::make_move_iterator(payload.begin()),
+                    kBLSHashSize,
+                    hash.begin());
+        return Address{net, hash};
       }
       default:
         return outcome::failure(AddressError::UNKNOWN_PROTOCOL);
@@ -105,7 +108,9 @@ namespace fc::primitives {
 
     std::vector chksum = checksum(address);
 
-    payload.insert(payload.end(), chksum.begin(), chksum.end());
+    payload.insert(payload.end(),
+                   std::make_move_iterator(chksum.begin()),
+                   std::make_move_iterator(chksum.end()));
     auto encoded = base32::encode(payload);
 
     // Convert to lower case, as the spec requires:
@@ -146,7 +151,7 @@ namespace fc::primitives {
     if (protocol == Protocol::ID) {
       try {
         auto value = static_cast<uint64_t>(std::stoul(tail));
-        return outcome::success(Address{net, value});
+        return Address{net, value};
 
       } catch (std::invalid_argument &e) {
         return outcome::failure(AddressError::INVALID_PAYLOAD);
@@ -175,7 +180,9 @@ namespace fc::primitives {
 
     // Copy the decoded payload except last 4 bytes of the checksum to the
     // buffer
-    buffer.insert(buffer.end(), payload.begin(), payload.end() - 4);
+    buffer.insert(buffer.end(),
+                  std::make_move_iterator(payload.begin()),
+                  std::make_move_iterator(payload.end()) - 4);
 
     return decode(buffer);
   }
