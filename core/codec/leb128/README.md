@@ -44,3 +44,20 @@ T data;
 std::vector<uint8_t> encoded = encode(data);
 OUTCOME_TRY(decoded, decode(encoded));
 ```
+
+## Custom types
+Define custom << and >> operators to provide support for custom types. Note: LEB128 codec supports encoding of the one number per one time
+
+```c
+struct MyType {
+    uint64_t data;
+};
+
+LEB128EncodeStream &operator<<(LEB128EncodeStream &s, const MyType &t) {
+  return s << t.data;
+}
+
+LEB128DecodeStream &operator>>(LEB128DecodeStream &s, MyType &t) {
+  return s >> t.data;
+}
+```
