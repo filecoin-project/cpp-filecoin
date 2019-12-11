@@ -11,6 +11,14 @@
 namespace fc::actor {
   using libp2p::multi::ContentIdentifier;
 
+  struct Actor {
+    ContentIdentifier code;
+    ContentIdentifier head;
+    uint64_t nonce;
+    // TODO(turuslan): FIL-109 BigInt
+    int64_t balance;
+  };
+
   bool isBuiltinActor(ContentIdentifier code);
 
   bool isSingletonActor(ContentIdentifier code);
