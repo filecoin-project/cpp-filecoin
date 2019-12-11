@@ -40,7 +40,7 @@ namespace fc::codec::leb128 {
       return content_;
     }
 
-   protected:
+   private:
     std::vector<uint8_t> content_{}; /**< Stream content */
   };
 };  // namespace fc::codec::leb128

@@ -9,3 +9,10 @@ addtest(address_test
 target_link_libraries(address_test
     address
     )
+
+addtest(address_codec_test
+    address_codec_test.cpp
+    )
+target_link_libraries(address_codec_test
+    address
+    )

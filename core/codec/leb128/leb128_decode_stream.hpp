@@ -23,7 +23,7 @@ namespace fc::codec::leb128 {
      * @param byte - next byte to decode
      * @return decoded stream
      */
-    LEB128DecodeStream(const std::vector<uint8_t> &input) {
+    explicit LEB128DecodeStream(const std::vector<uint8_t> &input) {
       data_ = input;
     }
 
