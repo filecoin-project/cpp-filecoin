@@ -11,6 +11,10 @@
 namespace fc::actor {
   using libp2p::multi::ContentIdentifier;
 
+  bool isBuiltinActor(ContentIdentifier code);
+
+  bool isSingletonActor(ContentIdentifier code);
+
   extern ContentIdentifier kEmptyObjectCid;
 
   extern ContentIdentifier kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
