@@ -6,11 +6,12 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_CODEC_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_CODEC_HPP
 
+#include "primitives/address.hpp"
+
 #include <string>
 #include <vector>
 
 #include "common/outcome.hpp"
-#include "primitives/address.hpp"
 
 namespace fc::primitives {
 
