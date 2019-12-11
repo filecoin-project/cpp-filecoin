@@ -140,6 +140,15 @@ TEST(CborEncoder, String) {
 }
 
 /**
+ * @given Bytes
+ * @when Encode
+ * @then Encoded as expected
+ */
+TEST(CborEncoder, Bytes) {
+  EXPECT_EQ(encode("CAFE"_unhex), "42CAFE"_unhex);
+}
+
+/**
  * @given Map container
  * @when Encode
  * @then Encoded as expected

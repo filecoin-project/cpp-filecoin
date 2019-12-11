@@ -6,6 +6,21 @@
 #include "codec/cbor/cbor_encode_stream.hpp"
 
 namespace fc::codec::cbor {
+  CborEncodeStream &CborEncodeStream::operator<<(
+      const std::vector<uint8_t> &bytes) {
+    addCount(1);
+
+    std::vector<uint8_t> encoded(9 + bytes.size());
+    CborEncoder encoder;
+    cbor_encoder_init(&encoder, encoded.data(), encoded.size(), 0);
+    cbor_encode_byte_string(&encoder, bytes.data(), bytes.size());
+    data_.insert(data_.end(),
+                 encoded.begin(),
+                 encoded.begin()
+                     + cbor_encoder_get_buffer_size(&encoder, encoded.data()));
+    return *this;
+  }
+
   CborEncodeStream &CborEncodeStream::operator<<(const std::string &str) {
     addCount(1);
 
@@ -22,8 +37,6 @@ namespace fc::codec::cbor {
 
   CborEncodeStream &CborEncodeStream::operator<<(
       const libp2p::multi::ContentIdentifier &cid) {
-    addCount(1);
-
     auto maybe_cid_bytes = libp2p::multi::ContentIdentifierCodec::encode(cid);
     if (maybe_cid_bytes.has_error()) {
       outcome::raise(CborEncodeError::INVALID_CID);
@@ -31,15 +44,15 @@ namespace fc::codec::cbor {
     auto cid_bytes = maybe_cid_bytes.value();
     cid_bytes.insert(cid_bytes.begin(), 0);
 
-    std::vector<uint8_t> encoded(18 + cid_bytes.size());
+    std::array<uint8_t, 9> encoded{0};
     CborEncoder encoder;
     cbor_encoder_init(&encoder, encoded.data(), encoded.size(), 0);
     cbor_encode_tag(&encoder, kCidTag);
-    cbor_encode_byte_string(&encoder, cid_bytes.data(), cid_bytes.size());
     data_.insert(data_.end(),
                  encoded.begin(),
                  encoded.begin()
                      + cbor_encoder_get_buffer_size(&encoder, encoded.data()));
+    *this << cid_bytes;
     return *this;
   }
 

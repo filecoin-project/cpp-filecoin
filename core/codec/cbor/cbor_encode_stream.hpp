@@ -40,6 +40,8 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    /** Encodes bytes */
+    CborEncodeStream &operator<<(const std::vector<uint8_t> &bytes);
     /** Encodes string */
     CborEncodeStream &operator<<(const std::string &str);
     /** Encodes CID */
