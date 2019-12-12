@@ -6,12 +6,10 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_CODEC_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_CODEC_HPP
 
-#include <libp2p/crypto/secp256k1_types.hpp>
 #include <string>
 #include <vector>
 
 #include "common/outcome.hpp"
-#include "crypto/bls_provider/bls_types.hpp"
 #include "primitives/address.hpp"
 
 namespace fc::primitives {
@@ -47,23 +45,6 @@ namespace fc::primitives {
    */
   bool validateChecksum(const Address &address,
                         const std::vector<uint8_t> &expect);
-
-  /**
-   * @brief create address form Secp256k1 public key
-   * @param public_key - Secp256k1 public key
-   * @return address created from secp256k1 public key
-   */
-  fc::outcome::result<Address> makeFromPublicKey(
-      const Network network,
-      const libp2p::crypto::secp256k1::PublicKey &public_key);
-
-  /**
-   * @brief create address form BLS public key
-   * @param public_key - BLS public key
-   * @return address created from BLS public key
-   */
-  fc::outcome::result<Address> makeFromPublicKey(
-      const Network network, const crypto::bls::PublicKey &public_key);
 
 };  // namespace fc::primitives
 

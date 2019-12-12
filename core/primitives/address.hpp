@@ -8,9 +8,11 @@
 
 #include <boost/variant.hpp>
 #include <cstdint>
+#include <libp2p/crypto/secp256k1_types.hpp>
 
 #include "common/blob.hpp"
 #include "common/outcome.hpp"
+#include "crypto/bls_provider/bls_types.hpp"
 
 namespace fc::primitives {
 
@@ -46,9 +48,9 @@ namespace fc::primitives {
   };
 
   using Payload = boost::variant<uint64_t,
-      Secp256k1PublicKeyHash,
-      ActorExecHash,
-      BLSPublicKeyHash>;
+                                 Secp256k1PublicKeyHash,
+                                 ActorExecHash,
+                                 BLSPublicKeyHash>;
 
   /**
    * @brief Address refers to an actor in the Filecoin state
@@ -71,13 +73,31 @@ namespace fc::primitives {
      * 0 - id - is always valid
      * 1 - sec256k1 - check payload field contains the Blake2b 160 hash of the
      * public key
-     * 2 - actor - check Blake2b 160 hash of the meaningful data
-     * 3 - bls - check payload is a public key
-     * @param data is a public key of sec256k1 or bls
-     * @return true if data is a base for addresss
+     * 2 - actor - check payload field is Blake2b 160 hash of the meaningful
+     * data
+     * 3 - bls - check payload is a BLS public key
+     * @param seed_data - data to generate address
+     * @return true if data is a base for address
      */
     fc::outcome::result<bool> verifySyntax(
         const gsl::span<uint8_t> &seed_data) const;
+
+    /**
+     * @brief create address form Secp256k1 public key
+     * @param public_key - Secp256k1 public key
+     * @return address created from secp256k1 public key
+     */
+    static fc::outcome::result<Address> makeFromSecp256k1PublicKey(
+        Network network,
+        const libp2p::crypto::secp256k1::PublicKey &public_key);
+
+    /**
+     * @brief create address form BLS public key
+     * @param public_key - BLS public key
+     * @return address created from BLS public key
+     */
+    static fc::outcome::result<Address> makeFromBlsPublicKey(
+        Network network, const crypto::bls::PublicKey &public_key);
 
    public:
     Network network;

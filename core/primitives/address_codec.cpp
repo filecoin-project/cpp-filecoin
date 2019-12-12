@@ -6,7 +6,6 @@
 #include "primitives/address_codec.hpp"
 
 #include <cppcodec/base32_default_rfc4648.hpp>
-#include <gsl/span>
 #include <stdexcept>
 
 #include "codec/leb128/leb128.hpp"
@@ -220,22 +219,6 @@ namespace fc::primitives {
                         const std::vector<uint8_t> &expect) {
     std::vector<uint8_t> digest = checksum(address);
     return digest == expect;
-  }
-
-  fc::outcome::result<Address> makeFromPublicKey(
-      const Network network,
-      const libp2p::crypto::secp256k1::PublicKey &public_key) {
-    OUTCOME_TRY(hash, fc::crypto::blake2b::blake2b_160(public_key));
-    std::vector<uint8_t> sec256k1_bytes{network, fc::primitives::SECP256K1};
-    sec256k1_bytes.insert(sec256k1_bytes.end(), hash.begin(), hash.end());
-    return fc::primitives::decode(sec256k1_bytes).value();
-  }
-
-  fc::outcome::result<Address> makeFromPublicKey(
-      const Network network, const crypto::bls::PublicKey &public_key) {
-    std::vector<uint8_t> bls_bytes{network, fc::primitives::BLS};
-    bls_bytes.insert(bls_bytes.end(), public_key.begin(), public_key.end());
-    return fc::primitives::decode(bls_bytes).value();
   }
 
 };  // namespace fc::primitives

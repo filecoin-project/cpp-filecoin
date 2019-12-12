@@ -7,6 +7,7 @@
 
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b160.hpp"
+#include "primitives/address_codec.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives, AddressError, e) {
   using fc::primitives::AddressError;
@@ -63,6 +64,21 @@ namespace fc::primitives {
           // seed_data is a public key
           return std::equal(seed_data.begin(), seed_data.end(), v.begin());
         });
+  }
+
+  fc::outcome::result<Address> Address::makeFromSecp256k1PublicKey(
+      Network network, const libp2p::crypto::secp256k1::PublicKey &public_key) {
+    OUTCOME_TRY(hash, fc::crypto::blake2b::blake2b_160(public_key));
+    std::vector<uint8_t> sec256k1_bytes{network, fc::primitives::SECP256K1};
+    sec256k1_bytes.insert(sec256k1_bytes.end(), hash.begin(), hash.end());
+    return fc::primitives::decode(sec256k1_bytes).value();
+  }
+
+  fc::outcome::result<Address> Address::makeFromBlsPublicKey(
+      Network network, const crypto::bls::PublicKey &public_key) {
+    std::vector<uint8_t> bls_bytes{network, fc::primitives::BLS};
+    bls_bytes.insert(bls_bytes.end(), public_key.begin(), public_key.end());
+    return fc::primitives::decode(bls_bytes).value();
   }
 
   bool operator==(const Address &lhs, const Address &rhs) {
