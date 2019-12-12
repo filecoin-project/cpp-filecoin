@@ -80,7 +80,7 @@ namespace fc::primitives {
      * @return true if data is a base for address
      */
     fc::outcome::result<bool> verifySyntax(
-        const gsl::span<uint8_t> &seed_data) const;
+        gsl::span<const uint8_t> seed_data) const;
 
     /**
      * @brief create address form Secp256k1 public key

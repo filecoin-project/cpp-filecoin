@@ -8,6 +8,8 @@ addtest(address_test
     )
 target_link_libraries(address_test
     address
+    bls_provider
+    p2p::p2p_secp256k1_provider
     )
 
 addtest(address_codec_test

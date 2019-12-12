@@ -5,9 +5,15 @@
 
 #include "primitives/address.hpp"
 
+#include <libp2p/crypto/secp256k1_types.hpp>
+
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b160.hpp"
+#include "crypto/bls_provider/bls_types.hpp"
 #include "primitives/address_codec.hpp"
+
+using Sec256k1PublicKey = libp2p::crypto::secp256k1::PublicKey;
+using BlsPublicKey = fc::crypto::bls::PublicKey;
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives, AddressError, e) {
   using fc::primitives::AddressError;
@@ -46,23 +52,27 @@ namespace fc::primitives {
   }
 
   fc::outcome::result<bool> Address::verifySyntax(
-      const gsl::span<uint8_t> &seed_data) const {
+      gsl::span<const uint8_t> seed_data) const {
     return visit_in_place(
         data,
         [](uint64_t v) { return true; },
         [&seed_data](
             const Secp256k1PublicKeyHash &v) -> fc::outcome::result<bool> {
+          if (seed_data.size() != std::tuple_size<Sec256k1PublicKey>::value)
+            return false;
           // seed_data is a blake2b-160 hash of a public key
           OUTCOME_TRY(hash, fc::crypto::blake2b::blake2b_160(seed_data));
-          return std::equal(hash.begin(), hash.end(), v.begin());
+          return std::equal(v.begin(), v.end(), hash.begin());
         },
         [&seed_data](const ActorExecHash &v) -> fc::outcome::result<bool> {
           OUTCOME_TRY(hash, fc::crypto::blake2b::blake2b_160(seed_data));
           return std::equal(hash.begin(), hash.end(), v.begin());
         },
         [&seed_data](const BLSPublicKeyHash &v) {
+          if (seed_data.size() != std::tuple_size<BlsPublicKey>::value)
+            return false;
           // seed_data is a public key
-          return std::equal(seed_data.begin(), seed_data.end(), v.begin());
+          return std::equal(v.begin(), v.end(), seed_data.begin());
         });
   }
 
