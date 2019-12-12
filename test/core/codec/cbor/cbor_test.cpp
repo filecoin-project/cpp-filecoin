@@ -4,6 +4,7 @@
  */
 
 #include "codec/cbor/cbor.hpp"
+#include "primitives/big_int.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
@@ -48,6 +49,13 @@ TEST(Cbor, EncodeDecode) {
   EXPECT_EQ(encode(decode<int>("01"_unhex).value()), "01"_unhex);
   EXPECT_EQ(decode<int>(encode(1)).value(), 1);
   EXPECT_OUTCOME_ERROR(CborDecodeError::WRONG_TYPE, decode<int>("80"_unhex));
+}
+
+/** BigInt CBOR encoding and decoding */
+TEST(Cbor, BigInt) {
+  using fc::primitives::BigInt;
+  EXPECT_EQ(encode(BigInt(0xCAFE)), "4300CAFE"_unhex);
+  EXPECT_EQ(decode<BigInt>(encode(BigInt(0xCAFE))).value(), 0xCAFE);
 }
 
 /**
