@@ -5,16 +5,17 @@
 
 #include "primitives/address_codec.hpp"
 
+#include <cppcodec/base32_default_rfc4648.hpp>
+#include <gsl/span>
 #include <stdexcept>
 
-#include <cppcodec/base32_default_rfc4648.hpp>
 #include "codec/leb128/leb128.hpp"
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b.h"
+#include "crypto/blake2/blake2b160.hpp"
 
 namespace fc::primitives {
 
-  static const size_t kBlake2b160HashSize{20};
   static const size_t kBLSHashSize{48};
 
   using common::Blob;
@@ -51,22 +52,22 @@ namespace fc::primitives {
         return Address{net, value};
       }
       case Protocol::SECP256K1: {
-        if (payload.size() != kBlake2b160HashSize) {
+        if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
         Secp256k1PublicKeyHash hash{};
         std::copy_n(std::make_move_iterator(payload.begin()),
-                    kBlake2b160HashSize,
+                    fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT,
                     hash.begin());
         return Address{net, hash};
       }
       case Protocol::ACTOR: {
-        if (payload.size() != kBlake2b160HashSize) {
+        if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
         ActorExecHash hash{};
         std::copy_n(std::make_move_iterator(payload.begin()),
-                    kBlake2b160HashSize,
+                    fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT,
                     hash.begin());
         return Address{net, hash};
       }
@@ -202,12 +203,13 @@ namespace fc::primitives {
 
     ingest.push_back(p);
 
-    ingest = visit_in_place(address.data,
-                            [&ingest](uint64_t v) { return ingest; },
-                            [&ingest](const auto &v) {
-                              ingest.insert(ingest.end(), v.begin(), v.end());
-                              return ingest;
-                            });
+    ingest = visit_in_place(
+        address.data,
+        [&ingest](uint64_t v) { return ingest; },
+        [&ingest](const auto &v) {
+          ingest.insert(ingest.end(), v.begin(), v.end());
+          return ingest;
+        });
 
     size_t outlen = 4;
     blake2b(res.data(), outlen, nullptr, 0, ingest.data(), ingest.size());
@@ -218,6 +220,22 @@ namespace fc::primitives {
                         const std::vector<uint8_t> &expect) {
     std::vector<uint8_t> digest = checksum(address);
     return digest == expect;
+  }
+
+  fc::outcome::result<Address> makeFromPublicKey(
+      const Network network,
+      const libp2p::crypto::secp256k1::PublicKey &public_key) {
+    OUTCOME_TRY(hash, fc::crypto::blake2b::blake2b_160(public_key));
+    std::vector<uint8_t> sec256k1_bytes{network, fc::primitives::SECP256K1};
+    sec256k1_bytes.insert(sec256k1_bytes.end(), hash.begin(), hash.end());
+    return fc::primitives::decode(sec256k1_bytes).value();
+  }
+
+  fc::outcome::result<Address> makeFromPublicKey(
+      const Network network, const crypto::bls::PublicKey &public_key) {
+    std::vector<uint8_t> bls_bytes{network, fc::primitives::BLS};
+    bls_bytes.insert(bls_bytes.end(), public_key.begin(), public_key.end());
+    return fc::primitives::decode(bls_bytes).value();
   }
 
 };  // namespace fc::primitives

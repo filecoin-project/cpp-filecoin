@@ -6,9 +6,9 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_HPP
 
+#include <boost/variant.hpp>
 #include <cstdint>
 
-#include <boost/variant.hpp>
 #include "common/blob.hpp"
 #include "common/outcome.hpp"
 
@@ -46,9 +46,9 @@ namespace fc::primitives {
   };
 
   using Payload = boost::variant<uint64_t,
-                                 Secp256k1PublicKeyHash,
-                                 ActorExecHash,
-                                 BLSPublicKeyHash>;
+      Secp256k1PublicKeyHash,
+      ActorExecHash,
+      BLSPublicKeyHash>;
 
   /**
    * @brief Address refers to an actor in the Filecoin state
@@ -66,6 +66,20 @@ namespace fc::primitives {
      */
     bool isKeyType() const;
 
+    /**
+     * Verify if seed_data is a base for address. If address is:
+     * 0 - id - is always valid
+     * 1 - sec256k1 - check payload field contains the Blake2b 160 hash of the
+     * public key
+     * 2 - actor - check Blake2b 160 hash of the meaningful data
+     * 3 - bls - check payload is a public key
+     * @param data is a public key of sec256k1 or bls
+     * @return true if data is a base for addresss
+     */
+    fc::outcome::result<bool> verifySyntax(
+        const gsl::span<uint8_t> &seed_data) const;
+
+   public:
     Network network;
     Payload data;
   };
