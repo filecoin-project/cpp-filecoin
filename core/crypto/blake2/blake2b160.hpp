@@ -24,7 +24,7 @@ namespace fc::crypto::blake2b {
    * @return outcome with hash or error
    */
   fc::outcome::result<Blake2b160Hash> blake2b_160(
-      const gsl::span<uint8_t> &to_hash);
+      gsl::span<const uint8_t> to_hash);
 
 }  // namespace fc::crypto::blake2b
 

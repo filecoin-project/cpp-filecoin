@@ -10,7 +10,7 @@
 namespace fc::crypto::blake2b {
 
   fc::outcome::result<Blake2b160Hash> blake2b_160(
-      const gsl::span<uint8_t> &to_hash) {
+      gsl::span<const uint8_t> to_hash) {
     Blake2b160Hash res{};
     if (::blake2b(res.data(),
                   BLAKE2B160_HASH_LENGHT,
