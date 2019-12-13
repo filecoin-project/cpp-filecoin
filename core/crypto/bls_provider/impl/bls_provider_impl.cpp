@@ -41,7 +41,7 @@ namespace fc::crypto::bls::impl {
   }
 
   outcome::result<Signature> BlsProviderImpl::sign(
-      gsl::span<uint8_t> message, const PrivateKey &key) const {
+      gsl::span<const uint8_t> message, const PrivateKey &key) const {
     Signature signature;
     PrivateKeySignResponse *response =
         private_key_sign(key.data(), message.data(), message.size());
@@ -57,7 +57,7 @@ namespace fc::crypto::bls::impl {
   }
 
   outcome::result<bool> BlsProviderImpl::verifySignature(
-      gsl::span<uint8_t> message,
+      gsl::span<const uint8_t> message,
       const Signature &signature,
       const PublicKey &key) const {
     OUTCOME_TRY(digest, generateHash(message));

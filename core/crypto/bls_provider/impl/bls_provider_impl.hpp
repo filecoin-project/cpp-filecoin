@@ -16,10 +16,10 @@ namespace fc::crypto::bls::impl {
     outcome::result<PublicKey> derivePublicKey(
         const PrivateKey &key) const override;
 
-    outcome::result<Signature> sign(gsl::span<uint8_t> message,
+    outcome::result<Signature> sign(gsl::span<const uint8_t> message,
                                     const PrivateKey &key) const override;
 
-    outcome::result<bool> verifySignature(gsl::span<uint8_t> message,
+    outcome::result<bool> verifySignature(gsl::span<const uint8_t> message,
                                           const Signature &signature,
                                           const PublicKey &key) const override;
 
@@ -32,6 +32,6 @@ namespace fc::crypto::bls::impl {
     static outcome::result<Digest> generateHash(
         gsl::span<const uint8_t> message);
   };
-}  // namespace fc::crypto::bls
+}  // namespace fc::crypto::bls::impl
 
 #endif

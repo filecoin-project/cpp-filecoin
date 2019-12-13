@@ -83,7 +83,7 @@ namespace fc::storage::keystore {
      * @param signature
      */
     virtual outcome::result<bool> Verify(const Address &address,
-                                         const gsl::span<uint8_t> &data,
+                                         gsl::span<const uint8_t> data,
                                          const TSignature &signature) noexcept;
 
    protected:

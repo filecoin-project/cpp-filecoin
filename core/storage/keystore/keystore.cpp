@@ -58,7 +58,7 @@ fc::outcome::result<KeyStore::TSignature> KeyStore::Sign(
 
 fc::outcome::result<bool> KeyStore::Verify(
     const Address &address,
-    const gsl::span<uint8_t> &data,
+    gsl::span<const uint8_t> data,
     const TSignature &signature) noexcept {
   OUTCOME_TRY(private_key, Get(address));
   OUTCOME_TRY(valid, CheckAddress(address, private_key));
