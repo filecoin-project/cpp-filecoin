@@ -6,6 +6,7 @@
 add_subdirectory(clock)
 add_subdirectory(common)
 add_subdirectory(crypto)
+add_subdirectory(fslock)
 add_subdirectory(primitives)
 add_subdirectory(storage)
 add_subdirectory(codec)
