@@ -5,6 +5,7 @@
 
 #include "fslock/fslock.hpp"
 #include <boost/filesystem/fstream.hpp>
+#include <boost/filesystem/operations.hpp>
 #include "fslock/fslock_error.hpp"
 
 namespace fc::fslock {
@@ -21,6 +22,17 @@ namespace fc::fslock {
   }
 
   outcome::result<bool> isLocked(const std::string &lock_file_path) {
-    return outcome::success();
+    if (!boost::filesystem::exists(lock_file_path)){
+      return FSLockError::FILE_NOT_FOUND;
+    }
+
+    auto result = lock(lock_file_path);
+
+    if (result.has_value()){
+      result.value().unlock();
+      return false;
+    }
+
+    return true;
   }
 }  // namespace fc::fslock
