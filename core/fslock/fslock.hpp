@@ -14,7 +14,7 @@
 
 namespace fc::fslock {
   outcome::result<boost::interprocess::file_lock> lock(
-      const std::string lock_file_path);
+      const std::string &lock_file_path);
 
   outcome::result<bool> isLocked(const std::string &lock_file_path);
 }  // namespace fc::fslock

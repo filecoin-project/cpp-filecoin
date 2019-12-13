@@ -10,7 +10,7 @@
 
 namespace fc::fslock {
   outcome::result<boost::interprocess::file_lock> lock(
-      const std::string lock_file_path) {
+      const std::string &lock_file_path) {
     boost::filesystem::ofstream ofs(lock_file_path.c_str(), std::ios::app);
     ofs.close();
     boost::interprocess::file_lock lock_file;
