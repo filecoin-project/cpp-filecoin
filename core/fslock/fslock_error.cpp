@@ -13,6 +13,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::fslock, FSLockError, e) {
       return "FileLock: file not found";
     case (FSLockError::FILE_LOCKED):
       return "FileLock: file is locked";
+    case (FSLockError::NO_RESOURCES):
+      return "FileLock: there are no operating system resources";
     default:
       return "FileLock: unknown error";
   }

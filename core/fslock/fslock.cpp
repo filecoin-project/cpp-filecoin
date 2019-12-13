@@ -13,8 +13,12 @@ namespace fc::fslock {
       const std::string lock_file_path) {
     boost::filesystem::ofstream ofs(lock_file_path.c_str(), std::ios::app);
     ofs.close();
-    auto lock_file = boost::interprocess::file_lock(lock_file_path.c_str());
-
+    boost::interprocess::file_lock lock_file;
+    try {
+      lock_file = boost::interprocess::file_lock(lock_file_path.c_str());
+    } catch (const boost::interprocess::interprocess_exception &e) {
+      return FSLockError::NO_RESOURCES;
+    }
     if (!lock_file.try_lock()) {
       return FSLockError::FILE_LOCKED;
     }
@@ -22,13 +26,13 @@ namespace fc::fslock {
   }
 
   outcome::result<bool> isLocked(const std::string &lock_file_path) {
-    if (!boost::filesystem::exists(lock_file_path)){
+    if (!boost::filesystem::exists(lock_file_path)) {
       return FSLockError::FILE_NOT_FOUND;
     }
 
     auto result = lock(lock_file_path);
 
-    if (result.has_value()){
+    if (result.has_value()) {
       result.value().unlock();
       return false;
     }

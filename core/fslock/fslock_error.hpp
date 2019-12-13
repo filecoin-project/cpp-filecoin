@@ -16,6 +16,7 @@ namespace fc::fslock {
   enum class FSLockError {
     FILE_NOT_FOUND = 1,
     FILE_LOCKED = 2,
+    NO_RESOURCES = 3,
 
     UNKNOWN = 1000
   };
