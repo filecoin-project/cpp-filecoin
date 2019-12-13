@@ -8,11 +8,8 @@
 
 #include <boost/variant.hpp>
 #include <cstdint>
-#include <libp2p/crypto/secp256k1_types.hpp>
 
 #include "common/blob.hpp"
-#include "common/outcome.hpp"
-#include "crypto/bls_provider/bls_types.hpp"
 
 namespace fc::primitives {
 
@@ -68,24 +65,6 @@ namespace fc::primitives {
      */
     bool isKeyType() const;
 
-    /**
-     * @brief create address form Secp256k1 public key
-     * @param public_key - Secp256k1 public key
-     * @return address created from secp256k1 public key
-     */
-    static fc::outcome::result<Address> makeFromSecp256k1PublicKey(
-        Network network,
-        const libp2p::crypto::secp256k1::PublicKey &public_key);
-
-    /**
-     * @brief create address form BLS public key
-     * @param public_key - BLS public key
-     * @return address created from BLS public key
-     */
-    static fc::outcome::result<Address> makeFromBlsPublicKey(
-        Network network, const crypto::bls::PublicKey &public_key);
-
-   public:
     Network network;
     Payload data;
   };

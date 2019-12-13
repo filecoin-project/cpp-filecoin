@@ -5,9 +5,10 @@
 
 #include "primitives/address_codec.hpp"
 
+#include <gtest/gtest.h>
+
 #include <algorithm>
 
-#include <gtest/gtest.h>
 #include "testutil/outcome.hpp"
 
 using fc::primitives::Address;

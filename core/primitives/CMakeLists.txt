@@ -4,6 +4,7 @@
 #
 
 add_library(address
+    address/address_builder.cpp
     address/address_verifier.cpp
     address.cpp
     address_codec.cpp
