@@ -51,6 +51,8 @@ namespace fc::codec::cbor {
     /** Encodes map container encode substream map */
     CborEncodeStream &operator<<(
         const std::map<std::string, CborEncodeStream> &map);
+    /** Encodes null */
+    CborEncodeStream &operator<<(std::nullptr_t);
     /** Returns CBOR bytes of encoded elements */
     std::vector<uint8_t> data() const;
     /** Creates list container encode substream */

@@ -75,6 +75,7 @@ namespace fc::codec::cbor {
     bool isList() const;
     /** Checks if current element is map container */
     bool isMap() const;
+    bool isNull() const;
     /** Returns count of items in current element list container */
     size_t listLength() const;
     /** Returns CBOR bytes of current element */

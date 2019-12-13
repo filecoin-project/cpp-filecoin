@@ -105,6 +105,20 @@ namespace fc::codec::cbor {
     return *this;
   }
 
+  CborEncodeStream &CborEncodeStream::operator<<(std::nullptr_t) {
+    addCount(1);
+
+    std::array<uint8_t, 1> prefix{0};
+    CborEncoder encoder;
+    cbor_encoder_init(&encoder, prefix.data(), prefix.size(), 0);
+    cbor_encode_null(&encoder);
+    data_.insert(
+        data_.end(),
+        prefix.begin(),
+        prefix.begin() + cbor_encoder_get_buffer_size(&encoder, prefix.data()));
+    return *this;
+  }
+
   std::vector<uint8_t> CborEncodeStream::data() const {
     if (!is_list_) {
       return data_;

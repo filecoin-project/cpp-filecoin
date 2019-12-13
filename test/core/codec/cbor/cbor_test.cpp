@@ -58,6 +58,13 @@ TEST(Cbor, BigInt) {
   EXPECT_EQ(decode<BigInt>(encode(BigInt(0xCAFE))).value(), 0xCAFE);
 }
 
+/** Null CBOR encoding and decoding */
+TEST(Cbor, Null) {
+  EXPECT_EQ(encode(nullptr), "F6"_unhex);
+  EXPECT_TRUE(CborDecodeStream("F6"_unhex).isNull());
+  EXPECT_FALSE(CborDecodeStream("01"_unhex).isNull());
+}
+
 /**
  * @given Integers and bool
  * @when Encode

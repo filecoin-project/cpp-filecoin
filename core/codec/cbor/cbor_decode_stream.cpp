@@ -136,6 +136,10 @@ namespace fc::codec::cbor {
     return cbor_value_is_map(&value_);
   }
 
+  bool CborDecodeStream::isNull() const {
+    return cbor_value_is_null(&value_);
+  }
+
   size_t CborDecodeStream::listLength() const {
     size_t length;
     if (CborNoError != cbor_value_get_array_length(&value_, &length)) {
