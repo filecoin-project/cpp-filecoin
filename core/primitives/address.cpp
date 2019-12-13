@@ -51,31 +51,6 @@ namespace fc::primitives {
         [](const BLSPublicKeyHash &v) { return Protocol::BLS; });
   }
 
-  fc::outcome::result<bool> Address::verifySyntax(
-      gsl::span<const uint8_t> seed_data) const {
-    return visit_in_place(
-        data,
-        [](uint64_t v) { return true; },
-        [&seed_data](
-            const Secp256k1PublicKeyHash &v) -> fc::outcome::result<bool> {
-          if (seed_data.size() != std::tuple_size<Sec256k1PublicKey>::value)
-            return false;
-          // seed_data is a blake2b-160 hash of a public key
-          OUTCOME_TRY(hash, fc::crypto::blake2b::blake2b_160(seed_data));
-          return std::equal(v.begin(), v.end(), hash.begin());
-        },
-        [&seed_data](const ActorExecHash &v) -> fc::outcome::result<bool> {
-          OUTCOME_TRY(hash, fc::crypto::blake2b::blake2b_160(seed_data));
-          return std::equal(hash.begin(), hash.end(), v.begin());
-        },
-        [&seed_data](const BLSPublicKeyHash &v) {
-          if (seed_data.size() != std::tuple_size<BlsPublicKey>::value)
-            return false;
-          // seed_data is a public key
-          return std::equal(v.begin(), v.end(), seed_data.begin());
-        });
-  }
-
   fc::outcome::result<Address> Address::makeFromSecp256k1PublicKey(
       Network network, const libp2p::crypto::secp256k1::PublicKey &public_key) {
     OUTCOME_TRY(hash, fc::crypto::blake2b::blake2b_160(public_key));

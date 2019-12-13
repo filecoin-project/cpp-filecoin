@@ -69,20 +69,6 @@ namespace fc::primitives {
     bool isKeyType() const;
 
     /**
-     * Verify if seed_data is a base for address. If address is:
-     * 0 - id - is always valid
-     * 1 - sec256k1 - check payload field contains the Blake2b 160 hash of the
-     * public key
-     * 2 - actor - check payload field is Blake2b 160 hash of the meaningful
-     * data
-     * 3 - bls - check payload is a BLS public key
-     * @param seed_data - data to generate address
-     * @return true if data is a base for address
-     */
-    fc::outcome::result<bool> verifySyntax(
-        gsl::span<const uint8_t> seed_data) const;
-
-    /**
      * @brief create address form Secp256k1 public key
      * @param public_key - Secp256k1 public key
      * @return address created from secp256k1 public key
