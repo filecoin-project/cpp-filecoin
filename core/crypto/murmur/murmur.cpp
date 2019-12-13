@@ -8,6 +8,14 @@
 #include <common/buffer.hpp>
 
 namespace fc::crypto::murmur {
+  uint64_t getUint64LE(gsl::span<const uint8_t> bytes) {
+    return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24)
+           | (static_cast<uint64_t>(bytes[4]) << 32)
+           | (static_cast<uint64_t>(bytes[5]) << 40)
+           | (static_cast<uint64_t>(bytes[6]) << 48)
+           | (static_cast<uint64_t>(bytes[7]) << 56);
+  }
+
   constexpr uint64_t rotl64(uint64_t x, int8_t r) {
     return (x << r) | (x >> (64 - r));
   }
@@ -28,16 +36,13 @@ namespace fc::crypto::murmur {
     const uint64_t c1 = 0x87c37b91114253d5;
     const uint64_t c2 = 0x4cf5ad432745937f;
 
-    //----------
-    // body
+    constexpr auto kBlockSize = 2 * sizeof(uint64_t);
+    auto blocks = input.size() / kBlockSize;
 
-    gsl::span<const uint64_t> blocks(
-        static_cast<const uint64_t *>(static_cast<const void *>(input.data())),
-        input.size() / sizeof(uint64_t));
-
-    for (auto i = 0; i < blocks.size() / 2; i++) {
-      auto k1 = blocks[i * 2 + 0];
-      auto k2 = blocks[i * 2 + 1];
+    // blocks
+    for (size_t i = 0; i < blocks; ++i) {
+      auto k1 = getUint64LE(input.subspan(i * kBlockSize));
+      auto k2 = getUint64LE(input.subspan(i * kBlockSize + sizeof(uint64_t)));
 
       k1 *= c1;
       k1 = rotl64(k1, 31);
@@ -58,10 +63,8 @@ namespace fc::crypto::murmur {
       h2 = h2 * 5 + 0x38495ab5;
     }
 
-    //----------
     // tail
-
-    gsl::span<const uint8_t> tail(input.data() + blocks.size_bytes(), input.size() - blocks.size_bytes());
+    auto tail = gsl::span(input).subspan(blocks * kBlockSize);
 
     uint64_t k1 = 0;
     uint64_t k2 = 0;
@@ -108,9 +111,7 @@ namespace fc::crypto::murmur {
         h1 ^= k1;
     };
 
-    //----------
     // finalization
-
     h1 ^= input.size();
     h2 ^= input.size();
 
