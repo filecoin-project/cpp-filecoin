@@ -14,9 +14,9 @@
 
 namespace fc::fslock {
   outcome::result<boost::interprocess::file_lock> lock(
-      const std::string lockFilePath);
+      const std::string lock_file_path);
 
-  outcome::result<bool> isLocked(const std::string &lockFilePath);
+  outcome::result<bool> isLocked(const std::string &lock_file_path);
 }  // namespace fc::fslock
 
 #endif  // FILECOIN_CORE_FSLOCK_HPP

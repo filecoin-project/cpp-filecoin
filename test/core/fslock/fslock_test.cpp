@@ -7,10 +7,11 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "testutil/storage/base_fs_test.hpp"
-#include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include <thread>
 #include "fslock/fslock_error.hpp"
+#include "storage/filestore/impl/filesystem/filesystem_file.hpp"
+#include "testutil/outcome.hpp"
+#include "testutil/storage/base_fs_test.hpp"
 
 using fc::storage::filestore::File;
 using fc::storage::filestore::FileSystemFile;
@@ -23,8 +24,7 @@ class FSLockTest : public test::BaseFS_Test {
   /** Path to lock file */
   Path lock_file_path;
 
-  /** Lock file */
-  std::shared_ptr<File> lock_file;
+  Path not_exist_file_path;
 
   /**
    * Create a test directory with an lock file.
@@ -32,18 +32,27 @@ class FSLockTest : public test::BaseFS_Test {
   void SetUp() override {
     BaseFS_Test::SetUp();
     lock_file_path = fs::canonical(createFile("test.lock")).string();
-    lock_file = std::make_shared<FileSystemFile>(lock_file_path);
+    not_exist_file_path = "/tmp/fc_filesystem_lock_file_test/not_file.lock";
   }
 };
 
-TEST_F(FSLockTest, LockFile){
-  auto res = fc::fslock::lock(lock_file_path);
-  ASSERT_TRUE(res.has_value());
+TEST_F(FSLockTest, LockFile) {
+  EXPECT_OUTCOME_TRUE(res, fc::fslock::lock(lock_file_path));
   auto pid = fork();
-  if (pid == 0){
-    auto again = fc::fslock::lock(lock_file_path);
-    ASSERT_TRUE(again.has_error());
-    ASSERT_EQ(again.error(), fc::fslock::FSLockError::FILE_LOCKED);
+  if (pid == 0) {
+    EXPECT_OUTCOME_FALSE(err, fc::fslock::lock(lock_file_path));
+    ASSERT_EQ(err, fc::fslock::FSLockError::FILE_LOCKED);
+  } else {
+    wait(NULL);
+  }
+}
+
+TEST_F(FSLockTest, NoExistLockFile) {
+  EXPECT_OUTCOME_TRUE(val, fc::fslock::lock(not_exist_file_path));
+  auto pid = fork();
+  if (pid == 0) {
+    EXPECT_OUTCOME_FALSE(err, fc::fslock::lock(not_exist_file_path));
+    ASSERT_EQ(err, fc::fslock::FSLockError::FILE_LOCKED);
   } else {
     wait(NULL);
   }

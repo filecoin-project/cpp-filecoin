@@ -4,21 +4,23 @@
  */
 
 #include "fslock/fslock.hpp"
-#include "boost/thread/mutex.hpp"
+#include <boost/filesystem/fstream.hpp>
 #include "fslock/fslock_error.hpp"
 
 namespace fc::fslock {
   outcome::result<boost::interprocess::file_lock> lock(
       const std::string lock_file_path) {
-    auto lockFile = boost::interprocess::file_lock(lock_file_path.c_str());
-    // TODO process error if file doesn't exist (FIL-41) artyom-yurin 12.12.2019
-    if (!lockFile.try_lock()) {
+    boost::filesystem::ofstream ofs(lock_file_path.c_str(), std::ios::app);
+    ofs.close();
+    auto lock_file = boost::interprocess::file_lock(lock_file_path.c_str());
+
+    if (!lock_file.try_lock()) {
       return FSLockError::FILE_LOCKED;
     }
-    return std::move(lockFile);
+    return std::move(lock_file);
   }
 
-  outcome::result<bool> isLocked(const std::string &lockFilePath) {
+  outcome::result<bool> isLocked(const std::string &lock_file_path) {
     return outcome::success();
   }
 }  // namespace fc::fslock
