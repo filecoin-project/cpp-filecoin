@@ -5,9 +5,7 @@
 
 #include "fslock/fslock.hpp"
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <thread>
 #include "fslock/fslock_error.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "testutil/outcome.hpp"
