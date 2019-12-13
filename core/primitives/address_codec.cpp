@@ -12,10 +12,12 @@
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "crypto/blake2/blake2b160.hpp"
+#include "crypto/bls_provider/bls_types.hpp"
 
 namespace fc::primitives {
 
-  static const size_t kBLSHashSize{48};
+  static const size_t kBlsPublicKeySize{
+      std::tuple_size<fc::crypto::bls::PublicKey>::value};
 
   using common::Blob;
   using base32 = cppcodec::base32_rfc4648;
@@ -71,12 +73,12 @@ namespace fc::primitives {
         return Address{net, hash};
       }
       case Protocol::BLS: {
-        if (payload.size() != kBLSHashSize) {
+        if (payload.size() != kBlsPublicKeySize) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
         BLSPublicKeyHash hash{};
         std::copy_n(std::make_move_iterator(payload.begin()),
-                    kBLSHashSize,
+                    kBlsPublicKeySize,
                     hash.begin());
         return Address{net, hash};
       }
