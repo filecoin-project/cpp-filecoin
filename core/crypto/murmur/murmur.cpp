@@ -9,7 +9,10 @@
 
 namespace fc::crypto::murmur {
   uint64_t getUint64LE(gsl::span<const uint8_t> bytes) {
-    return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24)
+    return static_cast<uint64_t>(bytes[0])
+           | (static_cast<uint64_t>(bytes[1]) << 8)
+           | (static_cast<uint64_t>(bytes[2]) << 16)
+           | (static_cast<uint64_t>(bytes[3]) << 24)
            | (static_cast<uint64_t>(bytes[4]) << 32)
            | (static_cast<uint64_t>(bytes[5]) << 40)
            | (static_cast<uint64_t>(bytes[6]) << 48)
