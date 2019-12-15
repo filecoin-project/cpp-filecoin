@@ -29,7 +29,7 @@ namespace fc::crypto::murmur {
     return k;
   }
 
-  std::vector<uint8_t> hash(gsl::span<const uint8_t> input) {
+  Hash hash(gsl::span<const uint8_t> input) {
     uint64_t h1 = 0;
     uint64_t h2 = 0;
 
@@ -64,7 +64,7 @@ namespace fc::crypto::murmur {
     }
 
     // tail
-    auto tail = gsl::span(input).subspan(blocks * kBlockSize);
+    auto tail = input.subspan(blocks * kBlockSize);
 
     uint64_t k1 = 0;
     uint64_t k2 = 0;
@@ -123,6 +123,9 @@ namespace fc::crypto::murmur {
 
     h1 += h2;
 
-    return common::Buffer().putUint64(h1).toVector();
+    auto result_vector = common::Buffer().putUint64(h1).toVector();
+    Hash result_array;
+    std::move(result_vector.begin(), result_vector.end(), result_array.begin());
+    return result_array;
   }
 }  // namespace fc::crypto::murmur

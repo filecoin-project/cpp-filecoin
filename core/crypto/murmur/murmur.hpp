@@ -11,7 +11,9 @@
 #include <gsl/span>
 
 namespace fc::crypto::murmur {
-  std::vector<uint8_t> hash(gsl::span<const uint8_t> input);
+  using Hash = std::array<uint8_t, 8>;
+
+  Hash hash(gsl::span<const uint8_t> input);
 }  // namespace fc::crypto::murmur
 
 #endif  // CPP_FILECOIN_CRYPTO_MURMUR_MURMUR_HPP
