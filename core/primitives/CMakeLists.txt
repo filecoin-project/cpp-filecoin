@@ -5,9 +5,9 @@
 
 add_library(address
     address/address_builder.cpp
-    address/address_verifier.cpp
     address.cpp
     address_codec.cpp
+    address/impl/address_verifier_impl.cpp
     )
 
 target_link_libraries(address

@@ -3,20 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/address/address_verifier.hpp"
+#include "primitives/address/impl/address_verifier_impl.hpp"
 
 #include <libp2p/crypto/secp256k1_types.hpp>
 
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/bls_provider/bls_types.hpp"
+#include "primitives/address/address_verifier.hpp"
 
 namespace fc::primitives::address {
 
   using Sec256k1PublicKey = libp2p::crypto::secp256k1::PublicKey;
   using BlsPublicKey = fc::crypto::bls::PublicKey;
 
-  fc::outcome::result<bool> verifySyntax(
+  fc::outcome::result<bool> AddressVerifierImpl::verifySyntax(
       const fc::primitives::Address &address,
       gsl::span<const uint8_t> seed_data) noexcept {
     return visit_in_place(
