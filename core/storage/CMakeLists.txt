@@ -4,5 +4,6 @@
 #
 
 add_subdirectory(in_memory)
+add_subdirectory(ipfs)
 add_subdirectory(leveldb)
 add_subdirectory(filestore)
