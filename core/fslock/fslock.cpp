@@ -10,7 +10,7 @@
 #include "fslock/fslock_error.hpp"
 
 namespace fc::fslock {
-  // TODO: Should be unlocked if process died
+  // TODO(artyom-yurin): Should be unlocked if process died
   outcome::result<boost::interprocess::file_lock> lock(
       const std::string &file_lock_path) {
     try {
