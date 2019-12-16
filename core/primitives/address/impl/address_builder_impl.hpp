@@ -12,7 +12,7 @@ namespace fc::primitives::address {
 
   class AddressBuilderImpl : public AddressBuilder {
    public:
-    /** s@copydoc AddressBuilder::makeFromSecp256k1PublicKey() */
+    /** @copydoc AddressBuilder::makeFromSecp256k1PublicKey() */
     fc::outcome::result<Address> makeFromSecp256k1PublicKey(
         Network network,
         const libp2p::crypto::secp256k1::PublicKey

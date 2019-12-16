@@ -5,11 +5,7 @@
 
 #include "primitives/address/impl/address_builder_impl.hpp"
 
-#include <libp2p/crypto/secp256k1_types.hpp>
-#include <primitives/address.hpp>
-
 #include "crypto/blake2/blake2b160.hpp"
-#include "crypto/bls_provider/bls_types.hpp"
 #include "primitives/address_codec.hpp"
 
 namespace fc::primitives::address {
