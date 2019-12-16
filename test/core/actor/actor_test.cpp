@@ -5,6 +5,7 @@
 
 #include "actor/actor.hpp"
 
+#include "codec/cbor/cbor.hpp"
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -20,7 +21,7 @@ void expectCidEq(const ContentIdentifier &actual, const std::vector<uint8_t> &ex
  * @when Compare to C++ constants
  * @then Equal
  */
-TEST(Actor, CidGoCompatibility) {
+TEST(ActorTest, CidGoCompatibility) {
   expectCidEq(fc::actor::kAccountCodeCid, "0155000d66696c2f312f6163636f756e74"_unhex);
   expectCidEq(fc::actor::kCronCodeCid, "0155000a66696c2f312f63726f6e"_unhex);
   expectCidEq(fc::actor::kStoragePowerCodeCid, "0155000b66696c2f312f706f776572"_unhex);
@@ -31,4 +32,18 @@ TEST(Actor, CidGoCompatibility) {
   expectCidEq(fc::actor::kPaymentChannelCodeCid, "0155000b66696c2f312f7061796368"_unhex);
 
   expectCidEq(fc::actor::kEmptyObjectCid, "01711220c19a797fa1fd590cd2e5b42d1cf5f246e29b91684e2f87404b81dc345c7a56a0"_unhex);
+}
+
+/** Actor CBOR encoding and decoding */
+TEST(ActorTest, ActorGoCompatibility) {
+  auto go = "84d82a52000155000d66696c2f312f6163636f756e74d82a4f000155000a66696c2f312f63726f6e03420005"_unhex;
+  fc::actor::Actor actor{fc::actor::kEmptyObjectCid, fc::actor::kEmptyObjectCid, 0, 0};
+
+  fc::codec::cbor::CborDecodeStream(go) >> actor;
+  EXPECT_EQ((fc::codec::cbor::CborEncodeStream() << actor).data(), go);
+
+  EXPECT_EQ(actor.code, fc::actor::kAccountCodeCid);
+  EXPECT_EQ(actor.head, fc::actor::kCronCodeCid);
+  EXPECT_EQ(actor.nonce, 3);
+  EXPECT_EQ(actor.balance, 5);
 }

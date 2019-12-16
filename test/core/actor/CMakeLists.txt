@@ -8,5 +8,6 @@ addtest(actor_test
     )
 target_link_libraries(actor_test
     actor
+    cbor
     hexutil
     )

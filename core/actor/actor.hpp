@@ -8,16 +8,31 @@
 
 #include <libp2p/multi/content_identifier_codec.hpp>
 
+#include "primitives/big_int.hpp"
+
 namespace fc::actor {
+  using primitives::BigInt;
   using libp2p::multi::ContentIdentifier;
 
   struct Actor {
     ContentIdentifier code;
     ContentIdentifier head;
     uint64_t nonce;
-    // TODO(turuslan): FIL-109 BigInt
-    int64_t balance;
+    BigInt balance;
   };
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_cbor_encoder_stream>>
+  Stream &operator<<(Stream &&s, const Actor &actor) {
+    return s << (s.list() << actor.code << actor.head << actor.nonce << actor.balance);
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<Stream::is_cbor_decoder_stream>>
+  Stream &operator>>(Stream &&s, Actor &actor) {
+    s.list() >> actor.code >> actor.head >> actor.nonce >> actor.balance;
+    return s;
+  }
 
   bool isBuiltinActor(ContentIdentifier code);
 
