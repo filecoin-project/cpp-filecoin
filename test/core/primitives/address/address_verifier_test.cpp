@@ -11,6 +11,7 @@
 #include "crypto/bls_provider/impl/bls_provider_impl.hpp"
 #include "primitives/address.hpp"
 #include "primitives/address/address_builder.hpp"
+#include "primitives/address/impl/address_builder_impl.hpp"
 #include "primitives/address/impl/address_verifier_impl.hpp"
 #include "testutil/outcome.hpp"
 
@@ -22,10 +23,10 @@ using fc::primitives::BLSPublicKeyHash;
 using fc::primitives::Network;
 using fc::primitives::Protocol;
 using fc::primitives::Secp256k1PublicKeyHash;
+using fc::primitives::address::AddressBuilder;
+using fc::primitives::address::AddressBuilderImpl;
 using fc::primitives::address::AddressVerifier;
 using fc::primitives::address::AddressVerifierImpl;
-using fc::primitives::address::makeFromBlsPublicKey;
-using fc::primitives::address::makeFromSecp256k1PublicKey;
 using libp2p::crypto::secp256k1::Secp256k1Provider;
 using libp2p::crypto::secp256k1::Secp256k1ProviderImpl;
 
@@ -52,6 +53,8 @@ struct AddressVerifierTest : public testing::Test {
  protected:
   std::shared_ptr<AddressVerifier> address_verifier =
       std::make_shared<AddressVerifierImpl>();
+  std::shared_ptr<AddressBuilder> address_builder =
+      std::make_shared<AddressBuilderImpl>();
 };
 
 /**
@@ -151,9 +154,9 @@ TEST_F(AddressVerifierTest, NotVerifyBlsAddress) {
  */
 TEST_F(AddressVerifierTest, GenerateSecp256k1AddressTestnet) {
   EXPECT_OUTCOME_TRUE(keypair, secp256k1_provider->generateKeyPair());
-  EXPECT_OUTCOME_TRUE(
-      address,
-      makeFromSecp256k1PublicKey(Network::TESTNET, keypair.public_key));
+  EXPECT_OUTCOME_TRUE(address,
+                      address_builder->makeFromSecp256k1PublicKey(
+                          Network::TESTNET, keypair.public_key));
   ASSERT_TRUE(address.isKeyType());
   EXPECT_OUTCOME_TRUE(
       res, address_verifier->verifySyntax(address, keypair.public_key));
@@ -169,9 +172,9 @@ TEST_F(AddressVerifierTest, GenerateSecp256k1AddressTestnet) {
  */
 TEST_F(AddressVerifierTest, GenerateSecp256k1AddressMainnet) {
   EXPECT_OUTCOME_TRUE(keypair, secp256k1_provider->generateKeyPair());
-  EXPECT_OUTCOME_TRUE(
-      address,
-      makeFromSecp256k1PublicKey(Network::MAINNET, keypair.public_key));
+  EXPECT_OUTCOME_TRUE(address,
+                      address_builder->makeFromSecp256k1PublicKey(
+                          Network::MAINNET, keypair.public_key));
   ASSERT_TRUE(address.isKeyType());
   EXPECT_OUTCOME_TRUE(
       res, address_verifier->verifySyntax(address, keypair.public_key));
@@ -187,8 +190,9 @@ TEST_F(AddressVerifierTest, GenerateSecp256k1AddressMainnet) {
  */
 TEST_F(AddressVerifierTest, GenerateBlsAddressTestnet) {
   EXPECT_OUTCOME_TRUE(keypair, bls_provider->generateKeyPair());
-  EXPECT_OUTCOME_TRUE(
-      address, makeFromBlsPublicKey(Network::TESTNET, keypair.public_key));
+  EXPECT_OUTCOME_TRUE(address,
+                      address_builder->makeFromBlsPublicKey(
+                          Network::TESTNET, keypair.public_key));
   ASSERT_TRUE(address.isKeyType());
   EXPECT_OUTCOME_TRUE(
       res, address_verifier->verifySyntax(address, keypair.public_key));
@@ -204,8 +208,9 @@ TEST_F(AddressVerifierTest, GenerateBlsAddressTestnet) {
  */
 TEST_F(AddressVerifierTest, GenerateBlsAddressMainnet) {
   EXPECT_OUTCOME_TRUE(keypair, bls_provider->generateKeyPair());
-  EXPECT_OUTCOME_TRUE(
-      address, makeFromBlsPublicKey(Network::MAINNET, keypair.public_key));
+  EXPECT_OUTCOME_TRUE(address,
+                      address_builder->makeFromBlsPublicKey(
+                          Network::MAINNET, keypair.public_key));
   ASSERT_TRUE(address.isKeyType());
   EXPECT_OUTCOME_TRUE(
       res, address_verifier->verifySyntax(address, keypair.public_key));

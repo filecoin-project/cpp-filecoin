@@ -4,10 +4,10 @@
 #
 
 add_library(address
-    address/address_builder.cpp
     address.cpp
     address_codec.cpp
     address/impl/address_verifier_impl.cpp
+    address/impl/address_builder_impl.cpp
     )
 
 target_link_libraries(address
