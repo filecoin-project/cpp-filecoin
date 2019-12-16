@@ -7,16 +7,18 @@
 #define FILECOIN_CORE_FSLOCK_HPP
 
 #include <boost/interprocess/sync/file_lock.hpp>
-#include <boost/interprocess/sync/scoped_lock.hpp>
-#include <mutex>
 #include <string>
 #include "common/outcome.hpp"
 
 namespace fc::fslock {
-  outcome::result<boost::interprocess::file_lock> lock(
-      const std::string &lock_file_path);
 
-  outcome::result<bool> isLocked(const std::string &lock_file_path);
+  /**
+   * @brief tries to lock file
+   * @param file_lock_path is path to file that we want to lock
+   * @return lock file
+   */
+  outcome::result<boost::interprocess::file_lock> lock(
+      const std::string &file_lock_path);
 }  // namespace fc::fslock
 
 #endif  // FILECOIN_CORE_FSLOCK_HPP

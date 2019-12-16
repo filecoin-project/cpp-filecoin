@@ -34,8 +34,8 @@ class FSLockTest : public test::BaseFS_Test {
   }
 };
 
-TEST_F(FSLockTest, LockFile) {
-  EXPECT_OUTCOME_TRUE(res, fc::fslock::lock(lock_file_path));
+TEST_F(FSLockTest, LockFileSuccess) {
+  EXPECT_OUTCOME_TRUE_1(fc::fslock::lock(lock_file_path));
   auto pid = fork();
   if (pid == 0) {
     EXPECT_OUTCOME_FALSE(err, fc::fslock::lock(lock_file_path));
@@ -45,30 +45,12 @@ TEST_F(FSLockTest, LockFile) {
   }
 }
 
-TEST_F(FSLockTest, NoExistLockFile) {
-  EXPECT_OUTCOME_TRUE(val, fc::fslock::lock(not_exist_file_path));
+TEST_F(FSLockTest, LockNotExistignFileFail) {
+  EXPECT_OUTCOME_TRUE_1(fc::fslock::lock(not_exist_file_path));
   auto pid = fork();
   if (pid == 0) {
     EXPECT_OUTCOME_FALSE(err, fc::fslock::lock(not_exist_file_path));
     ASSERT_EQ(err, fc::fslock::FSLockError::FILE_LOCKED);
-  } else {
-    wait(NULL);
-  }
-}
-
-TEST_F(FSLockTest, AskNoExistFile) {
-  EXPECT_OUTCOME_FALSE(err, fc::fslock::isLocked(not_exist_file_path));
-  ASSERT_EQ(err, fc::fslock::FSLockError::FILE_NOT_FOUND);
-}
-
-TEST_F(FSLockTest, AskLockFile) {
-  EXPECT_OUTCOME_TRUE(res, fc::fslock::isLocked(lock_file_path));
-  ASSERT_FALSE(res);
-  EXPECT_OUTCOME_TRUE(lk, fc::fslock::lock(lock_file_path));
-  auto pid = fork();
-  if (pid == 0) {
-    EXPECT_OUTCOME_TRUE(res, fc::fslock::isLocked(lock_file_path));
-    ASSERT_TRUE(res);
   } else {
     wait(NULL);
   }

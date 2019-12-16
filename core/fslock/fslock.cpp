@@ -4,39 +4,28 @@
  */
 
 #include "fslock/fslock.hpp"
+
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include "fslock/fslock_error.hpp"
 
 namespace fc::fslock {
+  // TODO: Should be unlocked if process died
   outcome::result<boost::interprocess::file_lock> lock(
-      const std::string &lock_file_path) {
-    boost::filesystem::ofstream ofs(lock_file_path.c_str(), std::ios::app);
-    ofs.close();
-    boost::interprocess::file_lock lock_file;
+      const std::string &file_lock_path) {
     try {
-      lock_file = boost::interprocess::file_lock(lock_file_path.c_str());
-    } catch (const boost::interprocess::interprocess_exception &e) {
-      return FSLockError::NO_RESOURCES;
+      if (!boost::filesystem::exists(file_lock_path)) {
+        boost::filesystem::ofstream os(file_lock_path);
+        os.close();
+      }
+      boost::interprocess::file_lock file_lock(file_lock_path.c_str());
+      if (!file_lock.try_lock()) {
+        return FSLockError::FILE_LOCKED;
+      }
+      return std::move(file_lock);
+    } catch (std::exception &) {
+      return FSLockError::UNKNOWN;
     }
-    if (!lock_file.try_lock()) {
-      return FSLockError::FILE_LOCKED;
-    }
-    return std::move(lock_file);
   }
 
-  outcome::result<bool> isLocked(const std::string &lock_file_path) {
-    if (!boost::filesystem::exists(lock_file_path)) {
-      return FSLockError::FILE_NOT_FOUND;
-    }
-
-    auto result = lock(lock_file_path);
-
-    if (result.has_value()) {
-      result.value().unlock();
-      return false;
-    }
-
-    return true;
-  }
 }  // namespace fc::fslock

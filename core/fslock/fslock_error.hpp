@@ -14,9 +14,7 @@ namespace fc::fslock {
    * @brief FSLock returns these types of errors
    */
   enum class FSLockError {
-    FILE_NOT_FOUND = 1,
-    FILE_LOCKED = 2,
-    NO_RESOURCES = 3,
+    FILE_LOCKED = 1,
 
     UNKNOWN = 1000
   };
