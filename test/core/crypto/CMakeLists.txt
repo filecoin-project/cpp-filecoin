@@ -17,3 +17,10 @@ addtest(bls_provider_test
 target_link_libraries(bls_provider_test
     bls_provider
     )
+
+addtest(murmur_test
+    murmur_test.cpp
+    )
+target_link_libraries(murmur_test
+    murmur
+    )
