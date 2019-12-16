@@ -24,7 +24,7 @@ namespace fc::codec::cbor {
     /** Decodes integer or bool */
     template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
     CborDecodeStream &operator>>(T &num) {
-      if (std::is_same_v<T, bool>) {
+      if constexpr (std::is_same_v<T, bool>) {
         if (!cbor_value_is_boolean(&value_)) {
           outcome::raise(CborDecodeError::WRONG_TYPE);
         }
@@ -35,7 +35,7 @@ namespace fc::codec::cbor {
         if (!cbor_value_is_integer(&value_)) {
           outcome::raise(CborDecodeError::WRONG_TYPE);
         }
-        if (std::is_unsigned_v<T>) {
+        if constexpr (std::is_unsigned_v<T>) {
           if (!cbor_value_is_unsigned_integer(&value_)) {
             outcome::raise(CborDecodeError::INT_OVERFLOW);
           }

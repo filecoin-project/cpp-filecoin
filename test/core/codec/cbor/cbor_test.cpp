@@ -31,13 +31,6 @@ void expectDecodeOne(const std::vector<uint8_t> &encoded, const T &expected) {
   EXPECT_EQ(actual, expected);
 }
 
-#define EXPECT_OUTCOME_RAISE(ecode, statement) \
-  try { statement; FAIL() << "Line " << __LINE__ << ": " << #ecode << " not raised"; } \
-  catch (std::system_error &e) { EXPECT_EQ(e.code(), ecode); }
-
-#define EXPECT_OUTCOME_ERROR(ecode, expr) \
-  { EXPECT_OUTCOME_FALSE_2(e, expr); EXPECT_EQ(e, ecode); }
-
 /**
  * @given Element or CBOR
  * @when encode decode
