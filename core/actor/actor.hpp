@@ -34,9 +34,9 @@ namespace fc::actor {
     return s;
   }
 
-  bool isBuiltinActor(ContentIdentifier code);
+  bool isBuiltinActor(const ContentIdentifier &code);
 
-  bool isSingletonActor(ContentIdentifier code);
+  bool isSingletonActor(const ContentIdentifier &code);
 
   extern ContentIdentifier kEmptyObjectCid;
 

@@ -11,14 +11,14 @@
 #include <libp2p/crypto/sha/sha256.hpp>
 
 namespace fc::actor {
-  bool isBuiltinActor(ContentIdentifier code) {
+  bool isBuiltinActor(const ContentIdentifier &code) {
     return code == kStorageMarketCodeCid || code == kStoragePowerCodeCid
            || code == kStorageMinerCodeCid || code == kAccountCodeCid
            || code == kInitCodeCid || code == kMultisigCodeCid
            || code == kPaymentChannelCodeCid;
   }
 
-  bool isSingletonActor(ContentIdentifier code) {
+  bool isSingletonActor(const ContentIdentifier &code) {
     return code == kStoragePowerCodeCid || code == kStorageMarketCodeCid
            || code == kInitCodeCid || code == kCronCodeCid;
   }
