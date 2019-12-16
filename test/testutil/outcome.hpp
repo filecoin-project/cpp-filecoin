@@ -94,4 +94,17 @@
 #define EXPECT_OUTCOME_TRUE_MSG(val, expr, msg) \
   EXPECT_OUTCOME_TRUE_MSG_name(UNIQUE_NAME(_r), val, expr, msg)
 
+#define EXPECT_OUTCOME_RAISE_3(var, ecode, statement) \
+  try { statement; FAIL() << "Line " << __LINE__ << ": " << #ecode << " not raised"; } \
+  catch (std::system_error &var) { EXPECT_EQ(var.code(), ecode); }
+
+#define EXPECT_OUTCOME_RAISE(ecode, statement) \
+  EXPECT_OUTCOME_RAISE_3(UNIQUE_NAME(_e), ecode, statement)
+
+#define EXPECT_OUTCOME_ERROR_3(var, ecode, expr) \
+  { EXPECT_OUTCOME_FALSE_2(var, expr); EXPECT_EQ(var, ecode); }
+
+#define EXPECT_OUTCOME_ERROR(ecode, expr) \
+  EXPECT_OUTCOME_ERROR_3(UNIQUE_NAME(_e), ecode, expr)
+
 #endif  // CPP_FILECOIN_GTEST_OUTCOME_UTIL_HPP

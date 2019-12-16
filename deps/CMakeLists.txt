@@ -4,3 +4,4 @@
 #
 
 include(bls-signatures.cmake)
+include(tinycbor.cmake)
