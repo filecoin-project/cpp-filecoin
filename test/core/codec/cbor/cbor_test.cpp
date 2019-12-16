@@ -21,11 +21,14 @@ using fc::codec::cbor::resolve;
 using libp2p::multi::ContentIdentifier;
 using libp2p::multi::ContentIdentifierCodec;
 
-auto kCidEmptyRaw = "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC00"_unhex;
-auto kCidRaw = "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
-auto kCidCbor = "D82A582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
+auto kCidEmptyRaw =
+    "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC00"_unhex;
+auto kCidRaw =
+    "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
+auto kCidCbor =
+    "D82A582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
 
-template<typename T>
+template <typename T>
 void expectDecodeOne(const std::vector<uint8_t> &encoded, const T &expected) {
   EXPECT_OUTCOME_TRUE_2(actual, decode<T>(encoded));
   EXPECT_EQ(actual, expected);
@@ -179,7 +182,8 @@ TEST(CborEncoder, Map) {
 TEST(CborEncoder, CidErrors) {
   using namespace libp2p::multi;
   EXPECT_OUTCOME_TRUE_2(hash, Multihash::create(HashType::identity, {}));
-  ContentIdentifier cid(ContentIdentifier::Version::V0, MulticodecType::Code::IDENTITY, hash);
+  ContentIdentifier cid(
+      ContentIdentifier::Version::V0, MulticodecType::Code::IDENTITY, hash);
   EXPECT_OUTCOME_RAISE(CborEncodeError::INVALID_CID, CborEncodeStream() << cid);
 }
 
@@ -192,10 +196,12 @@ TEST(CborEncoder, MapErrors) {
   CborEncodeStream s;
   auto map1 = s.map();
   map1["a"] << 1 << 2;
-  EXPECT_OUTCOME_RAISE(CborEncodeError::EXPECTED_MAP_VALUE_SINGLE, CborEncodeStream() << map1);
+  EXPECT_OUTCOME_RAISE(CborEncodeError::EXPECTED_MAP_VALUE_SINGLE,
+                       CborEncodeStream() << map1);
   auto map2 = s.map();
   map2["a"];
-  EXPECT_OUTCOME_RAISE(CborEncodeError::EXPECTED_MAP_VALUE_SINGLE, CborEncodeStream() << map2);
+  EXPECT_OUTCOME_RAISE(CborEncodeError::EXPECTED_MAP_VALUE_SINGLE,
+                       CborEncodeStream() << map2);
 }
 
 /**
@@ -221,7 +227,8 @@ TEST(CborDecoder, Integral) {
  */
 TEST(CborDecoder, Cid) {
   EXPECT_OUTCOME_TRUE_2(expected, ContentIdentifierCodec::decode(kCidRaw));
-  // libp2p::multi::ContentIdentifier is not default constructible and must be initialized somehow
+  // libp2p::multi::ContentIdentifier is not default constructible and must be
+  // initialized somehow
   EXPECT_OUTCOME_TRUE_2(actual, ContentIdentifierCodec::decode(kCidEmptyRaw));
   EXPECT_NE(actual, expected);
   CborDecodeStream(kCidCbor) >> actual;
@@ -301,8 +308,10 @@ TEST(CborDecoder, Map) {
  * @then Error
  */
 TEST(CborDecoder, InitErrors) {
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("FF"_unhex));
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("18"_unhex));
+  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR,
+                       CborDecodeStream("FF"_unhex));
+  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR,
+                       CborDecodeStream("18"_unhex));
 }
 
 /**
@@ -314,11 +323,16 @@ TEST(CborDecoder, IntErrors) {
   bool b;
   uint8_t u8;
   int8_t i8;
-  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE, CborDecodeStream("01"_unhex) >> b);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE, CborDecodeStream("80"_unhex) >> u8);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INT_OVERFLOW, CborDecodeStream("21"_unhex) >> u8);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INT_OVERFLOW, CborDecodeStream("190100"_unhex) >> u8);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INT_OVERFLOW, CborDecodeStream("1880"_unhex) >> i8);
+  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE,
+                       CborDecodeStream("01"_unhex) >> b);
+  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE,
+                       CborDecodeStream("80"_unhex) >> u8);
+  EXPECT_OUTCOME_RAISE(CborDecodeError::INT_OVERFLOW,
+                       CborDecodeStream("21"_unhex) >> u8);
+  EXPECT_OUTCOME_RAISE(CborDecodeError::INT_OVERFLOW,
+                       CborDecodeStream("190100"_unhex) >> u8);
+  EXPECT_OUTCOME_RAISE(CborDecodeError::INT_OVERFLOW,
+                       CborDecodeStream("1880"_unhex) >> i8);
 }
 
 /**
@@ -328,8 +342,10 @@ TEST(CborDecoder, IntErrors) {
  */
 TEST(CborDecoder, FlatErrors) {
   int i;
-  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE, CborDecodeStream("01"_unhex).list() >> i >> i);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE, CborDecodeStream("80"_unhex).list() >> i);
+  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE,
+                       CborDecodeStream("01"_unhex).list() >> i >> i);
+  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE,
+                       CborDecodeStream("80"_unhex).list() >> i);
 }
 
 /**
@@ -338,9 +354,12 @@ TEST(CborDecoder, FlatErrors) {
  * @then Error
  */
 TEST(CborDecoder, ListErrors) {
-  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE, CborDecodeStream("01"_unhex).list());
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("81"_unhex).list());
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("8018"_unhex).list());
+  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE,
+                       CborDecodeStream("01"_unhex).list());
+  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR,
+                       CborDecodeStream("81"_unhex).list());
+  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR,
+                       CborDecodeStream("8018"_unhex).list());
 }
 
 /**
@@ -349,20 +368,36 @@ TEST(CborDecoder, ListErrors) {
  * @then Error
  */
 TEST(CborDecoder, CidErrors) {
-  // libp2p::multi::ContentIdentifier is not default constructible and must be initialized somehow
+  // libp2p::multi::ContentIdentifier is not default constructible and must be
+  // initialized somehow
   EXPECT_OUTCOME_TRUE_2(actual, ContentIdentifierCodec::decode(kCidEmptyRaw));
   // no tag
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR_CID, CborDecodeStream("582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex) >> actual);
+  EXPECT_OUTCOME_RAISE(
+      CborDecodeError::INVALID_CBOR_CID,
+      CborDecodeStream(
+          "582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex)
+          >> actual);
   // not 42 tag
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR_CID, CborDecodeStream("D82B582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex) >> actual);
+  EXPECT_OUTCOME_RAISE(
+      CborDecodeError::INVALID_CBOR_CID,
+      CborDecodeStream(
+          "D82B582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex)
+          >> actual);
   // empty 42 tag
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR, CborDecodeStream("D82A"_unhex) >> actual);
+  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR,
+                       CborDecodeStream("D82A"_unhex) >> actual);
   // not bytes
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR_CID, CborDecodeStream("D82B01"_unhex) >> actual);
+  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR_CID,
+                       CborDecodeStream("D82B01"_unhex) >> actual);
   // no multibase 00 prefix
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR_CID, CborDecodeStream("D82A5822122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex) >> actual);
+  EXPECT_OUTCOME_RAISE(
+      CborDecodeError::INVALID_CBOR_CID,
+      CborDecodeStream(
+          "D82A5822122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex)
+          >> actual);
   // invalid cid
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CID, CborDecodeStream("D82A420000"_unhex) >> actual);
+  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CID,
+                       CborDecodeStream("D82A420000"_unhex) >> actual);
 }
 
 /**
@@ -377,7 +412,7 @@ TEST(CborDecoder, IsCid) {
 }
 
 /**
- * @given CBOR 
+ * @given CBOR
  * @when isList, listLength, isMap, raw
  * @then As expected
  */
@@ -450,6 +485,8 @@ TEST(CborResolve, StringKey) {
  * @then Error
  */
 TEST(CborResolve, Errors) {
-  EXPECT_OUTCOME_ERROR(CborResolveError::CONTAINER_EXPECTED, resolve("01"_unhex, {"0"}));
-  EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CBOR, resolve("8281"_unhex, {"1"}));
+  EXPECT_OUTCOME_ERROR(CborResolveError::CONTAINER_EXPECTED,
+                       resolve("01"_unhex, {"0"}));
+  EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CBOR,
+                       resolve("8281"_unhex, {"1"}));
 }
