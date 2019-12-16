@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "actor/actor.hpp"
+#include "vm/actor/actor.hpp"
 
 #include <string>
 #include <vector>
 
 #include <libp2p/crypto/sha/sha256.hpp>
 
-namespace fc::actor {
+namespace fc::vm::actor {
   bool isBuiltinActor(const ContentIdentifier &code) {
     return code == kStorageMarketCodeCid || code == kStoragePowerCodeCid
            || code == kStorageMinerCodeCid || code == kAccountCodeCid
@@ -47,4 +47,4 @@ namespace fc::actor {
   ContentIdentifier kMultisigCodeCid = makeRawIdentityCid("fil/1/multisig");
   ContentIdentifier kInitCodeCid = makeRawIdentityCid("fil/1/init");
   ContentIdentifier kPaymentChannelCodeCid = makeRawIdentityCid("fil/1/paych");
-}  // namespace fc::actor
+}  // namespace fc::vm::actor
