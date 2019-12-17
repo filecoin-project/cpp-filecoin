@@ -6,28 +6,27 @@
 #include "primitives/address.hpp"
 
 #include <gtest/gtest.h>
-#include "testutil/outcome.hpp"
 
-using fc::common::Blob;
 using fc::primitives::Address;
 using fc::primitives::Network;
+using fc::primitives::Protocol;
 using fc::primitives::Secp256k1PublicKeyHash;
 
 struct AddressTest : public testing::Test {
-  Address addrID_0{Network{0x0}, 3232104785};
-  Address addrID_1{Network{0x1}, 3232104784};
+  Address addrID_0{Network::MAINNET, 3232104785};
+  Address addrID_1{Network::TESTNET, 3232104784};
   Address addrSecp256k1_0{
-      Network{0x0},
+      Network::MAINNET,
       Secp256k1PublicKeyHash(std::array<uint8_t, 20>{
           0xFD, 0x1D, 0x0F, 0x4D, 0xFC, 0xD7, 0xE9, 0x9A, 0xFC, 0xB9,
           0x9A, 0x83, 0x26, 0xB7, 0xDC, 0x45, 0x9D, 0x32, 0xC6, 0x28})};
   Address addrSecp256k1_1{
-      Network{0x0},
+      Network::MAINNET,
       Secp256k1PublicKeyHash(std::array<uint8_t, 20>{
           0xB8, 0x82, 0x61, 0x9D, 0x46, 0x55, 0x8F, 0x3D, 0x9E, 0x31,
           0x6D, 0x11, 0xB4, 0x8D, 0xCF, 0x21, 0x13, 0x27, 0x02, 0x6A})};
   Address addrSecp256k1_2{
-      Network{0x0},
+      Network::MAINNET,
       Secp256k1PublicKeyHash(std::array<uint8_t, 20>{
           0xFD, 0x1D, 0x0F, 0x4D, 0xFC, 0xD7, 0xE9, 0x9A, 0xFC, 0xB9,
           0x9A, 0x83, 0x26, 0xB7, 0xDC, 0x45, 0x9D, 0x32, 0xC6, 0x28})};
