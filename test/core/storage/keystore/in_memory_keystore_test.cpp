@@ -14,12 +14,18 @@
 
 #include "crypto/blake2/blake2b.h"
 #include "crypto/bls_provider/impl/bls_provider_impl.hpp"
+#include "primitives/address/impl/address_builder_impl.hpp"
+#include "primitives/address/impl/address_verifier_impl.hpp"
 #include "primitives/address_codec.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::impl::BlsProviderImpl;
 using fc::primitives::Address;
+using fc::primitives::Network;
+using fc::primitives::address::AddressBuilderImpl;
+using fc::primitives::address::AddressVerifier;
+using fc::primitives::address::AddressVerifierImpl;
 using fc::storage::keystore::InMemoryKeyStore;
 using fc::storage::keystore::KeyStore;
 using fc::storage::keystore::KeyStoreError;
@@ -43,6 +49,7 @@ class InMemoryKeyStoreTest : public ::testing::Test {
   std::shared_ptr<Secp256k1KeyPair> secp256k1_keypair_;
   Address secp256k1_address_{};
 
+  std::shared_ptr<AddressVerifier> address_verifier_;
   std::shared_ptr<KeyStore> ks;
 
   /** Some data to sign */
@@ -52,22 +59,30 @@ class InMemoryKeyStoreTest : public ::testing::Test {
    * Create crypto.
    */
   void SetUp() override {
+    AddressBuilderImpl addressBuilder{};
     bls_provider_ = std::make_shared<BlsProviderImpl>();
     bls_keypair_ =
         std::make_shared<BlsKeyPair>(bls_provider_->generateKeyPair().value());
 
     bls_address_ =
-        fc::primitives::createFromPublicKey(bls_keypair_->public_key).value();
+        addressBuilder
+            .makeFromBlsPublicKey(Network::MAINNET, bls_keypair_->public_key)
+            .value();
 
     secp256k1_provider_ = std::make_shared<Secp256k1ProviderImpl>();
     secp256k1_keypair_ = std::make_shared<Secp256k1KeyPair>(
         secp256k1_provider_->generateKeyPair().value());
 
     secp256k1_address_ =
-        fc::primitives::createFromPublicKey(secp256k1_keypair_->public_key)
+        addressBuilder
+            .makeFromSecp256k1PublicKey(Network::MAINNET,
+                                        secp256k1_keypair_->public_key)
             .value();
 
-    ks = std::make_shared<InMemoryKeyStore>(bls_provider_, secp256k1_provider_);
+    address_verifier_ = std::make_shared<AddressVerifierImpl>();
+
+    ks = std::make_shared<InMemoryKeyStore>(
+        bls_provider_, secp256k1_provider_, address_verifier_);
   }
 
  protected:
