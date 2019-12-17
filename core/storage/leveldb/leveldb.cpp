@@ -13,17 +13,17 @@
 
 namespace fc::storage {
 
-  outcome::result<std::unique_ptr<LevelDB>> LevelDB::create(
+  outcome::result<std::shared_ptr<LevelDB>> LevelDB::create(
       std::string_view path, leveldb::Options options) {
     leveldb::DB *db = nullptr;
     auto status = leveldb::DB::Open(options, path.data(), &db);
     if (status.ok()) {
-      auto l = std::make_unique<LevelDB>();
+      auto l = std::make_shared<LevelDB>();
       l->db_ = std::unique_ptr<leveldb::DB>(db);
       return std::move(l); // clang 6.0.1 issue
     }
 
-    return error_as_result<std::unique_ptr<LevelDB>>(status);
+    return error_as_result<std::shared_ptr<LevelDB>>(status);
   }
 
   std::unique_ptr<BufferMapCursor> LevelDB::cursor() {
