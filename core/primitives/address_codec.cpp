@@ -5,17 +5,19 @@
 
 #include "primitives/address_codec.hpp"
 
+#include <cppcodec/base32_default_rfc4648.hpp>
 #include <stdexcept>
 
-#include <cppcodec/base32_default_rfc4648.hpp>
 #include "codec/leb128/leb128.hpp"
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b.h"
+#include "crypto/blake2/blake2b160.hpp"
+#include "crypto/bls_provider/bls_types.hpp"
 
 namespace fc::primitives {
 
-  static const size_t kBlake2b160HashSize{20};
-  static const size_t kBLSHashSize{48};
+  static const size_t kBlsPublicKeySize{
+      std::tuple_size<fc::crypto::bls::PublicKey>::value};
 
   using common::Blob;
   using base32 = cppcodec::base32_rfc4648;
@@ -51,32 +53,32 @@ namespace fc::primitives {
         return Address{net, value};
       }
       case Protocol::SECP256K1: {
-        if (payload.size() != kBlake2b160HashSize) {
+        if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
         Secp256k1PublicKeyHash hash{};
         std::copy_n(std::make_move_iterator(payload.begin()),
-                    kBlake2b160HashSize,
+                    fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT,
                     hash.begin());
         return Address{net, hash};
       }
       case Protocol::ACTOR: {
-        if (payload.size() != kBlake2b160HashSize) {
+        if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
         ActorExecHash hash{};
         std::copy_n(std::make_move_iterator(payload.begin()),
-                    kBlake2b160HashSize,
+                    fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT,
                     hash.begin());
         return Address{net, hash};
       }
       case Protocol::BLS: {
-        if (payload.size() != kBLSHashSize) {
+        if (payload.size() != kBlsPublicKeySize) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
         BLSPublicKeyHash hash{};
         std::copy_n(std::make_move_iterator(payload.begin()),
-                    kBLSHashSize,
+                    kBlsPublicKeySize,
                     hash.begin());
         return Address{net, hash};
       }
@@ -202,12 +204,13 @@ namespace fc::primitives {
 
     ingest.push_back(p);
 
-    ingest = visit_in_place(address.data,
-                            [&ingest](uint64_t v) { return ingest; },
-                            [&ingest](const auto &v) {
-                              ingest.insert(ingest.end(), v.begin(), v.end());
-                              return ingest;
-                            });
+    ingest = visit_in_place(
+        address.data,
+        [&ingest](uint64_t v) { return ingest; },
+        [&ingest](const auto &v) {
+          ingest.insert(ingest.end(), v.begin(), v.end());
+          return ingest;
+        });
 
     size_t outlen = 4;
     blake2b(res.data(), outlen, nullptr, 0, ingest.data(), ingest.size());

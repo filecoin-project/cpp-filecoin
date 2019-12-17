@@ -6,11 +6,10 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_HPP
 
+#include <boost/variant.hpp>
 #include <cstdint>
 
-#include <boost/variant.hpp>
 #include "common/blob.hpp"
-#include "common/outcome.hpp"
 
 namespace fc::primitives {
 

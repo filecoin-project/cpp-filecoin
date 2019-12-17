@@ -26,11 +26,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives, AddressError, e) {
 namespace fc::primitives {
 
   bool Address::isKeyType() const {
-    return visit_in_place(data,
-                          [](uint64_t v) { return false; },
-                          [](const Secp256k1PublicKeyHash &v) { return true; },
-                          [](const ActorExecHash &v) { return false; },
-                          [](const BLSPublicKeyHash &v) { return true; });
+    return visit_in_place(
+        data,
+        [](uint64_t v) { return false; },
+        [](const Secp256k1PublicKeyHash &v) { return true; },
+        [](const ActorExecHash &v) { return false; },
+        [](const BLSPublicKeyHash &v) { return true; });
   }
 
   Protocol Address::getProtocol() const {
