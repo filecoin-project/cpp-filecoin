@@ -29,7 +29,10 @@ struct DatastoreIntegrationTest : public ::testing::Test {
   static constexpr size_t kDefaultBufferLength = 32;
 
   static boost::filesystem::path makeTempPath() {
-    return boost::filesystem::temp_directory_path();
+    boost::filesystem::path global_temp_dir =
+        boost::filesystem::temp_directory_path();
+    return boost::filesystem::unique_path(
+        global_temp_dir.append("%%%%%-%%%%%-%%%%%"));
   }
 
   LeveldbDatastore::Value makeRandomBuffer(size_t size = kDefaultBufferLength) {
@@ -59,6 +62,9 @@ struct DatastoreIntegrationTest : public ::testing::Test {
 
   void TearDown() override {
     datastore.reset();
+    if (boost::filesystem::exists(leveldb_path)) {
+      boost::filesystem::remove_all(leveldb_path);
+    }
   }
 
   std::shared_ptr<CSPRNG> generator;
