@@ -8,6 +8,17 @@
 #include "codec/cbor/cbor.hpp"
 
 namespace fc::storage::ipfs {
+  namespace {
+    /**
+     * @brief convenience function to encode value
+     * @param value key value to encode
+     * @return encoded value as Buffer
+     */
+    inline common::Buffer encode(
+        const libp2p::multi::ContentIdentifier &value) {
+      return common::Buffer(codec::cbor::encode(value));
+    }
+  }  // namespace
 
   LeveldbDatastore::LeveldbDatastore(std::shared_ptr<LevelDB> leveldb)
       : leveldb_{std::move(leveldb)} {
@@ -21,7 +32,7 @@ namespace fc::storage::ipfs {
     return std::make_shared<LeveldbDatastore>(std::move(leveldb));
   }
 
-  bool LeveldbDatastore::contains(const CID &key) {
+  bool LeveldbDatastore::contains(const CID &key) const {
     return leveldb_->contains(encode(key));
   }
 
@@ -30,16 +41,12 @@ namespace fc::storage::ipfs {
   }
 
   outcome::result<LeveldbDatastore::Value> LeveldbDatastore::get(
-      const CID &key) {
+      const CID &key) const {
     return leveldb_->get(encode(key));
   }
 
   outcome::result<void> LeveldbDatastore::remove(const CID &key) {
     return leveldb_->remove(encode(key));
-  }
-
-  common::Buffer LeveldbDatastore::encode(const CID &value) {
-    return common::Buffer(codec::cbor::encode(value));
   }
 
 }  // namespace fc::storage::ipfs

@@ -37,22 +37,15 @@ namespace fc::storage::ipfs {
     static outcome::result<std::shared_ptr<LeveldbDatastore>> create(
         std::string_view leveldb_directory, leveldb::Options options);
 
-    bool contains(const CID &key) override;
+    bool contains(const CID &key) const override;
 
     outcome::result<void> set(const CID &key, Value value) override;
 
-    outcome::result<Value> get(const CID &key) override;
+    outcome::result<Value> get(const CID &key) const override;
 
     outcome::result<void> remove(const CID &key) override;
 
    private:
-    /**
-     * @brief convenience function to encode value
-     * @param value key value to encode
-     * @return encoded value as Buffer
-     */
-    common::Buffer encode(const CID &value);
-
     std::shared_ptr<LevelDB> leveldb_;  ///< underlying db wrapper
   };
 
