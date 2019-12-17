@@ -41,9 +41,9 @@ namespace fc::vm::actor {
   /** Check if only one instance of actor should exists */
   bool isSingletonActor(const ContentIdentifier &code);
 
-  extern ContentIdentifier kEmptyObjectCid;
+  extern const ContentIdentifier kEmptyObjectCid;
 
-  extern ContentIdentifier kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
+  extern const ContentIdentifier kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
       kStorageMarketCodeCid, kStorageMinerCodeCid, kMultisigCodeCid,
       kInitCodeCid, kPaymentChannelCodeCid;
 }  // namespace fc::vm::actor

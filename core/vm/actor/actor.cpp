@@ -23,7 +23,7 @@ namespace fc::vm::actor {
            || code == kInitCodeCid || code == kCronCodeCid;
   }
 
-  ContentIdentifier kEmptyObjectCid{
+  const ContentIdentifier kEmptyObjectCid{
       ContentIdentifier::Version::V1,
       libp2p::multi::MulticodecType::Code::DAG_CBOR,
       libp2p::multi::Multihash::create(libp2p::multi::HashType::sha256,
@@ -39,12 +39,12 @@ namespace fc::vm::actor {
                 .value()};
   }
 
-  ContentIdentifier kAccountCodeCid = makeRawIdentityCid("fil/1/account");
-  ContentIdentifier kCronCodeCid = makeRawIdentityCid("fil/1/cron");
-  ContentIdentifier kStoragePowerCodeCid = makeRawIdentityCid("fil/1/power");
-  ContentIdentifier kStorageMarketCodeCid = makeRawIdentityCid("fil/1/market");
-  ContentIdentifier kStorageMinerCodeCid = makeRawIdentityCid("fil/1/miner");
-  ContentIdentifier kMultisigCodeCid = makeRawIdentityCid("fil/1/multisig");
-  ContentIdentifier kInitCodeCid = makeRawIdentityCid("fil/1/init");
-  ContentIdentifier kPaymentChannelCodeCid = makeRawIdentityCid("fil/1/paych");
+  const ContentIdentifier kAccountCodeCid = makeRawIdentityCid("fil/1/account");
+  const ContentIdentifier kCronCodeCid = makeRawIdentityCid("fil/1/cron");
+  const ContentIdentifier kStoragePowerCodeCid = makeRawIdentityCid("fil/1/power");
+  const ContentIdentifier kStorageMarketCodeCid = makeRawIdentityCid("fil/1/market");
+  const ContentIdentifier kStorageMinerCodeCid = makeRawIdentityCid("fil/1/miner");
+  const ContentIdentifier kMultisigCodeCid = makeRawIdentityCid("fil/1/multisig");
+  const ContentIdentifier kInitCodeCid = makeRawIdentityCid("fil/1/init");
+  const ContentIdentifier kPaymentChannelCodeCid = makeRawIdentityCid("fil/1/paych");
 }  // namespace fc::vm::actor
