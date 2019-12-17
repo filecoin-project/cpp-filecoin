@@ -23,6 +23,13 @@ KeyStore::KeyStore(std::shared_ptr<BlsProvider> blsProvider,
 fc::outcome::result<bool> KeyStore::CheckAddress(
     const Address &address, const TPrivateKey &private_key) noexcept {
   if (!address.isKeyType()) return false;
+
+  // TODO(a.chernyshov): use visit_in_place
+  static_assert(std::is_same_v<BlsPrivateKey, Secp256k1PrivateKey>);
+  //  return visit_in_place(key,
+  //      [](const BlsPrivateKey &private_key) {},
+  //      [](const Secp256k1PrivateKey &private_key) {}
+  //  );
   if (address.getProtocol() == Protocol::BLS) {
     OUTCOME_TRY(
         public_key,
@@ -35,6 +42,7 @@ fc::outcome::result<bool> KeyStore::CheckAddress(
                     boost::get<Secp256k1PrivateKey>(private_key)));
     return address_verifier_->verifySyntax(address, public_key);
   }
+
   return KeyStoreError::WRONG_ADDRESS;
 }
 
@@ -44,6 +52,12 @@ fc::outcome::result<KeyStore::TSignature> KeyStore::Sign(
   OUTCOME_TRY(valid, CheckAddress(address, private_key));
   if (!valid) return KeyStoreError::WRONG_ADDRESS;
 
+  // TODO(a.chernyshov): use visit_in_place
+  static_assert(std::is_same_v<BlsPrivateKey, Secp256k1PrivateKey>);
+  //  return visit_in_place(key,
+  //      [](const BlsPrivateKey &private_key) {},
+  //      [](const Secp256k1PrivateKey &private_key) {}
+  //  );
   if (address.getProtocol() == Protocol::BLS) {
     OUTCOME_TRY(
         signature,
@@ -68,28 +82,30 @@ fc::outcome::result<bool> KeyStore::Verify(
   OUTCOME_TRY(valid, CheckAddress(address, private_key));
   if (!valid) return KeyStoreError::WRONG_ADDRESS;
 
-  try {
-    if (address.getProtocol() == Protocol::BLS) {
-      OUTCOME_TRY(public_key,
-                  bls_provider_->derivePublicKey(
-                      boost::get<BlsPrivateKey>(private_key)));
-      auto bls_signature = boost::get<BlsSignature>(signature);
-      OUTCOME_TRY(
-          res, bls_provider_->verifySignature(data, bls_signature, public_key));
-      return res;
-    }
-    if (address.getProtocol() == Protocol::SECP256K1) {
-      OUTCOME_TRY(public_key,
-                  secp256k1_provider_->derivePublicKey(
-                      boost::get<Secp256k1PrivateKey>(private_key)));
-      auto secp256k1_signature = boost::get<Secp256k1Signature>(signature);
-      OUTCOME_TRY(
-          res,
-          secp256k1_provider_->verify(data, secp256k1_signature, public_key));
-      return res;
-    }
-  } catch (std::exception &) {
-    return KeyStoreError::WRONG_SIGNATURE;
+  // TODO(a.chernyshov): use visit_in_place
+  static_assert(std::is_same_v<BlsPrivateKey, Secp256k1PrivateKey>);
+  //  return visit_in_place(key,
+  //      [](const BlsPrivateKey &private_key) {},
+  //      [](const Secp256k1PrivateKey &private_key) {}
+  //  );
+  if (address.getProtocol() == Protocol::BLS) {
+    OUTCOME_TRY(
+        public_key,
+        bls_provider_->derivePublicKey(boost::get<BlsPrivateKey>(private_key)));
+    auto bls_signature = boost::get<BlsSignature>(signature);
+    OUTCOME_TRY(
+        res, bls_provider_->verifySignature(data, bls_signature, public_key));
+    return res;
+  }
+  if (address.getProtocol() == Protocol::SECP256K1) {
+    OUTCOME_TRY(public_key,
+                secp256k1_provider_->derivePublicKey(
+                    boost::get<Secp256k1PrivateKey>(private_key)));
+    auto secp256k1_signature = boost::get<Secp256k1Signature>(signature);
+    OUTCOME_TRY(
+        res,
+        secp256k1_provider_->verify(data, secp256k1_signature, public_key));
+    return res;
   }
 
   return KeyStoreError::UNKNOWN;

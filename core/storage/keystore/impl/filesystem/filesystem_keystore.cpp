@@ -43,6 +43,12 @@ fc::outcome::result<void> FileSystemKeyStore::Put(
   OUTCOME_TRY(path, AddressToPath(address));
   OUTCOME_TRY(file, filestore_->create(path));
 
+  // TODO(a.chernyshov): use visit_in_place
+  static_assert(std::is_same_v<BlsPrivateKey, Secp256k1PrivateKey>);
+  //  return visit_in_place(key,
+  //      [](const BlsPrivateKey &private_key) {},
+  //      [](const Secp256k1PrivateKey &private_key) {}
+  //  );
   if (address.getProtocol() == Protocol::BLS) {
     auto bls_private_key = boost::get<BlsPrivateKey>(key);
     OUTCOME_TRY(write_size, file->write(0, bls_private_key));
