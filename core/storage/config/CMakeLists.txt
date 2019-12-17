@@ -3,8 +3,8 @@
 
 add_library(config
     config.cpp
+    config_error.cpp
     )
 target_link_libraries(config
-    filestore
     outcome
     )

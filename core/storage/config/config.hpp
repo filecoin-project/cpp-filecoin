@@ -3,19 +3,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_CONFIG_STORAGE_HPP
-#define CPP_FILECOIN_CORE_STORAGE_CONFIG_STORAGE_HPP
+#ifndef CPP_FILECOIN_CORE_STORAGE_CONFIG_HPP
+#define CPP_FILECOIN_CORE_STORAGE_CONFIG_HPP
 
-#include <boost/any.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include <boost/property_tree/xml_parser.hpp>
 #include <string>
 
 #include "common/outcome.hpp"
-#include "storage/filestore/path.hpp"
+#include "storage/config/config_error.hpp"
 
 namespace fc::storage::config {
 
+  /** @brief Configuration key */
   using ConfigKey = std::string;
 
   /**
@@ -25,35 +24,46 @@ namespace fc::storage::config {
    public:
     virtual ~Config() = default;
 
-    virtual outcome::result<void> Save(
-        const filestore::Path &filename) noexcept;
+    /**
+     * @brief Save config to file
+     * @param filename - path to a file to store config
+     * @return nothing or error occurred
+     */
+    outcome::result<void> save(const std::string &filename);
 
-    virtual outcome::result<void> Load(
-        const filestore::Path &filename) noexcept;
+    /**
+     * @brief Load config from file
+     * @param filename - path to a file with config
+     * @return nothing or error occurred
+     */
+    outcome::result<void> load(const std::string &filename);
 
     /**
      * Set config value
-     * @tparam T
-     * @param key
-     * @param value
-     * @return
+     * @tparam T - parameter of a configuration value
+     * @param key - configuration key
+     * @param value - configuration value
+     * @return - nothing or error occurred
      */
     template <typename T>
-    outcome::result<void> Set(const ConfigKey &key,
-                              const T &value) noexcept {
+    outcome::result<void> set(const ConfigKey &key, const T &value) {
       ptree_.put<T>(key, value);
       return outcome::success();
     }
 
     /**
-     * Get config value by path
-     * @tparam T
-     * @param key
-     * @return
+     * Get config value by key
+     * @tparam T - expected parameter of a configuration value
+     * @param key - configuration key
+     * @return value or error occurred
      */
     template <typename T>
-    outcome::result<T> Get(const ConfigKey &key) noexcept {
-      return ptree_.get<T>(key);
+    outcome::result<T> get(const ConfigKey &key) {
+      try {
+        return ptree_.get<T>(key);
+      } catch (const boost::property_tree::ptree_bad_path &) {
+        return ConfigError::BAD_PATH;
+      }
     }
 
    private:
@@ -62,4 +72,4 @@ namespace fc::storage::config {
 
 }  // namespace fc::storage::config
 
-#endif  // CPP_FILECOIN_CORE_STORAGE_CONFIG_STORAGE_HPP
+#endif  // CPP_FILECOIN_CORE_STORAGE_CONFIG_HPP
