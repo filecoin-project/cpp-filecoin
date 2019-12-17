@@ -7,13 +7,17 @@
 
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
+#include <boost/interprocess/sync/interprocess_mutex.hpp>
+#include <boost/interprocess/sync/scoped_lock.hpp>
+#include <iostream>
 #include "fslock/fslock_error.hpp"
 
 namespace fc::fslock {
-  // TODO(artyom-yurin): Should be unlocked if process died
-  outcome::result<boost::interprocess::file_lock> lock(
+  // TODO(artyom-yurin): [FIL-115] Should be unlocked if process died
+  outcome::result<boost::interprocess::file_lock> Locker::lock(
       const std::string &file_lock_path) {
     try {
+      boost::interprocess::scoped_lock scopedMutex(mutex);
       if (!boost::filesystem::exists(file_lock_path)) {
         boost::filesystem::ofstream os(file_lock_path);
         os.close();
@@ -23,9 +27,11 @@ namespace fc::fslock {
         return FSLockError::FILE_LOCKED;
       }
       return std::move(file_lock);
-    } catch (std::exception &) {
+    } catch (...) {
       return FSLockError::UNKNOWN;
     }
   }
 
+  boost::interprocess::interprocess_mutex Locker::mutex =
+      boost::interprocess::interprocess_mutex();
 }  // namespace fc::fslock

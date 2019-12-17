@@ -11,14 +11,20 @@
 #include "common/outcome.hpp"
 
 namespace fc::fslock {
+  class Locker {
+   public:
+    /**
+     * @brief tries to lock file
+     * @param file_lock_path is path to file that we want to lock
+     * @return lock file
+     */
+    static outcome::result<boost::interprocess::file_lock> lock(
+        const std::string &file_lock_path);
 
-  /**
-   * @brief tries to lock file
-   * @param file_lock_path is path to file that we want to lock
-   * @return lock file
-   */
-  outcome::result<boost::interprocess::file_lock> lock(
-      const std::string &file_lock_path);
+   private:
+    static boost::interprocess::interprocess_mutex mutex;
+  };
+
 }  // namespace fc::fslock
 
 #endif  // FILECOIN_CORE_FSLOCK_HPP
