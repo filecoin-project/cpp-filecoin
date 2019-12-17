@@ -14,6 +14,7 @@ namespace fc::vm::actor {
   using primitives::BigInt;
   using libp2p::multi::ContentIdentifier;
 
+  /** Common actor state interface */
   struct Actor {
     ContentIdentifier code;
     ContentIdentifier head;
@@ -34,8 +35,10 @@ namespace fc::vm::actor {
     return s;
   }
 
+  /** Check if code specifies builtin actor implementation */
   bool isBuiltinActor(const ContentIdentifier &code);
 
+  /** Check if only one instance of actor should exists */
   bool isSingletonActor(const ContentIdentifier &code);
 
   extern ContentIdentifier kEmptyObjectCid;
