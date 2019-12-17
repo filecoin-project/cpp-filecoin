@@ -26,7 +26,7 @@ namespace fc::primitives::address {
      * @param public_key - Secp256k1 public key
      * @return address created from secp256k1 public key
      */
-    virtual fc::outcome::result<Address> makeFromSecp256k1PublicKey(
+    virtual outcome::result<Address> makeFromSecp256k1PublicKey(
         Network network,
         const libp2p::crypto::secp256k1::PublicKey &public_key) noexcept = 0;
 
@@ -35,7 +35,7 @@ namespace fc::primitives::address {
      * @param public_key - BLS public key
      * @return address created from BLS public key
      */
-    virtual fc::outcome::result<Address> makeFromBlsPublicKey(
+    virtual outcome::result<Address> makeFromBlsPublicKey(
         Network network, const crypto::bls::PublicKey &public_key) noexcept = 0;
   };
 

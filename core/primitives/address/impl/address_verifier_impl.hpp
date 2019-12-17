@@ -13,7 +13,7 @@ namespace fc::primitives::address {
   class AddressVerifierImpl : public AddressVerifier {
    public:
     /** @copydoc AddressVerifier::verifySyntax() */
-    fc::outcome::result<bool> verifySyntax(
+    outcome::result<bool> verifySyntax(
         const Address &address,
         gsl::span<const uint8_t> seed_data) noexcept override;
   };

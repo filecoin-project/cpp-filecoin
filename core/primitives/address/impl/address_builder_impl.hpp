@@ -13,13 +13,13 @@ namespace fc::primitives::address {
   class AddressBuilderImpl : public AddressBuilder {
    public:
     /** @copydoc AddressBuilder::makeFromSecp256k1PublicKey() */
-    fc::outcome::result<Address> makeFromSecp256k1PublicKey(
+    outcome::result<Address> makeFromSecp256k1PublicKey(
         Network network,
         const libp2p::crypto::secp256k1::PublicKey
             &public_key) noexcept override;
 
     /** @copydoc AddressBuilder::makeFromBlsPublicKey() */
-    fc::outcome::result<Address> makeFromBlsPublicKey(
+    outcome::result<Address> makeFromBlsPublicKey(
         Network network,
         const crypto::bls::PublicKey &public_key) noexcept override;
   };

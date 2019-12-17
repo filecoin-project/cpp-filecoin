@@ -31,7 +31,7 @@ namespace fc::primitives::address {
      * @param seed_data - data to generate address
      * @return true if data is a base for address
      */
-    virtual fc::outcome::result<bool> verifySyntax(
+    virtual outcome::result<bool> verifySyntax(
         const Address &address,
         gsl::span<const uint8_t> seed_data) noexcept = 0;
   };

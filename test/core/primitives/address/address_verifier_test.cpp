@@ -147,74 +147,46 @@ TEST_F(AddressVerifierTest, NotVerifyBlsAddress) {
   ASSERT_FALSE(res);
 }
 
-/**
- * @given an Secp256k1 public key
- * @when generate address called with testnet
- * @then correct address returned
- */
-TEST_F(AddressVerifierTest, GenerateSecp256k1AddressTestnet) {
-  EXPECT_OUTCOME_TRUE(keypair, secp256k1_provider->generateKeyPair());
-  EXPECT_OUTCOME_TRUE(address,
-                      address_builder->makeFromSecp256k1PublicKey(
-                          Network::TESTNET, keypair.public_key));
-  ASSERT_TRUE(address.isKeyType());
-  EXPECT_OUTCOME_TRUE(
-      res, address_verifier->verifySyntax(address, keypair.public_key));
-  ASSERT_TRUE(res);
-  ASSERT_EQ(Network::TESTNET, address.network);
-  ASSERT_EQ(Protocol::SECP256K1, address.getProtocol());
-}
-
-/**
- * @given an Secp256k1 public key
- * @when generate address called with mainnet
- * @then correct address returned
- */
-TEST_F(AddressVerifierTest, GenerateSecp256k1AddressMainnet) {
-  EXPECT_OUTCOME_TRUE(keypair, secp256k1_provider->generateKeyPair());
-  EXPECT_OUTCOME_TRUE(address,
-                      address_builder->makeFromSecp256k1PublicKey(
-                          Network::MAINNET, keypair.public_key));
-  ASSERT_TRUE(address.isKeyType());
-  EXPECT_OUTCOME_TRUE(
-      res, address_verifier->verifySyntax(address, keypair.public_key));
-  ASSERT_TRUE(res);
-  ASSERT_EQ(Network::MAINNET, address.network);
-  ASSERT_EQ(Protocol::SECP256K1, address.getProtocol());
-}
+class AddressVerifierParametrizedTest
+    : public AddressVerifierTest,
+      public testing::WithParamInterface<Network> {};
 
 /**
  * @given an BLS public key
- * @when generate address called with testnet
+ * @when generate address called with network
  * @then correct address returned
  */
-TEST_F(AddressVerifierTest, GenerateBlsAddressTestnet) {
+TEST_P(AddressVerifierParametrizedTest, GenerateBlsAddress) {
   EXPECT_OUTCOME_TRUE(keypair, bls_provider->generateKeyPair());
-  EXPECT_OUTCOME_TRUE(address,
-                      address_builder->makeFromBlsPublicKey(
-                          Network::TESTNET, keypair.public_key));
+  EXPECT_OUTCOME_TRUE(
+      address,
+      address_builder->makeFromBlsPublicKey(GetParam(), keypair.public_key));
   ASSERT_TRUE(address.isKeyType());
   EXPECT_OUTCOME_TRUE(
       res, address_verifier->verifySyntax(address, keypair.public_key));
   ASSERT_TRUE(res);
-  ASSERT_EQ(Network::TESTNET, address.network);
+  ASSERT_EQ(GetParam(), address.network);
   ASSERT_EQ(Protocol::BLS, address.getProtocol());
 }
 
 /**
- * @given an BLS public key
- * @when generate address called with mainnet
+ * @given an Secp256k1 public key
+ * @when generate address called with network
  * @then correct address returned
  */
-TEST_F(AddressVerifierTest, GenerateBlsAddressMainnet) {
-  EXPECT_OUTCOME_TRUE(keypair, bls_provider->generateKeyPair());
+TEST_P(AddressVerifierParametrizedTest, GenerateSecp256k1Address) {
+  EXPECT_OUTCOME_TRUE(keypair, secp256k1_provider->generateKeyPair());
   EXPECT_OUTCOME_TRUE(address,
-                      address_builder->makeFromBlsPublicKey(
-                          Network::MAINNET, keypair.public_key));
+                      address_builder->makeFromSecp256k1PublicKey(
+                          GetParam(), keypair.public_key));
   ASSERT_TRUE(address.isKeyType());
   EXPECT_OUTCOME_TRUE(
       res, address_verifier->verifySyntax(address, keypair.public_key));
   ASSERT_TRUE(res);
-  ASSERT_EQ(Network::MAINNET, address.network);
-  ASSERT_EQ(Protocol::BLS, address.getProtocol());
+  ASSERT_EQ(GetParam(), address.network);
+  ASSERT_EQ(Protocol::SECP256K1, address.getProtocol());
 }
+
+INSTANTIATE_TEST_CASE_P(InstatiateBlsNetTest,
+                        AddressVerifierParametrizedTest,
+                        testing::Values(Network::TESTNET, Network::MAINNET));
