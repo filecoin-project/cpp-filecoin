@@ -35,6 +35,7 @@ namespace fc::fslock {
   }
 
   boost::interprocess::named_mutex Locker::mutex =
-      boost::interprocess::named_mutex(boost::interprocess::open_or_create,
-                                       "locker");
+      boost::interprocess::named_mutex(
+          boost::interprocess::open_or_create,
+          "process synchronization in lock method");
 }  // namespace fc::fslock
