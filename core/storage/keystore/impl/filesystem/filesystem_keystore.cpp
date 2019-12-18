@@ -42,13 +42,9 @@ fc::outcome::result<void> FileSystemKeyStore::Put(
   if (exists) return KeyStoreError::ALREADY_EXISTS;
   OUTCOME_TRY(path, AddressToPath(address));
   OUTCOME_TRY(file, filestore_->create(path));
+  OUTCOME_TRY(valid, CheckAddress(address, key));
+  if (!valid) return KeyStoreError::WRONG_ADDRESS;
 
-  // TODO(a.chernyshov): use visit_in_place
-  static_assert(std::is_same_v<BlsPrivateKey, Secp256k1PrivateKey>);
-  //  return visit_in_place(key,
-  //      [](const BlsPrivateKey &private_key) {},
-  //      [](const Secp256k1PrivateKey &private_key) {}
-  //  );
   if (address.getProtocol() == Protocol::BLS) {
     auto bls_private_key = boost::get<BlsPrivateKey>(key);
     OUTCOME_TRY(write_size, file->write(0, bls_private_key));

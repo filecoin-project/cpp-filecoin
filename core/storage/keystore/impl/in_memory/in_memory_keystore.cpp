@@ -21,11 +21,7 @@ InMemoryKeyStore::InMemoryKeyStore(
 
 fc::outcome::result<bool> InMemoryKeyStore::Has(
     const Address &address) noexcept {
-  try {
     return storage_.find(address) != storage_.end();
-  } catch (std::exception &) {
-    return KeyStoreError::UNKNOWN;
-  }
 }
 
 fc::outcome::result<void> InMemoryKeyStore::Put(

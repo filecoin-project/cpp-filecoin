@@ -52,12 +52,6 @@ fc::outcome::result<KeyStore::TSignature> KeyStore::Sign(
   OUTCOME_TRY(valid, CheckAddress(address, private_key));
   if (!valid) return KeyStoreError::WRONG_ADDRESS;
 
-  // TODO(a.chernyshov): use visit_in_place
-  static_assert(std::is_same_v<BlsPrivateKey, Secp256k1PrivateKey>);
-  //  return visit_in_place(key,
-  //      [](const BlsPrivateKey &private_key) {},
-  //      [](const Secp256k1PrivateKey &private_key) {}
-  //  );
   if (address.getProtocol() == Protocol::BLS) {
     OUTCOME_TRY(
         signature,
@@ -82,12 +76,6 @@ fc::outcome::result<bool> KeyStore::Verify(
   OUTCOME_TRY(valid, CheckAddress(address, private_key));
   if (!valid) return KeyStoreError::WRONG_ADDRESS;
 
-  // TODO(a.chernyshov): use visit_in_place
-  static_assert(std::is_same_v<BlsPrivateKey, Secp256k1PrivateKey>);
-  //  return visit_in_place(key,
-  //      [](const BlsPrivateKey &private_key) {},
-  //      [](const Secp256k1PrivateKey &private_key) {}
-  //  );
   if (address.getProtocol() == Protocol::BLS) {
     OUTCOME_TRY(
         public_key,
