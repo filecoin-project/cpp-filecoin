@@ -22,7 +22,7 @@ namespace fc::fslock {
         const std::string &file_lock_path);
 
    private:
-    static boost::interprocess::interprocess_mutex mutex;
+    static boost::interprocess::named_mutex mutex;
   };
 
 }  // namespace fc::fslock

@@ -7,7 +7,7 @@
 
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
-#include <boost/interprocess/sync/interprocess_mutex.hpp>
+#include <boost/interprocess/sync/named_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <iostream>
 #include "fslock/fslock_error.hpp"
@@ -32,6 +32,7 @@ namespace fc::fslock {
     }
   }
 
-  boost::interprocess::interprocess_mutex Locker::mutex =
-      boost::interprocess::interprocess_mutex();
+  boost::interprocess::named_mutex Locker::mutex =
+      boost::interprocess::named_mutex(boost::interprocess::open_or_create,
+                                       "locker");
 }  // namespace fc::fslock

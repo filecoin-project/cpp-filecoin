@@ -25,24 +25,22 @@ class FSLockTest : public test::BaseFS_Test {
 
   Path not_exist_file_path;
 
-  int random_file_name_size_;
-
   /**
    * Create a test directory with an lock file.
    */
   void SetUp() override {
     BaseFS_Test::SetUp();
     lock_file_path = fs::canonical(createFile("test.lock")).string();
-    random_file_name_size_ = 5;
-    std::string alpha = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    std::string rand_name = "";
-    for (int i = 0; i < random_file_name_size_; i++) {
-      rand_name += alpha[rand() % (alpha.length() - 1)];
-    }
-    not_exist_file_path = fs::current_path().string() + rand_name + ".lock";
+    auto path_model = fs::current_path().append("%%%%%");
+    not_exist_file_path = boost::filesystem::unique_path(path_model).string();
   }
 };
 
+/**
+ * @given path to file and one process lock it
+ * @when another process tries to lock it
+ * @then error FILE_LOCKED
+ */
 TEST_F(FSLockTest, LockFileSuccess) {
   EXPECT_OUTCOME_TRUE_1(fc::fslock::Locker::lock(lock_file_path));
   auto pid = fork();
@@ -54,6 +52,11 @@ TEST_F(FSLockTest, LockFileSuccess) {
   }
 }
 
+/**
+ * @given path to file that doesn't exist
+ * @when one process create and lock file and another tries to lock it at the same time
+ * @then the first get lock file and the second get error FILE_LOCKED
+ */
 TEST_F(FSLockTest, LockNotExistingFileSuccess) {
   auto pid = fork();
   if (pid == 0) {

@@ -11,7 +11,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::fslock, FSLockError, e) {
   switch (e) {
     case (FSLockError::FILE_LOCKED):
       return "FileLock: file is locked";
-    default:
+    case (FSLockError::UNKNOWN):
       return "FileLock: unknown error";
   }
 }
