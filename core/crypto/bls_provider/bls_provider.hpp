@@ -37,7 +37,7 @@ namespace fc::crypto::bls {
      * @param key - BLS private key
      * @return BLS signature or error code
      */
-    virtual outcome::result<Signature> sign(gsl::span<uint8_t> message,
+    virtual outcome::result<Signature> sign(gsl::span<const uint8_t> message,
                                             const PrivateKey &key) const = 0;
 
     /**
@@ -48,7 +48,7 @@ namespace fc::crypto::bls {
      * @return signature status or error code
      */
     virtual outcome::result<bool> verifySignature(
-        gsl::span<uint8_t> message,
+        gsl::span<const uint8_t> message,
         const Signature &signature,
         const PublicKey &key) const = 0;
   };

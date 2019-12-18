@@ -51,7 +51,7 @@ fc::outcome::result<void> FileSystemFile::close() noexcept {
 }
 
 fc::outcome::result<size_t> FileSystemFile::read(
-    size_t offset, const gsl::span<uint8_t> &buffer) noexcept {
+    size_t offset, gsl::span<uint8_t> buffer) noexcept {
   OUTCOME_TRY(file_exists, exists());
   if (!file_exists) return FileStoreError::FILE_NOT_FOUND;
   if (!fstream_.is_open()) return FileStoreError::FILE_CLOSED;
@@ -66,7 +66,7 @@ fc::outcome::result<size_t> FileSystemFile::read(
 }
 
 fc::outcome::result<size_t> FileSystemFile::write(
-    size_t offset, const gsl::span<const uint8_t> &buffer) noexcept {
+    size_t offset, gsl::span<const uint8_t> buffer) noexcept {
   OUTCOME_TRY(file_exists, exists());
   if (!file_exists) return FileStoreError::FILE_NOT_FOUND;
   if (!fstream_.is_open()) return FileStoreError::FILE_CLOSED;

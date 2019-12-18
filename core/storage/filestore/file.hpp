@@ -6,10 +6,10 @@
 #ifndef FILECOIN_CORE_STORAGE_FILESTORE_FILE_H
 #define FILECOIN_CORE_STORAGE_FILESTORE_FILE_H
 
-#include "storage/filestore/path.hpp"
-
 #include <gsl/span>
+
 #include "common/outcome.hpp"
+#include "storage/filestore/path.hpp"
 
 namespace fc::storage::filestore {
 
@@ -48,8 +48,8 @@ namespace fc::storage::filestore {
      * @param buffer pointer to the first element to be read
      * @return number of bytes read
      */
-    virtual fc::outcome::result<size_t> read(size_t offset,
-                                             const gsl::span<uint8_t> &buffer) noexcept = 0;
+    virtual fc::outcome::result<size_t> read(
+        size_t offset, gsl::span<uint8_t> buffer) noexcept = 0;
 
     /**
      * @brief write to the file
@@ -57,8 +57,8 @@ namespace fc::storage::filestore {
      * @param buffer pointer to the first element of array to be written
      * @return number of bytes written
      */
-    virtual fc::outcome::result<size_t> write(size_t offset,
-                                              const gsl::span<const uint8_t> &buffer) noexcept = 0;
+    virtual fc::outcome::result<size_t> write(
+        size_t offset, gsl::span<const uint8_t> buffer) noexcept = 0;
 
     /**
      * @brief Whether the file is open

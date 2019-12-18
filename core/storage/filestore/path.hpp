@@ -10,6 +10,9 @@
 
 namespace fc::storage::filestore {
 
+  /** Directory separator character */
+  const char DELIMITER = '/';
+
   using Path = std::string;
 
 }  // namespace fc::storage::filestore
