@@ -16,36 +16,30 @@ InMemoryKeyStore::InMemoryKeyStore(
     std::shared_ptr<BlsProvider> blsProvider,
     std::shared_ptr<Secp256k1Provider> secp256K1Provider,
     std::shared_ptr<AddressVerifier> addressVerifier)
-    : KeyStore(std::move(blsProvider), std::move(secp256K1Provider),
+    : KeyStore(std::move(blsProvider),
+               std::move(secp256K1Provider),
                std::move(addressVerifier)) {}
 
 fc::outcome::result<bool> InMemoryKeyStore::Has(
     const Address &address) noexcept {
-    return storage_.find(address) != storage_.end();
+  return storage_.find(address) != storage_.end();
 }
 
 fc::outcome::result<void> InMemoryKeyStore::Put(
     Address address, typename KeyStore::TPrivateKey key) noexcept {
-  try {
-    OUTCOME_TRY(valid, CheckAddress(address, key));
-    if (!valid) return KeyStoreError::WRONG_ADDRESS;
-    auto res = storage_.emplace(address, key);
-    if (!res.second) return KeyStoreError::ALREADY_EXISTS;
-  } catch (std::exception &) {
-    return KeyStoreError::UNKNOWN;
-  }
+  OUTCOME_TRY(valid, CheckAddress(address, key));
+  if (!valid) return KeyStoreError::WRONG_ADDRESS;
+  auto res = storage_.emplace(address, key);
+  if (!res.second) return KeyStoreError::ALREADY_EXISTS;
+
   return fc::outcome::success();
 }
 
 fc::outcome::result<void> InMemoryKeyStore::Remove(
     const Address &address) noexcept {
-  try {
-    OUTCOME_TRY(found, Has(address));
-    if (!found) return KeyStoreError::NOT_FOUND;
-    storage_.erase(address);
-  } catch (std::exception &) {
-    return KeyStoreError::UNKNOWN;
-  }
+  OUTCOME_TRY(found, Has(address));
+  if (!found) return KeyStoreError::NOT_FOUND;
+  storage_.erase(address);
   return fc::outcome::success();
 }
 

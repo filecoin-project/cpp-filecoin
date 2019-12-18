@@ -38,12 +38,12 @@ fc::outcome::result<bool> FileSystemKeyStore::Has(
 
 fc::outcome::result<void> FileSystemKeyStore::Put(
     Address address, typename KeyStore::TPrivateKey key) noexcept {
+  OUTCOME_TRY(valid, CheckAddress(address, key));
+  if (!valid) return KeyStoreError::WRONG_ADDRESS;
   OUTCOME_TRY(exists, Has(address));
   if (exists) return KeyStoreError::ALREADY_EXISTS;
   OUTCOME_TRY(path, AddressToPath(address));
   OUTCOME_TRY(file, filestore_->create(path));
-  OUTCOME_TRY(valid, CheckAddress(address, key));
-  if (!valid) return KeyStoreError::WRONG_ADDRESS;
 
   if (address.getProtocol() == Protocol::BLS) {
     auto bls_private_key = boost::get<BlsPrivateKey>(key);
