@@ -20,7 +20,7 @@ KeyStore::KeyStore(std::shared_ptr<BlsProvider> blsProvider,
       secp256k1_provider_(std::move(secp256K1Provider)),
       address_verifier_(std::move(addressVerifier)) {}
 
-fc::outcome::result<bool> KeyStore::CheckAddress(
+fc::outcome::result<bool> KeyStore::checkAddress(
     const Address &address, const TPrivateKey &private_key) noexcept {
   if (!address.isKeyType()) return false;
 
@@ -43,10 +43,10 @@ fc::outcome::result<bool> KeyStore::CheckAddress(
   return KeyStoreError::WRONG_ADDRESS;
 }
 
-fc::outcome::result<KeyStore::TSignature> KeyStore::Sign(
+fc::outcome::result<KeyStore::TSignature> KeyStore::sign(
     const Address &address, gsl::span<uint8_t> data) noexcept {
-  OUTCOME_TRY(private_key, Get(address));
-  OUTCOME_TRY(valid, CheckAddress(address, private_key));
+  OUTCOME_TRY(private_key, get(address));
+  OUTCOME_TRY(valid, checkAddress(address, private_key));
   if (!valid) return KeyStoreError::WRONG_ADDRESS;
 
   if (address.getProtocol() == Protocol::BLS) {
@@ -65,12 +65,12 @@ fc::outcome::result<KeyStore::TSignature> KeyStore::Sign(
   return KeyStoreError::WRONG_ADDRESS;
 }
 
-fc::outcome::result<bool> KeyStore::Verify(
+fc::outcome::result<bool> KeyStore::verify(
     const Address &address,
     gsl::span<const uint8_t> data,
     const TSignature &signature) noexcept {
-  OUTCOME_TRY(private_key, Get(address));
-  OUTCOME_TRY(valid, CheckAddress(address, private_key));
+  OUTCOME_TRY(private_key, get(address));
+  OUTCOME_TRY(valid, checkAddress(address, private_key));
   if (!valid) return KeyStoreError::WRONG_ADDRESS;
 
   return visit_in_place(

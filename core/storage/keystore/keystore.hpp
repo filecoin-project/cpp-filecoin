@@ -49,27 +49,27 @@ namespace fc::storage::keystore {
      * @brief Whether or not key exists in the Keystore
      * @param address key identifier
      */
-    virtual outcome::result<bool> Has(const Address &address) noexcept = 0;
+    virtual outcome::result<bool> has(const Address &address) noexcept = 0;
 
     /**
      * @brief stores a key in the Keystore
      * @param address - key idnetifier
      * @param key
      */
-    virtual outcome::result<void> Put(Address address,
+    virtual outcome::result<void> put(Address address,
                                       TPrivateKey key) noexcept = 0;
 
     /**
      * @brief remove key from keystore
      * @param address - key identifier
      */
-    virtual outcome::result<void> Remove(const Address &address) noexcept = 0;
+    virtual outcome::result<void> remove(const Address &address) noexcept = 0;
 
     /**
      * @brief list key identifiers
      * @return list of addresses associated with keys
      */
-    virtual outcome::result<std::vector<Address>> List() noexcept = 0;
+    virtual outcome::result<std::vector<Address>> list() noexcept = 0;
 
     /**
      * @brief Sign data with private key associated with address
@@ -77,7 +77,7 @@ namespace fc::storage::keystore {
      * @param data to sign
      * @return signature
      */
-    virtual outcome::result<TSignature> Sign(const Address &address,
+    virtual outcome::result<TSignature> sign(const Address &address,
                                              gsl::span<uint8_t> data) noexcept;
     /**
      * @brief verify signature
@@ -85,7 +85,7 @@ namespace fc::storage::keystore {
      * @param data
      * @param signature
      */
-    virtual outcome::result<bool> Verify(const Address &address,
+    virtual outcome::result<bool> verify(const Address &address,
                                          gsl::span<const uint8_t> data,
                                          const TSignature &signature) noexcept;
 
@@ -96,7 +96,7 @@ namespace fc::storage::keystore {
      * @param private_key
      * @return true if valid, false otherwise
      */
-    virtual outcome::result<bool> CheckAddress(
+    virtual outcome::result<bool> checkAddress(
         const Address &address, const TPrivateKey &private_key) noexcept;
 
     /**
@@ -104,7 +104,7 @@ namespace fc::storage::keystore {
      * @param address
      * @return private key
      */
-    virtual outcome::result<TPrivateKey> Get(
+    virtual outcome::result<TPrivateKey> get(
         const Address &address) noexcept = 0;
 
    private:

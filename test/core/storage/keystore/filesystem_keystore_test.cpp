@@ -126,7 +126,7 @@ class FileSystemKeyStoreTest : public test::BaseFS_Test {
  * @then success returned false
  */
 TEST_F(FileSystemKeyStoreTest, HasEmpty) {
-  EXPECT_OUTCOME_TRUE(found, ks->Has(bls_address_));
+  EXPECT_OUTCOME_TRUE(found, ks->has(bls_address_));
   ASSERT_FALSE(found);
 }
 
@@ -136,9 +136,9 @@ TEST_F(FileSystemKeyStoreTest, HasEmpty) {
  * @then ALREADY_EXISTS returned
  */
 TEST_F(FileSystemKeyStoreTest, AddressAlreadyStored) {
-  EXPECT_OUTCOME_TRUE_1(ks->Put(bls_address_, bls_keypair_->private_key));
+  EXPECT_OUTCOME_TRUE_1(ks->put(bls_address_, bls_keypair_->private_key));
   EXPECT_OUTCOME_ERROR(KeyStoreError::ALREADY_EXISTS,
-                       ks->Put(bls_address_, bls_keypair_->private_key));
+                       ks->put(bls_address_, bls_keypair_->private_key));
 }
 
 /**
@@ -147,7 +147,7 @@ TEST_F(FileSystemKeyStoreTest, AddressAlreadyStored) {
  * @then NOT_FOUND returned
  */
 TEST_F(FileSystemKeyStoreTest, RemoveNotExists) {
-  EXPECT_OUTCOME_ERROR(KeyStoreError::NOT_FOUND, ks->Remove(bls_address_));
+  EXPECT_OUTCOME_ERROR(KeyStoreError::NOT_FOUND, ks->remove(bls_address_));
 }
 
 /**
@@ -156,13 +156,13 @@ TEST_F(FileSystemKeyStoreTest, RemoveNotExists) {
  * @then success returned, key not found
  */
 TEST_F(FileSystemKeyStoreTest, AddAndRemove) {
-  EXPECT_OUTCOME_TRUE_1(ks->Put(bls_address_, bls_keypair_->private_key));
+  EXPECT_OUTCOME_TRUE_1(ks->put(bls_address_, bls_keypair_->private_key));
 
-  EXPECT_OUTCOME_TRUE(found, ks->Has(bls_address_));
+  EXPECT_OUTCOME_TRUE(found, ks->has(bls_address_));
   ASSERT_TRUE(found);
 
-  EXPECT_OUTCOME_TRUE_1(ks->Remove(bls_address_));
-  EXPECT_OUTCOME_TRUE(not_found, ks->Has(bls_address_));
+  EXPECT_OUTCOME_TRUE_1(ks->remove(bls_address_));
+  EXPECT_OUTCOME_TRUE(not_found, ks->has(bls_address_));
   ASSERT_FALSE(not_found);
 }
 
@@ -172,7 +172,7 @@ TEST_F(FileSystemKeyStoreTest, AddAndRemove) {
  * @then empty list returned
  */
 TEST_F(FileSystemKeyStoreTest, ListEmpty) {
-  EXPECT_OUTCOME_TRUE(list, ks->List());
+  EXPECT_OUTCOME_TRUE(list, ks->list());
   ASSERT_EQ(0, list.size());
 }
 
@@ -182,11 +182,11 @@ TEST_F(FileSystemKeyStoreTest, ListEmpty) {
  * @then list containing all addresses returned
  */
 TEST_F(FileSystemKeyStoreTest, ListKeys) {
-  EXPECT_OUTCOME_TRUE_1(ks->Put(bls_address_, bls_keypair_->private_key));
+  EXPECT_OUTCOME_TRUE_1(ks->put(bls_address_, bls_keypair_->private_key));
   EXPECT_OUTCOME_TRUE_1(
-      ks->Put(secp256k1_address_, secp256k1_keypair_->private_key));
+      ks->put(secp256k1_address_, secp256k1_keypair_->private_key));
 
-  EXPECT_OUTCOME_TRUE(list, ks->List());
+  EXPECT_OUTCOME_TRUE(list, ks->list());
   ASSERT_EQ(2, list.size());
   ASSERT_TRUE(VectorContains(list, bls_address_));
   ASSERT_TRUE(VectorContains(list, secp256k1_address_));
@@ -198,7 +198,7 @@ TEST_F(FileSystemKeyStoreTest, ListKeys) {
  * @then NOT_FOUND returned
  */
 TEST_F(FileSystemKeyStoreTest, SignNotFound) {
-  EXPECT_OUTCOME_ERROR(KeyStoreError::NOT_FOUND, ks->Sign(bls_address_, data_));
+  EXPECT_OUTCOME_ERROR(KeyStoreError::NOT_FOUND, ks->sign(bls_address_, data_));
 }
 
 /**
@@ -211,7 +211,7 @@ TEST_F(FileSystemKeyStoreTest, SignWrongAddress) {
   std::vector<uint8_t> bytes{0x0, 0x0, 0xD1, 0xC2, 0xA7, 0x0F};
   auto wrong_address = fc::primitives::decode(bytes).value();
   EXPECT_OUTCOME_ERROR(KeyStoreError::WRONG_ADDRESS,
-                       ks->Put(wrong_address, bls_keypair_->private_key));
+                       ks->put(wrong_address, bls_keypair_->private_key));
 }
 
 /**
@@ -220,8 +220,8 @@ TEST_F(FileSystemKeyStoreTest, SignWrongAddress) {
  * @then correct signature returned
  */
 TEST_F(FileSystemKeyStoreTest, SignCorrectBls) {
-  EXPECT_OUTCOME_TRUE_1(ks->Put(bls_address_, bls_keypair_->private_key));
-  EXPECT_OUTCOME_TRUE(signature, ks->Sign(bls_address_, data_));
+  EXPECT_OUTCOME_TRUE_1(ks->put(bls_address_, bls_keypair_->private_key));
+  EXPECT_OUTCOME_TRUE(signature, ks->sign(bls_address_, data_));
   auto bls_signature = boost::get<BlsSignature>(signature);
   ASSERT_TRUE(checkSignature(data_, bls_signature, bls_keypair_->public_key));
 }
@@ -233,8 +233,8 @@ TEST_F(FileSystemKeyStoreTest, SignCorrectBls) {
  */
 TEST_F(FileSystemKeyStoreTest, SignCorrectSecp256k1) {
   EXPECT_OUTCOME_TRUE_1(
-      ks->Put(secp256k1_address_, secp256k1_keypair_->private_key));
-  EXPECT_OUTCOME_TRUE(signature, ks->Sign(secp256k1_address_, data_));
+      ks->put(secp256k1_address_, secp256k1_keypair_->private_key));
+  EXPECT_OUTCOME_TRUE(signature, ks->sign(secp256k1_address_, data_));
   auto secp256k1_signature = boost::get<Secp256k1Signature>(signature);
   ASSERT_TRUE(checkSignature(
       data_, secp256k1_signature, secp256k1_keypair_->public_key));
@@ -248,7 +248,7 @@ TEST_F(FileSystemKeyStoreTest, SignCorrectSecp256k1) {
 TEST_F(FileSystemKeyStoreTest, VerifyNotFound) {
   BlsSignature signature;
   EXPECT_OUTCOME_ERROR(KeyStoreError::NOT_FOUND,
-                       ks->Verify(bls_address_, data_, signature));
+                       ks->verify(bls_address_, data_, signature));
 }
 
 /**
@@ -257,9 +257,9 @@ TEST_F(FileSystemKeyStoreTest, VerifyNotFound) {
  * @then false returned
  */
 TEST_F(FileSystemKeyStoreTest, VerifyWrongBls) {
-  EXPECT_OUTCOME_TRUE_1(ks->Put(bls_address_, bls_keypair_->private_key));
+  EXPECT_OUTCOME_TRUE_1(ks->put(bls_address_, bls_keypair_->private_key));
   BlsSignature signature;
-  EXPECT_OUTCOME_TRUE(res, ks->Verify(bls_address_, data_, signature));
+  EXPECT_OUTCOME_TRUE(res, ks->verify(bls_address_, data_, signature));
   ASSERT_FALSE(res);
 }
 
@@ -270,11 +270,11 @@ TEST_F(FileSystemKeyStoreTest, VerifyWrongBls) {
  */
 TEST_F(FileSystemKeyStoreTest, InvalidSecp256k1Signature) {
   EXPECT_OUTCOME_TRUE_1(
-      ks->Put(secp256k1_address_, secp256k1_keypair_->private_key));
+      ks->put(secp256k1_address_, secp256k1_keypair_->private_key));
   Secp256k1Signature invalid_signature;
   EXPECT_OUTCOME_ERROR(
       CryptoProviderError::SIGNATURE_VERIFICATION_FAILED,
-      ks->Verify(secp256k1_address_, data_, invalid_signature));
+      ks->verify(secp256k1_address_, data_, invalid_signature));
 }
 
 /**
@@ -284,14 +284,14 @@ TEST_F(FileSystemKeyStoreTest, InvalidSecp256k1Signature) {
  */
 TEST_F(FileSystemKeyStoreTest, WrongSecp256k1Signature) {
   EXPECT_OUTCOME_TRUE_1(
-      ks->Put(secp256k1_address_, secp256k1_keypair_->private_key));
+      ks->put(secp256k1_address_, secp256k1_keypair_->private_key));
 
   EXPECT_OUTCOME_TRUE(other_keypair, secp256k1_provider_->generateKeyPair());
   EXPECT_OUTCOME_TRUE(
       wrong_signature,
       secp256k1_provider_->sign(data_, other_keypair.private_key));
   EXPECT_OUTCOME_TRUE(res,
-                      ks->Verify(secp256k1_address_, data_, wrong_signature));
+                      ks->verify(secp256k1_address_, data_, wrong_signature));
   ASSERT_FALSE(res);
 }
 
@@ -301,9 +301,9 @@ TEST_F(FileSystemKeyStoreTest, WrongSecp256k1Signature) {
  * @then true returned
  */
 TEST_F(FileSystemKeyStoreTest, VerifyCorrectBls) {
-  EXPECT_OUTCOME_TRUE_1(ks->Put(bls_address_, bls_keypair_->private_key));
+  EXPECT_OUTCOME_TRUE_1(ks->put(bls_address_, bls_keypair_->private_key));
   EXPECT_OUTCOME_TRUE(signature,
                       bls_provider_->sign(data_, bls_keypair_->private_key));
-  EXPECT_OUTCOME_TRUE(res, ks->Verify(bls_address_, data_, signature));
+  EXPECT_OUTCOME_TRUE(res, ks->verify(bls_address_, data_, signature));
   ASSERT_TRUE(res);
 }

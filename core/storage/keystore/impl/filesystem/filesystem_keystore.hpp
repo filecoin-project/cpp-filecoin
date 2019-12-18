@@ -30,22 +30,22 @@ namespace fc::storage::keystore {
 
     ~FileSystemKeyStore() override = default;
 
-    /** @copydoc KeyStore::Has() */
-    outcome::result<bool> Has(const Address &address) noexcept override;
+    /** @copydoc KeyStore::has() */
+    outcome::result<bool> has(const Address &address) noexcept override;
 
-    /** @copydoc KeyStore::Put() */
-    outcome::result<void> Put(
+    /** @copydoc KeyStore::put() */
+    outcome::result<void> put(
         Address address, typename KeyStore::TPrivateKey key) noexcept override;
 
-    /** @copydoc KeyStore::Remove() */
-    outcome::result<void> Remove(const Address &address) noexcept override;
+    /** @copydoc KeyStore::remove() */
+    outcome::result<void> remove(const Address &address) noexcept override;
 
-    /** @copydoc KeyStore::List() */
-    outcome::result<std::vector<Address>> List() noexcept override;
+    /** @copydoc KeyStore::list() */
+    outcome::result<std::vector<Address>> list() noexcept override;
 
    protected:
-    /** @copydoc KeyStore::Get() */
-    outcome::result<typename KeyStore::TPrivateKey> Get(
+    /** @copydoc KeyStore::get() */
+    outcome::result<typename KeyStore::TPrivateKey> get(
         const Address &address) noexcept override;
 
    private:
@@ -54,7 +54,7 @@ namespace fc::storage::keystore {
      * @param address
      * @return Path to private key
      */
-    outcome::result<Path> AddressToPath(const Address &address) const noexcept;
+    outcome::result<Path> addressToPath(const Address &address) const noexcept;
 
     /** Path to directory with keys */
     Path keystore_path_;

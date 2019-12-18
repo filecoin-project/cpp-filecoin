@@ -29,20 +29,20 @@ FileSystemKeyStore::FileSystemKeyStore(
       keystore_path_(std::move(path)),
       filestore_(std::make_shared<FileSystemFileStore>()) {}
 
-fc::outcome::result<bool> FileSystemKeyStore::Has(
+fc::outcome::result<bool> FileSystemKeyStore::has(
     const Address &address) noexcept {
-  OUTCOME_TRY(path, AddressToPath(address));
+  OUTCOME_TRY(path, addressToPath(address));
   OUTCOME_TRY(exists, filestore_->exists(path));
   return exists;
 }
 
-fc::outcome::result<void> FileSystemKeyStore::Put(
+fc::outcome::result<void> FileSystemKeyStore::put(
     Address address, typename KeyStore::TPrivateKey key) noexcept {
-  OUTCOME_TRY(valid, CheckAddress(address, key));
+  OUTCOME_TRY(valid, checkAddress(address, key));
   if (!valid) return KeyStoreError::WRONG_ADDRESS;
-  OUTCOME_TRY(exists, Has(address));
+  OUTCOME_TRY(exists, has(address));
   if (exists) return KeyStoreError::ALREADY_EXISTS;
-  OUTCOME_TRY(path, AddressToPath(address));
+  OUTCOME_TRY(path, addressToPath(address));
   OUTCOME_TRY(file, filestore_->create(path));
 
   if (address.getProtocol() == Protocol::BLS) {
@@ -65,16 +65,16 @@ fc::outcome::result<void> FileSystemKeyStore::Put(
   return KeyStoreError::WRONG_ADDRESS;
 }
 
-fc::outcome::result<void> FileSystemKeyStore::Remove(
+fc::outcome::result<void> FileSystemKeyStore::remove(
     const Address &address) noexcept {
-  OUTCOME_TRY(found, Has(address));
+  OUTCOME_TRY(found, has(address));
   if (!found) return KeyStoreError::NOT_FOUND;
-  OUTCOME_TRY(path, AddressToPath(address));
+  OUTCOME_TRY(path, addressToPath(address));
   OUTCOME_TRY(filestore_->remove(path));
   return fc::outcome::success();
 }
 
-fc::outcome::result<std::vector<Address>> FileSystemKeyStore::List() noexcept {
+fc::outcome::result<std::vector<Address>> FileSystemKeyStore::list() noexcept {
   OUTCOME_TRY(files, filestore_->list(keystore_path_));
   std::vector<Address> res;
   res.reserve(files.size());
@@ -89,11 +89,11 @@ fc::outcome::result<std::vector<Address>> FileSystemKeyStore::List() noexcept {
   return std::move(res);
 }
 
-fc::outcome::result<typename KeyStore::TPrivateKey> FileSystemKeyStore::Get(
+fc::outcome::result<typename KeyStore::TPrivateKey> FileSystemKeyStore::get(
     const Address &address) noexcept {
-  OUTCOME_TRY(found, Has(address));
+  OUTCOME_TRY(found, has(address));
   if (!found) return KeyStoreError::NOT_FOUND;
-  OUTCOME_TRY(path, AddressToPath(address));
+  OUTCOME_TRY(path, addressToPath(address));
   OUTCOME_TRY(file, filestore_->open(path));
 
   if (address.getProtocol() == Protocol::BLS) {
@@ -118,7 +118,7 @@ fc::outcome::result<typename KeyStore::TPrivateKey> FileSystemKeyStore::Get(
   return KeyStoreError::WRONG_ADDRESS;
 }
 
-fc::outcome::result<Path> FileSystemKeyStore::AddressToPath(
+fc::outcome::result<Path> FileSystemKeyStore::addressToPath(
     const Address &address) const noexcept {
   std::stringstream ss;
   ss << fc::primitives::encodeToString(address);

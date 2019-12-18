@@ -20,14 +20,14 @@ InMemoryKeyStore::InMemoryKeyStore(
                std::move(secp256K1Provider),
                std::move(addressVerifier)) {}
 
-fc::outcome::result<bool> InMemoryKeyStore::Has(
+fc::outcome::result<bool> InMemoryKeyStore::has(
     const Address &address) noexcept {
   return storage_.find(address) != storage_.end();
 }
 
-fc::outcome::result<void> InMemoryKeyStore::Put(
+fc::outcome::result<void> InMemoryKeyStore::put(
     Address address, typename KeyStore::TPrivateKey key) noexcept {
-  OUTCOME_TRY(valid, CheckAddress(address, key));
+  OUTCOME_TRY(valid, checkAddress(address, key));
   if (!valid) return KeyStoreError::WRONG_ADDRESS;
   auto res = storage_.emplace(address, key);
   if (!res.second) return KeyStoreError::ALREADY_EXISTS;
@@ -35,15 +35,15 @@ fc::outcome::result<void> InMemoryKeyStore::Put(
   return fc::outcome::success();
 }
 
-fc::outcome::result<void> InMemoryKeyStore::Remove(
+fc::outcome::result<void> InMemoryKeyStore::remove(
     const Address &address) noexcept {
-  OUTCOME_TRY(found, Has(address));
+  OUTCOME_TRY(found, has(address));
   if (!found) return KeyStoreError::NOT_FOUND;
   storage_.erase(address);
   return fc::outcome::success();
 }
 
-fc::outcome::result<std::vector<Address>> InMemoryKeyStore::List() noexcept {
+fc::outcome::result<std::vector<Address>> InMemoryKeyStore::list() noexcept {
   std::vector<Address> res;
   for (auto &it : storage_) {
     res.push_back(it.first);
@@ -51,9 +51,9 @@ fc::outcome::result<std::vector<Address>> InMemoryKeyStore::List() noexcept {
   return std::move(res);
 }
 
-fc::outcome::result<typename KeyStore::TPrivateKey> InMemoryKeyStore::Get(
+fc::outcome::result<typename KeyStore::TPrivateKey> InMemoryKeyStore::get(
     const Address &address) noexcept {
-  OUTCOME_TRY(found, Has(address));
+  OUTCOME_TRY(found, has(address));
   if (!found) return KeyStoreError::NOT_FOUND;
   return storage_[address];
 }
