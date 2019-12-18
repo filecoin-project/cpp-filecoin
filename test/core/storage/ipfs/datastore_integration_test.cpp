@@ -82,7 +82,8 @@ TEST_F(DatastoreIntegrationTest, ContainsExistingTrueSuccess) {
   auto value = makeRandomBuffer();
   auto cid = makeCid();
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid, value));
-  EXPECT_TRUE(datastore->contains(cid));
+  EXPECT_OUTCOME_TRUE(res,datastore->contains(cid));
+  ASSERT_TRUE(res);
 }
 
 /**
@@ -95,7 +96,8 @@ TEST_F(DatastoreIntegrationTest, ContainsNotExistingFalseSuccess) {
   auto cid2 = makeCid();
   auto value = makeRandomBuffer();
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
-  EXPECT_FALSE(datastore->contains(cid2));
+  EXPECT_OUTCOME_TRUE(res,datastore->contains(cid2));
+  ASSERT_FALSE(res);
 }
 
 /**
@@ -134,7 +136,8 @@ TEST_F(DatastoreIntegrationTest, RemoveSuccess) {
   auto value = makeRandomBuffer();
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid, value));
   EXPECT_OUTCOME_TRUE_1(datastore->remove(cid));
-  ASSERT_FALSE(datastore->contains(cid));
+  EXPECT_OUTCOME_TRUE(res,datastore->contains(cid));
+  ASSERT_FALSE(res);
 }
 
 /**
@@ -148,5 +151,6 @@ TEST_F(DatastoreIntegrationTest, RemoveNotExistingSuccess) {
   auto value = makeRandomBuffer();
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
   EXPECT_OUTCOME_TRUE_1(datastore->remove(cid2));
-  ASSERT_TRUE(datastore->contains(cid1));
+  EXPECT_OUTCOME_TRUE(res,datastore->contains(cid1));
+  ASSERT_TRUE(res);
 }

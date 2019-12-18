@@ -27,7 +27,7 @@ namespace fc::storage::ipfs {
      * @param key key to find
      * @return true if value exists, false otherwise
      */
-    virtual bool contains(const CID &key) const = 0;
+    virtual outcome::result<bool> contains(const CID &key) const = 0;
 
     /**
      * @brief associates key with value in data store
