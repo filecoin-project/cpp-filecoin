@@ -17,6 +17,8 @@ namespace fc::fslock {
   outcome::result<boost::interprocess::file_lock> Locker::lock(
       const std::string &file_lock_path) {
     try {
+      if (boost::filesystem::is_directory(file_lock_path))
+        return FSLockError::IS_DIRECTORY;
       boost::interprocess::scoped_lock scopedMutex(mutex);
       if (!boost::filesystem::exists(file_lock_path)) {
         boost::filesystem::ofstream os(file_lock_path);

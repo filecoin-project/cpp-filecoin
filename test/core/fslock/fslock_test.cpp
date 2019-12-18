@@ -25,6 +25,9 @@ class FSLockTest : public test::BaseFS_Test {
 
   Path not_exist_file_path;
 
+  /** Path to dir */
+  Path dir_path;
+
   /**
    * Create a test directory with an lock file.
    */
@@ -33,6 +36,8 @@ class FSLockTest : public test::BaseFS_Test {
     lock_file_path = fs::canonical(createFile("test.lock")).string();
     auto path_model = fs::current_path().append("%%%%%");
     not_exist_file_path = boost::filesystem::unique_path(path_model).string();
+
+    dir_path = fs::current_path().string();
   }
 };
 
@@ -67,4 +72,14 @@ TEST_F(FSLockTest, LockNotExistingFileSuccess) {
     EXPECT_OUTCOME_TRUE_1(fc::fslock::Locker::lock(not_exist_file_path));
     wait(NULL);
   }
+}
+
+/**
+ * @given path to directory
+ * @when process tries to lock it
+ * @then error IS_DIRECTORY
+ */
+TEST_F(FSLockTest, LockDirectoryFail) {
+  EXPECT_OUTCOME_FALSE(err1,fc::fslock::Locker::lock(dir_path));
+  ASSERT_EQ(err1, fc::fslock::FSLockError::IS_DIRECTORY);
 }
