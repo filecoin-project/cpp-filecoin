@@ -37,7 +37,7 @@ namespace fc::storage::ipfs {
     static outcome::result<std::shared_ptr<LeveldbDatastore>> create(
         std::string_view leveldb_directory, leveldb::Options options);
 
-    bool contains(const CID &key) const override;
+    outcome::result<bool> contains(const CID &key) const override;
 
     outcome::result<void> set(const CID &key, Value value) override;
 
