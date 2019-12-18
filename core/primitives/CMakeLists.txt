@@ -14,6 +14,5 @@ target_link_libraries(address
     Boost::boost
     blake2
     blob
-    leb128
     outcome
     )

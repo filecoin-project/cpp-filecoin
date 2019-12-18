@@ -6,9 +6,9 @@
 #include "primitives/address_codec.hpp"
 
 #include <cppcodec/base32_default_rfc4648.hpp>
+#include <libp2p/multi/uvarint.hpp>
 #include <stdexcept>
 
-#include "codec/leb128/leb128.hpp"
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "crypto/blake2/blake2b160.hpp"
@@ -21,6 +21,7 @@ namespace fc::primitives {
 
   using common::Blob;
   using base32 = cppcodec::base32_rfc4648;
+  using UVarint = libp2p::multi::UVarint;
 
   std::vector<uint8_t> encode(const Address &address) {
     std::vector<uint8_t> res{};
@@ -28,7 +29,7 @@ namespace fc::primitives {
     res.push_back(address.getProtocol());
     std::vector<uint8_t> payload = visit_in_place(
         address.data,
-        [](uint64_t v) { return codec::leb128::encode(v); },
+        [](uint64_t v) { return UVarint{v}.toVector(); },
         [](const auto &v) { return std::vector<uint8_t>(v.begin(), v.end()); });
     res.insert(res.end(),
                std::make_move_iterator(payload.begin()),
@@ -49,8 +50,11 @@ namespace fc::primitives {
     std::vector<uint8_t> payload(pos, v.end());
     switch (p) {
       case Protocol::ID: {
-        OUTCOME_TRY(value, codec::leb128::decode<uint64_t>(payload));
-        return Address{net, value};
+        boost::optional<UVarint> value = UVarint::create(payload);
+        if (value) {
+          return Address{net, value->toUInt64()};
+        }
+        return outcome::failure(AddressError::INVALID_PAYLOAD);
       }
       case Protocol::SECP256K1: {
         if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT) {
@@ -105,7 +109,7 @@ namespace fc::primitives {
 
     std::vector<uint8_t> payload = visit_in_place(
         address.data,
-        [](uint64_t v) { return codec::leb128::encode(v); },
+        [](uint64_t v) { return UVarint{v}.toVector(); },
         [](const auto &v) { return std::vector<uint8_t>(v.begin(), v.end()); });
 
     std::vector chksum = checksum(address);
