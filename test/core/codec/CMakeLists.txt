@@ -4,5 +4,4 @@
 #
 
 add_subdirectory(cbor)
-add_subdirectory(leb128)
 add_subdirectory(rleplus)
