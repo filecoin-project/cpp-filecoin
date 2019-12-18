@@ -16,11 +16,8 @@ namespace fc::storage::ipfs {
      */
     inline outcome::result<common::Buffer> encode(
         const libp2p::multi::ContentIdentifier &value) {
-      auto &&result = libp2p::multi::ContentIdentifierCodec::encode(value);
-      if (!result) {
-        return result.error();
-      }
-      return common::Buffer(std::move(result.value()));
+      OUTCOME_TRY(encoded, libp2p::multi::ContentIdentifierCodec::encode(value));
+      return common::Buffer(std::move(encoded));
     }
   }  // namespace
 
