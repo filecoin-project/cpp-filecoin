@@ -41,7 +41,7 @@ namespace fc::codec::cbor {
     }
 
     /** Encodes bytes */
-    CborEncodeStream &operator<<(const std::vector<uint8_t> &bytes);
+    CborEncodeStream &operator<<(const gsl::span<const uint8_t> &bytes);
     /** Encodes string */
     CborEncodeStream &operator<<(const std::string &str);
     /** Encodes CID */
@@ -59,6 +59,8 @@ namespace fc::codec::cbor {
     static CborEncodeStream list();
     /** Creates map container encode substream map */
     static std::map<std::string, CborEncodeStream> map();
+    /** Wraps CBOR bytes */
+    static CborEncodeStream wrap(gsl::span<const uint8_t> data, size_t count);
 
    private:
     void addCount(size_t count);
