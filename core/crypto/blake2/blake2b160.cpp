@@ -23,4 +23,18 @@ namespace fc::crypto::blake2b {
     return res;
   }
 
+  fc::outcome::result<Blake2b256Hash> blake2b_256(
+      gsl::span<const uint8_t> to_hash) {
+    Blake2b256Hash res{};
+    if (::blake2b(res.data(),
+                  BLAKE2B256_HASH_LENGHT,
+                  nullptr,
+                  0,
+                  to_hash.data(),
+                  to_hash.size())
+        != 0)
+      return Blake2bError::CANNOT_INIT;
+    return res;
+  }
+
 }  // namespace fc::crypto::blake2b
