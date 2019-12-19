@@ -12,6 +12,7 @@
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
+#include "storage/ipfs/ipfs_datastore_error.hpp"
 
 namespace fc::storage::ipfs {
 

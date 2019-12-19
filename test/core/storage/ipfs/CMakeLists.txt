@@ -3,6 +3,7 @@
 
 addtest(datastore_integration_test
     datastore_integration_test.cpp
+    in_memory_ipfs_datastore_test.cpp
     )
 target_link_libraries(datastore_integration_test
     p2p::p2p_random_generator

@@ -5,52 +5,27 @@
 
 #include <gtest/gtest.h>
 
-#include <boost/filesystem.hpp>
-#include <boost/uuid/uuid.hpp>
-
-#include "common/outcome_throw.hpp"
-#include "storage/ipfs/impl/datastore_leveldb.hpp"
+#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/buffer_generator.hpp"
 #include "testutil/cid_generator.hpp"
 #include "testutil/outcome.hpp"
 
-using fc::common::Buffer;
-using fc::storage::LevelDB;
+using fc::storage::ipfs::InMemoryDatastore;
+using fc::storage::ipfs::IpfsDatastore;
 using fc::storage::ipfs::IpfsDatastoreError;
-using fc::storage::ipfs::LeveldbDatastore;
 using testutils::BufferGenerator;
 using testutils::CidGenerator;
 
-struct DatastoreIntegrationTest : public ::testing::Test {
-  using Options = leveldb::Options;
-
-  static boost::filesystem::path makeTempPath() {
-    boost::filesystem::path global_temp_dir =
-        boost::filesystem::temp_directory_path();
-    return boost::filesystem::unique_path(
-        global_temp_dir.append("%%%%%-%%%%%-%%%%%"));
-  }
+class InMemoryIpfsDatastoreTest : public ::testing::Test {
+ public:
+  std::shared_ptr<IpfsDatastore> datastore;
 
   void SetUp() override {
-    leveldb_path = makeTempPath();
-    Options options{};
-    options.create_if_missing = true;
-    auto result = LeveldbDatastore::create(leveldb_path.string(), options);
-    if (!result) boost::throw_exception(std::system_error(result.error()));
-    datastore = result.value();
-  }
-
-  void TearDown() override {
-    datastore.reset();
-    if (boost::filesystem::exists(leveldb_path)) {
-      boost::filesystem::remove_all(leveldb_path);
-    }
+    datastore = std::make_shared<InMemoryDatastore>();
   }
 
   BufferGenerator buffer_generator;
   CidGenerator cid_generator;
-  boost::filesystem::path leveldb_path;
-  std::shared_ptr<LeveldbDatastore> datastore;
 };
 
 /**
@@ -59,7 +34,7 @@ struct DatastoreIntegrationTest : public ::testing::Test {
  * cid
  * @then all operation succeeded, obtained value is equal to original value
  */
-TEST_F(DatastoreIntegrationTest, ContainsExistingTrueSuccess) {
+TEST_F(InMemoryIpfsDatastoreTest, ContainsExistingTrueSuccess) {
   auto value = buffer_generator.makeRandomBuffer();
   auto cid = cid_generator.makeCid();
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid, value));
@@ -72,7 +47,7 @@ TEST_F(DatastoreIntegrationTest, ContainsExistingTrueSuccess) {
  * @when put cid1 with value into datastore and check if datastore contains cid2
  * @then all operations succeed and datastore doesn't contains cid2
  */
-TEST_F(DatastoreIntegrationTest, ContainsNotExistingFalseSuccess) {
+TEST_F(InMemoryIpfsDatastoreTest, ContainsNotExistingFalseSuccess) {
   auto cid1 = cid_generator.makeCid();
   auto cid2 = cid_generator.makeCid();
   auto value = buffer_generator.makeRandomBuffer();
@@ -86,7 +61,7 @@ TEST_F(DatastoreIntegrationTest, ContainsNotExistingFalseSuccess) {
  * @when put cid with value into datastore @and then get value by cid
  * @then all operations succeed
  */
-TEST_F(DatastoreIntegrationTest, GetExistingSuccess) {
+TEST_F(InMemoryIpfsDatastoreTest, GetExistingSuccess) {
   auto cid = cid_generator.makeCid();
   auto value = buffer_generator.makeRandomBuffer();
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid, value));
@@ -99,7 +74,7 @@ TEST_F(DatastoreIntegrationTest, GetExistingSuccess) {
  * @when put cid1 with value into datastore @and then get value by cid2
  * @then put operation succeeds, get operation fails
  */
-TEST_F(DatastoreIntegrationTest, GetNotExistingFailure) {
+TEST_F(InMemoryIpfsDatastoreTest, GetNotExistingFailure) {
   auto cid1 = cid_generator.makeCid();
   auto cid2 = cid_generator.makeCid();
   auto value = buffer_generator.makeRandomBuffer();
@@ -112,7 +87,7 @@ TEST_F(DatastoreIntegrationTest, GetNotExistingFailure) {
  * @when put cid with value into datastore @and remove cid from datastore
  * @then all operations succeed and datastore doesn't contain cid anymore
  */
-TEST_F(DatastoreIntegrationTest, RemoveSuccess) {
+TEST_F(InMemoryIpfsDatastoreTest, RemoveSuccess) {
   auto cid = cid_generator.makeCid();
   auto value = buffer_generator.makeRandomBuffer();
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid, value));
@@ -126,7 +101,7 @@ TEST_F(DatastoreIntegrationTest, RemoveSuccess) {
  * @when put cid1 with value into datastore @and remove cid2 from datastore
  * @then all operations succeed and datastore still contains cid1
  */
-TEST_F(DatastoreIntegrationTest, RemoveNotExistingSuccess) {
+TEST_F(InMemoryIpfsDatastoreTest, RemoveNotExistingSuccess) {
   auto cid1 = cid_generator.makeCid();
   auto cid2 = cid_generator.makeCid();
   auto value = buffer_generator.makeRandomBuffer();
