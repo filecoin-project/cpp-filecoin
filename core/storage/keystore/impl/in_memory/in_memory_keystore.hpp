@@ -26,7 +26,7 @@ namespace fc::storage::keystore {
     ~InMemoryKeyStore() override = default;
 
     /** @copydoc KeyStore::has() */
-    outcome::result<bool> has(const Address &address) noexcept override;
+    outcome::result<bool> has(const Address &address) const noexcept override;
 
     /** @copydoc KeyStore::put() */
     outcome::result<void> put(
@@ -36,12 +36,12 @@ namespace fc::storage::keystore {
     outcome::result<void> remove(const Address &address) noexcept override;
 
     /** @copydoc KeyStore::list() */
-    outcome::result<std::vector<Address>> list() noexcept override;
+    outcome::result<std::vector<Address>> list() const noexcept override;
 
    protected:
     /** @copydoc KeyStore::get() */
     outcome::result<typename KeyStore::TPrivateKey> get(
-        const Address &address) noexcept override;
+        const Address &address) const noexcept override;
 
    private:
     TMapStorage storage_;

@@ -9,8 +9,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::keystore, KeyStoreError, e) {
   using fc::storage::keystore::KeyStoreError;
 
   switch (e) {
-    case KeyStoreError::OK:
-      return "success";
     case KeyStoreError::NOT_FOUND:
       return "KeyStoreError: address not found";
     case KeyStoreError::ALREADY_EXISTS:

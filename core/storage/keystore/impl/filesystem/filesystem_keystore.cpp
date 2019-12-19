@@ -29,8 +29,8 @@ FileSystemKeyStore::FileSystemKeyStore(
       keystore_path_(std::move(path)),
       filestore_(std::make_shared<FileSystemFileStore>()) {}
 
-fc::outcome::result<bool> FileSystemKeyStore::has(
-    const Address &address) noexcept {
+fc::outcome::result<bool> FileSystemKeyStore::has(const Address &address) const
+    noexcept {
   OUTCOME_TRY(path, addressToPath(address));
   OUTCOME_TRY(exists, filestore_->exists(path));
   return exists;
@@ -74,7 +74,8 @@ fc::outcome::result<void> FileSystemKeyStore::remove(
   return fc::outcome::success();
 }
 
-fc::outcome::result<std::vector<Address>> FileSystemKeyStore::list() noexcept {
+fc::outcome::result<std::vector<Address>> FileSystemKeyStore::list() const
+    noexcept {
   OUTCOME_TRY(files, filestore_->list(keystore_path_));
   std::vector<Address> res;
   res.reserve(files.size());
@@ -90,7 +91,7 @@ fc::outcome::result<std::vector<Address>> FileSystemKeyStore::list() noexcept {
 }
 
 fc::outcome::result<typename KeyStore::TPrivateKey> FileSystemKeyStore::get(
-    const Address &address) noexcept {
+    const Address &address) const noexcept {
   OUTCOME_TRY(found, has(address));
   if (!found) return KeyStoreError::NOT_FOUND;
   OUTCOME_TRY(path, addressToPath(address));
