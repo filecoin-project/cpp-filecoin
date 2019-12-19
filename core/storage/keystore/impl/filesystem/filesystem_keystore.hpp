@@ -20,7 +20,7 @@ namespace fc::storage::keystore {
    */
   class FileSystemKeyStore : public KeyStore {
     /** @brief Extention of private key file */
-    const std::string kPrivateKeyExtension = ".priv";
+    const std::string kPrivateKeyExtension = ".pri";
 
    public:
     FileSystemKeyStore(Path path,
