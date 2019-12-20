@@ -51,8 +51,7 @@ namespace fc::storage::ipfs {
     auto res = leveldb_->get(encoded_key);
     if (res.has_error() && res.error() == fc::storage::LevelDBError::NOT_FOUND)
       return fc::storage::ipfs::IpfsDatastoreError::NOT_FOUND;
-    else
-      return res;
+    return res;
   }
 
   outcome::result<void> LeveldbDatastore::remove(const CID &key) {

@@ -21,7 +21,7 @@ KeyStore::KeyStore(std::shared_ptr<BlsProvider> blsProvider,
       address_verifier_(std::move(addressVerifier)) {}
 
 fc::outcome::result<bool> KeyStore::checkAddress(
-    const Address &address, const TPrivateKey &private_key) noexcept {
+    const Address &address, const TPrivateKey &private_key) const noexcept {
   if (!address.isKeyType()) return false;
 
   // TODO(a.chernyshov): use visit_in_place
@@ -65,10 +65,10 @@ fc::outcome::result<KeyStore::TSignature> KeyStore::sign(
   return KeyStoreError::WRONG_ADDRESS;
 }
 
-fc::outcome::result<bool> KeyStore::verify(
-    const Address &address,
-    gsl::span<const uint8_t> data,
-    const TSignature &signature) noexcept {
+fc::outcome::result<bool> KeyStore::verify(const Address &address,
+                                           gsl::span<const uint8_t> data,
+                                           const TSignature &signature) const
+    noexcept {
   OUTCOME_TRY(private_key, get(address));
   OUTCOME_TRY(valid, checkAddress(address, private_key));
   if (!valid) return KeyStoreError::WRONG_ADDRESS;
@@ -84,7 +84,8 @@ fc::outcome::result<bool> KeyStore::verify(
                         boost::get<BlsPrivateKey>(private_key)));
         return bls_provider_->verifySignature(data, bls_signature, public_key);
       },
-      [this, address, data, private_key](const Secp256k1Signature &secp256k1_signature)
+      [this, address, data, private_key](
+          const Secp256k1Signature &secp256k1_signature)
           -> fc::outcome::result<bool> {
         if (address.getProtocol() != Protocol::SECP256K1)
           return KeyStoreError::WRONG_SIGNATURE;

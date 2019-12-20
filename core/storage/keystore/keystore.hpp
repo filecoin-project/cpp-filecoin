@@ -49,7 +49,8 @@ namespace fc::storage::keystore {
      * @brief Whether or not key exists in the Keystore
      * @param address key identifier
      */
-    virtual outcome::result<bool> has(const Address &address) noexcept = 0;
+    virtual outcome::result<bool> has(const Address &address) const
+        noexcept = 0;
 
     /**
      * @brief stores a key in the Keystore
@@ -69,7 +70,7 @@ namespace fc::storage::keystore {
      * @brief list key identifiers
      * @return list of addresses associated with keys
      */
-    virtual outcome::result<std::vector<Address>> list() noexcept = 0;
+    virtual outcome::result<std::vector<Address>> list() const noexcept = 0;
 
     /**
      * @brief Sign data with private key associated with address
@@ -87,7 +88,8 @@ namespace fc::storage::keystore {
      */
     virtual outcome::result<bool> verify(const Address &address,
                                          gsl::span<const uint8_t> data,
-                                         const TSignature &signature) noexcept;
+                                         const TSignature &signature) const
+        noexcept;
 
    protected:
     /**
@@ -97,15 +99,15 @@ namespace fc::storage::keystore {
      * @return true if valid, false otherwise
      */
     virtual outcome::result<bool> checkAddress(
-        const Address &address, const TPrivateKey &private_key) noexcept;
+        const Address &address, const TPrivateKey &private_key) const noexcept;
 
     /**
      * @brief Get private key by address
      * @param address
      * @return private key
      */
-    virtual outcome::result<TPrivateKey> get(
-        const Address &address) noexcept = 0;
+    virtual outcome::result<TPrivateKey> get(const Address &address) const
+        noexcept = 0;
 
    private:
     std::shared_ptr<BlsProvider> bls_provider_;
