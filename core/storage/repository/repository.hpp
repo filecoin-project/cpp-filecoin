@@ -55,14 +55,6 @@ namespace fc::storage::repository {
      */
     virtual fc::outcome::result<Version> getVersion() const = 0;
 
-   protected:
-    /**
-     * Load config
-     * @param filename - full path to config file
-     * @return error code in case of failure
-     */
-    outcome::result<void> loadConfig(const std::string &filename);
-
    private:
     std::shared_ptr<IpfsDatastore> ipld_store_;
     std::shared_ptr<KeyStore> keystore_;

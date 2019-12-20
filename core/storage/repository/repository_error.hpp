@@ -16,7 +16,7 @@ namespace fc::storage::repository {
   enum class RepositoryError {
     WRONG_VERSION = 1,
 
-    UNKNOWN
+    UNKNOWN = 1000
   };
 
 }  // namespace fc::storage::keystore

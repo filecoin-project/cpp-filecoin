@@ -28,7 +28,3 @@ std::shared_ptr<KeyStore> Repository::getKeyStore() const noexcept {
 std::shared_ptr<Config> Repository::getConfig() const noexcept {
   return config_;
 }
-
-fc::outcome::result<void> Repository::loadConfig(const std::string &filename) {
-  return config_->load(filename);
-}
