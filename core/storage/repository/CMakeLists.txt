@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_library(repository
-    repository.cpp
+    impl/repository.cpp
+    impl/repository_error.cpp
     )
 target_link_libraries(repository
     outcome
