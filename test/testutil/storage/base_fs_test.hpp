@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_BASE_FS_TEST_HPP
 
 #include <gtest/gtest.h>
+
 #include <boost/filesystem.hpp>
 
 #include "common/logger.hpp"
@@ -43,6 +44,13 @@ namespace test {
     std::string getPathString() const;
 
     /**
+     * @brief Create subdirectory in test directory
+     * @param dirname is a new subdirectory name
+     * @return full pathname to the new subdirectory
+     */
+    fs::path createDir(const fs::path &dirname) const;
+
+    /**
      * @brief create file in test directory
      * @param filename is a name of created file
      * @return full pathname to the new file
@@ -50,13 +58,20 @@ namespace test {
     fs::path createFile(const fs::path &filename) const;
 
     /**
+     * @brief path exists
+     * @param entity - file or directory to check
+     * @return
+     */
+    bool exists(const fs::path &entity) const;
+
+    /**
      * @brief Create and clear directory before tests
      */
     void SetUp() override;
 
     /**
-    * @brief Clear directory after tests
-    */
+     * @brief Clear directory after tests
+     */
     void TearDown() override;
 
    protected:
