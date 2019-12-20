@@ -4,8 +4,14 @@
 add_library(repository
     impl/repository.cpp
     impl/repository_error.cpp
-    impl/in_memory_repository.cpp
     )
 target_link_libraries(repository
     outcome
+    )
+
+add_library(in_memory_repository
+    impl/in_memory_repository.cpp
+    )
+target_link_libraries(in_memory_repository
+    repository
     )
