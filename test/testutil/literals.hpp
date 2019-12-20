@@ -13,4 +13,8 @@ inline std::vector<uint8_t> operator""_unhex(const char *c, size_t s) {
   return fc::common::unhex(std::string_view(c, s)).value();
 }
 
+inline fc::common::Hash256 operator""_hash256(const char *c, size_t s) {
+  return fc::common::Hash256::fromHex(std::string_view(c, s)).value();
+}
+
 #endif  // CPP_FILECOIN_TEST_TESTUTIL_LITERALS_HPP

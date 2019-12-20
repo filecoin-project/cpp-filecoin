@@ -16,3 +16,12 @@ addtest(blob_test
 target_link_libraries(blob_test
     blob
     )
+
+addtest(le_encoder_test
+    le_encoder_test.cpp
+    )
+target_link_libraries(le_encoder_test
+    Boost::boost
+    blob
+    buffer
+    )
