@@ -30,6 +30,9 @@ namespace fc::storage::hamt {
 
     UBigInt bits;
     std::vector<Item> items;
+
+    static outcome::result<CID> cid(gsl::span<const uint8_t> encoded);
+    outcome::result<CID> cid() const;
   };
 
   template <class Stream,
