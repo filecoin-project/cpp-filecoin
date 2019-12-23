@@ -199,6 +199,7 @@ TEST_F(HamtTest, FlushCollisionChild) {
   EXPECT_OUTCOME_EQ(store_->contains(cidShard), true);
 }
 
+/** Visit all key value pairs */
 TEST_F(HamtTest, Visitor) {
   auto n = 0;
   Hamt::Visitor visitor = ([&n](auto k, auto v) {
@@ -217,6 +218,7 @@ TEST_F(HamtTest, Visitor) {
   EXPECT_EQ(n, 4);
 }
 
+/** Visits all key value pairs after flush */
 TEST_F(HamtTest, VisitorFlush) {
   auto n = 0;
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
@@ -229,6 +231,7 @@ TEST_F(HamtTest, VisitorFlush) {
   EXPECT_EQ(n, 2);
 }
 
+/** Iteration stops after callback returns error */
 TEST_F(HamtTest, VisitorError) {
   auto n = 0;
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));

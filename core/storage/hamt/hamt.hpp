@@ -27,6 +27,7 @@ namespace fc::storage::hamt {
 
   constexpr size_t kLeafMax = 3;
 
+  /** Hamt node interface */
   struct Node {
     using Ptr = std::shared_ptr<Node>;
     using Leaf = std::map<std::string, Value>;
@@ -93,6 +94,7 @@ namespace fc::storage::hamt {
     return s;
   }
 
+  /** Hamt interface */
   class Hamt {
    public:
     using Visitor = std::function<outcome::result<void>(const std::string &,
@@ -100,11 +102,16 @@ namespace fc::storage::hamt {
 
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
+    /** Set value by key, does not write to storage */
     outcome::result<void> set(const std::string &key,
                               gsl::span<const uint8_t> value);
+    /** Get value by key */
     outcome::result<Value> get(const std::string &key);
+    /** Remove value by key, does not write to storage */
     outcome::result<void> remove(const std::string &key);
+    /** Write changes made by set and remove to storage */
     outcome::result<void> flush();
+    /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor);
 
    private:
