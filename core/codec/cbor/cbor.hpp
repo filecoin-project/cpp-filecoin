@@ -18,10 +18,14 @@ namespace fc::codec::cbor {
    * @return encoded data
    */
   template <typename T>
-  std::vector<uint8_t> encode(const T &arg) {
-    CborEncodeStream encoder;
-    encoder << arg;
-    return encoder.data();
+  outcome::result<std::vector<uint8_t>> encode(const T &arg) {
+    try {
+      CborEncodeStream encoder;
+      encoder << arg;
+      return encoder.data();
+    } catch (std::system_error &e) {
+      return outcome::failure(e.code());
+    }
   }
 
   /**
@@ -32,7 +36,7 @@ namespace fc::codec::cbor {
    * @see cbor_errors.hpp for possible error cases
    */
   template <typename T>
-  outcome::result<T> decode(const std::vector<uint8_t> &input) {
+  outcome::result<T> decode(gsl::span<const uint8_t> input) {
     try {
       T data;
       CborDecodeStream decoder(input);

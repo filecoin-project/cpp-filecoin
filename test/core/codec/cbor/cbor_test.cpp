@@ -18,20 +18,19 @@ using fc::codec::cbor::CborResolveError;
 using fc::codec::cbor::decode;
 using fc::codec::cbor::encode;
 using fc::codec::cbor::resolve;
-using libp2p::multi::ContentIdentifier;
-using libp2p::multi::ContentIdentifierCodec;
 
-auto kCidEmptyRaw =
-    "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC00"_unhex;
+libp2p::multi::ContentIdentifier kDummyCid(
+    {}, {}, libp2p::multi::Multihash::create({}, {}).value());
 auto kCidRaw =
-    "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
+    libp2p::multi::ContentIdentifierCodec::decode(
+        "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex)
+        .value();
 auto kCidCbor =
     "D82A582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
 
 template <typename T>
 void expectDecodeOne(const std::vector<uint8_t> &encoded, const T &expected) {
-  EXPECT_OUTCOME_TRUE_2(actual, decode<T>(encoded));
-  EXPECT_EQ(actual, expected);
+  EXPECT_OUTCOME_EQ(decode<T>(encoded), expected);
 }
 
 /**
@@ -40,36 +39,36 @@ void expectDecodeOne(const std::vector<uint8_t> &encoded, const T &expected) {
  * @then As expected
  */
 TEST(Cbor, EncodeDecode) {
-  EXPECT_EQ(encode(1), "01"_unhex);
-  EXPECT_EQ(decode<int>("01"_unhex).value(), 1);
-  EXPECT_EQ(encode(decode<int>("01"_unhex).value()), "01"_unhex);
-  EXPECT_EQ(decode<int>(encode(1)).value(), 1);
+  EXPECT_OUTCOME_EQ(encode(1), "01"_unhex);
+  EXPECT_OUTCOME_EQ(decode<int>("01"_unhex), 1);
+  EXPECT_OUTCOME_EQ(encode(decode<int>("01"_unhex).value()), "01"_unhex);
+  EXPECT_OUTCOME_EQ(decode<int>(encode(1).value()), 1);
   EXPECT_OUTCOME_ERROR(CborDecodeError::WRONG_TYPE, decode<int>("80"_unhex));
 }
 
 /** BigInt CBOR encoding and decoding */
 TEST(Cbor, BigInt) {
   using fc::primitives::BigInt;
-  EXPECT_EQ(encode(BigInt(0xCAFE)), "4300CAFE"_unhex);
-  EXPECT_EQ(decode<BigInt>("4300CAFE"_unhex).value(), 0xCAFE);
-  EXPECT_EQ(encode(BigInt(-0xCAFE)), "4301CAFE"_unhex);
-  EXPECT_EQ(decode<BigInt>("4301CAFE"_unhex).value(), -0xCAFE);
-  EXPECT_EQ(encode(BigInt(0)), "40"_unhex);
-  EXPECT_EQ(decode<BigInt>("40"_unhex).value(), 0);
+  EXPECT_OUTCOME_EQ(encode(BigInt(0xCAFE)), "4300CAFE"_unhex);
+  EXPECT_OUTCOME_EQ(decode<BigInt>("4300CAFE"_unhex), 0xCAFE);
+  EXPECT_OUTCOME_EQ(encode(BigInt(-0xCAFE)), "4301CAFE"_unhex);
+  EXPECT_OUTCOME_EQ(decode<BigInt>("4301CAFE"_unhex), -0xCAFE);
+  EXPECT_OUTCOME_EQ(encode(BigInt(0)), "40"_unhex);
+  EXPECT_OUTCOME_EQ(decode<BigInt>("40"_unhex), 0);
 }
 
 /** UBigInt CBOR encoding and decoding */
 TEST(Cbor, UBigInt) {
   using fc::primitives::UBigInt;
-  EXPECT_EQ(encode(UBigInt(0xCAFE)), "42CAFE"_unhex);
-  EXPECT_EQ(decode<UBigInt>("42CAFE"_unhex).value(), 0xCAFE);
-  EXPECT_EQ(encode(UBigInt(0)), "40"_unhex);
-  EXPECT_EQ(decode<UBigInt>("40"_unhex).value(), 0);
+  EXPECT_OUTCOME_EQ(encode(UBigInt(0xCAFE)), "42CAFE"_unhex);
+  EXPECT_OUTCOME_EQ(decode<UBigInt>("42CAFE"_unhex), 0xCAFE);
+  EXPECT_OUTCOME_EQ(encode(UBigInt(0)), "40"_unhex);
+  EXPECT_OUTCOME_EQ(decode<UBigInt>("40"_unhex), 0);
 }
 
 /** Null CBOR encoding and decoding */
 TEST(Cbor, Null) {
-  EXPECT_EQ(encode(nullptr), "F6"_unhex);
+  EXPECT_OUTCOME_EQ(encode(nullptr), "F6"_unhex);
   EXPECT_TRUE(CborDecodeStream("F6"_unhex).isNull());
   EXPECT_FALSE(CborDecodeStream("01"_unhex).isNull());
 }
@@ -80,14 +79,14 @@ TEST(Cbor, Null) {
  * @then Encoded as expected
  */
 TEST(CborEncoder, Integral) {
-  EXPECT_EQ(encode(0ull), "00"_unhex);
-  EXPECT_EQ(encode(0ll), "00"_unhex);
-  EXPECT_EQ(encode(1), "01"_unhex);
-  EXPECT_EQ(encode(23), "17"_unhex);
-  EXPECT_EQ(encode(24), "1818"_unhex);
-  EXPECT_EQ(encode(-1), "20"_unhex);
-  EXPECT_EQ(encode(false), "F4"_unhex);
-  EXPECT_EQ(encode(true), "F5"_unhex);
+  EXPECT_OUTCOME_EQ(encode(0ull), "00"_unhex);
+  EXPECT_OUTCOME_EQ(encode(0ll), "00"_unhex);
+  EXPECT_OUTCOME_EQ(encode(1), "01"_unhex);
+  EXPECT_OUTCOME_EQ(encode(23), "17"_unhex);
+  EXPECT_OUTCOME_EQ(encode(24), "1818"_unhex);
+  EXPECT_OUTCOME_EQ(encode(-1), "20"_unhex);
+  EXPECT_OUTCOME_EQ(encode(false), "F4"_unhex);
+  EXPECT_OUTCOME_EQ(encode(true), "F5"_unhex);
 }
 
 /**
@@ -150,8 +149,7 @@ TEST(CborEncoder, FlatNest) {
  * @then Encoded as expected
  */
 TEST(CborEncoder, Cid) {
-  EXPECT_OUTCOME_TRUE_2(cid, ContentIdentifierCodec::decode(kCidRaw));
-  EXPECT_EQ(encode(cid), kCidCbor);
+  EXPECT_OUTCOME_EQ(encode(kCidRaw), kCidCbor);
 }
 
 /**
@@ -160,7 +158,7 @@ TEST(CborEncoder, Cid) {
  * @then Encoded as expected
  */
 TEST(CborEncoder, String) {
-  EXPECT_EQ(encode(std::string("foo")), "63666F6F"_unhex);
+  EXPECT_OUTCOME_EQ(encode(std::string("foo")), "63666F6F"_unhex);
 }
 
 /**
@@ -169,7 +167,7 @@ TEST(CborEncoder, String) {
  * @then Encoded as expected
  */
 TEST(CborEncoder, Bytes) {
-  EXPECT_EQ(encode("CAFE"_unhex), "42CAFE"_unhex);
+  EXPECT_OUTCOME_EQ(encode("CAFE"_unhex), "42CAFE"_unhex);
 }
 
 /**
@@ -193,11 +191,8 @@ TEST(CborEncoder, Map) {
  * @then Error
  */
 TEST(CborEncoder, CidErrors) {
-  using namespace libp2p::multi;
-  EXPECT_OUTCOME_TRUE_2(hash, Multihash::create(HashType::identity, {}));
-  ContentIdentifier cid(
-      ContentIdentifier::Version::V0, MulticodecType::Code::IDENTITY, hash);
-  EXPECT_OUTCOME_RAISE(CborEncodeError::INVALID_CID, CborEncodeStream() << cid);
+  EXPECT_OUTCOME_RAISE(CborEncodeError::INVALID_CID,
+                       CborEncodeStream() << kDummyCid);
 }
 
 /**
@@ -239,13 +234,10 @@ TEST(CborDecoder, Integral) {
  * @then Decoded as expected
  */
 TEST(CborDecoder, Cid) {
-  EXPECT_OUTCOME_TRUE_2(expected, ContentIdentifierCodec::decode(kCidRaw));
-  // libp2p::multi::ContentIdentifier is not default constructible and must be
-  // initialized somehow
-  EXPECT_OUTCOME_TRUE_2(actual, ContentIdentifierCodec::decode(kCidEmptyRaw));
-  EXPECT_NE(actual, expected);
+  auto actual = kDummyCid;
+  EXPECT_NE(actual, kCidRaw);
   CborDecodeStream(kCidCbor) >> actual;
-  EXPECT_EQ(actual, expected);
+  EXPECT_EQ(actual, kCidRaw);
 }
 
 /**
@@ -381,9 +373,7 @@ TEST(CborDecoder, ListErrors) {
  * @then Error
  */
 TEST(CborDecoder, CidErrors) {
-  // libp2p::multi::ContentIdentifier is not default constructible and must be
-  // initialized somehow
-  EXPECT_OUTCOME_TRUE_2(actual, ContentIdentifierCodec::decode(kCidEmptyRaw));
+  auto actual = kDummyCid;
   // no tag
   EXPECT_OUTCOME_RAISE(
       CborDecodeError::INVALID_CBOR_CID,
