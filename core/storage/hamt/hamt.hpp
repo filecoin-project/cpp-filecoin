@@ -17,13 +17,15 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::hamt {
-  enum class HamtError { EXPECTED_CID = 1 };
+  enum class HamtError { EXPECTED_CID = 1, NOT_FOUND, MAX_DEPTH };
 
   using CID = libp2p::multi::ContentIdentifier;
   using fc::primitives::UBigInt;
   using Value = ipfs::IpfsDatastore::Value;
 
   extern const CID kDummyCid;
+
+  constexpr size_t kLeafMax = 3;
 
   struct Node {
     using Ptr = std::shared_ptr<Node>;
@@ -90,6 +92,36 @@ namespace fc::storage::hamt {
     }
     return s;
   }
+
+  class Hamt {
+   public:
+    using Visitor = std::function<outcome::result<void>(const std::string &,
+                                                        const Value &)>;
+
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root);
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
+    outcome::result<void> set(const std::string &key,
+                              gsl::span<const uint8_t> value);
+    outcome::result<Value> get(const std::string &key);
+    outcome::result<void> remove(const std::string &key);
+    outcome::result<void> flush();
+    outcome::result<void> visit(const Visitor &visitor);
+
+   private:
+    outcome::result<void> set(Node &node,
+                              gsl::span<const size_t> indices,
+                              const std::string &key,
+                              gsl::span<const uint8_t> value);
+    outcome::result<void> remove(Node &node,
+                                 gsl::span<const size_t> indices,
+                                 const std::string &key);
+    outcome::result<void> flush(Node::Item &item);
+    outcome::result<void> loadItem(Node::Item &item);
+    outcome::result<void> visit(Node::Item &item, const Visitor &visitor);
+
+    std::shared_ptr<ipfs::IpfsDatastore> store_;
+    Node::Item root_;
+  };
 }  // namespace fc::storage::hamt
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::hamt, HamtError);

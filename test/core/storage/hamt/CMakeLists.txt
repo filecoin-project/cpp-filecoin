@@ -10,4 +10,5 @@ target_link_libraries(hamt_test
     cbor
     hamt
     hexutil
+    ipfs_datastore_leveldb
     )

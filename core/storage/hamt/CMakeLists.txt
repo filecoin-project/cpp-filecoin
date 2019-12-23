@@ -9,6 +9,7 @@ add_library(hamt
 target_link_libraries(hamt
     blake2
     blob
+    murmur
     outcome
     p2p::p2p_cid
     )
