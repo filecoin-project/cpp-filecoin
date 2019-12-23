@@ -76,7 +76,7 @@ namespace fc::storage::hamt {
       if (m_item.find("0") != m_item.end()) {
         CID cid = kDummyCid;
         m_item.at("0") >> cid;
-        node.items.push_back(cid);
+        node.items.emplace_back(cid);
       } else {
         auto s_leaf = m_item.at("1");
         auto n_leaf = s_leaf.listLength();
@@ -88,7 +88,7 @@ namespace fc::storage::hamt {
           l_pair >> key;
           leaf.emplace(key, l_pair.raw());
         }
-        node.items.push_back(leaf);
+        node.items.emplace_back(leaf);
       }
     }
     return s;

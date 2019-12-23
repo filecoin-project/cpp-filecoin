@@ -73,10 +73,10 @@ namespace fc::storage::hamt {
   }
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root)
-      : store_(store), root_(root) {}
+      : store_(std::move(store)), root_(root) {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root)
-      : store_(store), root_(root) {}
+      : store_(std::move(store)), root_(root) {}
 
   outcome::result<void> Hamt::set(const std::string &key,
                                   gsl::span<const uint8_t> value) {
@@ -136,19 +136,18 @@ namespace fc::storage::hamt {
     if (which<Node::Ptr>(item)) {
       return set(
           *boost::get<Node::Ptr>(item), consumeIndex(indices), key, value);
+    }
+    auto &leaf = boost::get<Node::Leaf>(item);
+    if (leaf.find(key) != leaf.end() || leaf.size() < kLeafMax) {
+      leaf[key] = Value(value);
     } else {
-      auto &leaf = boost::get<Node::Leaf>(item);
-      if (leaf.find(key) != leaf.end() || leaf.size() < kLeafMax) {
-        leaf[key] = Value(value);
-      } else {
-        auto child = std::make_shared<Node>();
-        OUTCOME_TRY(set(*child, consumeIndex(indices), key, value));
-        for (auto &pair : leaf) {
-          auto indices2 = keyToIndices(pair.first, indices.size());
-          OUTCOME_TRY(set(*child, indices2, pair.first, pair.second));
-        }
-        item = child;
+      auto child = std::make_shared<Node>();
+      OUTCOME_TRY(set(*child, consumeIndex(indices), key, value));
+      for (auto &pair : leaf) {
+        auto indices2 = keyToIndices(pair.first, indices.size());
+        OUTCOME_TRY(set(*child, indices2, pair.first, pair.second));
       }
+      item = child;
     }
     return outcome::success();
   }
