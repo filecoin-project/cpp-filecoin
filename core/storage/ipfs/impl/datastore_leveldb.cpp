@@ -6,6 +6,7 @@
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 
 #include <libp2p/multi/content_identifier_codec.hpp>
+#include <storage/leveldb/leveldb_error.hpp>
 
 namespace fc::storage::ipfs {
   namespace {
@@ -16,7 +17,8 @@ namespace fc::storage::ipfs {
      */
     inline outcome::result<common::Buffer> encode(
         const libp2p::multi::ContentIdentifier &value) {
-      OUTCOME_TRY(encoded, libp2p::multi::ContentIdentifierCodec::encode(value));
+      OUTCOME_TRY(encoded,
+                  libp2p::multi::ContentIdentifierCodec::encode(value));
       return common::Buffer(std::move(encoded));
     }
   }  // namespace
@@ -34,23 +36,26 @@ namespace fc::storage::ipfs {
   }
 
   outcome::result<bool> LeveldbDatastore::contains(const CID &key) const {
-    OUTCOME_TRY(encoded_key,encode(key));
+    OUTCOME_TRY(encoded_key, encode(key));
     return leveldb_->contains(encoded_key);
   }
 
   outcome::result<void> LeveldbDatastore::set(const CID &key, Value value) {
-    OUTCOME_TRY(encoded_key,encode(key));
+    OUTCOME_TRY(encoded_key, encode(key));
     return leveldb_->put(encoded_key, common::Buffer(std::move(value)));
   }
 
   outcome::result<LeveldbDatastore::Value> LeveldbDatastore::get(
       const CID &key) const {
-    OUTCOME_TRY(encoded_key,encode(key));
-    return leveldb_->get(encoded_key);
+    OUTCOME_TRY(encoded_key, encode(key));
+    auto res = leveldb_->get(encoded_key);
+    if (res.has_error() && res.error() == fc::storage::LevelDBError::NOT_FOUND)
+      return fc::storage::ipfs::IpfsDatastoreError::NOT_FOUND;
+    return res;
   }
 
   outcome::result<void> LeveldbDatastore::remove(const CID &key) {
-    OUTCOME_TRY(encoded_key,encode(key));
+    OUTCOME_TRY(encoded_key, encode(key));
     return leveldb_->remove(encoded_key);
   }
 
