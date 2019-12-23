@@ -19,6 +19,7 @@ using testutils::CidGenerator;
 class InMemoryIpfsDatastoreTest : public ::testing::Test {
  public:
   std::shared_ptr<IpfsDatastore> datastore;
+  static constexpr size_t kDefaultBufferSize = 32u;
 
   void SetUp() override {
     datastore = std::make_shared<InMemoryDatastore>();
@@ -35,8 +36,8 @@ class InMemoryIpfsDatastoreTest : public ::testing::Test {
  * @then all operation succeeded, obtained value is equal to original value
  */
 TEST_F(InMemoryIpfsDatastoreTest, ContainsExistingTrueSuccess) {
-  auto value = buffer_generator.makeRandomBuffer();
-  auto cid = cid_generator.makeCid();
+  auto value = buffer_generator.makeRandomBuffer(kDefaultBufferSize);
+  auto cid = cid_generator.makeRandomCid();
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid, value));
   EXPECT_OUTCOME_TRUE(res, datastore->contains(cid));
   ASSERT_TRUE(res);
@@ -48,9 +49,9 @@ TEST_F(InMemoryIpfsDatastoreTest, ContainsExistingTrueSuccess) {
  * @then all operations succeed and datastore doesn't contains cid2
  */
 TEST_F(InMemoryIpfsDatastoreTest, ContainsNotExistingFalseSuccess) {
-  auto cid1 = cid_generator.makeCid();
-  auto cid2 = cid_generator.makeCid();
-  auto value = buffer_generator.makeRandomBuffer();
+  auto cid1 = cid_generator.makeRandomCid();
+  auto cid2 = cid_generator.makeRandomCid();
+  auto value = buffer_generator.makeRandomBuffer(kDefaultBufferSize);
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
   EXPECT_OUTCOME_TRUE(res, datastore->contains(cid2));
   ASSERT_FALSE(res);
@@ -62,8 +63,8 @@ TEST_F(InMemoryIpfsDatastoreTest, ContainsNotExistingFalseSuccess) {
  * @then all operations succeed
  */
 TEST_F(InMemoryIpfsDatastoreTest, GetExistingSuccess) {
-  auto cid = cid_generator.makeCid();
-  auto value = buffer_generator.makeRandomBuffer();
+  auto cid = cid_generator.makeRandomCid();
+  auto value = buffer_generator.makeRandomBuffer(kDefaultBufferSize);
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid, value));
   EXPECT_OUTCOME_TRUE(v, datastore->get(cid));
   ASSERT_EQ(v, value);
@@ -75,9 +76,9 @@ TEST_F(InMemoryIpfsDatastoreTest, GetExistingSuccess) {
  * @then put operation succeeds, get operation fails
  */
 TEST_F(InMemoryIpfsDatastoreTest, GetNotExistingFailure) {
-  auto cid1 = cid_generator.makeCid();
-  auto cid2 = cid_generator.makeCid();
-  auto value = buffer_generator.makeRandomBuffer();
+  auto cid1 = cid_generator.makeRandomCid();
+  auto cid2 = cid_generator.makeRandomCid();
+  auto value = buffer_generator.makeRandomBuffer(kDefaultBufferSize);
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
   EXPECT_OUTCOME_ERROR(IpfsDatastoreError::NOT_FOUND, datastore->get(cid2));
 }
@@ -88,8 +89,8 @@ TEST_F(InMemoryIpfsDatastoreTest, GetNotExistingFailure) {
  * @then all operations succeed and datastore doesn't contain cid anymore
  */
 TEST_F(InMemoryIpfsDatastoreTest, RemoveSuccess) {
-  auto cid = cid_generator.makeCid();
-  auto value = buffer_generator.makeRandomBuffer();
+  auto cid = cid_generator.makeRandomCid();
+  auto value = buffer_generator.makeRandomBuffer(kDefaultBufferSize);
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid, value));
   EXPECT_OUTCOME_TRUE_1(datastore->remove(cid));
   EXPECT_OUTCOME_TRUE(res, datastore->contains(cid));
@@ -102,9 +103,9 @@ TEST_F(InMemoryIpfsDatastoreTest, RemoveSuccess) {
  * @then all operations succeed and datastore still contains cid1
  */
 TEST_F(InMemoryIpfsDatastoreTest, RemoveNotExistingSuccess) {
-  auto cid1 = cid_generator.makeCid();
-  auto cid2 = cid_generator.makeCid();
-  auto value = buffer_generator.makeRandomBuffer();
+  auto cid1 = cid_generator.makeRandomCid();
+  auto cid2 = cid_generator.makeRandomCid();
+  auto value = buffer_generator.makeRandomBuffer(kDefaultBufferSize);
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
   EXPECT_OUTCOME_TRUE_1(datastore->remove(cid2));
   EXPECT_OUTCOME_TRUE(res, datastore->contains(cid1));

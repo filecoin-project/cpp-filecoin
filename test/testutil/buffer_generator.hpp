@@ -21,14 +21,12 @@ namespace testutils {
    */
   class BufferGenerator {
    public:
-    static constexpr size_t kDefaultBufferLength = 32;
-
     /**
      * Generate random buffer if size length
      * @param size - length of generated buffer
      * @return random bytes buffer
      */
-    Buffer makeRandomBuffer(size_t size = kDefaultBufferLength) {
+    Buffer makeRandomBuffer(size_t size) {
       return Buffer{generator->randomBytes(size)};
     }
 

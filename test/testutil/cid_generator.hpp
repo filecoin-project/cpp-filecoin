@@ -27,7 +27,7 @@ namespace testutils {
      * Make random Content Identifier
      * @return CID
      */
-    ContentIdentifier makeCid() {
+    ContentIdentifier makeRandomCid() {
       auto version = ContentIdentifier::Version::V1;
       auto codec_type = MulticodecType::SHA2_256;
       auto size = 32u;  // sha256 bytes count
@@ -35,7 +35,7 @@ namespace testutils {
           Multihash::create(HashType::sha256, generator->randomBytes(size));
       if (!hash) boost::throw_exception(std::system_error(hash.error()));
 
-      return ContentIdentifier(version, codec_type, hash.value());
+      return ContentIdentifier(version, codec_type, std::move(hash.value()));
     }
 
    private:

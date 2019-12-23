@@ -15,7 +15,7 @@ namespace fc::storage::ipfs {
    */
   enum class IpfsDatastoreError {
     NOT_FOUND = 1,
-    CANNOT_STORE = 2,
+    CANNOT_STORE,
 
     UNKNOWN = 1000
   };
