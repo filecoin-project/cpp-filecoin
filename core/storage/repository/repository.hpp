@@ -31,6 +31,12 @@ namespace fc::storage::repository {
     virtual ~Repository() = default;
 
     /**
+     * @brief Initialize repository
+     * @return Error code in case of failure
+     */
+    virtual outcome::result<void> init() = 0;
+
+    /**
      * @brief Persistent data storage for small structured objects.
      * @return ipld storage
      */
