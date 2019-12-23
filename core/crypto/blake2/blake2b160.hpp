@@ -14,11 +14,11 @@
 
 namespace fc::crypto::blake2b {
 
-  const size_t BLAKE2B160_HASH_LENGHT = 20;  // 160 BIT
-  const size_t BLAKE2B256_HASH_LENGHT = 32;  // 256 BIT
+  const size_t BLAKE2B160_HASH_LENGTH = 20;  // 160 BIT
+  const size_t BLAKE2B256_HASH_LENGTH = 32;  // 256 BIT
 
-  using Blake2b160Hash = common::Blob<BLAKE2B160_HASH_LENGHT>;
-  using Blake2b256Hash = common::Blob<BLAKE2B256_HASH_LENGHT>;
+  using Blake2b160Hash = common::Blob<BLAKE2B160_HASH_LENGTH>;
+  using Blake2b256Hash = common::Blob<BLAKE2B256_HASH_LENGTH>;
 
   /**
    * @brief Get blake2b-160 hash
