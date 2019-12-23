@@ -11,8 +11,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipfs, IpfsDatastoreError, e) {
   switch (e) {
     case IpfsDatastoreError::NOT_FOUND:
       return "KeyStoreError: address not found";
-    case IpfsDatastoreError::CANNOT_STORE:
-      return "KeyStoreError: cannot store";
     case IpfsDatastoreError::UNKNOWN:
       break;
   }
