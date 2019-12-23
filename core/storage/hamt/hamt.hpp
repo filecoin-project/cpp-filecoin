@@ -14,18 +14,20 @@
 #include "common/outcome_throw.hpp"
 #include "common/visitor.hpp"
 #include "primitives/big_int.hpp"
+#include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::hamt {
   enum class HamtError { EXPECTED_CID = 1 };
 
   using CID = libp2p::multi::ContentIdentifier;
   using fc::primitives::UBigInt;
+  using Value = ipfs::IpfsDatastore::Value;
 
   extern const CID kDummyCid;
 
   struct Node {
     using Ptr = std::shared_ptr<Node>;
-    using Leaf = std::map<std::string, std::vector<uint8_t>>;
+    using Leaf = std::map<std::string, Value>;
     using Item = boost::variant<CID, Ptr, Leaf>;
 
     UBigInt bits;

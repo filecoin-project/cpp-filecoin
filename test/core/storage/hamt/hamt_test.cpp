@@ -37,7 +37,7 @@ TEST(Hamt, NodeCbor) {
   expectCid(n, "0171a0e40220ccece38b1ed05d6ff6e7158aaaf0cec9ed99aa5e0cd453d6365de2439f05cd4b"_unhex);
 
   Node::Leaf leaf;
-  leaf["a"] = encode("b").value();
+  leaf["a"] = fc::storage::hamt::Value(encode("b").value());
   n.items.push_back(leaf);
   expectEncodeAndReencode(n, "824302000081a16131818261616162"_unhex);
   expectCid(n, "0171a0e40220190d7c4481ea44aa30e79618e3299271031f9eed6b33912c494b88bb07288917"_unhex);
