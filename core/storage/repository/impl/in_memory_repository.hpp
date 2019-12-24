@@ -21,8 +21,6 @@ namespace fc::storage::repository {
    public:
     InMemoryRepository();
 
-    ~InMemoryRepository() override = default;
-
     /**
      * Create Repository in-memory
      * @param config_path - path to config file
