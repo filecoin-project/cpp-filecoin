@@ -41,13 +41,13 @@ namespace fc::storage::repository {
    */
   class FileSystemRepository : public Repository {
    public:
-    static constexpr char kApiFilename[] = "api";
-    static constexpr char kConfigFilename[] = "config.json";
-    static constexpr char kKeysDirectory[] = "keys";
-    static constexpr char kDatastore[] = "datastore";
-    static constexpr char kRepositoryLock[] = "repo.lock";
-    static constexpr char kVersionFilename[] = "version";
-    static constexpr Version kFileSystemRepositoryVersion = 1;
+    inline static const std::string kApiFilename = "api";
+    inline static const std::string kConfigFilename = "config.json";
+    inline static const std::string kKeysDirectory = "keys";
+    inline static const std::string kDatastore = "datastore";
+    inline static const std::string kRepositoryLock = "repo.lock";
+    inline static const std::string kVersionFilename = "version";
+    inline static const Version kFileSystemRepositoryVersion = 1;
 
     FileSystemRepository(std::shared_ptr<IpfsDatastore> ipld_store,
                          std::shared_ptr<KeyStore> keystore,
