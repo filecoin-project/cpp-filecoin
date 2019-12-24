@@ -4,3 +4,4 @@
 #
 
 add_subdirectory(actor)
+add_subdirectory(runtime)
