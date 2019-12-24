@@ -9,13 +9,13 @@
 #include <boost/uuid/uuid.hpp>
 
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
-#include "testutil/outcome.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 using fc::common::Buffer;
-using fc::storage::ipfs::LeveldbDatastore;
 using fc::storage::ipfs::IpfsDatastore;
 using fc::storage::ipfs::IpfsDatastoreError;
+using fc::storage::ipfs::LeveldbDatastore;
 using libp2p::multi::ContentIdentifier;
 using libp2p::multi::HashType;
 using libp2p::multi::MulticodecType;
@@ -23,6 +23,8 @@ using libp2p::multi::Multihash;
 
 struct DatastoreIntegrationTest : public ::testing::Test {
   using Options = leveldb::Options;
+
+  Options options{};
 
   ContentIdentifier cid1{
       ContentIdentifier::Version::V1,
@@ -48,7 +50,6 @@ struct DatastoreIntegrationTest : public ::testing::Test {
 
   void SetUp() override {
     leveldb_path = makeTempPath();
-    Options options{};
     options.create_if_missing = true;
     auto result = LeveldbDatastore::create(leveldb_path.string(), options);
     if (!result) boost::throw_exception(std::system_error(result.error()));
@@ -133,4 +134,18 @@ TEST_F(DatastoreIntegrationTest, RemoveNotExistingSuccess) {
 TEST_F(DatastoreIntegrationTest, SetTwice) {
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
+}
+
+/**
+ * @given opened datastore with some values stored
+ * @when close datastore and open again
+ * @then values are stored persistently
+ */
+TEST_F(DatastoreIntegrationTest, PersistentStorage) {
+  EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
+  datastore.reset();
+
+  EXPECT_OUTCOME_TRUE(open_again,
+                      LeveldbDatastore::create(leveldb_path.string(), options));
+  EXPECT_OUTCOME_EQ(open_again->contains(cid1), true);
 }
