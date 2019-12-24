@@ -63,6 +63,7 @@ namespace fc::storage::repository {
      */
     outcome::result<void> loadConfig(const std::string &filename);
 
+   private:
     std::shared_ptr<IpfsDatastore> ipld_store_;
     std::shared_ptr<KeyStore> keystore_;
     std::shared_ptr<Config> config_;
