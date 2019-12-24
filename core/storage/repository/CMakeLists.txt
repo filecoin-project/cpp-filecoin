@@ -7,6 +7,4 @@ add_library(repository
     )
 target_link_libraries(repository
     outcome
-    keystore
-    ipfs
     )
