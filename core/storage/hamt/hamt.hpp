@@ -27,7 +27,7 @@ namespace fc::storage::hamt {
 
   constexpr size_t kLeafMax = 3;
 
-  /** Hamt node interface */
+  /** Hamt node representation */
   struct Node {
     using Ptr = std::shared_ptr<Node>;
     using Leaf = std::map<std::string, Value>;
@@ -94,7 +94,10 @@ namespace fc::storage::hamt {
     return s;
   }
 
-  /** Hamt interface */
+  /**
+   * Hamt map
+   * https://github.com/ipld/specs/blob/c1b0d3f4dc26850071d0e4d67854408e970ed29c/data-structures/hashmap.md
+   */
   class Hamt {
    public:
     using Visitor = std::function<outcome::result<void>(const std::string &,
@@ -122,6 +125,7 @@ namespace fc::storage::hamt {
     outcome::result<void> remove(Node &node,
                                  gsl::span<const size_t> indices,
                                  const std::string &key);
+    outcome::result<void> cleanShard(Node::Item &item);
     outcome::result<void> flush(Node::Item &item);
     outcome::result<void> loadItem(Node::Item &item);
     outcome::result<void> visit(Node::Item &item, const Visitor &visitor);

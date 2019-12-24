@@ -43,6 +43,7 @@ class HamtTest : public ::testing::Test {
   Hamt hamt_{store_, root_};
 };
 
+/** Hamt node CBOR encoding and decoding, correct CID */
 TEST_F(HamtTest, NodeCbor) {
   Node n;
   expectEncodeAndReencode(n, "824080"_unhex);
@@ -66,6 +67,7 @@ TEST_F(HamtTest, NodeCbor) {
   EXPECT_OUTCOME_ERROR(HamtError::EXPECTED_CID, encode(n));
 }
 
+/** Set-remove single element */
 TEST_F(HamtTest, SetRemoveOne) {
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("aai"));
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.remove("aai"));
@@ -82,6 +84,7 @@ TEST_F(HamtTest, SetRemoveOne) {
   EXPECT_EQ(root_->items.size(), 0);
 }
 
+/** Set-remove non-colliding elements */
 TEST_F(HamtTest, SetRemoveNoCollision) {
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aaa", "02"_unhex));
@@ -99,6 +102,7 @@ TEST_F(HamtTest, SetRemoveNoCollision) {
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("aaa"));
 }
 
+/** Set-remove kLeafMax colliding elements, does not shard */
 TEST_F(HamtTest, SetRemoveCollisionMax) {
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
@@ -116,6 +120,7 @@ TEST_F(HamtTest, SetRemoveCollisionMax) {
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("agd"));
 }
 
+/** Set-remove kLeafMax + 1 colliding elements, creates shard */
 TEST_F(HamtTest, SetRemoveCollisionChild) {
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
@@ -139,6 +144,7 @@ TEST_F(HamtTest, SetRemoveCollisionChild) {
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("agm"));
 }
 
+/** Set-remove kLeafMax + 1 double colliding elements, creates two nested shards */
 TEST_F(HamtTest, SetRemoveDoubleCollisionChild) {
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ails", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aufx", "02"_unhex));
@@ -164,14 +170,19 @@ TEST_F(HamtTest, SetRemoveDoubleCollisionChild) {
   EXPECT_EQ(child.items.size(), 2);
 }
 
-TEST_F(HamtTest, FlushNoCollision) {
+/** Flush empty root */
+TEST_F(HamtTest, FlushEmpty) {
   auto cidEmpty = decodeCid("0171a0e4022018fe6acc61a3a36b0c373c4a3a8ea64b812bf2ca9b528050909c78d408558a0c"_unhex);
-  auto cidWithLeaf = decodeCid("0171a0e4022055e50395a85788650fc83874f45442e531f6289b0402d95ef3da8b01870c2629"_unhex);
 
   EXPECT_OUTCOME_EQ(store_->contains(cidEmpty), false);
 
   EXPECT_OUTCOME_TRUE_1(hamt_.flush());
   EXPECT_OUTCOME_EQ(store_->contains(cidEmpty), true);
+}
+
+/** Flush node of leafs, intermediate state not stored */
+TEST_F(HamtTest, FlushNoCollision) {
+  auto cidWithLeaf = decodeCid("0171a0e4022055e50395a85788650fc83874f45442e531f6289b0402d95ef3da8b01870c2629"_unhex);
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("aai"));
@@ -183,6 +194,7 @@ TEST_F(HamtTest, FlushNoCollision) {
   EXPECT_OUTCOME_EQ(store_->contains(cidWithLeaf), true);
 }
 
+/** Flush node with shard, intermediate state not stored */
 TEST_F(HamtTest, FlushCollisionChild) {
   auto cidShard = decodeCid("0171a0e402209431b57360c7ee799ffbc1f6fa83dce5239eb48f7fef6cb167190fd15267daf0"_unhex);
 

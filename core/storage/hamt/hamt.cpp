@@ -19,9 +19,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
       return "Not found";
     case HamtError::MAX_DEPTH:
       return "Max depth exceeded";
-    default:
-      return "Unknown error";
   }
+  return "Unknown error";
 }
 
 namespace fc::storage::hamt {
@@ -31,17 +30,10 @@ namespace fc::storage::hamt {
 
   // assuming 8-bit indices
   auto keyToIndices(const std::string &key, int n = -1) {
-    std::vector<uint8_t> key_bytes;
-    for (auto c : key) {
-      key_bytes.push_back(c);
-    }
+    std::vector<uint8_t> key_bytes(key.begin(), key.end());
     auto hash = crypto::murmur::hash(key_bytes);
-    std::vector<size_t> result;
-    for (auto i = n == -1 ? hash.begin() : hash.end() - n + 1; i != hash.end();
-         ++i) {
-      result.push_back(*i);
-    }
-    return result;
+    return std::vector<size_t>(n == -1 ? hash.begin() : hash.end() - n + 1,
+                               hash.end());
   }
 
   auto bitToIndex(UBigInt bits, size_t max) {
@@ -73,7 +65,7 @@ namespace fc::storage::hamt {
   }
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root)
-      : store_(std::move(store)), root_(root) {}
+      : store_(std::move(store)), root_(std::move(root)) {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root)
       : store_(std::move(store)), root_(root) {}
@@ -166,29 +158,8 @@ namespace fc::storage::hamt {
     auto &item = node.items[index2];
     OUTCOME_TRY(loadItem(item));
     if (which<Node::Ptr>(item)) {
-      auto &child = *boost::get<Node::Ptr>(item);
-      OUTCOME_TRY(remove(child, consumeIndex(indices), key));
-      if (child.items.size() == 1) {
-        if (which<Node::Leaf>(child.items[0])) {
-          item = child.items[0];
-        }
-      } else if (child.items.size() <= kLeafMax) {
-        Node::Leaf leaf;
-        auto collapse = true;
-        for (auto &item2 : child.items) {
-          if (which<Node::Leaf>(item2)) {
-            for (auto &pair : boost::get<Node::Leaf>(item2)) {
-              leaf.emplace(pair);
-            }
-          } else {
-            collapse = false;
-            break;
-          }
-        }
-        if (collapse && leaf.size() <= kLeafMax) {
-          item = leaf;
-        }
-      }
+      OUTCOME_TRY(remove(*boost::get<Node::Ptr>(item), consumeIndex(indices), key));
+      OUTCOME_TRY(cleanShard(item));
     } else {
       auto &leaf = boost::get<Node::Leaf>(item);
       if (leaf.find(key) == leaf.end()) {
@@ -200,6 +171,30 @@ namespace fc::storage::hamt {
       } else {
         leaf.erase(key);
       }
+    }
+    return outcome::success();
+  }
+
+  outcome::result<void> Hamt::cleanShard(Node::Item &item) {
+    auto &node = *boost::get<Node::Ptr>(item);
+    if (node.items.size() == 1) {
+      if (which<Node::Leaf>(node.items[0])) {
+        item = node.items[0];
+      }
+    } else if (node.items.size() <= kLeafMax) {
+      Node::Leaf leaf;
+      for (auto &item2 : node.items) {
+        if (!which<Node::Leaf>(item2)) {
+          return outcome::success();
+        }
+        for (auto &pair : boost::get<Node::Leaf>(item2)) {
+          leaf.emplace(pair);
+          if (leaf.size() > kLeafMax) {
+            return outcome::success();
+          }
+        }
+      }
+      item = leaf;
     }
     return outcome::success();
   }
@@ -222,7 +217,7 @@ namespace fc::storage::hamt {
     if (which<CID>(item)) {
       OUTCOME_TRY(child_bytes, store_->get(boost::get<CID>(item)));
       OUTCOME_TRY(child, codec::cbor::decode<Node>(child_bytes));
-      item = std::make_shared<Node>(child);
+      item = std::make_shared<Node>(std::move(child));
     }
     return outcome::success();
   }

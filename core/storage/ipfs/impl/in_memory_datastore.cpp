@@ -13,7 +13,7 @@ fc::outcome::result<bool> InMemoryDatastore::contains(const CID &key) const {
 }
 
 fc::outcome::result<void> InMemoryDatastore::set(const CID &key, Value value) {
-  // maybe check value hash matches cid
+  // TODO(turuslan): FIL-117 maybe check value hash matches cid
   storage_.emplace(key, value);
   return fc::outcome::success();
 }
