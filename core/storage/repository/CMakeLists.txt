@@ -1,13 +1,20 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-add_library(repository_filesystem
+add_library(repository
     impl/repository.cpp
     impl/repository_error.cpp
+    )
+target_link_libraries(repository
+    outcome
+    )
+
+add_library(filesystem_repository
     impl/filesystem_repository.cpp
     )
-target_link_libraries(repository_filesystem
+target_link_libraries(filesystem_repository
     Boost::filesystem
+    repository
     config
     fslock
     outcome

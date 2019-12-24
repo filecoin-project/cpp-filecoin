@@ -57,7 +57,7 @@ namespace fc::storage::repository {
 
     ~FileSystemRepository() override = default;
 
-    static outcome::result<std::shared_ptr<FileSystemRepository>> create(
+    static outcome::result<std::shared_ptr<Repository>> create(
         const Path &repo_path,
         const std::string &api_address,
         const leveldb::Options &leveldb_options);

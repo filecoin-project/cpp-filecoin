@@ -20,9 +20,10 @@ using fc::primitives::address::AddressVerifierImpl;
 using fc::storage::ipfs::LeveldbDatastore;
 using fc::storage::keystore::FileSystemKeyStore;
 using fc::storage::repository::FileSystemRepository;
+using fc::storage::repository::Repository;
+using fc::storage::repository::RepositoryError;
 using libp2p::crypto::secp256k1::Secp256k1ProviderImpl;
 using Version = fc::storage::repository::Repository::Version;
-using fc::storage::repository::RepositoryError;
 
 FileSystemRepository::FileSystemRepository(
     std::shared_ptr<IpfsDatastore> ipld_store,
@@ -34,10 +35,10 @@ FileSystemRepository::FileSystemRepository(
       repository_path_{std::move(repository_path)},
       fs_locker_{std::move(fs_locker)} {}
 
-fc::outcome::result<std::shared_ptr<FileSystemRepository>>
-FileSystemRepository::create(const Path &repo_path,
-                             const std::string &api_address,
-                             const leveldb::Options &leveldb_options) {
+fc::outcome::result<std::shared_ptr<Repository>> FileSystemRepository::create(
+    const Path &repo_path,
+    const std::string &api_address,
+    const leveldb::Options &leveldb_options) {
   // check version if version file exists
   auto version_filename =
       repo_path + fc::storage::filestore::DELIMITER + kVersionFilename;

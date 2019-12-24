@@ -5,6 +5,6 @@ addtest(filesystem_repository_test
     filesystem_repository_test.cpp
     )
 target_link_libraries(filesystem_repository_test
-    repository_filesystem
+    filesystem_repository
     base_fs_test
     )
