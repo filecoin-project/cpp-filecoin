@@ -31,12 +31,6 @@ namespace fc::storage::repository {
     virtual ~Repository() = default;
 
     /**
-     * @brief Initialize repository
-     * @return Error code in case of failure
-     */
-    virtual outcome::result<void> init() = 0;
-
-    /**
      * @brief Persistent data storage for small structured objects.
      * @return ipld storage
      */
@@ -61,7 +55,14 @@ namespace fc::storage::repository {
      */
     virtual fc::outcome::result<Version> getVersion() const = 0;
 
-   private:
+   protected:
+    /**
+     * Load config
+     * @param filename - full path to config file
+     * @return error code in case of failure
+     */
+    outcome::result<void> loadConfig(const std::string &filename);
+
     std::shared_ptr<IpfsDatastore> ipld_store_;
     std::shared_ptr<KeyStore> keystore_;
     std::shared_ptr<Config> config_;
