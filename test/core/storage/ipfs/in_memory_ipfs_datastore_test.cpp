@@ -101,3 +101,9 @@ TEST_F(InMemoryIpfsDatastoreTest, RemoveNotExistingSuccess) {
   EXPECT_OUTCOME_TRUE_1(datastore->remove(cid2));
   EXPECT_OUTCOME_EQ(datastore->contains(cid1), true);
 }
+
+/** Setting same key twice succeeds */
+TEST_F(InMemoryIpfsDatastoreTest, SetTwice) {
+  EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
+  EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
+}

@@ -57,22 +57,22 @@ namespace fc::primitives {
         return outcome::failure(AddressError::INVALID_PAYLOAD);
       }
       case Protocol::SECP256K1: {
-        if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT) {
+        if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGTH) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
         Secp256k1PublicKeyHash hash{};
         std::copy_n(std::make_move_iterator(payload.begin()),
-                    fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT,
+                    fc::crypto::blake2b::BLAKE2B160_HASH_LENGTH,
                     hash.begin());
         return Address{net, hash};
       }
       case Protocol::ACTOR: {
-        if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT) {
+        if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGTH) {
           return outcome::failure(AddressError::INVALID_PAYLOAD);
         }
         ActorExecHash hash{};
         std::copy_n(std::make_move_iterator(payload.begin()),
-                    fc::crypto::blake2b::BLAKE2B160_HASH_LENGHT,
+                    fc::crypto::blake2b::BLAKE2B160_HASH_LENGTH,
                     hash.begin());
         return Address{net, hash};
       }
