@@ -41,6 +41,7 @@ namespace fc::storage::ipfs {
   }
 
   outcome::result<void> LeveldbDatastore::set(const CID &key, Value value) {
+    // TODO(turuslan): FIL-117 maybe check value hash matches cid
     OUTCOME_TRY(encoded_key, encode(key));
     return leveldb_->put(encoded_key, common::Buffer(std::move(value)));
   }

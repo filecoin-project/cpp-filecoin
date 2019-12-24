@@ -5,6 +5,7 @@
 
 add_subdirectory(config)
 add_subdirectory(filestore)
+add_subdirectory(hamt)
 add_subdirectory(in_memory)
 add_subdirectory(ipfs)
 add_subdirectory(keystore)

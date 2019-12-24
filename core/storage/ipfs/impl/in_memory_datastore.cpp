@@ -13,9 +13,8 @@ fc::outcome::result<bool> InMemoryDatastore::contains(const CID &key) const {
 }
 
 fc::outcome::result<void> InMemoryDatastore::set(const CID &key, Value value) {
-  auto res = storage_.emplace(key, value);
-  if (!res.second) return IpfsDatastoreError::CANNOT_STORE;
-
+  // TODO(turuslan): FIL-117 maybe check value hash matches cid
+  storage_.emplace(key, value);
   return fc::outcome::success();
 }
 

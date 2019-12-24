@@ -3,6 +3,7 @@
 
 add_subdirectory(config)
 add_subdirectory(filestore)
+add_subdirectory(hamt)
 add_subdirectory(keystore)
 add_subdirectory(ipfs)
 add_subdirectory(leveldb)
