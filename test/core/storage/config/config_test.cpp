@@ -14,7 +14,7 @@ using fc::storage::config::ConfigError;
 
 class ConfigImplTest : public test::BaseFS_Test {
  public:
-  ConfigImplTest() : test::BaseFS_Test("/tmp/fc_config_test/") {}
+  ConfigImplTest() : test::BaseFS_Test("fc_config_test") {}
 
   /**
    * Create a test directory with an empty file.

@@ -30,7 +30,7 @@ using libp2p::multi::Multihash;
 class FilesSystemRepositoryTest : public test::BaseFS_Test {
  public:
   FilesSystemRepositoryTest()
-      : test::BaseFS_Test("/tmp/fc_filesystem_repository_test/") {}
+      : test::BaseFS_Test("fc_filesystem_repository_test") {}
 
   std::string api_address{"api_address string"};
   leveldb::Options leveldb_options{};

@@ -18,7 +18,7 @@ using fc::storage::filestore::Path;
 
 class FileSystemFileTest : public test::BaseFS_Test {
  public:
-  FileSystemFileTest() : test::BaseFS_Test("/tmp/fc_filesystem_file_test/") {}
+  FileSystemFileTest() : test::BaseFS_Test("fc_filesystem_file_test") {}
 
   /** Path to empty file */
   Path empty_file_path;

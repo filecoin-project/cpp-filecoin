@@ -23,7 +23,7 @@ namespace test {
    */
   struct BaseFS_Test : public ::testing::Test {
     // not explicit, intentionally
-    explicit BaseFS_Test(fs::path path);
+    explicit BaseFS_Test(const fs::path &path);
 
     ~BaseFS_Test() override;
 

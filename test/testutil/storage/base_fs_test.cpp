@@ -7,7 +7,8 @@
 
 namespace test {
 
-  BaseFS_Test::BaseFS_Test(fs::path path) : base_path(std::move(path)) {
+  BaseFS_Test::BaseFS_Test(const fs::path &path)
+      : base_path(std::move(fs::temp_directory_path() / path)) {
     clear();
     mkdir();
 
@@ -34,14 +35,14 @@ namespace test {
   }
 
   fs::path BaseFS_Test::createDir(const fs::path &dirname) const {
-    auto pathname =  base_path;
+    auto pathname = base_path;
     pathname /= dirname;
     fs::create_directory(pathname);
     return pathname;
   }
 
   fs::path BaseFS_Test::createFile(const fs::path &filename) const {
-    auto pathname =  base_path;
+    auto pathname = base_path;
     pathname /= filename;
     boost::filesystem::ofstream ofs(pathname);
     ofs.close();
@@ -49,7 +50,7 @@ namespace test {
   }
 
   bool BaseFS_Test::exists(const fs::path &entity) const {
-    auto pathname =  base_path;
+    auto pathname = base_path;
     pathname /= entity;
     return boost::filesystem::exists(pathname);
   }

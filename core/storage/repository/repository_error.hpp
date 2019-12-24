@@ -15,6 +15,7 @@ namespace fc::storage::repository {
    */
   enum class RepositoryError {
     WRONG_VERSION = 1,
+    OPEN_FILE_ERROR,
 
     UNKNOWN
   };

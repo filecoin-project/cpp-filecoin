@@ -40,11 +40,9 @@ using Secp256k1Signature = libp2p::crypto::secp256k1::Signature;
 using BlsPublicKey = fc::crypto::bls::PublicKey;
 using Secp256k1PublicKey = libp2p::crypto::secp256k1::PublicKey;
 
-const std::string TEST_PATH = "/tmp/fc_filesystem_keystore_test/";
-
 class FileSystemKeyStoreTest : public test::BaseFS_Test {
  public:
-  FileSystemKeyStoreTest() : test::BaseFS_Test(TEST_PATH) {}
+  FileSystemKeyStoreTest() : test::BaseFS_Test("fc_filesystem_keystore_test") {}
 
   std::shared_ptr<BlsProvider> bls_provider_;
   std::shared_ptr<BlsKeyPair> bls_keypair_;
@@ -90,7 +88,7 @@ class FileSystemKeyStoreTest : public test::BaseFS_Test {
     address_verifier_ = std::make_shared<AddressVerifierImpl>();
 
     ks = std::make_shared<FileSystemKeyStore>(
-        TEST_PATH, bls_provider_, secp256k1_provider_, address_verifier_);
+        base_path.string(), bls_provider_, secp256k1_provider_, address_verifier_);
   }
 
  protected:
