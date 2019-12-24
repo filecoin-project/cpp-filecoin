@@ -15,5 +15,5 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::repository, RepositoryError, e) {
       break;
   }
 
-  return "unknown error";
+  return "RepositoryError: unknown error";
 }
