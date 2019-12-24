@@ -11,4 +11,5 @@ target_link_libraries(hamt_test
     hamt
     hexutil
     ipfs_datastore_leveldb
+    ipfs_datastore_in_memory
     )

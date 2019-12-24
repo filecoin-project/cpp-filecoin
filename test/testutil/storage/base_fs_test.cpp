@@ -7,6 +7,19 @@
 
 namespace test {
 
+  BaseFS_Test::BaseFS_Test(const fs::path &path)
+      : base_path(std::move(fs::temp_directory_path() / path)) {
+    clear();
+    mkdir();
+
+    logger = fc::common::createLogger(getPathString());
+    logger->set_level(spdlog::level::debug);
+  }
+
+  BaseFS_Test::~BaseFS_Test() {
+    clear();
+  }
+
   void BaseFS_Test::clear() {
     if (fs::exists(base_path)) {
       fs::remove_all(base_path);
@@ -21,24 +34,25 @@ namespace test {
     return fs::canonical(base_path).string();
   }
 
+  fs::path BaseFS_Test::createDir(const fs::path &dirname) const {
+    auto pathname = base_path;
+    pathname /= dirname;
+    fs::create_directory(pathname);
+    return pathname;
+  }
+
   fs::path BaseFS_Test::createFile(const fs::path &filename) const {
-    auto pathname =  base_path;
+    auto pathname = base_path;
     pathname /= filename;
     boost::filesystem::ofstream ofs(pathname);
     ofs.close();
     return pathname;
   }
 
-  BaseFS_Test::~BaseFS_Test() {
-    clear();
-  }
-
-  BaseFS_Test::BaseFS_Test(fs::path path) : base_path(std::move(path)) {
-    clear();
-    mkdir();
-
-    logger = fc::common::createLogger(getPathString());
-    logger->set_level(spdlog::level::debug);
+  bool BaseFS_Test::exists(const fs::path &entity) const {
+    auto pathname = base_path;
+    pathname /= entity;
+    return boost::filesystem::exists(pathname);
   }
 
   void BaseFS_Test::SetUp() {

@@ -18,7 +18,7 @@ using fc::storage::filestore::Path;
 
 class FSLockTest : public test::BaseFS_Test {
  public:
-  FSLockTest() : test::BaseFS_Test("/tmp/fc_filesystem_lock_file_test/") {}
+  FSLockTest() : test::BaseFS_Test("fc_filesystem_lock_file_test") {}
 
   /** Path to lock file */
   Path lock_file_path;

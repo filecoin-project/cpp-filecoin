@@ -19,7 +19,7 @@ namespace fs = boost::filesystem;
 
 struct LevelDB_Integration_Test : public test::BaseLevelDB_Test {
   LevelDB_Integration_Test()
-      : test::BaseLevelDB_Test("/tmp/fc_leveldb_integration_test") {}
+      : test::BaseLevelDB_Test("fc_leveldb_integration_test") {}
 
   Buffer key_{1, 3, 3, 7};
   Buffer value_{1, 2, 3};

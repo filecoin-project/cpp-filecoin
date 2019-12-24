@@ -16,7 +16,7 @@ using namespace fc::storage;
 namespace fs = boost::filesystem;
 
 struct LevelDB_Open : public test::BaseFS_Test {
-  LevelDB_Open() : test::BaseFS_Test("/tmp/fc_leveldb_open") {}
+  LevelDB_Open() : test::BaseFS_Test("fc_leveldb_open") {}
 };
 
 /**

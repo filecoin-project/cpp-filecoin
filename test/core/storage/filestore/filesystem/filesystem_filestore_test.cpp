@@ -18,7 +18,7 @@ using fc::storage::filestore::Path;
 class FileSystemFileStoreTest : public test::BaseFS_Test {
  public:
   FileSystemFileStoreTest()
-      : test::BaseFS_Test("/tmp/fc_filesystem_filestore_test") {}
+      : test::BaseFS_Test("fc_filesystem_filestore_test") {}
 
   std::shared_ptr<FileStore> fs;
 
