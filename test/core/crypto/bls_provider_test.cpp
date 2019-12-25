@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/bls_provider/impl/bls_provider_impl.hpp"
+#include "crypto/bls/impl/bls_provider_impl.hpp"
 
 #include <vector>
 #include <algorithm>

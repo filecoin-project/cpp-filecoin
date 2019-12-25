@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "primitives/address/impl/address_verifier_impl.hpp"
+
 #include <gtest/gtest.h>
 
-#include <libp2p/crypto/secp256k1_provider/secp256k1_provider_impl.hpp>
-
 #include "crypto/blake2/blake2b160.hpp"
-#include "crypto/bls_provider/impl/bls_provider_impl.hpp"
+#include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_builder.hpp"
 #include "primitives/address/impl/address_builder_impl.hpp"
-#include "primitives/address/impl/address_verifier_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::crypto::blake2b::blake2b_160;

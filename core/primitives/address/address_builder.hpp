@@ -6,10 +6,10 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_ADDRESS_BUILDER_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_ADDRESS_BUILDER_HPP
 
-#include "crypto/secp256k1_provider/secp256k1_provider.hpp"
+#include "crypto/secp256k1/secp256k1_provider.hpp"
 
 #include "common/outcome.hpp"
-#include "crypto/bls_provider/bls_types.hpp"
+#include "crypto/bls/bls_types.hpp"
 #include "address.hpp"
 
 namespace fc::primitives::address {

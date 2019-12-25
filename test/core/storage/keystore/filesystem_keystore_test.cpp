@@ -6,13 +6,9 @@
 #include "storage/keystore/impl/filesystem/filesystem_keystore.hpp"
 
 #include <gtest/gtest.h>
-
-#include <crypto/bls_provider/bls_provider.hpp>
-#include <libp2p/crypto/error.hpp>
-
 #include "crypto/blake2/blake2b.h"
-#include "crypto/bls_provider/impl/bls_provider_impl.hpp"
-#include "crypto/secp256k1_provider/secp256k1_provider.hpp"
+#include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/address/impl/address_builder_impl.hpp"
 #include "primitives/address/impl/address_verifier_impl.hpp"

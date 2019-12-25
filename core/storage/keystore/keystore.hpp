@@ -10,9 +10,9 @@
 
 #include <boost/variant.hpp>
 #include "common/outcome.hpp"
-#include "crypto/bls_provider/bls_provider.hpp"
-#include "crypto/bls_provider/bls_types.hpp"
-#include "crypto/secp256k1_provider/secp256k1_provider.hpp"
+#include "crypto/bls/bls_provider.hpp"
+#include "crypto/bls/bls_types.hpp"
+#include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_verifier.hpp"
 #include "storage/keystore/keystore_error.hpp"

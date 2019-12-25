@@ -7,8 +7,8 @@
 
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b160.hpp"
-#include "crypto/bls_provider/bls_types.hpp"
-#include "crypto/secp256k1_provider/secp256k1_provider.hpp"
+#include "crypto/bls/bls_types.hpp"
+#include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "primitives/address/address_verifier.hpp"
 
 namespace fc::primitives::address {

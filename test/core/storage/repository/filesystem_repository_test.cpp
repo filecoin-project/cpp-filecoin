@@ -5,11 +5,10 @@
 
 #include "storage/repository/impl/filesystem_repository.hpp"
 
-#include <storage/repository/repository_error.hpp>
-
-#include "crypto/bls_provider/impl/bls_provider_impl.hpp"
+#include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "primitives/address/impl/address_builder_impl.hpp"
 #include "storage/ipfs/datastore.hpp"
+#include "storage/repository/repository_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"

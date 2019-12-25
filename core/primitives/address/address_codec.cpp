@@ -12,7 +12,7 @@
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b.h"
 #include "crypto/blake2/blake2b160.hpp"
-#include "crypto/bls_provider/bls_types.hpp"
+#include "crypto/bls/bls_types.hpp"
 
 namespace fc::primitives::address {
 
