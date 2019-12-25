@@ -7,9 +7,9 @@
 
 #include <gtest/gtest.h>
 
+using fc::vm::exit_code::ErrorCode;
 using fc::vm::exit_code::ExitCode;
 using fc::vm::exit_code::RuntimeError;
-using fc::vm::exit_code::SystemError;
 using fc::vm::exit_code::UserDefinedError;
 
 /**
@@ -18,7 +18,7 @@ using fc::vm::exit_code::UserDefinedError;
  * @then true returned
  */
 TEST(ExitCodeTest, SuccessExitCode) {
-  ExitCode success1;
+  ExitCode success1(ErrorCode::kSuccess);
   ExitCode success2 = ExitCode::makeOkExitCode();
 
   ASSERT_TRUE(success1 == success2);
@@ -34,26 +34,9 @@ TEST(ExitCodeTest, SuccessExitCode) {
  * @then true returned
  */
 TEST(ExitCodeTest, SystemErrorExitCode) {
-  ExitCode system_error1(SystemError::kActorCodeNotFound);
+  ExitCode system_error1(ErrorCode::kActorCodeNotFound);
   ExitCode system_error2 =
-      ExitCode::makeSystemErrorExitCode(SystemError::kActorCodeNotFound);
-
-  ASSERT_TRUE(system_error1 == system_error2);
-
-  ASSERT_FALSE(system_error1.isSuccess());
-  ASSERT_TRUE(system_error1.isError());
-  ASSERT_FALSE(system_error1.allowsStateUpdate());
-}
-
-/**
- * @given User defined error exit codes
- * @when isError() called
- * @then true returned
- */
-TEST(ExitCodeTest, UserDefinedErrorExitCode) {
-  ExitCode system_error1(UserDefinedError::kInvalidArgumentsUser);
-  ExitCode system_error2 = ExitCode::makeUserDefinedErrorExitCode(
-      UserDefinedError::kInvalidArgumentsUser);
+      ExitCode::makeErrorExitCode(ErrorCode::kActorCodeNotFound);
 
   ASSERT_TRUE(system_error1 == system_error2);
 
@@ -68,13 +51,11 @@ TEST(ExitCodeTest, UserDefinedErrorExitCode) {
  * @then exit_code returned itself
  */
 TEST(ExitCodeTest, ErrorCodeEnsureErrorCode) {
-  ExitCode system_error = ExitCode(SystemError::kActorNotFound);
-  ExitCode runtime_api_error = ExitCode(SystemError::kRuntimeAPIError);
-  ExitCode user_error = ExitCode(UserDefinedError::kPoStVerificationFailed);
+  ExitCode system_error = ExitCode(ErrorCode::kActorNotFound);
+  ExitCode runtime_api_error = ExitCode(ErrorCode::kRuntimeAPIError);
 
   ASSERT_EQ(system_error, ExitCode::ensureErrorCode(system_error));
   ASSERT_EQ(runtime_api_error, ExitCode::ensureErrorCode(runtime_api_error));
-  ASSERT_EQ(user_error, ExitCode::ensureErrorCode(user_error));
 }
 
 /**
@@ -83,8 +64,8 @@ TEST(ExitCodeTest, ErrorCodeEnsureErrorCode) {
  * @then ExitCode with system error kRuntimeAPIError returned
  */
 TEST(ExitCodeTest, SuccessEnsureErrorCode) {
-  ExitCode success;
-  ExitCode runtime_api_error = ExitCode(SystemError::kRuntimeAPIError);
+  ExitCode success(ErrorCode::kSuccess);
+  ExitCode runtime_api_error = ExitCode(ErrorCode::kRuntimeAPIError);
 
   ASSERT_EQ(runtime_api_error, ExitCode::ensureErrorCode(success));
 }
@@ -119,19 +100,11 @@ INSTANTIATE_TEST_CASE_P(
     ExitCodeToStringTest,
     ExitCodeToStringTest,
     ::testing::Values(
-        std::make_pair("Success", ExitCode()),
+        std::make_pair("Success", ExitCode(ErrorCode::kSuccess)),
         std::make_pair("Success", ExitCode::makeOkExitCode()),
-        std::make_pair("SystemError 2",
-                       ExitCode(SystemError::kActorCodeNotFound)),
+        std::make_pair("ErrorCode 2", ExitCode(ErrorCode::kActorCodeNotFound)),
         std::make_pair(
-            "SystemError 2",
-            ExitCode::makeSystemErrorExitCode(SystemError::kActorCodeNotFound)),
-        std::make_pair("SystemError 5",
-                       ExitCode(SystemError::kInsufficientFundsSystem)),
-        std::make_pair("UserDefinedError 1",
-                       ExitCode(UserDefinedError::kInsufficientFundsUser)),
-        std::make_pair("UserDefinedError 3",
-                       ExitCode(UserDefinedError::kInconsistentStateUser)),
-        std::make_pair("UserDefinedError 3",
-                       ExitCode::makeUserDefinedErrorExitCode(
-                           UserDefinedError::kInconsistentStateUser))));
+            "ErrorCode 2",
+            ExitCode::makeErrorExitCode(ErrorCode::kActorCodeNotFound)),
+        std::make_pair("ErrorCode 5",
+                       ExitCode(ErrorCode::kInsufficientFundsSystem))));

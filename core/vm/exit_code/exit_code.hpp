@@ -6,30 +6,24 @@
 #ifndef CPP_FILECOIN_CORE_VM_EXITCODE_EXITCODE_HPP
 #define CPP_FILECOIN_CORE_VM_EXITCODE_EXITCODE_HPP
 
-#include "boost/variant.hpp"
+#include <string>
 
 namespace fc::vm::exit_code {
 
   /**
-   * @brief Successful exit code
-   */
-  struct Success {
-    /**
-     * to be EqualityComparable, always return true
-     * @param other - other Success object
-     * @return true
-     */
-    bool operator==(const Success &other) const;
-  };
-
-  /**
    * @brief System error codes
    */
-  enum class SystemError {
+  enum class ErrorCode {
+
+    /**
+     * Successful exit code
+     */
+    kSuccess = 0,
+
     /**
      * Represents a failure to find an actor
      */
-    kActorNotFound = 1,
+    kActorNotFound,
 
     /**
      * Represents a failure to find the code for a particular actor in the VM
@@ -104,30 +98,11 @@ namespace fc::vm::exit_code {
    */
   class ExitCode {
    public:
-    using TValue = boost::variant<Success, SystemError, UserDefinedError>;
-
     /**
-     * @brief Create successful exit code
-     */
-    ExitCode();
-
-    /**
-     * @brief Create system error exit code
+     * @brief Create exit code
      * @param exit_code - code to set
      */
-    explicit ExitCode(SystemError error_code);
-
-    /**
-     * @brief Create user defined exit code
-     * @param exit_code - code to set
-     */
-    explicit ExitCode(UserDefinedError error_code);
-
-    /**
-     * @brief Create Exit code from variant
-     * @param exit_code - variant exit code
-     */
-    explicit ExitCode(TValue exit_code);
+    explicit ExitCode(ErrorCode error_code);
 
     /**
      * @brief Create successful exit code
@@ -136,16 +111,10 @@ namespace fc::vm::exit_code {
     static ExitCode makeOkExitCode();
 
     /**
-     * @brief Create system error exit code
+     * @brief Create error exit code
      * @param exit_code - code to set
      */
-    static ExitCode makeSystemErrorExitCode(SystemError error_code);
-
-    /**
-     * @brief Create Exit code from variant
-     * @param exit_code - variant exit code
-     */
-    static ExitCode makeUserDefinedErrorExitCode(UserDefinedError error_code);
+    static ExitCode makeErrorExitCode(ErrorCode error_code);
 
     /**
      * @brief ensure if exit code is error code
@@ -178,7 +147,7 @@ namespace fc::vm::exit_code {
     bool operator==(const ExitCode &other) const;
 
    private:
-    TValue exit_code_;
+    ErrorCode exit_code_;
   };
 
   /**
