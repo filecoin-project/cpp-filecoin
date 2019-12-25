@@ -6,8 +6,8 @@
 #ifndef CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_RANDOMNESS_HPP
 #define CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_RANDOMNESS_HPP
 
-#include "common/buffer.hpp"
 #include "common/blob.hpp"
+#include "common/buffer.hpp"
 
 namespace fc::crypto::randomness {
   /// @brief randomness value type
@@ -17,14 +17,14 @@ namespace fc::crypto::randomness {
   using Serialization = common::Buffer;
 
   /// @brief domain separation tag enum
-  enum class DomainSeparationTag: size_t {
-      TicketDrawingDST = 1,
-      TicketProductionDST = 2,
-      PoStDST = 3
+  enum class DomainSeparationTag : size_t {
+    TicketDrawingDST = 1,
+    TicketProductionDST = 2,
+    PoStDST = 3
   };
 
-  /// @brief epoch index type
-  using EpochIndex = size_t;
-}
+  /// @brief epoch index type represents a round of a blockchain protocol
+  using ChainEpoch = size_t;
+}  // namespace fc::crypto::randomness
 
-#endif //CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_RANDOMNESS_HPP
+#endif  // CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_RANDOMNESS_HPP

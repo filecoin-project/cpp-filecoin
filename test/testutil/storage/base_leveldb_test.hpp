@@ -15,7 +15,7 @@ namespace test {
   struct BaseLevelDB_Test : public BaseFS_Test {
     using LevelDB = fc::storage::LevelDB;
 
-    BaseLevelDB_Test(fs::path path);
+    explicit BaseLevelDB_Test(const fs::path &path);
 
     void open();
 

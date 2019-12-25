@@ -7,6 +7,9 @@
 
 namespace test {
 
+  BaseLevelDB_Test::BaseLevelDB_Test(const fs::path &path)
+      : BaseFS_Test(path) {}
+
   void BaseLevelDB_Test::open() {
     leveldb::Options options;
     options.create_if_missing = true;
@@ -19,9 +22,6 @@ namespace test {
     db_ = std::move(r.value());
     ASSERT_TRUE(db_) << "BaseLevelDB_Test: db is nullptr";
   }
-
-  BaseLevelDB_Test::BaseLevelDB_Test(fs::path path)
-      : BaseFS_Test(std::move(path)) {}
 
   void BaseLevelDB_Test::SetUp() {
     open();
