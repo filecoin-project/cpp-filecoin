@@ -65,6 +65,8 @@ namespace fc::primitives::address {
      */
     bool isKeyType() const;
 
+    static Address makeFromId(uint64_t id);
+
     Network network;
     Payload data;
   };
