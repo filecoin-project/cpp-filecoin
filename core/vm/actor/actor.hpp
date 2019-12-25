@@ -8,10 +8,12 @@
 
 #include <libp2p/multi/content_identifier_codec.hpp>
 
+#include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 
 namespace fc::vm::actor {
   using libp2p::multi::ContentIdentifier;
+  using primitives::address::Address;
   using primitives::BigInt;
 
   /** Common actor state interface */
@@ -48,6 +50,8 @@ namespace fc::vm::actor {
   extern const ContentIdentifier kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
       kStorageMarketCodeCid, kStorageMinerCodeCid, kMultisigCodeCid,
       kInitCodeCid, kPaymentChannelCodeCid;
+
+  inline static const auto kInitAddress = Address::makeFromId(0);
 }  // namespace fc::vm::actor
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
