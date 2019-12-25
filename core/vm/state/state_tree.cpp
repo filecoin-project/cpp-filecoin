@@ -13,10 +13,10 @@ namespace fc::vm::state {
   using codec::cbor::decode;
   using primitives::address::encodeToString;
 
-  StateTree::StateTree(std::shared_ptr<IpfsDatastore> store)
+  StateTree::StateTree(const std::shared_ptr<IpfsDatastore> &store)
       : store_(store), hamt_(store), snapshot_(store) {}
 
-  StateTree::StateTree(std::shared_ptr<IpfsDatastore> store,
+  StateTree::StateTree(const std::shared_ptr<IpfsDatastore> &store,
                        const ContentIdentifier &root)
       : store_(store), hamt_(store, root), snapshot_(store, root) {}
 
@@ -36,15 +36,18 @@ namespace fc::vm::state {
       return address;
     }
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
-    OUTCOME_TRY(init_actor_state, store_->getCbor<actor::InitActorState>(init_actor.head));
+    OUTCOME_TRY(init_actor_state,
+                store_->getCbor<actor::InitActorState>(init_actor.head));
     Hamt address_map(store_, init_actor_state.address_map);
     OUTCOME_TRY(id, address_map.getCbor<uint64_t>(encodeToString(address)));
     return Address::makeFromId(id);
   }
 
-  outcome::result<Address> StateTree::registerNewAddress(const Address &address, const Actor &actor) {
+  outcome::result<Address> StateTree::registerNewAddress(const Address &address,
+                                                         const Actor &actor) {
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
-    OUTCOME_TRY(init_actor_state, store_->getCbor<actor::InitActorState>(init_actor.head));
+    OUTCOME_TRY(init_actor_state,
+                store_->getCbor<actor::InitActorState>(init_actor.head));
     OUTCOME_TRY(address_id, init_actor_state.addActor(store_, address));
     OUTCOME_TRY(init_actor_state_cid, store_->setCbor(init_actor_state));
     init_actor.head = init_actor_state_cid;

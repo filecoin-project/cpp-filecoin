@@ -101,7 +101,7 @@ namespace fc::storage::hamt {
     using Visitor = std::function<outcome::result<void>(const std::string &,
                                                         const Value &)>;
 
-    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store);
+    explicit Hamt(std::shared_ptr<ipfs::IpfsDatastore> store);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
     /** Set value by key, does not write to storage */
@@ -136,7 +136,7 @@ namespace fc::storage::hamt {
     outcome::result<void> remove(Node &node,
                                  gsl::span<const size_t> indices,
                                  const std::string &key);
-    outcome::result<void> cleanShard(Node::Item &item);
+    static outcome::result<void> cleanShard(Node::Item &item);
     outcome::result<void> flush(Node::Item &item);
     outcome::result<void> loadItem(Node::Item &item);
     outcome::result<void> visit(Node::Item &item, const Visitor &visitor);

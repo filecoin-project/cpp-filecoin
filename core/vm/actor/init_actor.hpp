@@ -22,7 +22,7 @@ namespace fc::vm::actor {
 
     ContentIdentifier address_map{
         {}, {}, libp2p::multi::Multihash::create({}, {}).value()};
-    uint64_t next_id;
+    uint64_t next_id{};
   };
 
   template <class Stream,

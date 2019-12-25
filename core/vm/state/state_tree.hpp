@@ -19,8 +19,8 @@ namespace fc::vm::state {
   /** State tree */
   class StateTree {
    public:
-    StateTree(std::shared_ptr<IpfsDatastore> store);
-    StateTree(std::shared_ptr<IpfsDatastore> store,
+    explicit StateTree(const std::shared_ptr<IpfsDatastore> &store);
+    StateTree(const std::shared_ptr<IpfsDatastore> &store,
               const ContentIdentifier &root);
     /** Set actor state, does not write to storage */
     outcome::result<void> set(const Address &address, const Actor &actor);
