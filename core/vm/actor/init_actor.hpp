@@ -8,9 +8,17 @@
 
 #include <libp2p/multi/content_identifier.hpp>
 
+#include "storage/ipfs/datastore.hpp"
+#include "vm/actor/actor.hpp"
+
 namespace fc::vm::actor {
+  using storage::ipfs::IpfsDatastore;
+
   /** Init actor state */
   struct InitActorState {
+    outcome::result<Address> addActor(std::shared_ptr<IpfsDatastore> store,
+                                      const Address &address);
+
     ContentIdentifier address_map{
         {}, {}, libp2p::multi::Multihash::create({}, {}).value()};
     uint64_t next_id;
