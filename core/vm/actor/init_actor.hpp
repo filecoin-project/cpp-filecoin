@@ -16,6 +16,7 @@ namespace fc::vm::actor {
 
   /** Init actor state */
   struct InitActorState {
+    /** Allocate new id address */
     outcome::result<Address> addActor(std::shared_ptr<IpfsDatastore> store,
                                       const Address &address);
 
