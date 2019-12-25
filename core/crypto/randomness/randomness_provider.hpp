@@ -34,7 +34,7 @@ namespace fc::crypto::randomness {
      */
     virtual Randomness deriveRandomness(DomainSeparationTag tag,
                                         Serialization s,
-                                        EpochIndex index) = 0;
+                                        ChainEpoch index) = 0;
   };
 }  // namespace fc::crypto::randomness
 

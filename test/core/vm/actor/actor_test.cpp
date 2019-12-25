@@ -8,7 +8,6 @@
 #include "codec/cbor/cbor.hpp"
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 
 using libp2p::multi::ContentIdentifier;
 
