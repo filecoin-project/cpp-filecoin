@@ -7,7 +7,7 @@ add_library(state_tree
     state_tree.cpp
     )
 target_link_libraries(state_tree
-    address
+    actor
     Boost::boost
     hamt
     )
