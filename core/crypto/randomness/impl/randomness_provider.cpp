@@ -17,15 +17,15 @@ namespace fc::crypto::randomness {
 
   Randomness RandomnessProviderImpl::deriveRandomness(DomainSeparationTag tag,
                                                       Serialization s,
-                                                      EpochIndex index) {
+                                                      ChainEpoch index) {
     return deriveRandomnessInternal(tag, std::move(s), static_cast<size_t>(-1));
   }
 
   Randomness RandomnessProviderImpl::deriveRandomnessInternal(
-      DomainSeparationTag tag, Serialization s, EpochIndex index) {
+      DomainSeparationTag tag, Serialization s, ChainEpoch index) {
     common::Buffer value{};
     const size_t bytes_required =
-        sizeof(DomainSeparationTag) + sizeof(EpochIndex) + s.size();
+        sizeof(DomainSeparationTag) + sizeof(ChainEpoch) + s.size();
     value.reserve(bytes_required);
     common::encodeInteger(static_cast<size_t>(tag), value);
     common::encodeInteger(static_cast<size_t>(index), value);
