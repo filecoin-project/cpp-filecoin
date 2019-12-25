@@ -29,14 +29,14 @@ struct RandomnessProviderTest
     : public RandomnessProviderBaseTest,
       public ::testing::TestWithParam<std::tuple<DomainSeparationTag,
                                                  Serialization,
-                                                 EpochIndex,
+                                                 ChainEpoch,
                                                  Randomness>> {
   template <class T, class S, class I, class R>
-  static std::tuple<DomainSeparationTag, Serialization, EpochIndex, Randomness>
+  static std::tuple<DomainSeparationTag, Serialization, ChainEpoch, Randomness>
   makeParams(T tag, S s, I index, R res) {
     return std::make_tuple(static_cast<DomainSeparationTag>(std::move(tag)),
                            static_cast<Serialization>(std::move(s)),
-                           static_cast<EpochIndex>(std::move(index)),
+                           static_cast<ChainEpoch>(std::move(index)),
                            static_cast<Randomness>(std::move(res)));
   }
 };
@@ -103,7 +103,7 @@ struct RandomnessProviderValuesTest : public RandomnessProviderBaseTest,
   Randomness generateRandomnessValue() {
     auto tag = static_cast<DomainSeparationTag>(getRandomByte() % 3 + 1);
     Serialization s{random_generator->randomBytes(buffer_size)};
-    EpochIndex index = getRandomByte() % 100;
+    ChainEpoch index = getRandomByte() % 100;
 
     return randomness_provider->deriveRandomness(tag, s, index);
   }
