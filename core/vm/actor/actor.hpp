@@ -24,6 +24,8 @@ namespace fc::vm::actor {
     BigInt balance;
   };
 
+  bool operator==(const Actor &lhs, const Actor &rhs);
+
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
