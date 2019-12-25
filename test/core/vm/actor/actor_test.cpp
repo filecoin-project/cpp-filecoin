@@ -8,6 +8,7 @@
 #include "codec/cbor/cbor.hpp"
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
+#include "testutil/outcome.hpp"
 
 using libp2p::multi::ContentIdentifier;
 
@@ -36,10 +37,9 @@ TEST(ActorTest, CidGoCompatibility) {
 /** Actor CBOR encoding and decoding */
 TEST(ActorTest, ActorGoCompatibility) {
   auto go = "84d82a52000155000d66696c2f312f6163636f756e74d82a4f000155000a66696c2f312f63726f6e03420005"_unhex;
-  fc::vm::actor::Actor actor{fc::vm::actor::kEmptyObjectCid, fc::vm::actor::kEmptyObjectCid, 0, 0};
 
-  fc::codec::cbor::CborDecodeStream(go) >> actor;
-  EXPECT_EQ((fc::codec::cbor::CborEncodeStream() << actor).data(), go);
+  EXPECT_OUTCOME_TRUE(actor, fc::codec::cbor::decode<fc::vm::actor::Actor>(go));
+  EXPECT_OUTCOME_EQ(fc::codec::cbor::encode(actor), go);
 
   EXPECT_EQ(actor.code, fc::vm::actor::kAccountCodeCid);
   EXPECT_EQ(actor.head, fc::vm::actor::kCronCodeCid);

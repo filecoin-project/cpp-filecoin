@@ -11,25 +11,27 @@
 #include "primitives/big_int.hpp"
 
 namespace fc::vm::actor {
-  using primitives::BigInt;
   using libp2p::multi::ContentIdentifier;
+  using primitives::BigInt;
 
   /** Common actor state interface */
   struct Actor {
-    ContentIdentifier code;
-    ContentIdentifier head;
+    ContentIdentifier code{{}, {}, libp2p::multi::Multihash::create({}, {}).value()};
+    ContentIdentifier head{{}, {}, libp2p::multi::Multihash::create({}, {}).value()};
     uint64_t nonce{};
     BigInt balance;
   };
 
   template <class Stream,
-            typename = std::enable_if_t<Stream::is_cbor_encoder_stream>>
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const Actor &actor) {
     return s << (s.list() << actor.code << actor.head << actor.nonce << actor.balance);
   }
 
   template <class Stream,
-            typename = std::enable_if_t<Stream::is_cbor_decoder_stream>>
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, Actor &actor) {
     s.list() >> actor.code >> actor.head >> actor.nonce >> actor.balance;
     return s;
