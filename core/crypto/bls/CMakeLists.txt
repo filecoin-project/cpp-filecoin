@@ -4,7 +4,7 @@
 #
 
 add_library(bls_provider
-    bls_provider_impl.cpp
+    impl/bls_provider_impl.cpp
     )
 
 target_link_libraries(bls_provider

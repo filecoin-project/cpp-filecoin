@@ -8,8 +8,8 @@
 #include <utility>
 
 #include "boost/filesystem.hpp"
-#include "crypto/bls_provider/impl/bls_provider_impl.hpp"
-#include "libp2p/crypto/secp256k1_provider/secp256k1_provider_impl.hpp"
+#include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "primitives/address/impl/address_verifier_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/keystore/impl/filesystem/filesystem_keystore.hpp"

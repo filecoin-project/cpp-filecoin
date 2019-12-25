@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/address.hpp"
+#include "primitives/address/address.hpp"
 
 #include "common/visitor.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives, AddressError, e) {
-  using fc::primitives::AddressError;
+OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::address, AddressError, e) {
+  using fc::primitives::address::AddressError;
   switch (e) {
     case (AddressError::UNKNOWN_PROTOCOL):
       return "Failed to create address: unknown address protocol";
@@ -23,7 +23,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives, AddressError, e) {
   };
 }
 
-namespace fc::primitives {
+namespace fc::primitives::address {
 
   bool Address::isKeyType() const {
     return visit_in_place(
@@ -56,4 +56,4 @@ namespace fc::primitives {
                        && lhs.data < rhs.data)));
   }
 
-};  // namespace fc::primitives
+};  // namespace fc::primitives::address

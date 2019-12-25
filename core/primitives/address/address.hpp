@@ -6,12 +6,12 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_HPP
 
-#include <boost/variant.hpp>
 #include <cstdint>
 
+#include <boost/variant.hpp>
 #include "common/blob.hpp"
 
-namespace fc::primitives {
+namespace fc::primitives::address {
 
   /**
    * @brief Potential errors creating and handling Filecoin addresses
@@ -79,11 +79,11 @@ namespace fc::primitives {
    */
   bool operator<(const Address &lhs, const Address &rhs);
 
-};  // namespace fc::primitives
+};  // namespace fc::primitives::address
 
 /**
  * @brief Outcome errors declaration
  */
-OUTCOME_HPP_DECLARE_ERROR(fc::primitives, AddressError);
+OUTCOME_HPP_DECLARE_ERROR(fc::primitives::address, AddressError);
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_HPP

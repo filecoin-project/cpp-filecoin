@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "in_memory_keystore.hpp"
+#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 
 #include <boost/foreach.hpp>
 
-using fc::primitives::Address;
+using fc::primitives::address::Address;
 using fc::storage::keystore::InMemoryKeyStore;
 using fc::storage::keystore::KeyStore;
 using fc::storage::keystore::KeyStoreError;
