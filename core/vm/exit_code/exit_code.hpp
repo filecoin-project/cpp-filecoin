@@ -20,6 +20,8 @@ namespace fc::vm::exit_code {
      */
     kSuccess = 0,
 
+    // System error codes
+
     /**
      * Represents a failure to find an actor
      */
@@ -75,14 +77,11 @@ namespace fc::vm::exit_code {
      * Returned when an actor method's Send call has returned with a failure
      * error code (and the Send call did not specify to ignore errors)
      */
-    kMethodSubcallError
-  };
+    kMethodSubcallError,
 
-  /**
-   * @brief User defined error codes
-   */
-  enum class UserDefinedError {
-    kInsufficientFundsUser = 1,
+    // User defined error codes
+
+    kInsufficientFundsUser,
     kInvalidArgumentsUser,
     kInconsistentStateUser,
 
@@ -90,7 +89,7 @@ namespace fc::vm::exit_code {
     kSealVerificationFailed,
     kPoStVerificationFailed,
     kDeadlineExceeded,
-    kInsufficientPledgeCollateral
+    kInsufficientPledgeCollateral,
   };
 
   /**

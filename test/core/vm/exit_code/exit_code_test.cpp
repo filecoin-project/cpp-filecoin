@@ -10,7 +10,6 @@
 using fc::vm::exit_code::ErrorCode;
 using fc::vm::exit_code::ExitCode;
 using fc::vm::exit_code::RuntimeError;
-using fc::vm::exit_code::UserDefinedError;
 
 /**
  * @given success exit codes
