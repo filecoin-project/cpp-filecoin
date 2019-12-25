@@ -1,0 +1,182 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef CPP_FILECOIN_CORE_VM_EXITCODE_EXITCODE_HPP
+#define CPP_FILECOIN_CORE_VM_EXITCODE_EXITCODE_HPP
+
+#include "boost/variant.hpp"
+
+namespace fc::vm::exit_code {
+
+  /**
+   * @brief Successful exit code
+   */
+  struct Success {
+    /**
+     * to be EqualityComparable, always return true
+     * @param other - other Success object
+     * @return true
+     */
+    bool operator==(const Success &other) const;
+  };
+
+  /**
+   * @brief System error codes
+   */
+  enum class SystemError {
+    // Represents a failure to find an actor.
+    kActorNotFound = 1,
+
+    // Represents a failure to find the code for a particular actor in the VM
+    // registry.
+    kActorCodeNotFound,
+
+    // Represents a failure to find a method in an actor
+    kInvalidMethod,
+
+    // Indicates that a method was called with the incorrect number of
+    // arguments, or that its arguments did not satisfy its preconditions
+    kInvalidArgumentsSystem,
+
+    // Represents a failure to apply a message, as it did not carry sufficient
+    // funds for its application
+    kInsufficientFundsSystem,
+
+    // Represents a message invocation out of sequence. This happens when
+    // message.CallSeqNum is not exactly actor.CallSeqNum + 1
+    kInvalidCallSeqNum,
+
+    // Returned when the execution of an actor method (including its subcalls)
+    // uses more gas than initially allocated.
+    kOutOfGas,
+
+    // Returned when an actor method invocation makes a call to the runtime that
+    // does not satisfy its preconditions.
+    kRuntimeAPIError,
+
+    // Returned when an actor method invocation calls rt.Assert with a false
+    // condition.
+    kRuntimeAssertFailure,
+
+    // Returned when an actor method's Send call has returned with a failure
+    // error code (and the Send call did not specify to ignore errors).
+    kMethodSubcallError
+  };
+
+  /**
+   * @brief User defined error codes
+   */
+  enum class UserDefinedError {
+    kInsufficientFundsUser = 1,
+    kInvalidArgumentsUser,
+    kInconsistentStateUser,
+
+    kInvalidSectorPacking,
+    kSealVerificationFailed,
+    kPoStVerificationFailed,
+    kDeadlineExceeded,
+    kInsufficientPledgeCollateral,
+  };
+
+  /**
+   * @brief Virtual machine exit code
+   */
+  class ExitCode {
+   public:
+    using TValue = boost::variant<Success, SystemError, UserDefinedError>;
+
+    /**
+     * @brief Create successful exit code
+     */
+    ExitCode();
+
+    /**
+     * @brief Create system error exit code
+     * @param exit_code - code to set
+     */
+    explicit ExitCode(SystemError error_code);
+
+    /**
+     * @brief Create user defined exit code
+     * @param exit_code - code to set
+     */
+    explicit ExitCode(UserDefinedError error_code);
+
+    /**
+     * @brief Create Exit code from variant
+     * @param exit_code - variant exit code
+     */
+    explicit ExitCode(TValue exit_code);
+
+    /**
+     * @brief Create successful exit code
+     * @return Successful exit code
+     */
+    static ExitCode makeOkExitCode();
+
+    /**
+     * @brief Create system error exit code
+     * @param exit_code - code to set
+     */
+    static ExitCode makeSystemErrorExitCode(SystemError error_code);
+
+    /**
+     * @brief Create Exit code from variant
+     * @param exit_code - variant exit code
+     */
+    static ExitCode makeUserDefinedErrorExitCode(UserDefinedError error_code);
+
+    /**
+     * @brief ensure if exit code is error code
+     * @param exit_code - to check
+     * @return exit_code if error code is present or ExitCode with
+     * SystemError::kRuntimeAPIError set otherwise
+     */
+    static ExitCode ensureErrorCode(const ExitCode &exit_code);
+
+    /**
+     * @brief Check if exit code is Success
+     * @return true if no error
+     */
+    bool isSuccess() const;
+
+    /**
+     * @brief Check if exit code is System or User defined error
+     * @return true if error
+     */
+    bool isError() const;
+
+    /**
+     * @brief Check if state update is allowed
+     * @return true if is successful
+     */
+    bool allowsStateUpdate() const;
+
+    std::string toString() const;
+
+    bool operator==(const ExitCode &other) const;
+
+   private:
+    TValue exit_code_;
+  };
+
+  /**
+   * @brief Runtime error with text message
+   */
+  class RuntimeError {
+   public:
+    RuntimeError(ExitCode exit_code, std::string error_message);
+    explicit RuntimeError(ExitCode exit_code);
+
+    std::string toString() const;
+
+   private:
+    ExitCode exit_code_;
+    std::string error_message_;
+  };
+
+}  // namespace fc::vm::exit_code
+
+#endif  // CPP_FILECOIN_CORE_VM_EXITCODE_EXITCODE_HPP
