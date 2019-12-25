@@ -21,3 +21,10 @@ target_link_libraries(filesystem_repository
     outcome
     repository
     )
+
+add_library(in_memory_repository
+    impl/in_memory_repository.cpp
+    )
+target_link_libraries(in_memory_repository
+    repository
+    )

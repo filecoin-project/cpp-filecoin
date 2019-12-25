@@ -5,6 +5,8 @@
 
 #include "vm/exit_code/exit_code.hpp"
 
+#include <sstream>
+
 #include "common/enum.hpp"
 #include "common/visitor.hpp"
 
