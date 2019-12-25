@@ -18,7 +18,7 @@ namespace fc::vm::actor {
   struct Actor {
     ContentIdentifier code;
     ContentIdentifier head;
-    uint64_t nonce;
+    uint64_t nonce{};
     BigInt balance;
   };
 
