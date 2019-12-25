@@ -10,7 +10,7 @@
 #include "common/enum.hpp"
 #include "common/visitor.hpp"
 
-using fc::common::as_integer;
+using fc::common::to_int;
 using fc::vm::exit_code::ExitCode;
 using fc::vm::exit_code::RuntimeError;
 using fc::vm::exit_code::Success;
@@ -69,11 +69,9 @@ std::string ExitCode::toString() const {
   return visit_in_place(
       exit_code_,
       [](Success) { return "Success"; },
-      [](SystemError e) {
-        return "SystemError " + std::to_string(as_integer(e));
-      },
+      [](SystemError e) { return "SystemError " + std::to_string(to_int(e)); },
       [](UserDefinedError e) {
-        return "UserDefinedError " + std::to_string(as_integer(e));
+        return "UserDefinedError " + std::to_string(to_int(e));
       });
 }
 

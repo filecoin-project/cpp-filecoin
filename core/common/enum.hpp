@@ -21,7 +21,7 @@ namespace fc::common {
    *   @nocode
    *   Can be converted as:
    *   @code
-   *   int v = as_integer(Enumerator::eleven); // v == 11
+   *   int v = to_int(Enumerator::eleven); // v == 11
    *   @nocode
    *
    * @tparam Enumeration - enum type
@@ -29,7 +29,7 @@ namespace fc::common {
    * @return integer value of enum
    */
   template <typename Enumeration>
-  auto as_integer(Enumeration const value) ->
+  auto to_int(Enumeration const value) ->
       typename std::underlying_type<Enumeration>::type {
     return static_cast<typename std::underlying_type<Enumeration>::type>(value);
   }

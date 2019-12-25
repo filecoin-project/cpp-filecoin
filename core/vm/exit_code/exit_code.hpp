@@ -26,42 +26,61 @@ namespace fc::vm::exit_code {
    * @brief System error codes
    */
   enum class SystemError {
-    // Represents a failure to find an actor.
+    /**
+     * Represents a failure to find an actor
+     */
     kActorNotFound = 1,
 
-    // Represents a failure to find the code for a particular actor in the VM
-    // registry.
+    /**
+     * Represents a failure to find the code for a particular actor in the VM
+     * registry.
+     */
     kActorCodeNotFound,
 
-    // Represents a failure to find a method in an actor
+    /**
+     * Represents a failure to find a method in an actor
+     */
     kInvalidMethod,
 
-    // Indicates that a method was called with the incorrect number of
-    // arguments, or that its arguments did not satisfy its preconditions
+    /**
+     * Indicates that a method was called with the incorrect number of
+     * arguments, or that its arguments did not satisfy its preconditions
+     */
     kInvalidArgumentsSystem,
 
-    // Represents a failure to apply a message, as it did not carry sufficient
-    // funds for its application
+    /**
+     * Represents a failure to apply a message, as it did not carry sufficient
+     */
     kInsufficientFundsSystem,
 
-    // Represents a message invocation out of sequence. This happens when
-    // message.CallSeqNum is not exactly actor.CallSeqNum + 1
+    /**
+     * Represents a message invocation out of sequence. This happens when
+     * message.CallSeqNum is not exactly actor.CallSeqNum + 1
+     */
     kInvalidCallSeqNum,
 
-    // Returned when the execution of an actor method (including its subcalls)
-    // uses more gas than initially allocated.
+    /**
+     * Returned when the execution of an actor method (including its subcalls)
+     * uses more gas than initially allocated
+     */
     kOutOfGas,
 
-    // Returned when an actor method invocation makes a call to the runtime that
-    // does not satisfy its preconditions.
+    /**
+     * Returned when an actor method invocation makes a call to the runtime that
+     * does not satisfy its preconditions
+     */
     kRuntimeAPIError,
 
-    // Returned when an actor method invocation calls rt.Assert with a false
-    // condition.
+    /**
+     * Returned when an actor method invocation calls rt.Assert with a false
+     * condition
+     */
     kRuntimeAssertFailure,
 
-    // Returned when an actor method's Send call has returned with a failure
-    // error code (and the Send call did not specify to ignore errors).
+    /**
+     * Returned when an actor method's Send call has returned with a failure
+     * error code (and the Send call did not specify to ignore errors)
+     */
     kMethodSubcallError
   };
 
@@ -77,7 +96,7 @@ namespace fc::vm::exit_code {
     kSealVerificationFailed,
     kPoStVerificationFailed,
     kDeadlineExceeded,
-    kInsufficientPledgeCollateral,
+    kInsufficientPledgeCollateral
   };
 
   /**
