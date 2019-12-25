@@ -8,7 +8,9 @@ add_library(ipfs_datastore_in_memory
     )
 target_link_libraries(ipfs_datastore_in_memory
     p2p::p2p_cid
+    blake2
     buffer
+    cbor
     )
 
 add_library(ipfs_datastore_leveldb
@@ -17,6 +19,8 @@ add_library(ipfs_datastore_leveldb
     )
 target_link_libraries(ipfs_datastore_leveldb
     p2p::p2p_cid
+    blake2
     buffer
+    cbor
     leveldb
     )

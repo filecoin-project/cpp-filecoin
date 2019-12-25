@@ -7,7 +7,6 @@ add_library(hamt
     hamt.cpp
     )
 target_link_libraries(hamt
-    blake2
     blob
     murmur
     outcome

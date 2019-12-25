@@ -9,9 +9,11 @@
 #include <libp2p/multi/content_identifier.hpp>
 #include <vector>
 
+#include "codec/cbor/cbor.hpp"
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
+#include "crypto/blake2/blake2b160.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
 
 namespace fc::storage::ipfs {
@@ -51,8 +53,35 @@ namespace fc::storage::ipfs {
      * @return success if removed or didn't exist, error otherwise
      */
     virtual outcome::result<void> remove(const CID &key) = 0;
-  };
 
+    inline static outcome::result<CID> cid(gsl::span<const uint8_t> bytes) {
+      OUTCOME_TRY(hash_raw, crypto::blake2b::blake2b_256(bytes));
+      OUTCOME_TRY(hash,
+                  libp2p::multi::Multihash::create(
+                      libp2p::multi::HashType::blake2b_256, hash_raw));
+      return CID(CID::Version::V1, libp2p::multi::MulticodecType::DAG_CBOR, hash);
+    }
+
+    template <typename T>
+    static outcome::result<CID> cidCbor(const T &value) {
+      OUTCOME_TRY(bytes, codec::cbor::encode(value));
+      return cid(bytes);
+    }
+
+    template <typename T>
+    outcome::result<CID> setCbor(const T &value) {
+      OUTCOME_TRY(bytes, codec::cbor::encode(value));
+      OUTCOME_TRY(cid, cid(bytes));
+      OUTCOME_TRY(set(cid, Value(bytes)));
+      return std::move(cid);
+    }
+
+    template <typename T>
+    outcome::result<T> getCbor(const CID &key) {
+      OUTCOME_TRY(bytes, get(key));
+      return codec::cbor::decode<T>(bytes);
+    }
+  };
 }  // namespace fc::storage::ipfs
 
 #endif  // CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_HPP

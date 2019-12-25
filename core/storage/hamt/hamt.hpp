@@ -11,6 +11,7 @@
 
 #include <boost/variant.hpp>
 
+#include "codec/cbor/cbor.hpp"
 #include "common/outcome_throw.hpp"
 #include "common/visitor.hpp"
 #include "primitives/big_int.hpp"
@@ -35,9 +36,6 @@ namespace fc::storage::hamt {
 
     UBigInt bits;
     std::vector<Item> items;
-
-    static outcome::result<CID> cid(gsl::span<const uint8_t> encoded);
-    outcome::result<CID> cid() const;
   };
 
   template <class Stream,
@@ -103,6 +101,7 @@ namespace fc::storage::hamt {
     using Visitor = std::function<outcome::result<void>(const std::string &,
                                                         const Value &)>;
 
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
     /** Set value by key, does not write to storage */
@@ -113,9 +112,21 @@ namespace fc::storage::hamt {
     /** Remove value by key, does not write to storage */
     outcome::result<void> remove(const std::string &key);
     /** Write changes made by set and remove to storage */
-    outcome::result<void> flush();
+    outcome::result<CID> flush();
     /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor);
+
+    template <typename T>
+    outcome::result<void> setCbor(const std::string &key, const T &value) {
+      OUTCOME_TRY(bytes, codec::cbor::encode(value));
+      return set(key, bytes);
+    }
+
+    template <typename T>
+    outcome::result<T> getCbor(const std::string &key) {
+      OUTCOME_TRY(bytes, get(key));
+      return codec::cbor::decode<T>(bytes);
+    }
 
    private:
     outcome::result<void> set(Node &node,

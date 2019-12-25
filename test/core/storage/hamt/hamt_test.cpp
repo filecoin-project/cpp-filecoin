@@ -28,7 +28,7 @@ void expectEncodeAndReencode(const T &value, const std::vector<uint8_t> &bytes) 
 }
 
 void expectCid(const Node &n, const std::vector<uint8_t> &expected) {
-  EXPECT_OUTCOME_TRUE(cid, n.cid());
+  EXPECT_OUTCOME_TRUE(cid, fc::storage::ipfs::IpfsDatastore::cidCbor(n));
   EXPECT_EQ(libp2p::multi::ContentIdentifierCodec::encode(cid).value(), expected);
 }
 
