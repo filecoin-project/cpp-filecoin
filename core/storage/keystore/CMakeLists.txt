@@ -12,5 +12,4 @@ target_link_libraries(keystore
     bls_provider
     filestore
     outcome
-    p2p::p2p_secp256k1_provider
     )

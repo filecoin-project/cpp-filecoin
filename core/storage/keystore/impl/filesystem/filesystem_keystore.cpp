@@ -5,12 +5,12 @@
 
 #include "filesystem_keystore.hpp"
 
-#include "primitives/address_codec.hpp"
+#include "primitives/address/address_codec.hpp"
 #include "storage/filestore/filestore_error.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_filestore.hpp"
 
-using fc::primitives::Address;
-using fc::primitives::Protocol;
+using fc::primitives::address::Address;
+using fc::primitives::address::Protocol;
 using fc::storage::filestore::FileStoreError;
 using fc::storage::filestore::FileSystemFileStore;
 using fc::storage::filestore::Path;
@@ -84,7 +84,7 @@ fc::outcome::result<std::vector<Address>> FileSystemKeyStore::list() const
     std::size_t from = file.find_last_of(filestore::DELIMITER) + 1;
     std::size_t to = file.rfind(this->kPrivateKeyExtension);
     OUTCOME_TRY(address,
-                fc::primitives::decodeFromString(file.substr(from, to - from)));
+                fc::primitives::address::decodeFromString(file.substr(from, to - from)));
     res.emplace_back(std::move(address));
   }
   return std::move(res);
@@ -122,7 +122,7 @@ fc::outcome::result<typename KeyStore::TPrivateKey> FileSystemKeyStore::get(
 fc::outcome::result<Path> FileSystemKeyStore::addressToPath(
     const Address &address) const noexcept {
   std::stringstream ss;
-  ss << fc::primitives::encodeToString(address);
+  ss << fc::primitives::address::encodeToString(address);
   Path res =
       keystore_path_ + filestore::DELIMITER + ss.str() + kPrivateKeyExtension;
 

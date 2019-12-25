@@ -9,7 +9,7 @@
 
 #include "common/visitor.hpp"
 
-using fc::primitives::Protocol;
+using fc::primitives::address::Protocol;
 using fc::storage::keystore::KeyStore;
 using fc::storage::keystore::KeyStoreError;
 

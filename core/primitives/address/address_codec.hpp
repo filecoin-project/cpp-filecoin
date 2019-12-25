@@ -10,9 +10,9 @@
 #include <vector>
 
 #include "common/outcome.hpp"
-#include "primitives/address.hpp"
+#include "address.hpp"
 
-namespace fc::primitives {
+namespace fc::primitives::address {
 
   /**
    * @brief Encodes an Address to an array of bytes

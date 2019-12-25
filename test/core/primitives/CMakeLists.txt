@@ -23,5 +23,4 @@ addtest(address_verifier_test
 target_link_libraries(address_verifier_test
     address
     bls_provider
-    p2p::p2p_secp256k1_provider
     )

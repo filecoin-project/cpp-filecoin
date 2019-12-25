@@ -6,7 +6,7 @@
 #ifndef CRYPTO_BLS_PROVIDER_IMPL_HPP
 #define CRYPTO_BLS_PROVIDER_IMPL_HPP
 
-#include "crypto/bls_provider/bls_provider.hpp"
+#include "crypto/bls/bls_provider.hpp"
 
 namespace fc::crypto::bls::impl {
   class BlsProviderImpl : public BlsProvider {

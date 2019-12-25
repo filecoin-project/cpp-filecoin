@@ -8,7 +8,7 @@
 
 #include <gsl/span>
 
-#include "crypto/bls_provider/bls_types.hpp"
+#include "crypto/bls/bls_types.hpp"
 
 namespace fc::crypto::bls {
   /**

@@ -9,7 +9,7 @@
 #include <array>
 
 extern "C" {
-#include "crypto/bls_provider/libbls_signatures.h"
+#include "crypto/bls/libbls_signatures.h"
 }
 
 #include "common/outcome.hpp"

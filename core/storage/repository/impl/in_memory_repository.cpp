@@ -5,8 +5,8 @@
 
 #include "storage/repository/impl/in_memory_repository.hpp"
 
-#include "crypto/bls_provider/impl/bls_provider_impl.hpp"
-#include "libp2p/crypto/secp256k1_provider/secp256k1_provider_impl.hpp"
+#include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "primitives/address/impl/address_verifier_impl.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
