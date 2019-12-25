@@ -3,5 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(actor)
-add_subdirectory(exit_code)
+add_library(exit_code
+    impl/exit_code.cpp
+    )
+target_link_libraries(exit_code
+    )
