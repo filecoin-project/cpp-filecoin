@@ -21,7 +21,7 @@ using fc::storage::repository::FileSystemRepository;
 using fc::storage::repository::Repository;
 using fc::storage::repository::RepositoryError;
 using BlsKeyPair = fc::crypto::bls::KeyPair;
-using fc::primitives::Network;
+using fc::primitives::address::Network;
 using libp2p::multi::ContentIdentifier;
 using libp2p::multi::HashType;
 using libp2p::multi::MulticodecType;

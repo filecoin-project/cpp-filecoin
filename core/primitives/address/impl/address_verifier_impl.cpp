@@ -5,11 +5,10 @@
 
 #include "primitives/address/impl/address_verifier_impl.hpp"
 
-#include <libp2p/crypto/secp256k1_types.hpp>
-
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/bls_provider/bls_types.hpp"
+#include "crypto/secp256k1_provider/secp256k1_provider.hpp"
 #include "primitives/address/address_verifier.hpp"
 
 namespace fc::primitives::address {
@@ -18,7 +17,7 @@ namespace fc::primitives::address {
   using fc::crypto::blake2b::blake2b_160;
 
   outcome::result<bool> AddressVerifierImpl::verifySyntax(
-      const primitives::Address &address,
+      const primitives::address::Address &address,
       gsl::span<const uint8_t> seed_data) noexcept {
     return visit_in_place(
         address.data,

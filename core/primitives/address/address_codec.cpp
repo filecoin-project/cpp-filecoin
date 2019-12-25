@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/address_codec.hpp"
+#include "address_codec.hpp"
 
 #include <cppcodec/base32_default_rfc4648.hpp>
 #include <libp2p/multi/uvarint.hpp>
@@ -14,7 +14,7 @@
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/bls_provider/bls_types.hpp"
 
-namespace fc::primitives {
+namespace fc::primitives::address {
 
   static const size_t kBlsPublicKeySize{
       std::tuple_size<fc::crypto::bls::PublicKey>::value};

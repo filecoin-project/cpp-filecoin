@@ -6,15 +6,14 @@
 #ifndef FILECOIN_CORE_STORAGE_KEYSTORE_HPP
 #define FILECOIN_CORE_STORAGE_KEYSTORE_HPP
 
-#include <boost/variant.hpp>
 #include <gsl/span>
-#include <libp2p/crypto/secp256k1_provider.hpp>
-#include <libp2p/crypto/secp256k1_types.hpp>
-#include <libp2p/outcome/outcome.hpp>
 
+#include <boost/variant.hpp>
+#include "common/outcome.hpp"
 #include "crypto/bls_provider/bls_provider.hpp"
 #include "crypto/bls_provider/bls_types.hpp"
-#include "primitives/address.hpp"
+#include "crypto/secp256k1_provider/secp256k1_provider.hpp"
+#include "primitives/address/address.hpp"
 #include "primitives/address/address_verifier.hpp"
 #include "storage/keystore/keystore_error.hpp"
 
@@ -22,7 +21,7 @@ namespace fc::storage::keystore {
 
   using crypto::bls::BlsProvider;
   using libp2p::crypto::secp256k1::Secp256k1Provider;
-  using primitives::Address;
+  using primitives::address::Address;
   using BlsKeyPair = fc::crypto::bls::KeyPair;
   using BlsPrivateKey = fc::crypto::bls::PrivateKey;
   using BlsSignature = fc::crypto::bls::Signature;

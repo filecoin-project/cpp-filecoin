@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/address.hpp"
+#include "primitives/address/address.hpp"
 
 #include <gtest/gtest.h>
 
-using fc::primitives::Address;
-using fc::primitives::Network;
-using fc::primitives::Protocol;
-using fc::primitives::Secp256k1PublicKeyHash;
+using fc::primitives::address::Address;
+using fc::primitives::address::Network;
+using fc::primitives::address::Protocol;
+using fc::primitives::address::Secp256k1PublicKeyHash;
 
 struct AddressTest : public testing::Test {
   Address addrID_0{Network::MAINNET, 3232104785};

@@ -3,4 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(impl)
+add_library(bls_provider
+    impl/bls_provider_impl.cpp
+    )
+
+target_link_libraries(bls_provider
+    bls_signatures_ffi
+    outcome
+    )

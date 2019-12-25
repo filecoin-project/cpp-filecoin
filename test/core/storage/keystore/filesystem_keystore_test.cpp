@@ -9,24 +9,23 @@
 
 #include <crypto/bls_provider/bls_provider.hpp>
 #include <libp2p/crypto/error.hpp>
-#include <libp2p/crypto/secp256k1_provider/secp256k1_provider_impl.hpp>
-#include <libp2p/crypto/secp256k1_types.hpp>
 
 #include "crypto/blake2/blake2b.h"
 #include "crypto/bls_provider/impl/bls_provider_impl.hpp"
+#include "crypto/secp256k1_provider/secp256k1_provider.hpp"
+#include "primitives/address/address_codec.hpp"
 #include "primitives/address/impl/address_builder_impl.hpp"
 #include "primitives/address/impl/address_verifier_impl.hpp"
-#include "primitives/address_codec.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
 using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::impl::BlsProviderImpl;
-using fc::primitives::Address;
-using fc::primitives::Network;
+using fc::primitives::address::Address;
 using fc::primitives::address::AddressBuilderImpl;
 using fc::primitives::address::AddressVerifier;
 using fc::primitives::address::AddressVerifierImpl;
+using fc::primitives::address::Network;
 using fc::storage::keystore::FileSystemKeyStore;
 using fc::storage::keystore::KeyStore;
 using fc::storage::keystore::KeyStoreError;
@@ -39,6 +38,8 @@ using BlsSignature = fc::crypto::bls::Signature;
 using Secp256k1Signature = libp2p::crypto::secp256k1::Signature;
 using BlsPublicKey = fc::crypto::bls::PublicKey;
 using Secp256k1PublicKey = libp2p::crypto::secp256k1::PublicKey;
+using fc::primitives::address::decode;
+using fc::primitives::address::encode;
 
 class FileSystemKeyStoreTest : public test::BaseFS_Test {
  public:
@@ -87,8 +88,10 @@ class FileSystemKeyStoreTest : public test::BaseFS_Test {
 
     address_verifier_ = std::make_shared<AddressVerifierImpl>();
 
-    ks = std::make_shared<FileSystemKeyStore>(
-        base_path.string(), bls_provider_, secp256k1_provider_, address_verifier_);
+    ks = std::make_shared<FileSystemKeyStore>(base_path.string(),
+                                              bls_provider_,
+                                              secp256k1_provider_,
+                                              address_verifier_);
   }
 
  protected:
@@ -207,7 +210,7 @@ TEST_F(FileSystemKeyStoreTest, SignNotFound) {
 TEST_F(FileSystemKeyStoreTest, SignWrongAddress) {
   // generate id address (type 0) which has no key
   std::vector<uint8_t> bytes{0x0, 0x0, 0xD1, 0xC2, 0xA7, 0x0F};
-  auto wrong_address = fc::primitives::decode(bytes).value();
+  auto wrong_address = decode(bytes).value();
   EXPECT_OUTCOME_ERROR(KeyStoreError::WRONG_ADDRESS,
                        ks->put(wrong_address, bls_keypair_->private_key));
 }

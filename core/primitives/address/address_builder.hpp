@@ -6,11 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_ADDRESS_BUILDER_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_ADDRESS_BUILDER_HPP
 
-#include <libp2p/crypto/secp256k1_types.hpp>
+#include "crypto/secp256k1_provider/secp256k1_provider.hpp"
 
 #include "common/outcome.hpp"
 #include "crypto/bls_provider/bls_types.hpp"
-#include "primitives/address.hpp"
+#include "address.hpp"
 
 namespace fc::primitives::address {
 
@@ -28,7 +28,7 @@ namespace fc::primitives::address {
      */
     virtual outcome::result<Address> makeFromSecp256k1PublicKey(
         Network network,
-        const libp2p::crypto::secp256k1::PublicKey &public_key) noexcept = 0;
+        const crypto::secp256k1::PublicKey &public_key) noexcept = 0;
 
     /**
      * @brief create address form BLS public key

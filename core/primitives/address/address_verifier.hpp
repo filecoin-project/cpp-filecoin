@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_CORE_PRIMITIVES_ADDRESS_ADDRESS_VERIFIER_HPP
 
 #include "common/outcome.hpp"
-#include "primitives/address.hpp"
+#include "address.hpp"
 
 namespace fc::primitives::address {
 

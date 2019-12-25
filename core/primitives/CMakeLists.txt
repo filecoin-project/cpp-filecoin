@@ -3,16 +3,4 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(address
-    address.cpp
-    address_codec.cpp
-    address/impl/address_verifier_impl.cpp
-    address/impl/address_builder_impl.cpp
-    )
-
-target_link_libraries(address
-    Boost::boost
-    blake2
-    blob
-    outcome
-    )
+add_subdirectory(address)
