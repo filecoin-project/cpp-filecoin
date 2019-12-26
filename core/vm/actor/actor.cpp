@@ -5,20 +5,19 @@
 
 #include "vm/actor/actor.hpp"
 
+#include <libp2p/crypto/sha/sha256.hpp>
 #include <string>
 #include <vector>
 
-#include <libp2p/crypto/sha/sha256.hpp>
-
 namespace fc::vm::actor {
-  bool isBuiltinActor(const ContentIdentifier &code) {
+  bool isBuiltinActor(const CodeId &code) {
     return code == kStorageMarketCodeCid || code == kStoragePowerCodeCid
            || code == kStorageMinerCodeCid || code == kAccountCodeCid
            || code == kInitCodeCid || code == kMultisigCodeCid
            || code == kPaymentChannelCodeCid;
   }
 
-  bool isSingletonActor(const ContentIdentifier &code) {
+  bool isSingletonActor(const CodeId &code) {
     return code == kStoragePowerCodeCid || code == kStorageMarketCodeCid
            || code == kInitCodeCid || code == kCronCodeCid;
   }
@@ -39,12 +38,15 @@ namespace fc::vm::actor {
                 .value()};
   }
 
-  const ContentIdentifier kAccountCodeCid = makeRawIdentityCid("fil/1/account");
-  const ContentIdentifier kCronCodeCid = makeRawIdentityCid("fil/1/cron");
-  const ContentIdentifier kStoragePowerCodeCid = makeRawIdentityCid("fil/1/power");
-  const ContentIdentifier kStorageMarketCodeCid = makeRawIdentityCid("fil/1/market");
-  const ContentIdentifier kStorageMinerCodeCid = makeRawIdentityCid("fil/1/miner");
-  const ContentIdentifier kMultisigCodeCid = makeRawIdentityCid("fil/1/multisig");
-  const ContentIdentifier kInitCodeCid = makeRawIdentityCid("fil/1/init");
-  const ContentIdentifier kPaymentChannelCodeCid = makeRawIdentityCid("fil/1/paych");
+  const CodeId kAccountCodeCid = CodeId(makeRawIdentityCid("fil/1/account"));
+  const CodeId kCronCodeCid = CodeId(makeRawIdentityCid("fil/1/cron"));
+  const CodeId kStoragePowerCodeCid = CodeId(makeRawIdentityCid("fil/1/power"));
+  const CodeId kStorageMarketCodeCid =
+      CodeId(makeRawIdentityCid("fil/1/market"));
+  const CodeId kStorageMinerCodeCid = CodeId(makeRawIdentityCid("fil/1/miner"));
+  const CodeId kMultisigCodeCid = CodeId(makeRawIdentityCid("fil/1/multisig"));
+  const CodeId kInitCodeCid = CodeId(makeRawIdentityCid("fil/1/init"));
+  const CodeId kPaymentChannelCodeCid =
+      CodeId(makeRawIdentityCid("fil/1/paych"));
+
 }  // namespace fc::vm::actor
