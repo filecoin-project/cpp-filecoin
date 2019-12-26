@@ -41,6 +41,8 @@ namespace fc::vm::actor {
    * of arguments/parameters
    */
   class MethodParams : public gsl::span<Serialization> {};
+  using primitives::BigInt;
+  using Serialization = fc::common::Buffer;
 
   /**
    * CodeID identifies an actor's code (either one of the builtin actors, or, in
