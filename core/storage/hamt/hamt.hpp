@@ -115,12 +115,14 @@ namespace fc::storage::hamt {
     /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor);
 
+    /// Store CBOR encoded value by key
     template <typename T>
     outcome::result<void> setCbor(const std::string &key, const T &value) {
       OUTCOME_TRY(bytes, codec::cbor::encode(value));
       return set(key, bytes);
     }
 
+    /// Get CBOR encoded value by key
     template <typename T>
     outcome::result<T> getCbor(const std::string &key) {
       OUTCOME_TRY(bytes, get(key));
