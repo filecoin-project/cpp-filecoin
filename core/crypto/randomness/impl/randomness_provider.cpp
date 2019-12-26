@@ -18,7 +18,7 @@ namespace fc::crypto::randomness {
   Randomness RandomnessProviderImpl::deriveRandomness(DomainSeparationTag tag,
                                                       Serialization s,
                                                       ChainEpoch index) {
-    return deriveRandomnessInternal(tag, std::move(s), static_cast<size_t>(-1));
+    return deriveRandomnessInternal(tag, std::move(s), index);
   }
 
   Randomness RandomnessProviderImpl::deriveRandomnessInternal(
