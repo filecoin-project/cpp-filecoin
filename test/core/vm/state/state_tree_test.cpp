@@ -31,7 +31,7 @@ class StateTreeTest : public ::testing::Test {
 
 /**
  * @given State tree and actor state
- * @when set
+ * @when Set actor state in tree
  * @then Actor state in the tree is same
  */
 TEST_F(StateTreeTest, Set) {
@@ -42,7 +42,7 @@ TEST_F(StateTreeTest, Set) {
 
 /**
  * @given Unflushed state tree with actor state
- * @when flush
+ * @when Flush state tree changes
  * @then Tree contains actor state
  */
 TEST_F(StateTreeTest, SetFlush) {
@@ -54,7 +54,7 @@ TEST_F(StateTreeTest, SetFlush) {
 
 /**
  * @given Unflushed state tree with actor state
- * @when revert
+ * @when Revert state tree changes
  * @then Tree doesn't contain actor state
  */
 TEST_F(StateTreeTest, SetRevert) {
@@ -65,7 +65,7 @@ TEST_F(StateTreeTest, SetRevert) {
 
 /**
  * @given State tree and actor state
- * @when registerNewAddress
+ * @when Register new actor address and state
  * @then Actor state in the tree is same
  */
 TEST_F(StateTreeTest, RegisterNewAddressLookupId) {

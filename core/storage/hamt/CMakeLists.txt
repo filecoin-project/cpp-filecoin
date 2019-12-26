@@ -8,6 +8,7 @@ add_library(hamt
     )
 target_link_libraries(hamt
     blob
+    cbor
     murmur
     outcome
     p2p::p2p_cid

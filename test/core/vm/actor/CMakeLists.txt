@@ -8,7 +8,6 @@ addtest(actor_test
     )
 target_link_libraries(actor_test
     actor
-    cbor
     hexutil
     )
 
@@ -17,7 +16,6 @@ addtest(init_actor_test
     )
 target_link_libraries(init_actor_test
     actor
-    hamt
     hexutil
     ipfs_datastore_in_memory
     )

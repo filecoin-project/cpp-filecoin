@@ -6,6 +6,7 @@
 #include "codec/cbor/cbor.hpp"
 #include "primitives/big_int.hpp"
 
+#include "common/invalid_cid.hpp"
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -18,9 +19,8 @@ using fc::codec::cbor::CborResolveError;
 using fc::codec::cbor::decode;
 using fc::codec::cbor::encode;
 using fc::codec::cbor::resolve;
+using fc::common::kInvalidCid;
 
-libp2p::multi::ContentIdentifier kDummyCid(
-    {}, {}, libp2p::multi::Multihash::create({}, {}).value());
 auto kCidRaw =
     libp2p::multi::ContentIdentifierCodec::decode(
         "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex)
@@ -191,8 +191,7 @@ TEST(CborEncoder, Map) {
  * @then Error
  */
 TEST(CborEncoder, CidErrors) {
-  EXPECT_OUTCOME_RAISE(CborEncodeError::INVALID_CID,
-                       CborEncodeStream() << kDummyCid);
+  EXPECT_OUTCOME_ERROR(CborEncodeError::INVALID_CID, encode(kInvalidCid));
 }
 
 /**
@@ -234,7 +233,7 @@ TEST(CborDecoder, Integral) {
  * @then Decoded as expected
  */
 TEST(CborDecoder, Cid) {
-  auto actual = kDummyCid;
+  auto actual = kInvalidCid;
   EXPECT_NE(actual, kCidRaw);
   CborDecodeStream(kCidCbor) >> actual;
   EXPECT_EQ(actual, kCidRaw);
@@ -373,7 +372,7 @@ TEST(CborDecoder, ListErrors) {
  * @then Error
  */
 TEST(CborDecoder, CidErrors) {
-  auto actual = kDummyCid;
+  auto actual = kInvalidCid;
   // no tag
   EXPECT_OUTCOME_RAISE(
       CborDecodeError::INVALID_CBOR_CID,

@@ -20,8 +20,7 @@ namespace fc::vm::actor {
     outcome::result<Address> addActor(std::shared_ptr<IpfsDatastore> store,
                                       const Address &address);
 
-    ContentIdentifier address_map{
-        {}, {}, libp2p::multi::Multihash::create({}, {}).value()};
+    ContentIdentifier address_map{common::kInvalidCid};
     uint64_t next_id{};
   };
 

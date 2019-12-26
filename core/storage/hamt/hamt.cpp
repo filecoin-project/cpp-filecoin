@@ -25,8 +25,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
 namespace fc::storage::hamt {
   using fc::common::which;
 
-  const CID kDummyCid({}, {}, libp2p::multi::Multihash::create({}, {}).value());
-
   // assuming 8-bit indices
   auto keyToIndices(const std::string &key, int n = -1) {
     std::vector<uint8_t> key_bytes(key.begin(), key.end());

@@ -13,15 +13,15 @@
 
 using fc::vm::actor::InitActorState;
 
-/** Init actor state CBOR */
-TEST(InitActorTest, ActorState) {
-  InitActorState state{"010001020000"_cid, 3};
-  expectEncodeAndReencode(state, "82d82a470001000102000003"_unhex);
+/** Init actor state CBOR encoding and decoding */
+TEST(InitActorTest, InitActorStateCbor) {
+  InitActorState init_actor_state{"010001020000"_cid, 3};
+  expectEncodeAndReencode(init_actor_state, "82d82a470001000102000003"_unhex);
 }
 
 /**
  * @given Init actor state and actor address
- * @when addActor
+ * @when Add actor address
  * @then Actor address is mapped to id
  */
 TEST(InitActorTest, AddActor) {

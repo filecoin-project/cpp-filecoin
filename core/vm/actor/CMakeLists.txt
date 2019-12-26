@@ -9,6 +9,6 @@ add_library(actor
     )
 target_link_libraries(actor
     address
+    hamt
     p2p::p2p_cid
-    p2p::p2p_sha
     )

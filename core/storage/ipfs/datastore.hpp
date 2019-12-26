@@ -74,9 +74,9 @@ namespace fc::storage::ipfs {
     template <typename T>
     outcome::result<CID> setCbor(const T &value) {
       OUTCOME_TRY(bytes, codec::cbor::encode(value));
-      OUTCOME_TRY(cid, cid(bytes));
-      OUTCOME_TRY(set(cid, Value(bytes)));
-      return std::move(cid);
+      OUTCOME_TRY(key, cid(bytes));
+      OUTCOME_TRY(set(key, Value(bytes)));
+      return std::move(key);
     }
 
     /// Get CBOR encoded value by CID

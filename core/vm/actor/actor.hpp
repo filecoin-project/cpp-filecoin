@@ -8,6 +8,7 @@
 
 #include <libp2p/multi/content_identifier_codec.hpp>
 
+#include "common/invalid_cid.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 
@@ -18,8 +19,8 @@ namespace fc::vm::actor {
 
   /** Common actor state interface */
   struct Actor {
-    ContentIdentifier code{{}, {}, libp2p::multi::Multihash::create({}, {}).value()};
-    ContentIdentifier head{{}, {}, libp2p::multi::Multihash::create({}, {}).value()};
+    ContentIdentifier code{common::kInvalidCid};
+    ContentIdentifier head{common::kInvalidCid};
     uint64_t nonce{};
     BigInt balance;
   };
