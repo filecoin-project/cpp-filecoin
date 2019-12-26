@@ -44,6 +44,7 @@ namespace fc::primitives::address {
   }
 
   Address Address::makeFromId(uint64_t id) {
+    // TODO(turuslan): FIL-118 remove hardcoded TESTNET
     return {TESTNET, id};
   }
 
