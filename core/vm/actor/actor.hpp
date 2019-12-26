@@ -8,7 +8,7 @@
 
 #include <libp2p/multi/content_identifier_codec.hpp>
 
-#include "common/invalid_cid.hpp"
+#include "common/empty_cid.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 
@@ -19,8 +19,8 @@ namespace fc::vm::actor {
 
   /** Common actor state interface */
   struct Actor {
-    ContentIdentifier code{common::kInvalidCid};
-    ContentIdentifier head{common::kInvalidCid};
+    ContentIdentifier code{common::kEmptyCid};
+    ContentIdentifier head{common::kEmptyCid};
     uint64_t nonce{};
     BigInt balance;
   };

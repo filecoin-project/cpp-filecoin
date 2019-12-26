@@ -12,7 +12,7 @@
 #include <boost/variant.hpp>
 
 #include "codec/cbor/cbor.hpp"
-#include "common/invalid_cid.hpp"
+#include "common/empty_cid.hpp"
 #include "common/outcome_throw.hpp"
 #include "common/visitor.hpp"
 #include "primitives/big_int.hpp"
@@ -71,7 +71,7 @@ namespace fc::storage::hamt {
     for (size_t i = 0; i < n_items; ++i) {
       auto m_item = l_items.map();
       if (m_item.find("0") != m_item.end()) {
-        CID cid = common::kInvalidCid;
+        CID cid = common::kEmptyCid;
         m_item.at("0") >> cid;
         node.items.emplace_back(cid);
       } else {

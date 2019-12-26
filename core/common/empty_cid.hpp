@@ -15,7 +15,7 @@ namespace fc::common {
    * Trying to CBOR encode this value will yield error, to ensure proper
    * initialization.
    */
-  const static inline libp2p::multi::ContentIdentifier kInvalidCid(
+  const static inline libp2p::multi::ContentIdentifier kEmptyCid(
       {}, {}, libp2p::multi::Multihash::create({}, {}).value());
 }  // namespace fc::common
 
