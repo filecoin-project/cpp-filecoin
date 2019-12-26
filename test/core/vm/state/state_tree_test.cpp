@@ -29,12 +29,22 @@ class StateTreeTest : public ::testing::Test {
   StateTree tree_{store_};
 };
 
+/**
+ * @given State tree and actor state
+ * @when set
+ * @then Actor state in the tree is same
+ */
 TEST_F(StateTreeTest, Set) {
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, tree_.get(kAddressId));
   EXPECT_OUTCOME_TRUE_1(tree_.set(kAddressId, kActor));
   EXPECT_OUTCOME_EQ(tree_.get(kAddressId), kActor);
 }
 
+/**
+ * @given Unflushed state tree with actor state
+ * @when flush
+ * @then Tree contains actor state
+ */
 TEST_F(StateTreeTest, SetFlush) {
   EXPECT_OUTCOME_TRUE_1(tree_.set(kAddressId, kActor));
   EXPECT_OUTCOME_TRUE(cid, tree_.flush());
@@ -42,12 +52,22 @@ TEST_F(StateTreeTest, SetFlush) {
   EXPECT_OUTCOME_EQ(StateTree(store_, cid).get(kAddressId), kActor);
 }
 
+/**
+ * @given Unflushed state tree with actor state
+ * @when revert
+ * @then Tree doesn't contain actor state
+ */
 TEST_F(StateTreeTest, SetRevert) {
   EXPECT_OUTCOME_TRUE_1(tree_.set(kAddressId, kActor));
   EXPECT_OUTCOME_TRUE_1(tree_.revert());
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, tree_.get(kAddressId));
 }
 
+/**
+ * @given State tree and actor state
+ * @when registerNewAddress
+ * @then Actor state in the tree is same
+ */
 TEST_F(StateTreeTest, RegisterNewAddressLookupId) {
   using fc::vm::actor::InitActorState;
   using fc::vm::actor::kInitAddress;

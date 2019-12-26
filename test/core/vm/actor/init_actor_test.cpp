@@ -19,6 +19,11 @@ TEST(InitActorTest, ActorState) {
   expectEncodeAndReencode(state, "82d82a470001000102000003"_unhex);
 }
 
+/**
+ * @given Init actor state and actor address
+ * @when addActor
+ * @then Actor address is mapped to id
+ */
 TEST(InitActorTest, AddActor) {
   using fc::primitives::address::Address;
   using fc::storage::hamt::Hamt;

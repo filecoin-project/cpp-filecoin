@@ -54,7 +54,7 @@ namespace fc::storage::ipfs {
      */
     virtual outcome::result<void> remove(const CID &key) = 0;
 
-    /** Compute CID from bytes */
+    /// Compute CID from bytes
     inline static outcome::result<CID> cid(gsl::span<const uint8_t> bytes) {
       OUTCOME_TRY(hash_raw, crypto::blake2b::blake2b_256(bytes));
       OUTCOME_TRY(hash,
@@ -63,14 +63,14 @@ namespace fc::storage::ipfs {
       return CID(CID::Version::V1, libp2p::multi::MulticodecType::DAG_CBOR, hash);
     }
 
-    /** Compute CID from CBOR encoded value */
+    /// Compute CID from CBOR encoded value
     template <typename T>
     static outcome::result<CID> cidCbor(const T &value) {
       OUTCOME_TRY(bytes, codec::cbor::encode(value));
       return cid(bytes);
     }
 
-    /** Store CBOR encoded value */
+    /// Store CBOR encoded value
     template <typename T>
     outcome::result<CID> setCbor(const T &value) {
       OUTCOME_TRY(bytes, codec::cbor::encode(value));
@@ -79,7 +79,7 @@ namespace fc::storage::ipfs {
       return std::move(cid);
     }
 
-    /** Get CBOR encoded value by CID */
+    /// Get CBOR encoded value by CID
     template <typename T>
     outcome::result<T> getCbor(const CID &key) {
       OUTCOME_TRY(bytes, get(key));

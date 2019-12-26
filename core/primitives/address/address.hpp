@@ -65,7 +65,7 @@ namespace fc::primitives::address {
      */
     bool isKeyType() const;
 
-    /** id - number assigned to actors in a Filecoin Chain */
+    /// id - number assigned to actors in a Filecoin Chain
     static Address makeFromId(uint64_t id);
 
     Network network;

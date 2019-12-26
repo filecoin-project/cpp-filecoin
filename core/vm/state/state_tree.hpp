@@ -16,24 +16,24 @@ namespace fc::vm::state {
   using storage::hamt::Hamt;
   using storage::ipfs::IpfsDatastore;
 
-  /** State tree */
+  /// State tree
   class StateTree {
    public:
     explicit StateTree(const std::shared_ptr<IpfsDatastore> &store);
     StateTree(const std::shared_ptr<IpfsDatastore> &store,
               const ContentIdentifier &root);
-    /** Set actor state, does not write to storage */
+    /// Set actor state, does not write to storage
     outcome::result<void> set(const Address &address, const Actor &actor);
-    /** Get actor state */
+    /// Get actor state
     outcome::result<Actor> get(const Address &address);
-    /** Lookup id address from address */
+    /// Lookup id address from address
     outcome::result<Address> lookupId(const Address &address);
-    /** Allocate id address and set actor state, does not write to storage */
+    /// Allocate id address and set actor state, does not write to storage
     outcome::result<Address> registerNewAddress(const Address &address,
                                                 const Actor &actor);
-    /** Write changes to storage */
+    /// Write changes to storage
     outcome::result<ContentIdentifier> flush();
-    /** Revert changes to last flushed state */
+    /// Revert changes to last flushed state
     outcome::result<void> revert();
 
    private:
