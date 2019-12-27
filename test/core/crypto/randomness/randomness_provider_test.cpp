@@ -78,17 +78,17 @@ INSTANTIATE_TEST_CASE_P(
             DomainSeparationTag::TicketDrawingDST,
             Buffer{1, 2, 3},
             1,
-            "0C2DF41915B1933A769770C18D7C60F5DA810A29CEA52C8A967CD273A44F23C8"_hash256),
+            "C4E51A115F7505FD0992CC5B638875D3BCA313CB2F5D7DE1F1D0B2CB3A3857E8"_hash256),
         RandomnessProviderTest::makeParams(
             DomainSeparationTag::TicketProductionDST,
             Buffer{1, 2},
             2,
-            "955EC7735C73E202920C19D9EC7CDE93440B0DEF179853254D52E34E606D0E3D"_hash256),
+            "EBB9FAA31980E474AD7D0D3D51369E76D7DB383945545F5A23075A27544D1412"_hash256),
         RandomnessProviderTest::makeParams(
             DomainSeparationTag::PoStDST,
             Buffer{1},
             3,
-            "EEEF98ED7B888D6A4B0BA7631185DEF061421142E93D1BA96A889AAA7224B9E8"_hash256)));
+            "4FB8E678AF9CD7DD078EE47249A5AFC10D53DC3F548A22AAEE9DB4903A9D0212"_hash256)));
 
 struct RandomnessProviderValuesTest : public RandomnessProviderBaseTest,
                                       public ::testing::Test {
