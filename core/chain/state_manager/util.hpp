@@ -15,8 +15,8 @@ namespace fc::chain::stmgr::util {
       std::shared_ptr<StateManager> state_manager,
       const CID &cid,
       const primitives::address::Address &miner_address) {
-
-
+    primitives::chain::Message{miner_address, miner_address,  ;
+      OUTCOME_TRY(receipt, state_manager->callRaw())
   }
 }  // namespace fc::chain::stmgr::util
 
