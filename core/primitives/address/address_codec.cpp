@@ -23,9 +23,8 @@ namespace fc::primitives::address {
   using base32 = cppcodec::base32_rfc4648;
   using UVarint = libp2p::multi::UVarint;
 
-  std::vector<uint8_t> encode(const Address &address) {
+  std::vector<uint8_t> encode(const Address &address) noexcept {
     std::vector<uint8_t> res{};
-    res.push_back(address.network);
     res.push_back(address.getProtocol());
     std::vector<uint8_t> payload = visit_in_place(
         address.data,
@@ -38,16 +37,13 @@ namespace fc::primitives::address {
   }
 
   outcome::result<Address> decode(const std::vector<uint8_t> &v) {
-    if (v.size() < 3) return outcome::failure(AddressError::INVALID_PAYLOAD);
-    auto pos = v.begin();
+    if (v.size() < 2) return outcome::failure(AddressError::INVALID_PAYLOAD);
 
-    auto net = static_cast<Network>(*(pos++));
-    if (!(net == Network::TESTNET || net == Network::MAINNET)) {
-      return outcome::failure(AddressError::UNKNOWN_NETWORK);
-    }
-
-    auto p = static_cast<Protocol>(*(pos++));
-    std::vector<uint8_t> payload(pos, v.end());
+    // Network is currently hardcoded to the Testnet (same way it's done in
+    // Lotus)
+    Network net{Network::TESTNET};
+    auto p = static_cast<Protocol>(v[0]);
+    std::vector<uint8_t> payload(std::next(v.begin()), v.end());
     switch (p) {
       case Protocol::ID: {
         boost::optional<UVarint> value = UVarint::create(payload);
@@ -137,16 +133,14 @@ namespace fc::primitives::address {
   outcome::result<Address> decodeFromString(const std::string &s) {
     if (s.size() < 3) return outcome::failure(AddressError::INVALID_PAYLOAD);
 
-    std::vector<uint8_t> buffer{};
-    Network net{Network::MAINNET};
-
     if (s[0] != 'f' && s[0] != 't')
       return outcome::failure(AddressError::UNKNOWN_NETWORK);
-    if (s[0] == 'f')
-      buffer.push_back(static_cast<uint8_t>(Network::MAINNET));
-    else {
-      buffer.push_back(static_cast<uint8_t>(Network::TESTNET));
-      net = Network::TESTNET;
+
+    std::vector<uint8_t> buffer{};
+    Network net{Network::TESTNET};
+
+    if (s[0] == 'f') {
+      net = Network::MAINNET;
     }
 
     int protocol = int(s[1]) - int('0');
@@ -208,13 +202,12 @@ namespace fc::primitives::address {
 
     ingest.push_back(p);
 
-    ingest = visit_in_place(
-        address.data,
-        [&ingest](uint64_t v) { return ingest; },
-        [&ingest](const auto &v) {
-          ingest.insert(ingest.end(), v.begin(), v.end());
-          return ingest;
-        });
+    ingest = visit_in_place(address.data,
+                            [&ingest](uint64_t v) { return ingest; },
+                            [&ingest](const auto &v) {
+                              ingest.insert(ingest.end(), v.begin(), v.end());
+                              return ingest;
+                            });
 
     size_t outlen = 4;
     blake2b(res.data(), outlen, nullptr, 0, ingest.data(), ingest.size());
@@ -227,4 +220,4 @@ namespace fc::primitives::address {
     return digest == expect;
   }
 
-};  // namespace fc::primitives
+};  // namespace fc::primitives::address
