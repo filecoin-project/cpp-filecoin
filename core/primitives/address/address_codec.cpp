@@ -39,9 +39,9 @@ namespace fc::primitives::address {
   outcome::result<Address> decode(const std::vector<uint8_t> &v) {
     if (v.size() < 2) return outcome::failure(AddressError::INVALID_PAYLOAD);
 
-    // Network is currently hardcoded to the Testnet (same way it's done in
-    // Lotus)
+    // TODO(ekovalev): [FIL-118] make network configurable; hardcoded for now
     Network net{Network::TESTNET};
+
     auto p = static_cast<Protocol>(v[0]);
     std::vector<uint8_t> payload(std::next(v.begin()), v.end());
     switch (p) {
@@ -90,8 +90,7 @@ namespace fc::primitives::address {
   std::string encodeToString(const Address &address) {
     std::string res{};
 
-    char networkPrefix = 'f';
-    if (address.network == Network::TESTNET) networkPrefix = 't';
+    char networkPrefix = address.network == Network::TESTNET ? 't' : 'f';
     res.push_back(networkPrefix);
 
     Protocol p = address.getProtocol();

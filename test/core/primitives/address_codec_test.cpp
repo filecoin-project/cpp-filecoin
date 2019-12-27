@@ -22,15 +22,6 @@ using fc::primitives::address::encodeToString;
 using fc::primitives::address::Network;
 using fc::primitives::address::Protocol;
 
-std::vector<uint8_t> randomNBytes(uint N) {
-  std::vector<int> v(N);
-  std::generate(v.begin(), v.end(), std::rand);
-  std::vector<uint8_t> u(N);
-  std::transform(
-      v.begin(), v.end(), u.begin(), [](int k) -> uint8_t { return k % 256; });
-  return u;
-}
-
 struct AddressCodecTest : public testing::Test {
   std::unordered_map<std::string, std::vector<uint8_t>> knownAddresses{
       {"t17uoq6tp427uzv7fztkbsnn64iwotfrristwpryy",
@@ -47,6 +38,7 @@ struct AddressCodecTest : public testing::Test {
        "03b3294f0a2e29e0c66ebc235d2fedca5697bf784af605c75af608e6a63d5cd38ea85ca8989e0efde9188b382f9372460d"_unhex},
       {"t00", "0000"_unhex},
       {"t01024", "008008"_unhex},
+      {"t032104785", "00d1c2a70f"_unhex},
       {"t018446744073709551615", "00ffffffffffffffffff01"_unhex}};
 };
 
@@ -56,7 +48,7 @@ struct AddressCodecTest : public testing::Test {
  * @when Creating an ID Address for the given payload
  * @then ID Address successfully created
  */
-TEST_F(AddressCodecTest, AddressDecodeOK) {
+TEST_F(AddressCodecTest, AddressDecodeOk) {
   EXPECT_OUTCOME_TRUE_2(
       addr,
       decode("00d1c2a70f"_unhex));  // {protocol == ID, payload == 32104785}
@@ -77,28 +69,16 @@ TEST_F(AddressCodecTest, AddressDecodeFailure) {
 }
 
 /**
- * @given Array of 20 bytes reprsenting a blake2b-160 hash
- * @when Creating a Secp256k1 Address
- * @then Secp256k1 Address successfully created
- */
-TEST_F(AddressCodecTest, AddressDecodeSecp256k1OK) {
-  std::vector<uint8_t> payload = randomNBytes(20);
-  std::vector<uint8_t> bytes{0x1};
-  bytes.insert(bytes.end(), payload.begin(), payload.end());
-  EXPECT_OUTCOME_TRUE_1(decode(bytes));
-}
-
-/**
  * @given Array of 47 bytes reprsenting a BLS hash
  * @when Creating a BLS Address
  * @then INVALID_PAYLOAD error while creating the Address
  */
 TEST_F(AddressCodecTest, InvalidPayloadSize) {
-  std::vector<uint8_t> payload = randomNBytes(47);
-  std::vector<uint8_t> bytes{0x3};
   int expected = static_cast<int>(AddressError::INVALID_PAYLOAD);
-  bytes.insert(bytes.end(), payload.begin(), payload.end());
-  EXPECT_OUTCOME_FALSE_2(error_code, decode(bytes));
+  EXPECT_OUTCOME_FALSE_2(
+      error_code,
+      decode(
+          "03ceb343dd9694fcfe0f07b3b7f870fec1a7ea6abd7517fc65d33ce3a787a8aea869d99e36da3582c408e15e37421dc8"_unhex));
   ASSERT_EQ(error_code.value(), expected);
 }
 
@@ -108,22 +88,10 @@ TEST_F(AddressCodecTest, InvalidPayloadSize) {
  * @then Address is not created due to UNKNOWN_PROTOCOL error
  */
 TEST_F(AddressCodecTest, UnknownProtocol) {
-  std::vector<uint8_t> payload = randomNBytes(20);
-  std::vector<uint8_t> bytes{0x4};
   int expected = static_cast<int>(AddressError::UNKNOWN_PROTOCOL);
-  bytes.insert(bytes.end(), payload.begin(), payload.end());
-  EXPECT_OUTCOME_FALSE_2(error_code, decode(bytes));
+  EXPECT_OUTCOME_FALSE_2(
+      error_code, decode("042c39095318f8f2fd4b5927e2042bbd47af0fb4a0"_unhex));
   ASSERT_EQ(error_code.value(), expected);
-}
-
-/**
- * @given An ID Address
- * @when Encoding it to std::string
- * @then The output matches expected form "t0XXXXXXXX"
- */
-TEST_F(AddressCodecTest, IDtoString) {
-  EXPECT_OUTCOME_TRUE_2(addr, decode("00d1c2a70f"_unhex))  // 32104785
-  EXPECT_EQ(encodeToString(addr), std::string{"t032104785"});
 }
 
 /**
@@ -132,10 +100,8 @@ TEST_F(AddressCodecTest, IDtoString) {
  * @then The size is exactly 4 bytes
  */
 TEST_F(AddressCodecTest, ChecksumSize) {
-  std::vector<uint8_t> payload = randomNBytes(20);
-  std::vector<uint8_t> bytes{0x1};
-  bytes.insert(bytes.end(), payload.begin(), payload.end());
-  EXPECT_OUTCOME_TRUE_2(addr, decode(bytes));
+  EXPECT_OUTCOME_TRUE_2(
+      addr, decode("01b0b5bf8e99bd815b35a29800d5a44e2d180c32b3"_unhex));
   ASSERT_TRUE(checksum(addr).size() == 4);
 }
 
@@ -176,7 +142,7 @@ TEST_F(AddressCodecTest, RoundTripDecodeEncode) {
  * @when Encoding to CBOR and comparing with the known encodings
  * @then The outputs match expectations
  */
-TEST_F(AddressCodecTest, MarshalCBOR) {
+TEST_F(AddressCodecTest, MarshalCbor) {
   EXPECT_OUTCOME_TRUE_2(addr1, decode("0001"_unhex));
   CborEncodeStream s1;
   s1 << addr1;
@@ -194,7 +160,7 @@ TEST_F(AddressCodecTest, MarshalCBOR) {
  * @when Encoding to CBOR and decoding back, followed by re-encoding to string
  * @then The outputs match original strings
  */
-TEST_F(AddressCodecTest, CBORRoundTrip) {
+TEST_F(AddressCodecTest, CborRoundTrip) {
   for (auto it = this->knownAddresses.begin(); it != this->knownAddresses.end();
        it++) {
     EXPECT_OUTCOME_TRUE_2(addr, decodeFromString(it->first));
