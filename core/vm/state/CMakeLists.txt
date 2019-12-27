@@ -3,12 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(actor
-    actor.cpp
-    init_actor.cpp
+add_library(state_tree
+    state_tree.cpp
     )
-target_link_libraries(actor
-    address
-    cid
-    hamt
+target_link_libraries(state_tree
+    actor
+    Boost::boost
     )

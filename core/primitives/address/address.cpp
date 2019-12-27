@@ -43,6 +43,11 @@ namespace fc::primitives::address {
         [](const BLSPublicKeyHash &v) { return Protocol::BLS; });
   }
 
+  Address Address::makeFromId(uint64_t id) {
+    // TODO(turuslan): FIL-118 remove hardcoded TESTNET
+    return {TESTNET, id};
+  }
+
   bool operator==(const Address &lhs, const Address &rhs) {
     return lhs.network == rhs.network && lhs.getProtocol() == rhs.getProtocol()
            && lhs.data == rhs.data;

@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(hamt_test
-    hamt_test.cpp
+addtest(state_tree_test
+    state_tree_test.cpp
     )
-target_link_libraries(hamt_test
-    hamt
+target_link_libraries(state_tree_test
     hexutil
     ipfs_datastore_in_memory
+    state_tree
     )

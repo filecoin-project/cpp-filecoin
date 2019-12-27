@@ -8,33 +8,14 @@
 #include "codec/cbor/cbor.hpp"
 #include "common/which.hpp"
 #include <gtest/gtest.h>
-#include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
+#include "testutil/cbor.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 
-using fc::codec::cbor::decode;
 using fc::codec::cbor::encode;
 using fc::common::which;
-using fc::storage::hamt::CID;
 using fc::storage::hamt::Hamt;
 using fc::storage::hamt::HamtError;
 using fc::storage::hamt::Node;
-
-template<typename T>
-void expectEncodeAndReencode(const T &value, const std::vector<uint8_t> &bytes) {
-  EXPECT_OUTCOME_EQ(encode(value), bytes);
-  EXPECT_OUTCOME_TRUE(decoded, decode<T>(bytes));
-  EXPECT_OUTCOME_EQ(encode(decoded), bytes);
-}
-
-void expectCid(const Node &n, const std::vector<uint8_t> &expected) {
-  EXPECT_OUTCOME_TRUE(cid, n.cid());
-  EXPECT_EQ(libp2p::multi::ContentIdentifierCodec::encode(cid).value(), expected);
-}
-
-CID decodeCid(const std::vector<uint8_t> &bytes) {
-  return libp2p::multi::ContentIdentifierCodec::decode(bytes).value();
-}
 
 class HamtTest : public ::testing::Test {
  public:
@@ -47,21 +28,17 @@ class HamtTest : public ::testing::Test {
 TEST_F(HamtTest, NodeCbor) {
   Node n;
   expectEncodeAndReencode(n, "824080"_unhex);
-  expectCid(n, "0171a0e4022018fe6acc61a3a36b0c373c4a3a8ea64b812bf2ca9b528050909c78d408558a0c"_unhex);
 
   n.bits |= 1 << 17;
   expectEncodeAndReencode(n, "824302000080"_unhex);
-  expectCid(n, "0171a0e40220ccece38b1ed05d6ff6e7158aaaf0cec9ed99aa5e0cd453d6365de2439f05cd4b"_unhex);
 
   Node::Leaf leaf;
   leaf["a"] = fc::storage::hamt::Value(encode("b").value());
   n.items.push_back(leaf);
   expectEncodeAndReencode(n, "824302000081a16131818261616162"_unhex);
-  expectCid(n, "0171a0e40220190d7c4481ea44aa30e79618e3299271031f9eed6b33912c494b88bb07288917"_unhex);
 
-  n.items.push_back(decodeCid("010000020000"_unhex));
+  n.items.push_back("010000020000"_cid);
   expectEncodeAndReencode(n, "824302000082a16131818261616162a16130d82a4700010000020000"_unhex);
-  expectCid(n, "0171a0e40220d0a4fe1e4666cda17148cc41812042a7341bd6fee0f36433a9a804f4fa6c0845"_unhex);
 
   n.items.push_back(Node::Ptr{});
   EXPECT_OUTCOME_ERROR(HamtError::EXPECTED_CID, encode(n));
@@ -172,7 +149,7 @@ TEST_F(HamtTest, SetRemoveDoubleCollisionChild) {
 
 /** Flush empty root */
 TEST_F(HamtTest, FlushEmpty) {
-  auto cidEmpty = decodeCid("0171a0e4022018fe6acc61a3a36b0c373c4a3a8ea64b812bf2ca9b528050909c78d408558a0c"_unhex);
+  auto cidEmpty = "0171a0e4022018fe6acc61a3a36b0c373c4a3a8ea64b812bf2ca9b528050909c78d408558a0c"_cid;
 
   EXPECT_OUTCOME_EQ(store_->contains(cidEmpty), false);
 
@@ -182,7 +159,7 @@ TEST_F(HamtTest, FlushEmpty) {
 
 /** Flush node of leafs, intermediate state not stored */
 TEST_F(HamtTest, FlushNoCollision) {
-  auto cidWithLeaf = decodeCid("0171a0e4022055e50395a85788650fc83874f45442e531f6289b0402d95ef3da8b01870c2629"_unhex);
+  auto cidWithLeaf = "0171a0e4022055e50395a85788650fc83874f45442e531f6289b0402d95ef3da8b01870c2629"_cid;
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("aai"));
@@ -196,7 +173,7 @@ TEST_F(HamtTest, FlushNoCollision) {
 
 /** Flush node with shard, intermediate state not stored */
 TEST_F(HamtTest, FlushCollisionChild) {
-  auto cidShard = decodeCid("0171a0e402209431b57360c7ee799ffbc1f6fa83dce5239eb48f7fef6cb167190fd15267daf0"_unhex);
+  auto cidShard = "0171a0e402209431b57360c7ee799ffbc1f6fa83dce5239eb48f7fef6cb167190fd15267daf0"_cid;
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
