@@ -6,10 +6,13 @@
 #include <gtest/gtest.h>
 #include <algorithm>
 
+#include "codec/cbor/cbor.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using fc::codec::cbor::CborDecodeStream;
+using fc::codec::cbor::CborEncodeStream;
 using fc::primitives::address::Address;
 using fc::primitives::address::AddressError;
 using fc::primitives::address::decode;
@@ -154,14 +157,51 @@ TEST_F(AddressCodecTest, EncodeToString) {
 // Verify known addresses decoding from string
 // https://filecoin-project.github.io/specs/#id-type-addresses
 /**
- * @given A set of pairs (address_in_hex, address_base32_string)
- * @when Decoding addresses from strings
- * @then The outputs match expected strings
+ * @given A set of addresses encoded as strings
+ * @when Decoding addresses from string representation and re-encoding back to
+ * string
+ * @then The outputs match the original strings
  */
 TEST_F(AddressCodecTest, RoundTripDecodeEncode) {
   for (auto it = this->knownAddresses.begin(); it != this->knownAddresses.end();
        it++) {
     EXPECT_OUTCOME_TRUE_2(addr, decodeFromString(it->first));
     EXPECT_EQ(encodeToString(addr), it->first);
+  }
+}
+
+// CBOR encoding/decoding to stream
+/**
+ * @given An ID address and a Secp256k1 hash address
+ * @when Encoding to CBOR and comparing with the known encodings
+ * @then The outputs match expectations
+ */
+TEST_F(AddressCodecTest, MarshalCBOR) {
+  EXPECT_OUTCOME_TRUE_2(addr1, decode("0001"_unhex));
+  CborEncodeStream s1;
+  s1 << addr1;
+  EXPECT_EQ(s1.data(), "420001"_unhex);
+
+  EXPECT_OUTCOME_TRUE_2(
+      addr2, decode("01fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex));
+  CborEncodeStream s2;
+  s2 << addr2;
+  EXPECT_EQ(s2.data(), "5501fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex);
+}
+
+/**
+ * @given A set of address-as-strings
+ * @when Encoding to CBOR and decoding back, followed by re-encoding to string
+ * @then The outputs match original strings
+ */
+TEST_F(AddressCodecTest, CBORRoundTrip) {
+  for (auto it = this->knownAddresses.begin(); it != this->knownAddresses.end();
+       it++) {
+    EXPECT_OUTCOME_TRUE_2(addr, decodeFromString(it->first));
+    CborEncodeStream s;
+    s << addr;
+    Address addr2{};
+    CborDecodeStream(s.data()) >> addr2;
+    EXPECT_EQ(encodeToString(addr2), it->first);
   }
 }
