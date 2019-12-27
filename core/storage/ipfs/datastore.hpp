@@ -6,21 +6,19 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_HPP
 #define CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_HPP
 
-#include <libp2p/multi/content_identifier.hpp>
 #include <vector>
 
 #include "codec/cbor/cbor.hpp"
 #include "common/buffer.hpp"
+#include "common/cid.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
-#include "crypto/blake2/blake2b160.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
 
 namespace fc::storage::ipfs {
 
   class IpfsDatastore {
    public:
-    using CID = libp2p::multi::ContentIdentifier;
     using Value = common::Buffer;
 
     virtual ~IpfsDatastore() = default;
@@ -54,34 +52,22 @@ namespace fc::storage::ipfs {
      */
     virtual outcome::result<void> remove(const CID &key) = 0;
 
-    /// Compute CID from bytes
-    inline static outcome::result<CID> cid(gsl::span<const uint8_t> bytes) {
-      OUTCOME_TRY(hash_raw, crypto::blake2b::blake2b_256(bytes));
-      OUTCOME_TRY(hash,
-                  libp2p::multi::Multihash::create(
-                      libp2p::multi::HashType::blake2b_256, hash_raw));
-      return CID(CID::Version::V1, libp2p::multi::MulticodecType::DAG_CBOR, hash);
-    }
-
-    /// Compute CID from CBOR encoded value
-    template <typename T>
-    static outcome::result<CID> cidCbor(const T &value) {
-      OUTCOME_TRY(bytes, codec::cbor::encode(value));
-      return cid(bytes);
-    }
-
-    /// Store CBOR encoded value
+    /**
+     * @brief CBOR-serialize value and store
+     * @param value - data to serialize and store
+     * @return cid of CBOR-serialized data
+     */
     template <typename T>
     outcome::result<CID> setCbor(const T &value) {
       OUTCOME_TRY(bytes, codec::cbor::encode(value));
-      OUTCOME_TRY(key, cid(bytes));
+      OUTCOME_TRY(key, common::getCidOf(bytes));
       OUTCOME_TRY(set(key, Value(bytes)));
       return std::move(key);
     }
 
-    /// Get CBOR encoded value by CID
+    /// Get CBOR decoded value by CID
     template <typename T>
-    outcome::result<T> getCbor(const CID &key) {
+    outcome::result<T> getCbor(const CID &key) const {
       OUTCOME_TRY(bytes, get(key));
       return codec::cbor::decode<T>(bytes);
     }

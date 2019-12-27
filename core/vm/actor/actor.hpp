@@ -8,7 +8,7 @@
 
 #include <libp2p/multi/content_identifier_codec.hpp>
 
-#include "common/empty_cid.hpp"
+#include "common/cid.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 

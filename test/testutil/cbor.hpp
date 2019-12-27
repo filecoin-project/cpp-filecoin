@@ -12,7 +12,8 @@
 
 /** Check that:
  * - CBOR encoding value yields expected bytes;
- * - CBOR encoding value decoded from bytes yields same bytes; */
+ * - CBOR encoding value decoded from bytes yields same bytes;
+ */
 template <typename T>
 void expectEncodeAndReencode(const T &value,
                              const std::vector<uint8_t> &bytes) {

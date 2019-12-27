@@ -9,20 +9,13 @@
 #include "common/which.hpp"
 #include <gtest/gtest.h>
 #include "testutil/cbor.hpp"
-#include "testutil/literals.hpp"
-#include "testutil/outcome.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 
 using fc::codec::cbor::encode;
 using fc::common::which;
-using fc::storage::hamt::CID;
 using fc::storage::hamt::Hamt;
 using fc::storage::hamt::HamtError;
 using fc::storage::hamt::Node;
-
-void expectCid(const Node &n, const libp2p::multi::ContentIdentifier &cid) {
-  EXPECT_OUTCOME_EQ(fc::storage::ipfs::IpfsDatastore::cidCbor(n), cid);
-}
 
 class HamtTest : public ::testing::Test {
  public:
@@ -35,21 +28,17 @@ class HamtTest : public ::testing::Test {
 TEST_F(HamtTest, NodeCbor) {
   Node n;
   expectEncodeAndReencode(n, "824080"_unhex);
-  expectCid(n, "0171a0e4022018fe6acc61a3a36b0c373c4a3a8ea64b812bf2ca9b528050909c78d408558a0c"_cid);
 
   n.bits |= 1 << 17;
   expectEncodeAndReencode(n, "824302000080"_unhex);
-  expectCid(n, "0171a0e40220ccece38b1ed05d6ff6e7158aaaf0cec9ed99aa5e0cd453d6365de2439f05cd4b"_cid);
 
   Node::Leaf leaf;
   leaf["a"] = fc::storage::hamt::Value(encode("b").value());
   n.items.push_back(leaf);
   expectEncodeAndReencode(n, "824302000081a16131818261616162"_unhex);
-  expectCid(n, "0171a0e40220190d7c4481ea44aa30e79618e3299271031f9eed6b33912c494b88bb07288917"_cid);
 
   n.items.push_back("010000020000"_cid);
   expectEncodeAndReencode(n, "824302000082a16131818261616162a16130d82a4700010000020000"_unhex);
-  expectCid(n, "0171a0e40220d0a4fe1e4666cda17148cc41812042a7341bd6fee0f36433a9a804f4fa6c0845"_cid);
 
   n.items.push_back(Node::Ptr{});
   EXPECT_OUTCOME_ERROR(HamtError::EXPECTED_CID, encode(n));

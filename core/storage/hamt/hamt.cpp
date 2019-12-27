@@ -199,7 +199,7 @@ namespace fc::storage::hamt {
     return outcome::success();
   }
 
-  outcome::result<void> Hamt::loadItem(Node::Item &item) {
+  outcome::result<void> Hamt::loadItem(Node::Item &item) const {
     if (which<CID>(item)) {
       OUTCOME_TRY(child, store_->getCbor<Node>(boost::get<CID>(item)));
       item = std::make_shared<Node>(std::move(child));

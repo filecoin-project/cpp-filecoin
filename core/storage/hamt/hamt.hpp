@@ -12,7 +12,7 @@
 #include <boost/variant.hpp>
 
 #include "codec/cbor/cbor.hpp"
-#include "common/empty_cid.hpp"
+#include "common/cid.hpp"
 #include "common/outcome_throw.hpp"
 #include "common/visitor.hpp"
 #include "primitives/big_int.hpp"
@@ -21,7 +21,6 @@
 namespace fc::storage::hamt {
   enum class HamtError { EXPECTED_CID = 1, NOT_FOUND, MAX_DEPTH };
 
-  using CID = libp2p::multi::ContentIdentifier;
   using fc::primitives::UBigInt;
   using Value = ipfs::IpfsDatastore::Value;
 
@@ -122,7 +121,7 @@ namespace fc::storage::hamt {
       return set(key, bytes);
     }
 
-    /// Get CBOR encoded value by key
+    /// Get CBOR decoded value by key
     template <typename T>
     outcome::result<T> getCbor(const std::string &key) {
       OUTCOME_TRY(bytes, get(key));
@@ -139,7 +138,7 @@ namespace fc::storage::hamt {
                                  const std::string &key);
     static outcome::result<void> cleanShard(Node::Item &item);
     outcome::result<void> flush(Node::Item &item);
-    outcome::result<void> loadItem(Node::Item &item);
+    outcome::result<void> loadItem(Node::Item &item) const;
     outcome::result<void> visit(Node::Item &item, const Visitor &visitor);
 
     std::shared_ptr<ipfs::IpfsDatastore> store_;

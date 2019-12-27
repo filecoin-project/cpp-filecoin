@@ -6,7 +6,7 @@
 #include "codec/cbor/cbor.hpp"
 #include "primitives/big_int.hpp"
 
-#include "common/empty_cid.hpp"
+#include "common/cid.hpp"
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
