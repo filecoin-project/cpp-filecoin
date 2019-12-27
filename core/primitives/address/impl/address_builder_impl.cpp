@@ -21,14 +21,14 @@ namespace fc::primitives::address {
   outcome::result<Address> AddressBuilderImpl::makeFromSecp256k1PublicKey(
       Network network, const Sec256k1PublicKey &public_key) noexcept {
     OUTCOME_TRY(hash, blake2b_160(public_key));
-    std::vector<uint8_t> sec256k1_bytes{network, Protocol::SECP256K1};
+    std::vector<uint8_t> sec256k1_bytes{Protocol::SECP256K1};
     sec256k1_bytes.insert(sec256k1_bytes.end(), hash.begin(), hash.end());
     return decode(sec256k1_bytes);
   }
 
   outcome::result<Address> AddressBuilderImpl::makeFromBlsPublicKey(
       Network network, const BlsPublicKey &public_key) noexcept {
-    std::vector<uint8_t> bls_bytes{network, Protocol::BLS};
+    std::vector<uint8_t> bls_bytes{Protocol::BLS};
     bls_bytes.insert(bls_bytes.end(), public_key.begin(), public_key.end());
     return decode(bls_bytes);
   }

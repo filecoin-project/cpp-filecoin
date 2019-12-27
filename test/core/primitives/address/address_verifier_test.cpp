@@ -165,7 +165,7 @@ TEST_P(AddressVerifierParametrizedTest, GenerateBlsAddress) {
   EXPECT_OUTCOME_TRUE(
       res, address_verifier->verifySyntax(address, keypair.public_key));
   ASSERT_TRUE(res);
-  ASSERT_EQ(GetParam(), address.network);
+  ASSERT_EQ(Network::TESTNET, address.network);
   ASSERT_EQ(Protocol::BLS, address.getProtocol());
 }
 
@@ -183,7 +183,7 @@ TEST_P(AddressVerifierParametrizedTest, GenerateSecp256k1Address) {
   EXPECT_OUTCOME_TRUE(
       res, address_verifier->verifySyntax(address, keypair.public_key));
   ASSERT_TRUE(res);
-  ASSERT_EQ(GetParam(), address.network);
+  ASSERT_EQ(Network::TESTNET, address.network);
   ASSERT_EQ(Protocol::SECP256K1, address.getProtocol());
 }
 
