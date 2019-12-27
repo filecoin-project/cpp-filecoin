@@ -14,23 +14,22 @@ namespace fc::primitives::address {
   using Sec256k1PublicKey = libp2p::crypto::secp256k1::PublicKey;
   using BlsPublicKey = crypto::bls::PublicKey;
   using crypto::blake2b::blake2b_160;
+  using primitives::address::BLSPublicKeyHash;
   using primitives::address::decode;
-  using primitives::address::encode;
   using primitives::address::Protocol;
+  using primitives::address::Secp256k1PublicKeyHash;
 
   outcome::result<Address> AddressBuilderImpl::makeFromSecp256k1PublicKey(
       Network network, const Sec256k1PublicKey &public_key) noexcept {
     OUTCOME_TRY(hash, blake2b_160(public_key));
-    std::vector<uint8_t> sec256k1_bytes{Protocol::SECP256K1};
-    sec256k1_bytes.insert(sec256k1_bytes.end(), hash.begin(), hash.end());
-    return decode(sec256k1_bytes);
+    Secp256k1PublicKeyHash secp256k1Hash{hash};
+    return Address{network, secp256k1Hash};
   }
 
   outcome::result<Address> AddressBuilderImpl::makeFromBlsPublicKey(
       Network network, const BlsPublicKey &public_key) noexcept {
-    std::vector<uint8_t> bls_bytes{Protocol::BLS};
-    bls_bytes.insert(bls_bytes.end(), public_key.begin(), public_key.end());
-    return decode(bls_bytes);
+    BLSPublicKeyHash blsHash{public_key};
+    return Address{network, blsHash};
   }
 
 }  // namespace fc::primitives::address
