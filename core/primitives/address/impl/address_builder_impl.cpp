@@ -15,7 +15,6 @@ namespace fc::primitives::address {
   using BlsPublicKey = crypto::bls::PublicKey;
   using crypto::blake2b::blake2b_160;
   using primitives::address::BLSPublicKeyHash;
-  using primitives::address::decode;
   using primitives::address::Protocol;
   using primitives::address::Secp256k1PublicKeyHash;
 

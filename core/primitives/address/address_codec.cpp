@@ -136,11 +136,7 @@ namespace fc::primitives::address {
       return outcome::failure(AddressError::UNKNOWN_NETWORK);
 
     std::vector<uint8_t> buffer{};
-    Network net{Network::TESTNET};
-
-    if (s[0] == 'f') {
-      net = Network::MAINNET;
-    }
+    Network net = s[0] == 't' ? Network::TESTNET : Network::MAINNET;
 
     int protocol = int(s[1]) - int('0');
     if (protocol < Protocol::ID || protocol > Protocol::BLS)
@@ -183,7 +179,9 @@ namespace fc::primitives::address {
                   std::make_move_iterator(payload.begin()),
                   std::make_move_iterator(payload.end()) - 4);
 
-    return decode(buffer);
+    OUTCOME_TRY(address, decode(buffer));
+    address.network = net;
+    return address;
   }
 
   std::vector<uint8_t> checksum(const Address &address) {
