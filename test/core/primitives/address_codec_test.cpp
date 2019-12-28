@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <algorithm>
+#include <unordered_map>
 
 #include "codec/cbor/cbor.hpp"
 #include "primitives/address/address_codec.hpp"
