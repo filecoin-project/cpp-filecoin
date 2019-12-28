@@ -35,7 +35,6 @@ using Secp256k1Signature = libp2p::crypto::secp256k1::Signature;
 using BlsPublicKey = fc::crypto::bls::PublicKey;
 using Secp256k1PublicKey = libp2p::crypto::secp256k1::PublicKey;
 using fc::primitives::address::decode;
-using fc::primitives::address::encode;
 
 class FileSystemKeyStoreTest : public test::BaseFS_Test {
  public:
@@ -205,7 +204,7 @@ TEST_F(FileSystemKeyStoreTest, SignNotFound) {
  */
 TEST_F(FileSystemKeyStoreTest, SignWrongAddress) {
   // generate id address (type 0) which has no key
-  std::vector<uint8_t> bytes{0x0, 0x0, 0xD1, 0xC2, 0xA7, 0x0F};
+  std::vector<uint8_t> bytes{0x0, 0xD1, 0xC2, 0xA7, 0x0F};
   auto wrong_address = decode(bytes).value();
   EXPECT_OUTCOME_ERROR(KeyStoreError::WRONG_ADDRESS,
                        ks->put(wrong_address, bls_keypair_->private_key));

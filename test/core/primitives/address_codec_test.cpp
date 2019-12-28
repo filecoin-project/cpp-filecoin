@@ -3,14 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/address/address_codec.hpp"
-
 #include <gtest/gtest.h>
-
 #include <algorithm>
+#include <unordered_map>
 
+#include "codec/cbor/cbor.hpp"
+#include "primitives/address/address_codec.hpp"
+#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using fc::codec::cbor::CborDecodeStream;
+using fc::codec::cbor::CborEncodeStream;
 using fc::primitives::address::Address;
 using fc::primitives::address::AddressError;
 using fc::primitives::address::decode;
@@ -21,15 +24,23 @@ using fc::primitives::address::Network;
 using fc::primitives::address::Protocol;
 
 struct AddressCodecTest : public testing::Test {
-  std::vector<uint8_t> randomNBytes(uint N) {
-    std::vector<int> v(N);
-    std::generate(v.begin(), v.end(), std::rand);
-    std::vector<uint8_t> u(N);
-    std::transform(v.begin(), v.end(), u.begin(), [](int k) -> uint8_t {
-      return k % 256;
-    });
-    return u;
-  }
+  std::unordered_map<std::string, std::vector<uint8_t>> knownAddresses{
+      {"t17uoq6tp427uzv7fztkbsnn64iwotfrristwpryy",
+       "01fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex},
+      {"t1xcbgdhkgkwht3hrrnui3jdopeejsoatkzmoltqy",
+       "01b882619d46558f3d9e316d11b48dcf211327026a"_unhex},
+      {"t2gfvuyh7v2sx3patm5k23wdzmhyhtmqctasbr23y",
+       "02316b4c1ff5d4afb7826ceab5bb0f2c3e0f364053"_unhex},
+      {"t3vvmn62lofvhjd2ugzca6sof2j2ubwok6cj4xxbfzz4yuxfkgobpihhd2thlanmsh3w2pt"
+       "ld2gqkn2jvlss4a",
+       "03ad58df696e2d4e91ea86c881e938ba4ea81b395e12797b84b9cf314b9546705e839c7a99d606b247ddb4f9ac7a3414dd"_unhex},
+      {"t3wmuu6crofhqmm3v4enos73okk2l366ck6yc4owxwbdtkmpk42ohkqxfitcpa57pjdcftq"
+       "l4tojda2poeruwa",
+       "03b3294f0a2e29e0c66ebc235d2fedca5697bf784af605c75af608e6a63d5cd38ea85ca8989e0efde9188b382f9372460d"_unhex},
+      {"t00", "0000"_unhex},
+      {"t01024", "008008"_unhex},
+      {"t032104785", "00d1c2a70f"_unhex},
+      {"t018446744073709551615", "00ffffffffffffffffff01"_unhex}};
 };
 
 // Address decoding from bytes
@@ -38,15 +49,10 @@ struct AddressCodecTest : public testing::Test {
  * @when Creating an ID Address for the given payload
  * @then ID Address successfully created
  */
-TEST_F(AddressCodecTest, AddressDecodeOK) {
-  std::vector<uint8_t> bytes{
-      0x0,
-      0x0,
-      0xD1,
-      0xC2,
-      0xA7,
-      0x0F};  // {network == MAINNET, protocol == ID, payload == 32104785}
-  EXPECT_OUTCOME_TRUE_2(addr, decode(bytes))
+TEST_F(AddressCodecTest, AddressDecodeOk) {
+  EXPECT_OUTCOME_TRUE_2(
+      addr,
+      decode("00d1c2a70f"_unhex));  // {protocol == ID, payload == 32104785}
   EXPECT_EQ(boost::get<uint64_t>(addr.data), 32104785);
 }
 
@@ -57,34 +63,10 @@ TEST_F(AddressCodecTest, AddressDecodeOK) {
  * integer
  */
 TEST_F(AddressCodecTest, AddressDecodeFailure) {
-  std::vector<uint8_t> bytes{0x1,
-                             0x0,
-                             0x80,
-                             0x80,
-                             0x80,
-                             0x80,
-                             0x80,
-                             0x80,
-                             0x80,
-                             0x80,
-                             0x80,
-                             0x80,
-                             0x01};  // 2^70
   int expected = static_cast<int>(AddressError::INVALID_PAYLOAD);
-  EXPECT_OUTCOME_FALSE_2(error_code, decode(bytes));
+  EXPECT_OUTCOME_FALSE_2(error_code,
+                         decode("008080808080808080808001"_unhex));  // 2^70
   ASSERT_EQ(error_code.value(), expected);
-}
-
-/**
- * @given Array of 20 bytes reprsenting a blake2b-160 hash
- * @when Creating a Secp256k1 Address
- * @then Secp256k1 Address successfully created
- */
-TEST_F(AddressCodecTest, AddressDecodeSecp256k1OK) {
-  std::vector<uint8_t> payload = this->randomNBytes(20);
-  std::vector<uint8_t> bytes{0x1, 0x1};
-  bytes.insert(bytes.end(), payload.begin(), payload.end());
-  EXPECT_OUTCOME_TRUE_1(decode(bytes));
 }
 
 /**
@@ -93,11 +75,11 @@ TEST_F(AddressCodecTest, AddressDecodeSecp256k1OK) {
  * @then INVALID_PAYLOAD error while creating the Address
  */
 TEST_F(AddressCodecTest, InvalidPayloadSize) {
-  std::vector<uint8_t> payload = this->randomNBytes(47);
-  std::vector<uint8_t> bytes{0x1, 0x3};
   int expected = static_cast<int>(AddressError::INVALID_PAYLOAD);
-  bytes.insert(bytes.end(), payload.begin(), payload.end());
-  EXPECT_OUTCOME_FALSE_2(error_code, decode(bytes));
+  EXPECT_OUTCOME_FALSE_2(
+      error_code,
+      decode(
+          "03ceb343dd9694fcfe0f07b3b7f870fec1a7ea6abd7517fc65d33ce3a787a8aea869d99e36da3582c408e15e37421dc8"_unhex));
   ASSERT_EQ(error_code.value(), expected);
 }
 
@@ -107,23 +89,10 @@ TEST_F(AddressCodecTest, InvalidPayloadSize) {
  * @then Address is not created due to UNKNOWN_PROTOCOL error
  */
 TEST_F(AddressCodecTest, UnknownProtocol) {
-  std::vector<uint8_t> payload = this->randomNBytes(20);
-  std::vector<uint8_t> bytes{0x1, 0x4};
   int expected = static_cast<int>(AddressError::UNKNOWN_PROTOCOL);
-  bytes.insert(bytes.end(), payload.begin(), payload.end());
-  EXPECT_OUTCOME_FALSE_2(error_code, decode(bytes));
+  EXPECT_OUTCOME_FALSE_2(
+      error_code, decode("042c39095318f8f2fd4b5927e2042bbd47af0fb4a0"_unhex));
   ASSERT_EQ(error_code.value(), expected);
-}
-
-/**
- * @given An ID Address in testnet
- * @when Calling its String() method
- * @then The output matches expected form "t0XXXXXXXX"
- */
-TEST_F(AddressCodecTest, IDtoString) {
-  std::vector<uint8_t> bytes{0x0, 0x0, 0xD1, 0xC2, 0xA7, 0x0F};  // 32104785
-  EXPECT_OUTCOME_TRUE_2(addr, decode(bytes))
-  EXPECT_EQ(encodeToString(addr), std::string{"f032104785"});
 }
 
 /**
@@ -132,10 +101,8 @@ TEST_F(AddressCodecTest, IDtoString) {
  * @then The size is exactly 4 bytes
  */
 TEST_F(AddressCodecTest, ChecksumSize) {
-  std::vector<uint8_t> payload = this->randomNBytes(20);
-  std::vector<uint8_t> bytes{0x1, 0x1};
-  bytes.insert(bytes.end(), payload.begin(), payload.end());
-  EXPECT_OUTCOME_TRUE_2(addr, decode(bytes));
+  EXPECT_OUTCOME_TRUE_2(
+      addr, decode("01b0b5bf8e99bd815b35a29800d5a44e2d180c32b3"_unhex));
   ASSERT_TRUE(checksum(addr).size() == 4);
 }
 
@@ -147,127 +114,61 @@ TEST_F(AddressCodecTest, ChecksumSize) {
  * @then The outputs match expected strings
  */
 TEST_F(AddressCodecTest, EncodeToString) {
-  EXPECT_OUTCOME_TRUE_2(
-      addr,
-      decode(std::vector<uint8_t>{
-          0x0,  0x1,  0xFD, 0x1D, 0x0F, 0x4D, 0xFC, 0xD7, 0xE9, 0x9A, 0xFC,
-          0xB9, 0x9A, 0x83, 0x26, 0xB7, 0xDC, 0x45, 0x9D, 0x32, 0xC6, 0x28}));
-  EXPECT_EQ(encodeToString(addr),
-            std::string{"f17uoq6tp427uzv7fztkbsnn64iwotfrristwpryy"});
-
-  EXPECT_OUTCOME_TRUE_2(
-      addr2,
-      decode(std::vector<uint8_t>{
-          0x0,  0x1,  0xB8, 0x82, 0x61, 0x9D, 0x46, 0x55, 0x8F, 0x3D, 0x9E,
-          0x31, 0x6D, 0x11, 0xB4, 0x8D, 0xCF, 0x21, 0x13, 0x27, 0x02, 0x6A}));
-  EXPECT_EQ(encodeToString(addr2),
-            std::string{"f1xcbgdhkgkwht3hrrnui3jdopeejsoatkzmoltqy"});
-
-  EXPECT_OUTCOME_TRUE_2(
-      addr3,
-      decode(std::vector<uint8_t>{
-          0x0,  0x2,  0x31, 0x6B, 0x4C, 0x1F, 0xF5, 0xD4, 0xAF, 0xB7, 0x82,
-          0x6C, 0xEA, 0xB5, 0xBB, 0x0F, 0x2C, 0x3E, 0x0F, 0x36, 0x40, 0x53}));
-  EXPECT_EQ(encodeToString(addr3),
-            std::string{"f2gfvuyh7v2sx3patm5k23wdzmhyhtmqctasbr23y"});
-
-  EXPECT_OUTCOME_TRUE_2(
-      addr4,
-      decode(std::vector<uint8_t>{
-          0x0,  0x3,  0xAD, 0x58, 0xDF, 0x69, 0x6E, 0x2D, 0x4E, 0x91,
-          0xEA, 0x86, 0xC8, 0x81, 0xE9, 0x38, 0xBA, 0x4E, 0xA8, 0x1B,
-          0x39, 0x5E, 0x12, 0x79, 0x7B, 0x84, 0xB9, 0xCF, 0x31, 0x4B,
-          0x95, 0x46, 0x70, 0x5E, 0x83, 0x9C, 0x7A, 0x99, 0xD6, 0x06,
-          0xB2, 0x47, 0xDD, 0xB4, 0xF9, 0xAC, 0x7A, 0x34, 0x14, 0xDD}));
-  EXPECT_EQ(encodeToString(addr4),
-            std::string{"f3vvmn62lofvhjd2ugzca6sof2j2ubwok6cj4xxbfzz4yuxfkgobpi"
-                        "hhd2thlanmsh3w2ptld2gqkn2jvlss4a"});
-
-  EXPECT_OUTCOME_TRUE_2(
-      addr5,
-      decode(std::vector<uint8_t>{
-          0x0,  0x3,  0xB3, 0x29, 0x4F, 0x0A, 0x2E, 0x29, 0xE0, 0xC6,
-          0x6E, 0xBC, 0x23, 0x5D, 0x2F, 0xED, 0xCA, 0x56, 0x97, 0xBF,
-          0x78, 0x4A, 0xF6, 0x05, 0xC7, 0x5A, 0xF6, 0x08, 0xE6, 0xA6,
-          0x3D, 0x5C, 0xD3, 0x8E, 0xA8, 0x5C, 0xA8, 0x98, 0x9E, 0x0E,
-          0xFD, 0xE9, 0x18, 0x8B, 0x38, 0x2F, 0x93, 0x72, 0x46, 0x0D}));
-  EXPECT_EQ(encodeToString(addr5),
-            std::string{"f3wmuu6crofhqmm3v4enos73okk2l366ck6yc4owxwbdtkmpk42ohk"
-                        "qxfitcpa57pjdcftql4tojda2poeruwa"});
-
-  EXPECT_OUTCOME_TRUE_2(addr6,
-                        decode(std::vector<uint8_t>{0x0, 0x0, 0x0, 0x0}));
-  EXPECT_EQ(encodeToString(addr6), std::string{"f00"});
-
-  EXPECT_OUTCOME_TRUE_2(addr7,
-                        decode(std::vector<uint8_t>{0x0, 0x0, 0x80, 0x08}));
-  EXPECT_EQ(encodeToString(addr7), std::string{"f01024"});
-
-  EXPECT_OUTCOME_TRUE_2(addr8,
-                        decode(std::vector<uint8_t>{0x0,
-                                                    0x0,
-                                                    0xFF,
-                                                    0xFF,
-                                                    0xFF,
-                                                    0xFF,
-                                                    0xFF,
-                                                    0xFF,
-                                                    0xFF,
-                                                    0xFF,
-                                                    0xFF,
-                                                    0x01}));
-  EXPECT_EQ(encodeToString(addr8), std::string{"f018446744073709551615"});
+  for (auto it = this->knownAddresses.begin(); it != this->knownAddresses.end();
+       it++) {
+    EXPECT_OUTCOME_TRUE_2(addr, decode(it->second));
+    EXPECT_EQ(encodeToString(addr), it->first);
+  }
 }
 
 // Verify known addresses decoding from string
 // https://filecoin-project.github.io/specs/#id-type-addresses
 /**
- * @given A set of pairs (address_in_hex, address_base32_string)
- * @when Decoding addresses from strings
- * @then The outputs match expected strings
+ * @given A set of addresses encoded as strings
+ * @when Decoding addresses from string representation and re-encoding back to
+ * string
+ * @then The outputs match the original strings
  */
-TEST_F(AddressCodecTest, DecodeFromString) {
-  EXPECT_OUTCOME_TRUE_2(addr,
-                        decodeFromString(std::string{
-                            "f17uoq6tp427uzv7fztkbsnn64iwotfrristwpryy"}));
-  EXPECT_EQ(encodeToString(addr),
-            std::string{"f17uoq6tp427uzv7fztkbsnn64iwotfrristwpryy"});
+TEST_F(AddressCodecTest, RoundTripDecodeEncode) {
+  for (auto it = this->knownAddresses.begin(); it != this->knownAddresses.end();
+       it++) {
+    EXPECT_OUTCOME_TRUE_2(addr, decodeFromString(it->first));
+    EXPECT_EQ(encodeToString(addr), it->first);
+  }
+}
 
-  EXPECT_OUTCOME_TRUE_2(addr2,
-                        decodeFromString(std::string{
-                            "f1xcbgdhkgkwht3hrrnui3jdopeejsoatkzmoltqy"}));
-  EXPECT_EQ(encodeToString(addr2),
-            std::string{"f1xcbgdhkgkwht3hrrnui3jdopeejsoatkzmoltqy"});
-
-  EXPECT_OUTCOME_TRUE_2(addr3,
-                        decodeFromString(std::string{
-                            "f2gfvuyh7v2sx3patm5k23wdzmhyhtmqctasbr23y"}));
-  EXPECT_EQ(encodeToString(addr3),
-            std::string{"f2gfvuyh7v2sx3patm5k23wdzmhyhtmqctasbr23y"});
-
-  EXPECT_OUTCOME_TRUE_2(addr4,
-                        decodeFromString(std::string{
-                            "f3vvmn62lofvhjd2ugzca6sof2j2ubwok6cj4xxbfzz4yuxfkg"
-                            "obpihhd2thlanmsh3w2ptld2gqkn2jvlss4a"}));
-  EXPECT_EQ(encodeToString(addr4),
-            std::string{"f3vvmn62lofvhjd2ugzca6sof2j2ubwok6cj4xxbfzz4yuxfkgobpi"
-                        "hhd2thlanmsh3w2ptld2gqkn2jvlss4a"});
-
-  EXPECT_OUTCOME_TRUE_2(addr5,
-                        decodeFromString(std::string{
-                            "f3wmuu6crofhqmm3v4enos73okk2l366ck6yc4owxwbdtkmpk4"
-                            "2ohkqxfitcpa57pjdcftql4tojda2poeruwa"}));
-  EXPECT_EQ(encodeToString(addr5),
-            std::string{"f3wmuu6crofhqmm3v4enos73okk2l366ck6yc4owxwbdtkmpk42ohk"
-                        "qxfitcpa57pjdcftql4tojda2poeruwa"});
-
-  EXPECT_OUTCOME_TRUE_2(addr6, decodeFromString(std::string{"f00"}));
-  EXPECT_EQ(encodeToString(addr6), std::string{"f00"});
-
-  EXPECT_OUTCOME_TRUE_2(addr7, decodeFromString(std::string{"f01024"}));
-  EXPECT_EQ(encodeToString(addr7), std::string{"f01024"});
+// CBOR encoding/decoding to stream
+/**
+ * @given An ID address and a Secp256k1 hash address
+ * @when Encoding to CBOR and comparing with the known encodings
+ * @then The outputs match expectations
+ */
+TEST_F(AddressCodecTest, MarshalCbor) {
+  EXPECT_OUTCOME_TRUE_2(addr1, decode("0001"_unhex));
+  CborEncodeStream s1;
+  s1 << addr1;
+  EXPECT_EQ(s1.data(), "420001"_unhex);
 
   EXPECT_OUTCOME_TRUE_2(
-      addr8, decodeFromString(std::string{"f018446744073709551615"}));
-  EXPECT_EQ(encodeToString(addr8), std::string{"f018446744073709551615"});
+      addr2, decode("01fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex));
+  CborEncodeStream s2;
+  s2 << addr2;
+  EXPECT_EQ(s2.data(), "5501fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex);
+}
+
+/**
+ * @given A set of address-as-strings
+ * @when Encoding to CBOR and decoding back, followed by re-encoding to string
+ * @then The outputs match original strings
+ */
+TEST_F(AddressCodecTest, CborRoundTrip) {
+  for (auto it = this->knownAddresses.begin(); it != this->knownAddresses.end();
+       it++) {
+    EXPECT_OUTCOME_TRUE_2(addr, decodeFromString(it->first));
+    CborEncodeStream s;
+    s << addr;
+    Address addr2{};
+    CborDecodeStream(s.data()) >> addr2;
+    EXPECT_EQ(encodeToString(addr2), it->first);
+  }
 }
