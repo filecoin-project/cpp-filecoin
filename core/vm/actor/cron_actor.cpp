@@ -17,7 +17,7 @@ fc::outcome::result<void> fc::vm::actor::CronActor::EpochTick(
     return CronActorError::WRONG_CALL;
   }
 
-  for (auto entry : entries) {
+  for (const auto& entry : entries) {
     OUTCOME_TRY(vmctx.send(entry.to_addr, entry.method_num, BigInt(1), {}));
   }
   return outcome::success();

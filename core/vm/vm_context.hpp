@@ -16,6 +16,8 @@ namespace fc::vm {
 
   class VMContext {
    public:
+    virtual ~VMContext() = 0;
+
     virtual outcome::result<void> send(primitives::address::Address to,
                                        uint64_t method,
                                        actor::BigInt value,
