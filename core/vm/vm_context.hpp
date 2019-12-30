@@ -16,7 +16,7 @@ namespace fc::vm {
 
   class VMContext {
    public:
-    virtual ~VMContext() = 0;
+    virtual ~VMContext() = default;
 
     virtual outcome::result<void> send(primitives::address::Address to,
                                        uint64_t method,
