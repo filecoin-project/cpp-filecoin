@@ -12,8 +12,8 @@
 namespace fc::crypto::vrf {
   using VRFOutput = common::Hash256;
 
-  using VRFPublicKey = bls::PublicKey;
-  using VRFSecretKey = bls::PrivateKey;
+  using VRFPublicKey = bls::PublicKey; // questionable
+  using VRFSecretKey = bls::PrivateKey; // questionable
   using VRFProof = bls::Signature;
   using VRFResult = bls::Signature;
 

@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_CHAIN_STATE_MANAGER_UTIL_HPP
 #define CPP_FILECOIN_CORE_CHAIN_STATE_MANAGER_UTIL_HPP
 
-#include "chain/state_manager/state_manager.hpp"
+#include "state_manager.hpp"
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
 

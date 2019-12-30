@@ -7,5 +7,5 @@ add_library(vrf_provider
 target_link_libraries(vrf_provider
     address
     blob
-    p2p::p2p_sha
+    p2p::p2p_multihash
     )

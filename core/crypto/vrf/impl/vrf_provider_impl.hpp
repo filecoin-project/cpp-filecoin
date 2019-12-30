@@ -19,12 +19,14 @@ namespace fc::crypto::vrf {
 
     outcome::result<VRFResult> generateVRF(
         randomness::DomainSeparationTag tag,
-        const Address &miner,
+        const VRFSecretKey &worker_priv_key,
+        const Buffer &miner_bytes,
         const Buffer &message) const override;
 
     virtual outcome::result<bool> verifyVRF(
         randomness::DomainSeparationTag tag,
-        const Address &miner,
+        const VRFSecretKey &worker_priv_key,
+        const Buffer &miner_bytes,
         const Buffer &message,
         const VRFProof &vrf_proof) const override;
 
@@ -32,7 +34,7 @@ namespace fc::crypto::vrf {
     // calculates vrf hash
     outcome::result<common::Hash256> vrfHash(
         randomness::DomainSeparationTag tag,
-        const Address &miner,
+        const Buffer &miner_bytes,
         const Buffer &message) const;
 
     std::shared_ptr<bls::BlsProvider> bls_provider_; ///< bls provider instance

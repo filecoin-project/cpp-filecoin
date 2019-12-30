@@ -5,7 +5,7 @@
 
 #include "crypto/vrf/impl/vrf_provider_impl.hpp"
 
-#include <libp2p/crypto/sha/sha256.hpp>
+#include <libp2p/multi/multihash.hpp>
 
 #include "common/le_encoder.hpp"
 #include "common/outcome.hpp"
@@ -19,42 +19,39 @@ namespace fc::crypto::vrf {
 
   outcome::result<VRFResult> VRFProviderImpl::generateVRF(
       randomness::DomainSeparationTag tag,
-      const Address &miner,
+      const VRFSecretKey &worker_priv_key,
+      const Buffer &miner_bytes,
       const Buffer &message) const {
-    OUTCOME_TRY(hash_base, vrfHash(tag, miner, message));
-
-    return bls_provider_->sign();
+    OUTCOME_TRY(hash_base, vrfHash(tag, miner_bytes, message));
+    return bls_provider_->sign(message, worker_priv_key);
   }
 
   outcome::result<bool> VRFProviderImpl::verifyVRF(
       randomness::DomainSeparationTag tag,
-      const Address &miner,
+      const VRFSecretKey &worker_priv_key,
+      const Buffer &miner_bytes,
       const Buffer &message,
       const VRFProof &vrf_proof) const {
-    //    return outcome::failure();
+    OUTCOME_TRY(hash_base, vrfHash(tag, miner_bytes, message));
+    return bls_provider_->verifySignature(message, vrf_proof, )
   }
 
   outcome::result<common::Hash256> VRFProviderImpl::vrfHash(
       randomness::DomainSeparationTag tag,
-      const Address &miner,
+      const Buffer &miner_bytes,
       const Buffer &message) const {
-    if (miner.getProtocol() != primitives::address::Protocol::ID) {
-      return VRFError::MINER_ADDRESS_NOT_ID;
-    }
-
     Buffer out{};
-    auto &&address_bytes = primitives::address::encode(miner);
     auto required_bytes = sizeof(uint64_t) + 2 * sizeof(uint8_t)
-                          + message.size() + address_bytes.size();
+                          + message.size() + miner_bytes.size();
     out.reserve(required_bytes);
     common::encodeInteger(static_cast<uint64_t>(tag), out);
     out.putUint8(0u);
     out.putBuffer(message);
     out.putUint8(0u);
-    out.put(address_bytes);
-    auto &&hash = libp2p::crypto::sha256(out);
+    out.put(miner_bytes);
+    OUTCOME_TRY(multi_hash, libp2p::multi::Multihash::create(libp2p::multi::HashType::sha256, out));
 
-    return common::Hash256(hash);
+    return common::Hash256::fromSpan(multi_hash.toBuffer());
   }
 }  // namespace fc::crypto::vrf
 

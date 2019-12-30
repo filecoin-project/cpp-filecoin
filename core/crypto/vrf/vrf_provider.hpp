@@ -32,18 +32,21 @@ namespace fc::crypto::vrf {
      * @brief generates vrf based on personalization, miner address and message
      * @param tag personalization tag
      * @param miner address
+     * @param miner address
      * @param message message
      * @return vrf result
      */
     virtual outcome::result<VRFResult> generateVRF(
         randomness::DomainSeparationTag tag,
-        const Address &miner,
+        const VRFSecretKey &worker_priv_key,
+        const Buffer &miner_bytes,
         const Buffer &message) const = 0;
 
     // TODO(yuraz) specify entities in description
     /**
      * @brief verifies *** against ***
      * @param tag personalization tag
+     * * @param worker address
      * @param miner address
      * @param message message
      * @param vrf_proof proof
@@ -51,7 +54,8 @@ namespace fc::crypto::vrf {
      */
     virtual outcome::result<bool> verifyVRF(
         randomness::DomainSeparationTag tag,
-        const Address &miner,
+        const VRFSecretKey &worker_priv_key,
+        const Buffer &miner_bytes,
         const Buffer &message,
         const VRFProof &vrf_proof) const = 0;
   };
