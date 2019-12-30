@@ -13,27 +13,30 @@
 
 namespace fc::crypto::vrf {
 
+  using libp2p::multi::HashType;
+  using libp2p::multi::Multihash;
+
   VRFProviderImpl::VRFProviderImpl(
       std::shared_ptr<bls::BlsProvider> bls_provider)
       : bls_provider_(std::move(bls_provider)) {}
 
   outcome::result<VRFResult> VRFProviderImpl::generateVRF(
       randomness::DomainSeparationTag tag,
-      const VRFSecretKey &worker_priv_key,
+      const VRFSecretKey &worker_secret_key,
       const Buffer &miner_bytes,
       const Buffer &message) const {
-    OUTCOME_TRY(hash_base, vrfHash(tag, miner_bytes, message));
-    return bls_provider_->sign(message, worker_priv_key);
+    OUTCOME_TRY(hash, vrfHash(tag, miner_bytes, message));
+    return bls_provider_->sign(hash, worker_secret_key);
   }
 
   outcome::result<bool> VRFProviderImpl::verifyVRF(
       randomness::DomainSeparationTag tag,
-      const VRFSecretKey &worker_priv_key,
+      const VRFPublicKey &worker_public_key,
       const Buffer &miner_bytes,
       const Buffer &message,
       const VRFProof &vrf_proof) const {
-    OUTCOME_TRY(hash_base, vrfHash(tag, miner_bytes, message));
-    return bls_provider_->verifySignature(message, vrf_proof, )
+    OUTCOME_TRY(hash, vrfHash(tag, miner_bytes, message));
+    return bls_provider_->verifySignature(hash, vrf_proof, worker_public_key);
   }
 
   outcome::result<common::Hash256> VRFProviderImpl::vrfHash(
@@ -49,7 +52,7 @@ namespace fc::crypto::vrf {
     out.putBuffer(message);
     out.putUint8(0u);
     out.put(miner_bytes);
-    OUTCOME_TRY(multi_hash, libp2p::multi::Multihash::create(libp2p::multi::HashType::sha256, out));
+    OUTCOME_TRY(multi_hash, Multihash::create(HashType::sha256, out));
 
     return common::Hash256::fromSpan(multi_hash.toBuffer());
   }

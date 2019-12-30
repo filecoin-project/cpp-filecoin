@@ -19,13 +19,13 @@ namespace fc::crypto::vrf {
 
     outcome::result<VRFResult> generateVRF(
         randomness::DomainSeparationTag tag,
-        const VRFSecretKey &worker_priv_key,
+        const VRFSecretKey &worker_secret_key,
         const Buffer &miner_bytes,
         const Buffer &message) const override;
 
     virtual outcome::result<bool> verifyVRF(
         randomness::DomainSeparationTag tag,
-        const VRFSecretKey &worker_priv_key,
+        const VRFPublicKey &worker_public_key,
         const Buffer &miner_bytes,
         const Buffer &message,
         const VRFProof &vrf_proof) const override;
