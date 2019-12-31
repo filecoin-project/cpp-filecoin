@@ -32,7 +32,7 @@ struct VRFHashProviderTest : public ::testing::Test {
     id_address = makeIdAddress(123u);
     bls_address = makeBlsAddress(bls_blob);
     vrf_hash =
-        "BAE3602078ADEBB2BCA92DB336702120D1473A29E98287CC077B462F7F62EAD9"_blob32;
+        "661E466606D72B22721484220DCF3FFB44A3ACA3A5D2CC883C9B26281C8E8B27"_blob32;
   }
 };
 
@@ -55,6 +55,5 @@ TEST_F(VRFHashProviderTest, HashBlsAddressSuccess) {
       result,
       hash_provider.create(
           DomainSeparationTag::TicketProductionDST, bls_address, message))
-  std::cout << "hash = " << result.toHex() << std::endl;
   ASSERT_EQ(result, vrf_hash);
 }
