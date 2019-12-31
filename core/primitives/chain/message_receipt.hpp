@@ -9,6 +9,9 @@
 #include "common/buffer.hpp"
 #include "primitives/big_int.hpp"
 
+// TODO (yuraz) not really used yet, just a sketch remove this message after
+// implementing real structures
+S
 namespace fc::primitives::chain {
   /**
    * @brief MessageReceipt struct for chain::types

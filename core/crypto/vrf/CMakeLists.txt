@@ -4,9 +4,10 @@
 add_library(vrf_provider
     impl/vrf_provider_impl.cpp
     vrfhash_provider.cpp
+    vrf_types.cpp
     )
 target_link_libraries(vrf_provider
     address
     blob
-    p2p::p2p_multihash
+    p2p::p2p_sha
     )

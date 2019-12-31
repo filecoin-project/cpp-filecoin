@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_CORE_CRYPTO_VRF_VRF_HASH_PROVIDER_HPP
 
 #include "crypto/randomness/randomness_types.hpp"
+#include "crypto/vrf/vrf_types.hpp"
 #include "primitives/address/address.hpp"
 
 namespace fc::crypto::vrf {
@@ -26,9 +27,9 @@ namespace fc::crypto::vrf {
      * @param message data to hash
      * @return vrf hash value
      */
-    outcome::result<common::Hash256> create(DomainSeparationTag tag,
-                                            const Address &miner_address,
-                                            const Buffer &message);
+    static outcome::result<VRFHash> create(DomainSeparationTag tag,
+                                           const Address &miner_address,
+                                           const Buffer &message);
   };
 
 }  // namespace fc::crypto::vrf

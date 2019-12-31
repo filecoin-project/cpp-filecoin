@@ -27,9 +27,10 @@ namespace fc::crypto::vrf {
 
   enum class VRFError {
     MINER_ADDRESS_NOT_ID =
-        1,  // miner address need to be id type to calculate hash
-    VERIFICATION_FAILED = 2,  // vrf verification failed
-    SIGN_FAILED = 3,          // vrf sing message failed
+        1,                // miner address need to be id type to calculate hash
+    VERIFICATION_FAILED,  // vrf verification failed
+    SIGN_FAILED,          // vrf sing message failed
+    ADDRESS_IS_NOT_BLS,   // vrf hash can be based only on bls
   };
 }  // namespace fc::crypto::vrf
 

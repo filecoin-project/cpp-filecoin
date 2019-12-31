@@ -34,17 +34,3 @@ namespace fc::crypto::vrf {
     return res.value();
   }
 }  // namespace fc::crypto::vrf
-
-OUTCOME_CPP_DEFINE_CATEGORY(fc::crypto::vrf, VRFError, e) {
-  using fc::crypto::vrf::VRFError;
-  switch (e) {
-    case (VRFError::MINER_ADDRESS_NOT_ID):
-      return "miner address has to be of ID type to calculate hash";
-    case VRFError::VERIFICATION_FAILED:
-      return "VRF verification failed";
-    case VRFError::SIGN_FAILED:
-      return "VRF message sign failed";
-  }
-
-  return "unknown error";
-}

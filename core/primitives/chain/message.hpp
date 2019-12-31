@@ -6,9 +6,12 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_CHAIN_MESSAGE_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_CHAIN_MESSAGE_HPP
 
+#include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
-#include "common/buffer.hpp"
+
+// TODO (yuraz) not really used yet, just a sketch remove this message after
+// implementing real structures
 
 namespace fc::primitives::chain {
   struct Message {
@@ -21,6 +24,6 @@ namespace fc::primitives::chain {
     uint64_t method;
     common::Buffer params;
   };
-}
+}  // namespace fc::primitives::chain
 
-#endif //CPP_FILECOIN_CORE_PRIMITIVES_CHAIN_MESSAGE_HPP
+#endif  // CPP_FILECOIN_CORE_PRIMITIVES_CHAIN_MESSAGE_HPP
