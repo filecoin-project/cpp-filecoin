@@ -6,8 +6,8 @@
 #ifndef CPP_FILECOIN_CORE_CRYPTO_VRF_IMPL_VRF_PROVIDER_IMPL_HPP
 #define CPP_FILECOIN_CORE_CRYPTO_VRF_IMPL_VRF_PROVIDER_IMPL_HPP
 
-#include "crypto/vrf/vrf_provider.hpp"
 #include "crypto/bls/bls_provider.hpp"
+#include "crypto/vrf/vrf_provider.hpp"
 
 namespace fc::crypto::vrf {
 
@@ -18,26 +18,15 @@ namespace fc::crypto::vrf {
     explicit VRFProviderImpl(std::shared_ptr<bls::BlsProvider> bls_provider);
 
     outcome::result<VRFResult> generateVRF(
-        randomness::DomainSeparationTag tag,
         const VRFSecretKey &worker_secret_key,
-        const Buffer &miner_bytes,
-        const Buffer &message) const override;
+        const VRFHash &msg) const override;
 
-    virtual outcome::result<bool> verifyVRF(
-        randomness::DomainSeparationTag tag,
-        const VRFPublicKey &worker_public_key,
-        const Buffer &miner_bytes,
-        const Buffer &message,
-        const VRFProof &vrf_proof) const override;
+    outcome::result<bool> verifyVRF(const VRFPublicKey &worker_public_key,
+                                    const VRFHash &msg,
+                                    const VRFProof &vrf_proof) const override;
 
    private:
-    // calculates vrf hash
-    outcome::result<common::Hash256> vrfHash(
-        randomness::DomainSeparationTag tag,
-        const Buffer &miner_bytes,
-        const Buffer &message) const;
-
-    std::shared_ptr<bls::BlsProvider> bls_provider_; ///< bls provider instance
+    std::shared_ptr<bls::BlsProvider> bls_provider_;  ///< bls provider instance
   };
 
 }  // namespace fc::crypto::vrf

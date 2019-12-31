@@ -10,12 +10,12 @@
 #include "crypto/bls/bls_types.hpp"
 
 namespace fc::crypto::vrf {
-  using VRFOutput = common::Hash256;
 
-  using VRFPublicKey = bls::PublicKey; // questionable
-  using VRFSecretKey = bls::PrivateKey; // questionable
+  using VRFPublicKey = bls::PublicKey;
+  using VRFSecretKey = bls::PrivateKey;
   using VRFProof = bls::Signature;
   using VRFResult = bls::Signature;
+  using VRFHash = common::Hash256;
 
   /**
    * @brief VRF key pair definition
@@ -25,13 +25,11 @@ namespace fc::crypto::vrf {
     VRFSecretKey secret_key;
   };
 
-  /**
-   * @brief hash personalization value
-   */
-  enum HashPersonalization : uint64_t { DSepTicket = 1, DSepElectionPost = 2 };
-
   enum class VRFError {
-    MINER_ADDRESS_NOT_ID = 1, // miner address need to be id type to calculate hash
+    MINER_ADDRESS_NOT_ID =
+        1,  // miner address need to be id type to calculate hash
+    VERIFICATION_FAILED = 2,  // vrf verification failed
+    SIGN_FAILED = 3,          // vrf sing message failed
   };
 }  // namespace fc::crypto::vrf
 

@@ -3,6 +3,7 @@
 
 add_library(vrf_provider
     impl/vrf_provider_impl.cpp
+    vrfhash_provider.cpp
     )
 target_link_libraries(vrf_provider
     address
