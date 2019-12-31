@@ -54,6 +54,7 @@ TEST_F(VRFHashProviderTest, HashBlsAddressSuccess) {
   EXPECT_OUTCOME_TRUE(
       result,
       hash_provider.create(
-          DomainSeparationTag::TicketProductionDST, bls_address, message));
+          DomainSeparationTag::TicketProductionDST, bls_address, message))
+  std::cout << "hash = " << result.toHex() << std::endl;
   ASSERT_EQ(result, vrf_hash);
 }
