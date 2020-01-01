@@ -16,11 +16,11 @@ namespace fc::vm::message {
   BlsMessageSigner::BlsMessageSigner()
       : bls_provider_(std::make_shared<BlsProviderImpl>()) {}
   BlsMessageSigner::BlsMessageSigner(std::shared_ptr<BlsProvider> bls_provider)
-      : bls_provider_(bls_provider) {}
+      : bls_provider_(std::move(bls_provider)) {}
 
   outcome::result<SignedMessage> BlsMessageSigner::sign(
       const UnsignedMessage &msg, const PrivateKey &key) noexcept {
-    if (key.size() != kBlsPrivateKeyLength) {
+    if (static_cast<uint64_t>(key.size()) != kBlsPrivateKeyLength) {
       return outcome::failure(MessageError::INVALID_KEY_LENGTH);
     }
     BlsPrivateKey privateKey{};
@@ -44,7 +44,7 @@ namespace fc::vm::message {
         || !common::which<Signature::BlsSignature>(msg.signature.data)) {
       return outcome::failure(MessageError::WRONG_SIGNATURE_TYPE);
     }
-    if (key.size() != kBlsPublicKeyLength) {
+    if (static_cast<uint64_t>(key.size()) != kBlsPublicKeyLength) {
       return outcome::failure(MessageError::INVALID_KEY_LENGTH);
     }
     BlsPublicKey publicKey{};

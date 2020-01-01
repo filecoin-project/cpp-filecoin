@@ -18,19 +18,19 @@ namespace fc::vm::message {
   class BlsMessageSigner : public MessageSigner {
    public:
     BlsMessageSigner();
-    BlsMessageSigner(std::shared_ptr<BlsProvider> bls_provider);
+    explicit BlsMessageSigner(std::shared_ptr<BlsProvider> bls_provider);
 
     /**
      * @copydoc MessageSigner::sign()
      */
-    virtual outcome::result<SignedMessage> sign(const UnsignedMessage &msg,
-                                                const PrivateKey &key) noexcept;
+    outcome::result<SignedMessage> sign(
+        const UnsignedMessage &msg, const PrivateKey &key) noexcept override;
 
     /**
      * @copydoc MessageSigner::verify()
      */
-    virtual outcome::result<bool> verify(const SignedMessage &msg,
-                                         const PublicKey &key) noexcept;
+    outcome::result<bool> verify(const SignedMessage &msg,
+                                 const PublicKey &key) noexcept override;
 
    private:
     std::shared_ptr<BlsProvider> bls_provider_;

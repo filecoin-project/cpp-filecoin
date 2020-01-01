@@ -54,14 +54,14 @@ namespace fc::vm::message {
   Stream &operator>>(Stream &&s, Signature &signature) {
     std::vector<uint8_t> data{};
     s >> data;
-    if (data.size() < 1 || data.size() > kSignatureMaxLength) {
+    if (data.empty() || data.size() > kSignatureMaxLength) {
       outcome::raise(MessageError::INVALID_SIGNATURE_LENGTH);
     }
     switch (data[0]) {
       case (Signature::SECP256K1):
         signature.type = Signature::SECP256K1;
-        signature.data = std::move(
-            Signature::Secp256k1Signature(std::next(data.begin()), data.end()));
+        signature.data =
+            Signature::Secp256k1Signature(std::next(data.begin()), data.end());
         break;
       case (Signature::BLS): {
         signature.type = Signature::BLS;
@@ -72,7 +72,7 @@ namespace fc::vm::message {
         std::copy_n(std::make_move_iterator(std::next(data.begin())),
                     kBlsSignatureLength,
                     blsSig.begin());
-        signature.data = std::move(blsSig);
+        signature.data = blsSig;
         break;
       }
       default:

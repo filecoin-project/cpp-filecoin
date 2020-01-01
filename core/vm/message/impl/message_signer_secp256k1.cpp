@@ -16,11 +16,12 @@ namespace fc::vm::message {
       : secp256k1_provider_(std::make_shared<Secp256k1ProviderImpl>()) {}
   Secp256k1MessageSigner::Secp256k1MessageSigner(
       std::shared_ptr<Secp256k1Provider> secp256k1_provider)
-      : secp256k1_provider_(secp256k1_provider) {}
+      : secp256k1_provider_(std::move(secp256k1_provider)) {}
 
   outcome::result<SignedMessage> Secp256k1MessageSigner::sign(
       const UnsignedMessage &msg, const PrivateKey &key) noexcept {
-    if (key.size() != crypto::secp256k1::kPrivateKeyLength) {
+    if (static_cast<uint64_t>(key.size())
+        != crypto::secp256k1::kPrivateKeyLength) {
       return outcome::failure(MessageError::INVALID_KEY_LENGTH);
     }
     Secp256k1PrivateKey privateKey{};
@@ -43,7 +44,8 @@ namespace fc::vm::message {
         || !common::which<Signature::Secp256k1Signature>(msg.signature.data)) {
       return outcome::failure(MessageError::WRONG_SIGNATURE_TYPE);
     }
-    if (key.size() != crypto::secp256k1::kPublicKeyLength) {
+    if (static_cast<uint64_t>(key.size())
+        != crypto::secp256k1::kPublicKeyLength) {
       return outcome::failure(MessageError::INVALID_KEY_LENGTH);
     }
     Secp256k1PublicKey publicKey{};

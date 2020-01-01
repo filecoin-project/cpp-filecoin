@@ -18,20 +18,20 @@ namespace fc::vm::message {
   class Secp256k1MessageSigner : public MessageSigner {
    public:
     Secp256k1MessageSigner();
-    Secp256k1MessageSigner(
+    explicit Secp256k1MessageSigner(
         std::shared_ptr<Secp256k1Provider> secp256k1_provider);
 
     /**
      * @copydoc MessageSigner::sign()
      */
-    virtual outcome::result<SignedMessage> sign(const UnsignedMessage &msg,
-                                                const PrivateKey &key) noexcept;
+    outcome::result<SignedMessage> sign(
+        const UnsignedMessage &msg, const PrivateKey &key) noexcept override;
 
     /**
      * @copydoc MessageSigner::verify()
      */
-    virtual outcome::result<bool> verify(const SignedMessage &msg,
-                                         const PublicKey &key) noexcept;
+    outcome::result<bool> verify(const SignedMessage &msg,
+                                 const PublicKey &key) noexcept override;
 
    private:
     std::shared_ptr<Secp256k1Provider> secp256k1_provider_;
