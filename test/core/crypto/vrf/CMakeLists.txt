@@ -6,8 +6,6 @@ addtest(vrfhash_test
     )
 target_link_libraries(vrfhash_test
     vrf_provider
-    blob
-    buffer
     )
 
 addtest(vrf_provider_test

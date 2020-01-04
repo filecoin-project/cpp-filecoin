@@ -31,6 +31,6 @@ namespace fc::crypto::vrf {
     out.put(miner_bytes);
     auto hash = libp2p::crypto::sha256(out);
 
-    return common::Hash256::fromSpan(hash);
+    return VRFHash::fromSpan(hash);
   }
 }  // namespace fc::crypto::vrf

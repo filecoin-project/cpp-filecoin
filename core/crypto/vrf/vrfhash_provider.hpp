@@ -12,7 +12,8 @@
 
 namespace fc::crypto::vrf {
   /**
-   * @class VRFHashProvider used to create VRFHash
+   * @class VRFHashProvider used to create VRFHash according to lotus hash implementation:
+   * https://github.com/filecoin-project/lotus/blob/1914412adf3c81028fcc305b887ca8ad189bc2dc/chain/gen/gen.go#L579
    */
   class VRFHashProvider {
    public:

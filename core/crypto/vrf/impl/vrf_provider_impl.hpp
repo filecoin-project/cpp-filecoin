@@ -17,11 +17,11 @@ namespace fc::crypto::vrf {
 
     explicit VRFProviderImpl(std::shared_ptr<bls::BlsProvider> bls_provider);
 
-    outcome::result<VRFResult> generateVRF(
-        const VRFSecretKey &worker_secret_key,
+    outcome::result<VRFResult> computeVRF(
+        const VRFSecretKey &secret_key,
         const VRFHash &msg) const override;
 
-    outcome::result<bool> verifyVRF(const VRFPublicKey &worker_public_key,
+    outcome::result<bool> verifyVRF(const VRFPublicKey &public_key,
                                     const VRFHash &msg,
                                     const VRFProof &vrf_proof) const override;
 

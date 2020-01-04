@@ -46,7 +46,7 @@ TEST_F(VRFProviderTest, VRFGenerateVerifySuccess) {
   EXPECT_OUTCOME_TRUE(key_pair, bls_provider->generateKeyPair())
   VRFSecretKey vrf_secret_key{key_pair.private_key};
   EXPECT_OUTCOME_TRUE(signature,
-                      vrf_provider->generateVRF(vrf_secret_key, message))
+                      vrf_provider->computeVRF(vrf_secret_key, message))
   VRFPublicKey vrf_public_key{key_pair.public_key};
   EXPECT_OUTCOME_TRUE(
       signature_status,
@@ -66,7 +66,7 @@ TEST_F(VRFProviderTest, VRFVerifyWrongKeyFail) {
 
   VRFSecretKey vrf_secret_key{key_pair.private_key};
   EXPECT_OUTCOME_TRUE(signature,
-                      vrf_provider->generateVRF(vrf_secret_key, message))
+                      vrf_provider->computeVRF(vrf_secret_key, message))
   // get pk from other pair
   VRFPublicKey vrf_public_key{key_pair1.public_key};
   EXPECT_OUTCOME_TRUE(
@@ -86,7 +86,7 @@ TEST_F(VRFProviderTest, VRFVerifyWrongMessageFail) {
 
   VRFSecretKey vrf_secret_key{key_pair.private_key};
   EXPECT_OUTCOME_TRUE(signature,
-                      vrf_provider->generateVRF(vrf_secret_key, message))
+                      vrf_provider->computeVRF(vrf_secret_key, message))
   // get pk from other pair
   VRFPublicKey vrf_public_key{key_pair.public_key};
   EXPECT_OUTCOME_TRUE(
