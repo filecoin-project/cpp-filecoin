@@ -5,8 +5,8 @@
 
 #include "crypto/randomness/impl/randomness_provider.hpp"
 
+#include <libp2p/crypto/sha/sha256.hpp>
 #include "common/le_encoder.hpp"
-#include "crypto/sha/sha256.hpp"
 
 namespace fc::crypto::randomness {
 
@@ -30,7 +30,7 @@ namespace fc::crypto::randomness {
     common::encodeInteger(static_cast<size_t>(tag), value);
     common::encodeInteger(static_cast<size_t>(index), value);
     value.put(s);
-    auto hash = sha256(value);
+    auto hash = libp2p::crypto::sha256(value);
 
     return Randomness(hash);
   }
