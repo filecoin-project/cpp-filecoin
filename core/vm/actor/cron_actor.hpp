@@ -18,15 +18,12 @@ namespace fc::vm::actor {
   };
 
   struct CronActor {
-    // Entries is a set of actors (and corresponding methods) to call during
-    // EpochTick. This can be done a bunch of ways. We do it this way here to
-    // make it easy to add a handler to Cron elsewhere in the spec code. How to
-    // do this is implementation specific.
+    /**
+     * Entries is a set of actors (and corresponding methods) to call during
+     * EpochTick
+     */
     static std::vector<CronTableEntry> entries;
 
-    // EpochTick executes built-in periodic actions, run at every Epoch.
-    // EpochTick(r) is called after all other messages in the epoch have been
-    // applied. This can be seen as an implicit last message.
     /**
      * @brief EpochTick executes built-in periodic actions, run at every Epoch.
      * @param actor from Lotus(doesn't use)

@@ -8,8 +8,10 @@
 
 namespace fc::vm {
 
-  // TODO(artyom-yurin): it is temp structure, will be removed after
-  // "runtime" would be implemented
+  /**
+   * TODO(artyom-yurin): it is temp structure, will be removed after "runtime"
+   * would be implemented
+   */
   struct Message {
     primitives::address::Address from;
   };

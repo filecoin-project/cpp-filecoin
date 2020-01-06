@@ -41,7 +41,7 @@ TEST(CronActorTest, Correct) {
   EXPECT_CALL(vmctx,
               send(actor::kStoragePowerAddress,
                    actor::SpaMethods::CHECK_PROOF_SUBMISSIONS,
-                   actor::BigInt(1),
+                   actor::BigInt(0),
                    std::vector<uint8_t>()))
       .WillRepeatedly(testing::Return(fc::outcome::success()));
   EXPECT_OUTCOME_TRUE_1(actor::CronActor::EpochTick(actor, vmctx, {}));
