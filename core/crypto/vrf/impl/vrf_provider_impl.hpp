@@ -25,7 +25,7 @@ namespace fc::crypto::vrf {
                                     const VRFProof &vrf_proof) const override;
 
    private:
-    std::shared_ptr<bls::BlsProvider> bls_provider_;  ///< bls provider instance
+    std::shared_ptr<bls::BlsProvider> bls_provider_;
   };
 
 }  // namespace fc::crypto::vrf

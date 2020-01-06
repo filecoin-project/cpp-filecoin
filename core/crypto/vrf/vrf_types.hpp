@@ -14,10 +14,27 @@
 
 namespace fc::crypto::vrf {
 
+  /**
+   * @brief vrf public key type
+   */
   using VRFPublicKey = bls::PublicKey;
+  /**
+   * @brief vrf secret key type
+   */
   using VRFSecretKey = bls::PrivateKey;
+  /**
+   * @brief vrf proof value
+   */
   using VRFProof = bls::Signature;
+
+  /**
+   * @brief result of computing vrf
+   */
   using VRFResult = bls::Signature;
+
+  /**
+   * @brief return value of vrf hash encode
+   */
   using VRFHash = common::Hash256;
 
   /**
