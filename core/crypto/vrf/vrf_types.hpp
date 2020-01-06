@@ -7,7 +7,10 @@
 #define CPP_FILECOIN_CORE_CRYPTO_VRF_VRF_TYPES_HPP
 
 #include "common/blob.hpp"
+#include "common/buffer.hpp"
 #include "crypto/bls/bls_types.hpp"
+#include "crypto/randomness/randomness_types.hpp"
+#include "primitives/address/address.hpp"
 
 namespace fc::crypto::vrf {
 
@@ -18,6 +21,15 @@ namespace fc::crypto::vrf {
   using VRFHash = common::Hash256;
 
   /**
+   * @brief vrf parameters structure
+   */
+  struct VRFParams {
+    randomness::DomainSeparationTag personalization_tag;
+    primitives::address::Address miner_address;
+    common::Buffer message;
+  };
+
+  /**
    * @brief VRF key pair definition
    */
   struct VRFKeyPair {
@@ -25,6 +37,9 @@ namespace fc::crypto::vrf {
     VRFSecretKey secret_key;
   };
 
+  /**
+   * @brief vrf errors enumeration
+   */
   enum class VRFError {
     MINER_ADDRESS_NOT_ID =
         1,                // miner address need to be id type to calculate hash

@@ -9,6 +9,7 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/primitives/address_utils.hpp"
 
 using fc::common::Blob;
 using fc::common::Buffer;
@@ -16,7 +17,7 @@ using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::impl::BlsProviderImpl;
 using fc::crypto::randomness::DomainSeparationTag;
 using fc::crypto::vrf::VRFHash;
-using fc::crypto::vrf::VRFHashProvider;
+using fc::crypto::vrf::VRFParams;
 using fc::crypto::vrf::VRFProvider;
 using fc::crypto::vrf::VRFProviderImpl;
 using fc::crypto::vrf::VRFPublicKey;
@@ -27,13 +28,26 @@ struct VRFProviderTest : public ::testing::Test {
   void SetUp() override {
     bls_provider = std::make_shared<BlsProviderImpl>();
     vrf_provider = std::make_shared<VRFProviderImpl>(bls_provider);
+
+    Buffer message{"a1b2c3"_unhex};
+    Buffer wrong_message{"a1b2c4"_unhex};
+    Blob<48> bls_blob =
+        "1234567890123456789012345678901234567890"
+        "1234567890123456789012345678901234567890"
+        "1122334455667788"_blob48;
+    vrf_params = VRFParams{
+        .personalization_tag = DomainSeparationTag::TicketProductionDST,
+        .miner_address = makeBlsAddress(bls_blob),
+        .message = message};
+    wrong_vrf_params = VRFParams{
+        .personalization_tag = DomainSeparationTag::TicketProductionDST,
+        .miner_address = makeBlsAddress(bls_blob),
+        .message = wrong_message};
   }
   std::shared_ptr<BlsProvider> bls_provider;
   std::shared_ptr<VRFProvider> vrf_provider;
-  VRFHash message{
-      "661E466606D72B22721484220DCF3FFB44A3ACA3A5D2CC883C9B26281C8E8B27"_blob32};
-  VRFHash wrong_message{
-      "761E466606D72B22721484220DCF3FFB44A3ACA3A5D2CC883C9B26281C8E8B27"_blob32};
+  VRFParams vrf_params;
+  VRFParams wrong_vrf_params;
 };
 
 /**
@@ -46,11 +60,11 @@ TEST_F(VRFProviderTest, VRFGenerateVerifySuccess) {
   EXPECT_OUTCOME_TRUE(key_pair, bls_provider->generateKeyPair())
   VRFSecretKey vrf_secret_key{key_pair.private_key};
   EXPECT_OUTCOME_TRUE(signature,
-                      vrf_provider->computeVRF(vrf_secret_key, message))
+                      vrf_provider->computeVRF(vrf_secret_key, vrf_params))
   VRFPublicKey vrf_public_key{key_pair.public_key};
   EXPECT_OUTCOME_TRUE(
       signature_status,
-      vrf_provider->verifyVRF(vrf_public_key, message, signature))
+      vrf_provider->verifyVRF(vrf_public_key, vrf_params, signature))
   ASSERT_TRUE(signature_status);
 }
 
@@ -66,12 +80,12 @@ TEST_F(VRFProviderTest, VRFVerifyWrongKeyFail) {
 
   VRFSecretKey vrf_secret_key{key_pair.private_key};
   EXPECT_OUTCOME_TRUE(signature,
-                      vrf_provider->computeVRF(vrf_secret_key, message))
+                      vrf_provider->computeVRF(vrf_secret_key, vrf_params))
   // get pk from other pair
   VRFPublicKey vrf_public_key{key_pair1.public_key};
   EXPECT_OUTCOME_TRUE(
       signature_status,
-      vrf_provider->verifyVRF(vrf_public_key, message, signature))
+      vrf_provider->verifyVRF(vrf_public_key, vrf_params, signature))
   ASSERT_FALSE(signature_status);
 }
 
@@ -86,11 +100,11 @@ TEST_F(VRFProviderTest, VRFVerifyWrongMessageFail) {
 
   VRFSecretKey vrf_secret_key{key_pair.private_key};
   EXPECT_OUTCOME_TRUE(signature,
-                      vrf_provider->computeVRF(vrf_secret_key, message))
+                      vrf_provider->computeVRF(vrf_secret_key, vrf_params))
   // get pk from other pair
   VRFPublicKey vrf_public_key{key_pair.public_key};
   EXPECT_OUTCOME_TRUE(
       signature_status,
-      vrf_provider->verifyVRF(vrf_public_key, wrong_message, signature))
+      vrf_provider->verifyVRF(vrf_public_key, wrong_vrf_params, signature))
   ASSERT_FALSE(signature_status);
 }
