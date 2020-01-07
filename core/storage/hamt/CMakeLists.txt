@@ -7,9 +7,9 @@ add_library(hamt
     hamt.cpp
     )
 target_link_libraries(hamt
-    blake2
     blob
+    cbor
+    cid
     murmur
     outcome
-    p2p::p2p_cid
     )

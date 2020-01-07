@@ -5,11 +5,17 @@
 
 #include "vm/actor/actor.hpp"
 
-#include <libp2p/crypto/sha/sha256.hpp>
 #include <string>
 #include <vector>
 
+#include <libp2p/crypto/sha/sha256.hpp>
+
 namespace fc::vm::actor {
+  bool operator==(const Actor &lhs, const Actor &rhs) {
+    return lhs.code == rhs.code && lhs.head == rhs.head
+           && lhs.nonce == rhs.nonce && lhs.balance == rhs.balance;
+  }
+
   bool isBuiltinActor(const CodeId &code) {
     return code == kStorageMarketCodeCid || code == kStoragePowerCodeCid
            || code == kStorageMinerCodeCid || code == kAccountCodeCid

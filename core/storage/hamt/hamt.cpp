@@ -5,7 +5,6 @@
 
 #include "storage/hamt/hamt.hpp"
 
-#include "codec/cbor/cbor.hpp"
 #include "common/which.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/murmur/murmur.hpp"
@@ -25,8 +24,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
 
 namespace fc::storage::hamt {
   using fc::common::which;
-
-  const CID kDummyCid({}, {}, libp2p::multi::Multihash::create({}, {}).value());
 
   // assuming 8-bit indices
   auto keyToIndices(const std::string &key, int n = -1) {
@@ -51,18 +48,8 @@ namespace fc::storage::hamt {
     return indices.subspan(1);
   }
 
-  outcome::result<CID> Node::cid(gsl::span<const uint8_t> encoded) {
-    OUTCOME_TRY(hash_raw, crypto::blake2b::blake2b_256(encoded));
-    OUTCOME_TRY(hash,
-                libp2p::multi::Multihash::create(
-                    libp2p::multi::HashType::blake2b_256, hash_raw));
-    return CID(CID::Version::V1, libp2p::multi::MulticodecType::DAG_CBOR, hash);
-  }
-
-  outcome::result<CID> Node::cid() const {
-    OUTCOME_TRY(encoded, codec::cbor::encode(*this));
-    return cid(encoded);
-  }
+  Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store)
+      : store_(std::move(store)), root_(std::make_shared<Node>()) {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root)
       : store_(std::move(store)), root_(std::move(root)) {}
@@ -103,8 +90,9 @@ namespace fc::storage::hamt {
     return remove(*boost::get<Node::Ptr>(root_), keyToIndices(key), key);
   }
 
-  outcome::result<void> Hamt::flush() {
-    return flush(root_);
+  outcome::result<CID> Hamt::flush() {
+    OUTCOME_TRY(flush(root_));
+    return boost::get<CID>(root_);
   }
 
   outcome::result<void> Hamt::set(Node &node,
@@ -205,18 +193,15 @@ namespace fc::storage::hamt {
       for (auto &item2 : node.items) {
         OUTCOME_TRY(flush(item2));
       }
-      OUTCOME_TRY(encoded, codec::cbor::encode(node));
-      OUTCOME_TRY(cid, Node::cid(encoded));
-      OUTCOME_TRY(store_->set(cid, Value(encoded)));
+      OUTCOME_TRY(cid, store_->setCbor(node));
       item = cid;
     }
     return outcome::success();
   }
 
-  outcome::result<void> Hamt::loadItem(Node::Item &item) {
+  outcome::result<void> Hamt::loadItem(Node::Item &item) const {
     if (which<CID>(item)) {
-      OUTCOME_TRY(child_bytes, store_->get(boost::get<CID>(item)));
-      OUTCOME_TRY(child, codec::cbor::decode<Node>(child_bytes));
+      OUTCOME_TRY(child, store_->getCbor<Node>(boost::get<CID>(item)));
       item = std::make_shared<Node>(std::move(child));
     }
     return outcome::success();
