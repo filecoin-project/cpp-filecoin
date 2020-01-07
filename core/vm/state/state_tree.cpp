@@ -12,6 +12,7 @@
 namespace fc::vm::state {
   using codec::cbor::decode;
   using primitives::address::encodeToString;
+  using actor::ActorSubstateCID;
 
   StateTree::StateTree(const std::shared_ptr<IpfsDatastore> &store)
       : store_(store), hamt_(store), snapshot_(store) {}
@@ -50,7 +51,7 @@ namespace fc::vm::state {
                 store_->getCbor<actor::InitActorState>(init_actor.head));
     OUTCOME_TRY(address_id, init_actor_state.addActor(store_, address));
     OUTCOME_TRY(init_actor_state_cid, store_->setCbor(init_actor_state));
-    init_actor.head = init_actor_state_cid;
+    init_actor.head = ActorSubstateCID{init_actor_state_cid};
     OUTCOME_TRY(set(actor::kInitAddress, init_actor));
     OUTCOME_TRY(set(address_id, actor));
     return std::move(address_id);

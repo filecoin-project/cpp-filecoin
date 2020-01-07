@@ -15,13 +15,7 @@
 
 namespace fc::vm::actor {
 
-
-  /**
-   * Amount of Filecoin tokens
-   */
-  class TokenAmount : public BigInt {};
   using libp2p::multi::ContentIdentifier;
-  using primitives::address::Address;
   using primitives::BigInt;
   using primitives::address::Address;
   using Serialization = fc::common::Buffer;
@@ -69,7 +63,7 @@ namespace fc::vm::actor {
     /// Identifies the code this actor executes
     CodeId code{common::kEmptyCid};
     /// CID of the root of optional actor-specific sub-state
-    ContentIdentifier head{common::kEmptyCid};
+    ActorSubstateCID head{common::kEmptyCid};
     /// Expected sequence number of the next message sent by this actor
     uint64_t nonce{};
     /// Balance of tokens held by this actor

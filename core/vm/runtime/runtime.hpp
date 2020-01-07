@@ -6,15 +6,16 @@
 #ifndef CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_HPP
 #define CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_HPP
 
-#include <libp2p/multi/content_identifier.hpp>
 #include <tuple>
 
 #include "common/outcome.hpp"
-#include "crypto/randomness/randomness_provider.hpp"
-#include "primitives/address.hpp"
+#include "crypto/randomness/randomness_types.hpp"
+#include "primitives/address/address.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
+#include "vm/indices/indices.hpp"
+#include "vm/runtime/actor_state_handle.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::runtime {
@@ -22,17 +23,27 @@ namespace fc::vm::runtime {
   using actor::CodeId;
   using actor::MethodNumber;
   using actor::MethodParams;
-  using actor::TokenAmount;
+  using common::Buffer;
   using crypto::randomness::Randomness;
-  using crypto::randomness::RandomnessProvider;
   using exit_code::ExitCode;
-  using libp2p::multi::ContentIdentifier;
-  using primitives::Address;
-  using IpldObject = storage::ipfs::IpfsDatastore::Value;
-  using Serialization = common::Buffer;
+  using fc::crypto::randomness::ChainEpoch;
+  using fc::crypto::randomness::DomainSeparationTag;
+  using indices::Indices;
+  using primitives::address::Address;
+  using storage::ipfs::IpfsDatastore;
+  using Serialization = Buffer;
 
+  /**
+   * @class Runtime is the VM's internal runtime object exposed to actors
+   */
   class Runtime {
    public:
+    virtual ~Runtime() = default;
+
+    /**
+     * Returns current chain epoch which is equal to block chain height.
+     * @return current chain epoch
+     */
     virtual ChainEpoch getCurrentEpoch() const = 0;
 
     /**
@@ -40,10 +51,9 @@ namespace fc::vm::runtime {
      */
     virtual Randomness getRandomness(DomainSeparationTag tag,
                                      ChainEpoch epoch) const = 0;
-    virtual Randomness getRandomnessWithAuxSeed(
-        DomainSeparationTag tag,
-        ChainEpoch epoch,
-        Serialization auxSeed) const = 0;
+    virtual Randomness getRandomness(DomainSeparationTag tag,
+                                     ChainEpoch epoch,
+                                     Serialization seed) const = 0;
 
     /**
      * The address of the immediate calling actor. Not necessarily the actor in
@@ -60,7 +70,7 @@ namespace fc::vm::runtime {
      */
     virtual Address getTopLevelBlockWinner() const = 0;
 
-    virtual ActorStateHandle acquireState() const = 0;
+    virtual std::shared_ptr<ActorStateHandle> acquireState() const = 0;
 
     virtual InvocationOutput returnSuccess() = 0;
     virtual InvocationOutput returnValue(Buffer bytes) = 0;
@@ -90,17 +100,19 @@ namespace fc::vm::runtime {
     virtual void abortAPI(const std::string &message) = 0;
 
     /** Check that the given condition is true (and call Abort if not). */
-    virtual void assert(bool condition) = 0;
+    // TODO(a.chernyshov) assert
+    //    virtual void assert(bool condition) = 0;
 
-    virtual TokenAmount getCurrentBalance() const = 0;
-    virtual TokenAmount getValueReceived() const = 0;
+    virtual outcome::result<BigInt> getBalance(
+        const Address &address) const = 0;
+    virtual BigInt getValueReceived() const = 0;
 
     /** Look up the current values of several system-wide economic indices. */
-    // TODO(a.chernyshov) Indices type
-    // CurrIndices()     indices.Indices
+    virtual std::shared_ptr<Indices> getCurrentIndices() const = 0;
 
     /** Look up the code ID of a given actor address. */
-    virtual outcome::result<CodeId> getActorCodeID(const Address &address) = 0;
+    virtual outcome::result<CodeId> getActorCodeID(
+        const Address &address) const = 0;
 
     /**
      * Run a (pure function) computation, consuming the gas cost associated with
@@ -118,14 +130,23 @@ namespace fc::vm::runtime {
      * successfully, this caller will be aborted too.
      */
     virtual InvocationOutput sendPropagatingErrors(InvocationInput input) = 0;
+    /**
+     * Send allows the current execution context to invoke methods on other
+     * actors in the system
+     * @param to_address
+     * @param method_number
+     * @param params
+     * @param value
+     * @return
+     */
     virtual InvocationOutput send(Address to_address,
                                   MethodNumber method_number,
                                   MethodParams params,
-                                  TokenAmount value) = 0;
+                                  BigInt value) = 0;
     virtual Serialization sendQuery(Address to_addr,
-                                    MethodNumber method_nuberm,
+                                    MethodNumber method_number,
                                     gsl::span<Serialization> params) = 0;
-    virtual sendFunds(const Address &to_address, const TokenAmount &value) = 0;
+    virtual void sendFunds(const Address &to_address, const BigInt &value) = 0;
 
     /**
      * Sends a message to another actor, trapping an unsuccessful execution.
@@ -150,16 +171,19 @@ namespace fc::vm::runtime {
     virtual outcome::result<void> createActor(CodeId code_id,
                                               const Address &address) = 0;
 
-    // Deletes an actor in the state tree. May only be called by the actor
-    // itself, or by StoragePowerActor in the case of StorageMinerActors.
-    virtual void deleteActor(const Address &address) = 0;
+    /**
+     * @brief Deletes an actor in the state tree
+     *
+     * May only be called by the actor itself, or by StoragePowerActor in the
+     * case of StorageMinerActors
+     * @param address - address of actor to delete
+     */
+    virtual fc::outcome::result<void> deleteActor(const Address &address) = 0;
 
-    // Retrieves and deserializes an object from the store into o. Returns
-    // whether successful.
-    outcome::result<IpldObject> getIpld(ContentIdentifier cid);
-
-    // Serializes and stores an object, returning its CID.
-    ContentIdentifier putIpld(IpldObject object);
+    /**
+     * @brief Returns IPFS datastore
+     */
+    virtual std::shared_ptr<IpfsDatastore> getIpfsDatastore() = 0;
   };
 
 }  // namespace fc::vm::runtime

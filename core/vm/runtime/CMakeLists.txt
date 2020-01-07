@@ -5,7 +5,8 @@
 
 add_library(runtime
     impl/runtime_impl.cpp
-    )
+    impl/actor_state_handle_impl.cpp
+    impl/runtime_error.cpp)
 target_link_libraries(runtime
     actor
     p2p::p2p_cid
