@@ -12,6 +12,7 @@ target_link_libraries(address
     blake2
     blob
     bls_provider
+    cbor
     outcome
     p2p::p2p_secp256k1_provider
     )

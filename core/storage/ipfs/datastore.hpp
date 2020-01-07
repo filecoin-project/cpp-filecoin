@@ -6,10 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_HPP
 #define CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_HPP
 
-#include <libp2p/multi/content_identifier.hpp>
 #include <vector>
 
+#include "codec/cbor/cbor.hpp"
 #include "common/buffer.hpp"
+#include "common/cid.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
@@ -18,7 +19,6 @@ namespace fc::storage::ipfs {
 
   class IpfsDatastore {
    public:
-    using CID = libp2p::multi::ContentIdentifier;
     using Value = common::Buffer;
 
     virtual ~IpfsDatastore() = default;
@@ -51,8 +51,27 @@ namespace fc::storage::ipfs {
      * @return success if removed or didn't exist, error otherwise
      */
     virtual outcome::result<void> remove(const CID &key) = 0;
-  };
 
+    /**
+     * @brief CBOR-serialize value and store
+     * @param value - data to serialize and store
+     * @return cid of CBOR-serialized data
+     */
+    template <typename T>
+    outcome::result<CID> setCbor(const T &value) {
+      OUTCOME_TRY(bytes, codec::cbor::encode(value));
+      OUTCOME_TRY(key, common::getCidOf(bytes));
+      OUTCOME_TRY(set(key, Value(bytes)));
+      return std::move(key);
+    }
+
+    /// Get CBOR decoded value by CID
+    template <typename T>
+    outcome::result<T> getCbor(const CID &key) const {
+      OUTCOME_TRY(bytes, get(key));
+      return codec::cbor::decode<T>(bytes);
+    }
+  };
 }  // namespace fc::storage::ipfs
 
 #endif  // CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_HPP

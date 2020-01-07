@@ -8,5 +8,5 @@ target_link_libraries(randomness_provider
     Boost::boost
     blob
     buffer
-    sha
+    p2p::p2p_sha
     )

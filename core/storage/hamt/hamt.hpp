@@ -11,6 +11,8 @@
 
 #include <boost/variant.hpp>
 
+#include "codec/cbor/cbor.hpp"
+#include "common/cid.hpp"
 #include "common/outcome_throw.hpp"
 #include "common/visitor.hpp"
 #include "primitives/big_int.hpp"
@@ -19,11 +21,8 @@
 namespace fc::storage::hamt {
   enum class HamtError { EXPECTED_CID = 1, NOT_FOUND, MAX_DEPTH };
 
-  using CID = libp2p::multi::ContentIdentifier;
   using fc::primitives::UBigInt;
   using Value = ipfs::IpfsDatastore::Value;
-
-  extern const CID kDummyCid;
 
   constexpr size_t kLeafMax = 3;
 
@@ -35,9 +34,6 @@ namespace fc::storage::hamt {
 
     UBigInt bits;
     std::vector<Item> items;
-
-    static outcome::result<CID> cid(gsl::span<const uint8_t> encoded);
-    outcome::result<CID> cid() const;
   };
 
   template <class Stream,
@@ -74,7 +70,7 @@ namespace fc::storage::hamt {
     for (size_t i = 0; i < n_items; ++i) {
       auto m_item = l_items.map();
       if (m_item.find("0") != m_item.end()) {
-        CID cid = kDummyCid;
+        CID cid = common::kEmptyCid;
         m_item.at("0") >> cid;
         node.items.emplace_back(cid);
       } else {
@@ -103,6 +99,7 @@ namespace fc::storage::hamt {
     using Visitor = std::function<outcome::result<void>(const std::string &,
                                                         const Value &)>;
 
+    explicit Hamt(std::shared_ptr<ipfs::IpfsDatastore> store);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
     /** Set value by key, does not write to storage */
@@ -113,9 +110,23 @@ namespace fc::storage::hamt {
     /** Remove value by key, does not write to storage */
     outcome::result<void> remove(const std::string &key);
     /** Write changes made by set and remove to storage */
-    outcome::result<void> flush();
+    outcome::result<CID> flush();
     /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor);
+
+    /// Store CBOR encoded value by key
+    template <typename T>
+    outcome::result<void> setCbor(const std::string &key, const T &value) {
+      OUTCOME_TRY(bytes, codec::cbor::encode(value));
+      return set(key, bytes);
+    }
+
+    /// Get CBOR decoded value by key
+    template <typename T>
+    outcome::result<T> getCbor(const std::string &key) {
+      OUTCOME_TRY(bytes, get(key));
+      return codec::cbor::decode<T>(bytes);
+    }
 
    private:
     outcome::result<void> set(Node &node,
@@ -125,9 +136,9 @@ namespace fc::storage::hamt {
     outcome::result<void> remove(Node &node,
                                  gsl::span<const size_t> indices,
                                  const std::string &key);
-    outcome::result<void> cleanShard(Node::Item &item);
+    static outcome::result<void> cleanShard(Node::Item &item);
     outcome::result<void> flush(Node::Item &item);
-    outcome::result<void> loadItem(Node::Item &item);
+    outcome::result<void> loadItem(Node::Item &item) const;
     outcome::result<void> visit(Node::Item &item, const Visitor &visitor);
 
     std::shared_ptr<ipfs::IpfsDatastore> store_;

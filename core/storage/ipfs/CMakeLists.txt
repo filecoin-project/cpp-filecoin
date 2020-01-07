@@ -7,8 +7,9 @@ add_library(ipfs_datastore_in_memory
     impl/ipfs_datastore_error.cpp
     )
 target_link_libraries(ipfs_datastore_in_memory
-    p2p::p2p_cid
     buffer
+    cbor
+    cid
     )
 
 add_library(ipfs_datastore_leveldb
@@ -16,7 +17,8 @@ add_library(ipfs_datastore_leveldb
     impl/ipfs_datastore_error.cpp
     )
 target_link_libraries(ipfs_datastore_leveldb
-    p2p::p2p_cid
     buffer
+    cbor
+    cid
     leveldb
     )
