@@ -32,12 +32,12 @@ namespace fc::primitives {
   template <class Stream,
             class T,
             typename = std::enable_if_t<
-                (std::is_base_of_v<BigInt, T> || std::is_base_of_v<UBigInt, T>)&&std::
+                (std::is_same_v<T, BigInt> || std::is_same_v<T, UBigInt>)&&std::
                     remove_reference<Stream>::type::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const T &big_int) {
     std::vector<uint8_t> bytes;
     if (big_int != 0) {
-      if (std::is_base_of_v<BigInt, T>) {
+      if (std::is_same_v<T, BigInt>) {
         bytes.push_back(big_int < 0 ? 1 : 0);
       }
       export_bits(big_int, std::back_inserter(bytes), 8);
@@ -49,19 +49,19 @@ namespace fc::primitives {
       class Stream,
       class T,
       typename = std::enable_if_t<
-          (std::is_base_of_v<BigInt, T> || std::is_base_of_v<UBigInt, T>)&&Stream::
+          (std::is_same_v<T, BigInt> || std::is_same_v<T, UBigInt>)&&Stream::
               is_cbor_decoder_stream>>
   Stream &operator>>(Stream &s, T &big_int) {
     std::vector<uint8_t> bytes;
     s >> bytes;
     if (bytes.empty()) {
-      big_int = T{0};
+      big_int = 0;
     } else {
       import_bits(big_int,
-                  bytes.begin() + (std::is_base_of_v<BigInt, T> ? 1 : 0),
+                  bytes.begin() + (std::is_same_v<T, BigInt> ? 1 : 0),
                   bytes.end());
-      if (std::is_base_of_v<BigInt, T> && bytes[0] == 1) {
-        big_int = T{-big_int};
+      if (std::is_same_v<T, BigInt> && bytes[0] == 1) {
+        big_int = -big_int;
       }
     }
     return s;

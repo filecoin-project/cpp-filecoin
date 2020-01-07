@@ -6,7 +6,6 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
 
-#include <boost/serialization/strong_typedef.hpp>
 #include <libp2p/multi/content_identifier_codec.hpp>
 
 #include "common/buffer.hpp"
@@ -24,6 +23,7 @@ namespace fc::vm::actor {
   using libp2p::multi::ContentIdentifier;
   using primitives::address::Address;
   using primitives::BigInt;
+  using primitives::address::Address;
   using Serialization = fc::common::Buffer;
 
   /**
@@ -44,8 +44,6 @@ namespace fc::vm::actor {
    * of arguments/parameters
    */
   class MethodParams : public gsl::span<Serialization> {};
-  using primitives::BigInt;
-  using Serialization = fc::common::Buffer;
 
   /**
    * CodeID identifies an actor's code (either one of the builtin actors, or, in
@@ -75,7 +73,7 @@ namespace fc::vm::actor {
     /// Expected sequence number of the next message sent by this actor
     uint64_t nonce{};
     /// Balance of tokens held by this actor
-    TokenAmount balance;
+    BigInt balance;
   };
 
   bool operator==(const Actor &lhs, const Actor &rhs);
