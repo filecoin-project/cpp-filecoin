@@ -19,3 +19,11 @@ target_link_libraries(init_actor_test
     hexutil
     ipfs_datastore_in_memory
     )
+
+addtest(cron_actor_test
+        cron_actor_test.cpp
+        )
+target_link_libraries(cron_actor_test
+        actor
+        hexutil
+        )
