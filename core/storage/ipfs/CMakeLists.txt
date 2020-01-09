@@ -22,3 +22,10 @@ target_link_libraries(ipfs_datastore_leveldb
     cid
     leveldb
     )
+
+add_library(ipfs_blockservice
+    impl/blockservice_impl.cpp
+    )
+target_link_libraries(ipfs_blockservice
+    buffer
+    )
