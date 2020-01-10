@@ -18,19 +18,6 @@ namespace fc::codec::cbor {
 
   constexpr uint64_t kMaxLength = 8192u;
   constexpr uint64_t kByteArrayMaxLength = 2u << 20u;
-
-  /*
-   * const (
-	MajUnsignedInt = 0
-	MajNegativeInt = 1
-	MajByteString  = 2
-	MajTextString  = 3
-	MajArray       = 4
-	MajMap         = 5
-	MajTag         = 6
-	MajOther       = 7
-)
-   */
 }  // namespace fc::codec::cbor
 
 #endif  // CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_COMMON_HPP
