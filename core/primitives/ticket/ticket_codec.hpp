@@ -19,7 +19,14 @@ namespace fc::primitives::ticket {
     INVALID_TICKET_LENGTH = 1, // ticket decode error, invalid data length
   };
 
-  using fc::codec::cbor::CborEncodeStream;
+
+  /**
+   * @brief cbor-encodes Ticket instance
+   * @tparam Stream cbor-encoder stream type
+   * @param s stream reference
+   * @param ticket Ticket const reference to encode
+   * @return stream reference
+   */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
@@ -27,12 +34,20 @@ namespace fc::primitives::ticket {
     return s << (s.list() << ticket.bytes);
   }
 
+  /**
+   * @brief cbor-decodes Ticket instance
+   * @tparam Stream cbor-decoder stream type
+   * @param s stream reference
+   * @param ticket Ticket instance reference to decode into
+   * @return stream reference
+   */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, Ticket &ticket) {
+    auto && l = s.list();
     std::vector<uint8_t> data{};
-    s >> data;
+    l >> data;
     if (data.size() != ticket.bytes.size()) {
       outcome::raise(TicketCodecError::INVALID_TICKET_LENGTH);
     }
