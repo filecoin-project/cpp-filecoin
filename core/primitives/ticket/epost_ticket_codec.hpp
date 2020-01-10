@@ -16,11 +16,16 @@
 namespace fc::primitives::ticket {
   enum class EPoSTTicketCodecError : int {
     INVALID_PARTIAL_LENGTH = 1,  // invalid length of field partial
-    INVALID_POST_RAND_LENGTH, // invalid length of field post_rand
+    INVALID_POST_RAND_LENGTH,    // invalid length of field post_rand
   };
 
-  using fc::codec::cbor::CborEncodeStream;
-
+  /**
+   * @brief cbor-encode EPostTicket instance
+   * @tparam Stream cbor-encoder stream type
+   * @param s stream reference
+   * @param ticket Ticket const reference to encode
+   * @return stream reference
+   */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
@@ -29,31 +34,56 @@ namespace fc::primitives::ticket {
                           << ticket.challenge_index);
   }
 
+  /**
+   * @brief cbor-decode EPostTicket instance
+   * @tparam Stream cbor-decoder stream type
+   * @param s stream reference
+   * @param ticket Ticket reference to decode into
+   * @return stream reference
+   */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, EPostTicket &ticket) {
+    auto &&l = s.list();
     std::vector<uint8_t> data{};
-    s >> data;
+
+    l >> data;
     if (data.size() != ticket.partial.size()) {
       outcome::raise(EPoSTTicketCodecError::INVALID_PARTIAL_LENGTH);
     }
     std::copy(data.begin(), data.end(), ticket.partial.begin());
-
-    return s >> ticket.sector_id >> ticket.challenge_index;
+    l >> ticket.sector_id >> ticket.challenge_index;
+    return s;
   }
 
+  /**
+   * @brief cbor-encodes EPostProof instance
+   * @tparam Stream cbor-encoder stream type
+   * @param s stream reference
+   * @param epp EPostProof const reference to encode
+   * @return stream reference
+   */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const EPostProof &epp) noexcept {
     s << epp.proof << epp.post_rand;
+    auto &&l = s.list();
+    for (auto &item : epp.candidates) {
+      l << item;
+    }
 
-    // TODO(yuraz) FIL-*** implement cbor-encdode span of a objects
-
-    return s;
+    return s << l;
   }
 
+  /**
+   * @brief cbor-decodes EPostProof instance
+   * @tparam Stream cbor-decoder stream type
+   * @param s stream reference
+   * @param epp EPostProof refefence to decode into
+   * @return stream reference
+   */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
@@ -68,7 +98,18 @@ namespace fc::primitives::ticket {
     }
     std::copy(rand.begin(), rand.end(), epp.post_rand.begin());
 
-    // TODO(yuraz) FIL-*** imolement cbor-decode vector of objects
+    auto n = s.listLength();
+    std::vector<EPostTicket> candidates{};
+    candidates.reserve(n);
+
+    auto &&l = s.list();
+    for (size_t i = 0; i < n; ++i) {
+      EPostTicket ticket{};
+      l >> ticket;
+      candidates.push_back(ticket);
+    }
+
+    epp.candidates = std::move(candidates);
 
     return s;
   }
