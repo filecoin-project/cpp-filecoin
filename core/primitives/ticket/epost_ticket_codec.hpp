@@ -75,7 +75,7 @@ namespace fc::primitives::ticket {
       l << item;
     }
 
-    return s << list << l;
+    return s << (list << l);
   }
 
   /**
