@@ -68,13 +68,14 @@ namespace fc::primitives::ticket {
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const EPostProof &epp) noexcept {
-    s << epp.proof << epp.post_rand;
-    auto &&l = s.list();
+    auto && list = s.list();
+    list << epp.proof << epp.post_rand;
+    auto &&l = list.list();
     for (auto &item : epp.candidates) {
       l << item;
     }
 
-    return s << l;
+    return s << list << l;
   }
 
   /**
@@ -89,20 +90,21 @@ namespace fc::primitives::ticket {
                 std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, EPostProof &epp) {
     std::vector<uint8_t> proof{};
-    s >> proof;
+    auto &&list = s.list();
+    list >> proof;
     epp.proof = common::Buffer(std::move(proof));
     std::vector<uint8_t> rand{};
-    s >> rand;
+    list >> rand;
     if (rand.size() != epp.post_rand.size()) {
       return EPoSTTicketCodecError::INVALID_POST_RAND_LENGTH;
     }
     std::copy(rand.begin(), rand.end(), epp.post_rand.begin());
 
-    auto n = s.listLength();
+    auto n = list.listLength();
     std::vector<EPostTicket> candidates{};
     candidates.reserve(n);
 
-    auto &&l = s.list();
+    auto &&l = list.list();
     for (size_t i = 0; i < n; ++i) {
       EPostTicket ticket{};
       l >> ticket;
