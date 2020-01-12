@@ -8,6 +8,7 @@ add_library(actor
     init_actor.cpp
     cron_actor.cpp
     cron_actor_error.cpp
+    storage_power_actor.cpp
     )
 target_link_libraries(actor
     address

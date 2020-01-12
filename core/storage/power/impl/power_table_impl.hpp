@@ -19,6 +19,13 @@ namespace fc::storage::power {
     outcome::result<void> removeMiner(
         const primitives::address::Address &address) override;
 
+    size_t getSize() const override;
+
+    int getMaxPower() const override;
+
+    outcome::result<std::vector<primitives::address::Address>> getMiners()
+        const override;
+
    private:
     std::unordered_map<std::string, int> power_table_;
   };

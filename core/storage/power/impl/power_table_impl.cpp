@@ -32,3 +32,28 @@ fc::outcome::result<void> fc::storage::power::PowerTableImpl::removeMiner(
 
   return outcome::success();
 }
+
+size_t fc::storage::power::PowerTableImpl::getSize() const {
+  return power_table_.size();
+}
+
+int fc::storage::power::PowerTableImpl::getMaxPower() const {
+  if (power_table_.size() == 0) return 0;
+
+  auto res = std::max(
+      power_table_.cbegin(), power_table_.cend(), [&](auto rhs, auto lhs) {
+        return rhs->second < lhs->second;
+      });
+
+  return res->second;
+}
+
+fc::outcome::result<std::vector<fc::primitives::address::Address>>
+fc::storage::power::PowerTableImpl::getMiners() const {
+  std::vector<primitives::address::Address> result = {};
+  for (auto &elem : power_table_) {
+    OUTCOME_TRY(miner_addr, primitives::address::decodeFromString(elem.first));
+    result.push_back(miner_addr);
+  }
+  return result;
+}

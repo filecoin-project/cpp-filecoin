@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
 
+#include <storage/power/power_table.hpp>
 namespace fc::vm::actor {
 
   enum SpaMethods {
@@ -20,6 +21,51 @@ namespace fc::vm::actor {
     CHECK_PROOF_SUBMISSIONS
   };
 
+  class StoragePowerActor {
+   public:
+    // TODO: CHECK TYPE OF RANDOMNESS
+    outcome::result<std::vector<primitives::address::Address>>
+    selectMinersToSurprise(
+        int challenge_count,
+        int randomness);  //+  (challengeCount int, randomness abi.Randomness)
+                          //[addr.Address]
+
+    // TODO: CHECK TYPE OF STORAGE WEIGHT
+    outcome::result<void> addClaimedPowerForSector(
+        const primitives::address::Address &miner_addr,
+        int storage_weight_desc);
+
+    outcome::result<void> deductClaimedPowerForSectorAssert(
+        const primitives::address::Address &miner_addr,
+        int storage_weight_desc);
+
+    outcome::result<void> updatePowerEntriesFromClaimedPower(
+        const primitives::address::Address &miner_addr);
+
+    outcome::result<int> getPowerTotalForMiner(
+        const primitives::address::Address &miner_addr) const;
+
+   private:
+    bool minerNominalPowerMeetsConsensusMinimum(int miner_power);
+
+    outcome::result<void> setNominalPowerEntry(
+        const primitives::address::Address &miner_addr,
+        int updated_nominal_power);
+
+    outcome::result<void> setPowerEntryInternal(
+        const primitives::address::Address &miner_addr, int updated_power);
+
+    outcome::result<void> setClaimedPowerEntryInternal(
+        const primitives::address::Address &miner_addr,
+        int updated_claimed_power);
+
+    int total_network_power_;
+    std::unique_ptr<fc::storage::power::PowerTable> power_table_;
+    std::unique_ptr<fc::storage::power::PowerTable> claimed_power_;
+    std::unique_ptr<fc::storage::power::PowerTable> nominal_power_;
+
+    int num_miners_meeting_min_power;
+  };
 }  // namespace fc::vm::actor
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP

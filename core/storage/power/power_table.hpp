@@ -42,6 +42,13 @@ namespace fc::storage::power {
      */
     virtual outcome::result<void> removeMiner(
         const primitives::address::Address &address) = 0;
+
+    virtual size_t getSize() const = 0;
+
+    virtual int getMaxPower() const = 0;
+
+    virtual outcome::result<std::vector<primitives::address::Address>>
+    getMiners() const = 0;
   };
 }  // namespace fc::storage::power
 #endif  // FILECOIN_CORE_STORAGE_POWER_TABLE_HPP
