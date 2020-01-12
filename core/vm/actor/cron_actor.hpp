@@ -31,7 +31,7 @@ namespace fc::vm::actor {
      * @param params from Lotus(doesn't use)
      * @return success or error
      */
-    static outcome::result<void> EpochTick(Actor &actor,
+    static outcome::result<void> epochTick(Actor &actor,
                                            vm::VMContext &vmctx,
                                            const std::vector<uint8_t> &params);
   };

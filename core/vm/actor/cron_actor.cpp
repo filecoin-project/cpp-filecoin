@@ -9,7 +9,7 @@
 std::vector<fc::vm::actor::CronTableEntry> fc::vm::actor::CronActor::entries = {
     {kStoragePowerAddress, SpaMethods::CHECK_PROOF_SUBMISSIONS}};
 
-fc::outcome::result<void> fc::vm::actor::CronActor::EpochTick(
+fc::outcome::result<void> fc::vm::actor::CronActor::epochTick(
     fc::vm::actor::Actor &actor,
     fc::vm::VMContext &vmctx,
     const std::vector<uint8_t> &params) {

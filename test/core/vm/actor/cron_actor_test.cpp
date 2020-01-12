@@ -24,7 +24,7 @@ TEST(CronActorTest, WrongSender) {
   actor::Actor actor;
   EXPECT_CALL(vmctx, message())
       .WillRepeatedly(testing::Return(message_wrong_sender));
-  EXPECT_OUTCOME_FALSE(err, actor::CronActor::EpochTick(actor, vmctx, {}));
+  EXPECT_OUTCOME_FALSE(err, actor::CronActor::epochTick(actor, vmctx, {}));
   ASSERT_EQ(err, actor::CronActorError::WRONG_CALL);
 }
 
@@ -44,5 +44,5 @@ TEST(CronActorTest, Correct) {
                    actor::BigInt(0),
                    std::vector<uint8_t>()))
       .WillRepeatedly(testing::Return(fc::outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(actor::CronActor::EpochTick(actor, vmctx, {}));
+  EXPECT_OUTCOME_TRUE_1(actor::CronActor::epochTick(actor, vmctx, {}));
 }
