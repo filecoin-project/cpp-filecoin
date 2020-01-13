@@ -8,6 +8,16 @@
 
 #include <string>
 
+#include "common/outcome.hpp"
+
+namespace fc::vm {
+  enum class VMExitCode : uint8_t {};
+
+  bool isVMExitCode(const std::error_code &error);
+}  // namespace fc::vm
+
+OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMExitCode);
+
 namespace fc::vm::exit_code {
 
   /**
