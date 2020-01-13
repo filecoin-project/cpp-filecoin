@@ -62,9 +62,10 @@ fc::vm::actor::StoragePowerActor::updatePowerEntriesFromClaimedPower(
   OUTCOME_TRY(claimed_power, claimed_power_->getMinerPower(miner_addr));
 
   int nominal_power = claimed_power;
-  // TODO: Remove after proving engine will be implemented
-  bool detect_post_failed = false;
-  if (detect_post_failed) {
+  if (std::find(po_st_detected_fault_miners_.cbegin(),
+                po_st_detected_fault_miners_.cend(),
+                miner_addr)
+      == po_st_detected_fault_miners_.cend()) {
     nominal_power = 0;
   }
   OUTCOME_TRY(setNominalPowerEntry(miner_addr, nominal_power));
@@ -171,6 +172,10 @@ fc::outcome::result<void> fc::vm::actor::StoragePowerActor::removeMiner(
   OUTCOME_TRY(power_table_->removeMiner(miner_addr));
   OUTCOME_TRY(nominal_power_->removeMiner(miner_addr));
   OUTCOME_TRY(claimed_power_->removeMiner(miner_addr));
-  // TODO: Delete from failed proving
+  auto position = std::find(po_st_detected_fault_miners_.cbegin(),
+                            po_st_detected_fault_miners_.cend(),
+                            miner_addr);
+  if (position != po_st_detected_fault_miners_.cend())
+    po_st_detected_fault_miners_.erase(position);
   return outcome::success();
 }

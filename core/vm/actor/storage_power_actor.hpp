@@ -73,6 +73,8 @@ namespace fc::vm::actor {
     std::unique_ptr<fc::storage::power::PowerTable> claimed_power_;
     std::unique_ptr<fc::storage::power::PowerTable> nominal_power_;
 
+    std::vector<primitives::address::Address> po_st_detected_fault_miners_;
+
     int num_miners_meeting_min_power;
   };
 }  // namespace fc::vm::actor
