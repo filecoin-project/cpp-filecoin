@@ -13,7 +13,7 @@ namespace fc::vm::actor {
 
   struct CronTableEntry {
     Address to_addr;
-    uint64_t method_num;
+    uint64_t method_num{};
   };
 
   struct CronActor {
