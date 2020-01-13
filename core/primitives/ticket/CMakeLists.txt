@@ -9,5 +9,6 @@ add_library(tickets
 target_link_libraries(tickets
     blob
     buffer
+    cbor
     p2p::p2p_sha
     )
