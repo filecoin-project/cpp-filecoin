@@ -22,9 +22,9 @@ TicketGenerator::Ticket TicketGenerator::makeTicket() {
 
 TicketGenerator::EPostTicket TicketGenerator::makeEPostTicket() {
   auto &&int_fields = random_->randomBytes(2);
-  EPostTicket ticket{.partial = {},
-                     .challenge_index = int_fields[0],
-                     .sector_id = int_fields[1]};
+  EPostTicket ticket{};
+  ticket.challenge_index = int_fields[0];
+  ticket.sector_id = int_fields[1];
   constexpr size_t size = ticket.partial.size();
   auto &&bytes = random_->randomBytes(size);
   std::copy(bytes.begin(), bytes.end(), ticket.partial.begin());
