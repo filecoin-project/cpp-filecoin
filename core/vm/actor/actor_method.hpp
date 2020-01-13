@@ -14,6 +14,11 @@
 
 namespace fc::vm::actor {
   using common::Buffer;
+
+  using ActorMethod = std::function<outcome::result<Buffer>(
+      const Actor &, VMContext &, gsl::span<const uint8_t>)>;
+
+  using ActorExports = std::map<uint64_t, ActorMethod>;
 }  // namespace fc::vm::actor
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_METHOD_HPP

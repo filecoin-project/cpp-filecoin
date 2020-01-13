@@ -22,4 +22,8 @@ namespace fc::vm::actor {
     }
     return outcome::success();
   }
+
+  ActorExports CronActor::exports = {
+      {2, ActorMethod(CronActor::epochTick)},
+  };
 }  // namespace fc::vm::actor

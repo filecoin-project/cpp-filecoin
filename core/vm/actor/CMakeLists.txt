@@ -7,6 +7,7 @@ add_library(actor
     actor.cpp
     init_actor.cpp
     cron_actor.cpp
+    invoker.cpp
     )
 target_link_libraries(actor
     address

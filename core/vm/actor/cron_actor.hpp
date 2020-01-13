@@ -35,6 +35,8 @@ namespace fc::vm::actor {
     static outcome::result<Buffer> epochTick(const Actor &actor,
                                              VMContext &vmctx,
                                              gsl::span<const uint8_t> params);
+
+    static ActorExports exports;
   };
 
 }  // namespace fc::vm::actor
