@@ -29,7 +29,7 @@ namespace fc::primitives::ticket {
    * @param rhs second ticket
    * @return true if equal false otherwise
    */
-  inline bool operator==(const Ticket &lhs, const Ticket &rhs);
+  bool operator==(const Ticket &lhs, const Ticket &rhs);
 
   /**
    * @brief compares two tickets alphabetically
@@ -37,7 +37,7 @@ namespace fc::primitives::ticket {
    * @param rhs second ticket
    * @return true if lhs less thatn rhs, false othewise
    */
-  inline bool operator<(const Ticket &lhs, const Ticket &rhs);
+  bool operator<(const Ticket &lhs, const Ticket &rhs);
 
   /**
    * @brief draws randomness from ticket

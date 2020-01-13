@@ -1,4 +1,8 @@
-//
-// Created by masterjedy on 1/11/20.
-//
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
+#include "primitives/ticket/epost_ticket.hpp"
+
+#include <gtest/gtest.h>
