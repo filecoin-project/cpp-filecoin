@@ -4,21 +4,22 @@
  */
 
 #include "vm/actor/cron_actor.hpp"
-#include "vm/actor/cron_actor_error.hpp"
 
-std::vector<fc::vm::actor::CronTableEntry> fc::vm::actor::CronActor::entries = {
-    {kStoragePowerAddress, SpaMethods::CHECK_PROOF_SUBMISSIONS}};
+namespace fc::vm::actor {
+  std::vector<CronTableEntry> CronActor::entries = {
+      {kStoragePowerAddress, SpaMethods::CHECK_PROOF_SUBMISSIONS}};
 
-fc::outcome::result<void> fc::vm::actor::CronActor::epochTick(
-    fc::vm::actor::Actor &actor,
-    fc::vm::VMContext &vmctx,
-    const std::vector<uint8_t> &params) {
-  if (!(vmctx.message().from == kCronAddress)) {
-    return CronActorError::WRONG_CALL;
+  outcome::result<Buffer> CronActor::epochTick(
+      const Actor &actor,
+      vm::VMContext &vmctx,
+      gsl::span<const uint8_t> params) {
+    if (!(vmctx.message().from == kCronAddress)) {
+      return VMExitCode(1);
+    }
+
+    for (const auto &entry : entries) {
+      OUTCOME_TRY(vmctx.send(entry.to_addr, entry.method_num, BigInt(0), {}));
+    }
+    return outcome::success();
   }
-
-  for (const auto &entry : entries) {
-    OUTCOME_TRY(vmctx.send(entry.to_addr, entry.method_num, BigInt(0), {}));
-  }
-  return outcome::success();
-}
+}  // namespace fc::vm::actor

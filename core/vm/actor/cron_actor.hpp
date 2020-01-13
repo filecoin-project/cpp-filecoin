@@ -6,9 +6,8 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_CRON_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_CRON_ACTOR_HPP
 
-#include "vm/actor/actor.hpp"
+#include "vm/actor/actor_method.hpp"
 #include "vm/actor/storage_power_actor.hpp"
-#include "vm/vm_context.hpp"
 
 namespace fc::vm::actor {
 
@@ -18,6 +17,8 @@ namespace fc::vm::actor {
   };
 
   struct CronActor {
+    static constexpr VMExitCode WRONG_CALL{1};
+
     /**
      * Entries is a set of actors (and corresponding methods) to call during
      * EpochTick
@@ -31,9 +32,9 @@ namespace fc::vm::actor {
      * @param params from Lotus(doesn't use)
      * @return success or error
      */
-    static outcome::result<void> epochTick(Actor &actor,
-                                           vm::VMContext &vmctx,
-                                           const std::vector<uint8_t> &params);
+    static outcome::result<Buffer> epochTick(const Actor &actor,
+                                             VMContext &vmctx,
+                                             gsl::span<const uint8_t> params);
   };
 
 }  // namespace fc::vm::actor
