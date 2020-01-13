@@ -7,3 +7,10 @@ addtest(ticket_test
 target_link_libraries(ticket_test
     ticket_utils
     )
+
+addtest(ticket_codec_test
+    ticket_codec_test.cpp
+    )
+target_link_libraries(ticket_codec_test
+    ticket_utils
+    )
