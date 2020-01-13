@@ -25,10 +25,7 @@ namespace fc::vm::actor {
    public:
     // TODO: CHECK TYPE OF RANDOMNESS
     outcome::result<std::vector<primitives::address::Address>>
-    selectMinersToSurprise(
-        int challenge_count,
-        int randomness);  //+  (challengeCount int, randomness abi.Randomness)
-                          //[addr.Address]
+    selectMinersToSurprise(int challenge_count, int randomness);
 
     // TODO: CHECK TYPE OF STORAGE WEIGHT
     outcome::result<void> addClaimedPowerForSector(
@@ -44,6 +41,18 @@ namespace fc::vm::actor {
 
     outcome::result<int> getPowerTotalForMiner(
         const primitives::address::Address &miner_addr) const;
+
+    outcome::result<int> getNominalPowerForMiner(
+        const primitives::address::Address &miner_addr) const;
+
+    outcome::result<int> getClaimedPowerForMiner(
+        const primitives::address::Address &miner_addr) const;
+
+    outcome::result<void> addMiner(
+        const primitives::address::Address &miner_addr);
+
+    outcome::result<void> removeMiner(
+        const primitives::address::Address &miner_addr);
 
    private:
     bool minerNominalPowerMeetsConsensusMinimum(int miner_power);

@@ -145,3 +145,32 @@ fc::vm::actor::StoragePowerActor::getPowerTotalForMiner(
     const fc::primitives::address::Address &miner_addr) const {
   return power_table_->getMinerPower(miner_addr);
 }
+
+fc::outcome::result<int>
+fc::vm::actor::StoragePowerActor::getNominalPowerForMiner(
+    const fc::primitives::address::Address &miner_addr) const {
+  return nominal_power_->getMinerPower(miner_addr);
+}
+
+fc::outcome::result<int>
+fc::vm::actor::StoragePowerActor::getClaimedPowerForMiner(
+    const fc::primitives::address::Address &miner_addr) const {
+  return claimed_power_->getMinerPower(miner_addr);
+}
+
+fc::outcome::result<void> fc::vm::actor::StoragePowerActor::addMiner(
+    const fc::primitives::address::Address &miner_addr) {
+  OUTCOME_TRY(power_table_->setMinerPower(miner_addr, 0));
+  OUTCOME_TRY(nominal_power_->setMinerPower(miner_addr, 0));
+  OUTCOME_TRY(claimed_power_->setMinerPower(miner_addr, 0));
+  return outcome::success();
+}
+
+fc::outcome::result<void> fc::vm::actor::StoragePowerActor::removeMiner(
+    const fc::primitives::address::Address &miner_addr) {
+  OUTCOME_TRY(power_table_->removeMiner(miner_addr));
+  OUTCOME_TRY(nominal_power_->removeMiner(miner_addr));
+  OUTCOME_TRY(claimed_power_->removeMiner(miner_addr));
+  // TODO: Delete from failed proving
+  return outcome::success();
+}
