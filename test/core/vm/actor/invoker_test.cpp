@@ -6,6 +6,7 @@
 #include "vm/actor/invoker.hpp"
 
 #include <gtest/gtest.h>
+#include "testutil/cbor.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/cron_actor.hpp"
 #include "vm_context_mock.hpp"
@@ -25,4 +26,11 @@ TEST(InvokerTest, InvokeCron) {
   EXPECT_CALL(vmc, message())
       .WillRepeatedly(testing::Return(fc::vm::Message{kInitAddress}));
   EXPECT_OUTCOME_ERROR(CronActor::WRONG_CALL, invoker.invoke({kCronCodeCid}, vmc, 2, {}));
+}
+
+TEST(InvokerTest, DecodeActorParams) {
+  using fc::vm::actor::decodeActorParams;
+
+  EXPECT_OUTCOME_ERROR(VMExitCode(1), decodeActorParams<int>("80"_unhex));
+  EXPECT_OUTCOME_EQ(decodeActorParams<int>("03"_unhex), 3);
 }
