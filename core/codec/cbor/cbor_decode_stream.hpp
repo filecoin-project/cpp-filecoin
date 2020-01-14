@@ -59,6 +59,19 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    template <typename T>
+    CborDecodeStream &operator>>(boost::optional<T> &optional) {
+      if (isNull()) {
+        optional = boost::none;
+        next();
+      } else {
+        T value;
+        *this >> value;
+        optional = value;
+      }
+      return *this;
+    }
+
     /** Decodes bytes */
     CborDecodeStream &operator>>(std::vector<uint8_t> &bytes);
     /** Decodes string */

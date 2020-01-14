@@ -7,7 +7,7 @@
 
 namespace fc::codec::cbor {
   CborEncodeStream &CborEncodeStream::operator<<(
-      const gsl::span<const uint8_t> &bytes) {
+      gsl::span<const uint8_t> bytes) {
     addCount(1);
 
     std::vector<uint8_t> encoded(9 + bytes.size());

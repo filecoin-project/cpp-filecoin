@@ -40,8 +40,18 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    template <typename T>
+    CborEncodeStream &operator<<(const boost::optional<T> &optional) {
+      if (optional) {
+        *this << *optional;
+      } else {
+        *this << nullptr;
+      }
+      return *this;
+    }
+
     /** Encodes bytes */
-    CborEncodeStream &operator<<(const gsl::span<const uint8_t> &bytes);
+    CborEncodeStream &operator<<(gsl::span<const uint8_t> bytes);
     /** Encodes string */
     CborEncodeStream &operator<<(const std::string &str);
     /** Encodes CID */
