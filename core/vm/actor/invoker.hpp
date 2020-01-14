@@ -11,6 +11,9 @@
 namespace fc::vm::actor {
   class Invoker {
    public:
+    static constexpr VMExitCode CANT_INVOKE_ACCOUNT_ACTOR{254};
+    static constexpr VMExitCode NO_CODE_OR_METHOD{255};
+
     Invoker();
     outcome::result<Buffer> invoke(const Actor &actor,
                                    VMContext &context,

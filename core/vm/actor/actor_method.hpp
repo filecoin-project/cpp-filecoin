@@ -21,11 +21,13 @@ namespace fc::vm::actor {
 
   using ActorExports = std::map<uint64_t, ActorMethod>;
 
+  constexpr VMExitCode DECODE_ACTOR_PARAMS_ERROR{1};
+
   template <typename T>
   outcome::result<T> decodeActorParams(gsl::span<const uint8_t> params_bytes) {
     auto maybe_params = codec::cbor::decode<T>(params_bytes);
     if (!maybe_params) {
-      return VMExitCode(1);
+      return DECODE_ACTOR_PARAMS_ERROR;
     }
     return maybe_params;
   }
