@@ -14,7 +14,7 @@ namespace fc::vm::actor {
       vm::VMContext &vmctx,
       gsl::span<const uint8_t> params) {
     if (!(vmctx.message().from == kCronAddress)) {
-      return VMExitCode(1);
+      return WRONG_CALL;
     }
 
     for (const auto &entry : entries) {

@@ -19,9 +19,9 @@ TEST(InvokerTest, InvokeCron) {
   Invoker invoker;
   fc::vm::MockVMContext vmc;
 
-  EXPECT_OUTCOME_ERROR(VMExitCode(254), invoker.invoke({kAccountCodeCid}, vmc, 0, {}));
-  EXPECT_OUTCOME_ERROR(VMExitCode(255), invoker.invoke({kEmptyObjectCid}, vmc, 0, {}));
-  EXPECT_OUTCOME_ERROR(VMExitCode(255), invoker.invoke({kCronCodeCid}, vmc, 1000, {}));
+  EXPECT_OUTCOME_ERROR(Invoker::CANT_INVOKE_ACCOUNT_ACTOR, invoker.invoke({kAccountCodeCid}, vmc, 0, {}));
+  EXPECT_OUTCOME_ERROR(Invoker::NO_CODE_OR_METHOD, invoker.invoke({kEmptyObjectCid}, vmc, 0, {}));
+  EXPECT_OUTCOME_ERROR(Invoker::NO_CODE_OR_METHOD, invoker.invoke({kCronCodeCid}, vmc, 1000, {}));
 
   EXPECT_CALL(vmc, message())
       .WillRepeatedly(testing::Return(fc::vm::Message{kInitAddress}));
@@ -31,6 +31,6 @@ TEST(InvokerTest, InvokeCron) {
 TEST(InvokerTest, DecodeActorParams) {
   using fc::vm::actor::decodeActorParams;
 
-  EXPECT_OUTCOME_ERROR(VMExitCode(1), decodeActorParams<int>("80"_unhex));
+  EXPECT_OUTCOME_ERROR(fc::vm::actor::DECODE_ACTOR_PARAMS_ERROR, decodeActorParams<int>("80"_unhex));
   EXPECT_OUTCOME_EQ(decodeActorParams<int>("03"_unhex), 3);
 }
