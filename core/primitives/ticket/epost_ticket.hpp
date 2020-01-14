@@ -31,6 +31,23 @@ namespace fc::primitives::ticket {
     PostRandomness post_rand;  ///< randomness
     std::vector<EPostTicket> candidates;  ///< candidates
   };
+
+  /**
+   * @brief compares 2 tickets
+   * @param lhs first ticket
+   * @param rhs second ticket
+   * @return true if equal false otherwise
+   */
+  bool operator==(const EPostTicket &lhs, const EPostTicket &rhs);
+
+  /**
+   * @brief compares 2 proofs
+   * @param lhs first proof
+   * @param rhs second proof
+   * @return true if equal false otherwise
+   */
+  bool operator==(const EPostProof &lhs, const EPostProof &rhs);
+
 }  // namespace fc::primitives::ticket
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TICKET_EPOST_TICKET_HPP

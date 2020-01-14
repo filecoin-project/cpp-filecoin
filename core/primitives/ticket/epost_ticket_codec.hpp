@@ -96,7 +96,7 @@ namespace fc::primitives::ticket {
     std::vector<uint8_t> rand{};
     list >> rand;
     if (rand.size() != epp.post_rand.size()) {
-      return EPoSTTicketCodecError::INVALID_POST_RAND_LENGTH;
+      outcome::raise(EPoSTTicketCodecError::INVALID_POST_RAND_LENGTH);
     }
     std::copy(rand.begin(), rand.end(), epp.post_rand.begin());
 
