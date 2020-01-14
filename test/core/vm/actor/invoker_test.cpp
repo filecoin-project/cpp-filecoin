@@ -37,3 +37,11 @@ TEST(InvokerTest, DecodeActorParams) {
   EXPECT_OUTCOME_ERROR(fc::vm::actor::DECODE_ACTOR_PARAMS_ERROR, decodeActorParams<int>("80"_unhex));
   EXPECT_OUTCOME_EQ(decodeActorParams<int>("03"_unhex), 3);
 }
+
+/// encodeActorParams returns error or encoded params
+TEST(InvokerTest, EncodeActorParams) {
+  using fc::vm::actor::encodeActorParams;
+
+  EXPECT_OUTCOME_ERROR(fc::vm::actor::ENCODE_ACTOR_PARAMS_ERROR, encodeActorParams(fc::common::kEmptyCid));
+  EXPECT_OUTCOME_EQ(encodeActorParams(3), "03"_unhex);
+}

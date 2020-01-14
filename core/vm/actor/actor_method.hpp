@@ -34,6 +34,18 @@ namespace fc::vm::actor {
     }
     return maybe_params;
   }
+
+  constexpr VMExitCode ENCODE_ACTOR_PARAMS_ERROR{1};
+
+  /// Encode actor params, raises appropriate error
+  template <typename T>
+  outcome::result<std::vector<uint8_t>> encodeActorParams(const T &params) {
+    auto maybe_bytes = codec::cbor::encode(params);
+    if (!maybe_bytes) {
+      return ENCODE_ACTOR_PARAMS_ERROR;
+    }
+    return maybe_bytes;
+  }
 }  // namespace fc::vm::actor
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_METHOD_HPP
