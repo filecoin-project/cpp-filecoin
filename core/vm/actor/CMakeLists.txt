@@ -7,10 +7,11 @@ add_library(actor
     actor.cpp
     init_actor.cpp
     cron_actor.cpp
-    cron_actor_error.cpp
+    invoker.cpp
     )
 target_link_libraries(actor
     address
     cid
+    exit_code
     hamt
     )

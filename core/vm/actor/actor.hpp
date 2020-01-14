@@ -22,7 +22,7 @@ namespace fc::vm::actor {
     ContentIdentifier code{common::kEmptyCid};
     ContentIdentifier head{common::kEmptyCid};
     uint64_t nonce{};
-    BigInt balance;
+    BigInt balance{};
   };
 
   bool operator==(const Actor &lhs, const Actor &rhs);

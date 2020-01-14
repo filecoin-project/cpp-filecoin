@@ -8,7 +8,6 @@
 #include <gtest/gtest.h>
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
-#include "vm/actor/cron_actor_error.hpp"
 #include "vm_context_mock.hpp"
 
 using namespace fc::vm;
@@ -25,7 +24,7 @@ TEST(CronActorTest, WrongSender) {
   EXPECT_CALL(vmctx, message())
       .WillRepeatedly(testing::Return(message_wrong_sender));
   EXPECT_OUTCOME_FALSE(err, actor::CronActor::epochTick(actor, vmctx, {}));
-  ASSERT_EQ(err, actor::CronActorError::WRONG_CALL);
+  ASSERT_EQ(err, actor::CronActor::WRONG_CALL);
 }
 
 /**
