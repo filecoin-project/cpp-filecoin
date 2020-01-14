@@ -101,6 +101,8 @@ namespace fc::vm::actor {
       kInitCodeCid, kPaymentChannelCodeCid;
 
   inline static const auto kInitAddress = Address::makeFromId(0);
+  inline static const auto kStoragePowerAddress = Address::makeFromId(2);
+  inline static const auto kCronAddress = Address::makeFromId(4);
 }  // namespace fc::vm::actor
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
