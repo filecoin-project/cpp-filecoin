@@ -11,8 +11,13 @@
 #include "common/outcome.hpp"
 
 namespace fc::vm {
+  /**
+   * VM exit code enum for outcome errors. Meaning of exit codes may be
+   * different across actors.
+   */
   enum class VMExitCode : uint8_t {};
 
+  /// Distinguish VMExitCode errors from other errors
   bool isVMExitCode(const std::error_code &error);
 }  // namespace fc::vm
 

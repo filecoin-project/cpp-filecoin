@@ -16,13 +16,16 @@
 namespace fc::vm::actor {
   using common::Buffer;
 
+  /// Actor method signature
   using ActorMethod = std::function<outcome::result<Buffer>(
       const Actor &, VMContext &, gsl::span<const uint8_t>)>;
 
+  /// Actor methods exported by number
   using ActorExports = std::map<uint64_t, ActorMethod>;
 
   constexpr VMExitCode DECODE_ACTOR_PARAMS_ERROR{1};
 
+  /// Decode actor params, raises appropriate error
   template <typename T>
   outcome::result<T> decodeActorParams(gsl::span<const uint8_t> params_bytes) {
     auto maybe_params = codec::cbor::decode<T>(params_bytes);

@@ -9,6 +9,7 @@
 #include "vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor {
+  /// Finds and loads actor code, invokes actor methods
   class Invoker {
    public:
     static constexpr VMExitCode CANT_INVOKE_ACCOUNT_ACTOR{254};

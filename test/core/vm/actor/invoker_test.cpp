@@ -13,6 +13,7 @@
 
 using fc::vm::VMExitCode;
 
+/// invoker returns error or invokes actor method
 TEST(InvokerTest, InvokeCron) {
   using namespace fc::vm::actor;
 
@@ -28,9 +29,11 @@ TEST(InvokerTest, InvokeCron) {
   EXPECT_OUTCOME_ERROR(CronActor::WRONG_CALL, invoker.invoke({kCronCodeCid}, vmc, 2, {}));
 }
 
+/// decodeActorParams returns error or decoded params
 TEST(InvokerTest, DecodeActorParams) {
   using fc::vm::actor::decodeActorParams;
 
+  // 80 is cbor empty list, not int
   EXPECT_OUTCOME_ERROR(fc::vm::actor::DECODE_ACTOR_PARAMS_ERROR, decodeActorParams<int>("80"_unhex));
   EXPECT_OUTCOME_EQ(decodeActorParams<int>("03"_unhex), 3);
 }
