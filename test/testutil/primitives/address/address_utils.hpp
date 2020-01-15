@@ -6,9 +6,9 @@
 #ifndef CPP_FILECOIN_TEST_TESTUTIL_PRIMITIVES_ADDRESS_UTILS_HPP
 #define CPP_FILECOIN_TEST_TESTUTIL_PRIMITIVES_ADDRESS_UTILS_HPP
 
-#include "common/blob.hpp"
-#include "common/hexutil.hpp"
-#include "primitives/address/address.hpp"
+#include "../../../../core/common/blob.hpp"
+#include "../../../../core/common/hexutil.hpp"
+#include "../../../../core/primitives/address/address.hpp"
 
 /**
  * @brief creates id-type address

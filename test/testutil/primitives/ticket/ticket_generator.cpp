@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "testutil/primitives/ticket_utils.hpp"
+#include "ticket_generator.hpp"
 
 using fc::crypto::vrf::VRFProof;
 using libp2p::crypto::random::BoostRandomGenerator;
@@ -40,7 +40,7 @@ TicketGenerator::EPostProof TicketGenerator::makeEPostProof(
   auto bytes = random_->randomBytes(post_rand_size);
   std::copy(bytes.begin(), bytes.end(), proof.post_rand.begin());
 
-  proof.candidates.resize(candidates_count);
+  proof.candidates.reserve(candidates_count);
   for (auto i = 0u; i < candidates_count; ++i) {
     proof.candidates.push_back(makeEPostTicket());
   }

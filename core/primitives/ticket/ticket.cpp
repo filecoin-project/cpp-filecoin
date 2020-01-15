@@ -13,8 +13,8 @@ namespace fc::primitives::ticket {
   libp2p::outcome::result<Randomness> drawRandomness(const Ticket &ticket,
                                                      int64_t round) {
     common::Buffer buffer{};
-    common::encodeInteger(round, buffer);
     buffer.put(ticket.bytes);
+    common::encodeInteger(round, buffer);
     auto &&hash = libp2p::crypto::sha256(buffer);
 
     return Randomness::fromSpan(hash);

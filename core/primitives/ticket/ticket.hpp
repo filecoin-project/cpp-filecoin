@@ -27,7 +27,7 @@ namespace fc::primitives::ticket {
    * @brief compares 2 tickets
    * @param lhs first ticket
    * @param rhs second ticket
-   * @return true if equal false otherwise
+   * @return true if tickets are equal, false otherwise
    */
   bool operator==(const Ticket &lhs, const Ticket &rhs);
 

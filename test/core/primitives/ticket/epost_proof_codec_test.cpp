@@ -7,7 +7,8 @@
 
 #include <gtest/gtest.h>
 #include "testutil/outcome.hpp"
-#include "testutil/primitives/ticket_utils.hpp"
+#include "testutil/primitives/ticket/printer.hpp"
+#include "testutil/primitives/ticket/ticket_generator.hpp"
 
 using fc::codec::cbor::CborDecodeStream;
 using fc::codec::cbor::CborEncodeStream;
@@ -18,7 +19,13 @@ using fc::crypto::vrf::VRFResult;
 using fc::primitives::ticket::EPostTicket;
 using fc::primitives::ticket::PostRandomness;
 
-struct EPostProofCodecTest : public ::testing::Test {
+/**
+ * @struct EPostProofCodecLotusCrossTest test fixture for checking
+ * if proof cbor-marshal/unmarshal operations work exactly like lotus
+ * implementation
+ */
+
+struct EPostProofCodecLotusCrossTest : public ::testing::Test {
   using EPostProof = fc::primitives::ticket::EPostProof;
 
   void SetUp() override {
@@ -50,10 +57,38 @@ struct EPostProofCodecTest : public ::testing::Test {
         "01010101010101010115182b";
   }
 
-  TicketGenerator generator;
-
   EPostProof epp1;
   std::string cbor_value;
+};
+
+/**
+ * @given a EPostProof proof instance
+ * @and its cbor string encoded using lotus implementation
+ * @when decode proof using CBorDecodeStream
+ * @then decoded instance is equal to original proof
+ */
+TEST_F(EPostProofCodecLotusCrossTest, DecodeFromLotusSuccess) {
+  EXPECT_OUTCOME_TRUE(cbor_data, Buffer::fromHex(cbor_value));
+  CborDecodeStream ds{cbor_data};
+
+  EPostProof epp2{};
+  ASSERT_NO_THROW(ds >> epp2);
+  ASSERT_EQ(epp1, epp2);
+  CborEncodeStream es{};
+  ASSERT_NO_THROW(es << epp2);
+  ASSERT_EQ(Buffer(es.data()), Buffer::fromHex(cbor_value).value());
+}
+
+/**
+ * @struct EPostTicketCodecRandomTest test ficture for working with generated
+ * proofs
+ */
+struct EPostProofCodecRandomTest : public ::testing::Test {
+  using EPostProof = fc::primitives::ticket::EPostProof;
+
+  size_t loops_count = 10u;  //< number of times to run random test
+
+  TicketGenerator generator;
 };
 
 /**
@@ -62,27 +97,14 @@ struct EPostProofCodecTest : public ::testing::Test {
  * @and then decode using CBorDecodeStream
  * @then decoded instance equal to original proof
  */
-TEST_F(EPostProofCodecTest, EncodeDecodeSuccess) {
-  auto &&p1 = generator.makeEPostProof(32u, 2u);
-  CborEncodeStream es{};
-  ASSERT_NO_THROW(es << p1);
-  CborDecodeStream ds{es.data()};
-  EPostProof p2{};
-  ASSERT_NO_THROW(ds >> p2);
-  ASSERT_EQ(p1, p2);
-}
-
-/**
- * @given a EPostProof proof instance
- * @and its cbor string encoded using lotus implementation
- * @when decode proof using CBorDecodeStream
- * @then decoded instance is equal to original proof
- */
-TEST_F(EPostProofCodecTest, DecodeFromLotusSuccess) {
-  EXPECT_OUTCOME_TRUE(cbor_data, Buffer::fromHex(cbor_value));
-  CborDecodeStream ds{cbor_data};
-
-  EPostProof epp2{};
-  ASSERT_NO_THROW(ds >> epp2);
-  ASSERT_EQ(epp1, epp2);
+TEST_F(EPostProofCodecRandomTest, EncodeDecodeSuccess) {
+  for (size_t i = 0; i < loops_count; ++i) {
+    auto &&p1 = generator.makeEPostProof(32u, 2u);
+    CborEncodeStream es{};
+    ASSERT_NO_THROW(es << p1) << print(p1);
+    CborDecodeStream ds{es.data()};
+    EPostProof p2{};
+    ASSERT_NO_THROW(ds >> p2) << print(p1) << print(p2);
+    ASSERT_EQ(p1, p2) << print(p1) << print(p2);
+  }
 }
