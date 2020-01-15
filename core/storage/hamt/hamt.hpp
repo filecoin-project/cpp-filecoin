@@ -70,7 +70,7 @@ namespace fc::storage::hamt {
     for (size_t i = 0; i < n_items; ++i) {
       auto m_item = l_items.map();
       if (m_item.find("0") != m_item.end()) {
-        CID cid = common::kEmptyCid;
+        CID cid;
         m_item.at("0") >> cid;
         node.items.emplace_back(cid);
       } else {

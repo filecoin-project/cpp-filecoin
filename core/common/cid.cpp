@@ -7,6 +7,14 @@
 
 #include "crypto/blake2/blake2b160.hpp"
 
+namespace fc {
+  CID::CID()
+      : ContentIdentifier(
+          {}, {}, libp2p::multi::Multihash::create({}, {}).value()) {}
+
+  CID::CID(const ContentIdentifier &cid) : ContentIdentifier(cid) {}
+}  // namespace fc
+
 namespace fc::common {
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes) {
     OUTCOME_TRY(hash_raw, crypto::blake2b::blake2b_256(bytes));

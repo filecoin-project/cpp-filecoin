@@ -13,14 +13,13 @@
 #include "primitives/big_int.hpp"
 
 namespace fc::vm::actor {
-  using libp2p::multi::ContentIdentifier;
   using primitives::address::Address;
   using primitives::BigInt;
 
   /** Common actor state interface */
   struct Actor {
-    ContentIdentifier code{common::kEmptyCid};
-    ContentIdentifier head{common::kEmptyCid};
+    CID code{};
+    CID head{};
     uint64_t nonce{};
     BigInt balance{};
   };
@@ -43,14 +42,14 @@ namespace fc::vm::actor {
   }
 
   /** Check if code specifies builtin actor implementation */
-  bool isBuiltinActor(const ContentIdentifier &code);
+  bool isBuiltinActor(const CID &code);
 
   /** Check if only one instance of actor should exists */
-  bool isSingletonActor(const ContentIdentifier &code);
+  bool isSingletonActor(const CID &code);
 
-  extern const ContentIdentifier kEmptyObjectCid;
+  extern const CID kEmptyObjectCid;
 
-  extern const ContentIdentifier kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
+  extern const CID kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
       kStorageMarketCodeCid, kStorageMinerCodeCid, kMultisigCodeCid,
       kInitCodeCid, kPaymentChannelCodeCid;
 

@@ -13,6 +13,7 @@
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
+using fc::CID;
 using fc::common::Buffer;
 using fc::crypto::bls::impl::BlsProviderImpl;
 using fc::primitives::address::AddressBuilderImpl;
@@ -21,7 +22,6 @@ using fc::storage::repository::Repository;
 using fc::storage::repository::RepositoryError;
 using BlsKeyPair = fc::crypto::bls::KeyPair;
 using fc::primitives::address::Network;
-using libp2p::multi::ContentIdentifier;
 using libp2p::multi::HashType;
 using libp2p::multi::MulticodecType;
 using libp2p::multi::Multihash;
@@ -113,8 +113,8 @@ TEST_F(FilesSystemRepositoryTest, PersistenceRepository) {
   // save ipld data
   auto datastore = repository_old->getIpldStore();
 
-  ContentIdentifier cid{
-      ContentIdentifier::Version::V1,
+  CID cid{
+      CID::Version::V1,
       MulticodecType::SHA2_256,
       Multihash::create(HashType::sha256,
                         "0123456789ABCDEF0123456789ABCDEF"_unhex)
