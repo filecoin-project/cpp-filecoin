@@ -9,7 +9,7 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/primitives/address_utils.hpp"
+#include "testutil/primitives/address/address_utils.hpp"
 
 using fc::common::Blob;
 using fc::common::Buffer;
