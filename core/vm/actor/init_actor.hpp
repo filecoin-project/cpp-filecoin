@@ -6,8 +6,6 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP
 
-#include <libp2p/multi/content_identifier.hpp>
-
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 
@@ -20,7 +18,7 @@ namespace fc::vm::actor {
     outcome::result<Address> addActor(std::shared_ptr<IpfsDatastore> store,
                                       const Address &address);
 
-    ContentIdentifier address_map{common::kEmptyCid};
+    CID address_map{};
     uint64_t next_id{};
   };
 

@@ -41,11 +41,3 @@ add_library(logger
 target_link_libraries(logger
     spdlog::spdlog
     )
-
-add_library(cid
-    cid.cpp
-    )
-target_link_libraries(cid
-    blake2
-    p2p::p2p_cid
-    )

@@ -13,7 +13,6 @@
 using fc::CID;
 using fc::common::Buffer;
 using fc::common::getCidOf;
-using fc::common::kEmptyCid;
 using fc::storage::ipfs::Block;
 using fc::storage::ipfs::BlockServiceImpl;
 using fc::storage::ipfs::BlockServiceError;
