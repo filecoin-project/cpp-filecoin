@@ -112,10 +112,10 @@ namespace fc::vm::runtime {
     //    InvocationOutput sendPropagatingErrors(InvocationInput input)
     //    override;
     /** \copydoc Runtime::send() */
-    InvocationOutput send(Address to_address,
-                          MethodNumber method_number,
-                          MethodParams params,
-                          BigInt value) override;
+    fc::outcome::result<InvocationOutput> send(Address to_address,
+                                               MethodNumber method_number,
+                                               MethodParams params,
+                                               BigInt gasCharge) override;
 
     //    // TODO(a.chernyshov) implement
     //    Serialization sendQuery(Address to_addr,

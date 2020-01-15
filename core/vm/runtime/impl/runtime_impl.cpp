@@ -96,10 +96,21 @@ fc::outcome::result<CodeId> RuntimeImpl::getActorCodeID(
   return actor_state.code;
 }
 
-InvocationOutput RuntimeImpl::send(Address to_address,
-                                   MethodNumber method_number,
-                                   MethodParams params,
-                                   BigInt value) {
+fc::outcome::result<InvocationOutput> RuntimeImpl::send(
+    Address to_address,
+    MethodNumber method_number,
+    MethodParams params,
+    BigInt gasCharge) {
+  // TODO (a.chernyshov) from address from msg???
+  OUTCOME_TRY(from_actor, state_tree_->get(to_address));
+  auto to_actor = state_tree_->get(to_address);
+  if (!to_actor) {
+    if (to_actor.error() == HamtError::NOT_FOUND) {
+      // TODO (a.chernyshov) try to create actor
+    }
+    return to_actor.error();
+  }
+
   // TODO (a.chernyshov) message is needed
   return InvocationOutput();
 }

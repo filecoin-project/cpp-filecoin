@@ -139,10 +139,11 @@ namespace fc::vm::runtime {
      * @param value
      * @return
      */
-    virtual InvocationOutput send(Address to_address,
-                                  MethodNumber method_number,
-                                  MethodParams params,
-                                  BigInt value) = 0;
+    virtual fc::outcome::result<InvocationOutput> send(
+        Address to_address,
+        MethodNumber method_number,
+        MethodParams params,
+        BigInt gasCharge) = 0;
     virtual Serialization sendQuery(Address to_addr,
                                     MethodNumber method_number,
                                     gsl::span<Serialization> params) = 0;
