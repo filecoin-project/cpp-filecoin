@@ -181,7 +181,7 @@ namespace fc::primitives::address {
 
     OUTCOME_TRY(address, decode(buffer));
     address.network = net;
-    return address;
+    return std::move(address);
   }
 
   std::vector<uint8_t> checksum(const Address &address) {

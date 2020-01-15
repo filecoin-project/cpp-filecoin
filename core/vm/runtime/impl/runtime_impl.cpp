@@ -20,6 +20,7 @@ using fc::vm::actor::Actor;
 using fc::vm::actor::CodeId;
 using fc::vm::actor::MethodNumber;
 using fc::vm::indices::Indices;
+using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::ActorStateHandle;
 using fc::vm::runtime::ActorStateHandleImpl;
 using fc::vm::runtime::InvocationOutput;
@@ -31,18 +32,22 @@ RuntimeImpl::RuntimeImpl(
     std::shared_ptr<IpfsDatastore> datastore,
     std::shared_ptr<StateTree> state_tree,
     std::shared_ptr<Indices> indices,
+    std::shared_ptr<UnsignedMessage> message,
     ChainEpoch chain_epoch,
     Address immediate_caller,
     Address receiver,
-    Address block_miner)
+    Address block_miner,
+    BigInt gas_used)
     : randomness_provider_{std::move(randomness_provider)},
       datastore_{std::move(datastore)},
       state_tree_{std::move(state_tree)},
       indices_{std::move(indices)},
+      message_{std::move(message)},
       chain_epoch_{chain_epoch},
       immediate_caller_{std::move(immediate_caller)},
       receiver_{std::move(receiver)},
-      block_miner_{std::move(block_miner)} {}
+      block_miner_{std::move(block_miner)},
+      gas_used_{std::move(gas_used)} {}
 
 ChainEpoch RuntimeImpl::getCurrentEpoch() const {
   return chain_epoch_;
@@ -100,16 +105,16 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
     Address to_address,
     MethodNumber method_number,
     MethodParams params,
-    BigInt gasCharge) {
-  // TODO (a.chernyshov) from address from msg???
-  OUTCOME_TRY(from_actor, state_tree_->get(to_address));
-  auto to_actor = state_tree_->get(to_address);
-  if (!to_actor) {
-    if (to_actor.error() == HamtError::NOT_FOUND) {
-      // TODO (a.chernyshov) try to create actor
-    }
-    return to_actor.error();
-  }
+    BigInt value) {
+  // sender is a current 'to' in message
+  OUTCOME_TRY(from_actor, state_tree_->get(message_->to));
+  OUTCOME_TRY(to_actor, getOrCreateActor(to_address));
+
+  // TODO (a.chernyshov) charge gas for transfer
+  // TODO (a.chernyshov) transfer
+//  if (value != 0) {
+//  }
+  // TODO (a.chernyshov) invoke - create runtime context
 
   // TODO (a.chernyshov) message is needed
   return InvocationOutput();
@@ -146,4 +151,40 @@ fc::outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {
 
 std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() {
   return datastore_;
+}
+
+std::shared_ptr<UnsignedMessage> RuntimeImpl::getMessage() {
+  return message_;
+}
+
+fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
+    const Address &address) {
+  auto actor = state_tree_->get(address);
+  if (!actor) {
+    if (actor.error() != HamtError::NOT_FOUND) {
+      return actor.error();
+    }
+    switch (address.getProtocol()) {
+      case primitives::address::ID: {
+        return RuntimeError::ACTOR_NOT_FOUND;
+      }
+      case primitives::address::SECP256K1: {
+        return Actor{actor::kAccountCodeCid,
+                     ActorSubstateCID(actor::kEmptyObjectCid),
+                     0,
+                     BigInt{0}};
+      }
+      case primitives::address::ACTOR: {
+        return RuntimeError::ACTOR_NOT_FOUND;
+      }
+      case primitives::address::BLS: {
+        OUTCOME_TRY(cid, datastore_->setCbor(address));
+        return Actor{
+            actor::kAccountCodeCid, ActorSubstateCID(cid), 0, BigInt{0}};
+      }
+      default:
+        return fc::primitives::address::AddressError::UNKNOWN_PROTOCOL;
+    }
+  }
+  return actor;
 }

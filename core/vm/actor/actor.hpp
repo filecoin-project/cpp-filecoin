@@ -30,7 +30,7 @@ namespace fc::vm::actor {
    * associated with methods in Filecoin VM Actors.
    */
   struct MethodNumber {
-    int method_number;
+    uint64_t method_number;
   };
 
   /**
@@ -67,7 +67,7 @@ namespace fc::vm::actor {
     /// Expected sequence number of the next message sent by this actor
     uint64_t nonce{};
     /// Balance of tokens held by this actor
-    BigInt balance;
+    BigInt balance{};
   };
 
   bool operator==(const Actor &lhs, const Actor &rhs);

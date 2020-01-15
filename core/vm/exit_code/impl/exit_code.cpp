@@ -9,6 +9,16 @@
 
 #include "common/enum.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(fc::vm, VMExitCode, e) {
+  return "vm exit code";
+}
+
+namespace fc::vm {
+  bool isVMExitCode(const std::error_code &error) {
+    return error.category() == __libp2p::Category<VMExitCode>::get();
+  }
+}  // namespace fc::vm
+
 using fc::common::to_int;
 using fc::vm::exit_code::ErrorCode;
 using fc::vm::exit_code::ExitCode;

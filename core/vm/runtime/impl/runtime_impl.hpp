@@ -14,6 +14,7 @@
 
 namespace fc::vm::runtime {
 
+  using actor::Actor;
   using crypto::randomness::ChainEpoch;
   using crypto::randomness::Randomness;
   using crypto::randomness::RandomnessProvider;
@@ -28,10 +29,12 @@ namespace fc::vm::runtime {
                 std::shared_ptr<IpfsDatastore> datastore,
                 std::shared_ptr<StateTree> state_tree,
                 std::shared_ptr<Indices> indices,
+                std::shared_ptr<UnsignedMessage> message,
                 ChainEpoch chain_epoch,
                 Address immediate_caller,
                 Address receiver,
-                Address block_miner);
+                Address block_miner,
+                BigInt gas_used);
 
     /** \copydoc Runtime::getCurrentEpoch() */
     ChainEpoch getCurrentEpoch() const override;
@@ -115,7 +118,7 @@ namespace fc::vm::runtime {
     fc::outcome::result<InvocationOutput> send(Address to_address,
                                                MethodNumber method_number,
                                                MethodParams params,
-                                               BigInt gasCharge) override;
+                                               BigInt value) override;
 
     //    // TODO(a.chernyshov) implement
     //    Serialization sendQuery(Address to_addr,
@@ -143,15 +146,23 @@ namespace fc::vm::runtime {
     /** \copydoc Runtime::getIpfsDatastore() */
     std::shared_ptr<IpfsDatastore> getIpfsDatastore() override;
 
+    /** \copydoc Runtime::getMessage() */
+    std::shared_ptr<UnsignedMessage> getMessage() override;
+
+   private:
+    outcome::result<Actor> getOrCreateActor(const Address &address);
+
    private:
     std::shared_ptr<RandomnessProvider> randomness_provider_;
     std::shared_ptr<IpfsDatastore> datastore_;
     std::shared_ptr<StateTree> state_tree_;
     std::shared_ptr<Indices> indices_;
+    std::shared_ptr<UnsignedMessage> message_;
     ChainEpoch chain_epoch_;
     Address immediate_caller_;
     Address receiver_;
     Address block_miner_;
+    BigInt gas_used_;
   };
 
 }  // namespace fc::vm::runtime

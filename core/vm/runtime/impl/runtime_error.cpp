@@ -15,6 +15,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::runtime, RuntimeError, e) {
       return "RuntimeError: create actor operation is not permitted";
     case RuntimeError::DELETE_ACTOR_OPERATION_NOT_PERMITTED:
       return "RuntimeError: delete actor operation is not permitted";
+    case RuntimeError::ACTOR_NOT_FOUND:
+      return "RuntimeError: receiver actor not found";
     case RuntimeError::UNKNOWN:
       break;
   }

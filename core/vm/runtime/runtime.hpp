@@ -15,6 +15,7 @@
 #include "vm/actor/actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/indices/indices.hpp"
+#include "vm/message/message.hpp"
 #include "vm/runtime/actor_state_handle.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
@@ -29,6 +30,7 @@ namespace fc::vm::runtime {
   using fc::crypto::randomness::ChainEpoch;
   using fc::crypto::randomness::DomainSeparationTag;
   using indices::Indices;
+  using message::UnsignedMessage;
   using primitives::address::Address;
   using storage::ipfs::IpfsDatastore;
   using Serialization = Buffer;
@@ -139,11 +141,10 @@ namespace fc::vm::runtime {
      * @param value
      * @return
      */
-    virtual fc::outcome::result<InvocationOutput> send(
-        Address to_address,
-        MethodNumber method_number,
-        MethodParams params,
-        BigInt gasCharge) = 0;
+    virtual outcome::result<InvocationOutput> send(Address to_address,
+                                                   MethodNumber method_number,
+                                                   MethodParams params,
+                                                   BigInt value) = 0;
     virtual Serialization sendQuery(Address to_addr,
                                     MethodNumber method_number,
                                     gsl::span<Serialization> params) = 0;
@@ -179,12 +180,14 @@ namespace fc::vm::runtime {
      * case of StorageMinerActors
      * @param address - address of actor to delete
      */
-    virtual fc::outcome::result<void> deleteActor(const Address &address) = 0;
+    virtual outcome::result<void> deleteActor(const Address &address) = 0;
 
     /**
      * @brief Returns IPFS datastore
      */
     virtual std::shared_ptr<IpfsDatastore> getIpfsDatastore() = 0;
+
+    virtual std::shared_ptr<UnsignedMessage> getMessage() = 0;
   };
 
 }  // namespace fc::vm::runtime

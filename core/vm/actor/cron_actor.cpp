@@ -4,21 +4,31 @@
  */
 
 #include "vm/actor/cron_actor.hpp"
-#include "vm/actor/cron_actor_error.hpp"
 
-std::vector<fc::vm::actor::CronTableEntry> fc::vm::actor::CronActor::entries = {
-    {kStoragePowerAddress, SpaMethods::CHECK_PROOF_SUBMISSIONS}};
+namespace fc::vm::actor {
 
-fc::outcome::result<void> fc::vm::actor::CronActor::epochTick(
-    fc::vm::actor::Actor &actor,
-    fc::vm::VMContext &vmctx,
-    const std::vector<uint8_t> &params) {
-  if (!(vmctx.message().from == kCronAddress)) {
-    return CronActorError::WRONG_CALL;
+  using vm::actor::MethodNumber;
+  using vm::runtime::Runtime;
+
+  std::vector<CronTableEntry> CronActor::entries = {
+      {kStoragePowerAddress, SpaMethods::CHECK_PROOF_SUBMISSIONS}};
+
+  outcome::result<Buffer> CronActor::epochTick(
+      const Actor &actor,
+      const std::shared_ptr<Runtime> &runtime,
+      gsl::span<const uint8_t> params) {
+    if (!(runtime->getMessage()->from == kCronAddress)) {
+      return WRONG_CALL;
+    }
+
+    for (const auto &entry : entries) {
+      OUTCOME_TRY(runtime->send(
+          entry.to_addr, MethodNumber{entry.method_num}, {}, BigInt(0)));
+    }
+    return outcome::success();
   }
 
-  for (const auto &entry : entries) {
-    OUTCOME_TRY(vmctx.send(entry.to_addr, entry.method_num, BigInt(0), {}));
-  }
-  return outcome::success();
-}
+  ActorExports CronActor::exports = {
+      {2, ActorMethod(CronActor::epochTick)},
+  };
+}  // namespace fc::vm::actor
