@@ -3,6 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(address)
-add_subdirectory(cid)
-add_subdirectory(ticket)
+add_library(cid
+    cid.cpp
+    )
+target_link_libraries(cid
+    blake2
+    p2p::p2p_cid
+    )

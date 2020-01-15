@@ -12,10 +12,10 @@
 #include <boost/variant.hpp>
 
 #include "codec/cbor/cbor.hpp"
-#include "common/cid.hpp"
 #include "common/outcome_throw.hpp"
 #include "common/visitor.hpp"
 #include "primitives/big_int.hpp"
+#include "primitives/cid/cid.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::hamt {

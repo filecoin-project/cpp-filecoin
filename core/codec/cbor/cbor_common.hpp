@@ -11,8 +11,8 @@
 #include <libp2p/multi/content_identifier_codec.hpp>
 
 #include "codec/cbor/cbor_errors.hpp"
-#include "common/cid.hpp"
 #include "common/outcome_throw.hpp"
+#include "primitives/cid/cid.hpp"
 
 namespace fc::codec::cbor {
   constexpr uint64_t kCidTag = 42;

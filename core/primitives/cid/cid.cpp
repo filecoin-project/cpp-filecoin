@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/cid.hpp"
+#include "primitives/cid/cid.hpp"
 
 #include "crypto/blake2/blake2b160.hpp"
 
