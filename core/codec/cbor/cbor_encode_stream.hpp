@@ -50,6 +50,18 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    /// Encodes elements into list
+    template <typename T>
+    CborEncodeStream &operator<<(const std::vector<T> &values) {
+      auto l = list();
+      for (auto &value : values) {
+        l << value;
+      }
+      return *this << l;
+    }
+
+    /** Encodes bytes */
+    CborEncodeStream &operator<<(const std::vector<uint8_t> &bytes);
     /** Encodes bytes */
     CborEncodeStream &operator<<(gsl::span<const uint8_t> bytes);
     /** Encodes string */
