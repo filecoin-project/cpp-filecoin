@@ -6,12 +6,10 @@
 #ifndef CPP_FILECOIN_CORE_VM_MESSAGE_UTIL_HPP
 #define CPP_FILECOIN_CORE_VM_MESSAGE_UTIL_HPP
 
-#include "common/cid.hpp"
+#include "primitives/cid/cid.hpp"
 #include "vm/message/message_codec.hpp"
 
 namespace fc::vm::message {
-
-  using CID = libp2p::multi::ContentIdentifier;
 
   /**
    * @brief Extracts the canonical (CBOR-encoded) CID of an UnsignedMessage
