@@ -59,6 +59,35 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    /// Decodes nullable optional value
+    template <typename T>
+    CborDecodeStream &operator>>(boost::optional<T> &optional) {
+      if (isNull()) {
+        optional = boost::none;
+        next();
+      } else {
+        T value{};
+        *this >> value;
+        optional = value;
+      }
+      return *this;
+    }
+
+    /// Decodes list elements into vector
+    template <typename T>
+    CborDecodeStream &operator>>(std::vector<T> &values) {
+      auto n = listLength();
+      auto l = list();
+      values.clear();
+      values.reserve(n);
+      for (auto i = 0u; i < n; ++i) {
+        T value{};
+        l >> value;
+        values.push_back(value);
+      }
+      return *this;
+    }
+
     /** Decodes bytes */
     CborDecodeStream &operator>>(std::vector<uint8_t> &bytes);
     /** Decodes string */

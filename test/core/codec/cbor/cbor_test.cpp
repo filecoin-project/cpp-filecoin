@@ -73,6 +73,22 @@ TEST(Cbor, Null) {
   EXPECT_FALSE(CborDecodeStream("01"_unhex).isNull());
 }
 
+/** Optional CBOR encoding and decoding */
+TEST(Cbor, Optional) {
+  boost::optional<int> empty;
+  EXPECT_OUTCOME_EQ(encode(empty), "F6"_unhex);
+  EXPECT_OUTCOME_EQ(decode<boost::optional<int>>("F6"_unhex), empty);
+  EXPECT_OUTCOME_EQ(encode(boost::make_optional(3)), "03"_unhex);
+  EXPECT_OUTCOME_EQ(decode<boost::optional<int>>("03"_unhex), 3);
+}
+
+/// Vector CBOR encoding and decoding
+TEST(Cbor, Vector) {
+  std::vector<int> a{2, 5, 9};
+  EXPECT_OUTCOME_EQ(encode(a), "83020509"_unhex);
+  EXPECT_OUTCOME_EQ(decode<std::vector<int>>("83020509"_unhex), a);
+}
+
 /**
  * @given Integers and bool
  * @when Encode

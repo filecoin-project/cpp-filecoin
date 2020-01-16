@@ -45,9 +45,8 @@ namespace fc::primitives::ticket {
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, Ticket &ticket) {
-    auto && l = s.list();
     std::vector<uint8_t> data{};
-    l >> data;
+    s.list() >> data;
     if (data.size() != ticket.bytes.size()) {
       outcome::raise(TicketCodecError::INVALID_TICKET_LENGTH);
     }
