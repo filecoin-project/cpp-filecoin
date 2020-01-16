@@ -17,10 +17,15 @@ using fc::primitives::address::Address;
 using fc::storage::hamt::Hamt;
 using fc::storage::hamt::HamtError;
 using fc::vm::actor::Actor;
+using fc::vm::actor::ActorSubstateCID;
+using fc::vm::actor::CodeId;
 using fc::vm::state::StateTree;
 
 auto kAddressId = Address::makeFromId(13);
-const Actor kActor{"010001020001"_cid, "010001020002"_cid, 3, BigInt(5)};
+const Actor kActor{CodeId{"010001020001"_cid},
+                   ActorSubstateCID{"010001020002"_cid},
+                   3,
+                   BigInt(5)};
 
 class StateTreeTest : public ::testing::Test {
  public:
@@ -74,7 +79,10 @@ TEST_F(StateTreeTest, RegisterNewAddressLookupId) {
   EXPECT_OUTCOME_TRUE(empty_map, Hamt(store_).flush());
   InitActorState init_actor_state{empty_map, 13};
   EXPECT_OUTCOME_TRUE(init_actor_state_cid, store_->setCbor(init_actor_state));
-  Actor init_actor{"010001020000"_cid, init_actor_state_cid, {}, {}};
+  Actor init_actor{CodeId{"010001020000"_cid},
+                   ActorSubstateCID{init_actor_state_cid},
+                   {},
+                   {}};
   EXPECT_OUTCOME_TRUE_1(tree_.set(kInitAddress, init_actor));
   Address address{fc::primitives::address::TESTNET,
                   fc::primitives::address::ActorExecHash{}};
