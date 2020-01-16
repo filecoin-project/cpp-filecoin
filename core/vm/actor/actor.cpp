@@ -28,16 +28,16 @@ namespace fc::vm::actor {
            || code == kInitCodeCid || code == kCronCodeCid;
   }
 
-  const ContentIdentifier kEmptyObjectCid{
-      ContentIdentifier::Version::V1,
+  const CID kEmptyObjectCid{
+      CID::Version::V1,
       libp2p::multi::MulticodecType::Code::DAG_CBOR,
       libp2p::multi::Multihash::create(libp2p::multi::HashType::sha256,
                                        libp2p::crypto::sha256({"\xA0", 1}))
           .value()};
 
-  ContentIdentifier makeRawIdentityCid(const std::string &str) {
+  CID makeRawIdentityCid(const std::string &str) {
     std::vector<uint8_t> bytes{str.begin(), str.end()};
-    return {ContentIdentifier::Version::V1,
+    return {CID::Version::V1,
             libp2p::multi::MulticodecType::Code::RAW,
             libp2p::multi::Multihash::create(libp2p::multi::HashType::identity,
                                              bytes)

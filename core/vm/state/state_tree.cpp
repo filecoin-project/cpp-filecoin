@@ -18,7 +18,7 @@ namespace fc::vm::state {
       : store_(store), hamt_(store), snapshot_(store) {}
 
   StateTree::StateTree(const std::shared_ptr<IpfsDatastore> &store,
-                       const ContentIdentifier &root)
+                       const CID &root)
       : store_(store), hamt_(store, root), snapshot_(store, root) {}
 
   outcome::result<void> StateTree::set(const Address &address,
@@ -57,7 +57,7 @@ namespace fc::vm::state {
     return std::move(address_id);
   }
 
-  outcome::result<ContentIdentifier> StateTree::flush() {
+  outcome::result<CID> StateTree::flush() {
     OUTCOME_TRY(cid, hamt_.flush());
     snapshot_ = hamt_;
     return std::move(cid);

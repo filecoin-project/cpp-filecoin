@@ -8,7 +8,7 @@ add_library(actor
     init_actor.cpp
     cron_actor.cpp
     invoker.cpp
-    ../message/message.hpp)
+    )
 target_link_libraries(actor
     address
     cid

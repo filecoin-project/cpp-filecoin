@@ -9,13 +9,12 @@
 #include <libp2p/multi/content_identifier_codec.hpp>
 
 #include "common/buffer.hpp"
-#include "common/cid.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
+#include "primitives/cid/cid.hpp"
 
 namespace fc::vm::actor {
 
-  using libp2p::multi::ContentIdentifier;
   using primitives::BigInt;
   using primitives::address::Address;
   using Serialization = fc::common::Buffer;
@@ -43,16 +42,14 @@ namespace fc::vm::actor {
    * CodeID identifies an actor's code (either one of the builtin actors, or, in
    * the future, potentially a CID of VM code for a custom actor.)
    */
-  class CodeId : public ContentIdentifier {
+  class CodeId : public CID {
    public:
-    explicit CodeId(ContentIdentifier cid)
-        : ContentIdentifier{std::move(cid)} {}
+    explicit CodeId(ContentIdentifier cid) : CID{std::move(cid)} {}
   };
 
-  class ActorSubstateCID : public ContentIdentifier {
+  class ActorSubstateCID : public CID {
    public:
-    explicit ActorSubstateCID(ContentIdentifier cid)
-        : ContentIdentifier{std::move(cid)} {}
+    explicit ActorSubstateCID(ContentIdentifier cid) : CID{std::move(cid)} {}
   };
 
   /**
@@ -61,9 +58,9 @@ namespace fc::vm::actor {
    */
   struct Actor {
     /// Identifies the code this actor executes
-    CodeId code{common::kEmptyCid};
+    CodeId code;
     /// CID of the root of optional actor-specific sub-state
-    ActorSubstateCID head{common::kEmptyCid};
+    ActorSubstateCID head;
     /// Expected sequence number of the next message sent by this actor
     uint64_t nonce{};
     /// Balance of tokens held by this actor
@@ -94,7 +91,7 @@ namespace fc::vm::actor {
   /** Check if only one instance of actor should exists */
   bool isSingletonActor(const CodeId &code);
 
-  extern const ContentIdentifier kEmptyObjectCid;
+  extern const CID kEmptyObjectCid;
 
   extern const CodeId kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
       kStorageMarketCodeCid, kStorageMinerCodeCid, kMultisigCodeCid,

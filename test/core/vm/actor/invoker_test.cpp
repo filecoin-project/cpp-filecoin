@@ -50,6 +50,6 @@ TEST(InvokerTest, EncodeActorParams) {
   using fc::vm::actor::encodeActorParams;
 
   EXPECT_OUTCOME_ERROR(fc::vm::actor::ENCODE_ACTOR_PARAMS_ERROR,
-                       encodeActorParams(fc::common::kEmptyCid));
+                       encodeActorParams(fc::CID()));
   EXPECT_OUTCOME_EQ(encodeActorParams(3), "03"_unhex);
 }

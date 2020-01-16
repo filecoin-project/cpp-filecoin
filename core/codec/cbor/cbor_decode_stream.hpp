@@ -64,7 +64,7 @@ namespace fc::codec::cbor {
     /** Decodes string */
     CborDecodeStream &operator>>(std::string &str);
     /** Decodes CID */
-    CborDecodeStream &operator>>(libp2p::multi::ContentIdentifier &cid);
+    CborDecodeStream &operator>>(CID &cid);
     /** Creates list container decode substream */
     CborDecodeStream list();
     /** Skips current element */
