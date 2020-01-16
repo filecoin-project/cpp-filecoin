@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_VM_MESSAGE_UTIL_HPP
 #define CPP_FILECOIN_CORE_VM_MESSAGE_UTIL_HPP
 
-#include "common/outcome.hpp"
+#include "common/cid.hpp"
 #include "vm/message/message_codec.hpp"
 
 namespace fc::vm::message {
@@ -26,9 +26,7 @@ namespace fc::vm::message {
   /**
    * @brief SignedMessage size
    */
-  inline uint64_t size(const SignedMessage &sm) {
-    return serialize<SignedMessage>(sm).size();
-  }
+  outcome::result<uint64_t> size(const SignedMessage &sm);
 
   /**
    * @brief Message equality operator

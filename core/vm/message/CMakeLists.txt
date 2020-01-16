@@ -6,12 +6,14 @@
 add_library(message
     message.cpp
     message_util.cpp
-    impl/message_signer_bls.cpp
-    impl/message_signer_secp256k1.cpp
+    impl/message_signer_impl.cpp
     )
 
 target_link_libraries(message
     Boost::boost
     address
+    logger
+    keystore
     outcome
+    signature
     )

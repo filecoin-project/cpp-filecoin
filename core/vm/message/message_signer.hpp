@@ -6,14 +6,13 @@
 #ifndef CPP_FILECOIN_CORE_VM_MESSAGE_SIGNER_HPP
 #define CPP_FILECOIN_CORE_VM_MESSAGE_SIGNER_HPP
 
-#include <gsl/span>
-
-#include "vm/message/message_codec.hpp"
+#include "common/outcome.hpp"
+#include "primitives/address/address.hpp"
+#include "vm/message/message.hpp"
 
 namespace fc::vm::message {
 
-  using PrivateKey = gsl::span<uint8_t>;
-  using PublicKey = gsl::span<uint8_t>;
+  using primitives::address::Address;
 
   /**
    * Interface of an UnisgnedMessage Signer.
@@ -24,21 +23,21 @@ namespace fc::vm::message {
 
     /**
      * @brief Sign an unsigned message with a private key
+     * @param address - the signer's address
      * @param msg - an UnsignedMessage
-     * @param key - an algorithm-specific private key
      * @return SignedMessage or error
      */
     virtual outcome::result<SignedMessage> sign(
-        const UnsignedMessage &msg, const PrivateKey &key) noexcept = 0;
+        const Address &address, const UnsignedMessage &msg) noexcept = 0;
 
     /**
      * @brief Verify a signed message against a public key
+     * @param address - the address on whose behalf the message was signed
      * @param msg - a SignedMessage
-     * @param key - an algorithm-specific public key
-     * @return boolean verification result or error
+     * @return original UnsignedMessage or error
      */
-    virtual outcome::result<bool> verify(const SignedMessage &msg,
-                                         const PublicKey &key) noexcept = 0;
+    virtual outcome::result<UnsignedMessage> verify(
+        const Address &address, const SignedMessage &msg) noexcept = 0;
   };
 
 }  // namespace fc::vm::message

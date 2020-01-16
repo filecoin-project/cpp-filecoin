@@ -12,6 +12,7 @@
 #include "common/outcome.hpp"
 #include "crypto/bls/bls_provider.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
+#include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 
@@ -22,11 +23,11 @@ namespace fc::vm::message {
    */
   enum class MessageError {
     INVALID_LENGTH = 1,
-    INVALID_KEY_LENGTH,
-    INVALID_SIGNATURE_LENGTH,
-    WRONG_SIGNATURE_TYPE
+    SERIALIZATION_FAILURE,
+    VERIFICATION_FAILURE
   };
 
+  using crypto::signature::Signature;
   using primitives::BigInt;
   using primitives::address::Address;
 
@@ -41,29 +42,11 @@ namespace fc::vm::message {
 
     BigInt value;
 
-    uint64_t method;
-    std::vector<uint8_t> params;
-
     BigInt gasPrice;
     BigInt gasLimit;
-  };
 
-  /**
-   * @brief Signature struct
-   */
-  struct Signature {
-    struct Secp256k1Signature : public crypto::secp256k1::Signature {
-      using vector::vector;
-    };
-
-    struct BlsSignature : public crypto::bls::Signature {
-      using array::array;
-    };
-
-    enum Type : uint8_t { SECP256K1 = 0x1, BLS = 0x2 };
-
-    Type type;
-    boost::variant<Secp256k1Signature, BlsSignature> data;
+    uint64_t method;
+    std::vector<uint8_t> params;
   };
 
   /**
@@ -74,11 +57,7 @@ namespace fc::vm::message {
     Signature signature;
   };
 
-  extern const uint64_t kMessageMaxSize;
-  extern const uint64_t kSignatureMaxLength;
-  extern const uint64_t kBlsSignatureLength;
-  extern const uint64_t kBlsPrivateKeyLength;
-  extern const uint64_t kBlsPublicKeyLength;
+  constexpr uint64_t kMessageMaxSize = 32 * 1024;
 
 };  // namespace fc::vm::message
 
