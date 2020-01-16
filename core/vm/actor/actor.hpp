@@ -13,9 +13,9 @@
 
 namespace fc::vm::actor {
 
+  using fc::common::Buffer;
   using primitives::BigInt;
   using primitives::address::Address;
-  using Serialization = fc::common::Buffer;
 
   /**
    * Consider MethodNum numbers to be similar in concerns as for offsets in
@@ -31,14 +31,13 @@ namespace fc::vm::actor {
   };
 
   /**
-   * MethodParams is an array of objects to pass into a method. This is the list
-   * of arguments/parameters
+   * MethodParams is serialized parameters to the method call
    */
-  class MethodParams : public gsl::span<Serialization> {};
+  class MethodParams : public Buffer {};
 
   /**
    * CodeID identifies an actor's code (either one of the builtin actors, or, in
-   * the future, potentially a CID of VM code for a custom actor.)
+   * the future, potentially a CID of VM code for a custom actor)
    */
   class CodeId : public CID {
    public:
