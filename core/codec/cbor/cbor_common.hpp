@@ -8,6 +8,7 @@
 
 #include <cstdint>
 
+#include <boost/optional.hpp>
 #include <libp2p/multi/content_identifier_codec.hpp>
 
 #include "codec/cbor/cbor_errors.hpp"

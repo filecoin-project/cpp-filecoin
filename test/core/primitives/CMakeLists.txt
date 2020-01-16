@@ -4,4 +4,5 @@
 #
 
 add_subdirectory(address)
+add_subdirectory(block)
 add_subdirectory(ticket)
