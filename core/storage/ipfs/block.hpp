@@ -7,7 +7,7 @@
 #define FILECOIN_STORAGE_IPFS_BLOCK_HPP
 
 #include "common/buffer.hpp"
-#include "common/cid.hpp"
+#include "primitives/cid/cid.hpp"
 
 namespace fc::storage::ipfs {
   /**

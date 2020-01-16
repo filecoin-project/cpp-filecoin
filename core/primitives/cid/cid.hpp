@@ -11,19 +11,22 @@
 #include "common/outcome.hpp"
 
 namespace fc {
-  using CID = libp2p::multi::ContentIdentifier;
+  class CID : public libp2p::multi::ContentIdentifier {
+   public:
+    using ContentIdentifier::ContentIdentifier;
+
+    /**
+     * ContentIdentifier is not default-constructible, but in some cases we need
+     * default value. This value can be used to initialize class member or local
+     * variable. Trying to CBOR encode this value will yield error, to ensure
+     * proper initialization.
+     */
+    CID();
+    CID(const ContentIdentifier &cid);
+  };
 }  // namespace fc
 
 namespace fc::common {
-  /**
-   * CID is not default-constructible, but in some cases we need default value.
-   * This value can be used to initialize class member or local variable. Trying
-   * to CBOR encode this value will yield error, to ensure proper
-   * initialization.
-   */
-  const static inline CID kEmptyCid(
-      {}, {}, libp2p::multi::Multihash::create({}, {}).value());
-
   /// Compute CID from bytes
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes);
 }  // namespace fc::common

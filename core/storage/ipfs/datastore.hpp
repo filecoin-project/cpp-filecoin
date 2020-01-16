@@ -10,9 +10,9 @@
 
 #include "codec/cbor/cbor.hpp"
 #include "common/buffer.hpp"
-#include "common/cid.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
+#include "primitives/cid/cid.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
 
 namespace fc::storage::ipfs {

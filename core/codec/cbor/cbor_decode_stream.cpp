@@ -56,7 +56,7 @@ namespace fc::codec::cbor {
   }
 
   CborDecodeStream &CborDecodeStream::operator>>(
-      libp2p::multi::ContentIdentifier &cid) {
+      CID &cid) {
     if (!cbor_value_is_tag(&value_)) {
       outcome::raise(CborDecodeError::INVALID_CBOR_CID);
     }

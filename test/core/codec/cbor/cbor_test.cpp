@@ -6,11 +6,12 @@
 #include "codec/cbor/cbor.hpp"
 #include "primitives/big_int.hpp"
 
-#include "common/cid.hpp"
 #include <gtest/gtest.h>
+#include "primitives/cid/cid.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using fc::CID;
 using fc::codec::cbor::CborDecodeError;
 using fc::codec::cbor::CborDecodeStream;
 using fc::codec::cbor::CborEncodeError;
@@ -19,7 +20,6 @@ using fc::codec::cbor::CborResolveError;
 using fc::codec::cbor::decode;
 using fc::codec::cbor::encode;
 using fc::codec::cbor::resolve;
-using fc::common::kEmptyCid;
 
 auto kCidRaw =
     libp2p::multi::ContentIdentifierCodec::decode(
@@ -191,7 +191,7 @@ TEST(CborEncoder, Map) {
  * @then Error
  */
 TEST(CborEncoder, CidErrors) {
-  EXPECT_OUTCOME_ERROR(CborEncodeError::INVALID_CID, encode(kEmptyCid));
+  EXPECT_OUTCOME_ERROR(CborEncodeError::INVALID_CID, encode(CID()));
 }
 
 /**
@@ -233,10 +233,7 @@ TEST(CborDecoder, Integral) {
  * @then Decoded as expected
  */
 TEST(CborDecoder, Cid) {
-  auto actual = kEmptyCid;
-  EXPECT_NE(actual, kCidRaw);
-  CborDecodeStream(kCidCbor) >> actual;
-  EXPECT_EQ(actual, kCidRaw);
+  EXPECT_OUTCOME_EQ(decode<CID>(kCidCbor), kCidRaw);
 }
 
 /**
@@ -372,34 +369,30 @@ TEST(CborDecoder, ListErrors) {
  * @then Error
  */
 TEST(CborDecoder, CidErrors) {
-  auto actual = kEmptyCid;
   // no tag
-  EXPECT_OUTCOME_RAISE(
+  EXPECT_OUTCOME_ERROR(
       CborDecodeError::INVALID_CBOR_CID,
-      CborDecodeStream(
-          "582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex)
-          >> actual);
+      decode<CID>(
+          "582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex));
   // not 42 tag
-  EXPECT_OUTCOME_RAISE(
+  EXPECT_OUTCOME_ERROR(
       CborDecodeError::INVALID_CBOR_CID,
-      CborDecodeStream(
-          "D82B582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex)
-          >> actual);
+      decode<CID>(
+          "D82B582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex));
   // empty 42 tag
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR,
-                       CborDecodeStream("D82A"_unhex) >> actual);
+  EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CBOR,
+                       decode<CID>("D82A"_unhex));
   // not bytes
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR_CID,
-                       CborDecodeStream("D82B01"_unhex) >> actual);
+  EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CBOR_CID,
+                       decode<CID>("D82B01"_unhex));
   // no multibase 00 prefix
-  EXPECT_OUTCOME_RAISE(
+  EXPECT_OUTCOME_ERROR(
       CborDecodeError::INVALID_CBOR_CID,
-      CborDecodeStream(
-          "D82A5822122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex)
-          >> actual);
+      decode<CID>(
+          "D82A5822122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex));
   // invalid cid
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CID,
-                       CborDecodeStream("D82A420000"_unhex) >> actual);
+  EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CID,
+                       decode<CID>("D82A420000"_unhex));
 }
 
 /**

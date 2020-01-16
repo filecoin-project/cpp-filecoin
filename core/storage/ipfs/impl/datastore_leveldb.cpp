@@ -16,7 +16,7 @@ namespace fc::storage::ipfs {
      * @return encoded value as Buffer
      */
     inline outcome::result<common::Buffer> encode(
-        const libp2p::multi::ContentIdentifier &value) {
+        const CID &value) {
       OUTCOME_TRY(encoded,
                   libp2p::multi::ContentIdentifierCodec::encode(value));
       return common::Buffer(std::move(encoded));

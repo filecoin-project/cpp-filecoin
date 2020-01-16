@@ -11,7 +11,6 @@
 
 namespace fc::vm::state {
   using actor::Actor;
-  using libp2p::multi::ContentIdentifier;
   using primitives::address::Address;
   using storage::hamt::Hamt;
   using storage::ipfs::IpfsDatastore;
@@ -21,7 +20,7 @@ namespace fc::vm::state {
    public:
     explicit StateTree(const std::shared_ptr<IpfsDatastore> &store);
     StateTree(const std::shared_ptr<IpfsDatastore> &store,
-              const ContentIdentifier &root);
+              const CID &root);
     /// Set actor state, does not write to storage
     outcome::result<void> set(const Address &address, const Actor &actor);
     /// Get actor state
@@ -32,7 +31,7 @@ namespace fc::vm::state {
     outcome::result<Address> registerNewAddress(const Address &address,
                                                 const Actor &actor);
     /// Write changes to storage
-    outcome::result<ContentIdentifier> flush();
+    outcome::result<CID> flush();
     /// Revert changes to last flushed state
     outcome::result<void> revert();
 
