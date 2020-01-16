@@ -82,6 +82,7 @@ TEST(Cbor, Optional) {
   EXPECT_OUTCOME_EQ(decode<boost::optional<int>>("03"_unhex), 3);
 }
 
+/// Vector CBOR encoding and decoding
 TEST(Cbor, Vector) {
   std::vector<int> a{2, 5, 9};
   EXPECT_OUTCOME_EQ(encode(a), "83020509"_unhex);

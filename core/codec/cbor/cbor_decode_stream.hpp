@@ -65,7 +65,7 @@ namespace fc::codec::cbor {
         optional = boost::none;
         next();
       } else {
-        T value;
+        T value{};
         *this >> value;
         optional = value;
       }
@@ -80,7 +80,7 @@ namespace fc::codec::cbor {
       values.clear();
       values.reserve(n);
       for (auto i = 0u; i < n; ++i) {
-        T value;
+        T value{};
         l >> value;
         values.push_back(value);
       }

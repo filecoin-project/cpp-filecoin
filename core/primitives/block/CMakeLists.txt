@@ -3,10 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(block_test
-    block_test.cpp
+add_library(block
+    block.cpp
     )
-target_link_libraries(block_test
-    block
-    hexutil
+target_link_libraries(block
+    address
+    cbor
+    tickets
     )
