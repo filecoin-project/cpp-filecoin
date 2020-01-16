@@ -40,6 +40,7 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    /// Encodes nullable optional value
     template <typename T>
     CborEncodeStream &operator<<(const boost::optional<T> &optional) {
       if (optional) {

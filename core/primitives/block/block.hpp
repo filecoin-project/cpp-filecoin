@@ -19,18 +19,18 @@ namespace fc::primitives::block {
   using Signature = std::vector<uint8_t>;
 
   struct BlockHeader {
-    Address miner{};
-    boost::optional<Ticket> ticket{};
-    EPostProof epost_proof{};
-    std::vector<CID> parents{};
-    BigInt parent_weight{};
-    uint64_t height{};
-    CID parent_state_root{};
-    CID parent_message_receipts{};
-    CID messages{};
-    Signature bls_aggregate{};
-    uint64_t timestamp{};
-    boost::optional<Signature> block_sig{};
+    Address miner;
+    boost::optional<Ticket> ticket;
+    EPostProof epost_proof;
+    std::vector<CID> parents;
+    BigInt parent_weight;
+    uint64_t height;
+    CID parent_state_root;
+    CID parent_message_receipts;
+    CID messages;
+    Signature bls_aggregate;
+    uint64_t timestamp;
+    boost::optional<Signature> block_sig;
   };
 
   template <class Stream,

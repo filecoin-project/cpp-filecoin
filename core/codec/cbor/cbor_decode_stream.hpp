@@ -59,6 +59,7 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    /// Decodes nullable optional value
     template <typename T>
     CborDecodeStream &operator>>(boost::optional<T> &optional) {
       if (isNull()) {
