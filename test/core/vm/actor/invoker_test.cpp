@@ -27,7 +27,6 @@ TEST(InvokerTest, InvokeCron) {
       invoker.invoke({CodeId{kEmptyObjectCid}}, runtime, 0, {}));
   EXPECT_OUTCOME_ERROR(Invoker::NO_CODE_OR_METHOD,
                        invoker.invoke({kCronCodeCid}, runtime, 1000, {}));
-
   EXPECT_CALL(*runtime, getMessage())
       .WillRepeatedly(
           testing::Return(std::shared_ptr<fc::vm::message::UnsignedMessage>()));

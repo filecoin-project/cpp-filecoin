@@ -10,6 +10,7 @@
 #include "vm/actor/init_actor.hpp"
 
 namespace fc::vm::state {
+  using actor::ActorSubstateCID;
   using codec::cbor::decode;
   using primitives::address::encodeToString;
   using actor::ActorSubstateCID;

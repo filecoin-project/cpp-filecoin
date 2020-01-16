@@ -38,7 +38,7 @@ namespace fc::codec::cbor {
   template <typename T>
   outcome::result<T> decode(gsl::span<const uint8_t> input) {
     try {
-      T data;
+      T data{};
       CborDecodeStream decoder(input);
       decoder >> data;
       return data;

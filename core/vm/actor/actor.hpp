@@ -6,8 +6,6 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
 
-#include <libp2p/multi/content_identifier_codec.hpp>
-
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
@@ -15,9 +13,9 @@
 
 namespace fc::vm::actor {
 
+  using fc::common::Buffer;
   using primitives::BigInt;
   using primitives::address::Address;
-  using Serialization = fc::common::Buffer;
 
   /**
    * Consider MethodNum numbers to be similar in concerns as for offsets in
@@ -33,23 +31,24 @@ namespace fc::vm::actor {
   };
 
   /**
-   * MethodParams is an array of objects to pass into a method. This is the list
-   * of arguments/parameters
+   * MethodParams is serialized parameters to the method call
    */
-  class MethodParams : public gsl::span<Serialization> {};
+  class MethodParams : public Buffer {};
 
   /**
    * CodeID identifies an actor's code (either one of the builtin actors, or, in
-   * the future, potentially a CID of VM code for a custom actor.)
+   * the future, potentially a CID of VM code for a custom actor)
    */
   class CodeId : public CID {
    public:
-    explicit CodeId(ContentIdentifier cid) : CID{std::move(cid)} {}
+    CodeId() = default;
+    explicit CodeId(CID cid) : CID{std::move(cid)} {}
   };
 
   class ActorSubstateCID : public CID {
    public:
-    explicit ActorSubstateCID(ContentIdentifier cid) : CID{std::move(cid)} {}
+    ActorSubstateCID() = default;
+    explicit ActorSubstateCID(CID cid) : CID{std::move(cid)} {}
   };
 
   /**
@@ -58,9 +57,9 @@ namespace fc::vm::actor {
    */
   struct Actor {
     /// Identifies the code this actor executes
-    CodeId code;
+    CodeId code{};
     /// CID of the root of optional actor-specific sub-state
-    ActorSubstateCID head;
+    ActorSubstateCID head{};
     /// Expected sequence number of the next message sent by this actor
     uint64_t nonce{};
     /// Balance of tokens held by this actor
