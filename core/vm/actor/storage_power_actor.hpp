@@ -6,7 +6,9 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
 
-#include <power/power_table.hpp>
+#include "power/power_table.hpp"
+#include "vm/indices/indices.hpp"
+#include "vm/actor/util.hpp"
 
 namespace fc::vm::actor {
 
@@ -28,25 +30,24 @@ namespace fc::vm::actor {
     outcome::result<std::vector<primitives::address::Address>>
     selectMinersToSurprise(int challenge_count, int randomness);
 
-    // TODO: CHECK TYPE OF STORAGE WEIGHT
     outcome::result<void> addClaimedPowerForSector(
         const primitives::address::Address &miner_addr,
-        int storage_weight_desc);
+        const SectorStorageWeightDesc &storage_weight_desc);
 
     outcome::result<void> deductClaimedPowerForSectorAssert(
         const primitives::address::Address &miner_addr,
-        int storage_weight_desc);
+        const SectorStorageWeightDesc &storage_weight_desc);
 
     outcome::result<void> updatePowerEntriesFromClaimedPower(
         const primitives::address::Address &miner_addr);
 
-    outcome::result<int> getPowerTotalForMiner(
+    outcome::result<fc::primitives::BigInt> getPowerTotalForMiner(
         const primitives::address::Address &miner_addr) const;
 
-    outcome::result<int> getNominalPowerForMiner(
+    outcome::result<fc::primitives::BigInt> getNominalPowerForMiner(
         const primitives::address::Address &miner_addr) const;
 
-    outcome::result<int> getClaimedPowerForMiner(
+    outcome::result<fc::primitives::BigInt> getClaimedPowerForMiner(
         const primitives::address::Address &miner_addr) const;
 
     outcome::result<void> addMiner(
@@ -56,27 +57,30 @@ namespace fc::vm::actor {
         const primitives::address::Address &miner_addr);
 
    private:
-    bool minerNominalPowerMeetsConsensusMinimum(int miner_power);
+    bool minerNominalPowerMeetsConsensusMinimum(fc::primitives::BigInt miner_power);
 
     outcome::result<void> setNominalPowerEntry(
         const primitives::address::Address &miner_addr,
-        int updated_nominal_power);
+        fc::primitives::BigInt updated_nominal_power);
 
     outcome::result<void> setPowerEntryInternal(
-        const primitives::address::Address &miner_addr, int updated_power);
+        const primitives::address::Address &miner_addr, fc::primitives::BigInt updated_power);
 
     outcome::result<void> setClaimedPowerEntryInternal(
         const primitives::address::Address &miner_addr,
-        int updated_claimed_power);
+        fc::primitives::BigInt updated_claimed_power);
 
-    int total_network_power_;
-    std::unique_ptr<fc::storage::power::PowerTable> power_table_;
-    std::unique_ptr<fc::storage::power::PowerTable> claimed_power_;
-    std::unique_ptr<fc::storage::power::PowerTable> nominal_power_;
+    fc::primitives::BigInt total_network_power_;
+    std::unique_ptr<fc::power::PowerTable> power_table_;
+    std::unique_ptr<fc::power::PowerTable> claimed_power_;
+    std::unique_ptr<fc::power::PowerTable> nominal_power_;
 
     std::vector<primitives::address::Address> po_st_detected_fault_miners_;
 
     int num_miners_meeting_min_power;
+
+    //TODO: remove after indices will be implemented
+    std::unique_ptr<fc::vm::Indices> indices_;
   };
 }  // namespace fc::vm::actor
 

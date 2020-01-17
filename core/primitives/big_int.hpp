@@ -21,6 +21,13 @@ namespace fc::primitives {
     using cpp_int::cpp_int;
   };
 
+  static inline const BigInt operator+(const BigInt &lhs, const BigInt &rhs) {
+    return static_cast<cpp_int>(lhs) + static_cast<cpp_int>(rhs);
+  }
+
+  static inline const BigInt operator-(const BigInt &lhs, const BigInt &rhs) {
+    return static_cast<cpp_int>(lhs) - static_cast<cpp_int>(rhs);
+  }
 
   static inline bool operator>=(const BigInt &lhs, const BigInt &rhs) {
     return static_cast<cpp_int>(lhs) >= static_cast<cpp_int>(rhs);

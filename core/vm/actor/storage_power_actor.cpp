@@ -29,9 +29,9 @@ fc::vm::actor::StoragePowerActor::selectMinersToSurprise(int challenge_count,
 fc::outcome::result<void>
 fc::vm::actor::StoragePowerActor::addClaimedPowerForSector(
     const fc::primitives::address::Address &miner_addr,
-    int storage_weight_desc) {
+    const SectorStorageWeightDesc &storage_weight_desc) {
   fc::primitives::BigInt sector_power =
-      fc::vm::Indices::ConsensusPowerForStorageWeight(storage_weight_desc);
+      indices_->ConsensusPowerForStorageWeight(storage_weight_desc);
 
   OUTCOME_TRY(miner_power, claimed_power_->getMinerPower(miner_addr));
 
@@ -44,10 +44,9 @@ fc::vm::actor::StoragePowerActor::addClaimedPowerForSector(
 fc::outcome::result<void>
 fc::vm::actor::StoragePowerActor::deductClaimedPowerForSectorAssert(
     const fc::primitives::address::Address &miner_addr,
-    int storage_weight_desc) {
-  // TODO: uncomment after indices will be implemented
+    const SectorStorageWeightDesc &storage_weight_desc) {
   fc::primitives::BigInt sector_power =
-      fc::vm::Indices::ConsensusPowerForStorageWeight(storage_weight_desc);
+      indices_->ConsensusPowerForStorageWeight(storage_weight_desc);
 
   OUTCOME_TRY(miner_power, claimed_power_->getMinerPower(miner_addr));
 
@@ -62,7 +61,7 @@ fc::vm::actor::StoragePowerActor::updatePowerEntriesFromClaimedPower(
     const fc::primitives::address::Address &miner_addr) {
   OUTCOME_TRY(claimed_power, claimed_power_->getMinerPower(miner_addr));
 
-  int nominal_power = claimed_power;
+  fc::primitives::BigInt nominal_power = claimed_power;
   if (std::find(po_st_detected_fault_miners_.cbegin(),
                 po_st_detected_fault_miners_.cend(),
                 miner_addr)
@@ -72,12 +71,13 @@ fc::vm::actor::StoragePowerActor::updatePowerEntriesFromClaimedPower(
   OUTCOME_TRY(setNominalPowerEntry(miner_addr, nominal_power));
 
   // Compute actual (consensus) power, i.e., votes in leader election.
-  int power = nominal_power;
+  fc::primitives::BigInt power = nominal_power;
   if (!minerNominalPowerMeetsConsensusMinimum(nominal_power)) {
     power = 0;
   }
 
-  // TODO: Decide effect of undercollateralization on (consensus) power.
+  // TODO: FROM DOCS Decide effect of undercollateralization on (consensus)
+  // power.
 
   return setPowerEntryInternal(miner_addr, power);
 }
@@ -85,14 +85,13 @@ fc::vm::actor::StoragePowerActor::updatePowerEntriesFromClaimedPower(
 fc::outcome::result<void>
 fc::vm::actor::StoragePowerActor::setNominalPowerEntry(
     const fc::primitives::address::Address &miner_addr,
-    int updated_nominal_power) {
+    fc::primitives::BigInt updated_nominal_power) {
   OUTCOME_TRY(prev_miner_nominal_power,
               nominal_power_->getMinerPower(miner_addr));
   OUTCOME_TRY(nominal_power_->setMinerPower(miner_addr, updated_nominal_power));
 
-  // TODO: uncomment after indices will be implemented
-  int consensus_min_power = 0;
-  // indices.StoragePower_ConsensusMinMinerPower();
+  fc::primitives::BigInt consensus_min_power =
+      indices_->StoragePower_ConsensusMinMinerPower();
   if (updated_nominal_power >= consensus_min_power
       && prev_miner_nominal_power < consensus_min_power) {
     num_miners_meeting_min_power += 1;
@@ -105,16 +104,18 @@ fc::vm::actor::StoragePowerActor::setNominalPowerEntry(
 
 fc::outcome::result<void>
 fc::vm::actor::StoragePowerActor::setPowerEntryInternal(
-    const fc::primitives::address::Address &miner_addr, int updated_power) {
+    const fc::primitives::address::Address &miner_addr,
+    fc::primitives::BigInt updated_power) {
   OUTCOME_TRY(prev_miner_power, power_table_->getMinerPower(miner_addr));
   OUTCOME_TRY(power_table_->setMinerPower(miner_addr, updated_power));
   total_network_power_ += (updated_power - prev_miner_power);
   return outcome::success();
 }
+
 bool fc::vm::actor::StoragePowerActor::minerNominalPowerMeetsConsensusMinimum(
-    int miner_power) {
+    fc::primitives::BigInt miner_power) {
   // Maybe should move to constants
-  int MIN_MINER_SIZE_STOR = 0;
+  fc::primitives::BigInt MIN_MINER_SIZE_STOR = 0;
   size_t MIN_MINER_SIZE_TARG = 0;
 
   // if miner is larger than min power requirement, we're set
@@ -139,22 +140,23 @@ bool fc::vm::actor::StoragePowerActor::minerNominalPowerMeetsConsensusMinimum(
 
 fc::outcome::result<void>
 fc::vm::actor::StoragePowerActor::setClaimedPowerEntryInternal(
-    const fc::primitives::address::Address &miner_addr, int updated__power) {
+    const fc::primitives::address::Address &miner_addr,
+    fc::primitives::BigInt updated__power) {
   return claimed_power_->setMinerPower(miner_addr, updated__power);
 }
-fc::outcome::result<int>
+fc::outcome::result<fc::primitives::BigInt>
 fc::vm::actor::StoragePowerActor::getPowerTotalForMiner(
     const fc::primitives::address::Address &miner_addr) const {
   return power_table_->getMinerPower(miner_addr);
 }
 
-fc::outcome::result<int>
+fc::outcome::result<fc::primitives::BigInt>
 fc::vm::actor::StoragePowerActor::getNominalPowerForMiner(
     const fc::primitives::address::Address &miner_addr) const {
   return nominal_power_->getMinerPower(miner_addr);
 }
 
-fc::outcome::result<int>
+fc::outcome::result<fc::primitives::BigInt>
 fc::vm::actor::StoragePowerActor::getClaimedPowerForMiner(
     const fc::primitives::address::Address &miner_addr) const {
   return claimed_power_->getMinerPower(miner_addr);

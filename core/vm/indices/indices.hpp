@@ -6,13 +6,19 @@
 #ifndef CPP_FILECOIN_CORE_VM_INDICES_HPP
 #define CPP_FILECOIN_CORE_VM_INDICES_HPP
 
-#include <primitives/big_int.hpp>
+#include "primitives/big_int.hpp"
+#include "vm/actor/util.hpp"
 
 namespace fc::vm {
   class Indices {
    public:
-    static fc::primitives::BigInt ConsensusPowerForStorageWeight(
-        int storage_weight_desc);
+
+    virtual ~Indices() = default;
+
+    fc::primitives::BigInt ConsensusPowerForStorageWeight(
+        actor::SectorStorageWeightDesc storage_weight_desc);
+
+    fc::primitives::BigInt StoragePower_ConsensusMinMinerPower();
   };
 }  // namespace fc::vm
 
