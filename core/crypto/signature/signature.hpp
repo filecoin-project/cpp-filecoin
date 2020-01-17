@@ -21,7 +21,6 @@ namespace fc::crypto::signature {
   enum Type : uint8_t { SECP256K1 = 0x1, BLS = 0x2 };
 
   constexpr uint64_t kSignatureMaxLength = 200;
-  constexpr uint64_t kBlsSignatureLength = 96;
 
   /**
    * @brief Signature error codes
@@ -32,12 +31,11 @@ namespace fc::crypto::signature {
     INVALID_KEY_LENGTH
   };
 
-  // using Signature = boost::variant<BlsSignature, Secp256k1Signature>;
   struct Signature : public boost::variant<BlsSignature, Secp256k1Signature> {
     using variant::variant;
     using base_type = boost::variant<BlsSignature, Secp256k1Signature>;
 
-    bool operator==(const Signature &other) const {
+    inline bool operator==(const Signature &other) const {
       return base_type::operator==(static_cast<const base_type &>(other));
     }
   };
@@ -75,12 +73,12 @@ namespace fc::crypto::signature {
         signature = Secp256k1Signature(std::next(data.begin()), data.end());
         break;
       case (BLS): {
-        if (data.size() != kBlsSignatureLength + 1) {
+        BlsSignature blsSig{};
+        if (data.size() != blsSig.size() + 1) {
           outcome::raise(SignatureError::INVALID_SIGNATURE_LENGTH);
         }
-        BlsSignature blsSig{};
         std::copy_n(std::make_move_iterator(std::next(data.begin())),
-                    kBlsSignatureLength,
+                    blsSig.size(),
                     blsSig.begin());
         signature = blsSig;
         break;

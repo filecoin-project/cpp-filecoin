@@ -30,7 +30,7 @@ namespace fc::vm::message {
   }
 
   outcome::result<UnsignedMessage> MessageSignerImpl::verify(
-      const Address &address, const SignedMessage &msg) noexcept {
+      const Address &address, const SignedMessage &msg) const noexcept {
     auto maybe_cid = cid(msg.message);
     if (maybe_cid.has_error()) {
       logger_->error(maybe_cid.error().message());

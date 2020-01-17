@@ -37,7 +37,7 @@ namespace fc::vm::message {
      * @return original UnsignedMessage or error
      */
     virtual outcome::result<UnsignedMessage> verify(
-        const Address &address, const SignedMessage &msg) noexcept = 0;
+        const Address &address, const SignedMessage &msg) const noexcept = 0;
   };
 
 }  // namespace fc::vm::message

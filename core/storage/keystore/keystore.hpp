@@ -78,7 +78,8 @@ namespace fc::storage::keystore {
      * @param data to sign
      * @return signature
      */
-    virtual outcome::result<Signature> sign(const Address &address, gsl::span<uint8_t> data) noexcept;
+    virtual outcome::result<Signature> sign(
+        const Address &address, gsl::span<const uint8_t> data) noexcept;
 
     /**
      * @brief verify signature

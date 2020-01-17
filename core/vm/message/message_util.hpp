@@ -26,14 +26,6 @@ namespace fc::vm::message {
    */
   outcome::result<uint64_t> size(const SignedMessage &sm);
 
-  /**
-   * @brief Message equality operator
-   */
-  inline bool operator==(const UnsignedMessage &lhs,
-                         const UnsignedMessage &rhs) {
-    return cid(lhs) == cid(rhs);
-  }
-
 };  // namespace fc::vm::message
 
 #endif  // CPP_FILECOIN_CORE_VM_MESSAGE_UTIL_HPP

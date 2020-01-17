@@ -158,14 +158,12 @@ TEST_F(AddressCodecTest, RoundTripDecodeEncode) {
  */
 TEST_F(AddressCodecTest, MarshalCbor) {
   EXPECT_OUTCOME_TRUE(addr1, decode("0001"_unhex));
-  EXPECT_OUTCOME_TRUE(cbor_encoded, fc::codec::cbor::encode<Address>(addr1));
-  EXPECT_EQ(cbor_encoded, "420001"_unhex);
+  EXPECT_OUTCOME_EQ(fc::codec::cbor::encode<Address>(addr1), "420001"_unhex);
 
   EXPECT_OUTCOME_TRUE(
       addr2, decode("01fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex));
-  EXPECT_OUTCOME_TRUE(cbor_encoded2, fc::codec::cbor::encode<Address>(addr2));
-  EXPECT_EQ(cbor_encoded2,
-            "5501fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex);
+  EXPECT_OUTCOME_EQ(fc::codec::cbor::encode<Address>(addr2),
+                    "5501fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex);
 }
 
 /**

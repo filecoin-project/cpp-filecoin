@@ -6,12 +6,9 @@
 #ifndef CPP_FILECOIN_CORE_VM_MESSAGE_HPP
 #define CPP_FILECOIN_CORE_VM_MESSAGE_HPP
 
-#include <boost/variant.hpp>
 #include <gsl/span>
 
 #include "common/outcome.hpp"
-#include "crypto/bls/bls_provider.hpp"
-#include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
@@ -47,6 +44,11 @@ namespace fc::vm::message {
 
     uint64_t method;
     std::vector<uint8_t> params;
+
+    /**
+     * @brief Message equality operator
+     */
+    bool operator==(const UnsignedMessage &other) const;
   };
 
   /**

@@ -18,3 +18,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::message, MessageError, e) {
       return "Unknown error";
   };
 }
+
+using fc::vm::message::UnsignedMessage;
+
+bool UnsignedMessage::operator==(const UnsignedMessage &other) const {
+  return to == other.to && from == other.from && nonce == other.nonce
+         && value == other.value && gasPrice == other.gasPrice
+         && gasLimit == other.gasLimit && method == other.method
+         && params == other.params;
+}

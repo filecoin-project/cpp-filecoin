@@ -4,19 +4,18 @@
  */
 
 #include "crypto/signature/signature.hpp"
-#include "common/outcome.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::crypto::signature, SignatureError, e) {
   using fc::crypto::signature::SignatureError;
   switch (e) {
     case (SignatureError::INVALID_SIGNATURE_LENGTH):
-      return "Invalid signature length";
+      return "SignatureError: invalid signature length";
     case (SignatureError::WRONG_SIGNATURE_TYPE):
-      return "Wrong signature type";
+      return "SignatureError: wrong signature type";
     case (SignatureError::INVALID_KEY_LENGTH):
-      return "Invalid key length";
+      return "SignatureError: invalid key length";
     default:
-      return "Unknown error";
+      return "SignatureError: unknown error";
   };
 }
 

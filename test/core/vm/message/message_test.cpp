@@ -5,11 +5,14 @@
 
 #include <gtest/gtest.h>
 
+#include <map>
+
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "primitives/address/impl/address_builder_impl.hpp"
 #include "primitives/address/impl/address_verifier_impl.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
@@ -18,9 +21,12 @@
 using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::impl::BlsProviderImpl;
 using BlsPrivateKey = fc::crypto::bls::PrivateKey;
+using BlsPublicKey = fc::crypto::bls::PublicKey;
 using fc::crypto::secp256k1::Secp256k1Provider;
 using fc::crypto::secp256k1::Secp256k1ProviderImpl;
 using Secp256k1PrivateKey = fc::crypto::secp256k1::PrivateKey;
+using Secp256k1PublicKey = fc::crypto::secp256k1::PublicKey;
+using fc::crypto::signature::Signature;
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
@@ -32,9 +38,6 @@ using fc::primitives::address::Network;
 
 using fc::storage::keystore::InMemoryKeyStore;
 
-using fc::codec::cbor::decode;
-using fc::codec::cbor::encode;
-
 using fc::storage::keystore::KeyStore;
 using fc::storage::keystore::KeyStoreError;
 
@@ -45,7 +48,12 @@ using fc::vm::message::MessageSignerImpl;
 using fc::vm::message::SignedMessage;
 using fc::vm::message::UnsignedMessage;
 
+using fc::visit_in_place;
+
 using Bytes = std::vector<uint8_t>;
+
+using CryptoProvider = boost::variant<std::shared_ptr<BlsProvider>,
+                                      std::shared_ptr<Secp256k1Provider>>;
 
 UnsignedMessage makeMessage(Address const &from,
                             Address const &to,
@@ -61,45 +69,43 @@ UnsignedMessage makeMessage(Address const &from,
       ""_unhex    // method params
   };
 }
+
+Address addKeyGetAddress(
+    const std::array<uint8_t, 32> &private_key,
+    const CryptoProvider &provider,
+    const std::shared_ptr<KeyStore> &keystore,
+    const std::shared_ptr<AddressBuilder> &address_builder) {
+  return visit_in_place(
+      provider,
+      [&](const std::shared_ptr<BlsProvider> &p) {
+        auto address =
+            address_builder
+                ->makeFromBlsPublicKey(Network::TESTNET,
+                                       p->derivePublicKey(private_key).value())
+                .value();
+        keystore->put(address, private_key).value();
+        return address;
+      },
+      [&](const std::shared_ptr<Secp256k1Provider> &p) {
+        auto address =
+            address_builder
+                ->makeFromSecp256k1PublicKey(
+                    Network::TESTNET, p->derivePublicKey(private_key).value())
+                .value();
+        keystore->put(address, private_key).value();
+        return address;
+      });
+}
+
 struct MessageTest : public testing::Test {
-  BlsPrivateKey bls_signing_key{251, 43,  111, 2,   195, 6,   169, 207,
-                                32,  75,  142, 115, 8,   149, 149, 119,
-                                116, 140, 80,  211, 8,   219, 9,   16,
-                                174, 133, 97,  167, 249, 223, 160, 40};
-  BlsPrivateKey bls_other_key{207, 171, 143, 214, 40,  249, 188, 163,
-                              17,  4,   127, 245, 79,  116, 197, 165,
-                              134, 43,  27,  194, 216, 230, 237, 23,
-                              28,  14,  128, 201, 84,  112, 155, 63};
-  Secp256k1PrivateKey secp256k1_signing_key{
-      60,  155, 92,  41,  33,  170, 0,   218, 108, 129, 96,
-      39,  153, 104, 231, 195, 219, 12,  60,  219, 253, 120,
-      147, 101, 137, 54,  250, 215, 198, 26,  77,  179};
-  Secp256k1PrivateKey secp256k1_other_key{
-      17,  141, 140, 35,  136, 192, 93,  11,  250, 25,  168,
-      216, 106, 143, 39,  184, 26,  125, 83,  108, 231, 124,
-      96,  66,  236, 172, 170, 243, 183, 100, 240, 227};
+  UnsignedMessage message;
 
-  Address target{Network::TESTNET, 1001};
-
-  std::vector<uint64_t> nonces{0, 1, 2, 3, 4};
-
-  std::vector<Bytes> bls_msg_cids{
-      "0171a0e40220abb8435c9c1c1e170d6c26707dd52fbe57cf1bc7a5801bd047903b98bd110da1"_unhex,
-      "0171a0e4022045acc0a0f654af85d213c533c2620fd85ccbb9bf369b6e325a83b214d59b93bc"_unhex,
-      "0171a0e4022083064ca02e2c714329a49797fb871e08dbd152a420f69a291d3663b09ac26ec4"_unhex,
-      "0171a0e4022066acdd1ae69b48ac5548c7f365985db0e61695f10c4862e54101c43c2fa0002e"_unhex,
-      "0171a0e402200e228d43e6df39843df7ad4027292f68f843d8e770d6df7439b5aa0f2f2d2da3"_unhex};
-  std::vector<Bytes> secp256k1_msg_cids{
-      "0171a0e402204af1d24cdc8e606b5c414deb4941437b00004721b56ac662e649b1be508c74c5"_unhex,
-      "0171a0e402201d5990e85cad07760e9e2307da8ac12891fc978a8fd13a1ef608155b956a13ec"_unhex,
-      "0171a0e40220527883177943f5d042916fe021c8c04e21a1e85dd89d0a86de1d737d355f5c8a"_unhex,
-      "0171a0e40220ea49706f9f742fce6cbfef84b60429ea5e10a1260c4313bd211d967c099bba5f"_unhex,
-      "0171a0e4022092cfdff2bf1c1d2b73d2f29030f390edd3c65132989cdbf675cdbf0e423c3fe3"_unhex};
+  std::map<std::string, Address> from;
 
   std::shared_ptr<BlsProvider> bls_provider;
   std::shared_ptr<Secp256k1Provider> secp256k1_provider;
   std::shared_ptr<AddressVerifier> address_verifier;
-  std::unique_ptr<AddressBuilder> address_builder;
+  std::shared_ptr<AddressBuilder> address_builder;
 
   std::shared_ptr<KeyStore> keystore;
   std::shared_ptr<MessageSigner> msigner;
@@ -108,253 +114,120 @@ struct MessageTest : public testing::Test {
     bls_provider = std::make_shared<BlsProviderImpl>();
     secp256k1_provider = std::make_shared<Secp256k1ProviderImpl>();
     address_verifier = std::make_shared<AddressVerifierImpl>();
-    address_builder = std::make_unique<AddressBuilderImpl>();
+    address_builder = std::make_shared<AddressBuilderImpl>();
 
     keystore = std::make_shared<InMemoryKeyStore>(
         bls_provider, secp256k1_provider, address_verifier);
 
-    keystore
-        ->put(address_builder
-                  ->makeFromBlsPublicKey(
-                      Network::TESTNET,
-                      bls_provider->derivePublicKey(bls_signing_key).value())
-                  .value(),
-              bls_signing_key)
-        .value();
-    keystore
-        ->put(address_builder
-                  ->makeFromBlsPublicKey(
-                      Network::TESTNET,
-                      bls_provider->derivePublicKey(bls_other_key).value())
-                  .value(),
-              bls_other_key)
-        .value();
-    keystore
-        ->put(address_builder
-                  ->makeFromSecp256k1PublicKey(
-                      Network::TESTNET,
-                      secp256k1_provider->derivePublicKey(secp256k1_signing_key)
-                          .value())
-                  .value(),
-              secp256k1_signing_key)
-        .value();
+    from.insert(std::make_pair(
+        "bls_signing_address",
+        addKeyGetAddress(
+            "8e8c5263df0022d8e29cab943d57d851722c38ee1dbe7f8c29c0498156496f29"_blob32,
+            bls_provider,
+            keystore,
+            address_builder)));
+    from.insert(std::make_pair(
+        "secp256k1_signing_address",
+        addKeyGetAddress(
+            "7008136b505aa01e406f72204668865852186756c95cd3a7e5184ef7b8f62058"_blob32,
+            secp256k1_provider,
+            keystore,
+            address_builder)));
 
     msigner = std::make_shared<MessageSignerImpl>(keystore);
+
+    message = std::move(makeMessage(
+        from["bls_signing_address"], Address{Network::TESTNET, 1001}, 0));
   }
 };
 
 /**
- * @given A set of UnsignedMessages from BLS public key address to some target
- * ID address
- * @when Serializing them to cbor and then decoding them back
- * @then Return messages match the original ones
- */
-TEST_F(MessageTest, UnsignedMessagesEncodingRoundTrip) {
-  EXPECT_OUTCOME_TRUE(
-      public_key, this->bls_provider->derivePublicKey(this->bls_signing_key));
-  EXPECT_OUTCOME_TRUE(from,
-                      this->address_builder->makeFromBlsPublicKey(
-                          Network::TESTNET, public_key));
-  for (auto i : this->nonces) {
-    auto msg = makeMessage(from, this->target, i);
-    EXPECT_OUTCOME_TRUE(encoded, encode<UnsignedMessage>(msg));
-    EXPECT_OUTCOME_TRUE(decoded, decode<UnsignedMessage>(encoded));
-    EXPECT_EQ(msg, decoded);
-  }
-}
-
-/**
- * @given A set of UnsignedMessages from BLS public key address to some target
- * ID address
- * @when Signing the unsigned messages and then verifying the signatures with
- * corresponding public key
- * @then Verification succeeds
- */
-TEST_F(MessageTest, VerifySignedBLSMessagesSuccess) {
-  EXPECT_OUTCOME_TRUE(
-      public_key, this->bls_provider->derivePublicKey(this->bls_signing_key));
-  EXPECT_OUTCOME_TRUE(from,
-                      this->address_builder->makeFromBlsPublicKey(
-                          Network::TESTNET, public_key));
-  for (auto i : this->nonces) {
-    auto msg = makeMessage(from, this->target, i);
-    EXPECT_OUTCOME_TRUE(signed_message, this->msigner->sign(from, msg));
-    EXPECT_OUTCOME_TRUE(msg2, this->msigner->verify(from, signed_message));
-    EXPECT_EQ(msg, msg2);
-  }
-}
-
-/**
- * @given A set of UnsignedMessages from Secp256k1 public key address to some
- * target ID address
- * @when Signing the unsigned messages and then verifying the signed messages
- * with the same address that was used for signing
- * @then Verification succeeds
- */
-TEST_F(MessageTest, VerifySignedSecp256k1MessagesSuccess) {
-  EXPECT_OUTCOME_TRUE(
-      public_key,
-      this->secp256k1_provider->derivePublicKey(this->secp256k1_signing_key));
-  EXPECT_OUTCOME_TRUE(from,
-                      this->address_builder->makeFromSecp256k1PublicKey(
-                          Network::TESTNET, public_key));
-  for (auto i : this->nonces) {
-    auto msg = makeMessage(from, this->target, i);
-    EXPECT_OUTCOME_TRUE(signed_message, this->msigner->sign(from, msg));
-    EXPECT_OUTCOME_TRUE(msg2, this->msigner->verify(from, signed_message));
-    EXPECT_EQ(msg, msg2);
-  }
-}
-
-/**
- * @given A set of UnsignedMessages from BLS public key address to some target
- * ID address
- * @when Signing the messages and then verifying the signed messages
- * with a different BlsPublicKey address which is also present in keystore
- * @then Verification returns MessageError::VERIFICATION_FAILURE
- */
-TEST_F(MessageTest, SignedMessagesVerificationFailure) {
-  EXPECT_OUTCOME_TRUE(
-      public_key, this->bls_provider->derivePublicKey(this->bls_signing_key));
-  EXPECT_OUTCOME_TRUE(from,
-                      this->address_builder->makeFromBlsPublicKey(
-                          Network::TESTNET, public_key));
-  EXPECT_OUTCOME_TRUE(other_key,
-                      this->bls_provider->derivePublicKey(this->bls_other_key));
-  EXPECT_OUTCOME_TRUE(
-      other,
-      this->address_builder->makeFromBlsPublicKey(Network::TESTNET, other_key));
-  for (auto i : this->nonces) {
-    auto msg = makeMessage(from, this->target, i);
-    EXPECT_OUTCOME_TRUE(signed_message, this->msigner->sign(from, msg));
-    EXPECT_OUTCOME_ERROR(MessageError::VERIFICATION_FAILURE,
-                         this->msigner->verify(other, signed_message));
-  }
-}
-
-/**
- * @given A set of UnsignedMessages from BLS public key address to some target
- * ID address
- * @when Signing the messages and then verifying the signed messages
- * with a Secp256k1PublicKey address which is also present in keystore
- * @then Verification returns KeyStoreError::WRONG_SIGNATURE
- */
-TEST_F(MessageTest, VerificationFailureWrongSignature) {
-  EXPECT_OUTCOME_TRUE(
-      public_key, this->bls_provider->derivePublicKey(this->bls_signing_key));
-  EXPECT_OUTCOME_TRUE(from,
-                      this->address_builder->makeFromBlsPublicKey(
-                          Network::TESTNET, public_key));
-  EXPECT_OUTCOME_TRUE(
-      other_key,
-      this->secp256k1_provider->derivePublicKey(this->secp256k1_signing_key));
-  EXPECT_OUTCOME_TRUE(other,
-                      this->address_builder->makeFromSecp256k1PublicKey(
-                          Network::TESTNET, other_key));
-  for (auto i : this->nonces) {
-    auto msg = makeMessage(from, this->target, i);
-    EXPECT_OUTCOME_TRUE(signed_message, this->msigner->sign(from, msg));
-    EXPECT_OUTCOME_ERROR(KeyStoreError::WRONG_SIGNATURE,
-                         this->msigner->verify(other, signed_message));
-  }
-}
-
-/**
- * @given A set of UnsignedMessages from BLS public key address to some target
- * ID address
- * @when Signing the messages and then verifying the signed messages
- * with an address which is not present in keystore
- * @then Verification returns KeyStoreError::NOT_FOUND
- */
-TEST_F(MessageTest, VerificationFailureWrongAddress) {
-  EXPECT_OUTCOME_TRUE(
-      public_key, this->bls_provider->derivePublicKey(this->bls_signing_key));
-  EXPECT_OUTCOME_TRUE(from,
-                      this->address_builder->makeFromBlsPublicKey(
-                          Network::TESTNET, public_key));
-  EXPECT_OUTCOME_TRUE(
-      other_key,
-      this->secp256k1_provider->derivePublicKey(this->secp256k1_other_key));
-  EXPECT_OUTCOME_TRUE(other,
-                      this->address_builder->makeFromSecp256k1PublicKey(
-                          Network::TESTNET, other_key));
-  for (auto i : this->nonces) {
-    auto msg = makeMessage(from, this->target, i);
-    EXPECT_OUTCOME_TRUE(signed_message, this->msigner->sign(from, msg));
-    EXPECT_OUTCOME_ERROR(KeyStoreError::NOT_FOUND,
-                         this->msigner->verify(other, signed_message));
-  }
-}
-
-/**
- * @given A set of SignedMessages from Secp256k1 public key address to some
- * target ID address
- * @when Serializing them to cbor and then decoding them back
- * @then Return messages match the original ones
- */
-TEST_F(MessageTest, SignedMessagesEncodingRoundTrip) {
-  EXPECT_OUTCOME_TRUE(
-      public_key,
-      this->secp256k1_provider->derivePublicKey(this->secp256k1_signing_key));
-  EXPECT_OUTCOME_TRUE(from,
-                      this->address_builder->makeFromSecp256k1PublicKey(
-                          Network::TESTNET, public_key));
-  for (auto i : this->nonces) {
-    auto msg = makeMessage(from, this->target, i);
-    EXPECT_OUTCOME_TRUE(signed_message, this->msigner->sign(from, msg));
-    EXPECT_OUTCOME_TRUE(encoded, encode<SignedMessage>(signed_message));
-    EXPECT_OUTCOME_TRUE(decoded, decode<SignedMessage>(encoded));
-    EXPECT_TRUE(signed_message.message == decoded.message
-                && signed_message.signature == decoded.signature);
-  }
-}
-
-/**
- * @given A set of UnsignedMessages from BLS public key address to some target
- * ID address
- * @when Calculating messages CIDs and comparing with known CIDs generated by Go
- * implementation
+ * @given An UnsignedMessage and having it signed with BLS address
+ * @when Comparing the the signed message CID with the pre-computed value from
+ * the reference Go implementation
  * @then Values match
  */
-TEST_F(MessageTest, UnsignedBLSMessagesCIDsMatch) {
-  EXPECT_OUTCOME_TRUE(
-      public_key, this->bls_provider->derivePublicKey(this->bls_signing_key));
-  EXPECT_OUTCOME_TRUE(from,
-                      this->address_builder->makeFromBlsPublicKey(
-                          Network::TESTNET, public_key));
-  size_t ind = 0;
-  for (auto i : this->nonces) {
-    auto msg = makeMessage(from, this->target, i);
-    EXPECT_OUTCOME_TRUE(cid, cid(msg));
-    EXPECT_OUTCOME_TRUE(cid_bytes,
-                        libp2p::multi::ContentIdentifierCodec::encode(cid));
-    EXPECT_EQ(cid_bytes, this->bls_msg_cids[ind++]);
-  }
+TEST_F(MessageTest, BlsSignedMessageCID) {
+  EXPECT_OUTCOME_TRUE(signed_message,
+                      msigner->sign(from["bls_signing_address"], message));
+  EXPECT_OUTCOME_EQ(
+      cid(signed_message),
+      "0171a0e40220c4534185b0af5fdc31e79efac6fd64e514aad37a6569e69f09d35ba221e4007e"_cid);
+}
+
+// TODO(ekovalev): the following test is currently disabled due to Secp256k1
+// signature non-determinism Yet the reference Go implementation has consistent
+// Secp256k1 signatures More research required
+/**
+ * @given An UnsignedMessage and having it signed with Secp256k1 address
+ * @when Comparing the the signed message CID with the pre-computed value from
+the reference Go implementation
+ * @then Values match
+
+TEST_F(MessageTest, Secp256k1SignedMessageCID) {
+  EXPECT_OUTCOME_TRUE(signed_message,
+msigner->sign(from["secp256k1_signing_address"], message));
+  EXPECT_OUTCOME_EQ(cid(signed_message),
+"0171a0e402201c9a054f1d0918cf9e215903078d5fa72e3d4de95b11ba5c49c1dffaf1d917c2"_cid);
+}
+*/
+
+/**
+ * @given An UnsignedMessage
+ * @when Serializing it to CBOR and comparing with pre-computed value; then
+ * decoding the UnsignedMessage back and re-encoding it to CBOR again to ensure
+ * consistency
+ * @then All values match
+ */
+TEST_F(MessageTest, UnsignedMessagesEncoding) {
+  expectEncodeAndReencode<UnsignedMessage>(
+      message,
+      "884300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe72700420001404200010040"_unhex);
 }
 
 /**
- * @given A set of UnsignedMessages from Secp256k1 public key address to some
- * target ID address
- * @when Calculating messages CIDs and comparing with known CIDs generated by Go
- * implementation
- * @then Values match
+ * @given An UnsignedMessage and having it signed on behalf of any address
+ * @when Serializing the signed message to CBOR and comparing with pre-computed
+ * value; then decoding the UnsignedMessage back and re-encoding it to CBOR
+ * again
+ * @then All values match
  */
-TEST_F(MessageTest, UnsignedSecp256k1MessagesCIDsMatch) {
-  EXPECT_OUTCOME_TRUE(
-      public_key,
-      this->secp256k1_provider->derivePublicKey(this->secp256k1_signing_key));
-  EXPECT_OUTCOME_TRUE(from,
-                      this->address_builder->makeFromSecp256k1PublicKey(
-                          Network::TESTNET, public_key));
-  size_t ind = 0;
-  for (auto i : this->nonces) {
-    auto msg = makeMessage(from, this->target, i);
-    EXPECT_OUTCOME_TRUE(cid, cid(msg));
-    EXPECT_OUTCOME_TRUE(cid_bytes,
-                        libp2p::multi::ContentIdentifierCodec::encode(cid));
-
-    // TODO(ekovalev): change to EXPECT_EQ after (and if) the secp256k1 public
-    // key length has been aligned with go-crypto project
-    EXPECT_NE(cid_bytes, this->secp256k1_msg_cids[ind++]);
-  }
+TEST_F(MessageTest, SignedMessagesEncoding) {
+  EXPECT_OUTCOME_TRUE(signed_message,
+                      msigner->sign(from["bls_signing_address"], message));
+  expectEncodeAndReencode<SignedMessage>(
+      signed_message,
+      "82884300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe727004200014042000100405861028ce1601b1324a9301685d5a0e5fd9611476f2b3d358fccc5798a9f173c0f2c90f0a4bc329bf6cdc963d33767ead3e9580ab40e3b068813e8388753d32846d1b539e1f8aefa2a2dcf1672f3841ccf1ebc861a4e240e6318dde4aaadb0023ff25f"_unhex);
 }
+
+/**
+ * @given An UnsignedMessage and having it signed with BLS address
+ * @when Serializing the Signature to CBOR and comparing with pre-computed
+ * value; then decoding the Signature back and re-encoding it to CBOR again
+ * @then All values match
+ */
+TEST_F(MessageTest, BlsSignatureEncoding) {
+  EXPECT_OUTCOME_TRUE(signed_message,
+                      msigner->sign(from["bls_signing_address"], message));
+  expectEncodeAndReencode<Signature>(
+      signed_message.signature,
+      "5861028ce1601b1324a9301685d5a0e5fd9611476f2b3d358fccc5798a9f173c0f2c90f0a4bc329bf6cdc963d33767ead3e9580ab40e3b068813e8388753d32846d1b539e1f8aefa2a2dcf1672f3841ccf1ebc861a4e240e6318dde4aaadb0023ff25f"_unhex);
+}
+
+// TODO(ekovalev): the following test is currently disabled due to Secp256k1
+// signature non-determinism Yet the reference Go implementation has consistent
+// Secp256k1 signatures More research required
+/**
+ * @given An UnsignedMessage and having it signed with Secp256k1 address
+ * @when Serializing the Signature to CBOR and comparing with pre-computed
+value;
+ * then decoding the Signature back and re-encoding it to CBOR again
+ * @then All values match
+
+TEST_F(MessageTest, Secp256k1SignatureEncoding) {
+  EXPECT_OUTCOME_TRUE(signed_message,
+msigner->sign(from["secp256k1_signing_address"], message));
+  expectEncodeAndReencode<Signature>(signed_message.signature,
+"58420142d60b3b9f27116ae24c46be6da33d310e46a2457b8dce00c73dd9e80e779c3752ba94856d4efdc39c7a61b9ed939bf1832206e4a578bb3f649fe2af3ab1495401"_unhex);
+}
+*/

@@ -45,7 +45,7 @@ fc::outcome::result<bool> KeyStore::checkAddress(
 }
 
 fc::outcome::result<Signature> KeyStore::sign(
-    const Address &address, gsl::span<uint8_t> data) noexcept {
+    const Address &address, gsl::span<const uint8_t> data) noexcept {
   OUTCOME_TRY(private_key, get(address));
   OUTCOME_TRY(valid, checkAddress(address, private_key));
   if (!valid) return KeyStoreError::WRONG_ADDRESS;

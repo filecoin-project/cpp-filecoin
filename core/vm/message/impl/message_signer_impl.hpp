@@ -19,7 +19,6 @@ namespace fc::vm::message {
    */
   class MessageSignerImpl : public MessageSigner {
    public:
-    MessageSignerImpl() = delete;
     explicit MessageSignerImpl(std::shared_ptr<KeyStore> ks);
 
     /**
@@ -31,8 +30,9 @@ namespace fc::vm::message {
     /**
      * @copydoc MessageSigner::verify()
      */
-    outcome::result<UnsignedMessage> verify(
-        const Address &address, const SignedMessage &msg) noexcept override;
+    outcome::result<UnsignedMessage> verify(const Address &address,
+                                            const SignedMessage &msg) const
+        noexcept override;
 
    private:
     std::shared_ptr<KeyStore> keystore_;
