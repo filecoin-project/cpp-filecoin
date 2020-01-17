@@ -16,7 +16,6 @@ namespace fc::vm::runtime {
   // TODO(a.chernyshov) implement
   class ActorStateHandleImpl : public ActorStateHandle {
    public:
-    ActorStateHandleImpl();
     ~ActorStateHandleImpl() override = default;
     void updateRelease(ActorSubstateCID new_state_cid) override;
     void release(ActorSubstateCID check_state_cid) override;

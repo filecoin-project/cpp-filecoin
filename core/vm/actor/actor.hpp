@@ -28,6 +28,8 @@ namespace fc::vm::actor {
    */
   struct MethodNumber {
     uint64_t method_number;
+
+    bool operator==(const MethodNumber &other) const;
   };
 
   /**

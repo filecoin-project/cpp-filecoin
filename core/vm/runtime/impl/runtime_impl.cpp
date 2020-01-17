@@ -128,7 +128,7 @@ fc::outcome::result<void> RuntimeImpl::createActor(CodeId code_id,
     return fc::outcome::failure(
         RuntimeError::CREATE_ACTOR_OPERATION_NOT_PERMITTED);
 
-  Actor new_actor{code_id, ActorSubstateCID(common::kEmptyCid), 0, 0};
+  Actor new_actor{code_id, ActorSubstateCID(), 0, 0};
   OUTCOME_TRY(state_tree_->registerNewAddress(address, new_actor));
   return fc::outcome::success();
 }
@@ -178,7 +178,9 @@ fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
         return RuntimeError::ACTOR_NOT_FOUND;
       }
       case primitives::address::BLS: {
-        OUTCOME_TRY(cid, datastore_->setCbor(address));
+        // TODO (a.chernyshov) cbor Address
+        //OUTCOME_TRY(cid, datastore_->setCbor(address));
+        CID cid;
         return Actor{
             actor::kAccountCodeCid, ActorSubstateCID(cid), 0, BigInt{0}};
       }
