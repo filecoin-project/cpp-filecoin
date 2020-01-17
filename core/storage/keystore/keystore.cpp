@@ -9,6 +9,7 @@
 
 #include "common/visitor.hpp"
 
+using fc::crypto::signature::Signature;
 using fc::primitives::address::Protocol;
 using fc::storage::keystore::KeyStore;
 using fc::storage::keystore::KeyStoreError;
@@ -43,8 +44,8 @@ fc::outcome::result<bool> KeyStore::checkAddress(
   return KeyStoreError::WRONG_ADDRESS;
 }
 
-fc::outcome::result<KeyStore::TSignature> KeyStore::sign(
-    const Address &address, gsl::span<uint8_t> data) noexcept {
+fc::outcome::result<Signature> KeyStore::sign(
+    const Address &address, gsl::span<const uint8_t> data) noexcept {
   OUTCOME_TRY(private_key, get(address));
   OUTCOME_TRY(valid, checkAddress(address, private_key));
   if (!valid) return KeyStoreError::WRONG_ADDRESS;
@@ -67,7 +68,7 @@ fc::outcome::result<KeyStore::TSignature> KeyStore::sign(
 
 fc::outcome::result<bool> KeyStore::verify(const Address &address,
                                            gsl::span<const uint8_t> data,
-                                           const TSignature &signature) const
+                                           const Signature &signature) const
     noexcept {
   OUTCOME_TRY(private_key, get(address));
   OUTCOME_TRY(valid, checkAddress(address, private_key));

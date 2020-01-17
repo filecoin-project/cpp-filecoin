@@ -12,4 +12,5 @@ target_link_libraries(keystore
     bls_provider
     filestore
     outcome
+    signature
     )
