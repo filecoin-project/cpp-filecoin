@@ -6,7 +6,8 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
 
-#include <storage/power/power_table.hpp>
+#include <power/power_table.hpp>
+
 namespace fc::vm::actor {
 
   enum SpaMethods {

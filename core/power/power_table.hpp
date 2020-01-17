@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_CORE_STORAGE_POWER_TABLE_HPP
-#define FILECOIN_CORE_STORAGE_POWER_TABLE_HPP
+#ifndef FILECOIN_CORE_POWER_TABLE_HPP
+#define FILECOIN_CORE_POWER_TABLE_HPP
 
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
+#include "primitives/big_int.hpp"
 
-namespace fc::storage::power {
+namespace fc::power {
 
   /**
    * @interface Provides an interface to the power table
@@ -23,7 +24,7 @@ namespace fc::storage::power {
      * @param address of the miner
      * @return power of the miner or No such miner error
      */
-    virtual outcome::result<int> getMinerPower(
+    virtual outcome::result<fc::primitives::BigInt> getMinerPower(
         const primitives::address::Address &address) const = 0;
 
     /**
@@ -33,7 +34,8 @@ namespace fc::storage::power {
      * @return success or Negative power error if amount less than 0
      */
     virtual outcome::result<void> setMinerPower(
-        const primitives::address::Address &address, int power_amount) = 0;
+        const primitives::address::Address &address,
+        fc::primitives::BigInt power_amount) = 0;
 
     /**
      * @brief Remove a miner from power table
@@ -45,10 +47,10 @@ namespace fc::storage::power {
 
     virtual size_t getSize() const = 0;
 
-    virtual int getMaxPower() const = 0;
+    virtual fc::primitives::BigInt getMaxPower() const = 0;
 
     virtual outcome::result<std::vector<primitives::address::Address>>
     getMiners() const = 0;
   };
-}  // namespace fc::storage::power
-#endif  // FILECOIN_CORE_STORAGE_POWER_TABLE_HPP
+}  // namespace fc::power
+#endif  // FILECOIN_CORE_POWER_TABLE_HPP

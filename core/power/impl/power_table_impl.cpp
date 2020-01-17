@@ -5,27 +5,29 @@
 
 #include "power_table_impl.hpp"
 
+#include "power/power_table_error.hpp"
 #include "primitives/address/address_codec.hpp"
-#include "storage/power/power_table_error.hpp"
 
-fc::outcome::result<int> fc::storage::power::PowerTableImpl::getMinerPower(
+fc::outcome::result<fc::primitives::BigInt>
+fc::power::PowerTableImpl::getMinerPower(
     const fc::primitives::address::Address &address) const {
   auto result = power_table_.find(primitives::address::encodeToString(address));
   if (result == power_table_.end()) {
-    return PowerTableError::NO_SUCH_MINER;
+    return outcome::failure(fc::power::PowerTableError::NO_SUCH_MINER);
   }
 
   return result->second;
 }
 
-fc::outcome::result<void> fc::storage::power::PowerTableImpl::setMinerPower(
-    const fc::primitives::address::Address &address, int power_amount) {
+fc::outcome::result<void> fc::power::PowerTableImpl::setMinerPower(
+    const fc::primitives::address::Address &address,
+    fc::primitives::BigInt power_amount) {
   if (power_amount <= 0) return PowerTableError::NEGATIVE_POWER;
   power_table_[primitives::address::encodeToString(address)] = power_amount;
   return outcome::success();
 }
 
-fc::outcome::result<void> fc::storage::power::PowerTableImpl::removeMiner(
+fc::outcome::result<void> fc::power::PowerTableImpl::removeMiner(
     const fc::primitives::address::Address &address) {
   if (power_table_.erase(primitives::address::encodeToString(address)) == 0)
     return PowerTableError::NO_SUCH_MINER;
@@ -33,11 +35,11 @@ fc::outcome::result<void> fc::storage::power::PowerTableImpl::removeMiner(
   return outcome::success();
 }
 
-size_t fc::storage::power::PowerTableImpl::getSize() const {
+size_t fc::power::PowerTableImpl::getSize() const {
   return power_table_.size();
 }
 
-int fc::storage::power::PowerTableImpl::getMaxPower() const {
+fc::primitives::BigInt fc::power::PowerTableImpl::getMaxPower() const {
   if (power_table_.size() == 0) return 0;
 
   auto res = std::max(
@@ -49,7 +51,7 @@ int fc::storage::power::PowerTableImpl::getMaxPower() const {
 }
 
 fc::outcome::result<std::vector<fc::primitives::address::Address>>
-fc::storage::power::PowerTableImpl::getMiners() const {
+fc::power::PowerTableImpl::getMiners() const {
   std::vector<primitives::address::Address> result = {};
   for (auto &elem : power_table_) {
     OUTCOME_TRY(miner_addr, primitives::address::decodeFromString(elem.first));

@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/power/power_table_error.hpp"
+#include "power/power_table_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::power, PowerTableError, e) {
-  using fc::storage::power::PowerTableError;
+OUTCOME_CPP_DEFINE_CATEGORY(fc::power, PowerTableError, e) {
+  using fc::power::PowerTableError;
 
   switch (e) {
     case PowerTableError::NO_SUCH_MINER:

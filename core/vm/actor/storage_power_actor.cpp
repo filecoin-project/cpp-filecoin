@@ -4,6 +4,8 @@
  */
 
 #include "vm/actor/storage_power_actor.hpp"
+#include "vm/indices/indices.hpp"
+
 fc::outcome::result<std::vector<fc::primitives::address::Address>>
 fc::vm::actor::StoragePowerActor::selectMinersToSurprise(int challenge_count,
                                                          int randomness) {
@@ -28,9 +30,8 @@ fc::outcome::result<void>
 fc::vm::actor::StoragePowerActor::addClaimedPowerForSector(
     const fc::primitives::address::Address &miner_addr,
     int storage_weight_desc) {
-  // TODO: uncomment after indices will be implemented
-  int sector_power =
-      0;  // indices.ConsensusPowerForStorageWeight(storageWeightDesc)
+  fc::primitives::BigInt sector_power =
+      fc::vm::Indices::ConsensusPowerForStorageWeight(storage_weight_desc);
 
   OUTCOME_TRY(miner_power, claimed_power_->getMinerPower(miner_addr));
 
@@ -45,8 +46,8 @@ fc::vm::actor::StoragePowerActor::deductClaimedPowerForSectorAssert(
     const fc::primitives::address::Address &miner_addr,
     int storage_weight_desc) {
   // TODO: uncomment after indices will be implemented
-  int sector_power =
-      0;  // indices.ConsensusPowerForStorageWeight(storageWeightDesc)
+  fc::primitives::BigInt sector_power =
+      fc::vm::Indices::ConsensusPowerForStorageWeight(storage_weight_desc);
 
   OUTCOME_TRY(miner_power, claimed_power_->getMinerPower(miner_addr));
 

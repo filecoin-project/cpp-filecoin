@@ -3,19 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/power/power_table.hpp"
+#include "power/power_table.hpp"
 
 #include <gtest/gtest.h>
 
-#include "storage/power/impl/power_table_impl.hpp"
-#include "storage/power/power_table_error.hpp"
+#include "power/impl/power_table_impl.hpp"
+#include "power/power_table_error.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::primitives::address::Address;
 using fc::primitives::address::Network;
-using fc::storage::power::PowerTable;
-using fc::storage::power::PowerTableError;
-using fc::storage::power::PowerTableImpl;
+using fc::power::PowerTable;
+using fc::power::PowerTableError;
+using fc::power::PowerTableImpl;
 
 /**
  * @given Empty power table
