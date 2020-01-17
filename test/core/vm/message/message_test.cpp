@@ -100,7 +100,7 @@ Address addKeyGetAddress(
 struct MessageTest : public testing::Test {
   UnsignedMessage message;
 
-  std::map<std::string, Address> from;
+  Address bls, secp;
 
   std::shared_ptr<BlsProvider> bls_provider;
   std::shared_ptr<Secp256k1Provider> secp256k1_provider;
@@ -119,25 +119,20 @@ struct MessageTest : public testing::Test {
     keystore = std::make_shared<InMemoryKeyStore>(
         bls_provider, secp256k1_provider, address_verifier);
 
-    from.insert(std::make_pair(
-        "bls_signing_address",
-        addKeyGetAddress(
-            "8e8c5263df0022d8e29cab943d57d851722c38ee1dbe7f8c29c0498156496f29"_blob32,
-            bls_provider,
-            keystore,
-            address_builder)));
-    from.insert(std::make_pair(
-        "secp256k1_signing_address",
-        addKeyGetAddress(
-            "7008136b505aa01e406f72204668865852186756c95cd3a7e5184ef7b8f62058"_blob32,
-            secp256k1_provider,
-            keystore,
-            address_builder)));
+    bls = std::move(addKeyGetAddress(
+        "8e8c5263df0022d8e29cab943d57d851722c38ee1dbe7f8c29c0498156496f29"_blob32,
+        bls_provider,
+        keystore,
+        address_builder));
+    secp = std::move(addKeyGetAddress(
+        "7008136b505aa01e406f72204668865852186756c95cd3a7e5184ef7b8f62058"_blob32,
+        secp256k1_provider,
+        keystore,
+        address_builder));
 
     msigner = std::make_shared<MessageSignerImpl>(keystore);
 
-    message = std::move(makeMessage(
-        from["bls_signing_address"], Address{Network::TESTNET, 1001}, 0));
+    message = std::move(makeMessage(bls, Address{Network::TESTNET, 1001}, 0));
   }
 };
 
@@ -148,29 +143,27 @@ struct MessageTest : public testing::Test {
  * @then Values match
  */
 TEST_F(MessageTest, BlsSignedMessageCID) {
-  EXPECT_OUTCOME_TRUE(signed_message,
-                      msigner->sign(from["bls_signing_address"], message));
+  EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
   EXPECT_OUTCOME_EQ(
       cid(signed_message),
       "0171a0e40220c4534185b0af5fdc31e79efac6fd64e514aad37a6569e69f09d35ba221e4007e"_cid);
 }
 
 // TODO(ekovalev): the following test is currently disabled due to Secp256k1
-// signature non-determinism Yet the reference Go implementation has consistent
-// Secp256k1 signatures More research required
+// signature non-determinism. Yet the reference Go implementation has consistent
+// Secp256k1 signatures. More research required
 /**
  * @given An UnsignedMessage and having it signed with Secp256k1 address
  * @when Comparing the the signed message CID with the pre-computed value from
-the reference Go implementation
+ * the reference Go implementation
  * @then Values match
-
-TEST_F(MessageTest, Secp256k1SignedMessageCID) {
-  EXPECT_OUTCOME_TRUE(signed_message,
-msigner->sign(from["secp256k1_signing_address"], message));
-  EXPECT_OUTCOME_EQ(cid(signed_message),
-"0171a0e402201c9a054f1d0918cf9e215903078d5fa72e3d4de95b11ba5c49c1dffaf1d917c2"_cid);
+ */
+TEST_F(MessageTest, DISABLED_Secp256k1SignedMessageCID) {
+  EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(secp, message));
+  EXPECT_OUTCOME_EQ(
+      cid(signed_message),
+      "0171a0e402201c9a054f1d0918cf9e215903078d5fa72e3d4de95b11ba5c49c1dffaf1d917c2"_cid);
 }
-*/
 
 /**
  * @given An UnsignedMessage
@@ -193,8 +186,7 @@ TEST_F(MessageTest, UnsignedMessagesEncoding) {
  * @then All values match
  */
 TEST_F(MessageTest, SignedMessagesEncoding) {
-  EXPECT_OUTCOME_TRUE(signed_message,
-                      msigner->sign(from["bls_signing_address"], message));
+  EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
   expectEncodeAndReencode<SignedMessage>(
       signed_message,
       "82884300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe727004200014042000100405861028ce1601b1324a9301685d5a0e5fd9611476f2b3d358fccc5798a9f173c0f2c90f0a4bc329bf6cdc963d33767ead3e9580ab40e3b068813e8388753d32846d1b539e1f8aefa2a2dcf1672f3841ccf1ebc861a4e240e6318dde4aaadb0023ff25f"_unhex);
@@ -207,27 +199,25 @@ TEST_F(MessageTest, SignedMessagesEncoding) {
  * @then All values match
  */
 TEST_F(MessageTest, BlsSignatureEncoding) {
-  EXPECT_OUTCOME_TRUE(signed_message,
-                      msigner->sign(from["bls_signing_address"], message));
+  EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
   expectEncodeAndReencode<Signature>(
       signed_message.signature,
       "5861028ce1601b1324a9301685d5a0e5fd9611476f2b3d358fccc5798a9f173c0f2c90f0a4bc329bf6cdc963d33767ead3e9580ab40e3b068813e8388753d32846d1b539e1f8aefa2a2dcf1672f3841ccf1ebc861a4e240e6318dde4aaadb0023ff25f"_unhex);
 }
 
 // TODO(ekovalev): the following test is currently disabled due to Secp256k1
-// signature non-determinism Yet the reference Go implementation has consistent
-// Secp256k1 signatures More research required
+// signature non-determinism. Yet the reference Go implementation has consistent
+// Secp256k1 signatures. More research required
 /**
  * @given An UnsignedMessage and having it signed with Secp256k1 address
  * @when Serializing the Signature to CBOR and comparing with pre-computed
-value;
- * then decoding the Signature back and re-encoding it to CBOR again
+ * value; then decoding the Signature back and re-encoding it to CBOR again
  * @then All values match
+ */
 
-TEST_F(MessageTest, Secp256k1SignatureEncoding) {
-  EXPECT_OUTCOME_TRUE(signed_message,
-msigner->sign(from["secp256k1_signing_address"], message));
-  expectEncodeAndReencode<Signature>(signed_message.signature,
-"58420142d60b3b9f27116ae24c46be6da33d310e46a2457b8dce00c73dd9e80e779c3752ba94856d4efdc39c7a61b9ed939bf1832206e4a578bb3f649fe2af3ab1495401"_unhex);
+TEST_F(MessageTest, DISABLED_Secp256k1SignatureEncoding) {
+  EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(secp, message));
+  expectEncodeAndReencode<Signature>(
+      signed_message.signature,
+      "58420142d60b3b9f27116ae24c46be6da33d310e46a2457b8dce00c73dd9e80e779c3752ba94856d4efdc39c7a61b9ed939bf1832206e4a578bb3f649fe2af3ab1495401"_unhex);
 }
-*/
