@@ -29,4 +29,8 @@ inline fc::common::Blob<48> operator""_blob48(const char *c, size_t s) {
   return fc::common::Blob<48>::fromHex(std::string_view(c, s)).value();
 }
 
+inline fc::common::Blob<96> operator""_blob96(const char *c, size_t s) {
+  return fc::common::Blob<96>::fromHex(std::string_view(c, s)).value();
+}
+
 #endif  // CPP_FILECOIN_TEST_TESTUTIL_LITERALS_HPP

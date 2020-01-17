@@ -13,6 +13,7 @@
 #include "crypto/bls/bls_provider.hpp"
 #include "crypto/bls/bls_types.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
+#include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_verifier.hpp"
 #include "storage/keystore/keystore_error.hpp"
@@ -20,15 +21,16 @@
 namespace fc::storage::keystore {
 
   using crypto::bls::BlsProvider;
-  using libp2p::crypto::secp256k1::Secp256k1Provider;
+  using crypto::secp256k1::Secp256k1Provider;
+  using BlsKeyPair = crypto::bls::KeyPair;
+  using BlsPrivateKey = crypto::bls::PrivateKey;
+  using BlsSignature = crypto::bls::Signature;
+  using Secp256k1KeyPair = crypto::secp256k1::KeyPair;
+  using Secp256k1PrivateKey = crypto::secp256k1::PrivateKey;
+  using Secp256k1Signature = crypto::secp256k1::Signature;
+  using crypto::signature::Signature;
   using primitives::address::Address;
-  using BlsKeyPair = fc::crypto::bls::KeyPair;
-  using BlsPrivateKey = fc::crypto::bls::PrivateKey;
-  using BlsSignature = fc::crypto::bls::Signature;
-  using Secp256k1KeyPair = libp2p::crypto::secp256k1::KeyPair;
-  using Secp256k1PrivateKey = libp2p::crypto::secp256k1::PrivateKey;
-  using Secp256k1Signature = libp2p::crypto::secp256k1::Signature;
-  using fc::primitives::address::AddressVerifier;
+  using primitives::address::AddressVerifier;
 
   /**
    * An interface to a facility to store and use cryptographic keys
@@ -36,7 +38,6 @@ namespace fc::storage::keystore {
   class KeyStore {
    public:
     using TPrivateKey = boost::variant<BlsPrivateKey, Secp256k1PrivateKey>;
-    using TSignature = boost::variant<BlsSignature, Secp256k1Signature>;
 
     KeyStore(std::shared_ptr<BlsProvider> blsProvider,
              std::shared_ptr<Secp256k1Provider> secp256K1Provider,
@@ -77,8 +78,9 @@ namespace fc::storage::keystore {
      * @param data to sign
      * @return signature
      */
-    virtual outcome::result<TSignature> sign(const Address &address,
-                                             gsl::span<uint8_t> data) noexcept;
+    virtual outcome::result<Signature> sign(
+        const Address &address, gsl::span<const uint8_t> data) noexcept;
+
     /**
      * @brief verify signature
      * @param address of keypair
@@ -87,7 +89,7 @@ namespace fc::storage::keystore {
      */
     virtual outcome::result<bool> verify(const Address &address,
                                          gsl::span<const uint8_t> data,
-                                         const TSignature &signature) const
+                                         const Signature &signature) const
         noexcept;
 
    protected:

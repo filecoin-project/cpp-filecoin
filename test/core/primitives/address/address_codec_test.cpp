@@ -129,11 +129,24 @@ TEST_F(AddressCodecTest, EncodeToString) {
  * string
  * @then The outputs match the original strings
  */
-TEST_F(AddressCodecTest, RoundTripDecodeEncode) {
+TEST_F(AddressCodecTest, RoundTripDecodeEncodeString) {
   for (auto it = this->knownAddresses.begin(); it != this->knownAddresses.end();
        it++) {
     EXPECT_OUTCOME_TRUE_2(addr, decodeFromString(it->first));
     EXPECT_EQ(encodeToString(addr), it->first);
+  }
+}
+
+/**
+ * @given A set of addresses encoded as strings
+ * @when Decoding addresses from bytes and re-encoding back to byte array
+ * @then The outputs match the original strings
+ */
+TEST_F(AddressCodecTest, RoundTripDecodeEncode) {
+  for (auto it = this->knownAddresses.begin(); it != this->knownAddresses.end();
+       it++) {
+    EXPECT_OUTCOME_TRUE_2(addr, decode(it->second));
+    EXPECT_EQ(encode(addr), it->second);
   }
 }
 
@@ -144,16 +157,13 @@ TEST_F(AddressCodecTest, RoundTripDecodeEncode) {
  * @then The outputs match expectations
  */
 TEST_F(AddressCodecTest, MarshalCbor) {
-  EXPECT_OUTCOME_TRUE_2(addr1, decode("0001"_unhex));
-  CborEncodeStream s1;
-  s1 << addr1;
-  EXPECT_EQ(s1.data(), "420001"_unhex);
+  EXPECT_OUTCOME_TRUE(addr1, decode("0001"_unhex));
+  EXPECT_OUTCOME_EQ(fc::codec::cbor::encode<Address>(addr1), "420001"_unhex);
 
-  EXPECT_OUTCOME_TRUE_2(
+  EXPECT_OUTCOME_TRUE(
       addr2, decode("01fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex));
-  CborEncodeStream s2;
-  s2 << addr2;
-  EXPECT_EQ(s2.data(), "5501fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex);
+  EXPECT_OUTCOME_EQ(fc::codec::cbor::encode<Address>(addr2),
+                    "5501fd1d0f4dfcd7e99afcb99a8326b7dc459d32c628"_unhex);
 }
 
 /**
@@ -164,11 +174,9 @@ TEST_F(AddressCodecTest, MarshalCbor) {
 TEST_F(AddressCodecTest, CborRoundTrip) {
   for (auto it = this->knownAddresses.begin(); it != this->knownAddresses.end();
        it++) {
-    EXPECT_OUTCOME_TRUE_2(addr, decodeFromString(it->first));
-    CborEncodeStream s;
-    s << addr;
-    Address addr2{};
-    CborDecodeStream(s.data()) >> addr2;
+    EXPECT_OUTCOME_TRUE(addr, decodeFromString(it->first));
+    EXPECT_OUTCOME_TRUE(cbor_encoded, fc::codec::cbor::encode<Address>(addr));
+    EXPECT_OUTCOME_TRUE(addr2, fc::codec::cbor::decode<Address>(cbor_encoded));
     EXPECT_EQ(encodeToString(addr2), it->first);
   }
 }

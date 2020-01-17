@@ -12,11 +12,11 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using fc::CID;
 using fc::common::Buffer;
 using fc::storage::ipfs::IpfsDatastore;
 using fc::storage::ipfs::IpfsDatastoreError;
 using fc::storage::ipfs::LeveldbDatastore;
-using libp2p::multi::ContentIdentifier;
 using libp2p::multi::HashType;
 using libp2p::multi::MulticodecType;
 using libp2p::multi::Multihash;
@@ -26,14 +26,14 @@ struct DatastoreIntegrationTest : public ::testing::Test {
 
   Options options{};
 
-  ContentIdentifier cid1{
-      ContentIdentifier::Version::V1,
+  CID cid1{
+      CID::Version::V1,
       MulticodecType::SHA2_256,
       Multihash::create(HashType::sha256,
                         "0123456789ABCDEF0123456789ABCDEF"_unhex)
           .value()};
-  ContentIdentifier cid2{
-      ContentIdentifier::Version::V1,
+  CID cid2{
+      CID::Version::V1,
       MulticodecType::SHA2_256,
       Multihash::create(HashType::sha256,
                         "FEDCBA9876543210FEDCBA9876543210"_unhex)
