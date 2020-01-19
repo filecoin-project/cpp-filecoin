@@ -35,6 +35,17 @@ namespace fc::crypto::randomness {
     virtual Randomness deriveRandomness(DomainSeparationTag tag,
                                         Serialization s,
                                         ChainEpoch index) = 0;
+
+    /**
+     * @brief get random int value
+     * @param randomness
+     * @param nonce
+     * @param limit
+     * @return random int value
+     */
+    virtual int randomInt(const Randomness &randomness,
+                          int nonce,
+                          int limit) = 0;
   };
 }  // namespace fc::crypto::randomness
 

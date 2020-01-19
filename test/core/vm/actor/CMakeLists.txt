@@ -34,3 +34,11 @@ addtest(invoker_test
 target_link_libraries(invoker_test
         actor
         )
+
+addtest(storage_power_test
+        storage_power_test.cpp
+        )
+target_link_libraries(storage_power_test
+        actor
+        hexutil
+        )

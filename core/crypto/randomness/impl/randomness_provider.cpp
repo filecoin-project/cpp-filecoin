@@ -35,4 +35,10 @@ namespace fc::crypto::randomness {
     return Randomness(hash);
   }
 
+  int RandomnessProviderImpl::randomInt(const Randomness &randomness,
+                                        int nonce,
+                                        int limit) {
+    throw std::string("Not implemented");
+  }
+
 }  // namespace fc::crypto::randomness

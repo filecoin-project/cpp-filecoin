@@ -7,15 +7,14 @@
 #include "vm/indices/indices.hpp"
 
 fc::outcome::result<std::vector<fc::primitives::address::Address>>
-fc::vm::actor::StoragePowerActor::selectMinersToSurprise(int challenge_count,
-                                                         int randomness) {
+fc::vm::actor::StoragePowerActor::selectMinersToSurprise(
+    int challenge_count, const fc::crypto::randomness::Randomness &randomness) {
   std::vector<fc::primitives::address::Address> selected_miners;
   OUTCOME_TRY(all_miners, power_table_->getMiners());
 
   for (int chall = 0; chall < challenge_count; chall++) {
-    // TODO: uncomment after filcrypto will be implemented
     int miner_index =
-        0;  // filcrypto.RandomInt(randomness, chall, all_miners.size())
+        randomness_provider_->randomInt(randomness, chall, all_miners.size());
     auto potential_challengee = all_miners[miner_index];
 
     all_miners.erase(all_miners.begin() + miner_index);
@@ -31,7 +30,7 @@ fc::vm::actor::StoragePowerActor::addClaimedPowerForSector(
     const fc::primitives::address::Address &miner_addr,
     const SectorStorageWeightDesc &storage_weight_desc) {
   fc::primitives::BigInt sector_power =
-      indices_->ConsensusPowerForStorageWeight(storage_weight_desc);
+      indices_->consensusPowerForStorageWeight(storage_weight_desc);
 
   OUTCOME_TRY(miner_power, claimed_power_->getMinerPower(miner_addr));
 
@@ -46,7 +45,7 @@ fc::vm::actor::StoragePowerActor::deductClaimedPowerForSectorAssert(
     const fc::primitives::address::Address &miner_addr,
     const SectorStorageWeightDesc &storage_weight_desc) {
   fc::primitives::BigInt sector_power =
-      indices_->ConsensusPowerForStorageWeight(storage_weight_desc);
+      indices_->consensusPowerForStorageWeight(storage_weight_desc);
 
   OUTCOME_TRY(miner_power, claimed_power_->getMinerPower(miner_addr));
 
@@ -91,7 +90,7 @@ fc::vm::actor::StoragePowerActor::setNominalPowerEntry(
   OUTCOME_TRY(nominal_power_->setMinerPower(miner_addr, updated_nominal_power));
 
   fc::primitives::BigInt consensus_min_power =
-      indices_->StoragePower_ConsensusMinMinerPower();
+      indices_->storagePowerConsensusMinMinerPower();
   if (updated_nominal_power >= consensus_min_power
       && prev_miner_nominal_power < consensus_min_power) {
     num_miners_meeting_min_power += 1;
@@ -108,7 +107,8 @@ fc::vm::actor::StoragePowerActor::setPowerEntryInternal(
     fc::primitives::BigInt updated_power) {
   OUTCOME_TRY(prev_miner_power, power_table_->getMinerPower(miner_addr));
   OUTCOME_TRY(power_table_->setMinerPower(miner_addr, updated_power));
-  total_network_power_ += (updated_power - prev_miner_power);
+  total_network_power_ =
+      total_network_power_ + (updated_power - prev_miner_power);
   return outcome::success();
 }
 
@@ -182,3 +182,10 @@ fc::outcome::result<void> fc::vm::actor::StoragePowerActor::removeMiner(
     po_st_detected_fault_miners_.erase(position);
   return outcome::success();
 }
+
+fc::vm::actor::StoragePowerActor::StoragePowerActor(
+    std::unique_ptr<fc::vm::Indices> indices,
+    std::unique_ptr<fc::crypto::randomness::RandomnessProvider>
+        randomness_provider)
+    : indices_(std::move(indices)),
+      randomness_provider_(std::move(randomness_provider)){};

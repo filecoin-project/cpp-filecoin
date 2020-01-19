@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
-#include "vm_context_mock.hpp"
+#include "testutil/mocks/vm/vm_context_mock.hpp"
 
 using namespace fc::vm;
 

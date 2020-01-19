@@ -6,9 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
 
+#include <crypto/randomness/randomness_provider.hpp>
+#include "crypto/randomness/randomness_types.hpp"
 #include "power/power_table.hpp"
-#include "vm/indices/indices.hpp"
 #include "vm/actor/util.hpp"
+#include "vm/indices/indices.hpp"
 
 namespace fc::vm::actor {
 
@@ -26,9 +28,15 @@ namespace fc::vm::actor {
 
   class StoragePowerActor {
    public:
-    // TODO: CHECK TYPE OF RANDOMNESS
+    StoragePowerActor(
+        std::unique_ptr<fc::vm::Indices> indices,
+        std::unique_ptr<fc::crypto::randomness::RandomnessProvider>
+            randomness_provider);
+
     outcome::result<std::vector<primitives::address::Address>>
-    selectMinersToSurprise(int challenge_count, int randomness);
+    selectMinersToSurprise(
+        int challenge_count,
+        const fc::crypto::randomness::Randomness &randomness);
 
     outcome::result<void> addClaimedPowerForSector(
         const primitives::address::Address &miner_addr,
@@ -57,14 +65,16 @@ namespace fc::vm::actor {
         const primitives::address::Address &miner_addr);
 
    private:
-    bool minerNominalPowerMeetsConsensusMinimum(fc::primitives::BigInt miner_power);
+    bool minerNominalPowerMeetsConsensusMinimum(
+        fc::primitives::BigInt miner_power);
 
     outcome::result<void> setNominalPowerEntry(
         const primitives::address::Address &miner_addr,
         fc::primitives::BigInt updated_nominal_power);
 
     outcome::result<void> setPowerEntryInternal(
-        const primitives::address::Address &miner_addr, fc::primitives::BigInt updated_power);
+        const primitives::address::Address &miner_addr,
+        fc::primitives::BigInt updated_power);
 
     outcome::result<void> setClaimedPowerEntryInternal(
         const primitives::address::Address &miner_addr,
@@ -79,8 +89,11 @@ namespace fc::vm::actor {
 
     int num_miners_meeting_min_power;
 
-    //TODO: remove after indices will be implemented
+    // TODO: remove after indices will be implemented
     std::unique_ptr<fc::vm::Indices> indices_;
+
+    std::unique_ptr<fc::crypto::randomness::RandomnessProvider>
+        randomness_provider_;
   };
 }  // namespace fc::vm::actor
 
