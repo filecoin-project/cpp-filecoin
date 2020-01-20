@@ -7,7 +7,7 @@
 
 namespace fc::vm::actor {
   outcome::result<Address> AccountActor::create(
-      std::shared_ptr<state::StateTree> state_tree, const Address &address) {
+      const std::shared_ptr<StateTree> &state_tree, const Address &address) {
     if (!address.isKeyType()) {
       return CREATE_WRONG_ADDRESS_TYPE;
     }
@@ -21,7 +21,7 @@ namespace fc::vm::actor {
   }
 
   outcome::result<Address> AccountActor::resolveToKeyAddress(
-      std::shared_ptr<state::StateTree> state_tree, const Address &address) {
+      const std::shared_ptr<StateTree> &state_tree, const Address &address) {
     if (address.isKeyType()) {
       return address;
     }

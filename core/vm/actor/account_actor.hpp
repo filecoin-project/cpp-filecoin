@@ -13,6 +13,7 @@
 namespace fc::vm::actor {
   using primitives::address::Address;
   using primitives::address::Protocol;
+  using state::StateTree;
 
   struct AccountActorState {
     Address address;
@@ -40,10 +41,10 @@ namespace fc::vm::actor {
 
     /// Create account actor from BLS or Secp256k1 address
     static outcome::result<Address> create(
-        std::shared_ptr<state::StateTree> state_tree, const Address &address);
+        const std::shared_ptr<StateTree> &state_tree, const Address &address);
     /// Get BLS address of account actor from ID address
     static outcome::result<Address> resolveToKeyAddress(
-        std::shared_ptr<state::StateTree> state_tree, const Address &address);
+        const std::shared_ptr<StateTree> &state_tree, const Address &address);
   };
 }  // namespace fc::vm::actor
 
