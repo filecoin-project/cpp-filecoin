@@ -47,7 +47,7 @@ namespace fc::primitives::tipset {
     outcome::result<std::vector<uint8_t>> encodeKey(gsl::span<const CID> cids) {
       common::Buffer buffer{};
       for (auto &c : cids) {
-        OUTCOME_TRY(v, libp2p::multi::ContentIdentifierCodec::toString(c));
+        OUTCOME_TRY(v, c.toString());
         buffer.put(v);
       }
       return buffer.toVector();

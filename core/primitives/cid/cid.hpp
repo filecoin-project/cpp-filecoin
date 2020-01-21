@@ -23,6 +23,11 @@ namespace fc {
      */
     CID();
     CID(const ContentIdentifier &cid);
+    /**
+     * @brief string-encodes cid
+     * @return encoded value or error
+     */
+    outcome::result<std::string> toString() const;
   };
 }  // namespace fc
 
