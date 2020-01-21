@@ -22,7 +22,7 @@ fc::power::PowerTableImpl::getMinerPower(
 fc::outcome::result<void> fc::power::PowerTableImpl::setMinerPower(
     const fc::primitives::address::Address &address,
     fc::primitives::BigInt power_amount) {
-  if (power_amount <= 0) return PowerTableError::NEGATIVE_POWER;
+  if (power_amount < 0) return PowerTableError::NEGATIVE_POWER;
   power_table_[primitives::address::encodeToString(address)] = power_amount;
   return outcome::success();
 }

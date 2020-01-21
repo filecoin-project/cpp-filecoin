@@ -36,8 +36,8 @@ namespace fc::crypto::randomness {
   }
 
   int RandomnessProviderImpl::randomInt(const Randomness &randomness,
-                                        int nonce,
-                                        int limit) {
+                                        size_t nonce,
+                                        size_t limit) {
     throw std::string("Not implemented");
   }
 

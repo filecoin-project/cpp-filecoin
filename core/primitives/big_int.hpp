@@ -49,6 +49,10 @@ namespace fc::primitives {
     return static_cast<cpp_int>(lhs) < static_cast<cpp_int>(rhs);
   }
 
+  static inline bool operator<(const BigInt &lhs, int rhs) {
+    return static_cast<cpp_int>(lhs) < rhs;
+  }
+
   static inline bool operator==(const BigInt &lhs, const BigInt &rhs) {
     return static_cast<cpp_int>(lhs) == static_cast<cpp_int>(rhs);
   }

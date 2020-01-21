@@ -15,10 +15,10 @@ namespace fc::vm {
 
     virtual ~Indices() = default;
 
-    fc::primitives::BigInt consensusPowerForStorageWeight(
-        actor::SectorStorageWeightDesc storage_weight_desc);
+    virtual fc::primitives::BigInt consensusPowerForStorageWeight(
+        actor::SectorStorageWeightDesc storage_weight_desc) = 0;
 
-    fc::primitives::BigInt storagePowerConsensusMinMinerPower();
+    virtual fc::primitives::BigInt storagePowerConsensusMinMinerPower() = 0;
   };
 }  // namespace fc::vm
 

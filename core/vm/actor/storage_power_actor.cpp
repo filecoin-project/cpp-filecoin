@@ -4,15 +4,22 @@
  */
 
 #include "vm/actor/storage_power_actor.hpp"
+#include <power/impl/power_table_impl.hpp>
 #include "vm/indices/indices.hpp"
 
 fc::outcome::result<std::vector<fc::primitives::address::Address>>
 fc::vm::actor::StoragePowerActor::selectMinersToSurprise(
-    int challenge_count, const fc::crypto::randomness::Randomness &randomness) {
+    size_t challenge_count,
+    const fc::crypto::randomness::Randomness &randomness) {
   std::vector<fc::primitives::address::Address> selected_miners;
+
+  if (power_table_->getSize() < challenge_count) return OUT_OF_BOUND;
+
   OUTCOME_TRY(all_miners, power_table_->getMiners());
 
-  for (int chall = 0; chall < challenge_count; chall++) {
+  if (challenge_count == all_miners.size()) return std::move(all_miners);
+
+  for (size_t chall = 0; chall < challenge_count; chall++) {
     int miner_index =
         randomness_provider_->randomInt(randomness, chall, all_miners.size());
     auto potential_challengee = all_miners[miner_index];
@@ -64,7 +71,7 @@ fc::vm::actor::StoragePowerActor::updatePowerEntriesFromClaimedPower(
   if (std::find(po_st_detected_fault_miners_.cbegin(),
                 po_st_detected_fault_miners_.cend(),
                 miner_addr)
-      == po_st_detected_fault_miners_.cend()) {
+      != po_st_detected_fault_miners_.cend()) {
     nominal_power = 0;
   }
   OUTCOME_TRY(setNominalPowerEntry(miner_addr, nominal_power));
@@ -114,9 +121,10 @@ fc::vm::actor::StoragePowerActor::setPowerEntryInternal(
 
 bool fc::vm::actor::StoragePowerActor::minerNominalPowerMeetsConsensusMinimum(
     fc::primitives::BigInt miner_power) {
-  // Maybe should move to constants
-  fc::primitives::BigInt MIN_MINER_SIZE_STOR = 0;
-  size_t MIN_MINER_SIZE_TARG = 0;
+  // TODO: move to constants
+  fc::primitives::BigInt MIN_MINER_SIZE_STOR =
+      100 * (fc::primitives::BigInt(1) << 40);
+  size_t MIN_MINER_SIZE_TARG = 3;
 
   // if miner is larger than min power requirement, we're set
   if (miner_power >= MIN_MINER_SIZE_STOR) {
@@ -184,8 +192,30 @@ fc::outcome::result<void> fc::vm::actor::StoragePowerActor::removeMiner(
 }
 
 fc::vm::actor::StoragePowerActor::StoragePowerActor(
-    std::unique_ptr<fc::vm::Indices> indices,
-    std::unique_ptr<fc::crypto::randomness::RandomnessProvider>
+    std::shared_ptr<fc::vm::Indices> indices,
+    std::shared_ptr<fc::crypto::randomness::RandomnessProvider>
         randomness_provider)
-    : indices_(std::move(indices)),
-      randomness_provider_(std::move(randomness_provider)){};
+    : indices_(indices), randomness_provider_(randomness_provider) {
+  total_network_power_ = 0;
+
+  power_table_ = std::make_unique<fc::power::PowerTableImpl>();
+  claimed_power_ = std::make_unique<fc::power::PowerTableImpl>();
+  nominal_power_ = std::make_unique<fc::power::PowerTableImpl>();
+
+  po_st_detected_fault_miners_ = {};
+
+  num_miners_meeting_min_power = 0;
+}
+fc::outcome::result<void> fc::vm::actor::StoragePowerActor::addFaultMiner(
+    const fc::primitives::address::Address &miner_addr) {
+  // check that miner exist
+  OUTCOME_TRY(power_table_->getMinerPower(miner_addr));
+
+  po_st_detected_fault_miners_.insert(miner_addr);
+
+  return outcome::success();
+}
+fc::outcome::result<std::vector<fc::primitives::address::Address>>
+fc::vm::actor::StoragePowerActor::getMiners() const {
+  return power_table_->getMiners();
+};

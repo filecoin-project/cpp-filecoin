@@ -6,10 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
 
-#include <crypto/randomness/randomness_provider.hpp>
+#include "crypto/randomness/randomness_provider.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "power/power_table.hpp"
 #include "vm/actor/util.hpp"
+#include "vm/exit_code/exit_code.hpp"
 #include "vm/indices/indices.hpp"
 
 namespace fc::vm::actor {
@@ -28,14 +29,16 @@ namespace fc::vm::actor {
 
   class StoragePowerActor {
    public:
+    static constexpr VMExitCode OUT_OF_BOUND{1};
+
     StoragePowerActor(
-        std::unique_ptr<fc::vm::Indices> indices,
-        std::unique_ptr<fc::crypto::randomness::RandomnessProvider>
+        std::shared_ptr<fc::vm::Indices> indices,
+        std::shared_ptr<fc::crypto::randomness::RandomnessProvider>
             randomness_provider);
 
     outcome::result<std::vector<primitives::address::Address>>
     selectMinersToSurprise(
-        int challenge_count,
+        size_t challenge_count,
         const fc::crypto::randomness::Randomness &randomness);
 
     outcome::result<void> addClaimedPowerForSector(
@@ -45,9 +48,6 @@ namespace fc::vm::actor {
     outcome::result<void> deductClaimedPowerForSectorAssert(
         const primitives::address::Address &miner_addr,
         const SectorStorageWeightDesc &storage_weight_desc);
-
-    outcome::result<void> updatePowerEntriesFromClaimedPower(
-        const primitives::address::Address &miner_addr);
 
     outcome::result<fc::primitives::BigInt> getPowerTotalForMiner(
         const primitives::address::Address &miner_addr) const;
@@ -64,7 +64,16 @@ namespace fc::vm::actor {
     outcome::result<void> removeMiner(
         const primitives::address::Address &miner_addr);
 
+    outcome::result<void> addFaultMiner(
+        const primitives::address::Address &miner_addr);
+
+    outcome::result<std::vector<primitives::address::Address>> getMiners()
+        const;
+
    private:
+    outcome::result<void> updatePowerEntriesFromClaimedPower(
+        const primitives::address::Address &miner_addr);
+
     bool minerNominalPowerMeetsConsensusMinimum(
         fc::primitives::BigInt miner_power);
 
@@ -85,14 +94,14 @@ namespace fc::vm::actor {
     std::unique_ptr<fc::power::PowerTable> claimed_power_;
     std::unique_ptr<fc::power::PowerTable> nominal_power_;
 
-    std::vector<primitives::address::Address> po_st_detected_fault_miners_;
+    std::set<primitives::address::Address> po_st_detected_fault_miners_;
 
     int num_miners_meeting_min_power;
 
     // TODO: remove after indices will be implemented
-    std::unique_ptr<fc::vm::Indices> indices_;
+    std::shared_ptr<fc::vm::Indices> indices_;
 
-    std::unique_ptr<fc::crypto::randomness::RandomnessProvider>
+    std::shared_ptr<fc::crypto::randomness::RandomnessProvider>
         randomness_provider_;
   };
 }  // namespace fc::vm::actor

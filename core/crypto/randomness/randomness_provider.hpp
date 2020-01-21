@@ -44,8 +44,8 @@ namespace fc::crypto::randomness {
      * @return random int value
      */
     virtual int randomInt(const Randomness &randomness,
-                          int nonce,
-                          int limit) = 0;
+                          size_t nonce,
+                          size_t limit) = 0;
   };
 }  // namespace fc::crypto::randomness
 

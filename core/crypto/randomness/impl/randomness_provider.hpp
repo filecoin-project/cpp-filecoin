@@ -22,7 +22,9 @@ namespace fc::crypto::randomness {
                                 ChainEpoch index) override;
 
     //  TODO: Implement it
-    int randomInt(const Randomness &randomness, int nonce, int limit) override;
+    int randomInt(const Randomness &randomness,
+                  size_t nonce,
+                  size_t limit) override;
 
    private:
     Randomness deriveRandomnessInternal(DomainSeparationTag tag,
