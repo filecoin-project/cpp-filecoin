@@ -6,7 +6,7 @@
 #include "vm/actor/account_actor.hpp"
 
 namespace fc::vm::actor {
-  outcome::result<Address> AccountActor::create(
+  outcome::result<Actor> AccountActor::create(
       const std::shared_ptr<StateTree> &state_tree, const Address &address) {
     if (!address.isKeyType()) {
       return CREATE_WRONG_ADDRESS_TYPE;
@@ -14,10 +14,11 @@ namespace fc::vm::actor {
     Actor actor{kAccountCodeCid, ActorSubstateCID{kEmptyObjectCid}, 0, 0};
     if (address.getProtocol() == Protocol::BLS) {
       OUTCOME_TRY(state,
-                  state_tree->store()->setCbor(AccountActorState{address}));
+                  state_tree->getStore()->setCbor(AccountActorState{address}));
       actor.head = ActorSubstateCID{state};
     }
-    return state_tree->registerNewAddress(address, actor);
+    OUTCOME_TRY(state_tree->registerNewAddress(address, actor));
+    return actor;
   }
 
   outcome::result<Address> AccountActor::resolveToKeyAddress(
@@ -34,7 +35,7 @@ namespace fc::vm::actor {
       return RESOLVE_NOT_ACCOUNT_ACTOR;
     }
     OUTCOME_TRY(account_actor_state,
-                state_tree->store()->getCbor<AccountActorState>(actor.head));
+                state_tree->getStore()->getCbor<AccountActorState>(actor.head));
     return account_actor_state.address;
   }
 }  // namespace fc::vm::actor

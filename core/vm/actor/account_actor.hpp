@@ -34,15 +34,21 @@ namespace fc::vm::actor {
     return s;
   }
 
+  /// Account actors represent actors without code
   struct AccountActor {
     static constexpr VMExitCode CREATE_WRONG_ADDRESS_TYPE{1};
     static constexpr VMExitCode RESOLVE_NOT_FOUND{1};
     static constexpr VMExitCode RESOLVE_NOT_ACCOUNT_ACTOR{1};
 
     /// Create account actor from BLS or Secp256k1 address
-    static outcome::result<Address> create(
+    static outcome::result<Actor> create(
         const std::shared_ptr<StateTree> &state_tree, const Address &address);
-    /// Get BLS address of account actor from ID address
+    /**
+     * Get BLS address of account actor from ID address
+     * @param state_tree state tree
+     * @param address id address to be resolved to key address
+     * @returns key address associated with id address
+     */
     static outcome::result<Address> resolveToKeyAddress(
         const std::shared_ptr<StateTree> &state_tree, const Address &address);
   };

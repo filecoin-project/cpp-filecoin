@@ -34,7 +34,7 @@ namespace fc::vm::state {
     /// Revert changes to last flushed state
     outcome::result<void> revert();
     /// Get store
-    std::shared_ptr<IpfsDatastore> store();
+    std::shared_ptr<IpfsDatastore> getStore();
 
    private:
     std::shared_ptr<IpfsDatastore> store_;

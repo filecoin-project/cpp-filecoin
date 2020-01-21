@@ -25,7 +25,7 @@ TEST(AccountActorTest, AccountActorStateCbor) {
  * @then Returned BLS address is equal to original
  */
 TEST(InitActorTest, CreateResolve) {
-  auto state_tree = setupInitActor(nullptr, 0);
+  auto state_tree = setupInitActor(nullptr);
   auto addr1 = Address::makeFromId(3);
   Address addr2{
       fc::primitives::address::Network::TESTNET,
@@ -47,7 +47,9 @@ TEST(InitActorTest, CreateResolve) {
                        AccountActor::resolveToKeyAddress(state_tree, addr1));
 
   actor.code = fc::vm::actor::kAccountCodeCid;
-  EXPECT_OUTCOME_TRUE(addr2_id, AccountActor::create(state_tree, addr2));
+  EXPECT_OUTCOME_TRUE(actor2, AccountActor::create(state_tree, addr2));
+  EXPECT_EQ(actor2.code, fc::vm::actor::kAccountCodeCid);
+  EXPECT_OUTCOME_TRUE(addr2_id, state_tree->lookupId(addr2));
   EXPECT_OUTCOME_EQ(AccountActor::resolveToKeyAddress(state_tree, addr2_id),
                     addr2);
 }

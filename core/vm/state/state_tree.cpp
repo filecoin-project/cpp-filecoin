@@ -68,7 +68,7 @@ namespace fc::vm::state {
     return outcome::success();
   }
 
-  std::shared_ptr<IpfsDatastore> StateTree::store() {
+  std::shared_ptr<IpfsDatastore> StateTree::getStore() {
     return store_;
   }
 }  // namespace fc::vm::state
