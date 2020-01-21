@@ -60,7 +60,7 @@ namespace fc::primitives::tipset {
   outcome::result<Tipset> Tipset::create(
       std::vector<block::BlockHeader> blocks) {
     // required to have at least one block
-    if (blocks.size() == 0) {
+    if (blocks.empty()) {
       return TipsetError::NO_BLOCKS;
     }
 
@@ -100,8 +100,10 @@ namespace fc::primitives::tipset {
                       "create tipset failed, blocks have same ticket ({} {})",
                       address::encodeToString(b1.miner),
                       address::encodeToString(b2.miner));
-                  // TODO(yuraz) : FIL-*** remove copies when toPrettyString becomes const
-                  return CID{cid1}.toPrettyString("") < CID{cid2}.toPrettyString("");
+                  // TODO(yuraz) : FIL-*** remove copies when toPrettyString
+                  // becomes const
+                  return CID{cid1}.toPrettyString("")
+                         < CID{cid2}.toPrettyString("");
                 }
                 return *t1 < *t2;
               });
@@ -119,11 +121,11 @@ namespace fc::primitives::tipset {
     return ts;
   }
 
-  const gsl::span<const CID> Tipset::getCids() const {
+  gsl::span<const CID> Tipset::getCids() const {
     return cids_;
   }
 
-  const gsl::span<const block::BlockHeader> Tipset::getBlocks() const {
+  gsl::span<const block::BlockHeader> Tipset::getBlocks() const {
     return blks_;
   }
 

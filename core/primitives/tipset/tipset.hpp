@@ -19,7 +19,7 @@ namespace fc::primitives::tipset {
     NO_BLOCKS = 1,        // need to have at least one block to create tipset
     MISMATCHING_HEIGHTS,  // cannot create tipset, mismatching blocks heights
     MISMATCHING_PARENTS,  // cannot create tipset, mismatching block parents
-    TICKET_HAS_NO_VALUE, // optional ticket is not initialized
+    TICKET_HAS_NO_VALUE,  // optional ticket is not initialized
   };
 }
 
@@ -43,7 +43,7 @@ namespace fc::primitives::tipset {
     /**
      * @return span of cids
      */
-    const gsl::span<const CID> getCids() const;
+    gsl::span<const CID> getCids() const;
 
     /**
      * @brief makes key of cids
@@ -63,7 +63,7 @@ namespace fc::primitives::tipset {
     /**
      * @return span of blocks
      */
-    const gsl::span<const block::BlockHeader> getBlocks() const;
+    gsl::span<const block::BlockHeader> getBlocks() const;
 
     /**
      * @return optional min ticket or error
@@ -101,7 +101,7 @@ namespace fc::primitives::tipset {
    private:
     std::vector<CID> cids_;                 ///< cids
     std::vector<block::BlockHeader> blks_;  ///< block headers
-    uint64_t height_;                       ///< height
+    uint64_t height_{};                       ///< height
   };
 
   bool operator==(const Tipset &lhs, const Tipset &rhs);
