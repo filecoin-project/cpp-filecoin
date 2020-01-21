@@ -35,10 +35,19 @@ target_link_libraries(invoker_test
         actor
         )
 
+addtest(account_actor_test
+    account_actor_test.cpp
+    )
+target_link_libraries(account_actor_test
+    actor
+    state_tree
+    ipfs_datastore_in_memory
+    )
+
 addtest(storage_power_test
-        storage_power_test.cpp
-        )
+    storage_power_test.cpp
+    )
 target_link_libraries(storage_power_test
-        actor
-        hexutil
-        )
+    actor
+    hexutil
+    )
