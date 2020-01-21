@@ -7,6 +7,7 @@
 
 #include "codec/cbor/cbor.hpp"
 #include "common/outcome.hpp"
+#include <libp2p/multi/content_identifier_codec.hpp>
 
 namespace fc::primitives::tipset {
 
@@ -46,8 +47,7 @@ namespace fc::primitives::tipset {
     outcome::result<std::vector<uint8_t>> encodeKey(gsl::span<const CID> cids) {
       common::Buffer buffer{};
       for (auto &c : cids) {
-        // TODO(yuraz): FIL-*** find out how to correctly encode cid here
-        OUTCOME_TRY(v, codec::cbor::encode(c));
+        OUTCOME_TRY(v, libp2p::multi::ContentIdentifierCodec::toString(c));
         buffer.put(v);
       }
       return buffer.toVector();
