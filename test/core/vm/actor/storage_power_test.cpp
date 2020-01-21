@@ -35,6 +35,21 @@ TEST(StoragePowerActor, AddMinerSuccess) {
   ASSERT_EQ(res, 0);
 }
 
+TEST(StoragePowerActor, AddMinerTwice) {
+  std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
+  std::shared_ptr<MockRandomnessProvider> randomness_provider =
+      std::make_shared<MockRandomnessProvider>();
+
+  StoragePowerActor actor(indices, randomness_provider);
+
+  Address addrID_0{Network::MAINNET, 3232104785};
+  EXPECT_OUTCOME_FALSE(err, actor.getPowerTotalForMiner(addrID_0));
+  ASSERT_EQ(err, PowerTableError::NO_SUCH_MINER);
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_0));
+  EXPECT_OUTCOME_FALSE(err1, actor.addMiner(addrID_0));
+  ASSERT_EQ(err1, StoragePowerActor::ALREADY_EXIST);
+}
+
 TEST(StoragePowerActor, RemoveMinerSuccess) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
@@ -77,7 +92,7 @@ TEST(StoragePowerActor, addClaimedPowerForSectorSuccess) {
       100 * (fc::primitives::BigInt(1) << 40);
 
   fc::vm::actor::SectorStorageWeightDesc swd;
-  EXPECT_CALL(*indices, consensusPowerForStorageWeight(swd))
+  EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(min_candidate_storage_value));
 
   StoragePowerActor actor(indices, randomness_provider);
@@ -104,7 +119,7 @@ TEST(StoragePowerActor,
       .WillRepeatedly(testing::Return(1));
 
   fc::vm::actor::SectorStorageWeightDesc swd;
-  EXPECT_CALL(*indices, consensusPowerForStorageWeight(swd))
+  EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(1));
 
   StoragePowerActor actor(indices, randomness_provider);
@@ -127,7 +142,7 @@ TEST(StoragePowerActor, addClaimedPowerForSectorFailPoSt) {
       .WillRepeatedly(testing::Return(1));
 
   fc::vm::actor::SectorStorageWeightDesc swd;
-  EXPECT_CALL(*indices, consensusPowerForStorageWeight(swd))
+  EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(1));
 
   StoragePowerActor actor(indices, randomness_provider);
@@ -151,7 +166,7 @@ TEST(StoragePowerActor, deductClaimedPowerForSectorAssertSuccess) {
       .WillRepeatedly(testing::Return(1));
 
   fc::vm::actor::SectorStorageWeightDesc swd;
-  EXPECT_CALL(*indices, consensusPowerForStorageWeight(swd))
+  EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(1));
 
   StoragePowerActor actor(indices, randomness_provider);
@@ -174,8 +189,7 @@ TEST(StoragePowerActor, selectMinersToSurpriseSuccess) {
   EXPECT_CALL(*indices, storagePowerConsensusMinMinerPower())
       .WillRepeatedly(testing::Return(1));
 
-  fc::vm::actor::SectorStorageWeightDesc swd;
-  EXPECT_CALL(*indices, consensusPowerForStorageWeight(swd))
+  EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(1));
 
   Randomness randomness;
@@ -207,8 +221,7 @@ TEST(StoragePowerActor, selectMinersToSurpriseAll) {
   EXPECT_CALL(*indices, storagePowerConsensusMinMinerPower())
       .WillRepeatedly(testing::Return(1));
 
-  fc::vm::actor::SectorStorageWeightDesc swd;
-  EXPECT_CALL(*indices, consensusPowerForStorageWeight(swd))
+  EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(1));
 
   Randomness randomness;
@@ -227,7 +240,8 @@ TEST(StoragePowerActor, selectMinersToSurpriseAll) {
 
   EXPECT_OUTCOME_TRUE(miners, actor.getMiners());
 
-  EXPECT_OUTCOME_TRUE(sup_miners, actor.selectMinersToSurprise(miners.size(), randomness));
+  EXPECT_OUTCOME_TRUE(sup_miners,
+                      actor.selectMinersToSurprise(miners.size(), randomness));
 
   ASSERT_THAT(sup_miners, miners);
 }
@@ -240,8 +254,7 @@ TEST(StoragePowerActor, selectMinersToSurpriseMoreThatHave) {
   EXPECT_CALL(*indices, storagePowerConsensusMinMinerPower())
       .WillRepeatedly(testing::Return(1));
 
-  fc::vm::actor::SectorStorageWeightDesc swd;
-  EXPECT_CALL(*indices, consensusPowerForStorageWeight(swd))
+  EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(1));
 
   Randomness randomness;
@@ -260,7 +273,8 @@ TEST(StoragePowerActor, selectMinersToSurpriseMoreThatHave) {
 
   EXPECT_OUTCOME_TRUE(miners, actor.getMiners());
 
-  EXPECT_OUTCOME_FALSE(err, actor.selectMinersToSurprise(miners.size() + 1, randomness));
+  EXPECT_OUTCOME_FALSE(
+      err, actor.selectMinersToSurprise(miners.size() + 1, randomness));
 
   ASSERT_EQ(err, StoragePowerActor::OUT_OF_BOUND);
 }

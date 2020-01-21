@@ -6,7 +6,8 @@
 #define CPP_FILECOIN_UTIL_HPP
 
 namespace fc::vm::actor {
-  //TODO: temp structure, it will be removed after it will be implemented
+  // TODO(artyom-yurin): temp structure, it will be removed after sector will be
+  // implemented
   class SectorStorageWeightDesc {};
 
   static inline bool operator==(const SectorStorageWeightDesc &lhs,

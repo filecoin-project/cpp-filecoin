@@ -12,6 +12,8 @@
 
 namespace fc::power {
 
+  using Power = primitives::BigInt;
+
   /**
    * @interface Provides an interface to the power table
    */
@@ -24,7 +26,7 @@ namespace fc::power {
      * @param address of the miner
      * @return power of the miner or No such miner error
      */
-    virtual outcome::result<fc::primitives::BigInt> getMinerPower(
+    virtual outcome::result<Power> getMinerPower(
         const primitives::address::Address &address) const = 0;
 
     /**
@@ -34,8 +36,7 @@ namespace fc::power {
      * @return success or Negative power error if amount less than 0
      */
     virtual outcome::result<void> setMinerPower(
-        const primitives::address::Address &address,
-        fc::primitives::BigInt power_amount) = 0;
+        const primitives::address::Address &address, Power power_amount) = 0;
 
     /**
      * @brief Remove a miner from power table
@@ -45,10 +46,22 @@ namespace fc::power {
     virtual outcome::result<void> removeMiner(
         const primitives::address::Address &address) = 0;
 
+    /**
+     * @brief Get size of table
+     * @return number of miners
+     */
     virtual size_t getSize() const = 0;
 
-    virtual fc::primitives::BigInt getMaxPower() const = 0;
+    /**
+     * @brief Get Max power from table
+     * @return max power from all miners
+     */
+    virtual Power getMaxPower() const = 0;
 
+    /**
+     * @brief Get list of all miners from table
+     * @return list of miners
+     */
     virtual outcome::result<std::vector<primitives::address::Address>>
     getMiners() const = 0;
   };
