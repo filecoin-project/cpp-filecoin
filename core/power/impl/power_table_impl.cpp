@@ -41,7 +41,7 @@ namespace fc::power {
   }
 
   Power PowerTableImpl::getMaxPower() const {
-    if (power_table_.size() == 0) return 0;
+    if (power_table_.empty()) return 0;
 
     auto res = std::max(
         power_table_.cbegin(), power_table_.cend(), [&](auto rhs, auto lhs) {

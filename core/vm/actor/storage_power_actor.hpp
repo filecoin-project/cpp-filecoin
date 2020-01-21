@@ -139,7 +139,8 @@ namespace fc::vm::actor {
      * @param miner_power is address of the miner
      * @return true or false
      */
-    bool minerNominalPowerMeetsConsensusMinimum(power::Power miner_power);
+    bool minerNominalPowerMeetsConsensusMinimum(
+        const power::Power &miner_power);
 
     /**
      * @brief Set power value into nominal power table
@@ -149,7 +150,7 @@ namespace fc::vm::actor {
      */
     outcome::result<void> setNominalPowerEntry(
         const primitives::address::Address &miner_addr,
-        power::Power updated_nominal_power);
+        const power::Power &updated_nominal_power);
 
     /**
      * @brief Set power value into total power table
@@ -159,7 +160,7 @@ namespace fc::vm::actor {
      */
     outcome::result<void> setPowerEntryInternal(
         const primitives::address::Address &miner_addr,
-        power::Power updated_power);
+        const power::Power &updated_power);
 
     /**
      * @brief Set power value into claimed power table
@@ -169,7 +170,7 @@ namespace fc::vm::actor {
      */
     outcome::result<void> setClaimedPowerEntryInternal(
         const primitives::address::Address &miner_addr,
-        power::Power updated_claimed_power);
+        const power::Power &updated_claimed_power);
 
     std::shared_ptr<Indices> indices_;
 

@@ -100,7 +100,7 @@ namespace fc::vm::actor {
 
   outcome::result<void> StoragePowerActor::setNominalPowerEntry(
       const primitives::address::Address &miner_addr,
-      power::Power updated_nominal_power) {
+      const power::Power &updated_nominal_power) {
     OUTCOME_TRY(prev_miner_nominal_power,
                 nominal_power_->getMinerPower(miner_addr));
     OUTCOME_TRY(
@@ -120,7 +120,7 @@ namespace fc::vm::actor {
 
   outcome::result<void> StoragePowerActor::setPowerEntryInternal(
       const primitives::address::Address &miner_addr,
-      power::Power updated_power) {
+      const power::Power &updated_power) {
     OUTCOME_TRY(prev_miner_power, power_table_->getMinerPower(miner_addr));
     OUTCOME_TRY(power_table_->setMinerPower(miner_addr, updated_power));
     total_network_power_ =
@@ -129,7 +129,7 @@ namespace fc::vm::actor {
   }
 
   bool StoragePowerActor::minerNominalPowerMeetsConsensusMinimum(
-      power::Power miner_power) {
+      const power::Power &miner_power) {
     // if miner is larger than min power requirement, we're set
     if (miner_power >= kMinMinerSizeStor) {
       return true;
@@ -152,7 +152,7 @@ namespace fc::vm::actor {
 
   outcome::result<void> StoragePowerActor::setClaimedPowerEntryInternal(
       const primitives::address::Address &miner_addr,
-      power::Power updated_power) {
+      const power::Power &updated_power) {
     return claimed_power_->setMinerPower(miner_addr, updated_power);
   }
   outcome::result<power::Power> StoragePowerActor::getPowerTotalForMiner(
