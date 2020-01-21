@@ -17,9 +17,6 @@ namespace fc::primitives::tipset {
   struct TipsetKey {
     common::Buffer value;
 
-    static outcome::result<TipsetKey> createFromBytes(
-        gsl::span<const uint8_t> bytes);
-
     static outcome::result<TipsetKey> createFromCids(gsl::span<const CID> cids);
 
     std::vector<CID> getCids() const;
