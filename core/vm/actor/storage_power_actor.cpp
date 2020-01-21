@@ -198,7 +198,8 @@ namespace fc::vm::actor {
       std::shared_ptr<Indices> indices,
       std::shared_ptr<crypto::randomness::RandomnessProvider>
           randomness_provider)
-      : indices_(indices), randomness_provider_(randomness_provider) {
+      : indices_(std::move(indices)),
+        randomness_provider_(std::move(randomness_provider)) {
     total_network_power_ = 0;
 
     power_table_ = std::make_unique<power::PowerTableImpl>();

@@ -6,6 +6,7 @@
 #ifndef FILECOIN_CORE_STORAGE_POWER_TABLE_IMPL_HPP
 #define FILECOIN_CORE_STORAGE_POWER_TABLE_IMPL_HPP
 
+#include <unordered_map>
 #include "power/power_table.hpp"
 
 namespace fc::power {
