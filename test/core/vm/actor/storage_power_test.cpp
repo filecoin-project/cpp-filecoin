@@ -20,6 +20,11 @@ using fc::vm::MockIndices;
 using fc::vm::actor::StoragePowerActor;
 using testing::_;
 
+/**
+ * @given Storage Power Actor
+ * @when try to add unique miner
+ * @then miner successfully added
+ */
 TEST(StoragePowerActor, AddMinerSuccess) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
@@ -35,6 +40,11 @@ TEST(StoragePowerActor, AddMinerSuccess) {
   ASSERT_EQ(res, 0);
 }
 
+/**
+ * @given Storage Power Actor and 1 miner
+ * @when try to add same miner again
+ * @then error ALREADY_EXIST
+ */
 TEST(StoragePowerActor, AddMinerTwice) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
@@ -50,6 +60,11 @@ TEST(StoragePowerActor, AddMinerTwice) {
   ASSERT_EQ(err1, StoragePowerActor::ALREADY_EXIST);
 }
 
+/**
+ * @given Storage Power Actor and 1 miner
+ * @when try to remove the miner
+ * @then miner successfully removed
+ */
 TEST(StoragePowerActor, RemoveMinerSuccess) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
@@ -68,6 +83,11 @@ TEST(StoragePowerActor, RemoveMinerSuccess) {
   ASSERT_EQ(err1, PowerTableError::NO_SUCH_MINER);
 }
 
+/**
+ * @given Storage Power Actor
+ * @when try to remove no existen miner
+ * @then error NO_SUCH_MINER
+ */
 TEST(StoragePowerActor, RemoveMinerNoMiner) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
@@ -80,6 +100,11 @@ TEST(StoragePowerActor, RemoveMinerNoMiner) {
   ASSERT_EQ(err, PowerTableError::NO_SUCH_MINER);
 }
 
+/**
+ * @given Storage Power Actor and sector
+ * @when try to add sector power to miner
+ * @then power successfully added
+ */
 TEST(StoragePowerActor, addClaimedPowerForSectorSuccess) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
@@ -89,7 +114,7 @@ TEST(StoragePowerActor, addClaimedPowerForSectorSuccess) {
       .WillRepeatedly(testing::Return(1));
 
   fc::primitives::BigInt min_candidate_storage_value =
-      100 * (fc::primitives::BigInt(1) << 40);
+      StoragePowerActor::kMinMinerSizeStor;
 
   fc::vm::actor::SectorStorageWeightDesc swd;
   EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
@@ -109,6 +134,11 @@ TEST(StoragePowerActor, addClaimedPowerForSectorSuccess) {
                     min_candidate_storage_value);
 }
 
+/**
+ * @given Storage Power Actor and sector
+ * @when try to add sector power to miner, but less that need for consensus
+ * @then power successfully added, but total power is 0
+ */
 TEST(StoragePowerActor,
      addClaimedPowerForSectorSuccessButLessThatMinCandidateStorage) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
@@ -133,6 +163,11 @@ TEST(StoragePowerActor,
   EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addrID_0), 0);
 }
 
+/**
+ * @given Storage Power Actor and sector
+ * @when try to add sector power to miner, but miner fail proof of space time
+ * @then power successfully added, but nominal and total power is 0
+ */
 TEST(StoragePowerActor, addClaimedPowerForSectorFailPoSt) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
@@ -157,6 +192,11 @@ TEST(StoragePowerActor, addClaimedPowerForSectorFailPoSt) {
   EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addrID_0), 0);
 }
 
+/**
+ * @given Storage Power Actor and sector
+ * @when try to deduct sector power from miner
+ * @then power successfully deducted
+ */
 TEST(StoragePowerActor, deductClaimedPowerForSectorAssertSuccess) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
@@ -181,6 +221,11 @@ TEST(StoragePowerActor, deductClaimedPowerForSectorAssertSuccess) {
   EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addrID_0), 0);
 }
 
+/**
+ * @given Storage Power Actor and 3 miner and randomness
+ * @when try to choose 2 miners
+ * @then 2 miners successfully chosen
+ */
 TEST(StoragePowerActor, selectMinersToSurpriseSuccess) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
@@ -213,6 +258,11 @@ TEST(StoragePowerActor, selectMinersToSurpriseSuccess) {
   ASSERT_THAT(sup_miners, testing::ElementsAre(miners[1], miners[2]));
 }
 
+/**
+ * @given Storage Power Actor and 3 miner and randomness
+ * @when try to choose 3 miners
+ * @then all miners return
+ */
 TEST(StoragePowerActor, selectMinersToSurpriseAll) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
@@ -246,6 +296,11 @@ TEST(StoragePowerActor, selectMinersToSurpriseAll) {
   ASSERT_THAT(sup_miners, miners);
 }
 
+/**
+ * @given Storage Power Actor and 3 miner and randomness
+ * @when try to choose more that 3 miners
+ * @then OUT_OF_BOUND error
+ */
 TEST(StoragePowerActor, selectMinersToSurpriseMoreThatHave) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
