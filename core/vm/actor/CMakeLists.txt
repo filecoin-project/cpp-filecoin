@@ -4,6 +4,7 @@
 #
 
 add_library(actor
+    account_actor.cpp
     actor.cpp
     init_actor.cpp
     cron_actor.cpp

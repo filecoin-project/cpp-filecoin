@@ -19,8 +19,7 @@ namespace fc::vm::state {
   class StateTree {
    public:
     explicit StateTree(const std::shared_ptr<IpfsDatastore> &store);
-    StateTree(const std::shared_ptr<IpfsDatastore> &store,
-              const CID &root);
+    StateTree(const std::shared_ptr<IpfsDatastore> &store, const CID &root);
     /// Set actor state, does not write to storage
     outcome::result<void> set(const Address &address, const Actor &actor);
     /// Get actor state
@@ -34,6 +33,8 @@ namespace fc::vm::state {
     outcome::result<CID> flush();
     /// Revert changes to last flushed state
     outcome::result<void> revert();
+    /// Get store
+    std::shared_ptr<IpfsDatastore> getStore();
 
    private:
     std::shared_ptr<IpfsDatastore> store_;
