@@ -5,6 +5,9 @@
 
 #include "vm/runtime/impl/runtime_impl.hpp"
 
+#include "codec/cbor/cbor.hpp"
+#include "vm/message/message_codec.hpp"
+#include "vm/runtime/gas_cost.hpp"
 #include "vm/runtime/impl/actor_state_handle_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"
 
@@ -24,6 +27,7 @@ using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::ActorStateHandle;
 using fc::vm::runtime::ActorStateHandleImpl;
 using fc::vm::runtime::InvocationOutput;
+using fc::vm::runtime::Runtime;
 using fc::vm::runtime::RuntimeError;
 using fc::vm::runtime::RuntimeImpl;
 
@@ -32,20 +36,20 @@ RuntimeImpl::RuntimeImpl(
     std::shared_ptr<IpfsDatastore> datastore,
     std::shared_ptr<StateTree> state_tree,
     std::shared_ptr<Indices> indices,
+    std::shared_ptr<Invoker> invoker,
     std::shared_ptr<UnsignedMessage> message,
     ChainEpoch chain_epoch,
     Address immediate_caller,
-    Address receiver,
     Address block_miner,
     BigInt gas_used)
     : randomness_provider_{std::move(randomness_provider)},
       datastore_{std::move(datastore)},
       state_tree_{std::move(state_tree)},
       indices_{std::move(indices)},
+      invoker_{std::move(invoker)},
       message_{std::move(message)},
       chain_epoch_{chain_epoch},
       immediate_caller_{std::move(immediate_caller)},
-      receiver_{std::move(receiver)},
       block_miner_{std::move(block_miner)},
       gas_used_{std::move(gas_used)} {}
 
@@ -69,7 +73,7 @@ Address RuntimeImpl::getImmediateCaller() const {
 }
 
 Address RuntimeImpl::getCurrentReceiver() const {
-  return receiver_;
+  return message_->to;
 }
 
 Address RuntimeImpl::getTopLevelBlockWinner() const {
@@ -112,11 +116,35 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
 
   // TODO (a.chernyshov) charge gas for transfer
   // TODO (a.chernyshov) transfer
-//  if (value != 0) {
-//  }
-  // TODO (a.chernyshov) invoke - create runtime context
+  if (value != 0) {
+  }
 
-  // TODO (a.chernyshov) message is needed
+  // TODO (a.chernyshov) invoke - create runtime context
+  std::vector<uint8_t> blob;
+  auto message = std::make_shared<UnsignedMessage>(UnsignedMessage{
+      message_->to,
+      to_address,
+      from_actor.nonce,
+      value,
+      gas_price_,
+      gas_available_,
+      method_number.method_number,
+      blob /* params */
+  });
+  OUTCOME_TRY(serialized_message, fc::codec::cbor::encode(*message));
+  BigInt messageGasCost =
+      kOnChainMessageBaseGasCost
+      + serialized_message.size() * kOnChainMessagePerByteGasCharge;
+
+  BigInt gas_cost = gas_price_ * gas_available_;
+  BigInt total_cost = gas_cost + value;
+  if (from_actor.balance < total_cost)
+    return RuntimeError::NOT_ENOUGH_FUNDS;
+
+  OUTCOME_TRY(state_tree_->flush());
+
+  auto runtime = createRuntime(message);
+
   return InvocationOutput();
 }
 
@@ -179,7 +207,7 @@ fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
       }
       case primitives::address::BLS: {
         // TODO (a.chernyshov) cbor Address
-        //OUTCOME_TRY(cid, datastore_->setCbor(address));
+        // OUTCOME_TRY(cid, datastore_->setCbor(address));
         CID cid;
         return Actor{
             actor::kAccountCodeCid, ActorSubstateCID(cid), 0, BigInt{0}};
@@ -189,4 +217,20 @@ fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
     }
   }
   return actor;
+}
+
+std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
+    const std::shared_ptr<UnsignedMessage> &message) const {
+  //  UnsignedMessage m = *message;
+  //  return std::make_shared<RuntimeImpl>(0);
+  return std::make_shared<RuntimeImpl>(randomness_provider_,
+                                       datastore_,
+                                       state_tree_,
+                                       indices_,
+                                       invoker_,
+                                       std::move(message),
+                                       chain_epoch_,
+                                       immediate_caller_,
+                                       block_miner_,
+                                       BigInt(0));
 }

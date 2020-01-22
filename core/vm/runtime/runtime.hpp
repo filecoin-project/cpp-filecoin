@@ -74,32 +74,32 @@ namespace fc::vm::runtime {
 
     virtual std::shared_ptr<ActorStateHandle> acquireState() const = 0;
 
-    virtual InvocationOutput returnSuccess() = 0;
-    virtual InvocationOutput returnValue(Buffer bytes) = 0;
+//    virtual InvocationOutput returnSuccess() = 0;
+//    virtual InvocationOutput returnValue(Buffer bytes) = 0;
 
-    /**
-     * Throw an error indicating a failure condition has occurred, from which
-     * the given actor code is unable to recover.
-     */
-    virtual void abort(const ExitCode &errExitCode, const std::string &msg) = 0;
-
-    /** Calls Abort with kInvalidArgumentsUser. */
-    virtual void abortArg(const std::string &message) = 0;
-    virtual void abortArg() = 0;
-
-    /** Calls Abort with kInconsistentStateUser. */
-    virtual void abortState(const std::string &message) = 0;
-    virtual void abortState() = 0;
-
-    /** Calls Abort with InsufficientFunds_User. */
-    virtual void abortFunds(const std::string &message) = 0;
-    virtual void abortFunds() = 0;
+//    /**
+//     * Throw an error indicating a failure condition has occurred, from which
+//     * the given actor code is unable to recover.
+//     */
+//    virtual void abort(const ExitCode &errExitCode, const std::string &msg) = 0;
+//
+//    /** Calls Abort with kInvalidArgumentsUser. */
+//    virtual void abortArg(const std::string &message) = 0;
+//    virtual void abortArg() = 0;
+//
+//    /** Calls Abort with kInconsistentStateUser. */
+//    virtual void abortState(const std::string &message) = 0;
+//    virtual void abortState() = 0;
+//
+//    /** Calls Abort with InsufficientFunds_User. */
+//    virtual void abortFunds(const std::string &message) = 0;
+//    virtual void abortFunds() = 0;
 
     /**
      * Calls Abort with kRuntimeAPIError. For internal use only (not in actor
      * code).
      */
-    virtual void abortAPI(const std::string &message) = 0;
+//    virtual void abortAPI(const std::string &message) = 0;
 
     /** Check that the given condition is true (and call Abort if not). */
     // TODO(a.chernyshov) assert
@@ -107,7 +107,7 @@ namespace fc::vm::runtime {
 
     virtual outcome::result<BigInt> getBalance(
         const Address &address) const = 0;
-    virtual BigInt getValueReceived() const = 0;
+//    virtual BigInt getValueReceived() const = 0;
 
     /** Look up the current values of several system-wide economic indices. */
     virtual std::shared_ptr<Indices> getCurrentIndices() const = 0;
@@ -128,11 +128,6 @@ namespace fc::vm::runtime {
     // Compute(ComputeFunctionID, args [util.Any]) util.Any
 
     /**
-     * Sends a message to another actor. If the invoked method does not return
-     * successfully, this caller will be aborted too.
-     */
-    virtual InvocationOutput sendPropagatingErrors(InvocationInput input) = 0;
-    /**
      * Send allows the current execution context to invoke methods on other
      * actors in the system
      * @param to_address
@@ -145,23 +140,6 @@ namespace fc::vm::runtime {
                                                    MethodNumber method_number,
                                                    MethodParams params,
                                                    BigInt value) = 0;
-    virtual Serialization sendQuery(Address to_addr,
-                                    MethodNumber method_number,
-                                    gsl::span<Serialization> params) = 0;
-    virtual void sendFunds(const Address &to_address, const BigInt &value) = 0;
-
-    /**
-     * Sends a message to another actor, trapping an unsuccessful execution.
-     * This may only be invoked by the singleton Cron actor.
-     */
-    virtual std::tuple<InvocationOutput, ExitCode> sendCatchingErrors(
-        InvocationInput input) = 0;
-
-    // Computes an address for a new actor. The returned address is intended to
-    // uniquely refer to the actor even in the event of a chain re-org (whereas
-    // an ID-address might refer to a different actor after messages are
-    // re-ordered). Always an ActorExec address.
-    virtual Address createNewActorAddress() = 0;
 
     /**
      * @brief Creates an actor in the state tree, with empty state. May only be

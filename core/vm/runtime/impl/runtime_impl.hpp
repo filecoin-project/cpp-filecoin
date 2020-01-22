@@ -8,6 +8,7 @@
 
 #include "crypto/randomness/randomness_provider.hpp"
 #include "storage/ipfs/datastore.hpp"
+#include "vm/actor/invoker.hpp"
 #include "vm/runtime/actor_state_handle.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/state/state_tree.hpp"
@@ -15,6 +16,7 @@
 namespace fc::vm::runtime {
 
   using actor::Actor;
+  using actor::Invoker;
   using crypto::randomness::ChainEpoch;
   using crypto::randomness::Randomness;
   using crypto::randomness::RandomnessProvider;
@@ -29,10 +31,10 @@ namespace fc::vm::runtime {
                 std::shared_ptr<IpfsDatastore> datastore,
                 std::shared_ptr<StateTree> state_tree,
                 std::shared_ptr<Indices> indices,
+                std::shared_ptr<Invoker> invoker,
                 std::shared_ptr<UnsignedMessage> message,
                 ChainEpoch chain_epoch,
                 Address immediate_caller,
-                Address receiver,
                 Address block_miner,
                 BigInt gas_used);
 
@@ -110,31 +112,12 @@ namespace fc::vm::runtime {
     //    // TODO(a.chernyshov) implement
     //    // TODO(a.chernyshov) util.Any type
     //    // Compute(ComputeFunctionID, args [util.Any]) util.Any
-    //
-    //    // TODO(a.chernyshov) implement
-    //    InvocationOutput sendPropagatingErrors(InvocationInput input)
-    //    override;
+
     /** \copydoc Runtime::send() */
     fc::outcome::result<InvocationOutput> send(Address to_address,
                                                MethodNumber method_number,
                                                MethodParams params,
                                                BigInt value) override;
-
-    //    // TODO(a.chernyshov) implement
-    //    Serialization sendQuery(Address to_addr,
-    //                                    MethodNumber method_number,
-    //                                    gsl::span<Serialization> params)
-    //                                    override;
-    //    // TODO(a.chernyshov) implement
-    //    void sendFunds(const Address &to_address, const BigInt &value)
-    //    override;
-    //
-    //    // TODO(a.chernyshov) implement
-    //    std::tuple<InvocationOutput, ExitCode> sendCatchingErrors(
-    //        InvocationInput input) override;
-    //
-    //    // TODO(a.chernyshov) implement
-    //    Address createNewActorAddress() override;
 
     /** \copydoc Runtime::createActor() */
     outcome::result<void> createActor(CodeId code_id,
@@ -151,17 +134,21 @@ namespace fc::vm::runtime {
 
    private:
     outcome::result<Actor> getOrCreateActor(const Address &address);
+    std::shared_ptr<Runtime> createRuntime(
+        const std::shared_ptr<UnsignedMessage> &message) const;
 
    private:
     std::shared_ptr<RandomnessProvider> randomness_provider_;
     std::shared_ptr<IpfsDatastore> datastore_;
     std::shared_ptr<StateTree> state_tree_;
     std::shared_ptr<Indices> indices_;
+    std::shared_ptr<Invoker> invoker_;
     std::shared_ptr<UnsignedMessage> message_;
     ChainEpoch chain_epoch_;
     Address immediate_caller_;
-    Address receiver_;
     Address block_miner_;
+    BigInt gas_price_;
+    BigInt gas_available_;
     BigInt gas_used_;
   };
 

@@ -11,35 +11,20 @@
 #include "codec/cbor/cbor.hpp"
 
 namespace fc::primitives {
-  using boost::multiprecision::cpp_int;
+  using BigInt = boost::multiprecision::cpp_int;
+  using UBigInt = boost::multiprecision::cpp_int;
+};  // namespace fc::primitives
 
-  struct BigInt : cpp_int {
-    using cpp_int::cpp_int;
-  };
-
-  struct UBigInt : cpp_int {
-    using cpp_int::cpp_int;
-  };
-
-  static inline bool operator==(const BigInt &lhs, const BigInt &rhs) {
-    return static_cast<cpp_int>(lhs) == static_cast<cpp_int>(rhs);
-  }
-
-  static inline bool operator==(const BigInt &lhs, int rhs) {
-    return static_cast<cpp_int>(lhs) == rhs;
-  }
-
+namespace boost::multiprecision {
   template <class Stream,
             class T,
             typename = std::enable_if_t<
-                (std::is_same_v<T, BigInt> || std::is_same_v<T, UBigInt>)&&std::
+                (std::is_same_v<T, fc::primitives::BigInt> || std::is_same_v<T, fc::primitives::UBigInt>)&&std::
                     remove_reference<Stream>::type::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const T &big_int) {
     std::vector<uint8_t> bytes;
     if (big_int != 0) {
-      if (std::is_same_v<T, BigInt>) {
-        bytes.push_back(big_int < 0 ? 1 : 0);
-      }
+      bytes.push_back(big_int < 0 ? 1 : 0);
       export_bits(big_int, std::back_inserter(bytes), 8);
     }
     return s << bytes;
@@ -49,7 +34,7 @@ namespace fc::primitives {
       class Stream,
       class T,
       typename = std::enable_if_t<
-          (std::is_same_v<T, BigInt> || std::is_same_v<T, UBigInt>)&&Stream::
+          (std::is_same_v<T, fc::primitives::BigInt> || std::is_same_v<T, fc::primitives::UBigInt>)&&Stream::
               is_cbor_decoder_stream>>
   Stream &operator>>(Stream &s, T &big_int) {
     std::vector<uint8_t> bytes;
@@ -57,10 +42,8 @@ namespace fc::primitives {
     if (bytes.empty()) {
       big_int = 0;
     } else {
-      import_bits(big_int,
-                  bytes.begin() + (std::is_same_v<T, BigInt> ? 1 : 0),
-                  bytes.end());
-      if (std::is_same_v<T, BigInt> && bytes[0] == 1) {
+      import_bits(big_int, bytes.begin() + 1, bytes.end());
+      if (bytes[0] == 1) {
         big_int = -big_int;
       }
     }

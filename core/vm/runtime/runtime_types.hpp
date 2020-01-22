@@ -20,13 +20,6 @@ namespace fc::vm::runtime {
   using primitives::BigInt;
   using primitives::address::Address;
 
-  struct InvocationInput {
-    Address to;
-    MethodNumber method{};
-    MethodParams params;
-    BigInt Value;
-  };
-
   struct InvocationOutput {
     common::Buffer return_value;
   };

@@ -61,23 +61,11 @@ namespace fc::vm::runtime {
 
     // TODO(a.chernyshov) util.Any type
     // Compute(ComputeFunctionID, args [util.Any]) util.Any
-
-    MOCK_METHOD1(sendPropagatingErrors,
-                 InvocationOutput(InvocationInput input));
     MOCK_METHOD4(send,
                  outcome::result<InvocationOutput>(Address to_address,
                                                    MethodNumber method_number,
                                                    MethodParams params,
                                                    BigInt value));
-    MOCK_METHOD3(sendQuery,
-                 Serialization(Address to_addr,
-                               MethodNumber method_number,
-                               gsl::span<Serialization> params));
-    MOCK_METHOD2(sendFunds,
-                 void(const Address &to_address, const BigInt &value));
-
-    MOCK_METHOD1(sendCatchingErrors,
-                 std::tuple<InvocationOutput, ExitCode>(InvocationInput input));
 
     MOCK_METHOD0(createNewActorAddress, Address());
 
