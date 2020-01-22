@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "power_table_impl.hpp"
+#include "power/impl/power_table_impl.hpp"
 
 #include "power/power_table_error.hpp"
 #include "primitives/address/address_codec.hpp"
@@ -43,10 +43,11 @@ namespace fc::power {
   Power PowerTableImpl::getMaxPower() const {
     if (power_table_.empty()) return 0;
 
-    auto res = std::max(
-        power_table_.cbegin(), power_table_.cend(), [&](auto rhs, auto lhs) {
-          return rhs->second < lhs->second;
-        });
+    auto res = std::max(power_table_.cbegin(),
+                        power_table_.cend(),
+                        [&](const auto &rhs, const auto &lhs) {
+                          return rhs->second < lhs->second;
+                        });
 
     return res->second;
   }

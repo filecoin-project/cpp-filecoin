@@ -14,6 +14,16 @@ namespace fc::vm::actor {
 
   const size_t StoragePowerActor::kMinMinerSizeTarg = 3;
 
+  bool addrInArray(const primitives::address::Address &addr,
+                   const std::vector<primitives::address::Address> &array) {
+    for (const auto &elem : array) {
+      if (elem == addr) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   outcome::result<std::vector<primitives::address::Address>>
   StoragePowerActor::selectMinersToSurprise(
       size_t challenge_count,
@@ -31,7 +41,11 @@ namespace fc::vm::actor {
           randomness_provider_->randomInt(randomness, chall, all_miners.size());
       auto potential_challengee = all_miners[miner_index];
 
-      all_miners.erase(all_miners.begin() + miner_index);
+      if (addrInArray(potential_challengee, selected_miners)) {
+        miner_index = randomness_provider_->randomInt(
+            randomness, chall, all_miners.size());
+        potential_challengee = all_miners[miner_index];
+      }
 
       selected_miners.push_back(potential_challengee);
     }
@@ -42,8 +56,8 @@ namespace fc::vm::actor {
   outcome::result<void> StoragePowerActor::addClaimedPowerForSector(
       const primitives::address::Address &miner_addr,
       const SectorStorageWeightDesc &storage_weight_desc) {
-    // TODO(artyom-yurin): FROM SPEC: The function is located in the indices
-    // module temporarily, until we find a better place for global
+    // TODO(artyom-yurin): [FIL-135] FROM SPEC: The function is located in the
+    // indices module temporarily, until we find a better place for global
     // parameterization functions.
     power::Power sector_power =
         indices_->consensusPowerForStorageWeight(storage_weight_desc);
@@ -59,8 +73,8 @@ namespace fc::vm::actor {
   outcome::result<void> StoragePowerActor::deductClaimedPowerForSectorAssert(
       const primitives::address::Address &miner_addr,
       const SectorStorageWeightDesc &storage_weight_desc) {
-    // TODO(artyom-yurin): FROM SPEC: The function is located in the indices
-    // module temporarily, until we find a better place for global
+    // TODO(artyom-yurin): [FIL-135] FROM SPEC: The function is located in the
+    // indices module temporarily, until we find a better place for global
     // parameterization functions.
     power::Power sector_power =
         indices_->consensusPowerForStorageWeight(storage_weight_desc);
@@ -92,8 +106,8 @@ namespace fc::vm::actor {
       power = 0;
     }
 
-    // TODO(artyom-yurin): FROM DOCS Decide effect of undercollateralization on
-    // (consensus) power.
+    // TODO(artyom-yurin): [FIL-136] FROM DOCS Decide effect of
+    // undercollateralization on (consensus) power.
 
     return setPowerEntryInternal(miner_addr, power);
   }

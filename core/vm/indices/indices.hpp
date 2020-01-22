@@ -12,12 +12,23 @@
 namespace fc::vm {
   class Indices {
    public:
-
     virtual ~Indices() = default;
 
+    // TODO(artyom-yurin): [FIL-135] FROM SPEC: The function is located in the
+    // indices module temporarily, until we find a better place for global
+    // parameterization functions.
+    /**
+     * @brief Get power of sector
+     * @param storage_weight_desc is description of sector
+     * @return power of sector
+     */
     virtual fc::primitives::BigInt consensusPowerForStorageWeight(
         actor::SectorStorageWeightDesc storage_weight_desc) = 0;
 
+    /**
+     * @brief Get min power to participate in consensus
+     * @return min power
+     */
     virtual fc::primitives::BigInt storagePowerConsensusMinMinerPower() = 0;
   };
 }  // namespace fc::vm

@@ -38,6 +38,7 @@ namespace fc::crypto::randomness {
   int RandomnessProviderImpl::randomInt(const Randomness &randomness,
                                         size_t nonce,
                                         size_t limit) {
+    // TODO(artyom-yurin): Implement it
     throw std::string("Not implemented");
   }
 

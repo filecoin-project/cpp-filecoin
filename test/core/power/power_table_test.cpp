@@ -11,22 +11,27 @@
 #include "power/power_table_error.hpp"
 #include "testutil/outcome.hpp"
 
-using fc::primitives::address::Address;
-using fc::primitives::address::Network;
 using fc::power::PowerTable;
 using fc::power::PowerTableError;
 using fc::power::PowerTableImpl;
+using fc::primitives::address::Address;
+using fc::primitives::address::Network;
+
+class PowerTableTest : public ::testing::Test {
+ public:
+  PowerTableImpl power_table;
+  Address addr{Address::makeFromId(3232104785)};
+  int power{10};
+};
 
 /**
  * @given Empty power table
  * @when setting the negative power to miner
  * @then error NEGATIVE_POWER
  */
-TEST(PowerTable, SetPower_NegativePower) {
-  std::shared_ptr<PowerTable> power_table = std::make_shared<PowerTableImpl>();
-  Address addrID_0{Network::MAINNET, 3232104785};
-  EXPECT_OUTCOME_FALSE(err, power_table->setMinerPower(addrID_0, -1));
-  ASSERT_EQ(err, PowerTableError::NEGATIVE_POWER);
+TEST_F(PowerTableTest, SetPower_NegativePower) {
+  EXPECT_OUTCOME_ERROR(PowerTableError::NEGATIVE_POWER,
+                       power_table.setMinerPower(addr, -1));
 }
 
 /**
@@ -34,13 +39,9 @@ TEST(PowerTable, SetPower_NegativePower) {
  * @when setting the power to miner
  * @then power set successfully
  */
-TEST(PowerTable, SetPower_Success) {
-  std::shared_ptr<PowerTable> power_table = std::make_shared<PowerTableImpl>();
-  Address addrID_0{Network::MAINNET, 3232104785};
-  int power = 10;
-  EXPECT_OUTCOME_TRUE_1(power_table->setMinerPower(addrID_0, power));
-  EXPECT_OUTCOME_TRUE(val, power_table->getMinerPower(addrID_0));
-  ASSERT_EQ(val, power);
+TEST_F(PowerTableTest, SetPower_Success) {
+  EXPECT_OUTCOME_TRUE_1(power_table.setMinerPower(addr, power));
+  EXPECT_OUTCOME_EQ(power_table.getMinerPower(addr), power);
 }
 
 /**
@@ -48,25 +49,9 @@ TEST(PowerTable, SetPower_Success) {
  * @when getting the power of the not existing miner
  * @then error NO_SUCH_MINER
  */
-TEST(PowerTable, GetPower_NoMiner) {
-  std::shared_ptr<PowerTable> power_table = std::make_shared<PowerTableImpl>();
-  Address addrID_0{Network::MAINNET, 3232104785};
-  EXPECT_OUTCOME_FALSE(err, power_table->getMinerPower(addrID_0));
-  ASSERT_EQ(err, PowerTableError::NO_SUCH_MINER);
-}
-
-/**
- * @given table with 1 miner
- * @when getting the power of the miner
- * @then power successfully received
- */
-TEST(PowerTable, GetPower_Success) {
-  std::shared_ptr<PowerTable> power_table = std::make_shared<PowerTableImpl>();
-  Address addrID_0{Network::MAINNET, 3232104785};
-  int power = 10;
-  EXPECT_OUTCOME_TRUE_1(power_table->setMinerPower(addrID_0, power));
-  EXPECT_OUTCOME_TRUE(res, power_table->getMinerPower(addrID_0));
-  ASSERT_EQ(res, power);
+TEST_F(PowerTableTest, GetPower_NoMiner) {
+  EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
+                       power_table.getMinerPower(addr));
 }
 
 /**
@@ -74,11 +59,9 @@ TEST(PowerTable, GetPower_Success) {
  * @when remove not existing miner
  * @then error NO_SUCH_MINER
  */
-TEST(PowerTable, RemoveMiner_NoMiner) {
-  std::shared_ptr<PowerTable> power_table = std::make_shared<PowerTableImpl>();
-  Address addrID_0{Network::MAINNET, 3232104785};
-  EXPECT_OUTCOME_FALSE(err, power_table->removeMiner(addrID_0));
-  ASSERT_EQ(err, PowerTableError::NO_SUCH_MINER);
+TEST_F(PowerTableTest, RemoveMiner_NoMiner) {
+  EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
+                       power_table.removeMiner(addr));
 }
 
 /**
@@ -86,14 +69,10 @@ TEST(PowerTable, RemoveMiner_NoMiner) {
  * @when remove miner
  * @then miner successfully removed
  */
-TEST(PowerTable, RemoveMiner_Success) {
-  std::shared_ptr<PowerTable> power_table = std::make_shared<PowerTableImpl>();
-  Address addrID_0{Network::MAINNET, 3232104785};
-  int power = 10;
-  EXPECT_OUTCOME_TRUE_1(power_table->setMinerPower(addrID_0, power));
-  EXPECT_OUTCOME_TRUE(res, power_table->getMinerPower(addrID_0));
-  ASSERT_EQ(res, power);
-  EXPECT_OUTCOME_TRUE_1(power_table->removeMiner(addrID_0));
-  EXPECT_OUTCOME_FALSE(err, power_table->getMinerPower(addrID_0));
-  ASSERT_EQ(err, PowerTableError::NO_SUCH_MINER);
+TEST_F(PowerTableTest, RemoveMiner_Success) {
+  EXPECT_OUTCOME_TRUE_1(power_table.setMinerPower(addr, power));
+  EXPECT_OUTCOME_EQ(power_table.getMinerPower(addr), power);
+  EXPECT_OUTCOME_TRUE_1(power_table.removeMiner(addr));
+  EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
+                       power_table.getMinerPower(addr));
 }

@@ -25,19 +25,18 @@ using testing::_;
  * @when try to add unique miner
  * @then miner successfully added
  */
-TEST(StoragePowerActor, AddMinerSuccess) {
+TEST(StoragePowerActor, AddMiner_Success) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
 
   StoragePowerActor actor(indices, randomness_provider);
 
-  Address addrID_0{Network::MAINNET, 3232104785};
-  EXPECT_OUTCOME_FALSE(err, actor.getPowerTotalForMiner(addrID_0));
-  ASSERT_EQ(err, PowerTableError::NO_SUCH_MINER);
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_0));
-  EXPECT_OUTCOME_TRUE(res, actor.getPowerTotalForMiner(addrID_0));
-  ASSERT_EQ(res, 0);
+  Address addr{Network::MAINNET, 3232104785};
+  EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
+                       actor.getPowerTotalForMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr));
+  EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addr), 0);
 }
 
 /**
@@ -45,19 +44,18 @@ TEST(StoragePowerActor, AddMinerSuccess) {
  * @when try to add same miner again
  * @then error ALREADY_EXIST
  */
-TEST(StoragePowerActor, AddMinerTwice) {
+TEST(StoragePowerActor, AddMiner_Twice) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
 
   StoragePowerActor actor(indices, randomness_provider);
 
-  Address addrID_0{Network::MAINNET, 3232104785};
-  EXPECT_OUTCOME_FALSE(err, actor.getPowerTotalForMiner(addrID_0));
-  ASSERT_EQ(err, PowerTableError::NO_SUCH_MINER);
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_0));
-  EXPECT_OUTCOME_FALSE(err1, actor.addMiner(addrID_0));
-  ASSERT_EQ(err1, StoragePowerActor::ALREADY_EXIST);
+  Address addr{Network::MAINNET, 3232104785};
+  EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
+                       actor.getPowerTotalForMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr));
+  EXPECT_OUTCOME_ERROR(StoragePowerActor::ALREADY_EXIST, actor.addMiner(addr));
 }
 
 /**
@@ -65,22 +63,21 @@ TEST(StoragePowerActor, AddMinerTwice) {
  * @when try to remove the miner
  * @then miner successfully removed
  */
-TEST(StoragePowerActor, RemoveMinerSuccess) {
+TEST(StoragePowerActor, RemoveMiner_Success) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
 
   StoragePowerActor actor(indices, randomness_provider);
 
-  Address addrID_0{Network::MAINNET, 3232104785};
-  EXPECT_OUTCOME_FALSE(err, actor.getPowerTotalForMiner(addrID_0));
-  ASSERT_EQ(err, PowerTableError::NO_SUCH_MINER);
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_0));
-  EXPECT_OUTCOME_TRUE(res, actor.getPowerTotalForMiner(addrID_0));
-  ASSERT_EQ(res, 0);
-  EXPECT_OUTCOME_TRUE_1(actor.removeMiner(addrID_0));
-  EXPECT_OUTCOME_FALSE(err1, actor.getPowerTotalForMiner(addrID_0));
-  ASSERT_EQ(err1, PowerTableError::NO_SUCH_MINER);
+  Address addr{Network::MAINNET, 3232104785};
+  EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
+                       actor.getPowerTotalForMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr));
+  EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addr), 0);
+  EXPECT_OUTCOME_TRUE_1(actor.removeMiner(addr));
+  EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
+                       actor.getPowerTotalForMiner(addr));
 }
 
 /**
@@ -88,16 +85,15 @@ TEST(StoragePowerActor, RemoveMinerSuccess) {
  * @when try to remove no existen miner
  * @then error NO_SUCH_MINER
  */
-TEST(StoragePowerActor, RemoveMinerNoMiner) {
+TEST(StoragePowerActor, RemoveMiner_NoMiner) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
 
   StoragePowerActor actor(indices, randomness_provider);
 
-  Address addrID_0{Network::MAINNET, 3232104785};
-  EXPECT_OUTCOME_FALSE(err, actor.removeMiner(addrID_0));
-  ASSERT_EQ(err, PowerTableError::NO_SUCH_MINER);
+  Address addr{Network::MAINNET, 3232104785};
+  EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER, actor.removeMiner(addr));
 }
 
 /**
@@ -105,7 +101,7 @@ TEST(StoragePowerActor, RemoveMinerNoMiner) {
  * @when try to add sector power to miner
  * @then power successfully added
  */
-TEST(StoragePowerActor, addClaimedPowerForSectorSuccess) {
+TEST(StoragePowerActor, addClaimedPowerForSector_Success) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
@@ -122,15 +118,15 @@ TEST(StoragePowerActor, addClaimedPowerForSectorSuccess) {
 
   StoragePowerActor actor(indices, randomness_provider);
 
-  Address addrID_0{Network::MAINNET, 3232104785};
+  Address addr{Network::MAINNET, 3232104785};
 
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_0));
-  EXPECT_OUTCOME_TRUE_1(actor.addClaimedPowerForSector(addrID_0, swd));
-  EXPECT_OUTCOME_EQ(actor.getClaimedPowerForMiner(addrID_0),
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor.addClaimedPowerForSector(addr, swd));
+  EXPECT_OUTCOME_EQ(actor.getClaimedPowerForMiner(addr),
                     min_candidate_storage_value);
-  EXPECT_OUTCOME_EQ(actor.getNominalPowerForMiner(addrID_0),
+  EXPECT_OUTCOME_EQ(actor.getNominalPowerForMiner(addr),
                     min_candidate_storage_value);
-  EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addrID_0),
+  EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addr),
                     min_candidate_storage_value);
 }
 
@@ -140,7 +136,7 @@ TEST(StoragePowerActor, addClaimedPowerForSectorSuccess) {
  * @then power successfully added, but total power is 0
  */
 TEST(StoragePowerActor,
-     addClaimedPowerForSectorSuccessButLessThatMinCandidateStorage) {
+     addClaimedPowerForSectorSuccess_ButLessThatMinCandidateStorage) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
@@ -154,13 +150,13 @@ TEST(StoragePowerActor,
 
   StoragePowerActor actor(indices, randomness_provider);
 
-  Address addrID_0{Network::MAINNET, 3232104785};
+  Address addr{Network::MAINNET, 3232104785};
 
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_0));
-  EXPECT_OUTCOME_TRUE_1(actor.addClaimedPowerForSector(addrID_0, swd));
-  EXPECT_OUTCOME_EQ(actor.getClaimedPowerForMiner(addrID_0), 1);
-  EXPECT_OUTCOME_EQ(actor.getNominalPowerForMiner(addrID_0), 1);
-  EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addrID_0), 0);
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor.addClaimedPowerForSector(addr, swd));
+  EXPECT_OUTCOME_EQ(actor.getClaimedPowerForMiner(addr), 1);
+  EXPECT_OUTCOME_EQ(actor.getNominalPowerForMiner(addr), 1);
+  EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addr), 0);
 }
 
 /**
@@ -168,7 +164,7 @@ TEST(StoragePowerActor,
  * @when try to add sector power to miner, but miner fail proof of space time
  * @then power successfully added, but nominal and total power is 0
  */
-TEST(StoragePowerActor, addClaimedPowerForSectorFailPoSt) {
+TEST(StoragePowerActor, addClaimedPowerForSector_FailPoSt) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
@@ -182,14 +178,14 @@ TEST(StoragePowerActor, addClaimedPowerForSectorFailPoSt) {
 
   StoragePowerActor actor(indices, randomness_provider);
 
-  Address addrID_0{Network::MAINNET, 3232104785};
+  Address addr{Network::MAINNET, 3232104785};
 
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_0));
-  EXPECT_OUTCOME_TRUE_1(actor.addFaultMiner(addrID_0));
-  EXPECT_OUTCOME_TRUE_1(actor.addClaimedPowerForSector(addrID_0, swd));
-  EXPECT_OUTCOME_EQ(actor.getClaimedPowerForMiner(addrID_0), 1);
-  EXPECT_OUTCOME_EQ(actor.getNominalPowerForMiner(addrID_0), 0);
-  EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addrID_0), 0);
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor.addFaultMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor.addClaimedPowerForSector(addr, swd));
+  EXPECT_OUTCOME_EQ(actor.getClaimedPowerForMiner(addr), 1);
+  EXPECT_OUTCOME_EQ(actor.getNominalPowerForMiner(addr), 0);
+  EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addr), 0);
 }
 
 /**
@@ -197,7 +193,7 @@ TEST(StoragePowerActor, addClaimedPowerForSectorFailPoSt) {
  * @when try to deduct sector power from miner
  * @then power successfully deducted
  */
-TEST(StoragePowerActor, deductClaimedPowerForSectorAssertSuccess) {
+TEST(StoragePowerActor, deductClaimedPowerForSectorAssert_Success) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
@@ -211,14 +207,14 @@ TEST(StoragePowerActor, deductClaimedPowerForSectorAssertSuccess) {
 
   StoragePowerActor actor(indices, randomness_provider);
 
-  Address addrID_0{Network::MAINNET, 3232104785};
+  Address addr{Network::MAINNET, 3232104785};
 
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_0));
-  EXPECT_OUTCOME_TRUE_1(actor.addClaimedPowerForSector(addrID_0, swd));
-  EXPECT_OUTCOME_TRUE_1(actor.deductClaimedPowerForSectorAssert(addrID_0, swd));
-  EXPECT_OUTCOME_EQ(actor.getClaimedPowerForMiner(addrID_0), 0);
-  EXPECT_OUTCOME_EQ(actor.getNominalPowerForMiner(addrID_0), 0);
-  EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addrID_0), 0);
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor.addClaimedPowerForSector(addr, swd));
+  EXPECT_OUTCOME_TRUE_1(actor.deductClaimedPowerForSectorAssert(addr, swd));
+  EXPECT_OUTCOME_EQ(actor.getClaimedPowerForMiner(addr), 0);
+  EXPECT_OUTCOME_EQ(actor.getNominalPowerForMiner(addr), 0);
+  EXPECT_OUTCOME_EQ(actor.getPowerTotalForMiner(addr), 0);
 }
 
 /**
@@ -226,7 +222,7 @@ TEST(StoragePowerActor, deductClaimedPowerForSectorAssertSuccess) {
  * @when try to choose 2 miners
  * @then 2 miners successfully chosen
  */
-TEST(StoragePowerActor, selectMinersToSurpriseSuccess) {
+TEST(StoragePowerActor, selectMinersToSurprise_Success) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
@@ -239,23 +235,25 @@ TEST(StoragePowerActor, selectMinersToSurpriseSuccess) {
 
   Randomness randomness;
   EXPECT_CALL(*randomness_provider, randomInt(randomness, _, _))
+      .WillOnce(testing::Return(0))
+      .WillOnce(testing::Return(2))
       .WillRepeatedly(testing::Return(1));
 
   StoragePowerActor actor(indices, randomness_provider);
 
-  Address addrID_0{Network::MAINNET, 3232104785};
-  Address addrID_1{Network::MAINNET, 323210478};
-  Address addrID_2{Network::MAINNET, 32321047};
+  Address addr{Network::MAINNET, 3232104785};
+  Address addr_1{Network::MAINNET, 323210478};
+  Address addr_2{Network::MAINNET, 32321047};
 
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_0));
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_1));
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_2));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr_1));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr_2));
 
   EXPECT_OUTCOME_TRUE(miners, actor.getMiners());
 
   EXPECT_OUTCOME_TRUE(sup_miners, actor.selectMinersToSurprise(2, randomness));
 
-  ASSERT_THAT(sup_miners, testing::ElementsAre(miners[1], miners[2]));
+  ASSERT_THAT(sup_miners, testing::ElementsAre(miners[0], miners[2]));
 }
 
 /**
@@ -263,7 +261,7 @@ TEST(StoragePowerActor, selectMinersToSurpriseSuccess) {
  * @when try to choose 3 miners
  * @then all miners return
  */
-TEST(StoragePowerActor, selectMinersToSurpriseAll) {
+TEST(StoragePowerActor, selectMinersToSurprise_All) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
@@ -280,13 +278,13 @@ TEST(StoragePowerActor, selectMinersToSurpriseAll) {
 
   StoragePowerActor actor(indices, randomness_provider);
 
-  Address addrID_0{Network::MAINNET, 3232104785};
-  Address addrID_1{Network::MAINNET, 323210478};
-  Address addrID_2{Network::MAINNET, 32321047};
+  Address addr{Network::MAINNET, 3232104785};
+  Address addr_1{Network::MAINNET, 323210478};
+  Address addr_2{Network::MAINNET, 32321047};
 
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_0));
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_1));
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_2));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr_1));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr_2));
 
   EXPECT_OUTCOME_TRUE(miners, actor.getMiners());
 
@@ -301,7 +299,7 @@ TEST(StoragePowerActor, selectMinersToSurpriseAll) {
  * @when try to choose more that 3 miners
  * @then OUT_OF_BOUND error
  */
-TEST(StoragePowerActor, selectMinersToSurpriseMoreThatHave) {
+TEST(StoragePowerActor, selectMinersToSurprise_MoreThatHave) {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
@@ -318,18 +316,17 @@ TEST(StoragePowerActor, selectMinersToSurpriseMoreThatHave) {
 
   StoragePowerActor actor(indices, randomness_provider);
 
-  Address addrID_0{Network::MAINNET, 3232104785};
-  Address addrID_1{Network::MAINNET, 323210478};
-  Address addrID_2{Network::MAINNET, 32321047};
+  Address addr{Network::MAINNET, 3232104785};
+  Address addr_1{Network::MAINNET, 323210478};
+  Address addr_2{Network::MAINNET, 32321047};
 
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_0));
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_1));
-  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addrID_2));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr_1));
+  EXPECT_OUTCOME_TRUE_1(actor.addMiner(addr_2));
 
   EXPECT_OUTCOME_TRUE(miners, actor.getMiners());
 
-  EXPECT_OUTCOME_FALSE(
-      err, actor.selectMinersToSurprise(miners.size() + 1, randomness));
-
-  ASSERT_EQ(err, StoragePowerActor::OUT_OF_BOUND);
+  EXPECT_OUTCOME_ERROR(
+      StoragePowerActor::OUT_OF_BOUND,
+      actor.selectMinersToSurprise(miners.size() + 1, randomness));
 }

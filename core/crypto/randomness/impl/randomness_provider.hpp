@@ -21,7 +21,6 @@ namespace fc::crypto::randomness {
                                 Serialization s,
                                 ChainEpoch index) override;
 
-    // TODO(artyom-yurin): Implement it
     int randomInt(const Randomness &randomness,
                   size_t nonce,
                   size_t limit) override;
