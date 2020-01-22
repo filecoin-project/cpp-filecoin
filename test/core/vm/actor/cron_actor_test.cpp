@@ -22,12 +22,12 @@ using fc::vm::runtime::MockRuntime;
  * @then error WRONG_CALL
  */
 TEST(CronActorTest, WrongSender) {
-  //  UnsignedMessage message_wrong_sender{actor::kInitAddress};
+  auto message_wrong_sender = std::make_shared<UnsignedMessage>(
+      UnsignedMessage{actor::kInitAddress, actor::kInitAddress});
   auto runtime = std::make_shared<fc::vm::runtime::MockRuntime>();
   actor::Actor actor;
   EXPECT_CALL(*runtime, getMessage())
-      .WillRepeatedly(
-          testing::Return(std::shared_ptr<fc::vm::message::UnsignedMessage>()));
+      .WillRepeatedly(testing::Return(message_wrong_sender));
   EXPECT_OUTCOME_FALSE(err, actor::CronActor::epochTick(actor, runtime, {}));
   ASSERT_EQ(err, actor::CronActor::WRONG_CALL);
 }
@@ -38,12 +38,11 @@ TEST(CronActorTest, WrongSender) {
  * @then success
  */
 TEST(CronActorTest, Correct) {
-  //  UnsignedMessage message{actor::kCronAddress};
+  auto message = std::make_shared<UnsignedMessage>(
+      UnsignedMessage{actor::kInitAddress, actor::kCronAddress});
   auto runtime = std::make_shared<fc::vm::runtime::MockRuntime>();
   actor::Actor actor;
-  EXPECT_CALL(*runtime, getMessage())
-      .WillRepeatedly(
-          testing::Return(std::shared_ptr<fc::vm::message::UnsignedMessage>()));
+  EXPECT_CALL(*runtime, getMessage()).WillRepeatedly(testing::Return(message));
   EXPECT_CALL(*runtime,
               send(actor::kStoragePowerAddress,
                    MethodNumber{actor::SpaMethods::CHECK_PROOF_SUBMISSIONS},

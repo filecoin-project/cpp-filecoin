@@ -6,6 +6,7 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 
 #include "codec/cbor/cbor.hpp"
+#include "vm/actor/account_actor.hpp"
 #include "vm/message/message_codec.hpp"
 #include "vm/runtime/gas_cost.hpp"
 #include "vm/runtime/impl/actor_state_handle_impl.hpp"
@@ -86,13 +87,16 @@ std::shared_ptr<ActorStateHandle> RuntimeImpl::acquireState() const {
 
 fc::outcome::result<BigInt> RuntimeImpl::getBalance(
     const Address &address) const {
-  // TODO(a.chernyshov) add state_tree->has()
   auto actor_state = state_tree_->get(address);
   if (!actor_state) {
     if (actor_state.error() == HamtError::NOT_FOUND) return BigInt(0);
     return actor_state.error();
   }
   return actor_state.value().balance;
+}
+
+BigInt RuntimeImpl::getValueReceived() const {
+  return message_->value;
 }
 
 std::shared_ptr<Indices> RuntimeImpl::getCurrentIndices() const {
@@ -110,39 +114,54 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
     MethodNumber method_number,
     MethodParams params,
     BigInt value) {
+  OUTCOME_TRY(state_tree_->flush());
+
   // sender is a current 'to' in message
   OUTCOME_TRY(from_actor, state_tree_->get(message_->to));
   OUTCOME_TRY(to_actor, getOrCreateActor(to_address));
 
-  // TODO (a.chernyshov) charge gas for transfer
-  // TODO (a.chernyshov) transfer
+  // transfer
   if (value != 0) {
+    OUTCOME_TRY(chargeGas(kSendTransferFundsGasCost));
+    OUTCOME_TRY(transfer(from_actor, to_actor, value));
   }
 
-  // TODO (a.chernyshov) invoke - create runtime context
-  auto message = std::make_shared<UnsignedMessage>(
-      UnsignedMessage{message_->to,
-                      to_address,
-                      from_actor.nonce,
-                      value,
-                      gas_price_,
-                      gas_available_,
-                      method_number.method_number,
-                      params});
+  auto message =
+      std::make_shared<UnsignedMessage>(UnsignedMessage{message_->to,
+                                                        to_address,
+                                                        from_actor.nonce,
+                                                        value,
+                                                        gas_price_,
+                                                        gas_available_,
+                                                        method_number,
+                                                        params});
   OUTCOME_TRY(serialized_message, fc::codec::cbor::encode(*message));
-  BigInt messageGasCost =
-      kOnChainMessageBaseGasCost
-      + serialized_message.size() * kOnChainMessagePerByteGasCharge;
+  OUTCOME_TRY(
+      chargeGas(kOnChainMessageBaseGasCost
+                + serialized_message.size() * kOnChainMessagePerByteGasCharge));
 
   BigInt gas_cost = gas_price_ * gas_available_;
   BigInt total_cost = gas_cost + value;
   if (from_actor.balance < total_cost) return RuntimeError::NOT_ENOUGH_FUNDS;
 
-  OUTCOME_TRY(state_tree_->flush());
-
   auto runtime = createRuntime(message);
 
-  return InvocationOutput();
+  auto res = invoker_->invoke(to_actor, runtime, method_number, params);
+  if (!res) {
+    OUTCOME_TRY(state_tree_->revert());
+  } else {
+    // transfer to miner
+    OUTCOME_TRY(miner_actor, state_tree_->get(block_miner_));
+    OUTCOME_TRY(transfer(from_actor, miner_actor, gas_used_ * gas_cost));
+
+    OUTCOME_TRY(state_tree_->set(message_->to, from_actor));
+    OUTCOME_TRY(state_tree_->set(to_address, to_actor));
+    OUTCOME_TRY(state_tree_->set(block_miner_, miner_actor));
+
+    OUTCOME_TRY(state_tree_->flush());
+  }
+
+  return res;
 }
 
 fc::outcome::result<void> RuntimeImpl::createActor(CodeId code_id,
@@ -166,7 +185,7 @@ fc::outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {
   if ((address == immediate_caller_)
       || (actor_caller.code == actor::kStoragePowerCodeCid
           && actor_to_delete.code == actor::kStorageMinerCodeCid)) {
-    // TODO(a.chernyshov) implement state_tree remove
+    // TODO(a.chernyshov) FIL-137 implement state_tree remove if needed
     // return state_tree_->remove(address);
     return fc::outcome::failure(RuntimeError::UNKNOWN);
   }
@@ -182,6 +201,21 @@ std::shared_ptr<UnsignedMessage> RuntimeImpl::getMessage() {
   return message_;
 }
 
+fc::outcome::result<void> RuntimeImpl::transfer(Actor &from,
+                                                Actor &to,
+                                                const BigInt &amount) {
+  if (from.balance < amount) return RuntimeError::NOT_ENOUGH_FUNDS;
+  from.balance = from.balance - amount;
+  to.balance = to.balance + amount;
+  return outcome::success();
+}
+
+fc::outcome::result<void> RuntimeImpl::chargeGas(const BigInt &amount) {
+  gas_used_ = gas_used_ + amount;
+  if (gas_available_ < gas_used_) return RuntimeError::NOT_ENOUGH_GAS;
+  return outcome::success();
+}
+
 fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
     const Address &address) {
   auto actor = state_tree_->get(address);
@@ -189,45 +223,21 @@ fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
     if (actor.error() != HamtError::NOT_FOUND) {
       return actor.error();
     }
-    switch (address.getProtocol()) {
-      case primitives::address::ID: {
-        return RuntimeError::ACTOR_NOT_FOUND;
-      }
-      case primitives::address::SECP256K1: {
-        return Actor{actor::kAccountCodeCid,
-                     ActorSubstateCID(actor::kEmptyObjectCid),
-                     0,
-                     BigInt{0}};
-      }
-      case primitives::address::ACTOR: {
-        return RuntimeError::ACTOR_NOT_FOUND;
-      }
-      case primitives::address::BLS: {
-        // TODO (a.chernyshov) cbor Address
-        // OUTCOME_TRY(cid, datastore_->setCbor(address));
-        CID cid;
-        return Actor{
-            actor::kAccountCodeCid, ActorSubstateCID(cid), 0, BigInt{0}};
-      }
-      default:
-        return fc::primitives::address::AddressError::UNKNOWN_PROTOCOL;
-    }
+    return fc::vm::actor::AccountActor::create(state_tree_, address);
   }
   return actor;
 }
 
 std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
     const std::shared_ptr<UnsignedMessage> &message) const {
-  //  UnsignedMessage m = *message;
-  //  return std::make_shared<RuntimeImpl>(0);
   return std::make_shared<RuntimeImpl>(randomness_provider_,
                                        datastore_,
                                        state_tree_,
                                        indices_,
                                        invoker_,
-                                       std::move(message),
+                                       message,
                                        chain_epoch_,
                                        immediate_caller_,
                                        block_miner_,
-                                       BigInt(0));
+                                       gas_used_);
 }

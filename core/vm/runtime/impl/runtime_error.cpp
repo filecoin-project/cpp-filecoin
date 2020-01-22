@@ -17,6 +17,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::runtime, RuntimeError, e) {
       return "RuntimeError: delete actor operation is not permitted";
     case RuntimeError::ACTOR_NOT_FOUND:
       return "RuntimeError: receiver actor not found";
+    case RuntimeError::NOT_ENOUGH_FUNDS:
+      return "RuntimeError: not enough funds";
+    case RuntimeError::NOT_ENOUGH_GAS:
+      return "RuntimeError: not enough gas";
     case RuntimeError::UNKNOWN:
       break;
   }

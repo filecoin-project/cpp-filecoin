@@ -19,6 +19,7 @@ namespace fc::vm::runtime {
     DELETE_ACTOR_OPERATION_NOT_PERMITTED,
     ACTOR_NOT_FOUND,
     NOT_ENOUGH_FUNDS,
+    NOT_ENOUGH_GAS,
     UNKNOWN = 1000
   };
 

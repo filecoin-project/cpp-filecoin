@@ -12,26 +12,31 @@
 #include "vm/actor/cron_actor.hpp"
 
 using fc::vm::VMExitCode;
+using fc::vm::message::UnsignedMessage;
+using fc::vm::runtime::MockRuntime;
 
 /// invoker returns error or invokes actor method
 TEST(InvokerTest, InvokeCron) {
   using namespace fc::vm::actor;
 
+  auto message = std::make_shared<UnsignedMessage>(
+      UnsignedMessage{kInitAddress, kInitAddress});
   Invoker invoker;
-  auto runtime = std::make_shared<fc::vm::runtime::MockRuntime>();
+  auto runtime = std::make_shared<MockRuntime>();
 
-  EXPECT_OUTCOME_ERROR(Invoker::CANT_INVOKE_ACCOUNT_ACTOR,
-                       invoker.invoke({kAccountCodeCid}, runtime, 0, {}));
+  EXPECT_OUTCOME_ERROR(
+      Invoker::CANT_INVOKE_ACCOUNT_ACTOR,
+      invoker.invoke({kAccountCodeCid}, runtime, MethodNumber{0}, {}));
   EXPECT_OUTCOME_ERROR(
       Invoker::NO_CODE_OR_METHOD,
-      invoker.invoke({CodeId{kEmptyObjectCid}}, runtime, 0, {}));
-  EXPECT_OUTCOME_ERROR(Invoker::NO_CODE_OR_METHOD,
-                       invoker.invoke({kCronCodeCid}, runtime, 1000, {}));
-  EXPECT_CALL(*runtime, getMessage())
-      .WillRepeatedly(
-          testing::Return(std::shared_ptr<fc::vm::message::UnsignedMessage>()));
-  EXPECT_OUTCOME_ERROR(CronActor::WRONG_CALL,
-                       invoker.invoke({kCronCodeCid}, runtime, 2, {}));
+      invoker.invoke({CodeId{kEmptyObjectCid}}, runtime, MethodNumber{0}, {}));
+  EXPECT_OUTCOME_ERROR(
+      Invoker::NO_CODE_OR_METHOD,
+      invoker.invoke({kCronCodeCid}, runtime, MethodNumber{1000}, {}));
+  EXPECT_CALL(*runtime, getMessage()).WillRepeatedly(testing::Return(message));
+  EXPECT_OUTCOME_ERROR(
+      CronActor::WRONG_CALL,
+      invoker.invoke({kCronCodeCid}, runtime, MethodNumber{2}, {}));
 }
 
 /// decodeActorParams returns error or decoded params

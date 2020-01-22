@@ -9,6 +9,9 @@
 #include "vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor {
+
+  using runtime::InvocationOutput;
+
   /// Finds and loads actor code, invokes actor methods
   class Invoker {
    public:
@@ -16,10 +19,11 @@ namespace fc::vm::actor {
     static constexpr VMExitCode NO_CODE_OR_METHOD{255};
 
     Invoker();
-    outcome::result<Buffer> invoke(const Actor &actor,
-                                   std::shared_ptr<Runtime> runtime,
-                                   uint64_t method,
-                                   gsl::span<const uint8_t> params);
+    outcome::result<InvocationOutput> invoke(
+        const Actor &actor,
+        const std::shared_ptr<Runtime> &runtime,
+        MethodNumber method,
+        const MethodParams &params);
 
    private:
     std::map<CID, ActorExports> builtin_;

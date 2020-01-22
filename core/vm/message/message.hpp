@@ -38,15 +38,15 @@ namespace fc::vm::message {
     Address to;
     Address from;
 
-    uint64_t nonce;
+    uint64_t nonce{};
 
-    BigInt value;
+    BigInt value{};
 
-    BigInt gasPrice;
-    BigInt gasLimit;
+    BigInt gasPrice{};
+    BigInt gasLimit{};
 
-    MethodNumber method;
-    MethodParams params;
+    MethodNumber method{};
+    MethodParams params{};
 
     /**
      * @brief Message equality operator

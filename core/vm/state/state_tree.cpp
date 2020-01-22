@@ -13,7 +13,6 @@ namespace fc::vm::state {
   using actor::ActorSubstateCID;
   using codec::cbor::decode;
   using primitives::address::encodeToString;
-  using actor::ActorSubstateCID;
 
   StateTree::StateTree(const std::shared_ptr<IpfsDatastore> &store)
       : store_(store), hamt_(store), snapshot_(store) {}

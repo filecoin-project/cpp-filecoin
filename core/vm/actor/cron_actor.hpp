@@ -11,11 +11,12 @@
 
 namespace fc::vm::actor {
 
+  using runtime::InvocationOutput;
   using runtime::Runtime;
 
   struct CronTableEntry {
     Address to_addr;
-    uint64_t method_num{};
+    MethodNumber method_num{};
   };
 
   struct CronActor {
@@ -34,9 +35,10 @@ namespace fc::vm::actor {
      * @param params from Lotus(doesn't use)
      * @return success or error
      */
-    static outcome::result<Buffer> epochTick(const Actor &actor,
-                                             const std::shared_ptr<Runtime> &runtime,
-                                             gsl::span<const uint8_t> params);
+    static outcome::result<InvocationOutput> epochTick(
+        const Actor &actor,
+        const std::shared_ptr<Runtime> &runtime,
+        const MethodParams &params);
 
     static ActorExports exports;
   };

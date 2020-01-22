@@ -32,6 +32,10 @@ namespace fc::vm::actor {
     inline bool operator==(const MethodNumber &other) const {
       return method_number == other.method_number;
     }
+
+    inline bool operator<(const MethodNumber &other) const {
+      return method_number < other.method_number;
+    }
   };
 
   template <class Stream,

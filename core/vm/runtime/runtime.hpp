@@ -74,40 +74,10 @@ namespace fc::vm::runtime {
 
     virtual std::shared_ptr<ActorStateHandle> acquireState() const = 0;
 
-//    virtual InvocationOutput returnSuccess() = 0;
-//    virtual InvocationOutput returnValue(Buffer bytes) = 0;
-
-//    /**
-//     * Throw an error indicating a failure condition has occurred, from which
-//     * the given actor code is unable to recover.
-//     */
-//    virtual void abort(const ExitCode &errExitCode, const std::string &msg) = 0;
-//
-//    /** Calls Abort with kInvalidArgumentsUser. */
-//    virtual void abortArg(const std::string &message) = 0;
-//    virtual void abortArg() = 0;
-//
-//    /** Calls Abort with kInconsistentStateUser. */
-//    virtual void abortState(const std::string &message) = 0;
-//    virtual void abortState() = 0;
-//
-//    /** Calls Abort with InsufficientFunds_User. */
-//    virtual void abortFunds(const std::string &message) = 0;
-//    virtual void abortFunds() = 0;
-
-    /**
-     * Calls Abort with kRuntimeAPIError. For internal use only (not in actor
-     * code).
-     */
-//    virtual void abortAPI(const std::string &message) = 0;
-
-    /** Check that the given condition is true (and call Abort if not). */
-    // TODO(a.chernyshov) assert
-    //    virtual void assert(bool condition) = 0;
-
     virtual outcome::result<BigInt> getBalance(
         const Address &address) const = 0;
-//    virtual BigInt getValueReceived() const = 0;
+
+    virtual BigInt getValueReceived() const = 0;
 
     /** Look up the current values of several system-wide economic indices. */
     virtual std::shared_ptr<Indices> getCurrentIndices() const = 0;
@@ -115,17 +85,6 @@ namespace fc::vm::runtime {
     /** Look up the code ID of a given actor address. */
     virtual outcome::result<CodeId> getActorCodeID(
         const Address &address) const = 0;
-
-    /**
-     * Run a (pure function) computation, consuming the gas cost associated with
-     * that function. This mechanism is intended to capture the notion of an ABI
-     * between the VM and native functions, and should be used for any function
-     * whose computation is expensive
-     * @param function
-     * @return
-     */
-    // TODO(a.chernyshov) util.Any type
-    // Compute(ComputeFunctionID, args [util.Any]) util.Any
 
     /**
      * Send allows the current execution context to invoke methods on other

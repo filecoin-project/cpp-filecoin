@@ -8,14 +8,18 @@
 #include "vm/actor/cron_actor.hpp"
 
 namespace fc::vm::actor {
+
+  using runtime::InvocationOutput;
+
   Invoker::Invoker() {
     builtin_[actor::kCronCodeCid] = actor::CronActor::exports;
   }
 
-  outcome::result<Buffer> Invoker::invoke(const Actor &actor,
-                                          std::shared_ptr<Runtime> runtime,
-                                          uint64_t method,
-                                          gsl::span<const uint8_t> params) {
+  outcome::result<InvocationOutput> Invoker::invoke(
+      const Actor &actor,
+      const std::shared_ptr<Runtime> &runtime,
+      MethodNumber method,
+      const MethodParams &params) {
     if (actor.code == actor::kAccountCodeCid) {
       return CANT_INVOKE_ACCOUNT_ACTOR;
     }
@@ -28,6 +32,6 @@ namespace fc::vm::actor {
     if (maybe_builtin_method == builtin_actor.end()) {
       return NO_CODE_OR_METHOD;
     }
-    return maybe_builtin_method->second(actor, std::move(runtime), params);
+    return maybe_builtin_method->second(actor, runtime, params);
   }
 }  // namespace fc::vm::actor

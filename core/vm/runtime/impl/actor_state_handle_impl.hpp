@@ -13,7 +13,7 @@ namespace fc::vm::runtime {
   /**
    * @brief Actor state lock implementation
    */
-  // TODO(a.chernyshov) implement
+  // TODO(a.chernyshov) FIL-139 implement
   class ActorStateHandleImpl : public ActorStateHandle {
    public:
     ~ActorStateHandleImpl() override = default;

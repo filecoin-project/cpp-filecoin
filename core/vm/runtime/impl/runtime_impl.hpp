@@ -62,45 +62,11 @@ namespace fc::vm::runtime {
     /** \copydoc Runtime::acquireState() */
     std::shared_ptr<ActorStateHandle> acquireState() const override;
 
-    //    // TODO(a.chernyshov) implement
-    //    /** \copydoc Runtime::returnSuccess() */
-    //    InvocationOutput returnSuccess() override;
-
-    //    // TODO(a.chernyshov) implement
-    //    /** \copydoc Runtime::returnValue() */
-    //    InvocationOutput returnValue(Buffer bytes) override;
-    //
-    //    // TODO(a.chernyshov) implement
-    //    /** \copydoc Runtime::abort() */
-    //    void abort(const ExitCode &errExitCode, const std::string &msg)
-    //    override;
-    //
-    //    // TODO(a.chernyshov) implement
-    //    void abortArg(const std::string &message) override;
-    //    // TODO(a.chernyshov) implement
-    //    void abortArg() override;
-    //
-    //    // TODO(a.chernyshov) implement
-    //    void abortState(const std::string &message) override;
-    //    // TODO(a.chernyshov) implement
-    //    void abortState() override;
-    //
-    //    // TODO(a.chernyshov) implement
-    //    void abortFunds(const std::string &message) override;
-    //    // TODO(a.chernyshov) implement
-    //    void abortFunds() override;
-    //
-    //    // TODO(a.chernyshov) implement
-    //    void abortAPI(const std::string &message) override;
-    //
-    //    // TODO(a.chernyshov) implement
-    //    // TODO(a.chernyshov) assert
-    //    // void assert(bool condition) override;
-
+    /** \copydoc Runtime::getBalance() */
     outcome::result<BigInt> getBalance(const Address &address) const override;
 
-    //    // TODO(a.chernyshov) implement
-    //    BigInt getValueReceived() const override;
+    /** \copydoc Runtime::getValueReceived() */
+    BigInt getValueReceived() const override;
 
     /** \copydoc Runtime::getCurrentIndices() */
     std::shared_ptr<Indices> getCurrentIndices() const override;
@@ -108,10 +74,6 @@ namespace fc::vm::runtime {
     /** \copydoc Runtime::getActorCodeID() */
     outcome::result<CodeId> getActorCodeID(
         const Address &address) const override;
-
-    //    // TODO(a.chernyshov) implement
-    //    // TODO(a.chernyshov) util.Any type
-    //    // Compute(ComputeFunctionID, args [util.Any]) util.Any
 
     /** \copydoc Runtime::send() */
     fc::outcome::result<InvocationOutput> send(Address to_address,
@@ -133,6 +95,10 @@ namespace fc::vm::runtime {
     std::shared_ptr<UnsignedMessage> getMessage() override;
 
    private:
+    outcome::result<void> transfer(Actor &from,
+                                   Actor &to,
+                                   const BigInt &amount);
+    outcome::result<void> chargeGas(const BigInt &amount);
     outcome::result<Actor> getOrCreateActor(const Address &address);
     std::shared_ptr<Runtime> createRuntime(
         const std::shared_ptr<UnsignedMessage> &message) const;
