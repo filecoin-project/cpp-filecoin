@@ -9,7 +9,6 @@
 #include "codec/cbor/cbor.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address_codec.hpp"
-#include "vm/actor/actor_method.hpp"
 #include "vm/message/message.hpp"
 
 namespace fc::vm::message {
