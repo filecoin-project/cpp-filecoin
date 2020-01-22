@@ -45,6 +45,7 @@ using fc::vm::message::cid;
 using fc::vm::message::MessageError;
 using fc::vm::message::MessageSigner;
 using fc::vm::message::MessageSignerImpl;
+using fc::vm::message::MethodParams;
 using fc::vm::message::SignedMessage;
 using fc::vm::message::UnsignedMessage;
 
@@ -59,14 +60,14 @@ UnsignedMessage makeMessage(Address const &from,
                             Address const &to,
                             uint64_t nonce) {
   return UnsignedMessage{
-      to,         // to Address
-      from,       // from Address
-      nonce,      // nonce
-      BigInt(1),  // transfer value
-      BigInt(0),  // gasPrice
-      BigInt(1),  // gasLimit
-      0,          // method num
-      ""_unhex    // method params
+      to,                     // to Address
+      from,                   // from Address
+      nonce,                  // nonce
+      BigInt(1),              // transfer value
+      BigInt(0),              // gasPrice
+      BigInt(1),              // gasLimit
+      0,                      // method num
+      MethodParams{""_unhex}  // method params
   };
 }
 

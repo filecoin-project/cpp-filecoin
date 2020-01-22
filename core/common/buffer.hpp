@@ -224,7 +224,7 @@ namespace fc::common {
    * @return reference to stream
    */
   template <class Stream,
-            typename = std::enable_if_t<Stream::is_encoder_stream>>
+            typename = std::enable_if_t<Stream::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &s, const Buffer &buffer) {
     return s << buffer.toVector();
   }
@@ -237,7 +237,7 @@ namespace fc::common {
    * @return reference to stream
    */
   template <class Stream,
-            typename = std::enable_if_t<Stream::is_decoder_stream>>
+            typename = std::enable_if_t<Stream::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &s, Buffer &buffer) {
     std::vector<uint8_t> data;
     s >> data;

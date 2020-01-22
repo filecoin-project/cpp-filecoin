@@ -12,6 +12,7 @@
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
+#include "vm/actor/actor.hpp"
 
 namespace fc::vm::message {
 
@@ -24,6 +25,8 @@ namespace fc::vm::message {
     VERIFICATION_FAILURE
   };
 
+  using actor::MethodNumber;
+  using actor::MethodParams;
   using crypto::signature::Signature;
   using primitives::BigInt;
   using primitives::address::Address;
@@ -42,8 +45,8 @@ namespace fc::vm::message {
     BigInt gasPrice;
     BigInt gasLimit;
 
-    uint64_t method;
-    std::vector<uint8_t> params;
+    MethodNumber method;
+    MethodParams params;
 
     /**
      * @brief Message equality operator

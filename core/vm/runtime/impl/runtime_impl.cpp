@@ -120,17 +120,15 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
   }
 
   // TODO (a.chernyshov) invoke - create runtime context
-  std::vector<uint8_t> blob;
-  auto message = std::make_shared<UnsignedMessage>(UnsignedMessage{
-      message_->to,
-      to_address,
-      from_actor.nonce,
-      value,
-      gas_price_,
-      gas_available_,
-      method_number.method_number,
-      blob /* params */
-  });
+  auto message = std::make_shared<UnsignedMessage>(
+      UnsignedMessage{message_->to,
+                      to_address,
+                      from_actor.nonce,
+                      value,
+                      gas_price_,
+                      gas_available_,
+                      method_number.method_number,
+                      params});
   OUTCOME_TRY(serialized_message, fc::codec::cbor::encode(*message));
   BigInt messageGasCost =
       kOnChainMessageBaseGasCost
@@ -138,8 +136,7 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
 
   BigInt gas_cost = gas_price_ * gas_available_;
   BigInt total_cost = gas_cost + value;
-  if (from_actor.balance < total_cost)
-    return RuntimeError::NOT_ENOUGH_FUNDS;
+  if (from_actor.balance < total_cost) return RuntimeError::NOT_ENOUGH_FUNDS;
 
   OUTCOME_TRY(state_tree_->flush());
 

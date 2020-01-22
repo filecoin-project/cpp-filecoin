@@ -68,4 +68,8 @@ namespace fc::vm::state {
     hamt_ = snapshot_;
     return outcome::success();
   }
+
+  std::shared_ptr<IpfsDatastore> StateTree::getStore() {
+    return store_;
+  }
 }  // namespace fc::vm::state

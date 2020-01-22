@@ -7,10 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "primitives/address/address_codec.hpp"
-#include "storage/hamt/hamt.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "testutil/cbor.hpp"
-#include "vm/actor/init_actor.hpp"
+#include "testutil/init_actor.hpp"
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
@@ -74,20 +71,11 @@ TEST_F(StateTreeTest, SetRevert) {
  * @then Actor state in the tree is same
  */
 TEST_F(StateTreeTest, RegisterNewAddressLookupId) {
-  using fc::vm::actor::InitActorState;
-  using fc::vm::actor::kInitAddress;
-  EXPECT_OUTCOME_TRUE(empty_map, Hamt(store_).flush());
-  InitActorState init_actor_state{empty_map, 13};
-  EXPECT_OUTCOME_TRUE(init_actor_state_cid, store_->setCbor(init_actor_state));
-  Actor init_actor{CodeId{"010001020000"_cid},
-                   ActorSubstateCID{init_actor_state_cid},
-                   {},
-                   {}};
-  EXPECT_OUTCOME_TRUE_1(tree_.set(kInitAddress, init_actor));
+  auto tree = setupInitActor(nullptr, 13);
   Address address{fc::primitives::address::TESTNET,
                   fc::primitives::address::ActorExecHash{}};
-  EXPECT_OUTCOME_EQ(tree_.registerNewAddress(address, kActor), kAddressId);
-  EXPECT_OUTCOME_EQ(tree_.lookupId(address), kAddressId);
-  EXPECT_OUTCOME_EQ(tree_.get(address), kActor);
-  EXPECT_OUTCOME_EQ(tree_.get(kAddressId), kActor);
+  EXPECT_OUTCOME_EQ(tree->registerNewAddress(address, kActor), kAddressId);
+  EXPECT_OUTCOME_EQ(tree->lookupId(address), kAddressId);
+  EXPECT_OUTCOME_EQ(tree->get(address), kActor);
+  EXPECT_OUTCOME_EQ(tree->get(kAddressId), kActor);
 }

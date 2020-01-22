@@ -12,10 +12,6 @@
 
 namespace fc::vm::actor {
 
-  bool MethodNumber::operator==(const MethodNumber &other) const {
-    return method_number == other.method_number;
-  }
-
   bool operator==(const Actor &lhs, const Actor &rhs) {
     return lhs.code == rhs.code && lhs.head == rhs.head
            && lhs.nonce == rhs.nonce && lhs.balance == rhs.balance;

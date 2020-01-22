@@ -29,13 +29,36 @@ namespace fc::vm::actor {
   struct MethodNumber {
     uint64_t method_number;
 
-    bool operator==(const MethodNumber &other) const;
+    inline bool operator==(const MethodNumber &other) const {
+      return method_number == other.method_number;
+    }
   };
+
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
+  Stream &operator<<(Stream &&s, const MethodNumber &method) noexcept {
+    return s << method.method_number;
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
+  Stream &operator>>(Stream &&s, MethodNumber &method) noexcept {
+    return s >> method.method_number;
+  }
 
   /**
    * MethodParams is serialized parameters to the method call
    */
-  class MethodParams : public Buffer {};
+  class MethodParams : public Buffer {
+    using Buffer::Buffer;
+
+   public:
+    inline bool operator==(const MethodParams &other) const {
+      return Buffer::operator==(static_cast<const Buffer &>(other));
+    }
+  };
 
   /**
    * CodeID identifies an actor's code (either one of the builtin actors, or, in
