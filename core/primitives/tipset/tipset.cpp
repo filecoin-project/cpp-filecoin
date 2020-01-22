@@ -100,10 +100,7 @@ namespace fc::primitives::tipset {
                       "create tipset failed, blocks have same ticket ({} {})",
                       address::encodeToString(b1.miner),
                       address::encodeToString(b2.miner));
-                  // TODO(yuraz) : FIL-*** remove copies when toPrettyString
-                  // becomes const
-                  return CID{cid1}.toPrettyString("")
-                         < CID{cid2}.toPrettyString("");
+                  return cid1.toPrettyString("") < cid2.toPrettyString("");
                 }
                 return *t1 < *t2;
               });

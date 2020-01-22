@@ -101,7 +101,7 @@ namespace fc::primitives::tipset {
    private:
     std::vector<CID> cids_;                 ///< cids
     std::vector<block::BlockHeader> blks_;  ///< block headers
-    uint64_t height_{};                       ///< height
+    uint64_t height_{};                     ///< height
   };
 
   bool operator==(const Tipset &lhs, const Tipset &rhs);
