@@ -130,12 +130,12 @@ namespace fc::primitives::tipset {
     return height_;
   }
 
-  outcome::result<TipsetKey> Tipset::getParents() {
-    return TipsetKey::createFromCids(blks_[0].parents);
+  TipsetKey Tipset::getParents() {
+    return TipsetKey{blks_[0].parents};
   }
 
-  outcome::result<TipsetKey> Tipset::makeKey() const {
-    return TipsetKey::createFromCids(cids_);
+  TipsetKey Tipset::makeKey() const {
+    return TipsetKey{cids_};
   }
 
   outcome::result<boost::optional<ticket::Ticket>> Tipset::getMinTicket()

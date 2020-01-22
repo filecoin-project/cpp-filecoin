@@ -48,7 +48,7 @@ namespace fc::primitives::tipset {
     /**
      * @brief makes key of cids
      */
-    outcome::result<TipsetKey> makeKey() const;
+    TipsetKey makeKey() const;
 
     /**
      * @return height
@@ -58,7 +58,7 @@ namespace fc::primitives::tipset {
     /**
      * @return key made of parents
      */
-    outcome::result<TipsetKey> getParents();
+    TipsetKey getParents();
 
     /**
      * @return span of blocks
