@@ -13,8 +13,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::power, PowerTableError, e) {
       return "PowerTableError: miner not found";
     case PowerTableError::NEGATIVE_POWER:
       return "PowerTableError: power cannot be negative";
-    case PowerTableError::UNKNOWN:
-      break;
   }
 
   return "unknown error";
