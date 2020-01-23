@@ -15,7 +15,9 @@ namespace fc::power {
    */
   enum class PowerTableError {
     NO_SUCH_MINER = 1,
-    NEGATIVE_POWER
+    NEGATIVE_POWER,
+
+    UNKNOWN
   };
 
 }  // namespace fc::storage::power
