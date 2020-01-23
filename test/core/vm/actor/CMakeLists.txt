@@ -44,10 +44,10 @@ target_link_libraries(account_actor_test
     ipfs_datastore_in_memory
     )
 
-addtest(storage_power_test
-    storage_power_test.cpp
+addtest(storage_power_actor_test
+        storage_power_actor_test.cpp
     )
-target_link_libraries(storage_power_test
+target_link_libraries(storage_power_actor_test
     actor
     hexutil
     )

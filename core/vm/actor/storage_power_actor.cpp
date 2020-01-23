@@ -4,7 +4,8 @@
  */
 
 #include "vm/actor/storage_power_actor.hpp"
-#include <power/impl/power_table_impl.hpp>
+
+#include "power/impl/power_table_impl.hpp"
 #include "vm/indices/indices.hpp"
 
 namespace fc::vm::actor {
@@ -13,16 +14,6 @@ namespace fc::vm::actor {
       100 * (primitives::BigInt(1) << 40);
 
   const size_t StoragePowerActor::kMinMinerSizeTarg = 3;
-
-  bool addrInArray(const primitives::address::Address &addr,
-                   const std::vector<primitives::address::Address> &array) {
-    for (const auto &elem : array) {
-      if (elem == addr) {
-        return true;
-      }
-    }
-    return false;
-  }
 
   outcome::result<std::vector<primitives::address::Address>>
   StoragePowerActor::selectMinersToSurprise(
@@ -41,7 +32,10 @@ namespace fc::vm::actor {
           randomness_provider_->randomInt(randomness, chall, all_miners.size());
       auto potential_challengee = all_miners[miner_index];
 
-      if (addrInArray(potential_challengee, selected_miners)) {
+      while (std::find(selected_miners.cbegin(),
+                       selected_miners.cend(),
+                       potential_challengee)
+             != selected_miners.cend()) {
         miner_index = randomness_provider_->randomInt(
             randomness, chall, all_miners.size());
         potential_challengee = all_miners[miner_index];
@@ -187,7 +181,7 @@ namespace fc::vm::actor {
   outcome::result<void> StoragePowerActor::addMiner(
       const primitives::address::Address &miner_addr) {
     auto check = power_table_->getMinerPower(miner_addr);
-    if (!check.has_error()) return ALREADY_EXIST;
+    if (!check.has_error()) return ALREADY_EXISTS;
 
     OUTCOME_TRY(power_table_->setMinerPower(miner_addr, 0));
     OUTCOME_TRY(nominal_power_->setMinerPower(miner_addr, 0));
@@ -213,17 +207,13 @@ namespace fc::vm::actor {
       std::shared_ptr<crypto::randomness::RandomnessProvider>
           randomness_provider)
       : indices_(std::move(indices)),
-        randomness_provider_(std::move(randomness_provider)) {
-    total_network_power_ = 0;
-
-    power_table_ = std::make_unique<power::PowerTableImpl>();
-    claimed_power_ = std::make_unique<power::PowerTableImpl>();
-    nominal_power_ = std::make_unique<power::PowerTableImpl>();
-
-    po_st_detected_fault_miners_ = {};
-
-    num_miners_meeting_min_power = 0;
-  }
+        randomness_provider_(std::move(randomness_provider)),
+        total_network_power_(0),
+        power_table_(std::make_unique<power::PowerTableImpl>()),
+        claimed_power_(std::make_unique<power::PowerTableImpl>()),
+        nominal_power_(std::make_unique<power::PowerTableImpl>()),
+        po_st_detected_fault_miners_({}),
+        num_miners_meeting_min_power(0) {}
 
   outcome::result<void> StoragePowerActor::addFaultMiner(
       const primitives::address::Address &miner_addr) {

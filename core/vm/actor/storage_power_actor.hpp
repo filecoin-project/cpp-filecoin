@@ -29,11 +29,17 @@ namespace fc::vm::actor {
 
   class StoragePowerActor {
    public:
+    // Min value of power in order to participate in leader election
+    // From spec: 100 TiB
     static const power::Power kMinMinerSizeStor;
+
+    // If no one miner has kMinMinerSizeStor then system should choose lower
+    // bound as kMinMinerSizeTarg-th miner's power in the top of power table
+    // From spec: 3
     static const size_t kMinMinerSizeTarg;
 
     static constexpr VMExitCode OUT_OF_BOUND{1};
-    static constexpr VMExitCode ALREADY_EXIST{2};
+    static constexpr VMExitCode ALREADY_EXISTS{2};
 
     StoragePowerActor(std::shared_ptr<Indices> indices,
                       std::shared_ptr<crypto::randomness::RandomnessProvider>

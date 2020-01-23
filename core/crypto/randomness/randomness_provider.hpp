@@ -38,10 +38,6 @@ namespace fc::crypto::randomness {
 
     /**
      * @brief get random int value
-     * @param randomness
-     * @param nonce
-     * @param limit
-     * @return random int value
      */
     virtual int randomInt(const Randomness &randomness,
                           size_t nonce,
