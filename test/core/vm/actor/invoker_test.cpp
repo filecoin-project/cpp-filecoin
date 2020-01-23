@@ -7,9 +7,9 @@
 
 #include <gtest/gtest.h>
 #include "testutil/cbor.hpp"
+#include "testutil/mocks/vm/vm_context_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/cron_actor.hpp"
-#include "vm_context_mock.hpp"
 
 using fc::vm::VMExitCode;
 

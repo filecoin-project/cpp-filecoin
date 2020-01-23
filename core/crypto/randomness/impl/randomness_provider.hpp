@@ -21,6 +21,10 @@ namespace fc::crypto::randomness {
                                 Serialization s,
                                 ChainEpoch index) override;
 
+    int randomInt(const Randomness &randomness,
+                  size_t nonce,
+                  size_t limit) override;
+
    private:
     Randomness deriveRandomnessInternal(DomainSeparationTag tag,
                                         Serialization s,
