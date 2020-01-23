@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/invoker.hpp"
+#include "vm/actor/impl/invoker_impl.hpp"
 
 #include "vm/actor/cron_actor.hpp"
 
@@ -11,11 +11,11 @@ namespace fc::vm::actor {
 
   using runtime::InvocationOutput;
 
-  Invoker::Invoker() {
+  InvokerImpl::InvokerImpl() {
     builtin_[actor::kCronCodeCid] = actor::CronActor::exports;
   }
 
-  outcome::result<InvocationOutput> Invoker::invoke(
+  outcome::result<InvocationOutput> InvokerImpl::invoke(
       const Actor &actor,
       const std::shared_ptr<Runtime> &runtime,
       MethodNumber method,

@@ -15,18 +15,12 @@ namespace fc::vm::actor {
   /// Finds and loads actor code, invokes actor methods
   class Invoker {
    public:
-    static constexpr VMExitCode CANT_INVOKE_ACCOUNT_ACTOR{254};
-    static constexpr VMExitCode NO_CODE_OR_METHOD{255};
-
-    Invoker();
-    outcome::result<InvocationOutput> invoke(
+    virtual ~Invoker() = default;
+    virtual outcome::result<InvocationOutput> invoke(
         const Actor &actor,
         const std::shared_ptr<Runtime> &runtime,
         MethodNumber method,
-        const MethodParams &params);
-
-   private:
-    std::map<CID, ActorExports> builtin_;
+        const MethodParams &params) = 0;
   };
 }  // namespace fc::vm::actor
 

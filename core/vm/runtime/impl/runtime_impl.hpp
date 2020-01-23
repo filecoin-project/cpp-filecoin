@@ -36,6 +36,7 @@ namespace fc::vm::runtime {
                 ChainEpoch chain_epoch,
                 Address immediate_caller,
                 Address block_miner,
+                BigInt gas_available,
                 BigInt gas_used);
 
     /** \copydoc Runtime::getCurrentEpoch() */

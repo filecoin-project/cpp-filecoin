@@ -27,7 +27,7 @@ TEST(CronActorTest, WrongSender) {
   auto runtime = std::make_shared<fc::vm::runtime::MockRuntime>();
   actor::Actor actor;
   EXPECT_CALL(*runtime, getMessage())
-      .WillRepeatedly(testing::Return(message_wrong_sender));
+      .WillOnce(testing::Return(message_wrong_sender));
   EXPECT_OUTCOME_FALSE(err, actor::CronActor::epochTick(actor, runtime, {}));
   ASSERT_EQ(err, actor::CronActor::WRONG_CALL);
 }
@@ -42,12 +42,12 @@ TEST(CronActorTest, Correct) {
       UnsignedMessage{actor::kInitAddress, actor::kCronAddress});
   auto runtime = std::make_shared<fc::vm::runtime::MockRuntime>();
   actor::Actor actor;
-  EXPECT_CALL(*runtime, getMessage()).WillRepeatedly(testing::Return(message));
+  EXPECT_CALL(*runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_CALL(*runtime,
               send(actor::kStoragePowerAddress,
                    MethodNumber{actor::SpaMethods::CHECK_PROOF_SUBMISSIONS},
                    MethodParams{},
                    actor::BigInt(0)))
-      .WillRepeatedly(testing::Return(fc::outcome::success()));
+      .WillOnce(testing::Return(fc::outcome::success()));
   EXPECT_OUTCOME_TRUE_1(actor::CronActor::epochTick(actor, runtime, {}));
 }

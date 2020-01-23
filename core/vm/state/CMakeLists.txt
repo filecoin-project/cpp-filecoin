@@ -4,7 +4,7 @@
 #
 
 add_library(state_tree
-    state_tree.cpp
+    impl/state_tree_impl.cpp
     )
 target_link_libraries(state_tree
     actor

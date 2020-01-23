@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/invoker.hpp"
+#include "vm/actor/impl/invoker_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "core/vm/runtime/runtime_mock.hpp"
@@ -21,19 +21,19 @@ TEST(InvokerTest, InvokeCron) {
 
   auto message = std::make_shared<UnsignedMessage>(
       UnsignedMessage{kInitAddress, kInitAddress});
-  Invoker invoker;
+  InvokerImpl invoker;
   auto runtime = std::make_shared<MockRuntime>();
 
   EXPECT_OUTCOME_ERROR(
-      Invoker::CANT_INVOKE_ACCOUNT_ACTOR,
+      InvokerImpl::CANT_INVOKE_ACCOUNT_ACTOR,
       invoker.invoke({kAccountCodeCid}, runtime, MethodNumber{0}, {}));
   EXPECT_OUTCOME_ERROR(
-      Invoker::NO_CODE_OR_METHOD,
+      InvokerImpl::NO_CODE_OR_METHOD,
       invoker.invoke({CodeId{kEmptyObjectCid}}, runtime, MethodNumber{0}, {}));
   EXPECT_OUTCOME_ERROR(
-      Invoker::NO_CODE_OR_METHOD,
+      InvokerImpl::NO_CODE_OR_METHOD,
       invoker.invoke({kCronCodeCid}, runtime, MethodNumber{1000}, {}));
-  EXPECT_CALL(*runtime, getMessage()).WillRepeatedly(testing::Return(message));
+  EXPECT_CALL(*runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_OUTCOME_ERROR(
       CronActor::WRONG_CALL,
       invoker.invoke({kCronCodeCid}, runtime, MethodNumber{2}, {}));

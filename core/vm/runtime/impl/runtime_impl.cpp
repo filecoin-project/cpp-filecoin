@@ -42,6 +42,7 @@ RuntimeImpl::RuntimeImpl(
     ChainEpoch chain_epoch,
     Address immediate_caller,
     Address block_miner,
+    BigInt gas_available,
     BigInt gas_used)
     : randomness_provider_{std::move(randomness_provider)},
       datastore_{std::move(datastore)},
@@ -52,6 +53,7 @@ RuntimeImpl::RuntimeImpl(
       chain_epoch_{chain_epoch},
       immediate_caller_{std::move(immediate_caller)},
       block_miner_{std::move(block_miner)},
+      gas_available_{std::move(gas_available)},
       gas_used_{std::move(gas_used)} {}
 
 ChainEpoch RuntimeImpl::getCurrentEpoch() const {
@@ -239,5 +241,6 @@ std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
                                        chain_epoch_,
                                        immediate_caller_,
                                        block_miner_,
+                                       gas_available_,
                                        gas_used_);
 }
