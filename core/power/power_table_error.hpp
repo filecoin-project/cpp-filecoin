@@ -13,14 +13,9 @@ namespace fc::power {
   /**
    * @brief Type of errors returned by Power Table
    */
-  enum class PowerTableError {
-    NO_SUCH_MINER = 1,
-    NEGATIVE_POWER,
+  enum class PowerTableError { NO_SUCH_MINER = 1, NEGATIVE_POWER };
 
-    UNKNOWN
-  };
-
-}  // namespace fc::storage::power
+}  // namespace fc::power
 
 OUTCOME_HPP_DECLARE_ERROR(fc::power, PowerTableError);
 
