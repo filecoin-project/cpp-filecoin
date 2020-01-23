@@ -5,7 +5,7 @@
 
 #include "primitives/tipset/tipset.hpp"
 
-#include <boost/format.hpp>
+#include "codec/cbor/cbor_cid.hpp"
 #include "common/logger.hpp"
 #include "primitives/address/address_codec.hpp"
 
@@ -25,18 +25,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
 }
 
 namespace fc::common {
-  /**
-   * @brief helper function to calculate cid of an object
-   * @tparam T object type
-   * @param value object instance reference
-   * @return calculated cid or error
-   */
-  template <class T>
-  outcome::result<CID> getCidOfCbor(const T &value) {
-    OUTCOME_TRY(bytes, codec::cbor::encode(value));
-    return common::getCidOf(bytes);
-  }
-
   /**
    * @brief comparator wrapper for optionals
    * @tparam T underlying type
@@ -66,13 +54,13 @@ namespace fc::primitives::tipset {
 
     // check for blocks consistency
     const auto height0 = blocks[0].height;
-    const auto &cids = blocks[0].parents;
+    const auto &parents = blocks[0].parents;
     for (size_t i = 1; i < blocks.size(); ++i) {
       const auto &b = blocks[i];
       if (height0 != b.height) {
         return TipsetError::MISMATCHING_HEIGHTS;
       }
-      if (cids != b.parents) {
+      if (parents != b.parents) {
         return TipsetError::MISMATCHING_PARENTS;
       }
     }
@@ -80,7 +68,7 @@ namespace fc::primitives::tipset {
     std::vector<std::pair<block::BlockHeader, CID>> items;
     items.reserve(blocks.size());
     for (auto &block : blocks) {
-      OUTCOME_TRY(cid, common::getCidOfCbor(block));
+      OUTCOME_TRY(cid, codec::cbor::getCidOfCbor(block));
       // need to ensure that all cids are calculated before sort,
       // since it will terminate program in case of exception
       items.emplace_back(std::make_pair(std::move(block), std::move(cid)));
@@ -171,7 +159,7 @@ namespace fc::primitives::tipset {
     return block;
   }
 
-  CID Tipset::getParentState() const {
+  CID Tipset::getParentStateRoot() const {
     return blks_[0].parent_state_root;
   }
 
@@ -197,8 +185,8 @@ namespace fc::primitives::tipset {
   bool operator==(const Tipset &lhs, const Tipset &rhs) {
     if (lhs.blks_.size() != rhs.blks_.size()) return false;
     for (size_t i = 0; i < lhs.blks_.size(); ++i) {
-      if (common::getCidOfCbor(lhs.blks_[i])
-          != common::getCidOfCbor(rhs.blks_[i])) {
+      if (codec::cbor::getCidOfCbor(lhs.blks_[i])
+          != codec::cbor::getCidOfCbor(rhs.blks_[i])) {
         return false;
       }
     }

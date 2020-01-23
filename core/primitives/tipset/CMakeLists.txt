@@ -6,6 +6,10 @@ add_library(tipset
     tipset_key.cpp
     )
 target_link_libraries(tipset
+    address
     buffer
+    cbor
     cid
+    logger
+    tickets
     )

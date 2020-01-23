@@ -6,12 +6,13 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
 
+#include <boost/optional.hpp>
+#include "common/outcome.hpp"
+#include "common/outcome_throw.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset_key.hpp"
-
-#include <boost/optional.hpp>
 
 namespace fc::primitives::tipset {
 
@@ -35,6 +36,8 @@ namespace fc::primitives::tipset {
    */
   class Tipset {
     friend bool operator==(const Tipset &lhs, const Tipset &rhs);
+    template <class Stream, class>
+    friend Stream &operator>>(Stream &&, Tipset &);
 
    public:
     static outcome::result<Tipset> create(
@@ -82,9 +85,9 @@ namespace fc::primitives::tipset {
     getMinTicketBlock() const;
 
     /**
-     * @return parent state
+     * @return parent state root
      */
-    CID getParentState() const;
+    CID getParentStateRoot() const;
 
     /**
      * @return parent weight
@@ -105,6 +108,41 @@ namespace fc::primitives::tipset {
   };
 
   bool operator==(const Tipset &lhs, const Tipset &rhs);
+
+  /**
+   * @brief cbor-encodes Tipset instance
+   * @tparam Stream cbor-encoder stream type
+   * @param s stream reference
+   * @param tipset Tipset instance
+   * @return stream reference
+   */
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
+  Stream &operator<<(Stream &&s, const Tipset &tipset) noexcept {
+    return s << (s.list() << tipset.getCids() << tipset.getBlocks()
+                          << tipset.getHeight());
+  }
+
+  /**
+   * @brief cbor-decodes Tipset instance
+   * @tparam Stream cbor-decoder stream type
+   * @param s stream reference
+   * @param tipset Tipset instance reference to decode into
+   * @return stream reference
+   */
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
+  Stream &operator>>(Stream &&s, Tipset &tipset) {
+    std::vector<CID> cids;
+    std::vector<block::BlockHeader> blks;
+
+    s.list() >> cids >> blks >> tipset.height_;
+    tipset.cids_ = std::move(cids);
+    tipset.blks_ = std::move(blks);
+    return s;
+  }
 
 }  // namespace fc::primitives::tipset
 
