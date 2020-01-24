@@ -17,8 +17,6 @@ namespace fc::primitives::tipset {
   struct TipsetKey {
     std::vector<CID> cids;
 
-    static outcome::result<TipsetKey> createFromCids(gsl::span<const CID> cids);
-
     /**
      * @brief makes human-readable representation
      */

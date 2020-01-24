@@ -29,11 +29,12 @@ struct TipsetTest : public ::testing::Test {
         "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
     auto bls2 =
         "020101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
-    ticket = Ticket{bls2};
+    ticket1 = Ticket{bls1};
+    ticket2 = Ticket{bls2};
     signature = "01DEAD"_unhex;
     BlockHeader block_header = fc::primitives::block::BlockHeader{
         fc::primitives::address::Address::makeFromId(1),
-        ticket,
+        ticket2,
         {
             fc::common::Buffer("F00D"_unhex),
             bls1,
@@ -58,6 +59,7 @@ struct TipsetTest : public ::testing::Test {
     bh2 = makeBlock();
     bh2.miner = Address::makeFromId(2);
     bh2.timestamp = 7;
+    bh2.ticket = ticket1;
     bh3 = makeBlock();
     bh3.miner = Address::makeFromId(3);
     bh3.height = 3;  // change height
@@ -86,7 +88,7 @@ struct TipsetTest : public ::testing::Test {
   BlockHeader bh1, bh2, bh3, bh4;
   CID cid1, cid2, cid3;
   CID parent_state_root;
-  Ticket ticket;
+  Ticket ticket1, ticket2;
   Signature signature;
   BigInt parent_weight;
   std::string tipset_cbor_hex;
@@ -135,7 +137,7 @@ TEST_F(TipsetTest, CreateSuccess) {
   ASSERT_EQ(ts.getHeight(), bh1.height);
   ASSERT_EQ(ts.getBlocks(), gsl::span<const BlockHeader>(headers));
   EXPECT_OUTCOME_TRUE(min_ticket, ts.getMinTicket());
-  ASSERT_EQ(min_ticket, ticket);
+  ASSERT_EQ(min_ticket, ticket2);
   ASSERT_EQ(ts.getMinTimestamp(), 7u);
   EXPECT_OUTCOME_TRUE(min_ticket_block, ts.getMinTicketBlock());
   ASSERT_EQ(min_ticket_block, bh1);

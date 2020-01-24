@@ -24,25 +24,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
   return "Unknown tipset error";
 }
 
-namespace fc::common {
-  /**
-   * @brief comparator wrapper for optionals
-   * @tparam T underlying type
-   * @param lhs first instance
-   * @param rhs second instance
-   * @return true if they both don't have value or equal, false otherwise
-   */
-  template <class T>
-  bool operator==(const boost::optional<T> &lhs,
-                  const boost::optional<T> &rhs) {
-    if (!lhs.has_value() || !rhs.has_value()) {
-      return !rhs.has_value() && !rhs.has_value();
-    }
-    return *lhs == *rhs;
-  }
-
-}  // namespace fc::common
-
 namespace fc::primitives::tipset {
 
   outcome::result<Tipset> Tipset::create(
@@ -150,7 +131,7 @@ namespace fc::primitives::tipset {
     }
     for (auto &b : blks_) {
       if (!b.ticket.has_value()) {
-        continue;
+        return TipsetError::TICKET_HAS_NO_VALUE;
       }
       if (b.ticket < block.get().ticket) {
         block = b;
@@ -185,8 +166,7 @@ namespace fc::primitives::tipset {
   bool operator==(const Tipset &lhs, const Tipset &rhs) {
     if (lhs.blks_.size() != rhs.blks_.size()) return false;
     for (size_t i = 0; i < lhs.blks_.size(); ++i) {
-      if (codec::cbor::getCidOfCbor(lhs.blks_[i])
-          != codec::cbor::getCidOfCbor(rhs.blks_[i])) {
+      if (!(lhs.blks_[i] == rhs.blks_[i])) {
         return false;
       }
     }
