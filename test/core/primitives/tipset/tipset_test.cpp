@@ -67,7 +67,9 @@ struct TipsetTest : public ::testing::Test {
     bh4.parents.push_back("010001020002"_cid);  // append parent cid
 
     cid1 = getCidOfCbor(bh1).value();
+    std::cout << "cid1 = " << cid1.toPrettyString("") << std::endl;
     cid2 = getCidOfCbor(bh2).value();
+    std::cout << "cid2 = " << cid2.toPrettyString("") << std::endl;
     cid3 = getCidOfCbor(bh3).value();
 
     parent_state_root = "010001020005"_cid;
@@ -131,11 +133,11 @@ TEST_F(TipsetTest, CreateMismatchingParentsFailure) {
  */
 TEST_F(TipsetTest, CreateSuccess) {
   EXPECT_OUTCOME_TRUE(ts, Tipset::create({bh1, bh2}));
-  std::vector<CID> cids{cid1, cid2};
-  ASSERT_EQ(ts.getCids(), gsl::span<const CID>(cids));
+  std::vector<CID> cids {cid2, cid1};
+  ASSERT_EQ(ts.cids, cids);
   std::vector<BlockHeader> headers{bh1, bh2};
-  ASSERT_EQ(ts.getHeight(), bh1.height);
-  ASSERT_EQ(ts.getBlocks(), gsl::span<const BlockHeader>(headers));
+  ASSERT_EQ(ts.height, bh1.height);
+  ASSERT_EQ(ts.blks, headers);
   EXPECT_OUTCOME_TRUE(min_ticket, ts.getMinTicket());
   ASSERT_EQ(min_ticket, ticket2);
   ASSERT_EQ(ts.getMinTimestamp(), 7u);

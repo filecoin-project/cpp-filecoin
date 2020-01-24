@@ -34,19 +34,9 @@ namespace fc::primitives::tipset {
    * @struct Tipset implemented according to
    * https://github.com/filecoin-project/lotus/blob/6e94377469e49fa4e643f9204b6f46ef3cb3bf04/chain/types/tipset.go#L18
    */
-  class Tipset {
-    friend bool operator==(const Tipset &lhs, const Tipset &rhs);
-    template <class Stream, class>
-    friend Stream &operator>>(Stream &&, Tipset &);
-
-   public:
+  struct Tipset {
     static outcome::result<Tipset> create(
         std::vector<block::BlockHeader> blocks);
-
-    /**
-     * @return span of cids
-     */
-    gsl::span<const CID> getCids() const;
 
     /**
      * @brief makes key of cids
@@ -54,19 +44,9 @@ namespace fc::primitives::tipset {
     TipsetKey makeKey() const;
 
     /**
-     * @return height
-     */
-    uint64_t getHeight() const;
-
-    /**
      * @return key made of parents
      */
     TipsetKey getParents();
-
-    /**
-     * @return span of blocks
-     */
-    gsl::span<const block::BlockHeader> getBlocks() const;
 
     /**
      * @return optional min ticket or error
@@ -101,10 +81,9 @@ namespace fc::primitives::tipset {
      */
     bool contains(const CID &cid) const;
 
-   private:
-    std::vector<CID> cids_;                 ///< cids
-    std::vector<block::BlockHeader> blks_;  ///< block headers
-    uint64_t height_{};                     ///< height
+    std::vector<CID> cids;                 ///< cids
+    std::vector<block::BlockHeader> blks;  ///< block headers
+    uint64_t height{};                     ///< height
   };
 
   bool operator==(const Tipset &lhs, const Tipset &rhs);
@@ -120,8 +99,7 @@ namespace fc::primitives::tipset {
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const Tipset &tipset) noexcept {
-    return s << (s.list() << tipset.getCids() << tipset.getBlocks()
-                          << tipset.getHeight());
+    return s << (s.list() << tipset.cids << tipset.blks << tipset.height);
   }
 
   /**
@@ -138,9 +116,9 @@ namespace fc::primitives::tipset {
     std::vector<CID> cids;
     std::vector<block::BlockHeader> blks;
 
-    s.list() >> cids >> blks >> tipset.height_;
-    tipset.cids_ = std::move(cids);
-    tipset.blks_ = std::move(blks);
+    s.list() >> cids >> blks >> tipset.height;
+    tipset.cids = std::move(cids);
+    tipset.blks = std::move(blks);
     return s;
   }
 

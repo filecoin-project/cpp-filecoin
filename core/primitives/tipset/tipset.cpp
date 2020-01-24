@@ -50,6 +50,7 @@ namespace fc::primitives::tipset {
     items.reserve(blocks.size());
     for (auto &block : blocks) {
       OUTCOME_TRY(cid, codec::cbor::getCidOfCbor(block));
+      std::cout << cid.toPrettyString("") << std::endl;
       // need to ensure that all cids are calculated before sort,
       // since it will terminate program in case of exception
       items.emplace_back(std::make_pair(std::move(block), std::move(cid)));
@@ -75,36 +76,24 @@ namespace fc::primitives::tipset {
               });
 
     Tipset ts{};
-    ts.height_ = height0;
-    ts.cids_.reserve(items.size());
-    ts.blks_.reserve(items.size());
+    ts.height = height0;
+    ts.cids.reserve(items.size());
+    ts.blks.reserve(items.size());
 
     for (auto &[b, c] : items) {
-      ts.blks_.push_back(std::move(b));
-      ts.cids_.push_back(std::move(c));
+      ts.blks.push_back(std::move(b));
+      ts.cids.push_back(std::move(c));
     }
 
     return ts;
   }
 
-  gsl::span<const CID> Tipset::getCids() const {
-    return cids_;
-  }
-
-  gsl::span<const block::BlockHeader> Tipset::getBlocks() const {
-    return blks_;
-  }
-
-  uint64_t Tipset::getHeight() const {
-    return height_;
-  }
-
   TipsetKey Tipset::getParents() {
-    return TipsetKey{blks_[0].parents};
+    return TipsetKey{blks[0].parents};
   }
 
   TipsetKey Tipset::makeKey() const {
-    return TipsetKey{cids_};
+    return TipsetKey{cids};
   }
 
   outcome::result<boost::optional<ticket::Ticket>> Tipset::getMinTicket()
@@ -114,8 +103,8 @@ namespace fc::primitives::tipset {
   }
 
   uint64_t Tipset::getMinTimestamp() const {
-    auto timestamp = blks_[0].timestamp;
-    for (auto &b : blks_) {
+    auto timestamp = blks[0].timestamp;
+    for (auto &b : blks) {
       if (b.timestamp < timestamp) {
         timestamp = b.timestamp;
       }
@@ -125,11 +114,11 @@ namespace fc::primitives::tipset {
 
   outcome::result<std::reference_wrapper<const block::BlockHeader>>
   Tipset::getMinTicketBlock() const {
-    std::reference_wrapper<const block::BlockHeader> block = blks_[0];
+    std::reference_wrapper<const block::BlockHeader> block = blks[0];
     if (!block.get().ticket.has_value()) {
       return TipsetError::TICKET_HAS_NO_VALUE;
     }
-    for (auto &b : blks_) {
+    for (auto &b : blks) {
       if (!b.ticket.has_value()) {
         return TipsetError::TICKET_HAS_NO_VALUE;
       }
@@ -141,15 +130,15 @@ namespace fc::primitives::tipset {
   }
 
   CID Tipset::getParentStateRoot() const {
-    return blks_[0].parent_state_root;
+    return blks[0].parent_state_root;
   }
 
   BigInt Tipset::getParentWeight() const {
-    return blks_[0].parent_weight;
+    return blks[0].parent_weight;
   }
 
   bool Tipset::contains(const CID &cid) const {
-    for (auto &c : cids_) {
+    for (auto &c : cids) {
       if (cid == c) {
         return true;
       }
@@ -164,9 +153,9 @@ namespace fc::primitives::tipset {
    * @return true if equal, false otherwise
    */
   bool operator==(const Tipset &lhs, const Tipset &rhs) {
-    if (lhs.blks_.size() != rhs.blks_.size()) return false;
-    for (size_t i = 0; i < lhs.blks_.size(); ++i) {
-      if (!(lhs.blks_[i] == rhs.blks_[i])) {
+    if (lhs.blks.size() != rhs.blks.size()) return false;
+    for (size_t i = 0; i < lhs.blks.size(); ++i) {
+      if (!(lhs.blks[i] == rhs.blks[i])) {
         return false;
       }
     }
