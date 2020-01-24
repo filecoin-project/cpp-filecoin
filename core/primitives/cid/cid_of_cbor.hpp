@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_CID_HPP
-#define CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_CID_HPP
+#ifndef CPP_FILECOIN_CORE_PRIMITIVES_CID_CID_OF_CBOR_HPP
+#define CPP_FILECOIN_CORE_PRIMITIVES_CID_CID_OF_CBOR_HPP
 
+#include "cid.hpp"
 #include "codec/cbor/cbor.hpp"
-#include "primitives/cid/cid.hpp"
 
-namespace fc::codec::cbor {
+namespace fc::primitives::cid {
 
   /**
    * @brief helper function to calculate cid of an object
@@ -19,9 +19,9 @@ namespace fc::codec::cbor {
    */
   template <class T>
   outcome::result<CID> getCidOfCbor(const T &value) {
-    OUTCOME_TRY(bytes, encode(value));
+    OUTCOME_TRY(bytes, fc::codec::cbor::encode(value));
     return common::getCidOf(bytes);
   }
-}  // namespace fc::codec::cbor
+}  // namespace fc::primitives::cid
 
-#endif  // CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_CID_HPP
+#endif  // CPP_FILECOIN_CORE_PRIMITIVES_CID_CID_OF_CBOR_HPP

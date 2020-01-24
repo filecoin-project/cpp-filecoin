@@ -5,9 +5,9 @@
 
 #include "primitives/tipset/tipset.hpp"
 
-#include "codec/cbor/cbor_cid.hpp"
 #include "common/logger.hpp"
 #include "primitives/address/address_codec.hpp"
+#include "primitives/cid/cid_of_cbor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
   using fc::primitives::tipset::TipsetError;
@@ -49,11 +49,10 @@ namespace fc::primitives::tipset {
     std::vector<std::pair<block::BlockHeader, CID>> items;
     items.reserve(blocks.size());
     for (auto &block : blocks) {
-      OUTCOME_TRY(cid, codec::cbor::getCidOfCbor(block));
-      std::cout << cid.toPrettyString("") << std::endl;
+      OUTCOME_TRY(cid, fc::primitives::cid::getCidOfCbor(block));
       // need to ensure that all cids are calculated before sort,
       // since it will terminate program in case of exception
-      items.emplace_back(std::make_pair(std::move(block), std::move(cid)));
+      items.emplace_back(std::make_pair(std::move(block), cid));
     }
 
     // if an exception thrown from std::sort, program is terminated

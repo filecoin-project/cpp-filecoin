@@ -28,6 +28,13 @@ namespace fc {
      * @return encoded value or error
      */
     outcome::result<std::string> toString() const;
+
+    //    CID operator=(const CID &other) {
+    //      this->version = other.version;
+    //      this->content_type = other.content_type;
+    //      this->content_address = other.content_address;
+    //      return *this;
+    //    }
   };
 }  // namespace fc
 

@@ -6,13 +6,13 @@
 #include "primitives/tipset/tipset.hpp"
 
 #include <gtest/gtest.h>
-#include "codec/cbor/cbor_cid.hpp"
+#include "primitives/cid/cid_of_cbor.hpp"
 #include "common/hexutil.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
-using fc::codec::cbor::getCidOfCbor;
+using fc::primitives::cid::getCidOfCbor;
 
 struct TipsetTest : public ::testing::Test {
   using Address = fc::primitives::address::Address;
@@ -29,9 +29,12 @@ struct TipsetTest : public ::testing::Test {
         "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
     auto bls2 =
         "020101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
+
     ticket1 = Ticket{bls1};
     ticket2 = Ticket{bls2};
+
     signature = "01DEAD"_unhex;
+
     BlockHeader block_header = fc::primitives::block::BlockHeader{
         fc::primitives::address::Address::makeFromId(1),
         ticket2,
@@ -66,11 +69,12 @@ struct TipsetTest : public ::testing::Test {
     bh4 = makeBlock();
     bh4.parents.push_back("010001020002"_cid);  // append parent cid
 
-    cid1 = getCidOfCbor(bh1).value();
-    std::cout << "cid1 = " << cid1.toPrettyString("") << std::endl;
-    cid2 = getCidOfCbor(bh2).value();
-    std::cout << "cid2 = " << cid2.toPrettyString("") << std::endl;
-    cid3 = getCidOfCbor(bh3).value();
+    EXPECT_OUTCOME_TRUE(cid1_, getCidOfCbor(bh1));
+    EXPECT_OUTCOME_TRUE(cid2_, getCidOfCbor(bh2));
+    EXPECT_OUTCOME_TRUE(cid3_, getCidOfCbor(bh3));
+    cid1 = cid1_;
+    cid2 = cid2_;
+    cid3 = cid3_;
 
     parent_state_root = "010001020005"_cid;
     parent_weight = BigInt(3);
@@ -135,14 +139,14 @@ TEST_F(TipsetTest, CreateSuccess) {
   EXPECT_OUTCOME_TRUE(ts, Tipset::create({bh1, bh2}));
   std::vector<CID> cids {cid2, cid1};
   ASSERT_EQ(ts.cids, cids);
-  std::vector<BlockHeader> headers{bh1, bh2};
+  std::vector<BlockHeader> headers{bh2, bh1};
   ASSERT_EQ(ts.height, bh1.height);
   ASSERT_EQ(ts.blks, headers);
   EXPECT_OUTCOME_TRUE(min_ticket, ts.getMinTicket());
-  ASSERT_EQ(min_ticket, ticket2);
+  ASSERT_EQ(*min_ticket, ticket1);
   ASSERT_EQ(ts.getMinTimestamp(), 7u);
   EXPECT_OUTCOME_TRUE(min_ticket_block, ts.getMinTicketBlock());
-  ASSERT_EQ(min_ticket_block, bh1);
+  ASSERT_EQ(min_ticket_block.get(), bh2);
   ASSERT_EQ(ts.getParentStateRoot(), parent_state_root);
   ASSERT_EQ(ts.getParentWeight(), parent_weight);
   ASSERT_TRUE(ts.contains(cid1));
