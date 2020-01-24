@@ -15,7 +15,7 @@ namespace fc::storage::ipfs {
   }
 
   outcome::result<void> BlockServiceImpl::addBlock(const Block &block) {
-    auto result = local_storage_->set(block.getCID(), block.getContent());
+    auto result = local_storage_->set(block.getCID(), block.getRawBytes());
     if (result.has_error()) {
       return BlockServiceError::ADD_BLOCK_FAILED;
     }
