@@ -35,4 +35,11 @@ namespace fc::crypto::randomness {
     return Randomness(hash);
   }
 
+  int RandomnessProviderImpl::randomInt(const Randomness &randomness,
+                                        size_t nonce,
+                                        size_t limit) {
+    // TODO(artyom-yurin): [FIL-141] Implement it
+    throw std::string("Not implemented");
+  }
+
 }  // namespace fc::crypto::randomness

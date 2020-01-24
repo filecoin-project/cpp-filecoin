@@ -9,10 +9,12 @@ add_library(actor
     init_actor.cpp
     cron_actor.cpp
     impl/invoker_impl.cpp
+    storage_power_actor.cpp
     )
 target_link_libraries(actor
     address
     cid
     exit_code
     hamt
+    power_table
     )

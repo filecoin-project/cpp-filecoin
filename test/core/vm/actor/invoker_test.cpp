@@ -6,8 +6,8 @@
 #include "vm/actor/impl/invoker_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "core/vm/runtime/runtime_mock.hpp"
 #include "testutil/cbor.hpp"
+#include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/cron_actor.hpp"
 

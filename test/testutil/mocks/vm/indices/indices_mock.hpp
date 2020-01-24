@@ -7,12 +7,17 @@
 #define CPP_FILECOIN_VM_INDICES_INDICES_MOCK_HPP
 
 #include <gmock/gmock.h>
-
 #include "vm/indices/indices.hpp"
 
 namespace fc::vm::indices {
 
-  class MockIndices : public Indices {};
+  class MockIndices : public Indices {
+   public:
+    MOCK_METHOD0(storagePowerConsensusMinMinerPower, fc::primitives::BigInt());
+
+    MOCK_METHOD1(consensusPowerForStorageWeight,
+                 fc::primitives::BigInt(actor::SectorStorageWeightDesc));
+  };
 
 }  // namespace fc::vm::indices
 

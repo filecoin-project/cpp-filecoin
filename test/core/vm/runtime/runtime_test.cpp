@@ -8,14 +8,14 @@
 #include <gtest/gtest.h>
 #include <vm/runtime/runtime_error.hpp>
 
-#include "core/crypto/randomness/randomness_provider_mock.hpp"
+#include "testutil/mocks/crypto/randomness/randomness_provider_mock.hpp"
 #include "core/storage/ipfs/ipfs_datastore_mock.hpp"
-#include "core/vm/actor/invoker_mock.hpp"
-#include "core/vm/indices/indices_mock.hpp"
-#include "core/vm/state/state_tree_mock.hpp"
+#include "testutil/mocks/vm/indices/indices_mock.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
+#include "testutil/mocks/vm/actor/invoker_mock.hpp"
+#include "testutil/mocks/vm/state/state_tree_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/message/message.hpp"
 
