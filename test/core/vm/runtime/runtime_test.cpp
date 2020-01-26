@@ -112,6 +112,21 @@ TEST_F(RuntimeTest, getBalanceActorNotFound) {
 }
 
 /**
+ * @given Runtime with StateTree without Actor with Address and State Tree with
+ * incorrect state
+ * @when getBalance is called with Address
+ * @then Error propagated to caller
+ */
+TEST_F(RuntimeTest, getBalanceError) {
+  Address not_found_address{kInitAddress};
+
+  EXPECT_CALL(*state_tree_, get(Eq(not_found_address)))
+      .WillOnce(testing::Return(fc::outcome::failure(HamtError::MAX_DEPTH)));
+
+  EXPECT_OUTCOME_ERROR(HamtError::MAX_DEPTH, runtime_->getBalance(not_found_address));
+}
+
+/**
  * @given Runtime with immediate_caller with InitCodeCid and CodeId and new
  * Address
  * @when createActor is called with CodeId and Address

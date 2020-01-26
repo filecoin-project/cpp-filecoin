@@ -122,12 +122,6 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
   OUTCOME_TRY(from_actor, state_tree_->get(message_->to));
   OUTCOME_TRY(to_actor, getOrCreateActor(to_address));
 
-  // transfer
-  if (value != 0) {
-    OUTCOME_TRY(chargeGas(kSendTransferFundsGasCost));
-    OUTCOME_TRY(transfer(from_actor, to_actor, value));
-  }
-
   auto message =
       std::make_shared<UnsignedMessage>(UnsignedMessage{message_->to,
                                                         to_address,
@@ -146,6 +140,11 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
   BigInt total_cost = gas_cost + value;
   if (from_actor.balance < total_cost) return RuntimeError::NOT_ENOUGH_FUNDS;
 
+  // transfer
+  if (value != 0) {
+    OUTCOME_TRY(chargeGas(kSendTransferFundsGasCost));
+    OUTCOME_TRY(transfer(from_actor, to_actor, value));
+  }
   auto runtime = createRuntime(message);
 
   auto res = invoker_->invoke(to_actor, runtime, method_number, params);
