@@ -89,10 +89,10 @@ namespace fc::vm::runtime {
     /**
      * Send allows the current execution context to invoke methods on other
      * actors in the system
-     * @param to_address
-     * @param method_number
-     * @param params
-     * @param value
+     * @param to_address - message recipient
+     * @param method_number - method number to invoke
+     * @param params - method params
+     * @param value - amount transferred
      * @return
      */
     virtual outcome::result<InvocationOutput> send(Address to_address,
@@ -124,6 +124,10 @@ namespace fc::vm::runtime {
      */
     virtual std::shared_ptr<IpfsDatastore> getIpfsDatastore() = 0;
 
+    /**
+     * Get Message for actor invocation
+     * @return message invoking current execution
+     */
     virtual std::shared_ptr<UnsignedMessage> getMessage() = 0;
   };
 

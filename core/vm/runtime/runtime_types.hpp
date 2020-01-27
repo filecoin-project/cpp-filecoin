@@ -20,12 +20,21 @@ namespace fc::vm::runtime {
   using primitives::BigInt;
   using primitives::address::Address;
 
+  /**
+   * Value returned by method invocation
+   */
   struct InvocationOutput {
     common::Buffer return_value;
   };
 
+  /**
+   * Id of native function
+   */
   enum class ComputeFunctionID { VERIFY_SIGNATURE };
 
+  /**
+   * Result of message execution
+   */
   struct MessageReceipt {
     ExitCode exit_code;
     Buffer return_value;

@@ -11,6 +11,8 @@ namespace fc::vm::actor {
   using vm::runtime::InvocationOutput;
   using vm::runtime::Runtime;
 
+  constexpr MethodNumber kEpochTickMethodNumber{2};
+
   std::vector<CronTableEntry> CronActor::entries = {
       {kStoragePowerAddress, SpaMethods::CHECK_PROOF_SUBMISSIONS}};
 
@@ -30,6 +32,6 @@ namespace fc::vm::actor {
   }
 
   ActorExports CronActor::exports = {
-      {MethodNumber{2}, ActorMethod(CronActor::epochTick)},
+      {kEpochTickMethodNumber, ActorMethod(CronActor::epochTick)},
   };
 }  // namespace fc::vm::actor
