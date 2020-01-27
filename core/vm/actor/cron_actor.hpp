@@ -36,9 +36,7 @@ namespace fc::vm::actor {
      * @return success or error
      */
     static outcome::result<InvocationOutput> epochTick(
-        const Actor &actor,
-        const std::shared_ptr<Runtime> &runtime,
-        const MethodParams &params);
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
 
     static ActorExports exports;
   };

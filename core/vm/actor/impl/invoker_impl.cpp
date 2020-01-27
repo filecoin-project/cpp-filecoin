@@ -17,7 +17,7 @@ namespace fc::vm::actor {
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(
       const Actor &actor,
-      const std::shared_ptr<Runtime> &runtime,
+      Runtime &runtime,
       MethodNumber method,
       const MethodParams &params) {
     if (actor.code == actor::kAccountCodeCid) {

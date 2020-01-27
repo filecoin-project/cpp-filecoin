@@ -22,7 +22,7 @@ TEST(InvokerTest, InvokeCron) {
   auto message = std::make_shared<UnsignedMessage>(
       UnsignedMessage{kInitAddress, kInitAddress});
   InvokerImpl invoker;
-  auto runtime = std::make_shared<MockRuntime>();
+  MockRuntime runtime;
 
   EXPECT_OUTCOME_ERROR(
       InvokerImpl::CANT_INVOKE_ACCOUNT_ACTOR,
@@ -33,7 +33,7 @@ TEST(InvokerTest, InvokeCron) {
   EXPECT_OUTCOME_ERROR(
       InvokerImpl::NO_CODE_OR_METHOD,
       invoker.invoke({kCronCodeCid}, runtime, MethodNumber{1000}, {}));
-  EXPECT_CALL(*runtime, getMessage()).WillOnce(testing::Return(message));
+  EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_OUTCOME_ERROR(
       CronActor::WRONG_CALL,
       invoker.invoke({kCronCodeCid}, runtime, MethodNumber{2}, {}));

@@ -14,11 +14,10 @@ namespace fc::vm::actor {
   class MockInvoker : public Invoker {
    public:
     MOCK_METHOD4(invoke,
-                 outcome::result<InvocationOutput>(
-                     const Actor &actor,
-                     const std::shared_ptr<Runtime> &runtime,
-                     MethodNumber method,
-                     const MethodParams &params));
+                 outcome::result<InvocationOutput>(const Actor &actor,
+                                                   Runtime &runtime,
+                                                   MethodNumber method,
+                                                   const MethodParams &params));
   };
 
 }  // namespace fc::vm::actor

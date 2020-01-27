@@ -18,7 +18,7 @@ namespace fc::vm::actor {
     virtual ~Invoker() = default;
     virtual outcome::result<InvocationOutput> invoke(
         const Actor &actor,
-        const std::shared_ptr<Runtime> &runtime,
+        Runtime &runtime,
         MethodNumber method,
         const MethodParams &params) = 0;
   };

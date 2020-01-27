@@ -147,7 +147,7 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
   }
   auto runtime = createRuntime(message);
 
-  auto res = invoker_->invoke(to_actor, runtime, method_number, params);
+  auto res = invoker_->invoke(to_actor, *runtime, method_number, params);
   if (!res) {
     OUTCOME_TRY(state_tree_->revert());
   } else {

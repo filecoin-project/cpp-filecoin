@@ -18,7 +18,7 @@ namespace fc::vm::actor {
 
   /// Actor method signature
   using ActorMethod = std::function<outcome::result<InvocationOutput>(
-      const Actor &, const std::shared_ptr<Runtime> &, const MethodParams &)>;
+      const Actor &, Runtime &, const MethodParams &)>;
 
   /// Actor methods exported by number
   using ActorExports = std::map<MethodNumber, ActorMethod>;

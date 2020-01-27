@@ -24,7 +24,7 @@ namespace fc::vm::actor {
     ~InvokerImpl() override = default;
     outcome::result<InvocationOutput> invoke(
         const Actor &actor,
-        const std::shared_ptr<Runtime> &runtime,
+        Runtime &runtime,
         MethodNumber method,
         const MethodParams &params) override;
 
