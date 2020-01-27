@@ -15,6 +15,8 @@
 
 namespace fc::vm::actor {
 
+  using indices::Indices;
+
   enum SpaMethods {
     CONSTRUCTOR = 1,
     CREATE_STORAGE_MINER,

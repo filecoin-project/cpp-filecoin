@@ -21,6 +21,14 @@ namespace fc::primitives {
     using cpp_int::cpp_int;
   };
 
+  static inline BigInt operator*(const BigInt &lhs, const BigInt &rhs) {
+    return static_cast<cpp_int>(lhs) * static_cast<cpp_int>(rhs);
+  }
+
+  static inline BigInt operator*(const unsigned long &lhs, const BigInt &rhs) {
+    return static_cast<cpp_int>(lhs) * static_cast<cpp_int>(rhs);
+  }
+
   static inline BigInt operator+(const BigInt &lhs, const BigInt &rhs) {
     return static_cast<cpp_int>(lhs) + static_cast<cpp_int>(rhs);
   }

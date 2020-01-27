@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "vm/actor/storage_power_actor.hpp"
 #include "power/power_table_error.hpp"
 #include "testutil/mocks/crypto/randomness/randomness_provider_mock.hpp"
 #include "testutil/mocks/vm/indices/indices_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/storage_power_actor.hpp"
 
 using fc::crypto::randomness::MockRandomnessProvider;
 using fc::crypto::randomness::Randomness;
@@ -15,9 +15,9 @@ using fc::crypto::randomness::RandomnessProvider;
 using fc::power::PowerTableError;
 using fc::primitives::address::Address;
 using fc::primitives::address::Network;
-using fc::vm::Indices;
-using fc::vm::MockIndices;
 using fc::vm::actor::StoragePowerActor;
+using fc::vm::indices::Indices;
+using fc::vm::indices::MockIndices;
 using testing::_;
 
 class StoragePowerActorTest : public ::testing::Test {

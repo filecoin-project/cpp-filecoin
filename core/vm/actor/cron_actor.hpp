@@ -11,9 +11,12 @@
 
 namespace fc::vm::actor {
 
+  using runtime::InvocationOutput;
+  using runtime::Runtime;
+
   struct CronTableEntry {
     Address to_addr;
-    uint64_t method_num{};
+    MethodNumber method_num{};
   };
 
   struct CronActor {
@@ -28,13 +31,12 @@ namespace fc::vm::actor {
     /**
      * @brief EpochTick executes built-in periodic actions, run at every Epoch.
      * @param actor from Lotus(doesn't use)
-     * @param vmctx is virtual machine context
+     * @param runtime is virtual machine context
      * @param params from Lotus(doesn't use)
      * @return success or error
      */
-    static outcome::result<Buffer> epochTick(const Actor &actor,
-                                             VMContext &vmctx,
-                                             gsl::span<const uint8_t> params);
+    static outcome::result<InvocationOutput> epochTick(
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
 
     static ActorExports exports;
   };

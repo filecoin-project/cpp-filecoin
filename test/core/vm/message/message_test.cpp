@@ -45,6 +45,7 @@ using fc::vm::message::cid;
 using fc::vm::message::MessageError;
 using fc::vm::message::MessageSigner;
 using fc::vm::message::MessageSignerImpl;
+using fc::vm::message::MethodNumber;
 using fc::vm::message::MethodParams;
 using fc::vm::message::SignedMessage;
 using fc::vm::message::UnsignedMessage;
@@ -66,7 +67,7 @@ UnsignedMessage makeMessage(Address const &from,
       BigInt(1),              // transfer value
       BigInt(0),              // gasPrice
       BigInt(1),              // gasLimit
-      0,                      // method num
+      MethodNumber{0},        // method num
       MethodParams{""_unhex}  // method params
   };
 }
@@ -120,20 +121,20 @@ struct MessageTest : public testing::Test {
     keystore = std::make_shared<InMemoryKeyStore>(
         bls_provider, secp256k1_provider, address_verifier);
 
-    bls = std::move(addKeyGetAddress(
+    bls = addKeyGetAddress(
         "8e8c5263df0022d8e29cab943d57d851722c38ee1dbe7f8c29c0498156496f29"_blob32,
         bls_provider,
         keystore,
-        address_builder));
-    secp = std::move(addKeyGetAddress(
+        address_builder);
+    secp = addKeyGetAddress(
         "7008136b505aa01e406f72204668865852186756c95cd3a7e5184ef7b8f62058"_blob32,
         secp256k1_provider,
         keystore,
-        address_builder));
+        address_builder);
 
     msigner = std::make_shared<MessageSignerImpl>(keystore);
 
-    message = std::move(makeMessage(bls, Address{Network::TESTNET, 1001}, 0));
+    message = makeMessage(bls, Address{Network::TESTNET, 1001}, 0);
   }
 };
 

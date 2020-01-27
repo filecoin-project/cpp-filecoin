@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_INDICES_HPP
-#define CPP_FILECOIN_CORE_VM_INDICES_HPP
+#ifndef CPP_FILECOIN_VM_INDICES_INDICES_HPP
+#define CPP_FILECOIN_VM_INDICES_INDICES_HPP
 
 #include "primitives/big_int.hpp"
 #include "vm/actor/util.hpp"
 
-namespace fc::vm {
+namespace fc::vm::indices {
+
   class Indices {
    public:
     virtual ~Indices() = default;
@@ -31,6 +32,7 @@ namespace fc::vm {
      */
     virtual fc::primitives::BigInt storagePowerConsensusMinMinerPower() = 0;
   };
-}  // namespace fc::vm
 
-#endif  // CPP_FILECOIN_CORE_VM_INDICES_HPP
+}  // namespace fc::vm::indices
+
+#endif  // CPP_FILECOIN_VM_INDICES_INDICES_HPP

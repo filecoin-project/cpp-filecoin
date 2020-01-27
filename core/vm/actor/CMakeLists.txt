@@ -8,10 +8,9 @@ add_library(actor
     actor.cpp
     init_actor.cpp
     cron_actor.cpp
+    impl/invoker_impl.cpp
     storage_power_actor.cpp
-    invoker.cpp
     )
-
 target_link_libraries(actor
     address
     cid

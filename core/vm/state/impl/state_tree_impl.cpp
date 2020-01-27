@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/state/state_tree.hpp"
+#include "vm/state/impl/state_tree_impl.hpp"
 
 #include "codec/cbor/cbor.hpp"
 #include "primitives/address/address_codec.hpp"
@@ -14,25 +14,25 @@ namespace fc::vm::state {
   using codec::cbor::decode;
   using primitives::address::encodeToString;
 
-  StateTree::StateTree(const std::shared_ptr<IpfsDatastore> &store)
+  StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store)
       : store_(store), hamt_(store), snapshot_(store) {}
 
-  StateTree::StateTree(const std::shared_ptr<IpfsDatastore> &store,
-                       const CID &root)
+  StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store,
+                               const CID &root)
       : store_(store), hamt_(store, root), snapshot_(store, root) {}
 
-  outcome::result<void> StateTree::set(const Address &address,
-                                       const Actor &actor) {
+  outcome::result<void> StateTreeImpl::set(const Address &address,
+                                           const Actor &actor) {
     OUTCOME_TRY(address_id, lookupId(address));
     return hamt_.setCbor(encodeToString(address_id), actor);
   }
 
-  outcome::result<Actor> StateTree::get(const Address &address) {
+  outcome::result<Actor> StateTreeImpl::get(const Address &address) {
     OUTCOME_TRY(address_id, lookupId(address));
     return hamt_.getCbor<Actor>(encodeToString(address_id));
   }
 
-  outcome::result<Address> StateTree::lookupId(const Address &address) {
+  outcome::result<Address> StateTreeImpl::lookupId(const Address &address) {
     if (address.getProtocol() == primitives::address::Protocol::ID) {
       return address;
     }
@@ -44,8 +44,8 @@ namespace fc::vm::state {
     return Address::makeFromId(id);
   }
 
-  outcome::result<Address> StateTree::registerNewAddress(const Address &address,
-                                                         const Actor &actor) {
+  outcome::result<Address> StateTreeImpl::registerNewAddress(
+      const Address &address, const Actor &actor) {
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
     OUTCOME_TRY(init_actor_state,
                 store_->getCbor<actor::InitActorState>(init_actor.head));
@@ -57,18 +57,18 @@ namespace fc::vm::state {
     return std::move(address_id);
   }
 
-  outcome::result<CID> StateTree::flush() {
+  outcome::result<CID> StateTreeImpl::flush() {
     OUTCOME_TRY(cid, hamt_.flush());
     snapshot_ = hamt_;
     return std::move(cid);
   }
 
-  outcome::result<void> StateTree::revert() {
+  outcome::result<void> StateTreeImpl::revert() {
     hamt_ = snapshot_;
     return outcome::success();
   }
 
-  std::shared_ptr<IpfsDatastore> StateTree::getStore() {
+  std::shared_ptr<IpfsDatastore> StateTreeImpl::getStore() {
     return store_;
   }
 }  // namespace fc::vm::state

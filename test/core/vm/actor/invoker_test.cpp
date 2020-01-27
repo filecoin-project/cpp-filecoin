@@ -3,34 +3,40 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/invoker.hpp"
+#include "vm/actor/impl/invoker_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/cbor.hpp"
-#include "testutil/mocks/vm/vm_context_mock.hpp"
+#include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/cron_actor.hpp"
 
 using fc::vm::VMExitCode;
+using fc::vm::message::UnsignedMessage;
+using fc::vm::runtime::MockRuntime;
 
 /// invoker returns error or invokes actor method
 TEST(InvokerTest, InvokeCron) {
   using namespace fc::vm::actor;
 
-  Invoker invoker;
-  fc::vm::MockVMContext vmc;
+  auto message = std::make_shared<UnsignedMessage>(
+      UnsignedMessage{kInitAddress, kInitAddress});
+  InvokerImpl invoker;
+  MockRuntime runtime;
 
-  EXPECT_OUTCOME_ERROR(Invoker::CANT_INVOKE_ACCOUNT_ACTOR,
-                       invoker.invoke({kAccountCodeCid}, vmc, 0, {}));
-  EXPECT_OUTCOME_ERROR(Invoker::NO_CODE_OR_METHOD,
-                       invoker.invoke({CodeId{kEmptyObjectCid}}, vmc, 0, {}));
-  EXPECT_OUTCOME_ERROR(Invoker::NO_CODE_OR_METHOD,
-                       invoker.invoke({kCronCodeCid}, vmc, 1000, {}));
-
-  EXPECT_CALL(vmc, message())
-      .WillRepeatedly(testing::Return(fc::vm::Message{kInitAddress}));
-  EXPECT_OUTCOME_ERROR(CronActor::WRONG_CALL,
-                       invoker.invoke({kCronCodeCid}, vmc, 2, {}));
+  EXPECT_OUTCOME_ERROR(
+      InvokerImpl::CANT_INVOKE_ACCOUNT_ACTOR,
+      invoker.invoke({kAccountCodeCid}, runtime, MethodNumber{0}, {}));
+  EXPECT_OUTCOME_ERROR(
+      InvokerImpl::NO_CODE_OR_METHOD,
+      invoker.invoke({CodeId{kEmptyObjectCid}}, runtime, MethodNumber{0}, {}));
+  EXPECT_OUTCOME_ERROR(
+      InvokerImpl::NO_CODE_OR_METHOD,
+      invoker.invoke({kCronCodeCid}, runtime, MethodNumber{1000}, {}));
+  EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
+  EXPECT_OUTCOME_ERROR(
+      CronActor::WRONG_CALL,
+      invoker.invoke({kCronCodeCid}, runtime, MethodNumber{2}, {}));
 }
 
 /// decodeActorParams returns error or decoded params
