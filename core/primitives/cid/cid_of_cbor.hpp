@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_CID_CID_OF_CBOR_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_CID_CID_OF_CBOR_HPP
 
-#include "cid.hpp"
+#include "primitives/cid/cid.hpp"
 #include "codec/cbor/cbor.hpp"
 
 namespace fc::primitives::cid {

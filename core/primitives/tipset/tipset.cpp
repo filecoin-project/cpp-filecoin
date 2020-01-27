@@ -19,7 +19,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
     case TipsetError::MISMATCHING_PARENTS:
       return "Cannot create tipset, mismatching block parents";
     case TipsetError::TICKET_HAS_NO_VALUE:
-      return "optional ticket is not initialized";
+      return "An optional ticket is not initialized";
   }
   return "Unknown tipset error";
 }
@@ -102,13 +102,12 @@ namespace fc::primitives::tipset {
   }
 
   uint64_t Tipset::getMinTimestamp() const {
-    auto timestamp = blks[0].timestamp;
-    for (auto &b : blks) {
-      if (b.timestamp < timestamp) {
-        timestamp = b.timestamp;
-      }
-    }
-    return timestamp;
+    return std::min_element(blks.begin(),
+                            blks.end(),
+                            [](const auto &b1, const auto &b2) -> bool {
+                              return b1.timestamp < b2.timestamp;
+                            })
+        ->timestamp;
   }
 
   outcome::result<std::reference_wrapper<const block::BlockHeader>>
@@ -137,12 +136,7 @@ namespace fc::primitives::tipset {
   }
 
   bool Tipset::contains(const CID &cid) const {
-    for (auto &c : cids) {
-      if (cid == c) {
-        return true;
-      }
-    }
-    return false;
+    return std::find(cids.begin(), cids.end(), cid) != std::end(cids);
   }
 
   /**
@@ -153,12 +147,7 @@ namespace fc::primitives::tipset {
    */
   bool operator==(const Tipset &lhs, const Tipset &rhs) {
     if (lhs.blks.size() != rhs.blks.size()) return false;
-    for (size_t i = 0; i < lhs.blks.size(); ++i) {
-      if (!(lhs.blks[i] == rhs.blks[i])) {
-        return false;
-      }
-    }
-    return true;
+    return std::equal(lhs.blks.begin(), lhs.blks.end(), rhs.blks.begin());
   }
 
 }  // namespace fc::primitives::tipset
