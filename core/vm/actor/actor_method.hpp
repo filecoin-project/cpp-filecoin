@@ -7,21 +7,21 @@
 #define CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_METHOD_HPP
 
 #include "codec/cbor/cbor.hpp"
-#include "common/buffer.hpp"
 #include "common/outcome.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
-#include "vm/vm_context.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor {
-  using common::Buffer;
+  using runtime::InvocationOutput;
+  using runtime::Runtime;
 
   /// Actor method signature
-  using ActorMethod = std::function<outcome::result<Buffer>(
-      const Actor &, VMContext &, gsl::span<const uint8_t>)>;
+  using ActorMethod = std::function<outcome::result<InvocationOutput>(
+      const Actor &, Runtime &, const MethodParams &)>;
 
   /// Actor methods exported by number
-  using ActorExports = std::map<uint64_t, ActorMethod>;
+  using ActorExports = std::map<MethodNumber, ActorMethod>;
 
   constexpr VMExitCode DECODE_ACTOR_PARAMS_ERROR{1};
 

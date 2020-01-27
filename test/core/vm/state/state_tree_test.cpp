@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/state/state_tree.hpp"
+#include "vm/state/impl/state_tree_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "primitives/address/address_codec.hpp"
@@ -16,7 +16,7 @@ using fc::storage::hamt::HamtError;
 using fc::vm::actor::Actor;
 using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::CodeId;
-using fc::vm::state::StateTree;
+using fc::vm::state::StateTreeImpl;
 
 auto kAddressId = Address::makeFromId(13);
 const Actor kActor{CodeId{"010001020001"_cid},
@@ -28,7 +28,7 @@ class StateTreeTest : public ::testing::Test {
  public:
   std::shared_ptr<fc::storage::ipfs::IpfsDatastore> store_{
       std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
-  StateTree tree_{store_};
+  StateTreeImpl tree_{store_};
 };
 
 /**
@@ -51,7 +51,7 @@ TEST_F(StateTreeTest, SetFlush) {
   EXPECT_OUTCOME_TRUE_1(tree_.set(kAddressId, kActor));
   EXPECT_OUTCOME_TRUE(cid, tree_.flush());
   EXPECT_OUTCOME_EQ(tree_.get(kAddressId), kActor);
-  EXPECT_OUTCOME_EQ(StateTree(store_, cid).get(kAddressId), kActor);
+  EXPECT_OUTCOME_EQ(StateTreeImpl(store_, cid).get(kAddressId), kActor);
 }
 
 /**

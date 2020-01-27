@@ -27,3 +27,7 @@ bool UnsignedMessage::operator==(const UnsignedMessage &other) const {
          && gasLimit == other.gasLimit && method == other.method
          && params == other.params;
 }
+
+bool UnsignedMessage::operator!=(const UnsignedMessage &other) const {
+  return !(*this == other);
+}

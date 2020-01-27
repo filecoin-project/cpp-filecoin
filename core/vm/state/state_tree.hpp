@@ -10,6 +10,7 @@
 #include "vm/actor/actor.hpp"
 
 namespace fc::vm::state {
+
   using actor::Actor;
   using primitives::address::Address;
   using storage::hamt::Hamt;
@@ -18,27 +19,29 @@ namespace fc::vm::state {
   /// State tree
   class StateTree {
    public:
-    explicit StateTree(const std::shared_ptr<IpfsDatastore> &store);
-    StateTree(const std::shared_ptr<IpfsDatastore> &store, const CID &root);
-    /// Set actor state, does not write to storage
-    outcome::result<void> set(const Address &address, const Actor &actor);
-    /// Get actor state
-    outcome::result<Actor> get(const Address &address);
-    /// Lookup id address from address
-    outcome::result<Address> lookupId(const Address &address);
-    /// Allocate id address and set actor state, does not write to storage
-    outcome::result<Address> registerNewAddress(const Address &address,
-                                                const Actor &actor);
-    /// Write changes to storage
-    outcome::result<CID> flush();
-    /// Revert changes to last flushed state
-    outcome::result<void> revert();
-    /// Get store
-    std::shared_ptr<IpfsDatastore> getStore();
+    virtual ~StateTree() = default;
 
-   private:
-    std::shared_ptr<IpfsDatastore> store_;
-    Hamt hamt_, snapshot_;
+    /// Set actor state, does not write to storage
+    virtual outcome::result<void> set(const Address &address,
+                                      const Actor &actor) = 0;
+
+    /// Get actor state
+    virtual outcome::result<Actor> get(const Address &address) = 0;
+
+    /// Lookup id address from address
+    virtual outcome::result<Address> lookupId(const Address &address) = 0;
+
+    /// Allocate id address and set actor state, does not write to storage
+    virtual outcome::result<Address> registerNewAddress(const Address &address,
+                                                        const Actor &actor) = 0;
+    /// Write changes to storage
+    virtual outcome::result<CID> flush() = 0;
+
+    /// Revert changes to last flushed state
+    virtual outcome::result<void> revert() = 0;
+
+    /// Get store
+    virtual std::shared_ptr<IpfsDatastore> getStore() = 0;
   };
 }  // namespace fc::vm::state
 

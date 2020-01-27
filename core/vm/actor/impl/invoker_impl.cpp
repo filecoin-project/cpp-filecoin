@@ -3,19 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/invoker.hpp"
+#include "vm/actor/impl/invoker_impl.hpp"
 
 #include "vm/actor/cron_actor.hpp"
 
 namespace fc::vm::actor {
-  Invoker::Invoker() {
+
+  using runtime::InvocationOutput;
+
+  InvokerImpl::InvokerImpl() {
     builtin_[actor::kCronCodeCid] = actor::CronActor::exports;
   }
 
-  outcome::result<Buffer> Invoker::invoke(const Actor &actor,
-                                          VMContext &context,
-                                          uint64_t method,
-                                          gsl::span<const uint8_t> params) {
+  outcome::result<InvocationOutput> InvokerImpl::invoke(
+      const Actor &actor,
+      Runtime &runtime,
+      MethodNumber method,
+      const MethodParams &params) {
     if (actor.code == actor::kAccountCodeCid) {
       return CANT_INVOKE_ACCOUNT_ACTOR;
     }
@@ -28,6 +32,6 @@ namespace fc::vm::actor {
     if (maybe_builtin_method == builtin_actor.end()) {
       return NO_CODE_OR_METHOD;
     }
-    return maybe_builtin_method->second(actor, context, params);
+    return maybe_builtin_method->second(actor, runtime, params);
   }
 }  // namespace fc::vm::actor

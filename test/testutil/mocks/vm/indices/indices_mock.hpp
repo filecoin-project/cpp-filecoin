@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_INDICES_MOCK_HPP
-#define CPP_FILECOIN_INDICES_MOCK_HPP
+#ifndef CPP_FILECOIN_VM_INDICES_INDICES_MOCK_HPP
+#define CPP_FILECOIN_VM_INDICES_INDICES_MOCK_HPP
 
 #include <gmock/gmock.h>
 #include "vm/indices/indices.hpp"
 
-namespace fc::vm {
+namespace fc::vm::indices {
+
   class MockIndices : public Indices {
    public:
     MOCK_METHOD0(storagePowerConsensusMinMinerPower, fc::primitives::BigInt());
@@ -17,6 +18,7 @@ namespace fc::vm {
     MOCK_METHOD1(consensusPowerForStorageWeight,
                  fc::primitives::BigInt(actor::SectorStorageWeightDesc));
   };
-}  // namespace fc::vm
 
-#endif  // CPP_FILECOIN_INDICES_MOCK_HPP
+}  // namespace fc::vm::indices
+
+#endif  // CPP_FILECOIN_VM_INDICES_INDICES_MOCK_HPP

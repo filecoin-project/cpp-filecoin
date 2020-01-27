@@ -53,6 +53,10 @@ namespace fc::primitives::address {
            && lhs.data == rhs.data;
   }
 
+  bool operator!=(const Address &lhs, const Address &rhs) {
+    return !(lhs == rhs);
+  }
+
   bool operator<(const Address &lhs, const Address &rhs) {
     return lhs.network < rhs.network
            || (lhs.network == rhs.network

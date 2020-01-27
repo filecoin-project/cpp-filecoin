@@ -21,19 +21,19 @@ target_link_libraries(init_actor_test
     )
 
 addtest(cron_actor_test
-        cron_actor_test.cpp
-        )
+    cron_actor_test.cpp
+    )
 target_link_libraries(cron_actor_test
-        actor
-        hexutil
-        )
+    actor
+    hexutil
+    )
 
 addtest(invoker_test
-        invoker_test.cpp
-        )
+    invoker_test.cpp
+    )
 target_link_libraries(invoker_test
-        actor
-        )
+    actor
+    )
 
 addtest(account_actor_test
     account_actor_test.cpp

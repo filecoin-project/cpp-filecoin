@@ -6,11 +6,15 @@
 #include "vm/actor/cron_actor.hpp"
 
 #include <gtest/gtest.h>
+#include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
-#include "testutil/mocks/vm/vm_context_mock.hpp"
 
 using namespace fc::vm;
+using fc::vm::actor::MethodNumber;
+using fc::vm::actor::MethodParams;
+using fc::vm::message::UnsignedMessage;
+using fc::vm::runtime::MockRuntime;
 
 /**
  * @given Virtual Machine context
@@ -18,12 +22,13 @@ using namespace fc::vm;
  * @then error WRONG_CALL
  */
 TEST(CronActorTest, WrongSender) {
-  Message message_wrong_sender{actor::kInitAddress};
-  MockVMContext vmctx;
+  auto message_wrong_sender = std::make_shared<UnsignedMessage>(
+      UnsignedMessage{actor::kInitAddress, actor::kInitAddress});
+  MockRuntime runtime;
   actor::Actor actor;
-  EXPECT_CALL(vmctx, message())
-      .WillRepeatedly(testing::Return(message_wrong_sender));
-  EXPECT_OUTCOME_FALSE(err, actor::CronActor::epochTick(actor, vmctx, {}));
+  EXPECT_CALL(runtime, getMessage())
+      .WillOnce(testing::Return(message_wrong_sender));
+  EXPECT_OUTCOME_FALSE(err, actor::CronActor::epochTick(actor, runtime, {}));
   ASSERT_EQ(err, actor::CronActor::WRONG_CALL);
 }
 
@@ -33,15 +38,16 @@ TEST(CronActorTest, WrongSender) {
  * @then success
  */
 TEST(CronActorTest, Correct) {
-  Message message{actor::kCronAddress};
-  MockVMContext vmctx;
+  auto message = std::make_shared<UnsignedMessage>(
+      UnsignedMessage{actor::kInitAddress, actor::kCronAddress});
+  MockRuntime runtime;
   actor::Actor actor;
-  EXPECT_CALL(vmctx, message()).WillRepeatedly(testing::Return(message));
-  EXPECT_CALL(vmctx,
+  EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
+  EXPECT_CALL(runtime,
               send(actor::kStoragePowerAddress,
-                   actor::SpaMethods::CHECK_PROOF_SUBMISSIONS,
-                   actor::BigInt(0),
-                   std::vector<uint8_t>()))
-      .WillRepeatedly(testing::Return(fc::outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(actor::CronActor::epochTick(actor, vmctx, {}));
+                   MethodNumber{actor::SpaMethods::CHECK_PROOF_SUBMISSIONS},
+                   MethodParams{},
+                   actor::BigInt(0)))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_OUTCOME_TRUE_1(actor::CronActor::epochTick(actor, runtime, {}));
 }
