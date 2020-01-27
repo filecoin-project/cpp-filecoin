@@ -28,7 +28,15 @@ namespace fc::blockchain::message_pool {
     gsl::span<SignedMessage> getTopScored(size_t n) const override;
 
    private:
-//    std::set<> messages;
+//    using std::function<bool(const SignedMessage &, const SignedMessage &)>
+//        Comparator;
+//
+//    Comparator compFunctor = [](const SignedMessage &lhs,
+//                                const SignedMessage &rhs) {
+//      //      return (lhs.message.gasPrice < rhs.message.gasPrice);
+//    };
+
+    //    std::set<SignedMessage, > messages;
   };
 
 }  // namespace fc::blockchain::message_pool
