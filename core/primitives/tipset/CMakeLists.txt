@@ -7,6 +7,7 @@ add_library(tipset
     )
 target_link_libraries(tipset
     address
+    block
     buffer
     cbor
     cid

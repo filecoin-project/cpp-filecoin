@@ -19,14 +19,29 @@ namespace fc::primitives::tipset {
 
     /**
      * @brief makes human-readable representation
+     * it is not the same as lotus implementation for now
      */
     std::string toPrettyString() const;
 
     /**
      * @brief encodes tipsetkey to a vector suitable for usage as key
      */
-    outcome::result<std::vector<uint8_t>> toVector() const;
+    outcome::result<std::vector<uint8_t>> toBytes() const;
   };
+
+  /**
+   * @brief compares 2 tipsets
+   * @param lhs first tipset
+   * @param rhs second tipset
+   * @return true if equal, false otherwise
+   */
+  inline bool operator==(const TipsetKey &lhs, const TipsetKey &rhs) {
+    return lhs.cids == rhs.cids;
+  }
+
+  inline bool operator!=(const TipsetKey &lhs, const TipsetKey &rhs) {
+    return !(lhs.cids == rhs.cids);
+  }
 
 }  // namespace fc::primitives::tipset
 

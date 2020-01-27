@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "testutil/cbor.hpp"
+#include "common/hexutil.hpp"
 
 /**
  * @given block header and its serialized representation from go

@@ -18,6 +18,11 @@ namespace fc {
   outcome::result<std::string> CID::toString() const {
     return libp2p::multi::ContentIdentifierCodec::toString(*this);
   }
+
+  outcome::result<std::vector<uint8_t>> CID::toBytes() const {
+    return libp2p::multi::ContentIdentifierCodec::encode(*this);
+  }
+
 }  // namespace fc
 
 namespace fc::common {

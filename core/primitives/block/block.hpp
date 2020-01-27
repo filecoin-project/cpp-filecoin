@@ -8,14 +8,14 @@
 #include "primitives/ticket/epost_ticket_codec.hpp"
 #include "primitives/ticket/ticket.hpp"
 #include "primitives/ticket/ticket_codec.hpp"
+#include "crypto/signature/signature.hpp"
 
 namespace fc::primitives::block {
   using primitives::BigInt;
   using primitives::address::Address;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
-
-  // TODO(turuslan): FIL-72 signature
+  // TODO (yuraz) : FIL-142 replace by crypto::signature::Signature
   using Signature = std::vector<uint8_t>;
 
   struct BlockHeader {

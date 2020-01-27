@@ -17,8 +17,10 @@ namespace fc::primitives::tipset {
 
     std::string result = "{";
     auto size = cids.size();
-    for (size_t i = 0; i < cids.size(); ++i) {
-      result += cids[0].toPrettyString("");
+    for (size_t i = 0; i < size; ++i) {
+      // TODO (yuraz): FIL-133 use CID::toString()
+      //  after it is implemented for CID V1
+      result += cids[i].toPrettyString("");
       if (i != size - 1) {
         result += ", ";
       }
@@ -28,10 +30,10 @@ namespace fc::primitives::tipset {
     return result;
   }
 
-  outcome::result<std::vector<uint8_t>> TipsetKey::toVector() const {
+  outcome::result<std::vector<uint8_t>> TipsetKey::toBytes() const {
     std::vector<uint8_t> buffer{};
     for (auto &c : cids) {
-      OUTCOME_TRY(v, c.toString());
+      OUTCOME_TRY(v, c.toBytes());
       buffer.insert(buffer.end(), v.begin(), v.end());
     }
 

@@ -7,5 +7,6 @@ add_library(block INTERFACE)
 target_link_libraries(block INTERFACE
     address
     cbor
+    signature
     tickets
     )
