@@ -55,7 +55,8 @@ namespace fc::primitives::tipset {
       items.emplace_back(std::make_pair(std::move(block), cid));
     }
 
-    // if an exception thrown from std::sort, program is terminated
+    // the sort function shouldn't throw exceptions
+    // if an exception is thrown from std::sort, program will be terminated
     std::sort(items.begin(),
               items.end(),
               [logger = common::createLogger("tipset")](
