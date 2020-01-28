@@ -5,7 +5,7 @@
 
 add_library(message_pool
     impl/gas_price_scored_message_storage.cpp
-    )
+    impl/message_pool_error.cpp)
 target_link_libraries(message_pool
     outcome
     message

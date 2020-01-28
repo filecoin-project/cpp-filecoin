@@ -20,26 +20,28 @@ namespace fc::blockchain::message_pool {
    */
   class MessageStorage {
    public:
+    virtual ~MessageStorage() = default;
+
     /**
      * Add message
      * @param message - message to add
      * @return error code in case of error, or nothing otherwise
      */
-    virtual outcome::result<void> put(SignedMessage message) = 0;
+    virtual outcome::result<void> put(const SignedMessage &message) = 0;
 
     /**
      * Remove message
      * @param message - message to remove
      * @return error code in case of error, or nothing otherwise
      */
-    virtual outcome::result<void> remove(SignedMessage message) = 0;
+    virtual void remove(const SignedMessage &message) = 0;
 
     /**
      * Get N top scored messages
      * @param n - how many messages return
      * @return no more than N top scored messages present in cache
      */
-    virtual gsl::span<SignedMessage> getTopScored(size_t n) const = 0;
+    virtual std::vector<SignedMessage> getTopScored(size_t n) const = 0;
   };
 
 }  // namespace fc::blockchain::message_pool
