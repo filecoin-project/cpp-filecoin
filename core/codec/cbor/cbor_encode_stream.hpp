@@ -53,12 +53,24 @@ namespace fc::codec::cbor {
 
     /// Encodes elements into list
     template <typename T>
-    CborEncodeStream &operator<<(const std::vector<T> &values) {
+    CborEncodeStream &operator<<(const gsl::span<T> &values) {
       auto l = list();
       for (auto &value : values) {
         l << value;
       }
       return *this << l;
+    }
+
+    /// Encodes vector into list
+    template <typename T>
+    CborEncodeStream &operator<<(const std::vector<T> &values) {
+      return *this << gsl::make_span(values);
+    }
+
+    /// Encodes array into list
+    template <class T, size_t size>
+    CborEncodeStream &operator<<(const std::array<T, size> &values) {
+      return *this << gsl::make_span(values);
     }
 
     /** Encodes bytes */

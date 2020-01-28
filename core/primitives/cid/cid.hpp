@@ -23,6 +23,17 @@ namespace fc {
      */
     CID();
     CID(const ContentIdentifier &cid);
+    /**
+     * @brief string-encodes cid
+     * @return encoded value or error
+     */
+    outcome::result<std::string> toString() const;
+
+    /**
+     * @brief encodes CID to bytes
+     * @return byte-representation of CID
+     */
+    outcome::result<std::vector<uint8_t>> toBytes() const;
   };
 }  // namespace fc
 

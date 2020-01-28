@@ -5,6 +5,7 @@
 
 #include "primitives/cid/cid.hpp"
 
+#include <libp2p/multi/content_identifier_codec.hpp>
 #include "crypto/blake2/blake2b160.hpp"
 
 namespace fc {
@@ -13,6 +14,15 @@ namespace fc {
           {}, {}, libp2p::multi::Multihash::create({}, {}).value()) {}
 
   CID::CID(const ContentIdentifier &cid) : ContentIdentifier(cid) {}
+
+  outcome::result<std::string> CID::toString() const {
+    return libp2p::multi::ContentIdentifierCodec::toString(*this);
+  }
+
+  outcome::result<std::vector<uint8_t>> CID::toBytes() const {
+    return libp2p::multi::ContentIdentifierCodec::encode(*this);
+  }
+
 }  // namespace fc
 
 namespace fc::common {

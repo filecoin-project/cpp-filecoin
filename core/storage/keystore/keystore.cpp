@@ -36,7 +36,7 @@ fc::outcome::result<bool> KeyStore::checkAddress(
   }
   if (address.getProtocol() == Protocol::SECP256K1) {
     OUTCOME_TRY(public_key,
-                secp256k1_provider_->derivePublicKey(
+                secp256k1_provider_->derive(
                     boost::get<Secp256k1PrivateKey>(private_key)));
     return address_verifier_->verifySyntax(address, public_key);
   }
@@ -91,7 +91,7 @@ fc::outcome::result<bool> KeyStore::verify(const Address &address,
         if (address.getProtocol() != Protocol::SECP256K1)
           return KeyStoreError::WRONG_SIGNATURE;
         OUTCOME_TRY(public_key,
-                    secp256k1_provider_->derivePublicKey(
+                    secp256k1_provider_->derive(
                         boost::get<Secp256k1PrivateKey>(private_key)));
         return secp256k1_provider_->verify(
             data, secp256k1_signature, public_key);
