@@ -49,7 +49,7 @@ jobs:
           sudo apt-get install -y ninja-build
         fi
 
-        sudo python3 -m pip install --upgrade pip
+        pip3 -V || sudo python3 -m pip install --upgrade pip
         sudo pip3 install scikit-build cmake requests gitpython gcovr pyyaml
         sudo curl https://sh.rustup.rs -sSf | sh -s -- -y
     - name: cmake

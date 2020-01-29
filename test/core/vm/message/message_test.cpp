@@ -92,7 +92,7 @@ Address addKeyGetAddress(
         auto address =
             address_builder
                 ->makeFromSecp256k1PublicKey(
-                    Network::TESTNET, p->derivePublicKey(private_key).value())
+                    Network::TESTNET, p->derive(private_key).value())
                 .value();
         keystore->put(address, private_key).value();
         return address;

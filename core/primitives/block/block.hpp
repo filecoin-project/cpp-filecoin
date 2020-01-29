@@ -8,14 +8,14 @@
 #include "primitives/ticket/epost_ticket_codec.hpp"
 #include "primitives/ticket/ticket.hpp"
 #include "primitives/ticket/ticket_codec.hpp"
+#include "crypto/signature/signature.hpp"
 
 namespace fc::primitives::block {
   using primitives::BigInt;
   using primitives::address::Address;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
-
-  // TODO(turuslan): FIL-72 signature
+  // TODO (yuraz) : FIL-142 replace by crypto::signature::Signature
   using Signature = std::vector<uint8_t>;
 
   struct BlockHeader {
@@ -31,7 +31,20 @@ namespace fc::primitives::block {
     Signature bls_aggregate;
     uint64_t timestamp;
     boost::optional<Signature> block_sig;
+    uint64_t fork_signaling;
   };
+
+  inline bool operator==(const BlockHeader &lhs, const BlockHeader &rhs) {
+    return lhs.miner == rhs.miner && lhs.ticket == rhs.ticket
+           && lhs.epost_proof == rhs.epost_proof && lhs.parents == rhs.parents
+           && lhs.parent_weight == rhs.parent_weight && lhs.height == rhs.height
+           && lhs.parent_state_root == rhs.parent_state_root
+           && lhs.parent_message_receipts == rhs.parent_message_receipts
+           && lhs.messages == rhs.messages
+           && lhs.bls_aggregate == rhs.bls_aggregate
+           && lhs.timestamp == rhs.timestamp && lhs.block_sig == rhs.block_sig
+           && lhs.fork_signaling == rhs.fork_signaling;
+  }
 
   template <class Stream,
             typename = std::enable_if_t<
@@ -42,7 +55,7 @@ namespace fc::primitives::block {
                           << block.height << block.parent_state_root
                           << block.parent_message_receipts << block.messages
                           << block.bls_aggregate << block.timestamp
-                          << block.block_sig);
+                          << block.block_sig << block.fork_signaling);
   }
 
   template <class Stream,
@@ -53,7 +66,7 @@ namespace fc::primitives::block {
         >> block.parents >> block.parent_weight >> block.height
         >> block.parent_state_root >> block.parent_message_receipts
         >> block.messages >> block.bls_aggregate >> block.timestamp
-        >> block.block_sig;
+        >> block.block_sig >> block.fork_signaling;
     return s;
   }
 }  // namespace fc::primitives::block

@@ -18,9 +18,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::address, AddressError, e) {
     case (AddressError::UNKNOWN_NETWORK):
       return "Failed to create address: network must either be MAINNET or "
              "TESTNET";
-    default:
-      return "Failed to create address: unknown error";
-  };
+  }
+  return "Failed to create address: unknown error";
 }
 
 namespace fc::primitives::address {

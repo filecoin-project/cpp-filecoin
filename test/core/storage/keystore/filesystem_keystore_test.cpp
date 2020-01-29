@@ -73,7 +73,7 @@ class FileSystemKeyStoreTest : public test::BaseFS_Test {
 
     secp256k1_provider_ = std::make_shared<Secp256k1ProviderImpl>();
     secp256k1_keypair_ = std::make_shared<Secp256k1KeyPair>(
-        secp256k1_provider_->generateKeyPair().value());
+        secp256k1_provider_->generate().value());
 
     secp256k1_address_ =
         addressBuilder
@@ -282,7 +282,7 @@ TEST_F(FileSystemKeyStoreTest, WrongSecp256k1Signature) {
   EXPECT_OUTCOME_TRUE_1(
       ks->put(secp256k1_address_, secp256k1_keypair_->private_key));
 
-  EXPECT_OUTCOME_TRUE(other_keypair, secp256k1_provider_->generateKeyPair());
+  EXPECT_OUTCOME_TRUE(other_keypair, secp256k1_provider_->generate());
   EXPECT_OUTCOME_TRUE(
       wrong_signature,
       secp256k1_provider_->sign(data_, other_keypair.private_key));
