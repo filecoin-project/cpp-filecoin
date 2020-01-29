@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(builtin)
+
 add_library(actor
     account_actor.cpp
     actor.cpp

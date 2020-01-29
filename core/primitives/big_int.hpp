@@ -29,6 +29,18 @@ namespace fc::primitives {
     return static_cast<cpp_int>(lhs) * static_cast<cpp_int>(rhs);
   }
 
+  static inline BigInt operator*(const BigInt &rhs, unsigned long long lhs) {
+    return static_cast<cpp_int>(lhs) * static_cast<cpp_int>(rhs);
+  }
+
+  static inline BigInt operator/(const BigInt &lhs, const BigInt &rhs) {
+    return static_cast<cpp_int>(lhs) / static_cast<cpp_int>(rhs);
+  }
+
+  static inline BigInt operator/(const BigInt  &lhs, const unsigned long &rhs) {
+    return static_cast<cpp_int>(lhs) / static_cast<cpp_int>(rhs);
+  }
+
   static inline BigInt operator+(const BigInt &lhs, const BigInt &rhs) {
     return static_cast<cpp_int>(lhs) + static_cast<cpp_int>(rhs);
   }
@@ -57,6 +69,10 @@ namespace fc::primitives {
     return static_cast<cpp_int>(lhs) < static_cast<cpp_int>(rhs);
   }
 
+  static inline bool operator<(const BigInt &lhs, unsigned long long rhs) {
+    return static_cast<cpp_int>(lhs) < rhs;
+  }
+
   static inline bool operator<(const BigInt &lhs, int rhs) {
     return static_cast<cpp_int>(lhs) < rhs;
   }
@@ -67,6 +83,14 @@ namespace fc::primitives {
 
   static inline bool operator==(const BigInt &lhs, int rhs) {
     return static_cast<cpp_int>(lhs) == rhs;
+  }
+
+  static inline bool operator==(const UBigInt &lhs, const UBigInt &rhs) {
+    return static_cast<cpp_int>(lhs) == static_cast<cpp_int>(rhs);
+  }
+
+  static inline bool operator==(const UBigInt &lhs, int rhs) {
+    return static_cast<cpp_int>(lhs) == static_cast<cpp_int>(rhs);
   }
 
   template <class Stream,
@@ -85,13 +109,12 @@ namespace fc::primitives {
     return s << bytes;
   }
 
-  template <
-      class Stream,
-      class T,
-      typename = std::enable_if_t<
-          (std::is_same_v<T, BigInt> || std::is_same_v<T, UBigInt>)&&Stream::
-              is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &s, T &big_int) {
+  template <class Stream,
+            class T,
+            typename = std::enable_if_t<
+                (std::is_same_v<T, BigInt> || std::is_same_v<T, UBigInt>)&&std::
+                    remove_reference_t<Stream>::is_cbor_decoder_stream>>
+  Stream &operator>>(Stream &&s, T &big_int) {
     std::vector<uint8_t> bytes;
     s >> bytes;
     if (bytes.empty()) {

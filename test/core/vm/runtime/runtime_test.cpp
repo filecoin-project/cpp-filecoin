@@ -123,7 +123,8 @@ TEST_F(RuntimeTest, getBalanceError) {
   EXPECT_CALL(*state_tree_, get(Eq(not_found_address)))
       .WillOnce(testing::Return(fc::outcome::failure(HamtError::MAX_DEPTH)));
 
-  EXPECT_OUTCOME_ERROR(HamtError::MAX_DEPTH, runtime_->getBalance(not_found_address));
+  EXPECT_OUTCOME_ERROR(HamtError::MAX_DEPTH,
+                       runtime_->getBalance(not_found_address));
 }
 
 /**

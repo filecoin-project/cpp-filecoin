@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(builtin)
+
 addtest(actor_test
     actor_test.cpp
     )

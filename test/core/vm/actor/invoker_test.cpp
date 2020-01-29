@@ -12,6 +12,7 @@
 #include "vm/actor/cron_actor.hpp"
 
 using fc::vm::VMExitCode;
+using fc::vm::actor::MethodParams;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MockRuntime;
 
@@ -45,8 +46,8 @@ TEST(InvokerTest, DecodeActorParams) {
 
   // 80 is cbor empty list, not int
   EXPECT_OUTCOME_ERROR(fc::vm::actor::DECODE_ACTOR_PARAMS_ERROR,
-                       decodeActorParams<int>("80"_unhex));
-  EXPECT_OUTCOME_EQ(decodeActorParams<int>("03"_unhex), 3);
+                       decodeActorParams<int>(MethodParams{"80"_unhex}));
+  EXPECT_OUTCOME_EQ(decodeActorParams<int>(MethodParams{"03"_unhex}), 3);
 }
 
 /// encodeActorParams returns error or encoded params
@@ -55,5 +56,5 @@ TEST(InvokerTest, EncodeActorParams) {
 
   EXPECT_OUTCOME_ERROR(fc::vm::actor::ENCODE_ACTOR_PARAMS_ERROR,
                        encodeActorParams(fc::CID()));
-  EXPECT_OUTCOME_EQ(encodeActorParams(3), "03"_unhex);
+  EXPECT_OUTCOME_EQ(encodeActorParams(3), MethodParams{"03"_unhex});
 }

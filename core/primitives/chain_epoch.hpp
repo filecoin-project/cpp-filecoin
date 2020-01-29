@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_PRIMITIVES_CHAIN_EPOCH_HPP
 
 #include "libp2p/multi/uvarint.hpp"
+#include "primitives/big_int.hpp"
 
 namespace fc::primitives {
 
@@ -15,6 +16,8 @@ namespace fc::primitives {
    * acts as a proxy for time within the VM
    */
   using ChainEpoch = libp2p::multi::UVarint;
+
+  using EpochDuration = BigInt;
 
 }  // namespace fc::primitives
 

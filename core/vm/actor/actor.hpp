@@ -119,6 +119,9 @@ namespace fc::vm::actor {
   /** Check if only one instance of actor should exists */
   bool isSingletonActor(const CodeId &code);
 
+  /** Check if actor code can represent external signing parties */
+  bool isSignableActor(const CodeId &code);
+
   extern const CID kEmptyObjectCid;
 
   extern const CodeId kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
