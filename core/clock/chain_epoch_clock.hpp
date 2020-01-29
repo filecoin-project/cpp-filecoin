@@ -7,13 +7,12 @@
 #define CPP_FILECOIN_CORE_CLOCK_CHAIN_EPOCH_CLOCK_HPP
 
 #include "clock/time.hpp"
-
-#include "libp2p/multi/uvarint.hpp"
+#include "primitives/chain_epoch.hpp"
 
 namespace fc::clock {
   enum class EpochAtTimeError { BEFORE_GENESIS = 1 };
 
-  using ChainEpoch = libp2p::multi::UVarint;
+  using primitives::ChainEpoch;
 
   /**
    * Converts UTC time to epoch number

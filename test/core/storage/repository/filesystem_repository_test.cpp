@@ -15,7 +15,7 @@
 
 using fc::CID;
 using fc::common::Buffer;
-using fc::crypto::bls::impl::BlsProviderImpl;
+using fc::crypto::bls::BlsProviderImpl;
 using fc::primitives::address::AddressBuilderImpl;
 using fc::storage::repository::FileSystemRepository;
 using fc::storage::repository::Repository;

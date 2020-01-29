@@ -19,7 +19,7 @@ namespace fc::crypto::randomness {
 
     Randomness deriveRandomness(DomainSeparationTag tag,
                                 Serialization s,
-                                ChainEpoch index) override;
+                                const ChainEpoch &index) override;
 
     int randomInt(const Randomness &randomness,
                   size_t nonce,
@@ -28,7 +28,7 @@ namespace fc::crypto::randomness {
    private:
     Randomness deriveRandomnessInternal(DomainSeparationTag tag,
                                         Serialization s,
-                                        ChainEpoch index);
+                                        const ChainEpoch &index);
   };
 
 }  // namespace fc::crypto::randomness

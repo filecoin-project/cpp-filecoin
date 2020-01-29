@@ -16,7 +16,7 @@
 #include "testutil/outcome.hpp"
 
 using fc::crypto::bls::BlsProvider;
-using fc::crypto::bls::impl::BlsProviderImpl;
+using fc::crypto::bls::BlsProviderImpl;
 using fc::primitives::address::Address;
 using fc::primitives::address::AddressBuilderImpl;
 using fc::primitives::address::AddressVerifier;

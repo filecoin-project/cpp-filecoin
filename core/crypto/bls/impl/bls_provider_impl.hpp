@@ -8,7 +8,7 @@
 
 #include "crypto/bls/bls_provider.hpp"
 
-namespace fc::crypto::bls::impl {
+namespace fc::crypto::bls {
   class BlsProviderImpl : public BlsProvider {
    public:
     outcome::result<KeyPair> generateKeyPair() const override;
@@ -32,6 +32,6 @@ namespace fc::crypto::bls::impl {
     static outcome::result<Digest> generateHash(
         gsl::span<const uint8_t> message);
   };
-}  // namespace fc::crypto::bls::impl
+}  // namespace fc::crypto::bls
 
 #endif
