@@ -11,7 +11,7 @@
 #include <gtest/gtest.h>
 #include "testutil/outcome.hpp"
 
-using fc::crypto::bls::impl::BlsProviderImpl;
+using fc::crypto::bls::BlsProviderImpl;
 using fc::crypto::bls::KeyPair;
 using fc::crypto::bls::PrivateKey;
 using fc::crypto::bls::PublicKey;

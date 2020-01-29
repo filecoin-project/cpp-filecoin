@@ -15,7 +15,7 @@
 #include "storage/keystore/impl/filesystem/filesystem_keystore.hpp"
 #include "storage/repository/repository_error.hpp"
 
-using fc::crypto::bls::impl::BlsProviderImpl;
+using fc::crypto::bls::BlsProviderImpl;
 using fc::primitives::address::AddressVerifierImpl;
 using fc::storage::ipfs::LeveldbDatastore;
 using fc::storage::keystore::FileSystemKeyStore;

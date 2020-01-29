@@ -10,6 +10,7 @@
 #include "common/buffer.hpp"
 
 namespace fc::crypto::randomness {
+
   /// @brief randomness value type
   using Randomness = common::Hash256;
 
@@ -23,8 +24,6 @@ namespace fc::crypto::randomness {
     PoStDST = 3
   };
 
-  /// @brief epoch index type represents a round of a blockchain protocol
-  using ChainEpoch = size_t;
 }  // namespace fc::crypto::randomness
 
 #endif  // CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_RANDOMNESS_HPP

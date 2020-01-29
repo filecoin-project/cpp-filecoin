@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/randomness/impl/randomness_provider.hpp"
+#include "crypto/randomness/impl/randomness_provider_imp.hpp"
 
 #include <gtest/gtest.h>
 
@@ -66,7 +66,7 @@ TEST_P(RandomnessProviderTest, DeriveRandomnessSuccess) {
 TEST_P(RandomnessProviderTest, TwoParamsMethodSuccess) {
   auto &&[tag, s, index, result] = GetParam();
   auto &&res1 = randomness_provider->deriveRandomness(tag, s);
-  auto &&res2 = randomness_provider->deriveRandomness(tag, s, -1);
+  auto &&res2 = randomness_provider->deriveRandomness(tag, s, ChainEpoch(-1));
   ASSERT_EQ(res1, res2);
 }
 
@@ -103,7 +103,7 @@ struct RandomnessProviderValuesTest : public RandomnessProviderBaseTest,
   Randomness generateRandomnessValue() {
     auto tag = static_cast<DomainSeparationTag>(getRandomByte() % 3 + 1);
     Serialization s{random_generator->randomBytes(buffer_size)};
-    ChainEpoch index = getRandomByte() % 100;
+    ChainEpoch index(getRandomByte() % 100);
 
     return randomness_provider->deriveRandomness(tag, s, index);
   }

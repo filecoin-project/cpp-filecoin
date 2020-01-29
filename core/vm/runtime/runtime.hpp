@@ -11,6 +11,7 @@
 #include "common/outcome.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
+#include "primitives/chain_epoch.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -25,12 +26,12 @@ namespace fc::vm::runtime {
   using actor::MethodNumber;
   using actor::MethodParams;
   using common::Buffer;
+  using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using exit_code::ExitCode;
-  using fc::crypto::randomness::ChainEpoch;
-  using fc::crypto::randomness::DomainSeparationTag;
   using indices::Indices;
   using message::UnsignedMessage;
+  using primitives::ChainEpoch;
   using primitives::address::Address;
   using storage::ipfs::IpfsDatastore;
   using Serialization = Buffer;

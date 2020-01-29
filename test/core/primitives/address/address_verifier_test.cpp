@@ -17,7 +17,7 @@
 
 using fc::crypto::blake2b::blake2b_160;
 using fc::crypto::bls::BlsProvider;
-using fc::crypto::bls::impl::BlsProviderImpl;
+using fc::crypto::bls::BlsProviderImpl;
 using fc::primitives::address::Address;
 using fc::primitives::address::AddressBuilder;
 using fc::primitives::address::AddressBuilderImpl;

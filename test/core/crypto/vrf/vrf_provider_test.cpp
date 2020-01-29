@@ -14,7 +14,7 @@
 using fc::common::Blob;
 using fc::common::Buffer;
 using fc::crypto::bls::BlsProvider;
-using fc::crypto::bls::impl::BlsProviderImpl;
+using fc::crypto::bls::BlsProviderImpl;
 using fc::crypto::randomness::DomainSeparationTag;
 using fc::crypto::vrf::VRFHash;
 using fc::crypto::vrf::VRFParams;

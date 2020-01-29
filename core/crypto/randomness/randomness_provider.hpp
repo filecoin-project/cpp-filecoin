@@ -7,8 +7,12 @@
 #define CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_RANDOMNESS_PROVIDER_HPP
 
 #include "crypto/randomness/randomness_types.hpp"
+#include "primitives/chain_epoch.hpp"
 
 namespace fc::crypto::randomness {
+
+  using primitives::ChainEpoch;
+
   /**
    * @class RandomnessProvider provides 2 methods for drawing randomness value
    */
@@ -34,7 +38,7 @@ namespace fc::crypto::randomness {
      */
     virtual Randomness deriveRandomness(DomainSeparationTag tag,
                                         Serialization s,
-                                        ChainEpoch index) = 0;
+                                        const ChainEpoch &index) = 0;
 
     /**
      * @brief get random int value

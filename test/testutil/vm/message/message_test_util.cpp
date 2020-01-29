@@ -8,7 +8,7 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "vm/message/message_util.hpp"
 
-using fc::crypto::bls::impl::BlsProviderImpl;
+using fc::crypto::bls::BlsProviderImpl;
 using fc::vm::message::cid;
 
 fc::outcome::result<SignedMessage> signMessageBls(
