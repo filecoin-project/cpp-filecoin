@@ -50,7 +50,7 @@ RuntimeImpl::RuntimeImpl(
       indices_{std::move(indices)},
       invoker_{std::move(invoker)},
       message_{std::move(message)},
-      chain_epoch_{chain_epoch},
+      chain_epoch_{std::move(chain_epoch)},
       immediate_caller_{std::move(immediate_caller)},
       block_miner_{std::move(block_miner)},
       gas_available_{std::move(gas_available)},

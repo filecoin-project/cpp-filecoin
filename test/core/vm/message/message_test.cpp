@@ -19,7 +19,7 @@
 #include "vm/message/message_util.hpp"
 
 using fc::crypto::bls::BlsProvider;
-using fc::crypto::bls::impl::BlsProviderImpl;
+using fc::crypto::bls::BlsProviderImpl;
 using BlsPrivateKey = fc::crypto::bls::PrivateKey;
 using BlsPublicKey = fc::crypto::bls::PublicKey;
 using fc::crypto::secp256k1::Secp256k1Provider;

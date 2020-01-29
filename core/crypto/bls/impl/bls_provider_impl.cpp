@@ -7,7 +7,7 @@
 
 #include <gsl/gsl_util>
 
-namespace fc::crypto::bls::impl {
+namespace fc::crypto::bls {
   outcome::result<KeyPair> BlsProviderImpl::generateKeyPair() const {
     KeyPair key_pair{};
     PrivateKeyGenerateResponse *private_key_response = private_key_generate();

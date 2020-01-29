@@ -18,7 +18,7 @@ namespace fc::crypto::randomness {
     MOCK_METHOD3(deriveRandomness,
                  Randomness(DomainSeparationTag tag,
                             Serialization s,
-                            ChainEpoch index));
+                            const ChainEpoch &index));
     MOCK_METHOD3(randomInt,
                  int(const Randomness &randomness, size_t nonce, size_t limit));
   };

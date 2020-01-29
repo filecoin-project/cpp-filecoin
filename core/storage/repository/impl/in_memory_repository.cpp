@@ -11,7 +11,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 
-using fc::crypto::bls::impl::BlsProviderImpl;
+using fc::crypto::bls::BlsProviderImpl;
 using fc::primitives::address::AddressVerifierImpl;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::storage::keystore::InMemoryKeyStore;
