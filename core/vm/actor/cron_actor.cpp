@@ -6,15 +6,8 @@
 #include "vm/actor/cron_actor.hpp"
 
 namespace fc::vm::actor {
-
-  using vm::actor::MethodNumber;
-  using vm::runtime::InvocationOutput;
-  using vm::runtime::Runtime;
-
-  constexpr MethodNumber kEpochTickMethodNumber{2};
-
   std::vector<CronTableEntry> CronActor::entries = {
-      {kStoragePowerAddress, SpaMethods::CHECK_PROOF_SUBMISSIONS}};
+      {kStoragePowerAddress, {SpaMethods::CHECK_PROOF_SUBMISSIONS}}};
 
   outcome::result<InvocationOutput> CronActor::epochTick(
       const Actor &actor, Runtime &runtime, const MethodParams &params) {
@@ -29,6 +22,6 @@ namespace fc::vm::actor {
   }
 
   ActorExports CronActor::exports = {
-      {kEpochTickMethodNumber, ActorMethod(CronActor::epochTick)},
+      {CronActor::kEpochTickMethodNumber, ActorMethod(CronActor::epochTick)},
   };
 }  // namespace fc::vm::actor

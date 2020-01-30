@@ -10,16 +10,13 @@
 #include "vm/actor/storage_power_actor.hpp"
 
 namespace fc::vm::actor {
-
-  using runtime::InvocationOutput;
-  using runtime::Runtime;
-
   struct CronTableEntry {
     Address to_addr;
     MethodNumber method_num{};
   };
 
   struct CronActor {
+    static constexpr MethodNumber kEpochTickMethodNumber{2};
     static constexpr VMExitCode WRONG_CALL{1};
 
     /**

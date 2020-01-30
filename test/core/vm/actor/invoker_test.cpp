@@ -36,7 +36,7 @@ TEST(InvokerTest, InvokeCron) {
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_OUTCOME_ERROR(
       CronActor::WRONG_CALL,
-      invoker.invoke({kCronCodeCid}, runtime, MethodNumber{2}, {}));
+      invoker.invoke({kCronCodeCid}, runtime, CronActor::kEpochTickMethodNumber, {}));
 }
 
 /// decodeActorParams returns error or decoded params
