@@ -62,13 +62,31 @@ namespace fc::primitives::address {
     return {network, BLSPublicKeyHash{public_key}};
   }
 
-  Address Address::makeActorExecAddress(gsl::span<const uint8_t> data) {
-    // TODO(turuslan): FIL-118 remove hardcoded TESTNET
-    return {TESTNET, ActorExecHash{blake2b_160(data).value()}};
+  bool Address::verifySyntax(gsl::span<const uint8_t> seed_data) const {
+    return visit_in_place(
+        data,
+        [](uint64_t v) { return true; },
+        [&seed_data](const Secp256k1PublicKeyHash &v) {
+          if (seed_data.size() != libp2p::crypto::secp256k1::kPublicKeyLength) {
+            return false;
+          }
+          auto hash = blake2b_160(seed_data);
+          return std::equal(v.begin(), v.end(), hash.begin());
+        },
+        [&seed_data](const ActorExecHash &v) {
+          auto hash = blake2b_160(seed_data);
+          return std::equal(v.begin(), v.end(), hash.begin());
+        },
+        [&seed_data](const BLSPublicKeyHash &v) {
+          if (seed_data.size() != std::tuple_size<BlsPublicKey>::value) {
+            return false;
+          }
+          return std::equal(v.begin(), v.end(), seed_data.begin());
+        });
   }
 
   bool operator==(const Address &lhs, const Address &rhs) {
-    return lhs.network == rhs.network && lhs.getProtocol() == rhs.getProtocol()
+    return lhs.network == rhs.network
            && lhs.data == rhs.data;
   }
 

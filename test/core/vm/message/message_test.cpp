@@ -9,7 +9,6 @@
 
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
-#include "primitives/address/impl/address_verifier_impl.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
@@ -29,8 +28,6 @@ using fc::crypto::signature::Signature;
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
-using fc::primitives::address::AddressVerifier;
-using fc::primitives::address::AddressVerifierImpl;
 using fc::primitives::address::Network;
 
 using fc::storage::keystore::InMemoryKeyStore;
@@ -94,7 +91,6 @@ struct MessageTest : public testing::Test {
 
   std::shared_ptr<BlsProvider> bls_provider;
   std::shared_ptr<Secp256k1Provider> secp256k1_provider;
-  std::shared_ptr<AddressVerifier> address_verifier;
 
   std::shared_ptr<KeyStore> keystore;
   std::shared_ptr<MessageSigner> msigner;
@@ -102,10 +98,9 @@ struct MessageTest : public testing::Test {
   void SetUp() override {
     bls_provider = std::make_shared<BlsProviderImpl>();
     secp256k1_provider = std::make_shared<Secp256k1ProviderImpl>();
-    address_verifier = std::make_shared<AddressVerifierImpl>();
 
-    keystore = std::make_shared<InMemoryKeyStore>(
-        bls_provider, secp256k1_provider, address_verifier);
+    keystore =
+        std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
 
     bls = addKeyGetAddress(
         "8e8c5263df0022d8e29cab943d57d851722c38ee1dbe7f8c29c0498156496f29"_blob32,

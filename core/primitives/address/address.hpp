@@ -84,7 +84,7 @@ namespace fc::primitives::address {
     static Address makeBls(const BlsPublicKey &public_key,
                            Network network = kDefaultNetwork);
 
-    static Address makeActorExecAddress(gsl::span<const uint8_t> data);
+    bool verifySyntax(gsl::span<const uint8_t> seed_data) const;
 
     Network network;
     Payload data;
