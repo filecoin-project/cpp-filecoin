@@ -15,6 +15,40 @@ namespace fc {
 
   CID::CID(const ContentIdentifier &cid) : ContentIdentifier(cid) {}
 
+  CID::CID(ContentIdentifier &&cid) noexcept
+      : ContentIdentifier(
+          cid.version, cid.content_type, std::move(cid.content_address)) {}
+
+  CID::CID(Version version,
+           libp2p::multi::MulticodecType::Code content_type,
+           libp2p::multi::Multihash content_address)
+      : ContentIdentifier(version, content_type, std::move(content_address)) {}
+
+  CID &CID::operator=(CID &&cid) noexcept {
+    version = cid.version;
+    content_type = cid.content_type;
+    content_address = std::move(cid.content_address);
+    return *this;
+  }
+
+  CID &CID::operator=(const ContentIdentifier &cid) {
+    version = cid.version;
+    content_type = cid.content_type;
+    content_address = cid.content_address;
+    return *this;
+  }
+
+  CID::CID(CID &&cid) noexcept
+      : ContentIdentifier(
+          cid.version, cid.content_type, std::move(cid.content_address)) {}
+
+  CID &CID::operator=(ContentIdentifier &&cid) {
+    version = cid.version;
+    content_type = cid.content_type;
+    content_address = std::move(cid.content_address);
+    return *this;
+  }
+
   outcome::result<std::string> CID::toString() const {
     return libp2p::multi::ContentIdentifierCodec::toString(*this);
   }

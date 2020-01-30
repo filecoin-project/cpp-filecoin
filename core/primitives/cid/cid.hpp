@@ -16,13 +16,35 @@ namespace fc {
     using ContentIdentifier::ContentIdentifier;
 
     /**
-     * ContentIdentifier is not default-constructible, but in some cases we need
+     * ContentIdentifier is not default-constructable, but in some cases we need
      * default value. This value can be used to initialize class member or local
      * variable. Trying to CBOR encode this value will yield error, to ensure
      * proper initialization.
      */
     CID();
-    CID(const ContentIdentifier &cid);
+
+    explicit CID(const ContentIdentifier &cid);
+
+    explicit CID(ContentIdentifier &&cid) noexcept;
+
+    CID(CID &&cid) noexcept;
+
+    CID(const CID &cid) = default;
+
+    CID(Version version,
+        libp2p::multi::MulticodecType::Code content_type,
+        libp2p::multi::Multihash content_address);
+
+    ~CID() = default;
+
+    CID &operator=(const CID&) = default;
+
+    CID &operator=(CID &&cid) noexcept;
+
+    CID &operator=(const ContentIdentifier &cid);
+
+    CID &operator=(ContentIdentifier &&cid);
+
     /**
      * @brief string-encodes cid
      * @return encoded value or error

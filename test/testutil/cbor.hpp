@@ -23,9 +23,10 @@ void expectEncodeAndReencode(const T &value,
 }
 
 inline auto operator""_cid(const char *c, size_t s) {
-  return libp2p::multi::ContentIdentifierCodec::decode(
-             fc::common::unhex(std::string_view(c, s)).value())
-      .value();
+  auto cid = libp2p::multi::ContentIdentifierCodec::decode(
+                 fc::common::unhex(std::string_view(c, s)).value())
+                 .value();
+  return fc::CID{std::move(cid)};
 }
 
 #endif  // CPP_FILECOIN_TEST_TESTUTIL_CBOR_HPP
