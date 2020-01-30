@@ -45,7 +45,7 @@ RuntimeImpl::RuntimeImpl(
     Address block_miner,
     BigInt gas_available,
     BigInt gas_used,
-    const ActorSubstateCID &actor_head)
+    ActorSubstateCID actor_head)
     : randomness_provider_{std::move(randomness_provider)},
       datastore_{std::move(datastore)},
       state_tree_{std::move(state_tree)},
@@ -57,7 +57,7 @@ RuntimeImpl::RuntimeImpl(
       block_miner_{std::move(block_miner)},
       gas_available_{std::move(gas_available)},
       gas_used_{std::move(gas_used)},
-      actor_head_{actor_head} {}
+      actor_head_{std::move(actor_head)} {}
 
 ChainEpoch RuntimeImpl::getCurrentEpoch() const {
   return chain_epoch_;

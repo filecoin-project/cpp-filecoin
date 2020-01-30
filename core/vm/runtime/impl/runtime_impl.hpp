@@ -38,7 +38,7 @@ namespace fc::vm::runtime {
                 Address block_miner,
                 BigInt gas_available,
                 BigInt gas_used,
-                const ActorSubstateCID &actor_head);
+                ActorSubstateCID actor_head);
 
     /** \copydoc Runtime::getCurrentEpoch() */
     ChainEpoch getCurrentEpoch() const override;
