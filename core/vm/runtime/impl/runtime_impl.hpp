@@ -37,7 +37,8 @@ namespace fc::vm::runtime {
                 Address immediate_caller,
                 Address block_miner,
                 BigInt gas_available,
-                BigInt gas_used);
+                BigInt gas_used,
+                const ActorSubstateCID &actor_head);
 
     /** \copydoc Runtime::getCurrentEpoch() */
     ChainEpoch getCurrentEpoch() const override;
@@ -97,13 +98,18 @@ namespace fc::vm::runtime {
 
     outcome::result<void> chargeGas(const BigInt &amount) override;
 
+    ActorSubstateCID getHead() override;
+
+    outcome::result<void> commit(const ActorSubstateCID &new_head) override;
+
    private:
     outcome::result<void> transfer(Actor &from,
                                    Actor &to,
                                    const BigInt &amount);
     outcome::result<Actor> getOrCreateActor(const Address &address);
     std::shared_ptr<Runtime> createRuntime(
-        const std::shared_ptr<UnsignedMessage> &message) const;
+        const std::shared_ptr<UnsignedMessage> &message,
+        const ActorSubstateCID &actor_head) const;
 
    private:
     std::shared_ptr<RandomnessProvider> randomness_provider_;
@@ -118,6 +124,7 @@ namespace fc::vm::runtime {
     BigInt gas_price_;
     BigInt gas_available_;
     BigInt gas_used_;
+    ActorSubstateCID actor_head_;
   };
 
 }  // namespace fc::vm::runtime

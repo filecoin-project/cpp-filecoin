@@ -21,6 +21,7 @@ using fc::primitives::address::Protocol;
 using fc::storage::hamt::HamtError;
 using fc::storage::ipfs::IpfsDatastore;
 using fc::vm::actor::Actor;
+using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::CodeId;
 using fc::vm::actor::MethodNumber;
 using fc::vm::indices::Indices;
@@ -43,7 +44,8 @@ RuntimeImpl::RuntimeImpl(
     Address immediate_caller,
     Address block_miner,
     BigInt gas_available,
-    BigInt gas_used)
+    BigInt gas_used,
+    const ActorSubstateCID &actor_head)
     : randomness_provider_{std::move(randomness_provider)},
       datastore_{std::move(datastore)},
       state_tree_{std::move(state_tree)},
@@ -54,7 +56,8 @@ RuntimeImpl::RuntimeImpl(
       immediate_caller_{std::move(immediate_caller)},
       block_miner_{std::move(block_miner)},
       gas_available_{std::move(gas_available)},
-      gas_used_{std::move(gas_used)} {}
+      gas_used_{std::move(gas_used)},
+      actor_head_{actor_head} {}
 
 ChainEpoch RuntimeImpl::getCurrentEpoch() const {
   return chain_epoch_;
@@ -145,7 +148,7 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
     OUTCOME_TRY(chargeGas(kSendTransferFundsGasCost));
     OUTCOME_TRY(transfer(from_actor, to_actor, value));
   }
-  auto runtime = createRuntime(message);
+  auto runtime = createRuntime(message, to_actor.head);
 
   auto res = invoker_->invoke(to_actor, *runtime, method_number, params);
   if (!res) {
@@ -200,6 +203,16 @@ std::shared_ptr<UnsignedMessage> RuntimeImpl::getMessage() {
   return message_;
 }
 
+ActorSubstateCID RuntimeImpl::getHead() {
+  return actor_head_;
+}
+
+fc::outcome::result<void> RuntimeImpl::commit(const ActorSubstateCID &new_head) {
+  OUTCOME_TRY(chargeGas(kCommitGasCost));
+  actor_head_ = new_head;
+  return outcome::success();
+}
+
 fc::outcome::result<void> RuntimeImpl::transfer(Actor &from,
                                                 Actor &to,
                                                 const BigInt &amount) {
@@ -228,7 +241,8 @@ fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
 }
 
 std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
-    const std::shared_ptr<UnsignedMessage> &message) const {
+    const std::shared_ptr<UnsignedMessage> &message,
+    const ActorSubstateCID &actor_head) const {
   return std::make_shared<RuntimeImpl>(randomness_provider_,
                                        datastore_,
                                        state_tree_,
@@ -239,5 +253,6 @@ std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
                                        immediate_caller_,
                                        block_miner_,
                                        gas_available_,
-                                       gas_used_);
+                                       gas_used_,
+                                       actor_head);
 }

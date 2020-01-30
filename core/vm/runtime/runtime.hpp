@@ -134,6 +134,10 @@ namespace fc::vm::runtime {
     virtual std::shared_ptr<UnsignedMessage> getMessage() = 0;
 
     virtual outcome::result<void> chargeGas(const BigInt &amount) = 0;
+
+    virtual ActorSubstateCID getHead() = 0;
+
+    virtual outcome::result<void> commit(const ActorSubstateCID &new_head) = 0;
   };
 
 }  // namespace fc::vm::runtime

@@ -56,6 +56,13 @@ namespace fc::vm::runtime {
     MOCK_METHOD0(getIpfsDatastore, std::shared_ptr<IpfsDatastore>());
 
     MOCK_METHOD0(getMessage, std::shared_ptr<UnsignedMessage>());
+
+    MOCK_METHOD1(chargeGas, outcome::result<void>(const BigInt &amount));
+
+    MOCK_METHOD0(getHead, ActorSubstateCID());
+
+    MOCK_METHOD1(commit,
+                 outcome::result<void>(const ActorSubstateCID &new_head));
   };
 }  // namespace fc::vm::runtime
 

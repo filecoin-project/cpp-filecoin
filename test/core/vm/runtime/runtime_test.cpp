@@ -11,6 +11,7 @@
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
+#include "testutil/cbor.hpp"
 #include "testutil/mocks/crypto/randomness/randomness_provider_mock.hpp"
 #include "testutil/mocks/storage/ipfs/ipfs_datastore_mock.hpp"
 #include "testutil/mocks/vm/actor/invoker_mock.hpp"
@@ -78,7 +79,9 @@ class RuntimeTest : public ::testing::Test {
                                     immediate_caller_,
                                     block_miner_,
                                     gas_available_,
-                                    gas_used_);
+                                    gas_used_,
+                                    ActorSubstateCID{"010001020001"_cid}
+                                    );
 };
 
 /**
@@ -225,4 +228,11 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
 
   EXPECT_OUTCOME_ERROR(RuntimeError::NOT_ENOUGH_FUNDS,
                        runtime_->send(to_address, method, params, amount));
+}
+
+TEST_F(RuntimeTest, Commit) {
+  auto new_head = ActorSubstateCID{"010001020002"_cid};
+  EXPECT_NE(runtime_->getHead(), new_head);
+  EXPECT_OUTCOME_TRUE_1(runtime_->commit(new_head));
+  EXPECT_EQ(runtime_->getHead(), new_head);
 }
