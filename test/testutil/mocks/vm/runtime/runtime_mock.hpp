@@ -48,7 +48,8 @@ namespace fc::vm::runtime {
     MOCK_METHOD0(createNewActorAddress, Address());
 
     MOCK_METHOD2(createActor,
-                 outcome::result<void>(CodeId code_id, const Address &address));
+                 outcome::result<void>(const Address &address,
+                                       const Actor &actor));
 
     MOCK_METHOD1(deleteActor, outcome::result<void>(const Address &address));
 

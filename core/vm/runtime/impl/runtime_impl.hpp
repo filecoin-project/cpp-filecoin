@@ -83,8 +83,8 @@ namespace fc::vm::runtime {
                                                BigInt value) override;
 
     /** \copydoc Runtime::createActor() */
-    outcome::result<void> createActor(CodeId code_id,
-                                      const Address &address) override;
+    outcome::result<void> createActor(const Address &address,
+                                      const Actor &actor) override;
 
     /** \copydoc Runtime::deleteActor() */
     outcome::result<void> deleteActor(const Address &address) override;

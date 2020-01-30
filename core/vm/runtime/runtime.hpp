@@ -22,6 +22,7 @@
 
 namespace fc::vm::runtime {
 
+  using actor::Actor;
   using actor::CodeId;
   using actor::MethodNumber;
   using actor::MethodParams;
@@ -104,12 +105,13 @@ namespace fc::vm::runtime {
     /**
      * @brief Creates an actor in the state tree, with empty state. May only be
      * called by InitActor
-     * @param code_id - the new actor's code identifier
+     * @brief Saves an actor in the state tree. May only be called by InitActor
      * @param address - Address under which the new actor's state will be
      * stored. Must be an ID-address
+     * @param actor - Actor state
      */
-    virtual outcome::result<void> createActor(CodeId code_id,
-                                              const Address &address) = 0;
+    virtual outcome::result<void> createActor(const Address &address,
+                                              const Actor &actor) = 0;
 
     /**
      * @brief Deletes an actor in the state tree

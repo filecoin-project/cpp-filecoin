@@ -165,16 +165,14 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
   return res;
 }
 
-fc::outcome::result<void> RuntimeImpl::createActor(CodeId code_id,
-                                                   const Address &address) {
+fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,
+                                                   const Actor &actor) {
   // May only be called by InitActor
   OUTCOME_TRY(actor_caller, state_tree_->get(immediate_caller_));
   if (actor_caller.code != actor::kInitCodeCid)
     return fc::outcome::failure(
         RuntimeError::CREATE_ACTOR_OPERATION_NOT_PERMITTED);
-
-  Actor new_actor{code_id, ActorSubstateCID(), 0, 0};
-  OUTCOME_TRY(state_tree_->registerNewAddress(address, new_actor));
+  OUTCOME_TRY(state_tree_->set(address, actor));
   return fc::outcome::success();
 }
 

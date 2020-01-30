@@ -33,13 +33,18 @@ namespace fc::vm::actor {
     }
     OUTCOME_TRY(runtime.chargeGas(runtime::kInitActorExecCost));
     auto actor_address{Address::makeActorExecAddress(
-        Buffer{primitives::address::encode(message->from)}
-            .putUint64(message->nonce))};
+        Buffer{primitives::address::encode(message->from)}.putUint64(
+            message->nonce))};
     auto store = runtime.getIpfsDatastore();
     auto head = actor.head;
     OUTCOME_TRY(init_actor, store->getCbor<InitActorState>(head));
     OUTCOME_TRY(id_address, init_actor.addActor(store, actor_address));
-    OUTCOME_TRY(runtime.send(id_address, kConstructorMethodNumber, exec_params.params, message->value));
+    OUTCOME_TRY(runtime.createActor(
+        id_address, Actor{exec_params.code, ActorSubstateCID{kEmptyObjectCid}, 0, 0}));
+    OUTCOME_TRY(runtime.send(id_address,
+                             kConstructorMethodNumber,
+                             exec_params.params,
+                             message->value));
     OUTCOME_TRY(new_head, store->setCbor(init_actor));
     return InvocationOutput{Buffer{primitives::address::encode(id_address)}};
   }
