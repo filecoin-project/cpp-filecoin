@@ -87,7 +87,7 @@ TEST_F(AddressVerifierTest, EmptyVerifySecp256k1Address) {
  */
 TEST_F(AddressVerifierTest, VerifySecp256k1Address) {
   EXPECT_OUTCOME_TRUE(keypair, secp256k1_provider->generate());
-  EXPECT_OUTCOME_TRUE(hash, blake2b_160(keypair.public_key));
+  auto hash = blake2b_160(keypair.public_key);
   Address address{Network::MAINNET, Secp256k1PublicKeyHash{hash}};
   EXPECT_OUTCOME_TRUE(
       res, address_verifier->verifySyntax(address, keypair.public_key));
@@ -101,7 +101,7 @@ TEST_F(AddressVerifierTest, VerifySecp256k1Address) {
  */
 TEST_F(AddressVerifierTest, NotVerifySecp256k1Address) {
   EXPECT_OUTCOME_TRUE(keypair, secp256k1_provider->generate());
-  EXPECT_OUTCOME_TRUE(hash, blake2b_160(keypair.public_key));
+  auto hash = blake2b_160(keypair.public_key);
   Address address{Network::MAINNET, Secp256k1PublicKeyHash{hash}};
   EXPECT_OUTCOME_TRUE(wrong_keypair, secp256k1_provider->generate());
   EXPECT_OUTCOME_TRUE(

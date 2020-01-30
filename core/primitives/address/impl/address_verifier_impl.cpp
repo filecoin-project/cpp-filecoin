@@ -26,11 +26,11 @@ namespace fc::primitives::address {
           if (seed_data.size() != libp2p::crypto::secp256k1::kPublicKeyLength)
             return false;
           // seed_data is a blake2b-160 hash of a public key
-          OUTCOME_TRY(hash, blake2b_160(seed_data));
+          auto hash = blake2b_160(seed_data);
           return std::equal(v.begin(), v.end(), hash.begin());
         },
         [&seed_data](const ActorExecHash &v) -> outcome::result<bool> {
-          OUTCOME_TRY(hash, blake2b_160(seed_data));
+          auto hash = blake2b_160(seed_data);
           return std::equal(hash.begin(), hash.end(), v.begin());
         },
         [&seed_data](const BLSPublicKeyHash &v) {

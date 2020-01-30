@@ -20,7 +20,7 @@ namespace fc::primitives::address {
 
   outcome::result<Address> AddressBuilderImpl::makeFromSecp256k1PublicKey(
       Network network, const Sec256k1PublicKey &public_key) noexcept {
-    OUTCOME_TRY(hash, blake2b_160(public_key));
+    auto hash = blake2b_160(public_key);
     Secp256k1PublicKeyHash secp256k1Hash{hash};
     return Address{network, secp256k1Hash};
   }

@@ -61,7 +61,7 @@ namespace fc {
 
 namespace fc::common {
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes) {
-    OUTCOME_TRY(hash_raw, crypto::blake2b::blake2b_256(bytes));
+    auto hash_raw = crypto::blake2b::blake2b_256(bytes);
     OUTCOME_TRY(hash,
                 libp2p::multi::Multihash::create(
                     libp2p::multi::HashType::blake2b_256, hash_raw));
