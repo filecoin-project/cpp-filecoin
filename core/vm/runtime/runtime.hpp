@@ -130,6 +130,8 @@ namespace fc::vm::runtime {
      * @return message invoking current execution
      */
     virtual std::shared_ptr<UnsignedMessage> getMessage() = 0;
+
+    virtual outcome::result<void> chargeGas(const BigInt &amount) = 0;
   };
 
 }  // namespace fc::vm::runtime

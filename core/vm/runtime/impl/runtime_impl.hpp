@@ -95,11 +95,12 @@ namespace fc::vm::runtime {
     /** \copydoc Runtime::getMessage() */
     std::shared_ptr<UnsignedMessage> getMessage() override;
 
+    outcome::result<void> chargeGas(const BigInt &amount) override;
+
    private:
     outcome::result<void> transfer(Actor &from,
                                    Actor &to,
                                    const BigInt &amount);
-    outcome::result<void> chargeGas(const BigInt &amount);
     outcome::result<Actor> getOrCreateActor(const Address &address);
     std::shared_ptr<Runtime> createRuntime(
         const std::shared_ptr<UnsignedMessage> &message) const;
