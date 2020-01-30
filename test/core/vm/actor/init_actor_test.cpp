@@ -5,18 +5,39 @@
 
 #include "vm/actor/init_actor.hpp"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "primitives/address/address_codec.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
+#include "testutil/init_actor.hpp"
+#include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 
+using fc::primitives::BigInt;
+using fc::primitives::address::Address;
+using fc::vm::actor::ActorSubstateCID;
+using fc::vm::actor::CodeId;
+using fc::vm::actor::InitActor;
 using fc::vm::actor::InitActorState;
+using fc::vm::actor::InvocationOutput;
+using fc::vm::actor::kInitAddress;
+using fc::vm::actor::MethodNumber;
+using fc::vm::actor::MethodParams;
+using fc::vm::message::UnsignedMessage;
+using fc::vm::state::StateTree;
+using fc::vm::runtime::MockRuntime;
 
 /** Init actor state CBOR encoding and decoding */
 TEST(InitActorTest, InitActorStateCbor) {
   InitActorState init_actor_state{"010001020000"_cid, 3};
   expectEncodeAndReencode(init_actor_state, "82d82a470001000102000003"_unhex);
+}
+
+/// Init actor exec params CBOR encoding and decoding
+TEST(InitActorTest, InitActorExecParamsCbor) {
+  InitActor::ExecParams params{CodeId{"010001020000"_cid}, MethodParams{"de"_unhex}};
+  expectEncodeAndReencode(params, "82d82a470001000102000041de"_unhex);
 }
 
 /**
@@ -39,4 +60,72 @@ TEST(InitActorTest, AddActor) {
       Hamt(store, state.address_map)
           .getCbor<uint64_t>(fc::primitives::address::encodeToString(address)),
       3);
+}
+
+MethodParams execParams(const fc::CID &code, gsl::span<const uint8_t> params) {
+  return MethodParams{
+      fc::codec::cbor::encode(InitActor::ExecParams{CodeId{code},
+                                                    MethodParams{params}})
+          .value()};
+}
+
+TEST(InitActorExecText, A) {
+  auto message = std::make_shared<fc::vm::message::UnsignedMessage>();
+  message->from = Address::makeFromId(2);
+  message->nonce = 3;
+  message->value = 4;
+  auto params = MethodParams{"dead"_unhex};
+  auto id = 100;
+  auto id_address = Address::makeFromId(id);
+  auto state_tree = setupInitActor(nullptr, id);
+  auto init_actor = state_tree->get(kInitAddress).value();
+  auto code = fc::vm::actor::kMultisigCodeCid;
+
+  MockRuntime runtime;
+
+  EXPECT_OUTCOME_ERROR(
+      InitActor::NOT_BUILTIN_ACTOR,
+      InitActor::exec({}, runtime, execParams("010001020000"_cid, params)));
+  EXPECT_OUTCOME_ERROR(
+      InitActor::SINGLETON_ACTOR,
+      InitActor::exec(
+          {}, runtime, execParams(fc::vm::actor::kInitCodeCid, params)));
+
+  EXPECT_CALL(runtime, chargeGas(testing::_))
+    .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(runtime, getMessage())
+    .WillOnce(testing::Return(message));
+
+  EXPECT_CALL(runtime, getIpfsDatastore())
+    .WillOnce(testing::Return(state_tree->getStore()));
+  
+  EXPECT_CALL(runtime, send(id_address, fc::vm::actor::kConstructorMethodNumber, params, message->value))
+    .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(runtime, getHead())
+    .WillOnce(testing::Return(init_actor.head));
+
+  EXPECT_CALL(runtime, commit(testing::_))
+    .WillOnce(testing::Invoke([&](auto new_head) {
+      init_actor.head = new_head;
+      return state_tree->set(kInitAddress, init_actor);
+    }));
+
+  EXPECT_CALL(runtime, createActor(id_address, testing::_))
+    .WillOnce(testing::Invoke([&](auto address, auto actor) {
+      EXPECT_OUTCOME_TRUE_1(state_tree->set(address, actor));
+      return fc::outcome::success();
+    }));
+
+  EXPECT_OUTCOME_EQ(
+      InitActor::exec(
+          {}, runtime, execParams(code, params)),
+      fc::vm::actor::InvocationOutput{
+          fc::common::Buffer{fc::primitives::address::encode(id_address)}});
+
+  EXPECT_OUTCOME_TRUE(address, fc::primitives::address::decode("02218e62925e4f37b905d355e2cbc2b33cca45b39c"_unhex));
+  EXPECT_OUTCOME_EQ(state_tree->lookupId(address), id_address);
+  EXPECT_OUTCOME_TRUE(actor, state_tree->get(id_address));
+  EXPECT_EQ(actor.code, code);
 }
