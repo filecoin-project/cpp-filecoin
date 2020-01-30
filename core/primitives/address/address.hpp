@@ -68,6 +68,8 @@ namespace fc::primitives::address {
     /// id - number assigned to actors in a Filecoin Chain
     static Address makeFromId(uint64_t id);
 
+    static Address makeActorExecAddress(gsl::span<const uint8_t> data);
+
     Network network;
     Payload data;
   };

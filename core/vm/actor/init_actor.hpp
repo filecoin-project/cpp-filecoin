@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP
 
 #include "storage/ipfs/datastore.hpp"
-#include "vm/actor/actor.hpp"
+#include "vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor {
   using storage::ipfs::IpfsDatastore;
@@ -34,6 +34,38 @@ namespace fc::vm::actor {
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, InitActorState &state) {
     s.list() >> state.address_map >> state.next_id;
+    return s;
+  }
+
+  struct InitActor {
+    static constexpr MethodNumber kExecMethodNumber{2};
+    static constexpr VMExitCode NOT_BUILTIN_ACTOR{1};
+    static constexpr VMExitCode SINGLETON_ACTOR{1};
+
+    struct ExecParams {
+      CodeId code;
+      MethodParams params;
+    };
+
+    static outcome::result<InvocationOutput> exec(const Actor &actor,
+                                                  Runtime &runtime,
+                                                  const MethodParams &params);
+
+    static ActorExports exports;
+  };
+
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
+  Stream &operator<<(Stream &&s, const InitActor::ExecParams &params) {
+    return s << (s.list() << params.code << params.params);
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
+  Stream &operator>>(Stream &&s, InitActor::ExecParams &params) {
+    s.list() >> params.code >> params.params;
     return s;
   }
 }  // namespace fc::vm::actor

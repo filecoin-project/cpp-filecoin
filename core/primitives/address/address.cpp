@@ -6,6 +6,7 @@
 #include "primitives/address/address.hpp"
 
 #include "common/visitor.hpp"
+#include "crypto/blake2/blake2b160.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::address, AddressError, e) {
   using fc::primitives::address::AddressError;
@@ -23,6 +24,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::address, AddressError, e) {
 }
 
 namespace fc::primitives::address {
+  using crypto::blake2b::blake2b_160;
 
   bool Address::isKeyType() const {
     return visit_in_place(
@@ -45,6 +47,11 @@ namespace fc::primitives::address {
   Address Address::makeFromId(uint64_t id) {
     // TODO(turuslan): FIL-118 remove hardcoded TESTNET
     return {TESTNET, id};
+  }
+
+  Address Address::makeActorExecAddress(gsl::span<const uint8_t> data) {
+    // TODO(turuslan): FIL-118 remove hardcoded TESTNET
+    return {TESTNET, ActorExecHash{blake2b_160(data).value()}};
   }
 
   bool operator==(const Address &lhs, const Address &rhs) {

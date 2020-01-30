@@ -105,6 +105,7 @@ namespace fc::vm::runtime {
    */
   inline static const BigInt kCommitGasCost{50};
 
+  inline static const BigInt kInitActorExecCost{100};
 }  // namespace fc::vm::runtime
 
 #endif  // CPP_FILECOIN_CORE_VM_RUNTIME_GAS_COST_HPP

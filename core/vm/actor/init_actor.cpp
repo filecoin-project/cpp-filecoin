@@ -7,6 +7,7 @@
 
 #include "primitives/address/address_codec.hpp"
 #include "storage/hamt/hamt.hpp"
+#include "vm/runtime/gas_cost.hpp"
 
 namespace fc::vm::actor {
   outcome::result<Address> InitActorState::addActor(
@@ -19,4 +20,30 @@ namespace fc::vm::actor {
     ++next_id;
     return Address::makeFromId(id);
   }
+
+  outcome::result<InvocationOutput> InitActor::exec(
+      const Actor &actor, Runtime &runtime, const MethodParams &params) {
+    auto message = runtime.getMessage();
+    OUTCOME_TRY(exec_params, decodeActorParams<ExecParams>(params));
+    if (!isBuiltinActor(exec_params.code)) {
+      return NOT_BUILTIN_ACTOR;
+    }
+    if (isSingletonActor(exec_params.code)) {
+      return SINGLETON_ACTOR;
+    }
+    OUTCOME_TRY(runtime.chargeGas(runtime::kInitActorExecCost));
+    auto actor_address{Address::makeActorExecAddress(
+        Buffer{primitives::address::encode(message->from)}
+            .putUint64(message->nonce))};
+    auto store = runtime.getIpfsDatastore();
+    auto head = actor.head;
+    OUTCOME_TRY(init_actor, store->getCbor<InitActorState>(head));
+    OUTCOME_TRY(id_address, init_actor.addActor(store, actor_address));
+    OUTCOME_TRY(runtime.send(id_address, kConstructorMethodNumber, exec_params.params, message->value));
+    OUTCOME_TRY(new_head, store->setCbor(init_actor));
+    return InvocationOutput{Buffer{primitives::address::encode(id_address)}};
+  }
+
+  ActorExports InitActor::exports{
+      {InitActor::kExecMethodNumber, ActorMethod(InitActor::exec)}};
 }  // namespace fc::vm::actor
