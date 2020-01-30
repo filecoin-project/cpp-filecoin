@@ -44,9 +44,22 @@ namespace fc::primitives::address {
         [](const BLSPublicKeyHash &v) { return Protocol::BLS; });
   }
 
-  Address Address::makeFromId(uint64_t id) {
-    // TODO(turuslan): FIL-118 remove hardcoded TESTNET
-    return {TESTNET, id};
+  Address Address::makeFromId(uint64_t id, Network network) {
+    return {network, id};
+  }
+
+  Address Address::makeSecp256k1(const Sec256k1PublicKey &public_key,
+                                 Network network) {
+    return {network, Secp256k1PublicKeyHash{blake2b_160(public_key)}};
+  }
+
+  Address Address::makeActorExec(gsl::span<const uint8_t> data,
+                                 Network network) {
+    return {network, ActorExecHash{blake2b_160(data)}};
+  }
+
+  Address Address::makeBls(const BlsPublicKey &public_key, Network network) {
+    return {network, BLSPublicKeyHash{public_key}};
   }
 
   Address Address::makeActorExecAddress(gsl::span<const uint8_t> data) {

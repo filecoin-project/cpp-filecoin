@@ -5,7 +5,6 @@ add_library(address
     address.cpp
     address_codec.cpp
     impl/address_verifier_impl.cpp
-    impl/address_builder_impl.cpp
     )
 target_link_libraries(address
     Boost::boost

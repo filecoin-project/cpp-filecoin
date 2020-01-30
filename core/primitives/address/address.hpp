@@ -10,8 +10,12 @@
 
 #include <boost/variant.hpp>
 #include "common/blob.hpp"
+#include "crypto/bls/bls_types.hpp"
+#include "crypto/secp256k1/secp256k1_provider.hpp"
 
 namespace fc::primitives::address {
+  using Sec256k1PublicKey = libp2p::crypto::secp256k1::PublicKey;
+  using BlsPublicKey = crypto::bls::PublicKey;
 
   /**
    * @brief Potential errors creating and handling Filecoin addresses
@@ -26,6 +30,9 @@ namespace fc::primitives::address {
    * @brief Supported networks inside which addresses make sense
    */
   enum Network : uint8_t { MAINNET = 0x0, TESTNET = 0x1 };
+
+  // TODO(turuslan): FIL-118 remove hardcoded TESTNET
+  constexpr auto kDefaultNetwork = TESTNET;
 
   /**
    * @brief Known Address protocols
@@ -66,7 +73,16 @@ namespace fc::primitives::address {
     bool isKeyType() const;
 
     /// id - number assigned to actors in a Filecoin Chain
-    static Address makeFromId(uint64_t id);
+    static Address makeFromId(uint64_t id, Network network = kDefaultNetwork);
+
+    static Address makeSecp256k1(const Sec256k1PublicKey &public_key,
+                                 Network network = kDefaultNetwork);
+
+    static Address makeActorExec(gsl::span<const uint8_t> data,
+                                 Network network = kDefaultNetwork);
+
+    static Address makeBls(const BlsPublicKey &public_key,
+                           Network network = kDefaultNetwork);
 
     static Address makeActorExecAddress(gsl::span<const uint8_t> data);
 

@@ -11,16 +11,12 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "primitives/address/address.hpp"
-#include "primitives/address/address_builder.hpp"
-#include "primitives/address/impl/address_builder_impl.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::crypto::blake2b::blake2b_160;
 using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::BlsProviderImpl;
 using fc::primitives::address::Address;
-using fc::primitives::address::AddressBuilder;
-using fc::primitives::address::AddressBuilderImpl;
 using fc::primitives::address::AddressVerifier;
 using fc::primitives::address::AddressVerifierImpl;
 using fc::primitives::address::BLSPublicKeyHash;
@@ -53,8 +49,6 @@ struct AddressVerifierTest : public testing::Test {
  protected:
   std::shared_ptr<AddressVerifier> address_verifier =
       std::make_shared<AddressVerifierImpl>();
-  std::shared_ptr<AddressBuilder> address_builder =
-      std::make_shared<AddressBuilderImpl>();
 };
 
 /**
@@ -158,9 +152,7 @@ class AddressVerifierParametrizedTest
  */
 TEST_P(AddressVerifierParametrizedTest, GenerateBlsAddress) {
   EXPECT_OUTCOME_TRUE(keypair, bls_provider->generateKeyPair());
-  EXPECT_OUTCOME_TRUE(
-      address,
-      address_builder->makeFromBlsPublicKey(GetParam(), keypair.public_key));
+  auto address = Address::makeBls(keypair.public_key, GetParam());
   ASSERT_TRUE(address.isKeyType());
   EXPECT_OUTCOME_TRUE(
       res, address_verifier->verifySyntax(address, keypair.public_key));
@@ -176,9 +168,7 @@ TEST_P(AddressVerifierParametrizedTest, GenerateBlsAddress) {
  */
 TEST_P(AddressVerifierParametrizedTest, GenerateSecp256k1Address) {
   EXPECT_OUTCOME_TRUE(keypair, secp256k1_provider->generate());
-  EXPECT_OUTCOME_TRUE(address,
-                      address_builder->makeFromSecp256k1PublicKey(
-                          GetParam(), keypair.public_key));
+  auto address = Address::makeSecp256k1(keypair.public_key, GetParam());
   ASSERT_TRUE(address.isKeyType());
   EXPECT_OUTCOME_TRUE(
       res, address_verifier->verifySyntax(address, keypair.public_key));

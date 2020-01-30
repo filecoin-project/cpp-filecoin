@@ -9,7 +9,6 @@
 
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
-#include "primitives/address/impl/address_builder_impl.hpp"
 #include "primitives/address/impl/address_verifier_impl.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "testutil/cbor.hpp"
@@ -30,8 +29,6 @@ using fc::crypto::signature::Signature;
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
-using fc::primitives::address::AddressBuilder;
-using fc::primitives::address::AddressBuilderImpl;
 using fc::primitives::address::AddressVerifier;
 using fc::primitives::address::AddressVerifierImpl;
 using fc::primitives::address::Network;
@@ -72,28 +69,19 @@ UnsignedMessage makeMessage(Address const &from,
   };
 }
 
-Address addKeyGetAddress(
-    const std::array<uint8_t, 32> &private_key,
-    const CryptoProvider &provider,
-    const std::shared_ptr<KeyStore> &keystore,
-    const std::shared_ptr<AddressBuilder> &address_builder) {
+Address addKeyGetAddress(const std::array<uint8_t, 32> &private_key,
+                         const CryptoProvider &provider,
+                         const std::shared_ptr<KeyStore> &keystore) {
   return visit_in_place(
       provider,
       [&](const std::shared_ptr<BlsProvider> &p) {
         auto address =
-            address_builder
-                ->makeFromBlsPublicKey(Network::TESTNET,
-                                       p->derivePublicKey(private_key).value())
-                .value();
+            Address::makeBls(p->derivePublicKey(private_key).value());
         keystore->put(address, private_key).value();
         return address;
       },
       [&](const std::shared_ptr<Secp256k1Provider> &p) {
-        auto address =
-            address_builder
-                ->makeFromSecp256k1PublicKey(
-                    Network::TESTNET, p->derive(private_key).value())
-                .value();
+        auto address = Address::makeSecp256k1(p->derive(private_key).value());
         keystore->put(address, private_key).value();
         return address;
       });
@@ -107,7 +95,6 @@ struct MessageTest : public testing::Test {
   std::shared_ptr<BlsProvider> bls_provider;
   std::shared_ptr<Secp256k1Provider> secp256k1_provider;
   std::shared_ptr<AddressVerifier> address_verifier;
-  std::shared_ptr<AddressBuilder> address_builder;
 
   std::shared_ptr<KeyStore> keystore;
   std::shared_ptr<MessageSigner> msigner;
@@ -116,7 +103,6 @@ struct MessageTest : public testing::Test {
     bls_provider = std::make_shared<BlsProviderImpl>();
     secp256k1_provider = std::make_shared<Secp256k1ProviderImpl>();
     address_verifier = std::make_shared<AddressVerifierImpl>();
-    address_builder = std::make_shared<AddressBuilderImpl>();
 
     keystore = std::make_shared<InMemoryKeyStore>(
         bls_provider, secp256k1_provider, address_verifier);
@@ -124,13 +110,11 @@ struct MessageTest : public testing::Test {
     bls = addKeyGetAddress(
         "8e8c5263df0022d8e29cab943d57d851722c38ee1dbe7f8c29c0498156496f29"_blob32,
         bls_provider,
-        keystore,
-        address_builder);
+        keystore);
     secp = addKeyGetAddress(
         "7008136b505aa01e406f72204668865852186756c95cd3a7e5184ef7b8f62058"_blob32,
         secp256k1_provider,
-        keystore,
-        address_builder);
+        keystore);
 
     msigner = std::make_shared<MessageSignerImpl>(keystore);
 

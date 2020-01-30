@@ -10,7 +10,6 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "primitives/address/address_codec.hpp"
-#include "primitives/address/impl/address_builder_impl.hpp"
 #include "primitives/address/impl/address_verifier_impl.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
@@ -18,7 +17,6 @@
 using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::BlsProviderImpl;
 using fc::primitives::address::Address;
-using fc::primitives::address::AddressBuilderImpl;
 using fc::primitives::address::AddressVerifier;
 using fc::primitives::address::AddressVerifierImpl;
 using fc::primitives::address::Network;
@@ -60,26 +58,17 @@ class FileSystemKeyStoreTest : public test::BaseFS_Test {
   void SetUp() override {
     BaseFS_Test::SetUp();
 
-    AddressBuilderImpl addressBuilder{};
-
     bls_provider_ = std::make_shared<BlsProviderImpl>();
     bls_keypair_ =
         std::make_shared<BlsKeyPair>(bls_provider_->generateKeyPair().value());
 
-    bls_address_ =
-        addressBuilder
-            .makeFromBlsPublicKey(Network::MAINNET, bls_keypair_->public_key)
-            .value();
+    bls_address_ = Address::makeBls(bls_keypair_->public_key);
 
     secp256k1_provider_ = std::make_shared<Secp256k1ProviderImpl>();
     secp256k1_keypair_ = std::make_shared<Secp256k1KeyPair>(
         secp256k1_provider_->generate().value());
 
-    secp256k1_address_ =
-        addressBuilder
-            .makeFromSecp256k1PublicKey(Network::MAINNET,
-                                        secp256k1_keypair_->public_key)
-            .value();
+    secp256k1_address_ = Address::makeSecp256k1(secp256k1_keypair_->public_key);
 
     address_verifier_ = std::make_shared<AddressVerifierImpl>();
 
