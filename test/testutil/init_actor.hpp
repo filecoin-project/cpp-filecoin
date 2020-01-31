@@ -17,8 +17,9 @@ std::shared_ptr<fc::vm::state::StateTree> setupInitActor(
   }
   auto store = state_tree->getStore();
   EXPECT_OUTCOME_TRUE(empty_map, fc::storage::hamt::Hamt(store).flush());
-  EXPECT_OUTCOME_TRUE(
-      state, store->setCbor(fc::vm::actor::InitActorState{empty_map, next_id}));
+  EXPECT_OUTCOME_TRUE(state,
+                      store->setCbor(fc::vm::actor::init_actor::InitActorState{
+                          empty_map, next_id}));
   EXPECT_OUTCOME_TRUE_1(state_tree->set(fc::vm::actor::kInitAddress,
                                         {fc::vm::actor::kInitCodeCid,
                                          fc::vm::actor::ActorSubstateCID{state},

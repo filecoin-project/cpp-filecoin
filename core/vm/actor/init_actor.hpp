@@ -7,9 +7,9 @@
 #define CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP
 
 #include "storage/ipfs/datastore.hpp"
-#include "vm/actor/actor.hpp"
+#include "vm/actor/actor_method.hpp"
 
-namespace fc::vm::actor {
+namespace fc::vm::actor::init_actor {
   using storage::ipfs::IpfsDatastore;
 
   /// Init actor state
@@ -36,6 +36,36 @@ namespace fc::vm::actor {
     s.list() >> state.address_map >> state.next_id;
     return s;
   }
-}  // namespace fc::vm::actor
+
+  constexpr MethodNumber kExecMethodNumber{2};
+  constexpr VMExitCode NOT_BUILTIN_ACTOR{1};
+  constexpr VMExitCode SINGLETON_ACTOR{1};
+
+  struct ExecParams {
+    CodeId code;
+    MethodParams params;
+  };
+
+  outcome::result<InvocationOutput> exec(const Actor &actor,
+                                         Runtime &runtime,
+                                         const MethodParams &params);
+
+  extern ActorExports exports;
+
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
+  Stream &operator<<(Stream &&s, const ExecParams &params) {
+    return s << (s.list() << params.code << params.params);
+  }
+
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
+  Stream &operator>>(Stream &&s, ExecParams &params) {
+    s.list() >> params.code >> params.params;
+    return s;
+  }
+}  // namespace fc::vm::actor::init_actor
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP
