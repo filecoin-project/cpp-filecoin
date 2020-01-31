@@ -119,11 +119,12 @@ TEST(InitActorExecText, ExecSuccess) {
                    message.value))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_CALL(runtime, getHead()).WillOnce(testing::Return(init_actor.head));
+  EXPECT_CALL(runtime, getCurrentActorState())
+      .WillOnce(testing::Return(init_actor.head));
 
   EXPECT_CALL(runtime, commit(testing::_))
-      .WillOnce(testing::Invoke([&](auto new_head) {
-        init_actor.head = new_head;
+      .WillOnce(testing::Invoke([&](auto new_state) {
+        init_actor.head = new_state;
         return state_tree->set(kInitAddress, init_actor);
       }));
 

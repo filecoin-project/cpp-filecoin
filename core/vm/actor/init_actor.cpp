@@ -36,7 +36,8 @@ namespace fc::vm::actor {
         Buffer{primitives::address::encode(message.from)}.putUint64(
             message.nonce))};
     auto store = runtime.getIpfsDatastore();
-    OUTCOME_TRY(init_actor, store->getCbor<InitActorState>(runtime.getHead()));
+    OUTCOME_TRY(init_actor,
+                store->getCbor<InitActorState>(runtime.getCurrentActorState()));
     OUTCOME_TRY(id_address, init_actor.addActor(store, actor_address));
     OUTCOME_TRY(runtime.createActor(
         id_address,
@@ -45,8 +46,8 @@ namespace fc::vm::actor {
                              kConstructorMethodNumber,
                              exec_params.params,
                              message.value));
-    OUTCOME_TRY(new_head, store->setCbor(init_actor));
-    OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_head}));
+    OUTCOME_TRY(new_state, store->setCbor(init_actor));
+    OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_state}));
     return InvocationOutput{Buffer{primitives::address::encode(id_address)}};
   }
 

@@ -235,8 +235,8 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
  * @then State is updated
  */
 TEST_F(RuntimeTest, Commit) {
-  auto new_head = ActorSubstateCID{"010001020002"_cid};
-  EXPECT_NE(runtime_->getHead(), new_head);
-  EXPECT_OUTCOME_TRUE_1(runtime_->commit(new_head));
-  EXPECT_EQ(runtime_->getHead(), new_head);
+  auto new_state = ActorSubstateCID{"010001020002"_cid};
+  EXPECT_NE(runtime_->getCurrentActorState(), new_state);
+  EXPECT_OUTCOME_TRUE_1(runtime_->commit(new_state));
+  EXPECT_EQ(runtime_->getCurrentActorState(), new_state);
 }

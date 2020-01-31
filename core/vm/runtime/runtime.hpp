@@ -105,7 +105,6 @@ namespace fc::vm::runtime {
     /**
      * @brief Creates an actor in the state tree, with empty state. May only be
      * called by InitActor
-     * @brief Saves an actor in the state tree. May only be called by InitActor
      * @param address - Address under which the new actor's state will be
      * stored. Must be an ID-address
      * @param actor - Actor state
@@ -133,11 +132,14 @@ namespace fc::vm::runtime {
      */
     virtual std::reference_wrapper<const UnsignedMessage> getMessage() = 0;
 
+    /// Try to charge gas or throw if there is not enoght gas
     virtual outcome::result<void> chargeGas(const BigInt &amount) = 0;
 
-    virtual ActorSubstateCID getHead() = 0;
+    /// Get current actor state
+    virtual ActorSubstateCID getCurrentActorState() = 0;
 
-    virtual outcome::result<void> commit(const ActorSubstateCID &new_head) = 0;
+    /// Update actor state
+    virtual outcome::result<void> commit(const ActorSubstateCID &new_state) = 0;
   };
 
 }  // namespace fc::vm::runtime

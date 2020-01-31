@@ -45,7 +45,7 @@ RuntimeImpl::RuntimeImpl(
     Address block_miner,
     BigInt gas_available,
     BigInt gas_used,
-    ActorSubstateCID actor_head)
+    ActorSubstateCID current_actor_state)
     : randomness_provider_{std::move(randomness_provider)},
       datastore_{std::move(datastore)},
       state_tree_{std::move(state_tree)},
@@ -57,7 +57,7 @@ RuntimeImpl::RuntimeImpl(
       block_miner_{std::move(block_miner)},
       gas_available_{std::move(gas_available)},
       gas_used_{std::move(gas_used)},
-      actor_head_{std::move(actor_head)} {}
+      current_actor_state_{std::move(current_actor_state)} {}
 
 ChainEpoch RuntimeImpl::getCurrentEpoch() const {
   return chain_epoch_;
@@ -202,14 +202,14 @@ std::reference_wrapper<const UnsignedMessage> RuntimeImpl::getMessage() {
   return message_;
 }
 
-ActorSubstateCID RuntimeImpl::getHead() {
-  return actor_head_;
+ActorSubstateCID RuntimeImpl::getCurrentActorState() {
+  return current_actor_state_;
 }
 
 fc::outcome::result<void> RuntimeImpl::commit(
-    const ActorSubstateCID &new_head) {
+    const ActorSubstateCID &new_state) {
   OUTCOME_TRY(chargeGas(kCommitGasCost));
-  actor_head_ = new_head;
+  current_actor_state_ = new_state;
   return outcome::success();
 }
 
@@ -241,7 +241,8 @@ fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
 }
 
 std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
-    const UnsignedMessage &message, const ActorSubstateCID &actor_head) const {
+    const UnsignedMessage &message,
+    const ActorSubstateCID &current_actor_state) const {
   return std::make_shared<RuntimeImpl>(randomness_provider_,
                                        datastore_,
                                        state_tree_,
@@ -253,5 +254,5 @@ std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
                                        block_miner_,
                                        gas_available_,
                                        gas_used_,
-                                       actor_head);
+                                       current_actor_state);
 }

@@ -59,10 +59,10 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD1(chargeGas, outcome::result<void>(const BigInt &amount));
 
-    MOCK_METHOD0(getHead, ActorSubstateCID());
+    MOCK_METHOD0(getCurrentActorState, ActorSubstateCID());
 
     MOCK_METHOD1(commit,
-                 outcome::result<void>(const ActorSubstateCID &new_head));
+                 outcome::result<void>(const ActorSubstateCID &new_state));
   };
 }  // namespace fc::vm::runtime
 
