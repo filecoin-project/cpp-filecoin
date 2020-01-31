@@ -9,7 +9,7 @@
 #include "storage/hamt/hamt.hpp"
 #include "vm/runtime/gas_cost.hpp"
 
-namespace fc::vm::actor {
+namespace fc::vm::actor::init_actor {
   outcome::result<Address> InitActorState::addActor(
       std::shared_ptr<IpfsDatastore> store, const Address &address) {
     storage::hamt::Hamt hamt(std::move(store), address_map);
@@ -21,14 +21,15 @@ namespace fc::vm::actor {
     return Address::makeFromId(id);
   }
 
-  outcome::result<InvocationOutput> InitActor::exec(
-      const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  outcome::result<InvocationOutput> exec(const Actor &actor,
+                                         Runtime &runtime,
+                                         const MethodParams &params) {
     OUTCOME_TRY(exec_params, decodeActorParams<ExecParams>(params));
     if (!isBuiltinActor(exec_params.code)) {
-      return InitActor::NOT_BUILTIN_ACTOR;
+      return init_actor::NOT_BUILTIN_ACTOR;
     }
     if (isSingletonActor(exec_params.code)) {
-      return InitActor::SINGLETON_ACTOR;
+      return init_actor::SINGLETON_ACTOR;
     }
     OUTCOME_TRY(runtime.chargeGas(runtime::kInitActorExecCost));
     auto &message = runtime.getMessage().get();
@@ -51,6 +52,5 @@ namespace fc::vm::actor {
     return InvocationOutput{Buffer{primitives::address::encode(id_address)}};
   }
 
-  ActorExports InitActor::exports{
-      {InitActor::kExecMethodNumber, ActorMethod(InitActor::exec)}};
-}  // namespace fc::vm::actor
+  ActorExports exports{{kExecMethodNumber, ActorMethod(exec)}};
+}  // namespace fc::vm::actor::init_actor

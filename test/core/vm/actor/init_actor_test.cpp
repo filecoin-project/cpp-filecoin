@@ -14,17 +14,18 @@
 #include "testutil/init_actor.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 
+namespace InitActor = fc::vm::actor::init_actor;
+
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
 using fc::vm::actor::CodeId;
-using fc::vm::actor::InitActor;
-using fc::vm::actor::InitActorState;
 using fc::vm::actor::InvocationOutput;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MockRuntime;
+using InitActor::InitActorState;
 
 /** Init actor state CBOR encoding and decoding */
 TEST(InitActorTest, InitActorStateCbor) {
