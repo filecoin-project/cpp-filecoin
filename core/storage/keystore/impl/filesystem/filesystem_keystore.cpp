@@ -21,11 +21,8 @@ using fc::storage::keystore::KeyStoreError;
 FileSystemKeyStore::FileSystemKeyStore(
     Path path,
     std::shared_ptr<BlsProvider> blsProvider,
-    std::shared_ptr<Secp256k1Provider> secp256K1Provider,
-    std::shared_ptr<AddressVerifier> addressVerifier)
-    : KeyStore(std::move(blsProvider),
-               std::move(secp256K1Provider),
-               std::move(addressVerifier)),
+    std::shared_ptr<Secp256k1Provider> secp256K1Provider)
+    : KeyStore(std::move(blsProvider), std::move(secp256K1Provider)),
       keystore_path_(std::move(path)),
       filestore_(std::make_shared<FileSystemFileStore>()) {}
 
@@ -84,7 +81,8 @@ fc::outcome::result<std::vector<Address>> FileSystemKeyStore::list() const
     std::size_t from = file.find_last_of(filestore::DELIMITER) + 1;
     std::size_t to = file.rfind(this->kPrivateKeyExtension);
     OUTCOME_TRY(address,
-                fc::primitives::address::decodeFromString(file.substr(from, to - from)));
+                fc::primitives::address::decodeFromString(
+                    file.substr(from, to - from)));
     res.emplace_back(std::move(address));
   }
   return std::move(res);

@@ -15,7 +15,6 @@
 #include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
-#include "primitives/address/address_verifier.hpp"
 #include "storage/keystore/keystore_error.hpp"
 
 namespace fc::storage::keystore {
@@ -30,7 +29,6 @@ namespace fc::storage::keystore {
   using Secp256k1Signature = crypto::secp256k1::Signature;
   using crypto::signature::Signature;
   using primitives::address::Address;
-  using primitives::address::AddressVerifier;
 
   /**
    * An interface to a facility to store and use cryptographic keys
@@ -40,8 +38,7 @@ namespace fc::storage::keystore {
     using TPrivateKey = boost::variant<BlsPrivateKey, Secp256k1PrivateKey>;
 
     KeyStore(std::shared_ptr<BlsProvider> blsProvider,
-             std::shared_ptr<Secp256k1Provider> secp256K1Provider,
-             std::shared_ptr<AddressVerifier> addressVerifier);
+             std::shared_ptr<Secp256k1Provider> secp256K1Provider);
 
     virtual ~KeyStore() = default;
 
@@ -113,7 +110,6 @@ namespace fc::storage::keystore {
    private:
     std::shared_ptr<BlsProvider> bls_provider_;
     std::shared_ptr<Secp256k1Provider> secp256k1_provider_;
-    std::shared_ptr<AddressVerifier> address_verifier_;
   };
 
 }  // namespace fc::storage::keystore

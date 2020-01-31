@@ -14,11 +14,8 @@ using fc::storage::keystore::KeyStoreError;
 
 InMemoryKeyStore::InMemoryKeyStore(
     std::shared_ptr<BlsProvider> blsProvider,
-    std::shared_ptr<Secp256k1Provider> secp256K1Provider,
-    std::shared_ptr<AddressVerifier> addressVerifier)
-    : KeyStore(std::move(blsProvider),
-               std::move(secp256K1Provider),
-               std::move(addressVerifier)) {}
+    std::shared_ptr<Secp256k1Provider> secp256K1Provider)
+    : KeyStore(std::move(blsProvider), std::move(secp256K1Provider)) {}
 
 fc::outcome::result<bool> InMemoryKeyStore::has(const Address &address) const
     noexcept {

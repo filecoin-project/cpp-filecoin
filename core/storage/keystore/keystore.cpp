@@ -5,8 +5,6 @@
 
 #include "keystore.hpp"
 
-#include <primitives/address/impl/address_verifier_impl.hpp>
-
 #include "common/visitor.hpp"
 
 using fc::crypto::signature::Signature;
@@ -15,11 +13,9 @@ using fc::storage::keystore::KeyStore;
 using fc::storage::keystore::KeyStoreError;
 
 KeyStore::KeyStore(std::shared_ptr<BlsProvider> blsProvider,
-                   std::shared_ptr<Secp256k1Provider> secp256K1Provider,
-                   std::shared_ptr<AddressVerifier> addressVerifier)
+                   std::shared_ptr<Secp256k1Provider> secp256K1Provider)
     : bls_provider_(std::move(blsProvider)),
-      secp256k1_provider_(std::move(secp256K1Provider)),
-      address_verifier_(std::move(addressVerifier)) {}
+      secp256k1_provider_(std::move(secp256K1Provider)) {}
 
 fc::outcome::result<bool> KeyStore::checkAddress(
     const Address &address, const TPrivateKey &private_key) const noexcept {
@@ -32,13 +28,13 @@ fc::outcome::result<bool> KeyStore::checkAddress(
     OUTCOME_TRY(
         public_key,
         bls_provider_->derivePublicKey(boost::get<BlsPrivateKey>(private_key)));
-    return address_verifier_->verifySyntax(address, public_key);
+    return address.verifySyntax(public_key);
   }
   if (address.getProtocol() == Protocol::SECP256K1) {
     OUTCOME_TRY(public_key,
                 secp256k1_provider_->derive(
                     boost::get<Secp256k1PrivateKey>(private_key)));
-    return address_verifier_->verifySyntax(address, public_key);
+    return address.verifySyntax(public_key);
   }
 
   return KeyStoreError::WRONG_ADDRESS;

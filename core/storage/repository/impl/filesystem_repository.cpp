@@ -10,13 +10,11 @@
 #include "boost/filesystem.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
-#include "primitives/address/impl/address_verifier_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/keystore/impl/filesystem/filesystem_keystore.hpp"
 #include "storage/repository/repository_error.hpp"
 
 using fc::crypto::bls::BlsProviderImpl;
-using fc::primitives::address::AddressVerifierImpl;
 using fc::storage::ipfs::LeveldbDatastore;
 using fc::storage::keystore::FileSystemKeyStore;
 using fc::storage::repository::FileSystemRepository;
@@ -98,8 +96,7 @@ fc::outcome::result<std::shared_ptr<Repository>> FileSystemRepository::create(
   auto keystore = std::make_shared<FileSystemKeyStore>(
       keystore_path,
       std::make_shared<BlsProviderImpl>(),
-      std::make_shared<Secp256k1ProviderImpl>(),
-      std::make_shared<AddressVerifierImpl>());
+      std::make_shared<Secp256k1ProviderImpl>());
 
   return std::make_shared<FileSystemRepository>(
       ipfs_datastore, keystore, config, repo_path, std::move(fs_locker));

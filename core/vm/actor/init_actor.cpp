@@ -33,7 +33,7 @@ namespace fc::vm::actor::init_actor {
     }
     OUTCOME_TRY(runtime.chargeGas(runtime::kInitActorExecCost));
     auto &message = runtime.getMessage().get();
-    auto actor_address{Address::makeActorExecAddress(
+    auto actor_address{Address::makeActorExec(
         Buffer{primitives::address::encode(message.from)}.putUint64(
             message.nonce))};
     auto store = runtime.getIpfsDatastore();
