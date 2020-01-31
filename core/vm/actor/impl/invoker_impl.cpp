@@ -23,16 +23,16 @@ namespace fc::vm::actor {
       MethodNumber method,
       const MethodParams &params) {
     if (actor.code == actor::kAccountCodeCid) {
-      return CANT_INVOKE_ACCOUNT_ACTOR;
+      return VMExitCode::INVOKER_CANT_INVOKE_ACCOUNT_ACTOR;
     }
     auto maybe_builtin_actor = builtin_.find(actor.code);
     if (maybe_builtin_actor == builtin_.end()) {
-      return NO_CODE_OR_METHOD;
+      return VMExitCode::INVOKER_NO_CODE_OR_METHOD;
     }
     auto builtin_actor = maybe_builtin_actor->second;
     auto maybe_builtin_method = builtin_actor.find(method);
     if (maybe_builtin_method == builtin_actor.end()) {
-      return NO_CODE_OR_METHOD;
+      return VMExitCode::INVOKER_NO_CODE_OR_METHOD;
     }
     return maybe_builtin_method->second(actor, runtime, params);
   }

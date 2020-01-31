@@ -8,6 +8,7 @@
 #include "testutil/mocks/crypto/randomness/randomness_provider_mock.hpp"
 #include "testutil/mocks/vm/indices/indices_mock.hpp"
 #include "testutil/outcome.hpp"
+#include "vm/exit_code/exit_code.hpp"
 
 using fc::crypto::randomness::MockRandomnessProvider;
 using fc::crypto::randomness::Randomness;
@@ -15,6 +16,7 @@ using fc::crypto::randomness::RandomnessProvider;
 using fc::power::PowerTableError;
 using fc::primitives::address::Address;
 using fc::primitives::address::Network;
+using fc::vm::VMExitCode;
 using fc::vm::actor::StoragePowerActor;
 using fc::vm::indices::Indices;
 using fc::vm::indices::MockIndices;
@@ -48,7 +50,7 @@ TEST_F(StoragePowerActorTest, AddMiner_Twice) {
   EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
                        actor->getPowerTotalForMiner(addr));
   EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
-  EXPECT_OUTCOME_ERROR(StoragePowerActor::ALREADY_EXISTS,
+  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ACTOR_ALREADY_EXISTS,
                        actor->addMiner(addr));
 }
 
@@ -243,6 +245,6 @@ TEST_F(StoragePowerActorTest, selectMinersToSurprise_MoreThatHave) {
   EXPECT_OUTCOME_TRUE(miners, actor->getMiners());
 
   EXPECT_OUTCOME_ERROR(
-      StoragePowerActor::OUT_OF_BOUND,
+      VMExitCode::STORAGE_POWER_ACTOR_OUT_OF_BOUND,
       actor->selectMinersToSurprise(miners.size() + 1, randomness));
 }

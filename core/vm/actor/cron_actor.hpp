@@ -16,7 +16,6 @@ namespace fc::vm::actor::cron_actor {
   };
 
   constexpr MethodNumber kEpochTickMethodNumber{2};
-  constexpr VMExitCode WRONG_CALL{1};
 
   /**
    * @brief EpochTick executes built-in periodic actions, run at every Epoch.

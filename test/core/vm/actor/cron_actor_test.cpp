@@ -29,7 +29,7 @@ TEST(CronActorTest, WrongSender) {
   EXPECT_CALL(runtime, getMessage())
       .WillOnce(testing::Return(message_wrong_sender));
   EXPECT_OUTCOME_FALSE(err, actor::cron_actor::epochTick(actor, runtime, {}));
-  ASSERT_EQ(err, actor::cron_actor::WRONG_CALL);
+  ASSERT_EQ(err, VMExitCode::CRON_ACTOR_WRONG_CALL);
 }
 
 /**

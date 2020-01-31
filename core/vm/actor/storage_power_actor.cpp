@@ -6,6 +6,7 @@
 #include "vm/actor/storage_power_actor.hpp"
 
 #include "power/impl/power_table_impl.hpp"
+#include "vm/exit_code/exit_code.hpp"
 #include "vm/indices/indices.hpp"
 
 namespace fc::vm::actor {
@@ -21,7 +22,9 @@ namespace fc::vm::actor {
       const crypto::randomness::Randomness &randomness) {
     std::vector<primitives::address::Address> selected_miners;
 
-    if (power_table_->getSize() < challenge_count) return OUT_OF_BOUND;
+    if (power_table_->getSize() < challenge_count) {
+      return VMExitCode::STORAGE_POWER_ACTOR_OUT_OF_BOUND;
+    }
 
     OUTCOME_TRY(all_miners, power_table_->getMiners());
 
@@ -181,7 +184,9 @@ namespace fc::vm::actor {
   outcome::result<void> StoragePowerActor::addMiner(
       const primitives::address::Address &miner_addr) {
     auto check = power_table_->getMinerPower(miner_addr);
-    if (!check.has_error()) return ALREADY_EXISTS;
+    if (!check.has_error()) {
+      return VMExitCode::STORAGE_POWER_ACTOR_ALREADY_EXISTS;
+    }
 
     OUTCOME_TRY(power_table_->setMinerPower(miner_addr, 0));
     OUTCOME_TRY(nominal_power_->setMinerPower(miner_addr, 0));
