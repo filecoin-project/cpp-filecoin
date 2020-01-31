@@ -19,12 +19,6 @@ namespace fc::vm::actor::cron_actor {
   constexpr VMExitCode WRONG_CALL{1};
 
   /**
-   * Entries is a set of actors (and corresponding methods) to call during
-   * EpochTick
-   */
-  extern std::vector<CronTableEntry> entries;
-
-  /**
    * @brief EpochTick executes built-in periodic actions, run at every Epoch.
    * @param actor from Lotus(doesn't use)
    * @param runtime is virtual machine context

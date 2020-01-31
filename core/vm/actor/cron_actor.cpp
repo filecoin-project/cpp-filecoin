@@ -6,6 +6,10 @@
 #include "vm/actor/cron_actor.hpp"
 
 namespace fc::vm::actor::cron_actor {
+  /**
+   * Entries is a set of actors (and corresponding methods) to call during
+   * EpochTick
+   */
   std::vector<CronTableEntry> entries = {
       {kStoragePowerAddress, {SpaMethods::CHECK_PROOF_SUBMISSIONS}}};
 
