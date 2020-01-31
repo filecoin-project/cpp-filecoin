@@ -37,8 +37,9 @@ namespace fc::vm::state {
       return address;
     }
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
-    OUTCOME_TRY(init_actor_state,
-                store_->getCbor<actor::InitActorState>(init_actor.head));
+    OUTCOME_TRY(
+        init_actor_state,
+        store_->getCbor<actor::init_actor::InitActorState>(init_actor.head));
     Hamt address_map(store_, init_actor_state.address_map);
     OUTCOME_TRY(id, address_map.getCbor<uint64_t>(encodeToString(address)));
     return Address::makeFromId(id);
@@ -47,8 +48,9 @@ namespace fc::vm::state {
   outcome::result<Address> StateTreeImpl::registerNewAddress(
       const Address &address, const Actor &actor) {
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
-    OUTCOME_TRY(init_actor_state,
-                store_->getCbor<actor::InitActorState>(init_actor.head));
+    OUTCOME_TRY(
+        init_actor_state,
+        store_->getCbor<actor::init_actor::InitActorState>(init_actor.head));
     OUTCOME_TRY(address_id, init_actor_state.addActor(store_, address));
     OUTCOME_TRY(init_actor_state_cid, store_->setCbor(init_actor_state));
     init_actor.head = ActorSubstateCID{init_actor_state_cid};

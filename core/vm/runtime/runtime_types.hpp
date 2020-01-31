@@ -24,6 +24,11 @@ namespace fc::vm::runtime {
     common::Buffer return_value;
   };
 
+  inline bool operator==(const InvocationOutput &lhs,
+                         const InvocationOutput &rhs) {
+    return lhs.return_value == rhs.return_value;
+  }
+
   /**
    * Id of native function
    */

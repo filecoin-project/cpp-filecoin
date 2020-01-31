@@ -81,7 +81,7 @@ namespace fc::codec::cbor {
     if (maybe_cid.has_error()) {
       outcome::raise(CborDecodeError::INVALID_CID);
     }
-    cid = maybe_cid.value();
+    cid = std::move(maybe_cid.value());
     return *this;
   }
 

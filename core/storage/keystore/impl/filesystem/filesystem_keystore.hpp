@@ -25,8 +25,7 @@ namespace fc::storage::keystore {
    public:
     FileSystemKeyStore(Path path,
                        std::shared_ptr<BlsProvider> blsProvider,
-                       std::shared_ptr<Secp256k1Provider> secp256K1Provider,
-                       std::shared_ptr<AddressVerifier> addressVerifier);
+                       std::shared_ptr<Secp256k1Provider> secp256K1Provider);
 
     ~FileSystemKeyStore() override = default;
 

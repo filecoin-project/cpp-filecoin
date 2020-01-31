@@ -20,6 +20,8 @@ target_link_libraries(init_actor_test
     actor
     hexutil
     ipfs_datastore_in_memory
+    runtime
+    state_tree
     )
 
 addtest(cron_actor_test

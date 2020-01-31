@@ -6,13 +6,15 @@
 #include "vm/actor/impl/invoker_impl.hpp"
 
 #include "vm/actor/cron_actor.hpp"
+#include "vm/actor/init_actor.hpp"
 
 namespace fc::vm::actor {
 
   using runtime::InvocationOutput;
 
   InvokerImpl::InvokerImpl() {
-    builtin_[actor::kCronCodeCid] = actor::CronActor::exports;
+    builtin_[actor::kCronCodeCid] = actor::cron_actor::exports;
+    builtin_[actor::kInitCodeCid] = actor::init_actor::exports;
   }
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(

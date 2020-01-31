@@ -29,6 +29,9 @@ namespace fc::vm::actor {
   /// Actor methods exported by number
   using ActorExports = std::map<MethodNumber, ActorMethod>;
 
+  /// Reserved method number for constructor
+  constexpr MethodNumber kConstructorMethodNumber{1};
+
   constexpr VMExitCode DECODE_ACTOR_PARAMS_ERROR{1};
 
   /// Decode actor params, raises appropriate error

@@ -10,7 +10,6 @@
 
 #include "common/blob.hpp"
 #include "common/outcome.hpp"
-#include "crypto/blake2/blake2b_error.hpp"
 
 namespace fc::crypto::blake2b {
 
@@ -23,18 +22,16 @@ namespace fc::crypto::blake2b {
   /**
    * @brief Get blake2b-160 hash
    * @param to_hash - data to hash
-   * @return outcome with hash or error
+   * @return hash
    */
-  fc::outcome::result<Blake2b160Hash> blake2b_160(
-      gsl::span<const uint8_t> to_hash);
+  Blake2b160Hash blake2b_160(gsl::span<const uint8_t> to_hash);
 
   /**
    * @brief Get blake2b-256 hash
    * @param to_hash - data to hash
-   * @return outcome with hash or error
+   * @return hash
    */
-  fc::outcome::result<Blake2b256Hash> blake2b_256(
-      gsl::span<const uint8_t> to_hash);
+  Blake2b256Hash blake2b_256(gsl::span<const uint8_t> to_hash);
 
 }  // namespace fc::crypto::blake2b
 

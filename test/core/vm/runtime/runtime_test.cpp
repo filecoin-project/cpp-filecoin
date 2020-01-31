@@ -11,6 +11,7 @@
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
+#include "testutil/cbor.hpp"
 #include "testutil/mocks/crypto/randomness/randomness_provider_mock.hpp"
 #include "testutil/mocks/storage/ipfs/ipfs_datastore_mock.hpp"
 #include "testutil/mocks/vm/actor/invoker_mock.hpp"
@@ -59,8 +60,7 @@ class RuntimeTest : public ::testing::Test {
       std::make_shared<MockStateTree>();
   std::shared_ptr<MockIndices> indices_ = std::make_shared<MockIndices>();
   std::shared_ptr<MockInvoker> invoker_ = std::make_shared<MockInvoker>();
-  std::shared_ptr<UnsignedMessage> message_ = std::make_shared<UnsignedMessage>(
-      UnsignedMessage{message_to, message_from});
+  UnsignedMessage message_{message_to, message_from};
   ChainEpoch chain_epoch_{0};
   Address immediate_caller_{fc::primitives::address::TESTNET, 1};
   Address block_miner_{};
@@ -78,7 +78,8 @@ class RuntimeTest : public ::testing::Test {
                                     immediate_caller_,
                                     block_miner_,
                                     gas_available_,
-                                    gas_used_);
+                                    gas_used_,
+                                    ActorSubstateCID{"010001020001"_cid});
 };
 
 /**
@@ -138,13 +139,14 @@ TEST_F(RuntimeTest, createActorValid) {
       fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
   CodeId new_code{fc::vm::actor::kEmptyObjectCid};
   Address new_address{fc::primitives::address::TESTNET, 2};
+  Actor actor{new_code, ActorSubstateCID{fc::vm::actor::kEmptyObjectCid}, 0, 0};
 
   EXPECT_CALL(*state_tree_, get(Eq(immediate_caller_)))
       .WillOnce(testing::Return(fc::outcome::success(immediate_caller_actor)));
-  EXPECT_CALL(*state_tree_, registerNewAddress(Eq(new_address), _))
-      .WillOnce(testing::Return(fc::outcome::success(new_address)));
+  EXPECT_CALL(*state_tree_, set(Eq(new_address), Eq(actor)))
+      .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_TRUE_1(runtime_->createActor(new_code, new_address));
+  EXPECT_OUTCOME_TRUE_1(runtime_->createActor(new_address, actor));
 }
 
 /**
@@ -163,7 +165,7 @@ TEST_F(RuntimeTest, createActorNotPermitted) {
       .WillOnce(testing::Return(fc::outcome::success(immediate_caller_actor)));
 
   EXPECT_OUTCOME_ERROR(RuntimeError::CREATE_ACTOR_OPERATION_NOT_PERMITTED,
-                       runtime_->createActor(new_code, new_address));
+                       runtime_->createActor(new_address, {}));
 }
 
 /**
@@ -187,7 +189,7 @@ TEST_F(RuntimeTest, send) {
   EXPECT_CALL(*state_tree_, flush())
       .Times(2)
       .WillRepeatedly(testing::Return(fc::outcome::success()));
-  EXPECT_CALL(*state_tree_, get(Eq(message_->to)))
+  EXPECT_CALL(*state_tree_, get(Eq(message_.to)))
       .WillOnce(testing::Return(fc::outcome::success(from_actor)));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
       .WillOnce(testing::Return(fc::outcome::success(to_actor)));
@@ -218,11 +220,23 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
 
   EXPECT_CALL(*state_tree_, flush())
       .WillOnce(testing::Return(fc::outcome::success()));
-  EXPECT_CALL(*state_tree_, get(Eq(message_->to)))
+  EXPECT_CALL(*state_tree_, get(Eq(message_.to)))
       .WillOnce(testing::Return(fc::outcome::success(from_actor)));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
       .WillOnce(testing::Return(fc::outcome::success(to_actor)));
 
   EXPECT_OUTCOME_ERROR(RuntimeError::NOT_ENOUGH_FUNDS,
                        runtime_->send(to_address, method, params, amount));
+}
+
+/**
+ * @given Runtime with initial state
+ * @when Commit new state
+ * @then State is updated
+ */
+TEST_F(RuntimeTest, Commit) {
+  auto new_state = ActorSubstateCID{"010001020002"_cid};
+  EXPECT_NE(runtime_->getCurrentActorState(), new_state);
+  EXPECT_OUTCOME_TRUE_1(runtime_->commit(new_state));
+  EXPECT_EQ(runtime_->getCurrentActorState(), new_state);
 }

@@ -80,7 +80,7 @@ namespace fc::codec::cbor {
     /** Encodes string */
     CborEncodeStream &operator<<(const std::string &str);
     /** Encodes CID */
-    CborEncodeStream &operator<<(const CID &cid);
+    CborEncodeStream &operator<<(const libp2p::multi::ContentIdentifier &cid);
     /** Encodes list container encode substream */
     CborEncodeStream &operator<<(const CborEncodeStream &other);
     /** Encodes map container encode substream map */

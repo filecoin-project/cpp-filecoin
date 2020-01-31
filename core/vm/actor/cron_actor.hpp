@@ -9,38 +9,28 @@
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/storage_power_actor.hpp"
 
-namespace fc::vm::actor {
-
-  using runtime::InvocationOutput;
-  using runtime::Runtime;
-
+namespace fc::vm::actor::cron_actor {
   struct CronTableEntry {
     Address to_addr;
     MethodNumber method_num{};
   };
 
-  struct CronActor {
-    static constexpr VMExitCode WRONG_CALL{1};
+  constexpr MethodNumber kEpochTickMethodNumber{2};
+  constexpr VMExitCode WRONG_CALL{1};
 
-    /**
-     * Entries is a set of actors (and corresponding methods) to call during
-     * EpochTick
-     */
-    static std::vector<CronTableEntry> entries;
+  /**
+   * @brief EpochTick executes built-in periodic actions, run at every Epoch.
+   * @param actor from Lotus(doesn't use)
+   * @param runtime is virtual machine context
+   * @param params from Lotus(doesn't use)
+   * @return success or error
+   */
+  outcome::result<InvocationOutput> epochTick(const Actor &actor,
+                                              Runtime &runtime,
+                                              const MethodParams &params);
 
-    /**
-     * @brief EpochTick executes built-in periodic actions, run at every Epoch.
-     * @param actor from Lotus(doesn't use)
-     * @param runtime is virtual machine context
-     * @param params from Lotus(doesn't use)
-     * @return success or error
-     */
-    static outcome::result<InvocationOutput> epochTick(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+  extern ActorExports exports;
 
-    static ActorExports exports;
-  };
-
-}  // namespace fc::vm::actor
+}  // namespace fc::vm::actor::cron_actor
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_CRON_ACTOR_HPP

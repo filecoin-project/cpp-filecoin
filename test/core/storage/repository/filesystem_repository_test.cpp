@@ -6,7 +6,6 @@
 #include "storage/repository/impl/filesystem_repository.hpp"
 
 #include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "primitives/address/impl/address_builder_impl.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/repository/repository_error.hpp"
 #include "testutil/literals.hpp"
@@ -16,12 +15,12 @@
 using fc::CID;
 using fc::common::Buffer;
 using fc::crypto::bls::BlsProviderImpl;
-using fc::primitives::address::AddressBuilderImpl;
+using fc::primitives::address::Address;
+using fc::primitives::address::Network;
 using fc::storage::repository::FileSystemRepository;
 using fc::storage::repository::Repository;
 using fc::storage::repository::RepositoryError;
 using BlsKeyPair = fc::crypto::bls::KeyPair;
-using fc::primitives::address::Network;
 using libp2p::multi::HashType;
 using libp2p::multi::MulticodecType;
 using libp2p::multi::Multihash;
@@ -99,26 +98,21 @@ TEST_F(FilesSystemRepositoryTest, PersistenceRepository) {
 
   // set key
   auto keystore = repository_old->getKeyStore();
-  AddressBuilderImpl addressBuilder{};
   auto bls_provider = std::make_shared<BlsProviderImpl>();
   auto bls_keypair =
       std::make_shared<BlsKeyPair>(bls_provider->generateKeyPair().value());
-  auto bls_address =
-      addressBuilder
-          .makeFromBlsPublicKey(Network::MAINNET, bls_keypair->public_key)
-          .value();
+  auto bls_address = Address::makeBls(bls_keypair->public_key);
   EXPECT_OUTCOME_TRUE_1(keystore->put(bls_address, bls_keypair->private_key));
   keystore.reset();
 
   // save ipld data
   auto datastore = repository_old->getIpldStore();
 
-  CID cid{
-      CID::Version::V1,
-      MulticodecType::SHA2_256,
-      Multihash::create(HashType::sha256,
-                        "0123456789ABCDEF0123456789ABCDEF"_unhex)
-          .value()};
+  CID cid{CID::Version::V1,
+          MulticodecType::SHA2_256,
+          Multihash::create(HashType::sha256,
+                            "0123456789ABCDEF0123456789ABCDEF"_unhex)
+              .value()};
   Buffer value{"0123456789ABCDEF0123456789ABCDEF"_unhex};
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid, value));
   datastore.reset();

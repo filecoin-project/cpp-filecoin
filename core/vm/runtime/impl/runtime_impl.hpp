@@ -32,12 +32,13 @@ namespace fc::vm::runtime {
                 std::shared_ptr<StateTree> state_tree,
                 std::shared_ptr<Indices> indices,
                 std::shared_ptr<Invoker> invoker,
-                std::shared_ptr<UnsignedMessage> message,
+                UnsignedMessage message,
                 ChainEpoch chain_epoch,
                 Address immediate_caller,
                 Address block_miner,
                 BigInt gas_available,
-                BigInt gas_used);
+                BigInt gas_used,
+                ActorSubstateCID current_actor_state);
 
     /** \copydoc Runtime::getCurrentEpoch() */
     ChainEpoch getCurrentEpoch() const override;
@@ -83,8 +84,8 @@ namespace fc::vm::runtime {
                                                BigInt value) override;
 
     /** \copydoc Runtime::createActor() */
-    outcome::result<void> createActor(CodeId code_id,
-                                      const Address &address) override;
+    outcome::result<void> createActor(const Address &address,
+                                      const Actor &actor) override;
 
     /** \copydoc Runtime::deleteActor() */
     outcome::result<void> deleteActor(const Address &address) override;
@@ -93,16 +94,22 @@ namespace fc::vm::runtime {
     std::shared_ptr<IpfsDatastore> getIpfsDatastore() override;
 
     /** \copydoc Runtime::getMessage() */
-    std::shared_ptr<UnsignedMessage> getMessage() override;
+    std::reference_wrapper<const UnsignedMessage> getMessage() override;
+
+    outcome::result<void> chargeGas(const BigInt &amount) override;
+
+    ActorSubstateCID getCurrentActorState() override;
+
+    outcome::result<void> commit(const ActorSubstateCID &new_state) override;
 
    private:
     outcome::result<void> transfer(Actor &from,
                                    Actor &to,
                                    const BigInt &amount);
-    outcome::result<void> chargeGas(const BigInt &amount);
     outcome::result<Actor> getOrCreateActor(const Address &address);
     std::shared_ptr<Runtime> createRuntime(
-        const std::shared_ptr<UnsignedMessage> &message) const;
+        const UnsignedMessage &message,
+        const ActorSubstateCID &current_actor_state) const;
 
    private:
     std::shared_ptr<RandomnessProvider> randomness_provider_;
@@ -110,13 +117,14 @@ namespace fc::vm::runtime {
     std::shared_ptr<StateTree> state_tree_;
     std::shared_ptr<Indices> indices_;
     std::shared_ptr<Invoker> invoker_;
-    std::shared_ptr<UnsignedMessage> message_;
+    UnsignedMessage message_;
     ChainEpoch chain_epoch_;
     Address immediate_caller_;
     Address block_miner_;
     BigInt gas_price_;
     BigInt gas_available_;
     BigInt gas_used_;
+    ActorSubstateCID current_actor_state_;
   };
 
 }  // namespace fc::vm::runtime
