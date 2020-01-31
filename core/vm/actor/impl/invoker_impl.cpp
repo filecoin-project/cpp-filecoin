@@ -12,7 +12,7 @@ namespace fc::vm::actor {
   using runtime::InvocationOutput;
 
   InvokerImpl::InvokerImpl() {
-    builtin_[actor::kCronCodeCid] = actor::CronActor::exports;
+    builtin_[actor::kCronCodeCid] = actor::cron_actor::exports;
   }
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(

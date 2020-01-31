@@ -28,8 +28,8 @@ TEST(CronActorTest, WrongSender) {
   actor::Actor actor;
   EXPECT_CALL(runtime, getMessage())
       .WillOnce(testing::Return(message_wrong_sender));
-  EXPECT_OUTCOME_FALSE(err, actor::CronActor::epochTick(actor, runtime, {}));
-  ASSERT_EQ(err, actor::CronActor::WRONG_CALL);
+  EXPECT_OUTCOME_FALSE(err, actor::cron_actor::epochTick(actor, runtime, {}));
+  ASSERT_EQ(err, actor::cron_actor::WRONG_CALL);
 }
 
 /**
@@ -48,5 +48,5 @@ TEST(CronActorTest, Correct) {
                    MethodParams{},
                    actor::BigInt(0)))
       .WillOnce(testing::Return(fc::outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(actor::CronActor::epochTick(actor, runtime, {}));
+  EXPECT_OUTCOME_TRUE_1(actor::cron_actor::epochTick(actor, runtime, {}));
 }
