@@ -11,7 +11,7 @@ namespace fc::vm::actor {
 
   outcome::result<InvocationOutput> CronActor::epochTick(
       const Actor &actor, Runtime &runtime, const MethodParams &params) {
-    if ((runtime.getMessage()->from != kCronAddress)) {
+    if ((runtime.getMessage().get().from != kCronAddress)) {
       return WRONG_CALL;
     }
 

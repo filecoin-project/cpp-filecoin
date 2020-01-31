@@ -131,7 +131,7 @@ namespace fc::vm::runtime {
      * Get Message for actor invocation
      * @return message invoking current execution
      */
-    virtual std::shared_ptr<UnsignedMessage> getMessage() = 0;
+    virtual std::reference_wrapper<const UnsignedMessage> getMessage() = 0;
 
     virtual outcome::result<void> chargeGas(const BigInt &amount) = 0;
 

@@ -39,7 +39,7 @@ RuntimeImpl::RuntimeImpl(
     std::shared_ptr<StateTree> state_tree,
     std::shared_ptr<Indices> indices,
     std::shared_ptr<Invoker> invoker,
-    std::shared_ptr<UnsignedMessage> message,
+    UnsignedMessage message,
     ChainEpoch chain_epoch,
     Address immediate_caller,
     Address block_miner,
@@ -79,7 +79,7 @@ Address RuntimeImpl::getImmediateCaller() const {
 }
 
 Address RuntimeImpl::getCurrentReceiver() const {
-  return message_->to;
+  return message_.to;
 }
 
 Address RuntimeImpl::getTopLevelBlockWinner() const {
@@ -101,7 +101,7 @@ fc::outcome::result<BigInt> RuntimeImpl::getBalance(
 }
 
 BigInt RuntimeImpl::getValueReceived() const {
-  return message_->value;
+  return message_.value;
 }
 
 std::shared_ptr<Indices> RuntimeImpl::getCurrentIndices() const {
@@ -122,19 +122,18 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
   OUTCOME_TRY(state_tree_->flush());
 
   // sender is a current 'to' in message
-  OUTCOME_TRY(from_actor, state_tree_->get(message_->to));
+  OUTCOME_TRY(from_actor, state_tree_->get(message_.to));
   OUTCOME_TRY(to_actor, getOrCreateActor(to_address));
 
-  auto message =
-      std::make_shared<UnsignedMessage>(UnsignedMessage{message_->to,
-                                                        to_address,
-                                                        from_actor.nonce,
-                                                        value,
-                                                        gas_price_,
-                                                        gas_available_,
-                                                        method_number,
-                                                        params});
-  OUTCOME_TRY(serialized_message, fc::codec::cbor::encode(*message));
+  auto message = UnsignedMessage{message_.to,
+                                 to_address,
+                                 from_actor.nonce,
+                                 value,
+                                 gas_price_,
+                                 gas_available_,
+                                 method_number,
+                                 params};
+  OUTCOME_TRY(serialized_message, fc::codec::cbor::encode(message));
   OUTCOME_TRY(
       chargeGas(kOnChainMessageBaseGasCost
                 + serialized_message.size() * kOnChainMessagePerByteGasCharge));
@@ -158,7 +157,7 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
     OUTCOME_TRY(miner_actor, state_tree_->get(block_miner_));
     OUTCOME_TRY(transfer(from_actor, miner_actor, gas_used_ * gas_cost));
 
-    OUTCOME_TRY(state_tree_->set(message_->to, from_actor));
+    OUTCOME_TRY(state_tree_->set(message_.to, from_actor));
     OUTCOME_TRY(state_tree_->set(to_address, to_actor));
     OUTCOME_TRY(state_tree_->set(block_miner_, miner_actor));
 
@@ -199,7 +198,7 @@ std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() {
   return datastore_;
 }
 
-std::shared_ptr<UnsignedMessage> RuntimeImpl::getMessage() {
+std::reference_wrapper<const UnsignedMessage> RuntimeImpl::getMessage() {
   return message_;
 }
 
@@ -207,7 +206,8 @@ ActorSubstateCID RuntimeImpl::getHead() {
   return actor_head_;
 }
 
-fc::outcome::result<void> RuntimeImpl::commit(const ActorSubstateCID &new_head) {
+fc::outcome::result<void> RuntimeImpl::commit(
+    const ActorSubstateCID &new_head) {
   OUTCOME_TRY(chargeGas(kCommitGasCost));
   actor_head_ = new_head;
   return outcome::success();
@@ -241,8 +241,7 @@ fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
 }
 
 std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
-    const std::shared_ptr<UnsignedMessage> &message,
-    const ActorSubstateCID &actor_head) const {
+    const UnsignedMessage &message, const ActorSubstateCID &actor_head) const {
   return std::make_shared<RuntimeImpl>(randomness_provider_,
                                        datastore_,
                                        state_tree_,

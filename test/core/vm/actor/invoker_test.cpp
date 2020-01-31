@@ -19,8 +19,7 @@ using fc::vm::runtime::MockRuntime;
 TEST(InvokerTest, InvokeCron) {
   using namespace fc::vm::actor;
 
-  auto message = std::make_shared<UnsignedMessage>(
-      UnsignedMessage{kInitAddress, kInitAddress});
+  auto message = UnsignedMessage{kInitAddress, kInitAddress};
   InvokerImpl invoker;
   MockRuntime runtime;
 
@@ -36,7 +35,8 @@ TEST(InvokerTest, InvokeCron) {
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_OUTCOME_ERROR(
       CronActor::WRONG_CALL,
-      invoker.invoke({kCronCodeCid}, runtime, CronActor::kEpochTickMethodNumber, {}));
+      invoker.invoke(
+          {kCronCodeCid}, runtime, CronActor::kEpochTickMethodNumber, {}));
 }
 
 /// decodeActorParams returns error or decoded params

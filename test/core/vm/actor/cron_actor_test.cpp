@@ -22,8 +22,8 @@ using fc::vm::runtime::MockRuntime;
  * @then error WRONG_CALL
  */
 TEST(CronActorTest, WrongSender) {
-  auto message_wrong_sender = std::make_shared<UnsignedMessage>(
-      UnsignedMessage{actor::kInitAddress, actor::kInitAddress});
+  auto message_wrong_sender =
+      UnsignedMessage{actor::kInitAddress, actor::kInitAddress};
   MockRuntime runtime;
   actor::Actor actor;
   EXPECT_CALL(runtime, getMessage())
@@ -38,8 +38,7 @@ TEST(CronActorTest, WrongSender) {
  * @then success
  */
 TEST(CronActorTest, Correct) {
-  auto message = std::make_shared<UnsignedMessage>(
-      UnsignedMessage{actor::kInitAddress, actor::kCronAddress});
+  auto message = UnsignedMessage{actor::kInitAddress, actor::kCronAddress};
   MockRuntime runtime;
   actor::Actor actor;
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));

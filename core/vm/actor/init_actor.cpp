@@ -25,25 +25,26 @@ namespace fc::vm::actor {
       const Actor &actor, Runtime &runtime, const MethodParams &params) {
     OUTCOME_TRY(exec_params, decodeActorParams<ExecParams>(params));
     if (!isBuiltinActor(exec_params.code)) {
-      return NOT_BUILTIN_ACTOR;
+      return InitActor::NOT_BUILTIN_ACTOR;
     }
     if (isSingletonActor(exec_params.code)) {
-      return SINGLETON_ACTOR;
+      return InitActor::SINGLETON_ACTOR;
     }
     OUTCOME_TRY(runtime.chargeGas(runtime::kInitActorExecCost));
-    auto message = runtime.getMessage();
+    auto &message = runtime.getMessage().get();
     auto actor_address{Address::makeActorExecAddress(
-        Buffer{primitives::address::encode(message->from)}.putUint64(
-            message->nonce))};
+        Buffer{primitives::address::encode(message.from)}.putUint64(
+            message.nonce))};
     auto store = runtime.getIpfsDatastore();
     OUTCOME_TRY(init_actor, store->getCbor<InitActorState>(runtime.getHead()));
     OUTCOME_TRY(id_address, init_actor.addActor(store, actor_address));
     OUTCOME_TRY(runtime.createActor(
-        id_address, Actor{exec_params.code, ActorSubstateCID{kEmptyObjectCid}, 0, 0}));
+        id_address,
+        Actor{exec_params.code, ActorSubstateCID{kEmptyObjectCid}, 0, 0}));
     OUTCOME_TRY(runtime.send(id_address,
                              kConstructorMethodNumber,
                              exec_params.params,
-                             message->value));
+                             message.value));
     OUTCOME_TRY(new_head, store->setCbor(init_actor));
     OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_head}));
     return InvocationOutput{Buffer{primitives::address::encode(id_address)}};

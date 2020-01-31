@@ -60,8 +60,7 @@ class RuntimeTest : public ::testing::Test {
       std::make_shared<MockStateTree>();
   std::shared_ptr<MockIndices> indices_ = std::make_shared<MockIndices>();
   std::shared_ptr<MockInvoker> invoker_ = std::make_shared<MockInvoker>();
-  std::shared_ptr<UnsignedMessage> message_ = std::make_shared<UnsignedMessage>(
-      UnsignedMessage{message_to, message_from});
+  UnsignedMessage message_{message_to, message_from};
   ChainEpoch chain_epoch_{0};
   Address immediate_caller_{fc::primitives::address::TESTNET, 1};
   Address block_miner_{};
@@ -80,8 +79,7 @@ class RuntimeTest : public ::testing::Test {
                                     block_miner_,
                                     gas_available_,
                                     gas_used_,
-                                    ActorSubstateCID{"010001020001"_cid}
-                                    );
+                                    ActorSubstateCID{"010001020001"_cid});
 };
 
 /**
@@ -126,7 +124,8 @@ TEST_F(RuntimeTest, getBalanceError) {
   EXPECT_CALL(*state_tree_, get(Eq(not_found_address)))
       .WillOnce(testing::Return(fc::outcome::failure(HamtError::MAX_DEPTH)));
 
-  EXPECT_OUTCOME_ERROR(HamtError::MAX_DEPTH, runtime_->getBalance(not_found_address));
+  EXPECT_OUTCOME_ERROR(HamtError::MAX_DEPTH,
+                       runtime_->getBalance(not_found_address));
 }
 
 /**
@@ -190,7 +189,7 @@ TEST_F(RuntimeTest, send) {
   EXPECT_CALL(*state_tree_, flush())
       .Times(2)
       .WillRepeatedly(testing::Return(fc::outcome::success()));
-  EXPECT_CALL(*state_tree_, get(Eq(message_->to)))
+  EXPECT_CALL(*state_tree_, get(Eq(message_.to)))
       .WillOnce(testing::Return(fc::outcome::success(from_actor)));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
       .WillOnce(testing::Return(fc::outcome::success(to_actor)));
@@ -221,7 +220,7 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
 
   EXPECT_CALL(*state_tree_, flush())
       .WillOnce(testing::Return(fc::outcome::success()));
-  EXPECT_CALL(*state_tree_, get(Eq(message_->to)))
+  EXPECT_CALL(*state_tree_, get(Eq(message_.to)))
       .WillOnce(testing::Return(fc::outcome::success(from_actor)));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
       .WillOnce(testing::Return(fc::outcome::success(to_actor)));
@@ -230,6 +229,11 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
                        runtime_->send(to_address, method, params, amount));
 }
 
+/**
+ * @given Runtime with initial state
+ * @when Commit new state
+ * @then State is updated
+ */
 TEST_F(RuntimeTest, Commit) {
   auto new_head = ActorSubstateCID{"010001020002"_cid};
   EXPECT_NE(runtime_->getHead(), new_head);

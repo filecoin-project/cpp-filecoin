@@ -32,7 +32,7 @@ namespace fc::vm::runtime {
                 std::shared_ptr<StateTree> state_tree,
                 std::shared_ptr<Indices> indices,
                 std::shared_ptr<Invoker> invoker,
-                std::shared_ptr<UnsignedMessage> message,
+                UnsignedMessage message,
                 ChainEpoch chain_epoch,
                 Address immediate_caller,
                 Address block_miner,
@@ -94,7 +94,7 @@ namespace fc::vm::runtime {
     std::shared_ptr<IpfsDatastore> getIpfsDatastore() override;
 
     /** \copydoc Runtime::getMessage() */
-    std::shared_ptr<UnsignedMessage> getMessage() override;
+    std::reference_wrapper<const UnsignedMessage> getMessage() override;
 
     outcome::result<void> chargeGas(const BigInt &amount) override;
 
@@ -108,7 +108,7 @@ namespace fc::vm::runtime {
                                    const BigInt &amount);
     outcome::result<Actor> getOrCreateActor(const Address &address);
     std::shared_ptr<Runtime> createRuntime(
-        const std::shared_ptr<UnsignedMessage> &message,
+        const UnsignedMessage &message,
         const ActorSubstateCID &actor_head) const;
 
    private:
@@ -117,7 +117,7 @@ namespace fc::vm::runtime {
     std::shared_ptr<StateTree> state_tree_;
     std::shared_ptr<Indices> indices_;
     std::shared_ptr<Invoker> invoker_;
-    std::shared_ptr<UnsignedMessage> message_;
+    UnsignedMessage message_;
     ChainEpoch chain_epoch_;
     Address immediate_caller_;
     Address block_miner_;
