@@ -6,13 +6,21 @@ Filecoin is a decentralized protocol described in [spec](https://filecoin-projec
 
 ## Dependencies
 
-All dependencies are managed using [Hunter](hunter.sh). It uses cmake to download required libraries and do not require to download and install packages manually.
+All C++ dependencies are managed using [Hunter](hunter.sh).
+It uses cmake to download required libraries and do not require to download and install packages manually.
 Target C++ compilers are:
 * GCC 7.4
 * Clang 6.0.1
 * AppleClang 11.0
 
+### Rust Installation
 
+C++ Filecoin implementation uses Rust libraries as dependencies for BLS provider.
+All you need to build these targets successfully - is Rust lang installed to your `${HOME}/.cargo/bin`.
+
+You can do it manually following the instructions from [rust-lang.org](https://www.rust-lang.org/tools/install) or any other way.
+
+Otherwise, CMake would not be able to compile Rust-related targets and will produce a warning about that during configuration.
 
 ## Clone
 
