@@ -32,6 +32,7 @@ namespace fc::vm {
     MULTISIG_ACTOR_WRONG_CALLER,
     MULTISIG_ACTOR_ALREADY_SIGNED,
     MULTISIG_ACTOR_FUNDS_LOCKED,
+    MULTISIG_ACTOR_INSUFFICIENT_FUND,
 
     STORAGE_POWER_ACTOR_OUT_OF_BOUND,
     STORAGE_POWER_ACTOR_ALREADY_EXISTS,
@@ -101,6 +102,7 @@ namespace fc::vm::exit_code {
 
     /**
      * Represents a failure to apply a message, as it did not carry sufficient
+     * funds
      */
     kInsufficientFundsSystem,
 

@@ -33,6 +33,12 @@ namespace fc::vm::actor::builtin {
     // This address at index 0 is the transaction proposer, order of this slice
     // must be preserved.
     std::vector<Address> approved;
+
+    bool operator==(const MultiSignatureTransaction &other) const {
+      return transaction_number == other.transaction_number && to == other.to
+             && value == other.value && method == other.method
+             && params == other.params && approved == other.approved;
+    }
   };
 
   template <class Stream,

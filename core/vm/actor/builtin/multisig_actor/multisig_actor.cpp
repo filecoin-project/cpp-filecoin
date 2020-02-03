@@ -44,6 +44,9 @@ fc::outcome::result<void> MultiSignatureActorState::approveTransaction(
 
   // check threshold
   if (pending_tx->approved.size() >= threshold) {
+    if (actor.balance < pending_tx->value)
+      return VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUND;
+
     auto amount_locked = getAmountLocked(runtime.getCurrentEpoch().toUInt64());
     if (actor.balance - pending_tx->value < amount_locked)
       return VMExitCode::MULTISIG_ACTOR_FUNDS_LOCKED;
@@ -105,8 +108,6 @@ fc::outcome::result<InvocationOutput> MultiSigActor::propose(
               runtime.getIpfsDatastore()->getCbor<MultiSignatureActorState>(
                   actor.head));
 
-  if (!state.isSigner(runtime.getImmediateCaller()))
-    return VMExitCode::MULTISIG_ACTOR_NOT_SIGNER;
   TransactionNumber tx_number = state.next_transaction_id;
   state.next_transaction_id++;
 
