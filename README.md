@@ -16,7 +16,7 @@ Target C++ compilers are:
 ### Rust Installation
 
 C++ Filecoin implementation uses Rust libraries as dependencies for BLS provider.
-All you need to successfully build these targets - is the Rust lang installed to your `${HOME}/.cargo/bin`.
+All you need to build these targets successfully - is Rust lang installed to your `${HOME}/.cargo/bin`.
 
 You can do it manually following the instructions from [rust-lang.org](https://www.rust-lang.org/tools/install) or any other way.
 
