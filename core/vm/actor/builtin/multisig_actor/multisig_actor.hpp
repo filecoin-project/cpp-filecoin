@@ -16,13 +16,13 @@
 
 namespace fc::vm::actor::builtin {
 
-  using primitives::ChainEpoch;
   using primitives::EpochDuration;
   using primitives::UBigInt;
   using primitives::address::Address;
   using runtime::InvocationOutput;
   using runtime::Runtime;
-  using TransactionNumber = UBigInt;
+  using TransactionNumber = size_t;
+  using ChainEpoch = BigInt;
 
   struct MultiSignatureTransaction {
     TransactionNumber transaction_number;
@@ -39,17 +39,18 @@ namespace fc::vm::actor::builtin {
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const MultiSignatureTransaction &transaction) {
-    return s << (s.list() << transaction.to << transaction.value
-                          << transaction.method << transaction.params
-                          << transaction.approved);
+    return s << (s.list() << transaction.transaction_number << transaction.to
+                          << transaction.value << transaction.method
+                          << transaction.params << transaction.approved);
   }
 
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, MultiSignatureTransaction &transaction) {
-    s.list() >> transaction.to >> transaction.value >> transaction.method
-        >> transaction.params >> transaction.approved;
+    s.list() >> transaction.transaction_number >> transaction.to
+        >> transaction.value >> transaction.method >> transaction.params
+        >> transaction.approved;
     return s;
   }
 
@@ -99,9 +100,9 @@ namespace fc::vm::actor::builtin {
    * Construct method parameters
    */
   struct ConstructParameteres {
-    std::vector<Address> signers{};
-    size_t threshold{0};
-    EpochDuration unlock_duration{0};
+    std::vector<Address> signers;
+    size_t threshold;
+    EpochDuration unlock_duration;
   };
 
   template <class Stream,

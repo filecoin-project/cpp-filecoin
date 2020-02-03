@@ -5,9 +5,11 @@
 
 #include "multisig_actor.hpp"
 
+#include "common/buffer.hpp"
 #include "common/outcome.hpp"
 #include "vm/actor/actor_method.hpp"
 
+using fc::common::Buffer;
 using fc::primitives::BigInt;
 using fc::vm::actor::decodeActorParams;
 using fc::vm::actor::kInitAddress;
@@ -41,11 +43,11 @@ fc::outcome::result<void> MultiSignatureActorState::approveTransaction(
 
   // check threshold
   if (pending_tx->approved.size() >= threshold) {
-    auto amount_locked = getAmountLocked(runtime.getCurrentEpoch());
+    auto amount_locked = getAmountLocked(runtime.getCurrentEpoch().toUInt64());
     if (actor.balance - pending_tx->value < amount_locked)
       return MultiSigActor::FUNDS_LOCKED;
 
-    // send msg ignoring value returned
+    // send messsage ignoring value returned
     runtime.send(pending_tx->to,
                  pending_tx->method,
                  pending_tx->params,
@@ -60,9 +62,8 @@ fc::outcome::result<void> MultiSignatureActorState::approveTransaction(
 
 BigInt MultiSignatureActorState::getAmountLocked(
     const ChainEpoch &current_epoch) const {
-  // TODO (a.chernyshov) add < operator
-  if (current_epoch.toUInt64() < start_epoch.toUInt64()) return initial_balance;
-  auto elapsed_epoch = current_epoch.toUInt64() - start_epoch.toUInt64();
+  if (current_epoch < start_epoch) return initial_balance;
+  auto elapsed_epoch = current_epoch - start_epoch;
   if (unlock_duration < elapsed_epoch) return 0;
   return initial_balance / unlock_duration * elapsed_epoch;
 }
@@ -78,14 +79,16 @@ fc::outcome::result<InvocationOutput> MultiSigActor::construct(
                                  construct_params.threshold,
                                  TransactionNumber{0},
                                  BigInt{0},
-                                 runtime.getCurrentEpoch(),
+                                 runtime.getCurrentEpoch().toUInt64(),
                                  construct_params.unlock_duration,
                                  {}};
   if (construct_params.unlock_duration != 0) {
     state.initial_balance = runtime.getValueReceived();
   }
 
-  // TODO (a.chernyshov) save state - rt
+  // commit state
+  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
+  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
 
   return fc::outcome::success();
 }
@@ -95,14 +98,9 @@ fc::outcome::result<InvocationOutput> MultiSigActor::propose(
   if (!isSignableActor(actor.code)) return WRONG_CALLER;
 
   OUTCOME_TRY(propose_params, decodeActorParams<ProposeParameters>(params));
-  // TODO (a.chernyshov) get state - rt
-  MultiSignatureActorState state{{},
-                                 0,
-                                 TransactionNumber{0},
-                                 BigInt{0},
-                                 runtime.getCurrentEpoch(),
-                                 {0},
-                                 {}};
+  OUTCOME_TRY(state,
+              runtime.getIpfsDatastore()->getCbor<MultiSignatureActorState>(
+                  actor.head));
 
   if (!state.isSigner(runtime.getImmediateCaller())) return NOT_SIGNER;
   TransactionNumber tx_number = state.next_transaction_id;
@@ -119,10 +117,12 @@ fc::outcome::result<InvocationOutput> MultiSigActor::propose(
   // approve pending tx
   OUTCOME_TRY(state.approveTransaction(actor, runtime, tx_number));
 
-  // TODO (a.chernyshov) save state - rt
+  // commit state
+  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
+  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
 
-  // return tx_number
-  return fc::outcome::success();
+  OUTCOME_TRY(encoded_result, codec::cbor::encode(tx_number));
+  return InvocationOutput{Buffer{encoded_result}};
 }
 
 fc::outcome::result<InvocationOutput> MultiSigActor::approve(

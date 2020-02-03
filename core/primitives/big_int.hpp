@@ -37,7 +37,7 @@ namespace fc::primitives {
     return static_cast<cpp_int>(lhs) / static_cast<cpp_int>(rhs);
   }
 
-  static inline BigInt operator/(const BigInt  &lhs, const unsigned long &rhs) {
+  static inline BigInt operator/(const BigInt  &lhs, unsigned long long rhs) {
     return static_cast<cpp_int>(lhs) / static_cast<cpp_int>(rhs);
   }
 
