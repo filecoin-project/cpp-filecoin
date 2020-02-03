@@ -40,6 +40,13 @@ namespace fc::vm {
       case E::ACCOUNT_ACTOR_RESOLVE_NOT_ACCOUNT_ACTOR:
         return 1;
 
+      case E::MULTISIG_ACTOR_NOT_SIGNER:
+      case E::MULTISIG_ACTOR_TRANSACTION_NOT_FOUND:
+      case E::MULTISIG_ACTOR_WRONG_CALLER:
+      case E::MULTISIG_ACTOR_ALREADY_SIGNED:
+      case E::MULTISIG_ACTOR_FUNDS_LOCKED:
+        return 1;
+
       // TODO(turuslan): FIL-128 StoragePowerActor
       case E::STORAGE_POWER_ACTOR_OUT_OF_BOUND:
       case E::STORAGE_POWER_ACTOR_ALREADY_EXISTS:

@@ -15,8 +15,8 @@
 using fc::CID;
 using fc::primitives::ChainEpoch;
 using fc::storage::ipfs::MockIpfsDatastore;
+using fc::vm::VMExitCode;
 using fc::vm::actor::Actor;
-using fc::vm::actor::DECODE_ACTOR_PARAMS_ERROR;
 using fc::vm::actor::encodeActorParams;
 using fc::vm::actor::kCronAddress;
 using fc::vm::actor::kInitAddress;
@@ -47,7 +47,7 @@ TEST_F(MultisigActorTest, ConstructWrongCaller) {
       .WillOnce(testing::Return(kCronAddress));
 
   EXPECT_OUTCOME_ERROR(
-      MultiSigActor::WRONG_CALLER,
+      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
       MultiSigActor::construct(actor, runtime, encoded_params));
 }
 
@@ -62,7 +62,7 @@ TEST_F(MultisigActorTest, ConstructWrongParams) {
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(DECODE_ACTOR_PARAMS_ERROR,
+  EXPECT_OUTCOME_ERROR(VMExitCode ::DECODE_ACTOR_PARAMS_ERROR,
                        MultiSigActor::construct(actor, runtime, wrong_params));
 }
 

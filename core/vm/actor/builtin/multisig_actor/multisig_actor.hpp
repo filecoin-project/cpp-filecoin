@@ -269,12 +269,6 @@ namespace fc::vm::actor::builtin {
    */
   class MultiSigActor {
    public:
-    static constexpr VMExitCode WRONG_CALLER{1};
-    static constexpr VMExitCode NOT_SIGNER{2};
-    static constexpr VMExitCode ALREADY_SIGNED{3};
-    static constexpr VMExitCode TRANSACTION_NOT_FOUND{4};
-    static constexpr VMExitCode FUNDS_LOCKED{5};
-
     static outcome::result<InvocationOutput> construct(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
 

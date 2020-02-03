@@ -11,6 +11,7 @@
 
 using fc::common::Buffer;
 using fc::primitives::BigInt;
+using fc::vm::VMExitCode;
 using fc::vm::actor::decodeActorParams;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::builtin::MultiSigActor;
@@ -24,7 +25,7 @@ bool MultiSignatureActorState::isSigner(const Address &address) const {
 fc::outcome::result<void> MultiSignatureActorState::approveTransaction(
     const Actor &actor, Runtime &runtime, const TransactionNumber &tx_number) {
   Address caller = runtime.getImmediateCaller();
-  if (!isSigner(caller)) return MultiSigActor::NOT_SIGNER;
+  if (!isSigner(caller)) return VMExitCode::MULTISIG_ACTOR_NOT_SIGNER;
 
   auto pending_tx =
       std::find_if(pending_transactions.begin(),
@@ -33,19 +34,19 @@ fc::outcome::result<void> MultiSignatureActorState::approveTransaction(
                      return tx.transaction_number == tx_number;
                    });
   if (pending_tx == pending_transactions.end())
-    return MultiSigActor::TRANSACTION_NOT_FOUND;
+    return VMExitCode::MULTISIG_ACTOR_TRANSACTION_NOT_FOUND;
 
   if (std::find(
           pending_tx->approved.begin(), pending_tx->approved.end(), caller)
       != pending_tx->approved.end())
-    return MultiSigActor::ALREADY_SIGNED;
+    return VMExitCode::MULTISIG_ACTOR_ALREADY_SIGNED;
   pending_tx->approved.push_back(caller);
 
   // check threshold
   if (pending_tx->approved.size() >= threshold) {
     auto amount_locked = getAmountLocked(runtime.getCurrentEpoch().toUInt64());
     if (actor.balance - pending_tx->value < amount_locked)
-      return MultiSigActor::FUNDS_LOCKED;
+      return VMExitCode::MULTISIG_ACTOR_FUNDS_LOCKED;
 
     // send messsage ignoring value returned
     runtime.send(pending_tx->to,
@@ -70,7 +71,8 @@ BigInt MultiSignatureActorState::getAmountLocked(
 
 fc::outcome::result<InvocationOutput> MultiSigActor::construct(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
-  if (runtime.getImmediateCaller() != kInitAddress) return WRONG_CALLER;
+  if (runtime.getImmediateCaller() != kInitAddress)
+    return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
 
   OUTCOME_TRY(construct_params,
               decodeActorParams<ConstructParameteres>(params));
@@ -95,14 +97,16 @@ fc::outcome::result<InvocationOutput> MultiSigActor::construct(
 
 fc::outcome::result<InvocationOutput> MultiSigActor::propose(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
-  if (!isSignableActor(actor.code)) return WRONG_CALLER;
+  if (!isSignableActor(actor.code))
+    return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
 
   OUTCOME_TRY(propose_params, decodeActorParams<ProposeParameters>(params));
   OUTCOME_TRY(state,
               runtime.getIpfsDatastore()->getCbor<MultiSignatureActorState>(
                   actor.head));
 
-  if (!state.isSigner(runtime.getImmediateCaller())) return NOT_SIGNER;
+  if (!state.isSigner(runtime.getImmediateCaller()))
+    return VMExitCode::MULTISIG_ACTOR_NOT_SIGNER;
   TransactionNumber tx_number = state.next_transaction_id;
   state.next_transaction_id++;
 
