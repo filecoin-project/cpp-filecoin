@@ -26,10 +26,10 @@ namespace fc::vm::actor::init_actor {
                                          const MethodParams &params) {
     OUTCOME_TRY(exec_params, decodeActorParams<ExecParams>(params));
     if (!isBuiltinActor(exec_params.code)) {
-      return init_actor::NOT_BUILTIN_ACTOR;
+      return VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR;
     }
     if (isSingletonActor(exec_params.code)) {
-      return init_actor::SINGLETON_ACTOR;
+      return VMExitCode::INIT_ACTOR_SINGLETON_ACTOR;
     }
     OUTCOME_TRY(runtime.chargeGas(runtime::kInitActorExecCost));
     auto &message = runtime.getMessage().get();

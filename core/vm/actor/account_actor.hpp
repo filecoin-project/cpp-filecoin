@@ -7,7 +7,6 @@
 #define CPP_FILECOIN_CORE_VM_ACTOR_ACCOUNT_ACTOR_HPP
 
 #include "primitives/address/address_codec.hpp"
-#include "vm/exit_code/exit_code.hpp"
 #include "vm/state/state_tree.hpp"
 
 namespace fc::vm::actor {
@@ -36,10 +35,6 @@ namespace fc::vm::actor {
 
   /// Account actors represent actors without code
   struct AccountActor {
-    static constexpr VMExitCode CREATE_WRONG_ADDRESS_TYPE{1};
-    static constexpr VMExitCode RESOLVE_NOT_FOUND{1};
-    static constexpr VMExitCode RESOLVE_NOT_ACCOUNT_ACTOR{1};
-
     /// Create account actor from BLS or Secp256k1 address
     static outcome::result<Actor> create(
         const std::shared_ptr<StateTree> &state_tree, const Address &address);

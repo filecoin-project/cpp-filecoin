@@ -17,7 +17,7 @@ namespace fc::vm::actor::cron_actor {
                                               Runtime &runtime,
                                               const MethodParams &params) {
     if ((runtime.getMessage().get().from != kCronAddress)) {
-      return cron_actor::WRONG_CALL;
+      return VMExitCode::CRON_ACTOR_WRONG_CALL;
     }
 
     for (const auto &entry : entries) {

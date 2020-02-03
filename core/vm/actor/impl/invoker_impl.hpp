@@ -17,9 +17,6 @@ namespace fc::vm::actor {
   /// Finds and loads actor code, invokes actor methods
   class InvokerImpl : public Invoker {
    public:
-    static constexpr VMExitCode CANT_INVOKE_ACCOUNT_ACTOR{254};
-    static constexpr VMExitCode NO_CODE_OR_METHOD{255};
-
     InvokerImpl();
     ~InvokerImpl() override = default;
     outcome::result<InvocationOutput> invoke(

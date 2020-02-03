@@ -25,17 +25,17 @@ TEST(InvokerTest, InvokeCron) {
   MockRuntime runtime;
 
   EXPECT_OUTCOME_ERROR(
-      InvokerImpl::CANT_INVOKE_ACCOUNT_ACTOR,
+      VMExitCode::INVOKER_CANT_INVOKE_ACCOUNT_ACTOR,
       invoker.invoke({kAccountCodeCid}, runtime, MethodNumber{0}, {}));
   EXPECT_OUTCOME_ERROR(
-      InvokerImpl::NO_CODE_OR_METHOD,
+      VMExitCode::INVOKER_NO_CODE_OR_METHOD,
       invoker.invoke({CodeId{kEmptyObjectCid}}, runtime, MethodNumber{0}, {}));
   EXPECT_OUTCOME_ERROR(
-      InvokerImpl::NO_CODE_OR_METHOD,
+      VMExitCode::INVOKER_NO_CODE_OR_METHOD,
       invoker.invoke({kCronCodeCid}, runtime, MethodNumber{1000}, {}));
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_OUTCOME_ERROR(
-      cron_actor::WRONG_CALL,
+      VMExitCode::CRON_ACTOR_WRONG_CALL,
       invoker.invoke(
           {kCronCodeCid}, runtime, cron_actor::kEpochTickMethodNumber, {}));
 }
@@ -45,7 +45,7 @@ TEST(InvokerTest, DecodeActorParams) {
   using fc::vm::actor::decodeActorParams;
 
   // 80 is cbor empty list, not int
-  EXPECT_OUTCOME_ERROR(fc::vm::actor::DECODE_ACTOR_PARAMS_ERROR,
+  EXPECT_OUTCOME_ERROR(VMExitCode::DECODE_ACTOR_PARAMS_ERROR,
                        decodeActorParams<int>(MethodParams{"80"_unhex}));
   EXPECT_OUTCOME_EQ(decodeActorParams<int>(MethodParams{"03"_unhex}), 3);
 }
@@ -54,7 +54,7 @@ TEST(InvokerTest, DecodeActorParams) {
 TEST(InvokerTest, EncodeActorParams) {
   using fc::vm::actor::encodeActorParams;
 
-  EXPECT_OUTCOME_ERROR(fc::vm::actor::ENCODE_ACTOR_PARAMS_ERROR,
+  EXPECT_OUTCOME_ERROR(VMExitCode::ENCODE_ACTOR_PARAMS_ERROR,
                        encodeActorParams(fc::CID()));
   EXPECT_OUTCOME_EQ(encodeActorParams(3), MethodParams{"03"_unhex});
 }

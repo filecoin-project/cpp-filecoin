@@ -10,7 +10,6 @@
 #include "crypto/randomness/randomness_types.hpp"
 #include "power/power_table.hpp"
 #include "vm/actor/util.hpp"
-#include "vm/exit_code/exit_code.hpp"
 #include "vm/indices/indices.hpp"
 
 namespace fc::vm::actor {
@@ -39,9 +38,6 @@ namespace fc::vm::actor {
     // bound as kMinMinerSizeTarg-th miner's power in the top of power table
     // From spec: 3
     static const size_t kMinMinerSizeTarg;
-
-    static constexpr VMExitCode OUT_OF_BOUND{1};
-    static constexpr VMExitCode ALREADY_EXISTS{2};
 
     StoragePowerActor(std::shared_ptr<Indices> indices,
                       std::shared_ptr<crypto::randomness::RandomnessProvider>

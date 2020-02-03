@@ -32,26 +32,22 @@ namespace fc::vm::actor {
   /// Reserved method number for constructor
   constexpr MethodNumber kConstructorMethodNumber{1};
 
-  constexpr VMExitCode DECODE_ACTOR_PARAMS_ERROR{1};
-
   /// Decode actor params, raises appropriate error
   template <typename T>
   outcome::result<T> decodeActorParams(MethodParams params_bytes) {
     auto maybe_params = codec::cbor::decode<T>(params_bytes);
     if (!maybe_params) {
-      return DECODE_ACTOR_PARAMS_ERROR;
+      return VMExitCode::DECODE_ACTOR_PARAMS_ERROR;
     }
     return maybe_params;
   }
-
-  constexpr VMExitCode ENCODE_ACTOR_PARAMS_ERROR{1};
 
   /// Encode actor params, raises appropriate error
   template <typename T>
   outcome::result<MethodParams> encodeActorParams(const T &params) {
     auto maybe_bytes = codec::cbor::encode(params);
     if (!maybe_bytes) {
-      return ENCODE_ACTOR_PARAMS_ERROR;
+      return VMExitCode::ENCODE_ACTOR_PARAMS_ERROR;
     }
     return MethodParams{maybe_bytes.value()};
   }
