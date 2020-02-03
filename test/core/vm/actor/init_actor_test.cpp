@@ -18,6 +18,7 @@ namespace InitActor = fc::vm::actor::init_actor;
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
+using fc::vm::VMExitCode;
 using fc::vm::actor::CodeId;
 using fc::vm::actor::InvocationOutput;
 using fc::vm::actor::kInitAddress;
@@ -78,10 +79,10 @@ TEST(InitActorExecText, ExecError) {
   MockRuntime runtime;
 
   EXPECT_OUTCOME_ERROR(
-      InitActor::NOT_BUILTIN_ACTOR,
+      VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR,
       InitActor::exec({}, runtime, execParams("010001020000"_cid, {})));
   EXPECT_OUTCOME_ERROR(
-      InitActor::SINGLETON_ACTOR,
+      VMExitCode::INIT_ACTOR_SINGLETON_ACTOR,
       InitActor::exec(
           {}, runtime, execParams(fc::vm::actor::kInitCodeCid, {})));
 }

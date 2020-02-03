@@ -8,6 +8,7 @@
 #include "testutil/init_actor.hpp"
 
 using fc::primitives::address::Address;
+using fc::vm::VMExitCode;
 using fc::vm::actor::AccountActor;
 using fc::vm::actor::AccountActorState;
 using fc::vm::state::StateTree;
@@ -37,13 +38,13 @@ TEST(InitActorTest, CreateResolve) {
       0,
       0};
 
-  EXPECT_OUTCOME_ERROR(AccountActor::CREATE_WRONG_ADDRESS_TYPE,
+  EXPECT_OUTCOME_ERROR(VMExitCode::ACCOUNT_ACTOR_CREATE_WRONG_ADDRESS_TYPE,
                        AccountActor::create(state_tree, addr1));
 
-  EXPECT_OUTCOME_ERROR(AccountActor::RESOLVE_NOT_FOUND,
+  EXPECT_OUTCOME_ERROR(VMExitCode::ACCOUNT_ACTOR_RESOLVE_NOT_FOUND,
                        AccountActor::resolveToKeyAddress(state_tree, addr1));
   EXPECT_OUTCOME_TRUE_1(state_tree->set(addr1, actor));
-  EXPECT_OUTCOME_ERROR(AccountActor::RESOLVE_NOT_ACCOUNT_ACTOR,
+  EXPECT_OUTCOME_ERROR(VMExitCode::ACCOUNT_ACTOR_RESOLVE_NOT_ACCOUNT_ACTOR,
                        AccountActor::resolveToKeyAddress(state_tree, addr1));
 
   actor.code = fc::vm::actor::kAccountCodeCid;

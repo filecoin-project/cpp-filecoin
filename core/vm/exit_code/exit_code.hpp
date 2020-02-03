@@ -12,13 +12,47 @@
 
 namespace fc::vm {
   /**
-   * VM exit code enum for outcome errors. Meaning of exit codes may be
-   * different across actors.
+   * VM exit code enum for outcome errors. Mapping to ret code in range 1-255 is
+   * specified in `getRetCode`.
    */
-  enum class VMExitCode : uint8_t {};
+  enum class VMExitCode {
+    _ = 1,
+    DECODE_ACTOR_PARAMS_ERROR,
+    ENCODE_ACTOR_PARAMS_ERROR,
+
+    INVOKER_CANT_INVOKE_ACCOUNT_ACTOR,
+    INVOKER_NO_CODE_OR_METHOD,
+
+    ACCOUNT_ACTOR_CREATE_WRONG_ADDRESS_TYPE,
+    ACCOUNT_ACTOR_RESOLVE_NOT_FOUND,
+    ACCOUNT_ACTOR_RESOLVE_NOT_ACCOUNT_ACTOR,
+
+    STORAGE_POWER_ACTOR_OUT_OF_BOUND,
+    STORAGE_POWER_ACTOR_ALREADY_EXISTS,
+
+    INIT_ACTOR_NOT_BUILTIN_ACTOR,
+    INIT_ACTOR_SINGLETON_ACTOR,
+
+    CRON_ACTOR_WRONG_CALL,
+  };
 
   /// Distinguish VMExitCode errors from other errors
   bool isVMExitCode(const std::error_code &error);
+
+  /// Get ret code from VMExitCode
+  uint8_t getRetCode(VMExitCode error);
+
+  /// Get ret code from VMExitCode error
+  outcome::result<uint8_t> getRetCode(const std::error_code &error);
+
+  /// Get ret code from outcome
+  template <typename T>
+  outcome::result<uint8_t> getRetCode(const outcome::result<T> &result) {
+    if (result) {
+      return 0;
+    }
+    return getRetCode(result.error());
+  }
 }  // namespace fc::vm
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMExitCode);

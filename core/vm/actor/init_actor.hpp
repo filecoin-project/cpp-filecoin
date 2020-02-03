@@ -38,8 +38,6 @@ namespace fc::vm::actor::init_actor {
   }
 
   constexpr MethodNumber kExecMethodNumber{2};
-  constexpr VMExitCode NOT_BUILTIN_ACTOR{1};
-  constexpr VMExitCode SINGLETON_ACTOR{1};
 
   struct ExecParams {
     CodeId code;

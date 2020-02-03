@@ -7,6 +7,8 @@
 
 #include <sstream>
 
+#include <boost/assert.hpp>
+
 #include "common/enum.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm, VMExitCode, e) {
@@ -16,6 +18,48 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm, VMExitCode, e) {
 namespace fc::vm {
   bool isVMExitCode(const std::error_code &error) {
     return error.category() == __libp2p::Category<VMExitCode>::get();
+  }
+
+  uint8_t getRetCode(VMExitCode error) {
+    using E = VMExitCode;
+    switch (error) {
+      case E::_:
+        break;
+
+      case E::DECODE_ACTOR_PARAMS_ERROR:
+      case E::ENCODE_ACTOR_PARAMS_ERROR:
+        return 1;
+
+      case E::INVOKER_CANT_INVOKE_ACCOUNT_ACTOR:
+        return 254;
+      case E::INVOKER_NO_CODE_OR_METHOD:
+        return 255;
+
+      case E::ACCOUNT_ACTOR_CREATE_WRONG_ADDRESS_TYPE:
+      case E::ACCOUNT_ACTOR_RESOLVE_NOT_FOUND:
+      case E::ACCOUNT_ACTOR_RESOLVE_NOT_ACCOUNT_ACTOR:
+        return 1;
+
+      // TODO(turuslan): FIL-128 StoragePowerActor
+      case E::STORAGE_POWER_ACTOR_OUT_OF_BOUND:
+      case E::STORAGE_POWER_ACTOR_ALREADY_EXISTS:
+        break;
+
+      case E::INIT_ACTOR_NOT_BUILTIN_ACTOR:
+      case E::INIT_ACTOR_SINGLETON_ACTOR:
+        return 1;
+
+      case E::CRON_ACTOR_WRONG_CALL:
+        return 1;
+    }
+    BOOST_ASSERT_MSG(false, "Ret code mapping missing");
+  }
+
+  outcome::result<uint8_t> getRetCode(const std::error_code &error) {
+    if (!isVMExitCode(error)) {
+      return error;
+    }
+    return getRetCode(VMExitCode(error.value()));
   }
 }  // namespace fc::vm
 
