@@ -131,6 +131,8 @@ fc::outcome::result<InvocationOutput> MultiSigActor::construct(
 
   OUTCOME_TRY(construct_params,
               decodeActorParams<ConstructParameteres>(params));
+  if (construct_params.signers.size() < construct_params.threshold)
+    return VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD;
 
   MultiSignatureActorState state{construct_params.signers,
                                  construct_params.threshold,
@@ -139,6 +141,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::construct(
                                  runtime.getCurrentEpoch().toUInt64(),
                                  construct_params.unlock_duration,
                                  {}};
+
   if (construct_params.unlock_duration != 0) {
     state.initial_balance = runtime.getValueReceived();
   }

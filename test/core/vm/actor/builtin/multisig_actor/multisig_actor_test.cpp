@@ -117,6 +117,24 @@ TEST_F(MultisigActorTest, ConstructWrongParams) {
 
 /**
  * @given Runtime and multisig actor
+ * @when constructor is called with threshold more than signers
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, ConstructWrongThreshold) {
+  std::vector<Address> signers{address};
+  size_t threshold{5};
+  ConstructParameteres params{signers, threshold};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+
+  EXPECT_CALL(runtime, getImmediateCaller())
+      .WillOnce(testing::Return(kInitAddress));
+
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
+                       MultiSigActor::construct(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
  * @when constructor is called with correct parameters
  * @then success returned and state is commited to storage
  */
