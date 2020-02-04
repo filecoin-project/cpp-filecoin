@@ -4,3 +4,6 @@
 [submodule "deps/tinycbor"]
 	path = deps/tinycbor
 	url = https://github.com/intel/tinycbor.git
+[submodule "deps/filecoin-ffi"]
+	path = deps/filecoin-ffi
+	url = https://github.com/filecoin-project/filecoin-ffi.git
