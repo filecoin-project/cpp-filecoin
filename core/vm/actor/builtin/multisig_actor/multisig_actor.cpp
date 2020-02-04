@@ -240,8 +240,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::addSigner(
     return VMExitCode::MULTISIG_ACTOR_ALREADY_ADDED;
 
   state.signers.push_back(add_signer_params.signer);
-  if (add_signer_params.increase_threshold)
-    state.threshold++;
+  if (add_signer_params.increase_threshold) state.threshold++;
 
   // commit state
   OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
@@ -252,8 +251,34 @@ fc::outcome::result<InvocationOutput> MultiSigActor::addSigner(
 
 fc::outcome::result<InvocationOutput> MultiSigActor::removeSigner(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
+    return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+  }
+
   OUTCOME_TRY(remove_signer_params,
               decodeActorParams<RemoveSignerParameters>(params));
+  OUTCOME_TRY(state,
+              runtime.getIpfsDatastore()->getCbor<MultiSignatureActorState>(
+                  actor.head));
+
+  if (!state.isSigner(remove_signer_params.signer))
+    return VMExitCode::MULTISIG_ACTOR_NOT_SIGNER;
+
+  auto signer = std::find(
+      state.signers.begin(), state.signers.end(), remove_signer_params.signer);
+  if (signer == state.signers.end())
+    return VMExitCode::MULTISIG_ACTOR_NOT_SIGNER;
+  state.signers.erase(signer);
+
+  if (remove_signer_params.decrease_threshold)
+    state.threshold--;
+
+  if (state.threshold < 1 || state.signers.size() < state.threshold)
+    return VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD;
+
+  // commit state
+  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
+  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
 
   return fc::outcome::success();
 }

@@ -702,8 +702,8 @@ TEST_F(MultisigActorTest, CancelSunnyDay) {
  * @when addSigner() is called with immediate caller is not receiver
  * @then error WRONG_CALLER returned
  */
-TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
-  ChangeThresholdParameters params{};
+TEST_F(MultisigActorTest, AddSignerWrongCaller) {
+  AddSignerParameters params{};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
@@ -717,25 +717,7 @@ TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
 
 /**
  * @given Runtime and multisig actor
- * @when changeThreshold() is called with immediate caller is not receiver
- * @then error WRONG_CALLER returned
- */
-TEST_F(MultisigActorTest, AddSignerWrongCaller) {
-  AddSignerParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
-  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
-  EXPECT_CALL(runtime, getCurrentReceiver())
-      .WillOnce(testing::Return(kInitAddress));
-
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-      MultiSigActor::changeThreshold(actor, runtime, encoded_params));
-}
-
-/**
- * @given Runtime and multisig actor
- * @when changeThreshold() is called with address already is signer
+ * @when AddSigner() is called with address already is signer
  * @then error returned
  */
 TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
@@ -747,8 +729,7 @@ TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
-  EXPECT_CALL(runtime, getIpfsDatastore())
-      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
@@ -759,7 +740,7 @@ TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
 
 /**
  * @given Runtime and multisig actor
- * @when changeThreshold() is called with not change threshold
+ * @when AddSigner() is called with not change threshold
  * @then new signer added, threshold is not changed
  */
 TEST_F(MultisigActorTest, AddSignerNotChangeThreshold) {
@@ -792,7 +773,7 @@ TEST_F(MultisigActorTest, AddSignerNotChangeThreshold) {
 
 /**
  * @given Runtime and multisig actor
- * @when changeThreshold() is called with change threshold
+ * @when AddSigner() is called with change threshold
  * @then new signer added, threshold is changed
  */
 TEST_F(MultisigActorTest, AddSignerChangeThreshold) {
@@ -821,6 +802,181 @@ TEST_F(MultisigActorTest, AddSignerChangeThreshold) {
 
   EXPECT_OUTCOME_EQ(MultiSigActor::addSigner(actor, runtime, encoded_params),
                     InvocationOutput{});
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when removeSigner() is called with immediate caller is not receiver
+ * @then error WRONG_CALLER returned
+ */
+TEST_F(MultisigActorTest, RemoveSignerWrongCaller) {
+  RemoveSignerParameters params{};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver())
+      .WillOnce(testing::Return(kInitAddress));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+      MultiSigActor::removeSigner(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when removeSigner() is called with address is not a signer
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, RemoveSignerNotAdded) {
+  RemoveSignerParameters params{address};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  std::vector<Address> signers{kInitAddress};
+  MultiSignatureActorState actor_state{signers};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_NOT_SIGNER,
+      MultiSigActor::removeSigner(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when removeSigner() is called with not change threshold
+ * @then new signer added, threshold is not changed
+ */
+TEST_F(MultisigActorTest, RemoveSignerNotChangeThreshold) {
+  RemoveSignerParameters params{address, false};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  std::vector<Address> signers{kInitAddress, address};
+  size_t old_threshold{1};
+  MultiSignatureActorState actor_state{signers, old_threshold};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+
+  std::vector<Address> expected_signers{kInitAddress};
+  MultiSignatureActorState expected_state{expected_signers, old_threshold};
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+  EXPECT_CALL(*datastore,
+              set(_, MultiSignatureActorStateMatcher(expected_state)))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(runtime, commit(_))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_EQ(MultiSigActor::removeSigner(actor, runtime, encoded_params),
+                    InvocationOutput{});
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when removeSigner() is called with change threshold
+ * @then new signer added, threshold is changed
+ */
+TEST_F(MultisigActorTest, RemoveSignerChangeThreshold) {
+  AddSignerParameters params{address, true};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  std::vector<Address> signers{kInitAddress, address};
+  size_t old_threshold{2};
+  MultiSignatureActorState actor_state{signers, old_threshold};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+
+  std::vector<Address> expected_signers{kInitAddress};
+  MultiSignatureActorState expected_state{expected_signers, old_threshold - 1};
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+  EXPECT_CALL(*datastore,
+              set(_, MultiSignatureActorStateMatcher(expected_state)))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(runtime, commit(_))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_EQ(MultiSigActor::removeSigner(actor, runtime, encoded_params),
+                    InvocationOutput{});
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when removeSigner() is called with change threshold < 1
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, RemoveSignerChangeThresholdZero) {
+  AddSignerParameters params{address, true};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  std::vector<Address> signers{kInitAddress, address};
+  size_t old_threshold{1};
+  MultiSignatureActorState actor_state{signers, old_threshold};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
+      MultiSigActor::removeSigner(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor and len(signers) == threshold
+ * @when removeSigner() is called with not change threshold
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, RemoveSignerChangeThresholdError) {
+  AddSignerParameters params{address, false};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  std::vector<Address> signers{kInitAddress, address};
+  size_t old_threshold{2};
+  MultiSignatureActorState actor_state{signers, old_threshold};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
+      MultiSigActor::removeSigner(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when changeThreshold() is called with immediate caller is not receiver
+ * @then error WRONG_CALLER returned
+ */
+TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
+  ChangeThresholdParameters params{};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver())
+      .WillOnce(testing::Return(kInitAddress));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+      MultiSigActor::changeThreshold(actor, runtime, encoded_params));
 }
 
 /**
