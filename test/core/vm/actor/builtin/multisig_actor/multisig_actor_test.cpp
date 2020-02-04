@@ -36,6 +36,7 @@ using fc::vm::actor::builtin::MultiSignatureActorState;
 using fc::vm::actor::builtin::MultiSignatureTransaction;
 using fc::vm::actor::builtin::ProposeParameters;
 using fc::vm::actor::builtin::RemoveSignerParameters;
+using fc::vm::actor::builtin::SwapSignerParameters;
 using fc::vm::actor::builtin::TransactionNumber;
 using fc::vm::actor::builtin::TransactionNumberParameters;
 using fc::vm::runtime::InvocationOutput;
@@ -72,6 +73,14 @@ class MultisigActorTest : public ::testing::Test {
   MockRuntime runtime;
   std::shared_ptr<MockIpfsDatastore> datastore =
       std::make_shared<MockIpfsDatastore>();
+  MethodNumber method_number{1};
+  MethodParams method_params{Buffer{"0102"_unhex}};
+  size_t default_threshold{1};
+  TransactionNumber default_next_transaction_id{1};
+  BigInt default_initial_balance{0};
+  BigInt default_start_epoch{0};
+  EpochDuration default_unlock_duration{0};
+  std::vector<MultiSignatureTransaction> default_pending_transactions{};
 };
 
 /**
@@ -186,12 +195,18 @@ TEST_F(MultisigActorTest, ProposeSendInsufficientFunds) {
   BigInt actor_balance{1};
   BigInt value_to_send{100500};  // > actor state balance
   actor.balance = actor_balance;
-  ProposeParameters params{to_address, value_to_send};
+  ProposeParameters params{
+      to_address, value_to_send, method_number, method_params};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   actor.code = kAccountCodeCid;
   TransactionNumber tx_number{13};
-  MultiSignatureActorState actor_state{
-      std::vector{address}, 1, tx_number, actor_balance};
+  MultiSignatureActorState actor_state{std::vector{address},
+                                       1,
+                                       tx_number,
+                                       actor_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
 
   EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
@@ -212,7 +227,8 @@ TEST_F(MultisigActorTest, ProposeSendFundsLocked) {
   BigInt actor_balance{200};
   BigInt value_to_send{200};
   actor.balance = actor_balance;
-  ProposeParameters params{to_address, value_to_send};
+  ProposeParameters params{
+      to_address, value_to_send, method_number, method_params};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   actor.code = kAccountCodeCid;
   TransactionNumber tx_number{13};
@@ -224,7 +240,8 @@ TEST_F(MultisigActorTest, ProposeSendFundsLocked) {
                                        tx_number,
                                        actor_balance,
                                        start_epoch,
-                                       unlock_duration};
+                                       unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
 
   EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
@@ -247,7 +264,8 @@ TEST_F(MultisigActorTest, ProposeSendFundsLockedStartEpoch) {
   BigInt actor_balance{200};
   BigInt value_to_send{200};
   actor.balance = actor_balance;
-  ProposeParameters params{to_address, value_to_send};
+  ProposeParameters params{
+      to_address, value_to_send, method_number, method_params};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   actor.code = kAccountCodeCid;
   TransactionNumber tx_number{13};
@@ -259,7 +277,8 @@ TEST_F(MultisigActorTest, ProposeSendFundsLockedStartEpoch) {
                                        tx_number,
                                        actor_balance,
                                        start_epoch,
-                                       unlock_duration};
+                                       unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
 
   EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
@@ -281,19 +300,27 @@ TEST_F(MultisigActorTest, ProposeSendFundsEnough) {
   BigInt actor_balance{100};
   BigInt value_to_send{50};
   actor.balance = actor_balance;
-  MethodNumber method_number{33};
-  MethodParams method_params{Buffer{"0102"_unhex}};
   ProposeParameters params{
       to_address, value_to_send, method_number, method_params};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   actor.code = kAccountCodeCid;
   TransactionNumber tx_number{13};
-  MultiSignatureActorState actor_state{
-      std::vector{address}, 1, tx_number, actor_balance};
+  MultiSignatureActorState actor_state{std::vector{address},
+                                       1,
+                                       tx_number,
+                                       actor_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
 
-  MultiSignatureActorState expected_state{
-      std::vector{address}, 1, tx_number + 1, actor_balance};
+  MultiSignatureActorState expected_state{std::vector{address},
+                                          1,
+                                          tx_number + 1,
+                                          actor_balance,
+                                          default_start_epoch,
+                                          default_unlock_duration,
+                                          default_pending_transactions};
 
   EXPECT_CALL(runtime, getIpfsDatastore())
       .Times(2)
@@ -329,15 +356,18 @@ TEST_F(MultisigActorTest, ProposePending) {
   BigInt actor_balance{100};
   BigInt value_to_send{50};
   actor.balance = actor_balance;
-  MethodNumber method_number{33};
-  MethodParams method_params{Buffer{"0102"_unhex}};
   ProposeParameters params{
       to_address, value_to_send, method_number, method_params};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   actor.code = kAccountCodeCid;
   TransactionNumber tx_number{13};
-  MultiSignatureActorState actor_state{
-      std::vector{address}, 2, tx_number, actor_balance};
+  MultiSignatureActorState actor_state{std::vector{address},
+                                       2,
+                                       tx_number,
+                                       actor_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
 
   MultiSignatureTransaction pending_tx{tx_number,
@@ -393,7 +423,13 @@ TEST_F(MultisigActorTest, ApproveWrongSigner) {
   TransactionNumberParameters params{};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   actor.code = kAccountCodeCid;
-  MultiSignatureActorState actor_state{std::vector{kInitAddress}};
+  MultiSignatureActorState actor_state{std::vector{kInitAddress},
+                                       default_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
 
   EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
@@ -415,7 +451,13 @@ TEST_F(MultisigActorTest, ApproveWrongTxNumber) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   actor.code = kAccountCodeCid;
   // no pending txs in state
-  MultiSignatureActorState actor_state{std::vector{address}, 1};
+  MultiSignatureActorState actor_state{std::vector{address},
+                                       default_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
 
   EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
@@ -436,8 +478,6 @@ TEST_F(MultisigActorTest, ApproveAlreadySigned) {
   BigInt actor_balance{100};
   BigInt value_to_send{50};
   actor.balance = actor_balance;
-  MethodNumber method_number{33};
-  MethodParams method_params{Buffer{"0102"_unhex}};
   actor.code = kAccountCodeCid;
   std::vector<Address> signers{address, kInitAddress};
   size_t threshold{2};
@@ -479,8 +519,6 @@ TEST_F(MultisigActorTest, ApproveSunnyDay) {
   BigInt actor_balance{100};
   BigInt value_to_send{50};
   actor.balance = actor_balance;
-  MethodNumber method_number{33};
-  MethodParams method_params{Buffer{"0102"_unhex}};
   actor.code = kAccountCodeCid;
   std::vector<Address> signers{address, kInitAddress};
   size_t threshold{2};
@@ -560,7 +598,13 @@ TEST_F(MultisigActorTest, CancelWrongSigner) {
   TransactionNumberParameters params{};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   actor.code = kAccountCodeCid;
-  MultiSignatureActorState actor_state{std::vector{kInitAddress}};
+  MultiSignatureActorState actor_state{std::vector{kInitAddress},
+                                       default_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
 
   EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
@@ -582,7 +626,13 @@ TEST_F(MultisigActorTest, CancelWrongTxNumber) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   actor.code = kAccountCodeCid;
   // no pending txs in state
-  MultiSignatureActorState actor_state{std::vector{address}, 1};
+  MultiSignatureActorState actor_state{std::vector{address},
+                                       default_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
 
   EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
@@ -603,8 +653,6 @@ TEST_F(MultisigActorTest, CancelNotCreator) {
   BigInt actor_balance{100};
   BigInt value_to_send{50};
   actor.balance = actor_balance;
-  MethodNumber method_number{33};
-  MethodParams method_params{Buffer{"0102"_unhex}};
   actor.code = kAccountCodeCid;
   std::vector<Address> signers{address, kInitAddress};
   size_t threshold{2};
@@ -646,8 +694,6 @@ TEST_F(MultisigActorTest, CancelSunnyDay) {
   BigInt actor_balance{100};
   BigInt value_to_send{50};
   actor.balance = actor_balance;
-  MethodNumber method_number{33};
-  MethodParams method_params{Buffer{"0102"_unhex}};
   actor.code = kAccountCodeCid;
   std::vector<Address> signers{address, kInitAddress};
   size_t threshold{2};
@@ -724,7 +770,13 @@ TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
   AddSignerParameters params{address};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{address, kInitAddress};
-  MultiSignatureActorState actor_state{signers};
+  MultiSignatureActorState actor_state{signers,
+                                       default_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
@@ -748,11 +800,23 @@ TEST_F(MultisigActorTest, AddSignerNotChangeThreshold) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress};
   size_t old_threshold{25};
-  MultiSignatureActorState actor_state{signers, old_threshold};
+  MultiSignatureActorState actor_state{signers,
+                                       old_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
 
   std::vector<Address> expected_signers{kInitAddress, address};
-  MultiSignatureActorState expected_state{expected_signers, old_threshold};
+  MultiSignatureActorState expected_state{expected_signers,
+                                          old_threshold,
+                                          default_next_transaction_id,
+                                          default_initial_balance,
+                                          default_start_epoch,
+                                          default_unlock_duration,
+                                          default_pending_transactions};
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
@@ -781,11 +845,23 @@ TEST_F(MultisigActorTest, AddSignerChangeThreshold) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress};
   size_t old_threshold{25};
-  MultiSignatureActorState actor_state{signers, old_threshold};
+  MultiSignatureActorState actor_state{signers,
+                                       old_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
 
   std::vector<Address> expected_signers{kInitAddress, address};
-  MultiSignatureActorState expected_state{expected_signers, old_threshold + 1};
+  MultiSignatureActorState expected_state{expected_signers,
+                                          old_threshold + 1,
+                                          default_next_transaction_id,
+                                          default_initial_balance,
+                                          default_start_epoch,
+                                          default_unlock_duration,
+                                          default_pending_transactions};
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
@@ -831,7 +907,13 @@ TEST_F(MultisigActorTest, RemoveSignerNotAdded) {
   RemoveSignerParameters params{address};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress};
-  MultiSignatureActorState actor_state{signers};
+  MultiSignatureActorState actor_state{signers,
+                                       default_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
@@ -855,11 +937,23 @@ TEST_F(MultisigActorTest, RemoveSignerNotChangeThreshold) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress, address};
   size_t old_threshold{1};
-  MultiSignatureActorState actor_state{signers, old_threshold};
+  MultiSignatureActorState actor_state{signers,
+                                       old_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
 
   std::vector<Address> expected_signers{kInitAddress};
-  MultiSignatureActorState expected_state{expected_signers, old_threshold};
+  MultiSignatureActorState expected_state{expected_signers,
+                                          old_threshold,
+                                          default_next_transaction_id,
+                                          default_initial_balance,
+                                          default_start_epoch,
+                                          default_unlock_duration,
+                                          default_pending_transactions};
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
@@ -888,11 +982,23 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThreshold) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress, address};
   size_t old_threshold{2};
-  MultiSignatureActorState actor_state{signers, old_threshold};
+  MultiSignatureActorState actor_state{signers,
+                                       old_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
 
   std::vector<Address> expected_signers{kInitAddress};
-  MultiSignatureActorState expected_state{expected_signers, old_threshold - 1};
+  MultiSignatureActorState expected_state{expected_signers,
+                                          old_threshold - 1,
+                                          default_next_transaction_id,
+                                          default_initial_balance,
+                                          default_start_epoch,
+                                          default_unlock_duration,
+                                          default_pending_transactions};
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
@@ -921,13 +1027,18 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdZero) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress, address};
   size_t old_threshold{1};
-  MultiSignatureActorState actor_state{signers, old_threshold};
+  MultiSignatureActorState actor_state{signers,
+                                       old_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
-  EXPECT_CALL(runtime, getIpfsDatastore())
-      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
@@ -946,19 +1057,146 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdError) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress, address};
   size_t old_threshold{2};
-  MultiSignatureActorState actor_state{signers, old_threshold};
+  MultiSignatureActorState actor_state{signers,
+                                       old_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
-  EXPECT_CALL(runtime, getIpfsDatastore())
-      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
       MultiSigActor::removeSigner(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when swapSigner() is called with immediate caller is not receiver
+ * @then error WRONG_CALLER returned
+ */
+TEST_F(MultisigActorTest, SwapSignerWrongCaller) {
+  SwapSignerParameters params{};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver())
+      .WillOnce(testing::Return(kInitAddress));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+      MultiSigActor::swapSigner(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when swapSigner() is called with address is not a signer
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, SwapSignerNotAdded) {
+  SwapSignerParameters params{address, kCronAddress};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  // old signer not present
+  std::vector<Address> signers{kInitAddress};
+  MultiSignatureActorState actor_state{signers,
+                                       default_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_NOT_SIGNER,
+      MultiSigActor::swapSigner(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when swapSigner() is called with new address is already a signer
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, SwapSignerAlreadyAdded) {
+  SwapSignerParameters params{address, kCronAddress};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  // new signer is already present
+  std::vector<Address> signers{address, kCronAddress};
+  MultiSignatureActorState actor_state{signers,
+                                       default_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_ALREADY_ADDED,
+      MultiSigActor::swapSigner(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when swapSigner() is called
+ * @then state updated and sucess returned
+ */
+TEST_F(MultisigActorTest, SwapSignerSuccess) {
+  SwapSignerParameters params{address, kCronAddress};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  std::vector<Address> signers{address, kInitAddress};
+  MultiSignatureActorState actor_state{signers,
+                                       default_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+
+  std::vector<Address> expected_signers{kCronAddress, kInitAddress};
+  MultiSignatureActorState expected_state{expected_signers,
+                                          default_threshold,
+                                          default_next_transaction_id,
+                                          default_initial_balance,
+                                          default_start_epoch,
+                                          default_unlock_duration,
+                                          default_pending_transactions};
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+  EXPECT_CALL(*datastore,
+              set(_, MultiSignatureActorStateMatcher(expected_state)))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(runtime, commit(_))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_EQ(MultiSigActor::swapSigner(actor, runtime, encoded_params),
+                    InvocationOutput{});
 }
 
 /**
@@ -1007,10 +1245,22 @@ TEST_F(MultisigActorTest, ChangeThresholdSuccess) {
   ChangeThresholdParameters params{25};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{address, kInitAddress};
-  MultiSignatureActorState actor_state{signers, old_threshold};
+  MultiSignatureActorState actor_state{signers,
+                                       old_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
 
-  MultiSignatureActorState expected_state{signers, new_threshold};
+  MultiSignatureActorState expected_state{signers,
+                                          new_threshold,
+                                          default_next_transaction_id,
+                                          default_initial_balance,
+                                          default_start_epoch,
+                                          default_unlock_duration,
+                                          default_pending_transactions};
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));

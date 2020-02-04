@@ -19,6 +19,13 @@ using fc::vm::actor::builtin::MultiSignatureActorState;
 using fc::vm::actor::builtin::MultiSignatureTransaction;
 using fc::vm::runtime::InvocationOutput;
 
+bool MultiSignatureTransaction::operator==(
+    const MultiSignatureTransaction &other) const {
+  return transaction_number == other.transaction_number && to == other.to
+         && value == other.value && method == other.method
+         && params == other.params && approved == other.approved;
+}
+
 bool MultiSignatureActorState::isSigner(const Address &address) const {
   return std::find(signers.begin(), signers.end(), address) != signers.end();
 }
@@ -270,8 +277,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::removeSigner(
     return VMExitCode::MULTISIG_ACTOR_NOT_SIGNER;
   state.signers.erase(signer);
 
-  if (remove_signer_params.decrease_threshold)
-    state.threshold--;
+  if (remove_signer_params.decrease_threshold) state.threshold--;
 
   if (state.threshold < 1 || state.signers.size() < state.threshold)
     return VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD;
@@ -285,8 +291,28 @@ fc::outcome::result<InvocationOutput> MultiSigActor::removeSigner(
 
 fc::outcome::result<InvocationOutput> MultiSigActor::swapSigner(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
+    return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+  }
+
   OUTCOME_TRY(swap_signer_params,
               decodeActorParams<SwapSignerParameters>(params));
+  OUTCOME_TRY(state,
+              runtime.getIpfsDatastore()->getCbor<MultiSignatureActorState>(
+                  actor.head));
+
+  if (state.isSigner(swap_signer_params.new_signer))
+    return VMExitCode::MULTISIG_ACTOR_ALREADY_ADDED;
+  auto old_signer = std::find(state.signers.begin(),
+                              state.signers.end(),
+                              swap_signer_params.old_signer);
+  if (old_signer == state.signers.end())
+    return VMExitCode::MULTISIG_ACTOR_NOT_SIGNER;
+  *old_signer = swap_signer_params.new_signer;
+
+  // commit state
+  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
+  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
 
   return fc::outcome::success();
 }
