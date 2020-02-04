@@ -14,11 +14,14 @@
 
 namespace fc::proofs {
 
+  using common::Blob;
+  using crypto::randomness::Randomness;
+
   // ******************
   // TO CPP CASTED FUNCTIONS
   // ******************
 
-  fc::common::Blob<kCommitmentBytesLen> cppCommitment(const uint8_t *src) {
+  Blob<kCommitmentBytesLen> cppCommitment(const uint8_t *src) {
     Blob<kCommitmentBytesLen> result;
     for (size_t i = 0; i < kCommitmentBytesLen; i++) {
       result[i] = src[i];
@@ -185,14 +188,13 @@ namespace fc::proofs {
   // VERIFIED FUNCTIONS
   // ******************
 
-  outcome::result<bool> verifyPoSt(
-      const uint64_t sector_size,
-      const SortedPublicSectorInfo &sector_info,
-      const fc::crypto::randomness::Randomness &randomness,
-      const uint64_t challenge_count,
-      gsl::span<const uint8_t> proof,
-      gsl::span<const Candidate> winners,
-      const common::Blob<32> &prover_id) {
+  outcome::result<bool> verifyPoSt(const uint64_t sector_size,
+                                   const SortedPublicSectorInfo &sector_info,
+                                   const Randomness &randomness,
+                                   const uint64_t challenge_count,
+                                   gsl::span<const uint8_t> proof,
+                                   gsl::span<const Candidate> winners,
+                                   const Blob<32> &prover_id) {
     std::vector<std::array<uint8_t, kCommitmentBytesLen>> sorted_comrs;
     std::vector<uint64_t> sorted_sector_ids;
     for (auto sector_info_elem : sector_info.values) {
@@ -243,8 +245,8 @@ namespace fc::proofs {
 
   outcome::result<std::vector<Candidate>> generateCandidates(
       const uint64_t sector_size,
-      const common::Blob<32> &prover_id,
-      const crypto::randomness::Randomness &randomness,
+      const Blob<32> &prover_id,
+      const Randomness &randomness,
       const uint64_t challenge_count,
       const SortedPrivateReplicaInfo &sorted_private_replica_info) {
     const uint8_t(*c_randomness)[32] = &(randomness._M_elems);
@@ -274,9 +276,9 @@ namespace fc::proofs {
 
   outcome::result<std::vector<uint8_t>> generatePoSt(
       const uint64_t sectorSize,
-      const common::Blob<32> &prover_id,
+      const Blob<32> &prover_id,
       const SortedPrivateReplicaInfo &private_replica_info,
-      const fc::crypto::randomness::Randomness &randomness,
+      const Randomness &randomness,
       gsl::span<const Candidate> winners) {
     std::vector<FFICandidate> c_winners = cCandidates(winners);
 
@@ -308,7 +310,7 @@ namespace fc::proofs {
     return result;
   }
 
-  outcome::result<Blob<32>> generatePieceCommitmentFromFile(
+  outcome::result<Blob<kCommitmentBytesLen>> generatePieceCommitmentFromFile(
       const std::string &piece_file_path, const uint64_t piece_size) {
     int fd = open(piece_file_path.c_str(), O_RDWR);
 
@@ -399,8 +401,8 @@ namespace fc::proofs {
       const std::string &staged_sector_path,
       const std::string &sealed_sector_path,
       const uint64_t sector_id,
-      const common::Blob<32> &prover_id,
-      const common::Blob<32> &ticket,
+      const Blob<32> &prover_id,
+      const Blob<32> &ticket,
       gsl::span<const PublicPieceInfo> pieces) {
     const uint8_t(*c_prover_id)[32] = &(prover_id._M_elems);
 
@@ -448,7 +450,7 @@ namespace fc::proofs {
     return sorted_sector_info;
   }
 
-  fc::proofs::SortedPublicSectorInfo newSortedPublicSectorInfo(
+  SortedPublicSectorInfo newSortedPublicSectorInfo(
       gsl::span<const PublicSectorInfo> sector_info) {
     SortedPublicSectorInfo sorted_sector_info;
 

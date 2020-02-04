@@ -98,6 +98,10 @@ namespace fc::proofs {
       const std::string &staged_sector_file_path,
       gsl::span<const uint64_t> existing_piece_sizes);
 
+  /**
+   * @brief  Seals the staged sector at staged_sector_path in place, saving the
+   * resulting replica to sealed_sector_path.
+   */
   outcome::result<RawSealPreCommitOutput> sealPreCommit(
       const uint64_t sector_size,
       const uint8_t porep_proof_partitions,
@@ -109,12 +113,23 @@ namespace fc::proofs {
       const fc::common::Blob<32> &ticket,
       gsl::span<const PublicPieceInfo> pieces);
 
+  /**
+   * @brief Computes a sectors's comm_d given its pieces.
+   */
   outcome::result<fc::common::Blob<kCommitmentBytesLen>> generateDataCommitment(
       const uint64_t sector_size, gsl::span<const PublicPieceInfo> pieces);
 
-  outcome::result<fc::common::Blob<32>> generatePieceCommitmentFromFile(
-      const std::string &piece_file, const uint64_t piece_size);
+  /**
+   * @brief Generates a piece commitment for the provided byte source. Returns
+   * an error if the byte source produced more than piece_size bytes.
+   */
+  outcome::result<fc::common::Blob<kCommitmentBytesLen>>
+  generatePieceCommitmentFromFile(const std::string &piece_file_path,
+                                  const uint64_t piece_size);
 
+  /**
+   * @brief Generates proof-of-spacetime candidates for ElectionPoSt
+   */
   outcome::result<std::vector<Candidate>> generateCandidates(
       const uint64_t sector_size,
       const fc::common::Blob<32> &prover_id,
@@ -122,6 +137,9 @@ namespace fc::proofs {
       const uint64_t challenge_count,
       const SortedPrivateReplicaInfo &sorted_private_replica_info);
 
+  /**
+   * @brief Generate a proof-of-spacetime
+   */
   outcome::result<std::vector<uint8_t>> generatePoSt(
       const uint64_t sectorSize,
       const fc::common::Blob<32> &prover_id,
@@ -129,6 +147,9 @@ namespace fc::proofs {
       const fc::crypto::randomness::Randomness &randomness,
       gsl::span<const Candidate> winners);
 
+  /**
+   * @brief Verifies a proof-of-spacetime.
+   */
   outcome::result<bool> verifyPoSt(
       const uint64_t sector_size,
       const SortedPublicSectorInfo &public_sector_info,
