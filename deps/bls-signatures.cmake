@@ -3,6 +3,17 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+if(EXISTS "$ENV{HOME}/.cargo/bin/cargo")
+  message(STATUS "Rust cargo is present")
+else()
+  message(STATUS "No Rust cargo found")
+  message(WARNING
+          "Rust is required for building BLS dependencies.\n"
+          "You can install rust-lang via the following command:\n"
+          "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
+  )
+endif()
+
 set(BUILD_TYPE "release")
 
 set(BLS_BUILD_PATH
