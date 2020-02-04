@@ -16,17 +16,24 @@ using fc::vm::actor::decodeActorParams;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::builtin::MultiSigActor;
 using fc::vm::actor::builtin::MultiSignatureActorState;
+using fc::vm::actor::builtin::MultiSignatureTransaction;
 using fc::vm::runtime::InvocationOutput;
 
 bool MultiSignatureActorState::isSigner(const Address &address) const {
   return std::find(signers.begin(), signers.end(), address) != signers.end();
 }
 
-fc::outcome::result<void> MultiSignatureActorState::approveTransaction(
-    const Actor &actor, Runtime &runtime, const TransactionNumber &tx_number) {
-  Address caller = runtime.getImmediateCaller();
-  if (!isSigner(caller)) return VMExitCode::MULTISIG_ACTOR_NOT_SIGNER;
+fc::outcome::result<bool> MultiSignatureActorState::isTransactionCreator(
+    const TransactionNumber &tx_number, const Address &address) const {
+  OUTCOME_TRY(pending_tx, getPendingTransaction(tx_number));
+  if (pending_tx.approved.empty()) return false;
+  // Check tx creator is current caller. The first signer is tx creator.
+  return pending_tx.approved[0] == address;
+}
 
+fc::outcome::result<MultiSignatureTransaction>
+MultiSignatureActorState::getPendingTransaction(
+    const TransactionNumber &tx_number) const {
   auto pending_tx =
       std::find_if(pending_transactions.begin(),
                    pending_transactions.end(),
@@ -36,29 +43,67 @@ fc::outcome::result<void> MultiSignatureActorState::approveTransaction(
   if (pending_tx == pending_transactions.end())
     return VMExitCode::MULTISIG_ACTOR_TRANSACTION_NOT_FOUND;
 
-  if (std::find(
-          pending_tx->approved.begin(), pending_tx->approved.end(), caller)
-      != pending_tx->approved.end())
+  return *pending_tx;
+}
+
+fc::outcome::result<void> MultiSignatureActorState::updatePendingTransaction(
+    const MultiSignatureTransaction &transaction) {
+  auto pending_tx = std::find_if(
+      pending_transactions.begin(),
+      pending_transactions.end(),
+      [&transaction](const MultiSignatureTransaction &tx) {
+        return tx.transaction_number == transaction.transaction_number;
+      });
+  if (pending_tx == pending_transactions.end())
+    return VMExitCode::MULTISIG_ACTOR_TRANSACTION_NOT_FOUND;
+
+  *pending_tx = transaction;
+  return fc::outcome::success();
+}
+
+fc::outcome::result<void> MultiSignatureActorState::deletePendingTransaction(
+    const TransactionNumber &tx_number) {
+  auto pending_tx =
+      std::find_if(pending_transactions.begin(),
+                   pending_transactions.end(),
+                   [&tx_number](const MultiSignatureTransaction &tx) {
+                     return tx.transaction_number == tx_number;
+                   });
+  if (pending_tx == pending_transactions.end())
+    return VMExitCode::MULTISIG_ACTOR_TRANSACTION_NOT_FOUND;
+
+  pending_transactions.erase(pending_tx);
+  return fc::outcome::success();
+}
+
+fc::outcome::result<void> MultiSignatureActorState::approveTransaction(
+    const Actor &actor, Runtime &runtime, const TransactionNumber &tx_number) {
+  Address caller = runtime.getImmediateCaller();
+  if (!isSigner(caller)) return VMExitCode::MULTISIG_ACTOR_NOT_SIGNER;
+
+  OUTCOME_TRY(pending_tx, getPendingTransaction(tx_number));
+
+  if (std::find(pending_tx.approved.begin(), pending_tx.approved.end(), caller)
+      != pending_tx.approved.end())
     return VMExitCode::MULTISIG_ACTOR_ALREADY_SIGNED;
-  pending_tx->approved.push_back(caller);
+  pending_tx.approved.push_back(caller);
 
   // check threshold
-  if (pending_tx->approved.size() >= threshold) {
-    if (actor.balance < pending_tx->value)
+  if (pending_tx.approved.size() >= threshold) {
+    if (actor.balance < pending_tx.value)
       return VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUND;
 
     auto amount_locked = getAmountLocked(runtime.getCurrentEpoch().toUInt64());
-    if (actor.balance - pending_tx->value < amount_locked)
+    if (actor.balance - pending_tx.value < amount_locked)
       return VMExitCode::MULTISIG_ACTOR_FUNDS_LOCKED;
 
     // send messsage ignoring value returned
-    runtime.send(pending_tx->to,
-                 pending_tx->method,
-                 pending_tx->params,
-                 pending_tx->value);
+    runtime.send(
+        pending_tx.to, pending_tx.method, pending_tx.params, pending_tx.value);
 
-    // delete pending
-    pending_transactions.erase(pending_tx);
+    OUTCOME_TRY(deletePendingTransaction(tx_number));
+  } else {
+    OUTCOME_TRY(updatePendingTransaction(pending_tx));
   }
 
   return fc::outcome::success();
@@ -153,8 +198,28 @@ fc::outcome::result<InvocationOutput> MultiSigActor::approve(
 
 fc::outcome::result<InvocationOutput> MultiSigActor::cancel(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  if (!isSignableActor(actor.code))
+    return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+
   OUTCOME_TRY(tx_params,
               decodeActorParams<TransactionNumberParameters>(params));
+  OUTCOME_TRY(state,
+              runtime.getIpfsDatastore()->getCbor<MultiSignatureActorState>(
+                  actor.head));
+  Address caller = runtime.getImmediateCaller();
+  if (!state.isSigner(caller)) return VMExitCode::MULTISIG_ACTOR_NOT_SIGNER;
+
+  OUTCOME_TRY(is_tx_creator,
+              state.isTransactionCreator(tx_params.transaction_number, caller));
+  if (is_tx_creator) {
+    OUTCOME_TRY(state.deletePendingTransaction(tx_params.transaction_number));
+  } else {
+    return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+  }
+
+  // commit state
+  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
+  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
 
   return fc::outcome::success();
 }
@@ -190,11 +255,3 @@ fc::outcome::result<InvocationOutput> MultiSigActor::change_threshold(
 
   return fc::outcome::success();
 }
-
-// fc::outcome::result<InvocationOutput> MultiSigActor::validate_signer(
-//    Runtime &runtime, const MethodParams &params) {
-//  OUTCOME_TRY(validate_signer_params,
-//              decodeActorParams<ValidateSignerParameters>(params));
-//
-//  return fc::outcome::success();
-//}

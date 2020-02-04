@@ -24,14 +24,22 @@ namespace fc::vm::actor::builtin {
   using TransactionNumber = size_t;
   using ChainEpoch = BigInt;
 
+  /**
+   * Multisignaure pending transaction
+   */
   struct MultiSignatureTransaction {
+    /** Transaction id given by Multisignature Actor */
     TransactionNumber transaction_number;
     Address to;
     BigInt value;
     MethodNumber method;
     MethodParams params;
-    // This address at index 0 is the transaction proposer, order of this slice
-    // must be preserved.
+
+    /**
+     * @brief List of addresses that approved transaction
+     * This address at index 0 is the transaction proposer, order of this slice
+     * must be preserved
+     */
     std::vector<Address> approved;
 
     bool operator==(const MultiSignatureTransaction &other) const {
@@ -66,6 +74,7 @@ namespace fc::vm::actor::builtin {
   struct MultiSignatureActorState {
     std::vector<Address> signers;
     size_t threshold;
+    /** Transaction counter */
     TransactionNumber next_transaction_id;
 
     // Linear lock
@@ -73,15 +82,69 @@ namespace fc::vm::actor::builtin {
     ChainEpoch start_epoch;
     EpochDuration unlock_duration;
 
+    /** List of pending transactions */
     std::vector<MultiSignatureTransaction> pending_transactions;
 
+    /**
+     * Checks if address is signer
+     */
     bool isSigner(const Address &address) const;
-    outcome::result<void> approveTransaction(const Actor &actor,
-                                             Runtime &runtime,
-                                             const TransactionNumber &tx_numer);
+
+    /**
+     * Checks if address is a creator of transaction
+     * @param tx_number - number of transaction to check
+     * @param address - address to check
+     * @return true if address proposed the transaction
+     */
+    outcome::result<bool> isTransactionCreator(
+        const TransactionNumber &tx_number, const Address &address) const;
+
+    /**
+     * Get all pending transactions
+     */
+    outcome::result<MultiSignatureTransaction> getPendingTransaction(
+        const TransactionNumber &tx_number) const;
+
+    /**
+     * Update pending transaction by transaction_number
+     * @param transaction - to update
+     * @return nothing or error occurred
+     */
+    outcome::result<void> updatePendingTransaction(
+        const MultiSignatureTransaction &transaction);
+
+    /**
+     * Delete pending transaction by tx_number
+     * @param tx_number - to delete
+     * @return nothing or error occurred
+     */
+    outcome::result<void> deletePendingTransaction(
+        const TransactionNumber &tx_number);
+
+    /**
+     * Approve pending transaction by tx_number. Add signer and if threshold is
+     * met send pending tx
+     * @param actor - caller
+     * @param runtime - execution context
+     * @param tx_number - tx to approve
+     * @return nothing or error occurred
+     */
+    outcome::result<void> approveTransaction(
+        const Actor &actor,
+        Runtime &runtime,
+        const TransactionNumber &tx_number);
+
+    /**
+     * Get amount locked for current epoch
+     * @param current_epoch - current block number
+     * @return - return amount locked
+     */
     BigInt getAmountLocked(const ChainEpoch &current_epoch) const;
   };
 
+  /**
+   * CBOR serialization of MultiSignatureActorState
+   */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
@@ -92,6 +155,9 @@ namespace fc::vm::actor::builtin {
                           << state.pending_transactions);
   }
 
+  /**
+   * CBOR deserialization of MultiSignatureActorState
+   */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
@@ -111,6 +177,9 @@ namespace fc::vm::actor::builtin {
     EpochDuration unlock_duration;
   };
 
+  /**
+   * CBOR serialization of ConstructParameteres
+   */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
@@ -120,6 +189,9 @@ namespace fc::vm::actor::builtin {
                           << construct_params.unlock_duration);
   }
 
+  /**
+   * CBOR deserialization of ConstructParameteres
+   */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
@@ -251,25 +323,6 @@ namespace fc::vm::actor::builtin {
     return s;
   }
 
-  //  struct ValidateSignerParameters {
-  //    Address address;
-  //  };
-  //
-  //  template <class Stream,
-  //            typename = std::enable_if_t<
-  //                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  //  Stream &operator<<(Stream &&s, const ValidateSignerParameters &params) {
-  //    return s << (s.list() << params.address);
-  //  }
-  //
-  //  template <class Stream,
-  //            typename = std::enable_if_t<
-  //                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  //  Stream &operator>>(Stream &&s, ValidateSignerParameters &params) {
-  //    s.list() >> params.address;
-  //    return s;
-  //  }
-
   /**
    * Multisignature actor
    */
@@ -299,10 +352,6 @@ namespace fc::vm::actor::builtin {
 
     static outcome::result<InvocationOutput> change_threshold(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
-
-    //    static outcome::result<InvocationOutput> validate_signer(
-    //        const Actor &actor, Runtime &runtime, const MethodParams
-    //        &params);
   };
 
 }  // namespace fc::vm::actor::builtin
