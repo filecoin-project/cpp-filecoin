@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <filecoin-ffi/filecoin.h>
 #include <boost/filesystem/fstream.hpp>
+#include <common/logger.hpp>
 #include <iostream>
 #include "proofs/proofs_error.hpp"
 
@@ -226,7 +227,8 @@ namespace fc::proofs {
                                              c_prover_id);
 
     if (resPtr->status_code != 0) {
-      std::cerr << resPtr->error_msg << "\n";
+      auto logger = common::createLogger("proofs");
+      logger->error("verifyPoSt: " + std::string(resPtr->error_msg));
       destroy_verify_post_response(resPtr);
       return ProofsError::UNKNOWN;
     }
@@ -259,7 +261,8 @@ namespace fc::proofs {
                                       c_sorted_private_sector_info.size(),
                                       c_prover_id);
     if (resPtr->status_code != 0) {
-      std::cerr << resPtr->error_msg;
+      auto logger = common::createLogger("proofs");
+      logger->error("generateCandidates: " + std::string(resPtr->error_msg));
       destroy_generate_candidates_response(resPtr);
       return ProofsError::UNKNOWN;
     }
@@ -293,7 +296,8 @@ namespace fc::proofs {
                                 c_prover_id);
 
     if (resPtr->status_code != 0) {
-      std::cerr << resPtr->error_msg << "\n";
+      auto logger = common::createLogger("proofs");
+      logger->error("generatePoSt: " + std::string(resPtr->error_msg));
       destroy_generate_post_response(resPtr);
       return ProofsError::UNKNOWN;
     }
@@ -348,6 +352,8 @@ namespace fc::proofs {
         write_without_alignment(piece_fd, piece_bytes, staged_sector_fd);
 
     if (resPtr->status_code != 0) {
+      auto logger = common::createLogger("proofs");
+      logger->error("writeWithoutAlignment: " + std::string(resPtr->error_msg));
       destroy_write_without_alignment_response(resPtr);
       return ProofsError::UNKNOWN;
     }
@@ -373,7 +379,8 @@ namespace fc::proofs {
                                        existing_piece_sizes.size());
 
     if (resPtr->status_code != 0) {
-      std::cerr << resPtr->error_msg;
+      auto logger = common::createLogger("proofs");
+      logger->error("writeWithAlignment: " + std::string(resPtr->error_msg));
       destroy_write_with_alignment_response(resPtr);
       return ProofsError::UNKNOWN;
     }
@@ -412,9 +419,9 @@ namespace fc::proofs {
                         c_pieces.data(),
                         c_pieces.size());
     if (resPtr->status_code != 0) {
-      std::cerr << resPtr->error_msg;
+      auto logger = common::createLogger("proofs");
+      logger->error("sealPreCommit: " + std::string(resPtr->error_msg));
       destroy_seal_pre_commit_response(resPtr);
-
       return ProofsError::UNKNOWN;
     }
     auto result = cppRawSealPreCommitOutput(resPtr->seal_pre_commit_output);
