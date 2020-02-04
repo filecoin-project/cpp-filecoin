@@ -304,21 +304,21 @@ namespace fc::vm::actor::builtin {
     return s;
   }
 
-  struct ChangeTresholdParameters {
+  struct ChangeThresholdParameters {
     size_t new_threshold;
   };
 
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const ChangeTresholdParameters &params) {
+  Stream &operator<<(Stream &&s, const ChangeThresholdParameters &params) {
     return s << (s.list() << params.new_threshold);
   }
 
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, ChangeTresholdParameters &params) {
+  Stream &operator>>(Stream &&s, ChangeThresholdParameters &params) {
     s.list() >> params.new_threshold;
     return s;
   }
@@ -341,16 +341,16 @@ namespace fc::vm::actor::builtin {
                                                     Runtime &runtime,
                                                     const MethodParams &params);
 
-    static outcome::result<InvocationOutput> add_signer(
+    static outcome::result<InvocationOutput> addSigner(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
 
-    static outcome::result<InvocationOutput> remove_signer(
+    static outcome::result<InvocationOutput> removeSigner(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
 
-    static outcome::result<InvocationOutput> swap_signer(
+    static outcome::result<InvocationOutput> swapSigner(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
 
-    static outcome::result<InvocationOutput> change_threshold(
+    static outcome::result<InvocationOutput> changeThreshold(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
   };
 

@@ -28,6 +28,7 @@ using fc::vm::actor::kCronAddress;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
+using fc::vm::actor::builtin::ChangeThresholdParameters;
 using fc::vm::actor::builtin::ConstructParameteres;
 using fc::vm::actor::builtin::MultiSigActor;
 using fc::vm::actor::builtin::MultiSignatureActorState;
@@ -458,8 +459,7 @@ TEST_F(MultisigActorTest, ApproveAlreadySigned) {
   TransactionNumberParameters approve_params{pending_tx_number};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(approve_params));
 
-  EXPECT_CALL(runtime, getIpfsDatastore())
-      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
@@ -626,8 +626,7 @@ TEST_F(MultisigActorTest, CancelNotCreator) {
   TransactionNumberParameters cancel_params{pending_tx_number};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(cancel_params));
 
-  EXPECT_CALL(runtime, getIpfsDatastore())
-      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
@@ -693,5 +692,73 @@ TEST_F(MultisigActorTest, CancelSunnyDay) {
       .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_EQ(MultiSigActor::cancel(actor, runtime, encoded_params),
+                    InvocationOutput{});
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when changeThreshold() is called with immediate caller is not receiver
+ * @then error WRONG_CALLER returned
+ */
+TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
+  ChangeThresholdParameters params{};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver())
+      .WillOnce(testing::Return(kInitAddress));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+      MultiSigActor::changeThreshold(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when changeThreshold() is called with 0 threshold
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, ChangeThresholdZero) {
+  ChangeThresholdParameters params{0};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
+      MultiSigActor::changeThreshold(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when changeThreshold() is called with new threshold
+ * @then new threshold saved to actor state
+ */
+TEST_F(MultisigActorTest, ChangeThresholdSuccess) {
+  size_t old_threshold = 13;
+  size_t new_threshold = 25;
+  ChangeThresholdParameters params{25};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  std::vector<Address> signers{address, kInitAddress};
+  MultiSignatureActorState actor_state{signers, old_threshold};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+
+  MultiSignatureActorState expected_state{signers, new_threshold};
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+  EXPECT_CALL(*datastore,
+              set(_, MultiSignatureActorStateMatcher(expected_state)))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(runtime, commit(_))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_EQ(MultiSigActor::changeThreshold(actor, runtime, encoded_params),
                     InvocationOutput{});
 }

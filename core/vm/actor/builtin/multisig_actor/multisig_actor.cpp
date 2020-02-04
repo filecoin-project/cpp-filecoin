@@ -224,7 +224,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::cancel(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::add_signer(
+fc::outcome::result<InvocationOutput> MultiSigActor::addSigner(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
   OUTCOME_TRY(add_signer_params,
               decodeActorParams<AddSignerParameters>(params));
@@ -232,7 +232,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::add_signer(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::remove_signer(
+fc::outcome::result<InvocationOutput> MultiSigActor::removeSigner(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
   OUTCOME_TRY(remove_signer_params,
               decodeActorParams<RemoveSignerParameters>(params));
@@ -240,7 +240,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::remove_signer(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::swap_signer(
+fc::outcome::result<InvocationOutput> MultiSigActor::swapSigner(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
   OUTCOME_TRY(swap_signer_params,
               decodeActorParams<SwapSignerParameters>(params));
@@ -248,10 +248,25 @@ fc::outcome::result<InvocationOutput> MultiSigActor::swap_signer(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::change_threshold(
+fc::outcome::result<InvocationOutput> MultiSigActor::changeThreshold(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
+    return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+  }
+
   OUTCOME_TRY(change_threshold_params,
-              decodeActorParams<ChangeTresholdParameters>(params));
+              decodeActorParams<ChangeThresholdParameters>(params));
+  if (change_threshold_params.new_threshold == 0)
+    return VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD;
+
+  OUTCOME_TRY(state,
+              runtime.getIpfsDatastore()->getCbor<MultiSignatureActorState>(
+                  actor.head));
+  state.threshold = change_threshold_params.new_threshold;
+
+  // commit state
+  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
+  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
 
   return fc::outcome::success();
 }

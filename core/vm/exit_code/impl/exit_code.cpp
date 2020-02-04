@@ -46,6 +46,7 @@ namespace fc::vm {
       case E::MULTISIG_ACTOR_ALREADY_SIGNED:
       case E::MULTISIG_ACTOR_FUNDS_LOCKED:
       case E::MULTISIG_ACTOR_INSUFFICIENT_FUND:
+      case E::MULTISIG_ACTOR_WRONG_THRESHOLD:
         return 1;
 
       // TODO(turuslan): FIL-128 StoragePowerActor
