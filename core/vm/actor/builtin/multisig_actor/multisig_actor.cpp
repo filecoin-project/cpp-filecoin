@@ -226,8 +226,26 @@ fc::outcome::result<InvocationOutput> MultiSigActor::cancel(
 
 fc::outcome::result<InvocationOutput> MultiSigActor::addSigner(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
+    return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+  }
+
   OUTCOME_TRY(add_signer_params,
               decodeActorParams<AddSignerParameters>(params));
+  OUTCOME_TRY(state,
+              runtime.getIpfsDatastore()->getCbor<MultiSignatureActorState>(
+                  actor.head));
+
+  if (state.isSigner(add_signer_params.signer))
+    return VMExitCode::MULTISIG_ACTOR_ALREADY_ADDED;
+
+  state.signers.push_back(add_signer_params.signer);
+  if (add_signer_params.increase_threshold)
+    state.threshold++;
+
+  // commit state
+  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
+  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
 
   return fc::outcome::success();
 }

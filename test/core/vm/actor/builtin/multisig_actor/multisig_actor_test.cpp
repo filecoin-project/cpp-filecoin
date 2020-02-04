@@ -28,12 +28,14 @@ using fc::vm::actor::kCronAddress;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
+using fc::vm::actor::builtin::AddSignerParameters;
 using fc::vm::actor::builtin::ChangeThresholdParameters;
 using fc::vm::actor::builtin::ConstructParameteres;
 using fc::vm::actor::builtin::MultiSigActor;
 using fc::vm::actor::builtin::MultiSignatureActorState;
 using fc::vm::actor::builtin::MultiSignatureTransaction;
 using fc::vm::actor::builtin::ProposeParameters;
+using fc::vm::actor::builtin::RemoveSignerParameters;
 using fc::vm::actor::builtin::TransactionNumber;
 using fc::vm::actor::builtin::TransactionNumberParameters;
 using fc::vm::runtime::InvocationOutput;
@@ -697,7 +699,7 @@ TEST_F(MultisigActorTest, CancelSunnyDay) {
 
 /**
  * @given Runtime and multisig actor
- * @when changeThreshold() is called with immediate caller is not receiver
+ * @when addSigner() is called with immediate caller is not receiver
  * @then error WRONG_CALLER returned
  */
 TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
@@ -710,7 +712,115 @@ TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+      MultiSigActor::addSigner(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when changeThreshold() is called with immediate caller is not receiver
+ * @then error WRONG_CALLER returned
+ */
+TEST_F(MultisigActorTest, AddSignerWrongCaller) {
+  AddSignerParameters params{};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver())
+      .WillOnce(testing::Return(kInitAddress));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
       MultiSigActor::changeThreshold(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when changeThreshold() is called with address already is signer
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
+  AddSignerParameters params{address};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  std::vector<Address> signers{address, kInitAddress};
+  MultiSignatureActorState actor_state{signers};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_ALREADY_ADDED,
+      MultiSigActor::addSigner(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when changeThreshold() is called with not change threshold
+ * @then new signer added, threshold is not changed
+ */
+TEST_F(MultisigActorTest, AddSignerNotChangeThreshold) {
+  AddSignerParameters params{address, false};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  std::vector<Address> signers{kInitAddress};
+  size_t old_threshold{25};
+  MultiSignatureActorState actor_state{signers, old_threshold};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+
+  std::vector<Address> expected_signers{kInitAddress, address};
+  MultiSignatureActorState expected_state{expected_signers, old_threshold};
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+  EXPECT_CALL(*datastore,
+              set(_, MultiSignatureActorStateMatcher(expected_state)))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(runtime, commit(_))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_EQ(MultiSigActor::addSigner(actor, runtime, encoded_params),
+                    InvocationOutput{});
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when changeThreshold() is called with change threshold
+ * @then new signer added, threshold is changed
+ */
+TEST_F(MultisigActorTest, AddSignerChangeThreshold) {
+  AddSignerParameters params{address, true};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  std::vector<Address> signers{kInitAddress};
+  size_t old_threshold{25};
+  MultiSignatureActorState actor_state{signers, old_threshold};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+
+  std::vector<Address> expected_signers{kInitAddress, address};
+  MultiSignatureActorState expected_state{expected_signers, old_threshold + 1};
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+  EXPECT_CALL(*datastore,
+              set(_, MultiSignatureActorStateMatcher(expected_state)))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(runtime, commit(_))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_EQ(MultiSigActor::addSigner(actor, runtime, encoded_params),
+                    InvocationOutput{});
 }
 
 /**
@@ -759,6 +869,7 @@ TEST_F(MultisigActorTest, ChangeThresholdSuccess) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::changeThreshold(actor, runtime, encoded_params),
-                    InvocationOutput{});
+  EXPECT_OUTCOME_EQ(
+      MultiSigActor::changeThreshold(actor, runtime, encoded_params),
+      InvocationOutput{});
 }
