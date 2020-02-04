@@ -34,6 +34,7 @@ using fc::vm::actor::builtin::MultiSignatureActorState;
 using fc::vm::actor::builtin::MultiSignatureTransaction;
 using fc::vm::actor::builtin::ProposeParameters;
 using fc::vm::actor::builtin::TransactionNumber;
+using fc::vm::actor::builtin::TransactionNumberParameters;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::MockRuntime;
 using ::testing::_;
@@ -64,7 +65,7 @@ class MultisigActorTest : public ::testing::Test {
       "1234567890123456789012345678901234567890"
       "1234567890123456789012345678901234567890"
       "1122334455667788"_blob48);
-  Address to_address{kCronAddress};  // any address
+  Address to_address{kCronAddress};  // arbitrary address
   MockRuntime runtime;
   std::shared_ptr<MockIpfsDatastore> datastore =
       std::make_shared<MockIpfsDatastore>();
@@ -367,6 +368,170 @@ TEST_F(MultisigActorTest, ProposePending) {
                     InvocationOutput{Buffer{expected}});
 }
 
-// approve tx not found
+/**
+ * @given Runtime and multisig actor
+ * @when approve is called with immediate caller is not signable
+ * @then error WRONG_CALLER returned
+ */
+TEST_F(MultisigActorTest, ApproveWrongCaller) {
+  TransactionNumberParameters params{};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
-// approve already signed
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+                       MultiSigActor::approve(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when approve is called with wrong signer
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, ApproveWrongSigner) {
+  TransactionNumberParameters params{};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  actor.code = kAccountCodeCid;
+  MultiSignatureActorState actor_state{std::vector{kInitAddress}};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_SIGNER,
+                       MultiSigActor::approve(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor
+ * @when approve is called with wrong tx_number
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, ApproveWrongTxNumber) {
+  TransactionNumberParameters params{};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+  actor.code = kAccountCodeCid;
+  // no pending txs in state
+  MultiSignatureActorState actor_state{std::vector{address}, 1, 13, 100, 0, 0};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_TRANSACTION_NOT_FOUND,
+                       MultiSigActor::approve(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor and pending tx
+ * @when approve is called with caller already signed
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, ApproveAlreadySigned) {
+  BigInt actor_balance{100};
+  BigInt value_to_send{50};
+  actor.balance = actor_balance;
+  MethodNumber method_number{33};
+  MethodParams method_params{Buffer{"0102"_unhex}};
+  actor.code = kAccountCodeCid;
+  std::vector<Address> signers{address, kInitAddress};
+  size_t threshold{2};
+  TransactionNumber pending_tx_number{13};
+  TransactionNumber tx_number{13};
+  // tx is approved by kInitAddress
+  MultiSignatureTransaction pending_tx{pending_tx_number,
+                                       to_address,
+                                       value_to_send,
+                                       method_number,
+                                       method_params,
+                                       std::vector{address}};
+  MultiSignatureActorState actor_state{signers,
+                                       threshold,
+                                       tx_number,
+                                       actor_balance,
+                                       0,
+                                       0,
+                                       std::vector{pending_tx}};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+  TransactionNumberParameters approve_params{pending_tx_number};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(approve_params));
+
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ALREADY_SIGNED,
+                       MultiSigActor::approve(actor, runtime, encoded_params));
+}
+
+/**
+ * @given Runtime and multisig actor and pending tx
+ * @when approve is called
+ * @then transaction is signed, called and deleted from state
+ */
+TEST_F(MultisigActorTest, ApproveSunnyDay) {
+  BigInt actor_balance{100};
+  BigInt value_to_send{50};
+  actor.balance = actor_balance;
+  MethodNumber method_number{33};
+  MethodParams method_params{Buffer{"0102"_unhex}};
+  actor.code = kAccountCodeCid;
+  std::vector<Address> signers{address, kInitAddress};
+  size_t threshold{2};
+  TransactionNumber pending_tx_number{13};
+  TransactionNumber tx_number{13};
+  // tx is approved by kInitAddress
+  MultiSignatureTransaction pending_tx{pending_tx_number,
+                                       to_address,
+                                       value_to_send,
+                                       method_number,
+                                       method_params,
+                                       std::vector{kInitAddress}};
+  MultiSignatureActorState actor_state{signers,
+                                       threshold,
+                                       tx_number,
+                                       actor_balance,
+                                       0,
+                                       0,
+                                       std::vector{pending_tx}};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
+  TransactionNumberParameters approve_params{pending_tx_number};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(approve_params));
+
+  // expected that pending tx is removed after sending
+  MultiSignatureActorState expected_state{
+      signers,
+      threshold,
+      tx_number,
+      actor_balance,
+      0,
+      0,
+      std::vector<MultiSignatureTransaction>{}};
+
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+  EXPECT_CALL(*datastore,
+              set(_, MultiSignatureActorStateMatcher(expected_state)))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentEpoch())
+      .WillOnce(testing::Return(ChainEpoch{42}));
+  EXPECT_CALL(runtime, commit(_))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(runtime,
+              send(Eq(to_address),
+                   Eq(method_number),
+                   Eq(method_params),
+                   Eq(value_to_send)))
+      .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
+
+  EXPECT_OUTCOME_EQ(MultiSigActor::approve(actor, runtime, encoded_params),
+                    InvocationOutput{});
+}

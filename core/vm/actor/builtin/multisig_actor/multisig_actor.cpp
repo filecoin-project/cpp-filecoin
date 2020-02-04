@@ -132,8 +132,21 @@ fc::outcome::result<InvocationOutput> MultiSigActor::propose(
 
 fc::outcome::result<InvocationOutput> MultiSigActor::approve(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  if (!isSignableActor(actor.code))
+    return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+
   OUTCOME_TRY(tx_params,
               decodeActorParams<TransactionNumberParameters>(params));
+  OUTCOME_TRY(state,
+              runtime.getIpfsDatastore()->getCbor<MultiSignatureActorState>(
+                  actor.head));
+
+  OUTCOME_TRY(
+      state.approveTransaction(actor, runtime, tx_params.transaction_number));
+
+  // commit state
+  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
+  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
 
   return fc::outcome::success();
 }
