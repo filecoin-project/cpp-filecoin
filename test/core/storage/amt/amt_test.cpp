@@ -20,6 +20,10 @@ using fc::storage::ipfs::InMemoryDatastore;
 
 class AmtTest : public ::testing::Test {
  public:
+  auto getRoot() {
+    return store->getCbor<Root>(amt.flush().value()).value();
+  }
+
   std::shared_ptr<InMemoryDatastore> store{std::make_shared<InMemoryDatastore>()};
   Amt amt{store};
 };
@@ -53,12 +57,31 @@ TEST_F(AmtTest, SetRemoveRootLeaf) {
 
   EXPECT_OUTCOME_ERROR(AmtError::NOT_FOUND, amt.get(key));
   EXPECT_OUTCOME_ERROR(AmtError::NOT_FOUND, amt.remove(key));
+  EXPECT_OUTCOME_EQ(amt.count(), 0);
+  EXPECT_FALSE(getRoot().node.has_bits);
 
   EXPECT_OUTCOME_TRUE_1(amt.set(key, value));
   EXPECT_OUTCOME_EQ(amt.get(key), value);
+  EXPECT_OUTCOME_EQ(amt.count(), 1);
+  EXPECT_TRUE(getRoot().node.has_bits);
 
   EXPECT_OUTCOME_TRUE_1(amt.remove(key));
   EXPECT_OUTCOME_ERROR(AmtError::NOT_FOUND, amt.get(key));
+  EXPECT_OUTCOME_EQ(amt.count(), 0);
+  EXPECT_TRUE(getRoot().node.has_bits);
+}
+
+TEST_F(AmtTest, SetRemoveCollapseZero) {
+  auto key = 64;
+
+  EXPECT_OUTCOME_TRUE_1(amt.set(1, "06"_unhex));
+  EXPECT_TRUE(which<Node::Values>(getRoot().node.items));
+
+  EXPECT_OUTCOME_TRUE_1(amt.set(key, "07"_unhex));
+  EXPECT_FALSE(which<Node::Values>(getRoot().node.items));
+
+  EXPECT_OUTCOME_TRUE_1(amt.remove(key));
+  EXPECT_TRUE(which<Node::Values>(getRoot().node.items));
 }
 
 TEST_F(AmtTest, Flush) {

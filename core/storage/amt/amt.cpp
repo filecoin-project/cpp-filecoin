@@ -55,6 +55,11 @@ namespace fc::storage::amt {
   Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root)
       : store_(std::move(store)), root_(root) {}
 
+  outcome::result<uint64_t> Amt::count() {
+    OUTCOME_TRY(loadRoot());
+    return boost::get<Root>(root_).count;
+  }
+
   outcome::result<void> Amt::set(uint64_t key, gsl::span<const uint8_t> value) {
     if (key >= kMaxIndex) {
       return AmtError::INDEX_TOO_BIG;
@@ -115,6 +120,7 @@ namespace fc::storage::amt {
       OUTCOME_TRY(child, loadLink(root.node, 0, false));
       auto node = std::move(*child);
       root.node = std::move(node);
+      --root.height;
     }
     return outcome::success();
   }
@@ -150,7 +156,7 @@ namespace fc::storage::amt {
     auto mask = maskAt(height);
     auto index = key / mask;
     OUTCOME_TRY(child, loadLink(node, index, false));
-    OUTCOME_TRY(remove(*child, height, key % mask));
+    OUTCOME_TRY(remove(*child, height - 1, key % mask));
     // github.com/filecoin-project/go-amt-ipld/v2 behavior
     auto empty = visit_in_place(
       child->items,
@@ -187,6 +193,9 @@ namespace fc::storage::amt {
   }
 
   outcome::result<Node::Ptr> Amt::loadLink(Node &parent, uint64_t index, bool create) {
+    if (which<Node::Values>(parent.items) && boost::get<Node::Values>(parent.items).empty()) {
+      parent.items = Node::Links{};
+    }
     auto &links = boost::get<Node::Links>(parent.items);
     auto it = links.find(index);
     if (it == links.end()) {
