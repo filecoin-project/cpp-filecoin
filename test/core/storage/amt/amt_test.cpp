@@ -94,3 +94,26 @@ TEST_F(AmtTest, Flush) {
   amt = {store, cid};
   EXPECT_OUTCOME_EQ(amt.get(key), value);
 }
+
+TEST_F(AmtTest, Visit) {
+  std::vector<std::pair<int64_t, Value>> items{
+    {3, Value{"06"_unhex}},
+    {64, Value{"07"_unhex}}
+  };
+  for (auto &[key, value] : items) {
+    EXPECT_OUTCOME_TRUE_1(amt.set(key, value));
+  }
+
+  auto i = 0;
+  EXPECT_OUTCOME_TRUE_1(amt.visit([&](uint64_t key, const Value &value) {
+    EXPECT_EQ(key, items[i].first);
+    EXPECT_EQ(value, items[i].second);
+    ++i;
+    return fc::outcome::success();
+  }));
+  EXPECT_EQ(i, items.size());
+
+  EXPECT_OUTCOME_ERROR(AmtError::INDEX_TOO_BIG, amt.visit([](uint64_t, const Value &) {
+    return AmtError::INDEX_TOO_BIG;
+  }));
+}

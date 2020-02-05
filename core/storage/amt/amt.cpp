@@ -135,6 +135,12 @@ namespace fc::storage::amt {
     return boost::get<CID>(root_);
   }
 
+  outcome::result<void> Amt::visit(const Visitor &visitor) {
+    OUTCOME_TRY(loadRoot());
+    auto &root = boost::get<Root>(root_);
+    return visit(root.node, root.height, 0, visitor);
+  }
+
   outcome::result<bool> Amt::set(Node &node, uint64_t height, uint64_t key, gsl::span<const uint8_t> value) {
     node.has_bits = true;
     if (height == 0) {
@@ -180,6 +186,21 @@ namespace fc::storage::amt {
           pair.second = cid;
         }
       }
+    }
+    return outcome::success();
+  }
+
+  outcome::result<void> Amt::visit(Node &node, uint64_t height, uint64_t offset, const Visitor &visitor) {
+    if (height == 0) {
+      for (auto &it : boost::get<Node::Values>(node.items)) {
+        OUTCOME_TRY(visitor(offset + it.first, it.second));
+      }
+      return outcome::success();
+    }
+    auto mask = maskAt(height);
+    for (auto &it : boost::get<Node::Links>(node.items)) {
+      OUTCOME_TRY(loadLink(node, it.first, false));
+      OUTCOME_TRY(visit(*boost::get<Node::Ptr>(it.second), height - 1, offset + it.first * mask, visitor));
     }
     return outcome::success();
   }

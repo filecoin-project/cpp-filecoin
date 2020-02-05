@@ -138,7 +138,7 @@ namespace fc::storage::amt {
 
   class Amt {
    public:
-    using Visitor = std::function<outcome::result<void>(const uint64_t &,
+    using Visitor = std::function<outcome::result<void>(uint64_t,
                                                         const Value &)>;
 
     explicit Amt(std::shared_ptr<ipfs::IpfsDatastore> store);
@@ -175,6 +175,7 @@ namespace fc::storage::amt {
     outcome::result<bool> set(Node &node, uint64_t height, uint64_t key, gsl::span<const uint8_t> value);
     outcome::result<bool> remove(Node &node, uint64_t height, uint64_t key);
     outcome::result<void> flush(Node &node);
+    outcome::result<void> visit(Node &node, uint64_t height, uint64_t offset, const Visitor &visitor);
     outcome::result<void> loadRoot();
     outcome::result<Node::Ptr> loadLink(Node &node, uint64_t index, bool create);
 
