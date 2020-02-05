@@ -24,3 +24,5 @@ target_link_libraries(ipfs_blockservice_test
     ipfs_blockservice
     ipfs_datastore_in_memory
     )
+
+add_subdirectory(merkledag)
