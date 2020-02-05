@@ -47,9 +47,8 @@ jobs:
           brew install pkgconfig
         else
           sudo apt-get update || true
-          sudo apt-get install -y ninja-build
           sudo apt-get install pkg-config
-          sudo apt-get install python3-setuptools
+          sudo apt-get install -y ninja-build python-setuptools
         fi
 
         pip3 -V || sudo python3 -m pip install --upgrade pip

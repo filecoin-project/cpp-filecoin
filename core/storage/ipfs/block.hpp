@@ -6,7 +6,10 @@
 #ifndef FILECOIN_STORAGE_IPFS_BLOCK_HPP
 #define FILECOIN_STORAGE_IPFS_BLOCK_HPP
 
+#include <functional>
+
 #include "common/buffer.hpp"
+#include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::storage::ipfs {
@@ -31,7 +34,7 @@ namespace fc::storage::ipfs {
      * @brief Get block content
      * @return Block's raw data for store in the BlockService
      */
-    virtual const Content &getContent() const = 0;
+    virtual const Content &getRawBytes() const = 0;
   };
 }  // namespace fc::storage::ipfs
 
