@@ -16,7 +16,12 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::amt {
-  enum class AmtError { EXPECTED_CID = 1, DECODE_WRONG, INDEX_TOO_BIG, NOT_FOUND };
+  enum class AmtError {
+    EXPECTED_CID = 1,
+    DECODE_WRONG,
+    INDEX_TOO_BIG,
+    NOT_FOUND,
+  };
 
   constexpr size_t kWidth = 8;
   constexpr auto kMaxIndex = 1ull << 48;
@@ -46,23 +51,22 @@ namespace fc::storage::amt {
     if (node.has_bits) {
       bits.resize(1);
       visit_in_place(
-        node.items,
-        [&bits, &l_links](const Node::Links &links) {
-          for (auto &item : links) {
-            bits[0] |= 1 << item.first;
-            if (which<Node::Ptr>(item.second)) {
-              outcome::raise(AmtError::EXPECTED_CID);
+          node.items,
+          [&bits, &l_links](const Node::Links &links) {
+            for (auto &item : links) {
+              bits[0] |= 1 << item.first;
+              if (which<Node::Ptr>(item.second)) {
+                outcome::raise(AmtError::EXPECTED_CID);
+              }
+              l_links << boost::get<CID>(item.second);
             }
-            l_links << boost::get<CID>(item.second);
-          }
-        },
-        [&bits, &l_values](const Node::Values &values) {
-          for (auto &item : values) {
-            bits[0] |= 1 << item.first;
-            l_values << l_values.wrap(item.second, 1);
-          }
-        }
-        );
+          },
+          [&bits, &l_values](const Node::Values &values) {
+            for (auto &item : values) {
+              bits[0] |= 1 << item.first;
+              l_values << l_values.wrap(item.second, 1);
+            }
+          });
     }
     return s << (s.list() << bits << l_links << l_values);
   }
@@ -138,16 +142,15 @@ namespace fc::storage::amt {
 
   class Amt {
    public:
-    using Visitor = std::function<outcome::result<void>(uint64_t,
-                                                        const Value &)>;
+    using Visitor =
+        std::function<outcome::result<void>(uint64_t, const Value &)>;
 
     explicit Amt(std::shared_ptr<ipfs::IpfsDatastore> store);
     Amt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
     /// Get values quantity
     outcome::result<uint64_t> count();
     /// Set value by key, does not write to storage
-    outcome::result<void> set(uint64_t key,
-                              gsl::span<const uint8_t> value);
+    outcome::result<void> set(uint64_t key, gsl::span<const uint8_t> value);
     /// Get value by key
     outcome::result<Value> get(uint64_t key);
     /// Remove value by key, does not write to storage
@@ -172,12 +175,20 @@ namespace fc::storage::amt {
     }
 
    private:
-    outcome::result<bool> set(Node &node, uint64_t height, uint64_t key, gsl::span<const uint8_t> value);
+    outcome::result<bool> set(Node &node,
+                              uint64_t height,
+                              uint64_t key,
+                              gsl::span<const uint8_t> value);
     outcome::result<bool> remove(Node &node, uint64_t height, uint64_t key);
     outcome::result<void> flush(Node &node);
-    outcome::result<void> visit(Node &node, uint64_t height, uint64_t offset, const Visitor &visitor);
+    outcome::result<void> visit(Node &node,
+                                uint64_t height,
+                                uint64_t offset,
+                                const Visitor &visitor);
     outcome::result<void> loadRoot();
-    outcome::result<Node::Ptr> loadLink(Node &node, uint64_t index, bool create);
+    outcome::result<Node::Ptr> loadLink(Node &node,
+                                        uint64_t index,
+                                        bool create);
 
     std::shared_ptr<ipfs::IpfsDatastore> store_;
     boost::variant<CID, Root> root_;

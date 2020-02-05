@@ -134,7 +134,8 @@ namespace fc::storage::hamt {
     auto &item = it->second;
     OUTCOME_TRY(loadItem(item));
     if (which<Node::Ptr>(item)) {
-      OUTCOME_TRY(remove(*boost::get<Node::Ptr>(item), consumeIndex(indices), key));
+      OUTCOME_TRY(
+          remove(*boost::get<Node::Ptr>(item), consumeIndex(indices), key));
       OUTCOME_TRY(cleanShard(item));
     } else {
       auto &leaf = boost::get<Node::Leaf>(item);

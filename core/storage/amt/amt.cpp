@@ -67,7 +67,8 @@ namespace fc::storage::amt {
     OUTCOME_TRY(loadRoot());
     auto &root = boost::get<Root>(root_);
     while (key >= maxAt(root.height)) {
-      root.node = {true, Node::Links{{0, std::make_shared<Node>(std::move(root.node))}}};
+      root.node = {
+          true, Node::Links{{0, std::make_shared<Node>(std::move(root.node))}}};
       ++root.height;
     }
     OUTCOME_TRY(add, set(root.node, root.height, key, value));
@@ -141,10 +142,15 @@ namespace fc::storage::amt {
     return visit(root.node, root.height, 0, visitor);
   }
 
-  outcome::result<bool> Amt::set(Node &node, uint64_t height, uint64_t key, gsl::span<const uint8_t> value) {
+  outcome::result<bool> Amt::set(Node &node,
+                                 uint64_t height,
+                                 uint64_t key,
+                                 gsl::span<const uint8_t> value) {
     node.has_bits = true;
     if (height == 0) {
-      return boost::get<Node::Values>(node.items).insert(std::make_pair(key, value)).second;
+      return boost::get<Node::Values>(node.items)
+          .insert(std::make_pair(key, value))
+          .second;
     }
     auto mask = maskAt(height);
     OUTCOME_TRY(child, loadLink(node, key / mask, true));
@@ -165,10 +171,9 @@ namespace fc::storage::amt {
     OUTCOME_TRY(remove(*child, height - 1, key % mask));
     // github.com/filecoin-project/go-amt-ipld/v2 behavior
     auto empty = visit_in_place(
-      child->items,
-      [](const Node::Values &values) { return values.empty(); },
-      [](const Node::Links &links) { return links.empty(); }
-      );
+        child->items,
+        [](const Node::Values &values) { return values.empty(); },
+        [](const Node::Links &links) { return links.empty(); });
     if (empty) {
       boost::get<Node::Links>(node.items).erase(index);
     }
@@ -190,7 +195,10 @@ namespace fc::storage::amt {
     return outcome::success();
   }
 
-  outcome::result<void> Amt::visit(Node &node, uint64_t height, uint64_t offset, const Visitor &visitor) {
+  outcome::result<void> Amt::visit(Node &node,
+                                   uint64_t height,
+                                   uint64_t offset,
+                                   const Visitor &visitor) {
     if (height == 0) {
       for (auto &it : boost::get<Node::Values>(node.items)) {
         OUTCOME_TRY(visitor(offset + it.first, it.second));
@@ -200,7 +208,10 @@ namespace fc::storage::amt {
     auto mask = maskAt(height);
     for (auto &it : boost::get<Node::Links>(node.items)) {
       OUTCOME_TRY(loadLink(node, it.first, false));
-      OUTCOME_TRY(visit(*boost::get<Node::Ptr>(it.second), height - 1, offset + it.first * mask, visitor));
+      OUTCOME_TRY(visit(*boost::get<Node::Ptr>(it.second),
+                        height - 1,
+                        offset + it.first * mask,
+                        visitor));
     }
     return outcome::success();
   }
@@ -213,8 +224,11 @@ namespace fc::storage::amt {
     return outcome::success();
   }
 
-  outcome::result<Node::Ptr> Amt::loadLink(Node &parent, uint64_t index, bool create) {
-    if (which<Node::Values>(parent.items) && boost::get<Node::Values>(parent.items).empty()) {
+  outcome::result<Node::Ptr> Amt::loadLink(Node &parent,
+                                           uint64_t index,
+                                           bool create) {
+    if (which<Node::Values>(parent.items)
+        && boost::get<Node::Values>(parent.items).empty()) {
       parent.items = Node::Links{};
     }
     auto &links = boost::get<Node::Links>(parent.items);
