@@ -283,6 +283,8 @@ fc::outcome::result<InvocationOutput> MultiSigActor::removeSigner(
 
   if (remove_signer_params.decrease_threshold) state.threshold--;
 
+  // actor-spec ignores decrease_threshold parameters in this case and call it
+  // automatic threshold decrease
   if (state.threshold < 1 || state.signers.size() < state.threshold)
     return VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD;
 
@@ -329,12 +331,14 @@ fc::outcome::result<InvocationOutput> MultiSigActor::changeThreshold(
 
   OUTCOME_TRY(change_threshold_params,
               decodeActorParams<ChangeThresholdParameters>(params));
-  if (change_threshold_params.new_threshold == 0)
-    return VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD;
 
   OUTCOME_TRY(state,
               runtime.getIpfsDatastore()->getCbor<MultiSignatureActorState>(
                   actor.head));
+  if (change_threshold_params.new_threshold == 0
+      || change_threshold_params.new_threshold > state.signers.size())
+    return VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD;
+
   state.threshold = change_threshold_params.new_threshold;
 
   // commit state

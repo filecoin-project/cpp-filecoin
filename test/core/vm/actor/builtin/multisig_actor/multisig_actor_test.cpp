@@ -817,9 +817,8 @@ TEST_F(MultisigActorTest, AddSignerNotChangeThreshold) {
   AddSignerParameters params{address, false};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress};
-  size_t old_threshold{25};
   MultiSignatureActorState actor_state{signers,
-                                       old_threshold,
+                                       default_threshold,
                                        default_next_transaction_id,
                                        default_initial_balance,
                                        default_start_epoch,
@@ -829,7 +828,7 @@ TEST_F(MultisigActorTest, AddSignerNotChangeThreshold) {
 
   std::vector<Address> expected_signers{kInitAddress, address};
   MultiSignatureActorState expected_state{expected_signers,
-                                          old_threshold,
+                                          default_threshold,
                                           default_next_transaction_id,
                                           default_initial_balance,
                                           default_start_epoch,
@@ -862,9 +861,8 @@ TEST_F(MultisigActorTest, AddSignerChangeThreshold) {
   AddSignerParameters params{address, true};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress};
-  size_t old_threshold{25};
   MultiSignatureActorState actor_state{signers,
-                                       old_threshold,
+                                       default_threshold,
                                        default_next_transaction_id,
                                        default_initial_balance,
                                        default_start_epoch,
@@ -874,7 +872,7 @@ TEST_F(MultisigActorTest, AddSignerChangeThreshold) {
 
   std::vector<Address> expected_signers{kInitAddress, address};
   MultiSignatureActorState expected_state{expected_signers,
-                                          old_threshold + 1,
+                                          default_threshold + 1,
                                           default_next_transaction_id,
                                           default_initial_balance,
                                           default_start_epoch,
@@ -954,9 +952,8 @@ TEST_F(MultisigActorTest, RemoveSignerNotChangeThreshold) {
   RemoveSignerParameters params{address, false};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress, address};
-  size_t old_threshold{1};
   MultiSignatureActorState actor_state{signers,
-                                       old_threshold,
+                                       default_threshold,
                                        default_next_transaction_id,
                                        default_initial_balance,
                                        default_start_epoch,
@@ -966,7 +963,7 @@ TEST_F(MultisigActorTest, RemoveSignerNotChangeThreshold) {
 
   std::vector<Address> expected_signers{kInitAddress};
   MultiSignatureActorState expected_state{expected_signers,
-                                          old_threshold,
+                                          default_threshold,
                                           default_next_transaction_id,
                                           default_initial_balance,
                                           default_start_epoch,
@@ -1044,9 +1041,8 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdZero) {
   AddSignerParameters params{address, true};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress, address};
-  size_t old_threshold{1};
   MultiSignatureActorState actor_state{signers,
-                                       old_threshold,
+                                       default_threshold,
                                        default_next_transaction_id,
                                        default_initial_balance,
                                        default_start_epoch,
@@ -1244,8 +1240,54 @@ TEST_F(MultisigActorTest, ChangeThresholdZero) {
   ChangeThresholdParameters params{0};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
+  std::vector<Address> signers{address, kInitAddress};
+  MultiSignatureActorState actor_state{signers,
+                                       default_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
+
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
+      MultiSigActor::changeThreshold(actor, runtime, encoded_params));
+}
+
+
+/**
+ * @given Runtime and multisig actor
+ * @when changeThreshold() is called with threshold more than number of signers
+ * @then error returned
+ */
+TEST_F(MultisigActorTest, ChangeThresholdMoreThanSigners) {
+  ChangeThresholdParameters params{100500};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+
+  std::vector<Address> signers{address, kInitAddress};
+  MultiSignatureActorState actor_state{signers,
+                                       default_threshold,
+                                       default_next_transaction_id,
+                                       default_initial_balance,
+                                       default_start_epoch,
+                                       default_unlock_duration,
+                                       default_pending_transactions};
+  EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state))
+
+  EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(*datastore, get(_))
+      .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
@@ -1258,9 +1300,9 @@ TEST_F(MultisigActorTest, ChangeThresholdZero) {
  * @then new threshold saved to actor state
  */
 TEST_F(MultisigActorTest, ChangeThresholdSuccess) {
-  size_t old_threshold = 13;
-  size_t new_threshold = 25;
-  ChangeThresholdParameters params{25};
+  size_t old_threshold = 1;
+  size_t new_threshold = 2;
+  ChangeThresholdParameters params{new_threshold};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{address, kInitAddress};
   MultiSignatureActorState actor_state{signers,
