@@ -12,11 +12,16 @@
 using fc::codec::cbor::encode;
 using fc::common::which;
 using fc::storage::amt::AmtError;
+using fc::storage::amt::Amt;
 using fc::storage::amt::Node;
 using fc::storage::amt::Root;
 using fc::storage::amt::Value;
+using fc::storage::ipfs::InMemoryDatastore;
 
 class AmtTest : public ::testing::Test {
+ public:
+  std::shared_ptr<InMemoryDatastore> store{std::make_shared<InMemoryDatastore>()};
+  Amt amt{store};
 };
 
 /** Amt node CBOR encoding and decoding */
@@ -40,4 +45,29 @@ TEST_F(AmtTest, NodeCbor) {
 
   n.items = Node::Links{{3, Node::Ptr{}}};
   EXPECT_OUTCOME_ERROR(AmtError::EXPECTED_CID, encode(n));
+}
+
+TEST_F(AmtTest, SetRemoveRootLeaf) {
+  auto key = 3llu;
+  auto value = Value{"07"_unhex};
+
+  EXPECT_OUTCOME_ERROR(AmtError::NOT_FOUND, amt.get(key));
+  EXPECT_OUTCOME_ERROR(AmtError::NOT_FOUND, amt.remove(key));
+
+  EXPECT_OUTCOME_TRUE_1(amt.set(key, value));
+  EXPECT_OUTCOME_EQ(amt.get(key), value);
+
+  EXPECT_OUTCOME_TRUE_1(amt.remove(key));
+  EXPECT_OUTCOME_ERROR(AmtError::NOT_FOUND, amt.get(key));
+}
+
+TEST_F(AmtTest, Flush) {
+  auto key = 9llu;
+  auto value = Value{"07"_unhex};
+
+  EXPECT_OUTCOME_TRUE_1(amt.set(key, value));
+  EXPECT_OUTCOME_TRUE(cid, amt.flush());
+
+  amt = {store, cid};
+  EXPECT_OUTCOME_EQ(amt.get(key), value);
 }

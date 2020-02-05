@@ -16,7 +16,10 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::amt {
-  enum class AmtError { EXPECTED_CID = 1, DECODE_WRONG };
+  enum class AmtError { EXPECTED_CID = 1, DECODE_WRONG, INDEX_TOO_BIG, NOT_FOUND };
+
+  constexpr size_t kWidth = 8;
+  constexpr auto kMaxIndex = 1ull << 48;
 
   using common::which;
   using Value = ipfs::IpfsDatastore::Value;
@@ -132,3 +135,54 @@ namespace fc::storage::amt {
     s.list() >> root.height >> root.count >> root.node;
     return s;
   }
+
+  class Amt {
+   public:
+    using Visitor = std::function<outcome::result<void>(const uint64_t &,
+                                                        const Value &)>;
+
+    explicit Amt(std::shared_ptr<ipfs::IpfsDatastore> store);
+    Amt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
+    /// Get values quantity
+    outcome::result<uint64_t> count();
+    /// Set value by key, does not write to storage
+    outcome::result<void> set(uint64_t key,
+                              gsl::span<const uint8_t> value);
+    /// Get value by key
+    outcome::result<Value> get(uint64_t key);
+    /// Remove value by key, does not write to storage
+    outcome::result<void> remove(uint64_t key);
+    /// Write changes made by set and remove to storage
+    outcome::result<CID> flush();
+    /// Apply visitor for key value pairs
+    outcome::result<void> visit(const Visitor &visitor);
+
+    /// Store CBOR encoded value by key
+    template <typename T>
+    outcome::result<void> setCbor(uint64_t key, const T &value) {
+      OUTCOME_TRY(bytes, codec::cbor::encode(value));
+      return set(key, bytes);
+    }
+
+    /// Get CBOR decoded value by key
+    template <typename T>
+    outcome::result<T> getCbor(uint64_t key) {
+      OUTCOME_TRY(bytes, get(key));
+      return codec::cbor::decode<T>(bytes);
+    }
+
+   private:
+    outcome::result<bool> set(Node &node, uint64_t height, uint64_t key, gsl::span<const uint8_t> value);
+    outcome::result<bool> remove(Node &node, uint64_t height, uint64_t key);
+    outcome::result<void> flush(Node &node);
+    outcome::result<void> loadRoot();
+    outcome::result<Node::Ptr> loadLink(Node &node, uint64_t index, bool create);
+
+    std::shared_ptr<ipfs::IpfsDatastore> store_;
+    boost::variant<CID, Root> root_;
+  };
+}  // namespace fc::storage::amt
+
+OUTCOME_HPP_DECLARE_ERROR(fc::storage::amt, AmtError);
+
+#endif  // CPP_FILECOIN_STORAGE_AMT_AMT_HPP
