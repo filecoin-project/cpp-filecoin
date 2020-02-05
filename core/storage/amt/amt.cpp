@@ -25,11 +25,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::amt, AmtError, e) {
 namespace fc::storage::amt {
   auto pow(uint64_t base, uint64_t exponent) {
     uint64_t result{1};
-    if (exponent) {
+    if (exponent != 0) {
       --exponent;
       result *= base;
     }
-    while (exponent) {
+    while (exponent != 0) {
       if (exponent % 2 == 0) {
         exponent /= 2;
         result *= result;
@@ -88,7 +88,7 @@ namespace fc::storage::amt {
       return AmtError::NOT_FOUND;
     }
     std::reference_wrapper<Node> node = root.node;
-    for (auto height = root.height; height; --height) {
+    for (auto height = root.height; height != 0; --height) {
       auto mask = maskAt(height);
       OUTCOME_TRY(child, loadLink(node, key / mask, false));
       key %= mask;
@@ -238,9 +238,8 @@ namespace fc::storage::amt {
         auto node = std::make_shared<Node>();
         links[index] = node;
         return node;
-      } else {
-        return AmtError::NOT_FOUND;
       }
+      return AmtError::NOT_FOUND;
     }
     auto &link = it->second;
     if (which<CID>(link)) {
