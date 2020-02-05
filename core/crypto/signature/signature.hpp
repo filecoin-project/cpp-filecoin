@@ -45,7 +45,7 @@ namespace fc::crypto::signature {
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Signature &signature) noexcept {
+  Stream &operator<<(Stream &&s, const Signature &signature) {
     std::vector<uint8_t> bytes{};
     visit_in_place(signature,
                    [&bytes](const BlsSignature &v) {
