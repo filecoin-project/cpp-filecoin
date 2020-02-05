@@ -77,7 +77,7 @@ namespace fc::vm::actor::builtin {
         const TransactionNumber &tx_number, const Address &address) const;
 
     /**
-     * Get all pending transactions
+     * Get pending transaction
      */
     outcome::result<MultiSignatureTransaction> getPendingTransaction(
         const TransactionNumber &tx_number) const;
