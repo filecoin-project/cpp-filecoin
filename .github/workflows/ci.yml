@@ -44,6 +44,7 @@ jobs:
         set -e
         if [ "$RUNNER_OS" = "macOS" ]; then
           brew install ninja pkg-config
+          ls /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
         else
           sudo apt-get update || true
           sudo apt-get install -y ninja-build python-setuptools pkg-config opencl-headers
