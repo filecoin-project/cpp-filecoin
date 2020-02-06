@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/account_actor.hpp"
+#include "vm/actor/builtin/account/account_actor.hpp"
 
 #include "vm/exit_code/exit_code.hpp"
 
-namespace fc::vm::actor {
+namespace fc::vm::actor::builtin::account {
+
   outcome::result<Actor> AccountActor::create(
       const std::shared_ptr<StateTree> &state_tree, const Address &address) {
     if (!address.isKeyType()) {
@@ -40,4 +41,4 @@ namespace fc::vm::actor {
                 state_tree->getStore()->getCbor<AccountActorState>(actor.head));
     return account_actor_state.address;
   }
-}  // namespace fc::vm::actor
+}  // namespace fc::vm::actor::builtin::account

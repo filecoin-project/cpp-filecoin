@@ -5,17 +5,17 @@
 
 #include "vm/actor/impl/invoker_impl.hpp"
 
+#include "vm/actor/builtin/cron/cron_actor.hpp"
+#include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/multisig/multisig_actor.hpp"
-#include "vm/actor/cron_actor.hpp"
-#include "vm/actor/init_actor.hpp"
 
 namespace fc::vm::actor {
 
   using runtime::InvocationOutput;
 
   InvokerImpl::InvokerImpl() {
-    builtin_[actor::kCronCodeCid] = actor::cron_actor::exports;
-    builtin_[actor::kInitCodeCid] = actor::init_actor::exports;
+    builtin_[actor::kCronCodeCid] = actor::builtin::cron::exports;
+    builtin_[actor::kInitCodeCid] = actor::builtin::init::exports;
     builtin_[actor::kMultisigCodeCid] = actor::builtin::multisig::exports;
   }
 
