@@ -6,7 +6,6 @@
 #include "storage/hamt/hamt.hpp"
 
 #include "common/which.hpp"
-#include "crypto/blake2/blake2b160.hpp"
 #include "crypto/murmur/murmur.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
@@ -33,17 +32,6 @@ namespace fc::storage::hamt {
                                hash.end());
   }
 
-  auto bitToIndex(UBigInt bits, size_t max) {
-    size_t index = 0;
-    for (size_t i = 0; i < max; i++) {
-      if (bits & 1) {
-        ++index;
-      }
-      bits >>= 1;
-    }
-    return index;
-  }
-
   auto consumeIndex(gsl::span<const size_t> indices) {
     return indices.subspan(1);
   }
@@ -67,10 +55,11 @@ namespace fc::storage::hamt {
     OUTCOME_TRY(loadItem(root_));
     auto node = boost::get<Node::Ptr>(root_);
     for (auto index : keyToIndices(key)) {
-      if (!bit_test(node->bits, index)) {
+      auto it = node->items.find(index);
+      if (it == node->items.end()) {
         return HamtError::NOT_FOUND;
       }
-      auto &item = node->items[bitToIndex(node->bits, index)];
+      auto &item = it->second;
       OUTCOME_TRY(loadItem(item));
       if (which<Node::Ptr>(item)) {
         node = boost::get<Node::Ptr>(item);
@@ -103,15 +92,14 @@ namespace fc::storage::hamt {
       return HamtError::MAX_DEPTH;
     }
     auto index = indices[0];
-    if (!bit_test(node.bits, index)) {
-      bit_set(node.bits, index);
+    auto it = node.items.find(index);
+    if (it == node.items.end()) {
       Node::Leaf leaf;
       leaf.emplace(key, std::vector<uint8_t>(value.begin(), value.end()));
-      node.items.insert(node.items.begin() + bitToIndex(node.bits, index),
-                        leaf);
+      node.items[index] = leaf;
       return outcome::success();
     }
-    auto &item = node.items[bitToIndex(node.bits, index)];
+    auto &item = it->second;
     OUTCOME_TRY(loadItem(item));
     if (which<Node::Ptr>(item)) {
       return set(
@@ -139,14 +127,15 @@ namespace fc::storage::hamt {
       return HamtError::MAX_DEPTH;
     }
     auto index = indices[0];
-    if (!bit_test(node.bits, index)) {
+    auto it = node.items.find(index);
+    if (it == node.items.end()) {
       return HamtError::NOT_FOUND;
     }
-    auto index2 = bitToIndex(node.bits, index);
-    auto &item = node.items[index2];
+    auto &item = it->second;
     OUTCOME_TRY(loadItem(item));
     if (which<Node::Ptr>(item)) {
-      OUTCOME_TRY(remove(*boost::get<Node::Ptr>(item), consumeIndex(indices), key));
+      OUTCOME_TRY(
+          remove(*boost::get<Node::Ptr>(item), consumeIndex(indices), key));
       OUTCOME_TRY(cleanShard(item));
     } else {
       auto &leaf = boost::get<Node::Leaf>(item);
@@ -154,8 +143,7 @@ namespace fc::storage::hamt {
         return HamtError::NOT_FOUND;
       }
       if (leaf.size() == 1) {
-        bit_unset(node.bits, index);
-        node.items.erase(node.items.begin() + index2);
+        node.items.erase(index);
       } else {
         leaf.erase(key);
       }
@@ -172,10 +160,10 @@ namespace fc::storage::hamt {
     } else if (node.items.size() <= kLeafMax) {
       Node::Leaf leaf;
       for (auto &item2 : node.items) {
-        if (!which<Node::Leaf>(item2)) {
+        if (!which<Node::Leaf>(item2.second)) {
           return outcome::success();
         }
-        for (auto &pair : boost::get<Node::Leaf>(item2)) {
+        for (auto &pair : boost::get<Node::Leaf>(item2.second)) {
           leaf.emplace(pair);
           if (leaf.size() > kLeafMax) {
             return outcome::success();
@@ -191,7 +179,7 @@ namespace fc::storage::hamt {
     if (which<Node::Ptr>(item)) {
       auto &node = *boost::get<Node::Ptr>(item);
       for (auto &item2 : node.items) {
-        OUTCOME_TRY(flush(item2));
+        OUTCOME_TRY(flush(item2.second));
       }
       OUTCOME_TRY(cid, store_->setCbor(node));
       item = cid;
@@ -215,7 +203,7 @@ namespace fc::storage::hamt {
     OUTCOME_TRY(loadItem(item));
     if (which<Node::Ptr>(item)) {
       for (auto &item2 : boost::get<Node::Ptr>(item)->items) {
-        OUTCOME_TRY(visit(item2, visitor));
+        OUTCOME_TRY(visit(item2.second, visitor));
       }
     } else {
       for (auto &pair : boost::get<Node::Leaf>(item)) {

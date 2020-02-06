@@ -30,7 +30,7 @@ namespace fc::primitives::ticket {
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Ticket &ticket) noexcept {
+  Stream &operator<<(Stream &&s, const Ticket &ticket) {
     return s << (s.list() << ticket.bytes);
   }
 

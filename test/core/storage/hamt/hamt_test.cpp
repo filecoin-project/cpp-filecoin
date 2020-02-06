@@ -19,6 +19,19 @@ using fc::storage::hamt::Node;
 
 class HamtTest : public ::testing::Test {
  public:
+  auto bit(size_t i) {
+    return root_->items.find(i) != root_->items.end();
+  }
+
+  decltype(auto) minItem(const Node &node) {
+    return node.items.begin()->second;
+  }
+
+  template <typename T>
+  auto minItemIs(const Node &node) {
+    return which<T>(minItem(node));
+  }
+
   std::shared_ptr<fc::storage::ipfs::IpfsDatastore> store_{std::make_shared<fc::storage::ipfs::InMemoryDatastore>()}; 
   std::shared_ptr<Node> root_{std::make_shared<Node>()};
   Hamt hamt_{store_, root_};
@@ -29,18 +42,16 @@ TEST_F(HamtTest, NodeCbor) {
   Node n;
   expectEncodeAndReencode(n, "824080"_unhex);
 
-  n.bits |= 1 << 17;
-  expectEncodeAndReencode(n, "824302000080"_unhex);
+  n.items[17] = "010000020000"_cid;
+  expectEncodeAndReencode(n, "824302000081a16130d82a4700010000020000"_unhex);
 
-  Node::Leaf leaf;
-  leaf["a"] = fc::storage::hamt::Value(encode("b").value());
-  n.items.push_back(leaf);
+  n.items[17] = Node::Leaf{{"a", fc::storage::hamt::Value(encode("b").value())}};
   expectEncodeAndReencode(n, "824302000081a16131818261616162"_unhex);
 
-  n.items.push_back("010000020000"_cid);
-  expectEncodeAndReencode(n, "824302000082a16131818261616162a16130d82a4700010000020000"_unhex);
+  n.items[2] = Node::Leaf{{"b", fc::storage::hamt::Value(encode("a").value())}};
+  expectEncodeAndReencode(n, "824302000482a16131818261626161a16131818261616162"_unhex);
 
-  n.items.push_back(Node::Ptr{});
+  n.items[17] = Node::Ptr{};
   EXPECT_OUTCOME_ERROR(HamtError::EXPECTED_CID, encode(n));
 }
 
@@ -51,13 +62,13 @@ TEST_F(HamtTest, SetRemoveOne) {
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
-  EXPECT_TRUE(bit_test(root_->bits, 253));
+  EXPECT_TRUE(bit(253));
   EXPECT_EQ(root_->items.size(), 1);
 
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("aai"));
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("aai"));
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.remove("aai"));
-  EXPECT_FALSE(bit_test(root_->bits, 253));
+  EXPECT_FALSE(bit(253));
   EXPECT_EQ(root_->items.size(), 0);
 }
 
@@ -65,15 +76,15 @@ TEST_F(HamtTest, SetRemoveOne) {
 TEST_F(HamtTest, SetRemoveNoCollision) {
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aaa", "02"_unhex));
-  EXPECT_TRUE(bit_test(root_->bits, 253));
-  EXPECT_TRUE(bit_test(root_->bits, 190));
+  EXPECT_TRUE(bit(253));
+  EXPECT_TRUE(bit(190));
   EXPECT_EQ(root_->items.size(), 2);
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
   EXPECT_OUTCOME_EQ(hamt_.get("aaa"), "02"_unhex);
 
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("aaa"));
-  EXPECT_TRUE(bit_test(root_->bits, 253));
-  EXPECT_FALSE(bit_test(root_->bits, 190));
+  EXPECT_TRUE(bit(253));
+  EXPECT_FALSE(bit(190));
   EXPECT_EQ(root_->items.size(), 1);
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("aaa"));
@@ -84,7 +95,7 @@ TEST_F(HamtTest, SetRemoveCollisionMax) {
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("agd", "03"_unhex));
-  EXPECT_TRUE(bit_test(root_->bits, 253));
+  EXPECT_TRUE(bit(253));
   EXPECT_EQ(root_->items.size(), 1);
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
   EXPECT_OUTCOME_EQ(hamt_.get("ade"), "02"_unhex);
@@ -102,11 +113,11 @@ TEST_F(HamtTest, SetRemoveCollisionChild) {
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("agd", "03"_unhex));
-  EXPECT_TRUE(which<Node::Leaf>(root_->items[0]));
+  EXPECT_TRUE(minItemIs<Node::Leaf>(*root_));
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("agm", "04"_unhex));
-  EXPECT_TRUE(which<Node::Ptr>(root_->items[0]));
-  EXPECT_EQ(boost::get<Node::Ptr>(root_->items[0])->items.size(), 4);
+  EXPECT_TRUE(minItemIs<Node::Ptr>(*root_));
+  EXPECT_EQ(boost::get<Node::Ptr>(minItem(*root_))->items.size(), 4);
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
   EXPECT_OUTCOME_EQ(hamt_.get("ade"), "02"_unhex);
   EXPECT_OUTCOME_EQ(hamt_.get("agd"), "03"_unhex);
@@ -114,7 +125,7 @@ TEST_F(HamtTest, SetRemoveCollisionChild) {
 
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("agm"));
   // shard of leaves with key count <= kLeafMax collapses
-  EXPECT_TRUE(which<Node::Leaf>(root_->items[0]));
+  EXPECT_TRUE(minItemIs<Node::Leaf>(*root_));
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
   EXPECT_OUTCOME_EQ(hamt_.get("ade"), "02"_unhex);
   EXPECT_OUTCOME_EQ(hamt_.get("agd"), "03"_unhex);
@@ -127,23 +138,23 @@ TEST_F(HamtTest, SetRemoveDoubleCollisionChild) {
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aufx", "02"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("bmvm", "03"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("cnyh", "04"_unhex));
-  EXPECT_TRUE(which<Node::Ptr>(root_->items[0]));
-  auto &child = *boost::get<Node::Ptr>(root_->items[0]);
-  EXPECT_TRUE(which<Node::Ptr>(child.items[0]));
+  EXPECT_TRUE(minItemIs<Node::Ptr>(*root_));
+  auto &child = *boost::get<Node::Ptr>(minItem(*root_));
+  EXPECT_TRUE(minItemIs<Node::Ptr>(child));
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "05"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "06"_unhex));
   EXPECT_EQ(child.items.size(), 3);
 
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("ade"));
-  EXPECT_TRUE(which<Node::Ptr>(child.items[0]));
+  EXPECT_TRUE(minItemIs<Node::Ptr>(child));
   EXPECT_EQ(child.items.size(), 2);
 
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("cnyh"));
   // shard of leaves with key count > kLeafMax does not collapse
-  EXPECT_TRUE(which<Node::Ptr>(root_->items[0]));
+  EXPECT_TRUE(minItemIs<Node::Ptr>(*root_));
   // shard of leaf collapses
-  EXPECT_TRUE(which<Node::Leaf>(child.items[0]));
+  EXPECT_TRUE(minItemIs<Node::Leaf>(child));
   EXPECT_EQ(child.items.size(), 2);
 }
 

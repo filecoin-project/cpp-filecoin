@@ -29,7 +29,7 @@ namespace fc::primitives::ticket {
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const EPostTicket &ticket) noexcept {
+  Stream &operator<<(Stream &&s, const EPostTicket &ticket) {
     return s << (s.list() << ticket.partial << ticket.sector_id
                           << ticket.challenge_index);
   }
@@ -64,7 +64,7 @@ namespace fc::primitives::ticket {
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const EPostProof &epp) noexcept {
+  Stream &operator<<(Stream &&s, const EPostProof &epp) {
     return s << (s.list() << epp.proof << epp.post_rand
                           << epp.candidates);
   }

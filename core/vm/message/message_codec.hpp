@@ -18,7 +18,7 @@ namespace fc::vm::message {
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const UnsignedMessage &m) noexcept {
+  Stream &operator<<(Stream &&s, const UnsignedMessage &m) {
     return s << (s.list() << m.to << m.from << m.nonce << m.value << m.gasPrice
                           << m.gasLimit << m.method << m.params);
   }
@@ -34,7 +34,7 @@ namespace fc::vm::message {
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &s, const SignedMessage &sm) noexcept {
+  Stream &operator<<(Stream &s, const SignedMessage &sm) {
     return s << (s.list() << sm.message << sm.signature);
   }
 
