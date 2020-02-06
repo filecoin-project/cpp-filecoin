@@ -9,4 +9,5 @@ add_library(init_actor
 target_link_libraries(init_actor
     actor
     outcome
+    hamt
     )
