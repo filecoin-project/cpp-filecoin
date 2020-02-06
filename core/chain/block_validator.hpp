@@ -10,6 +10,9 @@
 
 namespace fc::chain::block_validator {
 
+  /**
+   * @class BlockValidator block validator interface
+   */
   class BlockValidator {
    public:
     using BlockHeader = primitives::block::BlockHeader;

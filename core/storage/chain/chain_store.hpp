@@ -8,6 +8,7 @@
 
 #include <map>
 
+#include "chain/block_validator.hpp"
 #include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -16,6 +17,9 @@
 
 namespace fc::storage::chain {
 
+  /**
+   * @brief change type
+   */
   enum class HeadChangeType { REVERT, APPLY, CURRENT };
 
   struct HeadChange {
@@ -31,7 +35,8 @@ namespace fc::storage::chain {
     static outcome::result<ChainStore> create(
         std::shared_ptr<ipfs::BlockService> block_service,
         std::shared_ptr<ipfs::IpfsDatastore> data_store,
-        std::shared_ptr<chain::BlockValidator> block_validator);
+        std::shared_ptr<::fc::chain::block_validator::BlockValidator>
+            block_validator);
 
     outcome::result<void> writeHead(const primitives::tipset::Tipset &tipset);
 
@@ -40,14 +45,24 @@ namespace fc::storage::chain {
      */
     outcome::result<void> load();
 
-    // TODO (yuraz) add notifications
+    /**
+     * @brief loads tipset from store
+     * @param key tipset key
+     */
+    outcome::result<primitives::tipset::Tipset> loadTipset(
+        const primitives::tipset::TipsetKey &key);
+
+    // TODO (yuraz): FIL-151 add notifications
+
+    // TODO(yuraz): FIL-*** implement caching
 
    private:
     std::shared_ptr<ipfs::BlockService> block_service_;
     std::shared_ptr<ipfs::IpfsDatastore> data_store_;
-    std::shared_ptr<chain::BlockValidator> block_validator_
+    std::shared_ptr<::fc::chain::block_validator::BlockValidator>
+        block_validator_;
 
-        primitives::tipset::Tipset *heaviest_tipset_{nullptr};
+    primitives::tipset::Tipset *heaviest_tipset_{nullptr};
     std::map<uint64_t, std::vector<CID>> tipsets_;
   };
 }  // namespace fc::storage::chain
