@@ -2,11 +2,13 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
+
 #include "storage/ipfs/impl/blockservice_impl.hpp"
 
 #include <memory>
 
 #include <gtest/gtest.h>
+#include "common/outcome.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/outcome.hpp"
 
@@ -14,8 +16,8 @@ using fc::CID;
 using fc::common::Buffer;
 using fc::common::getCidOf;
 using fc::storage::ipfs::Block;
-using fc::storage::ipfs::BlockServiceImpl;
 using fc::storage::ipfs::BlockServiceError;
+using fc::storage::ipfs::BlockServiceImpl;
 using fc::storage::ipfs::InMemoryDatastore;
 
 /**
@@ -48,7 +50,7 @@ struct BlockTestImpl : Block {
    * implementation: it can be raw bytes, or CBOR/Protobuf serialized value
    * @return Block's data
    */
-  const Buffer &getContent() const override {
+  const Buffer &getRawBytes() const override {
     return this->content;
   }
 };
@@ -64,7 +66,6 @@ class BlockServiceTest : public ::testing::Test {
   BlockServiceTest() : block_service_(std::make_shared<InMemoryDatastore>()) {}
 
  protected:
-
   BlockServiceImpl block_service_; /**< Testing target */
 
   BlockTestImpl sample_block_{
@@ -74,14 +75,16 @@ class BlockServiceTest : public ::testing::Test {
 /**
  * @given Sample block with pre-defined data
  * @when Adding, checking existence and retrieving block back from BlockStorage
- * @then Add block @and check its existence @and retrieve block back from BlockStorage
+ * @then Add block @and check its existence @and retrieve block back from
+ * BlockStorage
  */
 TEST_F(BlockServiceTest, StoreBlockSuccess) {
   EXPECT_OUTCOME_TRUE_1(block_service_.addBlock(sample_block_))
   EXPECT_OUTCOME_TRUE(contains, block_service_.has(sample_block_.getCID()))
   ASSERT_TRUE(contains);
-  EXPECT_OUTCOME_TRUE(block_content, block_service_.getBlockContent(sample_block_.getCID()))
-  ASSERT_EQ(block_content, sample_block_.getContent());
+  EXPECT_OUTCOME_TRUE(block_content,
+                      block_service_.getBlockContent(sample_block_.getCID()))
+  ASSERT_EQ(block_content, sample_block_.getRawBytes());
 }
 
 /**
@@ -101,10 +104,11 @@ TEST_F(BlockServiceTest, CheckExistenceSuccess) {
  */
 TEST_F(BlockServiceTest, RemoveBlockSuccess) {
   EXPECT_OUTCOME_TRUE_1(block_service_.addBlock(sample_block_))
-  EXPECT_OUTCOME_TRUE(block_status, block_service_.has(sample_block_.getCID()))
+  const auto &cid = sample_block_.getCID();
+  EXPECT_OUTCOME_TRUE(block_status, block_service_.has(cid))
   ASSERT_TRUE(block_status);
-  EXPECT_OUTCOME_TRUE_1(block_service_.removeBlock(sample_block_.getCID()))
-  EXPECT_OUTCOME_TRUE(removed_status, block_service_.has(sample_block_.getCID()))
+  EXPECT_OUTCOME_TRUE_1(block_service_.removeBlock(cid))
+  EXPECT_OUTCOME_TRUE(removed_status, block_service_.has(cid))
   ASSERT_FALSE(removed_status);
 }
 
@@ -115,6 +119,7 @@ TEST_F(BlockServiceTest, RemoveBlockSuccess) {
  */
 TEST_F(BlockServiceTest, GetInvalidCidFailure) {
   BlockServiceError expected_error = BlockServiceError::CID_NOT_FOUND;
-  EXPECT_OUTCOME_FALSE(result, block_service_.getBlockContent(sample_block_.getCID()))
+  const auto &cid = sample_block_.getCID();
+  EXPECT_OUTCOME_FALSE(result, block_service_.getBlockContent(cid))
   ASSERT_EQ(result.value(), static_cast<int>(expected_error));
 }
