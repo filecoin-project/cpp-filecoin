@@ -4,3 +4,4 @@
 #
 
 add_subdirectory(multisig)
+add_subdirectory(storage_power)

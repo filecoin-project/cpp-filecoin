@@ -13,6 +13,7 @@
 using namespace fc::vm;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
+using fc::vm::actor::builtin::storage_power::SpaMethods;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MockRuntime;
 
@@ -44,7 +45,7 @@ TEST(CronActorTest, Correct) {
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_CALL(runtime,
               send(actor::kStoragePowerAddress,
-                   MethodNumber{actor::SpaMethods::CHECK_PROOF_SUBMISSIONS},
+                   MethodNumber{SpaMethods::CHECK_PROOF_SUBMISSIONS},
                    MethodParams{},
                    actor::BigInt(0)))
       .WillOnce(testing::Return(fc::outcome::success()));

@@ -12,7 +12,7 @@
 #include "vm/actor/util.hpp"
 #include "vm/indices/indices.hpp"
 
-namespace fc::vm::actor {
+namespace fc::vm::actor::builtin::storage_power {
 
   using indices::Indices;
 
@@ -190,6 +190,6 @@ namespace fc::vm::actor {
 
     int num_miners_meeting_min_power;
   };
-}  // namespace fc::vm::actor
+}  // namespace fc::vm::actor::storage_power
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP

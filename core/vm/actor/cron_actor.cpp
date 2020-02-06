@@ -11,7 +11,8 @@ namespace fc::vm::actor::cron_actor {
    * EpochTick
    */
   std::vector<CronTableEntry> entries = {
-      {kStoragePowerAddress, {SpaMethods::CHECK_PROOF_SUBMISSIONS}}};
+      {kStoragePowerAddress,
+       {builtin::storage_power::SpaMethods::CHECK_PROOF_SUBMISSIONS}}};
 
   outcome::result<InvocationOutput> epochTick(const Actor &actor,
                                               Runtime &runtime,
