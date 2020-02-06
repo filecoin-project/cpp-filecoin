@@ -6,22 +6,31 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_CHAIN_CHAIN_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_CHAIN_CHAIN_HPP
 
-#include "crypto/randomness/randomness_types.hpp"
-#include "primitives/tipset/tipset.hpp"
 #include "common/outcome.hpp"
+#include "crypto/randomness/randomness_types.hpp"
+#include "primitives/chain_epoch.hpp"
+#include "primitives/tipset/tipset.hpp"
 
 namespace fc::primitives::chain {
   struct Chain {
     tipset::Tipset head_tipset;
 
     outcome::result<std::reference_wrapper<const tipset::Tipset>>
-    getTipsetAtEpoch(crypto::randomness::ChainEpoch epoch) const;
+    getTipsetAtEpoch(ChainEpoch epoch) const;
 
-    outcome::result<crypto::randomness::Randomness>
-    getRandomnessAtEpoch(crypto::randomness::ChainEpoch epoch) const;
+    outcome::result<crypto::randomness::Randomness> getRandomnessAtEpoch(
+        ChainEpoch epoch) const;
 
-    crypto::randomness::ChainEpoch getLatestCheckpoint() const;
+    ChainEpoch getLatestCheckpoint() const;
   };
+
+  using Checkpoint = block::BlockHeader *;
+
+  using SoftCheckpoint = Checkpoint;
+
+  using TrustedCheckpoint = Checkpoint;
+
+
 
 }  // namespace fc::primitives::chain
 
