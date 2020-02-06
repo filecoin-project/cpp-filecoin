@@ -55,7 +55,7 @@ namespace fc::vm::actor::builtin::multisig {
   };
 
   /**
-   * State of Mutisig Actor instance
+   * State of Multisig Actor instance
    */
   struct MultiSignatureActorState {
     std::vector<Address> signers;

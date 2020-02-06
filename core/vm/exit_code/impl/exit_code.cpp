@@ -40,15 +40,18 @@ namespace fc::vm {
       case E::ACCOUNT_ACTOR_RESOLVE_NOT_ACCOUNT_ACTOR:
         return 1;
 
-      case E::MULTISIG_ACTOR_NOT_SIGNER:
-      case E::MULTISIG_ACTOR_TRANSACTION_NOT_FOUND:
       case E::MULTISIG_ACTOR_WRONG_CALLER:
-      case E::MULTISIG_ACTOR_ALREADY_SIGNED:
-      case E::MULTISIG_ACTOR_FUNDS_LOCKED:
-      case E::MULTISIG_ACTOR_INSUFFICIENT_FUND:
-      case E::MULTISIG_ACTOR_WRONG_THRESHOLD:
-      case E::MULTISIG_ACTOR_ALREADY_ADDED:
         return 1;
+      case E::MULTISIG_ACTOR_ILLEGAL_ARGUMENT:
+        return 16;  // ErrIllegalArgument in actor-specs
+      case E::MULTISIG_ACTOR_NOT_FOUND:
+        return 17;  // ErrNotFound in actor-specs
+      case E::MULTISIG_ACTOR_FORBIDDEN:
+        return 18;  // ErrForbidden in actor-specs
+      case E::MULTISIG_ACTOR_INSUFFICIENT_FUNDS:
+        return 19;  // ErrInsufficientFunds in actor-specs
+      case E::MULTISIG_ACTOR_ILLEGAL_STATE:
+        return 20;  // ErrIllegalState in actor-specs
 
       // TODO(turuslan): FIL-128 StoragePowerActor
       case E::STORAGE_POWER_ACTOR_OUT_OF_BOUND:

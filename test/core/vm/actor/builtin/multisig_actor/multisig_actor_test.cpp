@@ -130,7 +130,7 @@ TEST_F(MultisigActorTest, ConstructWrongThreshold) {
       .WillOnce(testing::Return(kInitAddress));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
+      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
       MultiSigActor::construct(actor, runtime, encoded_params));
 }
 
@@ -201,7 +201,7 @@ TEST_F(MultisigActorTest, ProposetWrongSigner) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_SIGNER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
                        MultiSigActor::propose(actor, runtime, encoded_params));
 }
 
@@ -233,7 +233,7 @@ TEST_F(MultisigActorTest, ProposeSendInsufficientFunds) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUND,
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
                        MultiSigActor::propose(actor, runtime, encoded_params));
 }
 
@@ -269,7 +269,7 @@ TEST_F(MultisigActorTest, ProposeSendFundsLocked) {
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentEpoch()).WillOnce(testing::Return(epoch));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FUNDS_LOCKED,
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
                        MultiSigActor::propose(actor, runtime, encoded_params));
 }
 
@@ -306,7 +306,7 @@ TEST_F(MultisigActorTest, ProposeSendFundsLockedStartEpoch) {
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentEpoch()).WillOnce(testing::Return(epoch));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FUNDS_LOCKED,
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
                        MultiSigActor::propose(actor, runtime, encoded_params));
 }
 
@@ -456,7 +456,7 @@ TEST_F(MultisigActorTest, ApproveWrongSigner) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_SIGNER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
                        MultiSigActor::approve(actor, runtime, encoded_params));
 }
 
@@ -484,7 +484,7 @@ TEST_F(MultisigActorTest, ApproveWrongTxNumber) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_TRANSACTION_NOT_FOUND,
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
                        MultiSigActor::approve(actor, runtime, encoded_params));
 }
 
@@ -525,7 +525,7 @@ TEST_F(MultisigActorTest, ApproveAlreadySigned) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ALREADY_SIGNED,
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_STATE,
                        MultiSigActor::approve(actor, runtime, encoded_params));
 }
 
@@ -631,7 +631,7 @@ TEST_F(MultisigActorTest, CancelWrongSigner) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_SIGNER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
                        MultiSigActor::cancel(actor, runtime, encoded_params));
 }
 
@@ -659,7 +659,7 @@ TEST_F(MultisigActorTest, CancelWrongTxNumber) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_TRANSACTION_NOT_FOUND,
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
                        MultiSigActor::cancel(actor, runtime, encoded_params));
 }
 
@@ -700,7 +700,7 @@ TEST_F(MultisigActorTest, CancelNotCreator) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
                        MultiSigActor::cancel(actor, runtime, encoded_params));
 }
 
@@ -805,7 +805,7 @@ TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_ALREADY_ADDED,
+      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
       MultiSigActor::addSigner(actor, runtime, encoded_params));
 }
 
@@ -940,7 +940,7 @@ TEST_F(MultisigActorTest, RemoveSignerNotAdded) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_NOT_SIGNER,
+      VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
       MultiSigActor::removeSigner(actor, runtime, encoded_params));
 }
 
@@ -1058,7 +1058,7 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdZero) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
+      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
       MultiSigActor::removeSigner(actor, runtime, encoded_params));
 }
 
@@ -1088,7 +1088,7 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdError) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
+      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
       MultiSigActor::removeSigner(actor, runtime, encoded_params));
 }
 
@@ -1136,7 +1136,7 @@ TEST_F(MultisigActorTest, SwapSignerNotAdded) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_NOT_SIGNER,
+      VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
       MultiSigActor::swapSigner(actor, runtime, encoded_params));
 }
 
@@ -1166,7 +1166,7 @@ TEST_F(MultisigActorTest, SwapSignerAlreadyAdded) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_ALREADY_ADDED,
+      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
       MultiSigActor::swapSigner(actor, runtime, encoded_params));
 }
 
@@ -1258,7 +1258,7 @@ TEST_F(MultisigActorTest, ChangeThresholdZero) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
+      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
       MultiSigActor::changeThreshold(actor, runtime, encoded_params));
 }
 
@@ -1288,7 +1288,7 @@ TEST_F(MultisigActorTest, ChangeThresholdMoreThanSigners) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
+      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
       MultiSigActor::changeThreshold(actor, runtime, encoded_params));
 }
 
