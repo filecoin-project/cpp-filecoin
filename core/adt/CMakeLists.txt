@@ -6,6 +6,7 @@
 add_custom_target(adt
     DEPENDS
     array
+    multimap
     )
 
 add_library(array
@@ -13,4 +14,12 @@ add_library(array
     )
 target_link_libraries(array
     amt
+    )
+
+add_library(multimap
+    impl/multimap.cpp
+    )
+target_link_libraries(multimap
+    array
+    hamt
     )
