@@ -30,7 +30,7 @@ jobs:
         include:
           - os: macOS-latest
             env:
-              CFLAGS: -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
+              CFLAGS: "-I /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
     steps:
     - uses: actions/checkout@v1
       name: checkout
@@ -43,7 +43,7 @@ jobs:
       run: |
         set -e
         if [ "$RUNNER_OS" = "macOS" ]; then
-          brew install ninja pkg-config cctools
+          brew install ninja pkg-config
         else
           sudo apt-get update || true
           sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers
