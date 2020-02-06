@@ -43,11 +43,12 @@ jobs:
       run: |
         set -e
         if [ "$RUNNER_OS" = "macOS" ]; then
+          open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
           brew install ninja
           brew install pkg-config
         else
           sudo apt-get update || true
-          sudo apt-get install -y ninja-build python-setuptools pkg-config
+          sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers
         fi
 
         pip3 -V || sudo python3 -m pip install --upgrade pip
