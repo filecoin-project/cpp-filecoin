@@ -13,29 +13,10 @@ target_link_libraries(actor_test
     hexutil
     )
 
-addtest(init_actor_test
-    init_actor_test.cpp
-    )
-target_link_libraries(init_actor_test
-    actor
-    hexutil
-    ipfs_datastore_in_memory
-    runtime
-    state_tree
-    )
-
 addtest(invoker_test
     invoker_test.cpp
     )
 target_link_libraries(invoker_test
     actor
-    )
-
-addtest(account_actor_test
-    account_actor_test.cpp
-    )
-target_link_libraries(account_actor_test
-    actor
-    state_tree
-    ipfs_datastore_in_memory
+    hamt
     )

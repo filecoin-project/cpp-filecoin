@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "multisig_actor.hpp"
+#include "vm/actor/builtin/multisig/multisig_actor.hpp"
 
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"

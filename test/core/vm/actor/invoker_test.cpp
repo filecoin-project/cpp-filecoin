@@ -36,10 +36,8 @@ TEST(InvokerTest, InvokeCron) {
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_OUTCOME_ERROR(
       VMExitCode::CRON_ACTOR_WRONG_CALL,
-      invoker.invoke({kCronCodeCid},
-                     runtime,
-                     builtin::cron_actor::kEpochTickMethodNumber,
-                     {}));
+      invoker.invoke(
+          {kCronCodeCid}, runtime, builtin::cron::kEpochTickMethodNumber, {}));
 }
 
 /// decodeActorParams returns error or decoded params

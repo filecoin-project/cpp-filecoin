@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/cron/cron_actor.hpp"
 
-namespace fc::vm::actor::builtin::cron_actor {
+namespace fc::vm::actor::builtin::cron {
   /**
    * Entries is a set of actors (and corresponding methods) to call during
    * EpochTick

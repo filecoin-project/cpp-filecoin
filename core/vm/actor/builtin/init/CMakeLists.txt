@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(runtime_test
-    runtime_test.cpp
+add_library(init_actor
+    init_actor.cpp
     )
-target_link_libraries(runtime_test
-    runtime
-    hamt
+target_link_libraries(init_actor
+    actor
+    outcome
     )

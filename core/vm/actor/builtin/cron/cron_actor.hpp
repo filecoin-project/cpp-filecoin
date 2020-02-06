@@ -9,7 +9,7 @@
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor.hpp"
 
-namespace fc::vm::actor::builtin::cron_actor {
+namespace fc::vm::actor::builtin::cron {
 
   struct CronTableEntry {
     Address to_addr;

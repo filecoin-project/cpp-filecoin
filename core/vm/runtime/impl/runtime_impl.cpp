@@ -6,7 +6,7 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 
 #include "codec/cbor/cbor.hpp"
-#include "vm/actor/account_actor.hpp"
+#include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/message/message_codec.hpp"
 #include "vm/runtime/gas_cost.hpp"
 #include "vm/runtime/impl/actor_state_handle_impl.hpp"
@@ -24,6 +24,7 @@ using fc::vm::actor::Actor;
 using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::CodeId;
 using fc::vm::actor::MethodNumber;
+using fc::vm::actor::builtin::account::AccountActor;
 using fc::vm::indices::Indices;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::ActorStateHandle;
@@ -235,7 +236,7 @@ fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
     if (actor.error() != HamtError::NOT_FOUND) {
       return actor.error();
     }
-    return fc::vm::actor::AccountActor::create(state_tree_, address);
+    return AccountActor::create(state_tree_, address);
   }
   return actor;
 }
