@@ -9,7 +9,7 @@
 #include "testutil/cbor.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/cron_actor.hpp"
+#include "vm/actor/builtin/cron/cron_actor.hpp"
 
 using fc::vm::VMExitCode;
 using fc::vm::actor::MethodParams;
@@ -36,8 +36,10 @@ TEST(InvokerTest, InvokeCron) {
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_OUTCOME_ERROR(
       VMExitCode::CRON_ACTOR_WRONG_CALL,
-      invoker.invoke(
-          {kCronCodeCid}, runtime, cron_actor::kEpochTickMethodNumber, {}));
+      invoker.invoke({kCronCodeCid},
+                     runtime,
+                     builtin::cron_actor::kEpochTickMethodNumber,
+                     {}));
 }
 
 /// decodeActorParams returns error or decoded params

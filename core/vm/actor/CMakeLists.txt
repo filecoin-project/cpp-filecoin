@@ -9,7 +9,6 @@ add_library(actor
     account_actor.cpp
     actor.cpp
     init_actor.cpp
-    cron_actor.cpp
     impl/invoker_impl.cpp
     )
 target_link_libraries(actor
@@ -19,4 +18,5 @@ target_link_libraries(actor
     hamt
     multisig_actor
     storage_power_actor
+    cron_actor
     )

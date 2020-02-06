@@ -24,14 +24,6 @@ target_link_libraries(init_actor_test
     state_tree
     )
 
-addtest(cron_actor_test
-    cron_actor_test.cpp
-    )
-target_link_libraries(cron_actor_test
-    actor
-    hexutil
-    )
-
 addtest(invoker_test
     invoker_test.cpp
     )

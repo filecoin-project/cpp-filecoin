@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/cron_actor.hpp"
+#include "vm/actor/builtin/cron/cron_actor.hpp"
 
-namespace fc::vm::actor::cron_actor {
+namespace fc::vm::actor::builtin::cron_actor {
   /**
    * Entries is a set of actors (and corresponding methods) to call during
    * EpochTick
    */
   std::vector<CronTableEntry> entries = {
       {kStoragePowerAddress,
-       {builtin::storage_power::SpaMethods::CHECK_PROOF_SUBMISSIONS}}};
+       {storage_power::SpaMethods::CHECK_PROOF_SUBMISSIONS}}};
 
   outcome::result<InvocationOutput> epochTick(const Actor &actor,
                                               Runtime &runtime,
@@ -30,4 +30,4 @@ namespace fc::vm::actor::cron_actor {
   const ActorExports exports = {
       {kEpochTickMethodNumber, ActorMethod(epochTick)},
   };
-}  // namespace fc::vm::actor::cron_actor
+}  // namespace fc::vm::actor::builtin::cron
