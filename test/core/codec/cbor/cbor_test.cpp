@@ -89,6 +89,18 @@ TEST(Cbor, Vector) {
   EXPECT_OUTCOME_EQ(decode<std::vector<int>>("83020509"_unhex), a);
 }
 
+/// Map CBOR encoding and decoding
+TEST(Cbor, Map) {
+  std::map<std::string, int> m;
+  m["three"] = 3;
+  m["one"] = 1;
+  m["two"] = 2;
+  EXPECT_OUTCOME_EQ(encode(m), "A3636F6E65016374776F0265746872656503"_unhex);
+  EXPECT_OUTCOME_EQ((decode<std::map<std::string, int>>(
+                        "A3636F6E65016374776F0265746872656503"_unhex)),
+                    m);
+}
+
 /**
  * @given Integers and bool
  * @when Encode
