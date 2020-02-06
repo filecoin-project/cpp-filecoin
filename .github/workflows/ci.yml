@@ -44,7 +44,7 @@ jobs:
         set -e
         if [ "$RUNNER_OS" = "macOS" ]; then
           brew install ninja
-          brew install pkgconfig
+          brew install pkg-config
         else
           sudo apt-get update || true
           sudo apt-get install pkg-config
