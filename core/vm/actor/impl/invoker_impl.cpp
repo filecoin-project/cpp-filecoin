@@ -5,6 +5,7 @@
 
 #include "vm/actor/impl/invoker_impl.hpp"
 
+#include "vm/actor/builtin/multisig/multisig_actor.hpp"
 #include "vm/actor/cron_actor.hpp"
 #include "vm/actor/init_actor.hpp"
 
@@ -15,6 +16,7 @@ namespace fc::vm::actor {
   InvokerImpl::InvokerImpl() {
     builtin_[actor::kCronCodeCid] = actor::cron_actor::exports;
     builtin_[actor::kInitCodeCid] = actor::init_actor::exports;
+    builtin_[actor::kMultisigCodeCid] = actor::builtin::multisig::exports;
   }
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(

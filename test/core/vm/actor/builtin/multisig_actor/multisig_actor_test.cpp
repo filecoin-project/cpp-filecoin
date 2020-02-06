@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/multisig_actor/multisig_actor.hpp"
+#include "vm/actor/builtin/multisig/multisig_actor.hpp"
 
 #include <gtest/gtest.h>
 #include "primitives/address/address.hpp"
@@ -28,17 +28,17 @@ using fc::vm::actor::kCronAddress;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
-using fc::vm::actor::builtin::AddSignerParameters;
-using fc::vm::actor::builtin::ChangeThresholdParameters;
-using fc::vm::actor::builtin::ConstructParameteres;
-using fc::vm::actor::builtin::MultiSigActor;
-using fc::vm::actor::builtin::MultiSignatureActorState;
-using fc::vm::actor::builtin::MultiSignatureTransaction;
-using fc::vm::actor::builtin::ProposeParameters;
-using fc::vm::actor::builtin::RemoveSignerParameters;
-using fc::vm::actor::builtin::SwapSignerParameters;
-using fc::vm::actor::builtin::TransactionNumber;
-using fc::vm::actor::builtin::TransactionNumberParameters;
+using fc::vm::actor::builtin::multisig::AddSignerParameters;
+using fc::vm::actor::builtin::multisig::ChangeThresholdParameters;
+using fc::vm::actor::builtin::multisig::ConstructParameteres;
+using fc::vm::actor::builtin::multisig::MultiSigActor;
+using fc::vm::actor::builtin::multisig::MultiSignatureActorState;
+using fc::vm::actor::builtin::multisig::MultiSignatureTransaction;
+using fc::vm::actor::builtin::multisig::ProposeParameters;
+using fc::vm::actor::builtin::multisig::RemoveSignerParameters;
+using fc::vm::actor::builtin::multisig::SwapSignerParameters;
+using fc::vm::actor::builtin::multisig::TransactionNumber;
+using fc::vm::actor::builtin::multisig::TransactionNumberParameters;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::MockRuntime;
 using ::testing::_;
@@ -123,14 +123,15 @@ TEST_F(MultisigActorTest, ConstructWrongParams) {
 TEST_F(MultisigActorTest, ConstructWrongThreshold) {
   std::vector<Address> signers{address};
   size_t threshold{5};
-  ConstructParameteres params{signers, threshold};
+  ConstructParameteres params{signers, threshold, default_unlock_duration};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
-                       MultiSigActor::construct(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
+      MultiSigActor::construct(actor, runtime, encoded_params));
 }
 
 /**
@@ -1252,8 +1253,7 @@ TEST_F(MultisigActorTest, ChangeThresholdZero) {
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
-  EXPECT_CALL(runtime, getIpfsDatastore())
-      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
@@ -1261,7 +1261,6 @@ TEST_F(MultisigActorTest, ChangeThresholdZero) {
       VMExitCode::MULTISIG_ACTOR_WRONG_THRESHOLD,
       MultiSigActor::changeThreshold(actor, runtime, encoded_params));
 }
-
 
 /**
  * @given Runtime and multisig actor
@@ -1284,8 +1283,7 @@ TEST_F(MultisigActorTest, ChangeThresholdMoreThanSigners) {
 
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
   EXPECT_CALL(runtime, getCurrentReceiver()).WillOnce(testing::Return(address));
-  EXPECT_CALL(runtime, getIpfsDatastore())
-      .WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 

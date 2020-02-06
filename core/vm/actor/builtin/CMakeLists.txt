@@ -3,4 +3,4 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(multisig_actor)
+add_subdirectory(multisig)

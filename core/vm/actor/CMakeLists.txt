@@ -19,4 +19,5 @@ target_link_libraries(actor
     exit_code
     hamt
     power_table
+    multisig_actor
     )

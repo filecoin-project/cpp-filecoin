@@ -12,9 +12,10 @@
 #include "primitives/chain_epoch.hpp"
 #include "primitives/cid/cid.hpp"
 #include "vm/actor/actor.hpp"
+#include "vm/actor/actor_method.hpp"
 #include "vm/runtime/runtime.hpp"
 
-namespace fc::vm::actor::builtin {
+namespace fc::vm::actor::builtin::multisig {
 
   using primitives::EpochDuration;
   using primitives::UBigInt;
@@ -23,6 +24,14 @@ namespace fc::vm::actor::builtin {
   using runtime::Runtime;
   using TransactionNumber = size_t;
   using ChainEpoch = BigInt;
+
+  constexpr MethodNumber kProposeMethodNumber{2};
+  constexpr MethodNumber kApproveMethodNumber{3};
+  constexpr MethodNumber kCancelMethodNumber{4};
+  constexpr MethodNumber kAddSignerMethodNumber{5};
+  constexpr MethodNumber kRemoveSignerMethodNumber{6};
+  constexpr MethodNumber kSwapSignerMethodNumber{7};
+  constexpr MethodNumber kChangeThresholdMethodNumber{7};
 
   /**
    * Multisignaure pending transaction
@@ -134,7 +143,7 @@ namespace fc::vm::actor::builtin {
   struct ProposeParameters {
     Address to;
     BigInt value;
-    MethodNumber method;
+    MethodNumber method{};
     MethodParams params;
   };
 
@@ -206,6 +215,9 @@ namespace fc::vm::actor::builtin {
     static outcome::result<InvocationOutput> changeThreshold(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
   };
+
+  /** Exported Multisig Actor methods to invoker */
+  extern const ActorExports exports;
 
   /**
    * CBOR serialization of MultiSignatureTransaction
@@ -410,6 +422,6 @@ namespace fc::vm::actor::builtin {
     return s;
   }
 
-}  // namespace fc::vm::actor::builtin
+}  // namespace fc::vm::actor::builtin::multisig
 
 #endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_MULTISIG_ACTOR_HPP

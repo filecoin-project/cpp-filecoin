@@ -12,11 +12,20 @@
 using fc::common::Buffer;
 using fc::primitives::BigInt;
 using fc::vm::VMExitCode;
+using fc::vm::actor::ActorExports;
+using fc::vm::actor::ActorMethod;
 using fc::vm::actor::decodeActorParams;
 using fc::vm::actor::kInitAddress;
-using fc::vm::actor::builtin::MultiSigActor;
-using fc::vm::actor::builtin::MultiSignatureActorState;
-using fc::vm::actor::builtin::MultiSignatureTransaction;
+using fc::vm::actor::builtin::multisig::kAddSignerMethodNumber;
+using fc::vm::actor::builtin::multisig::kApproveMethodNumber;
+using fc::vm::actor::builtin::multisig::kCancelMethodNumber;
+using fc::vm::actor::builtin::multisig::kChangeThresholdMethodNumber;
+using fc::vm::actor::builtin::multisig::kProposeMethodNumber;
+using fc::vm::actor::builtin::multisig::kRemoveSignerMethodNumber;
+using fc::vm::actor::builtin::multisig::kSwapSignerMethodNumber;
+using fc::vm::actor::builtin::multisig::MultiSigActor;
+using fc::vm::actor::builtin::multisig::MultiSignatureActorState;
+using fc::vm::actor::builtin::multisig::MultiSignatureTransaction;
 using fc::vm::runtime::InvocationOutput;
 
 bool MultiSignatureTransaction::operator==(
@@ -347,3 +356,13 @@ fc::outcome::result<InvocationOutput> MultiSigActor::changeThreshold(
 
   return fc::outcome::success();
 }
+
+const ActorExports fc::vm::actor::builtin::multisig::exports = {
+    {kProposeMethodNumber, ActorMethod(MultiSigActor::propose)},
+    {kApproveMethodNumber, ActorMethod(MultiSigActor::approve)},
+    {kCancelMethodNumber, ActorMethod(MultiSigActor::cancel)},
+    {kAddSignerMethodNumber, ActorMethod(MultiSigActor::addSigner)},
+    {kRemoveSignerMethodNumber, ActorMethod(MultiSigActor::removeSigner)},
+    {kSwapSignerMethodNumber, ActorMethod(MultiSigActor::swapSigner)},
+    {kChangeThresholdMethodNumber,
+     ActorMethod(MultiSigActor::changeThreshold)}};

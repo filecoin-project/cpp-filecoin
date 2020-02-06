@@ -28,7 +28,7 @@ namespace fc::vm::actor::cron_actor {
                                               Runtime &runtime,
                                               const MethodParams &params);
 
-  extern ActorExports exports;
+  extern const ActorExports exports;
 
 }  // namespace fc::vm::actor::cron_actor
 
