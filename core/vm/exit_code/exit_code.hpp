@@ -27,6 +27,13 @@ namespace fc::vm {
     ACCOUNT_ACTOR_RESOLVE_NOT_FOUND,
     ACCOUNT_ACTOR_RESOLVE_NOT_ACCOUNT_ACTOR,
 
+    MULTISIG_ACTOR_WRONG_CALLER,
+    MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+    MULTISIG_ACTOR_NOT_FOUND,
+    MULTISIG_ACTOR_FORBIDDEN,
+    MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
+    MULTISIG_ACTOR_ILLEGAL_STATE,
+
     STORAGE_POWER_ACTOR_OUT_OF_BOUND,
     STORAGE_POWER_ACTOR_ALREADY_EXISTS,
 
@@ -95,6 +102,7 @@ namespace fc::vm::exit_code {
 
     /**
      * Represents a failure to apply a message, as it did not carry sufficient
+     * funds
      */
     kInsufficientFundsSystem,
 

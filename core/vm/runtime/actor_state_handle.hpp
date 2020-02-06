@@ -12,7 +12,9 @@ namespace fc::vm::runtime {
 
   using actor::ActorSubstateCID;
 
-  // Interface
+  /**
+   * Provides a handle for the actor's state object.
+   */
   class ActorStateHandle {
    public:
     virtual ~ActorStateHandle() = default;

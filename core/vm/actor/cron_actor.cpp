@@ -26,7 +26,7 @@ namespace fc::vm::actor::cron_actor {
     return outcome::success();
   }
 
-  ActorExports exports = {
+  const ActorExports exports = {
       {kEpochTickMethodNumber, ActorMethod(epochTick)},
   };
 }  // namespace fc::vm::actor::cron_actor

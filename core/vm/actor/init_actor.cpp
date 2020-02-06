@@ -52,5 +52,5 @@ namespace fc::vm::actor::init_actor {
     return InvocationOutput{Buffer{primitives::address::encode(id_address)}};
   }
 
-  ActorExports exports{{kExecMethodNumber, ActorMethod(exec)}};
+  const ActorExports exports{{kExecMethodNumber, ActorMethod(exec)}};
 }  // namespace fc::vm::actor::init_actor

@@ -48,7 +48,7 @@ namespace fc::vm::actor::init_actor {
                                          Runtime &runtime,
                                          const MethodParams &params);
 
-  extern ActorExports exports;
+  extern const ActorExports exports;
 
   template <class Stream,
             typename = std::enable_if_t<
