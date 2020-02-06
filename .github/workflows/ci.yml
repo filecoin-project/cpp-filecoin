@@ -46,7 +46,7 @@ jobs:
           brew install ninja pkg-config
         else
           sudo apt-get update || true
-          sudo apt-get install -y ninja-build python-setuptools pkg-config
+          sudo apt-get install -y ninja-build python-setuptools pkg-config opencl-headers
         fi
 
         pip3 -V || sudo python3 -m pip install --upgrade pip
