@@ -30,7 +30,7 @@ jobs:
         include:
           - os: macOS-latest
             env:
-              CFLAGS: "-I /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+              CFLAGS: -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
     steps:
     - uses: actions/checkout@v1
       name: checkout
