@@ -41,14 +41,14 @@ namespace fc::vm::actor {
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const MethodNumber &method) noexcept {
+  Stream &operator<<(Stream &&s, const MethodNumber &method) {
     return s << method.method_number;
   }
 
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, MethodNumber &method) noexcept {
+  Stream &operator>>(Stream &&s, MethodNumber &method) {
     return s >> method.method_number;
   }
 

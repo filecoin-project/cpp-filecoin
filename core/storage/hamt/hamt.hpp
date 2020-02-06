@@ -32,18 +32,19 @@ namespace fc::storage::hamt {
     using Leaf = std::map<std::string, Value>;
     using Item = boost::variant<CID, Ptr, Leaf>;
 
-    UBigInt bits;
-    std::vector<Item> items;
+    std::map<size_t, Item> items;
   };
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &s, const Node &node) {
     auto l_items = s.list();
+    UBigInt bits;
     for (auto &item : node.items) {
+      bit_set(bits, item.first);
       auto m_item = s.map();
       visit_in_place(
-          item,
+          item.second,
           [&m_item](const CID &cid) { m_item["0"] << cid; },
           [](const Node::Ptr &ptr) { outcome::raise(HamtError::EXPECTED_CID); },
           [&m_item](const Node::Leaf &leaf) {
@@ -57,22 +58,28 @@ namespace fc::storage::hamt {
           });
       l_items << m_item;
     }
-    return s << (s.list() << node.bits << l_items);
+    return s << (s.list() << bits << l_items);
   }
 
   template <class Stream,
             typename = std::enable_if_t<Stream::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &s, Node &node) {
+    node.items.clear();
     auto l_node = s.list();
-    l_node >> node.bits;
+    UBigInt bits;
+    l_node >> bits;
     auto n_items = l_node.listLength();
     auto l_items = l_node.list();
+    size_t j = 0;
     for (size_t i = 0; i < n_items; ++i) {
+      while (!bit_test(bits, j)) {
+        ++j;
+      }
       auto m_item = l_items.map();
       if (m_item.find("0") != m_item.end()) {
         CID cid;
         m_item.at("0") >> cid;
-        node.items.emplace_back(cid);
+        node.items[j] = std::move(cid);
       } else {
         auto s_leaf = m_item.at("1");
         auto n_leaf = s_leaf.listLength();
@@ -84,8 +91,9 @@ namespace fc::storage::hamt {
           l_pair >> key;
           leaf.emplace(key, l_pair.raw());
         }
-        node.items.emplace_back(leaf);
+        node.items[j] = std::move(leaf);
       }
+      ++j;
     }
     return s;
   }
