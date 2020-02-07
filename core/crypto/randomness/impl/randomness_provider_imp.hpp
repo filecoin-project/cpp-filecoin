@@ -26,7 +26,14 @@ namespace fc::crypto::randomness {
                   size_t limit) override;
 
    private:
-    Randomness deriveRandomnessInternal(DomainSeparationTag tag,
+    /**
+     * Internal implementation of random function
+     * @param tag - as uint64 - used for seed
+     * @param s - used for seed
+     * @param index - chain epoch as int64 - used for seed
+     * @return Randomness
+     */
+    Randomness deriveRandomnessInternal(uint64_t tag,
                                         Serialization s,
                                         int64_t index);
   };

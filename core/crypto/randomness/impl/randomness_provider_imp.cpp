@@ -19,16 +19,17 @@ namespace fc::crypto::randomness {
                                                       Serialization s,
                                                       const ChainEpoch &index) {
     return deriveRandomnessInternal(
-        tag, std::move(s), index.convert_to<int64_t>());
+        static_cast<uint64_t>(tag), std::move(s), index.convert_to<int64_t>());
   }
 
-  Randomness RandomnessProviderImpl::deriveRandomnessInternal(
-      DomainSeparationTag tag, Serialization s, int64_t index) {
+  Randomness RandomnessProviderImpl::deriveRandomnessInternal(uint64_t tag,
+                                                              Serialization s,
+                                                              int64_t index) {
     common::Buffer value{};
     const size_t bytes_required =
         sizeof(DomainSeparationTag) + sizeof(ChainEpoch) + s.size();
     value.reserve(bytes_required);
-    common::encodeInteger(static_cast<size_t>(tag), value);
+    common::encodeInteger(tag, value);
     common::encodeInteger(index, value);
     value.put(s);
     auto hash = libp2p::crypto::sha256(value);
