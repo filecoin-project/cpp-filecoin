@@ -78,7 +78,7 @@ class MultisigActorTest : public ::testing::Test {
   size_t default_threshold{1};
   TransactionNumber default_next_transaction_id{1};
   BigInt default_initial_balance{0};
-  BigInt default_start_epoch{0};
+  ChainEpoch default_start_epoch{0};
   EpochDuration default_unlock_duration{0};
   std::vector<MultiSignatureTransaction> default_pending_transactions{};
 };
@@ -251,7 +251,7 @@ TEST_F(MultisigActorTest, ProposeSendFundsLocked) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   actor.code = kAccountCodeCid;
   TransactionNumber tx_number{13};
-  BigInt start_epoch{42};
+  ChainEpoch start_epoch{42};
   ChainEpoch epoch{43};  // < start_epoch + unlock_duration
   EpochDuration unlock_duration{10};
   MultiSignatureActorState actor_state{std::vector{address},
@@ -288,7 +288,7 @@ TEST_F(MultisigActorTest, ProposeSendFundsLockedStartEpoch) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   actor.code = kAccountCodeCid;
   TransactionNumber tx_number{13};
-  BigInt start_epoch{42};
+  ChainEpoch start_epoch{42};
   ChainEpoch epoch{10};  // < start_epoch
   EpochDuration unlock_duration{10};
   MultiSignatureActorState actor_state{std::vector{address},

@@ -13,85 +13,107 @@
 namespace fc::primitives {
   using boost::multiprecision::cpp_int;
 
-  struct BigInt : cpp_int {
+  struct UBigInt : cpp_int,
+                   boost::totally_ordered<UBigInt, int> {
     using cpp_int::cpp_int;
+
+    inline bool operator==(int other) const {
+      return static_cast<cpp_int>(*this) == other;
+    }
+
+    inline bool operator==(const UBigInt &other) const {
+      return static_cast<cpp_int>(*this) == static_cast<cpp_int>(other);
+    }
+
+    inline bool operator<(int other) const {
+      return static_cast<cpp_int>(*this) < other;
+    }
+
+    inline bool operator<(const UBigInt &other) const {
+      return static_cast<cpp_int>(*this) < static_cast<cpp_int>(other);
+    }
+
+    inline UBigInt operator*(const UBigInt &other) const {
+      return static_cast<cpp_int>(*this) * static_cast<cpp_int>(other);
+    }
+
+    inline UBigInt operator-(const UBigInt &other) const {
+      return static_cast<cpp_int>(*this) - static_cast<cpp_int>(other);
+    }
+
+    inline UBigInt operator-(int other) const {
+      return static_cast<cpp_int>(*this) - other;
+    }
   };
 
-  struct UBigInt : cpp_int {
+  struct BigInt : cpp_int,
+                  boost::totally_ordered<BigInt>,
+                  boost::totally_ordered<BigInt, int>,
+                  boost::arithmetic<BigInt>,
+                  boost::multiplicative<BigInt, unsigned long>,
+                  boost::less_than_comparable<BigInt, UBigInt>,
+                  boost::multipliable<BigInt, UBigInt> {
     using cpp_int::cpp_int;
+
+    inline bool operator==(int other) const {
+      return static_cast<cpp_int>(*this) == other;
+    }
+
+    inline bool operator<(int other) const {
+      return static_cast<cpp_int>(*this) < other;
+    }
+
+    inline bool operator==(const BigInt &other) const {
+      return static_cast<cpp_int>(*this) == static_cast<cpp_int>(other);
+    }
+
+    inline bool operator<(const BigInt &other) const {
+      return static_cast<cpp_int>(*this) < static_cast<cpp_int>(other);
+    }
+
+    inline BigInt operator+=(const BigInt &other) {
+      static_cast<cpp_int *>(this)->operator+=(static_cast<cpp_int>(other));
+      return *this;
+    }
+
+    inline BigInt operator-=(const BigInt &other) {
+      static_cast<cpp_int *>(this)->operator-=(static_cast<cpp_int>(other));
+      return *this;
+    }
+
+    inline BigInt operator*=(const BigInt &other) {
+      static_cast<cpp_int *>(this)->operator*=(static_cast<cpp_int>(other));
+      return *this;
+    }
+
+    inline BigInt operator/=(const BigInt &other) {
+      static_cast<cpp_int *>(this)->operator/=(static_cast<cpp_int>(other));
+      return *this;
+    }
+
+    inline BigInt operator*=(const unsigned long &other) {
+      static_cast<cpp_int *>(this)->operator*=(other);
+      return *this;
+    }
+
+    inline BigInt operator/=(const unsigned long &other) {
+      static_cast<cpp_int *>(this)->operator/=(other);
+      return *this;
+    }
+
+    inline bool operator<(const UBigInt &other) const {
+      return static_cast<cpp_int>(*this) < static_cast<cpp_int>(other);
+    }
+
+    inline bool operator>(const UBigInt &other) const {
+      return static_cast<cpp_int>(*this) > static_cast<cpp_int>(other);
+    }
+
+    inline BigInt operator*=(const UBigInt &other) {
+      static_cast<cpp_int *>(this)->operator*=(static_cast<cpp_int>(other));
+      return *this;
+    }
   };
-
-  static inline BigInt operator*(const BigInt &lhs, const BigInt &rhs) {
-    return static_cast<cpp_int>(lhs) * static_cast<cpp_int>(rhs);
-  }
-
-  static inline BigInt operator*(const unsigned long &lhs, const BigInt &rhs) {
-    return static_cast<cpp_int>(lhs) * static_cast<cpp_int>(rhs);
-  }
-
-  static inline BigInt operator*(const BigInt &rhs, unsigned long long lhs) {
-    return static_cast<cpp_int>(lhs) * static_cast<cpp_int>(rhs);
-  }
-
-  static inline BigInt operator/(const BigInt &lhs, const BigInt &rhs) {
-    return static_cast<cpp_int>(lhs) / static_cast<cpp_int>(rhs);
-  }
-
-  static inline BigInt operator/(const BigInt &lhs, unsigned long long rhs) {
-    return static_cast<cpp_int>(lhs) / static_cast<cpp_int>(rhs);
-  }
-
-  static inline BigInt operator+(const BigInt &lhs, const BigInt &rhs) {
-    return static_cast<cpp_int>(lhs) + static_cast<cpp_int>(rhs);
-  }
-
-  static inline BigInt operator-(const BigInt &lhs, const BigInt &rhs) {
-    return static_cast<cpp_int>(lhs) - static_cast<cpp_int>(rhs);
-  }
-
-  static inline bool operator>=(const BigInt &lhs, const BigInt &rhs) {
-    return static_cast<cpp_int>(lhs) >= static_cast<cpp_int>(rhs);
-  }
-
-  static inline bool operator>(const BigInt &lhs, const BigInt &rhs) {
-    return static_cast<cpp_int>(lhs) > static_cast<cpp_int>(rhs);
-  }
-
-  static inline bool operator<=(const BigInt &lhs, const BigInt &rhs) {
-    return static_cast<cpp_int>(lhs) <= static_cast<cpp_int>(rhs);
-  }
-
-  static inline bool operator<=(const BigInt &lhs, int rhs) {
-    return static_cast<cpp_int>(lhs) <= rhs;
-  }
-
-  static inline bool operator<(const BigInt &lhs, const BigInt &rhs) {
-    return static_cast<cpp_int>(lhs) < static_cast<cpp_int>(rhs);
-  }
-
-  static inline bool operator<(const BigInt &lhs, unsigned long long rhs) {
-    return static_cast<cpp_int>(lhs) < rhs;
-  }
-
-  static inline bool operator<(const BigInt &lhs, int rhs) {
-    return static_cast<cpp_int>(lhs) < rhs;
-  }
-
-  static inline bool operator==(const BigInt &lhs, const BigInt &rhs) {
-    return static_cast<cpp_int>(lhs) == static_cast<cpp_int>(rhs);
-  }
-
-  static inline bool operator==(const BigInt &lhs, int rhs) {
-    return static_cast<cpp_int>(lhs) == rhs;
-  }
-
-  static inline bool operator==(const UBigInt &lhs, const UBigInt &rhs) {
-    return static_cast<cpp_int>(lhs) == static_cast<cpp_int>(rhs);
-  }
-
-  static inline bool operator==(const UBigInt &lhs, int rhs) {
-    return static_cast<cpp_int>(lhs) == static_cast<cpp_int>(rhs);
-  }
 
   template <class Stream,
             class T,
