@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/randomness/impl/randomness_provider_imp.hpp"
+#include "crypto/randomness/impl/randomness_provider_impl.hpp"
 
 #include <gtest/gtest.h>
 

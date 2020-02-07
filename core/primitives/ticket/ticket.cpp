@@ -14,7 +14,7 @@ namespace fc::primitives::ticket {
                                                      int64_t round) {
     common::Buffer buffer{};
     buffer.put(ticket.bytes);
-    common::encodeInteger(round, buffer);
+    common::encodeLebInteger(round, buffer);
     auto &&hash = libp2p::crypto::sha256(buffer);
 
     return Randomness::fromSpan(hash);
