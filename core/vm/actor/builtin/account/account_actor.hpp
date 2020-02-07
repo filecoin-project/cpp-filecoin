@@ -9,7 +9,8 @@
 #include "primitives/address/address_codec.hpp"
 #include "vm/state/state_tree.hpp"
 
-namespace fc::vm::actor {
+namespace fc::vm::actor::builtin::account {
+
   using primitives::address::Address;
   using primitives::address::Protocol;
   using state::StateTree;
@@ -47,6 +48,6 @@ namespace fc::vm::actor {
     static outcome::result<Address> resolveToKeyAddress(
         const std::shared_ptr<StateTree> &state_tree, const Address &address);
   };
-}  // namespace fc::vm::actor
+}  // namespace fc::vm::actor::builtin::account
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACCOUNT_ACTOR_HPP
