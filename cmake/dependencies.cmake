@@ -50,7 +50,3 @@ find_package(cppcodec CONFIG REQUIRED)
 hunter_add_package(Protobuf)
 find_package(Protobuf CONFIG REQUIRED)
 
-# http://rapidjson.org
-hunter_add_package(RapidJSON)
-find_package(RapidJSON CONFIG REQUIRED)
-#target_link_libraries(... RapidJSON::rapidjson)

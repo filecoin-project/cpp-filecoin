@@ -1,9 +1,0 @@
-/**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
- * SPDX-License-Identifier: Apache-2.0
- */
-
-#ifndef CPP_FILECOIN_CORE_CODEC_JSON_JSON_ENCODE_STREAM_HPP
-#define CPP_FILECOIN_CORE_CODEC_JSON_JSON_ENCODE_STREAM_HPP
-
-#endif //CPP_FILECOIN_CORE_CODEC_JSON_JSON_ENCODE_STREAM_HPP

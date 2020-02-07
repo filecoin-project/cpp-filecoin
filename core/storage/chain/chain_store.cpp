@@ -8,6 +8,7 @@
 #include "common/outcome.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "storage/ipfs/datastore_key.hpp"
+#include "primitives/cid/json_codec.hpp"
 
 namespace fc::storage::chain {
 
@@ -89,8 +90,28 @@ namespace fc::storage::chain {
 
   outcome::result<void> ChainStore::load() {
     OUTCOME_TRY(key, primitives::cid::getCidOfCbor(chainHeadKey.value));
-    OUTCOME_TRY(res, data_store_->get(key));
+    OUTCOME_TRY(buffer, data_store_->get(key));
 
     return outcome::success();
   }
+
+  /*
+    func (cs *ChainStore) writeHead(ts *types.TipSet) error {
+	data, err := json.Marshal(ts.Cids())
+	if err != nil {
+		return xerrors.Errorf("failed to marshal tipset: %w", err)
+	}
+
+	if err := cs.ds.Put(chainHeadKey, data); err != nil {
+		return xerrors.Errorf("failed to write chain head to datastore: %w", err)
+	}
+
+	return nil
+}
+   */
+outcome::result<void> ChainStore::writeHead(const primitives::tipset::Tipset &tipset) {
+  OUTCOME_TRY(data, codec::json::encodeCidVector(tipset.cids));
+  OUTCOME_TRY(data_store_->set())
+  return libp2p::outcome::result<void>();
+}
 }  // namespace fc::storage::chain

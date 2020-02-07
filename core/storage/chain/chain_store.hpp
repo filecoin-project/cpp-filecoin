@@ -54,7 +54,7 @@ namespace fc::storage::chain {
 
     // TODO (yuraz): FIL-151 add notifications
 
-    // TODO(yuraz): FIL-*** implement caching
+    // TODO(yuraz): FIL-*** implement caching of items to avoid refetching them
 
    private:
     std::shared_ptr<ipfs::BlockService> block_service_;
