@@ -12,23 +12,24 @@ namespace fc::crypto::randomness {
 
   Randomness RandomnessProviderImpl::deriveRandomness(DomainSeparationTag tag,
                                                       Serialization s) {
-    return deriveRandomness(tag, std::move(s), ChainEpoch(-1));
+    return deriveRandomness(tag, std::move(s), -1);
   }
 
   Randomness RandomnessProviderImpl::deriveRandomness(DomainSeparationTag tag,
                                                       Serialization s,
                                                       const ChainEpoch &index) {
-    return deriveRandomnessInternal(tag, std::move(s), index);
+    return deriveRandomnessInternal(
+        tag, std::move(s), index.convert_to<int64_t>());
   }
 
   Randomness RandomnessProviderImpl::deriveRandomnessInternal(
-      DomainSeparationTag tag, Serialization s, const ChainEpoch &index) {
+      DomainSeparationTag tag, Serialization s, int64_t index) {
     common::Buffer value{};
     const size_t bytes_required =
         sizeof(DomainSeparationTag) + sizeof(ChainEpoch) + s.size();
     value.reserve(bytes_required);
     common::encodeInteger(static_cast<size_t>(tag), value);
-    common::encodeInteger(static_cast<size_t>(index.toUInt64()), value);
+    common::encodeInteger(index, value);
     value.put(s);
     auto hash = libp2p::crypto::sha256(value);
 

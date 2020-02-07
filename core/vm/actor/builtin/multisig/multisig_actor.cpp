@@ -11,6 +11,7 @@
 
 using fc::common::Buffer;
 using fc::primitives::BigInt;
+using fc::primitives::ChainEpoch;
 using fc::vm::VMExitCode;
 using fc::vm::actor::ActorExports;
 using fc::vm::actor::ActorMethod;
@@ -109,7 +110,7 @@ fc::outcome::result<void> MultiSignatureActorState::approveTransaction(
     if (actor.balance < pending_tx.value)
       return VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS;
 
-    auto amount_locked = getAmountLocked(runtime.getCurrentEpoch().toUInt64());
+    auto amount_locked = getAmountLocked(runtime.getCurrentEpoch());
     if (actor.balance - pending_tx.value < amount_locked)
       return VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS;
 
@@ -148,7 +149,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::construct(
                                  construct_params.threshold,
                                  TransactionNumber{0},
                                  BigInt{0},
-                                 runtime.getCurrentEpoch().toUInt64(),
+                                 runtime.getCurrentEpoch(),
                                  construct_params.unlock_duration,
                                  {}};
 

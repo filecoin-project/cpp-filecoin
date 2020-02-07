@@ -17,13 +17,12 @@
 
 namespace fc::vm::actor::builtin::multisig {
 
+  using primitives::ChainEpoch;
   using primitives::EpochDuration;
-  using primitives::UBigInt;
   using primitives::address::Address;
   using runtime::InvocationOutput;
   using runtime::Runtime;
   using TransactionNumber = size_t;
-  using ChainEpoch = BigInt;
 
   constexpr MethodNumber kProposeMethodNumber{2};
   constexpr MethodNumber kApproveMethodNumber{3};

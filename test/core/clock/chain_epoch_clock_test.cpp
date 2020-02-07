@@ -18,7 +18,7 @@ using fc::clock::ChainEpochClockImpl;
 static Time kGenesisTime(UnixTimeNano(1));
 static std::chrono::nanoseconds kNano1(1);
 static ChainEpoch kEpoch(3);
-static std::chrono::nanoseconds kNanoEpoch(kEpoch.toUInt64() * kEpochDuration);
+static std::chrono::nanoseconds kNanoEpoch(kEpoch * kEpochDuration);
 
 class ChainEpochClockTest : public ::testing::Test {
  public:
@@ -72,7 +72,7 @@ TEST_F(ChainEpochClockTest, AtGenesis) {
 TEST_F(ChainEpochClockTest, BeforeEpoch) {
   auto epoch = epochAtTime(kGenesisTime.unixTimeNano() + kNanoEpoch - kNano1).value();
 
-  EXPECT_EQ(epoch, ChainEpoch(kEpoch.toUInt64() - 1));
+  EXPECT_EQ(epoch, ChainEpoch(kEpoch - 1));
 }
 
 /**

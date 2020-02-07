@@ -33,6 +33,10 @@ namespace fc::primitives {
     return static_cast<cpp_int>(lhs) * static_cast<cpp_int>(rhs);
   }
 
+  static inline BigInt operator*(const BigInt &rhs, const UBigInt &lhs) {
+    return static_cast<cpp_int>(lhs) * static_cast<cpp_int>(rhs);
+  }
+
   static inline BigInt operator/(const BigInt &lhs, const BigInt &rhs) {
     return static_cast<cpp_int>(lhs) / static_cast<cpp_int>(rhs);
   }
@@ -77,6 +81,10 @@ namespace fc::primitives {
     return static_cast<cpp_int>(lhs) < rhs;
   }
 
+  static inline bool operator<(const BigInt &lhs, const UBigInt &rhs) {
+    return static_cast<cpp_int>(lhs) < static_cast<cpp_int>(rhs);
+  }
+
   static inline bool operator==(const BigInt &lhs, const BigInt &rhs) {
     return static_cast<cpp_int>(lhs) == static_cast<cpp_int>(rhs);
   }
@@ -85,12 +93,32 @@ namespace fc::primitives {
     return static_cast<cpp_int>(lhs) == rhs;
   }
 
+  static inline UBigInt operator*(const UBigInt &lhs, const UBigInt &rhs) {
+    return static_cast<cpp_int>(lhs) * static_cast<cpp_int>(rhs);
+  }
+
+  static inline UBigInt operator-(const UBigInt &lhs, const UBigInt &rhs) {
+    return static_cast<cpp_int>(lhs) - static_cast<cpp_int>(rhs);
+  }
+
+  static inline UBigInt operator-(const UBigInt &lhs, int rhs) {
+    return static_cast<cpp_int>(lhs) - rhs;
+  }
+
   static inline bool operator==(const UBigInt &lhs, const UBigInt &rhs) {
     return static_cast<cpp_int>(lhs) == static_cast<cpp_int>(rhs);
   }
 
   static inline bool operator==(const UBigInt &lhs, int rhs) {
     return static_cast<cpp_int>(lhs) == static_cast<cpp_int>(rhs);
+  }
+
+  static inline bool operator<(const UBigInt &lhs, const UBigInt &rhs) {
+    return static_cast<cpp_int>(lhs) < static_cast<cpp_int>(rhs);
+  }
+
+  static inline bool operator<(const UBigInt &lhs, int rhs) {
+    return static_cast<cpp_int>(lhs) < rhs;
   }
 
   template <class Stream,

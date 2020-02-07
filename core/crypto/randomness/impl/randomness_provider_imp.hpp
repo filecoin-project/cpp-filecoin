@@ -28,7 +28,7 @@ namespace fc::crypto::randomness {
    private:
     Randomness deriveRandomnessInternal(DomainSeparationTag tag,
                                         Serialization s,
-                                        const ChainEpoch &index);
+                                        int64_t index);
   };
 
 }  // namespace fc::crypto::randomness
