@@ -54,6 +54,7 @@ jobs:
         sudo pip3 install scikit-build
         sudo pip3 install cmake requests gitpython gcovr pyyaml
         sudo curl https://sh.rustup.rs -sSf | sh -s -- -y
+        clang -x c -v -E /dev/null
     - name: cmake
       env:
         CC: ${{ matrix.compiler.cc }}
