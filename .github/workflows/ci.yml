@@ -1,6 +1,6 @@
 name: CI
 
-on: 
+on:
   push:
     branches:
     - master
@@ -30,20 +30,19 @@ jobs:
         include:
           - os: macOS-latest
             env:
-              CFLAGS: "-I /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+              CFLAGS: -I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
+              CXXFLAGS: -isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
     steps:
     - uses: actions/checkout@v1
       name: checkout
       with:
         submodules: true
         clean: true
-        fetch-depth: 1
         token: ${{ secrets.CI_TOKEN }}
     - name: install dependencies
       run: |
         set -e
         if [ "$RUNNER_OS" = "macOS" ]; then
-          open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
           brew install ninja
           brew install pkg-config
         else
@@ -59,6 +58,8 @@ jobs:
       env:
         CC: ${{ matrix.compiler.cc }}
         CXX: ${{ matrix.compiler.cxx }}
+        CFLAGS: ${{ matrix.cflags || env.CFLAGS }}
+        CXXFLAGS: ${{ matrix.cxxflags || env.CXXFLAGS }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
