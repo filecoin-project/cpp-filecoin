@@ -27,6 +27,11 @@ jobs:
           - os: macOS-latest
             compiler:
               cc: gcc
+        include:
+          - os: macOS-latest
+            env:
+              CFLAGS: -isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
+              CPPFLAGS: -isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include
     steps:
     - uses: actions/checkout@v1
       name: checkout
