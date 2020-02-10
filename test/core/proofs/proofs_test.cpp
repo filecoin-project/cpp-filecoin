@@ -7,6 +7,8 @@
 
 #include <gtest/gtest.h>
 #include <random>
+#include "crypto/blake2/blake2b160.hpp"
+#include "proofs/proof_param_provider.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
@@ -21,7 +23,16 @@ using fc::storage::filestore::Path;
 
 class ProofsTest : public test::BaseFS_Test {
  public:
-  ProofsTest() : test::BaseFS_Test("fc_proofs_test") {}
+  ProofsTest() : test::BaseFS_Test("fc_proofs_test") {
+    auto res = fc::proofs::ProofParamProvider::readJson(
+        "/var/tmp/filecoin-proof-parameters/parameters.json");
+    if (!res.has_error()) {
+      params = std::move(res.value());
+    }
+  }
+
+ protected:
+  std::vector<fc::proofs::ParamFile> params;
 };
 
 /**
@@ -29,7 +40,7 @@ class ProofsTest : public test::BaseFS_Test {
  * @when Generates and Verifies PoST
  * @then success
  */
-TEST_F(ProofsTest, ValidPoSt) {
+TEST_F(ProofsTest, DISABLED_ValidPoSt) {
   uint64_t challenge_count = 2;
   uint8_t porep_proof_partitions = 10;
   Blob<32> prover_id{{6, 7, 8}};
@@ -37,6 +48,8 @@ TEST_F(ProofsTest, ValidPoSt) {
   Blob<32> ticket{{5, 4, 2}};
   uint64_t sector_size = 1024;
   uint64_t sector_id = 42;
+  EXPECT_OUTCOME_TRUE_1(
+      fc::proofs::ProofParamProvider::getParams(params, sector_size));
 
   Path sector_cache_dir_path =
       unique_path(fs::canonical(base_path).append("%%%%%-sector-cache-dir"))
