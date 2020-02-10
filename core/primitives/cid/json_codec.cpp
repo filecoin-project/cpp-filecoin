@@ -4,46 +4,45 @@
  */
 
 #include "primitives/cid/json_codec.hpp"
-#include "codec/cbor/cbor.hpp"
-#include <boost/property_tree/ptree.hpp
 #include <boost/property_tree/json_parser.hpp>
-#include <boost/iostreams/stream_buffer.hpp>
+#include <boost/property_tree/ptree.hpp>
+#include "codec/cbor/cbor.hpp"
 
 namespace fc::codec::json {
+  using boost::property_tree::ptree;
 
   namespace {
+    using libp2p::multi::detail::decodeBase58;
+    using libp2p::multi::detail::encodeBase58;
+
     // TODO(yuraz): implement correct encode and decode
     // this solution is temporary
-    outcome::result<common::Buffer> encodeCid(const CID &cid) {
-      OUTCOME_TRY(buffer, cbor::encode(cid));
-      return common::Buffer(buffer);
+    outcome::result<std::string> encodeCid(const CID &cid) {
+      std::string result;
+      OUTCOME_TRY(cid_bytes, cbor::encode(cid));
+      return encodeBase58(cid_bytes);
     }
 
-    outcome::result<CID> decodeCid(gsl::span<const uint8_t> data) {
-      return cbor::decode<CID>(data);
+    outcome::result<CID> decodeCid(std::string_view data) {
+      OUTCOME_TRY(bytes, decodeBase58(data));
+      return cbor::decode<CID>(bytes);
     }
   }  // namespace
 
-  outcome::result<common::Buffer> encodeCidVector(gsl::span<const CID> span) {
-    boost::property_tree::ptree tree;
-    std::vector<common::Buffer> cids;
-    cids.reserve(span.size());
+  outcome::result<std::string> encodeCidVector(gsl::span<const CID> span) {
+    ptree tree;
+    auto &&child = tree.put("/", "");
     for (auto &it : span) {
       OUTCOME_TRY(encoded, encodeCid(it));
-      cids.push_back(encoded);
+      child.push_back({"", ptree(encoded)});
     }
-    tree.put("/", cids);
 
-    return common::Buffer{
-        std::vector<uint8_t>(tree.data().begin(), tree.data().end())};
+    return tree.data();
   }
 
-  outcome::result<std::vector<CID>> decodeCidVector(
-      gsl::span<const uint8_t> data) {
-    boost::property_tree::ptree tree;
-    typedef boost::iostreams::basic_array_source<uint8_t> Device;
-    boost::iostreams::stream_buffer<Device> stream(data);
-    
+  outcome::result<std::vector<CID>> decodeCidVector(std::string_view data) {
+    ptree tree;
+    std::stringstream stream;
     stream << data;
     try {
       boost::property_tree::read_json(stream, tree);
@@ -58,8 +57,7 @@ namespace fc::codec::json {
     std::vector<CID> cids;
     for (auto &&it : array) {
       auto &&val = it.second.get_value<std::string>();
-      std::vector<uint8_t> span{val.begin(), val.end()};
-      OUTCOME_TRY(cid, decodeCid(span));
+      OUTCOME_TRY(cid, decodeCid(val));
       cids.push_back(std::move(cid));
     }
 

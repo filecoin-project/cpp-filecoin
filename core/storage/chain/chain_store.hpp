@@ -62,7 +62,7 @@ namespace fc::storage::chain {
     std::shared_ptr<::fc::chain::block_validator::BlockValidator>
         block_validator_;
 
-    primitives::tipset::Tipset *heaviest_tipset_{nullptr};
+    primitives::tipset::Tipset heaviest_tipset_;
     std::map<uint64_t, std::vector<CID>> tipsets_;
   };
 }  // namespace fc::storage::chain

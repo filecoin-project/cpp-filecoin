@@ -15,14 +15,14 @@ namespace fc::codec::json {
   /**
    * @brief json-encodes span of CID objects
    */
-  outcome::result<common::Buffer> encodeCidVector(gsl::span<const CID> span);
+  outcome::result<std::string> encodeCidVector(gsl::span<const CID> span);
 
   /**
    * @brief tries to json-decode vector of CID objects
    * @param data source
    * @return vector of CID objects or error
    */
-  outcome::result<std::vector<CID>> decodeCidVector(gsl::span<const uint8_t> data);
+  outcome::result<std::vector<CID>> decodeCidVector(std::string_view data);
 }  // namespace fc::codec::json
 
 OUTCOME_HPP_DECLARE_ERROR(fc::codec::json, JsonCodecError);
