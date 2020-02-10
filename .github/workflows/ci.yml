@@ -45,6 +45,8 @@ jobs:
         set -e
         if [ "$RUNNER_OS" = "macOS" ]; then
           brew install ninja pkg-config
+          mkdir -p /Applications/Xcode_11.3.1.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/local/include
+          ln -s /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include /Applications/Xcode_11.3.1.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/local/include
         else
           sudo apt-get update || true
           sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers
@@ -54,9 +56,6 @@ jobs:
         sudo pip3 install scikit-build
         sudo pip3 install cmake requests gitpython gcovr pyyaml
         sudo curl https://sh.rustup.rs -sSf | sh -s -- -y
-
-        mkdir -p /Applications/Xcode_11.3.1.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/local/include
-        ln -s /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include /Applications/Xcode_11.3.1.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/local/include
     - name: cmake
       env:
         CC: ${{ matrix.compiler.cc }}
