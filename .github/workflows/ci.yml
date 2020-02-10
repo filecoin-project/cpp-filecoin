@@ -59,8 +59,8 @@ jobs:
       env:
         CC: ${{ matrix.compiler.cc }}
         CXX: ${{ matrix.compiler.cxx }}
-        CFLAGS: ${{ matrix.cflags || env.CFLAGS }}
-        CXXFLAGS: ${{ matrix.cxxflags || env.CXXFLAGS }}
+        CFLAGS: ${{ matrix.env.CFLAGS }}
+        CXXFLAGS: ${{ matrix.env.CXXFLAGS }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
