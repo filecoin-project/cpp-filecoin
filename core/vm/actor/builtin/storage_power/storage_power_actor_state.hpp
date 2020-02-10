@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
+#ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
+#define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
 
 #include "crypto/randomness/randomness_provider.hpp"
 #include "crypto/randomness/randomness_types.hpp"
@@ -15,6 +15,16 @@
 namespace fc::vm::actor::builtin::storage_power {
 
   using indices::Indices;
+
+  // Min value of power in order to participate in leader election
+  // From spec: 100 TiB
+  static const power::Power kMinMinerSizeStor =
+      100 * (primitives::BigInt(1) << 40);
+
+  // If no one miner has kMinMinerSizeStor then system should choose lower
+  // bound as kMinMinerSizeTarg-th miner's power in the top of power table
+  // From spec: 3
+  static const size_t kMinMinerSizeTarg = 3;
 
   enum SpaMethods {
     CONSTRUCTOR = 1,
@@ -28,20 +38,12 @@ namespace fc::vm::actor::builtin::storage_power {
     CHECK_PROOF_SUBMISSIONS
   };
 
-  class StoragePowerActor {
+  class StoragePowerActorState {
    public:
-    // Min value of power in order to participate in leader election
-    // From spec: 100 TiB
-    static const power::Power kMinMinerSizeStor;
-
-    // If no one miner has kMinMinerSizeStor then system should choose lower
-    // bound as kMinMinerSizeTarg-th miner's power in the top of power table
-    // From spec: 3
-    static const size_t kMinMinerSizeTarg;
-
-    StoragePowerActor(std::shared_ptr<Indices> indices,
-                      std::shared_ptr<crypto::randomness::RandomnessProvider>
-                          randomness_provider);
+    StoragePowerActorState(
+        std::shared_ptr<Indices> indices,
+        std::shared_ptr<crypto::randomness::RandomnessProvider>
+            randomness_provider);
 
     /**
      * @brief Select challenge_count miners from power table for the
@@ -190,6 +192,6 @@ namespace fc::vm::actor::builtin::storage_power {
 
     int num_miners_meeting_min_power;
   };
-}  // namespace fc::vm::actor::storage_power
+}  // namespace fc::vm::actor::builtin::storage_power
 
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_HPP
+#endif  // CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP

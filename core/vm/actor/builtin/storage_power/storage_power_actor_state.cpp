@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/storage_power/storage_power_actor.hpp"
+#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
 #include "power/impl/power_table_impl.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -11,13 +11,21 @@
 
 namespace fc::vm::actor::builtin::storage_power {
 
-  const power::Power StoragePowerActor::kMinMinerSizeStor =
-      100 * (primitives::BigInt(1) << 40);
-
-  const size_t StoragePowerActor::kMinMinerSizeTarg = 3;
+  StoragePowerActorState::StoragePowerActorState(
+      std::shared_ptr<Indices> indices,
+      std::shared_ptr<crypto::randomness::RandomnessProvider>
+      randomness_provider)
+      : indices_(std::move(indices)),
+        randomness_provider_(std::move(randomness_provider)),
+        total_network_power_(0),
+        power_table_(std::make_unique<power::PowerTableImpl>()),
+        claimed_power_(std::make_unique<power::PowerTableImpl>()),
+        nominal_power_(std::make_unique<power::PowerTableImpl>()),
+        po_st_detected_fault_miners_({}),
+        num_miners_meeting_min_power(0) {}
 
   outcome::result<std::vector<primitives::address::Address>>
-  StoragePowerActor::selectMinersToSurprise(
+  StoragePowerActorState::selectMinersToSurprise(
       size_t challenge_count,
       const crypto::randomness::Randomness &randomness) {
     std::vector<primitives::address::Address> selected_miners;
@@ -50,7 +58,7 @@ namespace fc::vm::actor::builtin::storage_power {
     return selected_miners;
   }
 
-  outcome::result<void> StoragePowerActor::addClaimedPowerForSector(
+  outcome::result<void> StoragePowerActorState::addClaimedPowerForSector(
       const primitives::address::Address &miner_addr,
       const SectorStorageWeightDesc &storage_weight_desc) {
     // TODO(artyom-yurin): [FIL-135] FROM SPEC: The function is located in the
@@ -67,7 +75,8 @@ namespace fc::vm::actor::builtin::storage_power {
     return updatePowerEntriesFromClaimedPower(miner_addr);
   }
 
-  outcome::result<void> StoragePowerActor::deductClaimedPowerForSectorAssert(
+  outcome::result<void>
+  StoragePowerActorState::deductClaimedPowerForSectorAssert(
       const primitives::address::Address &miner_addr,
       const SectorStorageWeightDesc &storage_weight_desc) {
     // TODO(artyom-yurin): [FIL-135] FROM SPEC: The function is located in the
@@ -84,7 +93,8 @@ namespace fc::vm::actor::builtin::storage_power {
     return updatePowerEntriesFromClaimedPower(miner_addr);
   }
 
-  outcome::result<void> StoragePowerActor::updatePowerEntriesFromClaimedPower(
+  outcome::result<void>
+  StoragePowerActorState::updatePowerEntriesFromClaimedPower(
       const primitives::address::Address &miner_addr) {
     OUTCOME_TRY(claimed_power, claimed_power_->getMinerPower(miner_addr));
 
@@ -109,7 +119,7 @@ namespace fc::vm::actor::builtin::storage_power {
     return setPowerEntryInternal(miner_addr, power);
   }
 
-  outcome::result<void> StoragePowerActor::setNominalPowerEntry(
+  outcome::result<void> StoragePowerActorState::setNominalPowerEntry(
       const primitives::address::Address &miner_addr,
       const power::Power &updated_nominal_power) {
     OUTCOME_TRY(prev_miner_nominal_power,
@@ -129,7 +139,7 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  outcome::result<void> StoragePowerActor::setPowerEntryInternal(
+  outcome::result<void> StoragePowerActorState::setPowerEntryInternal(
       const primitives::address::Address &miner_addr,
       const power::Power &updated_power) {
     OUTCOME_TRY(prev_miner_power, power_table_->getMinerPower(miner_addr));
@@ -139,7 +149,7 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  bool StoragePowerActor::minerNominalPowerMeetsConsensusMinimum(
+  bool StoragePowerActorState::minerNominalPowerMeetsConsensusMinimum(
       const power::Power &miner_power) {
     // if miner is larger than min power requirement, we're set
     if (miner_power >= kMinMinerSizeStor) {
@@ -161,27 +171,27 @@ namespace fc::vm::actor::builtin::storage_power {
     return miner_power >= power_table_->getMaxPower();
   }
 
-  outcome::result<void> StoragePowerActor::setClaimedPowerEntryInternal(
+  outcome::result<void> StoragePowerActorState::setClaimedPowerEntryInternal(
       const primitives::address::Address &miner_addr,
       const power::Power &updated_power) {
     return claimed_power_->setMinerPower(miner_addr, updated_power);
   }
-  outcome::result<power::Power> StoragePowerActor::getPowerTotalForMiner(
+  outcome::result<power::Power> StoragePowerActorState::getPowerTotalForMiner(
       const primitives::address::Address &miner_addr) const {
     return power_table_->getMinerPower(miner_addr);
   }
 
-  outcome::result<power::Power> StoragePowerActor::getNominalPowerForMiner(
+  outcome::result<power::Power> StoragePowerActorState::getNominalPowerForMiner(
       const primitives::address::Address &miner_addr) const {
     return nominal_power_->getMinerPower(miner_addr);
   }
 
-  outcome::result<power::Power> StoragePowerActor::getClaimedPowerForMiner(
+  outcome::result<power::Power> StoragePowerActorState::getClaimedPowerForMiner(
       const primitives::address::Address &miner_addr) const {
     return claimed_power_->getMinerPower(miner_addr);
   }
 
-  outcome::result<void> StoragePowerActor::addMiner(
+  outcome::result<void> StoragePowerActorState::addMiner(
       const primitives::address::Address &miner_addr) {
     auto check = power_table_->getMinerPower(miner_addr);
     if (!check.has_error()) {
@@ -194,7 +204,7 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  outcome::result<void> StoragePowerActor::removeMiner(
+  outcome::result<void> StoragePowerActorState::removeMiner(
       const primitives::address::Address &miner_addr) {
     OUTCOME_TRY(power_table_->removeMiner(miner_addr));
     OUTCOME_TRY(nominal_power_->removeMiner(miner_addr));
@@ -207,20 +217,7 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  StoragePowerActor::StoragePowerActor(
-      std::shared_ptr<Indices> indices,
-      std::shared_ptr<crypto::randomness::RandomnessProvider>
-          randomness_provider)
-      : indices_(std::move(indices)),
-        randomness_provider_(std::move(randomness_provider)),
-        total_network_power_(0),
-        power_table_(std::make_unique<power::PowerTableImpl>()),
-        claimed_power_(std::make_unique<power::PowerTableImpl>()),
-        nominal_power_(std::make_unique<power::PowerTableImpl>()),
-        po_st_detected_fault_miners_({}),
-        num_miners_meeting_min_power(0) {}
-
-  outcome::result<void> StoragePowerActor::addFaultMiner(
+  outcome::result<void> StoragePowerActorState::addFaultMiner(
       const primitives::address::Address &miner_addr) {
     // check that miner exist
     OUTCOME_TRY(power_table_->getMinerPower(miner_addr));
@@ -231,7 +228,7 @@ namespace fc::vm::actor::builtin::storage_power {
   }
 
   outcome::result<std::vector<primitives::address::Address>>
-  StoragePowerActor::getMiners() const {
+  StoragePowerActorState::getMiners() const {
     return power_table_->getMiners();
   };
-}  // namespace fc::vm::actor::storage_power
+}  // namespace fc::vm::actor::builtin::storage_power

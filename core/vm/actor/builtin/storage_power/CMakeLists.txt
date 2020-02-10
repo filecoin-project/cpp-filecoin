@@ -4,7 +4,7 @@
 #
 
 add_library(storage_power_actor
-    storage_power_actor.cpp
+    storage_power_actor_state.cpp
     )
 target_link_libraries(storage_power_actor
     actor
