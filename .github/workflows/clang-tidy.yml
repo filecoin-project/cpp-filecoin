@@ -20,9 +20,7 @@ jobs:
         fetch-depth: 1
     - name: install
       run: |
-        open /Library/Developer/CommandLineTools/Packages/macOS_SDK_headers_for_macOS_10.14.pkg
-        brew install ninja llvm
-        brew install pkg-config
+        brew install ninja llvm pkg-config
         sudo python3 -m pip install --upgrade pip
         sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
     - name: run checks

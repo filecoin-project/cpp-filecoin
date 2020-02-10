@@ -38,6 +38,7 @@ jobs:
       with:
         submodules: true
         clean: true
+        fetch-depth: 1
         token: ${{ secrets.CI_TOKEN }}
     - name: install dependencies
       run: |
