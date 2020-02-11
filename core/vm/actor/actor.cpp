@@ -29,6 +29,10 @@ namespace fc::vm::actor {
            || code == kInitCodeCid || code == kCronCodeCid;
   }
 
+  bool isSignableActor(const CodeId &code) {
+    return code == kAccountCodeCid || code == kMultisigCodeCid;
+  }
+
   const CID kEmptyObjectCid{
       CID::Version::V1,
       libp2p::multi::MulticodecType::Code::DAG_CBOR,

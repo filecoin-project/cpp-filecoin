@@ -39,7 +39,7 @@ namespace fc::primitives::address {
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Address &address) noexcept {
+  Stream &operator<<(Stream &&s, const Address &address) {
     return s << encode(address);
   }
 

@@ -3,18 +3,20 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(builtin)
+
 add_library(actor
-    account_actor.cpp
     actor.cpp
-    init_actor.cpp
-    cron_actor.cpp
     impl/invoker_impl.cpp
-    storage_power_actor.cpp
     )
 target_link_libraries(actor
+    account_actor
     address
+    buffer
     cid
     exit_code
-    hamt
-    power_table
+    init_actor
+    multisig_actor
+    storage_power_actor
+    cron_actor
     )

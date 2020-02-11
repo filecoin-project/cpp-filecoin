@@ -7,7 +7,7 @@
 
 #include "codec/cbor/cbor.hpp"
 #include "primitives/address/address_codec.hpp"
-#include "vm/actor/init_actor.hpp"
+#include "vm/actor/builtin/init/init_actor.hpp"
 
 namespace fc::vm::state {
   using actor::ActorSubstateCID;
@@ -39,7 +39,7 @@ namespace fc::vm::state {
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
     OUTCOME_TRY(
         init_actor_state,
-        store_->getCbor<actor::init_actor::InitActorState>(init_actor.head));
+        store_->getCbor<actor::builtin::init::InitActorState>(init_actor.head));
     Hamt address_map(store_, init_actor_state.address_map);
     OUTCOME_TRY(id, address_map.getCbor<uint64_t>(encodeToString(address)));
     return Address::makeFromId(id);
@@ -50,7 +50,7 @@ namespace fc::vm::state {
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
     OUTCOME_TRY(
         init_actor_state,
-        store_->getCbor<actor::init_actor::InitActorState>(init_actor.head));
+        store_->getCbor<actor::builtin::init::InitActorState>(init_actor.head));
     OUTCOME_TRY(address_id, init_actor_state.addActor(store_, address));
     OUTCOME_TRY(init_actor_state_cid, store_->setCbor(init_actor_state));
     init_actor.head = ActorSubstateCID{init_actor_state_cid};

@@ -9,7 +9,8 @@
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor_method.hpp"
 
-namespace fc::vm::actor::init_actor {
+namespace fc::vm::actor::builtin::init {
+
   using storage::ipfs::IpfsDatastore;
 
   /// Init actor state
@@ -48,7 +49,7 @@ namespace fc::vm::actor::init_actor {
                                          Runtime &runtime,
                                          const MethodParams &params);
 
-  extern ActorExports exports;
+  extern const ActorExports exports;
 
   template <class Stream,
             typename = std::enable_if_t<
@@ -64,6 +65,6 @@ namespace fc::vm::actor::init_actor {
     s.list() >> params.code >> params.params;
     return s;
   }
-}  // namespace fc::vm::actor::init_actor
+}  // namespace fc::vm::actor::builtin::init
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP

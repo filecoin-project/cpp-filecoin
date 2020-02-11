@@ -8,4 +8,5 @@ addtest(runtime_test
     )
 target_link_libraries(runtime_test
     runtime
+    hamt
     )

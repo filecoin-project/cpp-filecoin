@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(adt)
 add_subdirectory(blockchain)
 add_subdirectory(clock)
 add_subdirectory(codec)

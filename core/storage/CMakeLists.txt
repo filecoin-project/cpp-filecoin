@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(amt)
 add_subdirectory(config)
 add_subdirectory(filestore)
 add_subdirectory(hamt)

@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/storage_power_actor.hpp"
+#include "vm/actor/builtin/storage_power/storage_power_actor.hpp"
 
 #include "power/impl/power_table_impl.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/indices/indices.hpp"
 
-namespace fc::vm::actor {
+namespace fc::vm::actor::builtin::storage_power {
 
   const power::Power StoragePowerActor::kMinMinerSizeStor =
       100 * (primitives::BigInt(1) << 40);
@@ -234,4 +234,4 @@ namespace fc::vm::actor {
   StoragePowerActor::getMiners() const {
     return power_table_->getMiners();
   };
-}  // namespace fc::vm::actor
+}  // namespace fc::vm::actor::storage_power

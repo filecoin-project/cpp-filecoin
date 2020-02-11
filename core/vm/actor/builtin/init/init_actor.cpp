@@ -3,13 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/init_actor.hpp"
+#include "vm/actor/builtin/init/init_actor.hpp"
 
 #include "primitives/address/address_codec.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/runtime/gas_cost.hpp"
 
-namespace fc::vm::actor::init_actor {
+namespace fc::vm::actor::builtin::init {
+
   outcome::result<Address> InitActorState::addActor(
       std::shared_ptr<IpfsDatastore> store, const Address &address) {
     storage::hamt::Hamt hamt(std::move(store), address_map);
@@ -52,5 +53,5 @@ namespace fc::vm::actor::init_actor {
     return InvocationOutput{Buffer{primitives::address::encode(id_address)}};
   }
 
-  ActorExports exports{{kExecMethodNumber, ActorMethod(exec)}};
-}  // namespace fc::vm::actor::init_actor
+  const ActorExports exports{{kExecMethodNumber, ActorMethod(exec)}};
+}  // namespace fc::vm::actor::builtin::init

@@ -11,7 +11,7 @@ namespace fc::codec::cbor {
         parser_(std::make_shared<CborParser>()) {
     if (CborNoError
         != cbor_parser_init(
-            data_->data(), data_->size(), 0, parser_.get(), &value_)) {
+               data_->data(), data_->size(), 0, parser_.get(), &value_)) {
       outcome::raise(CborDecodeError::INVALID_CBOR);
     }
     value_.remaining = UINT32_MAX;
@@ -55,8 +55,7 @@ namespace fc::codec::cbor {
     return *this;
   }
 
-  CborDecodeStream &CborDecodeStream::operator>>(
-      CID &cid) {
+  CborDecodeStream &CborDecodeStream::operator>>(CID &cid) {
     if (!cbor_value_is_tag(&value_)) {
       outcome::raise(CborDecodeError::INVALID_CBOR_CID);
     }
@@ -148,11 +147,10 @@ namespace fc::codec::cbor {
     return length;
   }
 
-  std::vector<uint8_t> CborDecodeStream::raw() const {
-    auto stream = *this;
-    auto begin = stream.value_.ptr;
-    stream.next();
-    return {begin, stream.value_.ptr};
+  std::vector<uint8_t> CborDecodeStream::raw() {
+    auto begin = value_.ptr;
+    next();
+    return {begin, value_.ptr};
   }
 
   std::map<std::string, CborDecodeStream> CborDecodeStream::map() {

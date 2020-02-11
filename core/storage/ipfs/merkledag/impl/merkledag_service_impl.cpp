@@ -6,16 +6,21 @@
 #include "storage/ipfs/merkledag/impl/merkledag_service_impl.hpp"
 
 #include <boost/assert.hpp>
+#include <libp2p/multi/content_identifier_codec.hpp>
 #include "storage/ipfs/merkledag/impl/node_impl.hpp"
 
+using libp2p::multi::ContentIdentifierCodec;
+
 namespace fc::storage::ipfs::merkledag {
-  MerkleDagServiceImpl::MerkleDagServiceImpl(std::shared_ptr<BlockService> service)
+  MerkleDagServiceImpl::MerkleDagServiceImpl(
+      std::shared_ptr<BlockService> service)
       : block_service_{std::move(service)} {
     BOOST_ASSERT_MSG(block_service_ != nullptr,
                      "MerkleDAG service: Block service not connected");
   }
 
-  outcome::result<void> MerkleDagServiceImpl::addNode(std::shared_ptr<const Node> node) {
+  outcome::result<void> MerkleDagServiceImpl::addNode(
+      std::shared_ptr<const Node> node) {
     return block_service_->addBlock(*node);
   }
 
@@ -29,6 +34,30 @@ namespace fc::storage::ipfs::merkledag {
     return block_service_->removeBlock(cid);
   }
 
+  outcome::result<size_t> MerkleDagServiceImpl::select(
+      gsl::span<const uint8_t> root_cid,
+      gsl::span<const uint8_t> selector,
+      std::function<bool(std::shared_ptr<const Node>)> handler) const {
+    std::ignore = selector;
+    OUTCOME_TRY(content_id, ContentIdentifierCodec::decode(root_cid));
+    CID cid{std::move(content_id)};
+    OUTCOME_TRY(root_node, getNode(cid));
+    std::vector<std::shared_ptr<const Node>> node_set{};
+    node_set.emplace_back(std::move(root_node));
+    const auto &links = node_set.front()->getLinks();
+    for (const auto& link : links) {
+      auto request = getNode(link.get().getCID());
+      if (request.has_error()) return ServiceError::UNRESOLVED_LINK;
+      node_set.emplace_back(std::move(request.value()));
+    }
+    size_t sent_count{};
+    for (const auto &node : node_set) {
+      ++sent_count;
+      if (!handler(node)) break;
+    }
+    return sent_count;
+  }
+
   outcome::result<std::shared_ptr<Leaf>> MerkleDagServiceImpl::fetchGraph(
       const CID &cid) const {
     OUTCOME_TRY(node, getNode(cid));
@@ -38,8 +67,9 @@ namespace fc::storage::ipfs::merkledag {
     return root_leaf;
   }
 
-  outcome::result<std::shared_ptr<Leaf>> MerkleDagServiceImpl::fetchGraphOnDepth(
-      const CID &cid, uint64_t depth) const {
+  outcome::result<std::shared_ptr<Leaf>>
+  MerkleDagServiceImpl::fetchGraphOnDepth(const CID &cid,
+                                          uint64_t depth) const {
     OUTCOME_TRY(node, getNode(cid));
     auto leaf = std::make_shared<LeafImpl>(node->content());
     auto result = buildGraph(leaf, node->getLinks(), true, depth, 0);

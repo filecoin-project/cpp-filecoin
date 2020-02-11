@@ -33,13 +33,14 @@ jobs:
               CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
               CXXFLAGS: "-isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
     steps:
-    - uses: actions/checkout@v1
-      name: checkout
-      with:
-        submodules: true
-        clean: true
-        fetch-depth: 1
-        token: ${{ secrets.CI_TOKEN }}
+    - uses: actions/checkout@v2
+      name: checkout repo
+    - name: checkout submodules
+      shell: bash
+      run: |
+        auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+        git submodule sync --recursive
+        git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
     - name: install dependencies
       run: |
         set -e

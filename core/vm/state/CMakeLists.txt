@@ -9,4 +9,5 @@ add_library(state_tree
 target_link_libraries(state_tree
     actor
     Boost::boost
+    hamt
     )

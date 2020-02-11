@@ -28,6 +28,12 @@ namespace fc::storage::ipfs::merkledag {
 
     outcome::result<void> removeNode(const CID &cid) override;
 
+    outcome::result<size_t> select(
+        gsl::span<const uint8_t> root_cid,
+        gsl::span<const uint8_t> selector,
+        std::function<bool(std::shared_ptr<const Node> node)> handler)
+        const override;
+
     outcome::result<std::shared_ptr<Leaf>> fetchGraph(
         const CID &cid) const override;
 
