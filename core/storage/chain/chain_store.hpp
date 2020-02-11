@@ -9,7 +9,9 @@
 #include <map>
 
 #include "chain/block_validator.hpp"
+#include "common/logger.hpp"
 #include "common/outcome.hpp"
+#include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/ipfs/blockservice.hpp"
@@ -20,25 +22,44 @@ namespace fc::storage::chain {
   /**
    * @brief change type
    */
-  enum class HeadChangeType { REVERT, APPLY, CURRENT };
+  enum class HeadChangeType : int { REVERT, APPLY, CURRENT };
 
+  /**
+   * @struct HeadChange represents atomic change
+   */
   struct HeadChange {
     HeadChangeType type;
-    std::reference_wrapper<const primitives::tipset::Tipset> value;
+    primitives::tipset::Tipset value;
   };
 
+  /**
+   * @struct MmCids is a struct for using in mmCache
+   */
+  struct MmCids {
+    std::vector<CID> bls;
+    std::vector<CID> secpk;
+  };
+
+  enum class ChainStoreError : int { NO_MIN_TICKET_BLOCK = 1 };
+
+  /**
+   * @class ChainStore keeps track of blocks
+   */
   class ChainStore {
    public:
+    using BlockValidator = ::fc::chain::block_validator::BlockValidator;
+    using Tipset = primitives::tipset::Tipset;
+    using TipsetKey = primitives::tipset::TipsetKey;
+    using Randomness = crypto::randomness : Randomness;
     /*
      * @brief creates new ChainStore instance
      */
     static outcome::result<ChainStore> create(
         std::shared_ptr<ipfs::BlockService> block_service,
         std::shared_ptr<ipfs::IpfsDatastore> data_store,
-        std::shared_ptr<::fc::chain::block_validator::BlockValidator>
-            block_validator);
+        std::shared_ptr<BlockValidator> block_validator);
 
-    outcome::result<void> writeHead(const primitives::tipset::Tipset &tipset);
+    outcome::result<void> writeHead(const Tipset &tipset);
 
     /**
      * @brief loads data from block storage and initializes storage
@@ -49,22 +70,32 @@ namespace fc::storage::chain {
      * @brief loads tipset from store
      * @param key tipset key
      */
-    outcome::result<primitives::tipset::Tipset> loadTipset(
-        const primitives::tipset::TipsetKey &key);
+    outcome::result<Tipset> loadTipset(const TipsetKey &key);
 
     // TODO (yuraz): FIL-151 add notifications
 
-    // TODO(yuraz): FIL-*** implement caching of items to avoid refetching them
+    // TODO(yuraz): FIL-151 implement items caching to avoid refetching them
+
+    /** draws randomness */
+    outcome::result<Randomness> drawRandomness(const std::vector<CID> &blks,
+                                               uint64_t round);
 
    private:
+    ChainStore(std::shared_ptr<ipfs::BlockService> block_service,
+               std::shared_ptr<ipfs::IpfsDatastore> data_store,
+               std::shared_ptr<BlockValidator> block_validator);
+
     std::shared_ptr<ipfs::BlockService> block_service_;
     std::shared_ptr<ipfs::IpfsDatastore> data_store_;
-    std::shared_ptr<::fc::chain::block_validator::BlockValidator>
-        block_validator_;
+    std::shared_ptr<BlockValidator> block_validator_;
 
-    primitives::tipset::Tipset heaviest_tipset_;
+    boost::optional<Tipset> heaviest_tipset_;
     std::map<uint64_t, std::vector<CID>> tipsets_;
+
+    common::Logger logger_;
   };
 }  // namespace fc::storage::chain
+
+OUTCOME_HPP_DECLARE_ERROR(fc::storage::chain, ChainStoreError);
 
 #endif  // CPP_FILECOIN_CORE_STORAGE_CHAIN_CHAIN_STORE_HPP
