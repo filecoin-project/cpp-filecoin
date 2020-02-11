@@ -17,15 +17,11 @@ namespace fc::codec::cbor {
     value_.remaining = UINT32_MAX;
   }
 
-  CborDecodeStream &CborDecodeStream::operator>>(std::vector<uint8_t> &bytes) {
-    if (!cbor_value_is_byte_string(&value_)) {
-      outcome::raise(CborDecodeError::WRONG_TYPE);
+  CborDecodeStream &CborDecodeStream::operator>>(gsl::span<uint8_t> bytes) {
+    auto size = bytesLength();
+    if (static_cast<size_t>(bytes.size()) != size) {
+      outcome::raise(CborDecodeError::WRONG_SIZE);
     }
-    size_t size;
-    if (CborNoError != cbor_value_get_string_length(&value_, &size)) {
-      outcome::raise(CborDecodeError::INVALID_CBOR);
-    }
-    bytes.resize(size);
     auto value = value_;
     value.remaining = 1;
     if (CborNoError
@@ -34,6 +30,11 @@ namespace fc::codec::cbor {
     }
     next();
     return *this;
+  }
+
+  CborDecodeStream &CborDecodeStream::operator>>(std::vector<uint8_t> &bytes) {
+    bytes.resize(bytesLength());
+    return *this >> gsl::make_span(bytes);
   }
 
   CborDecodeStream &CborDecodeStream::operator>>(std::string &str) {
@@ -184,6 +185,17 @@ namespace fc::codec::cbor {
       map.insert(std::make_pair(key, stream2));
     }
     return map;
+  }
+
+  size_t CborDecodeStream::bytesLength() const {
+    if (!cbor_value_is_byte_string(&value_)) {
+      outcome::raise(CborDecodeError::WRONG_TYPE);
+    }
+    size_t size;
+    if (CborNoError != cbor_value_get_string_length(&value_, &size)) {
+      outcome::raise(CborDecodeError::INVALID_CBOR);
+    }
+    return size;
   }
 
   CborDecodeStream CborDecodeStream::container() const {
