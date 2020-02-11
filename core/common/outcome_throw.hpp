@@ -12,13 +12,20 @@
 namespace fc::outcome {
   /**
    * @brief throws outcome::result error as boost exception
+   * @param t error code
+   */
+  inline void raise(const std::error_code &ec) {
+    boost::throw_exception(std::system_error(ec));
+  }
+
+  /**
+   * @brief throws outcome::result error as boost exception
    * @tparam T enum error type
    * @param t error value
    */
   template <typename T, typename = std::enable_if_t<std::is_enum_v<T>>>
   void raise(T t) {
-    std::error_code ec = make_error_code(t);
-    boost::throw_exception(std::system_error(ec));
+    raise(make_error_code(t));
   }
 }  // namespace fc::outcome
 
