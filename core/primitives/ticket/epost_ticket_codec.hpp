@@ -18,7 +18,11 @@ namespace fc::primitives::ticket {
     INVALID_PARTIAL_LENGTH = 1,  // invalid length of field partial
     INVALID_POST_RAND_LENGTH,    // invalid length of field post_rand
   };
+}  // namespace fc::primitives::ticket
 
+OUTCOME_HPP_DECLARE_ERROR(fc::primitives::ticket, EPoSTTicketCodecError)
+
+namespace fc::primitives::ticket {
   /**
    * @brief cbor-encode EPostTicket instance
    * @tparam Stream cbor-encoder stream type
@@ -90,10 +94,5 @@ namespace fc::primitives::ticket {
     return s;
   }
 }  // namespace fc::primitives::ticket
-
-/**
- * @brief tickets encode/decode Outcome errors declaration
- */
-OUTCOME_HPP_DECLARE_ERROR(fc::primitives::ticket, EPoSTTicketCodecError)
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TICKET_EPOST_TICKET_CODEC_HPP

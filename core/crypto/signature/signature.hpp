@@ -15,21 +15,22 @@
 #include "crypto/secp256k1/secp256k1_provider.hpp"
 
 namespace fc::crypto::signature {
+  enum class SignatureError {
+    INVALID_SIGNATURE_LENGTH = 1,
+    WRONG_SIGNATURE_TYPE,
+    INVALID_KEY_LENGTH
+  };
+}  // namespace fc::crypto::signature
+
+OUTCOME_HPP_DECLARE_ERROR(fc::crypto::signature, SignatureError);
+
+namespace fc::crypto::signature {
   using BlsSignature = bls::Signature;
   using Secp256k1Signature = secp256k1::Signature;
 
   enum Type : uint8_t { SECP256K1 = 0x1, BLS = 0x2 };
 
   constexpr uint64_t kSignatureMaxLength = 200;
-
-  /**
-   * @brief Signature error codes
-   */
-  enum class SignatureError {
-    INVALID_SIGNATURE_LENGTH = 1,
-    WRONG_SIGNATURE_TYPE,
-    INVALID_KEY_LENGTH
-  };
 
   struct Signature : public boost::variant<BlsSignature, Secp256k1Signature> {
     using variant::variant;
@@ -90,10 +91,5 @@ namespace fc::crypto::signature {
   }
 
 }  // namespace fc::crypto::signature
-
-/**
- * @brief Outcome errors declaration
- */
-OUTCOME_HPP_DECLARE_ERROR(fc::crypto::signature, SignatureError);
 
 #endif  // CPP_FILECOIN_CRYPTO_SIGNATURE_HPP

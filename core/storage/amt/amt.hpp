@@ -22,7 +22,11 @@ namespace fc::storage::amt {
     INDEX_TOO_BIG,
     NOT_FOUND,
   };
+}  // namespace fc::storage::amt
 
+OUTCOME_HPP_DECLARE_ERROR(fc::storage::amt, AmtError);
+
+namespace fc::storage::amt {
   constexpr size_t kWidth = 8;
   constexpr auto kMaxIndex = 1ull << 48;
 
@@ -194,7 +198,5 @@ namespace fc::storage::amt {
     boost::variant<CID, Root> root_;
   };
 }  // namespace fc::storage::amt
-
-OUTCOME_HPP_DECLARE_ERROR(fc::storage::amt, AmtError);
 
 #endif  // CPP_FILECOIN_STORAGE_AMT_AMT_HPP

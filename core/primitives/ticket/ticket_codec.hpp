@@ -14,12 +14,14 @@
 #include "primitives/ticket/ticket.hpp"
 
 namespace fc::primitives::ticket {
-
   enum class TicketCodecError: int {
     INVALID_TICKET_LENGTH = 1, // ticket decode error, invalid data length
   };
+}  // namespace fc::primitives::ticket
 
+OUTCOME_HPP_DECLARE_ERROR(fc::primitives::ticket, TicketCodecError)
 
+namespace fc::primitives::ticket {
   /**
    * @brief cbor-encodes Ticket instance
    * @tparam Stream cbor-encoder stream type
@@ -55,11 +57,5 @@ namespace fc::primitives::ticket {
   }
 
 }  // namespace fc::primitives::ticket
-
-/**
- * @brief tickets encode/decode Outcome errors declaration
- */
-OUTCOME_HPP_DECLARE_ERROR(fc::primitives::ticket, TicketCodecError)
-
 
 #endif  //CPP_FILECOIN_CORE_PRIMITIVES_TICKET_TICKET_CODEC_HPP
