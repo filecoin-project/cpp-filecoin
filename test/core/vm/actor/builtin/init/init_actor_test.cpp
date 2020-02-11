@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/init_actor.hpp"
+#include "vm/actor/builtin/init/init_actor.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -14,7 +14,7 @@
 #include "testutil/init_actor.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 
-namespace InitActor = fc::vm::actor::init_actor;
+namespace InitActor = fc::vm::actor::builtin::init;
 
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;

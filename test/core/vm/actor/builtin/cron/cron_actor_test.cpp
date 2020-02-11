@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/cron_actor.hpp"
+#include "vm/actor/builtin/cron/cron_actor.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
@@ -13,6 +13,7 @@
 using namespace fc::vm;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
+using fc::vm::actor::builtin::storage_power::SpaMethods;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MockRuntime;
 
@@ -28,7 +29,8 @@ TEST(CronActorTest, WrongSender) {
   actor::Actor actor;
   EXPECT_CALL(runtime, getMessage())
       .WillOnce(testing::Return(message_wrong_sender));
-  EXPECT_OUTCOME_FALSE(err, actor::cron_actor::epochTick(actor, runtime, {}));
+  EXPECT_OUTCOME_FALSE(err,
+                       actor::builtin::cron::epochTick(actor, runtime, {}));
   ASSERT_EQ(err, VMExitCode::CRON_ACTOR_WRONG_CALL);
 }
 
@@ -44,9 +46,9 @@ TEST(CronActorTest, Correct) {
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_CALL(runtime,
               send(actor::kStoragePowerAddress,
-                   MethodNumber{actor::SpaMethods::CHECK_PROOF_SUBMISSIONS},
+                   MethodNumber{SpaMethods::CHECK_PROOF_SUBMISSIONS},
                    MethodParams{},
                    actor::BigInt(0)))
       .WillOnce(testing::Return(fc::outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(actor::cron_actor::epochTick(actor, runtime, {}));
+  EXPECT_OUTCOME_TRUE_1(actor::builtin::cron::epochTick(actor, runtime, {}));
 }

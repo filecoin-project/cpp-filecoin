@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/account_actor.hpp"
+#include "vm/actor/builtin/account/account_actor.hpp"
 
 #include "testutil/init_actor.hpp"
 
 using fc::primitives::address::Address;
 using fc::vm::VMExitCode;
-using fc::vm::actor::AccountActor;
-using fc::vm::actor::AccountActorState;
+using fc::vm::actor::builtin::account::AccountActor;
+using fc::vm::actor::builtin::account::AccountActorState;
 using fc::vm::state::StateTree;
 
 /// Account actor state CBOR encoding and decoding

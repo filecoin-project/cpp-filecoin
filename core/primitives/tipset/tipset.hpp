@@ -98,7 +98,7 @@ namespace fc::primitives::tipset {
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Tipset &tipset) noexcept {
+  Stream &operator<<(Stream &&s, const Tipset &tipset) {
     return s << (s.list() << tipset.cids << tipset.blks << tipset.height);
   }
 

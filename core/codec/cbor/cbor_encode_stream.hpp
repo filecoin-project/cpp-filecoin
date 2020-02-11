@@ -61,6 +61,16 @@ namespace fc::codec::cbor {
       return *this << l;
     }
 
+    /// Encodes elements into map
+    template <typename T>
+    CborEncodeStream &operator<<(const std::map<std::string, T> &items) {
+      auto m = map();
+      for (auto &item : items) {
+        m[item.first] << item.second;
+      }
+      return *this << m;
+    }
+
     /// Encodes vector into list
     template <typename T>
     CborEncodeStream &operator<<(const std::vector<T> &values) {

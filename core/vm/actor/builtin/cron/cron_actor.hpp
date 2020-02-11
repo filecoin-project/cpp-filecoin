@@ -7,9 +7,10 @@
 #define CPP_FILECOIN_CORE_VM_ACTOR_CRON_ACTOR_HPP
 
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/storage_power_actor.hpp"
+#include "vm/actor/builtin/storage_power/storage_power_actor.hpp"
 
-namespace fc::vm::actor::cron_actor {
+namespace fc::vm::actor::builtin::cron {
+
   struct CronTableEntry {
     Address to_addr;
     MethodNumber method_num{};
@@ -28,8 +29,8 @@ namespace fc::vm::actor::cron_actor {
                                               Runtime &runtime,
                                               const MethodParams &params);
 
-  extern ActorExports exports;
+  extern const ActorExports exports;
 
-}  // namespace fc::vm::actor::cron_actor
+}  // namespace fc::vm::actor::builtin::cron
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_CRON_ACTOR_HPP

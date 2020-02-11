@@ -88,6 +88,15 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    /// Decodes elements to map
+    template <typename T>
+    CborDecodeStream &operator>>(std::map<std::string, T> &items) {
+      for (auto &m : map()) {
+         m.second >> items[m.first];
+      }
+      return *this;
+    }
+
     /** Decodes bytes */
     CborDecodeStream &operator>>(std::vector<uint8_t> &bytes);
     /** Decodes string */

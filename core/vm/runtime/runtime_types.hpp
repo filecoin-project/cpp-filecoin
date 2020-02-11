@@ -13,12 +13,9 @@
 
 namespace fc::vm::runtime {
 
-  using actor::MethodNumber;
-  using actor::MethodParams;
   using common::Buffer;
   using exit_code::ExitCode;
   using primitives::BigInt;
-  using primitives::address::Address;
 
   /**
    * Value returned by method invocation
