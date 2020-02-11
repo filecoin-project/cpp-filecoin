@@ -56,7 +56,7 @@ target_include_directories(filecoin_ffi PUBLIC ${PKG_FILECOIN_INCLUDE_DIRS})
 target_compile_options(filecoin_ffi PUBLIC ${PKG_FILECOIN_CFLAGS_OTHER})
 
 if (APPLE)
-    target_link_libraries(filecoin-ffi INTERFACE "-framework OpenCL")
+    target_link_libraries(filecoin_ffi INTERFACE "-framework OpenCL")
 endif (APPLE)
 
 set_target_properties(filecoin_ffi PROPERTIES
