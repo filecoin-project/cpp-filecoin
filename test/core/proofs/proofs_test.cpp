@@ -7,7 +7,6 @@
 
 #include <gtest/gtest.h>
 #include <random>
-#include "crypto/blake2/blake2b160.hpp"
 #include "proofs/proof_param_provider.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "testutil/outcome.hpp"

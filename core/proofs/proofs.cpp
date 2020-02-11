@@ -209,14 +209,22 @@ namespace fc::proofs {
       }
     }
 
-    const uint8_t(*c_randomness)[32] = &(randomness._M_elems);
+    uint8_t c_randomness[32];
+    for (size_t i = 0; i < randomness.size(); i++) {
+      c_randomness[i] = randomness[i];
+    }
+    const uint8_t(*ptr_c_randomness)[32] = &c_randomness;
 
-    const uint8_t(*c_prover_id)[32] = &(prover_id._M_elems);
+    uint8_t c_prover_id[32];
+    for (size_t i = 0; i < prover_id.size(); i++) {
+      c_prover_id[i] = prover_id[i];
+    }
+    const uint8_t(*ptr_c_prover_id)[32] = &c_prover_id;
 
     std::vector<FFICandidate> c_winners = cCandidates(winners);
 
     VerifyPoStResponse *resPtr = verify_post(sector_size,
-                                             c_randomness,
+                                             ptr_c_randomness,
                                              challenge_count,
                                              sorted_sector_ids.data(),
                                              sorted_sector_ids.size(),
@@ -226,7 +234,7 @@ namespace fc::proofs {
                                              proof.size(),
                                              c_winners.data(),
                                              c_winners.size(),
-                                             c_prover_id);
+                                             ptr_c_prover_id);
 
     if (resPtr->status_code != 0) {
       auto logger = common::createLogger("proofs");
@@ -249,19 +257,27 @@ namespace fc::proofs {
       const Randomness &randomness,
       const uint64_t challenge_count,
       const SortedPrivateReplicaInfo &sorted_private_replica_info) {
-    const uint8_t(*c_randomness)[32] = &(randomness._M_elems);
+    uint8_t c_randomness[32];
+    for (size_t i = 0; i < randomness.size(); i++) {
+      c_randomness[i] = randomness[i];
+    }
+    const uint8_t(*ptr_c_randomness)[32] = &c_randomness;
 
-    const uint8_t(*c_prover_id)[32] = &(prover_id._M_elems);
+    uint8_t c_prover_id[32];
+    for (size_t i = 0; i < prover_id.size(); i++) {
+      c_prover_id[i] = prover_id[i];
+    }
+    const uint8_t(*ptr_c_prover_id)[32] = &c_prover_id;
 
     std::vector<FFIPrivateReplicaInfo> c_sorted_private_sector_info =
         cPrivateReplicasInfo(sorted_private_replica_info.values);
 
     auto resPtr = generate_candidates(sector_size,
-                                      c_randomness,
+                                      ptr_c_randomness,
                                       challenge_count,
                                       c_sorted_private_sector_info.data(),
                                       c_sorted_private_sector_info.size(),
-                                      c_prover_id);
+                                      ptr_c_prover_id);
     if (resPtr->status_code != 0) {
       auto logger = common::createLogger("proofs");
       logger->error("generateCandidates: " + std::string(resPtr->error_msg));
@@ -282,20 +298,28 @@ namespace fc::proofs {
       gsl::span<const Candidate> winners) {
     std::vector<FFICandidate> c_winners = cCandidates(winners);
 
-    const uint8_t(*c_randomness)[32] = &(randomness._M_elems);
+    uint8_t c_randomness[32];
+    for (size_t i = 0; i < randomness.size(); i++) {
+      c_randomness[i] = randomness[i];
+    }
+    const uint8_t(*ptr_c_randomness)[32] = &c_randomness;
 
-    const uint8_t(*c_prover_id)[32] = &(prover_id._M_elems);
+    uint8_t c_prover_id[32];
+    for (size_t i = 0; i < prover_id.size(); i++) {
+      c_prover_id[i] = prover_id[i];
+    }
+    const uint8_t(*ptr_c_prover_id)[32] = &c_prover_id;
 
     std::vector<FFIPrivateReplicaInfo> c_sorted_private_sector_info =
         cPrivateReplicasInfo(private_replica_info.values);
 
     auto resPtr = generate_post(sectorSize,
-                                c_randomness,
+                                ptr_c_randomness,
                                 c_sorted_private_sector_info.data(),
                                 c_sorted_private_sector_info.size(),
                                 c_winners.data(),
                                 c_winners.size(),
-                                c_prover_id);
+                                ptr_c_prover_id);
 
     if (resPtr->status_code != 0) {
       auto logger = common::createLogger("proofs");
@@ -404,9 +428,17 @@ namespace fc::proofs {
       const Blob<32> &prover_id,
       const Blob<32> &ticket,
       gsl::span<const PublicPieceInfo> pieces) {
-    const uint8_t(*c_prover_id)[32] = &(prover_id._M_elems);
+    uint8_t c_prover_id[32];
+    for (size_t i = 0; i < prover_id.size(); i++) {
+      c_prover_id[i] = prover_id[i];
+    }
+    const uint8_t(*ptr_c_prover_id)[32] = &c_prover_id;
 
-    const uint8_t(*c_ticket)[32] = &(ticket._M_elems);
+    uint8_t c_ticket[32];
+    for (size_t i = 0; i < ticket.size(); i++) {
+      c_ticket[i] = ticket[i];
+    }
+    const uint8_t(*ptr_c_ticket)[32] = &c_ticket;
 
     std::vector<FFIPublicPieceInfo> c_pieces = cPublicPiecesInfo(pieces);
 
@@ -416,8 +448,8 @@ namespace fc::proofs {
                         staged_sector_path.c_str(),
                         sealed_sector_path.c_str(),
                         sector_id,
-                        c_prover_id,
-                        c_ticket,
+                        ptr_c_prover_id,
+                        ptr_c_ticket,
                         c_pieces.data(),
                         c_pieces.size());
     if (resPtr->status_code != 0) {
