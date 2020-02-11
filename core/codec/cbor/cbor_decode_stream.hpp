@@ -92,7 +92,7 @@ namespace fc::codec::cbor {
     template <typename T>
     CborDecodeStream &operator>>(std::map<std::string, T> &items) {
       for (auto &m : map()) {
-         m.second >> items[m.first];
+        m.second >> items[m.first];
       }
       return *this;
     }
@@ -116,8 +116,9 @@ namespace fc::codec::cbor {
     bool isNull() const;
     /** Returns count of items in current element list container */
     size_t listLength() const;
-    /** Returns CBOR bytes of current element */
-    std::vector<uint8_t> raw() const;
+    /** Reads CBOR bytes of current element (and advances to the next element)
+     */
+    std::vector<uint8_t> raw();
     /** Creates map container decode substream map */
     std::map<std::string, CborDecodeStream> map();
 
