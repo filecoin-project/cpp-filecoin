@@ -11,7 +11,7 @@
 
 namespace fc::common {
   /**
-   * @brief little-endian -encodes an integral value
+   * @brief little-endian-encodes an integral value
    * @tparam T integral value type
    * @param value integral value to encode
    * @param out output buffer
@@ -19,8 +19,9 @@ namespace fc::common {
   template <class T,
             typename I = std::decay_t<T>,
             typename = std::enable_if_t<std::is_integral<I>::value>>
-  void encodeInteger(T value,
-                     common::Buffer &out) {  // no need to take integers by &&
+  void encodeLebInteger(
+      T value,
+      common::Buffer &out) {  // no need to take integers by &&
     constexpr size_t size = sizeof(T);
     constexpr size_t bits = size * 8;
     boost::endian::endian_buffer<boost::endian::order::little, T, bits> buf{};

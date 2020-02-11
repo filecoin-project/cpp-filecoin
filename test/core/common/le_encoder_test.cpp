@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 using fc::common::Buffer;
-using fc::common::encodeInteger;
+using fc::common::encodeLebInteger;
 
 template <typename T>
 class IntegerTest : public ::testing::TestWithParam<std::pair<T, Buffer>> {
@@ -33,7 +33,7 @@ class Int8Test : public IntegerTest<int8_t> {};
 TEST_P(Int8Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   Buffer s{};
-  encodeInteger(value, s);
+  encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
 
@@ -59,7 +59,7 @@ class Uint8Test : public IntegerTest<uint8_t> {};
 TEST_P(Uint8Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   Buffer s{};
-  encodeInteger(value, s);
+  encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
 
@@ -82,7 +82,7 @@ class Int16Test : public IntegerTest<int16_t> {};
 TEST_P(Int16Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   Buffer s{};
-  encodeInteger(value, s);
+  encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
 
@@ -109,7 +109,7 @@ class Uint16Test : public IntegerTest<uint16_t> {};
 TEST_P(Uint16Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   Buffer s{};
-  encodeInteger(value, s);
+  encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
 
@@ -132,7 +132,7 @@ class Int32Test : public IntegerTest<int32_t> {};
 TEST_P(Int32Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   Buffer s{};
-  encodeInteger(value, s);
+  encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
 
@@ -155,7 +155,7 @@ class Uint32Test : public IntegerTest<uint32_t> {};
 TEST_P(Uint32Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   Buffer s{};
-  encodeInteger(value, s);
+  encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
 
@@ -178,7 +178,7 @@ class Int64Test : public IntegerTest<int64_t> {};
 TEST_P(Int64Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   Buffer s{};
-  encodeInteger(value, s);
+  encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
 
@@ -202,7 +202,7 @@ class Uint64Test : public IntegerTest<uint64_t> {};
 TEST_P(Uint64Test, EncodeSuccess) {
   auto [value, match] = GetParam();
   Buffer s{};
-  encodeInteger(value, s);
+  encodeLebInteger(value, s);
   ASSERT_EQ(s, match);
 }
 

@@ -65,8 +65,7 @@ namespace fc::primitives::ticket {
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const EPostProof &epp) {
-    return s << (s.list() << epp.proof << epp.post_rand
-                          << epp.candidates);
+    return s << (s.list() << epp.proof << epp.post_rand << epp.candidates);
   }
 
   /**
@@ -80,7 +79,8 @@ namespace fc::primitives::ticket {
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, EPostProof &epp) {
-    std::vector<uint8_t> proof, rand;
+    std::vector<uint8_t> proof;
+    std::vector<uint8_t> rand;
     s.list() >> proof >> rand >> epp.candidates;
     epp.proof = common::Buffer(std::move(proof));
     if (rand.size() != epp.post_rand.size()) {

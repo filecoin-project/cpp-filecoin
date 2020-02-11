@@ -22,8 +22,8 @@ namespace fc::crypto::vrf {
     auto required_bytes = sizeof(uint64_t) + 2 * sizeof(uint8_t)
                           + params.message.size() + miner_bytes.size();
     out.reserve(required_bytes);
-    common::encodeInteger(static_cast<uint64_t>(params.personalization_tag),
-                          out);
+    common::encodeLebInteger(static_cast<uint64_t>(params.personalization_tag),
+                             out);
     out.putUint8(0u);
     out.putBuffer(params.message);
     out.putUint8(0u);
