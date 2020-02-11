@@ -22,7 +22,8 @@ namespace fc::adt {
     using Value = storage::ipfs::IpfsDatastore::Value;
     using Visitor = std::function<outcome::result<void>(const Value &)>;
 
-    Multimap(const std::shared_ptr<storage::ipfs::IpfsDatastore> &store);
+    explicit Multimap(
+        const std::shared_ptr<storage::ipfs::IpfsDatastore> &store);
     Multimap(const std::shared_ptr<storage::ipfs::IpfsDatastore> &store,
              const CID &root);
 

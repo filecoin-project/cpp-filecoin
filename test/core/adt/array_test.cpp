@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <stdexcept>
+
 #include <gtest/gtest.h>
 
 #include "adt/array.hpp"
@@ -12,8 +14,32 @@
 #include "testutil/literals.hpp"
 
 struct Fixture : public ::testing::Test {
-  fc::adt::Array array_{
+  using Value = fc::adt::Array::Value;
+  std::shared_ptr<fc::storage::ipfs::IpfsDatastore> store_{
       std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
+  fc::adt::Array array_{store_};
+  std::vector<Value> values_{
+      Value{"06"_unhex}, Value{"07"_unhex}, Value{"08"_unhex}};
+
+  fc::outcome::result<void> appendValues(fc::adt::Array &array) {
+    for (auto &v : values_) {
+      auto res = array.append(v);
+      if (not res) {
+        return res.error();
+      }
+    }
+    return fc::outcome::success();
+  }
+
+  void checkValues(fc::adt::Array &array) {
+    auto index = 0u;
+    EXPECT_OUTCOME_TRUE_1(array.visit([&](const fc::adt::Array::Value &value) {
+      EXPECT_EQ(values_[index], gsl::make_span(value));
+      ++index;
+      return fc::outcome::success();
+    }))
+    EXPECT_EQ(index, values_.size());
+  }
 };
 
 /**
@@ -36,18 +62,43 @@ TEST_F(Fixture, BasicEmpty) {
  * @then the elements get accessed in the same order as they were appended
  */
 TEST_F(Fixture, OrderIsPreserved) {
-  std::vector<gsl::span<const uint8_t>> values{
-      "facade"_unhex, "cafe"_unhex, "babe"_unhex};
-  for (const auto &v : values) {
-    auto res = array_.append(v);
-    ASSERT_TRUE(res) << res.error().message();
-  }
-  auto index = 0;
-  EXPECT_OUTCOME_TRUE_1(array_.visit([&](const fc::adt::Array::Value &value) {
-    EXPECT_EQ(values[index], gsl::make_span(value));
-    ++index;
-    return fc::outcome::success();
-  }))
-  EXPECT_EQ(index, values.size());
+  EXPECT_OUTCOME_TRUE_1(appendValues(array_));
+  checkValues(array_);
   EXPECT_OUTCOME_TRUE_1(array_.flush());
+}
+
+/**
+ * @given an Array initialized with three values and saved
+ * @when another Array is initialized with the same root CID
+ * @then all the expected values can be accessed in expected order
+ */
+TEST_F(Fixture, AccessByCid) {
+  EXPECT_OUTCOME_TRUE_1(appendValues(array_));
+  EXPECT_OUTCOME_TRUE(array_root, array_.flush());
+  fc::adt::Array new_array{store_, array_root};
+  checkValues(new_array);
+}
+
+/**
+ * @given An initialized Array
+ * @when it is saved and elements are accessed via AMT abstraction
+ * @then elements order and indices are as expected
+ */
+TEST_F(Fixture, UnderlyingAmt) {
+  EXPECT_OUTCOME_TRUE_1(appendValues(array_));
+  EXPECT_OUTCOME_TRUE(array_root, array_.flush());
+
+  auto index = 0u;
+  fc::storage::amt::Amt amt{store_, array_root};
+  EXPECT_OUTCOME_TRUE_1(amt.visit(
+      [&index, this](auto &&k, auto &&v) -> fc::outcome::result<void> {
+        if (k != index) {
+          return std::errc::bad_address;
+        }
+        if (values_[index] != v) {
+          return std::errc::bad_message;
+        }
+        ++index;
+        return fc::outcome::success();
+      }));
 }

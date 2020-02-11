@@ -24,7 +24,7 @@ namespace fc::adt {
         std::function<outcome::result<void>(uint64_t, const Value &)>;
     using Visitor = std::function<outcome::result<void>(const Value &)>;
 
-    Array(const std::shared_ptr<storage::ipfs::IpfsDatastore> &store);
+    explicit Array(const std::shared_ptr<storage::ipfs::IpfsDatastore> &store);
     Array(const std::shared_ptr<storage::ipfs::IpfsDatastore> &store,
           const CID &root);
 
