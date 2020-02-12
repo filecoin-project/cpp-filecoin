@@ -13,9 +13,11 @@
 #include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::storage::chain {
+  using primitives::block::BlockHeader;
+  using primitives::tipset::Tipset;
 
   namespace {
-    static const DatastoreKey chain_head_key = makeKeyFromString("head");
+    const DatastoreKey chain_head_key = makeKeyFromString("head");
   }
 
   ChainStore::ChainStore(std::shared_ptr<ipfs::BlockService> block_service,
@@ -27,51 +29,40 @@ namespace fc::storage::chain {
     logger_ = common::createLogger("chain store");
   }
 
-  outcome::result<ChainStore> ChainStore::create(
+  outcome::result<std::shared_ptr<ChainStore>> ChainStore::create(
       std::shared_ptr<ipfs::BlockService> block_store,
       std::shared_ptr<ChainDataStore> data_store,
       std::shared_ptr<BlockValidator> block_validator) {
-    ChainStore cs(block_store, data_store, block_validator);
+    std::shared_ptr<ChainStore> cs{};
+    ChainStore tmp(std::move(block_store),
+                   std::move(data_store),
+                   std::move(block_validator));
+    cs.reset(new ChainStore(std::move(tmp)));
 
     // TODO (yuraz): FIL-151 initialize notifications
 
     return cs;
   }
 
-  /*
-    v, ok := cs.tsCache.Get(tsk)
-        if ok {
-                return v.(*types.TipSet), nil
-        }
-
-        var blks []*types.BlockHeader
-        for _, c := range tsk.Cids() {
-                b, err := cs.GetBlock(c)
-                if err != nil {
-                        return nil, xerrors.Errorf("get block %s: %w", c, err)
-                }
-
-                blks = append(blks, b)
-        }
-
-        ts, err := types.NewTipSet(blks)
-        if err != nil {
-                return nil, err
-        }
-
-        cs.tsCache.Add(tsk, ts)
-
-        return ts, nil
-   */
-
   outcome::result<ChainStore::Tipset> ChainStore::loadTipset(
       const primitives::tipset::TipsetKey &key) {
-    primitives::tipset::Tipset tipset{};
+    std::vector<BlockHeader> blocks;
+    blocks.reserve(key.cids.size());
+    // TODO (yuraz): FIL-151 check cache
+
     for (auto &cid : key.cids) {
-      //      OUTCOME_TRY(block, block_service_->getBlockContent())
+      OUTCOME_TRY(block, getBlock(cid));
+      blocks.push_back(std::move(block));
     }
 
-    return tipset;
+    // TODO(yuraz): FIL-155 add tipset to cache before returning
+
+    return Tipset::create(std::move(blocks));
+  }
+
+  outcome::result<BlockHeader> ChainStore::getBlock(const CID &cid) const {
+    OUTCOME_TRY(bytes, block_service_->getBlockContent(cid));
+    return codec::cbor::decode<BlockHeader>(bytes);
   }
 
   outcome::result<void> ChainStore::load() {

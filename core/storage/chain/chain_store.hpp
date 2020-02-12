@@ -51,10 +51,11 @@ namespace fc::storage::chain {
     using Tipset = primitives::tipset::Tipset;
     using TipsetKey = primitives::tipset::TipsetKey;
     using Randomness = crypto::randomness::Randomness;
+    using BlockHeader = primitives::block::BlockHeader;
     /*
      * @brief creates new ChainStore instance
      */
-    static outcome::result<ChainStore> create(
+    static outcome::result<std::shared_ptr<ChainStore>> create(
         std::shared_ptr<ipfs::BlockService> block_service,
         std::shared_ptr<ChainDataStore> data_store,
         std::shared_ptr<BlockValidator> block_validator);
@@ -80,10 +81,14 @@ namespace fc::storage::chain {
     outcome::result<Randomness> drawRandomness(const std::vector<CID> &blks,
                                                uint64_t round);
 
+    outcome::result<BlockHeader> getBlock(const CID &cid) const;
+
    private:
     ChainStore(std::shared_ptr<ipfs::BlockService> block_service,
                std::shared_ptr<ChainDataStore> data_store,
                std::shared_ptr<BlockValidator> block_validator);
+
+    ChainStore(ChainStore &&other) = default;
 
     void takeHeaviestTipSet(const Tipset &tipset);
 
