@@ -51,7 +51,7 @@ namespace fc::power {
      * In order to save semantic constant regarless of syntax constant
      * correctness the power_table_ field is marked as mutable.
      *
-     * Remove mutable keyword after HAMT getter have const qualifier.
+     * Remove mutable keyword after HAMT getter has const qualifier.
      */
     mutable Hamt power_table_;
   };

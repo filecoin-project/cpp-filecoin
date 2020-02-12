@@ -110,7 +110,8 @@ namespace fc::vm::actor::builtin::storage_power {
 
     // Compute actual (consensus) power, i.e., votes in leader election.
     power::Power power = nominal_power;
-    if (!minerNominalPowerMeetsConsensusMinimum(nominal_power)) {
+    OUTCOME_TRY(meetsConsensusMinimum, minerNominalPowerMeetsConsensusMinimum(nominal_power));
+    if (!meetsConsensusMinimum) {
       power = 0;
     }
 
@@ -180,6 +181,7 @@ namespace fc::vm::actor::builtin::storage_power {
       const power::Power &updated_power) {
     return claimed_power_->setMinerPower(miner_addr, updated_power);
   }
+
   outcome::result<power::Power> StoragePowerActorState::getPowerTotalForMiner(
       const primitives::address::Address &miner_addr) const {
     return power_table_->getMinerPower(miner_addr);

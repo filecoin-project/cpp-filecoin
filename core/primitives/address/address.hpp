@@ -86,8 +86,8 @@ namespace fc::primitives::address {
 
     bool verifySyntax(gsl::span<const uint8_t> seed_data) const;
 
-    Network network{};
-    Payload data{};
+    Network network;
+    Payload data;
   };
 
   /**

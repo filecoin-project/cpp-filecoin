@@ -53,6 +53,11 @@ namespace fc::vm {
       case E::MULTISIG_ACTOR_ILLEGAL_STATE:
         return 20;  // ErrIllegalState in actor-specs
 
+      case E::PAYMENT_CHANNEL_WRONG_CALLER:
+        return 1;
+      case E::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT:
+        return 16;  // ErrIllegalArgument in actor-specs
+
       // TODO(turuslan): FIL-128 StoragePowerActor
       case E::STORAGE_POWER_ACTOR_OUT_OF_BOUND:
       case E::STORAGE_POWER_ACTOR_ALREADY_EXISTS:
