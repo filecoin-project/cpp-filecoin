@@ -5,20 +5,21 @@
 
 #include "proofs/proof_param_provider.hpp"
 
-#include <boost/asio/connect.hpp>
-#include <boost/asio/ip/tcp.hpp>
-#include <boost/beast/core.hpp>
-#include <boost/beast/http.hpp>
-#include <boost/beast/version.hpp>
-#include <boost/lexical_cast.hpp>
-#include <boost/property_tree/json_parser.hpp>
-#include <common/outcome.hpp>
 #include <cstdlib>
 #include <iostream>
 #include <regex>
 #include <string>
 #include <thread>
+#include "boost/asio/connect.hpp"
+#include "boost/asio/ip/tcp.hpp"
+#include "boost/beast/core.hpp"
+#include "boost/beast/http.hpp"
+#include "boost/beast/version.hpp"
 #include "boost/filesystem.hpp"
+#include "boost/lexical_cast.hpp"
+#include "boost/property_tree/json_parser.hpp"
+#include "common/logger.hpp"
+#include "common/outcome.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "proofs/proof_param_provider_error.hpp"
 
@@ -53,7 +54,7 @@ namespace fc::proofs {
       response.host = match[2];
       response.target = match[3];
     } else {
-      return outcome::success();  // TODO: ERROR
+      return ProofParamProviderError::INVALID_URL;
     }
 
     return response;
@@ -136,7 +137,7 @@ namespace fc::proofs {
       // If we get here then the connection is closed gracefully
     } catch (std::exception const &e) {
       std::cerr << "Error: " << e.what() << std::endl;
-      return outcome::success();  // TODO: ERROR
+      return ProofParamProviderError::FAILED_DOWNLOADING;
     }
     return outcome::success();
   }
@@ -152,9 +153,9 @@ namespace fc::proofs {
     try {
       boost::filesystem::create_directories(getParamDir());
     } catch (const std::exception &e) {
-      std::cerr << "Error: " << e.what() << "\n";
-      return outcome::success();  // TODO: ERROR
+      return ProofParamProviderError::CANNOT_CREATE_DIR;
     }
+
     std::vector<std::thread> threads;
     for (const auto &param_file : param_files) {
       if (param_file.sector_size != storage_size
@@ -199,11 +200,15 @@ namespace fc::proofs {
   void ProofParamProvider::fetch(const ParamFile &info) {
     auto path = boost::filesystem::path(getParamDir())
                 / boost::filesystem::path(info.name);
+
+    auto logger = common::createLogger("proofs params");
+    logger->info("Fetch " + info.name);
     auto res = checkFile(path.string(), info);
     if (!res.has_error()) {
-      return;  // All is right
+      logger->info(info.name + " already uploaded");
+      return;
     } else if (!boost::filesystem::exists(path)) {
-      // TODO: warning more concrete
+      logger->warn(res.error().message());
     }
 
     fetch_mutex_.lock();
@@ -211,7 +216,7 @@ namespace fc::proofs {
     auto fetch_res = doFetch(path.string(), info);
 
     if (fetch_res.has_error()) {
-      // TODO write error
+      logger->error(res.error().message());
       fetch_mutex_.unlock();
       return;
     }
@@ -219,15 +224,14 @@ namespace fc::proofs {
     res = checkFile(path.string(), info);
 
     if (res.has_error()) {
-      // TODO write error
+      logger->error(res.error().message());
       boost::filesystem::remove(path);
       fetch_mutex_.unlock();
       return;
     }
 
+    logger->info(info.name + " uploaded successfully");
     fetch_mutex_.unlock();
-
-    return;
   }
 
   namespace pt = boost::property_tree;

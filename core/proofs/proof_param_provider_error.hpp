@@ -19,6 +19,9 @@ namespace fc::proofs {
     MISSING_ENTRY,
     INVALID_SECTOR_SIZE,
     INVALID_JSON,
+    INVALID_URL,
+    FAILED_DOWNLOADING,
+    CANNOT_CREATE_DIR,
   };
 
 }  // namespace fc::proofs

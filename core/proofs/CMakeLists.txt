@@ -12,6 +12,7 @@ target_link_libraries(proof_param_provider
         Boost::system
         outcome
         blake2
+        logger
         )
 
 add_custom_command(
@@ -35,4 +36,5 @@ target_link_libraries(proofs
         outcome
         blob
         proof_param_provider
+        logger
         )

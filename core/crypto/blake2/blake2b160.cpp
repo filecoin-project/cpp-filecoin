@@ -22,8 +22,7 @@ namespace fc::crypto::blake2b {
     return res;
   }
 
-  Blake2b256Hash blake2b_256(
-      gsl::span<const uint8_t> to_hash) {
+  Blake2b256Hash blake2b_256(gsl::span<const uint8_t> to_hash) {
     Blake2b256Hash res{};
     ::blake2b(res.data(),
               BLAKE2B256_HASH_LENGTH,
@@ -35,6 +34,8 @@ namespace fc::crypto::blake2b {
   }
 
   Blake2b512Hash blake2b_512_from_file(std::ifstream &file_stream) {
+    if (!file_stream.is_open()) return {};
+
     EVP_MD_CTX *mdctx = EVP_MD_CTX_new();
     const EVP_MD *blake2b = EVP_blake2b512();
     EVP_DigestInit_ex(mdctx, blake2b, NULL);
@@ -42,7 +43,7 @@ namespace fc::crypto::blake2b {
     const int one_kb = 1024;
     std::string bytes(one_kb, ' ');
     int bytes_count = file_stream.readsome(bytes.data(), one_kb);
-    while (bytes_count != 0){
+    while (bytes_count != 0) {
       EVP_DigestUpdate(mdctx, bytes.data(), bytes_count);
       bytes_count = file_stream.readsome(bytes.data(), one_kb);
     }
