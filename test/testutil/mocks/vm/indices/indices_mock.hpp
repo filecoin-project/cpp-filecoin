@@ -13,10 +13,10 @@ namespace fc::vm::indices {
 
   class MockIndices : public Indices {
    public:
-    MOCK_METHOD0(storagePowerConsensusMinMinerPower, fc::primitives::BigInt());
+    MOCK_METHOD0(storagePowerConsensusMinMinerPower, fc::power::Power());
 
     MOCK_METHOD1(consensusPowerForStorageWeight,
-                 fc::primitives::BigInt(actor::SectorStorageWeightDesc));
+                 fc::power::Power(actor::SectorStorageWeightDesc));
   };
 
 }  // namespace fc::vm::indices

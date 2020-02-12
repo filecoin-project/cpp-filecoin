@@ -115,9 +115,15 @@ namespace fc::storage::hamt {
                               gsl::span<const uint8_t> value);
     /** Get value by key */
     outcome::result<Value> get(const std::string &key);
-    /** Remove value by key, does not write to storage */
+    /**
+     * Remove value by key, does not write to storage.
+     * Returns NOT_Found if element doesn't exist.
+     */
     outcome::result<void> remove(const std::string &key);
-    /** Write changes made by set and remove to storage */
+    /**
+     * Write changes made by set and remove to storage
+     * @return new root
+     */
     outcome::result<CID> flush();
     /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor);

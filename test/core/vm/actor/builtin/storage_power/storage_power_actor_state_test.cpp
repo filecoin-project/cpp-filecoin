@@ -85,7 +85,7 @@ TEST_F(StoragePowerActorTest, addClaimedPowerForSector_Success) {
   EXPECT_CALL(*indices, storagePowerConsensusMinMinerPower())
       .WillRepeatedly(testing::Return(1));
 
-  fc::primitives::BigInt min_candidate_storage_value = kMinMinerSizeStor;
+  fc::power::Power min_candidate_storage_value = kMinMinerSizeStor;
 
   EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(min_candidate_storage_value));

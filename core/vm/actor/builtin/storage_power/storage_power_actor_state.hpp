@@ -145,7 +145,7 @@ namespace fc::vm::actor::builtin::storage_power {
      * @param miner_power is address of the miner
      * @return true or false
      */
-    bool minerNominalPowerMeetsConsensusMinimum(
+    outcome::result<bool> minerNominalPowerMeetsConsensusMinimum(
         const power::Power &miner_power);
 
     /**

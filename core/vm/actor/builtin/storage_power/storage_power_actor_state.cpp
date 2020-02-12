@@ -14,7 +14,7 @@ namespace fc::vm::actor::builtin::storage_power {
   StoragePowerActorState::StoragePowerActorState(
       std::shared_ptr<Indices> indices,
       std::shared_ptr<crypto::randomness::RandomnessProvider>
-      randomness_provider)
+          randomness_provider)
       : indices_(std::move(indices)),
         randomness_provider_(std::move(randomness_provider)),
         total_network_power_(0),
@@ -30,7 +30,8 @@ namespace fc::vm::actor::builtin::storage_power {
       const crypto::randomness::Randomness &randomness) {
     std::vector<primitives::address::Address> selected_miners;
 
-    if (power_table_->getSize() < challenge_count) {
+    OUTCOME_TRY(size, power_table_->getSize());
+    if (size < challenge_count) {
       return VMExitCode::STORAGE_POWER_ACTOR_OUT_OF_BOUND;
     }
 
@@ -149,7 +150,8 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  bool StoragePowerActorState::minerNominalPowerMeetsConsensusMinimum(
+  outcome::result<bool>
+  StoragePowerActorState::minerNominalPowerMeetsConsensusMinimum(
       const power::Power &miner_power) {
     // if miner is larger than min power requirement, we're set
     if (miner_power >= kMinMinerSizeStor) {
@@ -162,13 +164,15 @@ namespace fc::vm::actor::builtin::storage_power {
     }
 
     // else if none do, check whether in MIN_MINER_SIZE_TARG miners
-    if (power_table_->getSize() <= kMinMinerSizeTarg) {
+    OUTCOME_TRY(size, power_table_->getSize());
+    if (size <= kMinMinerSizeTarg) {
       // miner should pass
       return true;
     }
 
     // get size of MIN_MINER_SIZE_TARGth largest miner
-    return miner_power >= power_table_->getMaxPower();
+    OUTCOME_TRY(max_power, power_table_->getMaxPower());
+    return max_power <= miner_power;
   }
 
   outcome::result<void> StoragePowerActorState::setClaimedPowerEntryInternal(
