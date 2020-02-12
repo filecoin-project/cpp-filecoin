@@ -9,15 +9,18 @@
 #include <boost/optional.hpp>
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/enum.hpp"
+#include "power/power_table.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/chain_epoch.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
+#include "vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor::builtin::reward {
 
   using TokenAmount = primitives::BigInt;
+  using Power = power::Power;
 
   enum class VestingFunction : uint64_t {
     NONE = 0,
@@ -76,6 +79,54 @@ namespace fc::vm::actor::builtin::reward {
     s.list() >> state.reward_map >> state.reward_total;
     return s;
   }
+
+  // Actor related stuff
+
+  static const BigInt kTokenPrecision{1e18};
+  static const BigInt kBlockRewardTarget{1e20};
+
+  static constexpr auto kRewardVestingFunction{VestingFunction::NONE};
+  static const primitives::EpochDuration kRewardVestingPeriod{0};
+
+  struct AwardBlockRewardParams {
+    Address miner;
+    TokenAmount penalty;
+    TokenAmount gas_reward;
+    Power nominal_power;
+  };
+
+  CBOR_ENCODE(AwardBlockRewardParams, v) {
+    return s << (s.list() << v.miner << v.penalty << v.gas_reward
+                          << v.nominal_power.convert_to<BigInt>());
+  }
+
+  CBOR_DECODE(AwardBlockRewardParams, v) {
+    BigInt power;
+    s.list() >> v.miner >> v.penalty >> v.gas_reward >> power;
+    v.nominal_power = power.convert_to<decltype(v.nominal_power)>();
+    return s;
+  }
+
+  constexpr MethodNumber kAwardBlockRewardMethodNumber{2};
+  constexpr MethodNumber kWithdrawRewardMethodNumber{3};
+
+  extern const ActorExports exports;
+
+  class RewardActor {
+   public:
+    static outcome::result<InvocationOutput> construct(
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
+
+    static outcome::result<InvocationOutput> awardBlockReward(
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
+
+    static outcome::result<InvocationOutput> withdrawReward(
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
+
+   private:
+    static TokenAmount computeBlockReward(const State &state,
+                                          const TokenAmount &balance);
+  };
 
 }  // namespace fc::vm::actor::builtin::reward
 

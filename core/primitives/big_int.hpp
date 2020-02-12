@@ -13,8 +13,7 @@
 namespace fc::primitives {
   using boost::multiprecision::cpp_int;
 
-  struct UBigInt : cpp_int,
-                   boost::totally_ordered<UBigInt, int> {
+  struct UBigInt : cpp_int, boost::totally_ordered<UBigInt, int> {
     using cpp_int::cpp_int;
 
     inline bool operator==(int other) const {
@@ -31,6 +30,11 @@ namespace fc::primitives {
 
     inline bool operator<(const UBigInt &other) const {
       return static_cast<cpp_int>(*this) < static_cast<cpp_int>(other);
+    }
+
+    template <typename T>
+    inline UBigInt operator+(const T &other) const {
+      return static_cast<cpp_int>(*this) + static_cast<cpp_int>(other);
     }
 
     inline UBigInt operator*(const UBigInt &other) const {

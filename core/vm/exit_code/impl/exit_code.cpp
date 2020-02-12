@@ -53,7 +53,7 @@ namespace fc::vm {
       case E::MULTISIG_ACTOR_ILLEGAL_STATE:
         return 20;  // ErrIllegalState in actor-specs
 
-      // TODO(turuslan): FIL-128 StoragePowerActor
+        // TODO(turuslan): FIL-128 StoragePowerActor
       case E::STORAGE_POWER_ACTOR_OUT_OF_BOUND:
       case E::STORAGE_POWER_ACTOR_ALREADY_EXISTS:
         break;
@@ -66,6 +66,7 @@ namespace fc::vm {
         return 1;
 
       case E::REWARD_ACTOR_NEGATIVE_WITHDRAWABLE:
+      case E::REWARD_ACTOR_WRONG_CALLER:
         return 1;
     }
     BOOST_ASSERT_MSG(false, "Ret code mapping missing");

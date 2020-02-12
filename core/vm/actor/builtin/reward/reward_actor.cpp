@@ -13,6 +13,11 @@ using fc::adt::Multimap;
 
 namespace fc::vm::actor::builtin::reward {
 
+  const ActorExports exports = {
+      {kAwardBlockRewardMethodNumber,
+       ActorMethod(RewardActor::awardBlockReward)},
+      {kWithdrawRewardMethodNumber, ActorMethod(RewardActor::withdrawReward)}};
+
   auto asBig(const primitives::UBigInt &u) {
     return u.convert_to<primitives::BigInt>();
   }
@@ -94,6 +99,87 @@ namespace fc::vm::actor::builtin::reward {
     reward_map = rewards_root;
     reward_total -= withdrawable_sum;
     return withdrawable_sum;
+  }
+
+  outcome::result<InvocationOutput> RewardActor::construct(
+      const Actor &actor, Runtime &runtime, const MethodParams &params) {
+    if (runtime.getImmediateCaller() != kSystemActorAddress) {
+      return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+    }
+
+    Multimap empty_mmap{runtime.getIpfsDatastore()};
+    OUTCOME_TRY(empty_mmap_cid, empty_mmap.flush());
+    State empty_state{.reward_map = empty_mmap_cid, .reward_total = 0};
+
+    OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(empty_state));
+    OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
+    return outcome::success();
+  }
+
+  outcome::result<InvocationOutput> RewardActor::awardBlockReward(
+      const Actor &actor, Runtime &runtime, const MethodParams &params) {
+    if (runtime.getImmediateCaller() != kSystemActorAddress) {
+      return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
+    }
+    OUTCOME_TRY(reward_params,
+                decodeActorParams<AwardBlockRewardParams>(params));
+    assert(reward_params.gas_reward == runtime.getValueReceived());
+    OUTCOME_TRY(prior_balance,
+                runtime.getBalance(runtime.getMessage().get().to));
+    TokenAmount penalty{0};
+    auto state_cid = runtime.getCurrentActorState();
+    OUTCOME_TRY(state, runtime.getIpfsDatastore()->getCbor<State>(state_cid));
+
+    auto block_reward = computeBlockReward(state, reward_params.gas_reward);
+    auto total_reward = block_reward + reward_params.gas_reward;
+
+    penalty = std::min(reward_params.penalty, total_reward);
+    auto reward_payable = total_reward - penalty;
+
+    assert(total_reward <= prior_balance);
+
+    if (reward_payable > TokenAmount{0}) {
+      auto current_epoch = runtime.getCurrentEpoch();
+      Reward new_reward{.start_epoch = current_epoch,
+                        .end_epoch = current_epoch + kRewardVestingPeriod,
+                        .value = reward_payable,
+                        .amount_withdrawn = 0,
+                        .vesting_function = kRewardVestingFunction};
+      OUTCOME_TRY(state.addReward(
+          runtime.getIpfsDatastore(), reward_params.miner, new_reward));
+      OUTCOME_TRY(new_state_cid, runtime.getIpfsDatastore()->setCbor(state));
+      OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_state_cid}));
+    }
+    OUTCOME_TRY(runtime.send(
+        kBurntFundsActorAddress, kSendMethodNumber, MethodParams{}, penalty));
+    return outcome::success();
+  }
+
+  outcome::result<InvocationOutput> RewardActor::withdrawReward(
+      const Actor &actor, Runtime &runtime, const MethodParams &params) {
+    if (not isSignableActor(actor.code)) {
+      return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
+    }
+    auto owner = runtime.getMessage().get().from;
+
+    auto state_cid = runtime.getCurrentActorState();
+    auto store = runtime.getIpfsDatastore();
+    OUTCOME_TRY(state, store->getCbor<State>(state_cid));
+    OUTCOME_TRY(withdrawn,
+                state.withdrawReward(store, owner, runtime.getCurrentEpoch()));
+    OUTCOME_TRY(new_state_cid, runtime.getIpfsDatastore()->setCbor(state));
+    OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_state_cid}));
+    OUTCOME_TRY(
+        runtime.send(owner, kSendMethodNumber, MethodParams{}, withdrawn));
+
+    return outcome::success();
+  }
+
+  TokenAmount RewardActor::computeBlockReward(const State &state,
+                                              const TokenAmount &balance) {
+    auto treasury = balance - state.reward_total;
+    auto target_reward = kBlockRewardTarget;
+    return std::min(target_reward, treasury);
   }
 
 }  // namespace fc::vm::actor::builtin::reward

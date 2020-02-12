@@ -29,6 +29,9 @@ namespace fc::vm::actor {
   /// Actor methods exported by number
   using ActorExports = std::map<MethodNumber, ActorMethod>;
 
+  /// Reserved method number for send operation
+  constexpr MethodNumber kSendMethodNumber{0};
+
   /// Reserved method number for constructor
   constexpr MethodNumber kConstructorMethodNumber{1};
 
