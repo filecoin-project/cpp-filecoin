@@ -17,7 +17,7 @@ namespace fc::storage::chain {
 
   outcome::result<std::string> ChainDataStore::get(
       const DatastoreKey &key) const {
-    OUTCOME_TRY(cid, getCidOfCbor(key));
+    OUTCOME_TRY(cid, getCidOfCbor(key.value));
     OUTCOME_TRY(bytes, store_->get(cid));
     std::string str{bytes.begin(), bytes.end()};
 
@@ -26,7 +26,7 @@ namespace fc::storage::chain {
 
   outcome::result<void> ChainDataStore::set(const DatastoreKey &key,
                                             std::string_view value) {
-    OUTCOME_TRY(cid, getCidOfCbor(key));
+    OUTCOME_TRY(cid, getCidOfCbor(key.value));
     std::vector<uint8_t> bytes{value.begin(), value.end()};
     ipfs::IpfsDatastore::Value buffer{std::move(bytes)};
     return store_->set(cid, buffer);
@@ -34,7 +34,7 @@ namespace fc::storage::chain {
 
   outcome::result<bool> ChainDataStore::contains(
       const DatastoreKey &key) const {
-    OUTCOME_TRY(cid, getCidOfCbor(key));
+    OUTCOME_TRY(cid, getCidOfCbor(key.value));
     return store_->contains(cid);
   }
 }  // namespace fc::storage::chain
