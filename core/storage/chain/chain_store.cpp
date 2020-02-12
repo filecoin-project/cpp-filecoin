@@ -17,7 +17,7 @@ namespace fc::storage::chain {
   using primitives::tipset::Tipset;
 
   namespace {
-    const DatastoreKey chain_head_key = makeKeyFromString("head");
+    const DatastoreKey chain_head_key = DatastoreKey::makeFromString("head");
   }
 
   ChainStore::ChainStore(std::shared_ptr<ipfs::BlockService> block_service,
@@ -93,7 +93,7 @@ namespace fc::storage::chain {
   crypto::randomness::Randomness drawRandomnessInternal(
       const primitives::ticket::Ticket &ticket, uint64_t round) {
     common::Buffer buffer{};
-    const size_t bytes_required = sizeof(round) + sizeof(ticket.bytes);
+    const size_t bytes_required = sizeof(round) + ticket.bytes.size();
     buffer.reserve(bytes_required);
 
     buffer.put(ticket.bytes);
@@ -104,7 +104,6 @@ namespace fc::storage::chain {
     return crypto::randomness::Randomness(hash);
   }
 
-  // TODO (yuraz): implement
   outcome::result<ChainStore::Randomness> ChainStore::drawRandomness(
       const std::vector<CID> &blks, uint64_t round) {
     std::reference_wrapper<const std::vector<CID>> cids{blks};

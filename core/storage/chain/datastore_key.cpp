@@ -26,11 +26,12 @@ namespace fc::storage {
     return boost::filesystem::path(std::string(v)).normalize().string();
   }
 
-  DatastoreKey makeKeyFromString(std::string_view value) {
+  DatastoreKey DatastoreKey::makeFromString(std::string_view value) noexcept {
     return DatastoreKey{formatKeyData(value)};
   }
 
-  outcome::result<DatastoreKey> makeRawKey(std::string_view value) {
+  outcome::result<DatastoreKey> DatastoreKey::makeRaw(
+      std::string_view value) noexcept {
     if (value.empty()) {
       return DatastoreKey{"/"};
     }
@@ -65,7 +66,7 @@ namespace fc::storage {
   bool operator==(const DatastoreKey &lhs, const DatastoreKey &rhs) {
     return lhs.value == rhs.value;
   }
-}  // namespace fc::storage::ipfs
+}  // namespace fc::storage
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage, DatastoreKeyError, e) {
   using fc::storage::DatastoreKeyError;
