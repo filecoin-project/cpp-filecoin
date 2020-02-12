@@ -64,6 +64,9 @@ namespace fc::vm {
 
       case E::CRON_ACTOR_WRONG_CALL:
         return 1;
+
+      case E::REWARD_ACTOR_NEGATIVE_WITHDRAWABLE:
+        return 1;
     }
     BOOST_ASSERT_MSG(false, "Ret code mapping missing");
   }

@@ -1,0 +1,99 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "vm/actor/builtin/reward/reward_actor.hpp"
+
+#include "adt/multimap.hpp"
+#include "primitives/address/address_codec.hpp"
+#include "vm/exit_code/exit_code.hpp"
+
+using fc::adt::Multimap;
+
+namespace fc::vm::actor::builtin::reward {
+
+  auto asBig(const primitives::UBigInt &u) {
+    return u.convert_to<primitives::BigInt>();
+  }
+
+  primitives::BigInt Reward::amountVested(
+      const primitives::ChainEpoch &current_epoch) {
+    auto elapsed = current_epoch - start_epoch;
+    switch (vesting_function) {
+      case VestingFunction::NONE:
+        return value;
+      case VestingFunction::LINEAR: {
+        auto vest_duration{end_epoch - start_epoch};
+        if (asBig(elapsed) >= asBig(vest_duration)) {
+          return value;
+        }
+        return (value * elapsed) / asBig(vest_duration);
+      }
+      default:
+        return 0;
+    }
+  }
+
+  outcome::result<void> State::addReward(
+      const std::shared_ptr<storage::ipfs::IpfsDatastore> &store,
+      const Address &owner,
+      const Reward &reward) {
+    auto rewards = Multimap(store, reward_map);
+    auto key_bytes = primitives::address::encode(owner);
+    std::string key(key_bytes.begin(), key_bytes.end());
+    OUTCOME_TRY(rewards.addCbor(key, reward));
+    OUTCOME_TRY(mmap_root, rewards.flush());
+    reward_map = mmap_root;
+    reward_total += reward.value;
+    return outcome::success();
+  }
+
+  outcome::result<TokenAmount> State::withdrawReward(
+      const std::shared_ptr<storage::ipfs::IpfsDatastore> &store,
+      const Address &owner,
+      const primitives::ChainEpoch &current_epoch) {
+    auto rewards = Multimap(store, reward_map);
+    auto key_bytes = primitives::address::encode(owner);
+    std::string key(key_bytes.begin(), key_bytes.end());
+
+    std::vector<Reward> remaining_rewards;
+    TokenAmount withdrawable_sum{0};
+    OUTCOME_TRY(rewards.visit(
+        key,
+        [&current_epoch, &withdrawable_sum, &remaining_rewards](
+            auto &&value) -> outcome::result<void> {
+          OUTCOME_TRY(reward, codec::cbor::decode<Reward>(value));
+          auto unlocked = reward.amountVested(current_epoch);
+          auto withdrawable = unlocked - reward.amount_withdrawn;
+          if (withdrawable < 0) {
+            /*
+             * could be good to log somehow these values:
+             * - withdrawable
+             * - reward
+             * - current epoch
+             */
+            return vm::VMExitCode::REWARD_ACTOR_NEGATIVE_WITHDRAWABLE;
+          }
+          withdrawable_sum += withdrawable;
+          if (unlocked < reward.value) {
+            Reward new_reward(reward);
+            new_reward.amount_withdrawn = unlocked;
+            remaining_rewards.emplace_back(std::move(new_reward));
+          }
+          return outcome::success();
+        }));
+
+    assert(withdrawable_sum < reward_total);
+
+    OUTCOME_TRY(rewards.removeAll(key));
+    for (const Reward &rr : remaining_rewards) {
+      OUTCOME_TRY(rewards.addCbor(key, rr));
+    }
+    OUTCOME_TRY(rewards_root, rewards.flush());
+    reward_map = rewards_root;
+    reward_total -= withdrawable_sum;
+    return withdrawable_sum;
+  }
+
+}  // namespace fc::vm::actor::builtin::reward
