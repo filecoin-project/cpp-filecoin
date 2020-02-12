@@ -44,6 +44,20 @@ namespace fc::storage::ipfs::merkledag {
     virtual outcome::result<void> removeNode(const CID &cid) = 0;
 
     /**
+     * @brief Get nodes with IPLD-selector
+     * @param root_cid - bytes of the root Node CID
+     * @param selector - IPLD-selector raw bytes
+     * @param handler - receiver of the selected Nodes, should return false to
+     * break receiving process
+     * @return count of the received by handler Nodes
+     */
+    virtual outcome::result<size_t> select(
+        gsl::span<const uint8_t> root_cid,
+        gsl::span<const uint8_t> selector,
+        std::function<bool(std::shared_ptr<const Node> node)> handler)
+        const = 0;
+
+    /**
      * @brief Fetcg graph from given root node
      * @param cid - identifier of the root node
      * @return operation result
