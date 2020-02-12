@@ -31,10 +31,3 @@ target_link_libraries(ipfs_blockservice
     )
 
 add_subdirectory(merkledag)
-
-add_library(datastore_key
-    datastore_key.cpp
-    )
-target_link_libraries(datastore_key
-    Boost::boost
-    )

@@ -7,19 +7,19 @@
 
 #include "common/le_encoder.hpp"
 #include "common/outcome.hpp"
+#include "datastore_key.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/cid/json_codec.hpp"
 #include "primitives/tipset/tipset_key.hpp"
-#include "storage/ipfs/datastore_key.hpp"
 
 namespace fc::storage::chain {
 
   namespace {
-    static const ipfs::Key chain_head_key = ipfs::makeKeyFromString("head");
+    static const DatastoreKey chain_head_key = makeKeyFromString("head");
   }
 
   ChainStore::ChainStore(std::shared_ptr<ipfs::BlockService> block_service,
-                         std::shared_ptr<ipfs::IpfsDatastore> data_store,
+                         std::shared_ptr<ChainDataStore> data_store,
                          std::shared_ptr<BlockValidator> block_validator)
       : block_service_{std::move(block_service)},
         data_store_{std::move(data_store)},
@@ -28,10 +28,10 @@ namespace fc::storage::chain {
   }
 
   outcome::result<ChainStore> ChainStore::create(
-      std::shared_ptr<ipfs::BlockService> bs,
-      std::shared_ptr<ipfs::IpfsDatastore> ds,
+      std::shared_ptr<ipfs::BlockService> block_store,
+      std::shared_ptr<ChainDataStore> data_store,
       std::shared_ptr<BlockValidator> block_validator) {
-    ChainStore cs(bs, ds, block_validator);
+    ChainStore cs(block_store, data_store, block_validator);
 
     // TODO (yuraz): FIL-151 initialize notifications
 
@@ -75,8 +75,7 @@ namespace fc::storage::chain {
   }
 
   outcome::result<void> ChainStore::load() {
-    OUTCOME_TRY(head, primitives::cid::getCidOfCbor(chain_head_key.value));
-    auto &&buffer = data_store_->get(head);
+    auto &&buffer = data_store_->get(chain_head_key);
     if (!buffer) {
       logger_->warn("no previous chain state found");
       return outcome::success();
@@ -93,9 +92,7 @@ namespace fc::storage::chain {
   outcome::result<void> ChainStore::writeHead(
       const primitives::tipset::Tipset &tipset) {
     OUTCOME_TRY(data, codec::json::encodeCidVector(tipset.cids));
-    OUTCOME_TRY(head, primitives::cid::getCidOfCbor(chain_head_key.value));
-    OUTCOME_TRY(data_store_->set(head, data));
-    return outcome::success();
+    return data_store_->set(chain_head_key, data);
   }
 
   /**

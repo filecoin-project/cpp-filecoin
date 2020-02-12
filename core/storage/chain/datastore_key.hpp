@@ -10,11 +10,11 @@
 
 #include "common/outcome.hpp"
 
-namespace fc::storage::ipfs {
+namespace fc::storage {
   /**
    * @struct Key datastore key
    */
-  struct Key {
+  struct DatastoreKey {
     std::string value;
   };
 
@@ -26,20 +26,20 @@ namespace fc::storage::ipfs {
    * @brief creates key from string
    * @param value key data
    */
-  Key makeKeyFromString(std::string_view value);
+  DatastoreKey makeKeyFromString(std::string_view value);
 
   /**
    * @brief creates raw key from string without safety checking
    * @param value key data
    */
-  outcome::result<Key> makeRawKey(std::string_view value);
+  outcome::result<DatastoreKey> makeRawKey(std::string_view value);
 
-  inline bool operator<(const Key &lhs, const Key &rhs);
+  inline bool operator<(const DatastoreKey &lhs, const DatastoreKey &rhs);
 
-  bool operator==(const Key &lhs, const Key &rhs);
+  bool operator==(const DatastoreKey &lhs, const DatastoreKey &rhs);
 
 }  // namespace fc::storage::ipfs::key
 
-OUTCOME_HPP_DECLARE_ERROR(fc::storage::ipfs, DatastoreKeyError);
+OUTCOME_HPP_DECLARE_ERROR(fc::storage, DatastoreKeyError);
 
 #endif  // CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_KEY_HPP

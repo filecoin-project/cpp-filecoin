@@ -9,3 +9,17 @@ target_link_libraries(chain_store
     ipfs_blockservice
     logger
     )
+
+add_library(datastore_key
+    datastore_key.cpp
+    )
+target_link_libraries(datastore_key
+    Boost::boost
+    )
+
+add_library(chain_data_store
+    chain_data_store.cpp
+    )
+target_link_libraries(chain_data_store
+    datastore_key
+    )

@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipfs/datastore_key.hpp"
+#include "storage/chain/datastore_key.hpp"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/path.hpp>
 
-namespace fc::storage::ipfs {
+namespace fc::storage {
 
   std::string formatKeyData(std::string_view value) {
     if (value.empty()) {
@@ -26,13 +26,13 @@ namespace fc::storage::ipfs {
     return boost::filesystem::path(std::string(v)).normalize().string();
   }
 
-  Key makeKeyFromString(std::string_view value) {
-    return Key{formatKeyData(value)};
+  DatastoreKey makeKeyFromString(std::string_view value) {
+    return DatastoreKey{formatKeyData(value)};
   }
 
-  outcome::result<Key> makeRawKey(std::string_view value) {
+  outcome::result<DatastoreKey> makeRawKey(std::string_view value) {
     if (value.empty()) {
-      return Key{"/"};
+      return DatastoreKey{"/"};
     }
 
     auto size = value.size();
@@ -40,10 +40,10 @@ namespace fc::storage::ipfs {
       return DatastoreKeyError::INVALID_DATASTORE_KEY;
     }
 
-    return Key{std::string(value)};
+    return DatastoreKey{std::string(value)};
   }
 
-  inline bool operator<(const Key &lhs, const Key &rhs) {
+  inline bool operator<(const DatastoreKey &lhs, const DatastoreKey &rhs) {
     std::vector<std::string> lhs_list;
     std::vector<std::string> rhs_list;
     boost::split(lhs_list, lhs.value, [](char c) { return c == '/'; });
@@ -62,13 +62,13 @@ namespace fc::storage::ipfs {
     return lhs_list.size() < rhs_list.size();
   }
 
-  bool operator==(const Key &lhs, const Key &rhs) {
+  bool operator==(const DatastoreKey &lhs, const DatastoreKey &rhs) {
     return lhs.value == rhs.value;
   }
 }  // namespace fc::storage::ipfs
 
-OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipfs, DatastoreKeyError, e) {
-  using fc::storage::ipfs::DatastoreKeyError;
+OUTCOME_CPP_DEFINE_CATEGORY(fc::storage, DatastoreKeyError, e) {
+  using fc::storage::DatastoreKeyError;
 
   switch (e) {
     case DatastoreKeyError::INVALID_DATASTORE_KEY:

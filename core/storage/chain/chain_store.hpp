@@ -14,8 +14,8 @@
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/tipset/tipset.hpp"
+#include "storage/chain/chain_data_store.hpp"
 #include "storage/ipfs/blockservice.hpp"
-#include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::chain {
 
@@ -25,7 +25,7 @@ namespace fc::storage::chain {
   enum class HeadChangeType : int { REVERT, APPLY, CURRENT };
 
   /**
-   * @struct HeadChange represents atomic change
+   * @struct HeadChange represents atomic chain change
    */
   struct HeadChange {
     HeadChangeType type;
@@ -33,7 +33,7 @@ namespace fc::storage::chain {
   };
 
   /**
-   * @struct MmCids is a struct for using in mmCache
+   * @struct MmCids is a struct for using in mmCache cache
    */
   struct MmCids {
     std::vector<CID> bls;
@@ -50,13 +50,13 @@ namespace fc::storage::chain {
     using BlockValidator = ::fc::chain::block_validator::BlockValidator;
     using Tipset = primitives::tipset::Tipset;
     using TipsetKey = primitives::tipset::TipsetKey;
-    using Randomness = crypto::randomness : Randomness;
+    using Randomness = crypto::randomness::Randomness;
     /*
      * @brief creates new ChainStore instance
      */
     static outcome::result<ChainStore> create(
         std::shared_ptr<ipfs::BlockService> block_service,
-        std::shared_ptr<ipfs::IpfsDatastore> data_store,
+        std::shared_ptr<ChainDataStore> data_store,
         std::shared_ptr<BlockValidator> block_validator);
 
     outcome::result<void> writeHead(const Tipset &tipset);
@@ -82,11 +82,13 @@ namespace fc::storage::chain {
 
    private:
     ChainStore(std::shared_ptr<ipfs::BlockService> block_service,
-               std::shared_ptr<ipfs::IpfsDatastore> data_store,
+               std::shared_ptr<ChainDataStore> data_store,
                std::shared_ptr<BlockValidator> block_validator);
 
+    void takeHeaviestTipSet(const Tipset &tipset);
+
     std::shared_ptr<ipfs::BlockService> block_service_;
-    std::shared_ptr<ipfs::IpfsDatastore> data_store_;
+    std::shared_ptr<ChainDataStore> data_store_;
     std::shared_ptr<BlockValidator> block_validator_;
 
     boost::optional<Tipset> heaviest_tipset_;
