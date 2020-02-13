@@ -43,10 +43,12 @@ namespace fc::crypto::blake2b {
 
     const int one_kb = 1024;
     std::string bytes(one_kb, ' ');
-    int bytes_count = file_stream.readsome(bytes.data(), one_kb);
-    while (bytes_count != 0) {
-      blake2b_update(&ctx, bytes.data(), bytes_count);
-      bytes_count = file_stream.readsome(bytes.data(), one_kb);
+    file_stream.read(bytes.data(), one_kb);
+    int currently_read = file_stream.gcount();
+    while (currently_read != 0) {
+      blake2b_update(&ctx, bytes.data(), currently_read);
+      file_stream.read(bytes.data(), one_kb);
+      currently_read = file_stream.gcount();
     }
 
     Blake2b512Hash hash;
