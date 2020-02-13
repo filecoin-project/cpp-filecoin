@@ -17,7 +17,7 @@ namespace fc::vm::actor::builtin::storage_power {
           randomness_provider)
       : indices_(std::move(indices)),
         randomness_provider_(std::move(randomness_provider)),
-        total_network_power_0),
+        total_network_power(0),
         power_table_(std::make_unique<power::PowerTableImpl>()),
         claimed_power_(std::make_unique<power::PowerTableImpl>()),
         nominal_power_(std::make_unique<power::PowerTableImpl>()),

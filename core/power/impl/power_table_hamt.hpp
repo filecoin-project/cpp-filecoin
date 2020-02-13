@@ -28,20 +28,20 @@ namespace fc::power {
     /** @copydoc PowerTable::getMinerPower() */
     outcome::result<Power> getMinerPower(const Address &address) const override;
 
-    /** @copydoc PowerTable::getMinerPower() */
+    /** @copydoc PowerTable::setMinerPower() */
     outcome::result<void> setMinerPower(const Address &address,
                                         Power power_amount) override;
 
-    /** @copydoc PowerTable::getMinerPower() */
+    /** @copydoc PowerTable::removeMiner() */
     outcome::result<void> removeMiner(const Address &address) override;
 
-    /** @copydoc PowerTable::getMinerPower() */
+    /** @copydoc PowerTable::getSize() */
     fc::outcome::result<size_t> getSize() const override;
 
-    /** @copydoc PowerTable::getMinerPower() */
+    /** @copydoc PowerTable::getMaxPower() */
     fc::outcome::result<Power> getMaxPower() const override;
 
-    /** @copydoc PowerTable::getMinerPower() */
+    /** @copydoc PowerTable::getMiners() */
     outcome::result<std::vector<Address>> getMiners() const override;
 
    private:
