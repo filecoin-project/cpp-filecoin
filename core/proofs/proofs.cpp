@@ -73,24 +73,26 @@ namespace fc::proofs {
   }
 
   WriteWithoutAlignmentResult cppWriteWithoutAlignmentResult(
-      const uint64_t total_write_unpadded, const uint8_t *comm_p) {
+      const WriteWithoutAlignmentResponse &response) {
     WriteWithoutAlignmentResult result;
 
-    result.total_write_unpadded = total_write_unpadded;
-    std::copy(comm_p, comm_p + kCommitmentBytesLen, result.comm_p.begin());
+    result.total_write_unpadded = response.total_write_unpadded;
+    std::copy(response.comm_p,
+              response.comm_p + kCommitmentBytesLen,
+              result.comm_p.begin());
 
     return result;
   }
 
   WriteWithAlignmentResult cppWriteWithAlignmentResult(
-      const uint64_t left_alignment_unpadded,
-      const uint64_t total_write_unpadded,
-      const uint8_t *comm_p) {
+      const WriteWithAlignmentResponse &response) {
     WriteWithAlignmentResult result;
 
-    result.left_alignment_unpadded = left_alignment_unpadded;
-    result.total_write_unpadded = total_write_unpadded;
-    std::copy(comm_p, comm_p + kCommitmentBytesLen, result.comm_p.begin());
+    result.left_alignment_unpadded = response.left_alignment_unpadded;
+    result.total_write_unpadded = response.total_write_unpadded;
+    std::copy(response.comm_p,
+              response.comm_p + kCommitmentBytesLen,
+              result.comm_p.begin());
 
     return result;
   }
@@ -98,6 +100,10 @@ namespace fc::proofs {
   // ******************
   // TO С CASTED FUNCTIONS
   // ******************
+
+  auto cPointerToArray(const Blob<32> &arr) {
+    return reinterpret_cast<const uint8_t(*)[32]>(arr.data());
+  }
 
   FFISectorClass cSectorClass(const uint64_t sector_size,
                               const uint8_t porep_proof_partitions) {
@@ -150,9 +156,9 @@ namespace fc::proofs {
   std::vector<FFIPrivateReplicaInfo> cPrivateReplicasInfo(
       gsl::span<const PrivateReplicaInfo> cpp_private_replicas_info) {
     std::vector<FFIPrivateReplicaInfo> c_private_replicas_info;
-    for (long i = 0; i < cpp_private_replicas_info.size(); i++) {
+    for (const auto &cpp_private_replica_info : cpp_private_replicas_info) {
       c_private_replicas_info.push_back(
-          cPrivateReplicaInfo(cpp_private_replicas_info[i]));
+          cPrivateReplicaInfo(cpp_private_replica_info));
     }
     return c_private_replicas_info;
   }
@@ -172,9 +178,8 @@ namespace fc::proofs {
   std::vector<FFIPublicPieceInfo> cPublicPiecesInfo(
       gsl::span<const PublicPieceInfo> cpp_public_pieces_info) {
     std::vector<FFIPublicPieceInfo> c_public_pieces_info;
-    for (long i = 0; i < cpp_public_pieces_info.size(); i++) {
-      c_public_pieces_info.push_back(
-          cPublicPieceInfo(cpp_public_pieces_info[i]));
+    for (const auto &cpp_public_piece_info : cpp_public_pieces_info) {
+      c_public_pieces_info.push_back(cPublicPieceInfo(cpp_public_piece_info));
     }
     return c_public_pieces_info;
   }
@@ -199,18 +204,10 @@ namespace fc::proofs {
                 back_inserter(flattening));
     }
 
-    uint8_t c_randomness[32];
-    std::copy(randomness.begin(), randomness.end(), c_randomness);
-    const uint8_t(*ptr_c_randomness)[32] = &c_randomness;
-
-    uint8_t c_prover_id[32];
-    std::copy(prover_id.begin(), prover_id.end(), c_prover_id);
-    const uint8_t(*ptr_c_prover_id)[32] = &c_prover_id;
-
     std::vector<FFICandidate> c_winners = cCandidates(winners);
 
     auto res_ptr = make_unique(verify_post(sector_size,
-                                           ptr_c_randomness,
+                                           cPointerToArray(randomness),
                                            challenge_count,
                                            sorted_sector_ids.data(),
                                            sorted_sector_ids.size(),
@@ -220,7 +217,7 @@ namespace fc::proofs {
                                            proof.size(),
                                            c_winners.data(),
                                            c_winners.size(),
-                                           ptr_c_prover_id),
+                                           cPointerToArray(prover_id)),
                                destroy_verify_post_response);
 
     if (res_ptr->status_code != 0) {
@@ -242,24 +239,16 @@ namespace fc::proofs {
       const Randomness &randomness,
       const uint64_t challenge_count,
       const SortedPrivateReplicaInfo &sorted_private_replica_info) {
-    uint8_t c_randomness[32];
-    std::copy(randomness.begin(), randomness.end(), c_randomness);
-    const uint8_t(*ptr_c_randomness)[32] = &c_randomness;
-
-    uint8_t c_prover_id[32];
-    std::copy(prover_id.begin(), prover_id.end(), c_prover_id);
-    const uint8_t(*ptr_c_prover_id)[32] = &c_prover_id;
-
     std::vector<FFIPrivateReplicaInfo> c_sorted_private_sector_info =
         cPrivateReplicasInfo(sorted_private_replica_info.values);
 
     auto res_ptr =
         make_unique(generate_candidates(sector_size,
-                                        ptr_c_randomness,
+                                        cPointerToArray(randomness),
                                         challenge_count,
                                         c_sorted_private_sector_info.data(),
                                         c_sorted_private_sector_info.size(),
-                                        ptr_c_prover_id),
+                                        cPointerToArray(prover_id)),
                     destroy_generate_candidates_response);
     if (res_ptr->status_code != 0) {
       auto logger = common::createLogger("proofs");
@@ -279,25 +268,17 @@ namespace fc::proofs {
       gsl::span<const Candidate> winners) {
     std::vector<FFICandidate> c_winners = cCandidates(winners);
 
-    uint8_t c_randomness[32];
-    std::copy(randomness.begin(), randomness.end(), c_randomness);
-    const uint8_t(*ptr_c_randomness)[32] = &c_randomness;
-
-    uint8_t c_prover_id[32];
-    std::copy(prover_id.begin(), prover_id.end(), c_prover_id);
-    const uint8_t(*ptr_c_prover_id)[32] = &c_prover_id;
-
     std::vector<FFIPrivateReplicaInfo> c_sorted_private_sector_info =
         cPrivateReplicasInfo(private_replica_info.values);
 
     auto res_ptr =
         make_unique(generate_post(sectorSize,
-                                  ptr_c_randomness,
+                                  cPointerToArray(randomness),
                                   c_sorted_private_sector_info.data(),
                                   c_sorted_private_sector_info.size(),
                                   c_winners.data(),
                                   c_winners.size(),
-                                  ptr_c_prover_id),
+                                  cPointerToArray(prover_id)),
                     destroy_generate_post_response);
 
     if (res_ptr->status_code != 0) {
@@ -365,9 +346,7 @@ namespace fc::proofs {
       return ProofsError::UNKNOWN;
     }
 
-    return cppWriteWithoutAlignmentResult(res_ptr->total_write_unpadded,
-                                          res_ptr->comm_p);
-    ;
+    return cppWriteWithoutAlignmentResult(*res_ptr);
   }
 
   outcome::result<WriteWithAlignmentResult> writeWithAlignment(
@@ -392,9 +371,7 @@ namespace fc::proofs {
       return ProofsError::UNKNOWN;
     }
 
-    return cppWriteWithAlignmentResult(res_ptr->left_alignment_unpadded,
-                                       res_ptr->total_write_unpadded,
-                                       res_ptr->comm_p);
+    return cppWriteWithAlignmentResult(*res_ptr);
   }
 
   outcome::result<RawSealPreCommitOutput> sealPreCommit(
@@ -407,14 +384,6 @@ namespace fc::proofs {
       const Blob<32> &prover_id,
       const Blob<32> &ticket,
       gsl::span<const PublicPieceInfo> pieces) {
-    uint8_t c_prover_id[32];
-    std::copy(prover_id.begin(), prover_id.end(), c_prover_id);
-    const uint8_t(*ptr_c_prover_id)[32] = &c_prover_id;
-
-    uint8_t c_ticket[32];
-    std::copy(ticket.begin(), ticket.end(), c_ticket);
-    const uint8_t(*ptr_c_ticket)[32] = &c_ticket;
-
     std::vector<FFIPublicPieceInfo> c_pieces = cPublicPiecesInfo(pieces);
 
     auto res_ptr = make_unique(
@@ -423,8 +392,8 @@ namespace fc::proofs {
                         staged_sector_path.c_str(),
                         sealed_sector_path.c_str(),
                         sector_id,
-                        ptr_c_prover_id,
-                        ptr_c_ticket,
+                        cPointerToArray(prover_id),
+                        cPointerToArray(ticket),
                         c_pieces.data(),
                         c_pieces.size()),
         destroy_seal_pre_commit_response);
