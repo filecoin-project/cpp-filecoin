@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/storage_power/storage_power_actor.hpp"
+#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 #include "power/power_table_error.hpp"
 #include "testutil/mocks/crypto/randomness/randomness_provider_mock.hpp"
 #include "testutil/mocks/vm/indices/indices_mock.hpp"
@@ -17,22 +17,19 @@ using fc::power::PowerTableError;
 using fc::primitives::address::Address;
 using fc::primitives::address::Network;
 using fc::vm::VMExitCode;
-using fc::vm::actor::builtin::storage_power::StoragePowerActor;
+using fc::vm::actor::builtin::storage_power::kMinMinerSizeStor;
+using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
 using fc::vm::indices::Indices;
 using fc::vm::indices::MockIndices;
 using testing::_;
 
 class StoragePowerActorTest : public ::testing::Test {
  public:
-  void SetUp() override {
-    indices = std::make_shared<MockIndices>();
-    randomness_provider = std::make_shared<MockRandomnessProvider>();
-    actor = std::make_shared<StoragePowerActor>(indices, randomness_provider);
-  }
-
-  std::shared_ptr<StoragePowerActor> actor;
-  std::shared_ptr<MockIndices> indices;
-  std::shared_ptr<MockRandomnessProvider> randomness_provider;
+  std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
+  std::shared_ptr<MockRandomnessProvider> randomness_provider =
+      std::make_shared<MockRandomnessProvider>();
+  std::shared_ptr<StoragePowerActorState> actor_state =
+      std::make_shared<StoragePowerActorState>(indices, randomness_provider);
 
   fc::vm::actor::SectorStorageWeightDesc swd;
 
@@ -48,10 +45,10 @@ class StoragePowerActorTest : public ::testing::Test {
  */
 TEST_F(StoragePowerActorTest, AddMiner_Twice) {
   EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
-                       actor->getPowerTotalForMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
+                       actor_state->getPowerTotalForMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
   EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ACTOR_ALREADY_EXISTS,
-                       actor->addMiner(addr));
+                       actor_state->addMiner(addr));
 }
 
 /**
@@ -61,12 +58,12 @@ TEST_F(StoragePowerActorTest, AddMiner_Twice) {
  */
 TEST_F(StoragePowerActorTest, RemoveMiner_Success) {
   EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
-                       actor->getPowerTotalForMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
-  EXPECT_OUTCOME_EQ(actor->getPowerTotalForMiner(addr), 0);
-  EXPECT_OUTCOME_TRUE_1(actor->removeMiner(addr));
+                       actor_state->getPowerTotalForMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
+  EXPECT_OUTCOME_EQ(actor_state->getPowerTotalForMiner(addr), 0);
+  EXPECT_OUTCOME_TRUE_1(actor_state->removeMiner(addr));
   EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
-                       actor->getPowerTotalForMiner(addr));
+                       actor_state->getPowerTotalForMiner(addr));
 }
 
 /**
@@ -76,7 +73,7 @@ TEST_F(StoragePowerActorTest, RemoveMiner_Success) {
  */
 TEST_F(StoragePowerActorTest, RemoveMiner_NoMiner) {
   EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
-                       actor->removeMiner(addr));
+                       actor_state->removeMiner(addr));
 }
 
 /**
@@ -88,19 +85,18 @@ TEST_F(StoragePowerActorTest, addClaimedPowerForSector_Success) {
   EXPECT_CALL(*indices, storagePowerConsensusMinMinerPower())
       .WillRepeatedly(testing::Return(1));
 
-  fc::primitives::BigInt min_candidate_storage_value =
-      StoragePowerActor::kMinMinerSizeStor;
+  fc::power::Power min_candidate_storage_value = kMinMinerSizeStor;
 
   EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(min_candidate_storage_value));
 
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor->addClaimedPowerForSector(addr, swd));
-  EXPECT_OUTCOME_EQ(actor->getClaimedPowerForMiner(addr),
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addClaimedPowerForSector(addr, swd));
+  EXPECT_OUTCOME_EQ(actor_state->getClaimedPowerForMiner(addr),
                     min_candidate_storage_value);
-  EXPECT_OUTCOME_EQ(actor->getNominalPowerForMiner(addr),
+  EXPECT_OUTCOME_EQ(actor_state->getNominalPowerForMiner(addr),
                     min_candidate_storage_value);
-  EXPECT_OUTCOME_EQ(actor->getPowerTotalForMiner(addr),
+  EXPECT_OUTCOME_EQ(actor_state->getPowerTotalForMiner(addr),
                     min_candidate_storage_value);
 }
 
@@ -117,11 +113,11 @@ TEST_F(StoragePowerActorTest,
   EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(1));
 
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor->addClaimedPowerForSector(addr, swd));
-  EXPECT_OUTCOME_EQ(actor->getClaimedPowerForMiner(addr), 1);
-  EXPECT_OUTCOME_EQ(actor->getNominalPowerForMiner(addr), 1);
-  EXPECT_OUTCOME_EQ(actor->getPowerTotalForMiner(addr), 0);
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addClaimedPowerForSector(addr, swd));
+  EXPECT_OUTCOME_EQ(actor_state->getClaimedPowerForMiner(addr), 1);
+  EXPECT_OUTCOME_EQ(actor_state->getNominalPowerForMiner(addr), 1);
+  EXPECT_OUTCOME_EQ(actor_state->getPowerTotalForMiner(addr), 0);
 }
 
 /**
@@ -136,12 +132,12 @@ TEST_F(StoragePowerActorTest, addClaimedPowerForSector_FailPoSt) {
   EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(1));
 
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor->addFaultMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor->addClaimedPowerForSector(addr, swd));
-  EXPECT_OUTCOME_EQ(actor->getClaimedPowerForMiner(addr), 1);
-  EXPECT_OUTCOME_EQ(actor->getNominalPowerForMiner(addr), 0);
-  EXPECT_OUTCOME_EQ(actor->getPowerTotalForMiner(addr), 0);
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addFaultMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addClaimedPowerForSector(addr, swd));
+  EXPECT_OUTCOME_EQ(actor_state->getClaimedPowerForMiner(addr), 1);
+  EXPECT_OUTCOME_EQ(actor_state->getNominalPowerForMiner(addr), 0);
+  EXPECT_OUTCOME_EQ(actor_state->getPowerTotalForMiner(addr), 0);
 }
 
 /**
@@ -156,12 +152,13 @@ TEST_F(StoragePowerActorTest, deductClaimedPowerForSectorAssert_Success) {
   EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
       .WillRepeatedly(testing::Return(1));
 
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor->addClaimedPowerForSector(addr, swd));
-  EXPECT_OUTCOME_TRUE_1(actor->deductClaimedPowerForSectorAssert(addr, swd));
-  EXPECT_OUTCOME_EQ(actor->getClaimedPowerForMiner(addr), 0);
-  EXPECT_OUTCOME_EQ(actor->getNominalPowerForMiner(addr), 0);
-  EXPECT_OUTCOME_EQ(actor->getPowerTotalForMiner(addr), 0);
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addClaimedPowerForSector(addr, swd));
+  EXPECT_OUTCOME_TRUE_1(
+      actor_state->deductClaimedPowerForSectorAssert(addr, swd));
+  EXPECT_OUTCOME_EQ(actor_state->getClaimedPowerForMiner(addr), 0);
+  EXPECT_OUTCOME_EQ(actor_state->getNominalPowerForMiner(addr), 0);
+  EXPECT_OUTCOME_EQ(actor_state->getPowerTotalForMiner(addr), 0);
 }
 
 /**
@@ -183,13 +180,14 @@ TEST_F(StoragePowerActorTest, selectMinersToSurprise_Success) {
       .WillOnce(testing::Return(2))
       .WillRepeatedly(testing::Return(1));
 
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr_1));
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr_2));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_1));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_2));
 
-  EXPECT_OUTCOME_TRUE(miners, actor->getMiners());
+  EXPECT_OUTCOME_TRUE(miners, actor_state->getMiners());
 
-  EXPECT_OUTCOME_TRUE(sup_miners, actor->selectMinersToSurprise(2, randomness));
+  EXPECT_OUTCOME_TRUE(sup_miners,
+                      actor_state->selectMinersToSurprise(2, randomness));
 
   ASSERT_THAT(sup_miners, testing::ElementsAre(miners[0], miners[2]));
 }
@@ -210,14 +208,15 @@ TEST_F(StoragePowerActorTest, selectMinersToSurprise_All) {
   EXPECT_CALL(*randomness_provider, randomInt(randomness, _, _))
       .WillRepeatedly(testing::Return(0));
 
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr_1));
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr_2));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_1));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_2));
 
-  EXPECT_OUTCOME_TRUE(miners, actor->getMiners());
+  EXPECT_OUTCOME_TRUE(miners, actor_state->getMiners());
 
-  EXPECT_OUTCOME_TRUE(sup_miners,
-                      actor->selectMinersToSurprise(miners.size(), randomness));
+  EXPECT_OUTCOME_TRUE(
+      sup_miners,
+      actor_state->selectMinersToSurprise(miners.size(), randomness));
 
   ASSERT_THAT(sup_miners, miners);
 }
@@ -238,13 +237,13 @@ TEST_F(StoragePowerActorTest, selectMinersToSurprise_MoreThatHave) {
   EXPECT_CALL(*randomness_provider, randomInt(randomness, _, _))
       .WillRepeatedly(testing::Return(0));
 
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr_1));
-  EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr_2));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_1));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_2));
 
-  EXPECT_OUTCOME_TRUE(miners, actor->getMiners());
+  EXPECT_OUTCOME_TRUE(miners, actor_state->getMiners());
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::STORAGE_POWER_ACTOR_OUT_OF_BOUND,
-      actor->selectMinersToSurprise(miners.size() + 1, randomness));
+      actor_state->selectMinersToSurprise(miners.size() + 1, randomness));
 }

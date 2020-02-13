@@ -8,7 +8,6 @@
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/primitives/address/address_utils.hpp"
 
 using fc::common::Blob;
 using fc::common::Buffer;
@@ -29,8 +28,8 @@ struct VRFHashEncoderTest : public ::testing::Test {
   VRFHash vrf_hash;
 
   void SetUp() override {
-    id_address = makeIdAddress(123u);
-    bls_address = makeBlsAddress(bls_blob);
+    id_address = Address::makeFromId(123u);
+    bls_address = Address::makeBls(bls_blob);
     vrf_hash = VRFHash{
         "661E466606D72B22721484220DCF3FFB44A3ACA3A5D2CC883C9B26281C8E8B27"_blob32};
   }

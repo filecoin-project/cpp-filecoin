@@ -13,7 +13,10 @@
 namespace fc::primitives {
   using boost::multiprecision::cpp_int;
 
-  struct UBigInt : cpp_int, boost::totally_ordered<UBigInt, int> {
+  struct UBigInt : cpp_int,
+                   boost::totally_ordered<UBigInt>,
+                   boost::arithmetic<UBigInt>,
+                   boost::totally_ordered<UBigInt, int> {
     using cpp_int::cpp_int;
 
     inline bool operator==(int other) const {
@@ -32,17 +35,29 @@ namespace fc::primitives {
       return static_cast<cpp_int>(*this) < static_cast<cpp_int>(other);
     }
 
-    template <typename T>
-    inline UBigInt operator+(const T &other) const {
+    inline UBigInt operator+=(const UBigInt &other) {
+      *static_cast<cpp_int *>(this) += static_cast<cpp_int>(other);
+      return *this;
+    }
+
+    inline UBigInt operator-=(const UBigInt &other) {
+      *static_cast<cpp_int *>(this) -= static_cast<cpp_int>(other);
+      return *this;
+    }
+
+    inline UBigInt operator*=(const UBigInt &other) {
+      *static_cast<cpp_int *>(this) *= static_cast<cpp_int>(other);
+      return *this;
+    }
+
+    inline UBigInt operator/=(const UBigInt &other) {
+      *static_cast<cpp_int *>(this) /= static_cast<cpp_int>(other);
+      return *this;
+    }
+
+    template <typename Integral>
+    inline UBigInt operator+(Integral other) const {
       return static_cast<cpp_int>(*this) + static_cast<cpp_int>(other);
-    }
-
-    inline UBigInt operator*(const UBigInt &other) const {
-      return static_cast<cpp_int>(*this) * static_cast<cpp_int>(other);
-    }
-
-    inline UBigInt operator-(const UBigInt &other) const {
-      return static_cast<cpp_int>(*this) - static_cast<cpp_int>(other);
     }
 
     inline UBigInt operator-(int other) const {
@@ -76,32 +91,32 @@ namespace fc::primitives {
     }
 
     inline BigInt operator+=(const BigInt &other) {
-      static_cast<cpp_int *>(this)->operator+=(static_cast<cpp_int>(other));
+      *static_cast<cpp_int *>(this) += static_cast<cpp_int>(other);
       return *this;
     }
 
     inline BigInt operator-=(const BigInt &other) {
-      static_cast<cpp_int *>(this)->operator-=(static_cast<cpp_int>(other));
+      *static_cast<cpp_int *>(this) -= static_cast<cpp_int>(other);
       return *this;
     }
 
     inline BigInt operator*=(const BigInt &other) {
-      static_cast<cpp_int *>(this)->operator*=(static_cast<cpp_int>(other));
+      *static_cast<cpp_int *>(this) *= static_cast<cpp_int>(other);
       return *this;
     }
 
     inline BigInt operator/=(const BigInt &other) {
-      static_cast<cpp_int *>(this)->operator/=(static_cast<cpp_int>(other));
+      *static_cast<cpp_int *>(this) /= static_cast<cpp_int>(other);
       return *this;
     }
 
     inline BigInt operator*=(const unsigned long &other) {
-      static_cast<cpp_int *>(this)->operator*=(other);
+      *static_cast<cpp_int *>(this) *= other;
       return *this;
     }
 
     inline BigInt operator/=(const unsigned long &other) {
-      static_cast<cpp_int *>(this)->operator/=(other);
+      *static_cast<cpp_int *>(this) /= other;
       return *this;
     }
 
@@ -114,7 +129,7 @@ namespace fc::primitives {
     }
 
     inline BigInt operator*=(const UBigInt &other) {
-      static_cast<cpp_int *>(this)->operator*=(static_cast<cpp_int>(other));
+      *static_cast<cpp_int *>(this) *= static_cast<cpp_int>(other);
       return *this;
     }
   };
