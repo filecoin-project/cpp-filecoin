@@ -34,7 +34,6 @@ fc::outcome::result<void> PowerTableHamt::setMinerPower(const Address &address,
   return power_table_.setCbor(encodeToByteString(address), power_amount);
 }
 
-/** @copydoc PowerTable::getMinerPower() */
 fc::outcome::result<void> PowerTableHamt::removeMiner(const Address &address) {
   auto result = power_table_.remove(encodeToByteString(address));
   if (!result && result.error() == HamtError::NOT_FOUND) {
@@ -43,7 +42,6 @@ fc::outcome::result<void> PowerTableHamt::removeMiner(const Address &address) {
   return result;
 }
 
-/** @copydoc PowerTable::getMinerPower() */
 fc::outcome::result<size_t> PowerTableHamt::getSize() const {
   size_t n = 0;
   Hamt::Visitor counter{[&n](auto k, auto v) {
@@ -54,7 +52,6 @@ fc::outcome::result<size_t> PowerTableHamt::getSize() const {
   return n;
 }
 
-/** @copydoc PowerTable::getMinerPower() */
 fc::outcome::result<Power> PowerTableHamt::getMaxPower() const {
   Power max = 0;
   Hamt::Visitor max_visitor{
@@ -67,7 +64,6 @@ fc::outcome::result<Power> PowerTableHamt::getMaxPower() const {
   return max;
 }
 
-/** @copydoc PowerTable::getMinerPower() */
 fc::outcome::result<std::vector<Address>> PowerTableHamt::getMiners() const {
   std::vector<Address> miners;
   Hamt::Visitor max_visitor{
