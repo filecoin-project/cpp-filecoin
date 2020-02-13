@@ -9,7 +9,6 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/primitives/address/address_utils.hpp"
 
 using fc::common::Blob;
 using fc::common::Buffer;
@@ -37,11 +36,11 @@ struct VRFProviderTest : public ::testing::Test {
         "1122334455667788"_blob48;
     vrf_params = VRFParams{
         .personalization_tag = DomainSeparationTag::TicketProductionDST,
-        .miner_address = makeBlsAddress(bls_blob),
+        .miner_address = Address::makeBls(bls_blob),
         .message = message};
     wrong_vrf_params = VRFParams{
         .personalization_tag = DomainSeparationTag::TicketProductionDST,
-        .miner_address = makeBlsAddress(bls_blob),
+        .miner_address = Address::makeBls(bls_blob),
         .message = wrong_message};
   }
   std::shared_ptr<BlsProvider> bls_provider;
