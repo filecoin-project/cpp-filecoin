@@ -109,7 +109,7 @@ namespace fc::vm::actor::builtin::reward {
 
     Multimap empty_mmap{runtime.getIpfsDatastore()};
     OUTCOME_TRY(empty_mmap_cid, empty_mmap.flush());
-    State empty_state{.reward_map = empty_mmap_cid, .reward_total = 0};
+    State empty_state{.reward_total = 0, .reward_map = empty_mmap_cid};
 
     OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(empty_state));
     OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
