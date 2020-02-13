@@ -26,15 +26,15 @@ namespace fc::proofs {
   // TO CPP CASTED FUNCTIONS
   // ******************
 
-  Blob<kCommitmentBytesLen> cppCommitment(const gsl::span<uint8_t, 32> &bytes) {
-    Blob<kCommitmentBytesLen> result;
+  Comm cppCommitment(const gsl::span<uint8_t, 32> &bytes) {
+    Comm result;
 
     std::copy(bytes.begin(), bytes.end(), result.begin());
 
     return result;
   }
 
-  Candidate cppCandidate(const FFICandidate c_candidate) {
+  Candidate cppCandidate(const FFICandidate &c_candidate) {
     Candidate candidate;
     candidate.sector_id = c_candidate.sector_id;
     candidate.sector_challenge_index = c_candidate.sector_challenge_index;
@@ -62,10 +62,12 @@ namespace fc::proofs {
       const FFISealPreCommitOutput &c_seal_pre_commit_output) {
     RawSealPreCommitOutput cpp_seal_pre_commit_output;
 
-    for (size_t i = 0; i < kCommitmentBytesLen; i++) {
-      cpp_seal_pre_commit_output.comm_d[i] = c_seal_pre_commit_output.comm_d[i];
-      cpp_seal_pre_commit_output.comm_r[i] = c_seal_pre_commit_output.comm_r[i];
-    }
+    std::copy(c_seal_pre_commit_output.comm_d,
+              c_seal_pre_commit_output.comm_d + kCommitmentBytesLen,
+              cpp_seal_pre_commit_output.comm_d.begin());
+    std::copy(c_seal_pre_commit_output.comm_r,
+              c_seal_pre_commit_output.comm_r + kCommitmentBytesLen,
+              cpp_seal_pre_commit_output.comm_r.begin());
 
     return cpp_seal_pre_commit_output;
   }
@@ -309,7 +311,7 @@ namespace fc::proofs {
         res_ptr->flattened_proofs_ptr + res_ptr->flattened_proofs_len);
   }
 
-  outcome::result<Blob<kCommitmentBytesLen>> generatePieceCommitmentFromFile(
+  outcome::result<Comm> generatePieceCommitmentFromFile(
       const std::string &piece_file_path, const uint64_t piece_size) {
     int fd = open(piece_file_path.c_str(), O_RDWR);
 
@@ -326,7 +328,7 @@ namespace fc::proofs {
     return cppCommitment(gsl::span(res_ptr->comm_p, kCommitmentBytesLen));
   }
 
-  outcome::result<Blob<kCommitmentBytesLen>> generateDataCommitment(
+  outcome::result<Comm> generateDataCommitment(
       const uint64_t sector_size, gsl::span<const PublicPieceInfo> pieces) {
     std::vector<FFIPublicPieceInfo> c_pieces = cPublicPiecesInfo(pieces);
 

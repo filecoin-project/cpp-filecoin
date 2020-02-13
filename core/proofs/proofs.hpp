@@ -19,25 +19,27 @@ namespace fc::proofs {
   // CommRStar.
   const int kCommitmentBytesLen = 32;
 
+  using Comm = Blob<kCommitmentBytesLen>;
+
   // RawSealPreCommitOutput is used to acquire a seed from the chain for the
   // second step of Interactive PoRep.
   class RawSealPreCommitOutput {
    public:
-    fc::common::Blob<kCommitmentBytesLen> comm_d;
-    fc::common::Blob<kCommitmentBytesLen> comm_r;
+    Comm comm_d;
+    Comm comm_r;
   };
 
   // PublicPieceInfo is an on-chain tuple of CommP and aligned piece-size.
   class PublicPieceInfo {
    public:
     uint64_t size;
-    fc::common::Blob<kCommitmentBytesLen> comm_p;
+    Comm comm_p;
   };
 
   class PublicSectorInfo {
    public:
     uint64_t sector_id;
-    fc::common::Blob<kCommitmentBytesLen> comm_r;
+    Comm comm_r;
   };
 
   // SortedPublicSectorInfo is a sorted vector of PublicSectorInfo
@@ -49,7 +51,7 @@ namespace fc::proofs {
   class PrivateReplicaInfo {
    public:
     uint64_t sector_id;
-    fc::common::Blob<kCommitmentBytesLen> comm_r;
+    Comm comm_r;
     std::string cache_dir_path;
     std::string sealed_sector_path;
   };
@@ -116,16 +118,15 @@ namespace fc::proofs {
   /**
    * @brief Computes a sectors's comm_d given its pieces.
    */
-  outcome::result<fc::common::Blob<kCommitmentBytesLen>> generateDataCommitment(
+  outcome::result<Comm> generateDataCommitment(
       const uint64_t sector_size, gsl::span<const PublicPieceInfo> pieces);
 
   /**
    * @brief Generates a piece commitment for the provided byte source. Returns
    * an error if the byte source produced more than piece_size bytes.
    */
-  outcome::result<fc::common::Blob<kCommitmentBytesLen>>
-  generatePieceCommitmentFromFile(const std::string &piece_file_path,
-                                  const uint64_t piece_size);
+  outcome::result<Comm> generatePieceCommitmentFromFile(
+      const std::string &piece_file_path, const uint64_t piece_size);
 
   /**
    * @brief Generates proof-of-spacetime candidates for ElectionPoSt
