@@ -207,7 +207,7 @@ namespace fc::proofs {
     if (!res.has_error()) {
       logger->info(info.name + " already uploaded");
       return;
-    } else if (!boost::filesystem::exists(path)) {
+    } else if (boost::filesystem::exists(path)) {
       logger->warn(res.error().message());
     }
 
