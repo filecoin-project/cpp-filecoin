@@ -79,6 +79,15 @@ namespace fc::storage::hamt {
     return remove(*boost::get<Node::Ptr>(root_), keyToIndices(key), key);
   }
 
+  outcome::result<bool> Hamt::contains(const std::string &key) {
+    auto res = get(key);
+    if (!res) {
+      if (res.error() == HamtError::NOT_FOUND) return false;
+      return res.error();
+    }
+    return true;
+  }
+
   outcome::result<CID> Hamt::flush() {
     OUTCOME_TRY(flush(root_));
     return boost::get<CID>(root_);

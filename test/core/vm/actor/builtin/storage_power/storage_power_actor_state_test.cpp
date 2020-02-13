@@ -4,18 +4,26 @@
  */
 
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
+#include "power/impl/power_table_impl.hpp"
 #include "power/power_table_error.hpp"
+#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/crypto/randomness/randomness_provider_mock.hpp"
 #include "testutil/mocks/vm/indices/indices_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
+using fc::adt::Multimap;
 using fc::crypto::randomness::MockRandomnessProvider;
 using fc::crypto::randomness::Randomness;
 using fc::crypto::randomness::RandomnessProvider;
+using fc::power::PowerTable;
 using fc::power::PowerTableError;
+using fc::power::PowerTableImpl;
 using fc::primitives::address::Address;
 using fc::primitives::address::Network;
+using fc::storage::hamt::Hamt;
+using fc::storage::ipfs::InMemoryDatastore;
+using fc::storage::ipfs::IpfsDatastore;
 using fc::vm::VMExitCode;
 using fc::vm::actor::builtin::storage_power::kMinMinerSizeStor;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
@@ -28,8 +36,17 @@ class StoragePowerActorTest : public ::testing::Test {
   std::shared_ptr<MockIndices> indices = std::make_shared<MockIndices>();
   std::shared_ptr<MockRandomnessProvider> randomness_provider =
       std::make_shared<MockRandomnessProvider>();
+  std::shared_ptr<PowerTable> escrow_table = std::make_shared<PowerTableImpl>();
+  std::shared_ptr<IpfsDatastore> datastore =
+      std::make_shared<InMemoryDatastore>();
+  std::shared_ptr<Multimap> cron_event_queue =
+      std::make_shared<Multimap>(datastore);
+  std::shared_ptr<Hamt> po_st_detected_fault_miners = std::make_shared<Hamt>(datastore);
+  std::shared_ptr<Hamt> claims = std::make_shared<Hamt>(datastore);
+
   std::shared_ptr<StoragePowerActorState> actor_state =
-      std::make_shared<StoragePowerActorState>(indices, randomness_provider);
+      std::make_shared<StoragePowerActorState>(
+          indices, randomness_provider, escrow_table,cron_event_queue, po_st_detected_fault_miners, claims);
 
   fc::vm::actor::SectorStorageWeightDesc swd;
 

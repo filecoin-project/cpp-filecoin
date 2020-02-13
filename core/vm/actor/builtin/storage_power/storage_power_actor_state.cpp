@@ -5,24 +5,37 @@
 
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
+#include "power/impl/power_table_hamt.hpp"
 #include "power/impl/power_table_impl.hpp"
+#include "primitives/address/address_codec.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/indices/indices.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
+  using power::PowerTableHamt;
+  using primitives::address::encodeToByteString;
+
   StoragePowerActorState::StoragePowerActorState(
       std::shared_ptr<Indices> indices,
       std::shared_ptr<crypto::randomness::RandomnessProvider>
-          randomness_provider)
+          randomness_provider,
+      std::shared_ptr<power::PowerTable> escrow_table,
+      std::shared_ptr<Multimap> cron_event_queue,
+      std::shared_ptr<Hamt> po_st_detected_fault_miners,
+      std::shared_ptr<Hamt> claims)
       : indices_(std::move(indices)),
         randomness_provider_(std::move(randomness_provider)),
-        total_network_power(0),
+        total_network_power_(0),
+        miner_count_(0),
+        escrow_table_(std::move(escrow_table)),
+        cron_event_queue_(std::move(cron_event_queue)),
+        po_st_detected_fault_miners_(std::move(po_st_detected_fault_miners)),
+        claims_(std::move(claims)),
+        num_miners_meeting_min_power_(0),
         power_table_(std::make_unique<power::PowerTableImpl>()),
         claimed_power_(std::make_unique<power::PowerTableImpl>()),
-        nominal_power_(std::make_unique<power::PowerTableImpl>()),
-        po_st_detected_fault_miners_({}),
-        num_miners_meeting_min_power(0) {}
+        nominal_power_(std::make_unique<power::PowerTableImpl>()) {}
 
   outcome::result<std::vector<primitives::address::Address>>
   StoragePowerActorState::selectMinersToSurprise(
@@ -100,12 +113,10 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(claimed_power, claimed_power_->getMinerPower(miner_addr));
 
     power::Power nominal_power = claimed_power;
-    if (std::find(po_st_detected_fault_miners_.cbegin(),
-                  po_st_detected_fault_miners_.cend(),
-                  miner_addr)
-        != po_st_detected_fault_miners_.cend()) {
-      nominal_power = 0;
-    }
+    OUTCOME_TRY(
+        contains,
+        po_st_detected_fault_miners_->contains(encodeToByteString(miner_addr)));
+    if (contains) nominal_power = 0;
     OUTCOME_TRY(setNominalPowerEntry(miner_addr, nominal_power));
 
     // Compute actual (consensus) power, i.e., votes in leader election.
@@ -134,10 +145,10 @@ namespace fc::vm::actor::builtin::storage_power {
         indices_->storagePowerConsensusMinMinerPower();
     if (updated_nominal_power >= consensus_min_power
         && prev_miner_nominal_power < consensus_min_power) {
-      num_miners_meeting_min_power += 1;
+      num_miners_meeting_min_power_ += 1;
     } else if (updated_nominal_power < consensus_min_power
                && updated_nominal_power >= consensus_min_power) {
-      num_miners_meeting_min_power -= 1;
+      num_miners_meeting_min_power_ -= 1;
     }
     return outcome::success();
   }
@@ -147,8 +158,8 @@ namespace fc::vm::actor::builtin::storage_power {
       const power::Power &updated_power) {
     OUTCOME_TRY(prev_miner_power, power_table_->getMinerPower(miner_addr));
     OUTCOME_TRY(power_table_->setMinerPower(miner_addr, updated_power));
-    total_network_power =
-        total_network_power + (updated_power - prev_miner_power);
+    total_network_power_ =
+        total_network_power_ + (updated_power - prev_miner_power);
     return outcome::success();
   }
 
@@ -161,7 +172,7 @@ namespace fc::vm::actor::builtin::storage_power {
     }
 
     // otherwise, if another miner meets min power requirement, return false
-    if (num_miners_meeting_min_power > 0) {
+    if (num_miners_meeting_min_power_ > 0) {
       return false;
     }
 
@@ -216,11 +227,14 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(power_table_->removeMiner(miner_addr));
     OUTCOME_TRY(nominal_power_->removeMiner(miner_addr));
     OUTCOME_TRY(claimed_power_->removeMiner(miner_addr));
-    auto position = std::find(po_st_detected_fault_miners_.cbegin(),
-                              po_st_detected_fault_miners_.cend(),
-                              miner_addr);
-    if (position != po_st_detected_fault_miners_.cend())
-      po_st_detected_fault_miners_.erase(position);
+
+    std::string encoded_miner_addr = encodeToByteString(miner_addr);
+    OUTCOME_TRY(contains,
+                po_st_detected_fault_miners_->contains(encoded_miner_addr));
+    if (contains) {
+      OUTCOME_TRY(po_st_detected_fault_miners_->remove(encoded_miner_addr));
+    }
+
     return outcome::success();
   }
 
@@ -228,10 +242,8 @@ namespace fc::vm::actor::builtin::storage_power {
       const primitives::address::Address &miner_addr) {
     // check that miner exist
     OUTCOME_TRY(power_table_->getMinerPower(miner_addr));
-
-    po_st_detected_fault_miners_.insert(miner_addr);
-
-    return outcome::success();
+    return po_st_detected_fault_miners_->set(encodeToByteString(miner_addr),
+                                             {});
   }
 
   outcome::result<std::vector<primitives::address::Address>>

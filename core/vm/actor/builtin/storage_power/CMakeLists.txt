@@ -10,4 +10,6 @@ target_link_libraries(storage_power_actor
     actor
     outcome
     power_table
+    hamt
+    multimap
     )

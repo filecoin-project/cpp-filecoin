@@ -5,11 +5,11 @@
 
 #include "storage/hamt/hamt.hpp"
 
+#include <gtest/gtest.h>
 #include "codec/cbor/cbor.hpp"
 #include "common/which.hpp"
-#include <gtest/gtest.h>
-#include "testutil/cbor.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "testutil/cbor.hpp"
 
 using fc::codec::cbor::encode;
 using fc::common::which;
@@ -32,7 +32,8 @@ class HamtTest : public ::testing::Test {
     return which<T>(minItem(node));
   }
 
-  std::shared_ptr<fc::storage::ipfs::IpfsDatastore> store_{std::make_shared<fc::storage::ipfs::InMemoryDatastore>()}; 
+  std::shared_ptr<fc::storage::ipfs::IpfsDatastore> store_{
+      std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
   std::shared_ptr<Node> root_{std::make_shared<Node>()};
   Hamt hamt_{store_, root_};
 };
@@ -45,11 +46,13 @@ TEST_F(HamtTest, NodeCbor) {
   n.items[17] = "010000020000"_cid;
   expectEncodeAndReencode(n, "824302000081a16130d82a4700010000020000"_unhex);
 
-  n.items[17] = Node::Leaf{{"a", fc::storage::hamt::Value(encode("b").value())}};
+  n.items[17] =
+      Node::Leaf{{"a", fc::storage::hamt::Value(encode("b").value())}};
   expectEncodeAndReencode(n, "824302000081a16131818261616162"_unhex);
 
   n.items[2] = Node::Leaf{{"b", fc::storage::hamt::Value(encode("a").value())}};
-  expectEncodeAndReencode(n, "824302000482a16131818261626161a16131818261616162"_unhex);
+  expectEncodeAndReencode(
+      n, "824302000482a16131818261626161a16131818261616162"_unhex);
 
   n.items[17] = Node::Ptr{};
   EXPECT_OUTCOME_ERROR(HamtError::EXPECTED_CID, encode(n));
@@ -132,7 +135,8 @@ TEST_F(HamtTest, SetRemoveCollisionChild) {
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("agm"));
 }
 
-/** Set-remove kLeafMax + 1 double colliding elements, creates two nested shards */
+/** Set-remove kLeafMax + 1 double colliding elements, creates two nested shards
+ */
 TEST_F(HamtTest, SetRemoveDoubleCollisionChild) {
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ails", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aufx", "02"_unhex));
@@ -160,7 +164,8 @@ TEST_F(HamtTest, SetRemoveDoubleCollisionChild) {
 
 /** Flush empty root */
 TEST_F(HamtTest, FlushEmpty) {
-  auto cidEmpty = "0171a0e4022018fe6acc61a3a36b0c373c4a3a8ea64b812bf2ca9b528050909c78d408558a0c"_cid;
+  auto cidEmpty =
+      "0171a0e4022018fe6acc61a3a36b0c373c4a3a8ea64b812bf2ca9b528050909c78d408558a0c"_cid;
 
   EXPECT_OUTCOME_EQ(store_->contains(cidEmpty), false);
 
@@ -170,7 +175,8 @@ TEST_F(HamtTest, FlushEmpty) {
 
 /** Flush node of leafs, intermediate state not stored */
 TEST_F(HamtTest, FlushNoCollision) {
-  auto cidWithLeaf = "0171a0e4022055e50395a85788650fc83874f45442e531f6289b0402d95ef3da8b01870c2629"_cid;
+  auto cidWithLeaf =
+      "0171a0e4022055e50395a85788650fc83874f45442e531f6289b0402d95ef3da8b01870c2629"_cid;
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("aai"));
@@ -184,7 +190,8 @@ TEST_F(HamtTest, FlushNoCollision) {
 
 /** Flush node with shard, intermediate state not stored */
 TEST_F(HamtTest, FlushCollisionChild) {
-  auto cidShard = "0171a0e402209431b57360c7ee799ffbc1f6fa83dce5239eb48f7fef6cb167190fd15267daf0"_cid;
+  auto cidShard =
+      "0171a0e402209431b57360c7ee799ffbc1f6fa83dce5239eb48f7fef6cb167190fd15267daf0"_cid;
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
@@ -236,11 +243,18 @@ TEST_F(HamtTest, VisitorError) {
   auto n = 0;
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
-  EXPECT_OUTCOME_ERROR(HamtError::EXPECTED_CID, hamt_.visit([&n](auto k, auto v) {
-    ++n;
-    EXPECT_EQ(k, "aai");
-    EXPECT_EQ(v, "01"_unhex);
-    return HamtError::EXPECTED_CID;
-  }));
+  EXPECT_OUTCOME_ERROR(HamtError::EXPECTED_CID,
+                       hamt_.visit([&n](auto k, auto v) {
+                         ++n;
+                         EXPECT_EQ(k, "aai");
+                         EXPECT_EQ(v, "01"_unhex);
+                         return HamtError::EXPECTED_CID;
+                       }));
   EXPECT_EQ(n, 1);
+}
+
+TEST_F(HamtTest, Contains) {
+  EXPECT_OUTCOME_EQ(hamt_.contains("not_found"), false);
+  EXPECT_OUTCOME_TRUE_1(hamt_.set("element", "01"_unhex));
+  EXPECT_OUTCOME_EQ(hamt_.contains("element"), true);
 }

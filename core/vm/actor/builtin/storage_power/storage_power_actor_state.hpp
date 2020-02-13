@@ -6,15 +6,19 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
 
+#include "adt/multimap.hpp"
 #include "crypto/randomness/randomness_provider.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "power/power_table.hpp"
+#include "storage/ipfs/datastore.hpp"
 #include "vm/actor/util.hpp"
 #include "vm/indices/indices.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
+  using adt::Multimap;
   using indices::Indices;
+  using storage::hamt::Hamt;
 
   // Min value of power in order to participate in leader election
   // From spec: 100 TiB
@@ -43,7 +47,11 @@ namespace fc::vm::actor::builtin::storage_power {
     StoragePowerActorState(
         std::shared_ptr<Indices> indices,
         std::shared_ptr<crypto::randomness::RandomnessProvider>
-            randomness_provider);
+            randomness_provider,
+        std::shared_ptr<power::PowerTable> escrow_table,
+        std::shared_ptr<Multimap> cron_event_queue,
+        std::shared_ptr<Hamt> po_st_detected_fault_miners,
+        std::shared_ptr<Hamt> claims);
 
     /**
      * @brief Select challenge_count miners from power table for the
@@ -185,24 +193,51 @@ namespace fc::vm::actor::builtin::storage_power {
     std::shared_ptr<crypto::randomness::RandomnessProvider>
         randomness_provider_;
 
-   public:
-    power::Power total_network_power;
-    size_t miner_count;
+    template <class Stream, typename>
+    friend Stream &operator<<(Stream &&s, const StoragePowerActorState &state);
+
+    template <class Stream, typename>
+    friend Stream &operator>>(Stream &&s, StoragePowerActorState &state);
+
+   private:
+    power::Power total_network_power_;
+    // TODO (a.chernyshov) it is in specs-actor, but can be obtained via HAMT
+    size_t miner_count_;
 
     /**
      * The balances of pledge collateral for each miner actually held by this
      * actor. The sum of the values here should always equal the actor's
      * balance. See Claim for the pledge *requirements* for each actor
      */
-    std::unique_ptr<power::PowerTable> escrow_table;
+    std::shared_ptr<power::PowerTable> escrow_table_;
 
+    /**
+     * A queue of events to be triggered by cron, indexed by epoch
+     */
+    std::shared_ptr<Multimap> cron_event_queue_;
+
+    /**
+     * Miners having failed to prove storage
+     * As Set, HAMT[Address -> {}]
+     */
+    std::shared_ptr<Hamt> po_st_detected_fault_miners_;
+
+    /**
+     * Claimed power and associated pledge requirements for each miner
+     */
+    std::shared_ptr<Hamt> claims_;
+
+    /**
+     * Number of miners having proven the minimum consensus power
+     */
+    size_t num_miners_meeting_min_power_;
+
+    // TODO (a.chernyshov) remove
     std::unique_ptr<power::PowerTable> power_table_;
+    // TODO (a.chernyshov) remove
     std::unique_ptr<power::PowerTable> claimed_power_;
+    // TODO (a.chernyshov) remove
     std::unique_ptr<power::PowerTable> nominal_power_;
-
-    std::set<primitives::address::Address> po_st_detected_fault_miners_;
-
-    int num_miners_meeting_min_power;
   };
 
   /**
@@ -212,7 +247,7 @@ namespace fc::vm::actor::builtin::storage_power {
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const StoragePowerActorState &state) {
-    return s << (s.list() << state.total_network_power << state.miner_count << *state.escrow_table);
+    return s << (s.list() << state.total_network_power_ << state.miner_count_);
   }
 
   /**
@@ -222,7 +257,7 @@ namespace fc::vm::actor::builtin::storage_power {
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, StoragePowerActorState &state) {
-    s.list() >> state.total_network_power >> state.miner_count >> *state.escrow_table;
+    s.list() >> state.total_network_power_ >> state.miner_count_;
     return s;
   }
 

@@ -110,21 +110,31 @@ namespace fc::storage::hamt {
     explicit Hamt(std::shared_ptr<ipfs::IpfsDatastore> store);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
+
     /** Set value by key, does not write to storage */
     outcome::result<void> set(const std::string &key,
                               gsl::span<const uint8_t> value);
+
     /** Get value by key */
     outcome::result<Value> get(const std::string &key);
+
     /**
      * Remove value by key, does not write to storage.
-     * Returns NOT_Found if element doesn't exist.
+     * Returns NOT_FOUND if element doesn't exist.
      */
     outcome::result<void> remove(const std::string &key);
+
+    /**
+     * Checks if key is present
+     */
+    outcome::result<bool> contains(const std::string &key);
+
     /**
      * Write changes made by set and remove to storage
      * @return new root
      */
     outcome::result<CID> flush();
+
     /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor);
 
