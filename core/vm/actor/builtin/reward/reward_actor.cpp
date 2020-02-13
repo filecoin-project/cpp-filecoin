@@ -140,11 +140,11 @@ namespace fc::vm::actor::builtin::reward {
 
     if (reward_payable > TokenAmount{0}) {
       auto current_epoch = runtime.getCurrentEpoch();
-      Reward new_reward{.start_epoch = current_epoch,
+      Reward new_reward{.vesting_function = kRewardVestingFunction,
+                        .start_epoch = current_epoch,
                         .end_epoch = current_epoch + kRewardVestingPeriod,
                         .value = reward_payable,
-                        .amount_withdrawn = 0,
-                        .vesting_function = kRewardVestingFunction};
+                        .amount_withdrawn = 0};
       OUTCOME_TRY(state.addReward(
           runtime.getIpfsDatastore(), reward_params.miner, new_reward));
       OUTCOME_TRY(new_state_cid, runtime.getIpfsDatastore()->setCbor(state));
