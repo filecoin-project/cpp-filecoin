@@ -17,7 +17,7 @@ namespace fc::vm::actor::builtin::storage_power {
           randomness_provider)
       : indices_(std::move(indices)),
         randomness_provider_(std::move(randomness_provider)),
-        total_network_power_(0),
+        total_network_power_0),
         power_table_(std::make_unique<power::PowerTableImpl>()),
         claimed_power_(std::make_unique<power::PowerTableImpl>()),
         nominal_power_(std::make_unique<power::PowerTableImpl>()),
@@ -110,7 +110,8 @@ namespace fc::vm::actor::builtin::storage_power {
 
     // Compute actual (consensus) power, i.e., votes in leader election.
     power::Power power = nominal_power;
-    OUTCOME_TRY(meetsConsensusMinimum, minerNominalPowerMeetsConsensusMinimum(nominal_power));
+    OUTCOME_TRY(meetsConsensusMinimum,
+                minerNominalPowerMeetsConsensusMinimum(nominal_power));
     if (!meetsConsensusMinimum) {
       power = 0;
     }
@@ -146,8 +147,8 @@ namespace fc::vm::actor::builtin::storage_power {
       const power::Power &updated_power) {
     OUTCOME_TRY(prev_miner_power, power_table_->getMinerPower(miner_addr));
     OUTCOME_TRY(power_table_->setMinerPower(miner_addr, updated_power));
-    total_network_power_ =
-        total_network_power_ + (updated_power - prev_miner_power);
+    total_network_power =
+        total_network_power + (updated_power - prev_miner_power);
     return outcome::success();
   }
 

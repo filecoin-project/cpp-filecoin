@@ -10,6 +10,7 @@
 #include "power/power_table.hpp"
 
 namespace fc::power {
+
   class PowerTableImpl : public PowerTable {
    public:
     outcome::result<Power> getMinerPower(
@@ -29,8 +30,36 @@ namespace fc::power {
     outcome::result<std::vector<primitives::address::Address>> getMiners()
         const override;
 
+    template <class Stream, typename>
+    friend Stream &operator<<(Stream &&s, const PowerTableImpl &state);
+
+    template <class Stream, typename>
+    friend Stream &operator>>(Stream &&s, PowerTableImpl &state);
+
    private:
-    std::unordered_map<std::string, Power> power_table_;
+    std::map<std::string, Power> power_table_;
   };
+
+  /**
+   * CBOR serialization of PowerTableImpl
+   */
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
+  Stream &operator<<(Stream &&s, const PowerTableImpl &state) {
+    return s << (s.list() << state.power_table_);
+  }
+
+  /**
+   * CBOR deserialization of PowerTableImpl
+   */
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
+  Stream &operator>>(Stream &&s, PowerTableImpl &state) {
+    s.list() >> state.power_table_;
+    return s;
+  }
+
 }  // namespace fc::power
 #endif  // FILECOIN_CORE_STORAGE_POWER_TABLE_IMPL_HPP

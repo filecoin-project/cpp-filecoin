@@ -178,12 +178,24 @@ namespace fc::vm::actor::builtin::storage_power {
         const primitives::address::Address &miner_addr,
         const power::Power &updated_claimed_power);
 
+    // TODO (a.chernyshov) it's in Runtime - remove
     std::shared_ptr<Indices> indices_;
 
+    // TODO (a.chernyshov) it's in Runtime - remove
     std::shared_ptr<crypto::randomness::RandomnessProvider>
         randomness_provider_;
 
-    power::Power total_network_power_;
+   public:
+    power::Power total_network_power;
+    size_t miner_count;
+
+    /**
+     * The balances of pledge collateral for each miner actually held by this
+     * actor. The sum of the values here should always equal the actor's
+     * balance. See Claim for the pledge *requirements* for each actor
+     */
+    std::unique_ptr<power::PowerTable> escrow_table;
+
     std::unique_ptr<power::PowerTable> power_table_;
     std::unique_ptr<power::PowerTable> claimed_power_;
     std::unique_ptr<power::PowerTable> nominal_power_;
@@ -192,6 +204,28 @@ namespace fc::vm::actor::builtin::storage_power {
 
     int num_miners_meeting_min_power;
   };
+
+  /**
+   * CBOR serialization of StoragePowerActorState
+   */
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
+  Stream &operator<<(Stream &&s, const StoragePowerActorState &state) {
+    return s << (s.list() << state.total_network_power << state.miner_count << *state.escrow_table);
+  }
+
+  /**
+   * CBOR deserialization of ChangeThresholdParameters
+   */
+  template <class Stream,
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
+  Stream &operator>>(Stream &&s, StoragePowerActorState &state) {
+    s.list() >> state.total_network_power >> state.miner_count >> *state.escrow_table;
+    return s;
+  }
+
 }  // namespace fc::vm::actor::builtin::storage_power
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
