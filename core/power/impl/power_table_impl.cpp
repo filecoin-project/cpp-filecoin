@@ -36,11 +36,11 @@ namespace fc::power {
     return outcome::success();
   }
 
-  size_t PowerTableImpl::getSize() const {
+  fc::outcome::result<size_t> PowerTableImpl::getSize() const {
     return power_table_.size();
   }
 
-  Power PowerTableImpl::getMaxPower() const {
+  fc::outcome::result<Power> PowerTableImpl::getMaxPower() const {
     if (power_table_.empty()) return 0;
 
     auto res = std::max(power_table_.cbegin(),
@@ -54,7 +54,8 @@ namespace fc::power {
 
   outcome::result<std::vector<primitives::address::Address>>
   PowerTableImpl::getMiners() const {
-    std::vector<primitives::address::Address> result = {};
+    std::vector<primitives::address::Address> result;
+    result.reserve(power_table_.size());
     for (auto &elem : power_table_) {
       OUTCOME_TRY(miner_addr,
                   primitives::address::decodeFromString(elem.first));
