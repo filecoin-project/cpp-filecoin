@@ -53,7 +53,7 @@ namespace fc::vm {
       case E::MULTISIG_ACTOR_ILLEGAL_STATE:
         return 20;  // ErrIllegalState in actor-specs
 
-      case E::PAYMENT_CHANNEL_WRONG_CALLER:
+        case E::PAYMENT_CHANNEL_WRONG_CALLER:
         return 1;
       case E::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT:
         return 16;  // ErrIllegalArgument in actor-specs
@@ -68,6 +68,10 @@ namespace fc::vm {
         return 1;
 
       case E::CRON_ACTOR_WRONG_CALL:
+        return 1;
+
+      case E::REWARD_ACTOR_NEGATIVE_WITHDRAWABLE:
+      case E::REWARD_ACTOR_WRONG_CALLER:
         return 1;
     }
     BOOST_ASSERT_MSG(false, "Ret code mapping missing");
