@@ -61,6 +61,8 @@ namespace fc::vm {
       // TODO(turuslan): FIL-128 StoragePowerActor
       case E::STORAGE_POWER_ACTOR_OUT_OF_BOUND:
       case E::STORAGE_POWER_ACTOR_ALREADY_EXISTS:
+      case E::STORAGE_POWER_ACTOR_NOT_FOUND:
+      case E::STORAGE_POWER_DELETION_ERROR:
         break;
 
       case E::INIT_ACTOR_NOT_BUILTIN_ACTOR:

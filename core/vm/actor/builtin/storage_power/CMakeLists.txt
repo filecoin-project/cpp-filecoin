@@ -8,8 +8,8 @@ add_library(storage_power_actor
     )
 target_link_libraries(storage_power_actor
     actor
+    chain_epoch_codec
     outcome
-    power_table
     hamt
     multimap
     )

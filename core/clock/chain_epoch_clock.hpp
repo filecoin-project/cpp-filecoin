@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_CORE_CLOCK_CHAIN_EPOCH_CLOCK_HPP
 
 #include "clock/time.hpp"
-#include "primitives/chain_epoch.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 
 namespace fc::clock {
   enum class EpochAtTimeError { BEFORE_GENESIS = 1 };

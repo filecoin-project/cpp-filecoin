@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 using fc::primitives::BigInt;
+using fc::primitives::UBigInt;
 
 /**
  * Test arithmetis over BigInt types
