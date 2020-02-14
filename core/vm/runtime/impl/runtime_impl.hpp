@@ -99,10 +99,11 @@ namespace fc::vm::runtime {
 
     BigInt gasUsed() const;
 
-   private:
-    outcome::result<void> transfer(Actor &from,
+    static outcome::result<void> transfer(Actor &from,
                                    Actor &to,
                                    const BigInt &amount);
+
+   private:
     outcome::result<Actor> getOrCreateActor(const Address &address);
     std::shared_ptr<Runtime> createRuntime(
         const UnsignedMessage &message,
