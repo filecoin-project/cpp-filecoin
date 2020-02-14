@@ -17,7 +17,7 @@ namespace fc::vm::runtime {
   using indices::Indices;
   using state::StateTree;
 
-  struct Env {
+  struct Env : std::enable_shared_from_this<Env> {
     Env(std::shared_ptr<RandomnessProvider> randomness_provider,
         std::shared_ptr<StateTree> state_tree,
         std::shared_ptr<Indices> indices,
@@ -30,6 +30,13 @@ namespace fc::vm::runtime {
           invoker{std::move(invoker)},
           chain_epoch{chain_epoch},
           block_miner{block_miner} {}
+
+    outcome::result<MessageReceipt> applyMessage(
+        const UnsignedMessage &message);
+
+    outcome::result<InvocationOutput> send(BigInt &gas_used,
+                                 const Address &origin,
+                                 const UnsignedMessage &message);
 
     std::shared_ptr<RandomnessProvider> randomness_provider;
     std::shared_ptr<StateTree> state_tree;

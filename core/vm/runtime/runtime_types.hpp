@@ -38,7 +38,7 @@ namespace fc::vm::runtime {
    * Result of message execution
    */
   struct MessageReceipt {
-    ExitCode exit_code;
+    uint8_t exit_code;
     Buffer return_value;
     BigInt gas_used;
   };

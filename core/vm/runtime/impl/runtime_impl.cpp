@@ -109,52 +109,15 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
     MethodNumber method_number,
     MethodParams params,
     BigInt value) {
-  OUTCOME_TRY(state_tree_->flush());
-
-  // sender is a current 'to' in message
-  OUTCOME_TRY(from_actor, state_tree_->get(message_.to));
-  OUTCOME_TRY(to_actor, getOrCreateActor(to_address));
-
   auto message = UnsignedMessage{message_.to,
                                  to_address,
-                                 from_actor.nonce,
+                                 0, // unused
                                  value,
-                                 message_.gasPrice,
+                                 0, // unused
                                  gas_available_,
                                  method_number,
                                  params};
-  OUTCOME_TRY(serialized_message, fc::codec::cbor::encode(message));
-  OUTCOME_TRY(
-      chargeGas(kOnChainMessageBaseGasCost
-                + serialized_message.size() * kOnChainMessagePerByteGasCharge));
-
-  BigInt gas_cost = message_.gasPrice * gas_available_;
-  BigInt total_cost = gas_cost + value;
-  if (from_actor.balance < total_cost) return RuntimeError::NOT_ENOUGH_FUNDS;
-
-  // transfer
-  if (value != 0) {
-    OUTCOME_TRY(chargeGas(kSendTransferFundsGasCost));
-    OUTCOME_TRY(transfer(from_actor, to_actor, value));
-  }
-  auto runtime = createRuntime(message, to_actor.head);
-
-  auto res = env_->invoker->invoke(to_actor, *runtime, method_number, params);
-  if (!res) {
-    OUTCOME_TRY(state_tree_->revert());
-  } else {
-    // transfer to miner
-    OUTCOME_TRY(miner_actor, state_tree_->get(env_->block_miner));
-    OUTCOME_TRY(transfer(from_actor, miner_actor, gas_used_ * gas_cost));
-
-    OUTCOME_TRY(state_tree_->set(message_.to, from_actor));
-    OUTCOME_TRY(state_tree_->set(to_address, to_actor));
-    OUTCOME_TRY(state_tree_->set(env_->block_miner, miner_actor));
-
-    OUTCOME_TRY(state_tree_->flush());
-  }
-
-  return res;
+  return env_->send(gas_used_, immediate_caller_, message);
 }
 
 fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,
