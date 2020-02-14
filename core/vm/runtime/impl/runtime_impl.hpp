@@ -10,6 +10,7 @@
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/actor_state_handle.hpp"
+#include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/state/state_tree.hpp"
 
@@ -27,15 +28,9 @@ namespace fc::vm::runtime {
 
   class RuntimeImpl : public Runtime {
    public:
-    RuntimeImpl(std::shared_ptr<RandomnessProvider> randomness_provider,
-                std::shared_ptr<IpfsDatastore> datastore,
-                std::shared_ptr<StateTree> state_tree,
-                std::shared_ptr<Indices> indices,
-                std::shared_ptr<Invoker> invoker,
+    RuntimeImpl(std::shared_ptr<Env> env,
                 UnsignedMessage message,
-                ChainEpoch chain_epoch,
                 Address immediate_caller,
-                Address block_miner,
                 BigInt gas_available,
                 BigInt gas_used,
                 ActorSubstateCID current_actor_state);
@@ -112,16 +107,10 @@ namespace fc::vm::runtime {
         const ActorSubstateCID &current_actor_state) const;
 
    private:
-    std::shared_ptr<RandomnessProvider> randomness_provider_;
-    std::shared_ptr<IpfsDatastore> datastore_;
+    std::shared_ptr<Env> env_;
     std::shared_ptr<StateTree> state_tree_;
-    std::shared_ptr<Indices> indices_;
-    std::shared_ptr<Invoker> invoker_;
     UnsignedMessage message_;
-    ChainEpoch chain_epoch_;
     Address immediate_caller_;
-    Address block_miner_;
-    BigInt gas_price_;
     BigInt gas_available_;
     BigInt gas_used_;
     ActorSubstateCID current_actor_state_;

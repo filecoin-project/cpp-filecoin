@@ -35,44 +35,33 @@ using fc::vm::runtime::RuntimeError;
 using fc::vm::runtime::RuntimeImpl;
 
 RuntimeImpl::RuntimeImpl(
-    std::shared_ptr<RandomnessProvider> randomness_provider,
-    std::shared_ptr<IpfsDatastore> datastore,
-    std::shared_ptr<StateTree> state_tree,
-    std::shared_ptr<Indices> indices,
-    std::shared_ptr<Invoker> invoker,
+    std::shared_ptr<Env> env,
     UnsignedMessage message,
-    ChainEpoch chain_epoch,
     Address immediate_caller,
-    Address block_miner,
     BigInt gas_available,
     BigInt gas_used,
     ActorSubstateCID current_actor_state)
-    : randomness_provider_{std::move(randomness_provider)},
-      datastore_{std::move(datastore)},
-      state_tree_{std::move(state_tree)},
-      indices_{std::move(indices)},
-      invoker_{std::move(invoker)},
+    : env_{std::move(env)},
+      state_tree_{env_->state_tree},
       message_{std::move(message)},
-      chain_epoch_{std::move(chain_epoch)},
       immediate_caller_{std::move(immediate_caller)},
-      block_miner_{std::move(block_miner)},
       gas_available_{std::move(gas_available)},
       gas_used_{std::move(gas_used)},
       current_actor_state_{std::move(current_actor_state)} {}
 
 ChainEpoch RuntimeImpl::getCurrentEpoch() const {
-  return chain_epoch_;
+  return env_->chain_epoch;
 }
 
 Randomness RuntimeImpl::getRandomness(DomainSeparationTag tag,
                                       ChainEpoch epoch) const {
-  return randomness_provider_->deriveRandomness(tag, Serialization{}, epoch);
+  return env_->randomness_provider->deriveRandomness(tag, Serialization{}, epoch);
 }
 
 Randomness RuntimeImpl::getRandomness(DomainSeparationTag tag,
                                       ChainEpoch epoch,
                                       Serialization seed) const {
-  return randomness_provider_->deriveRandomness(tag, seed, epoch);
+  return env_->randomness_provider->deriveRandomness(tag, seed, epoch);
 }
 
 Address RuntimeImpl::getImmediateCaller() const {
@@ -84,7 +73,7 @@ Address RuntimeImpl::getCurrentReceiver() const {
 }
 
 Address RuntimeImpl::getTopLevelBlockWinner() const {
-  return block_miner_;
+  return env_->block_miner;
 }
 
 std::shared_ptr<ActorStateHandle> RuntimeImpl::acquireState() const {
@@ -106,7 +95,7 @@ BigInt RuntimeImpl::getValueReceived() const {
 }
 
 std::shared_ptr<Indices> RuntimeImpl::getCurrentIndices() const {
-  return indices_;
+  return env_->indices;
 }
 
 fc::outcome::result<CodeId> RuntimeImpl::getActorCodeID(
@@ -130,7 +119,7 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
                                  to_address,
                                  from_actor.nonce,
                                  value,
-                                 gas_price_,
+                                 message_.gasPrice,
                                  gas_available_,
                                  method_number,
                                  params};
@@ -139,7 +128,7 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
       chargeGas(kOnChainMessageBaseGasCost
                 + serialized_message.size() * kOnChainMessagePerByteGasCharge));
 
-  BigInt gas_cost = gas_price_ * gas_available_;
+  BigInt gas_cost = message_.gasPrice * gas_available_;
   BigInt total_cost = gas_cost + value;
   if (from_actor.balance < total_cost) return RuntimeError::NOT_ENOUGH_FUNDS;
 
@@ -150,17 +139,17 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
   }
   auto runtime = createRuntime(message, to_actor.head);
 
-  auto res = invoker_->invoke(to_actor, *runtime, method_number, params);
+  auto res = env_->invoker->invoke(to_actor, *runtime, method_number, params);
   if (!res) {
     OUTCOME_TRY(state_tree_->revert());
   } else {
     // transfer to miner
-    OUTCOME_TRY(miner_actor, state_tree_->get(block_miner_));
+    OUTCOME_TRY(miner_actor, state_tree_->get(env_->block_miner));
     OUTCOME_TRY(transfer(from_actor, miner_actor, gas_used_ * gas_cost));
 
     OUTCOME_TRY(state_tree_->set(message_.to, from_actor));
     OUTCOME_TRY(state_tree_->set(to_address, to_actor));
-    OUTCOME_TRY(state_tree_->set(block_miner_, miner_actor));
+    OUTCOME_TRY(state_tree_->set(env_->block_miner, miner_actor));
 
     OUTCOME_TRY(state_tree_->flush());
   }
@@ -196,7 +185,8 @@ fc::outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {
 }
 
 std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() {
-  return datastore_;
+  // TODO(turuslan): FIL-131 charging store
+  return state_tree_->getStore();
 }
 
 std::reference_wrapper<const UnsignedMessage> RuntimeImpl::getMessage() {
@@ -244,15 +234,9 @@ fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
 std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
     const UnsignedMessage &message,
     const ActorSubstateCID &current_actor_state) const {
-  return std::make_shared<RuntimeImpl>(randomness_provider_,
-                                       datastore_,
-                                       state_tree_,
-                                       indices_,
-                                       invoker_,
+  return std::make_shared<RuntimeImpl>(env_,
                                        message,
-                                       chain_epoch_,
                                        immediate_caller_,
-                                       block_miner_,
                                        gas_available_,
                                        gas_used_,
                                        current_actor_state);

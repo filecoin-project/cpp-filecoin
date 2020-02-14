@@ -39,6 +39,7 @@ using fc::vm::actor::MockInvoker;
 using fc::vm::indices::Indices;
 using fc::vm::indices::MockIndices;
 using fc::vm::message::UnsignedMessage;
+using fc::vm::runtime::Env;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::Runtime;
 using fc::vm::runtime::RuntimeError;
@@ -68,15 +69,14 @@ class RuntimeTest : public ::testing::Test {
   BigInt gas_used_{0};
 
   std::shared_ptr<Runtime> runtime_ =
-      std::make_shared<RuntimeImpl>(randomness_provider_,
-                                    datastore_,
-                                    state_tree_,
-                                    indices_,
-                                    invoker_,
+      std::make_shared<RuntimeImpl>(std::make_shared<Env>(randomness_provider_,
+                                                          state_tree_,
+                                                          indices_,
+                                                          invoker_,
+                                                          chain_epoch_,
+                                                          block_miner_),
                                     message_,
-                                    chain_epoch_,
                                     immediate_caller_,
-                                    block_miner_,
                                     gas_available_,
                                     gas_used_,
                                     ActorSubstateCID{"010001020001"_cid});
