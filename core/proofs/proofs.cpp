@@ -292,10 +292,17 @@ namespace fc::proofs {
 
   outcome::result<Comm> Proofs::generatePieceCommitmentFromFile(
       const std::string &piece_file_path, const uint64_t piece_size) {
-    int fd = open(piece_file_path.c_str(), O_RDWR);
+    int fd;
+    if ((fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
+      return ProofsError::CANNOT_OPEN_FILE;
+    }
 
     auto res_ptr = make_unique(generate_piece_commitment(fd, piece_size),
                                destroy_generate_piece_commitment_response);
+
+    if (close(fd))
+      logger->warn("generatePieceCommitmentFromFile: error in closing file "
+                   + piece_file_path);
 
     if (res_ptr->status_code != 0) {
       logger->error("generatePieceCommitmentFromFile: "
@@ -327,13 +334,29 @@ namespace fc::proofs {
       const std::string &piece_file_path,
       const uint64_t piece_bytes,
       const std::string &staged_sector_file_path) {
-    int piece_fd = open(piece_file_path.c_str(), O_RDWR);
-    int staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR);
+    int piece_fd;
+    if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
+      return ProofsError::CANNOT_OPEN_FILE;
+    }
+    int staged_sector_fd;
+    if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR))
+        == -1) {
+      if (close(piece_fd))
+        logger->warn("writeWithoutAlignment: error in closing file "
+                     + piece_file_path);
+      return ProofsError::CANNOT_OPEN_FILE;
+    }
 
     auto res_ptr = make_unique(
         write_without_alignment(piece_fd, piece_bytes, staged_sector_fd),
         destroy_write_without_alignment_response);
 
+    if (close(piece_fd))
+      logger->warn("writeWithoutAlignment: error in closing file "
+                   + piece_file_path);
+    if (close(staged_sector_fd))
+      logger->warn("writeWithoutAlignment: error in closing file "
+                   + staged_sector_file_path);
     if (res_ptr->status_code != 0) {
       logger->error("writeWithoutAlignment: "
                     + std::string(res_ptr->error_msg));
@@ -349,9 +372,18 @@ namespace fc::proofs {
       const uint64_t piece_bytes,
       const std::string &staged_sector_file_path,
       gsl::span<const uint64_t> existing_piece_sizes) {
-    int piece_fd = open(piece_file_path.c_str(), O_RDWR);
-    int staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR);
-
+    int piece_fd;
+    if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
+      return ProofsError::CANNOT_OPEN_FILE;
+    }
+    int staged_sector_fd;
+    if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR))
+        == -1) {
+      if (close(piece_fd))
+        logger->warn("writeWithAlignment: error in closing file "
+                     + piece_file_path);
+      return ProofsError::CANNOT_OPEN_FILE;
+    }
     auto res_ptr =
         make_unique(write_with_alignment(piece_fd,
                                          piece_bytes,
@@ -364,7 +396,12 @@ namespace fc::proofs {
       logger->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
-
+    if (close(piece_fd))
+      logger->warn("writeWithAlignment: error in closing file "
+                   + piece_file_path);
+    if (close(staged_sector_fd))
+      logger->warn("writeWithAlignment: error in closing file "
+                   + staged_sector_file_path);
     return cppWriteWithAlignmentResult(*res_ptr);
   }
 
