@@ -22,10 +22,13 @@ jobs:
         git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
     - name: install
       run: |
-        brew install ninja llvm
+        brew install ninja llvm pkg-config
         sudo python3 -m pip install --upgrade pip
         sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
     - name: run checks
+      env:
+        CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+        CXXFLAGS: "-isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
       run: |
         #!/bin/bash
         LLVM_DIR=/usr/local/Cellar/llvm
