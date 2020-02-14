@@ -131,9 +131,6 @@ namespace fc::proofs {
       beast::error_code ec;
       stream.socket().shutdown(tcp::socket::shutdown_both, ec);
 
-      // not_connected happens sometimes
-      // so don't bother reporting it.
-      //
       if (ec && ec != beast::errc::not_connected) throw beast::system_error{ec};
 
       // If we get here then the connection is closed gracefully
