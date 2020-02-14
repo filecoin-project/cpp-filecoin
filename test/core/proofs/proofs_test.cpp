@@ -97,31 +97,32 @@ TEST_F(ProofsTest, ValidPoSt) {
   PublicPieceInfo pA;
   pA.size = piece_commitment_a_size;
   EXPECT_OUTCOME_TRUE(piece_commitment_a,
-                      generatePieceCommitmentFromFile(piece_file_a_path,
-                                                      piece_commitment_a_size));
+                      Proofs::generatePieceCommitmentFromFile(
+                          piece_file_a_path, piece_commitment_a_size));
   pA.comm_p = piece_commitment_a;
 
   EXPECT_OUTCOME_TRUE(
       resA,
-      writeWithoutAlignment(
+      Proofs::writeWithoutAlignment(
           piece_file_a_path, piece_commitment_a_size, staged_sector_file));
   ASSERT_EQ(resA.total_write_unpadded, piece_commitment_a_size);
   ASSERT_EQ(resA.comm_p, pA.comm_p);
 
   std::vector<uint64_t> commitment = {127};
-  EXPECT_OUTCOME_TRUE(resB,
-                      writeWithAlignment(piece_file_b_path,
-                                         piece_commitment_b_size,
-                                         staged_sector_file,
-                                         gsl::span<uint64_t>(commitment)));
+  EXPECT_OUTCOME_TRUE(
+      resB,
+      Proofs::writeWithAlignment(piece_file_b_path,
+                                 piece_commitment_b_size,
+                                 staged_sector_file,
+                                 gsl::span<uint64_t>(commitment)));
   ASSERT_EQ(resB.left_alignment_unpadded,
             piece_commitment_b_size - piece_commitment_a_size);
 
   PublicPieceInfo pB;
   pB.size = piece_commitment_b_size;
   EXPECT_OUTCOME_TRUE(piece_commitment_b,
-                      generatePieceCommitmentFromFile(piece_file_b_path,
-                                                      piece_commitment_b_size));
+                      Proofs::generatePieceCommitmentFromFile(
+                          piece_file_b_path, piece_commitment_b_size));
   pB.comm_p = piece_commitment_b;
   ASSERT_EQ(resB.left_alignment_unpadded, 381);
   ASSERT_EQ(resB.total_write_unpadded, 889);
@@ -130,20 +131,20 @@ TEST_F(ProofsTest, ValidPoSt) {
   public_pieces.push_back(pA);
   public_pieces.push_back(pB);
 
-  EXPECT_OUTCOME_TRUE(comm_d,
-                      generateDataCommitment(sector_size, public_pieces));
+  EXPECT_OUTCOME_TRUE(
+      comm_d, Proofs::generateDataCommitment(sector_size, public_pieces));
 
   // pre-commit the sector
   EXPECT_OUTCOME_TRUE(output,
-                      sealPreCommit(sector_size,
-                                    porep_proof_partitions,
-                                    sector_cache_dir_path,
-                                    staged_sector_file,
-                                    sealed_sector_file,
-                                    sector_id,
-                                    prover_id,
-                                    ticket,
-                                    public_pieces));
+                      Proofs::sealPreCommit(sector_size,
+                                            porep_proof_partitions,
+                                            sector_cache_dir_path,
+                                            staged_sector_file,
+                                            sealed_sector_file,
+                                            sector_id,
+                                            prover_id,
+                                            ticket,
+                                            public_pieces));
 
   ASSERT_EQ(comm_d, output.comm_d);
 
@@ -154,31 +155,32 @@ TEST_F(ProofsTest, ValidPoSt) {
   private_replica_info.sealed_sector_path = sealed_sector_file;
   std::vector<PrivateReplicaInfo> private_replicas_info = {
       private_replica_info};
-  auto private_info = newSortedPrivateReplicaInfo(private_replicas_info);
+  auto private_info =
+      Proofs::newSortedPrivateReplicaInfo(private_replicas_info);
 
   PublicSectorInfo public_sector_info;
   public_sector_info.sector_id = sector_id;
   public_sector_info.comm_r = output.comm_r;
   std::vector<PublicSectorInfo> public_sectors_info = {public_sector_info};
-  auto public_info = newSortedPublicSectorInfo(public_sectors_info);
+  auto public_info = Proofs::newSortedPublicSectorInfo(public_sectors_info);
 
   EXPECT_OUTCOME_TRUE(
       candidates,
-      generateCandidates(
+      Proofs::generateCandidates(
           sector_size, prover_id, randomness, challenge_count, private_info));
 
   EXPECT_OUTCOME_TRUE(
       proof_a,
-      generatePoSt(
+      Proofs::generatePoSt(
           sector_size, prover_id, private_info, randomness, candidates))
 
   EXPECT_OUTCOME_TRUE(res,
-                      verifyPoSt(sector_size,
-                                 public_info,
-                                 randomness,
-                                 challenge_count,
-                                 proof_a,
-                                 candidates,
-                                 prover_id));
+                      Proofs::verifyPoSt(sector_size,
+                                         public_info,
+                                         randomness,
+                                         challenge_count,
+                                         proof_a,
+                                         candidates,
+                                         prover_id));
   ASSERT_TRUE(res);
 }
