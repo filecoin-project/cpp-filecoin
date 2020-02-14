@@ -12,7 +12,7 @@
 
 namespace fc::proofs {
 
-  common::Logger Proofs::logger = common::createLogger("proofs");
+  common::Logger Proofs::logger_ = common::createLogger("proofs");
 
   using common::Blob;
   using crypto::randomness::Randomness;
@@ -221,7 +221,7 @@ namespace fc::proofs {
                                destroy_verify_post_response);
 
     if (res_ptr->status_code != 0) {
-      logger->error("verifyPoSt: " + std::string(res_ptr->error_msg));
+      logger_->error("verifyPoSt: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 
@@ -250,7 +250,7 @@ namespace fc::proofs {
                                         cPointerToArray(prover_id)),
                     destroy_generate_candidates_response);
     if (res_ptr->status_code != 0) {
-      logger->error("generateCandidates: " + std::string(res_ptr->error_msg));
+      logger_->error("generateCandidates: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 
@@ -280,13 +280,12 @@ namespace fc::proofs {
                     destroy_generate_post_response);
 
     if (res_ptr->status_code != 0) {
-      logger->error("generatePoSt: " + std::string(res_ptr->error_msg));
+      logger_->error("generatePoSt: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 
-    return Proof(
-        res_ptr->flattened_proofs_ptr,
-        res_ptr->flattened_proofs_ptr + res_ptr->flattened_proofs_len);
+    return Proof(res_ptr->flattened_proofs_ptr,
+                 res_ptr->flattened_proofs_ptr + res_ptr->flattened_proofs_len);
   }
 
   outcome::result<Comm> Proofs::generatePieceCommitmentFromFile(
@@ -300,12 +299,12 @@ namespace fc::proofs {
                                destroy_generate_piece_commitment_response);
 
     if (close(fd))
-      logger->warn("generatePieceCommitmentFromFile: error in closing file "
-                   + piece_file_path);
+      logger_->warn("generatePieceCommitmentFromFile: error in closing file "
+                    + piece_file_path);
 
     if (res_ptr->status_code != 0) {
-      logger->error("generatePieceCommitmentFromFile: "
-                    + std::string(res_ptr->error_msg));
+      logger_->error("generatePieceCommitmentFromFile: "
+                     + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 
@@ -321,8 +320,8 @@ namespace fc::proofs {
         destroy_generate_data_commitment_response);
 
     if (res_ptr->status_code != 0) {
-      logger->error("generateDataCommitment: "
-                    + std::string(res_ptr->error_msg));
+      logger_->error("generateDataCommitment: "
+                     + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 
@@ -341,8 +340,8 @@ namespace fc::proofs {
     if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR))
         == -1) {
       if (close(piece_fd))
-        logger->warn("writeWithoutAlignment: error in closing file "
-                     + piece_file_path);
+        logger_->warn("writeWithoutAlignment: error in closing file "
+                      + piece_file_path);
       return ProofsError::CANNOT_OPEN_FILE;
     }
 
@@ -351,14 +350,14 @@ namespace fc::proofs {
         destroy_write_without_alignment_response);
 
     if (close(piece_fd))
-      logger->warn("writeWithoutAlignment: error in closing file "
-                   + piece_file_path);
+      logger_->warn("writeWithoutAlignment: error in closing file "
+                    + piece_file_path);
     if (close(staged_sector_fd))
-      logger->warn("writeWithoutAlignment: error in closing file "
-                   + staged_sector_file_path);
+      logger_->warn("writeWithoutAlignment: error in closing file "
+                    + staged_sector_file_path);
     if (res_ptr->status_code != 0) {
-      logger->error("writeWithoutAlignment: "
-                    + std::string(res_ptr->error_msg));
+      logger_->error("writeWithoutAlignment: "
+                     + std::string(res_ptr->error_msg));
 
       return ProofsError::UNKNOWN;
     }
@@ -379,8 +378,8 @@ namespace fc::proofs {
     if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR))
         == -1) {
       if (close(piece_fd))
-        logger->warn("writeWithAlignment: error in closing file "
-                     + piece_file_path);
+        logger_->warn("writeWithAlignment: error in closing file "
+                      + piece_file_path);
       return ProofsError::CANNOT_OPEN_FILE;
     }
     auto res_ptr =
@@ -392,15 +391,15 @@ namespace fc::proofs {
                     destroy_write_with_alignment_response);
 
     if (res_ptr->status_code != 0) {
-      logger->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
+      logger_->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
     if (close(piece_fd))
-      logger->warn("writeWithAlignment: error in closing file "
-                   + piece_file_path);
+      logger_->warn("writeWithAlignment: error in closing file "
+                    + piece_file_path);
     if (close(staged_sector_fd))
-      logger->warn("writeWithAlignment: error in closing file "
-                   + staged_sector_file_path);
+      logger_->warn("writeWithAlignment: error in closing file "
+                    + staged_sector_file_path);
     return cppWriteWithAlignmentResult(*res_ptr);
   }
 
@@ -428,7 +427,7 @@ namespace fc::proofs {
                         c_pieces.size()),
         destroy_seal_pre_commit_response);
     if (res_ptr->status_code != 0) {
-      logger->error("sealPreCommit: " + std::string(res_ptr->error_msg));
+      logger_->error("sealPreCommit: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 

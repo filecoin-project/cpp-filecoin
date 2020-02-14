@@ -18,7 +18,6 @@
 #include "boost/filesystem.hpp"
 #include "boost/lexical_cast.hpp"
 #include "boost/property_tree/json_parser.hpp"
-#include "common/logger.hpp"
 #include "common/outcome.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "proofs/proof_param_provider_error.hpp"
@@ -26,6 +25,8 @@
 namespace fc::proofs {
 
   boost::mutex ProofParamProvider::fetch_mutex_ = boost::mutex();
+  common::Logger ProofParamProvider::logger_ =
+      common::createLogger("proofs params");
 
   struct ResponseParseUrl {
     std::string host;
@@ -69,7 +70,8 @@ namespace fc::proofs {
   namespace net = boost::asio;     // from <boost/asio.hpp>
   using tcp = net::ip::tcp;        // from <boost/asio/ip/tcp.hpp>
 
-  outcome::result<void> doFetch(const std::string &out, ParamFile info) {
+  outcome::result<void> ProofParamProvider::doFetch(const std::string &out,
+                                                    ParamFile info) {
     try {
       std::string gateway = default_gateway;
       if (char *custom_gateway = std::getenv("IPFS_GATEWAY")) {
@@ -136,7 +138,7 @@ namespace fc::proofs {
 
       // If we get here then the connection is closed gracefully
     } catch (std::exception const &e) {
-      std::cerr << "Error: " << e.what() << std::endl;
+      logger_->error("Error: " + std::string(e.what()));
       return ProofParamProviderError::FAILED_DOWNLOADING;
     }
     return outcome::success();
@@ -153,6 +155,7 @@ namespace fc::proofs {
     try {
       boost::filesystem::create_directories(getParamDir());
     } catch (const std::exception &e) {
+      logger_->error("Error:" + std::string(e.what()));
       return ProofParamProviderError::CANNOT_CREATE_DIR;
     }
 
@@ -201,14 +204,13 @@ namespace fc::proofs {
     auto path = boost::filesystem::path(getParamDir())
                 / boost::filesystem::path(info.name);
 
-    auto logger = common::createLogger("proofs params");
-    logger->info("Fetch " + info.name);
+    logger_->info("Fetch " + info.name);
     auto res = checkFile(path.string(), info);
     if (!res.has_error()) {
-      logger->info(info.name + " already uploaded");
+      logger_->info(info.name + " already uploaded");
       return;
     } else if (boost::filesystem::exists(path)) {
-      logger->warn(res.error().message());
+      logger_->warn(res.error().message());
     }
 
     fetch_mutex_.lock();
@@ -216,7 +218,7 @@ namespace fc::proofs {
     auto fetch_res = doFetch(path.string(), info);
 
     if (fetch_res.has_error()) {
-      logger->error(res.error().message());
+      logger_->error(res.error().message());
       fetch_mutex_.unlock();
       return;
     }
@@ -224,13 +226,13 @@ namespace fc::proofs {
     res = checkFile(path.string(), info);
 
     if (res.has_error()) {
-      logger->error(res.error().message());
+      logger_->error(res.error().message());
       boost::filesystem::remove(path);
       fetch_mutex_.unlock();
       return;
     }
 
-    logger->info(info.name + " uploaded successfully");
+    logger_->info(info.name + " uploaded successfully");
     fetch_mutex_.unlock();
   }
 

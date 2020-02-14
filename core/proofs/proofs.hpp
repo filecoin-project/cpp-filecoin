@@ -167,7 +167,7 @@ namespace fc::proofs {
         const Prover &prover_id);
 
    private:
-    static fc::common::Logger logger;
+    static fc::common::Logger logger_;
   };
 }  // namespace fc::proofs
 

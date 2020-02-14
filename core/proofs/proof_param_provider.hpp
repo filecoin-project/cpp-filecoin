@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_PROOF_PARAM_PROVIDER_HPP
 
 #include "boost/thread/mutex.hpp"
+#include "common/logger.hpp"
 #include "common/outcome.hpp"
 #include "gsl/span"
 
@@ -29,8 +30,11 @@ namespace fc::proofs {
 
    private:
     static void fetch(const ParamFile &info);
+    static outcome::result<void> doFetch(const std::string &out,
+                                         ParamFile info);
 
     static boost::mutex fetch_mutex_;
+    static common::Logger logger_;
   };
 
 }  // namespace fc::proofs
