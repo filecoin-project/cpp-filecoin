@@ -7,7 +7,7 @@
 
 #include "primitives/cid/cid_of_cbor.hpp"
 
-namespace fc::storage::chain {
+namespace fc::storage::blockchain {
   using primitives::cid::getCidOfCbor;
 
   ChainDataStore::ChainDataStore(std::shared_ptr<ipfs::IpfsDatastore> store)

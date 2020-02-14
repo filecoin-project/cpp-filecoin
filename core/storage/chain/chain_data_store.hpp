@@ -10,7 +10,7 @@
 #include "storage/ipfs/datastore.hpp"
 #include "storage/chain/datastore_key.hpp"
 
-namespace fc::storage::chain {
+namespace fc::storage::blockchain {
 
   class ChainDataStore {
    public:

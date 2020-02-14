@@ -6,9 +6,9 @@
 #ifndef CPP_FILECOIN_CORE_CHAIN_IMPL_BLOCK_VALIDATOR_IMPL_HPP
 #define CPP_FILECOIN_CORE_CHAIN_IMPL_BLOCK_VALIDATOR_IMPL_HPP
 
-#include "chain/block_validator.hpp"
+#include "blockchain/block_validator.hpp"
 
-namespace fc::chain::block_validator {
+namespace fc::blockchain::block_validator {
 
   class BlockValidatorImpl : public BlockValidator {
    public:

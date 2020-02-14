@@ -8,7 +8,7 @@
 
 #include "primitives/block/block.hpp"
 
-namespace fc::chain::block_validator {
+namespace fc::blockchain::block_validator {
 
   /**
    * @class BlockValidator block validator interface
