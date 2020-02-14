@@ -189,20 +189,19 @@ namespace fc::proofs {
   // ******************
 
   outcome::result<bool> Proofs::verifyPoSt(
-      const uint64_t sector_size,
+      uint64_t sector_size,
       const SortedPublicSectorInfo &sector_info,
       const Randomness &randomness,
-      const uint64_t challenge_count,
+      uint64_t challenge_count,
       gsl::span<const uint8_t> proof,
       gsl::span<const Candidate> winners,
-      const Blob<32> &prover_id) {
+      const Prover &prover_id) {
     std::vector<uint64_t> sorted_sector_ids;
     std::vector<uint8_t> flattening;
-    for (size_t i = 0; i < sector_info.values.size(); i++) {
-      sorted_sector_ids.push_back(sector_info.values[i].sector_id);
-      std::copy(sector_info.values[i].comm_r.begin(),
-                sector_info.values[i].comm_r.end(),
-                back_inserter(flattening));
+    for (const auto &value : sector_info.values) {
+      sorted_sector_ids.push_back(value.sector_id);
+      std::copy(
+          value.comm_r.begin(), value.comm_r.end(), back_inserter(flattening));
     }
 
     std::vector<FFICandidate> c_winners = cCandidates(winners);
@@ -234,10 +233,10 @@ namespace fc::proofs {
   // ******************
 
   outcome::result<std::vector<Candidate>> Proofs::generateCandidates(
-      const uint64_t sector_size,
-      const Blob<32> &prover_id,
+      uint64_t sector_size,
+      const Prover &prover_id,
       const Randomness &randomness,
-      const uint64_t challenge_count,
+      uint64_t challenge_count,
       const SortedPrivateReplicaInfo &sorted_private_replica_info) {
     std::vector<FFIPrivateReplicaInfo> c_sorted_private_sector_info =
         cPrivateReplicasInfo(sorted_private_replica_info.values);
@@ -259,8 +258,8 @@ namespace fc::proofs {
         res_ptr->candidates_ptr, res_ptr->candidates_len));
   }
 
-  outcome::result<std::vector<uint8_t>> Proofs::generatePoSt(
-      const uint64_t sectorSize,
+  outcome::result<Proof> Proofs::generatePoSt(
+      uint64_t sectorSize,
       const Blob<32> &prover_id,
       const SortedPrivateReplicaInfo &private_replica_info,
       const Randomness &randomness,
@@ -285,13 +284,13 @@ namespace fc::proofs {
       return ProofsError::UNKNOWN;
     }
 
-    return std::vector<uint8_t>(
+    return Proof(
         res_ptr->flattened_proofs_ptr,
         res_ptr->flattened_proofs_ptr + res_ptr->flattened_proofs_len);
   }
 
   outcome::result<Comm> Proofs::generatePieceCommitmentFromFile(
-      const std::string &piece_file_path, const uint64_t piece_size) {
+      const std::string &piece_file_path, uint64_t piece_size) {
     int fd;
     if ((fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
       return ProofsError::CANNOT_OPEN_FILE;
@@ -314,7 +313,7 @@ namespace fc::proofs {
   }
 
   outcome::result<Comm> Proofs::generateDataCommitment(
-      const uint64_t sector_size, gsl::span<const PublicPieceInfo> pieces) {
+      uint64_t sector_size, gsl::span<const PublicPieceInfo> pieces) {
     std::vector<FFIPublicPieceInfo> c_pieces = cPublicPiecesInfo(pieces);
 
     auto res_ptr = make_unique(
@@ -332,7 +331,7 @@ namespace fc::proofs {
 
   outcome::result<WriteWithoutAlignmentResult> Proofs::writeWithoutAlignment(
       const std::string &piece_file_path,
-      const uint64_t piece_bytes,
+      uint64_t piece_bytes,
       const std::string &staged_sector_file_path) {
     int piece_fd;
     if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
@@ -369,7 +368,7 @@ namespace fc::proofs {
 
   outcome::result<WriteWithAlignmentResult> Proofs::writeWithAlignment(
       const std::string &piece_file_path,
-      const uint64_t piece_bytes,
+      uint64_t piece_bytes,
       const std::string &staged_sector_file_path,
       gsl::span<const uint64_t> existing_piece_sizes) {
     int piece_fd;
@@ -406,14 +405,14 @@ namespace fc::proofs {
   }
 
   outcome::result<RawSealPreCommitOutput> Proofs::sealPreCommit(
-      const uint64_t sector_size,
-      const uint8_t porep_proof_partitions,
+      uint64_t sector_size,
+      uint8_t porep_proof_partitions,
       const std::string &cache_dir_path,
       const std::string &staged_sector_path,
       const std::string &sealed_sector_path,
-      const uint64_t sector_id,
-      const Blob<32> &prover_id,
-      const Blob<32> &ticket,
+      uint64_t sector_id,
+      const Prover &prover_id,
+      const Ticket &ticket,
       gsl::span<const PublicPieceInfo> pieces) {
     std::vector<FFIPublicPieceInfo> c_pieces = cPublicPiecesInfo(pieces);
 
