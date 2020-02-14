@@ -97,6 +97,8 @@ namespace fc::vm::runtime {
 
     outcome::result<void> commit(const ActorSubstateCID &new_state) override;
 
+    BigInt gasUsed() const;
+
    private:
     outcome::result<void> transfer(Actor &from,
                                    Actor &to,

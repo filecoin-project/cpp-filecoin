@@ -204,6 +204,10 @@ fc::outcome::result<void> RuntimeImpl::commit(
   return outcome::success();
 }
 
+BigInt RuntimeImpl::gasUsed() const {
+  return gas_used_;
+}
+
 fc::outcome::result<void> RuntimeImpl::transfer(Actor &from,
                                                 Actor &to,
                                                 const BigInt &amount) {
