@@ -3,11 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(storage_power_actor
-    storage_power_actor_state.cpp
+add_library(reward_actor
+    reward_actor.cpp
     )
-target_link_libraries(storage_power_actor
+target_link_libraries(reward_actor
+    Boost::boost
     actor
+    address
+    exit_code
     outcome
-    power_table
     )

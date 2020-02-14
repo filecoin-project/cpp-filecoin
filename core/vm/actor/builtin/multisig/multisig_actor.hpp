@@ -130,7 +130,7 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * Construct method parameters
    */
-  struct ConstructParameteres {
+  struct ConstructParameters {
     std::vector<Address> signers;
     size_t threshold;
     EpochDuration unlock_duration;
@@ -270,24 +270,24 @@ namespace fc::vm::actor::builtin::multisig {
   }
 
   /**
-   * CBOR serialization of ConstructParameteres
+   * CBOR serialization of ConstructParameters
    */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const ConstructParameteres &construct_params) {
+  Stream &operator<<(Stream &&s, const ConstructParameters &construct_params) {
     return s << (s.list() << construct_params.signers
                           << construct_params.threshold
                           << construct_params.unlock_duration);
   }
 
   /**
-   * CBOR deserialization of ConstructParameteres
+   * CBOR deserialization of ConstructParameters
    */
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, ConstructParameteres &construct_params) {
+  Stream &operator>>(Stream &&s, ConstructParameters &construct_params) {
     s.list() >> construct_params.signers >> construct_params.threshold
         >> construct_params.unlock_duration;
     return s;

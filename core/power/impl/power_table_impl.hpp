@@ -22,9 +22,9 @@ namespace fc::power {
     outcome::result<void> removeMiner(
         const primitives::address::Address &address) override;
 
-    size_t getSize() const override;
+    fc::outcome::result<size_t> getSize() const override;
 
-    Power getMaxPower() const override;
+    fc::outcome::result<Power> getMaxPower() const override;
 
     outcome::result<std::vector<primitives::address::Address>> getMiners()
         const override;

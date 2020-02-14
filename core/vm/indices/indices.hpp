@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_VM_INDICES_INDICES_HPP
 #define CPP_FILECOIN_VM_INDICES_INDICES_HPP
 
-#include "primitives/big_int.hpp"
+#include "power/power_table.hpp"
 #include "vm/actor/util.hpp"
 
 namespace fc::vm::indices {
@@ -23,14 +23,14 @@ namespace fc::vm::indices {
      * @param storage_weight_desc is description of sector
      * @return power of sector
      */
-    virtual fc::primitives::BigInt consensusPowerForStorageWeight(
+    virtual fc::power::Power consensusPowerForStorageWeight(
         actor::SectorStorageWeightDesc storage_weight_desc) = 0;
 
     /**
      * @brief Get min power to participate in consensus
      * @return min power
      */
-    virtual fc::primitives::BigInt storagePowerConsensusMinMinerPower() = 0;
+    virtual fc::power::Power storagePowerConsensusMinMinerPower() = 0;
   };
 
 }  // namespace fc::vm::indices

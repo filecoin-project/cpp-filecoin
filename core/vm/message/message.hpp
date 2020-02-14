@@ -53,10 +53,10 @@ namespace fc::vm::message {
      */
     bool operator==(const UnsignedMessage &other) const;
 
-      /**
-       * @brief Message not equality operator
-       */
-      bool operator!=(const UnsignedMessage &other) const;
+    /**
+     * @brief Message not equality operator
+     */
+    bool operator!=(const UnsignedMessage &other) const;
   };
 
   /**

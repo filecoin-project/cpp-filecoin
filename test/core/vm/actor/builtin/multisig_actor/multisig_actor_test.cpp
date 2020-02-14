@@ -30,7 +30,7 @@ using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
 using fc::vm::actor::builtin::multisig::AddSignerParameters;
 using fc::vm::actor::builtin::multisig::ChangeThresholdParameters;
-using fc::vm::actor::builtin::multisig::ConstructParameteres;
+using fc::vm::actor::builtin::multisig::ConstructParameters;
 using fc::vm::actor::builtin::multisig::MultiSigActor;
 using fc::vm::actor::builtin::multisig::MultiSignatureActorState;
 using fc::vm::actor::builtin::multisig::MultiSignatureTransaction;
@@ -89,7 +89,7 @@ class MultisigActorTest : public ::testing::Test {
  * @then error WRONG_CALLER returned
  */
 TEST_F(MultisigActorTest, ConstructWrongCaller) {
-  ConstructParameteres params{};
+  ConstructParameters params{};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
   EXPECT_CALL(runtime, getImmediateCaller())
@@ -123,7 +123,7 @@ TEST_F(MultisigActorTest, ConstructWrongParams) {
 TEST_F(MultisigActorTest, ConstructWrongThreshold) {
   std::vector<Address> signers{address};
   size_t threshold{5};
-  ConstructParameteres params{signers, threshold, default_unlock_duration};
+  ConstructParameters params{signers, threshold, default_unlock_duration};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
   EXPECT_CALL(runtime, getImmediateCaller())
@@ -140,7 +140,7 @@ TEST_F(MultisigActorTest, ConstructWrongThreshold) {
  * @then success returned and state is commited to storage
  */
 TEST_F(MultisigActorTest, ConstrucCorrect) {
-  ConstructParameteres params{};
+  ConstructParameters params{};
   CID cid{};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 

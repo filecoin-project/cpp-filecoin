@@ -142,7 +142,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::construct(
     return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
 
   OUTCOME_TRY(construct_params,
-              decodeActorParams<ConstructParameteres>(params));
+              decodeActorParams<ConstructParameters>(params));
   if (construct_params.signers.size() < construct_params.threshold)
     return VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT;
 

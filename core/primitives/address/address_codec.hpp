@@ -36,6 +36,16 @@ namespace fc::primitives::address {
    */
   outcome::result<Address> decodeFromString(const std::string &s);
 
+  /**
+   * @brief Encodes an Address to an array of bytes with string representation
+   */
+
+  std::string encodeToByteString(const Address &address);
+  /**
+   * @brief Decodes Address from an array of bytes with string representation
+   */
+  outcome::result<Address> decodeFromByteString(const std::string &s);
+
   template <class Stream,
             typename = std::enable_if_t<
                 std::remove_reference<Stream>::type::is_cbor_encoder_stream>>

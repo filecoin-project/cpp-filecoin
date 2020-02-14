@@ -184,6 +184,17 @@ namespace fc::primitives::address {
     return std::move(address);
   }
 
+  std::string encodeToByteString(const Address &address) {
+    auto encoded = fc::primitives::address::encode(address);
+    return std::string(encoded.begin(), encoded.end());
+  }
+
+  fc::outcome::result<Address> decodeFromByteString(
+      const std::string &encoded) {
+    return fc::primitives::address::decode(
+        std::vector<uint8_t>(encoded.begin(), encoded.end()));
+  }
+
   std::vector<uint8_t> checksum(const Address &address) {
     std::vector<uint8_t> res{};
 
@@ -199,12 +210,13 @@ namespace fc::primitives::address {
 
     ingest.push_back(p);
 
-    ingest = visit_in_place(address.data,
-                            [&ingest](uint64_t v) { return ingest; },
-                            [&ingest](const auto &v) {
-                              ingest.insert(ingest.end(), v.begin(), v.end());
-                              return ingest;
-                            });
+    ingest = visit_in_place(
+        address.data,
+        [&ingest](uint64_t v) { return ingest; },
+        [&ingest](const auto &v) {
+          ingest.insert(ingest.end(), v.begin(), v.end());
+          return ingest;
+        });
 
     size_t outlen = 4;
     blake2b(res.data(), outlen, nullptr, 0, ingest.data(), ingest.size());
