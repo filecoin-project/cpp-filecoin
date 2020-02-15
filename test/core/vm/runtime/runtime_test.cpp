@@ -218,8 +218,6 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
   Actor from_actor{fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
   Actor to_actor{fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
 
-  EXPECT_CALL(*state_tree_, flush())
-      .WillOnce(testing::Return(fc::outcome::success()));
   EXPECT_CALL(*state_tree_, get(Eq(message_.to)))
       .WillOnce(testing::Return(fc::outcome::success(from_actor)));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
