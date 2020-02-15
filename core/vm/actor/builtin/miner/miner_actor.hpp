@@ -11,12 +11,15 @@
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
+#include "vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor::builtin::miner {
   using libp2p::multi::UVarint;
   using primitives::BigInt;
   using primitives::RleBitset;
   using primitives::address::Address;
+
+  constexpr MethodNumber kSubmitElectionPoStMethodNumber{20};
 
   struct SectorPreCommitInfo {
     uint64_t sector;
