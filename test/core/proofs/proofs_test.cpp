@@ -35,6 +35,7 @@ class ProofsTest : public test::BaseFS_Test {
 };
 
 /**
+ * disabled because it takes too long
  * @given Data for PoSt generation
  * @when Generates and Verifies PoST
  * @then success
