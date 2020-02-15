@@ -19,6 +19,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::message, MessageError, e) {
   };
 }
 
+using fc::primitives::BigInt;
 using fc::vm::message::UnsignedMessage;
 
 bool UnsignedMessage::operator==(const UnsignedMessage &other) const {
@@ -30,4 +31,8 @@ bool UnsignedMessage::operator==(const UnsignedMessage &other) const {
 
 bool UnsignedMessage::operator!=(const UnsignedMessage &other) const {
   return !(*this == other);
+}
+
+BigInt UnsignedMessage::requiredFunds() const {
+  return value + gasLimit * gasPrice;
 }
