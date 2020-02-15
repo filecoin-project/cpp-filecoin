@@ -5,10 +5,12 @@
 
 #include "vm/interpreter/interpreter.hpp"
 
+#include "crypto/randomness/randomness_provider.hpp"
 #include "storage/amt/amt.hpp"
 #include "vm/actor/builtin/cron/cron_actor.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
+#include "vm/message/message_codec.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
@@ -22,11 +24,13 @@ namespace fc::vm::interpreter {
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
   using actor::kCronAddress;
+  using crypto::randomness::RandomnessProvider;
   using message::UnsignedMessage;
   using message::SignedMessage;
   using primitives::address::Address;
   using primitives::block::MsgMeta;
   using runtime::Env;
+  using runtime::Indices;
   using runtime::MessageReceipt;
   using runtime::RuntimeImpl;
   using state::StateTreeImpl;
@@ -44,8 +48,10 @@ namespace fc::vm::interpreter {
 
     auto state_tree = std::make_shared<StateTreeImpl>(ipld, tipset.getParentStateRoot());
     // TODO: randomness{tipset}
+    std::shared_ptr<RandomnessProvider> randomness;
     // TODO: indices
-    auto env = std::make_shared<Env>(nullptr, state_tree, nullptr, std::make_shared<InvokerImpl>());
+    std::shared_ptr<Indices> indices;
+    auto env = std::make_shared<Env>(randomness, state_tree, indices, std::make_shared<InvokerImpl>(), tipset.height, Address{});
 
     for (auto &block : tipset.blks) {
       env->block_miner = block.miner;
@@ -102,16 +108,16 @@ namespace fc::vm::interpreter {
       };
 
       OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
-      Amt{ipld, meta.bls_messages}.visit([&](auto, auto &cid_encoded) -> outcome::result<void> {
+      OUTCOME_TRY(Amt(ipld, meta.bls_messages).visit([&](auto, auto &cid_encoded) -> outcome::result<void> {
         OUTCOME_TRY(cid, codec::cbor::decode<CID>(cid_encoded));
         OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
         return apply_message(message);
-      });
-      Amt{ipld, meta.secpk_messages}.visit([&](auto, auto &cid_encoded) -> outcome::result<void> {
+      }));
+      OUTCOME_TRY(Amt(ipld, meta.secpk_messages).visit([&](auto, auto &cid_encoded) -> outcome::result<void> {
         OUTCOME_TRY(cid, codec::cbor::decode<CID>(cid_encoded));
         OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
         return apply_message(message.message);
-      });
+      }));
     }
 
     OUTCOME_TRY(cron_actor, state_tree->get(kCronAddress));
@@ -125,12 +131,15 @@ namespace fc::vm::interpreter {
         kEpochTickMethodNumber,
         {},
       }));
+    if (receipt.exit_code != 0) {
+      // TODO: error
+    }
 
     OUTCOME_TRY(new_state_root, state_tree->flush());
 
     Amt receipts_amt{ipld};
     for (auto i = 0u; i < receipts.size(); ++i) {
-      OUTCOME_TRY(receipts_amt.set(i, receipts[i]));
+      OUTCOME_TRY(receipts_amt.setCbor(i, receipts[i]));
     }
     OUTCOME_TRY(receipts_root, receipts_amt.flush());
 
