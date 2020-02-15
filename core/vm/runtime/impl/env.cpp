@@ -28,6 +28,7 @@ namespace fc::vm::runtime {
       return RuntimeError::NOT_ENOUGH_FUNDS;
     }
     OUTCOME_TRY(RuntimeImpl::transfer(from_actor, gas_holder, gas_cost));
+    // TODO: check actor nonce matches message nonce
     ++from_actor.nonce;
     OUTCOME_TRY(state_tree->set(message.from, from_actor));
 
