@@ -109,8 +109,8 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
     MethodNumber method_number,
     MethodParams params,
     BigInt value) {
-  auto message = UnsignedMessage{message_.to,
-                                 to_address,
+  auto message = UnsignedMessage{to_address,
+                                 message_.to,
                                  0, // unused
                                  value,
                                  0, // unused

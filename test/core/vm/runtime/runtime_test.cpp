@@ -180,25 +180,16 @@ TEST_F(RuntimeTest, send) {
   MethodParams params{};
   BigInt amount{};
 
-  Actor from_actor{fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
   Actor to_actor{fc::vm::actor::kAccountCodeCid, ActorSubstateCID{}, 0, 0};
-  Actor miner_actor{
-      fc::vm::actor::kStorageMinerCodeCid, ActorSubstateCID{}, 0, 0};
   InvocationOutput res{};
 
-  EXPECT_CALL(*state_tree_, flush())
-      .Times(2)
-      .WillRepeatedly(testing::Return(fc::outcome::success()));
-  EXPECT_CALL(*state_tree_, get(Eq(message_.to)))
-      .WillOnce(testing::Return(fc::outcome::success(from_actor)));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
-      .WillOnce(testing::Return(fc::outcome::success(to_actor)));
+      .Times(2)
+      .WillRepeatedly(testing::Return(fc::outcome::success(to_actor)));
   EXPECT_CALL(*invoker_, invoke(Eq(to_actor), _, Eq(method), Eq(params)))
       .WillOnce(testing::Return(fc::outcome::success(res)));
-  EXPECT_CALL(*state_tree_, get(Eq(block_miner_)))
-      .WillOnce(testing::Return(fc::outcome::success(miner_actor)));
   EXPECT_CALL(*state_tree_, set(_, _))
-      .Times(3)
+      .Times(1)
       .WillRepeatedly(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(runtime_->send(to_address, method, params, amount));
