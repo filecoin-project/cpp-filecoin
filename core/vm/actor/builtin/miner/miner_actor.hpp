@@ -50,41 +50,26 @@ namespace fc::vm::actor::builtin::miner {
     uint64_t sector_size;
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const SectorPreCommitInfo &info) {
+  CBOR_ENCODE(SectorPreCommitInfo, info) {
     return s << (s.list() << info.sector << info.comm_r << info.seal_epoch
                           << info.deal_ids);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, SectorPreCommitInfo &info) {
+  CBOR_DECODE(SectorPreCommitInfo, info) {
     s.list() >> info.sector >> info.comm_r >> info.seal_epoch >> info.deal_ids;
     return s;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const PreCommittedSector &sector) {
+  CBOR_ENCODE(PreCommittedSector, sector) {
     return s << (s.list() << sector.info << sector.received_epoch);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, PreCommittedSector &sector) {
+  CBOR_DECODE(PreCommittedSector, sector) {
     s.list() >> sector.info >> sector.received_epoch;
     return s;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const MinerActorState &state) {
+  CBOR_ENCODE(MinerActorState, state) {
     std::map<std::string, PreCommittedSector> precommitted_sectors;
     for (auto &[sector, value] : state.precommitted_sectors) {
       UVarint sector_uvarint{sector};
@@ -99,10 +84,7 @@ namespace fc::vm::actor::builtin::miner {
                           << state.election_period_start);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, MinerActorState &state) {
+  CBOR_DECODE(MinerActorState, state) {
     std::map<std::string, PreCommittedSector> precommitted_sectors;
     s.list() >> precommitted_sectors >> state.sectors >> state.proving_set
         >> state.info >> state.fault_set >> state.last_fault_sumbission
@@ -117,18 +99,12 @@ namespace fc::vm::actor::builtin::miner {
     return s;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const MinerInfo &info) {
+  CBOR_ENCODE(MinerInfo, info) {
     return s << (s.list() << info.owner << info.worker << info.peer_id
                           << info.sector_size);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, MinerInfo &info) {
+  CBOR_DECODE(MinerInfo, info) {
     s.list() >> info.owner >> info.worker >> info.peer_id >> info.sector_size;
     return s;
   }
