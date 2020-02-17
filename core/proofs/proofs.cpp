@@ -39,10 +39,10 @@ namespace fc::proofs {
     candidate.sector_id = c_candidate.sector_id;
     candidate.sector_challenge_index = c_candidate.sector_challenge_index;
     std::copy(c_candidate.ticket,
-              c_candidate.ticket + candidate.ticket.size(),
+              c_candidate.ticket + Ticket::size(),
               candidate.ticket.begin());
     std::copy(c_candidate.partial_ticket,
-              c_candidate.partial_ticket + candidate.partial_ticket.size(),
+              c_candidate.partial_ticket + Ticket::size(),
               candidate.partial_ticket.begin());
     return candidate;
   }
@@ -103,6 +103,20 @@ namespace fc::proofs {
 
   auto cPointerToArray(const Blob<32> &arr) {
     return reinterpret_cast<const uint8_t(*)[32]>(arr.data());
+  }
+
+  FFISealPreCommitOutput cRawSealPreCommitOutput(
+      const RawSealPreCommitOutput &cpp_seal_pre_commit_output) {
+    FFISealPreCommitOutput c_seal_pre_commit_output;
+
+    std::copy(cpp_seal_pre_commit_output.comm_d.begin(),
+              cpp_seal_pre_commit_output.comm_d.end(),
+              c_seal_pre_commit_output.comm_d);
+    std::copy(cpp_seal_pre_commit_output.comm_r.begin(),
+              cpp_seal_pre_commit_output.comm_r.end(),
+              c_seal_pre_commit_output.comm_r);
+
+    return c_seal_pre_commit_output;
   }
 
   FFISectorClass cSectorClass(const uint64_t sector_size,
@@ -222,6 +236,34 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("verifyPoSt: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return res_ptr->is_valid;
+  }
+
+  outcome::result<bool> Proofs::verifySeal(uint64_t sector_size,
+                                           const Comm &comm_r,
+                                           const Comm &comm_d,
+                                           const Prover &prover_id,
+                                           const Ticket &ticket,
+                                           const Seed &seed,
+                                           uint64_t sector_id,
+                                           gsl::span<const uint8_t> proof) {
+    auto res_ptr = make_unique(verify_seal(sector_size,
+                                           cPointerToArray(comm_r),
+                                           cPointerToArray(comm_d),
+                                           cPointerToArray(prover_id),
+                                           cPointerToArray(ticket),
+                                           cPointerToArray(seed),
+                                           sector_id,
+                                           proof.data(),
+                                           proof.size()),
+                               destroy_verify_seal_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("verifySeal: " + std::string(res_ptr->error_msg));
+
       return ProofsError::UNKNOWN;
     }
 
@@ -434,6 +476,67 @@ namespace fc::proofs {
     return cppRawSealPreCommitOutput(res_ptr->seal_pre_commit_output);
   }
 
+  outcome::result<Proof> Proofs::sealCommit(
+      uint64_t sector_size,
+      uint8_t porep_proof_partitions,
+      const std::string &cache_dir_path,
+      uint64_t sector_id,
+      const Prover &prover_id,
+      const Ticket &ticket,
+      const Seed &seed,
+      gsl::span<const PublicPieceInfo> pieces,
+      const RawSealPreCommitOutput &rspco) {
+    std::vector<FFIPublicPieceInfo> c_pieces = cPublicPiecesInfo(pieces);
+
+    auto res_ptr = make_unique(
+        seal_commit(cSectorClass(sector_size, porep_proof_partitions),
+                    cache_dir_path.c_str(),
+                    sector_id,
+                    cPointerToArray(prover_id),
+                    cPointerToArray(ticket),
+                    cPointerToArray(seed),
+                    c_pieces.data(),
+                    c_pieces.size(),
+                    cRawSealPreCommitOutput(rspco)),
+        destroy_seal_commit_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("sealCommit: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return Proof(res_ptr->proof_ptr, res_ptr->proof_ptr + res_ptr->proof_len);
+  }
+
+  outcome::result<void> Proofs::unseal(uint64_t sector_size,
+                                       uint8_t porep_proof_partitions,
+                                       const std::string &cache_dir_path,
+                                       const std::string &sealed_sector_path,
+                                       const std::string &unseal_output_path,
+                                       uint64_t sector_id,
+                                       const Prover &prover_id,
+                                       const Ticket &ticket,
+                                       const Comm &comm_d) {
+    auto res_ptr =
+        make_unique(::unseal(cSectorClass(sector_size, porep_proof_partitions),
+                             cache_dir_path.c_str(),
+                             sealed_sector_path.c_str(),
+                             unseal_output_path.c_str(),
+                             sector_id,
+                             cPointerToArray(prover_id),
+                             cPointerToArray(ticket),
+                             cPointerToArray(comm_d)),
+                    destroy_unseal_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("unseal: " + std::string(res_ptr->error_msg));
+
+      return ProofsError::UNKNOWN;
+    }
+
+    return outcome::success();
+  }
+
   SortedPrivateReplicaInfo Proofs::newSortedPrivateReplicaInfo(
       gsl::span<const PrivateReplicaInfo> replica_info) {
     SortedPrivateReplicaInfo sorted_replica_info;
@@ -444,11 +547,45 @@ namespace fc::proofs {
               [](const PrivateReplicaInfo &lhs, const PrivateReplicaInfo &rhs) {
                 return std::memcmp(lhs.comm_r.data(),
                                    rhs.comm_r.data(),
-                                   lhs.comm_r.size())
+                                   Comm::size())
                        < 0;
               });
 
     return sorted_replica_info;
+  }
+
+  outcome::result<void> Proofs::unsealRange(
+      uint64_t sector_size,
+      uint8_t porep_proof_partitions,
+      const std::string &cache_dir_path,
+      const std::string &sealed_sector_path,
+      const std::string &unseal_output_path,
+      uint64_t sector_id,
+      const Prover &prover_id,
+      const Ticket &ticket,
+      const Comm &comm_d,
+      uint64_t offset,
+      uint64_t length) {
+    auto res_ptr =
+        unseal_range(cSectorClass(sector_size, porep_proof_partitions),
+                     cache_dir_path.c_str(),
+                     sealed_sector_path.c_str(),
+                     unseal_output_path.c_str(),
+                     sector_id,
+                     cPointerToArray(prover_id),
+                     cPointerToArray(ticket),
+                     cPointerToArray(comm_d),
+                     offset,
+                     length);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("unsealRange: " + std::string(res_ptr->error_msg));
+      destroy_unseal_range_response(res_ptr);
+
+      return ProofsError::UNKNOWN;
+    }
+
+    return outcome::success();
   }
 
   SortedPublicSectorInfo Proofs::newSortedPublicSectorInfo(
@@ -460,7 +597,7 @@ namespace fc::proofs {
               [](const PublicSectorInfo &lhs, const PublicSectorInfo &rhs) {
                 return std::memcmp(lhs.comm_r.data(),
                                    rhs.comm_r.data(),
-                                   lhs.comm_r.size())
+                                   Comm::size())
                        < 0;
               });
 
