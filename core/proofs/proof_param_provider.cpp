@@ -210,13 +210,12 @@ namespace fc::proofs {
       logger_->warn(res.error().message());
     }
 
-    fetch_mutex_.lock();
+    std::lock_guard<boost::mutex> lock(fetch_mutex_);
 
     auto fetch_res = doFetch(path.string(), info);
 
     if (fetch_res.has_error()) {
       logger_->error(res.error().message());
-      fetch_mutex_.unlock();
       return;
     }
 
@@ -225,12 +224,10 @@ namespace fc::proofs {
     if (res.has_error()) {
       logger_->error(res.error().message());
       boost::filesystem::remove(path);
-      fetch_mutex_.unlock();
       return;
     }
 
     logger_->info(info.name + " uploaded successfully");
-    fetch_mutex_.unlock();
   }
 
   namespace pt = boost::property_tree;
