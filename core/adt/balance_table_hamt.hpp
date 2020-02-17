@@ -29,10 +29,10 @@ namespace fc::adt {
     /**
      * Constructor
      * @param datastore - internal store
-     * @param root - HAMT roor CID
+     * @param new_root - HAMT root CID
      */
     explicit BalanceTableHamt(std::shared_ptr<IpfsDatastore> datastore,
-                              const CID &root);
+                              const CID &new_root);
 
     /**
      * Get balance
@@ -83,16 +83,16 @@ namespace fc::adt {
      */
     outcome::result<void> remove(const Address &key);
 
-    template <class Stream, typename>
-    friend Stream &operator<<(Stream &&s, const BalanceTableHamt &table);
+    /**
+     * Reload table with root CID
+     */
+    void reloadRoot();
 
-    template <class Stream, typename>
-    friend Stream &operator>>(Stream &&s, BalanceTableHamt &table);
+    CID root;
 
    private:
     std::shared_ptr<IpfsDatastore> datastore_;
     std::shared_ptr<Hamt> hamt_;
-    CID root_;
   };
 
   /**
@@ -102,7 +102,7 @@ namespace fc::adt {
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const BalanceTableHamt &table) {
-    return s << table.root_;
+    return s << table.root;
   }
 
   /**
@@ -112,10 +112,8 @@ namespace fc::adt {
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, BalanceTableHamt &table) {
-    CID root;
-    s >> root;
-    table.hamt_ = std::make_shared<Hamt>(table.datastore_, root);
-    table.root_ = root;
+    s >> table.root;
+    table.reloadRoot();
     return s;
   }
 

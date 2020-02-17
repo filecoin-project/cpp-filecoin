@@ -11,9 +11,9 @@ using fc::adt::TokenAmount;
 using fc::primitives::address::encodeToByteString;
 
 BalanceTableHamt::BalanceTableHamt(std::shared_ptr<IpfsDatastore> datastore,
-                                   const CID &root)
+                                   const CID &new_root)
     : datastore_{datastore}, hamt_{std::make_shared<Hamt>(datastore)} {
-  root_ = root;
+  root = new_root;
 }
 
 fc::outcome::result<TokenAmount> BalanceTableHamt::get(
@@ -29,7 +29,7 @@ fc::outcome::result<void> BalanceTableHamt::set(const Address &key,
                                                 const TokenAmount &balance) {
   OUTCOME_TRY(hamt_->setCbor(encodeToByteString(key), balance));
   OUTCOME_TRY(new_root, hamt_->flush());
-  root_ = new_root;
+  root = new_root;
   return fc::outcome::success();
 }
 
@@ -38,7 +38,7 @@ fc::outcome::result<void> BalanceTableHamt::add(const Address &key,
   OUTCOME_TRY(balance, hamt_->getCbor<TokenAmount>(encodeToByteString(key)));
   OUTCOME_TRY(hamt_->setCbor(encodeToByteString(key), balance + amount));
   OUTCOME_TRY(new_root, hamt_->flush());
-  root_ = new_root;
+  root = new_root;
   return fc::outcome::success();
 }
 
@@ -49,13 +49,17 @@ fc::outcome::result<TokenAmount> BalanceTableHamt::subtractWithMinimum(
   TokenAmount sub = available < amount ? available : amount;
   OUTCOME_TRY(hamt_->setCbor(encodeToByteString(key), balance - sub));
   OUTCOME_TRY(new_root, hamt_->flush());
-  root_ = new_root;
+  root = new_root;
   return sub;
 }
 
 fc::outcome::result<void> BalanceTableHamt::remove(const Address &key) {
   OUTCOME_TRY(hamt_->remove(encodeToByteString(key)));
   OUTCOME_TRY(new_root, hamt_->flush());
-  root_ = new_root;
+  root = new_root;
   return fc::outcome::success();
+}
+
+void BalanceTableHamt::reloadRoot() {
+  hamt_ = std::make_shared<Hamt>(datastore_, root);
 }

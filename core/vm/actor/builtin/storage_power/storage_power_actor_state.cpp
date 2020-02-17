@@ -28,22 +28,22 @@ namespace fc::vm::actor::builtin::storage_power {
       const CID &cron_event_queue_cid,
       const CID &po_st_detected_fault_miners_cid,
       const CID &claims_cid)
-      : datastore_{datastore},
+      : total_network_power(0),
+        miner_count(0),
+        escrow_table(
+            std::make_shared<BalanceTableHamt>(datastore, escrow_table_cid)),
+        cron_event_queue_cid{cron_event_queue_cid},
+        po_st_detected_fault_miners_cid{po_st_detected_fault_miners_cid},
+        claims_cid{claims_cid},
+        num_miners_meeting_min_power(0),
+        datastore_{datastore},
         indices_(std::move(indices)),
         randomness_provider_(std::move(randomness_provider)),
-        total_network_power_(0),
-        miner_count_(0),
-        escrow_table_(
-            std::make_shared<BalanceTableHamt>(datastore, escrow_table_cid)),
         cron_event_queue_(
             std::make_shared<Multimap>(datastore, cron_event_queue_cid)),
-        cron_event_queue_cid_{cron_event_queue_cid},
         po_st_detected_fault_miners_(
             std::make_shared<Hamt>(datastore, po_st_detected_fault_miners_cid)),
-        po_st_detected_fault_miners_cid_{po_st_detected_fault_miners_cid},
-        claims_(std::make_shared<Hamt>(datastore, claims_cid)),
-        claims_cid_{claims_cid},
-        num_miners_meeting_min_power_(0) {}
+        claims_(std::make_shared<Hamt>(datastore, claims_cid)) {}
 
   outcome::result<void> StoragePowerActorState::addMiner(
       const primitives::address::Address &miner_addr) {
@@ -52,10 +52,10 @@ namespace fc::vm::actor::builtin::storage_power {
       return VMExitCode::STORAGE_POWER_ACTOR_ALREADY_EXISTS;
     }
 
-    OUTCOME_TRY(escrow_table_->set(miner_addr, TokenAmount{0}));
+    OUTCOME_TRY(escrow_table->set(miner_addr, TokenAmount{0}));
     OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner_addr), Claim{0, 0}));
     OUTCOME_TRY(claims_cid, claims_->flush());
-    claims_cid_ = claims_cid;
+    claims_cid = claims_cid;
 
     return outcome::success();
   }
@@ -73,9 +73,9 @@ namespace fc::vm::actor::builtin::storage_power {
 
     OUTCOME_TRY(claims_->remove(encoded_miner_addr));
     OUTCOME_TRY(claims_cid, claims_->flush());
-    claims_cid_ = claims_cid;
+    claims_cid = claims_cid;
 
-    OUTCOME_TRY(escrow_table_->remove(miner_addr));
+    OUTCOME_TRY(escrow_table->remove(miner_addr));
 
     OUTCOME_TRY(contains,
                 po_st_detected_fault_miners_->contains(encoded_miner_addr));
@@ -84,7 +84,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
       OUTCOME_TRY(po_st_detected_fault_miners_cid,
                   po_st_detected_fault_miners_->flush());
-      po_st_detected_fault_miners_cid_ = po_st_detected_fault_miners_cid;
+      po_st_detected_fault_miners_cid = po_st_detected_fault_miners_cid;
     }
 
     return outcome::success();
@@ -92,30 +92,30 @@ namespace fc::vm::actor::builtin::storage_power {
 
   outcome::result<TokenAmount> StoragePowerActorState::getMinerBalance(
       const Address &miner) const {
-    OUTCOME_TRY(check, escrow_table_->has(miner));
+    OUTCOME_TRY(check, escrow_table->has(miner));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
 
-    return escrow_table_->get(miner);
+    return escrow_table->get(miner);
   }
 
   outcome::result<void> StoragePowerActorState::setMinerBalance(
       const Address &miner, const TokenAmount &balance) {
-    OUTCOME_TRY(check, escrow_table_->has(miner));
+    OUTCOME_TRY(check, escrow_table->has(miner));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
 
-    OUTCOME_TRY(escrow_table_->set(miner, balance));
+    OUTCOME_TRY(escrow_table->set(miner, balance));
     return outcome::success();
   }
 
   outcome::result<void> StoragePowerActorState::addMinerBalance(
       const Address &miner, const TokenAmount &amount) {
-    OUTCOME_TRY(check, escrow_table_->has(miner));
+    OUTCOME_TRY(check, escrow_table->has(miner));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
 
-    OUTCOME_TRY(escrow_table_->add(miner, amount));
+    OUTCOME_TRY(escrow_table->add(miner, amount));
 
     return outcome::success();
   }
@@ -124,11 +124,11 @@ namespace fc::vm::actor::builtin::storage_power {
       const Address &miner,
       const TokenAmount &amount,
       const TokenAmount &balance_floor) {
-    OUTCOME_TRY(check, escrow_table_->has(miner));
+    OUTCOME_TRY(check, escrow_table->has(miner));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
 
-    return escrow_table_->subtractWithMinimum(miner, amount, balance_floor);
+    return escrow_table->subtractWithMinimum(miner, amount, balance_floor);
   }
 
   outcome::result<void> StoragePowerActorState::setClaim(const Address &miner,
@@ -138,7 +138,7 @@ namespace fc::vm::actor::builtin::storage_power {
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
     OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner), claim));
     OUTCOME_TRY(claims_cid, claims_->flush());
-    claims_cid_ = claims_cid;
+    claims_cid = claims_cid;
     return outcome::success();
   }
 
@@ -157,7 +157,7 @@ namespace fc::vm::actor::builtin::storage_power {
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
     OUTCOME_TRY(claims_->remove(encodeToByteString(miner)));
     OUTCOME_TRY(claims_cid, claims_->flush());
-    claims_cid_ = claims_cid;
+    claims_cid = claims_cid;
     return outcome::success();
   }
 
@@ -171,7 +171,7 @@ namespace fc::vm::actor::builtin::storage_power {
     claim.pledge += pledge;
     OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner), claim));
     OUTCOME_TRY(claims_cid, claims_->flush());
-    claims_cid_ = claims_cid;
+    claims_cid = claims_cid;
     return outcome::success();
   }
 
@@ -180,7 +180,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(cron_event_queue_->addCbor(
         primitives::chain_epoch::encodeToByteString(epoch), event));
     OUTCOME_TRY(cron_event_queue_cid, cron_event_queue_->flush());
-    cron_event_queue_cid_ = cron_event_queue_cid;
+    cron_event_queue_cid = cron_event_queue_cid;
     return outcome::success();
   }
 
@@ -193,12 +193,12 @@ namespace fc::vm::actor::builtin::storage_power {
     }
 
     // otherwise, if another miner meets min power requirement, return false
-    if (num_miners_meeting_min_power_ > 0) {
+    if (num_miners_meeting_min_power > 0) {
       return false;
     }
 
     // else if none do, check whether in MIN_MINER_SIZE_TARG miners
-    if (miner_count_ <= kConsensusMinerMinMiners) {
+    if (miner_count <= kConsensusMinerMinMiners) {
       // miner should pass
       return true;
     }
@@ -229,7 +229,7 @@ namespace fc::vm::actor::builtin::storage_power {
         encodeToByteString(miner_addr), {}));
     OUTCOME_TRY(po_st_detected_fault_miners_cid,
                 po_st_detected_fault_miners_->flush());
-    po_st_detected_fault_miners_cid_ = po_st_detected_fault_miners_cid;
+    po_st_detected_fault_miners_cid = po_st_detected_fault_miners_cid;
     return outcome::success();
   }
 
@@ -275,6 +275,14 @@ namespace fc::vm::actor::builtin::storage_power {
                 po_st_detected_fault_miners_->contains(encoded_miner_addr));
     if (is_fault) nominal_power = 0;
     return nominal_power;
+  }
+
+  void StoragePowerActorState::reloadRoot() {
+    cron_event_queue_ =
+        std::make_shared<Multimap>(datastore_, cron_event_queue_cid);
+    po_st_detected_fault_miners_ =
+        std::make_shared<Hamt>(datastore_, po_st_detected_fault_miners_cid);
+    claims_ = std::make_shared<Hamt>(datastore_, claims_cid);
   }
 
 }  // namespace fc::vm::actor::builtin::storage_power

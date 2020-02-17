@@ -198,11 +198,30 @@ namespace fc::vm::actor::builtin::storage_power {
      */
     outcome::result<Power> computeNominalPower(const Address &address) const;
 
-    template <class Stream, typename>
-    friend Stream &operator<<(Stream &&s, const StoragePowerActorState &state);
+    void reloadRoot();
 
-    template <class Stream, typename>
-    friend Stream &operator>>(Stream &&s, StoragePowerActorState &state);
+
+    power::Power total_network_power;
+
+    size_t miner_count;
+
+    /**
+     * The balances of pledge collateral for each miner actually held by this
+     * actor. The sum of the values here should always equal the actor's
+     * balance. See Claim for the pledge *requirements* for each actor
+     */
+    std::shared_ptr<BalanceTableHamt> escrow_table;
+
+    CID cron_event_queue_cid;
+
+    CID po_st_detected_fault_miners_cid;
+
+    CID claims_cid;
+
+    /**
+     * Number of miners having proven the minimum consensus power
+     */
+    size_t num_miners_meeting_min_power;
 
    private:
     /**
@@ -218,47 +237,27 @@ namespace fc::vm::actor::builtin::storage_power {
      */
     std::shared_ptr<IpfsDatastore> datastore_;
 
-    // TODO (a.chernyshov) it's in Runtime - remove
     std::shared_ptr<Indices> indices_;
 
-    // TODO (a.chernyshov) it's in Runtime - remove
     std::shared_ptr<crypto::randomness::RandomnessProvider>
         randomness_provider_;
-
-    power::Power total_network_power_;
-    // TODO (a.chernyshov) it is in specs-actor, but can be obtained via HAMT
-    size_t miner_count_;
-
-    /**
-     * The balances of pledge collateral for each miner actually held by this
-     * actor. The sum of the values here should always equal the actor's
-     * balance. See Claim for the pledge *requirements* for each actor
-     */
-    std::shared_ptr<BalanceTableHamt> escrow_table_;
 
     /**
      * A queue of events to be triggered by cron, indexed by epoch
      */
     std::shared_ptr<Multimap> cron_event_queue_;
-    CID cron_event_queue_cid_;
 
     /**
      * Miners having failed to prove storage
      * As Set, HAMT[Address -> {}]
      */
     std::shared_ptr<Hamt> po_st_detected_fault_miners_;
-    CID po_st_detected_fault_miners_cid_;
 
     /**
      * Claimed power and associated pledge requirements for each miner
      */
     std::shared_ptr<Hamt> claims_;
-    CID claims_cid_;
 
-    /**
-     * Number of miners having proven the minimum consensus power
-     */
-    size_t num_miners_meeting_min_power_;
   };
 
   /**
@@ -310,11 +309,11 @@ namespace fc::vm::actor::builtin::storage_power {
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const StoragePowerActorState &state) {
-    return s << (s.list() << state.total_network_power_ << state.miner_count_
-                          << *state.escrow_table_ << state.cron_event_queue_cid_
-                          << state.po_st_detected_fault_miners_cid_
-                          << state.claims_cid_
-                          << state.num_miners_meeting_min_power_);
+    return s << (s.list() << state.total_network_power << state.miner_count
+                          << *state.escrow_table << state.cron_event_queue_cid
+                          << state.po_st_detected_fault_miners_cid
+                          << state.claims_cid
+                          << state.num_miners_meeting_min_power);
   }
 
   /**
@@ -324,16 +323,12 @@ namespace fc::vm::actor::builtin::storage_power {
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, StoragePowerActorState &state) {
-    s.list() >> state.total_network_power_ >> state.miner_count_
-        >> *state.escrow_table_ >> state.cron_event_queue_cid_
-        >> state.po_st_detected_fault_miners_cid_ >> state.claims_cid_
-        >> state.num_miners_meeting_min_power_;
+    s.list() >> state.total_network_power >> state.miner_count
+        >> *state.escrow_table >> state.cron_event_queue_cid
+        >> state.po_st_detected_fault_miners_cid >> state.claims_cid
+        >> state.num_miners_meeting_min_power;
 
-    state.cron_event_queue_ = std::make_shared<Multimap>(
-        state.datastore_, state.cron_event_queue_cid_);
-    state.po_st_detected_fault_miners_ = std::make_shared<Hamt>(
-        state.datastore_, state.po_st_detected_fault_miners_cid_);
-    state.claims_ = std::make_shared<Hamt>(state.datastore_, state.claims_cid_);
+    state.reloadRoot();
 
     return s;
   }
