@@ -128,9 +128,11 @@ namespace fc::vm::actor {
       kStorageMarketCodeCid, kStorageMinerCodeCid, kMultisigCodeCid,
       kInitCodeCid, kPaymentChannelCodeCid;
 
+  inline static const auto kSystemActorAddress = Address::makeFromId(0);
   inline static const auto kInitAddress = Address::makeFromId(0);
   inline static const auto kStoragePowerAddress = Address::makeFromId(2);
   inline static const auto kCronAddress = Address::makeFromId(4);
+  inline static const auto kBurntFundsActorAddress = Address::makeFromId(99);
 }  // namespace fc::vm::actor
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP

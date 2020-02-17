@@ -46,6 +46,10 @@ namespace fc::vm {
     INIT_ACTOR_SINGLETON_ACTOR,
 
     CRON_ACTOR_WRONG_CALL,
+
+    REWARD_ACTOR_NEGATIVE_WITHDRAWABLE,
+    REWARD_ACTOR_WRONG_CALLER,
+
   };
 
   /// Distinguish VMExitCode errors from other errors

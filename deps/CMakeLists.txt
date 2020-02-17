@@ -5,3 +5,4 @@
 
 include(bls-signatures.cmake)
 include(tinycbor.cmake)
+include(filecoin-ffi.cmake)

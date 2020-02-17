@@ -55,6 +55,11 @@ namespace fc::primitives {
       return *this;
     }
 
+    template <typename Integral>
+    inline UBigInt operator+(Integral other) const {
+      return static_cast<cpp_int>(*this) + static_cast<cpp_int>(other);
+    }
+
     inline UBigInt operator-(int other) const {
       return static_cast<cpp_int>(*this) - other;
     }

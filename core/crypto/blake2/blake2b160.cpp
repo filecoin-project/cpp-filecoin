@@ -5,6 +5,7 @@
 
 #include "crypto/blake2/blake2b160.hpp"
 
+#include <iostream>
 #include "crypto/blake2/blake2b.h"
 
 namespace fc::crypto::blake2b {
@@ -20,8 +21,7 @@ namespace fc::crypto::blake2b {
     return res;
   }
 
-  Blake2b256Hash blake2b_256(
-      gsl::span<const uint8_t> to_hash) {
+  Blake2b256Hash blake2b_256(gsl::span<const uint8_t> to_hash) {
     Blake2b256Hash res{};
     ::blake2b(res.data(),
               BLAKE2B256_HASH_LENGTH,
@@ -30,6 +30,30 @@ namespace fc::crypto::blake2b {
               to_hash.data(),
               to_hash.size());
     return res;
+  }
+
+  Blake2b512Hash blake2b_512_from_file(std::ifstream &file_stream) {
+    if (!file_stream.is_open()) return {};
+
+    blake2b_ctx ctx;
+
+    if (blake2b_init(&ctx, BLAKE2B512_HASH_LENGTH, nullptr, 0)) {
+      return {};
+    }
+
+    const int one_kb = 1024;
+    std::string bytes(one_kb, ' ');
+    file_stream.read(bytes.data(), one_kb);
+    int currently_read = file_stream.gcount();
+    while (currently_read != 0) {
+      blake2b_update(&ctx, bytes.data(), currently_read);
+      file_stream.read(bytes.data(), one_kb);
+      currently_read = file_stream.gcount();
+    }
+
+    Blake2b512Hash hash;
+    blake2b_final(&ctx, hash.data());
+    return hash;
   }
 
 }  // namespace fc::crypto::blake2b

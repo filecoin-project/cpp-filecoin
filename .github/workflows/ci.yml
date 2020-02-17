@@ -30,7 +30,8 @@ jobs:
         include:
           - os: macOS-latest
             env:
-              CFLAGS: "-I /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+              CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
+              CXXFLAGS: "-isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
     steps:
     - uses: actions/checkout@v2
       name: checkout repo
@@ -45,9 +46,10 @@ jobs:
         set -e
         if [ "$RUNNER_OS" = "macOS" ]; then
           brew install ninja
+          brew install pkg-config
         else
           sudo apt-get update || true
-          sudo apt-get install -y ninja-build python-setuptools
+          sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers
         fi
 
         pip3 -V || sudo python3 -m pip install --upgrade pip
@@ -58,6 +60,8 @@ jobs:
       env:
         CC: ${{ matrix.compiler.cc }}
         CXX: ${{ matrix.compiler.cxx }}
+        CFLAGS: ${{ matrix.env.CFLAGS }}
+        CXXFLAGS: ${{ matrix.env.CXXFLAGS }}
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
