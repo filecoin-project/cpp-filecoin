@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
 
+#include "adt/balance_table_hamt.hpp"
 #include "adt/multimap.hpp"
 #include "crypto/randomness/randomness_provider.hpp"
 #include "crypto/randomness/randomness_types.hpp"
@@ -15,6 +16,7 @@
 
 namespace fc::vm::actor::builtin::storage_power {
 
+  using adt::BalanceTableHamt;
   using adt::Multimap;
   using common::Buffer;
   using indices::Indices;
@@ -23,6 +25,7 @@ namespace fc::vm::actor::builtin::storage_power {
   using primitives::ChainEpoch;
   using primitives::address::Address;
   using storage::hamt::Hamt;
+  using storage::ipfs::IpfsDatastore;
   using TokenAmount = primitives::BigInt;
 
   // Minimum power of an individual miner to participate in leader election
@@ -51,6 +54,10 @@ namespace fc::vm::actor::builtin::storage_power {
     Power power;
     // Sum of pledge requirement for a miner's sectors
     TokenAmount pledge;
+
+    inline bool operator==(const Claim &other) const {
+      return power == other.power && pledge == other.pledge;
+    }
   };
 
   struct CronEvent {
@@ -64,10 +71,11 @@ namespace fc::vm::actor::builtin::storage_power {
         std::shared_ptr<Indices> indices,
         std::shared_ptr<crypto::randomness::RandomnessProvider>
             randomness_provider,
-        std::shared_ptr<Hamt> escrow_table,
-        std::shared_ptr<Multimap> cron_event_queue,
-        std::shared_ptr<Hamt> po_st_detected_fault_miners,
-        std::shared_ptr<Hamt> claims);
+        std::shared_ptr<IpfsDatastore> datastore,
+        const CID &escrow_table_cid,
+        const CID &cron_event_queue_cid,
+        const CID &po_st_detected_fault_miners_cid,
+        const CID &claims_cid);
 
     /**
      * @brief Add miner to system
@@ -82,17 +90,6 @@ namespace fc::vm::actor::builtin::storage_power {
      * @return success or error NO_SUCH_MINER
      */
     outcome::result<void> deleteMiner(const Address &miner_addr);
-
-    /**
-     * @brief Select challenge_count miners from power table for the
-     * PoSt-Surprise
-     * @param challenge_count required number of miner
-     * @param randomness for random provider
-     * @return set of Miners or OUT_OF_BOUND error if required > actual
-     */
-    outcome::result<std::vector<primitives::address::Address>>
-    selectMinersToSurprise(size_t challenge_count,
-                           const crypto::randomness::Randomness &randomness);
 
     /**
      * Return miner balance
@@ -173,6 +170,13 @@ namespace fc::vm::actor::builtin::storage_power {
     outcome::result<void> addFaultMiner(const Address &miner_addr);
 
     /**
+     * Checks if miner is fault
+     * @param miner_addr miner address
+     * @return true if miner is fault
+     */
+    outcome::result<bool> hasFaultMiner(const Address &miner_addr) const;
+
+    /**
      * @brief Remove miner from miners list failed proof
      * @param miner_addr is address of miner
      * @return success or error NO_SUCH_MINER
@@ -209,6 +213,11 @@ namespace fc::vm::actor::builtin::storage_power {
     outcome::result<bool> minerNominalPowerMeetsConsensusMinimum(
         const power::Power &miner_power);
 
+    /**
+     * Datastore for internal state
+     */
+    std::shared_ptr<IpfsDatastore> datastore_;
+
     // TODO (a.chernyshov) it's in Runtime - remove
     std::shared_ptr<Indices> indices_;
 
@@ -225,8 +234,7 @@ namespace fc::vm::actor::builtin::storage_power {
      * actor. The sum of the values here should always equal the actor's
      * balance. See Claim for the pledge *requirements* for each actor
      */
-    std::shared_ptr<Hamt> escrow_table_;
-    CID escrow_table_cid_;
+    std::shared_ptr<BalanceTableHamt> escrow_table_;
 
     /**
      * A queue of events to be triggered by cron, indexed by epoch
@@ -303,8 +311,7 @@ namespace fc::vm::actor::builtin::storage_power {
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &&s, const StoragePowerActorState &state) {
     return s << (s.list() << state.total_network_power_ << state.miner_count_
-                          << state.escrow_table_cid_
-                          << state.cron_event_queue_cid_
+                          << *state.escrow_table_ << state.cron_event_queue_cid_
                           << state.po_st_detected_fault_miners_cid_
                           << state.claims_cid_
                           << state.num_miners_meeting_min_power_);
@@ -318,9 +325,16 @@ namespace fc::vm::actor::builtin::storage_power {
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &&s, StoragePowerActorState &state) {
     s.list() >> state.total_network_power_ >> state.miner_count_
-        >> state.escrow_table_cid_ >> state.cron_event_queue_cid_
+        >> *state.escrow_table_ >> state.cron_event_queue_cid_
         >> state.po_st_detected_fault_miners_cid_ >> state.claims_cid_
         >> state.num_miners_meeting_min_power_;
+
+    state.cron_event_queue_ = std::make_shared<Multimap>(
+        state.datastore_, state.cron_event_queue_cid_);
+    state.po_st_detected_fault_miners_ = std::make_shared<Hamt>(
+        state.datastore_, state.po_st_detected_fault_miners_cid_);
+    state.claims_ = std::make_shared<Hamt>(state.datastore_, state.claims_cid_);
+
     return s;
   }
 

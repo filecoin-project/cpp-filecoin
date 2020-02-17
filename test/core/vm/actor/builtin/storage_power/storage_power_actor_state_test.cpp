@@ -11,7 +11,8 @@
 #include "testutil/outcome.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
-using fc::adt::Multimap;
+using fc::CID;
+using fc::adt::BalanceTableHamt;
 using fc::crypto::randomness::MockRandomnessProvider;
 using fc::crypto::randomness::Randomness;
 using fc::crypto::randomness::RandomnessProvider;
@@ -24,6 +25,7 @@ using fc::storage::ipfs::InMemoryDatastore;
 using fc::storage::ipfs::IpfsDatastore;
 using fc::vm::VMExitCode;
 using fc::vm::actor::builtin::storage_power::Claim;
+using fc::vm::actor::builtin::storage_power::CronEvent;
 using fc::vm::actor::builtin::storage_power::kConsensusMinerMinPower;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
 using fc::vm::actor::builtin::storage_power::TokenAmount;
@@ -39,26 +41,23 @@ class StoragePowerActorTest : public ::testing::Test {
       std::make_shared<MockRandomnessProvider>();
   std::shared_ptr<IpfsDatastore> datastore =
       std::make_shared<InMemoryDatastore>();
-  std::shared_ptr<Hamt> escrow_table = std::make_shared<Hamt>(datastore);
-  std::shared_ptr<Multimap> cron_event_queue =
-      std::make_shared<Multimap>(datastore);
-  std::shared_ptr<Hamt> po_st_detected_fault_miners =
-      std::make_shared<Hamt>(datastore);
-  std::shared_ptr<Hamt> claims = std::make_shared<Hamt>(datastore);
-
-  std::shared_ptr<StoragePowerActorState> actor_state =
-      std::make_shared<StoragePowerActorState>(indices,
-                                               randomness_provider,
-                                               escrow_table,
-                                               cron_event_queue,
-                                               po_st_detected_fault_miners,
-                                               claims);
+  std::shared_ptr<StoragePowerActorState> actor_state;
 
   Address addr{Address::makeFromId(3232104785)};
-  Address addr_1{Address::makeFromId(323210478)};
-  Address addr_2{Address::makeFromId(32321047)};
 
   Claim default_claim{.power = 1, .pledge = 0};
+
+  void SetUp() override {
+    Hamt empty_hamt(datastore);
+    CID cidEmpty = empty_hamt.flush().value();
+    actor_state = std::make_shared<StoragePowerActorState>(indices,
+                                                           randomness_provider,
+                                                           datastore,
+                                                           cidEmpty,
+                                                           cidEmpty,
+                                                           cidEmpty,
+                                                           cidEmpty);
+  }
 };
 
 /**
@@ -192,98 +191,40 @@ TEST_F(StoragePowerActorTest, deductClaimedPowerForSectorAssert_Success) {
 }
 
 /**
- * @given Storage Power Actor and 3 miner and randomness
- * @when try to choose 2 miners
- * @then 2 miners successfully chosen
+ * @given populated state
+ * @when try to serialize and then deserialize
+ * @then state is preserved
  */
-TEST_F(StoragePowerActorTest, selectMinersToSurprise_Success) {
-  EXPECT_CALL(*indices, storagePowerConsensusMinMinerPower())
-      .WillRepeatedly(testing::Return(1));
+TEST_F(StoragePowerActorTest, CBOR) {
+  ChainEpoch epoch{12345};
+  CronEvent event{};
+  EXPECT_OUTCOME_TRUE_1(actor_state->appendCronEvent(epoch, event));
 
-  EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
-      .WillRepeatedly(testing::Return(1));
+  Address address_1{Address::makeFromId(1)};
+  TokenAmount balance_1 = 111;
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(address_1));
+  EXPECT_OUTCOME_TRUE_1(actor_state->setMinerBalance(address_1, balance_1));
 
-  Randomness randomness;
-  EXPECT_CALL(*randomness_provider, randomInt(randomness, _, _))
-      .WillOnce(testing::Return(0))
-      .WillOnce(testing::Return(0))
-      .WillOnce(testing::Return(2))
-      .WillRepeatedly(testing::Return(1));
+  Address address_2{Address::makeFromId(2)};
+  TokenAmount balance_2 = 22;
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(address_2));
+  EXPECT_OUTCOME_TRUE_1(actor_state->setMinerBalance(address_2, balance_2));
+  EXPECT_OUTCOME_TRUE_1(actor_state->setClaim(address_2, default_claim));
 
-  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor_state->setClaim(addr, default_claim));
-  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_1));
-  EXPECT_OUTCOME_TRUE_1(actor_state->setClaim(addr_1, default_claim));
-  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_2));
-  EXPECT_OUTCOME_TRUE_1(actor_state->setClaim(addr_2, default_claim));
+  Address address_3{Address::makeFromId(3)};
+  TokenAmount balance_3 = 333;
+  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(address_3));
+  EXPECT_OUTCOME_TRUE_1(actor_state->setMinerBalance(address_3, balance_3));
+  EXPECT_OUTCOME_TRUE_1(actor_state->addFaultMiner(address_3));
 
-  EXPECT_OUTCOME_TRUE(miners, actor_state->getMiners());
+  fc::codec::cbor::CborEncodeStream encoder;
+  encoder << *actor_state;
+  fc::codec::cbor::CborDecodeStream decoder(encoder.data());
+  decoder >> *actor_state;
 
-  EXPECT_OUTCOME_TRUE(sup_miners,
-                      actor_state->selectMinersToSurprise(2, randomness));
-
-  ASSERT_THAT(sup_miners, testing::ElementsAre(miners[0], miners[2]));
-}
-
-/**
- * @given Storage Power Actor and 3 miner and randomness
- * @when try to choose 3 miners
- * @then all miners return
- */
-TEST_F(StoragePowerActorTest, selectMinersToSurprise_All) {
-  EXPECT_CALL(*indices, storagePowerConsensusMinMinerPower())
-      .WillRepeatedly(testing::Return(1));
-
-  EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
-      .WillRepeatedly(testing::Return(1));
-
-  Randomness randomness;
-  EXPECT_CALL(*randomness_provider, randomInt(randomness, _, _))
-      .WillRepeatedly(testing::Return(0));
-
-  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor_state->setClaim(addr, default_claim));
-  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_1));
-  EXPECT_OUTCOME_TRUE_1(actor_state->setClaim(addr_1, default_claim));
-  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_2));
-  EXPECT_OUTCOME_TRUE_1(actor_state->setClaim(addr_2, default_claim));
-
-  EXPECT_OUTCOME_TRUE(miners, actor_state->getMiners());
-  ASSERT_EQ(miners.size(), 3);
-
-  EXPECT_OUTCOME_TRUE(
-      sup_miners,
-      actor_state->selectMinersToSurprise(miners.size(), randomness));
-
-  ASSERT_THAT(sup_miners, miners);
-}
-
-/**
- * @given Storage Power Actor and 3 miner and randomness
- * @when try to choose more that 3 miners
- * @then OUT_OF_BOUND error
- */
-TEST_F(StoragePowerActorTest, selectMinersToSurprise_MoreThatHave) {
-  EXPECT_CALL(*indices, storagePowerConsensusMinMinerPower())
-      .WillRepeatedly(testing::Return(1));
-
-  EXPECT_CALL(*indices, consensusPowerForStorageWeight(_))
-      .WillRepeatedly(testing::Return(1));
-
-  Randomness randomness;
-  EXPECT_CALL(*randomness_provider, randomInt(randomness, _, _))
-      .WillRepeatedly(testing::Return(0));
-
-  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr));
-  EXPECT_OUTCOME_TRUE_1(actor_state->setClaim(addr, default_claim));
-  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_1));
-  EXPECT_OUTCOME_TRUE_1(actor_state->setClaim(addr_1, default_claim));
-  EXPECT_OUTCOME_TRUE_1(actor_state->addMiner(addr_2));
-  EXPECT_OUTCOME_TRUE_1(actor_state->setClaim(addr_2, default_claim));
-
-  EXPECT_OUTCOME_TRUE(miners, actor_state->getMiners());
-
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::STORAGE_POWER_ACTOR_OUT_OF_BOUND,
-      actor_state->selectMinersToSurprise(miners.size() + 1, randomness));
+  EXPECT_OUTCOME_EQ(actor_state->getMinerBalance(address_1), balance_1);
+  EXPECT_OUTCOME_EQ(actor_state->getMinerBalance(address_2), balance_2);
+  EXPECT_OUTCOME_EQ(actor_state->getClaim(address_2), default_claim);
+  EXPECT_OUTCOME_EQ(actor_state->getMinerBalance(address_3), balance_3);
+  EXPECT_OUTCOME_EQ(actor_state->hasFaultMiner(address_3), true);
 }

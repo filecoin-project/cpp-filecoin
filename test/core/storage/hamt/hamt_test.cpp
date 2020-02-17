@@ -253,8 +253,24 @@ TEST_F(HamtTest, VisitorError) {
   EXPECT_EQ(n, 1);
 }
 
+/**
+ * @given an empty HAMT
+ * @when place an element
+ * @then the element is present
+ */
 TEST_F(HamtTest, Contains) {
   EXPECT_OUTCOME_EQ(hamt_.contains("not_found"), false);
   EXPECT_OUTCOME_TRUE_1(hamt_.set("element", "01"_unhex));
   EXPECT_OUTCOME_EQ(hamt_.contains("element"), true);
+}
+
+/**
+ * @given empty HAMT
+ * @when place empty value
+ * @then value is present
+ */
+TEST_F(HamtTest, PlaceEmpty) {
+  EXPECT_OUTCOME_TRUE_1(hamt_.setCbor<std::vector<int>>("key", {}));
+  EXPECT_OUTCOME_TRUE_1(hamt_.flush());
+  EXPECT_OUTCOME_EQ(hamt_.contains("key"), true);
 }

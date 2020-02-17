@@ -23,18 +23,26 @@ namespace fc::vm::actor::builtin::storage_power {
       std::shared_ptr<Indices> indices,
       std::shared_ptr<crypto::randomness::RandomnessProvider>
           randomness_provider,
-      std::shared_ptr<Hamt> escrow_table,
-      std::shared_ptr<Multimap> cron_event_queue,
-      std::shared_ptr<Hamt> po_st_detected_fault_miners,
-      std::shared_ptr<Hamt> claims)
-      : indices_(std::move(indices)),
+      std::shared_ptr<IpfsDatastore> datastore,
+      const CID &escrow_table_cid,
+      const CID &cron_event_queue_cid,
+      const CID &po_st_detected_fault_miners_cid,
+      const CID &claims_cid)
+      : datastore_{datastore},
+        indices_(std::move(indices)),
         randomness_provider_(std::move(randomness_provider)),
         total_network_power_(0),
         miner_count_(0),
-        escrow_table_(std::move(escrow_table)),
-        cron_event_queue_(std::move(cron_event_queue)),
-        po_st_detected_fault_miners_(std::move(po_st_detected_fault_miners)),
-        claims_(std::move(claims)),
+        escrow_table_(
+            std::make_shared<BalanceTableHamt>(datastore, escrow_table_cid)),
+        cron_event_queue_(
+            std::make_shared<Multimap>(datastore, cron_event_queue_cid)),
+        cron_event_queue_cid_{cron_event_queue_cid},
+        po_st_detected_fault_miners_(
+            std::make_shared<Hamt>(datastore, po_st_detected_fault_miners_cid)),
+        po_st_detected_fault_miners_cid_{po_st_detected_fault_miners_cid},
+        claims_(std::make_shared<Hamt>(datastore, claims_cid)),
+        claims_cid_{claims_cid},
         num_miners_meeting_min_power_(0) {}
 
   outcome::result<void> StoragePowerActorState::addMiner(
@@ -44,13 +52,10 @@ namespace fc::vm::actor::builtin::storage_power {
       return VMExitCode::STORAGE_POWER_ACTOR_ALREADY_EXISTS;
     }
 
+    OUTCOME_TRY(escrow_table_->set(miner_addr, TokenAmount{0}));
     OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner_addr), Claim{0, 0}));
-    OUTCOME_TRY(
-        escrow_table_->setCbor(encodeToByteString(miner_addr), TokenAmount{0}));
     OUTCOME_TRY(claims_cid, claims_->flush());
     claims_cid_ = claims_cid;
-    OUTCOME_TRY(escrow_table_cid, claims_->flush());
-    escrow_table_cid_ = escrow_table_cid;
 
     return outcome::success();
   }
@@ -70,9 +75,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(claims_cid, claims_->flush());
     claims_cid_ = claims_cid;
 
-    OUTCOME_TRY(escrow_table_->remove(encoded_miner_addr));
-    OUTCOME_TRY(escrow_table_cid, claims_->flush());
-    escrow_table_cid_ = escrow_table_cid;
+    OUTCOME_TRY(escrow_table_->remove(miner_addr));
 
     OUTCOME_TRY(contains,
                 po_st_detected_fault_miners_->contains(encoded_miner_addr));
@@ -87,74 +90,33 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  outcome::result<std::vector<primitives::address::Address>>
-  StoragePowerActorState::selectMinersToSurprise(
-      size_t challenge_count,
-      const crypto::randomness::Randomness &randomness) {
-    OUTCOME_TRY(all_miners, getMiners());
-    if (challenge_count > all_miners.size())
-      return VMExitCode::STORAGE_POWER_ACTOR_OUT_OF_BOUND;
-
-    if (challenge_count == all_miners.size()) return std::move(all_miners);
-
-    std::vector<primitives::address::Address> selected_miners;
-    for (size_t chall = 0; chall < challenge_count; chall++) {
-      int miner_index =
-          randomness_provider_->randomInt(randomness, chall, all_miners.size());
-      auto potential_challengee = all_miners[miner_index];
-
-      // skip dups
-      while (std::find(selected_miners.cbegin(),
-                       selected_miners.cend(),
-                       potential_challengee)
-             != selected_miners.cend()) {
-        miner_index = randomness_provider_->randomInt(
-            randomness,
-            chall,
-            all_miners.size());  // TODO (a.chernyshov) from specs-actor fix
-                                 // this, it's a constant value
-        potential_challengee = all_miners[miner_index];
-      }
-
-      selected_miners.push_back(potential_challengee);
-    }
-
-    return selected_miners;
-  }
-
   outcome::result<TokenAmount> StoragePowerActorState::getMinerBalance(
       const Address &miner) const {
-    OUTCOME_TRY(check, escrow_table_->contains(encodeToByteString(miner)));
+    OUTCOME_TRY(check, escrow_table_->has(miner));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
 
-    return escrow_table_->getCbor<TokenAmount>(encodeToByteString(miner));
+    return escrow_table_->get(miner);
   }
 
   outcome::result<void> StoragePowerActorState::setMinerBalance(
       const Address &miner, const TokenAmount &balance) {
-    OUTCOME_TRY(check, escrow_table_->contains(encodeToByteString(miner)));
+    OUTCOME_TRY(check, escrow_table_->has(miner));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
 
-    OUTCOME_TRY(escrow_table_->setCbor(encodeToByteString(miner), balance));
-    OUTCOME_TRY(escrow_table_cid, escrow_table_->flush());
-    escrow_table_cid_ = escrow_table_cid;
+    OUTCOME_TRY(escrow_table_->set(miner, balance));
     return outcome::success();
   }
 
   outcome::result<void> StoragePowerActorState::addMinerBalance(
       const Address &miner, const TokenAmount &amount) {
-    OUTCOME_TRY(check, escrow_table_->contains(encodeToByteString(miner)));
+    OUTCOME_TRY(check, escrow_table_->has(miner));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
 
-    OUTCOME_TRY(balance,
-                escrow_table_->getCbor<TokenAmount>(encodeToByteString(miner)));
-    OUTCOME_TRY(
-        escrow_table_->setCbor(encodeToByteString(miner), balance + amount));
-    OUTCOME_TRY(escrow_table_cid, escrow_table_->flush());
-    escrow_table_cid_ = escrow_table_cid;
+    OUTCOME_TRY(escrow_table_->add(miner, amount));
+
     return outcome::success();
   }
 
@@ -162,20 +124,11 @@ namespace fc::vm::actor::builtin::storage_power {
       const Address &miner,
       const TokenAmount &amount,
       const TokenAmount &balance_floor) {
-    OUTCOME_TRY(check, escrow_table_->contains(encodeToByteString(miner)));
+    OUTCOME_TRY(check, escrow_table_->has(miner));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
 
-    OUTCOME_TRY(balance,
-                escrow_table_->getCbor<TokenAmount>(encodeToByteString(miner)));
-    TokenAmount available =
-        balance < balance_floor ? 0 : balance - balance_floor;
-    TokenAmount sub = available < amount ? available : amount;
-    OUTCOME_TRY(
-        escrow_table_->setCbor(encodeToByteString(miner), balance - sub));
-    OUTCOME_TRY(escrow_table_cid, escrow_table_->flush());
-    escrow_table_cid_ = escrow_table_cid;
-    return sub;
+    return escrow_table_->subtractWithMinimum(miner, amount, balance_floor);
   }
 
   outcome::result<void> StoragePowerActorState::setClaim(const Address &miner,
@@ -271,12 +224,24 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner_addr)));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
-    return po_st_detected_fault_miners_->set(encodeToByteString(miner_addr),
-                                             {});
+    // cbor empty value as empty list
+    OUTCOME_TRY(po_st_detected_fault_miners_->setCbor<std::vector<int>>(
+        encodeToByteString(miner_addr), {}));
     OUTCOME_TRY(po_st_detected_fault_miners_cid,
                 po_st_detected_fault_miners_->flush());
     po_st_detected_fault_miners_cid_ = po_st_detected_fault_miners_cid;
     return outcome::success();
+  }
+
+  outcome::result<bool> StoragePowerActorState::hasFaultMiner(
+      const Address &miner_addr) const {
+    OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner_addr)));
+    if (!check)
+      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+    OUTCOME_TRY(
+        has_fault,
+        po_st_detected_fault_miners_->contains(encodeToByteString(miner_addr)));
+    return has_fault;
   }
 
   outcome::result<void> StoragePowerActorState::deleteFaultMiner(
