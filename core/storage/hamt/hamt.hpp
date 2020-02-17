@@ -108,13 +108,12 @@ namespace fc::storage::hamt {
     using Visitor = std::function<outcome::result<void>(const std::string &,
                                                         const Value &)>;
 
-    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bit_width);
-    explicit Hamt(std::shared_ptr<ipfs::IpfsDatastore> store);
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
+         size_t bit_width = kDefaultBitWidth);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
-         size_t bit_width,
-         const CID &root);
-    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
+         const CID &root,
+         size_t bit_width = kDefaultBitWidth);
     /** Set value by key, does not write to storage */
     outcome::result<void> set(const std::string &key,
                               gsl::span<const uint8_t> value);
