@@ -44,8 +44,12 @@ TEST(MinerActorTest, MinerInfoCbor) {
   MinerInfo info{
     Address::makeFromId(2),
     Address::makeFromId(3),
+    {
+      Address::makeFromId(6),
+      5,
+    },
     "\xDE\xAD",
     4,
   };
-  expectEncodeAndReencode(info, "8442000242000362dead04"_unhex);
+  expectEncodeAndReencode(info, "85420002420003824200060562dead04"_unhex);
 }

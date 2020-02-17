@@ -45,9 +45,15 @@ namespace fc::vm::actor::builtin::miner {
     uint64_t election_period_start;
   };
 
+  struct WorkerKeyChange {
+    Address new_worker;
+    uint64_t effective_at;
+  };
+
   struct MinerInfo {
     Address owner;
     Address worker;
+    WorkerKeyChange pending_worker_key;
     std::string peer_id;
     uint64_t sector_size;
   };
@@ -101,13 +107,24 @@ namespace fc::vm::actor::builtin::miner {
     return s;
   }
 
+  CBOR_ENCODE(WorkerKeyChange, change) {
+    return s << (s.list() << change.new_worker << change.effective_at);
+  }
+
+  CBOR_DECODE(WorkerKeyChange, change) {
+    s.list() >> change.new_worker >> change.effective_at;
+    return s;
+  }
+
   CBOR_ENCODE(MinerInfo, info) {
-    return s << (s.list() << info.owner << info.worker << info.peer_id
+    return s << (s.list() << info.owner << info.worker
+                          << info.pending_worker_key << info.peer_id
                           << info.sector_size);
   }
 
   CBOR_DECODE(MinerInfo, info) {
-    s.list() >> info.owner >> info.worker >> info.peer_id >> info.sector_size;
+    s.list() >> info.owner >> info.worker >> info.pending_worker_key
+        >> info.peer_id >> info.sector_size;
     return s;
   }
 }  // namespace fc::vm::actor::builtin::miner
