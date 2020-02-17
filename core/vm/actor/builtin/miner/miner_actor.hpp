@@ -96,7 +96,7 @@ namespace fc::vm::actor::builtin::miner {
     state.precommitted_sectors.clear();
     for (auto &[key, value] : precommitted_sectors) {
       auto sector = value.info.sector;
-      // TODO: check `key == uvarint(sector).bytes`
+      // TODO(turuslan): check `key == uvarint(sector).bytes`
       state.precommitted_sectors[sector] = std::move(value);
     }
     return s;

@@ -10,6 +10,12 @@
 #include "primitives/tipset/tipset.hpp"
 
 namespace fc::vm::interpreter {
+  enum class InterpreterError {
+    DUPLICATE_MINER,
+    MINER_SUBMIT_FAILED,
+    CRON_TICK_FAILED,
+  };
+
   using primitives::tipset::Tipset;
   using storage::ipfs::IpfsDatastore;
 
@@ -18,7 +24,10 @@ namespace fc::vm::interpreter {
     CID message_receipts;
   };
 
+  // TODO(turuslan): dependencies like Indices, Invoker, etc
   outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &store, const Tipset &tipset);
 }  // namespace fc::vm::interpreter
+
+OUTCOME_HPP_DECLARE_ERROR(fc::vm::interpreter, InterpreterError);
 
 #endif  // CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_HPP

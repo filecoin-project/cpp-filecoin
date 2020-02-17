@@ -14,6 +14,18 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
+OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
+  using E = fc::vm::interpreter::InterpreterError;
+  switch (e) {
+    case E::DUPLICATE_MINER:
+      return "Duplicate miner";
+    case E::MINER_SUBMIT_FAILED:
+      return "Miner submit failed";
+    case E::CRON_TICK_FAILED:
+      return "Cron tick failed";
+  }
+}
+
 namespace fc::vm::interpreter {
   using actor::Actor;
   using actor::builtin::cron::kEpochTickMethodNumber;
@@ -28,6 +40,7 @@ namespace fc::vm::interpreter {
   using message::UnsignedMessage;
   using message::SignedMessage;
   using primitives::address::Address;
+  using primitives::block::BlockHeader;
   using primitives::block::MsgMeta;
   using runtime::Env;
   using runtime::Indices;
@@ -35,6 +48,16 @@ namespace fc::vm::interpreter {
   using runtime::RuntimeImpl;
   using state::StateTreeImpl;
   using storage::amt::Amt;
+
+  bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) {
+    std::set<Address> set;
+    for (auto &block : blocks) {
+      if (!set.insert(block.miner).second) {
+        return true;
+      }
+    }
+    return false;
+  }
 
   outcome::result<Address> getMinerOwner(StateTreeImpl &state_tree, Address miner) {
     OUTCOME_TRY(actor, state_tree.get(miner));
@@ -44,12 +67,14 @@ namespace fc::vm::interpreter {
   }
 
   outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &ipld, const Tipset &tipset) {
-    // TODO: check duplicate miner
+    if (hasDuplicateMiners(tipset.blks)) {
+      return InterpreterError::DUPLICATE_MINER;
+    }
 
     auto state_tree = std::make_shared<StateTreeImpl>(ipld, tipset.getParentStateRoot());
-    // TODO: randomness{tipset}
+    // TODO(turuslan): FIL-146 randomness from tipset
     std::shared_ptr<RandomnessProvider> randomness;
-    // TODO: indices
+    // TODO(turuslan): indices
     std::shared_ptr<Indices> indices;
     auto env = std::make_shared<Env>(randomness, state_tree, indices, std::make_shared<InvokerImpl>(), tipset.height, Address{});
 
@@ -59,7 +84,7 @@ namespace fc::vm::interpreter {
       OUTCOME_TRY(miner_owner, getMinerOwner(*state_tree, block.miner));
       OUTCOME_TRY(miner_owner_actor, state_tree->get(miner_owner));
       OUTCOME_TRY(system_actor, state_tree->get(kSystemActorAddress));
-      // TODO: block reward amount
+      // TODO(turuslan): block reward amount
       OUTCOME_TRY(RuntimeImpl::transfer(system_actor, miner_owner_actor, 0));
       OUTCOME_TRY(state_tree->set(kSystemActorAddress, system_actor));
       OUTCOME_TRY(state_tree->set(miner_owner, miner_owner_actor));
@@ -75,7 +100,7 @@ namespace fc::vm::interpreter {
         {},
       }));
       if (receipt.exit_code != 0) {
-        // TODO: error
+        return InterpreterError::MINER_SUBMIT_FAILED;
       }
     }
 
@@ -132,7 +157,7 @@ namespace fc::vm::interpreter {
         {},
       }));
     if (receipt.exit_code != 0) {
-      // TODO: error
+      return InterpreterError::CRON_TICK_FAILED;
     }
 
     OUTCOME_TRY(new_state_root, state_tree->flush());
