@@ -9,7 +9,6 @@
 #include <memory>
 
 #include "common/outcome.hpp"
-#include "storage/ipfs/blockservice.hpp"
 #include "storage/ipfs/merkledag/leaf.hpp"
 #include "storage/ipfs/merkledag/node.hpp"
 

@@ -18,7 +18,7 @@ target_link_libraries(in_memory_ipfs_datastore_test
     )
 
 addtest(ipfs_blockservice_test
-    blockservice_test.cpp
+    ipfs_block_service_test.cpp
     )
 target_link_libraries(ipfs_blockservice_test
     ipfs_blockservice

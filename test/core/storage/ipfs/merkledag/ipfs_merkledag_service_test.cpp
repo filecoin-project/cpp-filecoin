@@ -10,7 +10,7 @@
 #include <storage/ipfs/merkledag/impl/merkledag_service_impl.hpp>
 #include <testutil/outcome.hpp>
 #include "core/storage/ipfs/merkledag/ipfs_merkledag_dataset.hpp"
-#include "storage/ipfs/impl/blockservice_impl.hpp"
+#include "storage/ipfs/impl/ipfs_block_service.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 
 using namespace fc::storage::ipfs;
@@ -46,7 +46,7 @@ struct CommonFeaturesTest : public testing::TestWithParam<DataSample> {
    */
   void SetUp() override {
     std::shared_ptr<IpfsDatastore> datastore{new InMemoryDatastore{}};
-    std::shared_ptr<BlockService> blockservice{new BlockServiceImpl{datastore}};
+    std::shared_ptr<IpfsDatastore> blockservice{new IpfsBlockService{datastore}};
     merkledag_service_ = std::make_shared<MerkleDagServiceImpl>(blockservice);
     data = GetParam();
     EXPECT_OUTCOME_TRUE_1(this->saveToBlockService(data.nodes));
