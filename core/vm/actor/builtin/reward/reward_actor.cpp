@@ -18,10 +18,6 @@ namespace fc::vm::actor::builtin::reward {
        ActorMethod(RewardActor::awardBlockReward)},
       {kWithdrawRewardMethodNumber, ActorMethod(RewardActor::withdrawReward)}};
 
-  auto asBig(const primitives::UBigInt &u) {
-    return u.convert_to<primitives::BigInt>();
-  }
-
   primitives::BigInt Reward::amountVested(
       const primitives::ChainEpoch &current_epoch) {
     auto elapsed = current_epoch - start_epoch;
@@ -30,10 +26,10 @@ namespace fc::vm::actor::builtin::reward {
         return value;
       case VestingFunction::LINEAR: {
         auto vest_duration{end_epoch - start_epoch};
-        if (asBig(elapsed) >= asBig(vest_duration)) {
+        if (elapsed >= vest_duration) {
           return value;
         }
-        return (value * elapsed) / asBig(vest_duration);
+        return (value * elapsed) / vest_duration;
       }
       default:
         return 0;
@@ -131,7 +127,7 @@ namespace fc::vm::actor::builtin::reward {
     OUTCOME_TRY(state, runtime.getIpfsDatastore()->getCbor<State>(state_cid));
 
     auto block_reward = computeBlockReward(state, reward_params.gas_reward);
-    auto total_reward = block_reward + reward_params.gas_reward;
+    TokenAmount total_reward = block_reward + reward_params.gas_reward;
 
     penalty = std::min(reward_params.penalty, total_reward);
     auto reward_payable = total_reward - penalty;
@@ -177,7 +173,7 @@ namespace fc::vm::actor::builtin::reward {
 
   TokenAmount RewardActor::computeBlockReward(const State &state,
                                               const TokenAmount &balance) {
-    auto treasury = balance - state.reward_total;
+    TokenAmount treasury = balance - state.reward_total;
     auto target_reward = kBlockRewardTarget;
     return std::min(target_reward, treasury);
   }
