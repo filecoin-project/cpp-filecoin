@@ -24,26 +24,24 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
 namespace fc::storage::hamt {
   using fc::common::which;
 
-  // assuming 8-bit indices
-  auto keyToIndices(const std::string &key, int n = -1) {
-    std::vector<uint8_t> key_bytes(key.begin(), key.end());
-    auto hash = crypto::murmur::hash(key_bytes);
-    return std::vector<size_t>(n == -1 ? hash.begin() : hash.end() - n + 1,
-                               hash.end());
-  }
-
   auto consumeIndex(gsl::span<const size_t> indices) {
     return indices.subspan(1);
   }
 
-  Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store)
-      : store_(std::move(store)), root_(std::make_shared<Node>()) {}
+  Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bit_width)
+      : store_{std::move(store)},
+        root_{std::make_shared<Node>()},
+        bit_width_{bit_width} {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root)
-      : store_(std::move(store)), root_(std::move(root)) {}
+      : store_{std::move(store)},
+        root_{std::move(root)},
+        bit_width_{kDefaultBitWidth} {}
 
-  Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root)
-      : store_(std::move(store)), root_(root) {}
+  Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
+             const CID &root,
+             size_t bit_width)
+      : store_{std::move(store)}, root_{root}, bit_width_{bit_width} {}
 
   outcome::result<void> Hamt::set(const std::string &key,
                                   gsl::span<const uint8_t> value) {
@@ -82,6 +80,30 @@ namespace fc::storage::hamt {
   outcome::result<CID> Hamt::flush() {
     OUTCOME_TRY(flush(root_));
     return boost::get<CID>(root_);
+  }
+
+  std::vector<size_t> Hamt::keyToIndices(const std::string &key, int n) const {
+    std::vector<uint8_t> key_bytes(key.begin(), key.end());
+    auto hash = crypto::murmur::hash(key_bytes);
+    std::vector<size_t> indices;
+    constexpr auto byte_bits = 8;
+    auto max_bits = byte_bits * hash.size();
+    max_bits -= max_bits % bit_width_;
+    auto offset = 0;
+    if (n != -1) {
+      offset = max_bits - (n - 1) * bit_width_;
+    }
+    while (offset + bit_width_ <= max_bits) {
+      size_t index = 0;
+      for (auto i = 0u; i < bit_width_; ++i, ++offset) {
+        index <<= 1;
+        index |= 1
+                 & (hash[offset / byte_bits]
+                    >> (byte_bits - 1 - offset % byte_bits));
+      }
+      indices.push_back(index);
+    }
+    return indices;
   }
 
   outcome::result<void> Hamt::set(Node &node,
