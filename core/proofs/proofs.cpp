@@ -39,9 +39,11 @@ namespace fc::proofs {
     candidate.sector_id = c_candidate.sector_id;
     candidate.sector_challenge_index = c_candidate.sector_challenge_index;
     std::copy(c_candidate.ticket,
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               c_candidate.ticket + Ticket::size(),
               candidate.ticket.begin());
     std::copy(c_candidate.partial_ticket,
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               c_candidate.partial_ticket + Ticket::size(),
               candidate.partial_ticket.begin());
     return candidate;
@@ -63,9 +65,11 @@ namespace fc::proofs {
     RawSealPreCommitOutput cpp_seal_pre_commit_output;
 
     std::copy(c_seal_pre_commit_output.comm_d,
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               c_seal_pre_commit_output.comm_d + kCommitmentBytesLen,
               cpp_seal_pre_commit_output.comm_d.begin());
     std::copy(c_seal_pre_commit_output.comm_r,
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               c_seal_pre_commit_output.comm_r + kCommitmentBytesLen,
               cpp_seal_pre_commit_output.comm_r.begin());
 
@@ -78,6 +82,7 @@ namespace fc::proofs {
 
     result.total_write_unpadded = response.total_write_unpadded;
     std::copy(response.comm_p,
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               response.comm_p + kCommitmentBytesLen,
               result.comm_p.begin());
 
@@ -91,6 +96,7 @@ namespace fc::proofs {
     result.left_alignment_unpadded = response.left_alignment_unpadded;
     result.total_write_unpadded = response.total_write_unpadded;
     std::copy(response.comm_p,
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               response.comm_p + kCommitmentBytesLen,
               result.comm_p.begin());
 
@@ -102,6 +108,7 @@ namespace fc::proofs {
   // ******************
 
   auto cPointerToArray(const Blob<32> &arr) {
+    // NOLINTNEXTLINE
     return reinterpret_cast<const uint8_t(*)[32]>(arr.data());
   }
 
@@ -327,12 +334,14 @@ namespace fc::proofs {
     }
 
     return Proof(res_ptr->flattened_proofs_ptr,
-                 res_ptr->flattened_proofs_ptr + res_ptr->flattened_proofs_len);
+                 res_ptr->flattened_proofs_ptr
+                     + res_ptr->flattened_proofs_len);  // NOLINT
   }
 
   outcome::result<Comm> Proofs::generatePieceCommitmentFromFile(
       const std::string &piece_file_path, uint64_t piece_size) {
     int fd;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
@@ -340,6 +349,7 @@ namespace fc::proofs {
     auto res_ptr = make_unique(generate_piece_commitment(fd, piece_size),
                                destroy_generate_piece_commitment_response);
 
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(fd))
       logger_->warn("generatePieceCommitmentFromFile: error in closing file "
                     + piece_file_path);
@@ -375,12 +385,15 @@ namespace fc::proofs {
       uint64_t piece_bytes,
       const std::string &staged_sector_file_path) {
     int piece_fd;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
     int staged_sector_fd;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR))
         == -1) {
+      // NOLINTNEXTLINE(readability-implicit-bool-conversion)
       if (close(piece_fd))
         logger_->warn("writeWithoutAlignment: error in closing file "
                       + piece_file_path);
@@ -391,9 +404,11 @@ namespace fc::proofs {
         write_without_alignment(piece_fd, piece_bytes, staged_sector_fd),
         destroy_write_without_alignment_response);
 
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(piece_fd))
       logger_->warn("writeWithoutAlignment: error in closing file "
                     + piece_file_path);
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(staged_sector_fd))
       logger_->warn("writeWithoutAlignment: error in closing file "
                     + staged_sector_file_path);
@@ -413,12 +428,15 @@ namespace fc::proofs {
       const std::string &staged_sector_file_path,
       gsl::span<const uint64_t> existing_piece_sizes) {
     int piece_fd;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
     int staged_sector_fd;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR))
         == -1) {
+      // NOLINTNEXTLINE(readability-implicit-bool-conversion)
       if (close(piece_fd))
         logger_->warn("writeWithAlignment: error in closing file "
                       + piece_file_path);
@@ -436,9 +454,11 @@ namespace fc::proofs {
       logger_->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(piece_fd))
       logger_->warn("writeWithAlignment: error in closing file "
                     + piece_file_path);
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(staged_sector_fd))
       logger_->warn("writeWithAlignment: error in closing file "
                     + staged_sector_file_path);
@@ -505,6 +525,7 @@ namespace fc::proofs {
       return ProofsError::UNKNOWN;
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return Proof(res_ptr->proof_ptr, res_ptr->proof_ptr + res_ptr->proof_len);
   }
 
@@ -545,9 +566,8 @@ namespace fc::proofs {
     std::sort(sorted_replica_info.values.begin(),
               sorted_replica_info.values.end(),
               [](const PrivateReplicaInfo &lhs, const PrivateReplicaInfo &rhs) {
-                return std::memcmp(lhs.comm_r.data(),
-                                   rhs.comm_r.data(),
-                                   Comm::size())
+                return std::memcmp(
+                           lhs.comm_r.data(), rhs.comm_r.data(), Comm::size())
                        < 0;
               });
 
@@ -595,9 +615,8 @@ namespace fc::proofs {
     std::sort(sorted_sector_info.values.begin(),
               sorted_sector_info.values.end(),
               [](const PublicSectorInfo &lhs, const PublicSectorInfo &rhs) {
-                return std::memcmp(lhs.comm_r.data(),
-                                   rhs.comm_r.data(),
-                                   Comm::size())
+                return std::memcmp(
+                           lhs.comm_r.data(), rhs.comm_r.data(), Comm::size())
                        < 0;
               });
 

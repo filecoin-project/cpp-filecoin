@@ -37,13 +37,13 @@ namespace fc::proofs {
   // PublicPieceInfo is an on-chain tuple of CommP and aligned piece-size.
   class PublicPieceInfo {
    public:
-    uint64_t size;
+    uint64_t size = 0;
     Comm comm_p;
   };
 
   class PublicSectorInfo {
    public:
-    uint64_t sector_id;
+    uint64_t sector_id = 0;
     Comm comm_r;
   };
 
@@ -69,22 +69,22 @@ namespace fc::proofs {
 
   class Candidate {
    public:
-    uint64_t sector_id;
+    uint64_t sector_id = 0;
     Ticket partial_ticket;
     Ticket ticket;
-    uint64_t sector_challenge_index;
+    uint64_t sector_challenge_index = 0;
   };
 
   class WriteWithoutAlignmentResult {
    public:
-    uint64_t total_write_unpadded;
+    uint64_t total_write_unpadded = 0;
     Comm comm_p;
   };
 
   class WriteWithAlignmentResult {
    public:
-    uint64_t left_alignment_unpadded;
-    uint64_t total_write_unpadded;
+    uint64_t left_alignment_unpadded = 0;
+    uint64_t total_write_unpadded = 0;
     Comm comm_p;
   };
 

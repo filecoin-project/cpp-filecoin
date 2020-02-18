@@ -24,7 +24,6 @@
 
 namespace fc::proofs {
 
-  boost::mutex ProofParamProvider::fetch_mutex_ = boost::mutex();
   common::Logger ProofParamProvider::logger_ =
       common::createLogger("proofs params");
 
@@ -39,17 +38,15 @@ namespace fc::proofs {
                                  ending.length(),
                                  ending)
               == 0);
-    } else {
-      return false;
     }
+    return false;
   }
 
   outcome::result<ResponseParseUrl> parseUrl(const std::string &url_str) {
     ResponseParseUrl response{};
 
     std::smatch match;
-    std::regex reg(
-        "(https|http):\\/\\/([A-Za-z0-9\\-.]+)(\\/[\\/A-Za-z0-9\\-.]+)");
+    std::regex reg(R"((https|http)://([A-Za-z0-9-.]+)(/[/A-Za-z0-9-.]+))");
 
     if (std::regex_match(url_str, match, reg)) {
       response.host = match[2];
@@ -71,7 +68,7 @@ namespace fc::proofs {
   using tcp = net::ip::tcp;        // from <boost/asio/ip/tcp.hpp>
 
   outcome::result<void> ProofParamProvider::doFetch(const std::string &out,
-                                                    ParamFile info) {
+                                                    const ParamFile &info) {
     try {
       std::string gateway = default_gateway;
       if (char *custom_gateway = std::getenv("IPFS_GATEWAY")) {
@@ -178,7 +175,7 @@ namespace fc::proofs {
   outcome::result<void> checkFile(const std::string &path,
                                   const ParamFile &info) {
     char *res = std::getenv("TRUST_PARAMS");
-    if (res && std::strcmp(res, "1") == 0) {
+    if (res != nullptr && std::strcmp(res, "1") == 0) {
       // Assuming parameter files are ok. DO NOT USE IN PRODUCTION
       return outcome::success();
     }
@@ -206,11 +203,13 @@ namespace fc::proofs {
     if (!res.has_error()) {
       logger_->info(info.name + " already uploaded");
       return;
-    } else if (boost::filesystem::exists(path)) {
+    }
+    if (boost::filesystem::exists(path)) {
       logger_->warn(res.error().message());
     }
 
-    std::lock_guard<boost::mutex> lock(fetch_mutex_);
+    static std::mutex mutex;
+    std::lock_guard<std::mutex> lock(mutex);
 
     auto fetch_res = doFetch(path.string(), info);
 
