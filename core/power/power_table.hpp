@@ -13,7 +13,7 @@
 namespace fc::power {
 
   using primitives::address::Address;
-  using Power = primitives::UBigInt;
+  using Power = primitives::BigInt;
 
   /**
    * @interface Provides an interface to the power table

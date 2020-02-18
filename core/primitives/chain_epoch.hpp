@@ -14,7 +14,7 @@ namespace fc::primitives {
    * @brief epoch index type represents a round of a blockchain protocol, which
    * acts as a proxy for time within the VM
    */
-  using ChainEpoch = UBigInt;
+  using ChainEpoch = BigInt;
 
   using EpochDuration = BigInt;
 
