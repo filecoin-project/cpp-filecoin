@@ -53,7 +53,7 @@ namespace fc::vm::actor::builtin::miner {
   struct MinerInfo {
     Address owner;
     Address worker;
-    WorkerKeyChange pending_worker_key;
+    boost::optional<WorkerKeyChange> pending_worker_key;
     std::string peer_id;
     uint64_t sector_size;
   };

@@ -13,6 +13,15 @@ using fc::vm::actor::builtin::miner::MinerActorState;
 using fc::vm::actor::builtin::miner::MinerInfo;
 using fc::vm::actor::builtin::miner::PreCommittedSector;
 using fc::vm::actor::builtin::miner::SectorPreCommitInfo;
+using fc::vm::actor::builtin::miner::WorkerKeyChange;
+
+const MinerInfo miner_info{
+  Address::makeFromId(2),
+  Address::makeFromId(3),
+  boost::none,
+  "\xDE\xAD",
+  4,
+};
 
 /// Miner actor state CBOR encoding and decoding
 TEST(MinerActorTest, MinerActorStateCbor) {
@@ -41,15 +50,11 @@ TEST(MinerActorTest, MinerActorStateCbor) {
 
 /// Miner info CBOR encoding and decoding
 TEST(MinerActorTest, MinerInfoCbor) {
-  MinerInfo info{
-    Address::makeFromId(2),
-    Address::makeFromId(3),
-    {
-      Address::makeFromId(6),
-      5,
-    },
-    "\xDE\xAD",
-    4,
+  expectEncodeAndReencode(miner_info, "85420002420003f662dead04"_unhex);
+  auto info2 = miner_info;
+  info2.pending_worker_key = WorkerKeyChange{
+    Address::makeFromId(6),
+    5,
   };
-  expectEncodeAndReencode(info, "85420002420003824200060562dead04"_unhex);
+  expectEncodeAndReencode(info2, "85420002420003824200060562dead04"_unhex);
 }
