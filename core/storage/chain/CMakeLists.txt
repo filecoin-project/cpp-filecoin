@@ -19,7 +19,7 @@ target_link_libraries(datastore_key
     )
 
 add_library(chain_data_store
-    chain_data_store.cpp
+    impl/chain_data_store_impl.cpp
     )
 target_link_libraries(chain_data_store
     datastore_key

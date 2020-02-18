@@ -8,7 +8,8 @@
 
 namespace fc::primitives::chain {
   class ChainManager {
-
+   public:
+    virtual ~ChainManager()= default;
   };
 }
 

@@ -11,17 +11,17 @@
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/cid/json_codec.hpp"
-#include "primitives/tipset/tipset_key.hpp"
 #include "primitives/persistent_block/persistent_block.hpp"
+#include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::storage::blockchain {
   using primitives::block::BlockHeader;
-  using primitives::tipset::Tipset;
   using primitives::blockchain::block::PersistentBlock;
+  using primitives::tipset::Tipset;
 
   namespace {
-    const DatastoreKey chain_head_key = DatastoreKey::makeFromString("head");
-    const DatastoreKey genesis_key = DatastoreKey::makeFromString("0");
+    const DatastoreKey chain_head_key{DatastoreKey::makeFromString("head")};
+    const DatastoreKey genesis_key{DatastoreKey::makeFromString("0")};
   }  // namespace
 
   ChainStore::ChainStore(std::shared_ptr<ipfs::BlockService> block_service,
@@ -105,13 +105,14 @@ namespace fc::storage::blockchain {
   }
 
   outcome::result<void> ChainStore::persistBlockHeaders(
-      const std::vector<std::reference_wrapper<const BlockHeader>> &block_headers) {
-    using Block = storage::ipfs::Block;
+      const std::vector<std::reference_wrapper<const BlockHeader>>
+          &block_headers) {
 
     for (auto &b : block_headers) {
       OUTCOME_TRY(data, codec::cbor::encode(b));
       OUTCOME_TRY(cid, common::getCidOf(data));
-      OUTCOME_TRY(block_service_->addBlock(PersistentBlock(std::move(cid), std::move(data))));
+      OUTCOME_TRY(block_service_->addBlock(
+          PersistentBlock(std::move(cid), std::move(data))));
     }
 
     return outcome::success();
@@ -240,7 +241,7 @@ namespace fc::storage::blockchain {
       cids = min_ticket_block.get().parents;
     }
   }
-}  // namespace fc::storage::chain
+}  // namespace fc::storage::blockchain
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {
   using fc::storage::blockchain::ChainStoreError;

@@ -4,6 +4,9 @@
  */
 
 #include "primitives/cid/json_codec.hpp"
+
+#include <strstream>
+
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include "codec/cbor/cbor.hpp"
@@ -15,8 +18,9 @@ namespace fc::codec::json {
     using libp2p::multi::detail::decodeBase58;
     using libp2p::multi::detail::encodeBase58;
 
-    // TODO(yuraz): implement correct encode and decode
-    // this solution is temporary
+    // TODO(yuraz): FIL-156 implement correct encode and decode
+    // this solution is temporary and not compatible with lotus implementation
+    // need to decide whether we need implement it according to lotus
     outcome::result<std::string> encodeCid(const CID &cid) {
       std::string result;
       OUTCOME_TRY(cid_bytes, cbor::encode(cid));
@@ -31,13 +35,21 @@ namespace fc::codec::json {
 
   outcome::result<std::string> encodeCidVector(gsl::span<const CID> span) {
     ptree tree;
-    auto &&child = tree.put("/", "");
-    for (auto &it : span) {
+    ptree children;
+    for (const auto &it : span) {
       OUTCOME_TRY(encoded, encodeCid(it));
-      child.push_back({"", ptree(encoded)});
+      ptree child;
+      child.put("", encoded);
+      children.push_back(std::make_pair("", child));
     }
 
-    return tree.data();
+    tree.add_child("/", children);
+
+    // get json from tree
+    std::stringstream out;
+    boost::property_tree::write_json(out, tree);
+
+    return out.str();
   }
 
   outcome::result<std::vector<CID>> decodeCidVector(std::string_view data) {

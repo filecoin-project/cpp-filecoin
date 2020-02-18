@@ -6,4 +6,6 @@ add_library(persistent_block
     )
 target_link_libraries(persistent_block
     buffer
+    cbor
+    cid
     )

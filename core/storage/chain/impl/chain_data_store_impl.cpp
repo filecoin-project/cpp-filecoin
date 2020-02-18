@@ -3,19 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/chain/chain_data_store.hpp"
+#include "storage/chain/impl/chain_data_store_impl.hpp"
 
 #include "primitives/cid/cid_of_cbor.hpp"
 
 namespace fc::storage::blockchain {
   using primitives::cid::getCidOfCbor;
 
-  ChainDataStore::ChainDataStore(std::shared_ptr<ipfs::IpfsDatastore> store)
+  ChainDataStoreImpl::ChainDataStoreImpl(
+      std::shared_ptr<ipfs::IpfsDatastore> store)
       : store_{std::move(store)} {
     BOOST_ASSERT_MSG(store_ != nullptr, "parameter store is nullptr");
   }
 
-  outcome::result<std::string> ChainDataStore::get(
+  outcome::result<std::string> ChainDataStoreImpl::get(
       const DatastoreKey &key) const {
     OUTCOME_TRY(cid, getCidOfCbor(key.value));
     OUTCOME_TRY(bytes, store_->get(cid));
@@ -24,17 +25,22 @@ namespace fc::storage::blockchain {
     return str;
   }
 
-  outcome::result<void> ChainDataStore::set(const DatastoreKey &key,
-                                            std::string_view value) {
+  outcome::result<void> ChainDataStoreImpl::set(const DatastoreKey &key,
+                                                std::string_view value) {
     OUTCOME_TRY(cid, getCidOfCbor(key.value));
     std::vector<uint8_t> bytes{value.begin(), value.end()};
     ipfs::IpfsDatastore::Value buffer{std::move(bytes)};
     return store_->set(cid, buffer);
   }
 
-  outcome::result<bool> ChainDataStore::contains(
+  outcome::result<bool> ChainDataStoreImpl::contains(
       const DatastoreKey &key) const {
     OUTCOME_TRY(cid, getCidOfCbor(key.value));
     return store_->contains(cid);
   }
-}  // namespace fc::storage::chain
+
+  outcome::result<void> ChainDataStoreImpl::remove(const DatastoreKey &key) {
+    OUTCOME_TRY(cid, getCidOfCbor(key.value));
+    return store_->remove(cid);
+  }
+}  // namespace fc::storage::blockchain
