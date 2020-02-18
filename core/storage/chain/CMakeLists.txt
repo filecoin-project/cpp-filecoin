@@ -16,6 +16,7 @@ add_library(datastore_key
     )
 target_link_libraries(datastore_key
     Boost::boost
+    Boost::filesystem
     )
 
 add_library(chain_data_store

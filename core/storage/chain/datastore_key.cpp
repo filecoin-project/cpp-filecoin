@@ -23,28 +23,28 @@ namespace fc::storage {
       v = "/" + std::string(value);
     }
 
-    return boost::filesystem::path(std::string(v)).normalize().string();
+    auto res =
+        boost::filesystem::path(std::string(v)).lexically_normal().string();
+
+    if (res == "/.") {
+      return "/";
+    }
+
+    auto len = res.length();
+
+    // remove last /. if presents
+    if (len > 2 && res.substr(len - 2, 2) == "/.") {
+      return res.substr(0, len - 2);
+    }
+
+    return res;
   }
 
   DatastoreKey DatastoreKey::makeFromString(std::string_view value) noexcept {
     return DatastoreKey{formatKeyData(value)};
   }
 
-  outcome::result<DatastoreKey> DatastoreKey::makeRaw(
-      std::string_view value) noexcept {
-    if (value.empty()) {
-      return DatastoreKey{"/"};
-    }
-
-    auto size = value.size();
-    if (value[0] != '/' || (size > 1 && value[size - 1] == '/')) {
-      return DatastoreKeyError::INVALID_DATASTORE_KEY;
-    }
-
-    return DatastoreKey{std::string(value)};
-  }
-
-  inline bool operator<(const DatastoreKey &lhs, const DatastoreKey &rhs) {
+  bool operator<(const DatastoreKey &lhs, const DatastoreKey &rhs) {
     std::vector<std::string> lhs_list;
     std::vector<std::string> rhs_list;
     boost::split(lhs_list, lhs.value, [](char c) { return c == '/'; });

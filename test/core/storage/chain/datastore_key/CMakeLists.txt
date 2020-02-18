@@ -5,6 +5,7 @@ addtest(datastore_key_cbor_test
     datastore_key_cbor_test.cpp
     )
 target_link_libraries(datastore_key_cbor_test
+    cbor
     datastore_key
     )
 

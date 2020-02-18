@@ -18,7 +18,7 @@ namespace fc::storage::blockchain {
 
   outcome::result<std::string> ChainDataStoreImpl::get(
       const DatastoreKey &key) const {
-    OUTCOME_TRY(cid, getCidOfCbor(key.value));
+    OUTCOME_TRY(cid, getCidOfCbor(key));
     OUTCOME_TRY(bytes, store_->get(cid));
     std::string str{bytes.begin(), bytes.end()};
 
@@ -27,7 +27,7 @@ namespace fc::storage::blockchain {
 
   outcome::result<void> ChainDataStoreImpl::set(const DatastoreKey &key,
                                                 std::string_view value) {
-    OUTCOME_TRY(cid, getCidOfCbor(key.value));
+    OUTCOME_TRY(cid, getCidOfCbor(key));
     std::vector<uint8_t> bytes{value.begin(), value.end()};
     ipfs::IpfsDatastore::Value buffer{std::move(bytes)};
     return store_->set(cid, buffer);
@@ -35,12 +35,12 @@ namespace fc::storage::blockchain {
 
   outcome::result<bool> ChainDataStoreImpl::contains(
       const DatastoreKey &key) const {
-    OUTCOME_TRY(cid, getCidOfCbor(key.value));
+    OUTCOME_TRY(cid, getCidOfCbor(key));
     return store_->contains(cid);
   }
 
   outcome::result<void> ChainDataStoreImpl::remove(const DatastoreKey &key) {
-    OUTCOME_TRY(cid, getCidOfCbor(key.value));
+    OUTCOME_TRY(cid, getCidOfCbor(key));
     return store_->remove(cid);
   }
 }  // namespace fc::storage::blockchain

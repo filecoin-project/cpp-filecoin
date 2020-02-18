@@ -22,13 +22,6 @@ namespace fc::storage {
      * @param value key data
      */
     static DatastoreKey makeFromString(std::string_view value) noexcept;
-
-    /**
-     * @brief creates raw key from string without safety checking
-     * @param value key data
-     */
-    static outcome::result<DatastoreKey> makeRaw(
-        std::string_view value) noexcept;
   };
 
   enum class DatastoreKeyError {
@@ -53,7 +46,7 @@ namespace fc::storage {
   }
 
   /** @brief orders 2 DatastoreKey instances */
-  inline bool operator<(const DatastoreKey &lhs, const DatastoreKey &rhs);
+  bool operator<(const DatastoreKey &lhs, const DatastoreKey &rhs);
 
   /** @brief compares 2 DatastoreKey intances for equality */
   bool operator==(const DatastoreKey &lhs, const DatastoreKey &rhs);
