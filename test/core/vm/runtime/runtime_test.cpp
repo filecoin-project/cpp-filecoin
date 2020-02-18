@@ -189,8 +189,7 @@ TEST_F(RuntimeTest, send) {
   EXPECT_CALL(*invoker_, invoke(Eq(to_actor), _, Eq(method), Eq(params)))
       .WillOnce(testing::Return(fc::outcome::success(res)));
   EXPECT_CALL(*state_tree_, set(_, _))
-      .Times(1)
-      .WillRepeatedly(testing::Return(fc::outcome::success()));
+      .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(runtime_->send(to_address, method, params, amount));
 }
