@@ -92,7 +92,6 @@ namespace fc::adt {
     mutable Hamt hamt_;
   };
 
-
 }  // namespace fc::adt
 
 #endif  // CPP_FILECOIN_ADT_BALANCE_TABLE_HAMT_HPP
