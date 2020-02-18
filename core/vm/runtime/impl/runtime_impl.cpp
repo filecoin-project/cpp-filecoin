@@ -182,7 +182,9 @@ fc::outcome::result<void> RuntimeImpl::transfer(Actor &from,
 
 fc::outcome::result<void> RuntimeImpl::chargeGas(const BigInt &amount) {
   gas_used_ = gas_used_ + amount;
-  if (gas_available_ < gas_used_) return RuntimeError::NOT_ENOUGH_GAS;
+  if (gas_available_ != -1 && gas_available_ < gas_used_) {
+    return RuntimeError::NOT_ENOUGH_GAS;
+  }
   return outcome::success();
 }
 

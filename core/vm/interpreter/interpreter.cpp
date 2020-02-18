@@ -94,7 +94,7 @@ namespace fc::vm::interpreter {
         system_actor.nonce,
         0,
         0,
-        10000000000,
+        -1,
         kSubmitElectionPoStMethodNumber,
         {},
       }));
@@ -151,7 +151,7 @@ namespace fc::vm::interpreter {
         cron_actor.nonce,
         0,
         0,
-        1 << 30,
+        -1,
         kEpochTickMethodNumber,
         {},
       }));
