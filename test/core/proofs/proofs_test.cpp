@@ -40,7 +40,7 @@ class ProofsTest : public test::BaseFS_Test {
  * @when Generates and Verifies PoST
  * @then success
  */
-TEST_F(ProofsTest, ValidPoSt) {
+TEST_F(ProofsTest, DISABLED_ValidPoSt) {
   uint64_t challenge_count = 2;
   uint8_t porep_proof_partitions = 10;
   Prover prover_id{{6, 7, 8}};
@@ -110,12 +110,11 @@ TEST_F(ProofsTest, ValidPoSt) {
   ASSERT_EQ(resA.comm_p, pA.comm_p);
 
   std::vector<uint64_t> commitment = {127};
-  EXPECT_OUTCOME_TRUE(
-      resB,
-      Proofs::writeWithAlignment(piece_file_b_path,
-                                 piece_commitment_b_size,
-                                 staged_sector_file,
-                                 gsl::span<uint64_t>(commitment)));
+  EXPECT_OUTCOME_TRUE(resB,
+                      Proofs::writeWithAlignment(piece_file_b_path,
+                                                 piece_commitment_b_size,
+                                                 staged_sector_file,
+                                                 commitment));
   ASSERT_EQ(resB.left_alignment_unpadded,
             piece_commitment_b_size - piece_commitment_a_size);
 
@@ -186,7 +185,7 @@ TEST_F(ProofsTest, ValidPoSt) {
   ASSERT_TRUE(res);
 }
 
-TEST_F(ProofsTest, DISABLED_ValidSealAndUnseal) {
+TEST_F(ProofsTest, ValidSealAndUnseal) {
   uint8_t porep_proof_partitions = 10;
   Prover prover_id{{6, 7, 8}};
   Randomness randomness{{9, 9, 9}};
@@ -277,12 +276,11 @@ TEST_F(ProofsTest, DISABLED_ValidSealAndUnseal) {
   ASSERT_EQ(resA.comm_p, pA.comm_p);
 
   std::vector<uint64_t> commitment = {127};
-  EXPECT_OUTCOME_TRUE(
-      resB,
-      Proofs::writeWithAlignment(piece_file_b_path,
-                                 piece_commitment_b_size,
-                                 staged_sector_file,
-                                 gsl::span<uint64_t>(commitment)));
+  EXPECT_OUTCOME_TRUE(resB,
+                      Proofs::writeWithAlignment(piece_file_b_path,
+                                                 piece_commitment_b_size,
+                                                 staged_sector_file,
+                                                 commitment));
   ASSERT_EQ(resB.left_alignment_unpadded,
             piece_commitment_b_size - piece_commitment_a_size);
 
@@ -349,23 +347,28 @@ TEST_F(ProofsTest, DISABLED_ValidSealAndUnseal) {
                                        ticket,
                                        output.comm_d));
 
-  // read file
-  std::vector<uint8_t> file_a_bytes = {};
+  auto read_file = [](const std::string &path) -> std::vector<uint8_t> {
+    std::ifstream file(path, std::ios::binary);
 
-  std::ifstream file_a(unseal_output_file_a, std::ios::binary);
+    std::vector<uint8_t> bytes = {};
 
-  uint8_t ch = file_a.get();
-  while (!file_a.eof()) {
-    file_a_bytes.push_back(ch);
-    ch = file_a.get();
-  }
+    if (!file.is_open()) return bytes;
 
-  file_a.close();
+    char ch;
+    while (file.get(ch)) {
+      bytes.push_back(ch);
+    }
 
-  ASSERT_EQ(gsl::span<uint8_t>(file_a_bytes.data(), 127),
-            gsl::span<uint8_t>(some_bytes.data(), 127));
-  ASSERT_EQ(gsl::span<uint8_t>(file_a_bytes.data() + 508, 508),
-            gsl::span<uint8_t>(some_bytes.data(), 508));
+    file.close();
+    return bytes;
+  };
+
+  std::vector<uint8_t> file_a_bytes = read_file(unseal_output_file_a);
+
+  ASSERT_EQ(gsl::make_span(file_a_bytes.data(), 127),
+            gsl::make_span(some_bytes.data(), 127));
+  ASSERT_EQ(gsl::make_span(file_a_bytes.data() + 508, 508),
+            gsl::make_span(some_bytes.data(), 508));
 
   EXPECT_OUTCOME_TRUE_1(Proofs::unsealRange(sector_size,
                                             porep_proof_partitions,
@@ -379,19 +382,10 @@ TEST_F(ProofsTest, DISABLED_ValidSealAndUnseal) {
                                             0,
                                             127));
 
-  std::vector<uint8_t> file_b_bytes = {};
+  std::vector<uint8_t> file_b_bytes = read_file(unseal_output_file_b);
 
-  std::ifstream file_b(unseal_output_file_b, std::ios::binary);
-
-  ch = file_b.get();
-  while (!file_b.eof()) {
-    file_b_bytes.push_back(ch);
-    ch = file_b.get();
-  }
-
-  ASSERT_EQ(file_b_bytes.size(), 127);
-  ASSERT_EQ(gsl::span<uint8_t>(file_b_bytes.data(), 127),
-            gsl::span<uint8_t>(some_bytes.data(), 127));
+  ASSERT_EQ(gsl::make_span(file_b_bytes),
+            gsl::make_span(some_bytes.data(), 127));
 
   EXPECT_OUTCOME_TRUE_1(Proofs::unsealRange(sector_size,
                                             porep_proof_partitions,
@@ -405,17 +399,8 @@ TEST_F(ProofsTest, DISABLED_ValidSealAndUnseal) {
                                             508,
                                             508));
 
-  std::vector<uint8_t> file_c_bytes = {};
+  std::vector<uint8_t> file_c_bytes = read_file(unseal_output_file_c);
 
-  std::ifstream file_c(unseal_output_file_c, std::ios::binary);
-
-  ch = file_c.get();
-  while (!file_c.eof()) {
-    file_c_bytes.push_back(ch);
-    ch = file_c.get();
-  }
-
-  ASSERT_EQ(file_c_bytes.size(), 508);
-  ASSERT_EQ(gsl::span<uint8_t>(file_c_bytes.data(), 508),
-            gsl::span<uint8_t>(some_bytes.data(), 508));
+  ASSERT_EQ(gsl::make_span(file_c_bytes),
+            gsl::make_span(some_bytes.data(), 508));
 }
