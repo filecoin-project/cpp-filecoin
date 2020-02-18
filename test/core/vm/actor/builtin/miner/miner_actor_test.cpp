@@ -11,41 +11,47 @@
 using fc::primitives::address::Address;
 using fc::vm::actor::builtin::miner::MinerActorState;
 using fc::vm::actor::builtin::miner::MinerInfo;
-using fc::vm::actor::builtin::miner::PreCommittedSector;
+using fc::vm::actor::builtin::miner::SectorOnChainInfo;
 using fc::vm::actor::builtin::miner::SectorPreCommitInfo;
+using fc::vm::actor::builtin::miner::SectorPreCommitOnChainInfo;
 using fc::vm::actor::builtin::miner::WorkerKeyChange;
 
 const MinerInfo miner_info{
-  Address::makeFromId(2),
-  Address::makeFromId(3),
-  boost::none,
-  "\xDE\xAD",
-  4,
+    Address::makeFromId(2),
+    Address::makeFromId(3),
+    boost::none,
+    "\xDE\xAD",
+    4,
 };
 
 /// Miner actor state CBOR encoding and decoding
 TEST(MinerActorTest, MinerActorStateCbor) {
   MinerActorState state{
-    {{0xCAFE, PreCommittedSector{
-      SectorPreCommitInfo{
-        0xCAFE,
-        "402fe713e2328b6f21f07730248b0e6cdce7c7feffe744ec97989e4318d4c5d3"_blob32,
-        7,
-        {9},
-      },
-      8,
-    }}},
-    "010001020002"_cid,
-    "010001020003"_cid,
-    "010001020004"_cid,
-    {2, 7},
-    2,
-    3,
-    false,
-    4,
-    5,
+      "010001020001"_cid,
+      "010001020002"_cid,
+      {2, 7},
+      "010001020003"_cid,
+      miner_info,
+      {1, 2},
   };
-  expectEncodeAndReencode(state, "8aa163fe9503828419cafe5820402fe713e2328b6f21f07730248b0e6cdce7c7feffe744ec97989e4318d4c5d307810908d82a4700010001020002d82a4700010001020003d82a470001000102000443504a0102420003f40405"_unhex);
+  expectEncodeAndReencode(
+      state,
+      "86d82a4700010001020001d82a470001000102000243504a01d82a470001000102000385420002420003f662dead04820102"_unhex);
+}
+
+TEST(MinerActorTest, MinerSectorInfo) {
+  SectorPreCommitInfo info{
+      1,
+      "010001020001"_cid,
+      2,
+      {3},
+      4,
+  };
+  expectEncodeAndReencode(SectorPreCommitOnChainInfo{info, 1, 2},
+                          "838501d82a47000100010200010281030442000102"_unhex);
+  expectEncodeAndReencode(
+      SectorOnChainInfo{info, 1, 2, 3, 4, 5},
+      "868501d82a470001000102000102810304014200024200030405"_unhex);
 }
 
 /// Miner info CBOR encoding and decoding
@@ -53,8 +59,8 @@ TEST(MinerActorTest, MinerInfoCbor) {
   expectEncodeAndReencode(miner_info, "85420002420003f662dead04"_unhex);
   auto info2 = miner_info;
   info2.pending_worker_key = WorkerKeyChange{
-    Address::makeFromId(6),
-    5,
+      Address::makeFromId(6),
+      5,
   };
   expectEncodeAndReencode(info2, "85420002420003824200060562dead04"_unhex);
 }

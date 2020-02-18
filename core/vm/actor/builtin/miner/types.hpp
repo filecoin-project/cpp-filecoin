@@ -20,29 +20,32 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::address::Address;
   using proofs::Comm;
 
+  struct PoStState {
+    uint64_t proving_period_start;
+    uint64_t num_consecutive_failures;
+  };
+
   struct SectorPreCommitInfo {
     uint64_t sector;
-    Comm comm_r;
+    CID sealed_cid;
     uint64_t seal_epoch;
     std::vector<uint64_t> deal_ids;
+    uint64_t expiration;
   };
 
-  struct PreCommittedSector {
+  struct SectorPreCommitOnChainInfo {
     SectorPreCommitInfo info;
-    uint64_t received_epoch;
+    BigInt precommit_deposit;
+    uint64_t precommit_epoch;
   };
 
-  struct MinerActorState {
-    std::map<uint64_t, PreCommittedSector> precommitted_sectors;
-    CID sectors;
-    CID proving_set;
-    CID info;
-    RleBitset fault_set;
-    uint64_t last_fault_sumbission;
-    BigInt power;
-    bool active;
-    uint64_t slashed_at;
-    uint64_t election_period_start;
+  struct SectorOnChainInfo {
+    SectorPreCommitInfo info;
+    uint64_t activation_epoch;
+    BigInt deal_weight;
+    BigInt pledge_requirement;
+    uint64_t declared_fault_epoch;
+    uint64_t declared_fault_duration;
   };
 
   struct WorkerKeyChange {
@@ -58,52 +61,57 @@ namespace fc::vm::actor::builtin::miner {
     uint64_t sector_size;
   };
 
+  struct MinerActorState {
+    CID precommitted_sectors;
+    CID sectors;
+    RleBitset fault_set;
+    CID proving_set;
+    MinerInfo info;
+    PoStState post_state;
+  };
+
+  CBOR_ENCODE(PoStState, state) {
+    return s << (s.list() << state.proving_period_start
+                          << state.num_consecutive_failures);
+  }
+
+  CBOR_DECODE(PoStState, state) {
+    s.list() >> state.proving_period_start >> state.num_consecutive_failures;
+    return s;
+  }
+
   CBOR_ENCODE(SectorPreCommitInfo, info) {
-    return s << (s.list() << info.sector << info.comm_r << info.seal_epoch
-                          << info.deal_ids);
+    return s << (s.list() << info.sector << info.sealed_cid << info.seal_epoch
+                          << info.deal_ids << info.expiration);
   }
 
   CBOR_DECODE(SectorPreCommitInfo, info) {
-    s.list() >> info.sector >> info.comm_r >> info.seal_epoch >> info.deal_ids;
+    s.list() >> info.sector >> info.sealed_cid >> info.seal_epoch
+        >> info.deal_ids >> info.expiration;
     return s;
   }
 
-  CBOR_ENCODE(PreCommittedSector, sector) {
-    return s << (s.list() << sector.info << sector.received_epoch);
+  CBOR_ENCODE(SectorPreCommitOnChainInfo, info) {
+    return s << (s.list() << info.info << info.precommit_deposit
+                          << info.precommit_epoch);
   }
 
-  CBOR_DECODE(PreCommittedSector, sector) {
-    s.list() >> sector.info >> sector.received_epoch;
+  CBOR_DECODE(SectorPreCommitOnChainInfo, info) {
+    s.list() >> info.info >> info.precommit_deposit >> info.precommit_epoch;
     return s;
   }
 
-  CBOR_ENCODE(MinerActorState, state) {
-    std::map<std::string, PreCommittedSector> precommitted_sectors;
-    for (auto &[sector, value] : state.precommitted_sectors) {
-      UVarint sector_uvarint{sector};
-      auto key = sector_uvarint.toBytes();
-      precommitted_sectors[std::string(
-          reinterpret_cast<const char *>(key.data()), key.size())] = value;
-    }
-    return s << (s.list() << precommitted_sectors << state.sectors
-                          << state.proving_set << state.info << state.fault_set
-                          << state.last_fault_sumbission << state.power
-                          << state.active << state.slashed_at
-                          << state.election_period_start);
+  CBOR_ENCODE(SectorOnChainInfo, info) {
+    return s << (s.list() << info.info << info.activation_epoch
+                          << info.deal_weight << info.pledge_requirement
+                          << info.declared_fault_epoch
+                          << info.declared_fault_duration);
   }
 
-  CBOR_DECODE(MinerActorState, state) {
-    std::map<std::string, PreCommittedSector> precommitted_sectors;
-    s.list() >> precommitted_sectors >> state.sectors >> state.proving_set
-        >> state.info >> state.fault_set >> state.last_fault_sumbission
-        >> state.power >> state.active >> state.slashed_at
-        >> state.election_period_start;
-    state.precommitted_sectors.clear();
-    for (auto &[key, value] : precommitted_sectors) {
-      auto sector = value.info.sector;
-      // TODO(turuslan): check `key == uvarint(sector).bytes`
-      state.precommitted_sectors[sector] = std::move(value);
-    }
+  CBOR_DECODE(SectorOnChainInfo, info) {
+    s.list() >> info.info >> info.activation_epoch >> info.deal_weight
+        >> info.pledge_requirement >> info.declared_fault_epoch
+        >> info.declared_fault_duration;
     return s;
   }
 
@@ -125,6 +133,18 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_DECODE(MinerInfo, info) {
     s.list() >> info.owner >> info.worker >> info.pending_worker_key
         >> info.peer_id >> info.sector_size;
+    return s;
+  }
+
+  CBOR_ENCODE(MinerActorState, state) {
+    return s << (s.list() << state.precommitted_sectors << state.sectors
+                          << state.fault_set << state.proving_set << state.info
+                          << state.post_state);
+  }
+
+  CBOR_DECODE(MinerActorState, state) {
+    s.list() >> state.precommitted_sectors >> state.sectors >> state.fault_set
+        >> state.proving_set >> state.info >> state.post_state;
     return s;
   }
 }  // namespace fc::vm::actor::builtin::miner
