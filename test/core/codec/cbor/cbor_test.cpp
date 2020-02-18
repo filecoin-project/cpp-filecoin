@@ -57,15 +57,6 @@ TEST(Cbor, BigInt) {
   EXPECT_OUTCOME_EQ(decode<BigInt>("40"_unhex), 0);
 }
 
-/** UBigInt CBOR encoding and decoding */
-TEST(Cbor, UBigInt) {
-  using fc::primitives::UBigInt;
-  EXPECT_OUTCOME_EQ(encode(UBigInt(0xCAFE)), "42CAFE"_unhex);
-  EXPECT_OUTCOME_EQ(decode<UBigInt>("42CAFE"_unhex), 0xCAFE);
-  EXPECT_OUTCOME_EQ(encode(UBigInt(0)), "40"_unhex);
-  EXPECT_OUTCOME_EQ(decode<UBigInt>("40"_unhex), 0);
-}
-
 /** Null CBOR encoding and decoding */
 TEST(Cbor, Null) {
   EXPECT_OUTCOME_EQ(encode(nullptr), "F6"_unhex);

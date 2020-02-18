@@ -20,7 +20,6 @@ namespace fc::vm::actor::builtin::payment_channel {
   using fc::vm::actor::MethodNumber;
   using primitives::BigInt;
   using primitives::ChainEpoch;
-  using primitives::UBigInt;
   using primitives::address::Address;
 
   struct LaneState {
@@ -37,7 +36,7 @@ namespace fc::vm::actor::builtin::payment_channel {
   struct PaymentChannelActorState {
     Address from;
     Address to;
-    UBigInt to_send{};
+    BigInt to_send{};
     ChainEpoch settling_at;
     ChainEpoch min_settling_height;
     std::vector<LaneState> lanes{};
@@ -63,7 +62,7 @@ namespace fc::vm::actor::builtin::payment_channel {
     ModularVerificationParameter extra;
     uint64_t lane{};
     uint64_t nonce{};
-    UBigInt amount;
+    BigInt amount;
     uint64_t min_close_height{};
     std::vector<Merge> merges{};
     Signature signature;

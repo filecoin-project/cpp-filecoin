@@ -48,5 +48,5 @@ TEST(BigInt, Divide) {
 TEST(BigInt, DivideByZero) {
   BigInt a{8};
   BigInt b{0};
-  ASSERT_THROW(a / b, std::exception);
+  ASSERT_THROW(BigInt{a / b}, std::exception);
 }
