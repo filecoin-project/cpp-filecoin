@@ -17,6 +17,7 @@ namespace fc::vm::runtime {
   using indices::Indices;
   using state::StateTree;
 
+  /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {
     Env(std::shared_ptr<RandomnessProvider> randomness_provider,
         std::shared_ptr<StateTree> state_tree,
