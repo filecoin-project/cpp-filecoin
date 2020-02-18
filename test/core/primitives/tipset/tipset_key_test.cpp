@@ -50,7 +50,6 @@ TEST_F(TipsetKeyTest, DISABLED_ToPrettyStringSuccess) {
  * @then the representation meets lotus-calculated value
  */
 TEST_F(TipsetKeyTest, ToBytesSuccess) {
-  EXPECT_OUTCOME_TRUE(vec1, key1.toBytes());
   EXPECT_OUTCOME_TRUE(vec2, key2.toBytes());
   EXPECT_OUTCOME_TRUE(vec3, key3.toBytes());
   EXPECT_OUTCOME_TRUE(vec4, key4.toBytes());
