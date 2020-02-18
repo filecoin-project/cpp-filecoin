@@ -80,37 +80,3 @@ TEST_F(PowerTableTest, RemoveMiner_Success) {
   EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
                        power_table.getMinerPower(addr));
 }
-
-/**
- * @given empty table
- * @when serialize and deserialize
- * @then tables are equal
- */
-TEST_F(PowerTableTest, CBOR_SerializationEmpty) {
-    EXPECT_OUTCOME_TRUE(encoded, encode(power_table));
-    EXPECT_OUTCOME_TRUE(decoded, decode<PowerTableImpl>(encoded));
-    EXPECT_OUTCOME_EQ(decoded.getSize(), 0);
-}
-
-/**
- * @given populated table
- * @when serialize and deserialize
- * @then tables are equal
- */
-TEST_F(PowerTableTest, CBOR_Serialization) {
-  Address addr_1{Address::makeFromId(1)};
-  int power_1 = 100;
-  Address addr_2{Address::makeFromId(2)};
-  int power_2 = 2222;
-  EXPECT_OUTCOME_TRUE_1(power_table.setMinerPower(addr, power));
-  EXPECT_OUTCOME_TRUE_1(power_table.setMinerPower(addr_1, power_1));
-  EXPECT_OUTCOME_TRUE_1(power_table.setMinerPower(addr_2, power_2));
-
-  EXPECT_OUTCOME_TRUE(encoded, encode(power_table));
-  EXPECT_OUTCOME_TRUE(decoded, decode<PowerTableImpl>(encoded));
-
-  EXPECT_OUTCOME_EQ(decoded.getSize(), 3);
-  EXPECT_OUTCOME_EQ(power_table.getMinerPower(addr), power);
-  EXPECT_OUTCOME_EQ(power_table.getMinerPower(addr_1), power_1);
-  EXPECT_OUTCOME_EQ(power_table.getMinerPower(addr_2), power_2);
-}

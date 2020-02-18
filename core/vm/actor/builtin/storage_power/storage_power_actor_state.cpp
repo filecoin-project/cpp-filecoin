@@ -54,8 +54,8 @@ namespace fc::vm::actor::builtin::storage_power {
 
     OUTCOME_TRY(escrow_table->set(miner_addr, TokenAmount{0}));
     OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner_addr), Claim{0, 0}));
-    OUTCOME_TRY(claims_cid, claims_->flush());
-    claims_cid = claims_cid;
+    OUTCOME_TRY(new_claims_cid, claims_->flush());
+    claims_cid = new_claims_cid;
 
     return outcome::success();
   }
@@ -72,8 +72,8 @@ namespace fc::vm::actor::builtin::storage_power {
     if (claim.power > Power{0}) return VMExitCode::STORAGE_POWER_DELETION_ERROR;
 
     OUTCOME_TRY(claims_->remove(encoded_miner_addr));
-    OUTCOME_TRY(claims_cid, claims_->flush());
-    claims_cid = claims_cid;
+    OUTCOME_TRY(new_claims_cid, claims_->flush());
+    claims_cid = new_claims_cid;
 
     OUTCOME_TRY(escrow_table->remove(miner_addr));
 
@@ -82,9 +82,9 @@ namespace fc::vm::actor::builtin::storage_power {
     if (contains) {
       OUTCOME_TRY(po_st_detected_fault_miners_->remove(encoded_miner_addr));
 
-      OUTCOME_TRY(po_st_detected_fault_miners_cid,
+      OUTCOME_TRY(new_po_st_detected_fault_miners_cid,
                   po_st_detected_fault_miners_->flush());
-      po_st_detected_fault_miners_cid = po_st_detected_fault_miners_cid;
+      po_st_detected_fault_miners_cid = new_po_st_detected_fault_miners_cid;
     }
 
     return outcome::success();
@@ -137,8 +137,8 @@ namespace fc::vm::actor::builtin::storage_power {
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
     OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner), claim));
-    OUTCOME_TRY(claims_cid, claims_->flush());
-    claims_cid = claims_cid;
+    OUTCOME_TRY(new_claims_cid, claims_->flush());
+    claims_cid = new_claims_cid;
     return outcome::success();
   }
 
@@ -156,8 +156,8 @@ namespace fc::vm::actor::builtin::storage_power {
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
     OUTCOME_TRY(claims_->remove(encodeToByteString(miner)));
-    OUTCOME_TRY(claims_cid, claims_->flush());
-    claims_cid = claims_cid;
+    OUTCOME_TRY(new_claims_cid, claims_->flush());
+    claims_cid = new_claims_cid;
     return outcome::success();
   }
 
@@ -170,8 +170,8 @@ namespace fc::vm::actor::builtin::storage_power {
     claim.power += power;
     claim.pledge += pledge;
     OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner), claim));
-    OUTCOME_TRY(claims_cid, claims_->flush());
-    claims_cid = claims_cid;
+    OUTCOME_TRY(new_claims_cid, claims_->flush());
+    claims_cid = new_claims_cid;
     return outcome::success();
   }
 
@@ -179,8 +179,8 @@ namespace fc::vm::actor::builtin::storage_power {
       const ChainEpoch &epoch, const CronEvent &event) {
     OUTCOME_TRY(cron_event_queue_->addCbor(
         primitives::chain_epoch::encodeToByteString(epoch), event));
-    OUTCOME_TRY(cron_event_queue_cid, cron_event_queue_->flush());
-    cron_event_queue_cid = cron_event_queue_cid;
+    OUTCOME_TRY(new_cron_event_queue_cid, cron_event_queue_->flush());
+    cron_event_queue_cid = new_cron_event_queue_cid;
     return outcome::success();
   }
 
@@ -227,9 +227,9 @@ namespace fc::vm::actor::builtin::storage_power {
     // cbor empty value as empty list
     OUTCOME_TRY(po_st_detected_fault_miners_->setCbor<std::vector<int>>(
         encodeToByteString(miner_addr), {}));
-    OUTCOME_TRY(po_st_detected_fault_miners_cid,
+    OUTCOME_TRY(new_po_st_detected_fault_miners_cid,
                 po_st_detected_fault_miners_->flush());
-    po_st_detected_fault_miners_cid = po_st_detected_fault_miners_cid;
+    po_st_detected_fault_miners_cid = new_po_st_detected_fault_miners_cid;
     return outcome::success();
   }
 

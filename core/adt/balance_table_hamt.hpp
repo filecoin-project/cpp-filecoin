@@ -88,6 +88,9 @@ namespace fc::adt {
      */
     void reloadRoot();
 
+    /**
+     * HAMT CID of root
+     */
     CID root;
 
    private:
