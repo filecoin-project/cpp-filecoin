@@ -12,12 +12,9 @@ using fc::primitives::chain_epoch::encodeToByteString;
 using namespace std::string_literals;
 
 TEST(StoragePowerActorState, EncodeChainEpoch) {
-  ChainEpoch v_0{0};
-  ChainEpoch v_1{1};
-  ChainEpoch v_2{2};
-  ChainEpoch v_100{100};
-  EXPECT_EQ(encodeToByteString(v_0), "\x00"s);
-  EXPECT_EQ(encodeToByteString(v_1), "\x01"s);
-  EXPECT_EQ(encodeToByteString(v_2), "\x02"s);
-  EXPECT_EQ(encodeToByteString(v_100), "\x64"s);
+  EXPECT_EQ(encodeToByteString({0}), "\x00"s);
+  EXPECT_EQ(encodeToByteString({1}), "\x01"s);
+  EXPECT_EQ(encodeToByteString({2}), "\x02"s);
+  EXPECT_EQ(encodeToByteString({100}), "\x64"s);
+  EXPECT_EQ(encodeToByteString({130}), "\x82\x1"s);
 }
