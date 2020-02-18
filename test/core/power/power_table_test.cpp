@@ -11,15 +11,11 @@
 #include "power/power_table_error.hpp"
 #include "testutil/outcome.hpp"
 
-using fc::codec::cbor::decode;
-using fc::codec::cbor::encode;
 using fc::power::PowerTable;
 using fc::power::PowerTableError;
 using fc::power::PowerTableImpl;
 using fc::primitives::address::Address;
 using fc::primitives::address::Network;
-
-using fc::codec::cbor::CborEncodeStream;
 
 class PowerTableTest : public ::testing::Test {
  public:

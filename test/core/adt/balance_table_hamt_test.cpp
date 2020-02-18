@@ -92,31 +92,3 @@ TEST_F(BalanceTableHamtTest, SubtractWithMinimum) {
                     subtrahend);
   EXPECT_OUTCOME_EQ(table->get(address), difference);
 }
-
-/**
- * @given populated balance table
- * @when try to serialize and then deserialize
- * @then balance is the same
- */
-TEST_F(BalanceTableHamtTest, CBOR) {
-  Address address_1{Address::makeFromId(1)};
-  TokenAmount balance_1 = 111;
-  EXPECT_OUTCOME_TRUE_1(table->set(address_1, balance_1));
-
-  Address address_2{Address::makeFromId(2)};
-  TokenAmount balance_2 = 22;
-  EXPECT_OUTCOME_TRUE_1(table->set(address_2, balance_2));
-
-  Address address_3{Address::makeFromId(3)};
-  TokenAmount balance_3 = 333;
-  EXPECT_OUTCOME_TRUE_1(table->set(address_3, balance_3));
-
-  fc::codec::cbor::CborEncodeStream encoder;
-  encoder << *table;
-  fc::codec::cbor::CborDecodeStream decoder(encoder.data());
-  decoder >> *table;
-
-  EXPECT_OUTCOME_EQ(table->get(address_1), balance_1);
-  EXPECT_OUTCOME_EQ(table->get(address_2), balance_2);
-  EXPECT_OUTCOME_EQ(table->get(address_3), balance_3);
-}

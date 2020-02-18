@@ -84,41 +84,14 @@ namespace fc::adt {
     outcome::result<void> remove(const Address &key);
 
     /**
-     * Reload table with root CID
-     */
-    void reloadRoot();
-
-    /**
      * HAMT CID of root
      */
     CID root;
 
    private:
-    std::shared_ptr<IpfsDatastore> datastore_;
-    std::shared_ptr<Hamt> hamt_;
+    mutable Hamt hamt_;
   };
 
-  /**
-   * CBOR serialization of BalanceTableHamt
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const BalanceTableHamt &table) {
-    return s << table.root;
-  }
-
-  /**
-   * CBOR deserialization of BalanceTableHamt
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, BalanceTableHamt &table) {
-    s >> table.root;
-    table.reloadRoot();
-    return s;
-  }
 
 }  // namespace fc::adt
 
