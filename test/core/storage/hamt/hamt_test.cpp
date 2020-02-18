@@ -206,6 +206,20 @@ TEST_F(HamtTest, FlushCollisionChild) {
   EXPECT_OUTCOME_EQ(store_->contains(cidShard), true);
 }
 
+/** Go cid compatibility with bit width of 5 */
+TEST_F(HamtTest, CollisionChildBitWidth5) {
+  hamt_ = {store_, 5};
+  EXPECT_OUTCOME_EQ(hamt_.flush(), "0171a0e4022018fe6acc61a3a36b0c373c4a3a8ea64b812bf2ca9b528050909c78d408558a0c"_cid);
+  EXPECT_OUTCOME_TRUE_1(hamt_.set("ails", "01"_unhex));
+  EXPECT_OUTCOME_EQ(hamt_.flush(), "0171a0e40220963f12f112adbaa0e56ad77152a259224ac41eed6e5d909eaeb714f65add029f"_cid);
+  EXPECT_OUTCOME_TRUE_1(hamt_.set("aufx", "02"_unhex));
+  EXPECT_OUTCOME_EQ(hamt_.flush(), "0171a0e402207df36ed88d694b1bfe7161dd598bdfac05426a9beab0bf828d3e838d2c198e16"_cid);
+  EXPECT_OUTCOME_TRUE_1(hamt_.set("bmvm", "03"_unhex));
+  EXPECT_OUTCOME_EQ(hamt_.flush(), "0171a0e40220823751c22261961ca5a97917c9ce6c681e44a8265873d66ae2dadf3908c12357"_cid);
+  EXPECT_OUTCOME_TRUE_1(hamt_.set("cnyh", "04"_unhex));
+  EXPECT_OUTCOME_EQ(hamt_.flush(), "0171a0e40220f77809a02565e12cbadbab9ab8713958c5bb66b061508bbb01b37d73923f8c2b"_cid);
+}
+
 /** Visit all key value pairs */
 TEST_F(HamtTest, Visitor) {
   auto n = 0;

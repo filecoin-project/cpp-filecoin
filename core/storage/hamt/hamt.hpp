@@ -25,6 +25,7 @@ namespace fc::storage::hamt {
   using Value = ipfs::IpfsDatastore::Value;
 
   constexpr size_t kLeafMax = 3;
+  constexpr size_t kDefaultBitWidth = 8;
 
   /** Hamt node representation */
   struct Node {
@@ -107,10 +108,12 @@ namespace fc::storage::hamt {
     using Visitor = std::function<outcome::result<void>(const std::string &,
                                                         const Value &)>;
 
-    explicit Hamt(std::shared_ptr<ipfs::IpfsDatastore> store);
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
+         size_t bit_width = kDefaultBitWidth);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root);
-    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
-
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
+         const CID &root,
+         size_t bit_width = kDefaultBitWidth);
     /** Set value by key, does not write to storage */
     outcome::result<void> set(const std::string &key,
                               gsl::span<const uint8_t> value);
@@ -153,6 +156,7 @@ namespace fc::storage::hamt {
     }
 
    private:
+    std::vector<size_t> keyToIndices(const std::string &key, int n = -1) const;
     outcome::result<void> set(Node &node,
                               gsl::span<const size_t> indices,
                               const std::string &key,
@@ -167,6 +171,7 @@ namespace fc::storage::hamt {
 
     std::shared_ptr<ipfs::IpfsDatastore> store_;
     Node::Item root_;
+    size_t bit_width_;
   };
 }  // namespace fc::storage::hamt
 
