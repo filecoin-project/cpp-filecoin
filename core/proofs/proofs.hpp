@@ -122,6 +122,7 @@ namespace fc::proofs {
         const Ticket &ticket,
         gsl::span<const PublicPieceInfo> pieces);
 
+
     static outcome::result<Proof> sealCommit(
         uint64_t sector_size,
         uint8_t porep_proof_partitions,
@@ -133,6 +134,9 @@ namespace fc::proofs {
         gsl::span<const PublicPieceInfo> pieces,
         const RawSealPreCommitOutput &rspco);
 
+    /**
+     * Unseals sector
+     */
     static outcome::result<void> unseal(uint64_t sector_size,
                                         uint8_t porep_proof_partitions,
                                         const std::string &cache_dir_path,
@@ -143,6 +147,11 @@ namespace fc::proofs {
                                         const Ticket &ticket,
                                         const Comm &comm_d);
 
+    /**
+     * @brief Unseals the sector at @sealed_path and returns the bytes for a
+     * piece whose first (unpadded) byte begins at @offset and ends at @offset
+     * plus @num_bytes, inclusive
+     */
     static outcome::result<void> unsealRange(
         uint64_t sector_size,
         uint8_t porep_proof_partitions,
@@ -155,6 +164,7 @@ namespace fc::proofs {
         const Comm &comm_d,
         uint64_t offset,
         uint64_t length);
+
     /**
      * @brief Computes a sectors's comm_d given its pieces.
      */
@@ -200,6 +210,9 @@ namespace fc::proofs {
         gsl::span<const Candidate> winners,
         const Prover &prover_id);
 
+    /**
+     * @brief Verifies the output of some previous-run seal operation
+     */
     static outcome::result<bool> verifySeal(uint64_t sector_size,
                                             const Comm &comm_r,
                                             const Comm &comm_d,
