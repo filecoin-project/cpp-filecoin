@@ -97,6 +97,8 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    /// Decodes bytes
+    CborDecodeStream &operator>>(gsl::span<uint8_t> bytes);
     /** Decodes bytes */
     CborDecodeStream &operator>>(std::vector<uint8_t> &bytes);
     /** Decodes string */
@@ -121,6 +123,8 @@ namespace fc::codec::cbor {
     std::vector<uint8_t> raw();
     /** Creates map container decode substream map */
     std::map<std::string, CborDecodeStream> map();
+    /// Returns bytestring length
+    size_t bytesLength() const;
 
    private:
     CborDecodeStream container() const;

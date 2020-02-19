@@ -162,6 +162,20 @@ TEST_F(HamtTest, SetRemoveDoubleCollisionChild) {
   EXPECT_EQ(child.items.size(), 2);
 }
 
+/// Should collapse shard with single leaf
+TEST_F(HamtTest, CollapseSingleLeafShard) {
+  EXPECT_OUTCOME_TRUE_1(hamt_.set("ails", "01"_unhex));
+  EXPECT_OUTCOME_TRUE_1(hamt_.set("aufx", "02"_unhex));
+  EXPECT_OUTCOME_TRUE_1(hamt_.set("bmvm", "03"_unhex));
+  EXPECT_TRUE(minItemIs<Node::Leaf>(*root_));
+
+  EXPECT_OUTCOME_TRUE_1(hamt_.set("br", "04"_unhex));
+  EXPECT_TRUE(minItemIs<Node::Ptr>(*root_));
+
+  EXPECT_OUTCOME_TRUE_1(hamt_.remove("br"));
+  EXPECT_TRUE(minItemIs<Node::Leaf>(*root_));
+}
+
 /** Flush empty root */
 TEST_F(HamtTest, FlushEmpty) {
   auto cidEmpty =

@@ -39,6 +39,7 @@ using fc::vm::actor::MockInvoker;
 using fc::vm::indices::Indices;
 using fc::vm::indices::MockIndices;
 using fc::vm::message::UnsignedMessage;
+using fc::vm::runtime::Env;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::Runtime;
 using fc::vm::runtime::RuntimeError;
@@ -68,15 +69,14 @@ class RuntimeTest : public ::testing::Test {
   BigInt gas_used_{0};
 
   std::shared_ptr<Runtime> runtime_ =
-      std::make_shared<RuntimeImpl>(randomness_provider_,
-                                    datastore_,
-                                    state_tree_,
-                                    indices_,
-                                    invoker_,
+      std::make_shared<RuntimeImpl>(std::make_shared<Env>(randomness_provider_,
+                                                          state_tree_,
+                                                          indices_,
+                                                          invoker_,
+                                                          chain_epoch_,
+                                                          block_miner_),
                                     message_,
-                                    chain_epoch_,
                                     immediate_caller_,
-                                    block_miner_,
                                     gas_available_,
                                     gas_used_,
                                     ActorSubstateCID{"010001020001"_cid});
@@ -180,26 +180,16 @@ TEST_F(RuntimeTest, send) {
   MethodParams params{};
   BigInt amount{};
 
-  Actor from_actor{fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
   Actor to_actor{fc::vm::actor::kAccountCodeCid, ActorSubstateCID{}, 0, 0};
-  Actor miner_actor{
-      fc::vm::actor::kStorageMinerCodeCid, ActorSubstateCID{}, 0, 0};
   InvocationOutput res{};
 
-  EXPECT_CALL(*state_tree_, flush())
-      .Times(2)
-      .WillRepeatedly(testing::Return(fc::outcome::success()));
-  EXPECT_CALL(*state_tree_, get(Eq(message_.to)))
-      .WillOnce(testing::Return(fc::outcome::success(from_actor)));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
-      .WillOnce(testing::Return(fc::outcome::success(to_actor)));
+      .Times(2)
+      .WillRepeatedly(testing::Return(fc::outcome::success(to_actor)));
   EXPECT_CALL(*invoker_, invoke(Eq(to_actor), _, Eq(method), Eq(params)))
       .WillOnce(testing::Return(fc::outcome::success(res)));
-  EXPECT_CALL(*state_tree_, get(Eq(block_miner_)))
-      .WillOnce(testing::Return(fc::outcome::success(miner_actor)));
   EXPECT_CALL(*state_tree_, set(_, _))
-      .Times(3)
-      .WillRepeatedly(testing::Return(fc::outcome::success()));
+      .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(runtime_->send(to_address, method, params, amount));
 }
@@ -218,8 +208,6 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
   Actor from_actor{fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
   Actor to_actor{fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
 
-  EXPECT_CALL(*state_tree_, flush())
-      .WillOnce(testing::Return(fc::outcome::success()));
   EXPECT_CALL(*state_tree_, get(Eq(message_.to)))
       .WillOnce(testing::Return(fc::outcome::success(from_actor)));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))

@@ -95,10 +95,7 @@ namespace fc::primitives::tipset {
    * @param tipset Tipset instance
    * @return stream reference
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Tipset &tipset) {
+  CBOR_ENCODE(Tipset, tipset) {
     return s << (s.list() << tipset.cids << tipset.blks << tipset.height);
   }
 
@@ -109,10 +106,7 @@ namespace fc::primitives::tipset {
    * @param tipset Tipset instance reference to decode into
    * @return stream reference
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Tipset &tipset) {
+  CBOR_DECODE(Tipset, tipset) {
     std::vector<CID> cids;
     std::vector<block::BlockHeader> blks;
 

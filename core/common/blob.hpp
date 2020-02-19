@@ -133,7 +133,10 @@ namespace fc::common {
    * @param blob value to encode
    * @return reference to stream
    */
-  template <class Stream, size_t size>
+  template <class Stream,
+            size_t size,
+            typename = std::enable_if_t<
+                !std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &s, const Blob<size> &blob) {
     for (auto &&it = blob.begin(), end = blob.end(); it != end; ++it) {
       s << *it;
@@ -149,7 +152,10 @@ namespace fc::common {
    * @param blob value to encode
    * @return reference to stream
    */
-  template <class Stream, size_t size>
+  template <class Stream,
+            size_t size,
+            typename = std::enable_if_t<
+                !std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
   Stream &operator>>(Stream &s, Blob<size> &blob) {
     for (auto &&it = blob.begin(), end = blob.end(); it != end; ++it) {
       s >> *it;
@@ -162,7 +168,7 @@ namespace fc::common {
     return os << blob.toHex();
   }
 
-}  // namespace filecoin::common
+}  // namespace fc::common
 
 template <size_t N>
 struct std::hash<fc::common::Blob<N>> {
