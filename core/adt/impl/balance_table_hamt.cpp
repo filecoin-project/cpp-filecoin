@@ -12,7 +12,7 @@ using fc::primitives::address::encodeToByteString;
 
 BalanceTableHamt::BalanceTableHamt(std::shared_ptr<IpfsDatastore> datastore,
                                    const CID &new_root)
-    : root{new_root}, hamt_{datastore} {}
+    : root{new_root}, hamt_{datastore, new_root} {}
 
 fc::outcome::result<TokenAmount> BalanceTableHamt::get(
     const Address &key) const {
