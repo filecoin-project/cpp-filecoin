@@ -31,11 +31,8 @@ namespace fc::primitives {
   Stream &operator>>(Stream &&s, RleBitset &set) {
     std::vector<uint8_t> rle;
     s >> rle;
-    auto decoded = codec::rle::decode<RleBitset::value_type>(rle);
-    if (!decoded) {
-      outcome::raise(decoded.error());
-    }
-    set = RleBitset{std::move(decoded.value())};
+    OUTCOME_EXCEPT(decoded, codec::rle::decode<RleBitset::value_type>(rle));
+    set = RleBitset{std::move(decoded)};
     return s;
   }
 }  // namespace fc::primitives
