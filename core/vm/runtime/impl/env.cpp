@@ -14,6 +14,7 @@
 
 namespace fc::vm::runtime {
   using actor::builtin::account::AccountActor;
+  using actor::kSendMethodNumber;
   using storage::hamt::HamtError;
 
   outcome::result<MessageReceipt> Env::applyMessage(const UnsignedMessage &message) {
@@ -82,7 +83,7 @@ namespace fc::vm::runtime {
     }
 
     InvocationOutput invocation_output;
-    if (message.method.method_number) {
+    if (message.method != kSendMethodNumber) {
       OUTCOME_TRY(runtime.chargeGas(kSendInvokeMethodGasCost));
       auto invocation = invoker->invoke(to_actor, runtime, message.method, message.params);
       if (invocation || isVMExitCode(invocation.error())) {

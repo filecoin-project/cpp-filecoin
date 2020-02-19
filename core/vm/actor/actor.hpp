@@ -34,6 +34,10 @@ namespace fc::vm::actor {
       return method_number == other.method_number;
     }
 
+    inline bool operator!=(const MethodNumber &other) const {
+      return method_number != other.method_number;
+    }
+
     inline bool operator<(const MethodNumber &other) const {
       return method_number < other.method_number;
     }
