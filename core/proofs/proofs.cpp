@@ -114,7 +114,7 @@ namespace fc::proofs {
 
   FFISealPreCommitOutput cRawSealPreCommitOutput(
       const RawSealPreCommitOutput &cpp_seal_pre_commit_output) {
-    FFISealPreCommitOutput c_seal_pre_commit_output;
+    FFISealPreCommitOutput c_seal_pre_commit_output{};
 
     std::copy(cpp_seal_pre_commit_output.comm_d.begin(),
               cpp_seal_pre_commit_output.comm_d.end(),
@@ -558,6 +558,40 @@ namespace fc::proofs {
     return outcome::success();
   }
 
+  outcome::result<void> Proofs::unsealRange(
+      uint64_t sector_size,
+      uint8_t porep_proof_partitions,
+      const std::string &cache_dir_path,
+      const std::string &sealed_sector_path,
+      const std::string &unseal_output_path,
+      uint64_t sector_id,
+      const Prover &prover_id,
+      const Ticket &ticket,
+      const Comm &comm_d,
+      uint64_t offset,
+      uint64_t length) {
+    auto res_ptr = make_unique(
+        unseal_range(cSectorClass(sector_size, porep_proof_partitions),
+                     cache_dir_path.c_str(),
+                     sealed_sector_path.c_str(),
+                     unseal_output_path.c_str(),
+                     sector_id,
+                     cPointerToArray(prover_id),
+                     cPointerToArray(ticket),
+                     cPointerToArray(comm_d),
+                     offset,
+                     length),
+        destroy_unseal_range_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("unsealRange: " + std::string(res_ptr->error_msg));
+
+      return ProofsError::UNKNOWN;
+    }
+
+    return outcome::success();
+  }
+
   SortedPrivateReplicaInfo Proofs::newSortedPrivateReplicaInfo(
       gsl::span<const PrivateReplicaInfo> replica_info) {
     SortedPrivateReplicaInfo sorted_replica_info;
@@ -572,40 +606,6 @@ namespace fc::proofs {
               });
 
     return sorted_replica_info;
-  }
-
-  outcome::result<void> Proofs::unsealRange(
-      uint64_t sector_size,
-      uint8_t porep_proof_partitions,
-      const std::string &cache_dir_path,
-      const std::string &sealed_sector_path,
-      const std::string &unseal_output_path,
-      uint64_t sector_id,
-      const Prover &prover_id,
-      const Ticket &ticket,
-      const Comm &comm_d,
-      uint64_t offset,
-      uint64_t length) {
-    auto res_ptr =
-        unseal_range(cSectorClass(sector_size, porep_proof_partitions),
-                     cache_dir_path.c_str(),
-                     sealed_sector_path.c_str(),
-                     unseal_output_path.c_str(),
-                     sector_id,
-                     cPointerToArray(prover_id),
-                     cPointerToArray(ticket),
-                     cPointerToArray(comm_d),
-                     offset,
-                     length);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("unsealRange: " + std::string(res_ptr->error_msg));
-      destroy_unseal_range_response(res_ptr);
-
-      return ProofsError::UNKNOWN;
-    }
-
-    return outcome::success();
   }
 
   SortedPublicSectorInfo Proofs::newSortedPublicSectorInfo(
