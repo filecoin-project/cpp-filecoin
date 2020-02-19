@@ -40,7 +40,7 @@ class ProofsTest : public test::BaseFS_Test {
  * @when Generates and Verifies PoST
  * @then success
  */
-TEST_F(ProofsTest, ValidPoSt) {
+TEST_F(ProofsTest, DISABLED_ValidPoSt) {
   uint64_t challenge_count = 2;
   uint8_t porep_proof_partitions = 10;
   Prover prover_id{{6, 7, 8}};
@@ -185,7 +185,13 @@ TEST_F(ProofsTest, ValidPoSt) {
   ASSERT_TRUE(res);
 }
 
-TEST_F(ProofsTest, ValidSealAndUnseal) {
+/**
+ * disabled because it takes too long
+ * @given Data for Seal
+ * @when Commit and Verifies Seal and Unseal
+ * @then success
+ */
+TEST_F(ProofsTest, DISABLED_ValidSealAndUnseal) {
   uint8_t porep_proof_partitions = 10;
   Prover prover_id{{6, 7, 8}};
   Randomness randomness{{9, 9, 9}};
