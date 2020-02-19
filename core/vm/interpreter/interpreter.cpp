@@ -11,6 +11,7 @@
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/message/message_codec.hpp"
+#include "vm/runtime/gas_cost.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
@@ -43,6 +44,7 @@ namespace fc::vm::interpreter {
   using primitives::block::BlockHeader;
   using primitives::block::MsgMeta;
   using runtime::Env;
+  using runtime::kInfiniteGas;
   using runtime::MessageReceipt;
   using runtime::RuntimeImpl;
   using state::StateTreeImpl;
@@ -102,7 +104,7 @@ namespace fc::vm::interpreter {
                       system_actor.nonce,
                       0,
                       0,
-                      -1,
+                      kInfiniteGas,
                       kSubmitElectionPoStMethodNumber,
                       {},
                   }));
@@ -166,7 +168,7 @@ namespace fc::vm::interpreter {
                     cron_actor.nonce,
                     0,
                     0,
-                    -1,
+                    kInfiniteGas,
                     kEpochTickMethodNumber,
                     {},
                 }));

@@ -12,6 +12,8 @@ namespace fc::vm::runtime {
 
   using primitives::BigInt;
 
+  inline static const BigInt kInfiniteGas{-1};
+
   // TODO (a.chernyshov) https://soramitsu.atlassian.net/browse/FIL-131 Assign
   // after spec is updated. All constants that are not defined in Lotus are
   // initialized with this value.
