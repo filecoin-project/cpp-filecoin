@@ -43,7 +43,6 @@ namespace fc::vm::interpreter {
   using primitives::block::BlockHeader;
   using primitives::block::MsgMeta;
   using runtime::Env;
-  using runtime::Indices;
   using runtime::MessageReceipt;
   using runtime::RuntimeImpl;
   using state::StateTreeImpl;
@@ -65,7 +64,7 @@ namespace fc::vm::interpreter {
     return state.info.owner;
   }
 
-  outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &ipld, const Tipset &tipset) {
+  outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &ipld, const Tipset &tipset, const std::shared_ptr<Indices> &indices) {
     if (hasDuplicateMiners(tipset.blks)) {
       return InterpreterError::DUPLICATE_MINER;
     }
@@ -73,8 +72,6 @@ namespace fc::vm::interpreter {
     auto state_tree = std::make_shared<StateTreeImpl>(ipld, tipset.getParentStateRoot());
     // TODO(turuslan): FIL-146 randomness from tipset
     std::shared_ptr<RandomnessProvider> randomness;
-    // TODO(turuslan): indices
-    std::shared_ptr<Indices> indices;
     auto env = std::make_shared<Env>(randomness, state_tree, indices, std::make_shared<InvokerImpl>(), tipset.height, Address{});
 
     for (auto &block : tipset.blks) {

@@ -8,6 +8,7 @@
 
 #include "storage/ipfs/datastore.hpp"
 #include "primitives/tipset/tipset.hpp"
+#include "vm/indices/indices.hpp"
 
 namespace fc::vm::interpreter {
   enum class InterpreterError {
@@ -16,6 +17,7 @@ namespace fc::vm::interpreter {
     CRON_TICK_FAILED,
   };
 
+  using indices::Indices;
   using primitives::tipset::Tipset;
   using storage::ipfs::IpfsDatastore;
 
@@ -24,8 +26,7 @@ namespace fc::vm::interpreter {
     CID message_receipts;
   };
 
-  // TODO(turuslan): dependencies like Indices, Invoker, etc
-  outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &store, const Tipset &tipset);
+  outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &store, const Tipset &tipset, const std::shared_ptr<Indices> &indices);
 }  // namespace fc::vm::interpreter
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm::interpreter, InterpreterError);
