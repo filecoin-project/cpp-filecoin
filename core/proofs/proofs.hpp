@@ -18,6 +18,11 @@ namespace fc::proofs {
   // CommRStar.
   const int kCommitmentBytesLen = 32;
 
+  // kSingleProofPartitionProofLen denotes the number of bytes in a proof
+  // generated with a single partition. The number of bytes in a proof increases
+  // linearly with the number of partitions used when creating that proof.
+  const int kSingleProofPartitionProofLen = 192;
+
   using fc::common::Blob;
   using fc::crypto::randomness::Randomness;
   using Comm = Blob<kCommitmentBytesLen>;
