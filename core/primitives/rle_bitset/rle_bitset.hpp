@@ -8,6 +8,7 @@
 
 #include <set>
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "codec/rle/rle_plus.hpp"
 #include "common/outcome_throw.hpp"
 
@@ -18,17 +19,11 @@ namespace fc::primitives {
     inline RleBitset(set &&s) : set{s} {}
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const RleBitset &set) {
+  CBOR_ENCODE(RleBitset, set) {
     return s << codec::rle::encode(set);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, RleBitset &set) {
+  CBOR_DECODE(RleBitset, set) {
     std::vector<uint8_t> rle;
     s >> rle;
     OUTCOME_EXCEPT(decoded, codec::rle::decode<RleBitset::value_type>(rle));

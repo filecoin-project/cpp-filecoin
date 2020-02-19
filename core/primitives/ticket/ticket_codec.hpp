@@ -29,10 +29,7 @@ namespace fc::primitives::ticket {
    * @param ticket Ticket const reference to encode
    * @return stream reference
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Ticket &ticket) {
+  CBOR_ENCODE(Ticket, ticket) {
     return s << (s.list() << ticket.bytes);
   }
 
@@ -43,10 +40,7 @@ namespace fc::primitives::ticket {
    * @param ticket Ticket instance reference to decode into
    * @return stream reference
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Ticket &ticket) {
+  CBOR_DECODE(Ticket, ticket) {
     std::vector<uint8_t> data{};
     s.list() >> data;
     if (data.size() != ticket.bytes.size()) {

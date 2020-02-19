@@ -46,17 +46,11 @@ namespace fc::primitives::address {
    */
   outcome::result<Address> decodeFromByteString(const std::string &s);
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Address &address) {
+  CBOR_ENCODE(Address, address) {
     return s << encode(address);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Address &address) {
+  CBOR_DECODE(Address, address) {
     std::vector<uint8_t> data{};
     s >> data;
     auto res = decode(data);

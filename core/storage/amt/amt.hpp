@@ -45,10 +45,7 @@ namespace fc::storage::amt {
     Items items;
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Node &node) {
+  CBOR_ENCODE(Node, node) {
     std::vector<uint8_t> bits;
     auto l_links = s.list();
     auto l_values = s.list();
@@ -75,10 +72,7 @@ namespace fc::storage::amt {
     return s << (s.list() << bits << l_links << l_values);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Node &node) {
+  CBOR_DECODE(Node, node) {
     auto l_node = s.list();
     std::vector<uint8_t> bits;
     l_node >> bits;
@@ -129,17 +123,11 @@ namespace fc::storage::amt {
     Node node;
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Root &root) {
+  CBOR_ENCODE(Root, root) {
     return s << (s.list() << root.height << root.count << root.node);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Root &root) {
+  CBOR_DECODE(Root, root) {
     s.list() >> root.height >> root.count >> root.node;
     return s;
   }

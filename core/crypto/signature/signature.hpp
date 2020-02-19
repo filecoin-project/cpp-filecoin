@@ -8,7 +8,7 @@
 
 #include <boost/variant.hpp>
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome_throw.hpp"
 #include "common/visitor.hpp"
 #include "crypto/bls/bls_types.hpp"
@@ -43,10 +43,7 @@ namespace fc::crypto::signature {
 
   Type typeCode(const Signature &s);
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Signature &signature) {
+  CBOR_ENCODE(Signature, signature) {
     std::vector<uint8_t> bytes{};
     visit_in_place(signature,
                    [&bytes](const BlsSignature &v) {
@@ -60,10 +57,7 @@ namespace fc::crypto::signature {
     return s << bytes;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Signature &signature) {
+  CBOR_DECODE(Signature, signature) {
     std::vector<uint8_t> data{};
     s >> data;
     if (data.empty() || data.size() > kSignatureMaxLength) {
