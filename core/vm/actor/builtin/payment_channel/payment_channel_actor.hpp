@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_HPP
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_HPP
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
@@ -53,20 +54,14 @@ namespace fc::vm::actor::builtin::payment_channel {
   /**
    * CBOR serialization of ConstructParameteres
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const ConstructParameteres &construct_params) {
+  CBOR_ENCODE(ConstructParameteres, construct_params) {
     return s << (s.list() << construct_params.to);
   }
 
   /**
    * CBOR deserialization of ConstructParameteres
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, ConstructParameteres &construct_params) {
+  CBOR_DECODE(ConstructParameteres, construct_params) {
     s.list() >> construct_params.to;
     return s;
   }
@@ -74,10 +69,7 @@ namespace fc::vm::actor::builtin::payment_channel {
   /**
    * CBOR serialization of UpdateChannelStateParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const UpdateChannelStateParameters &params) {
+  CBOR_ENCODE(UpdateChannelStateParameters, params) {
     return s << (s.list() << params.signed_voucher << params.secret
                           << params.proof);
   }
@@ -85,10 +77,7 @@ namespace fc::vm::actor::builtin::payment_channel {
   /**
    * CBOR deserialization of UpdateChannelStateParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, UpdateChannelStateParameters &params) {
+  CBOR_DECODE(UpdateChannelStateParameters, params) {
     s.list() >> params.signed_voucher >> params.secret >> params.proof;
     return s;
   }

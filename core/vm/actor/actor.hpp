@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
@@ -38,17 +39,11 @@ namespace fc::vm::actor {
     }
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const MethodNumber &method) {
+  CBOR_ENCODE(MethodNumber, method) {
     return s << method.method_number;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, MethodNumber &method) {
+  CBOR_DECODE(MethodNumber, method) {
     return s >> method.method_number;
   }
 
@@ -97,18 +92,12 @@ namespace fc::vm::actor {
 
   bool operator==(const Actor &lhs, const Actor &rhs);
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Actor &actor) {
+  CBOR_ENCODE(Actor, actor) {
     return s << (s.list() << actor.code << actor.head << actor.nonce
                           << actor.balance);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Actor &actor) {
+  CBOR_DECODE(Actor, actor) {
     s.list() >> actor.code >> actor.head >> actor.nonce >> actor.balance;
     return s;
   }
