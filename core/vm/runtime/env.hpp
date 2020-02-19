@@ -36,8 +36,8 @@ namespace fc::vm::runtime {
         const UnsignedMessage &message);
 
     outcome::result<InvocationOutput> send(BigInt &gas_used,
-                                 const Address &origin,
-                                 const UnsignedMessage &message);
+                                           const Address &origin,
+                                           const UnsignedMessage &message);
 
     std::shared_ptr<RandomnessProvider> randomness_provider;
     std::shared_ptr<StateTree> state_tree;

@@ -45,11 +45,13 @@ namespace fc::vm::runtime {
   };
 
   CBOR_ENCODE(MessageReceipt, receipt) {
-    return s << (s.list() << receipt.exit_code << receipt.return_value << receipt.gas_used);
+    return s << (s.list() << receipt.exit_code << receipt.return_value
+                          << receipt.gas_used);
   }
 
   CBOR_DECODE(MessageReceipt, receipt) {
-    return s << (s.list() << receipt.exit_code << receipt.return_value << receipt.gas_used);
+    return s << (s.list() << receipt.exit_code << receipt.return_value
+                          << receipt.gas_used);
   }
 }  // namespace fc::vm::runtime
 

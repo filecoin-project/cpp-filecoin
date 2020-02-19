@@ -28,17 +28,17 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
 
 namespace fc::vm::interpreter {
   using actor::Actor;
-  using actor::builtin::cron::kEpochTickMethodNumber;
-  using actor::builtin::miner::MinerActorState;
-  using actor::builtin::miner::MinerInfo;
-  using actor::builtin::miner::kSubmitElectionPoStMethodNumber;
   using actor::InvokerImpl;
+  using actor::kCronAddress;
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
-  using actor::kCronAddress;
+  using actor::builtin::cron::kEpochTickMethodNumber;
+  using actor::builtin::miner::kSubmitElectionPoStMethodNumber;
+  using actor::builtin::miner::MinerActorState;
+  using actor::builtin::miner::MinerInfo;
   using crypto::randomness::RandomnessProvider;
-  using message::UnsignedMessage;
   using message::SignedMessage;
+  using message::UnsignedMessage;
   using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::block::MsgMeta;
@@ -58,21 +58,31 @@ namespace fc::vm::interpreter {
     return false;
   }
 
-  outcome::result<Address> getMinerOwner(StateTreeImpl &state_tree, Address miner) {
+  outcome::result<Address> getMinerOwner(StateTreeImpl &state_tree,
+                                         Address miner) {
     OUTCOME_TRY(actor, state_tree.get(miner));
-    OUTCOME_TRY(state, state_tree.getStore()->getCbor<MinerActorState>(actor.head));
+    OUTCOME_TRY(state,
+                state_tree.getStore()->getCbor<MinerActorState>(actor.head));
     return state.info.owner;
   }
 
-  outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &ipld, const Tipset &tipset, const std::shared_ptr<Indices> &indices) {
+  outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &ipld,
+                                    const Tipset &tipset,
+                                    const std::shared_ptr<Indices> &indices) {
     if (hasDuplicateMiners(tipset.blks)) {
       return InterpreterError::DUPLICATE_MINER;
     }
 
-    auto state_tree = std::make_shared<StateTreeImpl>(ipld, tipset.getParentStateRoot());
+    auto state_tree =
+        std::make_shared<StateTreeImpl>(ipld, tipset.getParentStateRoot());
     // TODO(turuslan): FIL-146 randomness from tipset
     std::shared_ptr<RandomnessProvider> randomness;
-    auto env = std::make_shared<Env>(randomness, state_tree, indices, std::make_shared<InvokerImpl>(), tipset.height, Address{});
+    auto env = std::make_shared<Env>(randomness,
+                                     state_tree,
+                                     indices,
+                                     std::make_shared<InvokerImpl>(),
+                                     tipset.height,
+                                     Address{});
 
     for (auto &block : tipset.blks) {
       env->block_miner = block.miner;
@@ -85,16 +95,17 @@ namespace fc::vm::interpreter {
       OUTCOME_TRY(state_tree->set(kSystemActorAddress, system_actor));
       OUTCOME_TRY(state_tree->set(miner_owner, miner_owner_actor));
 
-      OUTCOME_TRY(receipt, env->applyMessage(UnsignedMessage{
-        block.miner,
-        kSystemActorAddress,
-        system_actor.nonce,
-        0,
-        0,
-        -1,
-        kSubmitElectionPoStMethodNumber,
-        {},
-      }));
+      OUTCOME_TRY(receipt,
+                  env->applyMessage(UnsignedMessage{
+                      block.miner,
+                      kSystemActorAddress,
+                      system_actor.nonce,
+                      0,
+                      0,
+                      -1,
+                      kSubmitElectionPoStMethodNumber,
+                      {},
+                  }));
       if (receipt.exit_code != 0) {
         return InterpreterError::MINER_SUBMIT_FAILED;
       }
@@ -105,11 +116,13 @@ namespace fc::vm::interpreter {
     for (auto &block : tipset.blks) {
       env->block_miner = block.miner;
 
-      auto apply_message = [&](const UnsignedMessage &message) -> outcome::result<void> {
+      auto apply_message =
+          [&](const UnsignedMessage &message) -> outcome::result<void> {
         auto actor_it = actor_cache.find(message.from);
         if (actor_it == actor_cache.end()) {
           OUTCOME_TRY(actor, state_tree->get(message.from));
-          actor_it = actor_cache.insert(std::make_pair(message.from, actor)).first;
+          actor_it =
+              actor_cache.insert(std::make_pair(message.from, actor)).first;
         }
         auto &actor = actor_it->second;
 
@@ -129,29 +142,34 @@ namespace fc::vm::interpreter {
       };
 
       OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
-      OUTCOME_TRY(Amt(ipld, meta.bls_messages).visit([&](auto, auto &cid_encoded) -> outcome::result<void> {
-        OUTCOME_TRY(cid, codec::cbor::decode<CID>(cid_encoded));
-        OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
-        return apply_message(message);
-      }));
-      OUTCOME_TRY(Amt(ipld, meta.secpk_messages).visit([&](auto, auto &cid_encoded) -> outcome::result<void> {
-        OUTCOME_TRY(cid, codec::cbor::decode<CID>(cid_encoded));
-        OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
-        return apply_message(message.message);
-      }));
+      OUTCOME_TRY(
+          Amt(ipld, meta.bls_messages)
+              .visit([&](auto, auto &cid_encoded) -> outcome::result<void> {
+                OUTCOME_TRY(cid, codec::cbor::decode<CID>(cid_encoded));
+                OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+                return apply_message(message);
+              }));
+      OUTCOME_TRY(
+          Amt(ipld, meta.secpk_messages)
+              .visit([&](auto, auto &cid_encoded) -> outcome::result<void> {
+                OUTCOME_TRY(cid, codec::cbor::decode<CID>(cid_encoded));
+                OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                return apply_message(message.message);
+              }));
     }
 
     OUTCOME_TRY(cron_actor, state_tree->get(kCronAddress));
-    OUTCOME_TRY(receipt, env->applyMessage(UnsignedMessage{
-        kCronAddress,
-        kCronAddress,
-        cron_actor.nonce,
-        0,
-        0,
-        -1,
-        kEpochTickMethodNumber,
-        {},
-      }));
+    OUTCOME_TRY(receipt,
+                env->applyMessage(UnsignedMessage{
+                    kCronAddress,
+                    kCronAddress,
+                    cron_actor.nonce,
+                    0,
+                    0,
+                    -1,
+                    kEpochTickMethodNumber,
+                    {},
+                }));
     if (receipt.exit_code != 0) {
       return InterpreterError::CRON_TICK_FAILED;
     }
@@ -165,8 +183,8 @@ namespace fc::vm::interpreter {
     OUTCOME_TRY(receipts_root, receipts_amt.flush());
 
     return Result{
-      new_state_root,
-      receipts_root,
+        new_state_root,
+        receipts_root,
     };
   }
 }  // namespace fc::vm::interpreter

@@ -6,8 +6,8 @@
 #ifndef CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_HPP
 #define CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_HPP
 
-#include "storage/ipfs/datastore.hpp"
 #include "primitives/tipset/tipset.hpp"
+#include "storage/ipfs/datastore.hpp"
 #include "vm/indices/indices.hpp"
 
 namespace fc::vm::interpreter {
@@ -26,7 +26,9 @@ namespace fc::vm::interpreter {
     CID message_receipts;
   };
 
-  outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &store, const Tipset &tipset, const std::shared_ptr<Indices> &indices);
+  outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &store,
+                                    const Tipset &tipset,
+                                    const std::shared_ptr<Indices> &indices);
 }  // namespace fc::vm::interpreter
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm::interpreter, InterpreterError);

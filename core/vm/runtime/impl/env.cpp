@@ -13,11 +13,12 @@
 #include "vm/runtime/runtime_error.hpp"
 
 namespace fc::vm::runtime {
-  using actor::builtin::account::AccountActor;
   using actor::kSendMethodNumber;
+  using actor::builtin::account::AccountActor;
   using storage::hamt::HamtError;
 
-  outcome::result<MessageReceipt> Env::applyMessage(const UnsignedMessage &message) {
+  outcome::result<MessageReceipt> Env::applyMessage(
+      const UnsignedMessage &message) {
     BigInt gas_cost = message.gasLimit * message.gasPrice;
     BigInt total_cost = gas_cost + message.value;
 
@@ -34,33 +35,41 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(state_tree->set(message.from, from_actor));
 
     OUTCOME_TRY(serialized_message, codec::cbor::encode(message));
-    BigInt gas_used = kOnChainMessageBaseGasCost + serialized_message.size() * kOnChainMessagePerByteGasCharge;
+    BigInt gas_used =
+        kOnChainMessageBaseGasCost
+        + serialized_message.size() * kOnChainMessagePerByteGasCharge;
 
     auto result = send(gas_used, message.from, message);
-    if (!result)  {
+    if (!result) {
       if (!isVMExitCode(result.error())) {
         return result.error();
       }
       gas_used = message.gasLimit;
     } else {
       OUTCOME_TRY(from_actor_2, state_tree->get(message.from));
-      OUTCOME_TRY(RuntimeImpl::transfer(gas_holder, from_actor_2, (message.gasLimit - gas_used) * message.gasPrice));
+      OUTCOME_TRY(RuntimeImpl::transfer(
+          gas_holder,
+          from_actor_2,
+          (message.gasLimit - gas_used) * message.gasPrice));
       OUTCOME_TRY(state_tree->set(message.from, from_actor_2));
     }
 
     OUTCOME_TRY(miner_actor, state_tree->get(block_miner));
-    OUTCOME_TRY(RuntimeImpl::transfer(gas_holder, miner_actor, gas_used * message.gasPrice));
+    OUTCOME_TRY(RuntimeImpl::transfer(
+        gas_holder, miner_actor, gas_used * message.gasPrice));
     OUTCOME_TRY(state_tree->set(block_miner, miner_actor));
 
     OUTCOME_TRY(ret_code, getRetCode(result));
     return MessageReceipt{
-      ret_code,
-      result ? result.value().return_value : Buffer{},
-      gas_used,
+        ret_code,
+        result ? result.value().return_value : Buffer{},
+        gas_used,
     };
   }
 
-  outcome::result<InvocationOutput> Env::send(BigInt &gas_used, const Address &origin, const UnsignedMessage &message) {
+  outcome::result<InvocationOutput> Env::send(BigInt &gas_used,
+                                              const Address &origin,
+                                              const UnsignedMessage &message) {
     Actor to_actor;
     auto maybe_to_actor = state_tree->get(message.to);
     if (!maybe_to_actor) {
@@ -72,7 +81,12 @@ namespace fc::vm::runtime {
     } else {
       to_actor = maybe_to_actor.value();
     }
-    RuntimeImpl runtime{shared_from_this(), message, origin, message.gasLimit, gas_used, to_actor.head};
+    RuntimeImpl runtime{shared_from_this(),
+                        message,
+                        origin,
+                        message.gasLimit,
+                        gas_used,
+                        to_actor.head};
 
     if (message.value) {
       OUTCOME_TRY(runtime.chargeGas(kSendTransferFundsGasCost));
@@ -85,7 +99,8 @@ namespace fc::vm::runtime {
     InvocationOutput invocation_output;
     if (message.method != kSendMethodNumber) {
       OUTCOME_TRY(runtime.chargeGas(kSendInvokeMethodGasCost));
-      auto invocation = invoker->invoke(to_actor, runtime, message.method, message.params);
+      auto invocation =
+          invoker->invoke(to_actor, runtime, message.method, message.params);
       if (invocation || isVMExitCode(invocation.error())) {
         OUTCOME_TRY(to_actor_2, state_tree->get(message.to));
         to_actor_2.head = runtime.getCurrentActorState();

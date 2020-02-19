@@ -100,8 +100,8 @@ namespace fc::vm::runtime {
     BigInt gasUsed() const;
 
     static outcome::result<void> transfer(Actor &from,
-                                   Actor &to,
-                                   const BigInt &amount);
+                                          Actor &to,
+                                          const BigInt &amount);
 
    private:
     outcome::result<Actor> getOrCreateActor(const Address &address);

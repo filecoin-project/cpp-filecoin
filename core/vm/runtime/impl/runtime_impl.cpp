@@ -34,13 +34,12 @@ using fc::vm::runtime::Runtime;
 using fc::vm::runtime::RuntimeError;
 using fc::vm::runtime::RuntimeImpl;
 
-RuntimeImpl::RuntimeImpl(
-    std::shared_ptr<Env> env,
-    UnsignedMessage message,
-    Address immediate_caller,
-    BigInt gas_available,
-    BigInt gas_used,
-    ActorSubstateCID current_actor_state)
+RuntimeImpl::RuntimeImpl(std::shared_ptr<Env> env,
+                         UnsignedMessage message,
+                         Address immediate_caller,
+                         BigInt gas_available,
+                         BigInt gas_used,
+                         ActorSubstateCID current_actor_state)
     : env_{std::move(env)},
       state_tree_{env_->state_tree},
       message_{std::move(message)},
@@ -55,7 +54,8 @@ ChainEpoch RuntimeImpl::getCurrentEpoch() const {
 
 Randomness RuntimeImpl::getRandomness(DomainSeparationTag tag,
                                       ChainEpoch epoch) const {
-  return env_->randomness_provider->deriveRandomness(tag, Serialization{}, epoch);
+  return env_->randomness_provider->deriveRandomness(
+      tag, Serialization{}, epoch);
 }
 
 Randomness RuntimeImpl::getRandomness(DomainSeparationTag tag,
@@ -111,9 +111,9 @@ fc::outcome::result<InvocationOutput> RuntimeImpl::send(
     BigInt value) {
   auto message = UnsignedMessage{to_address,
                                  message_.to,
-                                 0, // unused
+                                 0,  // unused
                                  value,
-                                 0, // unused
+                                 0,  // unused
                                  gas_available_,
                                  method_number,
                                  params};
