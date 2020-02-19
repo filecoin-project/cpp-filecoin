@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_ACCOUNT_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_ACCOUNT_ACTOR_HPP
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "vm/state/state_tree.hpp"
 
@@ -18,21 +19,6 @@ namespace fc::vm::actor::builtin::account {
   struct AccountActorState {
     Address address;
   };
-
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const AccountActorState &state) {
-    return s << (s.list() << state.address);
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, AccountActorState &state) {
-    s.list() >> state.address;
-    return s;
-  }
 
   /// Account actors represent actors without code
   struct AccountActor {
@@ -48,6 +34,16 @@ namespace fc::vm::actor::builtin::account {
     static outcome::result<Address> resolveToKeyAddress(
         const std::shared_ptr<StateTree> &state_tree, const Address &address);
   };
+
+  CBOR_ENCODE(AccountActorState, state) {
+    return s << (s.list() << state.address);
+  }
+
+  CBOR_DECODE(AccountActorState, state) {
+    s.list() >> state.address;
+    return s;
+  }
+
 }  // namespace fc::vm::actor::builtin::account
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACCOUNT_ACTOR_HPP

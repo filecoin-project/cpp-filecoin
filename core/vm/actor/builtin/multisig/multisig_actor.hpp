@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_MULTISIG_ACTOR_HPP
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_MULTISIG_ACTOR_HPP
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
@@ -221,10 +222,7 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR serialization of MultiSignatureTransaction
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const MultiSignatureTransaction &transaction) {
+  CBOR_ENCODE(MultiSignatureTransaction, transaction) {
     return s << (s.list() << transaction.transaction_number << transaction.to
                           << transaction.value << transaction.method
                           << transaction.params << transaction.approved);
@@ -233,10 +231,7 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR deserialization of MultiSignatureTransaction
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, MultiSignatureTransaction &transaction) {
+  CBOR_DECODE(MultiSignatureTransaction, transaction) {
     s.list() >> transaction.transaction_number >> transaction.to
         >> transaction.value >> transaction.method >> transaction.params
         >> transaction.approved;
@@ -246,10 +241,7 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR serialization of MultiSignatureActorState
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const MultiSignatureActorState &state) {
+  CBOR_ENCODE(MultiSignatureActorState, state) {
     return s << (s.list() << state.signers << state.threshold
                           << state.next_transaction_id << state.initial_balance
                           << state.start_epoch << state.unlock_duration
@@ -259,10 +251,7 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR deserialization of MultiSignatureActorState
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, MultiSignatureActorState &state) {
+  CBOR_DECODE(MultiSignatureActorState, state) {
     s.list() >> state.signers >> state.threshold >> state.next_transaction_id
         >> state.initial_balance >> state.start_epoch >> state.unlock_duration
         >> state.pending_transactions;
@@ -272,10 +261,7 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR serialization of ConstructParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const ConstructParameters &construct_params) {
+  CBOR_ENCODE(ConstructParameters, construct_params) {
     return s << (s.list() << construct_params.signers
                           << construct_params.threshold
                           << construct_params.unlock_duration);
@@ -284,10 +270,7 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR deserialization of ConstructParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, ConstructParameters &construct_params) {
+  CBOR_DECODE(ConstructParameters, construct_params) {
     s.list() >> construct_params.signers >> construct_params.threshold
         >> construct_params.unlock_duration;
     return s;
@@ -296,10 +279,7 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR serialization of ProposeParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const ProposeParameters &propose_params) {
+  CBOR_ENCODE(ProposeParameters, propose_params) {
     return s << (s.list() << propose_params.to << propose_params.value
                           << propose_params.method << propose_params.params);
   }
@@ -307,10 +287,7 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR deserialization of ProposeParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, ProposeParameters &propose_params) {
+  CBOR_DECODE(ProposeParameters, propose_params) {
     s.list() >> propose_params.to >> propose_params.value
         >> propose_params.method >> propose_params.params;
     return s;
@@ -319,20 +296,14 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR serialization of TransactionNumberParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const TransactionNumberParameters &params) {
+  CBOR_ENCODE(TransactionNumberParameters, params) {
     return s << (s.list() << params.transaction_number);
   }
 
   /**
    * CBOR deserialization of TransactionNumberParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, TransactionNumberParameters &params) {
+  CBOR_DECODE(TransactionNumberParameters, params) {
     s.list() >> params.transaction_number;
     return s;
   }
@@ -340,20 +311,14 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR serialization of AddSignerParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const AddSignerParameters &params) {
+  CBOR_ENCODE(AddSignerParameters, params) {
     return s << (s.list() << params.signer << params.increase_threshold);
   }
 
   /**
    * CBOR deserialization of AddSignerParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, AddSignerParameters &params) {
+  CBOR_DECODE(AddSignerParameters, params) {
     s.list() >> params.signer >> params.increase_threshold;
     return s;
   }
@@ -361,20 +326,14 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR serialization of RemoveSignerParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const RemoveSignerParameters &params) {
+  CBOR_ENCODE(RemoveSignerParameters, params) {
     return s << (s.list() << params.signer << params.decrease_threshold);
   }
 
   /**
    * CBOR deserialization of RemoveSignerParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, RemoveSignerParameters &params) {
+  CBOR_DECODE(RemoveSignerParameters, params) {
     s.list() >> params.signer >> params.decrease_threshold;
     return s;
   }
@@ -382,20 +341,14 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR serialization of SwapSignerParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const SwapSignerParameters &params) {
+  CBOR_ENCODE(SwapSignerParameters, params) {
     return s << (s.list() << params.old_signer << params.new_signer);
   }
 
   /**
    * CBOR deserialization of SwapSignerParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, SwapSignerParameters &params) {
+  CBOR_DECODE(SwapSignerParameters, params) {
     s.list() >> params.old_signer >> params.new_signer;
     return s;
   }
@@ -403,20 +356,14 @@ namespace fc::vm::actor::builtin::multisig {
   /**
    * CBOR serialization of ChangeThresholdParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const ChangeThresholdParameters &params) {
+  CBOR_ENCODE(ChangeThresholdParameters, params) {
     return s << (s.list() << params.new_threshold);
   }
 
   /**
    * CBOR deserialization of ChangeThresholdParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, ChangeThresholdParameters &params) {
+  CBOR_DECODE(ChangeThresholdParameters, params) {
     s.list() >> params.new_threshold;
     return s;
   }
