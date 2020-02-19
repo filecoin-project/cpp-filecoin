@@ -60,6 +60,10 @@ set_target_properties(filecoin_ffi PROPERTIES
         IMPORTED_LOCATION ${FILECOIN_FFI_LIB}
         )
 
+if (APPLE)
+    target_link_libraries(filecoin_ffi INTERFACE "-framework OpenCL")
+endif (APPLE)
+
 add_dependencies(filecoin_ffi
         filecoin_ffi_fix_include
         )
