@@ -8,6 +8,7 @@
 
 #include "adt/balance_table_hamt.hpp"
 #include "adt/multimap.hpp"
+#include "codec/cbor/streams_annotation.hpp"
 #include "crypto/randomness/randomness_provider.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "power/power_table.hpp"
@@ -200,7 +201,6 @@ namespace fc::vm::actor::builtin::storage_power {
 
     void reloadRoot();
 
-
     power::Power total_network_power;
 
     size_t miner_count;
@@ -257,26 +257,19 @@ namespace fc::vm::actor::builtin::storage_power {
      * Claimed power and associated pledge requirements for each miner
      */
     std::shared_ptr<Hamt> claims_;
-
   };
 
   /**
    * CBOR serialization of Claim
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Claim &claim) {
+  CBOR_ENCODE(Claim, claim) {
     return s << (s.list() << claim.power << claim.pledge);
   }
 
   /**
    * CBOR deserialization of Claim
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Claim &claim) {
+  CBOR_DECODE(Claim, claim) {
     s.list() >> claim.power >> claim.pledge;
     return s;
   }
@@ -284,20 +277,14 @@ namespace fc::vm::actor::builtin::storage_power {
   /**
    * CBOR serialization of CronEvent
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const CronEvent &event) {
+  CBOR_ENCODE(CronEvent, event) {
     return s << (s.list() << event.miner_address << event.callback_payload);
   }
 
   /**
    * CBOR deserialization of CronEvent
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, CronEvent &event) {
+  CBOR_DECODE(CronEvent, event) {
     s.list() >> event.miner_address >> event.callback_payload;
     return s;
   }
@@ -305,12 +292,10 @@ namespace fc::vm::actor::builtin::storage_power {
   /**
    * CBOR serialization of StoragePowerActorState
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const StoragePowerActorState &state) {
+  CBOR_ENCODE(StoragePowerActorState, state) {
     return s << (s.list() << state.total_network_power << state.miner_count
-                          << state.escrow_table->root << state.cron_event_queue_cid
+                          << state.escrow_table->root
+                          << state.cron_event_queue_cid
                           << state.po_st_detected_fault_miners_cid
                           << state.claims_cid
                           << state.num_miners_meeting_min_power);
@@ -319,10 +304,7 @@ namespace fc::vm::actor::builtin::storage_power {
   /**
    * CBOR deserialization of ChangeThresholdParameters
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, StoragePowerActorState &state) {
+  CBOR_DECODE(StoragePowerActorState, state) {
     s.list() >> state.total_network_power >> state.miner_count
         >> state.escrow_table->root >> state.cron_event_queue_cid
         >> state.po_st_detected_fault_miners_cid >> state.claims_cid
