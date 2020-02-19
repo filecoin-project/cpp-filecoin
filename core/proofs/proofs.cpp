@@ -637,4 +637,24 @@ namespace fc::proofs {
     return cppCommitment(gsl::make_span(res_ptr->ticket, kTicketSize));
   }
 
+  uint64_t Proofs::getMaxUserBytesPerStagedSector(uint64_t sector_size) {
+    return get_max_user_bytes_per_staged_sector(sector_size);
+  }
+
+  outcome::result<Devices> Proofs::getGPUDevices() {
+    auto res_ptr = make_unique(get_gpu_devices(), destroy_gpu_device_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getGPUDevices: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    if (res_ptr->devices_ptr == nullptr || res_ptr->devices_len == 0) {
+      return Devices();
+    }
+
+    return Devices(res_ptr->devices_ptr,
+                   res_ptr->devices_ptr + res_ptr->devices_len);  // NOLINT
+  }
+
 }  // namespace fc::proofs

@@ -25,6 +25,7 @@ namespace fc::proofs {
   using Prover = Blob<32>;
   using Ticket = Blob<32>;
   using Seed = Blob<32>;
+  using Devices = std::vector<std::string>;
 
   // RawSealPreCommitOutput is used to acquire a seed from the chain for the
   // second step of Interactive PoRep.
@@ -222,9 +223,21 @@ namespace fc::proofs {
                                             gsl::span<const uint8_t> proof);
 
     /**
-     * Generates a ticket from a @partial_ticket
+     * @brief Generates a ticket from a @partial_ticket
      */
     static outcome::result<Ticket> finalizeTicket(const Ticket &partial_ticket);
+
+    /**
+     * @brief Returns the number of user bytes that will fit into a staged
+     * sector
+     */
+    static uint64_t getMaxUserBytesPerStagedSector(uint64_t sector_size);
+
+    /**
+     * @brief Produces a vector of strings, each representing the name of a
+     * detected GPU device
+     */
+    static outcome::result<Devices> getGPUDevices();
 
    private:
     static fc::common::Logger logger_;
