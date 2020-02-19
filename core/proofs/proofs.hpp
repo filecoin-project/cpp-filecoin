@@ -109,7 +109,7 @@ namespace fc::proofs {
 
     /**
      * @brief  Seals the staged sector at staged_sector_path in place, saving
-     * the resulting replica to sealed_sector_path.
+     * the resulting replica to sealed_sector_path
      */
     static outcome::result<RawSealPreCommitOutput> sealPreCommit(
         uint64_t sector_size,
@@ -121,7 +121,6 @@ namespace fc::proofs {
         const Prover &prover_id,
         const Ticket &ticket,
         gsl::span<const PublicPieceInfo> pieces);
-
 
     static outcome::result<Proof> sealCommit(
         uint64_t sector_size,
@@ -166,14 +165,14 @@ namespace fc::proofs {
         uint64_t length);
 
     /**
-     * @brief Computes a sectors's comm_d given its pieces.
+     * @brief Computes a sectors's comm_d given its pieces
      */
     static outcome::result<Comm> generateDataCommitment(
         uint64_t sector_size, gsl::span<const PublicPieceInfo> pieces);
 
     /**
      * @brief Generates a piece commitment for the provided byte source. Returns
-     * an error if the byte source produced more than piece_size bytes.
+     * an error if the byte source produced more than piece_size bytes
      */
     static outcome::result<Comm> generatePieceCommitmentFromFile(
         const std::string &piece_file_path, uint64_t piece_size);
@@ -199,7 +198,7 @@ namespace fc::proofs {
         gsl::span<const Candidate> winners);
 
     /**
-     * @brief Verifies a proof-of-spacetime.
+     * @brief Verifies a proof-of-spacetime
      */
     static outcome::result<bool> verifyPoSt(
         uint64_t sector_size,
@@ -221,6 +220,11 @@ namespace fc::proofs {
                                             const Seed &seed,
                                             uint64_t sector_id,
                                             gsl::span<const uint8_t> proof);
+
+    /**
+     * Generates a ticket from a @partial_ticket
+     */
+    static outcome::result<Ticket> finalizeTicket(const Ticket &partial_ticket);
 
    private:
     static fc::common::Logger logger_;

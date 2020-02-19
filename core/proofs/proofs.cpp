@@ -622,4 +622,19 @@ namespace fc::proofs {
 
     return sorted_sector_info;
   }
+
+  outcome::result<Ticket> Proofs::finalizeTicket(const Ticket &partial_ticket) {
+    auto res_ptr = make_unique(finalize_ticket(cPointerToArray(partial_ticket)),
+                               destroy_finalize_ticket_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("finalizeTicket: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    static const int kTicketSize = 32;
+
+    return cppCommitment(gsl::make_span(res_ptr->ticket, kTicketSize));
+  }
+
 }  // namespace fc::proofs
