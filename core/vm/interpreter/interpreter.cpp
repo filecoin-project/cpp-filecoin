@@ -59,7 +59,7 @@ namespace fc::vm::interpreter {
   }
 
   outcome::result<Address> getMinerOwner(StateTreeImpl &state_tree,
-                                         Address miner) {
+                                         const Address &miner) {
     OUTCOME_TRY(actor, state_tree.get(miner));
     OUTCOME_TRY(state,
                 state_tree.getStore()->getCbor<MinerActorState>(actor.head));
