@@ -6,11 +6,12 @@
 #ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
-#include "primitives/chain_epoch.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "vm/actor/actor.hpp"
 
 namespace fc::vm::actor::builtin::payment_channel {
@@ -20,7 +21,6 @@ namespace fc::vm::actor::builtin::payment_channel {
   using fc::vm::actor::MethodNumber;
   using primitives::BigInt;
   using primitives::ChainEpoch;
-  using primitives::UBigInt;
   using primitives::address::Address;
 
   struct LaneState {
@@ -37,7 +37,7 @@ namespace fc::vm::actor::builtin::payment_channel {
   struct PaymentChannelActorState {
     Address from;
     Address to;
-    UBigInt to_send{};
+    BigInt to_send{};
     ChainEpoch settling_at;
     ChainEpoch min_settling_height;
     std::vector<LaneState> lanes{};
@@ -63,7 +63,7 @@ namespace fc::vm::actor::builtin::payment_channel {
     ModularVerificationParameter extra;
     uint64_t lane{};
     uint64_t nonce{};
-    UBigInt amount;
+    BigInt amount;
     uint64_t min_close_height{};
     std::vector<Merge> merges{};
     Signature signature;
@@ -72,20 +72,14 @@ namespace fc::vm::actor::builtin::payment_channel {
   /**
    * CBOR serialization of LaneState
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const LaneState &state) {
+  CBOR_ENCODE(LaneState, state) {
     return s << (s.list() << state.state << state.redeem << state.nonce);
   }
 
   /**
    * CBOR deserialization of LaneState
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, LaneState &state) {
+  CBOR_DECODE(LaneState, state) {
     s.list() >> state.state >> state.redeem >> state.nonce;
     return s;
   }
@@ -93,10 +87,7 @@ namespace fc::vm::actor::builtin::payment_channel {
   /**
    * CBOR serialization of PaymentChannelActorState
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const PaymentChannelActorState &state) {
+  CBOR_ENCODE(PaymentChannelActorState, state) {
     return s << (s.list() << state.from << state.to << state.to_send
                           << state.settling_at << state.min_settling_height
                           << state.lanes);
@@ -105,10 +96,7 @@ namespace fc::vm::actor::builtin::payment_channel {
   /**
    * CBOR deserialization of PaymentChannelActorState
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, PaymentChannelActorState &state) {
+  CBOR_DECODE(PaymentChannelActorState, state) {
     s.list() >> state.from >> state.to >> state.to_send >> state.settling_at
         >> state.min_settling_height >> state.lanes;
     return s;
@@ -117,20 +105,14 @@ namespace fc::vm::actor::builtin::payment_channel {
   /**
    * CBOR serialization of ModularVerificationParameter
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const ModularVerificationParameter &param) {
+  CBOR_ENCODE(ModularVerificationParameter, param) {
     return s << (s.list() << param.actor << param.method << param.data);
   }
 
   /**
    * CBOR deserialization of ModularVerificationParameter
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, ModularVerificationParameter &param) {
+  CBOR_DECODE(ModularVerificationParameter, param) {
     s.list() >> param.actor >> param.method >> param.data;
     return s;
   }
@@ -138,20 +120,14 @@ namespace fc::vm::actor::builtin::payment_channel {
   /**
    * CBOR serialization of Merge
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Merge &merge) {
+  CBOR_ENCODE(Merge, merge) {
     return s << (s.list() << merge.lane << merge.nonce);
   }
 
   /**
    * CBOR deserialization of Merge
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Merge &merge) {
+  CBOR_DECODE(Merge, merge) {
     s.list() >> merge.lane >> merge.nonce;
     return s;
   }
@@ -159,10 +135,7 @@ namespace fc::vm::actor::builtin::payment_channel {
   /**
    * CBOR serialization of SignedVoucher
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const SignedVoucher &voucher) {
+  CBOR_ENCODE(SignedVoucher, voucher) {
     return s << (s.list() << voucher.time_lock << voucher.secret_preimage
                           << voucher.extra << voucher.lane << voucher.nonce
                           << voucher.amount << voucher.min_close_height
@@ -172,10 +145,7 @@ namespace fc::vm::actor::builtin::payment_channel {
   /**
    * CBOR deserialization of SignedVoucher
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, SignedVoucher &voucher) {
+  CBOR_DECODE(SignedVoucher, voucher) {
     s.list() >> voucher.time_lock >> voucher.secret_preimage >> voucher.extra
         >> voucher.lane >> voucher.nonce >> voucher.amount
         >> voucher.min_close_height >> voucher.merges >> voucher.signature;

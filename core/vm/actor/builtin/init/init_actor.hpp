@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor_method.hpp"
 
@@ -23,17 +24,11 @@ namespace fc::vm::actor::builtin::init {
     uint64_t next_id{};
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const InitActorState &state) {
+  CBOR_ENCODE(InitActorState, state) {
     return s << (s.list() << state.address_map << state.next_id);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, InitActorState &state) {
+  CBOR_DECODE(InitActorState, state) {
     s.list() >> state.address_map >> state.next_id;
     return s;
   }
@@ -51,17 +46,11 @@ namespace fc::vm::actor::builtin::init {
 
   extern const ActorExports exports;
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const ExecParams &params) {
+  CBOR_ENCODE(ExecParams, params) {
     return s << (s.list() << params.code << params.params);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, ExecParams &params) {
+  CBOR_DECODE(ExecParams, params) {
     s.list() >> params.code >> params.params;
     return s;
   }

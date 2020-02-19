@@ -9,22 +9,45 @@
 #include <string>
 #include <vector>
 
+#include <boost/multiprecision/cpp_int.hpp>
 #include <boost/variant.hpp>
 
 #include "codec/cbor/cbor.hpp"
+#include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome_throw.hpp"
 #include "common/visitor.hpp"
-#include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::hamt {
   enum class HamtError { EXPECTED_CID = 1, NOT_FOUND, MAX_DEPTH };
 
-  using fc::primitives::UBigInt;
+  using boost::multiprecision::cpp_int;
   using Value = ipfs::IpfsDatastore::Value;
 
   constexpr size_t kLeafMax = 3;
+  constexpr size_t kDefaultBitWidth = 8;
+
+  struct Bits : cpp_int {};
+
+  CBOR_ENCODE(Bits, bits) {
+    std::vector<uint8_t> bytes;
+    if (bits != 0) {
+      export_bits(bits, std::back_inserter(bytes), 8);
+    }
+    return s << bytes;
+  }
+
+  CBOR_DECODE(Bits, bits) {
+    std::vector<uint8_t> bytes;
+    s >> bytes;
+    if (bytes.empty()) {
+      bits = {0};
+    } else {
+      import_bits(bits, bytes.begin(), bytes.end());
+    }
+    return s;
+  }
 
   /** Hamt node representation */
   struct Node {
@@ -39,7 +62,7 @@ namespace fc::storage::hamt {
             typename = std::enable_if_t<Stream::is_cbor_encoder_stream>>
   Stream &operator<<(Stream &s, const Node &node) {
     auto l_items = s.list();
-    UBigInt bits;
+    Bits bits;
     for (auto &item : node.items) {
       bit_set(bits, item.first);
       auto m_item = s.map();
@@ -66,7 +89,7 @@ namespace fc::storage::hamt {
   Stream &operator>>(Stream &s, Node &node) {
     node.items.clear();
     auto l_node = s.list();
-    UBigInt bits;
+    Bits bits;
     l_node >> bits;
     auto n_items = l_node.listLength();
     auto l_items = l_node.list();
@@ -107,24 +130,36 @@ namespace fc::storage::hamt {
     using Visitor = std::function<outcome::result<void>(const std::string &,
                                                         const Value &)>;
 
-    explicit Hamt(std::shared_ptr<ipfs::IpfsDatastore> store);
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
+         size_t bit_width = kDefaultBitWidth);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root);
-    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
+         const CID &root,
+         size_t bit_width = kDefaultBitWidth);
     /** Set value by key, does not write to storage */
     outcome::result<void> set(const std::string &key,
                               gsl::span<const uint8_t> value);
+
     /** Get value by key */
     outcome::result<Value> get(const std::string &key);
+
     /**
      * Remove value by key, does not write to storage.
-     * Returns NOT_Found if element doesn't exist.
+     * Returns NOT_FOUND if element doesn't exist.
      */
     outcome::result<void> remove(const std::string &key);
+
+    /**
+     * Checks if key is present
+     */
+    outcome::result<bool> contains(const std::string &key);
+
     /**
      * Write changes made by set and remove to storage
      * @return new root
      */
     outcome::result<CID> flush();
+
     /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor);
 
@@ -143,6 +178,7 @@ namespace fc::storage::hamt {
     }
 
    private:
+    std::vector<size_t> keyToIndices(const std::string &key, int n = -1) const;
     outcome::result<void> set(Node &node,
                               gsl::span<const size_t> indices,
                               const std::string &key,
@@ -157,6 +193,7 @@ namespace fc::storage::hamt {
 
     std::shared_ptr<ipfs::IpfsDatastore> store_;
     Node::Item root_;
+    size_t bit_width_;
   };
 }  // namespace fc::storage::hamt
 
