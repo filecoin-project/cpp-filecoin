@@ -11,7 +11,7 @@
 #include "common/enum.hpp"
 #include "power/power_table.hpp"
 #include "primitives/address/address.hpp"
-#include "primitives/chain_epoch.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"

@@ -9,7 +9,7 @@
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
-#include "primitives/chain_epoch.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/cid/cid.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/actor_method.hpp"

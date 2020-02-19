@@ -8,4 +8,5 @@ addtest(storage_power_actor_test
     )
 target_link_libraries(storage_power_actor_test
     storage_power_actor
+    ipfs_datastore_in_memory
     )

@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_RANDOMNESS_PROVIDER_HPP
 
 #include "crypto/randomness/randomness_types.hpp"
-#include "primitives/chain_epoch.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 
 namespace fc::crypto::randomness {
 
