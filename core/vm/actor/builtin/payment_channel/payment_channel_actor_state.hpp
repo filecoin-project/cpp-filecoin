@@ -11,7 +11,7 @@
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
-#include "primitives/chain_epoch.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "vm/actor/actor.hpp"
 
 namespace fc::vm::actor::builtin::payment_channel {

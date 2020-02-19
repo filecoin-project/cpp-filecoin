@@ -16,6 +16,14 @@ target_link_libraries(array
     amt
     )
 
+add_library(balance_table_hamt
+    impl/balance_table_hamt.cpp
+    )
+target_link_libraries(balance_table_hamt
+    address
+    hamt
+    )
+
 add_library(multimap
     impl/multimap.cpp
     )

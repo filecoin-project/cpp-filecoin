@@ -11,7 +11,7 @@
 #include "common/outcome.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
-#include "primitives/chain_epoch.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
