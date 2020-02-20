@@ -8,6 +8,7 @@
 
 #include <functional>
 
+#include <libp2p/common/types.hpp>
 #include <libp2p/connection/stream.hpp>
 
 #include "../errors.hpp"

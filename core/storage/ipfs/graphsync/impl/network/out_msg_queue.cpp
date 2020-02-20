@@ -96,7 +96,9 @@ namespace fc::storage::ipfs::graphsync {
   void OutMessageQueue::close() {
     writing_bytes_ = 0;
     closed_ = true;
-    stream_->close([stream{stream_}](outcome::result<void>) {});
+    if (stream_.use_count() == 1) {
+      stream_->close([stream{stream_}](outcome::result<void>) {});
+    }
     stream_.reset();
   }
 

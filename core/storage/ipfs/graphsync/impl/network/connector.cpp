@@ -19,6 +19,12 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   void Connector::tryConnect(SessionPtr session) {
+    if (session->state != Session::SESSION_DISCONNECTED) {
+      return;
+    }
+
+    session->state = Session::SESSION_CONNECTING;
+
     libp2p::peer::PeerInfo pi{session->peer, {}};
     if (session->connect_to) {
       pi.addresses.push_back(session->connect_to.value());
@@ -40,6 +46,11 @@ namespace fc::storage::ipfs::graphsync {
 
   void Connector::onStreamConnected(
       SessionPtr session, libp2p::outcome::result<StreamPtr> rstream) {
+    if (session->state != Session::SESSION_CONNECTING) {
+      // the owner cancelled connecting
+      return;
+    }
+
     if (rstream) {
       session->stream = std::move(rstream.value());
       return callback_(std::move(session), outcome::success());

@@ -5,47 +5,64 @@
 
 #include "response_builder.hpp"
 
-#include <libp2p/multi/content_identifier_codec.hpp>
-#include <libp2p/multi/uvarint.hpp>
-#include <libp2p/common/types.hpp>
+#include "codec/cbor/cbor_encode_stream.hpp"
 
 #include <protobuf/message.pb.h>
 
 namespace fc::storage::ipfs::graphsync {
 
   namespace {
-    std::vector<uint8_t> encodeCidPrefix(const libp2p::multi::ContentIdentifier &cid) {
-      std::vector<uint8_t> bytes;
-      bytes.reserve(12);
-      if (cid.version == libp2p::multi::ContentIdentifier::Version::V1) {
-        bytes.push_back(1);
-        libp2p::multi::UVarint type(cid.content_type);
-        libp2p::common::append(bytes, type.toBytes());
-        libp2p::multi::UVarint hash_type(cid.content_address.getType());
-        libp2p::common::append(bytes, hash_type.toBytes());
-      } else if (cid.version == libp2p::multi::ContentIdentifier::Version::V0) {
-        bytes.push_back(0x12); // sha-256
-        bytes.push_back(0x20); // 32 bytes long
-      }
-      return bytes;
+    using codec::cbor::CborEncodeStream;
+
+    std::map<std::string, CborEncodeStream> encodeMetadataItem(
+        const std::pair<CID, bool> &item) {
+      static const std::string link(kLink);
+      static const std::string blockPresent(kBlockPresent);
+
+      std::map<std::string, CborEncodeStream> m;
+      m[link] << item.first;
+      m[blockPresent] << item.second;
+      return m;
     }
-  }
 
-  void ResponseBuilder::addResponse(const Message::Response &resp) {
+    std::string encodeMetadata(const ResponseMetadata &metadata) {
+      auto l = CborEncodeStream::list();
+
+      for (const auto &item : metadata) {
+        l << encodeMetadataItem(item);
+      }
+
+      CborEncodeStream encoder;
+      encoder << l;
+      auto d = encoder.data();
+      std::string s(d.begin(), d.end());
+      return s;
+    }
+  }  // namespace
+
+  void ResponseBuilder::addResponse(int request_id,
+                                    ResponseStatusCode status,
+                                    const ResponseMetadata &metadata) {
     auto *dst = pb_msg_->add_responses();
-    dst->set_id(resp.id);
-    dst->set_status(resp.status);
+    dst->set_id(request_id);
+    dst->set_status(status);
 
-    // TODO(FIL-96): encode metadata:
+    if (!metadata.empty()) {
+      dst->mutable_extensions()->insert(
+          {std::string(kResponseMetadata), encodeMetadata(metadata)});
+    }
+
     empty_ = false;
   }
 
   void ResponseBuilder::addDataBlock(
-      const libp2p::multi::ContentIdentifier &cid, const ByteArray &data) {
+      const CID &cid, gsl::span<const uint8_t> &data) {
     auto *dst = pb_msg_->add_data();
 
-    auto prefix = encodeCidPrefix(cid);
-    dst->set_prefix(prefix.data(), prefix.size());
+    CborEncodeStream encoder;
+    encoder << cid;
+    auto d = encoder.data();
+    dst->set_prefix(d.data(), d.size());
     dst->set_data(data.data(), data.size());
     empty_ = false;
   }

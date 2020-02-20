@@ -11,6 +11,7 @@ add_library(graphsync
     graphsync_impl.cpp
     merkledag_bridge_impl.cpp
     block_subscription.cpp
+    local_requests.cpp
     marshalling/serialize.cpp
     marshalling/message_parser.cpp
     marshalling/message_builder.cpp

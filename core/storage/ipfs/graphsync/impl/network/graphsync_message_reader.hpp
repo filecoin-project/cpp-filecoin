@@ -32,7 +32,7 @@ namespace fc::storage::ipfs::graphsync {
     void close();
 
    private:
-    void onMessageRead(outcome::result<ByteArray> res);
+    void onMessageRead(outcome::result<std::vector<uint8_t>> res);
 
     SessionPtr session_;
     Feedback feedback_;

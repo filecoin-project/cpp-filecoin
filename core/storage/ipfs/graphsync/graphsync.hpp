@@ -17,6 +17,7 @@
 
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
+#include "primitives/cid/cid.hpp"
 
 namespace fc::storage::ipfs::merkledag {
   class MerkleDagService;
@@ -42,15 +43,24 @@ namespace fc::storage::ipfs::graphsync {
                            const common::Buffer &data)> handler) const = 0;
   };
 
-  /// Response status codes
+  /// Response status codes. Positive values are received from wire,
+  /// negative are internal. Terminal codes end request-response session
   enum ResponseStatusCode {
+    // internal codes - terminal
+    RS_NO_PEERS = -1,
+    RS_CANNOT_CONNECT = -2,
+    RS_TIMEOUT = -3,
+    RS_CONNECTION_ERROR = -4,
+    RS_MESSAGE_CORRUPTED = -5,
+    RS_INTERNAL_ERROR = -6,
+    RS_GRAPHSYNC_STOPPED = -7,
+
     // info - partial
     RS_REQUEST_ACKNOWLEDGED = 10,  //   Request Acknowledged. Working on it.
     RS_ADDITIONAL_PEERS = 11,      //   Additional Peers. PeerIDs in extra.
     RS_NOT_ENOUGH_GAS = 12,        //   Not enough vespene gas ($)
     RS_OTHER_PROTOCOL = 13,        //   Other Protocol - info in extra.
-    RS_PARTIAL_RESPONSE =
-        14,  //   Partial Response w/metadata, may incl. blocks
+    RS_PARTIAL_RESPONSE = 14,      //   Partial Response w/metadata
 
     // success - terminal
     RS_FULL_CONTENT = 20,     //   Request Completed, full content.
@@ -64,6 +74,9 @@ namespace fc::storage::ipfs::graphsync {
     RS_NOT_FOUND = 34,       //   Request failed, content not found.
   };
 
+  /// Metadata pairs, is cid present or not
+  using ResponseMetadata = std::vector<std::pair<CID, bool>>;
+
   /// Graphsync protocol interface
   class Graphsync {
    public:
@@ -71,15 +84,12 @@ namespace fc::storage::ipfs::graphsync {
 
     /// New nodes received go through this callback
     using BlockCallback =
-        std::function<void(common::Buffer cid, common::Buffer data)>;
+        std::function<void(CID cid, common::Buffer data)>;
 
     /// Starts instance and subscribes to blocks.
     /// Instance will shut down as soon as this subscription is cancelled
     virtual Subscription start(std::shared_ptr<MerkleDagBridge> dag,
                                BlockCallback callback) = 0;
-
-    /// Metadata pairs, is cid present or not
-    using ResponseMetadata = std::unordered_map<common::Buffer, bool>;
 
     /// Request progress subscription data
     using RequestProgressCallback =
@@ -87,12 +97,13 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Makes request. Request will be cancelled if subscription is cancelled
     virtual Subscription makeRequest(
-        libp2p::peer::PeerId peer,
+        const libp2p::peer::PeerId& peer,
         boost::optional<libp2p::multi::Multiaddress> address,
         gsl::span<const uint8_t> root_cid,
         gsl::span<const uint8_t> selector,
         bool need_metadata,
-        std::unordered_set<common::Buffer> dont_send_cids) = 0;
+        const std::vector<CID>& dont_send_cids,
+        RequestProgressCallback callback) = 0;
   };
 
 }  // namespace fc::storage::ipfs::graphsync

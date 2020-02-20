@@ -11,9 +11,11 @@
 
 #include <gsl/span>
 #include <libp2p/peer/peer_id.hpp>
+#include <libp2p/common/types.hpp>
 
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
+#include "primitives/cid/cid.hpp"
 
 namespace libp2p::connection {
   class Stream;
@@ -21,10 +23,17 @@ namespace libp2p::connection {
 
 namespace fc::storage::ipfs::graphsync {
 
-  using SharedData = std::shared_ptr<const common::Buffer>;
+  using libp2p::common::ByteArray;
+  using SharedData = std::shared_ptr<const ByteArray>;
   using libp2p::peer::PeerId;
   using SessionPtr = std::shared_ptr<struct Session>;
   using StreamPtr = std::shared_ptr<libp2p::connection::Stream>;
+
+  constexpr std::string_view kResponseMetadata = "graphsync/response-metadata";
+  constexpr std::string_view kDontSendCids = "graphsync/do-not-send-cids";
+  constexpr std::string_view kLink = "link";
+  constexpr std::string_view kBlockPresent = "blockPresent";
+  constexpr std::string_view kProtocolVersion = "/ipfs/graphsync/1.0.0";
 
 }  // namespace fc::storage::ipfs::graphsync
 

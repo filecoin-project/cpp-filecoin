@@ -6,17 +6,20 @@
 #ifndef CPP_FILECOIN_GRAPHSYNC_SESSION_HPP
 #define CPP_FILECOIN_GRAPHSYNC_SESSION_HPP
 
-#include <libp2p/multi/multiaddress.hpp>
+#include <map>
 
+#include "storage/ipfs/graphsync/graphsync.hpp"
 #include "types.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
   class GraphsyncMessageReader;
   class OutMessageQueue;
+  class RequestBuilder;
 
   struct Session {
     enum State {
+      SESSION_DISCONNECTED,
       SESSION_ACCEPTED,
       SESSION_RECEIVED_REQUEST,
       SESSION_SENDING_RESPONSE,
@@ -50,6 +53,13 @@ namespace fc::storage::ipfs::graphsync {
     StreamPtr stream;
 
     std::shared_ptr<GraphsyncMessageReader> reader;
+
+    using RequestToItem = std::map<int, Graphsync::RequestProgressCallback>;
+    RequestToItem active_requests_;
+
+    std::shared_ptr<RequestBuilder> request_builder;
+
+    std::shared_ptr<OutMessageQueue> out_queue;
   };
 
 }  // namespace fc::storage::ipfs::graphsync

@@ -13,7 +13,13 @@ namespace fc::storage::ipfs::graphsync {
   /// Collects request entries and serializes them to wire protocol
   class RequestBuilder : public MessageBuilder {
    public:
-    void addRequest(const Message::Request& req);
+    void addRequest(int request_id,
+                    gsl::span<const uint8_t> root_cid,
+                    gsl::span<const uint8_t> selector,
+                    bool need_metadata,
+                    const std::vector<CID>& dont_send_cids);
+
+    void addCancelRequest(int request_id);
 
     void setCompleteRequestList();
   };

@@ -10,7 +10,7 @@
 namespace fc::storage::ipfs::graphsync {
 
   const libp2p::peer::Protocol &Server::getProtocolId() {
-    static const libp2p::peer::Protocol id("/ipfs/graphsync/1.0.0");
+    static const libp2p::peer::Protocol id(kProtocolVersion);
     return id;
   }
 

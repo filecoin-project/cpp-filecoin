@@ -5,32 +5,33 @@
 
 #include "message_parser.hpp"
 
-#include <libp2p/multi/content_identifier_codec.hpp>
-#include <libp2p/multi/uvarint.hpp>
-
-#include "../errors.hpp"
+#include "codec/cbor/cbor_decode_stream.hpp"
+#include "storage/ipfs/graphsync/impl/errors.hpp"
+#include "storage/ipfs/graphsync/graphsync.hpp"
 
 #include <protobuf/message.pb.h>
 
 namespace fc::storage::ipfs::graphsync {
 
+  using codec::cbor::CborDecodeStream;
+
   namespace {
 
-    ByteArray fromString(const std::string &src) {
-      ByteArray dst;
-      auto sz = src.size();
-      dst.resize(sz);
-      if (sz > 0) {
-        memcpy(dst.data(), src.data(), sz);
+    common::Buffer fromString(const std::string &src) {
+      common::Buffer dst;
+      if (!src.empty()) {
+        auto b = (const uint8_t*)src.data();
+        auto e = b + src.size();
+        dst.putBytes(b, e);
       }
       return dst;
     }
 
-    libp2p::outcome::result<Message::ResponseStatusCode> extractStatusCode(
+    outcome::result<ResponseStatusCode> extractStatusCode(
         int src) {
       switch (src) {
 // clang-format off
-#define CHECK_CASE(X) case Message::RS_##X: return Message::RS_##X;
+#define CHECK_CASE(X) case RS_##X: return RS_##X;
         CHECK_CASE(REQUEST_ACKNOWLEDGED)
         CHECK_CASE(ADDITIONAL_PEERS)
         CHECK_CASE(NOT_ENOUGH_GAS)
@@ -52,31 +53,86 @@ namespace fc::storage::ipfs::graphsync {
       return Error::MESSAGE_VALIDATION_FAILED;
     }
 
-    libp2p::outcome::result<ByteArray> extractCID(const std::string &prefix,
-                                                  const std::string &data) {
-      if (prefix.empty()) {
+    bool decodeBool(const std::string& s) {
+      bool b = false;
+      try {
+        auto data = (const uint8_t*)s.data(); //NOLINT
+        CborDecodeStream decoder(gsl::span<const uint8_t>(data, s.size()));
+        decoder >> b;
+      } catch (const std::exception& e) {
+        // XXX log
+      }
+      return b;
+    }
+
+    std::vector<CID> decodeCids(const std::string& s) {
+      std::vector<CID> cids;
+      try {
+        auto data = (const uint8_t*)s.data(); //NOLINT
+        CborDecodeStream decoder(gsl::span<const uint8_t>(data, s.size()));
+        decoder >> cids;
+      } catch (const std::exception& e) {
+        // XXX log
+      }
+      return cids;
+    }
+
+    outcome::result<CID> decodeCid(const std::string& s) {
+      CID cid;
+      try {
+        auto data = (const uint8_t*)s.data(); //NOLINT
+        CborDecodeStream decoder(gsl::span<const uint8_t>(data, s.size()));
+        decoder >> cid;
+      } catch (const std::exception& e) {
+        // XXX log
         return Error::MESSAGE_PARSE_ERROR;
       }
-      if (prefix.size() >= 2 && prefix[0] == 0x12 && prefix[1] == 0x20) {
-        // CIDv0
-        return libp2p::multi::ContentIdentifierCodec::encodeCIDV0(data.data(),
-                                                                  data.size());
+      return cid;
+    }
+
+    outcome::result<ResponseMetadata> decodeMetadata(const std::string& s) {
+      static const std::string link(kLink);
+      static const std::string blockPresent(kBlockPresent);
+
+      ResponseMetadata pairs;
+
+      if (s.empty()) {
+        return pairs;
       }
-      if (prefix[0] == 1) {
-        // CIDv1
 
-        // TODO(FIL-96): hash types other than sha256
+      try {
+        auto data = (const uint8_t*)s.data(); //NOLINT
+        CborDecodeStream decoder(gsl::span<const uint8_t>(data, s.size()));
+        decoder = decoder.list();
+        size_t n = decoder.listLength();
+        pairs.reserve(n);
 
-        // XXX
+        for (size_t i=0; i<n; ++i) {
+          auto m = decoder.map();
+          auto link_p = m.find(link);
+          auto present_p = m.find(blockPresent);
+          if (link_p == m.end() || present_p == m.end()) {
+            // XXX log
+            return Error::MESSAGE_PARSE_ERROR;
+          }
+          CID cid;
+          link_p->second >> cid;
+          bool present = false;
+          present_p->second >> present;
 
+          pairs.push_back( { std::move(cid), present } );
+        }
+      } catch (const std::exception& e) {
+        // XXX log
+        return Error::MESSAGE_PARSE_ERROR;
       }
-      return Error::MESSAGE_PARSE_ERROR;
 
+      return pairs;
     }
 
   }  // namespace
 
-  libp2p::outcome::result<Message> parseMessage(
+  outcome::result<Message> parseMessage(
       gsl::span<const uint8_t> bytes) {
     pb::Message pb_msg;
     if (!pb_msg.ParseFromArray(bytes.data(), bytes.size())) {
@@ -92,40 +148,73 @@ namespace fc::storage::ipfs::graphsync {
       msg.requests.reserve(sz);
       for (auto &src : pb_msg.requests()) {
         auto &dst =
-            msg.requests.emplace_back(std::make_shared<Message::Request>());
-        dst->id = src.id();
-        dst->root_cid = fromString(src.root());
-        dst->selector = src.selector();
-        // TODO(FIL-96): src.extensions; src.priority;
-        dst->cancel = src.cancel();
+            msg.requests.emplace_back(Message::Request());
+        dst.id = src.id();
+        if (src.cancel()) {
+          dst.cancel = true;
+        } else {
+          dst.root_cid = fromString(src.root());
+          dst.selector = fromString(src.selector());
+          dst.priority = src.priority();
+
+          for (const auto& [k, v] : src.extensions()) {
+            if (k == kResponseMetadata) {
+              dst.send_metadata = decodeBool(v);
+              continue;
+            }
+
+            if (k == kDontSendCids) {
+              dst.do_not_send = decodeCids(v);
+              continue;
+            }
+            // XXX log unknown extension
+
+          }
+        }
       }
     }
 
     sz = pb_msg.responses_size();
     if (sz > 0) {
       msg.responses.reserve(sz);
+
       for (auto &src : pb_msg.responses()) {
         auto &dst =
-            msg.responses.emplace_back(std::make_shared<Message::Response>());
-        dst->id = src.id();
+            msg.responses.emplace_back(Message::Response());
+        dst.id = src.id();
         auto res = extractStatusCode(src.status());
         if (!res) {
           return libp2p::outcome::failure(res.error());
         }
-        dst->status = res.value();
+        dst.status = res.value();
 
-        // TODO(FIL-96): src.metadata;
+        for (const auto& [k,v] : src.extensions()) {
+          if (k == kResponseMetadata) {
+            auto meta_res = decodeMetadata(v);
+
+            if (meta_res) {
+              dst.metadata = std::move(meta_res.value());
+            } else {
+              // XXX log
+            }
+            continue;
+          }
+          // XXX log unknown extension
+
+        }
       }
     }
 
     sz = pb_msg.data_size();
     if (sz > 0) {
+      msg.data.reserve(sz);
+
       for (auto &src : pb_msg.data()) {
-        auto res = extractCID(src.prefix(), src.data());
+        auto res = decodeCid(src.prefix());
         if (!res) {
-          return libp2p::outcome::failure(res.error());
+          return outcome::failure(res.error());
         }
-        msg.data[std::move(res.value())] = fromString(src.data());
+        msg.data.push_back( {std::move(res.value()), fromString(src.data()) } );
       }
     }
 

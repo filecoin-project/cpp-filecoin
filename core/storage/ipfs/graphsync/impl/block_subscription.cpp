@@ -21,7 +21,7 @@ namespace fc::storage::ipfs::graphsync {
     return Subscription(1, weak_from_this());
   }
 
-  void BlockSubscription::forward(common::Buffer cid, common::Buffer data) {
+  void BlockSubscription::forward(CID cid, common::Buffer data) {
     assert(cb_);
 
     cb_(std::move(cid), std::move(data));

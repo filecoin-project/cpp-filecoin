@@ -19,7 +19,7 @@ namespace fc::storage::ipfs::graphsync {
 
     libp2p::protocol::Subscription start(Graphsync::BlockCallback cb);
 
-    void forward(common::Buffer cid, common::Buffer data);
+    void forward(CID cid, common::Buffer data);
 
    private:
     void unsubscribe(uint64_t) override;

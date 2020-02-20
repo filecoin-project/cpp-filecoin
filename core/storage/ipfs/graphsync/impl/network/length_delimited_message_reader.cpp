@@ -120,7 +120,7 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
     reading_ = false;
-    if (!stream_->isClosedForRead()) {
+    if (!stream_->isClosedForRead() && stream_.use_count() == 1) {
       stream_->close([stream{stream_}](outcome::result<void>) {});
     }
     stream_.reset();
