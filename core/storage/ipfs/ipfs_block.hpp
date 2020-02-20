@@ -16,13 +16,11 @@ namespace fc::storage::ipfs {
   /**
    * @interface Piece of data, which is used with BlockService
    */
-  struct Block {
-    using Content = common::Buffer; /**< Alias for content type */
-
+  struct IpfsBlock {
     /**
      * @brief Default destructor
      */
-    virtual ~Block() = default;
+    virtual ~IpfsBlock() = default;
 
     /**
      * @brief Get content identifier
@@ -34,7 +32,7 @@ namespace fc::storage::ipfs {
      * @brief Get block content
      * @return Block's raw data for store in the BlockService
      */
-    virtual const Content &getRawBytes() const = 0;
+    virtual const common::Buffer &getRawBytes() const = 0;
   };
 }  // namespace fc::storage::ipfs
 

@@ -8,7 +8,7 @@
 
 #include <memory>
 
-#include "storage/ipfs/blockservice.hpp"
+#include "storage/ipfs/datastore.hpp"
 #include "storage/ipfs/merkledag/impl/leaf_impl.hpp"
 #include "storage/ipfs/merkledag/merkledag_service.hpp"
 
@@ -19,7 +19,7 @@ namespace fc::storage::ipfs::merkledag {
      * @brief Construct service
      * @param service - underlying block service
      */
-    explicit MerkleDagServiceImpl(std::shared_ptr<BlockService> service);
+    explicit MerkleDagServiceImpl(std::shared_ptr<IpfsDatastore> service);
 
     outcome::result<void> addNode(std::shared_ptr<const Node> node) override;
 
@@ -41,7 +41,7 @@ namespace fc::storage::ipfs::merkledag {
         const CID &cid, uint64_t depth) const override;
 
    private:
-    std::shared_ptr<BlockService> block_service_;
+    std::shared_ptr<IpfsDatastore> block_service_;
 
     /**
      * @brief Fetch graph internal recursive implementation
