@@ -16,6 +16,7 @@
 namespace fc::vm::actor::builtin::miner {
   using libp2p::multi::UVarint;
   using primitives::BigInt;
+  using primitives::ChainEpoch;
   using primitives::RleBitset;
   using primitives::address::Address;
   using proofs::Proof;

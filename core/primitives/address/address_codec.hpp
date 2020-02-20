@@ -53,11 +53,8 @@ namespace fc::primitives::address {
   CBOR_DECODE(Address, address) {
     std::vector<uint8_t> data{};
     s >> data;
-    auto res = decode(data);
-    if (res.has_error()) {
-      outcome::raise(AddressError::INVALID_PAYLOAD);
-    }
-    address = std::move(res.value());
+    OUTCOME_EXCEPT(decoded, decode(data));
+    address = std::move(decoded);
     return s;
   }
 
