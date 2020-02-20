@@ -13,7 +13,7 @@ namespace fc::primitives::chain_epoch {
 
   std::string encodeToByteString(const ChainEpoch &epoch) {
     // TODO (a.chernyshov) actor-specs uses Protobuf Varint encoding
-    UVarint number(epoch.convert_to<int64_t>());
+    UVarint number(epoch);
     auto encoded = number.toBytes();
     return std::string(encoded.begin(), encoded.end());
   }

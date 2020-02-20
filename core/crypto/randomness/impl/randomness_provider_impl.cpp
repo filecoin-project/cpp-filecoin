@@ -21,7 +21,7 @@ namespace fc::crypto::randomness {
                                                       Serialization s,
                                                       const ChainEpoch &index) {
     return deriveRandomnessInternal(
-        static_cast<uint64_t>(tag), std::move(s), index.convert_to<int64_t>());
+        static_cast<uint64_t>(tag), std::move(s), index);
   }
 
   Randomness RandomnessProviderImpl::deriveRandomnessInternal(uint64_t tag,

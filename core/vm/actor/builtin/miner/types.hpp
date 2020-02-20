@@ -30,24 +30,24 @@ namespace fc::vm::actor::builtin::miner {
   struct SectorPreCommitInfo {
     uint64_t sector;
     CID sealed_cid;
-    uint64_t seal_epoch;
+    ChainEpoch seal_epoch;
     std::vector<uint64_t> deal_ids;
-    uint64_t expiration;
+    ChainEpoch expiration;
   };
 
   struct SectorPreCommitOnChainInfo {
     SectorPreCommitInfo info;
     BigInt precommit_deposit;
-    uint64_t precommit_epoch;
+    ChainEpoch precommit_epoch;
   };
 
   struct SectorOnChainInfo {
     SectorPreCommitInfo info;
-    uint64_t activation_epoch;
+    ChainEpoch activation_epoch;
     BigInt deal_weight;
     BigInt pledge_requirement;
-    uint64_t declared_fault_epoch;
-    uint64_t declared_fault_duration;
+    ChainEpoch declared_fault_epoch;
+    ChainEpoch declared_fault_duration;
   };
 
   struct WorkerKeyChange {

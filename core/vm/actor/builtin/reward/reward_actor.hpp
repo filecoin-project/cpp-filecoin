@@ -38,21 +38,8 @@ namespace fc::vm::actor::builtin::reward {
         const primitives::ChainEpoch &current_epoch);
   };
 
-  CBOR_ENCODE(Reward, reward) {
-    return s << (s.list() << reward.vesting_function
-                          << reward.start_epoch.convert_to<uint64_t>()
-                          << reward.end_epoch.convert_to<uint64_t>()
-                          << reward.value << reward.amount_withdrawn);
-  }
-
-  CBOR_DECODE(Reward, reward) {
-    uint64_t start_epoch, end_epoch;
-    s.list() >> reward.vesting_function >> start_epoch >> end_epoch
-        >> reward.value >> reward.amount_withdrawn;
-    reward.start_epoch = start_epoch;
-    reward.end_epoch = end_epoch;
-    return s;
-  }
+  CBOR_TUPLE(
+      Reward, vesting_function, start_epoch, end_epoch, value, amount_withdrawn)
 
   struct State {
     TokenAmount reward_total;
