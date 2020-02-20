@@ -57,30 +57,20 @@ namespace fc::primitives::block {
            && lhs.fork_signaling == rhs.fork_signaling;
   }
 
-  CBOR_ENCODE(BlockHeader, block) {
-    return s << (s.list() << block.miner << block.ticket << block.epost_proof
-                          << block.parents << block.parent_weight
-                          << block.height << block.parent_state_root
-                          << block.parent_message_receipts << block.messages
-                          << block.bls_aggregate << block.timestamp
-                          << block.block_sig << block.fork_signaling);
-  }
+  CBOR_TUPLE(BlockHeader,
+             miner,
+             ticket,
+             epost_proof,
+             parents,
+             parent_weight,
+             height,
+             parent_state_root,
+             parent_message_receipts,
+             messages,
+             bls_aggregate,
+             timestamp,
+             block_sig,
+             fork_signaling)
 
-  CBOR_DECODE(BlockHeader, block) {
-    s.list() >> block.miner >> block.ticket >> block.epost_proof
-        >> block.parents >> block.parent_weight >> block.height
-        >> block.parent_state_root >> block.parent_message_receipts
-        >> block.messages >> block.bls_aggregate >> block.timestamp
-        >> block.block_sig >> block.fork_signaling;
-    return s;
-  }
-
-  CBOR_ENCODE(MsgMeta, meta) {
-    return s << (s.list() << meta.bls_messages << meta.secpk_messages);
-  }
-
-  CBOR_DECODE(MsgMeta, meta) {
-    s.list() >> meta.bls_messages >> meta.secpk_messages;
-    return s;
-  }
+  CBOR_TUPLE(MsgMeta, bls_messages, secpk_messages)
 }  // namespace fc::primitives::block

@@ -23,17 +23,7 @@ namespace fc::primitives::ticket {
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::ticket, EPoSTTicketCodecError)
 
 namespace fc::primitives::ticket {
-  /**
-   * @brief cbor-encode EPostTicket instance
-   * @tparam Stream cbor-encoder stream type
-   * @param s stream reference
-   * @param ticket Ticket const reference to encode
-   * @return stream reference
-   */
-  CBOR_ENCODE(EPostTicket, ticket) {
-    return s << (s.list() << ticket.partial << ticket.sector_id
-                          << ticket.challenge_index);
-  }
+  CBOR_ENCODE_TUPLE(EPostTicket, partial, sector_id, challenge_index)
 
   /**
    * @brief cbor-decode EPostTicket instance
@@ -52,16 +42,7 @@ namespace fc::primitives::ticket {
     return s;
   }
 
-  /**
-   * @brief cbor-encodes EPostProof instance
-   * @tparam Stream cbor-encoder stream type
-   * @param s stream reference
-   * @param epp EPostProof const reference to encode
-   * @return stream reference
-   */
-  CBOR_ENCODE(EPostProof, epp) {
-    return s << (s.list() << epp.proof << epp.post_rand << epp.candidates);
-  }
+  CBOR_ENCODE_TUPLE(EPostProof, proof, post_rand, candidates)
 
   /**
    * @brief cbor-decodes EPostProof instance

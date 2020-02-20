@@ -51,36 +51,9 @@ namespace fc::vm::actor::builtin::payment_channel {
         const Actor &actor, Runtime &runtime, const MethodParams &params);
   };
 
-  /**
-   * CBOR serialization of ConstructParameteres
-   */
-  CBOR_ENCODE(ConstructParameteres, construct_params) {
-    return s << (s.list() << construct_params.to);
-  }
+  CBOR_TUPLE(ConstructParameteres, to)
 
-  /**
-   * CBOR deserialization of ConstructParameteres
-   */
-  CBOR_DECODE(ConstructParameteres, construct_params) {
-    s.list() >> construct_params.to;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of UpdateChannelStateParameters
-   */
-  CBOR_ENCODE(UpdateChannelStateParameters, params) {
-    return s << (s.list() << params.signed_voucher << params.secret
-                          << params.proof);
-  }
-
-  /**
-   * CBOR deserialization of UpdateChannelStateParameters
-   */
-  CBOR_DECODE(UpdateChannelStateParameters, params) {
-    s.list() >> params.signed_voucher >> params.secret >> params.proof;
-    return s;
-  }
+  CBOR_TUPLE(UpdateChannelStateParameters, signed_voucher, secret, proof)
 
 }  // namespace fc::vm::actor::builtin::payment_channel
 

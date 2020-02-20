@@ -99,15 +99,7 @@ namespace fc::vm::actor {
 
   bool operator==(const Actor &lhs, const Actor &rhs);
 
-  CBOR_ENCODE(Actor, actor) {
-    return s << (s.list() << actor.code << actor.head << actor.nonce
-                          << actor.balance);
-  }
-
-  CBOR_DECODE(Actor, actor) {
-    s.list() >> actor.code >> actor.head >> actor.nonce >> actor.balance;
-    return s;
-  }
+  CBOR_TUPLE(Actor, code, head, nonce, balance)
 
   /** Check if code specifies builtin actor implementation */
   bool isBuiltinActor(const CodeId &code);

@@ -44,15 +44,7 @@ namespace fc::vm::runtime {
     BigInt gas_used;
   };
 
-  CBOR_ENCODE(MessageReceipt, receipt) {
-    return s << (s.list() << receipt.exit_code << receipt.return_value
-                          << receipt.gas_used);
-  }
-
-  CBOR_DECODE(MessageReceipt, receipt) {
-    return s << (s.list() << receipt.exit_code << receipt.return_value
-                          << receipt.gas_used);
-  }
+  CBOR_TUPLE(MessageReceipt, exit_code, return_value, gas_used)
 }  // namespace fc::vm::runtime
 
 #endif  // CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_TYPES_HPP

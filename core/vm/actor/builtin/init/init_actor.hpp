@@ -24,14 +24,7 @@ namespace fc::vm::actor::builtin::init {
     uint64_t next_id{};
   };
 
-  CBOR_ENCODE(InitActorState, state) {
-    return s << (s.list() << state.address_map << state.next_id);
-  }
-
-  CBOR_DECODE(InitActorState, state) {
-    s.list() >> state.address_map >> state.next_id;
-    return s;
-  }
+  CBOR_TUPLE(InitActorState, address_map, next_id)
 
   constexpr MethodNumber kExecMethodNumber{2};
 
@@ -46,14 +39,7 @@ namespace fc::vm::actor::builtin::init {
 
   extern const ActorExports exports;
 
-  CBOR_ENCODE(ExecParams, params) {
-    return s << (s.list() << params.code << params.params);
-  }
-
-  CBOR_DECODE(ExecParams, params) {
-    s.list() >> params.code >> params.params;
-    return s;
-  }
+  CBOR_TUPLE(ExecParams, code, params)
 }  // namespace fc::vm::actor::builtin::init
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP

@@ -35,14 +35,7 @@ namespace fc::vm::actor::builtin::account {
         const std::shared_ptr<StateTree> &state_tree, const Address &address);
   };
 
-  CBOR_ENCODE(AccountActorState, state) {
-    return s << (s.list() << state.address);
-  }
-
-  CBOR_DECODE(AccountActorState, state) {
-    s.list() >> state.address;
-    return s;
-  }
+  CBOR_TUPLE(AccountActorState, address)
 
 }  // namespace fc::vm::actor::builtin::account
 

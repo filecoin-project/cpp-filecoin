@@ -123,14 +123,7 @@ namespace fc::storage::amt {
     Node node;
   };
 
-  CBOR_ENCODE(Root, root) {
-    return s << (s.list() << root.height << root.count << root.node);
-  }
-
-  CBOR_DECODE(Root, root) {
-    s.list() >> root.height >> root.count >> root.node;
-    return s;
-  }
+  CBOR_TUPLE(Root, height, count, node)
 
   class Amt {
    public:

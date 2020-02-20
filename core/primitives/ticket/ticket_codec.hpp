@@ -14,8 +14,8 @@
 #include "primitives/ticket/ticket.hpp"
 
 namespace fc::primitives::ticket {
-  enum class TicketCodecError: int {
-    INVALID_TICKET_LENGTH = 1, // ticket decode error, invalid data length
+  enum class TicketCodecError : int {
+    INVALID_TICKET_LENGTH = 1,  // ticket decode error, invalid data length
   };
 }  // namespace fc::primitives::ticket
 
@@ -29,9 +29,7 @@ namespace fc::primitives::ticket {
    * @param ticket Ticket const reference to encode
    * @return stream reference
    */
-  CBOR_ENCODE(Ticket, ticket) {
-    return s << (s.list() << ticket.bytes);
-  }
+  CBOR_ENCODE_TUPLE(Ticket, bytes)
 
   /**
    * @brief cbor-decodes Ticket instance
@@ -52,4 +50,4 @@ namespace fc::primitives::ticket {
 
 }  // namespace fc::primitives::ticket
 
-#endif  //CPP_FILECOIN_CORE_PRIMITIVES_TICKET_TICKET_CODEC_HPP
+#endif  // CPP_FILECOIN_CORE_PRIMITIVES_TICKET_TICKET_CODEC_HPP

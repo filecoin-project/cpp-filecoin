@@ -13,27 +13,17 @@
 #include "vm/message/message.hpp"
 
 namespace fc::vm::message {
+  CBOR_TUPLE(UnsignedMessage,
+             to,
+             from,
+             nonce,
+             value,
+             gasPrice,
+             gasLimit,
+             method,
+             params)
 
-  CBOR_ENCODE(UnsignedMessage, m) {
-    return s << (s.list() << m.to << m.from << m.nonce << m.value << m.gasPrice
-                          << m.gasLimit << m.method << m.params);
-  }
-
-  CBOR_DECODE(UnsignedMessage, m) {
-    s.list() >> m.to >> m.from >> m.nonce >> m.value >> m.gasPrice >> m.gasLimit
-        >> m.method >> m.params;
-    return s;
-  }
-
-  CBOR_ENCODE(SignedMessage, sm) {
-    return s << (s.list() << sm.message << sm.signature);
-  }
-
-  CBOR_DECODE(SignedMessage, sm) {
-    s.list() >> sm.message >> sm.signature;
-    return s;
-  }
-
+  CBOR_TUPLE(SignedMessage, message, signature)
 };  // namespace fc::vm::message
 
 #endif  // CPP_FILECOIN_CORE_VM_MESSAGE_CODEC_HPP

@@ -69,88 +69,30 @@ namespace fc::vm::actor::builtin::payment_channel {
     Signature signature;
   };
 
-  /**
-   * CBOR serialization of LaneState
-   */
-  CBOR_ENCODE(LaneState, state) {
-    return s << (s.list() << state.state << state.redeem << state.nonce);
-  }
+  CBOR_TUPLE(LaneState, state, redeem, nonce)
 
-  /**
-   * CBOR deserialization of LaneState
-   */
-  CBOR_DECODE(LaneState, state) {
-    s.list() >> state.state >> state.redeem >> state.nonce;
-    return s;
-  }
+  CBOR_TUPLE(PaymentChannelActorState,
+             from,
+             to,
+             to_send,
+             settling_at,
+             min_settling_height,
+             lanes)
 
-  /**
-   * CBOR serialization of PaymentChannelActorState
-   */
-  CBOR_ENCODE(PaymentChannelActorState, state) {
-    return s << (s.list() << state.from << state.to << state.to_send
-                          << state.settling_at << state.min_settling_height
-                          << state.lanes);
-  }
+  CBOR_TUPLE(ModularVerificationParameter, actor, method, data)
 
-  /**
-   * CBOR deserialization of PaymentChannelActorState
-   */
-  CBOR_DECODE(PaymentChannelActorState, state) {
-    s.list() >> state.from >> state.to >> state.to_send >> state.settling_at
-        >> state.min_settling_height >> state.lanes;
-    return s;
-  }
+  CBOR_TUPLE(Merge, lane, nonce)
 
-  /**
-   * CBOR serialization of ModularVerificationParameter
-   */
-  CBOR_ENCODE(ModularVerificationParameter, param) {
-    return s << (s.list() << param.actor << param.method << param.data);
-  }
-
-  /**
-   * CBOR deserialization of ModularVerificationParameter
-   */
-  CBOR_DECODE(ModularVerificationParameter, param) {
-    s.list() >> param.actor >> param.method >> param.data;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of Merge
-   */
-  CBOR_ENCODE(Merge, merge) {
-    return s << (s.list() << merge.lane << merge.nonce);
-  }
-
-  /**
-   * CBOR deserialization of Merge
-   */
-  CBOR_DECODE(Merge, merge) {
-    s.list() >> merge.lane >> merge.nonce;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of SignedVoucher
-   */
-  CBOR_ENCODE(SignedVoucher, voucher) {
-    return s << (s.list() << voucher.time_lock << voucher.secret_preimage
-                          << voucher.extra << voucher.lane << voucher.nonce
-                          << voucher.amount << voucher.min_close_height
-                          << voucher.merges << voucher.signature);
-  }
-
-  /**
-   * CBOR deserialization of SignedVoucher
-   */
-  CBOR_DECODE(SignedVoucher, voucher) {
-    s.list() >> voucher.time_lock >> voucher.secret_preimage >> voucher.extra
-        >> voucher.lane >> voucher.nonce >> voucher.amount
-        >> voucher.min_close_height >> voucher.merges >> voucher.signature;
-    return s;
-  }
+  CBOR_TUPLE(SignedVoucher,
+             time_lock,
+             secret_preimage,
+             extra,
+             lane,
+             nonce,
+             amount,
+             min_close_height,
+             merges,
+             signature)
 
 }  // namespace fc::vm::actor::builtin::payment_channel
 #endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
