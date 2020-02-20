@@ -13,6 +13,8 @@
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor {
+
+  using common::Buffer;
   using runtime::InvocationOutput;
   using runtime::Runtime;
 
@@ -54,6 +56,19 @@ namespace fc::vm::actor {
     }
     return MethodParams{maybe_bytes.value()};
   }
+
+  template <typename T>
+  outcome::result<T> decodeActorReturn(const InvocationOutput &result) {
+    OUTCOME_TRY(decoded, codec::cbor::decode<T>(result.return_value.toVector()));
+    return decoded;
+  }
+
+  template <typename T>
+  outcome::result<InvocationOutput> encodeActorReturn(const T &result) {
+    OUTCOME_TRY(encoded, codec::cbor::encode(result));
+    return InvocationOutput{Buffer{encoded}};
+  }
+
 }  // namespace fc::vm::actor
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_METHOD_HPP

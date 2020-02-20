@@ -17,10 +17,22 @@ namespace fc::vm::actor::builtin::miner {
   constexpr MethodNumber kGetControlAddresses{2};
   constexpr MethodNumber kSubmitElectionPoStMethodNumber{20};
 
+  /**
+   * Construct method parameters
+   */
+  struct ConstructParameters {
+    Address owner;
+    Address worker;
+    uint64_t sector_size;
+    PeerId peer_id;
+  };
+
   struct GetControlAddressesReturn {
     Address owner;
     Address worker;
   };
+
+  CBOR_TUPLE(ConstructParameters, owner, worker, sector_size, peer_id);
 
   CBOR_TUPLE(GetControlAddressesReturn, owner, worker);
 

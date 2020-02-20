@@ -16,14 +16,17 @@
 
 namespace InitActor = fc::vm::actor::builtin::init;
 
+using fc::common::Buffer;
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
 using fc::vm::VMExitCode;
 using fc::vm::actor::CodeId;
+using fc::vm::actor::encodeActorReturn;
 using fc::vm::actor::InvocationOutput;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
+using fc::vm::actor::builtin::init::ExecReturn;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MockRuntime;
 using InitActor::InitActorState;
@@ -136,9 +139,13 @@ TEST(InitActorExecText, ExecSuccess) {
         return fc::outcome::success();
       }));
 
+  Address actor_address{Address::makeActorExec(
+      Buffer{fc::primitives::address::encode(message.from)}.putUint64(
+          message.nonce))};
+  ExecReturn exec_return{id_address, actor_address};
+  EXPECT_OUTCOME_TRUE(result, encodeActorReturn(exec_return));
   EXPECT_OUTCOME_EQ(InitActor::exec({}, runtime, execParams(code, params)),
-                    InvocationOutput{fc::common::Buffer{
-                        fc::primitives::address::encode(id_address)}});
+                    result);
 
   EXPECT_OUTCOME_TRUE(address,
                       fc::primitives::address::decode(

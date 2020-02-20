@@ -50,7 +50,9 @@ namespace fc::vm::actor::builtin::init {
                              message.value));
     OUTCOME_TRY(new_state, store->setCbor(init_actor));
     OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_state}));
-    return InvocationOutput{Buffer{primitives::address::encode(id_address)}};
+    ExecReturn exec_return{id_address, actor_address};
+    OUTCOME_TRY(output, encodeActorReturn(exec_return));
+    return output;
   }
 
   const ActorExports exports{{kExecMethodNumber, ActorMethod(exec)}};

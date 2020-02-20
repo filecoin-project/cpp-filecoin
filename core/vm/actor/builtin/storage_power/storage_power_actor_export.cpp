@@ -5,8 +5,11 @@
 
 #include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 
+#include "vm/actor/builtin/init/init_actor.hpp"
+#include "vm/actor/builtin/miner/miner_actor.hpp"
 #include "vm/actor/builtin/shared/shared.hpp"
 
+using fc::primitives::address::decode;
 using fc::vm::actor::ActorExports;
 using fc::vm::actor::kConstructorMethodNumber;
 using fc::vm::actor::builtin::requestMinerControlAddress;
@@ -110,10 +113,58 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::withdrawBalance(
   return fc::outcome::success();
 }
 
+fc::outcome::result<InvocationOutput> StoragePowerActorMethods::createMiner(
+    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  if (!isSignableActor((actor.code)))
+    return VMExitCode::STORAGE_POWER_FORBIDDEN;
+
+  OUTCOME_TRY(create_miner_params,
+              decodeActorParams<CreateMinerParameters>(params));
+
+  auto message = runtime.getMessage().get();
+  miner::ConstructParameters construct_miner_parameters{
+      message.from,
+      create_miner_params.worker,
+      create_miner_params.sector_size,
+      create_miner_params.peer_id};
+  OUTCOME_TRY(encoded_construct_miner_parameters,
+              encodeActorParams(construct_miner_parameters));
+  init::ExecParams exec_parameters{kStorageMinerCodeCid,
+                                   encoded_construct_miner_parameters};
+  OUTCOME_TRY(encoded_exec_parameters, encodeActorParams(exec_parameters));
+  OUTCOME_TRY(encoded_addresses_created,
+              runtime.send(kInitAddress,
+                           init::kExecMethodNumber,
+                           encoded_exec_parameters,
+                           TokenAmount{0}));
+  OUTCOME_TRY(addresses_created,
+              decodeActorReturn<init::ExecReturn>(encoded_addresses_created));
+
+  auto datastore = runtime.getIpfsDatastore();
+  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
+  StoragePowerActor power_actor(datastore, state);
+  OUTCOME_TRY(power_actor.addMiner(addresses_created.id_address));
+  OUTCOME_TRY(
+      power_actor.setMinerBalance(addresses_created.id_address, message.value));
+
+  CreateMinerReturn result{addresses_created.id_address,
+                           addresses_created.robust_address};
+  OUTCOME_TRY(output, encodeActorReturn(result));
+
+  // commit state
+  OUTCOME_TRY(power_actor_state, power_actor.flushState());
+  OUTCOME_TRY(state_cid, datastore->setCbor(power_actor_state));
+  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
+
+  return std::move(output);
+}
+
 const ActorExports fc::vm::actor::builtin::storage_power::exports = {
     {kConstructorMethodNumber,
      ActorMethod(StoragePowerActorMethods::construct)},
     {kAddBalanceMethodNumber,
      ActorMethod(StoragePowerActorMethods::addBalance)},
     {kWithdrawBalanceMethodNumber,
-     ActorMethod(StoragePowerActorMethods::withdrawBalance)}};
+     ActorMethod(StoragePowerActorMethods::withdrawBalance)},
+    {kCreateMinerMethodNumber,
+     ActorMethod(StoragePowerActorMethods::createMiner)}};

@@ -77,6 +77,8 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(escrow_table_->set(miner_addr, TokenAmount{0}));
     OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner_addr), Claim{0, 0}));
 
+    state_.miner_count++;
+
     return outcome::success();
   }
 
@@ -98,6 +100,8 @@ namespace fc::vm::actor::builtin::storage_power {
     if (contains) {
       OUTCOME_TRY(po_st_detected_fault_miners_->remove(encoded_miner_addr));
     }
+
+    state_.miner_count--;
 
     return outcome::success();
   }

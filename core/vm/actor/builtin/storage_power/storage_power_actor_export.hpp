@@ -18,6 +18,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
   using runtime::InvocationOutput;
   using runtime::Runtime;
+  using PeerId = std::string;
 
   constexpr MethodNumber kAddBalanceMethodNumber{2};
   constexpr MethodNumber kWithdrawBalanceMethodNumber{3};
@@ -34,18 +35,6 @@ namespace fc::vm::actor::builtin::storage_power {
   constexpr MethodNumber kReportConsensusFaultMethodNumber{14};
   constexpr MethodNumber kOnEpochTickEndMethodNumber{15};
 
-  /**
-   * Construct method parameters
-   * Storage miner actor constructor params are defined here so the power actor
-   * can send them to the init actor to instantiate miners
-   */
-  struct ConstructParameters {
-    Address owner;
-    Address worker;
-    uint64_t sector_size;
-    std::string peer_id;
-  };
-
   struct AddBalanceParameters {
     Address miner;
   };
@@ -53,6 +42,18 @@ namespace fc::vm::actor::builtin::storage_power {
   struct WithdrawBalanceParameters {
     Address miner;
     TokenAmount requested;
+  };
+
+  struct CreateMinerParameters {
+    Address worker;  // must be an ID-address
+    uint64_t sector_size;
+    PeerId peer_id;
+  };
+
+  struct CreateMinerReturn {
+    Address id_address;      // The canonical ID-based address for the actor
+    Address robust_address;  // A mre expensive but re-org-safe address for the
+                             // newly created actor
   };
 
   class StoragePowerActorMethods {
@@ -65,16 +66,21 @@ namespace fc::vm::actor::builtin::storage_power {
 
     static outcome::result<InvocationOutput> withdrawBalance(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
+
+    static outcome::result<InvocationOutput> createMiner(
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
   };
 
   /** Exported StoragePowerActor methods to invoker */
   extern const ActorExports exports;
 
-  CBOR_TUPLE(ConstructParameters, owner, worker, sector_size, peer_id);
-
   CBOR_TUPLE(AddBalanceParameters, miner);
 
   CBOR_TUPLE(WithdrawBalanceParameters, miner, requested);
+
+  CBOR_TUPLE(CreateMinerParameters, worker, sector_size, peer_id);
+
+  CBOR_TUPLE(CreateMinerReturn, id_address, robust_address);
 
 }  // namespace fc::vm::actor::builtin::storage_power
 
