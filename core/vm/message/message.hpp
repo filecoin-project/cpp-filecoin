@@ -57,6 +57,8 @@ namespace fc::vm::message {
      * @brief Message not equality operator
      */
     bool operator!=(const UnsignedMessage &other) const;
+
+    BigInt requiredFunds() const;
   };
 
   /**

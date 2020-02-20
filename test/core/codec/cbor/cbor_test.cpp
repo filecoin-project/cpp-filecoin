@@ -46,6 +46,13 @@ TEST(Cbor, EncodeDecode) {
   EXPECT_OUTCOME_ERROR(CborDecodeError::WRONG_TYPE, decode<int>("80"_unhex));
 }
 
+/// Decode blob
+TEST(Cbor, DecodeBlob) {
+  using Blob3 = fc::common::Blob<3>;
+  EXPECT_OUTCOME_ERROR(CborDecodeError::WRONG_SIZE, decode<Blob3>("42CAFE"_unhex));
+  EXPECT_OUTCOME_EQ(decode<Blob3>("43CAFEDE"_unhex), Blob3::fromHex("CAFEDE").value());
+}
+
 /** BigInt CBOR encoding and decoding */
 TEST(Cbor, BigInt) {
   using fc::primitives::BigInt;

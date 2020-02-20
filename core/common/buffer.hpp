@@ -11,6 +11,8 @@
 #include <gsl/span>
 #include <string_view>
 #include <vector>
+
+#include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
 
 namespace fc::common {
@@ -223,9 +225,7 @@ namespace fc::common {
    * @param buffer value to encode
    * @return reference to stream
    */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &s, const Buffer &buffer) {
+  CBOR_ENCODE(Buffer, buffer) {
     return s << buffer.toVector();
   }
 
@@ -236,9 +236,7 @@ namespace fc::common {
    * @param buffer value to decode
    * @return reference to stream
    */
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &s, Buffer &buffer) {
+  CBOR_DECODE(Buffer, buffer) {
     std::vector<uint8_t> data;
     s >> data;
     buffer.put(data);

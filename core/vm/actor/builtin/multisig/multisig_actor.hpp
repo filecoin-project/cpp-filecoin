@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_MULTISIG_ACTOR_HPP
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_MULTISIG_ACTOR_HPP
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
@@ -218,208 +219,36 @@ namespace fc::vm::actor::builtin::multisig {
   /** Exported Multisig Actor methods to invoker */
   extern const ActorExports exports;
 
-  /**
-   * CBOR serialization of MultiSignatureTransaction
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const MultiSignatureTransaction &transaction) {
-    return s << (s.list() << transaction.transaction_number << transaction.to
-                          << transaction.value << transaction.method
-                          << transaction.params << transaction.approved);
-  }
+  CBOR_TUPLE(MultiSignatureTransaction,
+             transaction_number,
+             to,
+             value,
+             method,
+             params,
+             approved)
 
-  /**
-   * CBOR deserialization of MultiSignatureTransaction
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, MultiSignatureTransaction &transaction) {
-    s.list() >> transaction.transaction_number >> transaction.to
-        >> transaction.value >> transaction.method >> transaction.params
-        >> transaction.approved;
-    return s;
-  }
+  CBOR_TUPLE(MultiSignatureActorState,
+             signers,
+             threshold,
+             next_transaction_id,
+             initial_balance,
+             start_epoch,
+             unlock_duration,
+             pending_transactions)
 
-  /**
-   * CBOR serialization of MultiSignatureActorState
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const MultiSignatureActorState &state) {
-    return s << (s.list() << state.signers << state.threshold
-                          << state.next_transaction_id << state.initial_balance
-                          << state.start_epoch << state.unlock_duration
-                          << state.pending_transactions);
-  }
+  CBOR_TUPLE(ConstructParameters, signers, threshold, unlock_duration)
 
-  /**
-   * CBOR deserialization of MultiSignatureActorState
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, MultiSignatureActorState &state) {
-    s.list() >> state.signers >> state.threshold >> state.next_transaction_id
-        >> state.initial_balance >> state.start_epoch >> state.unlock_duration
-        >> state.pending_transactions;
-    return s;
-  }
+  CBOR_TUPLE(ProposeParameters, to, value, method, params)
 
-  /**
-   * CBOR serialization of ConstructParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const ConstructParameters &construct_params) {
-    return s << (s.list() << construct_params.signers
-                          << construct_params.threshold
-                          << construct_params.unlock_duration);
-  }
+  CBOR_TUPLE(TransactionNumberParameters, transaction_number)
 
-  /**
-   * CBOR deserialization of ConstructParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, ConstructParameters &construct_params) {
-    s.list() >> construct_params.signers >> construct_params.threshold
-        >> construct_params.unlock_duration;
-    return s;
-  }
+  CBOR_TUPLE(AddSignerParameters, signer, increase_threshold)
 
-  /**
-   * CBOR serialization of ProposeParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const ProposeParameters &propose_params) {
-    return s << (s.list() << propose_params.to << propose_params.value
-                          << propose_params.method << propose_params.params);
-  }
+  CBOR_TUPLE(RemoveSignerParameters, signer, decrease_threshold)
 
-  /**
-   * CBOR deserialization of ProposeParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, ProposeParameters &propose_params) {
-    s.list() >> propose_params.to >> propose_params.value
-        >> propose_params.method >> propose_params.params;
-    return s;
-  }
+  CBOR_TUPLE(SwapSignerParameters, old_signer, new_signer)
 
-  /**
-   * CBOR serialization of TransactionNumberParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const TransactionNumberParameters &params) {
-    return s << (s.list() << params.transaction_number);
-  }
-
-  /**
-   * CBOR deserialization of TransactionNumberParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, TransactionNumberParameters &params) {
-    s.list() >> params.transaction_number;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of AddSignerParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const AddSignerParameters &params) {
-    return s << (s.list() << params.signer << params.increase_threshold);
-  }
-
-  /**
-   * CBOR deserialization of AddSignerParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, AddSignerParameters &params) {
-    s.list() >> params.signer >> params.increase_threshold;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of RemoveSignerParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const RemoveSignerParameters &params) {
-    return s << (s.list() << params.signer << params.decrease_threshold);
-  }
-
-  /**
-   * CBOR deserialization of RemoveSignerParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, RemoveSignerParameters &params) {
-    s.list() >> params.signer >> params.decrease_threshold;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of SwapSignerParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const SwapSignerParameters &params) {
-    return s << (s.list() << params.old_signer << params.new_signer);
-  }
-
-  /**
-   * CBOR deserialization of SwapSignerParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, SwapSignerParameters &params) {
-    s.list() >> params.old_signer >> params.new_signer;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of ChangeThresholdParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const ChangeThresholdParameters &params) {
-    return s << (s.list() << params.new_threshold);
-  }
-
-  /**
-   * CBOR deserialization of ChangeThresholdParameters
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, ChangeThresholdParameters &params) {
-    s.list() >> params.new_threshold;
-    return s;
-  }
+  CBOR_TUPLE(ChangeThresholdParameters, new_threshold)
 
 }  // namespace fc::vm::actor::builtin::multisig
 

@@ -21,7 +21,11 @@
 
 namespace fc::storage::hamt {
   enum class HamtError { EXPECTED_CID = 1, NOT_FOUND, MAX_DEPTH };
+}  // namespace fc::storage::hamt
 
+OUTCOME_HPP_DECLARE_ERROR(fc::storage::hamt, HamtError);
+
+namespace fc::storage::hamt {
   using boost::multiprecision::cpp_int;
   using Value = ipfs::IpfsDatastore::Value;
 
@@ -58,9 +62,7 @@ namespace fc::storage::hamt {
     std::map<size_t, Item> items;
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &s, const Node &node) {
+  CBOR_ENCODE(Node, node) {
     auto l_items = s.list();
     Bits bits;
     for (auto &item : node.items) {
@@ -84,9 +86,7 @@ namespace fc::storage::hamt {
     return s << (s.list() << bits << l_items);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<Stream::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &s, Node &node) {
+  CBOR_DECODE(Node, node) {
     node.items.clear();
     auto l_node = s.list();
     Bits bits;
@@ -196,7 +196,5 @@ namespace fc::storage::hamt {
     size_t bit_width_;
   };
 }  // namespace fc::storage::hamt
-
-OUTCOME_HPP_DECLARE_ERROR(fc::storage::hamt, HamtError);
 
 #endif  // CPP_FILECOIN_STORAGE_HAMT_HAMT_HPP

@@ -18,21 +18,12 @@ namespace fc::primitives::ticket {
     INVALID_PARTIAL_LENGTH = 1,  // invalid length of field partial
     INVALID_POST_RAND_LENGTH,    // invalid length of field post_rand
   };
+}  // namespace fc::primitives::ticket
 
-  /**
-   * @brief cbor-encode EPostTicket instance
-   * @tparam Stream cbor-encoder stream type
-   * @param s stream reference
-   * @param ticket Ticket const reference to encode
-   * @return stream reference
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const EPostTicket &ticket) {
-    return s << (s.list() << ticket.partial << ticket.sector_id
-                          << ticket.challenge_index);
-  }
+OUTCOME_HPP_DECLARE_ERROR(fc::primitives::ticket, EPoSTTicketCodecError)
+
+namespace fc::primitives::ticket {
+  CBOR_ENCODE_TUPLE(EPostTicket, partial, sector_id, challenge_index)
 
   /**
    * @brief cbor-decode EPostTicket instance
@@ -41,10 +32,7 @@ namespace fc::primitives::ticket {
    * @param ticket Ticket reference to decode into
    * @return stream reference
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, EPostTicket &ticket) {
+  CBOR_DECODE(EPostTicket, ticket) {
     std::vector<uint8_t> data{};
     s.list() >> data >> ticket.sector_id >> ticket.challenge_index;
     if (data.size() != ticket.partial.size()) {
@@ -54,19 +42,7 @@ namespace fc::primitives::ticket {
     return s;
   }
 
-  /**
-   * @brief cbor-encodes EPostProof instance
-   * @tparam Stream cbor-encoder stream type
-   * @param s stream reference
-   * @param epp EPostProof const reference to encode
-   * @return stream reference
-   */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const EPostProof &epp) {
-    return s << (s.list() << epp.proof << epp.post_rand << epp.candidates);
-  }
+  CBOR_ENCODE_TUPLE(EPostProof, proof, post_rand, candidates)
 
   /**
    * @brief cbor-decodes EPostProof instance
@@ -75,10 +51,7 @@ namespace fc::primitives::ticket {
    * @param epp EPostProof refefence to decode into
    * @return stream reference
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, EPostProof &epp) {
+  CBOR_DECODE(EPostProof, epp) {
     std::vector<uint8_t> proof;
     std::vector<uint8_t> rand;
     s.list() >> proof >> rand >> epp.candidates;
@@ -90,10 +63,5 @@ namespace fc::primitives::ticket {
     return s;
   }
 }  // namespace fc::primitives::ticket
-
-/**
- * @brief tickets encode/decode Outcome errors declaration
- */
-OUTCOME_HPP_DECLARE_ERROR(fc::primitives::ticket, EPoSTTicketCodecError)
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TICKET_EPOST_TICKET_CODEC_HPP

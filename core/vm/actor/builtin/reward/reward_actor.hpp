@@ -38,23 +38,8 @@ namespace fc::vm::actor::builtin::reward {
         const primitives::ChainEpoch &current_epoch);
   };
 
-  CBOR_ENCODE(Reward, reward) {
-    return s << (s.list() << common::to_int(reward.vesting_function)
-                          << reward.start_epoch.convert_to<uint64_t>()
-                          << reward.end_epoch.convert_to<uint64_t>()
-                          << reward.value << reward.amount_withdrawn);
-  }
-
-  CBOR_DECODE(Reward, reward) {
-    uint64_t vesting_function_value, start_epoch, end_epoch;
-    s.list() >> vesting_function_value >> start_epoch >> end_epoch
-        >> reward.value >> reward.amount_withdrawn;
-    reward.vesting_function =
-        static_cast<VestingFunction>(vesting_function_value);
-    reward.start_epoch = start_epoch;
-    reward.end_epoch = end_epoch;
-    return s;
-  }
+  CBOR_TUPLE(
+      Reward, vesting_function, start_epoch, end_epoch, value, amount_withdrawn)
 
   struct State {
     TokenAmount reward_total;
@@ -71,14 +56,7 @@ namespace fc::vm::actor::builtin::reward {
         const primitives::ChainEpoch &current_epoch);
   };
 
-  CBOR_ENCODE(State, state) {
-    return s << (s.list() << state.reward_map << state.reward_total);
-  }
-
-  CBOR_DECODE(State, state) {
-    s.list() >> state.reward_map >> state.reward_total;
-    return s;
-  }
+  CBOR_TUPLE(State, reward_map, reward_total)
 
   // Actor related stuff
 
@@ -95,17 +73,7 @@ namespace fc::vm::actor::builtin::reward {
     Power nominal_power;
   };
 
-  CBOR_ENCODE(AwardBlockRewardParams, v) {
-    return s << (s.list() << v.miner << v.penalty << v.gas_reward
-                          << v.nominal_power.convert_to<BigInt>());
-  }
-
-  CBOR_DECODE(AwardBlockRewardParams, v) {
-    BigInt power;
-    s.list() >> v.miner >> v.penalty >> v.gas_reward >> power;
-    v.nominal_power = power.convert_to<decltype(v.nominal_power)>();
-    return s;
-  }
+  CBOR_TUPLE(AwardBlockRewardParams, miner, penalty, gas_reward, nominal_power)
 
   constexpr MethodNumber kAwardBlockRewardMethodNumber{2};
   constexpr MethodNumber kWithdrawRewardMethodNumber{3};

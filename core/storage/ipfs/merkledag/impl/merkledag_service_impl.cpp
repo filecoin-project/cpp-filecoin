@@ -13,7 +13,7 @@ using libp2p::multi::ContentIdentifierCodec;
 
 namespace fc::storage::ipfs::merkledag {
   MerkleDagServiceImpl::MerkleDagServiceImpl(
-      std::shared_ptr<BlockService> service)
+      std::shared_ptr<IpfsDatastore> service)
       : block_service_{std::move(service)} {
     BOOST_ASSERT_MSG(block_service_ != nullptr,
                      "MerkleDAG service: Block service not connected");
@@ -21,17 +21,17 @@ namespace fc::storage::ipfs::merkledag {
 
   outcome::result<void> MerkleDagServiceImpl::addNode(
       std::shared_ptr<const Node> node) {
-    return block_service_->addBlock(*node);
+    return block_service_->set(node->getCID(), node->getRawBytes());
   }
 
   outcome::result<std::shared_ptr<Node>> MerkleDagServiceImpl::getNode(
       const CID &cid) const {
-    OUTCOME_TRY(content, block_service_->getBlockContent(cid));
+    OUTCOME_TRY(content, block_service_->get(cid));
     return NodeImpl::createFromRawBytes(content);
   }
 
   outcome::result<void> MerkleDagServiceImpl::removeNode(const CID &cid) {
-    return block_service_->removeBlock(cid);
+    return block_service_->remove(cid);
   }
 
   outcome::result<size_t> MerkleDagServiceImpl::select(

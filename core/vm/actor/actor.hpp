@@ -6,6 +6,9 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_HPP
 
+#include <boost/operators.hpp>
+
+#include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
@@ -26,8 +29,11 @@ namespace fc::vm::actor {
    * number is not reused accidentally. The same should apply to the MethodNum
    * associated with methods in Filecoin VM Actors.
    */
-  struct MethodNumber {
-    uint64_t method_number;
+  struct MethodNumber : boost::totally_ordered<MethodNumber> {
+    constexpr MethodNumber() : method_number{} {}
+
+    constexpr MethodNumber(uint64_t method_number)
+        : method_number{method_number} {}
 
     inline bool operator==(const MethodNumber &other) const {
       return method_number == other.method_number;
@@ -36,19 +42,15 @@ namespace fc::vm::actor {
     inline bool operator<(const MethodNumber &other) const {
       return method_number < other.method_number;
     }
+
+    uint64_t method_number;
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const MethodNumber &method) {
+  CBOR_ENCODE(MethodNumber, method) {
     return s << method.method_number;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, MethodNumber &method) {
+  CBOR_DECODE(MethodNumber, method) {
     return s >> method.method_number;
   }
 
@@ -97,21 +99,7 @@ namespace fc::vm::actor {
 
   bool operator==(const Actor &lhs, const Actor &rhs);
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Actor &actor) {
-    return s << (s.list() << actor.code << actor.head << actor.nonce
-                          << actor.balance);
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Actor &actor) {
-    s.list() >> actor.code >> actor.head >> actor.nonce >> actor.balance;
-    return s;
-  }
+  CBOR_TUPLE(Actor, code, head, nonce, balance)
 
   /** Check if code specifies builtin actor implementation */
   bool isBuiltinActor(const CodeId &code);

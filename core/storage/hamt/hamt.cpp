@@ -185,8 +185,9 @@ namespace fc::storage::hamt {
   outcome::result<void> Hamt::cleanShard(Node::Item &item) {
     auto &node = *boost::get<Node::Ptr>(item);
     if (node.items.size() == 1) {
-      if (which<Node::Leaf>(node.items[0])) {
-        item = node.items[0];
+      auto &single_item = node.items.begin()->second;
+      if (which<Node::Leaf>(single_item)) {
+        item = single_item;
       }
     } else if (node.items.size() <= kLeafMax) {
       Node::Leaf leaf;

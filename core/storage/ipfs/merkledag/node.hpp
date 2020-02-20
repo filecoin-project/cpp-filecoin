@@ -13,14 +13,14 @@
 
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
-#include "storage/ipfs/block.hpp"
+#include "storage/ipfs/ipfs_block.hpp"
 #include "storage/ipfs/merkledag/link.hpp"
 
 namespace fc::storage::ipfs::merkledag {
   /**
    * @interface MerkleDAG service node
    */
-  class Node : public Block {
+  class Node : public IpfsBlock {
    public:
     /**
      * @brief Total size of the data including the total sizes of references

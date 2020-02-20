@@ -35,6 +35,5 @@ target_link_libraries(proofs
         filecoin_ffi
         outcome
         blob
-        proof_param_provider
         logger
         )

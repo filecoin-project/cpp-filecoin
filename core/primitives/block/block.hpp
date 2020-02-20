@@ -1,5 +1,12 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include <boost/optional.hpp>
 
+#include "codec/cbor/streams_annotation.hpp"
+#include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
@@ -8,7 +15,6 @@
 #include "primitives/ticket/epost_ticket_codec.hpp"
 #include "primitives/ticket/ticket.hpp"
 #include "primitives/ticket/ticket_codec.hpp"
-#include "crypto/signature/signature.hpp"
 
 namespace fc::primitives::block {
   using primitives::BigInt;
@@ -34,6 +40,11 @@ namespace fc::primitives::block {
     uint64_t fork_signaling;
   };
 
+  struct MsgMeta {
+    CID bls_messages;
+    CID secpk_messages;
+  };
+
   inline bool operator==(const BlockHeader &lhs, const BlockHeader &rhs) {
     return lhs.miner == rhs.miner && lhs.ticket == rhs.ticket
            && lhs.epost_proof == rhs.epost_proof && lhs.parents == rhs.parents
@@ -46,27 +57,20 @@ namespace fc::primitives::block {
            && lhs.fork_signaling == rhs.fork_signaling;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const BlockHeader &block) {
-    return s << (s.list() << block.miner << block.ticket << block.epost_proof
-                          << block.parents << block.parent_weight
-                          << block.height << block.parent_state_root
-                          << block.parent_message_receipts << block.messages
-                          << block.bls_aggregate << block.timestamp
-                          << block.block_sig << block.fork_signaling);
-  }
+  CBOR_TUPLE(BlockHeader,
+             miner,
+             ticket,
+             epost_proof,
+             parents,
+             parent_weight,
+             height,
+             parent_state_root,
+             parent_message_receipts,
+             messages,
+             bls_aggregate,
+             timestamp,
+             block_sig,
+             fork_signaling)
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, BlockHeader &block) {
-    s.list() >> block.miner >> block.ticket >> block.epost_proof
-        >> block.parents >> block.parent_weight >> block.height
-        >> block.parent_state_root >> block.parent_message_receipts
-        >> block.messages >> block.bls_aggregate >> block.timestamp
-        >> block.block_sig >> block.fork_signaling;
-    return s;
-  }
+  CBOR_TUPLE(MsgMeta, bls_messages, secpk_messages)
 }  // namespace fc::primitives::block

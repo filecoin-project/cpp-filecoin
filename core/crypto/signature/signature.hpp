@@ -8,11 +8,21 @@
 
 #include <boost/variant.hpp>
 
-#include "codec/cbor/cbor.hpp"
+#include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome_throw.hpp"
 #include "common/visitor.hpp"
 #include "crypto/bls/bls_types.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
+
+namespace fc::crypto::signature {
+  enum class SignatureError {
+    INVALID_SIGNATURE_LENGTH = 1,
+    WRONG_SIGNATURE_TYPE,
+    INVALID_KEY_LENGTH
+  };
+}  // namespace fc::crypto::signature
+
+OUTCOME_HPP_DECLARE_ERROR(fc::crypto::signature, SignatureError);
 
 namespace fc::crypto::signature {
   using BlsSignature = bls::Signature;
@@ -21,15 +31,6 @@ namespace fc::crypto::signature {
   enum Type : uint8_t { SECP256K1 = 0x1, BLS = 0x2 };
 
   constexpr uint64_t kSignatureMaxLength = 200;
-
-  /**
-   * @brief Signature error codes
-   */
-  enum class SignatureError {
-    INVALID_SIGNATURE_LENGTH = 1,
-    WRONG_SIGNATURE_TYPE,
-    INVALID_KEY_LENGTH
-  };
 
   struct Signature : public boost::variant<BlsSignature, Secp256k1Signature> {
     using variant::variant;
@@ -42,10 +43,7 @@ namespace fc::crypto::signature {
 
   Type typeCode(const Signature &s);
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Signature &signature) {
+  CBOR_ENCODE(Signature, signature) {
     std::vector<uint8_t> bytes{};
     visit_in_place(signature,
                    [&bytes](const BlsSignature &v) {
@@ -59,10 +57,7 @@ namespace fc::crypto::signature {
     return s << bytes;
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Signature &signature) {
+  CBOR_DECODE(Signature, signature) {
     std::vector<uint8_t> data{};
     s >> data;
     if (data.empty() || data.size() > kSignatureMaxLength) {
@@ -90,10 +85,5 @@ namespace fc::crypto::signature {
   }
 
 }  // namespace fc::crypto::signature
-
-/**
- * @brief Outcome errors declaration
- */
-OUTCOME_HPP_DECLARE_ERROR(fc::crypto::signature, SignatureError);
 
 #endif  // CPP_FILECOIN_CRYPTO_SIGNATURE_HPP

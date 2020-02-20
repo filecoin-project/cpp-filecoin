@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_TYPES_HPP
 #define CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_TYPES_HPP
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
@@ -38,11 +39,12 @@ namespace fc::vm::runtime {
    * Result of message execution
    */
   struct MessageReceipt {
-    ExitCode exit_code;
+    uint8_t exit_code;
     Buffer return_value;
     BigInt gas_used;
   };
 
+  CBOR_TUPLE(MessageReceipt, exit_code, return_value, gas_used)
 }  // namespace fc::vm::runtime
 
 #endif  // CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_TYPES_HPP

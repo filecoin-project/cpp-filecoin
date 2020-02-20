@@ -22,7 +22,11 @@ namespace fc::storage::amt {
     INDEX_TOO_BIG,
     NOT_FOUND,
   };
+}  // namespace fc::storage::amt
 
+OUTCOME_HPP_DECLARE_ERROR(fc::storage::amt, AmtError);
+
+namespace fc::storage::amt {
   constexpr size_t kWidth = 8;
   constexpr auto kMaxIndex = 1ull << 48;
 
@@ -41,10 +45,7 @@ namespace fc::storage::amt {
     Items items;
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Node &node) {
+  CBOR_ENCODE(Node, node) {
     std::vector<uint8_t> bits;
     auto l_links = s.list();
     auto l_values = s.list();
@@ -71,10 +72,7 @@ namespace fc::storage::amt {
     return s << (s.list() << bits << l_links << l_values);
   }
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Node &node) {
+  CBOR_DECODE(Node, node) {
     auto l_node = s.list();
     std::vector<uint8_t> bits;
     l_node >> bits;
@@ -125,20 +123,7 @@ namespace fc::storage::amt {
     Node node;
   };
 
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Root &root) {
-    return s << (s.list() << root.height << root.count << root.node);
-  }
-
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Root &root) {
-    s.list() >> root.height >> root.count >> root.node;
-    return s;
-  }
+  CBOR_TUPLE(Root, height, count, node)
 
   class Amt {
    public:
@@ -194,7 +179,5 @@ namespace fc::storage::amt {
     boost::variant<CID, Root> root_;
   };
 }  // namespace fc::storage::amt
-
-OUTCOME_HPP_DECLARE_ERROR(fc::storage::amt, AmtError);
 
 #endif  // CPP_FILECOIN_STORAGE_AMT_AMT_HPP

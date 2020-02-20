@@ -39,10 +39,12 @@ namespace fc::proofs {
     candidate.sector_id = c_candidate.sector_id;
     candidate.sector_challenge_index = c_candidate.sector_challenge_index;
     std::copy(c_candidate.ticket,
-              c_candidate.ticket + candidate.ticket.size(),
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+              c_candidate.ticket + Ticket::size(),
               candidate.ticket.begin());
     std::copy(c_candidate.partial_ticket,
-              c_candidate.partial_ticket + candidate.partial_ticket.size(),
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+              c_candidate.partial_ticket + Ticket::size(),
               candidate.partial_ticket.begin());
     return candidate;
   }
@@ -63,9 +65,11 @@ namespace fc::proofs {
     RawSealPreCommitOutput cpp_seal_pre_commit_output;
 
     std::copy(c_seal_pre_commit_output.comm_d,
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               c_seal_pre_commit_output.comm_d + kCommitmentBytesLen,
               cpp_seal_pre_commit_output.comm_d.begin());
     std::copy(c_seal_pre_commit_output.comm_r,
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               c_seal_pre_commit_output.comm_r + kCommitmentBytesLen,
               cpp_seal_pre_commit_output.comm_r.begin());
 
@@ -78,6 +82,7 @@ namespace fc::proofs {
 
     result.total_write_unpadded = response.total_write_unpadded;
     std::copy(response.comm_p,
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               response.comm_p + kCommitmentBytesLen,
               result.comm_p.begin());
 
@@ -91,6 +96,7 @@ namespace fc::proofs {
     result.left_alignment_unpadded = response.left_alignment_unpadded;
     result.total_write_unpadded = response.total_write_unpadded;
     std::copy(response.comm_p,
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
               response.comm_p + kCommitmentBytesLen,
               result.comm_p.begin());
 
@@ -102,7 +108,22 @@ namespace fc::proofs {
   // ******************
 
   auto cPointerToArray(const Blob<32> &arr) {
+    // NOLINTNEXTLINE
     return reinterpret_cast<const uint8_t(*)[32]>(arr.data());
+  }
+
+  FFISealPreCommitOutput cRawSealPreCommitOutput(
+      const RawSealPreCommitOutput &cpp_seal_pre_commit_output) {
+    FFISealPreCommitOutput c_seal_pre_commit_output{};
+
+    std::copy(cpp_seal_pre_commit_output.comm_d.begin(),
+              cpp_seal_pre_commit_output.comm_d.end(),
+              c_seal_pre_commit_output.comm_d);
+    std::copy(cpp_seal_pre_commit_output.comm_r.begin(),
+              cpp_seal_pre_commit_output.comm_r.end(),
+              c_seal_pre_commit_output.comm_r);
+
+    return c_seal_pre_commit_output;
   }
 
   FFISectorClass cSectorClass(const uint64_t sector_size,
@@ -228,6 +249,34 @@ namespace fc::proofs {
     return res_ptr->is_valid;
   }
 
+  outcome::result<bool> Proofs::verifySeal(uint64_t sector_size,
+                                           const Comm &comm_r,
+                                           const Comm &comm_d,
+                                           const Prover &prover_id,
+                                           const Ticket &ticket,
+                                           const Seed &seed,
+                                           uint64_t sector_id,
+                                           gsl::span<const uint8_t> proof) {
+    auto res_ptr = make_unique(verify_seal(sector_size,
+                                           cPointerToArray(comm_r),
+                                           cPointerToArray(comm_d),
+                                           cPointerToArray(prover_id),
+                                           cPointerToArray(ticket),
+                                           cPointerToArray(seed),
+                                           sector_id,
+                                           proof.data(),
+                                           proof.size()),
+                               destroy_verify_seal_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("verifySeal: " + std::string(res_ptr->error_msg));
+
+      return ProofsError::UNKNOWN;
+    }
+
+    return res_ptr->is_valid;
+  }
+
   // ******************
   // GENERATED FUNCTIONS
   // ******************
@@ -285,12 +334,14 @@ namespace fc::proofs {
     }
 
     return Proof(res_ptr->flattened_proofs_ptr,
-                 res_ptr->flattened_proofs_ptr + res_ptr->flattened_proofs_len);
+                 res_ptr->flattened_proofs_ptr
+                     + res_ptr->flattened_proofs_len);  // NOLINT
   }
 
   outcome::result<Comm> Proofs::generatePieceCommitmentFromFile(
       const std::string &piece_file_path, uint64_t piece_size) {
     int fd;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
@@ -298,6 +349,7 @@ namespace fc::proofs {
     auto res_ptr = make_unique(generate_piece_commitment(fd, piece_size),
                                destroy_generate_piece_commitment_response);
 
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(fd))
       logger_->warn("generatePieceCommitmentFromFile: error in closing file "
                     + piece_file_path);
@@ -333,12 +385,15 @@ namespace fc::proofs {
       uint64_t piece_bytes,
       const std::string &staged_sector_file_path) {
     int piece_fd;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
     int staged_sector_fd;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR))
         == -1) {
+      // NOLINTNEXTLINE(readability-implicit-bool-conversion)
       if (close(piece_fd))
         logger_->warn("writeWithoutAlignment: error in closing file "
                       + piece_file_path);
@@ -349,9 +404,11 @@ namespace fc::proofs {
         write_without_alignment(piece_fd, piece_bytes, staged_sector_fd),
         destroy_write_without_alignment_response);
 
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(piece_fd))
       logger_->warn("writeWithoutAlignment: error in closing file "
                     + piece_file_path);
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(staged_sector_fd))
       logger_->warn("writeWithoutAlignment: error in closing file "
                     + staged_sector_file_path);
@@ -371,12 +428,15 @@ namespace fc::proofs {
       const std::string &staged_sector_file_path,
       gsl::span<const uint64_t> existing_piece_sizes) {
     int piece_fd;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
     int staged_sector_fd;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR))
         == -1) {
+      // NOLINTNEXTLINE(readability-implicit-bool-conversion)
       if (close(piece_fd))
         logger_->warn("writeWithAlignment: error in closing file "
                       + piece_file_path);
@@ -394,9 +454,11 @@ namespace fc::proofs {
       logger_->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(piece_fd))
       logger_->warn("writeWithAlignment: error in closing file "
                     + piece_file_path);
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(staged_sector_fd))
       logger_->warn("writeWithAlignment: error in closing file "
                     + staged_sector_file_path);
@@ -434,6 +496,102 @@ namespace fc::proofs {
     return cppRawSealPreCommitOutput(res_ptr->seal_pre_commit_output);
   }
 
+  outcome::result<Proof> Proofs::sealCommit(
+      uint64_t sector_size,
+      uint8_t porep_proof_partitions,
+      const std::string &cache_dir_path,
+      uint64_t sector_id,
+      const Prover &prover_id,
+      const Ticket &ticket,
+      const Seed &seed,
+      gsl::span<const PublicPieceInfo> pieces,
+      const RawSealPreCommitOutput &rspco) {
+    std::vector<FFIPublicPieceInfo> c_pieces = cPublicPiecesInfo(pieces);
+
+    auto res_ptr = make_unique(
+        seal_commit(cSectorClass(sector_size, porep_proof_partitions),
+                    cache_dir_path.c_str(),
+                    sector_id,
+                    cPointerToArray(prover_id),
+                    cPointerToArray(ticket),
+                    cPointerToArray(seed),
+                    c_pieces.data(),
+                    c_pieces.size(),
+                    cRawSealPreCommitOutput(rspco)),
+        destroy_seal_commit_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("sealCommit: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    return Proof(res_ptr->proof_ptr, res_ptr->proof_ptr + res_ptr->proof_len);
+  }
+
+  outcome::result<void> Proofs::unseal(uint64_t sector_size,
+                                       uint8_t porep_proof_partitions,
+                                       const std::string &cache_dir_path,
+                                       const std::string &sealed_sector_path,
+                                       const std::string &unseal_output_path,
+                                       uint64_t sector_id,
+                                       const Prover &prover_id,
+                                       const Ticket &ticket,
+                                       const Comm &comm_d) {
+    auto res_ptr =
+        make_unique(::unseal(cSectorClass(sector_size, porep_proof_partitions),
+                             cache_dir_path.c_str(),
+                             sealed_sector_path.c_str(),
+                             unseal_output_path.c_str(),
+                             sector_id,
+                             cPointerToArray(prover_id),
+                             cPointerToArray(ticket),
+                             cPointerToArray(comm_d)),
+                    destroy_unseal_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("unseal: " + std::string(res_ptr->error_msg));
+
+      return ProofsError::UNKNOWN;
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<void> Proofs::unsealRange(
+      uint64_t sector_size,
+      uint8_t porep_proof_partitions,
+      const std::string &cache_dir_path,
+      const std::string &sealed_sector_path,
+      const std::string &unseal_output_path,
+      uint64_t sector_id,
+      const Prover &prover_id,
+      const Ticket &ticket,
+      const Comm &comm_d,
+      uint64_t offset,
+      uint64_t length) {
+    auto res_ptr = make_unique(
+        unseal_range(cSectorClass(sector_size, porep_proof_partitions),
+                     cache_dir_path.c_str(),
+                     sealed_sector_path.c_str(),
+                     unseal_output_path.c_str(),
+                     sector_id,
+                     cPointerToArray(prover_id),
+                     cPointerToArray(ticket),
+                     cPointerToArray(comm_d),
+                     offset,
+                     length),
+        destroy_unseal_range_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("unsealRange: " + std::string(res_ptr->error_msg));
+
+      return ProofsError::UNKNOWN;
+    }
+
+    return outcome::success();
+  }
+
   SortedPrivateReplicaInfo Proofs::newSortedPrivateReplicaInfo(
       gsl::span<const PrivateReplicaInfo> replica_info) {
     SortedPrivateReplicaInfo sorted_replica_info;
@@ -442,9 +600,8 @@ namespace fc::proofs {
     std::sort(sorted_replica_info.values.begin(),
               sorted_replica_info.values.end(),
               [](const PrivateReplicaInfo &lhs, const PrivateReplicaInfo &rhs) {
-                return std::memcmp(lhs.comm_r.data(),
-                                   rhs.comm_r.data(),
-                                   lhs.comm_r.size())
+                return std::memcmp(
+                           lhs.comm_r.data(), rhs.comm_r.data(), Comm::size())
                        < 0;
               });
 
@@ -458,12 +615,46 @@ namespace fc::proofs {
     std::sort(sorted_sector_info.values.begin(),
               sorted_sector_info.values.end(),
               [](const PublicSectorInfo &lhs, const PublicSectorInfo &rhs) {
-                return std::memcmp(lhs.comm_r.data(),
-                                   rhs.comm_r.data(),
-                                   lhs.comm_r.size())
+                return std::memcmp(
+                           lhs.comm_r.data(), rhs.comm_r.data(), Comm::size())
                        < 0;
               });
 
     return sorted_sector_info;
   }
+
+  outcome::result<Ticket> Proofs::finalizeTicket(const Ticket &partial_ticket) {
+    auto res_ptr = make_unique(finalize_ticket(cPointerToArray(partial_ticket)),
+                               destroy_finalize_ticket_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("finalizeTicket: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    static const int kTicketSize = 32;
+
+    return cppCommitment(gsl::make_span(res_ptr->ticket, kTicketSize));
+  }
+
+  uint64_t Proofs::getMaxUserBytesPerStagedSector(uint64_t sector_size) {
+    return get_max_user_bytes_per_staged_sector(sector_size);
+  }
+
+  outcome::result<Devices> Proofs::getGPUDevices() {
+    auto res_ptr = make_unique(get_gpu_devices(), destroy_gpu_device_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getGPUDevices: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    if (res_ptr->devices_ptr == nullptr || res_ptr->devices_len == 0) {
+      return Devices();
+    }
+
+    return Devices(res_ptr->devices_ptr,
+                   res_ptr->devices_ptr + res_ptr->devices_len);  // NOLINT
+  }
+
 }  // namespace fc::proofs

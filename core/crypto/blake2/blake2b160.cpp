@@ -37,7 +37,7 @@ namespace fc::crypto::blake2b {
 
     blake2b_ctx ctx;
 
-    if (blake2b_init(&ctx, BLAKE2B512_HASH_LENGTH, nullptr, 0)) {
+    if (blake2b_init(&ctx, BLAKE2B512_HASH_LENGTH, nullptr, 0) != 0) {
       return {};
     }
 

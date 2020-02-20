@@ -272,59 +272,18 @@ namespace fc::vm::actor::builtin::storage_power {
     std::shared_ptr<Hamt> claims_;
   };
 
-  /**
-   * CBOR serialization of Claim
-   */
-  CBOR_ENCODE(Claim, claim) {
-    return s << (s.list() << claim.power << claim.pledge);
-  }
+  CBOR_TUPLE(Claim, power, pledge);
 
-  /**
-   * CBOR deserialization of Claim
-   */
-  CBOR_DECODE(Claim, claim) {
-    s.list() >> claim.power >> claim.pledge;
-    return s;
-  }
+  CBOR_TUPLE(CronEvent, miner_address, callback_payload);
 
-  /**
-   * CBOR serialization of CronEvent
-   */
-  CBOR_ENCODE(CronEvent, event) {
-    return s << (s.list() << event.miner_address << event.callback_payload);
-  }
-
-  /**
-   * CBOR deserialization of CronEvent
-   */
-  CBOR_DECODE(CronEvent, event) {
-    s.list() >> event.miner_address >> event.callback_payload;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of StoragePowerActorState
-   */
-  CBOR_ENCODE(StoragePowerActorState, state) {
-    return s << (s.list() << state.total_network_power << state.miner_count
-                          << state.escrow_table_cid
-                          << state.cron_event_queue_cid
-                          << state.po_st_detected_fault_miners_cid
-                          << state.claims_cid
-                          << state.num_miners_meeting_min_power);
-  }
-
-  /**
-   * CBOR deserialization of ChangeThresholdParameters
-   */
-  CBOR_DECODE(StoragePowerActorState, state) {
-    s.list() >> state.total_network_power >> state.miner_count
-        >> state.escrow_table_cid >> state.cron_event_queue_cid
-        >> state.po_st_detected_fault_miners_cid >> state.claims_cid
-        >> state.num_miners_meeting_min_power;
-
-    return s;
-  }
+  CBOR_TUPLE(StoragePowerActorState,
+             total_network_power,
+             miner_count,
+             escrow_table_cid,
+             cron_event_queue_cid,
+             po_st_detected_fault_miners_cid,
+             claims_cid,
+             num_miners_meeting_min_power);
 
 }  // namespace fc::vm::actor::builtin::storage_power
 

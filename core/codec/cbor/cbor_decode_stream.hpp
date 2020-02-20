@@ -22,7 +22,9 @@ namespace fc::codec::cbor {
     explicit CborDecodeStream(gsl::span<const uint8_t> data);
 
     /** Decodes integer or bool */
-    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    template <
+        typename T,
+        typename = std::enable_if_t<std::is_integral_v<T> || std::is_enum_v<T>>>
     CborDecodeStream &operator>>(T &num) {
       if constexpr (std::is_same_v<T, bool>) {
         if (!cbor_value_is_boolean(&value_)) {
@@ -97,6 +99,8 @@ namespace fc::codec::cbor {
       return *this;
     }
 
+    /// Decodes bytes
+    CborDecodeStream &operator>>(gsl::span<uint8_t> bytes);
     /** Decodes bytes */
     CborDecodeStream &operator>>(std::vector<uint8_t> &bytes);
     /** Decodes string */
@@ -121,6 +125,8 @@ namespace fc::codec::cbor {
     std::vector<uint8_t> raw();
     /** Creates map container decode substream map */
     std::map<std::string, CborDecodeStream> map();
+    /// Returns bytestring length
+    size_t bytesLength() const;
 
    private:
     CborDecodeStream container() const;

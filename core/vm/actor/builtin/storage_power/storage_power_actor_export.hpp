@@ -70,34 +70,11 @@ namespace fc::vm::actor::builtin::storage_power {
   /** Exported StoragePowerActor methods to invoker */
   extern const ActorExports exports;
 
-  CBOR_ENCODE(ConstructParameters, params) {
-    return s << (s.list() << params.owner << params.worker << params.sector_size
-                          << params.peer_id);
-  }
+  CBOR_TUPLE(ConstructParameters, owner, worker, sector_size, peer_id);
 
-  CBOR_DECODE(ConstructParameters, params) {
-    s.list() >> params.owner >> params.worker >> params.sector_size
-        >> params.peer_id;
-    return s;
-  }
+  CBOR_TUPLE(AddBalanceParameters, miner);
 
-  CBOR_ENCODE(AddBalanceParameters, params) {
-    return s << (s.list() << params.miner);
-  }
-
-  CBOR_DECODE(AddBalanceParameters, params) {
-    s.list() >> params.miner;
-    return s;
-  }
-
-  CBOR_ENCODE(WithdrawBalanceParameters, params) {
-    return s << (s.list() << params.miner << params.requested);
-  }
-
-  CBOR_DECODE(WithdrawBalanceParameters, params) {
-    s.list() >> params.miner >> params.requested;
-    return s;
-  }
+  CBOR_TUPLE(WithdrawBalanceParameters, miner, requested);
 
 }  // namespace fc::vm::actor::builtin::storage_power
 

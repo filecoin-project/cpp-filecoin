@@ -14,12 +14,14 @@
 #include "primitives/ticket/ticket.hpp"
 
 namespace fc::primitives::ticket {
-
-  enum class TicketCodecError: int {
-    INVALID_TICKET_LENGTH = 1, // ticket decode error, invalid data length
+  enum class TicketCodecError : int {
+    INVALID_TICKET_LENGTH = 1,  // ticket decode error, invalid data length
   };
+}  // namespace fc::primitives::ticket
 
+OUTCOME_HPP_DECLARE_ERROR(fc::primitives::ticket, TicketCodecError)
 
+namespace fc::primitives::ticket {
   /**
    * @brief cbor-encodes Ticket instance
    * @tparam Stream cbor-encoder stream type
@@ -27,12 +29,7 @@ namespace fc::primitives::ticket {
    * @param ticket Ticket const reference to encode
    * @return stream reference
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Ticket &ticket) {
-    return s << (s.list() << ticket.bytes);
-  }
+  CBOR_ENCODE_TUPLE(Ticket, bytes)
 
   /**
    * @brief cbor-decodes Ticket instance
@@ -41,10 +38,7 @@ namespace fc::primitives::ticket {
    * @param ticket Ticket instance reference to decode into
    * @return stream reference
    */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Ticket &ticket) {
+  CBOR_DECODE(Ticket, ticket) {
     std::vector<uint8_t> data{};
     s.list() >> data;
     if (data.size() != ticket.bytes.size()) {
@@ -56,10 +50,4 @@ namespace fc::primitives::ticket {
 
 }  // namespace fc::primitives::ticket
 
-/**
- * @brief tickets encode/decode Outcome errors declaration
- */
-OUTCOME_HPP_DECLARE_ERROR(fc::primitives::ticket, TicketCodecError)
-
-
-#endif  //CPP_FILECOIN_CORE_PRIMITIVES_TICKET_TICKET_CODEC_HPP
+#endif  // CPP_FILECOIN_CORE_PRIMITIVES_TICKET_TICKET_CODEC_HPP
