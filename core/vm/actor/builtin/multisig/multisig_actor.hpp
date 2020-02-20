@@ -219,154 +219,36 @@ namespace fc::vm::actor::builtin::multisig {
   /** Exported Multisig Actor methods to invoker */
   extern const ActorExports exports;
 
-  /**
-   * CBOR serialization of MultiSignatureTransaction
-   */
-  CBOR_ENCODE(MultiSignatureTransaction, transaction) {
-    return s << (s.list() << transaction.transaction_number << transaction.to
-                          << transaction.value << transaction.method
-                          << transaction.params << transaction.approved);
-  }
+  CBOR_TUPLE(MultiSignatureTransaction,
+             transaction_number,
+             to,
+             value,
+             method,
+             params,
+             approved)
 
-  /**
-   * CBOR deserialization of MultiSignatureTransaction
-   */
-  CBOR_DECODE(MultiSignatureTransaction, transaction) {
-    s.list() >> transaction.transaction_number >> transaction.to
-        >> transaction.value >> transaction.method >> transaction.params
-        >> transaction.approved;
-    return s;
-  }
+  CBOR_TUPLE(MultiSignatureActorState,
+             signers,
+             threshold,
+             next_transaction_id,
+             initial_balance,
+             start_epoch,
+             unlock_duration,
+             pending_transactions)
 
-  /**
-   * CBOR serialization of MultiSignatureActorState
-   */
-  CBOR_ENCODE(MultiSignatureActorState, state) {
-    return s << (s.list() << state.signers << state.threshold
-                          << state.next_transaction_id << state.initial_balance
-                          << state.start_epoch << state.unlock_duration
-                          << state.pending_transactions);
-  }
+  CBOR_TUPLE(ConstructParameters, signers, threshold, unlock_duration)
 
-  /**
-   * CBOR deserialization of MultiSignatureActorState
-   */
-  CBOR_DECODE(MultiSignatureActorState, state) {
-    s.list() >> state.signers >> state.threshold >> state.next_transaction_id
-        >> state.initial_balance >> state.start_epoch >> state.unlock_duration
-        >> state.pending_transactions;
-    return s;
-  }
+  CBOR_TUPLE(ProposeParameters, to, value, method, params)
 
-  /**
-   * CBOR serialization of ConstructParameters
-   */
-  CBOR_ENCODE(ConstructParameters, construct_params) {
-    return s << (s.list() << construct_params.signers
-                          << construct_params.threshold
-                          << construct_params.unlock_duration);
-  }
+  CBOR_TUPLE(TransactionNumberParameters, transaction_number)
 
-  /**
-   * CBOR deserialization of ConstructParameters
-   */
-  CBOR_DECODE(ConstructParameters, construct_params) {
-    s.list() >> construct_params.signers >> construct_params.threshold
-        >> construct_params.unlock_duration;
-    return s;
-  }
+  CBOR_TUPLE(AddSignerParameters, signer, increase_threshold)
 
-  /**
-   * CBOR serialization of ProposeParameters
-   */
-  CBOR_ENCODE(ProposeParameters, propose_params) {
-    return s << (s.list() << propose_params.to << propose_params.value
-                          << propose_params.method << propose_params.params);
-  }
+  CBOR_TUPLE(RemoveSignerParameters, signer, decrease_threshold)
 
-  /**
-   * CBOR deserialization of ProposeParameters
-   */
-  CBOR_DECODE(ProposeParameters, propose_params) {
-    s.list() >> propose_params.to >> propose_params.value
-        >> propose_params.method >> propose_params.params;
-    return s;
-  }
+  CBOR_TUPLE(SwapSignerParameters, old_signer, new_signer)
 
-  /**
-   * CBOR serialization of TransactionNumberParameters
-   */
-  CBOR_ENCODE(TransactionNumberParameters, params) {
-    return s << (s.list() << params.transaction_number);
-  }
-
-  /**
-   * CBOR deserialization of TransactionNumberParameters
-   */
-  CBOR_DECODE(TransactionNumberParameters, params) {
-    s.list() >> params.transaction_number;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of AddSignerParameters
-   */
-  CBOR_ENCODE(AddSignerParameters, params) {
-    return s << (s.list() << params.signer << params.increase_threshold);
-  }
-
-  /**
-   * CBOR deserialization of AddSignerParameters
-   */
-  CBOR_DECODE(AddSignerParameters, params) {
-    s.list() >> params.signer >> params.increase_threshold;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of RemoveSignerParameters
-   */
-  CBOR_ENCODE(RemoveSignerParameters, params) {
-    return s << (s.list() << params.signer << params.decrease_threshold);
-  }
-
-  /**
-   * CBOR deserialization of RemoveSignerParameters
-   */
-  CBOR_DECODE(RemoveSignerParameters, params) {
-    s.list() >> params.signer >> params.decrease_threshold;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of SwapSignerParameters
-   */
-  CBOR_ENCODE(SwapSignerParameters, params) {
-    return s << (s.list() << params.old_signer << params.new_signer);
-  }
-
-  /**
-   * CBOR deserialization of SwapSignerParameters
-   */
-  CBOR_DECODE(SwapSignerParameters, params) {
-    s.list() >> params.old_signer >> params.new_signer;
-    return s;
-  }
-
-  /**
-   * CBOR serialization of ChangeThresholdParameters
-   */
-  CBOR_ENCODE(ChangeThresholdParameters, params) {
-    return s << (s.list() << params.new_threshold);
-  }
-
-  /**
-   * CBOR deserialization of ChangeThresholdParameters
-   */
-  CBOR_DECODE(ChangeThresholdParameters, params) {
-    s.list() >> params.new_threshold;
-    return s;
-  }
+  CBOR_TUPLE(ChangeThresholdParameters, new_threshold)
 
 }  // namespace fc::vm::actor::builtin::multisig
 

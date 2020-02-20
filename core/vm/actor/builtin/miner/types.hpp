@@ -18,7 +18,9 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::BigInt;
   using primitives::RleBitset;
   using primitives::address::Address;
-  using proofs::Comm;
+  using proofs::Proof;
+
+  using PeerId = std::string;
 
   struct PoStState {
     uint64_t proving_period_start;
@@ -57,7 +59,7 @@ namespace fc::vm::actor::builtin::miner {
     Address owner;
     Address worker;
     boost::optional<WorkerKeyChange> pending_worker_key;
-    std::string peer_id;
+    PeerId peer_id;
     uint64_t sector_size;
   };
 
@@ -70,83 +72,35 @@ namespace fc::vm::actor::builtin::miner {
     PoStState post_state;
   };
 
-  CBOR_ENCODE(PoStState, state) {
-    return s << (s.list() << state.proving_period_start
-                          << state.num_consecutive_failures);
-  }
+  CBOR_TUPLE(PoStState, proving_period_start, num_consecutive_failures)
 
-  CBOR_DECODE(PoStState, state) {
-    s.list() >> state.proving_period_start >> state.num_consecutive_failures;
-    return s;
-  }
+  CBOR_TUPLE(
+      SectorPreCommitInfo, sector, sealed_cid, seal_epoch, deal_ids, expiration)
 
-  CBOR_ENCODE(SectorPreCommitInfo, info) {
-    return s << (s.list() << info.sector << info.sealed_cid << info.seal_epoch
-                          << info.deal_ids << info.expiration);
-  }
+  CBOR_TUPLE(SectorPreCommitOnChainInfo,
+             info,
+             precommit_deposit,
+             precommit_epoch)
 
-  CBOR_DECODE(SectorPreCommitInfo, info) {
-    s.list() >> info.sector >> info.sealed_cid >> info.seal_epoch
-        >> info.deal_ids >> info.expiration;
-    return s;
-  }
+  CBOR_TUPLE(SectorOnChainInfo,
+             info,
+             activation_epoch,
+             deal_weight,
+             pledge_requirement,
+             declared_fault_epoch,
+             declared_fault_duration)
 
-  CBOR_ENCODE(SectorPreCommitOnChainInfo, info) {
-    return s << (s.list() << info.info << info.precommit_deposit
-                          << info.precommit_epoch);
-  }
+  CBOR_TUPLE(WorkerKeyChange, new_worker, effective_at)
 
-  CBOR_DECODE(SectorPreCommitOnChainInfo, info) {
-    s.list() >> info.info >> info.precommit_deposit >> info.precommit_epoch;
-    return s;
-  }
+  CBOR_TUPLE(MinerInfo, owner, worker, pending_worker_key, peer_id, sector_size)
 
-  CBOR_ENCODE(SectorOnChainInfo, info) {
-    return s << (s.list() << info.info << info.activation_epoch
-                          << info.deal_weight << info.pledge_requirement
-                          << info.declared_fault_epoch
-                          << info.declared_fault_duration);
-  }
-
-  CBOR_DECODE(SectorOnChainInfo, info) {
-    s.list() >> info.info >> info.activation_epoch >> info.deal_weight
-        >> info.pledge_requirement >> info.declared_fault_epoch
-        >> info.declared_fault_duration;
-    return s;
-  }
-
-  CBOR_ENCODE(WorkerKeyChange, change) {
-    return s << (s.list() << change.new_worker << change.effective_at);
-  }
-
-  CBOR_DECODE(WorkerKeyChange, change) {
-    s.list() >> change.new_worker >> change.effective_at;
-    return s;
-  }
-
-  CBOR_ENCODE(MinerInfo, info) {
-    return s << (s.list() << info.owner << info.worker
-                          << info.pending_worker_key << info.peer_id
-                          << info.sector_size);
-  }
-
-  CBOR_DECODE(MinerInfo, info) {
-    s.list() >> info.owner >> info.worker >> info.pending_worker_key
-        >> info.peer_id >> info.sector_size;
-    return s;
-  }
-
-  CBOR_ENCODE(MinerActorState, state) {
-    return s << (s.list() << state.precommitted_sectors << state.sectors
-                          << state.fault_set << state.proving_set << state.info
-                          << state.post_state);
-  }
-
-  CBOR_DECODE(MinerActorState, state) {
-    s.list() >> state.precommitted_sectors >> state.sectors >> state.fault_set
-        >> state.proving_set >> state.info >> state.post_state;
-    return s;
-  }
+  CBOR_TUPLE(MinerActorState,
+             precommitted_sectors,
+             sectors,
+             fault_set,
+             proving_set,
+             info,
+             post_state)
 }  // namespace fc::vm::actor::builtin::miner
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MINER_TYPES_HPP

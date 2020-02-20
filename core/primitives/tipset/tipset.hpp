@@ -88,34 +88,7 @@ namespace fc::primitives::tipset {
 
   bool operator==(const Tipset &lhs, const Tipset &rhs);
 
-  /**
-   * @brief cbor-encodes Tipset instance
-   * @tparam Stream cbor-encoder stream type
-   * @param s stream reference
-   * @param tipset Tipset instance
-   * @return stream reference
-   */
-  CBOR_ENCODE(Tipset, tipset) {
-    return s << (s.list() << tipset.cids << tipset.blks << tipset.height);
-  }
-
-  /**
-   * @brief cbor-decodes Tipset instance
-   * @tparam Stream cbor-decoder stream type
-   * @param s stream reference
-   * @param tipset Tipset instance reference to decode into
-   * @return stream reference
-   */
-  CBOR_DECODE(Tipset, tipset) {
-    std::vector<CID> cids;
-    std::vector<block::BlockHeader> blks;
-
-    s.list() >> cids >> blks >> tipset.height;
-    tipset.cids = std::move(cids);
-    tipset.blks = std::move(blks);
-    return s;
-  }
-
+  CBOR_TUPLE(Tipset, cids, blks, height)
 }  // namespace fc::primitives::tipset
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
