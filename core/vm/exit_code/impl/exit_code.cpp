@@ -65,6 +65,10 @@ namespace fc::vm {
       case E::STORAGE_POWER_ACTOR_NOT_FOUND:
       case E::STORAGE_POWER_DELETION_ERROR:
         break;
+      case E::STORAGE_POWER_ILLEGAL_ARGUMENT:
+        return 16;  // ErrIllegalArgument in actor-specs
+      case E::STORAGE_POWER_FORBIDDEN:
+        return 18;  // ErrForbidden in actor-specs
 
       case E::INIT_ACTOR_NOT_BUILTIN_ACTOR:
       case E::INIT_ACTOR_SINGLETON_ACTOR:

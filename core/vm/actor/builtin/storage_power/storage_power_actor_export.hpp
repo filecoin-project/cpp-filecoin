@@ -46,9 +46,16 @@ namespace fc::vm::actor::builtin::storage_power {
     std::string peer_id;
   };
 
+  struct AddBalanceParameters {
+    Address miner;
+  };
+
   class StoragePowerActorMethods {
    public:
     static outcome::result<InvocationOutput> construct(
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
+
+    static outcome::result<InvocationOutput> addBalance(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
   };
 
@@ -63,6 +70,15 @@ namespace fc::vm::actor::builtin::storage_power {
   CBOR_DECODE(ConstructParameters, params) {
     s.list() >> params.owner >> params.worker >> params.sector_size
         >> params.peer_id;
+    return s;
+  }
+
+  CBOR_ENCODE(AddBalanceParameters, params) {
+    return s << (s.list() << params.miner);
+  }
+
+  CBOR_DECODE(AddBalanceParameters, params) {
+    s.list() >> params.miner;
     return s;
   }
 

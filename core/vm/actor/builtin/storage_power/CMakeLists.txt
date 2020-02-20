@@ -9,6 +9,7 @@ add_library(storage_power_actor
     )
 target_link_libraries(storage_power_actor
     actor
+    builtin_shared
     chain_epoch_codec
     balance_table_hamt
     hamt
