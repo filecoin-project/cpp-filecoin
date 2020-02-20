@@ -20,15 +20,17 @@ namespace fc::codec::cbor {
     static constexpr auto is_cbor_encoder_stream = true;
 
     /** Encodes integer or bool */
-    template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+    template <
+        typename T,
+        typename = std::enable_if_t<std::is_integral_v<T> || std::is_enum_v<T>>>
     CborEncodeStream &operator<<(T num) {
       addCount(1);
       std::array<uint8_t, 9> buffer{0};
       CborEncoder encoder;
       cbor_encoder_init(&encoder, buffer.data(), buffer.size(), 0);
-      if (std::is_same_v<T, bool>) {
+      if constexpr (std::is_same_v<T, bool>) {
         cbor_encode_boolean(&encoder, num);
-      } else if (std::is_unsigned_v<T>) {
+      } else if constexpr (std::is_unsigned_v<T>) {
         cbor_encode_uint(&encoder, static_cast<uint64_t>(num));
       } else {
         cbor_encode_int(&encoder, static_cast<int64_t>(num));

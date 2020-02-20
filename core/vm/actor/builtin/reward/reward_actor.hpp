@@ -39,18 +39,16 @@ namespace fc::vm::actor::builtin::reward {
   };
 
   CBOR_ENCODE(Reward, reward) {
-    return s << (s.list() << common::to_int(reward.vesting_function)
+    return s << (s.list() << reward.vesting_function
                           << reward.start_epoch.convert_to<uint64_t>()
                           << reward.end_epoch.convert_to<uint64_t>()
                           << reward.value << reward.amount_withdrawn);
   }
 
   CBOR_DECODE(Reward, reward) {
-    uint64_t vesting_function_value, start_epoch, end_epoch;
-    s.list() >> vesting_function_value >> start_epoch >> end_epoch
+    uint64_t start_epoch, end_epoch;
+    s.list() >> reward.vesting_function >> start_epoch >> end_epoch
         >> reward.value >> reward.amount_withdrawn;
-    reward.vesting_function =
-        static_cast<VestingFunction>(vesting_function_value);
     reward.start_epoch = start_epoch;
     reward.end_epoch = end_epoch;
     return s;
