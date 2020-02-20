@@ -11,6 +11,7 @@
 #include "common/blob.hpp"
 #include "common/outcome.hpp"
 #include "crypto/randomness/randomness_types.hpp"
+#include "primitives/cid/cid.hpp"
 
 namespace fc::proofs {
 
@@ -31,6 +32,43 @@ namespace fc::proofs {
   using Ticket = Blob<32>;
   using Seed = Blob<32>;
   using Devices = std::vector<std::string>;
+  using Phase1Output = std::vector<uint8_t>;
+
+  // TODO(artyom-yurin): move to sector
+  using SectorSize = uint64_t;
+  using RegisteredProof = uint64_t;
+  using SealRandomness = Randomness;
+
+  const RegisteredProof RegisteredProof_WinStackedDRG32GiBSeal =
+      RegisteredProof(1);
+  const RegisteredProof RegisteredProof_WinStackedDRG32GiBPoSt =
+      RegisteredProof(2);
+  const RegisteredProof RegisteredProof_StackedDRG32GiBSeal =
+      RegisteredProof(3);
+  const RegisteredProof RegisteredProof_StackedDRG32GiBPoSt =
+      RegisteredProof(4);
+  const RegisteredProof RegisteredProof_StackedDRG1KiBSeal = RegisteredProof(5);
+  const RegisteredProof RegisteredProof_StackedDRG1KiBPoSt = RegisteredProof(6);
+  const RegisteredProof RegisteredProof_StackedDRG16MiBSeal =
+      RegisteredProof(7);
+  const RegisteredProof RegisteredProof_StackedDRG16MiBPoSt =
+      RegisteredProof(8);
+  const RegisteredProof RegisteredProof_StackedDRG256MiBSeal =
+      RegisteredProof(9);
+  const RegisteredProof RegisteredProof_StackedDRG256MiBPoSt =
+      RegisteredProof(10);
+  const RegisteredProof RegisteredProof_StackedDRG1GiBSeal =
+      RegisteredProof(11);
+  const RegisteredProof RegisteredProof_StackedDRG1GiBPoSt =
+      RegisteredProof(12);
+
+  // TODO(artyom-yurin): move to pieces
+  using PaddedPieceSize = uint64_t;
+  class PieceInfo {
+   public:
+    PaddedPieceSize size;
+    CID piece_CID;
+  };
 
   // RawSealPreCommitOutput is used to acquire a seed from the chain for the
   // second step of Interactive PoRep.
@@ -38,13 +76,6 @@ namespace fc::proofs {
    public:
     Comm comm_d;
     Comm comm_r;
-  };
-
-  // PublicPieceInfo is an on-chain tuple of CommP and aligned piece-size.
-  class PublicPieceInfo {
-   public:
-    uint64_t size = 0;
-    Comm comm_p;
   };
 
   class PublicSectorInfo {
@@ -117,6 +148,21 @@ namespace fc::proofs {
      * @brief  Seals the staged sector at staged_sector_path in place, saving
      * the resulting replica to sealed_sector_path
      */
+    static outcome::result<Phase1Output> sealPreCommitPhase1(
+        RegisteredProof proof_type,
+        const std::string &cache_dir_path,
+        const std::string &staged_sector_path,
+        const std::string &sealed_sector_path,
+        SectorSize sector_num,
+        const Prover &prover_id,
+        const SealRandomness &ticket,
+        gsl::span<const PieceInfo> pieces);
+
+    static outcome::result<std::pair<CID, CID>> sealPreCommitPhase2(
+        gsl::span<const uint8_t> phase1_output,
+        const std::string &cache_dir_path,
+        const std::string &sealed_sector_path);
+
     static outcome::result<RawSealPreCommitOutput> sealPreCommit(
         uint64_t sector_size,
         uint8_t porep_proof_partitions,

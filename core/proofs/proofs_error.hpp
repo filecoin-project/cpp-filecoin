@@ -14,8 +14,10 @@ namespace fc::proofs {
    * @brief Proofs engine returns these types of errors
    */
   enum class ProofsError {
-      CANNOT_OPEN_FILE = 1,
-      UNKNOWN = 1000
+    CANNOT_OPEN_FILE = 1,
+    NO_SUCH_SEAL_PROOF,
+    NO_SUCH_POST_PROOF,
+    UNKNOWN = 1000
   };
 
 }  // namespace fc::proofs

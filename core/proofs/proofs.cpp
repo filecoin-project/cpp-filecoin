@@ -16,6 +16,7 @@ namespace fc::proofs {
 
   using common::Blob;
   using crypto::randomness::Randomness;
+  using namespace fc::common;
 
   template <typename T, typename D>
   auto make_unique(T *ptr, D deleter) {
@@ -107,6 +108,42 @@ namespace fc::proofs {
   // TO С CASTED FUNCTIONS
   // ******************
 
+  outcome::result<FFIRegisteredPoStProof> cRegisteredPoStProof(
+      RegisteredProof proof_type) {
+    switch (proof_type) {
+      case RegisteredProof_StackedDRG1KiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg1KiBV1;
+      case RegisteredProof_StackedDRG16MiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg16MiBV1;
+      case RegisteredProof_StackedDRG256MiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg256MiBV1;
+      case RegisteredProof_StackedDRG1GiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg1GiBV1;
+      case RegisteredProof_StackedDRG32GiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg32GiBV1;
+      default:
+        return ProofsError::NO_SUCH_POST_PROOF;
+    }
+  }
+
+  outcome::result<FFIRegisteredSealProof> cRegisteredSealProof(
+      RegisteredProof proof_type) {
+    switch (proof_type) {
+      case RegisteredProof_StackedDRG1KiBSeal:
+        return FFIRegisteredSealProof_StackedDrg1KiBV1;
+      case RegisteredProof_StackedDRG16MiBSeal:
+        return FFIRegisteredSealProof_StackedDrg16MiBV1;
+      case RegisteredProof_StackedDRG256MiBSeal:
+        return FFIRegisteredSealProof_StackedDrg256MiBV1;
+      case RegisteredProof_StackedDRG1GiBSeal:
+        return FFIRegisteredSealProof_StackedDrg1GiBV1;
+      case RegisteredProof_StackedDRG32GiBSeal:
+        return FFIRegisteredSealProof_StackedDrg32GiBV1;
+      default:
+        return ProofsError::NO_SUCH_SEAL_PROOF;
+    }
+  }
+
   auto cPointerToArray(const Blob<32> &arr) {
     // NOLINTNEXTLINE
     return reinterpret_cast<const uint8_t(*)[32]>(arr.data());
@@ -184,20 +221,21 @@ namespace fc::proofs {
     return c_private_replicas_info;
   }
 
-  FFIPublicPieceInfo cPublicPieceInfo(
-      const PublicPieceInfo &cpp_public_piece_info) {
+  FFIPublicPieceInfo cPublicPieceInfo(const PieceInfo &cpp_public_piece_info) {
     FFIPublicPieceInfo c_public_piece_info;
 
     c_public_piece_info.num_bytes = cpp_public_piece_info.size;
-    std::copy(cpp_public_piece_info.comm_p.begin(),
-              cpp_public_piece_info.comm_p.end(),
-              c_public_piece_info.comm_p);
+    OUTCOME_TRY(comm_p,
+                CIDToPieceCommitmentV1(cpp_public_piece_info.piece_CID));
+    // std::copy(cpp_public_piece_info.comm_p.begin(),
+    //          cpp_public_piece_info.comm_p.end(),
+    //          c_public_piece_info.comm_p);
 
     return c_public_piece_info;
   }
 
   std::vector<FFIPublicPieceInfo> cPublicPiecesInfo(
-      gsl::span<const PublicPieceInfo> cpp_public_pieces_info) {
+      gsl::span<const PieceInfo> cpp_public_pieces_info) {
     std::vector<FFIPublicPieceInfo> c_public_pieces_info;
     for (const auto &cpp_public_piece_info : cpp_public_pieces_info) {
       c_public_pieces_info.push_back(cPublicPieceInfo(cpp_public_piece_info));
@@ -465,35 +503,65 @@ namespace fc::proofs {
     return cppWriteWithAlignmentResult(*res_ptr);
   }
 
-  outcome::result<RawSealPreCommitOutput> Proofs::sealPreCommit(
-      uint64_t sector_size,
-      uint8_t porep_proof_partitions,
+  outcome::result<Phase1Output> Proofs::sealPreCommitPhase1(
+      RegisteredProof proof_type,
       const std::string &cache_dir_path,
       const std::string &staged_sector_path,
       const std::string &sealed_sector_path,
-      uint64_t sector_id,
+      SectorSize sector_num,
       const Prover &prover_id,
-      const Ticket &ticket,
-      gsl::span<const PublicPieceInfo> pieces) {
+      const SealRandomness &ticket,
+      gsl::span<const PieceInfo> pieces) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
+
     std::vector<FFIPublicPieceInfo> c_pieces = cPublicPiecesInfo(pieces);
 
-    auto res_ptr = make_unique(
-        seal_pre_commit(cSectorClass(sector_size, porep_proof_partitions),
-                        cache_dir_path.c_str(),
-                        staged_sector_path.c_str(),
-                        sealed_sector_path.c_str(),
-                        sector_id,
-                        cPointerToArray(prover_id),
-                        cPointerToArray(ticket),
-                        c_pieces.data(),
-                        c_pieces.size()),
-        destroy_seal_pre_commit_response);
+    auto res_ptr =
+        make_unique(seal_pre_commit_phase1(c_proof_type,
+                                           cache_dir_path.c_str(),
+                                           staged_sector_path.c_str(),
+                                           sealed_sector_path.c_str(),
+                                           sector_num,
+                                           cPointerToArray(prover_id),
+                                           cPointerToArray(ticket),
+                                           c_pieces.data(),
+                                           c_pieces.size()),
+
+                    destroy_seal_pre_commit_phase1_response);
+
     if (res_ptr->status_code != 0) {
-      logger_->error("sealPreCommit: " + std::string(res_ptr->error_msg));
+      logger_->error("Seal precommit phase 1: "
+                     + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 
-    return cppRawSealPreCommitOutput(res_ptr->seal_pre_commit_output);
+    return Phase1Output(
+        res_ptr->seal_pre_commit_phase1_output_ptr,
+        res_ptr->seal_pre_commit_phase1_output_ptr
+            + res_ptr->seal_pre_commit_phase1_output_len);  // NOLINT
+  }
+
+  outcome::result<std::pair<CID, CID>> Proofs::sealPreCommitPhase2(
+      gsl::span<const uint8_t> phase1_output,
+      const std::string &cache_dir_path,
+      const std::string &sealed_sector_path) {
+    auto res_ptr =
+        make_unique(seal_pre_commit_phase2(phase1_output.data(),
+                                           phase1_output.size(),
+                                           cache_dir_path.c_str(),
+                                           sealed_sector_path.c_str()),
+                    destroy_seal_pre_commit_phase2_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("Seal precommit phase 2: "
+                     + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return std::make_pair(replicaCommitmentV1ToCID(gsl::make_span(
+                              res_ptr->comm_r, kCommitmentBytesLen)),
+                          dataCommitmentV1ToCID(gsl::make_span(
+                              res_ptr->comm_d, kCommitmentBytesLen)));
   }
 
   outcome::result<Proof> Proofs::sealCommit(
