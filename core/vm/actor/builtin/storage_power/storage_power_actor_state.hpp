@@ -138,6 +138,12 @@ namespace fc::vm::actor::builtin::storage_power {
     outcome::result<void> setClaim(const Address &miner, const Claim &claim);
 
     /**
+     * Checks if claim with miner address is present
+     * @param miner address
+     * @return true if claim with address is present or false otherwise
+     */
+    outcome::result<bool> hasClaim(const Address &miner) const;
+    /**
      * Get claim for a miner
      * @param miner address
      * @return claim

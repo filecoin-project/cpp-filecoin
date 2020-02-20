@@ -147,6 +147,12 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
+  outcome::result<bool> StoragePowerActor::hasClaim(
+      const Address &miner) const {
+    OUTCOME_TRY(res, claims_->contains(encodeToByteString(miner)));
+    return res;
+  }
+
   outcome::result<Claim> StoragePowerActor::getClaim(const Address &miner) {
     OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner)));
     if (!check)

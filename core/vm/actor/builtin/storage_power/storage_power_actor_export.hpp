@@ -50,12 +50,20 @@ namespace fc::vm::actor::builtin::storage_power {
     Address miner;
   };
 
+  struct WithdrawBalanceParameters {
+    Address miner;
+    TokenAmount requested;
+  };
+
   class StoragePowerActorMethods {
    public:
     static outcome::result<InvocationOutput> construct(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
 
     static outcome::result<InvocationOutput> addBalance(
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
+
+    static outcome::result<InvocationOutput> withdrawBalance(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
   };
 
@@ -79,6 +87,15 @@ namespace fc::vm::actor::builtin::storage_power {
 
   CBOR_DECODE(AddBalanceParameters, params) {
     s.list() >> params.miner;
+    return s;
+  }
+
+  CBOR_ENCODE(WithdrawBalanceParameters, params) {
+    return s << (s.list() << params.miner << params.requested);
+  }
+
+  CBOR_DECODE(WithdrawBalanceParameters, params) {
+    s.list() >> params.miner >> params.requested;
     return s;
   }
 

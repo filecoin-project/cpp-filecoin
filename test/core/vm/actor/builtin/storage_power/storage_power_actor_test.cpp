@@ -27,6 +27,7 @@ using fc::vm::actor::encodeActorParams;
 using fc::vm::actor::kAccountCodeCid;
 using fc::vm::actor::kCronAddress;
 using fc::vm::actor::kInitAddress;
+using fc::vm::actor::kSendMethodNumber;
 using fc::vm::actor::kStorageMinerCodeCid;
 using fc::vm::actor::builtin::miner::GetControlAddressesReturn;
 using fc::vm::actor::builtin::miner::kGetControlAddresses;
@@ -35,6 +36,7 @@ using fc::vm::actor::builtin::storage_power::ConstructParameters;
 using fc::vm::actor::builtin::storage_power::StoragePowerActor;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorMethods;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
+using fc::vm::actor::builtin::storage_power::WithdrawBalanceParameters;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::MethodParams;
@@ -72,6 +74,21 @@ class StoragePowerActorTest : public ::testing::Test {
     EXPECT_OUTCOME_TRUE(actor_head_cid, datastore->setCbor(actor_state));
     caller.head = ActorSubstateCID{actor_head_cid};
     return miner_address;
+  }
+
+  /**
+   * Add balance to miner and save state
+   * @param miner address
+   * @param amount to add
+   */
+  void addBalance(const Address &miner, const TokenAmount &amount) {
+    EXPECT_OUTCOME_TRUE(
+        actor_state, datastore->getCbor<StoragePowerActorState>(caller.head));
+    StoragePowerActor actor(datastore, actor_state);
+    EXPECT_OUTCOME_TRUE_1(actor.addMinerBalance(miner, amount));
+    EXPECT_OUTCOME_TRUE(actor_new_state, actor.flushState());
+    EXPECT_OUTCOME_TRUE(actor_head_cid, datastore->setCbor(actor_new_state));
+    caller.head = ActorSubstateCID{actor_head_cid};
   }
 
   Actor caller;
@@ -193,7 +210,7 @@ TEST_F(StoragePowerActorTest, AddBalanceInternalError) {
  * @when addBalance is called
  * @then balance is added
  */
-TEST_F(StoragePowerActorTest, AddBalanceWrong) {
+TEST_F(StoragePowerActorTest, AddBalanceSuccess) {
   Address miner_address = createStateWithMiner();
   TokenAmount amount_to_add{1334};
 
@@ -234,4 +251,90 @@ TEST_F(StoragePowerActorTest, AddBalanceWrong) {
                       datastore->getCbor<StoragePowerActorState>(state_cid));
   StoragePowerActor actor(datastore, state);
   EXPECT_OUTCOME_EQ(actor.getMinerBalance(miner_address), amount_to_add);
+}
+
+/**
+ * @given runtime and StoragePowerActor state with miner
+ * @when withdrawBalance is called with negative requested amount
+ * @then error ILLEGAL_ARGUMENT returned
+ */
+TEST_F(StoragePowerActorTest, WithdrawBalanceNegative) {
+  Address miner_address = createStateWithMiner();
+  TokenAmount amount_to_withdraw{-1334};
+
+  WithdrawBalanceParameters params{miner_address, amount_to_withdraw};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+
+  EXPECT_CALL(runtime, getActorCodeID(Eq(miner_address)))
+      .WillOnce(testing::Return(fc::outcome::success(kStorageMinerCodeCid)));
+  EXPECT_CALL(runtime, getImmediateCaller())
+      .WillOnce(testing::Return(caller_address));
+  // shared::requestMinerControlAddress
+  GetControlAddressesReturn get_controll_address_return{caller_address,
+                                                        miner_address};
+  EXPECT_OUTCOME_TRUE(encoded_get_controll_address_return,
+                      fc::codec::cbor::encode(get_controll_address_return));
+  EXPECT_CALL(runtime,
+              send(Eq(miner_address),
+                   Eq(kGetControlAddresses),
+                   Eq(MethodParams{}),
+                   Eq(TokenAmount{0})))
+      .WillOnce(testing::Return(fc::outcome::success(
+          InvocationOutput{Buffer{encoded_get_controll_address_return}})));
+
+  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
+                       StoragePowerActorMethods::withdrawBalance(
+                           caller, runtime, encoded_params));
+}
+
+/**
+ * @given runtime and StoragePowerActor state with miner with some balance
+ * @when withdrawBalance is called
+ * @then balance withdrawed
+ */
+TEST_F(StoragePowerActorTest, WithdrawBalanceSuccess) {
+  Address miner_address = createStateWithMiner();
+  TokenAmount amount{1334};
+  addBalance(miner_address, amount);
+
+  WithdrawBalanceParameters params{miner_address, amount};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+
+  EXPECT_CALL(runtime, getActorCodeID(Eq(miner_address)))
+      .WillOnce(testing::Return(fc::outcome::success(kStorageMinerCodeCid)));
+  EXPECT_CALL(runtime, getImmediateCaller())
+      .WillOnce(testing::Return(caller_address));
+  // shared::requestMinerControlAddress
+  GetControlAddressesReturn get_controll_address_return{caller_address,
+                                                        miner_address};
+  EXPECT_OUTCOME_TRUE(encoded_get_controll_address_return,
+                      fc::codec::cbor::encode(get_controll_address_return));
+  EXPECT_CALL(runtime,
+              send(Eq(miner_address),
+                   Eq(kGetControlAddresses),
+                   Eq(MethodParams{}),
+                   Eq(TokenAmount{0})))
+      .WillOnce(testing::Return(fc::outcome::success(
+          InvocationOutput{Buffer{encoded_get_controll_address_return}})));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
+  // transfer amount
+  EXPECT_CALL(runtime,
+              send(Eq(caller_address),
+                   Eq(kSendMethodNumber),
+                   Eq(MethodParams{}),
+                   Eq(amount)))
+      .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
+  // commit and capture state CID
+  EXPECT_CALL(runtime, commit(_))
+      .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
+
+  EXPECT_OUTCOME_TRUE_1(StoragePowerActorMethods::withdrawBalance(
+      caller, runtime, encoded_params));
+
+  // inspect state
+  ActorSubstateCID state_cid = getCapturedCid();
+  EXPECT_OUTCOME_TRUE(state,
+                      datastore->getCbor<StoragePowerActorState>(state_cid));
+  StoragePowerActor actor(datastore, state);
+  EXPECT_OUTCOME_EQ(actor.getMinerBalance(miner_address), TokenAmount{0});
 }
