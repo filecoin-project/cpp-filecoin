@@ -5,18 +5,17 @@
 
 #include "storage/chain/chain_store.hpp"
 
-#include "common/le_encoder.hpp"
 #include "common/outcome.hpp"
+#include "crypto/randomness/impl/chain_randomness_provider_impl.hpp"
 #include "datastore_key.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/cid/json_codec.hpp"
-#include "primitives/persistent_block/persistent_block.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::storage::blockchain {
+  using crypto::randomness::ChainRandomnessProviderImpl;
   using primitives::block::BlockHeader;
-  using primitives::blockchain::block::PersistentBlock;
   using primitives::tipset::Tipset;
 
   namespace {
@@ -110,7 +109,8 @@ namespace fc::storage::blockchain {
     for (auto &b : block_headers) {
       OUTCOME_TRY(data, codec::cbor::encode(b));
       OUTCOME_TRY(cid, common::getCidOf(data));
-      OUTCOME_TRY(block_service_->set(std::move(cid), common::Buffer{std::move(data)}));
+      OUTCOME_TRY(
+          block_service_->set(std::move(cid), common::Buffer{std::move(data)}));
     }
 
     return outcome::success();
@@ -187,58 +187,14 @@ namespace fc::storage::blockchain {
     return outcome::success();
   }
 
-  namespace {
-    /**
-     * @brief ChainStore needs its own randomnes calculation function
-     * @return randomness value
-     */
-    crypto::randomness::Randomness drawRandomness(
-        const primitives::ticket::Ticket &ticket, uint64_t round) {
-      common::Buffer buffer{};
-      const size_t bytes_required = sizeof(round) + ticket.bytes.size();
-      buffer.reserve(bytes_required);
-
-      buffer.put(ticket.bytes);
-      common::encodeLebInteger(round, buffer);
-
-      auto hash = libp2p::crypto::sha256(buffer);
-
-      return crypto::randomness::Randomness(hash);
-    }
-  }  // namespace
-
-  outcome::result<ChainStore::Randomness> ChainStore::sampleRandomness(
-      const std::vector<CID> &blks, uint64_t round) {
-    std::reference_wrapper<const std::vector<CID>> cids{blks};
-
-    while (true) {
-      OUTCOME_TRY(tipset, loadTipset(TipsetKey{cids.get()}));
-      OUTCOME_TRY(min_ticket_block, tipset.getMinTicketBlock());
-
-      if (tipset.height <= round) {
-        if (!min_ticket_block.get().ticket.has_value()) {
-          return ChainStoreError::NO_MIN_TICKET_BLOCK;
-        }
-
-        return drawRandomness(*min_ticket_block.get().ticket, round);
-      }
-
-      // special case for lookback behind genesis block
-      if (min_ticket_block.get().height == 0) {
-        // round is negative
-        auto &&negative_hash =
-            drawRandomness(*min_ticket_block.get().ticket, round - 1);
-        // for negative lookbacks, just use the hash of the positive ticket hash
-        // value
-        auto &&positive_hash = libp2p::crypto::sha256(negative_hash);
-        return Randomness{positive_hash};
-      }
-
-      // TODO (yuraz) I know it's very ugly, and needs to be refactored
-      // I translated it directly from go to C++
-      cids = min_ticket_block.get().parents;
-    }
+  std::shared_ptr<fc::crypto::randomness::ChainRandomnessProvider>
+  ChainStore::createRandomnessProvider() {
+    auto shared_this = shared_from_this();
+    return std::make_shared<
+        ::fc::crypto::randomness::ChainRandomnessProviderImpl>(
+        std::move(shared_this));
   }
+
 }  // namespace fc::storage::blockchain
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {

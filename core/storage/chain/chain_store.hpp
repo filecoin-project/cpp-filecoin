@@ -12,6 +12,7 @@
 #include "blockchain/weight_calculator.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
+#include "crypto/randomness/chain_randomness_provider.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/tipset/tipset.hpp"
@@ -46,13 +47,14 @@ namespace fc::storage::blockchain {
   /**
    * @class ChainStore keeps track of blocks
    */
-  class ChainStore {
+  class ChainStore : public std::enable_shared_from_this<ChainStore> {
    public:
+    using BlockHeader = primitives::block::BlockHeader;
     using BlockValidator = ::fc::blockchain::block_validator::BlockValidator;
+    using ChainRandomnessProvider = crypto::randomness::ChainRandomnessProvider;
+    using Randomness = crypto::randomness::Randomness;
     using Tipset = primitives::tipset::Tipset;
     using TipsetKey = primitives::tipset::TipsetKey;
-    using Randomness = crypto::randomness::Randomness;
-    using BlockHeader = primitives::block::BlockHeader;
     using WeightCalculator = ::fc::blockchain::weight::WeightCalculator;
 
     /* @brief creates new ChainStore instance */
@@ -77,9 +79,8 @@ namespace fc::storage::blockchain {
     // TODO(yuraz): FIL-151 add notifications
     // TODO(yuraz): FIL-151 implement items caching to avoid refetching them
 
-    /** @brief draws randomness */
-    outcome::result<Randomness> sampleRandomness(const std::vector<CID> &blks,
-                                                 uint64_t round);
+    /** @brief creates chain randomness provider */
+    std::shared_ptr<ChainRandomnessProvider> createRandomnessProvider();
 
     /** @brief finds block by its cid */
     outcome::result<BlockHeader> getBlock(const CID &cid) const;
