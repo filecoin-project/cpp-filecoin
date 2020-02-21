@@ -138,8 +138,21 @@ namespace fc::vm::runtime {
     /// Get current actor state
     virtual ActorSubstateCID getCurrentActorState() = 0;
 
-    /// Update actor state
+    /// Update actor state CID
     virtual outcome::result<void> commit(const ActorSubstateCID &new_state) = 0;
+
+    /**
+     * Commit actor state
+     * @tparam T - POD state type
+     * @param state - actor state structure
+     * @return error in case of failure
+     */
+    template <typename T>
+    outcome::result<void> commitState(const T &state) {
+      OUTCOME_TRY(state_cid, getIpfsDatastore()->setCbor(state));
+      OUTCOME_TRY(commit(ActorSubstateCID{state_cid}));
+      return outcome::success();
+    }
   };
 
 }  // namespace fc::vm::runtime

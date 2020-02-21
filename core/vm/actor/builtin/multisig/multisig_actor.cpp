@@ -158,10 +158,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::construct(
     state.initial_balance = runtime.getValueReceived();
   }
 
-  // commit state
-  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(state));
   return fc::outcome::success();
 }
 
@@ -189,11 +186,9 @@ fc::outcome::result<InvocationOutput> MultiSigActor::propose(
   // approve pending tx
   OUTCOME_TRY(state.approveTransaction(actor, runtime, tx_number));
 
-  // commit state
-  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
   OUTCOME_TRY(encoded_result, codec::cbor::encode(tx_number));
+
+  OUTCOME_TRY(runtime.commitState(state));
   return InvocationOutput{Buffer{encoded_result}};
 }
 
@@ -211,10 +206,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::approve(
   OUTCOME_TRY(
       state.approveTransaction(actor, runtime, tx_params.transaction_number));
 
-  // commit state
-  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(state));
   return fc::outcome::success();
 }
 
@@ -239,10 +231,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::cancel(
     return VMExitCode::MULTISIG_ACTOR_FORBIDDEN;
   }
 
-  // commit state
-  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(state));
   return fc::outcome::success();
 }
 
@@ -264,10 +253,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::addSigner(
   state.signers.push_back(add_signer_params.signer);
   if (add_signer_params.increase_threshold) state.threshold++;
 
-  // commit state
-  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(state));
   return fc::outcome::success();
 }
 
@@ -296,10 +282,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::removeSigner(
   if (state.threshold < 1 || state.signers.size() < state.threshold)
     return VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT;
 
-  // commit state
-  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(state));
   return fc::outcome::success();
 }
 
@@ -324,10 +307,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::swapSigner(
     return VMExitCode::MULTISIG_ACTOR_NOT_FOUND;
   *old_signer = swap_signer_params.new_signer;
 
-  // commit state
-  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(state));
   return fc::outcome::success();
 }
 
@@ -349,10 +329,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::changeThreshold(
 
   state.threshold = change_threshold_params.new_threshold;
 
-  // commit state
-  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(state));
   return fc::outcome::success();
 }
 

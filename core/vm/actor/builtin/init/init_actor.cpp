@@ -48,8 +48,7 @@ namespace fc::vm::actor::builtin::init {
                              kConstructorMethodNumber,
                              exec_params.params,
                              message.value));
-    OUTCOME_TRY(new_state, store->setCbor(init_actor));
-    OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_state}));
+    OUTCOME_TRY(runtime.commitState(init_actor));
     return InvocationOutput{Buffer{primitives::address::encode(id_address)}};
   }
 
