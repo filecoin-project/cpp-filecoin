@@ -10,6 +10,7 @@
 
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "proofs/proofs.hpp"
 

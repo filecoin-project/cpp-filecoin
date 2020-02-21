@@ -9,11 +9,12 @@
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor.hpp"
+#include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 
 using namespace fc::vm;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
-using fc::vm::actor::builtin::storage_power::SpaMethods;
+using fc::vm::actor::builtin::storage_power::kOnEpochTickEndMethodNumber;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MockRuntime;
 
@@ -46,7 +47,7 @@ TEST(CronActorTest, Correct) {
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_CALL(runtime,
               send(actor::kStoragePowerAddress,
-                   MethodNumber{SpaMethods::CHECK_PROOF_SUBMISSIONS},
+                   MethodNumber{kOnEpochTickEndMethodNumber},
                    MethodParams{},
                    actor::BigInt(0)))
       .WillOnce(testing::Return(fc::outcome::success()));
