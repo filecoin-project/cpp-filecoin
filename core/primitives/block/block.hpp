@@ -3,6 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#ifndef CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP
+#define CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP
+
 #include <boost/optional.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
@@ -74,3 +77,5 @@ namespace fc::primitives::block {
 
   CBOR_TUPLE(MsgMeta, bls_messages, secpk_messages)
 }  // namespace fc::primitives::block
+
+#endif  // CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP
