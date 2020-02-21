@@ -10,7 +10,8 @@ namespace fc::blockchain::weight {
 
   outcome::result<BigInt> WeightCalculatorImpl::calculateWeight(
       const Tipset &tipset) {
-    return 1;  // this value is fake, make proper implementation
+    // TODO(yuraz): FIL-155 implement weight calculator, this one is stub
+    return 1;
   }
 
 }  // namespace fc::blockchain::weight

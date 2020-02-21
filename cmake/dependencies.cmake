@@ -49,4 +49,3 @@ find_package(cppcodec CONFIG REQUIRED)
 # https://hunter.readthedocs.io/en/stable/packages/pkg/Protobuf.html
 hunter_add_package(Protobuf)
 find_package(Protobuf CONFIG REQUIRED)
-

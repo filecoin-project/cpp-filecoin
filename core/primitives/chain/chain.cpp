@@ -6,5 +6,6 @@
 #include "primitives/chain/chain.hpp"
 
 namespace primitives::chain {
-
+  // TODO(yuraz): FIL-85 currently only interface available,
+  //  implementation will proceed later in Chain Manager
 }

@@ -8,6 +8,7 @@
 
 #include <string>
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
 
 namespace fc::storage {
@@ -29,18 +30,12 @@ namespace fc::storage {
   };
 
   /** @brief cbor-encodes DatastoreKey instance */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const DatastoreKey &key) {
+  CBOR_ENCODE(DatastoreKey, key) {
     return s << (s.list() << key.value);
   }
 
   /** @brief cbor-decodes DatastoreKey instance */
-  template <class Stream,
-            typename = std::enable_if_t<
-                std::remove_reference<Stream>::type::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, DatastoreKey &key) {
+  CBOR_DECODE(DatastoreKey, key) {
     s.list() >> key.value;
     return s;
   }

@@ -10,6 +10,9 @@
 
 namespace fc::storage::blockchain {
 
+  /**
+   * @class ChainDataStore is used by ChainStore as a map vec<CID> -> string
+   */
   class ChainDataStore {
    public:
     virtual ~ChainDataStore() = default;
