@@ -74,6 +74,9 @@ namespace fc::storage::ipfs::graphsync {
     RS_NOT_FOUND = 34,       //   Request failed, content not found.
   };
 
+  bool isTerminal(ResponseStatusCode code);
+  ResponseStatusCode errorToStatusCode(outcome::result<void> error);
+
   /// Metadata pairs, is cid present or not
   using ResponseMetadata = std::vector<std::pair<CID, bool>>;
 

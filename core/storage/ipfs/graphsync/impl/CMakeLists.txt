@@ -7,9 +7,10 @@ add_subdirectory(protobuf)
 
 add_library(graphsync
     errors.cpp
-    session.cpp
     graphsync_impl.cpp
     merkledag_bridge_impl.cpp
+    network/network.cpp
+    network/peer_context.cpp
     block_subscription.cpp
     local_requests.cpp
     marshalling/serialize.cpp
@@ -17,11 +18,8 @@ add_library(graphsync
     marshalling/message_builder.cpp
     marshalling/request_builder.cpp
     marshalling/response_builder.cpp
-    network/server.cpp
-    network/connector.cpp
     network/length_delimited_message_reader.cpp
-    network/graphsync_message_reader.cpp
-    network/out_msg_queue.cpp
+    network/endpoint.cpp
     )
 
 target_include_directories(graphsync PRIVATE "${CMAKE_BINARY_DIR}/generated/storage/ipfs/graphsync/impl")

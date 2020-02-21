@@ -13,51 +13,31 @@
 
 namespace fc::storage::ipfs::graphsync {
 
-  class Connector;
+  class GraphsyncImpl;
 
   class LocalRequests : public Subscription::Source {
    public:
-    using AsyncPostFunction = std::function<void(std::function<void()>)>;
+    explicit LocalRequests(GraphsyncImpl &owner);
 
-    LocalRequests(AsyncPostFunction async_post);
-
-    /// Cancels all active requests
-    void stop();
-
-    Subscription makeRequest(
-        const libp2p::peer::PeerId& peer,
-        boost::optional<libp2p::multi::Multiaddress> address,
-        gsl::span<const uint8_t> root_cid,
-        gsl::span<const uint8_t> selector,
-        bool need_metadata,
-        const std::vector<CID>& dont_send_cids,
+    std::pair<Subscription, int> newRequest(
         Graphsync::RequestProgressCallback callback);
 
-    void onResponses(const SessionPtr &from,
-                     const std::vector<Message::Response> &responses);
+    void onResponse(int request_id,
+                    ResponseStatusCode status,
+                    ResponseMetadata metadata);
+
+    /// Cancels all active requests
+    void cancelAll();
 
    private:
     void unsubscribe(uint64_t ticket) override;
 
-    SessionPtr findOrCreateSession(const PeerId& peer);
+    int32_t nextRequestId();
 
-    void flushOutMessages(const SessionPtr& session);
-
-    void closeSession(SessionPtr session);
-
-    void asyncPostError(SessionPtr from, outcome::result<void> error);
-
-    void onConnectionError(const SessionPtr& from, outcome::result<void> error);
-
-    std::shared_ptr<Connector> connector_;
-
-    std::unordered_map<PeerId, SessionPtr> sessions_by_peer_;
-    std::unordered_map<uint64_t, SessionPtr> sessions_by_ticket_;
-    std::unordered_map<uint64_t, int> request_by_ticket_;
-
-    uint64_t current_ticket_ = 0;
-    uint64_t current_session_id_ = 1;
-    int current_request_id_ = 0;
+    GraphsyncImpl &owner_;
+    std::map<int, Graphsync::RequestProgressCallback> active_requests_;
+    int32_t current_request_id_ = 0;
+    bool reentrancy_guard_ = false;
   };
 
 }  // namespace fc::storage::ipfs::graphsync

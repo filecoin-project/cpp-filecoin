@@ -8,7 +8,7 @@
 #include <cassert>
 
 #include "marshalling/request_builder.hpp"
-#include "network/server.hpp"
+#include "network/network.hpp"
 #include "local_requests.hpp"
 
 namespace fc::storage::ipfs::graphsync {
@@ -18,7 +18,7 @@ namespace fc::storage::ipfs::graphsync {
     assert(dag);
     assert(callback);
 
-    server_->start();
+    network_->start();
     started_ = true;
     return block_subscription_->start(std::move(callback));
   }
@@ -35,6 +35,19 @@ namespace fc::storage::ipfs::graphsync {
       // TODO defer RS_GRAPHSYNC_STOPPED to callback
       return Subscription();
     }
+    /*
+     *
+    auto serialize_res = session->request_builder->serialize();
+    if (!serialize_res) {
+      return asyncPostError(session, serialize_res.error());
+    }
+
+    auto res = session->out_queue->write(serialize_res.value());
+    if (!res) {
+      return asyncPostError(session, res);
+    }
+     */
+
     return local_requests_->makeRequest(std::move(peer),
                                         std::move(address),
                                         root_cid,

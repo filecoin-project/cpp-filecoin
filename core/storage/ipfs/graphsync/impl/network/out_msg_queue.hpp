@@ -10,7 +10,7 @@
 #include <functional>
 
 #include <libp2p/connection/stream.hpp>
-#include "../types.hpp"
+#include "peer_context_fwd.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 

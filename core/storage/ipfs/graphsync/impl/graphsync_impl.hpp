@@ -20,10 +20,9 @@ namespace libp2p {
 
 namespace fc::storage::ipfs::graphsync {
 
-  class Server;
-  class Connector;
   class LocalRequests;
   class BlockSubscription;
+  class Network;
 
   class GraphsyncImpl : public Graphsync {
    public:
@@ -33,6 +32,7 @@ namespace fc::storage::ipfs::graphsync {
     /// Stops server and all requests.
     void stop();
 
+    void cancelLocalRequest(int request_id);
 
    private:
     Subscription start(std::shared_ptr<MerkleDagBridge> dag,
@@ -55,7 +55,7 @@ namespace fc::storage::ipfs::graphsync {
 
     std::shared_ptr<libp2p::Host> host_;
 
-    std::shared_ptr<Server> server_;
+    std::shared_ptr<Network> network_;
 
     std::shared_ptr<LocalRequests> local_requests_;
 
