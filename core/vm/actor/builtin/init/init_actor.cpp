@@ -52,7 +52,7 @@ namespace fc::vm::actor::builtin::init {
     OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_state}));
     ExecReturn exec_return{id_address, actor_address};
     OUTCOME_TRY(output, encodeActorReturn(exec_return));
-    return output;
+    return std::move(output);
   }
 
   const ActorExports exports{{kExecMethodNumber, ActorMethod(exec)}};

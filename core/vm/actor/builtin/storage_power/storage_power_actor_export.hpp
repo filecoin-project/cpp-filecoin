@@ -56,6 +56,10 @@ namespace fc::vm::actor::builtin::storage_power {
                              // newly created actor
   };
 
+  struct DeleteMinerParameters {
+    Address miner;
+  };
+
   class StoragePowerActorMethods {
    public:
     static outcome::result<InvocationOutput> construct(
@@ -69,18 +73,23 @@ namespace fc::vm::actor::builtin::storage_power {
 
     static outcome::result<InvocationOutput> createMiner(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
+
+    static outcome::result<InvocationOutput> deleteMiner(
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
   };
 
   /** Exported StoragePowerActor methods to invoker */
   extern const ActorExports exports;
 
-  CBOR_TUPLE(AddBalanceParameters, miner);
+  CBOR_TUPLE(AddBalanceParameters, miner)
 
-  CBOR_TUPLE(WithdrawBalanceParameters, miner, requested);
+  CBOR_TUPLE(WithdrawBalanceParameters, miner, requested)
 
-  CBOR_TUPLE(CreateMinerParameters, worker, sector_size, peer_id);
+  CBOR_TUPLE(CreateMinerParameters, worker, sector_size, peer_id)
 
-  CBOR_TUPLE(CreateMinerReturn, id_address, robust_address);
+  CBOR_TUPLE(CreateMinerReturn, id_address, robust_address)
+
+  CBOR_TUPLE(DeleteMinerParameters, miner)
 
 }  // namespace fc::vm::actor::builtin::storage_power
 

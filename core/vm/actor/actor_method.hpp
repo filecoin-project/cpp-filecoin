@@ -60,7 +60,7 @@ namespace fc::vm::actor {
   template <typename T>
   outcome::result<T> decodeActorReturn(const InvocationOutput &result) {
     OUTCOME_TRY(decoded, codec::cbor::decode<T>(result.return_value.toVector()));
-    return decoded;
+    return std::move(decoded);
   }
 
   template <typename T>

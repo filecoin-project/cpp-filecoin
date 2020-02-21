@@ -159,6 +159,32 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::createMiner(
   return std::move(output);
 }
 
+fc::outcome::result<InvocationOutput> StoragePowerActorMethods::deleteMiner(
+    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  OUTCOME_TRY(delete_miner_params,
+              decodeActorParams<DeleteMinerParameters>(params));
+
+  Address immediate_caller = runtime.getImmediateCaller();
+  OUTCOME_TRY(control_addresses,
+              requestMinerControlAddress(runtime, delete_miner_params.miner));
+  if (immediate_caller != control_addresses.owner
+      && immediate_caller != control_addresses.worker)
+    return VMExitCode::STORAGE_POWER_FORBIDDEN;
+
+  auto datastore = runtime.getIpfsDatastore();
+  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
+  StoragePowerActor power_actor(datastore, state);
+
+  OUTCOME_TRY(power_actor.deleteMiner(delete_miner_params.miner));
+
+  // commit state
+  OUTCOME_TRY(power_actor_state, power_actor.flushState());
+  OUTCOME_TRY(state_cid, datastore->setCbor(power_actor_state));
+  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
+
+  return fc::outcome::success();
+}
+
 const ActorExports fc::vm::actor::builtin::storage_power::exports = {
     {kConstructorMethodNumber,
      ActorMethod(StoragePowerActorMethods::construct)},
@@ -167,4 +193,6 @@ const ActorExports fc::vm::actor::builtin::storage_power::exports = {
     {kWithdrawBalanceMethodNumber,
      ActorMethod(StoragePowerActorMethods::withdrawBalance)},
     {kCreateMinerMethodNumber,
-     ActorMethod(StoragePowerActorMethods::createMiner)}};
+     ActorMethod(StoragePowerActorMethods::createMiner)},
+    {kDeleteMinerMethodNumber,
+     ActorMethod(StoragePowerActorMethods::deleteMiner)}};

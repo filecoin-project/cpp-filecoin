@@ -101,6 +101,13 @@ namespace fc::vm::actor::builtin::storage_power {
     outcome::result<void> deleteMiner(const Address &miner_addr);
 
     /**
+     * @brief Checks if miner is present
+     * @param miner_addr address
+     * @return true if miner is present, false otherwise
+     */
+    outcome::result<bool> hasMiner(const Address &miner_addr) const;
+
+    /**
      * Return miner balance
      * @param miner address
      * @return balance
