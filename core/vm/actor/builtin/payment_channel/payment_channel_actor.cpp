@@ -33,10 +33,7 @@ fc::outcome::result<InvocationOutput> PaymentChannelActor::construct(
   PaymentChannelActorState state{
       runtime.getImmediateCaller(), construct_params.to, 0, 0, 0, {}};
 
-  // commit state
-  OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(state));
   return fc::outcome::success();
 }
 
