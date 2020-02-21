@@ -98,8 +98,9 @@ namespace fc::vm::actor::builtin::storage_power {
     static outcome::result<InvocationOutput> onSectorTerminate(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
 
+   private:
     static outcome::result<InvocationOutput> slashPledgeCollateral(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+        Runtime &runtime, Address miner, TokenAmount to_slash);
   };
 
   /** Exported StoragePowerActor methods to invoker */

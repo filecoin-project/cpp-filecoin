@@ -231,7 +231,7 @@ StoragePowerActorMethods::onSectorTerminate(const Actor &actor,
     TokenAmount amount_to_slash = pledgePenaltyForSectorTermination(
         on_sector_terminate_params.pledge,
         on_sector_terminate_params.termination_type);
-    OUTCOME_TRY(slashPledgeCollateral(actor, runtime, params));
+    OUTCOME_TRY(slashPledgeCollateral(runtime, miner_address, amount_to_slash));
   }
 
   OUTCOME_TRY(power_actor_state, power_actor.flushState());
@@ -240,9 +240,20 @@ StoragePowerActorMethods::onSectorTerminate(const Actor &actor,
 }
 
 fc::outcome::result<InvocationOutput>
-StoragePowerActorMethods::slashPledgeCollateral(const Actor &actor,
-                                                Runtime &runtime,
-                                                const MethodParams &params) {
+StoragePowerActorMethods::slashPledgeCollateral(Runtime &runtime,
+                                                Address miner,
+                                                TokenAmount to_slash) {
+  auto datastore = runtime.getIpfsDatastore();
+  OUTCOME_TRY(state,
+              datastore->getCbor<StoragePowerActorState>(
+                  runtime.getCurrentActorState()));
+  StoragePowerActor power_actor(datastore, state);
+
+  OUTCOME_TRY(
+      slashed,
+      power_actor.subtractMinerBalance(miner, to_slash, TokenAmount{0}));
+  OUTCOME_TRY(runtime.send(kBurntFundsActorAddress, kSendMethodNumber, {}, slashed)));
+
   return fc::outcome::success();
 }
 

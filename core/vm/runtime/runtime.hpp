@@ -135,7 +135,7 @@ namespace fc::vm::runtime {
     /// Try to charge gas or throw if there is not enoght gas
     virtual outcome::result<void> chargeGas(const BigInt &amount) = 0;
 
-    /// Get current actor state
+    /// Get current actor state root CID
     virtual ActorSubstateCID getCurrentActorState() = 0;
 
     /// Update actor state CID
