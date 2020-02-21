@@ -107,8 +107,7 @@ namespace fc::vm::actor::builtin::reward {
     OUTCOME_TRY(empty_mmap_cid, empty_mmap.flush());
     State empty_state{.reward_total = 0, .reward_map = empty_mmap_cid};
 
-    OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(empty_state));
-    OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
+    OUTCOME_TRY(runtime.commitState(empty_state));
     return outcome::success();
   }
 
@@ -143,11 +142,10 @@ namespace fc::vm::actor::builtin::reward {
                         .amount_withdrawn = 0};
       OUTCOME_TRY(state.addReward(
           runtime.getIpfsDatastore(), reward_params.miner, new_reward));
-      OUTCOME_TRY(new_state_cid, runtime.getIpfsDatastore()->setCbor(state));
-      OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_state_cid}));
     }
     OUTCOME_TRY(runtime.send(
         kBurntFundsActorAddress, kSendMethodNumber, MethodParams{}, penalty));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -163,11 +161,9 @@ namespace fc::vm::actor::builtin::reward {
     OUTCOME_TRY(state, store->getCbor<State>(state_cid));
     OUTCOME_TRY(withdrawn,
                 state.withdrawReward(store, owner, runtime.getCurrentEpoch()));
-    OUTCOME_TRY(new_state_cid, runtime.getIpfsDatastore()->setCbor(state));
-    OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_state_cid}));
     OUTCOME_TRY(
         runtime.send(owner, kSendMethodNumber, MethodParams{}, withdrawn));
-
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
