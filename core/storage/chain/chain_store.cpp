@@ -24,7 +24,7 @@ namespace fc::storage::blockchain {
     const DatastoreKey genesis_key{DatastoreKey::makeFromString("0")};
   }  // namespace
 
-  ChainStore::ChainStore(std::shared_ptr<ipfs::BlockService> block_service,
+  ChainStore::ChainStore(std::shared_ptr<ipfs::IpfsBlockService> block_service,
                          std::shared_ptr<ChainDataStore> data_store,
                          std::shared_ptr<BlockValidator> block_validator,
                          std::shared_ptr<WeightCalculator> weight_calculator)
@@ -36,7 +36,7 @@ namespace fc::storage::blockchain {
   }
 
   outcome::result<std::shared_ptr<ChainStore>> ChainStore::create(
-      std::shared_ptr<ipfs::BlockService> block_store,
+      std::shared_ptr<ipfs::IpfsBlockService> block_store,
       std::shared_ptr<ChainDataStore> data_store,
       std::shared_ptr<BlockValidator> block_validator,
       std::shared_ptr<WeightCalculator> weight_calculator) {
@@ -69,7 +69,7 @@ namespace fc::storage::blockchain {
   }
 
   outcome::result<BlockHeader> ChainStore::getBlock(const CID &cid) const {
-    OUTCOME_TRY(bytes, block_service_->getBlockContent(cid));
+    OUTCOME_TRY(bytes, block_service_->get(cid));
     return codec::cbor::decode<BlockHeader>(bytes);
   }
 
@@ -107,12 +107,10 @@ namespace fc::storage::blockchain {
   outcome::result<void> ChainStore::persistBlockHeaders(
       const std::vector<std::reference_wrapper<const BlockHeader>>
           &block_headers) {
-
     for (auto &b : block_headers) {
       OUTCOME_TRY(data, codec::cbor::encode(b));
       OUTCOME_TRY(cid, common::getCidOf(data));
-      OUTCOME_TRY(block_service_->addBlock(
-          PersistentBlock(std::move(cid), std::move(data))));
+      OUTCOME_TRY(block_service_->set(std::move(cid), common::Buffer{std::move(data)}));
     }
 
     return outcome::success();

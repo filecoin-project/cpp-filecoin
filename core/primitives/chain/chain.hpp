@@ -8,7 +8,7 @@
 
 #include "common/outcome.hpp"
 #include "crypto/randomness/randomness_types.hpp"
-#include "primitives/chain_epoch.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/tipset/tipset.hpp"
 
 namespace fc::primitives::chain {

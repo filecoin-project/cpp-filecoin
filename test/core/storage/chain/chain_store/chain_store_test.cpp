@@ -11,7 +11,7 @@
 #include "common/hexutil.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "storage/chain/impl/chain_data_store_impl.hpp"
-#include "storage/ipfs/impl/blockservice_impl.hpp"
+#include "storage/ipfs/impl/ipfs_block_service.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
@@ -24,8 +24,7 @@ using fc::primitives::block::BlockHeader;
 using fc::primitives::ticket::Ticket;
 using fc::storage::blockchain::ChainDataStoreImpl;
 using fc::storage::blockchain::ChainStore;
-using fc::storage::ipfs::BlockService;
-using fc::storage::ipfs::BlockServiceImpl;
+using fc::storage::ipfs::IpfsBlockService;
 using fc::storage::ipfs::InMemoryDatastore;
 
 using fc::primitives::cid::getCidOfCbor;
@@ -64,7 +63,7 @@ struct ChainStoreTest : public ::testing::Test {
 
   void SetUp() override {
     // create chain store
-    auto block_service = std::make_shared<BlockServiceImpl>(
+    auto block_service = std::make_shared<IpfsBlockService>(
         std::make_shared<InMemoryDatastore>());
     auto data_store = std::make_shared<ChainDataStoreImpl>(
         std::make_shared<InMemoryDatastore>());

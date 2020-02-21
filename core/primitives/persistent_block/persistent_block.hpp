@@ -6,10 +6,10 @@
 #ifndef CPP_FILECOIN_CORE_BLOCKCHAIN_BLOCK_PERSISTENT_BLOCK_HPP
 #define CPP_FILECOIN_CORE_BLOCKCHAIN_BLOCK_PERSISTENT_BLOCK_HPP
 
-#include "storage/ipfs/block.hpp"
+#include "storage/ipfs/ipfs_block.hpp"
 
 namespace fc::primitives::blockchain::block {
-  class PersistentBlock : public storage::ipfs::Block {
+  class PersistentBlock : public storage::ipfs::IpfsBlock {
    public:
     virtual ~PersistentBlock() override = default;
 
@@ -17,7 +17,7 @@ namespace fc::primitives::blockchain::block {
 
     const CID &getCID() const override;
 
-    const Content &getRawBytes() const override;
+    const common::Buffer &getRawBytes() const override;
 
    private:
     CID cid_;

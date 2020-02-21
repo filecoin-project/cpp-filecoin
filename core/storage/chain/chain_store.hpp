@@ -16,7 +16,7 @@
 #include "primitives/cid/cid.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/chain/chain_data_store.hpp"
-#include "storage/ipfs/blockservice.hpp"
+#include "storage/ipfs/impl/ipfs_block_service.hpp"
 
 namespace fc::storage::blockchain {
 
@@ -57,7 +57,7 @@ namespace fc::storage::blockchain {
 
     /* @brief creates new ChainStore instance */
     static outcome::result<std::shared_ptr<ChainStore>> create(
-        std::shared_ptr<ipfs::BlockService> block_service,
+        std::shared_ptr<ipfs::IpfsBlockService> block_service,
         std::shared_ptr<ChainDataStore> data_store,
         std::shared_ptr<BlockValidator> block_validator,
         std::shared_ptr<WeightCalculator> weight_calculator);
@@ -88,7 +88,7 @@ namespace fc::storage::blockchain {
     outcome::result<void> addBlock(const BlockHeader &block);
 
    private:
-    ChainStore(std::shared_ptr<ipfs::BlockService> block_service,
+    ChainStore(std::shared_ptr<ipfs::IpfsBlockService> block_service,
                std::shared_ptr<ChainDataStore> data_store,
                std::shared_ptr<BlockValidator> block_validator,
                std::shared_ptr<WeightCalculator> weight_calculator);
@@ -105,7 +105,7 @@ namespace fc::storage::blockchain {
 
     outcome::result<void> updateHeavierTipset(const Tipset &tipset);
 
-    std::shared_ptr<ipfs::BlockService> block_service_;
+    std::shared_ptr<ipfs::IpfsBlockService> block_service_;
     std::shared_ptr<ChainDataStore> data_store_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<WeightCalculator> weight_calculator_;
