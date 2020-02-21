@@ -10,7 +10,7 @@
 #include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/reward/reward_actor.hpp"
+#include "vm/actor/builtin/storage_power/policy.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/util.hpp"
 #include "vm/runtime/runtime.hpp"
@@ -18,23 +18,8 @@
 
 namespace fc::vm::actor::builtin::storage_power {
 
-  using fc::vm::actor::builtin::reward::kBlockRewardTarget;
   using runtime::InvocationOutput;
   using runtime::Runtime;
-
-  using StoragePower = primitives::BigInt;
-
-  /**
-   * Total expected block reward per epoch (per-winner reward * expected
-   * winners), as input to pledge requirement
-   */
-  inline static const TokenAmount kEpochTotalExpectedReward{kBlockRewardTarget
-                                                            * 5};
-
-  /**
-   * Multiplier on sector pledge requirement
-   */
-  inline static const BigInt kPledgeFactor{3};
 
   constexpr MethodNumber kAddBalanceMethodNumber{2};
   constexpr MethodNumber kWithdrawBalanceMethodNumber{3};
@@ -84,6 +69,12 @@ namespace fc::vm::actor::builtin::storage_power {
     TokenAmount pledge;
   };
 
+  struct OnSectorTerminateParameters {
+    SectorTerminationType termination_type;
+    std::vector<SectorStorageWeightDescr> weights;
+    TokenAmount pledge;
+  };
+
   class StoragePowerActorMethods {
    public:
     static outcome::result<InvocationOutput> construct(
@@ -103,12 +94,13 @@ namespace fc::vm::actor::builtin::storage_power {
 
     static outcome::result<InvocationOutput> onSectorProveCommit(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
+
+    static outcome::result<InvocationOutput> onSectorTerminate(
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
+
+    static outcome::result<InvocationOutput> slashPledgeCollateral(
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
   };
-
-  StoragePower consensusPowerForWeight(const SectorStorageWeightDescr &weight);
-
-  TokenAmount pledgeForWeight(const SectorStorageWeightDescr &weight,
-                              StoragePower network_power);
 
   /** Exported StoragePowerActor methods to invoker */
   extern const ActorExports exports;
@@ -126,6 +118,8 @@ namespace fc::vm::actor::builtin::storage_power {
   CBOR_TUPLE(OnSectorProveCommitParameters, weight)
 
   CBOR_TUPLE(OnSectorProveCommitReturn, pledge)
+
+  CBOR_TUPLE(OnSectorTerminateParameters, termination_type, weights, pledge)
 
 }  // namespace fc::vm::actor::builtin::storage_power
 

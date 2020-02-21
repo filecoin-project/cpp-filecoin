@@ -199,18 +199,51 @@ StoragePowerActorMethods::onSectorProveCommit(const Actor &actor,
 
   OnSectorProveCommitReturn exec_return{pledge};
   OUTCOME_TRY(result, encodeActorReturn(exec_return));
+
+  OUTCOME_TRY(power_actor_state, power_actor.flushState());
+  OUTCOME_TRY(runtime.commitState(power_actor_state));
   return std::move(result);
 }
 
-StoragePower fc::vm::actor::builtin::storage_power::consensusPowerForWeight(
-    const SectorStorageWeightDescr &weight) {
-  return StoragePower{weight.sector_size};
+fc::outcome::result<InvocationOutput>
+StoragePowerActorMethods::onSectorTerminate(const Actor &actor,
+                                            Runtime &runtime,
+                                            const MethodParams &params) {
+  if (actor.code != kStorageMinerCodeCid)
+    return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
+
+  OUTCOME_TRY(on_sector_terminate_params,
+              decodeActorParams<OnSectorTerminateParameters>(params));
+
+  Address miner_address = runtime.getMessage().get().from;
+  StoragePower power =
+      consensusPowerForWeights(on_sector_terminate_params.weights);
+
+  auto datastore = runtime.getIpfsDatastore();
+  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
+  StoragePowerActor power_actor(datastore, state);
+
+  OUTCOME_TRY(power_actor.addToClaim(
+      miner_address, -power, -on_sector_terminate_params.pledge));
+
+  if (on_sector_terminate_params.termination_type
+      != SectorTerminationType::SECTOR_TERMINATION_EXPIRED) {
+    TokenAmount amount_to_slash = pledgePenaltyForSectorTermination(
+        on_sector_terminate_params.pledge,
+        on_sector_terminate_params.termination_type);
+    OUTCOME_TRY(slashPledgeCollateral(actor, runtime, params));
+  }
+
+  OUTCOME_TRY(power_actor_state, power_actor.flushState());
+  OUTCOME_TRY(runtime.commitState(power_actor_state));
+  return fc::outcome::success();
 }
 
-TokenAmount fc::vm::actor::builtin::storage_power::pledgeForWeight(
-    const SectorStorageWeightDescr &weight, StoragePower network_power) {
-  return weight.sector_size * weight.duration * kEpochTotalExpectedReward
-         * kPledgeFactor / network_power;
+fc::outcome::result<InvocationOutput>
+StoragePowerActorMethods::slashPledgeCollateral(const Actor &actor,
+                                                Runtime &runtime,
+                                                const MethodParams &params) {
+  return fc::outcome::success();
 }
 
 const ActorExports fc::vm::actor::builtin::storage_power::exports = {
@@ -225,4 +258,6 @@ const ActorExports fc::vm::actor::builtin::storage_power::exports = {
     {kDeleteMinerMethodNumber,
      ActorMethod(StoragePowerActorMethods::deleteMiner)},
     {kOnSectorProveCommitMethodNumber,
-     ActorMethod(StoragePowerActorMethods::onSectorProveCommit)}};
+     ActorMethod(StoragePowerActorMethods::onSectorProveCommit)},
+    {kOnSectorTerminateMethodNumber,
+     ActorMethod(StoragePowerActorMethods::onSectorTerminate)}};
