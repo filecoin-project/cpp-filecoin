@@ -48,10 +48,9 @@ namespace fc::vm::actor::builtin::init {
                              kConstructorMethodNumber,
                              exec_params.params,
                              message.value));
-    OUTCOME_TRY(new_state, store->setCbor(init_actor));
-    OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_state}));
     ExecReturn exec_return{id_address, actor_address};
     OUTCOME_TRY(output, encodeActorReturn(exec_return));
+    OUTCOME_TRY(runtime.commitState(init_actor));
     return std::move(output);
   }
 

@@ -115,7 +115,8 @@ TEST(InitActorExecText, ExecSuccess) {
       .WillOnce(testing::Return(std::cref(message)));
 
   EXPECT_CALL(runtime, getIpfsDatastore())
-      .WillOnce(testing::Return(state_tree->getStore()));
+      .Times(2)
+      .WillRepeatedly(testing::Return(state_tree->getStore()));
 
   EXPECT_CALL(runtime,
               send(id_address,
