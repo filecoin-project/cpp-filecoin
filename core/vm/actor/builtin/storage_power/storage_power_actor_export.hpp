@@ -10,15 +10,31 @@
 #include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/actor_method.hpp"
+#include "vm/actor/builtin/reward/reward_actor.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/util.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
+  using fc::vm::actor::builtin::reward::kBlockRewardTarget;
   using runtime::InvocationOutput;
   using runtime::Runtime;
-  using PeerId = std::string;
+
+  using StoragePower = primitives::BigInt;
+
+  /**
+   * Total expected block reward per epoch (per-winner reward * expected
+   * winners), as input to pledge requirement
+   */
+  inline static const TokenAmount kEpochTotalExpectedReward{kBlockRewardTarget
+                                                            * 5};
+
+  /**
+   * Multiplier on sector pledge requirement
+   */
+  inline static const BigInt kPledgeFactor{3};
 
   constexpr MethodNumber kAddBalanceMethodNumber{2};
   constexpr MethodNumber kWithdrawBalanceMethodNumber{3};
@@ -60,6 +76,14 @@ namespace fc::vm::actor::builtin::storage_power {
     Address miner;
   };
 
+  struct OnSectorProveCommitParameters {
+    SectorStorageWeightDescr weight;
+  };
+
+  struct OnSectorProveCommitReturn {
+    TokenAmount pledge;
+  };
+
   class StoragePowerActorMethods {
    public:
     static outcome::result<InvocationOutput> construct(
@@ -76,7 +100,15 @@ namespace fc::vm::actor::builtin::storage_power {
 
     static outcome::result<InvocationOutput> deleteMiner(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
+
+    static outcome::result<InvocationOutput> onSectorProveCommit(
+        const Actor &actor, Runtime &runtime, const MethodParams &params);
   };
+
+  StoragePower consensusPowerForWeight(const SectorStorageWeightDescr &weight);
+
+  TokenAmount pledgeForWeight(const SectorStorageWeightDescr &weight,
+                              StoragePower network_power);
 
   /** Exported StoragePowerActor methods to invoker */
   extern const ActorExports exports;
@@ -90,6 +122,10 @@ namespace fc::vm::actor::builtin::storage_power {
   CBOR_TUPLE(CreateMinerReturn, id_address, robust_address)
 
   CBOR_TUPLE(DeleteMinerParameters, miner)
+
+  CBOR_TUPLE(OnSectorProveCommitParameters, weight)
+
+  CBOR_TUPLE(OnSectorProveCommitReturn, pledge)
 
 }  // namespace fc::vm::actor::builtin::storage_power
 

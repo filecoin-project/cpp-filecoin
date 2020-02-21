@@ -16,7 +16,7 @@ namespace fc::vm::indices {
     MOCK_METHOD0(storagePowerConsensusMinMinerPower, fc::power::Power());
 
     MOCK_METHOD1(consensusPowerForStorageWeight,
-                 fc::power::Power(actor::SectorStorageWeightDesc));
+                 fc::power::Power(actor::SectorStorageWeightDescr));
   };
 
 }  // namespace fc::vm::indices

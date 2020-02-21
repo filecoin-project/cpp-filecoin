@@ -24,7 +24,7 @@ namespace fc::vm::indices {
      * @return power of sector
      */
     virtual fc::power::Power consensusPowerForStorageWeight(
-        actor::SectorStorageWeightDesc storage_weight_desc) = 0;
+        actor::SectorStorageWeightDescr storage_weight_desc) = 0;
 
     /**
      * @brief Get min power to participate in consensus

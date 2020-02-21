@@ -12,7 +12,12 @@
 using fc::primitives::address::decode;
 using fc::vm::actor::ActorExports;
 using fc::vm::actor::kConstructorMethodNumber;
+using fc::vm::actor::SectorStorageWeightDescr;
+using fc::vm::actor::TokenAmount;
 using fc::vm::actor::builtin::requestMinerControlAddress;
+using fc::vm::actor::builtin::storage_power::kEpochTotalExpectedReward;
+using fc::vm::actor::builtin::storage_power::kPledgeFactor;
+using fc::vm::actor::builtin::storage_power::StoragePower;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorMethods;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
 using fc::vm::runtime::InvocationOutput;
@@ -26,10 +31,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::construct(
   auto datastore = runtime.getIpfsDatastore();
   OUTCOME_TRY(empty_state, StoragePowerActor::createEmptyState(datastore));
 
-  // commit state
-  OUTCOME_TRY(state_cid, datastore->setCbor(empty_state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(empty_state));
   return fc::outcome::success();
 }
 
@@ -54,11 +56,8 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::addBalance(
   OUTCOME_TRY(power_actor.addMinerBalance(add_balance_params.miner,
                                           runtime.getMessage().get().value));
 
-  // commit state
   OUTCOME_TRY(power_actor_state, power_actor.flushState());
-  OUTCOME_TRY(state_cid, datastore->setCbor(power_actor_state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(power_actor_state));
   return fc::outcome::success();
 }
 
@@ -91,10 +90,10 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::withdrawBalance(
   OUTCOME_TRY(claim, power_actor.getClaim(withdraw_balance_params.miner));
 
   /*
-   * Pledge for sectors in temporary fault has already been subtracted from the
-   * claim. If the miner has failed a scheduled PoSt, collateral remains locked
-   * for further penalization. Thus the current claimed pledge is the amount to
-   * keep locked.
+   * Pledge for sectors in temporary fault has already been subtracted from
+   * the claim. If the miner has failed a scheduled PoSt, collateral remains
+   * locked for further penalization. Thus the current claimed pledge is the
+   * amount to keep locked.
    */
   OUTCOME_TRY(
       subtracted,
@@ -105,11 +104,8 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::withdrawBalance(
   OUTCOME_TRY(
       runtime.send(control_addresses.owner, kSendMethodNumber, {}, subtracted));
 
-  // commit state
   OUTCOME_TRY(power_actor_state, power_actor.flushState());
-  OUTCOME_TRY(state_cid, datastore->setCbor(power_actor_state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(power_actor_state));
   return fc::outcome::success();
 }
 
@@ -151,11 +147,8 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::createMiner(
                            addresses_created.robust_address};
   OUTCOME_TRY(output, encodeActorReturn(result));
 
-  // commit state
   OUTCOME_TRY(power_actor_state, power_actor.flushState());
-  OUTCOME_TRY(state_cid, datastore->setCbor(power_actor_state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(power_actor_state));
   return std::move(output);
 }
 
@@ -177,12 +170,47 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::deleteMiner(
 
   OUTCOME_TRY(power_actor.deleteMiner(delete_miner_params.miner));
 
-  // commit state
   OUTCOME_TRY(power_actor_state, power_actor.flushState());
-  OUTCOME_TRY(state_cid, datastore->setCbor(power_actor_state));
-  OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
-
+  OUTCOME_TRY(runtime.commitState(power_actor_state));
   return fc::outcome::success();
+}
+
+fc::outcome::result<InvocationOutput>
+StoragePowerActorMethods::onSectorProveCommit(const Actor &actor,
+                                              Runtime &runtime,
+                                              const MethodParams &params) {
+  if (actor.code != kStorageMinerCodeCid)
+    return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
+
+  OUTCOME_TRY(on_sector_prove_commit_params,
+              decodeActorParams<OnSectorProveCommitParameters>(params));
+
+  auto datastore = runtime.getIpfsDatastore();
+  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
+  StoragePowerActor power_actor(datastore, state);
+
+  StoragePower power =
+      consensusPowerForWeight(on_sector_prove_commit_params.weight);
+  OUTCOME_TRY(network_power, power_actor.getTotalNetworkPower());
+  TokenAmount pledge =
+      pledgeForWeight(on_sector_prove_commit_params.weight, network_power);
+  OUTCOME_TRY(
+      power_actor.addToClaim(runtime.getMessage().get().from, power, pledge));
+
+  OnSectorProveCommitReturn exec_return{pledge};
+  OUTCOME_TRY(result, encodeActorReturn(exec_return));
+  return std::move(result);
+}
+
+StoragePower fc::vm::actor::builtin::storage_power::consensusPowerForWeight(
+    const SectorStorageWeightDescr &weight) {
+  return StoragePower{weight.sector_size};
+}
+
+TokenAmount fc::vm::actor::builtin::storage_power::pledgeForWeight(
+    const SectorStorageWeightDescr &weight, StoragePower network_power) {
+  return weight.sector_size * weight.duration * kEpochTotalExpectedReward
+         * kPledgeFactor / network_power;
 }
 
 const ActorExports fc::vm::actor::builtin::storage_power::exports = {
@@ -195,4 +223,6 @@ const ActorExports fc::vm::actor::builtin::storage_power::exports = {
     {kCreateMinerMethodNumber,
      ActorMethod(StoragePowerActorMethods::createMiner)},
     {kDeleteMinerMethodNumber,
-     ActorMethod(StoragePowerActorMethods::deleteMiner)}};
+     ActorMethod(StoragePowerActorMethods::deleteMiner)},
+    {kOnSectorProveCommitMethodNumber,
+     ActorMethod(StoragePowerActorMethods::onSectorProveCommit)}};

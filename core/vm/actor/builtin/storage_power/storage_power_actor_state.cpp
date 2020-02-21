@@ -324,4 +324,9 @@ namespace fc::vm::actor::builtin::storage_power {
     return nominal_power;
   }
 
+  outcome::result<Power> StoragePowerActor::getTotalNetworkPower() const {
+    return state_.total_network_power;
+  }
+
+
 }  // namespace fc::vm::actor::builtin::storage_power

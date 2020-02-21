@@ -60,7 +60,15 @@ namespace fc::vm::actor::builtin::reward {
 
   // Actor related stuff
 
+  /**
+   * The network works purely in the indivisible token amounts. This constant
+   * converts to a fixed decimal with more human-friendly scale.
+   */
   static const BigInt kTokenPrecision{1e18};
+
+  /**
+   * Target reward released to each block winner
+   */
   static const BigInt kBlockRewardTarget{1e20};
 
   static constexpr auto kRewardVestingFunction{VestingFunction::NONE};

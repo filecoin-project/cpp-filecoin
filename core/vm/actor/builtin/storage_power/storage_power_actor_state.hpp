@@ -13,6 +13,7 @@
 #include "crypto/randomness/randomness_types.hpp"
 #include "power/power_table.hpp"
 #include "storage/ipfs/datastore.hpp"
+#include "vm/actor/util.hpp"
 #include "vm/indices/indices.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
@@ -27,7 +28,6 @@ namespace fc::vm::actor::builtin::storage_power {
   using primitives::address::Address;
   using storage::hamt::Hamt;
   using storage::ipfs::IpfsDatastore;
-  using TokenAmount = primitives::BigInt;
 
   // Minimum power of an individual miner to participate in leader election
   // From spec: 100 TiB
@@ -238,6 +238,8 @@ namespace fc::vm::actor::builtin::storage_power {
      * in DetectedFault state from a SurprisePoSt challenge
      */
     outcome::result<Power> computeNominalPower(const Address &address) const;
+
+    outcome::result<Power> getTotalNetworkPower() const;
 
    private:
     /**

@@ -173,7 +173,9 @@ TEST_F(StoragePowerActorTest, ConstructorWrongCaller) {
 TEST_F(StoragePowerActorTest, Constructor) {
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(kInitAddress));
-  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
   // commit and capture state CID
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
@@ -272,7 +274,9 @@ TEST_F(StoragePowerActorTest, AddBalanceSuccess) {
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
           InvocationOutput{Buffer{encoded_get_controll_address_return}})));
-  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
   // get message
   UnsignedMessage message{miner_address, caller_address, 0, amount_to_add};
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
@@ -352,7 +356,9 @@ TEST_F(StoragePowerActorTest, WithdrawBalanceSuccess) {
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
           InvocationOutput{Buffer{encoded_get_controll_address_return}})));
-  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
   // transfer amount
   EXPECT_CALL(runtime,
               send(Eq(caller_address),
@@ -421,7 +427,9 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(encoded_exec_return)));
 
-  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
 
   // commit and capture state CID
   EXPECT_CALL(runtime, commit(_))
@@ -573,7 +581,9 @@ TEST_F(StoragePowerActorTest, DeleteMinerSuccess) {
       .WillOnce(testing::Return(fc::outcome::success(
           InvocationOutput{Buffer{encoded_get_controll_address_return}})));
 
-  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
 
   // commit and capture state CID
   EXPECT_CALL(runtime, commit(_))
