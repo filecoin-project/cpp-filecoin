@@ -19,9 +19,9 @@ namespace fc::vm::actor::builtin::storage_power {
   using primitives::address::encodeToByteString;
 
   StoragePowerActor::StoragePowerActor(std::shared_ptr<IpfsDatastore> datastore,
-                                       const StoragePowerActorState &state)
+                                       StoragePowerActorState state)
       : datastore_{std::move(datastore)},
-        state_{state},
+        state_{std::move(state)},
         escrow_table_(std::make_shared<BalanceTableHamt>(
             datastore_, state_.escrow_table_cid)),
         cron_event_queue_(std::make_shared<Multimap>(
@@ -67,8 +67,7 @@ namespace fc::vm::actor::builtin::storage_power {
     return state_;
   }
 
-  outcome::result<void> StoragePowerActor::addMiner(
-      const primitives::address::Address &miner_addr) {
+  outcome::result<void> StoragePowerActor::addMiner(const Address &miner_addr) {
     OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner_addr)));
     if (check) {
       return VMExitCode::STORAGE_POWER_ACTOR_ALREADY_EXISTS;
@@ -83,7 +82,7 @@ namespace fc::vm::actor::builtin::storage_power {
   }
 
   outcome::result<void> StoragePowerActor::deleteMiner(
-      const primitives::address::Address &miner_addr) {
+      const Address &miner_addr) {
     OUTCOME_TRY(balance, getMinerBalance(miner_addr));
 
     if (balance > TokenAmount{0}) return VMExitCode::STORAGE_POWER_FORBIDDEN;
@@ -198,7 +197,7 @@ namespace fc::vm::actor::builtin::storage_power {
           return fc::outcome::success();
         }};
     OUTCOME_TRY(po_st_detected_fault_miners_->visit(all_claims_visitor));
-    return std::move(all_claims);
+    return all_claims;
   };
 
   outcome::result<void> StoragePowerActor::appendCronEvent(
@@ -218,7 +217,7 @@ namespace fc::vm::actor::builtin::storage_power {
           return fc::outcome::success();
         }};
     OUTCOME_TRY(po_st_detected_fault_miners_->visit(all_events_visitor));
-    return std::move(all_events);
+    return all_events;
   }
 
   outcome::result<bool>
@@ -256,7 +255,7 @@ namespace fc::vm::actor::builtin::storage_power {
   }
 
   outcome::result<void> StoragePowerActor::addFaultMiner(
-      const primitives::address::Address &miner_addr) {
+      const Address &miner_addr) {
     // check that miner exist
     OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner_addr)));
     if (!check)
@@ -279,12 +278,12 @@ namespace fc::vm::actor::builtin::storage_power {
   }
 
   outcome::result<void> StoragePowerActor::deleteFaultMiner(
-      const primitives::address::Address &miner_addr) {
+      const Address &miner_addr) {
     return po_st_detected_fault_miners_->remove(encodeToByteString(miner_addr));
   }
 
-  outcome::result<std::vector<primitives::address::Address>>
-  StoragePowerActor::getFaultMiners() const {
+  outcome::result<std::vector<Address>> StoragePowerActor::getFaultMiners()
+      const {
     std::vector<Address> all_miners;
     Hamt::Visitor all_miners_visitor{
         [&all_miners](auto k, auto v) -> fc::outcome::result<void> {
@@ -293,11 +292,10 @@ namespace fc::vm::actor::builtin::storage_power {
           return fc::outcome::success();
         }};
     OUTCOME_TRY(po_st_detected_fault_miners_->visit(all_miners_visitor));
-    return std::move(all_miners);
+    return all_miners;
   };
 
-  outcome::result<std::vector<primitives::address::Address>>
-  StoragePowerActor::getMiners() const {
+  outcome::result<std::vector<Address>> StoragePowerActor::getMiners() const {
     std::vector<Address> all_miners;
     Hamt::Visitor all_miners_visitor{
         [this, &all_miners](auto k, auto v) -> fc::outcome::result<void> {
@@ -307,7 +305,7 @@ namespace fc::vm::actor::builtin::storage_power {
           return fc::outcome::success();
         }};
     OUTCOME_TRY(claims_->visit(all_miners_visitor));
-    return std::move(all_miners);
+    return all_miners;
   };
 
   outcome::result<Power> StoragePowerActor::computeNominalPower(

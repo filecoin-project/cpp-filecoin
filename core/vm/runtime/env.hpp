@@ -30,7 +30,7 @@ namespace fc::vm::runtime {
           indices{std::move(indices)},
           invoker{std::move(invoker)},
           chain_epoch{chain_epoch},
-          block_miner{block_miner} {}
+          block_miner{std::move(block_miner)} {}
 
     outcome::result<MessageReceipt> applyMessage(
         const UnsignedMessage &message);

@@ -71,7 +71,7 @@ namespace fc::vm::actor::builtin::storage_power {
   class StoragePowerActor {
    public:
     StoragePowerActor(std::shared_ptr<IpfsDatastore> datastore,
-                      const StoragePowerActorState &state);
+                      StoragePowerActorState state);
 
     /**
      * Creates empty StoragePowerActor state
@@ -221,15 +221,13 @@ namespace fc::vm::actor::builtin::storage_power {
      * @brief Get list of all fault miners
      * @return list of fault miners or error
      */
-    outcome::result<std::vector<primitives::address::Address>> getFaultMiners()
-        const;
+    outcome::result<std::vector<Address>> getFaultMiners() const;
 
     /**
      * @brief Get list of all miners in system
      * @return list of miners or error
      */
-    outcome::result<std::vector<primitives::address::Address>> getMiners()
-        const;
+    outcome::result<std::vector<Address>> getMiners() const;
 
     /**
      * Compute nominal power: i.e., the power we infer the miner to have (based
