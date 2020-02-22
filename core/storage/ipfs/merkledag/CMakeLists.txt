@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_ipfs_merkledag_service
+filecoin_add_library(filecoin_ipfs_merkledag_service
     impl/merkledag_service_impl.cpp
     impl/leaf_impl.cpp
     )

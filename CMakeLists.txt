@@ -51,6 +51,8 @@ option(TSAN "Enable thread sanitizer" OFF)
 option(UBSAN "Enable UB sanitizer" OFF)
 
 include(CheckCXXCompilerFlag)
+include(cmake/install.cmake)
+include(cmake/filecoin_functions.cmake)
 include(cmake/toolchain-util.cmake)
 include(cmake/dependencies.cmake)
 include(cmake/functions.cmake)

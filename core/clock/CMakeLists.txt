@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_clock
+filecoin_add_library(filecoin_clock
     chain_epoch_clock.cpp
     impl/chain_epoch_clock_impl.cpp
     impl/utc_clock_impl.cpp

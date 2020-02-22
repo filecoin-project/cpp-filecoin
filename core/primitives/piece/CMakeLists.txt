@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_piece
+filecoin_add_library(filecoin_piece
         piece.cpp
         piece_error.cpp
         )

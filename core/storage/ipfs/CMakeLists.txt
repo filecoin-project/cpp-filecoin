@@ -2,7 +2,7 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 #
-add_library(filecoin_ipfs_datastore_in_memory
+filecoin_add_library(filecoin_ipfs_datastore_in_memory
     impl/in_memory_datastore.cpp
     impl/ipfs_datastore_error.cpp
     )
@@ -12,7 +12,7 @@ target_link_libraries(filecoin_ipfs_datastore_in_memory
     filecoin_cid
     )
 
-add_library(filecoin_ipfs_datastore_leveldb
+filecoin_add_library(filecoin_ipfs_datastore_leveldb
     impl/datastore_leveldb.cpp
     impl/ipfs_datastore_error.cpp
     )
@@ -23,7 +23,7 @@ target_link_libraries(filecoin_ipfs_datastore_leveldb
     filecoin_leveldb
     )
 
-add_library(filecoin_ipfs_blockservice
+filecoin_add_library(filecoin_ipfs_blockservice
     impl/ipfs_block_service.cpp
     )
 target_link_libraries(filecoin_ipfs_blockservice

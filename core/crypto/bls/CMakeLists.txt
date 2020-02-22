@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_bls_provider
+filecoin_add_library(filecoin_bls_provider
     impl/bls_provider_impl.cpp
     )
 

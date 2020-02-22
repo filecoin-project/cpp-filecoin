@@ -12,7 +12,7 @@ execute_process(COMMAND ${PROTOBUF_PROTOC_EXECUTABLE} --cpp_out=${PB_BUILD_DIR} 
     RESULT_VARIABLE CMD_OUTPUT
     )
 
-add_library(filecoin_ipld_node_protobuf
+filecoin_add_library(filecoin_ipld_node_protobuf
     ${PB_BUILD_DIR}/ipld_node.pb.h
     ${PB_BUILD_DIR}/ipld_node.pb.cc
     )
@@ -22,20 +22,20 @@ target_link_libraries(filecoin_ipld_node_protobuf
     )
 disable_clang_tidy(filecoin_ipld_node_protobuf)
 
-add_library(filecoin_ipld_block INTERFACE)
+filecoin_add_library(filecoin_ipld_block INTERFACE)
 target_link_libraries(filecoin_ipld_block INTERFACE
     filecoin_cid
     filecoin_hasher
     )
 
-add_library(filecoin_ipld_link
+filecoin_add_library(filecoin_ipld_link
     impl/ipld_link_impl.cpp
     )
 target_link_libraries(filecoin_ipld_link
     filecoin_cid
     )
 
-add_library(filecoin_ipld_node
+filecoin_add_library(filecoin_ipld_node
     impl/ipld_node_impl.cpp
     impl/ipld_node_encoder_pb.cpp
     impl/ipld_node_decoder_pb.cpp

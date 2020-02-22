@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_message
+filecoin_add_library(filecoin_message
     message.cpp
     message_util.cpp
     impl/message_signer_impl.cpp

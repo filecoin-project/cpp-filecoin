@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_amt
+filecoin_add_library(filecoin_amt
     amt.cpp
     )
 target_link_libraries(filecoin_amt

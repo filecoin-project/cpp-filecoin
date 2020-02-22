@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_cbor
+filecoin_add_library(filecoin_cbor
     cbor_decode_stream.cpp
     cbor_encode_stream.cpp
     cbor_errors.cpp

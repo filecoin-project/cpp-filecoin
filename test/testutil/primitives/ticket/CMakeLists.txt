@@ -1,7 +1,7 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-add_library(filecoin_ticket_generator
+filecoin_add_library(filecoin_ticket_generator
     ticket_generator.cpp
     )
 target_link_libraries(filecoin_ticket_generator
@@ -11,7 +11,7 @@ target_link_libraries(filecoin_ticket_generator
     filecoin_tickets
     )
 
-add_library(filecoin_ticket_printer
+filecoin_add_library(filecoin_ticket_printer
     printer.cpp
     )
 target_link_libraries(filecoin_ticket_printer

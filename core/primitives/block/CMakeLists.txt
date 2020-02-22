@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_block INTERFACE)
+filecoin_add_library(filecoin_block INTERFACE)
 target_link_libraries(filecoin_block INTERFACE
     filecoin_address
     filecoin_cbor

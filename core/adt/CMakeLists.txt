@@ -9,14 +9,14 @@ add_custom_target(filecoin_adt
     filecoin_multimap
     )
 
-add_library(filecoin_array
+filecoin_add_library(filecoin_array
     impl/array.cpp
     )
 target_link_libraries(filecoin_array
     filecoin_amt
     )
 
-add_library(filecoin_balance_table_hamt
+filecoin_add_library(filecoin_balance_table_hamt
     impl/balance_table_hamt.cpp
     )
 target_link_libraries(filecoin_balance_table_hamt
@@ -24,7 +24,7 @@ target_link_libraries(filecoin_balance_table_hamt
     filecoin_hamt
     )
 
-add_library(filecoin_multimap
+filecoin_add_library(filecoin_multimap
     impl/multimap.cpp
     )
 target_link_libraries(filecoin_multimap

@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_storage_power_actor
+filecoin_add_library(filecoin_storage_power_actor
     storage_power_actor_state.cpp
     storage_power_actor_export.cpp
     policy.cpp

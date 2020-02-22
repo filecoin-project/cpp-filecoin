@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(tinycbor
+filecoin_add_library(tinycbor
     tinycbor/src/cborerrorstrings.c
     tinycbor/src/cborencoder.c
     tinycbor/src/cborencoder_close_container_checked.c

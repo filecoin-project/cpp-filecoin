@@ -3,7 +3,7 @@
 #SPDX - License - Identifier : Apache - 2.0
 #
 
-add_library(filecoin_block_producer
+filecoin_add_library(filecoin_block_producer
     impl/block_producer_impl.cpp
     )
 target_link_libraries(filecoin_block_producer

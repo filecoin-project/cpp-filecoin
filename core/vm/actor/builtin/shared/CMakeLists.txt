@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_builtin_shared
+filecoin_add_library(filecoin_builtin_shared
     shared.cpp
     )
 target_link_libraries(filecoin_builtin_shared

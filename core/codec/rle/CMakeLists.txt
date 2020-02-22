@@ -1,4 +1,9 @@
-add_library(filecoin_rle_plus_codec
+#
+# Copyright Soramitsu Co., Ltd. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+filecoin_add_library(filecoin_rle_plus_codec
     rle_plus_encoding_stream.cpp
     rle_plus_errors.cpp
     )

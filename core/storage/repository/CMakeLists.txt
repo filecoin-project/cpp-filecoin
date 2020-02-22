@@ -1,7 +1,7 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-add_library(filecoin_repository
+filecoin_add_library(filecoin_repository
     impl/repository.cpp
     impl/repository_error.cpp
     )
@@ -9,7 +9,7 @@ target_link_libraries(filecoin_repository
     filecoin_outcome
     )
 
-add_library(filecoin_filesystem_repository
+filecoin_add_library(filecoin_filesystem_repository
     impl/filesystem_repository.cpp
     )
 target_link_libraries(filecoin_filesystem_repository
@@ -22,7 +22,7 @@ target_link_libraries(filecoin_filesystem_repository
     filecoin_repository
     )
 
-add_library(filecoin_in_memory_repository
+filecoin_add_library(filecoin_in_memory_repository
     impl/in_memory_repository.cpp
     )
 target_link_libraries(filecoin_in_memory_repository

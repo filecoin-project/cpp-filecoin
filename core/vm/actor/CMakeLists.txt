@@ -5,7 +5,7 @@
 
 add_subdirectory(builtin)
 
-add_library(filecoin_actor
+filecoin_add_library(filecoin_actor
     actor.cpp
     impl/invoker_impl.cpp
     )

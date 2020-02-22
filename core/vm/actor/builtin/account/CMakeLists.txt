@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(filecoin_account_actor
+filecoin_add_library(filecoin_account_actor
     account_actor.cpp
     )
 target_link_libraries(filecoin_account_actor
