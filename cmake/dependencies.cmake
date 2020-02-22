@@ -1,6 +1,11 @@
 # hunter dependencies
 # https://docs.hunter.sh/en/latest/packages/
 
+# Append local modules path if Hunter is not enabled
+if (NOT HUNTER_ENABLED)
+  list(APPEND CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake/modules)
+endif()
+
 if (TESTING)
   # https://docs.hunter.sh/en/latest/packages/pkg/GTest.html
   hunter_add_package(GTest)
@@ -45,4 +50,4 @@ find_package(libp2p CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/cppcodec.html
 hunter_add_package(cppcodec)
-find_package(cppcodec CONFIG REQUIRED)
+find_package(cppcodec REQUIRED)
