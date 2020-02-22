@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(block_producer_test
+addtest(filecoin_block_producer_test
     block_producer_test.cpp
     )
-target_link_libraries(block_producer_test
-    block_producer
+target_link_libraries(filecoin_block_producer_test
+    filecoin_block_producer
     )

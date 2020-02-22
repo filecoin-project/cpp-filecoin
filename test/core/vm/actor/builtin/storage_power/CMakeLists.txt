@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(storage_power_actor_test
+addtest(filecoin_storage_power_actor_test
     storage_power_actor_test.cpp
     storage_power_actor_state_test.cpp
     )
-target_link_libraries(storage_power_actor_test
-    storage_power_actor
-    ipfs_datastore_in_memory
+target_link_libraries(filecoin_storage_power_actor_test
+    filecoin_storage_power_actor
+    filecoin_ipfs_datastore_in_memory
     )

@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(miner_actor_test
+addtest(filecoin_miner_actor_test
     miner_actor_test.cpp
     )
-target_link_libraries(miner_actor_test
-    miner_actor
+target_link_libraries(filecoin_miner_actor_test
+    filecoin_miner_actor
     )

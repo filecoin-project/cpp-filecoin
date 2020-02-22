@@ -3,25 +3,25 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(hexutil_test
+addtest(filecoin_hexutil_test
     hexutil_test.cpp
     )
-target_link_libraries(hexutil_test
-    hexutil
+target_link_libraries(filecoin_hexutil_test
+    filecoin_hexutil
     )
 
-addtest(blob_test
+addtest(filecoin_blob_test
     blob_test.cpp
     )
-target_link_libraries(blob_test
-    blob
+target_link_libraries(filecoin_blob_test
+    filecoin_blob
     )
 
-addtest(le_encoder_test
+addtest(filecoin_le_encoder_test
     le_encoder_test.cpp
     )
-target_link_libraries(le_encoder_test
+target_link_libraries(filecoin_le_encoder_test
     Boost::boost
-    blob
-    buffer
+    filecoin_blob
+    filecoin_buffer
     )

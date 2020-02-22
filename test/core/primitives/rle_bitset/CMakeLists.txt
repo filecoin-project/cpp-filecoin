@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(rle_bitset_test
+addtest(filecoin_rle_bitset_test
     rle_bitset_test.cpp
     )
-target_link_libraries(rle_bitset_test
-    rle_bitset
-    hexutil
+target_link_libraries(filecoin_rle_bitset_test
+    filecoin_rle_bitset
+    filecoin_hexutil
     )

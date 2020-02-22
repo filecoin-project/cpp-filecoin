@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(hamt
+add_library(filecoin_hamt
     hamt.cpp
     )
-target_link_libraries(hamt
-    blob
-    cbor
-    cid
-    murmur
-    outcome
+target_link_libraries(filecoin_hamt
+    filecoin_blob
+    filecoin_cbor
+    filecoin_cid
+    filecoin_murmur
+    filecoin_outcome
     )

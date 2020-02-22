@@ -3,16 +3,16 @@
 #SPDX - License - Identifier : Apache - 2.0
 #
 
-add_library(block_producer
+add_library(filecoin_block_producer
     impl/block_producer_impl.cpp
     )
-target_link_libraries(block_producer
-    bls_provider
-    outcome
-    buffer
-    address
-    clock
-    interpreter
-    tipset
-    ipfs_datastore_in_memory
+target_link_libraries(filecoin_block_producer
+    filecoin_bls_provider
+    filecoin_outcome
+    filecoin_buffer
+    filecoin_address
+    filecoin_clock
+    filecoin_interpreter
+    filecoin_tipset
+    filecoin_ipfs_datastore_in_memory
     )

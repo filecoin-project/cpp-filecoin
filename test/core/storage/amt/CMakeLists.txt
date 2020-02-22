@@ -3,11 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(amt_test
+addtest(filecoin_amt_test
     amt_test.cpp
     )
-target_link_libraries(amt_test
-    amt
-    hexutil
-    ipfs_datastore_in_memory
+target_link_libraries(filecoin_amt_test
+    filecoin_amt
+    filecoin_hexutil
+    filecoin_ipfs_datastore_in_memory
     )

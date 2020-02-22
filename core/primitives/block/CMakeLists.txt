@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(block INTERFACE)
-target_link_libraries(block INTERFACE
-    address
-    cbor
-    signature
-    tickets
+add_library(filecoin_block INTERFACE)
+target_link_libraries(filecoin_block INTERFACE
+    filecoin_address
+    filecoin_cbor
+    filecoin_signature
+    filecoin_tickets
     )

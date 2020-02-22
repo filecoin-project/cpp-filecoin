@@ -3,9 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(message_test
+addtest(filecoin_message_test
     message_test.cpp
     )
-target_link_libraries(message_test
-    message
+target_link_libraries(filecoin_message_test
+    filecoin_message
     )

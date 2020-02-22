@@ -5,18 +5,18 @@
 
 add_subdirectory(builtin)
 
-addtest(actor_test
+addtest(filecoin_actor_test
     actor_test.cpp
     )
-target_link_libraries(actor_test
-    actor
-    hexutil
+target_link_libraries(filecoin_actor_test
+    filecoin_actor
+    filecoin_hexutil
     )
 
-addtest(invoker_test
+addtest(filecoin_invoker_test
     invoker_test.cpp
     )
-target_link_libraries(invoker_test
-    actor
-    hamt
+target_link_libraries(filecoin_invoker_test
+    filecoin_actor
+    filecoin_hamt
     )

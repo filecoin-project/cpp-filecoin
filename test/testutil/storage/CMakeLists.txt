@@ -1,30 +1,30 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-add_library(base_fs_test
+add_library(filecoin_base_fs_test
     base_fs_test.hpp
     base_fs_test.cpp
     )
-target_link_libraries(base_fs_test
+target_link_libraries(filecoin_base_fs_test
     Boost::filesystem
     Boost::boost
-    logger
+    filecoin_logger
     )
 
-add_library(base_leveldb_test
+add_library(filecoin_base_leveldb_test
     base_leveldb_test.hpp
     base_leveldb_test.cpp
     )
-target_link_libraries(base_leveldb_test
-    base_fs_test
+target_link_libraries(filecoin_base_leveldb_test
+    filecoin_base_fs_test
     Boost::filesystem
     Boost::boost
-    logger
-    leveldb
+    filecoin_logger
+    filecoin_leveldb
     )
 
-add_library(std_list_adapter INTERFACE)
+add_library(filecoin_std_list_adapter INTERFACE)
 
-target_link_libraries(std_list_adapter INTERFACE
-    outcome
+target_link_libraries(filecoin_std_list_adapter INTERFACE
+    filecoin_outcome
     )

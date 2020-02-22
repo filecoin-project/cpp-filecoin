@@ -1,27 +1,27 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-add_library(chain_store
+add_library(filecoin_chain_store
     impl/chain_store_impl.cpp
     )
-target_link_libraries(chain_store
-    chain_randomness_provider
-    datastore_key
-    ipfs_blockservice
-    logger
+target_link_libraries(filecoin_chain_store
+    filecoin_chain_randomness_provider
+    filecoin_datastore_key
+    filecoin_ipfs_blockservice
+    filecoin_logger
     )
 
-add_library(datastore_key
+add_library(filecoin_datastore_key
     datastore_key.cpp
     )
-target_link_libraries(datastore_key
+target_link_libraries(filecoin_datastore_key
     Boost::boost
     Boost::filesystem
     )
 
-add_library(chain_data_store
+add_library(filecoin_chain_data_store
     impl/chain_data_store_impl.cpp
     )
-target_link_libraries(chain_data_store
-    datastore_key
+target_link_libraries(filecoin_chain_data_store
+    filecoin_datastore_key
     )
