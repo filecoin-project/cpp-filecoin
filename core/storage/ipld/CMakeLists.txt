@@ -16,7 +16,7 @@ add_library(ipld_node_protobuf
     ${PB_BUILD_DIR}/ipld_node.pb.h
     ${PB_BUILD_DIR}/ipld_node.pb.cc
     )
-target_include_directories(ipld_node_protobuf PUBLIC ${PB_BUILD_DIR})
+target_include_directories(ipld_node_protobuf PUBLIC $<BUILD_INTERFACE:${PB_BUILD_DIR}>)
 target_link_libraries(ipld_node_protobuf
     protobuf::libprotobuf
     )
