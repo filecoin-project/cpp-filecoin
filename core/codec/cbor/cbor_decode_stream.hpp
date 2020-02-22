@@ -10,8 +10,8 @@
 
 #include <vector>
 
-#include <cbor.h>
 #include <gsl/span>
+#include <tinycbor/cbor.h>
 
 namespace fc::codec::cbor {
   /** Decodes CBOR */
