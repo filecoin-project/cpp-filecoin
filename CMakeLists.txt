@@ -35,18 +35,8 @@ endif ()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include(CheckCXXCompilerFlag)
-include(cmake/toolchain-util.cmake)
-include(cmake/dependencies.cmake)
-include(cmake/functions.cmake)
-include(cmake/san.cmake)
-
 # export compile commands for clang-tidy to analyse only changed files
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-
-print("C flags: ${CMAKE_C_FLAGS}")
-print("CXX flags: ${CMAKE_CXX_FLAGS}")
-print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 
 option(TESTING "Build tests" ON)
 option(CLANG_FORMAT "Enable clang-format target" ON)
@@ -59,6 +49,15 @@ option(MSAN "Enable memory sanitizer" OFF)
 option(TSAN "Enable thread sanitizer" OFF)
 option(UBSAN "Enable UB sanitizer" OFF)
 
+include(CheckCXXCompilerFlag)
+include(cmake/toolchain-util.cmake)
+include(cmake/dependencies.cmake)
+include(cmake/functions.cmake)
+include(cmake/san.cmake)
+
+print("C flags: ${CMAKE_C_FLAGS}")
+print("CXX flags: ${CMAKE_CXX_FLAGS}")
+print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 
 ## setup compilation flags
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
