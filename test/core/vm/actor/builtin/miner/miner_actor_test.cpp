@@ -41,6 +41,7 @@ TEST(MinerActorTest, MinerActorStateCbor) {
 
 TEST(MinerActorTest, MinerSectorInfo) {
   SectorPreCommitInfo info{
+      {},
       1,
       "010001020001"_cid,
       2,

@@ -12,49 +12,58 @@
 #include "primitives/big_int.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
-#include "proofs/proofs.hpp"
+#include "proofs/sector.hpp"
 
 namespace fc::vm::actor::builtin::miner {
+  using common::Buffer;
   using libp2p::multi::UVarint;
-  using primitives::BigInt;
   using primitives::ChainEpoch;
+  using primitives::DealId;
+  using primitives::DealWeight;
+  using primitives::EpochDuration;
   using primitives::RleBitset;
+  using primitives::SectorNumber;
+  using primitives::SectorSize;
+  using primitives::TokenAmount;
   using primitives::address::Address;
-  using proofs::Proof;
+  using proofs::sector::OnChainPoStVerifyInfo;
+  using proofs::sector::RegisteredProof;
+  using proofs::sector::SealProof;
 
   using PeerId = std::string;
 
   struct PoStState {
-    uint64_t proving_period_start;
+    ChainEpoch proving_period_start;
     uint64_t num_consecutive_failures;
   };
 
   struct SectorPreCommitInfo {
-    uint64_t sector;
+    RegisteredProof registered_proof;
+    SectorNumber sector;
     CID sealed_cid;
     ChainEpoch seal_epoch;
-    std::vector<uint64_t> deal_ids;
+    std::vector<DealId> deal_ids;
     ChainEpoch expiration;
   };
 
   struct SectorPreCommitOnChainInfo {
     SectorPreCommitInfo info;
-    BigInt precommit_deposit;
+    TokenAmount precommit_deposit;
     ChainEpoch precommit_epoch;
   };
 
   struct SectorOnChainInfo {
     SectorPreCommitInfo info;
     ChainEpoch activation_epoch;
-    BigInt deal_weight;
-    BigInt pledge_requirement;
+    DealWeight deal_weight;
+    TokenAmount pledge_requirement;
     ChainEpoch declared_fault_epoch;
     ChainEpoch declared_fault_duration;
   };
 
   struct WorkerKeyChange {
     Address new_worker;
-    uint64_t effective_at;
+    ChainEpoch effective_at;
   };
 
   struct MinerInfo {
@@ -62,7 +71,7 @@ namespace fc::vm::actor::builtin::miner {
     Address worker;
     boost::optional<WorkerKeyChange> pending_worker_key;
     PeerId peer_id;
-    uint64_t sector_size;
+    SectorSize sector_size;
   };
 
   struct MinerActorState {
