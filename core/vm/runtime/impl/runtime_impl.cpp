@@ -170,6 +170,11 @@ fc::outcome::result<void> RuntimeImpl::transfer(Actor &from,
   return outcome::success();
 }
 
+fc::outcome::result<Address> RuntimeImpl::resolveAddress(
+    const Address &address) {
+  return state_tree_->lookupId(address);
+}
+
 fc::outcome::result<void> RuntimeImpl::chargeGas(const BigInt &amount) {
   gas_used_ = gas_used_ + amount;
   if (gas_available_ != kInfiniteGas && gas_available_ < gas_used_) {

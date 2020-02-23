@@ -103,6 +103,8 @@ namespace fc::vm::runtime {
                                           Actor &to,
                                           const BigInt &amount);
 
+    outcome::result<Address> resolveAddress(const Address &address) override;
+
    private:
     outcome::result<Actor> getOrCreateActor(const Address &address);
     std::shared_ptr<Runtime> createRuntime(
