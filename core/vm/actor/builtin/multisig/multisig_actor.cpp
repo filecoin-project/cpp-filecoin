@@ -141,8 +141,7 @@ ACTOR_METHOD(MultiSigActor::construct) {
   if (runtime.getImmediateCaller() != kInitAddress)
     return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
 
-  OUTCOME_TRY(construct_params,
-              decodeActorParams<ConstructParameters>(params));
+  OUTCOME_TRY(construct_params, decodeActorParams<ConstructParameters>(params));
   if (construct_params.signers.size() < construct_params.threshold)
     return VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT;
 
