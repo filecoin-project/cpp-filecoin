@@ -13,8 +13,8 @@
 #include "vm/actor/builtin/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::miner {
+  constexpr MethodNumber kGetControlAddressesMethodNumber{2};
 
-  constexpr MethodNumber kGetControlAddresses{2};
   constexpr MethodNumber kSubmitElectionPoStMethodNumber{20};
 
   struct GetControlAddressesReturn {
