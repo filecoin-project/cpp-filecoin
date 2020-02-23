@@ -66,6 +66,14 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD1(resolveAddress,
                  outcome::result<Address>(const Address &address));
+
+    MOCK_METHOD2(verifyPoSt,
+                 outcome::result<bool>(uint64_t sector_size,
+                                       const PoStVerifyInfo &info));
+
+    MOCK_METHOD2(verifySeal,
+                 outcome::result<bool>(uint64_t sector_size,
+                                       const SealVerifyInfo &info));
   };
 }  // namespace fc::vm::runtime
 

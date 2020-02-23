@@ -12,6 +12,7 @@
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
+#include "proofs/sector.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -34,6 +35,8 @@ namespace fc::vm::runtime {
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using primitives::address::Address;
+  using proofs::sector::PoStVerifyInfo;
+  using proofs::sector::SealVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using Serialization = Buffer;
 
@@ -141,6 +144,14 @@ namespace fc::vm::runtime {
 
     /// Resolve address to id-address
     virtual outcome::result<Address> resolveAddress(const Address &address) = 0;
+
+    /// Verify PoSt
+    virtual outcome::result<bool> verifyPoSt(uint64_t sector_size,
+                                             const PoStVerifyInfo &info) = 0;
+
+    /// Verify seal
+    virtual outcome::result<bool> verifySeal(uint64_t sector_size,
+                                             const SealVerifyInfo &info) = 0;
 
     /// Send funds
     inline auto sendFunds(const Address &to, BigInt value) {
