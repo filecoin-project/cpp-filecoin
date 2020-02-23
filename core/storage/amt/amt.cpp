@@ -184,6 +184,17 @@ namespace fc::storage::amt {
     return outcome::success();
   }
 
+  outcome::result<bool> Amt::contains(uint64_t key) {
+    auto res = get(key);
+    if (res) {
+      return true;
+    }
+    if (res.error() == AmtError::NOT_FOUND) {
+      return false;
+    }
+    return res.error();
+  }
+
   outcome::result<void> Amt::flush(Node &node) {
     if (which<Node::Links>(node.items)) {
       auto &links = boost::get<Node::Links>(node.items);

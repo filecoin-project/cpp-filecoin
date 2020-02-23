@@ -140,6 +140,8 @@ namespace fc::storage::amt {
     outcome::result<Value> get(uint64_t key);
     /// Remove value by key, does not write to storage
     outcome::result<void> remove(uint64_t key);
+    /// Checks if key is present
+    outcome::result<bool> contains(uint64_t key);
     /// Write changes made by set and remove to storage
     outcome::result<CID> flush();
     /// Get root CID if flushed, throw otherwise
