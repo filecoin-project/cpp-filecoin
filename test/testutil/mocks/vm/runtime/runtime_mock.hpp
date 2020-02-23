@@ -63,6 +63,9 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD1(commit,
                  outcome::result<void>(const ActorSubstateCID &new_state));
+
+    MOCK_METHOD1(resolveAddress,
+                 outcome::result<Address>(const Address &address));
   };
 }  // namespace fc::vm::runtime
 
