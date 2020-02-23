@@ -15,5 +15,8 @@ add_library(chain_randomness_provider
     impl/chain_randomness_provider_impl.cpp
     )
 target_link_libraries(chain_randomness_provider
-    chain_store
+    Boost::boost
+    blob
+    buffer
+    p2p::p2p_sha
     )

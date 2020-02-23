@@ -5,6 +5,7 @@ add_library(chain_store
     impl/chain_store_impl.cpp
     )
 target_link_libraries(chain_store
+    chain_randomness_provider
     datastore_key
     ipfs_blockservice
     logger

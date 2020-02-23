@@ -18,7 +18,7 @@ namespace fc::crypto::randomness {
     ~ChainRandomnessProviderImpl() override = default;
 
     explicit ChainRandomnessProviderImpl(
-        std::shared_ptr<storage::blockchain::ChainStore>);
+        std::shared_ptr<storage::blockchain::ChainStore> chain_store);
 
     outcome::result<Randomness> sampleRandomness(const std::vector<CID> &blks,
                                                  uint64_t round) override;
