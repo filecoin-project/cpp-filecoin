@@ -190,30 +190,21 @@ namespace fc::vm::actor::builtin::multisig {
    */
   class MultiSigActor {
    public:
-    static outcome::result<InvocationOutput> construct(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(construct);
 
-    static outcome::result<InvocationOutput> propose(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(propose);
 
-    static outcome::result<InvocationOutput> approve(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(approve);
 
-    static outcome::result<InvocationOutput> cancel(const Actor &actor,
-                                                    Runtime &runtime,
-                                                    const MethodParams &params);
+    static ACTOR_METHOD(cancel);
 
-    static outcome::result<InvocationOutput> addSigner(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(addSigner);
 
-    static outcome::result<InvocationOutput> removeSigner(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(removeSigner);
 
-    static outcome::result<InvocationOutput> swapSigner(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(swapSigner);
 
-    static outcome::result<InvocationOutput> changeThreshold(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(changeThreshold);
   };
 
   /** Exported Multisig Actor methods to invoker */

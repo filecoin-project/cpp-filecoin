@@ -97,8 +97,7 @@ namespace fc::vm::actor::builtin::reward {
     return withdrawable_sum;
   }
 
-  outcome::result<InvocationOutput> RewardActor::construct(
-      const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  ACTOR_METHOD(RewardActor::construct) {
     if (runtime.getImmediateCaller() != kSystemActorAddress) {
       return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
     }
@@ -111,8 +110,7 @@ namespace fc::vm::actor::builtin::reward {
     return outcome::success();
   }
 
-  outcome::result<InvocationOutput> RewardActor::awardBlockReward(
-      const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  ACTOR_METHOD(RewardActor::awardBlockReward) {
     if (runtime.getImmediateCaller() != kSystemActorAddress) {
       return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
     }
@@ -149,8 +147,7 @@ namespace fc::vm::actor::builtin::reward {
     return outcome::success();
   }
 
-  outcome::result<InvocationOutput> RewardActor::withdrawReward(
-      const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  ACTOR_METHOD(RewardActor::withdrawReward) {
     if (not isSignableActor(actor.code)) {
       return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
     }

@@ -15,9 +15,9 @@ using fc::vm::actor::kAccountCodeCid;
 using fc::vm::actor::builtin::payment_channel::PaymentChannelActor;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::Runtime;
+namespace outcome = fc::outcome;
 
-fc::outcome::result<InvocationOutput> PaymentChannelActor::construct(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(PaymentChannelActor::construct) {
   if (actor.code != kAccountCodeCid)
     return VMExitCode::PAYMENT_CHANNEL_WRONG_CALLER;
 
@@ -37,8 +37,7 @@ fc::outcome::result<InvocationOutput> PaymentChannelActor::construct(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> PaymentChannelActor::updateChannelState(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(PaymentChannelActor::updateChannelState) {
   OUTCOME_TRY(state,
               runtime.getIpfsDatastore()->getCbor<PaymentChannelActorState>(
                   actor.head));
@@ -55,17 +54,13 @@ fc::outcome::result<InvocationOutput> PaymentChannelActor::updateChannelState(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> PaymentChannelActor::settle(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
-
+ACTOR_METHOD(PaymentChannelActor::settle) {
   // TODO (a.chernyshov) not implemented yet FIL-129
 
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> PaymentChannelActor::collect(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
-
+ACTOR_METHOD(PaymentChannelActor::collect) {
   // TODO (a.chernyshov) not implemented yet FIL-129
 
   return fc::outcome::success();

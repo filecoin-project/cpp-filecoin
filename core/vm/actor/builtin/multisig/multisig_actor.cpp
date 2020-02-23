@@ -28,6 +28,7 @@ using fc::vm::actor::builtin::multisig::MultiSigActor;
 using fc::vm::actor::builtin::multisig::MultiSignatureActorState;
 using fc::vm::actor::builtin::multisig::MultiSignatureTransaction;
 using fc::vm::runtime::InvocationOutput;
+namespace outcome = fc::outcome;
 
 bool MultiSignatureTransaction::operator==(
     const MultiSignatureTransaction &other) const {
@@ -136,8 +137,7 @@ BigInt MultiSignatureActorState::getAmountLocked(
   return initial_balance / unlock_duration * elapsed_epoch;
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::construct(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(MultiSigActor::construct) {
   if (runtime.getImmediateCaller() != kInitAddress)
     return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
 
@@ -162,8 +162,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::construct(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::propose(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(MultiSigActor::propose) {
   if (!isSignableActor(actor.code))
     return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
 
@@ -192,8 +191,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::propose(
   return InvocationOutput{Buffer{encoded_result}};
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::approve(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(MultiSigActor::approve) {
   if (!isSignableActor(actor.code))
     return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
 
@@ -210,8 +208,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::approve(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::cancel(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(MultiSigActor::cancel) {
   if (!isSignableActor(actor.code))
     return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
 
@@ -235,8 +232,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::cancel(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::addSigner(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(MultiSigActor::addSigner) {
   if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
     return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
   }
@@ -257,8 +253,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::addSigner(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::removeSigner(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(MultiSigActor::removeSigner) {
   if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
     return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
   }
@@ -286,8 +281,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::removeSigner(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::swapSigner(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(MultiSigActor::swapSigner) {
   if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
     return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
   }
@@ -311,8 +305,7 @@ fc::outcome::result<InvocationOutput> MultiSigActor::swapSigner(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> MultiSigActor::changeThreshold(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(MultiSigActor::changeThreshold) {
   if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
     return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
   }

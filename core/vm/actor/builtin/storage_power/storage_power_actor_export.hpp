@@ -57,14 +57,11 @@ namespace fc::vm::actor::builtin::storage_power {
 
   class StoragePowerActorMethods {
    public:
-    static outcome::result<InvocationOutput> construct(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(construct);
 
-    static outcome::result<InvocationOutput> addBalance(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(addBalance);
 
-    static outcome::result<InvocationOutput> withdrawBalance(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(withdrawBalance);
   };
 
   /** Exported StoragePowerActor methods to invoker */

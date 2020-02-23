@@ -22,9 +22,7 @@ namespace fc::vm::actor::builtin::init {
     return Address::makeFromId(id);
   }
 
-  outcome::result<InvocationOutput> exec(const Actor &actor,
-                                         Runtime &runtime,
-                                         const MethodParams &params) {
+  ACTOR_METHOD(exec) {
     OUTCOME_TRY(exec_params, decodeActorParams<ExecParams>(params));
     if (!isBuiltinActor(exec_params.code)) {
       return VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR;

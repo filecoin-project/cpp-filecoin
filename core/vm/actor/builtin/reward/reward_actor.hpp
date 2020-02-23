@@ -82,14 +82,11 @@ namespace fc::vm::actor::builtin::reward {
 
   class RewardActor {
    public:
-    static outcome::result<InvocationOutput> construct(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(construct);
 
-    static outcome::result<InvocationOutput> awardBlockReward(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(awardBlockReward);
 
-    static outcome::result<InvocationOutput> withdrawReward(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(withdrawReward);
 
    private:
     static TokenAmount computeBlockReward(const State &state,

@@ -12,6 +12,10 @@
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
+#define ACTOR_METHOD(name)                \
+  outcome::result<InvocationOutput> name( \
+      const Actor &actor, Runtime &runtime, const MethodParams &params)
+
 namespace fc::vm::actor {
   using runtime::InvocationOutput;
   using runtime::Runtime;
