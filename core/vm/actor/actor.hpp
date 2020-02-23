@@ -120,6 +120,7 @@ namespace fc::vm::actor {
   inline static const auto kInitAddress = Address::makeFromId(0);
   inline static const auto kStoragePowerAddress = Address::makeFromId(2);
   inline static const auto kCronAddress = Address::makeFromId(4);
+  inline static const auto kStorageMarketAddress = Address::makeFromId(5);
   inline static const auto kBurntFundsActorAddress = Address::makeFromId(99);
 }  // namespace fc::vm::actor
 
