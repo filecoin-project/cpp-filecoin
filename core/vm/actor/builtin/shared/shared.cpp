@@ -10,17 +10,15 @@
 namespace fc::vm::actor::builtin {
 
   using adt::TokenAmount;
-  using power::Address;
-  using miner::kGetControlAddresses;
-  using runtime::Runtime;
   using codec::cbor::decode;
+  using miner::kGetControlAddressesMethodNumber;
+  using power::Address;
+  using runtime::Runtime;
 
   fc::outcome::result<GetControlAddressesReturn> requestMinerControlAddress(
       Runtime &runtime, const Address &miner) {
-    OUTCOME_TRY(result,
-                runtime.send(miner, kGetControlAddresses, {}, TokenAmount{0}));
-    OUTCOME_TRY(addresses, decode<GetControlAddressesReturn>(result.return_value.toVector()));
-    return std::move(addresses);
+    return runtime.sendR<GetControlAddressesReturn>(
+        miner, kGetControlAddressesMethodNumber, {}, 0);
   }
 
 }  // namespace fc::vm::actor::builtin

@@ -145,6 +145,36 @@ namespace fc::vm::runtime {
       return send(to, {0}, {}, value);
     }
 
+    /// Send with typed result R
+    template <typename R>
+    outcome::result<R> sendR(Address to_address,
+                             MethodNumber method_number,
+                             const MethodParams &params,
+                             BigInt value) {
+      OUTCOME_TRY(result, send(to_address, method_number, params, value));
+      return codec::cbor::decode<R>(result.return_value);
+    }
+
+    /// Send with typed params P and result R
+    template <typename R, typename P>
+    outcome::result<R> sendPR(Address to_address,
+                              MethodNumber method_number,
+                              const P &params,
+                              BigInt value) {
+      OUTCOME_TRY(params2, codec::cbor::encode(params));
+      return sendR<R>(to_address, method_number, MethodParams{params2}, value);
+    }
+
+    /// Send with typed params P
+    template <typename P>
+    outcome::result<InvocationOutput> sendP(Address to_address,
+                                            MethodNumber method_number,
+                                            const P &params,
+                                            BigInt value) {
+      OUTCOME_TRY(params2, codec::cbor::encode(params));
+      return send(to_address, method_number, MethodParams{params2}, value);
+    }
+
     /**
      * Commit actor state
      * @tparam T - POD state type
