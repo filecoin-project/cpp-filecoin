@@ -83,7 +83,7 @@ namespace fc::vm::runtime {
                                       const Actor &actor) override;
 
     /** \copydoc Runtime::deleteActor() */
-    outcome::result<void> deleteActor(const Address &address) override;
+    outcome::result<void> deleteActor() override;
 
     /** \copydoc Runtime::getIpfsDatastore() */
     std::shared_ptr<IpfsDatastore> getIpfsDatastore() override;

@@ -115,11 +115,9 @@ namespace fc::vm::runtime {
     /**
      * @brief Deletes an actor in the state tree
      *
-     * May only be called by the actor itself, or by StoragePowerActor in the
-     * case of StorageMinerActors
-     * @param address - address of actor to delete
+     * May only be called by the actor itself
      */
-    virtual outcome::result<void> deleteActor(const Address &address) = 0;
+    virtual outcome::result<void> deleteActor() = 0;
 
     /**
      * @brief Returns IPFS datastore

@@ -131,20 +131,10 @@ fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,
   return fc::outcome::success();
 }
 
-fc::outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {
-  // May only be called by the actor itself, or by StoragePowerActor in the
-  // case of StorageMinerActors
-  OUTCOME_TRY(actor_caller, state_tree_->get(immediate_caller_));
-  OUTCOME_TRY(actor_to_delete, state_tree_->get(address));
-  if ((address == immediate_caller_)
-      || (actor_caller.code == actor::kStoragePowerCodeCid
-          && actor_to_delete.code == actor::kStorageMinerCodeCid)) {
-    // TODO(a.chernyshov) FIL-137 implement state_tree remove if needed
-    // return state_tree_->remove(address);
-    return fc::outcome::failure(RuntimeError::UNKNOWN);
-  }
-  return fc::outcome::failure(
-      RuntimeError::DELETE_ACTOR_OPERATION_NOT_PERMITTED);
+fc::outcome::result<void> RuntimeImpl::deleteActor() {
+  // TODO(a.chernyshov) FIL-137 implement state_tree remove if needed
+  // return state_tree_->remove(address);
+  return fc::outcome::failure(RuntimeError::UNKNOWN);
 }
 
 std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() {

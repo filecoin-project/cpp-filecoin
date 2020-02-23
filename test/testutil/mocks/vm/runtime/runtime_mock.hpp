@@ -51,7 +51,7 @@ namespace fc::vm::runtime {
                  outcome::result<void>(const Address &address,
                                        const Actor &actor));
 
-    MOCK_METHOD1(deleteActor, outcome::result<void>(const Address &address));
+    MOCK_METHOD0(deleteActor, outcome::result<void>());
 
     MOCK_METHOD0(getIpfsDatastore, std::shared_ptr<IpfsDatastore>());
 
