@@ -97,8 +97,7 @@ ACTOR_METHOD(StoragePowerActorMethods::withdrawBalance) {
                                        withdraw_balance_params.requested,
                                        claim.pledge));
 
-  OUTCOME_TRY(
-      runtime.send(control_addresses.owner, kSendMethodNumber, {}, subtracted));
+  OUTCOME_TRY(runtime.sendFunds(control_addresses.owner, subtracted));
 
   // commit state
   OUTCOME_TRY(power_actor_state, power_actor.flushState());

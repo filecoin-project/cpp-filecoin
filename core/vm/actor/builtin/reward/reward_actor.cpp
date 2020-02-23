@@ -141,8 +141,7 @@ namespace fc::vm::actor::builtin::reward {
       OUTCOME_TRY(state.addReward(
           runtime.getIpfsDatastore(), reward_params.miner, new_reward));
     }
-    OUTCOME_TRY(runtime.send(
-        kBurntFundsActorAddress, kSendMethodNumber, MethodParams{}, penalty));
+    OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, penalty));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -158,8 +157,7 @@ namespace fc::vm::actor::builtin::reward {
     OUTCOME_TRY(state, store->getCbor<State>(state_cid));
     OUTCOME_TRY(withdrawn,
                 state.withdrawReward(store, owner, runtime.getCurrentEpoch()));
-    OUTCOME_TRY(
-        runtime.send(owner, kSendMethodNumber, MethodParams{}, withdrawn));
+    OUTCOME_TRY(runtime.sendFunds(owner, withdrawn));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }

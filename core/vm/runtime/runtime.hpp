@@ -139,6 +139,12 @@ namespace fc::vm::runtime {
     /// Update actor state CID
     virtual outcome::result<void> commit(const ActorSubstateCID &new_state) = 0;
 
+    /// Send funds
+    inline auto sendFunds(const Address &to, BigInt value) {
+      // kSendMethodNumber circular dependency
+      return send(to, {0}, {}, value);
+    }
+
     /**
      * Commit actor state
      * @tparam T - POD state type
