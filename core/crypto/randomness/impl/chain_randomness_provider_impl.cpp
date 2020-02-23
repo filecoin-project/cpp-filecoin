@@ -6,23 +6,25 @@
 #include "crypto/randomness/impl/chain_randomness_provider_impl.hpp"
 
 #include <boost/assert.hpp>
+#include <libp2p/crypto/sha/sha256.hpp>
 #include "common/le_encoder.hpp"
+#include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 #include "storage/chain/chain_store.hpp"
 
 namespace fc::crypto::randomness {
 
   using crypto::randomness::Randomness;
+  using primitives::ticket::Ticket;
   using primitives::tipset::TipsetKey;
-  using storage::blockchain::ChainStoreError;
 
   namespace {
     /**
      * @brief ChainStore needs its own randomnes calculation function
      * @return randomness value
      */
-    crypto::randomness::Randomness drawRandomness(
-        const primitives::ticket::Ticket &ticket, uint64_t round) {
+    crypto::randomness::Randomness drawRandomness(const Ticket &ticket,
+                                                  uint64_t round) {
       common::Buffer buffer{};
       const size_t bytes_required = sizeof(round) + ticket.bytes.size();
       buffer.reserve(bytes_required);
@@ -52,9 +54,8 @@ namespace fc::crypto::randomness {
       OUTCOME_TRY(min_ticket_block, tipset.getMinTicketBlock());
 
       if (tipset.height <= round) {
-        if (!min_ticket_block.get().ticket.has_value()) {
-          return ChainStoreError::NO_MIN_TICKET_BLOCK;
-        }
+        BOOST_ASSERT_MSG(min_ticket_block.get().ticket.has_value(),
+                         "min ticket block has no value, internal error");
 
         return drawRandomness(*min_ticket_block.get().ticket, round);
       }

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/chain/chain_store.hpp"
+#include "storage/chain/impl/chain_store_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "blockchain/impl/block_validator_impl.hpp"
@@ -23,7 +23,7 @@ using fc::primitives::BigInt;
 using fc::primitives::block::BlockHeader;
 using fc::primitives::ticket::Ticket;
 using fc::storage::blockchain::ChainDataStoreImpl;
-using fc::storage::blockchain::ChainStore;
+using fc::storage::blockchain::ChainStoreImpl;
 using fc::storage::ipfs::IpfsBlockService;
 using fc::storage::ipfs::InMemoryDatastore;
 
@@ -71,16 +71,16 @@ struct ChainStoreTest : public ::testing::Test {
     auto weight_calculator = std::make_shared<WeightCalculatorImpl>();
 
     EXPECT_OUTCOME_TRUE(store,
-                        ChainStore::create(std::move(block_service),
-                                           std::move(data_store),
-                                           std::move(block_validator),
-                                           std::move(weight_calculator)));
+                        ChainStoreImpl::create(std::move(block_service),
+                                               std::move(data_store),
+                                               std::move(block_validator),
+                                               std::move(weight_calculator)));
     chain_store = std::move(store);
 
     block = makeBlock();
   }
 
-  std::shared_ptr<ChainStore> chain_store;
+  std::shared_ptr<ChainStoreImpl> chain_store;
   BlockHeader block;
 };
 
