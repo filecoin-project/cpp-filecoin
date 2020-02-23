@@ -13,6 +13,8 @@
 #include "primitives/chain_epoch/chain_epoch.hpp"
 
 namespace fc::primitives {
+  using ActorId = uint64_t;
+
   using TokenAmount = BigInt;
 
   using SectorSize = uint64_t;
