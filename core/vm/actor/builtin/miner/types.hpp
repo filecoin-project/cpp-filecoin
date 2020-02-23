@@ -83,6 +83,67 @@ namespace fc::vm::actor::builtin::miner {
     PoStState post_state;
   };
 
+  enum class CronEventType {
+    WindowedPoStExpiration,
+    WorkerKeyChange,
+    PreCommitExpiry,
+    SectorExpiry,
+    TempFault,
+  };
+
+  struct CronEventPayload {
+    CronEventType event_type;
+    boost::optional<RleBitset> sectors;
+    RegisteredProof registered_proof{};
+  };
+
+  struct ConstructorParams {
+    Address owner;
+    Address worker;
+    SectorSize sector_size;
+    PeerId peer_id;
+  };
+
+  struct GetControlAddressesReturn {
+    Address owner;
+    Address worker;
+  };
+
+  struct ChangeWorkerAddressParams {
+    Address new_worker;
+  };
+
+  struct ChangePeerIdParams {
+    PeerId new_id;
+  };
+
+  using SubmitWindowedPoStParams = OnChainPoStVerifyInfo;
+
+  using PreCommitSectorParams = SectorPreCommitInfo;
+
+  struct ProveCommitSectorParams {
+    SectorNumber sector;
+    SealProof proof;
+  };
+
+  struct ExtendSectorExpirationParams {
+    SectorNumber sector;
+    ChainEpoch new_expiration;
+  };
+
+  struct TerminateSectorsParams {
+    boost::optional<RleBitset> sectors;
+  };
+
+  struct DeclareTemporaryFaultsParams {
+    RleBitset sectors;
+    EpochDuration duration;
+  };
+
+  struct OnDeferredCronEventParams {
+    Buffer callback_payload;
+  };
+
   CBOR_TUPLE(PoStState, proving_period_start, num_consecutive_failures)
 
   CBOR_TUPLE(
@@ -112,6 +173,26 @@ namespace fc::vm::actor::builtin::miner {
              proving_set,
              info,
              post_state)
+
+  CBOR_TUPLE(CronEventPayload, event_type, sectors, registered_proof)
+
+  CBOR_TUPLE(ConstructorParams, owner, worker, sector_size, peer_id)
+
+  CBOR_TUPLE(GetControlAddressesReturn, owner, worker)
+
+  CBOR_TUPLE(ChangeWorkerAddressParams, new_worker)
+
+  CBOR_TUPLE(ChangePeerIdParams, new_id)
+
+  CBOR_TUPLE(ProveCommitSectorParams, sector, proof)
+
+  CBOR_TUPLE(ExtendSectorExpirationParams, sector, new_expiration)
+
+  CBOR_TUPLE(TerminateSectorsParams, sectors)
+
+  CBOR_TUPLE(DeclareTemporaryFaultsParams, sectors, duration)
+
+  CBOR_TUPLE(OnDeferredCronEventParams, callback_payload)
 }  // namespace fc::vm::actor::builtin::miner
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MINER_TYPES_HPP
