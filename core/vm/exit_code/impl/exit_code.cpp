@@ -30,8 +30,6 @@ namespace fc::vm {
       case E::ENCODE_ACTOR_PARAMS_ERROR:
         return 1;
 
-      case E::INVOKER_CANT_INVOKE_ACCOUNT_ACTOR:
-        return 254;
       case E::INVOKER_NO_CODE_OR_METHOD:
         return 255;
 
