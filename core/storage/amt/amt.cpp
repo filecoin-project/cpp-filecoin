@@ -130,9 +130,13 @@ namespace fc::storage::amt {
     if (which<Root>(root_)) {
       auto &root = boost::get<Root>(root_);
       OUTCOME_TRY(flush(root.node));
-      OUTCOME_TRY(cid, store_->setCbor(root));
-      root_ = cid;
+      OUTCOME_TRY(root_cid, store_->setCbor(root));
+      root_ = root_cid;
     }
+    return cid();
+  }
+
+  const CID &Amt::cid() const {
     return boost::get<CID>(root_);
   }
 

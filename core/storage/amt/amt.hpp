@@ -142,6 +142,8 @@ namespace fc::storage::amt {
     outcome::result<void> remove(uint64_t key);
     /// Write changes made by set and remove to storage
     outcome::result<CID> flush();
+    /// Get root CID if flushed, throw otherwise
+    const CID &cid() const;
     /// Apply visitor for key value pairs
     outcome::result<void> visit(const Visitor &visitor);
 

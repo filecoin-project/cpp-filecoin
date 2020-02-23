@@ -16,8 +16,8 @@ namespace fc::vm::actor::builtin::init {
     storage::hamt::Hamt hamt(std::move(store), address_map);
     auto id = next_id;
     OUTCOME_TRY(hamt.setCbor(primitives::address::encodeToString(address), id));
-    OUTCOME_TRY(cid, hamt.flush());
-    address_map = cid;
+    OUTCOME_TRY(hamt.flush());
+    address_map = hamt.cid();
     ++next_id;
     return Address::makeFromId(id);
   }
