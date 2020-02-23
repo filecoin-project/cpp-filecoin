@@ -175,6 +175,12 @@ namespace fc::vm::runtime {
       return send(to_address, method_number, MethodParams{params2}, value);
     }
 
+    /// Get decoded current actor state
+    template <typename T>
+    outcome::result<T> getCurrentActorStateCbor() {
+      return getIpfsDatastore()->getCbor<T>(getCurrentActorState());
+    }
+
     /**
      * Commit actor state
      * @tparam T - POD state type

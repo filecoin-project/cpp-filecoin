@@ -36,8 +36,7 @@ namespace fc::vm::actor::builtin::init {
         Buffer{primitives::address::encode(message.from)}.putUint64(
             message.nonce))};
     auto store = runtime.getIpfsDatastore();
-    OUTCOME_TRY(init_actor,
-                store->getCbor<InitActorState>(runtime.getCurrentActorState()));
+    OUTCOME_TRY(init_actor, runtime.getCurrentActorStateCbor<InitActorState>());
     OUTCOME_TRY(id_address, init_actor.addActor(store, actor_address));
     OUTCOME_TRY(runtime.createActor(
         id_address,

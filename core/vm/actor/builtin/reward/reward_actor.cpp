@@ -120,8 +120,7 @@ namespace fc::vm::actor::builtin::reward {
     OUTCOME_TRY(prior_balance,
                 runtime.getBalance(runtime.getMessage().get().to));
     TokenAmount penalty{0};
-    auto state_cid = runtime.getCurrentActorState();
-    OUTCOME_TRY(state, runtime.getIpfsDatastore()->getCbor<State>(state_cid));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
     auto block_reward = computeBlockReward(state, reward_params.gas_reward);
     TokenAmount total_reward = block_reward + reward_params.gas_reward;
@@ -152,9 +151,8 @@ namespace fc::vm::actor::builtin::reward {
     }
     auto owner = runtime.getMessage().get().from;
 
-    auto state_cid = runtime.getCurrentActorState();
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     auto store = runtime.getIpfsDatastore();
-    OUTCOME_TRY(state, store->getCbor<State>(state_cid));
     OUTCOME_TRY(withdrawn,
                 state.withdrawReward(store, owner, runtime.getCurrentEpoch()));
     OUTCOME_TRY(runtime.sendFunds(owner, withdrawn));

@@ -43,9 +43,7 @@ namespace fc::vm::actor::builtin::account {
   }
 
   ACTOR_METHOD(pubkeyAddress) {
-    OUTCOME_TRY(state,
-                runtime.getIpfsDatastore()->getCbor<AccountActorState>(
-                    runtime.getCurrentActorState()));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<AccountActorState>());
     OUTCOME_TRY(result, codec::cbor::encode(state.address));
     return InvocationOutput{Buffer{result}};
   }
