@@ -12,7 +12,6 @@ find_package(Boost CONFIG REQUIRED date_time filesystem random system)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Microsoft.GSL.html
 hunter_add_package(Microsoft.GSL)
-find_package(Microsoft.GSL CONFIG REQUIRED)
 
 # https://www.openssl.org/
 hunter_add_package(OpenSSL)
