@@ -55,6 +55,41 @@ namespace fc::vm::actor::builtin::storage_power {
     TokenAmount requested;
   };
 
+  struct OnSectorProveCommitParams {
+    SectorStorageWeightDesc weight;
+  };
+
+  struct OnSectorTerminateParams {
+    SectorTermination termination_type;
+    std::vector<SectorStorageWeightDesc> weights;
+    TokenAmount pledge;
+  };
+
+  struct OnSectorTemporaryFaultEffectiveBeginParams {
+    std::vector<SectorStorageWeightDesc> weights;
+    TokenAmount pledge;
+  };
+
+  struct OnSectorTemporaryFaultEffectiveEndParams {
+    std::vector<SectorStorageWeightDesc> weights;
+    TokenAmount pledge;
+  };
+
+  struct OnSectorModifyWeightDescParams {
+    SectorStorageWeightDesc prev_weight;
+    TokenAmount prev_pledge;
+    SectorStorageWeightDesc new_weight;
+  };
+
+  struct OnMinerWindowedPoStFailureParams {
+    uint64_t num_consecutive_failures;
+  };
+
+  struct EnrollCronEventParams {
+    ChainEpoch event_epoch;
+    Buffer payload;
+  };
+
   class StoragePowerActorMethods {
    public:
     static ACTOR_METHOD(construct);
@@ -72,6 +107,23 @@ namespace fc::vm::actor::builtin::storage_power {
   CBOR_TUPLE(AddBalanceParameters, miner);
 
   CBOR_TUPLE(WithdrawBalanceParameters, miner, requested);
+
+  CBOR_TUPLE(OnSectorProveCommitParams, weight)
+
+  CBOR_TUPLE(OnSectorTerminateParams, termination_type, weights, pledge)
+
+  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveBeginParams, weights, pledge)
+
+  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveEndParams, weights, pledge)
+
+  CBOR_TUPLE(OnSectorModifyWeightDescParams,
+             prev_weight,
+             prev_pledge,
+             new_weight)
+
+  CBOR_TUPLE(OnMinerWindowedPoStFailureParams, num_consecutive_failures)
+
+  CBOR_TUPLE(EnrollCronEventParams, event_epoch, payload);
 
 }  // namespace fc::vm::actor::builtin::storage_power
 
