@@ -8,6 +8,7 @@
 #include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/actor/builtin/cron/cron_actor.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
+#include "vm/actor/builtin/miner/miner_actor.hpp"
 #include "vm/actor/builtin/multisig/multisig_actor.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 
@@ -19,6 +20,7 @@ namespace fc::vm::actor {
     builtin_[actor::kAccountCodeCid] = actor::builtin::account::exports;
     builtin_[actor::kCronCodeCid] = actor::builtin::cron::exports;
     builtin_[actor::kInitCodeCid] = actor::builtin::init::exports;
+    builtin_[actor::kStorageMinerCodeCid] = actor::builtin::miner::exports;
     builtin_[actor::kMultisigCodeCid] = actor::builtin::multisig::exports;
     builtin_[actor::kStoragePowerCodeCid] =
         actor::builtin::storage_power::exports;
