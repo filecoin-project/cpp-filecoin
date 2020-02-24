@@ -47,10 +47,10 @@ namespace fc::vm {
         return 18;  // ErrForbidden in actor-specs
       case E::MINER_ACTOR_POST_TOO_LATE:
       case E::MINER_ACTOR_POST_TOO_EARLY:
-      case E::MINER_ACTOR_ILLEGAL_STATE:
-        return 20;  // ErrIllegalState in actor-specs
       case E::MINER_ACTOR_INSUFFICIENT_FUNDS:
         return 19;  // ErrInsufficientFunds in actor-specs
+      case E::MINER_ACTOR_ILLEGAL_STATE:
+        return 20;  // ErrIllegalState in actor-specs
 
       case E::MULTISIG_ACTOR_WRONG_CALLER:
         return 1;
