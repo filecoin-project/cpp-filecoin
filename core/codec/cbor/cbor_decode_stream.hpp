@@ -26,6 +26,12 @@ namespace fc::codec::cbor {
         typename T,
         typename = std::enable_if_t<std::is_integral_v<T> || std::is_enum_v<T>>>
     CborDecodeStream &operator>>(T &num) {
+      if constexpr (std::is_enum_v<T>) {
+        std::underlying_type_t<T> value;
+        *this >> value;
+        num = T{value};
+        return *this;
+      }
       if constexpr (std::is_same_v<T, bool>) {
         if (!cbor_value_is_boolean(&value_)) {
           outcome::raise(CborDecodeError::WRONG_TYPE);
