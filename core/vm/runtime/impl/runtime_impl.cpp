@@ -178,13 +178,13 @@ fc::outcome::result<Address> RuntimeImpl::resolveAddress(
 
 fc::outcome::result<bool> RuntimeImpl::verifyPoSt(uint64_t sector_size,
                                                   const PoStVerifyInfo &info) {
-  // TODO(turuslan): FIL-112 connect verifyPoSt from proofs
+  // TODO(turuslan): FIL-160 connect verifyPoSt from proofs
   return RuntimeError::UNKNOWN;
 }
 
 fc::outcome::result<bool> RuntimeImpl::verifySeal(uint64_t sector_size,
                                                   const SealVerifyInfo &info) {
-  // TODO(turuslan): FIL-112 connect verifySeal from proofs
+  // TODO(turuslan): FIL-160 connect verifySeal from proofs
   return RuntimeError::UNKNOWN;
 }
 
