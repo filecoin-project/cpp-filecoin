@@ -15,6 +15,7 @@ using fc::vm::actor::builtin::miner::SectorOnChainInfo;
 using fc::vm::actor::builtin::miner::SectorPreCommitInfo;
 using fc::vm::actor::builtin::miner::SectorPreCommitOnChainInfo;
 using fc::vm::actor::builtin::miner::WorkerKeyChange;
+using fc::vm::actor::builtin::miner::RegisteredProof;
 
 const MinerInfo miner_info{
     Address::makeFromId(2),
@@ -64,4 +65,9 @@ TEST(MinerActorTest, MinerInfoCbor) {
       5,
   };
   expectEncodeAndReencode(info2, "85420002420003824200060562dead04"_unhex);
+}
+
+TEST(MinerActorTest, EncodeRegisteredProof) {
+  RegisteredProof proof{RegisteredProof::StackedDRG1GiBPoSt};
+  expectEncodeAndReencode(proof, "0C"_unhex);
 }
