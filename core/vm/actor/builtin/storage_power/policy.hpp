@@ -26,7 +26,7 @@ namespace fc::vm::actor::builtin::storage_power {
    */
   inline static const BigInt kPledgeFactor{3};
 
-  enum class SectorTerminationType {
+  enum class SectorTerminationType : int {
     // Implicit termination after all deals expire
     SECTOR_TERMINATION_EXPIRED = 1,
 

@@ -14,10 +14,13 @@
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "vm/actor/builtin/storage_power/policy.hpp"
 
 using fc::CID;
 using fc::adt::TokenAmount;
 using fc::common::Buffer;
+using fc::power::Power;
+using fc::primitives::EpochDuration;
 using fc::primitives::address::Address;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::storage::ipfs::IpfsDatastore;
@@ -31,6 +34,8 @@ using fc::vm::actor::kCronAddress;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::kSendMethodNumber;
 using fc::vm::actor::kStorageMinerCodeCid;
+using fc::vm::actor::SectorStorageWeightDescr;
+using fc::vm::actor::Weight;
 using fc::vm::actor::builtin::miner::GetControlAddressesReturn;
 using fc::vm::actor::builtin::miner::kGetControlAddresses;
 using fc::vm::actor::builtin::storage_power::AddBalanceParameters;
@@ -38,6 +43,12 @@ using fc::vm::actor::builtin::storage_power::Claim;
 using fc::vm::actor::builtin::storage_power::CreateMinerParameters;
 using fc::vm::actor::builtin::storage_power::CreateMinerReturn;
 using fc::vm::actor::builtin::storage_power::DeleteMinerParameters;
+using fc::vm::actor::builtin::storage_power::kEpochTotalExpectedReward;
+using fc::vm::actor::builtin::storage_power::kPledgeFactor;
+using fc::vm::actor::builtin::storage_power::OnSectorProveCommitParameters;
+using fc::vm::actor::builtin::storage_power::OnSectorProveCommitReturn;
+using fc::vm::actor::builtin::storage_power::OnSectorTerminateParameters;
+using fc::vm::actor::builtin::storage_power::SectorTerminationType;
 using fc::vm::actor::builtin::storage_power::StoragePowerActor;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorMethods;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
@@ -90,6 +101,20 @@ class StoragePowerActorTest : public ::testing::Test {
     EXPECT_OUTCOME_TRUE(actor_head_cid, datastore->setCbor(actor_state));
     caller.head = ActorSubstateCID{actor_head_cid};
     return miner_address;
+  }
+
+  /**
+   * Set total network power for power actor state
+   * @param power to set
+   */
+  void setNetworkPower(const Power &power) {
+    EXPECT_OUTCOME_TRUE(
+        actor_state, datastore->getCbor<StoragePowerActorState>(caller.head));
+    actor_state.total_network_power = power;
+    StoragePowerActor actor(datastore, actor_state);
+    EXPECT_OUTCOME_TRUE(actor_new_state, actor.flushState());
+    EXPECT_OUTCOME_TRUE(actor_head_cid, datastore->setCbor(actor_new_state));
+    caller.head = ActorSubstateCID{actor_head_cid};
   }
 
   /**
@@ -598,4 +623,98 @@ TEST_F(StoragePowerActorTest, DeleteMinerSuccess) {
                       datastore->getCbor<StoragePowerActorState>(state_cid));
   StoragePowerActor actor(datastore, state);
   EXPECT_OUTCOME_EQ(actor.hasMiner(miner_address), false);
+}
+
+/**
+ * @given Runtime and state with miner
+ * @when onSectorProofCommitSuccess called
+ * @then miner claim has changed
+ */
+TEST_F(StoragePowerActorTest, OnSectorProofCommitSuccess) {
+  Address miner_address = createStateWithMiner();
+  Power network_power{10};
+  setNetworkPower(network_power);
+  caller.code = kStorageMinerCodeCid;
+  uint64_t sector_size{2};
+  EpochDuration duration{3};
+  SectorStorageWeightDescr weight_descr{sector_size, duration, 0};
+  OnSectorProveCommitParameters parameters{weight_descr};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(parameters));
+
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
+
+  UnsignedMessage message{caller_address, miner_address, 0, 0};
+  EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
+
+  // commit and capture state CID
+  EXPECT_CALL(runtime, commit(_))
+      .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
+
+  // expected output
+  TokenAmount pledge = sector_size * duration * kEpochTotalExpectedReward
+                       * kPledgeFactor / network_power;
+  OnSectorProveCommitReturn result{pledge};
+  EXPECT_OUTCOME_TRUE(encoded_result, encodeActorReturn(result));
+
+  EXPECT_OUTCOME_EQ(StoragePowerActorMethods::onSectorProveCommit(
+                        caller, runtime, encoded_params),
+                    encoded_result);
+
+  // inspect state
+  ActorSubstateCID state_cid = getCapturedCid();
+  EXPECT_OUTCOME_TRUE(state,
+                      datastore->getCbor<StoragePowerActorState>(state_cid));
+  StoragePowerActor actor(datastore, state);
+  EXPECT_OUTCOME_TRUE(claim, actor.getClaim(miner_address));
+  EXPECT_EQ(claim.pledge, pledge);
+  EXPECT_EQ(claim.power, sector_size);
+}
+
+/**
+ * @givenRuntime and state with miner
+ * @when onSectorProofCommitSuccess called
+ * @then miner balance slashed
+ */
+TEST_F(StoragePowerActorTest, OnSectorTerminateSuccess) {
+  Address miner_address = createStateWithMiner();
+  Power initial_power{100};
+  TokenAmount initial_pledge{100};
+  setClaim(miner_address, Claim{initial_power, initial_pledge});
+  caller.code = kStorageMinerCodeCid;
+
+  SectorStorageWeightDescr weight_descr_1{1, 1, 1};
+  SectorStorageWeightDescr weight_descr_2{2, 2, 2};
+  std::vector<SectorStorageWeightDescr> weights{weight_descr_1, weight_descr_2};
+  TokenAmount pledge{10};
+  OnSectorTerminateParameters parameters{
+      SectorTerminationType::SECTOR_TERMINATION_EXPIRED, weights, pledge};
+  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(parameters));
+
+  UnsignedMessage message{caller_address, miner_address, 0, 0};
+  EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
+
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(2)
+      .WillRepeatedly(testing::Return(datastore));
+
+  // commit and capture state CID
+  EXPECT_CALL(runtime, commit(_))
+      .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
+
+  EXPECT_OUTCOME_TRUE_1(StoragePowerActorMethods::onSectorTerminate(
+      caller, runtime, encoded_params));
+
+  // inspect state
+  ActorSubstateCID state_cid = getCapturedCid();
+  EXPECT_OUTCOME_TRUE(state,
+                      datastore->getCbor<StoragePowerActorState>(state_cid));
+  StoragePowerActor actor(datastore, state);
+
+  EXPECT_OUTCOME_TRUE(claim, actor.getClaim(miner_address));
+  EXPECT_EQ(claim.pledge, initial_pledge - pledge);
+  EXPECT_EQ(
+      claim.power,
+      initial_power - weight_descr_1.sector_size - weight_descr_2.sector_size);
 }
