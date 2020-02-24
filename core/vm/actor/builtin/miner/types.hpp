@@ -33,16 +33,26 @@ namespace fc::vm::actor::builtin::miner {
   using PeerId = std::string;
 
   struct PoStState {
+    /// Epoch that starts the current proving period
     ChainEpoch proving_period_start;
+    /**
+     * Number of surprised post challenges that have been failed since last
+     * successful PoSt. Indicates that the claimed storage power may not
+     * actually be proven. Recovery can proceed by submitting a correct response
+     * to a subsequent PoSt challenge, up until the limit of number of
+     * consecutive failures.
+     */
     uint64_t num_consecutive_failures;
   };
 
   struct SectorPreCommitInfo {
     RegisteredProof registered_proof;
     SectorNumber sector;
+    /// CommR
     CID sealed_cid;
     ChainEpoch seal_epoch;
     std::vector<DealId> deal_ids;
+    /// Sector expiration
     ChainEpoch expiration;
   };
 
@@ -54,30 +64,56 @@ namespace fc::vm::actor::builtin::miner {
 
   struct SectorOnChainInfo {
     SectorPreCommitInfo info;
+    /// Epoch at which SectorProveCommit is accepted
     ChainEpoch activation_epoch;
+    /// Integral of active deals over sector lifetime, 0 if CommittedCapacity
+    /// sector
     DealWeight deal_weight;
+    /// Fixed pledge collateral requirement determined at activation
     TokenAmount pledge_requirement;
+    /// -1 if not currently declared faulted.
     ChainEpoch declared_fault_epoch;
+    /// -1 if not currently declared faulted.
     ChainEpoch declared_fault_duration;
   };
 
   struct WorkerKeyChange {
+    /// Must be an ID address
     Address new_worker;
     ChainEpoch effective_at;
   };
 
   struct MinerInfo {
+    /**
+     * Account that owns this miner.
+     * - Income and returned collateral are paid to this address.
+     * - This address is also allowed to change the worker address for the
+     * miner.
+     *
+     * Must be an ID-address.
+     */
     Address owner;
+    /**
+     * Worker account for this miner. The associated pubkey-type address is used
+     * to sign blocks and messages on behalf of this miner. Must be an
+     * ID-address.
+     */
     Address worker;
     boost::optional<WorkerKeyChange> pending_worker_key;
+    /// Libp2p identity that should be used when connecting to this miner.
     PeerId peer_id;
+    /// Amount of space in each sector committed to the network by this miner.
     SectorSize sector_size;
   };
 
+  /// Balance of a Actor should equal exactly the sum of PreCommit deposits
   struct MinerActorState {
+    /// Map, HAMT[SectorNumber]SectorPreCommitOnChainInfo
     CID precommitted_sectors;
+    /// Array, AMT[]SectorOnChainInfo (sparse)
     CID sectors;
     RleBitset fault_set;
+    /// Array, AMT[]SectorOnChainInfo (sparse)
     CID proving_set;
     MinerInfo info;
     PoStState post_state;
