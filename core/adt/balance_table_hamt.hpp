@@ -8,18 +8,17 @@
 
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
-#include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
+#include "primitives/types.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::adt {
 
-  using primitives::BigInt;
+  using primitives::TokenAmount;
   using primitives::address::Address;
   using storage::hamt::Hamt;
   using storage::ipfs::IpfsDatastore;
-  using TokenAmount = BigInt;
 
   /**
    * Stores miner balances
