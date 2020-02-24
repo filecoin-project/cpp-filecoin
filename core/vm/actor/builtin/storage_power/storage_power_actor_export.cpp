@@ -231,7 +231,8 @@ StoragePowerActorMethods::onSectorTerminate(const Actor &actor,
     TokenAmount amount_to_slash = pledgePenaltyForSectorTermination(
         on_sector_terminate_params.pledge,
         on_sector_terminate_params.termination_type);
-    OUTCOME_TRY(slashPledgeCollateral(runtime, miner_address, amount_to_slash));
+    OUTCOME_TRY(slashPledgeCollateral(
+        runtime, power_actor, miner_address, amount_to_slash));
   }
 
   OUTCOME_TRY(power_actor_state, power_actor.flushState());
@@ -240,19 +241,38 @@ StoragePowerActorMethods::onSectorTerminate(const Actor &actor,
 }
 
 fc::outcome::result<InvocationOutput>
-StoragePowerActorMethods::slashPledgeCollateral(Runtime &runtime,
-                                                Address miner,
-                                                TokenAmount to_slash) {
+StoragePowerActorMethods::onSectorTemporaryFaultEffectiveBegin(
+    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  if (actor.code != kStorageMinerCodeCid)
+    return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
+
+  OUTCOME_TRY(on_sector_fault_params,
+              decodeActorParams<OnSectorTemporaryFaultEffectiveBeginParameters>(
+                  params));
+  StoragePower power = consensusPowerForWeights(on_sector_fault_params.weights);
+
   auto datastore = runtime.getIpfsDatastore();
-  OUTCOME_TRY(state,
-              datastore->getCbor<StoragePowerActorState>(
-                  runtime.getCurrentActorState()));
+  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
   StoragePowerActor power_actor(datastore, state);
 
+  OUTCOME_TRY(power_actor.addToClaim(
+      runtime.getMessage().get().from, -power, -on_sector_fault_params.pledge));
+
+  OUTCOME_TRY(power_actor_state, power_actor.flushState());
+  OUTCOME_TRY(runtime.commitState(power_actor_state));
+  return fc::outcome::success();
+}
+
+fc::outcome::result<InvocationOutput>
+StoragePowerActorMethods::slashPledgeCollateral(Runtime &runtime,
+                                                StoragePowerActor &power_actor,
+                                                Address miner,
+                                                TokenAmount to_slash) {
   OUTCOME_TRY(
       slashed,
       power_actor.subtractMinerBalance(miner, to_slash, TokenAmount{0}));
-  OUTCOME_TRY(runtime.send(kBurntFundsActorAddress, kSendMethodNumber, {}, slashed)));
+  OUTCOME_TRY(
+      runtime.send(kBurntFundsActorAddress, kSendMethodNumber, {}, slashed));
 
   return fc::outcome::success();
 }
@@ -271,4 +291,7 @@ const ActorExports fc::vm::actor::builtin::storage_power::exports = {
     {kOnSectorProveCommitMethodNumber,
      ActorMethod(StoragePowerActorMethods::onSectorProveCommit)},
     {kOnSectorTerminateMethodNumber,
-     ActorMethod(StoragePowerActorMethods::onSectorTerminate)}};
+     ActorMethod(StoragePowerActorMethods::onSectorTerminate)},
+    {kOnSectorTerminateMethodNumber,
+     ActorMethod(
+         StoragePowerActorMethods::onSectorTemporaryFaultEffectiveBegin)}};

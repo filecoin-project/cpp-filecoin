@@ -75,6 +75,11 @@ namespace fc::vm::actor::builtin::storage_power {
     TokenAmount pledge;
   };
 
+  struct OnSectorTemporaryFaultEffectiveBeginParameters {
+    std::vector<SectorStorageWeightDescr> weights;
+    TokenAmount pledge;
+  };
+
   class StoragePowerActorMethods {
    public:
     static outcome::result<InvocationOutput> construct(
@@ -98,9 +103,17 @@ namespace fc::vm::actor::builtin::storage_power {
     static outcome::result<InvocationOutput> onSectorTerminate(
         const Actor &actor, Runtime &runtime, const MethodParams &params);
 
+    static outcome::result<InvocationOutput>
+    onSectorTemporaryFaultEffectiveBegin(const Actor &actor,
+                                         Runtime &runtime,
+                                         const MethodParams &params);
+
    private:
     static outcome::result<InvocationOutput> slashPledgeCollateral(
-        Runtime &runtime, Address miner, TokenAmount to_slash);
+        Runtime &runtime,
+        StoragePowerActor &power_actor,
+        Address miner,
+        TokenAmount to_slash);
   };
 
   /** Exported StoragePowerActor methods to invoker */
@@ -111,16 +124,16 @@ namespace fc::vm::actor::builtin::storage_power {
   CBOR_TUPLE(WithdrawBalanceParameters, miner, requested)
 
   CBOR_TUPLE(CreateMinerParameters, worker, sector_size, peer_id)
-
   CBOR_TUPLE(CreateMinerReturn, id_address, robust_address)
 
   CBOR_TUPLE(DeleteMinerParameters, miner)
 
   CBOR_TUPLE(OnSectorProveCommitParameters, weight)
-
   CBOR_TUPLE(OnSectorProveCommitReturn, pledge)
 
   CBOR_TUPLE(OnSectorTerminateParameters, termination_type, weights, pledge)
+
+  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveBeginParameters, weights, pledge)
 
 }  // namespace fc::vm::actor::builtin::storage_power
 
