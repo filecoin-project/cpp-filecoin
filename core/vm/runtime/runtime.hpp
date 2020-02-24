@@ -40,6 +40,16 @@ namespace fc::vm::runtime {
   using storage::ipfs::IpfsDatastore;
   using Serialization = Buffer;
 
+  /// Encode actor params, raises appropriate error
+  template <typename T>
+  outcome::result<MethodParams> encodeActorParams(const T &params) {
+    auto maybe_bytes = codec::cbor::encode(params);
+    if (!maybe_bytes) {
+      return VMExitCode::ENCODE_ACTOR_PARAMS_ERROR;
+    }
+    return MethodParams{maybe_bytes.value()};
+  }
+
   /**
    * @class Runtime is the VM's internal runtime object exposed to actors
    */
@@ -175,7 +185,7 @@ namespace fc::vm::runtime {
                               MethodNumber method_number,
                               const P &params,
                               BigInt value) {
-      OUTCOME_TRY(params2, codec::cbor::encode(params));
+      OUTCOME_TRY(params2, encodeActorParams(params));
       return sendR<R>(to_address, method_number, MethodParams{params2}, value);
     }
 
@@ -185,7 +195,7 @@ namespace fc::vm::runtime {
                                             MethodNumber method_number,
                                             const P &params,
                                             BigInt value) {
-      OUTCOME_TRY(params2, codec::cbor::encode(params));
+      OUTCOME_TRY(params2, encodeActorParams(params));
       return send(to_address, method_number, MethodParams{params2}, value);
     }
 
