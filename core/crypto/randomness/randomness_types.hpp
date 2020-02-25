@@ -21,7 +21,9 @@ namespace fc::crypto::randomness {
   enum class DomainSeparationTag : size_t {
     TicketDrawingDST = 1,
     TicketProductionDST = 2,
-    PoStDST = 3
+    PoStDST = 3,
+    SealRandomness = 4,
+    InteractiveSealChallengeSeed = 5,
   };
 
 }  // namespace fc::crypto::randomness

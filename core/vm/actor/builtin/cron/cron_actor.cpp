@@ -14,9 +14,7 @@ namespace fc::vm::actor::builtin::cron {
   std::vector<CronTableEntry> entries = {
       {kStoragePowerAddress, {storage_power::kOnEpochTickEndMethodNumber}}};
 
-  outcome::result<InvocationOutput> epochTick(const Actor &actor,
-                                              Runtime &runtime,
-                                              const MethodParams &params) {
+  ACTOR_METHOD(epochTick) {
     if ((runtime.getMessage().get().from != kCronAddress)) {
       return VMExitCode::CRON_ACTOR_WRONG_CALL;
     }

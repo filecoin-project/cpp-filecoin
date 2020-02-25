@@ -30,7 +30,7 @@ using fc::vm::actor::kInitAddress;
 using fc::vm::actor::kSendMethodNumber;
 using fc::vm::actor::kStorageMinerCodeCid;
 using fc::vm::actor::builtin::miner::GetControlAddressesReturn;
-using fc::vm::actor::builtin::miner::kGetControlAddresses;
+using fc::vm::actor::builtin::miner::kGetControlAddressesMethodNumber;
 using fc::vm::actor::builtin::storage_power::AddBalanceParameters;
 using fc::vm::actor::builtin::storage_power::ConstructParameters;
 using fc::vm::actor::builtin::storage_power::StoragePowerActor;
@@ -195,7 +195,7 @@ TEST_F(StoragePowerActorTest, AddBalanceInternalError) {
       .WillOnce(testing::Return(caller_address));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::failure(VMExitCode::_)));
@@ -228,7 +228,7 @@ TEST_F(StoragePowerActorTest, AddBalanceSuccess) {
                       fc::codec::cbor::encode(get_controll_address_return));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
@@ -276,7 +276,7 @@ TEST_F(StoragePowerActorTest, WithdrawBalanceNegative) {
                       fc::codec::cbor::encode(get_controll_address_return));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
@@ -311,7 +311,7 @@ TEST_F(StoragePowerActorTest, WithdrawBalanceSuccess) {
                       fc::codec::cbor::encode(get_controll_address_return));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
