@@ -29,7 +29,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
   enum class SectorTerminationType : int {
     // Implicit termination after all deals expire
-    SECTOR_TERMINATION_EXPIRED = 1,
+    SECTOR_TERMINATION_EXPIRED = 0,
 
     // Unscheduled explicit termination by the miner
     SECTOR_TERMINATION_MANUAL
