@@ -43,8 +43,6 @@ namespace fc::vm::actor::builtin::storage_power {
   // effectively limit consensus power. From spec: 3
   static const size_t kConsensusMinerMinMiners = 3;
 
-  enum class SectorTermination { Expired, Manual };
-
   struct Claim {
     // Sum of power for a miner's sectors
     Power power;
