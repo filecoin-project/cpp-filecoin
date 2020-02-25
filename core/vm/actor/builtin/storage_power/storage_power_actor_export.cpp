@@ -108,7 +108,9 @@ ACTOR_METHOD(StoragePowerActorMethods::withdrawBalance) {
 
 fc::outcome::result<InvocationOutput> StoragePowerActorMethods::createMiner(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
-  if (!isSignableActor((actor.code)))
+  OUTCOME_TRY(immediate_caller_code_id,
+              runtime.getActorCodeID(runtime.getImmediateCaller()));
+  if (!isSignableActor((immediate_caller_code_id)))
     return VMExitCode::STORAGE_POWER_FORBIDDEN;
 
   OUTCOME_TRY(create_miner_params,
@@ -176,7 +178,9 @@ fc::outcome::result<InvocationOutput>
 StoragePowerActorMethods::onSectorProveCommit(const Actor &actor,
                                               Runtime &runtime,
                                               const MethodParams &params) {
-  if (actor.code != kStorageMinerCodeCid)
+  OUTCOME_TRY(immediate_caller_code_id,
+              runtime.getActorCodeID(runtime.getImmediateCaller()));
+  if (immediate_caller_code_id != kStorageMinerCodeCid)
     return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
 
   OUTCOME_TRY(on_sector_prove_commit_params,
@@ -206,7 +210,9 @@ fc::outcome::result<InvocationOutput>
 StoragePowerActorMethods::onSectorTerminate(const Actor &actor,
                                             Runtime &runtime,
                                             const MethodParams &params) {
-  if (actor.code != kStorageMinerCodeCid)
+  OUTCOME_TRY(immediate_caller_code_id,
+              runtime.getActorCodeID(runtime.getImmediateCaller()));
+  if (immediate_caller_code_id != kStorageMinerCodeCid)
     return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
 
   OUTCOME_TRY(on_sector_terminate_params,
@@ -240,7 +246,9 @@ StoragePowerActorMethods::onSectorTerminate(const Actor &actor,
 fc::outcome::result<InvocationOutput>
 StoragePowerActorMethods::onSectorTemporaryFaultEffectiveBegin(
     const Actor &actor, Runtime &runtime, const MethodParams &params) {
-  if (actor.code != kStorageMinerCodeCid)
+  OUTCOME_TRY(immediate_caller_code_id,
+              runtime.getActorCodeID(runtime.getImmediateCaller()));
+  if (immediate_caller_code_id != kStorageMinerCodeCid)
     return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
 
   OUTCOME_TRY(on_sector_fault_params,
