@@ -17,7 +17,7 @@ namespace fc::storage::ipfs::graphsync {
 
    private:
     outcome::result<size_t> select(
-        gsl::span<const uint8_t> root_cid,
+        const CID &root_cid,
         gsl::span<const uint8_t> selector,
         std::function<bool(const CID &cid, const common::Buffer &data)> handler)
         const override;

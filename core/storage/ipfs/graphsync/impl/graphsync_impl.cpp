@@ -11,20 +11,21 @@
 
 namespace fc::storage::ipfs::graphsync {
 
-  Subscription GraphsyncImpl::start(std::shared_ptr<MerkleDagBridge> dag,
-                                    Graphsync::BlockCallback callback) {
+  void GraphsyncImpl::start(std::shared_ptr<MerkleDagBridge> dag,
+                            Graphsync::BlockCallback callback) {
     assert(dag);
     assert(callback);
 
     network_->start(shared_from_this());
+    dag_ = std::move(dag);
+    block_cb_ = std::move(callback);
     started_ = true;
-    return block_subscription_->start(std::move(callback));
   }
 
   Subscription GraphsyncImpl::makeRequest(
       const libp2p::peer::PeerId &peer,
       boost::optional<libp2p::multi::Multiaddress> address,
-      gsl::span<const uint8_t> root_cid,
+      const CID& root_cid,
       gsl::span<const uint8_t> selector,
       bool need_metadata,
       const std::vector<CID> &dont_send_cids,
@@ -83,7 +84,7 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
-    block_subscription_->forward(std::move(cid), std::move(data));
+    block_cb_(std::move(cid), std::move(data));
   }
 
   void GraphsyncImpl::onRemoteRequest(const PeerId &from,
@@ -130,7 +131,8 @@ namespace fc::storage::ipfs::graphsync {
     auto serialize_res = request_builder_.serialize();
     request_builder_.clear();
 
-    network_->cancelRequest(request_id,
+    network_->cancelRequest(
+        request_id,
         serialize_res ? std::move(serialize_res.value()) : SharedData{});
   }
 

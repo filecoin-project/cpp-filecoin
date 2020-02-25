@@ -14,10 +14,10 @@ namespace fc::storage::ipfs::graphsync {
   class RequestBuilder : public MessageBuilder {
    public:
     void addRequest(int request_id,
-                    gsl::span<const uint8_t> root_cid,
+                    const CID &root_cid,
                     gsl::span<const uint8_t> selector,
                     bool need_metadata,
-                    const std::vector<CID>& dont_send_cids);
+                    const std::vector<CID> &dont_send_cids);
 
     void addCancelRequest(int request_id);
 

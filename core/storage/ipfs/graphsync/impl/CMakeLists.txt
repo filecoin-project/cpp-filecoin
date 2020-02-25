@@ -9,7 +9,6 @@ add_library(graphsync
     common.cpp
     graphsync_impl.cpp
     merkledag_bridge_impl.cpp
-    block_subscription.cpp
     local_requests.cpp
     network/network.cpp
     network/peer_context.cpp
@@ -26,9 +25,8 @@ target_include_directories(graphsync PRIVATE "${CMAKE_BINARY_DIR}/generated/stor
 
 target_link_libraries(graphsync
     Boost::boost
-    p2p_multiaddress
-    p2p_varint_reader
-    p2p_peer_id
-    p2p_cid
+    p2p::p2p
+    cid
+    logger
     graphsync_proto
     )

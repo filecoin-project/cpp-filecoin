@@ -26,8 +26,7 @@ namespace fc::storage::ipfs::graphsync {
       return data;
     }
 
-    std::string encodeCids(
-        const std::vector<CID>& dont_send_cids) {
+    std::string encodeCids(const std::vector<CID> &dont_send_cids) {
       CborEncodeStream encoder;
       encoder << dont_send_cids;
       auto d = encoder.data();
@@ -37,7 +36,7 @@ namespace fc::storage::ipfs::graphsync {
   }  // namespace
 
   void RequestBuilder::addRequest(int request_id,
-                                  gsl::span<const uint8_t> root_cid,
+                                  const CID &root_cid,
                                   gsl::span<const uint8_t> selector,
                                   bool need_metadata,
                                   const std::vector<CID> &dont_send_cids) {
@@ -45,7 +44,11 @@ namespace fc::storage::ipfs::graphsync {
 
     auto *dst = pb_msg_->add_requests();
     dst->set_id(request_id);
-    dst->set_root(root_cid.data(), root_cid.size());
+
+    CborEncodeStream encoder;
+    encoder << root_cid;
+    auto d = encoder.data();
+    dst->set_root(d.data(), d.size());
     if (!selector.empty()) {
       dst->set_selector(selector.data(), selector.size());
     }

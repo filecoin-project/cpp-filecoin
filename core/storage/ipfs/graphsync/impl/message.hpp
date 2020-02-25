@@ -18,8 +18,8 @@ namespace fc::storage::ipfs::graphsync {
       /// requester-unique id
       int32_t id = 0;
 
-      /// binary encoded rood CID
-      common::Buffer root_cid;
+      /// root CID
+      CID root_cid;
 
       /// selector string
       common::Buffer selector;

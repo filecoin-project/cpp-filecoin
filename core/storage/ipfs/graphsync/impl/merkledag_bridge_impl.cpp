@@ -26,7 +26,7 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   outcome::result<size_t> MerkleDagBridgeImpl::select(
-      gsl::span<const uint8_t> root_cid,
+      const CID& root_cid,
       gsl::span<const uint8_t> selector,
       std::function<bool(const CID &, const common::Buffer &)> handler) const {
     auto internal_handler =
@@ -35,14 +35,14 @@ namespace fc::storage::ipfs::graphsync {
     };
 
     if (selector.empty()) {
-      OUTCOME_TRY(content_id, ContentIdentifierCodec::decode(root_cid));
-      CID cid{std::move(content_id)};
-      OUTCOME_TRY(node, service_->getNode(cid));
+      OUTCOME_TRY(node, service_->getNode(root_cid));
       internal_handler(node);
       return 1;
     }
 
-    return service_->select(root_cid, selector, internal_handler);
+    // TODO(artem): change MerkleDAG service to accept CID instead of bytes
+    OUTCOME_TRY(cid_encoded, ContentIdentifierCodec::encode(root_cid));
+    return service_->select(cid_encoded, selector, internal_handler);
   }
 
 }  // namespace fc::storage::ipfs::graphsync

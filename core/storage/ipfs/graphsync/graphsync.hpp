@@ -36,10 +36,10 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Forwards select call to the service or other backend
     virtual outcome::result<size_t> select(
-        gsl::span<const uint8_t> root_cid,
+        const CID &cid,
         gsl::span<const uint8_t> selector,
-        std::function<bool(const CID &cid,
-                           const common::Buffer &data)> handler) const = 0;
+        std::function<bool(const CID &cid, const common::Buffer &data)> handler)
+        const = 0;
   };
 
   /// Response status codes. Positive values are received from wire,
@@ -79,18 +79,18 @@ namespace fc::storage::ipfs::graphsync {
   using ResponseMetadata = std::vector<std::pair<CID, bool>>;
 
   /// Graphsync protocol interface
- class Graphsync {
+  class Graphsync {
    public:
     virtual ~Graphsync() = default;
 
     /// New nodes received go through this callback
-    using BlockCallback =
-        std::function<void(CID cid, common::Buffer data)>;
+    using BlockCallback = std::function<void(CID cid, common::Buffer data)>;
 
     /// Starts instance and subscribes to blocks.
-    /// Instance will shut down as soon as this subscription is cancelled
-    virtual Subscription start(std::shared_ptr<MerkleDagBridge> dag,
+    virtual void start(std::shared_ptr<MerkleDagBridge> dag,
                                BlockCallback callback) = 0;
+
+    virtual void stop() = 0;
 
     /// Request progress subscription data
     using RequestProgressCallback =
@@ -98,12 +98,12 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Makes request. Request will be cancelled if subscription is cancelled
     virtual Subscription makeRequest(
-        const libp2p::peer::PeerId& peer,
+        const libp2p::peer::PeerId &peer,
         boost::optional<libp2p::multi::Multiaddress> address,
-        gsl::span<const uint8_t> root_cid,
+        const CID &root_cid,
         gsl::span<const uint8_t> selector,
         bool need_metadata,
-        const std::vector<CID>& dont_send_cids,
+        const std::vector<CID> &dont_send_cids,
         RequestProgressCallback callback) = 0;
   };
 

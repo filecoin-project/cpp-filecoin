@@ -9,7 +9,6 @@
 #include <set>
 
 #include "message.hpp"
-#include "block_subscription.hpp"
 #include "network/network.hpp"
 #include "network/marshalling/request_builder.hpp"
 
@@ -20,7 +19,6 @@ namespace libp2p {
 namespace fc::storage::ipfs::graphsync {
 
   class LocalRequests;
-  class BlockSubscription;
 
   class GraphsyncImpl : public Graphsync,
                         public std::enable_shared_from_this<GraphsyncImpl>,
@@ -28,19 +26,18 @@ namespace fc::storage::ipfs::graphsync {
    public:
     GraphsyncImpl(std::shared_ptr<libp2p::Host> host);
 
-    /// Stops server and all requests.
-    void stop();
-
     void cancelLocalRequest(int request_id);
 
    private:
-    Subscription start(std::shared_ptr<MerkleDagBridge> dag,
+    void start(std::shared_ptr<MerkleDagBridge> dag,
                        BlockCallback callback) override;
+
+    void stop() override;
 
     Subscription makeRequest(
         const libp2p::peer::PeerId &peer,
         boost::optional<libp2p::multi::Multiaddress> address,
-        gsl::span<const uint8_t> root_cid,
+        const CID& root_cid,
         gsl::span<const uint8_t> selector,
         bool need_metadata,
         const std::vector<CID> &dont_send_cids,
@@ -63,9 +60,10 @@ namespace fc::storage::ipfs::graphsync {
 
     std::shared_ptr<LocalRequests> local_requests_;
 
-    std::shared_ptr<BlockSubscription> block_subscription_;
-
     std::shared_ptr<MerkleDagBridge> dag_;
+
+    /// The only subscription to block (at the moment)
+    Graphsync::BlockCallback block_cb_;
 
     RequestBuilder request_builder_;
 

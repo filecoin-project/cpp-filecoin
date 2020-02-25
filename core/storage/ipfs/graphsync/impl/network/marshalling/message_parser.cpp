@@ -152,7 +152,12 @@ namespace fc::storage::ipfs::graphsync {
         if (src.cancel()) {
           dst.cancel = true;
         } else {
-          dst.root_cid = fromString(src.root());
+          auto decode_cid_res = decodeCid(src.root());
+          if (!decode_cid_res) {
+            return Error::MESSAGE_PARSE_ERROR;
+          }
+
+          dst.root_cid = std::move(decode_cid_res.value());
           dst.selector = fromString(src.selector());
           dst.priority = src.priority();
 
