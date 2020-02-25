@@ -36,4 +36,5 @@ target_link_libraries(proofs
         outcome
         blob
         logger
+        comm_cid
         )

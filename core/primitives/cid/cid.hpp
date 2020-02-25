@@ -63,8 +63,6 @@ namespace fc::common {
   /// Compute CID from bytes
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes);
 
-  CID replicaCommitmentV1ToCID(gsl::span<const uint8_t> comm_r);
-  CID dataCommitmentV1ToCID(gsl::span<const uint8_t> comm_d);
 }  // namespace fc::common
 
 #endif  // CPP_FILECOIN_CORE_COMMON_CID_HPP

@@ -21,6 +21,10 @@ namespace fc::primitives {
 
   using SectorNumber = uint64_t;
 
+  using PaddedPieceSize = uint64_t;
+
+  using UnpaddedPieceSize = uint64_t;
+
   using DealWeight = BigInt;
 
   using DealId = uint64_t;

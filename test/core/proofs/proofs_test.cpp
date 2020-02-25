@@ -41,13 +41,13 @@ class ProofsTest : public test::BaseFS_Test {
  * @then success
  */
 TEST_F(ProofsTest, DISABLED_ValidPoSt) {
-  uint64_t challenge_count = 2;
+  /*uint64_t challenge_count = 2;
   uint8_t porep_proof_partitions = 10;
   Prover prover_id{{6, 7, 8}};
   Randomness randomness{{9, 9, 9}};
   Ticket ticket{{5, 4, 2}};
-  uint64_t sector_size = 1024;
-  uint64_t sector_id = 42;
+  SectorSize sector_size = 1024;
+  SectorNumber sector_id = 42;
   EXPECT_OUTCOME_TRUE_1(
       fc::proofs::ProofParamProvider::getParams(params, sector_size));
 
@@ -182,7 +182,7 @@ TEST_F(ProofsTest, DISABLED_ValidPoSt) {
                                          proof_a,
                                          candidates,
                                          prover_id));
-  ASSERT_TRUE(res);
+  ASSERT_TRUE(res);*/
 }
 
 /**
@@ -191,14 +191,18 @@ TEST_F(ProofsTest, DISABLED_ValidPoSt) {
  * @when Commit and Verifies Seal and Unseal
  * @then success
  */
-TEST_F(ProofsTest, DISABLED_ValidSealAndUnseal) {
+TEST_F(ProofsTest, ValidSealAndUnseal) {
   uint8_t porep_proof_partitions = 10;
   Prover prover_id{{6, 7, 8}};
   Randomness randomness{{9, 9, 9}};
   Ticket ticket{{5, 4, 2}};
   Seed seed{{7, 4, 2}};
-  uint64_t sector_size = 1024;
-  uint64_t sector_id = 42;
+  fc::proofs::RegisteredProof sealProofType =
+      fc::primitives::sector::RegisteredProof::StackedDRG1KiBSeal;
+  fc::proofs::RegisteredProof postProofType =
+      fc::primitives::sector::RegisteredProof::StackedDRG1KiBPoSt;
+  SectorSize sector_size = 1024;
+  SectorNumber sector_id = 42;
   EXPECT_OUTCOME_TRUE_1(
       fc::proofs::ProofParamProvider::getParams(params, sector_size));
 
@@ -256,6 +260,18 @@ TEST_F(ProofsTest, DISABLED_ValidSealAndUnseal) {
   }
   piece_file_a.close();
 
+  EXPECT_OUTCOME_TRUE(
+      piece_cid_a,
+      Proofs::generatePieceCIDFromFile(sealProofType, piece_file_a_path, 127));
+
+  EXPECT_OUTCOME_TRUE(resA,
+                      Proofs::writeWithoutAlignment(sealProofType,
+                                                    piece_file_a_path,
+                                                    piece_commitment_a_size,
+                                                    staged_sector_file));
+  ASSERT_EQ(resA.total_write_unpadded, piece_commitment_a_size);
+  ASSERT_EQ(resA.piece_cid, piece_cid_a);
+
   Path piece_file_b_path = boost::filesystem::unique_path(path_model).string();
   boost::filesystem::ofstream piece_file_b(piece_file_b_path);
 
@@ -265,60 +281,44 @@ TEST_F(ProofsTest, DISABLED_ValidSealAndUnseal) {
   }
   piece_file_b.close();
 
-  std::vector<fc::proofs::PublicPieceInfo> public_pieces;
-
-  fc::proofs::PublicPieceInfo pA;
-  pA.size = piece_commitment_a_size;
-  EXPECT_OUTCOME_TRUE(piece_commitment_a,
-                      Proofs::generatePieceCommitmentFromFile(
-                          piece_file_a_path, piece_commitment_a_size));
-  pA.comm_p = piece_commitment_a;
-
   EXPECT_OUTCOME_TRUE(
-      resA,
-      Proofs::writeWithoutAlignment(
-          piece_file_a_path, piece_commitment_a_size, staged_sector_file));
-  ASSERT_EQ(resA.total_write_unpadded, piece_commitment_a_size);
-  ASSERT_EQ(resA.comm_p, pA.comm_p);
+      piece_cid_b,
+      Proofs::generatePieceCIDFromFile(sealProofType, piece_file_b_path, 508));
 
-  std::vector<uint64_t> commitment = {127};
+  std::vector<UnpaddedPieceSize> commitment = {127};
   EXPECT_OUTCOME_TRUE(resB,
-                      Proofs::writeWithAlignment(piece_file_b_path,
+                      Proofs::writeWithAlignment(sealProofType,
+                                                 piece_file_b_path,
                                                  piece_commitment_b_size,
                                                  staged_sector_file,
                                                  commitment));
   ASSERT_EQ(resB.left_alignment_unpadded,
             piece_commitment_b_size - piece_commitment_a_size);
 
-  PublicPieceInfo pB;
-  pB.size = piece_commitment_b_size;
-  EXPECT_OUTCOME_TRUE(piece_commitment_b,
-                      Proofs::generatePieceCommitmentFromFile(
-                          piece_file_b_path, piece_commitment_b_size));
-  pB.comm_p = piece_commitment_b;
   ASSERT_EQ(resB.left_alignment_unpadded, 381);
   ASSERT_EQ(resB.total_write_unpadded, 889);
-  ASSERT_EQ(resB.comm_p, pB.comm_p);
+  ASSERT_EQ(resB.piece_cid, piece_cid_b);
 
-  public_pieces.push_back(pA);
-  public_pieces.push_back(pB);
-
-  EXPECT_OUTCOME_TRUE(
-      comm_d, Proofs::generateDataCommitment(sector_size, public_pieces));
+  /*EXPECT_OUTCOME_TRUE(preGeneratedUnsealedCID,
+                      Proofs::generateUnsealedCID(sector_size, public_pieces));
 
   // pre-commit the sector
-  EXPECT_OUTCOME_TRUE(output,
-                      Proofs::sealPreCommit(sector_size,
-                                            porep_proof_partitions,
-                                            sector_cache_dir_path,
-                                            staged_sector_file,
-                                            sealed_sector_file,
-                                            sector_id,
-                                            prover_id,
-                                            ticket,
-                                            public_pieces));
+  EXPECT_OUTCOME_TRUE(sealPreCommitPhase1Output,
+                      Proofs::sealPreCommitPhase1(sealProofType,
+                                                  sector_cache_dir_path,
+                                                  staged_sector_file,
+                                                  sealed_sector_file,
+                                                  sector_id,
+                                                  prover_id,
+                                                  ticket,
+                                                  public_pieces));
 
-  ASSERT_EQ(comm_d, output.comm_d);
+  EXPECT_OUTCOME_TRUE(sealedAndUnsealedCID,
+                      Proofs::sealPreCommitPhase2(sealPreCommitPhase1Output,
+                                                  sector_cache_dir_path,
+                                                  sealed_sector_file));
+
+  ASSERT_EQ(sealedAndUnsealedCID.second, preGeneratedUnsealedCID);
 
   // commit the sector
   EXPECT_OUTCOME_TRUE(proof,
@@ -408,5 +408,5 @@ TEST_F(ProofsTest, DISABLED_ValidSealAndUnseal) {
   std::vector<uint8_t> file_c_bytes = read_file(unseal_output_file_c);
 
   ASSERT_EQ(gsl::make_span(file_c_bytes),
-            gsl::make_span(some_bytes.data(), 508));
+            gsl::make_span(some_bytes.data(), 508));*/
 }
