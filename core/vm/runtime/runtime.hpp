@@ -25,6 +25,7 @@ namespace fc::vm::runtime {
 
   using actor::Actor;
   using actor::CodeId;
+  using actor::kSendMethodNumber;
   using actor::MethodNumber;
   using actor::MethodParams;
   using common::Buffer;
@@ -146,7 +147,7 @@ namespace fc::vm::runtime {
     /// Try to charge gas or throw if there is not enoght gas
     virtual outcome::result<void> chargeGas(const BigInt &amount) = 0;
 
-    /// Get current actor state
+    /// Get current actor state root CID
     virtual ActorSubstateCID getCurrentActorState() = 0;
 
     /// Update actor state CID
@@ -165,8 +166,7 @@ namespace fc::vm::runtime {
 
     /// Send funds
     inline auto sendFunds(const Address &to, BigInt value) {
-      // kSendMethodNumber circular dependency
-      return send(to, {0}, {}, value);
+      return send(to, kSendMethodNumber, {}, value);
     }
 
     /// Send with typed result R

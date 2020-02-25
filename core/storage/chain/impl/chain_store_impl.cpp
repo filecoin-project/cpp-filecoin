@@ -3,20 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/chain/chain_store.hpp"
+#include "storage/chain/impl/chain_store_impl.hpp"
 
-#include "common/le_encoder.hpp"
 #include "common/outcome.hpp"
-#include "datastore_key.hpp"
+#include "crypto/randomness/impl/chain_randomness_provider_impl.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/cid/json_codec.hpp"
-#include "primitives/persistent_block/persistent_block.hpp"
 #include "primitives/tipset/tipset_key.hpp"
+#include "storage/chain/datastore_key.hpp"
 
 namespace fc::storage::blockchain {
+  using crypto::randomness::ChainRandomnessProviderImpl;
   using primitives::block::BlockHeader;
-  using primitives::blockchain::block::PersistentBlock;
   using primitives::tipset::Tipset;
 
   namespace {
@@ -24,10 +23,11 @@ namespace fc::storage::blockchain {
     const DatastoreKey genesis_key{DatastoreKey::makeFromString("0")};
   }  // namespace
 
-  ChainStore::ChainStore(std::shared_ptr<ipfs::IpfsBlockService> block_service,
-                         std::shared_ptr<ChainDataStore> data_store,
-                         std::shared_ptr<BlockValidator> block_validator,
-                         std::shared_ptr<WeightCalculator> weight_calculator)
+  ChainStoreImpl::ChainStoreImpl(
+      std::shared_ptr<ipfs::IpfsBlockService> block_service,
+      std::shared_ptr<ChainDataStore> data_store,
+      std::shared_ptr<BlockValidator> block_validator,
+      std::shared_ptr<WeightCalculator> weight_calculator)
       : block_service_{std::move(block_service)},
         data_store_{std::move(data_store)},
         block_validator_{std::move(block_validator)},
@@ -35,24 +35,23 @@ namespace fc::storage::blockchain {
     logger_ = common::createLogger("chain store");
   }
 
-  outcome::result<std::shared_ptr<ChainStore>> ChainStore::create(
+  outcome::result<std::shared_ptr<ChainStoreImpl>> ChainStoreImpl::create(
       std::shared_ptr<ipfs::IpfsBlockService> block_store,
       std::shared_ptr<ChainDataStore> data_store,
       std::shared_ptr<BlockValidator> block_validator,
+
       std::shared_ptr<WeightCalculator> weight_calculator) {
-    std::shared_ptr<ChainStore> cs{};
-    ChainStore tmp(std::move(block_store),
-                   std::move(data_store),
-                   std::move(block_validator),
-                   std::move(weight_calculator));
-    cs.reset(new ChainStore(std::move(tmp)));
+    ChainStoreImpl tmp(std::move(block_store),
+                       std::move(data_store),
+                       std::move(block_validator),
+                       std::move(weight_calculator));
 
     // TODO (yuraz): FIL-151 initialize notifications
 
-    return cs;
+    return std::make_shared<ChainStoreImpl>(std::move(tmp));
   }
 
-  outcome::result<ChainStore::Tipset> ChainStore::loadTipset(
+  outcome::result<ChainStoreImpl::Tipset> ChainStoreImpl::loadTipset(
       const primitives::tipset::TipsetKey &key) {
     std::vector<BlockHeader> blocks;
     blocks.reserve(key.cids.size());
@@ -68,12 +67,12 @@ namespace fc::storage::blockchain {
     return Tipset::create(std::move(blocks));
   }
 
-  outcome::result<BlockHeader> ChainStore::getBlock(const CID &cid) const {
+  outcome::result<BlockHeader> ChainStoreImpl::getBlock(const CID &cid) const {
     OUTCOME_TRY(bytes, block_service_->get(cid));
     return codec::cbor::decode<BlockHeader>(bytes);
   }
 
-  outcome::result<void> ChainStore::load() {
+  outcome::result<void> ChainStoreImpl::load() {
     auto &&buffer = data_store_->get(chain_head_key);
     if (!buffer) {
       logger_->warn("no previous chain state found");
@@ -88,7 +87,7 @@ namespace fc::storage::blockchain {
     return outcome::success();
   }
 
-  outcome::result<void> ChainStore::writeHead(
+  outcome::result<void> ChainStoreImpl::writeHead(
       const primitives::tipset::Tipset &tipset) {
     OUTCOME_TRY(data, codec::json::encodeCidVector(tipset.cids));
     OUTCOME_TRY(data_store_->set(chain_head_key, data));
@@ -96,7 +95,7 @@ namespace fc::storage::blockchain {
     return outcome::success();
   }
 
-  outcome::result<void> ChainStore::addBlock(const BlockHeader &block) {
+  outcome::result<void> ChainStoreImpl::addBlock(const BlockHeader &block) {
     OUTCOME_TRY(persistBlockHeaders({std::ref(block)}));
     OUTCOME_TRY(tipset, expandTipset(block));
     OUTCOME_TRY(updateHeavierTipset(tipset));
@@ -104,19 +103,20 @@ namespace fc::storage::blockchain {
     return outcome::success();
   }
 
-  outcome::result<void> ChainStore::persistBlockHeaders(
+  outcome::result<void> ChainStoreImpl::persistBlockHeaders(
       const std::vector<std::reference_wrapper<const BlockHeader>>
           &block_headers) {
     for (auto &b : block_headers) {
       OUTCOME_TRY(data, codec::cbor::encode(b));
       OUTCOME_TRY(cid, common::getCidOf(data));
-      OUTCOME_TRY(block_service_->set(std::move(cid), common::Buffer{std::move(data)}));
+      OUTCOME_TRY(
+          block_service_->set(std::move(cid), common::Buffer{std::move(data)}));
     }
 
     return outcome::success();
   }
 
-  outcome::result<Tipset> ChainStore::expandTipset(
+  outcome::result<Tipset> ChainStoreImpl::expandTipset(
       const BlockHeader &block_header) {
     std::vector<BlockHeader> all_headers{block_header};
     if (tipsets_.find(block_header.height) == std::end(tipsets_)) {
@@ -152,7 +152,8 @@ namespace fc::storage::blockchain {
     return Tipset::create(all_headers);
   }
 
-  outcome::result<void> ChainStore::updateHeavierTipset(const Tipset &tipset) {
+  outcome::result<void> ChainStoreImpl::updateHeavierTipset(
+      const Tipset &tipset) {
     OUTCOME_TRY(weight, weight_calculator_->calculateWeight(tipset));
 
     if (!heaviest_tipset_.has_value()) {
@@ -169,7 +170,8 @@ namespace fc::storage::blockchain {
     return outcome::success();
   }
 
-  outcome::result<void> ChainStore::takeHeaviestTipset(const Tipset &tipset) {
+  outcome::result<void> ChainStoreImpl::takeHeaviestTipset(
+      const Tipset &tipset) {
     if (heaviest_tipset_.has_value()) {
       // TODO(yuraz): FIL-151 notify head change
       // use lotus implementation for reference
@@ -187,58 +189,13 @@ namespace fc::storage::blockchain {
     return outcome::success();
   }
 
-  namespace {
-    /**
-     * @brief ChainStore needs its own randomnes calculation function
-     * @return randomness value
-     */
-    crypto::randomness::Randomness drawRandomness(
-        const primitives::ticket::Ticket &ticket, uint64_t round) {
-      common::Buffer buffer{};
-      const size_t bytes_required = sizeof(round) + ticket.bytes.size();
-      buffer.reserve(bytes_required);
-
-      buffer.put(ticket.bytes);
-      common::encodeLebInteger(round, buffer);
-
-      auto hash = libp2p::crypto::sha256(buffer);
-
-      return crypto::randomness::Randomness(hash);
-    }
-  }  // namespace
-
-  outcome::result<ChainStore::Randomness> ChainStore::sampleRandomness(
-      const std::vector<CID> &blks, uint64_t round) {
-    std::reference_wrapper<const std::vector<CID>> cids{blks};
-
-    while (true) {
-      OUTCOME_TRY(tipset, loadTipset(TipsetKey{cids.get()}));
-      OUTCOME_TRY(min_ticket_block, tipset.getMinTicketBlock());
-
-      if (tipset.height <= round) {
-        if (!min_ticket_block.get().ticket.has_value()) {
-          return ChainStoreError::NO_MIN_TICKET_BLOCK;
-        }
-
-        return drawRandomness(*min_ticket_block.get().ticket, round);
-      }
-
-      // special case for lookback behind genesis block
-      if (min_ticket_block.get().height == 0) {
-        // round is negative
-        auto &&negative_hash =
-            drawRandomness(*min_ticket_block.get().ticket, round - 1);
-        // for negative lookbacks, just use the hash of the positive ticket hash
-        // value
-        auto &&positive_hash = libp2p::crypto::sha256(negative_hash);
-        return Randomness{positive_hash};
-      }
-
-      // TODO (yuraz) I know it's very ugly, and needs to be refactored
-      // I translated it directly from go to C++
-      cids = min_ticket_block.get().parents;
-    }
+  std::shared_ptr<fc::crypto::randomness::ChainRandomnessProvider>
+  ChainStoreImpl::createRandomnessProvider() {
+    return std::make_shared<
+        ::fc::crypto::randomness::ChainRandomnessProviderImpl>(
+        shared_from_this());
   }
+
 }  // namespace fc::storage::blockchain
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {

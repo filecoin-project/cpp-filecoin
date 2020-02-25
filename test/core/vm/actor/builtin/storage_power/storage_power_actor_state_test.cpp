@@ -18,6 +18,7 @@ using fc::crypto::randomness::Randomness;
 using fc::crypto::randomness::RandomnessProvider;
 using fc::power::Power;
 using fc::primitives::ChainEpoch;
+using fc::primitives::TokenAmount;
 using fc::primitives::address::Address;
 using fc::storage::hamt::Hamt;
 using fc::storage::hamt::HamtError;
@@ -29,7 +30,6 @@ using fc::vm::actor::builtin::storage_power::CronEvent;
 using fc::vm::actor::builtin::storage_power::kConsensusMinerMinPower;
 using fc::vm::actor::builtin::storage_power::StoragePowerActor;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
-using fc::vm::actor::builtin::storage_power::TokenAmount;
 using fc::vm::indices::Indices;
 using fc::vm::indices::MockIndices;
 using testing::_;
@@ -57,7 +57,7 @@ class StoragePowerActorStateTest : public ::testing::Test {
  * @then error ALREADY_EXIST
  */
 TEST_F(StoragePowerActorStateTest, AddMiner_Twice) {
-  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND,
+  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
                        actor->getClaim(addr));
   EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
   EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ACTOR_ALREADY_EXISTS,
@@ -70,16 +70,16 @@ TEST_F(StoragePowerActorStateTest, AddMiner_Twice) {
  * @then miner successfully deleted
  */
 TEST_F(StoragePowerActorStateTest, deleteMiner_Success) {
-  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND,
+  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
                        actor->getClaim(addr));
   EXPECT_OUTCOME_TRUE_1(actor->addMiner(addr));
   EXPECT_OUTCOME_TRUE(claim, actor->getClaim(addr));
   EXPECT_EQ(claim.power, 0);
   EXPECT_EQ(claim.pledge, 0);
   EXPECT_OUTCOME_TRUE_1(actor->deleteMiner(addr));
-  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND,
+  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
                        actor->getClaim(addr));
-  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND,
+  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
                        actor->getMinerBalance(addr));
 }
 
@@ -89,7 +89,7 @@ TEST_F(StoragePowerActorStateTest, deleteMiner_Success) {
  * @then error NO_SUCH_MINER
  */
 TEST_F(StoragePowerActorStateTest, DeleteMiner_NoMiner) {
-  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND,
+  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
                        actor->deleteMiner(addr));
 }
 

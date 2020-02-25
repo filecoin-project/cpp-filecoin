@@ -56,7 +56,7 @@ namespace fc::power {
   PowerTableImpl::getMiners() const {
     std::vector<primitives::address::Address> result;
     result.reserve(power_table_.size());
-    for (auto &elem : power_table_) {
+    for (const auto &elem : power_table_) {
       OUTCOME_TRY(miner_addr,
                   primitives::address::decodeFromString(elem.first));
       result.push_back(miner_addr);

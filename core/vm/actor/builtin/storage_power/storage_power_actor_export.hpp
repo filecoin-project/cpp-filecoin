@@ -10,12 +10,15 @@
 #include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/actor_method.hpp"
+#include "vm/actor/builtin/miner/types.hpp"
+#include "vm/actor/builtin/storage_power/policy.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
+  using miner::PeerId;
   using runtime::InvocationOutput;
   using runtime::Runtime;
 
@@ -34,18 +37,6 @@ namespace fc::vm::actor::builtin::storage_power {
   constexpr MethodNumber kReportConsensusFaultMethodNumber{14};
   constexpr MethodNumber kOnEpochTickEndMethodNumber{15};
 
-  /**
-   * Construct method parameters
-   * Storage miner actor constructor params are defined here so the power actor
-   * can send them to the init actor to instantiate miners
-   */
-  struct ConstructParameters {
-    Address owner;
-    Address worker;
-    uint64_t sector_size;
-    std::string peer_id;
-  };
-
   struct AddBalanceParameters {
     Address miner;
   };
@@ -55,17 +46,37 @@ namespace fc::vm::actor::builtin::storage_power {
     TokenAmount requested;
   };
 
-  struct OnSectorProveCommitParams {
+  struct CreateMinerParameters {
+    Address worker;  // must be an ID-address
+    uint64_t sector_size;
+    PeerId peer_id;
+  };
+
+  struct CreateMinerReturn {
+    Address id_address;      // The canonical ID-based address for the actor
+    Address robust_address;  // A mre expensive but re-org-safe address for the
+                             // newly created actor
+  };
+
+  struct DeleteMinerParameters {
+    Address miner;
+  };
+
+  struct OnSectorProveCommitParameters {
     SectorStorageWeightDesc weight;
   };
 
-  struct OnSectorTerminateParams {
-    SectorTermination termination_type;
+  struct OnSectorProveCommitReturn {
+    TokenAmount pledge;
+  };
+
+  struct OnSectorTerminateParameters {
+    SectorTerminationType termination_type;
     std::vector<SectorStorageWeightDesc> weights;
     TokenAmount pledge;
   };
 
-  struct OnSectorTemporaryFaultEffectiveBeginParams {
+  struct OnSectorTemporaryFaultEffectiveBeginParameters {
     std::vector<SectorStorageWeightDesc> weights;
     TokenAmount pledge;
   };
@@ -97,24 +108,61 @@ namespace fc::vm::actor::builtin::storage_power {
     static ACTOR_METHOD(addBalance);
 
     static ACTOR_METHOD(withdrawBalance);
+
+    static ACTOR_METHOD(createMiner);
+
+    static ACTOR_METHOD(deleteMiner);
+
+    static ACTOR_METHOD(onSectorProveCommit);
+
+    static ACTOR_METHOD(onSectorTerminate);
+
+    static ACTOR_METHOD(onSectorTemporaryFaultEffectiveBegin);
+
+   private:
+    /**
+     * Get current storage power actor state
+     * @param runtime - current runtime
+     * @return current storage power actor state or appropriate error
+     */
+    static outcome::result<StoragePowerActor> getCurrentState(Runtime &runtime);
+
+    static outcome::result<InvocationOutput> slashPledgeCollateral(
+        Runtime &runtime,
+        StoragePowerActor &power_actor,
+        Address miner,
+        TokenAmount to_slash);
+
+    /**
+     * Deletes miner from state and slashes miner balance
+     * @param runtime - current runtime
+     * @param state - current storage power actor state
+     * @param miner address to delete
+     * @return error in case of failure
+     */
+    static outcome::result<void> deleteMinerActor(Runtime &runtime,
+                                                  StoragePowerActor &state,
+                                                  const Address &miner);
   };
 
   /** Exported StoragePowerActor methods to invoker */
   extern const ActorExports exports;
 
-  CBOR_TUPLE(ConstructParameters, owner, worker, sector_size, peer_id);
+  CBOR_TUPLE(AddBalanceParameters, miner)
 
-  CBOR_TUPLE(AddBalanceParameters, miner);
+  CBOR_TUPLE(WithdrawBalanceParameters, miner, requested)
 
-  CBOR_TUPLE(WithdrawBalanceParameters, miner, requested);
+  CBOR_TUPLE(CreateMinerParameters, worker, sector_size, peer_id)
+  CBOR_TUPLE(CreateMinerReturn, id_address, robust_address)
 
-  CBOR_TUPLE(OnSectorProveCommitParams, weight)
+  CBOR_TUPLE(DeleteMinerParameters, miner)
 
-  CBOR_TUPLE(OnSectorTerminateParams, termination_type, weights, pledge)
+  CBOR_TUPLE(OnSectorProveCommitParameters, weight)
+  CBOR_TUPLE(OnSectorProveCommitReturn, pledge)
 
-  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveBeginParams, weights, pledge)
+  CBOR_TUPLE(OnSectorTerminateParameters, termination_type, weights, pledge)
 
-  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveEndParams, weights, pledge)
+  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveBeginParameters, weights, pledge)
 
   CBOR_TUPLE(OnSectorModifyWeightDescParams,
              prev_weight,
