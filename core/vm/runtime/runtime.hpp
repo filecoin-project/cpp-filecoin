@@ -12,7 +12,7 @@
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
-#include "proofs/sector.hpp"
+#include "primitives/sector/sector.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -36,8 +36,8 @@ namespace fc::vm::runtime {
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using primitives::address::Address;
-  using proofs::sector::PoStVerifyInfo;
-  using proofs::sector::SealVerifyInfo;
+  using primitives::sector::PoStVerifyInfo;
+  using primitives::sector::SealVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using Serialization = Buffer;
 

@@ -12,7 +12,7 @@
 #include "primitives/big_int.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
-#include "proofs/sector.hpp"
+#include "primitives/sector/sector.hpp"
 
 namespace fc::vm::actor::builtin::miner {
   using common::Buffer;
@@ -26,9 +26,9 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::SectorSize;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using proofs::sector::OnChainPoStVerifyInfo;
-  using proofs::sector::RegisteredProof;
-  using proofs::sector::SealProof;
+  using primitives::sector::OnChainPoStVerifyInfo;
+  using primitives::sector::RegisteredProof;
+  using primitives::sector::SealProof;
 
   using PeerId = std::string;
 

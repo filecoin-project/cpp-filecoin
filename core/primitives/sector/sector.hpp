@@ -8,14 +8,15 @@
 
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
-#include "proofs/proofs.hpp"
 
-namespace fc::proofs::sector {
+namespace fc::primitives::sector {
   using common::Buffer;
   using primitives::ActorId;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::SectorNumber;
+  using crypto::randomness::Randomness;
+  using Ticket =  common::Blob<32>;
 
   struct SectorId {
     ActorId miner;

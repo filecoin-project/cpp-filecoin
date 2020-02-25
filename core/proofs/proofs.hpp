@@ -12,6 +12,7 @@
 #include "common/outcome.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
+#include "primitives/sector/sector.hpp"
 
 namespace fc::proofs {
 
@@ -24,43 +25,19 @@ namespace fc::proofs {
   // linearly with the number of partitions used when creating that proof.
   const int kSingleProofPartitionProofLen = 192;
 
-  using fc::common::Blob;
-  using fc::crypto::randomness::Randomness;
+  using common::Blob;
+  using crypto::randomness::Randomness;
   using Comm = Blob<kCommitmentBytesLen>;
   using Proof = std::vector<uint8_t>;
   using Prover = Blob<32>;
-  using Ticket = Blob<32>;
   using Seed = Blob<32>;
   using Devices = std::vector<std::string>;
   using Phase1Output = std::vector<uint8_t>;
-
-  // TODO(artyom-yurin): move to sector
-  using SectorSize = uint64_t;
-  using RegisteredProof = uint64_t;
-  using SealRandomness = Randomness;
-
-  const RegisteredProof RegisteredProof_WinStackedDRG32GiBSeal =
-      RegisteredProof(1);
-  const RegisteredProof RegisteredProof_WinStackedDRG32GiBPoSt =
-      RegisteredProof(2);
-  const RegisteredProof RegisteredProof_StackedDRG32GiBSeal =
-      RegisteredProof(3);
-  const RegisteredProof RegisteredProof_StackedDRG32GiBPoSt =
-      RegisteredProof(4);
-  const RegisteredProof RegisteredProof_StackedDRG1KiBSeal = RegisteredProof(5);
-  const RegisteredProof RegisteredProof_StackedDRG1KiBPoSt = RegisteredProof(6);
-  const RegisteredProof RegisteredProof_StackedDRG16MiBSeal =
-      RegisteredProof(7);
-  const RegisteredProof RegisteredProof_StackedDRG16MiBPoSt =
-      RegisteredProof(8);
-  const RegisteredProof RegisteredProof_StackedDRG256MiBSeal =
-      RegisteredProof(9);
-  const RegisteredProof RegisteredProof_StackedDRG256MiBPoSt =
-      RegisteredProof(10);
-  const RegisteredProof RegisteredProof_StackedDRG1GiBSeal =
-      RegisteredProof(11);
-  const RegisteredProof RegisteredProof_StackedDRG1GiBPoSt =
-      RegisteredProof(12);
+  using fc::primitives::sector::RegisteredProof;
+  using primitives::sector::Ticket;
+  using primitives::SectorNumber;
+  using primitives::SectorSize;
+  using primitives::sector::SealRandomness;
 
   // TODO(artyom-yurin): move to pieces
   using PaddedPieceSize = uint64_t;

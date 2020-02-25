@@ -111,15 +111,15 @@ namespace fc::proofs {
   outcome::result<FFIRegisteredPoStProof> cRegisteredPoStProof(
       RegisteredProof proof_type) {
     switch (proof_type) {
-      case RegisteredProof_StackedDRG1KiBPoSt:
+        case RegisteredProof::StackedDRG1KiBPoSt:
         return FFIRegisteredPoStProof_StackedDrg1KiBV1;
-      case RegisteredProof_StackedDRG16MiBPoSt:
+      case RegisteredProof::StackedDRG16MiBPoSt:
         return FFIRegisteredPoStProof_StackedDrg16MiBV1;
-      case RegisteredProof_StackedDRG256MiBPoSt:
+      case RegisteredProof::StackedDRG256MiBPoSt:
         return FFIRegisteredPoStProof_StackedDrg256MiBV1;
-      case RegisteredProof_StackedDRG1GiBPoSt:
+      case RegisteredProof::StackedDRG1GiBPoSt:
         return FFIRegisteredPoStProof_StackedDrg1GiBV1;
-      case RegisteredProof_StackedDRG32GiBPoSt:
+      case RegisteredProof::StackedDRG32GiBPoSt:
         return FFIRegisteredPoStProof_StackedDrg32GiBV1;
       default:
         return ProofsError::NO_SUCH_POST_PROOF;
@@ -129,15 +129,15 @@ namespace fc::proofs {
   outcome::result<FFIRegisteredSealProof> cRegisteredSealProof(
       RegisteredProof proof_type) {
     switch (proof_type) {
-      case RegisteredProof_StackedDRG1KiBSeal:
+      case RegisteredProof::StackedDRG1KiBSeal:
         return FFIRegisteredSealProof_StackedDrg1KiBV1;
-      case RegisteredProof_StackedDRG16MiBSeal:
+      case RegisteredProof::StackedDRG16MiBSeal:
         return FFIRegisteredSealProof_StackedDrg16MiBV1;
-      case RegisteredProof_StackedDRG256MiBSeal:
+      case RegisteredProof::StackedDRG256MiBSeal:
         return FFIRegisteredSealProof_StackedDrg256MiBV1;
-      case RegisteredProof_StackedDRG1GiBSeal:
+      case RegisteredProof::StackedDRG1GiBSeal:
         return FFIRegisteredSealProof_StackedDrg1GiBV1;
-      case RegisteredProof_StackedDRG32GiBSeal:
+      case RegisteredProof::StackedDRG32GiBSeal:
         return FFIRegisteredSealProof_StackedDrg32GiBV1;
       default:
         return ProofsError::NO_SUCH_SEAL_PROOF;
