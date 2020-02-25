@@ -81,7 +81,7 @@ namespace fc::vm::actor::builtin::storage_power {
     TokenAmount pledge;
   };
 
-  struct OnSectorTemporaryFaultEffectiveEndParams {
+  struct OnSectorTemporaryFaultEffectiveEndParameters {
     std::vector<SectorStorageWeightDesc> weights;
     TokenAmount pledge;
   };
@@ -163,6 +163,8 @@ namespace fc::vm::actor::builtin::storage_power {
   CBOR_TUPLE(OnSectorTerminateParameters, termination_type, weights, pledge)
 
   CBOR_TUPLE(OnSectorTemporaryFaultEffectiveBeginParameters, weights, pledge)
+
+  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveEndParameters, weights, pledge)
 
   CBOR_TUPLE(OnSectorModifyWeightDescParams,
              prev_weight,
