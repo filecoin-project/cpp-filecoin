@@ -75,7 +75,7 @@ jobs:
     - name: prepare coverage report
       run: cmake --build build --target ctest_coverage
     - name: upload report to codecov
-      - uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           file: ./build/ctest_coverage.xml
