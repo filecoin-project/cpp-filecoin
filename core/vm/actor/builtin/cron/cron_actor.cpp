@@ -4,6 +4,7 @@
  */
 
 #include "vm/actor/builtin/cron/cron_actor.hpp"
+#include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 
 namespace fc::vm::actor::builtin::cron {
   /**
@@ -11,12 +12,9 @@ namespace fc::vm::actor::builtin::cron {
    * EpochTick
    */
   std::vector<CronTableEntry> entries = {
-      {kStoragePowerAddress,
-       {storage_power::SpaMethods::CHECK_PROOF_SUBMISSIONS}}};
+      {kStoragePowerAddress, {storage_power::kOnEpochTickEndMethodNumber}}};
 
-  outcome::result<InvocationOutput> epochTick(const Actor &actor,
-                                              Runtime &runtime,
-                                              const MethodParams &params) {
+  ACTOR_METHOD(epochTick) {
     if ((runtime.getMessage().get().from != kCronAddress)) {
       return VMExitCode::CRON_ACTOR_WRONG_CALL;
     }

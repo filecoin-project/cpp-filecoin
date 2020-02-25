@@ -33,13 +33,20 @@ namespace fc::vm::actor::builtin::init {
     MethodParams params;
   };
 
-  outcome::result<InvocationOutput> exec(const Actor &actor,
-                                         Runtime &runtime,
-                                         const MethodParams &params);
+  struct ExecReturn {
+    Address id_address;      // The canonical ID-based address for the actor
+    Address robust_address;  // A more expensive but re-org-safe address for the
+                             // newly created actor
+  };
+
+  ACTOR_METHOD(exec);
 
   extern const ActorExports exports;
 
   CBOR_TUPLE(ExecParams, code, params)
+
+  CBOR_TUPLE(ExecReturn, id_address, robust_address)
+
 }  // namespace fc::vm::actor::builtin::init
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP

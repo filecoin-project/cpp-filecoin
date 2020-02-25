@@ -97,8 +97,7 @@ namespace fc::vm::actor::builtin::reward {
     return withdrawable_sum;
   }
 
-  outcome::result<InvocationOutput> RewardActor::construct(
-      const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  ACTOR_METHOD(RewardActor::construct) {
     if (runtime.getImmediateCaller() != kSystemActorAddress) {
       return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
     }
@@ -107,13 +106,11 @@ namespace fc::vm::actor::builtin::reward {
     OUTCOME_TRY(empty_mmap_cid, empty_mmap.flush());
     State empty_state{.reward_total = 0, .reward_map = empty_mmap_cid};
 
-    OUTCOME_TRY(state_cid, runtime.getIpfsDatastore()->setCbor(empty_state));
-    OUTCOME_TRY(runtime.commit(ActorSubstateCID{state_cid}));
+    OUTCOME_TRY(runtime.commitState(empty_state));
     return outcome::success();
   }
 
-  outcome::result<InvocationOutput> RewardActor::awardBlockReward(
-      const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  ACTOR_METHOD(RewardActor::awardBlockReward) {
     if (runtime.getImmediateCaller() != kSystemActorAddress) {
       return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
     }
@@ -123,8 +120,7 @@ namespace fc::vm::actor::builtin::reward {
     OUTCOME_TRY(prior_balance,
                 runtime.getBalance(runtime.getMessage().get().to));
     TokenAmount penalty{0};
-    auto state_cid = runtime.getCurrentActorState();
-    OUTCOME_TRY(state, runtime.getIpfsDatastore()->getCbor<State>(state_cid));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
     auto block_reward = computeBlockReward(state, reward_params.gas_reward);
     TokenAmount total_reward = block_reward + reward_params.gas_reward;
@@ -143,31 +139,24 @@ namespace fc::vm::actor::builtin::reward {
                         .amount_withdrawn = 0};
       OUTCOME_TRY(state.addReward(
           runtime.getIpfsDatastore(), reward_params.miner, new_reward));
-      OUTCOME_TRY(new_state_cid, runtime.getIpfsDatastore()->setCbor(state));
-      OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_state_cid}));
     }
-    OUTCOME_TRY(runtime.send(
-        kBurntFundsActorAddress, kSendMethodNumber, MethodParams{}, penalty));
+    OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, penalty));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
-  outcome::result<InvocationOutput> RewardActor::withdrawReward(
-      const Actor &actor, Runtime &runtime, const MethodParams &params) {
+  ACTOR_METHOD(RewardActor::withdrawReward) {
     if (not isSignableActor(actor.code)) {
       return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
     }
     auto owner = runtime.getMessage().get().from;
 
-    auto state_cid = runtime.getCurrentActorState();
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     auto store = runtime.getIpfsDatastore();
-    OUTCOME_TRY(state, store->getCbor<State>(state_cid));
     OUTCOME_TRY(withdrawn,
                 state.withdrawReward(store, owner, runtime.getCurrentEpoch()));
-    OUTCOME_TRY(new_state_cid, runtime.getIpfsDatastore()->setCbor(state));
-    OUTCOME_TRY(runtime.commit(ActorSubstateCID{new_state_cid}));
-    OUTCOME_TRY(
-        runtime.send(owner, kSendMethodNumber, MethodParams{}, withdrawn));
-
+    OUTCOME_TRY(runtime.sendFunds(owner, withdrawn));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 

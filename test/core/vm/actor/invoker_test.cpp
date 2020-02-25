@@ -25,9 +25,6 @@ TEST(InvokerTest, InvokeCron) {
   MockRuntime runtime;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::INVOKER_CANT_INVOKE_ACCOUNT_ACTOR,
-      invoker.invoke({kAccountCodeCid}, runtime, MethodNumber{0}, {}));
-  EXPECT_OUTCOME_ERROR(
       VMExitCode::INVOKER_NO_CODE_OR_METHOD,
       invoker.invoke({CodeId{kEmptyObjectCid}}, runtime, MethodNumber{0}, {}));
   EXPECT_OUTCOME_ERROR(

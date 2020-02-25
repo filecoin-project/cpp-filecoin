@@ -12,6 +12,7 @@
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
+#include "proofs/sector.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
@@ -24,6 +25,7 @@ namespace fc::vm::runtime {
 
   using actor::Actor;
   using actor::CodeId;
+  using actor::kSendMethodNumber;
   using actor::MethodNumber;
   using actor::MethodParams;
   using common::Buffer;
@@ -34,8 +36,20 @@ namespace fc::vm::runtime {
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using primitives::address::Address;
+  using proofs::sector::PoStVerifyInfo;
+  using proofs::sector::SealVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using Serialization = Buffer;
+
+  /// Encode actor params, raises appropriate error
+  template <typename T>
+  outcome::result<MethodParams> encodeActorParams(const T &params) {
+    auto maybe_bytes = codec::cbor::encode(params);
+    if (!maybe_bytes) {
+      return VMExitCode::ENCODE_ACTOR_PARAMS_ERROR;
+    }
+    return MethodParams{maybe_bytes.value()};
+  }
 
   /**
    * @class Runtime is the VM's internal runtime object exposed to actors
@@ -115,11 +129,9 @@ namespace fc::vm::runtime {
     /**
      * @brief Deletes an actor in the state tree
      *
-     * May only be called by the actor itself, or by StoragePowerActor in the
-     * case of StorageMinerActors
-     * @param address - address of actor to delete
+     * May only be called by the actor itself
      */
-    virtual outcome::result<void> deleteActor(const Address &address) = 0;
+    virtual outcome::result<void> deleteActor() = 0;
 
     /**
      * @brief Returns IPFS datastore
@@ -135,11 +147,76 @@ namespace fc::vm::runtime {
     /// Try to charge gas or throw if there is not enoght gas
     virtual outcome::result<void> chargeGas(const BigInt &amount) = 0;
 
-    /// Get current actor state
+    /// Get current actor state root CID
     virtual ActorSubstateCID getCurrentActorState() = 0;
 
-    /// Update actor state
+    /// Update actor state CID
     virtual outcome::result<void> commit(const ActorSubstateCID &new_state) = 0;
+
+    /// Resolve address to id-address
+    virtual outcome::result<Address> resolveAddress(const Address &address) = 0;
+
+    /// Verify PoSt
+    virtual outcome::result<bool> verifyPoSt(uint64_t sector_size,
+                                             const PoStVerifyInfo &info) = 0;
+
+    /// Verify seal
+    virtual outcome::result<bool> verifySeal(uint64_t sector_size,
+                                             const SealVerifyInfo &info) = 0;
+
+    /// Send funds
+    inline auto sendFunds(const Address &to, BigInt value) {
+      return send(to, kSendMethodNumber, {}, value);
+    }
+
+    /// Send with typed result R
+    template <typename R>
+    outcome::result<R> sendR(Address to_address,
+                             MethodNumber method_number,
+                             const MethodParams &params,
+                             BigInt value) {
+      OUTCOME_TRY(result, send(to_address, method_number, params, value));
+      return codec::cbor::decode<R>(result.return_value);
+    }
+
+    /// Send with typed params P and result R
+    template <typename R, typename P>
+    outcome::result<R> sendPR(Address to_address,
+                              MethodNumber method_number,
+                              const P &params,
+                              BigInt value) {
+      OUTCOME_TRY(params2, encodeActorParams(params));
+      return sendR<R>(to_address, method_number, MethodParams{params2}, value);
+    }
+
+    /// Send with typed params P
+    template <typename P>
+    outcome::result<InvocationOutput> sendP(Address to_address,
+                                            MethodNumber method_number,
+                                            const P &params,
+                                            BigInt value) {
+      OUTCOME_TRY(params2, encodeActorParams(params));
+      return send(to_address, method_number, MethodParams{params2}, value);
+    }
+
+    /// Get decoded current actor state
+    template <typename T>
+    outcome::result<T> getCurrentActorStateCbor() {
+      return getIpfsDatastore()->getCbor<T>(getCurrentActorState());
+    }
+
+    /**
+     * Commit actor state
+     * @tparam T - POD state type
+     * @param state - actor state structure
+     * @return error in case of failure
+     */
+    template <typename T>
+    outcome::result<void> commitState(const T &state) {
+      OUTCOME_TRY(state_cid, getIpfsDatastore()->setCbor(state));
+      OUTCOME_TRY(commit(ActorSubstateCID{state_cid}));
+      return outcome::success();
+    }
   };
 
 }  // namespace fc::vm::runtime

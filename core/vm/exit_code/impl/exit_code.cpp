@@ -30,8 +30,6 @@ namespace fc::vm {
       case E::ENCODE_ACTOR_PARAMS_ERROR:
         return 1;
 
-      case E::INVOKER_CANT_INVOKE_ACCOUNT_ACTOR:
-        return 254;
       case E::INVOKER_NO_CODE_OR_METHOD:
         return 255;
 
@@ -39,6 +37,20 @@ namespace fc::vm {
       case E::ACCOUNT_ACTOR_RESOLVE_NOT_FOUND:
       case E::ACCOUNT_ACTOR_RESOLVE_NOT_ACCOUNT_ACTOR:
         return 1;
+
+      case E::MINER_ACTOR_OWNER_NOT_SIGNABLE:
+      case E::MINER_ACTOR_MINER_NOT_ACCOUNT:
+      case E::MINER_ACTOR_MINER_NOT_BLS:
+      case E::MINER_ACTOR_ILLEGAL_ARGUMENT:
+        return 16;  // ErrIllegalArgument in actor-specs
+      case E::MINER_ACTOR_WRONG_CALLER:
+        return 18;  // ErrForbidden in actor-specs
+      case E::MINER_ACTOR_POST_TOO_LATE:
+      case E::MINER_ACTOR_POST_TOO_EARLY:
+      case E::MINER_ACTOR_INSUFFICIENT_FUNDS:
+        return 19;  // ErrInsufficientFunds in actor-specs
+      case E::MINER_ACTOR_ILLEGAL_STATE:
+        return 20;  // ErrIllegalState in actor-specs
 
       case E::MULTISIG_ACTOR_WRONG_CALLER:
         return 1;
@@ -53,17 +65,21 @@ namespace fc::vm {
       case E::MULTISIG_ACTOR_ILLEGAL_STATE:
         return 20;  // ErrIllegalState in actor-specs
 
-        case E::PAYMENT_CHANNEL_WRONG_CALLER:
+      case E::PAYMENT_CHANNEL_WRONG_CALLER:
         return 1;
       case E::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT:
         return 16;  // ErrIllegalArgument in actor-specs
 
       // TODO(turuslan): FIL-128 StoragePowerActor
+      case E::STORAGE_POWER_ACTOR_WRONG_CALLER:
       case E::STORAGE_POWER_ACTOR_OUT_OF_BOUND:
       case E::STORAGE_POWER_ACTOR_ALREADY_EXISTS:
-      case E::STORAGE_POWER_ACTOR_NOT_FOUND:
       case E::STORAGE_POWER_DELETION_ERROR:
         break;
+      case E::STORAGE_POWER_ILLEGAL_ARGUMENT:
+        return 16;  // ErrIllegalArgument in actor-specs
+      case E::STORAGE_POWER_FORBIDDEN:
+        return 18;  // ErrForbidden in actor-specs
 
       case E::INIT_ACTOR_NOT_BUILTIN_ACTOR:
       case E::INIT_ACTOR_SINGLETON_ACTOR:

@@ -130,9 +130,13 @@ namespace fc::storage::amt {
     if (which<Root>(root_)) {
       auto &root = boost::get<Root>(root_);
       OUTCOME_TRY(flush(root.node));
-      OUTCOME_TRY(cid, store_->setCbor(root));
-      root_ = cid;
+      OUTCOME_TRY(root_cid, store_->setCbor(root));
+      root_ = root_cid;
     }
+    return cid();
+  }
+
+  const CID &Amt::cid() const {
     return boost::get<CID>(root_);
   }
 
@@ -178,6 +182,17 @@ namespace fc::storage::amt {
       boost::get<Node::Links>(node.items).erase(index);
     }
     return outcome::success();
+  }
+
+  outcome::result<bool> Amt::contains(uint64_t key) {
+    auto res = get(key);
+    if (res) {
+      return true;
+    }
+    if (res.error() == AmtError::NOT_FOUND) {
+      return false;
+    }
+    return res.error();
   }
 
   outcome::result<void> Amt::flush(Node &node) {

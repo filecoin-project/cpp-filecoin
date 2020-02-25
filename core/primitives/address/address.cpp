@@ -62,6 +62,10 @@ namespace fc::primitives::address {
     return {network, BLSPublicKeyHash{public_key}};
   }
 
+  uint64_t Address::getId() const {
+    return boost::get<uint64_t>(data);
+  }
+
   bool Address::verifySyntax(gsl::span<const uint8_t> seed_data) const {
     return visit_in_place(
         data,
@@ -86,8 +90,7 @@ namespace fc::primitives::address {
   }
 
   bool operator==(const Address &lhs, const Address &rhs) {
-    return lhs.network == rhs.network
-           && lhs.data == rhs.data;
+    return lhs.network == rhs.network && lhs.data == rhs.data;
   }
 
   bool operator!=(const Address &lhs, const Address &rhs) {

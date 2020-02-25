@@ -9,6 +9,6 @@ add_library(miner_actor
 target_link_libraries(miner_actor
     address
     cbor
-    p2p::p2p_uvarint
+    chain_epoch_codec
     rle_bitset
     )

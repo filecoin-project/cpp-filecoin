@@ -84,6 +84,8 @@ namespace fc::primitives::address {
     static Address makeBls(const BlsPublicKey &public_key,
                            Network network = kDefaultNetwork);
 
+    uint64_t getId() const;
+
     bool verifySyntax(gsl::span<const uint8_t> seed_data) const;
 
     Network network;

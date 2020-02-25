@@ -12,7 +12,7 @@ using fc::primitives::address::encodeToByteString;
 
 BalanceTableHamt::BalanceTableHamt(std::shared_ptr<IpfsDatastore> datastore,
                                    const CID &new_root)
-    : root{new_root}, hamt_{datastore} {}
+    : root{new_root}, hamt_{datastore, new_root} {}
 
 fc::outcome::result<TokenAmount> BalanceTableHamt::get(
     const Address &key) const {
@@ -51,9 +51,10 @@ fc::outcome::result<TokenAmount> BalanceTableHamt::subtractWithMinimum(
   return sub;
 }
 
-fc::outcome::result<void> BalanceTableHamt::remove(const Address &key) {
+fc::outcome::result<TokenAmount> BalanceTableHamt::remove(const Address &key) {
+  OUTCOME_TRY(old_balance, hamt_.getCbor<TokenAmount>(encodeToByteString(key)));
   OUTCOME_TRY(hamt_.remove(encodeToByteString(key)));
   OUTCOME_TRY(new_root, hamt_.flush());
   root = new_root;
-  return fc::outcome::success();
+  return std::move(old_balance);
 }

@@ -45,7 +45,3 @@ find_package(libp2p CONFIG REQUIRED)
 # https://docs.hunter.sh/en/latest/packages/pkg/cppcodec.html
 hunter_add_package(cppcodec)
 find_package(cppcodec CONFIG REQUIRED)
-
-# https://hunter.readthedocs.io/en/stable/packages/pkg/Protobuf.html
-hunter_add_package(Protobuf)
-find_package(Protobuf CONFIG REQUIRED)

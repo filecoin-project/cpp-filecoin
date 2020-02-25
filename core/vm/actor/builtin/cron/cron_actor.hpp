@@ -7,7 +7,6 @@
 #define CPP_FILECOIN_CORE_VM_ACTOR_CRON_ACTOR_HPP
 
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::cron {
 
@@ -25,9 +24,7 @@ namespace fc::vm::actor::builtin::cron {
    * @param params from Lotus(doesn't use)
    * @return success or error
    */
-  outcome::result<InvocationOutput> epochTick(const Actor &actor,
-                                              Runtime &runtime,
-                                              const MethodParams &params);
+  ACTOR_METHOD(epochTick);
 
   extern const ActorExports exports;
 

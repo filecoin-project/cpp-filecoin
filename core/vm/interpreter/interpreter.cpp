@@ -31,7 +31,6 @@ namespace fc::vm::interpreter {
   using actor::Actor;
   using actor::InvokerImpl;
   using actor::kCronAddress;
-  using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
   using actor::builtin::cron::kEpochTickMethodNumber;
   using actor::builtin::miner::kSubmitElectionPoStMethodNumber;
@@ -182,11 +181,11 @@ namespace fc::vm::interpreter {
     for (auto i = 0u; i < receipts.size(); ++i) {
       OUTCOME_TRY(receipts_amt.setCbor(i, receipts[i]));
     }
-    OUTCOME_TRY(receipts_root, receipts_amt.flush());
+    OUTCOME_TRY(receipts_amt.flush());
 
     return Result{
         new_state_root,
-        receipts_root,
+        receipts_amt.cid(),
     };
   }
 }  // namespace fc::vm::interpreter

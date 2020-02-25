@@ -11,11 +11,15 @@ namespace fc::primitives::chain_epoch {
 
   using libp2p::multi::UVarint;
 
+  std::string uvarintKey(uint64_t value) {
+    UVarint uvarint{value};
+    auto encoded = uvarint.toBytes();
+    return std::string(encoded.begin(), encoded.end());
+  }
+
   std::string encodeToByteString(const ChainEpoch &epoch) {
     // TODO (a.chernyshov) actor-specs uses Protobuf Varint encoding
-    UVarint number(epoch);
-    auto encoded = number.toBytes();
-    return std::string(encoded.begin(), encoded.end());
+    return uvarintKey(epoch);
   }
 
 }  // namespace fc::primitives::chain_epoch

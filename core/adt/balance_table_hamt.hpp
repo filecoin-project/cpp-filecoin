@@ -8,18 +8,17 @@
 
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
-#include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
+#include "primitives/types.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::adt {
 
-  using primitives::BigInt;
+  using primitives::TokenAmount;
   using primitives::address::Address;
   using storage::hamt::Hamt;
   using storage::ipfs::IpfsDatastore;
-  using TokenAmount = BigInt;
 
   /**
    * Stores miner balances
@@ -77,11 +76,11 @@ namespace fc::adt {
                                                      const TokenAmount &floor);
 
     /**
-     * Removes from table
+     * Removes from table and returnes previous balance
      * @param key addrss
-     * @return error in case of failure
+     * @return previous balance or error in case of failure
      */
-    outcome::result<void> remove(const Address &key);
+    outcome::result<TokenAmount> remove(const Address &key);
 
     /**
      * HAMT CID of root

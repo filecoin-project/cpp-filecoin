@@ -30,6 +30,7 @@ using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::ActorStateHandle;
 using fc::vm::runtime::ActorStateHandleImpl;
 using fc::vm::runtime::InvocationOutput;
+using fc::vm::runtime::PoStVerifyInfo;
 using fc::vm::runtime::Runtime;
 using fc::vm::runtime::RuntimeError;
 using fc::vm::runtime::RuntimeImpl;
@@ -131,20 +132,10 @@ fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,
   return fc::outcome::success();
 }
 
-fc::outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {
-  // May only be called by the actor itself, or by StoragePowerActor in the
-  // case of StorageMinerActors
-  OUTCOME_TRY(actor_caller, state_tree_->get(immediate_caller_));
-  OUTCOME_TRY(actor_to_delete, state_tree_->get(address));
-  if ((address == immediate_caller_)
-      || (actor_caller.code == actor::kStoragePowerCodeCid
-          && actor_to_delete.code == actor::kStorageMinerCodeCid)) {
-    // TODO(a.chernyshov) FIL-137 implement state_tree remove if needed
-    // return state_tree_->remove(address);
-    return fc::outcome::failure(RuntimeError::UNKNOWN);
-  }
-  return fc::outcome::failure(
-      RuntimeError::DELETE_ACTOR_OPERATION_NOT_PERMITTED);
+fc::outcome::result<void> RuntimeImpl::deleteActor() {
+  // TODO(a.chernyshov) FIL-137 implement state_tree remove if needed
+  // return state_tree_->remove(address);
+  return fc::outcome::failure(RuntimeError::UNKNOWN);
 }
 
 std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() {
@@ -178,6 +169,23 @@ fc::outcome::result<void> RuntimeImpl::transfer(Actor &from,
   from.balance = from.balance - amount;
   to.balance = to.balance + amount;
   return outcome::success();
+}
+
+fc::outcome::result<Address> RuntimeImpl::resolveAddress(
+    const Address &address) {
+  return state_tree_->lookupId(address);
+}
+
+fc::outcome::result<bool> RuntimeImpl::verifyPoSt(uint64_t sector_size,
+                                                  const PoStVerifyInfo &info) {
+  // TODO(turuslan): FIL-160 connect verifyPoSt from proofs
+  return RuntimeError::UNKNOWN;
+}
+
+fc::outcome::result<bool> RuntimeImpl::verifySeal(uint64_t sector_size,
+                                                  const SealVerifyInfo &info) {
+  // TODO(turuslan): FIL-160 connect verifySeal from proofs
+  return RuntimeError::UNKNOWN;
 }
 
 fc::outcome::result<void> RuntimeImpl::chargeGas(const BigInt &amount) {

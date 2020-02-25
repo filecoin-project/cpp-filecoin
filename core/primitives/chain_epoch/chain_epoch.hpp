@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_PRIMITIVES_CHAIN_EPOCH_HPP
 #define CPP_FILECOIN_PRIMITIVES_CHAIN_EPOCH_HPP
 
-#include "primitives/big_int.hpp"
+#include <cstdint>
 
 namespace fc::primitives {
 

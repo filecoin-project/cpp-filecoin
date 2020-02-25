@@ -110,6 +110,12 @@ namespace fc::vm::actor {
   /** Check if actor code can represent external signing parties */
   bool isSignableActor(const CodeId &code);
 
+  /** Reserved method number for send operation */
+  constexpr MethodNumber kSendMethodNumber{0};
+
+  /** Reserved method number for constructor */
+  constexpr MethodNumber kConstructorMethodNumber{1};
+
   extern const CID kEmptyObjectCid;
 
   extern const CodeId kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
@@ -120,6 +126,7 @@ namespace fc::vm::actor {
   inline static const auto kInitAddress = Address::makeFromId(0);
   inline static const auto kStoragePowerAddress = Address::makeFromId(2);
   inline static const auto kCronAddress = Address::makeFromId(4);
+  inline static const auto kStorageMarketAddress = Address::makeFromId(5);
   inline static const auto kBurntFundsActorAddress = Address::makeFromId(99);
 }  // namespace fc::vm::actor
 

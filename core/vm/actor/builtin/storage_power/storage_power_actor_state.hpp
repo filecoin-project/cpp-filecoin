@@ -12,6 +12,7 @@
 #include "crypto/randomness/randomness_provider.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "power/power_table.hpp"
+#include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/indices/indices.hpp"
 
@@ -24,10 +25,14 @@ namespace fc::vm::actor::builtin::storage_power {
   using power::Power;
   using primitives::BigInt;
   using primitives::ChainEpoch;
+  using primitives::DealWeight;
+  using primitives::EpochDuration;
+  using primitives::SectorSize;
+  using primitives::SectorStorageWeightDesc;
+  using primitives::TokenAmount;
   using primitives::address::Address;
   using storage::hamt::Hamt;
   using storage::ipfs::IpfsDatastore;
-  using TokenAmount = primitives::BigInt;
 
   // Minimum power of an individual miner to participate in leader election
   // From spec: 100 TiB
@@ -37,18 +42,6 @@ namespace fc::vm::actor::builtin::storage_power {
   // Minimum number of registered miners for the minimum miner size limit to
   // effectively limit consensus power. From spec: 3
   static const size_t kConsensusMinerMinMiners = 3;
-
-  enum SpaMethods {
-    CONSTRUCTOR = 1,
-    CREATE_STORAGE_MINER,
-    ARBITRATE_CONSENSUS_FAULT,
-    UPDATE_STORAGE,
-    GET_TOTAL_STORAGE,
-    POWER_LOOKUP,
-    IS_VALID_MINER,
-    PLEDGE_COLLATERAL_FOR_SIZE,
-    CHECK_PROOF_SUBMISSIONS
-  };
 
   struct Claim {
     // Sum of power for a miner's sectors
@@ -66,17 +59,37 @@ namespace fc::vm::actor::builtin::storage_power {
     Buffer callback_payload;
   };
 
-  class StoragePowerActorState {
+  /**
+   * POD structure of SoragePowerActor state
+   */
+  struct StoragePowerActorState {
+    power::Power total_network_power;
+    size_t miner_count;
+    CID escrow_table_cid;
+    CID cron_event_queue_cid;
+    CID po_st_detected_fault_miners_cid;
+    CID claims_cid;
+    /** Number of miners having proven the minimum consensus power */
+    size_t num_miners_meeting_min_power;
+  };
+
+  class StoragePowerActor {
    public:
-    StoragePowerActorState(
-        std::shared_ptr<Indices> indices,
-        std::shared_ptr<crypto::randomness::RandomnessProvider>
-            randomness_provider,
-        std::shared_ptr<IpfsDatastore> datastore,
-        const CID &escrow_table_cid,
-        const CID &cron_event_queue_cid,
-        const CID &po_st_detected_fault_miners_cid,
-        const CID &claims_cid);
+    StoragePowerActor(std::shared_ptr<IpfsDatastore> datastore,
+                      StoragePowerActorState state);
+
+    /**
+     * Creates empty StoragePowerActor state
+     * @param datastore - ipfs datastore
+     * @return an empty initialized state
+     */
+    static outcome::result<StoragePowerActorState> createEmptyState(
+        std::shared_ptr<IpfsDatastore> datastore);
+
+    void setState(const StoragePowerActorState &state);
+
+    /** Flush current state */
+    outcome::result<StoragePowerActorState> flushState();
 
     /**
      * @brief Add miner to system
@@ -90,7 +103,14 @@ namespace fc::vm::actor::builtin::storage_power {
      * @param miner_addr is address of miner
      * @return success or error NO_SUCH_MINER
      */
-    outcome::result<void> deleteMiner(const Address &miner_addr);
+    outcome::result<TokenAmount> deleteMiner(const Address &miner_addr);
+
+    /**
+     * @brief Checks if miner is present
+     * @param miner_addr address
+     * @return true if miner is present, false otherwise
+     */
+    outcome::result<bool> hasMiner(const Address &miner_addr) const;
 
     /**
      * Return miner balance
@@ -130,6 +150,12 @@ namespace fc::vm::actor::builtin::storage_power {
     outcome::result<void> setClaim(const Address &miner, const Claim &claim);
 
     /**
+     * Checks if claim with miner address is present
+     * @param miner address
+     * @return true if claim with address is present or false otherwise
+     */
+    outcome::result<bool> hasClaim(const Address &miner) const;
+    /**
      * Get claim for a miner
      * @param miner address
      * @return claim
@@ -155,6 +181,12 @@ namespace fc::vm::actor::builtin::storage_power {
                                      const TokenAmount &pledge);
 
     /**
+     * Get all claims
+     * @return vector of all claims
+     */
+    outcome::result<std::vector<Claim>> getClaims() const;
+
+    /**
      * Add event to cron event queue
      * @param epoch
      * @param event
@@ -162,6 +194,12 @@ namespace fc::vm::actor::builtin::storage_power {
      */
     outcome::result<void> appendCronEvent(const ChainEpoch &epoch,
                                           const CronEvent &event);
+
+    /**
+     * Get all cron events
+     * @return
+     */
+    outcome::result<std::vector<CronEvent>> getCronEvents() const;
 
     /**
      * @brief Add miner to miners list failed proof
@@ -185,11 +223,16 @@ namespace fc::vm::actor::builtin::storage_power {
     outcome::result<void> deleteFaultMiner(const Address &miner_addr);
 
     /**
+     * @brief Get list of all fault miners
+     * @return list of fault miners or error
+     */
+    outcome::result<std::vector<Address>> getFaultMiners() const;
+
+    /**
      * @brief Get list of all miners in system
      * @return list of miners or error
      */
-    outcome::result<std::vector<primitives::address::Address>> getMiners()
-        const;
+    outcome::result<std::vector<Address>> getMiners() const;
 
     /**
      * Compute nominal power: i.e., the power we infer the miner to have (based
@@ -199,29 +242,7 @@ namespace fc::vm::actor::builtin::storage_power {
      */
     outcome::result<Power> computeNominalPower(const Address &address) const;
 
-    void reloadRoot();
-
-    power::Power total_network_power;
-
-    size_t miner_count;
-
-    /**
-     * The balances of pledge collateral for each miner actually held by this
-     * actor. The sum of the values here should always equal the actor's
-     * balance. See Claim for the pledge *requirements* for each actor
-     */
-    std::shared_ptr<BalanceTableHamt> escrow_table;
-
-    CID cron_event_queue_cid;
-
-    CID po_st_detected_fault_miners_cid;
-
-    CID claims_cid;
-
-    /**
-     * Number of miners having proven the minimum consensus power
-     */
-    size_t num_miners_meeting_min_power;
+    outcome::result<Power> getTotalNetworkPower() const;
 
    private:
     /**
@@ -237,10 +258,14 @@ namespace fc::vm::actor::builtin::storage_power {
      */
     std::shared_ptr<IpfsDatastore> datastore_;
 
-    std::shared_ptr<Indices> indices_;
+    StoragePowerActorState state_;
 
-    std::shared_ptr<crypto::randomness::RandomnessProvider>
-        randomness_provider_;
+    /**
+     * The balances of pledge collateral for each miner actually held by this
+     * actor. The sum of the values here should always equal the actor's
+     * balance. See Claim for the pledge *requirements* for each actor
+     */
+    std::shared_ptr<BalanceTableHamt> escrow_table_;
 
     /**
      * A queue of events to be triggered by cron, indexed by epoch
@@ -259,32 +284,18 @@ namespace fc::vm::actor::builtin::storage_power {
     std::shared_ptr<Hamt> claims_;
   };
 
-  CBOR_TUPLE(Claim, power, pledge)
+  CBOR_TUPLE(Claim, power, pledge);
 
-  CBOR_TUPLE(CronEvent, miner_address, callback_payload)
+  CBOR_TUPLE(CronEvent, miner_address, callback_payload);
 
-  CBOR_ENCODE_TUPLE(StoragePowerActorState,
-                    total_network_power,
-                    miner_count,
-                    escrow_table->root,
-                    cron_event_queue_cid,
-                    po_st_detected_fault_miners_cid,
-                    claims_cid,
-                    num_miners_meeting_min_power)
-
-  /**
-   * CBOR deserialization of ChangeThresholdParameters
-   */
-  CBOR_DECODE(StoragePowerActorState, state) {
-    s.list() >> state.total_network_power >> state.miner_count
-        >> state.escrow_table->root >> state.cron_event_queue_cid
-        >> state.po_st_detected_fault_miners_cid >> state.claims_cid
-        >> state.num_miners_meeting_min_power;
-
-    state.reloadRoot();
-
-    return s;
-  }
+  CBOR_TUPLE(StoragePowerActorState,
+             total_network_power,
+             miner_count,
+             escrow_table_cid,
+             cron_event_queue_cid,
+             po_st_detected_fault_miners_cid,
+             claims_cid,
+             num_miners_meeting_min_power);
 
 }  // namespace fc::vm::actor::builtin::storage_power
 

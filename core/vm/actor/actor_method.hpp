@@ -12,7 +12,13 @@
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
+#define ACTOR_METHOD(name)                \
+  outcome::result<InvocationOutput> name( \
+      const Actor &actor, Runtime &runtime, const MethodParams &params)
+
 namespace fc::vm::actor {
+
+  using common::Buffer;
   using runtime::InvocationOutput;
   using runtime::Runtime;
 
@@ -29,12 +35,6 @@ namespace fc::vm::actor {
   /// Actor methods exported by number
   using ActorExports = std::map<MethodNumber, ActorMethod>;
 
-  /// Reserved method number for send operation
-  constexpr MethodNumber kSendMethodNumber{0};
-
-  /// Reserved method number for constructor
-  constexpr MethodNumber kConstructorMethodNumber{1};
-
   /// Decode actor params, raises appropriate error
   template <typename T>
   outcome::result<T> decodeActorParams(MethodParams params_bytes) {
@@ -45,15 +45,21 @@ namespace fc::vm::actor {
     return maybe_params;
   }
 
-  /// Encode actor params, raises appropriate error
+  using runtime::encodeActorParams;
+
   template <typename T>
-  outcome::result<MethodParams> encodeActorParams(const T &params) {
-    auto maybe_bytes = codec::cbor::encode(params);
-    if (!maybe_bytes) {
-      return VMExitCode::ENCODE_ACTOR_PARAMS_ERROR;
-    }
-    return MethodParams{maybe_bytes.value()};
+  outcome::result<T> decodeActorReturn(const InvocationOutput &result) {
+    OUTCOME_TRY(decoded,
+                codec::cbor::decode<T>(result.return_value.toVector()));
+    return std::move(decoded);
   }
+
+  template <typename T>
+  outcome::result<InvocationOutput> encodeActorReturn(const T &result) {
+    OUTCOME_TRY(encoded, codec::cbor::encode(result));
+    return InvocationOutput{Buffer{encoded}};
+  }
+
 }  // namespace fc::vm::actor
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_METHOD_HPP

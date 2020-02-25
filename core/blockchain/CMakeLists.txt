@@ -4,3 +4,17 @@
 #
 
 add_subdirectory(message_pool)
+
+add_library(block_validator
+    impl/block_validator_impl.cpp
+    )
+target_link_libraries(block_validator
+    block
+    )
+
+add_library(weight_calculator
+    impl/weight_calculator_impl.cpp
+    )
+target_link_libraries(weight_calculator
+    tipset
+    )
