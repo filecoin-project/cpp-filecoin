@@ -166,7 +166,6 @@ namespace fc::vm::runtime {
 
     /// Send funds
     inline auto sendFunds(const Address &to, BigInt value) {
-      // kSendMethodNumber circular dependency
       return send(to, kSendMethodNumber, {}, value);
     }
 

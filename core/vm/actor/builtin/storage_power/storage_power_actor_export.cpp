@@ -184,11 +184,12 @@ ACTOR_METHOD(StoragePowerActorMethods::onSectorProveCommit) {
   OUTCOME_TRY(
       power_actor.addToClaim(runtime.getMessage().get().from, power, pledge));
 
-  OnSectorProveCommitReturn exec_return{pledge};
-  OUTCOME_TRY(result, encodeActorReturn(exec_return));
+  OUTCOME_TRY(result,
+              encodeActorReturn(OnSectorProveCommitReturn{.pledge = pledge}));
 
   OUTCOME_TRY(power_actor_state, power_actor.flushState());
   OUTCOME_TRY(runtime.commitState(power_actor_state));
+
   return std::move(result);
 }
 

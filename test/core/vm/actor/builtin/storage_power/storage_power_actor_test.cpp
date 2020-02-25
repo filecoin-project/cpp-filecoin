@@ -745,7 +745,7 @@ TEST_F(StoragePowerActorTest, OnSectorProofCommitSuccess) {
 
 /**
  * @givenRuntime and state with miner
- * @when onSectorProofCommitSuccess called
+ * @when OnSectorTerminateSuccess called
  * @then miner balance slashed
  */
 TEST_F(StoragePowerActorTest, OnSectorTerminateSuccess) {
