@@ -51,7 +51,7 @@ namespace fc::vm::runtime {
                  outcome::result<void>(const Address &address,
                                        const Actor &actor));
 
-    MOCK_METHOD1(deleteActor, outcome::result<void>(const Address &address));
+    MOCK_METHOD0(deleteActor, outcome::result<void>());
 
     MOCK_METHOD0(getIpfsDatastore, std::shared_ptr<IpfsDatastore>());
 
@@ -63,6 +63,17 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD1(commit,
                  outcome::result<void>(const ActorSubstateCID &new_state));
+
+    MOCK_METHOD1(resolveAddress,
+                 outcome::result<Address>(const Address &address));
+
+    MOCK_METHOD2(verifyPoSt,
+                 outcome::result<bool>(uint64_t sector_size,
+                                       const PoStVerifyInfo &info));
+
+    MOCK_METHOD2(verifySeal,
+                 outcome::result<bool>(uint64_t sector_size,
+                                       const SealVerifyInfo &info));
   };
 }  // namespace fc::vm::runtime
 

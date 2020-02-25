@@ -26,6 +26,12 @@ namespace fc::codec::cbor {
         typename T,
         typename = std::enable_if_t<std::is_integral_v<T> || std::is_enum_v<T>>>
     CborDecodeStream &operator>>(T &num) {
+      if constexpr (std::is_enum_v<T>) {
+        std::underlying_type_t<T> value;
+        *this >> value;
+        num = T{value};
+        return *this;
+      }
       if constexpr (std::is_same_v<T, bool>) {
         if (!cbor_value_is_boolean(&value_)) {
           outcome::raise(CborDecodeError::WRONG_TYPE);
@@ -43,25 +49,15 @@ namespace fc::codec::cbor {
           }
           uint64_t num64;
           cbor_value_get_uint64(&value_, &num64);
-          /*
-           * std::numeric_limits<T>::max for not specialized type is always 0
-           */
-          if (std::numeric_limits<T>::is_specialized
-              && num64 > std::numeric_limits<T>::max()) {
+          if (num64 > std::numeric_limits<T>::max()) {
             outcome::raise(CborDecodeError::INT_OVERFLOW);
           }
           num = static_cast<T>(num64);
         } else {
           int64_t num64;
           cbor_value_get_int64(&value_, &num64);
-
-          /*
-           * std::numeric_limits<T>::max for not specialized type is always 0
-           */
-          if (std::numeric_limits<T>::is_specialized
-              && (num64 > static_cast<int64_t>(std::numeric_limits<T>::max())
-                  || num64 < static_cast<int64_t>(
-                         std::numeric_limits<T>::min()))) {
+          if (num64 > static_cast<int64_t>(std::numeric_limits<T>::max())
+              || num64 < static_cast<int64_t>(std::numeric_limits<T>::min())) {
             outcome::raise(CborDecodeError::INT_OVERFLOW);
           }
           num = static_cast<T>(num64);

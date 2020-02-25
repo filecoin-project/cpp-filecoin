@@ -12,6 +12,10 @@
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
+#define ACTOR_METHOD(name)                \
+  outcome::result<InvocationOutput> name( \
+      const Actor &actor, Runtime &runtime, const MethodParams &params)
+
 namespace fc::vm::actor {
 
   using common::Buffer;
@@ -47,15 +51,7 @@ namespace fc::vm::actor {
     return maybe_params;
   }
 
-  /// Encode actor params, raises appropriate error
-  template <typename T>
-  outcome::result<MethodParams> encodeActorParams(const T &params) {
-    auto maybe_bytes = codec::cbor::encode(params);
-    if (!maybe_bytes) {
-      return VMExitCode::ENCODE_ACTOR_PARAMS_ERROR;
-    }
-    return MethodParams{maybe_bytes.value()};
-  }
+  using runtime::encodeActorParams;
 
   template <typename T>
   outcome::result<T> decodeActorReturn(const InvocationOutput &result) {

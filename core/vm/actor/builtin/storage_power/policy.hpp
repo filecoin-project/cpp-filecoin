@@ -7,12 +7,13 @@
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_POLICY_HPP
 
 #include "vm/actor/builtin/reward/reward_actor.hpp"
-#include "vm/actor/util.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
+  using fc::primitives::SectorStorageWeightDesc;
+  using fc::primitives::StoragePower;
+  using fc::primitives::TokenAmount;
   using fc::vm::actor::builtin::reward::kBlockRewardTarget;
-  using StoragePower = primitives::BigInt;
 
   /**
    * Total expected block reward per epoch (per-winner reward * expected
@@ -40,12 +41,12 @@ namespace fc::vm::actor::builtin::storage_power {
   TokenAmount pledgePenaltyForSectorTermination(
       TokenAmount pledge, SectorTerminationType termination_type);
 
-  StoragePower consensusPowerForWeight(const SectorStorageWeightDescr &weight);
+  StoragePower consensusPowerForWeight(const SectorStorageWeightDesc &weight);
 
   StoragePower consensusPowerForWeights(
-      gsl::span<SectorStorageWeightDescr> weights);
+      gsl::span<SectorStorageWeightDesc> weights);
 
-  TokenAmount pledgeForWeight(const SectorStorageWeightDescr &weight,
+  TokenAmount pledgeForWeight(const SectorStorageWeightDesc &weight,
                               StoragePower network_power);
 
 }  // namespace fc::vm::actor::builtin::storage_power

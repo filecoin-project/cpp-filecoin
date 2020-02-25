@@ -10,14 +10,15 @@
 #include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/actor_method.hpp"
+#include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/storage_power/policy.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
-#include "vm/actor/util.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
+  using miner::PeerId;
   using runtime::InvocationOutput;
   using runtime::Runtime;
 
@@ -62,7 +63,7 @@ namespace fc::vm::actor::builtin::storage_power {
   };
 
   struct OnSectorProveCommitParameters {
-    SectorStorageWeightDescr weight;
+    SectorStorageWeightDesc weight;
   };
 
   struct OnSectorProveCommitReturn {
@@ -71,42 +72,52 @@ namespace fc::vm::actor::builtin::storage_power {
 
   struct OnSectorTerminateParameters {
     SectorTerminationType termination_type;
-    std::vector<SectorStorageWeightDescr> weights;
+    std::vector<SectorStorageWeightDesc> weights;
     TokenAmount pledge;
   };
 
   struct OnSectorTemporaryFaultEffectiveBeginParameters {
-    std::vector<SectorStorageWeightDescr> weights;
+    std::vector<SectorStorageWeightDesc> weights;
     TokenAmount pledge;
+  };
+
+  struct OnSectorTemporaryFaultEffectiveEndParams {
+    std::vector<SectorStorageWeightDesc> weights;
+    TokenAmount pledge;
+  };
+
+  struct OnSectorModifyWeightDescParams {
+    SectorStorageWeightDesc prev_weight;
+    TokenAmount prev_pledge;
+    SectorStorageWeightDesc new_weight;
+  };
+
+  struct OnMinerWindowedPoStFailureParams {
+    uint64_t num_consecutive_failures;
+  };
+
+  struct EnrollCronEventParams {
+    ChainEpoch event_epoch;
+    Buffer payload;
   };
 
   class StoragePowerActorMethods {
    public:
-    static outcome::result<InvocationOutput> construct(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(construct);
 
-    static outcome::result<InvocationOutput> addBalance(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(addBalance);
 
-    static outcome::result<InvocationOutput> withdrawBalance(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(withdrawBalance);
 
-    static outcome::result<InvocationOutput> createMiner(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(createMiner);
 
-    static outcome::result<InvocationOutput> deleteMiner(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(deleteMiner);
 
-    static outcome::result<InvocationOutput> onSectorProveCommit(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(onSectorProveCommit);
 
-    static outcome::result<InvocationOutput> onSectorTerminate(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(onSectorTerminate);
 
-    static outcome::result<InvocationOutput>
-    onSectorTemporaryFaultEffectiveBegin(const Actor &actor,
-                                         Runtime &runtime,
-                                         const MethodParams &params);
+    static ACTOR_METHOD(onSectorTemporaryFaultEffectiveBegin);
 
    private:
     static outcome::result<InvocationOutput> slashPledgeCollateral(
@@ -134,6 +145,15 @@ namespace fc::vm::actor::builtin::storage_power {
   CBOR_TUPLE(OnSectorTerminateParameters, termination_type, weights, pledge)
 
   CBOR_TUPLE(OnSectorTemporaryFaultEffectiveBeginParameters, weights, pledge)
+
+  CBOR_TUPLE(OnSectorModifyWeightDescParams,
+             prev_weight,
+             prev_pledge,
+             new_weight)
+
+  CBOR_TUPLE(OnMinerWindowedPoStFailureParams, num_consecutive_failures)
+
+  CBOR_TUPLE(EnrollCronEventParams, event_epoch, payload);
 
 }  // namespace fc::vm::actor::builtin::storage_power
 

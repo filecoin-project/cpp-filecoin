@@ -88,6 +88,10 @@ namespace fc::storage::hamt {
 
   outcome::result<CID> Hamt::flush() {
     OUTCOME_TRY(flush(root_));
+    return cid();
+  }
+
+  const CID &Hamt::cid() const {
     return boost::get<CID>(root_);
   }
 

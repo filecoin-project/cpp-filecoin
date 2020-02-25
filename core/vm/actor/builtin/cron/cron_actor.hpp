@@ -24,9 +24,7 @@ namespace fc::vm::actor::builtin::cron {
    * @param params from Lotus(doesn't use)
    * @return success or error
    */
-  outcome::result<InvocationOutput> epochTick(const Actor &actor,
-                                              Runtime &runtime,
-                                              const MethodParams &params);
+  ACTOR_METHOD(epochTick);
 
   extern const ActorExports exports;
 

@@ -17,10 +17,12 @@
 #include "vm/actor/builtin/storage_power/policy.hpp"
 
 using fc::CID;
-using fc::adt::TokenAmount;
 using fc::common::Buffer;
 using fc::power::Power;
+using fc::primitives::DealWeight;
 using fc::primitives::EpochDuration;
+using fc::primitives::SectorStorageWeightDesc;
+using fc::primitives::TokenAmount;
 using fc::primitives::address::Address;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::storage::ipfs::IpfsDatastore;
@@ -34,10 +36,8 @@ using fc::vm::actor::kCronAddress;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::kSendMethodNumber;
 using fc::vm::actor::kStorageMinerCodeCid;
-using fc::vm::actor::SectorStorageWeightDescr;
-using fc::vm::actor::Weight;
 using fc::vm::actor::builtin::miner::GetControlAddressesReturn;
-using fc::vm::actor::builtin::miner::kGetControlAddresses;
+using fc::vm::actor::builtin::miner::kGetControlAddressesMethodNumber;
 using fc::vm::actor::builtin::storage_power::AddBalanceParameters;
 using fc::vm::actor::builtin::storage_power::Claim;
 using fc::vm::actor::builtin::storage_power::CreateMinerParameters;
@@ -261,7 +261,7 @@ TEST_F(StoragePowerActorTest, AddBalanceInternalError) {
       .WillOnce(testing::Return(caller_address));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::failure(VMExitCode::_)));
@@ -294,7 +294,7 @@ TEST_F(StoragePowerActorTest, AddBalanceSuccess) {
                       fc::codec::cbor::encode(get_controll_address_return));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
@@ -341,7 +341,7 @@ TEST_F(StoragePowerActorTest, WithdrawBalanceNegative) {
                       fc::codec::cbor::encode(get_controll_address_return));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
@@ -376,7 +376,7 @@ TEST_F(StoragePowerActorTest, WithdrawBalanceSuccess) {
                       fc::codec::cbor::encode(get_controll_address_return));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
@@ -434,7 +434,7 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
 
   // check send params
-  fc::vm::actor::builtin::miner::ConstructParameters construct_params{
+  fc::vm::actor::builtin::miner::ConstructorParams construct_params{
       caller_address, worker_address, sector_size, peer_id};
   EXPECT_OUTCOME_TRUE(encoded_construct_params,
                       encodeActorParams(construct_params));
@@ -495,7 +495,7 @@ TEST_F(StoragePowerActorTest, DeleteMinerBalanceNotZero) {
                       fc::codec::cbor::encode(get_controll_address_return));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
@@ -530,7 +530,7 @@ TEST_F(StoragePowerActorTest, DeleteMinerClaimPowerNotZero) {
                       fc::codec::cbor::encode(get_controll_address_return));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
@@ -567,7 +567,7 @@ TEST_F(StoragePowerActorTest, DeleteMinerNoMiner) {
                       fc::codec::cbor::encode(get_controll_address_return));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
@@ -600,7 +600,7 @@ TEST_F(StoragePowerActorTest, DeleteMinerSuccess) {
                       fc::codec::cbor::encode(get_controll_address_return));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddresses),
+                   Eq(kGetControlAddressesMethodNumber),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
@@ -637,7 +637,7 @@ TEST_F(StoragePowerActorTest, OnSectorProofCommitSuccess) {
   caller.code = kStorageMinerCodeCid;
   uint64_t sector_size{2};
   EpochDuration duration{3};
-  SectorStorageWeightDescr weight_descr{sector_size, duration, 0};
+  SectorStorageWeightDesc weight_descr{sector_size, duration, 0};
   OnSectorProveCommitParameters parameters{weight_descr};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(parameters));
 
@@ -684,9 +684,9 @@ TEST_F(StoragePowerActorTest, OnSectorTerminateSuccess) {
   setClaim(miner_address, Claim{initial_power, initial_pledge});
   caller.code = kStorageMinerCodeCid;
 
-  SectorStorageWeightDescr weight_descr_1{1, 1, 1};
-  SectorStorageWeightDescr weight_descr_2{2, 2, 2};
-  std::vector<SectorStorageWeightDescr> weights{weight_descr_1, weight_descr_2};
+  SectorStorageWeightDesc weight_descr_1{1, 1, 1};
+  SectorStorageWeightDesc weight_descr_2{2, 2, 2};
+  std::vector<SectorStorageWeightDesc> weights{weight_descr_1, weight_descr_2};
   TokenAmount pledge{10};
   OnSectorTerminateParameters parameters{
       SectorTerminationType::SECTOR_TERMINATION_EXPIRED, weights, pledge};

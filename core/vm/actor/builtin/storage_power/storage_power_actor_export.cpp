@@ -9,11 +9,11 @@
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 #include "vm/actor/builtin/shared/shared.hpp"
 
+using fc::primitives::SectorStorageWeightDesc;
+using fc::primitives::TokenAmount;
 using fc::primitives::address::decode;
 using fc::vm::actor::ActorExports;
 using fc::vm::actor::kConstructorMethodNumber;
-using fc::vm::actor::SectorStorageWeightDescr;
-using fc::vm::actor::TokenAmount;
 using fc::vm::actor::builtin::requestMinerControlAddress;
 using fc::vm::actor::builtin::storage_power::kEpochTotalExpectedReward;
 using fc::vm::actor::builtin::storage_power::kPledgeFactor;
@@ -22,9 +22,9 @@ using fc::vm::actor::builtin::storage_power::StoragePowerActorMethods;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::Runtime;
+namespace outcome = fc::outcome;
 
-fc::outcome::result<InvocationOutput> StoragePowerActorMethods::construct(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(StoragePowerActorMethods::construct) {
   if (runtime.getImmediateCaller() != kSystemActorAddress)
     return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
 
@@ -35,8 +35,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::construct(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> StoragePowerActorMethods::addBalance(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(StoragePowerActorMethods::addBalance) {
   OUTCOME_TRY(add_balance_params,
               decodeActorParams<AddBalanceParameters>(params));
   OUTCOME_TRY(miner_code_cid, runtime.getActorCodeID(add_balance_params.miner));
@@ -61,8 +60,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::addBalance(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> StoragePowerActorMethods::withdrawBalance(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(StoragePowerActorMethods::withdrawBalance) {
   OUTCOME_TRY(withdraw_balance_params,
               decodeActorParams<WithdrawBalanceParameters>(params));
   OUTCOME_TRY(miner_code_cid,
@@ -101,8 +99,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::withdrawBalance(
                                        withdraw_balance_params.requested,
                                        claim.pledge));
 
-  OUTCOME_TRY(
-      runtime.send(control_addresses.owner, kSendMethodNumber, {}, subtracted));
+  OUTCOME_TRY(runtime.sendFunds(control_addresses.owner, subtracted));
 
   OUTCOME_TRY(power_actor_state, power_actor.flushState());
   OUTCOME_TRY(runtime.commitState(power_actor_state));
@@ -118,7 +115,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::createMiner(
               decodeActorParams<CreateMinerParameters>(params));
 
   auto message = runtime.getMessage().get();
-  miner::ConstructParameters construct_miner_parameters{
+  miner::ConstructorParams construct_miner_parameters{
       message.from,
       create_miner_params.worker,
       create_miner_params.sector_size,

@@ -11,16 +11,16 @@
 #include "common/enum.hpp"
 #include "power/power_table.hpp"
 #include "primitives/address/address.hpp"
-#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/cid/cid.hpp"
+#include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor::builtin::reward {
 
-  using TokenAmount = primitives::BigInt;
-  using Power = power::Power;
+  using power::Power;
+  using primitives::TokenAmount;
 
   enum class VestingFunction : uint64_t {
     NONE = 0,
@@ -90,14 +90,11 @@ namespace fc::vm::actor::builtin::reward {
 
   class RewardActor {
    public:
-    static outcome::result<InvocationOutput> construct(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(construct);
 
-    static outcome::result<InvocationOutput> awardBlockReward(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(awardBlockReward);
 
-    static outcome::result<InvocationOutput> withdrawReward(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(withdrawReward);
 
    private:
     static TokenAmount computeBlockReward(const State &state,

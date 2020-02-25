@@ -13,6 +13,8 @@
 
 #include <cbor.h>
 
+#include "common/enum.hpp"
+
 namespace fc::codec::cbor {
   /** Encodes CBOR */
   class CborEncodeStream {
@@ -24,6 +26,9 @@ namespace fc::codec::cbor {
         typename T,
         typename = std::enable_if_t<std::is_integral_v<T> || std::is_enum_v<T>>>
     CborEncodeStream &operator<<(T num) {
+      if constexpr (std::is_enum_v<T>) {
+        return *this << common::to_int(num);
+      }
       addCount(1);
       std::array<uint8_t, 9> buffer{0};
       CborEncoder encoder;

@@ -39,9 +39,7 @@ namespace fc::vm::actor::builtin::init {
                              // newly created actor
   };
 
-  outcome::result<InvocationOutput> exec(const Actor &actor,
-                                         Runtime &runtime,
-                                         const MethodParams &params);
+  ACTOR_METHOD(exec);
 
   extern const ActorExports exports;
 

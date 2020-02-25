@@ -12,8 +12,8 @@
 #include "crypto/randomness/randomness_provider.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "power/power_table.hpp"
+#include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/actor/util.hpp"
 #include "vm/indices/indices.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
@@ -25,6 +25,11 @@ namespace fc::vm::actor::builtin::storage_power {
   using power::Power;
   using primitives::BigInt;
   using primitives::ChainEpoch;
+  using primitives::DealWeight;
+  using primitives::EpochDuration;
+  using primitives::SectorSize;
+  using primitives::SectorStorageWeightDesc;
+  using primitives::TokenAmount;
   using primitives::address::Address;
   using storage::hamt::Hamt;
   using storage::ipfs::IpfsDatastore;
@@ -37,6 +42,8 @@ namespace fc::vm::actor::builtin::storage_power {
   // Minimum number of registered miners for the minimum miner size limit to
   // effectively limit consensus power. From spec: 3
   static const size_t kConsensusMinerMinMiners = 3;
+
+  enum class SectorTermination { Expired, Manual };
 
   struct Claim {
     // Sum of power for a miner's sectors

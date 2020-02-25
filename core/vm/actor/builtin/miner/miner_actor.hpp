@@ -9,32 +9,50 @@
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
-#include "vm/actor/actor.hpp"
+#include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::miner {
 
-  constexpr MethodNumber kGetControlAddresses{2};
+  constexpr MethodNumber kGetControlAddressesMethodNumber{2};
+  constexpr MethodNumber kChangeWorkerAddressMethodNumber{3};
+  constexpr MethodNumber kChangePeerIdMethodNumber{4};
+  constexpr MethodNumber kSubmitWindowedPoStMethodNumber{5};
+  constexpr MethodNumber kOnDeleteMinerMethodNumber{6};
+  constexpr MethodNumber kPreCommitSectorMethodNumber{7};
+  constexpr MethodNumber kProveCommitSectorMethodNumber{8};
+  constexpr MethodNumber kExtendSectorExpirationMethodNumber{9};
+  constexpr MethodNumber kTerminateSectorsMethodNumber{10};
+  constexpr MethodNumber kDeclareTemporaryFaultsMethodNumber{11};
+  constexpr MethodNumber kOnDeferredCronEventMethodNumber{11};
+
   constexpr MethodNumber kSubmitElectionPoStMethodNumber{20};
 
-  /**
-   * Construct method parameters
-   */
-  struct ConstructParameters {
-    Address owner;
-    Address worker;
-    uint64_t sector_size;
-    PeerId peer_id;
-  };
+  ACTOR_METHOD(constructor);
 
-  struct GetControlAddressesReturn {
-    Address owner;
-    Address worker;
-  };
+  ACTOR_METHOD(controlAdresses);
 
-  CBOR_TUPLE(ConstructParameters, owner, worker, sector_size, peer_id);
+  ACTOR_METHOD(changeWorkerAddress);
 
-  CBOR_TUPLE(GetControlAddressesReturn, owner, worker);
+  ACTOR_METHOD(changePeerId);
+
+  ACTOR_METHOD(submitWindowedPoSt);
+
+  ACTOR_METHOD(onDeleteMiner);
+
+  ACTOR_METHOD(preCommitSector);
+
+  ACTOR_METHOD(proveCommitSector);
+
+  ACTOR_METHOD(extendSectorExpiration);
+
+  ACTOR_METHOD(terminateSectors);
+
+  ACTOR_METHOD(declareTemporaryFaults);
+
+  ACTOR_METHOD(onDeferredCronEvent);
+
+  extern const ActorExports exports;
 
 }  // namespace fc::vm::actor::builtin::miner
 

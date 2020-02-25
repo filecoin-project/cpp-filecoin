@@ -12,12 +12,12 @@ namespace fc::vm::actor::builtin::storage_power {
     return TokenAmount{0};
   }
 
-  StoragePower consensusPowerForWeight(const SectorStorageWeightDescr &weight) {
+  StoragePower consensusPowerForWeight(const SectorStorageWeightDesc &weight) {
     return StoragePower{weight.sector_size};
   }
 
   StoragePower consensusPowerForWeights(
-      gsl::span<SectorStorageWeightDescr> weights) {
+      gsl::span<SectorStorageWeightDesc> weights) {
     StoragePower power{0};
     for (auto weight : weights) {
       power += consensusPowerForWeight(weight);
@@ -25,7 +25,7 @@ namespace fc::vm::actor::builtin::storage_power {
     return power;
   }
 
-  TokenAmount pledgeForWeight(const SectorStorageWeightDescr &weight,
+  TokenAmount pledgeForWeight(const SectorStorageWeightDesc &weight,
                               StoragePower network_power) {
     return weight.sector_size * weight.duration * kEpochTotalExpectedReward
            * kPledgeFactor / network_power;
