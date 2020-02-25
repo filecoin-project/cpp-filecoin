@@ -7,7 +7,6 @@
 #define CPP_FILECOIN_GRAPHSYNC_HPP
 
 #include <functional>
-#include <unordered_set>
 #include <vector>
 
 #include <boost/optional.hpp>
@@ -39,7 +38,7 @@ namespace fc::storage::ipfs::graphsync {
     virtual outcome::result<size_t> select(
         gsl::span<const uint8_t> root_cid,
         gsl::span<const uint8_t> selector,
-        std::function<bool(const common::Buffer &cid,
+        std::function<bool(const CID &cid,
                            const common::Buffer &data)> handler) const = 0;
   };
 
@@ -75,13 +74,12 @@ namespace fc::storage::ipfs::graphsync {
   };
 
   bool isTerminal(ResponseStatusCode code);
-  ResponseStatusCode errorToStatusCode(outcome::result<void> error);
 
   /// Metadata pairs, is cid present or not
   using ResponseMetadata = std::vector<std::pair<CID, bool>>;
 
   /// Graphsync protocol interface
-  class Graphsync {
+ class Graphsync {
    public:
     virtual ~Graphsync() = default;
 

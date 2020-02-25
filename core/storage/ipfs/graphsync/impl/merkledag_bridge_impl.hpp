@@ -19,8 +19,8 @@ namespace fc::storage::ipfs::graphsync {
     outcome::result<size_t> select(
         gsl::span<const uint8_t> root_cid,
         gsl::span<const uint8_t> selector,
-        std::function<bool(const common::Buffer &cid,
-                           const common::Buffer &data)> handler) const override;
+        std::function<bool(const CID &cid, const common::Buffer &data)> handler)
+        const override;
 
     std::shared_ptr<merkledag::MerkleDagService> service_;
   };

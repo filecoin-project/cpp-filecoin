@@ -28,37 +28,21 @@ namespace fc::storage::ipfs::graphsync {
   outcome::result<size_t> MerkleDagBridgeImpl::select(
       gsl::span<const uint8_t> root_cid,
       gsl::span<const uint8_t> selector,
-      std::function<bool(const common::Buffer &, const common::Buffer &)>
-          handler) const {
-    std::error_code err;
-
+      std::function<bool(const CID &, const common::Buffer &)> handler) const {
     auto internal_handler =
-        [&handler, &err](std::shared_ptr<const merkledag::Node> node) -> bool {
-          auto cid = ContentIdentifierCodec::encode(node->getCID());
-          if (!cid) {
-            err = cid.error();
-            return false;
-          }
-          return handler(common::Buffer(std::move(cid.value())),
-                         node->getRawBytes());
-        };
+        [&handler](std::shared_ptr<const merkledag::Node> node) -> bool {
+      return handler(node->getCID(), node->getRawBytes());
+    };
 
     if (selector.empty()) {
       OUTCOME_TRY(content_id, ContentIdentifierCodec::decode(root_cid));
       CID cid{std::move(content_id)};
       OUTCOME_TRY(node, service_->getNode(cid));
       internal_handler(node);
-      if (err) {
-        return outcome::failure(err);
-      }
       return 1;
     }
 
-    auto res = service_->select(root_cid, selector, internal_handler);
-    if (err) {
-      return outcome::failure(err);
-    }
-    return res;
+    return service_->select(root_cid, selector, internal_handler);
   }
 
 }  // namespace fc::storage::ipfs::graphsync

@@ -6,8 +6,7 @@
 #include "message_parser.hpp"
 
 #include "codec/cbor/cbor_decode_stream.hpp"
-#include "storage/ipfs/graphsync/impl/errors.hpp"
-#include "storage/ipfs/graphsync/graphsync.hpp"
+#include "storage/ipfs/graphsync/impl/common.hpp"
 
 #include <protobuf/message.pb.h>
 

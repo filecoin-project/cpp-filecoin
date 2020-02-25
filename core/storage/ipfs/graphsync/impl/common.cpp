@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "errors.hpp"
+#include "common.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipfs::graphsync, Error, e) {
   using E = fc::storage::ipfs::graphsync::Error;

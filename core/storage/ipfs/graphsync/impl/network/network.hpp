@@ -20,10 +20,10 @@ namespace fc::storage::ipfs::graphsync {
    public:
     virtual ~NetworkEvents() = default;
 
-    virtual void onLocalRequestProgress(const PeerId &peer,
-                                        int request_id,
-                                        ResponseStatusCode status,
-                                        ResponseMetadata metadata) = 0;
+    virtual void onResponse(const PeerId &peer,
+                            int request_id,
+                            ResponseStatusCode status,
+                            ResponseMetadata metadata) = 0;
 
     virtual void onBlock(const PeerId &from, CID cid, common::Buffer data) = 0;
 
@@ -36,25 +36,24 @@ namespace fc::storage::ipfs::graphsync {
                   public EndpointEvents {
    public:
     Network(std::shared_ptr<libp2p::Host> host,
-            std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-            std::shared_ptr<NetworkEvents> feedback);
+            std::shared_ptr<libp2p::protocol::Scheduler> scheduler);
 
     ~Network() override;
 
     /// Starts accepting streams
-    void start();
+    void start(std::shared_ptr<NetworkEvents> feedback);
 
     void makeRequest(const PeerId &peer,
                      boost::optional<libp2p::multi::Multiaddress> address,
                      int request_id,
                      SharedData request_body);
 
-    void cancelRequest(const PeerId &peer, int request_id);
+    void cancelRequest(int request_id, SharedData request_body);
 
     void addBlockToResponse(const PeerId &peer,
                             uint64_t tag,
                             const CID &cid,
-                            gsl::span<const uint8_t> &data);
+                            const common::Buffer &data);
 
     void sendResponse(const PeerId &peer,
                       uint64_t tag,
@@ -88,8 +87,12 @@ namespace fc::storage::ipfs::graphsync {
     void incStreamRef(const StreamPtr &stream);
     void decStreamRef(const StreamPtr &stream);
 
+    /// Closes all streams gracefully
+    void closeAllStreams();
+
     void closeLocalRequestsForPeer(const PeerContextPtr &peer,
                                    ResponseStatusCode status);
+
 
     std::shared_ptr<libp2p::Host> host_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
@@ -105,7 +108,8 @@ namespace fc::storage::ipfs::graphsync {
 
     std::map<StreamPtr, int> stream_refs_;
 
-    // uint64_t current_session_id_ = 0;
+    std::map<int, PeerContextPtr> active_requests_;
+
     bool started_ = false;
   };
 

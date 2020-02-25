@@ -11,11 +11,6 @@ namespace fc::storage::ipfs::graphsync {
 
   namespace {
 
-    /// String representation for loggers and debug purposes
-    std::string makeStringRepr(uint64_t session_id, const PeerId &peer_id) {
-      return fmt::format("{}-{}", session_id, peer_id.toBase58().substr(46));
-    }
-
     std::string makeStringRepr(const PeerId &peer_id) {
       return peer_id.toBase58().substr(46);
     }

@@ -14,15 +14,16 @@ namespace fc::storage::ipfs::graphsync {
   constexpr uint64_t kConnectedEndpointTag = 0;
 
   Network::Network(std::shared_ptr<libp2p::Host> host,
-                   std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-                   std::shared_ptr<NetworkEvents> feedback)
-      : host_(std::move(host)),
-        scheduler_(std::move(scheduler)),
-        feedback_(std::move(feedback)) {}
+                   std::shared_ptr<libp2p::protocol::Scheduler> scheduler)
+      : host_(std::move(host)), scheduler_(std::move(scheduler)) {}
 
-  Network::~Network() {}
+  Network::~Network() {
+    closeAllStreams();
+  }
 
-  void Network::start() {
+  void Network::start(std::shared_ptr<NetworkEvents> feedback) {
+    feedback_ = std::move(feedback);
+
     // clang-format off
     host_->setProtocolHandler(
         protocol_id_,
@@ -56,6 +57,35 @@ namespace fc::storage::ipfs::graphsync {
       ctx->connect_to = std::move(address);
       tryConnect(std::move(ctx));
     }
+
+    active_requests_[request_id] = ctx;
+  }
+
+  void Network::cancelRequest(int request_id, SharedData request_body) {
+    if (!started_) {
+      return;
+    }
+
+    auto it = active_requests_.find(request_id);
+    if (it == active_requests_.end()) {
+      return;
+    }
+
+    auto ctx = it->second;
+
+    active_requests_.erase(it);
+    ctx->local_request_ids.erase(request_id);
+
+    if (!ctx->connected_endpoint) {
+      return;
+    }
+
+    if (ctx->is_connecting) {
+      ctx->is_connecting = false;
+      ctx->connected_endpoint->clearOutQueue();
+    } else {
+      ctx->connected_endpoint->enqueue(std::move(request_body));
+    }
   }
 
   namespace {
@@ -84,7 +114,7 @@ namespace fc::storage::ipfs::graphsync {
   void Network::addBlockToResponse(const PeerId &peer,
                                    uint64_t tag,
                                    const CID &cid,
-                                   gsl::span<const uint8_t> &data) {
+                                   const common::Buffer &data) {
     if (!started_) {
       return;
     }
@@ -157,7 +187,7 @@ namespace fc::storage::ipfs::graphsync {
       if (isTerminal(item.status)) {
         ctx->local_request_ids.erase(it);
       }
-      feedback_->onLocalRequestProgress(
+      feedback_->onResponse(
           from->peer, item.id, item.status, std::move(item.metadata));
     }
 
@@ -276,7 +306,7 @@ namespace fc::storage::ipfs::graphsync {
       incStreamRef(rstream.value());
       ctx->connected_endpoint->setStream(std::move(rstream.value()));
     } else {
-      closeLocalRequestsForPeer(ctx);
+      closeLocalRequestsForPeer(ctx, RS_CANNOT_CONNECT);
     }
 
     // TODO close if closable
@@ -335,16 +365,28 @@ namespace fc::storage::ipfs::graphsync {
 
   void Network::closeLocalRequestsForPeer(const PeerContextPtr &peer,
                                           ResponseStatusCode status) {
+    if (!feedback_) {
+      return;
+    }
+
     peer->connected_endpoint->clearOutQueue();
 
     dont_connect_to_ = peer;
     std::set<int> request_ids;
     std::swap(request_ids, peer->local_request_ids);
     for (int id : request_ids) {
-      feedback_->onLocalRequestProgress(peer->peer, id, RS_CANNOT_CONNECT, {});
+      active_requests_.erase(id);
+      feedback_->onResponse(peer->peer, id, status, {});
     }
 
     dont_connect_to_.reset();
+  }
+
+  void Network::closeAllStreams() {
+    started_ = false;
+    for (const auto& [stream, _] : stream_refs_) {
+      stream->close([stream{stream}](outcome::result<void>) {});
+    }
   }
 
 }  // namespace fc::storage::ipfs::graphsync

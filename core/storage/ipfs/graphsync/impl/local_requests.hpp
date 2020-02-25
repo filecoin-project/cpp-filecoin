@@ -8,8 +8,7 @@
 
 #include <map>
 
-#include "message.hpp"
-#include "storage/ipfs/graphsync/graphsync.hpp"
+#include "common.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 

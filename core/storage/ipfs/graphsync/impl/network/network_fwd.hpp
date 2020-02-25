@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_GRAPHSYNC_NETWORK_FWD_HPP
 #define CPP_FILECOIN_GRAPHSYNC_NETWORK_FWD_HPP
 
-#include "storage/ipfs/graphsync/impl/types.hpp"
+#include "storage/ipfs/graphsync/impl/common.hpp"
 
 namespace libp2p::connection {
   class Stream;

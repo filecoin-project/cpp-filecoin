@@ -17,7 +17,7 @@ namespace fc::storage::ipfs::graphsync {
                      ResponseStatusCode status,
                      const ResponseMetadata &metadata);
 
-    void addDataBlock(const CID &cid, gsl::span<const uint8_t> &data);
+    void addDataBlock(const CID &cid, const common::Buffer &data);
   };
 
 }  // namespace fc::storage::ipfs::graphsync

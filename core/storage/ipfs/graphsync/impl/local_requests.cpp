@@ -5,8 +5,6 @@
 
 #include "local_requests.hpp"
 
-#include <cassert>
-
 #include "graphsync_impl.hpp"
 
 namespace fc::storage::ipfs::graphsync {

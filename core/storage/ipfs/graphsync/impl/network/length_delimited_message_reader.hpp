@@ -11,8 +11,7 @@
 #include <libp2p/common/types.hpp>
 #include <libp2p/connection/stream.hpp>
 
-#include "../errors.hpp"
-#include "../types.hpp"
+#include "network_fwd.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 

@@ -7,7 +7,7 @@
 
 #include <protobuf/message.pb.h>
 
-#include "../errors.hpp"
+#include "storage/ipfs/graphsync/impl/common.hpp"
 #include "serialize.hpp"
 
 namespace fc::storage::ipfs::graphsync {

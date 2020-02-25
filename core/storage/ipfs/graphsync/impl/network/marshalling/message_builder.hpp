@@ -6,7 +6,6 @@
 #ifndef CPP_FILECOIN_GRAPHSYNC_MESSAGE_BUILDER_HPP
 #define CPP_FILECOIN_GRAPHSYNC_MESSAGE_BUILDER_HPP
 
-#include "storage/ipfs/graphsync/impl/types.hpp"
 #include "storage/ipfs/graphsync/impl/message.hpp"
 
 namespace fc::storage::ipfs::graphsync {

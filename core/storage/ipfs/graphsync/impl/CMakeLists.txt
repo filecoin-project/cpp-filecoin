@@ -3,26 +3,26 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(protobuf)
+add_subdirectory(network/marshalling/protobuf)
 
 add_library(graphsync
-    errors.cpp
+    common.cpp
     graphsync_impl.cpp
     merkledag_bridge_impl.cpp
-    network/network.cpp
-    network/peer_context.cpp
     block_subscription.cpp
     local_requests.cpp
-    marshalling/serialize.cpp
-    marshalling/message_parser.cpp
-    marshalling/message_builder.cpp
-    marshalling/request_builder.cpp
-    marshalling/response_builder.cpp
+    network/network.cpp
+    network/peer_context.cpp
     network/length_delimited_message_reader.cpp
     network/endpoint.cpp
+    network/marshalling/serialize.cpp
+    network/marshalling/message_parser.cpp
+    network/marshalling/message_builder.cpp
+    network/marshalling/request_builder.cpp
+    network/marshalling/response_builder.cpp
     )
 
-target_include_directories(graphsync PRIVATE "${CMAKE_BINARY_DIR}/generated/storage/ipfs/graphsync/impl")
+target_include_directories(graphsync PRIVATE "${CMAKE_BINARY_DIR}/generated/storage/ipfs/graphsync/impl/network/marshalling")
 
 target_link_libraries(graphsync
     Boost::boost

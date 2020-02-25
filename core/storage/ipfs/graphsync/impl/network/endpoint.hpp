@@ -12,6 +12,7 @@
 namespace fc::storage::ipfs::graphsync {
 
   class EndpointEvents {
+   public:
     virtual ~EndpointEvents() = default;
 
     virtual void onReadEvent(const PeerContextPtr &from,

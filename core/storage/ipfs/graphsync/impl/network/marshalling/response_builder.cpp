@@ -56,7 +56,7 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   void ResponseBuilder::addDataBlock(
-      const CID &cid, gsl::span<const uint8_t> &data) {
+      const CID &cid, const common::Buffer &data) {
     auto *dst = pb_msg_->add_data();
 
     CborEncodeStream encoder;

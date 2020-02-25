@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_GRAPHSYNC_BLOCKSUBSCRIPTION_HPP
 #define CPP_FILECOIN_GRAPHSYNC_BLOCKSUBSCRIPTION_HPP
 
-#include "../graphsync.hpp"
+#include "common.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
@@ -24,7 +24,7 @@ namespace fc::storage::ipfs::graphsync {
    private:
     void unsubscribe(uint64_t) override;
 
-    /// Owner, get notified when service unsubscribes
+    /// Owner, get notified when requests unsubscribe
     GraphsyncImpl& owner_;
 
     /// The only subscription to block (at the moment)
