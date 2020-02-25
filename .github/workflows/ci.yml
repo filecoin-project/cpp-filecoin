@@ -72,3 +72,12 @@ jobs:
       env:
         CTEST_OUTPUT_ON_FAILURE: 1
       run: cmake --build build --target test
+    - name: upload report to codecov
+      - uses: codecov/codecov-action@v1
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./build/ctest_coverage.xml
+#          flags: unittests #optional
+#          name: codecov-umbrella #optional
+#          yml: ./codecov.yml #optional
+#          fail_ci_if_error: true #optional (default = false)
