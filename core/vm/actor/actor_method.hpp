@@ -35,12 +35,6 @@ namespace fc::vm::actor {
   /// Actor methods exported by number
   using ActorExports = std::map<MethodNumber, ActorMethod>;
 
-  /// Reserved method number for send operation
-  constexpr MethodNumber kSendMethodNumber{0};
-
-  /// Reserved method number for constructor
-  constexpr MethodNumber kConstructorMethodNumber{1};
-
   /// Decode actor params, raises appropriate error
   template <typename T>
   outcome::result<T> decodeActorParams(MethodParams params_bytes) {
@@ -55,7 +49,8 @@ namespace fc::vm::actor {
 
   template <typename T>
   outcome::result<T> decodeActorReturn(const InvocationOutput &result) {
-    OUTCOME_TRY(decoded, codec::cbor::decode<T>(result.return_value.toVector()));
+    OUTCOME_TRY(decoded,
+                codec::cbor::decode<T>(result.return_value.toVector()));
     return std::move(decoded);
   }
 

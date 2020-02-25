@@ -18,6 +18,7 @@ using fc::vm::actor::builtin::requestMinerControlAddress;
 using fc::vm::actor::builtin::storage_power::kEpochTotalExpectedReward;
 using fc::vm::actor::builtin::storage_power::kPledgeFactor;
 using fc::vm::actor::builtin::storage_power::StoragePower;
+using fc::vm::actor::builtin::storage_power::StoragePowerActor;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorMethods;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
 using fc::vm::runtime::InvocationOutput;
@@ -49,9 +50,7 @@ ACTOR_METHOD(StoragePowerActorMethods::addBalance) {
       && immediate_caller != control_addresses.worker)
     return VMExitCode::STORAGE_POWER_FORBIDDEN;
 
-  auto datastore = runtime.getIpfsDatastore();
-  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
-  StoragePowerActor power_actor(datastore, state);
+  OUTCOME_TRY(power_actor, getCurrentState(runtime));
   OUTCOME_TRY(power_actor.addMinerBalance(add_balance_params.miner,
                                           runtime.getMessage().get().value));
 
@@ -79,9 +78,7 @@ ACTOR_METHOD(StoragePowerActorMethods::withdrawBalance) {
   if (withdraw_balance_params.requested < TokenAmount{0})
     return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
 
-  auto datastore = runtime.getIpfsDatastore();
-  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
-  StoragePowerActor power_actor(datastore, state);
+  OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
   if (!power_actor.hasClaim(withdraw_balance_params.miner))
     return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
@@ -135,9 +132,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::createMiner(
   OUTCOME_TRY(addresses_created,
               decodeActorReturn<init::ExecReturn>(encoded_addresses_created));
 
-  auto datastore = runtime.getIpfsDatastore();
-  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
-  StoragePowerActor power_actor(datastore, state);
+  OUTCOME_TRY(power_actor, getCurrentState(runtime));
   OUTCOME_TRY(power_actor.addMiner(addresses_created.id_address));
   OUTCOME_TRY(
       power_actor.setMinerBalance(addresses_created.id_address, message.value));
@@ -163,9 +158,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::deleteMiner(
       && immediate_caller != control_addresses.worker)
     return VMExitCode::STORAGE_POWER_FORBIDDEN;
 
-  auto datastore = runtime.getIpfsDatastore();
-  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
-  StoragePowerActor power_actor(datastore, state);
+  OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
   OUTCOME_TRY(power_actor.deleteMiner(delete_miner_params.miner));
 
@@ -186,9 +179,7 @@ StoragePowerActorMethods::onSectorProveCommit(const Actor &actor,
   OUTCOME_TRY(on_sector_prove_commit_params,
               decodeActorParams<OnSectorProveCommitParameters>(params));
 
-  auto datastore = runtime.getIpfsDatastore();
-  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
-  StoragePowerActor power_actor(datastore, state);
+  OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
   StoragePower power =
       consensusPowerForWeight(on_sector_prove_commit_params.weight);
@@ -222,9 +213,7 @@ StoragePowerActorMethods::onSectorTerminate(const Actor &actor,
   StoragePower power =
       consensusPowerForWeights(on_sector_terminate_params.weights);
 
-  auto datastore = runtime.getIpfsDatastore();
-  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
-  StoragePowerActor power_actor(datastore, state);
+  OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
   OUTCOME_TRY(power_actor.addToClaim(
       miner_address, -power, -on_sector_terminate_params.pledge));
@@ -256,9 +245,7 @@ StoragePowerActorMethods::onSectorTemporaryFaultEffectiveBegin(
                   params));
   StoragePower power = consensusPowerForWeights(on_sector_fault_params.weights);
 
-  auto datastore = runtime.getIpfsDatastore();
-  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
-  StoragePowerActor power_actor(datastore, state);
+  OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
   OUTCOME_TRY(power_actor.addToClaim(
       runtime.getMessage().get().from, -power, -on_sector_fault_params.pledge));
@@ -266,6 +253,14 @@ StoragePowerActorMethods::onSectorTemporaryFaultEffectiveBegin(
   OUTCOME_TRY(power_actor_state, power_actor.flushState());
   OUTCOME_TRY(runtime.commitState(power_actor_state));
   return fc::outcome::success();
+}
+
+fc::outcome::result<StoragePowerActor>
+StoragePowerActorMethods::getCurrentState(Runtime &runtime) {
+  auto datastore = runtime.getIpfsDatastore();
+  OUTCOME_TRY(state,
+              runtime.getCurrentActorStateCbor<StoragePowerActorState>());
+  return StoragePowerActor(datastore, state);
 }
 
 fc::outcome::result<InvocationOutput>
@@ -276,8 +271,7 @@ StoragePowerActorMethods::slashPledgeCollateral(Runtime &runtime,
   OUTCOME_TRY(
       slashed,
       power_actor.subtractMinerBalance(miner, to_slash, TokenAmount{0}));
-  OUTCOME_TRY(
-      runtime.send(kBurntFundsActorAddress, kSendMethodNumber, {}, slashed));
+  OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, slashed));
 
   return fc::outcome::success();
 }

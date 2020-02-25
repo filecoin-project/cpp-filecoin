@@ -25,6 +25,7 @@ namespace fc::vm::runtime {
 
   using actor::Actor;
   using actor::CodeId;
+  using actor::kSendMethodNumber;
   using actor::MethodNumber;
   using actor::MethodParams;
   using common::Buffer;
@@ -166,7 +167,7 @@ namespace fc::vm::runtime {
     /// Send funds
     inline auto sendFunds(const Address &to, BigInt value) {
       // kSendMethodNumber circular dependency
-      return send(to, {0}, {}, value);
+      return send(to, kSendMethodNumber, {}, value);
     }
 
     /// Send with typed result R

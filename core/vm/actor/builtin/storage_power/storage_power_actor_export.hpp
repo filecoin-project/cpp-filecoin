@@ -120,6 +120,8 @@ namespace fc::vm::actor::builtin::storage_power {
     static ACTOR_METHOD(onSectorTemporaryFaultEffectiveBegin);
 
    private:
+    static outcome::result<StoragePowerActor> getCurrentState(Runtime &runtime);
+
     static outcome::result<InvocationOutput> slashPledgeCollateral(
         Runtime &runtime,
         StoragePowerActor &power_actor,
