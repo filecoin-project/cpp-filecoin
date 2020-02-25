@@ -569,62 +569,6 @@ TEST_F(StoragePowerActorTest, DeleteMinerNoMiner) {
 }
 
 /**
- * @given State and miner with zero balance
- * @when deleteMiner is called
- * @then miner deleted
- */
-TEST_F(StoragePowerActorTest, DeleteMinerZeroBalanceSuccess) {
-  Address miner_address = createStateWithMiner();
-
-  DeleteMinerParameters delete_params{miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_delete_params, encodeActorParams(delete_params));
-
-  EXPECT_CALL(runtime, getImmediateCaller())
-      .WillOnce(testing::Return(caller_address));
-
-  EXPECT_CALL(runtime, getCurrentActorState())
-      .WillOnce(::testing::Return(actor.head));
-
-  // shared::requestMinerControlAddress
-  GetControlAddressesReturn get_controll_address_return{caller_address,
-                                                        miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_get_controll_address_return,
-                      fc::codec::cbor::encode(get_controll_address_return));
-  EXPECT_CALL(runtime,
-              send(Eq(miner_address),
-                   Eq(kGetControlAddressesMethodNumber),
-                   Eq(MethodParams{}),
-                   Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(
-          InvocationOutput{Buffer{encoded_get_controll_address_return}})));
-  EXPECT_CALL(
-      runtime,
-      send(Eq(miner_address),
-           Eq(fc::vm::actor::builtin::miner::kOnDeleteMinerMethodNumber),
-           Eq(MethodParams{}),
-           Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
-
-  EXPECT_CALL(runtime, getIpfsDatastore())
-      .Times(3)
-      .WillRepeatedly(testing::Return(datastore));
-
-  // commit and capture state CID
-  EXPECT_CALL(runtime, commit(_))
-      .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
-
-  EXPECT_OUTCOME_TRUE_1(StoragePowerActorMethods::deleteMiner(
-      actor, runtime, encoded_delete_params));
-
-  // inspect state
-  ActorSubstateCID state_cid = getCapturedCid();
-  EXPECT_OUTCOME_TRUE(state,
-                      datastore->getCbor<StoragePowerActorState>(state_cid));
-  StoragePowerActor actor(datastore, state);
-  EXPECT_OUTCOME_EQ(actor.hasMiner(miner_address), false);
-}
-
-/**
  * @given State and miner
  * @when deleteMiner is called
  * @then miner deleted and miner balance is slashed
