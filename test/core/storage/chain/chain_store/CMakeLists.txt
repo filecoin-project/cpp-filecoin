@@ -6,6 +6,7 @@ addtest(chain_store_test
     )
 target_link_libraries(chain_store_test
     chain_data_store
+    chain_randomness_provider
     chain_store
     block_validator
     ipfs_datastore_in_memory
