@@ -8,6 +8,7 @@
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/address/address_codec.hpp"
+#include "vm/actor/actor_method.hpp"
 #include "vm/state/state_tree.hpp"
 
 namespace fc::vm::actor::builtin::account {
@@ -15,6 +16,8 @@ namespace fc::vm::actor::builtin::account {
   using primitives::address::Address;
   using primitives::address::Protocol;
   using state::StateTree;
+
+  constexpr MethodNumber kPubkeyAddressMethodNumber{2};
 
   struct AccountActorState {
     Address address;
@@ -37,6 +40,9 @@ namespace fc::vm::actor::builtin::account {
 
   CBOR_TUPLE(AccountActorState, address)
 
+  ACTOR_METHOD(pubkeyAddress);
+
+  extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::account
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACCOUNT_ACTOR_HPP

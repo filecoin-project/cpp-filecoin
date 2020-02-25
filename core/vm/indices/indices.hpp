@@ -7,9 +7,10 @@
 #define CPP_FILECOIN_VM_INDICES_INDICES_HPP
 
 #include "power/power_table.hpp"
-#include "vm/actor/util.hpp"
+#include "primitives/types.hpp"
 
 namespace fc::vm::indices {
+  using primitives::SectorStorageWeightDesc;
 
   class Indices {
    public:
@@ -24,7 +25,7 @@ namespace fc::vm::indices {
      * @return power of sector
      */
     virtual fc::power::Power consensusPowerForStorageWeight(
-        actor::SectorStorageWeightDesc storage_weight_desc) = 0;
+        SectorStorageWeightDesc storage_weight_desc) = 0;
 
     /**
      * @brief Get min power to participate in consensus

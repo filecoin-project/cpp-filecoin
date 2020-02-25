@@ -16,15 +16,13 @@ namespace fc::vm::actor::builtin::init {
     storage::hamt::Hamt hamt(std::move(store), address_map);
     auto id = next_id;
     OUTCOME_TRY(hamt.setCbor(primitives::address::encodeToString(address), id));
-    OUTCOME_TRY(cid, hamt.flush());
-    address_map = cid;
+    OUTCOME_TRY(hamt.flush());
+    address_map = hamt.cid();
     ++next_id;
     return Address::makeFromId(id);
   }
 
-  outcome::result<InvocationOutput> exec(const Actor &actor,
-                                         Runtime &runtime,
-                                         const MethodParams &params) {
+  ACTOR_METHOD(exec) {
     OUTCOME_TRY(exec_params, decodeActorParams<ExecParams>(params));
     if (!isBuiltinActor(exec_params.code)) {
       return VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR;
@@ -38,8 +36,7 @@ namespace fc::vm::actor::builtin::init {
         Buffer{primitives::address::encode(message.from)}.putUint64(
             message.nonce))};
     auto store = runtime.getIpfsDatastore();
-    OUTCOME_TRY(init_actor,
-                store->getCbor<InitActorState>(runtime.getCurrentActorState()));
+    OUTCOME_TRY(init_actor, runtime.getCurrentActorStateCbor<InitActorState>());
     OUTCOME_TRY(id_address, init_actor.addActor(store, actor_address));
     OUTCOME_TRY(runtime.createActor(
         id_address,

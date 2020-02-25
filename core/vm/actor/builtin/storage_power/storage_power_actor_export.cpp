@@ -14,9 +14,9 @@ using fc::vm::actor::builtin::storage_power::StoragePowerActorMethods;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::Runtime;
+namespace outcome = fc::outcome;
 
-fc::outcome::result<InvocationOutput> StoragePowerActorMethods::construct(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(StoragePowerActorMethods::construct) {
   if (runtime.getImmediateCaller() != kSystemActorAddress)
     return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
 
@@ -30,8 +30,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::construct(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> StoragePowerActorMethods::addBalance(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(StoragePowerActorMethods::addBalance) {
   OUTCOME_TRY(add_balance_params,
               decodeActorParams<AddBalanceParameters>(params));
   OUTCOME_TRY(miner_code_cid, runtime.getActorCodeID(add_balance_params.miner));
@@ -59,8 +58,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::addBalance(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> StoragePowerActorMethods::withdrawBalance(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(StoragePowerActorMethods::withdrawBalance) {
   OUTCOME_TRY(withdraw_balance_params,
               decodeActorParams<WithdrawBalanceParameters>(params));
   OUTCOME_TRY(miner_code_cid,
@@ -99,8 +97,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::withdrawBalance(
                                        withdraw_balance_params.requested,
                                        claim.pledge));
 
-  OUTCOME_TRY(
-      runtime.send(control_addresses.owner, kSendMethodNumber, {}, subtracted));
+  OUTCOME_TRY(runtime.sendFunds(control_addresses.owner, subtracted));
 
   // commit state
   OUTCOME_TRY(power_actor_state, power_actor.flushState());

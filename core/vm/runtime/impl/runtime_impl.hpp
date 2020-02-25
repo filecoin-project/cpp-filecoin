@@ -83,7 +83,7 @@ namespace fc::vm::runtime {
                                       const Actor &actor) override;
 
     /** \copydoc Runtime::deleteActor() */
-    outcome::result<void> deleteActor(const Address &address) override;
+    outcome::result<void> deleteActor() override;
 
     /** \copydoc Runtime::getIpfsDatastore() */
     std::shared_ptr<IpfsDatastore> getIpfsDatastore() override;
@@ -102,6 +102,14 @@ namespace fc::vm::runtime {
     static outcome::result<void> transfer(Actor &from,
                                           Actor &to,
                                           const BigInt &amount);
+
+    outcome::result<Address> resolveAddress(const Address &address) override;
+
+    outcome::result<bool> verifyPoSt(uint64_t sector_size,
+                                     const PoStVerifyInfo &info) override;
+
+    outcome::result<bool> verifySeal(uint64_t sector_size,
+                                     const SealVerifyInfo &info) override;
 
    private:
     outcome::result<Actor> getOrCreateActor(const Address &address);

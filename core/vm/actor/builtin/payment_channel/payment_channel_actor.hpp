@@ -9,6 +9,7 @@
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
 #include "primitives/address/address_codec.hpp"
+#include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/runtime/runtime_types.hpp"
@@ -37,18 +38,13 @@ namespace fc::vm::actor::builtin::payment_channel {
 
   class PaymentChannelActor {
    public:
-    static outcome::result<InvocationOutput> construct(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(construct);
 
-    static outcome::result<InvocationOutput> updateChannelState(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(updateChannelState);
 
-    static outcome::result<InvocationOutput> settle(const Actor &actor,
-                                                    Runtime &runtime,
-                                                    const MethodParams &params);
+    static ACTOR_METHOD(settle);
 
-    static outcome::result<InvocationOutput> collect(
-        const Actor &actor, Runtime &runtime, const MethodParams &params);
+    static ACTOR_METHOD(collect);
   };
 
   CBOR_TUPLE(ConstructParameteres, to)

@@ -9,4 +9,5 @@
 
 namespace fc::vm::actor::builtin::miner {
 
+  const ActorExports exports{};
 }  // namespace fc::vm::actor::builtin::miner
