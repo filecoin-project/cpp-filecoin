@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::storage_power {
   StoragePower consensusPowerForWeights(
       gsl::span<SectorStorageWeightDesc> weights) {
     StoragePower power{0};
-    for (auto weight : weights) {
+    for (const auto weight : weights) {
       power += consensusPowerForWeight(weight);
     }
     return power;

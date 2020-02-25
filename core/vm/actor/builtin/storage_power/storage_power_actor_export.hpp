@@ -137,7 +137,7 @@ namespace fc::vm::actor::builtin::storage_power {
      * Deletes miner from state and slashes miner balance
      * @param runtime - current runtime
      * @param state - current storage power actor state
-     * @param miner - address to delete
+     * @param miner address to delete
      * @return error in case of failure
      */
     static outcome::result<void> deleteMinerActor(Runtime &runtime,
