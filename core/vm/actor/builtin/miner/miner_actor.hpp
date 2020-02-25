@@ -13,6 +13,7 @@
 #include "vm/actor/builtin/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::miner {
+
   constexpr MethodNumber kGetControlAddressesMethodNumber{2};
   constexpr MethodNumber kChangeWorkerAddressMethodNumber{3};
   constexpr MethodNumber kChangePeerIdMethodNumber{4};
@@ -52,6 +53,7 @@ namespace fc::vm::actor::builtin::miner {
   ACTOR_METHOD(onDeferredCronEvent);
 
   extern const ActorExports exports;
+
 }  // namespace fc::vm::actor::builtin::miner
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MINER_MINER_ACTOR_HPP

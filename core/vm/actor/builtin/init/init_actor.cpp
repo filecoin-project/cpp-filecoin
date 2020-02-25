@@ -45,8 +45,10 @@ namespace fc::vm::actor::builtin::init {
                              kConstructorMethodNumber,
                              exec_params.params,
                              message.value));
+    ExecReturn exec_return{id_address, actor_address};
+    OUTCOME_TRY(output, encodeActorReturn(exec_return));
     OUTCOME_TRY(runtime.commitState(init_actor));
-    return InvocationOutput{Buffer{primitives::address::encode(id_address)}};
+    return std::move(output);
   }
 
   const ActorExports exports{{kExecMethodNumber, ActorMethod(exec)}};

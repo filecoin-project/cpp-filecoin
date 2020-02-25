@@ -92,3 +92,14 @@ TEST_F(BalanceTableHamtTest, SubtractWithMinimum) {
                     subtrahend);
   EXPECT_OUTCOME_EQ(table->get(address), difference);
 }
+
+/**
+ * @given Balance table with a record
+ * @when record is deleted
+ * @then previous balance returned
+ */
+TEST_F(BalanceTableHamtTest, RemoveWithBalance) {
+  TokenAmount balance = 100;
+  EXPECT_OUTCOME_TRUE_1(table->set(address, balance));
+  EXPECT_OUTCOME_EQ(table->remove(address), balance);
+}

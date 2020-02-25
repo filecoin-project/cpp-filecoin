@@ -110,6 +110,12 @@ namespace fc::vm::actor {
   /** Check if actor code can represent external signing parties */
   bool isSignableActor(const CodeId &code);
 
+  /** Reserved method number for send operation */
+  constexpr MethodNumber kSendMethodNumber{0};
+
+  /** Reserved method number for constructor */
+  constexpr MethodNumber kConstructorMethodNumber{1};
+
   extern const CID kEmptyObjectCid;
 
   extern const CodeId kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,

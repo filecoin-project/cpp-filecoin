@@ -31,6 +31,8 @@ namespace fc::primitives {
     DealWeight deal_weight;
   };
 
+  using StoragePower = primitives::BigInt;
+
   CBOR_TUPLE(SectorStorageWeightDesc, sector_size, duration, deal_weight)
 }  // namespace fc::primitives
 

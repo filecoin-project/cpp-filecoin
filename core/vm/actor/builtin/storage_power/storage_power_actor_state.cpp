@@ -76,36 +76,44 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(escrow_table_->set(miner_addr, TokenAmount{0}));
     OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner_addr), Claim{0, 0}));
 
+    state_.miner_count++;
+
     return outcome::success();
   }
 
-  outcome::result<void> StoragePowerActor::deleteMiner(
+  outcome::result<TokenAmount> StoragePowerActor::deleteMiner(
       const Address &miner_addr) {
     OUTCOME_TRY(balance, getMinerBalance(miner_addr));
 
-    if (balance > TokenAmount{0})
-      return VMExitCode::STORAGE_POWER_DELETION_ERROR;
-
     std::string encoded_miner_addr = encodeToByteString(miner_addr);
     OUTCOME_TRY(claim, claims_->getCbor<Claim>(encoded_miner_addr));
-    if (claim.power > Power{0}) return VMExitCode::STORAGE_POWER_DELETION_ERROR;
+    if (claim.power > Power{0})
+      return outcome::failure(VMExitCode::STORAGE_POWER_FORBIDDEN);
 
     OUTCOME_TRY(claims_->remove(encoded_miner_addr));
-    OUTCOME_TRY(escrow_table_->remove(miner_addr));
+    OUTCOME_TRY(old_balance, escrow_table_->remove(miner_addr));
     OUTCOME_TRY(contains,
                 po_st_detected_fault_miners_->contains(encoded_miner_addr));
     if (contains) {
       OUTCOME_TRY(po_st_detected_fault_miners_->remove(encoded_miner_addr));
     }
 
-    return outcome::success();
+    state_.miner_count--;
+
+    return std::move(old_balance);
+  }
+
+  outcome::result<bool> StoragePowerActor::hasMiner(
+      const Address &miner_addr) const {
+    OUTCOME_TRY(check, escrow_table_->has(miner_addr));
+    return check;
   }
 
   outcome::result<TokenAmount> StoragePowerActor::getMinerBalance(
       const Address &miner) const {
     OUTCOME_TRY(check, escrow_table_->has(miner));
     if (!check)
-      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     return escrow_table_->get(miner);
   }
 
@@ -113,7 +121,7 @@ namespace fc::vm::actor::builtin::storage_power {
       const Address &miner, const TokenAmount &balance) {
     OUTCOME_TRY(check, escrow_table_->has(miner));
     if (!check)
-      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     OUTCOME_TRY(escrow_table_->set(miner, balance));
     return outcome::success();
   }
@@ -122,7 +130,7 @@ namespace fc::vm::actor::builtin::storage_power {
       const Address &miner, const TokenAmount &amount) {
     OUTCOME_TRY(check, escrow_table_->has(miner));
     if (!check)
-      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     OUTCOME_TRY(escrow_table_->add(miner, amount));
     return outcome::success();
   }
@@ -133,7 +141,7 @@ namespace fc::vm::actor::builtin::storage_power {
       const TokenAmount &balance_floor) {
     OUTCOME_TRY(check, escrow_table_->has(miner));
     if (!check)
-      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     return escrow_table_->subtractWithMinimum(miner, amount, balance_floor);
   }
 
@@ -141,7 +149,7 @@ namespace fc::vm::actor::builtin::storage_power {
                                                     const Claim &claim) {
     OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner)));
     if (!check)
-      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner), claim));
     return outcome::success();
   }
@@ -155,14 +163,14 @@ namespace fc::vm::actor::builtin::storage_power {
   outcome::result<Claim> StoragePowerActor::getClaim(const Address &miner) {
     OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner)));
     if (!check)
-      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     return claims_->getCbor<Claim>(encodeToByteString(miner));
   }
 
   outcome::result<void> StoragePowerActor::deleteClaim(const Address &miner) {
     OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner)));
     if (!check)
-      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     OUTCOME_TRY(claims_->remove(encodeToByteString(miner)));
     return outcome::success();
   }
@@ -171,7 +179,7 @@ namespace fc::vm::actor::builtin::storage_power {
       const Address &miner, const Power &power, const TokenAmount &pledge) {
     OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner)));
     if (!check)
-      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     OUTCOME_TRY(claim, claims_->getCbor<Claim>(encodeToByteString(miner)));
     claim.power += power;
     claim.pledge += pledge;
@@ -250,7 +258,7 @@ namespace fc::vm::actor::builtin::storage_power {
     // check that miner exist
     OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner_addr)));
     if (!check)
-      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     // cbor empty value as empty list
     OUTCOME_TRY(po_st_detected_fault_miners_->setCbor<std::vector<int>>(
         encodeToByteString(miner_addr), {}));
@@ -261,7 +269,7 @@ namespace fc::vm::actor::builtin::storage_power {
       const Address &miner_addr) const {
     OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner_addr)));
     if (!check)
-      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     OUTCOME_TRY(
         has_fault,
         po_st_detected_fault_miners_->contains(encodeToByteString(miner_addr)));
@@ -303,7 +311,7 @@ namespace fc::vm::actor::builtin::storage_power {
       const Address &address) const {
     OUTCOME_TRY(check, claims_->contains(encodeToByteString(address)));
     if (!check)
-      return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_NOT_FOUND);
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     OUTCOME_TRY(claimed, claims_->getCbor<Claim>(encodeToByteString(address)));
     Power nominal_power = claimed.power;
     std::string encoded_miner_addr = encodeToByteString(address);
@@ -311,6 +319,10 @@ namespace fc::vm::actor::builtin::storage_power {
                 po_st_detected_fault_miners_->contains(encoded_miner_addr));
     if (is_fault) nominal_power = 0;
     return nominal_power;
+  }
+
+  outcome::result<Power> StoragePowerActor::getTotalNetworkPower() const {
+    return state_.total_network_power;
   }
 
 }  // namespace fc::vm::actor::builtin::storage_power
