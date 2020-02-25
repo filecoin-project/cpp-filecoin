@@ -65,13 +65,15 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
-      run: cmake . -GNinja -Bbuild
+      run: cmake . -GNinja -Bbuild -D COVERAGE=ON
     - name: build
       run: cmake --build build -- -j2
-    - name: test
+    - name: tests
       env:
         CTEST_OUTPUT_ON_FAILURE: 1
       run: cmake --build build --target test
+    - name: prepare coverage report
+      run: cmake --build build --target ctest_coverage
     - name: upload report to codecov
       - uses: codecov/codecov-action@v1
         with:

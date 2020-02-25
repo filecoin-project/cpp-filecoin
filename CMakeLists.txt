@@ -51,7 +51,7 @@ print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 option(TESTING "Build tests" ON)
 option(CLANG_FORMAT "Enable clang-format target" ON)
 option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
-option(COVERAGE "Enable generation of coverage info" ON)
+option(COVERAGE "Enable generation of coverage info" OFF)
 # sanitizers will be enabled only for Filecoin, and will be disabled for dependencies
 option(ASAN "Enable address sanitizer" OFF)
 option(LSAN "Enable leak sanitizer" OFF)
