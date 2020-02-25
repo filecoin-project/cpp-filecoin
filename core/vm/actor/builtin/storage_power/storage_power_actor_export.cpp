@@ -103,8 +103,7 @@ ACTOR_METHOD(StoragePowerActorMethods::withdrawBalance) {
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput> StoragePowerActorMethods::createMiner(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(StoragePowerActorMethods::createMiner) {
   OUTCOME_TRY(immediate_caller_code_id,
               runtime.getActorCodeID(runtime.getImmediateCaller()));
   if (!isSignableActor((immediate_caller_code_id)))
@@ -121,16 +120,15 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::createMiner(
       create_miner_params.peer_id};
   OUTCOME_TRY(encoded_construct_miner_parameters,
               encodeActorParams(construct_miner_parameters));
-  init::ExecParams exec_parameters{kStorageMinerCodeCid,
-                                   encoded_construct_miner_parameters};
-  OUTCOME_TRY(encoded_exec_parameters, encodeActorParams(exec_parameters));
-  OUTCOME_TRY(encoded_addresses_created,
-              runtime.send(kInitAddress,
-                           init::kExecMethodNumber,
-                           encoded_exec_parameters,
-                           TokenAmount{0}));
   OUTCOME_TRY(addresses_created,
-              decodeActorReturn<init::ExecReturn>(encoded_addresses_created));
+              runtime.sendPR<init::ExecReturn>(
+                  kInitAddress,
+                  init::kExecMethodNumber,
+                  init::ExecParams{
+                      .code = kStorageMinerCodeCid,
+                      .params = encoded_construct_miner_parameters,
+                  },
+                  TokenAmount{0}));
 
   OUTCOME_TRY(power_actor, getCurrentState(runtime));
   OUTCOME_TRY(power_actor.addMiner(addresses_created.id_address));
@@ -146,8 +144,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::createMiner(
   return std::move(output);
 }
 
-fc::outcome::result<InvocationOutput> StoragePowerActorMethods::deleteMiner(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(StoragePowerActorMethods::deleteMiner) {
   OUTCOME_TRY(delete_miner_params,
               decodeActorParams<DeleteMinerParameters>(params));
 
@@ -167,10 +164,7 @@ fc::outcome::result<InvocationOutput> StoragePowerActorMethods::deleteMiner(
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput>
-StoragePowerActorMethods::onSectorProveCommit(const Actor &actor,
-                                              Runtime &runtime,
-                                              const MethodParams &params) {
+ACTOR_METHOD(StoragePowerActorMethods::onSectorProveCommit) {
   OUTCOME_TRY(immediate_caller_code_id,
               runtime.getActorCodeID(runtime.getImmediateCaller()));
   if (immediate_caller_code_id != kStorageMinerCodeCid)
@@ -197,10 +191,7 @@ StoragePowerActorMethods::onSectorProveCommit(const Actor &actor,
   return std::move(result);
 }
 
-fc::outcome::result<InvocationOutput>
-StoragePowerActorMethods::onSectorTerminate(const Actor &actor,
-                                            Runtime &runtime,
-                                            const MethodParams &params) {
+ACTOR_METHOD(StoragePowerActorMethods::onSectorTerminate) {
   OUTCOME_TRY(immediate_caller_code_id,
               runtime.getActorCodeID(runtime.getImmediateCaller()));
   if (immediate_caller_code_id != kStorageMinerCodeCid)
@@ -232,9 +223,7 @@ StoragePowerActorMethods::onSectorTerminate(const Actor &actor,
   return fc::outcome::success();
 }
 
-fc::outcome::result<InvocationOutput>
-StoragePowerActorMethods::onSectorTemporaryFaultEffectiveBegin(
-    const Actor &actor, Runtime &runtime, const MethodParams &params) {
+ACTOR_METHOD(StoragePowerActorMethods::onSectorTemporaryFaultEffectiveBegin) {
   OUTCOME_TRY(immediate_caller_code_id,
               runtime.getActorCodeID(runtime.getImmediateCaller()));
   if (immediate_caller_code_id != kStorageMinerCodeCid)
