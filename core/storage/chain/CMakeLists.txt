@@ -2,9 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 add_library(chain_store
-    chain_store.cpp
+    impl/chain_store_impl.cpp
     )
 target_link_libraries(chain_store
+    chain_randomness_provider
     datastore_key
     ipfs_blockservice
     logger
