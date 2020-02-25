@@ -12,9 +12,9 @@
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
-#define ACTOR_METHOD(name)                \
-  outcome::result<InvocationOutput> name( \
-      const Actor &actor, Runtime &runtime, const MethodParams &params)
+#define ACTOR_METHOD(name)                                 \
+  outcome::result<InvocationOutput> name(Runtime &runtime, \
+                                         const MethodParams &params)
 
 namespace fc::vm::actor {
   using runtime::InvocationOutput;
@@ -28,7 +28,7 @@ namespace fc::vm::actor {
    * @return InvocationOutput - invocation method result or error occurred
    */
   using ActorMethod = std::function<outcome::result<InvocationOutput>(
-      const Actor &, Runtime &, const MethodParams &)>;
+      Runtime &, const MethodParams &)>;
 
   /// Actor methods exported by number
   using ActorExports = std::map<MethodNumber, ActorMethod>;

@@ -80,11 +80,10 @@ TEST(InitActorExecText, ExecError) {
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR,
-      InitActor::exec({}, runtime, execParams("010001020000"_cid, {})));
+      InitActor::exec(runtime, execParams("010001020000"_cid, {})));
   EXPECT_OUTCOME_ERROR(
       VMExitCode::INIT_ACTOR_SINGLETON_ACTOR,
-      InitActor::exec(
-          {}, runtime, execParams(fc::vm::actor::kInitCodeCid, {})));
+      InitActor::exec(runtime, execParams(fc::vm::actor::kInitCodeCid, {})));
 }
 
 /**
@@ -137,7 +136,7 @@ TEST(InitActorExecText, ExecSuccess) {
         return fc::outcome::success();
       }));
 
-  EXPECT_OUTCOME_EQ(InitActor::exec({}, runtime, execParams(code, params)),
+  EXPECT_OUTCOME_EQ(InitActor::exec(runtime, execParams(code, params)),
                     InvocationOutput{fc::common::Buffer{
                         fc::primitives::address::encode(id_address)}});
 

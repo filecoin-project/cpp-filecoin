@@ -120,7 +120,7 @@ TEST_F(StoragePowerActorTest, ConstructorWrongCaller) {
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER,
-      StoragePowerActorMethods::construct(caller, runtime, encoded_params));
+      StoragePowerActorMethods::construct(runtime, encoded_params));
 }
 
 /**
@@ -140,7 +140,7 @@ TEST_F(StoragePowerActorTest, Constructor) {
       .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
 
   EXPECT_OUTCOME_TRUE_1(
-      StoragePowerActorMethods::construct(caller, runtime, encoded_params));
+      StoragePowerActorMethods::construct(runtime, encoded_params));
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
@@ -172,7 +172,7 @@ TEST_F(StoragePowerActorTest, AddBalanceWrongParams) {
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
-      StoragePowerActorMethods::addBalance(caller, runtime, encoded_params));
+      StoragePowerActorMethods::addBalance(runtime, encoded_params));
 }
 
 /**
@@ -202,7 +202,7 @@ TEST_F(StoragePowerActorTest, AddBalanceInternalError) {
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::_,
-      StoragePowerActorMethods::addBalance(caller, runtime, encoded_params));
+      StoragePowerActorMethods::addBalance(runtime, encoded_params));
 }
 
 /**
@@ -243,7 +243,7 @@ TEST_F(StoragePowerActorTest, AddBalanceSuccess) {
       .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
 
   EXPECT_OUTCOME_TRUE_1(
-      StoragePowerActorMethods::addBalance(caller, runtime, encoded_params));
+      StoragePowerActorMethods::addBalance(runtime, encoded_params));
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
@@ -282,9 +282,9 @@ TEST_F(StoragePowerActorTest, WithdrawBalanceNegative) {
       .WillOnce(testing::Return(fc::outcome::success(
           InvocationOutput{Buffer{encoded_get_controll_address_return}})));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
-                       StoragePowerActorMethods::withdrawBalance(
-                           caller, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
+      StoragePowerActorMethods::withdrawBalance(runtime, encoded_params));
 }
 
 /**
@@ -328,8 +328,8 @@ TEST_F(StoragePowerActorTest, WithdrawBalanceSuccess) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
 
-  EXPECT_OUTCOME_TRUE_1(StoragePowerActorMethods::withdrawBalance(
-      caller, runtime, encoded_params));
+  EXPECT_OUTCOME_TRUE_1(
+      StoragePowerActorMethods::withdrawBalance(runtime, encoded_params));
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();

@@ -146,7 +146,8 @@ namespace fc::vm::actor::builtin::reward {
   }
 
   ACTOR_METHOD(RewardActor::withdrawReward) {
-    if (not isSignableActor(actor.code)) {
+    OUTCOME_TRY(code, runtime.getActorCodeID(runtime.getImmediateCaller()));
+    if (!isSignableActor(code)) {
       return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
     }
     auto owner = runtime.getMessage().get().from;

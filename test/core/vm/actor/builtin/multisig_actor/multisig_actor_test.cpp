@@ -95,9 +95,8 @@ TEST_F(MultisigActorTest, ConstructWrongCaller) {
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(kCronAddress));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-      MultiSigActor::construct(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+                       MultiSigActor::construct(runtime, encoded_params));
 }
 
 /**
@@ -112,7 +111,7 @@ TEST_F(MultisigActorTest, ConstructWrongParams) {
       .WillOnce(testing::Return(kInitAddress));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::DECODE_ACTOR_PARAMS_ERROR,
-                       MultiSigActor::construct(actor, runtime, wrong_params));
+                       MultiSigActor::construct(runtime, wrong_params));
 }
 
 /**
@@ -129,9 +128,8 @@ TEST_F(MultisigActorTest, ConstructWrongThreshold) {
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-      MultiSigActor::construct(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+                       MultiSigActor::construct(runtime, encoded_params));
 }
 
 /**
@@ -154,8 +152,7 @@ TEST_F(MultisigActorTest, ConstrucCorrect) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_TRUE_1(
-      MultiSigActor::construct(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_TRUE_1(MultiSigActor::construct(runtime, encoded_params));
 }
 
 /**
@@ -168,7 +165,7 @@ TEST_F(MultisigActorTest, ProposeWrongCaller) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-                       MultiSigActor::propose(actor, runtime, encoded_params));
+                       MultiSigActor::propose(runtime, encoded_params));
 }
 
 /**
@@ -181,7 +178,7 @@ TEST_F(MultisigActorTest, ProposetWrongParams) {
   actor.code = kAccountCodeCid;
 
   EXPECT_OUTCOME_ERROR(VMExitCode::DECODE_ACTOR_PARAMS_ERROR,
-                       MultiSigActor::propose(actor, runtime, wrong_params));
+                       MultiSigActor::propose(runtime, wrong_params));
 }
 
 /**
@@ -202,7 +199,7 @@ TEST_F(MultisigActorTest, ProposetWrongSigner) {
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
-                       MultiSigActor::propose(actor, runtime, encoded_params));
+                       MultiSigActor::propose(runtime, encoded_params));
 }
 
 /**
@@ -234,7 +231,7 @@ TEST_F(MultisigActorTest, ProposeSendInsufficientFunds) {
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
-                       MultiSigActor::propose(actor, runtime, encoded_params));
+                       MultiSigActor::propose(runtime, encoded_params));
 }
 
 /**
@@ -270,7 +267,7 @@ TEST_F(MultisigActorTest, ProposeSendFundsLocked) {
   EXPECT_CALL(runtime, getCurrentEpoch()).WillOnce(testing::Return(epoch));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
-                       MultiSigActor::propose(actor, runtime, encoded_params));
+                       MultiSigActor::propose(runtime, encoded_params));
 }
 
 /**
@@ -307,7 +304,7 @@ TEST_F(MultisigActorTest, ProposeSendFundsLockedStartEpoch) {
   EXPECT_CALL(runtime, getCurrentEpoch()).WillOnce(testing::Return(epoch));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
-                       MultiSigActor::propose(actor, runtime, encoded_params));
+                       MultiSigActor::propose(runtime, encoded_params));
 }
 
 /**
@@ -362,7 +359,7 @@ TEST_F(MultisigActorTest, ProposeSendFundsEnough) {
       .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
 
   EXPECT_OUTCOME_TRUE(expected, fc::codec::cbor::encode(tx_number));
-  EXPECT_OUTCOME_EQ(MultiSigActor::propose(actor, runtime, encoded_params),
+  EXPECT_OUTCOME_EQ(MultiSigActor::propose(runtime, encoded_params),
                     InvocationOutput{Buffer{expected}});
 }
 
@@ -416,7 +413,7 @@ TEST_F(MultisigActorTest, ProposePending) {
       .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE(expected, fc::codec::cbor::encode(tx_number));
-  EXPECT_OUTCOME_EQ(MultiSigActor::propose(actor, runtime, encoded_params),
+  EXPECT_OUTCOME_EQ(MultiSigActor::propose(runtime, encoded_params),
                     InvocationOutput{Buffer{expected}});
 }
 
@@ -430,7 +427,7 @@ TEST_F(MultisigActorTest, ApproveWrongCaller) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-                       MultiSigActor::approve(actor, runtime, encoded_params));
+                       MultiSigActor::approve(runtime, encoded_params));
 }
 
 /**
@@ -457,7 +454,7 @@ TEST_F(MultisigActorTest, ApproveWrongSigner) {
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
-                       MultiSigActor::approve(actor, runtime, encoded_params));
+                       MultiSigActor::approve(runtime, encoded_params));
 }
 
 /**
@@ -485,7 +482,7 @@ TEST_F(MultisigActorTest, ApproveWrongTxNumber) {
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
-                       MultiSigActor::approve(actor, runtime, encoded_params));
+                       MultiSigActor::approve(runtime, encoded_params));
 }
 
 /**
@@ -526,7 +523,7 @@ TEST_F(MultisigActorTest, ApproveAlreadySigned) {
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_STATE,
-                       MultiSigActor::approve(actor, runtime, encoded_params));
+                       MultiSigActor::approve(runtime, encoded_params));
 }
 
 /**
@@ -591,7 +588,7 @@ TEST_F(MultisigActorTest, ApproveSunnyDay) {
                    Eq(value_to_send)))
       .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::approve(actor, runtime, encoded_params),
+  EXPECT_OUTCOME_EQ(MultiSigActor::approve(runtime, encoded_params),
                     InvocationOutput{});
 }
 
@@ -605,7 +602,7 @@ TEST_F(MultisigActorTest, CancelWrongCaller) {
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-                       MultiSigActor::cancel(actor, runtime, encoded_params));
+                       MultiSigActor::cancel(runtime, encoded_params));
 }
 
 /**
@@ -632,7 +629,7 @@ TEST_F(MultisigActorTest, CancelWrongSigner) {
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
-                       MultiSigActor::cancel(actor, runtime, encoded_params));
+                       MultiSigActor::cancel(runtime, encoded_params));
 }
 
 /**
@@ -660,7 +657,7 @@ TEST_F(MultisigActorTest, CancelWrongTxNumber) {
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
-                       MultiSigActor::cancel(actor, runtime, encoded_params));
+                       MultiSigActor::cancel(runtime, encoded_params));
 }
 
 /**
@@ -701,7 +698,7 @@ TEST_F(MultisigActorTest, CancelNotCreator) {
   EXPECT_CALL(runtime, getImmediateCaller()).WillOnce(testing::Return(address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
-                       MultiSigActor::cancel(actor, runtime, encoded_params));
+                       MultiSigActor::cancel(runtime, encoded_params));
 }
 
 /**
@@ -758,7 +755,7 @@ TEST_F(MultisigActorTest, CancelSunnyDay) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::cancel(actor, runtime, encoded_params),
+  EXPECT_OUTCOME_EQ(MultiSigActor::cancel(runtime, encoded_params),
                     InvocationOutput{});
 }
 
@@ -775,9 +772,8 @@ TEST_F(MultisigActorTest, AddSignerWrongCaller) {
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-      MultiSigActor::addSigner(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+                       MultiSigActor::addSigner(runtime, encoded_params));
 }
 
 /**
@@ -804,9 +800,8 @@ TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-      MultiSigActor::addSigner(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+                       MultiSigActor::addSigner(runtime, encoded_params));
 }
 
 /**
@@ -849,7 +844,7 @@ TEST_F(MultisigActorTest, AddSignerNotChangeThreshold) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::addSigner(actor, runtime, encoded_params),
+  EXPECT_OUTCOME_EQ(MultiSigActor::addSigner(runtime, encoded_params),
                     InvocationOutput{});
 }
 
@@ -893,7 +888,7 @@ TEST_F(MultisigActorTest, AddSignerChangeThreshold) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::addSigner(actor, runtime, encoded_params),
+  EXPECT_OUTCOME_EQ(MultiSigActor::addSigner(runtime, encoded_params),
                     InvocationOutput{});
 }
 
@@ -910,9 +905,8 @@ TEST_F(MultisigActorTest, RemoveSignerWrongCaller) {
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-      MultiSigActor::removeSigner(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+                       MultiSigActor::removeSigner(runtime, encoded_params));
 }
 
 /**
@@ -939,9 +933,8 @@ TEST_F(MultisigActorTest, RemoveSignerNotAdded) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
-      MultiSigActor::removeSigner(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
+                       MultiSigActor::removeSigner(runtime, encoded_params));
 }
 
 /**
@@ -984,7 +977,7 @@ TEST_F(MultisigActorTest, RemoveSignerNotChangeThreshold) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::removeSigner(actor, runtime, encoded_params),
+  EXPECT_OUTCOME_EQ(MultiSigActor::removeSigner(runtime, encoded_params),
                     InvocationOutput{});
 }
 
@@ -1029,7 +1022,7 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThreshold) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::removeSigner(actor, runtime, encoded_params),
+  EXPECT_OUTCOME_EQ(MultiSigActor::removeSigner(runtime, encoded_params),
                     InvocationOutput{});
 }
 
@@ -1057,9 +1050,8 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdZero) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-      MultiSigActor::removeSigner(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+                       MultiSigActor::removeSigner(runtime, encoded_params));
 }
 
 /**
@@ -1087,9 +1079,8 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdError) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-      MultiSigActor::removeSigner(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+                       MultiSigActor::removeSigner(runtime, encoded_params));
 }
 
 /**
@@ -1105,9 +1096,8 @@ TEST_F(MultisigActorTest, SwapSignerWrongCaller) {
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-      MultiSigActor::swapSigner(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+                       MultiSigActor::swapSigner(runtime, encoded_params));
 }
 
 /**
@@ -1135,9 +1125,8 @@ TEST_F(MultisigActorTest, SwapSignerNotAdded) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
-      MultiSigActor::swapSigner(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
+                       MultiSigActor::swapSigner(runtime, encoded_params));
 }
 
 /**
@@ -1165,9 +1154,8 @@ TEST_F(MultisigActorTest, SwapSignerAlreadyAdded) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-      MultiSigActor::swapSigner(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+                       MultiSigActor::swapSigner(runtime, encoded_params));
 }
 
 /**
@@ -1210,7 +1198,7 @@ TEST_F(MultisigActorTest, SwapSignerSuccess) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::swapSigner(actor, runtime, encoded_params),
+  EXPECT_OUTCOME_EQ(MultiSigActor::swapSigner(runtime, encoded_params),
                     InvocationOutput{});
 }
 
@@ -1227,9 +1215,8 @@ TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-      MultiSigActor::changeThreshold(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+                       MultiSigActor::changeThreshold(runtime, encoded_params));
 }
 
 /**
@@ -1257,9 +1244,8 @@ TEST_F(MultisigActorTest, ChangeThresholdZero) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-      MultiSigActor::changeThreshold(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+                       MultiSigActor::changeThreshold(runtime, encoded_params));
 }
 
 /**
@@ -1287,9 +1273,8 @@ TEST_F(MultisigActorTest, ChangeThresholdMoreThanSigners) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-      MultiSigActor::changeThreshold(actor, runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+                       MultiSigActor::changeThreshold(runtime, encoded_params));
 }
 
 /**
@@ -1333,7 +1318,6 @@ TEST_F(MultisigActorTest, ChangeThresholdSuccess) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(
-      MultiSigActor::changeThreshold(actor, runtime, encoded_params),
-      InvocationOutput{});
+  EXPECT_OUTCOME_EQ(MultiSigActor::changeThreshold(runtime, encoded_params),
+                    InvocationOutput{});
 }

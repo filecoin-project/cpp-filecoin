@@ -45,7 +45,8 @@ ACTOR_METHOD(StoragePowerActorMethods::addBalance) {
     return VMExitCode::STORAGE_POWER_FORBIDDEN;
 
   auto datastore = runtime.getIpfsDatastore();
-  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
+  OUTCOME_TRY(state,
+              runtime.getCurrentActorStateCbor<StoragePowerActorState>());
   StoragePowerActor power_actor(datastore, state);
   OUTCOME_TRY(power_actor.addMinerBalance(add_balance_params.miner,
                                           runtime.getMessage().get().value));
@@ -78,7 +79,8 @@ ACTOR_METHOD(StoragePowerActorMethods::withdrawBalance) {
     return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
 
   auto datastore = runtime.getIpfsDatastore();
-  OUTCOME_TRY(state, datastore->getCbor<StoragePowerActorState>(actor.head));
+  OUTCOME_TRY(state,
+              runtime.getCurrentActorStateCbor<StoragePowerActorState>());
   StoragePowerActor power_actor(datastore, state);
 
   if (!power_actor.hasClaim(withdraw_balance_params.miner))
