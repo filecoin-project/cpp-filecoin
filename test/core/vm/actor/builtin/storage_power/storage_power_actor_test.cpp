@@ -32,6 +32,7 @@ using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::encodeActorParams;
 using fc::vm::actor::encodeActorReturn;
 using fc::vm::actor::kAccountCodeCid;
+using fc::vm::actor::kBurntFundsActorAddress;
 using fc::vm::actor::kCronAddress;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::kSendMethodNumber;
@@ -484,45 +485,6 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
 }
 
 /**
- * @given State and miner with balance
- * @when deleteMiner is called
- * @then Error FORBIDDEN returned
- */
-TEST_F(StoragePowerActorTest, DeleteMinerBalanceNotZero) {
-  Address miner_address = createStateWithMiner();
-  TokenAmount amount{1334};
-  addBalance(miner_address, amount);
-
-  DeleteMinerParameters delete_params{miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_delete_params, encodeActorParams(delete_params));
-
-  EXPECT_CALL(runtime, getImmediateCaller())
-      .WillOnce(testing::Return(caller_address));
-  // shared::requestMinerControlAddress
-  GetControlAddressesReturn get_controll_address_return{caller_address,
-                                                        miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_get_controll_address_return,
-                      fc::codec::cbor::encode(get_controll_address_return));
-  EXPECT_CALL(runtime, getCurrentActorState())
-      .WillOnce(::testing::Return(actor.head));
-  EXPECT_CALL(runtime,
-              send(Eq(miner_address),
-                   Eq(kGetControlAddressesMethodNumber),
-                   Eq(MethodParams{}),
-                   Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(
-          InvocationOutput{Buffer{encoded_get_controll_address_return}})));
-
-  EXPECT_CALL(runtime, getIpfsDatastore())
-      .Times(2)
-      .WillRepeatedly(testing::Return(datastore));
-
-  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_FORBIDDEN,
-                       StoragePowerActorMethods::deleteMiner(
-                           actor, runtime, encoded_delete_params));
-}
-
-/**
  * @given State and miner with claim power != 0
  * @when deleteMiner is called
  * @then Error FORBIDDEN returned
@@ -607,11 +569,11 @@ TEST_F(StoragePowerActorTest, DeleteMinerNoMiner) {
 }
 
 /**
- * @given State and miner
+ * @given State and miner with zero balance
  * @when deleteMiner is called
  * @then miner deleted
  */
-TEST_F(StoragePowerActorTest, DeleteMinerSuccess) {
+TEST_F(StoragePowerActorTest, DeleteMinerZeroBalanceSuccess) {
   Address miner_address = createStateWithMiner();
 
   DeleteMinerParameters delete_params{miner_address};
@@ -635,6 +597,77 @@ TEST_F(StoragePowerActorTest, DeleteMinerSuccess) {
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::success(
           InvocationOutput{Buffer{encoded_get_controll_address_return}})));
+  EXPECT_CALL(
+      runtime,
+      send(Eq(miner_address),
+           Eq(fc::vm::actor::builtin::miner::kOnDeleteMinerMethodNumber),
+           Eq(MethodParams{}),
+           Eq(TokenAmount{0})))
+      .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
+
+  EXPECT_CALL(runtime, getIpfsDatastore())
+      .Times(3)
+      .WillRepeatedly(testing::Return(datastore));
+
+  // commit and capture state CID
+  EXPECT_CALL(runtime, commit(_))
+      .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
+
+  EXPECT_OUTCOME_TRUE_1(StoragePowerActorMethods::deleteMiner(
+      actor, runtime, encoded_delete_params));
+
+  // inspect state
+  ActorSubstateCID state_cid = getCapturedCid();
+  EXPECT_OUTCOME_TRUE(state,
+                      datastore->getCbor<StoragePowerActorState>(state_cid));
+  StoragePowerActor actor(datastore, state);
+  EXPECT_OUTCOME_EQ(actor.hasMiner(miner_address), false);
+}
+
+/**
+ * @given State and miner
+ * @when deleteMiner is called
+ * @then miner deleted and miner balance is slashed
+ */
+TEST_F(StoragePowerActorTest, DeleteMinerSuccess) {
+  Address miner_address = createStateWithMiner();
+  TokenAmount balance = 100;
+  addBalance(miner_address, balance);
+
+  DeleteMinerParameters delete_params{miner_address};
+  EXPECT_OUTCOME_TRUE(encoded_delete_params, encodeActorParams(delete_params));
+
+  EXPECT_CALL(runtime, getImmediateCaller())
+      .WillOnce(testing::Return(caller_address));
+
+  EXPECT_CALL(runtime, getCurrentActorState())
+      .WillOnce(::testing::Return(actor.head));
+
+  // shared::requestMinerControlAddress
+  GetControlAddressesReturn get_controll_address_return{caller_address,
+                                                        miner_address};
+  EXPECT_OUTCOME_TRUE(encoded_get_controll_address_return,
+                      fc::codec::cbor::encode(get_controll_address_return));
+  EXPECT_CALL(runtime,
+              send(Eq(miner_address),
+                   Eq(kGetControlAddressesMethodNumber),
+                   Eq(MethodParams{}),
+                   Eq(TokenAmount{0})))
+      .WillOnce(testing::Return(fc::outcome::success(
+          InvocationOutput{Buffer{encoded_get_controll_address_return}})));
+  EXPECT_CALL(
+      runtime,
+      send(Eq(miner_address),
+           Eq(fc::vm::actor::builtin::miner::kOnDeleteMinerMethodNumber),
+           Eq(MethodParams{}),
+           Eq(TokenAmount{0})))
+      .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
+  EXPECT_CALL(runtime,
+              send(Eq(kBurntFundsActorAddress),
+                   Eq(kSendMethodNumber),
+                   Eq(MethodParams{}),
+                   Eq(TokenAmount{balance})))
+      .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
 
   EXPECT_CALL(runtime, getIpfsDatastore())
       .Times(3)

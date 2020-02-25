@@ -81,18 +81,17 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  outcome::result<void> StoragePowerActor::deleteMiner(
+  outcome::result<TokenAmount> StoragePowerActor::deleteMiner(
       const Address &miner_addr) {
     OUTCOME_TRY(balance, getMinerBalance(miner_addr));
 
-    if (balance > TokenAmount{0}) return VMExitCode::STORAGE_POWER_FORBIDDEN;
-
     std::string encoded_miner_addr = encodeToByteString(miner_addr);
     OUTCOME_TRY(claim, claims_->getCbor<Claim>(encoded_miner_addr));
-    if (claim.power > Power{0}) return VMExitCode::STORAGE_POWER_FORBIDDEN;
+    if (claim.power > Power{0})
+      return outcome::failure(VMExitCode::STORAGE_POWER_FORBIDDEN);
 
     OUTCOME_TRY(claims_->remove(encoded_miner_addr));
-    OUTCOME_TRY(escrow_table_->remove(miner_addr));
+    OUTCOME_TRY(old_balance, escrow_table_->remove(miner_addr));
     OUTCOME_TRY(contains,
                 po_st_detected_fault_miners_->contains(encoded_miner_addr));
     if (contains) {
@@ -101,7 +100,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
     state_.miner_count--;
 
-    return outcome::success();
+    return std::move(old_balance);
   }
 
   outcome::result<bool> StoragePowerActor::hasMiner(
@@ -325,6 +324,5 @@ namespace fc::vm::actor::builtin::storage_power {
   outcome::result<Power> StoragePowerActor::getTotalNetworkPower() const {
     return state_.total_network_power;
   }
-
 
 }  // namespace fc::vm::actor::builtin::storage_power

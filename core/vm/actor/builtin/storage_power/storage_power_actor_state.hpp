@@ -103,7 +103,7 @@ namespace fc::vm::actor::builtin::storage_power {
      * @param miner_addr is address of miner
      * @return success or error NO_SUCH_MINER
      */
-    outcome::result<void> deleteMiner(const Address &miner_addr);
+    outcome::result<TokenAmount> deleteMiner(const Address &miner_addr);
 
     /**
      * @brief Checks if miner is present

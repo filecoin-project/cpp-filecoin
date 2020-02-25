@@ -120,6 +120,11 @@ namespace fc::vm::actor::builtin::storage_power {
     static ACTOR_METHOD(onSectorTemporaryFaultEffectiveBegin);
 
    private:
+    /**
+     * Get current storage power actor state
+     * @param runtime - current runtime
+     * @return current storage power actor state or appropriate error
+     */
     static outcome::result<StoragePowerActor> getCurrentState(Runtime &runtime);
 
     static outcome::result<InvocationOutput> slashPledgeCollateral(
@@ -127,6 +132,17 @@ namespace fc::vm::actor::builtin::storage_power {
         StoragePowerActor &power_actor,
         Address miner,
         TokenAmount to_slash);
+
+    /**
+     * Deletes miner from state and slashes miner balance
+     * @param runtime - current runtime
+     * @param state - current storage power actor state
+     * @param miner address to delete
+     * @return error in case of failure
+     */
+    static outcome::result<void> deleteMinerActor(Runtime &runtime,
+                                                  StoragePowerActor &state,
+                                                  const Address &miner);
   };
 
   /** Exported StoragePowerActor methods to invoker */
