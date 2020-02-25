@@ -46,8 +46,8 @@ namespace fc::crypto::randomness {
   }
 
   outcome::result<Randomness> ChainRandomnessProviderImpl::sampleRandomness(
-      const std::vector<CID> &blks, uint64_t round) {
-    std::reference_wrapper<const std::vector<CID>> cids{blks};
+      const std::vector<CID> &block_cids, uint64_t round) {
+    std::reference_wrapper<const std::vector<CID>> cids{block_cids};
 
     while (true) {
       OUTCOME_TRY(tipset, chain_store_->loadTipset(TipsetKey{cids.get()}));

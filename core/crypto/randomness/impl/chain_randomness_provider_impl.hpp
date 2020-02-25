@@ -7,10 +7,7 @@
 #define CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_IMPL_CHAIN_RANDOMNESS_PROVIDER_IMPL_HPP
 
 #include "crypto/randomness/chain_randomness_provider.hpp"
-
-namespace fc::storage::blockchain {
-  class ChainStore;
-}
+#include "storage/chain/chain_store.hpp"
 
 namespace fc::crypto::randomness {
   class ChainRandomnessProviderImpl : public ChainRandomnessProvider {
@@ -20,8 +17,8 @@ namespace fc::crypto::randomness {
     explicit ChainRandomnessProviderImpl(
         std::shared_ptr<storage::blockchain::ChainStore> chain_store);
 
-    outcome::result<Randomness> sampleRandomness(const std::vector<CID> &blks,
-                                                 uint64_t round) override;
+    outcome::result<Randomness> sampleRandomness(
+        const std::vector<CID> &block_cids, uint64_t round) override;
 
    private:
     std::shared_ptr<storage::blockchain::ChainStore> chain_store_;

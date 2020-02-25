@@ -37,6 +37,8 @@ namespace fc::storage::blockchain {
     using BlockValidator = ::fc::blockchain::block_validator::BlockValidator;
     using WeightCalculator = ::fc::blockchain::weight::WeightCalculator;
 
+    ChainStoreImpl(ChainStoreImpl &&other) = default;
+
     /* @brief creates new ChainStore instance */
     static outcome::result<std::shared_ptr<ChainStoreImpl>> create(
         std::shared_ptr<ipfs::IpfsBlockService> block_service,
@@ -67,8 +69,6 @@ namespace fc::storage::blockchain {
                    std::shared_ptr<ChainDataStore> data_store,
                    std::shared_ptr<BlockValidator> block_validator,
                    std::shared_ptr<WeightCalculator> weight_calculator);
-
-    ChainStoreImpl(ChainStoreImpl &&other) = default;
 
     outcome::result<void> takeHeaviestTipset(const Tipset &tipset);
 

@@ -21,7 +21,7 @@ namespace fc::crypto::randomness {
 
     /** @brief calculate randomness */
     virtual outcome::result<Randomness> sampleRandomness(
-        const std::vector<CID> &blks, uint64_t round) = 0;
+        const std::vector<CID> &block_cids, uint64_t round) = 0;
   };
 }  // namespace fc::crypto::randomness
 
