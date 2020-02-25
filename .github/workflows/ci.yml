@@ -77,6 +77,8 @@ jobs:
     - name: upload report to codecov
       uses: codecov/codecov-action@v1
       with:
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./build/ctest_coverage.xml
 #          flags: unittests #optional
