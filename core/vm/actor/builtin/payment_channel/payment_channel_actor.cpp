@@ -18,8 +18,8 @@ using fc::vm::runtime::Runtime;
 namespace outcome = fc::outcome;
 
 ACTOR_METHOD(PaymentChannelActor::construct) {
-  if (actor.code != kAccountCodeCid)
-    return VMExitCode::PAYMENT_CHANNEL_WRONG_CALLER;
+  OUTCOME_TRY(code, runtime.getActorCodeID(runtime.getImmediateCaller()));
+  if (code != kAccountCodeCid) return VMExitCode::PAYMENT_CHANNEL_WRONG_CALLER;
 
   OUTCOME_TRY(construct_params,
               decodeActorParams<ConstructParameteres>(params));
@@ -39,8 +39,7 @@ ACTOR_METHOD(PaymentChannelActor::construct) {
 
 ACTOR_METHOD(PaymentChannelActor::updateChannelState) {
   OUTCOME_TRY(state,
-              runtime.getIpfsDatastore()->getCbor<PaymentChannelActorState>(
-                  actor.head));
+              runtime.getCurrentActorStateCbor<PaymentChannelActorState>());
   Address signer = runtime.getImmediateCaller();
   if (signer != state.from || signer != state.to) {
     return VMExitCode::PAYMENT_CHANNEL_WRONG_CALLER;

@@ -116,9 +116,7 @@ namespace fc::vm::actor::builtin::multisig {
      * @return nothing or error occurred
      */
     outcome::result<void> approveTransaction(
-        const Actor &actor,
-        Runtime &runtime,
-        const TransactionNumber &tx_number);
+        Runtime &runtime, const TransactionNumber &tx_number);
 
     /**
      * Get amount locked for current epoch

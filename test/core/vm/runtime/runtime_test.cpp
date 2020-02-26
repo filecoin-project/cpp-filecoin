@@ -6,8 +6,6 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 
 #include <gtest/gtest.h>
-#include <vm/runtime/runtime_error.hpp>
-
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
@@ -19,6 +17,7 @@
 #include "testutil/mocks/vm/state/state_tree_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/message/message.hpp"
+#include "vm/runtime/runtime_error.hpp"
 
 using fc::crypto::randomness::ChainEpoch;
 using fc::crypto::randomness::MockRandomnessProvider;

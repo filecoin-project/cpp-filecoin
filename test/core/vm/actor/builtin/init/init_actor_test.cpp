@@ -83,11 +83,10 @@ TEST(InitActorExecText, ExecError) {
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR,
-      InitActor::exec({}, runtime, execParams("010001020000"_cid, {})));
+      InitActor::exec(runtime, execParams("010001020000"_cid, {})));
   EXPECT_OUTCOME_ERROR(
       VMExitCode::INIT_ACTOR_SINGLETON_ACTOR,
-      InitActor::exec(
-          {}, runtime, execParams(fc::vm::actor::kInitCodeCid, {})));
+      InitActor::exec(runtime, execParams(fc::vm::actor::kInitCodeCid, {})));
 }
 
 /**
@@ -145,8 +144,7 @@ TEST(InitActorExecText, ExecSuccess) {
           message.nonce))};
   ExecReturn exec_return{id_address, actor_address};
   EXPECT_OUTCOME_TRUE(result, encodeActorReturn(exec_return));
-  EXPECT_OUTCOME_EQ(InitActor::exec({}, runtime, execParams(code, params)),
-                    result);
+  EXPECT_OUTCOME_EQ(InitActor::exec(runtime, execParams(code, params)), result);
 
   EXPECT_OUTCOME_TRUE(address,
                       fc::primitives::address::decode(

@@ -40,6 +40,6 @@ namespace fc::vm::actor {
     if (maybe_builtin_method == builtin_actor.end()) {
       return VMExitCode::INVOKER_NO_CODE_OR_METHOD;
     }
-    return maybe_builtin_method->second(actor, runtime, params);
+    return maybe_builtin_method->second(runtime, params);
   }
 }  // namespace fc::vm::actor
