@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_STORAGE_IPFS_MERKLEDAG_LINK_HPP
-#define FILECOIN_STORAGE_IPFS_MERKLEDAG_LINK_HPP
+#ifndef FILECOIN_STORAGE_IPLD_LINK_HPP
+#define FILECOIN_STORAGE_IPLD_LINK_HPP
 
 #include <string>
 #include <vector>
 
 #include "primitives/cid/cid.hpp"
 
-namespace fc::storage::ipfs::merkledag {
-  class Link {
+namespace fc::storage::ipld {
+  class IPLDLink {
    public:
     /**
      * @brief Destructor
      */
-    virtual ~Link() = default;
+    virtual ~IPLDLink() = default;
 
     /**
      * @brief Get name of the link

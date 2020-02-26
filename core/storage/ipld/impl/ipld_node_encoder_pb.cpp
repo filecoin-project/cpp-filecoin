@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipfs/merkledag/impl/pb_node_encoder.hpp"
+#include "storage/ipld/impl/ipld_node_encoder_pb.hpp"
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
-#include "merkledag.pb.h"
+#include "ipld_node.pb.h"
 
 using google::protobuf::io::ArrayOutputStream;
 using google::protobuf::io::CodedOutputStream;
-using merkledag::pb::PBLink;
-using merkledag::pb::PBNode;
+using protobuf::ipld::node::PBLink;
+using protobuf::ipld::node::PBNode;
 
-namespace fc::storage::ipfs::merkledag {
-  common::Buffer PBNodeEncoder::encode(
+namespace fc::storage::ipld {
+  common::Buffer IPLDNodeEncoderPB::encode(
       const common::Buffer &content,
-      const std::map<std::string, LinkImpl> &links) {
+      const std::map<std::string, IPLDLinkImpl> &links) {
     common::Buffer data;
     std::vector<uint8_t> links_pb = serializeLinks(links);
     std::vector<uint8_t> content_pb = serializeContent(content);
@@ -26,8 +26,8 @@ namespace fc::storage::ipfs::merkledag {
     return data;
   }
 
-  size_t PBNodeEncoder::getLinkLengthPB(const std::string &name,
-                                        const Link &link) {
+  size_t IPLDNodeEncoderPB::getLinkLengthPB(const std::string &name,
+                                        const IPLDLinkImpl &link) {
     size_t length{};
     size_t cid_bytes_size = link.getCID().content_address.toBuffer().size();
     length += cid_bytes_size;
@@ -39,8 +39,8 @@ namespace fc::storage::ipfs::merkledag {
     return length;
   }
 
-  std::vector<uint8_t> PBNodeEncoder::serializeLinks(
-      const std::map<std::string, LinkImpl> &links) {
+  std::vector<uint8_t> IPLDNodeEncoderPB::serializeLinks(
+      const std::map<std::string, IPLDLinkImpl> &links) {
     // Calculate links size:
     size_t links_content_size{};
     size_t links_headers_size{};
@@ -86,7 +86,7 @@ namespace fc::storage::ipfs::merkledag {
     return {};
   }
 
-  std::vector<uint8_t> PBNodeEncoder::serializeContent(
+  std::vector<uint8_t> IPLDNodeEncoderPB::serializeContent(
       const common::Buffer &content) {
     size_t pb_length = getContentLengthPB(content);
     std::vector<uint8_t> buffer(pb_length);
@@ -102,7 +102,7 @@ namespace fc::storage::ipfs::merkledag {
     return buffer;
   }
 
-  size_t PBNodeEncoder::getContentLengthPB(const common::Buffer &content) {
+  size_t IPLDNodeEncoderPB::getContentLengthPB(const common::Buffer &content) {
     size_t length{};
     if (!content.empty()) {
       length += sizeof(PBTag);
@@ -112,7 +112,7 @@ namespace fc::storage::ipfs::merkledag {
     return length;
   }
 
-  PBNodeEncoder::PBTag PBNodeEncoder::createTag(PBFieldType type,
+    IPLDNodeEncoderPB::PBTag IPLDNodeEncoderPB::createTag(PBFieldType type,
                                                 uint8_t order) {
     constexpr size_t pb_type_length = 3;
     uint8_t tag = (order << pb_type_length);

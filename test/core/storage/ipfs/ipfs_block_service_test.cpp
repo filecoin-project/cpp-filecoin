@@ -10,14 +10,14 @@
 #include <gtest/gtest.h>
 #include "common/outcome.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "storage/ipfs/ipfs_block.hpp"
+#include "storage/ipld/ipld_block.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::CID;
 using fc::common::Buffer;
 using fc::common::getCidOf;
 using fc::storage::ipfs::InMemoryDatastore;
-using fc::storage::ipfs::IpfsBlock;
+using fc::storage::ipld::IPLDBlock;
 using fc::storage::ipfs::IpfsBlockService;
 
 /**
@@ -25,7 +25,7 @@ using fc::storage::ipfs::IpfsBlockService;
  * This interface can be used by any data structure (like Node from
  * MerkleDAG service) and there are no single universal implementation
  */
-struct BlockTestImpl : IpfsBlock {
+struct BlockTestImpl : IPLDBlock {
   Buffer content; /**< Raw data */
   CID cid;                /**< Block identifier */
 

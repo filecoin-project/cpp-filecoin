@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_STORAGE_IPFS_MERKLEDAG_PB_NODE_ENCODER
-#define FILECOIN_STORAGE_IPFS_MERKLEDAG_PB_NODE_ENCODER
+#ifndef FILECOIN_STORAGE_IPLD_NODE_ENCODER_PB
+#define FILECOIN_STORAGE_IPLD_NODE_ENCODER_PB
 
 #include <map>
 #include <memory>
@@ -13,10 +13,10 @@
 #include <gsl/span>
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
-#include "storage/ipfs/merkledag/impl/link_impl.hpp"
-#include "storage/ipfs/merkledag/node.hpp"
+#include "storage/ipld/impl/ipld_link_impl.hpp"
+#include "storage/ipld/ipld_node.hpp"
 
-namespace fc::storage::ipfs::merkledag {
+namespace fc::storage::ipld {
   /**
    * @class Protobuf-serializer for MerkleDAG Nodes
    * @details Order of parts of the Protobuf-serialized data is forced
@@ -24,7 +24,7 @@ namespace fc::storage::ipfs::merkledag {
    *          implementation
    * @warning Need to update serialization algorithm on Protobuf-scheme change
    */
-  class PBNodeEncoder {
+  class IPLDNodeEncoderPB {
    public:
     /**
      * @brief Serialize Node
@@ -33,7 +33,7 @@ namespace fc::storage::ipfs::merkledag {
      * @return Protobuf-encoded data
      */
     static common::Buffer encode(const common::Buffer &content,
-                                 const std::map<std::string, LinkImpl> &links);
+                                 const std::map<std::string, IPLDLinkImpl> &links);
 
    private:
     using PBTag = uint8_t;
@@ -61,7 +61,7 @@ namespace fc::storage::ipfs::merkledag {
      * @param link - child link
      * @return Number of bytes
      */
-    static size_t getLinkLengthPB(const std::string &name, const Link &link);
+    static size_t getLinkLengthPB(const std::string &name, const IPLDLinkImpl &link);
 
     /**
      * @brief Calculate length of the serialized content
@@ -76,7 +76,7 @@ namespace fc::storage::ipfs::merkledag {
      * @return Raw bytes
      */
     static std::vector<uint8_t> serializeLinks(
-        const std::map<std::string, LinkImpl> &links);
+        const std::map<std::string, IPLDLinkImpl> &links);
 
     /**
      * @brief Serialized Node's content

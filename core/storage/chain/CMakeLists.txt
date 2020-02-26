@@ -9,7 +9,6 @@ target_link_libraries(chain_store
     datastore_key
     ipfs_blockservice
     logger
-    persistent_block
     )
 
 add_library(datastore_key

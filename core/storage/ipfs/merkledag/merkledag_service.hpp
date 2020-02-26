@@ -10,9 +10,11 @@
 
 #include "common/outcome.hpp"
 #include "storage/ipfs/merkledag/leaf.hpp"
-#include "storage/ipfs/merkledag/node.hpp"
+#include "storage/ipld/ipld_node.hpp"
 
 namespace fc::storage::ipfs::merkledag {
+  using ipld::IPLDNode;
+
   class MerkleDagService {
    public:
     /**
@@ -25,14 +27,14 @@ namespace fc::storage::ipfs::merkledag {
      * @param node - entity to add
      * @return operation result
      */
-    virtual outcome::result<void> addNode(std::shared_ptr<const Node> node) = 0;
+    virtual outcome::result<void> addNode(std::shared_ptr<const IPLDNode> node) = 0;
 
     /**
      * @brief Get node by id
      * @param cid - node id
      * @return operation result
      */
-    virtual outcome::result<std::shared_ptr<Node>> getNode(
+    virtual outcome::result<std::shared_ptr<IPLDNode>> getNode(
         const CID &cid) const = 0;
 
     /**
@@ -53,7 +55,7 @@ namespace fc::storage::ipfs::merkledag {
     virtual outcome::result<size_t> select(
         gsl::span<const uint8_t> root_cid,
         gsl::span<const uint8_t> selector,
-        std::function<bool(std::shared_ptr<const Node> node)> handler)
+        std::function<bool(std::shared_ptr<const IPLDNode> node)> handler)
         const = 0;
 
     /**
