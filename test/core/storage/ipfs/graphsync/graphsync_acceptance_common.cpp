@@ -11,7 +11,7 @@
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
-#include "storage/ipfs/merkledag/impl/node_impl.hpp"
+#include "storage/ipld/impl/ipld_node_impl.hpp"
 
 namespace fc::storage::ipfs::graphsync::test {
 
@@ -54,7 +54,7 @@ namespace fc::storage::ipfs::graphsync::test {
 
   void TestDataService::insertNode(TestDataService::Storage &dst,
                                    const std::string &data_str) {
-    using NodeImpl = fc::storage::ipfs::merkledag::NodeImpl;
+    using NodeImpl = fc::storage::ipld::IPLDNodeImpl;
     auto node = NodeImpl::createFromString(data_str);
     dst[node->getCID()] = node->getRawBytes();
   }

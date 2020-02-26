@@ -30,7 +30,7 @@ namespace fc::storage::ipfs::graphsync {
       gsl::span<const uint8_t> selector,
       std::function<bool(const CID &, const common::Buffer &)> handler) const {
     auto internal_handler =
-        [&handler](std::shared_ptr<const merkledag::Node> node) -> bool {
+        [&handler](std::shared_ptr<const ipld::IPLDNode> node) -> bool {
       return handler(node->getCID(), node->getRawBytes());
     };
 
