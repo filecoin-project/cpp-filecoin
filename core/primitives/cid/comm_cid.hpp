@@ -77,8 +77,7 @@ namespace fc::common {
 
   outcome::result<Comm> CIDToPieceCommitmentV1(const CID &cid);
   outcome::result<Comm> CIDToDataCommitmentV1(const CID &cid);
-  outcome::result<std::pair<FilecoinMultihashCode, gsl::span<const uint8_t>>>
-  CIDToCommitment(const CID &cid);
+  outcome::result<Multihash> CIDToCommitment(const CID &cid);
 
 };  // namespace fc::common
 
