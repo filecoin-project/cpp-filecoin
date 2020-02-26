@@ -73,6 +73,8 @@ namespace fc::storage::ipfs::graphsync {
     RS_NOT_FOUND = 34,       //   Request failed, content not found.
   };
 
+  /// Returns true if the status code passed is terminal, i.e. no more data will
+  /// be sent to the subscription
   bool isTerminal(ResponseStatusCode code);
 
   /// Metadata pairs, is cid present or not
@@ -88,7 +90,7 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Starts instance and subscribes to blocks.
     virtual void start(std::shared_ptr<MerkleDagBridge> dag,
-                               BlockCallback callback) = 0;
+                       BlockCallback callback) = 0;
 
     virtual void stop() = 0;
 

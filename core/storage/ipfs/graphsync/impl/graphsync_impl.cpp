@@ -11,6 +11,13 @@
 
 namespace fc::storage::ipfs::graphsync {
 
+  GraphsyncImpl::GraphsyncImpl(
+      std::shared_ptr<libp2p::Host> host,
+      std::shared_ptr<libp2p::protocol::Scheduler> scheduler)
+      : network_(
+          std::make_shared<Network>(std::move(host), std::move(scheduler))),
+        local_requests_(std::make_shared<LocalRequests>(*this)) {}
+
   void GraphsyncImpl::start(std::shared_ptr<MerkleDagBridge> dag,
                             Graphsync::BlockCallback callback) {
     assert(dag);
@@ -22,10 +29,19 @@ namespace fc::storage::ipfs::graphsync {
     started_ = true;
   }
 
+  void GraphsyncImpl::stop() {
+    if (started_) {
+      started_ = false;
+      block_cb_ = Graphsync::BlockCallback{};
+      dag_.reset();
+      network_->stop();
+    }
+  }
+
   Subscription GraphsyncImpl::makeRequest(
       const libp2p::peer::PeerId &peer,
       boost::optional<libp2p::multi::Multiaddress> address,
-      const CID& root_cid,
+      const CID &root_cid,
       gsl::span<const uint8_t> selector,
       bool need_metadata,
       const std::vector<CID> &dont_send_cids,

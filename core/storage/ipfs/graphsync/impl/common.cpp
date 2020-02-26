@@ -14,8 +14,32 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipfs::graphsync, Error, e) {
       return "message size out of bounds";
     case E::MESSAGE_VALIDATION_FAILED:
       return "message validation failed";
+    case E::MESSAGE_SERIALIZE_ERROR:
+      return "message serialize error";
+    case E::STREAM_NOT_READABLE:
+      return "stream is not readable";
+    case E::MESSAGE_READ_ERROR:
+      return "message read error";
+    case E::STREAM_NOT_WRITABLE:
+      return "stream is not writable";
+    case E::WRITE_QUEUE_OVERFLOW:
+      return "write queue overflow";
+    case E::MESSAGE_WRITE_ERROR:
+      return "message write error";
     default:
       break;
   }
   return "unknown error";
 }
+
+namespace fc::storage::ipfs::graphsync {
+
+  //ResponseStatusCode errorToStatusCode(outcome::result<void> error) {
+  //  error.error().category();
+  //}
+
+  bool isTerminal(ResponseStatusCode code) {
+    return code < 10 || code >= 20;
+  }
+
+} // namespace fc::storage::ipfs::graphsync

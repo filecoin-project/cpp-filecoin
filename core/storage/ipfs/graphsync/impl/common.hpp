@@ -12,7 +12,7 @@ namespace fc::storage::ipfs::graphsync {
 
   /// Graphsync error codes
   enum class Error {
-    MESSAGE_SIZE_OUT_OF_BOUNDS,
+    MESSAGE_SIZE_OUT_OF_BOUNDS = 1,
     MESSAGE_PARSE_ERROR,
     MESSAGE_VALIDATION_FAILED,
     MESSAGE_SERIALIZE_ERROR,
@@ -32,7 +32,8 @@ namespace fc::storage::ipfs::graphsync {
   constexpr std::string_view kLink = "link";
   constexpr std::string_view kBlockPresent = "blockPresent";
 
-  ResponseStatusCode errorToStatusCode(outcome::result<void> error);
+ // TODO - extract error category
+ //  ResponseStatusCode errorToStatusCode(outcome::result<void> error);
 
 }  // namespace fc::storage::ipfs::graphsync
 

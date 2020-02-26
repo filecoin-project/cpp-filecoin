@@ -36,6 +36,12 @@ namespace fc::storage::ipfs::graphsync {
     started_ = true;
   }
 
+  void Network::stop() {
+    started_ = false;
+    closeAllStreams();
+    // TODO gracefully close all stuff
+  }
+
   void Network::makeRequest(
       const PeerId &peer,
       boost::optional<libp2p::multi::Multiaddress> address,
@@ -51,14 +57,21 @@ namespace fc::storage::ipfs::graphsync {
       ctx->connected_endpoint =
           std::make_shared<Endpoint>(ctx, kConnectedEndpointTag, *this);
     }
-    ctx->local_request_ids.insert(request_id);
-    ctx->connected_endpoint->enqueue(std::move(request_body));
-    if (!ctx->is_connecting) {
-      ctx->connect_to = std::move(address);
-      tryConnect(std::move(ctx));
+
+    auto res = ctx->connected_endpoint->enqueue(std::move(request_body));
+    if (!res) {
+      // TODO schedule error
+      return;
     }
 
-    active_requests_[request_id] = ctx;
+    ctx->local_request_ids.insert(request_id);
+
+    if (!ctx->is_connecting) {
+      ctx->connect_to = std::move(address);
+      tryConnect(ctx);
+    }
+
+    active_requests_[request_id] = std::move(ctx);
   }
 
   void Network::cancelRequest(int request_id, SharedData request_body) {
@@ -84,7 +97,10 @@ namespace fc::storage::ipfs::graphsync {
       ctx->is_connecting = false;
       ctx->connected_endpoint->clearOutQueue();
     } else {
-      ctx->connected_endpoint->enqueue(std::move(request_body));
+      auto res = ctx->connected_endpoint->enqueue(std::move(request_body));
+      if (!res) {
+        // TODO log
+      }
     }
   }
 
@@ -145,7 +161,11 @@ namespace fc::storage::ipfs::graphsync {
     auto bytes = ctx->response_builder.serialize();
     ctx->response_builder.clear();
     if (bytes) {
-      ctx->endpoint->enqueue(bytes.value());
+      auto res = ctx->endpoint->enqueue(bytes.value());
+      if (!res) {
+        // TODO log
+        // TODO schedule answer
+      }
     } else {
       // TODO log
       // TODO schedule answer
@@ -242,15 +262,15 @@ namespace fc::storage::ipfs::graphsync {
       auto it = ctx->accepted_endpoints.find(endpoint_tag);
       if (it != ctx->accepted_endpoints.end()) {
         auto stream = it->second.endpoint->getStream();
-        decStreamRef(stream);
         ctx->accepted_endpoints.erase(endpoint_tag);
+        decStreamRef(stream);
       }
       return;
     }
 
     if (ctx->connected_endpoint) {
-      ResponseStatusCode status = errorToStatusCode(res.error());
-      closeLocalRequestsForPeer(ctx, status);
+      // TODO(artem) errorToStatusCode(res.error());
+      closeLocalRequestsForPeer(ctx, RS_CONNECTION_ERROR);
     }
 
     // TODO close if closable
@@ -305,6 +325,7 @@ namespace fc::storage::ipfs::graphsync {
     if (rstream) {
       incStreamRef(rstream.value());
       ctx->connected_endpoint->setStream(std::move(rstream.value()));
+      ctx->connected_endpoint->read();
     } else {
       closeLocalRequestsForPeer(ctx, RS_CANNOT_CONNECT);
     }
@@ -338,6 +359,7 @@ namespace fc::storage::ipfs::graphsync {
     uint64_t tag = ctx->current_endpoint_tag++;
     auto endpoint = std::make_shared<Endpoint>(ctx, tag, *this);
     endpoint->setStream(std::move(stream));
+    endpoint->read();
     ctx->accepted_endpoints[tag].endpoint = std::move(endpoint);
     return tag;
   }

@@ -9,8 +9,8 @@
 #include <set>
 
 #include "message.hpp"
-#include "network/network.hpp"
 #include "network/marshalling/request_builder.hpp"
+#include "network/network.hpp"
 
 namespace libp2p {
   class Host;
@@ -24,20 +24,21 @@ namespace fc::storage::ipfs::graphsync {
                         public std::enable_shared_from_this<GraphsyncImpl>,
                         public NetworkEvents {
    public:
-    GraphsyncImpl(std::shared_ptr<libp2p::Host> host);
+    GraphsyncImpl(std::shared_ptr<libp2p::Host> host,
+                  std::shared_ptr<libp2p::protocol::Scheduler> scheduler);
 
     void cancelLocalRequest(int request_id);
 
    private:
     void start(std::shared_ptr<MerkleDagBridge> dag,
-                       BlockCallback callback) override;
+               BlockCallback callback) override;
 
     void stop() override;
 
     Subscription makeRequest(
         const libp2p::peer::PeerId &peer,
         boost::optional<libp2p::multi::Multiaddress> address,
-        const CID& root_cid,
+        const CID &root_cid,
         gsl::span<const uint8_t> selector,
         bool need_metadata,
         const std::vector<CID> &dont_send_cids,
@@ -53,8 +54,6 @@ namespace fc::storage::ipfs::graphsync {
     void onRemoteRequest(const PeerId &from,
                          uint64_t tag,
                          Message::Request request) override;
-
-    std::shared_ptr<libp2p::Host> host_;
 
     std::shared_ptr<Network> network_;
 

@@ -26,12 +26,14 @@ namespace fc::storage::ipfs::graphsync {
 
   class LengthDelimitedMessageReader;
 
-  class Endpoint {
+ class Endpoint : public std::enable_shared_from_this<Endpoint> {
    public:
     Endpoint(const Endpoint &) = delete;
     Endpoint &operator=(const Endpoint &) = delete;
 
     Endpoint(PeerContextPtr peer, uint64_t tag, EndpointEvents &feedback);
+
+    ~Endpoint();
 
     void setStream(StreamPtr stream);
 
@@ -45,7 +47,7 @@ namespace fc::storage::ipfs::graphsync {
     bool read();
 
     /// Enqueues an outgoing message
-    void enqueue(SharedData msg);
+    outcome::result<void> enqueue(SharedData msg);
 
     void clearOutQueue();
 
@@ -53,7 +55,13 @@ namespace fc::storage::ipfs::graphsync {
     void close();
 
    private:
-    void onMessageRead(outcome::result<std::vector<uint8_t>> res);
+    void dequeue();
+
+    void beginWrite(SharedData buffer);
+
+    void onMessageWritten(outcome::result<size_t> res);
+
+    void onMessageRead(outcome::result<ByteArray> res);
 
     PeerContextPtr peer_;
     uint64_t tag_;
@@ -78,7 +86,7 @@ namespace fc::storage::ipfs::graphsync {
     size_t pending_bytes_ = 0;
 
     /// Dont send feedback or schedule writes anymore
-    bool closed_ = false;
+    bool closed_ = true;
   };
 
 }  // namespace fc::storage::ipfs::graphsync

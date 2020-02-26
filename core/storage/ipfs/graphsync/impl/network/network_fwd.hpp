@@ -26,6 +26,10 @@ namespace fc::storage::ipfs::graphsync {
 
   constexpr std::string_view kProtocolVersion = "/ipfs/graphsync/1.0.0";
 
+  //TODO(artem) sync with go-graphsync
+  constexpr size_t kMaxMessageSize = 16 * 1024 * 1024;
+  constexpr size_t kMaxPendingBytes = 64 * 1024 * 1024;
+
 }  // namespace fc::storage::ipfs::graphsync
 
 #endif  // CPP_FILECOIN_GRAPHSYNC_NETWORK_FWD_HPP

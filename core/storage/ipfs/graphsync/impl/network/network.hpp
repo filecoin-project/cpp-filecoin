@@ -43,6 +43,8 @@ namespace fc::storage::ipfs::graphsync {
     /// Starts accepting streams
     void start(std::shared_ptr<NetworkEvents> feedback);
 
+    void stop();
+
     void makeRequest(const PeerId &peer,
                      boost::optional<libp2p::multi::Multiaddress> address,
                      int request_id,

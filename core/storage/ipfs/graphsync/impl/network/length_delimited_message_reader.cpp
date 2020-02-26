@@ -17,7 +17,6 @@ namespace fc::storage::ipfs::graphsync {
         max_message_size_(max_message_size),
         buffer_(std::make_shared<std::vector<uint8_t>>()) {
     assert(feedback_);
-    assert(stream_);
   }
 
   bool LengthDelimitedMessageReader::read(StreamPtr stream) {
@@ -30,7 +29,9 @@ namespace fc::storage::ipfs::graphsync {
       stream_ = std::move(stream);
     }
 
-    continueReading();
+    if (stream_) {
+      continueReading();
+    }
 
     return true;
   }

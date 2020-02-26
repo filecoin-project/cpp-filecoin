@@ -19,15 +19,14 @@ namespace fc::storage::ipfs::graphsync {
     common::Buffer fromString(const std::string &src) {
       common::Buffer dst;
       if (!src.empty()) {
-        auto b = (const uint8_t*)src.data();
+        auto b = (const uint8_t *)src.data();
         auto e = b + src.size();
         dst.putBytes(b, e);
       }
       return dst;
     }
 
-    outcome::result<ResponseStatusCode> extractStatusCode(
-        int src) {
+    outcome::result<ResponseStatusCode> extractStatusCode(int src) {
       switch (src) {
 // clang-format off
 #define CHECK_CASE(X) case RS_##X: return RS_##X;
@@ -52,44 +51,51 @@ namespace fc::storage::ipfs::graphsync {
       return Error::MESSAGE_VALIDATION_FAILED;
     }
 
-    bool decodeBool(const std::string& s) {
-      bool b = false;
-      try {
-        auto data = (const uint8_t*)s.data(); //NOLINT
-        CborDecodeStream decoder(gsl::span<const uint8_t>(data, s.size()));
-        decoder >> b;
-      } catch (const std::exception& e) {
-        // XXX log
+    outcome::result<bool> decodeBool(uint8_t byte) {
+      constexpr uint8_t kCborFalse = 0xF4;
+      constexpr uint8_t kCborTrue = 0xF5;
+      if (byte == kCborFalse) {
+        return false;
+      } else if (byte == kCborTrue) {
+        return true;
       }
-      return b;
+      return Error::MESSAGE_PARSE_ERROR;
     }
 
-    std::vector<CID> decodeCids(const std::string& s) {
+    template <typename Container>
+    outcome::result<bool> decodeBool(const Container &s) {
+      if (s.size() == 1) {
+        return decodeBool((uint8_t)s[0]);
+      }
+      return Error::MESSAGE_PARSE_ERROR;
+    }
+
+    std::vector<CID> decodeCids(const std::string &s) {
       std::vector<CID> cids;
       try {
-        auto data = (const uint8_t*)s.data(); //NOLINT
+        auto data = (const uint8_t *)s.data();  // NOLINT
         CborDecodeStream decoder(gsl::span<const uint8_t>(data, s.size()));
         decoder >> cids;
-      } catch (const std::exception& e) {
+      } catch (const std::exception &e) {
         // XXX log
       }
       return cids;
     }
 
-    outcome::result<CID> decodeCid(const std::string& s) {
+    outcome::result<CID> decodeCid(const std::string &s) {
       CID cid;
       try {
-        auto data = (const uint8_t*)s.data(); //NOLINT
+        auto data = (const uint8_t *)s.data();  // NOLINT
         CborDecodeStream decoder(gsl::span<const uint8_t>(data, s.size()));
         decoder >> cid;
-      } catch (const std::exception& e) {
+      } catch (const std::exception &e) {
         // XXX log
         return Error::MESSAGE_PARSE_ERROR;
       }
       return cid;
     }
 
-    outcome::result<ResponseMetadata> decodeMetadata(const std::string& s) {
+    outcome::result<ResponseMetadata> decodeMetadata(const std::string &s) {
       static const std::string link(kLink);
       static const std::string blockPresent(kBlockPresent);
 
@@ -100,28 +106,44 @@ namespace fc::storage::ipfs::graphsync {
       }
 
       try {
-        auto data = (const uint8_t*)s.data(); //NOLINT
+        auto data = (const uint8_t *)s.data();  // NOLINT
         CborDecodeStream decoder(gsl::span<const uint8_t>(data, s.size()));
-        decoder = decoder.list();
+
+        if (!decoder.isList()) {
+          return Error::MESSAGE_PARSE_ERROR;
+        }
         size_t n = decoder.listLength();
         pairs.reserve(n);
 
+        decoder = decoder.list();
+
+        std::map<std::string, CborDecodeStream> m;
+        std::vector<uint8_t> raw;
+
         for (size_t i=0; i<n; ++i) {
-          auto m = decoder.map();
+          raw = decoder.raw();
+          CborDecodeStream x(raw);
+          if (!x.isMap()) {
+            return Error::MESSAGE_PARSE_ERROR;
+          }
+
+          m = x.map();
+
           auto link_p = m.find(link);
           auto present_p = m.find(blockPresent);
           if (link_p == m.end() || present_p == m.end()) {
             // XXX log
             return Error::MESSAGE_PARSE_ERROR;
           }
+
           CID cid;
           link_p->second >> cid;
-          bool present = false;
-          present_p->second >> present;
 
-          pairs.push_back( { std::move(cid), present } );
+          OUTCOME_TRY(present, decodeBool(present_p->second.raw()));
+
+          pairs.push_back({std::move(cid), present});
         }
-      } catch (const std::exception& e) {
+      } catch (const std::exception &e) {
         // XXX log
         return Error::MESSAGE_PARSE_ERROR;
       }
@@ -131,8 +153,7 @@ namespace fc::storage::ipfs::graphsync {
 
   }  // namespace
 
-  outcome::result<Message> parseMessage(
-      gsl::span<const uint8_t> bytes) {
+  outcome::result<Message> parseMessage(gsl::span<const uint8_t> bytes) {
     pb::Message pb_msg;
     if (!pb_msg.ParseFromArray(bytes.data(), bytes.size())) {
       return Error::MESSAGE_PARSE_ERROR;
@@ -146,8 +167,7 @@ namespace fc::storage::ipfs::graphsync {
     if (sz > 0) {
       msg.requests.reserve(sz);
       for (auto &src : pb_msg.requests()) {
-        auto &dst =
-            msg.requests.emplace_back(Message::Request());
+        auto &dst = msg.requests.emplace_back(Message::Request());
         dst.id = src.id();
         if (src.cancel()) {
           dst.cancel = true;
@@ -161,9 +181,10 @@ namespace fc::storage::ipfs::graphsync {
           dst.selector = fromString(src.selector());
           dst.priority = src.priority();
 
-          for (const auto& [k, v] : src.extensions()) {
+          for (const auto &[k, v] : src.extensions()) {
             if (k == kResponseMetadata) {
-              dst.send_metadata = decodeBool(v);
+              OUTCOME_TRY(send_metadata, decodeBool(v));
+              dst.send_metadata = send_metadata;
               continue;
             }
 
@@ -172,7 +193,6 @@ namespace fc::storage::ipfs::graphsync {
               continue;
             }
             // XXX log unknown extension
-
           }
         }
       }
@@ -183,8 +203,7 @@ namespace fc::storage::ipfs::graphsync {
       msg.responses.reserve(sz);
 
       for (auto &src : pb_msg.responses()) {
-        auto &dst =
-            msg.responses.emplace_back(Message::Response());
+        auto &dst = msg.responses.emplace_back(Message::Response());
         dst.id = src.id();
         auto res = extractStatusCode(src.status());
         if (!res) {
@@ -192,7 +211,7 @@ namespace fc::storage::ipfs::graphsync {
         }
         dst.status = res.value();
 
-        for (const auto& [k,v] : src.extensions()) {
+        for (const auto &[k, v] : src.extensions()) {
           if (k == kResponseMetadata) {
             auto meta_res = decodeMetadata(v);
 
@@ -204,7 +223,6 @@ namespace fc::storage::ipfs::graphsync {
             continue;
           }
           // XXX log unknown extension
-
         }
       }
     }
@@ -218,7 +236,7 @@ namespace fc::storage::ipfs::graphsync {
         if (!res) {
           return outcome::failure(res.error());
         }
-        msg.data.push_back( {std::move(res.value()), fromString(src.data()) } );
+        msg.data.push_back({std::move(res.value()), fromString(src.data())});
       }
     }
 
