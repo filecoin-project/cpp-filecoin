@@ -47,7 +47,6 @@ MATCHER_P(PaymentChannelStateMatcher, expected, "Match PaymentChannelState") {
 
 class PaymentChannelActorTest : public ::testing::Test {
  protected:
-  Actor actor{kAccountCodeCid};
   Address caller_address = Address::makeFromId(200);
   Address to_address = Address::makeFromId(42);  // arbitrary address
   MockRuntime runtime;
@@ -61,9 +60,14 @@ class PaymentChannelActorTest : public ::testing::Test {
  * @then error WRONG_CALLER returned
  */
 TEST_F(PaymentChannelActorTest, ConstructWrongCaller) {
-  actor.code = kCronCodeCid;  // not an account code id
   ConstructParameteres params{to_address};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
+
+  // not a signable code cid
+  EXPECT_CALL(runtime, getActorCodeID(caller_address))
+      .WillOnce(testing::Return(fc::outcome::success(kCronCodeCid)));
+  EXPECT_CALL(runtime, getImmediateCaller())
+      .WillOnce(testing::Return(caller_address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::PAYMENT_CHANNEL_WRONG_CALLER,
                        PaymentChannelActor::construct(runtime, encoded_params));
@@ -76,6 +80,11 @@ TEST_F(PaymentChannelActorTest, ConstructWrongCaller) {
  */
 TEST_F(PaymentChannelActorTest, ConstructWrongParams) {
   MethodParams wrong_params{"DEAD"_unhex};
+
+  EXPECT_CALL(runtime, getActorCodeID(caller_address))
+      .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
+  EXPECT_CALL(runtime, getImmediateCaller())
+      .WillOnce(testing::Return(caller_address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::DECODE_ACTOR_PARAMS_ERROR,
                        PaymentChannelActor::construct(runtime, wrong_params));
@@ -91,6 +100,11 @@ TEST_F(PaymentChannelActorTest, ConstructWrongTargetAddressProtocol) {
   ConstructParameteres params{wrong_address};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
+  EXPECT_CALL(runtime, getActorCodeID(caller_address))
+      .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
+  EXPECT_CALL(runtime, getImmediateCaller())
+      .WillOnce(testing::Return(caller_address));
+
   EXPECT_OUTCOME_ERROR(VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
                        PaymentChannelActor::construct(runtime, encoded_params));
 }
@@ -104,6 +118,10 @@ TEST_F(PaymentChannelActorTest, ConstructWrongTarget) {
   ConstructParameteres params{to_address};
   EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
+  EXPECT_CALL(runtime, getActorCodeID(caller_address))
+      .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
+  EXPECT_CALL(runtime, getImmediateCaller())
+      .WillOnce(testing::Return(caller_address));
   EXPECT_CALL(runtime, getActorCodeID(Eq(to_address)))
       .WillOnce(testing::Return(fc::outcome::success(kCronCodeCid)));
 
@@ -123,10 +141,13 @@ TEST_F(PaymentChannelActorTest, ConstructSuccess) {
   PaymentChannelActorState expected_state{
       caller_address, to_address, 0, 0, 0, {}};
 
-  EXPECT_CALL(runtime, getActorCodeID(Eq(to_address)))
+  EXPECT_CALL(runtime, getActorCodeID(caller_address))
       .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
   EXPECT_CALL(runtime, getImmediateCaller())
-      .WillOnce(testing::Return(caller_address));
+      .Times(2)
+      .WillRepeatedly(testing::Return(caller_address));
+  EXPECT_CALL(runtime, getActorCodeID(Eq(to_address)))
+      .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
   EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(datastore));
   EXPECT_CALL(*datastore, set(_, PaymentChannelStateMatcher(expected_state)))
       .WillOnce(testing::Return(fc::outcome::success()));

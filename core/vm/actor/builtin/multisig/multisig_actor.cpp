@@ -116,7 +116,7 @@ fc::outcome::result<void> MultiSignatureActorState::approveTransaction(
   pending_tx.approved.push_back(caller);
 
   // check threshold
-  OUTCOME_TRY(balance, runtime.getBalance(runtime.getMessage().get().to));
+  OUTCOME_TRY(balance, runtime.getBalance(runtime.getCurrentReceiver()));
   if (pending_tx.approved.size() >= threshold) {
     if (balance < pending_tx.value)
       return VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS;
