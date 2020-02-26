@@ -44,6 +44,7 @@ namespace fc::vm {
       case E::MINER_ACTOR_ILLEGAL_ARGUMENT:
         return 16;  // ErrIllegalArgument in actor-specs
       case E::MINER_ACTOR_WRONG_CALLER:
+      case E::MINER_ACTOR_WRONG_EPOCH:
         return 18;  // ErrForbidden in actor-specs
       case E::MINER_ACTOR_POST_TOO_LATE:
       case E::MINER_ACTOR_POST_TOO_EARLY:
