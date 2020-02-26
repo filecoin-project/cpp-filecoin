@@ -3,17 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_STORAGE_IPFS_MERKLEDAG_LINK_IMPL_HPP
-#define FILECOIN_STORAGE_IPFS_MERKLEDAG_LINK_IMPL_HPP
+#ifndef FILECOIN_STORAGE_IPLD_LINK_IMPL_HPP
+#define FILECOIN_STORAGE_IPLD_LINK_IMPL_HPP
 
 #include <string>
 #include <utility>
 #include <vector>
 
-#include "storage/ipfs/merkledag/link.hpp"
+#include "storage/ipld/ipld_link.hpp"
 
-namespace fc::storage::ipfs::merkledag {
-  class LinkImpl : public Link {
+namespace fc::storage::ipld {
+  class IPLDLinkImpl : public IPLDLink {
    public:
     /**
      * @brief Construct Link
@@ -21,11 +21,11 @@ namespace fc::storage::ipfs::merkledag {
      * @param name - name of the target object
      * @param size - total size of the target object
      */
-    LinkImpl(libp2p::multi::ContentIdentifier id,
-             std::string name,
-             size_t size);
+    IPLDLinkImpl(libp2p::multi::ContentIdentifier id,
+                 std::string name,
+                 size_t size);
 
-    LinkImpl() = default;
+    IPLDLinkImpl() = default;
 
     const std::string &getName() const override;
 
@@ -38,6 +38,6 @@ namespace fc::storage::ipfs::merkledag {
     std::string name_;
     size_t size_{};
   };
-}  // namespace fc::storage::ipfs::merkledag
+}  // namespace fc::storage::ipld
 
 #endif

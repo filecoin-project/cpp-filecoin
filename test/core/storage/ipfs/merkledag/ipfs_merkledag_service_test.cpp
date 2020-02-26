@@ -3,17 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipfs/merkledag/impl/node_impl.hpp"
+#include "storage/ipfs/merkledag/impl/merkledag_service_impl.hpp"
 
 #include <gtest/gtest.h>
 #include <libp2p/multi/content_identifier_codec.hpp>
-#include <storage/ipfs/merkledag/impl/merkledag_service_impl.hpp>
 #include <testutil/outcome.hpp>
 #include "core/storage/ipfs/merkledag/ipfs_merkledag_dataset.hpp"
-#include "storage/ipfs/impl/ipfs_block_service.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "storage/ipfs/impl/ipfs_block_service.hpp"
 
 using namespace fc::storage::ipfs;
+using namespace fc::storage::ipld;
 using namespace fc::storage::ipfs::merkledag;
 using libp2p::multi::ContentIdentifierCodec;
 
@@ -22,7 +22,7 @@ using libp2p::multi::ContentIdentifierCodec;
  */
 struct DataSample {
   // Various-linked MerkleDAG nodes [root, node_1, node_2 ... ]
-  std::vector<std::shared_ptr<Node>> nodes;
+  std::vector<std::shared_ptr<IPLDNode>> nodes;
 
   // Base58-encoded CID of the root node from the Lotus implementation
   std::string sample_cid;
@@ -46,7 +46,8 @@ struct CommonFeaturesTest : public testing::TestWithParam<DataSample> {
    */
   void SetUp() override {
     std::shared_ptr<IpfsDatastore> datastore{new InMemoryDatastore{}};
-    std::shared_ptr<IpfsDatastore> blockservice{new IpfsBlockService{datastore}};
+    std::shared_ptr<IpfsDatastore> blockservice{
+        new IpfsBlockService{datastore}};
     merkledag_service_ = std::make_shared<MerkleDagServiceImpl>(blockservice);
     data = GetParam();
     EXPECT_OUTCOME_TRUE_1(this->saveToBlockService(data.nodes));
@@ -58,7 +59,7 @@ struct CommonFeaturesTest : public testing::TestWithParam<DataSample> {
    * @return operation result
    */
   fc::outcome::result<void> saveToBlockService(
-      const std::vector<std::shared_ptr<Node>> &nodes) {
+      const std::vector<std::shared_ptr<IPLDNode>> &nodes) {
     for (const auto &node : nodes) {
       EXPECT_OUTCOME_TRUE_1(merkledag_service_->addNode(node));
     }
@@ -70,7 +71,7 @@ struct CommonFeaturesTest : public testing::TestWithParam<DataSample> {
    * @param node - target for retrieving id
    * @return Base58-encoded CID v0
    */
-  static std::string cidToString(const std::shared_ptr<const Node> &node) {
+  static std::string cidToString(const std::shared_ptr<const IPLDNode> &node) {
     std::string value{};
     auto result = ContentIdentifierCodec::toString(node->getCID());
     if (!result.has_error()) {
@@ -140,10 +141,10 @@ TEST_P(CommonFeaturesTest, CheckCidAlgorithmSuccess) {
  */
 TEST_P(CommonFeaturesTest, LinkOperationsConsistency) {
   for (const auto &node : data.nodes) {
-    std::vector<std::reference_wrapper<const Link>> links = node->getLinks();
+    std::vector<std::reference_wrapper<const IPLDLink>> links = node->getLinks();
     std::string primary_cid = cidToString(node);
     for (const auto &link : links) {
-      LinkImpl link_impl{
+      IPLDLinkImpl link_impl{
           link.get().getCID(), link.get().getName(), link.get().getSize()};
       EXPECT_OUTCOME_TRUE(received_link, node->getLink(link.get().getName()));
       std::ignore = received_link;
@@ -204,9 +205,9 @@ TEST_P(CommonFeaturesTest, GraphSyncSelect) {
   const size_t nodes_count = data.nodes.front()->getLinks().size() + 1;
   EXPECT_OUTCOME_TRUE(
       root_cid, ContentIdentifierCodec::encode(data.nodes.front()->getCID()));
-  std::vector<std::shared_ptr<const Node>> selected_nodes;
-  std::function<bool(std::shared_ptr<const Node>)> handler =
-      [&selected_nodes](std::shared_ptr<const Node> node) -> bool {
+  std::vector<std::shared_ptr<const IPLDNode>> selected_nodes;
+  std::function<bool(std::shared_ptr<const IPLDNode>)> handler =
+      [&selected_nodes](std::shared_ptr<const IPLDNode> node) -> bool {
     selected_nodes.emplace_back(std::move(node));
     return true;
   };
