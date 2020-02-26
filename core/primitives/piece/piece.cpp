@@ -4,6 +4,8 @@
  */
 
 #include "primitives/piece/piece.hpp"
+
+#include <utility>
 #include "piece_error.hpp"
 
 namespace fc::primitives::piece {
@@ -63,4 +65,6 @@ namespace fc::primitives::piece {
     return outcome::success();
   }
 
+  PieceInfo::PieceInfo(const PaddedPieceSize &padded_size, CID piece_CID)
+      : size(padded_size), cid(std::move(piece_CID)) {}
 }  // namespace fc::primitives::piece

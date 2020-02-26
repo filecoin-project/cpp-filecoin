@@ -7,9 +7,16 @@
 #define CPP_FILECOIN_COMM_CID_HPP
 
 #include <unordered_map>
+#include "common/blob.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::common {
+  // kCommitmentBytesLen is the number of bytes in a CommR, CommD, CommP, and
+  // CommRStar.
+  const int kCommitmentBytesLen = 32;
+  using Comm = Blob<kCommitmentBytesLen>;
+  using namespace libp2p::multi;
+
   CID replicaCommitmentV1ToCID(gsl::span<const uint8_t> comm_r);
   CID dataCommitmentV1ToCID(gsl::span<const uint8_t> comm_d);
   CID pieceCommitmentV1ToCID(gsl::span<const uint8_t> comm_p);
@@ -63,10 +70,16 @@ namespace fc::common {
           {FC_RESERVED10, "Reserved"},
       });
 
-  const auto kFilecoinCodecType = libp2p::multi::MulticodecType::Code::RAW;
+  const auto kFilecoinCodecType = MulticodecType::Code::RAW;
 
   outcome::result<CID> commitmentToCID(gsl::span<const uint8_t> commitment,
                                        FilecoinMultihashCode code);
+
+  outcome::result<Comm> CIDToPieceCommitmentV1(const CID &cid);
+  outcome::result<Comm> CIDToDataCommitmentV1(const CID &cid);
+  outcome::result<std::pair<FilecoinMultihashCode, gsl::span<const uint8_t>>>
+  CIDToCommitment(const CID &cid);
+
 };  // namespace fc::common
 
 #endif  // CPP_FILECOIN_COMM_CID_HPP

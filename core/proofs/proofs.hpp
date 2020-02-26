@@ -17,9 +17,7 @@
 
 namespace fc::proofs {
 
-  // kCommitmentBytesLen is the number of bytes in a CommR, CommD, CommP, and
-  // CommRStar.
-  const int kCommitmentBytesLen = 32;
+
 
   // kSingleProofPartitionProofLen denotes the number of bytes in a proof
   // generated with a single partition. The number of bytes in a proof increases
@@ -28,7 +26,7 @@ namespace fc::proofs {
 
   using common::Blob;
   using crypto::randomness::Randomness;
-  using Comm = Blob<kCommitmentBytesLen>;
+
   using Proof = std::vector<uint8_t>;
   using Prover = Blob<32>;
   using Seed = Blob<32>;
@@ -38,13 +36,13 @@ namespace fc::proofs {
   using primitives::SectorNumber;
   using primitives::SectorSize;
   using primitives::piece::PieceInfo;
+  using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::SealRandomness;
   using primitives::sector::Ticket;
-  using primitives::piece::UnpaddedPieceSize;
 
   // RawSealPreCommitOutput is used to acquire a seed from the chain for the
   // second step of Interactive PoRep.
-  class RawSealPreCommitOutput {
+  /*class RawSealPreCommitOutput {
    public:
     Comm comm_d;
     Comm comm_r;
@@ -82,7 +80,7 @@ namespace fc::proofs {
     Ticket partial_ticket;
     Ticket ticket;
     uint64_t sector_challenge_index = 0;
-  };
+  };*/
 
   class WriteWithoutAlignmentResult {
    public:
@@ -111,12 +109,13 @@ namespace fc::proofs {
                           const UnpaddedPieceSize &piece_bytes,
                           const std::string &staged_sector_file_path);
 
+    // existing_piece_sizes should be UnpaddedPieceSize, but for prevent copy array it is uint64 span
     static outcome::result<fc::proofs::WriteWithAlignmentResult>
     writeWithAlignment(RegisteredProof proof_type,
                        const std::string &piece_file_path,
                        const UnpaddedPieceSize &piece_bytes,
                        const std::string &staged_sector_file_path,
-                       gsl::span<UnpaddedPieceSize> existing_piece_sizes);
+                       gsl::span<const uint64_t> existing_piece_sizes);
 
     /**
      * @brief  Seals the staged sector at staged_sector_path in place, saving
@@ -189,6 +188,9 @@ namespace fc::proofs {
         RegisteredProof proof_type,
         const std::string &piece_file_path,
         UnpaddedPieceSize piece_size);
+
+    static outcome::result<CID> generateUnsealedCID(
+        RegisteredProof proof_type, gsl::span<PieceInfo> pieces);
 
     /**
      * @brief Generates a piece commitment for the provided byte source. Returns

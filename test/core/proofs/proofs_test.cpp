@@ -192,7 +192,6 @@ TEST_F(ProofsTest, DISABLED_ValidPoSt) {
  * @then success
  */
 TEST_F(ProofsTest, ValidSealAndUnseal) {
-  uint8_t porep_proof_partitions = 10;
   Prover prover_id{{6, 7, 8}};
   Randomness randomness{{9, 9, 9}};
   Ticket ticket{{5, 4, 2}};
@@ -202,7 +201,7 @@ TEST_F(ProofsTest, ValidSealAndUnseal) {
   fc::proofs::RegisteredProof postProofType =
       fc::primitives::sector::RegisteredProof::StackedDRG1KiBPoSt;
   SectorSize sector_size = 1024;
-  SectorNumber sector_id = 42;
+  SectorNumber sector_num = 42;
   EXPECT_OUTCOME_TRUE_1(
       fc::proofs::ProofParamProvider::getParams(params, sector_size));
 
@@ -287,7 +286,7 @@ TEST_F(ProofsTest, ValidSealAndUnseal) {
       Proofs::generatePieceCIDFromFile(
           sealProofType, piece_file_b_path, UnpaddedPieceSize(508)));
 
-  std::vector<UnpaddedPieceSize> commitment = {UnpaddedPieceSize(127)};
+  std::vector<uint64_t> commitment = {piece_commitment_a_size};
   EXPECT_OUTCOME_TRUE(resB,
                       Proofs::writeWithAlignment(sealProofType,
                                                  piece_file_b_path,
@@ -301,8 +300,13 @@ TEST_F(ProofsTest, ValidSealAndUnseal) {
   ASSERT_EQ(resB.total_write_unpadded, 889);
   ASSERT_EQ(resB.piece_cid, piece_cid_b);
 
-  /*EXPECT_OUTCOME_TRUE(preGeneratedUnsealedCID,
-                      Proofs::generateUnsealedCID(sector_size, public_pieces));
+  std::vector<PieceInfo> public_pieces;
+  public_pieces.emplace_back(piece_commitment_a_size.padded(), piece_cid_a);
+  public_pieces.emplace_back(piece_commitment_b_size.padded(), piece_cid_b);
+
+  EXPECT_OUTCOME_TRUE(
+      preGeneratedUnsealedCID,
+      Proofs::generateUnsealedCID(sealProofType, public_pieces));
 
   // pre-commit the sector
   EXPECT_OUTCOME_TRUE(sealPreCommitPhase1Output,
@@ -310,7 +314,7 @@ TEST_F(ProofsTest, ValidSealAndUnseal) {
                                                   sector_cache_dir_path,
                                                   staged_sector_file,
                                                   sealed_sector_file,
-                                                  sector_id,
+                                                  sector_num,
                                                   prover_id,
                                                   ticket,
                                                   public_pieces));
@@ -322,7 +326,7 @@ TEST_F(ProofsTest, ValidSealAndUnseal) {
 
   ASSERT_EQ(sealedAndUnsealedCID.second, preGeneratedUnsealedCID);
 
-  // commit the sector
+  /*// commit the sector
   EXPECT_OUTCOME_TRUE(proof,
                       Proofs::sealCommit(sector_size,
                                          porep_proof_partitions,
