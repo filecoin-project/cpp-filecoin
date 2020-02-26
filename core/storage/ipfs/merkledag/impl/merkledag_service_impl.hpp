@@ -11,8 +11,11 @@
 #include "storage/ipfs/datastore.hpp"
 #include "storage/ipfs/merkledag/impl/leaf_impl.hpp"
 #include "storage/ipfs/merkledag/merkledag_service.hpp"
+#include "storage/ipld/ipld_link.hpp"
 
 namespace fc::storage::ipfs::merkledag {
+  using ipld::IPLDLink;
+
   class MerkleDagServiceImpl : public MerkleDagService {
    public:
     /**
@@ -21,9 +24,10 @@ namespace fc::storage::ipfs::merkledag {
      */
     explicit MerkleDagServiceImpl(std::shared_ptr<IpfsDatastore> service);
 
-    outcome::result<void> addNode(std::shared_ptr<const Node> node) override;
+    outcome::result<void> addNode(
+        std::shared_ptr<const IPLDNode> node) override;
 
-    outcome::result<std::shared_ptr<Node>> getNode(
+    outcome::result<std::shared_ptr<IPLDNode>> getNode(
         const CID &cid) const override;
 
     outcome::result<void> removeNode(const CID &cid) override;
@@ -31,7 +35,7 @@ namespace fc::storage::ipfs::merkledag {
     outcome::result<size_t> select(
         gsl::span<const uint8_t> root_cid,
         gsl::span<const uint8_t> selector,
-        std::function<bool(std::shared_ptr<const Node> node)> handler)
+        std::function<bool(std::shared_ptr<const IPLDNode> node)> handler)
         const override;
 
     outcome::result<std::shared_ptr<Leaf>> fetchGraph(
@@ -55,7 +59,7 @@ namespace fc::storage::ipfs::merkledag {
      */
     outcome::result<void> buildGraph(
         const std::shared_ptr<LeafImpl> &root,
-        const std::vector<std::reference_wrapper<const Link>> &links,
+        const std::vector<std::reference_wrapper<const IPLDLink>> &links,
         bool depth_limit,
         size_t max_depth,
         size_t current_depth = 0) const;

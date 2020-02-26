@@ -1,8 +1,8 @@
 syntax = "proto2";
 
-package merkledag.pb;
+package protobuf.ipld.node;
 
-// An IPFS MerkleDAG Link
+// An IPLD Node Link
 message PBLink {
 
   // multihash of the target object
@@ -15,7 +15,7 @@ message PBLink {
   optional uint64 Tsize = 3;
 }
 
-// An IPFS MerkleDAG Node
+// An IPLD Node
 message PBNode {
 
   // refs to other objects
