@@ -48,6 +48,10 @@ namespace fc::vm::actor::builtin::miner {
   using storage_power::SectorStorageWeightDesc;
   using storage_power::SectorTerminationType;
 
+  /**
+   * Resolves an address to an ID address and verifies that it is address of an
+   * account or multisig actor
+   */
   outcome::result<Address> resolveOwnerAddress(Runtime &runtime,
                                                const Address &address) {
     OUTCOME_TRY(id, runtime.resolveAddress(address));
@@ -58,6 +62,11 @@ namespace fc::vm::actor::builtin::miner {
     return std::move(id);
   }
 
+  /**
+   * Resolves an address to an ID address and verifies that it is address of an
+   * account actor with an associated BLS key. The worker must be BLS since the
+   * worker key will be used alongside a BLS-VRF
+   */
   outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
                                                 const Address &address) {
     OUTCOME_TRY(id, runtime.resolveAddress(address));
@@ -130,7 +139,7 @@ namespace fc::vm::actor::builtin::miner {
               return outcome::success();
             }));
 
-    OUTCOME_TRY(miner, runtime.resolveAddress(runtime.getMessage().get().to));
+    OUTCOME_TRY(miner, runtime.resolveAddress(runtime.getCurrentReceiver()));
     OUTCOME_TRY(seed, codec::cbor::encode(miner));
     OUTCOME_TRY(
         verified,
@@ -171,7 +180,7 @@ namespace fc::vm::actor::builtin::miner {
     switch (type) {
       case RegisteredProof::StackedDRG32GiBSeal:
       case RegisteredProof::WinStackedDRG32GiBSeal:
-        return 1;
+        return 10000;
       default:
         break;
     }
@@ -181,9 +190,13 @@ namespace fc::vm::actor::builtin::miner {
   outcome::result<void> verifySeal(Runtime &runtime,
                                    SectorSize sector_size,
                                    const OnChainSealVerifyInfo &info) {
+    ChainEpoch current_epoch = runtime.getCurrentEpoch();
+    if (current_epoch <= info.interactive_epoch) {
+      return VMExitCode::MINER_ACTOR_WRONG_EPOCH;
+    }
+
     OUTCOME_TRY(duration, maxSealDuration(info.registered_proof));
-    if (info.seal_rand_epoch
-        < runtime.getCurrentEpoch() - kChainFinalityish - duration) {
+    if (info.seal_rand_epoch < current_epoch - kChainFinalityish - duration) {
       return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
     }
 
@@ -196,7 +209,7 @@ namespace fc::vm::actor::builtin::miner {
                                     },
                                     0));
 
-    OUTCOME_TRY(miner, runtime.resolveAddress(runtime.getMessage().get().to));
+    OUTCOME_TRY(miner, runtime.resolveAddress(runtime.getCurrentReceiver()));
     OUTCOME_TRY(runtime.verifySeal(
         sector_size,
         {
@@ -287,7 +300,8 @@ namespace fc::vm::actor::builtin::miner {
     Amt amt_sectors{runtime.getIpfsDatastore(), state.sectors};
     std::vector<DealId> deals;
     std::vector<SectorStorageWeightDesc> all_weights, fault_weights;
-    TokenAmount all_pledges, fault_pledges;
+    TokenAmount all_pledges{0};
+    TokenAmount fault_pledges{0};
     for (auto sector_num : sectors) {
       OUTCOME_TRY(sector, amt_sectors.getCbor<SectorOnChainInfo>(sector_num));
       deals.insert(deals.end(),
@@ -325,11 +339,12 @@ namespace fc::vm::actor::builtin::miner {
     }
     Amt amt_sectors{runtime.getIpfsDatastore(), state.sectors};
     std::vector<SectorStorageWeightDesc> begin_weights, end_weights;
-    TokenAmount begin_pledges, end_pledges;
+    TokenAmount begin_pledges{0};
+    TokenAmount end_pledges{0};
     for (auto sector_num : *sectors) {
       OUTCOME_TRY(found, amt_sectors.contains(sector_num));
       if (!found) {
-        continue;
+        continue;  // Sector has been terminated
       }
       OUTCOME_TRY(sector, amt_sectors.getCbor<SectorOnChainInfo>(sector_num));
       if (state.fault_set.find(sector_num) == state.fault_set.end()) {
@@ -416,7 +431,10 @@ namespace fc::vm::actor::builtin::miner {
       }
     }
     return terminateSectorsInternal(
-        runtime, state, to_terminate, SectorTerminationType::SECTOR_TERMINATION_EXPIRED);
+        runtime,
+        state,
+        to_terminate,
+        SectorTerminationType::SECTOR_TERMINATION_EXPIRED);
   }
 
   outcome::result<void> checkPoStProvingPeriodExpiration(
@@ -771,7 +789,10 @@ namespace fc::vm::actor::builtin::miner {
       return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
     }
     OUTCOME_TRY(terminateSectorsInternal(
-        runtime, state, *params2.sectors, SectorTerminationType::SECTOR_TERMINATION_MANUAL));
+        runtime,
+        state,
+        *params2.sectors,
+        SectorTerminationType::SECTOR_TERMINATION_MANUAL));
     return outcome::success();
   }
 
