@@ -37,4 +37,5 @@ target_link_libraries(proofs
         blob
         logger
         comm_cid
+        piece
         )

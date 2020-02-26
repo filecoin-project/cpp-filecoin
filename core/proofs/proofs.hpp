@@ -40,7 +40,7 @@ namespace fc::proofs {
   using primitives::piece::PieceInfo;
   using primitives::sector::SealRandomness;
   using primitives::sector::Ticket;
-  using primitives::UnpaddedPieceSize;
+  using primitives::piece::UnpaddedPieceSize;
 
   // RawSealPreCommitOutput is used to acquire a seed from the chain for the
   // second step of Interactive PoRep.
@@ -108,13 +108,13 @@ namespace fc::proofs {
     static outcome::result<fc::proofs::WriteWithoutAlignmentResult>
     writeWithoutAlignment(RegisteredProof proof_type,
                           const std::string &piece_file_path,
-                          UnpaddedPieceSize piece_bytes,
+                          const UnpaddedPieceSize &piece_bytes,
                           const std::string &staged_sector_file_path);
 
     static outcome::result<fc::proofs::WriteWithAlignmentResult>
     writeWithAlignment(RegisteredProof proof_type,
                        const std::string &piece_file_path,
-                       UnpaddedPieceSize piece_bytes,
+                       const UnpaddedPieceSize &piece_bytes,
                        const std::string &staged_sector_file_path,
                        gsl::span<UnpaddedPieceSize> existing_piece_sizes);
 

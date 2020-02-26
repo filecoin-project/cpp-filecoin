@@ -8,8 +8,8 @@
 #include <fcntl.h>
 #include <filecoin-ffi/filecoin.h>
 #include "boost/filesystem/fstream.hpp"
-#include "proofs/proofs_error.hpp"
 #include "primitives/cid/comm_cid.hpp"
+#include "proofs/proofs_error.hpp"
 
 namespace fc::proofs {
 
@@ -108,7 +108,7 @@ namespace fc::proofs {
   outcome::result<FFIRegisteredPoStProof> cRegisteredPoStProof(
       RegisteredProof proof_type) {
     switch (proof_type) {
-        case RegisteredProof::StackedDRG1KiBPoSt:
+      case RegisteredProof::StackedDRG1KiBPoSt:
         return FFIRegisteredPoStProof_StackedDrg1KiBV1;
       case RegisteredProof::StackedDRG16MiBPoSt:
         return FFIRegisteredPoStProof_StackedDrg16MiBV1;
@@ -418,7 +418,7 @@ namespace fc::proofs {
   outcome::result<WriteWithoutAlignmentResult> Proofs::writeWithoutAlignment(
       RegisteredProof proof_type,
       const std::string &piece_file_path,
-      UnpaddedPieceSize piece_bytes,
+      const UnpaddedPieceSize &piece_bytes,
       const std::string &staged_sector_file_path) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
@@ -464,7 +464,7 @@ namespace fc::proofs {
   outcome::result<WriteWithAlignmentResult> Proofs::writeWithAlignment(
       RegisteredProof proof_type,
       const std::string &piece_file_path,
-      UnpaddedPieceSize piece_bytes,
+      const UnpaddedPieceSize &piece_bytes,
       const std::string &staged_sector_file_path,
       gsl::span<UnpaddedPieceSize> existing_piece_sizes) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
@@ -483,13 +483,19 @@ namespace fc::proofs {
                       + piece_file_path);
       return ProofsError::CANNOT_OPEN_FILE;
     }
+
+    std::vector<uint64_t> c_existing_piece_sizes;
+    std::copy(existing_piece_sizes.begin(),
+              existing_piece_sizes.end(),
+              back_inserter(c_existing_piece_sizes));
+
     auto res_ptr =
         make_unique(write_with_alignment(c_proof_type,
                                          piece_fd,
-                                         piece_bytes,
+                                         uint64_t(piece_bytes),
                                          staged_sector_fd,
-                                         existing_piece_sizes.data(),
-                                         existing_piece_sizes.size()),
+                                         c_existing_piece_sizes.data(),
+                                         c_existing_piece_sizes.size()),
                     destroy_write_with_alignment_response);
 
     if (res_ptr->status_code != 0) {

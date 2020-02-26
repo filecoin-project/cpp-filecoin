@@ -14,9 +14,9 @@ namespace fc::primitives::piece {
 
   class UnpaddedPieceSize {
    public:
-    explicit UnpaddedPieceSize(uint64_t size);
+    UnpaddedPieceSize(uint64_t size);
 
-    explicit operator uint64_t() const;
+    operator uint64_t() const;
 
     UnpaddedPieceSize &operator=(uint64_t rhs);
 
@@ -30,9 +30,9 @@ namespace fc::primitives::piece {
 
   class PaddedPieceSize {
    public:
-    explicit PaddedPieceSize(uint64_t size);
+    PaddedPieceSize(uint64_t size);
 
-    explicit operator uint64_t() const;
+    operator uint64_t() const;
 
     PaddedPieceSize &operator=(uint64_t rhs);
 

@@ -254,15 +254,16 @@ TEST_F(ProofsTest, ValidSealAndUnseal) {
   Path piece_file_a_path = boost::filesystem::unique_path(path_model).string();
   boost::filesystem::ofstream piece_file_a(piece_file_a_path);
 
-  int piece_commitment_a_size = 127;
-  for (int i = 0; i < piece_commitment_a_size; i++) {
+  UnpaddedPieceSize piece_commitment_a_size(127);
+  for (size_t i = 0; i < piece_commitment_a_size; i++) {
     piece_file_a << some_bytes[i];
   }
   piece_file_a.close();
 
   EXPECT_OUTCOME_TRUE(
       piece_cid_a,
-      Proofs::generatePieceCIDFromFile(sealProofType, piece_file_a_path, 127));
+      Proofs::generatePieceCIDFromFile(
+          sealProofType, piece_file_a_path, UnpaddedPieceSize(127)));
 
   EXPECT_OUTCOME_TRUE(resA,
                       Proofs::writeWithoutAlignment(sealProofType,
@@ -275,17 +276,18 @@ TEST_F(ProofsTest, ValidSealAndUnseal) {
   Path piece_file_b_path = boost::filesystem::unique_path(path_model).string();
   boost::filesystem::ofstream piece_file_b(piece_file_b_path);
 
-  int piece_commitment_b_size = 508;
-  for (int i = 0; i < piece_commitment_b_size; i++) {
+  UnpaddedPieceSize piece_commitment_b_size(508);
+  for (size_t i = 0; i < piece_commitment_b_size; i++) {
     piece_file_b << some_bytes[i];
   }
   piece_file_b.close();
 
   EXPECT_OUTCOME_TRUE(
       piece_cid_b,
-      Proofs::generatePieceCIDFromFile(sealProofType, piece_file_b_path, 508));
+      Proofs::generatePieceCIDFromFile(
+          sealProofType, piece_file_b_path, UnpaddedPieceSize(508)));
 
-  std::vector<UnpaddedPieceSize> commitment = {127};
+  std::vector<UnpaddedPieceSize> commitment = {UnpaddedPieceSize(127)};
   EXPECT_OUTCOME_TRUE(resB,
                       Proofs::writeWithAlignment(sealProofType,
                                                  piece_file_b_path,
