@@ -269,7 +269,7 @@ namespace fc::vm::actor::builtin::multisig {
       return VMExitCode::MULTISIG_ACTOR_FORBIDDEN;
     state.signers.erase(signer);
 
-    if (remove_signer_params.decrease_threshold) state.threshold--;
+    if (remove_signer_params.decrease_threshold) --state.threshold;
 
     // actor-spec ignores decrease_threshold parameters in this case and call it
     // automatic threshold decrease
