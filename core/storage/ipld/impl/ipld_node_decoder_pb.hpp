@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef FILECOIN_STORAGE_IPFS_MERKLEDAG_PB_NODE_DECODER
-#define FILECOIN_STORAGE_IPFS_MERKLEDAG_PB_NODE_DECODER
+#ifndef FILECOIN_STORAGE_IPLD_NODE_PB_DECODER
+#define FILECOIN_STORAGE_IPLD_NODE_PB_DECODER
 
 #include <string>
 
 #include <gsl/span>
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
-#include "merkledag.pb.h"
+#include "ipld_node.pb.h" //TODO: Sergey Kaprovich FIL-150
 
-namespace fc::storage::ipfs::merkledag {
+namespace fc::storage::ipld {
   /**
    * @class Protobuf Node decoder
    */
-  class PBNodeDecoder {
+  class IPLDNodeDecoderPB {
    public:
     /**
      * @brief Try to decode input bytes as Protobuf-encoded Node
@@ -60,15 +60,15 @@ namespace fc::storage::ipfs::merkledag {
     size_t getLinkSize(size_t index) const;
 
    private:
-    ::merkledag::pb::PBNode pb_node_;
+    ::protobuf::ipld::node::PBNode pb_node_;
   };
 
   /**
    * @enum Possible PBNodeDecoder errors
    */
-  enum class PBNodeDecodeError { INVALID_RAW_BYTES = 1 };
+  enum class IPLDNodeDecoderPBError { INVALID_RAW_BYTES = 1 };
 }  // namespace fc::storage::ipfs::merkledag
 
-OUTCOME_HPP_DECLARE_ERROR(fc::storage::ipfs::merkledag, PBNodeDecodeError)
+OUTCOME_HPP_DECLARE_ERROR(fc::storage::ipld, IPLDNodeDecoderPBError)
 
 #endif
