@@ -56,6 +56,12 @@ namespace fc::vm::runtime {
     return codec::cbor::decode<T>(result.return_value);
   }
 
+  template <typename T>
+  outcome::result<InvocationOutput> encodeActorReturn(const T &result) {
+    OUTCOME_TRY(encoded, codec::cbor::encode(result));
+    return InvocationOutput{Buffer{encoded}};
+  }
+
   /**
    * @class Runtime is the VM's internal runtime object exposed to actors
    */

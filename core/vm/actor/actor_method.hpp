@@ -49,11 +49,7 @@ namespace fc::vm::actor {
 
   using runtime::decodeActorReturn;
 
-  template <typename T>
-  outcome::result<InvocationOutput> encodeActorReturn(const T &result) {
-    OUTCOME_TRY(encoded, codec::cbor::encode(result));
-    return InvocationOutput{Buffer{encoded}};
-  }
+  using runtime::encodeActorReturn;
 
 }  // namespace fc::vm::actor
 
