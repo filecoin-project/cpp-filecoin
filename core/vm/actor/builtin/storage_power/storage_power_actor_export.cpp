@@ -318,6 +318,22 @@ namespace fc::vm::actor::builtin::storage_power {
     return fc::outcome::success();
   }
 
+  ACTOR_METHOD(StoragePowerActorMethods::enrollCronEvent) {
+    OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
+    Address miner = runtime.getMessage().get().from;
+    OUTCOME_TRY(power_actor, getCurrentState(runtime));
+    OUTCOME_TRY(parameters,
+                decodeActorParams<EnrollCronEventParameters>(params));
+    OUTCOME_TRY(power_actor.appendCronEvent(
+        parameters.event_epoch,
+        CronEvent{.miner_address = miner,
+                  .callback_payload = parameters.payload}));
+
+    OUTCOME_TRY(power_actor_state, power_actor.flushState());
+    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    return fc::outcome::success();
+  }
+
   fc::outcome::result<void>
   StoragePowerActorMethods::assertImmediateCallerTypeIsMiner(Runtime &runtime) {
     OUTCOME_TRY(immediate_caller_code_id,
@@ -384,6 +400,8 @@ namespace fc::vm::actor::builtin::storage_power {
       {kOnMinerWindowedPoStSuccessMethodNumber,
        ActorMethod(StoragePowerActorMethods::onMinerWindowedPoStSuccess)},
       {kOnMinerWindowedPoStSuccessMethodNumber,
-       ActorMethod(StoragePowerActorMethods::onMinerWindowedPoStFailure)}};
+       ActorMethod(StoragePowerActorMethods::onMinerWindowedPoStFailure)},
+      {kEnrollCronEventMethodNumber,
+       ActorMethod(StoragePowerActorMethods::enrollCronEvent)}};
 
 }  // namespace fc::vm::actor::builtin::storage_power

@@ -142,6 +142,8 @@ namespace fc::vm::actor::builtin::storage_power {
 
     static ACTOR_METHOD(onMinerWindowedPoStFailure);
 
+    static ACTOR_METHOD(enrollCronEvent);
+
    private:
     static outcome::result<void> assertImmediateCallerTypeIsMiner(
         Runtime &runtime);
