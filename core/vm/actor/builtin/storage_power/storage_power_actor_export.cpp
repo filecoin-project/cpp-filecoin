@@ -121,10 +121,9 @@ ACTOR_METHOD(StoragePowerActorMethods::createMiner) {
   OUTCOME_TRY(encoded_construct_miner_parameters,
               encodeActorParams(construct_miner_parameters));
   OUTCOME_TRY(addresses_created,
-              runtime.sendPR<init::ExecReturn>(
+              runtime.sendM<init::Exec>(
                   kInitAddress,
-                  init::kExecMethodNumber,
-                  init::ExecParams{
+                  {
                       .code = kStorageMinerCodeCid,
                       .params = encoded_construct_miner_parameters,
                   },

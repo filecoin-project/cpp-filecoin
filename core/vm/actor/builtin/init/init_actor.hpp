@@ -26,8 +26,6 @@ namespace fc::vm::actor::builtin::init {
 
   CBOR_TUPLE(InitActorState, address_map, next_id)
 
-  constexpr MethodNumber kExecMethodNumber{2};
-
   struct ExecParams {
     CodeId code;
     MethodParams params;
@@ -39,13 +37,22 @@ namespace fc::vm::actor::builtin::init {
                              // newly created actor
   };
 
-  ACTOR_METHOD(exec);
+  struct Exec : ActorMethodBase<2> {
+    using Params = ExecParams;
+    using Result = ExecReturn;
+    ACTOR_METHOD_STUB();
+  };
 
   extern const ActorExports exports;
 
   CBOR_TUPLE(ExecParams, code, params)
 
   CBOR_TUPLE(ExecReturn, id_address, robust_address)
+
+  inline bool operator==(const Exec::Result &lhs, const Exec::Result &rhs) {
+    return lhs.id_address == rhs.id_address
+           && lhs.robust_address == rhs.robust_address;
+  }
 
 }  // namespace fc::vm::actor::builtin::init
 

@@ -22,8 +22,8 @@ namespace fc::vm::actor::builtin::init {
     return Address::makeFromId(id);
   }
 
-  ACTOR_METHOD(exec) {
-    OUTCOME_TRY(exec_params, decodeActorParams<ExecParams>(params));
+  ACTOR_METHOD_IMPL(Exec) {
+    auto &exec_params = params;
     if (!isBuiltinActor(exec_params.code)) {
       return VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR;
     }
@@ -45,11 +45,11 @@ namespace fc::vm::actor::builtin::init {
                              kConstructorMethodNumber,
                              exec_params.params,
                              message.value));
-    ExecReturn exec_return{id_address, actor_address};
-    OUTCOME_TRY(output, encodeActorReturn(exec_return));
     OUTCOME_TRY(runtime.commitState(init_actor));
-    return std::move(output);
+    return Result{id_address, actor_address};
   }
 
-  const ActorExports exports{{kExecMethodNumber, ActorMethod(exec)}};
+  const ActorExports exports{
+      exportMethod<Exec>(),
+  };
 }  // namespace fc::vm::actor::builtin::init

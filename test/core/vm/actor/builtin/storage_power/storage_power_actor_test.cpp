@@ -453,19 +453,12 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
       caller_address, worker_address, sector_size, peer_id};
   EXPECT_OUTCOME_TRUE(encoded_construct_params,
                       encodeActorParams(construct_params));
-  fc::vm::actor::builtin::init::ExecParams exec_params{
-      kStorageMinerCodeCid, encoded_construct_params};
-  EXPECT_OUTCOME_TRUE(encoded_exec_params, encodeActorParams(exec_params));
-  // send call return
-  fc::vm::actor::builtin::init::ExecReturn exec_return{any_address_1,
-                                                       any_address_2};
-  EXPECT_OUTCOME_TRUE(encoded_exec_return, encodeActorReturn(exec_return));
-  EXPECT_CALL(runtime,
-              send(Eq(kInitAddress),
-                   Eq(fc::vm::actor::builtin::init::kExecMethodNumber),
-                   Eq(encoded_exec_params),
-                   Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(encoded_exec_return)));
+
+  runtime.expectSendM<fc::vm::actor::builtin::init::Exec>(
+      kInitAddress,
+      {kStorageMinerCodeCid, encoded_construct_params},
+      0,
+      {any_address_1, any_address_2});
 
   EXPECT_CALL(runtime, getIpfsDatastore())
       .Times(3)
