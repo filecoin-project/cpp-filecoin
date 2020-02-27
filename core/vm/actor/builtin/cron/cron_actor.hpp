@@ -15,8 +15,6 @@ namespace fc::vm::actor::builtin::cron {
     MethodNumber method_num{};
   };
 
-  constexpr MethodNumber kEpochTickMethodNumber{2};
-
   /**
    * @brief EpochTick executes built-in periodic actions, run at every Epoch.
    * @param actor from Lotus(doesn't use)
@@ -24,7 +22,9 @@ namespace fc::vm::actor::builtin::cron {
    * @param params from Lotus(doesn't use)
    * @return success or error
    */
-  ACTOR_METHOD(epochTick);
+  struct EpochTick : ActorMethodBase<2> {
+    ACTOR_METHOD_STUB();
+  };
 
   extern const ActorExports exports;
 

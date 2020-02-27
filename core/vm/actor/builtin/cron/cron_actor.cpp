@@ -14,7 +14,7 @@ namespace fc::vm::actor::builtin::cron {
   std::vector<CronTableEntry> entries = {
       {kStoragePowerAddress, {storage_power::kOnEpochTickEndMethodNumber}}};
 
-  ACTOR_METHOD(epochTick) {
+  ACTOR_METHOD_IMPL(EpochTick) {
     if ((runtime.getMessage().get().from != kCronAddress)) {
       return VMExitCode::CRON_ACTOR_WRONG_CALL;
     }
@@ -26,6 +26,6 @@ namespace fc::vm::actor::builtin::cron {
   }
 
   const ActorExports exports = {
-      {kEpochTickMethodNumber, ActorMethod(epochTick)},
+      exportMethod<EpochTick>(),
   };
 }  // namespace fc::vm::actor::builtin::cron
