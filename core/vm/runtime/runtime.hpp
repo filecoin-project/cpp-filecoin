@@ -35,6 +35,7 @@ namespace fc::vm::runtime {
   using indices::Indices;
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
+  using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::PoStVerifyInfo;
   using primitives::sector::SealVerifyInfo;
@@ -174,6 +175,15 @@ namespace fc::vm::runtime {
     /// Verify seal
     virtual outcome::result<bool> verifySeal(uint64_t sector_size,
                                              const SealVerifyInfo &info) = 0;
+
+    template <typename M>
+    outcome::result<typename M::Result> sendM(const Address &address,
+                                              const typename M::Params &params,
+                                              TokenAmount value) {
+      OUTCOME_TRY(params2, encodeActorParams(params));
+      OUTCOME_TRY(result, send(address, M::Number, params2, value));
+      return decodeActorReturn<typename M::Result>(result);
+    }
 
     /// Send funds
     inline auto sendFunds(const Address &to, BigInt value) {
