@@ -530,7 +530,7 @@ namespace fc::vm::actor::builtin::miner {
     return outcome::success();
   }
 
-  ACTOR_METHOD(controlAdresses) {
+  ACTOR_METHOD(controlAddresses) {
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
     OUTCOME_TRY(result,
                 codec::cbor::encode(GetControlAddressesReturn{
@@ -871,7 +871,7 @@ namespace fc::vm::actor::builtin::miner {
 
   const ActorExports exports{
       {kConstructorMethodNumber, ActorMethod(constructor)},
-      {kGetControlAddressesMethodNumber, ActorMethod(controlAdresses)},
+      {kGetControlAddressesMethodNumber, ActorMethod(controlAddresses)},
       {kChangeWorkerAddressMethodNumber, ActorMethod(changeWorkerAddress)},
       {kChangePeerIdMethodNumber, ActorMethod(changePeerId)},
       {kSubmitWindowedPoStMethodNumber, ActorMethod(submitWindowedPoSt)},

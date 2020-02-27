@@ -30,7 +30,7 @@ namespace fc::vm::actor::builtin::miner {
 
   ACTOR_METHOD(constructor);
 
-  ACTOR_METHOD(controlAdresses);
+  ACTOR_METHOD(controlAddresses);
 
   ACTOR_METHOD(changeWorkerAddress);
 
