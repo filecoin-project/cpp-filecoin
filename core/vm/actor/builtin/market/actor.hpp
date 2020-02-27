@@ -15,10 +15,6 @@ namespace fc::vm::actor::builtin::market {
   using primitives::DealId;
   using primitives::SectorSize;
 
-  constexpr MethodNumber kVerifyDealsOnSectorProveCommitMethodNumber{6};
-  constexpr MethodNumber kOnMinerSectorsTerminateMethodNumber{7};
-  constexpr MethodNumber kComputeDataCommitmentMethodNumber{8};
-
   struct VerifyDealsOnSectorProveCommitParams {
     std::vector<DealId> deals;
     ChainEpoch sector_expiry;
@@ -31,6 +27,21 @@ namespace fc::vm::actor::builtin::market {
   struct ComputeDataCommitmentParams {
     std::vector<DealId> deals;
     SectorSize sector_size;
+  };
+
+  struct VerifyDealsOnSectorProveCommit : ActorMethodBase<6> {
+    using Params = VerifyDealsOnSectorProveCommitParams;
+    ACTOR_METHOD_STUB();
+  };
+
+  struct OnMinerSectorsTerminate : ActorMethodBase<7> {
+    using Params = OnMinerSectorsTerminateParams;
+    ACTOR_METHOD_STUB();
+  };
+
+  struct ComputeDataCommitment : ActorMethodBase<8> {
+    using Params = ComputeDataCommitmentParams;
+    ACTOR_METHOD_STUB();
   };
 
   CBOR_TUPLE(VerifyDealsOnSectorProveCommitParams, deals, sector_expiry)
