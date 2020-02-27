@@ -44,6 +44,9 @@ namespace fc::vm::actor {
   /// Decode actor params, raises appropriate error
   template <typename T>
   outcome::result<T> decodeActorParams(MethodParams params_bytes) {
+    if (params_bytes.empty()) {
+      return T{};
+    }
     auto maybe_params = codec::cbor::decode<T>(params_bytes);
     if (!maybe_params) {
       return VMExitCode::DECODE_ACTOR_PARAMS_ERROR;
