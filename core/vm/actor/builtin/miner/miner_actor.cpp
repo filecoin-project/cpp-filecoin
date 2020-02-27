@@ -139,6 +139,10 @@ namespace fc::vm::actor::builtin::miner {
               return outcome::success();
             }));
 
+    auto challenge_count = (sectors.size() * kWindowedPoStSampleRateNumer)
+                               / kWindowedPoStSampleRateDenum
+                           + 1;
+
     OUTCOME_TRY(miner, runtime.resolveAddress(runtime.getCurrentReceiver()));
     OUTCOME_TRY(seed, codec::cbor::encode(miner));
     OUTCOME_TRY(
@@ -149,10 +153,11 @@ namespace fc::vm::actor::builtin::miner {
                                    DomainSeparationTag::PoStDST,
                                    state.post_state.proving_period_start,
                                    Buffer{seed}),
-                               .sealed_cid = {},
                                .candidates = params.candidates,
                                .proofs = params.proofs,
                                .eligible_sectors = sectors,
+                               .prover = miner.getId(),
+                               .challenge_count = challenge_count,
                            }));
     if (!verified) {
       return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
