@@ -194,17 +194,20 @@ TEST_F(ProofsTest, ValidPoSt) {
   std::vector<PublicSectorInfo> public_sectors_info = {public_sector_info};
   auto public_info = Proofs::newSortedPublicSectorInfo(public_sectors_info);
 
+  EXPECT_OUTCOME_TRUE(candidates_with_tickets,
+                      Proofs::generateCandidates(
+                          prover_id, randomness, challenge_count, private_info))
+
+  std::vector<PoStCandidate> candidates = {};
+  for (const auto &candidate_with_ticket : candidates_with_tickets) {
+    candidates.push_back(candidate_with_ticket.candidate);
+  }
+
   EXPECT_OUTCOME_TRUE(
-      candidates,
-      Proofs::generateCandidates(
-          prover_id, randomness, challenge_count, private_info));
-
-  /*EXPECT_OUTCOME_TRUE(
       proof_a,
-      Proofs::generatePoSt(
-          sector_size, prover_id, private_info, randomness, candidates))
+      Proofs::generatePoSt(prover_id, private_info, randomness, candidates))
 
-  EXPECT_OUTCOME_TRUE(res,
+  /*EXPECT_OUTCOME_TRUE(res,
                       Proofs::verifyPoSt(sector_size,
                                          public_info,
                                          randomness,

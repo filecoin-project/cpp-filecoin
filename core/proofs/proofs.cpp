@@ -173,29 +173,30 @@ namespace fc::proofs {
     sector_class.sector_size = sector_size;
     sector_class.porep_proof_partitions = porep_proof_partitions;
     return sector_class;
-  }
+  }*/
 
-  FFICandidate cCandidate(const Candidate &cpp_candidate) {
+  FFICandidate cCandidate(const PoStCandidate &cpp_candidate) {
     FFICandidate c_candidate;
-    c_candidate.sector_id = cpp_candidate.sector_id;
-    c_candidate.sector_challenge_index = cpp_candidate.sector_challenge_index;
+    c_candidate.sector_id = cpp_candidate.sector.sector;
+    c_candidate.sector_challenge_index =
+        uint64_t(cpp_candidate.challenge_index);
     std::copy(cpp_candidate.partial_ticket.begin(),
               cpp_candidate.partial_ticket.end(),
               c_candidate.partial_ticket);
-    std::copy(cpp_candidate.ticket.begin(),
-              cpp_candidate.ticket.end(),
+    std::copy(cpp_candidate.partial_ticket.begin(),
+              cpp_candidate.partial_ticket.end(),
               c_candidate.ticket);
     return c_candidate;
   }
 
   std::vector<FFICandidate> cCandidates(
-      gsl::span<const Candidate> cpp_candidates) {
+      gsl::span<const PoStCandidate> cpp_candidates) {
     std::vector<FFICandidate> c_candidates;
-    for (const auto cpp_candidate : cpp_candidates) {
+    for (const auto &cpp_candidate : cpp_candidates) {
       c_candidates.push_back(cCandidate(cpp_candidate));
     }
     return c_candidates;
-  }*/
+  }
 
   outcome::result<FFIPrivateReplicaInfo> cPrivateReplicaInfo(
       const PrivateSectorInfo &cpp_private_replica_info) {
@@ -351,6 +352,35 @@ namespace fc::proofs {
 
     return cppCandidatesWithTickets(gsl::span<const FFICandidate>(
         res_ptr->candidates_ptr, res_ptr->candidates_len));
+  }
+
+  outcome::result<Proof> Proofs::generatePoSt(
+      const Prover &prover_id,
+      const SortedPrivateSectorInfo &private_replica_info,
+      const PoStRandomness &randomness,
+      gsl::span<const PoStCandidate> winners) {
+    std::vector<FFICandidate> c_winners = cCandidates(winners);
+
+    OUTCOME_TRY(c_sorted_private_sector_info,
+                cPrivateReplicasInfo(private_replica_info.values));
+
+    auto res_ptr =
+        make_unique(generate_post(cPointerToArray(randomness),
+                                  c_sorted_private_sector_info.data(),
+                                  c_sorted_private_sector_info.size(),
+                                  c_winners.data(),
+                                  c_winners.size(),
+                                  cPointerToArray(prover_id)),
+                    destroy_generate_post_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("generatePoSt: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return Proof(res_ptr->flattened_proofs_ptr,
+                 res_ptr->flattened_proofs_ptr
+                     + res_ptr->flattened_proofs_len);  // NOLINT
   }
 
   /*outcome::result<std::vector<Candidate>> Proofs::generateCandidates(

@@ -36,10 +36,10 @@ namespace fc::proofs {
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::PoStCandidate;
+  using primitives::sector::PoStRandomness;
   using primitives::sector::SealRandomness;
   using primitives::sector::SectorInfo;
   using primitives::sector::Ticket;
-  using primitives::sector::PoStRandomness;
 
   // RawSealPreCommitOutput is used to acquire a seed from the chain for the
   // second step of Interactive PoRep.
@@ -206,12 +206,11 @@ namespace fc::proofs {
     /**
      * @brief Generate a proof-of-spacetime
      */
-    /*static outcome::result<Proof> generatePoSt(
-        uint64_t sectorSize,
+    static outcome::result<Proof> generatePoSt(
         const Prover &prover_id,
         const SortedPrivateSectorInfo &private_replica_info,
-        const Randomness &randomness,
-        gsl::span<const Candidate> winners);*/
+        const PoStRandomness &randomness,
+        gsl::span<const PoStCandidate> winners);
 
     /**
      * @brief Verifies a proof-of-spacetime
