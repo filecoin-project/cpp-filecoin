@@ -316,6 +316,10 @@ namespace fc::vm::actor::builtin::miner {
     TokenAmount all_pledges{0};
     TokenAmount fault_pledges{0};
     for (auto sector_num : sectors) {
+      OUTCOME_TRY(found, amt_sectors.contains(sector_num));
+      if (!found) {
+        return VMExitCode::MINER_ACTOR_NOT_FOUND;
+      }
       OUTCOME_TRY(sector, amt_sectors.getCbor<SectorOnChainInfo>(sector_num));
       deals.insert(deals.end(),
                    sector.info.deal_ids.begin(),
