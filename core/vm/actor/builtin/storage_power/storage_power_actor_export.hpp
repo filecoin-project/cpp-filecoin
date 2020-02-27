@@ -22,21 +22,6 @@ namespace fc::vm::actor::builtin::storage_power {
   using runtime::InvocationOutput;
   using runtime::Runtime;
 
-  constexpr MethodNumber kAddBalanceMethodNumber{2};
-  constexpr MethodNumber kWithdrawBalanceMethodNumber{3};
-  constexpr MethodNumber kCreateMinerMethodNumber{4};
-  constexpr MethodNumber kDeleteMinerMethodNumber{5};
-  constexpr MethodNumber kOnSectorProveCommitMethodNumber{6};
-  constexpr MethodNumber kOnSectorTerminateMethodNumber{7};
-  constexpr MethodNumber kOnSectorTemporaryFaultEffectiveBeginMethodNumber{8};
-  constexpr MethodNumber kOnSectorTemporaryFaultEffectiveEndMethodNumber{9};
-  constexpr MethodNumber kOnSectorModifyWeightDescMethodNumber{10};
-  constexpr MethodNumber kOnMinerSurprisePoStSuccessMethodNumber{11};
-  constexpr MethodNumber kOnMinerSurprisePoStFailureMethodNumber{12};
-  constexpr MethodNumber kEnrollCronEventMethodNumber{13};
-  constexpr MethodNumber kReportConsensusFaultMethodNumber{14};
-  constexpr MethodNumber kOnEpochTickEndMethodNumber{15};
-
   struct AddBalanceParameters {
     Address miner;
   };
@@ -101,48 +86,77 @@ namespace fc::vm::actor::builtin::storage_power {
     Buffer payload;
   };
 
-  class StoragePowerActorMethods {
-   public:
-    static ACTOR_METHOD(construct);
+  struct Construct : ActorMethodBase<1> {
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(addBalance);
+  struct AddBalance : ActorMethodBase<2> {
+    using Params = AddBalanceParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(withdrawBalance);
+  struct WithdrawBalance : ActorMethodBase<3> {
+    using Params = WithdrawBalanceParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(createMiner);
+  struct CreateMiner : ActorMethodBase<4> {
+    using Params = CreateMinerParameters;
+    using Result = CreateMinerReturn;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(deleteMiner);
+  struct DeleteMiner : ActorMethodBase<5> {
+    using Params = DeleteMinerParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(onSectorProveCommit);
+  struct OnSectorProveCommit : ActorMethodBase<6> {
+    using Params = OnSectorProveCommitParameters;
+    using Result = OnSectorProveCommitReturn;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(onSectorTerminate);
+  struct OnSectorTerminate : ActorMethodBase<7> {
+    using Params = OnSectorTerminateParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(onSectorTemporaryFaultEffectiveBegin);
+  struct OnSectorTemporaryFaultEffectiveBegin : ActorMethodBase<8> {
+    using Params = OnSectorTemporaryFaultEffectiveBeginParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-   private:
-    /**
-     * Get current storage power actor state
-     * @param runtime - current runtime
-     * @return current storage power actor state or appropriate error
-     */
-    static outcome::result<StoragePowerActor> getCurrentState(Runtime &runtime);
+  struct OnSectorTemporaryFaultEffectiveEnd : ActorMethodBase<9> {
+    using Params = OnSectorTemporaryFaultEffectiveEndParams;
+    ACTOR_METHOD_STUB();
+  };
 
-    static outcome::result<InvocationOutput> slashPledgeCollateral(
-        Runtime &runtime,
-        StoragePowerActor &power_actor,
-        Address miner,
-        TokenAmount to_slash);
+  struct OnSectorModifyWeightDesc : ActorMethodBase<10> {
+    using Params = OnSectorModifyWeightDescParams;
+    ACTOR_METHOD_STUB();
+  };
 
-    /**
-     * Deletes miner from state and slashes miner balance
-     * @param runtime - current runtime
-     * @param state - current storage power actor state
-     * @param miner address to delete
-     * @return error in case of failure
-     */
-    static outcome::result<void> deleteMinerActor(Runtime &runtime,
-                                                  StoragePowerActor &state,
-                                                  const Address &miner);
+  struct OnMinerSurprisePoStSuccess : ActorMethodBase<11> {
+    ACTOR_METHOD_STUB();
+  };
+
+  struct OnMinerSurprisePoStFailure : ActorMethodBase<12> {
+    using Params = OnMinerWindowedPoStFailureParams;
+    ACTOR_METHOD_STUB();
+  };
+
+  struct EnrollCronEvent : ActorMethodBase<13> {
+    using Params = EnrollCronEventParams;
+    ACTOR_METHOD_STUB();
+  };
+
+  struct ReportConsensusFault : ActorMethodBase<14> {
+    ACTOR_METHOD_STUB();
+  };
+
+  struct OnEpochTickEnd : ActorMethodBase<15> {
+    ACTOR_METHOD_STUB();
   };
 
   /** Exported StoragePowerActor methods to invoker */
@@ -174,6 +188,17 @@ namespace fc::vm::actor::builtin::storage_power {
   CBOR_TUPLE(OnMinerWindowedPoStFailureParams, num_consecutive_failures)
 
   CBOR_TUPLE(EnrollCronEventParams, event_epoch, payload);
+
+  inline bool operator==(const CreateMiner::Result &lhs,
+                         const CreateMiner::Result &rhs) {
+    return lhs.id_address == rhs.id_address
+           && lhs.robust_address == rhs.robust_address;
+  }
+
+  inline bool operator==(const OnSectorProveCommit::Result &lhs,
+                         const OnSectorProveCommit::Result &rhs) {
+    return lhs.pledge == rhs.pledge;
+  }
 
 }  // namespace fc::vm::actor::builtin::storage_power
 

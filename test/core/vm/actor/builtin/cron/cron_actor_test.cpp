@@ -15,7 +15,7 @@ using namespace fc::vm;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
 using fc::vm::actor::builtin::cron::EpochTick;
-using fc::vm::actor::builtin::storage_power::kOnEpochTickEndMethodNumber;
+using fc::vm::actor::builtin::storage_power::OnEpochTickEnd;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MockRuntime;
 
@@ -47,7 +47,7 @@ TEST(CronActorTest, Correct) {
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_CALL(runtime,
               send(actor::kStoragePowerAddress,
-                   MethodNumber{kOnEpochTickEndMethodNumber},
+                   MethodNumber{OnEpochTickEnd::Number},
                    MethodParams{},
                    actor::BigInt(0)))
       .WillOnce(testing::Return(fc::outcome::success()));

@@ -44,7 +44,7 @@ namespace fc::vm::actor::builtin::storage_power {
   StoragePower consensusPowerForWeight(const SectorStorageWeightDesc &weight);
 
   StoragePower consensusPowerForWeights(
-      gsl::span<SectorStorageWeightDesc> weights);
+      gsl::span<const SectorStorageWeightDesc> weights);
 
   TokenAmount pledgeForWeight(const SectorStorageWeightDesc &weight,
                               StoragePower network_power);

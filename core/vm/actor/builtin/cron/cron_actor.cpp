@@ -12,7 +12,7 @@ namespace fc::vm::actor::builtin::cron {
    * EpochTick
    */
   std::vector<CronTableEntry> entries = {
-      {kStoragePowerAddress, {storage_power::kOnEpochTickEndMethodNumber}}};
+      {kStoragePowerAddress, {storage_power::OnEpochTickEnd::Number}}};
 
   ACTOR_METHOD_IMPL(EpochTick) {
     if ((runtime.getMessage().get().from != kCronAddress)) {
