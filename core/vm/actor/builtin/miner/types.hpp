@@ -180,6 +180,10 @@ namespace fc::vm::actor::builtin::miner {
     Buffer callback_payload;
   };
 
+  struct CheckSectorProvenParams {
+    SectorNumber sector;
+  };
+
   CBOR_TUPLE(PoStState, proving_period_start, num_consecutive_failures)
 
   CBOR_TUPLE(
@@ -229,6 +233,8 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(DeclareTemporaryFaultsParams, sectors, duration)
 
   CBOR_TUPLE(OnDeferredCronEventParams, callback_payload)
+
+  CBOR_TUPLE(CheckSectorProvenParams, sector)
 }  // namespace fc::vm::actor::builtin::miner
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MINER_TYPES_HPP

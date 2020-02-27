@@ -874,6 +874,18 @@ namespace fc::vm::actor::builtin::miner {
     return outcome::success();
   }
 
+  ACTOR_METHOD(checkSectorProven) {
+    OUTCOME_TRY(params2, decodeActorParams<CheckSectorProvenParams>(params));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
+    OUTCOME_TRY(found,
+                Amt(runtime.getIpfsDatastore(), state.sectors)
+                    .contains(params2.sector));
+    if (!found) {
+      return VMExitCode::MINER_ACTOR_NOT_FOUND;
+    }
+    return outcome::success();
+  }
+
   const ActorExports exports{
       {kConstructorMethodNumber, ActorMethod(constructor)},
       {kGetControlAddressesMethodNumber, ActorMethod(controlAddresses)},
