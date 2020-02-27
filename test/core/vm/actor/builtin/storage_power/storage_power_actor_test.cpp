@@ -11,10 +11,9 @@
 #include "testutil/literals.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
-#include "vm/actor/builtin/storage_power/policy.hpp"
+#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
 using fc::CID;
 using fc::common::Buffer;
@@ -115,7 +114,8 @@ class StoragePowerActorTest : public ::testing::Test {
     actor_state.total_network_power = power;
     StoragePowerActor power_actor(datastore, actor_state);
     EXPECT_OUTCOME_TRUE(actor_new_state, power_actor.flushState());
-    EXPECT_OUTCOME_TRUE(new_actor_head_cid, datastore->setCbor(actor_new_state));
+    EXPECT_OUTCOME_TRUE(new_actor_head_cid,
+                        datastore->setCbor(actor_new_state));
     actor_head_cid = ActorSubstateCID{new_actor_head_cid};
   }
 
@@ -131,7 +131,8 @@ class StoragePowerActorTest : public ::testing::Test {
     StoragePowerActor power_actor(datastore, actor_state);
     EXPECT_OUTCOME_TRUE_1(power_actor.addMinerBalance(miner, amount));
     EXPECT_OUTCOME_TRUE(actor_new_state, power_actor.flushState());
-    EXPECT_OUTCOME_TRUE(new_actor_head_cid, datastore->setCbor(actor_new_state));
+    EXPECT_OUTCOME_TRUE(new_actor_head_cid,
+                        datastore->setCbor(actor_new_state));
     actor_head_cid = ActorSubstateCID{new_actor_head_cid};
   }
 
@@ -161,7 +162,8 @@ class StoragePowerActorTest : public ::testing::Test {
     StoragePowerActor power_actor(datastore, actor_state);
     EXPECT_OUTCOME_TRUE_1(power_actor.setClaim(miner, claim));
     EXPECT_OUTCOME_TRUE(actor_new_state, power_actor.flushState());
-    EXPECT_OUTCOME_TRUE(new_actor_head_cid, datastore->setCbor(actor_new_state));
+    EXPECT_OUTCOME_TRUE(new_actor_head_cid,
+                        datastore->setCbor(actor_new_state));
     actor_head_cid = ActorSubstateCID{new_actor_head_cid};
   }
 
@@ -217,8 +219,6 @@ TEST_F(StoragePowerActorTest, Constructor) {
   EXPECT_OUTCOME_TRUE(state,
                       datastore->getCbor<StoragePowerActorState>(state_cid));
   StoragePowerActor actor(datastore, state);
-  EXPECT_OUTCOME_TRUE(cron_events, actor.getCronEvents());
-  EXPECT_TRUE(cron_events.empty());
   EXPECT_OUTCOME_TRUE(fault_miners, actor.getFaultMiners());
   EXPECT_TRUE(fault_miners.empty());
   EXPECT_OUTCOME_TRUE(claims, actor.getClaims());

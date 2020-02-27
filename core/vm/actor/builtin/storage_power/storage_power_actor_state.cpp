@@ -206,17 +206,25 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  outcome::result<std::vector<CronEvent>> StoragePowerActor::getCronEvents()
-      const {
-    std::vector<CronEvent> all_events;
-    Hamt::Visitor all_events_visitor{
-        [&all_events](auto k, auto v) -> fc::outcome::result<void> {
+  outcome::result<std::vector<CronEvent>> StoragePowerActor::getCronEvents(
+      const ChainEpoch &epoch) const {
+    std::vector<CronEvent> events;
+    Multimap::Visitor events_visitor{
+        [&events](auto v) -> fc::outcome::result<void> {
           OUTCOME_TRY(event, codec::cbor::decode<CronEvent>(v));
-          all_events.push_back(event);
+          events.push_back(event);
           return fc::outcome::success();
         }};
-    OUTCOME_TRY(po_st_detected_fault_miners_->visit(all_events_visitor));
-    return all_events;
+    OUTCOME_TRY(cron_event_queue_->visit(
+        primitives::chain_epoch::encodeToByteString(epoch), events_visitor));
+    return events;
+  }
+
+  outcome::result<void> StoragePowerActor::clearCronEvents(
+      const ChainEpoch &epoch) {
+    OUTCOME_TRY(cron_event_queue_->removeAll(
+        primitives::chain_epoch::encodeToByteString(epoch)));
+    return outcome::success();
   }
 
   outcome::result<bool>

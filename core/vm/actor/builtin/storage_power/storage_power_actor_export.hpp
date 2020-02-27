@@ -7,23 +7,17 @@
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_ACTOR_HPP
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "primitives/block/block.hpp"
-#include "vm/actor/actor.hpp"
+#include "primitives/types.hpp"
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/storage_power/policy.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
-#include "vm/runtime/runtime.hpp"
-#include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
   using miner::PeerId;
+  using primitives::TokenAmount;
   using primitives::block::BlockHeader;
-  using runtime::InvocationOutput;
-  using runtime::Runtime;
-  using ConsensusFaultType = uint64_t;
 
   constexpr MethodNumber kAddBalanceMethodNumber{2};
   constexpr MethodNumber kWithdrawBalanceMethodNumber{3};
@@ -146,33 +140,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
     static ACTOR_METHOD(reportConsensusFault);
 
-   private:
-    static outcome::result<void> assertImmediateCallerTypeIsMiner(
-        Runtime &runtime);
-
-    /**
-     * Get current storage power actor state
-     * @param runtime - current runtime
-     * @return current storage power actor state or appropriate error
-     */
-    static outcome::result<StoragePowerActor> getCurrentState(Runtime &runtime);
-
-    static outcome::result<InvocationOutput> slashPledgeCollateral(
-        Runtime &runtime,
-        StoragePowerActor &power_actor,
-        Address miner,
-        TokenAmount to_slash);
-
-    /**
-     * Deletes miner from state and slashes miner balance
-     * @param runtime - current runtime
-     * @param state - current storage power actor state
-     * @param miner address to delete
-     * @return error in case of failure
-     */
-    static outcome::result<void> deleteMinerActor(Runtime &runtime,
-                                                  StoragePowerActor &state,
-                                                  const Address &miner);
+    static ACTOR_METHOD(onEpochTickEnd);
   };
 
   /** Exported StoragePowerActor methods to invoker */
