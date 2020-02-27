@@ -34,13 +34,13 @@ namespace fc::proofs {
     return PoStCandidateWithTicket{
         .candidate =
             PoStCandidate{
+                .partial_ticket = cppCommitment(
+                    gsl::make_span(c_candidate.partial_ticket, 32)),
                 .sector =
                     SectorId{
                         .miner = 0,
                         .sector = c_candidate.sector_id,
                     },
-                .partial_ticket = cppCommitment(
-                    gsl::make_span(c_candidate.partial_ticket, 32)),
                 .challenge_index = int64_t(c_candidate.sector_challenge_index),
             },
         .ticket = cppCommitment(gsl::make_span(c_candidate.ticket, 32)),
@@ -182,8 +182,9 @@ namespace fc::proofs {
 
   outcome::result<FFIPublicReplicaInfo> cPublicReplicaInfo(
       const PublicSectorInfo &cpp_public_replica_info) {
-    FFIPublicReplicaInfo c_public_replica_info{
-        .sector_id = cpp_public_replica_info.sector_num};
+    FFIPublicReplicaInfo c_public_replica_info{};
+
+    c_public_replica_info.sector_id = cpp_public_replica_info.sector_num;
 
     OUTCOME_TRY(c_proof_type,
                 cRegisteredPoStProof(cpp_public_replica_info.post_proof_type));
