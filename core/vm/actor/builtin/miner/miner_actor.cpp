@@ -24,9 +24,9 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::kChainEpochUndefined;
   using primitives::address::Protocol;
   using primitives::chain_epoch::uvarintKey;
-  using proofs::sector::OnChainSealVerifyInfo;
-  using proofs::sector::PoStCandidate;
-  using proofs::sector::SectorInfo;
+  using primitives::sector::OnChainSealVerifyInfo;
+  using primitives::sector::PoStCandidate;
+  using primitives::sector::SectorInfo;
   using runtime::DomainSeparationTag;
   using storage::amt::Amt;
   using storage::hamt::Hamt;
