@@ -36,15 +36,22 @@ namespace fc::vm::actor::builtin::payment_channel {
     Buffer proof;
   };
 
-  class PaymentChannelActor {
-   public:
-    static ACTOR_METHOD(construct);
+  struct Construct : ActorMethodBase<1> {
+    using Params = ConstructParameteres;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(updateChannelState);
+  struct UpdateChannelState : ActorMethodBase<2> {
+    using Params = UpdateChannelStateParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(settle);
+  struct Settle : ActorMethodBase<3> {
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(collect);
+  struct Collect : ActorMethodBase<4> {
+    ACTOR_METHOD_STUB();
   };
 
   CBOR_TUPLE(ConstructParameteres, to)

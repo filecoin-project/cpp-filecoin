@@ -12,17 +12,16 @@ using fc::outcome::result;
 using fc::primitives::address::Protocol;
 using fc::vm::actor::decodeActorParams;
 using fc::vm::actor::kAccountCodeCid;
-using fc::vm::actor::builtin::payment_channel::PaymentChannelActor;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::Runtime;
 namespace outcome = fc::outcome;
+using namespace fc::vm::actor::builtin::payment_channel;
 
-ACTOR_METHOD(PaymentChannelActor::construct) {
+ACTOR_METHOD_IMPL(Construct) {
   OUTCOME_TRY(code, runtime.getActorCodeID(runtime.getImmediateCaller()));
   if (code != kAccountCodeCid) return VMExitCode::PAYMENT_CHANNEL_WRONG_CALLER;
 
-  OUTCOME_TRY(construct_params,
-              decodeActorParams<ConstructParameteres>(params));
+  auto &construct_params = params;
   if (construct_params.to.getProtocol() != Protocol::ID)
     return VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT;
   OUTCOME_TRY(target_actor_code_id,
@@ -37,7 +36,7 @@ ACTOR_METHOD(PaymentChannelActor::construct) {
   return fc::outcome::success();
 }
 
-ACTOR_METHOD(PaymentChannelActor::updateChannelState) {
+ACTOR_METHOD_IMPL(UpdateChannelState) {
   OUTCOME_TRY(state,
               runtime.getCurrentActorStateCbor<PaymentChannelActorState>());
   Address signer = runtime.getImmediateCaller();
@@ -45,21 +44,18 @@ ACTOR_METHOD(PaymentChannelActor::updateChannelState) {
     return VMExitCode::PAYMENT_CHANNEL_WRONG_CALLER;
   }
 
-  OUTCOME_TRY(update_state_params,
-              decodeActorParams<UpdateChannelStateParameters>(params));
-
   // TODO (a.chernyshov) not implemented yet FIL-129
 
   return fc::outcome::success();
 }
 
-ACTOR_METHOD(PaymentChannelActor::settle) {
+ACTOR_METHOD_IMPL(Settle) {
   // TODO (a.chernyshov) not implemented yet FIL-129
 
   return fc::outcome::success();
 }
 
-ACTOR_METHOD(PaymentChannelActor::collect) {
+ACTOR_METHOD_IMPL(Collect) {
   // TODO (a.chernyshov) not implemented yet FIL-129
 
   return fc::outcome::success();
