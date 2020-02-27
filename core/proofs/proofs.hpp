@@ -215,14 +215,13 @@ namespace fc::proofs {
     /**
      * @brief Verifies a proof-of-spacetime
      */
-    /*static outcome::result<bool> verifyPoSt(
-        uint64_t sector_size,
+    static outcome::result<bool> verifyPoSt(
         const SortedPublicSectorInfo &public_sector_info,
-        const Randomness &randomness,
+        const PoStRandomness &randomness,
         uint64_t challenge_count,
         gsl::span<const uint8_t> proof,
-        gsl::span<const Candidate> winners,
-        const Prover &prover_id);*/
+        gsl::span<const PoStCandidate> winners,
+        const Prover &prover_id);
 
     /**
      * @brief Verifies the output of some previous-run seal operation

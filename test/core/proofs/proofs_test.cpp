@@ -207,15 +207,14 @@ TEST_F(ProofsTest, ValidPoSt) {
       proof_a,
       Proofs::generatePoSt(prover_id, private_info, randomness, candidates))
 
-  /*EXPECT_OUTCOME_TRUE(res,
-                      Proofs::verifyPoSt(sector_size,
-                                         public_info,
+  EXPECT_OUTCOME_TRUE(res,
+                      Proofs::verifyPoSt(public_info,
                                          randomness,
                                          challenge_count,
                                          proof_a,
                                          candidates,
                                          prover_id));
-  ASSERT_TRUE(res);*/
+  ASSERT_TRUE(res);
 }
 
 // TODO(artyom-yurin): [FIL-164]

@@ -231,6 +231,34 @@ namespace fc::proofs {
     return c_private_replicas_info;
   }
 
+  outcome::result<FFIPublicReplicaInfo> cPublicReplicaInfo(
+      const PublicSectorInfo &cpp_public_replica_info) {
+    FFIPublicReplicaInfo c_public_replica_info{
+        .sector_id = cpp_public_replica_info.sector_num};
+
+    OUTCOME_TRY(c_proof_type,
+                cRegisteredPoStProof(cpp_public_replica_info.post_proof_type));
+
+    c_public_replica_info.registered_proof = c_proof_type;
+
+    OUTCOME_TRY(comm_r,
+                CIDToReplicaCommitmentV1(cpp_public_replica_info.sealed_cid));
+    std::copy(comm_r.begin(), comm_r.end(), c_public_replica_info.comm_r);
+
+    return c_public_replica_info;
+  }
+
+  outcome::result<std::vector<FFIPublicReplicaInfo>> cPublicReplicasInfo(
+      gsl::span<const PublicSectorInfo> cpp_public_replicas_info) {
+    std::vector<FFIPublicReplicaInfo> c_public_replicas_info;
+    for (const auto &cpp_public_replica_info : cpp_public_replicas_info) {
+      OUTCOME_TRY(c_public_replica_info,
+                  cPublicReplicaInfo(cpp_public_replica_info));
+      c_public_replicas_info.push_back(c_public_replica_info);
+    }
+    return c_public_replicas_info;
+  }
+
   outcome::result<FFIPublicPieceInfo> cPublicPieceInfo(
       const PieceInfo &cpp_public_piece_info) {
     FFIPublicPieceInfo c_public_piece_info;
@@ -255,6 +283,37 @@ namespace fc::proofs {
   // ******************
   // VERIFIED FUNCTIONS
   // ******************
+
+  outcome::result<bool> Proofs::verifyPoSt(
+      const SortedPublicSectorInfo &public_sector_info,
+      const PoStRandomness &randomness,
+      uint64_t challenge_count,
+      gsl::span<const uint8_t> proof,
+      gsl::span<const PoStCandidate> winners,
+      const Prover &prover_id) {
+    OUTCOME_TRY(c_public_sector_info,
+                cPublicReplicasInfo(public_sector_info.values));
+
+    std::vector<FFICandidate> c_winners = cCandidates(winners);
+
+    auto res_ptr = make_unique(verify_post(cPointerToArray(randomness),
+                                           challenge_count,
+                                           c_public_sector_info.data(),
+                                           c_public_sector_info.size(),
+                                           proof.data(),
+                                           proof.size(),
+                                           c_winners.data(),
+                                           c_winners.size(),
+                                           cPointerToArray(prover_id)),
+                               destroy_verify_post_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("verifyPoSt: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return res_ptr->is_valid;
+  }
 
   /*outcome::result<bool> Proofs::verifyPoSt(
       uint64_t sector_size,
