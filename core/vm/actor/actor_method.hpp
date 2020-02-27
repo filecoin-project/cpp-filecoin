@@ -9,6 +9,7 @@
 #include "codec/cbor/cbor.hpp"
 #include "common/outcome.hpp"
 #include "vm/actor/actor.hpp"
+#include "vm/actor/actor_encoding.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
@@ -40,33 +41,6 @@ namespace fc::vm::actor {
 
   /// Actor methods exported by number
   using ActorExports = std::map<MethodNumber, ActorMethod>;
-
-  /// Decode actor params, raises appropriate error
-  template <typename T>
-  outcome::result<T> decodeActorParams(MethodParams params_bytes) {
-    if (params_bytes.empty()) {
-      return T{};
-    }
-    auto maybe_params = codec::cbor::decode<T>(params_bytes);
-    if (!maybe_params) {
-      return VMExitCode::DECODE_ACTOR_PARAMS_ERROR;
-    }
-    return maybe_params;
-  }
-
-  using runtime::encodeActorParams;
-
-  using runtime::decodeActorReturn;
-
-  using runtime::encodeActorReturn;
-
-  struct None {};
-  CBOR_ENCODE(None, none) {
-    return s;
-  }
-  CBOR_DECODE(None, none) {
-    return s;
-  }
 
   template <uint64_t number>
   struct ActorMethodBase {

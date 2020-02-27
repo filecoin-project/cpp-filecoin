@@ -82,8 +82,8 @@ namespace fc::vm::runtime {
                      const typename M::Params &params,
                      TokenAmount value,
                      const typename M::Result &result) {
-      EXPECT_OUTCOME_TRUE(params2, encodeActorParams(params));
-      EXPECT_OUTCOME_TRUE(result2, encodeActorReturn(result));
+      EXPECT_OUTCOME_TRUE(params2, actor::encodeActorParams(params));
+      EXPECT_OUTCOME_TRUE(result2, actor::encodeActorReturn(result));
       EXPECT_CALL(*this, send(address, M::Number, params2, value))
           .WillOnce(testing::Return(fc::outcome::success(result2)));
     }
