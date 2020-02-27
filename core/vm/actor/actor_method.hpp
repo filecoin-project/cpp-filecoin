@@ -16,6 +16,12 @@
   outcome::result<InvocationOutput> name(Runtime &runtime, \
                                          const MethodParams &params)
 
+#define ACTOR_METHOD_STUB() \
+  static outcome::result<Result> call(Runtime &, const Params &);
+
+#define ACTOR_METHOD_IMPL(M) \
+  outcome::result<M::Result> M::call(Runtime &runtime, const Params &params)
+
 namespace fc::vm::actor {
 
   using common::Buffer;
@@ -51,6 +57,32 @@ namespace fc::vm::actor {
 
   using runtime::encodeActorReturn;
 
+  struct None {};
+  CBOR_ENCODE(None, none) {
+    return s;
+  }
+  CBOR_DECODE(None, none) {
+    return s;
+  }
+
+  template <uint64_t number>
+  struct ActorMethodBase {
+    using Params = None;
+    using Result = None;
+    static constexpr MethodNumber Number{number};
+  };
+
+  template <typename M>
+  auto exportMethod() {
+    return std::make_pair(
+        M::Number,
+        ActorMethod{[](auto &runtime,
+                       auto &params) -> outcome::result<InvocationOutput> {
+          OUTCOME_TRY(params2, decodeActorParams<typename M::Params>(params));
+          OUTCOME_TRY(result, M::call(runtime, params2));
+          return encodeActorReturn(result);
+        }});
+  }
 }  // namespace fc::vm::actor
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_METHOD_HPP
