@@ -88,17 +88,17 @@ namespace fc::vm::actor::builtin::reward {
 
   extern const ActorExports exports;
 
-  class RewardActor {
-   public:
-    static ACTOR_METHOD(construct);
+  struct Construct : ActorMethodBase<1> {
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(awardBlockReward);
+  struct AwardBlockReward : ActorMethodBase<2> {
+    using Params = AwardBlockRewardParams;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(withdrawReward);
-
-   private:
-    static TokenAmount computeBlockReward(const State &state,
-                                          const TokenAmount &balance);
+  struct WithdrawReward : ActorMethodBase<3> {
+    ACTOR_METHOD_STUB();
   };
 
 }  // namespace fc::vm::actor::builtin::reward

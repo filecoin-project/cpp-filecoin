@@ -13,10 +13,13 @@ using fc::adt::Multimap;
 
 namespace fc::vm::actor::builtin::reward {
 
+  TokenAmount computeBlockReward(const State &state,
+                                 const TokenAmount &balance);
+
   const ActorExports exports = {
-      {kAwardBlockRewardMethodNumber,
-       ActorMethod(RewardActor::awardBlockReward)},
-      {kWithdrawRewardMethodNumber, ActorMethod(RewardActor::withdrawReward)}};
+      exportMethod<AwardBlockReward>(),
+      exportMethod<WithdrawReward>(),
+  };
 
   primitives::BigInt Reward::amountVested(
       const primitives::ChainEpoch &current_epoch) {
@@ -97,7 +100,7 @@ namespace fc::vm::actor::builtin::reward {
     return withdrawable_sum;
   }
 
-  ACTOR_METHOD(RewardActor::construct) {
+  ACTOR_METHOD_IMPL(Construct) {
     if (runtime.getImmediateCaller() != kSystemActorAddress) {
       return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
     }
@@ -110,12 +113,11 @@ namespace fc::vm::actor::builtin::reward {
     return outcome::success();
   }
 
-  ACTOR_METHOD(RewardActor::awardBlockReward) {
+  ACTOR_METHOD_IMPL(AwardBlockReward) {
     if (runtime.getImmediateCaller() != kSystemActorAddress) {
       return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
     }
-    OUTCOME_TRY(reward_params,
-                decodeActorParams<AwardBlockRewardParams>(params));
+    auto &reward_params = params;
     assert(reward_params.gas_reward == runtime.getValueReceived());
     OUTCOME_TRY(prior_balance,
                 runtime.getBalance(runtime.getMessage().get().to));
@@ -145,7 +147,7 @@ namespace fc::vm::actor::builtin::reward {
     return outcome::success();
   }
 
-  ACTOR_METHOD(RewardActor::withdrawReward) {
+  ACTOR_METHOD_IMPL(WithdrawReward) {
     OUTCOME_TRY(code, runtime.getActorCodeID(runtime.getImmediateCaller()));
     if (!isSignableActor(code)) {
       return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
@@ -161,8 +163,8 @@ namespace fc::vm::actor::builtin::reward {
     return outcome::success();
   }
 
-  TokenAmount RewardActor::computeBlockReward(const State &state,
-                                              const TokenAmount &balance) {
+  TokenAmount computeBlockReward(const State &state,
+                                 const TokenAmount &balance) {
     TokenAmount treasury = balance - state.reward_total;
     auto target_reward = kBlockRewardTarget;
     return std::min(target_reward, treasury);
