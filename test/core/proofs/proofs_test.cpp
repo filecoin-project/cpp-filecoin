@@ -34,6 +34,7 @@ class ProofsTest : public test::BaseFS_Test {
   std::vector<fc::proofs::ParamFile> params;
 };
 
+// TODO(artyom-yurin): [FIL-164]
 /**
  * disabled because it takes too long
  * @given Data for PoSt generation
@@ -185,6 +186,7 @@ TEST_F(ProofsTest, DISABLED_ValidPoSt) {
   ASSERT_TRUE(res);*/
 }
 
+// TODO(artyom-yurin): [FIL-164]
 /**
  * disabled because it takes too long
  * @given Data for Seal
