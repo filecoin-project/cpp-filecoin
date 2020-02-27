@@ -40,6 +40,8 @@ namespace fc::proofs {
   using primitives::sector::SealRandomness;
   using primitives::sector::SectorInfo;
   using primitives::sector::Ticket;
+  using SealedCID = CID;
+  using UnsealedCID = CID;
 
   struct PublicSectorInfo {
     RegisteredProof post_proof_type;
@@ -117,10 +119,10 @@ namespace fc::proofs {
         const SealRandomness &ticket,
         gsl::span<const PieceInfo> pieces);
 
-    static outcome::result<std::pair<CID, CID>> sealPreCommitPhase2(
-        gsl::span<const uint8_t> phase1_output,
-        const std::string &cache_dir_path,
-        const std::string &sealed_sector_path);
+    static outcome::result<std::pair<SealedCID, UnsealedCID>>
+    sealPreCommitPhase2(gsl::span<const uint8_t> phase1_output,
+                        const std::string &cache_dir_path,
+                        const std::string &sealed_sector_path);
 
     static outcome::result<CID> generatePieceCIDFromFile(
         RegisteredProof proof_type,

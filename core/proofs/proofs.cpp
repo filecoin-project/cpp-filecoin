@@ -454,10 +454,10 @@ namespace fc::proofs {
             + res_ptr->seal_pre_commit_phase1_output_len);  // NOLINT
   }
 
-  outcome::result<std::pair<CID, CID>> Proofs::sealPreCommitPhase2(
-      gsl::span<const uint8_t> phase1_output,
-      const std::string &cache_dir_path,
-      const std::string &sealed_sector_path) {
+  outcome::result<std::pair<SealedCID, UnsealedCID>>
+  Proofs::sealPreCommitPhase2(gsl::span<const uint8_t> phase1_output,
+                              const std::string &cache_dir_path,
+                              const std::string &sealed_sector_path) {
     auto res_ptr =
         make_unique(seal_pre_commit_phase2(phase1_output.data(),
                                            phase1_output.size(),
