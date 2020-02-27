@@ -191,7 +191,7 @@ TEST_F(ProofsTest, DISABLED_ValidPoSt) {
  * @when Commit and Verifies Seal and Unseal
  * @then success
  */
-TEST_F(ProofsTest, ValidSealAndUnseal) {
+TEST_F(ProofsTest, DISABLED_ValidSealAndUnseal) {
   Prover prover_id{{6, 7, 8}};
   Randomness randomness{{9, 9, 9}};
   Ticket ticket{{5, 4, 2}};
