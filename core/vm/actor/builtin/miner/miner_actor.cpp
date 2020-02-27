@@ -48,6 +48,14 @@ namespace fc::vm::actor::builtin::miner {
   using storage_power::SectorStorageWeightDesc;
   using storage_power::SectorTerminationType;
 
+  outcome::result<MinerActorState> assertCallerIsWorker(Runtime &runtime) {
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
+    if (runtime.getImmediateCaller() != state.info.worker) {
+      return VMExitCode::MINER_ACTOR_WRONG_CALLER;
+    }
+    return std::move(state);
+  }
+
   /**
    * Resolves an address to an ID address and verifies that it is address of an
    * account or multisig actor
@@ -563,10 +571,7 @@ namespace fc::vm::actor::builtin::miner {
 
   ACTOR_METHOD(submitWindowedPoSt) {
     OUTCOME_TRY(params2, decodeActorParams<SubmitWindowedPoStParams>(params));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
-    if (runtime.getImmediateCaller() != state.info.worker) {
-      return VMExitCode::MINER_ACTOR_WRONG_CALLER;
-    }
+    OUTCOME_TRY(state, assertCallerIsWorker(runtime));
     if (runtime.getCurrentEpoch() > state.post_state.proving_period_start
                                         + kWindowedPostChallengeDuration) {
       return VMExitCode::MINER_ACTOR_POST_TOO_LATE;
@@ -594,10 +599,7 @@ namespace fc::vm::actor::builtin::miner {
 
   ACTOR_METHOD(preCommitSector) {
     OUTCOME_TRY(params2, decodeActorParams<PreCommitSectorParams>(params));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
-    if (runtime.getImmediateCaller() != state.info.worker) {
-      return VMExitCode::MINER_ACTOR_WRONG_CALLER;
-    }
+    OUTCOME_TRY(state, assertCallerIsWorker(runtime));
 
     OUTCOME_TRY(already_commited,
                 Amt(runtime.getIpfsDatastore(), state.sectors)
@@ -642,10 +644,7 @@ namespace fc::vm::actor::builtin::miner {
 
   ACTOR_METHOD(proveCommitSector) {
     OUTCOME_TRY(params2, decodeActorParams<ProveCommitSectorParams>(params));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
-    if (runtime.getImmediateCaller() != state.info.worker) {
-      return VMExitCode::MINER_ACTOR_WRONG_CALLER;
-    }
+    OUTCOME_TRY(state, assertCallerIsWorker(runtime));
     auto ipld = runtime.getIpfsDatastore();
     auto sector = params2.sector;
 
@@ -747,10 +746,7 @@ namespace fc::vm::actor::builtin::miner {
   ACTOR_METHOD(extendSectorExpiration) {
     OUTCOME_TRY(params2,
                 decodeActorParams<ExtendSectorExpirationParams>(params));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
-    if (runtime.getImmediateCaller() != state.info.worker) {
-      return VMExitCode::MINER_ACTOR_WRONG_CALLER;
-    }
+    OUTCOME_TRY(state, assertCallerIsWorker(runtime));
     Amt amt_sectors{runtime.getIpfsDatastore(), state.sectors};
 
     OUTCOME_TRY(sector, amt_sectors.getCbor<SectorOnChainInfo>(params2.sector));
@@ -786,10 +782,7 @@ namespace fc::vm::actor::builtin::miner {
 
   ACTOR_METHOD(terminateSectors) {
     OUTCOME_TRY(params2, decodeActorParams<TerminateSectorsParams>(params));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
-    if (runtime.getImmediateCaller() != state.info.worker) {
-      return VMExitCode::MINER_ACTOR_WRONG_CALLER;
-    }
+    OUTCOME_TRY(state, assertCallerIsWorker(runtime));
     if (!params2.sectors) {
       return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
     }
@@ -804,10 +797,7 @@ namespace fc::vm::actor::builtin::miner {
   ACTOR_METHOD(declareTemporaryFaults) {
     OUTCOME_TRY(params2,
                 decodeActorParams<DeclareTemporaryFaultsParams>(params));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
-    if (runtime.getImmediateCaller() != state.info.worker) {
-      return VMExitCode::MINER_ACTOR_WRONG_CALLER;
-    }
+    OUTCOME_TRY(state, assertCallerIsWorker(runtime));
     if (params2.duration <= 0) {
       return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
     }
