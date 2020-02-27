@@ -25,14 +25,6 @@ namespace fc::vm::actor::builtin::multisig {
   using runtime::Runtime;
   using TransactionNumber = size_t;
 
-  constexpr MethodNumber kProposeMethodNumber{2};
-  constexpr MethodNumber kApproveMethodNumber{3};
-  constexpr MethodNumber kCancelMethodNumber{4};
-  constexpr MethodNumber kAddSignerMethodNumber{5};
-  constexpr MethodNumber kRemoveSignerMethodNumber{6};
-  constexpr MethodNumber kSwapSignerMethodNumber{7};
-  constexpr MethodNumber kChangeThresholdMethodNumber{7};
-
   /**
    * Multisignaure pending transaction
    */
@@ -183,26 +175,45 @@ namespace fc::vm::actor::builtin::multisig {
     size_t new_threshold;
   };
 
-  /**
-   * Multisignature actor methods
-   */
-  class MultiSigActor {
-   public:
-    static ACTOR_METHOD(construct);
+  struct Construct : ActorMethodBase<1> {
+    using Params = ConstructParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(propose);
+  struct Propose : ActorMethodBase<2> {
+    using Params = ProposeParameters;
+    using Result = TransactionNumber;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(approve);
+  struct Approve : ActorMethodBase<3> {
+    using Params = TransactionNumberParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(cancel);
+  struct Cancel : ActorMethodBase<4> {
+    using Params = TransactionNumberParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(addSigner);
+  struct AddSigner : ActorMethodBase<6> {
+    using Params = AddSignerParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(removeSigner);
+  struct RemoveSigner : ActorMethodBase<7> {
+    using Params = RemoveSignerParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(swapSigner);
+  struct SwapSigner : ActorMethodBase<8> {
+    using Params = SwapSignerParameters;
+    ACTOR_METHOD_STUB();
+  };
 
-    static ACTOR_METHOD(changeThreshold);
+  struct ChangeThreshold : ActorMethodBase<9> {
+    using Params = ChangeThresholdParameters;
+    ACTOR_METHOD_STUB();
   };
 
   /** Exported Multisig Actor methods to invoker */

@@ -142,12 +142,11 @@ namespace fc::vm::actor::builtin::multisig {
     return initial_balance / unlock_duration * elapsed_epoch;
   }
 
-  ACTOR_METHOD(MultiSigActor::construct) {
+  ACTOR_METHOD_IMPL(Construct) {
     if (runtime.getImmediateCaller() != kInitAddress)
       return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
 
-    OUTCOME_TRY(construct_params,
-                decodeActorParams<ConstructParameters>(params));
+    auto &construct_params = params;
     if (construct_params.signers.size() < construct_params.threshold)
       return VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT;
 
@@ -167,10 +166,10 @@ namespace fc::vm::actor::builtin::multisig {
     return fc::outcome::success();
   }
 
-  ACTOR_METHOD(MultiSigActor::propose) {
+  ACTOR_METHOD_IMPL(Propose) {
     OUTCOME_TRY(assertCallerIsSignable(runtime));
 
-    OUTCOME_TRY(propose_params, decodeActorParams<ProposeParameters>(params));
+    auto &propose_params = params;
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<MultiSignatureActorState>());
 
@@ -188,17 +187,14 @@ namespace fc::vm::actor::builtin::multisig {
     // approve pending tx
     OUTCOME_TRY(state.approveTransaction(runtime, tx_number));
 
-    OUTCOME_TRY(encoded_result, codec::cbor::encode(tx_number));
-
     OUTCOME_TRY(runtime.commitState(state));
-    return InvocationOutput{Buffer{encoded_result}};
+    return tx_number;
   }
 
-  ACTOR_METHOD(MultiSigActor::approve) {
+  ACTOR_METHOD_IMPL(Approve) {
     OUTCOME_TRY(assertCallerIsSignable(runtime));
 
-    OUTCOME_TRY(tx_params,
-                decodeActorParams<TransactionNumberParameters>(params));
+    auto &tx_params = params;
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<MultiSignatureActorState>());
 
@@ -209,11 +205,10 @@ namespace fc::vm::actor::builtin::multisig {
     return fc::outcome::success();
   }
 
-  ACTOR_METHOD(MultiSigActor::cancel) {
+  ACTOR_METHOD_IMPL(Cancel) {
     OUTCOME_TRY(assertCallerIsSignable(runtime));
 
-    OUTCOME_TRY(tx_params,
-                decodeActorParams<TransactionNumberParameters>(params));
+    auto &tx_params = params;
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<MultiSignatureActorState>());
     Address caller = runtime.getImmediateCaller();
@@ -232,13 +227,12 @@ namespace fc::vm::actor::builtin::multisig {
     return fc::outcome::success();
   }
 
-  ACTOR_METHOD(MultiSigActor::addSigner) {
+  ACTOR_METHOD_IMPL(AddSigner) {
     if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
       return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
     }
 
-    OUTCOME_TRY(add_signer_params,
-                decodeActorParams<AddSignerParameters>(params));
+    auto &add_signer_params = params;
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<MultiSignatureActorState>());
 
@@ -252,13 +246,12 @@ namespace fc::vm::actor::builtin::multisig {
     return fc::outcome::success();
   }
 
-  ACTOR_METHOD(MultiSigActor::removeSigner) {
+  ACTOR_METHOD_IMPL(RemoveSigner) {
     if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
       return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
     }
 
-    OUTCOME_TRY(remove_signer_params,
-                decodeActorParams<RemoveSignerParameters>(params));
+    auto &remove_signer_params = params;
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<MultiSignatureActorState>());
 
@@ -280,13 +273,12 @@ namespace fc::vm::actor::builtin::multisig {
     return fc::outcome::success();
   }
 
-  ACTOR_METHOD(MultiSigActor::swapSigner) {
+  ACTOR_METHOD_IMPL(SwapSigner) {
     if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
       return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
     }
 
-    OUTCOME_TRY(swap_signer_params,
-                decodeActorParams<SwapSignerParameters>(params));
+    auto &swap_signer_params = params;
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<MultiSignatureActorState>());
 
@@ -303,13 +295,12 @@ namespace fc::vm::actor::builtin::multisig {
     return fc::outcome::success();
   }
 
-  ACTOR_METHOD(MultiSigActor::changeThreshold) {
+  ACTOR_METHOD_IMPL(ChangeThreshold) {
     if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
       return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
     }
 
-    OUTCOME_TRY(change_threshold_params,
-                decodeActorParams<ChangeThresholdParameters>(params));
+    auto change_threshold_params = params;
 
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<MultiSignatureActorState>());
@@ -324,12 +315,13 @@ namespace fc::vm::actor::builtin::multisig {
   }
 
   const ActorExports exports = {
-      {kProposeMethodNumber, ActorMethod(MultiSigActor::propose)},
-      {kApproveMethodNumber, ActorMethod(MultiSigActor::approve)},
-      {kCancelMethodNumber, ActorMethod(MultiSigActor::cancel)},
-      {kAddSignerMethodNumber, ActorMethod(MultiSigActor::addSigner)},
-      {kRemoveSignerMethodNumber, ActorMethod(MultiSigActor::removeSigner)},
-      {kSwapSignerMethodNumber, ActorMethod(MultiSigActor::swapSigner)},
-      {kChangeThresholdMethodNumber,
-       ActorMethod(MultiSigActor::changeThreshold)}};
+      exportMethod<Construct>(),
+      exportMethod<Propose>(),
+      exportMethod<Approve>(),
+      exportMethod<Cancel>(),
+      exportMethod<AddSigner>(),
+      exportMethod<RemoveSigner>(),
+      exportMethod<SwapSigner>(),
+      exportMethod<ChangeThreshold>(),
+  };
 }  // namespace fc::vm::actor::builtin::multisig

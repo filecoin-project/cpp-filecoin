@@ -31,17 +31,17 @@ using fc::vm::actor::kCronCodeCid;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
-using fc::vm::actor::builtin::multisig::AddSignerParameters;
-using fc::vm::actor::builtin::multisig::ChangeThresholdParameters;
-using fc::vm::actor::builtin::multisig::ConstructParameters;
-using fc::vm::actor::builtin::multisig::MultiSigActor;
+using fc::vm::actor::builtin::multisig::AddSigner;
+using fc::vm::actor::builtin::multisig::Approve;
+using fc::vm::actor::builtin::multisig::Cancel;
+using fc::vm::actor::builtin::multisig::ChangeThreshold;
+using fc::vm::actor::builtin::multisig::Construct;
 using fc::vm::actor::builtin::multisig::MultiSignatureActorState;
 using fc::vm::actor::builtin::multisig::MultiSignatureTransaction;
-using fc::vm::actor::builtin::multisig::ProposeParameters;
-using fc::vm::actor::builtin::multisig::RemoveSignerParameters;
-using fc::vm::actor::builtin::multisig::SwapSignerParameters;
+using fc::vm::actor::builtin::multisig::Propose;
+using fc::vm::actor::builtin::multisig::RemoveSigner;
+using fc::vm::actor::builtin::multisig::SwapSigner;
 using fc::vm::actor::builtin::multisig::TransactionNumber;
-using fc::vm::actor::builtin::multisig::TransactionNumberParameters;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::MockRuntime;
 using ::testing::_;
@@ -107,29 +107,11 @@ class MultisigActorTest : public ::testing::Test {
  * @then error WRONG_CALLER returned
  */
 TEST_F(MultisigActorTest, ConstructWrongCaller) {
-  ConstructParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(kCronAddress));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-                       MultiSigActor::construct(runtime, encoded_params));
-}
-
-/**
- * @given Runtime and multisig actor
- * @when constructor is called with wrong encoded constructor params
- * @then serialization error returned
- */
-TEST_F(MultisigActorTest, ConstructWrongParams) {
-  MethodParams wrong_params{"DEAD"_unhex};
-
-  EXPECT_CALL(runtime, getImmediateCaller())
-      .WillOnce(testing::Return(kInitAddress));
-
-  EXPECT_OUTCOME_ERROR(VMExitCode::DECODE_ACTOR_PARAMS_ERROR,
-                       MultiSigActor::construct(runtime, wrong_params));
+                       Construct::call(runtime, {}));
 }
 
 /**
@@ -140,14 +122,13 @@ TEST_F(MultisigActorTest, ConstructWrongParams) {
 TEST_F(MultisigActorTest, ConstructWrongThreshold) {
   std::vector<Address> signers{caller_address};
   size_t threshold{5};
-  ConstructParameters params{signers, threshold, default_unlock_duration};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
 
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-                       MultiSigActor::construct(runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+      Construct::call(runtime, {signers, threshold, default_unlock_duration}));
 }
 
 /**
@@ -156,10 +137,6 @@ TEST_F(MultisigActorTest, ConstructWrongThreshold) {
  * @then success returned and state is commited to storage
  */
 TEST_F(MultisigActorTest, ConstrucCorrect) {
-  ConstructParameters params{};
-  CID cid{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(kInitAddress));
   EXPECT_CALL(runtime, getCurrentEpoch())
@@ -170,7 +147,7 @@ TEST_F(MultisigActorTest, ConstrucCorrect) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_TRUE_1(MultiSigActor::construct(runtime, encoded_params));
+  EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, {}));
 }
 
 /**
@@ -179,9 +156,6 @@ TEST_F(MultisigActorTest, ConstrucCorrect) {
  * @then error WRONG_CALLER returned
  */
 TEST_F(MultisigActorTest, ProposeWrongCaller) {
-  ProposeParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   // not a signable code cid
   EXPECT_CALL(runtime, getActorCodeID(caller_address))
       .WillOnce(testing::Return(fc::outcome::success(kCronCodeCid)));
@@ -189,24 +163,7 @@ TEST_F(MultisigActorTest, ProposeWrongCaller) {
       .WillOnce(testing::Return(caller_address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-                       MultiSigActor::propose(runtime, encoded_params));
-}
-
-/**
- * @given Runtime and multisig actor
- * @when propose is called with wrong encoded constructor params
- * @then serialization error returned
- */
-TEST_F(MultisigActorTest, ProposetWrongParams) {
-  MethodParams wrong_params{"DEAD"_unhex};
-
-  EXPECT_CALL(runtime, getActorCodeID(caller_address))
-      .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
-  EXPECT_CALL(runtime, getImmediateCaller())
-      .WillOnce(testing::Return(caller_address));
-
-  EXPECT_OUTCOME_ERROR(VMExitCode::DECODE_ACTOR_PARAMS_ERROR,
-                       MultiSigActor::propose(runtime, wrong_params));
+                       Propose::call(runtime, {}));
 }
 
 /**
@@ -215,8 +172,6 @@ TEST_F(MultisigActorTest, ProposetWrongParams) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, ProposetWrongSigner) {
-  ProposeParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   MultiSignatureActorState actor_state{};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
 
@@ -234,7 +189,7 @@ TEST_F(MultisigActorTest, ProposetWrongSigner) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
-                       MultiSigActor::propose(runtime, encoded_params));
+                       Propose::call(runtime, {}));
 }
 
 /**
@@ -245,9 +200,6 @@ TEST_F(MultisigActorTest, ProposetWrongSigner) {
 TEST_F(MultisigActorTest, ProposeSendInsufficientFunds) {
   BigInt actor_balance{1};
   BigInt value_to_send{100500};  // > actor state balance
-  ProposeParameters params{
-      to_address, value_to_send, method_number, method_params};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   TransactionNumber tx_number{13};
   MultiSignatureActorState actor_state{std::vector{caller_address},
                                        1,
@@ -273,8 +225,10 @@ TEST_F(MultisigActorTest, ProposeSendInsufficientFunds) {
   EXPECT_CALL(runtime, getBalance(Eq(actor_address)))
       .WillOnce(testing::Return(fc::outcome::success(actor_balance)));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
-                       MultiSigActor::propose(runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
+      Propose::call(runtime,
+                    {to_address, value_to_send, method_number, method_params}));
 }
 
 /**
@@ -285,9 +239,6 @@ TEST_F(MultisigActorTest, ProposeSendInsufficientFunds) {
 TEST_F(MultisigActorTest, ProposeSendFundsLocked) {
   BigInt actor_balance{200};
   BigInt value_to_send{200};
-  ProposeParameters params{
-      to_address, value_to_send, method_number, method_params};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   TransactionNumber tx_number{13};
   ChainEpoch start_epoch{42};
   ChainEpoch epoch{43};  // < start_epoch + unlock_duration
@@ -317,8 +268,10 @@ TEST_F(MultisigActorTest, ProposeSendFundsLocked) {
       .WillOnce(testing::Return(fc::outcome::success(actor_balance)));
   EXPECT_CALL(runtime, getCurrentEpoch()).WillOnce(testing::Return(epoch));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
-                       MultiSigActor::propose(runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
+      Propose::call(runtime,
+                    {to_address, value_to_send, method_number, method_params}));
 }
 
 /**
@@ -330,9 +283,6 @@ TEST_F(MultisigActorTest, ProposeSendFundsLocked) {
 TEST_F(MultisigActorTest, ProposeSendFundsLockedStartEpoch) {
   BigInt actor_balance{200};
   BigInt value_to_send{200};
-  ProposeParameters params{
-      to_address, value_to_send, method_number, method_params};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   TransactionNumber tx_number{13};
   ChainEpoch start_epoch{42};
   ChainEpoch epoch{10};  // < start_epoch
@@ -362,8 +312,10 @@ TEST_F(MultisigActorTest, ProposeSendFundsLockedStartEpoch) {
       .WillOnce(testing::Return(fc::outcome::success(actor_balance)));
   EXPECT_CALL(runtime, getCurrentEpoch()).WillOnce(testing::Return(epoch));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
-                       MultiSigActor::propose(runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
+      Propose::call(runtime,
+                    {to_address, value_to_send, method_number, method_params}));
 }
 
 /**
@@ -374,9 +326,6 @@ TEST_F(MultisigActorTest, ProposeSendFundsLockedStartEpoch) {
 TEST_F(MultisigActorTest, ProposeSendFundsEnough) {
   BigInt actor_balance{100};
   BigInt value_to_send{50};
-  ProposeParameters params{
-      to_address, value_to_send, method_number, method_params};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   TransactionNumber tx_number{13};
   MultiSignatureActorState actor_state{std::vector{caller_address},
                                        1,
@@ -425,9 +374,10 @@ TEST_F(MultisigActorTest, ProposeSendFundsEnough) {
                    Eq(value_to_send)))
       .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
 
-  EXPECT_OUTCOME_TRUE(expected, fc::codec::cbor::encode(tx_number));
-  EXPECT_OUTCOME_EQ(MultiSigActor::propose(runtime, encoded_params),
-                    InvocationOutput{Buffer{expected}});
+  EXPECT_OUTCOME_EQ(
+      Propose::call(runtime,
+                    {to_address, value_to_send, method_number, method_params}),
+      tx_number);
 }
 
 /**
@@ -438,9 +388,6 @@ TEST_F(MultisigActorTest, ProposeSendFundsEnough) {
 TEST_F(MultisigActorTest, ProposePending) {
   BigInt actor_balance{100};
   BigInt value_to_send{50};
-  ProposeParameters params{
-      to_address, value_to_send, method_number, method_params};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   TransactionNumber tx_number{13};
   MultiSignatureActorState actor_state{std::vector{caller_address},
                                        2,
@@ -487,9 +434,10 @@ TEST_F(MultisigActorTest, ProposePending) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_TRUE(expected, fc::codec::cbor::encode(tx_number));
-  EXPECT_OUTCOME_EQ(MultiSigActor::propose(runtime, encoded_params),
-                    InvocationOutput{Buffer{expected}});
+  EXPECT_OUTCOME_EQ(
+      Propose::call(runtime,
+                    {to_address, value_to_send, method_number, method_params}),
+      tx_number);
 }
 
 /**
@@ -498,9 +446,6 @@ TEST_F(MultisigActorTest, ProposePending) {
  * @then error WRONG_CALLER returned
  */
 TEST_F(MultisigActorTest, ApproveWrongCaller) {
-  TransactionNumberParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   // not a signable code cid
   EXPECT_CALL(runtime, getActorCodeID(caller_address))
       .WillOnce(testing::Return(fc::outcome::success(kCronCodeCid)));
@@ -508,7 +453,7 @@ TEST_F(MultisigActorTest, ApproveWrongCaller) {
       .WillOnce(testing::Return(caller_address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-                       MultiSigActor::approve(runtime, encoded_params));
+                       Approve::call(runtime, {}));
 }
 
 /**
@@ -517,8 +462,6 @@ TEST_F(MultisigActorTest, ApproveWrongCaller) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, ApproveWrongSigner) {
-  TransactionNumberParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   MultiSignatureActorState actor_state{std::vector{kInitAddress},
                                        default_threshold,
                                        default_next_transaction_id,
@@ -540,7 +483,7 @@ TEST_F(MultisigActorTest, ApproveWrongSigner) {
       .WillRepeatedly(testing::Return(caller_address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
-                       MultiSigActor::approve(runtime, encoded_params));
+                       Approve::call(runtime, {}));
 }
 
 /**
@@ -549,8 +492,6 @@ TEST_F(MultisigActorTest, ApproveWrongSigner) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, ApproveWrongTxNumber) {
-  TransactionNumberParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   // no pending txs in state
   MultiSignatureActorState actor_state{std::vector{caller_address},
                                        default_threshold,
@@ -573,7 +514,7 @@ TEST_F(MultisigActorTest, ApproveWrongTxNumber) {
       .WillRepeatedly(testing::Return(caller_address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
-                       MultiSigActor::approve(runtime, encoded_params));
+                       Approve::call(runtime, {}));
 }
 
 /**
@@ -603,8 +544,6 @@ TEST_F(MultisigActorTest, ApproveAlreadySigned) {
                                        0,
                                        std::vector{pending_tx}};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
-  TransactionNumberParameters approve_params{pending_tx_number};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(approve_params));
 
   EXPECT_CALL(runtime, getActorCodeID(caller_address))
       .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
@@ -618,7 +557,7 @@ TEST_F(MultisigActorTest, ApproveAlreadySigned) {
       .WillRepeatedly(testing::Return(caller_address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_STATE,
-                       MultiSigActor::approve(runtime, encoded_params));
+                       Approve::call(runtime, {pending_tx_number}));
 }
 
 /**
@@ -648,8 +587,6 @@ TEST_F(MultisigActorTest, ApproveSunnyDay) {
                                        0,
                                        std::vector{pending_tx}};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
-  TransactionNumberParameters approve_params{pending_tx_number};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(approve_params));
 
   // expected that pending tx is removed after sending
   MultiSignatureActorState expected_state{
@@ -691,8 +628,7 @@ TEST_F(MultisigActorTest, ApproveSunnyDay) {
                    Eq(value_to_send)))
       .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::approve(runtime, encoded_params),
-                    InvocationOutput{});
+  EXPECT_OUTCOME_TRUE_1(Approve::call(runtime, {pending_tx_number}));
 }
 
 /**
@@ -701,9 +637,6 @@ TEST_F(MultisigActorTest, ApproveSunnyDay) {
  * @then error WRONG_CALLER returned
  */
 TEST_F(MultisigActorTest, CancelWrongCaller) {
-  TransactionNumberParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   // not a signable code cid
   EXPECT_CALL(runtime, getActorCodeID(caller_address))
       .WillOnce(testing::Return(fc::outcome::success(kCronCodeCid)));
@@ -711,7 +644,7 @@ TEST_F(MultisigActorTest, CancelWrongCaller) {
       .WillOnce(testing::Return(caller_address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-                       MultiSigActor::cancel(runtime, encoded_params));
+                       Cancel::call(runtime, {}));
 }
 
 /**
@@ -720,8 +653,6 @@ TEST_F(MultisigActorTest, CancelWrongCaller) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, CancelWrongSigner) {
-  TransactionNumberParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   MultiSignatureActorState actor_state{std::vector{kInitAddress},
                                        default_threshold,
                                        default_next_transaction_id,
@@ -743,7 +674,7 @@ TEST_F(MultisigActorTest, CancelWrongSigner) {
       .WillRepeatedly(testing::Return(caller_address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
-                       MultiSigActor::cancel(runtime, encoded_params));
+                       Cancel::call(runtime, {}));
 }
 
 /**
@@ -752,8 +683,6 @@ TEST_F(MultisigActorTest, CancelWrongSigner) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, CancelWrongTxNumber) {
-  TransactionNumberParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   // no pending txs in state
   MultiSignatureActorState actor_state{std::vector{caller_address},
                                        default_threshold,
@@ -776,7 +705,7 @@ TEST_F(MultisigActorTest, CancelWrongTxNumber) {
       .WillRepeatedly(testing::Return(caller_address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
-                       MultiSigActor::cancel(runtime, encoded_params));
+                       Cancel::call(runtime, {}));
 }
 
 /**
@@ -806,8 +735,6 @@ TEST_F(MultisigActorTest, CancelNotCreator) {
                                        0,
                                        std::vector{pending_tx}};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
-  TransactionNumberParameters cancel_params{pending_tx_number};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(cancel_params));
 
   EXPECT_CALL(runtime, getActorCodeID(caller_address))
       .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
@@ -821,7 +748,7 @@ TEST_F(MultisigActorTest, CancelNotCreator) {
       .WillRepeatedly(testing::Return(caller_address));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
-                       MultiSigActor::cancel(runtime, encoded_params));
+                       Cancel::call(runtime, {pending_tx_number}));
 }
 
 /**
@@ -851,8 +778,6 @@ TEST_F(MultisigActorTest, CancelSunnyDay) {
                                        0,
                                        std::vector{pending_tx}};
   EXPECT_OUTCOME_TRUE(encoded_state, fc::codec::cbor::encode(actor_state));
-  TransactionNumberParameters approve_params{pending_tx_number};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(approve_params));
 
   // expected that pending tx is removed after cancel
   MultiSignatureActorState expected_state{
@@ -882,8 +807,7 @@ TEST_F(MultisigActorTest, CancelSunnyDay) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::cancel(runtime, encoded_params),
-                    InvocationOutput{});
+  EXPECT_OUTCOME_TRUE_1(Cancel::call(runtime, {pending_tx_number}));
 }
 
 /**
@@ -892,16 +816,13 @@ TEST_F(MultisigActorTest, CancelSunnyDay) {
  * @then error WRONG_CALLER returned
  */
 TEST_F(MultisigActorTest, AddSignerWrongCaller) {
-  AddSignerParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-                       MultiSigActor::addSigner(runtime, encoded_params));
+                       AddSigner::call(runtime, {}));
 }
 
 /**
@@ -910,8 +831,6 @@ TEST_F(MultisigActorTest, AddSignerWrongCaller) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
-  AddSignerParameters params{caller_address};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{caller_address, kInitAddress};
   MultiSignatureActorState actor_state{signers,
                                        default_threshold,
@@ -933,7 +852,7 @@ TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-                       MultiSigActor::addSigner(runtime, encoded_params));
+                       AddSigner::call(runtime, {caller_address}));
 }
 
 /**
@@ -942,8 +861,6 @@ TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
  * @then new signer added, threshold is not changed
  */
 TEST_F(MultisigActorTest, AddSignerNotChangeThreshold) {
-  AddSignerParameters params{caller_address, false};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress};
   MultiSignatureActorState actor_state{signers,
                                        default_threshold,
@@ -980,8 +897,7 @@ TEST_F(MultisigActorTest, AddSignerNotChangeThreshold) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::addSigner(runtime, encoded_params),
-                    InvocationOutput{});
+  EXPECT_OUTCOME_TRUE_1(AddSigner::call(runtime, {caller_address, false}));
 }
 
 /**
@@ -990,8 +906,6 @@ TEST_F(MultisigActorTest, AddSignerNotChangeThreshold) {
  * @then new signer added, threshold is changed
  */
 TEST_F(MultisigActorTest, AddSignerChangeThreshold) {
-  AddSignerParameters params{caller_address, true};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress};
   MultiSignatureActorState actor_state{signers,
                                        default_threshold,
@@ -1028,8 +942,7 @@ TEST_F(MultisigActorTest, AddSignerChangeThreshold) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::addSigner(runtime, encoded_params),
-                    InvocationOutput{});
+  EXPECT_OUTCOME_TRUE_1(AddSigner::call(runtime, {caller_address, true}));
 }
 
 /**
@@ -1038,16 +951,13 @@ TEST_F(MultisigActorTest, AddSignerChangeThreshold) {
  * @then error WRONG_CALLER returned
  */
 TEST_F(MultisigActorTest, RemoveSignerWrongCaller) {
-  RemoveSignerParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-                       MultiSigActor::removeSigner(runtime, encoded_params));
+                       RemoveSigner::call(runtime, {}));
 }
 
 /**
@@ -1056,8 +966,6 @@ TEST_F(MultisigActorTest, RemoveSignerWrongCaller) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, RemoveSignerNotAdded) {
-  RemoveSignerParameters params{caller_address};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress};
   MultiSignatureActorState actor_state{signers,
                                        default_threshold,
@@ -1079,7 +987,7 @@ TEST_F(MultisigActorTest, RemoveSignerNotAdded) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
-                       MultiSigActor::removeSigner(runtime, encoded_params));
+                       RemoveSigner::call(runtime, {caller_address}));
 }
 
 /**
@@ -1088,8 +996,6 @@ TEST_F(MultisigActorTest, RemoveSignerNotAdded) {
  * @then new signer added, threshold is not changed
  */
 TEST_F(MultisigActorTest, RemoveSignerNotChangeThreshold) {
-  RemoveSignerParameters params{caller_address, false};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress, caller_address};
   MultiSignatureActorState actor_state{signers,
                                        default_threshold,
@@ -1126,8 +1032,7 @@ TEST_F(MultisigActorTest, RemoveSignerNotChangeThreshold) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::removeSigner(runtime, encoded_params),
-                    InvocationOutput{});
+  EXPECT_OUTCOME_TRUE_1(RemoveSigner::call(runtime, {caller_address, false}));
 }
 
 /**
@@ -1136,8 +1041,6 @@ TEST_F(MultisigActorTest, RemoveSignerNotChangeThreshold) {
  * @then new signer added, threshold is changed
  */
 TEST_F(MultisigActorTest, RemoveSignerChangeThreshold) {
-  AddSignerParameters params{caller_address, true};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress, caller_address};
   size_t old_threshold{2};
   MultiSignatureActorState actor_state{signers,
@@ -1175,8 +1078,7 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThreshold) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::removeSigner(runtime, encoded_params),
-                    InvocationOutput{});
+  EXPECT_OUTCOME_TRUE_1(RemoveSigner::call(runtime, {caller_address, true}));
 }
 
 /**
@@ -1185,8 +1087,6 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThreshold) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, RemoveSignerChangeThresholdZero) {
-  AddSignerParameters params{caller_address, true};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress, caller_address};
   MultiSignatureActorState actor_state{signers,
                                        default_threshold,
@@ -1208,7 +1108,7 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdZero) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-                       MultiSigActor::removeSigner(runtime, encoded_params));
+                       RemoveSigner::call(runtime, {caller_address, true}));
 }
 
 /**
@@ -1217,8 +1117,6 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdZero) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, RemoveSignerChangeThresholdError) {
-  AddSignerParameters params{caller_address, false};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{kInitAddress, caller_address};
   size_t old_threshold{2};
   MultiSignatureActorState actor_state{signers,
@@ -1241,7 +1139,7 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdError) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-                       MultiSigActor::removeSigner(runtime, encoded_params));
+                       RemoveSigner::call(runtime, {caller_address, false}));
 }
 
 /**
@@ -1250,16 +1148,13 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdError) {
  * @then error WRONG_CALLER returned
  */
 TEST_F(MultisigActorTest, SwapSignerWrongCaller) {
-  SwapSignerParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-                       MultiSigActor::swapSigner(runtime, encoded_params));
+                       SwapSigner::call(runtime, {}));
 }
 
 /**
@@ -1268,8 +1163,6 @@ TEST_F(MultisigActorTest, SwapSignerWrongCaller) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, SwapSignerNotAdded) {
-  SwapSignerParameters params{caller_address, kCronAddress};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   // old signer not present
   std::vector<Address> signers{kInitAddress};
   MultiSignatureActorState actor_state{signers,
@@ -1291,8 +1184,9 @@ TEST_F(MultisigActorTest, SwapSignerNotAdded) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
-                       MultiSigActor::swapSigner(runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
+      SwapSigner::call(runtime, {caller_address, kCronAddress}));
 }
 
 /**
@@ -1301,8 +1195,6 @@ TEST_F(MultisigActorTest, SwapSignerNotAdded) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, SwapSignerAlreadyAdded) {
-  SwapSignerParameters params{caller_address, kCronAddress};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   // new signer is already present
   std::vector<Address> signers{caller_address, kCronAddress};
   MultiSignatureActorState actor_state{signers,
@@ -1324,8 +1216,9 @@ TEST_F(MultisigActorTest, SwapSignerAlreadyAdded) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-                       MultiSigActor::swapSigner(runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+      SwapSigner::call(runtime, {caller_address, kCronAddress}));
 }
 
 /**
@@ -1334,8 +1227,6 @@ TEST_F(MultisigActorTest, SwapSignerAlreadyAdded) {
  * @then state updated and sucess returned
  */
 TEST_F(MultisigActorTest, SwapSignerSuccess) {
-  SwapSignerParameters params{caller_address, kCronAddress};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{caller_address, kInitAddress};
   MultiSignatureActorState actor_state{signers,
                                        default_threshold,
@@ -1372,8 +1263,8 @@ TEST_F(MultisigActorTest, SwapSignerSuccess) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::swapSigner(runtime, encoded_params),
-                    InvocationOutput{});
+  EXPECT_OUTCOME_TRUE_1(
+      SwapSigner::call(runtime, {caller_address, kCronAddress}));
 }
 
 /**
@@ -1382,16 +1273,13 @@ TEST_F(MultisigActorTest, SwapSignerSuccess) {
  * @then error WRONG_CALLER returned
  */
 TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
-  ChangeThresholdParameters params{};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
-                       MultiSigActor::changeThreshold(runtime, encoded_params));
+                       ChangeThreshold::call(runtime, {}));
 }
 
 /**
@@ -1400,9 +1288,6 @@ TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, ChangeThresholdZero) {
-  ChangeThresholdParameters params{0};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   std::vector<Address> signers{caller_address, kInitAddress};
   MultiSignatureActorState actor_state{signers,
                                        default_threshold,
@@ -1424,7 +1309,7 @@ TEST_F(MultisigActorTest, ChangeThresholdZero) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-                       MultiSigActor::changeThreshold(runtime, encoded_params));
+                       ChangeThreshold::call(runtime, {0}));
 }
 
 /**
@@ -1433,9 +1318,6 @@ TEST_F(MultisigActorTest, ChangeThresholdZero) {
  * @then error returned
  */
 TEST_F(MultisigActorTest, ChangeThresholdMoreThanSigners) {
-  ChangeThresholdParameters params{100500};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   std::vector<Address> signers{caller_address, kInitAddress};
   MultiSignatureActorState actor_state{signers,
                                        default_threshold,
@@ -1457,7 +1339,7 @@ TEST_F(MultisigActorTest, ChangeThresholdMoreThanSigners) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-                       MultiSigActor::changeThreshold(runtime, encoded_params));
+                       ChangeThreshold::call(runtime, {100500}));
 }
 
 /**
@@ -1468,8 +1350,6 @@ TEST_F(MultisigActorTest, ChangeThresholdMoreThanSigners) {
 TEST_F(MultisigActorTest, ChangeThresholdSuccess) {
   size_t old_threshold = 1;
   size_t new_threshold = 2;
-  ChangeThresholdParameters params{new_threshold};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
   std::vector<Address> signers{caller_address, kInitAddress};
   MultiSignatureActorState actor_state{signers,
                                        old_threshold,
@@ -1505,6 +1385,5 @@ TEST_F(MultisigActorTest, ChangeThresholdSuccess) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_EQ(MultiSigActor::changeThreshold(runtime, encoded_params),
-                    InvocationOutput{});
+  EXPECT_OUTCOME_TRUE_1(ChangeThreshold::call(runtime, {new_threshold}));
 }
