@@ -269,8 +269,7 @@ StoragePowerActorMethods::slashPledgeCollateral(Runtime &runtime,
 fc::outcome::result<void> StoragePowerActorMethods::deleteMinerActor(
     Runtime &runtime, StoragePowerActor &state, const Address &miner) {
   OUTCOME_TRY(amount_slashed, state.deleteMiner(miner));
-  OUTCOME_TRY(runtime.send(
-      miner, miner::kOnDeleteMinerMethodNumber, {}, TokenAmount{0}));
+  OUTCOME_TRY(runtime.sendM<miner::OnDeleteMiner>(miner, {}, 0));
   OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, amount_slashed));
   return fc::outcome::success();
 }

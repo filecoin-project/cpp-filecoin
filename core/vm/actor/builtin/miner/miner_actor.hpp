@@ -14,46 +14,71 @@
 
 namespace fc::vm::actor::builtin::miner {
 
-  constexpr MethodNumber kGetControlAddressesMethodNumber{2};
-  constexpr MethodNumber kChangeWorkerAddressMethodNumber{3};
-  constexpr MethodNumber kChangePeerIdMethodNumber{4};
-  constexpr MethodNumber kSubmitWindowedPoStMethodNumber{5};
-  constexpr MethodNumber kOnDeleteMinerMethodNumber{6};
-  constexpr MethodNumber kPreCommitSectorMethodNumber{7};
-  constexpr MethodNumber kProveCommitSectorMethodNumber{8};
-  constexpr MethodNumber kExtendSectorExpirationMethodNumber{9};
-  constexpr MethodNumber kTerminateSectorsMethodNumber{10};
-  constexpr MethodNumber kDeclareTemporaryFaultsMethodNumber{11};
-  constexpr MethodNumber kOnDeferredCronEventMethodNumber{12};
-  constexpr MethodNumber kCheckSectorProvenMethodNumber{13};
-
   constexpr MethodNumber kSubmitElectionPoStMethodNumber{20};
 
-  ACTOR_METHOD(constructor);
+  struct Construct : ActorMethodBase<1> {
+    using Params = ConstructorParams;
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(controlAddresses);
+  struct ControlAddresses : ActorMethodBase<2> {
+    using Result = GetControlAddressesReturn;
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(changeWorkerAddress);
+  struct ChangeWorkerAddress : ActorMethodBase<3> {
+    using Params = ChangeWorkerAddressParams;
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(changePeerId);
+  struct ChangePeerId : ActorMethodBase<4> {
+    using Params = ChangePeerIdParams;
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(submitWindowedPoSt);
+  struct SubmitWindowedPoSt : ActorMethodBase<5> {
+    using Params = SubmitWindowedPoStParams;
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(onDeleteMiner);
+  struct OnDeleteMiner : ActorMethodBase<6> {
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(preCommitSector);
+  struct PreCommitSector : ActorMethodBase<7> {
+    using Params = PreCommitSectorParams;
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(proveCommitSector);
+  struct ProveCommitSector : ActorMethodBase<8> {
+    using Params = ProveCommitSectorParams;
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(extendSectorExpiration);
+  struct ExtendSectorExpiration : ActorMethodBase<9> {
+    using Params = ExtendSectorExpirationParams;
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(terminateSectors);
+  struct TerminateSectors : ActorMethodBase<10> {
+    using Params = TerminateSectorsParams;
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(declareTemporaryFaults);
+  struct DeclareTemporaryFaults : ActorMethodBase<11> {
+    using Params = DeclareTemporaryFaultsParams;
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(onDeferredCronEvent);
+  struct OnDeferredCronEvent : ActorMethodBase<12> {
+    using Params = OnDeferredCronEventParams;
+    ACTOR_METHOD_STUB();
+  };
 
-  ACTOR_METHOD(checkSectorProven);
+  struct CheckSectorProven : ActorMethodBase<13> {
+    using Params = CheckSectorProvenParams;
+    ACTOR_METHOD_STUB();
+  };
 
   extern const ActorExports exports;
 
