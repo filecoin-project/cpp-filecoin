@@ -35,9 +35,11 @@ namespace fc::proofs {
   using primitives::SectorSize;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
+  using primitives::sector::PoStCandidate;
   using primitives::sector::SealRandomness;
   using primitives::sector::SectorInfo;
   using primitives::sector::Ticket;
+  using primitives::sector::PoStRandomness;
 
   // RawSealPreCommitOutput is used to acquire a seed from the chain for the
   // second step of Interactive PoRep.
@@ -70,13 +72,10 @@ namespace fc::proofs {
     std::vector<PrivateSectorInfo> values;
   };
 
-  /*class Candidate {
-   public:
-    uint64_t sector_id = 0;
-    Ticket partial_ticket;
+  struct PoStCandidateWithTicket {
+    PoStCandidate candidate;
     Ticket ticket;
-    uint64_t sector_challenge_index = 0;
-  };*/
+  };
 
   struct WriteWithoutAlignmentResult {
     uint64_t total_write_unpadded = 0;
@@ -197,12 +196,12 @@ namespace fc::proofs {
     /**
      * @brief Generates proof-of-spacetime candidates for ElectionPoSt
      */
-    /*static outcome::result<std::vector<Candidate>> generateCandidates(
-        uint64_t sector_size,
+    static outcome::result<std::vector<PoStCandidateWithTicket>>
+    generateCandidates(
         const Prover &prover_id,
-        const Randomness &randomness,
+        const PoStRandomness &randomness,
         uint64_t challenge_count,
-        const SortedPrivateSectorInfo &sorted_private_replica_info);*/
+        const SortedPrivateSectorInfo &sorted_private_replica_info);
 
     /**
      * @brief Generate a proof-of-spacetime

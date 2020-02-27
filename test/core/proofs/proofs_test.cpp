@@ -42,6 +42,7 @@ class ProofsTest : public test::BaseFS_Test {
  * @then success
  */
 TEST_F(ProofsTest, ValidPoSt) {
+  uint64_t challenge_count = 2;
   Prover prover_id{{6, 7, 8}};
   Randomness randomness{{9, 9, 9}};
   Ticket ticket{{5, 4, 2}};
@@ -183,10 +184,8 @@ TEST_F(ProofsTest, ValidPoSt) {
   private_replica_info.sealed_sector_path = sealed_sector_file;
   private_replica_info.post_proof_type = postProofType;
 
-  std::vector<PrivateSectorInfo> private_replicas_info = {
-      private_replica_info};
-  auto private_info =
-      Proofs::newSortedPrivateSectorInfo(private_replicas_info);
+  std::vector<PrivateSectorInfo> private_replicas_info = {private_replica_info};
+  auto private_info = Proofs::newSortedPrivateSectorInfo(private_replicas_info);
 
   PublicSectorInfo public_sector_info;
   public_sector_info.sector_num = sector_num;
@@ -195,12 +194,12 @@ TEST_F(ProofsTest, ValidPoSt) {
   std::vector<PublicSectorInfo> public_sectors_info = {public_sector_info};
   auto public_info = Proofs::newSortedPublicSectorInfo(public_sectors_info);
 
-  /*EXPECT_OUTCOME_TRUE(
+  EXPECT_OUTCOME_TRUE(
       candidates,
       Proofs::generateCandidates(
-          sector_size, prover_id, randomness, challenge_count, private_info));
+          prover_id, randomness, challenge_count, private_info));
 
-  EXPECT_OUTCOME_TRUE(
+  /*EXPECT_OUTCOME_TRUE(
       proof_a,
       Proofs::generatePoSt(
           sector_size, prover_id, private_info, randomness, candidates))

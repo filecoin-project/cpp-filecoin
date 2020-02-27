@@ -18,6 +18,7 @@ namespace fc::proofs {
   using common::Blob;
   using crypto::randomness::Randomness;
   using namespace fc::common;
+  using primitives::sector::SectorId;
 
   template <typename T, typename D>
   auto make_unique(T *ptr, D deleter) {
@@ -28,20 +29,34 @@ namespace fc::proofs {
   // TO CPP CASTED FUNCTIONS
   // ******************
 
-  /*Candidate cppCandidate(const FFICandidate &c_candidate) {
-    Candidate candidate;
-    candidate.sector_id = c_candidate.sector_id;
-    candidate.sector_challenge_index = c_candidate.sector_challenge_index;
-    std::copy(c_candidate.ticket,
-              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-              c_candidate.ticket + Ticket::size(),
-              candidate.ticket.begin());
-    std::copy(c_candidate.partial_ticket,
-              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-              c_candidate.partial_ticket + Ticket::size(),
-              candidate.partial_ticket.begin());
-    return candidate;
+  PoStCandidateWithTicket cppCandidateWithTicket(
+      const FFICandidate &c_candidate) {
+    return PoStCandidateWithTicket{
+        .candidate =
+            PoStCandidate{
+                .sector =
+                    SectorId{
+                        .miner = 0,
+                        .sector = c_candidate.sector_id,
+                    },
+                .partial_ticket = cppCommitment(
+                    gsl::make_span(c_candidate.partial_ticket, 32)),
+                .challenge_index = int64_t(c_candidate.sector_challenge_index),
+            },
+        .ticket = cppCommitment(gsl::make_span(c_candidate.ticket, 32)),
+    };
   }
+
+  std::vector<PoStCandidateWithTicket> cppCandidatesWithTickets(
+      gsl::span<const FFICandidate> c_candidates) {
+    std::vector<PoStCandidateWithTicket> cpp_candidates;
+    for (const auto &c_candidate : c_candidates) {
+      cpp_candidates.push_back(cppCandidateWithTicket(c_candidate));
+    }
+    return cpp_candidates;
+  }
+
+  /*
 
   std::vector<Candidate> cppCandidates(
       const gsl::span<const FFICandidate> &c_candidates) {
@@ -180,35 +195,40 @@ namespace fc::proofs {
       c_candidates.push_back(cCandidate(cpp_candidate));
     }
     return c_candidates;
-  }
+  }*/
 
-  FFIPrivateReplicaInfo cPrivateReplicaInfo(
+  outcome::result<FFIPrivateReplicaInfo> cPrivateReplicaInfo(
       const PrivateSectorInfo &cpp_private_replica_info) {
     FFIPrivateReplicaInfo c_private_replica_info;
 
-    c_private_replica_info.sector_id = cpp_private_replica_info.sector_id;
+    c_private_replica_info.sector_id = cpp_private_replica_info.sector;
 
     c_private_replica_info.cache_dir_path =
         cpp_private_replica_info.cache_dir_path.data();
     c_private_replica_info.replica_path =
         cpp_private_replica_info.sealed_sector_path.data();
+    OUTCOME_TRY(c_proof_type,
+                cRegisteredPoStProof(cpp_private_replica_info.post_proof_type));
 
-    std::copy(cpp_private_replica_info.comm_r.begin(),
-              cpp_private_replica_info.comm_r.end(),
-              c_private_replica_info.comm_r);
+    c_private_replica_info.registered_proof = c_proof_type;
+
+    OUTCOME_TRY(comm_r,
+                CIDToReplicaCommitmentV1(cpp_private_replica_info.sealed_cid));
+    std::copy(comm_r.begin(), comm_r.end(), c_private_replica_info.comm_r);
 
     return c_private_replica_info;
   }
 
-  std::vector<FFIPrivateReplicaInfo> cPrivateReplicasInfo(
+  outcome::result<std::vector<FFIPrivateReplicaInfo>> cPrivateReplicasInfo(
       gsl::span<const PrivateSectorInfo> cpp_private_replicas_info) {
     std::vector<FFIPrivateReplicaInfo> c_private_replicas_info;
     for (const auto &cpp_private_replica_info : cpp_private_replicas_info) {
-      c_private_replicas_info.push_back(
-          cPrivateReplicaInfo(cpp_private_replica_info));
+      OUTCOME_TRY(c_private_replica_info,
+                  cPrivateReplicaInfo(cpp_private_replica_info));
+      c_private_replicas_info.push_back(c_private_replica_info);
     }
     return c_private_replicas_info;
-  }*/
+  }
 
   outcome::result<FFIPublicPieceInfo> cPublicPieceInfo(
       const PieceInfo &cpp_public_piece_info) {
@@ -306,6 +326,32 @@ namespace fc::proofs {
   // ******************
   // GENERATED FUNCTIONS
   // ******************
+
+  outcome::result<std::vector<PoStCandidateWithTicket>>
+  Proofs::generateCandidates(
+      const Prover &prover_id,
+      const PoStRandomness &randomness,
+      uint64_t challenge_count,
+      const SortedPrivateSectorInfo &sorted_private_replica_info) {
+    OUTCOME_TRY(c_sorted_private_sector_info,
+                cPrivateReplicasInfo(sorted_private_replica_info.values));
+
+    auto res_ptr =
+        make_unique(generate_candidates(cPointerToArray(randomness),
+                                        challenge_count,
+                                        c_sorted_private_sector_info.data(),
+                                        c_sorted_private_sector_info.size(),
+                                        cPointerToArray(prover_id)),
+                    destroy_generate_candidates_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("generateCandidates: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return cppCandidatesWithTickets(gsl::span<const FFICandidate>(
+        res_ptr->candidates_ptr, res_ptr->candidates_len));
+  }
 
   /*outcome::result<std::vector<Candidate>> Proofs::generateCandidates(
       uint64_t sector_size,
