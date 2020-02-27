@@ -644,7 +644,7 @@ namespace fc::vm::actor::builtin::miner {
 
   ACTOR_METHOD(proveCommitSector) {
     OUTCOME_TRY(params2, decodeActorParams<ProveCommitSectorParams>(params));
-    OUTCOME_TRY(state, assertCallerIsWorker(runtime));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
     auto ipld = runtime.getIpfsDatastore();
     auto sector = params2.sector;
 
