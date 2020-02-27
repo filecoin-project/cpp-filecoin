@@ -31,20 +31,18 @@ namespace fc::proofs {
 
   PoStCandidateWithTicket cppCandidateWithTicket(
       const FFICandidate &c_candidate) {
-    return PoStCandidateWithTicket{
-        .candidate =
-            PoStCandidate{
-                .partial_ticket = cppCommitment(
-                    gsl::make_span(c_candidate.partial_ticket, 32)),
-                .sector =
-                    SectorId{
-                        .miner = 0,
-                        .sector = c_candidate.sector_id,
-                    },
-                .challenge_index = int64_t(c_candidate.sector_challenge_index),
-            },
-        .ticket = cppCommitment(gsl::make_span(c_candidate.ticket, 32)),
-    };
+    PoStCandidateWithTicket candidate_with_ticket;
+
+    candidate_with_ticket.ticket =
+        cppCommitment(gsl::make_span(c_candidate.ticket, 32));
+    candidate_with_ticket.candidate.partial_ticket =
+        cppCommitment(gsl::make_span(c_candidate.partial_ticket, 32));
+    candidate_with_ticket.candidate.challenge_index =
+        int64_t(c_candidate.sector_challenge_index);
+    candidate_with_ticket.candidate.sector =
+        SectorId{.miner = 0, .sector = c_candidate.sector_id};
+
+    return candidate_with_ticket;
   }
 
   std::vector<PoStCandidateWithTicket> cppCandidatesWithTickets(
