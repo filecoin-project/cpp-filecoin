@@ -166,8 +166,8 @@ namespace fc::vm::actor::builtin::miner {
   }
 
   outcome::result<void> confirmPaymentAndRefundChange(Runtime &runtime,
-                                                      BigInt expected) {
-    BigInt extra = expected - runtime.getValueReceived();
+                                                      TokenAmount expected) {
+    TokenAmount extra = expected - runtime.getValueReceived();
     if (extra < 0) {
       return VMExitCode::MINER_ACTOR_INSUFFICIENT_FUNDS;
     }
