@@ -8,6 +8,7 @@
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/address/address_codec.hpp"
+#include "primitives/block/block.hpp"
 #include "vm/actor/actor.hpp"
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
@@ -19,8 +20,10 @@
 namespace fc::vm::actor::builtin::storage_power {
 
   using miner::PeerId;
+  using primitives::block::BlockHeader;
   using runtime::InvocationOutput;
   using runtime::Runtime;
+  using ConsensusFaultType = uint64_t;
 
   constexpr MethodNumber kAddBalanceMethodNumber{2};
   constexpr MethodNumber kWithdrawBalanceMethodNumber{3};
@@ -81,24 +84,32 @@ namespace fc::vm::actor::builtin::storage_power {
     TokenAmount pledge;
   };
 
-  struct OnSectorTemporaryFaultEffectiveEndParams {
+  struct OnSectorTemporaryFaultEffectiveEndParameters {
     std::vector<SectorStorageWeightDesc> weights;
     TokenAmount pledge;
   };
 
-  struct OnSectorModifyWeightDescParams {
+  struct OnSectorModifyWeightDescParameters {
     SectorStorageWeightDesc prev_weight;
     TokenAmount prev_pledge;
     SectorStorageWeightDesc new_weight;
   };
 
-  struct OnMinerWindowedPoStFailureParams {
+  struct OnMinerWindowedPoStFailureParameters {
     uint64_t num_consecutive_failures;
   };
 
-  struct EnrollCronEventParams {
+  struct EnrollCronEventParameters {
     ChainEpoch event_epoch;
     Buffer payload;
+  };
+
+  struct ReportConsensusFaultParameters {
+    BlockHeader block_header_1;
+    BlockHeader block_header_2;
+    Address target;
+    ChainEpoch fault_epoch;
+    ConsensusFaultType fault_type;
   };
 
   class StoragePowerActorMethods {
@@ -164,14 +175,21 @@ namespace fc::vm::actor::builtin::storage_power {
 
   CBOR_TUPLE(OnSectorTemporaryFaultEffectiveBeginParameters, weights, pledge)
 
-  CBOR_TUPLE(OnSectorModifyWeightDescParams,
+  CBOR_TUPLE(OnSectorModifyWeightDescParameters,
              prev_weight,
              prev_pledge,
              new_weight)
 
-  CBOR_TUPLE(OnMinerWindowedPoStFailureParams, num_consecutive_failures)
+  CBOR_TUPLE(OnMinerWindowedPoStFailureParameters, num_consecutive_failures)
 
-  CBOR_TUPLE(EnrollCronEventParams, event_epoch, payload);
+  CBOR_TUPLE(EnrollCronEventParameters, event_epoch, payload)
+
+  CBOR_TUPLE(ReportConsensusFaultParameters,
+             block_header_1,
+             block_header_2,
+             target,
+             fault_epoch,
+             fault_type)
 
 }  // namespace fc::vm::actor::builtin::storage_power
 
