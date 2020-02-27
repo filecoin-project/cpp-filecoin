@@ -13,10 +13,6 @@
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
-#define ACTOR_METHOD(name)                                 \
-  outcome::result<InvocationOutput> name(Runtime &runtime, \
-                                         const MethodParams &params)
-
 #define ACTOR_METHOD_STUB() \
   static outcome::result<Result> call(Runtime &, const Params &);
 
@@ -24,7 +20,6 @@
   outcome::result<M::Result> M::call(Runtime &runtime, const Params &params)
 
 namespace fc::vm::actor {
-
   using common::Buffer;
   using runtime::InvocationOutput;
   using runtime::Runtime;
