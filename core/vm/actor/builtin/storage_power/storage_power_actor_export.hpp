@@ -34,8 +34,8 @@ namespace fc::vm::actor::builtin::storage_power {
   constexpr MethodNumber kOnSectorTemporaryFaultEffectiveBeginMethodNumber{8};
   constexpr MethodNumber kOnSectorTemporaryFaultEffectiveEndMethodNumber{9};
   constexpr MethodNumber kOnSectorModifyWeightDescMethodNumber{10};
-  constexpr MethodNumber kOnMinerSurprisePoStSuccessMethodNumber{11};
-  constexpr MethodNumber kOnMinerSurprisePoStFailureMethodNumber{12};
+  constexpr MethodNumber kOnMinerWindowedPoStSuccessMethodNumber{11};
+  constexpr MethodNumber kOnMinerWindowedPoStFailureMethodNumber{12};
   constexpr MethodNumber kEnrollCronEventMethodNumber{13};
   constexpr MethodNumber kReportConsensusFaultMethodNumber{14};
   constexpr MethodNumber kOnEpochTickEndMethodNumber{15};
@@ -95,6 +95,10 @@ namespace fc::vm::actor::builtin::storage_power {
     SectorStorageWeightDesc new_weight;
   };
 
+  struct OnSectorModifyWeightDescReturn {
+    TokenAmount new_pledge;
+  };
+
   struct OnMinerWindowedPoStFailureParameters {
     uint64_t num_consecutive_failures;
   };
@@ -130,7 +134,18 @@ namespace fc::vm::actor::builtin::storage_power {
 
     static ACTOR_METHOD(onSectorTemporaryFaultEffectiveBegin);
 
+    static ACTOR_METHOD(onSectorTemporaryFaultEffectiveEnd);
+
+    static ACTOR_METHOD(onSectorModifyWeightDesc);
+
+    static ACTOR_METHOD(onMinerWindowedPoStSuccess);
+
+    static ACTOR_METHOD(onMinerWindowedPoStFailure);
+
    private:
+    static outcome::result<void> assertImmediateCallerTypeIsMiner(
+        Runtime &runtime);
+
     /**
      * Get current storage power actor state
      * @param runtime - current runtime
@@ -175,10 +190,13 @@ namespace fc::vm::actor::builtin::storage_power {
 
   CBOR_TUPLE(OnSectorTemporaryFaultEffectiveBeginParameters, weights, pledge)
 
+  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveEndParameters, weights, pledge)
+
   CBOR_TUPLE(OnSectorModifyWeightDescParameters,
              prev_weight,
              prev_pledge,
              new_weight)
+  CBOR_TUPLE(OnSectorModifyWeightDescReturn, new_pledge)
 
   CBOR_TUPLE(OnMinerWindowedPoStFailureParameters, num_consecutive_failures)
 

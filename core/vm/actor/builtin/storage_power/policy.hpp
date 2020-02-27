@@ -10,10 +10,15 @@
 
 namespace fc::vm::actor::builtin::storage_power {
 
+  using fc::primitives::EpochDuration;
   using fc::primitives::SectorStorageWeightDesc;
   using fc::primitives::StoragePower;
   using fc::primitives::TokenAmount;
   using fc::vm::actor::builtin::reward::kBlockRewardTarget;
+
+  constexpr EpochDuration kWindowedPostChallengeDuration{240};
+
+  constexpr size_t kWindowedPostFailureLimit{3};
 
   /**
    * Total expected block reward per epoch (per-winner reward * expected
@@ -48,6 +53,10 @@ namespace fc::vm::actor::builtin::storage_power {
 
   TokenAmount pledgeForWeight(const SectorStorageWeightDesc &weight,
                               StoragePower network_power);
+
+  /** Penalty to pledge collateral for repeated failure to prove storage */
+  TokenAmount pledgePenaltyForWindowedPoStFailure(TokenAmount pledge,
+                                                  int64_t failures);
 
 }  // namespace fc::vm::actor::builtin::storage_power
 

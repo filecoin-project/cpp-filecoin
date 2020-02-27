@@ -15,12 +15,6 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::SectorStorageWeightDesc;
   using primitives::TokenAmount;
 
-  // TODO(turuslan): FIL-128 move to storage power actor
-  constexpr EpochDuration kWindowedPostChallengeDuration{240};
-
-  // TODO(turuslan): FIL-128 move to storage power actor
-  constexpr size_t kWindowedPostFailureLimit{3};
-
   constexpr ChainEpoch kPoStLookback{1};
 
   constexpr auto kElectionLookback{kPoStLookback};

@@ -30,4 +30,10 @@ namespace fc::vm::actor::builtin::storage_power {
     return weight.sector_size * weight.duration * kEpochTotalExpectedReward
            * kPledgeFactor / network_power;
   }
+
+  TokenAmount pledgePenaltyForWindowedPoStFailure(TokenAmount pledge,
+                                                  int64_t failures) {
+    return TokenAmount{0};
+  }
+
 }  // namespace fc::vm::actor::builtin::storage_power
