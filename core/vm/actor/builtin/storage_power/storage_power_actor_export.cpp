@@ -334,6 +334,24 @@ namespace fc::vm::actor::builtin::storage_power {
     return fc::outcome::success();
   }
 
+  ACTOR_METHOD(StoragePowerActorMethods::reportConsensusFault) {
+    // Note: only the first reporter of any fault is rewarded.
+    // Subsequent invocations fail because the miner has been removed.
+    OUTCOME_TRY(parameters,
+                decodeActorParams<ReportConsensusFaultParameters>(params));
+    OUTCOME_TRY(fault,
+                runtime.verifyConsensusFault(parameters.block_header_1,
+                                             parameters.block_header_2));
+    if (!fault) {
+      return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
+    }
+
+    OUTCOME_TRY(target, runtime.resolveAddress(parameters.target));
+    Address reporter = runtime.getMessage().get().from;
+
+    return fc::outcome::success();
+  }
+
   fc::outcome::result<void>
   StoragePowerActorMethods::assertImmediateCallerTypeIsMiner(Runtime &runtime) {
     OUTCOME_TRY(immediate_caller_code_id,
@@ -402,6 +420,8 @@ namespace fc::vm::actor::builtin::storage_power {
       {kOnMinerWindowedPoStSuccessMethodNumber,
        ActorMethod(StoragePowerActorMethods::onMinerWindowedPoStFailure)},
       {kEnrollCronEventMethodNumber,
-       ActorMethod(StoragePowerActorMethods::enrollCronEvent)}};
+       ActorMethod(StoragePowerActorMethods::enrollCronEvent)},
+      {kReportConsensusFaultMethodNumber,
+       ActorMethod(StoragePowerActorMethods::reportConsensusFault)}};
 
 }  // namespace fc::vm::actor::builtin::storage_power

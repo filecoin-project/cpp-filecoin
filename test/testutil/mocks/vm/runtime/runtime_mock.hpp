@@ -74,6 +74,10 @@ namespace fc::vm::runtime {
     MOCK_METHOD2(verifySeal,
                  outcome::result<bool>(uint64_t sector_size,
                                        const SealVerifyInfo &info));
+
+    MOCK_METHOD2(verifyConsensusFault,
+                 outcome::result<bool>(const BlockHeader &block_header_1,
+                                       const BlockHeader &block_header_2));
   };
 }  // namespace fc::vm::runtime
 

@@ -144,6 +144,8 @@ namespace fc::vm::actor::builtin::storage_power {
 
     static ACTOR_METHOD(enrollCronEvent);
 
+    static ACTOR_METHOD(reportConsensusFault);
+
    private:
     static outcome::result<void> assertImmediateCallerTypeIsMiner(
         Runtime &runtime);
