@@ -51,6 +51,11 @@ namespace fc::vm::runtime {
     return MethodParams{maybe_bytes.value()};
   }
 
+  template <typename T>
+  auto decodeActorReturn(const InvocationOutput &result) {
+    return codec::cbor::decode<T>(result.return_value);
+  }
+
   /**
    * @class Runtime is the VM's internal runtime object exposed to actors
    */

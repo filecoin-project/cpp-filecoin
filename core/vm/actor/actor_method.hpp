@@ -47,12 +47,7 @@ namespace fc::vm::actor {
 
   using runtime::encodeActorParams;
 
-  template <typename T>
-  outcome::result<T> decodeActorReturn(const InvocationOutput &result) {
-    OUTCOME_TRY(decoded,
-                codec::cbor::decode<T>(result.return_value.toVector()));
-    return std::move(decoded);
-  }
+  using runtime::decodeActorReturn;
 
   template <typename T>
   outcome::result<InvocationOutput> encodeActorReturn(const T &result) {
