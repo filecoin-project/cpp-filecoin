@@ -24,7 +24,7 @@ namespace fc::vm::actor::builtin::miner {
   constexpr MethodNumber kExtendSectorExpirationMethodNumber{9};
   constexpr MethodNumber kTerminateSectorsMethodNumber{10};
   constexpr MethodNumber kDeclareTemporaryFaultsMethodNumber{11};
-  constexpr MethodNumber kOnDeferredCronEventMethodNumber{11};
+  constexpr MethodNumber kOnDeferredCronEventMethodNumber{12};
 
   constexpr MethodNumber kSubmitElectionPoStMethodNumber{20};
 
