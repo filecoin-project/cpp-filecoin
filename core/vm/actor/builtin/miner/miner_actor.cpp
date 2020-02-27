@@ -652,18 +652,19 @@ namespace fc::vm::actor::builtin::miner {
                 Hamt(ipld, state.precommitted_sectors)
                     .getCbor<SectorPreCommitOnChainInfo>(uvarintKey(sector)));
 
-    OUTCOME_TRY(verifySeal(runtime,
-                           state.info.sector_size,
-                           {
-                               .sealed_cid = precommit.info.sealed_cid,
-                               .interactive_epoch = precommit.precommit_epoch
-                                                    + kPreCommitChallengeDelay,
-                               .registered_proof = {},
-                               .proof = params2.proof,
-                               .deals = precommit.info.deal_ids,
-                               .sector = precommit.info.sector,
-                               .seal_rand_epoch = precommit.info.seal_epoch,
-                           }));
+    OUTCOME_TRY(
+        verifySeal(runtime,
+                   state.info.sector_size,
+                   {
+                       .sealed_cid = precommit.info.sealed_cid,
+                       .interactive_epoch =
+                           precommit.precommit_epoch + kPreCommitChallengeDelay,
+                       .registered_proof = precommit.info.registered_proof,
+                       .proof = params2.proof,
+                       .deals = precommit.info.deal_ids,
+                       .sector = precommit.info.sector,
+                       .seal_rand_epoch = precommit.info.seal_epoch,
+                   }));
 
     OUTCOME_TRY(deal_weight,
                 runtime.sendPR<DealWeight>(
