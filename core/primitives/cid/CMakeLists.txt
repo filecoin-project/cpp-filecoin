@@ -7,9 +7,20 @@ add_library(cid
     cid.cpp
     json_codec.cpp
     )
+
 target_link_libraries(cid
     Boost::boost
     blake2
     cbor
     p2p::p2p_cid
+    )
+
+add_library(comm_cid
+    comm_cid.cpp
+    comm_cid_errors.cpp
+    )
+
+target_link_libraries(comm_cid
+    cid
+    outcome
     )

@@ -8,6 +8,7 @@
 #include <fcntl.h>
 #include <filecoin-ffi/filecoin.h>
 #include "boost/filesystem/fstream.hpp"
+#include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs_error.hpp"
 
 namespace fc::proofs {
@@ -16,6 +17,7 @@ namespace fc::proofs {
 
   using common::Blob;
   using crypto::randomness::Randomness;
+  using namespace fc::common;
 
   template <typename T, typename D>
   auto make_unique(T *ptr, D deleter) {
@@ -26,15 +28,7 @@ namespace fc::proofs {
   // TO CPP CASTED FUNCTIONS
   // ******************
 
-  Comm cppCommitment(const gsl::span<uint8_t, 32> &bytes) {
-    Comm result;
-
-    std::copy(bytes.begin(), bytes.end(), result.begin());
-
-    return result;
-  }
-
-  Candidate cppCandidate(const FFICandidate &c_candidate) {
+  /*Candidate cppCandidate(const FFICandidate &c_candidate) {
     Candidate candidate;
     candidate.sector_id = c_candidate.sector_id;
     candidate.sector_challenge_index = c_candidate.sector_challenge_index;
@@ -74,17 +68,15 @@ namespace fc::proofs {
               cpp_seal_pre_commit_output.comm_r.begin());
 
     return cpp_seal_pre_commit_output;
-  }
+  }*/
 
   WriteWithoutAlignmentResult cppWriteWithoutAlignmentResult(
       const WriteWithoutAlignmentResponse &response) {
     WriteWithoutAlignmentResult result;
 
     result.total_write_unpadded = response.total_write_unpadded;
-    std::copy(response.comm_p,
-              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-              response.comm_p + kCommitmentBytesLen,
-              result.comm_p.begin());
+    result.piece_cid =
+        pieceCommitmentV1ToCID(gsl::span(response.comm_p, kCommitmentBytesLen));
 
     return result;
   }
@@ -95,10 +87,8 @@ namespace fc::proofs {
 
     result.left_alignment_unpadded = response.left_alignment_unpadded;
     result.total_write_unpadded = response.total_write_unpadded;
-    std::copy(response.comm_p,
-              // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
-              response.comm_p + kCommitmentBytesLen,
-              result.comm_p.begin());
+    result.piece_cid =
+        pieceCommitmentV1ToCID(gsl::span(response.comm_p, kCommitmentBytesLen));
 
     return result;
   }
@@ -107,12 +97,48 @@ namespace fc::proofs {
   // TO С CASTED FUNCTIONS
   // ******************
 
+  outcome::result<FFIRegisteredPoStProof> cRegisteredPoStProof(
+      RegisteredProof proof_type) {
+    switch (proof_type) {
+      case RegisteredProof::StackedDRG1KiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg1KiBV1;
+      case RegisteredProof::StackedDRG16MiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg16MiBV1;
+      case RegisteredProof::StackedDRG256MiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg256MiBV1;
+      case RegisteredProof::StackedDRG1GiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg1GiBV1;
+      case RegisteredProof::StackedDRG32GiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg32GiBV1;
+      default:
+        return ProofsError::NO_SUCH_POST_PROOF;
+    }
+  }
+
+  outcome::result<FFIRegisteredSealProof> cRegisteredSealProof(
+      RegisteredProof proof_type) {
+    switch (proof_type) {
+      case RegisteredProof::StackedDRG1KiBSeal:
+        return FFIRegisteredSealProof_StackedDrg1KiBV1;
+      case RegisteredProof::StackedDRG16MiBSeal:
+        return FFIRegisteredSealProof_StackedDrg16MiBV1;
+      case RegisteredProof::StackedDRG256MiBSeal:
+        return FFIRegisteredSealProof_StackedDrg256MiBV1;
+      case RegisteredProof::StackedDRG1GiBSeal:
+        return FFIRegisteredSealProof_StackedDrg1GiBV1;
+      case RegisteredProof::StackedDRG32GiBSeal:
+        return FFIRegisteredSealProof_StackedDrg32GiBV1;
+      default:
+        return ProofsError::NO_SUCH_SEAL_PROOF;
+    }
+  }
+
   auto cPointerToArray(const Blob<32> &arr) {
     // NOLINTNEXTLINE
     return reinterpret_cast<const uint8_t(*)[32]>(arr.data());
   }
 
-  FFISealPreCommitOutput cRawSealPreCommitOutput(
+  /*FFISealPreCommitOutput cRawSealPreCommitOutput(
       const RawSealPreCommitOutput &cpp_seal_pre_commit_output) {
     FFISealPreCommitOutput c_seal_pre_commit_output{};
 
@@ -182,25 +208,25 @@ namespace fc::proofs {
           cPrivateReplicaInfo(cpp_private_replica_info));
     }
     return c_private_replicas_info;
-  }
+  }*/
 
-  FFIPublicPieceInfo cPublicPieceInfo(
-      const PublicPieceInfo &cpp_public_piece_info) {
+  outcome::result<FFIPublicPieceInfo> cPublicPieceInfo(
+      const PieceInfo &cpp_public_piece_info) {
     FFIPublicPieceInfo c_public_piece_info;
 
-    c_public_piece_info.num_bytes = cpp_public_piece_info.size;
-    std::copy(cpp_public_piece_info.comm_p.begin(),
-              cpp_public_piece_info.comm_p.end(),
-              c_public_piece_info.comm_p);
+    c_public_piece_info.num_bytes = cpp_public_piece_info.size.unpadded();
+    OUTCOME_TRY(comm_p, CIDToPieceCommitmentV1(cpp_public_piece_info.cid));
+    std::copy(comm_p.begin(), comm_p.end(), c_public_piece_info.comm_p);
 
     return c_public_piece_info;
   }
 
-  std::vector<FFIPublicPieceInfo> cPublicPiecesInfo(
-      gsl::span<const PublicPieceInfo> cpp_public_pieces_info) {
+  outcome::result<std::vector<FFIPublicPieceInfo>> cPublicPiecesInfo(
+      gsl::span<const PieceInfo> cpp_public_pieces_info) {
     std::vector<FFIPublicPieceInfo> c_public_pieces_info;
     for (const auto &cpp_public_piece_info : cpp_public_pieces_info) {
-      c_public_pieces_info.push_back(cPublicPieceInfo(cpp_public_piece_info));
+      OUTCOME_TRY(c_piblic_piece_info, cPublicPieceInfo(cpp_public_piece_info));
+      c_public_pieces_info.push_back(c_piblic_piece_info);
     }
     return c_public_pieces_info;
   }
@@ -209,7 +235,7 @@ namespace fc::proofs {
   // VERIFIED FUNCTIONS
   // ******************
 
-  outcome::result<bool> Proofs::verifyPoSt(
+  /*outcome::result<bool> Proofs::verifyPoSt(
       uint64_t sector_size,
       const SortedPublicSectorInfo &sector_info,
       const Randomness &randomness,
@@ -275,13 +301,13 @@ namespace fc::proofs {
     }
 
     return res_ptr->is_valid;
-  }
+  }*/
 
   // ******************
   // GENERATED FUNCTIONS
   // ******************
 
-  outcome::result<std::vector<Candidate>> Proofs::generateCandidates(
+  /*outcome::result<std::vector<Candidate>> Proofs::generateCandidates(
       uint64_t sector_size,
       const Prover &prover_id,
       const Randomness &randomness,
@@ -378,12 +404,15 @@ namespace fc::proofs {
     }
 
     return cppCommitment(gsl::span(res_ptr->comm_d, kCommitmentBytesLen));
-  }
+  }*/
 
   outcome::result<WriteWithoutAlignmentResult> Proofs::writeWithoutAlignment(
+      RegisteredProof proof_type,
       const std::string &piece_file_path,
-      uint64_t piece_bytes,
+      const UnpaddedPieceSize &piece_bytes,
       const std::string &staged_sector_file_path) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
+
     int piece_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
@@ -400,9 +429,10 @@ namespace fc::proofs {
       return ProofsError::CANNOT_OPEN_FILE;
     }
 
-    auto res_ptr = make_unique(
-        write_without_alignment(piece_fd, piece_bytes, staged_sector_fd),
-        destroy_write_without_alignment_response);
+    auto res_ptr =
+        make_unique(write_without_alignment(
+                        c_proof_type, piece_fd, piece_bytes, staged_sector_fd),
+                    destroy_write_without_alignment_response);
 
     // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(piece_fd))
@@ -423,10 +453,12 @@ namespace fc::proofs {
   }
 
   outcome::result<WriteWithAlignmentResult> Proofs::writeWithAlignment(
+      RegisteredProof proof_type,
       const std::string &piece_file_path,
-      uint64_t piece_bytes,
+      const UnpaddedPieceSize &piece_bytes,
       const std::string &staged_sector_file_path,
       gsl::span<const uint64_t> existing_piece_sizes) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
     int piece_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
@@ -442,9 +474,11 @@ namespace fc::proofs {
                       + piece_file_path);
       return ProofsError::CANNOT_OPEN_FILE;
     }
+
     auto res_ptr =
-        make_unique(write_with_alignment(piece_fd,
-                                         piece_bytes,
+        make_unique(write_with_alignment(c_proof_type,
+                                         piece_fd,
+                                         uint64_t(piece_bytes),
                                          staged_sector_fd,
                                          existing_piece_sizes.data(),
                                          existing_piece_sizes.size()),
@@ -465,38 +499,68 @@ namespace fc::proofs {
     return cppWriteWithAlignmentResult(*res_ptr);
   }
 
-  outcome::result<RawSealPreCommitOutput> Proofs::sealPreCommit(
-      uint64_t sector_size,
-      uint8_t porep_proof_partitions,
+  outcome::result<Phase1Output> Proofs::sealPreCommitPhase1(
+      RegisteredProof proof_type,
       const std::string &cache_dir_path,
       const std::string &staged_sector_path,
       const std::string &sealed_sector_path,
-      uint64_t sector_id,
+      SectorNumber sector_num,
       const Prover &prover_id,
-      const Ticket &ticket,
-      gsl::span<const PublicPieceInfo> pieces) {
-    std::vector<FFIPublicPieceInfo> c_pieces = cPublicPiecesInfo(pieces);
+      const SealRandomness &ticket,
+      gsl::span<const PieceInfo> pieces) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
-    auto res_ptr = make_unique(
-        seal_pre_commit(cSectorClass(sector_size, porep_proof_partitions),
-                        cache_dir_path.c_str(),
-                        staged_sector_path.c_str(),
-                        sealed_sector_path.c_str(),
-                        sector_id,
-                        cPointerToArray(prover_id),
-                        cPointerToArray(ticket),
-                        c_pieces.data(),
-                        c_pieces.size()),
-        destroy_seal_pre_commit_response);
+    OUTCOME_TRY(c_pieces, cPublicPiecesInfo(pieces));
+
+    auto res_ptr =
+        make_unique(seal_pre_commit_phase1(c_proof_type,
+                                           cache_dir_path.c_str(),
+                                           staged_sector_path.c_str(),
+                                           sealed_sector_path.c_str(),
+                                           sector_num,
+                                           cPointerToArray(prover_id),
+                                           cPointerToArray(ticket),
+                                           c_pieces.data(),
+                                           c_pieces.size()),
+
+                    destroy_seal_pre_commit_phase1_response);
+
     if (res_ptr->status_code != 0) {
-      logger_->error("sealPreCommit: " + std::string(res_ptr->error_msg));
+      logger_->error("Seal precommit phase 1: "
+                     + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 
-    return cppRawSealPreCommitOutput(res_ptr->seal_pre_commit_output);
+    return Phase1Output(
+        res_ptr->seal_pre_commit_phase1_output_ptr,
+        res_ptr->seal_pre_commit_phase1_output_ptr
+            + res_ptr->seal_pre_commit_phase1_output_len);  // NOLINT
   }
 
-  outcome::result<Proof> Proofs::sealCommit(
+  outcome::result<std::pair<CID, CID>> Proofs::sealPreCommitPhase2(
+      gsl::span<const uint8_t> phase1_output,
+      const std::string &cache_dir_path,
+      const std::string &sealed_sector_path) {
+    auto res_ptr =
+        make_unique(seal_pre_commit_phase2(phase1_output.data(),
+                                           phase1_output.size(),
+                                           cache_dir_path.c_str(),
+                                           sealed_sector_path.c_str()),
+                    destroy_seal_pre_commit_phase2_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("Seal precommit phase 2: "
+                     + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return std::make_pair(replicaCommitmentV1ToCID(gsl::make_span(
+                              res_ptr->comm_r, kCommitmentBytesLen)),
+                          dataCommitmentV1ToCID(gsl::make_span(
+                              res_ptr->comm_d, kCommitmentBytesLen)));
+  }
+
+  /*outcome::result<Proof> Proofs::sealCommit(
       uint64_t sector_size,
       uint8_t porep_proof_partitions,
       const std::string &cache_dir_path,
@@ -655,6 +719,57 @@ namespace fc::proofs {
 
     return Devices(res_ptr->devices_ptr,
                    res_ptr->devices_ptr + res_ptr->devices_len);  // NOLINT
+  }*/
+
+  outcome::result<CID> Proofs::generatePieceCIDFromFile(
+      RegisteredProof proof_type,
+      const std::string &piece_file_path,
+      UnpaddedPieceSize piece_size) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
+
+    int piece_fd;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
+    if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
+      return ProofsError::CANNOT_OPEN_FILE;
+    }
+
+    auto res_ptr = make_unique(
+        generate_piece_commitment(c_proof_type, piece_fd, piece_size),
+        destroy_generate_piece_commitment_response);
+
+    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
+    if (close(piece_fd))
+      logger_->warn("generatePieceCIDFromFile: error in closing file "
+                    + piece_file_path);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("GeneratePieceCIDFromFile: "
+                     + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return dataCommitmentV1ToCID(
+        gsl::make_span(res_ptr->comm_p, kCommitmentBytesLen));
+  }
+
+  outcome::result<CID> Proofs::generateUnsealedCID(
+      RegisteredProof proof_type, gsl::span<PieceInfo> pieces) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
+
+    OUTCOME_TRY(c_pieces, cPublicPiecesInfo(pieces));
+
+    auto res_ptr =
+        make_unique(generate_data_commitment(
+                        c_proof_type, c_pieces.data(), c_pieces.size()),
+                    destroy_generate_data_commitment_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("generateUnsealedCID: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return dataCommitmentV1ToCID(
+        gsl::make_span(res_ptr->comm_d, kCommitmentBytesLen));
   }
 
 }  // namespace fc::proofs

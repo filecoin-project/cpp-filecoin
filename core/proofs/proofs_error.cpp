@@ -11,6 +11,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofsError, e) {
   switch (e) {
     case (ProofsError::CANNOT_OPEN_FILE):
       return "Proofs: cannot open file";
+    case (ProofsError::NO_SUCH_SEAL_PROOF):
+      return "Proofs: No mapping to FFIRegisteredSealProof";
+    case (ProofsError::NO_SUCH_POST_PROOF):
+      return "Proofs: No mapping to FFIRegisteredPoStProof";
     case (ProofsError::UNKNOWN):
       return "Proofs: unknown error";
   }
