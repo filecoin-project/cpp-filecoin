@@ -416,7 +416,7 @@ namespace fc::vm::actor::builtin::miner {
       OUTCOME_TRY(precommit,
                   hamt_precommit.getCbor<SectorPreCommitOnChainInfo>(key));
       if (runtime.getCurrentEpoch() - precommit.precommit_epoch <= duration) {
-        continue;
+        break;
       }
       OUTCOME_TRY(hamt_precommit.remove(key));
       to_burn += precommit.precommit_deposit;
