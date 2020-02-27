@@ -17,8 +17,6 @@
 
 namespace fc::proofs {
 
-
-
   // kSingleProofPartitionProofLen denotes the number of bytes in a proof
   // generated with a single partition. The number of bytes in a proof increases
   // linearly with the number of partitions used when creating that proof.
@@ -38,6 +36,7 @@ namespace fc::proofs {
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::SealRandomness;
+  using primitives::sector::SectorInfo;
   using primitives::sector::Ticket;
 
   // RawSealPreCommitOutput is used to acquire a seed from the chain for the
@@ -46,35 +45,32 @@ namespace fc::proofs {
    public:
     Comm comm_d;
     Comm comm_r;
-  };
+  };*/
 
-  class PublicSectorInfo {
-   public:
-    uint64_t sector_id = 0;
-    Comm comm_r;
+  struct PublicSectorInfo {
+    RegisteredProof post_proof_type;
+    CID sealed_cid;
+    SectorNumber sector_num;
   };
 
   // SortedPublicSectorInfo is a sorted vector of PublicSectorInfo
-  class SortedPublicSectorInfo {
-   public:
+  struct SortedPublicSectorInfo {
     std::vector<PublicSectorInfo> values;
   };
 
-  class PrivateReplicaInfo {
-   public:
-    uint64_t sector_id;
-    Comm comm_r;
+  struct PrivateSectorInfo : SectorInfo {
     std::string cache_dir_path;
+    RegisteredProof post_proof_type;
     std::string sealed_sector_path;
   };
 
-  // SortedPrivateReplicaInfo is a sorted vector of PrivateReplicaInfo
-  class SortedPrivateReplicaInfo {
+  // SortedPrivateSectorInfo is a sorted vector of PrivateSectorInfo
+  struct SortedPrivateSectorInfo {
    public:
-    std::vector<PrivateReplicaInfo> values;
+    std::vector<PrivateSectorInfo> values;
   };
 
-  class Candidate {
+  /*class Candidate {
    public:
     uint64_t sector_id = 0;
     Ticket partial_ticket;
@@ -82,14 +78,12 @@ namespace fc::proofs {
     uint64_t sector_challenge_index = 0;
   };*/
 
-  class WriteWithoutAlignmentResult {
-   public:
+  struct WriteWithoutAlignmentResult {
     uint64_t total_write_unpadded = 0;
     CID piece_cid;
   };
 
-  class WriteWithAlignmentResult {
-   public:
+  struct WriteWithAlignmentResult {
     uint64_t left_alignment_unpadded = 0;
     uint64_t total_write_unpadded = 0;
     CID piece_cid;
@@ -97,11 +91,11 @@ namespace fc::proofs {
 
   class Proofs {
    public:
-    /*static fc::proofs::SortedPrivateReplicaInfo newSortedPrivateReplicaInfo(
-        gsl::span<const PrivateReplicaInfo> replica_info);
+    static fc::proofs::SortedPrivateSectorInfo newSortedPrivateSectorInfo(
+        gsl::span<const PrivateSectorInfo> replica_info);
 
     static fc::proofs::SortedPublicSectorInfo newSortedPublicSectorInfo(
-        gsl::span<const PublicSectorInfo> sector_info);*/
+        gsl::span<const PublicSectorInfo> sector_info);
 
     static outcome::result<fc::proofs::WriteWithoutAlignmentResult>
     writeWithoutAlignment(RegisteredProof proof_type,
@@ -109,7 +103,8 @@ namespace fc::proofs {
                           const UnpaddedPieceSize &piece_bytes,
                           const std::string &staged_sector_file_path);
 
-    // existing_piece_sizes should be UnpaddedPieceSize, but for prevent copy array it is uint64 span
+    // existing_piece_sizes should be UnpaddedPieceSize, but for prevent copy
+    // array it is uint64 span
     static outcome::result<fc::proofs::WriteWithAlignmentResult>
     writeWithAlignment(RegisteredProof proof_type,
                        const std::string &piece_file_path,
@@ -207,7 +202,7 @@ namespace fc::proofs {
         const Prover &prover_id,
         const Randomness &randomness,
         uint64_t challenge_count,
-        const SortedPrivateReplicaInfo &sorted_private_replica_info);*/
+        const SortedPrivateSectorInfo &sorted_private_replica_info);*/
 
     /**
      * @brief Generate a proof-of-spacetime
@@ -215,7 +210,7 @@ namespace fc::proofs {
     /*static outcome::result<Proof> generatePoSt(
         uint64_t sectorSize,
         const Prover &prover_id,
-        const SortedPrivateReplicaInfo &private_replica_info,
+        const SortedPrivateSectorInfo &private_replica_info,
         const Randomness &randomness,
         gsl::span<const Candidate> winners);*/
 

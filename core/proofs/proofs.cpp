@@ -183,7 +183,7 @@ namespace fc::proofs {
   }
 
   FFIPrivateReplicaInfo cPrivateReplicaInfo(
-      const PrivateReplicaInfo &cpp_private_replica_info) {
+      const PrivateSectorInfo &cpp_private_replica_info) {
     FFIPrivateReplicaInfo c_private_replica_info;
 
     c_private_replica_info.sector_id = cpp_private_replica_info.sector_id;
@@ -201,7 +201,7 @@ namespace fc::proofs {
   }
 
   std::vector<FFIPrivateReplicaInfo> cPrivateReplicasInfo(
-      gsl::span<const PrivateReplicaInfo> cpp_private_replicas_info) {
+      gsl::span<const PrivateSectorInfo> cpp_private_replicas_info) {
     std::vector<FFIPrivateReplicaInfo> c_private_replicas_info;
     for (const auto &cpp_private_replica_info : cpp_private_replicas_info) {
       c_private_replicas_info.push_back(
@@ -312,7 +312,7 @@ namespace fc::proofs {
       const Prover &prover_id,
       const Randomness &randomness,
       uint64_t challenge_count,
-      const SortedPrivateReplicaInfo &sorted_private_replica_info) {
+      const SortedPrivateSectorInfo &sorted_private_replica_info) {
     std::vector<FFIPrivateReplicaInfo> c_sorted_private_sector_info =
         cPrivateReplicasInfo(sorted_private_replica_info.values);
 
@@ -336,7 +336,7 @@ namespace fc::proofs {
   outcome::result<Proof> Proofs::generatePoSt(
       uint64_t sectorSize,
       const Blob<32> &prover_id,
-      const SortedPrivateReplicaInfo &private_replica_info,
+      const SortedPrivateSectorInfo &private_replica_info,
       const Randomness &randomness,
       gsl::span<const Candidate> winners) {
     std::vector<FFICandidate> c_winners = cCandidates(winners);
@@ -655,18 +655,16 @@ namespace fc::proofs {
 
     return outcome::success();
   }
-
-  SortedPrivateReplicaInfo Proofs::newSortedPrivateReplicaInfo(
-      gsl::span<const PrivateReplicaInfo> replica_info) {
-    SortedPrivateReplicaInfo sorted_replica_info;
+*/
+  SortedPrivateSectorInfo Proofs::newSortedPrivateSectorInfo(
+      gsl::span<const PrivateSectorInfo> replica_info) {
+    SortedPrivateSectorInfo sorted_replica_info;
     sorted_replica_info.values.assign(replica_info.cbegin(),
                                       replica_info.cend());
     std::sort(sorted_replica_info.values.begin(),
               sorted_replica_info.values.end(),
-              [](const PrivateReplicaInfo &lhs, const PrivateReplicaInfo &rhs) {
-                return std::memcmp(
-                           lhs.comm_r.data(), rhs.comm_r.data(), Comm::size())
-                       < 0;
+              [](const PrivateSectorInfo &lhs, const PrivateSectorInfo &rhs) {
+                return lhs.sealed_cid < rhs.sealed_cid;
               });
 
     return sorted_replica_info;
@@ -679,47 +677,47 @@ namespace fc::proofs {
     std::sort(sorted_sector_info.values.begin(),
               sorted_sector_info.values.end(),
               [](const PublicSectorInfo &lhs, const PublicSectorInfo &rhs) {
-                return std::memcmp(
-                           lhs.comm_r.data(), rhs.comm_r.data(), Comm::size())
-                       < 0;
+                return lhs.sealed_cid < rhs.sealed_cid;
               });
 
     return sorted_sector_info;
   }
+  /*
+    outcome::result<Ticket> Proofs::finalizeTicket(const Ticket &partial_ticket)
+    { auto res_ptr =
+    make_unique(finalize_ticket(cPointerToArray(partial_ticket)),
+                                 destroy_finalize_ticket_response);
 
-  outcome::result<Ticket> Proofs::finalizeTicket(const Ticket &partial_ticket) {
-    auto res_ptr = make_unique(finalize_ticket(cPointerToArray(partial_ticket)),
-                               destroy_finalize_ticket_response);
+      if (res_ptr->status_code != 0) {
+        logger_->error("finalizeTicket: " + std::string(res_ptr->error_msg));
+        return ProofsError::UNKNOWN;
+      }
 
-    if (res_ptr->status_code != 0) {
-      logger_->error("finalizeTicket: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      static const int kTicketSize = 32;
+
+      return cppCommitment(gsl::make_span(res_ptr->ticket, kTicketSize));
     }
 
-    static const int kTicketSize = 32;
-
-    return cppCommitment(gsl::make_span(res_ptr->ticket, kTicketSize));
-  }
-
-  uint64_t Proofs::getMaxUserBytesPerStagedSector(uint64_t sector_size) {
-    return get_max_user_bytes_per_staged_sector(sector_size);
-  }
-
-  outcome::result<Devices> Proofs::getGPUDevices() {
-    auto res_ptr = make_unique(get_gpu_devices(), destroy_gpu_device_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("getGPUDevices: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+    uint64_t Proofs::getMaxUserBytesPerStagedSector(uint64_t sector_size) {
+      return get_max_user_bytes_per_staged_sector(sector_size);
     }
 
-    if (res_ptr->devices_ptr == nullptr || res_ptr->devices_len == 0) {
-      return Devices();
-    }
+    outcome::result<Devices> Proofs::getGPUDevices() {
+      auto res_ptr = make_unique(get_gpu_devices(),
+    destroy_gpu_device_response);
 
-    return Devices(res_ptr->devices_ptr,
-                   res_ptr->devices_ptr + res_ptr->devices_len);  // NOLINT
-  }*/
+      if (res_ptr->status_code != 0) {
+        logger_->error("getGPUDevices: " + std::string(res_ptr->error_msg));
+        return ProofsError::UNKNOWN;
+      }
+
+      if (res_ptr->devices_ptr == nullptr || res_ptr->devices_len == 0) {
+        return Devices();
+      }
+
+      return Devices(res_ptr->devices_ptr,
+                     res_ptr->devices_ptr + res_ptr->devices_len);  // NOLINT
+    }*/
 
   outcome::result<CID> Proofs::generatePieceCIDFromFile(
       RegisteredProof proof_type,
