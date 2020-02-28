@@ -21,16 +21,14 @@ ACTOR_METHOD_IMPL(Construct) {
   OUTCOME_TRY(code, runtime.getActorCodeID(runtime.getImmediateCaller()));
   if (code != kAccountCodeCid) return VMExitCode::PAYMENT_CHANNEL_WRONG_CALLER;
 
-  auto &construct_params = params;
-  if (construct_params.to.getProtocol() != Protocol::ID)
+  if (params.to.getProtocol() != Protocol::ID)
     return VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT;
-  OUTCOME_TRY(target_actor_code_id,
-              runtime.getActorCodeID(construct_params.to));
+  OUTCOME_TRY(target_actor_code_id, runtime.getActorCodeID(params.to));
   if (target_actor_code_id != kAccountCodeCid)
     return VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT;
 
   PaymentChannelActorState state{
-      runtime.getImmediateCaller(), construct_params.to, 0, 0, 0, {}};
+      runtime.getImmediateCaller(), params.to, 0, 0, 0, {}};
 
   OUTCOME_TRY(runtime.commitState(state));
   return fc::outcome::success();

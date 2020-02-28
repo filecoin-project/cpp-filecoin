@@ -23,11 +23,10 @@ namespace fc::vm::actor::builtin::init {
   }
 
   ACTOR_METHOD_IMPL(Exec) {
-    auto &exec_params = params;
-    if (!isBuiltinActor(exec_params.code)) {
+    if (!isBuiltinActor(params.code)) {
       return VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR;
     }
-    if (isSingletonActor(exec_params.code)) {
+    if (isSingletonActor(params.code)) {
       return VMExitCode::INIT_ACTOR_SINGLETON_ACTOR;
     }
     OUTCOME_TRY(runtime.chargeGas(runtime::kInitActorExecCost));
@@ -40,11 +39,9 @@ namespace fc::vm::actor::builtin::init {
     OUTCOME_TRY(id_address, init_actor.addActor(store, actor_address));
     OUTCOME_TRY(runtime.createActor(
         id_address,
-        Actor{exec_params.code, ActorSubstateCID{kEmptyObjectCid}, 0, 0}));
-    OUTCOME_TRY(runtime.send(id_address,
-                             kConstructorMethodNumber,
-                             exec_params.params,
-                             message.value));
+        Actor{params.code, ActorSubstateCID{kEmptyObjectCid}, 0, 0}));
+    OUTCOME_TRY(runtime.send(
+        id_address, kConstructorMethodNumber, params.params, message.value));
     OUTCOME_TRY(runtime.commitState(init_actor));
     return Result{id_address, actor_address};
   }

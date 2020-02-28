@@ -117,17 +117,16 @@ namespace fc::vm::actor::builtin::reward {
     if (runtime.getImmediateCaller() != kSystemActorAddress) {
       return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
     }
-    auto &reward_params = params;
-    assert(reward_params.gas_reward == runtime.getValueReceived());
+    assert(params.gas_reward == runtime.getValueReceived());
     OUTCOME_TRY(prior_balance,
                 runtime.getBalance(runtime.getMessage().get().to));
     TokenAmount penalty{0};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
-    auto block_reward = computeBlockReward(state, reward_params.gas_reward);
-    TokenAmount total_reward = block_reward + reward_params.gas_reward;
+    auto block_reward = computeBlockReward(state, params.gas_reward);
+    TokenAmount total_reward = block_reward + params.gas_reward;
 
-    penalty = std::min(reward_params.penalty, total_reward);
+    penalty = std::min(params.penalty, total_reward);
     auto reward_payable = total_reward - penalty;
 
     assert(total_reward <= prior_balance);
@@ -140,7 +139,7 @@ namespace fc::vm::actor::builtin::reward {
                         .value = reward_payable,
                         .amount_withdrawn = 0};
       OUTCOME_TRY(state.addReward(
-          runtime.getIpfsDatastore(), reward_params.miner, new_reward));
+          runtime.getIpfsDatastore(), params.miner, new_reward));
     }
     OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, penalty));
     OUTCOME_TRY(runtime.commitState(state));

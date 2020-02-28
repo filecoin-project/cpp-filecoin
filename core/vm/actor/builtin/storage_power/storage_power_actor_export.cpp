@@ -82,21 +82,19 @@ namespace fc::vm::actor::builtin::storage_power {
   }
 
   ACTOR_METHOD_IMPL(AddBalance) {
-    auto &add_balance_params = params;
-    OUTCOME_TRY(miner_code_cid,
-                runtime.getActorCodeID(add_balance_params.miner));
+    OUTCOME_TRY(miner_code_cid, runtime.getActorCodeID(params.miner));
     if (miner_code_cid != kStorageMinerCodeCid)
       return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
 
     Address immediate_caller = runtime.getImmediateCaller();
     OUTCOME_TRY(control_addresses,
-                requestMinerControlAddress(runtime, add_balance_params.miner));
+                requestMinerControlAddress(runtime, params.miner));
     if (immediate_caller != control_addresses.owner
         && immediate_caller != control_addresses.worker)
       return VMExitCode::STORAGE_POWER_FORBIDDEN;
 
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    OUTCOME_TRY(power_actor.addMinerBalance(add_balance_params.miner,
+    OUTCOME_TRY(power_actor.addMinerBalance(params.miner,
                                             runtime.getMessage().get().value));
 
     OUTCOME_TRY(power_actor_state, power_actor.flushState());
@@ -105,28 +103,25 @@ namespace fc::vm::actor::builtin::storage_power {
   }
 
   ACTOR_METHOD_IMPL(WithdrawBalance) {
-    auto &withdraw_balance_params = params;
-    OUTCOME_TRY(miner_code_cid,
-                runtime.getActorCodeID(withdraw_balance_params.miner));
+    OUTCOME_TRY(miner_code_cid, runtime.getActorCodeID(params.miner));
     if (miner_code_cid != kStorageMinerCodeCid)
       return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
 
     Address immediate_caller = runtime.getImmediateCaller();
-    OUTCOME_TRY(
-        control_addresses,
-        requestMinerControlAddress(runtime, withdraw_balance_params.miner));
+    OUTCOME_TRY(control_addresses,
+                requestMinerControlAddress(runtime, params.miner));
     if (immediate_caller != control_addresses.owner
         && immediate_caller != control_addresses.worker)
       return VMExitCode::STORAGE_POWER_FORBIDDEN;
 
-    if (withdraw_balance_params.requested < TokenAmount{0})
+    if (params.requested < TokenAmount{0})
       return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
 
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
-    if (!power_actor.hasClaim(withdraw_balance_params.miner))
+    if (!power_actor.hasClaim(params.miner))
       return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
-    OUTCOME_TRY(claim, power_actor.getClaim(withdraw_balance_params.miner));
+    OUTCOME_TRY(claim, power_actor.getClaim(params.miner));
 
     /*
      * Pledge for sectors in temporary fault has already been subtracted from
@@ -134,11 +129,9 @@ namespace fc::vm::actor::builtin::storage_power {
      * locked for further penalization. Thus the current claimed pledge is the
      * amount to keep locked.
      */
-    OUTCOME_TRY(
-        subtracted,
-        power_actor.subtractMinerBalance(withdraw_balance_params.miner,
-                                         withdraw_balance_params.requested,
-                                         claim.pledge));
+    OUTCOME_TRY(subtracted,
+                power_actor.subtractMinerBalance(
+                    params.miner, params.requested, claim.pledge));
 
     OUTCOME_TRY(runtime.sendFunds(control_addresses.owner, subtracted));
 
@@ -153,14 +146,9 @@ namespace fc::vm::actor::builtin::storage_power {
     if (!isSignableActor((immediate_caller_code_id)))
       return VMExitCode::STORAGE_POWER_FORBIDDEN;
 
-    auto &create_miner_params = params;
-
     auto message = runtime.getMessage().get();
     miner::ConstructorParams construct_miner_parameters{
-        message.from,
-        create_miner_params.worker,
-        create_miner_params.sector_size,
-        create_miner_params.peer_id};
+        message.from, params.worker, params.sector_size, params.peer_id};
     OUTCOME_TRY(encoded_construct_miner_parameters,
                 encodeActorParams(construct_miner_parameters));
     OUTCOME_TRY(addresses_created,
@@ -184,19 +172,16 @@ namespace fc::vm::actor::builtin::storage_power {
   }
 
   ACTOR_METHOD_IMPL(DeleteMiner) {
-    auto &delete_miner_params = params;
-
     Address immediate_caller = runtime.getImmediateCaller();
     OUTCOME_TRY(control_addresses,
-                requestMinerControlAddress(runtime, delete_miner_params.miner));
+                requestMinerControlAddress(runtime, params.miner));
     if (immediate_caller != control_addresses.owner
         && immediate_caller != control_addresses.worker)
       return VMExitCode::STORAGE_POWER_FORBIDDEN;
 
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
-    OUTCOME_TRY(
-        deleteMinerActor(runtime, power_actor, delete_miner_params.miner));
+    OUTCOME_TRY(deleteMinerActor(runtime, power_actor, params.miner));
 
     OUTCOME_TRY(power_actor_state, power_actor.flushState());
     OUTCOME_TRY(runtime.commitState(power_actor_state));
@@ -205,15 +190,12 @@ namespace fc::vm::actor::builtin::storage_power {
 
   ACTOR_METHOD_IMPL(OnSectorProveCommit) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    auto &on_sector_prove_commit_params = params;
 
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
-    StoragePower power =
-        consensusPowerForWeight(on_sector_prove_commit_params.weight);
+    StoragePower power = consensusPowerForWeight(params.weight);
     OUTCOME_TRY(network_power, power_actor.getTotalNetworkPower());
-    TokenAmount pledge =
-        pledgeForWeight(on_sector_prove_commit_params.weight, network_power);
+    TokenAmount pledge = pledgeForWeight(params.weight, network_power);
     OUTCOME_TRY(
         power_actor.addToClaim(runtime.getMessage().get().from, power, pledge));
 
@@ -225,22 +207,18 @@ namespace fc::vm::actor::builtin::storage_power {
 
   ACTOR_METHOD_IMPL(OnSectorTerminate) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    auto &on_sector_terminate_params = params;
 
     Address miner_address = runtime.getMessage().get().from;
-    StoragePower power =
-        consensusPowerForWeights(on_sector_terminate_params.weights);
+    StoragePower power = consensusPowerForWeights(params.weights);
 
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
-    OUTCOME_TRY(power_actor.addToClaim(
-        miner_address, -power, -on_sector_terminate_params.pledge));
+    OUTCOME_TRY(power_actor.addToClaim(miner_address, -power, -params.pledge));
 
-    if (on_sector_terminate_params.termination_type
+    if (params.termination_type
         != SectorTerminationType::SECTOR_TERMINATION_EXPIRED) {
       TokenAmount amount_to_slash = pledgePenaltyForSectorTermination(
-          on_sector_terminate_params.pledge,
-          on_sector_terminate_params.termination_type);
+          params.pledge, params.termination_type);
       OUTCOME_TRY(slashPledgeCollateral(
           runtime, power_actor, miner_address, amount_to_slash));
     }
@@ -252,15 +230,12 @@ namespace fc::vm::actor::builtin::storage_power {
 
   ACTOR_METHOD_IMPL(OnSectorTemporaryFaultEffectiveBegin) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    auto &on_sector_fault_params = params;
-    StoragePower power =
-        consensusPowerForWeights(on_sector_fault_params.weights);
+    StoragePower power = consensusPowerForWeights(params.weights);
 
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
-    OUTCOME_TRY(power_actor.addToClaim(runtime.getMessage().get().from,
-                                       -power,
-                                       -on_sector_fault_params.pledge));
+    OUTCOME_TRY(power_actor.addToClaim(
+        runtime.getMessage().get().from, -power, -params.pledge));
 
     OUTCOME_TRY(power_actor_state, power_actor.flushState());
     OUTCOME_TRY(runtime.commitState(power_actor_state));
@@ -269,13 +244,10 @@ namespace fc::vm::actor::builtin::storage_power {
 
   ACTOR_METHOD_IMPL(OnSectorTemporaryFaultEffectiveEnd) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    auto &on_sector_fault_end_params = params;
-    StoragePower power =
-        consensusPowerForWeights(on_sector_fault_end_params.weights);
+    StoragePower power = consensusPowerForWeights(params.weights);
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    OUTCOME_TRY(power_actor.addToClaim(runtime.getMessage().get().from,
-                                       power,
-                                       on_sector_fault_end_params.pledge));
+    OUTCOME_TRY(power_actor.addToClaim(
+        runtime.getMessage().get().from, power, params.pledge));
 
     OUTCOME_TRY(power_actor_state, power_actor.flushState());
     OUTCOME_TRY(runtime.commitState(power_actor_state));
@@ -284,21 +256,17 @@ namespace fc::vm::actor::builtin::storage_power {
 
   ACTOR_METHOD_IMPL(OnSectorModifyWeightDesc) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    auto &on_sector_modify_params = params;
 
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
     Address miner = runtime.getMessage().get().from;
 
-    StoragePower prev_power =
-        consensusPowerForWeight(on_sector_modify_params.prev_weight);
-    OUTCOME_TRY(power_actor.addToClaim(
-        miner, -prev_power, -on_sector_modify_params.prev_pledge));
+    StoragePower prev_power = consensusPowerForWeight(params.prev_weight);
+    OUTCOME_TRY(
+        power_actor.addToClaim(miner, -prev_power, -params.prev_pledge));
 
-    StoragePower new_power =
-        consensusPowerForWeight(on_sector_modify_params.new_weight);
+    StoragePower new_power = consensusPowerForWeight(params.new_weight);
     OUTCOME_TRY(total_power, power_actor.getTotalNetworkPower());
-    TokenAmount new_pledge =
-        pledgeForWeight(on_sector_modify_params.new_weight, total_power);
+    TokenAmount new_pledge = pledgeForWeight(params.new_weight, total_power);
     OUTCOME_TRY(power_actor.addToClaim(miner, new_power, new_pledge));
 
     OUTCOME_TRY(power_actor_state, power_actor.flushState());
@@ -327,13 +295,12 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
     OUTCOME_TRY(power_actor.addFaultMiner(miner));
 
-    auto &parameters = params;
-    if (parameters.num_consecutive_failures > kWindowedPostFailureLimit) {
+    if (params.num_consecutive_failures > kWindowedPostFailureLimit) {
       OUTCOME_TRY(deleteMinerActor(runtime, power_actor, miner));
     } else {
       OUTCOME_TRY(claim, power_actor.getClaim(miner));
       TokenAmount to_slash = pledgePenaltyForWindowedPoStFailure(
-          claim.pledge, parameters.num_consecutive_failures);
+          claim.pledge, params.num_consecutive_failures);
       OUTCOME_TRY(slashPledgeCollateral(runtime, power_actor, miner, to_slash));
     }
 
@@ -346,11 +313,9 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
     Address miner = runtime.getMessage().get().from;
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    auto &parameters = params;
     OUTCOME_TRY(power_actor.appendCronEvent(
-        parameters.event_epoch,
-        CronEvent{.miner_address = miner,
-                  .callback_payload = parameters.payload}));
+        params.event_epoch,
+        CronEvent{.miner_address = miner, .callback_payload = params.payload}));
 
     OUTCOME_TRY(power_actor_state, power_actor.flushState());
     OUTCOME_TRY(runtime.commitState(power_actor_state));
@@ -360,16 +325,15 @@ namespace fc::vm::actor::builtin::storage_power {
   ACTOR_METHOD_IMPL(ReportConsensusFault) {
     // Note: only the first reporter of any fault is rewarded.
     // Subsequent invocations fail because the miner has been removed.
-    auto &parameters = params;
     OUTCOME_TRY(fault,
-                runtime.verifyConsensusFault(parameters.block_header_1,
-                                             parameters.block_header_2));
+                runtime.verifyConsensusFault(params.block_header_1,
+                                             params.block_header_2));
     if (!fault) {
       return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
     }
 
     Address reporter = runtime.getMessage().get().from;
-    OUTCOME_TRY(target, runtime.resolveAddress(parameters.target));
+    OUTCOME_TRY(target, runtime.resolveAddress(params.target));
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
     OUTCOME_TRY(claim, power_actor.getClaim(target));
     if (claim.power < 0) {
@@ -377,12 +341,12 @@ namespace fc::vm::actor::builtin::storage_power {
     }
     OUTCOME_TRY(balance, power_actor.getMinerBalance(target));
     // elapsed epoch from the latter block which committed the fault
-    ChainEpoch elapsed = runtime.getCurrentEpoch() - parameters.fault_epoch;
+    ChainEpoch elapsed = runtime.getCurrentEpoch() - params.fault_epoch;
     if (elapsed < 0) {
       return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
     }
     OUTCOME_TRY(collateral_to_slash,
-                pledgePenaltyForConsensusFault(balance, parameters.fault_type));
+                pledgePenaltyForConsensusFault(balance, params.fault_type));
     TokenAmount target_reward =
         rewardForConsensusSlashReport(elapsed, collateral_to_slash);
     OUTCOME_TRY(reward,
