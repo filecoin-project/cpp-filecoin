@@ -13,6 +13,7 @@
 namespace fc::vm::actor::builtin::market {
   using primitives::ChainEpoch;
   using primitives::DealId;
+  using primitives::DealWeight;
   using primitives::SectorSize;
 
   struct VerifyDealsOnSectorProveCommitParams {
@@ -31,6 +32,7 @@ namespace fc::vm::actor::builtin::market {
 
   struct VerifyDealsOnSectorProveCommit : ActorMethodBase<6> {
     using Params = VerifyDealsOnSectorProveCommitParams;
+    using Result = DealWeight;
     ACTOR_METHOD_STUB();
   };
 
@@ -41,6 +43,7 @@ namespace fc::vm::actor::builtin::market {
 
   struct ComputeDataCommitment : ActorMethodBase<8> {
     using Params = ComputeDataCommitmentParams;
+    using Result = CID;
     ACTOR_METHOD_STUB();
   };
 

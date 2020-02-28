@@ -15,12 +15,6 @@
 #include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::miner {
-  using market::ComputeDataCommitmentParams;
-  using market::kComputeDataCommitmentMethodNumber;
-  using market::kOnMinerSectorsTerminateMethodNumber;
-  using market::kVerifyDealsOnSectorProveCommitMethodNumber;
-  using market::OnMinerSectorsTerminateParams;
-  using market::VerifyDealsOnSectorProveCommitParams;
   using primitives::kChainEpochUndefined;
   using primitives::address::Protocol;
   using primitives::chain_epoch::uvarintKey;
@@ -30,22 +24,6 @@ namespace fc::vm::actor::builtin::miner {
   using runtime::DomainSeparationTag;
   using storage::amt::Amt;
   using storage::hamt::Hamt;
-  using storage_power::EnrollCronEventParams;
-  using storage_power::kEnrollCronEventMethodNumber;
-  using storage_power::kOnMinerSurprisePoStFailureMethodNumber;
-  using storage_power::kOnMinerSurprisePoStSuccessMethodNumber;
-  using storage_power::kOnSectorModifyWeightDescMethodNumber;
-  using storage_power::kOnSectorProveCommitMethodNumber;
-  using storage_power::kOnSectorTemporaryFaultEffectiveBeginMethodNumber;
-  using storage_power::kOnSectorTemporaryFaultEffectiveEndMethodNumber;
-  using storage_power::kOnSectorTerminateMethodNumber;
-  using storage_power::OnMinerWindowedPoStFailureParams;
-  using storage_power::OnSectorModifyWeightDescParams;
-  using storage_power::OnSectorProveCommitParameters;
-  using storage_power::OnSectorTemporaryFaultEffectiveBeginParameters;
-  using storage_power::OnSectorTemporaryFaultEffectiveEndParameters;
-  using storage_power::OnSectorTerminateParameters;
-  using storage_power::SectorStorageWeightDesc;
   using storage_power::SectorTerminationType;
 
   outcome::result<MinerActorState> assertCallerIsWorker(Runtime &runtime) {
@@ -83,9 +61,7 @@ namespace fc::vm::actor::builtin::miner {
       return VMExitCode::MINER_ACTOR_MINER_NOT_ACCOUNT;
     }
     if (address.getProtocol() != Protocol::BLS) {
-      OUTCOME_TRY(key,
-                  runtime.sendR<Address>(
-                      id, account::kPubkeyAddressMethodNumber, {}, 0));
+      OUTCOME_TRY(key, runtime.sendM<account::PubkeyAddress>(id, {}, 0));
       if (key.getProtocol() != Protocol::BLS) {
         return VMExitCode::MINER_ACTOR_MINER_NOT_BLS;
       }
@@ -97,13 +73,13 @@ namespace fc::vm::actor::builtin::miner {
                                         ChainEpoch event_epoch,
                                         const CronEventPayload &payload) {
     OUTCOME_TRY(payload2, codec::cbor::encode(payload));
-    OUTCOME_TRY(runtime.sendP(kStoragePowerAddress,
-                              kEnrollCronEventMethodNumber,
-                              EnrollCronEventParams{
-                                  .event_epoch = event_epoch,
-                                  .payload = Buffer{payload2},
-                              },
-                              0));
+    OUTCOME_TRY(runtime.sendM<storage_power::EnrollCronEvent>(
+        kStoragePowerAddress,
+        {
+            .event_epoch = event_epoch,
+            .payload = Buffer{payload2},
+        },
+        0));
     return outcome::success();
   }
 
@@ -214,13 +190,13 @@ namespace fc::vm::actor::builtin::miner {
     }
 
     OUTCOME_TRY(comm_d,
-                runtime.sendPR<CID>(kStorageMarketAddress,
-                                    kComputeDataCommitmentMethodNumber,
-                                    ComputeDataCommitmentParams{
-                                        .deals = info.deals,
-                                        .sector_size = sector_size,
-                                    },
-                                    0));
+                runtime.sendM<market::ComputeDataCommitment>(
+                    kStorageMarketAddress,
+                    {
+                        .deals = info.deals,
+                        .sector_size = sector_size,
+                    },
+                    0));
 
     OUTCOME_TRY(miner, runtime.resolveAddress(runtime.getCurrentReceiver()));
     OUTCOME_TRY(runtime.verifySeal(
@@ -256,25 +232,25 @@ namespace fc::vm::actor::builtin::miner {
       SectorTerminationType type,
       const std::vector<SectorStorageWeightDesc> &weights,
       TokenAmount pledge) {
-    OUTCOME_TRY(runtime.sendP(kStoragePowerAddress,
-                              kOnSectorTerminateMethodNumber,
-                              OnSectorTerminateParameters{
-                                  .termination_type = type,
-                                  .weights = weights,
-                                  .pledge = pledge,
-                              },
-                              0));
+    OUTCOME_TRY(runtime.sendM<storage_power::OnSectorTerminate>(
+        kStoragePowerAddress,
+        {
+            .termination_type = type,
+            .weights = weights,
+            .pledge = pledge,
+        },
+        0));
     return outcome::success();
   }
 
   outcome::result<void> requestTerminateDeals(
       Runtime &runtime, const std::vector<DealId> &deals) {
-    OUTCOME_TRY(runtime.sendP(kStorageMarketAddress,
-                              kOnMinerSectorsTerminateMethodNumber,
-                              OnMinerSectorsTerminateParams{
-                                  .deals = deals,
-                              },
-                              0));
+    OUTCOME_TRY(
+        runtime.sendM<market::OnMinerSectorsTerminate>(kStorageMarketAddress,
+                                                       {
+                                                           .deals = deals,
+                                                       },
+                                                       0));
     return outcome::success();
   }
 
@@ -282,13 +258,14 @@ namespace fc::vm::actor::builtin::miner {
       Runtime &runtime,
       const std::vector<SectorStorageWeightDesc> &weights,
       TokenAmount pledge) {
-    OUTCOME_TRY(runtime.sendP(kStoragePowerAddress,
-                              kOnSectorTemporaryFaultEffectiveBeginMethodNumber,
-                              OnSectorTemporaryFaultEffectiveBeginParameters{
-                                  .weights = weights,
-                                  .pledge = pledge,
-                              },
-                              0));
+    OUTCOME_TRY(
+        runtime.sendM<storage_power::OnSectorTemporaryFaultEffectiveBegin>(
+            kStoragePowerAddress,
+            {
+                .weights = weights,
+                .pledge = pledge,
+            },
+            0));
     return outcome::success();
   }
 
@@ -296,13 +273,14 @@ namespace fc::vm::actor::builtin::miner {
       Runtime &runtime,
       const std::vector<SectorStorageWeightDesc> &weights,
       TokenAmount pledge) {
-    OUTCOME_TRY(runtime.sendP(kStoragePowerAddress,
-                              kOnSectorTemporaryFaultEffectiveEndMethodNumber,
-                              OnSectorTemporaryFaultEffectiveEndParameters{
-                                  .weights = weights,
-                                  .pledge = pledge,
-                              },
-                              0));
+    OUTCOME_TRY(
+        runtime.sendM<storage_power::OnSectorTemporaryFaultEffectiveEnd>(
+            kStoragePowerAddress,
+            {
+                .weights = weights,
+                .pledge = pledge,
+            },
+            0));
     return outcome::success();
   }
 
@@ -477,13 +455,13 @@ namespace fc::vm::actor::builtin::miner {
               }));
       OUTCOME_TRY(requestTerminateDeals(runtime, deals));
     }
-    OUTCOME_TRY(runtime.sendP(kStoragePowerAddress,
-                              kOnMinerSurprisePoStFailureMethodNumber,
-                              OnMinerWindowedPoStFailureParams{
-                                  .num_consecutive_failures =
-                                      state.post_state.num_consecutive_failures,
-                              },
-                              0));
+    OUTCOME_TRY(runtime.sendM<storage_power::OnMinerSurprisePoStFailure>(
+        kStoragePowerAddress,
+        {
+            .num_consecutive_failures =
+                state.post_state.num_consecutive_failures,
+        },
+        0));
     return outcome::success();
   }
 
@@ -501,11 +479,11 @@ namespace fc::vm::actor::builtin::miner {
     return runtime.commitState(state);
   }
 
-  ACTOR_METHOD(constructor) {
+  ACTOR_METHOD_IMPL(Construct) {
     if (runtime.getImmediateCaller() != kInitAddress) {
       return VMExitCode::MINER_ACTOR_WRONG_CALLER;
     }
-    OUTCOME_TRY(params2, decodeActorParams<ConstructorParams>(params));
+    auto &params2 = params;
     auto ipld = runtime.getIpfsDatastore();
     OUTCOME_TRY(empty_amt, Amt{ipld}.flush());
     OUTCOME_TRY(empty_hamt, Hamt{ipld}.flush());
@@ -534,16 +512,13 @@ namespace fc::vm::actor::builtin::miner {
     return outcome::success();
   }
 
-  ACTOR_METHOD(controlAddresses) {
+  ACTOR_METHOD_IMPL(ControlAddresses) {
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
-    OUTCOME_TRY(result,
-                codec::cbor::encode(GetControlAddressesReturn{
-                    state.info.owner, state.info.worker}));
-    return InvocationOutput{Buffer{result}};
+    return Result{state.info.owner, state.info.worker};
   }
 
-  ACTOR_METHOD(changeWorkerAddress) {
-    OUTCOME_TRY(params2, decodeActorParams<ChangeWorkerAddressParams>(params));
+  ACTOR_METHOD_IMPL(ChangeWorkerAddress) {
+    auto &params2 = params;
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
     if (runtime.getImmediateCaller() != state.info.owner) {
       return VMExitCode::MINER_ACTOR_WRONG_CALLER;
@@ -565,16 +540,16 @@ namespace fc::vm::actor::builtin::miner {
     return outcome::success();
   }
 
-  ACTOR_METHOD(changePeerId) {
-    OUTCOME_TRY(params2, decodeActorParams<ChangePeerIdParams>(params));
+  ACTOR_METHOD_IMPL(ChangePeerId) {
+    auto &params2 = params;
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
     state.info.peer_id = params2.new_id;
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
-  ACTOR_METHOD(submitWindowedPoSt) {
-    OUTCOME_TRY(params2, decodeActorParams<SubmitWindowedPoStParams>(params));
+  ACTOR_METHOD_IMPL(SubmitWindowedPoSt) {
+    auto &params2 = params;
     OUTCOME_TRY(state, assertCallerIsWorker(runtime));
     if (runtime.getCurrentEpoch() > state.post_state.proving_period_start
                                         + kWindowedPostChallengeDuration) {
@@ -588,12 +563,12 @@ namespace fc::vm::actor::builtin::miner {
     state.post_state.proving_period_start += kProvingPeriod;
     state.proving_set = state.sectors;
     OUTCOME_TRY(runtime.commitState(state));
-    OUTCOME_TRY(runtime.send(
-        kStoragePowerAddress, kOnMinerSurprisePoStSuccessMethodNumber, {}, 0));
+    OUTCOME_TRY(runtime.sendM<storage_power::OnMinerSurprisePoStSuccess>(
+        kStoragePowerAddress, {}, 0));
     return outcome::success();
   }
 
-  ACTOR_METHOD(onDeleteMiner) {
+  ACTOR_METHOD_IMPL(OnDeleteMiner) {
     if (runtime.getImmediateCaller() != kStoragePowerAddress) {
       return VMExitCode::MINER_ACTOR_WRONG_CALLER;
     }
@@ -601,8 +576,8 @@ namespace fc::vm::actor::builtin::miner {
     return outcome::success();
   }
 
-  ACTOR_METHOD(preCommitSector) {
-    OUTCOME_TRY(params2, decodeActorParams<PreCommitSectorParams>(params));
+  ACTOR_METHOD_IMPL(PreCommitSector) {
+    auto &params2 = params;
     OUTCOME_TRY(state, assertCallerIsWorker(runtime));
 
     OUTCOME_TRY(already_commited,
@@ -646,8 +621,8 @@ namespace fc::vm::actor::builtin::miner {
     return outcome::success();
   }
 
-  ACTOR_METHOD(proveCommitSector) {
-    OUTCOME_TRY(params2, decodeActorParams<ProveCommitSectorParams>(params));
+  ACTOR_METHOD_IMPL(ProveCommitSector) {
+    auto &params2 = params;
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
     auto ipld = runtime.getIpfsDatastore();
     auto sector = params2.sector;
@@ -671,27 +646,26 @@ namespace fc::vm::actor::builtin::miner {
                    }));
 
     OUTCOME_TRY(deal_weight,
-                runtime.sendPR<DealWeight>(
+                runtime.sendM<market::VerifyDealsOnSectorProveCommit>(
                     kStorageMarketAddress,
-                    kVerifyDealsOnSectorProveCommitMethodNumber,
-                    VerifyDealsOnSectorProveCommitParams{
+                    {
                         .deals = precommit.info.deal_ids,
                         .sector_expiry = precommit.info.expiration,
                     },
                     0));
 
     OUTCOME_TRY(pledge,
-                runtime.sendPR<TokenAmount>(
+                runtime.sendM<storage_power::OnSectorProveCommit>(
                     kStoragePowerAddress,
-                    kOnSectorProveCommitMethodNumber,
-                    OnSectorProveCommitParameters{
+                    {
                         .weight =
-                            {
+                            SectorStorageWeightDesc{
                                 .sector_size = state.info.sector_size,
                                 .duration = precommit.info.expiration
                                             - runtime.getCurrentEpoch(),
                                 .deal_weight = deal_weight,
-                            }},
+                            },
+                    },
                     0));
 
     Amt amt_sectors{ipld, state.sectors};
@@ -748,9 +722,8 @@ namespace fc::vm::actor::builtin::miner {
     return outcome::success();
   }
 
-  ACTOR_METHOD(extendSectorExpiration) {
-    OUTCOME_TRY(params2,
-                decodeActorParams<ExtendSectorExpirationParams>(params));
+  ACTOR_METHOD_IMPL(ExtendSectorExpiration) {
+    auto &params2 = params;
     OUTCOME_TRY(state, assertCallerIsWorker(runtime));
     Amt amt_sectors{runtime.getIpfsDatastore(), state.sectors};
 
@@ -765,10 +738,9 @@ namespace fc::vm::actor::builtin::miner {
     new_weight.duration = prev_weight.duration + extension;
 
     OUTCOME_TRY(new_pledge,
-                runtime.sendPR<TokenAmount>(
+                runtime.sendM<storage_power::OnSectorModifyWeightDesc>(
                     kStoragePowerAddress,
-                    kOnSectorModifyWeightDescMethodNumber,
-                    OnSectorModifyWeightDescParams{
+                    {
                         .prev_weight = prev_weight,
                         .prev_pledge = sector.pledge_requirement,
                         .new_weight = new_weight,
@@ -785,8 +757,8 @@ namespace fc::vm::actor::builtin::miner {
     return outcome::success();
   }
 
-  ACTOR_METHOD(terminateSectors) {
-    OUTCOME_TRY(params2, decodeActorParams<TerminateSectorsParams>(params));
+  ACTOR_METHOD_IMPL(TerminateSectors) {
+    auto &params2 = params;
     OUTCOME_TRY(state, assertCallerIsWorker(runtime));
     if (!params2.sectors) {
       return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
@@ -799,9 +771,8 @@ namespace fc::vm::actor::builtin::miner {
     return outcome::success();
   }
 
-  ACTOR_METHOD(declareTemporaryFaults) {
-    OUTCOME_TRY(params2,
-                decodeActorParams<DeclareTemporaryFaultsParams>(params));
+  ACTOR_METHOD_IMPL(DeclareTemporaryFaults) {
+    auto &params2 = params;
     OUTCOME_TRY(state, assertCallerIsWorker(runtime));
     if (params2.duration <= 0) {
       return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
@@ -839,11 +810,11 @@ namespace fc::vm::actor::builtin::miner {
     return outcome::success();
   }
 
-  ACTOR_METHOD(onDeferredCronEvent) {
+  ACTOR_METHOD_IMPL(OnDeferredCronEvent) {
     if (runtime.getImmediateCaller() != kStoragePowerAddress) {
       return VMExitCode::MINER_ACTOR_WRONG_CALLER;
     }
-    OUTCOME_TRY(params2, decodeActorParams<OnDeferredCronEventParams>(params));
+    auto &params2 = params;
     OUTCOME_TRY(
         payload,
         codec::cbor::decode<CronEventPayload>(params2.callback_payload));
@@ -874,8 +845,8 @@ namespace fc::vm::actor::builtin::miner {
     return outcome::success();
   }
 
-  ACTOR_METHOD(checkSectorProven) {
-    OUTCOME_TRY(params2, decodeActorParams<CheckSectorProvenParams>(params));
+  ACTOR_METHOD_IMPL(CheckSectorProven) {
+    auto &params2 = params;
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
     OUTCOME_TRY(found,
                 Amt(runtime.getIpfsDatastore(), state.sectors)
@@ -887,18 +858,18 @@ namespace fc::vm::actor::builtin::miner {
   }
 
   const ActorExports exports{
-      {kConstructorMethodNumber, ActorMethod(constructor)},
-      {kGetControlAddressesMethodNumber, ActorMethod(controlAddresses)},
-      {kChangeWorkerAddressMethodNumber, ActorMethod(changeWorkerAddress)},
-      {kChangePeerIdMethodNumber, ActorMethod(changePeerId)},
-      {kSubmitWindowedPoStMethodNumber, ActorMethod(submitWindowedPoSt)},
-      {kOnDeleteMinerMethodNumber, ActorMethod(onDeleteMiner)},
-      {kPreCommitSectorMethodNumber, ActorMethod(preCommitSector)},
-      {kProveCommitSectorMethodNumber, ActorMethod(proveCommitSector)},
-      {kExtendSectorExpirationMethodNumber,
-       ActorMethod(extendSectorExpiration)},
-      {kTerminateSectorsMethodNumber, ActorMethod(terminateSectors)},
-      {kDeclareTemporaryFaultsMethodNumber, declareTemporaryFaults},
-      {kOnDeferredCronEventMethodNumber, onDeferredCronEvent},
+      exportMethod<Construct>(),
+      exportMethod<ControlAddresses>(),
+      exportMethod<ChangeWorkerAddress>(),
+      exportMethod<ChangePeerId>(),
+      exportMethod<SubmitWindowedPoSt>(),
+      exportMethod<OnDeleteMiner>(),
+      exportMethod<PreCommitSector>(),
+      exportMethod<ProveCommitSector>(),
+      exportMethod<ExtendSectorExpiration>(),
+      exportMethod<TerminateSectors>(),
+      exportMethod<DeclareTemporaryFaults>(),
+      exportMethod<OnDeferredCronEvent>(),
+      exportMethod<CheckSectorProven>(),
   };
 }  // namespace fc::vm::actor::builtin::miner

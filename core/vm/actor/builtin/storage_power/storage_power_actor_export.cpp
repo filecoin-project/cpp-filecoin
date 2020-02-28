@@ -181,7 +181,7 @@ ACTOR_METHOD_IMPL(OnSectorProveCommit) {
   OUTCOME_TRY(immediate_caller_code_id,
               runtime.getActorCodeID(runtime.getImmediateCaller()));
   if (immediate_caller_code_id != kStorageMinerCodeCid)
-    return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
+    return outcome::failure(VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER);
 
   auto &on_sector_prove_commit_params = params;
 
@@ -198,7 +198,7 @@ ACTOR_METHOD_IMPL(OnSectorProveCommit) {
   OUTCOME_TRY(power_actor_state, power_actor.flushState());
   OUTCOME_TRY(runtime.commitState(power_actor_state));
 
-  return Result{.pledge = pledge};
+  return pledge;
 }
 
 ACTOR_METHOD_IMPL(OnSectorTerminate) {

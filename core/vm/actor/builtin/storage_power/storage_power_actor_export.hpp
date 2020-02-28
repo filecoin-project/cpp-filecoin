@@ -51,10 +51,6 @@ namespace fc::vm::actor::builtin::storage_power {
     SectorStorageWeightDesc weight;
   };
 
-  struct OnSectorProveCommitReturn {
-    TokenAmount pledge;
-  };
-
   struct OnSectorTerminateParameters {
     SectorTerminationType termination_type;
     std::vector<SectorStorageWeightDesc> weights;
@@ -113,7 +109,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
   struct OnSectorProveCommit : ActorMethodBase<6> {
     using Params = OnSectorProveCommitParameters;
-    using Result = OnSectorProveCommitReturn;
+    using Result = TokenAmount;
     ACTOR_METHOD_STUB();
   };
 
@@ -128,12 +124,13 @@ namespace fc::vm::actor::builtin::storage_power {
   };
 
   struct OnSectorTemporaryFaultEffectiveEnd : ActorMethodBase<9> {
-    using Params = OnSectorTemporaryFaultEffectiveEndParams;
+    using Params = OnSectorTemporaryFaultEffectiveEndParameters;
     ACTOR_METHOD_STUB();
   };
 
   struct OnSectorModifyWeightDesc : ActorMethodBase<10> {
     using Params = OnSectorModifyWeightDescParams;
+    using Result = TokenAmount;
     ACTOR_METHOD_STUB();
   };
 
@@ -172,7 +169,6 @@ namespace fc::vm::actor::builtin::storage_power {
   CBOR_TUPLE(DeleteMinerParameters, miner)
 
   CBOR_TUPLE(OnSectorProveCommitParameters, weight)
-  CBOR_TUPLE(OnSectorProveCommitReturn, pledge)
 
   CBOR_TUPLE(OnSectorTerminateParameters, termination_type, weights, pledge)
 
@@ -193,11 +189,6 @@ namespace fc::vm::actor::builtin::storage_power {
                          const CreateMiner::Result &rhs) {
     return lhs.id_address == rhs.id_address
            && lhs.robust_address == rhs.robust_address;
-  }
-
-  inline bool operator==(const OnSectorProveCommit::Result &lhs,
-                         const OnSectorProveCommit::Result &rhs) {
-    return lhs.pledge == rhs.pledge;
   }
 
 }  // namespace fc::vm::actor::builtin::storage_power
