@@ -16,6 +16,7 @@ namespace fc::proofs {
   common::Logger Proofs::logger_ = common::createLogger("proofs");
 
   using common::Blob;
+  using common::Buffer;
   using common::CIDToDataCommitmentV1;
   using common::CIDToPieceCommitmentV1;
   using common::CIDToReplicaCommitmentV1;
@@ -522,6 +523,24 @@ namespace fc::proofs {
         res_ptr->seal_commit_phase1_output_ptr,
         res_ptr->seal_commit_phase1_output_ptr
             + res_ptr->seal_commit_phase1_output_len);  // NOLINT
+  }
+
+  outcome::result<Proof> Proofs::sealCommitPhase2(
+      gsl::span<const uint8_t> phase1_output,
+      SectorNumber sector_id,
+      const Prover &prover_id) {
+    auto res_ptr = make_unique(seal_commit_phase2(phase1_output.data(),
+                                                  phase1_output.size(),
+                                                  sector_id,
+                                                  cPointerToArray(prover_id)),
+                               destroy_seal_commit_phase2_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("sealCommit Phase 2: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return Proof(res_ptr->proof_ptr, res_ptr->proof_ptr + res_ptr->proof_len);
   }
 
   SortedPrivateSectorInfo Proofs::newSortedPrivateSectorInfo(

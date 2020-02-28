@@ -38,6 +38,7 @@ namespace fc::proofs {
   using primitives::sector::InteractiveRandomness;
   using primitives::sector::PoStCandidate;
   using primitives::sector::PoStRandomness;
+  using primitives::sector::SealProof;
   using primitives::sector::SealRandomness;
   using primitives::sector::SectorInfo;
   using primitives::sector::Ticket;
@@ -135,6 +136,11 @@ namespace fc::proofs {
         const SealRandomness &ticket,
         const InteractiveRandomness &seed,
         gsl::span<const PieceInfo> pieces);
+
+    static outcome::result<Proof> sealCommitPhase2(
+        gsl::span<const uint8_t> phase1_output,
+        SectorNumber sector_id,
+        const Prover &prover_id);
 
     static outcome::result<CID> generatePieceCIDFromFile(
         RegisteredProof proof_type,

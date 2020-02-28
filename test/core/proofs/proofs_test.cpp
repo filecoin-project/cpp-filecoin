@@ -371,6 +371,9 @@ TEST_F(ProofsTest, ValidSealAndUnseal) {
                                                seed,
                                                public_pieces))
 
+  EXPECT_OUTCOME_TRUE(seal_proof,
+                      Proofs::sealCommitPhase2(
+                          seal_commit_phase1_output, sector_num, prover_id));
 
   /*EXPECT_OUTCOME_TRUE(isValid,
                       Proofs::verifySeal(sector_size,
