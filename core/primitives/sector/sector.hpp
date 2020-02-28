@@ -117,12 +117,13 @@ namespace fc::primitives::sector {
 
   struct PoStVerifyInfo {
     PoStRandomness randomness;
-    /// CommR
-    CID sealed_cid;
     /// From OnChainPoStVerifyInfo
     std::vector<PoStCandidate> candidates;
     std::vector<PoStProof> proofs;
     std::vector<SectorInfo> eligible_sectors;
+    /// used to derive 32-byte prover ID
+    ActorId prover;
+    uint64_t challenge_count;
   };
 
   CBOR_TUPLE(SectorId, miner, sector)

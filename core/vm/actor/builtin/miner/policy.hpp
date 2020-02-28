@@ -37,6 +37,9 @@ namespace fc::vm::actor::builtin::miner {
 
   constexpr EpochDuration kDeclaredFaultEffectiveDelay{20};
 
+  constexpr uint64_t kWindowedPoStSampleRateNumer{1};
+  constexpr uint64_t kWindowedPoStSampleRateDenum{25};
+
   inline TokenAmount precommitDeposit(SectorSize sector_size,
                                       ChainEpoch duration) {
     return 0;
