@@ -18,66 +18,66 @@ namespace fc::vm::actor::builtin::miner {
 
   struct Construct : ActorMethodBase<1> {
     using Params = ConstructorParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct ControlAddresses : ActorMethodBase<2> {
     using Result = GetControlAddressesReturn;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct ChangeWorkerAddress : ActorMethodBase<3> {
     using Params = ChangeWorkerAddressParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct ChangePeerId : ActorMethodBase<4> {
     using Params = ChangePeerIdParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct SubmitWindowedPoSt : ActorMethodBase<5> {
     using Params = SubmitWindowedPoStParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct OnDeleteMiner : ActorMethodBase<6> {
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct PreCommitSector : ActorMethodBase<7> {
     using Params = PreCommitSectorParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct ProveCommitSector : ActorMethodBase<8> {
     using Params = ProveCommitSectorParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct ExtendSectorExpiration : ActorMethodBase<9> {
     using Params = ExtendSectorExpirationParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct TerminateSectors : ActorMethodBase<10> {
     using Params = TerminateSectorsParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct DeclareTemporaryFaults : ActorMethodBase<11> {
     using Params = DeclareTemporaryFaultsParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct OnDeferredCronEvent : ActorMethodBase<12> {
     using Params = OnDeferredCronEventParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct CheckSectorProven : ActorMethodBase<13> {
     using Params = CheckSectorProvenParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   extern const ActorExports exports;

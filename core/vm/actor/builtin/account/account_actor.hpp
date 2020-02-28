@@ -40,7 +40,7 @@ namespace fc::vm::actor::builtin::account {
 
   struct PubkeyAddress : ActorMethodBase<2> {
     using Result = Address;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   extern const ActorExports exports;

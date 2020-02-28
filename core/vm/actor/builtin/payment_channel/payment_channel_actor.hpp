@@ -38,20 +38,20 @@ namespace fc::vm::actor::builtin::payment_channel {
 
   struct Construct : ActorMethodBase<1> {
     using Params = ConstructParameteres;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct UpdateChannelState : ActorMethodBase<2> {
     using Params = UpdateChannelStateParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct Settle : ActorMethodBase<3> {
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct Collect : ActorMethodBase<4> {
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   CBOR_TUPLE(ConstructParameteres, to)

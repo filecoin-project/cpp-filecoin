@@ -13,7 +13,7 @@
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
-#define ACTOR_METHOD_STUB() \
+#define ACTOR_METHOD_DECL() \
   static outcome::result<Result> call(Runtime &, const Params &);
 
 #define ACTOR_METHOD_IMPL(M) \

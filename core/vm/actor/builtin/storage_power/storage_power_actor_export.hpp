@@ -92,78 +92,78 @@ namespace fc::vm::actor::builtin::storage_power {
   };
 
   struct Construct : ActorMethodBase<1> {
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct AddBalance : ActorMethodBase<2> {
     using Params = AddBalanceParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct WithdrawBalance : ActorMethodBase<3> {
     using Params = WithdrawBalanceParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct CreateMiner : ActorMethodBase<4> {
     using Params = CreateMinerParameters;
     using Result = CreateMinerReturn;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct DeleteMiner : ActorMethodBase<5> {
     using Params = DeleteMinerParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct OnSectorProveCommit : ActorMethodBase<6> {
     using Params = OnSectorProveCommitParameters;
     using Result = TokenAmount;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct OnSectorTerminate : ActorMethodBase<7> {
     using Params = OnSectorTerminateParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct OnSectorTemporaryFaultEffectiveBegin : ActorMethodBase<8> {
     using Params = OnSectorTemporaryFaultEffectiveBeginParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct OnSectorTemporaryFaultEffectiveEnd : ActorMethodBase<9> {
     using Params = OnSectorTemporaryFaultEffectiveEndParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct OnSectorModifyWeightDesc : ActorMethodBase<10> {
     using Params = OnSectorModifyWeightDescParameters;
     using Result = TokenAmount;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct OnMinerWindowedPoStSuccess : ActorMethodBase<11> {
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct OnMinerWindowedPoStFailure : ActorMethodBase<12> {
     using Params = OnMinerWindowedPoStFailureParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct EnrollCronEvent : ActorMethodBase<13> {
     using Params = EnrollCronEventParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct ReportConsensusFault : ActorMethodBase<14> {
     using Params = ReportConsensusFaultParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct OnEpochTickEnd : ActorMethodBase<15> {
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   /** Exported StoragePowerActor methods to invoker */

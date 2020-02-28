@@ -89,16 +89,16 @@ namespace fc::vm::actor::builtin::reward {
   extern const ActorExports exports;
 
   struct Construct : ActorMethodBase<1> {
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct AwardBlockReward : ActorMethodBase<2> {
     using Params = AwardBlockRewardParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct WithdrawReward : ActorMethodBase<3> {
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
 }  // namespace fc::vm::actor::builtin::reward

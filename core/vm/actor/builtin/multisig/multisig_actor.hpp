@@ -177,43 +177,43 @@ namespace fc::vm::actor::builtin::multisig {
 
   struct Construct : ActorMethodBase<1> {
     using Params = ConstructParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct Propose : ActorMethodBase<2> {
     using Params = ProposeParameters;
     using Result = TransactionNumber;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct Approve : ActorMethodBase<3> {
     using Params = TransactionNumberParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct Cancel : ActorMethodBase<4> {
     using Params = TransactionNumberParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct AddSigner : ActorMethodBase<6> {
     using Params = AddSignerParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct RemoveSigner : ActorMethodBase<7> {
     using Params = RemoveSignerParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct SwapSigner : ActorMethodBase<8> {
     using Params = SwapSignerParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct ChangeThreshold : ActorMethodBase<9> {
     using Params = ChangeThresholdParameters;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   /** Exported Multisig Actor methods to invoker */

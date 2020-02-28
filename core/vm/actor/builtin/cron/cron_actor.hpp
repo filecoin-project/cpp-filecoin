@@ -23,7 +23,7 @@ namespace fc::vm::actor::builtin::cron {
    * @return success or error
    */
   struct EpochTick : ActorMethodBase<2> {
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   extern const ActorExports exports;

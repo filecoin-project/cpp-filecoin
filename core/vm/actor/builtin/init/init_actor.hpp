@@ -40,7 +40,7 @@ namespace fc::vm::actor::builtin::init {
   struct Exec : ActorMethodBase<2> {
     using Params = ExecParams;
     using Result = ExecReturn;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   extern const ActorExports exports;

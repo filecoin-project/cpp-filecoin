@@ -33,18 +33,18 @@ namespace fc::vm::actor::builtin::market {
   struct VerifyDealsOnSectorProveCommit : ActorMethodBase<6> {
     using Params = VerifyDealsOnSectorProveCommitParams;
     using Result = DealWeight;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct OnMinerSectorsTerminate : ActorMethodBase<7> {
     using Params = OnMinerSectorsTerminateParams;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   struct ComputeDataCommitment : ActorMethodBase<8> {
     using Params = ComputeDataCommitmentParams;
     using Result = CID;
-    ACTOR_METHOD_STUB();
+    ACTOR_METHOD_DECL();
   };
 
   CBOR_TUPLE(VerifyDealsOnSectorProveCommitParams, deals, sector_expiry)
