@@ -24,7 +24,8 @@ namespace fc::vm::actor::builtin {
    * @param miner
    * @return
    */
-  auto requestMinerControlAddress(Runtime &runtime, const Address &miner) {
+  outcome::result<miner::ControlAddresses::Result> requestMinerControlAddress(
+      Runtime &runtime, const Address &miner) {
     return runtime.sendM<miner::ControlAddresses>(miner, {}, 0);
   }
 }  // namespace fc::vm::actor::builtin
