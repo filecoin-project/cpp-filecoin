@@ -19,32 +19,24 @@ namespace fc::vm::actor::builtin::payment_channel {
   using fc::vm::runtime::InvocationOutput;
   using fc::vm::runtime::Runtime;
 
-  /**
-   * Construct method parameters
-   */
-  struct ConstructParameteres {
-    /** Voucher receiver */
-    Address to;
-  };
-
-  /**
-   * UpdateChannelState method parameters
-   */
-  struct UpdateChannelStateParameters {
-    SignedVoucher signed_voucher;
-    Buffer secret;
-    Buffer proof;
-  };
-
   struct Construct : ActorMethodBase<1> {
-    using Params = ConstructParameteres;
+    struct Params {
+      /** Voucher receiver */
+      Address to;
+    };
     ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(Construct::Params, to)
 
   struct UpdateChannelState : ActorMethodBase<2> {
-    using Params = UpdateChannelStateParameters;
+    struct Params {
+      SignedVoucher signed_voucher;
+      Buffer secret;
+      Buffer proof;
+    };
     ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(UpdateChannelState::Params, signed_voucher, secret, proof)
 
   struct Settle : ActorMethodBase<3> {
     ACTOR_METHOD_DECL();
@@ -53,10 +45,6 @@ namespace fc::vm::actor::builtin::payment_channel {
   struct Collect : ActorMethodBase<4> {
     ACTOR_METHOD_DECL();
   };
-
-  CBOR_TUPLE(ConstructParameteres, to)
-
-  CBOR_TUPLE(UpdateChannelStateParameters, signed_voucher, secret, proof)
 
 }  // namespace fc::vm::actor::builtin::payment_channel
 

@@ -37,7 +37,6 @@ namespace fc::vm::actor::builtin::reward {
     primitives::BigInt amountVested(
         const primitives::ChainEpoch &current_epoch);
   };
-
   CBOR_TUPLE(
       Reward, vesting_function, start_epoch, end_epoch, value, amount_withdrawn)
 
@@ -55,7 +54,6 @@ namespace fc::vm::actor::builtin::reward {
         const Address &owner,
         const primitives::ChainEpoch &current_epoch);
   };
-
   CBOR_TUPLE(State, reward_map, reward_total)
 
   // Actor related stuff
@@ -74,32 +72,27 @@ namespace fc::vm::actor::builtin::reward {
   static constexpr auto kRewardVestingFunction{VestingFunction::NONE};
   static const primitives::EpochDuration kRewardVestingPeriod{0};
 
-  struct AwardBlockRewardParams {
-    Address miner;
-    TokenAmount penalty;
-    TokenAmount gas_reward;
-    Power nominal_power;
-  };
-
-  CBOR_TUPLE(AwardBlockRewardParams, miner, penalty, gas_reward, nominal_power)
-
-  constexpr MethodNumber kAwardBlockRewardMethodNumber{2};
-  constexpr MethodNumber kWithdrawRewardMethodNumber{3};
-
-  extern const ActorExports exports;
-
   struct Construct : ActorMethodBase<1> {
     ACTOR_METHOD_DECL();
   };
 
   struct AwardBlockReward : ActorMethodBase<2> {
-    using Params = AwardBlockRewardParams;
+    struct Params {
+      Address miner;
+      TokenAmount penalty;
+      TokenAmount gas_reward;
+      Power nominal_power;
+    };
     ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(
+      AwardBlockReward::Params, miner, penalty, gas_reward, nominal_power)
 
   struct WithdrawReward : ActorMethodBase<3> {
     ACTOR_METHOD_DECL();
   };
+
+  extern const ActorExports exports;
 
 }  // namespace fc::vm::actor::builtin::reward
 

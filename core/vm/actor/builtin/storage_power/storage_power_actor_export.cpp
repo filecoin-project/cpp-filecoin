@@ -147,7 +147,7 @@ namespace fc::vm::actor::builtin::storage_power {
       return VMExitCode::STORAGE_POWER_FORBIDDEN;
 
     auto message = runtime.getMessage().get();
-    miner::ConstructorParams construct_miner_parameters{
+    miner::Construct::Params construct_miner_parameters{
         message.from, params.worker, params.sector_size, params.peer_id};
     OUTCOME_TRY(encoded_construct_miner_parameters,
                 encodeActorParams(construct_miner_parameters));

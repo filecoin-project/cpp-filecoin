@@ -47,7 +47,7 @@ TEST(CronActorTest, Correct) {
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_CALL(runtime,
               send(actor::kStoragePowerAddress,
-                   MethodNumber{OnEpochTickEnd::Number},
+                   OnEpochTickEnd::Number,
                    MethodParams{},
                    actor::BigInt(0)))
       .WillOnce(testing::Return(fc::outcome::success()));

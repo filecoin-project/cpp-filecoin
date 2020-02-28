@@ -398,7 +398,7 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
       .WillOnce(::testing::Return(actor_head_cid));
 
   // check send params
-  fc::vm::actor::builtin::miner::ConstructorParams construct_params{
+  fc::vm::actor::builtin::miner::Construct::Params construct_params{
       caller_address, worker_address, sector_size, peer_id};
   EXPECT_OUTCOME_TRUE(encoded_construct_params,
                       encodeActorParams(construct_params));

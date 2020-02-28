@@ -23,36 +23,29 @@ namespace fc::vm::actor::builtin::init {
     CID address_map{};
     uint64_t next_id{};
   };
-
   CBOR_TUPLE(InitActorState, address_map, next_id)
 
-  struct ExecParams {
-    CodeId code;
-    MethodParams params;
-  };
-
-  struct ExecReturn {
-    Address id_address;      // The canonical ID-based address for the actor
-    Address robust_address;  // A more expensive but re-org-safe address for the
-                             // newly created actor
-  };
-
   struct Exec : ActorMethodBase<2> {
-    using Params = ExecParams;
-    using Result = ExecReturn;
+    struct Params {
+      CodeId code;
+      MethodParams params;
+    };
+    struct Result {
+      Address id_address;      // The canonical ID-based address for the actor
+      Address robust_address;  // A more expensive but re-org-safe address for
+                               // the newly created actor
+    };
     ACTOR_METHOD_DECL();
   };
-
-  extern const ActorExports exports;
-
-  CBOR_TUPLE(ExecParams, code, params)
-
-  CBOR_TUPLE(ExecReturn, id_address, robust_address)
+  CBOR_TUPLE(Exec::Params, code, params)
+  CBOR_TUPLE(Exec::Result, id_address, robust_address)
 
   inline bool operator==(const Exec::Result &lhs, const Exec::Result &rhs) {
     return lhs.id_address == rhs.id_address
            && lhs.robust_address == rhs.robust_address;
   }
+
+  extern const ActorExports exports;
 
 }  // namespace fc::vm::actor::builtin::init
 

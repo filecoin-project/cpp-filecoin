@@ -98,7 +98,7 @@ namespace fc::vm::actor::builtin::miner {
   outcome::result<void> verifyWindowedPoSt(
       Runtime &runtime,
       const MinerActorState &state,
-      const SubmitWindowedPoStParams &params) {
+      const OnChainPoStVerifyInfo &params) {
     if (hasDuplicateTickets(params.candidates)) {
       return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
     }

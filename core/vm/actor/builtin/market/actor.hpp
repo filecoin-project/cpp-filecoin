@@ -16,42 +16,33 @@ namespace fc::vm::actor::builtin::market {
   using primitives::DealWeight;
   using primitives::SectorSize;
 
-  struct VerifyDealsOnSectorProveCommitParams {
-    std::vector<DealId> deals;
-    ChainEpoch sector_expiry;
-  };
-
-  struct OnMinerSectorsTerminateParams {
-    std::vector<DealId> deals;
-  };
-
-  struct ComputeDataCommitmentParams {
-    std::vector<DealId> deals;
-    SectorSize sector_size;
-  };
-
   struct VerifyDealsOnSectorProveCommit : ActorMethodBase<6> {
-    using Params = VerifyDealsOnSectorProveCommitParams;
+    struct Params {
+      std::vector<DealId> deals;
+      ChainEpoch sector_expiry;
+    };
     using Result = DealWeight;
     ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(VerifyDealsOnSectorProveCommit::Params, deals, sector_expiry)
 
   struct OnMinerSectorsTerminate : ActorMethodBase<7> {
-    using Params = OnMinerSectorsTerminateParams;
+    struct Params {
+      std::vector<DealId> deals;
+    };
     ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(OnMinerSectorsTerminate::Params, deals)
 
   struct ComputeDataCommitment : ActorMethodBase<8> {
-    using Params = ComputeDataCommitmentParams;
+    struct Params {
+      std::vector<DealId> deals;
+      SectorSize sector_size;
+    };
     using Result = CID;
     ACTOR_METHOD_DECL();
   };
-
-  CBOR_TUPLE(VerifyDealsOnSectorProveCommitParams, deals, sector_expiry)
-
-  CBOR_TUPLE(OnMinerSectorsTerminateParams, deals)
-
-  CBOR_TUPLE(ComputeDataCommitmentParams, deals, sector_size)
+  CBOR_TUPLE(ComputeDataCommitment::Params, deals, sector_size)
 }  // namespace fc::vm::actor::builtin::market
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MARKET_ACTOR_HPP

@@ -20,6 +20,7 @@ namespace fc::vm::actor::builtin::account {
   struct AccountActorState {
     Address address;
   };
+  CBOR_TUPLE(AccountActorState, address)
 
   /// Account actors represent actors without code
   struct AccountActor {
@@ -35,8 +36,6 @@ namespace fc::vm::actor::builtin::account {
     static outcome::result<Address> resolveToKeyAddress(
         const std::shared_ptr<StateTree> &state_tree, const Address &address);
   };
-
-  CBOR_TUPLE(AccountActorState, address)
 
   struct PubkeyAddress : ActorMethodBase<2> {
     using Result = Address;
