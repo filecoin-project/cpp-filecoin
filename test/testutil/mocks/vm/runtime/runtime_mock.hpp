@@ -7,6 +7,8 @@
 #define CPP_FILECOIN_RUNTIME_MOCK_HPP
 
 #include <gmock/gmock.h>
+
+#include "testutil/outcome.hpp"
 #include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::runtime {
@@ -78,6 +80,18 @@ namespace fc::vm::runtime {
     MOCK_METHOD2(verifyConsensusFault,
                  outcome::result<bool>(const BlockHeader &block_header_1,
                                        const BlockHeader &block_header_2));
+
+    /// Expect call to send with params returing result
+    template <typename M>
+    void expectSendM(const Address &address,
+                     const typename M::Params &params,
+                     TokenAmount value,
+                     const typename M::Result &result) {
+      EXPECT_OUTCOME_TRUE(params2, actor::encodeActorParams(params));
+      EXPECT_OUTCOME_TRUE(result2, actor::encodeActorReturn(result));
+      EXPECT_CALL(*this, send(address, M::Number, params2, value))
+          .WillOnce(testing::Return(fc::outcome::success(result2)));
+    }
   };
 }  // namespace fc::vm::runtime
 

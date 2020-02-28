@@ -14,7 +14,8 @@
 using namespace fc::vm;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
-using fc::vm::actor::builtin::storage_power::kOnEpochTickEndMethodNumber;
+using fc::vm::actor::builtin::cron::EpochTick;
+using fc::vm::actor::builtin::storage_power::OnEpochTickEnd;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MockRuntime;
 
@@ -30,7 +31,7 @@ TEST(CronActorTest, WrongSender) {
   actor::Actor actor;
   EXPECT_CALL(runtime, getMessage())
       .WillOnce(testing::Return(message_wrong_sender));
-  EXPECT_OUTCOME_FALSE(err, actor::builtin::cron::epochTick(runtime, {}));
+  EXPECT_OUTCOME_FALSE(err, EpochTick::call(runtime, {}));
   ASSERT_EQ(err, VMExitCode::CRON_ACTOR_WRONG_CALL);
 }
 
@@ -46,9 +47,9 @@ TEST(CronActorTest, Correct) {
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_CALL(runtime,
               send(actor::kStoragePowerAddress,
-                   MethodNumber{kOnEpochTickEndMethodNumber},
+                   OnEpochTickEnd::Number,
                    MethodParams{},
                    actor::BigInt(0)))
       .WillOnce(testing::Return(fc::outcome::success()));
-  EXPECT_OUTCOME_TRUE_1(actor::builtin::cron::epochTick(runtime, {}));
+  EXPECT_OUTCOME_TRUE_1(EpochTick::call(runtime, {}));
 }

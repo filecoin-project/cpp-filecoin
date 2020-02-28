@@ -14,46 +14,108 @@
 
 namespace fc::vm::actor::builtin::miner {
 
-  constexpr MethodNumber kGetControlAddressesMethodNumber{2};
-  constexpr MethodNumber kChangeWorkerAddressMethodNumber{3};
-  constexpr MethodNumber kChangePeerIdMethodNumber{4};
-  constexpr MethodNumber kSubmitWindowedPoStMethodNumber{5};
-  constexpr MethodNumber kOnDeleteMinerMethodNumber{6};
-  constexpr MethodNumber kPreCommitSectorMethodNumber{7};
-  constexpr MethodNumber kProveCommitSectorMethodNumber{8};
-  constexpr MethodNumber kExtendSectorExpirationMethodNumber{9};
-  constexpr MethodNumber kTerminateSectorsMethodNumber{10};
-  constexpr MethodNumber kDeclareTemporaryFaultsMethodNumber{11};
-  constexpr MethodNumber kOnDeferredCronEventMethodNumber{12};
-  constexpr MethodNumber kCheckSectorProvenMethodNumber{13};
-
   constexpr MethodNumber kSubmitElectionPoStMethodNumber{20};
 
-  ACTOR_METHOD(constructor);
+  struct Construct : ActorMethodBase<1> {
+    struct Params {
+      Address owner;
+      Address worker;
+      SectorSize sector_size;
+      PeerId peer_id;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(Construct::Params, owner, worker, sector_size, peer_id)
 
-  ACTOR_METHOD(controlAddresses);
+  struct ControlAddresses : ActorMethodBase<2> {
+    struct Result {
+      Address owner;
+      Address worker;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(ControlAddresses::Result, owner, worker)
 
-  ACTOR_METHOD(changeWorkerAddress);
+  struct ChangeWorkerAddress : ActorMethodBase<3> {
+    struct Params {
+      Address new_worker;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(ChangeWorkerAddress::Params, new_worker)
 
-  ACTOR_METHOD(changePeerId);
+  struct ChangePeerId : ActorMethodBase<4> {
+    struct Params {
+      PeerId new_id;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(ChangePeerId::Params, new_id)
 
-  ACTOR_METHOD(submitWindowedPoSt);
+  struct SubmitWindowedPoSt : ActorMethodBase<5> {
+    using Params = OnChainPoStVerifyInfo;
+    ACTOR_METHOD_DECL();
+  };
 
-  ACTOR_METHOD(onDeleteMiner);
+  struct OnDeleteMiner : ActorMethodBase<6> {
+    ACTOR_METHOD_DECL();
+  };
 
-  ACTOR_METHOD(preCommitSector);
+  struct PreCommitSector : ActorMethodBase<7> {
+    using Params = SectorPreCommitInfo;
+    ACTOR_METHOD_DECL();
+  };
 
-  ACTOR_METHOD(proveCommitSector);
+  struct ProveCommitSector : ActorMethodBase<8> {
+    struct Params {
+      SectorNumber sector;
+      SealProof proof;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(ProveCommitSector::Params, sector, proof)
 
-  ACTOR_METHOD(extendSectorExpiration);
+  struct ExtendSectorExpiration : ActorMethodBase<9> {
+    struct Params {
+      SectorNumber sector;
+      ChainEpoch new_expiration;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(ExtendSectorExpiration::Params, sector, new_expiration)
 
-  ACTOR_METHOD(terminateSectors);
+  struct TerminateSectors : ActorMethodBase<10> {
+    struct Params {
+      boost::optional<RleBitset> sectors;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(TerminateSectors::Params, sectors)
 
-  ACTOR_METHOD(declareTemporaryFaults);
+  struct DeclareTemporaryFaults : ActorMethodBase<11> {
+    struct Params {
+      RleBitset sectors;
+      EpochDuration duration;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(DeclareTemporaryFaults::Params, sectors, duration)
 
-  ACTOR_METHOD(onDeferredCronEvent);
+  struct OnDeferredCronEvent : ActorMethodBase<12> {
+    struct Params {
+      Buffer callback_payload;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(OnDeferredCronEvent::Params, callback_payload)
 
-  ACTOR_METHOD(checkSectorProven);
+  struct CheckSectorProven : ActorMethodBase<13> {
+    struct Params {
+      SectorNumber sector;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(CheckSectorProven::Params, sector)
 
   extern const ActorExports exports;
 

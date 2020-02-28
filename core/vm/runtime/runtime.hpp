@@ -15,7 +15,7 @@
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/actor/actor.hpp"
+#include "vm/actor/actor_encoding.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/indices/indices.hpp"
 #include "vm/message/message.hpp"
@@ -36,22 +36,13 @@ namespace fc::vm::runtime {
   using indices::Indices;
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
+  using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::sector::PoStVerifyInfo;
   using primitives::sector::SealVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using Serialization = Buffer;
-
-  /// Encode actor params, raises appropriate error
-  template <typename T>
-  outcome::result<MethodParams> encodeActorParams(const T &params) {
-    auto maybe_bytes = codec::cbor::encode(params);
-    if (!maybe_bytes) {
-      return VMExitCode::ENCODE_ACTOR_PARAMS_ERROR;
-    }
-    return MethodParams{maybe_bytes.value()};
-  }
 
   /**
    * @class Runtime is the VM's internal runtime object exposed to actors
@@ -171,6 +162,16 @@ namespace fc::vm::runtime {
         const BlockHeader &block_header_1,
         const BlockHeader &block_header_2) = 0;
 
+    /// Send typed method with typed params and result
+    template <typename M>
+    outcome::result<typename M::Result> sendM(const Address &address,
+                                              const typename M::Params &params,
+                                              TokenAmount value) {
+      OUTCOME_TRY(params2, actor::encodeActorParams(params));
+      OUTCOME_TRY(result, send(address, M::Number, params2, value));
+      return actor::decodeActorReturn<typename M::Result>(result);
+    }
+
     /// Send funds
     inline auto sendFunds(const Address &to, BigInt value) {
       return send(to, kSendMethodNumber, {}, value);
@@ -192,7 +193,7 @@ namespace fc::vm::runtime {
                               MethodNumber method_number,
                               const P &params,
                               BigInt value) {
-      OUTCOME_TRY(params2, encodeActorParams(params));
+      OUTCOME_TRY(params2, actor::encodeActorParams(params));
       return sendR<R>(to_address, method_number, MethodParams{params2}, value);
     }
 
@@ -202,7 +203,7 @@ namespace fc::vm::runtime {
                                             MethodNumber method_number,
                                             const P &params,
                                             BigInt value) {
-      OUTCOME_TRY(params2, encodeActorParams(params));
+      OUTCOME_TRY(params2, actor::encodeActorParams(params));
       return send(to_address, method_number, MethodParams{params2}, value);
     }
 

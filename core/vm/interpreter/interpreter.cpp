@@ -32,7 +32,7 @@ namespace fc::vm::interpreter {
   using actor::InvokerImpl;
   using actor::kCronAddress;
   using actor::kSystemActorAddress;
-  using actor::builtin::cron::kEpochTickMethodNumber;
+  using actor::builtin::cron::EpochTick;
   using actor::builtin::miner::kSubmitElectionPoStMethodNumber;
   using actor::builtin::miner::MinerActorState;
   using actor::builtin::miner::MinerInfo;
@@ -168,7 +168,7 @@ namespace fc::vm::interpreter {
                     0,
                     0,
                     kInfiniteGas,
-                    kEpochTickMethodNumber,
+                    EpochTick::Number,
                     {},
                 }));
     if (receipt.exit_code != 0) {
