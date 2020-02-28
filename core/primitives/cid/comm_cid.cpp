@@ -71,4 +71,12 @@ namespace fc::common {
 
     return std::move(result);
   }
+
+    outcome::result<Comm> CIDToReplicaCommitmentV1(const CID &cid) {
+        OUTCOME_TRY(result, CIDToCommitment(cid));
+        if ((FilecoinHashType)result.getType() != FC_SEALED_V1) {
+            return CommCidError::INVALID_HASH;
+        }
+        return cppCommitment(result.getHash());
+    }
 }  // namespace fc::common
