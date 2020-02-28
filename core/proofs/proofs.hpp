@@ -180,6 +180,20 @@ namespace fc::proofs {
         gsl::span<const PoStCandidate> winners,
         const Prover &prover_id);
 
+    /**
+     * VerifySeal returns true if the sealing operation from which its inputs
+     * were derived was valid, and false if not.
+     */
+    static outcome::result<bool> verifySeal(
+        RegisteredProof proof_type,
+        const SealedCID &sealed_cid,
+        const UnsealedCID &unsealed_cid,
+        const Prover &prover_id,
+        const SealRandomness &ticket,
+        const InteractiveRandomness &seed,
+        SectorNumber sector_num,
+        gsl::span<const uint8_t> seal_proof);
+
    private:
     static fc::common::Logger logger_;
   };

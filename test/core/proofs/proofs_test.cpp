@@ -369,24 +369,23 @@ TEST_F(ProofsTest, ValidSealAndUnseal) {
                                                prover_id,
                                                ticket,
                                                seed,
-                                               public_pieces))
-
+                                       я
   EXPECT_OUTCOME_TRUE(seal_proof,
                       Proofs::sealCommitPhase2(
                           seal_commit_phase1_output, sector_num, prover_id));
 
-  /*EXPECT_OUTCOME_TRUE(isValid,
-                      Proofs::verifySeal(sector_size,
-                                         output.comm_r,
-                                         output.comm_d,
+  EXPECT_OUTCOME_TRUE(isValid,
+                      Proofs::verifySeal(sealProofType,
+                                         sealedAndUnsealedCID.first,
+                                         sealedAndUnsealedCID.second,
                                          prover_id,
                                          ticket,
                                          seed,
-                                         sector_id,
-                                         proof));
+                                         sector_num,
+                                         seal_proof));
   ASSERT_TRUE(isValid);
 
-  EXPECT_OUTCOME_TRUE_1(Proofs::unseal(sector_size,
+  /*EXPECT_OUTCOME_TRUE_1(Proofs::unseal(sector_size,
                                        porep_proof_partitions,
                                        sector_cache_dir_path,
                                        sealed_sector_file,

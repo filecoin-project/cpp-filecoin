@@ -271,6 +271,41 @@ namespace fc::proofs {
     return res_ptr->is_valid;
   }
 
+  outcome::result<bool> Proofs::verifySeal(
+      RegisteredProof proof_type,
+      const SealedCID &sealed_cid,
+      const UnsealedCID &unsealed_cid,
+      const Prover &prover_id,
+      const SealRandomness &ticket,
+      const InteractiveRandomness &seed,
+      SectorNumber sector_num,
+      gsl::span<const uint8_t> seal_proof) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
+
+    OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(sealed_cid));
+
+    OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
+
+    auto res_ptr = make_unique(verify_seal(c_proof_type,
+                                           cPointerToArray(comm_r),
+                                           cPointerToArray(comm_d),
+                                           cPointerToArray(prover_id),
+                                           cPointerToArray(ticket),
+                                           cPointerToArray(seed),
+                                           sector_num,
+                                           seal_proof.data(),
+                                           seal_proof.size()),
+                               destroy_verify_seal_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("verifySeal: " + std::string(res_ptr->error_msg));
+
+      return ProofsError::UNKNOWN;
+    }
+
+    return res_ptr->is_valid;
+  }
+
   // ******************
   // GENERATED FUNCTIONS
   // ******************
