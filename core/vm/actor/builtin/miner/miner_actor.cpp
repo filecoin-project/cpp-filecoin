@@ -411,7 +411,7 @@ namespace fc::vm::actor::builtin::miner {
       auto key = uvarintKey(sector_num);
       OUTCOME_TRY(found, hamt_precommit.contains(key));
       if (!found) {
-        continue;
+        break;
       }
       OUTCOME_TRY(precommit,
                   hamt_precommit.getCbor<SectorPreCommitOnChainInfo>(key));
