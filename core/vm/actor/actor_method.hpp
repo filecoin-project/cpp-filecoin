@@ -13,9 +13,11 @@
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/runtime.hpp"
 
+/// Declare actor method function
 #define ACTOR_METHOD_DECL() \
   static outcome::result<Result> call(Runtime &, const Params &);
 
+/// Define actor method function
 #define ACTOR_METHOD_IMPL(M) \
   outcome::result<M::Result> M::call(Runtime &runtime, const Params &params)
 
@@ -37,6 +39,7 @@ namespace fc::vm::actor {
   /// Actor methods exported by number
   using ActorExports = std::map<MethodNumber, ActorMethod>;
 
+  /// Actor method base class
   template <uint64_t number>
   struct ActorMethodBase {
     using Params = None;
@@ -44,6 +47,7 @@ namespace fc::vm::actor {
     static constexpr MethodNumber Number{number};
   };
 
+  /// Generate export table entry
   template <typename M>
   auto exportMethod() {
     return std::make_pair(

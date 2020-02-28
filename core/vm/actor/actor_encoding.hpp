@@ -15,6 +15,7 @@
 namespace fc::vm::actor {
   using runtime::InvocationOutput;
 
+  /// Type for empty params and result
   struct None {};
   CBOR_ENCODE(None, none) {
     return s;

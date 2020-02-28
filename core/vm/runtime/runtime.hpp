@@ -162,6 +162,7 @@ namespace fc::vm::runtime {
         const BlockHeader &block_header_1,
         const BlockHeader &block_header_2) = 0;
 
+    /// Send typed method with typed params and result
     template <typename M>
     outcome::result<typename M::Result> sendM(const Address &address,
                                               const typename M::Params &params,

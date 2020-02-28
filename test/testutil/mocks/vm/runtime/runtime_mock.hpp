@@ -81,6 +81,7 @@ namespace fc::vm::runtime {
                  outcome::result<bool>(const BlockHeader &block_header_1,
                                        const BlockHeader &block_header_2));
 
+    /// Expect call to send with params returing result
     template <typename M>
     void expectSendM(const Address &address,
                      const typename M::Params &params,
