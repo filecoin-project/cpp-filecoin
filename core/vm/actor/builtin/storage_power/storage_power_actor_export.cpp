@@ -65,13 +65,12 @@ namespace fc::vm::actor::builtin::storage_power {
                                          StoragePowerActor &state,
                                          const Address &miner) {
     OUTCOME_TRY(amount_slashed, state.deleteMiner(miner));
-    OUTCOME_TRY(runtime.send(
-        miner, miner::kOnDeleteMinerMethodNumber, {}, TokenAmount{0}));
+    OUTCOME_TRY(runtime.sendM<miner::OnDeleteMiner>(miner, {}, 0));
     OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, amount_slashed));
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::construct) {
+  ACTOR_METHOD_IMPL(Construct) {
     if (runtime.getImmediateCaller() != kSystemActorAddress)
       return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
 
@@ -82,9 +81,8 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::addBalance) {
-    OUTCOME_TRY(add_balance_params,
-                decodeActorParams<AddBalanceParameters>(params));
+  ACTOR_METHOD_IMPL(AddBalance) {
+    auto &add_balance_params = params;
     OUTCOME_TRY(miner_code_cid,
                 runtime.getActorCodeID(add_balance_params.miner));
     if (miner_code_cid != kStorageMinerCodeCid)
@@ -106,9 +104,8 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::withdrawBalance) {
-    OUTCOME_TRY(withdraw_balance_params,
-                decodeActorParams<WithdrawBalanceParameters>(params));
+  ACTOR_METHOD_IMPL(WithdrawBalance) {
+    auto &withdraw_balance_params = params;
     OUTCOME_TRY(miner_code_cid,
                 runtime.getActorCodeID(withdraw_balance_params.miner));
     if (miner_code_cid != kStorageMinerCodeCid)
@@ -150,14 +147,13 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::createMiner) {
+  ACTOR_METHOD_IMPL(CreateMiner) {
     OUTCOME_TRY(immediate_caller_code_id,
                 runtime.getActorCodeID(runtime.getImmediateCaller()));
     if (!isSignableActor((immediate_caller_code_id)))
       return VMExitCode::STORAGE_POWER_FORBIDDEN;
 
-    OUTCOME_TRY(create_miner_params,
-                decodeActorParams<CreateMinerParameters>(params));
+    auto &create_miner_params = params;
 
     auto message = runtime.getMessage().get();
     miner::ConstructorParams construct_miner_parameters{
@@ -168,10 +164,9 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(encoded_construct_miner_parameters,
                 encodeActorParams(construct_miner_parameters));
     OUTCOME_TRY(addresses_created,
-                runtime.sendPR<init::ExecReturn>(
+                runtime.sendM<init::Exec>(
                     kInitAddress,
-                    init::kExecMethodNumber,
-                    init::ExecParams{
+                    {
                         .code = kStorageMinerCodeCid,
                         .params = encoded_construct_miner_parameters,
                     },
@@ -182,18 +177,14 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(power_actor.setMinerBalance(addresses_created.id_address,
                                             message.value));
 
-    CreateMinerReturn result{addresses_created.id_address,
-                             addresses_created.robust_address};
-    OUTCOME_TRY(output, encodeActorReturn(result));
-
     OUTCOME_TRY(power_actor_state, power_actor.flushState());
     OUTCOME_TRY(runtime.commitState(power_actor_state));
-    return std::move(output);
+    return Result{addresses_created.id_address,
+                  addresses_created.robust_address};
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::deleteMiner) {
-    OUTCOME_TRY(delete_miner_params,
-                decodeActorParams<DeleteMinerParameters>(params));
+  ACTOR_METHOD_IMPL(DeleteMiner) {
+    auto &delete_miner_params = params;
 
     Address immediate_caller = runtime.getImmediateCaller();
     OUTCOME_TRY(control_addresses,
@@ -212,10 +203,9 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::onSectorProveCommit) {
+  ACTOR_METHOD_IMPL(OnSectorProveCommit) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    OUTCOME_TRY(on_sector_prove_commit_params,
-                decodeActorParams<OnSectorProveCommitParameters>(params));
+    auto &on_sector_prove_commit_params = params;
 
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
@@ -227,19 +217,15 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(
         power_actor.addToClaim(runtime.getMessage().get().from, power, pledge));
 
-    OUTCOME_TRY(result,
-                encodeActorReturn(OnSectorProveCommitReturn{.pledge = pledge}));
-
     OUTCOME_TRY(power_actor_state, power_actor.flushState());
     OUTCOME_TRY(runtime.commitState(power_actor_state));
 
-    return std::move(result);
+    return pledge;
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::onSectorTerminate) {
+  ACTOR_METHOD_IMPL(OnSectorTerminate) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    OUTCOME_TRY(on_sector_terminate_params,
-                decodeActorParams<OnSectorTerminateParameters>(params));
+    auto &on_sector_terminate_params = params;
 
     Address miner_address = runtime.getMessage().get().from;
     StoragePower power =
@@ -264,12 +250,9 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::onSectorTemporaryFaultEffectiveBegin) {
+  ACTOR_METHOD_IMPL(OnSectorTemporaryFaultEffectiveBegin) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    OUTCOME_TRY(
-        on_sector_fault_params,
-        decodeActorParams<OnSectorTemporaryFaultEffectiveBeginParameters>(
-            params));
+    auto &on_sector_fault_params = params;
     StoragePower power =
         consensusPowerForWeights(on_sector_fault_params.weights);
 
@@ -284,11 +267,9 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::onSectorTemporaryFaultEffectiveEnd) {
+  ACTOR_METHOD_IMPL(OnSectorTemporaryFaultEffectiveEnd) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    OUTCOME_TRY(on_sector_fault_end_params,
-                decodeActorParams<OnSectorTemporaryFaultEffectiveEndParameters>(
-                    params));
+    auto &on_sector_fault_end_params = params;
     StoragePower power =
         consensusPowerForWeights(on_sector_fault_end_params.weights);
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
@@ -301,10 +282,9 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::onSectorModifyWeightDesc) {
+  ACTOR_METHOD_IMPL(OnSectorModifyWeightDesc) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    OUTCOME_TRY(on_sector_modify_params,
-                decodeActorParams<OnSectorModifyWeightDescParameters>(params));
+    auto &on_sector_modify_params = params;
 
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
     Address miner = runtime.getMessage().get().from;
@@ -321,16 +301,12 @@ namespace fc::vm::actor::builtin::storage_power {
         pledgeForWeight(on_sector_modify_params.new_weight, total_power);
     OUTCOME_TRY(power_actor.addToClaim(miner, new_power, new_pledge));
 
-    OUTCOME_TRY(result,
-                encodeActorReturn(
-                    OnSectorModifyWeightDescReturn{.new_pledge = new_pledge}));
-
     OUTCOME_TRY(power_actor_state, power_actor.flushState());
     OUTCOME_TRY(runtime.commitState(power_actor_state));
-    return std::move(result);
+    return new_pledge;
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::onMinerWindowedPoStSuccess) {
+  ACTOR_METHOD_IMPL(OnMinerWindowedPoStSuccess) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
 
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
@@ -345,15 +321,13 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::onMinerWindowedPoStFailure) {
+  ACTOR_METHOD_IMPL(OnMinerWindowedPoStFailure) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
     Address miner = runtime.getMessage().get().from;
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
     OUTCOME_TRY(power_actor.addFaultMiner(miner));
 
-    OUTCOME_TRY(
-        parameters,
-        decodeActorParams<OnMinerWindowedPoStFailureParameters>(params));
+    auto &parameters = params;
     if (parameters.num_consecutive_failures > kWindowedPostFailureLimit) {
       OUTCOME_TRY(deleteMinerActor(runtime, power_actor, miner));
     } else {
@@ -368,12 +342,11 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::enrollCronEvent) {
+  ACTOR_METHOD_IMPL(EnrollCronEvent) {
     OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
     Address miner = runtime.getMessage().get().from;
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    OUTCOME_TRY(parameters,
-                decodeActorParams<EnrollCronEventParameters>(params));
+    auto &parameters = params;
     OUTCOME_TRY(power_actor.appendCronEvent(
         parameters.event_epoch,
         CronEvent{.miner_address = miner,
@@ -384,11 +357,10 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::reportConsensusFault) {
+  ACTOR_METHOD_IMPL(ReportConsensusFault) {
     // Note: only the first reporter of any fault is rewarded.
     // Subsequent invocations fail because the miner has been removed.
-    OUTCOME_TRY(parameters,
-                decodeActorParams<ReportConsensusFaultParameters>(params));
+    auto &parameters = params;
     OUTCOME_TRY(fault,
                 runtime.verifyConsensusFault(parameters.block_header_1,
                                              parameters.block_header_2));
@@ -424,7 +396,7 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD(StoragePowerActorMethods::onEpochTickEnd) {
+  ACTOR_METHOD_IMPL(OnEpochTickEnd) {
     if (runtime.getImmediateCaller() != kCronAddress)
       return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
 
@@ -434,7 +406,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(power_actor.clearCronEvents(epoch));
     for (const auto event : events) {
       OUTCOME_TRY(runtime.send(event.miner_address,
-                               miner::kOnDeferredCronEventMethodNumber,
+                               miner::OnDeferredCronEvent::Number,
                                MethodParams{event.callback_payload},
                                TokenAmount{0}));
     }
@@ -444,38 +416,22 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  const ActorExports exports = {
-      {kConstructorMethodNumber,
-       ActorMethod(StoragePowerActorMethods::construct)},
-      {kAddBalanceMethodNumber,
-       ActorMethod(StoragePowerActorMethods::addBalance)},
-      {kWithdrawBalanceMethodNumber,
-       ActorMethod(StoragePowerActorMethods::withdrawBalance)},
-      {kCreateMinerMethodNumber,
-       ActorMethod(StoragePowerActorMethods::createMiner)},
-      {kDeleteMinerMethodNumber,
-       ActorMethod(StoragePowerActorMethods::deleteMiner)},
-      {kOnSectorProveCommitMethodNumber,
-       ActorMethod(StoragePowerActorMethods::onSectorProveCommit)},
-      {kOnSectorTerminateMethodNumber,
-       ActorMethod(StoragePowerActorMethods::onSectorTerminate)},
-      {kOnSectorTerminateMethodNumber,
-       ActorMethod(
-           StoragePowerActorMethods::onSectorTemporaryFaultEffectiveBegin)},
-      {kOnSectorTemporaryFaultEffectiveEndMethodNumber,
-       ActorMethod(
-           StoragePowerActorMethods::onSectorTemporaryFaultEffectiveEnd)},
-      {kOnSectorModifyWeightDescMethodNumber,
-       ActorMethod(StoragePowerActorMethods::onSectorModifyWeightDesc)},
-      {kOnMinerWindowedPoStSuccessMethodNumber,
-       ActorMethod(StoragePowerActorMethods::onMinerWindowedPoStSuccess)},
-      {kOnMinerWindowedPoStSuccessMethodNumber,
-       ActorMethod(StoragePowerActorMethods::onMinerWindowedPoStFailure)},
-      {kEnrollCronEventMethodNumber,
-       ActorMethod(StoragePowerActorMethods::enrollCronEvent)},
-      {kReportConsensusFaultMethodNumber,
-       ActorMethod(StoragePowerActorMethods::reportConsensusFault)},
-      {kOnEpochTickEndMethodNumber,
-       ActorMethod(StoragePowerActorMethods::onEpochTickEnd)}};
+  const ActorExports exports{
+      exportMethod<Construct>(),
+      exportMethod<AddBalance>(),
+      exportMethod<WithdrawBalance>(),
+      exportMethod<CreateMiner>(),
+      exportMethod<DeleteMiner>(),
+      exportMethod<OnSectorProveCommit>(),
+      exportMethod<OnSectorTerminate>(),
+      exportMethod<OnSectorTemporaryFaultEffectiveBegin>(),
+      exportMethod<OnSectorTemporaryFaultEffectiveEnd>(),
+      exportMethod<OnSectorModifyWeightDesc>(),
+      exportMethod<OnMinerWindowedPoStSuccess>(),
+      exportMethod<OnMinerWindowedPoStFailure>(),
+      exportMethod<EnrollCronEvent>(),
+      exportMethod<ReportConsensusFault>(),
+      exportMethod<OnEpochTickEnd>(),
+  };
 
 }  // namespace fc::vm::actor::builtin::storage_power

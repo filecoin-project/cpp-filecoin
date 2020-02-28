@@ -158,6 +158,7 @@ namespace fc::vm::actor::builtin::storage_power {
   };
 
   struct ReportConsensusFault : ActorMethodBase<14> {
+    using Params = ReportConsensusFaultParameters;
     ACTOR_METHOD_STUB();
   };
 
