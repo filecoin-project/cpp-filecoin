@@ -16,8 +16,15 @@ namespace fc::proofs {
   common::Logger Proofs::logger_ = common::createLogger("proofs");
 
   using common::Blob;
+  using common::CIDToDataCommitmentV1;
+  using common::CIDToPieceCommitmentV1;
+  using common::CIDToReplicaCommitmentV1;
+  using common::cppCommitment;
+  using common::dataCommitmentV1ToCID;
+  using common::kCommitmentBytesLen;
+  using common::pieceCommitmentV1ToCID;
+  using common::replicaCommitmentV1ToCID;
   using crypto::randomness::Randomness;
-  using namespace fc::common;
   using primitives::sector::SectorId;
 
   template <typename T, typename D>
@@ -474,6 +481,47 @@ namespace fc::proofs {
                               res_ptr->comm_r, kCommitmentBytesLen)),
                           dataCommitmentV1ToCID(gsl::make_span(
                               res_ptr->comm_d, kCommitmentBytesLen)));
+  }
+
+  outcome::result<Phase1Output> Proofs::sealCommitPhase1(
+      RegisteredProof proof_type,
+      const CID &sealed_cid,
+      const CID &unsealed_cid,
+      const std::string &cache_dir_path,
+      SectorNumber sector_num,
+      const Prover &prover_id,
+      const SealRandomness &ticket,
+      const InteractiveRandomness &seed,
+      gsl::span<const PieceInfo> pieces) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
+
+    OUTCOME_TRY(c_pieces, cPublicPiecesInfo(pieces));
+
+    OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(sealed_cid));
+
+    OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
+
+    auto res_ptr = make_unique(seal_commit_phase1(c_proof_type,
+                                                  cPointerToArray(comm_r),
+                                                  cPointerToArray(comm_d),
+                                                  cache_dir_path.c_str(),
+                                                  sector_num,
+                                                  cPointerToArray(prover_id),
+                                                  cPointerToArray(ticket),
+                                                  cPointerToArray(seed),
+                                                  c_pieces.data(),
+                                                  c_pieces.size()),
+                               destroy_seal_commit_phase1_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("sealCommit Phase 1: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return Phase1Output(
+        res_ptr->seal_commit_phase1_output_ptr,
+        res_ptr->seal_commit_phase1_output_ptr
+            + res_ptr->seal_commit_phase1_output_len);  // NOLINT
   }
 
   SortedPrivateSectorInfo Proofs::newSortedPrivateSectorInfo(

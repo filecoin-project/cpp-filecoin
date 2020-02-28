@@ -9,6 +9,8 @@
 
 namespace fc::common {
 
+  using libp2p::multi::HashType;
+
   Comm cppCommitment(gsl::span<const uint8_t> bytes) {
     if (bytes.size() != 32) return {};
     Comm result;
@@ -44,7 +46,7 @@ namespace fc::common {
 
     using Version = libp2p::multi::ContentIdentifier::Version;
 
-    OUTCOME_TRY(mh, Multihash::create((HashType)code, commitment));
+    OUTCOME_TRY(mh, Multihash::create(static_cast<HashType>(code), commitment));
 
     return CID(Version::V1, kFilecoinCodecType, mh);
   }
@@ -55,7 +57,7 @@ namespace fc::common {
 
   outcome::result<Comm> CIDToDataCommitmentV1(const CID &cid) {
     OUTCOME_TRY(result, CIDToCommitment(cid));
-    if ((FilecoinHashType)result.getType() != FC_UNSEALED_V1) {
+    if (static_cast<FilecoinHashType>(result.getType()) != FC_UNSEALED_V1) {
       return CommCidError::INVALID_HASH;
     }
     return cppCommitment(result.getHash());
@@ -72,11 +74,11 @@ namespace fc::common {
     return std::move(result);
   }
 
-    outcome::result<Comm> CIDToReplicaCommitmentV1(const CID &cid) {
-        OUTCOME_TRY(result, CIDToCommitment(cid));
-        if ((FilecoinHashType)result.getType() != FC_SEALED_V1) {
-            return CommCidError::INVALID_HASH;
-        }
-        return cppCommitment(result.getHash());
+  outcome::result<Comm> CIDToReplicaCommitmentV1(const CID &cid) {
+    OUTCOME_TRY(result, CIDToCommitment(cid));
+    if (static_cast<FilecoinHashType>(result.getType()) != FC_SEALED_V1) {
+      return CommCidError::INVALID_HASH;
     }
+    return cppCommitment(result.getHash());
+  }
 }  // namespace fc::common
