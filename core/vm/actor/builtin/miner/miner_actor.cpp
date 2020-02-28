@@ -24,6 +24,8 @@ namespace fc::vm::actor::builtin::miner {
   using runtime::DomainSeparationTag;
   using storage::amt::Amt;
   using storage::hamt::Hamt;
+  using storage_power::kWindowedPostChallengeDuration;
+  using storage_power::kWindowedPostFailureLimit;
   using storage_power::SectorTerminationType;
 
   outcome::result<MinerActorState> assertCallerIsWorker(Runtime &runtime) {
@@ -455,7 +457,7 @@ namespace fc::vm::actor::builtin::miner {
               }));
       OUTCOME_TRY(requestTerminateDeals(runtime, deals));
     }
-    OUTCOME_TRY(runtime.sendM<storage_power::OnMinerSurprisePoStFailure>(
+    OUTCOME_TRY(runtime.sendM<storage_power::OnMinerWindowedPoStFailure>(
         kStoragePowerAddress,
         {
             .num_consecutive_failures =
@@ -563,7 +565,7 @@ namespace fc::vm::actor::builtin::miner {
     state.post_state.proving_period_start += kProvingPeriod;
     state.proving_set = state.sectors;
     OUTCOME_TRY(runtime.commitState(state));
-    OUTCOME_TRY(runtime.sendM<storage_power::OnMinerSurprisePoStSuccess>(
+    OUTCOME_TRY(runtime.sendM<storage_power::OnMinerWindowedPoStSuccess>(
         kStoragePowerAddress, {}, 0));
     return outcome::success();
   }

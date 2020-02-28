@@ -11,10 +11,9 @@
 #include "testutil/literals.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
-#include "vm/actor/builtin/storage_power/policy.hpp"
+#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
 using fc::CID;
 using fc::common::Buffer;
@@ -218,8 +217,6 @@ TEST_F(StoragePowerActorTest, Constructor) {
   EXPECT_OUTCOME_TRUE(state,
                       datastore->getCbor<StoragePowerActorState>(state_cid));
   StoragePowerActor actor(datastore, state);
-  EXPECT_OUTCOME_TRUE(cron_events, actor.getCronEvents());
-  EXPECT_TRUE(cron_events.empty());
   EXPECT_OUTCOME_TRUE(fault_miners, actor.getFaultMiners());
   EXPECT_TRUE(fault_miners.empty());
   EXPECT_OUTCOME_TRUE(claims, actor.getClaims());

@@ -77,6 +77,10 @@ namespace fc::vm::runtime {
                  outcome::result<bool>(uint64_t sector_size,
                                        const SealVerifyInfo &info));
 
+    MOCK_METHOD2(verifyConsensusFault,
+                 outcome::result<bool>(const BlockHeader &block_header_1,
+                                       const BlockHeader &block_header_2));
+
     template <typename M>
     void expectSendM(const Address &address,
                      const typename M::Params &params,

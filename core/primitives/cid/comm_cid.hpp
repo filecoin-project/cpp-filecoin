@@ -75,7 +75,11 @@ namespace fc::common {
   outcome::result<CID> commitmentToCID(gsl::span<const uint8_t> commitment,
                                        FilecoinMultihashCode code);
 
+  Comm cppCommitment(gsl::span<const uint8_t> bytes);
+
   outcome::result<Comm> CIDToPieceCommitmentV1(const CID &cid);
+  outcome::result<Comm> CIDToReplicaCommitmentV1(const CID &cid);
+
   outcome::result<Comm> CIDToDataCommitmentV1(const CID &cid);
   outcome::result<Multihash> CIDToCommitment(const CID &cid);
 

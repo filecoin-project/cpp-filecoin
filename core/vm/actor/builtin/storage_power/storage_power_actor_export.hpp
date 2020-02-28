@@ -7,20 +7,17 @@
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_ACTOR_HPP
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "primitives/address/address_codec.hpp"
-#include "vm/actor/actor.hpp"
+#include "primitives/block/block.hpp"
+#include "primitives/types.hpp"
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/storage_power/policy.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
-#include "vm/runtime/runtime.hpp"
-#include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
   using miner::PeerId;
-  using runtime::InvocationOutput;
-  using runtime::Runtime;
+  using primitives::TokenAmount;
+  using primitives::block::BlockHeader;
 
   struct AddBalanceParameters {
     Address miner;
@@ -67,19 +64,31 @@ namespace fc::vm::actor::builtin::storage_power {
     TokenAmount pledge;
   };
 
-  struct OnSectorModifyWeightDescParams {
+  struct OnSectorModifyWeightDescParameters {
     SectorStorageWeightDesc prev_weight;
     TokenAmount prev_pledge;
     SectorStorageWeightDesc new_weight;
   };
 
-  struct OnMinerWindowedPoStFailureParams {
+  struct OnSectorModifyWeightDescReturn {
+    TokenAmount new_pledge;
+  };
+
+  struct OnMinerWindowedPoStFailureParameters {
     uint64_t num_consecutive_failures;
   };
 
-  struct EnrollCronEventParams {
+  struct EnrollCronEventParameters {
     ChainEpoch event_epoch;
     Buffer payload;
+  };
+
+  struct ReportConsensusFaultParameters {
+    BlockHeader block_header_1;
+    BlockHeader block_header_2;
+    Address target;
+    ChainEpoch fault_epoch;
+    ConsensusFaultType fault_type;
   };
 
   struct Construct : ActorMethodBase<1> {
@@ -129,22 +138,22 @@ namespace fc::vm::actor::builtin::storage_power {
   };
 
   struct OnSectorModifyWeightDesc : ActorMethodBase<10> {
-    using Params = OnSectorModifyWeightDescParams;
+    using Params = OnSectorModifyWeightDescParameters;
     using Result = TokenAmount;
     ACTOR_METHOD_STUB();
   };
 
-  struct OnMinerSurprisePoStSuccess : ActorMethodBase<11> {
+  struct OnMinerWindowedPoStSuccess : ActorMethodBase<11> {
     ACTOR_METHOD_STUB();
   };
 
-  struct OnMinerSurprisePoStFailure : ActorMethodBase<12> {
-    using Params = OnMinerWindowedPoStFailureParams;
+  struct OnMinerWindowedPoStFailure : ActorMethodBase<12> {
+    using Params = OnMinerWindowedPoStFailureParameters;
     ACTOR_METHOD_STUB();
   };
 
   struct EnrollCronEvent : ActorMethodBase<13> {
-    using Params = EnrollCronEventParams;
+    using Params = EnrollCronEventParameters;
     ACTOR_METHOD_STUB();
   };
 
@@ -176,14 +185,22 @@ namespace fc::vm::actor::builtin::storage_power {
 
   CBOR_TUPLE(OnSectorTemporaryFaultEffectiveEndParameters, weights, pledge)
 
-  CBOR_TUPLE(OnSectorModifyWeightDescParams,
+  CBOR_TUPLE(OnSectorModifyWeightDescParameters,
              prev_weight,
              prev_pledge,
              new_weight)
+  CBOR_TUPLE(OnSectorModifyWeightDescReturn, new_pledge)
 
-  CBOR_TUPLE(OnMinerWindowedPoStFailureParams, num_consecutive_failures)
+  CBOR_TUPLE(OnMinerWindowedPoStFailureParameters, num_consecutive_failures)
 
-  CBOR_TUPLE(EnrollCronEventParams, event_epoch, payload);
+  CBOR_TUPLE(EnrollCronEventParameters, event_epoch, payload)
+
+  CBOR_TUPLE(ReportConsensusFaultParameters,
+             block_header_1,
+             block_header_2,
+             target,
+             fault_epoch,
+             fault_type)
 
   inline bool operator==(const CreateMiner::Result &lhs,
                          const CreateMiner::Result &rhs) {
