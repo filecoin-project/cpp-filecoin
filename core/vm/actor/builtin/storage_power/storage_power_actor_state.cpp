@@ -83,7 +83,10 @@ namespace fc::vm::actor::builtin::storage_power {
 
   outcome::result<TokenAmount> StoragePowerActor::deleteMiner(
       const Address &miner_addr) {
-    OUTCOME_TRY(balance, getMinerBalance(miner_addr));
+    OUTCOME_TRY(miner_exists, escrow_table_->has(miner_addr));
+    if (!miner_exists) {
+      return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
+    }
 
     std::string encoded_miner_addr = encodeToByteString(miner_addr);
     OUTCOME_TRY(claim, claims_->getCbor<Claim>(encoded_miner_addr));
