@@ -30,17 +30,19 @@ namespace fc::vm::actor::builtin::miner {
   using runtime::DomainSeparationTag;
   using storage::amt::Amt;
   using storage::hamt::Hamt;
-  using storage_power::EnrollCronEventParams;
+  using storage_power::EnrollCronEventParameters;
   using storage_power::kEnrollCronEventMethodNumber;
-  using storage_power::kOnMinerSurprisePoStFailureMethodNumber;
-  using storage_power::kOnMinerSurprisePoStSuccessMethodNumber;
+  using storage_power::kOnMinerWindowedPoStFailureMethodNumber;
+  using storage_power::kOnMinerWindowedPoStSuccessMethodNumber;
   using storage_power::kOnSectorModifyWeightDescMethodNumber;
   using storage_power::kOnSectorProveCommitMethodNumber;
   using storage_power::kOnSectorTemporaryFaultEffectiveBeginMethodNumber;
   using storage_power::kOnSectorTemporaryFaultEffectiveEndMethodNumber;
   using storage_power::kOnSectorTerminateMethodNumber;
-  using storage_power::OnMinerWindowedPoStFailureParams;
-  using storage_power::OnSectorModifyWeightDescParams;
+  using storage_power::kWindowedPostChallengeDuration;
+  using storage_power::kWindowedPostFailureLimit;
+  using storage_power::OnMinerWindowedPoStFailureParameters;
+  using storage_power::OnSectorModifyWeightDescParameters;
   using storage_power::OnSectorProveCommitParameters;
   using storage_power::OnSectorTemporaryFaultEffectiveBeginParameters;
   using storage_power::OnSectorTemporaryFaultEffectiveEndParameters;
@@ -99,7 +101,7 @@ namespace fc::vm::actor::builtin::miner {
     OUTCOME_TRY(payload2, codec::cbor::encode(payload));
     OUTCOME_TRY(runtime.sendP(kStoragePowerAddress,
                               kEnrollCronEventMethodNumber,
-                              EnrollCronEventParams{
+                              EnrollCronEventParameters{
                                   .event_epoch = event_epoch,
                                   .payload = Buffer{payload2},
                               },
@@ -478,8 +480,8 @@ namespace fc::vm::actor::builtin::miner {
       OUTCOME_TRY(requestTerminateDeals(runtime, deals));
     }
     OUTCOME_TRY(runtime.sendP(kStoragePowerAddress,
-                              kOnMinerSurprisePoStFailureMethodNumber,
-                              OnMinerWindowedPoStFailureParams{
+                              kOnMinerWindowedPoStFailureMethodNumber,
+                              OnMinerWindowedPoStFailureParameters{
                                   .num_consecutive_failures =
                                       state.post_state.num_consecutive_failures,
                               },
@@ -589,7 +591,7 @@ namespace fc::vm::actor::builtin::miner {
     state.proving_set = state.sectors;
     OUTCOME_TRY(runtime.commitState(state));
     OUTCOME_TRY(runtime.send(
-        kStoragePowerAddress, kOnMinerSurprisePoStSuccessMethodNumber, {}, 0));
+        kStoragePowerAddress, kOnMinerWindowedPoStSuccessMethodNumber, {}, 0));
     return outcome::success();
   }
 
@@ -768,7 +770,7 @@ namespace fc::vm::actor::builtin::miner {
                 runtime.sendPR<TokenAmount>(
                     kStoragePowerAddress,
                     kOnSectorModifyWeightDescMethodNumber,
-                    OnSectorModifyWeightDescParams{
+                    OnSectorModifyWeightDescParameters{
                         .prev_weight = prev_weight,
                         .prev_pledge = sector.pledge_requirement,
                         .new_weight = new_weight,

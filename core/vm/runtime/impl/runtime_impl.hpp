@@ -111,6 +111,10 @@ namespace fc::vm::runtime {
     outcome::result<bool> verifySeal(uint64_t sector_size,
                                      const SealVerifyInfo &info) override;
 
+    outcome::result<bool> verifyConsensusFault(
+        const BlockHeader &block_header_1,
+        const BlockHeader &block_header_2) override;
+
    private:
     outcome::result<Actor> getOrCreateActor(const Address &address);
     std::shared_ptr<Runtime> createRuntime(

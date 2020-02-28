@@ -7,20 +7,17 @@
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_ACTOR_HPP
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "primitives/address/address_codec.hpp"
-#include "vm/actor/actor.hpp"
+#include "primitives/block/block.hpp"
+#include "primitives/types.hpp"
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/storage_power/policy.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
-#include "vm/runtime/runtime.hpp"
-#include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
   using miner::PeerId;
-  using runtime::InvocationOutput;
-  using runtime::Runtime;
+  using primitives::TokenAmount;
+  using primitives::block::BlockHeader;
 
   constexpr MethodNumber kAddBalanceMethodNumber{2};
   constexpr MethodNumber kWithdrawBalanceMethodNumber{3};
@@ -31,8 +28,8 @@ namespace fc::vm::actor::builtin::storage_power {
   constexpr MethodNumber kOnSectorTemporaryFaultEffectiveBeginMethodNumber{8};
   constexpr MethodNumber kOnSectorTemporaryFaultEffectiveEndMethodNumber{9};
   constexpr MethodNumber kOnSectorModifyWeightDescMethodNumber{10};
-  constexpr MethodNumber kOnMinerSurprisePoStSuccessMethodNumber{11};
-  constexpr MethodNumber kOnMinerSurprisePoStFailureMethodNumber{12};
+  constexpr MethodNumber kOnMinerWindowedPoStSuccessMethodNumber{11};
+  constexpr MethodNumber kOnMinerWindowedPoStFailureMethodNumber{12};
   constexpr MethodNumber kEnrollCronEventMethodNumber{13};
   constexpr MethodNumber kReportConsensusFaultMethodNumber{14};
   constexpr MethodNumber kOnEpochTickEndMethodNumber{15};
@@ -86,19 +83,31 @@ namespace fc::vm::actor::builtin::storage_power {
     TokenAmount pledge;
   };
 
-  struct OnSectorModifyWeightDescParams {
+  struct OnSectorModifyWeightDescParameters {
     SectorStorageWeightDesc prev_weight;
     TokenAmount prev_pledge;
     SectorStorageWeightDesc new_weight;
   };
 
-  struct OnMinerWindowedPoStFailureParams {
+  struct OnSectorModifyWeightDescReturn {
+    TokenAmount new_pledge;
+  };
+
+  struct OnMinerWindowedPoStFailureParameters {
     uint64_t num_consecutive_failures;
   };
 
-  struct EnrollCronEventParams {
+  struct EnrollCronEventParameters {
     ChainEpoch event_epoch;
     Buffer payload;
+  };
+
+  struct ReportConsensusFaultParameters {
+    BlockHeader block_header_1;
+    BlockHeader block_header_2;
+    Address target;
+    ChainEpoch fault_epoch;
+    ConsensusFaultType fault_type;
   };
 
   class StoragePowerActorMethods {
@@ -119,30 +128,19 @@ namespace fc::vm::actor::builtin::storage_power {
 
     static ACTOR_METHOD(onSectorTemporaryFaultEffectiveBegin);
 
-   private:
-    /**
-     * Get current storage power actor state
-     * @param runtime - current runtime
-     * @return current storage power actor state or appropriate error
-     */
-    static outcome::result<StoragePowerActor> getCurrentState(Runtime &runtime);
+    static ACTOR_METHOD(onSectorTemporaryFaultEffectiveEnd);
 
-    static outcome::result<InvocationOutput> slashPledgeCollateral(
-        Runtime &runtime,
-        StoragePowerActor &power_actor,
-        Address miner,
-        TokenAmount to_slash);
+    static ACTOR_METHOD(onSectorModifyWeightDesc);
 
-    /**
-     * Deletes miner from state and slashes miner balance
-     * @param runtime - current runtime
-     * @param state - current storage power actor state
-     * @param miner address to delete
-     * @return error in case of failure
-     */
-    static outcome::result<void> deleteMinerActor(Runtime &runtime,
-                                                  StoragePowerActor &state,
-                                                  const Address &miner);
+    static ACTOR_METHOD(onMinerWindowedPoStSuccess);
+
+    static ACTOR_METHOD(onMinerWindowedPoStFailure);
+
+    static ACTOR_METHOD(enrollCronEvent);
+
+    static ACTOR_METHOD(reportConsensusFault);
+
+    static ACTOR_METHOD(onEpochTickEnd);
   };
 
   /** Exported StoragePowerActor methods to invoker */
@@ -166,14 +164,22 @@ namespace fc::vm::actor::builtin::storage_power {
 
   CBOR_TUPLE(OnSectorTemporaryFaultEffectiveEndParameters, weights, pledge)
 
-  CBOR_TUPLE(OnSectorModifyWeightDescParams,
+  CBOR_TUPLE(OnSectorModifyWeightDescParameters,
              prev_weight,
              prev_pledge,
              new_weight)
+  CBOR_TUPLE(OnSectorModifyWeightDescReturn, new_pledge)
 
-  CBOR_TUPLE(OnMinerWindowedPoStFailureParams, num_consecutive_failures)
+  CBOR_TUPLE(OnMinerWindowedPoStFailureParameters, num_consecutive_failures)
 
-  CBOR_TUPLE(EnrollCronEventParams, event_epoch, payload);
+  CBOR_TUPLE(EnrollCronEventParameters, event_epoch, payload)
+
+  CBOR_TUPLE(ReportConsensusFaultParameters,
+             block_header_1,
+             block_header_2,
+             target,
+             fault_epoch,
+             fault_type)
 
 }  // namespace fc::vm::actor::builtin::storage_power
 

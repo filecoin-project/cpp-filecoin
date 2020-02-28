@@ -11,6 +11,7 @@
 #include "common/outcome.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
+#include "primitives/block/block.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/ipfs/datastore.hpp"
@@ -36,6 +37,7 @@ namespace fc::vm::runtime {
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using primitives::address::Address;
+  using primitives::block::BlockHeader;
   using primitives::sector::PoStVerifyInfo;
   using primitives::sector::SealVerifyInfo;
   using storage::ipfs::IpfsDatastore;
@@ -163,6 +165,11 @@ namespace fc::vm::runtime {
     /// Verify seal
     virtual outcome::result<bool> verifySeal(uint64_t sector_size,
                                              const SealVerifyInfo &info) = 0;
+
+    /// Verify consensus fault
+    virtual outcome::result<bool> verifyConsensusFault(
+        const BlockHeader &block_header_1,
+        const BlockHeader &block_header_2) = 0;
 
     /// Send funds
     inline auto sendFunds(const Address &to, BigInt value) {
