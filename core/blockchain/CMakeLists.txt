@@ -19,3 +19,21 @@ add_library(weight_calculator
 target_link_libraries(weight_calculator
     tipset
     )
+
+add_library(sync_manager
+    impl/sync_manager_impl.cpp
+    )
+target_link_libraries(sync_manager
+    block
+    Boost::boost
+    syncer_state
+    tipset
+    )
+
+add_library(syncer_state
+    syncer_state.cpp
+    )
+target_link_libraries(syncer_state
+    clock
+    tipset
+    )
