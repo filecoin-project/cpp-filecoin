@@ -7,7 +7,7 @@ else ()
   set(POLLY_FLAGS_SANITIZE_LEAK_CMAKE_ 1)
 endif ()
 
-include(${CMAKE_CURRENT_LIST_DIR}/../../add_cache_flag.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/../../toolchain-util.cmake)
 
 set(FLAGS
     -fsanitize=leak

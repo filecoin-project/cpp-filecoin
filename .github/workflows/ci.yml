@@ -81,7 +81,5 @@ jobs:
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./build/ctest_coverage.xml
-#          flags: unittests #optional
-#          name: codecov-umbrella #optional
-#          yml: ./codecov.yml #optional
-#          fail_ci_if_error: true #optional (default = false)
+        name: codecov-umbrella
+

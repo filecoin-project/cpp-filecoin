@@ -1,0 +1,55 @@
+name: Sanitizers
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: macOS-10.14
+    steps:
+      - uses: actions/checkout@v2
+        name: checkout repo
+      - name: checkout submodules
+        shell: bash
+        run: |
+          auth_header="$(git config --local --get http.https://github.com/.extraheader)"
+          git submodule sync --recursive
+          git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
+      - name: install
+        run: |
+          brew install ninja llvm pkg-config
+          sudo python3 -m pip install --upgrade pip
+          sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
+      - name: cmake asan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
+          GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
+          GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
+        run: cmake . -GNinja -Bbuild -D ASAN=ON
+      - name: build asan
+        run: cmake --build build -- -j2
+      - name: run tests asan
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
+        run: |
+          cmake --build build --target test
+          rm -rf /build
+      - name: cmake lsan
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
+          GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
+          GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
+          run: cmake . -GNinja -Bbuild -D LSAN=ON
+      - name: build lsan
+        run: cmake --build build -- -j2
+      - name: run tests lsan
+        env:
+          CTEST_OUTPUT_ON_FAILURE: 1
+        run: |
+          cmake --build build --target test
+          rm -rf /build
