@@ -7,22 +7,29 @@
 
 #include <cassert>
 
+#include "inbound_endpoint.hpp"
+#include "message_reader.hpp"
+#include "outbound_endpoint.hpp"
 #include "peer_context.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
-  constexpr uint64_t kConnectedEndpointTag = 0;
-
   Network::Network(std::shared_ptr<libp2p::Host> host,
                    std::shared_ptr<libp2p::protocol::Scheduler> scheduler)
-      : host_(std::move(host)), scheduler_(std::move(scheduler)) {}
-
-  Network::~Network() {
-    closeAllStreams();
+      : host_(std::move(host)),
+        scheduler_(std::move(scheduler)),
+        protocol_id_(kProtocolVersion) {
+    assert(host_);
+    assert(scheduler_);
   }
 
-  void Network::start(std::shared_ptr<NetworkEvents> feedback) {
+  Network::~Network() {
+    closeAllPeers();
+  }
+
+  void Network::start(std::shared_ptr<PeerToGraphsyncFeedback> feedback) {
     feedback_ = std::move(feedback);
+    assert(feedback_);
 
     // clang-format off
     host_->setProtocolHandler(
@@ -38,113 +45,89 @@ namespace fc::storage::ipfs::graphsync {
 
   void Network::stop() {
     started_ = false;
-    closeAllStreams();
-    // TODO gracefully close all stuff
+    closeAllPeers();
+  }
+
+  bool Network::canSendRequest(const PeerId &peer) {
+    if (!started_) {
+      return false;
+    }
+
+    auto ctx = findContext(peer, false);
+    return !(ctx && !ctx->canConnect());
   }
 
   void Network::makeRequest(
       const PeerId &peer,
       boost::optional<libp2p::multi::Multiaddress> address,
-      int request_id,
+      RequestId request_id,
       SharedData request_body) {
-    auto ctx = findOrCreateContext(peer);
-    if (ctx == dont_connect_to_ || !started_) {
-      // TODO (artem) schedule error
+    if (!canSendRequest(peer)) {
+      logger()->error("inconsistency in making request to network");
       return;
     }
 
-    if (!ctx->connected_endpoint) {
-      ctx->connected_endpoint =
-          std::make_shared<Endpoint>(ctx, kConnectedEndpointTag, *this);
-    }
+    auto ctx = findContext(peer, true);
 
-    auto res = ctx->connected_endpoint->enqueue(std::move(request_body));
-    if (!res) {
-      // TODO schedule error
-      return;
-    }
-
-    ctx->local_request_ids.insert(request_id);
-
-    if (!ctx->is_connecting) {
-      ctx->connect_to = std::move(address);
+    if (ctx->createRequestsEndpoint(std::move(address))) {
       tryConnect(ctx);
     }
 
-    active_requests_[request_id] = std::move(ctx);
+    auto res = ctx->enqueueRequest(request_id, std::move(request_body));
+    if (!res) {
+      asyncFeedback(peer, request_id, RS_REJECTED_LOCALLY);
+    }
   }
 
-  void Network::cancelRequest(int request_id, SharedData request_body) {
+  void Network::asyncFeedback(const PeerId &peer,
+                              RequestId request_id,
+                              ResponseStatusCode status) {
+    scheduler_
+        ->schedule(
+            [wptr{weak_from_this()}, p = peer, id = request_id, s = status]() {
+              auto self = wptr.lock();
+              if (self && self->started_) {
+                if (isTerminal(s)) {
+                  self->active_requests_per_peer_.erase(id);
+                }
+                self->feedback_->onResponse(p, id, s, {});
+              }
+            })
+        .detach();
+  }
+
+  void Network::cancelRequest(RequestId request_id, SharedData request_body) {
     if (!started_) {
       return;
     }
-
-    auto it = active_requests_.find(request_id);
-    if (it == active_requests_.end()) {
+    auto it = active_requests_per_peer_.find(request_id);
+    if (it == active_requests_per_peer_.end()) {
       return;
     }
-
     auto ctx = it->second;
-
-    active_requests_.erase(it);
-    ctx->local_request_ids.erase(request_id);
-
-    if (!ctx->connected_endpoint) {
-      return;
-    }
-
-    if (ctx->is_connecting) {
-      ctx->is_connecting = false;
-      ctx->connected_endpoint->clearOutQueue();
-    } else {
-      auto res = ctx->connected_endpoint->enqueue(std::move(request_body));
-      if (!res) {
-        // TODO log
-      }
+    active_requests_per_peer_.erase(it);
+    if (request_body) {
+      ctx->cancelRequest(request_id, std::move(request_body));
     }
   }
 
-  namespace {
-    template <typename PeerSet, typename Key>
-    PeerContextPtr findPeerCtx(const PeerSet &peers, const Key &peer) {
-      auto it = peers.find(peer);
-      return (it == peers.end()) ? nullptr : *it;
-    }
-
-    template <typename PeerSet, typename Key>
-    boost::optional<PeerContext::ResponseCtx &> findResponseEndpoint(
-        const PeerSet &peers, const Key &peer, uint64_t tag) {
-      auto ctx = findPeerCtx(peers, peer);
-      if (!ctx) {
-        return boost::none;
-      }
-      auto it = ctx->accepted_endpoints.find(tag);
-      if (it == ctx->accepted_endpoints.end()) {
-        return boost::none;
-      }
-      return it->second;
-    }
-
-  }  // namespace
-
-  void Network::addBlockToResponse(const PeerId &peer,
-                                   uint64_t tag,
+  bool Network::addBlockToResponse(const PeerId &peer,
+                                   RequestId request_id,
                                    const CID &cid,
                                    const common::Buffer &data) {
     if (!started_) {
-      return;
+      return false;
     }
 
-    auto ctx = findResponseEndpoint(peers_, peer, tag);
+    auto ctx = findContext(peer, false);
     if (!ctx) {
-      // TODO(artem): log, session no more actual
-      return;
+      return false;
     }
-    ctx->response_builder.addDataBlock(cid, data);
+
+    return ctx->addBlockToResponse(request_id, cid, data);
   }
 
   void Network::sendResponse(const PeerId &peer,
-                             uint64_t tag,
                              int request_id,
                              ResponseStatusCode status,
                              const ResponseMetadata &metadata) {
@@ -152,185 +135,59 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
-    auto ctx = findResponseEndpoint(peers_, peer, tag);
+    auto ctx = findContext(peer, false);
     if (!ctx) {
-      // TODO(artem): log, session no more actual
       return;
     }
-    ctx->response_builder.addResponse(request_id, status, metadata);
-    auto bytes = ctx->response_builder.serialize();
-    ctx->response_builder.clear();
-    if (bytes) {
-      auto res = ctx->endpoint->enqueue(bytes.value());
-      if (!res) {
-        // TODO log
-        // TODO schedule answer
-      }
-    } else {
-      // TODO log
-      // TODO schedule answer
+
+    ctx->sendResponse(request_id, status, metadata);
+  }
+
+  void Network::canClosePeer(const PeerId &peer) {
+    auto it = peers_.find(peer);
+    if (it != peers_.end()) {
+      peers_.erase(it);
     }
   }
 
-  void Network::onReadEvent(const PeerContextPtr &from,
-                            uint64_t endpoint_tag,
-                            outcome::result<Message> msg_res) {
-    if (!started_) {
-      return;
-    }
+  PeerContextPtr Network::findContext(const PeerId &peer,
+                                      bool create_if_not_found) {
+    assert(started_ && feedback_);
 
-    if (!msg_res) {
-      return onEndpointError(from, endpoint_tag, msg_res.error());
-    }
-
-    Message &msg = msg_res.value();
-
-    for (auto &item : msg.data) {
-      feedback_->onBlock(
-          from->peer, std::move(item.first), std::move(item.second));
-    }
-
-    auto ctx = findPeerCtx(peers_, from);
-    if (!ctx) {
-      // no more such a context
-      return;
-    }
-
-    dont_connect_to_ = from;
-
-    for (auto &item : msg.responses) {
-      auto it = ctx->local_request_ids.find(item.id);
-      if (it == ctx->local_request_ids.end()) {
-        // TODO log
-        continue;
-      }
-      if (isTerminal(item.status)) {
-        ctx->local_request_ids.erase(it);
-      }
-      feedback_->onResponse(
-          from->peer, item.id, item.status, std::move(item.metadata));
-    }
-
-    if (!msg.requests.empty()) {
-      if (endpoint_tag == kConnectedEndpointTag) {
-        // make new session if requests came from outbound endpoint
-
-        auto stream = ctx->connected_endpoint->getStream();
-        endpoint_tag = makeInboundEndpoint(ctx, std::move(stream));
-      }
-
-      for (auto &item : msg.requests) {
-        feedback_->onRemoteRequest(ctx->peer, endpoint_tag, std::move(item));
-      }
-    }
-
-    dont_connect_to_.reset();
-
-    // TODO close if closable
-  }
-
-  void Network::onWriteEvent(const PeerContextPtr &from,
-                             uint64_t endpoint_tag,
-                             outcome::result<void> result) {
-    if (!started_) {
-      return;
-    }
-
-    if (!result) {
-      return onEndpointError(from, endpoint_tag, result);
-    }
-
-    // TODO timeouts
-  }
-
-  void Network::onEndpointError(const PeerContextPtr &from,
-                                uint64_t endpoint_tag,
-                                outcome::result<void> res) {
-    if (!started_) {
-      return;
-    }
-
-    assert(res.has_error());
-
-    auto ctx = findPeerCtx(peers_, from);
-    if (!ctx) {
-      // no more such a context
-      return;
-    }
-
-    if (endpoint_tag != kConnectedEndpointTag) {
-      auto it = ctx->accepted_endpoints.find(endpoint_tag);
-      if (it != ctx->accepted_endpoints.end()) {
-        auto stream = it->second.endpoint->getStream();
-        ctx->accepted_endpoints.erase(endpoint_tag);
-        decStreamRef(stream);
-      }
-      return;
-    }
-
-    if (ctx->connected_endpoint) {
-      // TODO(artem) errorToStatusCode(res.error());
-      closeLocalRequestsForPeer(ctx, RS_CONNECTION_ERROR);
-    }
-
-    // TODO close if closable
-  }
-
-  PeerContextPtr Network::findOrCreateContext(const PeerId &peer) {
     auto it = peers_.find(peer);
     if (it != peers_.end()) {
       return *it;
     }
-    PeerContextPtr ctx = std::make_shared<PeerContext>(peer);
-    peers_.insert(ctx);
+
+    PeerContextPtr ctx;
+    if (create_if_not_found) {
+      ctx = std::make_shared<PeerContext>(peer, *feedback_, *this);
+      peers_.insert(ctx);
+    }
     return ctx;
   }
 
-  void Network::tryConnect(PeerContextPtr ctx) {
-    if (ctx->connected_endpoint->is_connected()) {
-      return;
-    }
+  void Network::tryConnect(const PeerContextPtr &ctx) {
+    libp2p::peer::PeerInfo pi = ctx->getOutboundPeerInfo();
 
-    ctx->is_connecting = true;
-
-    libp2p::peer::PeerInfo pi{ctx->peer, {}};
-    if (ctx->connect_to) {
-      pi.addresses.push_back(ctx->connect_to.value());
-    }
+    logger()->trace(
+        "connecting to {}, {}",
+        ctx->str,
+        pi.addresses.empty() ? "''" : pi.addresses[0].getStringAddress());
 
     // clang-format off
     host_->newStream(
         pi,
         protocol_id_,
-        [wptr{weak_from_this()}, ctx=std::move(ctx)]
+        [wptr{ctx->weak_from_this()}]
         (outcome::result<StreamPtr> rstream) {
-          auto self = wptr.lock();
-          if (self) {
-            self->onStreamConnected(ctx, std::move(rstream));
+          auto ctx = wptr.lock();
+          if (ctx) {
+            ctx->onStreamConnected(std::move(rstream));
           }
         }
     );
     // clang-format on
-  }
-
-  void Network::onStreamConnected(const PeerContextPtr &ctx,
-                                  outcome::result<StreamPtr> rstream) {
-    if (!ctx->is_connecting) {
-      // connect has been cancelled from outside
-      return;
-    }
-
-    ctx->is_connecting = false;
-
-    if (rstream) {
-      incStreamRef(rstream.value());
-      ctx->connected_endpoint->setStream(std::move(rstream.value()));
-      ctx->connected_endpoint->read();
-    } else {
-      closeLocalRequestsForPeer(ctx, RS_CANNOT_CONNECT);
-    }
-
-    // TODO close if closable
   }
 
   void Network::onStreamAccepted(outcome::result<StreamPtr> rstream) {
@@ -339,76 +196,29 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (!rstream) {
-      // XXX log rstream.error().message());
+      logger()->error("accept error, msg='{}'", rstream.error().message());
       return;
     }
 
     auto peer_id_res = rstream.value()->remotePeerId();
     if (!peer_id_res) {
-      // XXX log
+      logger()->error("no peer id for accepted stream, msg='{}'",
+                      rstream.error().message());
       return;
     }
 
-    auto ctx = findOrCreateContext(peer_id_res.value());
-    makeInboundEndpoint(ctx, std::move(rstream.value()));
+    auto ctx = findContext(peer_id_res.value(), true);
+
+    logger()->trace("accepted stream from peer={}", ctx->str);
+
+    ctx->onStreamAccepted(std::move(rstream.value()));
   }
 
-  uint64_t Network::makeInboundEndpoint(const PeerContextPtr &ctx,
-                                        StreamPtr stream) {
-    incStreamRef(stream);
-    uint64_t tag = ctx->current_endpoint_tag++;
-    auto endpoint = std::make_shared<Endpoint>(ctx, tag, *this);
-    endpoint->setStream(std::move(stream));
-    endpoint->read();
-    ctx->accepted_endpoints[tag].endpoint = std::move(endpoint);
-    return tag;
-  }
-
-  void Network::incStreamRef(const StreamPtr &stream) {
-    if (stream) {
-      ++stream_refs_[stream];
+  void Network::closeAllPeers() {
+    for (auto &ctx : peers_) {
+      ctx->close();
     }
-  }
-
-  void Network::decStreamRef(const StreamPtr &stream) {
-    auto it = stream_refs_.find(stream);
-    if (it == stream_refs_.end()) {
-      // XXX log
-      return;
-    }
-
-    assert(it->second > 0);
-
-    if (--it->second == 0) {
-      stream_refs_.erase(it);
-      stream->close([stream{stream}](outcome::result<void>) {});
-    }
-  }
-
-  void Network::closeLocalRequestsForPeer(const PeerContextPtr &peer,
-                                          ResponseStatusCode status) {
-    if (!feedback_) {
-      return;
-    }
-
-    peer->connected_endpoint->clearOutQueue();
-
-    dont_connect_to_ = peer;
-    std::set<int> request_ids;
-    std::swap(request_ids, peer->local_request_ids);
-    for (int id : request_ids) {
-      active_requests_.erase(id);
-      feedback_->onResponse(peer->peer, id, status, {});
-    }
-
-    dont_connect_to_.reset();
-  }
-
-  void Network::closeAllStreams() {
-    started_ = false;
-    for (const auto& [stream, _] : stream_refs_) {
-      stream->close([stream{stream}](outcome::result<void>) {});
-    }
+    active_requests_per_peer_.clear();
   }
 
 }  // namespace fc::storage::ipfs::graphsync

@@ -52,7 +52,8 @@ namespace fc::storage::ipfs::graphsync {
     RS_CONNECTION_ERROR = -4,
     RS_MESSAGE_CORRUPTED = -5,
     RS_INTERNAL_ERROR = -6,
-    RS_GRAPHSYNC_STOPPED = -7,
+    RS_REJECTED_LOCALLY = -7,
+    RS_SLOW_STREAM = -8,
 
     // info - partial
     RS_REQUEST_ACKNOWLEDGED = 10,  //   Request Acknowledged. Working on it.
@@ -76,6 +77,9 @@ namespace fc::storage::ipfs::graphsync {
   /// Returns true if the status code passed is terminal, i.e. no more data will
   /// be sent to the subscription
   bool isTerminal(ResponseStatusCode code);
+
+  /// Converts status code to string repr
+  std::string statusCodeToString(ResponseStatusCode code);
 
   /// Metadata pairs, is cid present or not
   using ResponseMetadata = std::vector<std::pair<CID, bool>>;

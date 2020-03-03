@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_GRAPHSYNC_MESSAGE_HPP
 #define CPP_FILECOIN_GRAPHSYNC_MESSAGE_HPP
 
-#include "common.hpp"
+#include "storage/ipfs/graphsync/impl/common.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
@@ -16,7 +16,7 @@ namespace fc::storage::ipfs::graphsync {
     /// Graphsync request
     struct Request {
       /// requester-unique id
-      int32_t id = 0;
+      RequestId id = 0;
 
       /// root CID
       CID root_cid;
@@ -40,7 +40,7 @@ namespace fc::storage::ipfs::graphsync {
     /// Graphsync response
     struct Response {
       /// Request id
-      int32_t id = 0;
+      RequestId id = 0;
 
       /// Status code
       ResponseStatusCode status = RS_NOT_FOUND;

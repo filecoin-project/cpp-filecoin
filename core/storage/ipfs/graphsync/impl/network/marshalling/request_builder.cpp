@@ -7,25 +7,20 @@
 
 #include "codec/cbor/cbor_encode_stream.hpp"
 
-#include <protobuf/message.pb.h>
+#include "protobuf/message.pb.h"
 
 namespace fc::storage::ipfs::graphsync {
 
   using codec::cbor::CborEncodeStream;
 
   namespace {
-    std::string encodeTrue() {
-      static const std::string data = [] {
-        CborEncodeStream encoder;
-        encoder << true;
-        auto d = encoder.data();
-        std::string s(d.begin(), d.end());
-        return s;
-      }();
-
-      return data;
+    // returs CBOR boolean true as string
+    const std::string& encodeTrue() {
+      static const std::string s("\xF5");
+      return s;
     }
 
+    // encodes list of CIDs into CBOR
     std::string encodeCids(const std::vector<CID> &dont_send_cids) {
       CborEncodeStream encoder;
       encoder << dont_send_cids;
@@ -48,15 +43,19 @@ namespace fc::storage::ipfs::graphsync {
     CborEncodeStream encoder;
     encoder << root_cid;
     auto d = encoder.data();
+
     dst->set_root(d.data(), d.size());
     if (!selector.empty()) {
       dst->set_selector(selector.data(), selector.size());
     }
+
     dst->set_priority(1);
+
     if (need_metadata) {
       dst->mutable_extensions()->insert(
           {std::string(kResponseMetadata), encodeTrue()});
     }
+
     if (!dont_send_cids.empty()) {
       dst->mutable_extensions()->insert(
           {std::string(kDontSendCids), encodeCids(dont_send_cids)});

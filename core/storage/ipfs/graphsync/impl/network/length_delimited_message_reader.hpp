@@ -24,7 +24,8 @@ namespace fc::storage::ipfs::graphsync {
         const LengthDelimitedMessageReader &) = delete;
 
     /// Feedback interface from reader to its owning object
-    using Feedback = std::function<void(outcome::result<ByteArray>)>;
+    using Feedback = std::function<void(const StreamPtr &stream,
+                                        outcome::result<ByteArray>)>;
 
     LengthDelimitedMessageReader(Feedback feedback, size_t max_message_size);
 

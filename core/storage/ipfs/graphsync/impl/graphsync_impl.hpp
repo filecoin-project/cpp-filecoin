@@ -8,9 +8,9 @@
 
 #include <set>
 
-#include "message.hpp"
-#include "network/marshalling/request_builder.hpp"
-#include "network/network.hpp"
+#include <libp2p/protocol/common/scheduler.hpp>
+
+#include "network/network_fwd.hpp"
 
 namespace libp2p {
   class Host;
@@ -19,17 +19,20 @@ namespace libp2p {
 namespace fc::storage::ipfs::graphsync {
 
   class LocalRequests;
+  class Network;
 
   class GraphsyncImpl : public Graphsync,
                         public std::enable_shared_from_this<GraphsyncImpl>,
-                        public NetworkEvents {
+                        public PeerToGraphsyncFeedback {
    public:
     GraphsyncImpl(std::shared_ptr<libp2p::Host> host,
                   std::shared_ptr<libp2p::protocol::Scheduler> scheduler);
 
-    void cancelLocalRequest(int request_id);
+    ~GraphsyncImpl() override;
 
    private:
+    void cancelLocalRequest(RequestId request_id, SharedData body);
+
     void start(std::shared_ptr<MerkleDagBridge> dag,
                BlockCallback callback) override;
 
@@ -45,15 +48,18 @@ namespace fc::storage::ipfs::graphsync {
         RequestProgressCallback callback) override;
 
     void onResponse(const PeerId &peer,
-                    int request_id,
+                    RequestId request_id,
                     ResponseStatusCode status,
                     ResponseMetadata metadata) override;
 
     void onBlock(const PeerId &from, CID cid, common::Buffer data) override;
 
     void onRemoteRequest(const PeerId &from,
-                         uint64_t tag,
                          Message::Request request) override;
+
+    void doStop();
+
+    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
 
     std::shared_ptr<Network> network_;
 
@@ -63,8 +69,6 @@ namespace fc::storage::ipfs::graphsync {
 
     /// The only subscription to block (at the moment)
     Graphsync::BlockCallback block_cb_;
-
-    RequestBuilder request_builder_;
 
     bool started_ = false;
   };

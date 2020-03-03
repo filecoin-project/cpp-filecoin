@@ -8,35 +8,62 @@
 
 #include <map>
 
-#include "common.hpp"
+#include <libp2p/protocol/common/scheduler.hpp>
+
+#include "network/marshalling/request_builder.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
-  class GraphsyncImpl;
-
   class LocalRequests : public Subscription::Source {
    public:
-    explicit LocalRequests(GraphsyncImpl &owner);
+    struct NewRequest {
+      Subscription subscription;
+      RequestId request_id = 0;
+      SharedData body;
+    };
 
-    std::pair<Subscription, int> newRequest(
+    using CancelRequestFn = std::function<void(RequestId, SharedData)>;
+
+    explicit LocalRequests(
+        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+        CancelRequestFn cancel_fn);
+
+    NewRequest newRequest(
+        const CID &root_cid,
+        gsl::span<const uint8_t> selector,
+        bool need_metadata,
+        const std::vector<CID> &dont_send_cids,
         Graphsync::RequestProgressCallback callback);
 
-    void onResponse(int request_id,
+    Subscription newRejectedRequest(
+        Graphsync::RequestProgressCallback callback);
+
+    void onResponse(RequestId request_id,
                     ResponseStatusCode status,
                     ResponseMetadata metadata);
 
-    /// Cancels all active requests
+    /// Cancels all requests
     void cancelAll();
 
    private:
+    using RequestMap = std::map<RequestId, Graphsync::RequestProgressCallback>;
+
     void unsubscribe(uint64_t ticket) override;
 
-    int32_t nextRequestId();
+    void asyncNotifyRejectedRequests();
 
-    GraphsyncImpl &owner_;
-    std::map<int, Graphsync::RequestProgressCallback> active_requests_;
-    int32_t current_request_id_ = 0;
-    bool reentrancy_guard_ = false;
+    static void cancelAll(RequestMap &requests);
+
+    RequestId nextRequestId();
+
+    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
+    CancelRequestFn cancel_fn_;
+    RequestMap active_requests_;
+    RequestMap rejected_requests_;
+    RequestBuilder request_builder_;
+    bool rejected_notify_scheduled_ = false;
+    RequestId current_request_id_ = 0;
+    RequestId current_rejected_request_id_ = 0;
   };
 
 }  // namespace fc::storage::ipfs::graphsync

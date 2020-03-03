@@ -5,10 +5,10 @@
 
 #include "message_builder.hpp"
 
-#include <protobuf/message.pb.h>
-
-#include "storage/ipfs/graphsync/impl/common.hpp"
 #include "serialize.hpp"
+#include "storage/ipfs/graphsync/impl/common.hpp"
+
+#include "protobuf/message.pb.h"
 
 namespace fc::storage::ipfs::graphsync {
 
@@ -29,6 +29,8 @@ namespace fc::storage::ipfs::graphsync {
   outcome::result<SharedData> MessageBuilder::serialize() {
     auto res = serializeProtobufMessage(*pb_msg_);
     if (!res) {
+      logger()->error("cannot serialize protobuf message, size={}",
+                      getSerializedSize());
       return Error::MESSAGE_SERIALIZE_ERROR;
     }
     return res.value();

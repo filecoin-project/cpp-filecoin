@@ -13,10 +13,12 @@ namespace fc::storage::ipfs::graphsync {
   /// Collects response entries and serializes them to wire protocol
   class ResponseBuilder : public MessageBuilder {
    public:
+    /// Adds response entry to protobuf message
     void addResponse(int request_id,
                      ResponseStatusCode status,
                      const ResponseMetadata &metadata);
 
+    /// Adds data block to protobuf message
     void addDataBlock(const CID &cid, const common::Buffer &data);
   };
 

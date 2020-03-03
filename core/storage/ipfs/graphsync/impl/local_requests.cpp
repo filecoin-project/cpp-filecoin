@@ -3,23 +3,67 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "local_requests.hpp"
+#include <cassert>
 
-#include "graphsync_impl.hpp"
+#include "local_requests.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
-  LocalRequests::LocalRequests(GraphsyncImpl &owner) : owner_(owner) {}
+  LocalRequests::LocalRequests(
+      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+      CancelRequestFn cancel_fn)
+      : scheduler_(std::move(scheduler)), cancel_fn_(std::move(cancel_fn)) {
+    assert(scheduler_);
+    assert(cancel_fn_);
+  }
 
-  std::pair<Subscription, int> LocalRequests::newRequest(
+  LocalRequests::NewRequest LocalRequests::newRequest(
+      const CID &root_cid,
+      gsl::span<const uint8_t> selector,
+      bool need_metadata,
+      const std::vector<CID> &dont_send_cids,
       Graphsync::RequestProgressCallback callback) {
-    int32_t request_id = nextRequestId();
-    if (request_id == 0) {
+    NewRequest ctx;
+    ctx.request_id = nextRequestId();
+    if (ctx.request_id == 0) {
       // Will likely not get here, possible iff INT_MAX simultaneous requests
-      return {Subscription(), 0};
+      logger()->error("{}: request ids exhausted", __FUNCTION__);
+      ctx.subscription = newRejectedRequest(std::move(callback));
+      ctx.request_id = current_rejected_request_id_;
+      return ctx;
     }
-    active_requests_[request_id] = std::move(callback);
-    return {Subscription(request_id, weak_from_this()), request_id};
+
+    request_builder_.addRequest(
+        ctx.request_id, root_cid, selector, need_metadata, dont_send_cids);
+    auto serialize_res = request_builder_.serialize();
+    request_builder_.clear();
+    if (!serialize_res) {
+      logger()->error("{}: serialize failed", __FUNCTION__);
+      ctx.subscription = newRejectedRequest(std::move(callback));
+      ctx.request_id = current_rejected_request_id_;
+      return ctx;
+    }
+
+    ctx.subscription = Subscription(ctx.request_id, weak_from_this());
+    ctx.body = std::move(serialize_res.value());
+    active_requests_[ctx.request_id] = std::move(callback);
+
+    logger()->trace("{}: id={}", __FUNCTION__, ctx.request_id);
+
+    return ctx;
+  }
+
+  Subscription LocalRequests::newRejectedRequest(
+      Graphsync::RequestProgressCallback callback) {
+    RequestId request_id = --current_rejected_request_id_;
+    if (request_id == 0) {
+      logger()->error("{}: rejected request ids exhausted", __FUNCTION__);
+      // virtually impossible
+      return Subscription();
+    }
+    rejected_requests_[request_id] = std::move(callback);
+    asyncNotifyRejectedRequests();
+    return Subscription(request_id, weak_from_this());
   }
 
   void LocalRequests::onResponse(int request_id,
@@ -27,7 +71,8 @@ namespace fc::storage::ipfs::graphsync {
                                  ResponseMetadata metadata) {
     auto it = active_requests_.find(request_id);
     if (it == active_requests_.end()) {
-      // TODO log inconsistency
+      logger()->error(
+          "{}: cannot find request, id={}", __FUNCTION__, request_id);
       return;
     }
     if (isTerminal(status)) {
@@ -41,37 +86,65 @@ namespace fc::storage::ipfs::graphsync {
     }
   }
 
-  void LocalRequests::cancelAll() {
-    reentrancy_guard_ = true;
-    for (const auto &[_, cb] : active_requests_) {
-      cb(RS_GRAPHSYNC_STOPPED, {});
+  void LocalRequests::cancelAll(LocalRequests::RequestMap &requests) {
+    if (requests.empty()) {
+      return;
     }
-    active_requests_.clear();
-    reentrancy_guard_ = false;
+    RequestMap m;
+    std::swap(m, requests);
+    for (const auto &[_, cb] : m) {
+      cb(RS_REJECTED_LOCALLY, {});
+    }
   }
 
-  void LocalRequests::unsubscribe(uint64_t ticket) {
-    if (reentrancy_guard_) {
+  void LocalRequests::asyncNotifyRejectedRequests() {
+    if (rejected_notify_scheduled_) {
       return;
     }
 
-    auto request_id = static_cast<int32_t>(ticket);
+    scheduler_
+        ->schedule([wptr = weak_from_this(), this]() {
+          if (!wptr.expired()) {
+            cancelAll(rejected_requests_);
+            if (rejected_requests_.empty()) {
+              current_rejected_request_id_ = 0;
+            }
+          }
+        })
+        .detach();
+  }
+
+  void LocalRequests::cancelAll() {
+    cancelAll(active_requests_);
+    cancelAll(rejected_requests_);
+  }
+
+  void LocalRequests::unsubscribe(uint64_t ticket) {
+    auto request_id = static_cast<RequestId>(ticket);
+
+    if (request_id < 0) {
+      // this is rejected request
+      rejected_requests_.erase(request_id);
+      return;
+    }
+
     auto it = active_requests_.find(request_id);
     if (it == active_requests_.end()) {
       return;
     }
     active_requests_.erase(it);
-    owner_.cancelLocalRequest(request_id);
+
+    request_builder_.addCancelRequest(request_id);
+    auto serialize_res = request_builder_.serialize();
+    request_builder_.clear();
+
+    cancel_fn_(request_id,
+               serialize_res ? serialize_res.value() : SharedData{});
   }
 
-  int32_t LocalRequests::nextRequestId() {
-    if (reentrancy_guard_) {
-      return 0;
-    }
-
-    int32_t id = ++current_request_id_;
+  RequestId LocalRequests::nextRequestId() {
+    RequestId id = ++current_request_id_;
     if (id > 0 && active_requests_.count(id) == 0) {
-      // most likely ...
       return id;
     }
     // We prepare for long uptimes,

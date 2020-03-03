@@ -8,15 +8,23 @@
 #include <cassert>
 
 #include "local_requests.hpp"
+#include "network/network.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
   GraphsyncImpl::GraphsyncImpl(
       std::shared_ptr<libp2p::Host> host,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler)
-      : network_(
-          std::make_shared<Network>(std::move(host), std::move(scheduler))),
-        local_requests_(std::make_shared<LocalRequests>(*this)) {}
+      : scheduler_(scheduler),
+        network_(std::make_shared<Network>(std::move(host), scheduler)),
+        local_requests_(std::make_shared<LocalRequests>(
+            std::move(scheduler), [this](RequestId request_id, SharedData body) {
+              cancelLocalRequest(request_id, std::move(body));
+            })) {}
+
+  GraphsyncImpl::~GraphsyncImpl() {
+    doStop();
+  }
 
   void GraphsyncImpl::start(std::shared_ptr<MerkleDagBridge> dag,
                             Graphsync::BlockCallback callback) {
@@ -30,11 +38,16 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   void GraphsyncImpl::stop() {
+    doStop();
+  }
+
+  void GraphsyncImpl::doStop() {
     if (started_) {
       started_ = false;
       block_cb_ = Graphsync::BlockCallback{};
       dag_.reset();
       network_->stop();
+      local_requests_->cancelAll();
     }
   }
 
@@ -46,36 +59,29 @@ namespace fc::storage::ipfs::graphsync {
       bool need_metadata,
       const std::vector<CID> &dont_send_cids,
       RequestProgressCallback callback) {
-    if (!started_) {
-      // TODO defer RS_GRAPHSYNC_STOPPED to callback
-      return Subscription();
+    if (!started_ || !network_->canSendRequest(peer)) {
+      logger()->trace("makeRequest: rejecting request to peer {}",
+          peer.toBase58().substr(46));
+      return local_requests_->newRejectedRequest(std::move(callback));
     }
 
-    auto [subscr, request_id] =
-        local_requests_->newRequest(std::move(callback));
+    auto newRequest = local_requests_->newRequest(
+        root_cid, selector, need_metadata, dont_send_cids, std::move(callback));
 
-    if (request_id == 0) {
-      // TODO defer RS_INtERNAL_ERROR
-      return std::move(subscr);
-    }
+    if (newRequest.request_id > 0) {
+      assert(newRequest.body);
+      assert(!newRequest.body->empty());
 
-    request_builder_.addRequest(
-        request_id, root_cid, selector, need_metadata, dont_send_cids);
+      logger()->trace("makeRequest: sending request to peer {}",
+                      peer.toBase58().substr(46));
 
-    auto serialize_res = request_builder_.serialize();
-
-    request_builder_.clear();
-
-    if (serialize_res) {
       network_->makeRequest(peer,
                             std::move(address),
-                            request_id,
-                            std::move(serialize_res.value()));
-    } else {
-      // defer serialize error
+                            newRequest.request_id,
+                            std::move(newRequest.body));
     }
 
-    return std::move(subscr);
+    return std::move(newRequest.subscription);
   }
 
   void GraphsyncImpl::onResponse(const PeerId &peer,
@@ -104,11 +110,11 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   void GraphsyncImpl::onRemoteRequest(const PeerId &from,
-                                      uint64_t tag,
                                       Message::Request request) {
     // TODO make this asynchronous
 
     ResponseMetadata metadata;
+    bool send_response = true;
 
     auto data_handler = [&](const CID &cid,
                             const common::Buffer &data) -> bool {
@@ -119,7 +125,10 @@ namespace fc::storage::ipfs::graphsync {
       }
 
       if (data_present) {
-        network_->addBlockToResponse(from, tag, cid, data);
+        if (!network_->addBlockToResponse(from, request.id, cid, data)) {
+          send_response = false;
+          return false;
+        }
       }
 
       return true;
@@ -128,6 +137,11 @@ namespace fc::storage::ipfs::graphsync {
     auto select_res =
         dag_->select(request.root_cid, request.selector, data_handler);
 
+    if (!send_response) {
+      // ignore response due to network side
+      return;
+    }
+
     ResponseStatusCode status = RS_NOT_FOUND;
     if (select_res && select_res.value() > 0) {
       status = RS_FULL_CONTENT;
@@ -135,21 +149,11 @@ namespace fc::storage::ipfs::graphsync {
       status = RS_REQUEST_FAILED;
     }
 
-    network_->sendResponse(from, tag, request.id, status, metadata);
+    network_->sendResponse(from, request.id, status, metadata);
   }
 
-  void GraphsyncImpl::cancelLocalRequest(int request_id) {
-    if (!started_) {
-      return;
-    }
-
-    request_builder_.addCancelRequest(request_id);
-    auto serialize_res = request_builder_.serialize();
-    request_builder_.clear();
-
-    network_->cancelRequest(
-        request_id,
-        serialize_res ? std::move(serialize_res.value()) : SharedData{});
+  void GraphsyncImpl::cancelLocalRequest(RequestId request_id, SharedData body) {
+    network_->cancelRequest(request_id, std::move(body));
   }
 
 }  // namespace fc::storage::ipfs::graphsync

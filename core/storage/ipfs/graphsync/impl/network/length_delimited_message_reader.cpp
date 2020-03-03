@@ -67,12 +67,12 @@ namespace fc::storage::ipfs::graphsync {
 
     if (length == 0) {
       reading_ = false;
-      return feedback_(Error::STREAM_NOT_READABLE);
+      return feedback_(stream_, Error::STREAM_NOT_READABLE);
     }
 
     if (length > max_message_size_) {
       reading_ = false;
-      return feedback_(Error::MESSAGE_SIZE_OUT_OF_BOUNDS);
+      return feedback_(stream_, Error::MESSAGE_SIZE_OUT_OF_BOUNDS);
     }
 
     buffer_->resize(length);
@@ -100,14 +100,14 @@ namespace fc::storage::ipfs::graphsync {
     reading_ = false;
 
     if (!res) {
-      return feedback_(res.error());
+      return feedback_(stream_, res.error());
     }
 
     if (buffer_->size() != res.value()) {
-      return feedback_(Error::MESSAGE_READ_ERROR);
+      return feedback_(stream_, Error::MESSAGE_READ_ERROR);
     }
 
-    feedback_(std::move(*buffer_));
+    feedback_(stream_, std::move(*buffer_));
 
     // if owner called close() during feedback then the stream is now reset
     // and no further reading is needed

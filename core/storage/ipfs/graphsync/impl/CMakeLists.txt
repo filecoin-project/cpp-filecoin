@@ -13,7 +13,10 @@ add_library(graphsync
     network/network.cpp
     network/peer_context.cpp
     network/length_delimited_message_reader.cpp
-    network/endpoint.cpp
+    network/message_reader.cpp
+    network/message_queue.cpp
+    network/outbound_endpoint.cpp
+    network/inbound_endpoint.cpp
     network/marshalling/serialize.cpp
     network/marshalling/message_parser.cpp
     network/marshalling/message_builder.cpp

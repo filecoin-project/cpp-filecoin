@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_GRAPHSYNC_COMMON_HPP
 #define CPP_FILECOIN_GRAPHSYNC_COMMON_HPP
 
+#include "common/logger.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
 
 namespace fc::storage::ipfs::graphsync {
@@ -23,6 +24,8 @@ namespace fc::storage::ipfs::graphsync {
     MESSAGE_WRITE_ERROR,
   };
 
+  using RequestId = int32_t;
+
   using libp2p::common::ByteArray;
   using SharedData = std::shared_ptr<const ByteArray>;
   using libp2p::peer::PeerId;
@@ -31,6 +34,9 @@ namespace fc::storage::ipfs::graphsync {
   constexpr std::string_view kDontSendCids = "graphsync/do-not-send-cids";
   constexpr std::string_view kLink = "link";
   constexpr std::string_view kBlockPresent = "blockPresent";
+
+  /// Returns shared logger for graphsync modules
+  common::Logger logger();
 
  // TODO - extract error category
  //  ResponseStatusCode errorToStatusCode(outcome::result<void> error);

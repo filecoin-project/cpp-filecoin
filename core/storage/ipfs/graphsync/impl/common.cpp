@@ -34,7 +34,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipfs::graphsync, Error, e) {
 
 namespace fc::storage::ipfs::graphsync {
 
-  //ResponseStatusCode errorToStatusCode(outcome::result<void> error) {
+  common::Logger logger() {
+    static common::Logger graphsync_logger = common::createLogger("graphsync");
+    return graphsync_logger;
+  }
+
+  // TODO(artem)
+  // ResponseStatusCode errorToStatusCode(outcome::result<void> error) {
   //  error.error().category();
   //}
 
@@ -42,4 +48,36 @@ namespace fc::storage::ipfs::graphsync {
     return code < 10 || code >= 20;
   }
 
-} // namespace fc::storage::ipfs::graphsync
+  std::string statusCodeToString(ResponseStatusCode code) {
+    switch (code) {
+// clang-format off
+#define CHECK_CASE(X) case RS_##X: return #X;
+      CHECK_CASE(NO_PEERS)
+      CHECK_CASE(CANNOT_CONNECT)
+      CHECK_CASE(TIMEOUT)
+      CHECK_CASE(CONNECTION_ERROR)
+      CHECK_CASE(MESSAGE_CORRUPTED)
+      CHECK_CASE(INTERNAL_ERROR)
+      CHECK_CASE(REJECTED_LOCALLY)
+      CHECK_CASE(REQUEST_ACKNOWLEDGED)
+      CHECK_CASE(ADDITIONAL_PEERS)
+      CHECK_CASE(NOT_ENOUGH_GAS)
+      CHECK_CASE(OTHER_PROTOCOL)
+      CHECK_CASE(PARTIAL_RESPONSE)
+      CHECK_CASE(FULL_CONTENT)
+      CHECK_CASE(PARTIAL_CONTENT)
+      CHECK_CASE(REJECTED)
+      CHECK_CASE(TRY_AGAIN)
+      CHECK_CASE(REQUEST_FAILED)
+      CHECK_CASE(LEGAL_ISSUES)
+      CHECK_CASE(NOT_FOUND)
+#undef CHECK_CASE
+        // clang-format on
+
+      default:
+        break;
+    }
+    return "UNKNOWN";
+  }
+
+}  // namespace fc::storage::ipfs::graphsync

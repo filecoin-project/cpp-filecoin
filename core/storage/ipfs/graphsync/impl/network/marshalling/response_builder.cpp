@@ -7,13 +7,14 @@
 
 #include "codec/cbor/cbor_encode_stream.hpp"
 
-#include <protobuf/message.pb.h>
+#include "protobuf/message.pb.h"
 
 namespace fc::storage::ipfs::graphsync {
 
   namespace {
     using codec::cbor::CborEncodeStream;
 
+    // encodes metadata item, {"link":CID, "blockPresent":bool}
     std::map<std::string, CborEncodeStream> encodeMetadataItem(
         const std::pair<CID, bool> &item) {
       static const std::string link(kLink);
@@ -25,6 +26,7 @@ namespace fc::storage::ipfs::graphsync {
       return m;
     }
 
+    // encodes metadata pairs, [ {"link":CID, "blockPresent":bool}, ...]
     std::string encodeMetadata(const ResponseMetadata &metadata) {
       auto l = CborEncodeStream::list();
 

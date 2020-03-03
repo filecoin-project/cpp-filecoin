@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_GRAPHSYNC_MESSAGE_BUILDER_HPP
 #define CPP_FILECOIN_GRAPHSYNC_MESSAGE_BUILDER_HPP
 
-#include "storage/ipfs/graphsync/impl/message.hpp"
+#include "message.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
@@ -21,16 +21,23 @@ namespace fc::storage::ipfs::graphsync {
     MessageBuilder();
     virtual ~MessageBuilder();
 
+    /// Returns if there is nothing to send
     bool empty() const;
 
+    /// Returns serialized size of protobuf message
     size_t getSerializedSize() const;
 
+    /// Serializes message to shared byte buffer
     outcome::result<SharedData> serialize();
 
+    /// Clears all entries added
     void clear();
 
    protected:
+    /// Protobuf message, reused by derived classes
     std::unique_ptr<pb::Message> pb_msg_; //NOLINT
+
+    /// Empty flag, reused by derived classes
     bool empty_ = true; //NOLINT
   };
 
