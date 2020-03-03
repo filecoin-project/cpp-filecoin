@@ -44,7 +44,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
-        run: cmake . -GNinja -Bbuild -D LSAN=ON
+      run: cmake . -GNinja -Bbuild -D LSAN=ON
     - name: build lsan
       run: cmake --build build -- -j2
     - name: run tests lsan
