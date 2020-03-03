@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_CORE_VM_MESSAGE_UTIL_HPP
 
 #include "primitives/cid/cid.hpp"
-#include "vm/message/message_codec.hpp"
+#include "vm/message/message.hpp"
 
 namespace fc::vm::message {
 

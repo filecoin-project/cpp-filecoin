@@ -10,4 +10,5 @@ target_link_libraries(amt
     cbor
     cid
     outcome
+    ipld_block
     )

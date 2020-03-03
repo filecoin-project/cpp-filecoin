@@ -287,7 +287,7 @@ TEST_F(StoragePowerActorTest, AddBalanceSuccess) {
       .Times(3)
       .WillRepeatedly(testing::Return(datastore));
   // get message
-  UnsignedMessage message{miner_address, caller_address, 0, amount_to_add};
+  UnsignedMessage message{miner_address, caller_address, 0, amount_to_add, {}, {}, {}, {}};
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
 
   // commit and capture state CID
@@ -385,7 +385,7 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
       "2222222222222222222222222222222222222222"
       "2222222222222222"_blob48);
   TokenAmount amount{100200};
-  UnsignedMessage message{any_address_1, caller_address, 0, amount};
+  UnsignedMessage message{any_address_1, caller_address, 0, amount, {}, {}, {}, {}};
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
 
   // return immediate caller is signable code id
@@ -558,7 +558,7 @@ TEST_F(StoragePowerActorTest, OnSectorProofCommitSuccess) {
       .Times(3)
       .WillRepeatedly(testing::Return(datastore));
 
-  UnsignedMessage message{caller_address, miner_address, 0, 0};
+  UnsignedMessage message{caller_address, miner_address, 0, 0, {}, {}, {}, {}};
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
 
   // commit and capture state CID
@@ -607,7 +607,7 @@ TEST_F(StoragePowerActorTest, OnSectorTerminateSuccess) {
   EXPECT_CALL(runtime, getCurrentActorState())
       .WillOnce(::testing::Return(actor_head_cid));
 
-  UnsignedMessage message{caller_address, miner_address, 0, 0};
+  UnsignedMessage message{caller_address, miner_address, 0, 0, {}, {}, {}, {}};
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
 
   EXPECT_CALL(runtime, getIpfsDatastore())

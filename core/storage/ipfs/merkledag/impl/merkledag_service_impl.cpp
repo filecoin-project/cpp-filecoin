@@ -23,7 +23,8 @@ namespace fc::storage::ipfs::merkledag {
 
   outcome::result<void> MerkleDagServiceImpl::addNode(
       std::shared_ptr<const IPLDNode> node) {
-    return block_service_->set(node->getCID(), node->getRawBytes());
+    const common::Buffer &raw_bytes = node->getRawBytes();
+    return block_service_->set(node->getCID(), raw_bytes);
   }
 
   outcome::result<std::shared_ptr<IPLDNode>> MerkleDagServiceImpl::getNode(

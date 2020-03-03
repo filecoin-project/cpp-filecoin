@@ -12,16 +12,17 @@
 #include <vector>
 
 #include <boost/optional.hpp>
-#include "storage/ipld/impl/ipld_block_impl.hpp"
 #include "storage/ipld/impl/ipld_link_impl.hpp"
 #include "storage/ipld/impl/ipld_node_encoder_pb.hpp"
+#include "storage/ipld/ipld_block_common.hpp"
 #include "storage/ipld/ipld_node.hpp"
 
 namespace fc::storage::ipld {
-  class IPLDNodeImpl : public IPLDNode, IPLDBlockImpl {
+  class IPLDNodeImpl : public IPLDNode,
+                       IPLDBlockCommon<CID::Version::V0,
+                                       HashType::sha256,
+                                       ContentType::DAG_PB> {
    public:
-    IPLDNodeImpl();
-
     size_t size() const override;
 
     void assign(common::Buffer input) override;
@@ -53,7 +54,7 @@ namespace fc::storage::ipld {
     IPLDNodeEncoderPB pb_node_codec_;
     size_t child_nodes_size_{};
 
-    common::Buffer serialize() const override;
+    outcome::result<std::vector<uint8_t>> getBlockContent() const override;
   };
 }  // namespace fc::storage::ipld
 
