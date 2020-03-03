@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP
 
+#include <boost/assert.hpp>
 #include <boost/optional.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
@@ -18,6 +19,8 @@
 #include "primitives/ticket/epost_ticket_codec.hpp"
 #include "primitives/ticket/ticket.hpp"
 #include "primitives/ticket/ticket_codec.hpp"
+#include "storage/ipld/ipld_block_common.hpp"
+#include "vm/message/message.hpp"
 
 namespace fc::primitives::block {
   using primitives::BigInt;
@@ -26,6 +29,9 @@ namespace fc::primitives::block {
   using primitives::ticket::Ticket;
   // TODO (yuraz) : FIL-142 replace by crypto::signature::Signature
   using Signature = std::vector<uint8_t>;
+  using storage::ipld::IPLDBlockCommon;
+  using vm::message::SignedMessage;
+  using vm::message::UnsignedMessage;
 
   struct BlockHeader {
     Address miner;
@@ -43,9 +49,21 @@ namespace fc::primitives::block {
     uint64_t fork_signaling;
   };
 
-  struct MsgMeta {
+  struct MsgMeta : public IPLDBlockCommon<CID::Version::V1,
+                                        storage::ipld::HashType::blake2b_256,
+                                        storage::ipld::ContentType::DAG_CBOR> {
     CID bls_messages;
     CID secpk_messages;
+
+    outcome::result<std::vector<uint8_t>> getBlockContent() const override {
+      return codec::cbor::encode<MsgMeta>(*this);
+    }
+  };
+
+  struct Block {
+    BlockHeader header;
+    std::vector<UnsignedMessage> bls_messages;
+    std::vector<SignedMessage> secp_messages;
   };
 
   inline bool operator==(const BlockHeader &lhs, const BlockHeader &rhs) {

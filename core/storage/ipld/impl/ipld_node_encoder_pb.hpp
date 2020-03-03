@@ -32,7 +32,7 @@ namespace fc::storage::ipld {
      * @param links - references for child Nodes
      * @return Protobuf-encoded data
      */
-    static common::Buffer encode(const common::Buffer &content,
+    static std::vector<uint8_t> encode(const common::Buffer &content,
                                  const std::map<std::string, IPLDLinkImpl> &links);
 
    private:

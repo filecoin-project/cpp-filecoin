@@ -7,7 +7,6 @@
 
 #include "codec/cbor/cbor.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
-#include "vm/message/message_codec.hpp"
 #include "vm/runtime/gas_cost.hpp"
 #include "vm/runtime/impl/actor_state_handle_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"

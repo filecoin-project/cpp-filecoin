@@ -23,6 +23,9 @@ namespace fc::crypto::bls {
                                           const Signature &signature,
                                           const PublicKey &key) const override;
 
+    outcome::result<Signature> aggregateSignatures(
+        const std::vector<Signature> &signatures) const override;
+
    private:
     /**
      * @brief Generate BLS message digest

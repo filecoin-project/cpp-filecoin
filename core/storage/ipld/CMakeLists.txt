@@ -22,10 +22,8 @@ target_link_libraries(ipld_node_protobuf
     )
 disable_clang_tidy(ipld_node_protobuf)
 
-add_library(ipld_block
-    impl/ipld_block_impl.cpp
-    )
-target_link_libraries(ipld_block
+add_library(ipld_block INTERFACE)
+target_link_libraries(ipld_block INTERFACE
     cid
     filecoin_hasher
     )
@@ -36,7 +34,6 @@ add_library(ipld_link
 target_link_libraries(ipld_link
     cid
     )
-
 
 add_library(ipld_node
     impl/ipld_node_impl.cpp

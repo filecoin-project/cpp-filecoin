@@ -17,4 +17,5 @@ target_link_libraries(message
     keystore
     outcome
     signature
+    ipld_block
     )

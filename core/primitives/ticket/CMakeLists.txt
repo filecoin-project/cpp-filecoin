@@ -12,4 +12,5 @@ target_link_libraries(tickets
     buffer
     cbor
     p2p::p2p_sha
+    address
     )
