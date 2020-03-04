@@ -22,7 +22,11 @@ namespace fc::storage::ipfs::graphsync::test {
     signals.async_wait(
         [&io](const boost::system::error_code &, int) { io->stop(); });
 
-    io->run_for(std::chrono::milliseconds(max_milliseconds));
+    if (max_milliseconds > 0) {
+      io->run_for(std::chrono::milliseconds(max_milliseconds));
+    } else {
+      io->run();
+    }
   }
 
   std::pair<std::shared_ptr<Graphsync>, std::shared_ptr<libp2p::Host>>

@@ -10,7 +10,7 @@
 #include "graphsync_acceptance_common.hpp"
 
 static std::shared_ptr<spdlog::logger> logger;
-static size_t run_time_msec = 2000;
+static size_t run_time_msec = 0;
 
 namespace fc::storage::ipfs::graphsync::test {
 
@@ -300,15 +300,11 @@ int main(int argc, char *argv[]) {
   if (argc > 1 && std::string("trace") == argv[1]) {
     logger->set_level(spdlog::level::trace);
     fc::common::createLogger("graphsync")->set_level(spdlog::level::trace);
-    run_time_msec = 1000000000;
     --argc;
     ++argv;
   } else {
-    //TODO: for CI temporarily
-    logger->set_level(spdlog::level::trace);
-    fc::common::createLogger("graphsync")->set_level(spdlog::level::trace);
-
-    //spdlog::set_level(spdlog::level::err);
+    spdlog::set_level(spdlog::level::err);
+    run_time_msec = 20000;
   }
 
   ::testing::InitGoogleTest(&argc, argv);
