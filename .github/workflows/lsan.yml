@@ -20,12 +20,12 @@ jobs:
         auth_header="$(git config --local --get http.https://github.com/.extraheader)"
         git submodule sync --recursive
         git -c "http.extraheader=$auth_header" -c protocol.version=2 submodule update --init --force --recursive --depth=1
-    - name: install brew
-      run:
+    - name: install
+      run: |
         brew install ninja llvm pkg-config
         sudo python3 -m pip install --upgrade pip
         sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
-    - name: cmake asan
+    - name: cmake
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
@@ -33,9 +33,9 @@ jobs:
         CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
         CXXFLAGS: "-isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
       run: cmake . -GNinja -Bbuild -D LSAN=ON
-    - name: build asan
+    - name: build
       run: cmake --build build -- -j2
-    - name: run tests asan
+    - name: run tests
       env:
         CTEST_OUTPUT_ON_FAILURE: 1
       run: cmake --build build --target test
