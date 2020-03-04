@@ -17,11 +17,10 @@ namespace fc::vm::actor::builtin::account {
   using primitives::address::Protocol;
   using state::StateTree;
 
-  constexpr MethodNumber kPubkeyAddressMethodNumber{2};
-
   struct AccountActorState {
     Address address;
   };
+  CBOR_TUPLE(AccountActorState, address)
 
   /// Account actors represent actors without code
   struct AccountActor {
@@ -38,9 +37,10 @@ namespace fc::vm::actor::builtin::account {
         const std::shared_ptr<StateTree> &state_tree, const Address &address);
   };
 
-  CBOR_TUPLE(AccountActorState, address)
-
-  ACTOR_METHOD(pubkeyAddress);
+  struct PubkeyAddress : ActorMethodBase<2> {
+    using Result = Address;
+    ACTOR_METHOD_DECL();
+  };
 
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::account

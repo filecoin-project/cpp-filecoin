@@ -43,8 +43,6 @@ namespace fc::vm::actor::builtin::storage_power {
   // effectively limit consensus power. From spec: 3
   static const size_t kConsensusMinerMinMiners = 3;
 
-  enum class SectorTermination { Expired, Manual };
-
   struct Claim {
     // Sum of power for a miner's sectors
     Power power;
@@ -105,7 +103,14 @@ namespace fc::vm::actor::builtin::storage_power {
      * @param miner_addr is address of miner
      * @return success or error NO_SUCH_MINER
      */
-    outcome::result<void> deleteMiner(const Address &miner_addr);
+    outcome::result<TokenAmount> deleteMiner(const Address &miner_addr);
+
+    /**
+     * @brief Checks if miner is present
+     * @param miner_addr address
+     * @return true if miner is present, false otherwise
+     */
+    outcome::result<bool> hasMiner(const Address &miner_addr) const;
 
     /**
      * Return miner balance
@@ -191,10 +196,19 @@ namespace fc::vm::actor::builtin::storage_power {
                                           const CronEvent &event);
 
     /**
-     * Get all cron events
-     * @return
+     * Get event for epoch
+     * @param epoch
+     * @return events for epoch
      */
-    outcome::result<std::vector<CronEvent>> getCronEvents() const;
+    outcome::result<std::vector<CronEvent>> getCronEvents(
+        const ChainEpoch &epoch) const;
+
+    /**
+     * Remove event for epoch
+     * @param epoch at which events to remove
+     * @return error in case of failure
+     */
+    outcome::result<void> clearCronEvents(const ChainEpoch &epoch);
 
     /**
      * @brief Add miner to miners list failed proof
@@ -236,6 +250,8 @@ namespace fc::vm::actor::builtin::storage_power {
      * in DetectedFault state from a SurprisePoSt challenge
      */
     outcome::result<Power> computeNominalPower(const Address &address) const;
+
+    outcome::result<Power> getTotalNetworkPower() const;
 
    private:
     /**

@@ -7,123 +7,165 @@
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_ACTOR_HPP
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "primitives/address/address_codec.hpp"
-#include "vm/actor/actor.hpp"
+#include "primitives/block/block.hpp"
+#include "primitives/types.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
-#include "vm/runtime/runtime.hpp"
-#include "vm/runtime/runtime_types.hpp"
+#include "vm/actor/builtin/miner/types.hpp"
+#include "vm/actor/builtin/storage_power/policy.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
-  using runtime::InvocationOutput;
-  using runtime::Runtime;
+  using miner::PeerId;
+  using primitives::TokenAmount;
+  using primitives::block::BlockHeader;
 
-  constexpr MethodNumber kAddBalanceMethodNumber{2};
-  constexpr MethodNumber kWithdrawBalanceMethodNumber{3};
-  constexpr MethodNumber kCreateMinerMethodNumber{4};
-  constexpr MethodNumber kDeleteMinerMethodNumber{5};
-  constexpr MethodNumber kOnSectorProveCommitMethodNumber{6};
-  constexpr MethodNumber kOnSectorTerminateMethodNumber{7};
-  constexpr MethodNumber kOnSectorTemporaryFaultEffectiveBeginMethodNumber{8};
-  constexpr MethodNumber kOnSectorTemporaryFaultEffectiveEndMethodNumber{9};
-  constexpr MethodNumber kOnSectorModifyWeightDescMethodNumber{10};
-  constexpr MethodNumber kOnMinerSurprisePoStSuccessMethodNumber{11};
-  constexpr MethodNumber kOnMinerSurprisePoStFailureMethodNumber{12};
-  constexpr MethodNumber kEnrollCronEventMethodNumber{13};
-  constexpr MethodNumber kReportConsensusFaultMethodNumber{14};
-  constexpr MethodNumber kOnEpochTickEndMethodNumber{15};
-
-  /**
-   * Construct method parameters
-   * Storage miner actor constructor params are defined here so the power actor
-   * can send them to the init actor to instantiate miners
-   */
-  struct ConstructParameters {
-    Address owner;
-    Address worker;
-    uint64_t sector_size;
-    std::string peer_id;
+  struct Construct : ActorMethodBase<1> {
+    ACTOR_METHOD_DECL();
   };
 
-  struct AddBalanceParameters {
-    Address miner;
+  struct AddBalance : ActorMethodBase<2> {
+    struct Params {
+      Address miner;
+    };
+    ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(AddBalance::Params, miner)
 
-  struct WithdrawBalanceParameters {
-    Address miner;
-    TokenAmount requested;
+  struct WithdrawBalance : ActorMethodBase<3> {
+    struct Params {
+      Address miner;
+      TokenAmount requested;
+    };
+    ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(WithdrawBalance::Params, miner, requested)
 
-  struct OnSectorProveCommitParams {
-    SectorStorageWeightDesc weight;
+  struct CreateMiner : ActorMethodBase<4> {
+    struct Params {
+      Address worker;  // must be an ID-address
+      uint64_t sector_size;
+      PeerId peer_id;
+    };
+
+    struct Result {
+      Address id_address;      // The canonical ID-based address for the actor
+      Address robust_address;  // A mre expensive but re-org-safe address for
+                               // the newly created actor
+    };
+    ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(CreateMiner::Params, worker, sector_size, peer_id)
+  CBOR_TUPLE(CreateMiner::Result, id_address, robust_address)
 
-  struct OnSectorTerminateParams {
-    SectorTermination termination_type;
-    std::vector<SectorStorageWeightDesc> weights;
-    TokenAmount pledge;
+  struct DeleteMiner : ActorMethodBase<5> {
+    struct Params {
+      Address miner;
+    };
+    ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(DeleteMiner::Params, miner)
 
-  struct OnSectorTemporaryFaultEffectiveBeginParams {
-    std::vector<SectorStorageWeightDesc> weights;
-    TokenAmount pledge;
+  struct OnSectorProveCommit : ActorMethodBase<6> {
+    struct Params {
+      SectorStorageWeightDesc weight;
+    };
+    using Result = TokenAmount;
+    ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(OnSectorProveCommit::Params, weight)
 
-  struct OnSectorTemporaryFaultEffectiveEndParams {
-    std::vector<SectorStorageWeightDesc> weights;
-    TokenAmount pledge;
+  struct OnSectorTerminate : ActorMethodBase<7> {
+    struct Params {
+      SectorTerminationType termination_type;
+      std::vector<SectorStorageWeightDesc> weights;
+      TokenAmount pledge;
+    };
+    ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(OnSectorTerminate::Params, termination_type, weights, pledge)
 
-  struct OnSectorModifyWeightDescParams {
-    SectorStorageWeightDesc prev_weight;
-    TokenAmount prev_pledge;
-    SectorStorageWeightDesc new_weight;
+  struct OnSectorTemporaryFaultEffectiveBegin : ActorMethodBase<8> {
+    struct Params {
+      std::vector<SectorStorageWeightDesc> weights;
+      TokenAmount pledge;
+    };
+    ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveBegin::Params, weights, pledge)
 
-  struct OnMinerWindowedPoStFailureParams {
-    uint64_t num_consecutive_failures;
+  struct OnSectorTemporaryFaultEffectiveEnd : ActorMethodBase<9> {
+    struct Params {
+      std::vector<SectorStorageWeightDesc> weights;
+      TokenAmount pledge;
+    };
+    ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveEnd::Params, weights, pledge)
 
-  struct EnrollCronEventParams {
-    ChainEpoch event_epoch;
-    Buffer payload;
+  struct OnSectorModifyWeightDesc : ActorMethodBase<10> {
+    struct Params {
+      SectorStorageWeightDesc prev_weight;
+      TokenAmount prev_pledge;
+      SectorStorageWeightDesc new_weight;
+    };
+    using Result = TokenAmount;
+    ACTOR_METHOD_DECL();
   };
-
-  class StoragePowerActorMethods {
-   public:
-    static ACTOR_METHOD(construct);
-
-    static ACTOR_METHOD(addBalance);
-
-    static ACTOR_METHOD(withdrawBalance);
-  };
-
-  /** Exported StoragePowerActor methods to invoker */
-  extern const ActorExports exports;
-
-  CBOR_TUPLE(ConstructParameters, owner, worker, sector_size, peer_id);
-
-  CBOR_TUPLE(AddBalanceParameters, miner);
-
-  CBOR_TUPLE(WithdrawBalanceParameters, miner, requested);
-
-  CBOR_TUPLE(OnSectorProveCommitParams, weight)
-
-  CBOR_TUPLE(OnSectorTerminateParams, termination_type, weights, pledge)
-
-  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveBeginParams, weights, pledge)
-
-  CBOR_TUPLE(OnSectorTemporaryFaultEffectiveEndParams, weights, pledge)
-
-  CBOR_TUPLE(OnSectorModifyWeightDescParams,
+  CBOR_TUPLE(OnSectorModifyWeightDesc::Params,
              prev_weight,
              prev_pledge,
              new_weight)
 
-  CBOR_TUPLE(OnMinerWindowedPoStFailureParams, num_consecutive_failures)
+  struct OnMinerWindowedPoStSuccess : ActorMethodBase<11> {
+    ACTOR_METHOD_DECL();
+  };
 
-  CBOR_TUPLE(EnrollCronEventParams, event_epoch, payload);
+  struct OnMinerWindowedPoStFailure : ActorMethodBase<12> {
+    struct Params {
+      uint64_t num_consecutive_failures;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(OnMinerWindowedPoStFailure::Params, num_consecutive_failures)
+
+  struct EnrollCronEvent : ActorMethodBase<13> {
+    struct Params {
+      ChainEpoch event_epoch;
+      Buffer payload;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(EnrollCronEvent::Params, event_epoch, payload)
+
+  struct ReportConsensusFault : ActorMethodBase<14> {
+    struct Params {
+      BlockHeader block_header_1;
+      BlockHeader block_header_2;
+      Address target;
+      ChainEpoch fault_epoch;
+      ConsensusFaultType fault_type;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(ReportConsensusFault::Params,
+             block_header_1,
+             block_header_2,
+             target,
+             fault_epoch,
+             fault_type)
+
+  struct OnEpochTickEnd : ActorMethodBase<15> {
+    ACTOR_METHOD_DECL();
+  };
+
+  inline bool operator==(const CreateMiner::Result &lhs,
+                         const CreateMiner::Result &rhs) {
+    return lhs.id_address == rhs.id_address
+           && lhs.robust_address == rhs.robust_address;
+  }
+
+  /** Exported StoragePowerActor methods to invoker */
+  extern const ActorExports exports;
 
 }  // namespace fc::vm::actor::builtin::storage_power
 

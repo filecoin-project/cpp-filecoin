@@ -6,8 +6,6 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 
 #include <gtest/gtest.h>
-#include <vm/runtime/runtime_error.hpp>
-
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
@@ -19,6 +17,7 @@
 #include "testutil/mocks/vm/state/state_tree_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/message/message.hpp"
+#include "vm/runtime/runtime_error.hpp"
 
 using fc::crypto::randomness::ChainEpoch;
 using fc::crypto::randomness::MockRandomnessProvider;
@@ -61,7 +60,7 @@ class RuntimeTest : public ::testing::Test {
       std::make_shared<MockStateTree>();
   std::shared_ptr<MockIndices> indices_ = std::make_shared<MockIndices>();
   std::shared_ptr<MockInvoker> invoker_ = std::make_shared<MockInvoker>();
-  UnsignedMessage message_{message_to, message_from};
+  UnsignedMessage message_{message_to, message_from, {}, {}, {}, {}, {}, {}};
   ChainEpoch chain_epoch_{0};
   Address immediate_caller_{fc::primitives::address::TESTNET, 1};
   Address block_miner_{};

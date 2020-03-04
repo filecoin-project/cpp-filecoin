@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(message_pool)
+add_subdirectory(production)
 
 add_library(block_validator
     impl/block_validator_impl.cpp

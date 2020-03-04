@@ -37,7 +37,6 @@ namespace fc::vm::actor::builtin::reward {
     primitives::BigInt amountVested(
         const primitives::ChainEpoch &current_epoch);
   };
-
   CBOR_TUPLE(
       Reward, vesting_function, start_epoch, end_epoch, value, amount_withdrawn)
 
@@ -55,43 +54,45 @@ namespace fc::vm::actor::builtin::reward {
         const Address &owner,
         const primitives::ChainEpoch &current_epoch);
   };
-
   CBOR_TUPLE(State, reward_map, reward_total)
 
   // Actor related stuff
 
+  /**
+   * The network works purely in the indivisible token amounts. This constant
+   * converts to a fixed decimal with more human-friendly scale.
+   */
   static const BigInt kTokenPrecision{1e18};
+
+  /**
+   * Target reward released to each block winner
+   */
   static const BigInt kBlockRewardTarget{1e20};
 
   static constexpr auto kRewardVestingFunction{VestingFunction::NONE};
   static const primitives::EpochDuration kRewardVestingPeriod{0};
 
-  struct AwardBlockRewardParams {
-    Address miner;
-    TokenAmount penalty;
-    TokenAmount gas_reward;
-    Power nominal_power;
+  struct Construct : ActorMethodBase<1> {
+    ACTOR_METHOD_DECL();
   };
 
-  CBOR_TUPLE(AwardBlockRewardParams, miner, penalty, gas_reward, nominal_power)
+  struct AwardBlockReward : ActorMethodBase<2> {
+    struct Params {
+      Address miner;
+      TokenAmount penalty;
+      TokenAmount gas_reward;
+      Power nominal_power;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(
+      AwardBlockReward::Params, miner, penalty, gas_reward, nominal_power)
 
-  constexpr MethodNumber kAwardBlockRewardMethodNumber{2};
-  constexpr MethodNumber kWithdrawRewardMethodNumber{3};
+  struct WithdrawReward : ActorMethodBase<3> {
+    ACTOR_METHOD_DECL();
+  };
 
   extern const ActorExports exports;
-
-  class RewardActor {
-   public:
-    static ACTOR_METHOD(construct);
-
-    static ACTOR_METHOD(awardBlockReward);
-
-    static ACTOR_METHOD(withdrawReward);
-
-   private:
-    static TokenAmount computeBlockReward(const State &state,
-                                          const TokenAmount &balance);
-  };
 
 }  // namespace fc::vm::actor::builtin::reward
 

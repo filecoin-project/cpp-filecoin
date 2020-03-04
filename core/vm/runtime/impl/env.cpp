@@ -7,7 +7,6 @@
 
 #include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/exit_code/exit_code.hpp"
-#include "vm/message/message_codec.hpp"
 #include "vm/runtime/gas_cost.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"

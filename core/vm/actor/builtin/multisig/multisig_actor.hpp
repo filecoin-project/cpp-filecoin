@@ -25,14 +25,6 @@ namespace fc::vm::actor::builtin::multisig {
   using runtime::Runtime;
   using TransactionNumber = size_t;
 
-  constexpr MethodNumber kProposeMethodNumber{2};
-  constexpr MethodNumber kApproveMethodNumber{3};
-  constexpr MethodNumber kCancelMethodNumber{4};
-  constexpr MethodNumber kAddSignerMethodNumber{5};
-  constexpr MethodNumber kRemoveSignerMethodNumber{6};
-  constexpr MethodNumber kSwapSignerMethodNumber{7};
-  constexpr MethodNumber kChangeThresholdMethodNumber{7};
-
   /**
    * Multisignaure pending transaction
    */
@@ -53,6 +45,13 @@ namespace fc::vm::actor::builtin::multisig {
 
     bool operator==(const MultiSignatureTransaction &other) const;
   };
+  CBOR_TUPLE(MultiSignatureTransaction,
+             transaction_number,
+             to,
+             value,
+             method,
+             params,
+             approved)
 
   /**
    * State of Multisig Actor instance
@@ -116,9 +115,7 @@ namespace fc::vm::actor::builtin::multisig {
      * @return nothing or error occurred
      */
     outcome::result<void> approveTransaction(
-        const Actor &actor,
-        Runtime &runtime,
-        const TransactionNumber &tx_number);
+        Runtime &runtime, const TransactionNumber &tx_number);
 
     /**
      * Get amount locked for current epoch
@@ -127,97 +124,6 @@ namespace fc::vm::actor::builtin::multisig {
      */
     BigInt getAmountLocked(const ChainEpoch &current_epoch) const;
   };
-
-  /**
-   * Construct method parameters
-   */
-  struct ConstructParameters {
-    std::vector<Address> signers;
-    size_t threshold;
-    EpochDuration unlock_duration;
-  };
-
-  /**
-   * Propose method parameters
-   */
-  struct ProposeParameters {
-    Address to;
-    BigInt value;
-    MethodNumber method{};
-    MethodParams params;
-  };
-
-  /**
-   * TransactionNumber method parameters for approve and cancel
-   */
-  struct TransactionNumberParameters {
-    TransactionNumber transaction_number;
-  };
-
-  /**
-   * AddSigner method parameters for approve and cancel
-   */
-  struct AddSignerParameters {
-    Address signer;
-    bool increase_threshold{false};
-  };
-
-  /**
-   * RemoveSigner method parameters for approve and cancel
-   */
-  struct RemoveSignerParameters {
-    Address signer;
-    bool decrease_threshold{false};
-  };
-
-  /**
-   * RemoveSigner method parameters for approve and cancel
-   */
-  struct SwapSignerParameters {
-    Address old_signer;
-    Address new_signer;
-  };
-
-  /**
-   * ChangeThreshold method parameters for approve and cancel
-   */
-  struct ChangeThresholdParameters {
-    size_t new_threshold;
-  };
-
-  /**
-   * Multisignature actor methods
-   */
-  class MultiSigActor {
-   public:
-    static ACTOR_METHOD(construct);
-
-    static ACTOR_METHOD(propose);
-
-    static ACTOR_METHOD(approve);
-
-    static ACTOR_METHOD(cancel);
-
-    static ACTOR_METHOD(addSigner);
-
-    static ACTOR_METHOD(removeSigner);
-
-    static ACTOR_METHOD(swapSigner);
-
-    static ACTOR_METHOD(changeThreshold);
-  };
-
-  /** Exported Multisig Actor methods to invoker */
-  extern const ActorExports exports;
-
-  CBOR_TUPLE(MultiSignatureTransaction,
-             transaction_number,
-             to,
-             value,
-             method,
-             params,
-             approved)
-
   CBOR_TUPLE(MultiSignatureActorState,
              signers,
              threshold,
@@ -227,19 +133,81 @@ namespace fc::vm::actor::builtin::multisig {
              unlock_duration,
              pending_transactions)
 
-  CBOR_TUPLE(ConstructParameters, signers, threshold, unlock_duration)
+  struct Construct : ActorMethodBase<1> {
+    struct Params {
+      std::vector<Address> signers;
+      size_t threshold;
+      EpochDuration unlock_duration;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(Construct::Params, signers, threshold, unlock_duration)
 
-  CBOR_TUPLE(ProposeParameters, to, value, method, params)
+  struct Propose : ActorMethodBase<2> {
+    struct Params {
+      Address to;
+      BigInt value;
+      MethodNumber method{};
+      MethodParams params;
+    };
+    using Result = TransactionNumber;
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(Propose::Params, to, value, method, params)
 
-  CBOR_TUPLE(TransactionNumberParameters, transaction_number)
+  struct Approve : ActorMethodBase<3> {
+    struct Params {
+      TransactionNumber transaction_number;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(Approve::Params, transaction_number)
 
-  CBOR_TUPLE(AddSignerParameters, signer, increase_threshold)
+  struct Cancel : ActorMethodBase<4> {
+    struct Params {
+      TransactionNumber transaction_number;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(Cancel::Params, transaction_number)
 
-  CBOR_TUPLE(RemoveSignerParameters, signer, decrease_threshold)
+  struct AddSigner : ActorMethodBase<6> {
+    struct Params {
+      Address signer;
+      bool increase_threshold{false};
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(AddSigner::Params, signer, increase_threshold)
 
-  CBOR_TUPLE(SwapSignerParameters, old_signer, new_signer)
+  struct RemoveSigner : ActorMethodBase<7> {
+    struct Params {
+      Address signer;
+      bool decrease_threshold{false};
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(RemoveSigner::Params, signer, decrease_threshold)
 
-  CBOR_TUPLE(ChangeThresholdParameters, new_threshold)
+  struct SwapSigner : ActorMethodBase<8> {
+    struct Params {
+      Address old_signer;
+      Address new_signer;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(SwapSigner::Params, old_signer, new_signer)
+
+  struct ChangeThreshold : ActorMethodBase<9> {
+    struct Params {
+      size_t new_threshold;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(ChangeThreshold::Params, new_threshold)
+
+  /** Exported Multisig Actor methods to invoker */
+  extern const ActorExports exports;
 
 }  // namespace fc::vm::actor::builtin::multisig
 

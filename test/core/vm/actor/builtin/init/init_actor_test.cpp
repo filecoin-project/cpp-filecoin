@@ -14,19 +14,20 @@
 #include "testutil/init_actor.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 
-namespace InitActor = fc::vm::actor::builtin::init;
-
+using fc::common::Buffer;
 using fc::primitives::BigInt;
 using fc::primitives::address::Address;
 using fc::vm::VMExitCode;
 using fc::vm::actor::CodeId;
+using fc::vm::actor::encodeActorReturn;
 using fc::vm::actor::InvocationOutput;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
+using fc::vm::actor::builtin::init::Exec;
+using fc::vm::actor::builtin::init::InitActorState;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MockRuntime;
-using InitActor::InitActorState;
 
 /** Init actor state CBOR encoding and decoding */
 TEST(InitActorTest, InitActorStateCbor) {
@@ -36,8 +37,7 @@ TEST(InitActorTest, InitActorStateCbor) {
 
 /// Init actor exec params CBOR encoding and decoding
 TEST(InitActorTest, InitActorExecParamsCbor) {
-  InitActor::ExecParams params{CodeId{"010001020000"_cid},
-                               MethodParams{"de"_unhex}};
+  Exec::Params params{CodeId{"010001020000"_cid}, MethodParams{"de"_unhex}};
   expectEncodeAndReencode(params, "82d82a470001000102000041de"_unhex);
 }
 
@@ -63,13 +63,6 @@ TEST(InitActorTest, AddActor) {
       3);
 }
 
-MethodParams execParams(const fc::CID &code, gsl::span<const uint8_t> params) {
-  return MethodParams{
-      fc::codec::cbor::encode(
-          InitActor::ExecParams{CodeId{code}, MethodParams{params}})
-          .value()};
-}
-
 /**
  * @given Init actor
  * @when Call exec with singleton @and with non-builtin actor code
@@ -78,13 +71,10 @@ MethodParams execParams(const fc::CID &code, gsl::span<const uint8_t> params) {
 TEST(InitActorExecText, ExecError) {
   MockRuntime runtime;
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR,
-      InitActor::exec({}, runtime, execParams("010001020000"_cid, {})));
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::INIT_ACTOR_SINGLETON_ACTOR,
-      InitActor::exec(
-          {}, runtime, execParams(fc::vm::actor::kInitCodeCid, {})));
+  EXPECT_OUTCOME_ERROR(VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR,
+                       Exec::call(runtime, {CodeId{"010001020000"_cid}, {}}));
+  EXPECT_OUTCOME_ERROR(VMExitCode::INIT_ACTOR_SINGLETON_ACTOR,
+                       Exec::call(runtime, {fc::vm::actor::kInitCodeCid, {}}));
 }
 
 /**
@@ -137,9 +127,11 @@ TEST(InitActorExecText, ExecSuccess) {
         return fc::outcome::success();
       }));
 
-  EXPECT_OUTCOME_EQ(InitActor::exec({}, runtime, execParams(code, params)),
-                    InvocationOutput{fc::common::Buffer{
-                        fc::primitives::address::encode(id_address)}});
+  Address actor_address{Address::makeActorExec(
+      Buffer{fc::primitives::address::encode(message.from)}.putUint64(
+          message.nonce))};
+  Exec::Result exec_return{id_address, actor_address};
+  EXPECT_OUTCOME_EQ(Exec::call(runtime, {code, params}), exec_return);
 
   EXPECT_OUTCOME_TRUE(address,
                       fc::primitives::address::decode(

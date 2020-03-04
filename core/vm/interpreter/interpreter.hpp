@@ -17,18 +17,26 @@ namespace fc::vm::interpreter {
     CRON_TICK_FAILED,
   };
 
-  using indices::Indices;
-  using primitives::tipset::Tipset;
-  using storage::ipfs::IpfsDatastore;
-
   struct Result {
     CID state_root;
     CID message_receipts;
   };
 
-  outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &store,
-                                    const Tipset &tipset,
-                                    const std::shared_ptr<Indices> &indices);
+  class Interpreter {
+   protected:
+    using Indices = indices::Indices;
+    using Tipset = primitives::tipset::Tipset;
+    using IpfsDatastore = storage::ipfs::IpfsDatastore;
+
+   public:
+    virtual ~Interpreter() = default;
+
+    virtual outcome::result<Result> interpret(
+        const std::shared_ptr<IpfsDatastore> &store,
+        const Tipset &tipset,
+        const std::shared_ptr<Indices> &indices) const = 0;
+  };
+
 }  // namespace fc::vm::interpreter
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm::interpreter, InterpreterError);

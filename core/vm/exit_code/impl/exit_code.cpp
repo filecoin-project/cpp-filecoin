@@ -43,7 +43,10 @@ namespace fc::vm {
       case E::MINER_ACTOR_MINER_NOT_BLS:
       case E::MINER_ACTOR_ILLEGAL_ARGUMENT:
         return 16;  // ErrIllegalArgument in actor-specs
+      case E::MINER_ACTOR_NOT_FOUND:
+        return 17;  // ErrNotFound in actor-specs
       case E::MINER_ACTOR_WRONG_CALLER:
+      case E::MINER_ACTOR_WRONG_EPOCH:
         return 18;  // ErrForbidden in actor-specs
       case E::MINER_ACTOR_POST_TOO_LATE:
       case E::MINER_ACTOR_POST_TOO_EARLY:
@@ -74,13 +77,14 @@ namespace fc::vm {
       case E::STORAGE_POWER_ACTOR_WRONG_CALLER:
       case E::STORAGE_POWER_ACTOR_OUT_OF_BOUND:
       case E::STORAGE_POWER_ACTOR_ALREADY_EXISTS:
-      case E::STORAGE_POWER_ACTOR_NOT_FOUND:
       case E::STORAGE_POWER_DELETION_ERROR:
         break;
       case E::STORAGE_POWER_ILLEGAL_ARGUMENT:
         return 16;  // ErrIllegalArgument in actor-specs
       case E::STORAGE_POWER_FORBIDDEN:
         return 18;  // ErrForbidden in actor-specs
+      case E::STORAGE_POWER_ILLEGAL_STATE:
+        return 20;  // ErrIllegalState in actor-specs
 
       case E::INIT_ACTOR_NOT_BUILTIN_ACTOR:
       case E::INIT_ACTOR_SINGLETON_ACTOR:

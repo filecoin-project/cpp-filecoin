@@ -7,11 +7,13 @@
 
 #include <boost/assert.hpp>
 #include <libp2p/multi/content_identifier_codec.hpp>
-#include "storage/ipfs/merkledag/impl/node_impl.hpp"
+#include "storage/ipld/impl/ipld_node_impl.hpp"
 
 using libp2p::multi::ContentIdentifierCodec;
 
 namespace fc::storage::ipfs::merkledag {
+  using ipld::IPLDNodeImpl;
+
   MerkleDagServiceImpl::MerkleDagServiceImpl(
       std::shared_ptr<IpfsDatastore> service)
       : block_service_{std::move(service)} {
@@ -20,14 +22,15 @@ namespace fc::storage::ipfs::merkledag {
   }
 
   outcome::result<void> MerkleDagServiceImpl::addNode(
-      std::shared_ptr<const Node> node) {
-    return block_service_->set(node->getCID(), node->getRawBytes());
+      std::shared_ptr<const IPLDNode> node) {
+    const common::Buffer &raw_bytes = node->getRawBytes();
+    return block_service_->set(node->getCID(), raw_bytes);
   }
 
-  outcome::result<std::shared_ptr<Node>> MerkleDagServiceImpl::getNode(
+  outcome::result<std::shared_ptr<IPLDNode>> MerkleDagServiceImpl::getNode(
       const CID &cid) const {
     OUTCOME_TRY(content, block_service_->get(cid));
-    return NodeImpl::createFromRawBytes(content);
+    return IPLDNodeImpl::createFromRawBytes(content);
   }
 
   outcome::result<void> MerkleDagServiceImpl::removeNode(const CID &cid) {
@@ -37,15 +40,15 @@ namespace fc::storage::ipfs::merkledag {
   outcome::result<size_t> MerkleDagServiceImpl::select(
       gsl::span<const uint8_t> root_cid,
       gsl::span<const uint8_t> selector,
-      std::function<bool(std::shared_ptr<const Node>)> handler) const {
+      std::function<bool(std::shared_ptr<const IPLDNode>)> handler) const {
     std::ignore = selector;
     OUTCOME_TRY(content_id, ContentIdentifierCodec::decode(root_cid));
     CID cid{std::move(content_id)};
     OUTCOME_TRY(root_node, getNode(cid));
-    std::vector<std::shared_ptr<const Node>> node_set{};
+    std::vector<std::shared_ptr<const IPLDNode>> node_set{};
     node_set.emplace_back(std::move(root_node));
     const auto &links = node_set.front()->getLinks();
-    for (const auto& link : links) {
+    for (const auto &link : links) {
       auto request = getNode(link.get().getCID());
       if (request.has_error()) return ServiceError::UNRESOLVED_LINK;
       node_set.emplace_back(std::move(request.value()));
@@ -79,7 +82,7 @@ namespace fc::storage::ipfs::merkledag {
 
   outcome::result<void> MerkleDagServiceImpl::buildGraph(
       const std::shared_ptr<LeafImpl> &root,
-      const std::vector<std::reference_wrapper<const Link>> &links,
+      const std::vector<std::reference_wrapper<const IPLDLink>> &links,
       bool depth_limit,
       const size_t max_depth,
       size_t current_depth) const {
@@ -89,7 +92,7 @@ namespace fc::storage::ipfs::merkledag {
     for (const auto &link : links) {
       auto request = getNode(link.get().getCID());
       if (request.has_error()) return ServiceError::UNRESOLVED_LINK;
-      std::shared_ptr<Node> node = request.value();
+      std::shared_ptr<IPLDNode> node = request.value();
       auto child_leaf = std::make_shared<LeafImpl>(node->content());
       auto build_result = buildGraph(child_leaf,
                                      node->getLinks(),

@@ -23,21 +23,30 @@ namespace fc::vm::actor::builtin::init {
     CID address_map{};
     uint64_t next_id{};
   };
-
   CBOR_TUPLE(InitActorState, address_map, next_id)
 
-  constexpr MethodNumber kExecMethodNumber{2};
-
-  struct ExecParams {
-    CodeId code;
-    MethodParams params;
+  struct Exec : ActorMethodBase<2> {
+    struct Params {
+      CodeId code;
+      MethodParams params;
+    };
+    struct Result {
+      Address id_address;      // The canonical ID-based address for the actor
+      Address robust_address;  // A more expensive but re-org-safe address for
+                               // the newly created actor
+    };
+    ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(Exec::Params, code, params)
+  CBOR_TUPLE(Exec::Result, id_address, robust_address)
 
-  ACTOR_METHOD(exec);
+  inline bool operator==(const Exec::Result &lhs, const Exec::Result &rhs) {
+    return lhs.id_address == rhs.id_address
+           && lhs.robust_address == rhs.robust_address;
+  }
 
   extern const ActorExports exports;
 
-  CBOR_TUPLE(ExecParams, code, params)
 }  // namespace fc::vm::actor::builtin::init
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_INIT_ACTOR_HPP

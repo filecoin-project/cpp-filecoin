@@ -86,6 +86,24 @@ namespace fc::crypto::bls {
               digest.begin());
     return digest;
   }
+
+  outcome::result<Signature> BlsProviderImpl::aggregateSignatures(
+      const std::vector<Signature> &signatures) const {
+    Signature signature;
+    const uint8_t *flat_bytes =
+        reinterpret_cast<const uint8_t *>(signatures.data());
+    size_t flat_size = sizeof(Signature) * signatures.size();
+    AggregateResponse *response = ::aggregate(flat_bytes, flat_size);
+    if (response == nullptr) {
+      return Errors::InternalError;
+    }
+    auto free_response =
+        gsl::finally([response]() { destroy_aggregate_response(response); });
+    std::move(std::begin(response->signature),
+              std::end(response->signature),
+              signature.begin());
+    return signature;
+  }
 };  // namespace fc::crypto::bls
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::crypto::bls, Errors, e) {
@@ -103,6 +121,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::crypto::bls, Errors, e) {
       return "BLS provider: signature generation failed";
     case (Errors::SignatureVerificationFailed):
       return "BLS provider: signature verification failed";
+    case (Errors::AggregateError):
+      return "BLS provider: signatures aggregating failed";
     default:
       return "BLS provider: unknown error";
   }

@@ -11,10 +11,11 @@
 #include "common/outcome.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
+#include "primitives/block/block.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
-#include "proofs/sector.hpp"
+#include "primitives/sector/sector.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/actor/actor.hpp"
+#include "vm/actor/actor_encoding.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/indices/indices.hpp"
 #include "vm/message/message.hpp"
@@ -25,6 +26,7 @@ namespace fc::vm::runtime {
 
   using actor::Actor;
   using actor::CodeId;
+  using actor::kSendMethodNumber;
   using actor::MethodNumber;
   using actor::MethodParams;
   using common::Buffer;
@@ -34,21 +36,13 @@ namespace fc::vm::runtime {
   using indices::Indices;
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
+  using primitives::TokenAmount;
   using primitives::address::Address;
-  using proofs::sector::PoStVerifyInfo;
-  using proofs::sector::SealVerifyInfo;
+  using primitives::block::BlockHeader;
+  using primitives::sector::PoStVerifyInfo;
+  using primitives::sector::SealVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using Serialization = Buffer;
-
-  /// Encode actor params, raises appropriate error
-  template <typename T>
-  outcome::result<MethodParams> encodeActorParams(const T &params) {
-    auto maybe_bytes = codec::cbor::encode(params);
-    if (!maybe_bytes) {
-      return VMExitCode::ENCODE_ACTOR_PARAMS_ERROR;
-    }
-    return MethodParams{maybe_bytes.value()};
-  }
 
   /**
    * @class Runtime is the VM's internal runtime object exposed to actors
@@ -146,7 +140,7 @@ namespace fc::vm::runtime {
     /// Try to charge gas or throw if there is not enoght gas
     virtual outcome::result<void> chargeGas(const BigInt &amount) = 0;
 
-    /// Get current actor state
+    /// Get current actor state root CID
     virtual ActorSubstateCID getCurrentActorState() = 0;
 
     /// Update actor state CID
@@ -163,10 +157,24 @@ namespace fc::vm::runtime {
     virtual outcome::result<bool> verifySeal(uint64_t sector_size,
                                              const SealVerifyInfo &info) = 0;
 
+    /// Verify consensus fault
+    virtual outcome::result<bool> verifyConsensusFault(
+        const BlockHeader &block_header_1,
+        const BlockHeader &block_header_2) = 0;
+
+    /// Send typed method with typed params and result
+    template <typename M>
+    outcome::result<typename M::Result> sendM(const Address &address,
+                                              const typename M::Params &params,
+                                              TokenAmount value) {
+      OUTCOME_TRY(params2, actor::encodeActorParams(params));
+      OUTCOME_TRY(result, send(address, M::Number, params2, value));
+      return actor::decodeActorReturn<typename M::Result>(result);
+    }
+
     /// Send funds
     inline auto sendFunds(const Address &to, BigInt value) {
-      // kSendMethodNumber circular dependency
-      return send(to, {0}, {}, value);
+      return send(to, kSendMethodNumber, {}, value);
     }
 
     /// Send with typed result R
@@ -185,7 +193,7 @@ namespace fc::vm::runtime {
                               MethodNumber method_number,
                               const P &params,
                               BigInt value) {
-      OUTCOME_TRY(params2, encodeActorParams(params));
+      OUTCOME_TRY(params2, actor::encodeActorParams(params));
       return sendR<R>(to_address, method_number, MethodParams{params2}, value);
     }
 
@@ -195,7 +203,7 @@ namespace fc::vm::runtime {
                                             MethodNumber method_number,
                                             const P &params,
                                             BigInt value) {
-      OUTCOME_TRY(params2, encodeActorParams(params));
+      OUTCOME_TRY(params2, actor::encodeActorParams(params));
       return send(to_address, method_number, MethodParams{params2}, value);
     }
 

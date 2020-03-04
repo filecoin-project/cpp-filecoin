@@ -20,7 +20,7 @@ using fc::vm::runtime::MockRuntime;
 TEST(InvokerTest, InvokeCron) {
   using namespace fc::vm::actor;
 
-  auto message = UnsignedMessage{kInitAddress, kInitAddress};
+  auto message = UnsignedMessage{kInitAddress, kInitAddress, {}, {}, {}, {}, {}, {}};
   InvokerImpl invoker;
   MockRuntime runtime;
 
@@ -34,7 +34,7 @@ TEST(InvokerTest, InvokeCron) {
   EXPECT_OUTCOME_ERROR(
       VMExitCode::CRON_ACTOR_WRONG_CALL,
       invoker.invoke(
-          {kCronCodeCid}, runtime, builtin::cron::kEpochTickMethodNumber, {}));
+          {kCronCodeCid}, runtime, builtin::cron::EpochTick::Number, {}));
 }
 
 /// decodeActorParams returns error or decoded params
