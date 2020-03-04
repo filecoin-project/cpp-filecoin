@@ -77,8 +77,7 @@ namespace fc::storage::ipfs::graphsync {
       std::shared_ptr<MessageQueue> queue;
       std::set<RequestId> remote_request_ids;
       std::unique_ptr<InboundEndpoint> response_endpoint;
-      Scheduler::Handle close_timer;
-      uint64_t close_time = 0;
+      uint64_t expire_time = 0;
     };
 
     using Streams = std::map<StreamPtr, StreamCtx>;
@@ -92,7 +91,7 @@ namespace fc::storage::ipfs::graphsync {
 
     void onNewStream(StreamPtr stream);
 
-    void closeStream(StreamPtr stream);
+    void closeStream(StreamPtr stream, ResponseStatusCode status);
 
     void onResponse(Message::Response &response);
 
@@ -102,15 +101,13 @@ namespace fc::storage::ipfs::graphsync {
 
     void createResponseEndpoint(const StreamPtr &stream, StreamCtx &ctx);
 
-    void checkIfClosable(const StreamPtr &stream, StreamCtx &ctx);
+    void shiftExpireTime(StreamCtx &ctx);
 
-    void checkIfClosable(const StreamPtr &stream);
+    void shiftExpireTime(const StreamPtr &stream);
 
-    void closeLocalRequests();
+    void closeLocalRequests(ResponseStatusCode status);
 
-    void schedulePeerClose();
-
-    void onPeerCloseTimer();
+    void onStreamCleanupTimer();
 
     Streams::iterator findResponseSink(RequestId request_id);
 
@@ -130,9 +127,7 @@ namespace fc::storage::ipfs::graphsync {
 
     Streams streams_;
 
-    Scheduler::Handle close_timer_;
-
-    uint64_t close_time_ = 0;
+    Scheduler::Handle timer_;
 
     bool closed_ = false;
 

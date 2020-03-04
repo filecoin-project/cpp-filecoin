@@ -70,9 +70,11 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   bool PeerContext::needToConnect() {
-    if (!requests_endpoint_) {
-      requests_endpoint_ = std::make_unique<OutboundEndpoint>();
+    if (requests_endpoint_) {
+      return false;
     }
+
+    requests_endpoint_ = std::make_unique<OutboundEndpoint>();
 
     if (streams_.empty()) {
       return true;
@@ -110,10 +112,6 @@ namespace fc::storage::ipfs::graphsync {
     assert(stream);
     assert(streams_.count(stream) == 0);
 
-//    static size_t TOTAL_STREAMS = 0;
-//    ++TOTAL_STREAMS;
-//    logger()->trace("TOTAL_STREAMS {}", TOTAL_STREAMS);
-
     if (!stream || streams_.count(stream)) {
       logger()->error("onNewStream: inconsistency, peer={}", str);
       return;
@@ -129,9 +127,19 @@ namespace fc::storage::ipfs::graphsync {
       requests_endpoint_->onConnected(stream_ctx.queue);
     }
 
-    streams_.emplace(std::move(stream), std::move(stream_ctx));
+    if (streams_.empty()) {
+      timer_ = scheduler_.schedule(
+          kStreamCloseDelayMsec, [wptr{weak_from_this()}]() {
+            auto self = wptr.lock();
+            if (self) {
+              self->onStreamCleanupTimer();
+            }
+          });
+    }
 
-    schedulePeerClose();
+    shiftExpireTime(stream_ctx);
+
+    streams_.emplace(std::move(stream), std::move(stream_ctx));
   }
 
   void PeerContext::onStreamConnected(outcome::result<StreamPtr> rstream) {
@@ -144,11 +152,15 @@ namespace fc::storage::ipfs::graphsync {
     } else {
       logger()->error(
           "cannot connect, peer={}, msg='{}'", str, rstream.error().message());
+      if (getState() == is_connecting) {
+        closeLocalRequests(RS_CANNOT_CONNECT);
+      }
     }
   }
 
   void PeerContext::onStreamAccepted(StreamPtr stream) {
     if (closed_) {
+      stream->reset();
       return;
     }
     onNewStream(std::move(stream));
@@ -158,7 +170,6 @@ namespace fc::storage::ipfs::graphsync {
                                    SharedData request_body) {
     if (!requests_endpoint_) {
       close(RS_INTERNAL_ERROR);
-      schedulePeerClose();
     }
     auto res = requests_endpoint_->enqueue(std::move(request_body));
     if (res) {
@@ -167,7 +178,6 @@ namespace fc::storage::ipfs::graphsync {
       logger()->error("enqueueRequest: outbound buffers overflow for peer {}",
                       str);
       close(RS_SLOW_STREAM);
-      schedulePeerClose();
     }
   }
 
@@ -180,7 +190,6 @@ namespace fc::storage::ipfs::graphsync {
       }
       logger()->error("cancelRequest: outbound buffers overflow for peer {}",
                       str);
-      checkIfClosable(requests_endpoint_->getStream());
     }
   }
 
@@ -218,8 +227,6 @@ namespace fc::storage::ipfs::graphsync {
           "addBlockToResponse: {}, peer={}", res.error().message(), str);
 
       close(RS_SLOW_STREAM);
-      schedulePeerClose();
-
       return false;
     }
     return true;
@@ -242,7 +249,6 @@ namespace fc::storage::ipfs::graphsync {
       logger()->error("sendResponse: {}, peer={}", res.error().message(), str);
 
       close(RS_SLOW_STREAM);
-      schedulePeerClose();
     }
   }
 
@@ -251,18 +257,29 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
-    logger()->debug("close peer={} status={}", str, status);
+    logger()->debug("close peer={} status={}", str, statusCodeToString(status));
 
     close_status_ = status;
     closed_ = true;
     remote_requests_streams_.clear();
     while (!streams_.empty()) {
       auto s = streams_.begin()->first;
-      closeStream(s);
+      closeStream(s, status);
+    }
+
+    if (status != RS_REJECTED_LOCALLY) {
+      timer_ = scheduler_.schedule(0, [wptr{weak_from_this()}]() {
+        auto self = wptr.lock();
+        if (self) {
+          self->network_feedback_.peerClosed(self->peer, self->close_status_);
+        }
+      });
+    } else {
+      network_feedback_.peerClosed(peer, RS_REJECTED_LOCALLY);
     }
   }
 
-  void PeerContext::closeStream(StreamPtr stream) {
+  void PeerContext::closeStream(StreamPtr stream, ResponseStatusCode status) {
     auto it = streams_.find(stream);
     if (it == streams_.end()) {
       logger()->error("closeStream: stream not found, peer={}", str);
@@ -278,18 +295,19 @@ namespace fc::storage::ipfs::graphsync {
     streams_.erase(it);
 
     if (requests_endpoint_ && requests_endpoint_->getStream() == stream) {
-      closeLocalRequests();
+      closeLocalRequests(status);
     }
 
-    stream->close([stream](outcome::result<void>) {});
+    stream->close(
+        [stream](outcome::result<void>) { logger()->trace("stream closed"); });
   }
 
-  void PeerContext::closeLocalRequests() {
+  void PeerContext::closeLocalRequests(ResponseStatusCode status) {
     if (!local_request_ids_.empty()) {
-      for (auto id : local_request_ids_) {
+      std::set<RequestId> ids = std::move(local_request_ids_);
+      for (auto id : ids) {
         graphsync_feedback_.onResponse(peer, id, close_status_, {});
       }
-      local_request_ids_.clear();
     }
     requests_endpoint_.reset();
   }
@@ -364,8 +382,7 @@ namespace fc::storage::ipfs::graphsync {
     if (!msg_res) {
       logger()->info(
           "stream read error, peer={}, msg={}", str, msg_res.error().message());
-      closeStream(stream);
-      schedulePeerClose();
+      closeStream(stream, RS_CONNECTION_ERROR);
       return;
     }
 
@@ -404,7 +421,7 @@ namespace fc::storage::ipfs::graphsync {
       onResponse(item);
     }
 
-    checkIfClosable(stream, it->second);
+    shiftExpireTime(it->second);
   }
 
   void PeerContext::onWriterEvent(const StreamPtr &stream,
@@ -416,74 +433,55 @@ namespace fc::storage::ipfs::graphsync {
     if (!result) {
       logger()->info(
           "stream write error, peer={}, msg={}", str, result.error().message());
-      closeStream(stream);
-      schedulePeerClose();
+      close(RS_CONNECTION_ERROR);
       return;
     }
 
-    checkIfClosable(stream);
+    shiftExpireTime(stream);
   }
 
-  void PeerContext::checkIfClosable(const StreamPtr &stream,
-                                    PeerContext::StreamCtx &ctx) {
-    if (!ctx.remote_request_ids.empty()) {
-      return;
-    }
-
-    if (ctx.queue && ctx.queue->getState().writing_bytes > 0) {
-      return;
-    }
-
-    if (requests_endpoint_ && requests_endpoint_->getStream() == stream) {
-      if (!local_request_ids_.empty()) {
-        return;
-      }
-    }
-
-    schedulePeerClose();
+  void PeerContext::shiftExpireTime(PeerContext::StreamCtx &ctx) {
+    ctx.expire_time = scheduler_.now() + kStreamCloseDelayMsec;
   }
 
-  void PeerContext::checkIfClosable(const StreamPtr &stream) {
+  void PeerContext::shiftExpireTime(const StreamPtr &stream) {
     auto it = streams_.find(stream);
     if (it != streams_.end()) {
-      checkIfClosable(stream, it->second);
+      shiftExpireTime(it->second);
     }
   }
 
-  void PeerContext::schedulePeerClose() {
-    if (!closed_ && close_time_ != 0) {
-      // just shift time
-      close_time_ = scheduler_.now() + kPeerCloseDelayMsec;
-      return;
-    }
+  void PeerContext::onStreamCleanupTimer() {
+    uint64_t max_expire_time = 0;
 
-    // if already closed then do cleanup in the next event loop cycle,
-    // set timeout otherwise
-    uint64_t delay = closed_ ? 0 : kPeerCloseDelayMsec;
-    close_time_ = scheduler_.now() + delay;
-    close_timer_ = scheduler_.schedule(delay, [wptr{weak_from_this()}]() {
-      auto self = wptr.lock();
-      if (self) {
-        self->onPeerCloseTimer();
-      }
-    });
-  }
-
-  void PeerContext::onPeerCloseTimer() {
-    if (closed_) {
-      network_feedback_.peerClosed(peer, close_status_);
+    if (streams_.empty()) {
+      close(RS_TIMEOUT);
       return;
     }
 
     auto now = scheduler_.now();
-    if (now < close_time_) {
-      close_timer_.reschedule(close_time_ - now);
-      return;
+
+    std::vector<StreamPtr> timed_out;
+
+    for (auto& [stream, ctx] : streams_) {
+      if (ctx.queue && ctx.queue->getState().writing_bytes > 0) {
+        continue;
+      }
+      if (ctx.expire_time <= now) {
+        timed_out.push_back(stream);
+      } else if (ctx.expire_time > max_expire_time) {
+        max_expire_time = ctx.expire_time;
+      }
     }
 
-    if (streams_.empty()) {
-      close(RS_TIMEOUT);
-      network_feedback_.peerClosed(peer, close_status_);
+    for (auto& stream : timed_out) {
+      closeStream(std::move(stream), RS_TIMEOUT);
+    }
+
+    if (!streams_.empty() && max_expire_time > now) {
+      timer_.reschedule(max_expire_time - now);
+    } else {
+      timer_.reschedule(kPeerCloseDelayMsec);
     }
   }
 

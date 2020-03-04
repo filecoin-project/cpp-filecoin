@@ -50,10 +50,9 @@ namespace fc::storage::ipfs::graphsync {
     RS_CANNOT_CONNECT = -2,
     RS_TIMEOUT = -3,
     RS_CONNECTION_ERROR = -4,
-    RS_MESSAGE_CORRUPTED = -5,
-    RS_INTERNAL_ERROR = -6,
-    RS_REJECTED_LOCALLY = -7,
-    RS_SLOW_STREAM = -8,
+    RS_INTERNAL_ERROR = -5,
+    RS_REJECTED_LOCALLY = -6,
+    RS_SLOW_STREAM = -7,
 
     // info - partial
     RS_REQUEST_ACKNOWLEDGED = 10,  //   Request Acknowledged. Working on it.

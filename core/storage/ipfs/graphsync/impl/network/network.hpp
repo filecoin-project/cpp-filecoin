@@ -70,8 +70,11 @@ namespace fc::storage::ipfs::graphsync {
 
     std::shared_ptr<PeerToGraphsyncFeedback> feedback_;
 
+    /// Peer set, where item can be found by const PeerID& (see operators <)
+    using PeerSet = std::set<PeerContextPtr, std::less<>>;
+
     /// Set of peers, where item can be found by const PeerID&
-    std::set<PeerContextPtr, std::less<>> peers_;
+    PeerSet peers_;
 
     std::map<RequestId, PeerContextPtr> active_requests_per_peer_;
 

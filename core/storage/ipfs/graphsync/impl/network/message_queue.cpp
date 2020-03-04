@@ -61,8 +61,6 @@ namespace fc::storage::ipfs::graphsync {
       pending_buffers_.pop_front();
       state_.pending_bytes -= buffer->size();
       beginWrite(std::move(buffer));
-    } else {
-      feedback_(state_.stream, outcome::success());
     }
   }
 
@@ -108,7 +106,10 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     state_.total_bytes_written += n;
+
     dequeue();
+
+    feedback_(state_.stream, outcome::success());
   }
 
 }  // namespace fc::storage::ipfs::graphsync

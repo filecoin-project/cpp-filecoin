@@ -142,11 +142,13 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
-    ResponseStatusCode status = RS_NOT_FOUND;
-    if (select_res && select_res.value() > 0) {
-      status = RS_FULL_CONTENT;
-    } else {
-      status = RS_REQUEST_FAILED;
+    ResponseStatusCode status = RS_REQUEST_FAILED;
+    if (select_res) {
+      if (select_res.value() > 0) {
+        status = RS_FULL_CONTENT;
+      } else {
+        status = RS_NOT_FOUND;
+      }
     }
 
     network_->sendResponse(from, request.id, status, metadata);

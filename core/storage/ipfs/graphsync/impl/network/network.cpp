@@ -225,7 +225,8 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   void Network::closeAllPeers() {
-    for (auto &ctx : peers_) {
+    PeerSet peers = std::move(peers_);
+    for (auto &ctx : peers) {
       ctx->close(RS_REJECTED_LOCALLY);
     }
 

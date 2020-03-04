@@ -67,7 +67,7 @@ namespace fc::storage::ipfs::graphsync {
   constexpr size_t kMaxPendingBytes = 64 * 1024 * 1024;
 
   constexpr unsigned kPeerCloseDelayMsec = 30000;
-  constexpr unsigned kStreamCloseDelayMsec = 5000;
+  constexpr unsigned kStreamCloseDelayMsec = 60000;
 
 
 }  // namespace fc::storage::ipfs::graphsync

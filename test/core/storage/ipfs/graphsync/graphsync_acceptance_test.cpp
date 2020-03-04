@@ -30,6 +30,11 @@ namespace fc::storage::ipfs::graphsync::test {
       std::tie(graphsync_, host_) = createNodeObjects(io_);
     }
 
+    void stop() {
+      graphsync_->stop();
+      host_->stop();
+    }
+
     auto getId() const {
       return host_->getId();
     }
@@ -80,7 +85,7 @@ namespace fc::storage::ipfs::graphsync::test {
       return [this](ResponseStatusCode code, ResponseMetadata meta) {
         ++responses_received;
         logger->trace(
-            "request progress: code={}, meta={}", code, formatMeta(meta));
+            "request progress: code={}, meta={}", statusCodeToString(code), formatMeta(meta));
         if (++n_responses == n_responses_expected_) {
           io_->stop();
         }
@@ -144,6 +149,9 @@ namespace fc::storage::ipfs::graphsync::test {
     });
 
     runEventLoop(io, run_time_msec);
+
+    client.stop();
+    server.stop();
 
     logger->info("total requests sent {}, responses received {}",
                  Node::requests_sent,
@@ -253,6 +261,10 @@ namespace fc::storage::ipfs::graphsync::test {
 
     runEventLoop(io, run_time_msec);
 
+    for (auto& n: nodes) {
+      n.stop();
+    }
+
     logger->info("total requests sent {}, responses received {}",
                  Node::requests_sent,
                  Node::responses_received);
@@ -268,13 +280,13 @@ namespace fc::storage::ipfs::graphsync::test {
 TEST(GraphsyncAcceptance, TwoNodesClientServer) {
   namespace test = fc::storage::ipfs::graphsync::test;
 
-  // test::testTwoNodesClientServer(/*param*/);
+  test::testTwoNodesClientServer(/*param*/);
 }
 
 TEST(GraphsyncAcceptance, TwoNodesMutualExchange) {
   namespace test = fc::storage::ipfs::graphsync::test;
 
-  // test::testManyNodesExchange(2, 1);
+  test::testManyNodesExchange(2, 1);
 }
 
 TEST(GraphsyncAcceptance, ManyNodesMutualExchange) {
