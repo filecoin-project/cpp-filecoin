@@ -46,9 +46,9 @@ namespace fc::storage::ipfs::graphsync::test {
     bool expected = false;
     auto it = expected_.find(cid);
     if (it != expected_.end() && it->second == data) {
-      expected = true;
+      expected = (received_.count(cid) == 0);
     }
-    data_[cid] = std::move(data);
+    received_[cid] = std::move(data);
     return expected;
   }
 

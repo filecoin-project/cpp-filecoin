@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_GRAPHSYNC_NETWORK_FWD_HPP
 
 #include "marshalling/message.hpp"
+#include <libp2p/protocol/common/scheduler.hpp>
 
 namespace libp2p::connection {
   class Stream;
@@ -15,6 +16,8 @@ namespace libp2p::connection {
 namespace fc::storage::ipfs::graphsync {
 
   using StreamPtr = std::shared_ptr<libp2p::connection::Stream>;
+
+  using Scheduler = libp2p::protocol::Scheduler;
 
   class PeerContext;
   using PeerContextPtr = std::shared_ptr<PeerContext>;
@@ -38,9 +41,7 @@ namespace fc::storage::ipfs::graphsync {
    public:
     virtual ~PeerToNetworkFeedback() = default;
 
-    virtual void canClosePeer(const PeerId &peer) = 0;
-
-    //virtual void closeLocalRequest()
+    virtual void peerClosed(const PeerId &peer, ResponseStatusCode status) = 0;
   };
 
   class EndpointToPeerFeedback {
@@ -65,6 +66,8 @@ namespace fc::storage::ipfs::graphsync {
   constexpr size_t kMaxMessageSize = 16 * 1024 * 1024;
   constexpr size_t kMaxPendingBytes = 64 * 1024 * 1024;
 
+  constexpr unsigned kPeerCloseDelayMsec = 30000;
+  constexpr unsigned kStreamCloseDelayMsec = 5000;
 
 
 }  // namespace fc::storage::ipfs::graphsync

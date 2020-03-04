@@ -53,8 +53,11 @@ namespace fc::storage::ipfs::graphsync {
       return false;
     }
 
-    auto ctx = findContext(peer, false);
-    return !(ctx && !ctx->canConnect());
+    auto ctx = findContext(peer, true);
+    if (!ctx) {
+      return false;
+    }
+    return ctx->getState() != PeerContext::is_closed;
   }
 
   void Network::makeRequest(
@@ -67,16 +70,17 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
-    auto ctx = findContext(peer, true);
+    auto ctx = findContext(peer, false);
+    assert(ctx);
 
-    if (ctx->createRequestsEndpoint(std::move(address))) {
+    logger()->trace("makeRequest: {} has state {}", ctx->str, ctx->getState());
+
+    ctx->setOutboundAddress(std::move(address));
+    if (ctx->needToConnect()) {
       tryConnect(ctx);
     }
 
-    auto res = ctx->enqueueRequest(request_id, std::move(request_body));
-    if (!res) {
-      asyncFeedback(peer, request_id, RS_REJECTED_LOCALLY);
-    }
+    ctx->enqueueRequest(request_id, std::move(request_body));
   }
 
   void Network::asyncFeedback(const PeerId &peer,
@@ -143,7 +147,7 @@ namespace fc::storage::ipfs::graphsync {
     ctx->sendResponse(request_id, status, metadata);
   }
 
-  void Network::canClosePeer(const PeerId &peer) {
+  void Network::peerClosed(const PeerId &peer, ResponseStatusCode status) {
     auto it = peers_.find(peer);
     if (it != peers_.end()) {
       peers_.erase(it);
@@ -154,16 +158,22 @@ namespace fc::storage::ipfs::graphsync {
                                       bool create_if_not_found) {
     assert(started_ && feedback_);
 
+    PeerContextPtr ctx;
+
     auto it = peers_.find(peer);
     if (it != peers_.end()) {
-      return *it;
+      ctx = *it;
+      if (ctx->getState() == PeerContext::is_closed) {
+        peers_.erase(it);
+        ctx.reset();
+      }
     }
 
-    PeerContextPtr ctx;
-    if (create_if_not_found) {
-      ctx = std::make_shared<PeerContext>(peer, *feedback_, *this);
+    if (!ctx && create_if_not_found) {
+      ctx = std::make_shared<PeerContext>(peer, *feedback_, *this, *scheduler_);
       peers_.insert(ctx);
     }
+
     return ctx;
   }
 
@@ -216,8 +226,10 @@ namespace fc::storage::ipfs::graphsync {
 
   void Network::closeAllPeers() {
     for (auto &ctx : peers_) {
-      ctx->close();
+      ctx->close(RS_REJECTED_LOCALLY);
     }
+
+    // should be empty by the moment
     active_requests_per_peer_.clear();
   }
 

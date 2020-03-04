@@ -16,6 +16,9 @@ namespace fc::storage::ipfs::graphsync::test {
 
   class Node {
    public:
+    static size_t requests_sent;
+    static size_t responses_received;
+
     Node(std::shared_ptr<boost::asio::io_context> io,
          std::shared_ptr<MerkleDagBridge> data_service,
          Graphsync::BlockCallback cb,
@@ -53,6 +56,7 @@ namespace fc::storage::ipfs::graphsync::test {
                                                   true,
                                                   {},
                                                   requestProgressCallback()));
+      ++requests_sent;
     }
 
    private:
@@ -74,6 +78,7 @@ namespace fc::storage::ipfs::graphsync::test {
         return s;
       };
       return [this](ResponseStatusCode code, ResponseMetadata meta) {
+        ++responses_received;
         logger->trace(
             "request progress: code={}, meta={}", code, formatMeta(meta));
         if (++n_responses == n_responses_expected_) {
@@ -93,7 +98,13 @@ namespace fc::storage::ipfs::graphsync::test {
     bool started_ = false;
   };
 
-  void testTwoNodesExchange(/*param*/) {
+  size_t Node::requests_sent = 0;
+  size_t Node::responses_received = 0;
+
+  void testTwoNodesClientServer() {
+    Node::requests_sent = 0;
+    Node::responses_received = 0;
+
     auto listen_to =
         libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/40000").value();
 
@@ -134,7 +145,11 @@ namespace fc::storage::ipfs::graphsync::test {
 
     runEventLoop(io, run_time_msec);
 
-    EXPECT_EQ(client_data->getData(), client_data->getExpected());
+    logger->info("total requests sent {}, responses received {}",
+                 Node::requests_sent,
+                 Node::responses_received);
+
+    EXPECT_EQ(client_data->getReceived(), client_data->getExpected());
     EXPECT_EQ(unexpected, 0);
   }
 
@@ -145,12 +160,13 @@ namespace fc::storage::ipfs::graphsync::test {
     boost::optional<libp2p::peer::PeerId> peer;
   };
 
-  void testManyNodesExchange(/*param*/) {
-    constexpr size_t N = 3;
-    constexpr size_t n_data = 1;
+  void testManyNodesExchange(size_t N, size_t n_data) {
+    Node::requests_sent = 0;
+    Node::responses_received = 0;
 
     size_t unexpected_responses = 0;
     size_t total_responses = 0;
+    size_t expected = 0;
 
     std::vector<NodeParams> params;
     params.reserve(N);
@@ -177,21 +193,22 @@ namespace fc::storage::ipfs::graphsync::test {
     for (size_t i = 0; i < N; ++i) {
       auto &p = params[i];
 
-      auto cb =
-          [ds = p.data_service, &unexpected_responses, &total_responses, &io](
-              CID cid, common::Buffer data) {
-            size_t expected = (N - 1) * (N - 1) * n_data;
-            logger->trace("data block received, {}, {}/{}",
-                          cid.toString().value(),
-                          total_responses + 1,
-                          expected);
-            if (!ds->onDataBlock(std::move(cid), std::move(data))) {
-              ++unexpected_responses;
-            }
-            if (++total_responses == expected) {
-              io->stop();
-            }
-          };
+      auto cb = [ds = p.data_service,
+                 &expected,
+                 &unexpected_responses,
+                 &total_responses,
+                 &io](CID cid, common::Buffer data) {
+        logger->trace("data block received, {}:{}, {}/{}",
+                      cid.toString().value(),
+                      std::string((const char *)data.data(), data.size()),
+                      total_responses + 1,
+                      expected);
+        if (!ds->onDataBlock(std::move(cid), std::move(data))) {
+          ++unexpected_responses;
+        } else if (++total_responses == expected) {
+          io->stop();
+        }
+      };
 
       auto &n = nodes.emplace_back(io, p.data_service, cb, 0);
 
@@ -217,13 +234,15 @@ namespace fc::storage::ipfs::graphsync::test {
           auto &p = params[i];
           auto &n = nodes[i];
 
-          for (const auto &[cid, _] : p.data_service->getExpected()) {
+          for (const auto &[cid, d] : p.data_service->getExpected()) {
+            ++expected;
             for (const auto &p0 : params) {
               if (&p0 != &p) {
-                logger->trace("request from {} to {} for {}",
+                logger->trace("request from {} to {} for {}:{}",
                               p.peer->toBase58().substr(46),
                               p0.peer->toBase58().substr(46),
-                              cid.toString().value());
+                              cid.toString().value(),
+                              std::string((const char *)d.data(), d.size()));
                 n.makeRequest(p0.peer.value(), p0.listen_to, cid);
               }
             }
@@ -234,24 +253,34 @@ namespace fc::storage::ipfs::graphsync::test {
 
     runEventLoop(io, run_time_msec);
 
-    for (const auto &p : params) {
-      EXPECT_EQ(p.data_service->getData(), p.data_service->getExpected());
-    }
+    logger->info("total requests sent {}, responses received {}",
+                 Node::requests_sent,
+                 Node::responses_received);
+
     EXPECT_EQ(unexpected_responses, 0);
+    for (const auto &p : params) {
+      EXPECT_EQ(p.data_service->getReceived(), p.data_service->getExpected());
+    }
   }  // namespace fc::storage::ipfs::graphsync::test
 
 }  // namespace fc::storage::ipfs::graphsync::test
 
-TEST(GraphsyncAcceptance, TwoNodesExchange) {
+TEST(GraphsyncAcceptance, TwoNodesClientServer) {
   namespace test = fc::storage::ipfs::graphsync::test;
 
-  test::testTwoNodesExchange(/*param*/);
+  // test::testTwoNodesClientServer(/*param*/);
 }
 
-TEST(GraphsyncAcceptance, ManyNodesExchange) {
+TEST(GraphsyncAcceptance, TwoNodesMutualExchange) {
   namespace test = fc::storage::ipfs::graphsync::test;
 
-  test::testManyNodesExchange(/*param*/);
+  // test::testManyNodesExchange(2, 1);
+}
+
+TEST(GraphsyncAcceptance, ManyNodesMutualExchange) {
+  namespace test = fc::storage::ipfs::graphsync::test;
+
+  test::testManyNodesExchange(7, 2);
 }
 
 int main(int argc, char *argv[]) {

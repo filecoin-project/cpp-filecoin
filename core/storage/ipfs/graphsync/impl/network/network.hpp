@@ -49,7 +49,7 @@ namespace fc::storage::ipfs::graphsync {
                       const ResponseMetadata &metadata);
 
    private:
-    void canClosePeer(const PeerId &peer) override;
+    void peerClosed(const PeerId &peer, ResponseStatusCode status) override;
 
     PeerContextPtr findContext(const PeerId &peer, bool create_if_not_found);
 

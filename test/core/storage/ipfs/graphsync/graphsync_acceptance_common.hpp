@@ -18,6 +18,11 @@ namespace fc::storage::ipfs::graphsync::test {
   std::pair<std::shared_ptr<Graphsync>, std::shared_ptr<libp2p::Host>>
   createNodeObjects(std::shared_ptr<boost::asio::io_context> io);
 
+  inline std::ostream& operator << (std::ostream& os, const CID& cid) {
+    os << cid.toString().value();
+    return os;
+  }
+
   class TestDataService : public MerkleDagBridge {
    public:
     using Storage = std::map<CID, common::Buffer>;
@@ -40,6 +45,10 @@ namespace fc::storage::ipfs::graphsync::test {
       return expected_;
     }
 
+    const Storage &getReceived() const {
+      return received_;
+    }
+
     // places into data_, returns true if expected
     bool onDataBlock(CID cid, common::Buffer data);
 
@@ -54,6 +63,7 @@ namespace fc::storage::ipfs::graphsync::test {
 
     Storage data_;
     Storage expected_;
+    Storage received_;
   };
 
 }  // namespace fc::storage::ipfs::graphsync::test

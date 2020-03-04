@@ -31,7 +31,8 @@ namespace fc::storage::ipfs::graphsync {
     /// The only ctor, since PeerContext is to be used in shared_ptr only
     PeerContext(PeerId peer_id,
                 PeerToGraphsyncFeedback &graphsync_feedback,
-                PeerToNetworkFeedback &network_feedback);
+                PeerToNetworkFeedback &network_feedback,
+                libp2p::protocol::Scheduler &scheduler);
 
     ~PeerContext() override;
 
@@ -41,13 +42,14 @@ namespace fc::storage::ipfs::graphsync {
     /// String representation for loggers and debug purposes
     const std::string str;
 
-    /// Creates requests endpoint if not exist, returns true if just created
-    bool createRequestsEndpoint(
+    void setOutboundAddress(
         boost::optional<libp2p::multi::Multiaddress> connect_to);
 
-    bool isConnecting() const;
+    bool needToConnect();
 
-    bool canConnect() const;
+    enum State { can_connect, is_connecting, is_connected, is_closed };
+
+    State getState() const;
 
     libp2p::peer::PeerInfo getOutboundPeerInfo() const;
 
@@ -55,8 +57,7 @@ namespace fc::storage::ipfs::graphsync {
 
     void onStreamAccepted(StreamPtr stream);
 
-    outcome::result<void> enqueueRequest(RequestId request_id,
-                                         SharedData request_body);
+    void enqueueRequest(RequestId request_id, SharedData request_body);
 
     void cancelRequest(RequestId request_id, SharedData request_body);
 
@@ -68,7 +69,7 @@ namespace fc::storage::ipfs::graphsync {
                       ResponseStatusCode status,
                       const ResponseMetadata &metadata);
 
-    void close();
+    void close(ResponseStatusCode status);
 
    private:
     struct StreamCtx {
@@ -76,6 +77,8 @@ namespace fc::storage::ipfs::graphsync {
       std::shared_ptr<MessageQueue> queue;
       std::set<RequestId> remote_request_ids;
       std::unique_ptr<InboundEndpoint> response_endpoint;
+      Scheduler::Handle close_timer;
+      uint64_t close_time = 0;
     };
 
     using Streams = std::map<StreamPtr, StreamCtx>;
@@ -86,29 +89,36 @@ namespace fc::storage::ipfs::graphsync {
     void onWriterEvent(const StreamPtr &stream,
                        outcome::result<void> result) override;
 
-    void onNewStream(StreamPtr stream, bool connected);
+
+    void onNewStream(StreamPtr stream);
 
     void closeStream(StreamPtr stream);
 
-    void onResponse(Message::Response& response);
+    void onResponse(Message::Response &response);
 
-    void onRequest(const StreamPtr& stream, Message::Request& request);
+    void onRequest(const StreamPtr &stream, Message::Request &request);
 
-    void createMessageQueue(const StreamPtr& stream, StreamCtx& ctx);
+    void createMessageQueue(const StreamPtr &stream, StreamCtx &ctx);
 
-    void createResponseEndpoint(const StreamPtr& stream, StreamCtx& ctx);
+    void createResponseEndpoint(const StreamPtr &stream, StreamCtx &ctx);
 
-    void checkIfClosable(const StreamPtr& stream, StreamCtx& ctx);
+    void checkIfClosable(const StreamPtr &stream, StreamCtx &ctx);
 
     void checkIfClosable(const StreamPtr &stream);
 
     void closeLocalRequests();
+
+    void schedulePeerClose();
+
+    void onPeerCloseTimer();
 
     Streams::iterator findResponseSink(RequestId request_id);
 
     PeerToGraphsyncFeedback &graphsync_feedback_;
 
     PeerToNetworkFeedback &network_feedback_;
+
+    Scheduler &scheduler_;
 
     boost::optional<libp2p::multi::Multiaddress> connect_to_;
 
@@ -120,9 +130,13 @@ namespace fc::storage::ipfs::graphsync {
 
     Streams streams_;
 
-    bool can_connect_ = true;
+    Scheduler::Handle close_timer_;
+
+    uint64_t close_time_ = 0;
 
     bool closed_ = false;
+
+    ResponseStatusCode close_status_ = RS_INTERNAL_ERROR;
   };
 
 }  // namespace fc::storage::ipfs::graphsync
