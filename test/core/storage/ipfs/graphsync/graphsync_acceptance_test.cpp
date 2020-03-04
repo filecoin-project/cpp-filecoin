@@ -304,7 +304,11 @@ int main(int argc, char *argv[]) {
     --argc;
     ++argv;
   } else {
-    spdlog::set_level(spdlog::level::err);
+    //TODO: for CI temporarily
+    logger->set_level(spdlog::level::trace);
+    fc::common::createLogger("graphsync")->set_level(spdlog::level::trace);
+
+    //spdlog::set_level(spdlog::level::err);
   }
 
   ::testing::InitGoogleTest(&argc, argv);
