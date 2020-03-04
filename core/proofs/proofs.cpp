@@ -578,6 +578,73 @@ namespace fc::proofs {
     return Proof(res_ptr->proof_ptr, res_ptr->proof_ptr + res_ptr->proof_len);
   }
 
+  outcome::result<void> Proofs::unseal(RegisteredProof proof_type,
+                                       const std::string &cache_dir_path,
+                                       const std::string &sealed_sector_path,
+                                       const std::string &unseal_output_path,
+                                       SectorNumber sector_num,
+                                       const Prover &prover_id,
+                                       const Ticket &ticket,
+                                       const UnsealedCID &unsealed_cid) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
+
+    OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
+
+    auto res_ptr = make_unique(::unseal(c_proof_type,
+                                        cache_dir_path.c_str(),
+                                        sealed_sector_path.c_str(),
+                                        unseal_output_path.c_str(),
+                                        sector_num,
+                                        cPointerToArray(prover_id),
+                                        cPointerToArray(ticket),
+                                        cPointerToArray(comm_d)),
+                               destroy_unseal_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("unseal: " + std::string(res_ptr->error_msg));
+
+      return ProofsError::UNKNOWN;
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<void> Proofs::unsealRange(
+      RegisteredProof proof_type,
+      const std::string &cache_dir_path,
+      const std::string &sealed_sector_path,
+      const std::string &unseal_output_path,
+      SectorNumber sector_num,
+      const Prover &prover_id,
+      const Ticket &ticket,
+      const UnsealedCID &unsealed_cid,
+      uint64_t offset,
+      uint64_t length) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
+
+    OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
+
+    auto res_ptr = make_unique(unseal_range(c_proof_type,
+                                            cache_dir_path.c_str(),
+                                            sealed_sector_path.c_str(),
+                                            unseal_output_path.c_str(),
+                                            sector_num,
+                                            cPointerToArray(prover_id),
+                                            cPointerToArray(ticket),
+                                            cPointerToArray(comm_d),
+                                            offset,
+                                            length),
+                               destroy_unseal_range_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("unsealRange: " + std::string(res_ptr->error_msg));
+
+      return ProofsError::UNKNOWN;
+    }
+
+    return outcome::success();
+  }
+
   SortedPrivateSectorInfo Proofs::newSortedPrivateSectorInfo(
       gsl::span<const PrivateSectorInfo> replica_info) {
     SortedPrivateSectorInfo sorted_replica_info;

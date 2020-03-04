@@ -194,6 +194,35 @@ namespace fc::proofs {
         SectorNumber sector_num,
         gsl::span<const uint8_t> seal_proof);
 
+    /**
+     * Unseals sector
+     */
+    static outcome::result<void> unseal(RegisteredProof proof_type,
+                                        const std::string &cache_dir_path,
+                                        const std::string &sealed_sector_path,
+                                        const std::string &unseal_output_path,
+                                        SectorNumber sector_num,
+                                        const Prover &prover_id,
+                                        const Ticket &ticket,
+                                        const UnsealedCID &unsealed_cid);
+
+    /**
+     * @brief Unseals the sector at @sealed_path and returns the bytes for a
+     * piece whose first (unpadded) byte begins at @offset and ends at @offset
+     * plus @num_bytes, inclusive
+     */
+    static outcome::result<void> unsealRange(
+        RegisteredProof proof_type,
+        const std::string &cache_dir_path,
+        const std::string &sealed_sector_path,
+        const std::string &unseal_output_path,
+        SectorNumber sector_num,
+        const Prover &prover_id,
+        const Ticket &ticket,
+        const UnsealedCID &unsealed_cid,
+        uint64_t offset,
+        uint64_t length);
+
    private:
     static fc::common::Logger logger_;
   };
