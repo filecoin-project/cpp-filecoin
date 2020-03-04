@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: macOS-10.14
+    runs-on: macOS-latest
     steps:
     - uses: actions/checkout@v2
       name: checkout repo
@@ -34,20 +34,6 @@ jobs:
     - name: build asan
       run: cmake --build build -- -j2
     - name: run tests asan
-      env:
-        CTEST_OUTPUT_ON_FAILURE: 1
-      run: |
-        cmake --build build --target test
-        rm -rf /build
-    - name: cmake lsan
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
-        GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
-        GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
-      run: cmake . -GNinja -Bbuild -D LSAN=ON
-    - name: build lsan
-      run: cmake --build build -- -j2
-    - name: run tests lsan
       env:
         CTEST_OUTPUT_ON_FAILURE: 1
       run: |
