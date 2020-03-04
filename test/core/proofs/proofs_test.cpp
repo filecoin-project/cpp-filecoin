@@ -7,7 +7,6 @@
 
 #include <gtest/gtest.h>
 #include <random>
-#include "proofs/proof_param_provider.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
@@ -22,16 +21,7 @@ using fc::storage::filestore::Path;
 
 class ProofsTest : public test::BaseFS_Test {
  public:
-  ProofsTest() : test::BaseFS_Test("fc_proofs_test") {
-    auto res = fc::proofs::ProofParamProvider::readJson(
-        "/var/tmp/filecoin-proof-parameters/parameters.json");
-    if (!res.has_error()) {
-      params = std::move(res.value());
-    }
-  }
-
- protected:
-  std::vector<fc::proofs::ParamFile> params;
+  ProofsTest() : test::BaseFS_Test("fc_proofs_test") {}
 };
 
 // TODO(artyom-yurin): [FIL-164]
@@ -51,10 +41,7 @@ TEST_F(ProofsTest, Lifecycle) {
       fc::primitives::sector::RegisteredProof::StackedDRG1KiBSeal;
   fc::proofs::RegisteredProof post_proof_type =
       fc::primitives::sector::RegisteredProof::StackedDRG1KiBPoSt;
-  SectorSize sector_size = 1024;
   SectorNumber sector_num = 42;
-  EXPECT_OUTCOME_TRUE_1(
-      fc::proofs::ProofParamProvider::getParams(params, sector_size));
 
   Path sector_cache_dir_path =
       boost::filesystem::unique_path(
