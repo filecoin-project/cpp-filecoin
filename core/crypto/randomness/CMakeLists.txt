@@ -15,6 +15,7 @@ add_library(chain_randomness_provider
     impl/chain_randomness_provider_impl.cpp
     )
 target_link_libraries(chain_randomness_provider
+    tickets
     Boost::boost
     blob
     buffer

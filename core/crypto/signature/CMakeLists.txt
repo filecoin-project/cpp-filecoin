@@ -7,5 +7,6 @@ add_library(signature
     signature.cpp
     )
 target_link_libraries(signature
+    bls_types
     outcome
     )

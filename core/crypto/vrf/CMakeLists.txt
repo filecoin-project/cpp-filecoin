@@ -7,6 +7,7 @@ add_library(vrf_provider
     vrf_types.cpp
     )
 target_link_libraries(vrf_provider
+    bls_types
     address
     blob
     buffer
