@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: macOS-latest
+    runs-on: ubuntu-18.04
     steps:
     - uses: actions/checkout@v2
       name: checkout repo
@@ -30,10 +30,8 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
-        CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
-        CXXFLAGS: "-isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
       run: cmake . -GNinja -Bbuild -D MSAN=ON
-    - name: build asan
+    - name: build
       run: cmake --build build -- -j2
     - name: run tests
       env:
