@@ -59,8 +59,8 @@ namespace fc::blockchain {
     //			}
     //
     //			ctx := context.WithValue(context.TODO(), syncStateKey{},
-    // ss) 			err := sm.doSync(ctx, ts) 			if err != nil
-    // { log.Errorf("sync error:
+    // ss) 			err := sm.doSync(ctx, ts) 			if err !=
+    // nil { log.Errorf("sync error:
     //%+v", err)
     //			}
     //
@@ -76,8 +76,6 @@ namespace fc::blockchain {
     // wait for tipset from sync_targets
     // put sync
 
-
-
     scheduleWorker(id);
   }
 
@@ -85,6 +83,12 @@ namespace fc::blockchain {
     context_.post([self = this->shared_from_this(), id]() mutable {
       self->workerMethod(id);
     });
+  }
+
+  void SyncManagerImpl::join() {
+    for (auto &t : threads_) {
+      t.join();
+    }
   }
 
 }  // namespace fc::blockchain

@@ -83,6 +83,8 @@ namespace fc::blockchain {
 
     bool isBootstrapped() const override;
 
+    void join();
+
    private:
     void scheduleWorker(int id);
 
@@ -99,6 +101,7 @@ namespace fc::blockchain {
     UnbufferedChannel<Tipset> incoming_tipsets_;
     std::map<TipsetKey, Tipset> active_syncs_;
     SyncFunction sync_function_;
+    std::vector<std::thread> threads_;
   };
 
 }  // namespace fc::blockchain
