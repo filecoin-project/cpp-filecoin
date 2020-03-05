@@ -56,7 +56,8 @@ namespace fc::proofs {
     std::vector<PublicSectorInfo> values;
   };
 
-  struct PrivateSectorInfo : SectorInfo {
+  struct PrivateSectorInfo {
+    SectorInfo info;
     std::string cache_dir_path;
     RegisteredProof post_proof_type;
     std::string sealed_sector_path;

@@ -157,7 +157,7 @@ namespace fc::proofs {
       const PrivateSectorInfo &cpp_private_replica_info) {
     FFIPrivateReplicaInfo c_private_replica_info;
 
-    c_private_replica_info.sector_id = cpp_private_replica_info.sector;
+    c_private_replica_info.sector_id = cpp_private_replica_info.info.sector;
 
     c_private_replica_info.cache_dir_path =
         cpp_private_replica_info.cache_dir_path.data();
@@ -169,7 +169,7 @@ namespace fc::proofs {
     c_private_replica_info.registered_proof = c_proof_type;
 
     OUTCOME_TRY(comm_r,
-                CIDToReplicaCommitmentV1(cpp_private_replica_info.sealed_cid));
+                CIDToReplicaCommitmentV1(cpp_private_replica_info.info.sealed_cid));
     std::copy(comm_r.begin(), comm_r.end(), c_private_replica_info.comm_r);
 
     return c_private_replica_info;
@@ -653,7 +653,7 @@ namespace fc::proofs {
     std::sort(sorted_replica_info.values.begin(),
               sorted_replica_info.values.end(),
               [](const PrivateSectorInfo &lhs, const PrivateSectorInfo &rhs) {
-                return lhs.sealed_cid < rhs.sealed_cid;
+                return lhs.info.sealed_cid < rhs.info.sealed_cid;
               });
 
     return sorted_replica_info;

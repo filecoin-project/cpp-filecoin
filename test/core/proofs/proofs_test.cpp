@@ -254,21 +254,23 @@ TEST_F(ProofsTest, Lifecycle) {
   ASSERT_EQ(gsl::make_span(file_c_bytes),
             gsl::make_span(some_bytes.data(), 508));
 
-  PrivateSectorInfo private_replica_info;
-  private_replica_info.sector = sector_num;
-  private_replica_info.sealed_cid = sealedAndUnsealedCID.first;
-  private_replica_info.cache_dir_path = sector_cache_dir_path;
-  private_replica_info.sealed_sector_path = sealed_sector_file;
-  private_replica_info.post_proof_type = post_proof_type;
-
-  std::vector<PrivateSectorInfo> private_replicas_info = {private_replica_info};
+  std::vector<PrivateSectorInfo> private_replicas_info = {PrivateSectorInfo{
+      .info =
+          SectorInfo{
+              .sector = sector_num,
+              .sealed_cid = sealedAndUnsealedCID.first,
+          },
+      .cache_dir_path = sector_cache_dir_path,
+      .sealed_sector_path = sealed_sector_file,
+      .post_proof_type = post_proof_type,
+  }};
   auto private_info = Proofs::newSortedPrivateSectorInfo(private_replicas_info);
 
-  PublicSectorInfo public_sector_info;
-  public_sector_info.sector_num = sector_num;
-  public_sector_info.post_proof_type = post_proof_type;
-  public_sector_info.sealed_cid = sealedAndUnsealedCID.first;
-  std::vector<PublicSectorInfo> public_sectors_info = {public_sector_info};
+  std::vector<PublicSectorInfo> public_sectors_info = {PublicSectorInfo{
+      .sector_num = sector_num,
+      .post_proof_type = post_proof_type,
+      .sealed_cid = sealedAndUnsealedCID.first,
+  }};
   auto public_info = Proofs::newSortedPublicSectorInfo(public_sectors_info);
 
   EXPECT_OUTCOME_TRUE(candidates_with_tickets,
