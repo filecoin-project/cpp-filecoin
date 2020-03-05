@@ -15,4 +15,5 @@ target_link_libraries(proofs
         logger
         comm_cid
         piece
+        address
         )

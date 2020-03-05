@@ -8,6 +8,8 @@
 #include <fcntl.h>
 #include <filecoin-ffi/filecoin.h>
 #include "boost/filesystem/fstream.hpp"
+#include "primitives/address/address.hpp"
+#include "primitives/address/address_codec.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs_error.hpp"
 
@@ -15,6 +17,7 @@ namespace fc::proofs {
 
   common::Logger Proofs::logger_ = common::createLogger("proofs");
 
+  using Prover = Blob<32>;
   using common::Blob;
   using common::Buffer;
   using common::CIDToDataCommitmentV1;
@@ -125,6 +128,15 @@ namespace fc::proofs {
     }
   }
 
+  Prover toProverID(ActorId miner_id) {
+    auto maddr = primitives::address::encode(
+        primitives::address::Address::makeFromId(miner_id));
+    Prover prover = {};
+    // +1: because payload start from 1 position
+    std::copy(maddr.cbegin() + 1, maddr.cend(), prover.begin());
+    return prover;
+  }
+
   auto cPointerToArray(const Blob<32> &arr) {
     // NOLINTNEXTLINE
     return reinterpret_cast<const uint8_t(*)[32]>(arr.data());
@@ -168,8 +180,9 @@ namespace fc::proofs {
 
     c_private_replica_info.registered_proof = c_proof_type;
 
-    OUTCOME_TRY(comm_r,
-                CIDToReplicaCommitmentV1(cpp_private_replica_info.info.sealed_cid));
+    OUTCOME_TRY(
+        comm_r,
+        CIDToReplicaCommitmentV1(cpp_private_replica_info.info.sealed_cid));
     std::copy(comm_r.begin(), comm_r.end(), c_private_replica_info.comm_r);
 
     return c_private_replica_info;
@@ -246,11 +259,13 @@ namespace fc::proofs {
       uint64_t challenge_count,
       gsl::span<const uint8_t> proof,
       gsl::span<const PoStCandidate> winners,
-      const Prover &prover_id) {
+      ActorId miner_id) {
     OUTCOME_TRY(c_public_sector_info,
                 cPublicReplicasInfo(public_sector_info.values));
 
     std::vector<FFICandidate> c_winners = cCandidates(winners);
+
+    auto prover_id = toProverID(miner_id);
 
     auto res_ptr = make_unique(verify_post(cPointerToArray(randomness),
                                            challenge_count,
@@ -271,31 +286,26 @@ namespace fc::proofs {
     return res_ptr->is_valid;
   }
 
-  outcome::result<bool> Proofs::verifySeal(
-      RegisteredProof proof_type,
-      const SealedCID &sealed_cid,
-      const UnsealedCID &unsealed_cid,
-      const Prover &prover_id,
-      const SealRandomness &ticket,
-      const InteractiveRandomness &seed,
-      SectorNumber sector_num,
-      gsl::span<const uint8_t> seal_proof) {
-    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
+  outcome::result<bool> Proofs::verifySeal(const SealVerifyInfo &info) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(info.info.registered_proof));
 
-    OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(sealed_cid));
+    OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(info.info.sealed_cid));
 
-    OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
+    OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(info.unsealed_cid));
 
-    auto res_ptr = make_unique(verify_seal(c_proof_type,
-                                           cPointerToArray(comm_r),
-                                           cPointerToArray(comm_d),
-                                           cPointerToArray(prover_id),
-                                           cPointerToArray(ticket),
-                                           cPointerToArray(seed),
-                                           sector_num,
-                                           seal_proof.data(),
-                                           seal_proof.size()),
-                               destroy_verify_seal_response);
+    auto prover_id = toProverID(info.sector.miner);
+
+    auto res_ptr =
+        make_unique(verify_seal(c_proof_type,
+                                cPointerToArray(comm_r),
+                                cPointerToArray(comm_d),
+                                cPointerToArray(prover_id),
+                                cPointerToArray(info.randomness),
+                                cPointerToArray(info.interactive_randomness),
+                                info.info.sector,
+                                info.info.proof.data(),
+                                info.info.proof.size()),
+                    destroy_verify_seal_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("verifySeal: " + std::string(res_ptr->error_msg));
@@ -312,13 +322,13 @@ namespace fc::proofs {
 
   outcome::result<std::vector<PoStCandidateWithTicket>>
   Proofs::generateCandidates(
-      const Prover &prover_id,
+      ActorId miner_id,
       const PoStRandomness &randomness,
       uint64_t challenge_count,
       const SortedPrivateSectorInfo &sorted_private_replica_info) {
     OUTCOME_TRY(c_sorted_private_sector_info,
                 cPrivateReplicasInfo(sorted_private_replica_info.values));
-
+    auto prover_id = toProverID(miner_id);
     auto res_ptr =
         make_unique(generate_candidates(cPointerToArray(randomness),
                                         challenge_count,
@@ -337,7 +347,7 @@ namespace fc::proofs {
   }
 
   outcome::result<Proof> Proofs::generatePoSt(
-      const Prover &prover_id,
+      ActorId miner_id,
       const SortedPrivateSectorInfo &private_replica_info,
       const PoStRandomness &randomness,
       gsl::span<const PoStCandidate> winners) {
@@ -346,6 +356,7 @@ namespace fc::proofs {
     OUTCOME_TRY(c_sorted_private_sector_info,
                 cPrivateReplicasInfo(private_replica_info.values));
 
+    auto prover_id = toProverID(miner_id);
     auto res_ptr =
         make_unique(generate_post(cPointerToArray(randomness),
                                   c_sorted_private_sector_info.data(),
@@ -464,12 +475,14 @@ namespace fc::proofs {
       const std::string &staged_sector_path,
       const std::string &sealed_sector_path,
       SectorNumber sector_num,
-      const Prover &prover_id,
+      ActorId miner_id,
       const SealRandomness &ticket,
       gsl::span<const PieceInfo> pieces) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
     OUTCOME_TRY(c_pieces, cPublicPiecesInfo(pieces));
+
+    auto prover_id = toProverID(miner_id);
 
     auto res_ptr =
         make_unique(seal_pre_commit_phase1(c_proof_type,
@@ -525,7 +538,7 @@ namespace fc::proofs {
       const CID &unsealed_cid,
       const std::string &cache_dir_path,
       SectorNumber sector_num,
-      const Prover &prover_id,
+      ActorId miner_id,
       const SealRandomness &ticket,
       const InteractiveRandomness &seed,
       gsl::span<const PieceInfo> pieces) {
@@ -536,6 +549,8 @@ namespace fc::proofs {
     OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(sealed_cid));
 
     OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
+
+    auto prover_id = toProverID(miner_id);
 
     auto res_ptr = make_unique(seal_commit_phase1(c_proof_type,
                                                   cPointerToArray(comm_r),
@@ -563,7 +578,8 @@ namespace fc::proofs {
   outcome::result<Proof> Proofs::sealCommitPhase2(
       gsl::span<const uint8_t> phase1_output,
       SectorNumber sector_id,
-      const Prover &prover_id) {
+      ActorId miner_id) {
+    auto prover_id = toProverID(miner_id);
     auto res_ptr = make_unique(seal_commit_phase2(phase1_output.data(),
                                                   phase1_output.size(),
                                                   sector_id,
@@ -583,12 +599,13 @@ namespace fc::proofs {
                                        const std::string &sealed_sector_path,
                                        const std::string &unseal_output_path,
                                        SectorNumber sector_num,
-                                       const Prover &prover_id,
+                                       ActorId miner_id,
                                        const Ticket &ticket,
                                        const UnsealedCID &unsealed_cid) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
     OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
+    auto prover_id = toProverID(miner_id);
 
     auto res_ptr = make_unique(::unseal(c_proof_type,
                                         cache_dir_path.c_str(),
@@ -615,7 +632,7 @@ namespace fc::proofs {
       const std::string &sealed_sector_path,
       const std::string &unseal_output_path,
       SectorNumber sector_num,
-      const Prover &prover_id,
+      ActorId miner_id,
       const Ticket &ticket,
       const UnsealedCID &unsealed_cid,
       uint64_t offset,
@@ -624,6 +641,7 @@ namespace fc::proofs {
 
     OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
 
+    auto prover_id = toProverID(miner_id);
     auto res_ptr = make_unique(unseal_range(c_proof_type,
                                             cache_dir_path.c_str(),
                                             sealed_sector_path.c_str(),

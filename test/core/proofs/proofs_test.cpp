@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include <random>
+#include "primitives/sector/sector.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
@@ -15,6 +16,9 @@ using namespace fc::proofs;
 using namespace boost::filesystem;
 using fc::common::Blob;
 using fc::crypto::randomness::Randomness;
+using fc::primitives::sector::OnChainSealVerifyInfo;
+using fc::primitives::sector::SealVerifyInfo;
+using fc::primitives::sector::SectorId;
 using fc::storage::filestore::File;
 using fc::storage::filestore::FileSystemFile;
 using fc::storage::filestore::Path;
@@ -33,7 +37,6 @@ class ProofsTest : public test::BaseFS_Test {
  */
 TEST_F(ProofsTest, Lifecycle) {
   uint64_t challenge_count = 2;
-  Prover prover_id{{6, 7, 8}};
   Randomness randomness{{9, 9, 9}};
   Ticket ticket{{5, 4, 2}};
   Seed seed{{7, 4, 2}};
@@ -42,6 +45,7 @@ TEST_F(ProofsTest, Lifecycle) {
   fc::proofs::RegisteredProof post_proof_type =
       fc::primitives::sector::RegisteredProof::StackedDRG1KiBPoSt;
   SectorNumber sector_num = 42;
+  ActorId miner_id = 42;
 
   Path sector_cache_dir_path =
       boost::filesystem::unique_path(
@@ -153,7 +157,7 @@ TEST_F(ProofsTest, Lifecycle) {
                                                   staged_sector_file,
                                                   sealed_sector_file,
                                                   sector_num,
-                                                  prover_id,
+                                                  miner_id,
                                                   ticket,
                                                   public_pieces));
 
@@ -171,23 +175,36 @@ TEST_F(ProofsTest, Lifecycle) {
                                                sealedAndUnsealedCID.second,
                                                sector_cache_dir_path,
                                                sector_num,
-                                               prover_id,
+                                               miner_id,
                                                ticket,
                                                seed,
                                                public_pieces))
   EXPECT_OUTCOME_TRUE(seal_proof,
                       Proofs::sealCommitPhase2(
-                          seal_commit_phase1_output, sector_num, prover_id));
+                          seal_commit_phase1_output, sector_num, miner_id));
 
   EXPECT_OUTCOME_TRUE(isValid,
-                      Proofs::verifySeal(seal_proof_type,
-                                         sealedAndUnsealedCID.first,
-                                         sealedAndUnsealedCID.second,
-                                         prover_id,
-                                         ticket,
-                                         seed,
-                                         sector_num,
-                                         seal_proof));
+                      Proofs::verifySeal(SealVerifyInfo{
+                          .sector =
+                              SectorId{
+                                  .miner = miner_id,
+                                  .sector = sector_num,
+                              },
+                          .info =
+                              OnChainSealVerifyInfo{
+                                  .sealed_cid = sealedAndUnsealedCID.first,
+                                  .interactive_epoch = 42,
+                                  .registered_proof = seal_proof_type,
+                                  .proof = seal_proof,
+                                  .deals = {},
+                                  .sector = sector_num,
+                                  .seal_rand_epoch = 42,
+                              },
+                          .randomness = ticket,
+                          .interactive_randomness = seed,
+                          .unsealed_cid = sealedAndUnsealedCID.second,
+                      }));
+
   ASSERT_TRUE(isValid);
 
   EXPECT_OUTCOME_TRUE_1(Proofs::unseal(seal_proof_type,
@@ -195,7 +212,7 @@ TEST_F(ProofsTest, Lifecycle) {
                                        sealed_sector_file,
                                        unseal_output_file_a,
                                        sector_num,
-                                       prover_id,
+                                       miner_id,
                                        ticket,
                                        sealedAndUnsealedCID.second));
 
@@ -227,7 +244,7 @@ TEST_F(ProofsTest, Lifecycle) {
                                             sealed_sector_file,
                                             unseal_output_file_b,
                                             sector_num,
-                                            prover_id,
+                                            miner_id,
                                             ticket,
                                             sealedAndUnsealedCID.second,
                                             0,
@@ -243,7 +260,7 @@ TEST_F(ProofsTest, Lifecycle) {
                                             sealed_sector_file,
                                             unseal_output_file_c,
                                             sector_num,
-                                            prover_id,
+                                            miner_id,
                                             ticket,
                                             sealedAndUnsealedCID.second,
                                             508,
@@ -275,7 +292,7 @@ TEST_F(ProofsTest, Lifecycle) {
 
   EXPECT_OUTCOME_TRUE(candidates_with_tickets,
                       Proofs::generateCandidates(
-                          prover_id, randomness, challenge_count, private_info))
+                          miner_id, randomness, challenge_count, private_info))
 
   std::vector<PoStCandidate> candidates = {};
   for (const auto &candidate_with_ticket : candidates_with_tickets) {
@@ -284,7 +301,7 @@ TEST_F(ProofsTest, Lifecycle) {
 
   EXPECT_OUTCOME_TRUE(
       proof_a,
-      Proofs::generatePoSt(prover_id, private_info, randomness, candidates))
+      Proofs::generatePoSt(miner_id, private_info, randomness, candidates))
 
   EXPECT_OUTCOME_TRUE(res,
                       Proofs::verifyPoSt(public_info,
@@ -292,6 +309,6 @@ TEST_F(ProofsTest, Lifecycle) {
                                          challenge_count,
                                          proof_a,
                                          candidates,
-                                         prover_id));
+                                         miner_id));
   ASSERT_TRUE(res);
 }

@@ -43,9 +43,7 @@ namespace fc::primitives::sector {
 
   using InteractiveRandomness = Randomness;
 
-  struct SealProof {
-    Buffer proof;
-  };
+  using Proof = std::vector<uint8_t>;
 
   /**
    * OnChainSealVerifyInfo is the structure of information that must be sent
@@ -59,7 +57,7 @@ namespace fc::primitives::sector {
     /// Used to derive the interactive PoRep challenge.
     ChainEpoch interactive_epoch;
     RegisteredProof registered_proof;
-    SealProof proof;
+    Proof proof;
     std::vector<DealId> deals;
     SectorNumber sector;
     /// Used to tie the seal to a chain.
@@ -127,8 +125,6 @@ namespace fc::primitives::sector {
   };
 
   CBOR_TUPLE(SectorId, miner, sector)
-
-  CBOR_TUPLE(SealProof, proof)
 
   CBOR_TUPLE(OnChainSealVerifyInfo,
              sealed_cid,
