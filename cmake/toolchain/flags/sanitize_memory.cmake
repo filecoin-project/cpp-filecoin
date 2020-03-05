@@ -12,6 +12,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../toolchain-util.cmake)
 set(FLAGS
     -fsanitize=memory
     -fsanitize-memory-track-origins
+    -ferror-limit=0
     -g
     )
 foreach(FLAG IN LISTS FLAGS)

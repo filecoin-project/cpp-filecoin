@@ -11,6 +11,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../toolchain-util.cmake)
 
 set(FLAGS
     -fsanitize=leak
+    -ferror-limit=0
     -g
     )
 foreach(FLAG IN LISTS FLAGS)

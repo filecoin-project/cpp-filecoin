@@ -9,6 +9,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../toolchain-util.cmake)
 set(FLAGS
     -fsanitize=undefined
     -fno-omit-frame-pointer
+    -ferror-limit=0
     -g
     )
 foreach(FLAG IN LISTS FLAGS)
