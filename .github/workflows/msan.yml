@@ -28,6 +28,8 @@ jobs:
         sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
     - name: cmake
       env:
+        CC: "clang",
+        CXX: "clang++"
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
