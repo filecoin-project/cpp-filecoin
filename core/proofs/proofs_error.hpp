@@ -17,6 +17,7 @@ namespace fc::proofs {
     CANNOT_OPEN_FILE = 1,
     NO_SUCH_SEAL_PROOF,
     NO_SUCH_POST_PROOF,
+    INVALID_POST_PROOF,
     UNKNOWN = 1000
   };
 

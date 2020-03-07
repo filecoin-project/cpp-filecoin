@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include <random>
+#include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "testutil/outcome.hpp"
@@ -16,6 +17,7 @@ using namespace fc::proofs;
 using namespace boost::filesystem;
 using fc::common::Blob;
 using fc::crypto::randomness::Randomness;
+using fc::primitives::piece::PaddedPieceSize;
 using fc::primitives::sector::OnChainSealVerifyInfo;
 using fc::primitives::sector::SealVerifyInfo;
 using fc::primitives::sector::SectorId;
@@ -37,15 +39,17 @@ class ProofsTest : public test::BaseFS_Test {
  */
 TEST_F(ProofsTest, Lifecycle) {
   uint64_t challenge_count = 2;
-  Randomness randomness{{9, 9, 9}};
-  Ticket ticket{{5, 4, 2}};
-  Seed seed{{7, 4, 2}};
-  fc::proofs::RegisteredProof seal_proof_type =
-      fc::primitives::sector::RegisteredProof::StackedDRG1KiBSeal;
-  fc::proofs::RegisteredProof post_proof_type =
-      fc::primitives::sector::RegisteredProof::StackedDRG1KiBPoSt;
-  SectorNumber sector_num = 42;
   ActorId miner_id = 42;
+  Randomness randomness{{9, 9, 9}};
+  fc::proofs::RegisteredProof seal_proof_type =
+      fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal;
+  fc::proofs::RegisteredProof post_proof_type =
+      fc::primitives::sector::RegisteredProof::StackedDRG2KiBPoSt;
+  SectorNumber sector_num = 42;
+
+  Ticket ticket{{5, 4, 2}};
+
+  Seed seed{{7, 4, 2}};
 
   Path sector_cache_dir_path =
       boost::filesystem::unique_path(
@@ -83,7 +87,7 @@ TEST_F(ProofsTest, Lifecycle) {
           .string();
   boost::filesystem::ofstream(unseal_output_file_c).close();
 
-  fc::common::Blob<1016> some_bytes;
+  fc::common::Blob<2032> some_bytes;
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<uint8_t> dis(0, 255);
@@ -106,18 +110,19 @@ TEST_F(ProofsTest, Lifecycle) {
       Proofs::generatePieceCIDFromFile(
           seal_proof_type, piece_file_a_path, UnpaddedPieceSize(127)));
 
-  EXPECT_OUTCOME_TRUE(resA,
+  EXPECT_OUTCOME_TRUE(res_a,
                       Proofs::writeWithoutAlignment(seal_proof_type,
                                                     piece_file_a_path,
                                                     piece_commitment_a_size,
                                                     staged_sector_file));
-  ASSERT_EQ(resA.total_write_unpadded, piece_commitment_a_size);
-  ASSERT_EQ(resA.piece_cid, piece_cid_a);
+
+  ASSERT_EQ(res_a.total_write_unpadded, 127);
+  ASSERT_EQ(res_a.piece_cid, piece_cid_a);
 
   Path piece_file_b_path = boost::filesystem::unique_path(path_model).string();
   boost::filesystem::ofstream piece_file_b(piece_file_b_path);
 
-  UnpaddedPieceSize piece_commitment_b_size(508);
+  UnpaddedPieceSize piece_commitment_b_size(1016);
   for (size_t i = 0; i < piece_commitment_b_size; i++) {
     piece_file_b << some_bytes[i];
   }
@@ -126,32 +131,32 @@ TEST_F(ProofsTest, Lifecycle) {
   EXPECT_OUTCOME_TRUE(
       piece_cid_b,
       Proofs::generatePieceCIDFromFile(
-          seal_proof_type, piece_file_b_path, UnpaddedPieceSize(508)));
+          seal_proof_type, piece_file_b_path, UnpaddedPieceSize(1016)));
 
-  std::vector<uint64_t> commitment = {piece_commitment_a_size};
-  EXPECT_OUTCOME_TRUE(resB,
+  std::vector<UnpaddedPieceSize> exist_pieces = {piece_commitment_a_size};
+  EXPECT_OUTCOME_TRUE(res_b,
                       Proofs::writeWithAlignment(seal_proof_type,
                                                  piece_file_b_path,
                                                  piece_commitment_b_size,
                                                  staged_sector_file,
-                                                 commitment));
-  ASSERT_EQ(resB.left_alignment_unpadded,
-            piece_commitment_b_size - piece_commitment_a_size);
+                                                 exist_pieces));
 
-  ASSERT_EQ(resB.left_alignment_unpadded, 381);
-  ASSERT_EQ(resB.total_write_unpadded, 889);
-  ASSERT_EQ(resB.piece_cid, piece_cid_b);
+  ASSERT_EQ(res_b.left_alignment_unpadded, 889);
 
-  std::vector<PieceInfo> public_pieces;
-  public_pieces.emplace_back(piece_commitment_a_size.padded(), piece_cid_a);
-  public_pieces.emplace_back(piece_commitment_b_size.padded(), piece_cid_b);
+  ASSERT_EQ(res_b.total_write_unpadded, 1905);
+
+  ASSERT_EQ(res_b.piece_cid, piece_cid_b);
+
+  std::vector<PieceInfo> public_pieces = {
+      PieceInfo(piece_commitment_a_size.padded(), piece_cid_a),
+      PieceInfo(piece_commitment_b_size.padded(), piece_cid_b),
+  };
 
   EXPECT_OUTCOME_TRUE(
-      preGeneratedUnsealedCID,
+      pregenerated_unsealed_cid,
       Proofs::generateUnsealedCID(seal_proof_type, public_pieces));
 
-  // pre-commit the sector
-  EXPECT_OUTCOME_TRUE(sealPreCommitPhase1Output,
+  EXPECT_OUTCOME_TRUE(seal_precommit_phase1_output,
                       Proofs::sealPreCommitPhase1(seal_proof_type,
                                                   sector_cache_dir_path,
                                                   staged_sector_file,
@@ -162,11 +167,11 @@ TEST_F(ProofsTest, Lifecycle) {
                                                   public_pieces));
 
   EXPECT_OUTCOME_TRUE(sealedAndUnsealedCID,
-                      Proofs::sealPreCommitPhase2(sealPreCommitPhase1Output,
+                      Proofs::sealPreCommitPhase2(seal_precommit_phase1_output,
                                                   sector_cache_dir_path,
                                                   sealed_sector_file));
 
-  ASSERT_EQ(sealedAndUnsealedCID.second, preGeneratedUnsealedCID);
+  ASSERT_EQ(sealedAndUnsealedCID.second, pregenerated_unsealed_cid);
 
   // commit the sector
   EXPECT_OUTCOME_TRUE(seal_commit_phase1_output,
@@ -174,6 +179,7 @@ TEST_F(ProofsTest, Lifecycle) {
                                                sealedAndUnsealedCID.first,
                                                sealedAndUnsealedCID.second,
                                                sector_cache_dir_path,
+                                               sealed_sector_file,
                                                sector_num,
                                                miner_id,
                                                ticket,
@@ -236,8 +242,8 @@ TEST_F(ProofsTest, Lifecycle) {
 
   ASSERT_EQ(gsl::make_span(file_a_bytes.data(), 127),
             gsl::make_span(some_bytes.data(), 127));
-  ASSERT_EQ(gsl::make_span(file_a_bytes.data() + 508, 508),
-            gsl::make_span(some_bytes.data(), 508));
+  ASSERT_EQ(gsl::make_span(file_a_bytes.data() + 1016, 1016),
+            gsl::make_span(some_bytes.data(), 1016));
 
   EXPECT_OUTCOME_TRUE_1(Proofs::unsealRange(seal_proof_type,
                                             sector_cache_dir_path,
@@ -263,13 +269,13 @@ TEST_F(ProofsTest, Lifecycle) {
                                             miner_id,
                                             ticket,
                                             sealedAndUnsealedCID.second,
-                                            508,
-                                            508));
+                                            1016,
+                                            1016));
 
   std::vector<uint8_t> file_c_bytes = read_file(unseal_output_file_c);
 
   ASSERT_EQ(gsl::make_span(file_c_bytes),
-            gsl::make_span(some_bytes.data(), 508));
+            gsl::make_span(some_bytes.data(), 1016));
 
   std::vector<PrivateSectorInfo> private_replicas_info = {PrivateSectorInfo{
       .info =
@@ -290,6 +296,12 @@ TEST_F(ProofsTest, Lifecycle) {
   }};
   auto public_info = Proofs::newSortedPublicSectorInfo(public_sectors_info);
 
+  std::vector<SectorInfo> elignable_sectors = {SectorInfo{
+      .registered_proof = seal_proof_type,
+      .sector = sector_num,
+      .sealed_cid = sealedAndUnsealedCID.first,
+  }};
+
   EXPECT_OUTCOME_TRUE(candidates_with_tickets,
                       Proofs::generateCandidates(
                           miner_id, randomness, challenge_count, private_info))
@@ -300,15 +312,17 @@ TEST_F(ProofsTest, Lifecycle) {
   }
 
   EXPECT_OUTCOME_TRUE(
-      proof_a,
+      proofs,
       Proofs::generatePoSt(miner_id, private_info, randomness, candidates))
 
   EXPECT_OUTCOME_TRUE(res,
-                      Proofs::verifyPoSt(public_info,
-                                         randomness,
-                                         challenge_count,
-                                         proof_a,
-                                         candidates,
-                                         miner_id));
+                      Proofs::verifyPoSt(PoStVerifyInfo{
+                          .randomness = randomness,
+                          .candidates = candidates,
+                          .proofs = proofs,
+                          .eligible_sectors = elignable_sectors,
+                          .prover = miner_id,
+                          .challenge_count = challenge_count,
+                      }));
   ASSERT_TRUE(res);
 }

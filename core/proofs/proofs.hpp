@@ -36,7 +36,9 @@ namespace fc::proofs {
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::InteractiveRandomness;
   using primitives::sector::PoStCandidate;
+  using primitives::sector::PoStProof;
   using primitives::sector::PoStRandomness;
+  using primitives::sector::PoStVerifyInfo;
   using primitives::sector::Proof;
   using primitives::sector::SealRandomness;
   using primitives::sector::SealVerifyInfo;
@@ -99,14 +101,13 @@ namespace fc::proofs {
         const UnpaddedPieceSize &piece_bytes,
         const std::string &staged_sector_file_path);
 
-    // existing_piece_sizes should be UnpaddedPieceSize, but for prevent copy
-    // array it is uint64 span
+
     static outcome::result<WriteWithAlignmentResult> writeWithAlignment(
         RegisteredProof proof_type,
         const std::string &piece_file_path,
         const UnpaddedPieceSize &piece_bytes,
         const std::string &staged_sector_file_path,
-        gsl::span<const uint64_t> existing_piece_sizes);
+        gsl::span<const UnpaddedPieceSize> existing_piece_sizes);
 
     /**
      * @brief  Seals the staged sector at staged_sector_path in place, saving
@@ -132,6 +133,7 @@ namespace fc::proofs {
         const CID &sealed_cid,
         const CID &unsealed_cid,
         const std::string &cache_dir_path,
+        const std::string &sealed_sector_path,
         SectorNumber sector_num,
         ActorId miner_id,
         const SealRandomness &ticket,
@@ -164,7 +166,7 @@ namespace fc::proofs {
     /**
      * @brief Generate a proof-of-spacetime
      */
-    static outcome::result<Proof> generatePoSt(
+    static outcome::result<std::vector<PoStProof>> generatePoSt(
         ActorId miner_id,
         const SortedPrivateSectorInfo &private_replica_info,
         const PoStRandomness &randomness,
@@ -173,13 +175,7 @@ namespace fc::proofs {
     /**
      * @brief Verifies a proof-of-spacetime
      */
-    static outcome::result<bool> verifyPoSt(
-        const SortedPublicSectorInfo &public_sector_info,
-        const PoStRandomness &randomness,
-        uint64_t challenge_count,
-        gsl::span<const uint8_t> proof,
-        gsl::span<const PoStCandidate> winners,
-        ActorId miner_id);
+    static outcome::result<bool> verifyPoSt(const PoStVerifyInfo &info);
 
     /**
      * VerifySeal returns true if the sealing operation from which its inputs

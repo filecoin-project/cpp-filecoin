@@ -29,6 +29,8 @@ namespace fc::proofs {
   using common::pieceCommitmentV1ToCID;
   using common::replicaCommitmentV1ToCID;
   using crypto::randomness::Randomness;
+  using primitives::sector::getRegisteredPoStProof;
+  using primitives::sector::getRegisteredSealProof;
   using primitives::sector::SectorId;
 
   template <typename T, typename D>
@@ -39,6 +41,47 @@ namespace fc::proofs {
   // ******************
   // TO CPP CASTED FUNCTIONS
   // ******************
+
+  outcome::result<RegisteredProof> cppRegisteredPoStProof(
+      FFIRegisteredPoStProof proof_type) {
+    switch (proof_type) {
+      case FFIRegisteredPoStProof_StackedDrg2KiBV1:
+        return RegisteredProof::StackedDRG2KiBPoSt;
+      case FFIRegisteredPoStProof_StackedDrg8MiBV1:
+        return RegisteredProof::StackedDRG8MiBPoSt;
+      case FFIRegisteredPoStProof_StackedDrg512MiBV1:
+        return RegisteredProof::StackedDRG512MiBPoSt;
+      case FFIRegisteredPoStProof_StackedDrg32GiBV1:
+        return RegisteredProof::StackedDRG32GiBPoSt;
+      default:
+        return ProofsError::INVALID_POST_PROOF;
+    }
+  }
+
+  outcome::result<PoStProof> cppPoStProof(const FFIPoStProof &c_post_proof) {
+    PoStProof cpp_post_proof{};
+
+    OUTCOME_TRY(cpp_registered_proof,
+                cppRegisteredPoStProof(c_post_proof.registered_proof));
+    cpp_post_proof.registered_proof = cpp_registered_proof;
+    std::copy(c_post_proof.proof_ptr,
+              c_post_proof.proof_ptr + c_post_proof.proof_len,  // NOLINT
+              std::back_inserter(cpp_post_proof.proof));
+
+    return cpp_post_proof;
+  }
+
+  outcome::result<std::vector<PoStProof>> cppPoStProofs(
+      gsl::span<const FFIPoStProof> c_post_proofs) {
+    std::vector<PoStProof> cpp_post_proofs = {};
+
+    for (const auto &c_post_proof : c_post_proofs) {
+      OUTCOME_TRY(cpp_post_proof, cppPoStProof(c_post_proof));
+      cpp_post_proofs.push_back(cpp_post_proof);
+    }
+
+    return cpp_post_proofs;
+  }
 
   PoStCandidateWithTicket cppCandidateWithTicket(
       const FFICandidate &c_candidate) {
@@ -94,15 +137,14 @@ namespace fc::proofs {
 
   outcome::result<FFIRegisteredPoStProof> cRegisteredPoStProof(
       RegisteredProof proof_type) {
-    switch (proof_type) {
-      case RegisteredProof::StackedDRG1KiBPoSt:
-        return FFIRegisteredPoStProof_StackedDrg1KiBV1;
-      case RegisteredProof::StackedDRG16MiBPoSt:
-        return FFIRegisteredPoStProof_StackedDrg16MiBV1;
-      case RegisteredProof::StackedDRG256MiBPoSt:
-        return FFIRegisteredPoStProof_StackedDrg256MiBV1;
-      case RegisteredProof::StackedDRG1GiBPoSt:
-        return FFIRegisteredPoStProof_StackedDrg1GiBV1;
+    OUTCOME_TRY(post_proof, getRegisteredPoStProof(proof_type));
+    switch (post_proof) {
+      case RegisteredProof::StackedDRG2KiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg2KiBV1;
+      case RegisteredProof::StackedDRG8MiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg8MiBV1;
+      case RegisteredProof::StackedDRG512MiBPoSt:
+        return FFIRegisteredPoStProof_StackedDrg512MiBV1;
       case RegisteredProof::StackedDRG32GiBPoSt:
         return FFIRegisteredPoStProof_StackedDrg32GiBV1;
       default:
@@ -112,15 +154,14 @@ namespace fc::proofs {
 
   outcome::result<FFIRegisteredSealProof> cRegisteredSealProof(
       RegisteredProof proof_type) {
-    switch (proof_type) {
-      case RegisteredProof::StackedDRG1KiBSeal:
-        return FFIRegisteredSealProof_StackedDrg1KiBV1;
-      case RegisteredProof::StackedDRG16MiBSeal:
-        return FFIRegisteredSealProof_StackedDrg16MiBV1;
-      case RegisteredProof::StackedDRG256MiBSeal:
-        return FFIRegisteredSealProof_StackedDrg256MiBV1;
-      case RegisteredProof::StackedDRG1GiBSeal:
-        return FFIRegisteredSealProof_StackedDrg1GiBV1;
+    OUTCOME_TRY(seal_proof, getRegisteredSealProof(proof_type));
+    switch (seal_proof) {
+      case RegisteredProof::StackedDRG2KiBSeal:
+        return FFIRegisteredSealProof_StackedDrg2KiBV1;
+      case RegisteredProof::StackedDRG8MiBSeal:
+        return FFIRegisteredSealProof_StackedDrg8MiBV1;
+      case RegisteredProof::StackedDRG512MiBSeal:
+        return FFIRegisteredSealProof_StackedDrg512MiBV1;
       case RegisteredProof::StackedDRG32GiBSeal:
         return FFIRegisteredSealProof_StackedDrg32GiBV1;
       default:
@@ -249,30 +290,57 @@ namespace fc::proofs {
     return c_public_pieces_info;
   }
 
+  outcome::result<FFIPoStProof> cPoStProof(const PoStProof &cpp_post_proof) {
+    OUTCOME_TRY(c_proof, cRegisteredPoStProof(cpp_post_proof.registered_proof));
+    return FFIPoStProof{
+        .registered_proof = c_proof,
+        .proof_ptr = cpp_post_proof.proof.data(),
+        .proof_len = cpp_post_proof.proof.size(),
+    };
+  }
+
+  outcome::result<std::vector<FFIPoStProof>> cPoStProofs(
+      gsl::span<const PoStProof> cpp_post_proofs) {
+    std::vector<FFIPoStProof> c_proofs = {};
+    for (const auto &cpp_post_proof : cpp_post_proofs) {
+      OUTCOME_TRY(c_post_proof, cPoStProof(cpp_post_proof));
+      c_proofs.push_back(c_post_proof);
+    }
+    return c_proofs;
+  }
+
   // ******************
   // VERIFIED FUNCTIONS
   // ******************
 
-  outcome::result<bool> Proofs::verifyPoSt(
-      const SortedPublicSectorInfo &public_sector_info,
-      const PoStRandomness &randomness,
-      uint64_t challenge_count,
-      gsl::span<const uint8_t> proof,
-      gsl::span<const PoStCandidate> winners,
-      ActorId miner_id) {
+  outcome::result<bool> Proofs::verifyPoSt(const PoStVerifyInfo &info) {
+    std::vector<PublicSectorInfo> public_sector_info = {};
+
+    for (const auto &sector_info : info.eligible_sectors) {
+      public_sector_info.push_back(PublicSectorInfo{
+          .sealed_cid = sector_info.sealed_cid,
+          .sector_num = sector_info.sector,
+          .post_proof_type = sector_info.registered_proof,
+      });
+    }
+
+    auto sorted_public_sector_info =
+        newSortedPublicSectorInfo(public_sector_info);
     OUTCOME_TRY(c_public_sector_info,
-                cPublicReplicasInfo(public_sector_info.values));
+                cPublicReplicasInfo(sorted_public_sector_info.values));
 
-    std::vector<FFICandidate> c_winners = cCandidates(winners);
+    std::vector<FFICandidate> c_winners = cCandidates(info.candidates);
 
-    auto prover_id = toProverID(miner_id);
+    auto prover_id = toProverID(info.prover);
 
-    auto res_ptr = make_unique(verify_post(cPointerToArray(randomness),
-                                           challenge_count,
+    OUTCOME_TRY(c_post_proofs, cPoStProofs(gsl::make_span(info.proofs)));
+
+    auto res_ptr = make_unique(verify_post(cPointerToArray(info.randomness),
+                                           info.challenge_count,
                                            c_public_sector_info.data(),
                                            c_public_sector_info.size(),
-                                           proof.data(),
-                                           proof.size(),
+                                           c_post_proofs.data(),
+                                           c_post_proofs.size(),
                                            c_winners.data(),
                                            c_winners.size(),
                                            cPointerToArray(prover_id)),
@@ -346,7 +414,7 @@ namespace fc::proofs {
         res_ptr->candidates_ptr, res_ptr->candidates_len));
   }
 
-  outcome::result<Proof> Proofs::generatePoSt(
+  outcome::result<std::vector<PoStProof>> Proofs::generatePoSt(
       ActorId miner_id,
       const SortedPrivateSectorInfo &private_replica_info,
       const PoStRandomness &randomness,
@@ -371,9 +439,8 @@ namespace fc::proofs {
       return ProofsError::UNKNOWN;
     }
 
-    return Proof(res_ptr->flattened_proofs_ptr,
-                 res_ptr->flattened_proofs_ptr
-                     + res_ptr->flattened_proofs_len);  // NOLINT
+    return cppPoStProofs(
+        gsl::make_span(res_ptr->proofs_ptr, res_ptr->proofs_len));  // NOLINT
   }
 
   outcome::result<WriteWithoutAlignmentResult> Proofs::writeWithoutAlignment(
@@ -390,7 +457,8 @@ namespace fc::proofs {
     }
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
-    if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR))
+    if ((staged_sector_fd =
+             open(staged_sector_file_path.c_str(), O_RDWR | O_APPEND))
         == -1) {
       // NOLINTNEXTLINE(readability-implicit-bool-conversion)
       if (close(piece_fd))
@@ -427,7 +495,7 @@ namespace fc::proofs {
       const std::string &piece_file_path,
       const UnpaddedPieceSize &piece_bytes,
       const std::string &staged_sector_file_path,
-      gsl::span<const uint64_t> existing_piece_sizes) {
+      gsl::span<const UnpaddedPieceSize> existing_piece_sizes) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
     int piece_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
@@ -436,7 +504,8 @@ namespace fc::proofs {
     }
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
-    if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR))
+    if ((staged_sector_fd =
+             open(staged_sector_file_path.c_str(), O_RDWR | O_APPEND))
         == -1) {
       // NOLINTNEXTLINE(readability-implicit-bool-conversion)
       if (close(piece_fd))
@@ -445,14 +514,18 @@ namespace fc::proofs {
       return ProofsError::CANNOT_OPEN_FILE;
     }
 
-    auto res_ptr =
-        make_unique(write_with_alignment(c_proof_type,
-                                         piece_fd,
-                                         uint64_t(piece_bytes),
-                                         staged_sector_fd,
-                                         existing_piece_sizes.data(),
-                                         existing_piece_sizes.size()),
-                    destroy_write_with_alignment_response);
+    std::vector<uint64_t> raw = {};
+    std::copy(existing_piece_sizes.cbegin(),
+              existing_piece_sizes.cend(),
+              std::back_inserter(raw));
+
+    auto res_ptr = make_unique(write_with_alignment(c_proof_type,
+                                                    piece_fd,
+                                                    uint64_t(piece_bytes),
+                                                    staged_sector_fd,
+                                                    raw.data(),
+                                                    raw.size()),
+                               destroy_write_with_alignment_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
@@ -494,7 +567,6 @@ namespace fc::proofs {
                                            cPointerToArray(ticket),
                                            c_pieces.data(),
                                            c_pieces.size()),
-
                     destroy_seal_pre_commit_phase1_response);
 
     if (res_ptr->status_code != 0) {
@@ -537,6 +609,7 @@ namespace fc::proofs {
       const CID &sealed_cid,
       const CID &unsealed_cid,
       const std::string &cache_dir_path,
+      const std::string &sealed_sector_path,
       SectorNumber sector_num,
       ActorId miner_id,
       const SealRandomness &ticket,
@@ -556,6 +629,7 @@ namespace fc::proofs {
                                                   cPointerToArray(comm_r),
                                                   cPointerToArray(comm_d),
                                                   cache_dir_path.c_str(),
+                                                  sealed_sector_path.c_str(),
                                                   sector_num,
                                                   cPointerToArray(prover_id),
                                                   cPointerToArray(ticket),

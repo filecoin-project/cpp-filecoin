@@ -192,7 +192,9 @@ namespace fc::vm::actor::builtin::miner {
   outcome::result<EpochDuration> maxSealDuration(RegisteredProof type) {
     switch (type) {
       case RegisteredProof::StackedDRG32GiBSeal:
-      case RegisteredProof::WinStackedDRG32GiBSeal:
+      case RegisteredProof::StackedDRG2KiBSeal:
+      case RegisteredProof::StackedDRG8MiBSeal:
+      case RegisteredProof::StackedDRG512MiBSeal:
         return 10000;
       default:
         break;

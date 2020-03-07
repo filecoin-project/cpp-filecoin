@@ -16,4 +16,5 @@ target_link_libraries(proofs
         comm_cid
         piece
         address
+        sector
         )

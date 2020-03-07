@@ -28,7 +28,7 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::address::Address;
   using primitives::sector::OnChainPoStVerifyInfo;
   using primitives::sector::RegisteredProof;
-  using primitives::sector::SealProof;
+  using primitives::sector::Proof;
 
   using PeerId = std::string;
 
@@ -159,7 +159,7 @@ namespace fc::vm::actor::builtin::miner {
 
   struct ProveCommitSectorParams {
     SectorNumber sector;
-    SealProof proof;
+    Proof proof;
   };
 
   struct ExtendSectorExpirationParams {
