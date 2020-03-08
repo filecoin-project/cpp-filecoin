@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/ticket/ticket.hpp"
+#include "filecoin/primitives/ticket/ticket.hpp"
 
 #include <gtest/gtest.h>
-#include "common/hexutil.hpp"
+#include "filecoin/common/hexutil.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/primitives/ticket/printer.hpp"

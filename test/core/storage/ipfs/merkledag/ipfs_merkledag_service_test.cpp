@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipfs/merkledag/impl/merkledag_service_impl.hpp"
+#include "filecoin/storage/ipfs/merkledag/impl/merkledag_service_impl.hpp"
 
 #include <gtest/gtest.h>
 #include <libp2p/multi/content_identifier_codec.hpp>
 #include <testutil/outcome.hpp>
-#include "core/storage/ipfs/merkledag/ipfs_merkledag_dataset.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "storage/ipfs/impl/ipfs_block_service.hpp"
+#include "ipfs_merkledag_dataset.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/storage/ipfs/impl/ipfs_block_service.hpp"
 
 using namespace fc::storage::ipfs;
 using namespace fc::storage::ipld;

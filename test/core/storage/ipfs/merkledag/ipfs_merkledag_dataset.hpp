@@ -7,7 +7,7 @@
 #define CORE_STORAGE_IPFS_MERKLEDAG_NODE_LIBRARY
 
 #include <libp2p/multi/content_identifier_codec.hpp>
-#include "storage/ipld/impl/ipld_node_impl.hpp"
+#include "filecoin/storage/ipld/impl/ipld_node_impl.hpp"
 
 namespace dataset {
   using fc::storage::ipld::IPLDNode;

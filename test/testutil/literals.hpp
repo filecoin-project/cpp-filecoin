@@ -6,8 +6,8 @@
 #ifndef CPP_FILECOIN_TEST_TESTUTIL_LITERALS_HPP
 #define CPP_FILECOIN_TEST_TESTUTIL_LITERALS_HPP
 
-#include "common/blob.hpp"
-#include "common/hexutil.hpp"
+#include "filecoin/common/blob.hpp"
+#include "filecoin/common/hexutil.hpp"
 
 inline std::vector<uint8_t> operator""_unhex(const char *c, size_t s) {
   return fc::common::unhex(std::string_view(c, s)).value();

@@ -8,7 +8,7 @@
 
 #include <gmock/gmock.h>
 
-#include "storage/ipfs/datastore.hpp"
+#include "filecoin/storage/ipfs/datastore.hpp"
 
 namespace fc::storage::ipfs {
 

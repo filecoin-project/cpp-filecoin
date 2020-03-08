@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/config/config_error.hpp"
+#include "filecoin/storage/config/config_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::config, ConfigError, e) {
   using fc::storage::config::ConfigError;

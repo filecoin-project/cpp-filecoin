@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/runtime/runtime_error.hpp"
+#include "filecoin/vm/runtime/runtime_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::runtime, RuntimeError, e) {
   using fc::vm::runtime::RuntimeError;

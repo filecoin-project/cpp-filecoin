@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/address/address.hpp"
+#include "filecoin/primitives/address/address.hpp"
 
 #include <gtest/gtest.h>
 

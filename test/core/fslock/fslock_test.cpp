@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "fslock/fslock.hpp"
+#include "filecoin/fslock/fslock.hpp"
 
 #include <gtest/gtest.h>
 #include <thread>
-#include "fslock/fslock_error.hpp"
-#include "storage/filestore/impl/filesystem/filesystem_file.hpp"
+#include "filecoin/fslock/fslock_error.hpp"
+#include "filecoin/storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 

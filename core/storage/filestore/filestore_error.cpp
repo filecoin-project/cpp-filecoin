@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/filestore/filestore_error.hpp"
+#include "filecoin/storage/filestore/filestore_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::filestore, FileStoreError, e) {
   using fc::storage::filestore::FileStoreError;

@@ -7,8 +7,8 @@
 #include <algorithm>
 #include <unordered_map>
 
-#include "codec/cbor/cbor.hpp"
-#include "primitives/address/address_codec.hpp"
+#include "filecoin/codec/cbor/cbor.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 

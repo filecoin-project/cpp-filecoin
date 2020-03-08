@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/cid/comm_cid.hpp"
+#include "filecoin/primitives/cid/comm_cid.hpp"
 #include <libp2p/multi/uvarint.hpp>
-#include "primitives/cid/comm_cid_errors.hpp"
+#include "filecoin/primitives/cid/comm_cid_errors.hpp"
 
 namespace fc::common {
 

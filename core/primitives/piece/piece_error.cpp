@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/piece/piece_error.hpp"
+#include "filecoin/primitives/piece/piece_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::piece, PieceError, e) {
   using fc::primitives::piece::PieceError;

@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "filecoin/storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 
 #include <gtest/gtest.h>
 
-#include "crypto/blake2/blake2b.h"
-#include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "crypto/secp256k1/secp256k1_provider.hpp"
-#include "primitives/address/address_codec.hpp"
+#include "filecoin/crypto/blake2/blake2b.h"
+#include "filecoin/crypto/bls/impl/bls_provider_impl.hpp"
+#include "filecoin/crypto/secp256k1/secp256k1_provider.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::crypto::bls::BlsProvider;

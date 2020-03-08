@@ -17,6 +17,11 @@ function (filecoin_install targets)
 endfunction()
 
 install(
+    DIRECTORY ${CMAKE_SOURCE_DIR}/include/filecoin
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+install(
     EXPORT filecoinConfig
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/filecoin
     NAMESPACE filecoin::

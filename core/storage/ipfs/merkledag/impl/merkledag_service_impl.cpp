@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipfs/merkledag/impl/merkledag_service_impl.hpp"
+#include "filecoin/storage/ipfs/merkledag/impl/merkledag_service_impl.hpp"
 
 #include <boost/assert.hpp>
 #include <libp2p/multi/content_identifier_codec.hpp>
-#include "storage/ipld/impl/ipld_node_impl.hpp"
+#include "filecoin/storage/ipld/impl/ipld_node_impl.hpp"
 
 using libp2p::multi::ContentIdentifierCodec;
 

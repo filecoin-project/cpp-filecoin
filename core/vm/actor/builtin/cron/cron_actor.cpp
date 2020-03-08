@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/cron/cron_actor.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
+#include "filecoin/vm/actor/builtin/cron/cron_actor.hpp"
+#include "filecoin/vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 
 namespace fc::vm::actor::builtin::cron {
   /**

@@ -8,14 +8,14 @@
 
 #include <gtest/gtest.h>
 #include <libp2p/multi/content_identifier_codec.hpp>
-#include "blockchain/message_pool/message_storage.hpp"
-#include "blockchain/production/impl/block_producer_impl.hpp"
-#include "clock/impl/chain_epoch_clock_impl.hpp"
-#include "clock/time.hpp"
-#include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "primitives/address/address.hpp"
-#include "primitives/cid/cid.hpp"
-#include "primitives/tipset/tipset.hpp"
+#include "filecoin/blockchain/message_pool/message_storage.hpp"
+#include "filecoin/blockchain/production/impl/block_producer_impl.hpp"
+#include "filecoin/clock/impl/chain_epoch_clock_impl.hpp"
+#include "filecoin/clock/time.hpp"
+#include "filecoin/crypto/bls/impl/bls_provider_impl.hpp"
+#include "filecoin/primitives/address/address.hpp"
+#include "filecoin/primitives/cid/cid.hpp"
+#include "filecoin/primitives/tipset/tipset.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/blockchain/message_pool/message_storage_mock.hpp"

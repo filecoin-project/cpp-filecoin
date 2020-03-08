@@ -5,10 +5,10 @@
 
 #include <gtest/gtest.h>
 
-#include "adt/multimap.hpp"
-#include "common/outcome.hpp"
-#include "storage/hamt/hamt.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/adt/multimap.hpp"
+#include "filecoin/common/outcome.hpp"
+#include "filecoin/storage/hamt/hamt.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
 

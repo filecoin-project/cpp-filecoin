@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/repository/repository_error.hpp"
+#include "filecoin/storage/repository/repository_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::repository, RepositoryError, e) {
   using fc::storage::repository::RepositoryError;

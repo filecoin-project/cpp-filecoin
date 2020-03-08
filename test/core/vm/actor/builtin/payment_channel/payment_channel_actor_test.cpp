@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/payment_channel/payment_channel_actor.hpp"
+#include "filecoin/vm/actor/builtin/payment_channel/payment_channel_actor.hpp"
 
 #include "gtest/gtest.h"
-#include "primitives/address/address.hpp"
+#include "filecoin/primitives/address/address.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/storage/ipfs/ipfs_datastore_mock.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
+#include "filecoin/vm/actor/actor_method.hpp"
+#include "filecoin/vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 
 using fc::primitives::address::Address;
 using fc::storage::ipfs::MockIpfsDatastore;

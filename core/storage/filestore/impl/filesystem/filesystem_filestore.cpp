@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/filestore/impl/filesystem/filesystem_filestore.hpp"
+#include "filecoin/storage/filestore/impl/filesystem/filesystem_filestore.hpp"
 #include "boost/filesystem.hpp"
-#include "storage/filestore/filestore_error.hpp"
-#include "storage/filestore/impl/filesystem/filesystem_file.hpp"
+#include "filecoin/storage/filestore/filestore_error.hpp"
+#include "filecoin/storage/filestore/impl/filesystem/filesystem_file.hpp"
 
 using fc::storage::filestore::File;
 using fc::storage::filestore::FileStoreError;

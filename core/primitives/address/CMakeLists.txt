@@ -4,7 +4,7 @@
 filecoin_add_library(filecoin_address
     address.cpp
     address_codec.cpp
-        ../piece/piece.hpp ../piece/piece.hpp)
+    )
 target_link_libraries(filecoin_address
     Boost::boost
     filecoin_blake2

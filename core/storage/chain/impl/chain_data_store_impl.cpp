@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/chain/impl/chain_data_store_impl.hpp"
+#include "filecoin/storage/chain/impl/chain_data_store_impl.hpp"
 
-#include "primitives/cid/cid_of_cbor.hpp"
+#include "filecoin/primitives/cid/cid_of_cbor.hpp"
 
 namespace fc::storage::blockchain {
   using primitives::cid::getCidOfCbor;

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/chain/impl/chain_data_store_impl.hpp"
+#include "filecoin/storage/chain/impl/chain_data_store_impl.hpp"
 
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include <gtest/gtest.h>
 #include "testutil/outcome.hpp"
 

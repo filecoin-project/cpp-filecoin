@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/exit_code/exit_code.hpp"
+#include "filecoin/vm/exit_code/exit_code.hpp"
 
 #include <sstream>
 
 #include <boost/assert.hpp>
 
-#include "common/enum.hpp"
+#include "filecoin/common/enum.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm, VMExitCode, e) {
   return "vm exit code";

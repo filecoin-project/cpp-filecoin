@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "power/impl/power_table_hamt.hpp"
+#include "filecoin/power/impl/power_table_hamt.hpp"
 
-#include "power/power_table_error.hpp"
-#include "primitives/address/address_codec.hpp"
+#include "filecoin/power/power_table_error.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
 
 using fc::power::Power;
 using fc::power::PowerTableError;

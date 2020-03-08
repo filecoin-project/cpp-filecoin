@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/exit_code/exit_code.hpp"
+#include "filecoin/vm/exit_code/exit_code.hpp"
 
 #include <gtest/gtest.h>
 

@@ -7,8 +7,8 @@
 #define CPP_FILECOIN_GTEST_OUTCOME_UTIL_HPP
 
 #include <gtest/gtest.h>
-#include "common/outcome.hpp"
-#include "common/visitor.hpp"
+#include "filecoin/common/outcome.hpp"
+#include "filecoin/common/visitor.hpp"
 
 #define PP_CAT(a, b) PP_CAT_I(a, b)
 #define PP_CAT_I(a, b) PP_CAT_II(~, a##b)

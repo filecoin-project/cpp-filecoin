@@ -2,10 +2,10 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-#include "vm/message/message_util.hpp"
+#include "filecoin/vm/message/message_util.hpp"
 
-#include "codec/cbor/cbor.hpp"
-#include "crypto/signature/signature.hpp"
+#include "filecoin/codec/cbor/cbor.hpp"
+#include "filecoin/crypto/signature/signature.hpp"
 
 namespace fc::vm::message {
 

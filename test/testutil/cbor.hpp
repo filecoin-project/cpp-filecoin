@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_TEST_TESTUTIL_CBOR_HPP
 #define CPP_FILECOIN_TEST_TESTUTIL_CBOR_HPP
 
-#include "codec/cbor/cbor.hpp"
+#include "filecoin/codec/cbor/cbor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 

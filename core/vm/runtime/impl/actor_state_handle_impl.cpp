@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/runtime/impl/actor_state_handle_impl.hpp"
+#include "filecoin/vm/runtime/impl/actor_state_handle_impl.hpp"
 
 using fc::vm::actor::ActorSubstateCID;
 using fc::vm::runtime::ActorStateHandleImpl;

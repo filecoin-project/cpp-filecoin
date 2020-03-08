@@ -8,7 +8,7 @@
 
 #include <gmock/gmock.h>
 
-#include "storage/chain/chain_data_store.hpp"
+#include "filecoin/storage/chain/chain_data_store.hpp"
 
 namespace fc::storage::blockchain {
   class ChainDataStoreMock: public ChainDataStore {

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "codec/rle/rle_plus_encoding_stream.hpp"
+#include "filecoin/codec/rle/rle_plus_encoding_stream.hpp"
 
 namespace fc::codec::rle {
   void RLEPlusEncodingStream::initContent() {

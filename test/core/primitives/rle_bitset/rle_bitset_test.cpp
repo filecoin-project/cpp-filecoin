@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/rle_bitset/rle_bitset.hpp"
+#include "filecoin/primitives/rle_bitset/rle_bitset.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/cbor.hpp"

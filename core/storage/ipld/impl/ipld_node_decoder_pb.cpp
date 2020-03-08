@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipld/impl/ipld_node_decoder_pb.hpp"
+#include "filecoin/storage/ipld/impl/ipld_node_decoder_pb.hpp"
 
 namespace fc::storage::ipld {
   outcome::result<void> IPLDNodeDecoderPB::decode(

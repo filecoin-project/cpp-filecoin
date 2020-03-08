@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/impl/block_validator_impl.hpp"
+#include "filecoin/blockchain/impl/block_validator_impl.hpp"
 
 namespace fc::blockchain::block_validator {
   // TODO (yuraz): FIL-87 implement proper validation

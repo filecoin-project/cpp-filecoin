@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/buffer.hpp"
+#include "filecoin/common/buffer.hpp"
 
 using fc::common::Buffer;
 

@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/reward/reward_actor.hpp"
+#include "filecoin/vm/actor/builtin/reward/reward_actor.hpp"
 
-#include "adt/multimap.hpp"
-#include "primitives/address/address_codec.hpp"
-#include "vm/exit_code/exit_code.hpp"
+#include "filecoin/adt/multimap.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
+#include "filecoin/vm/exit_code/exit_code.hpp"
 
 using fc::adt::Multimap;
 

@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/tipset/tipset.hpp"
+#include "filecoin/primitives/tipset/tipset.hpp"
 
-#include "common/logger.hpp"
-#include "primitives/address/address_codec.hpp"
-#include "primitives/cid/cid_of_cbor.hpp"
+#include "filecoin/common/logger.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
+#include "filecoin/primitives/cid/cid_of_cbor.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
   using fc::primitives::tipset::TipsetError;

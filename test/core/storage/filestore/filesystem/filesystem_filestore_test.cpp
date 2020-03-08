@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/filestore/impl/filesystem/filesystem_filestore.hpp"
+#include "filecoin/storage/filestore/impl/filesystem/filesystem_filestore.hpp"
 
 #include <gtest/gtest.h>
-#include "storage/filestore/filestore_error.hpp"
+#include "filecoin/storage/filestore/filestore_error.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 

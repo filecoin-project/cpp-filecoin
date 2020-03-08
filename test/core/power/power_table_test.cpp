@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "power/power_table.hpp"
+#include "filecoin/power/power_table.hpp"
 
 #include <gtest/gtest.h>
 
-#include "power/impl/power_table_impl.hpp"
-#include "power/power_table_error.hpp"
+#include "filecoin/power/impl/power_table_impl.hpp"
+#include "filecoin/power/power_table_error.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::power::PowerTable;

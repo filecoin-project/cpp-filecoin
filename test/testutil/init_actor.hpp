@@ -2,10 +2,10 @@
 #define CPP_FILECOIN_TEST_TESTUTIL_INIT_ACTOR_HPP
 
 #include <gtest/gtest.h>
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
-#include "vm/actor/builtin/init/init_actor.hpp"
-#include "vm/state/impl/state_tree_impl.hpp"
+#include "filecoin/vm/actor/builtin/init/init_actor.hpp"
+#include "filecoin/vm/state/impl/state_tree_impl.hpp"
 
 /// Sets up init actor state
 std::shared_ptr<fc::vm::state::StateTree> setupInitActor(

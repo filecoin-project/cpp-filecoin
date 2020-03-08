@@ -8,8 +8,8 @@
 
 #include <list>
 
-#include "storage/face/generic_iterator.hpp"
-#include "storage/face/generic_list.hpp"
+#include "filecoin/storage/face/generic_iterator.hpp"
+#include "filecoin/storage/face/generic_list.hpp"
 
 namespace test {
 

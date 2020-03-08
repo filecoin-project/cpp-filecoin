@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/vrf/impl/vrf_provider_impl.hpp"
-#include "crypto/vrf/vrf_hash_encoder.hpp"
+#include "filecoin/crypto/vrf/impl/vrf_provider_impl.hpp"
+#include "filecoin/crypto/vrf/vrf_hash_encoder.hpp"
 
-#include "common/outcome.hpp"
+#include "filecoin/common/outcome.hpp"
 
 namespace fc::crypto::vrf {
 

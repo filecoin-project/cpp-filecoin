@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/hamt/hamt.hpp"
+#include "filecoin/storage/hamt/hamt.hpp"
 
 #include <gtest/gtest.h>
-#include "codec/cbor/cbor.hpp"
-#include "common/which.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/codec/cbor/cbor.hpp"
+#include "filecoin/common/which.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
 
 using fc::codec::cbor::encode;

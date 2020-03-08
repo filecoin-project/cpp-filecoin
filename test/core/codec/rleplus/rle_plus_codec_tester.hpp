@@ -10,7 +10,7 @@
 
 #include <gtest/gtest.h>
 
-#include "codec/rle/rle_plus.hpp"
+#include "filecoin/codec/rle/rle_plus.hpp"
 #include "testutil/outcome.hpp"
 
 /**

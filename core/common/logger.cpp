@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/logger.hpp"
+#include "filecoin/common/logger.hpp"
 
 #include <spdlog/sinks/stdout_color_sinks.h>
 

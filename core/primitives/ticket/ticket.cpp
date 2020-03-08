@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/ticket/ticket.hpp"
+#include "filecoin/primitives/ticket/ticket.hpp"
 
-#include "common/le_encoder.hpp"
+#include "filecoin/common/le_encoder.hpp"
 
 namespace fc::primitives::ticket {
   using crypto::randomness::Randomness;

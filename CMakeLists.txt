@@ -110,7 +110,7 @@ endif()
 
 include_directories(
     # project includes
-    ${PROJECT_SOURCE_DIR}/core
+    ${PROJECT_SOURCE_DIR}/include
 )
 
 if (BUILD_INTERNAL_DEPS)

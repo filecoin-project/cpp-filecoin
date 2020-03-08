@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/murmur/murmur.hpp"
+#include "filecoin/crypto/murmur/murmur.hpp"
 
-#include <common/buffer.hpp>
+#include "filecoin/common/buffer.hpp"
 
 namespace fc::crypto::murmur {
   uint64_t getUint64LE(gsl::span<const uint8_t> bytes) {

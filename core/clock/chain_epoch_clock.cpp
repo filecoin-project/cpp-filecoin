@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "clock/chain_epoch_clock.hpp"
+#include "filecoin/clock/chain_epoch_clock.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::clock, EpochAtTimeError, e) {
   using fc::clock::EpochAtTimeError;

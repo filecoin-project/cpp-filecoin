@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/le_encoder.hpp"
+#include "filecoin/common/le_encoder.hpp"
 
 #include <gtest/gtest.h>
 

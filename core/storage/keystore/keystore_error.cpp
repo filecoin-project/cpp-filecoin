@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/keystore/keystore_error.hpp"
+#include "filecoin/storage/keystore/keystore_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::keystore, KeyStoreError, e) {
   using fc::storage::keystore::KeyStoreError;

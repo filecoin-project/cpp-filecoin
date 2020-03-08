@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/cid/json_codec.hpp"
+#include "filecoin/primitives/cid/json_codec.hpp"
 
 #include <gtest/gtest.h>
 #include <boost/algorithm/string.hpp>
-#include "primitives/cid/cid_of_cbor.hpp"
+#include "filecoin/primitives/cid/cid_of_cbor.hpp"
 #include "testutil/outcome.hpp"
 
 using namespace fc::primitives::cid;

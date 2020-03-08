@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "address_codec.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
 
 #include <cppcodec/base32_default_rfc4648.hpp>
 #include <libp2p/multi/uvarint.hpp>
 #include <stdexcept>
 
-#include "common/visitor.hpp"
-#include "crypto/blake2/blake2b.h"
-#include "crypto/blake2/blake2b160.hpp"
-#include "crypto/bls/bls_types.hpp"
+#include "filecoin/common/visitor.hpp"
+#include "filecoin/crypto/blake2/blake2b.h"
+#include "filecoin/crypto/blake2/blake2b160.hpp"
+#include "filecoin/crypto/bls/bls_types.hpp"
 
 namespace fc::primitives::address {
 

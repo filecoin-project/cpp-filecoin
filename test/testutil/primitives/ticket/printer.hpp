@@ -9,9 +9,9 @@
 #include <iosfwd>
 
 #include <boost/algorithm/string.hpp>
-#include "common/hexutil.hpp"
-#include "primitives/ticket/epost_ticket.hpp"
-#include "primitives/ticket/ticket.hpp"
+#include "filecoin/common/hexutil.hpp"
+#include "filecoin/primitives/ticket/epost_ticket.hpp"
+#include "filecoin/primitives/ticket/ticket.hpp"
 
 /**
  * @brief human-readable print Ticket

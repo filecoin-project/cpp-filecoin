@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/repository/repository.hpp"
+#include "filecoin/storage/repository/repository.hpp"
 
 using fc::storage::config::Config;
 using fc::storage::ipfs::IpfsDatastore;

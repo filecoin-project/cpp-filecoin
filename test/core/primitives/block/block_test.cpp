@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/block/block.hpp"
+#include "filecoin/primitives/block/block.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/cbor.hpp"
-#include "common/hexutil.hpp"
+#include "filecoin/common/hexutil.hpp"
 
 /**
  * @given block header and its serialized representation from go

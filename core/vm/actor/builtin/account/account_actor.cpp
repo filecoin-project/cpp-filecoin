@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/account/account_actor.hpp"
+#include "filecoin/vm/actor/builtin/account/account_actor.hpp"
 
-#include "vm/exit_code/exit_code.hpp"
+#include "filecoin/vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::account {
 

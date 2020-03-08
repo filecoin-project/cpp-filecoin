@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/hamt/hamt.hpp"
+#include "filecoin/storage/hamt/hamt.hpp"
 
-#include "common/which.hpp"
-#include "crypto/murmur/murmur.hpp"
+#include "filecoin/common/which.hpp"
+#include "filecoin/crypto/murmur/murmur.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
   using fc::storage::hamt::HamtError;

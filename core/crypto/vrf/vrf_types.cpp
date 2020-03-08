@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/vrf/vrf_types.hpp"
+#include "filecoin/crypto/vrf/vrf_types.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::crypto::vrf, VRFError, e) {
   using fc::crypto::vrf::VRFError;

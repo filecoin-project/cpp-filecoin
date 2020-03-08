@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/cid/comm_cid_errors.hpp"
+#include "filecoin/primitives/cid/comm_cid_errors.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::common, CommCidError, e) {
   using fc::common::CommCidError;

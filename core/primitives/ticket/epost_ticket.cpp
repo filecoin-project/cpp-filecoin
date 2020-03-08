@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/ticket/epost_ticket.hpp"
+#include "filecoin/primitives/ticket/epost_ticket.hpp"
 
 namespace fc::primitives::ticket {
   bool operator==(const EPostTicket &lhs, const EPostTicket &rhs) {

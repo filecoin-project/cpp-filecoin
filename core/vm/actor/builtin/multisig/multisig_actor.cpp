@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/multisig/multisig_actor.hpp"
+#include "filecoin/vm/actor/builtin/multisig/multisig_actor.hpp"
 
-#include "common/buffer.hpp"
-#include "common/outcome.hpp"
-#include "vm/actor/actor_method.hpp"
+#include "filecoin/common/buffer.hpp"
+#include "filecoin/common/outcome.hpp"
+#include "filecoin/vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor::builtin::multisig {
 

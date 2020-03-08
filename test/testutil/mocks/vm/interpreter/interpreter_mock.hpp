@@ -8,7 +8,7 @@
 
 #include <gmock/gmock.h>
 
-#include "vm/interpreter/impl/interpreter_impl.hpp"
+#include "filecoin/vm/interpreter/impl/interpreter_impl.hpp"
 
 namespace fc::vm::interpreter {
   class InterpreterMock : public Interpreter {

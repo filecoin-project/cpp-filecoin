@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/ticket/epost_ticket_codec.hpp"
+#include "filecoin/primitives/ticket/epost_ticket_codec.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/outcome.hpp"

@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/state/impl/state_tree_impl.hpp"
+#include "filecoin/vm/state/impl/state_tree_impl.hpp"
 
-#include "codec/cbor/cbor.hpp"
-#include "primitives/address/address_codec.hpp"
-#include "vm/actor/builtin/init/init_actor.hpp"
+#include "filecoin/codec/cbor/cbor.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
+#include "filecoin/vm/actor/builtin/init/init_actor.hpp"
 
 namespace fc::vm::state {
   using actor::ActorSubstateCID;

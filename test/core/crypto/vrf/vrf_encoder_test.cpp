@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/vrf/vrf_hash_encoder.hpp"
+#include "filecoin/crypto/vrf/vrf_hash_encoder.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/literals.hpp"

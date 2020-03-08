@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "adt/balance_table_hamt.hpp"
-#include "primitives/address/address_codec.hpp"
+#include "filecoin/adt/balance_table_hamt.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
 
 using fc::adt::BalanceTableHamt;
 using fc::adt::TokenAmount;

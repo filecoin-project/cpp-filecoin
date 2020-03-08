@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "proofs/proofs.hpp"
+#include "filecoin/proofs/proofs.hpp"
 
 #include <gtest/gtest.h>
 #include <random>
-#include "proofs/proof_param_provider.hpp"
-#include "storage/filestore/impl/filesystem/filesystem_file.hpp"
+#include "filecoin/proofs/proof_param_provider.hpp"
+#include "filecoin/storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 

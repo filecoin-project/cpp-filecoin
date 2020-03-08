@@ -4,7 +4,6 @@
 #
 
 filecoin_add_library(filecoin_hexutil
-    hexutil.hpp
     hexutil.cpp
     )
 target_link_libraries(filecoin_hexutil
@@ -13,7 +12,6 @@ target_link_libraries(filecoin_hexutil
     )
 
 filecoin_add_library(filecoin_blob
-    blob.hpp
     blob.cpp
     )
 target_link_libraries(filecoin_blob
@@ -27,7 +25,6 @@ target_link_libraries(filecoin_outcome INTERFACE
     )
 
 filecoin_add_library(filecoin_buffer
-    buffer.hpp
     buffer.cpp
     buffer_back_insert_iterator.cpp
     )

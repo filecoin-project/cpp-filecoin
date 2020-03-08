@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/chain/datastore_key.hpp"
+#include "filecoin/storage/chain/datastore_key.hpp"
 
 #include <boost/algorithm/string.hpp>
 #include <boost/filesystem/path.hpp>

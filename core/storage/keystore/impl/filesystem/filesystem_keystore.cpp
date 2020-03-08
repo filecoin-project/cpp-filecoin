@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "filesystem_keystore.hpp"
+#include "filecoin/storage/keystore/impl/filesystem/filesystem_keystore.hpp"
 
-#include "primitives/address/address_codec.hpp"
-#include "storage/filestore/filestore_error.hpp"
-#include "storage/filestore/impl/filesystem/filesystem_filestore.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
+#include "filecoin/storage/filestore/filestore_error.hpp"
+#include "filecoin/storage/filestore/impl/filesystem/filesystem_filestore.hpp"
 
 using fc::primitives::address::Address;
 using fc::primitives::address::Protocol;

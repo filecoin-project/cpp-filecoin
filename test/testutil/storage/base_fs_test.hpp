@@ -10,7 +10,7 @@
 
 #include <boost/filesystem.hpp>
 
-#include "common/logger.hpp"
+#include "filecoin/common/logger.hpp"
 
 // intentionally here, so users can use fs shortcut
 namespace fs = boost::filesystem;

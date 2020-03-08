@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_CORE_CRYPTO_RANDOMNESS_RANDOMNESS_PROVIDER_MOCK_HPP
 
 #include <gmock/gmock.h>
-#include "crypto/randomness/randomness_provider.hpp"
+#include "filecoin/crypto/randomness/randomness_provider.hpp"
 
 namespace fc::crypto::randomness {
 

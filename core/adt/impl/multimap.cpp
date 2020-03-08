@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "adt/multimap.hpp"
+#include "filecoin/adt/multimap.hpp"
 
-#include "adt/array.hpp"
+#include "filecoin/adt/array.hpp"
 
 namespace fc::adt {
 

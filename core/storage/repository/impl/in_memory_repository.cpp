@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/repository/impl/in_memory_repository.hpp"
+#include "filecoin/storage/repository/impl/in_memory_repository.hpp"
 
-#include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "crypto/secp256k1/secp256k1_provider.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "filecoin/crypto/bls/impl/bls_provider_impl.hpp"
+#include "filecoin/crypto/secp256k1/secp256k1_provider.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 
 using fc::crypto::bls::BlsProviderImpl;
 using fc::storage::ipfs::InMemoryDatastore;
