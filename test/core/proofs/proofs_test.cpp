@@ -13,14 +13,24 @@
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
-using namespace fc::proofs;
-using namespace boost::filesystem;
 using fc::common::Blob;
 using fc::crypto::randomness::Randomness;
+using fc::primitives::SectorNumber;
 using fc::primitives::piece::PaddedPieceSize;
+using fc::primitives::piece::UnpaddedPieceSize;
 using fc::primitives::sector::OnChainSealVerifyInfo;
 using fc::primitives::sector::SealVerifyInfo;
 using fc::primitives::sector::SectorId;
+using fc::primitives::sector::SectorInfo;
+using fc::primitives::sector::Ticket;
+using fc::proofs::ActorId;
+using fc::proofs::PieceInfo;
+using fc::proofs::PoStCandidate;
+using fc::proofs::PoStVerifyInfo;
+using fc::proofs::PrivateSectorInfo;
+using fc::proofs::Proofs;
+using fc::proofs::PublicSectorInfo;
+using fc::proofs::Seed;
 using fc::storage::filestore::File;
 using fc::storage::filestore::FileSystemFile;
 using fc::storage::filestore::Path;
@@ -281,16 +291,18 @@ TEST_F(ProofsTest, Lifecycle) {
   ASSERT_EQ(gsl::make_span(file_c_bytes),
             gsl::make_span(some_bytes.data(), 1016));
 
-  std::vector<PrivateSectorInfo> private_replicas_info = {PrivateSectorInfo{
+  std::vector<PrivateSectorInfo> private_replicas_info = {};
+  private_replicas_info.push_back(PrivateSectorInfo{
       .info =
           SectorInfo{
+              .registered_proof = post_proof_type,
               .sector = sector_num,
               .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
           },
       .cache_dir_path = sector_cache_dir_path,
       .post_proof_type = post_proof_type,
       .sealed_sector_path = sealed_sector_file,
-  }};
+  });
   auto private_info = Proofs::newSortedPrivateSectorInfo(private_replicas_info);
 
   std::vector<PublicSectorInfo> public_sectors_info = {PublicSectorInfo{
