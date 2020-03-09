@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/payment_channel/payment_channel_actor.hpp"
+#include "filecoin/vm/actor/builtin/payment_channel/payment_channel_actor.hpp"
 
-#include "vm/actor/actor_method.hpp"
-#include "vm/exit_code/exit_code.hpp"
+#include "filecoin/vm/actor/actor_method.hpp"
+#include "filecoin/vm/exit_code/exit_code.hpp"
 
 using fc::outcome::result;
 using fc::primitives::address::Protocol;

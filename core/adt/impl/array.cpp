@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "adt/array.hpp"
+#include "filecoin/adt/array.hpp"
 
 namespace fc::adt {
 

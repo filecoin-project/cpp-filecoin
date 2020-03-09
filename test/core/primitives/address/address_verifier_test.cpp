@@ -5,10 +5,10 @@
 
 #include <gtest/gtest.h>
 
-#include "crypto/blake2/blake2b160.hpp"
-#include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "crypto/secp256k1/secp256k1_provider.hpp"
-#include "primitives/address/address.hpp"
+#include "filecoin/crypto/blake2/blake2b160.hpp"
+#include "filecoin/crypto/bls/impl/bls_provider_impl.hpp"
+#include "filecoin/crypto/secp256k1/secp256k1_provider.hpp"
+#include "filecoin/primitives/address/address.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::crypto::blake2b::blake2b_160;

@@ -3,12 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(fslock_test
+addtest(filecoin_fslock_test
         fslock_test.cpp
         )
 
-target_link_libraries(fslock_test
-        fslock
-        base_fs_test
-        filestore
+target_link_libraries(filecoin_fslock_test
+        filecoin_fslock
+        filecoin_base_fs_test
+        filecoin_filestore
         )

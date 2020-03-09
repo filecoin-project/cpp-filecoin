@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "filecoin/vm/actor/builtin/miner/miner_actor.hpp"
 
-#include "primitives/chain_epoch/chain_epoch_codec.hpp"
-#include "storage/amt/amt.hpp"
-#include "storage/hamt/hamt.hpp"
-#include "vm/actor/builtin/account/account_actor.hpp"
-#include "vm/actor/builtin/market/actor.hpp"
-#include "vm/actor/builtin/miner/policy.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
-#include "vm/exit_code/exit_code.hpp"
+#include "filecoin/primitives/chain_epoch/chain_epoch_codec.hpp"
+#include "filecoin/storage/amt/amt.hpp"
+#include "filecoin/storage/hamt/hamt.hpp"
+#include "filecoin/vm/actor/builtin/account/account_actor.hpp"
+#include "filecoin/vm/actor/builtin/market/actor.hpp"
+#include "filecoin/vm/actor/builtin/miner/policy.hpp"
+#include "filecoin/vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
+#include "filecoin/vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::miner {
   using primitives::kChainEpochUndefined;

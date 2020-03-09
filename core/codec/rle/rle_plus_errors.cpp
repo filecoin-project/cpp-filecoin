@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "codec/rle/rle_plus_errors.hpp"
+#include "filecoin/codec/rle/rle_plus_errors.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::rle, RLEPlusDecodeError, e) {
   using fc::codec::rle::RLEPlusDecodeError;

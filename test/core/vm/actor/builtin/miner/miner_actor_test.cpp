@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "filecoin/vm/actor/builtin/miner/miner_actor.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/cbor.hpp"

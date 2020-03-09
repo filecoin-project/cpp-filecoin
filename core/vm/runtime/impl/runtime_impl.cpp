@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/runtime/impl/runtime_impl.hpp"
+#include "filecoin/vm/runtime/impl/runtime_impl.hpp"
 
-#include "codec/cbor/cbor.hpp"
-#include "vm/actor/builtin/account/account_actor.hpp"
-#include "vm/runtime/gas_cost.hpp"
-#include "vm/runtime/impl/actor_state_handle_impl.hpp"
-#include "vm/runtime/runtime_error.hpp"
+#include "filecoin/codec/cbor/cbor.hpp"
+#include "filecoin/vm/actor/builtin/account/account_actor.hpp"
+#include "filecoin/vm/runtime/gas_cost.hpp"
+#include "filecoin/vm/runtime/impl/actor_state_handle_impl.hpp"
+#include "filecoin/vm/runtime/runtime_error.hpp"
 
 namespace fc::vm::runtime {
 

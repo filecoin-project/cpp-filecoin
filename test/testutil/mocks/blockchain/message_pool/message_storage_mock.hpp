@@ -8,7 +8,7 @@
 
 #include <gmock/gmock.h>
 
-#include "blockchain/message_pool/message_storage.hpp"
+#include "filecoin/blockchain/message_pool/message_storage.hpp"
 
 namespace fc::blockchain::message_pool {
   class MessageStorageMock : public MessageStorage {

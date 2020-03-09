@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "filecoin/crypto/bls/impl/bls_provider_impl.hpp"
 
 #include <gsl/gsl_util>
 

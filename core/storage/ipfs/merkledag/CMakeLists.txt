@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(ipfs_merkledag_service
+filecoin_add_library(filecoin_ipfs_merkledag_service
     impl/merkledag_service_impl.cpp
     impl/leaf_impl.cpp
     )
-target_link_libraries(ipfs_merkledag_service
+target_link_libraries(filecoin_ipfs_merkledag_service
     Boost::boost
-    ipld_node
-    ipfs_blockservice
-    ipfs_datastore_in_memory
+    filecoin_ipld_node
+    filecoin_ipfs_blockservice
+    filecoin_ipfs_datastore_in_memory
     )

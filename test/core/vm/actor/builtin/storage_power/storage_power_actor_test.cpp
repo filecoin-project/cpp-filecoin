@@ -3,17 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
+#include "filecoin/vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 
 #include <gtest/gtest.h>
-#include "codec/cbor/cbor.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/codec/cbor/cbor.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/init/init_actor.hpp"
-#include "vm/actor/builtin/miner/miner_actor.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
+#include "filecoin/vm/actor/builtin/init/init_actor.hpp"
+#include "filecoin/vm/actor/builtin/miner/miner_actor.hpp"
+#include "filecoin/vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
 using fc::CID;
 using fc::common::Buffer;

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/message_pool/message_pool_error.hpp"
+#include "filecoin/blockchain/message_pool/message_pool_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::message_pool, MessagePoolError, e) {
   using fc::blockchain::message_pool::MessagePoolError;

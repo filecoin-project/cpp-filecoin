@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/message/impl/message_signer_impl.hpp"
-#include "vm/message/message_util.hpp"
+#include "filecoin/vm/message/impl/message_signer_impl.hpp"
+#include "filecoin/vm/message/message_util.hpp"
 
 namespace fc::vm::message {
 

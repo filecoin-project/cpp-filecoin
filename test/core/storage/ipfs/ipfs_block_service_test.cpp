@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipfs/impl/ipfs_block_service.hpp"
+#include "filecoin/storage/ipfs/impl/ipfs_block_service.hpp"
 
 #include <memory>
 
 #include <gtest/gtest.h>
-#include "common/outcome.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "storage/ipld/ipld_block.hpp"
+#include "filecoin/common/outcome.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/storage/ipld/ipld_block.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::CID;

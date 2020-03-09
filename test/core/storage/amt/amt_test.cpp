@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/amt/amt.hpp"
+#include "filecoin/storage/amt/amt.hpp"
 
 #include <gtest/gtest.h>
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
 
 using fc::codec::cbor::encode;

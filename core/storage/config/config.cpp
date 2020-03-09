@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/config/config.hpp"
+#include "filecoin/storage/config/config.hpp"
 
 #include <boost/filesystem.hpp>
 #include <boost/property_tree/json_parser.hpp>

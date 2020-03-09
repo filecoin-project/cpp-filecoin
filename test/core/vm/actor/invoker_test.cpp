@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/impl/invoker_impl.hpp"
+#include "filecoin/vm/actor/impl/invoker_impl.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/cbor.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/cron/cron_actor.hpp"
+#include "filecoin/vm/actor/builtin/cron/cron_actor.hpp"
 
 using fc::vm::VMExitCode;
 using fc::vm::actor::MethodParams;

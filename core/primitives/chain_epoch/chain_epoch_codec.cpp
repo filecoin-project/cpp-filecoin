@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/chain_epoch/chain_epoch_codec.hpp"
+#include "filecoin/primitives/chain_epoch/chain_epoch_codec.hpp"
 
 #include <libp2p/multi/uvarint.hpp>
 

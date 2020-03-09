@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/murmur/murmur.hpp"
+#include "filecoin/crypto/murmur/murmur.hpp"
 
 #include <gtest/gtest.h>
-#include "common/hexutil.hpp"
+#include "filecoin/common/hexutil.hpp"
 
 class MurmurTest
     : public ::testing::TestWithParam<std::pair<std::string, std::string>> {

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "fslock/fslock_error.hpp"
+#include "filecoin/fslock/fslock_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::fslock, FSLockError, e) {
   using fc::fslock::FSLockError;

@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/tipset/tipset.hpp"
+#include "filecoin/primitives/tipset/tipset.hpp"
 
 #include <gtest/gtest.h>
-#include "primitives/cid/cid_of_cbor.hpp"
-#include "common/hexutil.hpp"
+#include "filecoin/primitives/cid/cid_of_cbor.hpp"
+#include "filecoin/common/hexutil.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"

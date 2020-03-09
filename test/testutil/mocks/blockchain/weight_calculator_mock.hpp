@@ -8,7 +8,7 @@
 
 #include <gmock/gmock.h>
 
-#include "blockchain/weight_calculator.hpp"
+#include "filecoin/blockchain/weight_calculator.hpp"
 
 namespace fc::blockchain::weight {
   class WeightCalculatorMock : public WeightCalculator {

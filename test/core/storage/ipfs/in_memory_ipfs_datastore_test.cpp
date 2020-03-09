@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 

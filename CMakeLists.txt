@@ -35,20 +35,11 @@ endif ()
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-include(CheckCXXCompilerFlag)
-include(cmake/toolchain-util.cmake)
-include(cmake/dependencies.cmake)
-include(cmake/functions.cmake)
-include(cmake/san.cmake)
-
 # export compile commands for clang-tidy to analyse only changed files
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-print("C flags: ${CMAKE_C_FLAGS}")
-print("CXX flags: ${CMAKE_CXX_FLAGS}")
-print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
-
 option(TESTING "Build tests" ON)
+option(BUILD_INTERNAL_DEPS "Build internal dependencies from git submodules" ON)
 option(CLANG_FORMAT "Enable clang-format target" ON)
 option(CLANG_TIDY "Enable clang-tidy checks during compilation" OFF)
 option(COVERAGE "Enable generation of coverage info" OFF)
@@ -59,6 +50,17 @@ option(MSAN "Enable memory sanitizer" OFF)
 option(TSAN "Enable thread sanitizer" OFF)
 option(UBSAN "Enable UB sanitizer" OFF)
 
+include(CheckCXXCompilerFlag)
+include(cmake/install.cmake)
+include(cmake/filecoin_functions.cmake)
+include(cmake/toolchain-util.cmake)
+include(cmake/dependencies.cmake)
+include(cmake/functions.cmake)
+include(cmake/san.cmake)
+
+print("C flags: ${CMAKE_C_FLAGS}")
+print("CXX flags: ${CMAKE_CXX_FLAGS}")
+print("Using CMAKE_TOOLCHAIN_FILE=${CMAKE_TOOLCHAIN_FILE}")
 
 ## setup compilation flags
 if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "^(AppleClang|Clang|GNU)$")
@@ -102,19 +104,23 @@ if (CLANG_FORMAT)
   include(cmake/clang-format.cmake)
 endif ()
 
-add_subdirectory(deps)
+if (BUILD_INTERNAL_DEPS)
+  add_subdirectory(deps)
+endif()
 
 include_directories(
     # project includes
-    ${PROJECT_SOURCE_DIR}/core
+    ${PROJECT_SOURCE_DIR}/include
 )
 
-include_directories(
-    SYSTEM
-    # system includes
-    deps/outcome
-    deps/tinycbor/src
-)
+if (BUILD_INTERNAL_DEPS)
+  include_directories(
+      SYSTEM
+      # system includes
+      deps/outcome
+      ${TINY_CBOR_INCLUDE_DIRS}
+  )
+endif()
 
 add_subdirectory(core)
 

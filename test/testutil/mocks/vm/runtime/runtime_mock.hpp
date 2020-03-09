@@ -9,7 +9,7 @@
 #include <gmock/gmock.h>
 
 #include "testutil/outcome.hpp"
-#include "vm/runtime/runtime.hpp"
+#include "filecoin/vm/runtime/runtime.hpp"
 
 namespace fc::vm::runtime {
 

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipld/impl/ipld_node_encoder_pb.hpp"
+#include "filecoin/storage/ipld/impl/ipld_node_encoder_pb.hpp"
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>

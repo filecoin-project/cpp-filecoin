@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/vrf/vrf_hash_encoder.hpp"
+#include "filecoin/crypto/vrf/vrf_hash_encoder.hpp"
 
 #include <libp2p/crypto/sha/sha256.hpp>
-#include "common/le_encoder.hpp"
-#include "primitives/address/address_codec.hpp"
+#include "filecoin/common/le_encoder.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
 
 namespace fc::crypto::vrf {
   using primitives::address::Protocol;

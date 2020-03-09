@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "codec/cbor/cbor_errors.hpp"
+#include "filecoin/codec/cbor/cbor_errors.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::cbor, CborEncodeError, e) {
   using fc::codec::cbor::CborEncodeError;

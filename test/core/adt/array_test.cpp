@@ -7,9 +7,9 @@
 
 #include <gtest/gtest.h>
 
-#include "adt/array.hpp"
-#include "common/outcome.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/adt/array.hpp"
+#include "filecoin/common/outcome.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
 

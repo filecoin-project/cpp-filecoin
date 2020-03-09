@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "codec/cbor/cbor_encode_stream.hpp"
+#include "filecoin/codec/cbor/cbor_encode_stream.hpp"
 
 namespace fc::codec::cbor {
   CborEncodeStream &CborEncodeStream::operator<<(

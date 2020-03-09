@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(cron_actor
+filecoin_add_library(filecoin_cron_actor
     cron_actor.cpp
     )
-target_link_libraries(cron_actor
-    actor
-    outcome
+target_link_libraries(filecoin_cron_actor
+    filecoin_actor
+    filecoin_outcome
     )

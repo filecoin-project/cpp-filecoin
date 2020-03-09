@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipfs/impl/datastore_leveldb.hpp"
+#include "filecoin/storage/ipfs/impl/datastore_leveldb.hpp"
 
 #include <libp2p/multi/content_identifier_codec.hpp>
-#include <storage/leveldb/leveldb_error.hpp>
+#include "filecoin/storage/leveldb/leveldb_error.hpp"
 
 namespace fc::storage::ipfs {
   namespace {

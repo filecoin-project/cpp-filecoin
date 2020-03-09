@@ -5,8 +5,8 @@
 
 #include <gtest/gtest.h>
 
-#include "blockchain/message_pool/impl/gas_price_scored_message_storage.hpp"
-#include "blockchain/message_pool/message_pool_error.hpp"
+#include "filecoin/blockchain/message_pool/impl/gas_price_scored_message_storage.hpp"
+#include "filecoin/blockchain/message_pool/message_pool_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/vm/message/message_test_util.hpp"

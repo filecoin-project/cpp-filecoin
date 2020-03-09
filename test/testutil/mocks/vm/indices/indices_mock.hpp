@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_VM_INDICES_INDICES_MOCK_HPP
 
 #include <gmock/gmock.h>
-#include "vm/indices/indices.hpp"
+#include "filecoin/vm/indices/indices.hpp"
 
 namespace fc::vm::indices {
 

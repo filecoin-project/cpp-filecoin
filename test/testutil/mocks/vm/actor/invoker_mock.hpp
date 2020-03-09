@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_CORE_VM_ACTOR_INVOKER_MOCK_HPP
 
 #include <gmock/gmock.h>
-#include "vm/actor/invoker.hpp"
+#include "filecoin/vm/actor/invoker.hpp"
 
 namespace fc::vm::actor {
 

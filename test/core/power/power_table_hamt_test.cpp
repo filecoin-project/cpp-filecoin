@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "power/impl/power_table_hamt.hpp"
+#include "filecoin/power/impl/power_table_hamt.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <power/power_table_error.hpp>
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/power/power_table_error.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::power::PowerTableError;

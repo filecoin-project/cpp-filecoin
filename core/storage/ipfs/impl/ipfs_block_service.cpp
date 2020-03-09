@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipfs/impl/ipfs_block_service.hpp"
+#include "filecoin/storage/ipfs/impl/ipfs_block_service.hpp"
 
 namespace fc::storage::ipfs {
   IpfsBlockService::IpfsBlockService(std::shared_ptr<IpfsDatastore> data_store)

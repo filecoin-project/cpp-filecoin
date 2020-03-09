@@ -6,8 +6,8 @@
 #ifndef CPP_FILECOIN_TESTUTIL_VM_MESSAGE_MESSAGETESTUTIL_HPP
 #define CPP_FILECOIN_TESTUTIL_VM_MESSAGE_MESSAGETESTUTIL_HPP
 
-#include "common/outcome.hpp"
-#include "vm/message/message.hpp"
+#include "filecoin/common/outcome.hpp"
+#include "filecoin/vm/message/message.hpp"
 
 using fc::vm::message::SignedMessage;
 using fc::vm::message::UnsignedMessage;

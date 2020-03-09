@@ -7,14 +7,14 @@
 
 #include <map>
 
-#include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "crypto/secp256k1/secp256k1_provider.hpp"
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "filecoin/crypto/bls/impl/bls_provider_impl.hpp"
+#include "filecoin/crypto/secp256k1/secp256k1_provider.hpp"
+#include "filecoin/storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/message/impl/message_signer_impl.hpp"
-#include "vm/message/message_util.hpp"
+#include "filecoin/vm/message/impl/message_signer_impl.hpp"
+#include "filecoin/vm/message/message_util.hpp"
 
 using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::BlsProviderImpl;

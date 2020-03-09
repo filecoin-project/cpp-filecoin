@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "fslock/fslock.hpp"
+#include "filecoin/fslock/fslock.hpp"
 
 #include <boost/filesystem/fstream.hpp>
 #include <boost/filesystem/operations.hpp>
 #include <boost/interprocess/sync/named_mutex.hpp>
 #include <boost/interprocess/sync/scoped_lock.hpp>
 #include <iostream>
-#include "fslock/fslock_error.hpp"
+#include "filecoin/fslock/fslock_error.hpp"
 
 namespace fc::fslock {
   // TODO(artyom-yurin): [FIL-115] Should be unlocked if process died

@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/in_memory/in_memory_storage.hpp"
+#include "filecoin/storage/in_memory/in_memory_storage.hpp"
 
-#include "storage/in_memory/in_memory_batch.hpp"
+#include "filecoin/storage/in_memory/in_memory_batch.hpp"
 
 using fc::common::Buffer;
 

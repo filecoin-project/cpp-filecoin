@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/address/address.hpp"
+#include "filecoin/primitives/address/address.hpp"
 
-#include "common/visitor.hpp"
-#include "crypto/blake2/blake2b160.hpp"
+#include "filecoin/common/visitor.hpp"
+#include "filecoin/crypto/blake2/blake2b160.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::address, AddressError, e) {
   using fc::primitives::address::AddressError;

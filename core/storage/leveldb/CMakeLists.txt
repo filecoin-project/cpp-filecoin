@@ -1,14 +1,14 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-add_library(leveldb
+filecoin_add_library(filecoin_leveldb
     leveldb.cpp
     leveldb_batch.cpp
     leveldb_error.cpp
     leveldb_cursor.cpp
     )
-target_link_libraries(leveldb
+target_link_libraries(filecoin_leveldb
     leveldb::leveldb
-    buffer
-    logger
+    filecoin_buffer
+    filecoin_logger
     )

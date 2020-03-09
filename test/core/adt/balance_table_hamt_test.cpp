@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "adt/balance_table_hamt.hpp"
+#include "filecoin/adt/balance_table_hamt.hpp"
 
 #include <gtest/gtest.h>
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::CID;

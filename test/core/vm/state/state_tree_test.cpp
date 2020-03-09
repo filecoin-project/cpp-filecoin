@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/state/impl/state_tree_impl.hpp"
+#include "filecoin/vm/state/impl/state_tree_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "primitives/address/address_codec.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
 #include "testutil/init_actor.hpp"
 
 using fc::primitives::BigInt;

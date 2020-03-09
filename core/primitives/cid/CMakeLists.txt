@@ -3,24 +3,24 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(cid
+filecoin_add_library(filecoin_cid
     cid.cpp
     json_codec.cpp
     )
 
-target_link_libraries(cid
+target_link_libraries(filecoin_cid
     Boost::boost
-    blake2
-    cbor
+    filecoin_blake2
+    filecoin_cbor
     p2p::p2p_cid
     )
 
-add_library(comm_cid
+filecoin_add_library(filecoin_comm_cid
     comm_cid.cpp
     comm_cid_errors.cpp
     )
 
-target_link_libraries(comm_cid
-    cid
-    outcome
+target_link_libraries(filecoin_comm_cid
+    filecoin_cid
+    filecoin_outcome
     )

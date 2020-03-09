@@ -8,7 +8,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/uuid/uuid.hpp>
 
-#include "storage/ipfs/impl/datastore_leveldb.hpp"
+#include "filecoin/storage/ipfs/impl/datastore_leveldb.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 

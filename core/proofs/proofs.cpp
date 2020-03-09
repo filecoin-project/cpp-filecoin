@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "proofs/proofs.hpp"
+#include "filecoin/proofs/proofs.hpp"
 
 #include <fcntl.h>
 #include <filecoin-ffi/filecoin.h>
 #include "boost/filesystem/fstream.hpp"
-#include "primitives/cid/comm_cid.hpp"
-#include "proofs/proofs_error.hpp"
+#include "filecoin/primitives/cid/comm_cid.hpp"
+#include "filecoin/proofs/proofs_error.hpp"
 
 namespace fc::proofs {
 

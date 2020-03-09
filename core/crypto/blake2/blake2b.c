@@ -6,7 +6,7 @@
 // blake2b.c
 // A simple BLAKE2b Reference Implementation.
 
-#include "blake2b.h"
+#include "filecoin/crypto/blake2/blake2b.h"
 
 // Cyclic right rotation.
 

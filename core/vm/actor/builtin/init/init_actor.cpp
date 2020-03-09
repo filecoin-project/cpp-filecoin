@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/init/init_actor.hpp"
+#include "filecoin/vm/actor/builtin/init/init_actor.hpp"
 
-#include "primitives/address/address_codec.hpp"
-#include "storage/hamt/hamt.hpp"
-#include "vm/runtime/gas_cost.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
+#include "filecoin/storage/hamt/hamt.hpp"
+#include "filecoin/vm/runtime/gas_cost.hpp"
 
 namespace fc::vm::actor::builtin::init {
 

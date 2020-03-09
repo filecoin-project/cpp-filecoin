@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/big_int.hpp"
+#include "filecoin/primitives/big_int.hpp"
 
 #include <gtest/gtest.h>
 

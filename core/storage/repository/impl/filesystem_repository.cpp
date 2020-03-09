@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/repository/impl/filesystem_repository.hpp"
+#include "filecoin/storage/repository/impl/filesystem_repository.hpp"
 
 #include <utility>
 
 #include "boost/filesystem.hpp"
-#include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "crypto/secp256k1/secp256k1_provider.hpp"
-#include "storage/ipfs/impl/datastore_leveldb.hpp"
-#include "storage/keystore/impl/filesystem/filesystem_keystore.hpp"
-#include "storage/repository/repository_error.hpp"
+#include "filecoin/crypto/bls/impl/bls_provider_impl.hpp"
+#include "filecoin/crypto/secp256k1/secp256k1_provider.hpp"
+#include "filecoin/storage/ipfs/impl/datastore_leveldb.hpp"
+#include "filecoin/storage/keystore/impl/filesystem/filesystem_keystore.hpp"
+#include "filecoin/storage/repository/repository_error.hpp"
 
 using fc::crypto::bls::BlsProviderImpl;
 using fc::storage::ipfs::LeveldbDatastore;

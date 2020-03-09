@@ -5,8 +5,8 @@
 
 #include "testutil/vm/message/message_test_util.hpp"
 
-#include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "vm/message/message_util.hpp"
+#include "filecoin/crypto/bls/impl/bls_provider_impl.hpp"
+#include "filecoin/vm/message/message_util.hpp"
 
 using fc::crypto::bls::BlsProviderImpl;
 using fc::vm::message::cid;

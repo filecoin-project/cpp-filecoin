@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/buffer.hpp"
+#include "filecoin/common/buffer.hpp"
 
-#include "common/hexutil.hpp"
+#include "filecoin/common/hexutil.hpp"
 
 namespace fc::common {
 

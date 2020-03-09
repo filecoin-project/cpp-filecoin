@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/ticket/ticket_codec.hpp"
+#include "filecoin/primitives/ticket/ticket_codec.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::ticket, TicketCodecError, e) {
   using fc::primitives::ticket::TicketCodecError;

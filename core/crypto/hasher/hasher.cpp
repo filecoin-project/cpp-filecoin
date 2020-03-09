@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "hasher.hpp"
+#include "filecoin/crypto/hasher/hasher.hpp"
 
 #include <libp2p/crypto/sha/sha256.hpp>
-#include "crypto/blake2/blake2b160.hpp"
+#include "filecoin/crypto/blake2/blake2b160.hpp"
 
 namespace fc::crypto {
   std::map<Hasher::HashType, Hasher::HashMethod> Hasher::methods_{

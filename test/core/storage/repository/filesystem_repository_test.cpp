@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/repository/impl/filesystem_repository.hpp"
+#include "filecoin/storage/repository/impl/filesystem_repository.hpp"
 
-#include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "storage/ipfs/datastore.hpp"
-#include "storage/repository/repository_error.hpp"
+#include "filecoin/crypto/bls/impl/bls_provider_impl.hpp"
+#include "filecoin/storage/ipfs/datastore.hpp"
+#include "filecoin/storage/repository/repository_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"

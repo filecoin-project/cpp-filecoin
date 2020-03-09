@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/tipset/tipset_key.hpp"
+#include "filecoin/primitives/tipset/tipset_key.hpp"
 
 #include <gtest/gtest.h>
-#include "common/hexutil.hpp"
+#include "filecoin/common/hexutil.hpp"
 #include "testutil/cbor.hpp"
 
 struct TipsetKeyTest : public ::testing::Test {

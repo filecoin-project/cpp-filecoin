@@ -3,13 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(reward_actor
+filecoin_add_library(filecoin_reward_actor
     reward_actor.cpp
     )
-target_link_libraries(reward_actor
+target_link_libraries(filecoin_reward_actor
     Boost::boost
-    actor
-    address
-    exit_code
-    outcome
+    filecoin_actor
+    filecoin_address
+    filecoin_exit_code
+    filecoin_outcome
     )

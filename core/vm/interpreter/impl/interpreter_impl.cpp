@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/interpreter/impl/interpreter_impl.hpp"
+#include "filecoin/vm/interpreter/impl/interpreter_impl.hpp"
 
-#include "crypto/randomness/randomness_provider.hpp"
-#include "storage/amt/amt.hpp"
-#include "vm/actor/builtin/cron/cron_actor.hpp"
-#include "vm/actor/builtin/miner/miner_actor.hpp"
-#include "vm/actor/impl/invoker_impl.hpp"
-#include "vm/runtime/gas_cost.hpp"
-#include "vm/runtime/impl/runtime_impl.hpp"
+#include "filecoin/crypto/randomness/randomness_provider.hpp"
+#include "filecoin/storage/amt/amt.hpp"
+#include "filecoin/vm/actor/builtin/cron/cron_actor.hpp"
+#include "filecoin/vm/actor/builtin/miner/miner_actor.hpp"
+#include "filecoin/vm/actor/impl/invoker_impl.hpp"
+#include "filecoin/vm/runtime/gas_cost.hpp"
+#include "filecoin/vm/runtime/impl/runtime_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
   using E = fc::vm::interpreter::InterpreterError;

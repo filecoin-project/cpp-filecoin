@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "codec/cbor/cbor_decode_stream.hpp"
+#include "filecoin/codec/cbor/cbor_decode_stream.hpp"
 
 namespace fc::codec::cbor {
   CborDecodeStream::CborDecodeStream(gsl::span<const uint8_t> data)

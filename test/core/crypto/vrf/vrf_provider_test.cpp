@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/vrf/impl/vrf_provider_impl.hpp"
+#include "filecoin/crypto/vrf/impl/vrf_provider_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "filecoin/crypto/bls/impl/bls_provider_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 

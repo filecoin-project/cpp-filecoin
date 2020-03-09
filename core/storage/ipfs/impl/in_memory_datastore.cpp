@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 
 using fc::storage::ipfs::InMemoryDatastore;
 using Value = fc::storage::ipfs::IpfsDatastore::Value;

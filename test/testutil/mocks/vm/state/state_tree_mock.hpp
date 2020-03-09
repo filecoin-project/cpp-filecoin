@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_MOCK_HPP
 
 #include <gmock/gmock.h>
-#include "vm/state/state_tree.hpp"
+#include "filecoin/vm/state/state_tree.hpp"
 
 namespace fc::vm::state {
 

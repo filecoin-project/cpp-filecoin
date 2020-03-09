@@ -5,7 +5,7 @@
 
 #include <gtest/gtest.h>
 
-#include "core/codec/rleplus/rle_plus_codec_tester.hpp"
+#include "rle_plus_codec_tester.hpp"
 
 using fc::codec::rle::decode;
 using fc::codec::rle::RLEPlusDecodeError;

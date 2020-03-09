@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/init/init_actor.hpp"
+#include "filecoin/vm/actor/builtin/init/init_actor.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "primitives/address/address_codec.hpp"
-#include "storage/hamt/hamt.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
+#include "filecoin/storage/hamt/hamt.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/init_actor.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"

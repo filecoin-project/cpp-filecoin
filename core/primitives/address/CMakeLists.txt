@@ -1,14 +1,14 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-add_library(address
+filecoin_add_library(filecoin_address
     address.cpp
     address_codec.cpp
-        ../piece/piece.hpp ../piece/piece.hpp)
-target_link_libraries(address
+    )
+target_link_libraries(filecoin_address
     Boost::boost
-    blake2
-    blob
-    cbor
-    outcome
+    filecoin_blake2
+    filecoin_blob
+    filecoin_cbor
+    filecoin_outcome
     )

@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
+#include "filecoin/vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/crypto/randomness/randomness_provider_mock.hpp"
 #include "testutil/mocks/vm/indices/indices_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/exit_code/exit_code.hpp"
+#include "filecoin/vm/exit_code/exit_code.hpp"
 
 using fc::CID;
 using fc::adt::BalanceTableHamt;

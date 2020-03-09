@@ -6,8 +6,8 @@
 #ifndef CPP_FILECOIN_TEST_TESTUTIL_PRIMITIVES_TICKET_UTILS_HPP
 #define CPP_FILECOIN_TEST_TESTUTIL_PRIMITIVES_TICKET_UTILS_HPP
 
-#include "primitives/ticket/epost_ticket.hpp"
-#include "primitives/ticket/ticket.hpp"
+#include "filecoin/primitives/ticket/epost_ticket.hpp"
+#include "filecoin/primitives/ticket/ticket.hpp"
 
 #include <libp2p/crypto/random_generator/boost_generator.hpp>
 

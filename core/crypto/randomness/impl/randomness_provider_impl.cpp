@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/randomness/impl/randomness_provider_impl.hpp"
+#include "filecoin/crypto/randomness/impl/randomness_provider_impl.hpp"
 
 #include <libp2p/crypto/sha/sha256.hpp>
-#include "common/le_encoder.hpp"
+#include "filecoin/common/le_encoder.hpp"
 
 namespace fc::crypto::randomness {
 

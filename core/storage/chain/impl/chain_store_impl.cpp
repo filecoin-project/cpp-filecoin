@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/chain/impl/chain_store_impl.hpp"
+#include "filecoin/storage/chain/impl/chain_store_impl.hpp"
 
-#include "common/outcome.hpp"
-#include "crypto/randomness/impl/chain_randomness_provider_impl.hpp"
-#include "primitives/address/address_codec.hpp"
-#include "primitives/cid/cid_of_cbor.hpp"
-#include "primitives/cid/json_codec.hpp"
-#include "primitives/tipset/tipset_key.hpp"
-#include "storage/chain/datastore_key.hpp"
+#include "filecoin/common/outcome.hpp"
+#include "filecoin/crypto/randomness/impl/chain_randomness_provider_impl.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
+#include "filecoin/primitives/cid/cid_of_cbor.hpp"
+#include "filecoin/primitives/cid/json_codec.hpp"
+#include "filecoin/primitives/tipset/tipset_key.hpp"
+#include "filecoin/storage/chain/datastore_key.hpp"
 
 namespace fc::storage::blockchain {
   using crypto::randomness::ChainRandomnessProviderImpl;

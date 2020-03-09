@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
+#include "filecoin/vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
-#include "power/impl/power_table_hamt.hpp"
-#include "primitives/address/address_codec.hpp"
-#include "primitives/chain_epoch/chain_epoch_codec.hpp"
-#include "vm/exit_code/exit_code.hpp"
+#include "filecoin/power/impl/power_table_hamt.hpp"
+#include "filecoin/primitives/address/address_codec.hpp"
+#include "filecoin/primitives/chain_epoch/chain_epoch_codec.hpp"
+#include "filecoin/vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 

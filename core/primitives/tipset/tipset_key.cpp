@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/tipset/tipset_key.hpp"
+#include "filecoin/primitives/tipset/tipset_key.hpp"
 
 #include <libp2p/multi/content_identifier_codec.hpp>
-#include "common/outcome.hpp"
+#include "filecoin/common/outcome.hpp"
 
 namespace fc::primitives::tipset {
 

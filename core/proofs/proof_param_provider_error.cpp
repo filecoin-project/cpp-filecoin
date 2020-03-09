@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "proofs/proof_param_provider_error.hpp"
+#include "filecoin/proofs/proof_param_provider_error.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofParamProviderError, e) {
   using fc::proofs::ProofParamProviderError;

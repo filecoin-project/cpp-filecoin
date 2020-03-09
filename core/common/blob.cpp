@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/blob.hpp"
+#include "filecoin/common/blob.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::common, BlobError, e) {
   using fc::common::BlobError;

@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/cron/cron_actor.hpp"
+#include "filecoin/vm/actor/builtin/cron/cron_actor.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/actor.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
+#include "filecoin/vm/actor/actor.hpp"
+#include "filecoin/vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 
 using namespace fc::vm;
 using fc::vm::actor::MethodNumber;

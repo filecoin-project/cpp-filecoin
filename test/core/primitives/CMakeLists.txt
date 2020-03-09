@@ -11,9 +11,9 @@ add_subdirectory(rle_bitset)
 add_subdirectory(ticket)
 add_subdirectory(tipset)
 
-addtest(big_int_test
+addtest(filecoin_big_int_test
     big_int_test.cpp
     )
-target_link_libraries(big_int_test
+target_link_libraries(filecoin_big_int_test
     Boost::boost
     )

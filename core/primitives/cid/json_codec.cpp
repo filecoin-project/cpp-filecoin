@@ -3,13 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/cid/json_codec.hpp"
+#include "filecoin/primitives/cid/json_codec.hpp"
 
 #include <strstream>
 
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
-#include "codec/cbor/cbor.hpp"
+#include "filecoin/codec/cbor/cbor.hpp"
 
 namespace fc::codec::json {
   using boost::property_tree::ptree;

@@ -3,11 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/cid/cid.hpp"
+#include "filecoin/primitives/cid/cid.hpp"
 
 #include <libp2p/multi/content_identifier_codec.hpp>
 #include <libp2p/multi/uvarint.hpp>
-#include "crypto/blake2/blake2b160.hpp"
+#include "filecoin/crypto/blake2/blake2b160.hpp"
 
 namespace fc {
   CID::CID()

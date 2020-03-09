@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "keystore.hpp"
+#include "filecoin/storage/keystore/keystore.hpp"
 
-#include "common/visitor.hpp"
+#include "filecoin/common/visitor.hpp"
 
 using fc::crypto::signature::Signature;
 using fc::primitives::address::Protocol;

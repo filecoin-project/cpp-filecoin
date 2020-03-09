@@ -3,16 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/chain/impl/chain_store_impl.hpp"
+#include "filecoin/storage/chain/impl/chain_store_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "blockchain/impl/block_validator_impl.hpp"
-#include "blockchain/impl/weight_calculator_impl.hpp"
-#include "common/hexutil.hpp"
-#include "primitives/cid/cid_of_cbor.hpp"
-#include "storage/chain/impl/chain_data_store_impl.hpp"
-#include "storage/ipfs/impl/ipfs_block_service.hpp"
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "filecoin/blockchain/impl/block_validator_impl.hpp"
+#include "filecoin/blockchain/impl/weight_calculator_impl.hpp"
+#include "filecoin/common/hexutil.hpp"
+#include "filecoin/primitives/cid/cid_of_cbor.hpp"
+#include "filecoin/storage/chain/impl/chain_data_store_impl.hpp"
+#include "filecoin/storage/ipfs/impl/ipfs_block_service.hpp"
+#include "filecoin/storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"

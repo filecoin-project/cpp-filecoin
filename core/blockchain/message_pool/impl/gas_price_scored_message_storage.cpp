@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "blockchain/message_pool/impl/gas_price_scored_message_storage.hpp"
+#include "filecoin/blockchain/message_pool/impl/gas_price_scored_message_storage.hpp"
 
-#include "blockchain/message_pool/message_pool_error.hpp"
+#include "filecoin/blockchain/message_pool/message_pool_error.hpp"
 
 using fc::blockchain::message_pool::GasPriceScoredMessageStorage;
 using fc::blockchain::message_pool::MessagePoolError;

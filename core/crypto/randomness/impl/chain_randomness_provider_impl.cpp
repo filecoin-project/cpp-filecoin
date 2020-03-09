@@ -3,14 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/randomness/impl/chain_randomness_provider_impl.hpp"
+#include "filecoin/crypto/randomness/impl/chain_randomness_provider_impl.hpp"
 
 #include <boost/assert.hpp>
 #include <libp2p/crypto/sha/sha256.hpp>
-#include "common/le_encoder.hpp"
-#include "primitives/ticket/ticket.hpp"
-#include "primitives/tipset/tipset_key.hpp"
-#include "storage/chain/chain_store.hpp"
+#include "filecoin/common/le_encoder.hpp"
+#include "filecoin/primitives/ticket/ticket.hpp"
+#include "filecoin/primitives/tipset/tipset_key.hpp"
+#include "filecoin/storage/chain/chain_store.hpp"
 
 namespace fc::crypto::randomness {
 

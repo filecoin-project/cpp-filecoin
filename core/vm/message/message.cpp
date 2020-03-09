@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/message/message.hpp"
+#include "filecoin/vm/message/message.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::message, MessageError, e) {
   using fc::vm::message::MessageError;

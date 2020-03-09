@@ -8,7 +8,7 @@
 
 #include "testutil/storage/base_fs_test.hpp"
 
-#include "storage/leveldb/leveldb.hpp"
+#include "filecoin/storage/leveldb/leveldb.hpp"
 
 namespace test {
 

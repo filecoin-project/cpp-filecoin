@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "filecoin/storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 
 #include <boost/foreach.hpp>
 

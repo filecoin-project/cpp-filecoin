@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/chain/chain.hpp"
+#include "filecoin/primitives/chain/chain.hpp"
 
 namespace primitives::chain {
   // TODO(yuraz): FIL-85 currently only interface available,

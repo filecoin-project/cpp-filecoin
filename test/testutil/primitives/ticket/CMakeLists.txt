@@ -1,22 +1,22 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-add_library(ticket_generator
+filecoin_add_library(filecoin_ticket_generator
     ticket_generator.cpp
     )
-target_link_libraries(ticket_generator
+target_link_libraries(filecoin_ticket_generator
     p2p::p2p_random_generator
-    blob
-    buffer
-    tickets
+    filecoin_blob
+    filecoin_buffer
+    filecoin_tickets
     )
 
-add_library(ticket_printer
+filecoin_add_library(filecoin_ticket_printer
     printer.cpp
     )
-target_link_libraries(ticket_printer
+target_link_libraries(filecoin_ticket_printer
     Boost::boost
-    blob
-    buffer
-    tickets
+    filecoin_blob
+    filecoin_buffer
+    filecoin_tickets
     )

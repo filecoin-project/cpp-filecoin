@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/leveldb/leveldb_cursor.hpp"
+#include "filecoin/storage/leveldb/leveldb_cursor.hpp"
 
-#include "storage/leveldb/leveldb_util.hpp"
+#include "filecoin/storage/leveldb/leveldb_util.hpp"
 
 namespace fc::storage {
 

@@ -5,7 +5,7 @@
 
 #include "block_producer_test.hpp"
 
-#include "codec/cbor/cbor.hpp"
+#include "filecoin/codec/cbor/cbor.hpp"
 
 using testing::_;
 

@@ -3,10 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "crypto/blake2/blake2b160.hpp"
+#include "filecoin/crypto/blake2/blake2b160.hpp"
 
 #include <iostream>
-#include "crypto/blake2/blake2b.h"
+#include "filecoin/crypto/blake2/blake2b.h"
 
 namespace fc::crypto::blake2b {
 
