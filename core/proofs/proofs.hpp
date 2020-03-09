@@ -25,7 +25,6 @@ namespace fc::proofs {
   using common::Blob;
   using crypto::randomness::Randomness;
 
-  using Seed = Blob<32>;
   using Devices = std::vector<std::string>;
   using Phase1Output = std::vector<uint8_t>;
   using fc::primitives::sector::RegisteredProof;
@@ -34,7 +33,6 @@ namespace fc::proofs {
   using primitives::SectorSize;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
-  using primitives::sector::InteractiveRandomness;
   using primitives::sector::PoStCandidate;
   using primitives::sector::PoStProof;
   using primitives::sector::PoStRandomness;
@@ -46,6 +44,7 @@ namespace fc::proofs {
   using primitives::sector::Ticket;
   using SealedCID = CID;
   using UnsealedCID = CID;
+  using Seed = primitives::sector::InteractiveRandomness;
 
   struct PublicSectorInfo {
     RegisteredProof post_proof_type;
@@ -87,6 +86,11 @@ namespace fc::proofs {
     CID piece_cid;
   };
 
+  struct SealedAndUnsealedCID {
+    CID unsealed_cid;
+    CID sealed_cid;
+  };
+
   class Proofs {
    public:
     static fc::proofs::SortedPrivateSectorInfo newSortedPrivateSectorInfo(
@@ -100,7 +104,6 @@ namespace fc::proofs {
         const std::string &piece_file_path,
         const UnpaddedPieceSize &piece_bytes,
         const std::string &staged_sector_file_path);
-
 
     static outcome::result<WriteWithAlignmentResult> writeWithAlignment(
         RegisteredProof proof_type,
@@ -123,10 +126,10 @@ namespace fc::proofs {
         const SealRandomness &ticket,
         gsl::span<const PieceInfo> pieces);
 
-    static outcome::result<std::pair<SealedCID, UnsealedCID>>
-    sealPreCommitPhase2(gsl::span<const uint8_t> phase1_output,
-                        const std::string &cache_dir_path,
-                        const std::string &sealed_sector_path);
+    static outcome::result<SealedAndUnsealedCID> sealPreCommitPhase2(
+        gsl::span<const uint8_t> phase1_output,
+        const std::string &cache_dir_path,
+        const std::string &sealed_sector_path);
 
     static outcome::result<Phase1Output> sealCommitPhase1(
         RegisteredProof proof_type,
@@ -136,8 +139,8 @@ namespace fc::proofs {
         const std::string &sealed_sector_path,
         SectorNumber sector_num,
         ActorId miner_id,
-        const SealRandomness &ticket,
-        const InteractiveRandomness &seed,
+        const Ticket &ticket,
+        const Seed &seed,
         gsl::span<const PieceInfo> pieces);
 
     static outcome::result<Proof> sealCommitPhase2(
@@ -145,11 +148,18 @@ namespace fc::proofs {
         SectorNumber sector_id,
         ActorId miner_id);
 
+    /**
+     * GeneratePieceCIDFromFile produces a piece CID for the provided data
+     * stored in a given file.
+     */
     static outcome::result<CID> generatePieceCIDFromFile(
         RegisteredProof proof_type,
         const std::string &piece_file_path,
         UnpaddedPieceSize piece_size);
 
+    /** GenerateDataCommitment produces a commitment for the sector containing
+     * the provided pieces.
+     */
     static outcome::result<CID> generateUnsealedCID(
         RegisteredProof proof_type, gsl::span<PieceInfo> pieces);
 
@@ -211,6 +221,11 @@ namespace fc::proofs {
         const UnsealedCID &unsealed_cid,
         uint64_t offset,
         uint64_t length);
+
+    /**
+     *  FinalizeTicket creates an actual ticket from a partial ticket
+     */
+    static outcome::result<Ticket> finalizeTicket(const Ticket &partialTicket);
 
    private:
     static fc::common::Logger logger_;

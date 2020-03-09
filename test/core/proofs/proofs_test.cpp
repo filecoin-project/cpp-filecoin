@@ -33,8 +33,8 @@ class ProofsTest : public test::BaseFS_Test {
 // TODO(artyom-yurin): [FIL-164]
 /**
  * disabled because it takes too long
- * @given Data for PoSt generation
- * @when Generates and Verifies PoST
+ * @given data of sector
+ * @when want to seal data and proof post
  * @then success
  */
 TEST_F(ProofsTest, Lifecycle) {
@@ -166,50 +166,52 @@ TEST_F(ProofsTest, Lifecycle) {
                                                   ticket,
                                                   public_pieces));
 
-  EXPECT_OUTCOME_TRUE(sealedAndUnsealedCID,
+  EXPECT_OUTCOME_TRUE(sealed_and_unsealed_cid,
                       Proofs::sealPreCommitPhase2(seal_precommit_phase1_output,
                                                   sector_cache_dir_path,
                                                   sealed_sector_file));
 
-  ASSERT_EQ(sealedAndUnsealedCID.second, pregenerated_unsealed_cid);
+  ASSERT_EQ(sealed_and_unsealed_cid.unsealed_cid, pregenerated_unsealed_cid);
 
   // commit the sector
-  EXPECT_OUTCOME_TRUE(seal_commit_phase1_output,
-                      Proofs::sealCommitPhase1(seal_proof_type,
-                                               sealedAndUnsealedCID.first,
-                                               sealedAndUnsealedCID.second,
-                                               sector_cache_dir_path,
-                                               sealed_sector_file,
-                                               sector_num,
-                                               miner_id,
-                                               ticket,
-                                               seed,
-                                               public_pieces))
+  EXPECT_OUTCOME_TRUE(
+      seal_commit_phase1_output,
+      Proofs::sealCommitPhase1(seal_proof_type,
+                               sealed_and_unsealed_cid.sealed_cid,
+                               sealed_and_unsealed_cid.unsealed_cid,
+                               sector_cache_dir_path,
+                               sealed_sector_file,
+                               sector_num,
+                               miner_id,
+                               ticket,
+                               seed,
+                               public_pieces))
   EXPECT_OUTCOME_TRUE(seal_proof,
                       Proofs::sealCommitPhase2(
                           seal_commit_phase1_output, sector_num, miner_id));
 
-  EXPECT_OUTCOME_TRUE(isValid,
-                      Proofs::verifySeal(SealVerifyInfo{
-                          .sector =
-                              SectorId{
-                                  .miner = miner_id,
-                                  .sector = sector_num,
-                              },
-                          .info =
-                              OnChainSealVerifyInfo{
-                                  .sealed_cid = sealedAndUnsealedCID.first,
-                                  .interactive_epoch = 42,
-                                  .registered_proof = seal_proof_type,
-                                  .proof = seal_proof,
-                                  .deals = {},
-                                  .sector = sector_num,
-                                  .seal_rand_epoch = 42,
-                              },
-                          .randomness = ticket,
-                          .interactive_randomness = seed,
-                          .unsealed_cid = sealedAndUnsealedCID.second,
-                      }));
+  EXPECT_OUTCOME_TRUE(
+      isValid,
+      Proofs::verifySeal(SealVerifyInfo{
+          .sector =
+              SectorId{
+                  .miner = miner_id,
+                  .sector = sector_num,
+              },
+          .info =
+              OnChainSealVerifyInfo{
+                  .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
+                  .interactive_epoch = 42,
+                  .registered_proof = seal_proof_type,
+                  .proof = seal_proof,
+                  .deals = {},
+                  .sector = sector_num,
+                  .seal_rand_epoch = 42,
+              },
+          .randomness = ticket,
+          .interactive_randomness = seed,
+          .unsealed_cid = sealed_and_unsealed_cid.unsealed_cid,
+      }));
 
   ASSERT_TRUE(isValid);
 
@@ -220,7 +222,7 @@ TEST_F(ProofsTest, Lifecycle) {
                                        sector_num,
                                        miner_id,
                                        ticket,
-                                       sealedAndUnsealedCID.second));
+                                       sealed_and_unsealed_cid.unsealed_cid));
 
   auto read_file = [](const std::string &path) -> std::vector<uint8_t> {
     std::ifstream file(path, std::ios::binary);
@@ -245,32 +247,34 @@ TEST_F(ProofsTest, Lifecycle) {
   ASSERT_EQ(gsl::make_span(file_a_bytes.data() + 1016, 1016),
             gsl::make_span(some_bytes.data(), 1016));
 
-  EXPECT_OUTCOME_TRUE_1(Proofs::unsealRange(seal_proof_type,
-                                            sector_cache_dir_path,
-                                            sealed_sector_file,
-                                            unseal_output_file_b,
-                                            sector_num,
-                                            miner_id,
-                                            ticket,
-                                            sealedAndUnsealedCID.second,
-                                            0,
-                                            127));
+  EXPECT_OUTCOME_TRUE_1(
+      Proofs::unsealRange(seal_proof_type,
+                          sector_cache_dir_path,
+                          sealed_sector_file,
+                          unseal_output_file_b,
+                          sector_num,
+                          miner_id,
+                          ticket,
+                          sealed_and_unsealed_cid.unsealed_cid,
+                          0,
+                          127));
 
   std::vector<uint8_t> file_b_bytes = read_file(unseal_output_file_b);
 
   ASSERT_EQ(gsl::make_span(file_b_bytes),
             gsl::make_span(some_bytes.data(), 127));
 
-  EXPECT_OUTCOME_TRUE_1(Proofs::unsealRange(seal_proof_type,
-                                            sector_cache_dir_path,
-                                            sealed_sector_file,
-                                            unseal_output_file_c,
-                                            sector_num,
-                                            miner_id,
-                                            ticket,
-                                            sealedAndUnsealedCID.second,
-                                            1016,
-                                            1016));
+  EXPECT_OUTCOME_TRUE_1(
+      Proofs::unsealRange(seal_proof_type,
+                          sector_cache_dir_path,
+                          sealed_sector_file,
+                          unseal_output_file_c,
+                          sector_num,
+                          miner_id,
+                          ticket,
+                          sealed_and_unsealed_cid.unsealed_cid,
+                          1016,
+                          1016));
 
   std::vector<uint8_t> file_c_bytes = read_file(unseal_output_file_c);
 
@@ -281,7 +285,7 @@ TEST_F(ProofsTest, Lifecycle) {
       .info =
           SectorInfo{
               .sector = sector_num,
-              .sealed_cid = sealedAndUnsealedCID.first,
+              .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
           },
       .cache_dir_path = sector_cache_dir_path,
       .sealed_sector_path = sealed_sector_file,
@@ -292,14 +296,14 @@ TEST_F(ProofsTest, Lifecycle) {
   std::vector<PublicSectorInfo> public_sectors_info = {PublicSectorInfo{
       .sector_num = sector_num,
       .post_proof_type = post_proof_type,
-      .sealed_cid = sealedAndUnsealedCID.first,
+      .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
   }};
   auto public_info = Proofs::newSortedPublicSectorInfo(public_sectors_info);
 
   std::vector<SectorInfo> elignable_sectors = {SectorInfo{
       .registered_proof = seal_proof_type,
       .sector = sector_num,
-      .sealed_cid = sealedAndUnsealedCID.first,
+      .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
   }};
 
   EXPECT_OUTCOME_TRUE(candidates_with_tickets,
@@ -310,6 +314,10 @@ TEST_F(ProofsTest, Lifecycle) {
   for (const auto &candidate_with_ticket : candidates_with_tickets) {
     candidates.push_back(candidate_with_ticket.candidate);
   }
+
+  EXPECT_OUTCOME_TRUE(final_ticket,
+                      Proofs::finalizeTicket(candidates[0].partial_ticket));
+  ASSERT_EQ(final_ticket, candidates_with_tickets[0].ticket);
 
   EXPECT_OUTCOME_TRUE(
       proofs,

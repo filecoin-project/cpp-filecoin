@@ -19,7 +19,6 @@ namespace fc::primitives::sector {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::SectorNumber;
-  using Ticket = common::Blob<32>;
 
   struct SectorId {
     ActorId miner;
@@ -44,6 +43,8 @@ namespace fc::primitives::sector {
       RegisteredProof proof);
 
   using SealRandomness = Randomness;
+
+  using Ticket = SealRandomness;
 
   using InteractiveRandomness = Randomness;
 

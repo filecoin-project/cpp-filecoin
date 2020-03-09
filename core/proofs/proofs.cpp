@@ -581,10 +581,10 @@ namespace fc::proofs {
             + res_ptr->seal_pre_commit_phase1_output_len);  // NOLINT
   }
 
-  outcome::result<std::pair<SealedCID, UnsealedCID>>
-  Proofs::sealPreCommitPhase2(gsl::span<const uint8_t> phase1_output,
-                              const std::string &cache_dir_path,
-                              const std::string &sealed_sector_path) {
+  outcome::result<SealedAndUnsealedCID> Proofs::sealPreCommitPhase2(
+      gsl::span<const uint8_t> phase1_output,
+      const std::string &cache_dir_path,
+      const std::string &sealed_sector_path) {
     auto res_ptr =
         make_unique(seal_pre_commit_phase2(phase1_output.data(),
                                            phase1_output.size(),
@@ -598,10 +598,12 @@ namespace fc::proofs {
       return ProofsError::UNKNOWN;
     }
 
-    return std::make_pair(replicaCommitmentV1ToCID(gsl::make_span(
-                              res_ptr->comm_r, kCommitmentBytesLen)),
-                          dataCommitmentV1ToCID(gsl::make_span(
-                              res_ptr->comm_d, kCommitmentBytesLen)));
+    return SealedAndUnsealedCID{
+        .sealed_cid = replicaCommitmentV1ToCID(
+            gsl::make_span(res_ptr->comm_r, kCommitmentBytesLen)),
+        .unsealed_cid = dataCommitmentV1ToCID(
+            gsl::make_span(res_ptr->comm_d, kCommitmentBytesLen)),
+    };
   }
 
   outcome::result<Phase1Output> Proofs::sealCommitPhase1(
@@ -612,8 +614,8 @@ namespace fc::proofs {
       const std::string &sealed_sector_path,
       SectorNumber sector_num,
       ActorId miner_id,
-      const SealRandomness &ticket,
-      const InteractiveRandomness &seed,
+      const Ticket &ticket,
+      const Seed &seed,
       gsl::span<const PieceInfo> pieces) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
@@ -813,6 +815,18 @@ namespace fc::proofs {
 
     return dataCommitmentV1ToCID(
         gsl::make_span(res_ptr->comm_d, kCommitmentBytesLen));
+  }
+
+  outcome::result<Ticket> Proofs::finalizeTicket(const Ticket &partialTicket) {
+    auto res_ptr = make_unique(finalize_ticket(cPointerToArray(partialTicket)),
+                               destroy_finalize_ticket_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("finalizeTicket: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return cppCommitment(gsl::make_span(res_ptr->ticket, 32));
   }
 
 }  // namespace fc::proofs
