@@ -44,6 +44,7 @@ namespace fc::proofs {
   using primitives::sector::Ticket;
   using SealedCID = CID;
   using UnsealedCID = CID;
+  using Devices = std::vector<std::string>;
   using Seed = primitives::sector::InteractiveRandomness;
 
   struct PublicSectorInfo {
@@ -226,6 +227,20 @@ namespace fc::proofs {
      *  FinalizeTicket creates an actual ticket from a partial ticket
      */
     static outcome::result<Ticket> finalizeTicket(const Ticket &partialTicket);
+
+    static outcome::result<void> clearCache(const std::string &cache_dir_path);
+
+    static outcome::result<std::string> getPoStVersion(
+        RegisteredProof proof_type);
+
+    static outcome::result<std::string> getSealVersion(
+        RegisteredProof proof_type);
+
+    /**
+     * @brief Produces a vector of strings, each representing the name of a
+     * detected GPU device
+     */
+    static outcome::result<Devices> getGPUDevices();
 
    private:
     static fc::common::Logger logger_;

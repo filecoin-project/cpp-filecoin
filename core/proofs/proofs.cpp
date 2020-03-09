@@ -829,4 +829,60 @@ namespace fc::proofs {
     return cppCommitment(gsl::make_span(res_ptr->ticket, 32));
   }
 
+  outcome::result<void> Proofs::clearCache(const std::string &cache_dir_path) {
+    auto res_ptr = make_unique(clear_cache(cache_dir_path.c_str()),
+                               destroy_clear_cache_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("clearCache: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<std::string> Proofs::getPoStVersion(
+      RegisteredProof proof_type) {
+    OUTCOME_TRY(c_proof_type, cRegisteredPoStProof(proof_type));
+    auto res_ptr =
+        make_unique(get_post_version(c_proof_type), destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getPoStVersion: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return std::string(res_ptr->string_val);
+  }
+
+  outcome::result<std::string> Proofs::getSealVersion(
+      RegisteredProof proof_type) {
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
+    auto res_ptr =
+        make_unique(get_seal_version(c_proof_type), destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getSealVersion: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return std::string(res_ptr->string_val);
+  }
+
+  outcome::result<Devices> Proofs::getGPUDevices() {
+    auto res_ptr = make_unique(get_gpu_devices(), destroy_gpu_device_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getGPUDevices: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    if (res_ptr->devices_ptr == nullptr || res_ptr->devices_len == 0) {
+      return Devices();
+    }
+
+    return Devices(res_ptr->devices_ptr,
+                   res_ptr->devices_ptr + res_ptr->devices_len);  // NOLINT
+  }
+
 }  // namespace fc::proofs
