@@ -12,4 +12,5 @@ target_link_libraries(runtime
     actor
     p2p::p2p_cid
     randomness_provider
+    proofs
     )

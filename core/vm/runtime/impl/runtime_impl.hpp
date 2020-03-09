@@ -105,11 +105,9 @@ namespace fc::vm::runtime {
 
     outcome::result<Address> resolveAddress(const Address &address) override;
 
-    outcome::result<bool> verifyPoSt(uint64_t sector_size,
-                                     const PoStVerifyInfo &info) override;
+    outcome::result<bool> verifyPoSt(const PoStVerifyInfo &info) override;
 
-    outcome::result<bool> verifySeal(uint64_t sector_size,
-                                     const SealVerifyInfo &info) override;
+    outcome::result<bool> verifySeal(const SealVerifyInfo &info) override;
 
     outcome::result<bool> verifyConsensusFault(
         const BlockHeader &block_header_1,
