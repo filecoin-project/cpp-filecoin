@@ -88,8 +88,8 @@ namespace fc::proofs {
   };
 
   struct SealedAndUnsealedCID {
-    CID unsealed_cid;
     CID sealed_cid;
+    CID unsealed_cid;
   };
 
   class Proofs {

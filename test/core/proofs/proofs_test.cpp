@@ -288,15 +288,15 @@ TEST_F(ProofsTest, Lifecycle) {
               .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
           },
       .cache_dir_path = sector_cache_dir_path,
-      .sealed_sector_path = sealed_sector_file,
       .post_proof_type = post_proof_type,
+      .sealed_sector_path = sealed_sector_file,
   }};
   auto private_info = Proofs::newSortedPrivateSectorInfo(private_replicas_info);
 
   std::vector<PublicSectorInfo> public_sectors_info = {PublicSectorInfo{
-      .sector_num = sector_num,
       .post_proof_type = post_proof_type,
       .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
+      .sector_num = sector_num,
   }};
   auto public_info = Proofs::newSortedPublicSectorInfo(public_sectors_info);
 

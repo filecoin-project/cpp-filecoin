@@ -294,8 +294,8 @@ namespace fc::proofs {
     OUTCOME_TRY(c_proof, cRegisteredPoStProof(cpp_post_proof.registered_proof));
     return FFIPoStProof{
         .registered_proof = c_proof,
-        .proof_ptr = cpp_post_proof.proof.data(),
         .proof_len = cpp_post_proof.proof.size(),
+        .proof_ptr = cpp_post_proof.proof.data(),
     };
   }
 
@@ -318,9 +318,9 @@ namespace fc::proofs {
 
     for (const auto &sector_info : info.eligible_sectors) {
       public_sector_info.push_back(PublicSectorInfo{
+          .post_proof_type = sector_info.registered_proof,
           .sealed_cid = sector_info.sealed_cid,
           .sector_num = sector_info.sector,
-          .post_proof_type = sector_info.registered_proof,
       });
     }
 
