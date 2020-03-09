@@ -118,6 +118,7 @@ namespace fc::vm::actor::builtin::miner {
               if (state.fault_set.find(sector.info.sector)
                   == state.fault_set.end()) {
                 sectors.push_back({
+                    .registered_proof = sector.info.registered_proof,
                     .sector = sector.info.sector,
                     .sealed_cid = sector.info.sealed_cid,
                 });
