@@ -16,7 +16,6 @@
 
 namespace fc::vm::actor::builtin {
 
-  using miner::GetControlAddressesReturn;
   using runtime::Runtime;
 
   /**
@@ -25,8 +24,10 @@ namespace fc::vm::actor::builtin {
    * @param miner
    * @return
    */
-  fc::outcome::result<GetControlAddressesReturn> requestMinerControlAddress(
-      Runtime &runtime, const Address &miner);
+  outcome::result<miner::ControlAddresses::Result> requestMinerControlAddress(
+      Runtime &runtime, const Address &miner) {
+    return runtime.sendM<miner::ControlAddresses>(miner, {}, 0);
+  }
 }  // namespace fc::vm::actor::builtin
 
 #endif  // CPP_FILECOIN_SHARED_HPP

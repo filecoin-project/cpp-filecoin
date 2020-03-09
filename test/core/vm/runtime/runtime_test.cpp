@@ -60,7 +60,7 @@ class RuntimeTest : public ::testing::Test {
       std::make_shared<MockStateTree>();
   std::shared_ptr<MockIndices> indices_ = std::make_shared<MockIndices>();
   std::shared_ptr<MockInvoker> invoker_ = std::make_shared<MockInvoker>();
-  UnsignedMessage message_{message_to, message_from};
+  UnsignedMessage message_{message_to, message_from, {}, {}, {}, {}, {}, {}};
   ChainEpoch chain_epoch_{0};
   Address immediate_caller_{fc::primitives::address::TESTNET, 1};
   Address block_miner_{};

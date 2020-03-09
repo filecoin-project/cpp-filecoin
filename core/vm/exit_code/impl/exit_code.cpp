@@ -83,6 +83,8 @@ namespace fc::vm {
         return 16;  // ErrIllegalArgument in actor-specs
       case E::STORAGE_POWER_FORBIDDEN:
         return 18;  // ErrForbidden in actor-specs
+      case E::STORAGE_POWER_ILLEGAL_STATE:
+        return 20;  // ErrIllegalState in actor-specs
 
       case E::INIT_ACTOR_NOT_BUILTIN_ACTOR:
       case E::INIT_ACTOR_SINGLETON_ACTOR:

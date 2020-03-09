@@ -6,6 +6,8 @@
 #ifndef FILECOIN_STORAGE_IPLD_BLOCK_HPP
 #define FILECOIN_STORAGE_IPLD_BLOCK_HPP
 
+#include <vector>
+
 #include "common/buffer.hpp"
 #include "primitives/cid/cid.hpp"
 
@@ -32,15 +34,6 @@ namespace fc::storage::ipld {
      */
     virtual const common::Buffer &getRawBytes() const = 0;
 
-   protected:
-    /**
-     * @brief Optionally used for generating CID
-     *        Children class must overload it to support structure serialization
-     * @return Serialized value
-     */
-    virtual common::Buffer serialize() const {
-      return {};
-    }
   };
 }  // namespace fc::storage::ipld
 

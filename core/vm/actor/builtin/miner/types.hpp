@@ -27,8 +27,8 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::OnChainPoStVerifyInfo;
-  using primitives::sector::RegisteredProof;
   using primitives::sector::Proof;
+  using primitives::sector::RegisteredProof;
 
   using PeerId = std::string;
 
@@ -44,6 +44,7 @@ namespace fc::vm::actor::builtin::miner {
      */
     uint64_t num_consecutive_failures;
   };
+  CBOR_TUPLE(PoStState, proving_period_start, num_consecutive_failures)
 
   struct SectorPreCommitInfo {
     RegisteredProof registered_proof;
@@ -55,12 +56,18 @@ namespace fc::vm::actor::builtin::miner {
     /// Sector expiration
     ChainEpoch expiration;
   };
+  CBOR_TUPLE(
+      SectorPreCommitInfo, sector, sealed_cid, seal_epoch, deal_ids, expiration)
 
   struct SectorPreCommitOnChainInfo {
     SectorPreCommitInfo info;
     TokenAmount precommit_deposit;
     ChainEpoch precommit_epoch;
   };
+  CBOR_TUPLE(SectorPreCommitOnChainInfo,
+             info,
+             precommit_deposit,
+             precommit_epoch)
 
   struct SectorOnChainInfo {
     SectorPreCommitInfo info;
@@ -76,12 +83,20 @@ namespace fc::vm::actor::builtin::miner {
     /// -1 if not currently declared faulted.
     ChainEpoch declared_fault_duration;
   };
+  CBOR_TUPLE(SectorOnChainInfo,
+             info,
+             activation_epoch,
+             deal_weight,
+             pledge_requirement,
+             declared_fault_epoch,
+             declared_fault_duration)
 
   struct WorkerKeyChange {
     /// Must be an ID address
     Address new_worker;
     ChainEpoch effective_at;
   };
+  CBOR_TUPLE(WorkerKeyChange, new_worker, effective_at)
 
   struct MinerInfo {
     /**
@@ -105,6 +120,7 @@ namespace fc::vm::actor::builtin::miner {
     /// Amount of space in each sector committed to the network by this miner.
     SectorSize sector_size;
   };
+  CBOR_TUPLE(MinerInfo, owner, worker, pending_worker_key, peer_id, sector_size)
 
   /// Balance of a Actor should equal exactly the sum of PreCommit deposits
   struct MinerActorState {
@@ -118,6 +134,13 @@ namespace fc::vm::actor::builtin::miner {
     MinerInfo info;
     PoStState post_state;
   };
+  CBOR_TUPLE(MinerActorState,
+             precommitted_sectors,
+             sectors,
+             fault_set,
+             proving_set,
+             info,
+             post_state)
 
   enum class CronEventType {
     WindowedPoStExpiration,
@@ -132,109 +155,7 @@ namespace fc::vm::actor::builtin::miner {
     boost::optional<RleBitset> sectors;
     RegisteredProof registered_proof{};
   };
-
-  struct ConstructorParams {
-    Address owner;
-    Address worker;
-    SectorSize sector_size;
-    PeerId peer_id;
-  };
-
-  struct GetControlAddressesReturn {
-    Address owner;
-    Address worker;
-  };
-
-  struct ChangeWorkerAddressParams {
-    Address new_worker;
-  };
-
-  struct ChangePeerIdParams {
-    PeerId new_id;
-  };
-
-  using SubmitWindowedPoStParams = OnChainPoStVerifyInfo;
-
-  using PreCommitSectorParams = SectorPreCommitInfo;
-
-  struct ProveCommitSectorParams {
-    SectorNumber sector;
-    Proof proof;
-  };
-
-  struct ExtendSectorExpirationParams {
-    SectorNumber sector;
-    ChainEpoch new_expiration;
-  };
-
-  struct TerminateSectorsParams {
-    boost::optional<RleBitset> sectors;
-  };
-
-  struct DeclareTemporaryFaultsParams {
-    RleBitset sectors;
-    EpochDuration duration;
-  };
-
-  struct OnDeferredCronEventParams {
-    Buffer callback_payload;
-  };
-
-  struct CheckSectorProvenParams {
-    SectorNumber sector;
-  };
-
-  CBOR_TUPLE(PoStState, proving_period_start, num_consecutive_failures)
-
-  CBOR_TUPLE(
-      SectorPreCommitInfo, sector, sealed_cid, seal_epoch, deal_ids, expiration)
-
-  CBOR_TUPLE(SectorPreCommitOnChainInfo,
-             info,
-             precommit_deposit,
-             precommit_epoch)
-
-  CBOR_TUPLE(SectorOnChainInfo,
-             info,
-             activation_epoch,
-             deal_weight,
-             pledge_requirement,
-             declared_fault_epoch,
-             declared_fault_duration)
-
-  CBOR_TUPLE(WorkerKeyChange, new_worker, effective_at)
-
-  CBOR_TUPLE(MinerInfo, owner, worker, pending_worker_key, peer_id, sector_size)
-
-  CBOR_TUPLE(MinerActorState,
-             precommitted_sectors,
-             sectors,
-             fault_set,
-             proving_set,
-             info,
-             post_state)
-
   CBOR_TUPLE(CronEventPayload, event_type, sectors, registered_proof)
-
-  CBOR_TUPLE(ConstructorParams, owner, worker, sector_size, peer_id)
-
-  CBOR_TUPLE(GetControlAddressesReturn, owner, worker)
-
-  CBOR_TUPLE(ChangeWorkerAddressParams, new_worker)
-
-  CBOR_TUPLE(ChangePeerIdParams, new_id)
-
-  CBOR_TUPLE(ProveCommitSectorParams, sector, proof)
-
-  CBOR_TUPLE(ExtendSectorExpirationParams, sector, new_expiration)
-
-  CBOR_TUPLE(TerminateSectorsParams, sectors)
-
-  CBOR_TUPLE(DeclareTemporaryFaultsParams, sectors, duration)
-
-  CBOR_TUPLE(OnDeferredCronEventParams, callback_payload)
-
-  CBOR_TUPLE(CheckSectorProvenParams, sector)
 }  // namespace fc::vm::actor::builtin::miner
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MINER_TYPES_HPP

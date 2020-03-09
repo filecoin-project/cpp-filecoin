@@ -29,7 +29,8 @@ namespace fc::crypto::bls {
     SignatureGenerationFailed,
     SignatureVerificationFailed,
     InvalidPrivateKey,
-    InvalidPublicKey
+    InvalidPublicKey,
+    AggregateError,
   };
 };  // namespace fc::crypto::bls
 

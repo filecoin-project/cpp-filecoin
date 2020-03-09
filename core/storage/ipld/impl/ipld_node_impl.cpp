@@ -23,10 +23,6 @@ using Version = libp2p::multi::ContentIdentifier::Version;
 
 namespace fc::storage::ipld {
 
-  IPLDNodeImpl::IPLDNodeImpl()
-      : IPLDBlockImpl{CID::Version::V0, HashType::sha256, ContentType::DAG_PB} {
-  }
-
   size_t IPLDNodeImpl::size() const {
     return getRawBytes().size() + child_nodes_size_;
   }
@@ -104,7 +100,7 @@ namespace fc::storage::ipld {
     return node;
   }
 
-  common::Buffer IPLDNodeImpl::serialize() const {
+  outcome::result<std::vector<uint8_t>> IPLDNodeImpl::getBlockContent() const {
     return IPLDNodeEncoderPB::encode(content_, links_);
   }
 }  // namespace fc::storage::ipld

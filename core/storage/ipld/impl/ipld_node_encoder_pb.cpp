@@ -15,19 +15,23 @@ using protobuf::ipld::node::PBLink;
 using protobuf::ipld::node::PBNode;
 
 namespace fc::storage::ipld {
-  common::Buffer IPLDNodeEncoderPB::encode(
+  std::vector<uint8_t> IPLDNodeEncoderPB::encode(
       const common::Buffer &content,
       const std::map<std::string, IPLDLinkImpl> &links) {
-    common::Buffer data;
     std::vector<uint8_t> links_pb = serializeLinks(links);
     std::vector<uint8_t> content_pb = serializeContent(content);
-    data.put(links_pb);
-    data.put(content_pb);
-    return data;
+    std::vector<uint8_t> result;
+    result.insert(result.end(),
+                  std::move_iterator(links_pb.begin()),
+                  std::move_iterator(links_pb.end()));
+    result.insert(result.end(),
+                  std::move_iterator(content_pb.begin()),
+                  std::move_iterator(content_pb.end()));
+    return result;
   }
 
   size_t IPLDNodeEncoderPB::getLinkLengthPB(const std::string &name,
-                                        const IPLDLinkImpl &link) {
+                                            const IPLDLinkImpl &link) {
     size_t length{};
     size_t cid_bytes_size = link.getCID().content_address.toBuffer().size();
     length += cid_bytes_size;
@@ -112,11 +116,11 @@ namespace fc::storage::ipld {
     return length;
   }
 
-    IPLDNodeEncoderPB::PBTag IPLDNodeEncoderPB::createTag(PBFieldType type,
-                                                uint8_t order) {
+  IPLDNodeEncoderPB::PBTag IPLDNodeEncoderPB::createTag(PBFieldType type,
+                                                        uint8_t order) {
     constexpr size_t pb_type_length = 3;
     uint8_t tag = (order << pb_type_length);
     tag |= static_cast<uint8_t>(type);
     return tag;
   }
-}  // namespace fc::storage::ipfs::merkledag
+}  // namespace fc::storage::ipld

@@ -3,17 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/interpreter/interpreter.hpp"
+#include "vm/interpreter/impl/interpreter_impl.hpp"
 
 #include "crypto/randomness/randomness_provider.hpp"
 #include "storage/amt/amt.hpp"
 #include "vm/actor/builtin/cron/cron_actor.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
-#include "vm/message/message_codec.hpp"
 #include "vm/runtime/gas_cost.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
-#include "vm/state/impl/state_tree_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
   using E = fc::vm::interpreter::InterpreterError;
@@ -32,44 +30,26 @@ namespace fc::vm::interpreter {
   using actor::InvokerImpl;
   using actor::kCronAddress;
   using actor::kSystemActorAddress;
-  using actor::builtin::cron::kEpochTickMethodNumber;
+  using actor::builtin::cron::EpochTick;
   using actor::builtin::miner::kSubmitElectionPoStMethodNumber;
   using actor::builtin::miner::MinerActorState;
   using actor::builtin::miner::MinerInfo;
   using crypto::randomness::RandomnessProvider;
   using message::SignedMessage;
   using message::UnsignedMessage;
-  using primitives::address::Address;
-  using primitives::block::BlockHeader;
+
+
   using primitives::block::MsgMeta;
   using runtime::Env;
   using runtime::kInfiniteGas;
   using runtime::MessageReceipt;
   using runtime::RuntimeImpl;
-  using state::StateTreeImpl;
+
   using storage::amt::Amt;
 
-  bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) {
-    std::set<Address> set;
-    for (auto &block : blocks) {
-      if (!set.insert(block.miner).second) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  outcome::result<Address> getMinerOwner(StateTreeImpl &state_tree,
-                                         const Address &miner) {
-    OUTCOME_TRY(actor, state_tree.get(miner));
-    OUTCOME_TRY(state,
-                state_tree.getStore()->getCbor<MinerActorState>(actor.head));
-    return state.info.owner;
-  }
-
-  outcome::result<Result> interpret(const std::shared_ptr<IpfsDatastore> &ipld,
+  outcome::result<Result> InterpreterImpl::interpret(const std::shared_ptr<IpfsDatastore> &ipld,
                                     const Tipset &tipset,
-                                    const std::shared_ptr<Indices> &indices) {
+                                    const std::shared_ptr<Indices> &indices) const {
     if (hasDuplicateMiners(tipset.blks)) {
       return InterpreterError::DUPLICATE_MINER;
     }
@@ -168,7 +148,7 @@ namespace fc::vm::interpreter {
                     0,
                     0,
                     kInfiniteGas,
-                    kEpochTickMethodNumber,
+                    EpochTick::Number,
                     {},
                 }));
     if (receipt.exit_code != 0) {
@@ -188,4 +168,23 @@ namespace fc::vm::interpreter {
         receipts_amt.cid(),
     };
   }
+
+  bool InterpreterImpl::hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const {
+    std::set<Address> set;
+    for (auto &block : blocks) {
+      if (!set.insert(block.miner).second) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  outcome::result<InterpreterImpl::Address> InterpreterImpl::getMinerOwner(StateTreeImpl &state_tree,
+                                         const Address &miner) const {
+    OUTCOME_TRY(actor, state_tree.get(miner));
+    OUTCOME_TRY(state,
+                state_tree.getStore()->getCbor<MinerActorState>(actor.head));
+    return state.info.owner;
+  }
+
 }  // namespace fc::vm::interpreter

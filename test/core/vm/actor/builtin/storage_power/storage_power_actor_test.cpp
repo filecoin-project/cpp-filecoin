@@ -11,10 +11,9 @@
 #include "testutil/literals.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
-#include "vm/actor/builtin/storage_power/policy.hpp"
+#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
 using fc::CID;
 using fc::common::Buffer;
@@ -37,24 +36,22 @@ using fc::vm::actor::kCronAddress;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::kSendMethodNumber;
 using fc::vm::actor::kStorageMinerCodeCid;
-using fc::vm::actor::builtin::miner::GetControlAddressesReturn;
-using fc::vm::actor::builtin::miner::kGetControlAddressesMethodNumber;
+using fc::vm::actor::builtin::miner::ControlAddresses;
+using fc::vm::actor::builtin::miner::OnDeleteMiner;
 using fc::vm::actor::builtin::miner::PeerId;
-using fc::vm::actor::builtin::storage_power::AddBalanceParameters;
+using fc::vm::actor::builtin::storage_power::AddBalance;
 using fc::vm::actor::builtin::storage_power::Claim;
-using fc::vm::actor::builtin::storage_power::CreateMinerParameters;
-using fc::vm::actor::builtin::storage_power::CreateMinerReturn;
-using fc::vm::actor::builtin::storage_power::DeleteMinerParameters;
+using fc::vm::actor::builtin::storage_power::Construct;
+using fc::vm::actor::builtin::storage_power::CreateMiner;
+using fc::vm::actor::builtin::storage_power::DeleteMiner;
 using fc::vm::actor::builtin::storage_power::kEpochTotalExpectedReward;
 using fc::vm::actor::builtin::storage_power::kPledgeFactor;
-using fc::vm::actor::builtin::storage_power::OnSectorProveCommitParameters;
-using fc::vm::actor::builtin::storage_power::OnSectorProveCommitReturn;
-using fc::vm::actor::builtin::storage_power::OnSectorTerminateParameters;
+using fc::vm::actor::builtin::storage_power::OnSectorProveCommit;
+using fc::vm::actor::builtin::storage_power::OnSectorTerminate;
 using fc::vm::actor::builtin::storage_power::SectorTerminationType;
 using fc::vm::actor::builtin::storage_power::StoragePowerActor;
-using fc::vm::actor::builtin::storage_power::StoragePowerActorMethods;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
-using fc::vm::actor::builtin::storage_power::WithdrawBalanceParameters;
+using fc::vm::actor::builtin::storage_power::WithdrawBalance;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::MethodParams;
@@ -115,7 +112,8 @@ class StoragePowerActorTest : public ::testing::Test {
     actor_state.total_network_power = power;
     StoragePowerActor power_actor(datastore, actor_state);
     EXPECT_OUTCOME_TRUE(actor_new_state, power_actor.flushState());
-    EXPECT_OUTCOME_TRUE(new_actor_head_cid, datastore->setCbor(actor_new_state));
+    EXPECT_OUTCOME_TRUE(new_actor_head_cid,
+                        datastore->setCbor(actor_new_state));
     actor_head_cid = ActorSubstateCID{new_actor_head_cid};
   }
 
@@ -131,7 +129,8 @@ class StoragePowerActorTest : public ::testing::Test {
     StoragePowerActor power_actor(datastore, actor_state);
     EXPECT_OUTCOME_TRUE_1(power_actor.addMinerBalance(miner, amount));
     EXPECT_OUTCOME_TRUE(actor_new_state, power_actor.flushState());
-    EXPECT_OUTCOME_TRUE(new_actor_head_cid, datastore->setCbor(actor_new_state));
+    EXPECT_OUTCOME_TRUE(new_actor_head_cid,
+                        datastore->setCbor(actor_new_state));
     actor_head_cid = ActorSubstateCID{new_actor_head_cid};
   }
 
@@ -161,7 +160,8 @@ class StoragePowerActorTest : public ::testing::Test {
     StoragePowerActor power_actor(datastore, actor_state);
     EXPECT_OUTCOME_TRUE_1(power_actor.setClaim(miner, claim));
     EXPECT_OUTCOME_TRUE(actor_new_state, power_actor.flushState());
-    EXPECT_OUTCOME_TRUE(new_actor_head_cid, datastore->setCbor(actor_new_state));
+    EXPECT_OUTCOME_TRUE(new_actor_head_cid,
+                        datastore->setCbor(actor_new_state));
     actor_head_cid = ActorSubstateCID{new_actor_head_cid};
   }
 
@@ -192,7 +192,7 @@ TEST_F(StoragePowerActorTest, ConstructorWrongCaller) {
       .WillOnce(testing::Return(kCronAddress));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER,
-                       StoragePowerActorMethods::construct(runtime, {}));
+                       Construct::call(runtime, {}));
 }
 
 /**
@@ -210,15 +210,13 @@ TEST_F(StoragePowerActorTest, Constructor) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
 
-  EXPECT_OUTCOME_TRUE_1(StoragePowerActorMethods::construct(runtime, {}));
+  EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, {}));
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
   EXPECT_OUTCOME_TRUE(state,
                       datastore->getCbor<StoragePowerActorState>(state_cid));
   StoragePowerActor actor(datastore, state);
-  EXPECT_OUTCOME_TRUE(cron_events, actor.getCronEvents());
-  EXPECT_TRUE(cron_events.empty());
   EXPECT_OUTCOME_TRUE(fault_miners, actor.getFaultMiners());
   EXPECT_TRUE(fault_miners.empty());
   EXPECT_OUTCOME_TRUE(claims, actor.getClaims());
@@ -233,16 +231,12 @@ TEST_F(StoragePowerActorTest, Constructor) {
  * @then Error returned
  */
 TEST_F(StoragePowerActorTest, AddBalanceWrongParams) {
-  AddBalanceParameters params;
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   // not a miner CodeCid
   EXPECT_CALL(runtime, getActorCodeID(_))
       .WillOnce(testing::Return(fc::outcome::success(kAccountCodeCid)));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
-      StoragePowerActorMethods::addBalance(runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
+                       AddBalance::call(runtime, {}));
 }
 
 /**
@@ -256,23 +250,19 @@ TEST_F(StoragePowerActorTest, AddBalanceInternalError) {
       "2222222222222222222222222222222222222222"
       "2222222222222222"_blob48);
 
-  AddBalanceParameters params{miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   EXPECT_CALL(runtime, getActorCodeID(_))
       .WillOnce(testing::Return(fc::outcome::success(kStorageMinerCodeCid)));
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
   EXPECT_CALL(runtime,
               send(Eq(miner_address),
-                   Eq(kGetControlAddressesMethodNumber),
+                   Eq(ControlAddresses::Number),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
       .WillOnce(testing::Return(fc::outcome::failure(VMExitCode::_)));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::_,
-      StoragePowerActorMethods::addBalance(runtime, encoded_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::_,
+                       AddBalance::call(runtime, {miner_address}));
 }
 
 /**
@@ -284,9 +274,6 @@ TEST_F(StoragePowerActorTest, AddBalanceSuccess) {
   Address miner_address = createStateWithMiner();
   TokenAmount amount_to_add{1334};
 
-  AddBalanceParameters params{miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   EXPECT_CALL(runtime, getCurrentActorState())
       .WillOnce(::testing::Return(actor_head_cid));
   EXPECT_CALL(runtime, getActorCodeID(Eq(miner_address)))
@@ -294,30 +281,20 @@ TEST_F(StoragePowerActorTest, AddBalanceSuccess) {
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
   // shared::requestMinerControlAddress
-  GetControlAddressesReturn get_controll_address_return{caller_address,
-                                                        miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_get_controll_address_return,
-                      fc::codec::cbor::encode(get_controll_address_return));
-  EXPECT_CALL(runtime,
-              send(Eq(miner_address),
-                   Eq(kGetControlAddressesMethodNumber),
-                   Eq(MethodParams{}),
-                   Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(
-          InvocationOutput{Buffer{encoded_get_controll_address_return}})));
+  runtime.expectSendM<ControlAddresses>(
+      miner_address, {}, 0, {caller_address, miner_address});
   EXPECT_CALL(runtime, getIpfsDatastore())
       .Times(3)
       .WillRepeatedly(testing::Return(datastore));
   // get message
-  UnsignedMessage message{miner_address, caller_address, 0, amount_to_add};
+  UnsignedMessage message{miner_address, caller_address, 0, amount_to_add, {}, {}, {}, {}};
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
 
   // commit and capture state CID
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
 
-  EXPECT_OUTCOME_TRUE_1(
-      StoragePowerActorMethods::addBalance(runtime, encoded_params));
+  EXPECT_OUTCOME_TRUE_1(AddBalance::call(runtime, {miner_address}));
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
@@ -333,29 +310,17 @@ TEST_F(StoragePowerActorTest, WithdrawBalanceNegative) {
   Address miner_address = createStateWithMiner();
   TokenAmount amount_to_withdraw{-1334};
 
-  WithdrawBalanceParameters params{miner_address, amount_to_withdraw};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   EXPECT_CALL(runtime, getActorCodeID(Eq(miner_address)))
       .WillOnce(testing::Return(fc::outcome::success(kStorageMinerCodeCid)));
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
   // shared::requestMinerControlAddress
-  GetControlAddressesReturn get_controll_address_return{caller_address,
-                                                        miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_get_controll_address_return,
-                      fc::codec::cbor::encode(get_controll_address_return));
-  EXPECT_CALL(runtime,
-              send(Eq(miner_address),
-                   Eq(kGetControlAddressesMethodNumber),
-                   Eq(MethodParams{}),
-                   Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(
-          InvocationOutput{Buffer{encoded_get_controll_address_return}})));
+  runtime.expectSendM<ControlAddresses>(
+      miner_address, {}, 0, {caller_address, miner_address});
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
-      StoragePowerActorMethods::withdrawBalance(runtime, encoded_params));
+      WithdrawBalance::call(runtime, {miner_address, amount_to_withdraw}));
 }
 
 /**
@@ -368,9 +333,6 @@ TEST_F(StoragePowerActorTest, WithdrawBalanceSuccess) {
   TokenAmount amount{1334};
   addBalance(miner_address, amount);
 
-  WithdrawBalanceParameters params{miner_address, amount};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(params));
-
   EXPECT_CALL(runtime, getActorCodeID(Eq(miner_address)))
       .WillOnce(testing::Return(fc::outcome::success(kStorageMinerCodeCid)));
   EXPECT_CALL(runtime, getImmediateCaller())
@@ -378,17 +340,8 @@ TEST_F(StoragePowerActorTest, WithdrawBalanceSuccess) {
   EXPECT_CALL(runtime, getCurrentActorState())
       .WillOnce(::testing::Return(actor_head_cid));
   // shared::requestMinerControlAddress
-  GetControlAddressesReturn get_controll_address_return{caller_address,
-                                                        miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_get_controll_address_return,
-                      fc::codec::cbor::encode(get_controll_address_return));
-  EXPECT_CALL(runtime,
-              send(Eq(miner_address),
-                   Eq(kGetControlAddressesMethodNumber),
-                   Eq(MethodParams{}),
-                   Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(
-          InvocationOutput{Buffer{encoded_get_controll_address_return}})));
+  runtime.expectSendM<ControlAddresses>(
+      miner_address, {}, 0, {caller_address, miner_address});
   EXPECT_CALL(runtime, getIpfsDatastore())
       .Times(3)
       .WillRepeatedly(testing::Return(datastore));
@@ -404,7 +357,7 @@ TEST_F(StoragePowerActorTest, WithdrawBalanceSuccess) {
       .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
 
   EXPECT_OUTCOME_TRUE_1(
-      StoragePowerActorMethods::withdrawBalance(runtime, encoded_params));
+      WithdrawBalance::call(runtime, {miner_address, amount}));
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
@@ -422,10 +375,6 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
   Address worker_address{Address::makeFromId(1334)};
   uint64_t sector_size = 2446;
   PeerId peer_id = "peer_id";
-  CreateMinerParameters create_miner_params{
-      worker_address, sector_size, peer_id};
-  EXPECT_OUTCOME_TRUE(encoded_create_miner_params,
-                      encodeActorParams(create_miner_params));
 
   Address any_address_1 = Address::makeBls(
       "1111111111111111111111111111111111111111"
@@ -436,7 +385,7 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
       "2222222222222222222222222222222222222222"
       "2222222222222222"_blob48);
   TokenAmount amount{100200};
-  UnsignedMessage message{any_address_1, caller_address, 0, amount};
+  UnsignedMessage message{any_address_1, caller_address, 0, amount, {}, {}, {}, {}};
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
 
   // return immediate caller is signable code id
@@ -449,23 +398,16 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
       .WillOnce(::testing::Return(actor_head_cid));
 
   // check send params
-  fc::vm::actor::builtin::miner::ConstructorParams construct_params{
+  fc::vm::actor::builtin::miner::Construct::Params construct_params{
       caller_address, worker_address, sector_size, peer_id};
   EXPECT_OUTCOME_TRUE(encoded_construct_params,
                       encodeActorParams(construct_params));
-  fc::vm::actor::builtin::init::ExecParams exec_params{
-      kStorageMinerCodeCid, encoded_construct_params};
-  EXPECT_OUTCOME_TRUE(encoded_exec_params, encodeActorParams(exec_params));
-  // send call return
-  fc::vm::actor::builtin::init::ExecReturn exec_return{any_address_1,
-                                                       any_address_2};
-  EXPECT_OUTCOME_TRUE(encoded_exec_return, encodeActorReturn(exec_return));
-  EXPECT_CALL(runtime,
-              send(Eq(kInitAddress),
-                   Eq(fc::vm::actor::builtin::init::kExecMethodNumber),
-                   Eq(encoded_exec_params),
-                   Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(encoded_exec_return)));
+
+  runtime.expectSendM<fc::vm::actor::builtin::init::Exec>(
+      kInitAddress,
+      {kStorageMinerCodeCid, encoded_construct_params},
+      0,
+      {any_address_1, any_address_2});
 
   EXPECT_CALL(runtime, getIpfsDatastore())
       .Times(3)
@@ -476,12 +418,11 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
       .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
 
   // expected output
-  CreateMinerReturn result{any_address_1, any_address_2};
-  EXPECT_OUTCOME_TRUE(encoded_result, encodeActorReturn(result));
+  CreateMiner::Result result{any_address_1, any_address_2};
 
-  EXPECT_OUTCOME_EQ(StoragePowerActorMethods::createMiner(
-                        runtime, encoded_create_miner_params),
-                    encoded_result);
+  EXPECT_OUTCOME_EQ(
+      CreateMiner::call(runtime, {worker_address, sector_size, peer_id}),
+      result);
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
@@ -498,9 +439,6 @@ TEST_F(StoragePowerActorTest, DeleteMinerClaimPowerNotZero) {
   Claim claim{100, 200};
   setClaim(miner_address, claim);
 
-  DeleteMinerParameters delete_params{miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_delete_params, encodeActorParams(delete_params));
-
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
 
@@ -508,25 +446,15 @@ TEST_F(StoragePowerActorTest, DeleteMinerClaimPowerNotZero) {
       .WillOnce(::testing::Return(actor_head_cid));
 
   // shared::requestMinerControlAddress
-  GetControlAddressesReturn get_controll_address_return{caller_address,
-                                                        miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_get_controll_address_return,
-                      fc::codec::cbor::encode(get_controll_address_return));
-  EXPECT_CALL(runtime,
-              send(Eq(miner_address),
-                   Eq(kGetControlAddressesMethodNumber),
-                   Eq(MethodParams{}),
-                   Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(
-          InvocationOutput{Buffer{encoded_get_controll_address_return}})));
+  runtime.expectSendM<ControlAddresses>(
+      miner_address, {}, 0, {caller_address, miner_address});
 
   EXPECT_CALL(runtime, getIpfsDatastore())
       .Times(2)
       .WillRepeatedly(testing::Return(datastore));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::STORAGE_POWER_FORBIDDEN,
-      StoragePowerActorMethods::deleteMiner(runtime, encoded_delete_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_FORBIDDEN,
+                       DeleteMiner::call(runtime, {miner_address}));
 }
 
 /**
@@ -541,9 +469,6 @@ TEST_F(StoragePowerActorTest, DeleteMinerNoMiner) {
       "1111111111111111111111111111111111111111"
       "1111111111111111"_blob48);
 
-  DeleteMinerParameters delete_params{miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_delete_params, encodeActorParams(delete_params));
-
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
 
@@ -551,25 +476,15 @@ TEST_F(StoragePowerActorTest, DeleteMinerNoMiner) {
       .WillOnce(::testing::Return(actor_head_cid));
 
   // shared::requestMinerControlAddress
-  GetControlAddressesReturn get_controll_address_return{caller_address,
-                                                        miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_get_controll_address_return,
-                      fc::codec::cbor::encode(get_controll_address_return));
-  EXPECT_CALL(runtime,
-              send(Eq(miner_address),
-                   Eq(kGetControlAddressesMethodNumber),
-                   Eq(MethodParams{}),
-                   Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(
-          InvocationOutput{Buffer{encoded_get_controll_address_return}})));
+  runtime.expectSendM<ControlAddresses>(
+      miner_address, {}, 0, {caller_address, miner_address});
 
   EXPECT_CALL(runtime, getIpfsDatastore())
       .Times(2)
       .WillRepeatedly(testing::Return(datastore));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
-      StoragePowerActorMethods::deleteMiner(runtime, encoded_delete_params));
+  EXPECT_OUTCOME_ERROR(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT,
+                       DeleteMiner::call(runtime, {miner_address}));
 }
 
 /**
@@ -582,9 +497,6 @@ TEST_F(StoragePowerActorTest, DeleteMinerSuccess) {
   TokenAmount balance = 100;
   addBalance(miner_address, balance);
 
-  DeleteMinerParameters delete_params{miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_delete_params, encodeActorParams(delete_params));
-
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
 
@@ -592,24 +504,9 @@ TEST_F(StoragePowerActorTest, DeleteMinerSuccess) {
       .WillOnce(::testing::Return(actor_head_cid));
 
   // shared::requestMinerControlAddress
-  GetControlAddressesReturn get_controll_address_return{caller_address,
-                                                        miner_address};
-  EXPECT_OUTCOME_TRUE(encoded_get_controll_address_return,
-                      fc::codec::cbor::encode(get_controll_address_return));
-  EXPECT_CALL(runtime,
-              send(Eq(miner_address),
-                   Eq(kGetControlAddressesMethodNumber),
-                   Eq(MethodParams{}),
-                   Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(
-          InvocationOutput{Buffer{encoded_get_controll_address_return}})));
-  EXPECT_CALL(
-      runtime,
-      send(Eq(miner_address),
-           Eq(fc::vm::actor::builtin::miner::kOnDeleteMinerMethodNumber),
-           Eq(MethodParams{}),
-           Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::success(InvocationOutput{})));
+  runtime.expectSendM<ControlAddresses>(
+      miner_address, {}, 0, {caller_address, miner_address});
+  runtime.expectSendM<OnDeleteMiner>(miner_address, {}, 0, {});
   EXPECT_CALL(runtime,
               send(Eq(kBurntFundsActorAddress),
                    Eq(kSendMethodNumber),
@@ -625,8 +522,7 @@ TEST_F(StoragePowerActorTest, DeleteMinerSuccess) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
 
-  EXPECT_OUTCOME_TRUE_1(
-      StoragePowerActorMethods::deleteMiner(runtime, encoded_delete_params));
+  EXPECT_OUTCOME_TRUE_1(DeleteMiner::call(runtime, {miner_address}));
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
@@ -648,8 +544,6 @@ TEST_F(StoragePowerActorTest, OnSectorProofCommitSuccess) {
   uint64_t sector_size{2};
   EpochDuration duration{3};
   SectorStorageWeightDesc weight_descr{sector_size, duration, 0};
-  OnSectorProveCommitParameters parameters{weight_descr};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(parameters));
 
   // return immediate caller is signable code id
   EXPECT_CALL(runtime, getImmediateCaller())
@@ -664,7 +558,7 @@ TEST_F(StoragePowerActorTest, OnSectorProofCommitSuccess) {
       .Times(3)
       .WillRepeatedly(testing::Return(datastore));
 
-  UnsignedMessage message{caller_address, miner_address, 0, 0};
+  UnsignedMessage message{caller_address, miner_address, 0, 0, {}, {}, {}, {}};
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
 
   // commit and capture state CID
@@ -674,12 +568,9 @@ TEST_F(StoragePowerActorTest, OnSectorProofCommitSuccess) {
   // expected output
   TokenAmount pledge = sector_size * duration * kEpochTotalExpectedReward
                        * kPledgeFactor / network_power;
-  OnSectorProveCommitReturn result{pledge};
-  EXPECT_OUTCOME_TRUE(encoded_result, encodeActorReturn(result));
+  OnSectorProveCommit::Result result{pledge};
 
-  EXPECT_OUTCOME_EQ(
-      StoragePowerActorMethods::onSectorProveCommit(runtime, encoded_params),
-      encoded_result);
+  EXPECT_OUTCOME_EQ(OnSectorProveCommit::call(runtime, {weight_descr}), result);
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
@@ -706,9 +597,6 @@ TEST_F(StoragePowerActorTest, OnSectorTerminateSuccess) {
   SectorStorageWeightDesc weight_descr_2{2, 2, 2};
   std::vector<SectorStorageWeightDesc> weights{weight_descr_1, weight_descr_2};
   TokenAmount pledge{10};
-  OnSectorTerminateParameters parameters{
-      SectorTerminationType::SECTOR_TERMINATION_EXPIRED, weights, pledge};
-  EXPECT_OUTCOME_TRUE(encoded_params, encodeActorParams(parameters));
 
   // return immediate caller is signable code id
   EXPECT_CALL(runtime, getImmediateCaller())
@@ -719,7 +607,7 @@ TEST_F(StoragePowerActorTest, OnSectorTerminateSuccess) {
   EXPECT_CALL(runtime, getCurrentActorState())
       .WillOnce(::testing::Return(actor_head_cid));
 
-  UnsignedMessage message{caller_address, miner_address, 0, 0};
+  UnsignedMessage message{caller_address, miner_address, 0, 0, {}, {}, {}, {}};
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
 
   EXPECT_CALL(runtime, getIpfsDatastore())
@@ -730,8 +618,9 @@ TEST_F(StoragePowerActorTest, OnSectorTerminateSuccess) {
   EXPECT_CALL(runtime, commit(_))
       .WillOnce(::testing::Invoke(this, &StoragePowerActorTest::captureCid));
 
-  EXPECT_OUTCOME_TRUE_1(
-      StoragePowerActorMethods::onSectorTerminate(runtime, encoded_params));
+  EXPECT_OUTCOME_TRUE_1(OnSectorTerminate::call(
+      runtime,
+      {SectorTerminationType::SECTOR_TERMINATION_EXPIRED, weights, pledge}));
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
