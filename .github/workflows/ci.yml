@@ -82,4 +82,3 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         file: ./build/ctest_coverage.xml
         name: codecov-umbrella
-
