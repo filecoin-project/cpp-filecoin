@@ -150,4 +150,4 @@ if(is_empty)
   hunter_fatal_error("No toolchain info generated" ERROR_PAGE error.no.toolchain.info)
 endif()
 
-file(APPEND "${TOOLCHAIN_INFO_FILE}" "Predefined macroses:\n${macros_string}")
+file(APPEND "${TOOLCHAIN_INFO_FILE}" "Predefined macros:\n${macros_string}")
