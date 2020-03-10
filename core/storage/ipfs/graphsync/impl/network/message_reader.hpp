@@ -12,21 +12,27 @@ namespace fc::storage::ipfs::graphsync {
 
   class LengthDelimitedMessageReader;
 
-  /// Per-stream message reader
+  /// Per-stream message reader, graphsync specific
   class MessageReader {
    public:
+    /// Ctor.
+    /// \param stream libp2p stream
+    /// \param feedback Owner's feedback interface
     MessageReader(StreamPtr stream,
                   EndpointToPeerFeedback &feedback);
 
     ~MessageReader();
 
    private:
+    /// Callback for async length delimited read operations
+    /// \param stream
+    /// \param res
     void onMessageRead(const StreamPtr &stream, outcome::result<ByteArray> res);
 
-    PeerContextPtr peer_;
+    /// Owner's feedback interface
     EndpointToPeerFeedback &feedback_;
 
-    /// Stream reader
+    /// Stream reader, not graphsync specific
     std::shared_ptr<LengthDelimitedMessageReader> stream_reader_;
   };
 

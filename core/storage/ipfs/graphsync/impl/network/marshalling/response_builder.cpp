@@ -42,7 +42,7 @@ namespace fc::storage::ipfs::graphsync {
     }
   }  // namespace
 
-  void ResponseBuilder::addResponse(int request_id,
+  void ResponseBuilder::addResponse(RequestId request_id,
                                     ResponseStatusCode status,
                                     const ResponseMetadata &metadata) {
     auto *dst = pb_msg_->add_responses();

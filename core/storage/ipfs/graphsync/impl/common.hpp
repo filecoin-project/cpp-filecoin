@@ -11,7 +11,7 @@
 
 namespace fc::storage::ipfs::graphsync {
 
-  /// Graphsync error codes
+  /// Graphsync internal error codes
   enum class Error {
     MESSAGE_SIZE_OUT_OF_BOUNDS = 1,
     MESSAGE_PARSE_ERROR,
@@ -24,12 +24,19 @@ namespace fc::storage::ipfs::graphsync {
     MESSAGE_WRITE_ERROR,
   };
 
+  /// Request ID defined as int32 by graphsync protocol, unfortunately
   using RequestId = int32_t;
 
+  /// Reusing ByteArray from libp2p
   using libp2p::common::ByteArray;
+
+  /// Using shared ptrs for outgoing raw messages
   using SharedData = std::shared_ptr<const ByteArray>;
+
+  /// Using libp2p and its peer Ids
   using libp2p::peer::PeerId;
 
+  /// Protocol constants
   constexpr std::string_view kResponseMetadata = "graphsync/response-metadata";
   constexpr std::string_view kDontSendCids = "graphsync/do-not-send-cids";
   constexpr std::string_view kLink = "link";
@@ -37,10 +44,6 @@ namespace fc::storage::ipfs::graphsync {
 
   /// Returns shared logger for graphsync modules
   common::Logger logger();
-
- // TODO - extract error category
- //  ResponseStatusCode errorToStatusCode(outcome::result<void> error);
-
 }  // namespace fc::storage::ipfs::graphsync
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::ipfs::graphsync, Error);

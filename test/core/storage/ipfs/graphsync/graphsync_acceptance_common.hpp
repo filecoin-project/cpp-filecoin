@@ -15,6 +15,7 @@ namespace fc::storage::ipfs::graphsync::test {
   void runEventLoop(const std::shared_ptr<boost::asio::io_context> &io,
                     size_t max_milliseconds);
 
+  // Creates per-node objects using libp2p hos injector
   std::pair<std::shared_ptr<Graphsync>, std::shared_ptr<libp2p::Host>>
   createNodeObjects(std::shared_ptr<boost::asio::io_context> io);
 
@@ -23,6 +24,7 @@ namespace fc::storage::ipfs::graphsync::test {
     return os;
   }
 
+  // MerkleDAG bridge interface for test purposes
   class TestDataService : public MerkleDagBridge {
    public:
     using Storage = std::map<CID, common::Buffer>;

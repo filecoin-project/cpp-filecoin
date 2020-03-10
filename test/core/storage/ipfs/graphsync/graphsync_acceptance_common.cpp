@@ -19,6 +19,7 @@ namespace fc::storage::ipfs::graphsync::test {
                     size_t max_milliseconds) {
     boost::asio::signal_set signals(*io, SIGINT, SIGTERM);
 
+    // io->run() can exit if we're not waiting for anything
     signals.async_wait(
         [&io](const boost::system::error_code &, int) { io->stop(); });
 
@@ -31,6 +32,9 @@ namespace fc::storage::ipfs::graphsync::test {
 
   std::pair<std::shared_ptr<Graphsync>, std::shared_ptr<libp2p::Host>>
   createNodeObjects(std::shared_ptr<boost::asio::io_context> io) {
+
+    // [boost::di::override] allows for creating multiple hosts for testing
+    // purposes
     auto injector =
         libp2p::injector::makeHostInjector<boost::di::extension::shared_config>(
             boost::di::bind<boost::asio::io_context>.to(

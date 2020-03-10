@@ -10,6 +10,7 @@
 
 namespace fc::storage::ipfs::graphsync {
 
+  /// Raw network message queue
   class MessageQueue : public std::enable_shared_from_this<MessageQueue> {
    public:
     /// Feedback: called either on errors or when all buffers written
@@ -37,6 +38,9 @@ namespace fc::storage::ipfs::graphsync {
     MessageQueue(const MessageQueue &) = delete;
     MessageQueue &operator=(const MessageQueue &) = delete;
 
+    /// Ctor.
+    /// \param stream libp2p stream
+    /// \param feedback Owner's callback
     MessageQueue(StreamPtr stream, FeedbackFn feedback);
 
     /// Returns current state
@@ -52,17 +56,22 @@ namespace fc::storage::ipfs::graphsync {
     void close();
 
    private:
+    /// Dequeues message to be written
     void dequeue();
 
+    /// Initiates write operation
     void beginWrite(SharedData buffer);
 
+    /// Async write result callback
     void onMessageWritten(outcome::result<size_t> res);
 
+    /// Owner's callback
     FeedbackFn feedback_;
 
-    /// The queue: streams allow to write messages one by one
+    /// The queue: streams allow to write messages one by one only
     std::deque<SharedData> pending_buffers_;
 
+    /// Current state of the queue
     State state_;
   };
 

@@ -11,6 +11,8 @@
 namespace fc::storage::ipfs::graphsync {
 
   /// Parses protobuf message received from wire
+  /// \param bytes Raw bytes of received message, without length prefix
+  /// \return Message or error
   outcome::result<Message> parseMessage(gsl::span<const uint8_t> bytes);
 
 }  // namespace fc::storage::ipfs::graphsync

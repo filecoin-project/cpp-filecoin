@@ -30,7 +30,7 @@ namespace fc::storage::ipfs::graphsync {
     }
   }  // namespace
 
-  void RequestBuilder::addRequest(int request_id,
+  void RequestBuilder::addRequest(RequestId request_id,
                                   const CID &root_cid,
                                   gsl::span<const uint8_t> selector,
                                   bool need_metadata,
@@ -64,7 +64,7 @@ namespace fc::storage::ipfs::graphsync {
     empty_ = false;
   }
 
-  void RequestBuilder::addCancelRequest(int request_id) {
+  void RequestBuilder::addCancelRequest(RequestId request_id) {
     auto *dst = pb_msg_->add_requests();
     dst->set_id(request_id);
     dst->set_cancel(true);

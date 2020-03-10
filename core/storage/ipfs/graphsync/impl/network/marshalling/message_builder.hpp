@@ -37,7 +37,7 @@ namespace fc::storage::ipfs::graphsync {
     /// Protobuf message, reused by derived classes
     std::unique_ptr<pb::Message> pb_msg_; //NOLINT
 
-    /// Empty flag, reused by derived classes
+    /// Empty message indicator, reused by derived classes
     bool empty_ = true; //NOLINT
   };
 

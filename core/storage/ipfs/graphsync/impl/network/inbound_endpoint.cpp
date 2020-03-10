@@ -21,8 +21,6 @@ namespace fc::storage::ipfs::graphsync {
 
     if (queue_->getState().pending_bytes + serialized_size + data.size()
         > max_pending_bytes_) {
-      // TODO lift logger()->error("outbound buffers overflow for peer {}",
-      // peer_->str);
       return Error::WRITE_QUEUE_OVERFLOW;
     }
 
@@ -49,7 +47,6 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (queue_->getState().pending_bytes > max_pending_bytes_) {
-      // logger()->error("outbound buffers overflow for peer {}", peer_->str);
       return Error::WRITE_QUEUE_OVERFLOW;
     }
 

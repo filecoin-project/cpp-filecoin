@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_GRAPHSYNC_SERIALIZE_HPP
 #define CPP_FILECOIN_GRAPHSYNC_SERIALIZE_HPP
 
-// TODO(artem) move to libp2p/protocol/common
+// TODO(FIL-144) move this stuff to libp2p
 
 #include <memory>
 
@@ -15,6 +15,7 @@
 #include <libp2p/common/byteutil.hpp>
 
 namespace google::protobuf {
+  // protobuf's MessageLite fwd decl
   class MessageLite;
 }
 

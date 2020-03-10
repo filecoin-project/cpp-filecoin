@@ -13,29 +13,45 @@ namespace fc::storage::ipfs::graphsync {
 
   class MessageQueue;
 
+  /// Graphsync endpoint used to send responses to peer
   class InboundEndpoint {
    public:
     InboundEndpoint(const InboundEndpoint &) = delete;
     InboundEndpoint &operator=(const InboundEndpoint &) = delete;
 
+    /// Ctor.
+    /// \param queue Queues raw messages, dependency object
     explicit InboundEndpoint(std::shared_ptr<MessageQueue> queue);
 
-    outcome::result<void> addBlockToResponse(int request_id,
+    /// Adds data block to response. Doesn't send unless sending partial
+    /// response is needed
+    /// \param cid CID of data block
+    /// \param data Raw data
+    outcome::result<void> addBlockToResponse(RequestId request_id,
                                              const CID &cid,
                                              const common::Buffer &data);
-
-    outcome::result<void> sendResponse(int request_id,
+    /// Sends response via message queue
+    /// \param request_id id of request
+    /// \param status status code
+    /// \param metadata metadata pairs
+    outcome::result<void> sendResponse(RequestId request_id,
                                        ResponseStatusCode status,
                                        const ResponseMetadata &metadata);
 
    private:
-    outcome::result<void> sendPartialResponse(int request_id);
+    /// Enqueues partial response when protobuf message size exceeds protocol
+    /// limits
+    /// \param request_id request id
+    /// \return result of queue operation
+    outcome::result<void> sendPartialResponse(RequestId request_id);
 
-    /// Max pending bytes
+    /// Max pending bytes in message queue.
     const size_t max_pending_bytes_;
 
+    /// Queues of network messages
     std::shared_ptr<MessageQueue> queue_;
 
+    /// Wire protocol response messages builder
     ResponseBuilder response_builder_;
   };
 

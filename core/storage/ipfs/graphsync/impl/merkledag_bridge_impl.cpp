@@ -40,7 +40,7 @@ namespace fc::storage::ipfs::graphsync {
       return 1;
     }
 
-    // TODO(artem): change MerkleDAG service to accept CID instead of bytes
+    // TODO(???): change MerkleDAG service to accept CID instead of bytes
     OUTCOME_TRY(cid_encoded, ContentIdentifierCodec::encode(root_cid));
     return service_->select(cid_encoded, selector, internal_handler);
   }

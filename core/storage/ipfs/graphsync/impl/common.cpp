@@ -39,11 +39,6 @@ namespace fc::storage::ipfs::graphsync {
     return graphsync_logger;
   }
 
-  // TODO(artem)
-  // ResponseStatusCode errorToStatusCode(outcome::result<void> error) {
-  //  error.error().category();
-  //}
-
   bool isTerminal(ResponseStatusCode code) {
     return code < 10 || code >= 20;
   }

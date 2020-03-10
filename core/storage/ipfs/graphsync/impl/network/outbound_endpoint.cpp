@@ -8,7 +8,6 @@
 #include <cassert>
 
 #include "message_queue.hpp"
-#include "peer_context.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
