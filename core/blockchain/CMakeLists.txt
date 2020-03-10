@@ -37,3 +37,18 @@ target_link_libraries(syncer_state
     clock
     tipset
     )
+
+add_library(sync_target_bucket
+    impl/sync_target_bucket.cpp
+    )
+target_link_libraries(sync_target_bucket
+    Boost::boost
+    tipset
+    )
+
+add_library(sync_bucket_set
+    impl/sync_bucket_set.cpp
+    )
+target_link_libraries(sync_bucket_set
+    sync_target_bucket
+    )

@@ -46,7 +46,7 @@ namespace fc::primitives::tipset {
     /**
      * @return key made of parents
      */
-    TipsetKey getParents();
+    TipsetKey getParents() const;
 
     /**
      * @return optional min ticket or error

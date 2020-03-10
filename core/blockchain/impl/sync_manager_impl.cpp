@@ -11,16 +11,15 @@ namespace fc::blockchain {
 
   SyncManagerImpl::SyncManagerImpl(boost::asio::io_context &context,
                                    SyncFunction sync_function)
-      : context_{context},
-        peer_heads_{},
+      : peer_heads_{},
         state_{BootstrapState::STATE_INIT},
         bootstrap_threshold_{1},
         sync_targets_{},
         sync_results_{},
-        sync_states_(kSyncWorkerCount),
         incoming_tipsets_{},
         active_syncs_{},
-        sync_function_(std::move(sync_function)) {
+        sync_function_(std::move(sync_function)),
+        logger_{common::createLogger("SyncManager")} {
     BOOST_ASSERT_MSG(static_cast<bool>(sync_function_),
                      "sync function is not callable");
   }
@@ -46,48 +45,112 @@ namespace fc::blockchain {
     return count;
   }
 
-  void SyncManagerImpl::workerMethod(int id) {
-    // func (sm *SyncManager) syncWorker(id int) {
-    //	ss := &SyncerState{}
-    //	sm.syncStates[id] = ss
-    //	for {
-    //		select {
-    //		case ts, ok := <-sm.syncTargets:
-    //			if !ok {
-    //				log.Info("sync manager worker shutting down")
-    //				return
-    //			}
+  outcome::result<SyncManagerImpl::Tipset> SyncManagerImpl::selectSyncTarget() {
+    // 	var buckets syncBucketSet
     //
-    //			ctx := context.WithValue(context.TODO(), syncStateKey{},
-    // ss) 			err := sm.doSync(ctx, ts) 			if err !=
-    // nil { log.Errorf("sync error:
-    //%+v", err)
-    //			}
-    //
-    //			sm.syncResults <- &syncResult{
-    //				ts:      ts,
-    //				success: err == nil,
-    //			}
-    //		}
+    //	var peerHeads []*types.TipSet
+    //	for _, ts := range sm.peerHeads {
+    //		peerHeads = append(peerHeads, ts)
     //	}
+    //	sort.Slice(peerHeads, func(i, j int) bool {
+    //		return peerHeads[i].Height() < peerHeads[j].Height()
+    //	})
+    //
+    //	for _, ts := range peerHeads {
+    //		buckets.Insert(ts)
+    //	}
+    //
+    //	if len(buckets.buckets) > 1 {
+    //		log.Warn("caution, multiple distinct chains seen during head selections")
+    //		// TODO: we *could* refuse to sync here without user intervention.
+    //		// For now, just select the best cluster
+    //	}
+    //
+    //	return buckets.Heaviest(), nil
 
-    SyncerState ss{};
-    sync_states_[id] = ss;
-    // wait for tipset from sync_targets
-    // put sync
-
-    scheduleWorker(id);
+    SyncBucketSet buckets;
+    std::vector<Tipset> peer_heads;
+    for (auto &[_, ts] : peer_heads_) {
+      peer_heads.push_back(ts);
+    }
   }
 
-  void SyncManagerImpl::scheduleWorker(int id) {
-    context_.post([self = this->shared_from_this(), id]() mutable {
-      self->workerMethod(id);
-    });
+  void SyncManagerImpl::processResult(const SyncResult &result) {}
+  // log.Info("scheduling incoming tipset sync: ", ts.Cids())
+//	if sm.getBootstrapState() == BSStateSelected {
+//		sm.setBootstrapState(BSStateScheduled)
+//		sm.syncTargets <- ts
+//		return
+//	}
+//
+//	var relatedToActiveSync bool
+//	for _, acts := range sm.activeSyncs {
+//		if ts.Equals(acts) {
+//			break
+//		}
+//
+//		if ts.Parents() == acts.Key() {
+//			// sync this next, after that sync process finishes
+//			relatedToActiveSync = true
+//		}
+//	}
+//
+//	if !relatedToActiveSync && sm.activeSyncTips.RelatedToAny(ts) {
+//		relatedToActiveSync = true
+//	}
+//
+//	// if this is related to an active sync process, immediately bucket it
+//	// we don't want to start a parallel sync process that duplicates work
+//	if relatedToActiveSync {
+//		sm.activeSyncTips.Insert(ts)
+//		return
+//	}
+//
+//	if sm.getBootstrapState() == BSStateScheduled {
+//		sm.syncQueue.Insert(ts)
+//		return
+//	}
+//
+//	if sm.nextSyncTarget != nil && sm.nextSyncTarget.sameChainAs(ts) {
+//		sm.nextSyncTarget.add(ts)
+//	} else {
+//		sm.syncQueue.Insert(ts)
+//
+//		if sm.nextSyncTarget == nil {
+//			sm.nextSyncTarget = sm.syncQueue.Pop()
+//			sm.workerChan = sm.syncTargets
+//		}
+//	}
+
+  outcome::result<void> SyncManagerImpl::processIncomingTipset(
+      const Tipset &tipset) {
+
   }
 
-  void SyncManagerImpl::join() {
-    for (auto &t : threads_) {
-      t.join();
+  outcome::result<void> SyncManagerImpl::setPeerHead(PeerId peer_id,
+                                                     const Tipset &tipset) {
+    peer_heads_[peer_id] = tipset;
+    auto state = state_;
+    switch (state) {
+      case BootstrapState::STATE_INIT: {
+        auto synced_count = syncedPeerCount();
+        if (synced_count >= bootstrap_threshold_) {
+          auto &&target = selectSyncTarget();
+          if (!target) {
+            logger_->error("failed to select sync target: %s",
+                           target.error().message());
+            return target.error();
+          }
+          state_ = BootstrapState::STATE_SELECTED;
+          return processIncomingTipset(target.value());
+        }
+        logger_->info("sync bootstrap has %d peers", synced_count);
+        return outcome::success();
+      }
+      case BootstrapState::STATE_SELECTED:
+      case BootstrapState::STATE_SCHEDULED:
+      case BootstrapState::STATE_COMPLETE:
+        return processIncomingTipset(tipset);
     }
   }
 

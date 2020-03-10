@@ -6,12 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_BLOCKCHAIN_SYNC_MANAGER_HPP
 #define CPP_FILECOIN_CORE_BLOCKCHAIN_SYNC_MANAGER_HPP
 
+#include <libp2p/peer/peer_id.hpp>
 #include "common/outcome.hpp"
 #include "primitives/tipset/tipset.hpp"
 
 namespace fc::blockchain {
-
-  using SyncResult = outcome::result<primitives::tipset::Tipset>;
 
   enum class BootstrapState : int {
     STATE_INIT = 0,
@@ -23,21 +22,13 @@ namespace fc::blockchain {
   /** @brief sync manager */
   class SyncManager {
    public:
+    using PeerId = libp2p::peer::PeerId;
+    using Tipset = primitives::tipset::Tipset;
+
     virtual ~SyncManager() = default;
 
-    virtual outcome::result<void> start() = 0;
-    virtual outcome::result<void> stop() = 0;
-    virtual outcome::result<void> setPeerHead() = 0;
-
-    virtual void workerMethod(int id) = 0;
-
-    virtual size_t syncedPeerCount() const = 0;
-
-    virtual BootstrapState getBootstrapState() const = 0;
-
-    virtual void setBootstrapState(BootstrapState state) = 0;
-
-    virtual bool isBootstrapped() const = 0;
+    virtual outcome::result<void> setPeerHead(PeerId peer_id,
+                                              const Tipset &tipset) = 0;
   };
 }  // namespace fc::blockchain
 

@@ -88,7 +88,7 @@ namespace fc::primitives::tipset {
     return ts;
   }
 
-  TipsetKey Tipset::getParents() {
+  TipsetKey Tipset::getParents() const {
     return TipsetKey{blks[0].parents};
   }
 

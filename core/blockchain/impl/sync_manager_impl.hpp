@@ -11,55 +11,27 @@
 #include <unordered_map>
 
 #include <boost/asio/io_context.hpp>
-#include <boost/fiber/buffered_channel.hpp>
-#include <boost/fiber/unbuffered_channel.hpp>
-#include <libp2p/peer/peer_id.hpp>
 #include "blockchain/syncer_state.hpp"
+#include "common/logger.hpp"
+#include "common/outcome.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::blockchain {
-  // type SyncManager struct {
-  //  lk        sync.Mutex
-  //      peerHeads map[peer.ID]*types.TipSet
-  //
-  //      bssLk          sync.Mutex
-  //      bootstrapState int
-  //
-  //      bspThresh int
-  //
-  //      incomingTipSets chan *types.TipSet
-  //      syncTargets     chan *types.TipSet
-  //      syncResults     chan *syncResult
-  //
-  //  syncStates []*SyncerState
-  //
-  //      doSync func(context.Context, *types.TipSet) error
-  //
-  //      stop chan struct{}
-  //
-  //  // Sync Scheduler fields
-  //  activeSyncs    map[types.TipSetKey]*types.TipSet
-  //      syncQueue      syncBucketSet
-  //      activeSyncTips syncBucketSet
-  //      nextSyncTarget *syncTargetBucket
-  //      workerChan     chan *types.TipSet
-  //
 
   using SyncFunction = std::function<outcome::result<void>(
       std::reference_wrapper<const primitives::tipset::Tipset>)>;
 
-  template <class T, size_t size = 0>
-  using BufferedChannel = boost::fibers::buffered_channel<T>;
+  enum class SyncManagerError { ShuttingDown = 1 };
 
-  template <class T>
-  using UnbufferedChannel = boost::fibers::unbuffered_channel<T>;
+  struct SyncResult {
+    primitives::tipset::Tipset tipset;
+    bool success;
+  };
 
   class SyncManagerImpl : public SyncManager,
                           public std::enable_shared_from_this<SyncManagerImpl> {
    public:
-    using PeerId = libp2p::peer::PeerId;
-    using Tipset = primitives::tipset::Tipset;
     using TipsetKey = primitives::tipset::TipsetKey;
 
     SyncManagerImpl(boost::asio::io_context &context,
@@ -67,43 +39,40 @@ namespace fc::blockchain {
 
     ~SyncManagerImpl() override = default;
 
-    outcome::result<void> start() override;
+    outcome::result<void> setPeerHead(PeerId peer_id,
+                                      const Tipset &tipset) override;
 
-    outcome::result<void> stop() override;
+    size_t syncedPeerCount() const;
 
-    outcome::result<void> setPeerHead() override;
+    BootstrapState getBootstrapState() const;
 
-    void workerMethod(int id) override;
+    void setBootstrapState(BootstrapState state);
 
-    size_t syncedPeerCount() const override;
-
-    BootstrapState getBootstrapState() const override;
-
-    void setBootstrapState(BootstrapState state) override;
-
-    bool isBootstrapped() const override;
-
-    void join();
+    bool isBootstrapped() const;
 
    private:
-    void scheduleWorker(int id);
+    outcome::result<void> processIncomingTipset(const Tipset &tipset);
 
-    static const size_t kSyncWorkerCount = 3u;
+    outcome::result<Tipset> selectSyncTarget();
 
-    boost::asio::io_context &context_;
+    outcome::result<void> doWork();
+
+    void processResult(const SyncResult &result);
 
     std::unordered_map<PeerId, Tipset> peer_heads_;
     BootstrapState state_;
-    uint64_t bootstrap_threshold_;
-    UnbufferedChannel<Tipset> sync_targets_;
-    UnbufferedChannel<SyncResult> sync_results_;
+    const uint64_t bootstrap_threshold_{1};
+    std::deque<Tipset> sync_targets_;
+    std::deque<SyncResult> sync_results_;
     std::vector<SyncerState> sync_states_;
-    UnbufferedChannel<Tipset> incoming_tipsets_;
+    std::deque<Tipset> incoming_tipsets_;
     std::map<TipsetKey, Tipset> active_syncs_;
     SyncFunction sync_function_;
-    std::vector<std::thread> threads_;
+    common::Logger logger_;
   };
 
 }  // namespace fc::blockchain
+
+OUTCOME_HPP_DECLARE_ERROR(fc::blockchain, SyncManagerError);
 
 #endif  // CPP_FILECOIN_CORE_BLOCKCHAIN_IMPL_SYNC_MANAGER_IMPL_HPP
