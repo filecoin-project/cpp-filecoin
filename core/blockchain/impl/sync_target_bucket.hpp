@@ -10,42 +10,23 @@
 
 namespace fc::blockchain::sync_manager {
 
+  /** @struct SyncTargetBucket stores bucket of tipset for synchronization */
   struct SyncTargetBucket {
     using Tipset = primitives::tipset::Tipset;
     std::vector<Tipset> tipsets;
     int count;
 
-    bool isSameChain(const Tipset &ts) const {
-      for (auto &t : tipsets) {
-        if (t == ts || ts.makeKey() == t.getParents()
-            || ts.getParents() == t.makeKey())
-          return true;
-      }
-      return false;
-    }
+    /** @brief checks if tipset `ts` belongs to same chain */
+    bool isSameChain(const Tipset &ts) const;
 
-    void addTipset(const Tipset &ts) {
-      for (auto &t : tipsets) {
-        if (t == ts) return;
-      }
-      ++count;
-      tipsets.push_back(ts);
-    }
+    /** @brief add tipset to the bucket */
+    void addTipset(const Tipset &ts);
 
-    Tipset getHeaviestTipset() {
-      boost::optional<Tipset> best_tipset;
-
-      BOOST_ASSERT_MSG(tipsets.empty(), "tipsets count == 0");
-      for (auto &ts : tipsets) {
-        if (best_tipset == boost::none
-            || ts.getParentWeight() > best_tipset->getParentWeight()) {
-          best_tipset = ts;
-        }
-      }
-
-      return *best_tipset;
-    }
+    /** @brief finds and returns heaviest tipset */
+    Tipset getHeaviestTipset() const;
   };
+
+  bool operator==(const SyncTargetBucket &lhs, const SyncTargetBucket &rhs);
 
 }  // namespace fc::blockchain::sync_manager
 

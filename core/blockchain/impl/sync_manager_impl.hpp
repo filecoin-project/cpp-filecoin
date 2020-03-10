@@ -16,13 +16,14 @@
 #include "common/outcome.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "primitives/tipset/tipset_key.hpp"
+#include "blockchain/impl/sync_bucket_set.hpp"
 
-namespace fc::blockchain {
+namespace fc::blockchain::sync_manager {
 
   using SyncFunction = std::function<outcome::result<void>(
       std::reference_wrapper<const primitives::tipset::Tipset>)>;
 
-  enum class SyncManagerError { ShuttingDown = 1 };
+  enum class SyncManagerError { SHUTTING_DOWN = 1 };
 
   struct SyncResult {
     primitives::tipset::Tipset tipset;
@@ -73,6 +74,6 @@ namespace fc::blockchain {
 
 }  // namespace fc::blockchain
 
-OUTCOME_HPP_DECLARE_ERROR(fc::blockchain, SyncManagerError);
+OUTCOME_HPP_DECLARE_ERROR(fc::blockchain::sync_manager, SyncManagerError);
 
 #endif  // CPP_FILECOIN_CORE_BLOCKCHAIN_IMPL_SYNC_MANAGER_IMPL_HPP

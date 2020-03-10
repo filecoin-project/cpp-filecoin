@@ -7,7 +7,7 @@
 
 #include <boost/assert.hpp>
 
-namespace fc::blockchain {
+namespace fc::blockchain::sync_manager {
 
   SyncManagerImpl::SyncManagerImpl(boost::asio::io_context &context,
                                    SyncFunction sync_function)
@@ -45,86 +45,92 @@ namespace fc::blockchain {
     return count;
   }
 
-  outcome::result<SyncManagerImpl::Tipset> SyncManagerImpl::selectSyncTarget() {
-    // 	var buckets syncBucketSet
-    //
-    //	var peerHeads []*types.TipSet
-    //	for _, ts := range sm.peerHeads {
-    //		peerHeads = append(peerHeads, ts)
-    //	}
-    //	sort.Slice(peerHeads, func(i, j int) bool {
-    //		return peerHeads[i].Height() < peerHeads[j].Height()
-    //	})
-    //
-    //	for _, ts := range peerHeads {
-    //		buckets.Insert(ts)
-    //	}
-    //
-    //	if len(buckets.buckets) > 1 {
-    //		log.Warn("caution, multiple distinct chains seen during head selections")
-    //		// TODO: we *could* refuse to sync here without user intervention.
-    //		// For now, just select the best cluster
-    //	}
-    //
-    //	return buckets.Heaviest(), nil
+  // 	var buckets syncBucketSet
+  //
+  //	var peerHeads []*types.TipSet
+  //	for _, ts := range sm.peerHeads {
+  //		peerHeads = append(peerHeads, ts)
+  //	}
+  //	sort.Slice(peerHeads, func(i, j int) bool {
+  //		return peerHeads[i].Height() < peerHeads[j].Height()
+  //	})
+  //
+  //	for _, ts := range peerHeads {
+  //		buckets.Insert(ts)
+  //	}
+  //
+  //	if len(buckets.buckets) > 1 {
+  //		log.Warn("caution, multiple distinct chains seen during head
+  //selections")
+  //		// TODO: we *could* refuse to sync here without user
+  //intervention.
+  //		// For now, just select the best cluster
+  //	}
+  //
+  //	return buckets.Heaviest(), nil
 
-    SyncBucketSet buckets;
-    std::vector<Tipset> peer_heads;
-    for (auto &[_, ts] : peer_heads_) {
-      peer_heads.push_back(ts);
-    }
-  }
+  // outcome::result<SyncManagerImpl::Tipset>
+  // SyncManagerImpl::selectSyncTarget() {
+  //
+  //    SyncBucketSet buckets(std::vector<Tipset>{});
+  //    std::vector<Tipset> peer_heads;
+  //    for (auto &[_, ts] : peer_heads_) {
+  //      peer_heads.push_back(ts);
+  //    }
+  //
+  //    return {};
+  //  }
 
   void SyncManagerImpl::processResult(const SyncResult &result) {}
   // log.Info("scheduling incoming tipset sync: ", ts.Cids())
-//	if sm.getBootstrapState() == BSStateSelected {
-//		sm.setBootstrapState(BSStateScheduled)
-//		sm.syncTargets <- ts
-//		return
-//	}
-//
-//	var relatedToActiveSync bool
-//	for _, acts := range sm.activeSyncs {
-//		if ts.Equals(acts) {
-//			break
-//		}
-//
-//		if ts.Parents() == acts.Key() {
-//			// sync this next, after that sync process finishes
-//			relatedToActiveSync = true
-//		}
-//	}
-//
-//	if !relatedToActiveSync && sm.activeSyncTips.RelatedToAny(ts) {
-//		relatedToActiveSync = true
-//	}
-//
-//	// if this is related to an active sync process, immediately bucket it
-//	// we don't want to start a parallel sync process that duplicates work
-//	if relatedToActiveSync {
-//		sm.activeSyncTips.Insert(ts)
-//		return
-//	}
-//
-//	if sm.getBootstrapState() == BSStateScheduled {
-//		sm.syncQueue.Insert(ts)
-//		return
-//	}
-//
-//	if sm.nextSyncTarget != nil && sm.nextSyncTarget.sameChainAs(ts) {
-//		sm.nextSyncTarget.add(ts)
-//	} else {
-//		sm.syncQueue.Insert(ts)
-//
-//		if sm.nextSyncTarget == nil {
-//			sm.nextSyncTarget = sm.syncQueue.Pop()
-//			sm.workerChan = sm.syncTargets
-//		}
-//	}
+  //	if sm.getBootstrapState() == BSStateSelected {
+  //		sm.setBootstrapState(BSStateScheduled)
+  //		sm.syncTargets <- ts
+  //		return
+  //	}
+  //
+  //	var relatedToActiveSync bool
+  //	for _, acts := range sm.activeSyncs {
+  //		if ts.Equals(acts) {
+  //			break
+  //		}
+  //
+  //		if ts.Parents() == acts.Key() {
+  //			// sync this next, after that sync process finishes
+  //			relatedToActiveSync = true
+  //		}
+  //	}
+  //
+  //	if !relatedToActiveSync && sm.activeSyncTips.RelatedToAny(ts) {
+  //		relatedToActiveSync = true
+  //	}
+  //
+  //	// if this is related to an active sync process, immediately bucket it
+  //	// we don't want to start a parallel sync process that duplicates work
+  //	if relatedToActiveSync {
+  //		sm.activeSyncTips.Insert(ts)
+  //		return
+  //	}
+  //
+  //	if sm.getBootstrapState() == BSStateScheduled {
+  //		sm.syncQueue.Insert(ts)
+  //		return
+  //	}
+  //
+  //	if sm.nextSyncTarget != nil && sm.nextSyncTarget.sameChainAs(ts) {
+  //		sm.nextSyncTarget.add(ts)
+  //	} else {
+  //		sm.syncQueue.Insert(ts)
+  //
+  //		if sm.nextSyncTarget == nil {
+  //			sm.nextSyncTarget = sm.syncQueue.Pop()
+  //			sm.workerChan = sm.syncTargets
+  //		}
+  //	}
 
   outcome::result<void> SyncManagerImpl::processIncomingTipset(
       const Tipset &tipset) {
-
+    return outcome::success();
   }
 
   outcome::result<void> SyncManagerImpl::setPeerHead(PeerId peer_id,
@@ -154,4 +160,13 @@ namespace fc::blockchain {
     }
   }
 
-}  // namespace fc::blockchain
+}  // namespace fc::blockchain::sync_manager
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::sync_manager, SyncManagerError, e) {
+  // SHUTTING_DOWN
+  switch (e) {
+    using Error = fc::blockchain::sync_manager::SyncManagerError;
+    case Error::SHUTTING_DOWN:
+      return "shutting down";
+  }
+}

@@ -9,80 +9,34 @@
 #include "blockchain/impl/sync_target_bucket.hpp"
 
 namespace fc::blockchain::sync_manager {
+  /** @brief keeps and updates set of chains */
   class SyncBucketSet {
    public:
     using Tipset = primitives::tipset::Tipset;
-    SyncBucketSet(gsl::span<const Tipset> tipsets) {
-      SyncTargetBucket b;
-      b.tipsets.reset(tipsets.size());
-      std::copy(tipsets.begin(), tipsets.end(), b.tipsets.begin());
-      return {b};
-    }
 
-    bool isRelatedToAny(const Tipset &ts) {
-      for (auto &b : buckets) {
-        if (b.isSameChain(ts)) return true;
-      }
+    SyncBucketSet(gsl::span<const Tipset> tipsets);
+    SyncBucketSet(std::vector<Tipset> tipsets);
 
-      return false;
-    }
+    /** @brief checks if tipset is related to one of chains */
+    bool isRelatedToAny(const Tipset &ts) const;
 
-    void insert(Tipset ts) {
-      for (auto &b : buckets) {
-        if (b.isSameChain(ts)) return b.add(ts);
-      }
+    /** @brief insert tipset */
+    void insert(Tipset ts);
 
-      buckets.push_back(SyncBucketSet({ts}));
-    }
+    /** @brief returns heaviest tipset and removes it from chain */
+    outcome::result<SyncTargetBucket> pop();
 
-    SyncTargetBucket pop() {
-      boost::optional<SyncTargetBucket> best_bucket;
-      boost::optional<Tipset> best_tipset;
-      for (auto &b : buckets) {
-        auto heaviest = b.getHeaviestTipset();
-        if (!best_bucket.is_initialized()
-            || best_tipset->getParentWeight() < heaviest.getParentWeight()) {
-          best_bucket = b;
-          best_tipset = heaviest;
-        }
-      }
+    /** @brief remove bucket */
+    void removeBucket(const SyncTargetBucket &b);
 
-      removeBucket(best_bucket);
-      return best_bucket;
-    }
+    /** @brief pops related tipset */
+    boost::optional<SyncTargetBucket> popRelated(const Tipset &ts);
 
-    void removeBucket(const SyncTargetBucket &b) {
-      std::remove_if(buckets.begin(), buckets.end(), [&](const auto &item) {
-        return item == b;
-      });
-    }
+    /** @brief finds and returns heaviest tipset */
+    boost::optional<Tipset> getHeaviestTipset() const;
 
-    boost::optional<SyncTargetBucket> popRelated(const Tipset ts) {
-      for (auto &b : buckets) {
-        if (b.isSameChain(ts)) {
-          auto bucket = b;
-          removeBucket(b);
-          return bucket;
-        }
-
-        return boost::none;
-      }
-    }
-
-    boost::optional<Tipset> getHeaviestTipset() {
-      boost::optional<Tipset> heaviest;
-      for (auto &b: buckets) {
-        ts = b.getHeaviestTipset();
-        if (heaviest == boost::none || ts.getParentWeight() > heaviest->getParentWeight())
-          heaviest = ts;
-      }
-
-      return heaviest;
-    }
-
-    bool isEmpty() {
-      return buckets.size() > 0;
-    }
+    /** @brief checks if set is empty */
+    bool isEmpty() const;
 
    private:
     std::vector<SyncTargetBucket> buckets;
