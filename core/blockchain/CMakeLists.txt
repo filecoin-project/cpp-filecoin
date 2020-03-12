@@ -26,6 +26,7 @@ add_library(sync_manager
 target_link_libraries(sync_manager
     block
     Boost::boost
+    cid
     syncer_state
     tipset
     )

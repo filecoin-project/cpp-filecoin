@@ -6,6 +6,8 @@
 #include "blockchain/impl/sync_manager_impl.hpp"
 
 #include <boost/assert.hpp>
+#include <gsl/gsl_util>
+#include "primitives/cid/json_codec.hpp"
 
 namespace fc::blockchain::sync_manager {
 
@@ -45,91 +47,130 @@ namespace fc::blockchain::sync_manager {
     return count;
   }
 
-  // 	var buckets syncBucketSet
-  //
-  //	var peerHeads []*types.TipSet
-  //	for _, ts := range sm.peerHeads {
-  //		peerHeads = append(peerHeads, ts)
-  //	}
-  //	sort.Slice(peerHeads, func(i, j int) bool {
-  //		return peerHeads[i].Height() < peerHeads[j].Height()
-  //	})
-  //
-  //	for _, ts := range peerHeads {
-  //		buckets.Insert(ts)
-  //	}
-  //
-  //	if len(buckets.buckets) > 1 {
-  //		log.Warn("caution, multiple distinct chains seen during head
-  //selections")
-  //		// TODO: we *could* refuse to sync here without user
-  //intervention.
-  //		// For now, just select the best cluster
-  //	}
-  //
-  //	return buckets.Heaviest(), nil
+  outcome::result<SyncManagerImpl::Tipset> SyncManagerImpl::selectSyncTarget() {
+    SyncBucketSet buckets(std::vector<Tipset>{});
+    std::vector<Tipset> peer_heads;
+    for (auto &[_, ts] : peer_heads_) {
+      peer_heads.push_back(ts);
+    }
 
-  // outcome::result<SyncManagerImpl::Tipset>
-  // SyncManagerImpl::selectSyncTarget() {
-  //
-  //    SyncBucketSet buckets(std::vector<Tipset>{});
-  //    std::vector<Tipset> peer_heads;
-  //    for (auto &[_, ts] : peer_heads_) {
-  //      peer_heads.push_back(ts);
-  //    }
-  //
-  //    return {};
-  //  }
+    std::sort(peer_heads.begin(),
+              peer_heads.end(),
+              [](const Tipset &l, const Tipset &r) -> bool {
+                return l.height < r.height;
+              });
+    for (auto &ts : peer_heads) {
+      buckets.insert(ts);
+    }
 
-  void SyncManagerImpl::processResult(const SyncResult &result) {}
-  // log.Info("scheduling incoming tipset sync: ", ts.Cids())
-  //	if sm.getBootstrapState() == BSStateSelected {
-  //		sm.setBootstrapState(BSStateScheduled)
-  //		sm.syncTargets <- ts
-  //		return
-  //	}
-  //
-  //	var relatedToActiveSync bool
-  //	for _, acts := range sm.activeSyncs {
-  //		if ts.Equals(acts) {
-  //			break
-  //		}
-  //
-  //		if ts.Parents() == acts.Key() {
-  //			// sync this next, after that sync process finishes
-  //			relatedToActiveSync = true
-  //		}
-  //	}
-  //
-  //	if !relatedToActiveSync && sm.activeSyncTips.RelatedToAny(ts) {
-  //		relatedToActiveSync = true
-  //	}
-  //
-  //	// if this is related to an active sync process, immediately bucket it
-  //	// we don't want to start a parallel sync process that duplicates work
-  //	if relatedToActiveSync {
-  //		sm.activeSyncTips.Insert(ts)
-  //		return
-  //	}
-  //
-  //	if sm.getBootstrapState() == BSStateScheduled {
-  //		sm.syncQueue.Insert(ts)
-  //		return
-  //	}
-  //
-  //	if sm.nextSyncTarget != nil && sm.nextSyncTarget.sameChainAs(ts) {
-  //		sm.nextSyncTarget.add(ts)
-  //	} else {
-  //		sm.syncQueue.Insert(ts)
-  //
-  //		if sm.nextSyncTarget == nil {
-  //			sm.nextSyncTarget = sm.syncQueue.Pop()
-  //			sm.workerChan = sm.syncTargets
-  //		}
-  //	}
+    if (buckets.getSize() > 1) {
+      logger_->warn(
+          "caution, multiple distinct chains seen during head selections");
+    }
+
+    return buckets.getHeaviestTipset();
+  }
+
+  outcome::result<void> SyncManagerImpl::processResult(
+      const SyncResult &result) {
+    if (result.success
+        && getBootstrapState() != BootstrapState::STATE_COMPLETE) {
+      setBootstrapState(BootstrapState::STATE_COMPLETE);
+    }
+    OUTCOME_TRY(key, result.tipset.makeKey());
+    active_syncs_.erase(key);
+
+    auto &&related_bucket = active_sync_tips_.popRelated(result.tipset);
+    if (related_bucket != boost::none) {
+      if (result.success) {
+        if (next_sync_target_ == boost::none) {
+          next_sync_target_ = related_bucket;
+          OUTCOME_TRY(onUpdateNextSyncTarget());
+        } else {
+          sync_queue_.append(*related_bucket);
+        }
+        return outcome::success();
+      } else {
+        // TODO: this is the case where we try to sync a chain, and
+        // fail, and we have more blocks on top of that chain that
+        // have come in since.  The question is, should we try to
+        // sync these? or just drop them?
+      }
+    }
+    if (next_sync_target_ == boost::none && !sync_queue_.isEmpty()) {
+      auto &&target = sync_queue_.pop();
+      if (target != boost::none) {
+        next_sync_target_ = std::move(target);
+        OUTCOME_TRY(onUpdateNextSyncTarget());
+      }
+    }
+
+    return outcome::success();
+  }
 
   outcome::result<void> SyncManagerImpl::processIncomingTipset(
       const Tipset &tipset) {
+    OUTCOME_TRY(cids_json, codec::json::encodeCidVector(tipset.cids));
+    logger_->info("scheduling incoming tipset sync %s", cids_json);
+
+    if (getBootstrapState() == BootstrapState::STATE_SELECTED) {
+      setBootstrapState(BootstrapState::STATE_SCHEDULED);
+      sync_targets_.push_back(tipset);
+      // process sync_targets update
+    }
+
+    bool is_related_to_active_sync = false;
+    for (auto &[_, acts] : active_syncs_) {
+      if (tipset == acts) break;
+      if (tipset.getParents() == acts.makeKey()) {
+        is_related_to_active_sync = true;
+        break;
+      }
+    }
+
+    is_related_to_active_sync |= active_sync_tips_.isRelatedToAny(tipset);
+    if (is_related_to_active_sync) {
+      active_sync_tips_.insert(tipset);
+      return outcome::success();
+    }
+
+    if (getBootstrapState() == BootstrapState::STATE_SCHEDULED) {
+      sync_queue_.insert(tipset);
+      return outcome::success();
+    }
+
+    if (next_sync_target_ != boost::none
+        && next_sync_target_->isSameChain(tipset)) {
+      next_sync_target_->addTipset(tipset);
+      OUTCOME_TRY(onUpdateNextSyncTarget());  // do work
+    } else {
+      sync_queue_.insert(tipset);
+      if (next_sync_target_ == boost::none) {
+        next_sync_target_ = sync_queue_.pop();
+        OUTCOME_TRY(onUpdateNextSyncTarget());  // do work
+      }
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SyncManagerImpl::onUpdateNextSyncTarget() {
+    BOOST_ASSERT_MSG(false, "onUpdateNextSyncTarget is not implemented yet");
+    return outcome::success();
+  }
+
+  outcome::result<void> SyncManagerImpl::processSyncTargets() {
+    while (!sync_targets_.empty()) {
+      auto target = std::move(sync_targets_.front());
+      auto unqueue_target = [&]() { sync_targets_.pop_front(); };
+      auto &&res = sync_function_(target);
+      if (!res) {
+        logger_->error("sync error %s", res.error().message());
+      }
+
+      SyncResult sync_result{target, res};
+      processResult(sync_result);
+    }
     return outcome::success();
   }
 

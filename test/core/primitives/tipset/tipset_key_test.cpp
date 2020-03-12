@@ -21,15 +21,15 @@ struct TipsetKeyTest : public ::testing::Test {
     EXPECT_OUTCOME_TRUE(c2, fc::common::getCidOf(v2));
     EXPECT_OUTCOME_TRUE(c3, fc::common::getCidOf(v3));
 
-    key2 = TipsetKey{{c1}};
-    key3 = TipsetKey{{c1, c2}};
-    key4 = TipsetKey{{c1, c2, c3}};
+    key2 = TipsetKey::create({c1}).value();
+    key3 = TipsetKey::create({c1, c2}).value();
+    key4 = TipsetKey::create({c1, c2, c3}).value();
   }
 
-  TipsetKey key1;
-  TipsetKey key2;
-  TipsetKey key3;
-  TipsetKey key4;
+  boost::optional<TipsetKey> key1;
+  boost::optional<TipsetKey> key2;
+  boost::optional<TipsetKey> key3;
+  boost::optional<TipsetKey> key4;
 };
 
 /**
@@ -38,10 +38,10 @@ struct TipsetKeyTest : public ::testing::Test {
  * since we don't have cid.ToString() for CID V1 yet
  */
 TEST_F(TipsetKeyTest, DISABLED_ToPrettyStringSuccess) {
-  std::cout << key1.toPrettyString() << std::endl;
-  std::cout << key2.toPrettyString() << std::endl;
-  std::cout << key3.toPrettyString() << std::endl;
-  std::cout << key4.toPrettyString() << std::endl;
+  std::cout << key1->toPrettyString() << std::endl;
+  std::cout << key2->toPrettyString() << std::endl;
+  std::cout << key3->toPrettyString() << std::endl;
+  std::cout << key4->toPrettyString() << std::endl;
 }
 
 /**
@@ -50,9 +50,9 @@ TEST_F(TipsetKeyTest, DISABLED_ToPrettyStringSuccess) {
  * @then the representation meets lotus-calculated value
  */
 TEST_F(TipsetKeyTest, ToBytesSuccess) {
-  EXPECT_OUTCOME_TRUE(vec2, key2.toBytes());
-  EXPECT_OUTCOME_TRUE(vec3, key3.toBytes());
-  EXPECT_OUTCOME_TRUE(vec4, key4.toBytes());
+  EXPECT_OUTCOME_TRUE(vec2, key2->toBytes());
+  EXPECT_OUTCOME_TRUE(vec3, key3->toBytes());
+  EXPECT_OUTCOME_TRUE(vec4, key4->toBytes());
   ASSERT_EQ(fc::common::hex_lower(vec2),
             "0171a0e402208928aae63c84d87ea098564d1e03ad813f107add474e56aedd2863"
             "49c0c03ea4");
@@ -73,10 +73,10 @@ TEST_F(TipsetKeyTest, ToBytesSuccess) {
  * @then representation don't match
  */
 TEST_F(TipsetKeyTest, BytesRepresentationsDontMatch) {
-  auto &&repr1 = key1.toBytes();
-  auto &&repr2 = key2.toBytes();
-  auto &&repr3 = key3.toBytes();
-  auto &&repr4 = key4.toBytes();
+  auto &&repr1 = key1->toBytes();
+  auto &&repr2 = key2->toBytes();
+  auto &&repr3 = key3->toBytes();
+  auto &&repr4 = key4->toBytes();
 
   ASSERT_NE(repr1, repr2);
   ASSERT_NE(repr2, repr3);
@@ -92,10 +92,10 @@ TEST_F(TipsetKeyTest, BytesRepresentationsDontMatch) {
  * @then representation don't match
  */
 TEST_F(TipsetKeyTest, StringRepresentationsDontMatch) {
-  auto &&repr1 = key1.toPrettyString();
-  auto &&repr2 = key2.toPrettyString();
-  auto &&repr3 = key3.toPrettyString();
-  auto &&repr4 = key4.toPrettyString();
+  auto &&repr1 = key1->toPrettyString();
+  auto &&repr2 = key2->toPrettyString();
+  auto &&repr3 = key3->toPrettyString();
+  auto &&repr4 = key4->toPrettyString();
 
   ASSERT_NE(repr1, repr2);
   ASSERT_NE(repr2, repr3);

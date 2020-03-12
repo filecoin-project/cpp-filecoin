@@ -9,18 +9,30 @@
 #include "common/outcome.hpp"
 
 namespace fc::primitives::tipset {
+  namespace {
+    using ByteArray = std::vector<uint8_t>;
+    outcome::result<ByteArray> cidVectorToBytes(const std::vector<CID> &cids) {
+      ByteArray buffer{};
+      for (auto &c : cids) {
+        OUTCOME_TRY(v, c.toBytes());
+        buffer.insert(buffer.end(), v.begin(), v.end());
+      }
+
+      return buffer;
+    }
+  }  // namespace
 
   std::string TipsetKey::toPrettyString() const {
-    if (cids.empty()) {
+    if (cids_.empty()) {
       return "{}";
     }
 
     std::string result = "{";
-    auto size = cids.size();
+    auto size = cids_.size();
     for (size_t i = 0; i < size; ++i) {
       // TODO (yuraz): FIL-133 use CID::toString()
       //  after it is implemented for CID V1
-      result += cids[i].toPrettyString("");
+      result += cids_[i].toPrettyString("");
       if (i != size - 1) {
         result += ", ";
       }
@@ -31,13 +43,13 @@ namespace fc::primitives::tipset {
   }
 
   outcome::result<std::vector<uint8_t>> TipsetKey::toBytes() const {
-    std::vector<uint8_t> buffer{};
-    for (auto &c : cids) {
-      OUTCOME_TRY(v, c.toBytes());
-      buffer.insert(buffer.end(), v.begin(), v.end());
-    }
+    return cidVectorToBytes(cids_);
+  }
 
-    return buffer;
+  outcome::result<TipsetKey> TipsetKey::create(std::vector<CID> cids) {
+    OUTCOME_TRY(bytes, cidVectorToBytes(cids));
+    auto hash = boost::hash_range(bytes.begin(), bytes.end());
+    return TipsetKey(std::move(cids), hash);
   }
 
 }  // namespace fc::primitives::tipset

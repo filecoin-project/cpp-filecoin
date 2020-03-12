@@ -34,7 +34,11 @@ namespace fc::blockchain::sync_manager {
     buckets.emplace_back(SyncTargetBucket{{ts}, 1});
   }
 
-  outcome::result<SyncTargetBucket> SyncBucketSet::pop() {
+  void SyncBucketSet::append(SyncTargetBucket bucket) {
+    buckets.push_back(std::move(bucket));
+  }
+
+  boost::optional<SyncTargetBucket> SyncBucketSet::pop() {
     boost::optional<SyncTargetBucket> best_bucket;
     boost::optional<Tipset> best_tipset;
     for (auto &b : buckets) {
@@ -47,7 +51,7 @@ namespace fc::blockchain::sync_manager {
     }
 
     removeBucket(*best_bucket);
-    return *best_bucket;
+    return best_bucket;
   }
 
   void SyncBucketSet::removeBucket(const SyncTargetBucket &b) {
@@ -68,7 +72,7 @@ namespace fc::blockchain::sync_manager {
     return boost::none;
   }
 
-  boost::optional<Tipset> SyncBucketSet::getHeaviestTipset() const {
+  outcome::result<Tipset> SyncBucketSet::getHeaviestTipset() const {
     boost::optional<Tipset> heaviest;
     for (auto &b : buckets) {
       auto ts = b.getHeaviestTipset();
@@ -77,11 +81,29 @@ namespace fc::blockchain::sync_manager {
         heaviest = ts;
     }
 
-    return heaviest;
+    if (heaviest) {
+      return *heaviest;
+    }
+
+    return SyncBucketSetError::BUCKET_NOT_FOUND;
   }
 
   bool SyncBucketSet::isEmpty() const {
-    return buckets.size() > 0;
+    return buckets.empty();
+  }
+
+  size_t SyncBucketSet::getSize() const {
+    return buckets.size();
   }
 
 }  // namespace fc::blockchain::sync_manager
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::sync_manager,
+                            SyncBucketSetError,
+                            error) {
+  using Error = fc::blockchain::sync_manager::SyncBucketSetError;
+  switch (error) {
+    case Error::BUCKET_NOT_FOUND:
+      return "bucket not found";
+  }
+}

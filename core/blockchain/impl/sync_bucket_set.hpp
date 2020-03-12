@@ -7,8 +7,12 @@
 #define CPP_FILECOIN_CORE_BLOCKCHAIN_IMPL_SYNC_BUCKET_SET_HPP
 
 #include "blockchain/impl/sync_target_bucket.hpp"
+#include "common/outcome.hpp"
 
 namespace fc::blockchain::sync_manager {
+
+  enum class SyncBucketSetError { BUCKET_NOT_FOUND = 1 };
+
   /** @brief keeps and updates set of chains */
   class SyncBucketSet {
    public:
@@ -23,8 +27,11 @@ namespace fc::blockchain::sync_manager {
     /** @brief insert tipset */
     void insert(Tipset ts);
 
+    /** @brief appends bucket */
+    void append(SyncTargetBucket bucket);
+
     /** @brief returns heaviest tipset and removes it from chain */
-    outcome::result<SyncTargetBucket> pop();
+    boost::optional<SyncTargetBucket> pop();
 
     /** @brief remove bucket */
     void removeBucket(const SyncTargetBucket &b);
@@ -33,14 +40,19 @@ namespace fc::blockchain::sync_manager {
     boost::optional<SyncTargetBucket> popRelated(const Tipset &ts);
 
     /** @brief finds and returns heaviest tipset */
-    boost::optional<Tipset> getHeaviestTipset() const;
+    outcome::result<Tipset> getHeaviestTipset() const;
 
     /** @brief checks if set is empty */
     bool isEmpty() const;
+
+    /** @brief returns buckets count */
+    size_t getSize() const;
 
    private:
     std::vector<SyncTargetBucket> buckets;
   };
 }  // namespace fc::blockchain::sync_manager
+
+OUTCOME_HPP_DECLARE_ERROR(fc::blockchain::sync_manager, SyncBucketSetError);
 
 #endif  // CPP_FILECOIN_CORE_BLOCKCHAIN_IMPL_SYNC_BUCKET_SET_HPP

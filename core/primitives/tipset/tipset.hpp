@@ -41,12 +41,12 @@ namespace fc::primitives::tipset {
     /**
      * @brief makes key of cids
      */
-    TipsetKey makeKey() const;
+    outcome::result<TipsetKey> makeKey() const;
 
     /**
      * @return key made of parents
      */
-    TipsetKey getParents() const;
+    outcome::result<TipsetKey> getParents() const;
 
     /**
      * @return optional min ticket or error

@@ -88,12 +88,12 @@ namespace fc::primitives::tipset {
     return ts;
   }
 
-  TipsetKey Tipset::getParents() const {
-    return TipsetKey{blks[0].parents};
+  outcome::result<TipsetKey> Tipset::getParents() const {
+    return TipsetKey::create(blks[0].parents);
   }
 
-  TipsetKey Tipset::makeKey() const {
-    return TipsetKey{cids};
+  outcome::result<TipsetKey> Tipset::makeKey() const {
+    return TipsetKey::create(cids);
   }
 
   outcome::result<boost::optional<ticket::Ticket>> Tipset::getMinTicket()
@@ -150,5 +150,4 @@ namespace fc::primitives::tipset {
     if (lhs.blks.size() != rhs.blks.size()) return false;
     return std::equal(lhs.blks.begin(), lhs.blks.end(), rhs.blks.begin());
   }
-
 }  // namespace fc::primitives::tipset

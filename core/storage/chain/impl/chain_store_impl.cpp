@@ -54,10 +54,10 @@ namespace fc::storage::blockchain {
   outcome::result<ChainStoreImpl::Tipset> ChainStoreImpl::loadTipset(
       const primitives::tipset::TipsetKey &key) {
     std::vector<BlockHeader> blocks;
-    blocks.reserve(key.cids.size());
+    blocks.reserve(key.getCids().size());
     // TODO (yuraz): FIL-151 check cache
 
-    for (auto &cid : key.cids) {
+    for (auto &cid : key.getCids()) {
       OUTCOME_TRY(block, getBlock(cid));
       blocks.push_back(std::move(block));
     }
@@ -80,7 +80,7 @@ namespace fc::storage::blockchain {
     }
 
     OUTCOME_TRY(cids, codec::json::decodeCidVector(buffer.value()));
-    auto &&ts_key = primitives::tipset::TipsetKey{std::move(cids)};
+    OUTCOME_TRY(ts_key, primitives::tipset::TipsetKey::create(std::move(cids)));
     OUTCOME_TRY(tipset, loadTipset(ts_key));
     heaviest_tipset_ = std::move(tipset);
 

@@ -11,12 +11,12 @@
 #include <unordered_map>
 
 #include <boost/asio/io_context.hpp>
+#include "blockchain/impl/sync_bucket_set.hpp"
 #include "blockchain/syncer_state.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "primitives/tipset/tipset_key.hpp"
-#include "blockchain/impl/sync_bucket_set.hpp"
 
 namespace fc::blockchain::sync_manager {
 
@@ -27,7 +27,7 @@ namespace fc::blockchain::sync_manager {
 
   struct SyncResult {
     primitives::tipset::Tipset tipset;
-    bool success;
+    outcome::result<void> success;
   };
 
   class SyncManagerImpl : public SyncManager,
@@ -56,23 +56,25 @@ namespace fc::blockchain::sync_manager {
 
     outcome::result<Tipset> selectSyncTarget();
 
-    outcome::result<void> doWork();
+    outcome::result<void> onUpdateNextSyncTarget();
+    outcome::result<void> processSyncTargets();
 
-    void processResult(const SyncResult &result);
-
+    outcome::result<void> processResult(const SyncResult &result);
     std::unordered_map<PeerId, Tipset> peer_heads_;
     BootstrapState state_;
     const uint64_t bootstrap_threshold_{1};
     std::deque<Tipset> sync_targets_;
     std::deque<SyncResult> sync_results_;
-    std::vector<SyncerState> sync_states_;
     std::deque<Tipset> incoming_tipsets_;
-    std::map<TipsetKey, Tipset> active_syncs_;
+    std::unordered_map<TipsetKey, Tipset> active_syncs_;
+    boost::optional<SyncTargetBucket> next_sync_target_;
+    SyncBucketSet sync_queue_{gsl::span<Tipset>{}};
+    SyncBucketSet active_sync_tips_{gsl::span<Tipset>{}};
     SyncFunction sync_function_;
     common::Logger logger_;
   };
 
-}  // namespace fc::blockchain
+}  // namespace fc::blockchain::sync_manager
 
 OUTCOME_HPP_DECLARE_ERROR(fc::blockchain::sync_manager, SyncManagerError);
 
