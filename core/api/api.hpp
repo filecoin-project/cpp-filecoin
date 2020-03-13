@@ -41,6 +41,7 @@ namespace fc::api {
   using primitives::block::Block;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
+  using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
   using vm::actor::Actor;
@@ -59,13 +60,6 @@ namespace fc::api {
   template <typename T>
   struct Chan {
     uint64_t id;
-  };
-
-  struct HeadChange {
-    enum class Type { Current, Revert, Apply };
-
-    Type type;
-    Tipset tipset;
   };
 
   struct InvocResult {

@@ -13,19 +13,6 @@
 namespace fc::storage::blockchain {
 
   /**
-   * @brief change type
-   */
-  enum class HeadChangeType : int { REVERT, APPLY, CURRENT };
-
-  /**
-   * @struct HeadChange represents atomic chain change
-   */
-  struct HeadChange {
-    HeadChangeType type;
-    primitives::tipset::Tipset value;
-  };
-
-  /**
    * @class ChainStore keeps track of blocks
    */
   class ChainStore {

@@ -6,7 +6,6 @@
 #include "storage/ipfs/merkledag/impl/merkledag_service_impl.hpp"
 
 #include <gtest/gtest.h>
-#include <libp2p/multi/content_identifier_codec.hpp>
 #include <testutil/outcome.hpp>
 #include "core/storage/ipfs/merkledag/ipfs_merkledag_dataset.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
@@ -15,7 +14,6 @@
 using namespace fc::storage::ipfs;
 using namespace fc::storage::ipld;
 using namespace fc::storage::ipfs::merkledag;
-using libp2p::multi::ContentIdentifierCodec;
 
 /**
  * @struct Test case dataset
@@ -73,7 +71,7 @@ struct CommonFeaturesTest : public testing::TestWithParam<DataSample> {
    */
   static std::string cidToString(const std::shared_ptr<const IPLDNode> &node) {
     std::string value{};
-    auto result = ContentIdentifierCodec::toString(node->getCID());
+    auto result = node->getCID().toString();
     if (!result.has_error()) {
       value = result.value();
     }
@@ -141,7 +139,8 @@ TEST_P(CommonFeaturesTest, CheckCidAlgorithmSuccess) {
  */
 TEST_P(CommonFeaturesTest, LinkOperationsConsistency) {
   for (const auto &node : data.nodes) {
-    std::vector<std::reference_wrapper<const IPLDLink>> links = node->getLinks();
+    std::vector<std::reference_wrapper<const IPLDLink>> links =
+        node->getLinks();
     std::string primary_cid = cidToString(node);
     for (const auto &link : links) {
       IPLDLinkImpl link_impl{
@@ -203,8 +202,7 @@ TEST_P(CommonFeaturesTest, FetchGraphSuccess) {
  */
 TEST_P(CommonFeaturesTest, GraphSyncSelect) {
   const size_t nodes_count = data.nodes.front()->getLinks().size() + 1;
-  EXPECT_OUTCOME_TRUE(
-      root_cid, ContentIdentifierCodec::encode(data.nodes.front()->getCID()));
+  EXPECT_OUTCOME_TRUE(root_cid, data.nodes.front()->getCID().toBytes());
   std::vector<std::shared_ptr<const IPLDNode>> selected_nodes;
   std::function<bool(std::shared_ptr<const IPLDNode>)> handler =
       [&selected_nodes](std::shared_ptr<const IPLDNode> node) -> bool {

@@ -31,22 +31,34 @@ namespace fc::api {
           return chain_randomness->sampleRandomness(tipset_key.cids, round);
         }},
         .ChainHead = {[&]() { return chain_store->heaviestTipset(); }},
+        // TODO(turuslan): FIL-165 implement method
         .ChainNotify = {},
+        // TODO(turuslan): FIL-165 implement method
         .ChainReadObj = {},
         .ChainTipSetWight = {[&](auto tipset_key)
                                  -> outcome::result<TipsetWeight> {
           OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
           return weight_calculator->calculateWeight(tipset);
         }},
+        // TODO(turuslan): FIL-165 implement method
         .MarketEnsureAvailable = {},
+        // TODO(turuslan): FIL-165 implement method
         .MinerCreateBlock = {},
+        // TODO(turuslan): FIL-165 implement method
         .MpoolPending = {},
+        // TODO(turuslan): FIL-165 implement method
         .MpoolPushMessage = {},
+        // TODO(turuslan): FIL-165 implement method
         .PaychVoucherAdd = {},
+        // TODO(turuslan): FIL-165 implement method
         .StateCall = {},
+        // TODO(turuslan): FIL-165 implement method
         .StateGetActor = {},
+        // TODO(turuslan): FIL-165 implement method
         .StateMarketBalance = {},
+        // TODO(turuslan): FIL-165 implement method
         .StateMarketDeals = {},
+        // TODO(turuslan): FIL-165 implement method
         .StateMarketStorageDeal = {},
         .StateMinerElectionPeriodStart = {[&](auto address, auto tipset_key)
                                               -> outcome::result<ChainEpoch> {
@@ -58,7 +70,9 @@ namespace fc::api {
           OUTCOME_TRY(state, minerState(tipset_key, address));
           return state.fault_set;
         }},
+        // TODO(turuslan): FIL-165 implement method
         .StateMinerPower = {},
+        // TODO(turuslan): FIL-165 implement method
         .StateMinerProvingSet = {},
         .StateMinerSectorSize = {[&](auto address, auto tipset_key)
                                      -> outcome::result<SectorSize> {
@@ -70,7 +84,9 @@ namespace fc::api {
           OUTCOME_TRY(state, minerState(tipset_key, address));
           return state.info.worker;
         }},
+        // TODO(turuslan): FIL-165 implement method
         .StateWaitMsg = {},
+        // TODO(turuslan): FIL-165 implement method
         .SyncSubmitBlock = {},
         .WalletSign = {[&](auto address, auto data) {
           return key_store->sign(address, data);
