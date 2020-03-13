@@ -31,23 +31,23 @@ namespace fc::api {
           return chain_randomness->sampleRandomness(tipset_key.cids, round);
         }},
         .ChainHead = {[&]() { return chain_store->heaviestTipset(); }},
-        // .ChainNotify = {[&]() {}},
-        // .ChainReadObj = {[&]() {}},
+        .ChainNotify = {},
+        .ChainReadObj = {},
         .ChainTipSetWight = {[&](auto tipset_key)
                                  -> outcome::result<TipsetWeight> {
           OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
           return weight_calculator->calculateWeight(tipset);
         }},
-        // .MarketEnsureAvailable = {[&]() {}},
-        // .MinerCreateBlock = {[&]() {}},
-        // .MpoolPending = {[&]() {}},
-        // .MpoolPushMessage = {[&]() {}},
-        // .PaychVoucherAdd = {[&]() {}},
-        // .StateCall = {[&]() {}},
-        // .StateGetActor = {[&]() {}},
-        // .StateMarketBalance = {[&]() {}},
-        // .StateMarketDeals = {[&]() {}},
-        // .StateMarketStorageDeal = {[&]() {}},
+        .MarketEnsureAvailable = {},
+        .MinerCreateBlock = {},
+        .MpoolPending = {},
+        .MpoolPushMessage = {},
+        .PaychVoucherAdd = {},
+        .StateCall = {},
+        .StateGetActor = {},
+        .StateMarketBalance = {},
+        .StateMarketDeals = {},
+        .StateMarketStorageDeal = {},
         .StateMinerElectionPeriodStart = {[&](auto address, auto tipset_key)
                                               -> outcome::result<ChainEpoch> {
           OUTCOME_TRY(state, minerState(tipset_key, address));
@@ -58,8 +58,8 @@ namespace fc::api {
           OUTCOME_TRY(state, minerState(tipset_key, address));
           return state.fault_set;
         }},
-        // .StateMinerPower = {[&]() {}},
-        // .StateMinerProvingSet = {[&]() {}},
+        .StateMinerPower = {},
+        .StateMinerProvingSet = {},
         .StateMinerSectorSize = {[&](auto address, auto tipset_key)
                                      -> outcome::result<SectorSize> {
           OUTCOME_TRY(state, minerState(tipset_key, address));
@@ -70,8 +70,8 @@ namespace fc::api {
           OUTCOME_TRY(state, minerState(tipset_key, address));
           return state.info.worker;
         }},
-        // .StateWaitMsg = {[&]() {}},
-        // .SyncSubmitBlock = {[&]() {}},
+        .StateWaitMsg = {},
+        .SyncSubmitBlock = {},
         .WalletSign = {[&](auto address, auto data) {
           return key_store->sign(address, data);
         }},
