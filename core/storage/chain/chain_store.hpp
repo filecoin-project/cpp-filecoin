@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_CHAIN_CHAIN_STORE_HPP
 #define CPP_FILECOIN_CORE_STORAGE_CHAIN_CHAIN_STORE_HPP
 
+#include "crypto/randomness/chain_randomness_provider.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/tipset/tipset.hpp"
 
@@ -52,6 +53,8 @@ namespace fc::storage::blockchain {
 
     /** @brief finds block by its cid */
     virtual outcome::result<BlockHeader> getBlock(const CID &cid) const = 0;
+
+    virtual outcome::result<Tipset> heaviestTipset() const = 0;
   };
 
 }  // namespace fc::storage::blockchain
