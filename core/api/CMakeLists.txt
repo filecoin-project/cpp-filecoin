@@ -7,7 +7,9 @@ add_library(api
     make.cpp
     )
 target_link_libraries(api
+    address
     chain_store
+    cid
     )
 
 add_library(rpc
