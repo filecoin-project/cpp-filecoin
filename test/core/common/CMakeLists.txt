@@ -25,17 +25,3 @@ target_link_libraries(le_encoder_test
     blob
     buffer
     )
-
-addtest(rx_test
-    rx_test.cpp
-    )
-target_link_libraries(rx_test
-    Boost::boost
-    )
-
-addtest(bbq_test
-    bbq_test.cpp
-    )
-target_link_libraries(bbq_test
-    Boost::boost
-    )
