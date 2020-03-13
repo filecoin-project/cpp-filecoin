@@ -22,7 +22,7 @@ const auto b96 =
 
 auto jsonEncode(const rapidjson::Value &value) {
   rapidjson::StringBuffer buffer;
-  auto writer = rapidjson::Writer{buffer};
+  auto writer = rapidjson::Writer<rapidjson::StringBuffer>{buffer};
   value.Accept(writer);
   return std::string{buffer.GetString(), buffer.GetSize()};
 }
