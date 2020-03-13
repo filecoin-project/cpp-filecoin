@@ -17,6 +17,8 @@ namespace fc::primitives {
 
   using TokenAmount = BigInt;
 
+  using TipsetWeight = BigInt;
+
   using SectorSize = uint64_t;
 
   using SectorNumber = uint64_t;
