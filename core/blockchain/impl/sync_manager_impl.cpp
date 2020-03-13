@@ -85,7 +85,7 @@ namespace fc::blockchain::sync_manager {
       if (result.success) {
         if (next_sync_target_ == boost::none) {
           next_sync_target_ = related_bucket;
-          OUTCOME_TRY(onUpdateNextSyncTarget());
+          OUTCOME_TRY(processSyncTargets());
         } else {
           sync_queue_.append(*related_bucket);
         }
@@ -101,7 +101,7 @@ namespace fc::blockchain::sync_manager {
       auto &&target = sync_queue_.pop();
       if (target != boost::none) {
         next_sync_target_ = std::move(target);
-        OUTCOME_TRY(onUpdateNextSyncTarget());
+        OUTCOME_TRY(processSyncTargets());
       }
     }
 
@@ -122,7 +122,9 @@ namespace fc::blockchain::sync_manager {
     bool is_related_to_active_sync = false;
     for (auto &[_, acts] : active_syncs_) {
       if (tipset == acts) break;
-      if (tipset.getParents() == acts.makeKey()) {
+      OUTCOME_TRY(parents, tipset.getParents());
+      OUTCOME_TRY(key, acts.makeKey());
+      if (parents == key) {
         is_related_to_active_sync = true;
         break;
       }
@@ -142,23 +144,45 @@ namespace fc::blockchain::sync_manager {
     if (next_sync_target_ != boost::none
         && next_sync_target_->isSameChain(tipset)) {
       next_sync_target_->addTipset(tipset);
-      OUTCOME_TRY(onUpdateNextSyncTarget());  // do work
+      OUTCOME_TRY(onUpdateSyncTarget());  // do work
     } else {
       sync_queue_.insert(tipset);
       if (next_sync_target_ == boost::none) {
         next_sync_target_ = sync_queue_.pop();
-        OUTCOME_TRY(onUpdateNextSyncTarget());  // do work
+        OUTCOME_TRY(onUpdateSyncTarget());  // do work
       }
     }
 
     return outcome::success();
   }
 
-  outcome::result<void> SyncManagerImpl::onUpdateNextSyncTarget() {
-    BOOST_ASSERT_MSG(false, "onUpdateNextSyncTarget is not implemented yet");
-    return outcome::success();
+  //	hts := sm.nextSyncTarget.heaviestTipSet()
+  //	sm.activeSyncs[hts.Key()] = hts
+  //
+  //	if !sm.syncQueue.Empty() {
+  //		sm.nextSyncTarget = sm.syncQueue.Pop()
+  //	} else {
+  //		sm.nextSyncTarget = nil
+  //		sm.workerChan = nil
+  //	}
+
+outcome::result<void> SyncManagerImpl::onUpdateSyncTarget() {
+    // schedule work sent
+    if (next_sync_target_ == boost::none) {
+      return SyncManagerError::NO_SYNC_TARGET;
+    }
+
+    auto &&heaviest = next_sync_target_->getHeaviestTipset();
+    OUTCOME_TRY(key, heaviest.makeKey());
+    active_syncs_[key] = heaviest;
+    if (!sync_queue_.isEmpty()) {
+
+    }
+
+    return processSyncTargets();
   }
 
+  // worker
   outcome::result<void> SyncManagerImpl::processSyncTargets() {
     while (!sync_targets_.empty()) {
       auto target = std::move(sync_targets_.front());
@@ -169,8 +193,11 @@ namespace fc::blockchain::sync_manager {
       }
 
       SyncResult sync_result{target, res};
-      processResult(sync_result);
+      if (auto &&result = processResult(sync_result); !result) {
+        logger_->error("sync failed: " + result.error().message());
+      }
     }
+
     return outcome::success();
   }
 
@@ -209,5 +236,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::sync_manager, SyncManagerError, e) {
     using Error = fc::blockchain::sync_manager::SyncManagerError;
     case Error::SHUTTING_DOWN:
       return "shutting down";
+    case Error::NO_SYNC_TARGET:
+      return "no sync target present";
   }
 }
