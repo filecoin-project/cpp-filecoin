@@ -18,7 +18,7 @@
 
 #define DECODE(type) static void decode(type &value, const Value &encoded)
 
-#define SET(key, value) encoded.AddMember(encode(key), value, allocator)
+#define SET(key, value) encoded.AddMember(encode(key), encode(value), allocator)
 
 namespace fc::api {
   using primitives::ticket::Ticket;
@@ -51,7 +51,6 @@ namespace fc::api {
       return base64::decode(AsString(encoded));
     }
 
-
     ENCODE(std::string) {
       return {value.data(),
               static_cast<rapidjson::SizeType>(value.size()),
@@ -74,7 +73,7 @@ namespace fc::api {
     ENCODE(CID) {
       OUTCOME_EXCEPT(str, value.toString());
       Value encoded{rapidjson::kObjectType};
-      SET("/", encode(str));
+      SET("/", str);
       return encoded;
     }
 
@@ -85,7 +84,7 @@ namespace fc::api {
 
     ENCODE(Ticket) {
       Value encoded{rapidjson::kObjectType};
-      SET("VRFProof", encode(gsl::make_span(value.bytes)));
+      SET("VRFProof", gsl::make_span(value.bytes));
       return encoded;
     }
 
