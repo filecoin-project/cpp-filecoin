@@ -4,6 +4,9 @@
  */
 
 #include "vm/message/impl/message_signer_impl.hpp"
+
+#include <libp2p/multi/content_identifier_codec.hpp>
+
 #include "vm/message/message_util.hpp"
 
 namespace fc::vm::message {

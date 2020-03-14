@@ -11,11 +11,13 @@
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 #include "vm/exit_code/exit_code.hpp"
+#include "vm/message/message.hpp"
 
 namespace fc::vm::runtime {
 
   using common::Buffer;
   using exit_code::ExitCode;
+  using message::UnsignedMessage;
   using primitives::BigInt;
 
   /**
@@ -45,6 +47,12 @@ namespace fc::vm::runtime {
   };
 
   CBOR_TUPLE(MessageReceipt, exit_code, return_value, gas_used)
+
+  struct ExecutionResult {
+    UnsignedMessage message;
+    MessageReceipt receipt;
+    std::string error;
+  };
 }  // namespace fc::vm::runtime
 
 #endif  // CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_TYPES_HPP
