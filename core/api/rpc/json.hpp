@@ -14,11 +14,9 @@
 
 #define COMMA ,
 
-#define ENCODE(type) Value encode(const type &value)
+#define ENCODE(type) Value encode(const type &v)
 
-#define DECODE(type) static void decode(type &value, const Value &encoded)
-
-#define SET(key, value) encoded.AddMember(encode(key), encode(value), allocator)
+#define DECODE(type) static void decode(type &v, const Value &j)
 
 namespace fc::api {
   using primitives::ticket::Ticket;
@@ -29,84 +27,91 @@ namespace fc::api {
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
 
-    static std::string AsString(const Value &encoded) {
-      if (!encoded.IsString()) {
+    static std::string AsString(const Value &j) {
+      if (!j.IsString()) {
         outcome::raise(JsonError::WRONG_TYPE);
       }
-      return {encoded.GetString(), encoded.GetStringLength()};
+      return {j.GetString(), j.GetStringLength()};
     }
 
-    static const Value &Get(const Value &encoded, const char *key) {
-      if (!encoded.IsObject()) {
+    static const Value &Get(const Value &j, const char *key) {
+      if (!j.IsObject()) {
         outcome::raise(JsonError::WRONG_TYPE);
       }
-      auto it = encoded.FindMember(key);
-      if (it == encoded.MemberEnd()) {
+      auto it = j.FindMember(key);
+      if (it == j.MemberEnd()) {
         outcome::raise(JsonError::OUT_OF_RANGE);
       }
       return it->value;
     }
 
-    static auto decodeBase64(const Value &encoded) {
-      return base64::decode(AsString(encoded));
+    template <typename T>
+    void Set(Value &j, std::string_view key, const T &v) {
+      j.AddMember(encode(key), encode(v), allocator);
     }
 
-    ENCODE(std::string) {
-      return {value.data(),
-              static_cast<rapidjson::SizeType>(value.size()),
-              allocator};
+    static auto decodeBase64(const Value &j) {
+      return base64::decode(AsString(j));
+    }
+
+    ENCODE(std::string_view) {
+      return {v.data(), static_cast<rapidjson::SizeType>(v.size()), allocator};
     }
 
     ENCODE(gsl::span<const uint8_t>) {
-      return encode(base64::encode(value.data(), value.size()));
+      return encode(base64::encode(v.data(), v.size()));
     }
 
     template <size_t N>
     DECODE(std::array<uint8_t COMMA N>) {
-      auto bytes = decodeBase64(encoded);
+      auto bytes = decodeBase64(j);
       if (bytes.size() != N) {
         outcome::raise(JsonError::WRONG_LENGTH);
       }
-      std::copy(bytes.begin(), bytes.end(), value.begin());
+      std::copy(bytes.begin(), bytes.end(), v.begin());
     }
 
     ENCODE(CID) {
-      OUTCOME_EXCEPT(str, value.toString());
-      Value encoded{rapidjson::kObjectType};
-      SET("/", str);
-      return encoded;
+      OUTCOME_EXCEPT(str, v.toString());
+      Value j{rapidjson::kObjectType};
+      Set(j, "/", str);
+      return j;
     }
 
     DECODE(CID) {
-      OUTCOME_EXCEPT(cid, CID::fromString(AsString(Get(encoded, "/"))));
-      value = std::move(cid);
+      OUTCOME_EXCEPT(cid, CID::fromString(AsString(Get(j, "/"))));
+      v = std::move(cid);
     }
 
     ENCODE(Ticket) {
-      Value encoded{rapidjson::kObjectType};
-      SET("VRFProof", gsl::make_span(value.bytes));
-      return encoded;
+      Value j{rapidjson::kObjectType};
+      Set(j, "VRFProof", gsl::make_span(v.bytes));
+      return j;
     }
 
     DECODE(Ticket) {
-      decode(value.bytes, Get(encoded, "VRFProof"));
+      decode(v.bytes, Get(j, "VRFProof"));
+    }
+
+    template <typename T>
+    static T decode(const Value &j) {
+      T v;
+      decode(v, j);
+      return std::move(v);
     }
   };
 
   template <typename T>
-  static Document encode(const T &value) {
+  static Document encode(const T &v) {
     Document document;
-    static_cast<Value &>(document) =
-        Codec{document.GetAllocator()}.encode(value);
+    static_cast<Value &>(document) = Codec{document.GetAllocator()}.encode(v);
     return document;
   }
 
   template <typename T>
-  outcome::result<T> decode(const Value &encoded) {
+  outcome::result<T> decode(const Value &j) {
     try {
-      T value;
-      Codec::decode(value, encoded);
-      return std::move(value);
+      return Codec::decode<T>(j);
     } catch (std::system_error &e) {
       return outcome::failure(e.code());
     }
