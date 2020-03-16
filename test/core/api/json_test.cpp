@@ -11,14 +11,25 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
+using fc::api::Address;
 using fc::api::BigInt;
+using fc::api::Buffer;
+using fc::api::EPostProof;
+using fc::api::EPostTicket;
 using fc::api::RleBitset;
+using fc::api::Signature;
 using fc::api::Ticket;
+using fc::api::TipsetKey;
+using fc::crypto::signature::BlsSignature;
+using fc::crypto::signature::Secp256k1Signature;
 
+#define J32 "\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=\""
 #define J96                                                                    \
   "\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB" \
   "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB\""
 
+const auto b32 =
+    "0101010101010101010101010101010101010101010101010101010101010101"_blob32;
 const auto b96 =
     "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 
@@ -32,6 +43,7 @@ auto jsonEncode(const rapidjson::Value &value) {
 auto jsonDecode(const std::string &str) {
   rapidjson::Document document;
   document.Parse(str.data(), str.size());
+  EXPECT_FALSE(document.HasParseError());
   return document;
 }
 
@@ -67,6 +79,30 @@ TEST(ApiJsonTest, CID) {
 
 TEST(ApiJsonTest, Ticket) {
   expectJson(Ticket{b96}, "{\"VRFProof\":" J96 "}");
+}
+
+TEST(ApiJsonTest, TipsetKey) {
+  expectJson(TipsetKey{{"010001020001"_cid}}, "[{\"/\":\"baeaacaqaae\"}]");
+}
+
+TEST(ApiJsonTest, Address) {
+  expectJson(Address::makeFromId(1), "\"t01\"");
+  expectJson(Address::makeActorExec({}),
+             "\"t2gncvesv7no7bqckesisllfzmif4qw3hs6fyf3iy\"");
+}
+
+TEST(ApiJsonTest, Signature) {
+  expectJson(Signature{BlsSignature{b96}},
+             "{\"Type\":\"bls\",\"Data\":" J96 "}");
+  expectJson(Signature{Secp256k1Signature{"DEAD"_unhex}},
+             "{\"Type\":\"secp256k1\",\"Data\":\"3q0=\"}");
+}
+
+TEST(ApiJsonTest, EPostProof) {
+  expectJson(EPostProof{Buffer{"DEAD"_unhex}, b96, {EPostTicket{b32, 1, 2}}},
+             "{\"Proof\":\"3q0=\",\"PostRand\":" J96
+             ",\"Candidates\":[{\"Partial\":" J32
+             ",\"SectorID\":1,\"ChallengeIndex\":2}]}");
 }
 
 TEST(ApiJsonTest, BigInt) {
