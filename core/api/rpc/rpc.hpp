@@ -19,7 +19,11 @@ namespace fc::api::rpc {
   using Method = std::function<outcome::result<Document>(const Value &)>;
 
   struct Rpc {
-    void setup(const std::string &name, Method &&method);
+    std::map<std::string, Method> ms;
+
+    inline void setup(const std::string &name, Method &&method) {
+      ms.emplace(name, std::move(method));
+    }
   };
 }  // namespace fc::api::rpc
 
