@@ -43,6 +43,14 @@ namespace fc::storage::ipfs::graphsync {
     return code < 10 || code >= 20;
   }
 
+  bool isSuccess(ResponseStatusCode code) {
+    return code >= 20 && code <= 21;
+  }
+
+  bool isError(ResponseStatusCode code) {
+    return code < 10 || code >= 30;
+  }
+
   std::string statusCodeToString(ResponseStatusCode code) {
     switch (code) {
 // clang-format off

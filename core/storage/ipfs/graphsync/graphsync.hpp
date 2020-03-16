@@ -86,8 +86,17 @@ namespace fc::storage::ipfs::graphsync {
   /// be sent to the subscription. See ResponseStatusCode comments
   bool isTerminal(ResponseStatusCode code);
 
+  /// Returns true if the status code is terminal and successful
+  bool isSuccess(ResponseStatusCode code);
+
+  /// Returns true if the status code is an error code - internal or network
+  bool isError(ResponseStatusCode code);
+
   /// Converts status code to string repr
   std::string statusCodeToString(ResponseStatusCode code);
+
+  /// Metadata pairs, whether cid is present in the response or not
+  using ResponseMetadata = std::vector<std::pair<CID, bool>>;
 
   /// Graphsync protocol interface
   class Graphsync {
