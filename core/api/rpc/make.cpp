@@ -10,8 +10,11 @@ namespace fc::api {
   template <typename M>
   void setup(Rpc &rpc, const M &method) {
     rpc.setup(M::name, [&](auto &jparams) -> outcome::result<Document> {
-      OUTCOME_TRY(params, decode<typename M::Params>(jparams));
-      auto maybe_result = std::apply(method, params);
+      auto maybe_params = decode<typename M::Params>(jparams);
+      if (!maybe_params) {
+        return JsonError::WRONG_PARAMS;
+      }
+      auto maybe_result = std::apply(method, maybe_params.value());
       if (!maybe_result) {
         return maybe_result.error();
       }

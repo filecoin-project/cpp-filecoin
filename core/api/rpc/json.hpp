@@ -48,7 +48,7 @@ namespace fc::api {
       std::string message;
     };
 
-    uint64_t id;
+    boost::optional<uint64_t> id;
     boost::variant<Error, Document> result;
   };
 
@@ -121,6 +121,7 @@ namespace fc::api {
     }
 
     DECODE(Response) {
+      decode(v.id, Get(j, "id"));
       if (j.HasMember("error")) {
         v.result = decode<Response::Error>(Get(j, "error"));
       } else {

@@ -18,4 +18,7 @@ add_library(rpc
     )
 target_link_libraries(rpc
     api
+
+    # TODO: remove
+    filecoin_hasher
     )
