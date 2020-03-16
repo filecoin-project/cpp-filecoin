@@ -47,7 +47,7 @@ class ProofsTest : public test::BaseFS_Test {
  * @when want to seal data and proof post
  * @then success
  */
-TEST_F(ProofsTest, Lifecycle) {
+TEST_F(ProofsTest, DISABLED_Lifecycle) {
   uint64_t challenge_count = 2;
   ActorId miner_id = 42;
   Randomness randomness{{9, 9, 9}};
