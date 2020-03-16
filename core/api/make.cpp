@@ -28,7 +28,7 @@ namespace fc::api {
     };
     return {
         .ChainGetRandomness = {[&](auto tipset_key, auto round) {
-          return chain_randomness->sampleRandomness(tipset_key.cids, round);
+          return chain_randomness->sampleRandomness(tipset_key.getCids(), round);
         }},
         .ChainHead = {[&]() { return chain_store->heaviestTipset(); }},
         // TODO(turuslan): FIL-165 implement method
