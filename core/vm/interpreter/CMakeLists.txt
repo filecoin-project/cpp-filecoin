@@ -7,5 +7,6 @@ add_library(interpreter
     impl/interpreter_impl.cpp
     )
 target_link_libraries(interpreter
+    tipset
     amt
     )

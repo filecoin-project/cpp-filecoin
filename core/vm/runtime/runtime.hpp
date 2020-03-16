@@ -150,12 +150,10 @@ namespace fc::vm::runtime {
     virtual outcome::result<Address> resolveAddress(const Address &address) = 0;
 
     /// Verify PoSt
-    virtual outcome::result<bool> verifyPoSt(uint64_t sector_size,
-                                             const PoStVerifyInfo &info) = 0;
+    virtual outcome::result<bool> verifyPoSt(const PoStVerifyInfo &info) = 0;
 
     /// Verify seal
-    virtual outcome::result<bool> verifySeal(uint64_t sector_size,
-                                             const SealVerifyInfo &info) = 0;
+    virtual outcome::result<bool> verifySeal(const SealVerifyInfo &info) = 0;
 
     /// Verify consensus fault
     virtual outcome::result<bool> verifyConsensusFault(

@@ -15,7 +15,8 @@ namespace fc::common {
   // CommRStar.
   const int kCommitmentBytesLen = 32;
   using Comm = Blob<kCommitmentBytesLen>;
-  using namespace libp2p::multi;
+  using libp2p::multi::MulticodecType;
+  using libp2p::multi::Multihash;
 
   CID replicaCommitmentV1ToCID(gsl::span<const uint8_t> comm_r);
   CID dataCommitmentV1ToCID(gsl::span<const uint8_t> comm_d);

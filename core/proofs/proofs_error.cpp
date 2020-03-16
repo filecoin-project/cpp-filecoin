@@ -15,7 +15,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofsError, e) {
       return "Proofs: No mapping to FFIRegisteredSealProof";
     case (ProofsError::NO_SUCH_POST_PROOF):
       return "Proofs: No mapping to FFIRegisteredPoStProof";
-    case (ProofsError::UNKNOWN):
+    case (ProofsError::INVALID_POST_PROOF):
+      return "Proofs: No mapping to RegisteredPoSt";
+    default:
       return "Proofs: unknown error";
   }
 }
