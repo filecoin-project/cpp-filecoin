@@ -8,12 +8,12 @@
 
 #include "common/outcome.hpp"
 #include "primitives/address/address.hpp"
-#include "primitives/big_int.hpp"
+#include "primitives/types.hpp"
 
 namespace fc::power {
 
   using primitives::address::Address;
-  using Power = primitives::BigInt;
+  using Power = primitives::StoragePower;
 
   /**
    * @interface Provides an interface to the power table

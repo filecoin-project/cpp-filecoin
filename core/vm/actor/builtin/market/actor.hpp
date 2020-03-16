@@ -14,7 +14,26 @@ namespace fc::vm::actor::builtin::market {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::DealWeight;
+  using primitives::EpochDuration;
   using primitives::SectorSize;
+  using primitives::TokenAmount;
+
+  struct OnChainDeal {
+    Buffer piece_ref;
+    uint64_t piece_size;
+    Address client;
+    Address provider;
+    ChainEpoch proposal_expiration;
+    EpochDuration duration;
+    TokenAmount storage_price_per_epoch;
+    TokenAmount storage_collateral;
+    ChainEpoch activation_epoch;
+  };
+
+  struct StorageParticipantBalance {
+    TokenAmount locked;
+    TokenAmount available;
+  };
 
   struct VerifyDealsOnSectorProveCommit : ActorMethodBase<6> {
     struct Params {
