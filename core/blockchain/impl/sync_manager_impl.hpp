@@ -56,9 +56,9 @@ namespace fc::blockchain::sync_manager {
 
     outcome::result<Tipset> selectSyncTarget();
 
-    outcome::result<void> onUpdateSyncTarget();
+    outcome::result<void> processSyncTargets(Tipset ts);
 
-    outcome::result<void> processSyncTargets();
+    outcome::result<void> doSync();
 
     outcome::result<void> processResult(const SyncResult &result);
     std::unordered_map<PeerId, Tipset> peer_heads_;

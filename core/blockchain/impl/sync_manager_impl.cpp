@@ -85,7 +85,8 @@ namespace fc::blockchain::sync_manager {
       if (result.success) {
         if (next_sync_target_ == boost::none) {
           next_sync_target_ = related_bucket;
-          OUTCOME_TRY(processSyncTargets());
+          OUTCOME_TRY(
+              processSyncTargets(next_sync_target_->getHeaviestTipset()));
         } else {
           sync_queue_.append(*related_bucket);
         }
@@ -101,7 +102,7 @@ namespace fc::blockchain::sync_manager {
       auto &&target = sync_queue_.pop();
       if (target != boost::none) {
         next_sync_target_ = std::move(target);
-        OUTCOME_TRY(processSyncTargets());
+        OUTCOME_TRY(processSyncTargets(next_sync_target_->getHeaviestTipset()));
       }
     }
 
@@ -144,61 +145,49 @@ namespace fc::blockchain::sync_manager {
     if (next_sync_target_ != boost::none
         && next_sync_target_->isSameChain(tipset)) {
       next_sync_target_->addTipset(tipset);
-      OUTCOME_TRY(onUpdateSyncTarget());  // do work
     } else {
       sync_queue_.insert(tipset);
       if (next_sync_target_ == boost::none) {
         next_sync_target_ = sync_queue_.pop();
-        OUTCOME_TRY(onUpdateSyncTarget());  // do work
+        OUTCOME_TRY(processSyncTargets(next_sync_target_->getHeaviestTipset()));
       }
     }
 
     return outcome::success();
   }
 
-  //	hts := sm.nextSyncTarget.heaviestTipSet()
-  //	sm.activeSyncs[hts.Key()] = hts
-  //
-  //	if !sm.syncQueue.Empty() {
-  //		sm.nextSyncTarget = sm.syncQueue.Pop()
-  //	} else {
-  //		sm.nextSyncTarget = nil
-  //		sm.workerChan = nil
-  //	}
-
-outcome::result<void> SyncManagerImpl::onUpdateSyncTarget() {
-    // schedule work sent
-    if (next_sync_target_ == boost::none) {
-      return SyncManagerError::NO_SYNC_TARGET;
-    }
-
-    auto &&heaviest = next_sync_target_->getHeaviestTipset();
-    OUTCOME_TRY(key, heaviest.makeKey());
-    active_syncs_[key] = heaviest;
-    if (!sync_queue_.isEmpty()) {
-
-    }
-
-    return processSyncTargets();
-  }
-
-  // worker
-  outcome::result<void> SyncManagerImpl::processSyncTargets() {
-    while (!sync_targets_.empty()) {
-      auto target = std::move(sync_targets_.front());
-      auto unqueue_target = [&]() { sync_targets_.pop_front(); };
-      auto &&res = sync_function_(target);
+  outcome::result<void> SyncManagerImpl::doSync() {
+    while(!sync_targets_.empty()) {
+      auto &&ts = std::move(sync_targets_.front());
+      sync_targets_.pop_front();
+      // do external sync
+      auto &&res = sync_function_(ts);
       if (!res) {
         logger_->error("sync error %s", res.error().message());
       }
 
-      SyncResult sync_result{target, res};
+      SyncResult sync_result{std::move(ts), res};
       if (auto &&result = processResult(sync_result); !result) {
         logger_->error("sync failed: " + result.error().message());
       }
     }
 
     return outcome::success();
+  }
+
+  // worker
+  outcome::result<void> SyncManagerImpl::processSyncTargets(Tipset ts) {
+    // schedule work sent
+    OUTCOME_TRY(key, ts.makeKey());
+    active_syncs_[key] = ts;
+    if (!sync_queue_.isEmpty()) {
+      next_sync_target_ = sync_queue_.pop();
+    } else {
+      next_sync_target_ = boost::none;
+    }
+    // do sync
+    sync_targets_.push_back(std::move(ts));
+    return doSync();
   }
 
   outcome::result<void> SyncManagerImpl::setPeerHead(PeerId peer_id,
