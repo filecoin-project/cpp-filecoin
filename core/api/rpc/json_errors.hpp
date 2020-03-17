@@ -14,6 +14,7 @@ namespace fc::api {
     WRONG_ENUM,
     WRONG_TYPE,
     OUT_OF_RANGE,
+    WRONG_PARAMS,
   };
 }  // namespace fc::api
 

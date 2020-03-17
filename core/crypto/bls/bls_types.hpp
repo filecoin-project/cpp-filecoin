@@ -6,17 +6,15 @@
 #ifndef CRYPTO_BLS_PROVIDER_TYPES_HPP
 #define CRYPTO_BLS_PROVIDER_TYPES_HPP
 
-#include <filecoin-ffi/filecoin.h>
 #include <array>
 
 #include "common/outcome.hpp"
 
 namespace fc::crypto::bls {
-
-  using PrivateKey = std::array<uint8_t, PRIVATE_KEY_BYTES>;
-  using PublicKey = std::array<uint8_t, PUBLIC_KEY_BYTES>;
-  using Signature = std::array<uint8_t, SIGNATURE_BYTES>;
-  using Digest = std::array<uint8_t, DIGEST_BYTES>;
+  using PrivateKey = std::array<uint8_t, 32>;
+  using PublicKey = std::array<uint8_t, 48>;
+  using Signature = std::array<uint8_t, 96>;
+  using Digest = std::array<uint8_t, 96>;
 
   struct KeyPair {
     PrivateKey private_key;

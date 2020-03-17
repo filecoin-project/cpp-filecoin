@@ -16,5 +16,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::api, JsonError, e) {
       return "wrong type";
     case E::OUT_OF_RANGE:
       return "out of range";
+    case E::WRONG_PARAMS:
+      return "wrong params";
   }
 }
