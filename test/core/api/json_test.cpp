@@ -13,15 +13,17 @@
 
 using fc::api::Address;
 using fc::api::BigInt;
+using fc::api::BlockHeader;
+using fc::api::BlsSignature;
 using fc::api::Buffer;
 using fc::api::EPostProof;
 using fc::api::EPostTicket;
+using fc::api::MsgWait;
 using fc::api::RleBitset;
+using fc::api::Secp256k1Signature;
 using fc::api::Signature;
 using fc::api::Ticket;
 using fc::api::TipsetKey;
-using fc::crypto::signature::BlsSignature;
-using fc::crypto::signature::Secp256k1Signature;
 
 #define J32 "\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=\""
 #define J96                                                                    \
@@ -61,13 +63,13 @@ TEST(ApiJsonTest, WrongType) {
 }
 
 TEST(ApiJsonTest, Misc) {
-  expectJson(-2ll, "-2");
+  expectJson(INT64_C(-2), "-2");
   expectJson(std::vector<uint64_t>{1, 2}, "[1,2]");
   expectJson(RleBitset{2, 1}, "[1,2]");
   expectJson(boost::optional<uint64_t>{}, "null");
-  expectJson(boost::make_optional(2ull), "2");
+  expectJson(boost::make_optional(UINT64_C(2)), "2");
   expectJson(std::map<std::string, uint64_t>{{"a", 1}}, "{\"a\":1}");
-  expectJson(std::make_tuple(2ull, 3ll), "[2,3]");
+  expectJson(std::make_tuple(UINT64_C(2), INT64_C(3)), "[2,3]");
 }
 
 TEST(ApiJsonTest, CID) {

@@ -20,11 +20,11 @@ namespace fc::api {
   namespace net = boost::asio;
   using tcp = boost::asio::ip::tcp;
 
-  constexpr auto kParseError = -32700ll;
-  constexpr auto kInvalidRequest = -32600ll;
-  constexpr auto kMethodNotFound = -32601ll;
-  constexpr auto kInvalidParams = -32602ll;
-  constexpr auto kInternalError = -32603ll;
+  constexpr auto kParseError = INT64_C(-32700);
+  constexpr auto kInvalidRequest = INT64_C(-32600);
+  constexpr auto kMethodNotFound = INT64_C(-32601);
+  constexpr auto kInvalidParams = INT64_C(-32602);
+  constexpr auto kInternalError = INT64_C(-32603);
 
   struct ServerSession : std::enable_shared_from_this<ServerSession> {
     ServerSession(tcp::socket &&socket, const Api &api)
