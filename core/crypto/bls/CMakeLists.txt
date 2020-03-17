@@ -8,12 +8,6 @@ add_library(bls_provider
     )
 
 target_link_libraries(bls_provider
-    bls_types
-    outcome
-    )
-
-add_library(bls_types INTERFACE)
-
-target_link_libraries(bls_types INTERFACE
     filecoin_ffi
+    outcome
     )
