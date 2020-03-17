@@ -6,7 +6,6 @@ add_library(address
     address_codec.cpp
     )
 target_link_libraries(address
-    bls_types
     Boost::boost
     blake2
     blob
