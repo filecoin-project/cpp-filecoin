@@ -7,26 +7,27 @@
 
 #include "proofs/proofs.hpp"
 
-fc::outcome::result<bool> fc::sectorbuilder::ProofVerifierImpl::verifySeal(
-    const fc::primitives::sector::SealVerifyInfo &info) const {
-  return fc::proofs::Proofs::verifySeal(info);
-}
+namespace fc::sectorbuilder {
 
-fc::outcome::result<bool>
-fc::sectorbuilder::ProofVerifierImpl::verifyElectionPost(
-    const fc::primitives::sector::PoStVerifyInfo &info) const {
-  return verifyPost(info);
-}
+  outcome::result<bool> ProofVerifierImpl::verifySeal(
+      const primitives::sector::SealVerifyInfo &info) const {
+    return proofs::Proofs::verifySeal(info);
+  }
 
-fc::outcome::result<bool>
-fc::sectorbuilder::ProofVerifierImpl::verifyFallbackPost(
-    const fc::primitives::sector::PoStVerifyInfo &info) const {
-  return verifyPost(info);
-}
+  outcome::result<bool> ProofVerifierImpl::verifyElectionPost(
+      const primitives::sector::PoStVerifyInfo &info) const {
+    return verifyPost(info);
+  }
 
-fc::outcome::result<bool> fc::sectorbuilder::ProofVerifierImpl::verifyPost(
-    fc::primitives::sector::PoStVerifyInfo info) const {
-  info.randomness[31] = 0;
+  outcome::result<bool> ProofVerifierImpl::verifyFallbackPost(
+      const primitives::sector::PoStVerifyInfo &info) const {
+    return verifyPost(info);
+  }
 
-  return fc::proofs::Proofs::verifyPoSt(info);
-}
+  outcome::result<bool> ProofVerifierImpl::verifyPost(
+      primitives::sector::PoStVerifyInfo info) const {
+    info.randomness[31] = 0;
+
+    return proofs::Proofs::verifyPoSt(info);
+  }
+}  // namespace fc::sectorbuilder
