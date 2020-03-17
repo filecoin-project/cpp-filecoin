@@ -57,6 +57,8 @@ void expectJson(const T &value, std::string expected) {
   EXPECT_EQ(jsonEncode(fc::api::encode(decoded)), expected);
 }
 
+/// Following tests check json encoding and decoding
+
 TEST(ApiJsonTest, WrongType) {
   EXPECT_OUTCOME_ERROR(fc::api::JsonError::WRONG_TYPE,
                        fc::api::decode<Ticket>(jsonDecode("4")));
@@ -111,4 +113,43 @@ TEST(ApiJsonTest, BigInt) {
   expectJson(BigInt{0}, "\"0\"");
   expectJson(BigInt{-1}, "\"-1\"");
   expectJson(BigInt{1}, "\"1\"");
+}
+
+TEST(ApiJsonTest, MsgWait) {
+  expectJson(
+      MsgWait{
+          {1, Buffer{"DEAD"_unhex}, 2},
+          {
+              {"010001020001"_cid},
+              {BlockHeader{
+                  Address::makeFromId(1),
+                  Ticket{b96},
+                  {Buffer{"DEAD"_unhex}, b96, {}},
+                  {"010001020002"_cid},
+                  3,
+                  4,
+                  "010001020005"_cid,
+                  "010001020006"_cid,
+                  "010001020007"_cid,
+                  "DEAD"_unhex,
+                  8,
+                  Signature{Secp256k1Signature{"DEAD"_unhex}},
+                  9,
+              }},
+              3,
+          },
+      },
+      "{\"Receipt\":{\"ExitCode\":1,\"Return\":\"3q0=\",\"GasUsed\":\"2\"},"
+      "\"TipSet\":{\"Cids\":[{\"/"
+      "\":\"baeaacaqaae\"}],\"Blocks\":[{\"Miner\":\"t01\",\"Ticket\":{"
+      "\"VRFProof\":" J96
+      "},\"EPostProof\":{\"Proof\":\"3q0=\",\"PostRand\":" J96
+      ",\"Candidates\":[]},\"Parents\":[{\"/"
+      "\":\"baeaacaqaai\"}],\"ParentWeight\":\"3\",\"Height\":4,"
+      "\"ParentStateRoot\":{\"/"
+      "\":\"baeaacaqaau\"},\"ParentMessageReceipts\":{\"/"
+      "\":\"baeaacaqaay\"},\"Messages\":{\"/"
+      "\":\"baeaacaqaa4\"},\"BLSAggregate\":{\"Type\":\"secp256k1\",\"Data\":"
+      "\"3q0=\"},\"Timestamp\":8,\"BlockSig\":{\"Type\":\"secp256k1\",\"Data\":"
+      "\"3q0=\"},\"ForkSignaling\":9}],\"Height\":3}}");
 }
