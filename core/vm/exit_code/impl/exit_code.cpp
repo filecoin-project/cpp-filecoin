@@ -98,6 +98,8 @@ namespace fc::vm {
         return 1;
     }
     BOOST_ASSERT_MSG(false, "Ret code mapping missing");
+    // This should never be executed
+    return 0;
   }
 
   outcome::result<uint8_t> getRetCode(const std::error_code &error) {
