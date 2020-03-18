@@ -6,8 +6,8 @@
 #include "primitives/tipset/tipset.hpp"
 
 #include <gtest/gtest.h>
-#include "primitives/cid/cid_of_cbor.hpp"
 #include "common/hexutil.hpp"
+#include "primitives/cid/cid_of_cbor.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
@@ -33,8 +33,6 @@ struct TipsetTest : public ::testing::Test {
     ticket1 = Ticket{bls1};
     ticket2 = Ticket{bls2};
 
-    signature = "01DEAD"_unhex;
-
     BlockHeader block_header = fc::primitives::block::BlockHeader{
         fc::primitives::address::Address::makeFromId(1),
         ticket2,
@@ -49,11 +47,11 @@ struct TipsetTest : public ::testing::Test {
         "010001020005"_cid,
         "010001020006"_cid,
         "010001020007"_cid,
-        // TODO(turuslan): FIL-72 signature
-        "01CAFE"_unhex,
+        "CAFE"_unhex,
         8,
-        signature,
-        9};
+        Signature{"DEAD"_unhex},
+        9,
+    };
     return block_header;
   }
 
@@ -137,7 +135,7 @@ TEST_F(TipsetTest, CreateMismatchingParentsFailure) {
  */
 TEST_F(TipsetTest, CreateSuccess) {
   EXPECT_OUTCOME_TRUE(ts, Tipset::create({bh1, bh2}));
-  std::vector<CID> cids {cid2, cid1};
+  std::vector<CID> cids{cid2, cid1};
   ASSERT_EQ(ts.cids, cids);
   std::vector<BlockHeader> headers{bh2, bh1};
   ASSERT_EQ(ts.height, bh1.height);

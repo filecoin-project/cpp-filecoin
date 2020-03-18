@@ -4,7 +4,7 @@
 add_library(address
     address.cpp
     address_codec.cpp
-        ../piece/piece.hpp ../piece/piece.hpp)
+    )
 target_link_libraries(address
     Boost::boost
     blake2

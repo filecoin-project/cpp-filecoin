@@ -25,23 +25,27 @@ namespace fc::proofs {
   using common::Blob;
   using crypto::randomness::Randomness;
 
-  using Proof = std::vector<uint8_t>;
-  using Prover = Blob<32>;
-  using Seed = Blob<32>;
   using Devices = std::vector<std::string>;
   using Phase1Output = std::vector<uint8_t>;
   using fc::primitives::sector::RegisteredProof;
+  using primitives::ActorId;
   using primitives::SectorNumber;
   using primitives::SectorSize;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::PoStCandidate;
+  using primitives::sector::PoStProof;
   using primitives::sector::PoStRandomness;
+  using primitives::sector::PoStVerifyInfo;
+  using primitives::sector::Proof;
   using primitives::sector::SealRandomness;
+  using primitives::sector::SealVerifyInfo;
   using primitives::sector::SectorInfo;
   using primitives::sector::Ticket;
   using SealedCID = CID;
   using UnsealedCID = CID;
+  using Devices = std::vector<std::string>;
+  using Seed = primitives::sector::InteractiveRandomness;
 
   struct PublicSectorInfo {
     RegisteredProof post_proof_type;
@@ -54,7 +58,8 @@ namespace fc::proofs {
     std::vector<PublicSectorInfo> values;
   };
 
-  struct PrivateSectorInfo : SectorInfo {
+  struct PrivateSectorInfo {
+    SectorInfo info;
     std::string cache_dir_path;
     RegisteredProof post_proof_type;
     std::string sealed_sector_path;
@@ -82,6 +87,11 @@ namespace fc::proofs {
     CID piece_cid;
   };
 
+  struct SealedAndUnsealedCID {
+    CID sealed_cid;
+    CID unsealed_cid;
+  };
+
   class Proofs {
    public:
     static fc::proofs::SortedPrivateSectorInfo newSortedPrivateSectorInfo(
@@ -96,14 +106,12 @@ namespace fc::proofs {
         const UnpaddedPieceSize &piece_bytes,
         const std::string &staged_sector_file_path);
 
-    // existing_piece_sizes should be UnpaddedPieceSize, but for prevent copy
-    // array it is uint64 span
     static outcome::result<WriteWithAlignmentResult> writeWithAlignment(
         RegisteredProof proof_type,
         const std::string &piece_file_path,
         const UnpaddedPieceSize &piece_bytes,
         const std::string &staged_sector_file_path,
-        gsl::span<const uint64_t> existing_piece_sizes);
+        gsl::span<const UnpaddedPieceSize> existing_piece_sizes);
 
     /**
      * @brief  Seals the staged sector at staged_sector_path in place, saving
@@ -115,20 +123,44 @@ namespace fc::proofs {
         const std::string &staged_sector_path,
         const std::string &sealed_sector_path,
         SectorNumber sector_num,
-        const Prover &prover_id,
+        ActorId miner_id,
         const SealRandomness &ticket,
         gsl::span<const PieceInfo> pieces);
 
-    static outcome::result<std::pair<SealedCID, UnsealedCID>>
-    sealPreCommitPhase2(gsl::span<const uint8_t> phase1_output,
-                        const std::string &cache_dir_path,
-                        const std::string &sealed_sector_path);
+    static outcome::result<SealedAndUnsealedCID> sealPreCommitPhase2(
+        gsl::span<const uint8_t> phase1_output,
+        const std::string &cache_dir_path,
+        const std::string &sealed_sector_path);
 
+    static outcome::result<Phase1Output> sealCommitPhase1(
+        RegisteredProof proof_type,
+        const CID &sealed_cid,
+        const CID &unsealed_cid,
+        const std::string &cache_dir_path,
+        const std::string &sealed_sector_path,
+        SectorNumber sector_num,
+        ActorId miner_id,
+        const Ticket &ticket,
+        const Seed &seed,
+        gsl::span<const PieceInfo> pieces);
+
+    static outcome::result<Proof> sealCommitPhase2(
+        gsl::span<const uint8_t> phase1_output,
+        SectorNumber sector_id,
+        ActorId miner_id);
+
+    /**
+     * GeneratePieceCIDFromFile produces a piece CID for the provided data
+     * stored in a given file.
+     */
     static outcome::result<CID> generatePieceCIDFromFile(
         RegisteredProof proof_type,
         const std::string &piece_file_path,
         UnpaddedPieceSize piece_size);
 
+    /** GenerateDataCommitment produces a commitment for the sector containing
+     * the provided pieces.
+     */
     static outcome::result<CID> generateUnsealedCID(
         RegisteredProof proof_type, gsl::span<PieceInfo> pieces);
 
@@ -137,7 +169,7 @@ namespace fc::proofs {
      */
     static outcome::result<std::vector<PoStCandidateWithTicket>>
     generateCandidates(
-        const Prover &prover_id,
+        ActorId miner_id,
         const PoStRandomness &randomness,
         uint64_t challenge_count,
         const SortedPrivateSectorInfo &sorted_private_replica_info);
@@ -145,8 +177,8 @@ namespace fc::proofs {
     /**
      * @brief Generate a proof-of-spacetime
      */
-    static outcome::result<Proof> generatePoSt(
-        const Prover &prover_id,
+    static outcome::result<std::vector<PoStProof>> generatePoSt(
+        ActorId miner_id,
         const SortedPrivateSectorInfo &private_replica_info,
         const PoStRandomness &randomness,
         gsl::span<const PoStCandidate> winners);
@@ -154,13 +186,61 @@ namespace fc::proofs {
     /**
      * @brief Verifies a proof-of-spacetime
      */
-    static outcome::result<bool> verifyPoSt(
-        const SortedPublicSectorInfo &public_sector_info,
-        const PoStRandomness &randomness,
-        uint64_t challenge_count,
-        gsl::span<const uint8_t> proof,
-        gsl::span<const PoStCandidate> winners,
-        const Prover &prover_id);
+    static outcome::result<bool> verifyPoSt(const PoStVerifyInfo &info);
+
+    /**
+     * VerifySeal returns true if the sealing operation from which its inputs
+     * were derived was valid, and false if not.
+     */
+    static outcome::result<bool> verifySeal(const SealVerifyInfo &info);
+
+    /**
+     * Unseals sector
+     */
+    static outcome::result<void> unseal(RegisteredProof proof_type,
+                                        const std::string &cache_dir_path,
+                                        const std::string &sealed_sector_path,
+                                        const std::string &unseal_output_path,
+                                        SectorNumber sector_num,
+                                        ActorId miner_id,
+                                        const Ticket &ticket,
+                                        const UnsealedCID &unsealed_cid);
+
+    /**
+     * @brief Unseals the sector at @sealed_path and returns the bytes for a
+     * piece whose first (unpadded) byte begins at @offset and ends at @offset
+     * plus @num_bytes, inclusive
+     */
+    static outcome::result<void> unsealRange(
+        RegisteredProof proof_type,
+        const std::string &cache_dir_path,
+        const std::string &sealed_sector_path,
+        const std::string &unseal_output_path,
+        SectorNumber sector_num,
+        ActorId miner_id,
+        const Ticket &ticket,
+        const UnsealedCID &unsealed_cid,
+        uint64_t offset,
+        uint64_t length);
+
+    /**
+     *  FinalizeTicket creates an actual ticket from a partial ticket
+     */
+    static outcome::result<Ticket> finalizeTicket(const Ticket &partialTicket);
+
+    static outcome::result<void> clearCache(const std::string &cache_dir_path);
+
+    static outcome::result<std::string> getPoStVersion(
+        RegisteredProof proof_type);
+
+    static outcome::result<std::string> getSealVersion(
+        RegisteredProof proof_type);
+
+    /**
+     * @brief Produces a vector of strings, each representing the name of a
+     * detected GPU device
+     */
+    static outcome::result<Devices> getGPUDevices();
 
    private:
     static fc::common::Logger logger_;

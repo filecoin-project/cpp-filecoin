@@ -56,6 +56,8 @@ namespace fc {
      * @return byte-representation of CID
      */
     outcome::result<std::vector<uint8_t>> toBytes() const;
+
+    static outcome::result<CID> fromString(const std::string &str);
   };
 }  // namespace fc
 

@@ -23,12 +23,11 @@
 #include "vm/message/message.hpp"
 
 namespace fc::primitives::block {
+  using crypto::signature::Signature;
   using primitives::BigInt;
   using primitives::address::Address;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
-  // TODO (yuraz) : FIL-142 replace by crypto::signature::Signature
-  using Signature = std::vector<uint8_t>;
   using storage::ipld::IPLDBlockCommon;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;

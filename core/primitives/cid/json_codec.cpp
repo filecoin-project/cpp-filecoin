@@ -9,35 +9,17 @@
 
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/property_tree/ptree.hpp>
+
 #include "codec/cbor/cbor.hpp"
 
 namespace fc::codec::json {
   using boost::property_tree::ptree;
 
-  namespace {
-    using libp2p::multi::detail::decodeBase58;
-    using libp2p::multi::detail::encodeBase58;
-
-    // TODO(yuraz): FIL-156 implement correct encode and decode
-    // this solution is temporary and not compatible with lotus implementation
-    // need to decide whether we need implement it according to lotus
-    outcome::result<std::string> encodeCid(const CID &cid) {
-      std::string result;
-      OUTCOME_TRY(cid_bytes, cbor::encode(cid));
-      return encodeBase58(cid_bytes);
-    }
-
-    outcome::result<CID> decodeCid(std::string_view data) {
-      OUTCOME_TRY(bytes, decodeBase58(data));
-      return cbor::decode<CID>(bytes);
-    }
-  }  // namespace
-
   outcome::result<std::string> encodeCidVector(gsl::span<const CID> span) {
     ptree tree;
     ptree children;
     for (const auto &it : span) {
-      OUTCOME_TRY(encoded, encodeCid(it));
+      OUTCOME_TRY(encoded, it.toString());
       ptree child;
       child.put("", encoded);
       children.push_back(std::make_pair("", child));
@@ -69,7 +51,7 @@ namespace fc::codec::json {
     std::vector<CID> cids;
     for (auto &&it : array) {
       auto &&val = it.second.get_value<std::string>();
-      OUTCOME_TRY(cid, decodeCid(val));
+      OUTCOME_TRY(cid, CID::fromString(val));
       cids.push_back(std::move(cid));
     }
 

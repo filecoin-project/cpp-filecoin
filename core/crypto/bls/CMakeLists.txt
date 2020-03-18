@@ -8,6 +8,6 @@ add_library(bls_provider
     )
 
 target_link_libraries(bls_provider
-    bls_signatures_ffi
+    filecoin_ffi
     outcome
     )
