@@ -376,7 +376,7 @@ int main(int argc, char *argv[]) {
     ++argv;
   } else {
     spdlog::set_level(spdlog::level::err);
-    run_time_msec = 20000;
+    run_time_msec = 900000;
   }
 
   ::testing::InitGoogleTest(&argc, argv);
