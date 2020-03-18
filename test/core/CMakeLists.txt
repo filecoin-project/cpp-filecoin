@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(adt)
+add_subdirectory(api)
 add_subdirectory(blockchain)
 add_subdirectory(clock)
 add_subdirectory(codec)

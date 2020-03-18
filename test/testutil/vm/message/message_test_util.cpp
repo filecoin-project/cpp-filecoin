@@ -5,6 +5,8 @@
 
 #include "testutil/vm/message/message_test_util.hpp"
 
+#include <libp2p/multi/content_identifier_codec.hpp>
+
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "vm/message/message_util.hpp"
 

@@ -58,6 +58,10 @@ namespace fc {
     return libp2p::multi::ContentIdentifierCodec::encode(*this);
   }
 
+  outcome::result<CID> CID::fromString(const std::string &str) {
+    OUTCOME_TRY(cid, libp2p::multi::ContentIdentifierCodec::fromString(str));
+    return CID{std::move(cid)};
+  }
 }  // namespace fc
 
 namespace fc::common {

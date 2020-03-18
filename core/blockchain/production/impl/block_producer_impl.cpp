@@ -87,8 +87,7 @@ namespace fc::blockchain::production {
         .parent_state_root = std::move(vm_result.state_root),
         .parent_message_receipts = std::move(vm_result.message_receipts),
         .messages = msg_meta.getCID(),
-        .bls_aggregate = {std::move_iterator(bls_aggregate_sign.begin()),
-                          std::move_iterator(bls_aggregate_sign.end())},
+        .bls_aggregate = std::move(bls_aggregate_sign),
         .timestamp = static_cast<uint64_t>(now.unixTime().count()),
         .block_sig = {},  // Block must be signed be Actor Miner
         .fork_signaling = 0};

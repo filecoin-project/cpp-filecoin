@@ -7,8 +7,8 @@ find_package(GTest CONFIG REQUIRED)
 find_package(GMock CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
-hunter_add_package(Boost COMPONENTS date_time filesystem random system)
-find_package(Boost CONFIG REQUIRED date_time filesystem random system)
+hunter_add_package(Boost COMPONENTS date_time filesystem random)
+find_package(Boost CONFIG REQUIRED date_time filesystem random)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Microsoft.GSL.html
 hunter_add_package(Microsoft.GSL)
@@ -45,3 +45,7 @@ find_package(libp2p CONFIG REQUIRED)
 # https://docs.hunter.sh/en/latest/packages/pkg/cppcodec.html
 hunter_add_package(cppcodec)
 find_package(cppcodec CONFIG REQUIRED)
+
+# http://rapidjson.org
+hunter_add_package(RapidJSON)
+find_package(RapidJSON CONFIG REQUIRED)

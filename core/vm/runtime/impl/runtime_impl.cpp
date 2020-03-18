@@ -6,6 +6,7 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 
 #include "codec/cbor/cbor.hpp"
+#include "proofs/proofs.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/runtime/gas_cost.hpp"
 #include "vm/runtime/impl/actor_state_handle_impl.hpp"
@@ -171,15 +172,13 @@ namespace fc::vm::runtime {
   }
 
   fc::outcome::result<bool> RuntimeImpl::verifyPoSt(
-      uint64_t sector_size, const PoStVerifyInfo &info) {
-    // TODO(turuslan): FIL-160 connect verifyPoSt from proofs
-    return RuntimeError::UNKNOWN;
+      const PoStVerifyInfo &info) {
+    return proofs::Proofs::verifyPoSt(info);
   }
 
   fc::outcome::result<bool> RuntimeImpl::verifySeal(
-      uint64_t sector_size, const SealVerifyInfo &info) {
-    // TODO(turuslan): FIL-160 connect verifySeal from proofs
-    return RuntimeError::UNKNOWN;
+      const SealVerifyInfo &info) {
+    return proofs::Proofs::verifySeal(info);
   }
 
   fc::outcome::result<bool> RuntimeImpl::verifyConsensusFault(

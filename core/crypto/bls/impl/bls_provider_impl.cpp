@@ -5,6 +5,7 @@
 
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 
+#include <filecoin-ffi/filecoin.h>
 #include <gsl/gsl_util>
 
 namespace fc::crypto::bls {

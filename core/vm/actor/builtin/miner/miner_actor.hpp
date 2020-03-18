@@ -69,7 +69,7 @@ namespace fc::vm::actor::builtin::miner {
   struct ProveCommitSector : ActorMethodBase<8> {
     struct Params {
       SectorNumber sector;
-      SealProof proof;
+      Proof proof;
     };
     ACTOR_METHOD_DECL();
   };

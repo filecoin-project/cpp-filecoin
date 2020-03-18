@@ -87,6 +87,13 @@ namespace fc::storage::blockchain {
     return outcome::success();
   }
 
+  outcome::result<Tipset> ChainStoreImpl::heaviestTipset() const {
+    if (heaviest_tipset_) {
+      return *heaviest_tipset_;
+    }
+    return ChainStoreError::NO_HEAVIEST_TIPSET;
+  }
+
   outcome::result<void> ChainStoreImpl::writeHead(
       const primitives::tipset::Tipset &tipset) {
     OUTCOME_TRY(data, codec::json::encodeCidVector(tipset.cids));
@@ -204,6 +211,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {
   switch (e) {
     case ChainStoreError::NO_MIN_TICKET_BLOCK:
       return "min ticket block has no value";
+    case ChainStoreError::NO_HEAVIEST_TIPSET:
+      return "no heaviest tipset";
   }
 
   return "ChainStoreError: unknown error";

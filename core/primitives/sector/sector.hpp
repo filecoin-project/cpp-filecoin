@@ -6,17 +6,19 @@
 #ifndef CPP_FILECOIN_CORE_PROOFS_SECTOR_HPP
 #define CPP_FILECOIN_CORE_PROOFS_SECTOR_HPP
 
+#include "common/blob.hpp"
+#include "common/buffer.hpp"
+#include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::primitives::sector {
   using common::Buffer;
+  using crypto::randomness::Randomness;
   using primitives::ActorId;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::SectorNumber;
-  using crypto::randomness::Randomness;
-  using Ticket =  common::Blob<32>;
 
   struct SectorId {
     ActorId miner;
@@ -25,27 +27,28 @@ namespace fc::primitives::sector {
 
   /// This ordering, defines mappings to UInt in a way which MUST never change.
   enum class RegisteredProof : int64_t {
-    WinStackedDRG32GiBSeal = 1,
-    WinStackedDRG32GiBPoSt,
-    StackedDRG32GiBSeal,
-    StackedDRG32GiBPoSt,
-    StackedDRG1KiBSeal,
-    StackedDRG1KiBPoSt,
-    StackedDRG16MiBSeal,
-    StackedDRG16MiBPoSt,
-    StackedDRG256MiBSeal,
-    StackedDRG256MiBPoSt,
-    StackedDRG1GiBSeal,
-    StackedDRG1GiBPoSt,
+    StackedDRG32GiBSeal = 1,
+    StackedDRG32GiBPoSt = 2,
+    StackedDRG2KiBSeal = 3,
+    StackedDRG2KiBPoSt = 4,
+    StackedDRG8MiBSeal = 5,
+    StackedDRG8MiBPoSt = 6,
+    StackedDRG512MiBSeal = 7,
+    StackedDRG512MiBPoSt = 8,
   };
+
+  outcome::result<RegisteredProof> getRegisteredPoStProof(
+      RegisteredProof proof);
+  outcome::result<RegisteredProof> getRegisteredSealProof(
+      RegisteredProof proof);
 
   using SealRandomness = Randomness;
 
+  using Ticket = SealRandomness;
+
   using InteractiveRandomness = Randomness;
 
-  struct SealProof {
-    Buffer proof;
-  };
+  using Proof = std::vector<uint8_t>;
 
   /**
    * OnChainSealVerifyInfo is the structure of information that must be sent
@@ -59,7 +62,7 @@ namespace fc::primitives::sector {
     /// Used to derive the interactive PoRep challenge.
     ChainEpoch interactive_epoch;
     RegisteredProof registered_proof;
-    SealProof proof;
+    Proof proof;
     std::vector<DealId> deals;
     SectorNumber sector;
     /// Used to tie the seal to a chain.
@@ -82,7 +85,8 @@ namespace fc::primitives::sector {
   using PoStRandomness = Randomness;
 
   struct PoStProof {
-    Buffer proof;
+    RegisteredProof registered_proof;
+    Proof proof;
   };
 
   struct PrivatePoStCandidateProof {
@@ -110,6 +114,9 @@ namespace fc::primitives::sector {
   };
 
   struct SectorInfo {
+    // RegisteredProof used when sealing - needs to be mapped to PoSt registered
+    // proof when used to verify a PoSt
+    RegisteredProof registered_proof;
     uint64_t sector;
     /// CommR
     CID sealed_cid;
@@ -128,8 +135,6 @@ namespace fc::primitives::sector {
 
   CBOR_TUPLE(SectorId, miner, sector)
 
-  CBOR_TUPLE(SealProof, proof)
-
   CBOR_TUPLE(OnChainSealVerifyInfo,
              sealed_cid,
              interactive_epoch,
@@ -139,7 +144,7 @@ namespace fc::primitives::sector {
              sector,
              seal_rand_epoch)
 
-  CBOR_TUPLE(PoStProof, proof)
+  CBOR_TUPLE(PoStProof, registered_proof, proof)
 
   CBOR_TUPLE(PrivatePoStCandidateProof, registered_proof, externalized)
 
@@ -151,6 +156,13 @@ namespace fc::primitives::sector {
              challenge_index)
 
   CBOR_TUPLE(OnChainPoStVerifyInfo, proof_type, candidates, proofs)
-}  // namespace fc::proofs::sector
+
+  enum class Errors {
+    InvalidPoStProof = 1,
+    InvalidSealProof,
+  };
+}  // namespace fc::primitives::sector
+
+OUTCOME_HPP_DECLARE_ERROR(fc::primitives::sector, Errors);
 
 #endif  // CPP_FILECOIN_CORE_PROOFS_SECTOR_HPP

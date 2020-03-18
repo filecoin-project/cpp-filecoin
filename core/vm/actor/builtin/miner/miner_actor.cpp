@@ -118,6 +118,7 @@ namespace fc::vm::actor::builtin::miner {
               if (state.fault_set.find(sector.info.sector)
                   == state.fault_set.end()) {
                 sectors.push_back({
+                    .registered_proof = sector.info.registered_proof,
                     .sector = sector.info.sector,
                     .sealed_cid = sector.info.sealed_cid,
                 });
@@ -131,20 +132,18 @@ namespace fc::vm::actor::builtin::miner {
 
     OUTCOME_TRY(miner, runtime.resolveAddress(runtime.getCurrentReceiver()));
     OUTCOME_TRY(seed, codec::cbor::encode(miner));
-    OUTCOME_TRY(
-        verified,
-        runtime.verifyPoSt(state.info.sector_size,
-                           {
-                               .randomness = runtime.getRandomness(
-                                   DomainSeparationTag::PoStDST,
-                                   state.post_state.proving_period_start,
-                                   Buffer{seed}),
-                               .candidates = params.candidates,
-                               .proofs = params.proofs,
-                               .eligible_sectors = sectors,
-                               .prover = miner.getId(),
-                               .challenge_count = challenge_count,
-                           }));
+    OUTCOME_TRY(verified,
+                runtime.verifyPoSt({
+                    .randomness = runtime.getRandomness(
+                        DomainSeparationTag::PoStDST,
+                        state.post_state.proving_period_start,
+                        Buffer{seed}),
+                    .candidates = params.candidates,
+                    .proofs = params.proofs,
+                    .eligible_sectors = sectors,
+                    .prover = miner.getId(),
+                    .challenge_count = challenge_count,
+                }));
     if (!verified) {
       return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
     }
@@ -170,7 +169,9 @@ namespace fc::vm::actor::builtin::miner {
   outcome::result<EpochDuration> maxSealDuration(RegisteredProof type) {
     switch (type) {
       case RegisteredProof::StackedDRG32GiBSeal:
-      case RegisteredProof::WinStackedDRG32GiBSeal:
+      case RegisteredProof::StackedDRG2KiBSeal:
+      case RegisteredProof::StackedDRG8MiBSeal:
+      case RegisteredProof::StackedDRG512MiBSeal:
         return 10000;
       default:
         break;
@@ -201,22 +202,20 @@ namespace fc::vm::actor::builtin::miner {
                     0));
 
     OUTCOME_TRY(miner, runtime.resolveAddress(runtime.getCurrentReceiver()));
-    OUTCOME_TRY(runtime.verifySeal(
-        sector_size,
-        {
-            .sector =
-                {
-                    .miner = miner.getId(),
-                    .sector = info.sector,
-                },
-            .info = info,
-            .randomness = runtime.getRandomness(
-                DomainSeparationTag::SealRandomness, info.seal_rand_epoch),
-            .interactive_randomness = runtime.getRandomness(
-                DomainSeparationTag::InteractiveSealChallengeSeed,
-                info.interactive_epoch),
-            .unsealed_cid = comm_d,
-        }));
+    OUTCOME_TRY(runtime.verifySeal({
+        .sector =
+            {
+                .miner = miner.getId(),
+                .sector = info.sector,
+            },
+        .info = info,
+        .randomness = runtime.getRandomness(DomainSeparationTag::SealRandomness,
+                                            info.seal_rand_epoch),
+        .interactive_randomness = runtime.getRandomness(
+            DomainSeparationTag::InteractiveSealChallengeSeed,
+            info.interactive_epoch),
+        .unsealed_cid = comm_d,
+    }));
     return outcome::success();
   }
 

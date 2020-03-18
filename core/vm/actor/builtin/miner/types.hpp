@@ -27,8 +27,8 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::OnChainPoStVerifyInfo;
+  using primitives::sector::Proof;
   using primitives::sector::RegisteredProof;
-  using primitives::sector::SealProof;
 
   using PeerId = std::string;
 

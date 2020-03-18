@@ -5,13 +5,15 @@
 
 #include "codec/cbor/cbor_decode_stream.hpp"
 
+#include <libp2p/multi/content_identifier_codec.hpp>
+
 namespace fc::codec::cbor {
   CborDecodeStream::CborDecodeStream(gsl::span<const uint8_t> data)
       : data_(std::make_shared<std::vector<uint8_t>>(data.begin(), data.end())),
         parser_(std::make_shared<CborParser>()) {
     if (CborNoError
         != cbor_parser_init(
-               data_->data(), data_->size(), 0, parser_.get(), &value_)) {
+            data_->data(), data_->size(), 0, parser_.get(), &value_)) {
       outcome::raise(CborDecodeError::INVALID_CBOR);
     }
     value_.remaining = UINT32_MAX;

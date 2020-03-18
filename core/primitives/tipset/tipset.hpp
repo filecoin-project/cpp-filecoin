@@ -89,6 +89,19 @@ namespace fc::primitives::tipset {
   bool operator==(const Tipset &lhs, const Tipset &rhs);
 
   CBOR_TUPLE(Tipset, cids, blks, height)
+
+  /**
+   * @brief change type
+   */
+  enum class HeadChangeType : int { REVERT, APPLY, CURRENT };
+
+  /**
+   * @struct HeadChange represents atomic chain change
+   */
+  struct HeadChange {
+    HeadChangeType type;
+    Tipset value;
+  };
 }  // namespace fc::primitives::tipset
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP

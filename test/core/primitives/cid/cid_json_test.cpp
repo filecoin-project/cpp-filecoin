@@ -24,9 +24,9 @@ struct CidJsonTest : public ::testing::Test {
     // clang-format off
     json_value = "{\n"
                  "    \"\\/\": [\n"
-                 "        \"GvZyPhweQo39L7iBjMEjnMq1SRRMZwTPHrXW6V8BZaFHPtngVTURUACfcXw\",\n"
-                 "        \"GvZyPhweQo39L7iCp1hP7wV7i5dnfmVmsKzn1uSj1QCirrHLEiDs3emTnKc\",\n"
-                 "        \"GvZyPhweQo39L7hysZK5AdeHeijLGMXWWGbpcWvnMW9XGqkRSeDrBZSBKAQ\"\n"
+                 "        \"bafy2bzacedtdowfzziuwwp4uots32j6r3ivf6ox7nsaqiv7zycgvhg5znpro4\",\n"
+                 "        \"bafy2bzaced3ejv6imv72pyz52e2d3mzpx3vck2i2mzlkzmaz767qvkvnm2k7w\",\n"
+                 "        \"bafy2bzacea3akzzddnz7elfdehxi6xzlmxqsn5bi6bm5ghncekyjzfzuyti4s\"\n"
                  "    ]\n"
                  "}";
     // clang-format on
