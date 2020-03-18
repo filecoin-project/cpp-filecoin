@@ -29,7 +29,10 @@ namespace fc::storage::blockchain {
     std::vector<CID> secpk;
   };
 
-  enum class ChainStoreError : int { NO_MIN_TICKET_BLOCK = 1 };
+  enum class ChainStoreError : int {
+    NO_MIN_TICKET_BLOCK = 1,
+    NO_HEAVIEST_TIPSET,
+  };
 
   class ChainStoreImpl : public ChainStore,
                          public std::enable_shared_from_this<ChainStoreImpl> {
@@ -63,6 +66,8 @@ namespace fc::storage::blockchain {
     outcome::result<void> addBlock(const BlockHeader &block) override;
 
     outcome::result<BlockHeader> getBlock(const CID &cid) const override;
+
+    outcome::result<Tipset> heaviestTipset() const override;
 
    private:
     ChainStoreImpl(std::shared_ptr<ipfs::IpfsBlockService> block_service,

@@ -68,6 +68,6 @@ TEST(MinerActorTest, MinerInfoCbor) {
 }
 
 TEST(MinerActorTest, EncodeRegisteredProof) {
-  RegisteredProof proof{RegisteredProof::StackedDRG1GiBPoSt};
-  expectEncodeAndReencode(proof, "0C"_unhex);
+  RegisteredProof proof{RegisteredProof::StackedDRG512MiBPoSt};
+  expectEncodeAndReencode(proof, "08"_unhex);
 }

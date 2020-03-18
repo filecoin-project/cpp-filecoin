@@ -6,13 +6,11 @@
 #ifndef CORE_STORAGE_IPFS_MERKLEDAG_NODE_LIBRARY
 #define CORE_STORAGE_IPFS_MERKLEDAG_NODE_LIBRARY
 
-#include <libp2p/multi/content_identifier_codec.hpp>
 #include "storage/ipld/impl/ipld_node_impl.hpp"
 
 namespace dataset {
   using fc::storage::ipld::IPLDNode;
   using fc::storage::ipld::IPLDNodeImpl;
-  using CIDCodec = libp2p::multi::ContentIdentifierCodec;
 
   /**
    * @brief Add child link for root node
@@ -22,7 +20,7 @@ namespace dataset {
    */
   fc::outcome::result<void> link(const std::shared_ptr<IPLDNode> &to,
                                  const std::shared_ptr<const IPLDNode> &from) {
-    OUTCOME_TRY(from_id, CIDCodec::toString(from->getCID()));
+    OUTCOME_TRY(from_id, from->getCID().toString());
     EXPECT_OUTCOME_TRUE_1(to->addChild(from_id, from));
     return fc::outcome::success();
   }
