@@ -14,9 +14,9 @@ namespace fc::blockchain {
 
   enum class BootstrapState : int {
     STATE_INIT = 0,
-    STATE_SELECTED = 1,
-    STATE_SCHEDULED = 2,
-    STATE_COMPLETE = 3
+    STATE_SELECTED,
+    STATE_SCHEDULED,
+    STATE_COMPLETE,
   };
 
   /** @brief sync manager */

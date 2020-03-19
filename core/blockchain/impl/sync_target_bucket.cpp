@@ -8,11 +8,24 @@
 namespace fc::blockchain::sync_manager {
   using Tipset = primitives::tipset::Tipset;
 
-  bool SyncTargetBucket::isSameChain(const Tipset &ts) const {
+  outcome::result<bool> SyncTargetBucket::isSameChain(const Tipset &ts) const {
     for (auto &t : tipsets) {
-      if (t == ts || ts.makeKey() == t.getParents()
-          || ts.getParents() == t.makeKey())
+      OUTCOME_TRY(ts_key, ts.makeKey());
+      OUTCOME_TRY(t_key, t.makeKey());
+      OUTCOME_TRY(t_parents_key, t.getParents());
+      OUTCOME_TRY(ts_parents_key, t.getParents());
+
+      if (t == ts) {
         return true;
+      }
+
+      if (ts_key == t_parents_key) {
+        return true;
+      }
+
+      if (ts_parents_key == t_key) {
+        return true;
+      }
     }
     return false;
   }
@@ -21,14 +34,16 @@ namespace fc::blockchain::sync_manager {
     for (auto &t : tipsets) {
       if (t == ts) return;
     }
-    ++count;
     tipsets.push_back(ts);
   }
 
-  Tipset SyncTargetBucket::getHeaviestTipset() const {
+  boost::optional<Tipset> SyncTargetBucket::getHeaviestTipset() const {
     boost::optional<Tipset> best_tipset;
 
-    BOOST_ASSERT_MSG(tipsets.empty(), "tipsets count == 0");
+    if (tipsets.empty()) {
+      return boost::none;
+    }
+
     for (auto &ts : tipsets) {
       if (best_tipset == boost::none
           || ts.getParentWeight() > best_tipset->getParentWeight()) {
@@ -44,3 +59,13 @@ namespace fc::blockchain::sync_manager {
   }
 
 }  // namespace fc::blockchain::sync_manager
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::sync_manager,
+                            SyncTargetBucketError,
+                            error) {
+  using Error = fc::blockchain::sync_manager::SyncTargetBucketError;
+  switch (error) {
+    case Error::BUCKET_IS_EMPTY:
+      return "bucket is empty";
+  }
+}

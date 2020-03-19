@@ -28,6 +28,8 @@ target_link_libraries(sync_manager
     Boost::boost
     cid
     syncer_state
+    sync_bucket_set
+    sync_target_bucket
     tipset
     )
 

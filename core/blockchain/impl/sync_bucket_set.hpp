@@ -18,11 +18,12 @@ namespace fc::blockchain::sync_manager {
    public:
     using Tipset = primitives::tipset::Tipset;
 
-    SyncBucketSet(gsl::span<const Tipset> tipsets);
-    SyncBucketSet(std::vector<Tipset> tipsets);
+    /** @brief constructors */
+    explicit SyncBucketSet(gsl::span<const Tipset> tipsets);
+    explicit SyncBucketSet(std::vector<Tipset> tipsets);
 
     /** @brief checks if tipset is related to one of chains */
-    bool isRelatedToAny(const Tipset &ts) const;
+    outcome::result<bool> isRelatedToAny(const Tipset &ts) const;
 
     /** @brief insert tipset */
     void insert(Tipset ts);
@@ -37,7 +38,8 @@ namespace fc::blockchain::sync_manager {
     void removeBucket(const SyncTargetBucket &b);
 
     /** @brief pops related tipset */
-    boost::optional<SyncTargetBucket> popRelated(const Tipset &ts);
+    outcome::result<boost::optional<SyncTargetBucket>> popRelated(
+        const Tipset &ts);
 
     /** @brief finds and returns heaviest tipset */
     outcome::result<Tipset> getHeaviestTipset() const;
@@ -48,8 +50,8 @@ namespace fc::blockchain::sync_manager {
     /** @brief returns buckets count */
     size_t getSize() const;
 
-   private:
-    std::vector<SyncTargetBucket> buckets;
+   protected:
+    std::vector<SyncTargetBucket> buckets_;
   };
 }  // namespace fc::blockchain::sync_manager
 

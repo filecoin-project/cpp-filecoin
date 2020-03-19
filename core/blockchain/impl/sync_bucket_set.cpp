@@ -9,75 +9,106 @@ namespace fc::blockchain::sync_manager {
   using Tipset = primitives::tipset::Tipset;
 
   SyncBucketSet::SyncBucketSet(gsl::span<const Tipset> tipsets) {
+    if (tipsets.empty()) {
+      return;
+    }
+
     SyncTargetBucket b;
     b.tipsets.resize(tipsets.size());
-    for (auto &t : tipsets) b.tipsets.push_back(t);
-    buckets.push_back(std::move(b));
+    for (auto &t : tipsets) {
+      b.tipsets.push_back(t);
+    }
+    buckets_.push_back(std::move(b));
   }
 
   SyncBucketSet::SyncBucketSet(std::vector<Tipset> tipsets) {
-    buckets.emplace_back(SyncTargetBucket{std::move(tipsets), 1});
+    if (!tipsets.empty()) {
+      buckets_.emplace_back(SyncTargetBucket{std::move(tipsets)});
+    }
   }
 
-  bool SyncBucketSet::isRelatedToAny(const Tipset &ts) const {
-    for (auto &b : buckets) {
-      if (b.isSameChain(ts)) return true;
+  outcome::result<bool> SyncBucketSet::isRelatedToAny(const Tipset &ts) const {
+    for (auto &b : buckets_) {
+      OUTCOME_TRY(res, b.isSameChain(ts));
+      if (res) {
+        return true;
+      }
     }
 
     return false;
   }
 
   void SyncBucketSet::insert(Tipset ts) {
-    for (auto &b : buckets)
-      if (b.isSameChain(ts)) return b.addTipset(ts);
+    for (auto &b : buckets_)
+      if (b.isSameChain(ts)) {
+        return b.addTipset(ts);
+      }
 
-    buckets.emplace_back(SyncTargetBucket{{ts}, 1});
+    buckets_.emplace_back(SyncTargetBucket{{ts}});
   }
 
   void SyncBucketSet::append(SyncTargetBucket bucket) {
-    buckets.push_back(std::move(bucket));
+    buckets_.push_back(std::move(bucket));
   }
 
   boost::optional<SyncTargetBucket> SyncBucketSet::pop() {
     boost::optional<SyncTargetBucket> best_bucket;
     boost::optional<Tipset> best_tipset;
-    for (auto &b : buckets) {
+    for (auto &b : buckets_) {
       auto heaviest = b.getHeaviestTipset();
+      if (boost::none == heaviest) {
+        continue;
+      }
+
       if (!best_bucket.is_initialized()
-          || best_tipset->getParentWeight() < heaviest.getParentWeight()) {
+          || best_tipset->getParentWeight()
+                 < heaviest->getParentWeight()) {
         best_bucket = b;
         best_tipset = heaviest;
       }
     }
 
-    removeBucket(*best_bucket);
+    if (boost::none != best_bucket) {
+      removeBucket(*best_bucket);
+    }
+
     return best_bucket;
   }
 
   void SyncBucketSet::removeBucket(const SyncTargetBucket &b) {
-    std::remove_if(buckets.begin(), buckets.end(), [&](const auto &item) {
-      return item == b;
-    });
+    auto end = std::remove_if(buckets_.begin(),
+                              buckets_.end(),
+                              [&](const auto &item) { return item == b; });
+    buckets_.erase(end, buckets_.end());
   }
 
-  boost::optional<SyncTargetBucket> SyncBucketSet::popRelated(
+  outcome::result<boost::optional<SyncTargetBucket>> SyncBucketSet::popRelated(
       const Tipset &ts) {
-    for (auto &b : buckets) {
-      if (b.isSameChain(ts)) {
-        auto bucket = b;
-        removeBucket(b);
-        return bucket;
+    for (auto &b : buckets_) {
+      OUTCOME_TRY(res, b.isSameChain(ts));
+      if (!res) {
+        continue;
       }
+
+      auto bucket = b;
+      removeBucket(b);
+
+      return bucket;
     }
+
     return boost::none;
   }
 
   outcome::result<Tipset> SyncBucketSet::getHeaviestTipset() const {
     boost::optional<Tipset> heaviest;
-    for (auto &b : buckets) {
+    for (auto &b : buckets_) {
       auto ts = b.getHeaviestTipset();
+      if (boost::none == ts) {
+        continue;
+      }
+
       if (heaviest == boost::none
-          || ts.getParentWeight() > heaviest->getParentWeight())
+          || ts->getParentWeight() > heaviest->getParentWeight())
         heaviest = ts;
     }
 
@@ -89,11 +120,11 @@ namespace fc::blockchain::sync_manager {
   }
 
   bool SyncBucketSet::isEmpty() const {
-    return buckets.empty();
+    return buckets_.empty();
   }
 
   size_t SyncBucketSet::getSize() const {
-    return buckets.size();
+    return buckets_.size();
   }
 
 }  // namespace fc::blockchain::sync_manager

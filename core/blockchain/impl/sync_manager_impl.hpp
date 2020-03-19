@@ -33,6 +33,8 @@ namespace fc::blockchain::sync_manager {
   class SyncManagerImpl : public SyncManager,
                           public std::enable_shared_from_this<SyncManagerImpl> {
    public:
+    const static size_t kBootstrapThresholdDefault = 1;
+
     using TipsetKey = primitives::tipset::TipsetKey;
 
     SyncManagerImpl(boost::asio::io_context &context,
@@ -63,7 +65,7 @@ namespace fc::blockchain::sync_manager {
     outcome::result<void> processResult(const SyncResult &result);
     std::unordered_map<PeerId, Tipset> peer_heads_;
     BootstrapState state_;
-    const uint64_t bootstrap_threshold_{1};
+    const uint64_t bootstrap_threshold_{kBootstrapThresholdDefault};
     std::deque<Tipset> sync_targets_;
     std::deque<SyncResult> sync_results_;
     std::deque<Tipset> incoming_tipsets_;

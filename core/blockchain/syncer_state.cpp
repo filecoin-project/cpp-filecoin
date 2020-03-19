@@ -9,17 +9,17 @@ namespace fc::blockchain {
 
   std::string toString(SyncStateStage value) {
     switch (value) {
-      case SyncStateStage::StageIdle:
+      case SyncStateStage::STAGE_IDLE:
         return "idle";
-      case SyncStateStage::StageHeaders:
+      case SyncStateStage::STAGE_HEADERS:
         return "header sync";
-      case SyncStateStage::StagePersistHeaders:
+      case SyncStateStage::STAGE_PERSIST_HEADERS:
         return "persisting headers";
-      case SyncStateStage::StageMessages:
+      case SyncStateStage::STAGE_MESSAGES:
         return "message sync";
-      case SyncStateStage::StageSyncComplete:
+      case SyncStateStage::STAGE_SYNC_COMPLETE:
         return "complete";
-      case SyncStateStage::StageSyncErrored:
+      case SyncStateStage::STAGE_SYNC_ERRORED:
         return "error";
       default:
         return std::string("unknown stage: "
@@ -31,7 +31,7 @@ namespace fc::blockchain {
     target = std::move(b);
     base = std::move(t);
 
-    clock::UTCClockImpl clock{};
+    clock::UTCClockImpl clock;
     start = clock.nowUTC();
     end = clock.nowUTC();
   }
@@ -39,14 +39,14 @@ namespace fc::blockchain {
   void SyncerState::setStage(SyncStateStage s) {
     stage = s;
 
-    if (stage == SyncStateStage::StageSyncComplete) {
+    if (SyncStateStage::STAGE_SYNC_COMPLETE == stage) {
       end = clock::UTCClockImpl{}.nowUTC();
     }
   }
 
   void SyncerState::setError(outcome::result<void> e) {
     error = e;
-    stage = SyncStateStage::StageSyncErrored;
+    stage = SyncStateStage::STAGE_SYNC_ERRORED;
     end = clock::UTCClockImpl{}.nowUTC();
   }
 

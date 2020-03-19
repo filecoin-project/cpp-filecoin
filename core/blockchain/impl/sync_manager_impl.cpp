@@ -40,8 +40,8 @@ namespace fc::blockchain::sync_manager {
 
   size_t SyncManagerImpl::syncedPeerCount() const {
     size_t count = 0;
-    for (auto &[key, val] : peer_heads_) {
-      if (val.height > 0) ++count;
+    for (auto &[_, ts] : peer_heads_) {
+      if (ts.height > 0) ++count;
     }
 
     return count;
@@ -73,20 +73,23 @@ namespace fc::blockchain::sync_manager {
 
   outcome::result<void> SyncManagerImpl::processResult(
       const SyncResult &result) {
-    if (result.success
-        && getBootstrapState() != BootstrapState::STATE_COMPLETE) {
+    if (result.success) {
       setBootstrapState(BootstrapState::STATE_COMPLETE);
     }
+
     OUTCOME_TRY(key, result.tipset.makeKey());
     active_syncs_.erase(key);
 
-    auto &&related_bucket = active_sync_tips_.popRelated(result.tipset);
+    OUTCOME_TRY(related_bucket, active_sync_tips_.popRelated(result.tipset));
     if (related_bucket != boost::none) {
       if (result.success) {
-        if (next_sync_target_ == boost::none) {
+        if (boost::none == next_sync_target_) {
           next_sync_target_ = related_bucket;
-          OUTCOME_TRY(
-              processSyncTargets(next_sync_target_->getHeaviestTipset()));
+          auto heaviest_tipset = next_sync_target_->getHeaviestTipset();
+          if (boost::none == heaviest_tipset) {
+            return SyncTargetBucketError::BUCKET_IS_EMPTY;
+          }
+          OUTCOME_TRY(processSyncTargets(*heaviest_tipset));
         } else {
           sync_queue_.append(*related_bucket);
         }
@@ -98,11 +101,16 @@ namespace fc::blockchain::sync_manager {
         // sync these? or just drop them?
       }
     }
+
     if (next_sync_target_ == boost::none && !sync_queue_.isEmpty()) {
       auto &&target = sync_queue_.pop();
       if (target != boost::none) {
         next_sync_target_ = std::move(target);
-        OUTCOME_TRY(processSyncTargets(next_sync_target_->getHeaviestTipset()));
+        auto heaviest_tipset = next_sync_target_->getHeaviestTipset();
+        if (boost::none == heaviest_tipset) {
+          return SyncTargetBucketError::BUCKET_IS_EMPTY;
+        }
+        OUTCOME_TRY(processSyncTargets(*heaviest_tipset));
       }
     }
 
@@ -117,7 +125,6 @@ namespace fc::blockchain::sync_manager {
     if (getBootstrapState() == BootstrapState::STATE_SELECTED) {
       setBootstrapState(BootstrapState::STATE_SCHEDULED);
       sync_targets_.push_back(tipset);
-      // process sync_targets update
     }
 
     bool is_related_to_active_sync = false;
@@ -130,8 +137,8 @@ namespace fc::blockchain::sync_manager {
         break;
       }
     }
-
-    is_related_to_active_sync |= active_sync_tips_.isRelatedToAny(tipset);
+    OUTCOME_TRY(is_related_to_ast, active_sync_tips_.isRelatedToAny(tipset));
+    is_related_to_active_sync |= is_related_to_ast;
     if (is_related_to_active_sync) {
       active_sync_tips_.insert(tipset);
       return outcome::success();
@@ -142,14 +149,18 @@ namespace fc::blockchain::sync_manager {
       return outcome::success();
     }
 
-    if (next_sync_target_ != boost::none
+    if (boost::none != next_sync_target_
         && next_sync_target_->isSameChain(tipset)) {
       next_sync_target_->addTipset(tipset);
     } else {
       sync_queue_.insert(tipset);
-      if (next_sync_target_ == boost::none) {
+      if (boost::none == next_sync_target_) {
         next_sync_target_ = sync_queue_.pop();
-        OUTCOME_TRY(processSyncTargets(next_sync_target_->getHeaviestTipset()));
+        auto heaviest_tipset = next_sync_target_->getHeaviestTipset();
+        if (boost::none == heaviest_tipset) {
+          return SyncTargetBucketError::BUCKET_IS_EMPTY;
+        }
+        OUTCOME_TRY(processSyncTargets(*heaviest_tipset));
       }
     }
 
@@ -157,7 +168,7 @@ namespace fc::blockchain::sync_manager {
   }
 
   outcome::result<void> SyncManagerImpl::doSync() {
-    while(!sync_targets_.empty()) {
+    while (!sync_targets_.empty()) {
       auto &&ts = std::move(sync_targets_.front());
       sync_targets_.pop_front();
       // do external sync
