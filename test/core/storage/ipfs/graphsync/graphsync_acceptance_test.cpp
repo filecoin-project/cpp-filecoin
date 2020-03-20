@@ -68,15 +68,20 @@ namespace fc::storage::ipfs::graphsync::test {
                      boost::optional<libp2p::multi::Multiaddress> address,
                      const CID &root_cid) {
       start();
-      std::vector<uint8_t> data;
-      data.push_back('\xF5');  // cbor value for 'true'
-      Extension do_not_send_cids_extension{
-          .name = std::string(kDontSendCidsProtocol), .data = data};
+
+      std::vector<Extension> extensions;
+      ResponseMetadata response_metadata{};
+      Extension response_metadata_extension =
+          encodeResponseMetadata(response_metadata);
+      extensions.push_back(response_metadata_extension);
+      std::vector<CID> cids;
+      Extension do_not_send_cids_extension = encodeDontSendCids(cids);
+      extensions.push_back(do_not_send_cids_extension);
       requests_.push_back(graphsync_->makeRequest(peer,
                                                   std::move(address),
                                                   root_cid,
                                                   {},
-                                                  {do_not_send_cids_extension},
+                                                  extensions,
                                                   requestProgressCallback()));
       ++requests_sent;
     }
