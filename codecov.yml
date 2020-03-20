@@ -1,2 +1,2 @@
 ignore:
- "test" # exclude 'test/' directory from coverage
+  - "test/*" # exclude 'test/' directory from coverage
