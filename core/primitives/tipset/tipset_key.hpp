@@ -14,14 +14,19 @@ namespace fc::primitives::tipset {
    * @struct TipsetKey implemented according to
    * https://github.com/filecoin-project/lotus/blob/9f3b5bfb6e2c75b77ce41da42aa0a7ba89b5c411/chain/types/tipset_key.go#L27
    */
-  class TipsetKey {
-    std::vector<CID> cids_;
-    std::size_t hash_;
+  struct TipsetKey {
+    std::vector<CID> cids;
+    std::size_t hash{};
 
-    TipsetKey(std::vector<CID> cids, std::size_t hash)
-        : cids_{std::move(cids)}, hash_{hash} {}
+    TipsetKey() = default;
+    TipsetKey(const TipsetKey &) = default;
+    TipsetKey(TipsetKey &&) = default;
+    TipsetKey(std::vector<CID> cids);
+    TipsetKey(std::vector<CID> cids, std::size_t hash);
 
-   public:
+    /** @brief calculates hash value */
+    outcome::result<void> initializeHash();
+
     /** @brief creates TipsetKey and calculates hash */
     static outcome::result<TipsetKey> create(std::vector<CID> cids);
 
@@ -38,12 +43,26 @@ namespace fc::primitives::tipset {
 
     /** @brief provides readonly access to vector of cids */
     const auto &getCids() const {
-      return cids_;
+      return cids;
     }
 
     /** @brief provides readonly access to hash value */
     const auto &getHash() const {
-      return hash_;
+      return hash;
+    }
+
+    /** @brief assigns TipsetKey */
+    TipsetKey &operator=(const TipsetKey &other) {
+      cids = other.cids;
+      hash = other.hash;
+      return *this;
+    }
+
+    /** @brief assigns TipsetKey */
+    TipsetKey &operator=(TipsetKey &&other) {
+      cids = std::move(other.cids);
+      hash = other.hash;
+      return *this;
     }
   };
 
