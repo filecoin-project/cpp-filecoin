@@ -12,8 +12,8 @@ target_link_libraries(storage_power_actor
     actor
     block
     builtin_shared
-    chain_epoch_codec
     balance_table_hamt
     hamt
     multimap
+    uvarint_key
     )

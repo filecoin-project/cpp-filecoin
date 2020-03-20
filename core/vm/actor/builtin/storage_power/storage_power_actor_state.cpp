@@ -6,8 +6,8 @@
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
 #include "adt/address_key.hpp"
+#include "adt/uvarint_key.hpp"
 #include "power/impl/power_table_hamt.hpp"
-#include "primitives/chain_epoch/chain_epoch_codec.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
@@ -15,6 +15,7 @@ namespace fc::vm::actor::builtin::storage_power {
   using power::PowerTableHamt;
   using primitives::ChainEpoch;
   using primitives::address::Address;
+  using ChainEpochKey = adt::UvarintKey;
   using adt::AddressKey;
 
   StoragePowerActor::StoragePowerActor(std::shared_ptr<IpfsDatastore> datastore,
@@ -203,8 +204,8 @@ namespace fc::vm::actor::builtin::storage_power {
 
   outcome::result<void> StoragePowerActor::appendCronEvent(
       const ChainEpoch &epoch, const CronEvent &event) {
-    OUTCOME_TRY(cron_event_queue_->addCbor(
-        primitives::chain_epoch::encodeToByteString(epoch), event));
+    OUTCOME_TRY(
+        cron_event_queue_->addCbor(ChainEpochKey::encode(epoch), event));
     return outcome::success();
   }
 
@@ -217,15 +218,14 @@ namespace fc::vm::actor::builtin::storage_power {
           events.push_back(event);
           return fc::outcome::success();
         }};
-    OUTCOME_TRY(cron_event_queue_->visit(
-        primitives::chain_epoch::encodeToByteString(epoch), events_visitor));
+    OUTCOME_TRY(
+        cron_event_queue_->visit(ChainEpochKey::encode(epoch), events_visitor));
     return events;
   }
 
   outcome::result<void> StoragePowerActor::clearCronEvents(
       const ChainEpoch &epoch) {
-    OUTCOME_TRY(cron_event_queue_->removeAll(
-        primitives::chain_epoch::encodeToByteString(epoch)));
+    OUTCOME_TRY(cron_event_queue_->removeAll(ChainEpochKey::encode(epoch)));
     return outcome::success();
   }
 
