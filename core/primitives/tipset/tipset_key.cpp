@@ -23,16 +23,16 @@ namespace fc::primitives::tipset {
   }  // namespace
 
   std::string TipsetKey::toPrettyString() const {
-    if (cids_.empty()) {
+    if (cids.empty()) {
       return "{}";
     }
 
     std::string result = "{";
-    auto size = cids_.size();
+    auto size = cids.size();
     for (size_t i = 0; i < size; ++i) {
       // TODO (yuraz): FIL-133 use CID::toString()
       //  after it is implemented for CID V1
-      result += cids_[i].toPrettyString("");
+      result += cids[i].toPrettyString("");
       if (i != size - 1) {
         result += ", ";
       }
@@ -43,7 +43,17 @@ namespace fc::primitives::tipset {
   }
 
   outcome::result<std::vector<uint8_t>> TipsetKey::toBytes() const {
-    return cidVectorToBytes(cids_);
+    return cidVectorToBytes(cids);
+  }
+
+  TipsetKey::TipsetKey(std::vector<CID> cids, std::size_t hash)
+      : cids{cids}, hash{hash} {}
+
+  TipsetKey::TipsetKey(std::vector<CID> cids) : cids{cids}, hash{0} {}
+
+  outcome::result<void> TipsetKey::initializeHash() {
+    OUTCOME_TRY(bytes, cidVectorToBytes(cids));
+    hash = boost::hash_range(bytes.begin(), bytes.end());
   }
 
   outcome::result<TipsetKey> TipsetKey::create(std::vector<CID> cids) {
