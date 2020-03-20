@@ -1,2 +1,0 @@
-ignore:
-  - "test/*" # exclude 'test/' directory from coverage
