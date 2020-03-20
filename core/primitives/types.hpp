@@ -27,6 +27,8 @@ namespace fc::primitives {
 
   using DealId = uint64_t;
 
+  using GasAmount = int64_t;
+
   struct SectorStorageWeightDesc {
     SectorSize sector_size;
     EpochDuration duration;

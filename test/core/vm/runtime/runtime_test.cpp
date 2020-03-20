@@ -23,6 +23,7 @@ using fc::crypto::randomness::ChainEpoch;
 using fc::crypto::randomness::MockRandomnessProvider;
 using fc::crypto::randomness::RandomnessProvider;
 using fc::primitives::BigInt;
+using fc::primitives::GasAmount;
 using fc::primitives::address::Address;
 using fc::storage::hamt::HamtError;
 using fc::storage::ipfs::IpfsDatastore;
@@ -64,8 +65,8 @@ class RuntimeTest : public ::testing::Test {
   ChainEpoch chain_epoch_{0};
   Address immediate_caller_{fc::primitives::address::TESTNET, 1};
   Address block_miner_{};
-  BigInt gas_available_{100};
-  BigInt gas_used_{0};
+  GasAmount gas_available_{100};
+  GasAmount gas_used_{0};
 
   std::shared_ptr<Runtime> runtime_ =
       std::make_shared<RuntimeImpl>(std::make_shared<Env>(randomness_provider_,

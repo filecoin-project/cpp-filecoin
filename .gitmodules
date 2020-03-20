@@ -4,3 +4,6 @@
 [submodule "deps/filecoin-ffi"]
 	path = deps/filecoin-ffi
 	url = https://github.com/filecoin-project/filecoin-ffi.git
+[submodule "test/core/serialization/serialization_vectors"]
+	path = test/core/serialization/serialization_vectors
+	url = https://github.com/filecoin-project/serialization-vectors.git

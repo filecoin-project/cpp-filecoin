@@ -18,5 +18,6 @@ endif ()
 
 add_subdirectory(power)
 add_subdirectory(primitives)
+add_subdirectory(serialization)
 add_subdirectory(storage)
 add_subdirectory(vm)
