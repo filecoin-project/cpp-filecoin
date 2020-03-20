@@ -14,6 +14,11 @@ target_link_libraries(array INTERFACE
     amt
     )
 
+add_library(map INTERFACE)
+target_link_libraries(map INTERFACE
+    hamt
+    )
+
 add_library(balance_table_hamt
     impl/balance_table_hamt.cpp
     )
