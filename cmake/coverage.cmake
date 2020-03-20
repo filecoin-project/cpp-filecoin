@@ -9,6 +9,7 @@ set(COVERAGE_LCOV_EXCLUDES
     '${CMAKE_SOURCE_DIR}/deps/*'
     '${CMAKE_SOURCE_DIR}/build/*'
     '${CMAKE_SOURCE_DIR}/cmake-build-debug/*'
+    '${CMAKE_SOURCE_DIR}/test/*'
     )
 set(COVERAGE_GCOVR_EXCLUDES ${COVERAGE_LCOV_EXCLUDES})
 
