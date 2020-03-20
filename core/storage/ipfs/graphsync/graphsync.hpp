@@ -7,7 +7,6 @@
 #define CPP_FILECOIN_GRAPHSYNC_HPP
 
 #include <functional>
-#include <vector>
 
 #include <boost/optional.hpp>
 #include <libp2p/multi/multiaddress.hpp>
@@ -16,7 +15,6 @@
 
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
-#include "primitives/cid/cid.hpp"
 #include "storage/ipfs/graphsync/extension.hpp"
 
 namespace fc::storage::ipfs::merkledag {
