@@ -41,16 +41,6 @@ namespace fc::primitives::tipset {
      */
     outcome::result<std::vector<uint8_t>> toBytes() const;
 
-    /** @brief provides readonly access to vector of cids */
-    const auto &getCids() const {
-      return cids;
-    }
-
-    /** @brief provides readonly access to hash value */
-    const auto &getHash() const {
-      return hash;
-    }
-
     /** @brief assigns TipsetKey */
     TipsetKey &operator=(const TipsetKey &other) {
       cids = other.cids;
@@ -73,7 +63,7 @@ namespace fc::primitives::tipset {
    * @return true if equal, false otherwise
    */
   inline bool operator==(const TipsetKey &lhs, const TipsetKey &rhs) {
-    return lhs.getCids() == rhs.getCids();
+    return lhs.cids == rhs.cids;
   }
 
   /**
@@ -92,7 +82,7 @@ namespace std {
   template <>
   struct hash<fc::primitives::tipset::TipsetKey> {
     size_t operator()(const fc::primitives::tipset::TipsetKey &x) const {
-      return x.getHash();
+      return x.hash;
     }
   };
 }  // namespace std

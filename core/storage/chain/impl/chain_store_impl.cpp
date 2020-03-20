@@ -54,10 +54,10 @@ namespace fc::storage::blockchain {
   outcome::result<ChainStoreImpl::Tipset> ChainStoreImpl::loadTipset(
       const primitives::tipset::TipsetKey &key) {
     std::vector<BlockHeader> blocks;
-    blocks.reserve(key.getCids().size());
+    blocks.reserve(key.cids.size());
     // TODO (yuraz): FIL-151 check cache
 
-    for (auto &cid : key.getCids()) {
+    for (auto &cid : key.cids) {
       OUTCOME_TRY(block, getBlock(cid));
       blocks.push_back(std::move(block));
     }
