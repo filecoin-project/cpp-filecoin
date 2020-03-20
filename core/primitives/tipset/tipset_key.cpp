@@ -54,6 +54,7 @@ namespace fc::primitives::tipset {
   outcome::result<void> TipsetKey::initializeHash() {
     OUTCOME_TRY(bytes, cidVectorToBytes(cids));
     hash = boost::hash_range(bytes.begin(), bytes.end());
+    return outcome::success();
   }
 
   outcome::result<TipsetKey> TipsetKey::create(std::vector<CID> cids) {
