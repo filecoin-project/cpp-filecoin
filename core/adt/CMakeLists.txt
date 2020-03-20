@@ -20,7 +20,7 @@ add_library(balance_table_hamt
     impl/balance_table_hamt.cpp
     )
 target_link_libraries(balance_table_hamt
-    address
+    address_key
     hamt
     )
 
@@ -30,4 +30,11 @@ add_library(multimap
 target_link_libraries(multimap
     array
     hamt
+    )
+
+add_library(address_key
+    address_key.cpp
+    )
+target_link_libraries(address_key
+    address
     )

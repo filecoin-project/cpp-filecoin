@@ -36,7 +36,7 @@ namespace fc::primitives::address {
     return res;
   }
 
-  outcome::result<Address> decode(const std::vector<uint8_t> &v) {
+  outcome::result<Address> decode(gsl::span<const uint8_t> v) {
     if (v.size() < 2) return outcome::failure(AddressError::INVALID_PAYLOAD);
 
     // TODO(ekovalev): [FIL-118] make network configurable; hardcoded for now
@@ -182,17 +182,6 @@ namespace fc::primitives::address {
     OUTCOME_TRY(address, decode(buffer));
     address.network = net;
     return std::move(address);
-  }
-
-  std::string encodeToByteString(const Address &address) {
-    auto encoded = fc::primitives::address::encode(address);
-    return std::string(encoded.begin(), encoded.end());
-  }
-
-  fc::outcome::result<Address> decodeFromByteString(
-      const std::string &encoded) {
-    return fc::primitives::address::decode(
-        std::vector<uint8_t>(encoded.begin(), encoded.end()));
   }
 
   std::vector<uint8_t> checksum(const Address &address) {

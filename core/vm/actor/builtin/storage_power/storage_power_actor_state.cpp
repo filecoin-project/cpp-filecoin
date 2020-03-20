@@ -5,8 +5,8 @@
 
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
+#include "adt/address_key.hpp"
 #include "power/impl/power_table_hamt.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "primitives/chain_epoch/chain_epoch_codec.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
@@ -15,8 +15,7 @@ namespace fc::vm::actor::builtin::storage_power {
   using power::PowerTableHamt;
   using primitives::ChainEpoch;
   using primitives::address::Address;
-  using primitives::address::decodeFromByteString;
-  using primitives::address::encodeToByteString;
+  using adt::AddressKey;
 
   StoragePowerActor::StoragePowerActor(std::shared_ptr<IpfsDatastore> datastore,
                                        StoragePowerActorState state)
@@ -68,13 +67,13 @@ namespace fc::vm::actor::builtin::storage_power {
   }
 
   outcome::result<void> StoragePowerActor::addMiner(const Address &miner_addr) {
-    OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner_addr)));
+    OUTCOME_TRY(check, claims_->contains(AddressKey::encode(miner_addr)));
     if (check) {
       return VMExitCode::STORAGE_POWER_ACTOR_ALREADY_EXISTS;
     }
 
     OUTCOME_TRY(escrow_table_->set(miner_addr, TokenAmount{0}));
-    OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner_addr), Claim{0, 0}));
+    OUTCOME_TRY(claims_->setCbor(AddressKey::encode(miner_addr), Claim{0, 0}));
 
     state_.miner_count++;
 
@@ -88,7 +87,7 @@ namespace fc::vm::actor::builtin::storage_power {
       return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     }
 
-    std::string encoded_miner_addr = encodeToByteString(miner_addr);
+    std::string encoded_miner_addr = AddressKey::encode(miner_addr);
     OUTCOME_TRY(claim, claims_->getCbor<Claim>(encoded_miner_addr));
     if (claim.power > Power{0})
       return outcome::failure(VMExitCode::STORAGE_POWER_FORBIDDEN);
@@ -150,43 +149,43 @@ namespace fc::vm::actor::builtin::storage_power {
 
   outcome::result<void> StoragePowerActor::setClaim(const Address &miner,
                                                     const Claim &claim) {
-    OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner)));
+    OUTCOME_TRY(check, claims_->contains(AddressKey::encode(miner)));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
-    OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner), claim));
+    OUTCOME_TRY(claims_->setCbor(AddressKey::encode(miner), claim));
     return outcome::success();
   }
 
   outcome::result<bool> StoragePowerActor::hasClaim(
       const Address &miner) const {
-    OUTCOME_TRY(res, claims_->contains(encodeToByteString(miner)));
+    OUTCOME_TRY(res, claims_->contains(AddressKey::encode(miner)));
     return res;
   }
 
   outcome::result<Claim> StoragePowerActor::getClaim(const Address &miner) {
-    OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner)));
+    OUTCOME_TRY(check, claims_->contains(AddressKey::encode(miner)));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
-    return claims_->getCbor<Claim>(encodeToByteString(miner));
+    return claims_->getCbor<Claim>(AddressKey::encode(miner));
   }
 
   outcome::result<void> StoragePowerActor::deleteClaim(const Address &miner) {
-    OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner)));
+    OUTCOME_TRY(check, claims_->contains(AddressKey::encode(miner)));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
-    OUTCOME_TRY(claims_->remove(encodeToByteString(miner)));
+    OUTCOME_TRY(claims_->remove(AddressKey::encode(miner)));
     return outcome::success();
   }
 
   outcome::result<void> StoragePowerActor::addToClaim(
       const Address &miner, const Power &power, const TokenAmount &pledge) {
-    OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner)));
+    OUTCOME_TRY(check, claims_->contains(AddressKey::encode(miner)));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
-    OUTCOME_TRY(claim, claims_->getCbor<Claim>(encodeToByteString(miner)));
+    OUTCOME_TRY(claim, claims_->getCbor<Claim>(AddressKey::encode(miner)));
     claim.power += power;
     claim.pledge += pledge;
-    OUTCOME_TRY(claims_->setCbor(encodeToByteString(miner), claim));
+    OUTCOME_TRY(claims_->setCbor(AddressKey::encode(miner), claim));
     return outcome::success();
   }
 
@@ -252,7 +251,7 @@ namespace fc::vm::actor::builtin::storage_power {
     std::vector<Power> miner_sizes;
     Hamt::Visitor miner_power_visitor{
         [this, &miner_sizes](auto k, auto v) -> fc::outcome::result<void> {
-          OUTCOME_TRY(address, decodeFromByteString(k));
+          OUTCOME_TRY(address, AddressKey::decode(k));
           OUTCOME_TRY(nominal_power, this->computeNominalPower(address));
           miner_sizes.push_back(nominal_power);
           return fc::outcome::success();
@@ -267,29 +266,29 @@ namespace fc::vm::actor::builtin::storage_power {
   outcome::result<void> StoragePowerActor::addFaultMiner(
       const Address &miner_addr) {
     // check that miner exist
-    OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner_addr)));
+    OUTCOME_TRY(check, claims_->contains(AddressKey::encode(miner_addr)));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     // cbor empty value as empty list
     OUTCOME_TRY(po_st_detected_fault_miners_->setCbor<std::vector<int>>(
-        encodeToByteString(miner_addr), {}));
+        AddressKey::encode(miner_addr), {}));
     return outcome::success();
   }
 
   outcome::result<bool> StoragePowerActor::hasFaultMiner(
       const Address &miner_addr) const {
-    OUTCOME_TRY(check, claims_->contains(encodeToByteString(miner_addr)));
+    OUTCOME_TRY(check, claims_->contains(AddressKey::encode(miner_addr)));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
     OUTCOME_TRY(
         has_fault,
-        po_st_detected_fault_miners_->contains(encodeToByteString(miner_addr)));
+        po_st_detected_fault_miners_->contains(AddressKey::encode(miner_addr)));
     return has_fault;
   }
 
   outcome::result<void> StoragePowerActor::deleteFaultMiner(
       const Address &miner_addr) {
-    return po_st_detected_fault_miners_->remove(encodeToByteString(miner_addr));
+    return po_st_detected_fault_miners_->remove(AddressKey::encode(miner_addr));
   }
 
   outcome::result<std::vector<Address>> StoragePowerActor::getFaultMiners()
@@ -297,7 +296,7 @@ namespace fc::vm::actor::builtin::storage_power {
     std::vector<Address> all_miners;
     Hamt::Visitor all_miners_visitor{
         [&all_miners](auto k, auto v) -> fc::outcome::result<void> {
-          OUTCOME_TRY(address, decodeFromByteString(k));
+          OUTCOME_TRY(address, AddressKey::decode(k));
           all_miners.push_back(address);
           return fc::outcome::success();
         }};
@@ -309,7 +308,7 @@ namespace fc::vm::actor::builtin::storage_power {
     std::vector<Address> all_miners;
     Hamt::Visitor all_miners_visitor{
         [this, &all_miners](auto k, auto v) -> fc::outcome::result<void> {
-          OUTCOME_TRY(address, decodeFromByteString(k));
+          OUTCOME_TRY(address, AddressKey::decode(k));
           OUTCOME_TRY(nominal_power, this->computeNominalPower(address));
           if (nominal_power > Power{0}) all_miners.push_back(address);
           return fc::outcome::success();
@@ -320,12 +319,12 @@ namespace fc::vm::actor::builtin::storage_power {
 
   outcome::result<Power> StoragePowerActor::computeNominalPower(
       const Address &address) const {
-    OUTCOME_TRY(check, claims_->contains(encodeToByteString(address)));
+    OUTCOME_TRY(check, claims_->contains(AddressKey::encode(address)));
     if (!check)
       return outcome::failure(VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT);
-    OUTCOME_TRY(claimed, claims_->getCbor<Claim>(encodeToByteString(address)));
+    OUTCOME_TRY(claimed, claims_->getCbor<Claim>(AddressKey::encode(address)));
     Power nominal_power = claimed.power;
-    std::string encoded_miner_addr = encodeToByteString(address);
+    std::string encoded_miner_addr = AddressKey::encode(address);
     OUTCOME_TRY(is_fault,
                 po_st_detected_fault_miners_->contains(encoded_miner_addr));
     if (is_fault) nominal_power = 0;
