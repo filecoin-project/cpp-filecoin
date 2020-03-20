@@ -166,6 +166,14 @@ namespace fc::storage::hamt {
     /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor);
 
+    inline void setIpld(std::shared_ptr<ipfs::IpfsDatastore> ipld) {
+      store_ = std::move(ipld);
+    }
+
+    inline std::shared_ptr<ipfs::IpfsDatastore> getIpld() const {
+      return store_;
+    }
+
     /// Store CBOR encoded value by key
     template <typename T>
     outcome::result<void> setCbor(const std::string &key, const T &value) {
