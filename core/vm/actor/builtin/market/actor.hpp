@@ -6,6 +6,10 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MARKET_ACTOR_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MARKET_ACTOR_HPP
 
+#include "adt/array.hpp"
+#include "adt/balance_table.hpp"
+#include "adt/empty_value.hpp"
+#include "adt/uvarint_key.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/piece/piece.hpp"
@@ -14,6 +18,10 @@
 #include "vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor::builtin::market {
+  using adt::AddressKey;
+  using adt::BalanceTable;
+  using adt::EmptyValue;
+  using adt::UvarintKey;
   using crypto::signature::Signature;
   using primitives::ChainEpoch;
   using primitives::DealId;
@@ -64,6 +72,22 @@ namespace fc::vm::actor::builtin::market {
     ChainEpoch slash_epoch;
   };
   CBOR_TUPLE(DealState, sector_start_epoch, last_updated_epoch, slash_epoch)
+
+  struct State {
+    adt::Array<DealProposal> proposals;
+    adt::Array<DealState> states;
+    BalanceTable escrow_table;
+    BalanceTable locked_table;
+    DealId next_deal;
+    adt::Map<adt::Map<EmptyValue, UvarintKey>, AddressKey> deals_by_party;
+  };
+  CBOR_TUPLE(State,
+             proposals,
+             states,
+             escrow_table,
+             locked_table,
+             next_deal,
+             deals_by_party)
 
   struct ClientDealProposal {
     DealProposal proposal;
@@ -153,6 +177,8 @@ namespace fc::vm::actor::builtin::market {
     ACTOR_METHOD_DECL();
   };
   CBOR_TUPLE(ComputeDataCommitment::Params, deals, sector_type)
+
+  extern ActorExports exports;
 }  // namespace fc::vm::actor::builtin::market
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MARKET_ACTOR_HPP
