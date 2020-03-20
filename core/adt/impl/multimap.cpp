@@ -25,10 +25,9 @@ namespace fc::adt {
                                       gsl::span<const uint8_t> value) {
     using storage::hamt::HamtError;
     Amt amt{store_};
-    OUTCOME_TRY(found, hamt_.contains(key));
-    if (found) {
-      OUTCOME_TRY(root, hamt_.getCbor<CID>(key));
-      amt = Amt{store_, root};
+    OUTCOME_TRY(root, hamt_.tryGetCbor<CID>(key));
+    if (root) {
+      amt = Amt{store_, *root};
     }
     OUTCOME_TRY(count, amt.count());
     OUTCOME_TRY(amt.set(count, value));

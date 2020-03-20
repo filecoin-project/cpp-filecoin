@@ -42,6 +42,10 @@ namespace fc::adt {
       hamt.setIpld(ipld);
     }
 
+    outcome::result<boost::optional<Value>> tryGet(const Key &key) {
+      return hamt.tryGetCbor<Value>(Keyer::encode(key));
+    }
+
     outcome::result<bool> has(const Key &key) {
       return hamt.contains(Keyer::encode(key));
     }

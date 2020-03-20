@@ -117,8 +117,6 @@ namespace fc::vm::actor::builtin::storage_power {
 
     OUTCOME_TRY(power_actor, getCurrentState(runtime));
 
-    if (!power_actor.hasClaim(params.miner))
-      return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
     OUTCOME_TRY(claim, power_actor.getClaim(params.miner));
 
     /*

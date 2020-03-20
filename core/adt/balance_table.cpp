@@ -15,9 +15,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::adt, BalanceTableError, e) {
 
 namespace fc::adt {
   outcome::result<TokenAmount> BalanceTable::get(const Key &key) {
-    OUTCOME_TRY(has_key, has(key));
-    if (has_key) {
-      return Map::get(key);
+    OUTCOME_TRY(value, tryGet(key));
+    if (value) {
+      return *value;
     }
     return 0;
   }

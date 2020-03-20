@@ -304,20 +304,19 @@ namespace fc::vm::actor::builtin::miner {
     TokenAmount all_pledges{0};
     TokenAmount fault_pledges{0};
     for (auto sector_num : sectors) {
-      OUTCOME_TRY(found, state.sectors.has(sector_num));
-      if (!found) {
+      OUTCOME_TRY(sector, state.sectors.tryGet(sector_num));
+      if (!sector) {
         return VMExitCode::MINER_ACTOR_NOT_FOUND;
       }
-      OUTCOME_TRY(sector, state.sectors.get(sector_num));
       deals.insert(deals.end(),
-                   sector.info.deal_ids.begin(),
-                   sector.info.deal_ids.end());
-      all_pledges += sector.pledge_requirement;
-      auto weight = asStorageWeightDesc(state.info.sector_size, sector);
+                   sector->info.deal_ids.begin(),
+                   sector->info.deal_ids.end());
+      all_pledges += sector->pledge_requirement;
+      auto weight = asStorageWeightDesc(state.info.sector_size, *sector);
       all_weights.push_back(weight);
       if (state.fault_set.find(sector_num) != state.fault_set.end()) {
         fault_weights.push_back(weight);
-        fault_pledges += sector.pledge_requirement;
+        fault_pledges += sector->pledge_requirement;
       }
       OUTCOME_TRY(state.sectors.remove(sector_num));
     }
@@ -344,28 +343,27 @@ namespace fc::vm::actor::builtin::miner {
     TokenAmount begin_pledges{0};
     TokenAmount end_pledges{0};
     for (auto sector_num : *sectors) {
-      OUTCOME_TRY(found, state.sectors.has(sector_num));
-      if (!found) {
+      OUTCOME_TRY(sector, state.sectors.tryGet(sector_num));
+      if (!sector) {
         continue;  // Sector has been terminated
       }
-      OUTCOME_TRY(sector, state.sectors.get(sector_num));
       if (state.fault_set.find(sector_num) == state.fault_set.end()) {
-        if (runtime.getCurrentEpoch() >= sector.declared_fault_epoch) {
-          begin_pledges += sector.pledge_requirement;
+        if (runtime.getCurrentEpoch() >= sector->declared_fault_epoch) {
+          begin_pledges += sector->pledge_requirement;
           begin_weights.push_back(
-              asStorageWeightDesc(state.info.sector_size, sector));
+              asStorageWeightDesc(state.info.sector_size, *sector));
           state.fault_set.insert(sector_num);
         }
       } else {
         if (runtime.getCurrentEpoch()
-            >= sector.declared_fault_epoch + sector.declared_fault_duration) {
-          sector.declared_fault_epoch = kChainEpochUndefined;
-          sector.declared_fault_duration = kChainEpochUndefined;
-          end_pledges += sector.pledge_requirement;
+            >= sector->declared_fault_epoch + sector->declared_fault_duration) {
+          sector->declared_fault_epoch = kChainEpochUndefined;
+          sector->declared_fault_duration = kChainEpochUndefined;
+          end_pledges += sector->pledge_requirement;
           end_weights.push_back(
-              asStorageWeightDesc(state.info.sector_size, sector));
+              asStorageWeightDesc(state.info.sector_size, *sector));
           state.fault_set.erase(sector_num);
-          OUTCOME_TRY(state.sectors.set(sector_num, sector));
+          OUTCOME_TRY(state.sectors.set(sector_num, *sector));
         }
       }
     }
@@ -390,16 +388,15 @@ namespace fc::vm::actor::builtin::miner {
     OUTCOME_TRY(duration, maxSealDuration(registered_proof));
     TokenAmount to_burn;
     for (auto sector_num : *sectors) {
-      OUTCOME_TRY(found, state.precommitted_sectors.has(sector_num));
-      if (!found) {
+      OUTCOME_TRY(precommit, state.precommitted_sectors.tryGet(sector_num));
+      if (!precommit) {
         break;
       }
-      OUTCOME_TRY(precommit, state.precommitted_sectors.get(sector_num));
-      if (runtime.getCurrentEpoch() - precommit.precommit_epoch <= duration) {
+      if (runtime.getCurrentEpoch() - precommit->precommit_epoch <= duration) {
         break;
       }
       OUTCOME_TRY(state.precommitted_sectors.remove(sector_num));
-      to_burn += precommit.precommit_deposit;
+      to_burn += precommit->precommit_deposit;
     }
     OUTCOME_TRY(commitState(runtime, state));
     OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, to_burn));
@@ -415,12 +412,11 @@ namespace fc::vm::actor::builtin::miner {
     }
     RleBitset to_terminate;
     for (auto sector_num : *sectors) {
-      OUTCOME_TRY(found, state.sectors.has(sector_num));
-      if (!found) {
+      OUTCOME_TRY(sector, state.sectors.tryGet(sector_num));
+      if (!sector) {
         continue;
       }
-      OUTCOME_TRY(sector, state.sectors.get(sector_num));
-      if (runtime.getCurrentEpoch() >= sector.info.expiration) {
+      if (runtime.getCurrentEpoch() >= sector->info.expiration) {
         to_terminate.insert(sector_num);
       }
     }

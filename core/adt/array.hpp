@@ -26,6 +26,17 @@ namespace fc::adt {
       amt.setIpld(ipld);
     }
 
+    outcome::result<boost::optional<Value>> tryGet(Key key) {
+      auto maybe = get(key);
+      if (!maybe) {
+        if (maybe.error() != storage::amt::AmtError::NOT_FOUND) {
+          return maybe.error();
+        }
+        return boost::none;
+      }
+      return maybe.value();
+    }
+
     outcome::result<bool> has(Key key) {
       return amt.contains(key);
     }

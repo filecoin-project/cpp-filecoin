@@ -254,6 +254,10 @@ namespace fc::vm::actor::builtin::storage_power {
 
     outcome::result<Power> getTotalNetworkPower() const;
 
+    outcome::result<Claim> assertHasClaim(const Address &address) const;
+
+    outcome::result<void> assertHasEscrow(const Address &address) const;
+
    private:
     /**
      * @brief Decide can a miner participate in consensus

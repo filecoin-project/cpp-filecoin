@@ -188,6 +188,20 @@ namespace fc::storage::hamt {
       return codec::cbor::decode<T>(bytes);
     }
 
+    /// Get CBOR decoded value by key
+    template <typename T>
+    outcome::result<boost::optional<T>> tryGetCbor(const std::string &key) {
+      auto maybe = get(key);
+      if (!maybe) {
+        if (maybe.error() != HamtError::NOT_FOUND) {
+          return maybe.error();
+        }
+        return boost::none;
+      }
+      OUTCOME_TRY(value, codec::cbor::decode<T>(maybe.value()));
+      return std::move(value);
+    }
+
    private:
     std::vector<size_t> keyToIndices(const std::string &key, int n = -1) const;
     outcome::result<void> set(Node &node,
