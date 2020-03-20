@@ -48,3 +48,11 @@ add_library(address_key
 target_link_libraries(address_key
     address
     )
+
+add_library(balance_table
+    balance_table.cpp
+    )
+target_link_libraries(balance_table
+    address_key
+    map
+    )
