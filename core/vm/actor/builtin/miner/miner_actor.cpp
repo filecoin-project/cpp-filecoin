@@ -180,7 +180,6 @@ namespace fc::vm::actor::builtin::miner {
   }
 
   outcome::result<void> verifySeal(Runtime &runtime,
-                                   SectorSize sector_size,
                                    const OnChainSealVerifyInfo &info) {
     ChainEpoch current_epoch = runtime.getCurrentEpoch();
     if (current_epoch <= info.interactive_epoch) {
@@ -197,7 +196,7 @@ namespace fc::vm::actor::builtin::miner {
                     kStorageMarketAddress,
                     {
                         .deals = info.deals,
-                        .sector_size = sector_size,
+                        .sector_type = info.registered_proof,
                     },
                     0));
 
@@ -628,7 +627,6 @@ namespace fc::vm::actor::builtin::miner {
 
     OUTCOME_TRY(
         verifySeal(runtime,
-                   state.info.sector_size,
                    {
                        .sealed_cid = precommit.info.sealed_cid,
                        .interactive_epoch =
