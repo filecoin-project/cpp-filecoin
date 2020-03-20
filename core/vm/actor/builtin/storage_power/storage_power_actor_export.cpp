@@ -35,10 +35,9 @@ namespace fc::vm::actor::builtin::storage_power {
    * @return current storage power actor state or appropriate error
    */
   outcome::result<StoragePowerActor> getCurrentState(Runtime &runtime) {
-    auto datastore = runtime.getIpfsDatastore();
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<StoragePowerActorState>());
-    return StoragePowerActor(datastore, state);
+    return StoragePowerActor(runtime, state);
   }
 
   outcome::result<InvocationOutput> slashPledgeCollateral(
@@ -74,8 +73,7 @@ namespace fc::vm::actor::builtin::storage_power {
     if (runtime.getImmediateCaller() != kSystemActorAddress)
       return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
 
-    auto datastore = runtime.getIpfsDatastore();
-    OUTCOME_TRY(empty_state, StoragePowerActor::createEmptyState(datastore));
+    OUTCOME_TRY(empty_state, StoragePowerActor::createEmptyState(runtime));
 
     OUTCOME_TRY(runtime.commitState(empty_state));
     return outcome::success();

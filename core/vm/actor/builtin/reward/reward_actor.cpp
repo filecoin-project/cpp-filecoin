@@ -105,7 +105,7 @@ namespace fc::vm::actor::builtin::reward {
       return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
     }
 
-    Multimap empty_mmap{runtime.getIpfsDatastore()};
+    Multimap empty_mmap{runtime};
     OUTCOME_TRY(empty_mmap_cid, empty_mmap.flush());
     State empty_state{.reward_total = 0, .reward_map = empty_mmap_cid};
 
@@ -138,8 +138,7 @@ namespace fc::vm::actor::builtin::reward {
                         .end_epoch = current_epoch + kRewardVestingPeriod,
                         .value = reward_payable,
                         .amount_withdrawn = 0};
-      OUTCOME_TRY(state.addReward(
-          runtime.getIpfsDatastore(), params.miner, new_reward));
+      OUTCOME_TRY(state.addReward(runtime, params.miner, new_reward));
     }
     OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, penalty));
     OUTCOME_TRY(runtime.commitState(state));
@@ -154,9 +153,9 @@ namespace fc::vm::actor::builtin::reward {
     auto owner = runtime.getMessage().get().from;
 
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    auto store = runtime.getIpfsDatastore();
-    OUTCOME_TRY(withdrawn,
-                state.withdrawReward(store, owner, runtime.getCurrentEpoch()));
+    OUTCOME_TRY(
+        withdrawn,
+        state.withdrawReward(runtime, owner, runtime.getCurrentEpoch()));
     OUTCOME_TRY(runtime.sendFunds(owner, withdrawn));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();

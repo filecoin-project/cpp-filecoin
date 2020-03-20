@@ -69,9 +69,18 @@ namespace fc::vm::runtime {
     MOCK_METHOD1(resolveAddress,
                  outcome::result<Address>(const Address &address));
 
+    MOCK_METHOD3(verifySignature,
+                 outcome::result<bool>(const Signature &signature,
+                                       const Address &address,
+                                       gsl::span<const uint8_t> data));
+
     MOCK_METHOD1(verifyPoSt, outcome::result<bool>(const PoStVerifyInfo &info));
 
     MOCK_METHOD1(verifySeal, outcome::result<bool>(const SealVerifyInfo &info));
+
+    MOCK_METHOD2(computeUnsealedSectorCid,
+                 outcome::result<CID>(RegisteredProof,
+                                      const std::vector<PieceInfo> &));
 
     MOCK_METHOD2(verifyConsensusFault,
                  outcome::result<bool>(const BlockHeader &block_header_1,
