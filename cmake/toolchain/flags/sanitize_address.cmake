@@ -12,6 +12,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/../../toolchain-util.cmake)
 set(FLAGS
     -fsanitize=address
     -fsanitize-address-use-after-scope
+    -fsanitize-recover=address
     -g
     -O1
     -DNDEBUG
