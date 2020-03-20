@@ -17,6 +17,7 @@
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
+#include "storage/ipfs/graphsync/extension.hpp"
 
 namespace fc::storage::ipfs::merkledag {
   class MerkleDagService;
@@ -90,9 +91,6 @@ namespace fc::storage::ipfs::graphsync {
   /// Converts status code to string repr
   std::string statusCodeToString(ResponseStatusCode code);
 
-  /// Metadata pairs, whether cid is present in the response or not
-  using ResponseMetadata = std::vector<std::pair<CID, bool>>;
-
   /// Graphsync protocol interface
   class Graphsync {
    public:
@@ -113,18 +111,15 @@ namespace fc::storage::ipfs::graphsync {
     virtual void stop() = 0;
 
     /// Request progress subscription data
-    using RequestProgressCallback =
-        std::function<void(ResponseStatusCode code, ResponseMetadata meta)>;
+    using RequestProgressCallback = std::function<void(
+        ResponseStatusCode code, std::vector<Extension> extensions)>;
 
     /// Initiates a new request to graphsync network
     /// \param peer Peer ID
     /// \param address Optional peer network address
     /// \param root_cid Root CID of the request
     /// \param selector IPLD selector
-    /// \param need_metadata A flag which indicates that metadata pairs are
-    /// needed along with blocks in response
-    /// \param dont_send_cids A set of CIDs
-    /// not to be sent by the other peer in order to save traffic
+    /// \param extensions - extension data
     /// \param callback A callback which keeps track of request progress
     /// \return Subscription object. Request is cancelled as soon as
     /// this subscription is cancelled or goes out of scope
@@ -133,8 +128,7 @@ namespace fc::storage::ipfs::graphsync {
         boost::optional<libp2p::multi::Multiaddress> address,
         const CID &root_cid,
         gsl::span<const uint8_t> selector,
-        bool need_metadata,
-        const std::vector<CID> &dont_send_cids,
+        const std::vector<Extension> &extensions,
         RequestProgressCallback callback) = 0;
   };
 

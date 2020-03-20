@@ -16,10 +16,10 @@ namespace fc::storage::ipfs::graphsync {
     /// Adds response to protobuf message
     /// \param request_id id of request
     /// \param status status code
-    /// \param metadata metadata pairs
+    /// \param extensions - data for protocol extensions
     void addResponse(RequestId request_id,
                      ResponseStatusCode status,
-                     const ResponseMetadata &metadata);
+                     const std::vector<Extension> &extensions);
 
     /// Adds data block to protobuf message
     /// \param cid CID of data block

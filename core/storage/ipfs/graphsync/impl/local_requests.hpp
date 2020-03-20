@@ -43,18 +43,13 @@ namespace fc::storage::ipfs::graphsync {
     /// Creates a new request and NewRequest fields
     /// \param root_cid Root CID of the request
     /// \param selector IPLD selector
-    /// \param need_metadata A flag which indicates that metadata pairs are
-    /// needed along with blocks in response
-    /// \param dont_send_cids A set of CIDs
-    /// not to be sent by the other peer in order to save traffic
+    /// \param extensions - protocol extension data
     /// \param callback A callback which keeps track of request progress
     /// \return request context, including serialized body
-    NewRequest newRequest(
-        const CID &root_cid,
-        gsl::span<const uint8_t> selector,
-        bool need_metadata,
-        const std::vector<CID> &dont_send_cids,
-        Graphsync::RequestProgressCallback callback);
+    NewRequest newRequest(const CID &root_cid,
+                          gsl::span<const uint8_t> selector,
+                          const std::vector<Extension> &extensions,
+                          Graphsync::RequestProgressCallback callback);
 
     /// Creates Subscription for rejected request callback
     /// \param callback Callback which keeps track of request progress, it will
@@ -66,10 +61,10 @@ namespace fc::storage::ipfs::graphsync {
     /// Forwards responses to requests callbacks
     /// \param request_id request ID
     /// \param status response status
-    /// \param metadata response metadata pairs
+    /// \param extensions - data for protocol extensions
     void onResponse(RequestId request_id,
                     ResponseStatusCode status,
-                    ResponseMetadata metadata);
+                    std::vector<Extension> extensions);
 
     /// Cancels all requests, called during Graphsync::stop()
     void cancelAll();

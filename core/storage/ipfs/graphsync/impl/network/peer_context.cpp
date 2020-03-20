@@ -128,13 +128,13 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (streams_.empty()) {
-      timer_ = scheduler_.schedule(
-          kStreamCloseDelayMsec, [wptr{weak_from_this()}]() {
-            auto self = wptr.lock();
-            if (self) {
-              self->onStreamCleanupTimer();
-            }
-          });
+      timer_ = scheduler_.schedule(kStreamCloseDelayMsec,
+                                   [wptr{weak_from_this()}]() {
+                                     auto self = wptr.lock();
+                                     if (self) {
+                                       self->onStreamCleanupTimer();
+                                     }
+                                   });
     }
 
     shiftExpireTime(stream_ctx);
@@ -234,7 +234,7 @@ namespace fc::storage::ipfs::graphsync {
 
   void PeerContext::sendResponse(RequestId request_id,
                                  ResponseStatusCode status,
-                                 const ResponseMetadata &metadata) {
+                                 const std::vector<Extension> &extensions) {
     auto it = findResponseSink(request_id);
     if (it == streams_.end()) {
       return;
@@ -244,7 +244,7 @@ namespace fc::storage::ipfs::graphsync {
     createResponseEndpoint(it->first, ctx);
 
     auto res =
-        ctx.response_endpoint->sendResponse(request_id, status, metadata);
+        ctx.response_endpoint->sendResponse(request_id, status, extensions);
     if (!res) {
       logger()->error("sendResponse: {}, peer={}", res.error().message(), str);
 
@@ -324,7 +324,7 @@ namespace fc::storage::ipfs::graphsync {
       local_request_ids_.erase(it);
     }
     graphsync_feedback_.onResponse(
-        peer, response.id, response.status, std::move(response.metadata));
+        peer, response.id, response.status, std::move(response.extensions));
   }
 
   void PeerContext::onRequest(const StreamPtr &stream,
@@ -463,7 +463,7 @@ namespace fc::storage::ipfs::graphsync {
 
     std::vector<StreamPtr> timed_out;
 
-    for (auto& [stream, ctx] : streams_) {
+    for (auto &[stream, ctx] : streams_) {
       if (ctx.queue && ctx.queue->getState().writing_bytes > 0) {
         continue;
       }
@@ -474,7 +474,7 @@ namespace fc::storage::ipfs::graphsync {
       }
     }
 
-    for (auto& stream : timed_out) {
+    for (auto &stream : timed_out) {
       closeStream(std::move(stream), RS_TIMEOUT);
     }
 

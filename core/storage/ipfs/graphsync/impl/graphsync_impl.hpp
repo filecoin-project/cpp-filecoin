@@ -15,7 +15,7 @@
 namespace libp2p {
   // libp2p host interface forward declaration
   class Host;
-}
+}  // namespace libp2p
 
 namespace fc::storage::ipfs::graphsync {
 
@@ -41,7 +41,7 @@ namespace fc::storage::ipfs::graphsync {
     /// \param body request wire protocol data
     void cancelLocalRequest(RequestId request_id, SharedData body);
 
-   // Graphsync interface overrides
+    // Graphsync interface overrides
     void start(std::shared_ptr<MerkleDagBridge> dag,
                BlockCallback callback) override;
     void stop() override;
@@ -50,18 +50,16 @@ namespace fc::storage::ipfs::graphsync {
         boost::optional<libp2p::multi::Multiaddress> address,
         const CID &root_cid,
         gsl::span<const uint8_t> selector,
-        bool need_metadata,
-        const std::vector<CID> &dont_send_cids,
+        const std::vector<Extension> &extensions,
         RequestProgressCallback callback) override;
 
-   // PeerToGraphsyncFeedback interface overrides
+    // PeerToGraphsyncFeedback interface overrides
     void onResponse(const PeerId &peer,
                     RequestId request_id,
                     ResponseStatusCode status,
-                    ResponseMetadata metadata) override;
+                    std::vector<Extension> extensions) override;
     void onBlock(const PeerId &from, CID cid, common::Buffer data) override;
-    void onRemoteRequest(const PeerId &from,
-                         Message::Request request) override;
+    void onRemoteRequest(const PeerId &from, Message::Request request) override;
 
     /// NVI for stop()
     void doStop();

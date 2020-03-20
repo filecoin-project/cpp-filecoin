@@ -33,10 +33,11 @@ namespace fc::storage::ipfs::graphsync {
     /// Sends response via message queue
     /// \param request_id id of request
     /// \param status status code
-    /// \param metadata metadata pairs
-    outcome::result<void> sendResponse(RequestId request_id,
-                                       ResponseStatusCode status,
-                                       const ResponseMetadata &metadata);
+    /// \param extensions - data for protocol extensions
+    outcome::result<void> sendResponse(
+        RequestId request_id,
+        ResponseStatusCode status,
+        const std::vector<Extension> &extensions);
 
    private:
     /// Enqueues partial response when protobuf message size exceeds protocol

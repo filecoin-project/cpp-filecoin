@@ -20,8 +20,7 @@ namespace fc::storage::ipfs::graphsync {
   LocalRequests::NewRequest LocalRequests::newRequest(
       const CID &root_cid,
       gsl::span<const uint8_t> selector,
-      bool need_metadata,
-      const std::vector<CID> &dont_send_cids,
+      const std::vector<Extension> &extensions,
       Graphsync::RequestProgressCallback callback) {
     NewRequest ctx;
     ctx.request_id = nextRequestId();
@@ -33,8 +32,7 @@ namespace fc::storage::ipfs::graphsync {
       return ctx;
     }
 
-    request_builder_.addRequest(
-        ctx.request_id, root_cid, selector, need_metadata, dont_send_cids);
+    request_builder_.addRequest(ctx.request_id, root_cid, selector, extensions);
     auto serialize_res = request_builder_.serialize();
     request_builder_.clear();
     if (!serialize_res) {
@@ -68,7 +66,7 @@ namespace fc::storage::ipfs::graphsync {
 
   void LocalRequests::onResponse(int request_id,
                                  ResponseStatusCode status,
-                                 ResponseMetadata metadata) {
+                                 std::vector<Extension> extensions) {
     auto it = active_requests_.find(request_id);
     if (it == active_requests_.end()) {
       logger()->error(
@@ -78,11 +76,11 @@ namespace fc::storage::ipfs::graphsync {
     if (isTerminal(status)) {
       auto cb = std::move(it->second);
       active_requests_.erase(it);
-      cb(status, std::move(metadata));
+      cb(status, std::move(extensions));
     } else {
       // make copy, reentrancy is allowed here
       auto cb = it->second;
-      cb(status, std::move(metadata));
+      cb(status, std::move(extensions));
     }
   }
 
