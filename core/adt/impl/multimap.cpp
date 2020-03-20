@@ -5,9 +5,10 @@
 
 #include "adt/multimap.hpp"
 
-#include "adt/array.hpp"
+#include "storage/amt/amt.hpp"
 
 namespace fc::adt {
+  using storage::amt::Amt;
 
   Multimap::Multimap(const std::shared_ptr<storage::ipfs::IpfsDatastore> &store)
       : store_(store), hamt_(store) {}
@@ -23,22 +24,16 @@ namespace fc::adt {
   outcome::result<void> Multimap::add(const std::string &key,
                                       gsl::span<const uint8_t> value) {
     using storage::hamt::HamtError;
-    boost::optional<Array> array{boost::none};
-    auto found = hamt_.getCbor<CID>(key);
-
+    Amt amt{store_};
+    OUTCOME_TRY(found, hamt_.contains(key));
     if (found) {
-      array = Array(store_, found.value());
-    } else {
-      if (HamtError::NOT_FOUND == found.error()) {
-        array = Array(store_);
-      } else {
-        return found.error();
-      }
+      OUTCOME_TRY(root, hamt_.getCbor<CID>(key));
+      amt = Amt{store_, root};
     }
-
-    OUTCOME_TRY(array->append(value));
-    OUTCOME_TRY(array_root, array->flush());
-    return hamt_.setCbor<CID>(key, array_root);
+    OUTCOME_TRY(count, amt.count());
+    OUTCOME_TRY(amt.set(count, value));
+    OUTCOME_TRY(amt.flush());
+    return hamt_.setCbor(key, amt.cid());
   }
 
   outcome::result<void> Multimap::removeAll(const std::string &key) {
@@ -48,7 +43,8 @@ namespace fc::adt {
   outcome::result<void> Multimap::visit(const std::string &key,
                                         const Multimap::Visitor &visitor) {
     OUTCOME_TRY(array_root, hamt_.getCbor<CID>(key));
-    return Array{store_, array_root}.visit(visitor);
+    return Amt{store_, array_root}.visit(
+        [&](auto, auto &value) { return visitor(value); });
   }
 
 }  // namespace fc::adt

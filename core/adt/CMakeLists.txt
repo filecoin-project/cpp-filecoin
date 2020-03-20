@@ -28,7 +28,7 @@ add_library(multimap
     impl/multimap.cpp
     )
 target_link_libraries(multimap
-    array
+    amt
     hamt
     )
 
