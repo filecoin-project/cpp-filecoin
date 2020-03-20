@@ -80,7 +80,7 @@ namespace fc::storage::blockchain {
     }
 
     OUTCOME_TRY(cids, codec::json::decodeCidVector(buffer.value()));
-    auto &&ts_key = primitives::tipset::TipsetKey{std::move(cids)};
+    OUTCOME_TRY(ts_key, primitives::tipset::TipsetKey::create(std::move(cids)));
     OUTCOME_TRY(tipset, loadTipset(ts_key));
     heaviest_tipset_ = std::move(tipset);
 
