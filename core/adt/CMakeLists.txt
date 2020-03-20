@@ -9,10 +9,8 @@ add_custom_target(adt
     multimap
     )
 
-add_library(array
-    impl/array.cpp
-    )
-target_link_libraries(array
+add_library(array INTERFACE)
+target_link_libraries(array INTERFACE
     amt
     )
 
