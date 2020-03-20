@@ -50,7 +50,8 @@ namespace fc::crypto::randomness {
     std::reference_wrapper<const std::vector<CID>> cids{block_cids};
 
     while (true) {
-      OUTCOME_TRY(tipset, chain_store_->loadTipset(TipsetKey{cids.get()}));
+      OUTCOME_TRY(tipset_key, TipsetKey::create(cids.get()));
+      OUTCOME_TRY(tipset, chain_store_->loadTipset(tipset_key));
       OUTCOME_TRY(min_ticket_block, tipset.getMinTicketBlock());
 
       if (tipset.height <= round) {

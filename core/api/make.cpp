@@ -27,7 +27,7 @@ namespace fc::api {
       return ipld->getCbor<MinerActorState>(actor.head);
     };
     return {
-        .ChainGetRandomness = {[&](auto tipset_key, auto round) {
+        .ChainGetRandomness = {[&](auto &&tipset_key, auto round) {
           return chain_randomness->sampleRandomness(tipset_key.cids, round);
         }},
         .ChainHead = {[&]() { return chain_store->heaviestTipset(); }},

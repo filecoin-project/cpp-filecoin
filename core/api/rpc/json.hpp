@@ -716,7 +716,7 @@ namespace fc::api {
     static T decode(const Value &j) {
       T v;
       decode(v, j);
-      return std::move(v);
+      return v;
     }
   };
 
