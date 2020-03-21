@@ -10,6 +10,8 @@
 #include "common/logger.hpp"
 #include "graphsync_acceptance_common.hpp"
 
+// change in comment
+
 // logger used by these tests
 static std::shared_ptr<spdlog::logger> logger;
 
