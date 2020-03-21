@@ -10,6 +10,7 @@ target_link_libraries(api
     address
     chain_store
     cid
+    message
     )
 
 add_library(rpc
