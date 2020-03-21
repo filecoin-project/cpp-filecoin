@@ -42,7 +42,7 @@ namespace fc::primitives::ticket {
     return s;
   }
 
-  CBOR_ENCODE_TUPLE(EPostProof, proof, post_rand, candidates)
+  CBOR_ENCODE_TUPLE(EPostProof, proofs, post_rand, candidates)
 
   /**
    * @brief cbor-decodes EPostProof instance
@@ -52,10 +52,8 @@ namespace fc::primitives::ticket {
    * @return stream reference
    */
   CBOR_DECODE(EPostProof, epp) {
-    std::vector<uint8_t> proof;
     std::vector<uint8_t> rand;
-    s.list() >> proof >> rand >> epp.candidates;
-    epp.proof = common::Buffer(std::move(proof));
+    s.list() >> epp.proofs >> rand >> epp.candidates;
     if (rand.size() != epp.post_rand.size()) {
       outcome::raise(EPoSTTicketCodecError::INVALID_POST_RAND_LENGTH);
     }

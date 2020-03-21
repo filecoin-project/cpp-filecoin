@@ -45,7 +45,10 @@ struct ChainStoreTest : public ::testing::Test {
         fc::primitives::address::Address::makeFromId(1),
         ticket,
         {
-            fc::common::Buffer("F00D"_unhex),
+            {fc::primitives::sector::PoStProof{
+                fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+                "DEAD"_unhex,
+            }},
             bls1,
             {},
         },

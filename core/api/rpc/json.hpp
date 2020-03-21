@@ -11,6 +11,7 @@
 
 #include "api/api.hpp"
 #include "api/rpc/json_errors.hpp"
+#include "common/enum.hpp"
 #include "primitives/address/address_codec.hpp"
 
 #define COMMA ,
@@ -26,6 +27,7 @@ namespace fc::api {
   using crypto::signature::Signature;
   using primitives::BigInt;
   using primitives::block::BlockHeader;
+  using primitives::sector::PoStProof;
   using primitives::ticket::EPostProof;
   using primitives::ticket::EPostTicket;
   using primitives::ticket::Ticket;
@@ -36,6 +38,7 @@ namespace fc::api {
   using vm::actor::builtin::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
   using SignatureType = crypto::signature::Type;
+  using primitives::sector::RegisteredProof;
 
   struct Request {
     uint64_t id;
@@ -278,16 +281,30 @@ namespace fc::api {
       decode(v.challenge_index, Get(j, "ChallengeIndex"));
     }
 
+    ENCODE(PoStProof) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "ProofBytes", gsl::make_span(v.proof));
+      return j;
+    }
+
+    DECODE(PoStProof) {
+      std::underlying_type_t<RegisteredProof> registered_proof;
+      decode(registered_proof, Get(j, "RegisteredProof"));
+      v.registered_proof = RegisteredProof{registered_proof};
+      decode(v.proof, Get(j, "ProofBytes"));
+    }
+
     ENCODE(EPostProof) {
       Value j{rapidjson::kObjectType};
-      Set(j, "Proof", gsl::make_span(v.proof));
+      Set(j, "Proofs", v.proofs);
       Set(j, "PostRand", gsl::make_span(v.post_rand));
       Set(j, "Candidates", v.candidates);
       return j;
     }
 
     DECODE(EPostProof) {
-      decode(v.proof, Get(j, "Proof"));
+      decode(v.proofs, Get(j, "Proofs"));
       decode(v.post_rand, Get(j, "PostRand"));
       decode(v.candidates, Get(j, "Candidates"));
     }
