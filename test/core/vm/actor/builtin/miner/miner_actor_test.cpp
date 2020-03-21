@@ -28,12 +28,12 @@ const MinerInfo miner_info{
 /// Miner actor state CBOR encoding and decoding
 TEST(MinerActorTest, MinerActorStateCbor) {
   MinerActorState state{
-      "010001020001"_cid,
-      "010001020002"_cid,
-      {2, 7},
-      "010001020003"_cid,
-      miner_info,
-      {1, 2},
+      .precommitted_sectors = decltype(MinerActorState::precommitted_sectors){"010001020001"_cid},
+      .sectors = decltype(MinerActorState::sectors){"010001020002"_cid},
+      .fault_set = {2, 7},
+      .proving_set = decltype(MinerActorState::proving_set){"010001020003"_cid},
+      .info = miner_info,
+      .post_state = {1, 2},
   };
   expectEncodeAndReencode(
       state,

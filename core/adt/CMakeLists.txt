@@ -5,8 +5,12 @@
 
 add_custom_target(adt
     DEPENDS
+    address_key
     array
+    balance_table
+    map
     multimap
+    uvarint_key
     )
 
 add_library(array INTERFACE)

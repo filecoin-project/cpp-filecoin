@@ -8,12 +8,13 @@
 #include "primitives/address/address_codec.hpp"
 
 namespace fc::adt {
-  std::string AddressKey::encode(const Type &key) {
+  std::string AddressKeyer::encode(const Key &key) {
     auto bytes = primitives::address::encode(key);
     return {bytes.begin(), bytes.end()};
   }
 
-  outcome::result<AddressKey::Type> AddressKey::decode(const std::string &key) {
+  outcome::result<AddressKeyer::Key> AddressKeyer::decode(
+      const std::string &key) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     return primitives::address::decode(gsl::make_span(
         reinterpret_cast<const uint8_t *>(key.data()), key.size()));

@@ -18,13 +18,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::adt, UvarintKeyError, e) {
 namespace fc::adt {
   using libp2p::multi::UVarint;
 
-  std::string UvarintKey::encode(Type value) {
+  std::string UvarintKeyer::encode(Key value) {
     UVarint uvarint{value};
     auto encoded = uvarint.toBytes();
     return std::string(encoded.begin(), encoded.end());
   }
 
-  outcome::result<UvarintKey::Type> UvarintKey::decode(const std::string &key) {
+  outcome::result<UvarintKeyer::Key> UvarintKeyer::decode(
+      const std::string &key) {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     auto maybe = UVarint::create(gsl::make_span(
         reinterpret_cast<const uint8_t *>(key.data()), key.size()));

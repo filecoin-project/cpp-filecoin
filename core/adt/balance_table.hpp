@@ -15,7 +15,7 @@ namespace fc::adt {
 
   enum class BalanceTableError { INSUFFICIENT_FUNDS = 1 };
 
-  struct BalanceTable : public Map<TokenAmount, AddressKey> {
+  struct BalanceTable : public Map<TokenAmount, AddressKeyer> {
     using Map::Map;
 
     outcome::result<TokenAmount> get(const Key &key);

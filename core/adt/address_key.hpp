@@ -9,12 +9,12 @@
 #include "primitives/address/address.hpp"
 
 namespace fc::adt {
-  struct AddressKey {
-    using Type = primitives::address::Address;
+  struct AddressKeyer {
+    using Key = primitives::address::Address;
 
-    static std::string encode(const Type &key);
+    static std::string encode(const Key &key);
 
-    static outcome::result<Type> decode(const std::string &key);
+    static outcome::result<Key> decode(const std::string &key);
   };
 }  // namespace fc::adt
 

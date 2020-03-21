@@ -15,23 +15,26 @@ using fc::vm::actor::builtin::market::DealProposal;
 using fc::vm::actor::builtin::market::DealState;
 using fc::vm::actor::builtin::market::State;
 
+/// State cbor encoding
 TEST(MarketActorCborTest, State) {
   expectEncodeAndReencode(
       State{
-          .proposals = "010001020001"_cid,
-          .states = "010001020002"_cid,
-          .escrow_table = "010001020003"_cid,
-          .locked_table = "010001020004"_cid,
+          .proposals = decltype(State::proposals){"010001020001"_cid},
+          .states = decltype(State::states){"010001020002"_cid},
+          .escrow_table = decltype(State::escrow_table){"010001020003"_cid},
+          .locked_table = decltype(State::locked_table){"010001020004"_cid},
           .next_deal = 1,
-          .deals_by_party = "010001020005"_cid,
+          .deals_by_party = decltype(State::deals_by_party){"010001020005"_cid},
       },
       "86d82a4700010001020001d82a4700010001020002d82a4700010001020003d82a470001000102000401d82a4700010001020005"_unhex);
 }
 
+/// DealState cbor encoding
 TEST(MarketActorCborTest, DealState) {
   expectEncodeAndReencode(DealState{1, 2, 3}, "83010203"_unhex);
 }
 
+/// ClientDealProposal cbor encoding
 TEST(MarketActorCborTest, ClientDealProposal) {
   expectEncodeAndReencode(
       ClientDealProposal{

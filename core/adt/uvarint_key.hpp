@@ -13,12 +13,12 @@
 namespace fc::adt {
   enum class UvarintKeyError { DECODE_ERROR = 1 };
 
-  struct UvarintKey {
-    using Type = uint64_t;
+  struct UvarintKeyer {
+    using Key = uint64_t;
 
-    static std::string encode(Type key);
+    static std::string encode(Key key);
 
-    static outcome::result<Type> decode(const std::string &key);
+    static outcome::result<Key> decode(const std::string &key);
   };
 }  // namespace fc::adt
 

@@ -12,6 +12,7 @@ namespace fc::adt {
   using storage::amt::Amt;
   using Ipld = storage::ipfs::IpfsDatastore;
 
+  /// Strongly typed amt wrapper
   template <typename Value>
   struct Array {
     using Key = uint64_t;
@@ -19,8 +20,7 @@ namespace fc::adt {
 
     Array() : amt{nullptr} {}
 
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    Array(const CID &root) : amt{nullptr, root} {}
+    explicit Array(const CID &root) : amt{nullptr, root} {}
 
     void load(std::shared_ptr<Ipld> ipld) {
       amt.setIpld(ipld);
@@ -68,19 +68,21 @@ namespace fc::adt {
     storage::amt::Amt amt;
   };
 
+  /// Cbor encode array
   template <class Stream,
-            typename V,
+            typename Value,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Array<V> &array) {
+  Stream &operator<<(Stream &&s, const Array<Value> &array) {
     return s << array.amt.cid();
   }
 
+  /// Cbor decode array
   template <class Stream,
-            typename V,
+            typename Value,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Array<V> &array) {
+  Stream &operator>>(Stream &&s, Array<Value> &array) {
     CID root;
     s >> root;
     array.amt = {nullptr, root};

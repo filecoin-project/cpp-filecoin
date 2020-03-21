@@ -18,7 +18,7 @@
 #include "primitives/sector/sector.hpp"
 
 namespace fc::vm::actor::builtin::miner {
-  using adt::UvarintKey;
+  using adt::UvarintKeyer;
   using common::Buffer;
   using libp2p::multi::UVarint;
   using primitives::ChainEpoch;
@@ -128,7 +128,7 @@ namespace fc::vm::actor::builtin::miner {
 
   /// Balance of a Actor should equal exactly the sum of PreCommit deposits
   struct MinerActorState {
-    adt::Map<SectorPreCommitOnChainInfo, UvarintKey> precommitted_sectors;
+    adt::Map<SectorPreCommitOnChainInfo, UvarintKeyer> precommitted_sectors;
     adt::Array<SectorOnChainInfo> sectors;
     RleBitset fault_set;
     adt::Array<SectorOnChainInfo> proving_set;

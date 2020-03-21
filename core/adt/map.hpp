@@ -13,30 +13,30 @@ namespace fc::adt {
   using storage::hamt::kDefaultBitWidth;
   using Ipld = storage::ipfs::IpfsDatastore;
 
-  struct StringKey {
-    using Type = std::string;
+  struct StringKeyer {
+    using Key = std::string;
 
-    inline static std::string encode(const Type &key) {
+    inline static std::string encode(const Key &key) {
       return key;
     }
 
-    inline static outcome::result<Type> decode(const std::string &key) {
+    inline static outcome::result<Key> decode(const std::string &key) {
       return key;
     }
   };
 
+  /// Strongly typed hamt wrapper
   template <typename Value,
-            typename Keyer = StringKey,
+            typename Keyer = StringKeyer,
             size_t bit_width = kDefaultBitWidth>
   struct Map {
-    using Key = typename Keyer::Type;
+    using Key = typename Keyer::Key;
     using Visitor =
         std::function<outcome::result<void>(const Key &, const Value &)>;
 
     Map() : hamt{nullptr, bit_width} {}
 
-    // NOLINTNEXTLINE(google-explicit-constructor)
-    Map(const CID &root) : hamt{nullptr, root, bit_width} {}
+    explicit Map(const CID &root) : hamt{nullptr, root, bit_width} {}
 
     void load(std::shared_ptr<Ipld> ipld) {
       hamt.setIpld(ipld);
@@ -78,6 +78,7 @@ namespace fc::adt {
     Hamt hamt;
   };
 
+  /// Cbor encode map
   template <class Stream,
             typename V,
             typename K,
@@ -88,6 +89,7 @@ namespace fc::adt {
     return s << map.hamt.cid();
   }
 
+  /// Cbor decode map
   template <class Stream,
             typename V,
             typename K,

@@ -14,7 +14,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
-using fc::adt::AddressKey;
+using fc::adt::AddressKeyer;
 using fc::codec::cbor::CborDecodeStream;
 using fc::codec::cbor::CborEncodeStream;
 using fc::primitives::address::Address;
@@ -191,22 +191,22 @@ TEST_F(AddressCodecTest, CborRoundTrip) {
  */
 TEST(ByteStringCodec, EncodeToByteString) {
   Address id_address_1 = Address::makeFromId(101, Network::TESTNET);
-  ASSERT_EQ("\x00\x65"s, AddressKey::encode(id_address_1));
+  ASSERT_EQ("\x00\x65"s, AddressKeyer::encode(id_address_1));
 
   Address id_address_2 = Address::makeFromId(102, Network::TESTNET);
-  ASSERT_EQ("\x00\x66"s, AddressKey::encode(id_address_2));
+  ASSERT_EQ("\x00\x66"s, AddressKeyer::encode(id_address_2));
 
   std::vector<uint8_t> data1{'a', 'c', 't', 'o', 'r', '1'};
   Address actor_address_1 = Address::makeActorExec(data1, Network::TESTNET);
   ASSERT_EQ(
       "\x02\x58\xbe\x4f\xd7\x75\xa0\xc8\xcd\x9a\xed\x86\x4e\x73\xab\xb1\x86\x46\x5f\xef\xe1"s,
-      AddressKey::encode(actor_address_1));
+      AddressKeyer::encode(actor_address_1));
 
   std::vector<uint8_t> data2{'2', '2', '2'};
   Address actor_address_2 = Address::makeActorExec(data2, Network::TESTNET);
   ASSERT_EQ(
       "\x02\xaa\xd0\xb2\x98\xa9\xde\xab\xbb\xb6\u007f\x80\x5f\x66\xaa\x68\x8c\xdd\x89\xad\xf5"s,
-      AddressKey::encode(actor_address_2));
+      AddressKeyer::encode(actor_address_2));
 }
 
 /**
@@ -215,22 +215,22 @@ TEST(ByteStringCodec, EncodeToByteString) {
  */
 TEST(ByteStringCodec, DecodeFromByteString) {
   Address id_address_1 = Address::makeFromId(101, Network::TESTNET);
-  EXPECT_OUTCOME_EQ(AddressKey::decode("\x00\x65"s), id_address_1);
+  EXPECT_OUTCOME_EQ(AddressKeyer::decode("\x00\x65"s), id_address_1);
 
   Address id_address_2 = Address::makeFromId(102, Network::TESTNET);
-  EXPECT_OUTCOME_EQ(AddressKey::decode("\x00\x66"s), id_address_2);
+  EXPECT_OUTCOME_EQ(AddressKeyer::decode("\x00\x66"s), id_address_2);
 
   std::vector<uint8_t> data1{'a', 'c', 't', 'o', 'r', '1'};
   Address actor_address_1 = Address::makeActorExec(data1, Network::TESTNET);
   EXPECT_OUTCOME_EQ(
-      AddressKey::decode(
+      AddressKeyer::decode(
           "\x02\x58\xbe\x4f\xd7\x75\xa0\xc8\xcd\x9a\xed\x86\x4e\x73\xab\xb1\x86\x46\x5f\xef\xe1"s),
       actor_address_1);
 
   std::vector<uint8_t> data2{'2', '2', '2'};
   Address actor_address_2 = Address::makeActorExec(data2, Network::TESTNET);
   EXPECT_OUTCOME_EQ(
-      AddressKey::decode(
+      AddressKeyer::decode(
           "\x02\xaa\xd0\xb2\x98\xa9\xde\xab\xbb\xb6\u007f\x80\x5f\x66\xaa\x68\x8c\xdd\x89\xad\xf5"s),
       actor_address_2);
 }

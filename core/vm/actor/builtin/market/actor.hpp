@@ -18,10 +18,10 @@
 #include "vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor::builtin::market {
-  using adt::AddressKey;
+  using adt::AddressKeyer;
   using adt::BalanceTable;
   using adt::EmptyValue;
-  using adt::UvarintKey;
+  using adt::UvarintKeyer;
   using crypto::signature::Signature;
   using primitives::ChainEpoch;
   using primitives::DealId;
@@ -79,7 +79,7 @@ namespace fc::vm::actor::builtin::market {
     BalanceTable escrow_table;
     BalanceTable locked_table;
     DealId next_deal;
-    adt::Map<adt::Map<EmptyValue, UvarintKey>, AddressKey> deals_by_party;
+    adt::Map<adt::Map<EmptyValue, UvarintKeyer>, AddressKeyer> deals_by_party;
   };
   CBOR_TUPLE(State,
              proposals,
