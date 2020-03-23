@@ -13,6 +13,7 @@
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
+using fc::blockchain::weight::WeightCalculatorError;
 using fc::blockchain::weight::WeightCalculatorImpl;
 using fc::primitives::address::Address;
 using fc::primitives::block::BlockHeader;
@@ -34,10 +35,7 @@ struct Params {
   Weight expected_weight;
 };
 
-struct WeightCalculatorTest : ::testing::TestWithParam<Params> {};
-
-TEST_P(WeightCalculatorTest, GoCompatibility) {
-  auto &params = GetParam();
+fc::outcome::result<Weight> calculateWeight(const Params &params) {
   auto ipld = std::make_shared<InMemoryDatastore>();
   auto some_cid = "010001020001"_cid;
   EXPECT_OUTCOME_TRUE(state_cid,
@@ -78,8 +76,19 @@ TEST_P(WeightCalculatorTest, GoCompatibility) {
                  }},
                 {}};
 
-  EXPECT_OUTCOME_EQ(WeightCalculatorImpl{ipld}.calculateWeight(tipset),
-                    params.expected_weight);
+  return WeightCalculatorImpl{ipld}.calculateWeight(tipset);
+}
+
+struct WeightCalculatorTest : ::testing::TestWithParam<Params> {};
+
+TEST_F(WeightCalculatorTest, ZeroNetworkPower) {
+  EXPECT_OUTCOME_ERROR(WeightCalculatorError::NO_NETWORK_POWER,
+                       calculateWeight({{}, 0, 1, {}}));
+}
+
+TEST_P(WeightCalculatorTest, Success) {
+  auto &params = GetParam();
+  EXPECT_OUTCOME_EQ(calculateWeight(params), params.expected_weight);
 }
 
 INSTANTIATE_TEST_CASE_P(WeightCalculatorTestCases,

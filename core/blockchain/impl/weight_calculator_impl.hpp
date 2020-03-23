@@ -17,7 +17,7 @@ namespace fc::blockchain::weight {
 
   class WeightCalculatorImpl : public WeightCalculator {
    public:
-    WeightCalculatorImpl(std::shared_ptr<Ipld> ipld);
+    explicit WeightCalculatorImpl(std::shared_ptr<Ipld> ipld);
 
     ~WeightCalculatorImpl() override = default;
 

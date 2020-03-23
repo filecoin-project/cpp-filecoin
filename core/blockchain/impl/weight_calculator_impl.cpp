@@ -8,7 +8,6 @@
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
-/* LCOV_EXCL_START */
 OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
   using E = fc::blockchain::weight::WeightCalculatorError;
   switch (e) {
@@ -16,7 +15,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
       return "No network power";
   }
 }
-/* LCOV_EXCL_STOP */
 
 namespace fc::blockchain::weight {
   using primitives::BigInt;
