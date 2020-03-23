@@ -3,15 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(block_validator)
 add_subdirectory(message_pool)
 add_subdirectory(production)
-
-add_library(block_validator
-    impl/block_validator_impl.cpp
-    )
-target_link_libraries(block_validator
-    block
-    )
 
 add_library(weight_calculator
     impl/weight_calculator_impl.cpp

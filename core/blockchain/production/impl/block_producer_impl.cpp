@@ -58,6 +58,8 @@ namespace fc::blockchain::production {
     std::vector<SignedMessage> messages =
         message_storage_->getTopScored(config::kBlockMaxMessagesCount);
     OUTCOME_TRY(msg_meta, getMessagesMeta(messages));
+    OUTCOME_TRY(data_storage_->set(msg_meta.getCID(),
+    msg_meta.getRawBytes()));
     std::vector<UnsignedMessage> bls_messages;
     std::vector<SignedMessage> secp_messages;
     std::vector<crypto::bls::Signature> bls_signatures;
@@ -77,20 +79,20 @@ namespace fc::blockchain::production {
                 bls_provider_->aggregateSignatures(bls_signatures));
     Time now = clock_->nowUTC();
     OUTCOME_TRY(current_epoch, epoch_->epochAtTime(now));
-    BlockHeader header{
-        .miner = std::move(miner_address),
-        .ticket = ticket,
-        .epost_proof = std::move(proof),
-        .parents = std::move(parent_tipset.cids),
-        .parent_weight = parent_weight,
-        .height = static_cast<uint64_t>(current_epoch),
-        .parent_state_root = std::move(vm_result.state_root),
-        .parent_message_receipts = std::move(vm_result.message_receipts),
-        .messages = msg_meta.getCID(),
-        .bls_aggregate = std::move(bls_aggregate_sign),
-        .timestamp = static_cast<uint64_t>(now.unixTime().count()),
-        .block_sig = {},  // Block must be signed be Actor Miner
-        .fork_signaling = 0};
+    BlockHeader header;
+    header.miner = std::move(miner_address);
+    header.ticket = ticket;
+    header.epost_proof = std::move(proof);
+    header.parents = std::move(parent_tipset.cids);
+    header.parent_weight = parent_weight;
+    header.height = static_cast<uint64_t>(current_epoch);
+    header.parent_state_root = std::move(vm_result.state_root);
+    header.parent_message_receipts = std::move(vm_result.message_receipts);
+    header.messages = msg_meta.getCID();
+    header.bls_aggregate = std::move(bls_aggregate_sign);
+    header.timestamp = static_cast<uint64_t>(now.unixTime().count());
+    header.block_sig = {};  // Block must be signed be Actor Miner
+    header.fork_signaling = 0;
     return Block{.header = std::move(header),
                  .bls_messages = std::move(bls_messages),
                  .secp_messages = std::move(secp_messages)};
@@ -157,4 +159,5 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::production, BlockProducerError, e) {
     case (BlockProducerError::PARENT_TIPSET_INVALID_CONTENT):
       return "Block Generator: failed to decode parent tipset content";
   }
+  return "Block Generator: unknown error";
 }

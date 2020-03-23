@@ -74,6 +74,8 @@ TEST_F(BlockProducerTest, Main) {
   auto ipfs_datastore = std::make_shared<IpfsDatastoreImpl>();
   EXPECT_CALL(*ipfs_datastore, get(config::kParentTipset))
       .WillOnce(testing::Return(fc::outcome::success(parent_tipset_raw_bytes)));
+  EXPECT_CALL(*ipfs_datastore, set(_, _))
+      .WillRepeatedly(testing::Return(fc::outcome::success()));
 
   /**
    * Setup Message Store, which should contain several sample messages
@@ -123,7 +125,7 @@ TEST_F(BlockProducerTest, Main) {
               aggregated_signature.begin());
 
   EXPECT_CALL(*bls_provider, aggregateSignatures(_))
-      .WillOnce(testing::Return(fc::outcome::success(aggregated_signature)));
+      .WillOnce(testing::Return(aggregated_signature));
 
   /**
    * Initialize VM Interpreter
