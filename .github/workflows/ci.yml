@@ -54,7 +54,7 @@ jobs:
 
         pip3 -V || sudo python3 -m pip install --upgrade pip
         sudo pip3 install scikit-build
-        sudo pip3 install cmake requests gitpython gcovr pyyaml
+        sudo pip3 install requests gitpython gcovr pyyaml
         sudo curl https://sh.rustup.rs -sSf | sh -s -- -y
     - name: cmake
       env:

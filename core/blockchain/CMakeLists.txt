@@ -17,6 +17,7 @@ add_library(weight_calculator
     impl/weight_calculator_impl.cpp
     )
 target_link_libraries(weight_calculator
+    state_tree
     tipset
     )
 

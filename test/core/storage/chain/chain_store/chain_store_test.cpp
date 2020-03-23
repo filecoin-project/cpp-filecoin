@@ -7,7 +7,6 @@
 
 #include <gtest/gtest.h>
 #include "blockchain/impl/block_validator_impl.hpp"
-#include "blockchain/impl/weight_calculator_impl.hpp"
 #include "common/hexutil.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "storage/chain/impl/chain_data_store_impl.hpp"
@@ -15,10 +14,11 @@
 #include "storage/ipfs/impl/ipfs_block_service.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/mocks/blockchain/weight_calculator_mock.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::blockchain::block_validator::BlockValidatorImpl;
-using fc::blockchain::weight::WeightCalculatorImpl;
+using fc::blockchain::weight::WeightCalculatorMock;
 using fc::crypto::signature::Signature;
 using fc::primitives::BigInt;
 using fc::primitives::block::BlockHeader;
@@ -67,7 +67,10 @@ struct ChainStoreTest : public ::testing::Test {
     auto data_store = std::make_shared<ChainDataStoreImpl>(
         std::make_shared<InMemoryDatastore>());
     auto block_validator = std::make_shared<BlockValidatorImpl>();
-    auto weight_calculator = std::make_shared<WeightCalculatorImpl>();
+    auto weight_calculator = std::make_shared<WeightCalculatorMock>();
+
+    EXPECT_CALL(*weight_calculator, calculateWeight(testing::_))
+        .WillRepeatedly(testing::Return(1));
 
     EXPECT_OUTCOME_TRUE(store,
                         ChainStoreImpl::create(std::move(block_service),
