@@ -9,4 +9,5 @@ target_link_libraries(block INTERFACE
     cbor
     signature
     tickets
+    ipld_block
     )

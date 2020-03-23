@@ -8,7 +8,7 @@
 
 #include <map>
 
-#include "blockchain/block_validator.hpp"
+#include "blockchain/block_validator/block_validator.hpp"
 #include "blockchain/weight_calculator.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
