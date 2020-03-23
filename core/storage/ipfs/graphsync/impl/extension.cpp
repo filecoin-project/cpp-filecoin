@@ -5,14 +5,14 @@
 
 #include "storage/ipfs/graphsync/extension.hpp"
 
-#include "codec/cbor/cbor_encode_stream.hpp"
 #include "codec/cbor/cbor_decode_stream.hpp"
+#include "codec/cbor/cbor_encode_stream.hpp"
 #include "common.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
-  using codec::cbor::CborEncodeStream;
   using codec::cbor::CborDecodeStream;
+  using codec::cbor::CborEncodeStream;
 
   namespace {
 
@@ -55,14 +55,12 @@ namespace fc::storage::ipfs::graphsync {
   }  // namespace
 
   Extension encodeMetadataRequest() {
-    static const Extension e = {
-      std::string(kResponseMetadataProtocol),
-      std::vector<uint8_t>{0xF5}
-    };
+    static const Extension e = {std::string(kResponseMetadataProtocol),
+                                std::vector<uint8_t>{0xF5}};
     return e;
   }
 
-  Extension encodeResponseMetadata(const ResponseMetadata& metadata) {
+  Extension encodeResponseMetadata(const ResponseMetadata &metadata) {
     Extension e;
     e.name = kResponseMetadataProtocol;
     auto l = CborEncodeStream::list();
@@ -159,7 +157,8 @@ namespace fc::storage::ipfs::graphsync {
       logger()->warn("{}: {}", __FUNCTION__, e.what());
       return Error::MESSAGE_PARSE_ERROR;
     }
-    return std::set<CID>(cids.begin(), cids.end());
+    return std::set<CID>(std::move_iterator(cids.begin()),
+                         std::move_iterator(cids.end()));
   }
 
 }  // namespace fc::storage::ipfs::graphsync
