@@ -166,6 +166,14 @@ namespace fc::storage::hamt {
     /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor);
 
+    inline void setIpld(std::shared_ptr<ipfs::IpfsDatastore> ipld) {
+      store_ = std::move(ipld);
+    }
+
+    inline std::shared_ptr<ipfs::IpfsDatastore> getIpld() const {
+      return store_;
+    }
+
     /// Store CBOR encoded value by key
     template <typename T>
     outcome::result<void> setCbor(const std::string &key, const T &value) {
@@ -178,6 +186,20 @@ namespace fc::storage::hamt {
     outcome::result<T> getCbor(const std::string &key) {
       OUTCOME_TRY(bytes, get(key));
       return codec::cbor::decode<T>(bytes);
+    }
+
+    /// Get CBOR decoded value by key
+    template <typename T>
+    outcome::result<boost::optional<T>> tryGetCbor(const std::string &key) {
+      auto maybe = get(key);
+      if (!maybe) {
+        if (maybe.error() != HamtError::NOT_FOUND) {
+          return maybe.error();
+        }
+        return boost::none;
+      }
+      OUTCOME_TRY(value, codec::cbor::decode<T>(maybe.value()));
+      return std::move(value);
     }
 
    private:

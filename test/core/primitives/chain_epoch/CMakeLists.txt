@@ -5,5 +5,5 @@ addtest(chain_epoch_codec_test
     chain_epoch_codec_test.cpp
     )
 target_link_libraries(chain_epoch_codec_test
-    chain_epoch_codec
+    uvarint_key
     )

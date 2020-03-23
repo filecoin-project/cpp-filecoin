@@ -8,16 +8,27 @@
 
 #include "blockchain/weight_calculator.hpp"
 
-namespace fc::blockchain::weight {
+#include "storage/ipfs/datastore.hpp"
 
-  // TODO(yuraz): FIL-155 implement weight calculator, this one is stub
+namespace fc::blockchain::weight {
+  using Ipld = storage::ipfs::IpfsDatastore;
+
+  enum class WeightCalculatorError { NO_NETWORK_POWER = 1 };
+
   class WeightCalculatorImpl : public WeightCalculator {
    public:
+    explicit WeightCalculatorImpl(std::shared_ptr<Ipld> ipld);
+
     ~WeightCalculatorImpl() override = default;
 
     outcome::result<BigInt> calculateWeight(const Tipset &tipset) override;
+
+   private:
+    std::shared_ptr<Ipld> ipld_;
   };
 
 }  // namespace fc::blockchain::weight
+
+OUTCOME_HPP_DECLARE_ERROR(fc::blockchain::weight, WeightCalculatorError);
 
 #endif  // CPP_FILECOIN_CORE_CHAIN_IMPL_WEIGHT_CALCULATOR_IMPL_HPP

@@ -16,6 +16,7 @@ target_link_libraries(actor
     cid
     exit_code
     init_actor
+    market_actor
     miner_actor
     multisig_actor
     storage_power_actor

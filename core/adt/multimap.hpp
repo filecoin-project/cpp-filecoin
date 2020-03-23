@@ -6,10 +6,7 @@
 #ifndef CPP_FILECOIN_MULTIMAP_HPP
 #define CPP_FILECOIN_MULTIMAP_HPP
 
-#include "common/outcome.hpp"
-#include "primitives/cid/cid.hpp"
 #include "storage/hamt/hamt.hpp"
-#include "storage/ipfs/datastore.hpp"
 
 namespace fc::adt {
 

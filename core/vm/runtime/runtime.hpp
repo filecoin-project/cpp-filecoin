@@ -13,6 +13,7 @@
 #include "primitives/address/address.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
+#include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor_encoding.hpp"
@@ -39,10 +40,13 @@ namespace fc::vm::runtime {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::block::BlockHeader;
+  using primitives::piece::PieceInfo;
   using primitives::sector::PoStVerifyInfo;
+  using primitives::sector::RegisteredProof;
   using primitives::sector::SealVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using Serialization = Buffer;
+  using crypto::signature::Signature;
 
   /**
    * @class Runtime is the VM's internal runtime object exposed to actors
@@ -149,11 +153,21 @@ namespace fc::vm::runtime {
     /// Resolve address to id-address
     virtual outcome::result<Address> resolveAddress(const Address &address) = 0;
 
+    /// Verify signature
+    virtual outcome::result<bool> verifySignature(
+        const Signature &signature,
+        const Address &address,
+        gsl::span<const uint8_t> data) = 0;
+
     /// Verify PoSt
     virtual outcome::result<bool> verifyPoSt(const PoStVerifyInfo &info) = 0;
 
     /// Verify seal
     virtual outcome::result<bool> verifySeal(const SealVerifyInfo &info) = 0;
+
+    /// Compute unsealed sector cid
+    virtual outcome::result<CID> computeUnsealedSectorCid(
+        RegisteredProof type, const std::vector<PieceInfo> &pieces) = 0;
 
     /// Verify consensus fault
     virtual outcome::result<bool> verifyConsensusFault(
@@ -222,6 +236,10 @@ namespace fc::vm::runtime {
       OUTCOME_TRY(state_cid, getIpfsDatastore()->setCbor(state));
       OUTCOME_TRY(commit(ActorSubstateCID{state_cid}));
       return outcome::success();
+    }
+
+    inline operator std::shared_ptr<IpfsDatastore>() {
+      return getIpfsDatastore();
     }
   };
 

@@ -8,7 +8,6 @@
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/address/address.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 

@@ -30,7 +30,7 @@ namespace fc::vm::runtime {
    public:
     RuntimeImpl(std::shared_ptr<Env> env,
                 UnsignedMessage message,
-                Address immediate_caller,
+                Address origin,
                 BigInt gas_available,
                 BigInt gas_used,
                 ActorSubstateCID current_actor_state);
@@ -105,9 +105,17 @@ namespace fc::vm::runtime {
 
     outcome::result<Address> resolveAddress(const Address &address) override;
 
+    outcome::result<bool> verifySignature(
+        const Signature &signature,
+        const Address &address,
+        gsl::span<const uint8_t> data) override;
+
     outcome::result<bool> verifyPoSt(const PoStVerifyInfo &info) override;
 
     outcome::result<bool> verifySeal(const SealVerifyInfo &info) override;
+
+    outcome::result<CID> computeUnsealedSectorCid(
+        RegisteredProof type, const std::vector<PieceInfo> &pieces) override;
 
     outcome::result<bool> verifyConsensusFault(
         const BlockHeader &block_header_1,
@@ -123,7 +131,7 @@ namespace fc::vm::runtime {
     std::shared_ptr<Env> env_;
     std::shared_ptr<StateTree> state_tree_;
     UnsignedMessage message_;
-    Address immediate_caller_;
+    Address origin_;
     BigInt gas_available_;
     BigInt gas_used_;
     ActorSubstateCID current_actor_state_;

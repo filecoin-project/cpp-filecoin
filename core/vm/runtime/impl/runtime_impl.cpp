@@ -32,14 +32,14 @@ namespace fc::vm::runtime {
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Env> env,
                            UnsignedMessage message,
-                           Address immediate_caller,
+                           Address origin,
                            BigInt gas_available,
                            BigInt gas_used,
                            ActorSubstateCID current_actor_state)
       : env_{std::move(env)},
         state_tree_{env_->state_tree},
         message_{std::move(message)},
-        immediate_caller_{std::move(immediate_caller)},
+        origin_{std::move(origin)},
         gas_available_{std::move(gas_available)},
         gas_used_{std::move(gas_used)},
         current_actor_state_{std::move(current_actor_state)} {}
@@ -61,7 +61,7 @@ namespace fc::vm::runtime {
   }
 
   Address RuntimeImpl::getImmediateCaller() const {
-    return immediate_caller_;
+    return message_.from;
   }
 
   Address RuntimeImpl::getCurrentReceiver() const {
@@ -113,13 +113,13 @@ namespace fc::vm::runtime {
                                    gas_available_,
                                    method_number,
                                    params};
-    return env_->send(gas_used_, immediate_caller_, message);
+    return env_->send(gas_used_, origin_, message);
   }
 
   fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,
                                                      const Actor &actor) {
     // May only be called by InitActor
-    OUTCOME_TRY(actor_caller, state_tree_->get(immediate_caller_));
+    OUTCOME_TRY(actor_caller, state_tree_->get(origin_));
     if (actor_caller.code != actor::kInitCodeCid)
       return fc::outcome::failure(
           RuntimeError::CREATE_ACTOR_OPERATION_NOT_PERMITTED);
@@ -171,6 +171,14 @@ namespace fc::vm::runtime {
     return state_tree_->lookupId(address);
   }
 
+  outcome::result<bool> RuntimeImpl::verifySignature(
+      const Signature &signature,
+      const Address &address,
+      gsl::span<const uint8_t> data) {
+    // TODO(turuslan): implement
+    return RuntimeError::UNKNOWN;
+  }
+
   fc::outcome::result<bool> RuntimeImpl::verifyPoSt(
       const PoStVerifyInfo &info) {
     return proofs::Proofs::verifyPoSt(info);
@@ -179,6 +187,12 @@ namespace fc::vm::runtime {
   fc::outcome::result<bool> RuntimeImpl::verifySeal(
       const SealVerifyInfo &info) {
     return proofs::Proofs::verifySeal(info);
+  }
+
+  fc::outcome::result<fc::CID> RuntimeImpl::computeUnsealedSectorCid(
+      RegisteredProof type, const std::vector<PieceInfo> &pieces) {
+    // TODO(turuslan): FIL-112 implement
+    return RuntimeError::UNKNOWN;
   }
 
   fc::outcome::result<bool> RuntimeImpl::verifyConsensusFault(
@@ -210,12 +224,8 @@ namespace fc::vm::runtime {
   std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
       const UnsignedMessage &message,
       const ActorSubstateCID &current_actor_state) const {
-    return std::make_shared<RuntimeImpl>(env_,
-                                         message,
-                                         immediate_caller_,
-                                         gas_available_,
-                                         gas_used_,
-                                         current_actor_state);
+    return std::make_shared<RuntimeImpl>(
+        env_, message, origin_, gas_available_, gas_used_, current_actor_state);
   }
 
 }  // namespace fc::vm::runtime

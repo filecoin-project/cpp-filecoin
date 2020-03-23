@@ -24,7 +24,7 @@ namespace fc::primitives::address {
   /**
    * @brief Decodes an Address from an array of bytes
    */
-  outcome::result<Address> decode(const std::vector<uint8_t> &v);
+  outcome::result<Address> decode(gsl::span<const uint8_t> v);
 
   /**
    * @brief Encodes an Address to a string
@@ -35,16 +35,6 @@ namespace fc::primitives::address {
    * @brief Decodes an Address from a string
    */
   outcome::result<Address> decodeFromString(const std::string &s);
-
-  /**
-   * @brief Encodes an Address to an array of bytes with string representation
-   */
-
-  std::string encodeToByteString(const Address &address);
-  /**
-   * @brief Decodes Address from an array of bytes with string representation
-   */
-  outcome::result<Address> decodeFromByteString(const std::string &s);
 
   CBOR_ENCODE(Address, address) {
     return s << encode(address);
