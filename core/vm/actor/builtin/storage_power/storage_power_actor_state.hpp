@@ -12,6 +12,7 @@
 #include "crypto/randomness/randomness_provider.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "power/power_table.hpp"
+#include "primitives/address/address_codec.hpp"
 #include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "vm/indices/indices.hpp"
@@ -254,6 +255,10 @@ namespace fc::vm::actor::builtin::storage_power {
     outcome::result<Power> getTotalNetworkPower() const;
 
    private:
+    outcome::result<Claim> assertHasClaim(const Address &address) const;
+
+    outcome::result<void> assertHasEscrow(const Address &address) const;
+
     /**
      * @brief Decide can a miner participate in consensus
      * @param miner_power is address of the miner

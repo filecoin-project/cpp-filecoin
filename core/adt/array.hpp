@@ -6,61 +6,88 @@
 #ifndef CPP_FILECOIN_ARRAY_HPP
 #define CPP_FILECOIN_ARRAY_HPP
 
-#include "codec/cbor/cbor.hpp"
-#include "common/outcome.hpp"
-#include "primitives/cid/cid.hpp"
 #include "storage/amt/amt.hpp"
-#include "storage/ipfs/datastore.hpp"
 
 namespace fc::adt {
+  using storage::amt::Amt;
+  using Ipld = storage::ipfs::IpfsDatastore;
 
-  /**
-   * Container for storing values preserving their order of insertion.
-   * Implementation is based on Array Mapped Trie.
-   */
+  /// Strongly typed amt wrapper
+  template <typename Value>
   struct Array {
-    using Value = storage::ipfs::IpfsDatastore::Value;
-    using IndexedVisitor =
-        std::function<outcome::result<void>(uint64_t, const Value &)>;
-    using Visitor = std::function<outcome::result<void>(const Value &)>;
+    using Key = uint64_t;
+    using Visitor = std::function<outcome::result<void>(Key, const Value &)>;
 
-    explicit Array(const std::shared_ptr<storage::ipfs::IpfsDatastore> &store);
-    Array(const std::shared_ptr<storage::ipfs::IpfsDatastore> &store,
-          const CID &root);
+    Array() : amt{nullptr} {}
 
-    /**
-     * Apply changes to storage
-     * @return root CID
-     */
-    outcome::result<CID> flush();
+    explicit Array(const CID &root) : amt{nullptr, root} {}
 
-    /// Appends a value. Does not change the store
-    outcome::result<void> append(gsl::span<const uint8_t> value);
-
-    /**
-     * Appends a value which can be CBOR-encoded.
-     * Does not change the store immediately
-     * @tparam T value type that supports CBOR encoding
-     * @param value to be marshalled
-     * @return operation result
-     */
-    template <typename T>
-    outcome::result<void> appendCbor(const T &value) {
-      OUTCOME_TRY(bytes, codec::cbor::encode(value));
-      return append(bytes);
+    void load(std::shared_ptr<Ipld> ipld) {
+      amt.setIpld(ipld);
     }
 
-    /// Iterate over stored elements acquiring their index
-    outcome::result<void> visit(const IndexedVisitor &visitor);
+    outcome::result<boost::optional<Value>> tryGet(Key key) {
+      auto maybe = get(key);
+      if (!maybe) {
+        if (maybe.error() != storage::amt::AmtError::NOT_FOUND) {
+          return maybe.error();
+        }
+        return boost::none;
+      }
+      return maybe.value();
+    }
 
-    /// Iterate over stored elements
-    outcome::result<void> visit(const Visitor &visitor);
+    outcome::result<bool> has(Key key) {
+      return amt.contains(key);
+    }
 
-   private:
-    std::shared_ptr<storage::ipfs::IpfsDatastore> store_;
-    storage::amt::Amt amt_;
+    outcome::result<Value> get(Key key) {
+      return amt.getCbor<Value>(key);
+    }
+
+    outcome::result<void> set(Key key, const Value &value) {
+      return amt.setCbor(key, value);
+    }
+
+    outcome::result<void> remove(Key key) {
+      return amt.remove(key);
+    }
+
+    outcome::result<void> flush() {
+      OUTCOME_TRY(amt.flush());
+      return outcome::success();
+    }
+
+    outcome::result<void> visit(const Visitor &visitor) {
+      return amt.visit([&](auto key, auto &value) -> outcome::result<void> {
+        OUTCOME_TRY(value2, codec::cbor::decode<Value>(value));
+        return visitor(key, value2);
+      });
+    }
+
+    storage::amt::Amt amt;
   };
 
+  /// Cbor encode array
+  template <class Stream,
+            typename Value,
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
+  Stream &operator<<(Stream &&s, const Array<Value> &array) {
+    return s << array.amt.cid();
+  }
+
+  /// Cbor decode array
+  template <class Stream,
+            typename Value,
+            typename = std::enable_if_t<
+                std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
+  Stream &operator>>(Stream &&s, Array<Value> &array) {
+    CID root;
+    s >> root;
+    array.amt = {nullptr, root};
+    return s;
+  }
 }  // namespace fc::adt
 
 #endif  // CPP_FILECOIN_ARRAY_HPP

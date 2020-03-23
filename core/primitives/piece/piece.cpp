@@ -10,6 +10,8 @@
 
 namespace fc::primitives::piece {
 
+  UnpaddedPieceSize::UnpaddedPieceSize() : size_{} {}
+
   UnpaddedPieceSize::UnpaddedPieceSize(uint64_t size) : size_(size) {}
 
   UnpaddedPieceSize::operator uint64_t() const {
@@ -37,6 +39,8 @@ namespace fc::primitives::piece {
 
     return outcome::success();
   }
+
+  PaddedPieceSize::PaddedPieceSize() : size_{} {}
 
   PaddedPieceSize::PaddedPieceSize(uint64_t size) : size_(size) {}
 

@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_PIECE_HPP
 #define CPP_FILECOIN_PIECE_HPP
 
+#include "codec/cbor/streams_annotation.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::primitives::piece {
@@ -14,9 +15,11 @@ namespace fc::primitives::piece {
 
   class UnpaddedPieceSize {
    public:
+    UnpaddedPieceSize();
+
     explicit UnpaddedPieceSize(uint64_t size);
 
-    operator uint64_t() const; // NOLINT
+    operator uint64_t() const;  // NOLINT
 
     UnpaddedPieceSize &operator=(uint64_t rhs);
 
@@ -27,12 +30,23 @@ namespace fc::primitives::piece {
    private:
     uint64_t size_;
   };
+  CBOR_ENCODE(UnpaddedPieceSize, v) {
+    return s << static_cast<uint64_t>(v);
+  }
+  CBOR_DECODE(UnpaddedPieceSize, v) {
+    uint64_t num;
+    s >> num;
+    v = num;
+    return s;
+  }
 
   class PaddedPieceSize {
    public:
+    PaddedPieceSize();
+
     explicit PaddedPieceSize(uint64_t size);
 
-    operator uint64_t() const; // NOLINT
+    operator uint64_t() const;  // NOLINT
 
     PaddedPieceSize &operator=(uint64_t rhs);
 
@@ -43,6 +57,15 @@ namespace fc::primitives::piece {
    private:
     uint64_t size_;
   };
+  CBOR_ENCODE(PaddedPieceSize, v) {
+    return s << static_cast<uint64_t>(v);
+  }
+  CBOR_DECODE(PaddedPieceSize, v) {
+    uint64_t num;
+    s >> num;
+    v = num;
+    return s;
+  }
 
   class PieceInfo {
    public:

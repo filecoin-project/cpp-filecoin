@@ -8,7 +8,9 @@ add_library(miner_actor
     )
 target_link_libraries(miner_actor
     address
+    array
     cbor
-    chain_epoch_codec
+    map
     rle_bitset
+    uvarint_key
     )

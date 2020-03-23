@@ -15,7 +15,7 @@ add_library(power_table_hamt
     impl/power_table_error.cpp
     )
 target_link_libraries(power_table_hamt
-    address
+    address_key
     outcome
     hamt
     )

@@ -120,8 +120,8 @@ namespace fc::storage::amt {
   }
 
   struct Root : public IPLDBlockCommon<CID::Version::V1,
-                                     storage::ipld::HashType::blake2b_256,
-                                     storage::ipld::ContentType::DAG_CBOR> {
+                                       storage::ipld::HashType::blake2b_256,
+                                       storage::ipld::ContentType::DAG_CBOR> {
     uint64_t height{};
     uint64_t count{};
     Node node;
@@ -156,6 +156,14 @@ namespace fc::storage::amt {
     const CID &cid() const;
     /// Apply visitor for key value pairs
     outcome::result<void> visit(const Visitor &visitor);
+
+    inline void setIpld(std::shared_ptr<ipfs::IpfsDatastore> ipld) {
+      store_ = std::move(ipld);
+    }
+
+    inline std::shared_ptr<ipfs::IpfsDatastore> getIpld() const {
+      return store_;
+    }
 
     /// Store CBOR encoded value by key
     template <typename T>
