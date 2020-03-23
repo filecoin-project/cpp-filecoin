@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 #include <spdlog/fmt/fmt.h>
 
+#include "codec/cbor/cbor.hpp"
 #include "common/logger.hpp"
 #include "graphsync_acceptance_common.hpp"
 
@@ -67,12 +68,20 @@ namespace fc::storage::ipfs::graphsync::test {
                      boost::optional<libp2p::multi::Multiaddress> address,
                      const CID &root_cid) {
       start();
+
+      std::vector<Extension> extensions;
+      ResponseMetadata response_metadata{};
+      Extension response_metadata_extension =
+          encodeResponseMetadata(response_metadata);
+      extensions.push_back(response_metadata_extension);
+      std::vector<CID> cids;
+      Extension do_not_send_cids_extension = encodeDontSendCids(cids);
+      extensions.push_back(do_not_send_cids_extension);
       requests_.push_back(graphsync_->makeRequest(peer,
                                                   std::move(address),
                                                   root_cid,
                                                   {},
-                                                  true,
-                                                  {},
+                                                  extensions,
                                                   requestProgressCallback()));
       ++requests_sent;
     }
@@ -88,18 +97,21 @@ namespace fc::storage::ipfs::graphsync::test {
 
     // helper, returns requesu callback fn
     Graphsync::RequestProgressCallback requestProgressCallback() {
-      static auto formatMeta = [](const ResponseMetadata &meta) -> std::string {
+      static auto formatExtensions =
+          [](const std::vector<Extension> &extensions) -> std::string {
         std::string s;
-        for (const auto &item : meta) {
+        for (const auto &item : extensions) {
           s += fmt::format(
-              "({}:{}) ", item.first.toString().value(), item.second);
+              "({}: 0x{}) ", item.name, common::Buffer(item.data).toHex());
         }
         return s;
       };
-      return [this](ResponseStatusCode code, ResponseMetadata meta) {
+      return [this](ResponseStatusCode code,
+                    const std::vector<Extension> &extensions) {
         ++responses_received;
-        logger->trace(
-            "request progress: code={}, meta={}", statusCodeToString(code), formatMeta(meta));
+        logger->trace("request progress: code={}, extensions={}",
+                      statusCodeToString(code),
+                      formatExtensions(extensions));
         if (++n_responses == n_responses_expected_) {
           io_->stop();
         }
@@ -160,7 +172,6 @@ namespace fc::storage::ipfs::graphsync::test {
     };
 
     for (const auto &s : strings) {
-
       // client expects what server has
 
       server_data->addData(s);
@@ -333,7 +344,7 @@ namespace fc::storage::ipfs::graphsync::test {
 
     runEventLoop(io, run_time_msec);
 
-    for (auto& n: nodes) {
+    for (auto &n : nodes) {
       n.stop();
     }
 
@@ -376,7 +387,7 @@ int main(int argc, char *argv[]) {
     ++argv;
   } else {
     spdlog::set_level(spdlog::level::err);
-    run_time_msec = 20000;
+    run_time_msec = 900000;
   }
 
   ::testing::InitGoogleTest(&argc, argv);

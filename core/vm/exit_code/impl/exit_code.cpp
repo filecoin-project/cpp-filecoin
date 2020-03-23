@@ -55,6 +55,16 @@ namespace fc::vm {
       case E::MINER_ACTOR_ILLEGAL_STATE:
         return 20;  // ErrIllegalState in actor-specs
 
+      case E::MARKET_ACTOR_ILLEGAL_ARGUMENT:
+        return 16;  // ErrIllegalArgument in actor-specs
+      case E::MARKET_ACTOR_WRONG_CALLER:
+      case E::MARKET_ACTOR_FORBIDDEN:
+        return 18;  // ErrForbidden in actor-specs
+      case E::MARKET_ACTOR_INSUFFICIENT_FUNDS:
+        return 19;  // ErrInsufficientFunds in actor-specs
+      case E::MARKET_ACTOR_ILLEGAL_STATE:
+        return 20;  // ErrIllegalState in actor-specs
+
       case E::MULTISIG_ACTOR_WRONG_CALLER:
         return 1;
       case E::MULTISIG_ACTOR_ILLEGAL_ARGUMENT:
@@ -98,6 +108,8 @@ namespace fc::vm {
         return 1;
     }
     BOOST_ASSERT_MSG(false, "Ret code mapping missing");
+    // This should never be executed
+    return 0;
   }
 
   outcome::result<uint8_t> getRetCode(const std::error_code &error) {

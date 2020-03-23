@@ -100,10 +100,10 @@ namespace fc::storage::ipfs::graphsync {
     /// to this response
     /// \param request_id request ID
     /// \param status status code
-    /// \param metadata metadata pairs
+    /// \param extensions - data for protocol extensions
     void sendResponse(RequestId request_id,
                       ResponseStatusCode status,
-                      const ResponseMetadata &metadata);
+                      const std::vector<Extension> &extensions);
 
     /// Closes all streams to/from this peer
     /// \param status close reason to be forwarded to local request callback,

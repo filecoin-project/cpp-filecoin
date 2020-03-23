@@ -36,12 +36,6 @@ namespace fc::storage::ipfs::graphsync {
   /// Using libp2p and its peer Ids
   using libp2p::peer::PeerId;
 
-  /// Protocol constants
-  constexpr std::string_view kResponseMetadata = "graphsync/response-metadata";
-  constexpr std::string_view kDontSendCids = "graphsync/do-not-send-cids";
-  constexpr std::string_view kLink = "link";
-  constexpr std::string_view kBlockPresent = "blockPresent";
-
   /// Returns shared logger for graphsync modules
   common::Logger logger();
 }  // namespace fc::storage::ipfs::graphsync

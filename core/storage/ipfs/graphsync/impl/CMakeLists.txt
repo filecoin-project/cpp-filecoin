@@ -7,6 +7,7 @@ add_subdirectory(network/marshalling/protobuf)
 
 add_library(graphsync
     common.cpp
+    extension.cpp
     graphsync_impl.cpp
     merkledag_bridge_impl.cpp
     local_requests.cpp

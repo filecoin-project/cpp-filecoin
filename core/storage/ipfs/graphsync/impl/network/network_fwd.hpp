@@ -49,11 +49,11 @@ namespace fc::storage::ipfs::graphsync {
     /// \param peer peer ID of the response
     /// \param request_id request ID
     /// \param status status code
-    /// \param metadata metadata pairs
+    /// \param extensions - data for protocol extensions
     virtual void onResponse(const PeerId &peer,
                             RequestId request_id,
                             ResponseStatusCode status,
-                            ResponseMetadata metadata) = 0;
+                            std::vector<Extension> extensions) = 0;
   };
 
   /// PeerContext->Network feedback interface

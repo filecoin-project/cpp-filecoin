@@ -18,7 +18,8 @@ namespace fc::storage::ipfs::graphsync {
       : scheduler_(scheduler),
         network_(std::make_shared<Network>(std::move(host), scheduler)),
         local_requests_(std::make_shared<LocalRequests>(
-            std::move(scheduler), [this](RequestId request_id, SharedData body) {
+            std::move(scheduler),
+            [this](RequestId request_id, SharedData body) {
               cancelLocalRequest(request_id, std::move(body));
             })) {}
 
@@ -56,17 +57,16 @@ namespace fc::storage::ipfs::graphsync {
       boost::optional<libp2p::multi::Multiaddress> address,
       const CID &root_cid,
       gsl::span<const uint8_t> selector,
-      bool need_metadata,
-      const std::vector<CID> &dont_send_cids,
+      const std::vector<Extension> &extensions,
       RequestProgressCallback callback) {
     if (!started_ || !network_->canSendRequest(peer)) {
       logger()->trace("makeRequest: rejecting request to peer {}",
-          peer.toBase58().substr(46));
+                      peer.toBase58().substr(46));
       return local_requests_->newRejectedRequest(std::move(callback));
     }
 
     auto newRequest = local_requests_->newRequest(
-        root_cid, selector, need_metadata, dont_send_cids, std::move(callback));
+        root_cid, selector, extensions, std::move(callback));
 
     if (newRequest.request_id > 0) {
       assert(newRequest.body);
@@ -87,14 +87,14 @@ namespace fc::storage::ipfs::graphsync {
   void GraphsyncImpl::onResponse(const PeerId &peer,
                                  int request_id,
                                  ResponseStatusCode status,
-                                 ResponseMetadata metadata) {
+                                 std::vector<Extension> extensions) {
     // TODO peer ratings according to status
 
     if (!started_) {
       return;
     }
 
-    local_requests_->onResponse(request_id, status, std::move(metadata));
+    local_requests_->onResponse(request_id, status, std::move(extensions));
   }
 
   void GraphsyncImpl::onBlock(const PeerId &from,
@@ -113,16 +113,11 @@ namespace fc::storage::ipfs::graphsync {
                                       Message::Request request) {
     // TODO make this asynchronous
 
-    ResponseMetadata metadata;
     bool send_response = true;
 
     auto data_handler = [&](const CID &cid,
                             const common::Buffer &data) -> bool {
       bool data_present = !data.empty();
-
-      if (request.send_metadata) {
-        metadata.push_back({cid, data_present});
-      }
 
       if (data_present) {
         if (!network_->addBlockToResponse(from, request.id, cid, data)) {
@@ -151,10 +146,11 @@ namespace fc::storage::ipfs::graphsync {
       }
     }
 
-    network_->sendResponse(from, request.id, status, metadata);
+    network_->sendResponse(from, request.id, status, request.extensions);
   }
 
-  void GraphsyncImpl::cancelLocalRequest(RequestId request_id, SharedData body) {
+  void GraphsyncImpl::cancelLocalRequest(RequestId request_id,
+                                         SharedData body) {
     network_->cancelRequest(request_id, std::move(body));
   }
 

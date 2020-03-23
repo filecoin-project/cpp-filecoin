@@ -13,28 +13,10 @@ namespace fc::storage::ipfs::graphsync {
 
   using codec::cbor::CborEncodeStream;
 
-  namespace {
-    // returs CBOR boolean true as string
-    const std::string& encodeTrue() {
-      static const std::string s("\xF5");
-      return s;
-    }
-
-    // encodes list of CIDs into CBOR
-    std::string encodeCids(const std::vector<CID> &dont_send_cids) {
-      CborEncodeStream encoder;
-      encoder << dont_send_cids;
-      auto d = encoder.data();
-      std::string s(d.begin(), d.end());
-      return s;
-    }
-  }  // namespace
-
   void RequestBuilder::addRequest(RequestId request_id,
                                   const CID &root_cid,
                                   gsl::span<const uint8_t> selector,
-                                  bool need_metadata,
-                                  const std::vector<CID> &dont_send_cids) {
+                                  const std::vector<Extension> &extensions) {
     using codec::cbor::CborEncodeStream;
 
     auto *dst = pb_msg_->add_requests();
@@ -51,14 +33,10 @@ namespace fc::storage::ipfs::graphsync {
 
     dst->set_priority(1);
 
-    if (need_metadata) {
+    for (auto extension : extensions) {
       dst->mutable_extensions()->insert(
-          {std::string(kResponseMetadata), encodeTrue()});
-    }
-
-    if (!dont_send_cids.empty()) {
-      dst->mutable_extensions()->insert(
-          {std::string(kDontSendCids), encodeCids(dont_send_cids)});
+          {std::string(extension.name),
+           std::string(extension.data.begin(), extension.data.end())});
     }
 
     empty_ = false;

@@ -73,11 +73,11 @@ namespace fc::storage::ipfs::graphsync {
     /// \param peer peer ID
     /// \param request_id request ID
     /// \param status status code
-    /// \param metadata metadata pairs
+    /// \param extensions - data for protocol extensions
     void sendResponse(const PeerId &peer,
                       RequestId request_id,
                       ResponseStatusCode status,
-                      const ResponseMetadata &metadata);
+                      const std::vector<Extension> &extensions);
 
    private:
     /// Callback from peer context that it's closed

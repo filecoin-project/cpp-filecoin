@@ -3,18 +3,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "primitives/chain_epoch/chain_epoch_codec.hpp"
+#include "adt/uvarint_key.hpp"
 
 #include <gtest/gtest.h>
 
-using fc::primitives::ChainEpoch;
-using fc::primitives::chain_epoch::encodeToByteString;
+using ChainEpochKeyer = fc::adt::UvarintKeyer;
 using namespace std::string_literals;
 
 TEST(StoragePowerActorState, EncodeChainEpoch) {
-  EXPECT_EQ(encodeToByteString({0}), "\x00"s);
-  EXPECT_EQ(encodeToByteString({1}), "\x01"s);
-  EXPECT_EQ(encodeToByteString({2}), "\x02"s);
-  EXPECT_EQ(encodeToByteString({100}), "\x64"s);
-  EXPECT_EQ(encodeToByteString({130}), "\x82\x1"s);
+  EXPECT_EQ(ChainEpochKeyer::encode(0), "\x00"s);
+  EXPECT_EQ(ChainEpochKeyer::encode(1), "\x01"s);
+  EXPECT_EQ(ChainEpochKeyer::encode(2), "\x02"s);
+  EXPECT_EQ(ChainEpochKeyer::encode(100), "\x64"s);
+  EXPECT_EQ(ChainEpochKeyer::encode(130), "\x82\x1"s);
 }

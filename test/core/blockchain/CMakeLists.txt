@@ -5,3 +5,6 @@
 
 add_subdirectory(message_pool)
 add_subdirectory(production)
+add_subdirectory(sync_manager)
+add_subdirectory(weight_calculator)
+add_subdirectory(validation)
