@@ -23,12 +23,8 @@ namespace fc::storage::ipfs::graphsync {
       /// Selector string
       common::Buffer selector;
 
-      /// "graphsync/do-not-send-cids" extension
-      std::vector<CID> do_not_send;
-
-      /// "graphsync/response-metadata" extension whether metadata is to be
-      /// included in response
-      bool send_metadata = false;
+      /// aux information for other protocols extensions
+      std::vector<Extension> extensions;
 
       /// request priority: not used at the moment
       int32_t priority = 1;
@@ -45,8 +41,8 @@ namespace fc::storage::ipfs::graphsync {
       /// Status code
       ResponseStatusCode status = RS_NOT_FOUND;
 
-      /// Metadata
-      ResponseMetadata metadata;
+      /// aux information for other protocols extensions
+      std::vector<Extension> extensions;
     };
 
     /// This request list includes *all* requests from the peer, replacing

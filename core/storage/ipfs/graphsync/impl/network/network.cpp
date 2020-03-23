@@ -134,7 +134,7 @@ namespace fc::storage::ipfs::graphsync {
   void Network::sendResponse(const PeerId &peer,
                              int request_id,
                              ResponseStatusCode status,
-                             const ResponseMetadata &metadata) {
+                             const std::vector<Extension> &extensions) {
     if (!started_) {
       return;
     }
@@ -144,7 +144,7 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
-    ctx->sendResponse(request_id, status, metadata);
+    ctx->sendResponse(request_id, status, extensions);
   }
 
   void Network::peerClosed(const PeerId &peer, ResponseStatusCode status) {

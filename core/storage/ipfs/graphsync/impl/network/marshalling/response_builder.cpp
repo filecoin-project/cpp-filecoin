@@ -13,52 +13,26 @@ namespace fc::storage::ipfs::graphsync {
 
   namespace {
     using codec::cbor::CborEncodeStream;
-
-    // encodes metadata item, {"link":CID, "blockPresent":bool}
-    std::map<std::string, CborEncodeStream> encodeMetadataItem(
-        const std::pair<CID, bool> &item) {
-      static const std::string link(kLink);
-      static const std::string blockPresent(kBlockPresent);
-
-      std::map<std::string, CborEncodeStream> m;
-      m[link] << item.first;
-      m[blockPresent] << item.second;
-      return m;
-    }
-
-    // encodes metadata pairs, [ {"link":CID, "blockPresent":bool}, ...]
-    std::string encodeMetadata(const ResponseMetadata &metadata) {
-      auto l = CborEncodeStream::list();
-
-      for (const auto &item : metadata) {
-        l << encodeMetadataItem(item);
-      }
-
-      CborEncodeStream encoder;
-      encoder << l;
-      auto d = encoder.data();
-      std::string s(d.begin(), d.end());
-      return s;
-    }
   }  // namespace
 
   void ResponseBuilder::addResponse(RequestId request_id,
                                     ResponseStatusCode status,
-                                    const ResponseMetadata &metadata) {
+                                    const std::vector<Extension> &extensions) {
     auto *dst = pb_msg_->add_responses();
     dst->set_id(request_id);
     dst->set_status(status);
 
-    if (!metadata.empty()) {
+    for (auto extension : extensions) {
       dst->mutable_extensions()->insert(
-          {std::string(kResponseMetadata), encodeMetadata(metadata)});
+          {std::string(extension.name),
+           std::string(extension.data.begin(), extension.data.end())});
     }
 
     empty_ = false;
   }
 
-  void ResponseBuilder::addDataBlock(
-      const CID &cid, const common::Buffer &data) {
+  void ResponseBuilder::addDataBlock(const CID &cid,
+                                     const common::Buffer &data) {
     auto *dst = pb_msg_->add_data();
 
     CborEncodeStream encoder;

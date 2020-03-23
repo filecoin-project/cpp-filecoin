@@ -17,14 +17,11 @@ namespace fc::storage::ipfs::graphsync {
     /// \param request_id id of new or cancelled request
     /// \param root_cid root CID
     /// \param selector IPLD selector serialized to bytes
-    /// \param need_metadata flag, true if metadata pairs are expected in
-    /// response
-    /// \param dont_send_cids set of data block CIDS not to be returned
+    /// \param extensions - extensions data
     void addRequest(RequestId request_id,
                     const CID &root_cid,
                     gsl::span<const uint8_t> selector,
-                    bool need_metadata,
-                    const std::vector<CID> &dont_send_cids);
+                    const std::vector<Extension> &extensions);
 
     /// Adds request to message which cancels the request sent earlier
     void addCancelRequest(RequestId request_id);

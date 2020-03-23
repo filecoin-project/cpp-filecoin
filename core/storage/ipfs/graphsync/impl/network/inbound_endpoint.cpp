@@ -38,8 +38,8 @@ namespace fc::storage::ipfs::graphsync {
   outcome::result<void> InboundEndpoint::sendResponse(
       int request_id,
       ResponseStatusCode status,
-      const ResponseMetadata &metadata) {
-    response_builder_.addResponse(request_id, status, metadata);
+      const std::vector<Extension> &extensions) {
+    response_builder_.addResponse(request_id, status, extensions);
     auto res = response_builder_.serialize();
     response_builder_.clear();
     if (!res) {
@@ -55,8 +55,8 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   outcome::result<void> InboundEndpoint::sendPartialResponse(int request_id) {
-    static const ResponseMetadata dummy_metadata;
-    return sendResponse(request_id, RS_PARTIAL_CONTENT, dummy_metadata);
+    static const std::vector<Extension> dummy_extensions;
+    return sendResponse(request_id, RS_PARTIAL_CONTENT, dummy_extensions);
   }
 
 }  // namespace fc::storage::ipfs::graphsync
