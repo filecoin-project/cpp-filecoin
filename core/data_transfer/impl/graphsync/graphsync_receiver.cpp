@@ -70,10 +70,11 @@ namespace fc::data_transfer {
     return sendResponse(initiator, true, request.transfer_id);
   }
 
-  void GraphsyncReceiver::receiveResponse(
+  outcome::result<void> GraphsyncReceiver::receiveResponse(
       const PeerInfo &sender, const DataTransferResponse &response) {
-    Event event{.timestamp = clock::UTCClockImpl().nowUTC(),
-                .code = EventCode::ERROR};
+    Event event{.code = EventCode::ERROR,
+                .message = "",
+                .timestamp = clock::UTCClockImpl().nowUTC()};
     if (response.is_accepted) {
       // if we are handling a response to a pull request then they are sending
       // data and the initiator is us. construct a channel id for a pull request
@@ -83,18 +84,18 @@ namespace fc::data_transfer {
       auto channel_state =
           graphsync_manager_->getChannelByIdAndSender(channel_id, sender);
       if (channel_state) {
-        // TODO handle error
-        sendGraphSyncRequest(peer_,
-                             response.transfer_id,
-                             true,
-                             sender,
-                             channel_state->channel.base_cid,
-                             channel_state->channel.selector->getRawBytes());
+        OUTCOME_TRY(sendGraphSyncRequest(
+            peer_,
+            response.transfer_id,
+            true,
+            sender,
+            channel_state->channel.base_cid,
+            channel_state->channel.selector->getRawBytes()));
         event.code = EventCode::PROGRESS;
-        // TODO notify in case of error?
         notifySubscribers(event, *channel_state);
       }
     }
+    return outcome::success();
   }
 
   void GraphsyncReceiver::receiveError() {
@@ -116,9 +117,9 @@ namespace fc::data_transfer {
 
   void GraphsyncReceiver::unsubscribe(const Subscriber &subscriber) {
     // TODO
-//    subscribers_.erase(
-//        std::remove(subscribers_.begin(), subscribers_.end(), subscriber),
-//        subscribers_.end());
+    //    subscribers_.erase(
+    //        std::remove(subscribers_.begin(), subscribers_.end(), subscriber),
+    //        subscribers_.end());
   }
 
   outcome::result<void> GraphsyncReceiver::sendGraphSyncRequest(
@@ -142,9 +143,11 @@ namespace fc::data_transfer {
         {extension},
         [this, initiator, transfer_id, sender](
             ResponseStatusCode code, std::vector<Extension> extensions) {
-          Event event{.timestamp = clock::UTCClockImpl().nowUTC()};
+          Event event{.code = EventCode::ERROR,
+                      .message = "",
+                      .timestamp = clock::UTCClockImpl().nowUTC()};
 
-          ChannelId channel_id{.id = transfer_id, .initiator = initiator};
+          ChannelId channel_id{.initiator = initiator, .id = transfer_id};
           auto channel = this->graphsync_manager_->getChannelByIdAndSender(
               channel_id, sender);
           if (!channel) {

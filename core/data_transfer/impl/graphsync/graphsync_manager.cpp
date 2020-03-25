@@ -58,8 +58,9 @@ namespace fc::data_transfer::graphsync {
                     .selector = std::move(selector),
                     .voucher = voucher,
                     .sender = sender_peer,
-                    .recipient = receiver_peer};
-    ChannelState state{.channel = channel};
+                    .recipient = receiver_peer,
+                    .total_size = 0};
+    ChannelState state{.channel = channel, .sent = 0, .received = 0};
 
     // TODO check thread-safety of channels_
     auto res = channels_.try_emplace(channel_id, state);

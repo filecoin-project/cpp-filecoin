@@ -34,7 +34,8 @@ namespace fc::data_transfer {
     /**
      * Registers the Receiver to handle messages received from the network
      */
-    virtual void setDelegate(std::shared_ptr<MessageReceiver> receiver) = 0;
+    virtual outcome::result<void> setDelegate(
+        std::shared_ptr<MessageReceiver> receiver) = 0;
 
     /**
      * Establishes a connection to the given peer

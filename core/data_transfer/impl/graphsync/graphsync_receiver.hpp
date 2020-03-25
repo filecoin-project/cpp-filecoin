@@ -26,7 +26,7 @@ namespace fc::data_transfer {
     outcome::result<void> receiveRequest(
         const PeerInfo &initiator, const DataTransferRequest &request) override;
 
-    void receiveResponse(const PeerInfo &sender,
+    outcome::result<void> receiveResponse(const PeerInfo &sender,
                          const DataTransferResponse &response) override;
 
     void receiveError() override;

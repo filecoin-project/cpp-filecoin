@@ -11,8 +11,6 @@
 
 namespace fc::data_transfer {
 
-  using common::Buffer;
-
   /**
    * DataTransferRequest is a request message for the data transfer protocol
    */
@@ -61,19 +59,7 @@ namespace fc::data_transfer {
                                     std::vector<uint8_t> selector,
                                     std::vector<uint8_t> voucher,
                                     std::string voucher_type,
-                                    TransferId transfer_id) {
-    return DataTransferMessage{
-        .is_request = true,
-        .request = DataTransferRequest{.base_cid = std::move(base_cid),
-                                       .is_cancel = false,
-                                       .pid = {},
-                                       .is_part = false,
-                                       .is_pull = is_pull,
-                                       .selector = std::move(selector),
-                                       .voucher = std::move(voucher),
-                                       .voucher_type = std::move(voucher_type),
-                                       .transfer_id = transfer_id}};
-  }
+                                    TransferId transfer_id);
 
   /**
    * Creates response data transfer message
@@ -81,12 +67,7 @@ namespace fc::data_transfer {
    * @param transfer_id
    * @return response message
    */
-  DataTransferMessage createResponse(bool is_accepted, TransferId transfer_id) {
-    return DataTransferMessage{
-        .is_request = false,
-        .response = DataTransferResponse{.is_accepted = is_accepted,
-                                         .transfer_id = transfer_id}};
-  }
+  DataTransferMessage createResponse(bool is_accepted, TransferId transfer_id);
 
   CBOR_TUPLE(DataTransferRequest,
              base_cid,

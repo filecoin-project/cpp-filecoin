@@ -12,7 +12,7 @@ namespace fc::data_transfer {
 
   PeerInfo ExtensionDataTransferData::getInitiator() const {
     PeerId peer_id = PeerId::fromBase58(initiator).value();
-    return PeerInfo{.id = peer_id};
+    return PeerInfo{.id = peer_id, .addresses = {}};
   }
 
   outcome::result<Extension> encodeDataTransferExtension(

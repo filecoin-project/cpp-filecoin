@@ -91,6 +91,7 @@ namespace fc::crypto::bls {
   outcome::result<Signature> BlsProviderImpl::aggregateSignatures(
       const std::vector<Signature> &signatures) const {
     Signature signature;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const uint8_t *flat_bytes =
         reinterpret_cast<const uint8_t *>(signatures.data());
     size_t flat_size = sizeof(Signature) * signatures.size();

@@ -18,7 +18,8 @@ namespace fc::data_transfer {
    public:
     explicit Libp2pDataTransferNetwork(std::shared_ptr<Host> host);
 
-    void setDelegate(std::shared_ptr<MessageReceiver> receiver) override;
+    outcome::result<void> setDelegate(
+        std::shared_ptr<MessageReceiver> receiver) override;
 
     outcome::result<void> connectTo(const PeerInfo &peer) override;
 
@@ -29,6 +30,7 @@ namespace fc::data_transfer {
     std::shared_ptr<libp2p::Host> host_;
     std::shared_ptr<MessageReceiver> receiver_;
   };
+
 }  // namespace fc::data_transfer
 
 #endif  // CPP_FILECOIN_DATA_TRANSFER_LIBP2P_DATA_TRANSFER_NETWORK_HPP

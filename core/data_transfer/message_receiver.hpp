@@ -28,7 +28,7 @@ namespace fc::data_transfer {
     virtual outcome::result<void> receiveRequest(
         const PeerInfo &initiator, const DataTransferRequest &request) = 0;
 
-    virtual void receiveResponse(const PeerInfo &sender,
+    virtual outcome::result<void> receiveResponse(const PeerInfo &sender,
                                  const DataTransferResponse &response) = 0;
 
     virtual void receiveError() = 0;
