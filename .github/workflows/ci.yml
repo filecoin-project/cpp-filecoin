@@ -47,6 +47,7 @@ jobs:
         if [ "$RUNNER_OS" = "macOS" ]; then
           brew install ninja
           brew install pkg-config
+          brew install gnu-tar
         else
           sudo apt-get update || true
           sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers

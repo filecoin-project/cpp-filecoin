@@ -23,6 +23,7 @@ jobs:
     - name: install
       run: |
         brew install ninja llvm pkg-config
+        brew install gnu-tar
         sudo python3 -m pip install --upgrade pip
         sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
     - name: cmake

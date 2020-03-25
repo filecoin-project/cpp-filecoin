@@ -9,7 +9,12 @@ rust_sources_dir="../filecoin-ffi/rust"
 
 if download_release_tarball tarball_path "${rust_sources_dir}" "filecoin-ffi"; then
     tmp_dir=$(mktemp -d)
-    tar -C "$tmp_dir" -xzf "$tarball_path"
+
+    if [[ "$OSTYPE" == "linux-gnu" ]]; then
+        tar -C "$tmp_dir" -xzf "$tarball_path"
+    elif [[ "$OSTYPE" == "darwin"* ]]; then
+        gtar -C "$tmp_dir" -xzf "$tarball_path"
+    fi
 
     find -L "${tmp_dir}" -type f -name filecoin.h -exec cp -- "{}" . \;
     find -L "${tmp_dir}" -type f -name libfilecoin.a -exec cp -- "{}" . \;
