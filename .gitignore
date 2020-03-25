@@ -30,6 +30,8 @@ include/generated/*
 .scannerwork/
 peers.list
 cmake-build*
+deps/our-filecoin-ffi/include
+deps/our-filecoin-ffi/lib
 
 cmake-build*
 .gtm
