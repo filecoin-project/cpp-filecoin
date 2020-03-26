@@ -85,6 +85,16 @@ TEST_F(AmtTest, SetRemoveCollapseZero) {
   EXPECT_TRUE(which<Node::Values>(getRoot().node.items));
 }
 
+TEST_F(AmtTest, SetOverwrite) {
+  auto key = 3;
+  auto value1 = Value{"01"_unhex};
+  auto value2 = Value{"02"_unhex};
+  EXPECT_OUTCOME_TRUE_1(amt.set(key, value1));
+  EXPECT_OUTCOME_EQ(amt.get(key), value1);
+  EXPECT_OUTCOME_TRUE_1(amt.set(key, value2));
+  EXPECT_OUTCOME_EQ(amt.get(key), value2);
+}
+
 TEST_F(AmtTest, Flush) {
   auto key = 9llu;
   auto value = Value{"07"_unhex};
