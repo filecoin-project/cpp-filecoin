@@ -34,13 +34,30 @@ download_release_tarball() {
 
     __tar_path="/tmp/${__release_name}_$(basename ${__release_url}).tar.gz"
 
-    curl \
+    __asset_url=""
+
+    if [ -z "${GITHUB_TOKEN}" ]; then
+      __asset_url=$(curl \
+        --head \
         --retry 3 \
         --header "Accept:application/octet-stream" \
         --location \
-        --output "${__tar_path}" \
-        "$__release_url"
+        --output /dev/null \
+        -w %{url_effective} \
+        "$__release_url")
+    else
+      __asset_url=$(curl \
+        --head \
+        --retry 3 \
+        --header "Accept:application/octet-stream" \
+        --header "authorization: Bearer ${GITHUB_TOKEN}" \
+        --location \
+        --output /dev/null \
+        -w %{url_effective} \
+        "$__release_url")
+    fi
 
+    curl --retry 3  --output "${__tar_path}" "$__asset_url"
     if [[ $? -ne "0" ]]; then
         (>&2 echo "failed to download release asset (tag URL: ${__release_tag_url}, asset URL: ${__asset_url})")
         return 1
