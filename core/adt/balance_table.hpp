@@ -18,9 +18,9 @@ namespace fc::adt {
   struct BalanceTable : public Map<TokenAmount, AddressKeyer> {
     using Map::Map;
 
-    outcome::result<TokenAmount> get(const Key &key);
-
     outcome::result<void> add(const Key &key, TokenAmount amount);
+
+    outcome::result<void> addCreate(const Key &key, TokenAmount amount);
 
     outcome::result<TokenAmount> subtractWithMin(const Key &key,
                                                  TokenAmount amount,
