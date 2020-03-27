@@ -12,6 +12,11 @@ if [ -e filecoin_ffi_commit_intalled ] && [ "$(cat filecoin_ffi_commit_intalled)
   exit 0
 fi
 
+auth_header=()
+if [ -n "${GITHUB_TOKEN}" ]; then
+	auth_header=("-H" "Authorization: token ${GITHUB_TOKEN}")
+fi
+
 download_release_tarball() {
     __resultvar=$1
     __repo_name=$2
@@ -22,16 +27,10 @@ download_release_tarball() {
 
     echo "acquiring release @ ${__release_tag}"
 
-    if [ -z "${GITHUB_TOKEN}" ]; then
-      __release_response=$(curl \
+    __release_response=$(curl \
         --retry 3 \
+        "${auth_header[@]}" \
         --location $__release_tag_url)
-    else
-      __release_response=$(curl \
-        --retry 3 \
-        --header "authorization: Bearer ${GITHUB_TOKEN}" \
-        --location $__release_tag_url)
-    fi
 
 
 
@@ -46,26 +45,16 @@ download_release_tarball() {
 
     __asset_url=""
 
-    if [ -z "${GITHUB_TOKEN}" ]; then
-      __asset_url=$(curl \
+    __asset_url=$(curl \
         --head \
         --retry 3 \
         --header "Accept:application/octet-stream" \
+        "${auth_header[@]}"\
         --location \
         --output /dev/null \
         -w %{url_effective} \
         "$__release_url")
-    else
-      __asset_url=$(curl \
-        --head \
-        --retry 3 \
-        --header "Accept:application/octet-stream" \
-        --header "authorization: Bearer ${GITHUB_TOKEN}" \
-        --location \
-        --output /dev/null \
-        -w %{url_effective} \
-        "$__release_url")
-    fi
+
 
     curl --retry 3  --output "${__tar_path}" "$__asset_url"
     if [[ $? -ne "0" ]]; then

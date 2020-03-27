@@ -19,6 +19,9 @@ set(FILECOIN_FFI_PKG
 
 set(ENV{PKG_CONFIG_PATH}  "${PKG_CONFIG_PATH}:${FILECOIN_FFI_PKG}")
 
+# uncomment for build from source
+#set(ENV{FFI_BUILD_FROM_SOURCE}  "1")
+
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(PKG_FILECOIN filecoin)
 
