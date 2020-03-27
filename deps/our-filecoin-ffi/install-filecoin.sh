@@ -103,21 +103,17 @@ build_from_source() {
     popd
 }
 
+mkdir -p include/filecoin-ffi
+mkdir -p lib/pkgconfig
+
 if [ "${FFI_BUILD_FROM_SOURCE}" != "1" ] && download_release_tarball tarball_path "filecoin-ffi"; then
     tmp_dir=$(mktemp -d)
 
     tar -C "$tmp_dir" -xzf "$tarball_path"
 
-    find -L "${tmp_dir}" -type f -name filecoin.h -exec cp -- "{}" . \;
-    find -L "${tmp_dir}" -type f -name libfilecoin.a -exec cp -- "{}" . \;
-    find -L "${tmp_dir}" -type f -name filecoin.pc -exec cp -- "{}" . \;
-
-    mkdir -p include/filecoin-ffi
-    mkdir -p lib/pkgconfig
-
-    rsync --checksum --remove-source-files ./filecoin.h ./include/filecoin-ffi
-    rsync --checksum --remove-source-files ./libfilecoin.a ./lib
-    rsync --checksum --remove-source-files ./filecoin.pc ./lib/pkgconfig
+    find -L "${tmp_dir}" -type f -name filecoin.h -exec rsync --checksum "{}" ./include/filecoin-ffi \;
+    find -L "${tmp_dir}" -type f -name libfilecoin.a -exec rsync --checksum "{}" ./lib \;
+    find -L "${tmp_dir}" -type f -name filecoin.pc -exec rsync --checksum "{}" ./lib/pkgconfig \;
 
     (>&2 echo "successfully installed prebuilt libfilecoin")
 else
@@ -125,31 +121,24 @@ else
 
     build_from_source "filecoin" "${rust_sources_dir}"
 
-    mkdir -p include/filecoin-ffi
-    mkdir -p lib/pkgconfig
+    find -L "${rust_sources_dir}/target/release" -type f -name filecoin.h -exec rsync --checksum "{}" ./include/filecoin-ffi \;
+    find -L "${rust_sources_dir}/target/release" -type f -name libfilecoin.a -exec rsync --checksum "{}" ./lib \;
+    find -L "${rust_sources_dir}" -type f -name filecoin.pc -exec rsync --checksum "{}" ./lib/pkgconfig \;
 
-    find -L "${rust_sources_dir}/target/release" -type f -name filecoin.h -exec cp -- "{}" . \;
-    find -L "${rust_sources_dir}/target/release" -type f -name libfilecoin.a -exec cp -- "{}" . \;
-    find -L "${rust_sources_dir}" -type f -name filecoin.pc -exec cp -- "{}" . \;
-
-    if [[ ! -f "./filecoin.h" ]]; then
+    if [[ ! -f "./include/filecoin-ffi/filecoin.h" ]]; then
         (>&2 echo "failed to install filecoin.h")
         exit 1
     fi
 
-    if [[ ! -f "./libfilecoin.a" ]]; then
+    if [[ ! -f "./lib/libfilecoin.a" ]]; then
         (>&2 echo "failed to install libfilecoin.a")
         exit 1
     fi
 
-    if [[ ! -f "./filecoin.pc" ]]; then
+    if [[ ! -f "./lib/pkgconfig/filecoin.pc" ]]; then
         (>&2 echo "failed to install filecoin.pc")
         exit 1
     fi
-
-    rsync --checksum --remove-source-files ./filecoin.h ./include/filecoin-ffi
-    rsync --checksum --remove-source-files ./libfilecoin.a ./lib
-    rsync --checksum --remove-source-files ./filecoin.pc ./lib/pkgconfig
 
     (>&2 echo "successfully built and installed libfilecoin from source")
 fi
