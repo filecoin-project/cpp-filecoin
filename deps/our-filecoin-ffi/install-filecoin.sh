@@ -7,7 +7,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 rust_sources_dir="../filecoin-ffi/rust"
 release_sha1=$(cd $rust_sources_dir && git rev-parse HEAD)
 
-if [ -e filecoin_ffi_commit_intalled ] && [ "$(cat filecoin_ffi_commit_intalled)" = "$release_sha1" ]; then
+if [ -e filecoin_ffi_commit_installed ] && [ "$(cat filecoin_ffi_commit_installed)" = "$release_sha1" ]; then
   (>&2 echo "filecoin-ffi is already installed")
   exit 0
 fi
@@ -143,4 +143,4 @@ else
     (>&2 echo "successfully built and installed libfilecoin from source")
 fi
 
-echo "$release_sha1" > filecoin_ffi_commit_intalled
+echo "$release_sha1" > filecoin_ffi_commit_installed
