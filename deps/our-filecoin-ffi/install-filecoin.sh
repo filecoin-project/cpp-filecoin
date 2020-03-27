@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -Eeo pipefail
+
 cd "$(dirname "${BASH_SOURCE[0]}")"
 
 rust_sources_dir="../filecoin-ffi/rust"
