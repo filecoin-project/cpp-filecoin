@@ -56,6 +56,13 @@ jobs:
         sudo pip3 install scikit-build
         sudo pip3 install requests gitpython gcovr pyyaml
         sudo curl https://sh.rustup.rs -sSf | sh -s -- -y
+    - name: cache
+      uses: actions/cache@v1.1.2
+      env:
+        cache-name: cache-filecoin-ffi-proofs
+      with:
+        path: /var/tmp/filecoin-proof-parameters/
+        key: build-${{ env.cache-name }}
     - name: cmake
       env:
         CC: ${{ matrix.compiler.cc }}
