@@ -34,6 +34,12 @@ download_release_tarball() {
 
 
 
+    if ! [ -x "$(command -v jq)" ]; then
+        (>&2 echo 'Error: jq is not installed.')
+        (>&2 echo 'Install jq to resolve this problem.')
+        return 1
+    fi
+
     __release_url=$(echo $__release_response | jq -r ".assets[] | select(.name | contains(\"${__release_name}\")) | .url")
 
     if [[ -z "$__release_url" ]]; then
