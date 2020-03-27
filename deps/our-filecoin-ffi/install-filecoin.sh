@@ -1,12 +1,22 @@
 #!/usr/bin/env bash
 
+set -Exeo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")"
+
+rust_sources_dir="../filecoin-ffi/rust"
+release_sha1=$(cd $rust_sources_dir && git rev-parse HEAD)
+
+if [ -e filecoin_ffi_commit_intalled ] && [ "$(cat filecoin_ffi_commit_intalled)" = "$release_sha1" ]; then
+  (>&2 echo "filecoin-ffi is already installed")
+  exit 0
+fi
+
 download_release_tarball() {
     __resultvar=$1
-    __rust_sources_path=$2
-    __repo_name=$3
+    __repo_name=$2
     __release_name="${__repo_name}-$(uname)"
-    __release_sha1=$(cd $__rust_sources_path && git rev-parse HEAD)
-    __release_tag="${__release_sha1:0:16}"
+    __release_tag="${release_sha1:0:16}"
     __release_tag_url="https://api.github.com/repos/filecoin-project/${__repo_name}/releases/tags/${__release_tag}"
     __release_response=""
 
@@ -69,8 +79,7 @@ download_release_tarball() {
 build_from_source() {
     __library_name=$1
     __rust_sources_path=$2
-    __repo_sha1=$(git rev-parse HEAD)
-    __repo_sha1_truncated="${__repo_sha1:0:16}"
+    __repo_sha1_truncated="${release_sha1:0:16}"
 
     echo "building from source @ ${__repo_sha1_truncated}"
 
@@ -98,3 +107,56 @@ build_from_source() {
 
     popd
 }
+
+if [ "${FFI_BUILD_FROM_SOURCE}" != "1" ] && download_release_tarball tarball_path "filecoin-ffi"; then
+    tmp_dir=$(mktemp -d)
+
+    tar -C "$tmp_dir" -xzf "$tarball_path"
+
+    find -L "${tmp_dir}" -type f -name filecoin.h -exec cp -- "{}" . \;
+    find -L "${tmp_dir}" -type f -name libfilecoin.a -exec cp -- "{}" . \;
+    find -L "${tmp_dir}" -type f -name filecoin.pc -exec cp -- "{}" . \;
+
+    mkdir -p include/filecoin-ffi
+    mkdir -p lib/pkgconfig
+
+    rsync --checksum --remove-source-files ./filecoin.h ./include/filecoin-ffi
+    rsync --checksum --remove-source-files ./libfilecoin.a ./lib
+    rsync --checksum --remove-source-files ./filecoin.pc ./lib/pkgconfig
+
+    (>&2 echo "successfully installed prebuilt libfilecoin")
+else
+    (>&2 echo "building libfilecoin from local sources (dir = ${rust_sources_dir})")
+
+    build_from_source "filecoin" "${rust_sources_dir}"
+
+    mkdir -p include/filecoin-ffi
+    mkdir -p lib/pkgconfig
+
+    find -L "${rust_sources_dir}/target/release" -type f -name filecoin.h -exec cp -- "{}" . \;
+    find -L "${rust_sources_dir}/target/release" -type f -name libfilecoin.a -exec cp -- "{}" . \;
+    find -L "${rust_sources_dir}" -type f -name filecoin.pc -exec cp -- "{}" . \;
+
+    if [[ ! -f "./filecoin.h" ]]; then
+        (>&2 echo "failed to install filecoin.h")
+        exit 1
+    fi
+
+    if [[ ! -f "./libfilecoin.a" ]]; then
+        (>&2 echo "failed to install libfilecoin.a")
+        exit 1
+    fi
+
+    if [[ ! -f "./filecoin.pc" ]]; then
+        (>&2 echo "failed to install filecoin.pc")
+        exit 1
+    fi
+
+    rsync --checksum --remove-source-files ./filecoin.h ./include/filecoin-ffi
+    rsync --checksum --remove-source-files ./libfilecoin.a ./lib
+    rsync --checksum --remove-source-files ./filecoin.pc ./lib/pkgconfig
+
+    (>&2 echo "successfully built and installed libfilecoin from source")
+fi
+
+echo "$release_sha1" > filecoin_ffi_commit_intalled

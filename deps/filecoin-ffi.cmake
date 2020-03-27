@@ -17,8 +17,6 @@ set(FILECOIN_FFI_PKG
         "${FILECOIN_FFI_PATH}/lib/pkgconfig"
         )
 
-file(MAKE_DIRECTORY ${FILECOIN_FFI_INCLUDES})
-
 set(ENV{PKG_CONFIG_PATH}  "${PKG_CONFIG_PATH}:${FILECOIN_FFI_PKG}")
 
 find_package(PkgConfig REQUIRED)
@@ -26,7 +24,7 @@ pkg_check_modules(PKG_FILECOIN filecoin)
 
 if (NOT PKG_FILECOIN_FOUND)
     message("Installing filecoin-ffi")
-    execute_process(COMMAND ./install-filecoin
+    execute_process(COMMAND ./install-filecoin.sh
             WORKING_DIRECTORY ${FILECOIN_FFI_PATH})
 
     pkg_check_modules(PKG_FILECOIN REQUIRED filecoin)
@@ -36,7 +34,7 @@ endif (NOT PKG_FILECOIN_FOUND)
 
 add_custom_target(
         filecoin_ffi_build
-        COMMAND ./install-filecoin
+        COMMAND ./install-filecoin.sh
         WORKING_DIRECTORY ${FILECOIN_FFI_PATH}
 )
 

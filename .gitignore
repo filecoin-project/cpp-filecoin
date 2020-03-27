@@ -32,6 +32,7 @@ peers.list
 cmake-build*
 deps/our-filecoin-ffi/include
 deps/our-filecoin-ffi/lib
+deps/our-filecoin-ffi/filecoin_ffi_commit_intalled
 
 cmake-build*
 .gtm
@@ -44,3 +45,4 @@ dist
 ninja_build_release
 _builds
 _logs
+
