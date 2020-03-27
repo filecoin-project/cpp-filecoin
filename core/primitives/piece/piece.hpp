@@ -75,5 +75,9 @@ namespace fc::primitives::piece {
     CID cid;
   };
 
+  inline bool operator==(const PieceInfo &lhs, const PieceInfo &rhs) {
+    return lhs.size == rhs.size && lhs.cid == rhs.cid;
+  }
+
 };      // namespace fc::primitives::piece
 #endif  // CPP_FILECOIN_PIECE_HPP

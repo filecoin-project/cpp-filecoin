@@ -25,21 +25,22 @@ namespace fc::vm::actor::builtin::market {
     T min, max;
   };
 
-  Bounds<ChainEpoch> dealDurationBounds(PaddedPieceSize) {
+  inline Bounds<EpochDuration> dealDurationBounds(PaddedPieceSize) {
     return {0, 10000};
   }
 
-  Bounds<TokenAmount> dealPricePerEpochBounds(PaddedPieceSize, EpochDuration) {
+  inline Bounds<TokenAmount> dealPricePerEpochBounds(PaddedPieceSize,
+                                                     EpochDuration) {
     return {0, 1 << 20};
   }
 
-  Bounds<TokenAmount> dealProviderCollateralBounds(PaddedPieceSize,
-                                                   EpochDuration) {
+  inline Bounds<TokenAmount> dealProviderCollateralBounds(PaddedPieceSize,
+                                                          EpochDuration) {
     return {0, 1 << 20};
   }
 
-  Bounds<TokenAmount> dealClientCollateralBounds(PaddedPieceSize,
-                                                 EpochDuration) {
+  inline Bounds<TokenAmount> dealClientCollateralBounds(PaddedPieceSize,
+                                                        EpochDuration) {
     return {0, 1 << 20};
   }
 

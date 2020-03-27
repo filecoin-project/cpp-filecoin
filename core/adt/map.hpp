@@ -80,23 +80,23 @@ namespace fc::adt {
 
   /// Cbor encode map
   template <class Stream,
-            typename V,
-            typename K,
+            typename Value,
+            typename Keyer,
             size_t bit_width,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_encoder_stream>>
-  Stream &operator<<(Stream &&s, const Map<V, K, bit_width> &map) {
+  Stream &operator<<(Stream &&s, const Map<Value, Keyer, bit_width> &map) {
     return s << map.hamt.cid();
   }
 
   /// Cbor decode map
   template <class Stream,
-            typename V,
-            typename K,
+            typename Value,
+            typename Keyer,
             size_t bit_width,
             typename = std::enable_if_t<
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>>
-  Stream &operator>>(Stream &&s, Map<V, K, bit_width> &map) {
+  Stream &operator>>(Stream &&s, Map<Value, Keyer, bit_width> &map) {
     CID root;
     s >> root;
     map.hamt = {nullptr, root, bit_width};
