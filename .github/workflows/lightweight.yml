@@ -1,0 +1,29 @@
+name: LightTest
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+        name: checkout repo
+      - name: cache
+          uses: actions/cache@v1.1.2
+          env:
+            cache-name: cache-test
+          with:
+            path: /var/tmp/ff
+            key: build-${{ env.cache-name }}
+      - name: checkout submodules
+          shell: bash
+          run: |
+            cd /var/tmp && mkdir -p ff
+            cd ff && touch test.txt
+            echo "Lorem ipsum" > test.txt
