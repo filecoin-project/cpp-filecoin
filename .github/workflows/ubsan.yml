@@ -14,6 +14,13 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       name: checkout repo
+    - name: cache
+      uses: actions/cache@v1.1.2
+      env:
+        cache-name: cache-filecoin-ffi-proofs
+      with:
+        path: /var/tmp/filecoin-proof-parameters
+        key: build-${{ env.cache-name }}
     - name: checkout submodules
       shell: bash
       run: |
@@ -25,13 +32,6 @@ jobs:
         brew install ninja llvm pkg-config
         sudo python3 -m pip install --upgrade pip
         sudo python3 -m pip install scikit-build cmake requests gitpython gcovr pyyaml
-    - name: cache
-      uses: actions/cache@v1.1.2
-      env:
-        cache-name: cache-filecoin-ffi-proofs
-      with:
-        path: /var/tmp/filecoin-proof-parameters/
-        key: build-${{ env.cache-name }}
     - name: cmake
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
