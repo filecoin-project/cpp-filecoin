@@ -22,11 +22,6 @@ jobs:
       with:
         path: /var/tmp/filecoin-proof-parameters
         key: build-${{ env.cache-name }}
-    - name: checking
-      if: steps.cache-filecoin-ffi-proofs.outputs.cache-hit != 'true'
-      shell: bash
-      run: |
-        exit 1
     - name: checkout submodules
       shell: bash
       run: |
