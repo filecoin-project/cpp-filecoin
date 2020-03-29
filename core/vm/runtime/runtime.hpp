@@ -9,6 +9,7 @@
 #include <tuple>
 
 #include "common/outcome.hpp"
+#include "crypto/blake2/blake2b160.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/block/block.hpp"
@@ -31,6 +32,7 @@ namespace fc::vm::runtime {
   using actor::MethodNumber;
   using actor::MethodParams;
   using common::Buffer;
+  using crypto::blake2b::Blake2b256Hash;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using exit_code::ExitCode;
@@ -174,6 +176,10 @@ namespace fc::vm::runtime {
         const BlockHeader &block_header_1,
         const BlockHeader &block_header_2) = 0;
 
+    inline Blake2b256Hash hashBlake2b(gsl::span<const uint8_t> data) {
+      return crypto::blake2b::blake2b_256(data);
+    }
+
     /// Send typed method with typed params and result
     template <typename M>
     outcome::result<typename M::Result> sendM(const Address &address,
@@ -240,6 +246,10 @@ namespace fc::vm::runtime {
 
     inline operator std::shared_ptr<IpfsDatastore>() {
       return getIpfsDatastore();
+    }
+
+    inline auto getCurrentBalance() {
+      return getBalance(getCurrentReceiver());
     }
   };
 

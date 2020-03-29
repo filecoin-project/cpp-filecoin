@@ -118,8 +118,7 @@ namespace fc::vm::actor::builtin::reward {
       return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
     }
     assert(params.gas_reward == runtime.getValueReceived());
-    OUTCOME_TRY(prior_balance,
-                runtime.getBalance(runtime.getMessage().get().to));
+    OUTCOME_TRY(prior_balance, runtime.getCurrentBalance());
     TokenAmount penalty{0};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
