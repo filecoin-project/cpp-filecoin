@@ -16,20 +16,21 @@ jobs:
         name: checkout repo
       - name: cache
         uses: actions/cache@v1
+        id: cache-test
         env:
           cache-name: cached-test
         with:
           path: /var/tmp/ff
           key: build-${{ env.cache-name }}
       - name: checkout submodules
-        if: steps.cache.outputs.cache-hit != 'true'
+        if: steps.cache-test.outputs.cache-hit != 'true'
         shell: bash
         run: |
           cd /var/tmp && mkdir -p ff
           cd ff && touch test.txt
           echo "Lorem ipsum" > test.txt
       - name: cache success
-        if: steps.cache.outputs.cache-hit == 'true'
+        if: steps.cache-test.outputs.cache-hit == 'true'
         shell: bash
         run: |
             cd /var/tmp/ff && cat test.txt
