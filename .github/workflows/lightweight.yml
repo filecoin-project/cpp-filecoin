@@ -17,7 +17,7 @@ jobs:
       - name: cache
         uses: actions/cache@v1.1.2
         env:
-          cache-name: cache-test
+          cache-name: cached-test
         with:
           path: /var/tmp/ff
           key: build-${{ env.cache-name }}
