@@ -18,19 +18,18 @@ jobs:
         uses: actions/cache@v1.1.2
         id: cache-test
         env:
-          cache-name: cached-test
+          cache-name: cache-filecoin-ffi-proofs
         with:
-          path: /var/tmp/ff
+          path: /var/tmp/filecoin-proof-parameters
           key: build-${{ env.cache-name }}
       - name: checkout submodules
         if: steps.cache-test.outputs.cache-hit != 'true'
         shell: bash
         run: |
-          cd /var/tmp && mkdir -p ff
-          cd ff && touch test.txt
-          echo "Lorem ipsum" > test.txt
+          echo "Failed"
+          exit 1
       - name: cache success
         if: steps.cache-test.outputs.cache-hit == 'true'
         shell: bash
         run: |
-            cd /var/tmp/ff && cat test.txt
+          cd /var/tmp/filecoin-proof-parameters && ls
