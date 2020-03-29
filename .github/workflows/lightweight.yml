@@ -15,15 +15,15 @@ jobs:
       - uses: actions/checkout@v2
         name: checkout repo
       - name: cache
-          uses: actions/cache@v1.1.2
-          env:
-            cache-name: cache-test
-          with:
-            path: /var/tmp/ff
-            key: build-${{ env.cache-name }}
+        uses: actions/cache@v1.1.2
+        env:
+          cache-name: cache-test
+        with:
+          path: /var/tmp/ff
+          key: build-${{ env.cache-name }}
       - name: checkout submodules
-          shell: bash
-          run: |
-            cd /var/tmp && mkdir -p ff
-            cd ff && touch test.txt
-            echo "Lorem ipsum" > test.txt
+        shell: bash
+        run: |
+          cd /var/tmp && mkdir -p ff
+          cd ff && touch test.txt
+          echo "Lorem ipsum" > test.txt
