@@ -23,7 +23,13 @@ jobs:
           key: build-${{ env.cache-name }}
       - name: checkout submodules
         shell: bash
+        if: steps.cache.outputs.cache-hit != 'true'
         run: |
           cd /var/tmp && mkdir -p ff
           cd ff && touch test.txt
           echo "Lorem ipsum" > test.txt
+      - name: cache success
+        shell: bash
+        if: steps.cache.outputs.cache-hit == 'true'
+        run: |
+            cd /var/tmp/ff && cat test.txt
