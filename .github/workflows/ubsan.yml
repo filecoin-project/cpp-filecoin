@@ -40,7 +40,7 @@ jobs:
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
         CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
         CXXFLAGS: "-isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
-      run: cmake . -GNinja -Bbuild -D UBSAN=ON
+      run: cmake . -GNinja -Bbuild -D UBSAN=ON -D TESTING_PROOFS=ON
     - name: build
       run: cmake --build build -- -j2
     - name: run tests

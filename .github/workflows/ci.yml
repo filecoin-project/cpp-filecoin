@@ -73,7 +73,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
-      run: cmake . -GNinja -Bbuild -D COVERAGE=ON
+      run: cmake . -GNinja -Bbuild -D COVERAGE=ON -D TESTING_PROOFS=ON
     - name: build
       run: cmake --build build -- -j2
     - name: tests
