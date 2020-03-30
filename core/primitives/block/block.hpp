@@ -19,7 +19,6 @@
 #include "primitives/ticket/epost_ticket_codec.hpp"
 #include "primitives/ticket/ticket.hpp"
 #include "primitives/ticket/ticket_codec.hpp"
-#include "storage/ipld/ipld_block_common.hpp"
 #include "vm/message/message.hpp"
 
 namespace fc::primitives::block {
@@ -28,14 +27,10 @@ namespace fc::primitives::block {
   using primitives::address::Address;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
-  using storage::ipld::IPLDBlockCommon;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
-  struct BlockHeader
-      : public IPLDBlockCommon<CID::Version::V1,
-                               storage::ipld::HashType::blake2b_256,
-                               storage::ipld::ContentType::DAG_CBOR> {
+  struct BlockHeader {
     Address miner;
     boost::optional<Ticket> ticket;
     EPostProof epost_proof;
@@ -49,51 +44,11 @@ namespace fc::primitives::block {
     uint64_t timestamp;
     boost::optional<Signature> block_sig;
     uint64_t fork_signaling;
-
-    BlockHeader() = default;
-
-    BlockHeader(Address miner,
-                boost::optional<Ticket> ticket,
-                EPostProof epost_proof,
-                std::vector<CID> parents,
-                BigInt parent_weight,
-                uint64_t height,
-                CID parent_state_root,
-                CID parent_message_receipts,
-                CID messages,
-                Signature bls_aggregate,
-                uint64_t timestamp,
-                boost::optional<Signature> block_sig,
-                uint64_t fork_signaling)
-        : miner{std::move(miner)},
-          ticket{std::move(ticket)},
-          epost_proof{std::move(epost_proof)},
-          parents{std::move(parents)},
-          parent_weight{parent_weight},
-          height{height},
-          parent_state_root{parent_state_root},
-          parent_message_receipts{parent_message_receipts},
-          messages{messages},
-          bls_aggregate{bls_aggregate},
-          timestamp{timestamp},
-          block_sig{block_sig},
-          fork_signaling{fork_signaling} {}
-
-    outcome::result<std::vector<uint8_t>> getBlockContent() const override {
-      return codec::cbor::encode<BlockHeader>(*this);
-    }
   };
 
-  struct MsgMeta
-      : public IPLDBlockCommon<CID::Version::V1,
-                               storage::ipld::HashType::blake2b_256,
-                               storage::ipld::ContentType::DAG_CBOR> {
+  struct MsgMeta {
     CID bls_messages;
     CID secpk_messages;
-
-    outcome::result<std::vector<uint8_t>> getBlockContent() const override {
-      return codec::cbor::encode<MsgMeta>(*this);
-    }
   };
 
   struct Block {
