@@ -17,13 +17,6 @@ jobs:
     - name: cache
       uses: actions/cache@v1.1.2
       env:
-        cache-name: cache-filecoin-ffi-proofs
-      with:
-        path: /var/tmp/filecoin-proof-parameters
-        key: build-${{ env.cache-name }}
-    - name: cache
-      uses: actions/cache@v1.1.2
-      env:
         cache-name: cache-filecoin-ffi-proofs-v23
       with:
         path: /var/tmp/filecoin-proof-parameters
