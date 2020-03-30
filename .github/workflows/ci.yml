@@ -37,12 +37,12 @@ jobs:
       name: checkout repo
     - name: cache
       uses: actions/cache@v1.1.2
-      id: cache-filecoin-ffi-proofs
       env:
         cache-name: cache-filecoin-ffi-proofs
+        version: v23
       with:
         path: /var/tmp/filecoin-proof-parameters
-        key: build-${{ env.cache-name }}
+        key: build-${{ env.cache-name }}-${{ env.version }}
     - name: checkout submodules
       shell: bash
       run: |

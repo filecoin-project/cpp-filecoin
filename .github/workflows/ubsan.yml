@@ -17,10 +17,11 @@ jobs:
     - name: cache
       uses: actions/cache@v1.1.2
       env:
-        cache-name: cache-filecoin-ffi-proofs-v23
+        cache-name: cache-filecoin-ffi-proofs
+        version: v23
       with:
         path: /var/tmp/filecoin-proof-parameters
-        key: build-${{ env.cache-name }}
+        key: build-${{ env.cache-name }}-${{ env.version }}
     - name: checkout submodules
       shell: bash
       run: |
