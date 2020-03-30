@@ -9,6 +9,7 @@
 #include "blockchain/block_validator/impl/syntax_rules.hpp"
 #include "codec/cbor/cbor.hpp"
 #include "storage/amt/amt.hpp"
+#include "storage/ipld/ipld_block.hpp"
 
 namespace fc::blockchain::block_validator {
   using primitives::address::Protocol;
@@ -20,6 +21,7 @@ namespace fc::blockchain::block_validator {
   using BlsCryptoPubKey = crypto::bls::PublicKey;
   using SecpCryptoSignature = crypto::secp256k1::Signature;
   using SecpCryptoPubKey = crypto::secp256k1::PublicKey;
+  using IPLDBlock = storage::ipld::IPLDBlock;
 
   const std::map<scenarios::Stage, BlockValidatorImpl::StageExecutor>
       BlockValidatorImpl::stage_executors_{
@@ -151,8 +153,9 @@ namespace fc::blockchain::block_validator {
 
   outcome::result<std::reference_wrapper<BlockValidatorImpl::Tipset>>
   BlockValidatorImpl::getParentTipset(const BlockHeader &block) const {
+    IPLDBlock ipld_block = IPLDBlock::create(block);
     if (parent_tipset_cache_
-        && parent_tipset_cache_.value().first == block.getCID()) {
+        && parent_tipset_cache_.value().first == ipld_block.cid) {
       return parent_tipset_cache_.value().second;
     }
     std::vector<BlockHeader> parent_blocks;
@@ -171,7 +174,7 @@ namespace fc::blockchain::block_validator {
       }
     }
     OUTCOME_TRY(tipset, Tipset::create(parent_blocks));
-    parent_tipset_cache_ = std::make_pair(block.getCID(), std::move(tipset));
+    parent_tipset_cache_ = std::make_pair(std::move(ipld_block.cid), std::move(tipset));
     return parent_tipset_cache_.value().second;
   }
 

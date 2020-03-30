@@ -35,24 +35,6 @@ struct BlockTestImpl : IPLDBlock {
    */
   BlockTestImpl(std::vector<uint8_t> data)
       : content{data}, cid{getCidOf(content).value()} {}
-
-  /**
-   * @brief Get content identifier
-   * @return Block's CID
-   */
-  const CID &getCID() const override {
-    return this->cid;
-  }
-
-  /**
-   * @brief Get block's content
-   * @details Type of the return value depends on Block's interface
-   * implementation: it can be raw bytes, or CBOR/Protobuf serialized value
-   * @return Block's data
-   */
-  const Buffer &getRawBytes() const override {
-    return this->content;
-  }
 };
 
 /**
@@ -79,12 +61,12 @@ class BlockServiceTest : public ::testing::Test {
  * BlockStorage
  */
 TEST_F(BlockServiceTest, StoreBlockSuccess) {
-  EXPECT_OUTCOME_TRUE_1(block_service_.set(sample_block_.getCID(), sample_block_.getRawBytes()))
-  EXPECT_OUTCOME_TRUE(contains, block_service_.contains(sample_block_.getCID()))
+  EXPECT_OUTCOME_TRUE_1(block_service_.set(sample_block_.cid, sample_block_.bytes))
+  EXPECT_OUTCOME_TRUE(contains, block_service_.contains(sample_block_.cid))
   ASSERT_TRUE(contains);
   EXPECT_OUTCOME_TRUE(block_content,
-                      block_service_.get(sample_block_.getCID()))
-  ASSERT_EQ(block_content, sample_block_.getRawBytes());
+                      block_service_.get(sample_block_.cid))
+  ASSERT_EQ(block_content, sample_block_.bytes);
 }
 
 /**
@@ -93,7 +75,7 @@ TEST_F(BlockServiceTest, StoreBlockSuccess) {
  * @then Operation must be completed successfully with result "not exists"
  */
 TEST_F(BlockServiceTest, CheckExistenceSuccess) {
-  EXPECT_OUTCOME_TRUE(contains, block_service_.contains(sample_block_.getCID()))
+  EXPECT_OUTCOME_TRUE(contains, block_service_.contains(sample_block_.cid))
   ASSERT_FALSE(contains);
 }
 
@@ -103,8 +85,8 @@ TEST_F(BlockServiceTest, CheckExistenceSuccess) {
  * @then Operation must be completed successfully
  */
 TEST_F(BlockServiceTest, RemoveBlockSuccess) {
-  EXPECT_OUTCOME_TRUE_1(block_service_.set(sample_block_.getCID(), sample_block_.getRawBytes()))
-  const auto &cid = sample_block_.getCID();
+  EXPECT_OUTCOME_TRUE_1(block_service_.set(sample_block_.cid, sample_block_.bytes))
+  const auto &cid = sample_block_.cid;
   EXPECT_OUTCOME_TRUE(block_status, block_service_.contains(cid))
   ASSERT_TRUE(block_status);
   EXPECT_OUTCOME_TRUE_1(block_service_.remove(cid))
@@ -118,7 +100,7 @@ TEST_F(BlockServiceTest, RemoveBlockSuccess) {
  * @then Attempt fails
  */
 TEST_F(BlockServiceTest, GetInvalidCidFailure) {
-  const auto &cid = sample_block_.getCID();
+  const auto &cid = sample_block_.cid;
   EXPECT_OUTCOME_FALSE(result, block_service_.get(cid))
   std::ignore = result;
 }

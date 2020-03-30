@@ -8,7 +8,6 @@
 #include <libp2p/crypto/sha/sha256.hpp>
 #include <libp2p/multi/content_identifier_codec.hpp>
 #include <libp2p/multi/multibase_codec/codecs/base58.hpp>
-#include <libp2p/multi/multihash.hpp>
 #include "ipld_node.pb.h"
 #include "storage/ipld/impl/ipld_node_decoder_pb.hpp"
 
@@ -23,13 +22,22 @@ using Version = libp2p::multi::ContentIdentifier::Version;
 
 namespace fc::storage::ipld {
 
+  const CID &IPLDNodeImpl::getCID() const {
+    return getIPLDBlock().cid;
+  }
+
+  const IPLDNode::Buffer &IPLDNodeImpl::getRawBytes() const {
+    return getIPLDBlock().bytes;
+  }
+
   size_t IPLDNodeImpl::size() const {
     return getRawBytes().size() + child_nodes_size_;
   }
 
   void IPLDNodeImpl::assign(common::Buffer input) {
     content_ = std::move(input);
-    clearCache();
+    ipld_block_ =
+        boost::none;  // Need to recalculate CID after changing Node content
   }
 
   const common::Buffer &IPLDNodeImpl::content() const {
@@ -40,7 +48,8 @@ namespace fc::storage::ipld {
       const std::string &name, std::shared_ptr<const IPLDNode> node) {
     IPLDLinkImpl link{node->getCID(), name, node->size()};
     links_.emplace(name, std::move(link));
-    clearCache();
+    ipld_block_ =
+        boost::none;  // Need to recalculate CID after adding link to child node
     child_nodes_size_ += node->size();
     return outcome::success();
   }
@@ -74,6 +83,10 @@ namespace fc::storage::ipld {
     return link_refs;
   }
 
+  IPLDNode::Buffer IPLDNodeImpl::serialize() const {
+    return Buffer{IPLDNodeEncoderPB::encode(content_, links_)};
+  }
+
   std::shared_ptr<IPLDNode> IPLDNodeImpl::createFromString(
       const std::string &content) {
     std::vector<uint8_t> data{content.begin(), content.end()};
@@ -100,8 +113,11 @@ namespace fc::storage::ipld {
     return node;
   }
 
-  outcome::result<std::vector<uint8_t>> IPLDNodeImpl::getBlockContent() const {
-    return IPLDNodeEncoderPB::encode(content_, links_);
+  const IPLDBlock &IPLDNodeImpl::getIPLDBlock() const {
+    if (!ipld_block_) {
+      ipld_block_ = IPLDBlock::create(*this);
+    }
+    return ipld_block_.value();
   }
 }  // namespace fc::storage::ipld
 

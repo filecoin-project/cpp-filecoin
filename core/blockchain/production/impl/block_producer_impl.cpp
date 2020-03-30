@@ -14,6 +14,7 @@
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "storage/amt/amt.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "storage/ipld/ipld_block.hpp"
 
 namespace fc::blockchain::production {
   using clock::Time;
@@ -24,6 +25,7 @@ namespace fc::blockchain::production {
   using storage::amt::Amt;
   using storage::amt::Root;
   using storage::ipfs::InMemoryDatastore;
+  using storage::ipld::IPLDBlock;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
@@ -58,8 +60,8 @@ namespace fc::blockchain::production {
     std::vector<SignedMessage> messages =
         message_storage_->getTopScored(config::kBlockMaxMessagesCount);
     OUTCOME_TRY(msg_meta, getMessagesMeta(messages));
-    OUTCOME_TRY(data_storage_->set(msg_meta.getCID(),
-    msg_meta.getRawBytes()));
+    IPLDBlock msg_meta_block = IPLDBlock::create(msg_meta);
+    OUTCOME_TRY(data_storage_->set(msg_meta_block.cid, msg_meta_block.bytes));
     std::vector<UnsignedMessage> bls_messages;
     std::vector<SignedMessage> secp_messages;
     std::vector<crypto::bls::Signature> bls_signatures;
@@ -88,7 +90,7 @@ namespace fc::blockchain::production {
     header.height = static_cast<uint64_t>(current_epoch);
     header.parent_state_root = std::move(vm_result.state_root);
     header.parent_message_receipts = std::move(vm_result.message_receipts);
-    header.messages = msg_meta.getCID();
+    header.messages = msg_meta_block.cid;
     header.bls_aggregate = std::move(bls_aggregate_sign);
     header.timestamp = static_cast<uint64_t>(now.unixTime().count());
     header.block_sig = {};  // Block must be signed be Actor Miner
