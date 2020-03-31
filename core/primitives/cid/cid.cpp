@@ -62,6 +62,11 @@ namespace fc {
     OUTCOME_TRY(cid, libp2p::multi::ContentIdentifierCodec::fromString(str));
     return CID{std::move(cid)};
   }
+
+  outcome::result<CID> CID::fromBytes(gsl::span<const uint8_t> input) {
+    OUTCOME_TRY(cid, libp2p::multi::ContentIdentifierCodec::decode(input));
+    return CID{std::move(cid)};
+  }
 }  // namespace fc
 
 namespace fc::common {
