@@ -72,4 +72,11 @@ namespace fc::common {
 
 }  // namespace fc::common
 
+namespace std {
+  template <>
+  struct hash<fc::CID> {
+    size_t operator()(const fc::CID &x) const;
+  };
+}  // namespace std
+
 #endif  // CPP_FILECOIN_CORE_COMMON_CID_HPP

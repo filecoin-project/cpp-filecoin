@@ -8,7 +8,6 @@
 
 #include <boost/optional.hpp>
 #include "common/outcome.hpp"
-#include "common/outcome_throw.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/ticket/ticket.hpp"

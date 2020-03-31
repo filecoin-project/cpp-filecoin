@@ -19,6 +19,7 @@ add_library(sync_manager
     impl/sync_manager_impl.cpp
     )
 target_link_libraries(sync_manager
+    p2p::p2p_peer_address
     block
     Boost::boost
     cid
@@ -50,3 +51,12 @@ add_library(sync_bucket_set
 target_link_libraries(sync_bucket_set
     sync_target_bucket
     )
+
+add_library(chain_synchronizer
+        chain_synchronizer.cpp
+        )
+target_link_libraries(chain_synchronizer
+        cbor
+        cid
+        tipset
+        )

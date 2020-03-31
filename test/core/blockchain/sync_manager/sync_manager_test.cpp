@@ -11,4 +11,4 @@ using namespace fc::blockchain;
 
 /** No tests yet, they will be added after Syncer is implemented */
 
-// TODO: (yuraz) FIL-176 : add tests for sync manager after sincer is implemented
+// TODO: (yuraz) FIL-176 : add tests for sync manager after syncer is implemented

@@ -21,6 +21,10 @@
 
 namespace fc::storage::blockchain {
 
+  using ::fc::blockchain::block_validator::BlockValidator;
+  using ::fc::blockchain::weight::WeightCalculator;
+  using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetKey;
   /**
    * @struct MmCids is a struct for using in mmCache cache
    */
@@ -32,14 +36,12 @@ namespace fc::storage::blockchain {
   enum class ChainStoreError : int {
     NO_MIN_TICKET_BLOCK = 1,
     NO_HEAVIEST_TIPSET,
+    STORE_NOT_INITIALIZED,
   };
 
   class ChainStoreImpl : public ChainStore,
                          public std::enable_shared_from_this<ChainStoreImpl> {
    public:
-    using BlockValidator = ::fc::blockchain::block_validator::BlockValidator;
-    using WeightCalculator = ::fc::blockchain::weight::WeightCalculator;
-
     ChainStoreImpl(ChainStoreImpl &&other) = default;
 
     /* @brief creates new ChainStore instance */
@@ -55,7 +57,7 @@ namespace fc::storage::blockchain {
     /** @brief loads data from block storage and initializes storage */
     outcome::result<void> load();
 
-    outcome::result<Tipset> loadTipset(const TipsetKey &key) override;
+    outcome::result<Tipset> loadTipset(const TipsetKey &key) const override;
 
     // TODO(yuraz): FIL-151 add notifications
     // TODO(yuraz): FIL-151 implement items caching to avoid refetching them
@@ -68,6 +70,44 @@ namespace fc::storage::blockchain {
     outcome::result<BlockHeader> getBlock(const CID &cid) const override;
 
     outcome::result<Tipset> heaviestTipset() const override;
+
+    outcome::result<bool> containsTipset(const TipsetKey &key) const override;
+
+    outcome::result<void> storeTipset(const Tipset &tipset) override;
+
+    outcome::result<SignedMessage> getSignedMessage(
+        const CID &cid) const override;
+
+    outcome::result<UnsignedMessage> getUnsignedMessage(
+        const CID &cid) const override;
+
+    const CID &getGenesis() const override {
+      BOOST_ASSERT_MSG(genesis_.has_value(), "genesis is not initialized");
+      return *genesis_;
+    }
+
+    primitives::BigInt getHeaviestWeight() const override {
+      return heaviest_weight_;
+    }
+
+    /** IpfsDatastore implementation is required for using in ChainDownloader
+     * refactore ChainStore later, remove this ugly inheritance and delegation
+     */
+    outcome::result<bool> contains(const CID &key) const override {
+      return block_service_->contains(key);
+    }
+
+    outcome::result<void> set(const CID &key, Value value) override {
+      return block_service_->set(key, value);
+    }
+
+    outcome::result<Value> get(const CID &key) const override {
+      return block_service_->get(key);
+    }
+
+    outcome::result<void> remove(const CID &key) override {
+      return block_service_->remove(key);
+    }
 
    private:
     ChainStoreImpl(std::shared_ptr<ipfs::IpfsBlockService> block_service,
@@ -83,7 +123,7 @@ namespace fc::storage::blockchain {
 
     outcome::result<Tipset> expandTipset(const BlockHeader &block_header);
 
-    outcome::result<void> updateHeavierTipset(const Tipset &tipset);
+    outcome::result<void> updateHeaviestTipset(const Tipset &tipset);
 
     std::shared_ptr<ipfs::IpfsBlockService> block_service_;
     std::shared_ptr<ChainDataStore> data_store_;
@@ -91,8 +131,11 @@ namespace fc::storage::blockchain {
     std::shared_ptr<WeightCalculator> weight_calculator_;
 
     boost::optional<Tipset> heaviest_tipset_;
+    primitives::BigInt heaviest_weight_{0};
     std::map<uint64_t, std::vector<CID>> tipsets_;
+    boost::optional<CID> genesis_;
 
+    mutable std::unordered_map<TipsetKey, Tipset> tipsets_cache_;
     common::Logger logger_;
   };
 }  // namespace fc::storage::blockchain

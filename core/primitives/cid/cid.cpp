@@ -5,6 +5,7 @@
 
 #include "primitives/cid/cid.hpp"
 
+#include <boost/functional/hash.hpp>
 #include <libp2p/multi/content_identifier_codec.hpp>
 
 #include "codec/uvarint.hpp"
@@ -125,3 +126,17 @@ namespace fc::common {
     return CID(CID::Version::V1, Multicodec::DAG_CBOR, hash);
   }
 }  // namespace fc::common
+
+namespace std {
+  size_t hash<fc::CID>::operator()(const fc::CID &x) const {
+    auto hasher = [](auto &&val) -> size_t {  // no need to use templates
+      return boost::hash<decltype(val)>{}(val);
+    };
+    std::size_t hash_value{0u};
+    boost::hash_combine(hash_value, hasher(x.version));
+    boost::hash_combine(hash_value, hasher(x.content_type));
+    boost::hash_combine(hash_value,
+                        hash<libp2p::multi::Multihash>{}(x.content_address));
+    return hash_value;
+  };
+}  // namespace std

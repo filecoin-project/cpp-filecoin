@@ -18,67 +18,51 @@
 #include "primitives/tipset/tipset.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
-namespace fc::blockchain::sync_manager {
-
-  using SyncFunction = std::function<outcome::result<void>(
-      std::reference_wrapper<const primitives::tipset::Tipset>)>;
-
+namespace fc::blockchain {
+  /** @brief SyncManager error */
   enum class SyncManagerError { SHUTTING_DOWN = 1, NO_SYNC_TARGET };
 
-  struct SyncResult {
-    primitives::tipset::Tipset tipset;
-    outcome::result<void> success;
-  };
-
   class SyncManagerImpl : public SyncManager,
-                          public std::enable_shared_from_this<SyncManagerImpl> {
+                          std::enable_shared_from_this<SyncManager> {
    public:
-    const static size_t kBootstrapThresholdDefault = 1;
-
-    using TipsetKey = primitives::tipset::TipsetKey;
-
-    SyncManagerImpl(boost::asio::io_context &context,
-                    SyncFunction sync_function);
+    SyncManagerImpl(io_context &context,
+                    PeerId self_id,
+                    std::shared_ptr<Sync> sync,
+                    std::shared_ptr<ChainStore> chain_store,
+                    std::shared_ptr<IpfsDatastore> block_store);
 
     ~SyncManagerImpl() override = default;
 
-    outcome::result<void> setPeerHead(PeerId peer_id,
-                                      const Tipset &tipset) override;
+    outcome::result<bool> onHeadReceived(const HeadMessage &msg) override;
 
-    size_t syncedPeerCount() const;
+    virtual bool isPlannedDownload(const CID &object) const = 0;
 
-    BootstrapState getBootstrapState() const;
+    virtual std::shared_ptr<ChainSynchronizer> findRelatedChain(
+        const TipsetKey &key) = 0;
 
-    void setBootstrapState(BootstrapState state);
+    void startSynchronizer(const TipsetKey &key) override;
 
-    bool isBootstrapped() const;
+    using SyncStateChangedFn = void(const SyncState &);
+
+    boost::signals2::connection connectSyncStateChanged(SyncStateChangedFn cb) {
+      return sync_state_changed_.connect(cb);
+    }
 
    private:
-    outcome::result<void> processIncomingTipset(const Tipset &tipset);
-
-    outcome::result<Tipset> selectSyncTarget();
-
-    outcome::result<void> processSyncTargets(Tipset ts);
-
-    outcome::result<void> doSync();
-
-    outcome::result<void> processResult(const SyncResult &result);
-    std::unordered_map<PeerId, Tipset> peer_heads_;
-    BootstrapState state_;
-    const uint64_t bootstrap_threshold_{kBootstrapThresholdDefault};
-    std::deque<Tipset> sync_targets_;
-    std::deque<SyncResult> sync_results_;
-    std::deque<Tipset> incoming_tipsets_;
-    std::unordered_map<TipsetKey, Tipset> active_syncs_;
-    boost::optional<SyncTargetBucket> next_sync_target_;
-    SyncBucketSet sync_queue_{gsl::span<Tipset>{}};
-    SyncBucketSet active_sync_tips_{gsl::span<Tipset>{}};
-    SyncFunction sync_function_;
+    // TODO (yuraz): get this value from config
+    const size_t kChainItemsLimit = 10u;
+    io_context &context_;
+    PeerId self_peer_id_;
+    std::shared_ptr<Sync> sync_;
+    std::shared_ptr<ChainStore> chain_store_;
+    std::shared_ptr<IpfsDatastore> block_store_;
+    std::shared_ptr<IpfsDatastore> bad_blocks_;
+    std::list<std::shared_ptr<ChainSynchronizer>> synchronizers_;
+    boost::signals2::signal<SyncStateChangedFn> sync_state_changed_;
     common::Logger logger_;
   };
+}  // namespace fc::blockchain
 
-}  // namespace fc::blockchain::sync_manager
-
-OUTCOME_HPP_DECLARE_ERROR(fc::blockchain::sync_manager, SyncManagerError);
+OUTCOME_HPP_DECLARE_ERROR(fc::blockchain, SyncManagerError);
 
 #endif  // CPP_FILECOIN_CORE_BLOCKCHAIN_IMPL_SYNC_MANAGER_IMPL_HPP

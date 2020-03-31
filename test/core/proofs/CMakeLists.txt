@@ -5,7 +5,7 @@
 
 addtest(proofs_test proofs_test.cpp)
 
-target_link_libraries( proofs_test
+target_link_libraries(proofs_test
         proof_param_provider
         buffer
         proofs

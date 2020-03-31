@@ -6,22 +6,31 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_CHAIN_CHAIN_STORE_HPP
 #define CPP_FILECOIN_CORE_STORAGE_CHAIN_CHAIN_STORE_HPP
 
+#include "blockchain/weight_calculator.hpp"
 #include "crypto/randomness/chain_randomness_provider.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/tipset/tipset.hpp"
+#include "vm/message/message.hpp"
 
 namespace fc::storage::blockchain {
+  using crypto::randomness::ChainRandomnessProvider;
+  using crypto::randomness::Randomness;
+  using ::fc::blockchain::weight::WeightCalculator;
+  using primitives::block::BlockHeader;
+  using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetKey;
+  using vm::message::SignedMessage;
+  using vm::message::UnsignedMessage;
 
   /**
    * @class ChainStore keeps track of blocks
    */
-  class ChainStore {
+  class ChainStore : public ipfs::IpfsDatastore {
    public:
-    using BlockHeader = primitives::block::BlockHeader;
-    using ChainRandomnessProvider = crypto::randomness::ChainRandomnessProvider;
-    using Randomness = crypto::randomness::Randomness;
-    using Tipset = primitives::tipset::Tipset;
-    using TipsetKey = primitives::tipset::TipsetKey;
+    struct Genesis {
+      CID cid;
+      Tipset tipset;
+    };
 
     virtual ~ChainStore() = default;
 
@@ -29,7 +38,7 @@ namespace fc::storage::blockchain {
      * @brief loads tipset from store
      * @param key tipset key
      */
-    virtual outcome::result<Tipset> loadTipset(const TipsetKey &key) = 0;
+    virtual outcome::result<Tipset> loadTipset(const TipsetKey &key) const = 0;
 
     /** @brief creates chain randomness provider */
     virtual std::shared_ptr<ChainRandomnessProvider>
@@ -41,7 +50,24 @@ namespace fc::storage::blockchain {
     /** @brief finds block by its cid */
     virtual outcome::result<BlockHeader> getBlock(const CID &cid) const = 0;
 
+    virtual outcome::result<SignedMessage> getSignedMessage(
+        const CID &cid) const = 0;
+
+    virtual outcome::result<UnsignedMessage> getUnsignedMessage(
+        const CID &cid) const = 0;
+
+    /**@brief checks whether storage contains tipset */
+    virtual outcome::result<bool> containsTipset(
+        const TipsetKey &key) const = 0;
+
+    /**@brief stores tipset */
+    virtual outcome::result<void> storeTipset(const Tipset &tipset) = 0;
+
     virtual outcome::result<Tipset> heaviestTipset() const = 0;
+
+    virtual const CID &getGenesis() const = 0;
+
+    virtual primitives::BigInt getHeaviestWeight() const = 0;
   };
 
 }  // namespace fc::storage::blockchain

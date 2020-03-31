@@ -19,8 +19,8 @@ namespace fc::storage::blockchain {
   using primitives::tipset::Tipset;
 
   namespace {
-    const DatastoreKey chain_head_key{DatastoreKey::makeFromString("head")};
-    const DatastoreKey genesis_key{DatastoreKey::makeFromString("0")};
+    const DatastoreKey kChainHeadKey{DatastoreKey::makeFromString("head")};
+    const DatastoreKey kGenesisKey{DatastoreKey::makeFromString("0")};
   }  // namespace
 
   ChainStoreImpl::ChainStoreImpl(
@@ -51,8 +51,13 @@ namespace fc::storage::blockchain {
     return std::make_shared<ChainStoreImpl>(std::move(tmp));
   }
 
-  outcome::result<ChainStoreImpl::Tipset> ChainStoreImpl::loadTipset(
-      const primitives::tipset::TipsetKey &key) {
+  outcome::result<Tipset> ChainStoreImpl::loadTipset(
+      const primitives::tipset::TipsetKey &key) const {
+    auto it = tipsets_cache_.find(key);
+    if (it != tipsets_cache_.end()) {
+      return it->second;
+    }
+
     std::vector<BlockHeader> blocks;
     blocks.reserve(key.cids.size());
     // TODO (yuraz): FIL-151 check cache
@@ -63,8 +68,9 @@ namespace fc::storage::blockchain {
     }
 
     // TODO(yuraz): FIL-155 add tipset to cache before returning
-
-    return Tipset::create(std::move(blocks));
+    OUTCOME_TRY(tipset, Tipset::create(std::move(blocks)));
+    tipsets_cache_[key] = tipset;
+    return tipset;
   }
 
   outcome::result<BlockHeader> ChainStoreImpl::getBlock(const CID &cid) const {
@@ -73,7 +79,7 @@ namespace fc::storage::blockchain {
   }
 
   outcome::result<void> ChainStoreImpl::load() {
-    auto &&buffer = data_store_->get(chain_head_key);
+    auto &&buffer = data_store_->get(kChainHeadKey);
     if (!buffer) {
       logger_->warn("no previous chain state found");
       return outcome::success();
@@ -94,10 +100,40 @@ namespace fc::storage::blockchain {
     return ChainStoreError::NO_HEAVIEST_TIPSET;
   }
 
+  outcome::result<bool> ChainStoreImpl::containsTipset(const TipsetKey &key) const {
+    if (tipsets_cache_.count(key) > 0) {
+      return true;
+    }
+
+    // TODO: (yuraz) implement something better
+    OUTCOME_TRY(tipset, loadTipset(key));
+    return true;
+  }
+
+  outcome::result<void> ChainStoreImpl::storeTipset(const Tipset &tipset) {
+    std::vector<std::reference_wrapper<const BlockHeader>> refs;
+    refs.reserve(tipset.blks.size());
+    for (const auto &b : tipset.blks) {
+      refs.emplace_back(std::ref(b));
+    }
+
+    return persistBlockHeaders(refs);
+  }
+
+  outcome::result<SignedMessage> ChainStoreImpl::getSignedMessage(
+      const CID &cid) const {
+    BOOST_ASSERT_MSG(false, "not implemented yet");
+  }
+
+  outcome::result<UnsignedMessage> ChainStoreImpl::getUnsignedMessage(
+      const CID &cid) const {
+    BOOST_ASSERT_MSG(false, "not implemented yet");
+  }
+
   outcome::result<void> ChainStoreImpl::writeHead(
       const primitives::tipset::Tipset &tipset) {
     OUTCOME_TRY(data, codec::json::encodeCidVector(tipset.cids));
-    OUTCOME_TRY(data_store_->set(chain_head_key, data));
+    OUTCOME_TRY(data_store_->set(kChainHeadKey, data));
 
     return outcome::success();
   }
@@ -105,7 +141,7 @@ namespace fc::storage::blockchain {
   outcome::result<void> ChainStoreImpl::addBlock(const BlockHeader &block) {
     OUTCOME_TRY(persistBlockHeaders({std::ref(block)}));
     OUTCOME_TRY(tipset, expandTipset(block));
-    OUTCOME_TRY(updateHeavierTipset(tipset));
+    OUTCOME_TRY(updateHeaviestTipset(tipset));
 
     return outcome::success();
   }
@@ -158,7 +194,7 @@ namespace fc::storage::blockchain {
     return Tipset::create(all_headers);
   }
 
-  outcome::result<void> ChainStoreImpl::updateHeavierTipset(
+  outcome::result<void> ChainStoreImpl::updateHeaviestTipset(
       const Tipset &tipset) {
     OUTCOME_TRY(weight, weight_calculator_->calculateWeight(tipset));
 
@@ -212,6 +248,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {
       return "min ticket block has no value";
     case ChainStoreError::NO_HEAVIEST_TIPSET:
       return "no heaviest tipset";
+    case ChainStoreError::STORE_NOT_INITIALIZED:
+      return "store is not initialized properly";
   }
 
   return "ChainStoreError: unknown error";
