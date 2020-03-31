@@ -12,8 +12,10 @@
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
-#define ON_CALL_3(a, b, c) \
-  EXPECT_CALL(a, b).Times(testing::AnyNumber()).WillRepeatedly(Return(c))
+#define ON_CALL_3(object, call, result) \
+  EXPECT_CALL(object, call)             \
+      .Times(testing::AnyNumber())      \
+      .WillRepeatedly(Return(result))
 
 namespace PaymentChannel = fc::vm::actor::builtin::payment_channel;
 using fc::common::Buffer;
