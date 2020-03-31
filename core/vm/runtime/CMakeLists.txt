@@ -10,6 +10,7 @@ add_library(runtime
     impl/runtime_error.cpp)
 target_link_libraries(runtime
     actor
+    blake2
     p2p::p2p_cid
     randomness_provider
     proofs
