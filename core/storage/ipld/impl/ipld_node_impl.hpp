@@ -14,15 +14,15 @@
 #include <boost/optional.hpp>
 #include "storage/ipld/impl/ipld_link_impl.hpp"
 #include "storage/ipld/impl/ipld_node_encoder_pb.hpp"
-#include "storage/ipld/ipld_block_common.hpp"
 #include "storage/ipld/ipld_node.hpp"
 
 namespace fc::storage::ipld {
-  class IPLDNodeImpl : public IPLDNode,
-                       IPLDBlockCommon<CID::Version::V0,
-                                       HashType::sha256,
-                                       ContentType::DAG_PB> {
+  class IPLDNodeImpl : public IPLDNode {
    public:
+    const CID &getCID() const override;
+
+    const Buffer &getRawBytes() const override;
+
     size_t size() const override;
 
     void assign(common::Buffer input) override;
@@ -42,20 +42,36 @@ namespace fc::storage::ipld {
     std::vector<std::reference_wrapper<const IPLDLink>> getLinks()
         const override;
 
+    Buffer serialize() const override;
+
     static std::shared_ptr<IPLDNode> createFromString(
         const std::string &content);
 
     static outcome::result<std::shared_ptr<IPLDNode>> createFromRawBytes(
         gsl::span<const uint8_t> input);
 
+    const IPLDBlock &getIPLDBlock() const;
+
    private:
     common::Buffer content_;
     std::map<std::string, IPLDLinkImpl> links_;
     IPLDNodeEncoderPB pb_node_codec_;
     size_t child_nodes_size_{};
-
-    outcome::result<std::vector<uint8_t>> getBlockContent() const override;
+    mutable boost::optional<IPLDBlock> ipld_block_;
   };
+
+  template <>
+  inline IPLDType IPLDBlock::getType<IPLDNodeImpl>() {
+    return {IPLDType::Version::V0,
+            IPLDType::Content::DAG_PB,
+            IPLDType::Hash::sha256};
+  }
+
+  template <>
+  inline common::Buffer IPLDBlock::serialize<IPLDNodeImpl>(
+      const IPLDNodeImpl &entity) {
+    return entity.serialize();
+  }
 }  // namespace fc::storage::ipld
 
 #endif

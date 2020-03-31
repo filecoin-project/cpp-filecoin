@@ -31,6 +31,7 @@ namespace fc::vm::actor::builtin::market {
   using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
   using primitives::sector::RegisteredProof;
+  using Ipld = storage::ipfs::IpfsDatastore;
 
   struct DealProposal {
     inline TokenAmount clientBalanceRequirement() const {
@@ -66,6 +67,16 @@ namespace fc::vm::actor::builtin::market {
              provider_collateral,
              client_collateral)
 
+  inline bool operator==(const DealProposal &lhs, const DealProposal &rhs) {
+    return lhs.piece_cid == rhs.piece_cid && lhs.piece_size == rhs.piece_size
+           && lhs.client == rhs.client && lhs.provider == rhs.provider
+           && lhs.start_epoch == rhs.start_epoch
+           && lhs.end_epoch == rhs.end_epoch
+           && lhs.storage_price_per_epoch == rhs.storage_price_per_epoch
+           && lhs.provider_collateral == rhs.provider_collateral
+           && lhs.client_collateral == rhs.client_collateral;
+  }
+
   struct DealState {
     ChainEpoch sector_start_epoch;
     ChainEpoch last_updated_epoch;
@@ -74,12 +85,19 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(DealState, sector_start_epoch, last_updated_epoch, slash_epoch)
 
   struct State {
+    using PartyDeals = adt::Map<EmptyValue, UvarintKeyer>;
+
+    void load(std::shared_ptr<Ipld> ipld);
+    outcome::result<void> flush();
+    outcome::result<DealState> getState(DealId deal_id);
+    outcome::result<void> addDeal(DealId deal_id, const DealProposal &deal);
+
     adt::Array<DealProposal> proposals;
     adt::Array<DealState> states;
     BalanceTable escrow_table;
     BalanceTable locked_table;
     DealId next_deal;
-    adt::Map<adt::Map<EmptyValue, UvarintKeyer>, AddressKeyer> deals_by_party;
+    adt::Map<PartyDeals, AddressKeyer> deals_by_party;
   };
   CBOR_TUPLE(State,
              proposals,
@@ -111,6 +129,10 @@ namespace fc::vm::actor::builtin::market {
     TokenAmount locked;
     TokenAmount available;
   };
+
+  TokenAmount clientPayment(ChainEpoch epoch,
+                            const DealProposal &deal,
+                            const DealState &deal_state);
 
   struct Construct : ActorMethodBase<1> {
     ACTOR_METHOD_DECL();

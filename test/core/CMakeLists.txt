@@ -11,7 +11,11 @@ add_subdirectory(codec)
 add_subdirectory(common)
 add_subdirectory(crypto)
 add_subdirectory(fslock)
-add_subdirectory(proofs)
+
+if (TESTING_PROOFS)
+    add_subdirectory(proofs)
+endif ()
+
 add_subdirectory(power)
 add_subdirectory(primitives)
 add_subdirectory(storage)
