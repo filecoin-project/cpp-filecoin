@@ -483,7 +483,8 @@ namespace fc::api {
 
     ENCODE(SignedVoucher) {
       Value j{rapidjson::kObjectType};
-      Set(j, "TimeLock", v.time_lock);
+      Set(j, "TimeLockMin", v.time_lock_min);
+      Set(j, "TimeLockMax", v.time_lock_max);
       Set(j, "SecretPreimage", gsl::make_span(v.secret_preimage));
       Set(j, "Extra", v.extra);
       Set(j, "Lane", v.lane);
@@ -496,7 +497,8 @@ namespace fc::api {
     }
 
     DECODE(SignedVoucher) {
-      decode(v.time_lock, Get(j, "TimeLock"));
+      decode(v.time_lock_min, Get(j, "TimeLockMin"));
+      decode(v.time_lock_max, Get(j, "TimeLockMax"));
       decode(v.secret_preimage, Get(j, "SecretPreimage"));
       decode(v.extra, Get(j, "Extra"));
       decode(v.lane, Get(j, "Lane"));

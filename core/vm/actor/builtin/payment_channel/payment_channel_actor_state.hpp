@@ -6,47 +6,52 @@
 #ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
 
-#include "codec/cbor/streams_annotation.hpp"
-#include "common/buffer.hpp"
 #include "crypto/signature/signature.hpp"
-#include "primitives/address/address.hpp"
-#include "primitives/big_int.hpp"
-#include "primitives/chain_epoch/chain_epoch.hpp"
+#include "primitives/types.hpp"
 #include "vm/actor/actor.hpp"
 
 namespace fc::vm::actor::builtin::payment_channel {
-
   using common::Buffer;
   using crypto::signature::Signature;
-  using fc::vm::actor::MethodNumber;
-  using primitives::BigInt;
   using primitives::ChainEpoch;
+  using primitives::TokenAmount;
   using primitives::address::Address;
 
+  using LaneId = uint64_t;
+
   struct LaneState {
-    int64_t state{};
-    BigInt redeem{};
-    int64_t nonce{};
+    LaneId id{};
+    TokenAmount redeem{};
+    uint64_t nonce{};
 
     inline bool operator==(const LaneState &other) const {
-      return state == other.state && redeem == other.redeem
-             && nonce == other.nonce;
+      return id == other.id && redeem == other.redeem && nonce == other.nonce;
     }
   };
+  CBOR_TUPLE(LaneState, id, redeem, nonce)
 
-  struct PaymentChannelActorState {
+  struct State {
+    inline auto findLane(LaneId lane_id) {
+      return std::lower_bound(
+          lanes.begin(), lanes.end(), lane_id, [](auto &lane, auto lane_id) {
+            return lane.id < lane_id;
+          });
+    }
+
     Address from;
     Address to;
-    BigInt to_send{};
+    TokenAmount to_send{};
     ChainEpoch settling_at;
     ChainEpoch min_settling_height;
     std::vector<LaneState> lanes{};
   };
+  CBOR_TUPLE(State, from, to, to_send, settling_at, min_settling_height, lanes)
 
   struct Merge {
-    uint64_t lane{};
+    LaneId lane{};
     uint64_t nonce{};
   };
+  CBOR_TUPLE(Merge, lane, nonce)
 
   /**
    * Modular Verification method
@@ -56,35 +61,23 @@ namespace fc::vm::actor::builtin::payment_channel {
     MethodNumber method;
     Buffer data;
   };
-
-  struct SignedVoucher {
-    uint64_t time_lock{};
-    Buffer secret_preimage;
-    ModularVerificationParameter extra;
-    uint64_t lane{};
-    uint64_t nonce{};
-    BigInt amount;
-    uint64_t min_close_height{};
-    std::vector<Merge> merges{};
-    Signature signature;
-  };
-
-  CBOR_TUPLE(LaneState, state, redeem, nonce)
-
-  CBOR_TUPLE(PaymentChannelActorState,
-             from,
-             to,
-             to_send,
-             settling_at,
-             min_settling_height,
-             lanes)
-
   CBOR_TUPLE(ModularVerificationParameter, actor, method, data)
 
-  CBOR_TUPLE(Merge, lane, nonce)
-
+  struct SignedVoucher {
+    ChainEpoch time_lock_min{};
+    ChainEpoch time_lock_max{};
+    Buffer secret_preimage;
+    boost::optional<ModularVerificationParameter> extra;
+    LaneId lane{};
+    uint64_t nonce{};
+    TokenAmount amount;
+    ChainEpoch min_close_height{};
+    std::vector<Merge> merges{};
+    boost::optional<Signature> signature;
+  };
   CBOR_TUPLE(SignedVoucher,
-             time_lock,
+             time_lock_min,
+             time_lock_max,
              secret_preimage,
              extra,
              lane,
@@ -94,5 +87,11 @@ namespace fc::vm::actor::builtin::payment_channel {
              merges,
              signature)
 
+  struct PaymentVerifyParams {
+    Buffer extra;
+    Buffer proof;
+  };
+  CBOR_TUPLE(PaymentVerifyParams, extra, proof);
 }  // namespace fc::vm::actor::builtin::payment_channel
+
 #endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
