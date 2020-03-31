@@ -21,9 +21,7 @@ namespace fc::storage::ipld {
      * @param name - name of the target object
      * @param size - total size of the target object
      */
-    IPLDLinkImpl(libp2p::multi::ContentIdentifier id,
-                 std::string name,
-                 size_t size);
+    IPLDLinkImpl(CID id, std::string name, size_t size);
 
     IPLDLinkImpl() = default;
 

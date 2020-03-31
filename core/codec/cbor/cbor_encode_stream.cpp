@@ -5,8 +5,6 @@
 
 #include "codec/cbor/cbor_encode_stream.hpp"
 
-#include <libp2p/multi/content_identifier_codec.hpp>
-
 namespace fc::codec::cbor {
   CborEncodeStream &CborEncodeStream::operator<<(
       const std::vector<uint8_t> &bytes) {
@@ -42,9 +40,8 @@ namespace fc::codec::cbor {
     return *this;
   }
 
-  CborEncodeStream &CborEncodeStream::operator<<(
-      const libp2p::multi::ContentIdentifier &cid) {
-    auto maybe_cid_bytes = libp2p::multi::ContentIdentifierCodec::encode(cid);
+  CborEncodeStream &CborEncodeStream::operator<<(const CID &cid) {
+    auto maybe_cid_bytes = cid.toBytes();
     if (maybe_cid_bytes.has_error()) {
       outcome::raise(CborEncodeError::INVALID_CID);
     }

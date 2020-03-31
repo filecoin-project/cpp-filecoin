@@ -7,10 +7,7 @@
 
 #include <cassert>
 
-#include <libp2p/multi/content_identifier_codec.hpp>
 #include "storage/ipfs/merkledag/merkledag_service.hpp"
-
-using libp2p::multi::ContentIdentifierCodec;
 
 namespace fc::storage::ipfs::graphsync {
 
@@ -26,7 +23,7 @@ namespace fc::storage::ipfs::graphsync {
   }
 
   outcome::result<size_t> MerkleDagBridgeImpl::select(
-      const CID& root_cid,
+      const CID &root_cid,
       gsl::span<const uint8_t> selector,
       std::function<bool(const CID &, const common::Buffer &)> handler) const {
     auto internal_handler =
@@ -41,7 +38,7 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     // TODO(???): change MerkleDAG service to accept CID instead of bytes
-    OUTCOME_TRY(cid_encoded, ContentIdentifierCodec::encode(root_cid));
+    OUTCOME_TRY(cid_encoded, root_cid.toBytes());
     return service_->select(cid_encoded, selector, internal_handler);
   }
 

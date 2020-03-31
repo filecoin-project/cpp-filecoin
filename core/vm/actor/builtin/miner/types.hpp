@@ -6,8 +6,6 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MINER_TYPES_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MINER_TYPES_HPP
 
-#include <libp2p/multi/uvarint.hpp>
-
 #include "adt/array.hpp"
 #include "adt/map.hpp"
 #include "adt/uvarint_key.hpp"
@@ -20,7 +18,6 @@
 namespace fc::vm::actor::builtin::miner {
   using adt::UvarintKeyer;
   using common::Buffer;
-  using libp2p::multi::UVarint;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::DealWeight;
