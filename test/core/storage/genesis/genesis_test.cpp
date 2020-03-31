@@ -30,6 +30,11 @@ auto readFile(const std::string &path) {
   return buffer;
 }
 
+/**
+ * @given correct car file
+ * @when loadCar
+ * @then success
+ */
 TEST(GenesisTest, LoadSuccess) {
   InMemoryDatastore ipld;
   auto input = readFile(GENESIS_FILE);
@@ -40,6 +45,11 @@ TEST(GenesisTest, LoadSuccess) {
           "0171a0e402202ecd6c8f4c987ff715c888294420aad8a15db507bc150c81189b8b6c2988bfca"_cid));
 }
 
+/**
+ * @given incorrect car file
+ * @when loadCar
+ * @then error
+ */
 TEST(GenesisTest, LoadTruncatedError) {
   InMemoryDatastore ipld;
   auto input = readFile(GENESIS_FILE);
