@@ -109,7 +109,7 @@ namespace fc::vm::actor::builtin::multisig {
     pending_tx.approved.push_back(caller);
 
     // check threshold
-    OUTCOME_TRY(balance, runtime.getBalance(runtime.getCurrentReceiver()));
+    OUTCOME_TRY(balance, runtime.getCurrentBalance());
     if (pending_tx.approved.size() >= threshold) {
       if (balance < pending_tx.value)
         return VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS;
