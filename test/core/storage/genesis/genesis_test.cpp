@@ -20,7 +20,7 @@ using fc::storage::genesis::CarError;
 using fc::storage::genesis::loadCar;
 using fc::storage::ipfs::InMemoryDatastore;
 
-auto readFile(std::string_view path) {
+auto readFile(const std::string &path) {
   std::ifstream file{path, std::ios::binary | std::ios::ate};
   EXPECT_TRUE(file.good());
   Buffer buffer;
