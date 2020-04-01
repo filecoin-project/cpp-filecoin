@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE_PROTOCOL_ASK_PROTOCOL_HPP
-#define CPP_FILECOIN_CORE_MARKETS_STORAGE_PROTOCOL_ASK_PROTOCOL_HPP
+#ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_ASK_PROTOCOL_HPP
+#define CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_ASK_PROTOCOL_HPP
 
 #include <libp2p/peer/protocol.hpp>
 #include "primitives/address/address.hpp"
@@ -43,4 +43,4 @@ namespace fc::markets::protocol {
 
 }  // namespace fc::markets::protocol
 
-#endif CPP_FILECOIN_CORE_MARKETS_STORAGE_PROTOCOL_ASK_PROTOCOL_HPP
+#endif CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_ASK_PROTOCOL_HPP
