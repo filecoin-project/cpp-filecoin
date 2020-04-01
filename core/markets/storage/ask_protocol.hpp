@@ -11,7 +11,7 @@
 #include "primitives/address/address.hpp"
 #include "primitives/piece/piece.hpp"
 
-namespace fc::markets::storage::protocol {
+namespace fc::markets::storage {
 
   using crypto::signature::Signature;
   using primitives::ChainEpoch;
@@ -29,19 +29,19 @@ namespace fc::markets::storage::protocol {
     ChainEpoch timestamp;
     ChainEpoch expiry;
     uint64_t seq_no;
-  }
+  };
 
   struct SignedStorageAsk {
     StorageAsk ask;
     Signature signature;
-  }
+  };
 
   /**
    * AskRequest is a request for current ask parameters for a given miner
    */
   struct AskRequest {
     Address miner;
-  }
+  };
 
   /**
    * AskResponse is the response sent over the network in response to an ask
@@ -49,7 +49,7 @@ namespace fc::markets::storage::protocol {
    */
   struct AskResponse {
     SignedStorageAsk asl;
-  }
+  };
 
 }  // namespace fc::markets::storage::protocol
 

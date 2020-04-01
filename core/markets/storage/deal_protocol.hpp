@@ -14,7 +14,7 @@
 #include "storage/filestore/path.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 
-namespace fc::markets::storage::protocol {
+namespace fc::markets::storage {
 
   using crypto::signature::Signature;
   using libp2p::peer::PeerId;
@@ -37,7 +37,7 @@ namespace fc::markets::storage::protocol {
     // Optional, will be recomputed from the data if not given
     boost::optional<CID> piece_cid;
     UnpaddedPieceSize piece_size;
-  }
+  };
 
   enum class StorageDealStatus {
     STORAGE_DEAL_UNKNOWN = 0,
@@ -91,7 +91,7 @@ namespace fc::markets::storage::protocol {
     std::string message;
     DataRef ref;
     DealId deal_id;
-  }
+  };
 
   struct ClientDeal : public ClientDealProposal {
     CID proposal_cid;
@@ -102,14 +102,14 @@ namespace fc::markets::storage::protocol {
     DataRef data_ref;
     std::string message;
     CID publish_message;
-  }
+  };
 
   /**
    * StorageDeal is a local combination of a proposal and a current deal state
    */
   struct StorageDeal : public DealProposal,
                        public DealState {
-  }
+  };
 
   /**
    * Proposal is the data sent over the network from client to provider when
@@ -118,7 +118,7 @@ namespace fc::markets::storage::protocol {
   struct Proposal {
     ClientDealProposal deal_proposal;
     DataRef piece;
-  }
+  };
 
   /**
    * Response is a response to a proposal sent over the network
@@ -140,7 +140,7 @@ namespace fc::markets::storage::protocol {
   struct SignedResponse struct {
     Response response;
     Signature signature;
-  }
+  };
 
 }  // namespace fc::markets::storage::protocol
 
