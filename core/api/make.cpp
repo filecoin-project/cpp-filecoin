@@ -33,8 +33,7 @@ namespace fc::api {
         .ChainHead = {[&]() { return chain_store->heaviestTipset(); }},
         // TODO(turuslan): FIL-165 implement method
         .ChainNotify = {},
-        // TODO(turuslan): FIL-165 implement method
-        .ChainReadObj = {},
+        .ChainReadObj = {[&](const auto &cid) { return ipld->get(cid); }},
         .ChainTipSetWight = {[&](auto tipset_key)
                                  -> outcome::result<TipsetWeight> {
           OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
