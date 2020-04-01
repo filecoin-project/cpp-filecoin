@@ -7,11 +7,13 @@
 
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
+#include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::api {
   using vm::actor::kStorageMarketAddress;
   using vm::actor::builtin::miner::MinerActorState;
+  using vm::interpreter::InterpreterImpl;
   using vm::state::StateTreeImpl;
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
@@ -19,11 +21,21 @@ namespace fc::api {
                std::shared_ptr<IpfsDatastore> ipld,
                std::shared_ptr<KeyStore> key_store) {
     auto chain_randomness = chain_store->createRandomnessProvider();
+    auto getActor = [&](auto &tipset_key,
+                        auto &address,
+                        bool use_parent_state =
+                            true) -> outcome::result<Actor> {
+      OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
+      auto state_root = tipset.getParentStateRoot();
+      if (!use_parent_state) {
+        OUTCOME_TRY(result, InterpreterImpl{}.interpret(ipld, tipset, nullptr));
+        state_root = result.state_root;
+      }
+      return StateTreeImpl{ipld, state_root}.get(address);
+    };
     auto minerState = [&](auto &tipset_key,
                           auto &address) -> outcome::result<MinerActorState> {
-      OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
-      OUTCOME_TRY(
-          actor, StateTreeImpl{ipld, tipset.getParentStateRoot()}.get(address));
+      OUTCOME_TRY(actor, getActor(tipset_key, address));
       return ipld->getCbor<MinerActorState>(actor.head);
     };
     return {
@@ -51,8 +63,9 @@ namespace fc::api {
         .PaychVoucherAdd = {},
         // TODO(turuslan): FIL-165 implement method
         .StateCall = {},
-        // TODO(turuslan): FIL-165 implement method
-        .StateGetActor = {},
+        .StateGetActor = {[&](auto &address, auto &tipset_key) {
+          return getActor(tipset_key, address, false);
+        }},
         // TODO(turuslan): FIL-165 implement method
         .StateMarketBalance = {},
         // TODO(turuslan): FIL-165 implement method

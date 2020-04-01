@@ -10,6 +10,7 @@ target_link_libraries(api
     address
     chain_store
     cid
+    interpreter
     message
     state_tree
     )
