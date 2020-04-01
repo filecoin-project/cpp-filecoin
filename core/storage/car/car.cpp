@@ -3,19 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/genesis/genesis.hpp"
+#include "storage/car/car.hpp"
 
 #include <libp2p/multi/uvarint.hpp>
 
-OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::genesis, CarError, e) {
-  using E = fc::storage::genesis::CarError;
+OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
+  using E = fc::storage::car::CarError;
   switch (e) {
     case E::DECODE_ERROR:
       return "Decode error";
   }
 }
 
-namespace fc::storage::genesis {
+namespace fc::storage::car {
   using libp2p::multi::UVarint;
 
   outcome::result<uint64_t> readUvarint(Input &input) {
@@ -64,4 +64,4 @@ namespace fc::storage::genesis {
     }
     return std::move(header.roots);
   }
-}  // namespace fc::storage::genesis
+}  // namespace fc::storage::car

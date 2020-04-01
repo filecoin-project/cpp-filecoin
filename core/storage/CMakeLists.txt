@@ -4,10 +4,10 @@
 #
 
 add_subdirectory(amt)
+add_subdirectory(car)
 add_subdirectory(chain)
 add_subdirectory(config)
 add_subdirectory(filestore)
-add_subdirectory(genesis)
 add_subdirectory(hamt)
 add_subdirectory(in_memory)
 add_subdirectory(ipfs)

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/genesis/genesis.hpp"
-#include "genesis_test.hpp"
+#include "storage/car/car.hpp"
+#include "car_test.hpp"
 
 #include <fstream>
 
@@ -16,8 +16,8 @@
 #include "testutil/outcome.hpp"
 
 using fc::common::Buffer;
-using fc::storage::genesis::CarError;
-using fc::storage::genesis::loadCar;
+using fc::storage::car::CarError;
+using fc::storage::car::loadCar;
 using fc::storage::ipfs::InMemoryDatastore;
 
 auto readFile(const std::string &path) {

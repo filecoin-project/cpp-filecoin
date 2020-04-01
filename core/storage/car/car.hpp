@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_STORAGE_GENESIS_GENESIS_HPP
-#define CPP_FILECOIN_CORE_STORAGE_GENESIS_GENESIS_HPP
+#ifndef CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
+#define CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
 
 #include "storage/ipfs/datastore.hpp"
 
-namespace fc::storage::genesis {
+namespace fc::storage::car {
   using Ipld = ipfs::IpfsDatastore;
   using Input = gsl::span<const uint8_t>;
 
@@ -32,8 +32,8 @@ namespace fc::storage::genesis {
   }
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input);
-}  // namespace fc::storage::genesis
+}  // namespace fc::storage::car
 
-OUTCOME_HPP_DECLARE_ERROR(fc::storage::genesis, CarError);
+OUTCOME_HPP_DECLARE_ERROR(fc::storage::car, CarError);
 
-#endif  // CPP_FILECOIN_CORE_STORAGE_GENESIS_GENESIS_HPP
+#endif  // CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
