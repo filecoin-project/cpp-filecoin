@@ -14,14 +14,18 @@
 #include "storage/filestore/path.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 
-namespace fc::markets::storage {
+namespace fc::markets::storage::protocol {
 
+  using crypto::signature::Signature;
   using libp2p::peer::PeerId;
   using primitives::DealId;
   using primitives::TokenAmount;
+  using primitives::address::Address;
   using primitives::piece::UnpaddedPieceSize;
   using storage::filestore::Path;
   using vm::actor::builtin::market::ClientDealProposal;
+  using vm::actor::builtin::market::DealProposal;
+  using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
 
   const libp2p::peer::Protocol kDealProtocolId = "/fil/storage/mk/1.0.1";
@@ -36,30 +40,44 @@ namespace fc::markets::storage {
   }
 
   enum class StorageDealStatus {
-    // TODO get 1st
-    StorageDealUnknown,
-    StorageDealProposalNotFound,
-    StorageDealProposalRejected,
-    StorageDealProposalAccepted,
-    StorageDealStaged,
-    StorageDealSealing,
-    StorageDealActive,
-    StorageDealFailing,
-    StorageDealNotFound,
+    STORAGE_DEAL_UNKNOWN = 0,
+    STORAGE_DEAL_PROPOSAL_NOT_FOUND,
+    STORAGE_DEAL_PROPOSAL_REJECTED,
+    STORAGE_DEAL_PROPOSAL_ACCEPTED,
+    STORAGE_DEAL_STAGED,
+    STORAGE_DEAL_SEALING,
+    STORAGE_DEAL_ACTIVE,
+    STORAGE_DEAL_FAILING,
+    STORAGE_DEAL_NOT_FOUND,
 
     // Internal
-    StorageDealFundsEnsured,  // Deposited funds as neccesary to create a deal,
-                              // ready to move forward
-    StorageDealValidating,    // Verifying that deal parameters are good
-    StorageDealTransferring,  // Moving data
-    StorageDealWaitingForData,  // Manual transfer
-    StorageDealVerifyData,  // Verify transferred data - generate CAR / piece
-                            // data
-    StorageDealPublishing,  // Publishing deal to chain
-    StorageDealError,       // deal failed with an unexpected error
-    StorageDealCompleted  // on provider side, indicates deal is active and info
-                          // for retrieval is recorded
 
+    /** Deposited funds as neccesary to create a deal, ready to move forward */
+    STORAGE_DEAL_FUNDS_ENSURED,
+
+    /** Verifying that deal parameters are good */
+    STORAGE_DEAL_VALIDATING,
+
+    /** Moving data */
+    STORAGE_DEAL_TRANSFERRING,
+
+    /** Manual transfer */
+    STORAGE_DEAL_WAITING_FOR_DATA,
+
+    /** Verify transferred data - generate CAR / piece data */
+    STORAGE_DEAL_VERIFY_DATA,
+
+    /** Publishing deal to chain */
+    STORAGE_DEAL_PUBLISHING,
+
+    /** deal failed with an unexpected error */
+    STORAGE_DEAL_ERROR,
+
+    /**
+     * on provider side, indicates deal is active and info for retrieval is
+     * recorded
+     */
+    STORAGE_DEAL_COMPLETED
   };
 
   struct MinerDeal : public ClientDealProposal {
@@ -75,6 +93,55 @@ namespace fc::markets::storage {
     DealId deal_id;
   }
 
-}  // namespace fc::markets::storage
+  struct ClientDeal : public ClientDealProposal {
+    CID proposal_cid;
+    StorageDealStatus state;
+    PeerId miner;
+    Address miner_worker;
+    DealId deal_id;
+    DataRef data_ref;
+    std::string message;
+    CID publish_message;
+  }
+
+  /**
+   * StorageDeal is a local combination of a proposal and a current deal state
+   */
+  struct StorageDeal : public DealProposal,
+                       public DealState {
+  }
+
+  /**
+   * Proposal is the data sent over the network from client to provider when
+   * proposing a deal
+   */
+  struct Proposal {
+    ClientDealProposal deal_proposal;
+    DataRef piece;
+  }
+
+  /**
+   * Response is a response to a proposal sent over the network
+   */
+  struct Response {
+    StorageDealStatus state;
+
+    // DealProposalRejected
+    std::string message;
+    CID proposal;
+
+    // StorageDealProposalAccepted
+    CID publish_message;
+  };
+
+  /**
+   * SignedResponse is a response that is signed
+   */
+  struct SignedResponse struct {
+    Response response;
+    Signature signature;
+  }
+
+}  // namespace fc::markets::storage::protocol
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_DEAL_PROTOCOL_HPP

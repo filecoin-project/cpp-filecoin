@@ -7,23 +7,19 @@
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_ASK_PROTOCOL_HPP
 
 #include <libp2p/peer/protocol.hpp>
+#include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/piece/piece.hpp"
 
-namespace fc::markets::protocol {
+namespace fc::markets::storage::protocol {
 
+  using crypto::signature::Signature;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
 
   const libp2p::peer::Protocol kAskProtocolId = "/fil/storage/ask/1.0.1";
-
-  struct StorageDeal {
-    // Price per GiB / Epoch
-    TokenAmount price;
-    PaddedPieceSize min_piece_size;
-  };
 
   struct StorageAsk {
     // Price per GiB / Epoch
@@ -37,10 +33,24 @@ namespace fc::markets::protocol {
 
   struct SignedStorageAsk {
     StorageAsk ask;
-    // TODO
-    //    Signature signature;
+    Signature signature;
   }
 
-}  // namespace fc::markets::protocol
+  /**
+   * AskRequest is a request for current ask parameters for a given miner
+   */
+  struct AskRequest {
+    Address miner;
+  }
+
+  /**
+   * AskResponse is the response sent over the network in response to an ask
+   * request
+   */
+  struct AskResponse {
+    SignedStorageAsk asl;
+  }
+
+}  // namespace fc::markets::storage::protocol
 
 #endif CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_ASK_PROTOCOL_HPP
