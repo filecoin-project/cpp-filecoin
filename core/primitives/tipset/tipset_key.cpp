@@ -5,9 +5,6 @@
 
 #include "primitives/tipset/tipset_key.hpp"
 
-#include <libp2p/multi/content_identifier_codec.hpp>
-#include "common/outcome.hpp"
-
 namespace fc::primitives::tipset {
   namespace {
     using ByteArray = std::vector<uint8_t>;

@@ -7,7 +7,7 @@
 #include <vector>
 
 #include <gtest/gtest.h>
-#include <libp2p/multi/content_identifier_codec.hpp>
+
 #include "blockchain/message_pool/message_storage.hpp"
 #include "blockchain/production/impl/block_producer_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
@@ -33,9 +33,8 @@ namespace config {
   constexpr size_t kBlockCreationUnixTime{48151623};
   constexpr size_t kParentTipsetWeight{111307};
   const auto kParentTipset{"010001020005"_cid};
-  const std::vector<fc::CID> kParentTipsetBlocks{
-      "010001020006"_cid,
-      "010001020007"_cid};
+  const std::vector<fc::CID> kParentTipsetBlocks{"010001020006"_cid,
+                                                 "010001020007"_cid};
   const fc::common::Buffer kPostProof{"a0b0cc"_unhex};
   const auto kPostRand{
       "e9cecfc7c4c120d4c1cb20c8cfdec5d4d3d120dac1c2d9d4d820cf20d1ddc9cbc520d320"
@@ -71,7 +70,6 @@ class BlockProducerTest : public testing::Test {
   using BlsProviderImpl = fc::crypto::bls::BlsProviderMock;
   using Interpreter = fc::vm::interpreter::Interpreter;
   using InterpreterImpl = fc::vm::interpreter::InterpreterMock;
-  using CIDCodec = libp2p::multi::ContentIdentifierCodec;
   using EPostProof = fc::primitives::ticket::EPostProof;
   using PostRandomness = fc::primitives::ticket::PostRandomness;
   using Ticket = fc::primitives::ticket::Ticket;

@@ -6,7 +6,7 @@
 #include "primitives/cid/cid.hpp"
 
 #include <libp2p/multi/content_identifier_codec.hpp>
-#include <libp2p/multi/uvarint.hpp>
+
 #include "crypto/blake2/blake2b160.hpp"
 
 namespace fc {
@@ -60,6 +60,11 @@ namespace fc {
 
   outcome::result<CID> CID::fromString(const std::string &str) {
     OUTCOME_TRY(cid, libp2p::multi::ContentIdentifierCodec::fromString(str));
+    return CID{std::move(cid)};
+  }
+
+  outcome::result<CID> CID::fromBytes(gsl::span<const uint8_t> input) {
+    OUTCOME_TRY(cid, libp2p::multi::ContentIdentifierCodec::decode(input));
     return CID{std::move(cid)};
   }
 }  // namespace fc

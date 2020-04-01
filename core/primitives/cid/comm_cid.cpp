@@ -4,7 +4,6 @@
  */
 
 #include "primitives/cid/comm_cid.hpp"
-#include <libp2p/multi/uvarint.hpp>
 #include "primitives/cid/comm_cid_errors.hpp"
 
 namespace fc::common {
@@ -44,11 +43,10 @@ namespace fc::common {
       return CommCidError::INVALID_HASH;
     }
 
-    using Version = libp2p::multi::ContentIdentifier::Version;
-
     OUTCOME_TRY(mh, Multihash::create(static_cast<HashType>(code), commitment));
 
-    return CID(Version::V1, kFilecoinCodecType, mh);
+    return CID(
+        libp2p::multi::ContentIdentifier::Version::V1, kFilecoinCodecType, mh);
   }
 
   outcome::result<Comm> CIDToPieceCommitmentV1(const CID &cid) {

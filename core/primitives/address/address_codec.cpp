@@ -21,7 +21,7 @@ namespace fc::primitives::address {
 
   using common::Blob;
   using base32 = cppcodec::base32_rfc4648;
-  using UVarint = libp2p::multi::UVarint;
+  using libp2p::multi::UVarint;
 
   std::vector<uint8_t> encode(const Address &address) noexcept {
     std::vector<uint8_t> res{};
