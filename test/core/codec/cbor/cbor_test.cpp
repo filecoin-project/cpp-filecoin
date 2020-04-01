@@ -22,9 +22,7 @@ using fc::codec::cbor::encode;
 using fc::codec::cbor::resolve;
 
 auto kCidRaw =
-    libp2p::multi::ContentIdentifierCodec::decode(
-        "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex)
-        .value();
+    "122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_cid;
 auto kCidCbor =
     "D82A582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex;
 
@@ -49,8 +47,10 @@ TEST(Cbor, EncodeDecode) {
 /// Decode blob
 TEST(Cbor, DecodeBlob) {
   using Blob3 = fc::common::Blob<3>;
-  EXPECT_OUTCOME_ERROR(CborDecodeError::WRONG_SIZE, decode<Blob3>("42CAFE"_unhex));
-  EXPECT_OUTCOME_EQ(decode<Blob3>("43CAFEDE"_unhex), Blob3::fromHex("CAFEDE").value());
+  EXPECT_OUTCOME_ERROR(CborDecodeError::WRONG_SIZE,
+                       decode<Blob3>("42CAFE"_unhex));
+  EXPECT_OUTCOME_EQ(decode<Blob3>("43CAFEDE"_unhex),
+                    Blob3::fromHex("CAFEDE").value());
 }
 
 /** BigInt CBOR encoding and decoding */

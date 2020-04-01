@@ -58,6 +58,8 @@ namespace fc {
     outcome::result<std::vector<uint8_t>> toBytes() const;
 
     static outcome::result<CID> fromString(const std::string &str);
+
+    static outcome::result<CID> fromBytes(gsl::span<const uint8_t> input);
   };
 }  // namespace fc
 

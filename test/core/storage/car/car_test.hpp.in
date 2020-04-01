@@ -1,0 +1,6 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#define GENESIS_FILE "@CMAKE_CURRENT_SOURCE_DIR@/devnet.car"

@@ -152,9 +152,12 @@ namespace fc::storage::amt {
                                  gsl::span<const uint8_t> value) {
     node.has_bits = true;
     if (height == 0) {
-      return boost::get<Node::Values>(node.items)
-          .insert(std::make_pair(key, value))
-          .second;
+      auto &values = boost::get<Node::Values>(node.items);
+      if (values.insert(std::make_pair(key, value)).second) {
+        return true;
+      }
+      values.at(key) = Value(value);
+      return false;
     }
     auto mask = maskAt(height);
     OUTCOME_TRY(child, loadLink(node, key / mask, true));

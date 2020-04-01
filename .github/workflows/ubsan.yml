@@ -14,6 +14,14 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       name: checkout repo
+    - name: cache
+      uses: actions/cache@v1.1.2
+      env:
+        cache-name: cache-filecoin-ffi-proofs
+        version: v23
+      with:
+        path: /var/tmp/filecoin-proof-parameters
+        key: build-${{ env.cache-name }}-${{ env.version }}
     - name: checkout submodules
       shell: bash
       run: |
@@ -32,7 +40,7 @@ jobs:
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
         CFLAGS: "-I/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
         CXXFLAGS: "-isysroot/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include"
-      run: cmake . -GNinja -Bbuild -D UBSAN=ON
+      run: cmake . -GNinja -Bbuild -D UBSAN=ON -D TESTING_PROOFS=ON
     - name: build
       run: cmake --build build -- -j2
     - name: run tests

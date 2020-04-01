@@ -14,6 +14,14 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       name: checkout repo
+    - name: cache
+      uses: actions/cache@v1.1.2
+      env:
+        cache-name: cache-filecoin-ffi-proofs
+        version: v23
+      with:
+        path: /var/tmp/filecoin-proof-parameters
+        key: build-${{ env.cache-name }}-${{ env.version }}
     - name: checkout submodules
       shell: bash
       run: |
@@ -33,7 +41,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
         GITHUB_HUNTER_USERNAME: ${{ secrets.GITHUB_HUNTER_USERNAME }}
         GITHUB_HUNTER_TOKEN: ${{ secrets.GITHUB_HUNTER_TOKEN }}
-      run: cmake . -GNinja -Bbuild -D LSAN=ON
+      run: cmake . -GNinja -Bbuild -D LSAN=ON -D TESTING_PROOFS=ON
     - name: build
       run: cmake --build build -- -j2
     - name: run tests

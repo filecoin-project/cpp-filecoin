@@ -29,8 +29,14 @@ hunter_config(
     CMAKE_ARGS BOOST_DI_OPT_BUILD_TESTS=OFF BOOST_DI_OPT_BUILD_EXAMPLES=OFF # disable building examples and tests
 )
 
+hunter_config(
+    SQLiteModernCpp
+    URL https://github.com/soramitsu/libp2p-sqlite-modern-cpp/archive/fc3b700064cb57ab6b598c9bc7a12b2842f78da2.zip
+    SHA1 d913f2a0360892a30bc7cd8820a0475800b47d76
+)
+
 hunter_config(libp2p
-    URL https://github.com/soramitsu/libp2p/archive/73211b62f42a8fab134d640c9e6711622f2a3f59.zip
-    SHA1 355aa7b858169ec20ecf5ba72cf89a8a613e0907
-    CMAKE_ARGS TESTING=OFF
+    URL https://github.com/soramitsu/libp2p/archive/a8c4976c27ae5df0c97db35bb14e32a5d862d461.zip
+    SHA1 4669fc201c9a466b277b6af6101c5d6bde2c33d6
+    CMAKE_ARGS TESTING=OFF EXPOSE_MOCKS=ON
     )

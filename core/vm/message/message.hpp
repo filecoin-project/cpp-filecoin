@@ -15,7 +15,6 @@
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
-#include "storage/ipld/ipld_block_common.hpp"
 #include "vm/actor/actor.hpp"
 
 namespace fc::vm::message {
@@ -34,15 +33,11 @@ namespace fc::vm::message {
   using crypto::signature::Signature;
   using primitives::BigInt;
   using primitives::address::Address;
-  using storage::ipld::IPLDBlockCommon;
 
   /**
    * @brief UnsignedMessage struct
    */
-  struct UnsignedMessage
-      : public IPLDBlockCommon<CID::Version::V1,
-                               storage::ipld::HashType::blake2b_256,
-                               storage::ipld::ContentType::DAG_CBOR> {
+  struct UnsignedMessage {
     UnsignedMessage() = default;
 
     UnsignedMessage(Address to,
@@ -74,10 +69,6 @@ namespace fc::vm::message {
 
     MethodNumber method{};
     MethodParams params{};
-
-    outcome::result<std::vector<uint8_t>> getBlockContent() const override {
-      return codec::cbor::encode<UnsignedMessage>(*this);
-    }
 
     /**
      * @brief Message equality operator

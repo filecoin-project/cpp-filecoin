@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(amt)
+add_subdirectory(car)
 add_subdirectory(chain)
 add_subdirectory(config)
 add_subdirectory(filestore)

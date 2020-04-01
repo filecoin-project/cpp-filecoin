@@ -40,14 +40,12 @@ class ProofsTest : public test::BaseFS_Test {
   ProofsTest() : test::BaseFS_Test("fc_proofs_test") {}
 };
 
-// TODO(artyom-yurin): [FIL-164]
 /**
- * disabled because it takes too long
  * @given data of sector
  * @when want to seal data and proof post
  * @then success
  */
-TEST_F(ProofsTest, DISABLED_Lifecycle) {
+TEST_F(ProofsTest, Lifecycle) {
   uint64_t challenge_count = 2;
   ActorId miner_id = 42;
   Randomness randomness{{9, 9, 9}};

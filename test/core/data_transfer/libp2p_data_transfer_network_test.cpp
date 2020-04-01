@@ -8,9 +8,9 @@
 #include <gtest/gtest.h>
 #include <libp2p/basic/message_read_writer_error.hpp>
 #include <libp2p/multi/multihash.hpp>
+#include <mock/libp2p/connection/stream_mock.hpp>
+#include <mock/libp2p/host/host_mock.hpp>
 #include "testutil/mocks/data_transfer/message_receiver_mock.hpp"
-#include "testutil/mocks/libp2p/host_mock.hpp"
-#include "testutil/mocks/libp2p/stream_mock.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::common::Buffer;

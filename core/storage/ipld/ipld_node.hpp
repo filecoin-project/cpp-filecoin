@@ -20,9 +20,27 @@ namespace fc::storage::ipld {
   /**
    * @interface MerkleDAG service node
    */
-  class IPLDNode : public virtual IPLDBlock {
+  class IPLDNode {
+   protected:
+    using Buffer = common::Buffer;
+
    public:
     virtual ~IPLDNode() = default;
+
+    /**
+     * @brief Get node's CID
+     * @return node's CID
+     */
+    virtual const CID &getCID() const = 0;
+
+    /**
+     * @brief Get serialized node's content
+     * @note This method is similar with Node::serialize, but uses internal
+     * cache for each query
+     * @return node raw bytes
+     */
+    virtual const Buffer &getRawBytes() const = 0;
+
     /**
      * @brief Total size of the data including the total sizes of references
      * @return Cumulative size in bytes
@@ -34,13 +52,13 @@ namespace fc::storage::ipld {
      * @param input - data bytes
      * @return operation result
      */
-    virtual void assign(common::Buffer input) = 0;
+    virtual void assign(Buffer input) = 0;
 
     /**
      * @brief Get Node data
      * @return content bytes
      */
-    virtual const common::Buffer &content() const = 0;
+    virtual const Buffer &content() const = 0;
 
     /**
      * @brief Add link to the child node
@@ -72,8 +90,18 @@ namespace fc::storage::ipld {
      */
     virtual void addLink(const IPLDLink &link) = 0;
 
+    /**
+     * @brief Get links to first-level child nodes
+     * @return References to node links
+     */
     virtual std::vector<std::reference_wrapper<const IPLDLink>> getLinks()
         const = 0;
+
+    /**
+     * @brief Serialize Node
+     * @return raw bytes
+     */
+    virtual Buffer serialize() const = 0;
   };
 
   /**
