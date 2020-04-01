@@ -8,6 +8,8 @@
 
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/peer/protocol.hpp>
+#include "crypto/signature/signature.hpp"
+#include "primitives/address/address.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/types.hpp"
@@ -107,9 +109,7 @@ namespace fc::markets::storage {
   /**
    * StorageDeal is a local combination of a proposal and a current deal state
    */
-  struct StorageDeal : public DealProposal,
-                       public DealState {
-  };
+  struct StorageDeal : public DealProposal, public DealState {};
 
   /**
    * Proposal is the data sent over the network from client to provider when
@@ -142,6 +142,6 @@ namespace fc::markets::storage {
     Signature signature;
   };
 
-}  // namespace fc::markets::storage::protocol
+}  // namespace fc::markets::storage
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_DEAL_PROTOCOL_HPP

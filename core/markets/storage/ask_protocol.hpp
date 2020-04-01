@@ -9,7 +9,9 @@
 #include <libp2p/peer/protocol.hpp>
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/piece/piece.hpp"
+#include "primitives/types.hpp"
 
 namespace fc::markets::storage {
 
@@ -51,6 +53,6 @@ namespace fc::markets::storage {
     SignedStorageAsk asl;
   };
 
-}  // namespace fc::markets::storage::protocol
+}  // namespace fc::markets::storage
 
 #endif CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_ASK_PROTOCOL_HPP
