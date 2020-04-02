@@ -48,6 +48,7 @@ auto signMessage(const UnsignedMessage &message, const BlsPrivateKey &key) {
   return sig.signature;
 }
 
+/// Message JSON and CBOR
 TEST(SerializationVectorsTest, UnsignedMessage) {
   auto tests = loadJson("unsigned_messages.json");
   for (auto it = tests.Begin(); it != tests.End(); ++it) {
@@ -58,6 +59,7 @@ TEST(SerializationVectorsTest, UnsignedMessage) {
   }
 }
 
+/// Message signing
 TEST(SerializationVectorsTest, SignedMessage) {
   auto tests = loadJson("message_signing.json");
   for (auto it = tests.Begin(); it != tests.End(); ++it) {
@@ -82,6 +84,7 @@ TEST(SerializationVectorsTest, SignedMessage) {
   }
 }
 
+/// BlockHeader JSON and CBOR
 TEST(SerializationVectorsTest, BlockHeader) {
   auto tests = loadJson("block_headers.json");
   for (auto it = tests.Begin(); it != tests.End(); ++it) {
