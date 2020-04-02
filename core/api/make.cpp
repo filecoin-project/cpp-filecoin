@@ -119,8 +119,17 @@ namespace fc::api {
         }},
         // TODO(turuslan): FIL-165 implement method
         .StateMinerPower = {},
-        // TODO(turuslan): FIL-165 implement method
-        .StateMinerProvingSet = {},
+        .StateMinerProvingSet =
+            {[&](auto address, auto tipset_key)
+                 -> outcome::result<std::vector<ChainSectorInfo>> {
+              OUTCOME_TRY(state, minerState(tipset_key, address));
+              std::vector<ChainSectorInfo> sectors;
+              OUTCOME_TRY(state.proving_set.visit([&](auto id, auto &info) {
+                sectors.emplace_back(ChainSectorInfo{info, id});
+                return outcome::success();
+              }));
+              return sectors;
+            }},
         .StateMinerSectorSize = {[&](auto address, auto tipset_key)
                                      -> outcome::result<SectorSize> {
           OUTCOME_TRY(state, minerState(tipset_key, address));
