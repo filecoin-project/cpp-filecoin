@@ -5,17 +5,16 @@
 
 #include "serialization_vectors.hpp"
 
-#include <fstream>
-
-#include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
 #include <rapidjson/writer.h>
+#include <boost/filesystem.hpp>
 
 #include "api/rpc/json.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/read_file.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/message/message_util.hpp"
 
@@ -31,16 +30,11 @@ using fc::vm::message::MessageSignerImpl;
 using BlsPrivateKey = fc::crypto::bls::PrivateKey;
 
 auto loadJson(const std::string &name) {
-  std::ifstream file{
-      boost::filesystem::path{SERIALIZATION_VECTORS_ROOT}.append(name).c_str(),
-      std::ios::binary | std::ios::ate};
-  EXPECT_TRUE(file.good());
-  std::string str;
-  str.resize(file.tellg());
-  file.seekg(0, std::ios::beg);
-  file.read(str.data(), str.size());
+  auto str = readFile(boost::filesystem::path{SERIALIZATION_VECTORS_ROOT}
+                          .append(name)
+                          .string());
   rapidjson::Document document;
-  document.Parse(str.data(), str.size());
+  document.Parse(reinterpret_cast<const char *>(str.data()), str.size());
   EXPECT_FALSE(document.HasParseError());
   return document;
 }
