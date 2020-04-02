@@ -34,7 +34,7 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(state_tree->set(message.from, from_actor));
 
     OUTCOME_TRY(serialized_message, codec::cbor::encode(message));
-    BigInt gas_used =
+    GasAmount gas_used =
         kOnChainMessageBaseGasCost
         + serialized_message.size() * kOnChainMessagePerByteGasCharge;
 
@@ -66,7 +66,7 @@ namespace fc::vm::runtime {
     };
   }
 
-  outcome::result<InvocationOutput> Env::send(BigInt &gas_used,
+  outcome::result<InvocationOutput> Env::send(GasAmount &gas_used,
                                               const Address &origin,
                                               const UnsignedMessage &message) {
     Actor to_actor;

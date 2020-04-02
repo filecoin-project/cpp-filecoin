@@ -34,7 +34,7 @@ class GasPricedScoredMessageStorageTest : public testing::Test {
       0,                      // nonce
       BigInt(1),              // transfer value
       BigInt(0),              // gasPrice
-      BigInt(1),              // gasLimit
+      1,                      // gasLimit
       MethodNumber{0},        // method num
       MethodParams{""_unhex}  // method params
   };
@@ -101,7 +101,7 @@ TEST_F(GasPricedScoredMessageStorageTest, SunnyDay) {
       0,                      // nonce
       BigInt(1),              // transfer value
       gas_price1,             // gasPrice
-      BigInt(1),              // gasLimit
+      1,                      // gasLimit
       MethodNumber{0},        // method num
       MethodParams{""_unhex}  // method params
   };
@@ -115,7 +115,7 @@ TEST_F(GasPricedScoredMessageStorageTest, SunnyDay) {
       1,                      // nonce
       BigInt(1),              // transfer value
       gas_price1,             // gasPrice
-      BigInt(1),              // gasLimit
+      1,                      // gasLimit
       MethodNumber{0},        // method num
       MethodParams{""_unhex}  // method params
   };
@@ -129,7 +129,7 @@ TEST_F(GasPricedScoredMessageStorageTest, SunnyDay) {
       2,                      // nonce
       BigInt(1),              // transfer value
       gas_price3,             // gasPrice
-      BigInt(1),              // gasLimit
+      1,                      // gasLimit
       MethodNumber{0},        // method num
       MethodParams{""_unhex}  // method params
   };
@@ -143,7 +143,7 @@ TEST_F(GasPricedScoredMessageStorageTest, SunnyDay) {
       3,                      // nonce
       BigInt(1),              // transfer value
       gas_price2,             // gasPrice
-      BigInt(1),              // gasLimit
+      1,                      // gasLimit
       MethodNumber{0},        // method num
       MethodParams{""_unhex}  // method params
   };

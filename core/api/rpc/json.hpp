@@ -11,6 +11,7 @@
 
 #include "api/api.hpp"
 #include "api/rpc/json_errors.hpp"
+#include "common/enum.hpp"
 #include "primitives/address/address_codec.hpp"
 
 #define COMMA ,
@@ -26,6 +27,7 @@ namespace fc::api {
   using crypto::signature::Signature;
   using primitives::BigInt;
   using primitives::block::BlockHeader;
+  using primitives::sector::PoStProof;
   using primitives::ticket::EPostProof;
   using primitives::ticket::EPostTicket;
   using primitives::ticket::Ticket;
@@ -35,6 +37,8 @@ namespace fc::api {
   using vm::actor::builtin::payment_channel::Merge;
   using vm::actor::builtin::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
+  using SignatureType = crypto::signature::Type;
+  using primitives::sector::RegisteredProof;
 
   struct Request {
     uint64_t id;
@@ -82,7 +86,10 @@ namespace fc::api {
       Set(j, key, encode(v));
     }
 
-    static auto decodeBase64(const Value &j) {
+    static std::vector<uint8_t> decodeBase64(const Value &j) {
+      if (j.IsNull()) {
+        return {};
+      }
       return base64::decode(AsString(j));
     }
 
@@ -229,16 +236,16 @@ namespace fc::api {
     }
 
     ENCODE(Signature) {
-      const char *type;
+      uint64_t type;
       gsl::span<const uint8_t> data;
       visit_in_place(
           v,
           [&](const BlsSignature &bls) {
-            type = "bls";
+            type = SignatureType::BLS;
             data = gsl::make_span(bls);
           },
           [&](const Secp256k1Signature &secp) {
-            type = "secp256k1";
+            type = SignatureType::SECP256K1;
             data = gsl::make_span(secp);
           });
       Value j{rapidjson::kObjectType};
@@ -248,11 +255,12 @@ namespace fc::api {
     }
 
     DECODE(Signature) {
-      auto type = AsString(Get(j, "Type"));
+      uint64_t type;
+      decode(type, Get(j, "Type"));
       auto &data = Get(j, "Data");
-      if (type == "bls") {
+      if (type == SignatureType::BLS) {
         v = decode<BlsSignature>(data);
-      } else if (type == "secp256k1") {
+      } else if (type == SignatureType::SECP256K1) {
         v = decode<Secp256k1Signature>(data);
       } else {
         outcome::raise(JsonError::WRONG_ENUM);
@@ -273,16 +281,30 @@ namespace fc::api {
       decode(v.challenge_index, Get(j, "ChallengeIndex"));
     }
 
+    ENCODE(PoStProof) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "ProofBytes", gsl::make_span(v.proof));
+      return j;
+    }
+
+    DECODE(PoStProof) {
+      std::underlying_type_t<RegisteredProof> registered_proof;
+      decode(registered_proof, Get(j, "RegisteredProof"));
+      v.registered_proof = RegisteredProof{registered_proof};
+      decode(v.proof, Get(j, "ProofBytes"));
+    }
+
     ENCODE(EPostProof) {
       Value j{rapidjson::kObjectType};
-      Set(j, "Proof", gsl::make_span(v.proof));
+      Set(j, "Proofs", v.proofs);
       Set(j, "PostRand", gsl::make_span(v.post_rand));
       Set(j, "Candidates", v.candidates);
       return j;
     }
 
     DECODE(EPostProof) {
-      decode(v.proof, Get(j, "Proof"));
+      decode(v.proofs, Get(j, "Proofs"));
       decode(v.post_rand, Get(j, "PostRand"));
       decode(v.candidates, Get(j, "Candidates"));
     }

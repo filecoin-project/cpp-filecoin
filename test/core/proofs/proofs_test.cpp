@@ -5,12 +5,15 @@
 
 #include "proofs/proofs.hpp"
 
-#include <gtest/gtest.h>
 #include <random>
+
+#include <gtest/gtest.h>
+
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/read_file.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
 using fc::common::Blob;
@@ -232,23 +235,7 @@ TEST_F(ProofsTest, Lifecycle) {
                                        ticket,
                                        sealed_and_unsealed_cid.unsealed_cid));
 
-  auto read_file = [](const std::string &path) -> std::vector<uint8_t> {
-    std::ifstream file(path, std::ios::binary);
-
-    std::vector<uint8_t> bytes = {};
-
-    if (!file.is_open()) return bytes;
-
-    char ch;
-    while (file.get(ch)) {
-      bytes.push_back(ch);
-    }
-
-    file.close();
-    return bytes;
-  };
-
-  std::vector<uint8_t> file_a_bytes = read_file(unseal_output_file_a);
+  auto file_a_bytes = readFile(unseal_output_file_a);
 
   ASSERT_EQ(gsl::make_span(file_a_bytes.data(), 127),
             gsl::make_span(some_bytes.data(), 127));
@@ -267,7 +254,7 @@ TEST_F(ProofsTest, Lifecycle) {
                           0,
                           127));
 
-  std::vector<uint8_t> file_b_bytes = read_file(unseal_output_file_b);
+  auto file_b_bytes = readFile(unseal_output_file_b);
 
   ASSERT_EQ(gsl::make_span(file_b_bytes),
             gsl::make_span(some_bytes.data(), 127));
@@ -284,7 +271,7 @@ TEST_F(ProofsTest, Lifecycle) {
                           1016,
                           1016));
 
-  std::vector<uint8_t> file_c_bytes = read_file(unseal_output_file_c);
+  auto file_c_bytes = readFile(unseal_output_file_c);
 
   ASSERT_EQ(gsl::make_span(file_c_bytes),
             gsl::make_span(some_bytes.data(), 1016));

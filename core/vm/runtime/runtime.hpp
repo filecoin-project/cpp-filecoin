@@ -39,6 +39,7 @@ namespace fc::vm::runtime {
   using indices::Indices;
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
+  using primitives::GasAmount;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::block::BlockHeader;
@@ -144,7 +145,7 @@ namespace fc::vm::runtime {
     virtual std::reference_wrapper<const UnsignedMessage> getMessage() = 0;
 
     /// Try to charge gas or throw if there is not enoght gas
-    virtual outcome::result<void> chargeGas(const BigInt &amount) = 0;
+    virtual outcome::result<void> chargeGas(GasAmount amount) = 0;
 
     /// Get current actor state root CID
     virtual ActorSubstateCID getCurrentActorState() = 0;

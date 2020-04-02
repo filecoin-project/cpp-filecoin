@@ -76,7 +76,12 @@ class BlockValidatorTest : public testing::Test {
   BlockHeader getCorrectBlockHeader() const {
     return {Address::makeFromId(1),
             Ticket{config::b96},
-            {fc::common::Buffer{"DEAD"_unhex}, config::b96, {}},
+            {{fc::primitives::sector::PoStProof{
+                 fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+                 "F00D"_unhex,
+             }},
+             config::b96,
+             {}},
             {"010001020002"_cid},
             3,
             4,

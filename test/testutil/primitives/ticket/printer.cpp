@@ -5,6 +5,8 @@
 
 #include "testutil/primitives/ticket/printer.hpp"
 
+#include "common/enum.hpp"
+
 std::string print(const fc::primitives::ticket::Ticket &t) {
   std::stringstream s;
   s << "Ticket {\n"
@@ -28,7 +30,12 @@ std::string print(const fc::primitives::ticket::EPostTicket &t) {
 std::string print(const fc::primitives::ticket::EPostProof &p) {
   std::stringstream s;
   s << "EPostProof {\n"
-    << "\tproof = " << fc::common::hex_lower(p.proof) << "\n"
+    << "\tproofs {\ns";
+  for (auto &proof : p.proofs) {
+    s << "\t\ttype=" << fc::common::to_int(proof.registered_proof)
+      << " proof=" << fc::common::hex_lower(proof.proof) << "\n";
+  }
+  s << "}\n"
     << "\tpost_rand = " << fc::common::hex_lower(p.post_rand) << "\n"
     << "\tcandidates {\n\t\t";
   for (auto &c : p.candidates) {

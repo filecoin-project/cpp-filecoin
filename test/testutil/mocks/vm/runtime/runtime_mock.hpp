@@ -59,7 +59,7 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD0(getMessage, std::reference_wrapper<const UnsignedMessage>());
 
-    MOCK_METHOD1(chargeGas, outcome::result<void>(const BigInt &amount));
+    MOCK_METHOD1(chargeGas, outcome::result<void>(GasAmount amount));
 
     MOCK_METHOD0(getCurrentActorState, ActorSubstateCID());
 
