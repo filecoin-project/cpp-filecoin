@@ -88,8 +88,18 @@ namespace fc::api {
               }
               return StorageParticipantBalance{*locked, *escrow - *locked};
             }},
-        // TODO(turuslan): FIL-165 implement method
-        .StateMarketDeals = {},
+        .StateMarketDeals = {[&](auto &tipset_key)
+                                 -> outcome::result<MarketDealMap> {
+          OUTCOME_TRY(state, marketState(tipset_key));
+          MarketDealMap map;
+          OUTCOME_TRY(state.proposals.visit([&](auto deal_id, auto &deal)
+                                                -> outcome::result<void> {
+            OUTCOME_TRY(deal_state, state.states.get(deal_id));
+            map.emplace(std::to_string(deal_id), MarketDeal{deal, deal_state});
+            return outcome::success();
+          }));
+          return map;
+        }},
         .StateMarketStorageDeal = {[&](auto deal_id, auto &tipset_key)
                                        -> outcome::result<MarketDeal> {
           OUTCOME_TRY(state, marketState(tipset_key));
