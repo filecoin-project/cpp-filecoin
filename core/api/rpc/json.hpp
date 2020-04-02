@@ -712,7 +712,7 @@ namespace fc::api {
       decode(v.state, Get(j, "State"));
     }
 
-    ENCODE(Block) {
+    ENCODE(BlockMsg) {
       Value j{rapidjson::kObjectType};
       Set(j, "Header", v.header);
       Set(j, "BlsMessages", v.bls_messages);
@@ -720,7 +720,7 @@ namespace fc::api {
       return j;
     }
 
-    DECODE(Block) {
+    DECODE(BlockMsg) {
       decode(v.header, Get(j, "Header"));
       decode(v.bls_messages, Get(j, "BlsMessages"));
       decode(v.secp_messages, Get(j, "SecpkMessages"));

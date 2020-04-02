@@ -57,6 +57,12 @@ namespace fc::primitives::block {
     std::vector<SignedMessage> secp_messages;
   };
 
+  struct BlockMsg {
+    BlockHeader header;
+    std::vector<CID> bls_messages;
+    std::vector<CID> secp_messages;
+  };
+
   inline bool operator==(const BlockHeader &lhs, const BlockHeader &rhs) {
     return lhs.miner == rhs.miner && lhs.ticket == rhs.ticket
            && lhs.epost_proof == rhs.epost_proof && lhs.parents == rhs.parents

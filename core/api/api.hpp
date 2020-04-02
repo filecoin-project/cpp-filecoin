@@ -39,7 +39,7 @@ namespace fc::api {
   using primitives::TipsetWeight;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using primitives::block::Block;
+  using primitives::block::BlockMsg;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
@@ -104,13 +104,13 @@ namespace fc::api {
     API_METHOD(MarketEnsureAvailable, void, const Address &, TokenAmount)
 
     API_METHOD(MinerCreateBlock,
-               Block,
+               BlockMsg,
                const Address &,
                const TipsetKey &,
                const Ticket &,
                const EPostProof &,
                const std::vector<SignedMessage> &,
-               uint64_t,
+               ChainEpoch,
                uint64_t)
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
@@ -151,7 +151,7 @@ namespace fc::api {
     API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
     API_METHOD(StateWaitMsg, MsgWait, const CID &)
 
-    API_METHOD(SyncSubmitBlock, void, const Block &)
+    API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
 
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
   };

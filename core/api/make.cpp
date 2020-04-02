@@ -16,10 +16,14 @@ namespace fc::api {
   using vm::interpreter::InterpreterImpl;
   using vm::state::StateTreeImpl;
   using MarketActorState = vm::actor::builtin::market::State;
+  using crypto::signature::BlsSignature;
+  using primitives::block::MsgMeta;
+  using storage::amt::Amt;
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<IpfsDatastore> ipld,
+               std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<KeyStore> key_store) {
     auto chain_randomness = chain_store->createRandomnessProvider();
     auto getActor = [&](auto &tipset_key,
@@ -61,8 +65,71 @@ namespace fc::api {
         }},
         // TODO(turuslan): FIL-165 implement method
         .MarketEnsureAvailable = {},
-        // TODO(turuslan): FIL-165 implement method
-        .MinerCreateBlock = {},
+        .MinerCreateBlock = {[&](auto &miner,
+                                 auto &parent,
+                                 auto &ticket,
+                                 auto &proof,
+                                 auto &messages,
+                                 auto height,
+                                 auto timestamp) -> outcome::result<BlockMsg> {
+          OUTCOME_TRY(tipset, chain_store->loadTipset(parent));
+          OUTCOME_TRY(interpreted,
+                      InterpreterImpl{}.interpret(ipld, tipset, nullptr));
+
+          StateTreeImpl state_tree{ipld, interpreted.state_root};
+          OUTCOME_TRY(miner_actor, state_tree.get(miner));
+          OUTCOME_TRY(miner_state,
+                      ipld->getCbor<MinerActorState>(miner_actor.head));
+          OUTCOME_TRY(worker_id, state_tree.lookupId(miner_state.info.worker));
+
+          BlockMsg block;
+          block.header.miner = miner;
+          block.header.parents = parent.cids;
+          block.header.ticket = ticket;
+          block.header.height = height;
+          block.header.timestamp = timestamp;
+          block.header.epost_proof = proof;
+          block.header.parent_state_root = interpreted.state_root;
+          block.header.parent_message_receipts = interpreted.message_receipts;
+          block.header.fork_signaling = 0;
+
+          std::vector<BlsSignature> bls_sigs;
+          Amt amt_bls{ipld}, amt_secp{ipld};
+          uint64_t i_bls{0}, i_secp{0};
+          for (auto &message : messages) {
+            if (message.signature.isBls()) {
+              OUTCOME_TRY(message_cid, ipld->setCbor(message.message));
+              bls_sigs.emplace_back(
+                  boost::get<BlsSignature>(message.signature));
+              block.bls_messages.emplace_back(std::move(message_cid));
+              OUTCOME_TRY(amt_bls.setCbor(++i_bls, message_cid));
+            } else {
+              OUTCOME_TRY(message_cid, ipld->setCbor(message));
+              block.secp_messages.emplace_back(std::move(message_cid));
+              OUTCOME_TRY(amt_secp.setCbor(++i_secp, message_cid));
+            }
+          }
+
+          OUTCOME_TRY(amt_bls.flush());
+          OUTCOME_TRY(amt_secp.flush());
+          OUTCOME_TRY(msg_meta,
+                      ipld->setCbor(MsgMeta{amt_bls.cid(), amt_secp.cid()}));
+          block.header.messages = msg_meta;
+
+          OUTCOME_TRY(bls_aggregate,
+                      bls_provider->aggregateSignatures(bls_sigs));
+          block.header.bls_aggregate = bls_aggregate;
+
+          OUTCOME_TRY(parent_weight,
+                      weight_calculator->calculateWeight(tipset));
+          block.header.parent_weight = parent_weight;
+
+          OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
+          OUTCOME_TRY(block_sig, key_store->sign(worker_id, block_signable));
+          block.header.block_sig = block_sig;
+
+          return block;
+        }},
         // TODO(turuslan): FIL-165 implement method
         .MpoolPending = {},
         // TODO(turuslan): FIL-165 implement method
