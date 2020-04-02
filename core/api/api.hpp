@@ -45,7 +45,8 @@ namespace fc::api {
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
   using vm::actor::Actor;
-  using vm::actor::builtin::market::OnChainDeal;
+  using vm::actor::builtin::market::DealProposal;
+  using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::message::SignedMessage;
@@ -69,7 +70,12 @@ namespace fc::api {
     std::string error;
   };
 
-  using OnChainDealMap = std::map<std::string, OnChainDeal>;
+  struct MarketDeal {
+    DealProposal proposal;
+    DealState state;
+  };
+
+  using MarketDealMap = std::map<std::string, MarketDeal>;
 
   struct MinerPower {
     StoragePower miner;
@@ -125,8 +131,8 @@ namespace fc::api {
                StorageParticipantBalance,
                const Address &,
                const TipsetKey &)
-    API_METHOD(StateMarketDeals, OnChainDealMap, const TipsetKey &)
-    API_METHOD(StateMarketStorageDeal, OnChainDeal, DealId, const TipsetKey &)
+    API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
+    API_METHOD(StateMarketStorageDeal, MarketDeal, DealId, const TipsetKey &)
     API_METHOD(StateMinerElectionPeriodStart,
                ChainEpoch,
                const Address &,

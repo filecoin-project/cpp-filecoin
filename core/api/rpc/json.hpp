@@ -616,30 +616,56 @@ namespace fc::api {
       v.error = AsString(Get(j, "Error"));
     }
 
-    ENCODE(OnChainDeal) {
+    ENCODE(DealProposal) {
       Value j{rapidjson::kObjectType};
-      Set(j, "PieceRef", v.piece_ref);
-      Set(j, "PieceSize", v.piece_size);
+      Set(j, "PieceCID", v.piece_cid);
+      Set(j, "PieceSize", static_cast<uint64_t>(v.piece_size));
       Set(j, "Client", v.client);
       Set(j, "Provider", v.provider);
-      Set(j, "ProposalExpiration", v.proposal_expiration);
-      Set(j, "Duration", v.duration);
+      Set(j, "StartEpoch", v.start_epoch);
+      Set(j, "EndEpoch", v.end_epoch);
       Set(j, "StoragePricePerEpoch", v.storage_price_per_epoch);
-      Set(j, "StorageCollateral", v.storage_collateral);
-      Set(j, "ActivationEpoch", v.activation_epoch);
+      Set(j, "ProviderCollateral", v.provider_collateral);
+      Set(j, "ClientCollateral", v.client_collateral);
       return j;
     }
 
-    DECODE(OnChainDeal) {
-      decode(v.piece_ref, Get(j, "PieceRef"));
-      decode(v.piece_size, Get(j, "PieceSize"));
+    DECODE(DealProposal) {
+      decode(v.piece_cid, Get(j, "PieceCID"));
+      v.piece_size = decode<uint64_t>(Get(j, "PieceSize"));
       decode(v.client, Get(j, "Client"));
       decode(v.provider, Get(j, "Provider"));
-      decode(v.proposal_expiration, Get(j, "ProposalExpiration"));
-      decode(v.duration, Get(j, "Duration"));
+      decode(v.start_epoch, Get(j, "StartEpoch"));
+      decode(v.end_epoch, Get(j, "EndEpoch"));
       decode(v.storage_price_per_epoch, Get(j, "StoragePricePerEpoch"));
-      decode(v.storage_collateral, Get(j, "StorageCollateral"));
-      decode(v.activation_epoch, Get(j, "ActivationEpoch"));
+      decode(v.provider_collateral, Get(j, "ProviderCollateral"));
+      decode(v.client_collateral, Get(j, "ClientCollateral"));
+    }
+
+    ENCODE(DealState) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "SectorStartEpoch", v.sector_start_epoch);
+      Set(j, "LastUpdatedEpoch", v.last_updated_epoch);
+      Set(j, "SlashEpoch", v.slash_epoch);
+      return j;
+    }
+
+    DECODE(DealState) {
+      decode(v.sector_start_epoch, Get(j, "SectorStartEpoch"));
+      decode(v.last_updated_epoch, Get(j, "LastUpdatedEpoch"));
+      decode(v.slash_epoch, Get(j, "SlashEpoch"));
+    }
+
+    ENCODE(MarketDeal) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Proposal", v.proposal);
+      Set(j, "State", v.state);
+      return j;
+    }
+
+    DECODE(MarketDeal) {
+      decode(v.proposal, Get(j, "Proposal"));
+      decode(v.state, Get(j, "State"));
     }
 
     ENCODE(Block) {
