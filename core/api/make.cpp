@@ -39,7 +39,8 @@ namespace fc::api {
       OUTCOME_TRY(actor, getActor(tipset_key, address));
       return ipld->getCbor<MinerActorState>(actor.head);
     };
-    auto marketState = [&](auto &tipset_key) -> outcome::result<MarketActorState> {
+    auto marketState =
+        [&](auto &tipset_key) -> outcome::result<MarketActorState> {
       OUTCOME_TRY(actor, getActor(tipset_key, kStorageMarketAddress));
       OUTCOME_TRY(state, ipld->getCbor<MarketActorState>(actor.head));
       state.load(ipld);
@@ -89,8 +90,13 @@ namespace fc::api {
             }},
         // TODO(turuslan): FIL-165 implement method
         .StateMarketDeals = {},
-        // TODO(turuslan): FIL-165 implement method
-        .StateMarketStorageDeal = {},
+        .StateMarketStorageDeal = {[&](auto deal_id, auto &tipset_key)
+                                       -> outcome::result<MarketDeal> {
+          OUTCOME_TRY(state, marketState(tipset_key));
+          OUTCOME_TRY(deal, state.proposals.get(deal_id));
+          OUTCOME_TRY(deal_state, state.states.get(deal_id));
+          return MarketDeal{deal, deal_state};
+        }},
         .StateMinerElectionPeriodStart = {[&](auto address, auto tipset_key)
                                               -> outcome::result<ChainEpoch> {
           OUTCOME_TRY(state, minerState(tipset_key, address));
