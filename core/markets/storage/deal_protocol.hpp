@@ -24,7 +24,7 @@ namespace fc::markets::storage {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::UnpaddedPieceSize;
-  using storage::filestore::Path;
+  using ::fc::storage::filestore::Path;
   using vm::actor::builtin::market::ClientDealProposal;
   using vm::actor::builtin::market::DealProposal;
   using vm::actor::builtin::market::DealState;
@@ -83,7 +83,7 @@ namespace fc::markets::storage {
   };
 
   struct MinerDeal : public ClientDealProposal {
-    Cid proposal_cid;
+    CID proposal_cid;
     PeerId miner;
     PeerId client;
     StorageDealStatus state;
@@ -137,7 +137,7 @@ namespace fc::markets::storage {
   /**
    * SignedResponse is a response that is signed
    */
-  struct SignedResponse struct {
+  struct SignedResponse {
     Response response;
     Signature signature;
   };

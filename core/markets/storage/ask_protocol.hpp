@@ -55,4 +55,4 @@ namespace fc::markets::storage {
 
 }  // namespace fc::markets::storage
 
-#endif CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_ASK_PROTOCOL_HPP
+#endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_ASK_PROTOCOL_HPP
