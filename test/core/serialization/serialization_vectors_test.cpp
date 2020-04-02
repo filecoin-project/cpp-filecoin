@@ -7,6 +7,7 @@
 
 #include <fstream>
 
+#include <boost/filesystem.hpp>
 #include <gtest/gtest.h>
 #include <rapidjson/writer.h>
 
@@ -31,7 +32,7 @@ using BlsPrivateKey = fc::crypto::bls::PrivateKey;
 
 auto loadJson(const std::string &name) {
   std::ifstream file{
-      std::filesystem::path{SERIALIZATION_VECTORS_ROOT}.append(name),
+      boost::filesystem::path{SERIALIZATION_VECTORS_ROOT}.append(name).c_str(),
       std::ios::binary | std::ios::ate};
   EXPECT_TRUE(file.good());
   std::string str;
