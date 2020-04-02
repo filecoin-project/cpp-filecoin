@@ -15,6 +15,7 @@ namespace fc::api {
   using vm::actor::builtin::miner::MinerActorState;
   using vm::interpreter::InterpreterImpl;
   using vm::state::StateTreeImpl;
+  using MarketActorState = vm::actor::builtin::market::State;
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
@@ -37,6 +38,12 @@ namespace fc::api {
                           auto &address) -> outcome::result<MinerActorState> {
       OUTCOME_TRY(actor, getActor(tipset_key, address));
       return ipld->getCbor<MinerActorState>(actor.head);
+    };
+    auto marketState = [&](auto &tipset_key) -> outcome::result<MarketActorState> {
+      OUTCOME_TRY(actor, getActor(tipset_key, kStorageMarketAddress));
+      OUTCOME_TRY(state, ipld->getCbor<MarketActorState>(actor.head));
+      state.load(ipld);
+      return std::move(state);
     };
     return {
         .ChainGetRandomness = {[&](auto &&tipset_key, auto round) {
@@ -66,8 +73,20 @@ namespace fc::api {
         .StateGetActor = {[&](auto &address, auto &tipset_key) {
           return getActor(tipset_key, address, false);
         }},
-        // TODO(turuslan): FIL-165 implement method
-        .StateMarketBalance = {},
+        .StateMarketBalance =
+            {[&](auto &address, auto &tipset_key)
+                 -> outcome::result<StorageParticipantBalance> {
+              OUTCOME_TRY(state, marketState(tipset_key));
+              OUTCOME_TRY(escrow, state.escrow_table.tryGet(address));
+              OUTCOME_TRY(locked, state.locked_table.tryGet(address));
+              if (!escrow) {
+                escrow = 0;
+              }
+              if (!locked) {
+                locked = 0;
+              }
+              return StorageParticipantBalance{*locked, *escrow - *locked};
+            }},
         // TODO(turuslan): FIL-165 implement method
         .StateMarketDeals = {},
         // TODO(turuslan): FIL-165 implement method
