@@ -39,21 +39,27 @@ namespace fc::crypto::signature {
     inline bool operator==(const Signature &other) const {
       return base_type::operator==(static_cast<const base_type &>(other));
     }
-  };
 
-  Type typeCode(const Signature &s);
+    inline bool isBls() const {
+      return visit_in_place(
+          *this,
+          [](const BlsSignature &) { return true; },
+          [](const auto &) { return false; });
+    }
+  };
 
   CBOR_ENCODE(Signature, signature) {
     std::vector<uint8_t> bytes{};
-    visit_in_place(signature,
-                   [&bytes](const BlsSignature &v) {
-                     bytes.push_back(BLS);
-                     return bytes.insert(bytes.end(), v.begin(), v.end());
-                   },
-                   [&bytes](const Secp256k1Signature &v) {
-                     bytes.push_back(SECP256K1);
-                     return bytes.insert(bytes.end(), v.begin(), v.end());
-                   });
+    visit_in_place(
+        signature,
+        [&bytes](const BlsSignature &v) {
+          bytes.push_back(BLS);
+          return bytes.insert(bytes.end(), v.begin(), v.end());
+        },
+        [&bytes](const Secp256k1Signature &v) {
+          bytes.push_back(SECP256K1);
+          return bytes.insert(bytes.end(), v.begin(), v.end());
+        });
     return s << bytes;
   }
 
