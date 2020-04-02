@@ -34,6 +34,7 @@ namespace fc::api {
   using primitives::tipset::HeadChangeType;
   using rapidjson::Document;
   using rapidjson::Value;
+  using vm::actor::builtin::miner::SectorPreCommitInfo;
   using vm::actor::builtin::payment_channel::Merge;
   using vm::actor::builtin::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
@@ -58,6 +59,11 @@ namespace fc::api {
 
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
+
+    template <typename T>
+    static void decodeEnum(T &v, const Value &j) {
+      v = T{decode<std::underlying_type_t<T>>(j)};
+    }
 
     static std::string AsString(const Value &j) {
       if (!j.IsString()) {
@@ -463,18 +469,56 @@ namespace fc::api {
       decode(v.signature, Get(j, "Signature"));
     }
 
+    ENCODE(SectorPreCommitInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "SectorNumber", v.sector);
+      Set(j, "SealedCID", v.sealed_cid);
+      Set(j, "SealRandEpoch", v.seal_epoch);
+      Set(j, "DealIDs", v.deal_ids);
+      Set(j, "Expiration", v.expiration);
+      return j;
+    }
+
+    DECODE(SectorPreCommitInfo) {
+      decodeEnum(v.registered_proof, Get(j, "RegisteredProof"));
+      decode(v.sector, Get(j, "SectorNumber"));
+      decode(v.sealed_cid, Get(j, "SealedCID"));
+      decode(v.seal_epoch, Get(j, "SealRandEpoch"));
+      decode(v.deal_ids, Get(j, "DealIDs"));
+      decode(v.expiration, Get(j, "Expiration"));
+    }
+
+    ENCODE(SectorOnChainInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Info", v.info);
+      Set(j, "ActivationEpoch", v.activation_epoch);
+      Set(j, "DealWeight", v.deal_weight);
+      Set(j, "PledgeRequirement", v.pledge_requirement);
+      Set(j, "DeclaredFaultEpoch", v.declared_fault_duration);
+      Set(j, "DeclaredFaultDuration", v.declared_fault_duration);
+      return j;
+    }
+
+    DECODE(SectorOnChainInfo) {
+      decode(v.info, Get(j, "Info"));
+      decode(v.activation_epoch, Get(j, "ActivationEpoch"));
+      decode(v.deal_weight, Get(j, "DealWeight"));
+      decode(v.pledge_requirement, Get(j, "PledgeRequirement"));
+      decode(v.declared_fault_duration, Get(j, "DeclaredFaultEpoch"));
+      decode(v.declared_fault_duration, Get(j, "DeclaredFaultDuration"));
+    }
+
     ENCODE(ChainSectorInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "SectorID", v.sector);
-      Set(j, "CommD", gsl::make_span(v.comm_d));
-      Set(j, "CommR", gsl::make_span(v.comm_r));
+      Set(j, "Info", v.info);
+      Set(j, "ID", v.id);
       return j;
     }
 
     DECODE(ChainSectorInfo) {
-      decode(v.sector, Get(j, "SectorID"));
-      decode(v.comm_d, Get(j, "CommD"));
-      decode(v.comm_r, Get(j, "CommR"));
+      decode(v.info, Get(j, "Info"));
+      decode(v.id, Get(j, "ID"));
     }
 
     ENCODE(ModularVerificationParameter) {

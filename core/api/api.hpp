@@ -14,6 +14,7 @@
 #include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
+#include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
@@ -48,6 +49,7 @@ namespace fc::api {
   using vm::actor::builtin::market::DealProposal;
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
+  using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
@@ -83,9 +85,8 @@ namespace fc::api {
   };
 
   struct ChainSectorInfo {
-    SectorNumber sector;
-    Comm comm_d;
-    Comm comm_r;
+    SectorOnChainInfo info;
+    SectorNumber id;
   };
 
   struct MsgWait {
