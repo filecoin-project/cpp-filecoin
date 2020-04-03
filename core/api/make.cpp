@@ -20,35 +20,47 @@ namespace fc::api {
   using primitives::block::MsgMeta;
   using storage::amt::Amt;
 
+  struct TipsetContext {
+    Tipset tipset;
+    StateTreeImpl state_tree;
+    boost::optional<CID> receipts;
+
+    template <typename T, bool load>
+    outcome::result<T> actorState(const Address &address) {
+      OUTCOME_TRY(actor, state_tree.get(address));
+      OUTCOME_TRY(state, state_tree.getStore()->getCbor<T>(actor.head));
+      if constexpr (load) {
+        state.load(state_tree.getStore());
+      }
+      return std::move(state);
+    }
+
+    auto marketState() {
+      return actorState<MarketActorState, true>(kStorageMarketAddress);
+    }
+
+    auto minerState(const Address &address) {
+      return actorState<MinerActorState, true>(address);
+    }
+  };
+
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<IpfsDatastore> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<KeyStore> key_store) {
     auto chain_randomness = chain_store->createRandomnessProvider();
-    auto getActor = [&](auto &tipset_key,
-                        auto &address,
-                        bool use_parent_state =
-                            true) -> outcome::result<Actor> {
+    auto tipsetContext = [&](auto &tipset_key,
+                             bool interpret =
+                                 false) -> outcome::result<TipsetContext> {
       OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
-      auto state_root = tipset.getParentStateRoot();
-      if (!use_parent_state) {
+      TipsetContext context{tipset, {ipld, tipset.getParentStateRoot()}, {}};
+      if (interpret) {
         OUTCOME_TRY(result, InterpreterImpl{}.interpret(ipld, tipset, nullptr));
-        state_root = result.state_root;
+        context.state_tree = {ipld, result.state_root};
+        context.receipts = result.message_receipts;
       }
-      return StateTreeImpl{ipld, state_root}.get(address);
-    };
-    auto minerState = [&](auto &tipset_key,
-                          auto &address) -> outcome::result<MinerActorState> {
-      OUTCOME_TRY(actor, getActor(tipset_key, address));
-      return ipld->getCbor<MinerActorState>(actor.head);
-    };
-    auto marketState =
-        [&](auto &tipset_key) -> outcome::result<MarketActorState> {
-      OUTCOME_TRY(actor, getActor(tipset_key, kStorageMarketAddress));
-      OUTCOME_TRY(state, ipld->getCbor<MarketActorState>(actor.head));
-      state.load(ipld);
-      return std::move(state);
+      return context;
     };
     return {
         .ChainGetRandomness = {[&](auto &&tipset_key, auto round) {
@@ -72,15 +84,12 @@ namespace fc::api {
                                  auto &messages,
                                  auto height,
                                  auto timestamp) -> outcome::result<BlockMsg> {
-          OUTCOME_TRY(tipset, chain_store->loadTipset(parent));
-          OUTCOME_TRY(interpreted,
-                      InterpreterImpl{}.interpret(ipld, tipset, nullptr));
+          OUTCOME_TRY(context, tipsetContext(parent, true));
 
-          StateTreeImpl state_tree{ipld, interpreted.state_root};
-          OUTCOME_TRY(miner_actor, state_tree.get(miner));
-          OUTCOME_TRY(miner_state,
-                      ipld->getCbor<MinerActorState>(miner_actor.head));
-          OUTCOME_TRY(worker_id, state_tree.lookupId(miner_state.info.worker));
+          OUTCOME_TRY(miner_state, context.minerState(miner));
+          OUTCOME_TRY(worker_id,
+                      context.state_tree.lookupId(miner_state.info.worker));
+          OUTCOME_TRY(state_root, context.state_tree.flush());
 
           BlockMsg block;
           block.header.miner = miner;
@@ -89,8 +98,8 @@ namespace fc::api {
           block.header.height = height;
           block.header.timestamp = timestamp;
           block.header.epost_proof = proof;
-          block.header.parent_state_root = interpreted.state_root;
-          block.header.parent_message_receipts = interpreted.message_receipts;
+          block.header.parent_state_root = state_root;
+          block.header.parent_message_receipts = *context.receipts;
           block.header.fork_signaling = 0;
 
           std::vector<BlsSignature> bls_sigs;
@@ -121,7 +130,7 @@ namespace fc::api {
           block.header.bls_aggregate = bls_aggregate;
 
           OUTCOME_TRY(parent_weight,
-                      weight_calculator->calculateWeight(tipset));
+                      weight_calculator->calculateWeight(context.tipset));
           block.header.parent_weight = parent_weight;
 
           OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
@@ -138,15 +147,19 @@ namespace fc::api {
         .PaychVoucherAdd = {},
         // TODO(turuslan): FIL-165 implement method
         .StateCall = {},
-        .StateGetActor = {[&](auto &address, auto &tipset_key) {
-          return getActor(tipset_key, address, false);
+        .StateGetActor = {[&](auto &address,
+                              auto &tipset_key) -> outcome::result<Actor> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key, true));
+          return context.state_tree.get(address);
         }},
         .StateMarketBalance =
             {[&](auto &address, auto &tipset_key)
                  -> outcome::result<StorageParticipantBalance> {
-              OUTCOME_TRY(state, marketState(tipset_key));
-              OUTCOME_TRY(escrow, state.escrow_table.tryGet(address));
-              OUTCOME_TRY(locked, state.locked_table.tryGet(address));
+              OUTCOME_TRY(context, tipsetContext(tipset_key));
+              OUTCOME_TRY(state, context.marketState());
+              OUTCOME_TRY(id_address, context.state_tree.lookupId(address));
+              OUTCOME_TRY(escrow, state.escrow_table.tryGet(id_address));
+              OUTCOME_TRY(locked, state.locked_table.tryGet(id_address));
               if (!escrow) {
                 escrow = 0;
               }
@@ -157,7 +170,8 @@ namespace fc::api {
             }},
         .StateMarketDeals = {[&](auto &tipset_key)
                                  -> outcome::result<MarketDealMap> {
-          OUTCOME_TRY(state, marketState(tipset_key));
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.marketState());
           MarketDealMap map;
           OUTCOME_TRY(state.proposals.visit([&](auto deal_id, auto &deal)
                                                 -> outcome::result<void> {
@@ -169,19 +183,22 @@ namespace fc::api {
         }},
         .StateMarketStorageDeal = {[&](auto deal_id, auto &tipset_key)
                                        -> outcome::result<MarketDeal> {
-          OUTCOME_TRY(state, marketState(tipset_key));
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.marketState());
           OUTCOME_TRY(deal, state.proposals.get(deal_id));
           OUTCOME_TRY(deal_state, state.states.get(deal_id));
           return MarketDeal{deal, deal_state};
         }},
         .StateMinerElectionPeriodStart = {[&](auto address, auto tipset_key)
                                               -> outcome::result<ChainEpoch> {
-          OUTCOME_TRY(state, minerState(tipset_key, address));
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.minerState(address));
           return state.post_state.proving_period_start;
         }},
         .StateMinerFaults = {[&](auto address, auto tipset_key)
                                  -> outcome::result<RleBitset> {
-          OUTCOME_TRY(state, minerState(tipset_key, address));
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.minerState(address));
           return state.fault_set;
         }},
         // TODO(turuslan): FIL-165 implement method
@@ -189,7 +206,8 @@ namespace fc::api {
         .StateMinerProvingSet =
             {[&](auto address, auto tipset_key)
                  -> outcome::result<std::vector<ChainSectorInfo>> {
-              OUTCOME_TRY(state, minerState(tipset_key, address));
+              OUTCOME_TRY(context, tipsetContext(tipset_key));
+              OUTCOME_TRY(state, context.minerState(address));
               std::vector<ChainSectorInfo> sectors;
               OUTCOME_TRY(state.proving_set.visit([&](auto id, auto &info) {
                 sectors.emplace_back(ChainSectorInfo{info, id});
@@ -199,12 +217,14 @@ namespace fc::api {
             }},
         .StateMinerSectorSize = {[&](auto address, auto tipset_key)
                                      -> outcome::result<SectorSize> {
-          OUTCOME_TRY(state, minerState(tipset_key, address));
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.minerState(address));
           return state.info.sector_size;
         }},
         .StateMinerWorker = {[&](auto address,
                                  auto tipset_key) -> outcome::result<Address> {
-          OUTCOME_TRY(state, minerState(tipset_key, address));
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.minerState(address));
           return state.info.worker;
         }},
         // TODO(turuslan): FIL-165 implement method
