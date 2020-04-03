@@ -39,6 +39,10 @@ namespace fc::vm::actor::builtin::miner {
   using PeerId = std::string;
 
   struct PoStState {
+    inline bool hasFailedPost() const {
+      return num_consecutive_failures > 0;
+    }
+
     /// Epoch that starts the current proving period
     ChainEpoch proving_period_start;
     /**

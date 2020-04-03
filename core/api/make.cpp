@@ -7,18 +7,23 @@
 
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
+#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::api {
   using vm::actor::kStorageMarketAddress;
+  using vm::actor::kStoragePowerAddress;
   using vm::actor::builtin::miner::MinerActorState;
+  using vm::actor::builtin::storage_power::StoragePowerActor;
+  using vm::actor::builtin::storage_power::StoragePowerActorState;
   using vm::interpreter::InterpreterImpl;
   using vm::state::StateTreeImpl;
   using MarketActorState = vm::actor::builtin::market::State;
   using crypto::signature::BlsSignature;
   using primitives::block::MsgMeta;
   using storage::amt::Amt;
+  using vm::VMExitCode;
 
   struct TipsetContext {
     Tipset tipset;
@@ -42,6 +47,10 @@ namespace fc::api {
     auto minerState(const Address &address) {
       return actorState<MinerActorState, true>(address);
     }
+
+    auto powerState() {
+      return actorState<StoragePowerActorState, false>(kStoragePowerAddress);
+    }
   };
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
@@ -56,6 +65,7 @@ namespace fc::api {
       OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
       TipsetContext context{tipset, {ipld, tipset.getParentStateRoot()}, {}};
       if (interpret) {
+        // TODO(turuslan): our Indices are not used anywhere
         OUTCOME_TRY(result, InterpreterImpl{}.interpret(ipld, tipset, nullptr));
         context.state_tree = {ipld, result.state_root};
         context.receipts = result.message_receipts;
@@ -201,8 +211,31 @@ namespace fc::api {
           OUTCOME_TRY(state, context.minerState(address));
           return state.fault_set;
         }},
-        // TODO(turuslan): FIL-165 implement method
-        .StateMinerPower = {},
+        .StateMinerPower = {[&](auto &address, auto &tipset_key)
+                                -> outcome::result<MinerPower> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+
+          OUTCOME_TRY(power_state, context.powerState());
+          StoragePower miner_power = 0;
+          auto maybe_claim =
+              StoragePowerActor{ipld, power_state}.getClaim(address);
+          if (maybe_claim) {
+            miner_power = maybe_claim.value().power;
+          } else if (maybe_claim.error()
+                     != VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT) {
+            return maybe_claim.error();
+          }
+
+          OUTCOME_TRY(miner_state, context.minerState(address));
+          if (miner_state.post_state.hasFailedPost()) {
+            miner_power = 0;
+          }
+
+          return MinerPower{
+              miner_power,
+              power_state.total_network_power,
+          };
+        }},
         .StateMinerProvingSet =
             {[&](auto address, auto tipset_key)
                  -> outcome::result<std::vector<ChainSectorInfo>> {
