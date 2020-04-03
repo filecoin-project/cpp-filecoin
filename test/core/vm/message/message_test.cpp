@@ -60,7 +60,7 @@ UnsignedMessage makeMessage(Address const &from,
       nonce,                  // nonce
       BigInt(1),              // transfer value
       BigInt(0),              // gasPrice
-      BigInt(1),              // gasLimit
+      1,                      // gasLimit
       MethodNumber{0},        // method num
       MethodParams{""_unhex}  // method params
   };
@@ -127,7 +127,7 @@ TEST_F(MessageTest, BlsSignedMessageCID) {
   EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
   EXPECT_OUTCOME_EQ(
       cid(signed_message),
-      "0171a0e40220c4534185b0af5fdc31e79efac6fd64e514aad37a6569e69f09d35ba221e4007e"_cid);
+      "0171a0e40220529861773f061d3e214b66fe2f8e013c00bc35f156bf7772b316fd6279275ec3"_cid);
 }
 
 // TODO(ekovalev): the following test is currently disabled due to Secp256k1
@@ -156,7 +156,7 @@ TEST_F(MessageTest, DISABLED_Secp256k1SignedMessageCID) {
 TEST_F(MessageTest, UnsignedMessagesEncoding) {
   expectEncodeAndReencode<UnsignedMessage>(
       message,
-      "884300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe72700420001404200010040"_unhex);
+      "884300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe7270042000140010040"_unhex);
 }
 
 /**
@@ -170,7 +170,7 @@ TEST_F(MessageTest, SignedMessagesEncoding) {
   EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
   expectEncodeAndReencode<SignedMessage>(
       signed_message,
-      "82884300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe727004200014042000100405861028a8b21fc2b87cfa1a7c13267d99f4fde9e155dc21a722d8cfd222e278308e18d00fafb5df52eceb1ce8942bbcd059f3f15bff5c5fb72ba0598c956e636734991987c21e8691be705d10364c7dbf5aacbd31d88821b5161a7297cc484eb1fe917"_unhex);
+      "82884300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe72700420001400100405861028230039cb4f7b7615769ac4b0faba5bfb2a91c856e0620f297755bb6924422cd90c47b36ccff49e61158351e9a90d31c12cbc53758df1c91ead6bed249a28854c56b96143600cf5453db626e02467cea57688084f9cea082cf07fc7b287fc709"_unhex);
 }
 
 /**
@@ -183,7 +183,7 @@ TEST_F(MessageTest, BlsSignatureEncoding) {
   EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
   expectEncodeAndReencode<Signature>(
       signed_message.signature,
-      "5861028a8b21fc2b87cfa1a7c13267d99f4fde9e155dc21a722d8cfd222e278308e18d00fafb5df52eceb1ce8942bbcd059f3f15bff5c5fb72ba0598c956e636734991987c21e8691be705d10364c7dbf5aacbd31d88821b5161a7297cc484eb1fe917"_unhex);
+      "5861028230039cb4f7b7615769ac4b0faba5bfb2a91c856e0620f297755bb6924422cd90c47b36ccff49e61158351e9a90d31c12cbc53758df1c91ead6bed249a28854c56b96143600cf5453db626e02467cea57688084f9cea082cf07fc7b287fc709"_unhex);
 }
 
 // TODO(ekovalev): the following test is currently disabled due to Secp256k1

@@ -9,6 +9,7 @@
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
 #include "crypto/vrf/vrf_types.hpp"
+#include "primitives/sector/sector.hpp"
 
 namespace fc::primitives::ticket {
   /**
@@ -27,8 +28,8 @@ namespace fc::primitives::ticket {
    * @struct EPostProof proof of space/time
    */
   struct EPostProof {
-    common::Buffer proof;      ///< number of bytes is not known beforehand
-    PostRandomness post_rand;  ///< randomness
+    std::vector<sector::PoStProof> proofs;
+    PostRandomness post_rand;             ///< randomness
     std::vector<EPostTicket> candidates;  ///< candidates
   };
 

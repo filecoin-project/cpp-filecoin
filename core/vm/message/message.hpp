@@ -15,6 +15,7 @@
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
+#include "primitives/types.hpp"
 #include "vm/actor/actor.hpp"
 
 namespace fc::vm::message {
@@ -32,6 +33,7 @@ namespace fc::vm::message {
   using actor::MethodParams;
   using crypto::signature::Signature;
   using primitives::BigInt;
+  using primitives::GasAmount;
   using primitives::address::Address;
 
   /**
@@ -45,7 +47,7 @@ namespace fc::vm::message {
                     uint64_t nonce,
                     BigInt value,
                     BigInt gasPrice,
-                    BigInt gasLimit,
+                    GasAmount gasLimit,
                     MethodNumber method,
                     MethodParams params)
         : to{std::move(to)},
@@ -65,7 +67,7 @@ namespace fc::vm::message {
     BigInt value{};
 
     BigInt gasPrice{};
-    BigInt gasLimit{};
+    GasAmount gasLimit{};
 
     MethodNumber method{};
     MethodParams params{};

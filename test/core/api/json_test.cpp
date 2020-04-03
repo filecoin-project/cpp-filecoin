@@ -96,17 +96,23 @@ TEST(ApiJsonTest, Address) {
 }
 
 TEST(ApiJsonTest, Signature) {
-  expectJson(Signature{BlsSignature{b96}},
-             "{\"Type\":\"bls\",\"Data\":" J96 "}");
+  expectJson(Signature{BlsSignature{b96}}, "{\"Type\":2,\"Data\":" J96 "}");
   expectJson(Signature{Secp256k1Signature{"DEAD"_unhex}},
-             "{\"Type\":\"secp256k1\",\"Data\":\"3q0=\"}");
+             "{\"Type\":1,\"Data\":\"3q0=\"}");
 }
 
 TEST(ApiJsonTest, EPostProof) {
-  expectJson(EPostProof{Buffer{"DEAD"_unhex}, b96, {EPostTicket{b32, 1, 2}}},
-             "{\"Proof\":\"3q0=\",\"PostRand\":" J96
-             ",\"Candidates\":[{\"Partial\":" J32
-             ",\"SectorID\":1,\"ChallengeIndex\":2}]}");
+  expectJson(
+      EPostProof{
+          {fc::primitives::sector::PoStProof{
+              fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+              "DEAD"_unhex,
+          }},
+          b96,
+          {EPostTicket{b32, 1, 2}}},
+      "{\"Proofs\":[{\"RegisteredProof\":3,\"ProofBytes\":\"3q0=\"}],"
+      "\"PostRand\":" J96 ",\"Candidates\":[{\"Partial\":" J32
+      ",\"SectorID\":1,\"ChallengeIndex\":2}]}");
 }
 
 TEST(ApiJsonTest, BigInt) {
@@ -124,7 +130,13 @@ TEST(ApiJsonTest, MsgWait) {
               {BlockHeader{
                   Address::makeFromId(1),
                   Ticket{b96},
-                  {Buffer{"DEAD"_unhex}, b96, {}},
+                  {{fc::primitives::sector::PoStProof{
+                       fc::primitives::sector::RegisteredProof::
+                           StackedDRG2KiBSeal,
+                       "DEAD"_unhex,
+                   }},
+                   b96,
+                   {}},
                   {"010001020002"_cid},
                   3,
                   4,
@@ -143,13 +155,14 @@ TEST(ApiJsonTest, MsgWait) {
       "\"TipSet\":{\"Cids\":[{\"/"
       "\":\"baeaacaqaae\"}],\"Blocks\":[{\"Miner\":\"t01\",\"Ticket\":{"
       "\"VRFProof\":" J96
-      "},\"EPostProof\":{\"Proof\":\"3q0=\",\"PostRand\":" J96
+      "},\"EPostProof\":{\"Proofs\":[{\"RegisteredProof\":3,\"ProofBytes\":"
+      "\"3q0=\"}],\"PostRand\":" J96
       ",\"Candidates\":[]},\"Parents\":[{\"/"
       "\":\"baeaacaqaai\"}],\"ParentWeight\":\"3\",\"Height\":4,"
       "\"ParentStateRoot\":{\"/"
       "\":\"baeaacaqaau\"},\"ParentMessageReceipts\":{\"/"
       "\":\"baeaacaqaay\"},\"Messages\":{\"/"
-      "\":\"baeaacaqaa4\"},\"BLSAggregate\":{\"Type\":\"secp256k1\",\"Data\":"
-      "\"3q0=\"},\"Timestamp\":8,\"BlockSig\":{\"Type\":\"secp256k1\",\"Data\":"
+      "\":\"baeaacaqaa4\"},\"BLSAggregate\":{\"Type\":1,\"Data\":"
+      "\"3q0=\"},\"Timestamp\":8,\"BlockSig\":{\"Type\":1,\"Data\":"
       "\"3q0=\"},\"ForkSignaling\":9}],\"Height\":3}}");
 }

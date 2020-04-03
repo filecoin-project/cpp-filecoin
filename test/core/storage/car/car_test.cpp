@@ -6,29 +6,17 @@
 #include "storage/car/car.hpp"
 #include "car_test.hpp"
 
-#include <fstream>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/read_file.hpp"
 
-using fc::common::Buffer;
 using fc::storage::car::CarError;
 using fc::storage::car::loadCar;
 using fc::storage::ipfs::InMemoryDatastore;
-
-auto readFile(const std::string &path) {
-  std::ifstream file{path, std::ios::binary | std::ios::ate};
-  EXPECT_TRUE(file.good());
-  Buffer buffer;
-  buffer.resize(file.tellg());
-  file.seekg(0, std::ios::beg);
-  file.read(reinterpret_cast<char *>(buffer.data()), buffer.size());
-  return buffer;
-}
 
 /**
  * @given correct car file
