@@ -22,15 +22,15 @@ namespace fc::vm::actor::builtin::miner {
   using storage_power::kWindowedPostFailureLimit;
   using storage_power::SectorTerminationType;
 
-  void loadState(Runtime &runtime, MinerActorState &state) {
-    state.precommitted_sectors.load(runtime);
-    state.sectors.load(runtime);
-    state.proving_set.load(runtime);
+  void MinerActorState::load(std::shared_ptr<Ipld> ipld) {
+    precommitted_sectors.load(ipld);
+    sectors.load(ipld);
+    proving_set.load(ipld);
   }
 
   outcome::result<MinerActorState> loadState(Runtime &runtime) {
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<MinerActorState>());
-    loadState(runtime, state);
+    state.load(runtime);
     return std::move(state);
   }
 
@@ -496,7 +496,7 @@ namespace fc::vm::actor::builtin::miner {
                 .num_consecutive_failures = 0,
             },
     };
-    loadState(runtime, state);
+    state.load(runtime);
     OUTCOME_TRY(commitState(runtime, state));
     return outcome::success();
   }
