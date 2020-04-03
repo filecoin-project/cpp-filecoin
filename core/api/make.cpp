@@ -8,7 +8,9 @@
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
+#include "vm/runtime/env.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::api {
@@ -20,10 +22,14 @@ namespace fc::api {
   using vm::interpreter::InterpreterImpl;
   using vm::state::StateTreeImpl;
   using MarketActorState = vm::actor::builtin::market::State;
+  using crypto::randomness::RandomnessProvider;
   using crypto::signature::BlsSignature;
   using primitives::block::MsgMeta;
   using storage::amt::Amt;
   using vm::VMExitCode;
+  using vm::actor::InvokerImpl;
+  using vm::indices::Indices;
+  using vm::runtime::Env;
 
   struct TipsetContext {
     Tipset tipset;
@@ -155,8 +161,25 @@ namespace fc::api {
         .MpoolPushMessage = {},
         // TODO(turuslan): FIL-165 implement method
         .PaychVoucherAdd = {},
-        // TODO(turuslan): FIL-165 implement method
-        .StateCall = {},
+        .StateCall = {[&](auto &message,
+                          auto &tipset_key) -> outcome::result<InvocResult> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          // TODO(turuslan): our Indices are not used anywhere
+          std::shared_ptr<Indices> indices;
+          // TODO(turuslan): FIL-146 randomness from tipset
+          std::shared_ptr<RandomnessProvider> randomness;
+          Env env{randomness,
+                  std::make_shared<StateTreeImpl>(context.state_tree),
+                  indices,
+                  std::make_shared<InvokerImpl>(),
+                  static_cast<ChainEpoch>(context.tipset.height),
+                  Address{}};
+          OUTCOME_TRY(receipt, env.applyMessage(message));
+          InvocResult result;
+          result.message = message;
+          result.receipt = receipt;
+          return result;
+        }},
         .StateGetActor = {[&](auto &address,
                               auto &tipset_key) -> outcome::result<Actor> {
           OUTCOME_TRY(context, tipsetContext(tipset_key, true));
