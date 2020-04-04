@@ -21,7 +21,6 @@
 using fc::api::BlockHeader;
 using fc::api::Codec;
 using fc::api::Signature;
-using fc::api::SignatureType;
 using fc::api::UnsignedMessage;
 using fc::common::hex_lower;
 using fc::crypto::bls::BlsProviderImpl;
@@ -74,8 +73,7 @@ TEST(SerializationVectorsTest, SignedMessage) {
     EXPECT_OUTCOME_EQ(cid.toString(), expected_cid_str);
 
     auto expected_sig = Codec::decode<Signature>(Codec::Get(*it, "Signature"));
-    EXPECT_EQ(fc::crypto::signature::typeCode(expected_sig),
-              SignatureType::BLS);
+    EXPECT_TRUE(expected_sig.isBls());
 
     auto key = Codec::decode<BlsPrivateKey>(Codec::Get(*it, "PrivateKey"));
     auto sig = signMessage(message, key);

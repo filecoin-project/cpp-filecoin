@@ -14,6 +14,7 @@
 #include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
+#include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
@@ -38,15 +39,17 @@ namespace fc::api {
   using primitives::TipsetWeight;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using primitives::block::Block;
+  using primitives::block::BlockMsg;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
   using vm::actor::Actor;
-  using vm::actor::builtin::market::OnChainDeal;
+  using vm::actor::builtin::market::DealProposal;
+  using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
+  using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
@@ -69,7 +72,12 @@ namespace fc::api {
     std::string error;
   };
 
-  using OnChainDealMap = std::map<std::string, OnChainDeal>;
+  struct MarketDeal {
+    DealProposal proposal;
+    DealState state;
+  };
+
+  using MarketDealMap = std::map<std::string, MarketDeal>;
 
   struct MinerPower {
     StoragePower miner;
@@ -77,9 +85,8 @@ namespace fc::api {
   };
 
   struct ChainSectorInfo {
-    SectorNumber sector;
-    Comm comm_d;
-    Comm comm_r;
+    SectorOnChainInfo info;
+    SectorNumber id;
   };
 
   struct MsgWait {
@@ -97,13 +104,13 @@ namespace fc::api {
     API_METHOD(MarketEnsureAvailable, void, const Address &, TokenAmount)
 
     API_METHOD(MinerCreateBlock,
-               Block,
+               BlockMsg,
                const Address &,
                const TipsetKey &,
                const Ticket &,
                const EPostProof &,
                const std::vector<SignedMessage> &,
-               uint64_t,
+               ChainEpoch,
                uint64_t)
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
@@ -125,8 +132,8 @@ namespace fc::api {
                StorageParticipantBalance,
                const Address &,
                const TipsetKey &)
-    API_METHOD(StateMarketDeals, OnChainDealMap, const TipsetKey &)
-    API_METHOD(StateMarketStorageDeal, OnChainDeal, DealId, const TipsetKey &)
+    API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
+    API_METHOD(StateMarketStorageDeal, MarketDeal, DealId, const TipsetKey &)
     API_METHOD(StateMinerElectionPeriodStart,
                ChainEpoch,
                const Address &,
@@ -144,7 +151,7 @@ namespace fc::api {
     API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
     API_METHOD(StateWaitMsg, MsgWait, const CID &)
 
-    API_METHOD(SyncSubmitBlock, void, const Block &)
+    API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
 
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
   };

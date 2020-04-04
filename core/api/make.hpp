@@ -14,6 +14,7 @@
 
 namespace fc::api {
   using blockchain::weight::WeightCalculator;
+  using crypto::bls::BlsProvider;
   using storage::blockchain::ChainStore;
   using storage::ipfs::IpfsDatastore;
   using storage::keystore::KeyStore;
@@ -21,6 +22,7 @@ namespace fc::api {
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<IpfsDatastore> ipld,
+               std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<KeyStore> key_store);
 }  // namespace fc::api
 

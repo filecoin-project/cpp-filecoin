@@ -11,7 +11,6 @@ namespace fc::vm::message {
 
   using codec::cbor::encode;
   using common::getCidOf;
-  using crypto::signature::typeCode;
 
   outcome::result<CID> cid(const UnsignedMessage &m) {
     OUTCOME_TRY(encoded, encode<UnsignedMessage>(m));
@@ -19,7 +18,7 @@ namespace fc::vm::message {
   }
 
   outcome::result<CID> cid(const SignedMessage &sm) {
-    if (typeCode(sm.signature) == crypto::signature::Type::BLS) {
+    if (sm.signature.isBls()) {
       return cid(sm.message);
     }
 
