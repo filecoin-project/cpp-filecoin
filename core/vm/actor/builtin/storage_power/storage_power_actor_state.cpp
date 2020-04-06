@@ -5,44 +5,37 @@
 
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
-#include "adt/uvarint_key.hpp"
 #include "power/impl/power_table_hamt.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
+  using adt::Multimap;
   using power::PowerTableHamt;
   using primitives::ChainEpoch;
-  using ChainEpochKeyer = adt::UvarintKeyer;
 
   StoragePowerActor::StoragePowerActor(std::shared_ptr<IpfsDatastore> datastore,
                                        StoragePowerActorState state)
-      : datastore_{std::move(datastore)},
-        state_{std::move(state)},
-        cron_event_queue_(std::make_shared<Multimap>(
-            datastore_, state_.cron_event_queue_cid)) {
+      : datastore_{std::move(datastore)}, state_{std::move(state)} {
     state_.load(datastore_);
   }
 
   outcome::result<StoragePowerActorState> StoragePowerActor::createEmptyState(
       std::shared_ptr<IpfsDatastore> datastore) {
-    // create empty HAMT root CID
-    Hamt empty_hamt(datastore);
-    OUTCOME_TRY(cidEmpty, empty_hamt.flush());
-    return StoragePowerActorState{
-        0, 0, cidEmpty, cidEmpty, cidEmpty, cidEmpty, 0};
+    StoragePowerActorState state;
+    state.load(datastore);
+    state.total_network_power = 0;
+    state.miner_count = 0;
+    state.num_miners_meeting_min_power = 0;
+    OUTCOME_TRY(state.flush());
+    return state;
   }
 
   void StoragePowerActor::setState(const StoragePowerActorState &state) {
     state_ = state;
-    cron_event_queue_ =
-        std::make_shared<Multimap>(datastore_, state_.cron_event_queue_cid);
   }
 
   fc::outcome::result<StoragePowerActorState> StoragePowerActor::flushState() {
-    OUTCOME_TRY(new_cron_event_queue_cid, cron_event_queue_->flush());
-    state_.cron_event_queue_cid = new_cron_event_queue_cid;
-
     OUTCOME_TRY(state_.flush());
 
     return state_;
@@ -157,28 +150,27 @@ namespace fc::vm::actor::builtin::storage_power {
 
   outcome::result<void> StoragePowerActor::appendCronEvent(
       const ChainEpoch &epoch, const CronEvent &event) {
-    OUTCOME_TRY(
-        cron_event_queue_->addCbor(ChainEpochKeyer::encode(epoch), event));
+    return Multimap::append(state_.cron_event_queue, epoch, event);
+  }
+
+  outcome::result<void> f(const CronEvent &event) {
     return outcome::success();
   }
 
   outcome::result<std::vector<CronEvent>> StoragePowerActor::getCronEvents(
       const ChainEpoch &epoch) const {
     std::vector<CronEvent> events;
-    Multimap::Visitor events_visitor{
-        [&events](auto v) -> fc::outcome::result<void> {
-          OUTCOME_TRY(event, codec::cbor::decode<CronEvent>(v));
-          events.push_back(event);
-          return fc::outcome::success();
-        }};
-    OUTCOME_TRY(cron_event_queue_->visit(ChainEpochKeyer::encode(epoch),
-                                         events_visitor));
+    OUTCOME_TRY(
+        Multimap::visit(state_.cron_event_queue, epoch, {[&](auto &event) {
+                          events.push_back(event);
+                          return outcome::success();
+                        }}));
     return events;
   }
 
   outcome::result<void> StoragePowerActor::clearCronEvents(
       const ChainEpoch &epoch) {
-    OUTCOME_TRY(cron_event_queue_->removeAll(ChainEpochKeyer::encode(epoch)));
+    OUTCOME_TRY(state_.cron_event_queue.remove(epoch));
     return outcome::success();
   }
 

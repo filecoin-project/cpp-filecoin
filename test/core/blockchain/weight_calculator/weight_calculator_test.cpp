@@ -43,7 +43,7 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
                           .total_network_power = params.network_power,
                           .miner_count = {},
                           .escrow = some_cid,
-                          .cron_event_queue_cid = some_cid,
+                          .cron_event_queue = some_cid,
                           .po_st_detected_fault_miners = some_cid,
                           .claims = some_cid,
                           .num_miners_meeting_min_power = {},

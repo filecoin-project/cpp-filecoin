@@ -6,6 +6,8 @@
 #ifndef CPP_FILECOIN_MULTIMAP_HPP
 #define CPP_FILECOIN_MULTIMAP_HPP
 
+#include "adt/array.hpp"
+#include "adt/map.hpp"
 #include "storage/hamt/hamt.hpp"
 
 namespace fc::adt {
@@ -52,6 +54,36 @@ namespace fc::adt {
 
     /// Iterates over stored values by key
     outcome::result<void> visit(const std::string &key, const Visitor &visitor);
+
+    template <typename Value, typename Keyer, size_t bit_width>
+    static outcome::result<void> append(
+        Map<Array<Value>, Keyer, bit_width> &map,
+        const typename Keyer::Key &key,
+        const Value &value) {
+      OUTCOME_TRY(array, map.tryGet(key));
+      if (!array) {
+        array = Array<Value>{};
+      }
+      array->load(map.hamt.getIpld());
+      OUTCOME_TRY(count, array->amt.count());
+      OUTCOME_TRY(array->set(count, value));
+      OUTCOME_TRY(array->flush());
+      return map.set(key, *array);
+    }
+
+    template <typename Value, typename Keyer, size_t bit_width>
+    static outcome::result<void> visit(
+        Map<Array<Value>, Keyer, bit_width> &map,
+        const typename Keyer::Key &key,
+        const std::function<outcome::result<void>(const Value &)> &visitor) {
+      OUTCOME_TRY(array, map.tryGet(key));
+      if (array) {
+        array->load(map.hamt.getIpld());
+        OUTCOME_TRY(
+            array->visit([&](auto, auto &value) { return visitor(value); }));
+      }
+      return outcome::success();
+    }
 
    private:
     std::shared_ptr<storage::ipfs::IpfsDatastore> store_;

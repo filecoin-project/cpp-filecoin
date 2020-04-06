@@ -10,6 +10,7 @@
 #include "adt/balance_table.hpp"
 #include "adt/empty_value.hpp"
 #include "adt/multimap.hpp"
+#include "adt/uvarint_key.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/randomness/randomness_provider.hpp"
 #include "crypto/randomness/randomness_types.hpp"
@@ -24,7 +25,6 @@ namespace fc::vm::actor::builtin::storage_power {
   using adt::AddressKeyer;
   using adt::BalanceTable;
   using adt::EmptyValue;
-  using adt::Multimap;
   using common::Buffer;
   using indices::Indices;
   using power::Power;
@@ -36,9 +36,9 @@ namespace fc::vm::actor::builtin::storage_power {
   using primitives::SectorStorageWeightDesc;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using storage::hamt::Hamt;
   using storage::ipfs::IpfsDatastore;
   using Ipld = storage::ipfs::IpfsDatastore;
+  using ChainEpochKeyer = adt::UvarintKeyer;
 
   // Minimum power of an individual miner to participate in leader election
   // From spec: 100 TiB
@@ -71,12 +71,14 @@ namespace fc::vm::actor::builtin::storage_power {
   struct StoragePowerActorState {
     inline void load(std::shared_ptr<Ipld> ipld) {
       escrow.load(ipld);
+      cron_event_queue.load(ipld);
       po_st_detected_fault_miners.load(ipld);
       claims.load(ipld);
     }
 
     inline outcome::result<void> flush() {
       OUTCOME_TRY(escrow.flush());
+      OUTCOME_TRY(cron_event_queue.flush());
       OUTCOME_TRY(po_st_detected_fault_miners.flush());
       OUTCOME_TRY(claims.flush());
       return outcome::success();
@@ -85,7 +87,7 @@ namespace fc::vm::actor::builtin::storage_power {
     power::Power total_network_power;
     size_t miner_count;
     BalanceTable escrow;
-    CID cron_event_queue_cid;
+    adt::Map<adt::Array<CronEvent>, ChainEpochKeyer> cron_event_queue;
     adt::Map<EmptyValue, AddressKeyer> po_st_detected_fault_miners;
     adt::Map<Claim, AddressKeyer> claims;
     /** Number of miners having proven the minimum consensus power */
@@ -291,11 +293,6 @@ namespace fc::vm::actor::builtin::storage_power {
     std::shared_ptr<IpfsDatastore> datastore_;
 
     StoragePowerActorState state_;
-
-    /**
-     * A queue of events to be triggered by cron, indexed by epoch
-     */
-    std::shared_ptr<Multimap> cron_event_queue_;
   };
 
   CBOR_TUPLE(Claim, power, pledge);
@@ -306,7 +303,7 @@ namespace fc::vm::actor::builtin::storage_power {
              total_network_power,
              miner_count,
              escrow,
-             cron_event_queue_cid,
+             cron_event_queue,
              po_st_detected_fault_miners,
              claims,
              num_miners_meeting_min_power);
