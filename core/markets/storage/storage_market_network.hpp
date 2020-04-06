@@ -10,6 +10,7 @@
 #include "common/outcome.hpp"
 #include "markets/storage/ask_stream.hpp"
 #include "markets/storage/deal_stream.hpp"
+#include "markets/storage/storage_receiver.hpp"
 
 namespace fc::markets::storage {
 
@@ -23,16 +24,15 @@ namespace fc::markets::storage {
     virtual ~StorageMarketNetwork() = 0;
 
     virtual auto newAskStream(const PeerId &peer)
-        -> outcome::result<StorageAskStream> = 0;
+        -> outcome::result<std::shared_ptr<StorageAskStream>> = 0;
 
     virtual auto newDealStream(const PeerId &peer)
-        -> outcome::result<StorageDealStream> = 0;
+        -> outcome::result<std::shared_ptr<StorageDealStream>> = 0;
 
-    virtual auto SetDelegate(StorageReceiver)
-        -> outcome::result<StorageDealStream> = 0;
+    virtual auto setDelegate(std::shared_ptr<StorageReceiver> receiver)
+        -> outcome::result<void> = 0;
 
-    virtual auto StopHandlingRequests()
-        -> outcome::result<StorageDealStream> = 0;
+    virtual auto stopHandlingRequests() -> outcome::result<void> = 0;
   };
 }  // namespace fc::markets::storage
 

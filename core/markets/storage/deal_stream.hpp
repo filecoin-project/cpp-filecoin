@@ -21,16 +21,18 @@ namespace fc::markets::storage {
 
     virtual auto readDealProposal() -> outcome::result<Proposal> = 0;
 
-    virtual auto writeDealProposal(Proposal) -> outcome::result<void> = 0;
+    virtual auto writeDealProposal(const Proposal &proposal)
+        -> outcome::result<void> = 0;
 
     virtual auto readDealResponse() -> outcome::result<SignedResponse> = 0;
 
-    virtual auto writeDealResponse(SignedResponse) -> outcome::result<void> = 0;
+    virtual auto writeDealResponse(const SignedResponse &response)
+        -> outcome::result<void> = 0;
 
-    virtual auto remotePeer() -> PeerId = 0;
+    virtual auto remotePeer() const -> PeerId = 0;
 
     virtual auto close() -> outcome::result<void> = 0;
-  }
+  };
 
 }  // namespace fc::markets::storage
 

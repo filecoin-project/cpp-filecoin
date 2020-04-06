@@ -7,8 +7,10 @@
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_ASK_PROTOCOL_HPP
 
 #include <libp2p/peer/protocol.hpp>
+#include "codec/cbor/streams_annotation.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
+#include "primitives/address/address_codec.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/types.hpp"
@@ -33,10 +35,15 @@ namespace fc::markets::storage {
     uint64_t seq_no;
   };
 
+  CBOR_TUPLE(
+      StorageAsk, price, min_piece_size, miner, timestamp, expiry, seq_no)
+
   struct SignedStorageAsk {
     StorageAsk ask;
     Signature signature;
   };
+
+  CBOR_TUPLE(SignedStorageAsk, ask, signature)
 
   /**
    * AskRequest is a request for current ask parameters for a given miner
@@ -45,13 +52,17 @@ namespace fc::markets::storage {
     Address miner;
   };
 
+  CBOR_TUPLE(AskRequest, miner)
+
   /**
    * AskResponse is the response sent over the network in response to an ask
    * request
    */
   struct AskResponse {
-    SignedStorageAsk asl;
+    SignedStorageAsk ask;
   };
+
+  CBOR_TUPLE(AskResponse, ask)
 
 }  // namespace fc::markets::storage
 

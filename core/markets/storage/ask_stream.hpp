@@ -21,11 +21,13 @@ namespace fc::markets::storage {
 
     virtual auto readAskRequest() -> outcome::result<AskRequest> = 0;
 
-    virtual auto writeAskRequest(AskRequest) -> outcome::result<void> = 0;
+    virtual auto writeAskRequest(const AskRequest &ask_request)
+        -> outcome::result<void> = 0;
 
     virtual auto readAskResponse() -> outcome::result<AskResponse> = 0;
 
-    virtual auto writeAskResponse(AskResponse) -> outcome::result<void> = 0;
+    virtual auto writeAskResponse(const AskResponse &ask_response)
+        -> outcome::result<void> = 0;
 
     virtual auto close() -> outcome::result<void> = 0;
   };

@@ -19,9 +19,11 @@ namespace fc::markets::storage {
    public:
     virtual ~StorageReceiver() = default;
 
-    virtual void handleAskStream(const StorageAskStream &stream) = 0;
+    virtual void handleAskStream(
+        const std::shared_ptr<StorageAskStream> &stream) = 0;
 
-    virtual void handleDealStream(const StorageDealStream &stream) = 0;
+    virtual void handleDealStream(
+        const std::shared_ptr<StorageDealStream> &stream) = 0;
   };
 
 }  // namespace fc::markets::storage

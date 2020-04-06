@@ -4,3 +4,13 @@
 #
 
 add_subdirectory(provider)
+
+add_library(libp2p_storage_market_network
+    network/libp2p_storage_market_network.cpp
+    network/libp2p_ask_stream.cpp
+    network/libp2p_deal_stream.cpp
+    )
+target_link_libraries(libp2p_storage_market_network
+    p2p::p2p
+    logger
+    )

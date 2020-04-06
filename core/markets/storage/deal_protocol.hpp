@@ -8,6 +8,7 @@
 
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/peer/protocol.hpp>
+#include "codec/cbor/streams_annotation.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/cid/cid.hpp"
@@ -19,12 +20,12 @@
 namespace fc::markets::storage {
 
   using crypto::signature::Signature;
+  using ::fc::storage::filestore::Path;
   using libp2p::peer::PeerId;
   using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::UnpaddedPieceSize;
-  using ::fc::storage::filestore::Path;
   using vm::actor::builtin::market::ClientDealProposal;
   using vm::actor::builtin::market::DealProposal;
   using vm::actor::builtin::market::DealState;
@@ -35,11 +36,12 @@ namespace fc::markets::storage {
   struct DataRef {
     std::string transfer_type;
     CID root;
-    // TODO?
     // Optional, will be recomputed from the data if not given
     boost::optional<CID> piece_cid;
     UnpaddedPieceSize piece_size;
   };
+
+  CBOR_TUPLE(DataRef, transfer_type, root, piece_cid, piece_size)
 
   enum class StorageDealStatus {
     STORAGE_DEAL_UNKNOWN = 0,
@@ -95,6 +97,18 @@ namespace fc::markets::storage {
     DealId deal_id;
   };
 
+  CBOR_TUPLE(MinerDeal,
+             proposal_cid,
+             miner,
+             client,
+             state,
+             piece_path,
+             metadata_path,
+             connection_closed,
+             message,
+             ref,
+             deal_id)
+
   struct ClientDeal : public ClientDealProposal {
     CID proposal_cid;
     StorageDealStatus state;
@@ -105,6 +119,16 @@ namespace fc::markets::storage {
     std::string message;
     CID publish_message;
   };
+
+  CBOR_TUPLE(ClientDeal,
+             proposal_cid,
+             state,
+             miner,
+             miner_worker,
+             deal_id,
+             data_ref,
+             message,
+             publish_message)
 
   /**
    * StorageDeal is a local combination of a proposal and a current deal state
@@ -120,6 +144,8 @@ namespace fc::markets::storage {
     DataRef piece;
   };
 
+  CBOR_TUPLE(Proposal, deal_proposal, piece)
+
   /**
    * Response is a response to a proposal sent over the network
    */
@@ -134,6 +160,8 @@ namespace fc::markets::storage {
     CID publish_message;
   };
 
+  CBOR_TUPLE(Response, state, message, proposal, publish_message)
+
   /**
    * SignedResponse is a response that is signed
    */
@@ -141,6 +169,8 @@ namespace fc::markets::storage {
     Response response;
     Signature signature;
   };
+
+  CBOR_TUPLE(SignedResponse, response, signature)
 
 }  // namespace fc::markets::storage
 
