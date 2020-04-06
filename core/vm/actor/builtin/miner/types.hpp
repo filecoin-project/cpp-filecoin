@@ -15,6 +15,10 @@
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "primitives/sector/sector.hpp"
 
+namespace storage::ipfs {
+  class IpfsDatastore;
+}  // namespace storage::ipfs
+
 namespace fc::vm::actor::builtin::miner {
   using adt::UvarintKeyer;
   using common::Buffer;
@@ -30,10 +34,15 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::sector::OnChainPoStVerifyInfo;
   using primitives::sector::Proof;
   using primitives::sector::RegisteredProof;
+  using Ipld = storage::ipfs::IpfsDatastore;
 
   using PeerId = std::string;
 
   struct PoStState {
+    inline bool hasFailedPost() const {
+      return num_consecutive_failures > 0;
+    }
+
     /// Epoch that starts the current proving period
     ChainEpoch proving_period_start;
     /**
@@ -125,6 +134,8 @@ namespace fc::vm::actor::builtin::miner {
 
   /// Balance of a Actor should equal exactly the sum of PreCommit deposits
   struct MinerActorState {
+    void load(std::shared_ptr<Ipld> ipld);
+
     adt::Map<SectorPreCommitOnChainInfo, UvarintKeyer> precommitted_sectors;
     adt::Array<SectorOnChainInfo> sectors;
     RleBitset fault_set;

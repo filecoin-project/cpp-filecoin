@@ -10,7 +10,9 @@ target_link_libraries(api
     address
     chain_store
     cid
+    interpreter
     message
+    state_tree
     )
 
 add_library(rpc
@@ -21,7 +23,4 @@ add_library(rpc
 target_link_libraries(rpc
     api
     tipset
-
-    # TODO: remove
-    filecoin_hasher
     )

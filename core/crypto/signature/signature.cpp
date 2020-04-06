@@ -18,14 +18,3 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::crypto::signature, SignatureError, e) {
       return "SignatureError: unknown error";
   };
 }
-
-namespace fc::crypto::signature {
-
-  Type typeCode(const Signature &s) {
-    return visit_in_place(
-        s,
-        [](const BlsSignature &v) { return Type::BLS; },
-        [](const Secp256k1Signature &v) { return Type::SECP256K1; });
-  }
-
-}  // namespace fc::crypto::signature

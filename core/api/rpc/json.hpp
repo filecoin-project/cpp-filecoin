@@ -34,6 +34,7 @@ namespace fc::api {
   using primitives::tipset::HeadChangeType;
   using rapidjson::Document;
   using rapidjson::Value;
+  using vm::actor::builtin::miner::SectorPreCommitInfo;
   using vm::actor::builtin::payment_channel::Merge;
   using vm::actor::builtin::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
@@ -58,6 +59,11 @@ namespace fc::api {
 
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
+
+    template <typename T>
+    static void decodeEnum(T &v, const Value &j) {
+      v = T{decode<std::underlying_type_t<T>>(j)};
+    }
 
     static std::string AsString(const Value &j) {
       if (!j.IsString()) {
@@ -463,18 +469,56 @@ namespace fc::api {
       decode(v.signature, Get(j, "Signature"));
     }
 
+    ENCODE(SectorPreCommitInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "SectorNumber", v.sector);
+      Set(j, "SealedCID", v.sealed_cid);
+      Set(j, "SealRandEpoch", v.seal_epoch);
+      Set(j, "DealIDs", v.deal_ids);
+      Set(j, "Expiration", v.expiration);
+      return j;
+    }
+
+    DECODE(SectorPreCommitInfo) {
+      decodeEnum(v.registered_proof, Get(j, "RegisteredProof"));
+      decode(v.sector, Get(j, "SectorNumber"));
+      decode(v.sealed_cid, Get(j, "SealedCID"));
+      decode(v.seal_epoch, Get(j, "SealRandEpoch"));
+      decode(v.deal_ids, Get(j, "DealIDs"));
+      decode(v.expiration, Get(j, "Expiration"));
+    }
+
+    ENCODE(SectorOnChainInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Info", v.info);
+      Set(j, "ActivationEpoch", v.activation_epoch);
+      Set(j, "DealWeight", v.deal_weight);
+      Set(j, "PledgeRequirement", v.pledge_requirement);
+      Set(j, "DeclaredFaultEpoch", v.declared_fault_duration);
+      Set(j, "DeclaredFaultDuration", v.declared_fault_duration);
+      return j;
+    }
+
+    DECODE(SectorOnChainInfo) {
+      decode(v.info, Get(j, "Info"));
+      decode(v.activation_epoch, Get(j, "ActivationEpoch"));
+      decode(v.deal_weight, Get(j, "DealWeight"));
+      decode(v.pledge_requirement, Get(j, "PledgeRequirement"));
+      decode(v.declared_fault_duration, Get(j, "DeclaredFaultEpoch"));
+      decode(v.declared_fault_duration, Get(j, "DeclaredFaultDuration"));
+    }
+
     ENCODE(ChainSectorInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "SectorID", v.sector);
-      Set(j, "CommD", gsl::make_span(v.comm_d));
-      Set(j, "CommR", gsl::make_span(v.comm_r));
+      Set(j, "Info", v.info);
+      Set(j, "ID", v.id);
       return j;
     }
 
     DECODE(ChainSectorInfo) {
-      decode(v.sector, Get(j, "SectorID"));
-      decode(v.comm_d, Get(j, "CommD"));
-      decode(v.comm_r, Get(j, "CommR"));
+      decode(v.info, Get(j, "Info"));
+      decode(v.id, Get(j, "ID"));
     }
 
     ENCODE(ModularVerificationParameter) {
@@ -616,33 +660,59 @@ namespace fc::api {
       v.error = AsString(Get(j, "Error"));
     }
 
-    ENCODE(OnChainDeal) {
+    ENCODE(DealProposal) {
       Value j{rapidjson::kObjectType};
-      Set(j, "PieceRef", v.piece_ref);
-      Set(j, "PieceSize", v.piece_size);
+      Set(j, "PieceCID", v.piece_cid);
+      Set(j, "PieceSize", static_cast<uint64_t>(v.piece_size));
       Set(j, "Client", v.client);
       Set(j, "Provider", v.provider);
-      Set(j, "ProposalExpiration", v.proposal_expiration);
-      Set(j, "Duration", v.duration);
+      Set(j, "StartEpoch", v.start_epoch);
+      Set(j, "EndEpoch", v.end_epoch);
       Set(j, "StoragePricePerEpoch", v.storage_price_per_epoch);
-      Set(j, "StorageCollateral", v.storage_collateral);
-      Set(j, "ActivationEpoch", v.activation_epoch);
+      Set(j, "ProviderCollateral", v.provider_collateral);
+      Set(j, "ClientCollateral", v.client_collateral);
       return j;
     }
 
-    DECODE(OnChainDeal) {
-      decode(v.piece_ref, Get(j, "PieceRef"));
-      decode(v.piece_size, Get(j, "PieceSize"));
+    DECODE(DealProposal) {
+      decode(v.piece_cid, Get(j, "PieceCID"));
+      v.piece_size = decode<uint64_t>(Get(j, "PieceSize"));
       decode(v.client, Get(j, "Client"));
       decode(v.provider, Get(j, "Provider"));
-      decode(v.proposal_expiration, Get(j, "ProposalExpiration"));
-      decode(v.duration, Get(j, "Duration"));
+      decode(v.start_epoch, Get(j, "StartEpoch"));
+      decode(v.end_epoch, Get(j, "EndEpoch"));
       decode(v.storage_price_per_epoch, Get(j, "StoragePricePerEpoch"));
-      decode(v.storage_collateral, Get(j, "StorageCollateral"));
-      decode(v.activation_epoch, Get(j, "ActivationEpoch"));
+      decode(v.provider_collateral, Get(j, "ProviderCollateral"));
+      decode(v.client_collateral, Get(j, "ClientCollateral"));
     }
 
-    ENCODE(Block) {
+    ENCODE(DealState) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "SectorStartEpoch", v.sector_start_epoch);
+      Set(j, "LastUpdatedEpoch", v.last_updated_epoch);
+      Set(j, "SlashEpoch", v.slash_epoch);
+      return j;
+    }
+
+    DECODE(DealState) {
+      decode(v.sector_start_epoch, Get(j, "SectorStartEpoch"));
+      decode(v.last_updated_epoch, Get(j, "LastUpdatedEpoch"));
+      decode(v.slash_epoch, Get(j, "SlashEpoch"));
+    }
+
+    ENCODE(MarketDeal) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Proposal", v.proposal);
+      Set(j, "State", v.state);
+      return j;
+    }
+
+    DECODE(MarketDeal) {
+      decode(v.proposal, Get(j, "Proposal"));
+      decode(v.state, Get(j, "State"));
+    }
+
+    ENCODE(BlockMsg) {
       Value j{rapidjson::kObjectType};
       Set(j, "Header", v.header);
       Set(j, "BlsMessages", v.bls_messages);
@@ -650,7 +720,7 @@ namespace fc::api {
       return j;
     }
 
-    DECODE(Block) {
+    DECODE(BlockMsg) {
       decode(v.header, Get(j, "Header"));
       decode(v.bls_messages, Get(j, "BlsMessages"));
       decode(v.secp_messages, Get(j, "SecpkMessages"));
