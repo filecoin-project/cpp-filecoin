@@ -8,6 +8,7 @@
 
 #include "adt/address_key.hpp"
 #include "adt/balance_table.hpp"
+#include "adt/empty_value.hpp"
 #include "adt/multimap.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/randomness/randomness_provider.hpp"
@@ -22,6 +23,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
   using adt::AddressKeyer;
   using adt::BalanceTable;
+  using adt::EmptyValue;
   using adt::Multimap;
   using common::Buffer;
   using indices::Indices;
@@ -69,11 +71,13 @@ namespace fc::vm::actor::builtin::storage_power {
   struct StoragePowerActorState {
     inline void load(std::shared_ptr<Ipld> ipld) {
       escrow.load(ipld);
+      po_st_detected_fault_miners.load(ipld);
       claims.load(ipld);
     }
 
     inline outcome::result<void> flush() {
       OUTCOME_TRY(escrow.flush());
+      OUTCOME_TRY(po_st_detected_fault_miners.flush());
       OUTCOME_TRY(claims.flush());
       return outcome::success();
     }
@@ -82,7 +86,7 @@ namespace fc::vm::actor::builtin::storage_power {
     size_t miner_count;
     BalanceTable escrow;
     CID cron_event_queue_cid;
-    CID po_st_detected_fault_miners_cid;
+    adt::Map<EmptyValue, AddressKeyer> po_st_detected_fault_miners;
     adt::Map<Claim, AddressKeyer> claims;
     /** Number of miners having proven the minimum consensus power */
     size_t num_miners_meeting_min_power;
@@ -292,12 +296,6 @@ namespace fc::vm::actor::builtin::storage_power {
      * A queue of events to be triggered by cron, indexed by epoch
      */
     std::shared_ptr<Multimap> cron_event_queue_;
-
-    /**
-     * Miners having failed to prove storage
-     * As Set, HAMT[Address -> {}]
-     */
-    std::shared_ptr<Hamt> po_st_detected_fault_miners_;
   };
 
   CBOR_TUPLE(Claim, power, pledge);
@@ -309,7 +307,7 @@ namespace fc::vm::actor::builtin::storage_power {
              miner_count,
              escrow,
              cron_event_queue_cid,
-             po_st_detected_fault_miners_cid,
+             po_st_detected_fault_miners,
              claims,
              num_miners_meeting_min_power);
 
