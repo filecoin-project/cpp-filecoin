@@ -85,7 +85,7 @@ TEST_F(MultimapTest, AppendAndVisit) {
 TEST_F(MultimapTest, ReloadFromCid) {
   appendValues();
   EXPECT_OUTCOME_TRUE_1(mmap.flush());
-  mmap = mmap.hamt.cid();
+  mmap = Map{mmap.hamt.cid()};
   mmap.load(ipld);
   expectVisitValues();
 }

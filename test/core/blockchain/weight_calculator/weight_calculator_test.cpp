@@ -38,16 +38,19 @@ struct Params {
 fc::outcome::result<Weight> calculateWeight(const Params &params) {
   auto ipld = std::make_shared<InMemoryDatastore>();
   auto some_cid = "010001020001"_cid;
-  EXPECT_OUTCOME_TRUE(state_cid,
-                      ipld->setCbor(StoragePowerActorState{
-                          .total_network_power = params.network_power,
-                          .miner_count = {},
-                          .escrow = some_cid,
-                          .cron_event_queue = some_cid,
-                          .po_st_detected_fault_miners = some_cid,
-                          .claims = some_cid,
-                          .num_miners_meeting_min_power = {},
-                      }));
+  EXPECT_OUTCOME_TRUE(
+      state_cid,
+      ipld->setCbor(StoragePowerActorState{
+          .total_network_power = params.network_power,
+          .miner_count = {},
+          .escrow = decltype(StoragePowerActorState::escrow){some_cid},
+          .cron_event_queue =
+              decltype(StoragePowerActorState::cron_event_queue){some_cid},
+          .po_st_detected_fault_miners = decltype(
+              StoragePowerActorState::po_st_detected_fault_miners){some_cid},
+          .claims = decltype(StoragePowerActorState::claims){some_cid},
+          .num_miners_meeting_min_power = {},
+      }));
   StateTreeImpl state_tree{ipld};
   EXPECT_OUTCOME_TRUE_1(state_tree.set(kStoragePowerAddress,
                                        Actor{
