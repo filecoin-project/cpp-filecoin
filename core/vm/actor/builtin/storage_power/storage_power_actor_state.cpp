@@ -28,8 +28,9 @@ namespace fc::vm::actor::builtin::storage_power {
         cron_event_queue_(std::make_shared<Multimap>(
             datastore_, state_.cron_event_queue_cid)),
         po_st_detected_fault_miners_(std::make_shared<Hamt>(
-            datastore_, state_.po_st_detected_fault_miners_cid)),
-        claims_(std::make_shared<Hamt>(datastore_, state_.claims_cid)) {}
+            datastore_, state_.po_st_detected_fault_miners_cid)) {
+    state_.load(datastore_);
+  }
 
   outcome::result<StoragePowerActorState> StoragePowerActor::createEmptyState(
       std::shared_ptr<IpfsDatastore> datastore) {
@@ -48,7 +49,6 @@ namespace fc::vm::actor::builtin::storage_power {
         std::make_shared<Multimap>(datastore_, state_.cron_event_queue_cid);
     po_st_detected_fault_miners_ = std::make_shared<Hamt>(
         datastore_, state_.po_st_detected_fault_miners_cid);
-    claims_ = std::make_shared<Hamt>(datastore_, state_.claims_cid);
   }
 
   fc::outcome::result<StoragePowerActorState> StoragePowerActor::flushState() {
@@ -62,8 +62,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(new_cron_event_queue_cid, cron_event_queue_->flush());
     state_.cron_event_queue_cid = new_cron_event_queue_cid;
 
-    OUTCOME_TRY(new_claims_cid, claims_->flush());
-    state_.claims_cid = new_claims_cid;
+    OUTCOME_TRY(state_.flush());
 
     return state_;
   }
@@ -75,8 +74,7 @@ namespace fc::vm::actor::builtin::storage_power {
     }
 
     OUTCOME_TRY(escrow_table_->set(miner_addr, TokenAmount{0}));
-    OUTCOME_TRY(
-        claims_->setCbor(AddressKeyer::encode(miner_addr), Claim{0, 0}));
+    OUTCOME_TRY(state_.claims.set(miner_addr, {0, 0}));
 
     state_.miner_count++;
 
@@ -88,11 +86,11 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(assertHasEscrow(miner_addr));
 
     std::string encoded_miner_addr = AddressKeyer::encode(miner_addr);
-    OUTCOME_TRY(claim, claims_->getCbor<Claim>(encoded_miner_addr));
+    OUTCOME_TRY(claim, state_.claims.get(miner_addr));
     if (claim.power > Power{0})
       return outcome::failure(VMExitCode::STORAGE_POWER_FORBIDDEN);
 
-    OUTCOME_TRY(claims_->remove(encoded_miner_addr));
+    OUTCOME_TRY(state_.claims.remove(miner_addr));
     OUTCOME_TRY(old_balance, escrow_table_->remove(miner_addr));
     OUTCOME_TRY(contains,
                 po_st_detected_fault_miners_->contains(encoded_miner_addr));
@@ -139,13 +137,13 @@ namespace fc::vm::actor::builtin::storage_power {
   outcome::result<void> StoragePowerActor::setClaim(const Address &miner,
                                                     const Claim &claim) {
     OUTCOME_TRY(assertHasClaim(miner));
-    OUTCOME_TRY(claims_->setCbor(AddressKeyer::encode(miner), claim));
+    OUTCOME_TRY(state_.claims.set(miner, claim));
     return outcome::success();
   }
 
   outcome::result<bool> StoragePowerActor::hasClaim(
       const Address &miner) const {
-    return claims_->contains(AddressKeyer::encode(miner));
+    return state_.claims.has(miner);
   }
 
   outcome::result<Claim> StoragePowerActor::getClaim(const Address &miner) {
@@ -154,7 +152,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
   outcome::result<void> StoragePowerActor::deleteClaim(const Address &miner) {
     OUTCOME_TRY(assertHasClaim(miner));
-    OUTCOME_TRY(claims_->remove(AddressKeyer::encode(miner)));
+    OUTCOME_TRY(state_.claims.remove(miner));
     return outcome::success();
   }
 
@@ -163,7 +161,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(claim, assertHasClaim(miner));
     claim.power += power;
     claim.pledge += pledge;
-    OUTCOME_TRY(claims_->setCbor(AddressKeyer::encode(miner), claim));
+    OUTCOME_TRY(state_.claims.set(miner, claim));
     return outcome::success();
   }
 
@@ -226,14 +224,12 @@ namespace fc::vm::actor::builtin::storage_power {
     }
 
     std::vector<Power> miner_sizes;
-    Hamt::Visitor miner_power_visitor{
-        [this, &miner_sizes](auto k, auto v) -> fc::outcome::result<void> {
-          OUTCOME_TRY(address, AddressKeyer::decode(k));
+    OUTCOME_TRY(state_.claims.visit(
+        [&](auto &address, auto &) -> fc::outcome::result<void> {
           OUTCOME_TRY(nominal_power, this->computeNominalPower(address));
           miner_sizes.push_back(nominal_power);
           return fc::outcome::success();
-        }};
-    OUTCOME_TRY(claims_->visit(miner_power_visitor));
+        }));
     std::sort(miner_sizes.begin(),
               miner_sizes.end(),
               [](const Power &l, const Power &r) { return l > r; });
@@ -280,14 +276,14 @@ namespace fc::vm::actor::builtin::storage_power {
 
   outcome::result<std::vector<Address>> StoragePowerActor::getMiners() const {
     std::vector<Address> all_miners;
-    Hamt::Visitor all_miners_visitor{
-        [this, &all_miners](auto k, auto v) -> fc::outcome::result<void> {
-          OUTCOME_TRY(address, AddressKeyer::decode(k));
+    OUTCOME_TRY(state_.claims.visit(
+        [&](auto &address, auto &) -> fc::outcome::result<void> {
           OUTCOME_TRY(nominal_power, this->computeNominalPower(address));
-          if (nominal_power > Power{0}) all_miners.push_back(address);
+          if (nominal_power > 0) {
+            all_miners.push_back(address);
+          }
           return fc::outcome::success();
-        }};
-    OUTCOME_TRY(claims_->visit(all_miners_visitor));
+        }));
     return all_miners;
   };
 
@@ -306,8 +302,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
   outcome::result<Claim> StoragePowerActor::assertHasClaim(
       const Address &address) const {
-    OUTCOME_TRY(claim,
-                claims_->tryGetCbor<Claim>(AddressKeyer::encode(address)));
+    OUTCOME_TRY(claim, state_.claims.tryGet(address));
     if (!claim) {
       return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
     }

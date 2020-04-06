@@ -6,7 +6,9 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
 
+#include "adt/address_key.hpp"
 #include "adt/balance_table_hamt.hpp"
+#include "adt/map.hpp"
 #include "adt/multimap.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/randomness/randomness_provider.hpp"
@@ -19,6 +21,7 @@
 
 namespace fc::vm::actor::builtin::storage_power {
 
+  using adt::AddressKeyer;
   using adt::BalanceTableHamt;
   using adt::Multimap;
   using common::Buffer;
@@ -34,6 +37,7 @@ namespace fc::vm::actor::builtin::storage_power {
   using primitives::address::Address;
   using storage::hamt::Hamt;
   using storage::ipfs::IpfsDatastore;
+  using Ipld = storage::ipfs::IpfsDatastore;
 
   // Minimum power of an individual miner to participate in leader election
   // From spec: 100 TiB
@@ -64,12 +68,21 @@ namespace fc::vm::actor::builtin::storage_power {
    * POD structure of SoragePowerActor state
    */
   struct StoragePowerActorState {
+    inline void load(std::shared_ptr<Ipld> ipld) {
+      claims.load(ipld);
+    }
+
+    inline outcome::result<void> flush() {
+      OUTCOME_TRY(claims.flush());
+      return outcome::success();
+    }
+
     power::Power total_network_power;
     size_t miner_count;
     CID escrow_table_cid;
     CID cron_event_queue_cid;
     CID po_st_detected_fault_miners_cid;
-    CID claims_cid;
+    adt::Map<Claim, AddressKeyer> claims;
     /** Number of miners having proven the minimum consensus power */
     size_t num_miners_meeting_min_power;
   };
@@ -291,11 +304,6 @@ namespace fc::vm::actor::builtin::storage_power {
      * As Set, HAMT[Address -> {}]
      */
     std::shared_ptr<Hamt> po_st_detected_fault_miners_;
-
-    /**
-     * Claimed power and associated pledge requirements for each miner
-     */
-    std::shared_ptr<Hamt> claims_;
   };
 
   CBOR_TUPLE(Claim, power, pledge);
@@ -308,7 +316,7 @@ namespace fc::vm::actor::builtin::storage_power {
              escrow_table_cid,
              cron_event_queue_cid,
              po_st_detected_fault_miners_cid,
-             claims_cid,
+             claims,
              num_miners_meeting_min_power);
 
 }  // namespace fc::vm::actor::builtin::storage_power
