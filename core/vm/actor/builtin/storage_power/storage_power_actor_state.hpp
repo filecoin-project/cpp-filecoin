@@ -107,8 +107,6 @@ namespace fc::vm::actor::builtin::storage_power {
     static outcome::result<StoragePowerActorState> createEmptyState(
         std::shared_ptr<IpfsDatastore> datastore);
 
-    void setState(const StoragePowerActorState &state);
-
     /** Flush current state */
     outcome::result<StoragePowerActorState> flushState();
 

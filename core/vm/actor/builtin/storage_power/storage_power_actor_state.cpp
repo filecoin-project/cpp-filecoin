@@ -31,10 +31,6 @@ namespace fc::vm::actor::builtin::storage_power {
     return state;
   }
 
-  void StoragePowerActor::setState(const StoragePowerActorState &state) {
-    state_ = state;
-  }
-
   fc::outcome::result<StoragePowerActorState> StoragePowerActor::flushState() {
     OUTCOME_TRY(state_.flush());
 
