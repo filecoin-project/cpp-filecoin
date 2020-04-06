@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_DATA_TRANSFER_TYPES_HPP
 #define CPP_FILECOIN_DATA_TRANSFER_TYPES_HPP
 
-#include <libp2p/peer/peer_info.hpp>
+#include <libp2p/peer/peer_id.hpp>
 #include "clock/time.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
@@ -15,7 +15,7 @@
 namespace fc::data_transfer {
 
   using fc::storage::ipfs::graphsync::statusCodeToString;
-  using libp2p::peer::PeerInfo;
+  using libp2p::peer::PeerId;
   using storage::ipld::IPLDNode;
 
   /**
@@ -53,12 +53,12 @@ namespace fc::data_transfer {
    * party's peer ID + the transfer ID
    */
   struct ChannelId {
-    PeerInfo initiator;
+    PeerId initiator;
     TransferId id;
 
     bool operator<(const ChannelId &other) const {
-      return initiator.id.toBase58() < other.initiator.id.toBase58()
-             || (initiator.id == other.initiator.id && id < other.id);
+      return initiator.toBase58() < other.initiator.toBase58()
+             || (initiator == other.initiator && id < other.id);
     }
   };
 
@@ -82,10 +82,10 @@ namespace fc::data_transfer {
     std::vector<uint8_t> voucher;
 
     /** the party that is sending the data (not who initiated the request) */
-    PeerInfo sender;
+    PeerId sender;
 
     /** the party that is receiving the data (not who initiated the request) */
-    PeerInfo recipient;
+    PeerId recipient;
 
     /** expected amount of data to be transferred */
     size_t total_size;
@@ -96,10 +96,10 @@ namespace fc::data_transfer {
     Channel channel;
 
     /** total bytes sent from this node (0 if receiver) */
-    size_t sent;
+    size_t sent{0};
 
     /** total bytes received by this node (0 if sender) */
-    size_t received;
+    size_t received{0};
   };
 
   /**

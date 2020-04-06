@@ -17,7 +17,7 @@ namespace fc::data_transfer {
   }
 
   outcome::result<void> MessageReceiver::validateVoucher(
-      const PeerInfo &sender, const DataTransferRequest &request) const {
+      const PeerId &sender, const DataTransferRequest &request) const {
     auto validator = voucher_validators_.find(request.voucher_type);
     if (validator == voucher_validators_.end()) {
       return MessageReceiverError::VOUCHER_VALIDATOR_NOT_FOUND;

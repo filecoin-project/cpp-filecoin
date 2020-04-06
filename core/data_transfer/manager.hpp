@@ -6,10 +6,13 @@
 #ifndef CPP_FILECOIN_DATA_TRANSFER_MANAGER_HPP
 #define CPP_FILECOIN_DATA_TRANSFER_MANAGER_HPP
 
+#include <libp2p/peer/peer_id.hpp>
 #include <map>
 #include "data_transfer/types.hpp"
 
 namespace fc::data_transfer {
+
+  using libp2p::peer::PeerId;
 
   /**
    * Manager is the core interface presented by all implementations of of
@@ -19,23 +22,12 @@ namespace fc::data_transfer {
    public:
     virtual ~Manager() = default;
 
-    //    /**
-    //     * RegisterVoucherType registers a validator for the given voucher
-    //     type will
-    //     * error if voucher type does not implement voucher or if there is a
-    //     voucher
-    //     * type registered with an identical identifier
-    //     */
-    //    virtual outcome::result<void> registerVoucherType(
-    //        const std::type_info &type,
-    //        const RequestValidator &validator) = 0;
-
     /**
      * Open a data transfer that will send data to the recipient peer and
      * transfer parts of the piece that match the selector
      */
     virtual outcome::result<ChannelId> openPushDataChannel(
-        const PeerInfo &to,
+        const PeerId &to,
         const Voucher &voucher,
         CID base_cid,
         std::shared_ptr<IPLDNode> selector) = 0;
@@ -45,7 +37,7 @@ namespace fc::data_transfer {
      * transfer parts of the piece that match the selector
      */
     virtual outcome::result<ChannelId> openPullDataChannel(
-        const PeerInfo &to,
+        const PeerId &to,
         const Voucher &voucher,
         CID base_cid,
         std::shared_ptr<IPLDNode> selector) = 0;
@@ -59,9 +51,9 @@ namespace fc::data_transfer {
         const CID &base_cid,
         std::shared_ptr<IPLDNode> selector,
         const std::vector<uint8_t> &voucher,
-        const PeerInfo &initiator,
-        const PeerInfo &sender_peer,
-        const PeerInfo &receiver_peer) = 0;
+        const PeerId &initiator,
+        const PeerId &sender_peer,
+        const PeerId &receiver_peer) = 0;
 
     /**
      * Closes an open channel (effectively a cancel)
@@ -69,7 +61,7 @@ namespace fc::data_transfer {
     virtual outcome::result<void> closeChannel(const ChannelId &channel_id) = 0;
 
     virtual boost::optional<ChannelState> getChannelByIdAndSender(
-        const ChannelId &channel_id, const PeerInfo &sender) = 0;
+        const ChannelId &channel_id, const PeerId &sender) = 0;
   };
 
 }  // namespace fc::data_transfer

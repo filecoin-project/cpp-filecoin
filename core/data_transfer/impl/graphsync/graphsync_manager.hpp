@@ -18,34 +18,33 @@ namespace fc::data_transfer::graphsync {
 
   class GraphSyncManager : public Manager {
    public:
-    GraphSyncManager(std::shared_ptr<Host> host, const PeerInfo &peer);
+    GraphSyncManager(std::shared_ptr<Host> host, const PeerId &peer);
 
     outcome::result<ChannelId> openPushDataChannel(
-        const PeerInfo &to,
+        const PeerId &to,
         const Voucher &voucher,
         CID base_cid,
         std::shared_ptr<IPLDNode> selector) override;
 
     outcome::result<ChannelId> openPullDataChannel(
-        const PeerInfo &to,
+        const PeerId &to,
         const Voucher &voucher,
         CID base_cid,
         std::shared_ptr<IPLDNode> selector) override;
-
 
     outcome::result<ChannelId> createChannel(
         const TransferId &transfer_id,
         const CID &base_cid,
         std::shared_ptr<IPLDNode> selector,
         const std::vector<uint8_t> &voucher,
-        const PeerInfo &initiator,
-        const PeerInfo &sender_peer,
-        const PeerInfo &receiver_peer) override;
+        const PeerId &initiator,
+        const PeerId &sender_peer,
+        const PeerId &receiver_peer) override;
 
     outcome::result<void> closeChannel(const ChannelId &channel_id) override;
 
     boost::optional<ChannelState> getChannelByIdAndSender(
-        const ChannelId &channel_id, const PeerInfo &sender) override;
+        const ChannelId &channel_id, const PeerId &sender) override;
 
    private:
     /**
@@ -62,18 +61,18 @@ namespace fc::data_transfer::graphsync {
         bool is_pull,
         const Voucher &voucher,
         const CID &base_cid,
-        const PeerInfo &to);
+        const PeerId &to);
 
     /**
      * Sends response
      */
     outcome::result<void> sendResponse(bool is_accepted,
-                                       const PeerInfo &to,
+                                       const PeerId &to,
                                        TransferId transfer_id);
 
     std::atomic<TransferId> last_tx_id{0};
     Libp2pDataTransferNetwork network_;
-    PeerInfo peer_;
+    PeerId peer_;
     std::map<ChannelId, ChannelState> channels_;
   };
 

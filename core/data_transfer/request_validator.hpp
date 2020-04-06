@@ -6,14 +6,14 @@
 #ifndef CPP_FILECOIN_REQUEST_VALIDATOR_HPP
 #define CPP_FILECOIN_REQUEST_VALIDATOR_HPP
 
-#include <libp2p/peer/peer_info.hpp>
+#include <libp2p/peer/peer_id.hpp>
 #include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/ipld/ipld_node.hpp"
 
 namespace fc::data_transfer {
 
-  using libp2p::peer::PeerInfo;
+  using libp2p::peer::PeerId;
   using storage::ipld::IPLDNode;
 
   /**
@@ -29,7 +29,7 @@ namespace fc::data_transfer {
      * send data
      */
     virtual outcome::result<void> ValidatePush(
-        const PeerInfo &sender,
+        const PeerId &sender,
         std::vector<uint8_t> voucher,
         CID base_cid,
         std::shared_ptr<IPLDNode> selector) = 0;
@@ -38,7 +38,7 @@ namespace fc::data_transfer {
      * receive data
      */
     virtual outcome::result<void> ValidatePull(
-        const PeerInfo &receiver,
+        const PeerId &receiver,
         std::vector<uint8_t> voucher,
         CID base_cid,
         std::shared_ptr<IPLDNode> selector) = 0;

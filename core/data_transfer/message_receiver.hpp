@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_DATA_TRANSFER_MESSAGE_RECEIVER_HPP
 #define CPP_FILECOIN_DATA_TRANSFER_MESSAGE_RECEIVER_HPP
 
-#include <libp2p/peer/peer_info.hpp>
+#include <libp2p/peer/peer_id.hpp>
 #include "common/logger.hpp"
 #include "data_transfer/message.hpp"
 #include "data_transfer/request_validator.hpp"
@@ -14,7 +14,7 @@
 
 namespace fc::data_transfer {
 
-  using libp2p::peer::PeerInfo;
+  using libp2p::peer::PeerId;
   using storage::ipld::IPLDNodeImpl;
 
   /**
@@ -26,10 +26,10 @@ namespace fc::data_transfer {
     virtual ~MessageReceiver() = default;
 
     virtual outcome::result<void> receiveRequest(
-        const PeerInfo &initiator, const DataTransferRequest &request) = 0;
+        const PeerId &initiator, const DataTransferRequest &request) = 0;
 
-    virtual outcome::result<void> receiveResponse(const PeerInfo &sender,
-                                 const DataTransferResponse &response) = 0;
+    virtual outcome::result<void> receiveResponse(
+        const PeerId &sender, const DataTransferResponse &response) = 0;
 
     virtual void receiveError() = 0;
 
@@ -55,7 +55,7 @@ namespace fc::data_transfer {
      *  - validation fails
      */
     outcome::result<void> validateVoucher(
-        const PeerInfo &sender, const DataTransferRequest &request) const;
+        const PeerId &sender, const DataTransferRequest &request) const;
 
     common::Logger logger_ = common::createLogger("data_transfer");
 

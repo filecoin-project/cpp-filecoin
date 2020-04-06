@@ -6,12 +6,13 @@
 #ifndef CPP_FILECOIN_DATA_TRANSFER_EXTENSION_HPP
 #define CPP_FILECOIN_DATA_TRANSFER_EXTENSION_HPP
 
-#include <libp2p/peer/peer_info.hpp>
+#include <libp2p/peer/peer_id.hpp>
 #include "data_transfer/types.hpp"
 #include "storage/ipfs/graphsync/extension.hpp"
 
 namespace fc::data_transfer {
 
+  using libp2p::peer::PeerId;
   using storage::ipfs::graphsync::Extension;
 
   constexpr std::string_view kDataTransferExtensionName = "fil/data-transfer";
@@ -24,7 +25,7 @@ namespace fc::data_transfer {
     std::string initiator;
     bool is_pull;
 
-    PeerInfo getInitiator() const;
+    PeerId getInitiator() const;
   };
 
   CBOR_TUPLE(ExtensionDataTransferData, transfer_id, initiator, is_pull)

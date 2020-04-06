@@ -17,14 +17,14 @@ namespace fc::data_transfer {
       std::shared_ptr<Libp2pDataTransferNetwork> network,
       std::shared_ptr<Graphsync> graphsync,
       std::shared_ptr<Manager> graphsync_manager,
-      PeerInfo peer)
+      PeerId peer)
       : network_(std::move(network)),
         graphsync_(std::move(graphsync)),
         graphsync_manager_(std::move(graphsync_manager)),
         peer_(peer) {}
 
   outcome::result<void> GraphsyncReceiver::receiveRequest(
-      const PeerInfo &initiator, const DataTransferRequest &request) {
+      const PeerId &initiator, const DataTransferRequest &request) {
     auto validated = validateVoucher(initiator, request);
     if (!validated) {
       logger_->warn("Voucher is not valid: " + validated.error().message());
@@ -71,7 +71,7 @@ namespace fc::data_transfer {
   }
 
   outcome::result<void> GraphsyncReceiver::receiveResponse(
-      const PeerInfo &sender, const DataTransferResponse &response) {
+      const PeerId &sender, const DataTransferResponse &response) {
     Event event{.code = EventCode::ERROR,
                 .message = "",
                 .timestamp = clock::UTCClockImpl().nowUTC()};
@@ -103,7 +103,7 @@ namespace fc::data_transfer {
   }
 
   outcome::result<void> GraphsyncReceiver::sendResponse(
-      const PeerInfo &peer, bool is_accepted, const TransferId &transfer_id) {
+      const PeerId &peer, bool is_accepted, const TransferId &transfer_id) {
     DataTransferMessage response = createResponse(is_accepted, transfer_id);
     OUTCOME_TRY(sender, network_->newMessageSender(peer));
     OUTCOME_TRY(sender->sendMessage(response));
@@ -123,20 +123,19 @@ namespace fc::data_transfer {
   }
 
   outcome::result<void> GraphsyncReceiver::sendGraphSyncRequest(
-      const PeerInfo &initiator,
+      const PeerId &initiator,
       const TransferId &transfer_id,
       bool is_pull,
-      const PeerInfo &sender,
+      const PeerId &sender,
       const CID &root,
       gsl::span<const uint8_t> selector) {
-    ExtensionDataTransferData extension_data{
-        .transfer_id = transfer_id,
-        .initiator = initiator.id.toBase58(),
-        .is_pull = is_pull};
+    ExtensionDataTransferData extension_data{.transfer_id = transfer_id,
+                                             .initiator = initiator.toBase58(),
+                                             .is_pull = is_pull};
     OUTCOME_TRY(extension, encodeDataTransferExtension(extension_data));
 
     graphsync_->makeRequest(
-        sender.id,
+        sender,
         boost::none,
         root,
         selector,

@@ -17,7 +17,7 @@
 
 namespace fc::data_transfer {
 
-  using libp2p::peer::PeerInfo;
+  using libp2p::peer::PeerId;
 
   /** The protocol identifier for graphsync messages */
   const libp2p::peer::Protocol kDataTransferLibp2pProtocol =
@@ -40,10 +40,10 @@ namespace fc::data_transfer {
     /**
      * Establishes a connection to the given peer
      */
-    virtual outcome::result<void> connectTo(const PeerInfo &peer) = 0;
+    virtual outcome::result<void> connectTo(const PeerId &peer) = 0;
 
     virtual outcome::result<std::shared_ptr<MessageSender>> newMessageSender(
-        const PeerInfo &peer) = 0;
+        const PeerId &peer) = 0;
   };
 
 }  // namespace fc::data_transfer

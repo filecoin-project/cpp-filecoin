@@ -27,6 +27,7 @@
 namespace fc::data_transfer {
 
   using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
 
   Libp2pDataTransferNetwork::Libp2pDataTransferNetwork(
       std::shared_ptr<libp2p::Host> host)
@@ -60,15 +61,15 @@ namespace fc::data_transfer {
               stream->reset();
               return;
             }
-            PeerInfo peer_info{.id = maybe_peer_id.value(), .addresses = {}};
+            PeerId peer_id = maybe_peer_id.value();
 
             if (message.is_request) {
               CHECK_OUTCOME_RESULT(
-                  receiver_->receiveRequest(peer_info, *message.request),
+                  receiver_->receiveRequest(peer_id, *message.request),
                   this->receiver_);
             } else {
               CHECK_OUTCOME_RESULT(
-                  receiver_->receiveResponse(peer_info, *message.response),
+                  receiver_->receiveResponse(peer_id, *message.response),
                   this->receiver_);
             }
           }
@@ -77,16 +78,18 @@ namespace fc::data_transfer {
   }
 
   outcome::result<void> Libp2pDataTransferNetwork::connectTo(
-      const PeerInfo &peer) {
-    host_->connect(peer);
+      const PeerId &peer) {
+    PeerInfo peer_info = host_->getPeerRepository().getPeerInfo(peer);
+    host_->connect(peer_info);
     return outcome::success();
   }
 
   outcome::result<std::shared_ptr<MessageSender>>
-  Libp2pDataTransferNetwork::newMessageSender(const PeerInfo &peer) {
+  Libp2pDataTransferNetwork::newMessageSender(const PeerId &peer) {
     std::shared_ptr<libp2p::connection::Stream> stream;
+    PeerInfo peer_info = host_->getPeerRepository().getPeerInfo(peer);
     host_->newStream(
-        peer,
+        peer_info,
         kDataTransferLibp2pProtocol,
         [&stream](
             outcome::result<std::shared_ptr<libp2p::connection::Stream>> s) {

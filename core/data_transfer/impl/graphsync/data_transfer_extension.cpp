@@ -10,9 +10,8 @@ namespace fc::data_transfer {
 
   using libp2p::peer::PeerId;
 
-  PeerInfo ExtensionDataTransferData::getInitiator() const {
-    PeerId peer_id = PeerId::fromBase58(initiator).value();
-    return PeerInfo{.id = peer_id, .addresses = {}};
+  PeerId ExtensionDataTransferData::getInitiator() const {
+    return PeerId::fromBase58(initiator).value();
   }
 
   outcome::result<Extension> encodeDataTransferExtension(

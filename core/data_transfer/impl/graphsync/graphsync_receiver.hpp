@@ -21,18 +21,18 @@ namespace fc::data_transfer {
     GraphsyncReceiver(std::shared_ptr<Libp2pDataTransferNetwork> network,
                       std::shared_ptr<Graphsync> graphsync,
                       std::shared_ptr<Manager> graphsync_manager,
-                      PeerInfo peer);
+                      PeerId peer);
 
     outcome::result<void> receiveRequest(
-        const PeerInfo &initiator, const DataTransferRequest &request) override;
+        const PeerId &initiator, const DataTransferRequest &request) override;
 
-    outcome::result<void> receiveResponse(const PeerInfo &sender,
-                         const DataTransferResponse &response) override;
+    outcome::result<void> receiveResponse(
+        const PeerId &sender, const DataTransferResponse &response) override;
 
     void receiveError() override;
 
    private:
-    outcome::result<void> sendResponse(const PeerInfo &peer,
+    outcome::result<void> sendResponse(const PeerId &peer,
                                        bool is_accepted,
                                        const TransferId &transfer_id);
 
@@ -46,10 +46,10 @@ namespace fc::data_transfer {
      * @return
      */
     outcome::result<void> sendGraphSyncRequest(
-        const PeerInfo &initiator,
+        const PeerId &initiator,
         const TransferId &transfer_id,
         bool is_pull,
-        const PeerInfo &sender,
+        const PeerId &sender,
         const CID &root,
         gsl::span<const uint8_t> selector);
 
@@ -59,7 +59,7 @@ namespace fc::data_transfer {
     std::shared_ptr<Libp2pDataTransferNetwork> network_;
     std::shared_ptr<Graphsync> graphsync_;
     std::shared_ptr<Manager> graphsync_manager_;
-    PeerInfo peer_;
+    PeerId peer_;
     std::vector<Subscriber> subscribers_;
   };
 

@@ -11,11 +11,11 @@ namespace fc::data_transfer::graphsync {
   using common::Buffer;
 
   GraphSyncManager::GraphSyncManager(std::shared_ptr<Host> host,
-                                     const PeerInfo &peer)
+                                     const PeerId &peer)
       : network_(std::move(host)), peer_(peer) {}
 
   outcome::result<ChannelId> GraphSyncManager::openPushDataChannel(
-      const PeerInfo &to,
+      const PeerId &to,
       const Voucher &voucher,
       CID base_cid,
       std::shared_ptr<IPLDNode> selector) {
@@ -30,7 +30,7 @@ namespace fc::data_transfer::graphsync {
   }
 
   outcome::result<ChannelId> GraphSyncManager::openPullDataChannel(
-      const PeerInfo &to,
+      const PeerId &to,
       const Voucher &voucher,
       CID base_cid,
       std::shared_ptr<IPLDNode> selector) {
@@ -49,9 +49,9 @@ namespace fc::data_transfer::graphsync {
       const CID &base_cid,
       std::shared_ptr<IPLDNode> selector,
       const std::vector<uint8_t> &voucher,
-      const PeerInfo &initiator,
-      const PeerInfo &sender_peer,
-      const PeerInfo &receiver_peer) {
+      const PeerId &initiator,
+      const PeerId &sender_peer,
+      const PeerId &receiver_peer) {
     ChannelId channel_id{.initiator = initiator, .id = transfer_id};
     Channel channel{.transfer_id = 0,
                     .base_cid = base_cid,
@@ -79,7 +79,7 @@ namespace fc::data_transfer::graphsync {
       bool is_pull,
       const Voucher &voucher,
       const CID &base_cid,
-      const PeerInfo &to) {
+      const PeerId &to) {
     std::vector<uint8_t> selector_bytes = selector->getRawBytes().toVector();
 
     TransferId tx_id = ++last_tx_id;
@@ -96,7 +96,7 @@ namespace fc::data_transfer::graphsync {
   }
 
   boost::optional<ChannelState> GraphSyncManager::getChannelByIdAndSender(
-      const ChannelId &channel_id, const PeerInfo &sender) {
+      const ChannelId &channel_id, const PeerId &sender) {
     // TODO check thread-safety of channels_
     auto found = channels_.find(channel_id);
     if (found == channels_.end() || found->second.channel.sender != sender) {
@@ -107,7 +107,7 @@ namespace fc::data_transfer::graphsync {
   }
 
   outcome::result<void> GraphSyncManager::sendResponse(bool is_accepted,
-                                                       const PeerInfo &to,
+                                                       const PeerId &to,
                                                        TransferId transfer_id) {
     DataTransferMessage message = createResponse(is_accepted, transfer_id);
     OUTCOME_TRY(sender, network_.newMessageSender(to));
