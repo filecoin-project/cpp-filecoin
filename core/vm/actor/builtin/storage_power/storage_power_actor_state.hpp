@@ -65,10 +65,12 @@ namespace fc::vm::actor::builtin::storage_power {
     Buffer callback_payload;
   };
 
-  /**
-   * POD structure of SoragePowerActor state
-   */
   struct StoragePowerActorState {
+    StoragePowerActorState() = default;
+
+    StoragePowerActorState(std::shared_ptr<IpfsDatastore> datastore,
+                           StoragePowerActorState state);
+
     inline void load(std::shared_ptr<Ipld> ipld) {
       escrow.load(ipld);
       cron_event_queue.load(ipld);
@@ -83,21 +85,6 @@ namespace fc::vm::actor::builtin::storage_power {
       OUTCOME_TRY(claims.flush());
       return outcome::success();
     }
-
-    power::Power total_network_power;
-    size_t miner_count;
-    BalanceTable escrow;
-    adt::Map<adt::Array<CronEvent>, ChainEpochKeyer> cron_event_queue;
-    adt::Map<EmptyValue, AddressKeyer> po_st_detected_fault_miners;
-    adt::Map<Claim, AddressKeyer> claims;
-    /** Number of miners having proven the minimum consensus power */
-    size_t num_miners_meeting_min_power;
-  };
-
-  class StoragePowerActor {
-   public:
-    StoragePowerActor(std::shared_ptr<IpfsDatastore> datastore,
-                      StoragePowerActorState state);
 
     /**
      * Creates empty StoragePowerActor state
@@ -272,7 +259,6 @@ namespace fc::vm::actor::builtin::storage_power {
 
     outcome::result<Power> getTotalNetworkPower() const;
 
-   private:
     outcome::result<Claim> assertHasClaim(const Address &address) const;
 
     outcome::result<void> assertHasEscrow(const Address &address) const;
@@ -285,13 +271,17 @@ namespace fc::vm::actor::builtin::storage_power {
     outcome::result<bool> minerNominalPowerMeetsConsensusMinimum(
         const power::Power &miner_power);
 
-    /**
-     * Datastore for internal state
-     */
-    std::shared_ptr<IpfsDatastore> datastore_;
-
-    StoragePowerActorState state_;
+    power::Power total_network_power;
+    size_t miner_count;
+    mutable BalanceTable escrow;
+    mutable adt::Map<adt::Array<CronEvent>, ChainEpochKeyer> cron_event_queue;
+    mutable adt::Map<EmptyValue, AddressKeyer> po_st_detected_fault_miners;
+    mutable adt::Map<Claim, AddressKeyer> claims;
+    /** Number of miners having proven the minimum consensus power */
+    size_t num_miners_meeting_min_power;
   };
+
+  using StoragePowerActor = StoragePowerActorState;
 
   CBOR_TUPLE(Claim, power, pledge);
 

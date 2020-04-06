@@ -35,9 +35,9 @@ namespace fc::vm::actor::builtin::storage_power {
    * @return current storage power actor state or appropriate error
    */
   outcome::result<StoragePowerActor> getCurrentState(Runtime &runtime) {
-    OUTCOME_TRY(state,
-                runtime.getCurrentActorStateCbor<StoragePowerActorState>());
-    return StoragePowerActor(runtime, state);
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<StoragePowerActor>());
+    state.load(runtime);
+    return std::move(state);
   }
 
   outcome::result<InvocationOutput> slashPledgeCollateral(
