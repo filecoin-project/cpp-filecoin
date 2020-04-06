@@ -42,7 +42,7 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
                       ipld->setCbor(StoragePowerActorState{
                           .total_network_power = params.network_power,
                           .miner_count = {},
-                          .escrow_table_cid = some_cid,
+                          .escrow = some_cid,
                           .cron_event_queue_cid = some_cid,
                           .po_st_detected_fault_miners_cid = some_cid,
                           .claims = some_cid,

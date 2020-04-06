@@ -12,7 +12,6 @@
 #include "vm/exit_code/exit_code.hpp"
 
 using fc::CID;
-using fc::adt::BalanceTableHamt;
 using fc::crypto::randomness::MockRandomnessProvider;
 using fc::crypto::randomness::Randomness;
 using fc::crypto::randomness::RandomnessProvider;

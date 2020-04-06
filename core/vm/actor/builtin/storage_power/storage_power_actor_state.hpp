@@ -7,8 +7,7 @@
 #define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
 
 #include "adt/address_key.hpp"
-#include "adt/balance_table_hamt.hpp"
-#include "adt/map.hpp"
+#include "adt/balance_table.hpp"
 #include "adt/multimap.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/randomness/randomness_provider.hpp"
@@ -22,7 +21,7 @@
 namespace fc::vm::actor::builtin::storage_power {
 
   using adt::AddressKeyer;
-  using adt::BalanceTableHamt;
+  using adt::BalanceTable;
   using adt::Multimap;
   using common::Buffer;
   using indices::Indices;
@@ -69,17 +68,19 @@ namespace fc::vm::actor::builtin::storage_power {
    */
   struct StoragePowerActorState {
     inline void load(std::shared_ptr<Ipld> ipld) {
+      escrow.load(ipld);
       claims.load(ipld);
     }
 
     inline outcome::result<void> flush() {
+      OUTCOME_TRY(escrow.flush());
       OUTCOME_TRY(claims.flush());
       return outcome::success();
     }
 
     power::Power total_network_power;
     size_t miner_count;
-    CID escrow_table_cid;
+    BalanceTable escrow;
     CID cron_event_queue_cid;
     CID po_st_detected_fault_miners_cid;
     adt::Map<Claim, AddressKeyer> claims;
@@ -288,13 +289,6 @@ namespace fc::vm::actor::builtin::storage_power {
     StoragePowerActorState state_;
 
     /**
-     * The balances of pledge collateral for each miner actually held by this
-     * actor. The sum of the values here should always equal the actor's
-     * balance. See Claim for the pledge *requirements* for each actor
-     */
-    std::shared_ptr<BalanceTableHamt> escrow_table_;
-
-    /**
      * A queue of events to be triggered by cron, indexed by epoch
      */
     std::shared_ptr<Multimap> cron_event_queue_;
@@ -313,7 +307,7 @@ namespace fc::vm::actor::builtin::storage_power {
   CBOR_TUPLE(StoragePowerActorState,
              total_network_power,
              miner_count,
-             escrow_table_cid,
+             escrow,
              cron_event_queue_cid,
              po_st_detected_fault_miners_cid,
              claims,
