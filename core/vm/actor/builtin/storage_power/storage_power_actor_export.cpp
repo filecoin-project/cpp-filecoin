@@ -40,6 +40,12 @@ namespace fc::vm::actor::builtin::storage_power {
     return std::move(state);
   }
 
+  outcome::result<void> commitState(Runtime &runtime,
+                                    StoragePowerActorState &state) {
+    OUTCOME_TRY(state.flush());
+    return runtime.commitState(state);
+  }
+
   outcome::result<InvocationOutput> slashPledgeCollateral(
       Runtime &runtime,
       StoragePowerActor &power_actor,
@@ -75,7 +81,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
     OUTCOME_TRY(empty_state, StoragePowerActor::createEmptyState(runtime));
 
-    OUTCOME_TRY(runtime.commitState(empty_state));
+    OUTCOME_TRY(commitState(runtime, empty_state));
     return outcome::success();
   }
 
@@ -95,8 +101,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(power_actor.addMinerBalance(params.miner,
                                             runtime.getMessage().get().value));
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return outcome::success();
   }
 
@@ -131,8 +136,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
     OUTCOME_TRY(runtime.sendFunds(control_addresses.owner, subtracted));
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return outcome::success();
   }
 
@@ -161,8 +165,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(power_actor.setMinerBalance(addresses_created.id_address,
                                             message.value));
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return Result{addresses_created.id_address,
                   addresses_created.robust_address};
   }
@@ -179,8 +182,7 @@ namespace fc::vm::actor::builtin::storage_power {
 
     OUTCOME_TRY(deleteMinerActor(runtime, power_actor, params.miner));
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return outcome::success();
   }
 
@@ -195,8 +197,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(
         power_actor.addToClaim(runtime.getMessage().get().from, power, pledge));
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
 
     return pledge;
   }
@@ -219,8 +220,7 @@ namespace fc::vm::actor::builtin::storage_power {
           runtime, power_actor, miner_address, amount_to_slash));
     }
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return outcome::success();
   }
 
@@ -233,8 +233,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(power_actor.addToClaim(
         runtime.getMessage().get().from, -power, -params.pledge));
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return outcome::success();
   }
 
@@ -245,8 +244,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(power_actor.addToClaim(
         runtime.getMessage().get().from, power, params.pledge));
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return outcome::success();
   }
 
@@ -265,8 +263,7 @@ namespace fc::vm::actor::builtin::storage_power {
     TokenAmount new_pledge = pledgeForWeight(params.new_weight, total_power);
     OUTCOME_TRY(power_actor.addToClaim(miner, new_power, new_pledge));
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return new_pledge;
   }
 
@@ -280,8 +277,7 @@ namespace fc::vm::actor::builtin::storage_power {
       OUTCOME_TRY(power_actor.deleteFaultMiner(miner));
     }
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return outcome::success();
   }
 
@@ -300,8 +296,7 @@ namespace fc::vm::actor::builtin::storage_power {
       OUTCOME_TRY(slashPledgeCollateral(runtime, power_actor, miner, to_slash));
     }
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return outcome::success();
   }
 
@@ -313,8 +308,7 @@ namespace fc::vm::actor::builtin::storage_power {
         params.event_epoch,
         CronEvent{.miner_address = miner, .callback_payload = params.payload}));
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return outcome::success();
   }
 
@@ -351,8 +345,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(runtime.sendFunds(reporter, reward));
     OUTCOME_TRY(deleteMinerActor(runtime, power_actor, target));
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return outcome::success();
   }
 
@@ -371,8 +364,7 @@ namespace fc::vm::actor::builtin::storage_power {
                                TokenAmount{0}));
     }
 
-    OUTCOME_TRY(power_actor_state, power_actor.flushState());
-    OUTCOME_TRY(runtime.commitState(power_actor_state));
+    OUTCOME_TRY(commitState(runtime, power_actor));
     return outcome::success();
   }
 

@@ -27,13 +27,7 @@ namespace fc::vm::actor::builtin::storage_power {
     state.total_network_power = 0;
     state.miner_count = 0;
     state.num_miners_meeting_min_power = 0;
-    OUTCOME_TRY(state.flush());
     return std::move(state);
-  }
-
-  fc::outcome::result<StoragePowerActorState> StoragePowerActor::flushState() {
-    OUTCOME_TRY(flush());
-    return *this;
   }
 
   outcome::result<void> StoragePowerActor::addMiner(const Address &miner_addr) {

@@ -94,9 +94,6 @@ namespace fc::vm::actor::builtin::storage_power {
     static outcome::result<StoragePowerActorState> createEmptyState(
         std::shared_ptr<IpfsDatastore> datastore);
 
-    /** Flush current state */
-    outcome::result<StoragePowerActorState> flushState();
-
     /**
      * @brief Add miner to system
      * @param miner_addr is address of miner

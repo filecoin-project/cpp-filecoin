@@ -183,8 +183,8 @@ TEST_F(StoragePowerActorStateTest, CBOR) {
   EXPECT_OUTCOME_TRUE_1(actor->addFaultMiner(address_3));
 
   fc::codec::cbor::CborEncodeStream encoder;
-  EXPECT_OUTCOME_TRUE(state, actor->flushState())
-  encoder << state;
+  EXPECT_OUTCOME_TRUE_1(actor->flush())
+  encoder << *actor;
   fc::codec::cbor::CborDecodeStream decoder(encoder.data());
   StoragePowerActorState new_state;
   decoder >> new_state;
