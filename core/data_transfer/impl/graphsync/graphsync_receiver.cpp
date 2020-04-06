@@ -110,16 +110,16 @@ namespace fc::data_transfer {
     return outcome::success();
   }
 
-  void GraphsyncReceiver::subscribeToEvents(const Subscriber &subscriber) {
+  void GraphsyncReceiver::subscribeToEvents(
+      const std::shared_ptr<Subscriber> &subscriber) {
     subscribers_.push_back(subscriber);
-    // TODO retrun unsubscribe callback or just unsubscribe function?
   }
 
-  void GraphsyncReceiver::unsubscribe(const Subscriber &subscriber) {
-    // TODO
-    //    subscribers_.erase(
-    //        std::remove(subscribers_.begin(), subscribers_.end(), subscriber),
-    //        subscribers_.end());
+  void GraphsyncReceiver::unsubscribe(
+      const std::shared_ptr<Subscriber> &subscriber) {
+    subscribers_.erase(
+        std::remove(subscribers_.begin(), subscribers_.end(), subscriber),
+        subscribers_.end());
   }
 
   outcome::result<void> GraphsyncReceiver::sendGraphSyncRequest(
@@ -167,7 +167,7 @@ namespace fc::data_transfer {
   void GraphsyncReceiver::notifySubscribers(const Event &event,
                                             const ChannelState &channel_state) {
     for (auto subscriber : subscribers_) {
-      subscriber(event, channel_state);
+      subscriber->notify(event, channel_state);
     }
   }
 

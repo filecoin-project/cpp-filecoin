@@ -36,9 +36,9 @@ namespace fc::data_transfer {
                                        bool is_accepted,
                                        const TransferId &transfer_id);
 
-    void subscribeToEvents(const Subscriber &subscriber);
+    void subscribeToEvents(const std::shared_ptr<Subscriber> &subscriber);
 
-    void unsubscribe(const Subscriber &subscriber);
+    void unsubscribe(const std::shared_ptr<Subscriber> &subscriber);
 
     /**
      * Assembles a graphsync request and determines if the transfer was
@@ -60,7 +60,7 @@ namespace fc::data_transfer {
     std::shared_ptr<Graphsync> graphsync_;
     std::shared_ptr<Manager> graphsync_manager_;
     PeerId peer_;
-    std::vector<Subscriber> subscribers_;
+    std::vector<std::shared_ptr<Subscriber>> subscribers_;
   };
 
 }  // namespace fc::data_transfer

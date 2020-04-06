@@ -134,8 +134,13 @@ namespace fc::data_transfer {
   /**
    * Subscriber is a callback that is called when events are emitted
    */
-  using Subscriber = std::function<void(const Event &event,
-                                        const ChannelState &channel_state)>;
+  class Subscriber {
+   public:
+    virtual ~Subscriber() = default;
+
+    virtual void notify(const Event &event,
+                        const ChannelState &channel_state) = 0;
+  };
 
   /**
    * Unsubscribe is a function that gets called to unsubscribe from data
