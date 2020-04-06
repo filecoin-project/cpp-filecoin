@@ -31,12 +31,10 @@ target_link_libraries(balance_table_hamt
     hamt
     )
 
-add_library(multimap
-    impl/multimap.cpp
-    )
-target_link_libraries(multimap
-    amt
-    hamt
+add_library(multimap INTERFACE)
+target_link_libraries(multimap INTERFACE
+    array
+    map
     )
 
 add_library(uvarint_key
