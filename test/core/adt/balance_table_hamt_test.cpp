@@ -3,17 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "adt/balance_table_hamt.hpp"
+#include "adt/balance_table.hpp"
 
 #include <gtest/gtest.h>
+
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/outcome.hpp"
 
-using fc::CID;
-using fc::adt::BalanceTableHamt;
+using fc::adt::BalanceTable;
 using fc::adt::TokenAmount;
 using fc::primitives::address::Address;
-using fc::storage::hamt::Hamt;
 using fc::storage::hamt::HamtError;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::storage::ipfs::IpfsDatastore;
@@ -22,13 +21,12 @@ class BalanceTableHamtTest : public ::testing::Test {
  public:
   std::shared_ptr<IpfsDatastore> datastore =
       std::make_shared<InMemoryDatastore>();
-  std::shared_ptr<BalanceTableHamt> table;
+  std::shared_ptr<BalanceTable> table;
   Address address{Address::makeFromId(123)};
 
   void SetUp() override {
-    Hamt empty_hamt(datastore);
-    CID empty_cid = empty_hamt.flush().value();
-    table = std::make_shared<BalanceTableHamt>(datastore, empty_cid);
+    table = std::make_shared<BalanceTable>();
+    table->load(datastore);
   }
 };
 
@@ -39,7 +37,7 @@ class BalanceTableHamtTest : public ::testing::Test {
  */
 TEST_F(BalanceTableHamtTest, SubtractWithMinimumNotFound) {
   EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND,
-                       table->subtractWithMinimum(address, 0, 0));
+                       table->subtractWithMin(address, 0, 0));
 }
 
 /**
@@ -54,7 +52,7 @@ TEST_F(BalanceTableHamtTest, SubtractWithMinimumUnderFloor) {
   TokenAmount subtrahend = 0;
   TokenAmount difference = balance;
   EXPECT_OUTCOME_TRUE_1(table->set(address, balance));
-  EXPECT_OUTCOME_EQ(table->subtractWithMinimum(address, to_subtract, floor),
+  EXPECT_OUTCOME_EQ(table->subtractWithMin(address, to_subtract, floor),
                     subtrahend);
   EXPECT_OUTCOME_EQ(table->get(address), difference);
 }
@@ -71,7 +69,7 @@ TEST_F(BalanceTableHamtTest, SubtractWithMinimumFloor) {
   TokenAmount subtrahend = balance - floor;
   TokenAmount difference = floor;
   EXPECT_OUTCOME_TRUE_1(table->set(address, balance));
-  EXPECT_OUTCOME_EQ(table->subtractWithMinimum(address, to_subtract, floor),
+  EXPECT_OUTCOME_EQ(table->subtractWithMin(address, to_subtract, floor),
                     subtrahend);
   EXPECT_OUTCOME_EQ(table->get(address), difference);
 }
@@ -88,18 +86,7 @@ TEST_F(BalanceTableHamtTest, SubtractWithMinimum) {
   TokenAmount subtrahend = to_subtract;
   TokenAmount difference = balance - to_subtract;
   EXPECT_OUTCOME_TRUE_1(table->set(address, balance));
-  EXPECT_OUTCOME_EQ(table->subtractWithMinimum(address, to_subtract, floor),
+  EXPECT_OUTCOME_EQ(table->subtractWithMin(address, to_subtract, floor),
                     subtrahend);
   EXPECT_OUTCOME_EQ(table->get(address), difference);
-}
-
-/**
- * @given Balance table with a record
- * @when record is deleted
- * @then previous balance returned
- */
-TEST_F(BalanceTableHamtTest, RemoveWithBalance) {
-  TokenAmount balance = 100;
-  EXPECT_OUTCOME_TRUE_1(table->set(address, balance));
-  EXPECT_OUTCOME_EQ(table->remove(address), balance);
 }

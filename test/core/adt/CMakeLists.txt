@@ -7,7 +7,7 @@ addtest(balance_table_hamt_test
     balance_table_hamt_test.cpp
     )
 target_link_libraries(balance_table_hamt_test
-    balance_table_hamt
+    balance_table
     ipfs_datastore_in_memory
     )
 
