@@ -12,4 +12,5 @@ add_library(data_transfer
 target_link_libraries(data_transfer
     p2p::p2p
     logger
+    ipld_node
     )

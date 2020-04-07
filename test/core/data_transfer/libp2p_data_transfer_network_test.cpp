@@ -7,15 +7,14 @@
 
 #include <gtest/gtest.h>
 #include <libp2p/basic/message_read_writer_error.hpp>
-#include <libp2p/multi/multihash.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <mock/libp2p/connection/stream_mock.hpp>
 #include <mock/libp2p/host/host_mock.hpp>
 #include <mock/libp2p/peer/peer_repository_mock.hpp>
 #include "testutil/mocks/data_transfer/message_receiver_mock.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/peer_id.hpp"
 
-using fc::common::Buffer;
 using fc::data_transfer::createRequest;
 using fc::data_transfer::createResponse;
 using fc::data_transfer::DataTransferMessage;
@@ -27,7 +26,6 @@ using fc::data_transfer::MessageReceiverMock;
 using fc::data_transfer::TransferId;
 using ReadCallbackFunc = libp2p::basic::Reader::ReadCallbackFunc;
 using libp2p::connection::Stream;
-using libp2p::multi::Multihash;
 using libp2p::peer::PeerId;
 using libp2p::peer::PeerInfo;
 using libp2p::peer::Protocol;
@@ -74,17 +72,6 @@ class ReadHandlerInspector {
 class Libp2pDataTransferNetworkTest : public ::testing::Test {
  public:
   /**
-   * Creates dummy PeerId
-   */
-  fc::outcome::result<PeerId> generatePeerId(int value) {
-    Buffer kBuffer = Buffer(43, 1);
-    EXPECT_OUTCOME_TRUE(hash,
-                        Multihash::create(libp2p::multi::sha256, kBuffer));
-    EXPECT_OUTCOME_TRUE(peer_id, PeerId::fromHash(hash));
-    return peer_id;
-  }
-
-  /**
    * Imitates network.setDelegate(Protocol, Handler) call and captures handler
    * for further inspection
    */
@@ -115,7 +102,7 @@ class Libp2pDataTransferNetworkTest : public ::testing::Test {
  * Successful connect to peer
  */
 TEST_F(Libp2pDataTransferNetworkTest, Connect) {
-  EXPECT_OUTCOME_TRUE(peer_id, generatePeerId(1));
+  PeerId peer_id = generatePeerId(1);
   PeerInfo peer_info{.id = peer_id, .addresses = {}};
   EXPECT_CALL(*host, getPeerRepository())
       .WillOnce(testing::ReturnRef(peer_repository));
@@ -126,12 +113,28 @@ TEST_F(Libp2pDataTransferNetworkTest, Connect) {
 }
 
 /**
+ * Successful creation new MessageSender
+ */
+TEST_F(Libp2pDataTransferNetworkTest, NewMessageSender) {
+  PeerId peer_id = generatePeerId(1);
+  PeerInfo peer_info{.id = peer_id, .addresses = {}};
+  EXPECT_CALL(*host, getPeerRepository())
+      .WillOnce(testing::ReturnRef(peer_repository));
+  EXPECT_CALL(peer_repository, getPeerInfo(Eq(peer_id)))
+      .WillOnce(testing::Return(peer_info));
+  EXPECT_CALL(*host,
+              newStream(Eq(peer_info), Eq(kDataTransferLibp2pProtocol), _))
+      .WillOnce(testing::Return());
+  EXPECT_FALSE(network->newMessageSender(peer_id).has_error());
+}
+
+/**
  * Set protocol receiver
  * @given host
  * @when invalid receiver is passed
  * @then stream is reset and returned
  */
- TEST_F(Libp2pDataTransferNetworkTest, SetInvalidDelegate) {
+TEST_F(Libp2pDataTransferNetworkTest, SetInvalidDelegate) {
   std::shared_ptr<MessageReceiverMock> receiver = nullptr;
   EXPECT_CALL(*host, setProtocolHandler(Eq(kDataTransferLibp2pProtocol), _))
       .WillOnce(::testing::Invoke(
@@ -149,7 +152,7 @@ TEST_F(Libp2pDataTransferNetworkTest, Connect) {
  * @when send request
  * @then receiver request handler is called
  */
- TEST_F(Libp2pDataTransferNetworkTest, SendRequestMessage) {
+TEST_F(Libp2pDataTransferNetworkTest, SendRequestMessage) {
   std::shared_ptr<MessageReceiverMock> receiver =
       std::make_shared<MessageReceiverMock>();
   EXPECT_CALL(*host, setProtocolHandler(Eq(kDataTransferLibp2pProtocol), _))
@@ -176,7 +179,7 @@ TEST_F(Libp2pDataTransferNetworkTest, Connect) {
       .WillOnce(::testing::Invoke(&read_handler_inspector,
                                   &ReadHandlerInspector::captureReadHandler));
 
-  EXPECT_OUTCOME_TRUE(peer_id, generatePeerId(2));
+  PeerId peer_id = generatePeerId(2);
   EXPECT_CALL(*stream, remotePeerId())
       .WillOnce(testing::Return(fc::outcome::success(peer_id)));
   EXPECT_CALL(*receiver, receiveRequest(_, _))
@@ -218,7 +221,7 @@ TEST_F(Libp2pDataTransferNetworkTest, SendResponseMessage) {
       .WillOnce(::testing::Invoke(&read_handler_inspector,
                                   &ReadHandlerInspector::captureReadHandler));
 
-  EXPECT_OUTCOME_TRUE(peer_id, generatePeerId(2));
+  PeerId peer_id = generatePeerId(2);
   EXPECT_CALL(*stream, remotePeerId())
       .WillOnce(testing::Return(fc::outcome::success(peer_id)));
   EXPECT_CALL(*receiver, receiveResponse(_, _))

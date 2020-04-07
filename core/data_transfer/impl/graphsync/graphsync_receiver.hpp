@@ -18,7 +18,7 @@ namespace fc::data_transfer {
 
   class GraphsyncReceiver : public MessageReceiver {
    public:
-    GraphsyncReceiver(std::shared_ptr<Libp2pDataTransferNetwork> network,
+    GraphsyncReceiver(std::shared_ptr<DataTransferNetwork> network,
                       std::shared_ptr<Graphsync> graphsync,
                       std::shared_ptr<Manager> graphsync_manager,
                       PeerId peer);
@@ -56,7 +56,7 @@ namespace fc::data_transfer {
     void notifySubscribers(const Event &event,
                            const ChannelState &channel_state);
 
-    std::shared_ptr<Libp2pDataTransferNetwork> network_;
+    std::shared_ptr<DataTransferNetwork> network_;
     std::shared_ptr<Graphsync> graphsync_;
     std::shared_ptr<Manager> graphsync_manager_;
     PeerId peer_;

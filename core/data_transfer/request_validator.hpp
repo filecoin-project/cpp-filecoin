@@ -28,7 +28,7 @@ namespace fc::data_transfer {
      * ValidatePush validates a push request received from the peer that will
      * send data
      */
-    virtual outcome::result<void> ValidatePush(
+    virtual outcome::result<void> validatePush(
         const PeerId &sender,
         std::vector<uint8_t> voucher,
         CID base_cid,
@@ -37,7 +37,7 @@ namespace fc::data_transfer {
      * ValidatePull validates a pull request received from the peer thatF will
      * receive data
      */
-    virtual outcome::result<void> ValidatePull(
+    virtual outcome::result<void> validatePull(
         const PeerId &receiver,
         std::vector<uint8_t> voucher,
         CID base_cid,

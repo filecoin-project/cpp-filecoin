@@ -142,12 +142,6 @@ namespace fc::data_transfer {
                         const ChannelState &channel_state) = 0;
   };
 
-  /**
-   * Unsubscribe is a function that gets called to unsubscribe from data
-   * transfer events
-   */
-  using Unsubscribe = std::function<void()>;
-
 }  // namespace fc::data_transfer
 
 #endif  // CPP_FILECOIN_DATA_TRANSFER_TYPES_HPP

@@ -25,10 +25,10 @@ namespace fc::data_transfer {
     OUTCOME_TRY(base_cid, CID::fromString(request.base_cid));
     OUTCOME_TRY(selector, IPLDNodeImpl::createFromRawBytes(request.selector));
     if (request.is_pull) {
-      OUTCOME_TRY(validator->second->ValidatePull(
+      OUTCOME_TRY(validator->second->validatePull(
           sender, request.voucher, base_cid, selector));
     } else {
-      OUTCOME_TRY(validator->second->ValidatePush(
+      OUTCOME_TRY(validator->second->validatePush(
           sender, request.voucher, base_cid, selector));
     }
 

@@ -9,5 +9,7 @@ add_library(data_transfer_graphsync
     data_transfer_extension.cpp
     )
 target_link_libraries(data_transfer_graphsync
+    clock
+    graphsync
     libp2p_data_transfer_network
     )

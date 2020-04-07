@@ -57,7 +57,7 @@ namespace fc::data_transfer::graphsync {
      * @return transfer id
      */
     outcome::result<TransferId> sendDtRequest(
-        std::shared_ptr<IPLDNode> selector,
+        const std::shared_ptr<IPLDNode> &selector,
         bool is_pull,
         const Voucher &voucher,
         const CID &base_cid,

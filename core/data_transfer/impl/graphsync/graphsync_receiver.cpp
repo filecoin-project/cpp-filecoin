@@ -14,7 +14,7 @@ namespace fc::data_transfer {
   using storage::ipfs::graphsync::ResponseStatusCode;
 
   GraphsyncReceiver::GraphsyncReceiver(
-      std::shared_ptr<Libp2pDataTransferNetwork> network,
+      std::shared_ptr<DataTransferNetwork> network,
       std::shared_ptr<Graphsync> graphsync,
       std::shared_ptr<Manager> graphsync_manager,
       PeerId peer)
