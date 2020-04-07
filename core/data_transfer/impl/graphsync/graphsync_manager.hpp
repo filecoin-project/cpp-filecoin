@@ -18,7 +18,7 @@ namespace fc::data_transfer::graphsync {
 
   class GraphSyncManager : public Manager {
    public:
-    GraphSyncManager(std::shared_ptr<Host> host, const PeerId &peer);
+    GraphSyncManager(std::shared_ptr<Host> host, PeerId peer);
 
     outcome::result<ChannelId> openPushDataChannel(
         const PeerId &to,

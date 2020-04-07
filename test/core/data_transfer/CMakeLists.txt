@@ -9,6 +9,7 @@ addtest(data_transfer_test
     stream_message_sender_test.cpp
     graphsync/data_transfer_extension_test.cpp
     graphsync/graphsync_receiver_test.cpp
+    graphsync/graphsync_manager_test.cpp
     )
 target_link_libraries(data_transfer_test
     actor

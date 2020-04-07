@@ -4,6 +4,8 @@
  */
 
 #include "data_transfer/impl/graphsync/graphsync_manager.hpp"
+
+#include <utility>
 #include "data_transfer/message.hpp"
 
 namespace fc::data_transfer::graphsync {
@@ -11,8 +13,8 @@ namespace fc::data_transfer::graphsync {
   using common::Buffer;
 
   GraphSyncManager::GraphSyncManager(std::shared_ptr<Host> host,
-                                     const PeerId &peer)
-      : network_(std::move(host)), peer_(peer) {}
+                                     PeerId peer)
+      : network_(std::move(host)), peer_(std::move(peer)) {}
 
   outcome::result<ChannelId> GraphSyncManager::openPushDataChannel(
       const PeerId &to,

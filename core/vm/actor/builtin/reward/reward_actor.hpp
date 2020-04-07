@@ -7,6 +7,9 @@
 #define CPP_FILECOIN_REWARD_ACTOR_HPP
 
 #include <boost/optional.hpp>
+#include "adt/address_key.hpp"
+#include "adt/array.hpp"
+#include "adt/map.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/enum.hpp"
 #include "power/power_table.hpp"
@@ -18,9 +21,10 @@
 #include "vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor::builtin::reward {
-
+  using adt::AddressKeyer;
   using power::Power;
   using primitives::TokenAmount;
+  using Ipld = storage::ipfs::IpfsDatastore;
 
   enum class VestingFunction : uint64_t {
     NONE = 0,
@@ -35,14 +39,23 @@ namespace fc::vm::actor::builtin::reward {
     TokenAmount amount_withdrawn;
 
     primitives::BigInt amountVested(
-        const primitives::ChainEpoch &current_epoch);
+        const primitives::ChainEpoch &current_epoch) const;
   };
   CBOR_TUPLE(
       Reward, vesting_function, start_epoch, end_epoch, value, amount_withdrawn)
 
   struct State {
     TokenAmount reward_total;
-    CID reward_map;
+    adt::Map<adt::Array<Reward>, AddressKeyer> rewards;
+
+    inline void load(std::shared_ptr<Ipld> ipld) {
+      rewards.load(ipld);
+    }
+
+    inline outcome::result<void> flush() {
+      OUTCOME_TRY(rewards.flush());
+      return outcome::success();
+    }
 
     outcome::result<void> addReward(
         const std::shared_ptr<storage::ipfs::IpfsDatastore> &store,
@@ -54,7 +67,7 @@ namespace fc::vm::actor::builtin::reward {
         const Address &owner,
         const primitives::ChainEpoch &current_epoch);
   };
-  CBOR_TUPLE(State, reward_map, reward_total)
+  CBOR_TUPLE(State, rewards, reward_total)
 
   // Actor related stuff
 

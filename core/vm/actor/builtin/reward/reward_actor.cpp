@@ -12,6 +12,16 @@
 using fc::adt::Multimap;
 
 namespace fc::vm::actor::builtin::reward {
+  outcome::result<State> loadState(Runtime &runtime) {
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    state.load(runtime);
+    return std::move(state);
+  }
+
+  outcome::result<void> commitState(Runtime &runtime, State &state) {
+    OUTCOME_TRY(state.flush());
+    return runtime.commitState(state);
+  }
 
   TokenAmount computeBlockReward(const State &state,
                                  const TokenAmount &balance);
@@ -22,7 +32,7 @@ namespace fc::vm::actor::builtin::reward {
   };
 
   primitives::BigInt Reward::amountVested(
-      const primitives::ChainEpoch &current_epoch) {
+      const primitives::ChainEpoch &current_epoch) const {
     auto elapsed = current_epoch - start_epoch;
     switch (vesting_function) {
       case VestingFunction::NONE:
@@ -43,12 +53,7 @@ namespace fc::vm::actor::builtin::reward {
       const std::shared_ptr<storage::ipfs::IpfsDatastore> &store,
       const Address &owner,
       const Reward &reward) {
-    auto rewards = Multimap(store, reward_map);
-    auto key_bytes = primitives::address::encode(owner);
-    std::string key(key_bytes.begin(), key_bytes.end());
-    OUTCOME_TRY(rewards.addCbor(key, reward));
-    OUTCOME_TRY(mmap_root, rewards.flush());
-    reward_map = mmap_root;
+    OUTCOME_TRY(Multimap::append(rewards, owner, reward));
     reward_total += reward.value;
     return outcome::success();
   }
@@ -57,17 +62,10 @@ namespace fc::vm::actor::builtin::reward {
       const std::shared_ptr<storage::ipfs::IpfsDatastore> &store,
       const Address &owner,
       const primitives::ChainEpoch &current_epoch) {
-    auto rewards = Multimap(store, reward_map);
-    auto key_bytes = primitives::address::encode(owner);
-    std::string key(key_bytes.begin(), key_bytes.end());
-
     std::vector<Reward> remaining_rewards;
     TokenAmount withdrawable_sum{0};
-    OUTCOME_TRY(rewards.visit(
-        key,
-        [&current_epoch, &withdrawable_sum, &remaining_rewards](
-            auto &&value) -> outcome::result<void> {
-          OUTCOME_TRY(reward, codec::cbor::decode<Reward>(value));
+    OUTCOME_TRY(Multimap::visit(
+        rewards, owner, {[&](auto &reward) -> outcome::result<void> {
           auto unlocked = reward.amountVested(current_epoch);
           auto withdrawable = unlocked - reward.amount_withdrawn;
           if (withdrawable < 0) {
@@ -86,16 +84,14 @@ namespace fc::vm::actor::builtin::reward {
             remaining_rewards.emplace_back(std::move(new_reward));
           }
           return outcome::success();
-        }));
+        }}));
 
     assert(withdrawable_sum < reward_total);
 
-    OUTCOME_TRY(rewards.removeAll(key));
+    OUTCOME_TRY(rewards.remove(owner));
     for (const Reward &rr : remaining_rewards) {
-      OUTCOME_TRY(rewards.addCbor(key, rr));
+      OUTCOME_TRY(Multimap::append(rewards, owner, rr));
     }
-    OUTCOME_TRY(rewards_root, rewards.flush());
-    reward_map = rewards_root;
     reward_total -= withdrawable_sum;
     return withdrawable_sum;
   }
@@ -104,12 +100,9 @@ namespace fc::vm::actor::builtin::reward {
     if (runtime.getImmediateCaller() != kSystemActorAddress) {
       return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
     }
-
-    Multimap empty_mmap{runtime};
-    OUTCOME_TRY(empty_mmap_cid, empty_mmap.flush());
-    State empty_state{.reward_total = 0, .reward_map = empty_mmap_cid};
-
-    OUTCOME_TRY(runtime.commitState(empty_state));
+    State state{.reward_total = 0, .rewards = {}};
+    state.load(runtime);
+    OUTCOME_TRY(commitState(runtime, state));
     return outcome::success();
   }
 
@@ -120,7 +113,7 @@ namespace fc::vm::actor::builtin::reward {
     assert(params.gas_reward == runtime.getValueReceived());
     OUTCOME_TRY(prior_balance, runtime.getCurrentBalance());
     TokenAmount penalty{0};
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, loadState(runtime));
 
     auto block_reward = computeBlockReward(state, params.gas_reward);
     TokenAmount total_reward = block_reward + params.gas_reward;
@@ -140,7 +133,7 @@ namespace fc::vm::actor::builtin::reward {
       OUTCOME_TRY(state.addReward(runtime, params.miner, new_reward));
     }
     OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, penalty));
-    OUTCOME_TRY(runtime.commitState(state));
+    OUTCOME_TRY(commitState(runtime, state));
     return outcome::success();
   }
 
@@ -151,12 +144,12 @@ namespace fc::vm::actor::builtin::reward {
     }
     auto owner = runtime.getMessage().get().from;
 
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state, loadState(runtime));
     OUTCOME_TRY(
         withdrawn,
         state.withdrawReward(runtime, owner, runtime.getCurrentEpoch()));
     OUTCOME_TRY(runtime.sendFunds(owner, withdrawn));
-    OUTCOME_TRY(runtime.commitState(state));
+    OUTCOME_TRY(commitState(runtime, state));
     return outcome::success();
   }
 

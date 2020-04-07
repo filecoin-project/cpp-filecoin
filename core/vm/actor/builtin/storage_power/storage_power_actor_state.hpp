@@ -6,8 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
 #define CPP_FILECOIN_CORE_VM_ACTOR_STORAGE_POWER_ACTOR_STATE_HPP
 
-#include "adt/balance_table_hamt.hpp"
+#include "adt/address_key.hpp"
+#include "adt/balance_table.hpp"
+#include "adt/empty_value.hpp"
 #include "adt/multimap.hpp"
+#include "adt/uvarint_key.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/randomness/randomness_provider.hpp"
 #include "crypto/randomness/randomness_types.hpp"
@@ -19,8 +22,9 @@
 
 namespace fc::vm::actor::builtin::storage_power {
 
-  using adt::BalanceTableHamt;
-  using adt::Multimap;
+  using adt::AddressKeyer;
+  using adt::BalanceTable;
+  using adt::EmptyValue;
   using common::Buffer;
   using indices::Indices;
   using power::Power;
@@ -32,8 +36,9 @@ namespace fc::vm::actor::builtin::storage_power {
   using primitives::SectorStorageWeightDesc;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using storage::hamt::Hamt;
   using storage::ipfs::IpfsDatastore;
+  using Ipld = storage::ipfs::IpfsDatastore;
+  using ChainEpochKeyer = adt::UvarintKeyer;
 
   // Minimum power of an individual miner to participate in leader election
   // From spec: 100 TiB
@@ -60,24 +65,21 @@ namespace fc::vm::actor::builtin::storage_power {
     Buffer callback_payload;
   };
 
-  /**
-   * POD structure of SoragePowerActor state
-   */
   struct StoragePowerActorState {
-    power::Power total_network_power;
-    size_t miner_count;
-    CID escrow_table_cid;
-    CID cron_event_queue_cid;
-    CID po_st_detected_fault_miners_cid;
-    CID claims_cid;
-    /** Number of miners having proven the minimum consensus power */
-    size_t num_miners_meeting_min_power;
-  };
+    inline void load(std::shared_ptr<Ipld> ipld) {
+      escrow.load(ipld);
+      cron_event_queue.load(ipld);
+      po_st_detected_fault_miners.load(ipld);
+      claims.load(ipld);
+    }
 
-  class StoragePowerActor {
-   public:
-    StoragePowerActor(std::shared_ptr<IpfsDatastore> datastore,
-                      StoragePowerActorState state);
+    inline outcome::result<void> flush() {
+      OUTCOME_TRY(escrow.flush());
+      OUTCOME_TRY(cron_event_queue.flush());
+      OUTCOME_TRY(po_st_detected_fault_miners.flush());
+      OUTCOME_TRY(claims.flush());
+      return outcome::success();
+    }
 
     /**
      * Creates empty StoragePowerActor state
@@ -86,11 +88,6 @@ namespace fc::vm::actor::builtin::storage_power {
      */
     static outcome::result<StoragePowerActorState> createEmptyState(
         std::shared_ptr<IpfsDatastore> datastore);
-
-    void setState(const StoragePowerActorState &state);
-
-    /** Flush current state */
-    outcome::result<StoragePowerActorState> flushState();
 
     /**
      * @brief Add miner to system
@@ -254,7 +251,6 @@ namespace fc::vm::actor::builtin::storage_power {
 
     outcome::result<Power> getTotalNetworkPower() const;
 
-   private:
     outcome::result<Claim> assertHasClaim(const Address &address) const;
 
     outcome::result<void> assertHasEscrow(const Address &address) const;
@@ -267,36 +263,17 @@ namespace fc::vm::actor::builtin::storage_power {
     outcome::result<bool> minerNominalPowerMeetsConsensusMinimum(
         const power::Power &miner_power);
 
-    /**
-     * Datastore for internal state
-     */
-    std::shared_ptr<IpfsDatastore> datastore_;
-
-    StoragePowerActorState state_;
-
-    /**
-     * The balances of pledge collateral for each miner actually held by this
-     * actor. The sum of the values here should always equal the actor's
-     * balance. See Claim for the pledge *requirements* for each actor
-     */
-    std::shared_ptr<BalanceTableHamt> escrow_table_;
-
-    /**
-     * A queue of events to be triggered by cron, indexed by epoch
-     */
-    std::shared_ptr<Multimap> cron_event_queue_;
-
-    /**
-     * Miners having failed to prove storage
-     * As Set, HAMT[Address -> {}]
-     */
-    std::shared_ptr<Hamt> po_st_detected_fault_miners_;
-
-    /**
-     * Claimed power and associated pledge requirements for each miner
-     */
-    std::shared_ptr<Hamt> claims_;
+    power::Power total_network_power;
+    size_t miner_count;
+    mutable BalanceTable escrow;
+    mutable adt::Map<adt::Array<CronEvent>, ChainEpochKeyer> cron_event_queue;
+    mutable adt::Map<EmptyValue, AddressKeyer> po_st_detected_fault_miners;
+    mutable adt::Map<Claim, AddressKeyer> claims;
+    /** Number of miners having proven the minimum consensus power */
+    size_t num_miners_meeting_min_power;
   };
+
+  using StoragePowerActor = StoragePowerActorState;
 
   CBOR_TUPLE(Claim, power, pledge);
 
@@ -305,10 +282,10 @@ namespace fc::vm::actor::builtin::storage_power {
   CBOR_TUPLE(StoragePowerActorState,
              total_network_power,
              miner_count,
-             escrow_table_cid,
-             cron_event_queue_cid,
-             po_st_detected_fault_miners_cid,
-             claims_cid,
+             escrow,
+             cron_event_queue,
+             po_st_detected_fault_miners,
+             claims,
              num_miners_meeting_min_power);
 
 }  // namespace fc::vm::actor::builtin::storage_power

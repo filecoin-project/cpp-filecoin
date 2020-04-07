@@ -24,6 +24,14 @@ namespace fc::data_transfer {
     std::vector<uint8_t> voucher;
     std::string voucher_type;
     TransferId transfer_id;
+
+    inline bool operator==(const DataTransferRequest &other) const {
+      return base_cid == other.base_cid && is_cancel == other.is_cancel
+             && pid == other.pid && is_part == other.is_part
+             && is_pull == other.is_pull && selector == other.selector
+             && voucher == other.voucher && voucher_type == other.voucher_type
+             && transfer_id == other.transfer_id;
+    }
   };
 
   /**
@@ -32,6 +40,11 @@ namespace fc::data_transfer {
   struct DataTransferResponse {
     bool is_accepted;
     TransferId transfer_id;
+
+    inline bool operator==(const DataTransferResponse &other) const {
+      return is_accepted == other.is_accepted
+             && transfer_id == other.transfer_id;
+    }
   };
 
   /**
@@ -42,6 +55,11 @@ namespace fc::data_transfer {
     bool is_request;
     boost::optional<DataTransferRequest> request;
     boost::optional<DataTransferResponse> response;
+
+    inline bool operator==(const DataTransferMessage &other) const {
+      return is_request == other.is_request && request == other.request
+             && response == other.response;
+    }
   };
 
   /**

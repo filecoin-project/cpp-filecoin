@@ -17,7 +17,6 @@ namespace fc::api {
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
   using vm::actor::builtin::miner::MinerActorState;
-  using vm::actor::builtin::storage_power::StoragePowerActor;
   using vm::actor::builtin::storage_power::StoragePowerActorState;
   using vm::interpreter::InterpreterImpl;
   using vm::state::StateTreeImpl;
@@ -55,7 +54,7 @@ namespace fc::api {
     }
 
     auto powerState() {
-      return actorState<StoragePowerActorState, false>(kStoragePowerAddress);
+      return actorState<StoragePowerActorState, true>(kStoragePowerAddress);
     }
   };
 
@@ -240,13 +239,9 @@ namespace fc::api {
 
           OUTCOME_TRY(power_state, context.powerState());
           StoragePower miner_power = 0;
-          auto maybe_claim =
-              StoragePowerActor{ipld, power_state}.getClaim(address);
-          if (maybe_claim) {
-            miner_power = maybe_claim.value().power;
-          } else if (maybe_claim.error()
-                     != VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT) {
-            return maybe_claim.error();
+          OUTCOME_TRY(claim, power_state.claims.tryGet(address));
+          if (claim) {
+            miner_power = claim->power;
           }
 
           OUTCOME_TRY(miner_state, context.minerState(address));

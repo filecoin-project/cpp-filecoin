@@ -61,6 +61,12 @@ using ::testing::Eq;
 
 class StoragePowerActorTest : public ::testing::Test {
  public:
+  StoragePowerActorState currentState(const CID &cid) {
+    EXPECT_OUTCOME_TRUE(state, datastore->getCbor<StoragePowerActorState>(cid));
+    state.load(datastore);
+    return state;
+  }
+
   // Captures CID in mock call
   fc::outcome::result<void> captureCid(const ActorSubstateCID &cid) {
     captured_cid = cid;
@@ -78,6 +84,7 @@ class StoragePowerActorTest : public ::testing::Test {
   void createEmptyState() {
     EXPECT_OUTCOME_TRUE(empty_state,
                         StoragePowerActor::createEmptyState(datastore))
+    EXPECT_OUTCOME_TRUE_1(empty_state.flush());
     EXPECT_OUTCOME_TRUE(state_cid, datastore->setCbor(empty_state));
     actor_head_cid = ActorSubstateCID{state_cid};
   }
@@ -91,12 +98,11 @@ class StoragePowerActorTest : public ::testing::Test {
         "2222222222222222222222222222222222222222"
         "2222222222222222222222222222222222222222"
         "2222222222222222"_blob48);
-    EXPECT_OUTCOME_TRUE(actor_empty_state,
+    EXPECT_OUTCOME_TRUE(power_actor,
                         StoragePowerActor::createEmptyState(datastore));
-    StoragePowerActor power_actor(datastore, actor_empty_state);
     EXPECT_OUTCOME_TRUE_1(power_actor.addMiner(miner_address));
-    EXPECT_OUTCOME_TRUE(actor_state, power_actor.flushState());
-    EXPECT_OUTCOME_TRUE(new_actor_head_cid, datastore->setCbor(actor_state));
+    EXPECT_OUTCOME_TRUE_1(power_actor.flush());
+    EXPECT_OUTCOME_TRUE(new_actor_head_cid, datastore->setCbor(power_actor));
     actor_head_cid = ActorSubstateCID{new_actor_head_cid};
     return miner_address;
   }
@@ -106,14 +112,9 @@ class StoragePowerActorTest : public ::testing::Test {
    * @param power to set
    */
   void setNetworkPower(const Power &power) {
-    EXPECT_OUTCOME_TRUE(
-        actor_state,
-        datastore->getCbor<StoragePowerActorState>(actor_head_cid));
-    actor_state.total_network_power = power;
-    StoragePowerActor power_actor(datastore, actor_state);
-    EXPECT_OUTCOME_TRUE(actor_new_state, power_actor.flushState());
-    EXPECT_OUTCOME_TRUE(new_actor_head_cid,
-                        datastore->setCbor(actor_new_state));
+    auto power_actor = currentState(actor_head_cid);
+    power_actor.total_network_power = power;
+    EXPECT_OUTCOME_TRUE(new_actor_head_cid, datastore->setCbor(power_actor));
     actor_head_cid = ActorSubstateCID{new_actor_head_cid};
   }
 
@@ -123,14 +124,10 @@ class StoragePowerActorTest : public ::testing::Test {
    * @param amount to add
    */
   void addBalance(const Address &miner, const TokenAmount &amount) {
-    EXPECT_OUTCOME_TRUE(
-        actor_state,
-        datastore->getCbor<StoragePowerActorState>(actor_head_cid));
-    StoragePowerActor power_actor(datastore, actor_state);
+    auto power_actor = currentState(actor_head_cid);
     EXPECT_OUTCOME_TRUE_1(power_actor.addMinerBalance(miner, amount));
-    EXPECT_OUTCOME_TRUE(actor_new_state, power_actor.flushState());
-    EXPECT_OUTCOME_TRUE(new_actor_head_cid,
-                        datastore->setCbor(actor_new_state));
+    EXPECT_OUTCOME_TRUE_1(power_actor.flush());
+    EXPECT_OUTCOME_TRUE(new_actor_head_cid, datastore->setCbor(power_actor));
     actor_head_cid = ActorSubstateCID{new_actor_head_cid};
   }
 
@@ -141,9 +138,7 @@ class StoragePowerActorTest : public ::testing::Test {
    * @return balance
    */
   TokenAmount getBalance(const CID &state_root, const Address &miner_address) {
-    EXPECT_OUTCOME_TRUE(state,
-                        datastore->getCbor<StoragePowerActorState>(state_root));
-    StoragePowerActor power_actor(datastore, state);
+    auto power_actor = currentState(state_root);
     EXPECT_OUTCOME_TRUE(balance, power_actor.getMinerBalance(miner_address));
     return balance;
   }
@@ -154,14 +149,10 @@ class StoragePowerActorTest : public ::testing::Test {
    * @param claim to set
    */
   void setClaim(const Address &miner, const Claim &claim) {
-    EXPECT_OUTCOME_TRUE(
-        actor_state,
-        datastore->getCbor<StoragePowerActorState>(actor_head_cid));
-    StoragePowerActor power_actor(datastore, actor_state);
+    auto power_actor = currentState(actor_head_cid);
     EXPECT_OUTCOME_TRUE_1(power_actor.setClaim(miner, claim));
-    EXPECT_OUTCOME_TRUE(actor_new_state, power_actor.flushState());
-    EXPECT_OUTCOME_TRUE(new_actor_head_cid,
-                        datastore->setCbor(actor_new_state));
+    EXPECT_OUTCOME_TRUE_1(power_actor.flush());
+    EXPECT_OUTCOME_TRUE(new_actor_head_cid, datastore->setCbor(power_actor));
     actor_head_cid = ActorSubstateCID{new_actor_head_cid};
   }
 
@@ -214,9 +205,7 @@ TEST_F(StoragePowerActorTest, Constructor) {
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
-  EXPECT_OUTCOME_TRUE(state,
-                      datastore->getCbor<StoragePowerActorState>(state_cid));
-  StoragePowerActor actor(datastore, state);
+  auto actor = currentState(state_cid);
   EXPECT_OUTCOME_TRUE(fault_miners, actor.getFaultMiners());
   EXPECT_TRUE(fault_miners.empty());
   EXPECT_OUTCOME_TRUE(claims, actor.getClaims());
@@ -287,7 +276,8 @@ TEST_F(StoragePowerActorTest, AddBalanceSuccess) {
       .Times(3)
       .WillRepeatedly(testing::Return(datastore));
   // get message
-  UnsignedMessage message{miner_address, caller_address, 0, amount_to_add, {}, {}, {}, {}};
+  UnsignedMessage message{
+      miner_address, caller_address, 0, amount_to_add, {}, {}, {}, {}};
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
 
   // commit and capture state CID
@@ -385,7 +375,8 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
       "2222222222222222222222222222222222222222"
       "2222222222222222"_blob48);
   TokenAmount amount{100200};
-  UnsignedMessage message{any_address_1, caller_address, 0, amount, {}, {}, {}, {}};
+  UnsignedMessage message{
+      any_address_1, caller_address, 0, amount, {}, {}, {}, {}};
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
 
   // return immediate caller is signable code id
@@ -526,9 +517,7 @@ TEST_F(StoragePowerActorTest, DeleteMinerSuccess) {
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
-  EXPECT_OUTCOME_TRUE(state,
-                      datastore->getCbor<StoragePowerActorState>(state_cid));
-  StoragePowerActor actor(datastore, state);
+  auto actor = currentState(state_cid);
   EXPECT_OUTCOME_EQ(actor.hasMiner(miner_address), false);
 }
 
@@ -574,9 +563,7 @@ TEST_F(StoragePowerActorTest, OnSectorProofCommitSuccess) {
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
-  EXPECT_OUTCOME_TRUE(state,
-                      datastore->getCbor<StoragePowerActorState>(state_cid));
-  StoragePowerActor actor(datastore, state);
+  auto actor = currentState(state_cid);
   EXPECT_OUTCOME_TRUE(claim, actor.getClaim(miner_address));
   EXPECT_EQ(claim.pledge, pledge);
   EXPECT_EQ(claim.power, sector_size);
@@ -624,9 +611,7 @@ TEST_F(StoragePowerActorTest, OnSectorTerminateSuccess) {
 
   // inspect state
   ActorSubstateCID state_cid = getCapturedCid();
-  EXPECT_OUTCOME_TRUE(state,
-                      datastore->getCbor<StoragePowerActorState>(state_cid));
-  StoragePowerActor actor(datastore, state);
+  auto actor = currentState(state_cid);
 
   EXPECT_OUTCOME_TRUE(claim, actor.getClaim(miner_address));
   EXPECT_EQ(claim.pledge, initial_pledge - pledge);
