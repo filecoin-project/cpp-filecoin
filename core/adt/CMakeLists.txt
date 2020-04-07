@@ -23,14 +23,6 @@ target_link_libraries(map INTERFACE
     hamt
     )
 
-add_library(balance_table_hamt
-    impl/balance_table_hamt.cpp
-    )
-target_link_libraries(balance_table_hamt
-    address_key
-    hamt
-    )
-
 add_library(multimap INTERFACE)
 target_link_libraries(multimap INTERFACE
     array
