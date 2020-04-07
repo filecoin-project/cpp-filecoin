@@ -66,11 +66,6 @@ namespace fc::vm::actor::builtin::storage_power {
   };
 
   struct StoragePowerActorState {
-    StoragePowerActorState() = default;
-
-    StoragePowerActorState(std::shared_ptr<IpfsDatastore> datastore,
-                           StoragePowerActorState state);
-
     inline void load(std::shared_ptr<Ipld> ipld) {
       escrow.load(ipld);
       cron_event_queue.load(ipld);

@@ -28,7 +28,6 @@ using fc::vm::actor::builtin::storage_power::Claim;
 using fc::vm::actor::builtin::storage_power::CronEvent;
 using fc::vm::actor::builtin::storage_power::kConsensusMinerMinPower;
 using fc::vm::actor::builtin::storage_power::StoragePowerActor;
-using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
 using fc::vm::indices::Indices;
 using fc::vm::indices::MockIndices;
 using testing::_;
@@ -46,7 +45,7 @@ class StoragePowerActorStateTest : public ::testing::Test {
 
   void SetUp() override {
     EXPECT_OUTCOME_TRUE(state, StoragePowerActor::createEmptyState(datastore));
-    actor = std::make_shared<StoragePowerActor>(datastore, state);
+    actor = std::make_shared<StoragePowerActor>(state);
   }
 };
 
@@ -186,9 +185,9 @@ TEST_F(StoragePowerActorStateTest, CBOR) {
   EXPECT_OUTCOME_TRUE_1(actor->flush())
   encoder << *actor;
   fc::codec::cbor::CborDecodeStream decoder(encoder.data());
-  StoragePowerActorState new_state;
-  decoder >> new_state;
-  StoragePowerActor new_actor(datastore, new_state);
+  StoragePowerActor new_actor;
+  decoder >> new_actor;
+  new_actor.load(datastore);
 
   EXPECT_OUTCOME_EQ(new_actor.getMinerBalance(address_1), balance_1);
   EXPECT_OUTCOME_EQ(new_actor.getMinerBalance(address_2), balance_2);

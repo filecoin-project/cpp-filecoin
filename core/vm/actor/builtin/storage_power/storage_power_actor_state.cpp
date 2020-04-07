@@ -14,12 +14,6 @@ namespace fc::vm::actor::builtin::storage_power {
   using power::PowerTableHamt;
   using primitives::ChainEpoch;
 
-  StoragePowerActorState::StoragePowerActorState(
-      std::shared_ptr<IpfsDatastore> datastore, StoragePowerActorState state)
-      : StoragePowerActorState{std::move(state)} {
-    load(datastore);
-  }
-
   outcome::result<StoragePowerActorState> StoragePowerActor::createEmptyState(
       std::shared_ptr<IpfsDatastore> datastore) {
     StoragePowerActorState state;
