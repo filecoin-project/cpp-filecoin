@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE__PROVIDER_PROVIDER_HPP
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE__PROVIDER_PROVIDER_HPP
 
+#include <memory>
 #include <vector>
 
 #include <libp2p/connection/stream.hpp>
@@ -31,7 +32,7 @@ namespace fc::markets::storage {
         -> outcome::result<void> = 0;
 
     virtual auto listAsks(const Address &address)
-        -> outcome::result<std::vector<SignedStorageAsk>> = 0;
+        -> outcome::result<std::vector<std::shared_ptr<SignedStorageAsk>>> = 0;
 
     virtual auto listDeals() -> outcome::result<std::vector<StorageDeal>> = 0;
 
