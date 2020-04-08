@@ -17,7 +17,6 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
-
 struct SyncTargetBucketTest : public ::testing::Test {
   using Tipset = fc::primitives::tipset::Tipset;
   using TipsetKey = fc::primitives::tipset::TipsetKey;
@@ -39,13 +38,15 @@ struct SyncTargetBucketTest : public ::testing::Test {
         "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
     auto bls2 =
         "020101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
-    auto ticket1 = Ticket{bls1};
     auto ticket2 = Ticket{bls2};
     BlockHeader block_header = fc::primitives::block::BlockHeader{
         fc::primitives::address::Address::makeFromId(1),
         ticket2,
         {
-            fc::common::Buffer("F00D"_unhex),
+            {fc::primitives::sector::PoStProof{
+                fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+                "F00D"_unhex,
+            }},
             bls1,
             {},
         },
@@ -66,14 +67,15 @@ struct SyncTargetBucketTest : public ::testing::Test {
   BlockHeader makeBlock2() {
     auto bls1 =
         "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
-    auto bls2 =
-        "020101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
     auto ticket2 = Ticket{bls1};
     BlockHeader block_header = fc::primitives::block::BlockHeader{
         fc::primitives::address::Address::makeFromId(2),
         ticket2,
         {
-            fc::common::Buffer("F00D"_unhex),
+            {fc::primitives::sector::PoStProof{
+                fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+                "F00D"_unhex,
+            }},
             bls1,
             {},
         },

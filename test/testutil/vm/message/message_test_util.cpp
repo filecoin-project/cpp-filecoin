@@ -5,8 +5,6 @@
 
 #include "testutil/vm/message/message_test_util.hpp"
 
-#include <libp2p/multi/content_identifier_codec.hpp>
-
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "vm/message/message_util.hpp"
 
@@ -17,8 +15,7 @@ fc::outcome::result<SignedMessage> signMessageBls(
     const UnsignedMessage &unsigned_message, const PrivateKey &private_key) {
   BlsProviderImpl bls_provider;
   OUTCOME_TRY(cid, cid(unsigned_message));
-  OUTCOME_TRY(cid_serialized,
-              libp2p::multi::ContentIdentifierCodec::encode(cid));
+  OUTCOME_TRY(cid_serialized, cid.toBytes());
   OUTCOME_TRY(signature, bls_provider.sign(cid_serialized, private_key));
   return SignedMessage{unsigned_message, signature};
 }

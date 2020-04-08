@@ -5,20 +5,11 @@
 
 #include "storage/ipld/impl/ipld_node_impl.hpp"
 
-#include <libp2p/crypto/sha/sha256.hpp>
-#include <libp2p/multi/content_identifier_codec.hpp>
-#include <libp2p/multi/multibase_codec/codecs/base58.hpp>
 #include "ipld_node.pb.h"
 #include "storage/ipld/impl/ipld_node_decoder_pb.hpp"
 
-using libp2p::common::Hash256;
-using libp2p::multi::ContentIdentifierCodec;
-using libp2p::multi::HashType;
-using libp2p::multi::MulticodecType;
-using libp2p::multi::Multihash;
 using protobuf::ipld::node::PBLink;
 using protobuf::ipld::node::PBNode;
-using Version = libp2p::multi::ContentIdentifier::Version;
 
 namespace fc::storage::ipld {
 
@@ -105,7 +96,7 @@ namespace fc::storage::ipld {
     for (size_t i = 0; i < decoder.getLinksCount(); ++i) {
       std::vector<uint8_t> link_cid_bytes{decoder.getLinkCID(i).begin(),
                                           decoder.getLinkCID(i).end()};
-      OUTCOME_TRY(link_cid, ContentIdentifierCodec::decode(link_cid_bytes));
+      OUTCOME_TRY(link_cid, CID::fromBytes(link_cid_bytes));
       IPLDLinkImpl link{
           std::move(link_cid), decoder.getLinkName(i), decoder.getLinkSize(i)};
       node->addLink(link);

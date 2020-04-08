@@ -6,8 +6,6 @@
 #ifndef CPP_FILECOIN_TEST_TESTUTIL_LITERALS_HPP
 #define CPP_FILECOIN_TEST_TESTUTIL_LITERALS_HPP
 
-#include <libp2p/multi/content_identifier_codec.hpp>
-
 #include "common/blob.hpp"
 #include "common/hexutil.hpp"
 #include "primitives/cid/cid.hpp"
@@ -37,10 +35,8 @@ inline fc::common::Blob<96> operator""_blob96(const char *c, size_t s) {
 }
 
 inline auto operator""_cid(const char *c, size_t s) {
-  auto cid = libp2p::multi::ContentIdentifierCodec::decode(
-                 fc::common::unhex(std::string_view(c, s)).value())
-                 .value();
-  return fc::CID{std::move(cid)};
+  return fc::CID::fromBytes(fc::common::unhex(std::string_view(c, s)).value())
+      .value();
 }
 
 #endif  // CPP_FILECOIN_TEST_TESTUTIL_LITERALS_HPP

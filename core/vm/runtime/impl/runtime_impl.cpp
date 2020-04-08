@@ -33,8 +33,8 @@ namespace fc::vm::runtime {
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Env> env,
                            UnsignedMessage message,
                            Address origin,
-                           BigInt gas_available,
-                           BigInt gas_used,
+                           GasAmount gas_available,
+                           GasAmount gas_used,
                            ActorSubstateCID current_actor_state)
       : env_{std::move(env)},
         state_tree_{env_->state_tree},
@@ -153,7 +153,7 @@ namespace fc::vm::runtime {
     return outcome::success();
   }
 
-  BigInt RuntimeImpl::gasUsed() const {
+  GasAmount RuntimeImpl::gasUsed() const {
     return gas_used_;
   }
 
@@ -201,7 +201,7 @@ namespace fc::vm::runtime {
     return RuntimeError::UNKNOWN;
   }
 
-  fc::outcome::result<void> RuntimeImpl::chargeGas(const BigInt &amount) {
+  fc::outcome::result<void> RuntimeImpl::chargeGas(GasAmount amount) {
     gas_used_ = gas_used_ + amount;
     if (gas_available_ != kInfiniteGas && gas_available_ < gas_used_) {
       return RuntimeError::NOT_ENOUGH_GAS;

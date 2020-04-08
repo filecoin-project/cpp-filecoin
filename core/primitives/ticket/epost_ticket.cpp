@@ -12,7 +12,7 @@ namespace fc::primitives::ticket {
   }
 
   bool operator==(const EPostProof &lhs, const EPostProof &rhs) {
-    return lhs.proof == rhs.proof && lhs.post_rand == rhs.post_rand
+    return lhs.proofs == rhs.proofs && lhs.post_rand == rhs.post_rand
            && lhs.candidates == rhs.candidates;
   }
 }  // namespace fc::primitives::ticket

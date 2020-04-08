@@ -6,6 +6,7 @@
 addtest(proofs_test proofs_test.cpp)
 
 target_link_libraries( proofs_test
+        buffer
         proofs
         piece
         base_fs_test)

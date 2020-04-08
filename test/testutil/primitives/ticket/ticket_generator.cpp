@@ -35,7 +35,9 @@ TicketGenerator::EPostTicket TicketGenerator::makeEPostTicket() {
 TicketGenerator::EPostProof TicketGenerator::makeEPostProof(
     size_t proof_size, size_t candidates_count) {
   EPostProof proof{};
-  proof.proof = fc::common::Buffer(random_->randomBytes(proof_size));
+  proof.proofs.emplace_back(fc::primitives::sector::PoStProof{
+      fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+      random_->randomBytes(proof_size)});
   constexpr auto post_rand_size = proof.post_rand.size();
   auto bytes = random_->randomBytes(post_rand_size);
   std::copy(bytes.begin(), bytes.end(), proof.post_rand.begin());

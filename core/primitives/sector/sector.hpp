@@ -89,6 +89,11 @@ namespace fc::primitives::sector {
     Proof proof;
   };
 
+  inline bool operator==(const PoStProof &lhs, const PoStProof &rhs) {
+    return lhs.registered_proof == rhs.registered_proof
+           && lhs.proof == rhs.proof;
+  }
+
   struct PrivatePoStCandidateProof {
     RegisteredProof registered_proof;
     Buffer externalized;

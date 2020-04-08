@@ -6,7 +6,8 @@
 #include "primitives/ticket/epost_ticket_codec.hpp"
 
 #include <gtest/gtest.h>
-#include "testutil/outcome.hpp"
+
+#include "testutil/cbor.hpp"
 #include "testutil/primitives/ticket/printer.hpp"
 #include "testutil/primitives/ticket/ticket_generator.hpp"
 
@@ -16,67 +17,26 @@ using fc::common::Buffer;
 using fc::crypto::vrf::VRFHash;
 using fc::crypto::vrf::VRFProof;
 using fc::crypto::vrf::VRFResult;
+using fc::primitives::sector::PoStProof;
+using fc::primitives::sector::RegisteredProof;
+using fc::primitives::ticket::EPostProof;
 using fc::primitives::ticket::EPostTicket;
 using fc::primitives::ticket::PostRandomness;
 
-/**
- * @struct EPostProofCodecLotusCrossTest test fixture for checking
- * if proof cbor-marshal/unmarshal operations work exactly like lotus
- * implementation
- */
-
-struct EPostProofCodecLotusCrossTest : public ::testing::Test {
-  using EPostProof = fc::primitives::ticket::EPostProof;
-
-  void SetUp() override {
-    auto proof = Buffer::fromHex("01020304050607080900").value();
-
-    auto post_rand_hex =
-        fc::common::Blob<96>::fromHex(
-            "010101010101010101010101010101010101010101010101010101010101010101"
-            "010101010101010101010101010101010101010101010101010101010101010101"
-            "010101010101010101010101010101010101010101010101010101010101")
-            .value();
-
-    auto post_rand = PostRandomness{VRFResult{post_rand_hex}};
-    auto partial =
-        fc::common::Blob<32>::fromHex(
-            "0101010101010101010101010101010101010101010101010101010101010101")
-            .value();
-    auto t1 = EPostTicket{partial, 12u, 34u};
-    auto t2 = EPostTicket{partial, 21u, 43u};
-
-    epp1 = EPostProof{proof, post_rand, {t1, t2}};
-
-    cbor_value =
-        "834a010203040506070809005860010101010101010101010101010101010101010101"
-        "0101010101010101010101010101010101010101010101010101010101010101010101"
-        "0101010101010101010101010101010101010101010101010101010101010101010101"
-        "0101010101828358200101010101010101010101010101010101010101010101010101"
-        "0101010101010c18228358200101010101010101010101010101010101010101010101"
-        "01010101010101010115182b";
-  }
-
-  EPostProof epp1;
-  std::string cbor_value;
-};
-
-/**
- * @given a EPostProof proof instance
- * @and its cbor string encoded using lotus implementation
- * @when decode proof using CBorDecodeStream
- * @then decoded instance is equal to original proof
- */
-TEST_F(EPostProofCodecLotusCrossTest, DecodeFromLotusSuccess) {
-  EXPECT_OUTCOME_TRUE(cbor_data, Buffer::fromHex(cbor_value));
-  CborDecodeStream ds{cbor_data};
-
-  EPostProof epp2{};
-  ASSERT_NO_THROW(ds >> epp2);
-  ASSERT_EQ(epp1, epp2);
-  CborEncodeStream es{};
-  ASSERT_NO_THROW(es << epp2);
-  ASSERT_EQ(Buffer(es.data()), Buffer::fromHex(cbor_value).value());
+TEST(EPostProofCborTest, EPostProof) {
+  auto partial =
+      "0101010101010101010101010101010101010101010101010101010101010101"_blob32;
+  expectEncodeAndReencode(
+      EPostProof{
+          {PoStProof{RegisteredProof::StackedDRG2KiBSeal,
+                     "01020304050607080900"_unhex}},
+          "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96,
+          {
+              EPostTicket{partial, 12u, 34u},
+              EPostTicket{partial, 21u, 43u},
+          },
+      },
+      "838182034a0102030405060708090058600101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101018283582001010101010101010101010101010101010101010101010101010101010101010c1822835820010101010101010101010101010101010101010101010101010101010101010115182b"_unhex);
 }
 
 /**

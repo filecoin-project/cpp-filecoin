@@ -6,10 +6,8 @@
 #include "storage/ipfs/merkledag/impl/merkledag_service_impl.hpp"
 
 #include <boost/assert.hpp>
-#include <libp2p/multi/content_identifier_codec.hpp>
-#include "storage/ipld/impl/ipld_node_impl.hpp"
 
-using libp2p::multi::ContentIdentifierCodec;
+#include "storage/ipld/impl/ipld_node_impl.hpp"
 
 namespace fc::storage::ipfs::merkledag {
   using ipld::IPLDNodeImpl;
@@ -42,8 +40,7 @@ namespace fc::storage::ipfs::merkledag {
       gsl::span<const uint8_t> selector,
       std::function<bool(std::shared_ptr<const IPLDNode>)> handler) const {
     std::ignore = selector;
-    OUTCOME_TRY(content_id, ContentIdentifierCodec::decode(root_cid));
-    CID cid{std::move(content_id)};
+    OUTCOME_TRY(cid, CID::fromBytes(root_cid));
     OUTCOME_TRY(root_node, getNode(cid));
     std::vector<std::shared_ptr<const IPLDNode>> node_set{};
     node_set.emplace_back(std::move(root_node));

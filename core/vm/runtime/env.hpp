@@ -7,6 +7,7 @@
 #define FILECOIN_CORE_VM_RUNTIME_ENV_HPP
 
 #include "crypto/randomness/randomness_provider.hpp"
+#include "primitives/types.hpp"
 #include "vm/actor/invoker.hpp"
 #include "vm/indices/indices.hpp"
 #include "vm/state/state_tree.hpp"
@@ -35,7 +36,7 @@ namespace fc::vm::runtime {
     outcome::result<MessageReceipt> applyMessage(
         const UnsignedMessage &message);
 
-    outcome::result<InvocationOutput> send(BigInt &gas_used,
+    outcome::result<InvocationOutput> send(GasAmount &gas_used,
                                            const Address &origin,
                                            const UnsignedMessage &message);
 

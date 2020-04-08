@@ -5,8 +5,6 @@
 
 #include "vm/message/impl/message_signer_impl.hpp"
 
-#include <libp2p/multi/content_identifier_codec.hpp>
-
 #include "vm/message/message_util.hpp"
 
 namespace fc::vm::message {
@@ -22,8 +20,7 @@ namespace fc::vm::message {
       logger_->error(maybe_cid.error().message());
       return outcome::failure(MessageError::SERIALIZATION_FAILURE);
     }
-    auto maybe_cid_bytes =
-        libp2p::multi::ContentIdentifierCodec::encode(maybe_cid.value());
+    auto maybe_cid_bytes = maybe_cid.value().toBytes();
     if (maybe_cid_bytes.has_error()) {
       logger_->error(maybe_cid_bytes.error().message());
       return outcome::failure(MessageError::SERIALIZATION_FAILURE);
@@ -39,8 +36,7 @@ namespace fc::vm::message {
       logger_->error(maybe_cid.error().message());
       return outcome::failure(MessageError::SERIALIZATION_FAILURE);
     }
-    auto maybe_cid_bytes =
-        libp2p::multi::ContentIdentifierCodec::encode(maybe_cid.value());
+    auto maybe_cid_bytes = maybe_cid.value().toBytes();
     if (maybe_cid_bytes.has_error()) {
       logger_->error(maybe_cid_bytes.error().message());
       return outcome::failure(MessageError::SERIALIZATION_FAILURE);

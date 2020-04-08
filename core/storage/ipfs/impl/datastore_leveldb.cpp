@@ -5,8 +5,7 @@
 
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 
-#include <libp2p/multi/content_identifier_codec.hpp>
-#include <storage/leveldb/leveldb_error.hpp>
+#include "storage/leveldb/leveldb_error.hpp"
 
 namespace fc::storage::ipfs {
   namespace {
@@ -15,10 +14,8 @@ namespace fc::storage::ipfs {
      * @param value key value to encode
      * @return encoded value as Buffer
      */
-    inline outcome::result<common::Buffer> encode(
-        const CID &value) {
-      OUTCOME_TRY(encoded,
-                  libp2p::multi::ContentIdentifierCodec::encode(value));
+    inline outcome::result<common::Buffer> encode(const CID &value) {
+      OUTCOME_TRY(encoded, value.toBytes());
       return common::Buffer(std::move(encoded));
     }
   }  // namespace

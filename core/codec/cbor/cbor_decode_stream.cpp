@@ -5,8 +5,6 @@
 
 #include "codec/cbor/cbor_decode_stream.hpp"
 
-#include <libp2p/multi/content_identifier_codec.hpp>
-
 namespace fc::codec::cbor {
   CborDecodeStream::CborDecodeStream(gsl::span<const uint8_t> data)
       : data_(std::make_shared<std::vector<uint8_t>>(data.begin(), data.end())),
@@ -79,7 +77,7 @@ namespace fc::codec::cbor {
       outcome::raise(CborDecodeError::INVALID_CBOR_CID);
     }
     bytes.erase(bytes.begin());
-    auto maybe_cid = libp2p::multi::ContentIdentifierCodec::decode(bytes);
+    auto maybe_cid = CID::fromBytes(bytes);
     if (maybe_cid.has_error()) {
       outcome::raise(CborDecodeError::INVALID_CID);
     }
