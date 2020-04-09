@@ -36,6 +36,7 @@ using fc::vm::actor::kCronAddress;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::kSendMethodNumber;
 using fc::vm::actor::kStorageMinerCodeCid;
+using fc::vm::actor::kSystemActorAddress;
 using fc::vm::actor::builtin::miner::ControlAddresses;
 using fc::vm::actor::builtin::miner::OnDeleteMiner;
 using fc::vm::actor::builtin::miner::PeerId;
@@ -193,7 +194,7 @@ TEST_F(StoragePowerActorTest, ConstructorWrongCaller) {
  */
 TEST_F(StoragePowerActorTest, Constructor) {
   EXPECT_CALL(runtime, getImmediateCaller())
-      .WillOnce(testing::Return(kInitAddress));
+      .WillOnce(testing::Return(kSystemActorAddress));
   EXPECT_CALL(runtime, getIpfsDatastore())
       .Times(2)
       .WillRepeatedly(testing::Return(datastore));

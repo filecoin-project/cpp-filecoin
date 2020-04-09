@@ -21,12 +21,14 @@ namespace fc::vm::actor {
     return code == kStorageMarketCodeCid || code == kStoragePowerCodeCid
            || code == kStorageMinerCodeCid || code == kAccountCodeCid
            || code == kInitCodeCid || code == kMultisigCodeCid
-           || code == kPaymentChannelCodeCid;
+           || code == kPaymentChannelCodeCid || code == kCronCodeCid
+           || code == kRewardActorCodeID || code == kSystemActorCodeID;
   }
 
   bool isSingletonActor(const CodeId &code) {
     return code == kStoragePowerCodeCid || code == kStorageMarketCodeCid
-           || code == kInitCodeCid || code == kCronCodeCid;
+           || code == kInitCodeCid || code == kCronCodeCid
+           || code == kRewardActorCodeID || code == kSystemActorCodeID;
   }
 
   bool isSignableActor(const CodeId &code) {
@@ -51,13 +53,17 @@ namespace fc::vm::actor {
 
   const CodeId kAccountCodeCid = CodeId(makeRawIdentityCid("fil/1/account"));
   const CodeId kCronCodeCid = CodeId(makeRawIdentityCid("fil/1/cron"));
-  const CodeId kStoragePowerCodeCid = CodeId(makeRawIdentityCid("fil/1/power"));
+  const CodeId kStoragePowerCodeCid =
+      CodeId(makeRawIdentityCid("fil/1/storagepower"));
   const CodeId kStorageMarketCodeCid =
       CodeId(makeRawIdentityCid("fil/1/market"));
-  const CodeId kStorageMinerCodeCid = CodeId(makeRawIdentityCid("fil/1/miner"));
+  const CodeId kStorageMinerCodeCid =
+      CodeId(makeRawIdentityCid("fil/1/storageminer"));
   const CodeId kMultisigCodeCid = CodeId(makeRawIdentityCid("fil/1/multisig"));
   const CodeId kInitCodeCid = CodeId(makeRawIdentityCid("fil/1/init"));
   const CodeId kPaymentChannelCodeCid =
-      CodeId(makeRawIdentityCid("fil/1/paych"));
+      CodeId(makeRawIdentityCid("fil/1/paymentchannel"));
+  const auto kRewardActorCodeID = CodeId(makeRawIdentityCid("fil/1/reward"));
+  const auto kSystemActorCodeID = CodeId(makeRawIdentityCid("fil/1/system"));
 
 }  // namespace fc::vm::actor
