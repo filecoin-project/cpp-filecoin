@@ -8,8 +8,8 @@
 
 #include "adt/address_key.hpp"
 #include "adt/balance_table.hpp"
-#include "adt/empty_value.hpp"
 #include "adt/multimap.hpp"
+#include "adt/set.hpp"
 #include "adt/uvarint_key.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/randomness/randomness_provider.hpp"
@@ -24,7 +24,6 @@ namespace fc::vm::actor::builtin::storage_power {
 
   using adt::AddressKeyer;
   using adt::BalanceTable;
-  using adt::EmptyValue;
   using common::Buffer;
   using indices::Indices;
   using power::Power;
@@ -267,7 +266,7 @@ namespace fc::vm::actor::builtin::storage_power {
     size_t miner_count;
     mutable BalanceTable escrow;
     mutable adt::Map<adt::Array<CronEvent>, ChainEpochKeyer> cron_event_queue;
-    mutable adt::Map<EmptyValue, AddressKeyer> po_st_detected_fault_miners;
+    mutable adt::Set<AddressKeyer> po_st_detected_fault_miners;
     mutable adt::Map<Claim, AddressKeyer> claims;
     /** Number of miners having proven the minimum consensus power */
     size_t num_miners_meeting_min_power;
