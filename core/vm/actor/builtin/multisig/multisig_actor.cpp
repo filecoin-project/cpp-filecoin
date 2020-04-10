@@ -17,7 +17,6 @@ namespace fc::vm::actor::builtin::multisig {
   using fc::vm::VMExitCode;
   using fc::vm::actor::ActorExports;
   using fc::vm::actor::ActorMethod;
-  using fc::vm::actor::decodeActorParams;
   using fc::vm::actor::kInitAddress;
   using fc::vm::runtime::InvocationOutput;
   using fc::vm::runtime::Runtime;

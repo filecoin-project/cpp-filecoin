@@ -38,7 +38,6 @@ namespace fc::vm::interpreter {
   using message::SignedMessage;
   using message::UnsignedMessage;
 
-
   using primitives::block::MsgMeta;
   using runtime::Env;
   using runtime::kInfiniteGas;
@@ -47,9 +46,10 @@ namespace fc::vm::interpreter {
 
   using storage::amt::Amt;
 
-  outcome::result<Result> InterpreterImpl::interpret(const std::shared_ptr<IpfsDatastore> &ipld,
-                                    const Tipset &tipset,
-                                    const std::shared_ptr<Indices> &indices) const {
+  outcome::result<Result> InterpreterImpl::interpret(
+      const std::shared_ptr<IpfsDatastore> &ipld,
+      const Tipset &tipset,
+      const std::shared_ptr<Indices> &indices) const {
     if (hasDuplicateMiners(tipset.blks)) {
       return InterpreterError::DUPLICATE_MINER;
     }
@@ -87,7 +87,7 @@ namespace fc::vm::interpreter {
                       kSubmitElectionPoStMethodNumber,
                       {},
                   }));
-      if (receipt.exit_code != 0) {
+      if (receipt.exit_code != VMExitCode::Ok) {
         return InterpreterError::MINER_SUBMIT_FAILED;
       }
     }
@@ -151,7 +151,7 @@ namespace fc::vm::interpreter {
                     EpochTick::Number,
                     {},
                 }));
-    if (receipt.exit_code != 0) {
+    if (receipt.exit_code != VMExitCode::Ok) {
       return InterpreterError::CRON_TICK_FAILED;
     }
 
@@ -169,7 +169,8 @@ namespace fc::vm::interpreter {
     };
   }
 
-  bool InterpreterImpl::hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const {
+  bool InterpreterImpl::hasDuplicateMiners(
+      const std::vector<BlockHeader> &blocks) const {
     std::set<Address> set;
     for (auto &block : blocks) {
       if (!set.insert(block.miner).second) {
@@ -179,8 +180,8 @@ namespace fc::vm::interpreter {
     return false;
   }
 
-  outcome::result<InterpreterImpl::Address> InterpreterImpl::getMinerOwner(StateTreeImpl &state_tree,
-                                         const Address &miner) const {
+  outcome::result<InterpreterImpl::Address> InterpreterImpl::getMinerOwner(
+      StateTreeImpl &state_tree, const Address &miner) const {
     OUTCOME_TRY(actor, state_tree.get(miner));
     OUTCOME_TRY(state,
                 state_tree.getStore()->getCbor<MinerActorState>(actor.head));

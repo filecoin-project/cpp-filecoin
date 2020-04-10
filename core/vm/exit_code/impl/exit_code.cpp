@@ -20,70 +20,95 @@ namespace fc::vm {
     return error.category() == __libp2p::Category<VMExitCode>::get();
   }
 
-  uint8_t getRetCode(VMExitCode error) {
+  boost::optional<VMExitCode> normalizeVMExitCode(VMExitCode error) {
     using E = VMExitCode;
     switch (error) {
+      case E::Ok:
+      case E::SysErrSenderInvalid:
+      case E::SysErrSenderStateInvalid:
+      case E::SysErrInvalidMethod:
+      case E::SysErrInvalidParameters:
+      case E::SysErrInvalidReceiver:
+      case E::SysErrInsufficientFunds:
+      case E::SysErrOutOfGas:
+      case E::SysErrForbidden:
+      case E::SysErrorIllegalActor:
+      case E::SysErrorIllegalArgument:
+      case E::SysErrSerialization:
+      case E::SysErrorReserved3:
+      case E::SysErrorReserved4:
+      case E::SysErrorReserved5:
+      case E::SysErrInternal:
+        return error;
 
-      case E::DECODE_ACTOR_PARAMS_ERROR:
+      case E::ErrIllegalArgument:
+      case E::ErrNotFound:
+      case E::ErrForbidden:
+      case E::ErrInsufficientFunds:
+      case E::ErrIllegalState:
+      case E::ErrSerialization:
+        return error;
+
+      case E::ErrPlaceholder:
+        return error;
+
       case E::ENCODE_ACTOR_PARAMS_ERROR:
-        return 1;
-
-      case E::INVOKER_NO_CODE_OR_METHOD:
-        return 255;
+        return E{1};
 
       case E::ACCOUNT_ACTOR_CREATE_WRONG_ADDRESS_TYPE:
+        return E::ErrIllegalArgument;
       case E::ACCOUNT_ACTOR_RESOLVE_NOT_FOUND:
       case E::ACCOUNT_ACTOR_RESOLVE_NOT_ACCOUNT_ACTOR:
-        return 1;
+        return E{1};
 
       case E::MINER_ACTOR_OWNER_NOT_SIGNABLE:
       case E::MINER_ACTOR_MINER_NOT_ACCOUNT:
       case E::MINER_ACTOR_MINER_NOT_BLS:
       case E::MINER_ACTOR_ILLEGAL_ARGUMENT:
-        return 16;  // ErrIllegalArgument in actor-specs
+        return E::ErrIllegalArgument;
       case E::MINER_ACTOR_NOT_FOUND:
-        return 17;  // ErrNotFound in actor-specs
+        return E::ErrNotFound;
       case E::MINER_ACTOR_WRONG_CALLER:
       case E::MINER_ACTOR_WRONG_EPOCH:
-        return 18;  // ErrForbidden in actor-specs
+        return E::ErrForbidden;
       case E::MINER_ACTOR_POST_TOO_LATE:
       case E::MINER_ACTOR_POST_TOO_EARLY:
       case E::MINER_ACTOR_INSUFFICIENT_FUNDS:
-        return 19;  // ErrInsufficientFunds in actor-specs
+        return E::ErrInsufficientFunds;
       case E::MINER_ACTOR_ILLEGAL_STATE:
-        return 20;  // ErrIllegalState in actor-specs
+        return E::ErrIllegalState;
 
       case E::MARKET_ACTOR_ILLEGAL_ARGUMENT:
-        return 16;  // ErrIllegalArgument in actor-specs
+        return E::ErrIllegalArgument;
       case E::MARKET_ACTOR_WRONG_CALLER:
       case E::MARKET_ACTOR_FORBIDDEN:
-        return 18;  // ErrForbidden in actor-specs
+        return E::ErrForbidden;
       case E::MARKET_ACTOR_INSUFFICIENT_FUNDS:
-        return 19;  // ErrInsufficientFunds in actor-specs
+        return E::ErrInsufficientFunds;
       case E::MARKET_ACTOR_ILLEGAL_STATE:
-        return 20;  // ErrIllegalState in actor-specs
+        return E::ErrIllegalState;
 
       case E::MULTISIG_ACTOR_WRONG_CALLER:
-        return 1;
+        return E{1};
       case E::MULTISIG_ACTOR_ILLEGAL_ARGUMENT:
-        return 16;  // ErrIllegalArgument in actor-specs
+        return E::ErrIllegalArgument;
       case E::MULTISIG_ACTOR_NOT_FOUND:
-        return 17;  // ErrNotFound in actor-specs
+        return E::ErrNotFound;
       case E::MULTISIG_ACTOR_FORBIDDEN:
-        return 18;  // ErrForbidden in actor-specs
+        return E::ErrForbidden;
       case E::MULTISIG_ACTOR_INSUFFICIENT_FUNDS:
-        return 19;  // ErrInsufficientFunds in actor-specs
+        return E::ErrInsufficientFunds;
       case E::MULTISIG_ACTOR_ILLEGAL_STATE:
-        return 20;  // ErrIllegalState in actor-specs
+        return E::ErrIllegalState;
 
       case E::PAYMENT_CHANNEL_WRONG_CALLER:
-        return 1;
+        return E{1};
       case E::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT:
-        return 16;  // ErrIllegalArgument in actor-specs
+        return E::ErrIllegalArgument;
       case E::PAYMENT_CHANNEL_FORBIDDEN:
-        return 18;  // ErrForbidden in actor-specs
+        return E::ErrForbidden;
       case E::PAYMENT_CHANNEL_ILLEGAL_STATE:
-        return 20;  // ErrIllegalState in actor-specs
+        return E::ErrIllegalState;
 
       // TODO(turuslan): FIL-128 StoragePowerActor
       case E::STORAGE_POWER_ACTOR_WRONG_CALLER:
@@ -92,32 +117,23 @@ namespace fc::vm {
       case E::STORAGE_POWER_DELETION_ERROR:
         break;
       case E::STORAGE_POWER_ILLEGAL_ARGUMENT:
-        return 16;  // ErrIllegalArgument in actor-specs
+        return E::ErrIllegalArgument;
       case E::STORAGE_POWER_FORBIDDEN:
-        return 18;  // ErrForbidden in actor-specs
+        return E::ErrForbidden;
       case E::STORAGE_POWER_ILLEGAL_STATE:
-        return 20;  // ErrIllegalState in actor-specs
+        return E::ErrIllegalState;
 
       case E::INIT_ACTOR_NOT_BUILTIN_ACTOR:
       case E::INIT_ACTOR_SINGLETON_ACTOR:
-        return 1;
+        return E{1};
 
       case E::CRON_ACTOR_WRONG_CALL:
-        return 1;
+        return E{1};
 
       case E::REWARD_ACTOR_NEGATIVE_WITHDRAWABLE:
       case E::REWARD_ACTOR_WRONG_CALLER:
-        return 1;
+        return E{1};
     }
-    BOOST_ASSERT_MSG(false, "Ret code mapping missing");
-    // This should never be executed
-    return 0;
-  }
-
-  outcome::result<uint8_t> getRetCode(const std::error_code &error) {
-    if (!isVMExitCode(error)) {
-      return error;
-    }
-    return getRetCode(VMExitCode(error.value()));
+    return {};
   }
 }  // namespace fc::vm

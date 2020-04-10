@@ -35,7 +35,6 @@ namespace fc::vm::runtime {
   using crypto::blake2b::Blake2b256Hash;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
-  using exit_code::ExitCode;
   using indices::Indices;
   using message::UnsignedMessage;
   using primitives::ChainEpoch;

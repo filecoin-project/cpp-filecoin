@@ -52,7 +52,7 @@ TEST(InitActorTest, AddActor) {
   using fc::storage::hamt::Hamt;
   auto store = std::make_shared<fc::storage::ipfs::InMemoryDatastore>();
   EXPECT_OUTCOME_TRUE(empty_map, Hamt(store).flush());
-  InitActorState state{empty_map, 3};
+  InitActorState state{empty_map, 3, "n"};
   Address address{fc::primitives::address::TESTNET,
                   fc::primitives::address::ActorExecHash{}};
   auto expected = Address::makeFromId(state.next_id);

@@ -6,20 +6,42 @@
 #ifndef CPP_FILECOIN_CORE_VM_EXITCODE_EXITCODE_HPP
 #define CPP_FILECOIN_CORE_VM_EXITCODE_EXITCODE_HPP
 
-#include <string>
+#include <boost/optional.hpp>
 
 #include "common/outcome.hpp"
 
 namespace fc::vm {
   /**
-   * VM exit code enum for outcome errors. Mapping to ret code in range 1-255 is
-   * specified in `getRetCode`.
+   * specs-actors and custom exit code enum for outcome errors.
    */
-  enum class VMExitCode {
-    DECODE_ACTOR_PARAMS_ERROR,
-    ENCODE_ACTOR_PARAMS_ERROR,
+  enum class VMExitCode : int64_t {
+    Ok = 0,
+    SysErrSenderInvalid = 1,
+    SysErrSenderStateInvalid = 2,
+    SysErrInvalidMethod = 3,
+    SysErrInvalidParameters = 4,
+    SysErrInvalidReceiver = 5,
+    SysErrInsufficientFunds = 6,
+    SysErrOutOfGas = 7,
+    SysErrForbidden = 8,
+    SysErrorIllegalActor = 9,
+    SysErrorIllegalArgument = 10,
+    SysErrSerialization = 11,
+    SysErrorReserved3 = 12,
+    SysErrorReserved4 = 13,
+    SysErrorReserved5 = 14,
+    SysErrInternal = 15,
 
-    INVOKER_NO_CODE_OR_METHOD,
+    ErrIllegalArgument,
+    ErrNotFound,
+    ErrForbidden,
+    ErrInsufficientFunds,
+    ErrIllegalState,
+    ErrSerialization,
+
+    ErrPlaceholder = 1000,
+
+    ENCODE_ACTOR_PARAMS_ERROR,
 
     ACCOUNT_ACTOR_CREATE_WRONG_ADDRESS_TYPE,
     ACCOUNT_ACTOR_RESOLVE_NOT_FOUND,
@@ -70,26 +92,13 @@ namespace fc::vm {
 
     REWARD_ACTOR_NEGATIVE_WITHDRAWABLE,
     REWARD_ACTOR_WRONG_CALLER,
-
   };
 
   /// Distinguish VMExitCode errors from other errors
   bool isVMExitCode(const std::error_code &error);
 
-  /// Get ret code from VMExitCode
-  uint8_t getRetCode(VMExitCode error);
-
-  /// Get ret code from VMExitCode error
-  outcome::result<uint8_t> getRetCode(const std::error_code &error);
-
-  /// Get ret code from outcome
-  template <typename T>
-  outcome::result<uint8_t> getRetCode(const outcome::result<T> &result) {
-    if (result) {
-      return 0;
-    }
-    return getRetCode(result.error());
-  }
+  /// Get specs-actors VMExitCode
+  boost::optional<VMExitCode> normalizeVMExitCode(VMExitCode error);
 }  // namespace fc::vm
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMExitCode);
