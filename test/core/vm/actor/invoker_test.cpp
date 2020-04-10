@@ -20,7 +20,8 @@ using fc::vm::runtime::MockRuntime;
 TEST(InvokerTest, InvokeCron) {
   using namespace fc::vm::actor;
 
-  auto message = UnsignedMessage{kInitAddress, kInitAddress, {}, {}, {}, {}, {}, {}};
+  auto message =
+      UnsignedMessage{kInitAddress, kInitAddress, {}, {}, {}, {}, {}, {}};
   InvokerImpl invoker;
   MockRuntime runtime;
 
@@ -51,7 +52,7 @@ TEST(InvokerTest, DecodeActorParams) {
 TEST(InvokerTest, EncodeActorParams) {
   using fc::vm::actor::encodeActorParams;
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ENCODE_ACTOR_PARAMS_ERROR,
+  EXPECT_OUTCOME_ERROR(VMExitCode::SysErrInvalidParameters,
                        encodeActorParams(fc::CID()));
   EXPECT_OUTCOME_EQ(encodeActorParams(3), MethodParams{"03"_unhex});
 }
