@@ -16,7 +16,6 @@ namespace fc::vm {
    * specified in `getRetCode`.
    */
   enum class VMExitCode {
-    _ = 1,
     DECODE_ACTOR_PARAMS_ERROR,
     ENCODE_ACTOR_PARAMS_ERROR,
 

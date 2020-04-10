@@ -23,8 +23,6 @@ namespace fc::vm {
   uint8_t getRetCode(VMExitCode error) {
     using E = VMExitCode;
     switch (error) {
-      case E::_:
-        break;
 
       case E::DECODE_ACTOR_PARAMS_ERROR:
       case E::ENCODE_ACTOR_PARAMS_ERROR:

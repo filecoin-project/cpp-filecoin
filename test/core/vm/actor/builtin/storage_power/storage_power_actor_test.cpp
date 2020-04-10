@@ -249,9 +249,9 @@ TEST_F(StoragePowerActorTest, AddBalanceInternalError) {
                    Eq(ControlAddresses::Number),
                    Eq(MethodParams{}),
                    Eq(TokenAmount{0})))
-      .WillOnce(testing::Return(fc::outcome::failure(VMExitCode::_)));
+      .WillOnce(testing::Return(fc::outcome::failure(VMExitCode{1})));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::_,
+  EXPECT_OUTCOME_ERROR(VMExitCode{1},
                        AddBalance::call(runtime, {miner_address}));
 }
 
