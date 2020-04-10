@@ -187,7 +187,7 @@ namespace fc::vm::actor::builtin::market {
   };
   CBOR_TUPLE(ComputeDataCommitment::Params, deals, sector_type)
 
-  extern ActorExports exports;
+  extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::market
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MARKET_ACTOR_HPP

@@ -26,11 +26,6 @@ namespace fc::vm::actor::builtin::reward {
   TokenAmount computeBlockReward(const State &state,
                                  const TokenAmount &balance);
 
-  const ActorExports exports = {
-      exportMethod<AwardBlockReward>(),
-      exportMethod<WithdrawReward>(),
-  };
-
   primitives::BigInt Reward::amountVested(
       const primitives::ChainEpoch &current_epoch) const {
     auto elapsed = current_epoch - start_epoch;
@@ -160,4 +155,8 @@ namespace fc::vm::actor::builtin::reward {
     return std::min(target_reward, treasury);
   }
 
+  const ActorExports exports{
+      exportMethod<AwardBlockReward>(),
+      exportMethod<WithdrawReward>(),
+  };
 }  // namespace fc::vm::actor::builtin::reward

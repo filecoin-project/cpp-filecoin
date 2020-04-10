@@ -297,7 +297,7 @@ namespace fc::vm::actor::builtin::multisig {
     return fc::outcome::success();
   }
 
-  const ActorExports exports = {
+  const ActorExports exports{
       exportMethod<Construct>(),
       exportMethod<Propose>(),
       exportMethod<Approve>(),

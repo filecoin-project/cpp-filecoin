@@ -44,7 +44,7 @@ namespace fc::vm::actor::builtin::account {
     return state.address;
   }
 
-  const ActorExports exports = {
+  const ActorExports exports{
       exportMethod<PubkeyAddress>(),
   };
 }  // namespace fc::vm::actor::builtin::account

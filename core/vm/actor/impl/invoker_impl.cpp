@@ -11,6 +11,8 @@
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 #include "vm/actor/builtin/multisig/multisig_actor.hpp"
+#include "vm/actor/builtin/payment_channel/payment_channel_actor.hpp"
+#include "vm/actor/builtin/reward/reward_actor.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 
 namespace fc::vm::actor {
@@ -18,14 +20,15 @@ namespace fc::vm::actor {
   using runtime::InvocationOutput;
 
   InvokerImpl::InvokerImpl() {
-    builtin_[actor::kAccountCodeCid] = actor::builtin::account::exports;
-    builtin_[actor::kCronCodeCid] = actor::builtin::cron::exports;
-    builtin_[actor::kInitCodeCid] = actor::builtin::init::exports;
-    builtin_[actor::kStorageMinerCodeCid] = actor::builtin::miner::exports;
-    builtin_[actor::kMultisigCodeCid] = actor::builtin::multisig::exports;
-    builtin_[actor::kStoragePowerCodeCid] =
-        actor::builtin::storage_power::exports;
-    builtin_[actor::kStorageMarketCodeCid] = actor::builtin::market::exports;
+    builtin_[kInitCodeCid] = builtin::init::exports;
+    builtin_[kRewardActorCodeID] = builtin::reward::exports;
+    builtin_[kCronCodeCid] = builtin::cron::exports;
+    builtin_[kStoragePowerCodeCid] = builtin::storage_power::exports;
+    builtin_[kStorageMarketCodeCid] = builtin::market::exports;
+    builtin_[kStorageMinerCodeCid] = builtin::miner::exports;
+    builtin_[kMultisigCodeCid] = builtin::multisig::exports;
+    builtin_[kPaymentChannelCodeCid] = builtin::payment_channel::exports;
+    builtin_[kAccountCodeCid] = builtin::account::exports;
   }
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(
