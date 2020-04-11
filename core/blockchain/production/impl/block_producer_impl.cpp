@@ -25,7 +25,6 @@ namespace fc::blockchain::production {
   using storage::amt::Amt;
   using storage::amt::Root;
   using storage::ipfs::InMemoryDatastore;
-  using storage::ipld::IPLDBlock;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
@@ -57,26 +56,33 @@ namespace fc::blockchain::production {
         vm_interpreter_->interpret(data_storage_, parent_tipset, indices));
     OUTCOME_TRY(parent_weight,
                 chain_weight_calculator_->calculateWeight(parent_tipset));
+    // TODO: this must be param
     std::vector<SignedMessage> messages =
         message_storage_->getTopScored(config::kBlockMaxMessagesCount);
-    OUTCOME_TRY(msg_meta, getMessagesMeta(messages));
-    IPLDBlock msg_meta_block = IPLDBlock::create(msg_meta);
-    OUTCOME_TRY(data_storage_->set(msg_meta_block.cid, msg_meta_block.bytes));
+    MsgMeta msg_meta;
+    msg_meta.load(data_storage_);
     std::vector<UnsignedMessage> bls_messages;
     std::vector<SignedMessage> secp_messages;
     std::vector<crypto::bls::Signature> bls_signatures;
     for (auto &&message : messages) {
-      visit_in_place(
+      OUTCOME_TRY(visit_in_place(
           message.signature,
-          [&message, &bls_messages, &bls_signatures](
-              const BlsSignature &signature) {
+          [&](const BlsSignature &signature) -> outcome::result<void> {
             bls_messages.emplace_back(std::move(message.message));
             bls_signatures.push_back(signature);
+            OUTCOME_TRY(message_cid, data_storage_->setCbor(message.message));
+            OUTCOME_TRY(msg_meta.bls_messages.append(message_cid));
+            return outcome::success();
           },
-          [&message, &secp_messages](const Secp256k1Signature &signature) {
+          [&](const Secp256k1Signature &signature) -> outcome::result<void> {
             secp_messages.emplace_back(std::move(message));
-          });
+            OUTCOME_TRY(message_cid, data_storage_->setCbor(message));
+            OUTCOME_TRY(msg_meta.secp_messages.append(message_cid));
+            return outcome::success();
+          }));
     }
+    OUTCOME_TRY(msg_meta.flush());
+    OUTCOME_TRY(msg_meta_cid, data_storage_->setCbor(msg_meta));
     OUTCOME_TRY(bls_aggregate_sign,
                 bls_provider_->aggregateSignatures(bls_signatures));
     Time now = clock_->nowUTC();
@@ -90,7 +96,7 @@ namespace fc::blockchain::production {
     header.height = static_cast<uint64_t>(current_epoch);
     header.parent_state_root = std::move(vm_result.state_root);
     header.parent_message_receipts = std::move(vm_result.message_receipts);
-    header.messages = msg_meta_block.cid;
+    header.messages = msg_meta_cid;
     header.bls_aggregate = std::move(bls_aggregate_sign);
     header.timestamp = static_cast<uint64_t>(now.unixTime().count());
     header.block_sig = {};  // Block must be signed be Actor Miner
@@ -111,45 +117,6 @@ namespace fc::blockchain::production {
       return BlockProducerError::PARENT_TIPSET_INVALID_CONTENT;
     }
     return tipset.value();
-  }
-
-  outcome::result<BlockProducerImpl::MsgMeta>
-  BlockProducerImpl::getMessagesMeta(
-      const std::vector<SignedMessage> &messages) {
-    auto bls_backend = std::make_shared<InMemoryDatastore>();
-    auto secp_backend = std::make_shared<InMemoryDatastore>();
-    Amt bls_messages_amt{bls_backend};
-    Amt secp_messages_amt{secp_backend};
-    std::vector<SignedMessage> bls_messages;
-    std::vector<SignedMessage> secp_messages;
-    for (const auto &msg : messages) {
-      visit_in_place(
-          msg.signature,
-          [&msg, &bls_messages](const BlsSignature &signature) {
-            std::ignore = signature;
-            bls_messages.push_back(msg);
-          },
-          [&msg, &secp_messages](const Secp256k1Signature &signature) {
-            std::ignore = signature;
-            secp_messages.push_back(msg);
-          });
-    }
-    for (size_t index = 0; index < bls_messages.size(); ++index) {
-      OUTCOME_TRY(message_cid,
-                  primitives::cid::getCidOfCbor(bls_messages.at(index)));
-      OUTCOME_TRY(bls_messages_amt.setCbor(index, message_cid));
-    }
-    for (size_t index = 0; index < secp_messages.size(); ++index) {
-      OUTCOME_TRY(message_cid,
-                  primitives::cid::getCidOfCbor(secp_messages.at(index)));
-      OUTCOME_TRY(secp_messages_amt.setCbor(index, message_cid));
-    }
-    OUTCOME_TRY(bls_root_cid, bls_messages_amt.flush());
-    OUTCOME_TRY(secp_root_cid, secp_messages_amt.flush());
-    MsgMeta msg_meta{};
-    msg_meta.bls_messages = bls_root_cid;
-    msg_meta.secpk_messages = secp_root_cid;
-    return msg_meta;
   }
 }  // namespace fc::blockchain::production
 

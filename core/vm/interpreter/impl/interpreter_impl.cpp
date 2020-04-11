@@ -92,20 +92,17 @@ namespace fc::vm::interpreter {
       };
 
       OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
-      OUTCOME_TRY(
-          Amt(ipld, meta.bls_messages)
-              .visit([&](auto, auto &cid_encoded) -> outcome::result<void> {
-                OUTCOME_TRY(cid, codec::cbor::decode<CID>(cid_encoded));
-                OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
-                return apply_message(message);
-              }));
-      OUTCOME_TRY(
-          Amt(ipld, meta.secpk_messages)
-              .visit([&](auto, auto &cid_encoded) -> outcome::result<void> {
-                OUTCOME_TRY(cid, codec::cbor::decode<CID>(cid_encoded));
-                OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
-                return apply_message(message.message);
-              }));
+      meta.load(ipld);
+      OUTCOME_TRY(meta.bls_messages.visit(
+          [&](auto, auto &cid) -> outcome::result<void> {
+            OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+            return apply_message(message);
+          }));
+      OUTCOME_TRY(meta.secp_messages.visit(
+          [&](auto, auto &cid) -> outcome::result<void> {
+            OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+            return apply_message(message.message);
+          }));
     }
 
     OUTCOME_TRY(cron_actor, state_tree->get(kCronAddress));

@@ -118,27 +118,25 @@ namespace fc::api {
           block.header.fork_signaling = 0;
 
           std::vector<BlsSignature> bls_sigs;
-          Amt amt_bls{ipld}, amt_secp{ipld};
-          uint64_t i_bls{0}, i_secp{0};
+          MsgMeta msg_meta;
+          msg_meta.load(ipld);
           for (auto &message : messages) {
             if (message.signature.isBls()) {
               OUTCOME_TRY(message_cid, ipld->setCbor(message.message));
               bls_sigs.emplace_back(
                   boost::get<BlsSignature>(message.signature));
               block.bls_messages.emplace_back(std::move(message_cid));
-              OUTCOME_TRY(amt_bls.setCbor(++i_bls, message_cid));
+              OUTCOME_TRY(msg_meta.bls_messages.append(message_cid));
             } else {
               OUTCOME_TRY(message_cid, ipld->setCbor(message));
               block.secp_messages.emplace_back(std::move(message_cid));
-              OUTCOME_TRY(amt_secp.setCbor(++i_secp, message_cid));
+              OUTCOME_TRY(msg_meta.secp_messages.append(message_cid));
             }
           }
 
-          OUTCOME_TRY(amt_bls.flush());
-          OUTCOME_TRY(amt_secp.flush());
-          OUTCOME_TRY(msg_meta,
-                      ipld->setCbor(MsgMeta{amt_bls.cid(), amt_secp.cid()}));
-          block.header.messages = msg_meta;
+          OUTCOME_TRY(msg_meta.flush());
+          OUTCOME_TRY(msg_meta_cid, ipld->setCbor(msg_meta));
+          block.header.messages = msg_meta_cid;
 
           OUTCOME_TRY(bls_aggregate,
                       bls_provider->aggregateSignatures(bls_sigs));

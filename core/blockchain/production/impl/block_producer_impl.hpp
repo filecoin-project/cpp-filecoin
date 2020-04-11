@@ -73,13 +73,5 @@ namespace fc::blockchain::production {
      * @return requested tipset or appropriate error
      */
     outcome::result<Tipset> getTipset(const CID &tipset_id) const;
-
-    /**
-     * @brief Generate messages meta-data
-     * @param messages - messages to include in the new Block
-     * @return Generated meta-data
-     */
-    static outcome::result<MsgMeta> getMessagesMeta(
-        const std::vector<SignedMessage> &messages);
   };
 }  // namespace fc::blockchain::production

@@ -14,7 +14,6 @@
 namespace fc::blockchain::block_validator {
   using primitives::address::Protocol;
   using storage::amt::Amt;
-  using MsgMeta = primitives::block::MsgMeta;
   using SignedMessage = vm::message::SignedMessage;
   using UnsignedMessage = vm::message::UnsignedMessage;
   using BlsCryptoSignature = crypto::bls::Signature;
@@ -174,7 +173,8 @@ namespace fc::blockchain::block_validator {
       }
     }
     OUTCOME_TRY(tipset, Tipset::create(parent_blocks));
-    parent_tipset_cache_ = std::make_pair(std::move(ipld_block.cid), std::move(tipset));
+    parent_tipset_cache_ =
+        std::make_pair(std::move(ipld_block.cid), std::move(tipset));
     return parent_tipset_cache_.value().second;
   }
 
