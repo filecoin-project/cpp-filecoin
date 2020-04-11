@@ -49,6 +49,13 @@ namespace fc::vm::interpreter {
       const std::shared_ptr<IpfsDatastore> &ipld,
       const Tipset &tipset,
       const std::shared_ptr<Indices> &indices) const {
+    if (tipset.height == 0) {
+      return Result{
+          tipset.getParentStateRoot(),
+          tipset.getParentMessageReceipts(),
+      };
+    }
+
     if (hasDuplicateMiners(tipset.blks)) {
       return InterpreterError::DUPLICATE_MINER;
     }
