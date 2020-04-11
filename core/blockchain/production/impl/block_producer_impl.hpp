@@ -37,6 +37,8 @@ namespace fc::blockchain::production {
     using IpfsDatastore = storage::ipfs::IpfsDatastore;
     using SignedMessage = vm::message::SignedMessage;
     using Interpreter = vm::interpreter::Interpreter;
+    using InterpreterResult = vm::interpreter::Result;
+    using ChainEpoch = primitives::ChainEpoch;
 
    public:
     /**
@@ -57,6 +59,15 @@ namespace fc::blockchain::production {
                                     EPostProof proof,
                                     Ticket ticket,
                                     std::shared_ptr<Indices> indices) override;
+
+    outcome::result<Block> generate(Address miner_address,
+                                    const Tipset &parent_tipset,
+                                    const InterpreterResult &vm_result,
+                                    EPostProof proof,
+                                    Ticket ticket,
+                                    const std::vector<SignedMessage> &messages,
+                                    ChainEpoch height,
+                                    uint64_t timestamp);
 
    private:
     std::shared_ptr<IpfsDatastore> data_storage_;

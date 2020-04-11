@@ -54,11 +54,31 @@ namespace fc::blockchain::production {
     OUTCOME_TRY(
         vm_result,
         vm_interpreter_->interpret(data_storage_, parent_tipset, indices));
-    OUTCOME_TRY(parent_weight,
-                chain_weight_calculator_->calculateWeight(parent_tipset));
-    // TODO: this must be param
     std::vector<SignedMessage> messages =
         message_storage_->getTopScored(config::kBlockMaxMessagesCount);
+    auto now = clock_->nowUTC();
+    OUTCOME_TRY(current_epoch, epoch_->epochAtTime(now));
+    return generate(miner_address,
+                    parent_tipset,
+                    vm_result,
+                    proof,
+                    ticket,
+                    messages,
+                    current_epoch,
+                    now.unixTime().count());
+  }
+
+  outcome::result<BlockProducer::Block> BlockProducerImpl::generate(
+      Address miner_address,
+      const Tipset &parent_tipset,
+      const InterpreterResult &vm_result,
+      EPostProof proof,
+      Ticket ticket,
+      const std::vector<SignedMessage> &messages,
+      ChainEpoch height,
+      uint64_t timestamp) {
+    OUTCOME_TRY(parent_weight,
+                chain_weight_calculator_->calculateWeight(parent_tipset));
     MsgMeta msg_meta;
     msg_meta.load(data_storage_);
     std::vector<UnsignedMessage> bls_messages;
@@ -85,20 +105,18 @@ namespace fc::blockchain::production {
     OUTCOME_TRY(msg_meta_cid, data_storage_->setCbor(msg_meta));
     OUTCOME_TRY(bls_aggregate_sign,
                 bls_provider_->aggregateSignatures(bls_signatures));
-    Time now = clock_->nowUTC();
-    OUTCOME_TRY(current_epoch, epoch_->epochAtTime(now));
     BlockHeader header;
     header.miner = std::move(miner_address);
     header.ticket = ticket;
     header.epost_proof = std::move(proof);
     header.parents = std::move(parent_tipset.cids);
     header.parent_weight = parent_weight;
-    header.height = static_cast<uint64_t>(current_epoch);
+    header.height = height;
     header.parent_state_root = std::move(vm_result.state_root);
     header.parent_message_receipts = std::move(vm_result.message_receipts);
     header.messages = msg_meta_cid;
     header.bls_aggregate = std::move(bls_aggregate_sign);
-    header.timestamp = static_cast<uint64_t>(now.unixTime().count());
+    header.timestamp = timestamp;
     header.block_sig = {};  // Block must be signed be Actor Miner
     header.fork_signaling = 0;
     return Block{.header = std::move(header),
