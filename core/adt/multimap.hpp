@@ -21,8 +21,7 @@ namespace fc::adt {
         array = Array<Value>{};
       }
       array->load(map.hamt.getIpld());
-      OUTCOME_TRY(count, array->amt.count());
-      OUTCOME_TRY(array->set(count, value));
+      OUTCOME_TRY(array->append(value));
       OUTCOME_TRY(array->flush());
       return map.set(key, *array);
     }
