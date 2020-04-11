@@ -31,7 +31,6 @@ namespace fc::vm::interpreter {
   using actor::kCronAddress;
   using actor::kSystemActorAddress;
   using actor::builtin::cron::EpochTick;
-  using actor::builtin::miner::kSubmitElectionPoStMethodNumber;
   using actor::builtin::miner::MinerActorState;
   using actor::builtin::miner::MinerInfo;
   using crypto::randomness::RandomnessProvider;
@@ -63,31 +62,6 @@ namespace fc::vm::interpreter {
                                      indices,
                                      std::make_shared<InvokerImpl>(),
                                      tipset.height);
-
-    for (auto &block : tipset.blks) {
-      OUTCOME_TRY(miner_owner, getMinerOwner(*state_tree, block.miner));
-      OUTCOME_TRY(miner_owner_actor, state_tree->get(miner_owner));
-      OUTCOME_TRY(system_actor, state_tree->get(kSystemActorAddress));
-      // TODO(turuslan): block reward amount
-      OUTCOME_TRY(RuntimeImpl::transfer(system_actor, miner_owner_actor, 0));
-      OUTCOME_TRY(state_tree->set(kSystemActorAddress, system_actor));
-      OUTCOME_TRY(state_tree->set(miner_owner, miner_owner_actor));
-
-      OUTCOME_TRY(receipt,
-                  env->applyMessage(UnsignedMessage{
-                      block.miner,
-                      kSystemActorAddress,
-                      system_actor.nonce,
-                      0,
-                      0,
-                      kInfiniteGas,
-                      kSubmitElectionPoStMethodNumber,
-                      {},
-                  }));
-      if (receipt.exit_code != VMExitCode::Ok) {
-        return InterpreterError::MINER_SUBMIT_FAILED;
-      }
-    }
 
     std::vector<MessageReceipt> receipts;
     std::map<Address, Actor> actor_cache;
