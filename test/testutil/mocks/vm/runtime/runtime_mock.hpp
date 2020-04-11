@@ -28,8 +28,6 @@ namespace fc::vm::runtime {
 
     MOCK_CONST_METHOD0(getCurrentReceiver, Address());
 
-    MOCK_CONST_METHOD0(getTopLevelBlockWinner, Address());
-
     MOCK_CONST_METHOD0(acquireState, std::shared_ptr<ActorStateHandle>());
 
     MOCK_CONST_METHOD1(getBalance,

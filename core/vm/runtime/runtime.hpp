@@ -81,12 +81,6 @@ namespace fc::vm::runtime {
     /** The address of the actor receiving the message. Always an ID-address. */
     virtual Address getCurrentReceiver() const = 0;
 
-    /**
-     * The actor who mined the block in which the initial on-chain message
-     * appears. Always an ID-address.
-     */
-    virtual Address getTopLevelBlockWinner() const = 0;
-
     virtual std::shared_ptr<ActorStateHandle> acquireState() const = 0;
 
     virtual outcome::result<BigInt> getBalance(

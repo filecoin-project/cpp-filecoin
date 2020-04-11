@@ -64,22 +64,17 @@ class RuntimeTest : public ::testing::Test {
   UnsignedMessage message_{message_to, message_from, {}, {}, {}, {}, {}, {}};
   ChainEpoch chain_epoch_{0};
   Address immediate_caller_{fc::primitives::address::TESTNET, 1};
-  Address block_miner_{};
   GasAmount gas_available_{100};
   GasAmount gas_used_{0};
 
-  std::shared_ptr<Runtime> runtime_ =
-      std::make_shared<RuntimeImpl>(std::make_shared<Env>(randomness_provider_,
-                                                          state_tree_,
-                                                          indices_,
-                                                          invoker_,
-                                                          chain_epoch_,
-                                                          block_miner_),
-                                    message_,
-                                    immediate_caller_,
-                                    gas_available_,
-                                    gas_used_,
-                                    ActorSubstateCID{"010001020001"_cid});
+  std::shared_ptr<Runtime> runtime_ = std::make_shared<RuntimeImpl>(
+      std::make_shared<Env>(
+          randomness_provider_, state_tree_, indices_, invoker_, chain_epoch_),
+      message_,
+      immediate_caller_,
+      gas_available_,
+      gas_used_,
+      ActorSubstateCID{"010001020001"_cid});
 };
 
 /**

@@ -171,8 +171,7 @@ namespace fc::api {
                   std::make_shared<StateTreeImpl>(context.state_tree),
                   indices,
                   std::make_shared<InvokerImpl>(),
-                  static_cast<ChainEpoch>(context.tipset.height),
-                  Address{}};
+                  static_cast<ChainEpoch>(context.tipset.height)};
           OUTCOME_TRY(receipt, env.applyMessage(message));
           InvocResult result;
           result.message = message;

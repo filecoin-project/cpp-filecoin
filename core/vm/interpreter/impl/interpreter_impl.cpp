@@ -62,12 +62,9 @@ namespace fc::vm::interpreter {
                                      state_tree,
                                      indices,
                                      std::make_shared<InvokerImpl>(),
-                                     tipset.height,
-                                     Address{});
+                                     tipset.height);
 
     for (auto &block : tipset.blks) {
-      env->block_miner = block.miner;
-
       OUTCOME_TRY(miner_owner, getMinerOwner(*state_tree, block.miner));
       OUTCOME_TRY(miner_owner_actor, state_tree->get(miner_owner));
       OUTCOME_TRY(system_actor, state_tree->get(kSystemActorAddress));
@@ -95,8 +92,6 @@ namespace fc::vm::interpreter {
     std::vector<MessageReceipt> receipts;
     std::map<Address, Actor> actor_cache;
     for (auto &block : tipset.blks) {
-      env->block_miner = block.miner;
-
       auto apply_message =
           [&](const UnsignedMessage &message) -> outcome::result<void> {
         auto actor_it = actor_cache.find(message.from);

@@ -53,9 +53,6 @@ namespace fc::vm::runtime {
     /** \copydoc Runtime::getCurrentReceiver() */
     Address getCurrentReceiver() const override;
 
-    /** \copydoc Runtime::getTopLevelBlockWinner() */
-    Address getTopLevelBlockWinner() const override;
-
     /** \copydoc Runtime::acquireState() */
     std::shared_ptr<ActorStateHandle> acquireState() const override;
 

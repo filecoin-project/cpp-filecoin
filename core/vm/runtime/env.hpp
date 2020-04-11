@@ -24,14 +24,12 @@ namespace fc::vm::runtime {
         std::shared_ptr<StateTree> state_tree,
         std::shared_ptr<Indices> indices,
         std::shared_ptr<Invoker> invoker,
-        ChainEpoch chain_epoch,
-        Address block_miner)
+        ChainEpoch chain_epoch)
         : randomness_provider{std::move(randomness_provider)},
           state_tree{std::move(state_tree)},
           indices{std::move(indices)},
           invoker{std::move(invoker)},
-          chain_epoch{chain_epoch},
-          block_miner{std::move(block_miner)} {}
+          chain_epoch{chain_epoch} {}
 
     outcome::result<MessageReceipt> applyMessage(
         const UnsignedMessage &message);
@@ -45,7 +43,6 @@ namespace fc::vm::runtime {
     std::shared_ptr<Indices> indices;
     std::shared_ptr<Invoker> invoker;
     ChainEpoch chain_epoch;
-    Address block_miner;
   };
 }  // namespace fc::vm::runtime
 

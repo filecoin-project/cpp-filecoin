@@ -53,11 +53,6 @@ namespace fc::vm::runtime {
       OUTCOME_TRY(state_tree->set(message.from, from_actor_2));
     }
 
-    OUTCOME_TRY(miner_actor, state_tree->get(block_miner));
-    OUTCOME_TRY(RuntimeImpl::transfer(
-        gas_holder, miner_actor, gas_used * message.gasPrice));
-    OUTCOME_TRY(state_tree->set(block_miner, miner_actor));
-
     auto ret_code = normalizeVMExitCode(VMExitCode{result.error().value()});
     BOOST_ASSERT_MSG(ret_code, "c++ actor code returned unknown error");
     return MessageReceipt{

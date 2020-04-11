@@ -68,10 +68,6 @@ namespace fc::vm::runtime {
     return message_.to;
   }
 
-  Address RuntimeImpl::getTopLevelBlockWinner() const {
-    return env_->block_miner;
-  }
-
   std::shared_ptr<ActorStateHandle> RuntimeImpl::acquireState() const {
     return std::make_shared<ActorStateHandleImpl>();
   }
