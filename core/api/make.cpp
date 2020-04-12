@@ -28,6 +28,8 @@ namespace fc::api {
   using crypto::signature::BlsSignature;
   using primitives::block::MsgMeta;
   using storage::amt::Amt;
+  using vm::isVMExitCode;
+  using vm::normalizeVMExitCode;
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
   using vm::runtime::Env;
@@ -154,10 +156,23 @@ namespace fc::api {
                   std::make_shared<StateTreeImpl>(context.state_tree),
                   std::make_shared<InvokerImpl>(),
                   static_cast<ChainEpoch>(context.tipset.height)};
-          OUTCOME_TRY(receipt, env.applyMessage(message));
           InvocResult result;
           result.message = message;
-          result.receipt = receipt;
+          auto maybe_result = env.applyImplicitMessage(message);
+          if (maybe_result) {
+            result.receipt = {
+                VMExitCode::Ok, maybe_result.value().return_value, 0};
+          } else {
+            if (isVMExitCode(maybe_result.error())) {
+              auto ret_code =
+                  normalizeVMExitCode(VMExitCode{maybe_result.error().value()});
+              BOOST_ASSERT_MSG(ret_code,
+                               "c++ actor code returned unknown error");
+              result.receipt = {*ret_code, {}, 0};
+            } else {
+              return maybe_result.error();
+            }
+          }
           return result;
         }},
         .StateGetActor = {[&](auto &address,

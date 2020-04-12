@@ -30,6 +30,14 @@ namespace fc::vm::runtime {
     outcome::result<MessageReceipt> applyMessage(
         const UnsignedMessage &message);
 
+    outcome::result<InvocationOutput> applyImplicitMessage(
+        UnsignedMessage message) {
+      OUTCOME_TRY(from, state_tree->get(message.from));
+      message.nonce = from.nonce;
+      GasAmount gas_used{0};
+      return send(gas_used, message.from, message);
+    }
+
     outcome::result<InvocationOutput> send(GasAmount &gas_used,
                                            const Address &origin,
                                            const UnsignedMessage &message);
