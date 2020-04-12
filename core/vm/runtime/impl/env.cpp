@@ -17,7 +17,7 @@ namespace fc::vm::runtime {
   using storage::hamt::HamtError;
 
   outcome::result<MessageReceipt> Env::applyMessage(
-      const UnsignedMessage &message) {
+      const UnsignedMessage &message, TokenAmount &penalty) {
     BigInt gas_cost = message.gasLimit * message.gasPrice;
     BigInt total_cost = gas_cost + message.value;
 
@@ -55,6 +55,7 @@ namespace fc::vm::runtime {
 
     auto ret_code = normalizeVMExitCode(VMExitCode{result.error().value()});
     BOOST_ASSERT_MSG(ret_code, "c++ actor code returned unknown error");
+    penalty = 0;
     return MessageReceipt{
         *ret_code,
         result ? result.value().return_value : Buffer{},

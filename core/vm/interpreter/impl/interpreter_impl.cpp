@@ -36,14 +36,12 @@ namespace fc::vm::interpreter {
   using crypto::randomness::RandomnessProvider;
   using message::SignedMessage;
   using message::UnsignedMessage;
-
+  using primitives::TokenAmount;
   using primitives::block::MsgMeta;
   using runtime::Env;
   using runtime::kInfiniteGas;
   using runtime::MessageReceipt;
   using runtime::RuntimeImpl;
-
-  using storage::amt::Amt;
 
   outcome::result<Result> InterpreterImpl::interpret(
       const std::shared_ptr<IpfsDatastore> &ipld, const Tipset &tipset) const {
@@ -77,7 +75,9 @@ namespace fc::vm::interpreter {
           return outcome::success();
         }
 
-        OUTCOME_TRY(receipt, env->applyMessage(message));
+        TokenAmount penalty;
+        OUTCOME_TRY(receipt, env->applyMessage(message, penalty));
+        reward.penalty += penalty;
         OUTCOME_TRY(receipts.append(std::move(receipt)));
         return outcome::success();
       };

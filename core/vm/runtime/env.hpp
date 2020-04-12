@@ -27,8 +27,8 @@ namespace fc::vm::runtime {
           invoker{std::move(invoker)},
           chain_epoch{chain_epoch} {}
 
-    outcome::result<MessageReceipt> applyMessage(
-        const UnsignedMessage &message);
+    outcome::result<MessageReceipt> applyMessage(const UnsignedMessage &message,
+                                                 TokenAmount &penalty);
 
     outcome::result<InvocationOutput> applyImplicitMessage(
         UnsignedMessage message) {
