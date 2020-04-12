@@ -43,7 +43,7 @@ TEST(InvokerTest, DecodeActorParams) {
   using fc::vm::actor::decodeActorParams;
 
   // 80 is cbor empty list, not int
-  EXPECT_OUTCOME_ERROR(VMExitCode::SysErrInvalidParameters,
+  EXPECT_OUTCOME_ERROR(VMExitCode::DECODE_ACTOR_PARAMS_ERROR,
                        decodeActorParams<int>(MethodParams{"80"_unhex}));
   EXPECT_OUTCOME_EQ(decodeActorParams<int>(MethodParams{"03"_unhex}), 3);
 }
@@ -52,7 +52,7 @@ TEST(InvokerTest, DecodeActorParams) {
 TEST(InvokerTest, EncodeActorParams) {
   using fc::vm::actor::encodeActorParams;
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ENCODE_ACTOR_PARAMS_ERROR,
+  EXPECT_OUTCOME_ERROR(VMExitCode::SysErrInvalidParameters,
                        encodeActorParams(fc::CID()));
   EXPECT_OUTCOME_EQ(encodeActorParams(3), MethodParams{"03"_unhex});
 }

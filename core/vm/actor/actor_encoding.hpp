@@ -32,7 +32,7 @@ namespace fc::vm::actor {
     }
     auto maybe_params = codec::cbor::decode<T>(params_bytes);
     if (!maybe_params) {
-      return VMExitCode::SysErrInvalidParameters;
+      return VMExitCode::DECODE_ACTOR_PARAMS_ERROR;
     }
     return maybe_params;
   }
@@ -42,7 +42,7 @@ namespace fc::vm::actor {
   outcome::result<MethodParams> encodeActorParams(const T &params) {
     auto maybe_bytes = codec::cbor::encode(params);
     if (!maybe_bytes) {
-      return VMExitCode::ENCODE_ACTOR_PARAMS_ERROR;
+      return VMExitCode::SysErrInvalidParameters;
     }
     return MethodParams{maybe_bytes.value()};
   }

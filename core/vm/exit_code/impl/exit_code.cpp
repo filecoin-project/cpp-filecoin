@@ -52,7 +52,7 @@ namespace fc::vm {
       case E::ErrPlaceholder:
         return error;
 
-      case E::ENCODE_ACTOR_PARAMS_ERROR:
+      case E::DECODE_ACTOR_PARAMS_ERROR:
         return E{1};
 
       case E::ACCOUNT_ACTOR_CREATE_WRONG_ADDRESS_TYPE:
