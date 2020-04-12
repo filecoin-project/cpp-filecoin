@@ -6,9 +6,8 @@
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
 #include "crypto/randomness/randomness_provider.hpp"
-#include "storage/amt/amt.hpp"
 #include "vm/actor/builtin/cron/cron_actor.hpp"
-#include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "vm/actor/builtin/reward/reward_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/runtime/gas_cost.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
@@ -29,10 +28,11 @@ namespace fc::vm::interpreter {
   using actor::Actor;
   using actor::InvokerImpl;
   using actor::kCronAddress;
+  using actor::kRewardAddress;
   using actor::kSystemActorAddress;
+  using actor::MethodParams;
   using actor::builtin::cron::EpochTick;
-  using actor::builtin::miner::MinerActorState;
-  using actor::builtin::miner::MinerInfo;
+  using actor::builtin::reward::AwardBlockReward;
   using crypto::randomness::RandomnessProvider;
   using message::SignedMessage;
   using message::UnsignedMessage;
@@ -65,31 +65,20 @@ namespace fc::vm::interpreter {
     auto env = std::make_shared<Env>(
         randomness, state_tree, std::make_shared<InvokerImpl>(), tipset.height);
 
-    std::vector<MessageReceipt> receipts;
-    std::map<Address, Actor> actor_cache;
+    adt::Array<MessageReceipt> receipts;
+    receipts.load(ipld);
+    std::set<CID> processed_messages;
     for (auto &block : tipset.blks) {
+      AwardBlockReward::Params reward{block.miner, 0, 0};
       auto apply_message =
-          [&](const UnsignedMessage &message) -> outcome::result<void> {
-        auto actor_it = actor_cache.find(message.from);
-        if (actor_it == actor_cache.end()) {
-          OUTCOME_TRY(actor, state_tree->get(message.from));
-          actor_it =
-              actor_cache.insert(std::make_pair(message.from, actor)).first;
-        }
-        auto &actor = actor_it->second;
-
-        if (actor.nonce != message.nonce) {
+          [&](const CID &cid,
+              const UnsignedMessage &message) -> outcome::result<void> {
+        if (!processed_messages.insert(cid).second) {
           return outcome::success();
         }
-        ++actor.nonce;
-
-        if (actor.balance < message.requiredFunds()) {
-          return outcome::success();
-        }
-        actor.balance -= message.requiredFunds();
 
         OUTCOME_TRY(receipt, env->applyMessage(message));
-        receipts.push_back(std::move(receipt));
+        OUTCOME_TRY(receipts.append(std::move(receipt)));
         return outcome::success();
       };
 
@@ -98,42 +87,44 @@ namespace fc::vm::interpreter {
       OUTCOME_TRY(meta.bls_messages.visit(
           [&](auto, auto &cid) -> outcome::result<void> {
             OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
-            return apply_message(message);
+            return apply_message(cid, message);
           }));
       OUTCOME_TRY(meta.secp_messages.visit(
           [&](auto, auto &cid) -> outcome::result<void> {
             OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
-            return apply_message(message.message);
+            return apply_message(cid, message.message);
           }));
+      OUTCOME_TRY(reward_encoded, codec::cbor::encode(reward));
+      OUTCOME_TRY(env->applyImplicitMessage(UnsignedMessage{
+          kRewardAddress,
+          kSystemActorAddress,
+          {},
+          0,
+          0,
+          kInfiniteGas,
+          AwardBlockReward::Number,
+          MethodParams{reward_encoded},
+      }));
     }
 
-    OUTCOME_TRY(cron_actor, state_tree->get(kCronAddress));
-    OUTCOME_TRY(receipt,
-                env->applyMessage(UnsignedMessage{
-                    kCronAddress,
-                    kCronAddress,
-                    cron_actor.nonce,
-                    0,
-                    0,
-                    kInfiniteGas,
-                    EpochTick::Number,
-                    {},
-                }));
-    if (receipt.exit_code != VMExitCode::Ok) {
-      return InterpreterError::CRON_TICK_FAILED;
-    }
+    OUTCOME_TRY(env->applyImplicitMessage(UnsignedMessage{
+        kCronAddress,
+        kSystemActorAddress,
+        {},
+        0,
+        0,
+        kInfiniteGas,
+        EpochTick::Number,
+        {},
+    }));
 
     OUTCOME_TRY(new_state_root, state_tree->flush());
 
-    Amt receipts_amt{ipld};
-    for (auto i = 0u; i < receipts.size(); ++i) {
-      OUTCOME_TRY(receipts_amt.setCbor(i, receipts[i]));
-    }
-    OUTCOME_TRY(receipts_amt.flush());
+    OUTCOME_TRY(receipts.flush());
 
     return Result{
         new_state_root,
-        receipts_amt.cid(),
+        receipts.amt.cid(),
     };
   }
 
@@ -147,13 +138,4 @@ namespace fc::vm::interpreter {
     }
     return false;
   }
-
-  outcome::result<InterpreterImpl::Address> InterpreterImpl::getMinerOwner(
-      StateTreeImpl &state_tree, const Address &miner) const {
-    OUTCOME_TRY(actor, state_tree.get(miner));
-    OUTCOME_TRY(state,
-                state_tree.getStore()->getCbor<MinerActorState>(actor.head));
-    return state.info.owner;
-  }
-
 }  // namespace fc::vm::interpreter

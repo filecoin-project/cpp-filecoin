@@ -23,9 +23,6 @@ namespace fc::vm::interpreter {
 
    private:
     bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const;
-
-    outcome::result<Address> getMinerOwner(StateTreeImpl &state_tree,
-                                           const Address &miner) const;
   };
 }  // namespace fc::vm::interpreter
 
