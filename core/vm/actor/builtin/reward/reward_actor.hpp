@@ -94,12 +94,10 @@ namespace fc::vm::actor::builtin::reward {
       Address miner;
       TokenAmount penalty;
       TokenAmount gas_reward;
-      Power nominal_power;
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(
-      AwardBlockReward::Params, miner, penalty, gas_reward, nominal_power)
+  CBOR_TUPLE(AwardBlockReward::Params, miner, penalty, gas_reward)
 
   struct WithdrawReward : ActorMethodBase<3> {
     ACTOR_METHOD_DECL();
