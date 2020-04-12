@@ -30,7 +30,6 @@ namespace fc::api {
   using storage::amt::Amt;
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
-  using vm::indices::Indices;
   using vm::runtime::Env;
 
   struct TipsetContext {
@@ -73,8 +72,7 @@ namespace fc::api {
       OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
       TipsetContext context{tipset, {ipld, tipset.getParentStateRoot()}, {}};
       if (interpret) {
-        // TODO(turuslan): our Indices are not used anywhere
-        OUTCOME_TRY(result, InterpreterImpl{}.interpret(ipld, tipset, nullptr));
+        OUTCOME_TRY(result, InterpreterImpl{}.interpret(ipld, tipset));
         context.state_tree = {ipld, result.state_root};
         context.interpreted = result;
       }
@@ -150,13 +148,10 @@ namespace fc::api {
         .StateCall = {[&](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          // TODO(turuslan): our Indices are not used anywhere
-          std::shared_ptr<Indices> indices;
           // TODO(turuslan): FIL-146 randomness from tipset
           std::shared_ptr<RandomnessProvider> randomness;
           Env env{randomness,
                   std::make_shared<StateTreeImpl>(context.state_tree),
-                  indices,
                   std::make_shared<InvokerImpl>(),
                   static_cast<ChainEpoch>(context.tipset.height)};
           OUTCOME_TRY(receipt, env.applyMessage(message));

@@ -14,8 +14,7 @@ namespace fc::vm::interpreter {
    public:
     outcome::result<Result> interpret(
         const std::shared_ptr<IpfsDatastore> &store,
-        const Tipset &tipset,
-        const std::shared_ptr<Indices> &indices) const override;
+        const Tipset &tipset) const override;
 
    protected:
     using BlockHeader = primitives::block::BlockHeader;

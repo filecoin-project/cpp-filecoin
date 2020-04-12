@@ -18,14 +18,12 @@
 #include "primitives/address/address_codec.hpp"
 #include "primitives/types.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/indices/indices.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
 
   using adt::AddressKeyer;
   using adt::BalanceTable;
   using common::Buffer;
-  using indices::Indices;
   using power::Power;
   using primitives::BigInt;
   using primitives::ChainEpoch;

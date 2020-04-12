@@ -57,8 +57,7 @@ namespace fc::blockchain::production {
     outcome::result<Block> generate(Address miner_address,
                                     const CID &parent_tipset_id,
                                     EPostProof proof,
-                                    Ticket ticket,
-                                    std::shared_ptr<Indices> indices) override;
+                                    Ticket ticket) override;
 
     outcome::result<Block> generate(Address miner_address,
                                     const Tipset &parent_tipset,

@@ -46,9 +46,7 @@ namespace fc::vm::interpreter {
   using storage::amt::Amt;
 
   outcome::result<Result> InterpreterImpl::interpret(
-      const std::shared_ptr<IpfsDatastore> &ipld,
-      const Tipset &tipset,
-      const std::shared_ptr<Indices> &indices) const {
+      const std::shared_ptr<IpfsDatastore> &ipld, const Tipset &tipset) const {
     if (tipset.height == 0) {
       return Result{
           tipset.getParentStateRoot(),
@@ -64,11 +62,8 @@ namespace fc::vm::interpreter {
         std::make_shared<StateTreeImpl>(ipld, tipset.getParentStateRoot());
     // TODO(turuslan): FIL-146 randomness from tipset
     std::shared_ptr<RandomnessProvider> randomness;
-    auto env = std::make_shared<Env>(randomness,
-                                     state_tree,
-                                     indices,
-                                     std::make_shared<InvokerImpl>(),
-                                     tipset.height);
+    auto env = std::make_shared<Env>(
+        randomness, state_tree, std::make_shared<InvokerImpl>(), tipset.height);
 
     std::vector<MessageReceipt> receipts;
     std::map<Address, Actor> actor_cache;

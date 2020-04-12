@@ -21,7 +21,6 @@ namespace fc::vm::runtime {
   using crypto::randomness::ChainEpoch;
   using crypto::randomness::Randomness;
   using crypto::randomness::RandomnessProvider;
-  using indices::Indices;
   using primitives::address::Address;
   using state::StateTree;
   using storage::ipfs::IpfsDatastore;
@@ -61,9 +60,6 @@ namespace fc::vm::runtime {
 
     /** \copydoc Runtime::getValueReceived() */
     BigInt getValueReceived() const override;
-
-    /** \copydoc Runtime::getCurrentIndices() */
-    std::shared_ptr<Indices> getCurrentIndices() const override;
 
     /** \copydoc Runtime::getActorCodeID() */
     outcome::result<CodeId> getActorCodeID(

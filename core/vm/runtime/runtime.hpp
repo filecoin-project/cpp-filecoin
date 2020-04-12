@@ -19,7 +19,6 @@
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor_encoding.hpp"
 #include "vm/exit_code/exit_code.hpp"
-#include "vm/indices/indices.hpp"
 #include "vm/message/message.hpp"
 #include "vm/runtime/actor_state_handle.hpp"
 #include "vm/runtime/runtime_types.hpp"
@@ -35,7 +34,6 @@ namespace fc::vm::runtime {
   using crypto::blake2b::Blake2b256Hash;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
-  using indices::Indices;
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using primitives::GasAmount;
@@ -87,9 +85,6 @@ namespace fc::vm::runtime {
         const Address &address) const = 0;
 
     virtual BigInt getValueReceived() const = 0;
-
-    /** Look up the current values of several system-wide economic indices. */
-    virtual std::shared_ptr<Indices> getCurrentIndices() const = 0;
 
     /** Look up the code ID of a given actor address. */
     virtual outcome::result<CodeId> getActorCodeID(

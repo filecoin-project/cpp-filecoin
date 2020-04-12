@@ -48,12 +48,10 @@ namespace fc::blockchain::production {
       primitives::address::Address miner_address,
       const CID &parent_tipset_id,
       EPostProof proof,
-      Ticket ticket,
-      std::shared_ptr<Indices> indices) {
+      Ticket ticket) {
     OUTCOME_TRY(parent_tipset, getTipset(parent_tipset_id));
-    OUTCOME_TRY(
-        vm_result,
-        vm_interpreter_->interpret(data_storage_, parent_tipset, indices));
+    OUTCOME_TRY(vm_result,
+                vm_interpreter_->interpret(data_storage_, parent_tipset));
     std::vector<SignedMessage> messages =
         message_storage_->getTopScored(config::kBlockMaxMessagesCount);
     auto now = clock_->nowUTC();

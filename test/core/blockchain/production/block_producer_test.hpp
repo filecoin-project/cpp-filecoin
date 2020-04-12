@@ -23,7 +23,6 @@
 #include "testutil/mocks/clock/utc_clock_mock.hpp"
 #include "testutil/mocks/crypto/bls/bls_provider_mock.hpp"
 #include "testutil/mocks/storage/ipfs/ipfs_datastore_mock.hpp"
-#include "testutil/mocks/vm/indices/indices_mock.hpp"
 #include "testutil/mocks/vm/interpreter/interpreter_mock.hpp"
 #include "testutil/outcome.hpp"
 
@@ -72,8 +71,6 @@ class BlockProducerTest : public testing::Test {
   using EPostProof = fc::primitives::ticket::EPostProof;
   using PostRandomness = fc::primitives::ticket::PostRandomness;
   using Ticket = fc::primitives::ticket::Ticket;
-  using Indices = fc::vm::indices::Indices;
-  using IndicesImpl = fc::vm::indices::MockIndices;
   using BlockProducer = fc::blockchain::production::BlockProducer;
   using BlockProducerImpl = fc::blockchain::production::BlockProducerImpl;
 
