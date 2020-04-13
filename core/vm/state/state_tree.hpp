@@ -38,7 +38,7 @@ namespace fc::vm::state {
     virtual outcome::result<CID> flush() = 0;
 
     /// Revert changes to last flushed state
-    virtual outcome::result<void> revert() = 0;
+    virtual outcome::result<void> revert(const CID &root) = 0;
 
     /// Get store
     virtual std::shared_ptr<IpfsDatastore> getStore() = 0;

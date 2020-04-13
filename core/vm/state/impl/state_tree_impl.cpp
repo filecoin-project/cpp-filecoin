@@ -15,11 +15,11 @@ namespace fc::vm::state {
   using primitives::address::encodeToString;
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store)
-      : store_(store), hamt_(store), snapshot_(store) {}
+      : store_{store}, hamt_{store} {}
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store,
                                const CID &root)
-      : store_(store), hamt_(store, root), snapshot_(store, root) {}
+      : store_{store}, hamt_{store, root} {}
 
   outcome::result<void> StateTreeImpl::set(const Address &address,
                                            const Actor &actor) {
@@ -60,13 +60,11 @@ namespace fc::vm::state {
   }
 
   outcome::result<CID> StateTreeImpl::flush() {
-    OUTCOME_TRY(cid, hamt_.flush());
-    snapshot_ = hamt_;
-    return std::move(cid);
+    return hamt_.flush();
   }
 
-  outcome::result<void> StateTreeImpl::revert() {
-    hamt_ = snapshot_;
+  outcome::result<void> StateTreeImpl::revert(const CID &root) {
+    hamt_ = {store_, root};
     return outcome::success();
   }
 

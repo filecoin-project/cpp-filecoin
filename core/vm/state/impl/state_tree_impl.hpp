@@ -36,13 +36,13 @@ namespace fc::vm::state {
     /// Write changes to storage
     outcome::result<CID> flush() override;
     /// Revert changes to last flushed state
-    outcome::result<void> revert() override;
+    outcome::result<void> revert(const CID &root) override;
     /// Get store
     std::shared_ptr<IpfsDatastore> getStore() override;
 
    private:
     std::shared_ptr<IpfsDatastore> store_;
-    Hamt hamt_, snapshot_;
+    Hamt hamt_;
   };
 }  // namespace fc::vm::state
 

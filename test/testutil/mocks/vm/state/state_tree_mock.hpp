@@ -22,7 +22,7 @@ namespace fc::vm::state {
                  outcome::result<Address>(const Address &address,
                                           const Actor &actor));
     MOCK_METHOD0(flush, outcome::result<CID>());
-    MOCK_METHOD0(revert, outcome::result<void>());
+    MOCK_METHOD1(revert, outcome::result<void>(const CID &));
     MOCK_METHOD0(getStore, std::shared_ptr<IpfsDatastore>());
   };
 
