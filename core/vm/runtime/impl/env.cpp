@@ -38,12 +38,14 @@ namespace fc::vm::runtime {
         kOnChainMessageBaseGasCost
         + serialized_message.size() * kOnChainMessagePerByteGasCharge;
 
+    OUTCOME_TRY(snapshot, state_tree->flush());
     auto result = send(gas_used, message.from, message);
+    auto exit_code = VMExitCode::Ok;
     if (!result) {
       if (!isVMExitCode(result.error())) {
         return result.error();
       }
-      gas_used = message.gasLimit;
+      exit_code = VMExitCode{result.error().value()};
     } else {
       OUTCOME_TRY(from_actor_2, state_tree->get(message.from));
       OUTCOME_TRY(RuntimeImpl::transfer(
@@ -52,8 +54,12 @@ namespace fc::vm::runtime {
           (message.gasLimit - gas_used) * message.gasPrice));
       OUTCOME_TRY(state_tree->set(message.from, from_actor_2));
     }
+    if (exit_code != VMExitCode::Ok) {
+      OUTCOME_TRY(state_tree->revert(snapshot));
+    }
+    BOOST_ASSERT_MSG(gas_used >= 0, "negative used gas");
 
-    auto ret_code = normalizeVMExitCode(VMExitCode{result.error().value()});
+    auto ret_code = normalizeVMExitCode(exit_code);
     BOOST_ASSERT_MSG(ret_code, "c++ actor code returned unknown error");
     penalty = 0;
     return MessageReceipt{
@@ -105,7 +111,7 @@ namespace fc::vm::runtime {
       invocation_output = invocation.value();
     }
 
-    gas_used += runtime.gasUsed();
+    gas_used = runtime.gasUsed();
 
     return invocation_output;
   }
