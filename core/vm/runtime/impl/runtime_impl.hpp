@@ -115,7 +115,6 @@ namespace fc::vm::runtime {
         const BlockHeader &block_header_2) override;
 
    private:
-    outcome::result<Actor> getOrCreateActor(const Address &address);
     std::shared_ptr<Runtime> createRuntime(
         const UnsignedMessage &message,
         const ActorSubstateCID &current_actor_state) const;

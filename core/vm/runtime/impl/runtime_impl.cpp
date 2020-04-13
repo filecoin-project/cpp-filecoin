@@ -200,18 +200,6 @@ namespace fc::vm::runtime {
     return outcome::success();
   }
 
-  fc::outcome::result<Actor> RuntimeImpl::getOrCreateActor(
-      const Address &address) {
-    auto actor = state_tree_->get(address);
-    if (!actor) {
-      if (actor.error() != HamtError::NOT_FOUND) {
-        return actor.error();
-      }
-      return AccountActor::create(state_tree_, address);
-    }
-    return actor;
-  }
-
   std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
       const UnsignedMessage &message,
       const ActorSubstateCID &current_actor_state) const {

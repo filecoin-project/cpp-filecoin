@@ -240,6 +240,14 @@ namespace fc::vm::runtime {
     inline auto getCurrentBalance() {
       return getBalance(getCurrentReceiver());
     }
+
+    inline outcome::result<void> validateImmediateCallerIs(
+        const Address &address) {
+      if (getImmediateCaller() == address) {
+        return outcome::success();
+      }
+      return VMExitCode::SysErrForbidden;
+    }
   };
 
 }  // namespace fc::vm::runtime

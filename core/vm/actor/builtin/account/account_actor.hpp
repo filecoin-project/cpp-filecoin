@@ -27,14 +27,11 @@ namespace fc::vm::actor::builtin::account {
     /// Create account actor from BLS or Secp256k1 address
     static outcome::result<Actor> create(
         const std::shared_ptr<StateTree> &state_tree, const Address &address);
-    /**
-     * Get BLS address of account actor from ID address
-     * @param state_tree state tree
-     * @param address id address to be resolved to key address
-     * @returns key address associated with id address
-     */
-    static outcome::result<Address> resolveToKeyAddress(
-        const std::shared_ptr<StateTree> &state_tree, const Address &address);
+  };
+
+  struct Construct : ActorMethodBase<1> {
+    using Params = Address;
+    ACTOR_METHOD_DECL();
   };
 
   struct PubkeyAddress : ActorMethodBase<2> {
