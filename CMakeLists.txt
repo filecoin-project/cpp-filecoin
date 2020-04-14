@@ -115,6 +115,7 @@ include_directories(
     # system includes
     deps/outcome
     deps/tinycbor/src
+    deps/libsecp256k1/src
 )
 
 add_subdirectory(core)
