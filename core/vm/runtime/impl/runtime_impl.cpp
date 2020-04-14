@@ -192,12 +192,19 @@ namespace fc::vm::runtime {
     return RuntimeError::UNKNOWN;
   }
 
-  fc::outcome::result<void> RuntimeImpl::chargeGas(GasAmount amount) {
-    gas_used_ = gas_used_ + amount;
-    if (gas_available_ != kInfiniteGas && gas_available_ < gas_used_) {
-      return RuntimeError::NOT_ENOUGH_GAS;
+  outcome::result<void> RuntimeImpl::chargeGas(GasAmount &used,
+                                               GasAmount limit,
+                                               GasAmount amount) {
+    used += amount;
+    if (limit != kInfiniteGas && used > limit) {
+      used = limit;
+      return VMExitCode::SysErrOutOfGas;
     }
     return outcome::success();
+  }
+
+  fc::outcome::result<void> RuntimeImpl::chargeGas(GasAmount amount) {
+    return chargeGas(gas_used_, gas_available_, amount);
   }
 
   std::shared_ptr<Runtime> RuntimeImpl::createRuntime(

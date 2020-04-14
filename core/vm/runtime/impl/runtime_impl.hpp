@@ -84,6 +84,10 @@ namespace fc::vm::runtime {
     /** \copydoc Runtime::getMessage() */
     std::reference_wrapper<const UnsignedMessage> getMessage() override;
 
+    static outcome::result<void> chargeGas(GasAmount &used,
+                                           GasAmount limit,
+                                           GasAmount amount);
+
     outcome::result<void> chargeGas(GasAmount amount) override;
 
     ActorSubstateCID getCurrentActorState() override;
