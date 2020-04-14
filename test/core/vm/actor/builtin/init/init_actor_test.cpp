@@ -31,8 +31,9 @@ using fc::vm::runtime::MockRuntime;
 
 /** Init actor state CBOR encoding and decoding */
 TEST(InitActorTest, InitActorStateCbor) {
-  InitActorState init_actor_state{"010001020000"_cid, 3};
-  expectEncodeAndReencode(init_actor_state, "82d82a470001000102000003"_unhex);
+  InitActorState init_actor_state{"010001020000"_cid, 3, "n"};
+  expectEncodeAndReencode(init_actor_state,
+                          "83d82a470001000102000003616e"_unhex);
 }
 
 /// Init actor exec params CBOR encoding and decoding
@@ -51,7 +52,7 @@ TEST(InitActorTest, AddActor) {
   using fc::storage::hamt::Hamt;
   auto store = std::make_shared<fc::storage::ipfs::InMemoryDatastore>();
   EXPECT_OUTCOME_TRUE(empty_map, Hamt(store).flush());
-  InitActorState state{empty_map, 3};
+  InitActorState state{empty_map, 3, "n"};
   Address address{fc::primitives::address::TESTNET,
                   fc::primitives::address::ActorExecHash{}};
   auto expected = Address::makeFromId(state.next_id);

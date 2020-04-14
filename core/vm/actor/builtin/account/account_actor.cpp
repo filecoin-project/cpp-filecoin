@@ -14,12 +14,9 @@ namespace fc::vm::actor::builtin::account {
     if (!address.isKeyType()) {
       return VMExitCode::ACCOUNT_ACTOR_CREATE_WRONG_ADDRESS_TYPE;
     }
-    Actor actor{kAccountCodeCid, ActorSubstateCID{kEmptyObjectCid}, 0, 0};
-    if (address.getProtocol() == Protocol::BLS) {
-      OUTCOME_TRY(state,
-                  state_tree->getStore()->setCbor(AccountActorState{address}));
-      actor.head = ActorSubstateCID{state};
-    }
+    OUTCOME_TRY(state,
+                state_tree->getStore()->setCbor(AccountActorState{address}));
+    Actor actor{kAccountCodeCid, ActorSubstateCID{state}, 0, 0};
     OUTCOME_TRY(state_tree->registerNewAddress(address, actor));
     return actor;
   }
@@ -47,7 +44,7 @@ namespace fc::vm::actor::builtin::account {
     return state.address;
   }
 
-  const ActorExports exports = {
+  const ActorExports exports{
       exportMethod<PubkeyAddress>(),
   };
 }  // namespace fc::vm::actor::builtin::account

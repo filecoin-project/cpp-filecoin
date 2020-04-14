@@ -5,6 +5,7 @@
 
 #include "api/make.hpp"
 
+#include "blockchain/production/impl/block_producer_impl.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
@@ -19,21 +20,24 @@ namespace fc::api {
   using vm::actor::builtin::miner::MinerActorState;
   using vm::actor::builtin::storage_power::StoragePowerActorState;
   using vm::interpreter::InterpreterImpl;
+  using InterpreterResult = vm::interpreter::Result;
   using vm::state::StateTreeImpl;
   using MarketActorState = vm::actor::builtin::market::State;
+  using blockchain::production::BlockProducerImpl;
   using crypto::randomness::RandomnessProvider;
   using crypto::signature::BlsSignature;
   using primitives::block::MsgMeta;
   using storage::amt::Amt;
+  using vm::isVMExitCode;
+  using vm::normalizeVMExitCode;
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
-  using vm::indices::Indices;
   using vm::runtime::Env;
 
   struct TipsetContext {
     Tipset tipset;
     StateTreeImpl state_tree;
-    boost::optional<CID> receipts;
+    boost::optional<InterpreterResult> interpreted;
 
     template <typename T, bool load>
     outcome::result<T> actorState(const Address &address) {
@@ -70,10 +74,9 @@ namespace fc::api {
       OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
       TipsetContext context{tipset, {ipld, tipset.getParentStateRoot()}, {}};
       if (interpret) {
-        // TODO(turuslan): our Indices are not used anywhere
-        OUTCOME_TRY(result, InterpreterImpl{}.interpret(ipld, tipset, nullptr));
+        OUTCOME_TRY(result, InterpreterImpl{}.interpret(ipld, tipset));
         context.state_tree = {ipld, result.state_root};
-        context.receipts = result.message_receipts;
+        context.interpreted = result;
       }
       return context;
     };
@@ -100,59 +103,43 @@ namespace fc::api {
                                  auto height,
                                  auto timestamp) -> outcome::result<BlockMsg> {
           OUTCOME_TRY(context, tipsetContext(parent, true));
+          BlockProducerImpl producer{
+              ipld,
+              nullptr,
+              nullptr,
+              nullptr,
+              weight_calculator,
+              bls_provider,
+              std::make_shared<InterpreterImpl>(),
+          };
+          OUTCOME_TRY(block,
+                      producer.generate(miner,
+                                        context.tipset,
+                                        *context.interpreted,
+                                        proof,
+                                        ticket,
+                                        messages,
+                                        height,
+                                        timestamp));
 
           OUTCOME_TRY(miner_state, context.minerState(miner));
           OUTCOME_TRY(worker_id,
                       context.state_tree.lookupId(miner_state.info.worker));
-          OUTCOME_TRY(state_root, context.state_tree.flush());
-
-          BlockMsg block;
-          block.header.miner = miner;
-          block.header.parents = parent.cids;
-          block.header.ticket = ticket;
-          block.header.height = height;
-          block.header.timestamp = timestamp;
-          block.header.epost_proof = proof;
-          block.header.parent_state_root = state_root;
-          block.header.parent_message_receipts = *context.receipts;
-          block.header.fork_signaling = 0;
-
-          std::vector<BlsSignature> bls_sigs;
-          Amt amt_bls{ipld}, amt_secp{ipld};
-          uint64_t i_bls{0}, i_secp{0};
-          for (auto &message : messages) {
-            if (message.signature.isBls()) {
-              OUTCOME_TRY(message_cid, ipld->setCbor(message.message));
-              bls_sigs.emplace_back(
-                  boost::get<BlsSignature>(message.signature));
-              block.bls_messages.emplace_back(std::move(message_cid));
-              OUTCOME_TRY(amt_bls.setCbor(++i_bls, message_cid));
-            } else {
-              OUTCOME_TRY(message_cid, ipld->setCbor(message));
-              block.secp_messages.emplace_back(std::move(message_cid));
-              OUTCOME_TRY(amt_secp.setCbor(++i_secp, message_cid));
-            }
-          }
-
-          OUTCOME_TRY(amt_bls.flush());
-          OUTCOME_TRY(amt_secp.flush());
-          OUTCOME_TRY(msg_meta,
-                      ipld->setCbor(MsgMeta{amt_bls.cid(), amt_secp.cid()}));
-          block.header.messages = msg_meta;
-
-          OUTCOME_TRY(bls_aggregate,
-                      bls_provider->aggregateSignatures(bls_sigs));
-          block.header.bls_aggregate = bls_aggregate;
-
-          OUTCOME_TRY(parent_weight,
-                      weight_calculator->calculateWeight(context.tipset));
-          block.header.parent_weight = parent_weight;
-
           OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
           OUTCOME_TRY(block_sig, key_store->sign(worker_id, block_signable));
           block.header.block_sig = block_sig;
 
-          return block;
+          BlockMsg block2;
+          block2.header = block.header;
+          for (auto &msg : block.bls_messages) {
+            OUTCOME_TRY(cid, ipld->setCbor(msg));
+            block2.bls_messages.emplace_back(std::move(cid));
+          }
+          for (auto &msg : block.secp_messages) {
+            OUTCOME_TRY(cid, ipld->setCbor(msg));
+            block2.secp_messages.emplace_back(std::move(cid));
+          }
+          return block2;
         }},
         // TODO(turuslan): FIL-165 implement method
         .MpoolPending = {},
@@ -163,20 +150,29 @@ namespace fc::api {
         .StateCall = {[&](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          // TODO(turuslan): our Indices are not used anywhere
-          std::shared_ptr<Indices> indices;
           // TODO(turuslan): FIL-146 randomness from tipset
           std::shared_ptr<RandomnessProvider> randomness;
           Env env{randomness,
                   std::make_shared<StateTreeImpl>(context.state_tree),
-                  indices,
                   std::make_shared<InvokerImpl>(),
-                  static_cast<ChainEpoch>(context.tipset.height),
-                  Address{}};
-          OUTCOME_TRY(receipt, env.applyMessage(message));
+                  static_cast<ChainEpoch>(context.tipset.height)};
           InvocResult result;
           result.message = message;
-          result.receipt = receipt;
+          auto maybe_result = env.applyImplicitMessage(message);
+          if (maybe_result) {
+            result.receipt = {
+                VMExitCode::Ok, maybe_result.value().return_value, 0};
+          } else {
+            if (isVMExitCode(maybe_result.error())) {
+              auto ret_code =
+                  normalizeVMExitCode(VMExitCode{maybe_result.error().value()});
+              BOOST_ASSERT_MSG(ret_code,
+                               "c++ actor code returned unknown error");
+              result.receipt = {*ret_code, {}, 0};
+            } else {
+              return maybe_result.error();
+            }
+          }
           return result;
         }},
         .StateGetActor = {[&](auto &address,

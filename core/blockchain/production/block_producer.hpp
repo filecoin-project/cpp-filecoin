@@ -8,7 +8,6 @@
 #include "primitives/block/block.hpp"
 #include "primitives/ticket/epost_ticket.hpp"
 #include "primitives/ticket/ticket.hpp"
-#include "vm/indices/indices.hpp"
 
 namespace fc::blockchain::production {
   /**
@@ -20,7 +19,6 @@ namespace fc::blockchain::production {
     using Address = primitives::address::Address;
     using EPostProof = primitives::ticket::EPostProof;
     using Ticket = primitives::ticket::Ticket;
-    using Indices = vm::indices::Indices;
 
    public:
     virtual ~BlockProducer() = default;
@@ -33,12 +31,10 @@ namespace fc::blockchain::production {
      * @param ticket - used ticket for election round
      * @return Generated full block
      */
-    virtual outcome::result<Block> generate(
-        Address miner_address,
-        const CID &parent_tipset_id,
-        EPostProof proof,
-        Ticket ticket,
-        std::shared_ptr<Indices> indices) = 0;
+    virtual outcome::result<Block> generate(Address miner_address,
+                                            const CID &parent_tipset_id,
+                                            EPostProof proof,
+                                            Ticket ticket) = 0;
   };
 
   /**

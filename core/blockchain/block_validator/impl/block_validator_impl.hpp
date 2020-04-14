@@ -19,7 +19,6 @@
 #include "crypto/bls/bls_provider.hpp"
 #include "power/power_table.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/indices/indices.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::blockchain::block_validator {
@@ -36,7 +35,6 @@ namespace fc::blockchain::block_validator {
     using SecpProvider = libp2p::crypto::secp256k1::Secp256k1Provider;
     using Interpreter = vm::interpreter::Interpreter;
     using Tipset = primitives::tipset::Tipset;
-    using Indices = vm::indices::Indices;
 
    public:
     using StageExecutor = outcome::result<void> (BlockValidatorImpl::*)(
@@ -49,8 +47,7 @@ namespace fc::blockchain::block_validator {
                        std::shared_ptr<PowerTable> power_table,
                        std::shared_ptr<BlsProvider> bls_crypto_provider,
                        std::shared_ptr<SecpProvider> secp_crypto_provider,
-                       std::shared_ptr<Interpreter> vm_interpreter,
-                       std::shared_ptr<Indices> indices)
+                       std::shared_ptr<Interpreter> vm_interpreter)
         : datastore_{std::move(ipfs_store)},
           clock_{std::move(utc_clock)},
           epoch_clock_{std::move(epoch_clock)},
@@ -58,8 +55,7 @@ namespace fc::blockchain::block_validator {
           power_table_{std::move(power_table)},
           bls_provider_{std::move(bls_crypto_provider)},
           secp_provider_{std::move(secp_crypto_provider)},
-          vm_interpreter_{std::move(vm_interpreter)},
-          vm_indices_{std::move(indices)} {}
+          vm_interpreter_{std::move(vm_interpreter)} {}
 
     outcome::result<void> validateBlock(
         const BlockHeader &header, scenarios::Scenario scenario) const override;
@@ -75,7 +71,6 @@ namespace fc::blockchain::block_validator {
     std::shared_ptr<BlsProvider> bls_provider_;
     std::shared_ptr<SecpProvider> secp_provider_;
     std::shared_ptr<Interpreter> vm_interpreter_;
-    std::shared_ptr<Indices> vm_indices_;
 
     /**
      * BlockHeader CID -> Parent tipset

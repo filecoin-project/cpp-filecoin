@@ -21,4 +21,6 @@ target_link_libraries(actor
     multisig_actor
     storage_power_actor
     cron_actor
+    reward_actor
+    payment_channel_actor
     )

@@ -14,8 +14,7 @@ namespace fc::vm::interpreter {
    public:
     outcome::result<Result> interpret(
         const std::shared_ptr<IpfsDatastore> &store,
-        const Tipset &tipset,
-        const std::shared_ptr<Indices> &indices) const override;
+        const Tipset &tipset) const override;
 
    protected:
     using BlockHeader = primitives::block::BlockHeader;
@@ -24,9 +23,6 @@ namespace fc::vm::interpreter {
 
    private:
     bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const;
-
-    outcome::result<Address> getMinerOwner(StateTreeImpl &state_tree,
-                                           const Address &miner) const;
   };
 }  // namespace fc::vm::interpreter
 
