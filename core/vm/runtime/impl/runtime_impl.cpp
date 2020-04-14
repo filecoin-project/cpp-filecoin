@@ -27,7 +27,6 @@ namespace fc::vm::runtime {
   using fc::vm::actor::CodeId;
   using fc::vm::actor::MethodNumber;
   using fc::vm::actor::builtin::account::AccountActor;
-  using fc::vm::indices::Indices;
   using fc::vm::message::UnsignedMessage;
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Env> env,
@@ -68,10 +67,6 @@ namespace fc::vm::runtime {
     return message_.to;
   }
 
-  Address RuntimeImpl::getTopLevelBlockWinner() const {
-    return env_->block_miner;
-  }
-
   std::shared_ptr<ActorStateHandle> RuntimeImpl::acquireState() const {
     return std::make_shared<ActorStateHandleImpl>();
   }
@@ -88,10 +83,6 @@ namespace fc::vm::runtime {
 
   BigInt RuntimeImpl::getValueReceived() const {
     return message_.value;
-  }
-
-  std::shared_ptr<Indices> RuntimeImpl::getCurrentIndices() const {
-    return env_->indices;
   }
 
   fc::outcome::result<CodeId> RuntimeImpl::getActorCodeID(

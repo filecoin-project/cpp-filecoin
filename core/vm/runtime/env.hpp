@@ -9,32 +9,34 @@
 #include "crypto/randomness/randomness_provider.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/invoker.hpp"
-#include "vm/indices/indices.hpp"
 #include "vm/state/state_tree.hpp"
 
 namespace fc::vm::runtime {
   using actor::Invoker;
   using crypto::randomness::RandomnessProvider;
-  using indices::Indices;
   using state::StateTree;
 
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {
     Env(std::shared_ptr<RandomnessProvider> randomness_provider,
         std::shared_ptr<StateTree> state_tree,
-        std::shared_ptr<Indices> indices,
         std::shared_ptr<Invoker> invoker,
-        ChainEpoch chain_epoch,
-        Address block_miner)
+        ChainEpoch chain_epoch)
         : randomness_provider{std::move(randomness_provider)},
           state_tree{std::move(state_tree)},
-          indices{std::move(indices)},
           invoker{std::move(invoker)},
-          chain_epoch{chain_epoch},
-          block_miner{std::move(block_miner)} {}
+          chain_epoch{chain_epoch} {}
 
-    outcome::result<MessageReceipt> applyMessage(
-        const UnsignedMessage &message);
+    outcome::result<MessageReceipt> applyMessage(const UnsignedMessage &message,
+                                                 TokenAmount &penalty);
+
+    outcome::result<InvocationOutput> applyImplicitMessage(
+        UnsignedMessage message) {
+      OUTCOME_TRY(from, state_tree->get(message.from));
+      message.nonce = from.nonce;
+      GasAmount gas_used{0};
+      return send(gas_used, message.from, message);
+    }
 
     outcome::result<InvocationOutput> send(GasAmount &gas_used,
                                            const Address &origin,
@@ -42,10 +44,8 @@ namespace fc::vm::runtime {
 
     std::shared_ptr<RandomnessProvider> randomness_provider;
     std::shared_ptr<StateTree> state_tree;
-    std::shared_ptr<Indices> indices;
     std::shared_ptr<Invoker> invoker;
     ChainEpoch chain_epoch;
-    Address block_miner;
   };
 }  // namespace fc::vm::runtime
 

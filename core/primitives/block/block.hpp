@@ -9,6 +9,7 @@
 #include <boost/assert.hpp>
 #include <boost/optional.hpp>
 
+#include "adt/array.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/address/address.hpp"
@@ -29,6 +30,7 @@ namespace fc::primitives::block {
   using primitives::ticket::Ticket;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
+  using Ipld = storage::ipfs::IpfsDatastore;
 
   struct BlockHeader {
     Address miner;
@@ -47,9 +49,20 @@ namespace fc::primitives::block {
   };
 
   struct MsgMeta {
-    CID bls_messages;
-    CID secpk_messages;
+    void load(std::shared_ptr<Ipld> ipld) {
+      bls_messages.load(ipld);
+      secp_messages.load(ipld);
+    }
+    outcome::result<void> flush() {
+      OUTCOME_TRY(bls_messages.flush());
+      OUTCOME_TRY(secp_messages.flush());
+      return outcome::success();
+    }
+
+    adt::Array<CID> bls_messages;
+    adt::Array<CID> secp_messages;
   };
+  CBOR_TUPLE(MsgMeta, bls_messages, secp_messages)
 
   struct Block {
     BlockHeader header;
@@ -89,8 +102,6 @@ namespace fc::primitives::block {
              timestamp,
              block_sig,
              fork_signaling)
-
-  CBOR_TUPLE(MsgMeta, bls_messages, secpk_messages)
 }  // namespace fc::primitives::block
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP

@@ -37,6 +37,8 @@ namespace fc::blockchain::production {
     using IpfsDatastore = storage::ipfs::IpfsDatastore;
     using SignedMessage = vm::message::SignedMessage;
     using Interpreter = vm::interpreter::Interpreter;
+    using InterpreterResult = vm::interpreter::Result;
+    using ChainEpoch = primitives::ChainEpoch;
 
    public:
     /**
@@ -55,8 +57,16 @@ namespace fc::blockchain::production {
     outcome::result<Block> generate(Address miner_address,
                                     const CID &parent_tipset_id,
                                     EPostProof proof,
+                                    Ticket ticket) override;
+
+    outcome::result<Block> generate(Address miner_address,
+                                    const Tipset &parent_tipset,
+                                    const InterpreterResult &vm_result,
+                                    EPostProof proof,
                                     Ticket ticket,
-                                    std::shared_ptr<Indices> indices) override;
+                                    const std::vector<SignedMessage> &messages,
+                                    ChainEpoch height,
+                                    uint64_t timestamp);
 
    private:
     std::shared_ptr<IpfsDatastore> data_storage_;
@@ -73,13 +83,5 @@ namespace fc::blockchain::production {
      * @return requested tipset or appropriate error
      */
     outcome::result<Tipset> getTipset(const CID &tipset_id) const;
-
-    /**
-     * @brief Generate messages meta-data
-     * @param messages - messages to include in the new Block
-     * @return Generated meta-data
-     */
-    static outcome::result<MsgMeta> getMessagesMeta(
-        const std::vector<SignedMessage> &messages);
   };
 }  // namespace fc::blockchain::production

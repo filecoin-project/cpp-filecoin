@@ -25,7 +25,7 @@ namespace fc::vm::actor::builtin::cron {
     return outcome::success();
   }
 
-  const ActorExports exports = {
+  const ActorExports exports{
       exportMethod<EpochTick>(),
   };
 }  // namespace fc::vm::actor::builtin::cron

@@ -69,6 +69,10 @@ namespace fc::primitives::tipset {
      */
     CID getParentStateRoot() const;
 
+    inline CID getParentMessageReceipts() const {
+      return blks[0].parent_message_receipts;
+    }
+
     /**
      * @return parent weight
      */

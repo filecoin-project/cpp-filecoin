@@ -124,7 +124,7 @@ TEST(ApiJsonTest, BigInt) {
 TEST(ApiJsonTest, MsgWait) {
   expectJson(
       MsgWait{
-          {1, Buffer{"DEAD"_unhex}, 2},
+          {fc::vm::VMExitCode{1}, Buffer{"DEAD"_unhex}, 2},
           {
               {"010001020001"_cid},
               {BlockHeader{
@@ -151,7 +151,7 @@ TEST(ApiJsonTest, MsgWait) {
               3,
           },
       },
-      "{\"Receipt\":{\"ExitCode\":1,\"Return\":\"3q0=\",\"GasUsed\":\"2\"},"
+      "{\"Receipt\":{\"ExitCode\":1,\"Return\":\"3q0=\",\"GasUsed\":2},"
       "\"TipSet\":{\"Cids\":[{\"/"
       "\":\"baeaacaqaae\"}],\"Blocks\":[{\"Miner\":\"t01\",\"Ticket\":{"
       "\"VRFProof\":" J96

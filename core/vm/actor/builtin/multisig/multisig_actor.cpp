@@ -17,7 +17,6 @@ namespace fc::vm::actor::builtin::multisig {
   using fc::vm::VMExitCode;
   using fc::vm::actor::ActorExports;
   using fc::vm::actor::ActorMethod;
-  using fc::vm::actor::decodeActorParams;
   using fc::vm::actor::kInitAddress;
   using fc::vm::runtime::InvocationOutput;
   using fc::vm::runtime::Runtime;
@@ -297,7 +296,7 @@ namespace fc::vm::actor::builtin::multisig {
     return fc::outcome::success();
   }
 
-  const ActorExports exports = {
+  const ActorExports exports{
       exportMethod<Construct>(),
       exportMethod<Propose>(),
       exportMethod<Approve>(),
