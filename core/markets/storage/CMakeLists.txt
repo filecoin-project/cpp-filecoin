@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(client)
 add_subdirectory(provider)
 
 add_library(fuhon_stored_ask stored_ask.cpp)
