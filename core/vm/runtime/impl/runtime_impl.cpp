@@ -90,7 +90,7 @@ namespace fc::vm::runtime {
       MethodNumber method_number,
       MethodParams params,
       BigInt value) {
-    return execution_->send(
+    return execution_->sendWithRevert(
         {to_address, message_.to, {}, value, {}, {}, method_number, params});
   }
 

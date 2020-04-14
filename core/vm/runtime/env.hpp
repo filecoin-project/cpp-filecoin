@@ -45,6 +45,9 @@ namespace fc::vm::runtime {
 
     outcome::result<void> chargeGas(GasAmount amount);
 
+    outcome::result<InvocationOutput> sendWithRevert(
+        const UnsignedMessage &message);
+
     outcome::result<InvocationOutput> send(const UnsignedMessage &message);
 
     std::shared_ptr<Env> env;

@@ -147,8 +147,9 @@ TEST_F(RuntimeTest, send) {
   Actor to_actor{fc::vm::actor::kAccountCodeCid, ActorSubstateCID{}, 0, 0};
   InvocationOutput res{};
 
+  EXPECT_CALL(*state_tree_, flush())
+      .WillOnce(testing::Return("010001020001"_cid));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
-      .Times(1)
       .WillRepeatedly(testing::Return(fc::outcome::success(to_actor)));
   EXPECT_CALL(*invoker_, invoke(Eq(to_actor), _, Eq(method), Eq(params)))
       .WillOnce(testing::Return(fc::outcome::success(res)));
@@ -170,6 +171,10 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
   Actor from_actor{fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
   Actor to_actor{fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
 
+  auto snapshot = "010001020001"_cid;
+  EXPECT_CALL(*state_tree_, flush()).WillOnce(testing::Return(snapshot));
+  EXPECT_CALL(*state_tree_, revert(snapshot))
+      .WillOnce(testing::Return(fc::outcome::success()));
   EXPECT_CALL(*state_tree_, get(Eq(message_.to)))
       .WillOnce(testing::Return(fc::outcome::success(from_actor)));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))

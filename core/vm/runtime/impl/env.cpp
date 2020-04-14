@@ -136,6 +136,17 @@ namespace fc::vm::runtime {
     return execution;
   }
 
+  outcome::result<InvocationOutput> Execution::sendWithRevert(
+      const UnsignedMessage &message) {
+    OUTCOME_TRY(snapshot, state_tree->flush());
+    auto result = send(message);
+    if (!result) {
+      OUTCOME_TRY(state_tree->revert(snapshot));
+      return result.error();
+    }
+    return result;
+  }
+
   outcome::result<InvocationOutput> Execution::send(
       const UnsignedMessage &message) {
     if (message.value != 0) {
