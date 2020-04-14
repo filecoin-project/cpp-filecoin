@@ -46,7 +46,7 @@ namespace fc::vm::state {
   }
 
   outcome::result<Address> StateTreeImpl::registerNewAddress(
-      const Address &address, const Actor &actor) {
+      const Address &address) {
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
     OUTCOME_TRY(
         init_actor_state,
@@ -55,7 +55,6 @@ namespace fc::vm::state {
     OUTCOME_TRY(init_actor_state_cid, store_->setCbor(init_actor_state));
     init_actor.head = ActorSubstateCID{init_actor_state_cid};
     OUTCOME_TRY(set(actor::kInitAddress, init_actor));
-    OUTCOME_TRY(set(address_id, actor));
     return std::move(address_id);
   }
 

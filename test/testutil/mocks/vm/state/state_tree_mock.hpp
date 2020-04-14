@@ -18,9 +18,8 @@ namespace fc::vm::state {
                                        const Actor &actor));
     MOCK_METHOD1(get, outcome::result<Actor>(const Address &address));
     MOCK_METHOD1(lookupId, outcome::result<Address>(const Address &address));
-    MOCK_METHOD2(registerNewAddress,
-                 outcome::result<Address>(const Address &address,
-                                          const Actor &actor));
+    MOCK_METHOD1(registerNewAddress,
+                 outcome::result<Address>(const Address &address));
     MOCK_METHOD0(flush, outcome::result<CID>());
     MOCK_METHOD1(revert, outcome::result<void>(const CID &));
     MOCK_METHOD0(getStore, std::shared_ptr<IpfsDatastore>());
