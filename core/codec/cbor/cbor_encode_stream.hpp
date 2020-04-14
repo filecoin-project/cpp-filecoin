@@ -11,7 +11,7 @@
 #include <array>
 #include <vector>
 
-#include <cbor.h>
+#include <tinycbor/cbor.h>
 
 #include "common/enum.hpp"
 

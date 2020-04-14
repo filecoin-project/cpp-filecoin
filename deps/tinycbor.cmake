@@ -14,3 +14,20 @@ add_library(tinycbor
     tinycbor/src/cborvalidation.c
     )
 disable_clang_tidy(tinycbor)
+
+# Copy headers for core code to imitate install step
+set(TINY_CBOR_HEADERS
+    cbor.h
+    tinycbor-version.h
+    )
+foreach(header ${TINY_CBOR_HEADERS})
+    configure_file(tinycbor/src/${header}
+        include/tinycbor/${header}
+        COPYONLY
+        )
+endforeach()
+
+set(TINY_CBOR_INCLUDE_DIRS
+    ${CMAKE_BINARY_DIR}/deps/include
+    PARENT_SCOPE
+    )
