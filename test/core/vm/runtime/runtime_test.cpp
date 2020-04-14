@@ -27,6 +27,7 @@ using fc::primitives::address::Address;
 using fc::storage::hamt::HamtError;
 using fc::storage::ipfs::IpfsDatastore;
 using fc::storage::ipfs::MockIpfsDatastore;
+using fc::vm::VMExitCode;
 using fc::vm::actor::Actor;
 using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::CodeId;
@@ -147,12 +148,10 @@ TEST_F(RuntimeTest, send) {
   InvocationOutput res{};
 
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
-      .Times(2)
+      .Times(1)
       .WillRepeatedly(testing::Return(fc::outcome::success(to_actor)));
   EXPECT_CALL(*invoker_, invoke(Eq(to_actor), _, Eq(method), Eq(params)))
       .WillOnce(testing::Return(fc::outcome::success(res)));
-  EXPECT_CALL(*state_tree_, set(_, _))
-      .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(runtime_->send(to_address, method, params, amount));
 }
@@ -176,7 +175,7 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
       .WillOnce(testing::Return(fc::outcome::success(to_actor)));
 
-  EXPECT_OUTCOME_ERROR(RuntimeError::NOT_ENOUGH_FUNDS,
+  EXPECT_OUTCOME_ERROR(VMExitCode::SEND_TRANSFER_INSUFFICIENT,
                        runtime_->send(to_address, method, params, amount));
 }
 

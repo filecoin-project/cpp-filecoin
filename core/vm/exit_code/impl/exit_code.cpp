@@ -57,6 +57,9 @@ namespace fc::vm {
       case E::ENCODE_ACTOR_RESULT_ERROR:
         return E{2};
 
+      case E::SEND_TRANSFER_INSUFFICIENT:
+        return E{1};
+
       case E::ACCOUNT_ACTOR_CREATE_WRONG_ADDRESS_TYPE:
         return E::ErrIllegalArgument;
       case E::ACCOUNT_ACTOR_RESOLVE_NOT_FOUND:

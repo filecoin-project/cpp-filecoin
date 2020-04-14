@@ -139,6 +139,13 @@ namespace fc::vm::runtime {
 
   outcome::result<InvocationOutput> Execution::send(
       const UnsignedMessage &message) {
+    if (message.value != 0) {
+      OUTCOME_TRY(chargeGas(kSendTransferFundsGasCost));
+    }
+    if (message.method != kSendMethodNumber) {
+      OUTCOME_TRY(chargeGas(kSendInvokeMethodGasCost));
+    }
+
     Actor to_actor;
     auto maybe_to_actor = state_tree->get(message.to);
     if (!maybe_to_actor) {
@@ -152,27 +159,23 @@ namespace fc::vm::runtime {
     }
     RuntimeImpl runtime{shared_from_this(), message, to_actor.head};
 
-    if (message.value) {
-      OUTCOME_TRY(runtime.chargeGas(kSendTransferFundsGasCost));
+    if (message.value != 0) {
+      BOOST_ASSERT(message.value > 0);
       OUTCOME_TRY(from_actor, state_tree->get(message.from));
-      OUTCOME_TRY(RuntimeImpl::transfer(from_actor, to_actor, message.value));
+      if (from_actor.balance < message.value) {
+        return VMExitCode::SEND_TRANSFER_INSUFFICIENT;
+      }
+      from_actor.balance -= message.value;
+      to_actor.balance += message.value;
       OUTCOME_TRY(state_tree->set(message.to, to_actor));
       OUTCOME_TRY(state_tree->set(message.from, from_actor));
     }
 
-    InvocationOutput invocation_output;
     if (message.method != kSendMethodNumber) {
-      OUTCOME_TRY(runtime.chargeGas(kSendInvokeMethodGasCost));
-      auto invocation = env->invoker->invoke(
+      return env->invoker->invoke(
           to_actor, runtime, message.method, message.params);
-      if (invocation || isVMExitCode(invocation.error())) {
-        OUTCOME_TRY(to_actor_2, state_tree->get(message.to));
-        to_actor_2.head = runtime.getCurrentActorState();
-        OUTCOME_TRY(state_tree->set(message.to, to_actor_2));
-      }
-      invocation_output = invocation.value();
     }
 
-    return invocation_output;
+    return outcome::success();
   }
 }  // namespace fc::vm::runtime

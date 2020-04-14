@@ -53,14 +53,14 @@ namespace fc::vm::runtime {
    * by any nonzero currency amount. Accounts for writing receiver's new balance
    * (the sender's state is already accounted for).
    */
-  inline static const GasAmount kSendTransferFundsGasCost{10};
+  inline static const GasAmount kSendTransferFundsGasCost{5};
 
   /**
    * Gas cost charged, in addition to SendBase, if a message invokes a method on
    * the receiver. Accounts for the cost of loading receiver code and method
    * dispatch.
    */
-  inline static const GasAmount kSendInvokeMethodGasCost{5};
+  inline static const GasAmount kSendInvokeMethodGasCost{10};
 
   /**
    * Gas cost (Base + len * PerByte) for any Get operation to the IPLD store in
