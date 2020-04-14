@@ -57,8 +57,11 @@ namespace fc::vm::actor {
 
   template <typename T>
   outcome::result<InvocationOutput> encodeActorReturn(const T &result) {
-    OUTCOME_TRY(encoded, codec::cbor::encode(result));
-    return InvocationOutput{Buffer{encoded}};
+    auto maybe_encoded = codec::cbor::encode(result);
+    if (!maybe_encoded) {
+      return VMExitCode::ENCODE_ACTOR_RESULT_ERROR;
+    }
+    return InvocationOutput{Buffer{maybe_encoded.value()}};
   }
 }  // namespace fc::vm::actor
 
