@@ -12,34 +12,60 @@
 #include "vm/runtime/runtime_error.hpp"
 
 namespace fc::vm::runtime {
+  using actor::kRewardAddress;
   using actor::kSendMethodNumber;
   using actor::builtin::account::AccountActor;
   using storage::hamt::HamtError;
 
   outcome::result<MessageReceipt> Env::applyMessage(
       const UnsignedMessage &message, TokenAmount &penalty) {
-    BigInt gas_cost = message.gasLimit * message.gasPrice;
-    BigInt total_cost = gas_cost + message.value;
-
-    Actor gas_holder;
-    gas_holder.balance = 0;
-
-    OUTCOME_TRY(from_actor, state_tree->get(message.from));
-    if (from_actor.balance < total_cost) {
-      return RuntimeError::NOT_ENOUGH_FUNDS;
+    if (message.gasLimit <= 0) {
+      return RuntimeError::UNKNOWN;
     }
-    OUTCOME_TRY(RuntimeImpl::transfer(from_actor, gas_holder, gas_cost));
-    // TODO: check actor nonce matches message nonce
-    ++from_actor.nonce;
-    OUTCOME_TRY(state_tree->set(message.from, from_actor));
+
+    MessageReceipt receipt;
+    receipt.gas_used = 0;
 
     OUTCOME_TRY(serialized_message, codec::cbor::encode(message));
-    GasAmount gas_used =
+    GasAmount msg_gas_cost =
         kOnChainMessageBaseGasCost
         + serialized_message.size() * kOnChainMessagePerByteGasCharge;
+    penalty = msg_gas_cost * message.gasPrice;
+    if (msg_gas_cost > message.gasLimit) {
+      receipt.exit_code = VMExitCode::SysErrOutOfGas;
+      return receipt;
+    }
+
+    auto maybe_from = state_tree->get(message.from);
+    if (!maybe_from) {
+      if (maybe_from.error() == HamtError::NOT_FOUND) {
+        receipt.exit_code = VMExitCode::SysErrSenderInvalid;
+        return receipt;
+      }
+      return maybe_from.error();
+    }
+    auto &from = maybe_from.value();
+    if (from.code != actor::kAccountCodeCid) {
+      receipt.exit_code = VMExitCode::SysErrSenderInvalid;
+      return receipt;
+    }
+    if (message.nonce != from.nonce) {
+      receipt.exit_code = VMExitCode::SysErrSenderStateInvalid;
+      return receipt;
+    }
+
+    BigInt gas_cost = message.gasLimit * message.gasPrice;
+    if (from.balance < gas_cost + message.value) {
+      receipt.exit_code = VMExitCode::SysErrSenderStateInvalid;
+      return receipt;
+    }
+    from.balance -= gas_cost;
+    ++from.nonce;
+    OUTCOME_TRY(state_tree->set(message.from, from));
 
     OUTCOME_TRY(snapshot, state_tree->flush());
-    auto result = send(gas_used, message.from, message);
+    receipt.gas_used = msg_gas_cost;
+    auto result = send(receipt.gas_used, message.from, message);
     auto exit_code = VMExitCode::Ok;
     if (!result) {
       if (!isVMExitCode(result.error())) {
@@ -47,26 +73,40 @@ namespace fc::vm::runtime {
       }
       exit_code = VMExitCode{result.error().value()};
     } else {
-      OUTCOME_TRY(from_actor_2, state_tree->get(message.from));
-      OUTCOME_TRY(RuntimeImpl::transfer(
-          gas_holder,
-          from_actor_2,
-          (message.gasLimit - gas_used) * message.gasPrice));
-      OUTCOME_TRY(state_tree->set(message.from, from_actor_2));
+      receipt.return_value = std::move(result.value());
+      auto result_charged = RuntimeImpl::chargeGas(
+          receipt.gas_used,
+          message.gasLimit,
+          receipt.return_value.size() * kOnChainReturnValuePerByteCost);
+      if (!result_charged) {
+        BOOST_ASSERT(isVMExitCode(result_charged.error()));
+        exit_code = VMExitCode{result_charged.error().value()};
+      }
     }
     if (exit_code != VMExitCode::Ok) {
       OUTCOME_TRY(state_tree->revert(snapshot));
     }
-    BOOST_ASSERT_MSG(gas_used >= 0, "negative used gas");
+
+    BOOST_ASSERT_MSG(receipt.gas_used >= 0, "negative used gas");
+    BOOST_ASSERT_MSG(receipt.gas_used <= message.gasLimit,
+                     "runtime charged gas over limit");
+
+    auto gas_refund = message.gasLimit - receipt.gas_used;
+    if (gas_refund != 0) {
+      OUTCOME_TRY(from, state_tree->get(message.from));
+      from.balance += gas_refund * message.gasPrice;
+      OUTCOME_TRY(state_tree->set(message.from, from));
+    }
+
+    OUTCOME_TRY(reward, state_tree->get(kRewardAddress));
+    reward.balance += receipt.gas_used * message.gasPrice;
+    OUTCOME_TRY(state_tree->set(kRewardAddress, reward));
 
     auto ret_code = normalizeVMExitCode(exit_code);
     BOOST_ASSERT_MSG(ret_code, "c++ actor code returned unknown error");
     penalty = 0;
-    return MessageReceipt{
-        *ret_code,
-        result ? result.value().return_value : Buffer{},
-        gas_used,
-    };
+    receipt.exit_code = *ret_code;
+    return receipt;
   }
 
   outcome::result<InvocationOutput> Env::send(GasAmount &gas_used,

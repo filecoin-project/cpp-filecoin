@@ -26,9 +26,10 @@ namespace fc::vm::runtime {
    * up to but excluding any actual processing by the VM.
    * This is the cost a block producer burns when including an invalid message.
    */
-  inline static const GasAmount kOnChainMessageBaseGasCost{
-      kGasAmountPlaceholder};
+  inline static const GasAmount kOnChainMessageBaseGasCost{0};
   inline static const GasAmount kOnChainMessagePerByteGasCharge{2};
+
+  inline static const GasAmount kOnChainReturnValuePerByteCost{8};
 
   /**
    * Gas cost charged to the originator of a non-nil return value produced by an
