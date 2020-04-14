@@ -76,7 +76,7 @@ namespace fc::storage::ipld {
     static common::Buffer serialize(const T &entity) {
       auto data = codec::cbor::encode(entity);
       BOOST_ASSERT(data.has_value());
-      return common::Buffer{std::move(data.value())};
+      return std::move(data.value());
     }
   };
 }  // namespace fc::storage::ipld
