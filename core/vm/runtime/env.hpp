@@ -31,21 +31,27 @@ namespace fc::vm::runtime {
                                                  TokenAmount &penalty);
 
     outcome::result<InvocationOutput> applyImplicitMessage(
-        UnsignedMessage message) {
-      OUTCOME_TRY(from, state_tree->get(message.from));
-      message.nonce = from.nonce;
-      GasAmount gas_used{0};
-      return send(gas_used, message.from, message);
-    }
-
-    outcome::result<InvocationOutput> send(GasAmount &gas_used,
-                                           const Address &origin,
-                                           const UnsignedMessage &message);
+        UnsignedMessage message);
 
     std::shared_ptr<RandomnessProvider> randomness_provider;
     std::shared_ptr<StateTree> state_tree;
     std::shared_ptr<Invoker> invoker;
     ChainEpoch chain_epoch;
+  };
+
+  struct Execution : std::enable_shared_from_this<Execution> {
+    static std::shared_ptr<Execution> make(std::shared_ptr<Env> env,
+                                           const UnsignedMessage &message);
+
+    outcome::result<void> chargeGas(GasAmount amount);
+
+    outcome::result<InvocationOutput> send(const UnsignedMessage &message);
+
+    std::shared_ptr<Env> env;
+    std::shared_ptr<StateTree> state_tree;
+    GasAmount gas_used;
+    GasAmount gas_limit;
+    Address origin;
   };
 }  // namespace fc::vm::runtime
 

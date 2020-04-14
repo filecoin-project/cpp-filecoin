@@ -29,34 +29,29 @@ namespace fc::vm::runtime {
   using fc::vm::actor::builtin::account::AccountActor;
   using fc::vm::message::UnsignedMessage;
 
-  RuntimeImpl::RuntimeImpl(std::shared_ptr<Env> env,
+  RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
                            UnsignedMessage message,
-                           Address origin,
-                           GasAmount gas_available,
-                           GasAmount gas_used,
                            ActorSubstateCID current_actor_state)
-      : env_{std::move(env)},
-        state_tree_{env_->state_tree},
+      : execution_{std::move(execution)},
+        state_tree_{execution_->state_tree},
         message_{std::move(message)},
-        origin_{std::move(origin)},
-        gas_available_{std::move(gas_available)},
-        gas_used_{std::move(gas_used)},
         current_actor_state_{std::move(current_actor_state)} {}
 
   ChainEpoch RuntimeImpl::getCurrentEpoch() const {
-    return env_->chain_epoch;
+    return execution_->env->chain_epoch;
   }
 
   Randomness RuntimeImpl::getRandomness(DomainSeparationTag tag,
                                         ChainEpoch epoch) const {
-    return env_->randomness_provider->deriveRandomness(
+    return execution_->env->randomness_provider->deriveRandomness(
         tag, Serialization{}, epoch);
   }
 
   Randomness RuntimeImpl::getRandomness(DomainSeparationTag tag,
                                         ChainEpoch epoch,
                                         Serialization seed) const {
-    return env_->randomness_provider->deriveRandomness(tag, seed, epoch);
+    return execution_->env->randomness_provider->deriveRandomness(
+        tag, seed, epoch);
   }
 
   Address RuntimeImpl::getImmediateCaller() const {
@@ -96,24 +91,12 @@ namespace fc::vm::runtime {
       MethodNumber method_number,
       MethodParams params,
       BigInt value) {
-    auto message = UnsignedMessage{to_address,
-                                   message_.to,
-                                   0,  // unused
-                                   value,
-                                   0,  // unused
-                                   gas_available_,
-                                   method_number,
-                                   params};
-    return env_->send(gas_used_, origin_, message);
+    return execution_->send(
+        {to_address, message_.to, {}, value, {}, {}, method_number, params});
   }
 
   fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,
                                                      const Actor &actor) {
-    // May only be called by InitActor
-    OUTCOME_TRY(actor_caller, state_tree_->get(origin_));
-    if (actor_caller.code != actor::kInitCodeCid)
-      return fc::outcome::failure(
-          RuntimeError::CREATE_ACTOR_OPERATION_NOT_PERMITTED);
     OUTCOME_TRY(state_tree_->set(address, actor));
     return fc::outcome::success();
   }
@@ -142,10 +125,6 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(chargeGas(kCommitGasCost));
     current_actor_state_ = new_state;
     return outcome::success();
-  }
-
-  GasAmount RuntimeImpl::gasUsed() const {
-    return gas_used_;
   }
 
   fc::outcome::result<void> RuntimeImpl::transfer(Actor &from,
@@ -192,26 +171,15 @@ namespace fc::vm::runtime {
     return RuntimeError::UNKNOWN;
   }
 
-  outcome::result<void> RuntimeImpl::chargeGas(GasAmount &used,
-                                               GasAmount limit,
-                                               GasAmount amount) {
-    used += amount;
-    if (limit != kInfiniteGas && used > limit) {
-      used = limit;
-      return VMExitCode::SysErrOutOfGas;
-    }
-    return outcome::success();
-  }
-
   fc::outcome::result<void> RuntimeImpl::chargeGas(GasAmount amount) {
-    return chargeGas(gas_used_, gas_available_, amount);
+    return execution_->chargeGas(amount);
   }
 
   std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
       const UnsignedMessage &message,
       const ActorSubstateCID &current_actor_state) const {
     return std::make_shared<RuntimeImpl>(
-        env_, message, origin_, gas_available_, gas_used_, current_actor_state);
+        execution_, message, current_actor_state);
   }
 
 }  // namespace fc::vm::runtime

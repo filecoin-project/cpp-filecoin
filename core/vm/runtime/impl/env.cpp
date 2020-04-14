@@ -23,6 +23,7 @@ namespace fc::vm::runtime {
       return RuntimeError::UNKNOWN;
     }
 
+    auto execution = Execution::make(shared_from_this(), message);
     MessageReceipt receipt;
     receipt.gas_used = 0;
 
@@ -64,8 +65,8 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(state_tree->set(message.from, from));
 
     OUTCOME_TRY(snapshot, state_tree->flush());
-    receipt.gas_used = msg_gas_cost;
-    auto result = send(receipt.gas_used, message.from, message);
+    OUTCOME_TRY(execution->chargeGas(msg_gas_cost));
+    auto result = execution->send(message);
     auto exit_code = VMExitCode::Ok;
     if (!result) {
       if (!isVMExitCode(result.error())) {
@@ -74,9 +75,7 @@ namespace fc::vm::runtime {
       exit_code = VMExitCode{result.error().value()};
     } else {
       receipt.return_value = std::move(result.value());
-      auto result_charged = RuntimeImpl::chargeGas(
-          receipt.gas_used,
-          message.gasLimit,
+      auto result_charged = execution->chargeGas(
           receipt.return_value.size() * kOnChainReturnValuePerByteCost);
       if (!result_charged) {
         BOOST_ASSERT(isVMExitCode(result_charged.error()));
@@ -87,11 +86,11 @@ namespace fc::vm::runtime {
       OUTCOME_TRY(state_tree->revert(snapshot));
     }
 
-    BOOST_ASSERT_MSG(receipt.gas_used >= 0, "negative used gas");
-    BOOST_ASSERT_MSG(receipt.gas_used <= message.gasLimit,
+    BOOST_ASSERT_MSG(execution->gas_used >= 0, "negative used gas");
+    BOOST_ASSERT_MSG(execution->gas_used <= message.gasLimit,
                      "runtime charged gas over limit");
 
-    auto gas_refund = message.gasLimit - receipt.gas_used;
+    auto gas_refund = message.gasLimit - execution->gas_used;
     if (gas_refund != 0) {
       OUTCOME_TRY(from, state_tree->get(message.from));
       from.balance += gas_refund * message.gasPrice;
@@ -99,19 +98,47 @@ namespace fc::vm::runtime {
     }
 
     OUTCOME_TRY(reward, state_tree->get(kRewardAddress));
-    reward.balance += receipt.gas_used * message.gasPrice;
+    reward.balance += execution->gas_used * message.gasPrice;
     OUTCOME_TRY(state_tree->set(kRewardAddress, reward));
 
     auto ret_code = normalizeVMExitCode(exit_code);
     BOOST_ASSERT_MSG(ret_code, "c++ actor code returned unknown error");
     penalty = 0;
     receipt.exit_code = *ret_code;
+    receipt.gas_used = execution->gas_used;
     return receipt;
   }
 
-  outcome::result<InvocationOutput> Env::send(GasAmount &gas_used,
-                                              const Address &origin,
-                                              const UnsignedMessage &message) {
+  outcome::result<InvocationOutput> Env::applyImplicitMessage(
+      UnsignedMessage message) {
+    OUTCOME_TRY(from, state_tree->get(message.from));
+    message.nonce = from.nonce;
+    auto execution = Execution::make(shared_from_this(), message);
+    return execution->send(message);
+  }
+
+  outcome::result<void> Execution::chargeGas(GasAmount amount) {
+    gas_used += amount;
+    if (gas_limit != kInfiniteGas && gas_used > gas_limit) {
+      gas_used = gas_limit;
+      return VMExitCode::SysErrOutOfGas;
+    }
+    return outcome::success();
+  }
+
+  std::shared_ptr<Execution> Execution::make(std::shared_ptr<Env> env,
+                                             const UnsignedMessage &message) {
+    auto execution = std::make_shared<Execution>();
+    execution->env = env;
+    execution->state_tree = env->state_tree;
+    execution->gas_used = 0;
+    execution->gas_limit = message.gasLimit;
+    execution->origin = message.from;
+    return execution;
+  }
+
+  outcome::result<InvocationOutput> Execution::send(
+      const UnsignedMessage &message) {
     Actor to_actor;
     auto maybe_to_actor = state_tree->get(message.to);
     if (!maybe_to_actor) {
@@ -123,12 +150,7 @@ namespace fc::vm::runtime {
     } else {
       to_actor = maybe_to_actor.value();
     }
-    RuntimeImpl runtime{shared_from_this(),
-                        message,
-                        origin,
-                        message.gasLimit,
-                        gas_used,
-                        to_actor.head};
+    RuntimeImpl runtime{shared_from_this(), message, to_actor.head};
 
     if (message.value) {
       OUTCOME_TRY(runtime.chargeGas(kSendTransferFundsGasCost));
@@ -141,8 +163,8 @@ namespace fc::vm::runtime {
     InvocationOutput invocation_output;
     if (message.method != kSendMethodNumber) {
       OUTCOME_TRY(runtime.chargeGas(kSendInvokeMethodGasCost));
-      auto invocation =
-          invoker->invoke(to_actor, runtime, message.method, message.params);
+      auto invocation = env->invoker->invoke(
+          to_actor, runtime, message.method, message.params);
       if (invocation || isVMExitCode(invocation.error())) {
         OUTCOME_TRY(to_actor_2, state_tree->get(message.to));
         to_actor_2.head = runtime.getCurrentActorState();
@@ -150,8 +172,6 @@ namespace fc::vm::runtime {
       }
       invocation_output = invocation.value();
     }
-
-    gas_used = runtime.gasUsed();
 
     return invocation_output;
   }

@@ -27,11 +27,8 @@ namespace fc::vm::runtime {
 
   class RuntimeImpl : public Runtime {
    public:
-    RuntimeImpl(std::shared_ptr<Env> env,
+    RuntimeImpl(std::shared_ptr<Execution> execution,
                 UnsignedMessage message,
-                Address origin,
-                GasAmount gas_available,
-                GasAmount gas_used,
                 ActorSubstateCID current_actor_state);
 
     /** \copydoc Runtime::getCurrentEpoch() */
@@ -84,17 +81,11 @@ namespace fc::vm::runtime {
     /** \copydoc Runtime::getMessage() */
     std::reference_wrapper<const UnsignedMessage> getMessage() override;
 
-    static outcome::result<void> chargeGas(GasAmount &used,
-                                           GasAmount limit,
-                                           GasAmount amount);
-
     outcome::result<void> chargeGas(GasAmount amount) override;
 
     ActorSubstateCID getCurrentActorState() override;
 
     outcome::result<void> commit(const ActorSubstateCID &new_state) override;
-
-    GasAmount gasUsed() const;
 
     static outcome::result<void> transfer(Actor &from,
                                           Actor &to,
@@ -124,12 +115,9 @@ namespace fc::vm::runtime {
         const ActorSubstateCID &current_actor_state) const;
 
    private:
-    std::shared_ptr<Env> env_;
+    std::shared_ptr<Execution> execution_;
     std::shared_ptr<StateTree> state_tree_;
     UnsignedMessage message_;
-    Address origin_;
-    GasAmount gas_available_;
-    GasAmount gas_used_;
     ActorSubstateCID current_actor_state_;
   };
 
