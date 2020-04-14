@@ -22,13 +22,6 @@ namespace fc::vm::actor::builtin::account {
   };
   CBOR_TUPLE(AccountActorState, address)
 
-  /// Account actors represent actors without code
-  struct AccountActor {
-    /// Create account actor from BLS or Secp256k1 address
-    static outcome::result<Actor> create(
-        const std::shared_ptr<StateTree> &state_tree, const Address &address);
-  };
-
   struct Construct : ActorMethodBase<1> {
     using Params = Address;
     ACTOR_METHOD_DECL();

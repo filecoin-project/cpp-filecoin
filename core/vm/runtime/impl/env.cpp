@@ -14,7 +14,6 @@
 namespace fc::vm::runtime {
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
-  using actor::builtin::account::AccountActor;
   using storage::hamt::HamtError;
 
   outcome::result<MessageReceipt> Env::applyMessage(

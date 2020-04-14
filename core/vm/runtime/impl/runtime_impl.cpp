@@ -26,7 +26,6 @@ namespace fc::vm::runtime {
   using fc::vm::actor::ActorSubstateCID;
   using fc::vm::actor::CodeId;
   using fc::vm::actor::MethodNumber;
-  using fc::vm::actor::builtin::account::AccountActor;
   using fc::vm::message::UnsignedMessage;
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
