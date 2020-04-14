@@ -52,7 +52,7 @@ namespace fc::vm::actor {
     if constexpr (std::is_same_v<T, None>) {
       return T{};
     }
-    return codec::cbor::decode<T>(result.return_value);
+    return codec::cbor::decode<T>(result);
   }
 
   template <typename T>
@@ -61,7 +61,7 @@ namespace fc::vm::actor {
     if (!maybe_encoded) {
       return VMExitCode::ENCODE_ACTOR_RESULT_ERROR;
     }
-    return InvocationOutput{Buffer{maybe_encoded.value()}};
+    return std::move(maybe_encoded.value());
   }
 }  // namespace fc::vm::actor
 

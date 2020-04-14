@@ -191,7 +191,7 @@ namespace fc::vm::runtime {
                              const MethodParams &params,
                              BigInt value) {
       OUTCOME_TRY(result, send(to_address, method_number, params, value));
-      return codec::cbor::decode<R>(result.return_value);
+      return codec::cbor::decode<R>(result);
     }
 
     /// Send with typed params P and result R

@@ -160,8 +160,7 @@ namespace fc::api {
           result.message = message;
           auto maybe_result = env.applyImplicitMessage(message);
           if (maybe_result) {
-            result.receipt = {
-                VMExitCode::Ok, maybe_result.value().return_value, 0};
+            result.receipt = {VMExitCode::Ok, maybe_result.value(), 0};
           } else {
             if (isVMExitCode(maybe_result.error())) {
               auto ret_code =
