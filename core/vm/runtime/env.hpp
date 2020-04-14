@@ -45,6 +45,8 @@ namespace fc::vm::runtime {
 
     outcome::result<void> chargeGas(GasAmount amount);
 
+    outcome::result<Actor> tryCreateAccountActor(const Address &address);
+
     outcome::result<InvocationOutput> sendWithRevert(
         const UnsignedMessage &message);
 

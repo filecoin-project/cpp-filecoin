@@ -12,8 +12,11 @@
 #include "vm/runtime/runtime_error.hpp"
 
 namespace fc::vm::runtime {
+  using actor::kAccountCodeCid;
+  using actor::kEmptyObjectCid;
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
+  using actor::kSystemActorAddress;
   using storage::hamt::HamtError;
 
   outcome::result<MessageReceipt> Env::applyMessage(
@@ -136,6 +139,30 @@ namespace fc::vm::runtime {
     return execution;
   }
 
+  outcome::result<Actor> Execution::tryCreateAccountActor(
+      const Address &address) {
+    OUTCOME_TRY(id, state_tree->registerNewAddress(address));
+    OUTCOME_TRY(chargeGas(kCreateActorGasCost));
+    if (!address.isKeyType()) {
+      return VMExitCode{1};
+    }
+    OUTCOME_TRY(state_tree->set(id,
+                                {actor::kAccountCodeCid,
+                                 ActorSubstateCID{actor::kEmptyObjectCid},
+                                 {},
+                                 {}}));
+    OUTCOME_TRY(params, actor::encodeActorParams(address));
+    OUTCOME_TRY(sendWithRevert({id,
+                                kSystemActorAddress,
+                                {},
+                                {},
+                                {},
+                                {},
+                                actor::builtin::account::Construct::Number,
+                                params}));
+    return state_tree->get(id);
+  }
+
   outcome::result<InvocationOutput> Execution::sendWithRevert(
       const UnsignedMessage &message) {
     OUTCOME_TRY(snapshot, state_tree->flush());
@@ -162,7 +189,7 @@ namespace fc::vm::runtime {
       if (maybe_to_actor.error() != HamtError::NOT_FOUND) {
         return maybe_to_actor.error();
       }
-      OUTCOME_TRY(account_actor, AccountActor::create(state_tree, message.to));
+      OUTCOME_TRY(account_actor, tryCreateAccountActor(message.to));
       to_actor = account_actor;
     } else {
       to_actor = maybe_to_actor.value();

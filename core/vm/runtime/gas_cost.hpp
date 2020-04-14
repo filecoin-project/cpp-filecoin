@@ -90,7 +90,7 @@ namespace fc::vm::runtime {
    * Gas cost for creating a new actor (via InitActor's Exec method). Actor
    * sub-state is charged separately.
    */
-  inline static const GasAmount kExecNewActorGasCost{kGasAmountPlaceholder};
+  inline static const GasAmount kCreateActorGasCost{40 + 500};
 
   /**
    * Gas cost for deleting an actor.
