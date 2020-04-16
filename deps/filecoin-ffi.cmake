@@ -45,14 +45,15 @@ add_library(filecoin_ffi
         STATIC IMPORTED GLOBAL
         )
 
-target_link_libraries(filecoin_ffi INTERFACE ${PKG_FILECOIN_LIBRARIES})
-target_include_directories(filecoin_ffi INTERFACE ${FILECOIN_FFI_PATH}/include)
-target_compile_options(filecoin_ffi PUBLIC ${PKG_FILECOIN_CFLAGS_OTHER})
-
 set_target_properties(filecoin_ffi PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES ${FILECOIN_FFI_PATH}/include
         IMPORTED_LOCATION ${FILECOIN_FFI_LIB}
         )
+
+#TODO: get from .pc file
+if (APPLE)
+    target_link_libraries(filecoin_ffi INTERFACE "-framework OpenCL")
+endif (APPLE)
 
 add_dependencies(filecoin_ffi
         filecoin_ffi_build
