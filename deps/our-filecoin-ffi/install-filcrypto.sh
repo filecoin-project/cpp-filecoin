@@ -55,7 +55,7 @@ main() {
 
         # copy build assets into root of filecoin-ffi
         #
-        find -L "${__tmp_dir}" -type f -name filcrypto.h -exec rsync --checksum "{}" ./include/filecoin-ffi \;
+        find -L "${__tmp_dir}" -type f -name filcrypto.h -exec rsync --checksum "{}" ./include/filcrypto \;
         find -L "${__tmp_dir}" -type f -name libfilcrypto.a -exec rsync --checksum "{}" ./lib \;
         find -L "${__tmp_dir}" -type f -name filcrypto.pc -exec rsync --checksum "{}" ./lib/pkgconfig \;
 
@@ -71,7 +71,7 @@ main() {
 
         # copy from Rust's build directory (target) to root of filecoin-ffi
         #
-        find -L "${rust_sources_dir}/target/release" -type f -name filcrypto.h -exec rsync --checksum "{}" ./include/filecoin-ffi \;
+        find -L "${rust_sources_dir}/target/release" -type f -name filcrypto.h -exec rsync --checksum "{}" ./include/filcrypto \;
         find -L "${rust_sources_dir}/target/release" -type f -name libfilcrypto.a -exec rsync --checksum "{}" ./lib \;
         find -L "${rust_sources_dir}" -type f -name filcrypto.pc -exec cp rsync --checksum "{}" ./lib/pkgconfig \;
 

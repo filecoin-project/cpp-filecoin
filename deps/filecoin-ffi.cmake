@@ -27,7 +27,7 @@ pkg_check_modules(PKG_FILECOIN filcrypto)
 
 if (NOT PKG_FILECOIN_FOUND)
     message("Installing filecoin-ffi")
-    execute_process(COMMAND ./install-filecoin.sh
+    execute_process(COMMAND ./install-filcrypto.sh
             WORKING_DIRECTORY ${FILECOIN_FFI_PATH})
 
     pkg_check_modules(PKG_FILECOIN REQUIRED filcrypto)
@@ -49,6 +49,8 @@ set_target_properties(filecoin_ffi PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES ${FILECOIN_FFI_PATH}/include
         IMPORTED_LOCATION ${FILECOIN_FFI_LIB}
         )
+
+target_link_libraries(filecoin_ffi INTERFACE ${PKG_FILECOIN_LIBRARIES})
 
 #TODO: get from .pc file
 if (APPLE)
