@@ -24,6 +24,10 @@ namespace fc::crypto::secp256k1 {
                        outcome::result<bool>(gsl::span<const uint8_t>,
                                              const Signature &,
                                              const PublicKey &));
+
+    MOCK_CONST_METHOD2(recoverPublicKey,
+                       outcome::result<PublicKey>(gsl::span<const uint8_t>,
+                                                  const Signature &));
   };
 }  // namespace fc::crypto::secp256k1
 

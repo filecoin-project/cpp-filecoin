@@ -6,6 +6,7 @@
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 
 #include <gtest/gtest.h>
+#include <crypto/secp256k1/impl/secp256k1_provider_impl.hpp>
 
 #include "crypto/blake2/blake2b.h"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
@@ -15,14 +16,14 @@
 
 using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::BlsProviderImpl;
+using fc::crypto::secp256k1::Secp256k1Provider;
+using fc::crypto::secp256k1::Secp256k1ProviderImpl;
 using fc::primitives::address::Address;
 using fc::primitives::address::Network;
 using fc::storage::keystore::InMemoryKeyStore;
 using fc::storage::keystore::KeyStore;
 using fc::storage::keystore::KeyStoreError;
 using libp2p::crypto::CryptoProviderError;
-using libp2p::crypto::secp256k1::Secp256k1Provider;
-using libp2p::crypto::secp256k1::Secp256k1ProviderImpl;
 using BlsKeyPair = fc::crypto::bls::KeyPair;
 using Secp256k1KeyPair = libp2p::crypto::secp256k1::KeyPair;
 using BlsSignature = fc::crypto::bls::Signature;

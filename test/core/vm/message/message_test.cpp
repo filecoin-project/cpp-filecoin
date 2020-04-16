@@ -8,6 +8,7 @@
 #include <map>
 
 #include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "testutil/cbor.hpp"
