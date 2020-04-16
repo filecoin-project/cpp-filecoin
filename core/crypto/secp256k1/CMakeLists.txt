@@ -3,6 +3,7 @@
 
 add_library(secp256k1_recover
     impl/secp256k1_provider_impl.cpp
+    impl/secp256k1_sha256_provider_impl.cpp
     impl/secp256k1_error.cpp
     )
 target_link_libraries(secp256k1_recover

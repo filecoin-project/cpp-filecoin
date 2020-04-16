@@ -4,6 +4,7 @@
  */
 
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
+#include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 
 #include <gtest/gtest.h>
 #include <algorithm>
@@ -43,7 +44,13 @@ namespace fc::crypto::secp256k1 {
     PrivateKey private_key_{SAMPLE_PRIVATE_KEY_BYTES};
     std::shared_ptr<
         Secp256k1Provider<KeyPair, PublicKeyUncompressed, SignatureCompact>>
-        secp256K1_provider = std::make_shared<Secp256k1ProviderImpl>();
+        secp256K1_provider = std::make_shared<Secp256k1Sha256ProviderImpl>();
+
+    // secp256k1 provider without digest for interoperability test
+    std::shared_ptr<
+        Secp256k1Provider<KeyPair, PublicKeyUncompressed, SignatureCompact>>
+        secp256K1_no_digest_provider =
+            std::make_shared<Secp256k1ProviderImpl>();
 
     void SetUp() override {
       std::copy_n(go_public_key_bytes.begin(),
@@ -62,7 +69,7 @@ namespace fc::crypto::secp256k1 {
    */
   TEST_F(Secp256k1ProviderTest, PreGeneratedSignatureVerificationSuccess) {
     EXPECT_OUTCOME_TRUE(verificationResult,
-                        secp256K1_provider->verify(
+                        secp256K1_no_digest_provider->verify(
                             go_message_hash, go_signature, go_public_key));
     ASSERT_TRUE(verificationResult);
   }
@@ -140,9 +147,9 @@ namespace fc::crypto::secp256k1 {
    * @then Recovery is successful, public key returned
    */
   TEST_F(Secp256k1ProviderTest, RecoverSuccess) {
-    EXPECT_OUTCOME_TRUE(
-        public_key,
-        secp256K1_provider->recoverPublicKey(go_message_hash, go_signature));
+    EXPECT_OUTCOME_TRUE(public_key,
+                        secp256K1_no_digest_provider->recoverPublicKey(
+                            go_message_hash, go_signature));
     EXPECT_EQ(public_key, go_public_key);
   }
 

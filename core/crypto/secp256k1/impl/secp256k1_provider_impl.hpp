@@ -12,6 +12,12 @@
 
 namespace fc::crypto::secp256k1 {
 
+  /**
+   * Implemetation of Secp256k1 provider with
+   * - public key in uncompressed form
+   * - signature in compact form
+   * - NO digest function
+   */
   class Secp256k1ProviderImpl : public Secp256k1Provider<KeyPair,
                                                          PublicKeyUncompressed,
                                                          SignatureCompact> {
