@@ -21,7 +21,7 @@ namespace fc::data_transfer {
       : network_(std::move(network)),
         graphsync_(std::move(graphsync)),
         graphsync_manager_(std::move(graphsync_manager)),
-        peer_(peer) {}
+        peer_(std::move(peer)) {}
 
   outcome::result<void> GraphsyncReceiver::receiveRequest(
       const PeerId &initiator, const DataTransferRequest &request) {
@@ -166,7 +166,7 @@ namespace fc::data_transfer {
 
   void GraphsyncReceiver::notifySubscribers(const Event &event,
                                             const ChannelState &channel_state) {
-    for (auto subscriber : subscribers_) {
+    for (auto &subscriber : subscribers_) {
       subscriber->notify(event, channel_state);
     }
   }
