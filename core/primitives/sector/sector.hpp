@@ -42,6 +42,8 @@ namespace fc::primitives::sector {
   outcome::result<RegisteredProof> getRegisteredSealProof(
       RegisteredProof proof);
 
+  outcome::result<SectorSize> getSectorSize(RegisteredProof proof);
+
   using SealRandomness = Randomness;
 
   using Ticket = SealRandomness;
@@ -165,6 +167,7 @@ namespace fc::primitives::sector {
   enum class Errors {
     InvalidPoStProof = 1,
     InvalidSealProof,
+    InvalidProofType,
   };
 }  // namespace fc::primitives::sector
 

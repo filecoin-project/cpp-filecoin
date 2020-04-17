@@ -20,8 +20,9 @@ namespace fc::proofs {
     INVALID_SECTOR_SIZE,
     INVALID_JSON,
     INVALID_URL,
-    FAILED_DOWNLOADING,
+    FAILED_DOWNLOADING_FILE,
     CANNOT_CREATE_DIR,
+    FAILED_DOWNLOADING,
   };
 
 }  // namespace fc::proofs

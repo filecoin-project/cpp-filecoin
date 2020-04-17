@@ -23,6 +23,8 @@ namespace fc::proofs {
   common::Logger ProofParamProvider::logger_ =
       common::createLogger("proofs params");
 
+  bool ProofParamProvider::errors_ = false;
+
   size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream) {
     size_t written = fwrite(ptr, size, nmemb, (FILE *)stream);
     return written;
@@ -55,7 +57,8 @@ namespace fc::proofs {
       /* set URL to get here */
       curl_easy_setopt(curl_handle, CURLOPT_URL, gateway.c_str());
 
-      /* Switch off full protocol/debug output while testing, set to 0L to enable it */
+      /* Switch off full protocol/debug output while testing, set to 0L to
+       * enable it */
       curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 0L);
 
       /* enable progress meter, set to 1L to disable it */
@@ -117,6 +120,7 @@ namespace fc::proofs {
     }
 
     curl_global_init(CURL_GLOBAL_ALL);
+    errors_ = false;
     std::vector<std::thread> threads;
     for (const auto &param_file : param_files) {
       if (param_file.sector_size != storage_size) {
@@ -131,9 +135,11 @@ namespace fc::proofs {
     for (auto &th : threads) {
       th.join();
     }
-
     curl_global_cleanup();
-    return outcome::success();
+
+    if (!errors_) return outcome::success();
+
+    return ProofParamProviderError::FAILED_DOWNLOADING;
   }
 
   outcome::result<void> checkFile(const std::string &path,
@@ -178,15 +184,19 @@ namespace fc::proofs {
     auto fetch_res = doFetch(path.string(), info);
 
     if (fetch_res.has_error()) {
+      errors_ = true;
       logger_->error(res.error().message());
+
       return;
     }
 
     res = checkFile(path.string(), info);
 
     if (res.has_error()) {
+      errors_ = true;
       logger_->error(res.error().message());
       boost::filesystem::remove(path);
+
       return;
     }
 

@@ -68,8 +68,7 @@ TEST_F(ProofsTest, Lifecycle) {
   fc::proofs::RegisteredProof post_proof_type =
       fc::primitives::sector::RegisteredProof::StackedDRG2KiBPoSt;
   SectorNumber sector_num = 42;
-  SectorSize sector_size = 2048;
-
+  EXPECT_OUTCOME_TRUE(sector_size, fc::primitives::sector::getSectorSize(seal_proof_type));
   EXPECT_OUTCOME_TRUE_1(
       fc::proofs::ProofParamProvider::getParams(params, sector_size));
 

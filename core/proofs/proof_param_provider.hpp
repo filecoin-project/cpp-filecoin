@@ -9,6 +9,8 @@
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
 #include "gsl/span"
+#include "proofs/proof_param_provider_error.hpp"
+#include "proof_param_provider_error.hpp"
 
 namespace fc::proofs {
 
@@ -31,8 +33,8 @@ namespace fc::proofs {
     static void fetch(const ParamFile &info);
     static outcome::result<void> doFetch(const std::string &out,
                                          const ParamFile &info);
-    static outcome::result<void> doFetch1(const std::string &out,
-                                          const ParamFile &info);
+
+    static bool errors_;
 
     static common::Logger logger_;
   };

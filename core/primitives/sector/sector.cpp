@@ -54,6 +54,29 @@ namespace fc::primitives::sector {
     }
   }
 
+  outcome::result<SectorSize> getSectorSize(RegisteredProof proof) {
+      switch (proof) {
+          case RegisteredProof::StackedDRG32GiBSeal:
+              return SectorSize(32) << 30;
+          case RegisteredProof::StackedDRG32GiBPoSt:
+              return SectorSize(32) << 30;
+          case RegisteredProof::StackedDRG2KiBSeal:
+              return SectorSize(2) << 10;
+          case RegisteredProof::StackedDRG2KiBPoSt:
+              return SectorSize(2) << 10;
+          case RegisteredProof::StackedDRG8MiBSeal:
+              return SectorSize(8) << 20;
+          case RegisteredProof::StackedDRG8MiBPoSt:
+              return SectorSize(8) << 20;
+          case RegisteredProof::StackedDRG512MiBSeal:
+              return SectorSize(512) << 20;
+          case RegisteredProof::StackedDRG512MiBPoSt:
+              return SectorSize(512) << 20;
+          default:
+              return Errors::InvalidProofType;
+      }
+  }
+
 };  // namespace fc::primitives::sector
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::sector, Errors, e) {
@@ -63,6 +86,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::sector, Errors, e) {
       return "Sector: unsupported mapping to Seal-specific RegisteredProof";
     case (Errors::InvalidPoStProof):
       return "Sector: unsupported mapping to PoSt-specific RegisteredProof";
+    case (Errors::InvalidProofType):
+        return "Sector: unsupported proof type";
     default:
       return "Sector: unknown error";
   }
