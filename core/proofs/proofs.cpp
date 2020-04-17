@@ -6,7 +6,7 @@
 #include "proofs/proofs.hpp"
 
 #include <fcntl.h>
-#include <filecoin-ffi/filecoin.h>
+#include <filecoin-ffi/filcrypto.h>
 #include "boost/filesystem/fstream.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
@@ -43,22 +43,22 @@ namespace fc::proofs {
   // ******************
 
   outcome::result<RegisteredProof> cppRegisteredPoStProof(
-      FFIRegisteredPoStProof proof_type) {
+      fil_RegisteredPoStProof proof_type) {
     switch (proof_type) {
-      case FFIRegisteredPoStProof_StackedDrg2KiBV1:
+      case fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg2KiBV1:
         return RegisteredProof::StackedDRG2KiBPoSt;
-      case FFIRegisteredPoStProof_StackedDrg8MiBV1:
+      case fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg8MiBV1:
         return RegisteredProof::StackedDRG8MiBPoSt;
-      case FFIRegisteredPoStProof_StackedDrg512MiBV1:
+      case fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg512MiBV1:
         return RegisteredProof::StackedDRG512MiBPoSt;
-      case FFIRegisteredPoStProof_StackedDrg32GiBV1:
+      case fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg32GiBV1:
         return RegisteredProof::StackedDRG32GiBPoSt;
       default:
         return ProofsError::INVALID_POST_PROOF;
     }
   }
 
-  outcome::result<PoStProof> cppPoStProof(const FFIPoStProof &c_post_proof) {
+  outcome::result<PoStProof> cppPoStProof(const fil_PoStProof &c_post_proof) {
     PoStProof cpp_post_proof{};
 
     OUTCOME_TRY(cpp_registered_proof,
@@ -72,7 +72,7 @@ namespace fc::proofs {
   }
 
   outcome::result<std::vector<PoStProof>> cppPoStProofs(
-      gsl::span<const FFIPoStProof> c_post_proofs) {
+      gsl::span<const fil_PoStProof> c_post_proofs) {
     std::vector<PoStProof> cpp_post_proofs = {};
 
     for (const auto &c_post_proof : c_post_proofs) {
@@ -84,7 +84,7 @@ namespace fc::proofs {
   }
 
   PoStCandidateWithTicket cppCandidateWithTicket(
-      const FFICandidate &c_candidate) {
+      const fil_Candidate &c_candidate) {
     PoStCandidateWithTicket candidate_with_ticket;
 
     candidate_with_ticket.ticket =
@@ -100,7 +100,7 @@ namespace fc::proofs {
   }
 
   std::vector<PoStCandidateWithTicket> cppCandidatesWithTickets(
-      gsl::span<const FFICandidate> c_candidates) {
+      gsl::span<const fil_Candidate> c_candidates) {
     std::vector<PoStCandidateWithTicket> cpp_candidates;
     for (const auto &c_candidate : c_candidates) {
       cpp_candidates.push_back(cppCandidateWithTicket(c_candidate));
@@ -109,7 +109,7 @@ namespace fc::proofs {
   }
 
   WriteWithoutAlignmentResult cppWriteWithoutAlignmentResult(
-      const WriteWithoutAlignmentResponse &response) {
+      const fil_WriteWithoutAlignmentResponse &response) {
     WriteWithoutAlignmentResult result;
 
     result.total_write_unpadded = response.total_write_unpadded;
@@ -120,7 +120,7 @@ namespace fc::proofs {
   }
 
   WriteWithAlignmentResult cppWriteWithAlignmentResult(
-      const WriteWithAlignmentResponse &response) {
+      const fil_WriteWithAlignmentResponse &response) {
     WriteWithAlignmentResult result;
 
     result.left_alignment_unpadded = response.left_alignment_unpadded;
@@ -135,35 +135,35 @@ namespace fc::proofs {
   // TO С CASTED FUNCTIONS
   // ******************
 
-  outcome::result<FFIRegisteredPoStProof> cRegisteredPoStProof(
+  outcome::result<fil_RegisteredPoStProof> cRegisteredPoStProof(
       RegisteredProof proof_type) {
     OUTCOME_TRY(post_proof, getRegisteredPoStProof(proof_type));
     switch (post_proof) {
       case RegisteredProof::StackedDRG2KiBPoSt:
-        return FFIRegisteredPoStProof_StackedDrg2KiBV1;
+        return fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg2KiBV1;
       case RegisteredProof::StackedDRG8MiBPoSt:
-        return FFIRegisteredPoStProof_StackedDrg8MiBV1;
+        return fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg8MiBV1;
       case RegisteredProof::StackedDRG512MiBPoSt:
-        return FFIRegisteredPoStProof_StackedDrg512MiBV1;
+        return fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg512MiBV1;
       case RegisteredProof::StackedDRG32GiBPoSt:
-        return FFIRegisteredPoStProof_StackedDrg32GiBV1;
+        return fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg32GiBV1;
       default:
         return ProofsError::NO_SUCH_POST_PROOF;
     }
   }
 
-  outcome::result<FFIRegisteredSealProof> cRegisteredSealProof(
+  outcome::result<fil_RegisteredSealProof> cRegisteredSealProof(
       RegisteredProof proof_type) {
     OUTCOME_TRY(seal_proof, getRegisteredSealProof(proof_type));
     switch (seal_proof) {
       case RegisteredProof::StackedDRG2KiBSeal:
-        return FFIRegisteredSealProof_StackedDrg2KiBV1;
+        return fil_RegisteredSealProof::fil_RegisteredSealProof_StackedDrg2KiBV1;
       case RegisteredProof::StackedDRG8MiBSeal:
-        return FFIRegisteredSealProof_StackedDrg8MiBV1;
+        return fil_RegisteredSealProof::fil_RegisteredSealProof_StackedDrg8MiBV1;
       case RegisteredProof::StackedDRG512MiBSeal:
-        return FFIRegisteredSealProof_StackedDrg512MiBV1;
+        return fil_RegisteredSealProof::fil_RegisteredSealProof_StackedDrg512MiBV1;
       case RegisteredProof::StackedDRG32GiBSeal:
-        return FFIRegisteredSealProof_StackedDrg32GiBV1;
+        return fil_RegisteredSealProof::fil_RegisteredSealProof_StackedDrg32GiBV1;
       default:
         return ProofsError::NO_SUCH_SEAL_PROOF;
     }
@@ -178,13 +178,18 @@ namespace fc::proofs {
     return prover;
   }
 
-  auto cPointerToArray(const Blob<32> &arr) {
-    // NOLINTNEXTLINE
-    return reinterpret_cast<const uint8_t(*)[32]>(arr.data());
+  fil_32ByteArray c32ByteArray(const Blob<32> &arr) {
+      fil_32ByteArray array{};
+
+      std::copy(arr.begin(),
+                arr.end(),
+                array.inner);
+
+      return array;
   }
 
-  FFICandidate cCandidate(const PoStCandidate &cpp_candidate) {
-    FFICandidate c_candidate;
+  fil_Candidate cCandidate(const PoStCandidate &cpp_candidate) {
+    fil_Candidate c_candidate;
     c_candidate.sector_id = cpp_candidate.sector.sector;
     c_candidate.sector_challenge_index =
         uint64_t(cpp_candidate.challenge_index);
@@ -197,18 +202,18 @@ namespace fc::proofs {
     return c_candidate;
   }
 
-  std::vector<FFICandidate> cCandidates(
+  std::vector<fil_Candidate> cCandidates(
       gsl::span<const PoStCandidate> cpp_candidates) {
-    std::vector<FFICandidate> c_candidates;
+    std::vector<fil_Candidate> c_candidates = {};
     for (const auto &cpp_candidate : cpp_candidates) {
       c_candidates.push_back(cCandidate(cpp_candidate));
     }
     return c_candidates;
   }
 
-  outcome::result<FFIPrivateReplicaInfo> cPrivateReplicaInfo(
+  outcome::result<fil_PrivateReplicaInfo> cPrivateReplicaInfo(
       const PrivateSectorInfo &cpp_private_replica_info) {
-    FFIPrivateReplicaInfo c_private_replica_info;
+    fil_PrivateReplicaInfo c_private_replica_info;
 
     c_private_replica_info.sector_id = cpp_private_replica_info.info.sector;
 
@@ -229,9 +234,9 @@ namespace fc::proofs {
     return c_private_replica_info;
   }
 
-  outcome::result<std::vector<FFIPrivateReplicaInfo>> cPrivateReplicasInfo(
+  outcome::result<std::vector<fil_PrivateReplicaInfo>> cPrivateReplicasInfo(
       gsl::span<const PrivateSectorInfo> cpp_private_replicas_info) {
-    std::vector<FFIPrivateReplicaInfo> c_private_replicas_info;
+    std::vector<fil_PrivateReplicaInfo> c_private_replicas_info = {};
     for (const auto &cpp_private_replica_info : cpp_private_replicas_info) {
       OUTCOME_TRY(c_private_replica_info,
                   cPrivateReplicaInfo(cpp_private_replica_info));
@@ -240,9 +245,9 @@ namespace fc::proofs {
     return c_private_replicas_info;
   }
 
-  outcome::result<FFIPublicReplicaInfo> cPublicReplicaInfo(
+  outcome::result<fil_PublicReplicaInfo> cPublicReplicaInfo(
       const PublicSectorInfo &cpp_public_replica_info) {
-    FFIPublicReplicaInfo c_public_replica_info{};
+    fil_PublicReplicaInfo c_public_replica_info{};
 
     c_public_replica_info.sector_id = cpp_public_replica_info.sector_num;
 
@@ -258,9 +263,9 @@ namespace fc::proofs {
     return c_public_replica_info;
   }
 
-  outcome::result<std::vector<FFIPublicReplicaInfo>> cPublicReplicasInfo(
+  outcome::result<std::vector<fil_PublicReplicaInfo>> cPublicReplicasInfo(
       gsl::span<const PublicSectorInfo> cpp_public_replicas_info) {
-    std::vector<FFIPublicReplicaInfo> c_public_replicas_info;
+    std::vector<fil_PublicReplicaInfo> c_public_replicas_info = {};
     for (const auto &cpp_public_replica_info : cpp_public_replicas_info) {
       OUTCOME_TRY(c_public_replica_info,
                   cPublicReplicaInfo(cpp_public_replica_info));
@@ -269,9 +274,9 @@ namespace fc::proofs {
     return c_public_replicas_info;
   }
 
-  outcome::result<FFIPublicPieceInfo> cPublicPieceInfo(
+  outcome::result<fil_PublicPieceInfo> cPublicPieceInfo(
       const PieceInfo &cpp_public_piece_info) {
-    FFIPublicPieceInfo c_public_piece_info;
+    fil_PublicPieceInfo c_public_piece_info{};
 
     c_public_piece_info.num_bytes = cpp_public_piece_info.size.unpadded();
     OUTCOME_TRY(comm_p, CIDToPieceCommitmentV1(cpp_public_piece_info.cid));
@@ -280,9 +285,9 @@ namespace fc::proofs {
     return c_public_piece_info;
   }
 
-  outcome::result<std::vector<FFIPublicPieceInfo>> cPublicPiecesInfo(
+  outcome::result<std::vector<fil_PublicPieceInfo>> cPublicPiecesInfo(
       gsl::span<const PieceInfo> cpp_public_pieces_info) {
-    std::vector<FFIPublicPieceInfo> c_public_pieces_info;
+    std::vector<fil_PublicPieceInfo> c_public_pieces_info = {};
     for (const auto &cpp_public_piece_info : cpp_public_pieces_info) {
       OUTCOME_TRY(c_piblic_piece_info, cPublicPieceInfo(cpp_public_piece_info));
       c_public_pieces_info.push_back(c_piblic_piece_info);
@@ -290,18 +295,18 @@ namespace fc::proofs {
     return c_public_pieces_info;
   }
 
-  outcome::result<FFIPoStProof> cPoStProof(const PoStProof &cpp_post_proof) {
+  outcome::result<fil_PoStProof> cPoStProof(const PoStProof &cpp_post_proof) {
     OUTCOME_TRY(c_proof, cRegisteredPoStProof(cpp_post_proof.registered_proof));
-    return FFIPoStProof{
+    return fil_PoStProof{
         .registered_proof = c_proof,
         .proof_len = cpp_post_proof.proof.size(),
         .proof_ptr = cpp_post_proof.proof.data(),
     };
   }
 
-  outcome::result<std::vector<FFIPoStProof>> cPoStProofs(
+  outcome::result<std::vector<fil_PoStProof>> cPoStProofs(
       gsl::span<const PoStProof> cpp_post_proofs) {
-    std::vector<FFIPoStProof> c_proofs = {};
+    std::vector<fil_PoStProof> c_proofs = {};
     for (const auto &cpp_post_proof : cpp_post_proofs) {
       OUTCOME_TRY(c_post_proof, cPoStProof(cpp_post_proof));
       c_proofs.push_back(c_post_proof);
@@ -329,13 +334,13 @@ namespace fc::proofs {
     OUTCOME_TRY(c_public_sector_info,
                 cPublicReplicasInfo(sorted_public_sector_info.values));
 
-    std::vector<FFICandidate> c_winners = cCandidates(info.candidates);
+    std::vector<fil_Candidate> c_winners = cCandidates(info.candidates);
 
     auto prover_id = toProverID(info.prover);
 
     OUTCOME_TRY(c_post_proofs, cPoStProofs(gsl::make_span(info.proofs)));
 
-    auto res_ptr = make_unique(verify_post(cPointerToArray(info.randomness),
+    auto res_ptr = make_unique(fil_verify_post(c32ByteArray(info.randomness),
                                            info.challenge_count,
                                            c_public_sector_info.data(),
                                            c_public_sector_info.size(),
@@ -343,8 +348,8 @@ namespace fc::proofs {
                                            c_post_proofs.size(),
                                            c_winners.data(),
                                            c_winners.size(),
-                                           cPointerToArray(prover_id)),
-                               destroy_verify_post_response);
+                                           c32ByteArray(prover_id)),
+                               fil_destroy_verify_post_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("verifyPoSt: " + std::string(res_ptr->error_msg));
@@ -364,16 +369,16 @@ namespace fc::proofs {
     auto prover_id = toProverID(info.sector.miner);
 
     auto res_ptr =
-        make_unique(verify_seal(c_proof_type,
-                                cPointerToArray(comm_r),
-                                cPointerToArray(comm_d),
-                                cPointerToArray(prover_id),
-                                cPointerToArray(info.randomness),
-                                cPointerToArray(info.interactive_randomness),
+        make_unique(fil_verify_seal(c_proof_type,
+                                c32ByteArray(comm_r),
+                                c32ByteArray(comm_d),
+                                c32ByteArray(prover_id),
+                                c32ByteArray(info.randomness),
+                                c32ByteArray(info.interactive_randomness),
                                 info.info.sector,
                                 info.info.proof.data(),
                                 info.info.proof.size()),
-                    destroy_verify_seal_response);
+                    fil_destroy_verify_seal_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("verifySeal: " + std::string(res_ptr->error_msg));
@@ -398,19 +403,19 @@ namespace fc::proofs {
                 cPrivateReplicasInfo(sorted_private_replica_info.values));
     auto prover_id = toProverID(miner_id);
     auto res_ptr =
-        make_unique(generate_candidates(cPointerToArray(randomness),
+        make_unique(fil_generate_candidates(c32ByteArray(randomness),
                                         challenge_count,
                                         c_sorted_private_sector_info.data(),
                                         c_sorted_private_sector_info.size(),
-                                        cPointerToArray(prover_id)),
-                    destroy_generate_candidates_response);
+                                        c32ByteArray(prover_id)),
+                    fil_destroy_generate_candidates_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("generateCandidates: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 
-    return cppCandidatesWithTickets(gsl::span<const FFICandidate>(
+    return cppCandidatesWithTickets(gsl::span<const fil_Candidate>(
         res_ptr->candidates_ptr, res_ptr->candidates_len));
   }
 
@@ -419,20 +424,20 @@ namespace fc::proofs {
       const SortedPrivateSectorInfo &private_replica_info,
       const PoStRandomness &randomness,
       gsl::span<const PoStCandidate> winners) {
-    std::vector<FFICandidate> c_winners = cCandidates(winners);
+    std::vector<fil_Candidate> c_winners = cCandidates(winners);
 
     OUTCOME_TRY(c_sorted_private_sector_info,
                 cPrivateReplicasInfo(private_replica_info.values));
 
     auto prover_id = toProverID(miner_id);
     auto res_ptr =
-        make_unique(generate_post(cPointerToArray(randomness),
+        make_unique(fil_generate_post(c32ByteArray(randomness),
                                   c_sorted_private_sector_info.data(),
                                   c_sorted_private_sector_info.size(),
                                   c_winners.data(),
                                   c_winners.size(),
-                                  cPointerToArray(prover_id)),
-                    destroy_generate_post_response);
+                                  c32ByteArray(prover_id)),
+                    fil_destroy_generate_post_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("generatePoSt: " + std::string(res_ptr->error_msg));
@@ -468,9 +473,9 @@ namespace fc::proofs {
     }
 
     auto res_ptr =
-        make_unique(write_without_alignment(
+        make_unique(fil_write_without_alignment(
                         c_proof_type, piece_fd, piece_bytes, staged_sector_fd),
-                    destroy_write_without_alignment_response);
+                    fil_destroy_write_without_alignment_response);
 
     // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(piece_fd))
@@ -519,13 +524,13 @@ namespace fc::proofs {
               existing_piece_sizes.cend(),
               std::back_inserter(raw));
 
-    auto res_ptr = make_unique(write_with_alignment(c_proof_type,
+    auto res_ptr = make_unique(fil_write_with_alignment(c_proof_type,
                                                     piece_fd,
                                                     uint64_t(piece_bytes),
                                                     staged_sector_fd,
                                                     raw.data(),
                                                     raw.size()),
-                               destroy_write_with_alignment_response);
+                               fil_destroy_write_with_alignment_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
@@ -558,16 +563,16 @@ namespace fc::proofs {
     auto prover_id = toProverID(miner_id);
 
     auto res_ptr =
-        make_unique(seal_pre_commit_phase1(c_proof_type,
+        make_unique(fil_seal_pre_commit_phase1(c_proof_type,
                                            cache_dir_path.c_str(),
                                            staged_sector_path.c_str(),
                                            sealed_sector_path.c_str(),
                                            sector_num,
-                                           cPointerToArray(prover_id),
-                                           cPointerToArray(ticket),
+                                           c32ByteArray(prover_id),
+                                           c32ByteArray(ticket),
                                            c_pieces.data(),
                                            c_pieces.size()),
-                    destroy_seal_pre_commit_phase1_response);
+                    fil_destroy_seal_pre_commit_phase1_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("Seal precommit phase 1: "
@@ -586,11 +591,11 @@ namespace fc::proofs {
       const std::string &cache_dir_path,
       const std::string &sealed_sector_path) {
     auto res_ptr =
-        make_unique(seal_pre_commit_phase2(phase1_output.data(),
+        make_unique(fil_seal_pre_commit_phase2(phase1_output.data(),
                                            phase1_output.size(),
                                            cache_dir_path.c_str(),
                                            sealed_sector_path.c_str()),
-                    destroy_seal_pre_commit_phase2_response);
+                    fil_destroy_seal_pre_commit_phase2_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("Seal precommit phase 2: "
@@ -627,18 +632,18 @@ namespace fc::proofs {
 
     auto prover_id = toProverID(miner_id);
 
-    auto res_ptr = make_unique(seal_commit_phase1(c_proof_type,
-                                                  cPointerToArray(comm_r),
-                                                  cPointerToArray(comm_d),
+    auto res_ptr = make_unique(fil_seal_commit_phase1(c_proof_type,
+                                                  c32ByteArray(comm_r),
+                                                  c32ByteArray(comm_d),
                                                   cache_dir_path.c_str(),
                                                   sealed_sector_path.c_str(),
                                                   sector_num,
-                                                  cPointerToArray(prover_id),
-                                                  cPointerToArray(ticket),
-                                                  cPointerToArray(seed),
+                                                  c32ByteArray(prover_id),
+                                                  c32ByteArray(ticket),
+                                                  c32ByteArray(seed),
                                                   c_pieces.data(),
                                                   c_pieces.size()),
-                               destroy_seal_commit_phase1_response);
+                               fil_destroy_seal_commit_phase1_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("sealCommit Phase 1: " + std::string(res_ptr->error_msg));
@@ -656,11 +661,11 @@ namespace fc::proofs {
       SectorNumber sector_id,
       ActorId miner_id) {
     auto prover_id = toProverID(miner_id);
-    auto res_ptr = make_unique(seal_commit_phase2(phase1_output.data(),
+    auto res_ptr = make_unique(fil_seal_commit_phase2(phase1_output.data(),
                                                   phase1_output.size(),
                                                   sector_id,
-                                                  cPointerToArray(prover_id)),
-                               destroy_seal_commit_phase2_response);
+                                                  c32ByteArray(prover_id)),
+                               fil_destroy_seal_commit_phase2_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("sealCommit Phase 2: " + std::string(res_ptr->error_msg));
@@ -683,15 +688,15 @@ namespace fc::proofs {
     OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
     auto prover_id = toProverID(miner_id);
 
-    auto res_ptr = make_unique(::unseal(c_proof_type,
+    auto res_ptr = make_unique(fil_unseal(c_proof_type,
                                         cache_dir_path.c_str(),
                                         sealed_sector_path.c_str(),
                                         unseal_output_path.c_str(),
                                         sector_num,
-                                        cPointerToArray(prover_id),
-                                        cPointerToArray(ticket),
-                                        cPointerToArray(comm_d)),
-                               destroy_unseal_response);
+                                        c32ByteArray(prover_id),
+                                        c32ByteArray(ticket),
+                                        c32ByteArray(comm_d)),
+                               fil_destroy_unseal_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("unseal: " + std::string(res_ptr->error_msg));
@@ -718,17 +723,17 @@ namespace fc::proofs {
     OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
 
     auto prover_id = toProverID(miner_id);
-    auto res_ptr = make_unique(unseal_range(c_proof_type,
+    auto res_ptr = make_unique(fil_unseal_range(c_proof_type,
                                             cache_dir_path.c_str(),
                                             sealed_sector_path.c_str(),
                                             unseal_output_path.c_str(),
                                             sector_num,
-                                            cPointerToArray(prover_id),
-                                            cPointerToArray(ticket),
-                                            cPointerToArray(comm_d),
+                                            c32ByteArray(prover_id),
+                                            c32ByteArray(ticket),
+                                            c32ByteArray(comm_d),
                                             offset,
                                             length),
-                               destroy_unseal_range_response);
+                               fil_destroy_unseal_range_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("unsealRange: " + std::string(res_ptr->error_msg));
@@ -779,8 +784,8 @@ namespace fc::proofs {
     }
 
     auto res_ptr = make_unique(
-        generate_piece_commitment(c_proof_type, piece_fd, piece_size),
-        destroy_generate_piece_commitment_response);
+        fil_generate_piece_commitment(c_proof_type, piece_fd, piece_size),
+       fil_destroy_generate_piece_commitment_response);
 
     // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(piece_fd))
@@ -804,9 +809,9 @@ namespace fc::proofs {
     OUTCOME_TRY(c_pieces, cPublicPiecesInfo(pieces));
 
     auto res_ptr =
-        make_unique(generate_data_commitment(
+        make_unique(fil_generate_data_commitment(
                         c_proof_type, c_pieces.data(), c_pieces.size()),
-                    destroy_generate_data_commitment_response);
+                    fil_destroy_generate_data_commitment_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("generateUnsealedCID: " + std::string(res_ptr->error_msg));
@@ -818,8 +823,8 @@ namespace fc::proofs {
   }
 
   outcome::result<Ticket> Proofs::finalizeTicket(const Ticket &partialTicket) {
-    auto res_ptr = make_unique(finalize_ticket(cPointerToArray(partialTicket)),
-                               destroy_finalize_ticket_response);
+    auto res_ptr = make_unique(fil_finalize_ticket(c32ByteArray(partialTicket)),
+                               fil_destroy_finalize_ticket_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("finalizeTicket: " + std::string(res_ptr->error_msg));
@@ -830,8 +835,8 @@ namespace fc::proofs {
   }
 
   outcome::result<void> Proofs::clearCache(const std::string &cache_dir_path) {
-    auto res_ptr = make_unique(clear_cache(cache_dir_path.c_str()),
-                               destroy_clear_cache_response);
+    auto res_ptr = make_unique(fil_clear_cache(cache_dir_path.c_str()),
+                               fil_destroy_clear_cache_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("clearCache: " + std::string(res_ptr->error_msg));
@@ -845,7 +850,7 @@ namespace fc::proofs {
       RegisteredProof proof_type) {
     OUTCOME_TRY(c_proof_type, cRegisteredPoStProof(proof_type));
     auto res_ptr =
-        make_unique(get_post_version(c_proof_type), destroy_string_response);
+        make_unique(fil_get_post_version(c_proof_type), fil_destroy_string_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("getPoStVersion: " + std::string(res_ptr->error_msg));
@@ -859,7 +864,7 @@ namespace fc::proofs {
       RegisteredProof proof_type) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
     auto res_ptr =
-        make_unique(get_seal_version(c_proof_type), destroy_string_response);
+        make_unique(fil_get_seal_version(c_proof_type), fil_destroy_string_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("getSealVersion: " + std::string(res_ptr->error_msg));
@@ -870,7 +875,7 @@ namespace fc::proofs {
   }
 
   outcome::result<Devices> Proofs::getGPUDevices() {
-    auto res_ptr = make_unique(get_gpu_devices(), destroy_gpu_device_response);
+    auto res_ptr = make_unique(fil_get_gpu_devices(), fil_destroy_gpu_device_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("getGPUDevices: " + std::string(res_ptr->error_msg));

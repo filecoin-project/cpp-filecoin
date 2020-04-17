@@ -11,6 +11,12 @@ hunter_config(
 )
 
 hunter_config(
+    CURL
+    VERSION 7.60.0-p2
+    CMAKE_ARGS "HTTP_ONLY=ON"
+)
+
+hunter_config(
     spdlog
     URL https://github.com/gabime/spdlog/archive/v1.4.2.zip
     SHA1 4b10e9aa17f7d568e24f464b48358ab46cb6f39c

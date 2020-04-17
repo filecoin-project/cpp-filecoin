@@ -6,7 +6,7 @@
 set(FILECOIN_FFI_PATH "${PROJECT_SOURCE_DIR}/deps/our-filecoin-ffi")
 
 set(FILECOIN_FFI_INCLUDES
-        "${FILECOIN_FFI_PATH}/include/filcrypto"
+        "${FILECOIN_FFI_PATH}/include/filecoin-ffi"
         )
 
 set(FILECOIN_FFI_LIB
