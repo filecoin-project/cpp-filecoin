@@ -14,7 +14,7 @@
 
 auto readFile(const std::string &path) {
   std::ifstream file{path, std::ios::binary | std::ios::ate};
-  EXPECT_TRUE(file.good());
+  EXPECT_TRUE(file.good()) << "Cannot open file: " << path;
   fc::common::Buffer buffer;
   buffer.resize(file.tellg());
   file.seekg(0, std::ios::beg);

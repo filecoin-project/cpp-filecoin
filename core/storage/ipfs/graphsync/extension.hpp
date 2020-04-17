@@ -6,8 +6,8 @@
 #ifndef CPP_FILECOIN_GRAPHSYNC_EXTENSION_HPP
 #define CPP_FILECOIN_GRAPHSYNC_EXTENSION_HPP
 
-#include <string>
 #include <set>
+#include <string>
 
 #include "primitives/cid/cid.hpp"
 
@@ -24,6 +24,10 @@ namespace fc::storage::ipfs::graphsync {
   struct Extension {
     std::string name;
     std::vector<uint8_t> data;
+
+    inline bool operator==(const Extension &other) const {
+      return name == other.name && data == other.data;
+    }
   };
 
   /// Returns "graphsync/response-metadata":true extension
@@ -33,7 +37,7 @@ namespace fc::storage::ipfs::graphsync {
   using ResponseMetadata = std::vector<std::pair<CID, bool>>;
 
   /// Encodes response metadata pairs
-  Extension encodeResponseMetadata(const ResponseMetadata& metadata);
+  Extension encodeResponseMetadata(const ResponseMetadata &metadata);
 
   /// Decodes metadata pairs
   outcome::result<ResponseMetadata> decodeResponseMetadata(
@@ -43,8 +47,7 @@ namespace fc::storage::ipfs::graphsync {
   Extension encodeDontSendCids(const std::vector<CID> &dont_send_cids);
 
   /// Decodes CID subset not to be included into response
-  outcome::result<std::set<CID>> decodeDontSendCids(
-      const Extension &extension);
+  outcome::result<std::set<CID>> decodeDontSendCids(const Extension &extension);
 
 }  // namespace fc::storage::ipfs::graphsync
 
