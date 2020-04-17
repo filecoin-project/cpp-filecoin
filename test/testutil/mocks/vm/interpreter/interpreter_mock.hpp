@@ -13,11 +13,10 @@
 namespace fc::vm::interpreter {
   class InterpreterMock : public Interpreter {
    public:
-    MOCK_CONST_METHOD3(
+    MOCK_CONST_METHOD2(
         interpret,
         outcome::result<Result>(const std::shared_ptr<IpfsDatastore> &store,
-                                const Tipset &tipset,
-                                const std::shared_ptr<Indices> &indices));
+                                const Tipset &tipset));
   };
 }  // namespace fc::vm::interpreter
 

@@ -17,7 +17,7 @@ namespace fc::vm::runtime {
   using storage::hamt::HamtError;
 
   outcome::result<MessageReceipt> Env::applyMessage(
-      const UnsignedMessage &message) {
+      const UnsignedMessage &message, TokenAmount &penalty) {
     BigInt gas_cost = message.gasLimit * message.gasPrice;
     BigInt total_cost = gas_cost + message.value;
 
@@ -53,14 +53,11 @@ namespace fc::vm::runtime {
       OUTCOME_TRY(state_tree->set(message.from, from_actor_2));
     }
 
-    OUTCOME_TRY(miner_actor, state_tree->get(block_miner));
-    OUTCOME_TRY(RuntimeImpl::transfer(
-        gas_holder, miner_actor, gas_used * message.gasPrice));
-    OUTCOME_TRY(state_tree->set(block_miner, miner_actor));
-
-    OUTCOME_TRY(ret_code, getRetCode(result));
+    auto ret_code = normalizeVMExitCode(VMExitCode{result.error().value()});
+    BOOST_ASSERT_MSG(ret_code, "c++ actor code returned unknown error");
+    penalty = 0;
     return MessageReceipt{
-        ret_code,
+        *ret_code,
         result ? result.value().return_value : Buffer{},
         gas_used,
     };

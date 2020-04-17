@@ -373,16 +373,14 @@ namespace fc::api {
 
     ENCODE(MessageReceipt) {
       Value j{rapidjson::kObjectType};
-      Set(j, "ExitCode", static_cast<uint64_t>(v.exit_code));
+      Set(j, "ExitCode", common::to_int(v.exit_code));
       Set(j, "Return", gsl::make_span(v.return_value));
       Set(j, "GasUsed", v.gas_used);
       return j;
     }
 
     DECODE(MessageReceipt) {
-      uint64_t exit_code;
-      decode(exit_code, Get(j, "ExitCode"));
-      v.exit_code = exit_code;
+      decodeEnum(v.exit_code, Get(j, "ExitCode"));
       decode(v.return_value, Get(j, "Return"));
       decode(v.gas_used, Get(j, "GasUsed"));
     }

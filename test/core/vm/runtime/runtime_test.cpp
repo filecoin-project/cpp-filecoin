@@ -13,7 +13,6 @@
 #include "testutil/mocks/crypto/randomness/randomness_provider_mock.hpp"
 #include "testutil/mocks/storage/ipfs/ipfs_datastore_mock.hpp"
 #include "testutil/mocks/vm/actor/invoker_mock.hpp"
-#include "testutil/mocks/vm/indices/indices_mock.hpp"
 #include "testutil/mocks/vm/state/state_tree_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/message/message.hpp"
@@ -36,8 +35,6 @@ using fc::vm::actor::kInitAddress;
 using fc::vm::actor::MethodNumber;
 using fc::vm::actor::MethodParams;
 using fc::vm::actor::MockInvoker;
-using fc::vm::indices::Indices;
-using fc::vm::indices::MockIndices;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::Env;
 using fc::vm::runtime::InvocationOutput;
@@ -59,27 +56,21 @@ class RuntimeTest : public ::testing::Test {
       std::make_shared<MockIpfsDatastore>();
   std::shared_ptr<MockStateTree> state_tree_ =
       std::make_shared<MockStateTree>();
-  std::shared_ptr<MockIndices> indices_ = std::make_shared<MockIndices>();
   std::shared_ptr<MockInvoker> invoker_ = std::make_shared<MockInvoker>();
   UnsignedMessage message_{message_to, message_from, {}, {}, {}, {}, {}, {}};
   ChainEpoch chain_epoch_{0};
   Address immediate_caller_{fc::primitives::address::TESTNET, 1};
-  Address block_miner_{};
   GasAmount gas_available_{100};
   GasAmount gas_used_{0};
 
-  std::shared_ptr<Runtime> runtime_ =
-      std::make_shared<RuntimeImpl>(std::make_shared<Env>(randomness_provider_,
-                                                          state_tree_,
-                                                          indices_,
-                                                          invoker_,
-                                                          chain_epoch_,
-                                                          block_miner_),
-                                    message_,
-                                    immediate_caller_,
-                                    gas_available_,
-                                    gas_used_,
-                                    ActorSubstateCID{"010001020001"_cid});
+  std::shared_ptr<Runtime> runtime_ = std::make_shared<RuntimeImpl>(
+      std::make_shared<Env>(
+          randomness_provider_, state_tree_, invoker_, chain_epoch_),
+      message_,
+      immediate_caller_,
+      gas_available_,
+      gas_used_,
+      ActorSubstateCID{"010001020001"_cid});
 };
 
 /**

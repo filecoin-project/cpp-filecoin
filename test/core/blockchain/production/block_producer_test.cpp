@@ -132,11 +132,10 @@ TEST_F(BlockProducerTest, Main) {
    */
   using InterpreterResult = fc::vm::interpreter::Result;
   auto vm_interpreter = std::make_shared<InterpreterImpl>();
-  std::shared_ptr<Indices> vm_indices = std::make_shared<IndicesImpl>();
   std::shared_ptr<IpfsDatastore> vm_datastore = ipfs_datastore;
   InterpreterResult interpreter_result{config::kParentTipset,
                                        config::kParentTipset};
-  EXPECT_CALL(*vm_interpreter, interpret(_, _, _))
+  EXPECT_CALL(*vm_interpreter, interpret(_, _))
       .WillOnce(testing::Return(interpreter_result));
 
   /**
@@ -154,6 +153,5 @@ TEST_F(BlockProducerTest, Main) {
       block_producer->generate(Address::makeFromId(config::kMinerAddressId),
                                config::kParentTipset,
                                e_post_proof_,
-                               getTicket(),
-                               std::make_shared<IndicesImpl>()));
+                               getTicket()));
 }

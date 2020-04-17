@@ -28,15 +28,11 @@ namespace fc::vm::runtime {
 
     MOCK_CONST_METHOD0(getCurrentReceiver, Address());
 
-    MOCK_CONST_METHOD0(getTopLevelBlockWinner, Address());
-
     MOCK_CONST_METHOD0(acquireState, std::shared_ptr<ActorStateHandle>());
 
     MOCK_CONST_METHOD1(getBalance,
                        outcome::result<BigInt>(const Address &address));
     MOCK_CONST_METHOD0(getValueReceived, BigInt());
-
-    MOCK_CONST_METHOD0(getCurrentIndices, std::shared_ptr<Indices>());
 
     MOCK_CONST_METHOD1(getActorCodeID,
                        outcome::result<CodeId>(const Address &address));

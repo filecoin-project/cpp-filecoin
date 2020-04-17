@@ -20,15 +20,16 @@ using fc::vm::runtime::MockRuntime;
 TEST(InvokerTest, InvokeCron) {
   using namespace fc::vm::actor;
 
-  auto message = UnsignedMessage{kInitAddress, kInitAddress, {}, {}, {}, {}, {}, {}};
+  auto message =
+      UnsignedMessage{kInitAddress, kInitAddress, {}, {}, {}, {}, {}, {}};
   InvokerImpl invoker;
   MockRuntime runtime;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::INVOKER_NO_CODE_OR_METHOD,
+      VMExitCode::SysErrorIllegalActor,
       invoker.invoke({CodeId{kEmptyObjectCid}}, runtime, MethodNumber{0}, {}));
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::INVOKER_NO_CODE_OR_METHOD,
+      VMExitCode::SysErrInvalidMethod,
       invoker.invoke({kCronCodeCid}, runtime, MethodNumber{1000}, {}));
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
   EXPECT_OUTCOME_ERROR(
@@ -51,7 +52,7 @@ TEST(InvokerTest, DecodeActorParams) {
 TEST(InvokerTest, EncodeActorParams) {
   using fc::vm::actor::encodeActorParams;
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ENCODE_ACTOR_PARAMS_ERROR,
+  EXPECT_OUTCOME_ERROR(VMExitCode::SysErrInvalidParameters,
                        encodeActorParams(fc::CID()));
   EXPECT_OUTCOME_EQ(encodeActorParams(3), MethodParams{"03"_unhex});
 }

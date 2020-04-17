@@ -53,6 +53,11 @@ namespace fc::adt {
       return amt.remove(key);
     }
 
+    outcome::result<void> append(const Value &value) {
+      OUTCOME_TRY(count, amt.count());
+      return set(count, value);
+    }
+
     outcome::result<void> flush() {
       OUTCOME_TRY(amt.flush());
       return outcome::success();
