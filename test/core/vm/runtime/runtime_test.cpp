@@ -27,6 +27,7 @@ using fc::primitives::address::Address;
 using fc::storage::hamt::HamtError;
 using fc::storage::ipfs::IpfsDatastore;
 using fc::storage::ipfs::MockIpfsDatastore;
+using fc::vm::VMExitCode;
 using fc::vm::actor::Actor;
 using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::CodeId;
@@ -37,6 +38,7 @@ using fc::vm::actor::MethodParams;
 using fc::vm::actor::MockInvoker;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::Env;
+using fc::vm::runtime::Execution;
 using fc::vm::runtime::InvocationOutput;
 using fc::vm::runtime::Runtime;
 using fc::vm::runtime::RuntimeError;
@@ -57,19 +59,13 @@ class RuntimeTest : public ::testing::Test {
   std::shared_ptr<MockStateTree> state_tree_ =
       std::make_shared<MockStateTree>();
   std::shared_ptr<MockInvoker> invoker_ = std::make_shared<MockInvoker>();
-  UnsignedMessage message_{message_to, message_from, {}, {}, {}, {}, {}, {}};
-  ChainEpoch chain_epoch_{0};
-  Address immediate_caller_{fc::primitives::address::TESTNET, 1};
-  GasAmount gas_available_{100};
-  GasAmount gas_used_{0};
+  UnsignedMessage message_{message_to, message_from, {}, {}, {}, 100, {}, {}};
 
   std::shared_ptr<Runtime> runtime_ = std::make_shared<RuntimeImpl>(
-      std::make_shared<Env>(
-          randomness_provider_, state_tree_, invoker_, chain_epoch_),
+      Execution::make(
+          std::make_shared<Env>(randomness_provider_, state_tree_, invoker_, 0),
+          message_),
       message_,
-      immediate_caller_,
-      gas_available_,
-      gas_used_,
       ActorSubstateCID{"010001020001"_cid});
 };
 
@@ -126,37 +122,14 @@ TEST_F(RuntimeTest, getBalanceError) {
  * @then Actor is created and success returned
  */
 TEST_F(RuntimeTest, createActorValid) {
-  Actor immediate_caller_actor{
-      fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
   CodeId new_code{fc::vm::actor::kEmptyObjectCid};
   Address new_address{fc::primitives::address::TESTNET, 2};
   Actor actor{new_code, ActorSubstateCID{fc::vm::actor::kEmptyObjectCid}, 0, 0};
 
-  EXPECT_CALL(*state_tree_, get(Eq(immediate_caller_)))
-      .WillOnce(testing::Return(fc::outcome::success(immediate_caller_actor)));
   EXPECT_CALL(*state_tree_, set(Eq(new_address), Eq(actor)))
       .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(runtime_->createActor(new_address, actor));
-}
-
-/**
- * @given Runtime with immediate_caller is not InitActor and CodeId and new
- * Address
- * @when createActor is called with CodeId and Address
- * @then error CREATE_ACTOR_OPERATION_NOT_PERMITTED is returned
- */
-TEST_F(RuntimeTest, createActorNotPermitted) {
-  Actor immediate_caller_actor{
-      fc::vm::actor::kAccountCodeCid, ActorSubstateCID{}, 0, 0};
-  CodeId new_code{fc::vm::actor::kEmptyObjectCid};
-  Address new_address{fc::primitives::address::TESTNET, 2};
-
-  EXPECT_CALL(*state_tree_, get(Eq(immediate_caller_)))
-      .WillOnce(testing::Return(fc::outcome::success(immediate_caller_actor)));
-
-  EXPECT_OUTCOME_ERROR(RuntimeError::CREATE_ACTOR_OPERATION_NOT_PERMITTED,
-                       runtime_->createActor(new_address, {}));
 }
 
 /**
@@ -174,13 +147,12 @@ TEST_F(RuntimeTest, send) {
   Actor to_actor{fc::vm::actor::kAccountCodeCid, ActorSubstateCID{}, 0, 0};
   InvocationOutput res{};
 
+  EXPECT_CALL(*state_tree_, flush())
+      .WillOnce(testing::Return("010001020001"_cid));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
-      .Times(2)
       .WillRepeatedly(testing::Return(fc::outcome::success(to_actor)));
   EXPECT_CALL(*invoker_, invoke(Eq(to_actor), _, Eq(method), Eq(params)))
       .WillOnce(testing::Return(fc::outcome::success(res)));
-  EXPECT_CALL(*state_tree_, set(_, _))
-      .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(runtime_->send(to_address, method, params, amount));
 }
@@ -199,12 +171,16 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
   Actor from_actor{fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
   Actor to_actor{fc::vm::actor::kInitCodeCid, ActorSubstateCID{}, 0, 0};
 
+  auto snapshot = "010001020001"_cid;
+  EXPECT_CALL(*state_tree_, flush()).WillOnce(testing::Return(snapshot));
+  EXPECT_CALL(*state_tree_, revert(snapshot))
+      .WillOnce(testing::Return(fc::outcome::success()));
   EXPECT_CALL(*state_tree_, get(Eq(message_.to)))
       .WillOnce(testing::Return(fc::outcome::success(from_actor)));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
       .WillOnce(testing::Return(fc::outcome::success(to_actor)));
 
-  EXPECT_OUTCOME_ERROR(RuntimeError::NOT_ENOUGH_FUNDS,
+  EXPECT_OUTCOME_ERROR(VMExitCode::SEND_TRANSFER_INSUFFICIENT,
                        runtime_->send(to_address, method, params, amount));
 }
 

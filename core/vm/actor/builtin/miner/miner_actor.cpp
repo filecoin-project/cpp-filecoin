@@ -92,7 +92,7 @@ namespace fc::vm::actor::builtin::miner {
         kStoragePowerAddress,
         {
             .event_epoch = event_epoch,
-            .payload = Buffer{payload2},
+            .payload = payload2,
         },
         0));
     return outcome::success();
@@ -148,7 +148,7 @@ namespace fc::vm::actor::builtin::miner {
                     .randomness = runtime.getRandomness(
                         DomainSeparationTag::PoStDST,
                         state.post_state.proving_period_start,
-                        Buffer{seed}),
+                        seed),
                     .candidates = params.candidates,
                     .proofs = params.proofs,
                     .eligible_sectors = sectors,
