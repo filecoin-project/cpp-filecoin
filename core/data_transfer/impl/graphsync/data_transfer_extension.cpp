@@ -18,7 +18,7 @@ namespace fc::data_transfer {
       const ExtensionDataTransferData &data) {
     OUTCOME_TRY(bytes, codec::cbor::encode(data));
     return Extension{.name = std::string(kDataTransferExtensionName),
-                     .data = bytes};
+                     .data = bytes.toVector()};
   }
 
   /// Decodes Data Transfer graphsync extension
