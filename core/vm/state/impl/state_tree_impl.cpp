@@ -15,11 +15,11 @@ namespace fc::vm::state {
   using primitives::address::encodeToString;
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store)
-      : store_(store), hamt_(store), snapshot_(store) {}
+      : store_{store}, hamt_{store} {}
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store,
                                const CID &root)
-      : store_(store), hamt_(store, root), snapshot_(store, root) {}
+      : store_{store}, hamt_{store, root} {}
 
   outcome::result<void> StateTreeImpl::set(const Address &address,
                                            const Actor &actor) {
@@ -46,7 +46,7 @@ namespace fc::vm::state {
   }
 
   outcome::result<Address> StateTreeImpl::registerNewAddress(
-      const Address &address, const Actor &actor) {
+      const Address &address) {
     OUTCOME_TRY(init_actor, get(actor::kInitAddress));
     OUTCOME_TRY(
         init_actor_state,
@@ -55,18 +55,15 @@ namespace fc::vm::state {
     OUTCOME_TRY(init_actor_state_cid, store_->setCbor(init_actor_state));
     init_actor.head = ActorSubstateCID{init_actor_state_cid};
     OUTCOME_TRY(set(actor::kInitAddress, init_actor));
-    OUTCOME_TRY(set(address_id, actor));
     return std::move(address_id);
   }
 
   outcome::result<CID> StateTreeImpl::flush() {
-    OUTCOME_TRY(cid, hamt_.flush());
-    snapshot_ = hamt_;
-    return std::move(cid);
+    return hamt_.flush();
   }
 
-  outcome::result<void> StateTreeImpl::revert() {
-    hamt_ = snapshot_;
+  outcome::result<void> StateTreeImpl::revert(const CID &root) {
+    hamt_ = {store_, root};
     return outcome::success();
   }
 

@@ -116,8 +116,7 @@ namespace fc::storage::blockchain {
     for (auto &b : block_headers) {
       OUTCOME_TRY(data, codec::cbor::encode(b));
       OUTCOME_TRY(cid, common::getCidOf(data));
-      OUTCOME_TRY(
-          block_service_->set(std::move(cid), common::Buffer{std::move(data)}));
+      OUTCOME_TRY(block_service_->set(std::move(cid), std::move(data)));
     }
 
     return outcome::success();
