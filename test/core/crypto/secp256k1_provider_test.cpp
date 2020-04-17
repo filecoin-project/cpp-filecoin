@@ -42,15 +42,12 @@ namespace fc::crypto::secp256k1 {
     PublicKeyUncompressed go_public_key{};
 
     PrivateKey private_key_{SAMPLE_PRIVATE_KEY_BYTES};
-    std::shared_ptr<
-        Secp256k1Provider<KeyPair, PublicKeyUncompressed, SignatureCompact>>
-        secp256K1_provider = std::make_shared<Secp256k1Sha256ProviderImpl>();
+    std::shared_ptr<Secp256k1ProviderDefault> secp256K1_provider =
+        std::make_shared<Secp256k1Sha256ProviderImpl>();
 
     // secp256k1 provider without digest for interoperability test
-    std::shared_ptr<
-        Secp256k1Provider<KeyPair, PublicKeyUncompressed, SignatureCompact>>
-        secp256K1_no_digest_provider =
-            std::make_shared<Secp256k1ProviderImpl>();
+    std::shared_ptr<Secp256k1ProviderDefault> secp256K1_no_digest_provider =
+        std::make_shared<Secp256k1ProviderImpl>();
 
     void SetUp() override {
       std::copy_n(go_public_key_bytes.begin(),

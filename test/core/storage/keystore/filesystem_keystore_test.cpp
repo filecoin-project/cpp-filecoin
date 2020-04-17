@@ -8,6 +8,8 @@
 #include <gtest/gtest.h>
 #include "crypto/blake2/blake2b.h"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
+#include "crypto/secp256k1/secp256k1_error.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "testutil/outcome.hpp"
@@ -15,20 +17,20 @@
 
 using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::BlsProviderImpl;
+using fc::crypto::secp256k1::Secp256k1Error;
+using fc::crypto::secp256k1::Secp256k1ProviderDefault;
+using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
 using fc::primitives::address::Address;
 using fc::primitives::address::Network;
 using fc::storage::keystore::FileSystemKeyStore;
 using fc::storage::keystore::KeyStore;
 using fc::storage::keystore::KeyStoreError;
-using libp2p::crypto::CryptoProviderError;
-using libp2p::crypto::secp256k1::Secp256k1Provider;
-using libp2p::crypto::secp256k1::Secp256k1ProviderImpl;
 using BlsKeyPair = fc::crypto::bls::KeyPair;
-using Secp256k1KeyPair = libp2p::crypto::secp256k1::KeyPair;
+using Secp256k1KeyPair = fc::crypto::secp256k1::KeyPair;
 using BlsSignature = fc::crypto::bls::Signature;
-using Secp256k1Signature = libp2p::crypto::secp256k1::Signature;
+using Secp256k1Signature = fc::crypto::secp256k1::Signature;
 using BlsPublicKey = fc::crypto::bls::PublicKey;
-using Secp256k1PublicKey = libp2p::crypto::secp256k1::PublicKey;
+using Secp256k1PublicKey = fc::crypto::secp256k1::PublicKey;
 using fc::primitives::address::decode;
 
 class FileSystemKeyStoreTest : public test::BaseFS_Test {
@@ -39,7 +41,7 @@ class FileSystemKeyStoreTest : public test::BaseFS_Test {
   std::shared_ptr<BlsKeyPair> bls_keypair_;
   Address bls_address_{};
 
-  std::shared_ptr<Secp256k1Provider> secp256k1_provider_;
+  std::shared_ptr<Secp256k1ProviderDefault> secp256k1_provider_;
   std::shared_ptr<Secp256k1KeyPair> secp256k1_keypair_;
   Address secp256k1_address_{};
 
@@ -60,7 +62,7 @@ class FileSystemKeyStoreTest : public test::BaseFS_Test {
 
     bls_address_ = Address::makeBls(bls_keypair_->public_key);
 
-    secp256k1_provider_ = std::make_shared<Secp256k1ProviderImpl>();
+    secp256k1_provider_ = std::make_shared<Secp256k1Sha256ProviderImpl>();
     secp256k1_keypair_ = std::make_shared<Secp256k1KeyPair>(
         secp256k1_provider_->generate().value());
 
@@ -250,7 +252,7 @@ TEST_F(FileSystemKeyStoreTest, InvalidSecp256k1Signature) {
       ks->put(secp256k1_address_, secp256k1_keypair_->private_key));
   Secp256k1Signature invalid_signature;
   EXPECT_OUTCOME_ERROR(
-      CryptoProviderError::SIGNATURE_VERIFICATION_FAILED,
+      Secp256k1Error::SIGNATURE_PARSE_ERROR,
       ks->verify(secp256k1_address_, data_, invalid_signature));
 }
 

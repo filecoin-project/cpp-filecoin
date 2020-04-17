@@ -20,7 +20,7 @@
 namespace fc::storage::keystore {
 
   using crypto::bls::BlsProvider;
-  using crypto::secp256k1::Secp256k1Provider;
+  using crypto::secp256k1::Secp256k1ProviderDefault;
   using BlsKeyPair = crypto::bls::KeyPair;
   using BlsPrivateKey = crypto::bls::PrivateKey;
   using BlsSignature = crypto::bls::Signature;
@@ -38,7 +38,7 @@ namespace fc::storage::keystore {
     using TPrivateKey = boost::variant<BlsPrivateKey, Secp256k1PrivateKey>;
 
     KeyStore(std::shared_ptr<BlsProvider> blsProvider,
-             std::shared_ptr<Secp256k1Provider> secp256K1Provider);
+             std::shared_ptr<Secp256k1ProviderDefault> secp256K1Provider);
 
     virtual ~KeyStore() = default;
 
@@ -109,7 +109,7 @@ namespace fc::storage::keystore {
 
    private:
     std::shared_ptr<BlsProvider> bls_provider_;
-    std::shared_ptr<Secp256k1Provider> secp256k1_provider_;
+    std::shared_ptr<Secp256k1ProviderDefault> secp256k1_provider_;
   };
 
 }  // namespace fc::storage::keystore

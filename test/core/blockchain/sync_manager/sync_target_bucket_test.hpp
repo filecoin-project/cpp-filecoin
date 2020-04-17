@@ -56,9 +56,9 @@ struct SyncTargetBucketTest : public ::testing::Test {
         "010001020005"_cid,
         "010001020006"_cid,
         "010001020007"_cid,
-        "CAFE"_unhex,
+        {},
         8,
-        Signature{"DEAD"_unhex},
+        Signature{bls1},
         9,
     };
     return block_header;
@@ -67,6 +67,9 @@ struct SyncTargetBucketTest : public ::testing::Test {
   BlockHeader makeBlock2() {
     auto bls1 =
         "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
+    const auto secp1 =
+        "0101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob65;
+    fc::crypto::bls::Signature signature{};
     auto ticket2 = Ticket{bls1};
     BlockHeader block_header = fc::primitives::block::BlockHeader{
         fc::primitives::address::Address::makeFromId(2),
@@ -85,9 +88,9 @@ struct SyncTargetBucketTest : public ::testing::Test {
         "010001020005"_cid,
         "010001020006"_cid,
         "010001020007"_cid,
-        "CAFE"_unhex,
+        signature,
         8,
-        Signature{"DEAD"_unhex},
+        Signature{secp1},
         9,
     };
     return block_header;

@@ -6,6 +6,7 @@
 #include "block_producer_test.hpp"
 
 #include "codec/cbor/cbor.hpp"
+#include "testutil/crypto/sample_signatures.hpp"
 
 using testing::_;
 
@@ -46,12 +47,7 @@ BlockProducerTest::getSampleMessages() const {
       "72737475767778797a6162636465666768696a6b6c6d6e6f707172737475767778797a61"
       "62636465666768"
       "696a6b6c6d6e6f707172"_unhex};
-  auto signature_B{
-      "7271706f6e6d6c6b6a6968676665646362617a797877767574737271706f6e6d6c6b6a69"
-      "68676665646362"
-      "617a797877767574737271706f6e6d6c6b6a6968676665646362617a7978777675747372"
-      "71706f6e6d6c6b"
-      "6a696867666564636261"_unhex};
+  auto signature_B{kSampleSecp256k1Signature};
   BlsSignature signature_A{};
   std::copy_n(
       signature_A_bytes.begin(), signature_A_bytes.size(), signature_A.begin());

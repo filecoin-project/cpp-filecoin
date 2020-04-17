@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_CORE_CRYPTO_SECP256K1_SECP256K1_TYPES_HPP
 
 #include <array>
+#include <vector>
 
 namespace fc::crypto::secp256k1 {
 
@@ -22,7 +23,7 @@ namespace fc::crypto::secp256k1 {
   using PrivateKey = std::array<uint8_t, kPrivateKeyLength>;
   using PublicKeyCompressed = std::array<uint8_t, kPublicKeyCompressedLength>;
   using PublicKeyUncompressed =
-  std::array<uint8_t, kPublicKeyUncompressedLength>;
+      std::array<uint8_t, kPublicKeyUncompressedLength>;
   /**
    * Compact ECDSA signature format with a 65-byte signature with the recovery
    * id at the end
@@ -35,11 +36,17 @@ namespace fc::crypto::secp256k1 {
   using SignatureDer = std::vector<uint8_t>;
 
   /**
+   * Default formats from go
+   */
+  using Signature = SignatureCompact;
+  using PublicKey = PublicKeyUncompressed;
+
+  /**
    * @struct Key pair
    */
   struct KeyPair {
-    PrivateKey private_key;           /**< Secp256k1 private key */
-    PublicKeyUncompressed public_key; /**< Secp256k1 public uncompressed key */
+    PrivateKey private_key; /**< Secp256k1 private key */
+    PublicKey public_key;   /**< Secp256k1 public uncompressed key */
 
     /**
      * @brief Comparing keypairs
@@ -60,6 +67,6 @@ namespace fc::crypto::secp256k1 {
     }
   };
 
-}
+}  // namespace fc::crypto::secp256k1
 
 #endif  // CPP_FILECOIN_CORE_CRYPTO_SECP256K1_SECP256K1_TYPES_HPP

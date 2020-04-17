@@ -21,4 +21,5 @@ addtest(address_verifier_test
 target_link_libraries(address_verifier_test
     address
     bls_provider
+    secp256k1_provider
     )

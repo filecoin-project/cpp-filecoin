@@ -8,7 +8,7 @@
 #include <map>
 
 #include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
+#include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "testutil/cbor.hpp"
@@ -21,8 +21,8 @@ using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::BlsProviderImpl;
 using BlsPrivateKey = fc::crypto::bls::PrivateKey;
 using BlsPublicKey = fc::crypto::bls::PublicKey;
-using fc::crypto::secp256k1::Secp256k1Provider;
-using fc::crypto::secp256k1::Secp256k1ProviderImpl;
+using fc::crypto::secp256k1::Secp256k1ProviderDefault;
+using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
 using Secp256k1PrivateKey = fc::crypto::secp256k1::PrivateKey;
 using Secp256k1PublicKey = fc::crypto::secp256k1::PublicKey;
 using fc::crypto::signature::Signature;
@@ -49,8 +49,9 @@ using fc::visit_in_place;
 
 using Bytes = std::vector<uint8_t>;
 
-using CryptoProvider = boost::variant<std::shared_ptr<BlsProvider>,
-                                      std::shared_ptr<Secp256k1Provider>>;
+using CryptoProvider =
+    boost::variant<std::shared_ptr<BlsProvider>,
+                   std::shared_ptr<Secp256k1ProviderDefault>>;
 
 UnsignedMessage makeMessage(Address const &from,
                             Address const &to,
@@ -78,7 +79,7 @@ Address addKeyGetAddress(const std::array<uint8_t, 32> &private_key,
         keystore->put(address, private_key).value();
         return address;
       },
-      [&](const std::shared_ptr<Secp256k1Provider> &p) {
+      [&](const std::shared_ptr<Secp256k1ProviderDefault> &p) {
         auto address = Address::makeSecp256k1(p->derive(private_key).value());
         keystore->put(address, private_key).value();
         return address;
@@ -91,14 +92,14 @@ struct MessageTest : public testing::Test {
   Address bls, secp;
 
   std::shared_ptr<BlsProvider> bls_provider;
-  std::shared_ptr<Secp256k1Provider> secp256k1_provider;
+  std::shared_ptr<Secp256k1ProviderDefault> secp256k1_provider;
 
   std::shared_ptr<KeyStore> keystore;
   std::shared_ptr<MessageSigner> msigner;
 
   void SetUp() override {
     bls_provider = std::make_shared<BlsProviderImpl>();
-    secp256k1_provider = std::make_shared<Secp256k1ProviderImpl>();
+    secp256k1_provider = std::make_shared<Secp256k1Sha256ProviderImpl>();
 
     keystore =
         std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);

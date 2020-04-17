@@ -25,11 +25,11 @@ target_link_libraries(murmur_test
     murmur
     )
 
-addtest(secp256k1_recover_test
+addtest(secp256k1_provider_test
     secp256k1_provider_test.cpp
     )
-target_link_libraries(secp256k1_recover_test
-    secp256k1_recover
+target_link_libraries(secp256k1_provider_test
+    secp256k1_provider
     hexutil
     )
 

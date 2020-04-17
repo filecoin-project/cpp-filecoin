@@ -26,12 +26,17 @@ using fc::api::Ticket;
 using fc::api::TipsetKey;
 
 #define J32 "\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=\""
+#define J65                                                                    \
+  "\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB" \
+  "AQEBAQEBAQEBAQE=\""
 #define J96                                                                    \
   "\"AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB" \
   "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEB\""
 
 const auto b32 =
     "0101010101010101010101010101010101010101010101010101010101010101"_blob32;
+const auto b65 =
+    "0101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob65;
 const auto b96 =
     "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 
@@ -97,8 +102,8 @@ TEST(ApiJsonTest, Address) {
 
 TEST(ApiJsonTest, Signature) {
   expectJson(Signature{BlsSignature{b96}}, "{\"Type\":2,\"Data\":" J96 "}");
-  expectJson(Signature{Secp256k1Signature{"DEAD"_unhex}},
-             "{\"Type\":1,\"Data\":\"3q0=\"}");
+  expectJson(Signature{Secp256k1Signature{b65}},
+             "{\"Type\":1,\"Data\":" J65 "}");
 }
 
 TEST(ApiJsonTest, EPostProof) {
@@ -143,9 +148,9 @@ TEST(ApiJsonTest, MsgWait) {
                   "010001020005"_cid,
                   "010001020006"_cid,
                   "010001020007"_cid,
-                  "DEAD"_unhex,
+                  b65,
                   8,
-                  Signature{Secp256k1Signature{"DEAD"_unhex}},
+                  Signature{Secp256k1Signature{b65}},
                   9,
               }},
               3,
@@ -162,7 +167,7 @@ TEST(ApiJsonTest, MsgWait) {
       "\"ParentStateRoot\":{\"/"
       "\":\"baeaacaqaau\"},\"ParentMessageReceipts\":{\"/"
       "\":\"baeaacaqaay\"},\"Messages\":{\"/"
-      "\":\"baeaacaqaa4\"},\"BLSAggregate\":{\"Type\":1,\"Data\":"
-      "\"3q0=\"},\"Timestamp\":8,\"BlockSig\":{\"Type\":1,\"Data\":"
-      "\"3q0=\"},\"ForkSignaling\":9}],\"Height\":3}}");
+      "\":\"baeaacaqaa4\"},\"BLSAggregate\":{\"Type\":1,\"Data\":" J65
+      "},\"Timestamp\":8,\"BlockSig\":{\"Type\":1,\"Data\":" J65
+      "},\"ForkSignaling\":9}],\"Height\":3}}");
 }

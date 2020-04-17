@@ -74,6 +74,9 @@ namespace fc::crypto::secp256k1 {
         const SignatureType &signature) const = 0;
   };
 
+  using Secp256k1ProviderDefault =
+      Secp256k1Provider<KeyPair, PublicKeyUncompressed, SignatureCompact>;
+
 }  // namespace fc::crypto::secp256k1
 
 #endif  // CPP_FILECOIN_TEST_CORE_CRYPTO_SECP256K1_PROVIDER_SECP256K1_PROVIDER_HPP

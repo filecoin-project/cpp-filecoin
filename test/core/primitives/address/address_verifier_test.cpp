@@ -7,6 +7,7 @@
 
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
 #include "primitives/address/address.hpp"
 #include "testutil/outcome.hpp"
@@ -14,13 +15,13 @@
 using fc::crypto::blake2b::blake2b_160;
 using fc::crypto::bls::BlsProvider;
 using fc::crypto::bls::BlsProviderImpl;
+using fc::crypto::secp256k1::Secp256k1ProviderDefault;
+using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
 using fc::primitives::address::Address;
 using fc::primitives::address::BLSPublicKeyHash;
 using fc::primitives::address::Network;
 using fc::primitives::address::Protocol;
 using fc::primitives::address::Secp256k1PublicKeyHash;
-using libp2p::crypto::secp256k1::Secp256k1Provider;
-using libp2p::crypto::secp256k1::Secp256k1ProviderImpl;
 
 struct AddressVerifierTest : public testing::Test {
   Address address_id{Network::MAINNET, 3232104785};
@@ -37,8 +38,8 @@ struct AddressVerifierTest : public testing::Test {
           0xB8, 0x82, 0x61, 0x9D, 0x46, 0x55, 0x8F, 0x3D, 0x9E, 0x31,
           0x6D, 0x11, 0xB4, 0x8D, 0xCF, 0x21, 0x13, 0x27, 0x02, 0x6A,
           0xFD, 0x1D, 0x0F, 0x4D, 0xFC, 0xD7, 0xE9, 0x9A})};
-  std::shared_ptr<Secp256k1Provider> secp256k1_provider{
-      std::make_shared<Secp256k1ProviderImpl>()};
+  std::shared_ptr<Secp256k1ProviderDefault> secp256k1_provider{
+      std::make_shared<Secp256k1Sha256ProviderImpl>()};
   std::shared_ptr<BlsProvider> bls_provider{
       std::make_shared<BlsProviderImpl>()};
 };
