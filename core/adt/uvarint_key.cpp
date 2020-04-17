@@ -26,9 +26,10 @@ namespace fc::adt {
 
   outcome::result<UvarintKeyer::Key> UvarintKeyer::decode(
       const std::string &key) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     auto maybe = UVarint::create(gsl::make_span(
-        reinterpret_cast<const uint8_t *>(key.data()), key.size()));
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+        reinterpret_cast<const uint8_t *>(key.data()),
+        key.size()));
     if (!maybe) {
       return UvarintKeyError::DECODE_ERROR;
     }
