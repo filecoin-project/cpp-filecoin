@@ -251,6 +251,7 @@ TEST_F(FileSystemKeyStoreTest, InvalidSecp256k1Signature) {
   EXPECT_OUTCOME_TRUE_1(
       ks->put(secp256k1_address_, secp256k1_keypair_->private_key));
   Secp256k1Signature invalid_signature;
+  invalid_signature[64] = 99;
   EXPECT_OUTCOME_ERROR(
       Secp256k1Error::SIGNATURE_PARSE_ERROR,
       ks->verify(secp256k1_address_, data_, invalid_signature));
