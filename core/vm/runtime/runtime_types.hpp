@@ -20,17 +20,7 @@ namespace fc::vm::runtime {
   using primitives::BigInt;
   using primitives::GasAmount;
 
-  /**
-   * Value returned by method invocation
-   */
-  struct InvocationOutput {
-    common::Buffer return_value;
-  };
-
-  inline bool operator==(const InvocationOutput &lhs,
-                         const InvocationOutput &rhs) {
-    return lhs.return_value == rhs.return_value;
-  }
+  using InvocationOutput = Buffer;
 
   /**
    * Id of native function

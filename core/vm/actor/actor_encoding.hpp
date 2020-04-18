@@ -52,13 +52,16 @@ namespace fc::vm::actor {
     if constexpr (std::is_same_v<T, None>) {
       return T{};
     }
-    return codec::cbor::decode<T>(result.return_value);
+    return codec::cbor::decode<T>(result);
   }
 
   template <typename T>
   outcome::result<InvocationOutput> encodeActorReturn(const T &result) {
-    OUTCOME_TRY(encoded, codec::cbor::encode(result));
-    return InvocationOutput{Buffer{encoded}};
+    auto maybe_encoded = codec::cbor::encode(result);
+    if (!maybe_encoded) {
+      return VMExitCode::ENCODE_ACTOR_RESULT_ERROR;
+    }
+    return std::move(maybe_encoded.value());
   }
 }  // namespace fc::vm::actor
 
