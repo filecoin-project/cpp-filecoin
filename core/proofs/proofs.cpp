@@ -140,13 +140,17 @@ namespace fc::proofs {
     OUTCOME_TRY(post_proof, getRegisteredPoStProof(proof_type));
     switch (post_proof) {
       case RegisteredProof::StackedDRG2KiBPoSt:
-        return fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg2KiBV1;
+        return fil_RegisteredPoStProof::
+            fil_RegisteredPoStProof_StackedDrg2KiBV1;
       case RegisteredProof::StackedDRG8MiBPoSt:
-        return fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg8MiBV1;
+        return fil_RegisteredPoStProof::
+            fil_RegisteredPoStProof_StackedDrg8MiBV1;
       case RegisteredProof::StackedDRG512MiBPoSt:
-        return fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg512MiBV1;
+        return fil_RegisteredPoStProof::
+            fil_RegisteredPoStProof_StackedDrg512MiBV1;
       case RegisteredProof::StackedDRG32GiBPoSt:
-        return fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg32GiBV1;
+        return fil_RegisteredPoStProof::
+            fil_RegisteredPoStProof_StackedDrg32GiBV1;
       default:
         return ProofsError::NO_SUCH_POST_PROOF;
     }
@@ -157,13 +161,17 @@ namespace fc::proofs {
     OUTCOME_TRY(seal_proof, getRegisteredSealProof(proof_type));
     switch (seal_proof) {
       case RegisteredProof::StackedDRG2KiBSeal:
-        return fil_RegisteredSealProof::fil_RegisteredSealProof_StackedDrg2KiBV1;
+        return fil_RegisteredSealProof::
+            fil_RegisteredSealProof_StackedDrg2KiBV1;
       case RegisteredProof::StackedDRG8MiBSeal:
-        return fil_RegisteredSealProof::fil_RegisteredSealProof_StackedDrg8MiBV1;
+        return fil_RegisteredSealProof::
+            fil_RegisteredSealProof_StackedDrg8MiBV1;
       case RegisteredProof::StackedDRG512MiBSeal:
-        return fil_RegisteredSealProof::fil_RegisteredSealProof_StackedDrg512MiBV1;
+        return fil_RegisteredSealProof::
+            fil_RegisteredSealProof_StackedDrg512MiBV1;
       case RegisteredProof::StackedDRG32GiBSeal:
-        return fil_RegisteredSealProof::fil_RegisteredSealProof_StackedDrg32GiBV1;
+        return fil_RegisteredSealProof::
+            fil_RegisteredSealProof_StackedDrg32GiBV1;
       default:
         return ProofsError::NO_SUCH_SEAL_PROOF;
     }
@@ -179,13 +187,11 @@ namespace fc::proofs {
   }
 
   fil_32ByteArray c32ByteArray(const Blob<32> &arr) {
-      fil_32ByteArray array{};
+    fil_32ByteArray array{};
 
-      std::copy(arr.begin(),
-                arr.end(),
-                array.inner);
+    std::copy(arr.begin(), arr.end(), array.inner);
 
-      return array;
+    return array;
   }
 
   fil_Candidate cCandidate(const PoStCandidate &cpp_candidate) {
@@ -341,14 +347,14 @@ namespace fc::proofs {
     OUTCOME_TRY(c_post_proofs, cPoStProofs(gsl::make_span(info.proofs)));
 
     auto res_ptr = make_unique(fil_verify_post(c32ByteArray(info.randomness),
-                                           info.challenge_count,
-                                           c_public_sector_info.data(),
-                                           c_public_sector_info.size(),
-                                           c_post_proofs.data(),
-                                           c_post_proofs.size(),
-                                           c_winners.data(),
-                                           c_winners.size(),
-                                           c32ByteArray(prover_id)),
+                                               info.challenge_count,
+                                               c_public_sector_info.data(),
+                                               c_public_sector_info.size(),
+                                               c_post_proofs.data(),
+                                               c_post_proofs.size(),
+                                               c_winners.data(),
+                                               c_winners.size(),
+                                               c32ByteArray(prover_id)),
                                fil_destroy_verify_post_response);
 
     if (res_ptr->status_code != 0) {
@@ -370,14 +376,14 @@ namespace fc::proofs {
 
     auto res_ptr =
         make_unique(fil_verify_seal(c_proof_type,
-                                c32ByteArray(comm_r),
-                                c32ByteArray(comm_d),
-                                c32ByteArray(prover_id),
-                                c32ByteArray(info.randomness),
-                                c32ByteArray(info.interactive_randomness),
-                                info.info.sector,
-                                info.info.proof.data(),
-                                info.info.proof.size()),
+                                    c32ByteArray(comm_r),
+                                    c32ByteArray(comm_d),
+                                    c32ByteArray(prover_id),
+                                    c32ByteArray(info.randomness),
+                                    c32ByteArray(info.interactive_randomness),
+                                    info.info.sector,
+                                    info.info.proof.data(),
+                                    info.info.proof.size()),
                     fil_destroy_verify_seal_response);
 
     if (res_ptr->status_code != 0) {
@@ -404,10 +410,10 @@ namespace fc::proofs {
     auto prover_id = toProverID(miner_id);
     auto res_ptr =
         make_unique(fil_generate_candidates(c32ByteArray(randomness),
-                                        challenge_count,
-                                        c_sorted_private_sector_info.data(),
-                                        c_sorted_private_sector_info.size(),
-                                        c32ByteArray(prover_id)),
+                                            challenge_count,
+                                            c_sorted_private_sector_info.data(),
+                                            c_sorted_private_sector_info.size(),
+                                            c32ByteArray(prover_id)),
                     fil_destroy_generate_candidates_response);
 
     if (res_ptr->status_code != 0) {
@@ -432,11 +438,11 @@ namespace fc::proofs {
     auto prover_id = toProverID(miner_id);
     auto res_ptr =
         make_unique(fil_generate_post(c32ByteArray(randomness),
-                                  c_sorted_private_sector_info.data(),
-                                  c_sorted_private_sector_info.size(),
-                                  c_winners.data(),
-                                  c_winners.size(),
-                                  c32ByteArray(prover_id)),
+                                      c_sorted_private_sector_info.data(),
+                                      c_sorted_private_sector_info.size(),
+                                      c_winners.data(),
+                                      c_winners.size(),
+                                      c32ByteArray(prover_id)),
                     fil_destroy_generate_post_response);
 
     if (res_ptr->status_code != 0) {
@@ -525,11 +531,11 @@ namespace fc::proofs {
               std::back_inserter(raw));
 
     auto res_ptr = make_unique(fil_write_with_alignment(c_proof_type,
-                                                    piece_fd,
-                                                    uint64_t(piece_bytes),
-                                                    staged_sector_fd,
-                                                    raw.data(),
-                                                    raw.size()),
+                                                        piece_fd,
+                                                        uint64_t(piece_bytes),
+                                                        staged_sector_fd,
+                                                        raw.data(),
+                                                        raw.size()),
                                fil_destroy_write_with_alignment_response);
 
     if (res_ptr->status_code != 0) {
@@ -564,14 +570,14 @@ namespace fc::proofs {
 
     auto res_ptr =
         make_unique(fil_seal_pre_commit_phase1(c_proof_type,
-                                           cache_dir_path.c_str(),
-                                           staged_sector_path.c_str(),
-                                           sealed_sector_path.c_str(),
-                                           sector_num,
-                                           c32ByteArray(prover_id),
-                                           c32ByteArray(ticket),
-                                           c_pieces.data(),
-                                           c_pieces.size()),
+                                               cache_dir_path.c_str(),
+                                               staged_sector_path.c_str(),
+                                               sealed_sector_path.c_str(),
+                                               sector_num,
+                                               c32ByteArray(prover_id),
+                                               c32ByteArray(ticket),
+                                               c_pieces.data(),
+                                               c_pieces.size()),
                     fil_destroy_seal_pre_commit_phase1_response);
 
     if (res_ptr->status_code != 0) {
@@ -592,9 +598,9 @@ namespace fc::proofs {
       const std::string &sealed_sector_path) {
     auto res_ptr =
         make_unique(fil_seal_pre_commit_phase2(phase1_output.data(),
-                                           phase1_output.size(),
-                                           cache_dir_path.c_str(),
-                                           sealed_sector_path.c_str()),
+                                               phase1_output.size(),
+                                               cache_dir_path.c_str(),
+                                               sealed_sector_path.c_str()),
                     fil_destroy_seal_pre_commit_phase2_response);
 
     if (res_ptr->status_code != 0) {
@@ -632,18 +638,19 @@ namespace fc::proofs {
 
     auto prover_id = toProverID(miner_id);
 
-    auto res_ptr = make_unique(fil_seal_commit_phase1(c_proof_type,
-                                                  c32ByteArray(comm_r),
-                                                  c32ByteArray(comm_d),
-                                                  cache_dir_path.c_str(),
-                                                  sealed_sector_path.c_str(),
-                                                  sector_num,
-                                                  c32ByteArray(prover_id),
-                                                  c32ByteArray(ticket),
-                                                  c32ByteArray(seed),
-                                                  c_pieces.data(),
-                                                  c_pieces.size()),
-                               fil_destroy_seal_commit_phase1_response);
+    auto res_ptr =
+        make_unique(fil_seal_commit_phase1(c_proof_type,
+                                           c32ByteArray(comm_r),
+                                           c32ByteArray(comm_d),
+                                           cache_dir_path.c_str(),
+                                           sealed_sector_path.c_str(),
+                                           sector_num,
+                                           c32ByteArray(prover_id),
+                                           c32ByteArray(ticket),
+                                           c32ByteArray(seed),
+                                           c_pieces.data(),
+                                           c_pieces.size()),
+                    fil_destroy_seal_commit_phase1_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("sealCommit Phase 1: " + std::string(res_ptr->error_msg));
@@ -662,9 +669,9 @@ namespace fc::proofs {
       ActorId miner_id) {
     auto prover_id = toProverID(miner_id);
     auto res_ptr = make_unique(fil_seal_commit_phase2(phase1_output.data(),
-                                                  phase1_output.size(),
-                                                  sector_id,
-                                                  c32ByteArray(prover_id)),
+                                                      phase1_output.size(),
+                                                      sector_id,
+                                                      c32ByteArray(prover_id)),
                                fil_destroy_seal_commit_phase2_response);
 
     if (res_ptr->status_code != 0) {
@@ -689,13 +696,13 @@ namespace fc::proofs {
     auto prover_id = toProverID(miner_id);
 
     auto res_ptr = make_unique(fil_unseal(c_proof_type,
-                                        cache_dir_path.c_str(),
-                                        sealed_sector_path.c_str(),
-                                        unseal_output_path.c_str(),
-                                        sector_num,
-                                        c32ByteArray(prover_id),
-                                        c32ByteArray(ticket),
-                                        c32ByteArray(comm_d)),
+                                          cache_dir_path.c_str(),
+                                          sealed_sector_path.c_str(),
+                                          unseal_output_path.c_str(),
+                                          sector_num,
+                                          c32ByteArray(prover_id),
+                                          c32ByteArray(ticket),
+                                          c32ByteArray(comm_d)),
                                fil_destroy_unseal_response);
 
     if (res_ptr->status_code != 0) {
@@ -724,15 +731,15 @@ namespace fc::proofs {
 
     auto prover_id = toProverID(miner_id);
     auto res_ptr = make_unique(fil_unseal_range(c_proof_type,
-                                            cache_dir_path.c_str(),
-                                            sealed_sector_path.c_str(),
-                                            unseal_output_path.c_str(),
-                                            sector_num,
-                                            c32ByteArray(prover_id),
-                                            c32ByteArray(ticket),
-                                            c32ByteArray(comm_d),
-                                            offset,
-                                            length),
+                                                cache_dir_path.c_str(),
+                                                sealed_sector_path.c_str(),
+                                                unseal_output_path.c_str(),
+                                                sector_num,
+                                                c32ByteArray(prover_id),
+                                                c32ByteArray(ticket),
+                                                c32ByteArray(comm_d),
+                                                offset,
+                                                length),
                                fil_destroy_unseal_range_response);
 
     if (res_ptr->status_code != 0) {
@@ -785,7 +792,7 @@ namespace fc::proofs {
 
     auto res_ptr = make_unique(
         fil_generate_piece_commitment(c_proof_type, piece_fd, piece_size),
-       fil_destroy_generate_piece_commitment_response);
+        fil_destroy_generate_piece_commitment_response);
 
     // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(piece_fd))
@@ -846,11 +853,87 @@ namespace fc::proofs {
     return outcome::success();
   }
 
+  outcome::result<std::string> Proofs::getPoStCircuitIdentifier(
+      RegisteredProof registered_proof) {
+    OUTCOME_TRY(c_registered_proof, cRegisteredPoStProof(registered_proof));
+    auto res_ptr =
+        make_unique(fil_get_post_circuit_identifier(c_registered_proof),
+                    fil_destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getPoStCircuitIdentifier: "
+                     + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return std::string(res_ptr->string_val);
+  }
+
+  outcome::result<CID> Proofs::getPoStParamsCID(
+      RegisteredProof registered_proof) {
+    OUTCOME_TRY(c_registered_proof, cRegisteredPoStProof(registered_proof));
+    auto res_ptr = make_unique(fil_get_post_params_cid(c_registered_proof),
+                               fil_destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getPoStParamsCID: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return fc::CID::fromString(std::string(res_ptr->string_val));
+  }
+
+  outcome::result<std::string> Proofs::getPoStParamsPath(
+      RegisteredProof registered_proof) {
+    OUTCOME_TRY(c_registered_proof, cRegisteredPoStProof(registered_proof));
+    auto res_ptr = make_unique(fil_get_post_params_path(c_registered_proof),
+                               fil_destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getPoStParamsPath: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return std::string(res_ptr->string_val);
+  }
+
+  outcome::result<CID> Proofs::getPoStVerifyingKeyCID(
+      RegisteredProof registered_proof) {
+    OUTCOME_TRY(c_registered_proof, cRegisteredPoStProof(registered_proof));
+    auto res_ptr =
+        make_unique(fil_get_post_verifying_key_cid(c_registered_proof),
+                    fil_destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getPoStVerifyingKeyCID: "
+                     + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return fc::CID::fromString(std::string(res_ptr->string_val));
+  }
+
+  outcome::result<std::string> Proofs::getPoStVerifyingKeyPath(
+      RegisteredProof registered_proof) {
+    OUTCOME_TRY(c_registered_proof, cRegisteredPoStProof(registered_proof));
+    auto res_ptr =
+        make_unique(fil_get_post_verifying_key_path(c_registered_proof),
+                    fil_destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getPoStVerifyingKeyPath: "
+                     + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return std::string(res_ptr->string_val);
+  }
+
   outcome::result<std::string> Proofs::getPoStVersion(
       RegisteredProof proof_type) {
     OUTCOME_TRY(c_proof_type, cRegisteredPoStProof(proof_type));
-    auto res_ptr =
-        make_unique(fil_get_post_version(c_proof_type), fil_destroy_string_response);
+    auto res_ptr = make_unique(fil_get_post_version(c_proof_type),
+                               fil_destroy_string_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("getPoStVersion: " + std::string(res_ptr->error_msg));
@@ -860,11 +943,87 @@ namespace fc::proofs {
     return std::string(res_ptr->string_val);
   }
 
+  outcome::result<std::string> Proofs::getSealCircuitIdentifier(
+      RegisteredProof registered_proof) {
+    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
+    auto res_ptr =
+        make_unique(fil_get_seal_circuit_identifier(c_registered_proof),
+                    fil_destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getSealCircuitIdentifier: "
+                     + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return std::string(res_ptr->string_val);
+  }
+
+  outcome::result<CID> Proofs::getSealParamsCID(
+      RegisteredProof registered_proof) {
+    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
+    auto res_ptr = make_unique(fil_get_seal_params_cid(c_registered_proof),
+                               fil_destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getSealParamsCID: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return fc::CID::fromString(std::string(res_ptr->string_val));
+  }
+
+  outcome::result<std::string> Proofs::getSealParamsPath(
+      RegisteredProof registered_proof) {
+    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
+    auto res_ptr = make_unique(fil_get_seal_params_path(c_registered_proof),
+                               fil_destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getSealParamsPath: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return std::string(res_ptr->string_val);
+  }
+
+  outcome::result<CID> Proofs::getSealVerifyingKeyCID(
+      RegisteredProof registered_proof) {
+    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
+    auto res_ptr =
+        make_unique(fil_get_seal_verifying_key_cid(c_registered_proof),
+                    fil_destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getSealVerifyingKeyCID: "
+                     + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return fc::CID::fromString(std::string(res_ptr->string_val));
+  }
+
+  outcome::result<std::string> Proofs::getSealVerifyingKeyPath(
+      RegisteredProof registered_proof) {
+    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
+    auto res_ptr =
+        make_unique(fil_get_seal_verifying_key_path(c_registered_proof),
+                    fil_destroy_string_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("getSealVerifyingKeyPath: "
+                     + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return std::string(res_ptr->string_val);
+  }
+
   outcome::result<std::string> Proofs::getSealVersion(
       RegisteredProof proof_type) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
-    auto res_ptr =
-        make_unique(fil_get_seal_version(c_proof_type), fil_destroy_string_response);
+    auto res_ptr = make_unique(fil_get_seal_version(c_proof_type),
+                               fil_destroy_string_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("getSealVersion: " + std::string(res_ptr->error_msg));
@@ -875,7 +1034,8 @@ namespace fc::proofs {
   }
 
   outcome::result<Devices> Proofs::getGPUDevices() {
-    auto res_ptr = make_unique(fil_get_gpu_devices(), fil_destroy_gpu_device_response);
+    auto res_ptr =
+        make_unique(fil_get_gpu_devices(), fil_destroy_gpu_device_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("getGPUDevices: " + std::string(res_ptr->error_msg));
@@ -888,6 +1048,13 @@ namespace fc::proofs {
 
     return Devices(res_ptr->devices_ptr,
                    res_ptr->devices_ptr + res_ptr->devices_len);  // NOLINT
+  }
+
+  outcome::result<uint64_t> Proofs::getMaxUserBytesPerStagedSector(
+      RegisteredProof registered_proof) {
+    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
+
+    return fil_get_max_user_bytes_per_staged_sector(c_registered_proof);
   }
 
 }  // namespace fc::proofs
