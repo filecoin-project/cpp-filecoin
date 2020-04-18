@@ -9,13 +9,11 @@
 #include <gsl/span>
 
 namespace fc::common::span {
-  namespace {
-    template <typename To, typename From>
-    constexpr auto cast(gsl::span<From> span) {
-      // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-      return gsl::make_span(reinterpret_cast<To *>(span.data()), span.size());
-    }
-  }  // namespace
+  template <typename To, typename From>
+  constexpr auto cast(gsl::span<From> span) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    return gsl::make_span(reinterpret_cast<To *>(span.data()), span.size());
+  }
 
   constexpr auto cbytes(gsl::span<const char> span) {
     return cast<const uint8_t>(span);
