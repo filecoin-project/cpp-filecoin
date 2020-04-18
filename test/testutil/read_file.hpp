@@ -11,6 +11,7 @@
 #include <gtest/gtest.h>
 
 #include "common/buffer.hpp"
+#include "common/span.hpp"
 
 auto readFile(const std::string &path) {
   std::ifstream file{path, std::ios::binary | std::ios::ate};
@@ -18,7 +19,7 @@ auto readFile(const std::string &path) {
   fc::common::Buffer buffer;
   buffer.resize(file.tellg());
   file.seekg(0, std::ios::beg);
-  file.read(reinterpret_cast<char *>(buffer.data()), buffer.size());
+  file.read(fc::common::span::string(buffer).data(), buffer.size());
   return buffer;
 }
 
