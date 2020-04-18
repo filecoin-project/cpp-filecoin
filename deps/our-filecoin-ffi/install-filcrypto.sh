@@ -40,7 +40,7 @@ optimized_release_rustc_target_features=$(jq -r '.[].rustc_target_feature' < "${
 cpu_features_required_for_optimized_release=$(jq -r '.[].check_cpu_for_feature | select(. != null)' < "${rust_sources_dir}/rustc-target-features-optimized.json")
 
 main() {
-    mkdir -p include/filcrypto
+    mkdir -p include/filecoin-ffi
     mkdir -p lib/pkgconfig
     local __release_type=$(get_release_type)
     if [ "${FFI_BUILD_FROM_SOURCE}" != "1" ] && download_release_tarball __tarball_path "${rust_sources_dir}" "filecoin-ffi" "${__release_type}"; then
