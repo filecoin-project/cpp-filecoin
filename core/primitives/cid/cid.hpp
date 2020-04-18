@@ -60,6 +60,9 @@ namespace fc {
     static outcome::result<CID> fromString(const std::string &str);
 
     static outcome::result<CID> fromBytes(gsl::span<const uint8_t> input);
+
+    static outcome::result<CID> read(gsl::span<const uint8_t> &input,
+                                     bool prefix = false);
   };
 }  // namespace fc
 

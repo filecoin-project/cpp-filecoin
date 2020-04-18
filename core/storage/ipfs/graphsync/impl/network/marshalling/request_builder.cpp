@@ -22,9 +22,7 @@ namespace fc::storage::ipfs::graphsync {
     auto *dst = pb_msg_->add_requests();
     dst->set_id(request_id);
 
-    CborEncodeStream encoder;
-    encoder << root_cid;
-    auto d = encoder.data();
+    OUTCOME_EXCEPT(d, root_cid.toBytes());
 
     dst->set_root(d.data(), d.size());
     if (!selector.empty()) {

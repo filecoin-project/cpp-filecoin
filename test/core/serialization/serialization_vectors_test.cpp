@@ -10,6 +10,7 @@
 #include <boost/filesystem.hpp>
 
 #include "api/rpc/json.hpp"
+#include "common/span.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "testutil/literals.hpp"
@@ -33,7 +34,7 @@ auto loadJson(const std::string &name) {
                           .append(name)
                           .string());
   rapidjson::Document document;
-  document.Parse(reinterpret_cast<const char *>(str.data()), str.size());
+  document.Parse(fc::common::span::cstring(str).data(), str.size());
   EXPECT_FALSE(document.HasParseError());
   return document;
 }
