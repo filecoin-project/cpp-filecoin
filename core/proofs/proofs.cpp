@@ -7,13 +7,15 @@
 
 #include <fcntl.h>
 #include <filecoin-ffi/filcrypto.h>
-#include "boost/filesystem/fstream.hpp"
+
+#include "common/ffi.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs_error.hpp"
 
 namespace fc::proofs {
+  namespace ffi = common::ffi;
 
   common::Logger Proofs::logger_ = common::createLogger("proofs");
 
@@ -23,7 +25,6 @@ namespace fc::proofs {
   using common::CIDToDataCommitmentV1;
   using common::CIDToPieceCommitmentV1;
   using common::CIDToReplicaCommitmentV1;
-  using common::cppCommitment;
   using common::dataCommitmentV1ToCID;
   using common::kCommitmentBytesLen;
   using common::pieceCommitmentV1ToCID;
@@ -87,10 +88,9 @@ namespace fc::proofs {
       const fil_Candidate &c_candidate) {
     PoStCandidateWithTicket candidate_with_ticket;
 
-    candidate_with_ticket.ticket =
-        cppCommitment(gsl::make_span(c_candidate.ticket, 32));
+    candidate_with_ticket.ticket = ffi::array(c_candidate.ticket);
     candidate_with_ticket.candidate.partial_ticket =
-        cppCommitment(gsl::make_span(c_candidate.partial_ticket, 32));
+        ffi::array(c_candidate.partial_ticket);
     candidate_with_ticket.candidate.challenge_index =
         c_candidate.sector_challenge_index;
     candidate_with_ticket.candidate.sector =
@@ -837,7 +837,7 @@ namespace fc::proofs {
       return ProofsError::UNKNOWN;
     }
 
-    return cppCommitment(gsl::make_span(res_ptr->ticket, 32));
+    return ffi::array(res_ptr->ticket);
   }
 
   outcome::result<void> Proofs::clearCache(const std::string &cache_dir_path) {

@@ -6,8 +6,9 @@
 #ifndef CPP_FILECOIN_CORE_COMMON_FFI_HPP
 #define CPP_FILECOIN_CORE_COMMON_FFI_HPP
 
-#include <array>
 #include <memory>
+
+#include "common/blob.hpp"
 
 namespace fc::common::ffi {
   template <typename T, typename D>
@@ -17,7 +18,7 @@ namespace fc::common::ffi {
 
   template <size_t size>
   auto array(const uint8_t (&rhs)[size]) {
-    std::array<uint8_t, size> lhs;
+    Blob<size> lhs;
     std::copy(std::begin(rhs), std::end(rhs), std::begin(lhs));
     return lhs;
   }

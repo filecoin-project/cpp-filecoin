@@ -10,13 +10,6 @@ namespace fc::common {
 
   using libp2p::multi::HashType;
 
-  Comm cppCommitment(gsl::span<const uint8_t> bytes) {
-    if (bytes.size() != 32) return {};
-    Comm result;
-    std::copy(bytes.begin(), bytes.end(), result.begin());
-    return result;
-  }
-
   CID replicaCommitmentV1ToCID(gsl::span<const uint8_t> comm_r) {
     auto cid = commitmentToCID(comm_r, FilecoinHashType::FC_SEALED_V1);
     if (cid.has_error()) return CID();
@@ -58,7 +51,7 @@ namespace fc::common {
     if (static_cast<FilecoinHashType>(result.getType()) != FC_UNSEALED_V1) {
       return CommCidError::INVALID_HASH;
     }
-    return cppCommitment(result.getHash());
+    return Comm::fromSpan(result.getHash());
   }
 
   outcome::result<Multihash> CIDToCommitment(const CID &cid) {
@@ -77,6 +70,6 @@ namespace fc::common {
     if (static_cast<FilecoinHashType>(result.getType()) != FC_SEALED_V1) {
       return CommCidError::INVALID_HASH;
     }
-    return cppCommitment(result.getHash());
+    return Comm::fromSpan(result.getHash());
   }
 }  // namespace fc::common
