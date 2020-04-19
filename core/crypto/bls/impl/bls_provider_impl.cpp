@@ -86,7 +86,7 @@ namespace fc::crypto::bls {
   }
 
   outcome::result<Signature> BlsProviderImpl::aggregateSignatures(
-      const std::vector<Signature> &signatures) const {
+      gsl::span<const Signature> signatures) const {
     Signature signature;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     const uint8_t *flat_bytes =
