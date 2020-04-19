@@ -183,9 +183,7 @@ namespace fc::proofs {
 
   fil_32ByteArray c32ByteArray(const Blob<32> &arr) {
     fil_32ByteArray array{};
-
-    std::copy(arr.begin(), arr.end(), array.inner);
-
+    ffi::array(array.inner, arr);
     return array;
   }
 
@@ -193,12 +191,8 @@ namespace fc::proofs {
     fil_Candidate c_candidate;
     c_candidate.sector_id = cpp_candidate.sector.sector;
     c_candidate.sector_challenge_index = cpp_candidate.challenge_index;
-    std::copy(cpp_candidate.partial_ticket.begin(),
-              cpp_candidate.partial_ticket.end(),
-              c_candidate.partial_ticket);
-    std::copy(cpp_candidate.partial_ticket.begin(),
-              cpp_candidate.partial_ticket.end(),
-              c_candidate.ticket);
+    ffi::array(c_candidate.partial_ticket, cpp_candidate.partial_ticket);
+    ffi::array(c_candidate.ticket, cpp_candidate.partial_ticket);
     return c_candidate;
   }
 
@@ -229,7 +223,7 @@ namespace fc::proofs {
     OUTCOME_TRY(
         comm_r,
         CIDToReplicaCommitmentV1(cpp_private_replica_info.info.sealed_cid));
-    std::copy(comm_r.begin(), comm_r.end(), c_private_replica_info.comm_r);
+    ffi::array(c_private_replica_info.comm_r, comm_r);
 
     return c_private_replica_info;
   }
@@ -258,7 +252,7 @@ namespace fc::proofs {
 
     OUTCOME_TRY(comm_r,
                 CIDToReplicaCommitmentV1(cpp_public_replica_info.sealed_cid));
-    std::copy(comm_r.begin(), comm_r.end(), c_public_replica_info.comm_r);
+    ffi::array(c_public_replica_info.comm_r, comm_r);
 
     return c_public_replica_info;
   }
@@ -280,7 +274,7 @@ namespace fc::proofs {
 
     c_public_piece_info.num_bytes = cpp_public_piece_info.size.unpadded();
     OUTCOME_TRY(comm_p, CIDToPieceCommitmentV1(cpp_public_piece_info.cid));
-    std::copy(comm_p.begin(), comm_p.end(), c_public_piece_info.comm_p);
+    ffi::array(c_public_piece_info.comm_p, comm_p);
 
     return c_public_piece_info;
   }

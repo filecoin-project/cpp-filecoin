@@ -22,6 +22,11 @@ namespace fc::common::ffi {
     std::copy(std::begin(rhs), std::end(rhs), std::begin(lhs));
     return lhs;
   }
+
+  template <size_t size>
+  void array(uint8_t (&lhs)[size], const std::array<uint8_t, size> rhs) {
+    std::copy(std::begin(rhs), std::end(rhs), std::begin(lhs));
+  }
 }  // namespace fc::common::ffi
 
 #endif  // CPP_FILECOIN_CORE_COMMON_FFI_HPP
