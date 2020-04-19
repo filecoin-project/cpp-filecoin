@@ -60,16 +60,11 @@ namespace fc::proofs {
   }
 
   outcome::result<PoStProof> cppPoStProof(const fil_PoStProof &c_post_proof) {
-    PoStProof cpp_post_proof{};
-
     OUTCOME_TRY(cpp_registered_proof,
                 cppRegisteredPoStProof(c_post_proof.registered_proof));
-    cpp_post_proof.registered_proof = cpp_registered_proof;
-    std::copy(c_post_proof.proof_ptr,
-              c_post_proof.proof_ptr + c_post_proof.proof_len,  // NOLINT
-              std::back_inserter(cpp_post_proof.proof));
-
-    return cpp_post_proof;
+    return PoStProof{cpp_registered_proof,
+                     {c_post_proof.proof_ptr,
+                      c_post_proof.proof_ptr + c_post_proof.proof_len}};
   }
 
   outcome::result<std::vector<PoStProof>> cppPoStProofs(
@@ -524,10 +519,8 @@ namespace fc::proofs {
       return ProofsError::CANNOT_OPEN_FILE;
     }
 
-    std::vector<uint64_t> raw = {};
-    std::copy(existing_piece_sizes.cbegin(),
-              existing_piece_sizes.cend(),
-              std::back_inserter(raw));
+    std::vector<uint64_t> raw{existing_piece_sizes.begin(),
+                              existing_piece_sizes.end()};
 
     auto res_ptr = make_unique(fil_write_with_alignment(c_proof_type,
                                                         piece_fd,
