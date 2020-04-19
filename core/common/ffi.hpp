@@ -1,0 +1,20 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef CPP_FILECOIN_CORE_COMMON_FFI_HPP
+#define CPP_FILECOIN_CORE_COMMON_FFI_HPP
+
+#include <array>
+
+namespace fc::common::ffi {
+  template <size_t size>
+  auto array(const uint8_t (&rhs)[size]) {
+    std::array<uint8_t, size> lhs;
+    std::copy(std::begin(rhs), std::end(rhs), std::begin(lhs));
+    return lhs;
+  }
+}  // namespace fc::common::ffi
+
+#endif  // CPP_FILECOIN_CORE_COMMON_FFI_HPP
