@@ -54,14 +54,10 @@ namespace fc::common {
   }
 
   outcome::result<Multihash> CIDToCommitment(const CID &cid) {
-    OUTCOME_TRY(result,
-                Multihash::createFromBytes(cid.content_address.toBuffer()));
-
-    if (!validFilecoinMultihash(result.getType())) {
+    if (!validFilecoinMultihash(cid.content_address.getType())) {
       return CommCidError::INVALID_HASH;
     }
-
-    return std::move(result);
+    return cid.content_address;
   }
 
   outcome::result<Comm> CIDToReplicaCommitmentV1(const CID &cid) {
