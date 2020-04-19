@@ -92,7 +92,7 @@ namespace fc::proofs {
     candidate_with_ticket.candidate.partial_ticket =
         cppCommitment(gsl::make_span(c_candidate.partial_ticket, 32));
     candidate_with_ticket.candidate.challenge_index =
-        int64_t(c_candidate.sector_challenge_index);
+        c_candidate.sector_challenge_index;
     candidate_with_ticket.candidate.sector =
         SectorId{.miner = 0, .sector = c_candidate.sector_id};
 
@@ -197,8 +197,7 @@ namespace fc::proofs {
   fil_Candidate cCandidate(const PoStCandidate &cpp_candidate) {
     fil_Candidate c_candidate;
     c_candidate.sector_id = cpp_candidate.sector.sector;
-    c_candidate.sector_challenge_index =
-        uint64_t(cpp_candidate.challenge_index);
+    c_candidate.sector_challenge_index = cpp_candidate.challenge_index;
     std::copy(cpp_candidate.partial_ticket.begin(),
               cpp_candidate.partial_ticket.end(),
               c_candidate.partial_ticket);
