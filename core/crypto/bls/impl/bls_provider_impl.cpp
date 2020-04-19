@@ -6,9 +6,9 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 
 #include <filecoin-ffi/filcrypto.h>
-#include <gsl/gsl_util>
 
 #include "common/ffi.hpp"
+#include "common/span.hpp"
 
 namespace fc::crypto::bls {
   namespace ffi = common::ffi;
@@ -70,12 +70,10 @@ namespace fc::crypto::bls {
 
   outcome::result<Signature> BlsProviderImpl::aggregateSignatures(
       gsl::span<const Signature> signatures) const {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    const uint8_t *flat_bytes =
-        reinterpret_cast<const uint8_t *>(signatures.data());
-    size_t flat_size = sizeof(Signature) * signatures.size();
-    auto response{ffi::wrap(fil_aggregate(flat_bytes, flat_size),
-                            fil_destroy_aggregate_response)};
+    auto response{ffi::wrap(
+        fil_aggregate(common::span::cast<const uint8_t>(signatures).data(),
+                      signatures.size_bytes()),
+        fil_destroy_aggregate_response)};
     if (response == nullptr) {
       return Errors::InternalError;
     }
