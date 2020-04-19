@@ -6,9 +6,8 @@
 #ifndef CRYPTO_BLS_PROVIDER_HPP
 #define CRYPTO_BLS_PROVIDER_HPP
 
-#include <vector>
-
 #include <gsl/span>
+
 #include "crypto/bls/bls_types.hpp"
 
 namespace fc::crypto::bls {
@@ -59,7 +58,7 @@ namespace fc::crypto::bls {
      * @return aggregated single signature
      */
     virtual outcome::result<Signature> aggregateSignatures(
-        const std::vector<Signature> &signatures) const = 0;
+        gsl::span<const Signature> signatures) const = 0;
   };
 }  // namespace fc::crypto::bls
 

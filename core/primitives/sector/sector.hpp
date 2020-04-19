@@ -111,7 +111,7 @@ namespace fc::primitives::sector {
     /// Optional — should be ommitted for verification.
     PrivatePoStCandidateProof private_proof;
     SectorId sector;
-    int64_t challenge_index;
+    uint64_t challenge_index;
   };
 
   struct OnChainPoStVerifyInfo {

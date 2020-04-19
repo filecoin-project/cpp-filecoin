@@ -6,55 +6,43 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 
 #include <filecoin-ffi/filcrypto.h>
-#include <gsl/gsl_util>
+
+#include "common/ffi.hpp"
+#include "common/span.hpp"
 
 namespace fc::crypto::bls {
+  namespace ffi = common::ffi;
+
   outcome::result<KeyPair> BlsProviderImpl::generateKeyPair() const {
-    KeyPair key_pair{};
-    fil_PrivateKeyGenerateResponse *private_key_response = fil_private_key_generate();
-    if (private_key_response == nullptr) {
+    auto response{ffi::wrap(fil_private_key_generate(),
+                            fil_destroy_private_key_generate_response)};
+    if (response == nullptr) {
       return Errors::KeyPairGenerationFailed;
     }
-    auto free_private_response = gsl::finally([private_key_response]() {
-      fil_destroy_private_key_generate_response(private_key_response);
-    });
-    std::move(std::begin(private_key_response->private_key.inner),
-              std::end(private_key_response->private_key.inner),
-              key_pair.private_key.begin());
-    OUTCOME_TRY(public_key, derivePublicKey(key_pair.private_key));
-    key_pair.public_key = public_key;
-    return key_pair;
+    auto private_key = ffi::array(response->private_key.inner);
+    OUTCOME_TRY(public_key, derivePublicKey(private_key));
+    return KeyPair{private_key, public_key};
   }
 
   outcome::result<PublicKey> BlsProviderImpl::derivePublicKey(
       const PrivateKey &key) const {
-    PublicKey public_key;
-    fil_PrivateKeyPublicKeyResponse *response = fil_private_key_public_key(key.data());
+    auto response{ffi::wrap(fil_private_key_public_key(key.data()),
+                            fil_destroy_private_key_public_key_response)};
     if (response == nullptr) {
       return Errors::InvalidPrivateKey;
     }
-    auto free_response = gsl::finally(
-        [response]() { fil_destroy_private_key_public_key_response(response); });
-    std::move(std::begin(response->public_key.inner),
-              std::end(response->public_key.inner),
-              public_key.begin());
-    return public_key;
+    return ffi::array(response->public_key.inner);
   }
 
   outcome::result<Signature> BlsProviderImpl::sign(
       gsl::span<const uint8_t> message, const PrivateKey &key) const {
-    Signature signature;
-    fil_PrivateKeySignResponse *response =
-        fil_private_key_sign(key.data(), message.data(), message.size());
+    auto response{ffi::wrap(
+        fil_private_key_sign(key.data(), message.data(), message.size()),
+        fil_destroy_private_key_sign_response)};
     if (response == nullptr) {
       return Errors::SignatureGenerationFailed;
     }
-    auto free_response = gsl::finally(
-        [response]() { fil_destroy_private_key_sign_response(response); });
-    std::move(std::begin(response->signature.inner),
-              std::end(response->signature.inner),
-              signature.begin());
-    return signature;
+    return ffi::array(response->signature.inner);
   }
 
   outcome::result<bool> BlsProviderImpl::verifySignature(
@@ -62,46 +50,34 @@ namespace fc::crypto::bls {
       const Signature &signature,
       const PublicKey &key) const {
     OUTCOME_TRY(digest, generateHash(message));
-      return fil_verify(signature.data(),
-                        digest.data(),
-                        digest.size(),
-                        key.data(),
-                        key.size())
-             != 0;
+    return fil_verify(signature.data(),
+                      digest.data(),
+                      digest.size(),
+                      key.data(),
+                      key.size())
+           > 0;
   }
 
   outcome::result<Digest> BlsProviderImpl::generateHash(
       gsl::span<const uint8_t> message) {
-    Digest digest;
-    fil_HashResponse *response = fil_hash(message.data(), message.size());
+    auto response{ffi::wrap(fil_hash(message.data(), message.size()),
+                            fil_destroy_hash_response)};
     if (response == nullptr) {
       return Errors::InternalError;
     }
-    auto free_response =
-        gsl::finally([response]() { fil_destroy_hash_response(response); });
-    std::move(std::begin(response->digest.inner),
-              std::end(response->digest.inner),
-              digest.begin());
-    return digest;
+    return ffi::array(response->digest.inner);
   }
 
   outcome::result<Signature> BlsProviderImpl::aggregateSignatures(
-      const std::vector<Signature> &signatures) const {
-    Signature signature;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    const uint8_t *flat_bytes =
-        reinterpret_cast<const uint8_t *>(signatures.data());
-    size_t flat_size = sizeof(Signature) * signatures.size();
-    fil_AggregateResponse *response = fil_aggregate(flat_bytes, flat_size);
+      gsl::span<const Signature> signatures) const {
+    auto response{ffi::wrap(
+        fil_aggregate(common::span::cast<const uint8_t>(signatures).data(),
+                      signatures.size_bytes()),
+        fil_destroy_aggregate_response)};
     if (response == nullptr) {
       return Errors::InternalError;
     }
-    auto free_response =
-        gsl::finally([response]() { fil_destroy_aggregate_response(response); });
-    std::move(std::begin(response->signature.inner),
-              std::end(response->signature.inner),
-              signature.begin());
-    return signature;
+    return ffi::array(response->signature.inner);
   }
 };  // namespace fc::crypto::bls
 
