@@ -4,6 +4,7 @@
  */
 
 #include "primitives/cid/comm_cid.hpp"
+#include "common/outcome_throw.hpp"
 #include "primitives/cid/comm_cid_errors.hpp"
 
 namespace fc::common {
@@ -11,15 +12,13 @@ namespace fc::common {
   using libp2p::multi::HashType;
 
   CID replicaCommitmentV1ToCID(gsl::span<const uint8_t> comm_r) {
-    auto cid = commitmentToCID(comm_r, FilecoinHashType::FC_SEALED_V1);
-    if (cid.has_error()) return CID();
-    return cid.value();
+    OUTCOME_EXCEPT(cid, commitmentToCID(comm_r, FC_SEALED_V1));
+    return cid;
   }
 
   CID dataCommitmentV1ToCID(gsl::span<const uint8_t> comm_d) {
-    auto cid = commitmentToCID(comm_d, FC_UNSEALED_V1);
-    if (cid.has_error()) return CID();
-    return cid.value();
+    OUTCOME_EXCEPT(cid, commitmentToCID(comm_d, FC_UNSEALED_V1));
+    return cid;
   }
 
   CID pieceCommitmentV1ToCID(gsl::span<const uint8_t> comm_p) {
