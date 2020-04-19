@@ -50,12 +50,12 @@ namespace fc::crypto::bls {
       const Signature &signature,
       const PublicKey &key) const {
     OUTCOME_TRY(digest, generateHash(message));
-      return fil_verify(signature.data(),
-                        digest.data(),
-                        digest.size(),
-                        key.data(),
-                        key.size())
-             != 0;
+    return fil_verify(signature.data(),
+                      digest.data(),
+                      digest.size(),
+                      key.data(),
+                      key.size())
+           > 0;
   }
 
   outcome::result<Digest> BlsProviderImpl::generateHash(
