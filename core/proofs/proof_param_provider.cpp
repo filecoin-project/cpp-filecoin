@@ -5,15 +5,17 @@
 
 #include "proofs/proof_param_provider.hpp"
 
-#include <curl/curl.h>
 #include <cstdlib>
 #include <iostream>
 #include <regex>
 #include <string>
 #include <thread>
-#include "boost/filesystem.hpp"
-#include "boost/lexical_cast.hpp"
-#include "boost/property_tree/json_parser.hpp"
+
+#include <curl/curl.h>
+#include <boost/filesystem.hpp>
+#include <boost/lexical_cast.hpp>
+#include <boost/property_tree/json_parser.hpp>
+
 #include "common/outcome.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "proofs/proof_param_provider_error.hpp"
@@ -25,9 +27,8 @@ namespace fc::proofs {
 
   bool ProofParamProvider::errors_ = false;
 
-  size_t write_data(void *ptr, size_t size, size_t nmemb, void *stream) {
-    size_t written = fwrite(ptr, size, nmemb, (FILE *)stream);
-    return written;
+  auto write_data(void *ptr, size_t size, size_t nmemb, void *stream) {
+    return fwrite(ptr, size, nmemb, (FILE *)stream);
   }
 
   auto const default_gateway = "https://ipfs.io/ipfs/";
@@ -37,14 +38,11 @@ namespace fc::proofs {
   outcome::result<void> ProofParamProvider::doFetch(const std::string &out,
                                                     const ParamFile &info) {
     try {
-      CURL *curl_handle;
-      FILE *pagefile;
-
       /* init the curl session */
-      curl_handle = curl_easy_init();
+      auto curl_handle = curl_easy_init();
 
       std::string gateway = default_gateway;
-      if (char *custom_gateway = std::getenv("IPFS_GATEWAY")) {
+      if (auto custom_gateway = std::getenv("IPFS_GATEWAY")) {
         gateway = custom_gateway;
       }
 
@@ -57,7 +55,7 @@ namespace fc::proofs {
       /* set URL to get here */
       curl_easy_setopt(curl_handle, CURLOPT_URL, gateway.c_str());
 
-      /* Switch off full protocol/debug output while testing, set to 0L to
+      /* Switch off full protocol/debug output while testing, set to 1L to
        * enable it */
       curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 0L);
 
@@ -80,7 +78,7 @@ namespace fc::proofs {
       curl_easy_setopt(curl_handle, CURLOPT_HTTPHEADER, chunk);
 
       /* open the file */
-      pagefile = fopen(out.c_str(), "ab");
+      auto pagefile = fopen(out.c_str(), "ab");
       if (pagefile) {
         /* write the page body to this file handle */
         curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, pagefile);
@@ -127,9 +125,7 @@ namespace fc::proofs {
         continue;
       }
 
-      std::thread t(fetch, param_file);
-
-      threads.push_back(std::move(t));
+      threads.emplace_back(std::thread{fetch, param_file});
     }
 
     for (auto &th : threads) {
@@ -156,7 +152,7 @@ namespace fc::proofs {
 
     auto sum = crypto::blake2b::blake2b_512_from_file(ifs);
 
-    auto our_some = common::hex_lower(gsl::span<uint8_t>(sum.data(), 16));
+    auto our_some = common::hex_lower(gsl::make_span(sum).subspan(0, 16));
     if (our_some != info.digest) {
       return ProofParamProviderError::CHECKSUM_MISMATCH;
     }
@@ -171,7 +167,7 @@ namespace fc::proofs {
     logger_->info("Fetch " + info.name);
     auto res = checkFile(path.string(), info);
     if (!res.has_error()) {
-      logger_->info(info.name + " already uploaded");
+      logger_->info(info.name + " already downloaded");
       return;
     }
     if (boost::filesystem::exists(path)) {
@@ -200,7 +196,7 @@ namespace fc::proofs {
       return;
     }
 
-    logger_->info(info.name + " uploaded successfully");
+    logger_->info(info.name + " downloaded successfully");
   }
 
   namespace pt = boost::property_tree;
@@ -224,15 +220,13 @@ namespace fc::proofs {
 
     std::vector<ParamFile> result = {};
 
-    for (const auto &elem : tree) {
-      std::string some = elem.first;
-      OUTCOME_TRY(cid, ensure(elem.second.get_child_optional("cid")));
-      OUTCOME_TRY(digest, ensure(elem.second.get_child_optional("digest")));
-      OUTCOME_TRY(sector_size,
-                  ensure(elem.second.get_child_optional("sector_size")));
+    for (const auto &[name, elem] : tree) {
+      OUTCOME_TRY(cid, ensure(elem.get_child_optional("cid")));
+      OUTCOME_TRY(digest, ensure(elem.get_child_optional("digest")));
+      OUTCOME_TRY(sector_size, ensure(elem.get_child_optional("sector_size")));
 
       ParamFile param_file;
-      param_file.name = elem.first;
+      param_file.name = name;
       param_file.cid = cid.data();
       param_file.digest = digest.data();
       try {
