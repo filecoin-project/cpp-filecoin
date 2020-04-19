@@ -14,38 +14,34 @@ namespace fc::crypto::bls {
   namespace ffi = common::ffi;
 
   outcome::result<KeyPair> BlsProviderImpl::generateKeyPair() const {
-    fil_PrivateKeyGenerateResponse *private_key_response = fil_private_key_generate();
-    if (private_key_response == nullptr) {
+    auto response{ffi::wrap(fil_private_key_generate(),
+                            fil_destroy_private_key_generate_response)};
+    if (response == nullptr) {
       return Errors::KeyPairGenerationFailed;
     }
-    auto free_private_response = gsl::finally([private_key_response]() {
-      fil_destroy_private_key_generate_response(private_key_response);
-    });
-    auto private_key = ffi::array(private_key_response->private_key.inner);
+    auto private_key = ffi::array(response->private_key.inner);
     OUTCOME_TRY(public_key, derivePublicKey(private_key));
     return KeyPair{private_key, public_key};
   }
 
   outcome::result<PublicKey> BlsProviderImpl::derivePublicKey(
       const PrivateKey &key) const {
-    fil_PrivateKeyPublicKeyResponse *response = fil_private_key_public_key(key.data());
+    auto response{ffi::wrap(fil_private_key_public_key(key.data()),
+                            fil_destroy_private_key_public_key_response)};
     if (response == nullptr) {
       return Errors::InvalidPrivateKey;
     }
-    auto free_response = gsl::finally(
-        [response]() { fil_destroy_private_key_public_key_response(response); });
     return ffi::array(response->public_key.inner);
   }
 
   outcome::result<Signature> BlsProviderImpl::sign(
       gsl::span<const uint8_t> message, const PrivateKey &key) const {
-    fil_PrivateKeySignResponse *response =
-        fil_private_key_sign(key.data(), message.data(), message.size());
+    auto response{ffi::wrap(
+        fil_private_key_sign(key.data(), message.data(), message.size()),
+        fil_destroy_private_key_sign_response)};
     if (response == nullptr) {
       return Errors::SignatureGenerationFailed;
     }
-    auto free_response = gsl::finally(
-        [response]() { fil_destroy_private_key_sign_response(response); });
     return ffi::array(response->signature.inner);
   }
 
@@ -64,12 +60,11 @@ namespace fc::crypto::bls {
 
   outcome::result<Digest> BlsProviderImpl::generateHash(
       gsl::span<const uint8_t> message) {
-    fil_HashResponse *response = fil_hash(message.data(), message.size());
+    auto response{ffi::wrap(fil_hash(message.data(), message.size()),
+                            fil_destroy_hash_response)};
     if (response == nullptr) {
       return Errors::InternalError;
     }
-    auto free_response =
-        gsl::finally([response]() { fil_destroy_hash_response(response); });
     return ffi::array(response->digest.inner);
   }
 
@@ -79,12 +74,11 @@ namespace fc::crypto::bls {
     const uint8_t *flat_bytes =
         reinterpret_cast<const uint8_t *>(signatures.data());
     size_t flat_size = sizeof(Signature) * signatures.size();
-    fil_AggregateResponse *response = fil_aggregate(flat_bytes, flat_size);
+    auto response{ffi::wrap(fil_aggregate(flat_bytes, flat_size),
+                            fil_destroy_aggregate_response)};
     if (response == nullptr) {
       return Errors::InternalError;
     }
-    auto free_response =
-        gsl::finally([response]() { fil_destroy_aggregate_response(response); });
     return ffi::array(response->signature.inner);
   }
 };  // namespace fc::crypto::bls

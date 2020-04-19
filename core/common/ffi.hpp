@@ -7,8 +7,14 @@
 #define CPP_FILECOIN_CORE_COMMON_FFI_HPP
 
 #include <array>
+#include <memory>
 
 namespace fc::common::ffi {
+  template <typename T, typename D>
+  auto wrap(T *ptr, D deleter) {
+    return std::unique_ptr<T, D>(ptr, deleter);
+  }
+
   template <size_t size>
   auto array(const uint8_t (&rhs)[size]) {
     std::array<uint8_t, size> lhs;
