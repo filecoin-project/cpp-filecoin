@@ -101,8 +101,8 @@ namespace fc::crypto::secp256k1 {
             context_.get(), &pubkey, key.data(), key.size())) {
       return Secp256k1Error::PUBKEY_PARSE_ERROR;
     }
-    return secp256k1_ecdsa_verify(
-        context_.get(), &sig, message.data(), &pubkey);
+    return (secp256k1_ecdsa_verify(
+        context_.get(), &sig, message.data(), &pubkey) == 1);
   }
 
   outcome::result<PublicKeyUncompressed>
