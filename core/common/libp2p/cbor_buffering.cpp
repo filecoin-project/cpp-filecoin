@@ -13,6 +13,8 @@ namespace fc::common::libp2p {
   using Head = CborBuffering::Head;
 
   outcome::result<Head> Head::first(size_t &more, uint8_t first) {
+    // https://tools.ietf.org/html/rfc7049#section-2
+    // decode major type
     auto type = Type{(first & 0xe0) >> 5};
     switch (type) {
       case Type::Unsigned:
@@ -27,8 +29,10 @@ namespace fc::common::libp2p {
         return Error::INVALID_HEAD_TYPE;
     }
     Head head{type, 0};
+    // decode additional information length
     first &= 0x1f;
     if (first < 24) {
+      // additional information is in first byte
       more = 0;
       head.value = first;
     } else {

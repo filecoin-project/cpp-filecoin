@@ -12,6 +12,7 @@
 #include "common/libp2p/cbor_buffering.hpp"
 
 namespace fc::common::libp2p {
+  /// Reads and writes cbor objects
   class CborStream : std::enable_shared_from_this<CborStream> {
    public:
     using Stream = ::libp2p::basic::ReadWriter;
@@ -19,13 +20,16 @@ namespace fc::common::libp2p {
     using ReadCallbackFunc = std::function<ReadCallback>;
     using WriteCallbackFunc = Stream::WriteCallbackFunc;
 
+    /// Max number of bytes to read at a time
     static constexpr size_t kReserveBytes = 4 << 10;
 
     explicit CborStream(std::shared_ptr<Stream> stream)
         : stream_{std::move(stream)} {}
 
+    /// Read bytes of cbor object
     void readRaw(ReadCallbackFunc cb);
 
+    /// Read cbor object
     template <typename T>
     void read(std::function<void(outcome::result<T>)> cb) {
       readRaw([cb{std::move(cb)}](auto input) {
@@ -33,8 +37,10 @@ namespace fc::common::libp2p {
       });
     }
 
+    /// Write bytes of cbor object
     void writeRaw(gsl::span<const uint8_t> input, WriteCallbackFunc cb);
 
+    /// Write cbor object
     template <typename T>
     void write(const T &value, WriteCallbackFunc cb) {
       auto encoded = codec::cbor::encode(value);

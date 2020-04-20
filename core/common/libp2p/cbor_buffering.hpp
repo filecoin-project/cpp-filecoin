@@ -14,6 +14,7 @@
 #include "common/outcome.hpp"
 
 namespace fc::common::libp2p {
+  /// Incrementally decodes length of cbor object bytes
   struct CborBuffering {
     enum class Error {
       INVALID_HEAD_TYPE = 1,

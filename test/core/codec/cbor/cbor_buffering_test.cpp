@@ -25,6 +25,11 @@ struct CborBufferingTest : testing::Test {
   fc::common::libp2p::CborBuffering buffering;
 };
 
+/**
+ * @given cbor encoded object
+ * @when consume whole buffer
+ * @then object read successfully
+ */
 TEST_F(CborBufferingTest, ConsumeAll) {
   EXPECT_TRUE(buffering.done());
   EXPECT_EQ(buffering.moreBytes(), 0);
@@ -36,6 +41,11 @@ TEST_F(CborBufferingTest, ConsumeAll) {
   EXPECT_EQ(buffering.moreBytes(), 0);
 }
 
+/**
+ * @given cbor encoded object
+ * @when consume buffer one byte at a time
+ * @then object read successfully
+ */
 TEST_F(CborBufferingTest, ConsumeEachByte) {
   buffering.reset();
   for (size_t i = 0; i < buffer.size(); ++i) {
