@@ -28,6 +28,7 @@ using fc::storage::blockchain::ChainDataStoreImpl;
 using fc::storage::blockchain::ChainStoreImpl;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::storage::ipfs::IpfsBlockService;
+using BlsSignature = fc::crypto::bls::Signature;
 
 using fc::primitives::cid::getCidOfCbor;
 using testing::_;
@@ -58,9 +59,9 @@ struct ChainStoreTest : public ::testing::Test {
         "010001020005"_cid,
         "010001020006"_cid,
         "010001020007"_cid,
-        "CAFE"_unhex,
+        BlsSignature{},
         8,
-        Signature{"DEAD"_unhex},
+        Signature{BlsSignature{}},
         9};
     return block_header;
   }

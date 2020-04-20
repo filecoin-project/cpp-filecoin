@@ -9,4 +9,5 @@ target_link_libraries(keystore_test
     address
     base_fs_test
     keystore
+    secp256k1_provider
     )

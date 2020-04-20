@@ -70,9 +70,17 @@ namespace fc::crypto::signature {
       outcome::raise(SignatureError::INVALID_SIGNATURE_LENGTH);
     }
     switch (data[0]) {
-      case (SECP256K1):
-        signature = Secp256k1Signature(std::next(data.begin()), data.end());
+      case (SECP256K1): {
+        Secp256k1Signature secp256K1Signature{};
+        if (data.size() != secp256K1Signature.size() + 1) {
+          outcome::raise(SignatureError::INVALID_SIGNATURE_LENGTH);
+        }
+        std::copy_n(std::make_move_iterator(std::next(data.begin())),
+                    secp256K1Signature.size(),
+                    secp256K1Signature.begin());
+        signature = secp256K1Signature;
         break;
+      }
       case (BLS): {
         BlsSignature blsSig{};
         if (data.size() != blsSig.size() + 1) {

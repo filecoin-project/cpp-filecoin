@@ -1,0 +1,28 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef CPP_FILECOIN_CORE_CRYPTO_SECP256K1_SECP256K1_ERROR_HPP
+#define CPP_FILECOIN_CORE_CRYPTO_SECP256K1_SECP256K1_ERROR_HPP
+
+#include "common/outcome.hpp"
+
+namespace fc::crypto::secp256k1 {
+
+  enum class Secp256k1Error {
+    KEY_GENERATION_FAILED = 1,
+    SIGNATURE_PARSE_ERROR,
+    SIGNATURE_SERIALIZATION_ERROR,
+    CANNOT_SIGN_ERROR,
+    PUBKEY_PARSE_ERROR,
+    PUBKEY_SERIALIZATION_ERROR,
+    RECOVER_ERROR,
+    UNKNOWN_ERROR
+  };
+
+}
+
+OUTCOME_HPP_DECLARE_ERROR(fc::crypto::secp256k1, Secp256k1Error);
+
+#endif  // CPP_FILECOIN_CORE_CRYPTO_SECP256K1_SECP256K1_ERROR_HPP
