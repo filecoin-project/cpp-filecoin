@@ -18,6 +18,10 @@ find_package(Microsoft.GSL CONFIG REQUIRED)
 hunter_add_package(OpenSSL)
 find_package(OpenSSL REQUIRED)
 
+# https://hunter.readthedocs.io/en/latest/packages/pkg/CURL.html#pkg-curl
+hunter_add_package(CURL)
+find_package(CURL CONFIG REQUIRED)
+
 # https://developers.google.com/protocol-buffers/
 hunter_add_package(Protobuf)
 find_package(Protobuf CONFIG REQUIRED)

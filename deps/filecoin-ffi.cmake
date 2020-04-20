@@ -10,7 +10,7 @@ set(FILECOIN_FFI_INCLUDES
         )
 
 set(FILECOIN_FFI_LIB
-        "${FILECOIN_FFI_PATH}/lib/libfilecoin.a"
+        "${FILECOIN_FFI_PATH}/lib/libfilcrypto.a"
         )
 
 set(FILECOIN_FFI_PKG
@@ -23,21 +23,21 @@ set(ENV{PKG_CONFIG_PATH}  "${PKG_CONFIG_PATH}:${FILECOIN_FFI_PKG}")
 #set(ENV{FFI_BUILD_FROM_SOURCE}  "1")
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(PKG_FILECOIN filecoin)
+pkg_check_modules(PKG_FILECOIN filcrypto)
 
 if (NOT PKG_FILECOIN_FOUND)
     message("Installing filecoin-ffi")
-    execute_process(COMMAND ./install-filecoin.sh
+    execute_process(COMMAND ./install-filcrypto.sh
             WORKING_DIRECTORY ${FILECOIN_FFI_PATH})
 
-    pkg_check_modules(PKG_FILECOIN REQUIRED filecoin)
+    pkg_check_modules(PKG_FILECOIN REQUIRED filcrypto)
 endif (NOT PKG_FILECOIN_FOUND)
 
 
 
 add_custom_target(
         filecoin_ffi_build
-        COMMAND ./install-filecoin.sh
+        COMMAND ./install-filcrypto.sh
         WORKING_DIRECTORY ${FILECOIN_FFI_PATH}
 )
 
@@ -45,15 +45,14 @@ add_library(filecoin_ffi
         STATIC IMPORTED GLOBAL
         )
 
-target_link_libraries(filecoin_ffi INTERFACE ${PKG_FILECOIN_LIBRARIES})
-target_include_directories(filecoin_ffi INTERFACE ${FILECOIN_FFI_PATH}/include)
-target_compile_options(filecoin_ffi PUBLIC ${PKG_FILECOIN_CFLAGS_OTHER})
-
 set_target_properties(filecoin_ffi PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES ${FILECOIN_FFI_PATH}/include
         IMPORTED_LOCATION ${FILECOIN_FFI_LIB}
         )
 
+target_link_libraries(filecoin_ffi INTERFACE ${PKG_FILECOIN_LIBRARIES})
+
+#TODO: get from .pc file
 if (APPLE)
     target_link_libraries(filecoin_ffi INTERFACE "-framework OpenCL")
 endif (APPLE)
