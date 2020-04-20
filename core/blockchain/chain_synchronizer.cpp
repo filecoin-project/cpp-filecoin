@@ -77,6 +77,12 @@ namespace fc::blockchain {
   }
 
   ObjectType ChainSynchronizer::findObject(LoadTicket t, const CID &cid) const {
+    // TODO (yuraz): somehow handle chainstore errors
+    OUTCOME_ALTERNATIVE(is_persistent, chain_store_->contains(cid), false);
+    if (is_persistent) {
+      return ObjectType::PERSISTENT;  // already in store
+    }
+
     bool is_block = block_tickets_.find(t) != block_tickets_.end();
     bool is_sigmsg = signed_msg_tickets_.find(t) != signed_msg_tickets_.end();
     bool is_unsigmsg =
@@ -129,8 +135,6 @@ namespace fc::blockchain {
   }
 
   void ChainSynchronizer::onObjectReceived(const Sync::LoadResult &r) {
-    auto object_type = findObject(r.ticket, r.cid);
-
     if (!r.data) {
       // retry
       logger_->error("failed to download object: {}", r.data.error().message());
@@ -138,53 +142,64 @@ namespace fc::blockchain {
       return;
     }
 
-    if (object_type == ObjectType::BLOCK) {
-      // get data
-      auto &&block_data = r.data.value();
-      BOOST_ASSERT_MSG(block_data != nullptr,
-                       "received block data is null pointer");
-      // decode
-      auto &&block = codec::cbor::decode<BlockHeader>(*block_data);
-      if (!block) {
-        OUTCOME_ALTERNATIVE(
-            cid_value, r.cid.toString(), "<failed to convert cid>");
-        logger_->error("failed to decode block, cid = {}", cid_value);
-      }
-      // if (!header) // process error
-      // add to storage
-      auto &&res = blocks_batch_->set(r.cid, *r.data.value());
-      if (!res) {
-      }
+    BOOST_ASSERT_MSG(r.data.value() != nullptr,
+                     "invalid data received from Sync");
+    auto &&data_received = *r.data.value();
 
-      block_tickets_.erase(r.ticket);
+    auto object_type = findObject(r.ticket, r.cid);
+    switch (object_type) {
+      case ObjectType::BAD: {
+        // report bad object
+        return updateState();
+      }
+      case ObjectType::MISSING: {
+        // handle
+        return updateState();
+      }
+      case ObjectType::PERSISTENT: {
+        auto &&data = chain_store_->get(r.cid);
+        BOOST_ASSERT_MSG(data, "it should had being checked in findObject");
+        if (data.value() != data_received) {
+          // TODO (yuraz) : report bad object
+        }
+        return updateState();
+      }
+      case ObjectType::BLOCK: {
+        // decode
+        auto &&block = codec::cbor::decode<BlockHeader>(data_received);
+        if (!block) {
+          OUTCOME_ALTERNATIVE(
+              cid_value, r.cid.toString(), "<failed to convert cid>");
+          logger_->error("failed to decode block, cid = {}", cid_value);
+          // TODO (yuraz) : report bad object
+
+          return updateState();
+        }
+
+        // add to storage
+        auto &&res = blocks_batch_->set(r.cid, *r.data.value());
+        BOOST_ASSERT_MSG(res, "internal error, cannot set data to batch");
+
+        block_tickets_.erase(r.ticket);
+        return updateState();
+      }
+      case ObjectType::SIGNED_MESSAGE: {
+        // handle
+        return updateState();
+      }
+      case ObjectType::UNSIGNED_MESSAGE: {
+        // handle
+        return updateState();
+      }
+      default:
+        BOOST_ASSERT_MSG(false, "need to handle each case");
     }
-
-    //    if (auto it = std::find(
-    //            signed_msg_tickets_.begin(),
-    //            signed_msg_tickets_.end(),
-    //            [t = r.ticket](const auto &pair) { return pair.first == t; });
-    //        it != signed_msg_tickets_.end()) {
-    //      // decode
-    //      // process result
-    //      // add to storage
-    //      signed_msg_tickets_.erase(it);
-    //    }
-
-    //    if (auto it = std::find(unsigned_msg_tickets_.begin(),
-    //                            unsigned_msg_tickets_.end(),
-    //                            r.ticket);
-    //        it != unsigned_msg_tickets_.end()) {
-    //      // decode
-    //      // process result
-    //      // add to storage
-    //      unsigned_msg_tickets_.erase(it);
-    //    }
 
     // update sync state
     updateState();
-
-    // unwanted object received, report error
   }
 
-  void ChainSynchronizer::updateState() {}
+  void ChainSynchronizer::updateState() {
+    // handle changes, schedule download
+  }
 }  // namespace fc::blockchain

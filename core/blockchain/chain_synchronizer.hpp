@@ -38,9 +38,10 @@ namespace fc::blockchain {
 
   /** @brief received object type*/
   enum class ObjectType {
-    BAD,
+    BAD = 0,
     MISSING,
     BLOCK,
+    PERSISTENT,
     SIGNED_MESSAGE,
     UNSIGNED_MESSAGE,
   };
