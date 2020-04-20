@@ -150,7 +150,9 @@ namespace fc::vm::runtime {
 
   fc::outcome::result<bool> RuntimeImpl::verifyPoSt(
       const PoStVerifyInfo &info) {
-    return proofs::Proofs::verifyPoSt(info);
+    PoStVerifyInfo preprocess_info = info;
+    preprocess_info.randomness[31] = 0;
+    return proofs::Proofs::verifyPoSt(preprocess_info);
   }
 
   fc::outcome::result<bool> RuntimeImpl::verifySeal(
