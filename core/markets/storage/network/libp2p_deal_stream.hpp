@@ -20,7 +20,7 @@ namespace fc::markets::storage {
     static constexpr size_t buffer_size{1024};
 
    public:
-    Libp2pDealStream(const PeerId &peer_id, std::shared_ptr<Stream> stream);
+    Libp2pDealStream(PeerId peer_id, std::shared_ptr<Stream> stream);
 
     auto readDealProposal() -> outcome::result<Proposal> override;
 
