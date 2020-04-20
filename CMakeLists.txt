@@ -113,7 +113,6 @@ include_directories(
 include_directories(
     SYSTEM
     # system includes
-    deps/outcome
     deps/tinycbor/src
 )
 
