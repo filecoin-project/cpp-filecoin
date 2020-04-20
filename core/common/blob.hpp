@@ -10,7 +10,9 @@
 
 #include <boost/format.hpp>
 #include <boost/functional/hash.hpp>
+
 #include "common/hexutil.hpp"
+#include "common/span.hpp"
 
 namespace fc::common {
 
@@ -74,14 +76,7 @@ namespace fc::common {
      * @return result containing Blob object if string has proper size
      */
     static outcome::result<Blob<size_>> fromString(std::string_view data) {
-      if (data.size() != size_) {
-        return BlobError::INCORRECT_LENGTH;
-      }
-
-      Blob<size_> b;
-      std::copy(data.begin(), data.end(), b.begin());
-
-      return b;
+      return fromSpan(span::cbytes(data));
     }
 
     /**

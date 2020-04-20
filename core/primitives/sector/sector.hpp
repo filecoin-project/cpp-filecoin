@@ -42,6 +42,8 @@ namespace fc::primitives::sector {
   outcome::result<RegisteredProof> getRegisteredSealProof(
       RegisteredProof proof);
 
+  outcome::result<SectorSize> getSectorSize(RegisteredProof proof);
+
   using SealRandomness = Randomness;
 
   using Ticket = SealRandomness;
@@ -109,7 +111,7 @@ namespace fc::primitives::sector {
     /// Optional — should be ommitted for verification.
     PrivatePoStCandidateProof private_proof;
     SectorId sector;
-    int64_t challenge_index;
+    uint64_t challenge_index;
   };
 
   struct OnChainPoStVerifyInfo {
@@ -165,6 +167,7 @@ namespace fc::primitives::sector {
   enum class Errors {
     InvalidPoStProof = 1,
     InvalidSealProof,
+    InvalidProofType,
   };
 }  // namespace fc::primitives::sector
 

@@ -11,6 +11,7 @@
 
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
+#include "proofs/proof_param_provider.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_file.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
@@ -19,6 +20,7 @@
 using fc::common::Blob;
 using fc::crypto::randomness::Randomness;
 using fc::primitives::SectorNumber;
+using fc::primitives::SectorSize;
 using fc::primitives::piece::PaddedPieceSize;
 using fc::primitives::piece::UnpaddedPieceSize;
 using fc::primitives::sector::OnChainSealVerifyInfo;
@@ -40,7 +42,16 @@ using fc::storage::filestore::Path;
 
 class ProofsTest : public test::BaseFS_Test {
  public:
-  ProofsTest() : test::BaseFS_Test("fc_proofs_test") {}
+  ProofsTest() : test::BaseFS_Test("fc_proofs_test") {
+    auto res = fc::proofs::ProofParamProvider::readJson(
+        "/var/tmp/filecoin-proof-parameters/parameters.json");
+    if (!res.has_error()) {
+      params = std::move(res.value());
+    }
+  }
+
+ protected:
+  std::vector<fc::proofs::ParamFile> params;
 };
 
 /**
@@ -57,6 +68,9 @@ TEST_F(ProofsTest, Lifecycle) {
   fc::proofs::RegisteredProof post_proof_type =
       fc::primitives::sector::RegisteredProof::StackedDRG2KiBPoSt;
   SectorNumber sector_num = 42;
+  EXPECT_OUTCOME_TRUE(sector_size, fc::primitives::sector::getSectorSize(seal_proof_type));
+  EXPECT_OUTCOME_TRUE_1(
+      fc::proofs::ProofParamProvider::getParams(params, sector_size));
 
   Ticket ticket{{5, 4, 2}};
 
