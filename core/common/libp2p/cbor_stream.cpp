@@ -1,0 +1,47 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include "common/libp2p/cbor_stream.hpp"
+
+namespace fc::common::libp2p {
+  void CborStream::readRaw(ReadCallbackFunc cb) {
+    buffering_.reset();
+    buffer_.erase(buffer_.begin(), buffer_.begin() + size_);
+    size_ = 0;
+    consume(buffer_, std::move(cb));
+  }
+
+  void CborStream::writeRaw(gsl::span<const uint8_t> input,
+                            WriteCallbackFunc cb) {
+    stream_->write(input, input.size(), std::move(cb));
+  }
+
+  void CborStream::readMore(ReadCallbackFunc cb) {
+    if (buffering_.done()) {
+      return cb(gsl::make_span(buffer_).subspan(0, size_));
+    }
+    buffer_.resize(size_ + kReserveBytes);
+    auto input = gsl::make_span(buffer_).subspan(size_, kReserveBytes);
+    stream_->readSome(
+        input,
+        input.size(),
+        [cb{std::move(cb)}, self{shared_from_this()}, input](auto count) {
+          if (!count) {
+            return cb(count.error());
+          }
+          self->consume(input, std::move(cb));
+        });
+  }
+
+  void CborStream::consume(gsl::span<uint8_t> input,
+                           const ReadCallbackFunc &cb) {
+    auto consumed = buffering_.consume(input);
+    if (!consumed) {
+      return cb(consumed.error());
+    }
+    size_ += consumed.value();
+    readMore(std::move(cb));
+  }
+}  // namespace fc::common::libp2p
