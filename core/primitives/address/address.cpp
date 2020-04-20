@@ -71,7 +71,8 @@ namespace fc::primitives::address {
         data,
         [](uint64_t v) { return true; },
         [&seed_data](const Secp256k1PublicKeyHash &v) {
-          if (seed_data.size() != libp2p::crypto::secp256k1::kPublicKeyLength) {
+          if (seed_data.size()
+              != crypto::secp256k1::kPublicKeyUncompressedLength) {
             return false;
           }
           auto hash = blake2b_160(seed_data);

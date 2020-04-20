@@ -87,9 +87,9 @@ namespace fc::blockchain::block_validator {
         },
         [&block_signature, &block_bytes, *this](
             const SecpPubKey &public_key) -> outcome::result<void> {
-          libp2p::crypto::secp256k1::PublicKey secp_public_key;
+          crypto::secp256k1::PublicKey secp_public_key;
           auto secp_signature =
-              boost::get<libp2p::crypto::secp256k1::Signature>(block_signature);
+              boost::get<crypto::secp256k1::Signature>(block_signature);
           std::copy_n(public_key.begin(),
                       secp_public_key.size(),
                       secp_public_key.begin());
