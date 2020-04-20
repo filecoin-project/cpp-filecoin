@@ -10,4 +10,5 @@ target_link_libraries( proofs_test
         buffer
         proofs
         piece
-        base_fs_test)
+        base_fs_test
+        piece_data)

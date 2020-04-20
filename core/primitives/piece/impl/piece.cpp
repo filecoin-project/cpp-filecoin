@@ -6,7 +6,7 @@
 #include "primitives/piece/piece.hpp"
 
 #include <utility>
-#include "piece_error.hpp"
+#include "primitives/piece/piece_error.hpp"
 
 namespace fc::primitives::piece {
 
