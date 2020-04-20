@@ -4,6 +4,7 @@
  */
 
 #include "adt/uvarint_key.hpp"
+#include "common/span.hpp"
 
 #include <libp2p/multi/uvarint.hpp>
 
@@ -26,9 +27,7 @@ namespace fc::adt {
 
   outcome::result<UvarintKeyer::Key> UvarintKeyer::decode(
       const std::string &key) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    auto maybe = UVarint::create(gsl::make_span(
-        reinterpret_cast<const uint8_t *>(key.data()), key.size()));
+    auto maybe = UVarint::create(common::span::cbytes(key));
     if (!maybe) {
       return UvarintKeyError::DECODE_ERROR;
     }

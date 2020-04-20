@@ -31,18 +31,18 @@ namespace fc::vm::state {
     /// Lookup id address from address
     outcome::result<Address> lookupId(const Address &address) override;
     /// Allocate id address and set actor state, does not write to storage
-    outcome::result<Address> registerNewAddress(const Address &address,
-                                                const Actor &actor) override;
+    outcome::result<Address> registerNewAddress(
+        const Address &address) override;
     /// Write changes to storage
     outcome::result<CID> flush() override;
     /// Revert changes to last flushed state
-    outcome::result<void> revert() override;
+    outcome::result<void> revert(const CID &root) override;
     /// Get store
     std::shared_ptr<IpfsDatastore> getStore() override;
 
    private:
     std::shared_ptr<IpfsDatastore> store_;
-    Hamt hamt_, snapshot_;
+    Hamt hamt_;
   };
 }  // namespace fc::vm::state
 

@@ -26,9 +26,10 @@ namespace fc::vm::runtime {
    * up to but excluding any actual processing by the VM.
    * This is the cost a block producer burns when including an invalid message.
    */
-  inline static const GasAmount kOnChainMessageBaseGasCost{
-      kGasAmountPlaceholder};
+  inline static const GasAmount kOnChainMessageBaseGasCost{0};
   inline static const GasAmount kOnChainMessagePerByteGasCharge{2};
+
+  inline static const GasAmount kOnChainReturnValuePerByteCost{8};
 
   /**
    * Gas cost charged to the originator of a non-nil return value produced by an
@@ -52,14 +53,14 @@ namespace fc::vm::runtime {
    * by any nonzero currency amount. Accounts for writing receiver's new balance
    * (the sender's state is already accounted for).
    */
-  inline static const GasAmount kSendTransferFundsGasCost{10};
+  inline static const GasAmount kSendTransferFundsGasCost{5};
 
   /**
    * Gas cost charged, in addition to SendBase, if a message invokes a method on
    * the receiver. Accounts for the cost of loading receiver code and method
    * dispatch.
    */
-  inline static const GasAmount kSendInvokeMethodGasCost{5};
+  inline static const GasAmount kSendInvokeMethodGasCost{10};
 
   /**
    * Gas cost (Base + len * PerByte) for any Get operation to the IPLD store in
@@ -89,7 +90,7 @@ namespace fc::vm::runtime {
    * Gas cost for creating a new actor (via InitActor's Exec method). Actor
    * sub-state is charged separately.
    */
-  inline static const GasAmount kExecNewActorGasCost{kGasAmountPlaceholder};
+  inline static const GasAmount kCreateActorGasCost{40 + 500};
 
   /**
    * Gas cost for deleting an actor.

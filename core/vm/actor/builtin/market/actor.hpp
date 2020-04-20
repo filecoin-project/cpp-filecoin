@@ -8,7 +8,7 @@
 
 #include "adt/array.hpp"
 #include "adt/balance_table.hpp"
-#include "adt/empty_value.hpp"
+#include "adt/set.hpp"
 #include "adt/uvarint_key.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/signature/signature.hpp"
@@ -20,7 +20,6 @@
 namespace fc::vm::actor::builtin::market {
   using adt::AddressKeyer;
   using adt::BalanceTable;
-  using adt::EmptyValue;
   using adt::UvarintKeyer;
   using crypto::signature::Signature;
   using primitives::ChainEpoch;
@@ -85,7 +84,7 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(DealState, sector_start_epoch, last_updated_epoch, slash_epoch)
 
   struct State {
-    using PartyDeals = adt::Map<EmptyValue, UvarintKeyer>;
+    using PartyDeals = adt::Set<UvarintKeyer>;
 
     void load(std::shared_ptr<Ipld> ipld);
     outcome::result<void> flush();
@@ -188,7 +187,7 @@ namespace fc::vm::actor::builtin::market {
   };
   CBOR_TUPLE(ComputeDataCommitment::Params, deals, sector_type)
 
-  extern ActorExports exports;
+  extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::market
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MARKET_ACTOR_HPP

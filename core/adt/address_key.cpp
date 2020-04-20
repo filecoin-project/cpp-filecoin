@@ -4,6 +4,7 @@
  */
 
 #include "adt/address_key.hpp"
+#include "common/span.hpp"
 
 #include "primitives/address/address_codec.hpp"
 
@@ -15,8 +16,6 @@ namespace fc::adt {
 
   outcome::result<AddressKeyer::Key> AddressKeyer::decode(
       const std::string &key) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    return primitives::address::decode(gsl::make_span(
-        reinterpret_cast<const uint8_t *>(key.data()), key.size()));
+    return primitives::address::decode(common::span::cbytes(key));
   }
 }  // namespace fc::adt

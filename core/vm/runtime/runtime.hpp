@@ -19,7 +19,6 @@
 #include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor_encoding.hpp"
 #include "vm/exit_code/exit_code.hpp"
-#include "vm/indices/indices.hpp"
 #include "vm/message/message.hpp"
 #include "vm/runtime/actor_state_handle.hpp"
 #include "vm/runtime/runtime_types.hpp"
@@ -35,8 +34,6 @@ namespace fc::vm::runtime {
   using crypto::blake2b::Blake2b256Hash;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
-  using exit_code::ExitCode;
-  using indices::Indices;
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using primitives::GasAmount;
@@ -82,21 +79,12 @@ namespace fc::vm::runtime {
     /** The address of the actor receiving the message. Always an ID-address. */
     virtual Address getCurrentReceiver() const = 0;
 
-    /**
-     * The actor who mined the block in which the initial on-chain message
-     * appears. Always an ID-address.
-     */
-    virtual Address getTopLevelBlockWinner() const = 0;
-
     virtual std::shared_ptr<ActorStateHandle> acquireState() const = 0;
 
     virtual outcome::result<BigInt> getBalance(
         const Address &address) const = 0;
 
     virtual BigInt getValueReceived() const = 0;
-
-    /** Look up the current values of several system-wide economic indices. */
-    virtual std::shared_ptr<Indices> getCurrentIndices() const = 0;
 
     /** Look up the code ID of a given actor address. */
     virtual outcome::result<CodeId> getActorCodeID(
@@ -203,7 +191,7 @@ namespace fc::vm::runtime {
                              const MethodParams &params,
                              BigInt value) {
       OUTCOME_TRY(result, send(to_address, method_number, params, value));
-      return codec::cbor::decode<R>(result.return_value);
+      return codec::cbor::decode<R>(result);
     }
 
     /// Send with typed params P and result R
@@ -251,6 +239,14 @@ namespace fc::vm::runtime {
 
     inline auto getCurrentBalance() {
       return getBalance(getCurrentReceiver());
+    }
+
+    inline outcome::result<void> validateImmediateCallerIs(
+        const Address &address) {
+      if (getImmediateCaller() == address) {
+        return outcome::success();
+      }
+      return VMExitCode::SysErrForbidden;
     }
   };
 

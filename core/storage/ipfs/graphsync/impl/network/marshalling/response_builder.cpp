@@ -35,10 +35,10 @@ namespace fc::storage::ipfs::graphsync {
                                      const common::Buffer &data) {
     auto *dst = pb_msg_->add_data();
 
-    CborEncodeStream encoder;
-    encoder << cid;
-    auto d = encoder.data();
-    dst->set_prefix(d.data(), d.size());
+    OUTCOME_EXCEPT(d, cid.toBytes());
+    auto prefix_reader = gsl::make_span(std::as_const(d));
+    OUTCOME_EXCEPT(prefix, CID::read(prefix_reader, true));
+    dst->set_prefix(d.data(), d.size() - prefix_reader.size());
     dst->set_data(data.data(), data.size());
     empty_ = false;
   }

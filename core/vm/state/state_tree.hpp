@@ -32,13 +32,13 @@ namespace fc::vm::state {
     virtual outcome::result<Address> lookupId(const Address &address) = 0;
 
     /// Allocate id address and set actor state, does not write to storage
-    virtual outcome::result<Address> registerNewAddress(const Address &address,
-                                                        const Actor &actor) = 0;
+    virtual outcome::result<Address> registerNewAddress(
+        const Address &address) = 0;
     /// Write changes to storage
     virtual outcome::result<CID> flush() = 0;
 
     /// Revert changes to last flushed state
-    virtual outcome::result<void> revert() = 0;
+    virtual outcome::result<void> revert(const CID &root) = 0;
 
     /// Get store
     virtual std::shared_ptr<IpfsDatastore> getStore() = 0;

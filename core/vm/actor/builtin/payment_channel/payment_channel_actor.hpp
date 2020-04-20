@@ -42,6 +42,8 @@ namespace fc::vm::actor::builtin::payment_channel {
   struct Collect : ActorMethodBase<4> {
     ACTOR_METHOD_DECL();
   };
+
+  extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::payment_channel
 
 #endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_HPP

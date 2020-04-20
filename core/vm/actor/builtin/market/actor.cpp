@@ -425,7 +425,7 @@ namespace fc::vm::actor::builtin::market {
     return runtime.computeUnsealedSectorCid(params.sector_type, pieces);
   }
 
-  ActorExports exports{
+  const ActorExports exports{
       exportMethod<Construct>(),
       exportMethod<AddBalance>(),
       exportMethod<WithdrawBalance>(),

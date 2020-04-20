@@ -21,18 +21,14 @@ namespace fc::vm::runtime {
   using crypto::randomness::ChainEpoch;
   using crypto::randomness::Randomness;
   using crypto::randomness::RandomnessProvider;
-  using indices::Indices;
   using primitives::address::Address;
   using state::StateTree;
   using storage::ipfs::IpfsDatastore;
 
   class RuntimeImpl : public Runtime {
    public:
-    RuntimeImpl(std::shared_ptr<Env> env,
+    RuntimeImpl(std::shared_ptr<Execution> execution,
                 UnsignedMessage message,
-                Address origin,
-                GasAmount gas_available,
-                GasAmount gas_used,
                 ActorSubstateCID current_actor_state);
 
     /** \copydoc Runtime::getCurrentEpoch() */
@@ -53,9 +49,6 @@ namespace fc::vm::runtime {
     /** \copydoc Runtime::getCurrentReceiver() */
     Address getCurrentReceiver() const override;
 
-    /** \copydoc Runtime::getTopLevelBlockWinner() */
-    Address getTopLevelBlockWinner() const override;
-
     /** \copydoc Runtime::acquireState() */
     std::shared_ptr<ActorStateHandle> acquireState() const override;
 
@@ -64,9 +57,6 @@ namespace fc::vm::runtime {
 
     /** \copydoc Runtime::getValueReceived() */
     BigInt getValueReceived() const override;
-
-    /** \copydoc Runtime::getCurrentIndices() */
-    std::shared_ptr<Indices> getCurrentIndices() const override;
 
     /** \copydoc Runtime::getActorCodeID() */
     outcome::result<CodeId> getActorCodeID(
@@ -97,8 +87,6 @@ namespace fc::vm::runtime {
 
     outcome::result<void> commit(const ActorSubstateCID &new_state) override;
 
-    GasAmount gasUsed() const;
-
     static outcome::result<void> transfer(Actor &from,
                                           Actor &to,
                                           const BigInt &amount);
@@ -122,18 +110,14 @@ namespace fc::vm::runtime {
         const BlockHeader &block_header_2) override;
 
    private:
-    outcome::result<Actor> getOrCreateActor(const Address &address);
     std::shared_ptr<Runtime> createRuntime(
         const UnsignedMessage &message,
         const ActorSubstateCID &current_actor_state) const;
 
    private:
-    std::shared_ptr<Env> env_;
+    std::shared_ptr<Execution> execution_;
     std::shared_ptr<StateTree> state_tree_;
     UnsignedMessage message_;
-    Address origin_;
-    GasAmount gas_available_;
-    GasAmount gas_used_;
     ActorSubstateCID current_actor_state_;
   };
 

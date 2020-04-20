@@ -7,7 +7,6 @@
 
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/crypto/randomness/randomness_provider_mock.hpp"
-#include "testutil/mocks/vm/indices/indices_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
@@ -28,8 +27,6 @@ using fc::vm::actor::builtin::storage_power::Claim;
 using fc::vm::actor::builtin::storage_power::CronEvent;
 using fc::vm::actor::builtin::storage_power::kConsensusMinerMinPower;
 using fc::vm::actor::builtin::storage_power::StoragePowerActor;
-using fc::vm::indices::Indices;
-using fc::vm::indices::MockIndices;
 using testing::_;
 using namespace std::string_literals;
 
