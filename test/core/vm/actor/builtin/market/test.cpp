@@ -9,6 +9,7 @@
 
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
+#include "testutil/crypto/sample_signatures.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "vm/actor/builtin/market/policy.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
@@ -19,6 +20,7 @@
 
 namespace MarketActor = fc::vm::actor::builtin::market;
 namespace MinerActor = fc::vm::actor::builtin::miner;
+using fc::crypto::bls::Signature;
 using fc::primitives::ChainEpoch;
 using fc::primitives::DealId;
 using fc::primitives::kChainEpochUndefined;
@@ -82,9 +84,10 @@ TEST(MarketActorCborTest, ClientDealProposal) {
                   .provider_collateral = 5,
                   .client_collateral = 6,
               },
-          .client_signature = "DEAD"_unhex,
+          .client_signature = kSampleSecp256k1Signature,
       },
-      "8289d82a47000100010200010142000142000202034200044200054200064301dead"_unhex);
+      "8289d82a470001000102000101420001420002020342000442000542000"
+      "6" SAMPLE_SECP256K1_SIGNATURE_HEX ""_unhex);
 }
 
 struct MarketActorTest : testing::Test {

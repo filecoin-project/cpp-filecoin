@@ -5,3 +5,4 @@
 
 include(tinycbor.cmake)
 include(filecoin-ffi.cmake)
+include(libsecp256k1.cmake)

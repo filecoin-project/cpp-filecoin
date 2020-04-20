@@ -7,9 +7,9 @@
 
 namespace fc::markets::storage {
 
-  Libp2pDealStream::Libp2pDealStream(const PeerId &peer_id,
+  Libp2pDealStream::Libp2pDealStream(PeerId peer_id,
                                      std::shared_ptr<Stream> stream)
-      : peer_id_{peer_id}, stream_{std::move(stream)} {}
+      : peer_id_{std::move(peer_id)}, stream_{std::move(stream)} {}
 
   outcome::result<Proposal> Libp2pDealStream::readDealProposal() {
     std::array<uint8_t, buffer_size> buffer{0};

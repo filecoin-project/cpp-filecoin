@@ -10,9 +10,9 @@
 #include <mutex>
 
 #include <boost/optional.hpp>
+#include "api/api.hpp"
 #include "common/outcome.hpp"
 #include "markets/storage/ask_protocol.hpp"
-#include "markets/storage/node_api/storage_provider_node.hpp"
 #include "markets/storage/provider.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
@@ -26,6 +26,7 @@ namespace fc::markets::storage {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
+  using api::Api;
 
   static const TokenAmount kDefaultPrice = 500'000'000;
   static constexpr ChainEpoch kDefaultDuration = 1'000'000;
@@ -46,7 +47,7 @@ namespace fc::markets::storage {
     std::shared_ptr<SignedStorageAsk>
         signed_storage_ask_;  // maybe boost::optional
     std::shared_ptr<ChainDataStore> datastore_;
-    std::shared_ptr<StorageProviderNode> storage_provider_node_;
+    std::shared_ptr<Api> api_;
     Address actor_;
   };
 

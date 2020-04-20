@@ -32,7 +32,7 @@ namespace fc::blockchain::block_validator {
     using WeightCalculator = blockchain::weight::WeightCalculator;
     using PowerTable = power::PowerTable;
     using BlsProvider = crypto::bls::BlsProvider;
-    using SecpProvider = libp2p::crypto::secp256k1::Secp256k1Provider;
+    using SecpProvider = crypto::secp256k1::Secp256k1ProviderDefault;
     using Interpreter = vm::interpreter::Interpreter;
     using Tipset = primitives::tipset::Tipset;
 

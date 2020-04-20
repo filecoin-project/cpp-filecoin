@@ -8,4 +8,5 @@ addtest(message_test
     )
 target_link_libraries(message_test
     message
+    secp256k1_provider
     )

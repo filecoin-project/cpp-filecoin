@@ -14,7 +14,7 @@
 #include "crypto/secp256k1/secp256k1_provider.hpp"
 
 namespace fc::primitives::address {
-  using Sec256k1PublicKey = libp2p::crypto::secp256k1::PublicKey;
+  using Sec256k1PublicKey = crypto::secp256k1::PublicKey;
   using BlsPublicKey = crypto::bls::PublicKey;
 
   /**
