@@ -15,12 +15,11 @@ namespace fc::markets::storage {
       sequential_number = signed_storage_ask_->ask.seq_no + 1;
     }
 
-    OUTCOME_TRY(chain_head, storage_provider_node_->getChainHead());
-    auto &&tipset_token{chain_head.first};
-    auto &&height{chain_head.second};
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    auto &&height{chain_head.height};
     StorageAsk ask;
     ask.price = price;
-    ask.timestamp = height;
+    ask.timestamp = chain_head.height;
     ask.expiry = height + duration;
     ask.miner = actor_;
     ask.seq_no = sequential_number;
