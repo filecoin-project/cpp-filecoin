@@ -33,6 +33,7 @@ target_link_libraries(graphsync
     cid
     buffer
     cbor
+    filecoin_hasher
     logger
     graphsync_proto
     )
