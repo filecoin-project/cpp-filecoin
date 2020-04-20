@@ -11,6 +11,12 @@ hunter_config(
 )
 
 hunter_config(
+    CURL
+    VERSION 7.60.0-p2
+    CMAKE_ARGS "HTTP_ONLY=ON"
+)
+
+hunter_config(
     spdlog
     URL https://github.com/gabime/spdlog/archive/v1.4.2.zip
     SHA1 4b10e9aa17f7d568e24f464b48358ab46cb6f39c
@@ -36,7 +42,7 @@ hunter_config(
 )
 
 hunter_config(libp2p
-    URL https://github.com/soramitsu/libp2p/archive/bf2aae97a9a00fe3493ee05d2c679e2aed790e28.zip
-    SHA1 e051b41120a67f0fb28f3af2cc357e34ad33de2b
-    CMAKE_ARGS TESTING=OFF
+    URL https://github.com/soramitsu/libp2p/archive/d65b00317c0c190f6f1870fce48284e6709994f0.zip
+    SHA1 4b2645f33a0f406c51d42b37a6521e946ffae2ef
+    CMAKE_ARGS TESTING=OFF EXPOSE_MOCKS=ON
     )

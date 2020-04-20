@@ -8,6 +8,7 @@ add_library(api
     )
 target_link_libraries(api
     address
+    block_producer
     chain_store
     cid
     interpreter

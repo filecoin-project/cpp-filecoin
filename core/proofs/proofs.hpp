@@ -17,11 +17,6 @@
 
 namespace fc::proofs {
 
-  // kSingleProofPartitionProofLen denotes the number of bytes in a proof
-  // generated with a single partition. The number of bytes in a proof increases
-  // linearly with the number of partitions used when creating that proof.
-  const int kSingleProofPartitionProofLen = 192;
-
   using common::Blob;
   using crypto::randomness::Randomness;
 
@@ -230,17 +225,95 @@ namespace fc::proofs {
 
     static outcome::result<void> clearCache(const std::string &cache_dir_path);
 
+    /**
+     * @brief Returns the identity of the circuit for the provided PoSt proof type
+     */
+    static outcome::result<std::string> getPoStCircuitIdentifier(
+        RegisteredProof registered_proof);
+
+    /**
+     * @brief Returns the CID of the Groth parameter file for generating a PoSt
+     */
+    static outcome::result<CID> getPoStParamsCID(
+        RegisteredProof registered_proof);
+
+    /**
+     * @brief Returns the path from which the proofs library expects to find the
+     * Groth parameter file used when generating a PoSt
+     */
+    static outcome::result<std::string> getPoStParamsPath(
+        RegisteredProof registered_proof);
+
+    /**
+     * @brief Returns the CID of the verifying key-file for verifying a PoSt
+     * proof
+     */
+    static outcome::result<CID> getPoStVerifyingKeyCID(
+        RegisteredProof registered_proof);
+
+    /**
+     * @brief Returns the path from which the proofs library expects to find the
+     * verifying key-file used when verifying a PoSt proof
+     */
+    static outcome::result<std::string> getPoStVerifyingKeyPath(
+        RegisteredProof registered_proof);
+
+    /**
+     * @brief Returns the version of the provided PoSt proof
+     */
     static outcome::result<std::string> getPoStVersion(
         RegisteredProof proof_type);
 
+    /**
+     * @brief Returns the identity of the circuit for the provided seal proof
+     */
+    static outcome::result<std::string> getSealCircuitIdentifier(
+        RegisteredProof registered_proof);
+
+    /**
+     * @brief Returns the CID of the Groth parameter file for sealing
+     */
+    static outcome::result<CID> getSealParamsCID(
+        RegisteredProof registered_proof);
+
+    /**
+     * @brief Returns the path from which the proofs library expects to find the
+     * Groth parameter file used when sealing
+     */
+    static outcome::result<std::string> getSealParamsPath(
+        RegisteredProof registered_proof);
+
+    /**
+     * @brief Returns the CID of the verifying key-file for verifying a seal
+     * proof
+     */
+    static outcome::result<CID> getSealVerifyingKeyCID(
+        RegisteredProof registered_proof);
+
+    /**
+     * @brief Returns the path from which the proofs library expects to find the
+     * verifying key-file used when verifying a seal proof
+     */
+    static outcome::result<std::string> getSealVerifyingKeyPath(
+        RegisteredProof registered_proof);
+
+    /**
+     * @brief  Returns the version of the provided seal proof type
+     */
     static outcome::result<std::string> getSealVersion(
         RegisteredProof proof_type);
 
     /**
-     * @brief Produces a vector of strings, each representing the name of a
-     * detected GPU device
+     * @brief Returns an array of strings containing the device names that can be used
      */
     static outcome::result<Devices> getGPUDevices();
+
+    /**
+     *  @brief Returns the number of user bytes that will fit into a staged
+     * sector
+     */
+    static outcome::result<uint64_t> getMaxUserBytesPerStagedSector(
+        RegisteredProof registered_proof);
 
    private:
     static fc::common::Logger logger_;

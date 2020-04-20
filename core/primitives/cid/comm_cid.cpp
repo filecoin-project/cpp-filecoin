@@ -4,29 +4,21 @@
  */
 
 #include "primitives/cid/comm_cid.hpp"
+#include "common/outcome_throw.hpp"
 #include "primitives/cid/comm_cid_errors.hpp"
 
 namespace fc::common {
 
   using libp2p::multi::HashType;
 
-  Comm cppCommitment(gsl::span<const uint8_t> bytes) {
-    if (bytes.size() != 32) return {};
-    Comm result;
-    std::copy(bytes.begin(), bytes.end(), result.begin());
-    return result;
-  }
-
   CID replicaCommitmentV1ToCID(gsl::span<const uint8_t> comm_r) {
-    auto cid = commitmentToCID(comm_r, FilecoinHashType::FC_SEALED_V1);
-    if (cid.has_error()) return CID();
-    return cid.value();
+    OUTCOME_EXCEPT(cid, commitmentToCID(comm_r, FC_SEALED_V1));
+    return cid;
   }
 
   CID dataCommitmentV1ToCID(gsl::span<const uint8_t> comm_d) {
-    auto cid = commitmentToCID(comm_d, FC_UNSEALED_V1);
-    if (cid.has_error()) return CID();
-    return cid.value();
+    OUTCOME_EXCEPT(cid, commitmentToCID(comm_d, FC_UNSEALED_V1));
+    return cid;
   }
 
   CID pieceCommitmentV1ToCID(gsl::span<const uint8_t> comm_p) {
@@ -58,18 +50,14 @@ namespace fc::common {
     if (static_cast<FilecoinHashType>(result.getType()) != FC_UNSEALED_V1) {
       return CommCidError::INVALID_HASH;
     }
-    return cppCommitment(result.getHash());
+    return Comm::fromSpan(result.getHash());
   }
 
   outcome::result<Multihash> CIDToCommitment(const CID &cid) {
-    OUTCOME_TRY(result,
-                Multihash::createFromBytes(cid.content_address.toBuffer()));
-
-    if (!validFilecoinMultihash(result.getType())) {
+    if (!validFilecoinMultihash(cid.content_address.getType())) {
       return CommCidError::INVALID_HASH;
     }
-
-    return std::move(result);
+    return cid.content_address;
   }
 
   outcome::result<Comm> CIDToReplicaCommitmentV1(const CID &cid) {
@@ -77,6 +65,6 @@ namespace fc::common {
     if (static_cast<FilecoinHashType>(result.getType()) != FC_SEALED_V1) {
       return CommCidError::INVALID_HASH;
     }
-    return cppCommitment(result.getHash());
+    return Comm::fromSpan(result.getHash());
   }
 }  // namespace fc::common

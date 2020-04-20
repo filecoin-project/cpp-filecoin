@@ -141,4 +141,11 @@ namespace fc::vm::actor::builtin::payment_channel {
     OUTCOME_TRY(runtime.commitState(state));
     return fc::outcome::success();
   }
+
+  const ActorExports exports{
+      exportMethod<Construct>(),
+      exportMethod<UpdateChannelState>(),
+      exportMethod<Settle>(),
+      exportMethod<Collect>(),
+  };
 }  // namespace fc::vm::actor::builtin::payment_channel

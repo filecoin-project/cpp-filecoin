@@ -8,6 +8,7 @@ add_library(bls_provider
     )
 
 target_link_libraries(bls_provider
+    blob
     filecoin_ffi
     outcome
     )

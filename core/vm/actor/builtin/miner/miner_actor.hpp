@@ -12,9 +12,6 @@
 #include "vm/actor/builtin/miner/types.hpp"
 
 namespace fc::vm::actor::builtin::miner {
-
-  constexpr MethodNumber kSubmitElectionPoStMethodNumber{20};
-
   struct Construct : ActorMethodBase<1> {
     struct Params {
       Address owner;

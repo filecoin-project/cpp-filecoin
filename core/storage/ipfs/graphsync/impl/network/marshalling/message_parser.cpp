@@ -6,6 +6,8 @@
 #include "message_parser.hpp"
 
 #include "codec/cbor/cbor_decode_stream.hpp"
+#include "common/span.hpp"
+#include "crypto/hasher/hasher.hpp"
 
 #include "protobuf/message.pb.h"
 
@@ -14,14 +16,8 @@ namespace fc::storage::ipfs::graphsync {
     using codec::cbor::CborDecodeStream;
 
     // Dummy protobuf helper, string->bytes
-    common::Buffer fromString(const std::string &src) {
-      common::Buffer dst;
-      if (!src.empty()) {
-        auto b = (const uint8_t *)src.data();
-        auto e = b + src.size();
-        dst.putBytes(b, e);
-      }
-      return dst;
+    inline auto fromString(const std::string &src) {
+      return common::Buffer{common::span::cbytes(src)};
     }
 
     // Checks status code received from wire
@@ -51,20 +47,6 @@ namespace fc::storage::ipfs::graphsync {
       return Error::MESSAGE_PARSE_ERROR;
     }
 
-    // Decodes CID from CBOR source
-    outcome::result<CID> decodeCid(const std::string &s) {
-      CID cid;
-      try {
-        auto data = (const uint8_t *)s.data();  // NOLINT
-        CborDecodeStream decoder(gsl::span<const uint8_t>(data, s.size()));
-        decoder >> cid;
-      } catch (const std::exception &e) {
-        logger()->warn("{}: {}", __FUNCTION__, e.what());
-        return Error::MESSAGE_PARSE_ERROR;
-      }
-      return cid;
-    }
-
     // Extracts requests from protobuf message
     outcome::result<void> parseRequests(pb::Message &pb_msg, Message &msg) {
       auto sz = pb_msg.requests_size();
@@ -76,7 +58,7 @@ namespace fc::storage::ipfs::graphsync {
           if (src.cancel()) {
             dst.cancel = true;
           } else {
-            OUTCOME_TRY(cid, decodeCid(src.root()));
+            OUTCOME_TRY(cid, CID::fromBytes(common::span::cbytes(src.root())));
             dst.root_cid = std::move(cid);
             dst.selector = fromString(src.selector());
             dst.priority = src.priority();
@@ -119,8 +101,15 @@ namespace fc::storage::ipfs::graphsync {
         msg.data.reserve(sz);
 
         for (auto &src : pb_msg.data()) {
-          OUTCOME_TRY(cid, decodeCid(src.prefix()));
-          msg.data.emplace_back(std::move(cid), fromString(src.data()));
+          auto data = fromString(src.data());
+          auto prefix_reader = common::span::cbytes(src.prefix());
+          OUTCOME_TRY(cid, CID::read(prefix_reader, true));
+          if (!prefix_reader.empty()) {
+            return Error::MESSAGE_PARSE_ERROR;
+          }
+          cid.content_address =
+              crypto::Hasher::calculate(cid.content_address.getType(), data);
+          msg.data.emplace_back(std::move(cid), data);
         }
       }
       return outcome::success();

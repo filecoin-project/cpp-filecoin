@@ -8,7 +8,6 @@
 
 #include "primitives/tipset/tipset.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "vm/indices/indices.hpp"
 
 namespace fc::vm::interpreter {
   enum class InterpreterError {
@@ -24,7 +23,6 @@ namespace fc::vm::interpreter {
 
   class Interpreter {
    protected:
-    using Indices = indices::Indices;
     using Tipset = primitives::tipset::Tipset;
     using IpfsDatastore = storage::ipfs::IpfsDatastore;
 
@@ -33,8 +31,7 @@ namespace fc::vm::interpreter {
 
     virtual outcome::result<Result> interpret(
         const std::shared_ptr<IpfsDatastore> &store,
-        const Tipset &tipset,
-        const std::shared_ptr<Indices> &indices) const = 0;
+        const Tipset &tipset) const = 0;
   };
 
 }  // namespace fc::vm::interpreter

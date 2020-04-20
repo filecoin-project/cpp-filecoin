@@ -7,7 +7,6 @@
 
 #include <gtest/gtest.h>
 #include "primitives/address/address.hpp"
-#include "testutil/cbor.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/storage/ipfs/ipfs_datastore_mock.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"

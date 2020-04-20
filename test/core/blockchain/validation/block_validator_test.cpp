@@ -15,7 +15,6 @@
 #include "testutil/mocks/crypto/bls/bls_provider_mock.hpp"
 #include "testutil/mocks/crypto/secp256k1/secp256k1_provider_mock.hpp"
 #include "testutil/mocks/storage/ipfs/ipfs_datastore_mock.hpp"
-#include "testutil/mocks/vm/indices/indices_mock.hpp"
 #include "testutil/mocks/vm/interpreter/interpreter_mock.hpp"
 #include "testutil/outcome.hpp"
 
@@ -36,7 +35,6 @@ class BlockValidatorTest : public testing::Test {
   using PowerTable = fc::power::PowerTableImpl;
   using BlsProvider = fc::crypto::bls::BlsProviderMock;
   using Secp256k1Provider = fc::crypto::secp256k1::Secp256k1ProviderMock;
-  using Indices = fc::vm::indices::MockIndices;
   using Interpreter = fc::vm::interpreter::InterpreterMock;
   using BlockHeader = fc::primitives::block::BlockHeader;
   using Address = fc::primitives::address::Address;
@@ -61,7 +59,6 @@ class BlockValidatorTest : public testing::Test {
     auto bls_provider = std::make_shared<BlsProvider>();
     auto secp_provider = std::make_shared<Secp256k1Provider>();
     auto vm_interpreter = std::make_shared<Interpreter>();
-    auto vm_indices = std::make_shared<Indices>();
     return std::make_shared<BlockValidator>(datastore,
                                             utc_clock,
                                             epoch_clock,
@@ -69,8 +66,7 @@ class BlockValidatorTest : public testing::Test {
                                             power_table,
                                             bls_provider,
                                             secp_provider,
-                                            vm_interpreter,
-                                            vm_indices);
+                                            vm_interpreter);
   }
 
   BlockHeader getCorrectBlockHeader() const {

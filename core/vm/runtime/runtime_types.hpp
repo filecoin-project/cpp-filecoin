@@ -16,21 +16,11 @@
 namespace fc::vm::runtime {
 
   using common::Buffer;
-  using exit_code::ExitCode;
   using message::UnsignedMessage;
   using primitives::BigInt;
+  using primitives::GasAmount;
 
-  /**
-   * Value returned by method invocation
-   */
-  struct InvocationOutput {
-    common::Buffer return_value;
-  };
-
-  inline bool operator==(const InvocationOutput &lhs,
-                         const InvocationOutput &rhs) {
-    return lhs.return_value == rhs.return_value;
-  }
+  using InvocationOutput = Buffer;
 
   /**
    * Id of native function
@@ -41,9 +31,9 @@ namespace fc::vm::runtime {
    * Result of message execution
    */
   struct MessageReceipt {
-    uint8_t exit_code;
+    VMExitCode exit_code;
     Buffer return_value;
-    BigInt gas_used;
+    GasAmount gas_used;
   };
 
   CBOR_TUPLE(MessageReceipt, exit_code, return_value, gas_used)

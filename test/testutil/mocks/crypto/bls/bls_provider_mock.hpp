@@ -27,7 +27,7 @@ namespace fc::crypto::bls {
                                              const PublicKey &));
     MOCK_CONST_METHOD1(
         aggregateSignatures,
-        outcome::result<Signature>(const std::vector<Signature> &));
+        outcome::result<Signature>(gsl::span<const Signature>));
   };
 }  // namespace fc::crypto::bls
 
