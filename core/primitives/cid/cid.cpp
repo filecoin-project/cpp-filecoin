@@ -7,12 +7,15 @@
 
 #include <libp2p/multi/content_identifier_codec.hpp>
 
+#include "codec/uvarint.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 
+using Multicodec = libp2p::multi::MulticodecType::Code;
+using libp2p::multi::HashType;
+using libp2p::multi::Multihash;
+
 namespace fc {
-  CID::CID()
-      : ContentIdentifier(
-          {}, {}, libp2p::multi::Multihash::create({}, {}).value()) {}
+  CID::CID() : ContentIdentifier({}, {}, Multihash::create({}, {}).value()) {}
 
   CID::CID(const ContentIdentifier &cid) : ContentIdentifier(cid) {}
 
@@ -20,9 +23,7 @@ namespace fc {
       : ContentIdentifier(
           cid.version, cid.content_type, std::move(cid.content_address)) {}
 
-  CID::CID(Version version,
-           libp2p::multi::MulticodecType::Code content_type,
-           libp2p::multi::Multihash content_address)
+  CID::CID(Version version, Multicodec content_type, Multihash content_address)
       : ContentIdentifier(version, content_type, std::move(content_address)) {}
 
   CID &CID::operator=(CID &&cid) noexcept {
@@ -67,14 +68,60 @@ namespace fc {
     OUTCOME_TRY(cid, libp2p::multi::ContentIdentifierCodec::decode(input));
     return CID{std::move(cid)};
   }
+
+  outcome::result<CID> CID::read(gsl::span<const uint8_t> &input, bool prefix) {
+    using Error = libp2p::multi::ContentIdentifierCodec::DecodeError;
+    CID cid;
+    if (input.size() >= 2 && HashType{input[0]} == HashType::sha256
+        && input[1] == 32) {
+      cid.version = Version::V0;
+      cid.content_type = Multicodec::DAG_PB;
+      if (!prefix && input.size() < 34) {
+        return Multihash::Error::INCONSISTENT_LENGTH;
+      }
+    } else {
+      OUTCOME_TRY(version,
+                  codec::uvarint::read<Error::EMPTY_VERSION, Version>(input));
+      if (version <= Version::V0) {
+        return Error::MALFORMED_VERSION;
+      }
+      if (version != Version::V1) {
+        return Error::RESERVED_VERSION;
+      }
+      cid.version = version;
+      OUTCOME_TRY(
+          codec,
+          codec::uvarint::read<Error::EMPTY_MULTICODEC, Multicodec>(input));
+      cid.content_type = codec;
+    }
+
+    OUTCOME_TRY(
+        hash_type,
+        codec::uvarint::read<Multihash::Error::ZERO_INPUT_LENGTH, HashType>(
+            input));
+    OUTCOME_TRY(hash_size,
+                codec::uvarint::read<Multihash::Error::INPUT_TOO_SHORT>(input));
+    gsl::span<const uint8_t> hash_span;
+    if (prefix) {
+      static const uint8_t empty[Multihash::kMaxHashLength]{};
+      hash_span = gsl::make_span(empty, hash_size);
+    } else {
+      if (input.size() < static_cast<ptrdiff_t>(hash_size)) {
+        return Multihash::Error::INCONSISTENT_LENGTH;
+      }
+      hash_span = input.subspan(0, hash_size);
+      input = input.subspan(hash_size);
+    }
+    OUTCOME_TRY(hash, Multihash::create(hash_type, hash_span));
+    cid.content_address = std::move(hash);
+    return cid;
+  }
 }  // namespace fc
 
 namespace fc::common {
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes) {
     auto hash_raw = crypto::blake2b::blake2b_256(bytes);
-    OUTCOME_TRY(hash,
-                libp2p::multi::Multihash::create(
-                    libp2p::multi::HashType::blake2b_256, hash_raw));
-    return CID(CID::Version::V1, libp2p::multi::MulticodecType::DAG_CBOR, hash);
+    OUTCOME_TRY(hash, Multihash::create(HashType::blake2b_256, hash_raw));
+    return CID(CID::Version::V1, Multicodec::DAG_CBOR, hash);
   }
 }  // namespace fc::common
