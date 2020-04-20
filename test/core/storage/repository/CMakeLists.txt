@@ -7,4 +7,5 @@ addtest(filesystem_repository_test
 target_link_libraries(filesystem_repository_test
     filesystem_repository
     base_fs_test
+    secp256k1_provider
     )

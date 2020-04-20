@@ -25,6 +25,14 @@ target_link_libraries(murmur_test
     murmur
     )
 
+addtest(secp256k1_provider_test
+    secp256k1_provider_test.cpp
+    )
+target_link_libraries(secp256k1_provider_test
+    secp256k1_provider
+    hexutil
+    )
+
 add_subdirectory(randomness)
 add_subdirectory(vrf)
 

@@ -21,7 +21,7 @@ using fc::storage::keystore::KeyStoreError;
 FileSystemKeyStore::FileSystemKeyStore(
     Path path,
     std::shared_ptr<BlsProvider> blsProvider,
-    std::shared_ptr<Secp256k1Provider> secp256K1Provider)
+    std::shared_ptr<Secp256k1ProviderDefault> secp256K1Provider)
     : KeyStore(std::move(blsProvider), std::move(secp256K1Provider)),
       keystore_path_(std::move(path)),
       filestore_(std::make_shared<FileSystemFileStore>()) {}

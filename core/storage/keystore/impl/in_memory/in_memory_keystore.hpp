@@ -20,7 +20,7 @@ namespace fc::storage::keystore {
 
    public:
     InMemoryKeyStore(std::shared_ptr<BlsProvider> blsProvider,
-                     std::shared_ptr<Secp256k1Provider> secp256K1Provider);
+                     std::shared_ptr<Secp256k1ProviderDefault> secp256K1Provider);
 
     ~InMemoryKeyStore() override = default;
 

@@ -13,7 +13,7 @@ using fc::storage::keystore::KeyStore;
 using fc::storage::keystore::KeyStoreError;
 
 KeyStore::KeyStore(std::shared_ptr<BlsProvider> blsProvider,
-                   std::shared_ptr<Secp256k1Provider> secp256K1Provider)
+                   std::shared_ptr<Secp256k1ProviderDefault> secp256K1Provider)
     : bls_provider_(std::move(blsProvider)),
       secp256k1_provider_(std::move(secp256K1Provider)) {}
 

@@ -7,3 +7,6 @@
 [submodule "test/core/serialization/serialization_vectors"]
 	path = test/core/serialization/serialization_vectors
 	url = https://github.com/filecoin-project/serialization-vectors.git
+[submodule "deps/libsecp256k1"]
+	path = deps/libsecp256k1
+	url = https://github.com/Alexey-N-Chernyshov/libsecp256k1.git
