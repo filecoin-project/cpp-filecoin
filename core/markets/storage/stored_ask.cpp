@@ -10,19 +10,13 @@ namespace fc::markets::storage {
   outcome::result<void> StoredAsk::addAsk(const TokenAmount &price,
                                           ChainEpoch duration) {
     std::lock_guard<std::mutex> lock(mutex_);
-    uint64_t sequential_number{0};
-    if (signed_storage_ask_) {
-      sequential_number = signed_storage_ask_->ask.seq_no + 1;
-    }
-
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    auto &&height{chain_head.height};
     StorageAsk ask;
     ask.price = price;
     ask.timestamp = chain_head.height;
-    ask.expiry = height + duration;
+    ask.expiry = chain_head.height + duration;
     ask.miner = actor_;
-    ask.seq_no = sequential_number;
+    ask.seq_no = signed_storage_ask_ ? signed_storage_ask_->ask.seq_no + 1 : 0;
     ask.min_piece_size = kDefaultMinPieceSize;
 
     // TODO signature
