@@ -7,17 +7,19 @@
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_HPP
 
 #include "common/outcome.hpp"
+#include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
 #include "markets/storage/types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/sector/sector.hpp"
+#include "storage/filestore/filestore.hpp"
 
 namespace fc::markets::storage {
 
+  using fc::storage::filestore::FileStore;
   using primitives::address::Address;
   using primitives::sector::RegisteredProof;
-  using storage::filestore::FileStore;
 
   class Client {
    public:

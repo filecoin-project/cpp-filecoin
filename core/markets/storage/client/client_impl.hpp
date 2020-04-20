@@ -15,8 +15,8 @@
 namespace fc::markets::storage {
 
   using api::Api;
-  using storage::filestore::FileStore;
-  using storage::ipfs::IpfsDatastore;
+  using fc::storage::filestore::FileStore;
+  using fc::storage::ipfs::IpfsDatastore;
 
   class ClientImpl : public Client {
    public:
