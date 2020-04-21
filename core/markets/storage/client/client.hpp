@@ -11,19 +11,23 @@
 #include "markets/storage/deal_protocol.hpp"
 #include "markets/storage/types.hpp"
 #include "primitives/address/address.hpp"
+#include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/sector/sector.hpp"
+#include "primitives/types.hpp"
 #include "storage/filestore/filestore.hpp"
 
 namespace fc::markets::storage {
 
   using fc::storage::filestore::FileStore;
+  using primitives::ChainEpoch;
+  using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::RegisteredProof;
 
   class Client {
    public:
-    virtual ~Client() = defaul;
+    virtual ~Client() = default;
 
     virtual void run() = 0;
 

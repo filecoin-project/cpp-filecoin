@@ -20,7 +20,8 @@ namespace fc::markets::storage {
 
   class ClientImpl : public Client {
    public:
-    ClientImpl(std::shared_ptr<StorageMarketNetwork> network,
+    ClientImpl(std::shared_ptr<Api> api,
+               std::shared_ptr<StorageMarketNetwork> network,
                std::shared_ptr<IpfsDatastore> block_store,
                std::shared_ptr<FileStore> file_store);
 
@@ -58,6 +59,7 @@ namespace fc::markets::storage {
                                            const TokenAmount &amount) override;
 
    private:
+    std::shared_ptr<Api> api_;
     std::shared_ptr<StorageMarketNetwork> network_;
 
     // TODO
@@ -85,7 +87,7 @@ namespace fc::markets::storage {
   /**
    * @brief Type of errors returned by Storage Market Client
    */
-  enum class StorageMarketClientError { WRONG_MINER = 1 };
+  enum class StorageMarketClientError { WRONG_MINER = 1, UNKNOWN_ERROR };
 
 }  // namespace fc::markets::storage
 
