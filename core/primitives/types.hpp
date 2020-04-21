@@ -35,6 +35,12 @@ namespace fc::primitives {
     DealWeight deal_weight;
   };
 
+  struct PieceDescriptor {
+    SectorNumber id;
+    uint64_t offset;
+    uint64_t length;
+  };
+
   using StoragePower = primitives::BigInt;
 
   CBOR_TUPLE(SectorStorageWeightDesc, sector_size, duration, deal_weight)
