@@ -5,7 +5,9 @@
 
 add_subdirectory(provider)
 
-add_library(fuhon_stored_ask stored_ask.cpp)
+add_library(fuhon_stored_ask
+    stored_ask.cpp
+    )
 target_link_libraries(fuhon_stored_ask
     p2p::p2p
     )
