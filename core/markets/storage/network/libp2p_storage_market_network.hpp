@@ -20,13 +20,15 @@ namespace fc::markets::storage::network {
    * Libp2pStorageMarketNetwork transforms the libp2p host interface, which
    * sends and receives NetMessage objects, into the graphsync network interface
    */
-  class Libp2pStorageMarketNetwork : public StorageMarketNetwork {
+  class Libp2pStorageMarketNetwork
+      : public StorageMarketNetwork,
+        public std::enable_shared_from_this<Libp2pStorageMarketNetwork> {
    public:
-    auto newAskStream(const PeerId &peer_id)
-        -> outcome::result<std::shared_ptr<StorageAskStream>> override;
+    auto newAskStream(const PeerId &peer_id,
+                      const CborStreamResultHandler &handler) -> void override;
 
-    auto newDealStream(const PeerId &peer_id)
-        -> outcome::result<std::shared_ptr<StorageDealStream>> override;
+    auto newDealStream(const PeerId &peer_id,
+                       const CborStreamResultHandler &handler) -> void override;
 
     auto setDelegate(std::shared_ptr<StorageReceiver> receiver)
         -> outcome::result<void> override;

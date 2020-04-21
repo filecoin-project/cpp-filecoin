@@ -73,7 +73,7 @@ main() {
         #
         find -L "${rust_sources_dir}/target/release" -type f -name filcrypto.h -exec rsync --checksum "{}" ./include/filecoin-ffi \;
         find -L "${rust_sources_dir}/target/release" -type f -name libfilcrypto.a -exec rsync --checksum "{}" ./lib \;
-        find -L "${rust_sources_dir}" -type f -name filcrypto.pc -exec cp rsync --checksum "{}" ./lib/pkgconfig \;
+        find -L "${rust_sources_dir}" -type f -name filcrypto.pc -exec rsync --checksum "{}" ./lib/pkgconfig \;
 
         check_installed_files
 

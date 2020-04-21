@@ -84,7 +84,8 @@ namespace fc::markets::storage {
     STORAGE_DEAL_COMPLETED
   };
 
-  struct MinerDeal : public ClientDealProposal {
+  struct MinerDeal {
+    ClientDealProposal client_deal_proposal;
     CID proposal_cid;
     PeerId miner;
     PeerId client;
@@ -98,6 +99,7 @@ namespace fc::markets::storage {
   };
 
   CBOR_TUPLE(MinerDeal,
+             client_deal_proposal,
              proposal_cid,
              miner,
              client,
@@ -109,7 +111,8 @@ namespace fc::markets::storage {
              ref,
              deal_id)
 
-  struct ClientDeal : public ClientDealProposal {
+  struct ClientDeal {
+    ClientDealProposal client_deal_proposal;
     CID proposal_cid;
     StorageDealStatus state;
     PeerId miner;
@@ -121,6 +124,7 @@ namespace fc::markets::storage {
   };
 
   CBOR_TUPLE(ClientDeal,
+             client_deal_proposal,
              proposal_cid,
              state,
              miner,
@@ -133,7 +137,12 @@ namespace fc::markets::storage {
   /**
    * StorageDeal is a local combination of a proposal and a current deal state
    */
-  struct StorageDeal : public DealProposal, public DealState {};
+  struct StorageDeal {
+    DealProposal deal_proposal;
+    DealState deal_state;
+  };
+
+  CBOR_TUPLE(StorageDeal, deal_proposal, deal_state)
 
   /**
    * Proposal is the data sent over the network from client to provider when
