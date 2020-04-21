@@ -6,6 +6,13 @@
 #include "common/libp2p/cbor_stream.hpp"
 
 namespace fc::common::libp2p {
+  CborStream::CborStream(std::shared_ptr<Stream> stream)
+      : stream_{std::move(stream)} {}
+
+  std::shared_ptr<CborStream::Stream> CborStream::stream() const {
+    return stream_;
+  }
+
   void CborStream::readRaw(ReadCallbackFunc cb) {
     buffering_.reset();
     buffer_.erase(buffer_.begin(), buffer_.begin() + size_);
