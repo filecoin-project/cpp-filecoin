@@ -3,21 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_FFIWRAPPER_VERIFIER_HPP
-#define CPP_FILECOIN_CORE_FFIWRAPPER_VERIFIER_HPP
+#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_HPP
+#define CPP_FILECOIN_CORE_SECTOR_STORAGE_HPP
 
 #include "primitives/piece/piece.hpp"
 #include "primitives/piece/piece_data.hpp"
 #include "primitives/sector/sector.hpp"
+#include "primitives/sector_file/sector_file.hpp"
+#include "proofs/proofs.hpp"
 
 namespace fc::sector_storage {
-  using fc::primitives::sector::SectorPaths;
+  using fc::primitives::sector_file::SectorPaths;
 
   using fc::primitives::piece::PieceData;
   using fc::primitives::piece::PieceInfo;
   using fc::primitives::piece::UnpaddedPieceSize;
-  using fc::primitives::sector::SectorFileType;
   using fc::primitives::sector::SectorId;
+  using fc::primitives::sector_file::SectorFileType;
   using PreCommit1Output = fc::proofs::Phase1Output;
   using Commit1Output = fc::proofs::Phase1Output;
   using SectorCids = fc::proofs::SealedAndUnsealedCID;
@@ -66,4 +68,4 @@ namespace fc::sector_storage {
   };
 }  // namespace fc::sector_storage
 
-#endif  // CPP_FILECOIN_CORE_FFIWRAPPER_VERIFIER_HPP
+#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_HPP

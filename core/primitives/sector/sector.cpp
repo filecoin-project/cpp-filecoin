@@ -64,34 +64,6 @@ namespace fc::primitives::sector {
         return Errors::InvalidProofType;
     }
   }
-
-  SectorFileType::SectorFileType(int type) : data_(type) {}
-
-  SectorFileType &SectorFileType::operator=(int rhs) {
-    data_ = rhs;
-    return *this;
-  }
-
-  SectorFileType::operator int() const {
-    return data_;
-  }
-
-  std::string SectorFileType::string() const {
-    switch (data_) {
-      case FTUnsealed:
-        return "unsealed";
-      case FTSealed:
-        return "sealed";
-      case FTCache:
-        return "cache";
-    }
-    return "<unknown " + std::to_string(data_) + ">";
-  }
-
-  bool SectorFileType::has(const SectorFileType &single_type) const {
-    return (data_ & single_type) == single_type;
-  }
-
 };  // namespace fc::primitives::sector
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::sector, Errors, e) {

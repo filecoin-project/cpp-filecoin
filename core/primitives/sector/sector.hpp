@@ -169,35 +169,6 @@ namespace fc::primitives::sector {
     InvalidSealProof,
     InvalidProofType,
   };
-
-  struct SectorPaths {
-    SectorId id;
-    std::string unsealed;
-    std::string sealed;
-    std::string cache;
-  };
-
-  enum SectorFileTypes{
-      FTUnsealed = 1,
-      FTSealed,
-      FTCache,
-  };
-
-  class SectorFileType {
-    SectorFileType(int type);
-
-    operator int() const;
-
-    SectorFileType &operator=(int rhs);
-
-    std::string string() const;
-
-    bool has(const SectorFileType &single_type) const;
-
-   private:
-    int data_;
-  };
-
 }  // namespace fc::primitives::sector
 
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::sector, Errors);
