@@ -18,7 +18,7 @@ namespace fc::common::libp2p {
   struct CborBuffering {
     enum class Error {
       INVALID_HEAD_TYPE = 1,
-      INVALID_HEAD_VALUE = 1,
+      INVALID_HEAD_VALUE,
     };
 
     enum class Type {
