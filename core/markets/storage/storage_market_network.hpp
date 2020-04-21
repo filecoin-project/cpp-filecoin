@@ -15,6 +15,7 @@ namespace fc::markets::storage {
 
   using common::libp2p::CborStream;
   using libp2p::peer::PeerId;
+  using StreamResultHandler = libp2p::Host::StreamResultHandler;
 
   /**
    * StorageMarketNetwork is a network abstraction for the storage market
@@ -23,10 +24,12 @@ namespace fc::markets::storage {
    public:
     virtual ~StorageMarketNetwork() = 0;
 
-    virtual auto newAskStream(const PeerId &peer)
+    virtual auto newAskStream(const PeerId &peer,
+                              const StreamResultHandler &handler)
         -> outcome::result<std::shared_ptr<CborStream>> = 0;
 
-    virtual auto newDealStream(const PeerId &peer)
+    virtual auto newDealStream(const PeerId &peer,
+                               const StreamResultHandler &handler)
         -> outcome::result<std::shared_ptr<CborStream>> = 0;
 
     virtual auto setDelegate(std::shared_ptr<StorageReceiver> receiver)

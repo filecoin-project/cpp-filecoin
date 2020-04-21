@@ -22,10 +22,11 @@ namespace fc::markets::storage::network {
    */
   class Libp2pStorageMarketNetwork : public StorageMarketNetwork {
    public:
-    auto newAskStream(const PeerId &peer_id)
+    auto newAskStream(const PeerId &peer_id, const StreamResultHandler &handler)
         -> outcome::result<std::shared_ptr<CborStream>> override;
 
-    auto newDealStream(const PeerId &peer_id)
+    auto newDealStream(const PeerId &peer_id,
+                       const StreamResultHandler &handler)
         -> outcome::result<std::shared_ptr<CborStream>> override;
 
     auto setDelegate(std::shared_ptr<StorageReceiver> receiver)
