@@ -16,68 +16,64 @@ namespace fc::markets::storage::network {
       const PeerId &peer_id, const CborStreamResultHandler &handler) {
     PeerInfo peer_info = host_->getPeerRepository().getPeerInfo(peer_id);
     std::shared_ptr<libp2p::connection::Stream> stream;
-    host_->newStream(
-        peer_info,
-        kAskProtocolId,
-        [&handler](outcome::result<std::shared_ptr<libp2p::connection::Stream>>
-                       stream) {
-          if (stream.has_error()) {
-            handler(stream.error());
-          }
-          handler(std::make_shared<CborStream>(stream.value()));
-        });
+    host_->newStream(peer_info, kAskProtocolId, [&handler](auto stream) {
+      if (stream.has_error()) {
+        handler(stream.error());
+      }
+      handler(std::make_shared<CborStream>(stream.value()));
+    });
   }
 
   void Libp2pStorageMarketNetwork::newDealStream(
       const PeerId &peer_id, const CborStreamResultHandler &handler) {
     PeerInfo peer_info = host_->getPeerRepository().getPeerInfo(peer_id);
     std::shared_ptr<libp2p::connection::Stream> stream;
-    host_->newStream(
-        peer_info,
-        kDealProtocolId,
-        [&handler](outcome::result<std::shared_ptr<libp2p::connection::Stream>>
-                       stream) {
-          if (stream.has_error()) {
-            handler(stream.error());
-          }
-          handler(std::make_shared<CborStream>(stream.value()));
-        });
+    host_->newStream(peer_info, kDealProtocolId, [&handler](auto stream) {
+      if (stream.has_error()) {
+        handler(stream.error());
+      }
+      handler(std::make_shared<CborStream>(stream.value()));
+    });
   }
 
   outcome::result<void> Libp2pStorageMarketNetwork::setDelegate(
       std::shared_ptr<StorageReceiver> receiver) {
     receiver_ = std::move(receiver);
     host_->setProtocolHandler(
-        kAskProtocolId, [this](std::shared_ptr<Stream> stream) {
-          if (!receiver_) {
-            logger_->error("Receiver is not set");
+        kAskProtocolId,
+        [self{shared_from_this()}](std::shared_ptr<Stream> stream) {
+          if (!self->receiver_) {
+            self->logger_->error("Receiver is not set");
             stream->reset();
             return;
           }
           auto maybe_peer_id = stream->remotePeerId();
           if (maybe_peer_id.has_error()) {
-            logger_->error("Cannot get remote peer id: "
-                           + maybe_peer_id.error().message());
+            self->logger_->error("Cannot get remote peer id: "
+                                 + maybe_peer_id.error().message());
             stream->reset();
             return;
           }
-          receiver_->handleAskStream(std::make_shared<CborStream>(stream));
+          self->receiver_->handleAskStream(
+              std::make_shared<CborStream>(stream));
         });
     host_->setProtocolHandler(
-        kDealProtocolId, [this](std::shared_ptr<Stream> stream) {
-          if (!receiver_) {
-            logger_->error("Receiver is not set");
+        kDealProtocolId,
+        [self{shared_from_this()}](std::shared_ptr<Stream> stream) {
+          if (!self->receiver_) {
+            self->logger_->error("Receiver is not set");
             stream->reset();
             return;
           }
           auto maybe_peer_id = stream->remotePeerId();
           if (maybe_peer_id.has_error()) {
-            logger_->error("Cannot get remote peer id: "
-                           + maybe_peer_id.error().message());
+            self->logger_->error("Cannot get remote peer id: "
+                                 + maybe_peer_id.error().message());
             stream->reset();
             return;
           }
-          receiver_->handleDealStream(std::make_shared<CborStream>(stream));
+          self->receiver_->handleDealStream(
+              std::make_shared<CborStream>(stream));
         });
     return outcome::success();
   }
