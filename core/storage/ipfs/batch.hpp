@@ -40,7 +40,7 @@ namespace fc::storage::ipfs {
       if (it == keys.end()) {
         keys.emplace_back(key);
       }
-      OUTCOME_TRY(diff->set(key, value));
+      return diff->set(key, value);
     }
 
     outcome::result<Value> get(const CID &key) const override {
