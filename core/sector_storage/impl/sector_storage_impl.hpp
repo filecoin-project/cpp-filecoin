@@ -10,12 +10,17 @@
 #include "sector_storage/sector_storage.hpp"
 
 using boost::filesystem::path;
+using fc::primitives::SectorSize;
+using fc::proofs::RegisteredProof;
 
 namespace fc::sector_storage {
 
   class SectorStorageImpl : public SectorStorage {
    public:
-    SectorStorageImpl(const std::string &root_path);
+    SectorStorageImpl(const std::string &root_path,
+                      RegisteredProof post_proof,
+                      RegisteredProof seal_proof,
+                      SectorSize sector_size);
 
     outcome::result<SectorPaths> acquireSector(SectorId id,
                                                const SectorFileType &existing,
@@ -28,7 +33,7 @@ namespace fc::sector_storage {
         gsl::span<const PieceInfo> pieces) override;
 
     outcome::result<SectorCids> sealPreCommit2(
-        const SectorId &sector, const PreCommit1Output &pc10) override;
+        const SectorId &sector, const PreCommit1Output &pc1o) override;
 
     outcome::result<Commit1Output> sealCommit1(
         const SectorId &sector,
@@ -50,6 +55,9 @@ namespace fc::sector_storage {
 
    private:
     path root_;
+    RegisteredProof seal_proof_type_;
+    RegisteredProof post_proof_type_;
+    SectorSize size_;
   };
 }  // namespace fc::sector_storage
 #endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_HPP

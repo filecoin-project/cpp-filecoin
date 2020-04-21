@@ -23,6 +23,11 @@ namespace fc::primitives::piece {
     return *this;
   }
 
+  UnpaddedPieceSize &UnpaddedPieceSize::operator+=(uint64_t rhs) {
+    size_ += rhs;
+    return *this;
+  }
+
   PaddedPieceSize UnpaddedPieceSize::padded() const {
     return PaddedPieceSize(size_ + (size_ / 127));
   }

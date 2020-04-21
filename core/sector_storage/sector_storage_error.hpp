@@ -13,7 +13,12 @@ namespace fc::sector_storage {
   /**
    * @brief SectorStorage returns these types of errors
    */
-  enum class SectorStorageError { CANNOT_CREATE_DIR = 1, UNKNOWN = 1000 };
+  enum class SectorStorageError { CANNOT_CREATE_DIR = 1,
+      UNABLE_ACCESS_SEALED_FILE,
+      CANNOT_CLOSE_FILE,
+      CANNOT_REMOVE_DIR,
+      DONOT_MATCH_SIZES,
+      UNKNOWN = 1000 };
 
 }  // namespace fc::sector_storage
 
