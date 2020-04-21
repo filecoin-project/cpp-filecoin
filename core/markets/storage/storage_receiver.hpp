@@ -6,10 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE_STORAGE_RECEIVER_HPP
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE_STORAGE_RECEIVER_HPP
 
-#include "markets/storage/ask_stream.hpp"
-#include "markets/storage/deal_stream.hpp"
+#include "common/libp2p/cbor_stream.hpp"
 
 namespace fc::markets::storage {
+
+  using common::libp2p::CborStream;
 
   /**
    * StorageReceiver implements functions for receiving incoming data on storage
@@ -19,11 +20,10 @@ namespace fc::markets::storage {
    public:
     virtual ~StorageReceiver() = default;
 
-    virtual void handleAskStream(
-        const std::shared_ptr<StorageAskStream> &stream) = 0;
+    virtual void handleAskStream(const std::shared_ptr<CborStream> &stream) = 0;
 
     virtual void handleDealStream(
-        const std::shared_ptr<StorageDealStream> &stream) = 0;
+        const std::shared_ptr<CborStream> &stream) = 0;
   };
 
 }  // namespace fc::markets::storage

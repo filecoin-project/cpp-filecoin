@@ -6,38 +6,46 @@
 #include "markets/storage/network/libp2p_storage_market_network.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
-#include "markets/storage/network/libp2p_ask_stream.hpp"
-#include "markets/storage/network/libp2p_deal_stream.hpp"
 
 namespace fc::markets::storage::network {
 
   using libp2p::connection::Stream;
   using libp2p::peer::PeerInfo;
 
-  outcome::result<std::shared_ptr<StorageAskStream>>
+  outcome::result<std::shared_ptr<CborStream>>
   Libp2pStorageMarketNetwork::newAskStream(const PeerId &peer_id) {
     PeerInfo peer_info = host_->getPeerRepository().getPeerInfo(peer_id);
     std::shared_ptr<libp2p::connection::Stream> stream;
     host_->newStream(
         peer_info,
         kAskProtocolId,
-        [&stream](outcome::result<std::shared_ptr<Stream>> new_stream) {
-          stream = std::move(new_stream.value());
+        [this, &stream](outcome::result<std::shared_ptr<Stream>> new_stream) {
+          if (new_stream.has_error()) {
+            logger_->error("cannot connect, msg='{}'",
+                           new_stream.error().message());
+          } else {
+            stream = std::move(new_stream.value());
+          }
         });
-    return std::make_shared<Libp2pAskStream>(peer_id, stream);
+    return std::make_shared<CborStream>(stream);
   }
 
-  outcome::result<std::shared_ptr<StorageDealStream>>
+  outcome::result<std::shared_ptr<CborStream>>
   Libp2pStorageMarketNetwork::newDealStream(const PeerId &peer_id) {
     PeerInfo peer_info = host_->getPeerRepository().getPeerInfo(peer_id);
     std::shared_ptr<libp2p::connection::Stream> stream;
     host_->newStream(
         peer_info,
-        kAskProtocolId,
-        [&stream](outcome::result<std::shared_ptr<Stream>> new_stream) {
-          stream = std::move(new_stream.value());
+        kDealProtocolId,
+        [this, &stream](outcome::result<std::shared_ptr<Stream>> new_stream) {
+          if (new_stream.has_error()) {
+            logger_->error("cannot connect, msg='{}'",
+                           new_stream.error().message());
+          } else {
+            stream = std::move(new_stream.value());
+          }
         });
-    return std::make_shared<Libp2pDealStream>(peer_id, stream);
+    return std::make_shared<CborStream>(stream);
   }
 
   outcome::result<void> Libp2pStorageMarketNetwork::setDelegate(
@@ -57,8 +65,7 @@ namespace fc::markets::storage::network {
             stream->reset();
             return;
           }
-          receiver_->handleAskStream(
-              std::make_shared<Libp2pAskStream>(maybe_peer_id.value(), stream));
+          receiver_->handleAskStream(std::make_shared<CborStream>(stream));
         });
     host_->setProtocolHandler(
         kDealProtocolId, [this](std::shared_ptr<Stream> stream) {
@@ -74,8 +81,7 @@ namespace fc::markets::storage::network {
             stream->reset();
             return;
           }
-          receiver_->handleDealStream(std::make_shared<Libp2pDealStream>(
-              maybe_peer_id.value(), stream));
+          receiver_->handleDealStream(std::make_shared<CborStream>(stream));
         });
     return outcome::success();
   }

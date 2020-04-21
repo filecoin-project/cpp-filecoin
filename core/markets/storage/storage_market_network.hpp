@@ -7,13 +7,13 @@
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE_STORAGE_MARKET_NETWORK_HPP
 
 #include <libp2p/peer/peer_id.hpp>
+#include "common/libp2p/cbor_stream.hpp"
 #include "common/outcome.hpp"
-#include "markets/storage/ask_stream.hpp"
-#include "markets/storage/deal_stream.hpp"
 #include "markets/storage/storage_receiver.hpp"
 
 namespace fc::markets::storage {
 
+  using common::libp2p::CborStream;
   using libp2p::peer::PeerId;
 
   /**
@@ -24,10 +24,10 @@ namespace fc::markets::storage {
     virtual ~StorageMarketNetwork() = 0;
 
     virtual auto newAskStream(const PeerId &peer)
-        -> outcome::result<std::shared_ptr<StorageAskStream>> = 0;
+        -> outcome::result<std::shared_ptr<CborStream>> = 0;
 
     virtual auto newDealStream(const PeerId &peer)
-        -> outcome::result<std::shared_ptr<StorageDealStream>> = 0;
+        -> outcome::result<std::shared_ptr<CborStream>> = 0;
 
     virtual auto setDelegate(std::shared_ptr<StorageReceiver> receiver)
         -> outcome::result<void> = 0;
