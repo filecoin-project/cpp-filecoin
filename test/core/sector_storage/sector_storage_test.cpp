@@ -40,6 +40,11 @@ class SectorStorageTest : public test::BaseFS_Test {
   std::unique_ptr<SectorStorage> sector_storage_;
 };
 
+/**
+ * @given sector
+ * @when want to get path to sealed sector
+ * @then sealed sector was obtained. cache and unsealed paths are empty
+ */
 TEST_F(SectorStorageTest, AcquireSector_Sealed) {
   std::string sealed_result =
       (base_path / fs::path("sealed") / fs::path("s-t01-3")).string();
@@ -58,6 +63,11 @@ TEST_F(SectorStorageTest, AcquireSector_Sealed) {
   ASSERT_EQ(paths.sealed, sealed_result);
 }
 
+/**
+ * @given sector
+ * @when want to get path to unsealed sector
+ * @then unsealed sector was obtained. cache and sealed paths are empty
+ */
 TEST_F(SectorStorageTest, AcquireSector_Unsealed) {
   std::string cache_result = "";
   std::string unsealed_result =
@@ -78,6 +88,11 @@ TEST_F(SectorStorageTest, AcquireSector_Unsealed) {
   ASSERT_TRUE(paths.sealed.empty());
 }
 
+/**
+ * @given sector
+ * @when want to get path to cache sector
+ * @then all path were obtained
+ */
 TEST_F(SectorStorageTest, AcquireSector_Cache) {
   std::string cache_result =
       (base_path / fs::path("cache") / fs::path("s-t01-3")).string();
@@ -100,6 +115,11 @@ TEST_F(SectorStorageTest, AcquireSector_Cache) {
   ASSERT_EQ(paths.sealed, sealed_result);
 }
 
+/**
+ * @given sector and pieces A and B
+ * @when when add two pieces
+ * @then pieces are succesfully added to sector
+ */
 TEST_F(SectorStorageTest, AddPiece) {
   fc::common::Blob<2032> some_bytes;
   std::random_device rd;
@@ -155,6 +175,12 @@ TEST_F(SectorStorageTest, AddPiece) {
   ASSERT_TRUE(fs::file_size(paths.unsealed) == 2048);
 }
 
+/**
+ * @given sector
+ * @when when try to preSealCommit with sum of sizes of pieces and not equal to
+ * sector size
+ * @then Error occures
+ */
 TEST_F(SectorStorageTest, Sealer_PreCommit_MatchSumError) {
   SectorId sector{
       .sector = 3,
@@ -167,6 +193,11 @@ TEST_F(SectorStorageTest, Sealer_PreCommit_MatchSumError) {
                        sector_storage_->sealPreCommit1(sector, ticket, {}));
 }
 
+/**
+ * @given sector and one piece with sector size
+ * @when try to seal sector and verify it
+ * @then success
+ */
 TEST_F(SectorStorageTest, Sealer) {
   EXPECT_OUTCOME_TRUE(sector_size,
                       fc::primitives::sector::getSectorSize(seal_proof_));
