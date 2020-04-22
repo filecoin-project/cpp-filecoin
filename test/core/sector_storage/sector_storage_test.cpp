@@ -257,9 +257,12 @@ TEST_F(SectorStorageTest, Sealer) {
                           .info =
                               OnChainSealVerifyInfo{
                                   .sealed_cid = cids.sealed_cid,
+                                  .interactive_epoch = 42,
                                   .registered_proof = seal_proof_,
                                   .proof = proof,
+                                  .deals = {},
                                   .sector = sector.sector,
+                                  .seal_rand_epoch = 42,
                               },
                           .randomness = ticket,
                           .interactive_randomness = seed,
