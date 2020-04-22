@@ -16,4 +16,5 @@ target_link_libraries(sector_storage
         piece_data
         sector_file
         proofs
+        Boost::filesystem
         )

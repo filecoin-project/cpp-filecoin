@@ -451,8 +451,7 @@ namespace fc::proofs {
     }
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
-    if ((staged_sector_fd =
-             open(staged_sector_file_path.c_str(), O_RDWR | O_CREAT))
+    if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_WRONLY))
         == -1) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
@@ -491,7 +490,7 @@ namespace fc::proofs {
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd =
-             open(staged_sector_file_path.c_str(), O_RDWR | O_APPEND))
+             open(staged_sector_file_path.c_str(), O_WRONLY | O_APPEND))
         == -1) {
       return ProofsError::CANNOT_OPEN_FILE;
     }

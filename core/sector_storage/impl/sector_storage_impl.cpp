@@ -8,6 +8,7 @@
 #include "sector_storage/sector_storage_error.hpp"
 
 namespace fc::sector_storage {
+
   using fc::primitives::piece::PaddedPieceSize;
   using fc::primitives::sector_file::SectorFileTypes;
   using proofs = fc::proofs::Proofs;
@@ -26,7 +27,7 @@ namespace fc::sector_storage {
       const SectorFileType &existing,
       const SectorFileType &allocate,
       bool sealing) {
-    boost::system::error_code ec; // for work without exceptions
+    boost::system::error_code ec;  // for work without exceptions
     auto cache_path =
         root_ / path(SectorFileType(SectorFileTypes::FTCache).string());
     if (!(boost::filesystem::exists(cache_path, ec)
@@ -184,6 +185,14 @@ namespace fc::sector_storage {
     if (piece_sizes.empty()) {
       OUTCOME_TRY(staged_path,
                   acquireSector(sector, 0, SectorFileTypes::FTUnsealed, true));
+
+      if (!boost::filesystem::exists(staged_path.unsealed)) {
+        boost::filesystem::ofstream staged_file(staged_path.unsealed);
+        if (staged_file.fail()) {
+          return SectorStorageError::CANNOT_CREATE_FILE;
+        }
+        staged_file.close();
+      }
 
       OUTCOME_TRY(response,
                   proofs::writeWithoutAlignment(seal_proof_type_,
