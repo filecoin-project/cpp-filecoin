@@ -26,7 +26,7 @@ namespace fc::sector_storage {
       const SectorFileType &existing,
       const SectorFileType &allocate,
       bool sealing) {
-    boost::system::error_code ec;
+    boost::system::error_code ec; // for work without exceptions
     auto cache_path =
         root_ / path(SectorFileType(SectorFileTypes::FTCache).string());
     if (!(boost::filesystem::exists(cache_path, ec)
@@ -53,7 +53,6 @@ namespace fc::sector_storage {
     std::vector<SectorFileTypes> types = {SectorFileTypes::FTCache,
                                           SectorFileTypes::FTSealed,
                                           SectorFileTypes::FTUnsealed};
-
     for (const auto &type : types) {
       if (!(existing.has(type) || allocate.has(type))) {
         continue;
@@ -62,8 +61,6 @@ namespace fc::sector_storage {
       path dir(SectorFileType(type).string());
       path file(fc::primitives::sector_file::sectorName(id));
       path full_path = root_ / dir / file;
-
-      // TODO: Allocate file
 
       result.setPathByType(type, full_path.c_str());
     }

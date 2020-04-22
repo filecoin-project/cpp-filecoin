@@ -14,4 +14,6 @@ target_link_libraries(sector_storage
         piece
         sector
         piece_data
+        sector_file
+        proofs
         )
