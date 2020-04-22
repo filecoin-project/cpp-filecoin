@@ -182,6 +182,30 @@ namespace fc::sector_storage {
       gsl::span<const UnpaddedPieceSize> piece_sizes,
       UnpaddedPieceSize new_piece_size,
       const PieceData &piece_data) {
-    return outcome::success();
+    // open Pipe or just use fd
+
+    if (piece_sizes.empty()) {
+      OUTCOME_TRY(staged_path,
+                  acquireSector(sector, 0, SectorFileTypes::FTUnsealed, true));
+
+      OUTCOME_TRY(response,
+                  proofs::writeWithoutAlignment(seal_proof_type_,
+                                                piece_data,
+                                                new_piece_size,
+                                                staged_path.unsealed));
+
+      return PieceInfo(new_piece_size.padded(), response.piece_cid);
+    }
+
+    OUTCOME_TRY(staged_path,
+                acquireSector(sector, SectorFileTypes::FTUnsealed, 0, true));
+    OUTCOME_TRY(response,
+                proofs::writeWithAlignment(seal_proof_type_,
+                                           piece_data,
+                                           new_piece_size,
+                                           staged_path.unsealed,
+                                           piece_sizes));
+
+    return PieceInfo(new_piece_size.padded(), response.piece_cid);
   }
 }  // namespace fc::sector_storage

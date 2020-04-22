@@ -19,6 +19,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, SectorStorageError, e) {
       return "Sector Storage: cannot remove a directory";
     case (SectorStorageError::DONOT_MATCH_SIZES):
       return "Sector Storage: aggregated piece sizes don't match sector size";
+    case (SectorStorageError::CANNOT_CREATE_FILE):
+      return "Sector Storage: cannot create a file";
     default:
       return "Sector Storage: unknown error";
   }
