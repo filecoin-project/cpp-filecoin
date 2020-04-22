@@ -6,10 +6,11 @@
 #include <gtest/gtest.h>
 #include <boost/filesystem.hpp>
 #include <random>
-#include <storage/filestore/path.hpp>
 
+#include "storage/filestore/path.hpp"
 #include "sector_storage/impl/sector_storage_impl.hpp"
 #include "sector_storage/sector_storage.hpp"
+#include "proofs/proof_param_provider.hpp"
 #include "sector_storage/sector_storage_error.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
@@ -50,8 +51,8 @@ TEST_F(SectorStorageTest, AcquireSector_Sealed) {
       (base_path / fs::path("sealed") / fs::path("s-t01-3")).string();
 
   SectorId sector{
-      .sector = 3,
       .miner = 1,
+      .sector = 3,
   };
 
   EXPECT_OUTCOME_TRUE(paths,
@@ -75,8 +76,8 @@ TEST_F(SectorStorageTest, AcquireSector_Unsealed) {
   std::string sealed_result = "";
 
   SectorId sector{
-      .sector = 3,
       .miner = 1,
+      .sector = 3,
   };
 
   EXPECT_OUTCOME_TRUE(paths,
@@ -102,8 +103,8 @@ TEST_F(SectorStorageTest, AcquireSector_Cache) {
       (base_path / fs::path("sealed") / fs::path("s-t01-3")).string();
 
   SectorId sector{
-      .sector = 3,
       .miner = 1,
+      .sector = 3,
   };
 
   EXPECT_OUTCOME_TRUE(
@@ -142,8 +143,8 @@ TEST_F(SectorStorageTest, AddPiece) {
   PieceData file_a(piece_file_a_path);
 
   SectorId sector{
-      .sector = 3,
       .miner = 1,
+      .sector = 3,
   };
 
   EXPECT_OUTCOME_TRUE(paths,
@@ -183,8 +184,8 @@ TEST_F(SectorStorageTest, AddPiece) {
  */
 TEST_F(SectorStorageTest, Sealer_PreCommit_MatchSumError) {
   SectorId sector{
-      .sector = 3,
       .miner = 1,
+      .sector = 3,
   };
 
   fc::proofs::SealRandomness ticket{{5, 4, 2}};
@@ -199,8 +200,12 @@ TEST_F(SectorStorageTest, Sealer_PreCommit_MatchSumError) {
  * @then success
  */
 TEST_F(SectorStorageTest, Sealer) {
+  EXPECT_OUTCOME_TRUE(params, fc::proofs::ProofParamProvider::readJson(
+      "/var/tmp/filecoin-proof-parameters/parameters.json"));
   EXPECT_OUTCOME_TRUE(sector_size,
                       fc::primitives::sector::getSectorSize(seal_proof_));
+  EXPECT_OUTCOME_TRUE_1(
+      fc::proofs::ProofParamProvider::getParams(params, sector_size));
 
   fc::common::Blob<2032> some_bytes;
   std::random_device rd;
@@ -223,13 +228,9 @@ TEST_F(SectorStorageTest, Sealer) {
   PieceData file_a(piece_file_a_path);
 
   SectorId sector{
-      .sector = 3,
       .miner = 1,
+      .sector = 3,
   };
-
-  EXPECT_OUTCOME_TRUE(
-      paths,
-      sector_storage_->acquireSector(sector, SectorFileTypes::FTCache, 0, true))
 
   EXPECT_OUTCOME_TRUE(
       a_info,
