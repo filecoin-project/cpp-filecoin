@@ -19,8 +19,7 @@ namespace fc::sector_storage {
    public:
     SectorStorageImpl(const std::string &root_path,
                       RegisteredProof post_proof,
-                      RegisteredProof seal_proof,
-                      SectorSize sector_size);
+                      RegisteredProof seal_proof);
 
     outcome::result<SectorPaths> acquireSector(SectorId id,
                                                const SectorFileType &existing,

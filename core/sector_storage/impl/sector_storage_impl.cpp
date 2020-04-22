@@ -12,38 +12,42 @@ namespace fc::sector_storage {
   using fc::primitives::piece::PaddedPieceSize;
   using fc::primitives::sector_file::SectorFileTypes;
   using proofs = fc::proofs::Proofs;
+  using fc::primitives::sector::getSectorSize;
 
   SectorStorageImpl::SectorStorageImpl(const std::string &root_path,
                                        RegisteredProof post_proof,
-                                       RegisteredProof seal_proof,
-                                       SectorSize sector_size)
+                                       RegisteredProof seal_proof)
       : root_(root_path),
         seal_proof_type_(seal_proof),
-        post_proof_type_(post_proof),
-        size_(sector_size) {}
+        post_proof_type_(post_proof) {
+    size_ = 0;
+    auto s1 = getSectorSize(seal_proof);
+    if (s1.has_value()) {
+      size_ = s1.value();
+    }
+  }
 
   outcome::result<SectorPaths> SectorStorageImpl::acquireSector(
       SectorId id,
       const SectorFileType &existing,
       const SectorFileType &allocate,
       bool sealing) {
-    boost::system::error_code ec;  // for work without exceptions
     auto cache_path =
         root_ / path(SectorFileType(SectorFileTypes::FTCache).string());
-    if (!(boost::filesystem::exists(cache_path, ec)
-          || boost::filesystem::create_directory(cache_path, ec))) {
+    if (!(boost::filesystem::exists(cache_path)
+          || boost::filesystem::create_directory(cache_path))) {
       return SectorStorageError::CANNOT_CREATE_DIR;
     }
     auto sealed_path =
         root_ / path(SectorFileType(SectorFileTypes::FTSealed).string());
-    if (!(boost::filesystem::exists(sealed_path, ec)
-          || boost::filesystem::create_directory(sealed_path, ec))) {
+    if (!(boost::filesystem::exists(sealed_path)
+          || boost::filesystem::create_directory(sealed_path))) {
       return SectorStorageError::CANNOT_CREATE_DIR;
     }
     auto unsealed_path =
         root_ / path(SectorFileType(SectorFileTypes::FTUnsealed).string());
-    if (!(boost::filesystem::exists(unsealed_path, ec)
-          || boost::filesystem::create_directory(unsealed_path, ec))) {
+    if (!(boost::filesystem::exists(unsealed_path)
+          || boost::filesystem::create_directory(unsealed_path))) {
       return SectorStorageError::CANNOT_CREATE_DIR;
     }
 
@@ -80,21 +84,20 @@ namespace fc::sector_storage {
                       SectorFileTypes::FTSealed | SectorFileTypes::FTCache,
                       true));
 
-    int fd;
-    if ((fd = open(paths.sealed.c_str(), O_RDWR | O_CREAT)) == -1) {
-      return SectorStorageError::UNABLE_ACCESS_SEALED_FILE;
-    }
-    if (close(fd)) {
-      return SectorStorageError::CANNOT_CLOSE_FILE;
+    if (!boost::filesystem::exists(paths.sealed)) {
+      boost::filesystem::ofstream sealed_file(paths.sealed);
+      if (!sealed_file.is_open()) {
+        return SectorStorageError::UNABLE_ACCESS_SEALED_FILE;
+      }
+      sealed_file.close();
     }
 
-    boost::system::error_code ec;
-    if (!boost::filesystem::create_directory(paths.cache, ec)) {
-      if (boost::filesystem::exists(paths.cache, ec)) {
-        if (!boost::filesystem::remove_all(paths.cache, ec)) {
+    if (!boost::filesystem::create_directory(paths.cache)) {
+      if (boost::filesystem::exists(paths.cache)) {
+        if (!boost::filesystem::remove_all(paths.cache)) {
           return SectorStorageError::CANNOT_REMOVE_DIR;
         }
-        if (!boost::filesystem::create_directory(paths.cache, ec)) {
+        if (!boost::filesystem::create_directory(paths.cache)) {
           return SectorStorageError::CANNOT_CREATE_DIR;
         }
       } else {
@@ -182,29 +185,26 @@ namespace fc::sector_storage {
       const PieceData &piece_data) {
     // open Pipe or just use fd
 
+    SectorPaths staged_path;
     if (piece_sizes.empty()) {
-      OUTCOME_TRY(staged_path,
+      OUTCOME_TRY(staged_p,
                   acquireSector(sector, 0, SectorFileTypes::FTUnsealed, true));
 
+      staged_path = staged_p;
       if (!boost::filesystem::exists(staged_path.unsealed)) {
         boost::filesystem::ofstream staged_file(staged_path.unsealed);
-        if (staged_file.fail()) {
+        if (!staged_file.is_open()) {
           return SectorStorageError::CANNOT_CREATE_FILE;
         }
         staged_file.close();
       }
 
-      OUTCOME_TRY(response,
-                  proofs::writeWithoutAlignment(seal_proof_type_,
-                                                piece_data,
-                                                new_piece_size,
-                                                staged_path.unsealed));
-
-      return PieceInfo(new_piece_size.padded(), response.piece_cid);
+    } else {
+      OUTCOME_TRY(staged_p,
+                  acquireSector(sector, SectorFileTypes::FTUnsealed, 0, true));
+      staged_path = staged_p;
     }
 
-    OUTCOME_TRY(staged_path,
-                acquireSector(sector, SectorFileTypes::FTUnsealed, 0, true));
     OUTCOME_TRY(response,
                 proofs::writeWithAlignment(seal_proof_type_,
                                            piece_data,

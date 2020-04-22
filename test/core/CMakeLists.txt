@@ -15,11 +15,11 @@ add_subdirectory(fslock)
 
 if (TESTING_PROOFS)
     add_subdirectory(proofs)
+    add_subdirectory(sector_storage)
 endif ()
 
 add_subdirectory(power)
 add_subdirectory(primitives)
-add_subdirectory(sector_storage)
 add_subdirectory(serialization)
 add_subdirectory(storage)
 add_subdirectory(vm)
