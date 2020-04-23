@@ -27,10 +27,8 @@ namespace fc::sector_storage {
     }
   }
 
-  outcome::result<SectorPaths> SectorStorageImpl::acquireSector(SectorId id,
-                                                                int existing,
-                                                                int allocate,
-                                                                bool sealing) {
+  outcome::result<SectorPaths> SectorStorageImpl::acquireSector(
+      SectorId id, SectorFileType sector_type) {
     SectorPaths result{
         .id = id,
     };
@@ -39,7 +37,7 @@ namespace fc::sector_storage {
                                          SectorFileType::FTSealed,
                                          SectorFileType::FTUnsealed};
     for (const auto &type : types) {
-      if (!(existing & type || allocate & type)) {
+      if ((sector_type & type) == 0) {
         continue;
       }
 
@@ -61,12 +59,12 @@ namespace fc::sector_storage {
       const SectorId &sector,
       const SealRandomness &ticket,
       gsl::span<const PieceInfo> pieces) {
-    OUTCOME_TRY(
-        paths,
-        acquireSector(sector,
-                      SectorFileType::FTUnsealed,
-                      SectorFileType::FTSealed | SectorFileType::FTCache,
-                      true));
+    OUTCOME_TRY(paths,
+                acquireSector(
+                    sector,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache
+                                                | SectorFileType::FTUnsealed)));
 
     if (!boost::filesystem::exists(paths.sealed)) {
       boost::filesystem::ofstream sealed_file(paths.sealed);
@@ -113,9 +111,8 @@ namespace fc::sector_storage {
     OUTCOME_TRY(
         paths,
         acquireSector(sector,
-                      SectorFileType::FTSealed | SectorFileType::FTCache,
-                      0,
-                      true));
+                      static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache)));
 
     return proofs::sealPreCommitPhase2(pc1o, paths.cache, paths.sealed);
   }
@@ -131,9 +128,8 @@ namespace fc::sector_storage {
     OUTCOME_TRY(
         paths,
         acquireSector(sector,
-                      SectorFileType::FTSealed | SectorFileType::FTCache,
-                      0,
-                      true));
+                      static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache)));
 
     return proofs::sealCommitPhase1(seal_proof_type_,
                                     cids.sealed_cid,
@@ -156,9 +152,7 @@ namespace fc::sector_storage {
 
   outcome::result<void> SectorStorageImpl::finalizeSector(
       const SectorId &sector) {
-    OUTCOME_TRY(paths,
-                acquireSector(
-                    sector, SectorFileType::FTCache, SectorFileType(0), false));
+    OUTCOME_TRY(paths, acquireSector(sector, SectorFileType::FTCache));
 
     return proofs::clearCache(paths.cache);
   }
@@ -170,12 +164,9 @@ namespace fc::sector_storage {
       const PieceData &piece_data) {
     // open Pipe or just use fd
 
-    SectorPaths staged_path;
-    if (piece_sizes.empty()) {
-      OUTCOME_TRY(staged_p,
-                  acquireSector(sector, 0, SectorFileType::FTUnsealed, true));
+    OUTCOME_TRY(staged_path, acquireSector(sector, SectorFileType::FTUnsealed));
 
-      staged_path = staged_p;
+    if (piece_sizes.empty()) {
       if (!boost::filesystem::exists(staged_path.unsealed)) {
         boost::filesystem::ofstream staged_file(staged_path.unsealed);
         if (!staged_file.is_open()) {
@@ -183,11 +174,6 @@ namespace fc::sector_storage {
         }
         staged_file.close();
       }
-
-    } else {
-      OUTCOME_TRY(staged_p,
-                  acquireSector(sector, SectorFileType::FTUnsealed, 0, true));
-      staged_path = staged_p;
     }
 
     OUTCOME_TRY(response,

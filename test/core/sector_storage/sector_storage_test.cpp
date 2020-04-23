@@ -54,11 +54,38 @@ TEST_F(SectorStorageTest, AcquireSector_Sealed) {
       .miner = 1,
   };
 
-  EXPECT_OUTCOME_TRUE(paths,
-                      sector_storage_->acquireSector(
-                          sector, SectorFileType::FTSealed, 0, true))
+  EXPECT_OUTCOME_TRUE(
+      paths, sector_storage_->acquireSector(sector, SectorFileType::FTSealed))
 
   ASSERT_TRUE(paths.cache.empty());
+  ASSERT_TRUE(paths.unsealed.empty());
+  ASSERT_EQ(paths.sealed, sealed_result);
+}
+
+/**
+ * @given sector
+ * @when want to get path to sealed and cache sector
+ * @then sealed sector was obtained. cache and unsealed paths are empty
+ */
+TEST_F(SectorStorageTest, AcquireSector_Complex) {
+  std::string sealed_result =
+      (base_path / fs::path("sealed") / fs::path("s-t01-3")).string();
+  std::string cache_result =
+      (base_path / fs::path("cache") / fs::path("s-t01-3")).string();
+
+  SectorId sector{
+      .sector = 3,
+      .miner = 1,
+  };
+
+  EXPECT_OUTCOME_TRUE(
+      paths,
+      sector_storage_->acquireSector(
+          sector,
+          static_cast<SectorFileType>(SectorFileType::FTCache
+                                      | SectorFileType::FTSealed)))
+
+  ASSERT_EQ(paths.cache, cache_result);
   ASSERT_TRUE(paths.unsealed.empty());
   ASSERT_EQ(paths.sealed, sealed_result);
 }
@@ -77,9 +104,8 @@ TEST_F(SectorStorageTest, AcquireSector_Unsealed) {
       .miner = 1,
   };
 
-  EXPECT_OUTCOME_TRUE(paths,
-                      sector_storage_->acquireSector(
-                          sector, SectorFileType::FTUnsealed, 0, true))
+  EXPECT_OUTCOME_TRUE(
+      paths, sector_storage_->acquireSector(sector, SectorFileType::FTUnsealed))
 
   ASSERT_TRUE(paths.cache.empty());
   ASSERT_EQ(paths.unsealed, unsealed_result);
@@ -101,12 +127,11 @@ TEST_F(SectorStorageTest, AcquireSector_Cache) {
   };
 
   EXPECT_OUTCOME_TRUE(
-      paths,
-      sector_storage_->acquireSector(sector, SectorFileType::FTCache, 0, true))
+      paths, sector_storage_->acquireSector(sector, SectorFileType::FTCache))
 
   ASSERT_EQ(paths.cache, cache_result);
   ASSERT_TRUE(paths.unsealed.empty());
-    ASSERT_TRUE(paths.sealed.empty());
+  ASSERT_TRUE(paths.sealed.empty());
 }
 
 /**
@@ -140,9 +165,8 @@ TEST_F(SectorStorageTest, AddPiece) {
       .miner = 1,
   };
 
-  EXPECT_OUTCOME_TRUE(paths,
-                      sector_storage_->acquireSector(
-                          sector, SectorFileType::FTUnsealed, 0, true))
+  EXPECT_OUTCOME_TRUE(
+      paths, sector_storage_->acquireSector(sector, SectorFileType::FTUnsealed))
 
   EXPECT_OUTCOME_TRUE_1(
       sector_storage_->addPiece(sector, {}, piece_commitment_a_size, file_a));
@@ -222,8 +246,7 @@ TEST_F(SectorStorageTest, Sealer) {
   };
 
   EXPECT_OUTCOME_TRUE(
-      paths,
-      sector_storage_->acquireSector(sector, SectorFileType::FTCache, 0, true))
+      paths, sector_storage_->acquireSector(sector, SectorFileType::FTCache))
 
   EXPECT_OUTCOME_TRUE(
       a_info,

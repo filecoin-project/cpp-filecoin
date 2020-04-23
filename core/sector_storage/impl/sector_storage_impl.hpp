@@ -22,9 +22,7 @@ namespace fc::sector_storage {
                       RegisteredProof seal_proof);
 
     outcome::result<SectorPaths> acquireSector(SectorId id,
-                                               int existing,
-                                               int allocate,
-                                               bool sealing) override;
+                                               SectorFileType sector_type) override;
 
     outcome::result<PreCommit1Output> sealPreCommit1(
         const SectorId &sector,
