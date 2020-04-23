@@ -41,3 +41,5 @@ add_library(logger
 target_link_libraries(logger
     spdlog::spdlog
     )
+
+add_subdirectory(libp2p)
