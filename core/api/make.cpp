@@ -84,6 +84,9 @@ namespace fc::api {
         .ChainGetRandomness = {[&](auto &tipset_key, auto round) {
           return chain_randomness->sampleRandomness(tipset_key.cids, round);
         }},
+        .ChainGetTipSet = {[&](auto &tipset_key) {
+          return chain_store->loadTipset(tipset_key);
+        }},
         .ChainHead = {[&]() { return chain_store->heaviestTipset(); }},
         // TODO(turuslan): FIL-165 implement method
         .ChainNotify = {},
