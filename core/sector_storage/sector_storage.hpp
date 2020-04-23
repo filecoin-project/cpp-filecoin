@@ -32,11 +32,10 @@ namespace fc::sector_storage {
     virtual ~SectorStorage() = default;
 
     // SECTOR PROVIDER
-    virtual outcome::result<SectorPaths> acquireSector(
-        SectorId id,
-        const SectorFileType &existing,
-        const SectorFileType &allocate,
-        bool sealing) = 0;
+    virtual outcome::result<SectorPaths> acquireSector(SectorId id,
+                                                       int existing,
+                                                       int allocate,
+                                                       bool sealing) = 0;
 
     // SEALER
     virtual outcome::result<PreCommit1Output> sealPreCommit1(

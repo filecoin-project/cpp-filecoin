@@ -10,7 +10,7 @@
 namespace fc::sector_storage {
 
   using fc::primitives::piece::PaddedPieceSize;
-  using fc::primitives::sector_file::SectorFileTypes;
+  using fc::primitives::sector_file::SectorFileType;
   using proofs = fc::proofs::Proofs;
   using fc::primitives::sector::getSectorSize;
 
@@ -27,47 +27,31 @@ namespace fc::sector_storage {
     }
   }
 
-  outcome::result<SectorPaths> SectorStorageImpl::acquireSector(
-      SectorId id,
-      const SectorFileType &existing,
-      const SectorFileType &allocate,
-      bool sealing) {
-    auto cache_path =
-        root_ / path(SectorFileType(SectorFileTypes::FTCache).string());
-    if (!(boost::filesystem::exists(cache_path)
-          || boost::filesystem::create_directory(cache_path))) {
-      return SectorStorageError::CANNOT_CREATE_DIR;
-    }
-    auto sealed_path =
-        root_ / path(SectorFileType(SectorFileTypes::FTSealed).string());
-    if (!(boost::filesystem::exists(sealed_path)
-          || boost::filesystem::create_directory(sealed_path))) {
-      return SectorStorageError::CANNOT_CREATE_DIR;
-    }
-    auto unsealed_path =
-        root_ / path(SectorFileType(SectorFileTypes::FTUnsealed).string());
-    if (!(boost::filesystem::exists(unsealed_path)
-          || boost::filesystem::create_directory(unsealed_path))) {
-      return SectorStorageError::CANNOT_CREATE_DIR;
-    }
-
+  outcome::result<SectorPaths> SectorStorageImpl::acquireSector(SectorId id,
+                                                                int existing,
+                                                                int allocate,
+                                                                bool sealing) {
     SectorPaths result{
         .id = id,
     };
 
-    std::vector<SectorFileTypes> types = {SectorFileTypes::FTCache,
-                                          SectorFileTypes::FTSealed,
-                                          SectorFileTypes::FTUnsealed};
+    std::vector<SectorFileType> types = {SectorFileType::FTCache,
+                                         SectorFileType::FTSealed,
+                                         SectorFileType::FTUnsealed};
     for (const auto &type : types) {
-      if (!(existing.has(type) || allocate.has(type))) {
+      if (!(existing & type || allocate & type)) {
         continue;
       }
 
-      path dir(SectorFileType(type).string());
-      path file(fc::primitives::sector_file::sectorName(id));
-      path full_path = root_ / dir / file;
+      auto dir_path = root_ / path(toString(type));
+      if (!(boost::filesystem::exists(dir_path)
+            || boost::filesystem::create_directory(dir_path))) {
+        return SectorStorageError::CANNOT_CREATE_DIR;
+      }
 
-      result.setPathByType(type, full_path.c_str());
+      path file(primitives::sector_file::sectorName(id));
+
+      result.setPathByType(type, (dir_path / file).c_str());
     }
 
     return result;
@@ -80,8 +64,8 @@ namespace fc::sector_storage {
     OUTCOME_TRY(
         paths,
         acquireSector(sector,
-                      SectorFileTypes::FTUnsealed,
-                      SectorFileTypes::FTSealed | SectorFileTypes::FTCache,
+                      SectorFileType::FTUnsealed,
+                      SectorFileType::FTSealed | SectorFileType::FTCache,
                       true));
 
     if (!boost::filesystem::exists(paths.sealed)) {
@@ -129,7 +113,7 @@ namespace fc::sector_storage {
     OUTCOME_TRY(
         paths,
         acquireSector(sector,
-                      SectorFileTypes::FTSealed | SectorFileTypes::FTCache,
+                      SectorFileType::FTSealed | SectorFileType::FTCache,
                       0,
                       true));
 
@@ -147,7 +131,7 @@ namespace fc::sector_storage {
     OUTCOME_TRY(
         paths,
         acquireSector(sector,
-                      SectorFileTypes::FTSealed | SectorFileTypes::FTCache,
+                      SectorFileType::FTSealed | SectorFileType::FTCache,
                       0,
                       true));
 
@@ -173,7 +157,8 @@ namespace fc::sector_storage {
   outcome::result<void> SectorStorageImpl::finalizeSector(
       const SectorId &sector) {
     OUTCOME_TRY(paths,
-                acquireSector(sector, SectorFileTypes::FTCache, 0, false));
+                acquireSector(
+                    sector, SectorFileType::FTCache, SectorFileType(0), false));
 
     return proofs::clearCache(paths.cache);
   }
@@ -188,7 +173,7 @@ namespace fc::sector_storage {
     SectorPaths staged_path;
     if (piece_sizes.empty()) {
       OUTCOME_TRY(staged_p,
-                  acquireSector(sector, 0, SectorFileTypes::FTUnsealed, true));
+                  acquireSector(sector, 0, SectorFileType::FTUnsealed, true));
 
       staged_path = staged_p;
       if (!boost::filesystem::exists(staged_path.unsealed)) {
@@ -201,7 +186,7 @@ namespace fc::sector_storage {
 
     } else {
       OUTCOME_TRY(staged_p,
-                  acquireSector(sector, SectorFileTypes::FTUnsealed, 0, true));
+                  acquireSector(sector, SectorFileType::FTUnsealed, 0, true));
       staged_path = staged_p;
     }
 

@@ -7,19 +7,8 @@
 
 namespace fc::primitives::sector_file {
 
-  SectorFileType::SectorFileType(int type) : data_(type) {}
-
-  SectorFileType &SectorFileType::operator=(int rhs) {
-    data_ = rhs;
-    return *this;
-  }
-
-  SectorFileType::operator int() const {
-    return data_;
-  }
-
-  std::string SectorFileType::string() const {
-    switch (data_) {
+  std::string toString(const SectorFileType &file_type) {
+    switch (file_type) {
       case FTUnsealed:
         return "unsealed";
       case FTSealed:
@@ -27,11 +16,7 @@ namespace fc::primitives::sector_file {
       case FTCache:
         return "cache";
     }
-    return "<unknown " + std::to_string(data_) + ">";
-  }
-
-  bool SectorFileType::has(const SectorFileType &single_type) const {
-    return (data_ & single_type) == single_type;
+    return "<unknown " + std::to_string(file_type) + ">";
   }
 
   void SectorPaths::setPathByType(const SectorFileType &file_type,
@@ -52,7 +37,8 @@ namespace fc::primitives::sector_file {
   }
 
   std::string sectorName(const SectorId &sid) {
-      return "s-t0" + std::to_string(sid.miner) + "-" + std::to_string(sid.sector);
+    return "s-t0" + std::to_string(sid.miner) + "-"
+           + std::to_string(sid.sector);
   }
 
 }  // namespace fc::primitives::sector_file

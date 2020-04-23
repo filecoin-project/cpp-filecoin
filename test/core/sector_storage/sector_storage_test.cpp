@@ -16,7 +16,7 @@
 
 using fc::primitives::sector::OnChainSealVerifyInfo;
 using fc::primitives::sector::SealVerifyInfo;
-using fc::primitives::sector_file::SectorFileTypes;
+using fc::primitives::sector_file::SectorFileType;
 using fc::proofs::PieceData;
 using fc::proofs::PieceInfo;
 using fc::proofs::UnpaddedPieceSize;
@@ -56,7 +56,7 @@ TEST_F(SectorStorageTest, AcquireSector_Sealed) {
 
   EXPECT_OUTCOME_TRUE(paths,
                       sector_storage_->acquireSector(
-                          sector, SectorFileTypes::FTSealed, 0, true))
+                          sector, SectorFileType::FTSealed, 0, true))
 
   ASSERT_TRUE(paths.cache.empty());
   ASSERT_TRUE(paths.unsealed.empty());
@@ -79,7 +79,7 @@ TEST_F(SectorStorageTest, AcquireSector_Unsealed) {
 
   EXPECT_OUTCOME_TRUE(paths,
                       sector_storage_->acquireSector(
-                          sector, SectorFileTypes::FTUnsealed, 0, true))
+                          sector, SectorFileType::FTUnsealed, 0, true))
 
   ASSERT_TRUE(paths.cache.empty());
   ASSERT_EQ(paths.unsealed, unsealed_result);
@@ -102,7 +102,7 @@ TEST_F(SectorStorageTest, AcquireSector_Cache) {
 
   EXPECT_OUTCOME_TRUE(
       paths,
-      sector_storage_->acquireSector(sector, SectorFileTypes::FTCache, 0, true))
+      sector_storage_->acquireSector(sector, SectorFileType::FTCache, 0, true))
 
   ASSERT_EQ(paths.cache, cache_result);
   ASSERT_TRUE(paths.unsealed.empty());
@@ -142,7 +142,7 @@ TEST_F(SectorStorageTest, AddPiece) {
 
   EXPECT_OUTCOME_TRUE(paths,
                       sector_storage_->acquireSector(
-                          sector, SectorFileTypes::FTUnsealed, 0, true))
+                          sector, SectorFileType::FTUnsealed, 0, true))
 
   EXPECT_OUTCOME_TRUE_1(
       sector_storage_->addPiece(sector, {}, piece_commitment_a_size, file_a));
@@ -223,7 +223,7 @@ TEST_F(SectorStorageTest, Sealer) {
 
   EXPECT_OUTCOME_TRUE(
       paths,
-      sector_storage_->acquireSector(sector, SectorFileTypes::FTCache, 0, true))
+      sector_storage_->acquireSector(sector, SectorFileType::FTCache, 0, true))
 
   EXPECT_OUTCOME_TRUE(
       a_info,

@@ -12,28 +12,14 @@
 using fc::primitives::sector::SectorId;
 
 namespace fc::primitives::sector_file {
-
-  class SectorFileType {
-   public:
-    SectorFileType(int type);
-
-    operator int() const;
-
-    SectorFileType &operator=(int rhs);
-
-    std::string string() const;
-
-    bool has(const SectorFileType &single_type) const;
-
-   private:
-    int data_;
-  };
-
-  enum SectorFileTypes {
+  enum SectorFileType : int {
     FTUnsealed = 1,
     FTSealed = 2,
     FTCache = 4,
   };
+
+  std::string toString(const SectorFileType &file_type);
+  std::string sectorName(const SectorId &sid);
 
   struct SectorPaths {
    public:
@@ -45,8 +31,6 @@ namespace fc::primitives::sector_file {
     void setPathByType(const SectorFileType &file_type,
                        const std::string &path);
   };
-
-  std::string sectorName(const SectorId &sid);
 }  // namespace fc::primitives::sector_file
 
 #endif  // CPP_FILECOIN_SECTOR_FILE_HPP
