@@ -69,10 +69,8 @@ TEST_F(SectorStorageTest, AcquireSector_Sealed) {
  * @then unsealed sector was obtained. cache and sealed paths are empty
  */
 TEST_F(SectorStorageTest, AcquireSector_Unsealed) {
-  std::string cache_result = "";
   std::string unsealed_result =
       (base_path / fs::path("unsealed") / fs::path("s-t01-3")).string();
-  std::string sealed_result = "";
 
   SectorId sector{
       .sector = 3,
@@ -96,10 +94,6 @@ TEST_F(SectorStorageTest, AcquireSector_Unsealed) {
 TEST_F(SectorStorageTest, AcquireSector_Cache) {
   std::string cache_result =
       (base_path / fs::path("cache") / fs::path("s-t01-3")).string();
-  std::string unsealed_result =
-      (base_path / fs::path("unsealed") / fs::path("s-t01-3")).string();
-  std::string sealed_result =
-      (base_path / fs::path("sealed") / fs::path("s-t01-3")).string();
 
   SectorId sector{
       .sector = 3,
@@ -111,8 +105,8 @@ TEST_F(SectorStorageTest, AcquireSector_Cache) {
       sector_storage_->acquireSector(sector, SectorFileTypes::FTCache, 0, true))
 
   ASSERT_EQ(paths.cache, cache_result);
-  ASSERT_EQ(paths.unsealed, unsealed_result);
-  ASSERT_EQ(paths.sealed, sealed_result);
+  ASSERT_TRUE(paths.unsealed.empty());
+    ASSERT_TRUE(paths.sealed.empty());
 }
 
 /**

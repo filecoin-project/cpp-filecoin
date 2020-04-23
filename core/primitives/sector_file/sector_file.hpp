@@ -31,8 +31,8 @@ namespace fc::primitives::sector_file {
 
   enum SectorFileTypes {
     FTUnsealed = 1,
-    FTSealed,
-    FTCache,
+    FTSealed = 2,
+    FTCache = 4,
   };
 
   struct SectorPaths {
