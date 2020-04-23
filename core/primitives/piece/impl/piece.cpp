@@ -6,7 +6,7 @@
 #include "primitives/piece/piece.hpp"
 
 #include <utility>
-#include "piece_error.hpp"
+#include "primitives/piece/piece_error.hpp"
 
 namespace fc::primitives::piece {
 
@@ -20,6 +20,11 @@ namespace fc::primitives::piece {
 
   UnpaddedPieceSize &UnpaddedPieceSize::operator=(uint64_t rhs) {
     size_ = rhs;
+    return *this;
+  }
+
+  UnpaddedPieceSize &UnpaddedPieceSize::operator+=(uint64_t rhs) {
+    size_ += rhs;
     return *this;
   }
 
