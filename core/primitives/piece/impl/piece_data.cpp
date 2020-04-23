@@ -29,4 +29,10 @@ namespace fc::primitives::piece {
   bool PieceData::isOpened() const {
     return fd_ != kUnopenedFileDescriptor;
   }
+
+  PieceData::PieceData(PieceData &&other) noexcept
+      : fd_(kUnopenedFileDescriptor) {
+    fd_ = other.fd_;
+    other.fd_ = kUnopenedFileDescriptor;
+  }
 }  // namespace fc::primitives::piece

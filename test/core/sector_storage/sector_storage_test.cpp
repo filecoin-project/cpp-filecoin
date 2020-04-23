@@ -8,6 +8,7 @@
 #include <random>
 #include <storage/filestore/path.hpp>
 
+#include "proofs/proof_param_provider.hpp"
 #include "sector_storage/impl/sector_storage_impl.hpp"
 #include "sector_storage/sector_storage.hpp"
 #include "sector_storage/sector_storage_error.hpp"
@@ -219,6 +220,12 @@ TEST_F(SectorStorageTest, Sealer_PreCommit_MatchSumError) {
 TEST_F(SectorStorageTest, Sealer) {
   EXPECT_OUTCOME_TRUE(sector_size,
                       fc::primitives::sector::getSectorSize(seal_proof_));
+  EXPECT_OUTCOME_TRUE(
+      params,
+      fc::proofs::ProofParamProvider::readJson(
+          "/var/tmp/filecoin-proof-parameters/parameters.json"));
+  EXPECT_OUTCOME_TRUE_1(
+      fc::proofs::ProofParamProvider::getParams(params, sector_size));
 
   fc::common::Blob<2032> some_bytes;
   std::random_device rd;
@@ -244,9 +251,6 @@ TEST_F(SectorStorageTest, Sealer) {
       .sector = 3,
       .miner = 1,
   };
-
-  EXPECT_OUTCOME_TRUE(
-      paths, sector_storage_->acquireSector(sector, SectorFileType::FTCache))
 
   EXPECT_OUTCOME_TRUE(
       a_info,

@@ -9,4 +9,6 @@ addtest(sector_storage_test
 target_link_libraries( sector_storage_test
        Boost::filesystem
        sector_storage
-       base_fs_test)
+       base_fs_test
+       proof_param_provider
+       )

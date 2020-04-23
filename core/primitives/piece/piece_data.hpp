@@ -16,6 +16,8 @@ namespace fc::primitives::piece {
    public:
     explicit PieceData(const std::string &path_to_file);
 
+    PieceData(PieceData &&other) noexcept;
+
     ~PieceData();
 
     int getFd() const;
