@@ -9,21 +9,24 @@
 #include <boost/filesystem.hpp>
 
 namespace fc::primitives::piece {
-  PieceData::PieceData(const std::string &path_to_file) {
-    fd_ = -1;
-
+  PieceData::PieceData(const std::string &path_to_file)
+      : fd_(kUnopenedFileDescriptor) {
     if (boost::filesystem::exists(path_to_file)) {
       fd_ = open(path_to_file.c_str(), O_RDWR);
     }
   }
 
-  int PieceData::getFd() const{
+  int PieceData::getFd() const {
     return fd_;
   }
 
   PieceData::~PieceData() {
-    if (fd_ != -1) {
+    if (fd_ != kUnopenedFileDescriptor) {
       close(fd_);
     }
+  }
+
+  bool PieceData::isOpened() const {
+    return fd_ != kUnopenedFileDescriptor;
   }
 }  // namespace fc::primitives::piece

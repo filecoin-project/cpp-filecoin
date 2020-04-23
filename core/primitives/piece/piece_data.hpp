@@ -10,6 +10,8 @@
 
 namespace fc::primitives::piece {
 
+  const int kUnopenedFileDescriptor = -1;
+
   class PieceData {
    public:
     explicit PieceData(const std::string &path_to_file);
@@ -17,6 +19,8 @@ namespace fc::primitives::piece {
     ~PieceData();
 
     int getFd() const;
+
+    bool isOpened() const;
 
    private:
     int fd_;

@@ -444,11 +444,10 @@ namespace fc::proofs {
       const std::string &staged_sector_file_path) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
-    int piece_fd;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
-    if ((piece_fd = piece_data.getFd()) == -1) {
+    if (!piece_data.isOpened()) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
+    int piece_fd = piece_data.getFd();
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_WRONLY))
@@ -482,11 +481,12 @@ namespace fc::proofs {
       const std::string &staged_sector_file_path,
       gsl::span<const UnpaddedPieceSize> existing_piece_sizes) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
-    int piece_fd;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
-    if ((piece_fd = piece_data.getFd()) == -1) {
+
+    if (!piece_data.isOpened()) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
+    int piece_fd = piece_data.getFd();
+
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd =
