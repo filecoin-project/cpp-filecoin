@@ -23,6 +23,8 @@ namespace fc::blockchain {
   using boost::asio::io_context;
   using network::sync::Sync;
   using primitives::block::BlockHeader;
+  using primitives::block::SignedMessage;
+  using primitives::block::UnsignedMessage;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
   using storage::blockchain::ChainStore;

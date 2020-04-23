@@ -47,15 +47,6 @@ namespace fc::storage::blockchain {
     /** @brief adds block to store */
     virtual outcome::result<void> addBlock(const BlockHeader &block) = 0;
 
-    /** @brief finds block by its cid */
-    virtual outcome::result<BlockHeader> getBlock(const CID &cid) const = 0;
-
-    virtual outcome::result<SignedMessage> getSignedMessage(
-        const CID &cid) const = 0;
-
-    virtual outcome::result<UnsignedMessage> getUnsignedMessage(
-        const CID &cid) const = 0;
-
     /**@brief checks whether storage contains tipset */
     virtual outcome::result<bool> containsTipset(
         const TipsetKey &key) const = 0;
@@ -65,7 +56,10 @@ namespace fc::storage::blockchain {
 
     virtual outcome::result<Tipset> heaviestTipset() const = 0;
 
-    virtual const CID &getGenesis() const = 0;
+    virtual outcome::result<BlockHeader> getGenesis() const = 0;
+
+    virtual outcome::result<void> setGenesis(
+        const BlockHeader &block_header) = 0;
 
     virtual primitives::BigInt getHeaviestWeight() const = 0;
   };

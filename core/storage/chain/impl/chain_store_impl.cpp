@@ -12,9 +12,11 @@
 #include "primitives/cid/json_codec.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 #include "storage/chain/datastore_key.hpp"
+#include "storage/chain/impl/chain_data_store_impl.hpp"
 
 namespace fc::storage::blockchain {
   using crypto::randomness::ChainRandomnessProviderImpl;
+  using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::tipset::Tipset;
 
@@ -24,25 +26,21 @@ namespace fc::storage::blockchain {
   }  // namespace
 
   ChainStoreImpl::ChainStoreImpl(
-      std::shared_ptr<ipfs::IpfsBlockService> block_service,
-      std::shared_ptr<ChainDataStore> data_store,
+      std::shared_ptr<IpfsDatastore> data_store,
       std::shared_ptr<BlockValidator> block_validator,
       std::shared_ptr<WeightCalculator> weight_calculator)
-      : block_service_{std::move(block_service)},
-        data_store_{std::move(data_store)},
+      : data_store_{std::move(data_store)},
         block_validator_{std::move(block_validator)},
         weight_calculator_{std::move(weight_calculator)} {
+    chain_data_store_ = std::make_shared<ChainDataStoreImpl>(data_store_);
     logger_ = common::createLogger("chain store");
   }
 
   outcome::result<std::shared_ptr<ChainStoreImpl>> ChainStoreImpl::create(
-      std::shared_ptr<ipfs::IpfsBlockService> block_store,
-      std::shared_ptr<ChainDataStore> data_store,
+      std::shared_ptr<IpfsDatastore> data_store,
       std::shared_ptr<BlockValidator> block_validator,
-
       std::shared_ptr<WeightCalculator> weight_calculator) {
-    ChainStoreImpl tmp(std::move(block_store),
-                       std::move(data_store),
+    ChainStoreImpl tmp(std::move(data_store),
                        std::move(block_validator),
                        std::move(weight_calculator));
 
@@ -63,7 +61,7 @@ namespace fc::storage::blockchain {
     // TODO (yuraz): FIL-151 check cache
 
     for (auto &cid : key.cids) {
-      OUTCOME_TRY(block, getBlock(cid));
+      OUTCOME_TRY(block, getCbor<BlockHeader>(cid));
       blocks.push_back(std::move(block));
     }
 
@@ -73,13 +71,8 @@ namespace fc::storage::blockchain {
     return tipset;
   }
 
-  outcome::result<BlockHeader> ChainStoreImpl::getBlock(const CID &cid) const {
-    OUTCOME_TRY(bytes, block_service_->get(cid));
-    return codec::cbor::decode<BlockHeader>(bytes);
-  }
-
   outcome::result<void> ChainStoreImpl::load() {
-    auto &&buffer = data_store_->get(kChainHeadKey);
+    auto &&buffer = chain_data_store_->get(kChainHeadKey);
     if (!buffer) {
       logger_->warn("no previous chain state found");
       return outcome::success();
@@ -100,13 +93,14 @@ namespace fc::storage::blockchain {
     return ChainStoreError::NO_HEAVIEST_TIPSET;
   }
 
-  outcome::result<bool> ChainStoreImpl::containsTipset(const TipsetKey &key) const {
+  outcome::result<bool> ChainStoreImpl::containsTipset(
+      const TipsetKey &key) const {
     if (tipsets_cache_.count(key) > 0) {
       return true;
     }
 
     // TODO: (yuraz) implement something better
-    OUTCOME_TRY(tipset, loadTipset(key));
+    OUTCOME_TRY(loadTipset(key));
     return true;
   }
 
@@ -120,30 +114,35 @@ namespace fc::storage::blockchain {
     return persistBlockHeaders(refs);
   }
 
-  outcome::result<SignedMessage> ChainStoreImpl::getSignedMessage(
-      const CID &cid) const {
-    BOOST_ASSERT_MSG(false, "not implemented yet");
+  outcome::result<BlockHeader> ChainStoreImpl::getGenesis() const {
+    OUTCOME_TRY(buffer, chain_data_store_->get(kGenesisKey));
+
+    OUTCOME_TRY(cids, codec::json::decodeCidVector(buffer));
+    BOOST_ASSERT_MSG(cids.size() == 1, "wrong genesis key format");
+    return getCbor<BlockHeader>(cids[0]);
   }
 
-  outcome::result<UnsignedMessage> ChainStoreImpl::getUnsignedMessage(
-      const CID &cid) const {
-    BOOST_ASSERT_MSG(false, "not implemented yet");
+  outcome::result<void> ChainStoreImpl::setGenesis(
+      const BlockHeader &block_header) {
+    OUTCOME_TRY(genesis_tipset, Tipset::create({block_header}));
+    OUTCOME_TRY(storeTipset(genesis_tipset));
+    OUTCOME_TRY(
+        buffer,
+        codec::json::encodeCidVector(std::vector<CID>{genesis_tipset.cids[0]}));
+
+    return chain_data_store_->set(kGenesisKey, buffer);
   }
 
   outcome::result<void> ChainStoreImpl::writeHead(
       const primitives::tipset::Tipset &tipset) {
     OUTCOME_TRY(data, codec::json::encodeCidVector(tipset.cids));
-    OUTCOME_TRY(data_store_->set(kChainHeadKey, data));
-
-    return outcome::success();
+    return chain_data_store_->set(kChainHeadKey, data);
   }
 
   outcome::result<void> ChainStoreImpl::addBlock(const BlockHeader &block) {
     OUTCOME_TRY(persistBlockHeaders({std::ref(block)}));
     OUTCOME_TRY(tipset, expandTipset(block));
-    OUTCOME_TRY(updateHeaviestTipset(tipset));
-
-    return outcome::success();
+    return updateHeaviestTipset(tipset);
   }
 
   outcome::result<void> ChainStoreImpl::persistBlockHeaders(
@@ -152,7 +151,7 @@ namespace fc::storage::blockchain {
     for (auto &b : block_headers) {
       OUTCOME_TRY(data, codec::cbor::encode(b));
       OUTCOME_TRY(cid, common::getCidOf(data));
-      OUTCOME_TRY(block_service_->set(std::move(cid), std::move(data)));
+      OUTCOME_TRY(data_store_->set(cid, std::move(data)));
     }
 
     return outcome::success();
@@ -166,28 +165,29 @@ namespace fc::storage::blockchain {
     }
     auto &&tipsets = tipsets_[block_header.height];
 
-    std::map<primitives::address::Address, bool> inclMiners;
-    inclMiners[block_header.miner] = true;
+    std::set<Address> included_miners;
+    included_miners.insert(block_header.miner);
     OUTCOME_TRY(block_cid, primitives::cid::getCidOfCbor(block_header));
-    for (auto &&c : tipsets) {
-      if (c == block_cid) {
+    for (auto &&cid : tipsets) {
+      if (cid == block_cid) {
         continue;
       }
 
-      OUTCOME_TRY(h, getBlock(c));
+      OUTCOME_TRY(bh, getCbor<BlockHeader>(cid));
 
-      if (inclMiners.find(h.miner) != std::end(inclMiners)) {
-        auto &&miner_address = primitives::address::encodeToString(h.miner);
+      if (included_miners.count(bh.miner) > 0) {
+        auto &&miner_address = primitives::address::encodeToString(bh.miner);
         logger_->warn(
             "Have multiple blocks from miner {} at height {} in our tipset "
             "cache",
             miner_address,
-            h.height);
+            bh.height);
         continue;
       }
 
-      if (h.parents == block_header.parents) {
-        all_headers.push_back(h);
+      if (bh.parents == block_header.parents) {
+        all_headers.push_back(bh);
+        included_miners.insert(bh.miner);
       }
     }
 

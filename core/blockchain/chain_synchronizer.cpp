@@ -184,6 +184,9 @@ namespace fc::blockchain {
         return updateState();
       }
       case ObjectType::SIGNED_MESSAGE: {
+        auto &&msg = codec::cbor::decode<SignedMessage>(data_received);
+        if (!msg) {
+        }
         // handle
         return updateState();
       }
@@ -194,12 +197,10 @@ namespace fc::blockchain {
       default:
         BOOST_ASSERT_MSG(false, "need to handle each case");
     }
-
-    // update sync state
-    updateState();
   }
 
   void ChainSynchronizer::updateState() {
     // handle changes, schedule download
+    // check if a tipset is downloaded
   }
 }  // namespace fc::blockchain

@@ -46,7 +46,11 @@ namespace fc::outcome {
   }
 }  // namespace fc::outcome
 
-#define OUTCOME_ALTERNATIVE(res, expr, alternative) \
-  auto &&res = (expr) ? (expr.value()) : (alternative)
+#define _OUTCOME_ALTERNATIVE(res, var, expression, alternative) \
+  auto &&res = (expression);                                          \
+  auto &&var = (res) ? (res.value()) : (alternative);
+
+#define OUTCOME_ALTERNATIVE(var, expression, alternative) \
+  _OUTCOME_ALTERNATIVE(UNIQUE_NAME(_r), var, expression, alternative)
 
 #endif  // CPP_FILECOIN_CORE_COMMON_OUTCOME_HPP

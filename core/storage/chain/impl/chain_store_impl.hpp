@@ -23,6 +23,7 @@ namespace fc::storage::blockchain {
 
   using ::fc::blockchain::block_validator::BlockValidator;
   using ::fc::blockchain::weight::WeightCalculator;
+  using ipfs::IpfsDatastore;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
   /**
@@ -46,8 +47,7 @@ namespace fc::storage::blockchain {
 
     /* @brief creates new ChainStore instance */
     static outcome::result<std::shared_ptr<ChainStoreImpl>> create(
-        std::shared_ptr<ipfs::IpfsBlockService> block_service,
-        std::shared_ptr<ChainDataStore> data_store,
+        std::shared_ptr<IpfsDatastore> data_store,
         std::shared_ptr<BlockValidator> block_validator,
         std::shared_ptr<WeightCalculator> weight_calculator);
 
@@ -67,24 +67,15 @@ namespace fc::storage::blockchain {
 
     outcome::result<void> addBlock(const BlockHeader &block) override;
 
-    outcome::result<BlockHeader> getBlock(const CID &cid) const override;
-
     outcome::result<Tipset> heaviestTipset() const override;
 
     outcome::result<bool> containsTipset(const TipsetKey &key) const override;
 
     outcome::result<void> storeTipset(const Tipset &tipset) override;
 
-    outcome::result<SignedMessage> getSignedMessage(
-        const CID &cid) const override;
+    outcome::result<BlockHeader> getGenesis() const override;
 
-    outcome::result<UnsignedMessage> getUnsignedMessage(
-        const CID &cid) const override;
-
-    const CID &getGenesis() const override {
-      BOOST_ASSERT_MSG(genesis_.has_value(), "genesis is not initialized");
-      return *genesis_;
-    }
+    outcome::result<void> setGenesis(const BlockHeader &block_header) override;
 
     primitives::BigInt getHeaviestWeight() const override {
       return heaviest_weight_;
@@ -94,24 +85,23 @@ namespace fc::storage::blockchain {
      * refactore ChainStore later, remove this ugly inheritance and delegation
      */
     outcome::result<bool> contains(const CID &key) const override {
-      return block_service_->contains(key);
+      return data_store_->contains(key);
     }
 
     outcome::result<void> set(const CID &key, Value value) override {
-      return block_service_->set(key, value);
+      return data_store_->set(key, value);
     }
 
     outcome::result<Value> get(const CID &key) const override {
-      return block_service_->get(key);
+      return data_store_->get(key);
     }
 
     outcome::result<void> remove(const CID &key) override {
-      return block_service_->remove(key);
+      return data_store_->remove(key);
     }
 
    private:
-    ChainStoreImpl(std::shared_ptr<ipfs::IpfsBlockService> block_service,
-                   std::shared_ptr<ChainDataStore> data_store,
+    ChainStoreImpl(std::shared_ptr<IpfsDatastore> data_store,
                    std::shared_ptr<BlockValidator> block_validator,
                    std::shared_ptr<WeightCalculator> weight_calculator);
 
@@ -125,15 +115,14 @@ namespace fc::storage::blockchain {
 
     outcome::result<void> updateHeaviestTipset(const Tipset &tipset);
 
-    std::shared_ptr<ipfs::IpfsBlockService> block_service_;
-    std::shared_ptr<ChainDataStore> data_store_;
+    std::shared_ptr<IpfsDatastore> data_store_;
+    std::shared_ptr<ChainDataStore> chain_data_store_;
     std::shared_ptr<BlockValidator> block_validator_;
     std::shared_ptr<WeightCalculator> weight_calculator_;
 
     boost::optional<Tipset> heaviest_tipset_;
     primitives::BigInt heaviest_weight_{0};
     std::map<uint64_t, std::vector<CID>> tipsets_;
-    boost::optional<CID> genesis_;
 
     mutable std::unordered_map<TipsetKey, Tipset> tipsets_cache_;
     common::Logger logger_;
