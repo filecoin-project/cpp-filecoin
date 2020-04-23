@@ -12,17 +12,17 @@
 
 namespace fc::storage::blockchain {
 
+  using crypto::randomness::ChainRandomnessProvider;
+  using crypto::randomness::Randomness;
+  using primitives::block::BlockHeader;
+  using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetKey;
+
   /**
    * @class ChainStore keeps track of blocks
    */
   class ChainStore {
    public:
-    using BlockHeader = primitives::block::BlockHeader;
-    using ChainRandomnessProvider = crypto::randomness::ChainRandomnessProvider;
-    using Randomness = crypto::randomness::Randomness;
-    using Tipset = primitives::tipset::Tipset;
-    using TipsetKey = primitives::tipset::TipsetKey;
-
     virtual ~ChainStore() = default;
 
     /**

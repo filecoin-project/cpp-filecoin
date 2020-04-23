@@ -35,7 +35,10 @@ namespace fc::common::libp2p {
     template <typename T>
     void read(std::function<void(outcome::result<T>)> cb) {
       readRaw([cb{std::move(cb)}](auto input) {
-        cb(codec::cbor::decode<T>(input));
+        if (input.has_error()) {
+          return cb(input.error());
+        }
+        cb(codec::cbor::decode<T>(input.value()));
       });
     }
 

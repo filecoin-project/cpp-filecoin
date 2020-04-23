@@ -5,6 +5,7 @@
 
 #include "api/make.hpp"
 
+#include <libp2p/peer/peer_id.hpp>
 #include "blockchain/production/impl/block_producer_impl.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
@@ -26,6 +27,7 @@ namespace fc::api {
   using blockchain::production::BlockProducerImpl;
   using crypto::randomness::RandomnessProvider;
   using crypto::signature::BlsSignature;
+  using libp2p::peer::PeerId;
   using primitives::block::MsgMeta;
   using storage::amt::Amt;
   using vm::isVMExitCode;
@@ -280,6 +282,47 @@ namespace fc::api {
         .WalletSign = {[&](auto address, auto data) {
           return key_store->sign(address, data);
         }},
+        .StateListStorageProviders =
+            {[&]() -> outcome::result<std::vector<StorageProviderInfo>> {
+              OUTCOME_TRY(chain_head, chain_store->heaviestTipset());
+              OUTCOME_TRY(tipset_key, chain_head.makeKey());
+              OUTCOME_TRY(context, tipsetContext(tipset_key));
+              OUTCOME_TRY(power_actor_state, context.powerState());
+              OUTCOME_TRY(miner_addresses, power_actor_state.getMiners());
+              std::vector<StorageProviderInfo> storage_providers;
+              for (const auto &miner_address : miner_addresses) {
+                OUTCOME_TRY(miner_state, context.minerState(miner_address));
+                // TODO (a.chernyshov) is it actually base58?
+                OUTCOME_TRY(peer_id,
+                            PeerId::fromBase58(miner_state.info.peer_id));
+                storage_providers.push_back(StorageProviderInfo{
+                    .address = miner_address,
+                    .worker = miner_state.info.worker,
+                    .sector_size = miner_state.info.sector_size,
+                    .peer_id = peer_id});
+              }
+              return storage_providers;
+            }},
+        .StateListClientDeals =
+            {
+                // TODO(a.chernyshov) implement method
+                // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L92
+            },
+        .AddFunds =
+            {
+                // TODO(a.chernyshov) implement method
+                // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L115
+            },
+        .ValidateAskSignature =
+            {
+                // TODO(a.chernyshov) implement method
+                // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L325
+            },
+        .SignProposal =
+            {
+                // TODO(a.chernyshov) implement method
+                // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L303
+            },
     };
   }
 }  // namespace fc::api

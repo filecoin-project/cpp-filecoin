@@ -33,6 +33,9 @@ namespace fc::markets::storage {
 
   const libp2p::peer::Protocol kDealProtocolId = "/fil/storage/mk/1.0.1";
 
+  const std::string kTransferTypeGraphsync = "graphsync";
+  const std::string kTransferTypeManual = "manual";
+
   struct DataRef {
     std::string transfer_type;
     CID root;

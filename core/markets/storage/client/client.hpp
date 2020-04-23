@@ -27,15 +27,27 @@ namespace fc::markets::storage {
 
   class Client {
    public:
+    using SignedAskHandler =
+        std::function<void(outcome::result<SignedStorageAsk>)>;
+
     virtual ~Client() = default;
 
     virtual void run() = 0;
 
     virtual void stop() = 0;
 
+    /**
+     * Lists the providers in the storage market state
+     * @return vector of storage provider info
+     */
     virtual outcome::result<std::vector<StorageProviderInfo>> listProviders()
         const = 0;
 
+    /**
+     * Lists all on-chain deals associated with a storage client
+     * @param address
+     * @return
+     */
     virtual outcome::result<std::vector<StorageDeal>> listDeals(
         const Address &address) const = 0;
 
@@ -44,8 +56,8 @@ namespace fc::markets::storage {
 
     virtual outcome::result<StorageDeal> getLocalDeal(const CID &cid) const = 0;
 
-    virtual outcome::result<SignedStorageAsk> getAsk(
-        const StorageProviderInfo &info) const = 0;
+    virtual void getAsk(const StorageProviderInfo &info,
+                        const SignedAskHandler &signed_ask_handler) const = 0;
 
     virtual outcome::result<ProposeStorageDealResult> proposeStorageDeal(
         const Address &address,

@@ -7,6 +7,9 @@
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
 
 #include "api/api.hpp"
+#include "common/logger.hpp"
+#include "data_transfer/manager.hpp"
+#include "markets/pieceio/pieceio.hpp"
 #include "markets/storage/client/client.hpp"
 #include "markets/storage/storage_market_network.hpp"
 #include "storage/filestore/filestore.hpp"
@@ -17,13 +20,16 @@ namespace fc::markets::storage {
   using api::Api;
   using fc::storage::filestore::FileStore;
   using fc::storage::ipfs::IpfsDatastore;
+  using pieceio::PieceIO;
 
-  class ClientImpl : public Client {
+  class ClientImpl : public Client, std::enable_shared_from_this<ClientImpl> {
    public:
     ClientImpl(std::shared_ptr<Api> api,
                std::shared_ptr<StorageMarketNetwork> network,
+               std::shared_ptr<data_transfer::Manager> data_transfer_manager,
                std::shared_ptr<IpfsDatastore> block_store,
-               std::shared_ptr<FileStore> file_store);
+               std::shared_ptr<FileStore> file_store,
+               std::shared_ptr<PieceIO> piece_io);
 
     void run() override;
 
@@ -39,8 +45,8 @@ namespace fc::markets::storage {
 
     outcome::result<StorageDeal> getLocalDeal(const CID &cid) const override;
 
-    outcome::result<SignedStorageAsk> getAsk(
-        const StorageProviderInfo &info) const override;
+    void getAsk(const StorageProviderInfo &info,
+                const SignedAskHandler &signed_ask_handler) const override;
 
     outcome::result<ProposeStorageDealResult> proposeStorageDeal(
         const Address &address,
@@ -59,18 +65,19 @@ namespace fc::markets::storage {
                                            const TokenAmount &amount) override;
 
    private:
+    outcome::result<SignedStorageAsk> validateAskResponse(
+        const outcome::result<AskResponse> &response,
+        const StorageProviderInfo &info) const;
+
+    outcome::result<std::pair<CID, UnpaddedPieceSize>> calculateCommP(
+        const RegisteredProof &registered_proof, const DataRef &data_ref) const;
+
     std::shared_ptr<Api> api_;
     std::shared_ptr<StorageMarketNetwork> network_;
-
-    // TODO
-    // data_transfer_manager_
-
+    std::shared_ptr<data_transfer::Manager> data_transfer_manager_;
     std::shared_ptr<IpfsDatastore> block_store_;
-
     std::shared_ptr<FileStore> file_store_;
-
-    // TODO
-    // PieceIO
+    std::shared_ptr<PieceIO> piece_io_;
 
     // TODO
     // discovery
@@ -82,12 +89,20 @@ namespace fc::markets::storage {
 
     // TODO
     // connection manager
+
+    common::Logger logger_ = common::createLogger("StorageMarketClient");
   };
 
   /**
    * @brief Type of errors returned by Storage Market Client
    */
-  enum class StorageMarketClientError { WRONG_MINER = 1, UNKNOWN_ERROR };
+  enum class StorageMarketClientError {
+    WRONG_MINER = 1,
+    SIGNATURE_INVALID,
+    PIECE_DATA_NOT_SET_MANUAL_TRANSFER,
+    PIECE_SIZE_GREATER_SECTOR_SIZE,
+    UNKNOWN_ERROR
+  };
 
 }  // namespace fc::markets::storage
 

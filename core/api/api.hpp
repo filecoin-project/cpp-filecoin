@@ -7,6 +7,9 @@
 #define CPP_FILECOIN_CORE_API_API_HPP
 
 #include "crypto/randomness/randomness_types.hpp"
+#include "markets/storage/ask_protocol.hpp"
+#include "markets/storage/deal_protocol.hpp"
+#include "markets/storage/types.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
@@ -30,6 +33,9 @@ namespace fc::api {
   using common::Comm;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
+  using markets::storage::SignedStorageAsk;
+  using markets::storage::StorageDeal;
+  using markets::storage::StorageProviderInfo;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::RleBitset;
@@ -46,6 +52,7 @@ namespace fc::api {
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
   using vm::actor::Actor;
+  using vm::actor::builtin::market::ClientDealProposal;
   using vm::actor::builtin::market::DealProposal;
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
@@ -154,6 +161,28 @@ namespace fc::api {
     API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
 
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
+
+    /**
+     * Lists the providers in the storage market state
+     * @return vector of StorageProviderInfo
+     */
+    API_METHOD(StateListStorageProviders, std::vector<StorageProviderInfo>)
+
+    /**
+     * List client deals
+     */
+    API_METHOD(StateListClientDeals, std::vector<StorageDeal>, const Address &)
+
+    /**
+     * Adds funds with the StorageMinerActor for a storage participant. Used by
+     * both providers and clients.
+     */
+    API_METHOD(AddFunds, void, const Address &, const TokenAmount &)
+    API_METHOD(ValidateAskSignature,
+               bool,
+               const SignedStorageAsk &,
+               const TipsetKey &)
+    API_METHOD(SignProposal, ClientDealProposal, Address, DealProposal)
   };
 }  // namespace fc::api
 
