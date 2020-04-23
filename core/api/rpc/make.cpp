@@ -33,7 +33,7 @@ namespace fc::api {
     setup(rpc, api.ChainHead);
     setup(rpc, api.ChainNotify);
     setup(rpc, api.ChainReadObj);
-    setup(rpc, api.ChainTipSetWight);
+    setup(rpc, api.ChainTipSetWeight);
     setup(rpc, api.MarketEnsureAvailable);
     setup(rpc, api.MinerCreateBlock);
     setup(rpc, api.MpoolPending);

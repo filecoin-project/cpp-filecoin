@@ -81,15 +81,15 @@ namespace fc::api {
       return context;
     };
     return {
-        .ChainGetRandomness = {[&](auto &&tipset_key, auto round) {
+        .ChainGetRandomness = {[&](auto &tipset_key, auto round) {
           return chain_randomness->sampleRandomness(tipset_key.cids, round);
         }},
         .ChainHead = {[&]() { return chain_store->heaviestTipset(); }},
         // TODO(turuslan): FIL-165 implement method
         .ChainNotify = {},
         .ChainReadObj = {[&](const auto &cid) { return ipld->get(cid); }},
-        .ChainTipSetWight = {[&](auto tipset_key)
-                                 -> outcome::result<TipsetWeight> {
+        .ChainTipSetWeight = {[&](auto &tipset_key)
+                                  -> outcome::result<TipsetWeight> {
           OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
           return weight_calculator->calculateWeight(tipset);
         }},

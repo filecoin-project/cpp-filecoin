@@ -99,7 +99,7 @@ namespace fc::api {
     API_METHOD(ChainHead, Tipset)
     API_METHOD(ChainNotify, Chan<HeadChange>)
     API_METHOD(ChainReadObj, Buffer, CID)
-    API_METHOD(ChainTipSetWight, TipsetWeight, const TipsetKey &)
+    API_METHOD(ChainTipSetWeight, TipsetWeight, const TipsetKey &)
 
     API_METHOD(MarketEnsureAvailable, void, const Address &, TokenAmount)
 
