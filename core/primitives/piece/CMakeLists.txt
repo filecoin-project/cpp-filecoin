@@ -4,11 +4,19 @@
 #
 
 add_library(piece
-        piece.cpp
-        piece_error.cpp
+        impl/piece.cpp
+        impl/piece_error.cpp
         )
 
 target_link_libraries(piece
         cid
         outcome
+        )
+
+add_library(piece_data
+        impl/piece_data.cpp
+        )
+
+target_link_libraries(piece_data
+        Boost::filesystem
         )

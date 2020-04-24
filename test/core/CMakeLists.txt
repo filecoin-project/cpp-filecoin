@@ -16,6 +16,7 @@ add_subdirectory(markets)
 
 if (TESTING_PROOFS)
     add_subdirectory(proofs)
+    add_subdirectory(sector_storage)
 endif ()
 
 add_subdirectory(power)

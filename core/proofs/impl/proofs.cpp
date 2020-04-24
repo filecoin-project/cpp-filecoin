@@ -439,25 +439,19 @@ namespace fc::proofs {
 
   outcome::result<WriteWithoutAlignmentResult> Proofs::writeWithoutAlignment(
       RegisteredProof proof_type,
-      const std::string &piece_file_path,
+      const PieceData &piece_data,
       const UnpaddedPieceSize &piece_bytes,
       const std::string &staged_sector_file_path) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
-    int piece_fd;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
-    if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
+    if (!piece_data.isOpened()) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
+    int piece_fd = piece_data.getFd();
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
-    if ((staged_sector_fd =
-             open(staged_sector_file_path.c_str(), O_RDWR | O_APPEND))
+    if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_WRONLY))
         == -1) {
-      // NOLINTNEXTLINE(readability-implicit-bool-conversion)
-      if (close(piece_fd))
-        logger_->warn("writeWithoutAlignment: error in closing file "
-                      + piece_file_path);
       return ProofsError::CANNOT_OPEN_FILE;
     }
 
@@ -466,10 +460,6 @@ namespace fc::proofs {
                       c_proof_type, piece_fd, piece_bytes, staged_sector_fd),
                   fil_destroy_write_without_alignment_response);
 
-    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
-    if (close(piece_fd))
-      logger_->warn("writeWithoutAlignment: error in closing file "
-                    + piece_file_path);
     // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(staged_sector_fd))
       logger_->warn("writeWithoutAlignment: error in closing file "
@@ -486,25 +476,22 @@ namespace fc::proofs {
 
   outcome::result<WriteWithAlignmentResult> Proofs::writeWithAlignment(
       RegisteredProof proof_type,
-      const std::string &piece_file_path,
+      const PieceData &piece_data,
       const UnpaddedPieceSize &piece_bytes,
       const std::string &staged_sector_file_path,
       gsl::span<const UnpaddedPieceSize> existing_piece_sizes) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
-    int piece_fd;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
-    if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
+
+    if (!piece_data.isOpened()) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
+    int piece_fd = piece_data.getFd();
+
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd =
-             open(staged_sector_file_path.c_str(), O_RDWR | O_APPEND))
+             open(staged_sector_file_path.c_str(), O_WRONLY | O_APPEND))
         == -1) {
-      // NOLINTNEXTLINE(readability-implicit-bool-conversion)
-      if (close(piece_fd))
-        logger_->warn("writeWithAlignment: error in closing file "
-                      + piece_file_path);
       return ProofsError::CANNOT_OPEN_FILE;
     }
 
@@ -523,10 +510,6 @@ namespace fc::proofs {
       logger_->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
-    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
-    if (close(piece_fd))
-      logger_->warn("writeWithAlignment: error in closing file "
-                    + piece_file_path);
     // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(staged_sector_fd))
       logger_->warn("writeWithAlignment: error in closing file "

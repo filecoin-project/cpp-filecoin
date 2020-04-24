@@ -64,7 +64,6 @@ namespace fc::primitives::sector {
         return Errors::InvalidProofType;
     }
   }
-
 };  // namespace fc::primitives::sector
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::sector, Errors, e) {

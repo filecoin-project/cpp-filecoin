@@ -14,6 +14,7 @@
 #include "primitives/cid/cid.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
+#include "primitives/piece/piece_data.hpp"
 
 namespace fc::proofs {
 
@@ -33,6 +34,7 @@ namespace fc::proofs {
   using primitives::sector::PoStRandomness;
   using primitives::sector::PoStVerifyInfo;
   using primitives::sector::Proof;
+  using primitives::piece::PieceData;
   using primitives::sector::SealRandomness;
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::SectorInfo;
@@ -97,13 +99,13 @@ namespace fc::proofs {
 
     static outcome::result<WriteWithoutAlignmentResult> writeWithoutAlignment(
         RegisteredProof proof_type,
-        const std::string &piece_file_path,
+        const PieceData &piece_data,
         const UnpaddedPieceSize &piece_bytes,
         const std::string &staged_sector_file_path);
 
     static outcome::result<WriteWithAlignmentResult> writeWithAlignment(
         RegisteredProof proof_type,
-        const std::string &piece_file_path,
+        const PieceData &piece_data,
         const UnpaddedPieceSize &piece_bytes,
         const std::string &staged_sector_file_path,
         gsl::span<const UnpaddedPieceSize> existing_piece_sizes);

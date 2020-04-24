@@ -4,8 +4,8 @@
 #
 
 add_library(proof_param_provider
-        proof_param_provider.cpp
-        proof_param_provider_error.cpp
+        impl/proof_param_provider.cpp
+        impl/proof_param_provider_error.cpp
         )
 
 target_link_libraries(proof_param_provider
@@ -27,8 +27,8 @@ add_custom_command(
         /var/tmp/filecoin-proof-parameters/parameters.json)
 
 add_library(proofs
-        proofs.cpp
-        proofs_error.cpp
+        impl/proofs.cpp
+        impl/proofs_error.cpp
         )
 
 target_link_libraries(proofs
@@ -40,4 +40,5 @@ target_link_libraries(proofs
         piece
         address
         sector
+        piece_data
         )

@@ -10,6 +10,7 @@
 #include <gtest/gtest.h>
 
 #include "primitives/piece/piece.hpp"
+#include "primitives/piece/piece_data.hpp"
 #include "primitives/sector/sector.hpp"
 #include "proofs/proof_param_provider.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_file.hpp"
@@ -22,6 +23,7 @@ using fc::crypto::randomness::Randomness;
 using fc::primitives::SectorNumber;
 using fc::primitives::SectorSize;
 using fc::primitives::piece::PaddedPieceSize;
+using fc::primitives::piece::PieceData;
 using fc::primitives::piece::UnpaddedPieceSize;
 using fc::primitives::sector::OnChainSealVerifyInfo;
 using fc::primitives::sector::SealVerifyInfo;
@@ -68,7 +70,8 @@ TEST_F(ProofsTest, Lifecycle) {
   fc::proofs::RegisteredProof post_proof_type =
       fc::primitives::sector::RegisteredProof::StackedDRG2KiBPoSt;
   SectorNumber sector_num = 42;
-  EXPECT_OUTCOME_TRUE(sector_size, fc::primitives::sector::getSectorSize(seal_proof_type));
+  EXPECT_OUTCOME_TRUE(sector_size,
+                      fc::primitives::sector::getSectorSize(seal_proof_type));
   EXPECT_OUTCOME_TRUE_1(
       fc::proofs::ProofParamProvider::getParams(params, sector_size));
 
@@ -130,6 +133,8 @@ TEST_F(ProofsTest, Lifecycle) {
   }
   piece_file_a.close();
 
+  PieceData file_a(piece_file_a_path);
+
   EXPECT_OUTCOME_TRUE(
       piece_cid_a,
       Proofs::generatePieceCIDFromFile(
@@ -137,7 +142,7 @@ TEST_F(ProofsTest, Lifecycle) {
 
   EXPECT_OUTCOME_TRUE(res_a,
                       Proofs::writeWithoutAlignment(seal_proof_type,
-                                                    piece_file_a_path,
+                                                    file_a,
                                                     piece_commitment_a_size,
                                                     staged_sector_file));
 
@@ -159,9 +164,11 @@ TEST_F(ProofsTest, Lifecycle) {
           seal_proof_type, piece_file_b_path, UnpaddedPieceSize(1016)));
 
   std::vector<UnpaddedPieceSize> exist_pieces = {piece_commitment_a_size};
+
+  PieceData file_b(piece_file_b_path);
   EXPECT_OUTCOME_TRUE(res_b,
                       Proofs::writeWithAlignment(seal_proof_type,
-                                                 piece_file_b_path,
+                                                 file_b,
                                                  piece_commitment_b_size,
                                                  staged_sector_file,
                                                  exist_pieces));
