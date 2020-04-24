@@ -467,6 +467,20 @@ namespace fc::api {
       decode(v.signature, Get(j, "Signature"));
     }
 
+    ENCODE(BlockMessages) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "BlsMessages", v.bls);
+      Set(j, "SecpkMessages", v.secp);
+      Set(j, "Cids", v.cids);
+      return j;
+    }
+
+    DECODE(BlockMessages) {
+      decode(v.bls, Get(j, "BlsMessages"));
+      decode(v.secp, Get(j, "SecpkMessages"));
+      decode(v.cids, Get(j, "Cids"));
+    }
+
     ENCODE(SectorPreCommitInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "RegisteredProof", common::to_int(v.registered_proof));

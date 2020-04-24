@@ -94,7 +94,14 @@ namespace fc::api {
     Tipset tipset;
   };
 
+  struct BlockMessages {
+    std::vector<UnsignedMessage> bls;
+    std::vector<SignedMessage> secp;
+    std::vector<CID> cids;
+  };
+
   struct Api {
+    API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
     API_METHOD(ChainGetRandomness, Randomness, const TipsetKey &, int64_t)
     API_METHOD(ChainGetTipSet, Tipset, const TipsetKey &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)

@@ -82,6 +82,28 @@ namespace fc::api {
       return context;
     };
     return {
+        .ChainGetBlockMessages = {[=](auto &block_cid)
+                                      -> outcome::result<BlockMessages> {
+          BlockMessages messages;
+          OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
+          OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
+          meta.load(ipld);
+          OUTCOME_TRY(meta.bls_messages.visit(
+              [&](auto, auto &cid) -> outcome::result<void> {
+                OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+                messages.bls.push_back(std::move(message));
+                messages.cids.push_back(cid);
+                return outcome::success();
+              }));
+          OUTCOME_TRY(meta.secp_messages.visit(
+              [&](auto, auto &cid) -> outcome::result<void> {
+                OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                messages.secp.push_back(std::move(message));
+                messages.cids.push_back(cid);
+                return outcome::success();
+              }));
+          return messages;
+        }},
         .ChainGetRandomness = {[&](auto &tipset_key, auto round) {
           return chain_randomness->sampleRandomness(tipset_key.cids, round);
         }},
