@@ -14,8 +14,10 @@
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
 
+using fc::CID;
 using fc::storage::car::CarError;
 using fc::storage::car::loadCar;
+using fc::storage::car::makeCar;
 using fc::storage::ipfs::InMemoryDatastore;
 
 /**
@@ -43,4 +45,35 @@ TEST(GenesisTest, LoadTruncatedError) {
   auto input = readFile(GENESIS_FILE);
   EXPECT_OUTCOME_ERROR(CarError::DECODE_ERROR,
                        loadCar(ipld, input.subbuffer(0, input.size() - 1)));
+}
+
+struct Sample1 {
+  std::vector<CID> list;
+  std::map<std::string, CID> map;
+};
+CBOR_TUPLE(Sample1, list, map);
+
+struct Sample2 {
+  int i;
+};
+CBOR_TUPLE(Sample2, i)
+
+TEST(CarTest, Writer) {
+  InMemoryDatastore ipld1;
+  Sample2 obj2{2}, obj3{3};
+  EXPECT_OUTCOME_TRUE(cid2, ipld1.setCbor(obj2));
+  EXPECT_OUTCOME_TRUE(cid3, ipld1.setCbor(obj3));
+  Sample1 obj1{{cid2}, {{"a", cid3}}};
+  EXPECT_OUTCOME_TRUE(root, ipld1.setCbor(obj1));
+  EXPECT_OUTCOME_TRUE(car, makeCar(ipld1, {root}));
+
+  InMemoryDatastore ipld2;
+  EXPECT_OUTCOME_TRUE(roots, loadCar(ipld2, car));
+  EXPECT_THAT(roots, testing::ElementsAre(root));
+  EXPECT_OUTCOME_TRUE(raw1, ipld1.get(root));
+  EXPECT_OUTCOME_EQ(ipld2.get(root), raw1);
+  EXPECT_OUTCOME_TRUE(raw2, ipld1.get(cid2));
+  EXPECT_OUTCOME_EQ(ipld2.get(cid2), raw2);
+  EXPECT_OUTCOME_TRUE(raw3, ipld1.get(cid3));
+  EXPECT_OUTCOME_EQ(ipld2.get(cid3), raw3);
 }

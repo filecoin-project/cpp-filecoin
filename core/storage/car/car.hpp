@@ -11,10 +11,13 @@
 namespace fc::storage::car {
   using Ipld = ipfs::IpfsDatastore;
   using Input = gsl::span<const uint8_t>;
+  using common::Buffer;
 
   enum class CarError { DECODE_ERROR = 1 };
 
   struct CarHeader {
+    static constexpr uint64_t V1 = 1;
+
     std::vector<CID> roots;
     uint64_t version;
   };
@@ -32,6 +35,8 @@ namespace fc::storage::car {
   }
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input);
+
+  outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots);
 }  // namespace fc::storage::car
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::car, CarError);
