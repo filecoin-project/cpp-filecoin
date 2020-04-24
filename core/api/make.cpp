@@ -297,6 +297,7 @@ namespace fc::api {
                             PeerId::fromBase58(miner_state.info.peer_id));
                 storage_providers.push_back(StorageProviderInfo{
                     .address = miner_address,
+                    .owner = {},
                     .worker = miner_state.info.worker,
                     .sector_size = miner_state.info.sector_size,
                     .peer_id = peer_id});

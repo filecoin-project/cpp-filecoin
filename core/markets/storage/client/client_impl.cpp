@@ -123,7 +123,10 @@ namespace fc::markets::storage {
                            .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
                            .miner = provider_info.peer_id,
                            .miner_worker = provider_info.worker,
-                           .data_ref = data_ref};
+                           .deal_id = {},
+                           .data_ref = data_ref,
+                           .message = {},
+                           .publish_message = {}};
 
     // TODO (a.chernyshov) state machine
     // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L115
