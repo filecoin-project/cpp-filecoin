@@ -481,6 +481,18 @@ namespace fc::api {
       decode(v.cids, Get(j, "Cids"));
     }
 
+    ENCODE(CidMessage) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Cid", v.cid);
+      Set(j, "Message", v.message);
+      return j;
+    }
+
+    DECODE(CidMessage) {
+      decode(v.cid, Get(j, "Cid"));
+      decode(v.message, Get(j, "Message"));
+    }
+
     ENCODE(SectorPreCommitInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "RegisteredProof", common::to_int(v.registered_proof));

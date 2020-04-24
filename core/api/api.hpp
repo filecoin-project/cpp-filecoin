@@ -100,11 +100,14 @@ namespace fc::api {
     std::vector<CID> cids;
   };
 
+  struct CidMessage {
+    CID cid;
+    UnsignedMessage message;
+  };
+
   struct Api {
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
-    API_METHOD(ChainGetParentMessages,
-               std::vector<UnsignedMessage>,
-               const CID &)
+    API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
     API_METHOD(ChainGetRandomness, Randomness, const TipsetKey &, int64_t)
     API_METHOD(ChainGetTipSet, Tipset, const TipsetKey &)
