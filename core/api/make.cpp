@@ -104,33 +104,27 @@ namespace fc::api {
               }));
           return messages;
         }},
-      .ChainGetParentMessages =
-        {[=](auto &block_cid)
-           -> outcome::result<std::vector<UnsignedMessage>> {
-          std::vector<UnsignedMessage> messages;
-          OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
-          OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
-          meta.load(ipld);
-          OUTCOME_TRY(meta.bls_messages.visit(
-            [&](auto, auto &cid) -> outcome::result<void> {
-              OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
-              messages.push_back(std::move(message));
-              return outcome::success();
-            }));
-          OUTCOME_TRY(meta.secp_messages.visit(
-            [&](auto, auto &cid) -> outcome::result<void> {
-              OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
-              messages.push_back(std::move(message.message));
-              return outcome::success();
-            }));
-          return messages;
-        }},
-        .ChainGetRandomness = {[&](auto &tipset_key, auto round) {
-          return chain_randomness->sampleRandomness(tipset_key.cids, round);
-        }},
-        .ChainGetTipSet = {[&](auto &tipset_key) {
-          return chain_store->loadTipset(tipset_key);
-        }},
+        .ChainGetParentMessages =
+            {[=](auto &block_cid)
+                 -> outcome::result<std::vector<UnsignedMessage>> {
+              std::vector<UnsignedMessage> messages;
+              OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
+              OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
+              meta.load(ipld);
+              OUTCOME_TRY(meta.bls_messages.visit(
+                  [&](auto, auto &cid) -> outcome::result<void> {
+                    OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+                    messages.push_back(std::move(message));
+                    return outcome::success();
+                  }));
+              OUTCOME_TRY(meta.secp_messages.visit(
+                  [&](auto, auto &cid) -> outcome::result<void> {
+                    OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                    messages.push_back(std::move(message.message));
+                    return outcome::success();
+                  }));
+              return messages;
+            }},
         .ChainGetParentReceipts =
             {[&](auto &block_cid)
                  -> outcome::result<std::vector<MessageReceipt>> {
@@ -139,6 +133,12 @@ namespace fc::api {
                   .load(ipld)
                   .values();
             }},
+        .ChainGetRandomness = {[&](auto &tipset_key, auto round) {
+          return chain_randomness->sampleRandomness(tipset_key.cids, round);
+        }},
+        .ChainGetTipSet = {[&](auto &tipset_key) {
+          return chain_store->loadTipset(tipset_key);
+        }},
         .ChainHead = {[&]() { return chain_store->heaviestTipset(); }},
         // TODO(turuslan): FIL-165 implement method
         .ChainNotify = {},
