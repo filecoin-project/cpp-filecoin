@@ -111,6 +111,7 @@ namespace fc::api {
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
     API_METHOD(ChainGetRandomness, Randomness, const TipsetKey &, int64_t)
     API_METHOD(ChainGetTipSet, Tipset, const TipsetKey &)
+    API_METHOD(ChainGetTipSetByHeight, Tipset, ChainEpoch, const TipsetKey &)
     API_METHOD(ChainHead, Tipset)
     API_METHOD(ChainNotify, Chan<HeadChange>)
     API_METHOD(ChainReadObj, Buffer, CID)

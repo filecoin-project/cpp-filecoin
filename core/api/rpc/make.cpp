@@ -34,6 +34,7 @@ namespace fc::api {
     setup(rpc, api.ChainGetParentReceipts);
     setup(rpc, api.ChainGetRandomness);
     setup(rpc, api.ChainGetTipSet);
+    setup(rpc, api.ChainGetTipSetByHeight);
     setup(rpc, api.ChainHead);
     setup(rpc, api.ChainNotify);
     setup(rpc, api.ChainReadObj);

@@ -141,6 +141,25 @@ namespace fc::api {
         .ChainGetTipSet = {[&](auto &tipset_key) {
           return chain_store->loadTipset(tipset_key);
         }},
+        .ChainGetTipSetByHeight = {[&](auto height2, auto &tipset_key)
+                                       -> outcome::result<Tipset> {
+          // TODO(turuslan): use height index from chain store
+          // TODO(turuslan): error if height is negative or above starting
+          // TODO(turuslan): return genesis if height is zero
+          auto height = static_cast<uint64_t>(height2);
+          OUTCOME_TRY(tipset,
+                      tipset_key.cids.empty()
+                          ? chain_store->heaviestTipset()
+                          : chain_store->loadTipset(tipset_key));
+          while (tipset.height > height) {
+            OUTCOME_TRY(parent, chain_store->loadParent(tipset));
+            if (parent.height < height) {
+              break;
+            }
+            tipset = std::move(parent);
+          }
+          return std::move(tipset);
+        }},
         .ChainHead = {[&]() { return chain_store->heaviestTipset(); }},
         // TODO(turuslan): FIL-165 implement method
         .ChainNotify = {},
