@@ -31,6 +31,10 @@ namespace fc::storage::blockchain {
      */
     virtual outcome::result<Tipset> loadTipset(const TipsetKey &key) = 0;
 
+    inline outcome::result<Tipset> loadParent(const Tipset &tipset) {
+      return loadTipset(tipset.blks[0].parents);
+    }
+
     /** @brief creates chain randomness provider */
     virtual std::shared_ptr<ChainRandomnessProvider>
     createRandomnessProvider() = 0;
