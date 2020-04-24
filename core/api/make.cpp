@@ -15,6 +15,7 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::api {
+  using primitives::block::BlockHeader;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
   using vm::actor::builtin::miner::MinerActorState;
@@ -87,6 +88,14 @@ namespace fc::api {
         .ChainGetTipSet = {[&](auto &tipset_key) {
           return chain_store->loadTipset(tipset_key);
         }},
+        .ChainGetParentReceipts =
+            {[&](auto &block_cid)
+                 -> outcome::result<std::vector<MessageReceipt>> {
+              OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
+              return adt::Array<MessageReceipt>{block.parent_message_receipts}
+                  .load(ipld)
+                  .values();
+            }},
         .ChainHead = {[&]() { return chain_store->heaviestTipset(); }},
         // TODO(turuslan): FIL-165 implement method
         .ChainNotify = {},
