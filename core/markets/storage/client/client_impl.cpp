@@ -43,12 +43,14 @@ namespace fc::markets::storage {
   }
 
   outcome::result<std::vector<StorageDeal>> ClientImpl::listLocalDeals() const {
-    // TODO
+    // TODO (a.chernyshov) state from FSM
+    // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L115
     return StorageMarketClientError::UNKNOWN_ERROR;
   }
 
   outcome::result<StorageDeal> ClientImpl::getLocalDeal(const CID &cid) const {
-    // TODO
+    // TODO (a.chernyshov) state from FSM
+    // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L115
     return StorageMarketClientError::UNKNOWN_ERROR;
   }
 
@@ -116,17 +118,15 @@ namespace fc::markets::storage {
     OUTCOME_TRY(proposal_node,
                 IPLDNodeImpl::createFromRawBytes(proposal_bytes));
 
-    ClientDeal client_deal {
-      .client_deal_proposal = signed_proposal,
-      .proposal_cid = proposal_node->getCID(),
-      .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
-      .miner = provider_info.peer_id,
-      .miner_worker = provider_info.worker,
-      .data_ref = data_ref
-    };
+    ClientDeal client_deal{.client_deal_proposal = signed_proposal,
+                           .proposal_cid = proposal_node->getCID(),
+                           .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
+                           .miner = provider_info.peer_id,
+                           .miner_worker = provider_info.worker,
+                           .data_ref = data_ref};
 
     // TODO (a.chernyshov) state machine
-
+    // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L115
 
     return StorageMarketClientError::UNKNOWN_ERROR;
   }
