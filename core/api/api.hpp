@@ -175,6 +175,7 @@ namespace fc::api {
 
     API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
 
+    API_METHOD(WalletDefaultAddress, Address)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
   };
 }  // namespace fc::api

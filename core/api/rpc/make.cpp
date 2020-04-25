@@ -62,6 +62,7 @@ namespace fc::api {
     setup(rpc, api.StateMinerWorker);
     setup(rpc, api.StateWaitMsg);
     setup(rpc, api.SyncSubmitBlock);
+    setup(rpc, api.WalletDefaultAddress);
     setup(rpc, api.WalletSign);
   }
 }  // namespace fc::api

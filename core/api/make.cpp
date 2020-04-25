@@ -380,6 +380,8 @@ namespace fc::api {
         .StateWaitMsg = {},
         // TODO(turuslan): FIL-165 implement method
         .SyncSubmitBlock = {},
+        // TODO(turuslan): FIL-165 implement method
+        .WalletDefaultAddress = {},
         .WalletSign = {[&](auto address, auto data) {
           return key_store->sign(address, data);
         }},
