@@ -39,6 +39,7 @@ namespace fc::api {
   using primitives::TipsetWeight;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using primitives::block::BlockHeader;
   using primitives::block::BlockMsg;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
@@ -106,6 +107,7 @@ namespace fc::api {
   };
 
   struct Api {
+    API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)

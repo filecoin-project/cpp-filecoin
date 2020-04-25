@@ -82,6 +82,9 @@ namespace fc::api {
       return context;
     };
     return {
+        .ChainGetBlock = {[=](auto &block_cid) {
+          return ipld->getCbor<BlockHeader>(block_cid);
+        }},
         .ChainGetBlockMessages = {[=](auto &block_cid)
                                       -> outcome::result<BlockMessages> {
           BlockMessages messages;
