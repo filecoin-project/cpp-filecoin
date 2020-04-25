@@ -143,6 +143,7 @@ namespace fc::api {
                const Buffer &,
                TokenAmount)
 
+    API_METHOD(StateAccountKey, Address, const Address &, const TipsetKey &)
     API_METHOD(StateCall,
                InvocResult,
                const UnsignedMessage &,

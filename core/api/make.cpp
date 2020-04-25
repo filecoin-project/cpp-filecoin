@@ -6,6 +6,7 @@
 #include "api/make.hpp"
 
 #include "blockchain/production/impl/block_producer_impl.hpp"
+#include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
@@ -18,6 +19,7 @@ namespace fc::api {
   using primitives::block::BlockHeader;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
+  using vm::actor::builtin::account::AccountActorState;
   using vm::actor::builtin::miner::MinerActorState;
   using vm::actor::builtin::storage_power::StoragePowerActorState;
   using vm::interpreter::InterpreterImpl;
@@ -230,6 +232,18 @@ namespace fc::api {
         .MpoolPushMessage = {},
         // TODO(turuslan): FIL-165 implement method
         .PaychVoucherAdd = {},
+        .StateAccountKey = {[=](auto &address,
+                                auto &tipset_key) -> outcome::result<Address> {
+          if (address.isKeyType()) {
+            return address;
+          }
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          // TODO(turuslan): error if not account
+          OUTCOME_TRY(
+              state,
+              context.template actorState<AccountActorState, false>(address));
+          return state.address;
+        }},
         .StateCall = {[&](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
