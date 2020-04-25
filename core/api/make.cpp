@@ -87,8 +87,6 @@ namespace fc::api {
         .ChainGetBlock = {[=](auto &block_cid) {
           return ipld->getCbor<BlockHeader>(block_cid);
         }},
-        // TODO(turuslan): FIL-165 implement method
-        .ChainGetGenesis = {},
         .ChainGetBlockMessages = {[=](auto &block_cid)
                                       -> outcome::result<BlockMessages> {
           BlockMessages messages;
@@ -111,6 +109,8 @@ namespace fc::api {
               }));
           return messages;
         }},
+        // TODO(turuslan): FIL-165 implement method
+        .ChainGetGenesis = {},
         .ChainGetParentMessages =
             {[=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
               std::vector<CidMessage> messages;

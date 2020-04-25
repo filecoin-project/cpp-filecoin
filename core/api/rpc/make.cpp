@@ -30,8 +30,8 @@ namespace fc::api {
 
   void setupRpc(Rpc &rpc, const Api &api) {
     setup(rpc, api.ChainGetBlock);
-    setup(rpc, api.ChainGetGenesis);
     setup(rpc, api.ChainGetBlockMessages);
+    setup(rpc, api.ChainGetGenesis);
     setup(rpc, api.ChainGetParentMessages);
     setup(rpc, api.ChainGetParentReceipts);
     setup(rpc, api.ChainGetRandomness);
