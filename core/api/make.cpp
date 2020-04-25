@@ -262,6 +262,12 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key, true));
           return context.state_tree.get(address);
         }},
+        .StateListMiners = {[=](auto &tipset_key)
+                                -> outcome::result<std::vector<Address>> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(power_state, context.powerState());
+          return power_state.claims.keys();
+        }},
         .StateMarketBalance =
             {[&](auto &address, auto &tipset_key)
                  -> outcome::result<StorageParticipantBalance> {

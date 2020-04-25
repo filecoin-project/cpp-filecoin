@@ -49,6 +49,7 @@ namespace fc::api {
     setup(rpc, api.PaychVoucherAdd);
     setup(rpc, api.StateCall);
     setup(rpc, api.StateGetActor);
+    setup(rpc, api.StateListMiners);
     setup(rpc, api.StateMarketBalance);
     setup(rpc, api.StateMarketDeals);
     setup(rpc, api.StateMarketStorageDeal);
