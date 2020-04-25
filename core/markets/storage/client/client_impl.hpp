@@ -82,8 +82,6 @@ namespace fc::markets::storage {
     // TODO
     // discovery
 
-    Api node;
-
     // TODO
     // state machine
 

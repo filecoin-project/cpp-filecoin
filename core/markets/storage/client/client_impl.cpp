@@ -155,7 +155,7 @@ namespace fc::markets::storage {
     if (response.value().ask.ask.miner != info.address) {
       return StorageMarketClientError::WRONG_MINER;
     }
-    OUTCOME_TRY(tipset, node.ChainHead());
+    OUTCOME_TRY(tipset, api_->ChainHead());
     OUTCOME_TRY(tipset_key, tipset.makeKey());
     OUTCOME_TRY(signature_valid,
                 api_->ValidateAskSignature(response.value().ask, tipset_key));
