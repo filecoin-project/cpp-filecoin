@@ -16,11 +16,11 @@ namespace fc::codec::cbor {
     INT_KEY_TOO_BIG
   };
 
-  using Path = std::vector<std::string>;
+  using Path = gsl::span<const std::string>;
 
   /** Resolves path in CBOR object to CBOR subobject */
   outcome::result<std::pair<std::vector<uint8_t>, Path>> resolve(
-      gsl::span<const uint8_t> node, const Path &path);
+      gsl::span<const uint8_t> node, Path path);
 }  // namespace fc::codec::cbor
 
 OUTCOME_HPP_DECLARE_ERROR(fc::codec::cbor, CborResolveError);

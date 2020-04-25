@@ -23,7 +23,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::cbor, CborResolveError, e) {
 
 namespace fc::codec::cbor {
   outcome::result<std::pair<std::vector<uint8_t>, Path>> resolve(
-      gsl::span<const uint8_t> node, const Path &path) {
+      gsl::span<const uint8_t> node, Path path) {
     try {
       CborDecodeStream stream(node);
       auto part = path.begin();
@@ -61,7 +61,7 @@ namespace fc::codec::cbor {
           return CborResolveError::CONTAINER_EXPECTED;
         }
       }
-      return std::make_pair(stream.raw(), Path{part, path.end()});
+      return std::make_pair(stream.raw(), path.subspan(part - path.begin()));
     } catch (std::system_error &e) {
       return outcome::failure(e.code());
     }
