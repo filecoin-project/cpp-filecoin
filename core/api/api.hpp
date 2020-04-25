@@ -109,6 +109,7 @@ namespace fc::api {
   struct Api {
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
+    API_METHOD(ChainGetGenesis, Tipset)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
     API_METHOD(ChainGetRandomness, Randomness, const TipsetKey &, int64_t)
@@ -117,6 +118,7 @@ namespace fc::api {
     API_METHOD(ChainHead, Tipset)
     API_METHOD(ChainNotify, Chan<HeadChange>)
     API_METHOD(ChainReadObj, Buffer, CID)
+    API_METHOD(ChainSetHead, void, const TipsetKey &)
     API_METHOD(ChainTipSetWeight, TipsetWeight, const TipsetKey &)
 
     API_METHOD(MarketEnsureAvailable, void, const Address &, TokenAmount)

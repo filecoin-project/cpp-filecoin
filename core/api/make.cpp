@@ -85,6 +85,8 @@ namespace fc::api {
         .ChainGetBlock = {[=](auto &block_cid) {
           return ipld->getCbor<BlockHeader>(block_cid);
         }},
+        // TODO(turuslan): FIL-165 implement method
+        .ChainGetGenesis = {},
         .ChainGetBlockMessages = {[=](auto &block_cid)
                                       -> outcome::result<BlockMessages> {
           BlockMessages messages;
@@ -167,6 +169,8 @@ namespace fc::api {
         // TODO(turuslan): FIL-165 implement method
         .ChainNotify = {},
         .ChainReadObj = {[&](const auto &cid) { return ipld->get(cid); }},
+        // TODO(turuslan): FIL-165 implement method
+        .ChainSetHead = {},
         .ChainTipSetWeight = {[&](auto &tipset_key)
                                   -> outcome::result<TipsetWeight> {
           OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));

@@ -30,6 +30,7 @@ namespace fc::api {
 
   void setupRpc(Rpc &rpc, const Api &api) {
     setup(rpc, api.ChainGetBlock);
+    setup(rpc, api.ChainGetGenesis);
     setup(rpc, api.ChainGetBlockMessages);
     setup(rpc, api.ChainGetParentMessages);
     setup(rpc, api.ChainGetParentReceipts);
@@ -39,6 +40,7 @@ namespace fc::api {
     setup(rpc, api.ChainHead);
     setup(rpc, api.ChainNotify);
     setup(rpc, api.ChainReadObj);
+    setup(rpc, api.ChainSetHead);
     setup(rpc, api.ChainTipSetWeight);
     setup(rpc, api.MarketEnsureAvailable);
     setup(rpc, api.MinerCreateBlock);
