@@ -39,6 +39,7 @@ namespace fc::api {
   using vm::actor::builtin::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
   using SignatureType = crypto::signature::Type;
+  using codec::cbor::CborDecodeStream;
   using primitives::sector::RegisteredProof;
 
   struct Request {
@@ -178,6 +179,10 @@ namespace fc::api {
 
     ENCODE(std::string_view) {
       return {v.data(), static_cast<rapidjson::SizeType>(v.size()), allocator};
+    }
+
+    DECODE(std::string) {
+      v = AsString(j);
     }
 
     ENCODE(gsl::span<const uint8_t>) {
@@ -684,6 +689,58 @@ namespace fc::api {
       v.error = AsString(Get(j, "Error"));
     }
 
+    template <typename T>
+    Value encodeAs(CborDecodeStream &s) {
+      T v;
+      s >> v;
+      return encode(v);
+    }
+
+    Value encode(CborDecodeStream &s) {
+      if (s.isCid()) {
+        return encodeAs<CID>(s);
+      } else if (s.isList()) {
+        auto n = s.listLength();
+        Value j{rapidjson::kArrayType};
+        j.Reserve(n, allocator);
+        auto l = s.list();
+        for (; n != 0; --n) {
+          j.PushBack(encode(l), allocator);
+        }
+        return j;
+      } else if (s.isMap()) {
+        auto m = s.map();
+        Value j{rapidjson::kObjectType};
+        j.MemberReserve(m.size(), allocator);
+        for (auto &p : m) {
+          Set(j, p.first, encode(p.second));
+        }
+        return j;
+      } else if (s.isNull()) {
+        s.next();
+        return {};
+      } else if (s.isInt()) {
+        return encodeAs<int64_t>(s);
+      } else if (s.isStr()) {
+        return encodeAs<std::string>(s);
+      } else if (s.isBytes()) {
+        return encodeAs<std::vector<uint8_t>>(s);
+      }
+      outcome::raise(JsonError::WRONG_TYPE);
+    }
+
+    ENCODE(IpldObject) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Cid", v.cid);
+      CborDecodeStream s{v.raw};
+      Set(j, "Obj", encode(s));
+      return j;
+    }
+
+    DECODE(IpldObject) {
+      outcome::raise(JsonError::WRONG_TYPE);
+    }
+
     ENCODE(DealProposal) {
       Value j{rapidjson::kObjectType};
       Set(j, "PieceCID", v.piece_cid);
@@ -765,7 +822,8 @@ namespace fc::api {
       }
     }
 
-    template <typename T>
+    template <typename T,
+              typename = std::enable_if_t<!std::is_same_v<T, uint8_t>>>
     ENCODE(std::vector<T>) {
       Value j{rapidjson::kArrayType};
       j.Reserve(v.size(), allocator);

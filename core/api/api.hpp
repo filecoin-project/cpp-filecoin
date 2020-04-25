@@ -106,6 +106,11 @@ namespace fc::api {
     UnsignedMessage message;
   };
 
+  struct IpldObject {
+    CID cid;
+    Buffer raw;
+  };
+
   struct Api {
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
