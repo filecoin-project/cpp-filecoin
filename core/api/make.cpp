@@ -5,6 +5,8 @@
 
 #include "api/make.hpp"
 
+#include <boost/algorithm/string.hpp>
+
 #include "blockchain/production/impl/block_producer_impl.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
@@ -30,7 +32,6 @@ namespace fc::api {
   using crypto::randomness::RandomnessProvider;
   using crypto::signature::BlsSignature;
   using primitives::block::MsgMeta;
-  using storage::amt::Amt;
   using vm::isVMExitCode;
   using vm::normalizeVMExitCode;
   using vm::VMExitCode;
@@ -67,7 +68,7 @@ namespace fc::api {
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
-               std::shared_ptr<IpfsDatastore> ipld,
+               std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<KeyStore> key_store) {
     auto chain_randomness = chain_store->createRandomnessProvider();
@@ -111,6 +112,15 @@ namespace fc::api {
         }},
         // TODO(turuslan): FIL-165 implement method
         .ChainGetGenesis = {},
+        .ChainGetNode = {[=](auto &path) -> outcome::result<IpldObject> {
+          std::vector<std::string> parts;
+          boost::split(parts, path, [](auto c) { return c == '/'; });
+          assert(parts.size() >= 3);
+          assert(parts[0].empty());
+          assert(parts[1] == "ipfs");
+          OUTCOME_TRY(root, CID::fromString(parts[2]));
+          return getNode(ipld, root, gsl::make_span(parts).subspan(3));
+        }},
         .ChainGetParentMessages =
             {[=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
               std::vector<CidMessage> messages;

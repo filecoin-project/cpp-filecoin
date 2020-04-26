@@ -5,6 +5,7 @@
 
 add_library(api
     make.cpp
+    get_node.cpp
     )
 target_link_libraries(api
     address
