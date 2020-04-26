@@ -18,6 +18,8 @@ namespace fc::codec::cbor {
 
   using Path = gsl::span<const std::string>;
 
+  outcome::result<uint64_t> parseIndex(const std::string &str);
+
   /** Resolves path in CBOR object to CBOR subobject */
   outcome::result<std::pair<std::vector<uint8_t>, Path>> resolve(
       gsl::span<const uint8_t> node, Path path);

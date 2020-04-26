@@ -22,6 +22,25 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::cbor, CborResolveError, e) {
 }
 
 namespace fc::codec::cbor {
+  outcome::result<uint64_t> parseIndex(const std::string &str) {
+    uint64_t value;
+    size_t chars;
+    try {
+      value = std::stoul(str, &chars);
+    } catch (std::invalid_argument &) {
+      return outcome::failure(CborResolveError::INT_KEY_EXPECTED);
+    } catch (std::out_of_range &) {
+      return outcome::failure(CborResolveError::KEY_NOT_FOUND);
+    }
+    if (chars != str.size()) {
+      return outcome::failure(CborResolveError::INT_KEY_EXPECTED);
+    }
+    if (str[0] == '-') {
+      return outcome::failure(CborResolveError::INT_KEY_EXPECTED);
+    }
+    return value;
+  }
+
   outcome::result<std::pair<std::vector<uint8_t>, Path>> resolve(
       gsl::span<const uint8_t> node, Path path) {
     try {
@@ -32,18 +51,7 @@ namespace fc::codec::cbor {
           break;
         }
         if (stream.isList()) {
-          size_t index;
-          size_t index_chars;
-          try {
-            index = std::stoul(*part, &index_chars);
-          } catch (std::invalid_argument &) {
-            return CborResolveError::INT_KEY_EXPECTED;
-          } catch (std::out_of_range &) {
-            return CborResolveError::KEY_NOT_FOUND;
-          }
-          if (index_chars != part->size()) {
-            return CborResolveError::INT_KEY_EXPECTED;
-          }
+          OUTCOME_TRY(index, parseIndex(*part));
           if (index >= stream.listLength()) {
             return CborResolveError::KEY_NOT_FOUND;
           }
