@@ -445,35 +445,22 @@ TEST(CborDecoder, Misc) {
 }
 
 struct CborResolve : testing::Test {
-  auto resolve(gsl::span<const uint8_t> node, std::vector<std::string> path) {
-    path_ = std::move(path);
-    return fc::codec::cbor::resolve(node, path_);
+  fc::outcome::result<std::vector<uint8_t>> resolve(
+      gsl::span<const uint8_t> node, const std::string &part) {
+    CborDecodeStream s{node};
+    OUTCOME_TRY(fc::codec::cbor::resolve(s, part));
+    return s.raw();
   }
-
-  std::vector<std::string> path_;
 };
-
-/**
- * @given CBOR and empty path
- * @when Resolve
- * @then Returned whole CBOR
- */
-TEST_F(CborResolve, Root) {
-  auto a = "80"_unhex;
-  EXPECT_OUTCOME_TRUE_2(b, resolve(a, {}));
-  EXPECT_EQ(b.first, a);
-  EXPECT_EQ(b.second.size(), 0);
-}
 
 /**
  * @given CBOR and path through CID
  * @when Resolve
- * @then Returns CID CBOR and rest of path
+ * @then Error
  */
 TEST_F(CborResolve, Cid) {
-  EXPECT_OUTCOME_TRUE_2(b, resolve(kCidCbor, {"a"}));
-  EXPECT_EQ(b.first, kCidCbor);
-  EXPECT_EQ(b.second.size(), 1);
+  EXPECT_OUTCOME_ERROR(CborResolveError::CONTAINER_EXPECTED,
+                       resolve(kCidCbor, "a"));
 }
 
 /**
@@ -484,13 +471,12 @@ TEST_F(CborResolve, Cid) {
 TEST_F(CborResolve, IntKey) {
   auto a = "8405060708"_unhex;
 
-  EXPECT_OUTCOME_TRUE_2(b, resolve(a, {"2"}));
-  EXPECT_EQ(b.first, "07"_unhex);
-  EXPECT_EQ(b.second.size(), 0);
+  EXPECT_OUTCOME_EQ(resolve(a, "2"), "07"_unhex);
 
-  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, {"a"}));
-  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, {"1a"}));
-  EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, {"4"}));
+  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, "a"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, "1a"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, "-4"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, "4"));
 }
 
 /**
@@ -501,11 +487,9 @@ TEST_F(CborResolve, IntKey) {
 TEST_F(CborResolve, StringKey) {
   auto a = "A3616103616204616305"_unhex;
 
-  EXPECT_OUTCOME_TRUE_2(b, resolve(a, {"b"}));
-  EXPECT_EQ(b.first, "04"_unhex);
-  EXPECT_EQ(b.second.size(), 0);
+  EXPECT_OUTCOME_EQ(resolve(a, "b"), "04"_unhex);
 
-  EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, {"1"}));
+  EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, "1"));
 }
 
 /**
@@ -515,7 +499,7 @@ TEST_F(CborResolve, StringKey) {
  */
 TEST_F(CborResolve, Errors) {
   EXPECT_OUTCOME_ERROR(CborResolveError::CONTAINER_EXPECTED,
-                       resolve("01"_unhex, {"0"}));
+                       resolve("01"_unhex, "0"));
   EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CBOR,
-                       resolve("8281"_unhex, {"1"}));
+                       resolve("8281"_unhex, "1"));
 }

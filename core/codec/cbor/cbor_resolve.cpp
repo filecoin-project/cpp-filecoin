@@ -41,37 +41,31 @@ namespace fc::codec::cbor {
     return value;
   }
 
-  outcome::result<std::pair<std::vector<uint8_t>, Path>> resolve(
-      gsl::span<const uint8_t> node, Path path) {
+  outcome::result<void> resolve(CborDecodeStream &stream,
+                                const std::string &part) {
     try {
-      CborDecodeStream stream(node);
-      auto part = path.begin();
-      for (; part != path.end(); part++) {
-        if (stream.isCid()) {
-          break;
+      if (stream.isList()) {
+        OUTCOME_TRY(index, parseIndex(part));
+        if (index >= stream.listLength()) {
+          return CborResolveError::KEY_NOT_FOUND;
         }
-        if (stream.isList()) {
-          OUTCOME_TRY(index, parseIndex(*part));
-          if (index >= stream.listLength()) {
-            return CborResolveError::KEY_NOT_FOUND;
-          }
-          stream = stream.list();
-          for (size_t i = 0; i < index; i++) {
-            stream.next();
-          }
-        } else if (stream.isMap()) {
-          auto map = stream.map();
-          if (map.find(*part) == map.end()) {
-            return CborResolveError::KEY_NOT_FOUND;
-          }
-          stream = map.at(*part);
-        } else {
-          return CborResolveError::CONTAINER_EXPECTED;
+        stream = stream.list();
+        for (size_t i = 0; i < index; i++) {
+          stream.next();
         }
+      } else if (stream.isMap()) {
+        auto map = stream.map();
+        auto it = map.find(part);
+        if (it == map.end()) {
+          return CborResolveError::KEY_NOT_FOUND;
+        }
+        stream = std::move(it->second);
+      } else {
+        return CborResolveError::CONTAINER_EXPECTED;
       }
-      return std::make_pair(stream.raw(), path.subspan(part - path.begin()));
     } catch (std::system_error &e) {
       return outcome::failure(e.code());
     }
+    return outcome::success();
   }
 }  // namespace fc::codec::cbor

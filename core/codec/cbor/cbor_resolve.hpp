@@ -21,8 +21,8 @@ namespace fc::codec::cbor {
   outcome::result<uint64_t> parseIndex(const std::string &str);
 
   /** Resolves path in CBOR object to CBOR subobject */
-  outcome::result<std::pair<std::vector<uint8_t>, Path>> resolve(
-      gsl::span<const uint8_t> node, Path path);
+  outcome::result<void> resolve(CborDecodeStream &stream,
+                                const std::string &part);
 }  // namespace fc::codec::cbor
 
 OUTCOME_HPP_DECLARE_ERROR(fc::codec::cbor, CborResolveError);
