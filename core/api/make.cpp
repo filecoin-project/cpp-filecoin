@@ -72,7 +72,7 @@ namespace fc::api {
                std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<KeyStore> key_store) {
     auto chain_randomness = chain_store->createRandomnessProvider();
-    auto tipsetContext = [&](auto &tipset_key,
+    auto tipsetContext = [=](auto &tipset_key,
                              bool interpret =
                                  false) -> outcome::result<TipsetContext> {
       OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
@@ -145,20 +145,20 @@ namespace fc::api {
               return messages;
             }},
         .ChainGetParentReceipts =
-            {[&](auto &block_cid)
+            {[=](auto &block_cid)
                  -> outcome::result<std::vector<MessageReceipt>> {
               OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
               return adt::Array<MessageReceipt>{block.parent_message_receipts}
                   .load(ipld)
                   .values();
             }},
-        .ChainGetRandomness = {[&](auto &tipset_key, auto round) {
+        .ChainGetRandomness = {[=](auto &tipset_key, auto round) {
           return chain_randomness->sampleRandomness(tipset_key.cids, round);
         }},
-        .ChainGetTipSet = {[&](auto &tipset_key) {
+        .ChainGetTipSet = {[=](auto &tipset_key) {
           return chain_store->loadTipset(tipset_key);
         }},
-        .ChainGetTipSetByHeight = {[&](auto height2, auto &tipset_key)
+        .ChainGetTipSetByHeight = {[=](auto height2, auto &tipset_key)
                                        -> outcome::result<Tipset> {
           // TODO(turuslan): use height index from chain store
           // TODO(turuslan): return genesis if height is zero
@@ -179,20 +179,20 @@ namespace fc::api {
           }
           return std::move(tipset);
         }},
-        .ChainHead = {[&]() { return chain_store->heaviestTipset(); }},
+        .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
         // TODO(turuslan): FIL-165 implement method
         .ChainNotify = {},
-        .ChainReadObj = {[&](const auto &cid) { return ipld->get(cid); }},
+        .ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }},
         // TODO(turuslan): FIL-165 implement method
         .ChainSetHead = {},
-        .ChainTipSetWeight = {[&](auto &tipset_key)
+        .ChainTipSetWeight = {[=](auto &tipset_key)
                                   -> outcome::result<TipsetWeight> {
           OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
           return weight_calculator->calculateWeight(tipset);
         }},
         // TODO(turuslan): FIL-165 implement method
         .MarketEnsureAvailable = {},
-        .MinerCreateBlock = {[&](auto &miner,
+        .MinerCreateBlock = {[=](auto &miner,
                                  auto &parent,
                                  auto &ticket,
                                  auto &proof,
@@ -256,7 +256,7 @@ namespace fc::api {
               context.template actorState<AccountActorState, false>(address));
           return state.address;
         }},
-        .StateCall = {[&](auto &message,
+        .StateCall = {[=](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           // TODO(turuslan): FIL-146 randomness from tipset
@@ -283,7 +283,7 @@ namespace fc::api {
           }
           return result;
         }},
-        .StateGetActor = {[&](auto &address,
+        .StateGetActor = {[=](auto &address,
                               auto &tipset_key) -> outcome::result<Actor> {
           OUTCOME_TRY(context, tipsetContext(tipset_key, true));
           return context.state_tree.get(address);
@@ -295,7 +295,7 @@ namespace fc::api {
           return power_state.claims.keys();
         }},
         .StateMarketBalance =
-            {[&](auto &address, auto &tipset_key)
+            {[=](auto &address, auto &tipset_key)
                  -> outcome::result<StorageParticipantBalance> {
               OUTCOME_TRY(context, tipsetContext(tipset_key));
               OUTCOME_TRY(state, context.marketState());
@@ -310,7 +310,7 @@ namespace fc::api {
               }
               return StorageParticipantBalance{*locked, *escrow - *locked};
             }},
-        .StateMarketDeals = {[&](auto &tipset_key)
+        .StateMarketDeals = {[=](auto &tipset_key)
                                  -> outcome::result<MarketDealMap> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
@@ -323,7 +323,7 @@ namespace fc::api {
           }));
           return map;
         }},
-        .StateMarketStorageDeal = {[&](auto deal_id, auto &tipset_key)
+        .StateMarketStorageDeal = {[=](auto deal_id, auto &tipset_key)
                                        -> outcome::result<MarketDeal> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
@@ -331,19 +331,19 @@ namespace fc::api {
           OUTCOME_TRY(deal_state, state.states.get(deal_id));
           return MarketDeal{deal, deal_state};
         }},
-        .StateMinerElectionPeriodStart = {[&](auto address, auto tipset_key)
+        .StateMinerElectionPeriodStart = {[=](auto address, auto tipset_key)
                                               -> outcome::result<ChainEpoch> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           return state.post_state.proving_period_start;
         }},
-        .StateMinerFaults = {[&](auto address, auto tipset_key)
+        .StateMinerFaults = {[=](auto address, auto tipset_key)
                                  -> outcome::result<RleBitset> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           return state.fault_set;
         }},
-        .StateMinerPower = {[&](auto &address, auto &tipset_key)
+        .StateMinerPower = {[=](auto &address, auto &tipset_key)
                                 -> outcome::result<MinerPower> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
 
@@ -365,7 +365,7 @@ namespace fc::api {
           };
         }},
         .StateMinerProvingSet =
-            {[&](auto address, auto tipset_key)
+            {[=](auto address, auto tipset_key)
                  -> outcome::result<std::vector<ChainSectorInfo>> {
               OUTCOME_TRY(context, tipsetContext(tipset_key));
               OUTCOME_TRY(state, context.minerState(address));
@@ -376,13 +376,13 @@ namespace fc::api {
               }));
               return sectors;
             }},
-        .StateMinerSectorSize = {[&](auto address, auto tipset_key)
+        .StateMinerSectorSize = {[=](auto address, auto tipset_key)
                                      -> outcome::result<SectorSize> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           return state.info.sector_size;
         }},
-        .StateMinerWorker = {[&](auto address,
+        .StateMinerWorker = {[=](auto address,
                                  auto tipset_key) -> outcome::result<Address> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
@@ -394,7 +394,7 @@ namespace fc::api {
         .SyncSubmitBlock = {},
         // TODO(turuslan): FIL-165 implement method
         .WalletDefaultAddress = {},
-        .WalletSign = {[&](auto address, auto data) {
+        .WalletSign = {[=](auto address, auto data) {
           return key_store->sign(address, data);
         }},
     };
