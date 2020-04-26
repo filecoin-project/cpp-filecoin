@@ -19,7 +19,9 @@ namespace fc::api {
   outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
                                       const CID &root,
                                       gsl::span<const std::string> parts) {
-    assert(root.content_type == libp2p::multi::MulticodecType::DAG_CBOR);
+    if (root.content_type != libp2p::multi::MulticodecType::DAG_CBOR) {
+      return TodoError::ERROR;
+    }
     OUTCOME_TRY(raw, ipld->get(root));
     try {
       CborDecodeStream s{raw};
@@ -70,7 +72,9 @@ namespace fc::api {
             OUTCOME_TRY(raw2, ipld->get(cid));
             s = CborDecodeStream{raw2};
           } else {
-            assert(i == parts.size() - 1);
+            if (i != parts.size() - 1) {
+              return TodoError::ERROR;
+            }
           }
         }
       }

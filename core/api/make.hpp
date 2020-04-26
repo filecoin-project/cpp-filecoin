@@ -8,6 +8,7 @@
 
 #include "api/api.hpp"
 #include "blockchain/weight_calculator.hpp"
+#include "common/todo_error.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/keystore/keystore.hpp"
