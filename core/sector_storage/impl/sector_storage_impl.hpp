@@ -21,8 +21,8 @@ namespace fc::sector_storage {
                       RegisteredProof post_proof,
                       RegisteredProof seal_proof);
 
-    outcome::result<SectorPaths> acquireSector(SectorId id,
-                                               SectorFileType sector_type) override;
+    outcome::result<SectorPaths> acquireSector(
+        SectorId id, SectorFileType sector_type) override;
 
     outcome::result<PreCommit1Output> sealPreCommit1(
         const SectorId &sector,
@@ -49,6 +49,13 @@ namespace fc::sector_storage {
         gsl::span<const UnpaddedPieceSize> piece_sizes,
         UnpaddedPieceSize new_piece_size,
         const PieceData &piece_data) override;
+
+    outcome::result<PieceData> readPieceFromSealedSector(
+        const SectorId &sector,
+        UnpaddedByteIndex offset,
+        UnpaddedPieceSize size,
+        const SealRandomness &ticket,
+        const CID &unsealedCID) override;
 
    private:
     path root_;

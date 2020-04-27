@@ -185,4 +185,77 @@ namespace fc::sector_storage {
 
     return PieceInfo(new_piece_size.padded(), response.piece_cid);
   }
+
+  outcome::result<PieceData> SectorStorageImpl::readPieceFromSealedSector(
+      const SectorId &sector,
+      UnpaddedByteIndex offset,
+      UnpaddedPieceSize size,
+      const SealRandomness &ticket,
+      const CID &unsealedCID) {
+    OUTCOME_TRY(path, acquireSector(sector, SectorFileType::FTUnsealed));
+    if (!boost::filesystem::exists(path.unsealed)) {
+      boost::filesystem::ofstream unsealed_file(path.unsealed);
+      if (!unsealed_file.is_open()) {
+        return SectorStorageError::CANNOT_CREATE_FILE;
+      }
+      unsealed_file.close();
+
+      OUTCOME_TRY(sealed,
+                  acquireSector(
+                      sector,
+                      static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                  | SectorFileType::FTCache)));
+
+      OUTCOME_TRY(proofs::unseal(seal_proof_type_,
+                                 sealed.cache,
+                                 sealed.sealed,
+                                 path.unsealed,
+                                 sector.sector,
+                                 sector.miner,
+                                 ticket,
+                                 unsealedCID));
+    }
+
+    if (size == boost::filesystem::file_size(path.unsealed)) {
+      if (offset == 0) {
+        return PieceData(path.unsealed);
+      } else {
+        return SectorStorageError::OUT_OF_FILE_SIZE;
+      }
+    }
+
+    int piece[2];
+    if (pipe(piece) < 0) return SectorStorageError::CANNOT_CREATE_FILE;
+
+    constexpr uint64_t chunk_size = 256;
+
+    std::ifstream unsealed_file(path.unsealed, std::ifstream::binary);
+
+    if (!unsealed_file.is_open()) {
+      close(piece[0]);
+      close(piece[1]);
+      return SectorStorageError::CANNOT_OPEN_FILE;
+    }
+
+    unsealed_file.seekg(offset, unsealed_file.beg);
+
+    char *buffer = new char[chunk_size];
+
+    for (uint64_t read_size = 0; read_size < size;) {
+      uint64_t curr_read_size = std::min(chunk_size, size - read_size);
+
+      // read data as a block:
+      unsealed_file.read(buffer, curr_read_size);
+
+      write(piece[1], buffer, unsealed_file.gcount());
+
+      read_size += unsealed_file.gcount();
+    }
+
+    close(piece[1]);
+
+    unsealed_file.close();
+
+    return PieceData(piece[0]);
+  }
 }  // namespace fc::sector_storage

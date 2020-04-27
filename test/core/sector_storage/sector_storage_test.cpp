@@ -7,11 +7,11 @@
 #include <boost/filesystem.hpp>
 #include <random>
 
-#include "storage/filestore/path.hpp"
+#include "proofs/proof_param_provider.hpp"
 #include "sector_storage/impl/sector_storage_impl.hpp"
 #include "sector_storage/sector_storage.hpp"
-#include "proofs/proof_param_provider.hpp"
 #include "sector_storage/sector_storage_error.hpp"
+#include "storage/filestore/path.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
@@ -218,8 +218,10 @@ TEST_F(SectorStorageTest, Sealer_PreCommit_MatchSumError) {
  * @then success
  */
 TEST_F(SectorStorageTest, Sealer) {
-  EXPECT_OUTCOME_TRUE(params, fc::proofs::ProofParamProvider::readJson(
-      "/var/tmp/filecoin-proof-parameters/parameters.json"));
+  EXPECT_OUTCOME_TRUE(
+      params,
+      fc::proofs::ProofParamProvider::readJson(
+          "/var/tmp/filecoin-proof-parameters/parameters.json"));
   EXPECT_OUTCOME_TRUE(sector_size,
                       fc::primitives::sector::getSectorSize(seal_proof_));
   EXPECT_OUTCOME_TRUE_1(
@@ -237,13 +239,22 @@ TEST_F(SectorStorageTest, Sealer) {
   Path piece_file_a_path = boost::filesystem::unique_path(path_model).string();
   boost::filesystem::ofstream piece_file_a(piece_file_a_path);
 
-  UnpaddedPieceSize piece_commitment_a_size(2032);
+  UnpaddedPieceSize piece_commitment_a_size(1016);
   for (size_t i = 0; i < piece_commitment_a_size; i++) {
     piece_file_a << some_bytes[i];
   }
   piece_file_a.close();
 
+  Path piece_file_b_path = boost::filesystem::unique_path(path_model).string();
+  boost::filesystem::ofstream piece_file_b(piece_file_b_path);
+  UnpaddedPieceSize piece_commitment_b_size(1016);
+  for (size_t i = 0; i < piece_commitment_b_size; i++) {
+    piece_file_b << some_bytes[i];
+  }
+  piece_file_b.close();
+
   PieceData file_a(piece_file_a_path);
+  PieceData file_b(piece_file_b_path);
 
   SectorId sector{
       .miner = 1,
@@ -253,10 +264,15 @@ TEST_F(SectorStorageTest, Sealer) {
   EXPECT_OUTCOME_TRUE(
       a_info,
       sector_storage_->addPiece(sector, {}, piece_commitment_a_size, file_a));
+  EXPECT_OUTCOME_TRUE(b_info,
+                      sector_storage_->addPiece(sector,
+                                                {{piece_commitment_a_size}},
+                                                piece_commitment_b_size,
+                                                file_b));
 
   fc::proofs::SealRandomness ticket{{5, 4, 2}};
 
-  std::vector<PieceInfo> pieces = {a_info};
+  std::vector<PieceInfo> pieces = {a_info, b_info};
 
   EXPECT_OUTCOME_TRUE(pc1o,
                       sector_storage_->sealPreCommit1(sector, ticket, pieces));
@@ -289,4 +305,27 @@ TEST_F(SectorStorageTest, Sealer) {
                       }));
 
   ASSERT_TRUE(valid);
+
+  EXPECT_OUTCOME_TRUE(
+      paths,
+      sector_storage_->acquireSector(sector, SectorFileType::FTUnsealed));
+  boost::filesystem::remove(paths.unsealed);
+  EXPECT_OUTCOME_TRUE(
+      piece_a,
+      sector_storage_->readPieceFromSealedSector(
+          sector, 0, piece_commitment_a_size, ticket, cids.unsealed_cid));
+
+  std::ifstream original_a_piece(piece_file_a_path, std::ifstream::binary);
+
+  ASSERT_TRUE(original_a_piece.is_open());
+
+  char original_ch;
+  char piece_ch;
+
+  for (uint64_t read_size = 0; read_size < piece_commitment_a_size;
+       read_size++) {
+    original_a_piece.read(&original_ch, 1);
+    read(piece_a.getFd(), &piece_ch, 1);
+    ASSERT_EQ(original_ch, piece_ch);
+  }
 }

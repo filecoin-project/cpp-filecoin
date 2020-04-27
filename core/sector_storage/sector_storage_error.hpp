@@ -19,6 +19,8 @@ namespace fc::sector_storage {
       CANNOT_REMOVE_DIR,
       DONOT_MATCH_SIZES,
       CANNOT_CREATE_FILE,
+      CANNOT_OPEN_FILE,
+      OUT_OF_FILE_SIZE,
       UNKNOWN = 1000 };
 
 }  // namespace fc::sector_storage
