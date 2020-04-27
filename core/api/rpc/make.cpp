@@ -29,18 +29,29 @@ namespace fc::api {
   }
 
   void setupRpc(Rpc &rpc, const Api &api) {
+    setup(rpc, api.ChainGetBlock);
+    setup(rpc, api.ChainGetBlockMessages);
+    setup(rpc, api.ChainGetGenesis);
+    setup(rpc, api.ChainGetNode);
+    setup(rpc, api.ChainGetParentMessages);
+    setup(rpc, api.ChainGetParentReceipts);
     setup(rpc, api.ChainGetRandomness);
+    setup(rpc, api.ChainGetTipSet);
+    setup(rpc, api.ChainGetTipSetByHeight);
     setup(rpc, api.ChainHead);
     setup(rpc, api.ChainNotify);
     setup(rpc, api.ChainReadObj);
-    setup(rpc, api.ChainTipSetWight);
+    setup(rpc, api.ChainSetHead);
+    setup(rpc, api.ChainTipSetWeight);
     setup(rpc, api.MarketEnsureAvailable);
     setup(rpc, api.MinerCreateBlock);
     setup(rpc, api.MpoolPending);
     setup(rpc, api.MpoolPushMessage);
     setup(rpc, api.PaychVoucherAdd);
+    setup(rpc, api.StateAccountKey);
     setup(rpc, api.StateCall);
     setup(rpc, api.StateGetActor);
+    setup(rpc, api.StateListMiners);
     setup(rpc, api.StateMarketBalance);
     setup(rpc, api.StateMarketDeals);
     setup(rpc, api.StateMarketStorageDeal);
@@ -52,6 +63,7 @@ namespace fc::api {
     setup(rpc, api.StateMinerWorker);
     setup(rpc, api.StateWaitMsg);
     setup(rpc, api.SyncSubmitBlock);
+    setup(rpc, api.WalletDefaultAddress);
     setup(rpc, api.WalletSign);
   }
 }  // namespace fc::api

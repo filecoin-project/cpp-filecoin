@@ -75,6 +75,16 @@ namespace fc::adt {
       });
     }
 
+    outcome::result<std::vector<Key>> keys() {
+      std::vector<Key> keys;
+      OUTCOME_TRY(hamt.visit([&](auto &key, auto &) -> outcome::result<void> {
+        OUTCOME_TRY(key2, Keyer::decode(key));
+        keys.push_back(std::move(key2));
+        return outcome::success();
+      }));
+      return std::move(keys);
+    }
+
     Hamt hamt;
   };
 

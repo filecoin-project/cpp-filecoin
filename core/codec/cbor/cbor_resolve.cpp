@@ -22,48 +22,50 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::cbor, CborResolveError, e) {
 }
 
 namespace fc::codec::cbor {
-  outcome::result<std::pair<std::vector<uint8_t>, Path>> resolve(
-      gsl::span<const uint8_t> node, const Path &path) {
+  outcome::result<uint64_t> parseIndex(const std::string &str) {
+    uint64_t value;
+    size_t chars;
     try {
-      CborDecodeStream stream(node);
-      auto part = path.begin();
-      for (; part != path.end(); part++) {
-        if (stream.isCid()) {
-          break;
+      value = std::stoul(str, &chars);
+    } catch (std::invalid_argument &) {
+      return outcome::failure(CborResolveError::INT_KEY_EXPECTED);
+    } catch (std::out_of_range &) {
+      return outcome::failure(CborResolveError::KEY_NOT_FOUND);
+    }
+    if (chars != str.size()) {
+      return outcome::failure(CborResolveError::INT_KEY_EXPECTED);
+    }
+    if (str[0] == '-') {
+      return outcome::failure(CborResolveError::INT_KEY_EXPECTED);
+    }
+    return value;
+  }
+
+  outcome::result<void> resolve(CborDecodeStream &stream,
+                                const std::string &part) {
+    try {
+      if (stream.isList()) {
+        OUTCOME_TRY(index, parseIndex(part));
+        if (index >= stream.listLength()) {
+          return CborResolveError::KEY_NOT_FOUND;
         }
-        if (stream.isList()) {
-          size_t index;
-          size_t index_chars;
-          try {
-            index = std::stoul(*part, &index_chars);
-          } catch (std::invalid_argument &) {
-            return CborResolveError::INT_KEY_EXPECTED;
-          } catch (std::out_of_range &) {
-            return CborResolveError::KEY_NOT_FOUND;
-          }
-          if (index_chars != part->size()) {
-            return CborResolveError::INT_KEY_EXPECTED;
-          }
-          if (index >= stream.listLength()) {
-            return CborResolveError::KEY_NOT_FOUND;
-          }
-          stream = stream.list();
-          for (size_t i = 0; i < index; i++) {
-            stream.next();
-          }
-        } else if (stream.isMap()) {
-          auto map = stream.map();
-          if (map.find(*part) == map.end()) {
-            return CborResolveError::KEY_NOT_FOUND;
-          }
-          stream = map.at(*part);
-        } else {
-          return CborResolveError::CONTAINER_EXPECTED;
+        stream = stream.list();
+        for (size_t i = 0; i < index; i++) {
+          stream.next();
         }
+      } else if (stream.isMap()) {
+        auto map = stream.map();
+        auto it = map.find(part);
+        if (it == map.end()) {
+          return CborResolveError::KEY_NOT_FOUND;
+        }
+        stream = std::move(it->second);
+      } else {
+        return CborResolveError::CONTAINER_EXPECTED;
       }
-      return std::make_pair(stream.raw(), Path{part, path.end()});
     } catch (std::system_error &e) {
       return outcome::failure(e.code());
     }
+    return outcome::success();
   }
 }  // namespace fc::codec::cbor

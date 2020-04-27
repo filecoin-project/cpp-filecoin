@@ -22,8 +22,9 @@ namespace fc::adt {
 
     explicit Array(const CID &root) : amt{nullptr, root} {}
 
-    void load(std::shared_ptr<Ipld> ipld) {
+    Array &load(std::shared_ptr<Ipld> ipld) {
       amt.setIpld(ipld);
+      return *this;
     }
 
     outcome::result<boost::optional<Value>> tryGet(Key key) {
@@ -68,6 +69,15 @@ namespace fc::adt {
         OUTCOME_TRY(value2, codec::cbor::decode<Value>(value));
         return visitor(key, value2);
       });
+    }
+
+    outcome::result<std::vector<Value>> values() {
+      std::vector<Value> values;
+      OUTCOME_TRY(visit([&](auto, auto &value) {
+        values.push_back(value);
+        return outcome::success();
+      }));
+      return values;
     }
 
     storage::amt::Amt amt;

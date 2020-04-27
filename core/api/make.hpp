@@ -8,6 +8,7 @@
 
 #include "api/api.hpp"
 #include "blockchain/weight_calculator.hpp"
+#include "common/todo_error.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/keystore/keystore.hpp"
@@ -16,12 +17,16 @@ namespace fc::api {
   using blockchain::weight::WeightCalculator;
   using crypto::bls::BlsProvider;
   using storage::blockchain::ChainStore;
-  using storage::ipfs::IpfsDatastore;
   using storage::keystore::KeyStore;
+  using Ipld = storage::ipfs::IpfsDatastore;
+
+  outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
+                                      const CID &root,
+                                      gsl::span<const std::string> parts);
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
-               std::shared_ptr<IpfsDatastore> ipld,
+               std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<KeyStore> key_store);
 }  // namespace fc::api
