@@ -12,11 +12,32 @@
 
 #include "common/outcome.hpp"
 
-namespace fc::api::rpc {
+namespace fc::api {
   using rapidjson::Document;
+
+  struct Request {
+    uint64_t id;
+    std::string method;
+    Document params;
+  };
+
+  struct Response {
+    struct Error {
+      int64_t code;
+      std::string message;
+    };
+
+    boost::optional<uint64_t> id;
+    boost::variant<Error, Document> result;
+  };
+}  // namespace fc::api
+
+namespace fc::api::rpc {
   using rapidjson::Value;
 
-  using Method = std::function<outcome::result<Document>(const Value &)>;
+  using Send = std::function<void(Request, std::function<void(bool)>)>;
+
+  using Method = std::function<outcome::result<Document>(const Value &, Send)>;
 
   struct Rpc {
     std::map<std::string, Method> ms;

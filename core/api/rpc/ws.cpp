@@ -52,21 +52,16 @@ namespace fc::api {
     }
 
     void onRead() {
+      std::lock_guard lock{mutex};
       auto res = handle({static_cast<const char *>(buffer.cdata().data()),
                          buffer.cdata().size()});
       buffer.clear();
-      rapidjson::StringBuffer j_buffer;
-      rapidjson::Writer<rapidjson::StringBuffer> writer{j_buffer};
-      encode(res).Accept(writer);
-      socket.async_write(net::buffer(std::string_view{j_buffer.GetString(),
-                                                      j_buffer.GetSize()}),
-                         [](auto, auto) {});
+      _write(res, [](auto) {});
     }
 
     Response handle(std::string_view s_req) {
       rapidjson::Document j_req;
-      j_req.Parse(static_cast<const char *>(buffer.cdata().data()),
-                  buffer.cdata().size());
+      j_req.Parse(s_req.data(), s_req.size());
       if (j_req.HasParseError()) {
         return {{}, Response::Error{kParseError, "Parse error"}};
       }
@@ -79,7 +74,11 @@ namespace fc::api {
       if (it == rpc.ms.end() || !it->second) {
         return {req.id, Response::Error{kMethodNotFound, "Method not found"}};
       }
-      auto maybe_result = it->second(req.params);
+      auto maybe_result = it->second(
+          req.params, [self{shared_from_this()}](auto req2, auto cb) {
+            std::lock_guard lock{self->mutex};
+            self->_write(req2, cb);
+          });
       if (!maybe_result) {
         if (maybe_result.error() == JsonError::WRONG_PARAMS) {
           return {req.id, Response::Error{kInvalidParams, "Invalid params"}};
@@ -89,6 +88,17 @@ namespace fc::api {
       return {req.id, std::move(maybe_result.value())};
     }
 
+    template <typename T>
+    void _write(const T &v, std::function<void(bool)> cb) {
+      rapidjson::StringBuffer j_buffer;
+      rapidjson::Writer<rapidjson::StringBuffer> writer{j_buffer};
+      encode(v).Accept(writer);
+      std::string_view sv{j_buffer.GetString(), j_buffer.GetSize()};
+      socket.async_write(net::buffer(sv),
+                         [cb{std::move(cb)}](auto e, auto) { cb(!e); });
+    }
+
+    std::mutex mutex;
     websocket::stream<tcp::socket> socket;
     beast::flat_buffer buffer;
     Rpc rpc;
