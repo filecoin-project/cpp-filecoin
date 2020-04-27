@@ -9,4 +9,5 @@ add_library(interpreter
 target_link_libraries(interpreter
     amt
     message
+    runtime
     )

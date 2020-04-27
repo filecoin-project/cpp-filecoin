@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 using ChainEpochKeyer = fc::adt::UvarintKeyer;
+using fc::adt::VarintKeyer;
 using namespace std::string_literals;
 
 TEST(StoragePowerActorState, EncodeChainEpoch) {
@@ -16,4 +17,8 @@ TEST(StoragePowerActorState, EncodeChainEpoch) {
   EXPECT_EQ(ChainEpochKeyer::encode(2), "\x02"s);
   EXPECT_EQ(ChainEpochKeyer::encode(100), "\x64"s);
   EXPECT_EQ(ChainEpochKeyer::encode(130), "\x82\x1"s);
+
+  EXPECT_EQ(VarintKeyer::encode(0), "\x00"s);
+  EXPECT_EQ(VarintKeyer::encode(-1), "\x01"s);
+  EXPECT_EQ(VarintKeyer::encode(1), "\x02"s);
 }
