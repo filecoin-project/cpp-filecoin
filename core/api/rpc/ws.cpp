@@ -52,25 +52,23 @@ namespace fc::api {
     }
 
     void onRead() {
-      std::vector<rpc::Maker> makers;
+      boost::optional<rpc::Maker> maker;
       auto res = handle({static_cast<const char *>(buffer.cdata().data()),
                          buffer.cdata().size()},
-                        makers);
+                        maker);
       buffer.clear();
-      _write(res,
-             [makers{std::move(makers)}, self{shared_from_this()}](auto ok) {
-               if (ok) {
-                 for (auto &maker : makers) {
-                   maker([self](auto req, auto cb) {
-                     req.id = self->next_request++;
-                     self->_write(req, std::move(cb));
-                   });
-                 }
-               }
-             });
+      _write(res, [maker{std::move(maker)}, self{shared_from_this()}](auto ok) {
+        if (ok && maker) {
+          (*maker)([self](auto req, auto cb) {
+            req.id = self->next_request++;
+            self->_write(req, std::move(cb));
+          });
+        }
+      });
     }
 
-    Response handle(std::string_view s_req, std::vector<rpc::Maker> &makers) {
+    Response handle(std::string_view s_req,
+                    boost::optional<rpc::Maker> &maker) {
       rapidjson::Document j_req;
       j_req.Parse(s_req.data(), s_req.size());
       if (j_req.HasParseError()) {
@@ -85,8 +83,9 @@ namespace fc::api {
       if (it == rpc.ms.end() || !it->second) {
         return {req.id, Response::Error{kMethodNotFound, "Method not found"}};
       }
-      auto maybe_result = it->second(req.params, [&](auto maker) {
-        makers.push_back(std::move(maker));
+      auto maybe_result = it->second(req.params, [&](auto maker2) {
+        assert(!maker);
+        maker = std::move(maker2);
         return next_channel++;
       });
       if (!maybe_result) {
