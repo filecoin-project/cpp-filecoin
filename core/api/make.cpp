@@ -8,6 +8,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "blockchain/production/impl/block_producer_impl.hpp"
+#include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
@@ -293,6 +294,25 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(power_state, context.powerState());
           return power_state.claims.keys();
+        }},
+        .StateListActors = {[=](auto &tipset_key)
+                                -> outcome::result<std::vector<Address>> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(root, context.state_tree.flush());
+          adt::Hamt actor_hamt(context.state_tree.getStore(), root);
+
+          std::vector<Address> actors;
+
+          auto visitor = [&](const std::string &key,
+                             const Buffer &) -> outcome::result<void> {
+            OUTCOME_TRY(address, primitives::address::decodeFromString(key));
+            actors.push_back(address);
+            return outcome::success();
+          };
+
+          OUTCOME_TRY(actor_hamt.visit(visitor));
+
+          return actors;
         }},
         .StateMarketBalance =
             {[=](auto &address, auto &tipset_key)
