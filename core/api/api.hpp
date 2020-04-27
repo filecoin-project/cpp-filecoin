@@ -126,6 +126,7 @@ namespace fc::api {
                const Buffer &,
                TokenAmount)
 
+    API_METHOD(StateAccountKey, Address, const Address &, const TipsetKey &)
     API_METHOD(StateCall,
                InvocResult,
                const UnsignedMessage &,
@@ -159,18 +160,6 @@ namespace fc::api {
     API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
 
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
-
-    /**
-     * Lists the providers in the storage market state
-     * @return vector of StorageProviderInfo
-     */
-    API_METHOD(StateListStorageProviders, std::vector<StorageProviderInfo>)
-
-    API_METHOD(ValidateAskSignature,
-               bool,
-               const SignedStorageAsk &,
-               const TipsetKey &)
-    API_METHOD(SignProposal, ClientDealProposal, Address, DealProposal)
   };
 }  // namespace fc::api
 

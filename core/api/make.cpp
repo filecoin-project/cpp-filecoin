@@ -292,16 +292,6 @@ namespace fc::api {
         .WalletSign = {[&](auto address, auto data) {
           return key_store->sign(address, data);
         }},
-        .ValidateAskSignature =
-            {
-                // TODO(a.chernyshov) implement method
-                // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L325
-            },
-        .SignProposal =
-            {
-                // TODO(a.chernyshov) implement method
-                // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L303
-            },
     };
   }
 }  // namespace fc::api

@@ -33,12 +33,14 @@ namespace fc::markets::storage::client {
       std::shared_ptr<data_transfer::Manager> data_transfer_manager,
       std::shared_ptr<IpfsDatastore> block_store,
       std::shared_ptr<FileStore> file_store,
+      std::shared_ptr<KeyStore> keystore,
       std::shared_ptr<PieceIO> piece_io)
       : api_{std::move(api)},
         network_{std::move(network)},
         data_transfer_manager_{std::move(data_transfer_manager)},
         block_store_{std::move(block_store)},
         file_store_{std::move(file_store)},
+        keystore_{std::move(keystore)},
         piece_io_{std::move(piece_io)} {}
 
   void ClientImpl::run() {}
@@ -150,7 +152,7 @@ namespace fc::markets::storage::client {
         .storage_price_per_epoch = price,
         .provider_collateral = static_cast<uint64_t>(piece_size),
         .client_collateral = 0};
-    OUTCOME_TRY(signed_proposal, api_->SignProposal(address, deal_proposal));
+    OUTCOME_TRY(signed_proposal, signProposal(address, deal_proposal));
     OUTCOME_TRY(proposal_bytes, codec::cbor::encode(signed_proposal));
     OUTCOME_TRY(proposal_node,
                 IPLDNodeImpl::createFromRawBytes(proposal_bytes));
@@ -207,10 +209,16 @@ namespace fc::markets::storage::client {
     if (response.value().ask.ask.miner != info.address) {
       return StorageMarketClientError::WRONG_MINER;
     }
-    OUTCOME_TRY(tipset, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, tipset.makeKey());
-    OUTCOME_TRY(signature_valid,
-                api_->ValidateAskSignature(response.value().ask, tipset_key));
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(miner_info, api_->StateMinerInfo(info.address, tipset_key));
+    OUTCOME_TRY(miner_key_address,
+                api_->StateAccountKey(miner_info.worker, tipset_key));
+    OUTCOME_TRY(ask_bytes, codec::cbor::encode(response.value().ask.ask));
+    OUTCOME_TRY(
+        signature_valid,
+        keystore_->verify(
+            miner_key_address, ask_bytes, response.value().ask.signature));
     if (!signature_valid) {
       return StorageMarketClientError::SIGNATURE_INVALID;
     }
@@ -232,6 +240,17 @@ namespace fc::markets::storage::client {
 
     return piece_io_->generatePieceCommitment(
         registered_proof, data_ref.root, all_selector);
+  }
+
+  outcome::result<ClientDealProposal> ClientImpl::signProposal(
+      const Address &address, const DealProposal &proposal) const {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(key_address, api_->StateAccountKey(address, tipset_key));
+    OUTCOME_TRY(proposal_bytes, codec::cbor::encode(proposal));
+    OUTCOME_TRY(signature, keystore_->sign(key_address, proposal_bytes));
+    return ClientDealProposal{.proposal = proposal,
+                              .client_signature = signature};
   }
 
 }  // namespace fc::markets::storage::client

@@ -14,12 +14,14 @@
 #include "markets/storage/storage_market_network.hpp"
 #include "storage/filestore/filestore.hpp"
 #include "storage/ipfs/datastore.hpp"
+#include "storage/keystore/keystore.hpp"
 
 namespace fc::markets::storage::client {
 
   using api::Api;
   using fc::storage::filestore::FileStore;
   using fc::storage::ipfs::IpfsDatastore;
+  using fc::storage::keystore::KeyStore;
   using pieceio::PieceIO;
 
   class ClientImpl : public Client, std::enable_shared_from_this<ClientImpl> {
@@ -29,6 +31,7 @@ namespace fc::markets::storage::client {
                std::shared_ptr<data_transfer::Manager> data_transfer_manager,
                std::shared_ptr<IpfsDatastore> block_store,
                std::shared_ptr<FileStore> file_store,
+               std::shared_ptr<KeyStore> keystore,
                std::shared_ptr<PieceIO> piece_io);
 
     void run() override;
@@ -72,11 +75,15 @@ namespace fc::markets::storage::client {
     outcome::result<std::pair<CID, UnpaddedPieceSize>> calculateCommP(
         const RegisteredProof &registered_proof, const DataRef &data_ref) const;
 
+    outcome::result<ClientDealProposal> signProposal(
+        const Address &address, const DealProposal &proposal) const;
+
     std::shared_ptr<Api> api_;
     std::shared_ptr<StorageMarketNetwork> network_;
     std::shared_ptr<data_transfer::Manager> data_transfer_manager_;
     std::shared_ptr<IpfsDatastore> block_store_;
     std::shared_ptr<FileStore> file_store_;
+    std::shared_ptr<KeyStore> keystore_;
     std::shared_ptr<PieceIO> piece_io_;
 
     // TODO
@@ -103,8 +110,9 @@ namespace fc::markets::storage::client {
     UNKNOWN_ERROR
   };
 
-}  // namespace fc::markets::storage
+}  // namespace fc::markets::storage::client
 
-OUTCOME_HPP_DECLARE_ERROR(fc::markets::storage::client, StorageMarketClientError);
+OUTCOME_HPP_DECLARE_ERROR(fc::markets::storage::client,
+                          StorageMarketClientError);
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
