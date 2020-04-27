@@ -52,21 +52,25 @@ namespace fc::api {
     }
 
     void onRead() {
+      boost::optional<rpc::Maker> maker;
       auto res = handle({static_cast<const char *>(buffer.cdata().data()),
-                         buffer.cdata().size()});
+                         buffer.cdata().size()},
+                        maker);
       buffer.clear();
-      rapidjson::StringBuffer j_buffer;
-      rapidjson::Writer<rapidjson::StringBuffer> writer{j_buffer};
-      encode(res).Accept(writer);
-      socket.async_write(net::buffer(std::string_view{j_buffer.GetString(),
-                                                      j_buffer.GetSize()}),
-                         [](auto, auto) {});
+      _write(res, [maker{std::move(maker)}, self{shared_from_this()}](auto ok) {
+        if (ok && maker) {
+          (*maker)([self](auto req, auto cb) {
+            req.id = self->next_request++;
+            self->_write(req, std::move(cb));
+          });
+        }
+      });
     }
 
-    Response handle(std::string_view s_req) {
+    Response handle(std::string_view s_req,
+                    boost::optional<rpc::Maker> &maker) {
       rapidjson::Document j_req;
-      j_req.Parse(static_cast<const char *>(buffer.cdata().data()),
-                  buffer.cdata().size());
+      j_req.Parse(s_req.data(), s_req.size());
       if (j_req.HasParseError()) {
         return {{}, Response::Error{kParseError, "Parse error"}};
       }
@@ -79,7 +83,11 @@ namespace fc::api {
       if (it == rpc.ms.end() || !it->second) {
         return {req.id, Response::Error{kMethodNotFound, "Method not found"}};
       }
-      auto maybe_result = it->second(req.params);
+      auto maybe_result = it->second(req.params, [&](auto maker2) {
+        assert(!maker);
+        maker = std::move(maker2);
+        return next_channel++;
+      });
       if (!maybe_result) {
         if (maybe_result.error() == JsonError::WRONG_PARAMS) {
           return {req.id, Response::Error{kInvalidParams, "Invalid params"}};
@@ -89,6 +97,20 @@ namespace fc::api {
       return {req.id, std::move(maybe_result.value())};
     }
 
+    template <typename T>
+    void _write(const T &v, std::function<void(bool)> cb) {
+      rapidjson::StringBuffer j_buffer;
+      rapidjson::Writer<rapidjson::StringBuffer> writer{j_buffer};
+      encode(v).Accept(writer);
+      std::string_view sv{j_buffer.GetString(), j_buffer.GetSize()};
+      // TODO(turuslan): async_write with buffering
+      beast::error_code e;
+      socket.write(net::buffer(sv), e);
+      net::post(socket.get_executor(),
+                [ok{!e}, cb{std::move(cb)}]() { cb(ok); });
+    }
+
+    uint64_t next_channel{}, next_request{};
     websocket::stream<tcp::socket> socket;
     beast::flat_buffer buffer;
     Rpc rpc;
