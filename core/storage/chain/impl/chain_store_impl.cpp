@@ -196,7 +196,7 @@ namespace fc::storage::blockchain {
       OUTCOME_TRY(bh, getCbor<BlockHeader>(cid));
 
       if (included_miners.count(bh.miner) > 0) {
-        auto &&miner_address = primitives::address::encodeToString(bh.miner);
+        auto &&miner_address = encodeToString(bh.miner);
         logger_->warn(
             "Have multiple blocks from miner {} at height {} in our tipset "
             "cache",

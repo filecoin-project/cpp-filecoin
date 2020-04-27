@@ -103,8 +103,13 @@ namespace fc::storage::blockchain {
                    std::shared_ptr<BlockValidator> block_validator,
                    std::shared_ptr<WeightCalculator> weight_calculator);
 
+    /**
+     * @brief applies new heaviest tipset if better than old item
+     * @param tipset new heaviest tipset
+     */
     outcome::result<void> takeHeaviestTipset(const Tipset &tipset);
 
+    /** @brief saves block headers to persistent storage */
     outcome::result<void> persistBlockHeaders(
         const std::vector<std::reference_wrapper<const BlockHeader>>
             &block_headers);
