@@ -52,14 +52,25 @@ namespace fc::api {
     }
 
     void onRead() {
-      std::lock_guard lock{mutex};
+      std::vector<rpc::Maker> makers;
       auto res = handle({static_cast<const char *>(buffer.cdata().data()),
-                         buffer.cdata().size()});
+                         buffer.cdata().size()},
+                        makers);
       buffer.clear();
-      _write(res, [](auto) {});
+      _write(res,
+             [makers{std::move(makers)}, self{shared_from_this()}](auto ok) {
+               if (ok) {
+                 for (auto &maker : makers) {
+                   maker([self](auto req, auto cb) {
+                     req.id = self->next_request++;
+                     self->_write(req, std::move(cb));
+                   });
+                 }
+               }
+             });
     }
 
-    Response handle(std::string_view s_req) {
+    Response handle(std::string_view s_req, std::vector<rpc::Maker> &makers) {
       rapidjson::Document j_req;
       j_req.Parse(s_req.data(), s_req.size());
       if (j_req.HasParseError()) {
@@ -74,11 +85,10 @@ namespace fc::api {
       if (it == rpc.ms.end() || !it->second) {
         return {req.id, Response::Error{kMethodNotFound, "Method not found"}};
       }
-      auto maybe_result = it->second(
-          req.params, [self{shared_from_this()}](auto req2, auto cb) {
-            std::lock_guard lock{self->mutex};
-            self->_write(req2, cb);
-          });
+      auto maybe_result = it->second(req.params, [&](auto maker) {
+        makers.push_back(std::move(maker));
+        return next_channel++;
+      });
       if (!maybe_result) {
         if (maybe_result.error() == JsonError::WRONG_PARAMS) {
           return {req.id, Response::Error{kInvalidParams, "Invalid params"}};
@@ -94,11 +104,14 @@ namespace fc::api {
       rapidjson::Writer<rapidjson::StringBuffer> writer{j_buffer};
       encode(v).Accept(writer);
       std::string_view sv{j_buffer.GetString(), j_buffer.GetSize()};
-      socket.async_write(net::buffer(sv),
-                         [cb{std::move(cb)}](auto e, auto) { cb(!e); });
+      // TODO(turuslan): async_write with buffering
+      beast::error_code e;
+      socket.write(net::buffer(sv), e);
+      net::post(socket.get_executor(),
+                [ok{!e}, cb{std::move(cb)}]() { cb(ok); });
     }
 
-    std::mutex mutex;
+    uint64_t next_channel{}, next_request{};
     websocket::stream<tcp::socket> socket;
     beast::flat_buffer buffer;
     Rpc rpc;

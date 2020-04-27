@@ -36,8 +36,11 @@ namespace fc::api::rpc {
   using rapidjson::Value;
 
   using Send = std::function<void(Request, std::function<void(bool)>)>;
+  using Maker = std::function<void(Send)>;
+  using MakeChan = std::function<uint64_t(Maker)>;
 
-  using Method = std::function<outcome::result<Document>(const Value &, Send)>;
+  using Method =
+      std::function<outcome::result<Document>(const Value &, MakeChan)>;
 
   struct Rpc {
     std::map<std::string, Method> ms;

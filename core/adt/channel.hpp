@@ -6,6 +6,8 @@
 #ifndef CPP_FILECOIN_ADT_CHANNEL_HPP
 #define CPP_FILECOIN_ADT_CHANNEL_HPP
 
+#include <mutex>
+
 #include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
