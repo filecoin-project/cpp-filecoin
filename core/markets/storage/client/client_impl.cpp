@@ -8,11 +8,24 @@
 #include "markets/pieceio/pieceio.hpp"
 #include "storage/ipld/impl/ipld_node_impl.hpp"
 #include "storage/ipld/ipld_node.hpp"
+#include "vm/message/message.hpp"
+#include "vm/message/message_util.hpp"
 
-namespace fc::markets::storage {
+namespace fc::markets::storage::client {
 
   using fc::storage::ipld::IPLDNode;
   using fc::storage::ipld::IPLDNodeImpl;
+  using primitives::BigInt;
+  using primitives::GasAmount;
+  using vm::VMExitCode;
+  using vm::actor::kStorageMarketAddress;
+  using vm::message::SignedMessage;
+  using vm::message::UnsignedMessage;
+
+  // from lotus
+  // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L122
+  const BigInt kGasPrice{0};
+  const GasAmount kGasLimit{1000000};
 
   ClientImpl::ClientImpl(
       std::shared_ptr<Api> api,
@@ -34,12 +47,36 @@ namespace fc::markets::storage {
 
   outcome::result<std::vector<StorageProviderInfo>> ClientImpl::listProviders()
       const {
-    return api_->StateListStorageProviders();
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(miners, api_->StateListMiners(tipset_key));
+    std::vector<StorageProviderInfo> storage_providers;
+    for (const auto &miner_address : miners) {
+      OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address, tipset_key));
+      // TODO (a.chernyshov) is it actually base58?
+      OUTCOME_TRY(peer_id, PeerId::fromBase58(miner_info.peer_id));
+      storage_providers.push_back(
+          StorageProviderInfo{.address = miner_address,
+                              .owner = {},
+                              .worker = miner_info.worker,
+                              .sector_size = miner_info.sector_size,
+                              .peer_id = peer_id});
+    }
+    return storage_providers;
   }
 
   outcome::result<std::vector<StorageDeal>> ClientImpl::listDeals(
       const Address &address) const {
-    return api_->StateListClientDeals(address);
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(all_deals, api_->StateMarketDeals(tipset_key));
+    std::vector<StorageDeal> client_deals;
+    for (const auto &deal : all_deals) {
+      if (deal.second.proposal.client == address) {
+        client_deals.emplace_back(deal.second);
+      }
+    }
+    return client_deals;
   }
 
   outcome::result<std::vector<StorageDeal>> ClientImpl::listLocalDeals() const {
@@ -143,7 +180,22 @@ namespace fc::markets::storage {
 
   outcome::result<void> ClientImpl::addPaymentEscrow(
       const Address &address, const TokenAmount &amount) {
-    return api_->AddFunds(address, amount);
+    UnsignedMessage unsigned_message{
+        kStorageMarketAddress,
+        address,
+        {},
+        amount,
+        kGasPrice,
+        kGasLimit,
+        vm::actor::builtin::market::AddBalance::Number,
+        {}};
+    OUTCOME_TRY(signed_message, api_->MpoolPushMessage(unsigned_message));
+    OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
+    OUTCOME_TRY(msg_state, api_->StateWaitMsg(message_cid));
+    if (msg_state.receipt.exit_code != VMExitCode::Ok) {
+      return StorageMarketClientError::ADD_FUNDS_CALL_ERROR;
+    }
+    return outcome::success();
   }
 
   outcome::result<SignedStorageAsk> ClientImpl::validateAskResponse(
@@ -182,10 +234,12 @@ namespace fc::markets::storage {
         registered_proof, data_ref.root, all_selector);
   }
 
-}  // namespace fc::markets::storage
+}  // namespace fc::markets::storage::client
 
-OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage, StorageMarketClientError, e) {
-  using fc::markets::storage::StorageMarketClientError;
+OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::client,
+                            StorageMarketClientError,
+                            e) {
+  using fc::markets::storage::client::StorageMarketClientError;
 
   switch (e) {
     case StorageMarketClientError::WRONG_MINER:
@@ -197,6 +251,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage, StorageMarketClientError, e) {
              "transfer";
     case StorageMarketClientError::PIECE_SIZE_GREATER_SECTOR_SIZE:
       return "StorageMarketClientError: piece size is greater sector size";
+    case StorageMarketClientError::ADD_FUNDS_CALL_ERROR:
+      return "StorageMarketClientError: add funds method call returned error";
 
     case StorageMarketClientError::UNKNOWN_ERROR:
       return "StorageMarketClientError: unknown error";

@@ -141,11 +141,11 @@ namespace fc::markets::storage {
    * StorageDeal is a local combination of a proposal and a current deal state
    */
   struct StorageDeal {
-    DealProposal deal_proposal;
-    DealState deal_state;
+    DealProposal proposal;
+    DealState state;
   };
 
-  CBOR_TUPLE(StorageDeal, deal_proposal, deal_state)
+  CBOR_TUPLE(StorageDeal, proposal, state)
 
   /**
    * Proposal is the data sent over the network from client to provider when

@@ -17,7 +17,7 @@
 #include "primitives/types.hpp"
 #include "storage/filestore/filestore.hpp"
 
-namespace fc::markets::storage {
+namespace fc::markets::storage::client {
 
   using fc::storage::filestore::FileStore;
   using primitives::ChainEpoch;

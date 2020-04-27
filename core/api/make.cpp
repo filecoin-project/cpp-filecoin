@@ -181,6 +181,10 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key, true));
           return context.state_tree.get(address);
         }},
+        .StateListMiners =
+            {
+                // TODO(a.chernyshov) implement method
+            },
         .StateMarketBalance =
             {[&](auto &address, auto &tipset_key)
                  -> outcome::result<StorageParticipantBalance> {
@@ -205,18 +209,18 @@ namespace fc::api {
           OUTCOME_TRY(state.proposals.visit([&](auto deal_id, auto &deal)
                                                 -> outcome::result<void> {
             OUTCOME_TRY(deal_state, state.states.get(deal_id));
-            map.emplace(std::to_string(deal_id), MarketDeal{deal, deal_state});
+            map.emplace(std::to_string(deal_id), StorageDeal{deal, deal_state});
             return outcome::success();
           }));
           return map;
         }},
         .StateMarketStorageDeal = {[&](auto deal_id, auto &tipset_key)
-                                       -> outcome::result<MarketDeal> {
+                                       -> outcome::result<StorageDeal> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
           OUTCOME_TRY(deal, state.proposals.get(deal_id));
           OUTCOME_TRY(deal_state, state.states.get(deal_id));
-          return MarketDeal{deal, deal_state};
+          return StorageDeal{deal, deal_state};
         }},
         .StateMinerElectionPeriodStart = {[&](auto address, auto tipset_key)
                                               -> outcome::result<ChainEpoch> {
@@ -229,6 +233,12 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           return state.fault_set;
+        }},
+        .StateMinerInfo = {[&](auto &address,
+                               auto &tipset_key) -> outcome::result<MinerInfo> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(miner_state, context.minerState(address));
+          return miner_state.info;
         }},
         .StateMinerPower = {[&](auto &address, auto &tipset_key)
                                 -> outcome::result<MinerPower> {
@@ -282,38 +292,6 @@ namespace fc::api {
         .WalletSign = {[&](auto address, auto data) {
           return key_store->sign(address, data);
         }},
-        .StateListStorageProviders =
-            {[&]() -> outcome::result<std::vector<StorageProviderInfo>> {
-              OUTCOME_TRY(chain_head, chain_store->heaviestTipset());
-              OUTCOME_TRY(tipset_key, chain_head.makeKey());
-              OUTCOME_TRY(context, tipsetContext(tipset_key));
-              OUTCOME_TRY(power_actor_state, context.powerState());
-              OUTCOME_TRY(miner_addresses, power_actor_state.getMiners());
-              std::vector<StorageProviderInfo> storage_providers;
-              for (const auto &miner_address : miner_addresses) {
-                OUTCOME_TRY(miner_state, context.minerState(miner_address));
-                // TODO (a.chernyshov) is it actually base58?
-                OUTCOME_TRY(peer_id,
-                            PeerId::fromBase58(miner_state.info.peer_id));
-                storage_providers.push_back(StorageProviderInfo{
-                    .address = miner_address,
-                    .owner = {},
-                    .worker = miner_state.info.worker,
-                    .sector_size = miner_state.info.sector_size,
-                    .peer_id = peer_id});
-              }
-              return storage_providers;
-            }},
-        .StateListClientDeals =
-            {
-                // TODO(a.chernyshov) implement method
-                // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L92
-            },
-        .AddFunds =
-            {
-                // TODO(a.chernyshov) implement method
-                // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L115
-            },
         .ValidateAskSignature =
             {
                 // TODO(a.chernyshov) implement method

@@ -698,14 +698,14 @@ namespace fc::api {
       decode(v.slash_epoch, Get(j, "SlashEpoch"));
     }
 
-    ENCODE(MarketDeal) {
+    ENCODE(StorageDeal) {
       Value j{rapidjson::kObjectType};
       Set(j, "Proposal", v.proposal);
       Set(j, "State", v.state);
       return j;
     }
 
-    DECODE(MarketDeal) {
+    DECODE(StorageDeal) {
       decode(v.proposal, Get(j, "Proposal"));
       decode(v.state, Get(j, "State"));
     }

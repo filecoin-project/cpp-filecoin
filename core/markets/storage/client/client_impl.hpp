@@ -15,7 +15,7 @@
 #include "storage/filestore/filestore.hpp"
 #include "storage/ipfs/datastore.hpp"
 
-namespace fc::markets::storage {
+namespace fc::markets::storage::client {
 
   using api::Api;
   using fc::storage::filestore::FileStore;
@@ -99,11 +99,12 @@ namespace fc::markets::storage {
     SIGNATURE_INVALID,
     PIECE_DATA_NOT_SET_MANUAL_TRANSFER,
     PIECE_SIZE_GREATER_SECTOR_SIZE,
+    ADD_FUNDS_CALL_ERROR,
     UNKNOWN_ERROR
   };
 
 }  // namespace fc::markets::storage
 
-OUTCOME_HPP_DECLARE_ERROR(fc::markets::storage, StorageMarketClientError);
+OUTCOME_HPP_DECLARE_ERROR(fc::markets::storage::client, StorageMarketClientError);
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP

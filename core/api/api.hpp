@@ -56,6 +56,7 @@ namespace fc::api {
   using vm::actor::builtin::market::DealProposal;
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
+  using vm::actor::builtin::miner::MinerInfo;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::message::SignedMessage;
@@ -79,12 +80,7 @@ namespace fc::api {
     std::string error;
   };
 
-  struct MarketDeal {
-    DealProposal proposal;
-    DealState state;
-  };
-
-  using MarketDealMap = std::map<std::string, MarketDeal>;
+  using MarketDealMap = std::map<std::string, StorageDeal>;
 
   struct MinerPower {
     StoragePower miner;
@@ -135,17 +131,19 @@ namespace fc::api {
                const UnsignedMessage &,
                const TipsetKey &)
     API_METHOD(StateGetActor, Actor, const Address &, const TipsetKey &)
+    API_METHOD(StateListMiners, std::vector<Address>, const TipsetKey &)
     API_METHOD(StateMarketBalance,
                StorageParticipantBalance,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
-    API_METHOD(StateMarketStorageDeal, MarketDeal, DealId, const TipsetKey &)
+    API_METHOD(StateMarketStorageDeal, StorageDeal, DealId, const TipsetKey &)
     API_METHOD(StateMinerElectionPeriodStart,
                ChainEpoch,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
     API_METHOD(StateMinerProvingSet,
                std::vector<ChainSectorInfo>,
@@ -168,16 +166,6 @@ namespace fc::api {
      */
     API_METHOD(StateListStorageProviders, std::vector<StorageProviderInfo>)
 
-    /**
-     * List client deals
-     */
-    API_METHOD(StateListClientDeals, std::vector<StorageDeal>, const Address &)
-
-    /**
-     * Adds funds with the StorageMinerActor for a storage participant. Used by
-     * both providers and clients.
-     */
-    API_METHOD(AddFunds, void, const Address &, const TokenAmount &)
     API_METHOD(ValidateAskSignature,
                bool,
                const SignedStorageAsk &,
