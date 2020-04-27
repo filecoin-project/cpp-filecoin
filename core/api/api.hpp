@@ -39,6 +39,7 @@ namespace fc::api {
   using primitives::TipsetWeight;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using primitives::block::BlockHeader;
   using primitives::block::BlockMsg;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
@@ -94,12 +95,37 @@ namespace fc::api {
     Tipset tipset;
   };
 
+  struct BlockMessages {
+    std::vector<UnsignedMessage> bls;
+    std::vector<SignedMessage> secp;
+    std::vector<CID> cids;
+  };
+
+  struct CidMessage {
+    CID cid;
+    UnsignedMessage message;
+  };
+
+  struct IpldObject {
+    CID cid;
+    Buffer raw;
+  };
+
   struct Api {
+    API_METHOD(ChainGetBlock, BlockHeader, const CID &)
+    API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
+    API_METHOD(ChainGetGenesis, Tipset)
+    API_METHOD(ChainGetNode, IpldObject, const std::string &)
+    API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
+    API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
     API_METHOD(ChainGetRandomness, Randomness, const TipsetKey &, int64_t)
+    API_METHOD(ChainGetTipSet, Tipset, const TipsetKey &)
+    API_METHOD(ChainGetTipSetByHeight, Tipset, ChainEpoch, const TipsetKey &)
     API_METHOD(ChainHead, Tipset)
     API_METHOD(ChainNotify, Chan<HeadChange>)
     API_METHOD(ChainReadObj, Buffer, CID)
-    API_METHOD(ChainTipSetWight, TipsetWeight, const TipsetKey &)
+    API_METHOD(ChainSetHead, void, const TipsetKey &)
+    API_METHOD(ChainTipSetWeight, TipsetWeight, const TipsetKey &)
 
     API_METHOD(MarketEnsureAvailable, void, const Address &, TokenAmount)
 
@@ -123,11 +149,13 @@ namespace fc::api {
                const Buffer &,
                TokenAmount)
 
+    API_METHOD(StateAccountKey, Address, const Address &, const TipsetKey &)
     API_METHOD(StateCall,
                InvocResult,
                const UnsignedMessage &,
                const TipsetKey &)
     API_METHOD(StateGetActor, Actor, const Address &, const TipsetKey &)
+    API_METHOD(StateListMiners, std::vector<Address>, const TipsetKey &)
     API_METHOD(StateMarketBalance,
                StorageParticipantBalance,
                const Address &,
@@ -153,6 +181,7 @@ namespace fc::api {
 
     API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
 
+    API_METHOD(WalletDefaultAddress, Address)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
   };
 }  // namespace fc::api

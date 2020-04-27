@@ -124,6 +124,10 @@ namespace fc::codec::cbor {
     /** Checks if current element is map container */
     bool isMap() const;
     bool isNull() const;
+    bool isBool() const;
+    bool isInt() const;
+    bool isStr() const;
+    bool isBytes() const;
     /** Returns count of items in current element list container */
     size_t listLength() const;
     /** Reads CBOR bytes of current element (and advances to the next element)

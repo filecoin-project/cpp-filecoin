@@ -5,6 +5,7 @@
 
 add_library(api
     make.cpp
+    get_node.cpp
     )
 target_link_libraries(api
     address
@@ -14,6 +15,7 @@ target_link_libraries(api
     interpreter
     message
     state_tree
+    todo_error
     )
 
 add_library(rpc
