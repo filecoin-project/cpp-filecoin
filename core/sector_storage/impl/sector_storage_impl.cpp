@@ -252,6 +252,8 @@ namespace fc::sector_storage {
       read_size += unsealed_file.gcount();
     }
 
+    delete[] buffer;
+
     close(piece[1]);
 
     unsealed_file.close();
