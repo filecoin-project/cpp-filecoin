@@ -376,6 +376,30 @@ namespace fc::api {
               }));
               return sectors;
             }},
+        .StateMinerSectors =
+            {[=](auto address, auto tipset_key)
+                 -> outcome::result<std::vector<ChainSectorInfo>> {
+              OUTCOME_TRY(context, tipsetContext(tipset_key));
+              OUTCOME_TRY(state, context.minerState(address));
+
+              std::vector<ChainSectorInfo> res = {};
+
+              auto visitor =
+                  [&](uint64_t i,
+                      const SectorOnChainInfo &info) -> outcome::result<void> {
+                ChainSectorInfo sector_info{
+                    .info = info,
+                    .id = i,
+                };
+
+                res.push_back(sector_info);
+                return outcome::success();
+              };
+
+              OUTCOME_TRY(state.sectors.visit(visitor));
+
+              return res;
+            }},
         .StateMinerSectorSize = {[=](auto address, auto tipset_key)
                                      -> outcome::result<SectorSize> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));

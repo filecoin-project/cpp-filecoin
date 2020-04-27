@@ -59,6 +59,7 @@ namespace fc::api {
     setup(rpc, api.StateMinerFaults);
     setup(rpc, api.StateMinerPower);
     setup(rpc, api.StateMinerProvingSet);
+    setup(rpc, api.StateMinerSectors);
     setup(rpc, api.StateMinerSectorSize);
     setup(rpc, api.StateMinerWorker);
     setup(rpc, api.StateWaitMsg);

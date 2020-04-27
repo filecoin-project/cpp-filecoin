@@ -172,6 +172,10 @@ namespace fc::api {
                std::vector<ChainSectorInfo>,
                const Address &,
                const TipsetKey &)
+    API_METHOD(StateMinerSectors,
+               std::vector<ChainSectorInfo>,
+               const Address &,
+               const TipsetKey &)
     API_METHOD(StateMinerSectorSize,
                SectorSize,
                const Address &,
