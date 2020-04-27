@@ -14,7 +14,7 @@
 
 #include "codec/cbor/cbor.hpp"
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/outcome_throw.hpp"
+#include "common/outcome.hpp"
 #include "common/visitor.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/ipfs/datastore.hpp"

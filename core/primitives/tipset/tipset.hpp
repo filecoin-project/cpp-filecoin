@@ -8,7 +8,6 @@
 
 #include <boost/optional.hpp>
 #include "common/outcome.hpp"
-#include "common/outcome_throw.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/ticket/ticket.hpp"
@@ -90,7 +89,21 @@ namespace fc::primitives::tipset {
     uint64_t height{};                     ///< height
   };
 
-  bool operator==(const Tipset &lhs, const Tipset &rhs);
+  /**
+   * @brief compares two Tipset instances
+   * @param lhs first tipset
+   * @param rhs second tipset
+   * @return true if equal, false otherwise
+   */
+  bool operator==(const Tipset &l, const Tipset &r);
+
+  /**
+   * @brief compares two Tipset instances
+   * @param lhs first tipset
+   * @param rhs second tipset
+   * @return false if equal, true otherwise
+   */
+  bool operator!=(const Tipset &l, const Tipset &r);
 
   CBOR_TUPLE(Tipset, cids, blks, height)
 

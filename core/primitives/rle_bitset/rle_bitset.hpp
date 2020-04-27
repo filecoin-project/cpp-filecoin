@@ -10,7 +10,7 @@
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "codec/rle/rle_plus.hpp"
-#include "common/outcome_throw.hpp"
+#include "common/outcome.hpp"
 
 namespace fc::primitives {
   struct RleBitset : public std::set<uint64_t> {

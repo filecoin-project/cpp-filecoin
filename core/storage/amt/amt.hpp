@@ -9,7 +9,7 @@
 #include <boost/variant.hpp>
 
 #include "codec/cbor/cbor.hpp"
-#include "common/outcome_throw.hpp"
+#include "common/outcome.hpp"
 #include "common/visitor.hpp"
 #include "common/which.hpp"
 #include "primitives/cid/cid.hpp"
