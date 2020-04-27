@@ -33,4 +33,16 @@ namespace fc::adt {
     }
     return maybe->toUInt64();
   }
+
+  std::string VarintKeyer::encode(Key value) {
+    value <<= 1;
+    return UvarintKeyer::encode(value < 0 ? ~value : value);
+  }
+
+  outcome::result<VarintKeyer::Key> VarintKeyer::decode(
+      const std::string &key) {
+    OUTCOME_TRY(value2, UvarintKeyer::decode(key));
+    int64_t value = value2 >> 1;
+    return value & 1 ? ~value : value;
+  }
 }  // namespace fc::adt

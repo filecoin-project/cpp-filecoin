@@ -140,6 +140,22 @@ namespace fc::codec::cbor {
     return cbor_value_is_null(&value_);
   }
 
+  bool CborDecodeStream::isBool() const {
+    return cbor_value_is_boolean(&value_);
+  }
+
+  bool CborDecodeStream::isInt() const {
+    return cbor_value_is_integer(&value_);
+  }
+
+  bool CborDecodeStream::isStr() const {
+    return cbor_value_is_text_string(&value_);
+  }
+
+  bool CborDecodeStream::isBytes() const {
+    return cbor_value_is_byte_string(&value_);
+  }
+
   size_t CborDecodeStream::listLength() const {
     size_t length;
     if (CborNoError != cbor_value_get_array_length(&value_, &length)) {
