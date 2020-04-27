@@ -108,7 +108,7 @@ namespace fc::adt {
     }
 
    private:
-    boost::variant<Queue, Handler, Closed> state;
+    boost::variant<Queue, Handler, Closed> state{Queue{{}, false}};
     std::mutex mutex;
   };
 }  // namespace fc::adt
