@@ -9,6 +9,7 @@
 namespace fc::api {
   template <typename M>
   void setup(Rpc &rpc, const M &method) {
+    using Result = typename M::Result;
     rpc.setup(
         M::name,
         [&](auto &jparams, auto make_chan) -> outcome::result<Document> {
@@ -20,9 +21,9 @@ namespace fc::api {
           if (!maybe_result) {
             return maybe_result.error();
           }
-          if constexpr (!std::is_same_v<typename M::Result, void>) {
+          if constexpr (!std::is_same_v<Result, void>) {
             auto &result = maybe_result.value();
-            if constexpr (is_chan_v<typename M::Result>) {
+            if constexpr (is_chan<Result>{}) {
               result.id = make_chan([chan{result}](auto send) {
                 chan.channel->read([send{std::move(send)}, chan](auto opt) {
                   if (opt) {

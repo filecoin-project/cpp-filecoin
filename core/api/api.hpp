@@ -78,9 +78,6 @@ namespace fc::api {
   template <typename T>
   struct is_chan<Chan<T>> : std::true_type {};
 
-  template <typename T>
-  constexpr auto is_chan_v = is_chan<T>::value;
-
   struct InvocResult {
     UnsignedMessage message;
     MessageReceipt receipt;
