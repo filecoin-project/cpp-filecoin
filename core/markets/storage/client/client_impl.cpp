@@ -103,26 +103,29 @@ namespace fc::markets::storage::client {
             self->logger_->error("Cannot open stream to "
                                  + info.peer_id.toBase58() + ": "
                                  + stream_res.error().message());
+            signed_ask_handler(outcome::failure(stream_res.error()));
             return;
           }
           auto stream_p = std::move(stream_res.value());
           AskRequest request{.miner = info.address};
-          stream_p->write(request,
-                          [self, info, signed_ask_handler, stream_p](
-                              outcome::result<size_t> written) {
-                            if (written.has_error()) {
-                              self->logger_->error("Cannot send request: "
-                                                   + written.error().message());
-                              return;
-                            }
-                            stream_p->template read<AskResponse>(
-                                [self, info, signed_ask_handler](
-                                    outcome::result<AskResponse> response) {
-                                  auto validated_ask_response =
-                                      self->validateAskResponse(response, info);
-                                  signed_ask_handler(validated_ask_response);
-                                });
-                          });
+          stream_p->write(
+              request,
+              [self, info, signed_ask_handler, stream_p](
+                  outcome::result<size_t> written) {
+                if (written.has_error()) {
+                  self->logger_->error("Cannot send request: "
+                                       + written.error().message());
+                  signed_ask_handler(outcome::failure(written.error()));
+                  return;
+                }
+                stream_p->template read<AskResponse>(
+                    [self, info, signed_ask_handler](
+                        outcome::result<AskResponse> response) {
+                      auto validated_ask_response =
+                          self->validateAskResponse(response, info);
+                      signed_ask_handler(validated_ask_response);
+                    });
+              });
         });
   }
 
