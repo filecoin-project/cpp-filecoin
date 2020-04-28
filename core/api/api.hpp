@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_API_API_HPP
 #define CPP_FILECOIN_CORE_API_API_HPP
 
+#include "adt/channel.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/comm_cid.hpp"
@@ -26,6 +27,7 @@
   } _name;
 
 namespace fc::api {
+  using adt::Channel;
   using common::Buffer;
   using common::Comm;
   using crypto::randomness::Randomness;
@@ -63,8 +65,18 @@ namespace fc::api {
 
   template <typename T>
   struct Chan {
-    uint64_t id;
+    using Type = T;
+    Chan() = default;
+    Chan(std::shared_ptr<Channel<T>> channel) : channel{std::move(channel)} {}
+    uint64_t id{};
+    std::shared_ptr<Channel<T>> channel;
   };
+
+  template <typename T>
+  struct is_chan : std::false_type {};
+
+  template <typename T>
+  struct is_chan<Chan<T>> : std::true_type {};
 
   struct InvocResult {
     UnsignedMessage message;
@@ -111,6 +123,11 @@ namespace fc::api {
     Buffer raw;
   };
 
+  struct MpoolUpdate {
+    int64_t type;
+    SignedMessage message;
+  };
+
   struct Api {
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
@@ -141,6 +158,7 @@ namespace fc::api {
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
     API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &)
+    API_METHOD(MpoolSub, Chan<MpoolUpdate>)
 
     API_METHOD(PaychVoucherAdd,
                TokenAmount,
