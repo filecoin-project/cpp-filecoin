@@ -7,6 +7,7 @@
 
 #include <boost/algorithm/string.hpp>
 
+#include <libp2p/peer/peer_id.hpp>
 #include "blockchain/production/impl/block_producer_impl.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
@@ -31,6 +32,7 @@ namespace fc::api {
   using blockchain::production::BlockProducerImpl;
   using crypto::randomness::RandomnessProvider;
   using crypto::signature::BlsSignature;
+  using libp2p::peer::PeerId;
   using primitives::block::MsgMeta;
   using vm::isVMExitCode;
   using vm::normalizeVMExitCode;
@@ -320,18 +322,18 @@ namespace fc::api {
           OUTCOME_TRY(state.proposals.visit([&](auto deal_id, auto &deal)
                                                 -> outcome::result<void> {
             OUTCOME_TRY(deal_state, state.states.get(deal_id));
-            map.emplace(std::to_string(deal_id), MarketDeal{deal, deal_state});
+            map.emplace(std::to_string(deal_id), StorageDeal{deal, deal_state});
             return outcome::success();
           }));
           return map;
         }},
         .StateMarketStorageDeal = {[=](auto deal_id, auto &tipset_key)
-                                       -> outcome::result<MarketDeal> {
+                                       -> outcome::result<StorageDeal> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
           OUTCOME_TRY(deal, state.proposals.get(deal_id));
           OUTCOME_TRY(deal_state, state.states.get(deal_id));
-          return MarketDeal{deal, deal_state};
+          return StorageDeal{deal, deal_state};
         }},
         .StateMinerElectionPeriodStart = {[=](auto address, auto tipset_key)
                                               -> outcome::result<ChainEpoch> {
@@ -344,6 +346,12 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           return state.fault_set;
+        }},
+        .StateMinerInfo = {[&](auto &address,
+                               auto &tipset_key) -> outcome::result<MinerInfo> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(miner_state, context.minerState(address));
+          return miner_state.info;
         }},
         .StateMinerPower = {[=](auto &address, auto &tipset_key)
                                 -> outcome::result<MinerPower> {

@@ -22,7 +22,7 @@ namespace fc::markets::storage::network {
    */
   class Libp2pStorageMarketNetwork
       : public StorageMarketNetwork,
-        public std::enable_shared_from_this<Libp2pStorageMarketNetwork> {
+        std::enable_shared_from_this<Libp2pStorageMarketNetwork> {
    public:
     auto newAskStream(const PeerId &peer_id,
                       const CborStreamResultHandler &handler) -> void override;

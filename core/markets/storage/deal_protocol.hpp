@@ -33,6 +33,9 @@ namespace fc::markets::storage {
 
   const libp2p::peer::Protocol kDealProtocolId = "/fil/storage/mk/1.0.1";
 
+  const std::string kTransferTypeGraphsync = "graphsync";
+  const std::string kTransferTypeManual = "manual";
+
   struct DataRef {
     std::string transfer_type;
     CID root;
@@ -138,11 +141,11 @@ namespace fc::markets::storage {
    * StorageDeal is a local combination of a proposal and a current deal state
    */
   struct StorageDeal {
-    DealProposal deal_proposal;
-    DealState deal_state;
+    DealProposal proposal;
+    DealState state;
   };
 
-  CBOR_TUPLE(StorageDeal, deal_proposal, deal_state)
+  CBOR_TUPLE(StorageDeal, proposal, state)
 
   /**
    * Proposal is the data sent over the network from client to provider when
