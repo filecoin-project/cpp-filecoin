@@ -55,6 +55,7 @@ namespace fc::api {
     setup(rpc, api.StateListActors);
     setup(rpc, api.StateMarketBalance);
     setup(rpc, api.StateMarketDeals);
+    setup(rpc, api.StateLookupID);
     setup(rpc, api.StateMarketStorageDeal);
     setup(rpc, api.StateMinerElectionPeriodStart);
     setup(rpc, api.StateMinerFaults);

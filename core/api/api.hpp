@@ -162,6 +162,7 @@ namespace fc::api {
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
+    API_METHOD(StateLookupID, Address, const Address &, const TipsetKey &)
     API_METHOD(StateMarketStorageDeal, MarketDeal, DealId, const TipsetKey &)
     API_METHOD(StateMinerElectionPeriodStart,
                ChainEpoch,

@@ -343,6 +343,11 @@ namespace fc::api {
           }));
           return map;
         }},
+        .StateLookupID = {[=](auto &address,
+                              auto &tipset_key) -> outcome::result<Address> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          return context.state_tree.lookupId(address);
+        }},
         .StateMarketStorageDeal = {[=](auto deal_id, auto &tipset_key)
                                        -> outcome::result<MarketDeal> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
