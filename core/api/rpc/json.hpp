@@ -11,6 +11,7 @@
 
 #include "api/api.hpp"
 #include "api/rpc/json_errors.hpp"
+#include "api/rpc/rpc.hpp"
 #include "common/enum.hpp"
 #include "primitives/address/address_codec.hpp"
 
@@ -41,22 +42,6 @@ namespace fc::api {
   using SignatureType = crypto::signature::Type;
   using codec::cbor::CborDecodeStream;
   using primitives::sector::RegisteredProof;
-
-  struct Request {
-    uint64_t id;
-    std::string method;
-    Document params;
-  };
-
-  struct Response {
-    struct Error {
-      int64_t code;
-      std::string message;
-    };
-
-    boost::optional<uint64_t> id;
-    boost::variant<Error, Document> result;
-  };
 
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
@@ -400,6 +385,18 @@ namespace fc::api {
     DECODE(MsgWait) {
       decode(v.receipt, Get(j, "Receipt"));
       decode(v.tipset, Get(j, "TipSet"));
+    }
+
+    ENCODE(MpoolUpdate) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Type", v.type);
+      Set(j, "Message", v.message);
+      return j;
+    }
+
+    DECODE(MpoolUpdate) {
+      decode(v.type, Get(j, "Type"));
+      decode(v.message, Get(j, "Message"));
     }
 
     ENCODE(MinerPower) {
