@@ -216,12 +216,12 @@ namespace fc::sector_storage {
                                  unsealedCID));
     }
 
+    if (offset + size > boost::filesystem::file_size(path.unsealed)) {
+      return SectorStorageError::OUT_OF_FILE_SIZE;
+    }
+
     if (size == boost::filesystem::file_size(path.unsealed)) {
-      if (offset == 0) {
-        return PieceData(path.unsealed);
-      } else {
-        return SectorStorageError::OUT_OF_FILE_SIZE;
-      }
+      return PieceData(path.unsealed);
     }
 
     int piece[2];
