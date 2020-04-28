@@ -154,6 +154,11 @@ namespace fc::api {
                InvocResult,
                const UnsignedMessage &,
                const TipsetKey &)
+    API_METHOD(StateListMessages,
+               std::vector<CID>,
+               const UnsignedMessage &,
+               const TipsetKey &,
+               ChainEpoch)
     API_METHOD(StateGetActor, Actor, const Address &, const TipsetKey &)
     API_METHOD(StateListMiners, std::vector<Address>, const TipsetKey &)
     API_METHOD(StateListActors, std::vector<Address>, const TipsetKey &)

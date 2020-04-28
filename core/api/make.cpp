@@ -6,6 +6,7 @@
 #include "api/make.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/range/adaptor/indexed.hpp>
 
 #include "blockchain/production/impl/block_producer_impl.hpp"
 #include "storage/hamt/hamt.hpp"
@@ -282,6 +283,103 @@ namespace fc::api {
               return maybe_result.error();
             }
           }
+          return result;
+        }},
+        .StateListMessages = {[=](auto &match, auto &tipset_key, auto to_height)
+                                  -> outcome::result<std::vector<CID>> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+
+          const Address undefined_address = Address{};
+
+          if (match.to == undefined_address
+              && match.from == undefined_address) {
+            return TodoError::ERROR;  // must specify at least To or From in
+                                      // message filter
+          }
+
+          auto matchFunc = [&](const UnsignedMessage &message) -> bool {
+            if (match.to != undefined_address && match.to != message.to) {
+              return false;
+            }
+
+            if (match.from != undefined_address && match.from != message.from) {
+              return false;
+            }
+
+            return true;
+          };
+
+          std::vector<CID> result;
+
+          while (static_cast<int64_t>(context.tipset.height) >= to_height) {
+            {
+              // GET MESSAGES FROM TIPSET
+              std::unordered_map<std::string, uint64_t> applied;
+              std::unordered_map<std::string, primitives::BigInt> balances;
+
+              auto preloadAddr =
+                  [&](const Address &addr) -> outcome::result<void> {
+                std::string addr_str =
+                    primitives::address::encodeToString(addr);
+                if (applied.find(addr_str) == applied.end()) {
+                  OUTCOME_TRY(actor, context.state_tree.get(addr));
+                  applied[addr_str] = actor.nonce;
+                  balances[addr_str] = actor.balance;
+                }
+                return outcome::success();
+              };
+
+              std::vector<CidMessage> block_messages;
+              {
+                // GET MESSAGES FROM BLOCK
+                for (const BlockHeader &block : context.tipset.blks) {
+                  OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
+                  meta.load(ipld);
+                  OUTCOME_TRY(meta.bls_messages.visit(
+                      [&](auto, auto &cid) -> outcome::result<void> {
+                        OUTCOME_TRY(message,
+                                    ipld->getCbor<UnsignedMessage>(cid));
+                        block_messages.push_back(
+                            {.message = std::move(message), .cid = cid});
+                        return outcome::success();
+                      }));
+                  OUTCOME_TRY(meta.secp_messages.visit(
+                      [&](auto, auto &cid) -> outcome::result<void> {
+                        OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+                        block_messages.push_back(
+                            {.message = std::move(message.message),
+                             .cid = cid});
+                        return outcome::success();
+                      }));
+                }
+              }
+
+              for (const CidMessage &msg : block_messages) {
+                OUTCOME_TRY(preloadAddr(msg.message.from));
+
+                std::string addr_from_str =
+                    primitives::address::encodeToString(msg.message.from);
+                if (applied[addr_from_str] != msg.message.nonce) continue;
+                applied[addr_from_str]++;
+
+                if (balances[addr_from_str] < msg.message.requiredFunds())
+                  continue;
+                balances[addr_from_str] -= msg.message.requiredFunds();
+
+                if (matchFunc(msg.message)) {
+                  result.push_back(msg.cid);
+                }
+              }
+            }
+
+            if (context.tipset.height == 0) break;
+
+            OUTCOME_TRY(parent_tipset_key, context.tipset.getParents());
+            OUTCOME_TRY(parent_context, tipsetContext(parent_tipset_key));
+
+            context = std::move(parent_context);
+          }
+
           return result;
         }},
         .StateGetActor = {[=](auto &address,

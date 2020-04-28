@@ -50,6 +50,7 @@ namespace fc::api {
     setup(rpc, api.PaychVoucherAdd);
     setup(rpc, api.StateAccountKey);
     setup(rpc, api.StateCall);
+    setup(rpc, api.StateListMessages);
     setup(rpc, api.StateGetActor);
     setup(rpc, api.StateListMiners);
     setup(rpc, api.StateListActors);
