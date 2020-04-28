@@ -95,6 +95,10 @@ namespace fc::storage::blockchain {
     /** @brief head change subscription */
     connection_t subscribeHeadChanges(
         const std::function<HeadChangeSignature> &subscriber) override {
+      if (heaviest_tipset_.has_value()) {
+        subscriber(HeadChange{.type = HeadChangeType::CURRENT,
+                              .value = *heaviest_tipset_});
+      }
       return head_change_signal_.connect(subscriber);
     }
 
@@ -114,8 +118,9 @@ namespace fc::storage::blockchain {
         const std::vector<std::reference_wrapper<const BlockHeader>>
             &block_headers);
 
+    /** @brief finds and returns tipset containing given block header */
     outcome::result<Tipset> expandTipset(const BlockHeader &block_header);
-
+    
     outcome::result<void> updateHeaviestTipset(const Tipset &tipset);
 
     /**
