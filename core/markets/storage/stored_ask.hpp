@@ -21,12 +21,13 @@
 #include "storage/chain/chain_data_store.hpp"
 
 namespace fc::markets::storage {
+
+  using api::Api;
   using ::fc::storage::blockchain::ChainDataStore;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
-  using api::Api;
 
   static const TokenAmount kDefaultPrice = 500'000'000;
   static constexpr ChainEpoch kDefaultDuration = 1'000'000;

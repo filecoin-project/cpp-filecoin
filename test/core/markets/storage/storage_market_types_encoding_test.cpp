@@ -38,7 +38,7 @@ namespace fc::markets::storage {
     ChainEpoch slash_epoch{6};
 
     StorageDeal storage_deal{
-        .deal_proposal = {.piece_cid = piece_cid,
+        .proposal = {.piece_cid = piece_cid,
                           .piece_size = piece_size,
                           .client = client,
                           .provider = provider,
@@ -47,7 +47,7 @@ namespace fc::markets::storage {
                           .storage_price_per_epoch = storage_price_per_epoch,
                           .provider_collateral = provider_collateral,
                           .client_collateral = client_collateral},
-        .deal_state = {.sector_start_epoch = sector_start_epoch,
+        .state = {.sector_start_epoch = sector_start_epoch,
                        .last_updated_epoch = last_updated_epoch,
                        .slash_epoch = slash_epoch}};
 
