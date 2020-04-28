@@ -8,6 +8,9 @@
 
 #include "adt/channel.hpp"
 #include "crypto/randomness/randomness_types.hpp"
+#include "markets/storage/ask_protocol.hpp"
+#include "markets/storage/deal_protocol.hpp"
+#include "markets/storage/types.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
@@ -32,6 +35,9 @@ namespace fc::api {
   using common::Comm;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
+  using markets::storage::SignedStorageAsk;
+  using markets::storage::StorageDeal;
+  using markets::storage::StorageProviderInfo;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::RleBitset;
@@ -49,9 +55,11 @@ namespace fc::api {
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
   using vm::actor::Actor;
+  using vm::actor::builtin::market::ClientDealProposal;
   using vm::actor::builtin::market::DealProposal;
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
+  using vm::actor::builtin::miner::MinerInfo;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::message::SignedMessage;
@@ -85,12 +93,7 @@ namespace fc::api {
     std::string error;
   };
 
-  struct MarketDeal {
-    DealProposal proposal;
-    DealState state;
-  };
-
-  using MarketDealMap = std::map<std::string, MarketDeal>;
+  using MarketDealMap = std::map<std::string, StorageDeal>;
 
   struct MinerPower {
     StoragePower miner;
@@ -179,12 +182,13 @@ namespace fc::api {
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
-    API_METHOD(StateMarketStorageDeal, MarketDeal, DealId, const TipsetKey &)
+    API_METHOD(StateMarketStorageDeal, StorageDeal, DealId, const TipsetKey &)
     API_METHOD(StateMinerElectionPeriodStart,
                ChainEpoch,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
     API_METHOD(StateMinerProvingSet,
                std::vector<ChainSectorInfo>,

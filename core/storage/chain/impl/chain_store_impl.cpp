@@ -51,7 +51,7 @@ namespace fc::storage::blockchain {
     return std::make_shared<ChainStoreImpl>(std::move(tmp));
   }
 
-  outcome::result<ChainStoreImpl::Tipset> ChainStoreImpl::loadTipset(
+  outcome::result<Tipset> ChainStoreImpl::loadTipset(
       const primitives::tipset::TipsetKey &key) {
     std::vector<BlockHeader> blocks;
     blocks.reserve(key.cids.size());
