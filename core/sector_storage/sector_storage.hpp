@@ -14,7 +14,7 @@
 
 namespace fc::sector_storage {
   using fc::primitives::sector_file::SectorPaths;
-
+  using UnpaddedByteIndex = uint64_t;
   using fc::primitives::piece::PieceData;
   using fc::primitives::piece::PieceInfo;
   using fc::primitives::piece::UnpaddedPieceSize;
@@ -55,6 +55,13 @@ namespace fc::sector_storage {
                                                const Commit1Output &c1o) = 0;
 
     virtual outcome::result<void> finalizeSector(const SectorId &sector) = 0;
+
+    virtual outcome::result<PieceData> readPieceFromSealedSector(
+        const SectorId &sector,
+        UnpaddedByteIndex offset,
+        UnpaddedPieceSize size,
+        const SealRandomness &ticket,
+        const CID &unsealedCID) = 0;
 
     // STORAGE
     virtual outcome::result<PieceInfo> addPiece(
