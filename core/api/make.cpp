@@ -189,7 +189,7 @@ namespace fc::api {
           using connection_t = ChainStore::connection_t;
           auto cnn = std::make_shared<connection_t>();
 
-          auto connection = chain_store->subscribeHeadChanges(
+          auto signal_connection = chain_store->subscribeHeadChanges(
               [&, wc = channel->weak_from_this(), cnn](
                   const HeadChange &change) -> void {
                 auto ch = wc.lock();
@@ -205,8 +205,8 @@ namespace fc::api {
                   }
                 }
               });
-          *cnn = std::move(connection);
-          return makeChan(std::move(channel), *id_provider);
+          *cnn = std::move(signal_connection);
+          return makeChan<HeadChange>(std::move(channel), *id_provider);
         }},
         .ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }},
         // TODO(turuslan): FIL-165 implement method

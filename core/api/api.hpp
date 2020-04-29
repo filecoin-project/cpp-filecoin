@@ -77,7 +77,7 @@ namespace fc::api {
     Chan() = default;
     Chan(std::shared_ptr<Channel<T>> channel) : channel{std::move(channel)} {}
     Chan(std::shared_ptr<Channel<T>> channel, uint64_t id)
-        : channel{std::move(channel)}, id{id} {}
+        : id{id}, channel{std::move(channel)} {}
     uint64_t id{};
     std::shared_ptr<Channel<T>> channel;
   };
@@ -99,10 +99,10 @@ namespace fc::api {
   };
 
   template <class T>
-  Chan<T> makeChan(std::shared_ptr<Channel<T>> channel,
-                      IdProvider &id_provider) {
+  inline Chan<T> makeChan(std::shared_ptr<Channel<T>> channel,
+                          IdProvider &id_provider) {
     auto id = id_provider.nextId();
-    return Chan<T>{id, std::move(channel)};
+    return Chan<T>(std::move(channel), id);
   }
 
   struct InvocResult {
