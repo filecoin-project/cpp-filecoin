@@ -78,6 +78,7 @@ namespace fc::api {
     setup(rpc, api.StateCall);
     setup(rpc, api.StateListMessages);
     setup(rpc, api.StateGetActor);
+    setup(rpc, api.StateReadState);
     setup(rpc, api.StateListMiners);
     setup(rpc, api.StateListActors);
     setup(rpc, api.StateMarketBalance);

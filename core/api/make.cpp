@@ -422,6 +422,13 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key, true));
           return context.state_tree.get(address);
         }},
+        .StateReadState = {[=](auto &actor, auto &tipset_key)
+                               -> outcome::result<IpldObject> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          auto cid = actor.head;
+          OUTCOME_TRY(raw, context.state_tree.getStore()->get(cid));
+          return IpldObject{std::move(cid), std::move(raw)};
+        }},
         .StateListMiners = {[=](auto &tipset_key)
                                 -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));

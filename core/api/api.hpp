@@ -184,6 +184,7 @@ namespace fc::api {
                const TipsetKey &,
                ChainEpoch)
     API_METHOD(StateGetActor, Actor, const Address &, const TipsetKey &)
+    API_METHOD(StateReadState, IpldObject, const Actor&, const TipsetKey &)
     API_METHOD(StateListMiners, std::vector<Address>, const TipsetKey &)
     API_METHOD(StateListActors, std::vector<Address>, const TipsetKey &)
     API_METHOD(StateMarketBalance,
