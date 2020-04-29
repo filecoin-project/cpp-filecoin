@@ -15,6 +15,8 @@ namespace fc {
    public:
     using ContentIdentifier::ContentIdentifier;
 
+    using Multicodec = libp2p::multi::MulticodecType::Code;
+
     /**
      * ContentIdentifier is not default-constructable, but in some cases we need
      * default value. This value can be used to initialize class member or local
@@ -32,7 +34,7 @@ namespace fc {
     CID(const CID &cid) = default;
 
     CID(Version version,
-        libp2p::multi::MulticodecType::Code content_type,
+        Multicodec content_type,
         libp2p::multi::Multihash content_address);
 
     ~CID() = default;
