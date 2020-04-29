@@ -206,8 +206,7 @@ namespace fc::api {
                 }
               });
           *cnn = std::move(connection);
-          auto new_id = id_provider->nextId();
-          return Chan<HeadChange>(std::move(channel), new_id);
+          return makeChan(std::move(channel), *id_provider);
         }},
         .ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }},
         // TODO(turuslan): FIL-165 implement method

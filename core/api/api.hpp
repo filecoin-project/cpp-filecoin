@@ -98,12 +98,12 @@ namespace fc::api {
     std::atomic<uint64_t> next_id_;
   };
 
-  //  template <class T>
-  //  Chan<T> makeChannel(std::shared_ptr<Channel<T>> channel,
-  //                      IdProvider &id_provider) {
-  //    auto id = id_provider.nextId();
-  //    return Chan<T>{id, std::move(channel)};
-  //  }
+  template <class T>
+  Chan<T> makeChan(std::shared_ptr<Channel<T>> channel,
+                      IdProvider &id_provider) {
+    auto id = id_provider.nextId();
+    return Chan<T>{id, std::move(channel)};
+  }
 
   struct InvocResult {
     UnsignedMessage message;
