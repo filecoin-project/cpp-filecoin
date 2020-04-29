@@ -35,4 +35,6 @@ namespace fc::primitives::piece {
     fd_ = other.fd_;
     other.fd_ = kUnopenedFileDescriptor;
   }
+
+  PieceData::PieceData(int pipe_fd) : fd_(pipe_fd) {}
 }  // namespace fc::primitives::piece

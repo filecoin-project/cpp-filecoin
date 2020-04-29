@@ -8,6 +8,7 @@
 #include <boost/algorithm/string.hpp>
 #include <boost/range/adaptor/indexed.hpp>
 
+#include <libp2p/peer/peer_id.hpp>
 #include "blockchain/production/impl/block_producer_impl.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
@@ -33,6 +34,7 @@ namespace fc::api {
   using blockchain::production::BlockProducerImpl;
   using crypto::randomness::RandomnessProvider;
   using crypto::signature::BlsSignature;
+  using libp2p::peer::PeerId;
   using primitives::block::MsgMeta;
   using vm::isVMExitCode;
   using vm::normalizeVMExitCode;
@@ -72,7 +74,8 @@ namespace fc::api {
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
-               std::shared_ptr<KeyStore> key_store) {
+               std::shared_ptr<KeyStore> key_store,
+               Logger logger) {
     auto chain_randomness = chain_store->createRandomnessProvider();
     auto tipsetContext = [=](auto &tipset_key,
                              bool interpret =
@@ -124,12 +127,12 @@ namespace fc::api {
           return getNode(ipld, root, gsl::make_span(parts).subspan(3));
         }},
         .ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
-          auto res = ipld->getCbor<SignedMessage>(cid);
+          auto res = chain_store->getCbor<SignedMessage>(cid);
           if (!res.has_error()) {
             return res.value().message;
           }
 
-          return ipld->getCbor<UnsignedMessage>(cid);
+          return chain_store->getCbor<UnsignedMessage>(cid);
         }},
         .ChainGetParentMessages =
             {[=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
@@ -190,8 +193,30 @@ namespace fc::api {
           return std::move(tipset);
         }},
         .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
-        // TODO(turuslan): FIL-165 implement method
-        .ChainNotify = {},
+        .ChainNotify = {[=]() -> outcome::result<Chan<HeadChange>> {
+          auto channel = std::make_shared<Channel<HeadChange>>();
+          using connection_t = ChainStore::connection_t;
+          auto cnn = std::make_shared<connection_t>();
+          std::weak_ptr<Channel<HeadChange>> wc = channel;
+
+          auto signal_connection = chain_store->subscribeHeadChanges(
+              [&, wc{std::move(wc)}, cnn](const HeadChange &change) -> void {
+                auto ch = wc.lock();
+                if (ch) {
+                  if (!ch->write(change)) {
+                    if (cnn->connected()) {
+                      cnn->disconnect();
+                    } else {
+                      logger->warn(
+                          "cannot close uninitialized connection when "
+                          "unsubscribing from head change notifications");
+                    }
+                  }
+                }
+              });
+          *cnn = std::move(signal_connection);
+          return Chan<HeadChange>(std::move(channel));
+        }},
         .ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }},
         // TODO(turuslan): FIL-165 implement method
         .ChainSetHead = {},
@@ -252,6 +277,8 @@ namespace fc::api {
         .MpoolPending = {},
         // TODO(turuslan): FIL-165 implement method
         .MpoolPushMessage = {},
+        // TODO(turuslan): FIL-165 implement method
+        .MpoolSub = {},
         // TODO(turuslan): FIL-165 implement method
         .PaychVoucherAdd = {},
         .StateAccountKey = {[=](auto &address,
@@ -434,7 +461,7 @@ namespace fc::api {
           OUTCOME_TRY(state.proposals.visit([&](auto deal_id, auto &deal)
                                                 -> outcome::result<void> {
             OUTCOME_TRY(deal_state, state.states.get(deal_id));
-            map.emplace(std::to_string(deal_id), MarketDeal{deal, deal_state});
+            map.emplace(std::to_string(deal_id), StorageDeal{deal, deal_state});
             return outcome::success();
           }));
           return map;
@@ -445,12 +472,12 @@ namespace fc::api {
           return context.state_tree.lookupId(address);
         }},
         .StateMarketStorageDeal = {[=](auto deal_id, auto &tipset_key)
-                                       -> outcome::result<MarketDeal> {
+                                       -> outcome::result<StorageDeal> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
           OUTCOME_TRY(deal, state.proposals.get(deal_id));
           OUTCOME_TRY(deal_state, state.states.get(deal_id));
-          return MarketDeal{deal, deal_state};
+          return StorageDeal{deal, deal_state};
         }},
         .StateMinerElectionPeriodStart = {[=](auto address, auto tipset_key)
                                               -> outcome::result<ChainEpoch> {
@@ -463,6 +490,12 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
           return state.fault_set;
+        }},
+        .StateMinerInfo = {[&](auto &address,
+                               auto &tipset_key) -> outcome::result<MinerInfo> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(miner_state, context.minerState(address));
+          return miner_state.info;
         }},
         .StateMinerPower = {[=](auto &address, auto &tipset_key)
                                 -> outcome::result<MinerPower> {

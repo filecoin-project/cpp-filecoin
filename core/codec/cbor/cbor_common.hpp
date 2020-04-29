@@ -11,7 +11,7 @@
 #include <boost/optional.hpp>
 
 #include "codec/cbor/cbor_errors.hpp"
-#include "common/outcome_throw.hpp"
+#include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::codec::cbor {

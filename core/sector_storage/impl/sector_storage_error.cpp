@@ -21,6 +21,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, SectorStorageError, e) {
       return "Sector Storage: aggregated piece sizes don't match sector size";
     case (SectorStorageError::CANNOT_CREATE_FILE):
       return "Sector Storage: cannot create a file";
+    case (SectorStorageError::CANNOT_OPEN_FILE):
+      return "Sector Storage: cannot open a file";
+    case (SectorStorageError::OUT_OF_FILE_SIZE):
+      return "Sector Storage: requested piece is out of bound";
+
     default:
       return "Sector Storage: unknown error";
   }

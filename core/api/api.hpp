@@ -6,7 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_API_API_HPP
 #define CPP_FILECOIN_CORE_API_API_HPP
 
+#include "adt/channel.hpp"
 #include "crypto/randomness/randomness_types.hpp"
+#include "markets/storage/ask_protocol.hpp"
+#include "markets/storage/deal_protocol.hpp"
+#include "markets/storage/types.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
@@ -26,10 +30,14 @@
   } _name;
 
 namespace fc::api {
+  using adt::Channel;
   using common::Buffer;
   using common::Comm;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
+  using markets::storage::SignedStorageAsk;
+  using markets::storage::StorageDeal;
+  using markets::storage::StorageProviderInfo;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::RleBitset;
@@ -47,9 +55,11 @@ namespace fc::api {
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
   using vm::actor::Actor;
+  using vm::actor::builtin::market::ClientDealProposal;
   using vm::actor::builtin::market::DealProposal;
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
+  using vm::actor::builtin::miner::MinerInfo;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::message::SignedMessage;
@@ -63,8 +73,20 @@ namespace fc::api {
 
   template <typename T>
   struct Chan {
-    uint64_t id;
+    using Type = T;
+    Chan() = default;
+    Chan(std::shared_ptr<Channel<T>> channel) : channel{std::move(channel)} {}
+    Chan(std::shared_ptr<Channel<T>> channel, uint64_t id)
+        : id{id}, channel{std::move(channel)} {}
+    uint64_t id{};
+    std::shared_ptr<Channel<T>> channel;
   };
+
+  template <typename T>
+  struct is_chan : std::false_type {};
+
+  template <typename T>
+  struct is_chan<Chan<T>> : std::true_type {};
 
   struct InvocResult {
     UnsignedMessage message;
@@ -73,12 +95,7 @@ namespace fc::api {
     std::string error;
   };
 
-  struct MarketDeal {
-    DealProposal proposal;
-    DealState state;
-  };
-
-  using MarketDealMap = std::map<std::string, MarketDeal>;
+  using MarketDealMap = std::map<std::string, StorageDeal>;
 
   struct MinerPower {
     StoragePower miner;
@@ -109,6 +126,11 @@ namespace fc::api {
   struct IpldObject {
     CID cid;
     Buffer raw;
+  };
+
+  struct MpoolUpdate {
+    int64_t type;
+    SignedMessage message;
   };
 
   struct Api {
@@ -142,6 +164,7 @@ namespace fc::api {
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
     API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &)
+    API_METHOD(MpoolSub, Chan<MpoolUpdate>)
 
     API_METHOD(PaychVoucherAdd,
                TokenAmount,
@@ -168,13 +191,14 @@ namespace fc::api {
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
-    API_METHOD(StateLookupID, Address, const Address &, const TipsetKey &)
-    API_METHOD(StateMarketStorageDeal, MarketDeal, DealId, const TipsetKey &)
+      API_METHOD(StateLookupID, Address, const Address &, const TipsetKey &)
+    API_METHOD(StateMarketStorageDeal, StorageDeal, DealId, const TipsetKey &)
     API_METHOD(StateMinerElectionPeriodStart,
                ChainEpoch,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
     API_METHOD(StateMinerProvingSet,
                std::vector<ChainSectorInfo>,

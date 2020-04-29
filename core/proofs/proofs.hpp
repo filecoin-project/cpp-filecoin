@@ -206,7 +206,7 @@ namespace fc::proofs {
     /**
      * @brief Unseals the sector at @sealed_path and returns the bytes for a
      * piece whose first (unpadded) byte begins at @offset and ends at @offset
-     * plus @num_bytes, inclusive
+     * plus @length, inclusive
      */
     static outcome::result<void> unsealRange(
         RegisteredProof proof_type,

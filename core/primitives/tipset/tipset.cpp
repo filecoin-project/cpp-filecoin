@@ -140,14 +140,12 @@ namespace fc::primitives::tipset {
     return std::find(cids.begin(), cids.end(), cid) != std::end(cids);
   }
 
-  /**
-   * @brief compares two Tipset instances
-   * @param lhs first tipset
-   * @param rhs second tipset
-   * @return true if equal, false otherwise
-   */
   bool operator==(const Tipset &lhs, const Tipset &rhs) {
     if (lhs.blks.size() != rhs.blks.size()) return false;
     return std::equal(lhs.blks.begin(), lhs.blks.end(), rhs.blks.begin());
+  }
+
+  bool operator!=(const Tipset &l, const Tipset &r) {
+    return !(l == r);
   }
 }  // namespace fc::primitives::tipset
