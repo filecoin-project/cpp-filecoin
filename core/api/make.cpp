@@ -72,7 +72,8 @@ namespace fc::api {
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
-               std::shared_ptr<KeyStore> key_store) {
+               std::shared_ptr<KeyStore> key_store,
+               Logger logger) {
     auto chain_randomness = chain_store->createRandomnessProvider();
     auto tipsetContext = [=](auto &tipset_key,
                              bool interpret =
@@ -182,8 +183,30 @@ namespace fc::api {
           return std::move(tipset);
         }},
         .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
-        // TODO(turuslan): FIL-165 implement method
-        .ChainNotify = {},
+        .ChainNotify = {[=]() -> outcome::result<Chan<HeadChange>> {
+          auto channel = std::make_shared<Channel<HeadChange>>();
+          using connection_t = ChainStore::connection_t;
+          auto cnn = std::make_shared<connection_t>();
+          std::weak_ptr<Channel<HeadChange>> wc = channel;
+
+          auto signal_connection = chain_store->subscribeHeadChanges(
+              [&, wc{std::move(wc)}, cnn](const HeadChange &change) -> void {
+                auto ch = wc.lock();
+                if (ch) {
+                  if (!ch->write(change)) {
+                    if (cnn->connected()) {
+                      cnn->disconnect();
+                    } else {
+                      logger->warn(
+                          "cannot close uninitialized connection when "
+                          "unsubscribing from head change notifications");
+                    }
+                  }
+                }
+              });
+          *cnn = std::move(signal_connection);
+          return Chan<HeadChange>(std::move(channel));
+        }},
         .ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }},
         // TODO(turuslan): FIL-165 implement method
         .ChainSetHead = {},

@@ -8,6 +8,7 @@
 
 #include "api/api.hpp"
 #include "blockchain/weight_calculator.hpp"
+#include "common/logger.hpp"
 #include "common/todo_error.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "storage/ipfs/datastore.hpp"
@@ -19,6 +20,7 @@ namespace fc::api {
   using storage::blockchain::ChainStore;
   using storage::keystore::KeyStore;
   using Ipld = storage::ipfs::IpfsDatastore;
+  using Logger = common::Logger;
 
   outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
                                       const CID &root,
@@ -28,7 +30,8 @@ namespace fc::api {
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
-               std::shared_ptr<KeyStore> key_store);
+               std::shared_ptr<KeyStore> key_store,
+               Logger logger);
 }  // namespace fc::api
 
 #endif  // CPP_FILECOIN_CORE_API_MAKE_HPP

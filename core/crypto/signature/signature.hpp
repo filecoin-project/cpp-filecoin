@@ -9,7 +9,7 @@
 #include <boost/variant.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/outcome_throw.hpp"
+#include "common/outcome.hpp"
 #include "common/visitor.hpp"
 #include "crypto/bls/bls_types.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"

@@ -19,4 +19,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::api, JsonError, e) {
     case E::WRONG_PARAMS:
       return "wrong params";
   }
+
+  return "unknown JsonError error code";
 }

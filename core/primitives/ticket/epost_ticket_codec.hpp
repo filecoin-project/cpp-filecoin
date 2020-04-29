@@ -10,7 +10,6 @@
 
 #include "codec/cbor/cbor.hpp"
 #include "common/outcome.hpp"
-#include "common/outcome_throw.hpp"
 #include "primitives/ticket/epost_ticket.hpp"
 
 namespace fc::primitives::ticket {
