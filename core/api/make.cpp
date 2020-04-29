@@ -425,6 +425,9 @@ namespace fc::api {
         .StateWaitMsg = {},
         // TODO(turuslan): FIL-165 implement method
         .SyncSubmitBlock = {},
+        .Version = {[]() {
+          return VersionResult{"fuhon", 0x000200, 5};
+        }},
         // TODO(turuslan): FIL-165 implement method
         .WalletDefaultAddress = {},
         .WalletSign = {[=](auto address, auto data) {

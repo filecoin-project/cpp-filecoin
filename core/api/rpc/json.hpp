@@ -738,6 +738,14 @@ namespace fc::api {
       outcome::raise(JsonError::WRONG_TYPE);
     }
 
+    ENCODE(VersionResult) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Version", v.version);
+      Set(j, "APIVersion", v.api_version);
+      Set(j, "BlockDelay", v.block_delay);
+      return j;
+    }
+
     ENCODE(DealProposal) {
       Value j{rapidjson::kObjectType};
       Set(j, "PieceCID", v.piece_cid);

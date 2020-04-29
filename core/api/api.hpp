@@ -133,6 +133,12 @@ namespace fc::api {
     SignedMessage message;
   };
 
+  struct VersionResult {
+    std::string version;
+    uint64_t api_version;
+    uint64_t block_delay;
+  };
+
   struct Api {
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
@@ -204,6 +210,8 @@ namespace fc::api {
     API_METHOD(StateWaitMsg, MsgWait, const CID &)
 
     API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
+
+    API_METHOD(Version, VersionResult)
 
     API_METHOD(WalletDefaultAddress, Address)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
