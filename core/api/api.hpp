@@ -116,6 +116,7 @@ namespace fc::api {
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
     API_METHOD(ChainGetGenesis, Tipset)
     API_METHOD(ChainGetNode, IpldObject, const std::string &)
+    API_METHOD(ChainGetMessage, UnsignedMessage, const CID &)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
     API_METHOD(ChainGetRandomness, Randomness, const TipsetKey &, int64_t)

@@ -123,6 +123,14 @@ namespace fc::api {
           OUTCOME_TRY(root, CID::fromString(parts[2]));
           return getNode(ipld, root, gsl::make_span(parts).subspan(3));
         }},
+        .ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
+          auto res = ipld->getCbor<SignedMessage>(cid);
+          if (!res.has_error()) {
+            return res.value().message;
+          }
+
+          return ipld->getCbor<UnsignedMessage>(cid);
+        }},
         .ChainGetParentMessages =
             {[=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
               std::vector<CidMessage> messages;
