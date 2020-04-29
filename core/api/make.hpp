@@ -28,7 +28,8 @@ namespace fc::api {
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
-               std::shared_ptr<KeyStore> key_store);
+               std::shared_ptr<KeyStore> key_store,
+               std::shared_ptr<IdProvider> id_provider);
 }  // namespace fc::api
 
 #endif  // CPP_FILECOIN_CORE_API_MAKE_HPP

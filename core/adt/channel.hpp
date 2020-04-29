@@ -18,7 +18,7 @@ namespace fc::adt {
   using common::which;
 
   template <typename T>
-  class Channel {
+  class Channel : public std::enable_shared_from_this<Channel<T>> {
    public:
     using Queue = std::pair<std::vector<T>, bool>;
     using Handler = std::function<bool(boost::optional<T>)>;

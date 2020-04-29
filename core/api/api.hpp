@@ -76,6 +76,8 @@ namespace fc::api {
     using Type = T;
     Chan() = default;
     Chan(std::shared_ptr<Channel<T>> channel) : channel{std::move(channel)} {}
+    Chan(std::shared_ptr<Channel<T>> channel, uint64_t id)
+        : channel{std::move(channel)}, id{id} {}
     uint64_t id{};
     std::shared_ptr<Channel<T>> channel;
   };
@@ -85,6 +87,23 @@ namespace fc::api {
 
   template <typename T>
   struct is_chan<Chan<T>> : std::true_type {};
+
+  class IdProvider {
+   public:
+    uint64_t nextId() {
+      return next_id_++;
+    }
+
+   private:
+    std::atomic<uint64_t> next_id_;
+  };
+
+  //  template <class T>
+  //  Chan<T> makeChannel(std::shared_ptr<Channel<T>> channel,
+  //                      IdProvider &id_provider) {
+  //    auto id = id_provider.nextId();
+  //    return Chan<T>{id, std::move(channel)};
+  //  }
 
   struct InvocResult {
     UnsignedMessage message;
