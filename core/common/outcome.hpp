@@ -41,13 +41,13 @@ namespace fc::outcome {
    * @param t error value
    */
   template <typename T, typename = std::enable_if_t<std::is_enum_v<T>>>
-  void raise(T t) {
+  [[noreturn]] inline void raise(T t) {
     raise(make_error_code(t));
   }
 }  // namespace fc::outcome
 
 #define _OUTCOME_ALTERNATIVE(res, var, expression, alternative) \
-  auto &&res = (expression);                                          \
+  auto &&res = (expression);                                    \
   auto &&var = (res) ? (res.value()) : (alternative);
 
 #define OUTCOME_ALTERNATIVE(var, expression, alternative) \
