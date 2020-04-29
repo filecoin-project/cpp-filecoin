@@ -140,6 +140,11 @@ namespace fc::api {
       v.message = AsString(Get(j, "message"));
     }
 
+    template <typename T, typename = std::enable_if_t<std::is_same_v<T, bool>>>
+    ENCODE(T) {
+      return Value{v};
+    }
+
     ENCODE(int64_t) {
       return Value{v};
     }
