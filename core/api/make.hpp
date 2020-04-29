@@ -31,7 +31,6 @@ namespace fc::api {
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<KeyStore> key_store,
-               std::shared_ptr<IdProvider> id_provider,
                Logger logger);
 }  // namespace fc::api
 

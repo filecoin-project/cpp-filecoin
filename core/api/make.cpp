@@ -73,7 +73,6 @@ namespace fc::api {
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<KeyStore> key_store,
-               std::shared_ptr<IdProvider> id_provider,
                Logger logger) {
     auto chain_randomness = chain_store->createRandomnessProvider();
     auto tipsetContext = [=](auto &tipset_key,
@@ -206,7 +205,8 @@ namespace fc::api {
                 }
               });
           *cnn = std::move(signal_connection);
-          return makeChan<HeadChange>(std::move(channel), *id_provider);
+          return Chan<HeadChange>(std::move(channel));
+
         }},
         .ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }},
         // TODO(turuslan): FIL-165 implement method

@@ -120,7 +120,7 @@ namespace fc::storage::blockchain {
 
     /** @brief finds and returns tipset containing given block header */
     outcome::result<Tipset> expandTipset(const BlockHeader &block_header);
-    
+
     outcome::result<void> updateHeaviestTipset(const Tipset &tipset);
 
     /**
