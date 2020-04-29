@@ -73,7 +73,8 @@ namespace fc::api {
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<KeyStore> key_store,
-               std::shared_ptr<IdProvider> id_provider) {
+               std::shared_ptr<IdProvider> id_provider,
+               Logger logger) {
     auto chain_randomness = chain_store->createRandomnessProvider();
     auto tipsetContext = [=](auto &tipset_key,
                              bool interpret =
@@ -183,18 +184,28 @@ namespace fc::api {
           return std::move(tipset);
         }},
         .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
-        .ChainNotify = {[&]() -> outcome::result<Chan<HeadChange>> {
+        .ChainNotify = {[=]() -> outcome::result<Chan<HeadChange>> {
           auto channel = std::make_shared<Channel<HeadChange>>();
+          using connection_t = ChainStore::connection_t;
+          auto cnn = std::make_shared<connection_t>();
+
           auto connection = chain_store->subscribeHeadChanges(
-              [&, wc = channel->weak_from_this()](
+              [&, wc = channel->weak_from_this(), cnn](
                   const HeadChange &change) -> void {
                 auto ch = wc.lock();
                 if (ch) {
                   if (!ch->write(change)) {
-                    // TODO(yuraz): schedule disconnect subscription
+                    if (cnn->connected()) {
+                      cnn->disconnect();
+                    } else {
+                      logger->warn(
+                          "cannot close uninitialized connection when "
+                          "unsubscribing from head change notifications");
+                    }
                   }
                 }
               });
+          *cnn = std::move(connection);
           auto new_id = id_provider->nextId();
           return Chan<HeadChange>(std::move(channel), new_id);
         }},
