@@ -187,10 +187,10 @@ namespace fc::api {
           auto channel = std::make_shared<Channel<HeadChange>>();
           using connection_t = ChainStore::connection_t;
           auto cnn = std::make_shared<connection_t>();
+          std::weak_ptr<Channel<HeadChange>> wc = channel;
 
           auto signal_connection = chain_store->subscribeHeadChanges(
-              [&, wc = channel->weak_from_this(), cnn](
-                  const HeadChange &change) -> void {
+              [&, wc{std::move(wc)}, cnn](const HeadChange &change) -> void {
                 auto ch = wc.lock();
                 if (ch) {
                   if (!ch->write(change)) {
@@ -206,7 +206,6 @@ namespace fc::api {
               });
           *cnn = std::move(signal_connection);
           return Chan<HeadChange>(std::move(channel));
-
         }},
         .ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }},
         // TODO(turuslan): FIL-165 implement method
