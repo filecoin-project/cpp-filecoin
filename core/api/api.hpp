@@ -150,7 +150,7 @@ namespace fc::api {
     API_METHOD(ChainGetTipSet, Tipset, const TipsetKey &)
     API_METHOD(ChainGetTipSetByHeight, Tipset, ChainEpoch, const TipsetKey &)
     API_METHOD(ChainHead, Tipset)
-    API_METHOD(ChainNotify, Chan<HeadChange>)
+    API_METHOD(ChainNotify, Chan<std::vector<HeadChange>>)
     API_METHOD(ChainReadObj, Buffer, CID)
     API_METHOD(ChainSetHead, void, const TipsetKey &)
     API_METHOD(ChainTipSetWeight, TipsetWeight, const TipsetKey &)
@@ -207,6 +207,7 @@ namespace fc::api {
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
+    API_METHOD(StateNetworkName, std::string)
     API_METHOD(StateWaitMsg, MsgWait, const CID &)
 
     API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
@@ -214,6 +215,7 @@ namespace fc::api {
     API_METHOD(Version, VersionResult)
 
     API_METHOD(WalletDefaultAddress, Address)
+    API_METHOD(WalletHas, bool, const Address &)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
   };
 }  // namespace fc::api

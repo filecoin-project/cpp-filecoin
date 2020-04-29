@@ -86,10 +86,12 @@ namespace fc::api {
     setup(rpc, api.StateMinerProvingSet);
     setup(rpc, api.StateMinerSectorSize);
     setup(rpc, api.StateMinerWorker);
+    setup(rpc, api.StateNetworkName);
     setup(rpc, api.StateWaitMsg);
     setup(rpc, api.SyncSubmitBlock);
     setup(rpc, api.Version);
     setup(rpc, api.WalletDefaultAddress);
+    setup(rpc, api.WalletHas);
     setup(rpc, api.WalletSign);
   }
 }  // namespace fc::api

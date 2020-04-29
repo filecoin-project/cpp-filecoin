@@ -422,6 +422,8 @@ namespace fc::api {
           return state.info.worker;
         }},
         // TODO(turuslan): FIL-165 implement method
+        .StateNetworkName = {},
+        // TODO(turuslan): FIL-165 implement method
         .StateWaitMsg = {},
         // TODO(turuslan): FIL-165 implement method
         .SyncSubmitBlock = {},
@@ -430,6 +432,8 @@ namespace fc::api {
         }},
         // TODO(turuslan): FIL-165 implement method
         .WalletDefaultAddress = {},
+        // TODO(turuslan): FIL-165 implement method
+        .WalletHas = {},
         .WalletSign = {[=](auto address, auto data) {
           return key_store->sign(address, data);
         }},
