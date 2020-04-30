@@ -5,13 +5,6 @@ add_library(car
     car.cpp
     )
 target_link_libraries(car
-    cbor
+    ipld_walker
     p2p::p2p_uvarint
-    )
-
-add_library(selective_car
-    selective_car.cpp
-    )
-target_link_libraries(selective_car
-    cid
     )
