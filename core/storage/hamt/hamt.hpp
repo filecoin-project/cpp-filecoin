@@ -30,7 +30,7 @@ namespace fc::storage::hamt {
   using Value = ipfs::IpfsDatastore::Value;
 
   constexpr size_t kLeafMax = 3;
-  constexpr size_t kDefaultBitWidth = 8;
+  constexpr size_t kDefaultBitWidth = 5;
 
   struct Bits : cpp_int {};
 
