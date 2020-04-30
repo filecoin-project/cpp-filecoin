@@ -7,7 +7,7 @@
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl.h>
-#include "ipld_node.pb.h"
+#include "storage/ipld/impl/protobuf/ipld_node.pb.h"
 
 using google::protobuf::io::ArrayOutputStream;
 using google::protobuf::io::CodedOutputStream;

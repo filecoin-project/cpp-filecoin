@@ -5,8 +5,8 @@
 
 #include "storage/ipld/impl/ipld_node_impl.hpp"
 
-#include "ipld_node.pb.h"
 #include "storage/ipld/impl/ipld_node_decoder_pb.hpp"
+#include "storage/ipld/impl/protobuf/ipld_node.pb.h"
 
 using protobuf::ipld::node::PBLink;
 using protobuf::ipld::node::PBNode;
