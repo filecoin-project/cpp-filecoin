@@ -37,14 +37,24 @@ namespace fc::storage::car {
     output.put(libp2p::multi::UVarint{value}.toBytes());
   }
 
+  void writeHeader(Buffer &output, const std::vector<CID> &roots) {
+    OUTCOME_EXCEPT(bytes, codec::cbor::encode(CarHeader{roots, CarHeader::V1}));
+    writeUvarint(output, bytes.size());
+    output.put(bytes);
+  }
+
+  void writeItem(Buffer &output, const CID &cid, Input bytes) {
+    OUTCOME_EXCEPT(cid_bytes, cid.toBytes());
+    writeUvarint(output, cid_bytes.size() + bytes.size());
+    output.put(cid_bytes);
+    output.put(bytes);
+  }
+
   struct WriteVisitor {
     outcome::result<void> visit(const CID &cid) {
       if (visited.insert(cid).second) {
         OUTCOME_TRY(bytes, store.get(cid));
-        OUTCOME_TRY(cid_bytes, cid.toBytes());
-        writeUvarint(output, cid_bytes.size() + bytes.size());
-        output.put(cid_bytes);
-        output.put(bytes);
+        writeItem(output, cid, bytes);
         // TODO(turuslan): what about other types?
         if (cid.content_type == libp2p::multi::MulticodecType::DAG_CBOR) {
           try {
@@ -88,10 +98,7 @@ namespace fc::storage::car {
 
   outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots) {
     Buffer output;
-    OUTCOME_TRY(header_bytes,
-                codec::cbor::encode(CarHeader{roots, CarHeader::V1}));
-    writeUvarint(output, header_bytes.size());
-    output.put(header_bytes);
+    writeHeader(output, roots);
     WriteVisitor visitor{store, output};
     for (auto &root : roots) {
       OUTCOME_TRY(visitor.visit(root));

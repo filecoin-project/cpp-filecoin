@@ -36,6 +36,10 @@ namespace fc::storage::car {
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input);
 
+  void writeHeader(Buffer &output, const std::vector<CID> &roots);
+
+  void writeItem(Buffer &output, const CID &cid, Input bytes);
+
   outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots);
 }  // namespace fc::storage::car
 

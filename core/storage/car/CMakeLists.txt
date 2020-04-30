@@ -13,5 +13,5 @@ add_library(selective_car
     selective_car.cpp
     )
 target_link_libraries(selective_car
-    cid
+    car
     )

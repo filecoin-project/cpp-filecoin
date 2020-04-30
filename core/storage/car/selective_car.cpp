@@ -14,33 +14,23 @@ namespace fc::storage::car {
       const std::vector<DAG> &dags) {
     Buffer output;
 
-    // make header
-    CarHeader car_header;
-    car_header.roots.reserve(dags.size());
+    std::vector<CID> roots;
+    roots.reserve(dags.size());
     for (const auto &dag : dags) {
-      car_header.roots.push_back(dag.root);
+      roots.push_back(dag.root);
     }
-    car_header.version = CarHeader::V1;
-
-    OUTCOME_TRY(header_bytes, codec::cbor::encode(car_header));
-    output.put(header_bytes);
+    writeHeader(output, roots);
 
     bool res = true;
     for (const auto &dag : dags) {
       OUTCOME_TRY(root_bytes, dag.root.toBytes());
-      dag_service->select(
+      OUTCOME_TRY(dag_service->select(
           root_bytes,
           dag.selector->getRawBytes(),
-          [&output, &res](std::shared_ptr<const IPLDNode> node) {
-            auto maybe_cid_bytes = codec::cbor::encode(node->getCID());
-            if (maybe_cid_bytes.has_error()) {
-              res = false;
-              return res;
-            }
-            output.put(maybe_cid_bytes.value());
-            output.put(node->getRawBytes());
-            return res;
-          });
+          [&output](std::shared_ptr<const IPLDNode> node) {
+            writeItem(output, node->getCID(), node->getRawBytes());
+            return true;
+          }));
     }
 
     if (!res) {
