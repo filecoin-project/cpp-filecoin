@@ -6,7 +6,6 @@
 #include "storage/car/car.hpp"
 
 #include "codec/uvarint.hpp"
-#include "storage/ipld/walker.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
   using E = fc::storage::car::CarError;
@@ -57,16 +56,33 @@ namespace fc::storage::car {
     return outcome::success();
   }
 
-  outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots) {
-    Walker walker{store};
-    for (auto &root : roots) {
-      OUTCOME_TRY(walker.recursiveAll(root));
-    }
+  outcome::result<Buffer> makeCar(Ipld &store,
+                                  const std::vector<CID> &roots,
+                                  const Walker &walker) {
     Buffer output;
     writeHeader(output, roots);
     for (auto &cid : walker.cids) {
       OUTCOME_TRY(writeItem(output, store, cid));
     }
     return std::move(output);
+  }
+
+  outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots) {
+    Walker walker{store};
+    for (auto &root : roots) {
+      OUTCOME_TRY(walker.recursiveAll(root));
+    }
+    return makeCar(store, roots, walker);
+  }
+
+  outcome::result<Buffer> makeSelectiveCar(
+      Ipld &store, const std::vector<std::pair<CID, Selector>> &dags) {
+    Walker walker{store};
+    std::vector<CID> roots;
+    for (auto &dag : dags) {
+      OUTCOME_TRY(walker.select(dag.first, dag.second));
+      roots.push_back(dag.first);
+    }
+    return makeCar(store, roots, walker);
   }
 }  // namespace fc::storage::car
