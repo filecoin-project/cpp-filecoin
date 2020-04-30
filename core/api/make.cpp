@@ -324,20 +324,14 @@ namespace fc::api {
                                   -> outcome::result<std::vector<CID>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
 
-          const Address undefined_address = Address{};
-
-          if (match.to == undefined_address
-              && match.from == undefined_address) {
-            return TodoError::ERROR;  // must specify at least To or From in
-                                      // message filter
-          }
+          // TODO(artyom-yurin): Make sure at least one of 'to' or 'from' is defined
 
           auto matchFunc = [&](const UnsignedMessage &message) -> bool {
-            if (match.to != undefined_address && match.to != message.to) {
+            if (match.to != message.to) {
               return false;
             }
 
-            if (match.from != undefined_address && match.from != message.from) {
+            if (match.from != message.from) {
               return false;
             }
 
@@ -347,64 +341,38 @@ namespace fc::api {
           std::vector<CID> result;
 
           while (static_cast<int64_t>(context.tipset.height) >= to_height) {
-            {
-              // GET MESSAGES FROM TIPSET
-              std::unordered_map<std::string, uint64_t> applied;
-              std::unordered_map<std::string, primitives::BigInt> balances;
+            // TODO(turuslan): FIL-146 randomness from tipset
+            std::shared_ptr<RandomnessProvider> randomness;
+            Env env{randomness,
+                    std::make_shared<StateTreeImpl>(context.state_tree),
+                    std::make_shared<InvokerImpl>(),
+                    static_cast<ChainEpoch>(context.tipset.height)};
 
-              auto preloadAddr =
-                  [&](const Address &addr) -> outcome::result<void> {
-                std::string addr_str =
-                    primitives::address::encodeToString(addr);
-                if (applied.find(addr_str) == applied.end()) {
-                  OUTCOME_TRY(actor, context.state_tree.get(addr));
-                  applied[addr_str] = actor.nonce;
-                  balances[addr_str] = actor.balance;
-                }
-                return outcome::success();
-              };
+            for (const BlockHeader &block : context.tipset.blks) {
+              OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
+              meta.load(ipld);
+              OUTCOME_TRY(meta.bls_messages.visit(
+                  [&](auto, auto &cid) -> outcome::result<void> {
+                    OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+                    OUTCOME_TRY(env.applyImplicitMessage(message));
 
-              std::vector<CidMessage> block_messages;
-              {
-                // GET MESSAGES FROM BLOCK
-                for (const BlockHeader &block : context.tipset.blks) {
-                  OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
-                  meta.load(ipld);
-                  OUTCOME_TRY(meta.bls_messages.visit(
-                      [&](auto, auto &cid) -> outcome::result<void> {
-                        OUTCOME_TRY(message,
-                                    ipld->getCbor<UnsignedMessage>(cid));
-                        block_messages.push_back(
-                            {.message = std::move(message), .cid = cid});
-                        return outcome::success();
-                      }));
-                  OUTCOME_TRY(meta.secp_messages.visit(
-                      [&](auto, auto &cid) -> outcome::result<void> {
-                        OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
-                        block_messages.push_back(
-                            {.message = std::move(message.message),
-                             .cid = cid});
-                        return outcome::success();
-                      }));
-                }
-              }
+                    if (matchFunc(message)) {
+                      result.push_back(cid);
+                    }
 
-              for (const CidMessage &msg : block_messages) {
-                OUTCOME_TRY(preloadAddr(msg.message.from));
+                    return outcome::success();
+                  }));
+              OUTCOME_TRY(meta.secp_messages.visit(
+                  [&](auto, auto &cid) -> outcome::result<void> {
+                    OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
 
-                std::string addr_from_str =
-                    primitives::address::encodeToString(msg.message.from);
-                if (applied[addr_from_str] != msg.message.nonce) continue;
-                applied[addr_from_str]++;
+                    OUTCOME_TRY(env.applyImplicitMessage(message.message));
 
-                if (balances[addr_from_str] < msg.message.requiredFunds())
-                  continue;
-                balances[addr_from_str] -= msg.message.requiredFunds();
-
-                if (matchFunc(msg.message)) {
-                  result.push_back(msg.cid);
-                }
-              }
+                    if (matchFunc(message.message)) {
+                      result.push_back(cid);
+                    }
+                    return outcome::success();
+                  }));
             }
 
             if (context.tipset.height == 0) break;
