@@ -10,7 +10,6 @@
 #include "codec/uvarint.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 
-using Multicodec = libp2p::multi::MulticodecType::Code;
 using libp2p::multi::HashType;
 using libp2p::multi::Multihash;
 
@@ -122,6 +121,6 @@ namespace fc::common {
   outcome::result<CID> getCidOf(gsl::span<const uint8_t> bytes) {
     auto hash_raw = crypto::blake2b::blake2b_256(bytes);
     OUTCOME_TRY(hash, Multihash::create(HashType::blake2b_256, hash_raw));
-    return CID(CID::Version::V1, Multicodec::DAG_CBOR, hash);
+    return CID(CID::Version::V1, CID::Multicodec::DAG_CBOR, hash);
   }
 }  // namespace fc::common
