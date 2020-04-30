@@ -51,7 +51,7 @@ struct TipsetTest : public ::testing::Test {
         "010001020005"_cid,
         "010001020006"_cid,
         "010001020007"_cid,
-        kSampleBlsSignatureBytes,
+        Signature{kSampleBlsSignatureBytes},
         8,
         Signature{kSampleBlsSignatureBytes},
         9,
