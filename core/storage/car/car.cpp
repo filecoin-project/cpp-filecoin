@@ -6,6 +6,7 @@
 #include "storage/car/car.hpp"
 
 #include "codec/uvarint.hpp"
+#include "storage/ipld/walker.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
   using E = fc::storage::car::CarError;
@@ -16,7 +17,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
 }
 
 namespace fc::storage::car {
-  using codec::cbor::CborDecodeStream;
+  using ipld::walker::Walker;
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input) {
     OUTCOME_TRY(header_bytes,
@@ -50,58 +51,21 @@ namespace fc::storage::car {
     output.put(bytes);
   }
 
-  struct WriteVisitor {
-    outcome::result<void> visit(const CID &cid) {
-      if (visited.insert(cid).second) {
-        OUTCOME_TRY(bytes, store.get(cid));
-        writeItem(output, cid, bytes);
-        // TODO(turuslan): what about other types?
-        if (cid.content_type == libp2p::multi::MulticodecType::DAG_CBOR) {
-          try {
-            CborDecodeStream s{bytes};
-            visitCbor(s);
-          } catch (std::system_error &e) {
-            return outcome::failure(e.code());
-          }
-        }
-      }
-      return outcome::success();
-    }
-
-    void visitCbor(CborDecodeStream &s) {
-      if (s.isCid()) {
-        CID cid;
-        s >> cid;
-        auto result = visit(cid);
-        if (!result) {
-          outcome::raise(result.error());
-        }
-      } else if (s.isList()) {
-        auto n = s.listLength();
-        auto l = s.list();
-        for (; n != 0; --n) {
-          visitCbor(l);
-        }
-      } else if (s.isMap()) {
-        for (auto &p : s.map()) {
-          visitCbor(p.second);
-        }
-      } else {
-        s.next();
-      }
-    }
-
-    Ipld &store;
-    Buffer &output;
-    std::set<CID> visited{};
-  };
+  outcome::result<void> writeItem(Buffer &output, Ipld &store, const CID &cid) {
+    OUTCOME_TRY(bytes, store.get(cid));
+    writeItem(output, cid, bytes);
+    return outcome::success();
+  }
 
   outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots) {
+    Walker walker{store};
+    for (auto &root : roots) {
+      OUTCOME_TRY(walker.recursiveAll(root));
+    }
     Buffer output;
     writeHeader(output, roots);
-    WriteVisitor visitor{store, output};
-    for (auto &root : roots) {
-      OUTCOME_TRY(visitor.visit(root));
+    for (auto &cid : walker.cids) {
+      OUTCOME_TRY(writeItem(output, store, cid));
     }
     return std::move(output);
   }
