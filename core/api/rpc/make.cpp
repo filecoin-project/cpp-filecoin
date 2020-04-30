@@ -12,43 +12,46 @@ namespace fc::api {
     using Result = typename M::Result;
     rpc.setup(
         M::name,
-        [&](auto &jparams, auto make_chan) -> outcome::result<Document> {
+        [&](auto &jparams,
+            rpc::Respond respond,
+            rpc::MakeChan make_chan,
+            rpc::Send send) {
           auto maybe_params = decode<typename M::Params>(jparams);
           if (!maybe_params) {
-            return JsonError::WRONG_PARAMS;
+            return respond(Response::Error{kInvalidParams,
+                                           maybe_params.error().message()});
           }
           auto maybe_result = std::apply(method, maybe_params.value());
           if (!maybe_result) {
-            return maybe_result.error();
+            return respond(Response::Error{kInternalError,
+                                           maybe_result.error().message()});
           }
           if constexpr (!std::is_same_v<Result, void>) {
             auto &result = maybe_result.value();
             if constexpr (is_chan<Result>{}) {
-              result.id = make_chan([chan{result}](auto send) {
-                chan.channel->read([send{std::move(send)}, chan](auto opt) {
-                  if (opt) {
-                    send(Request{0,
-                                 "xrpc.ch.val",
-                                 encode(std::make_tuple(chan.id,
-                                                        std::move(*opt)))},
-                         [chan](auto ok) {
-                           if (!ok) {
-                             chan.channel->closeRead();
-                           }
-                         });
-                  } else {
-                    send(Request{0,
-                                 "xrpc.ch.close",
-                                 encode(std::make_tuple(chan.id))},
-                         [](auto) {});
-                  }
-                  return true;
-                });
+              result.id = make_chan();
+            }
+            respond(api::encode(result));
+            if constexpr (is_chan<Result>{}) {
+              result.channel->read([send{std::move(send)},
+                                    chan{result}](auto opt) {
+                if (opt) {
+                  send("xrpc.ch.val",
+                       encode(std::make_tuple(chan.id, std::move(*opt))),
+                       [chan](auto ok) {
+                         if (!ok) {
+                           chan.channel->closeRead();
+                         }
+                       });
+                } else {
+                  send("xrpc.ch.close", encode(std::make_tuple(chan.id)), {});
+                }
+                return true;
               });
             }
-            return api::encode(result);
+            return;
           }
-          return Document{};
+          return respond(Document{});
         });
   }
 
