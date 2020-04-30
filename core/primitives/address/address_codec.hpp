@@ -12,7 +12,7 @@
 #include "address.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
-#include "common/outcome_throw.hpp"
+#include "common/outcome.hpp"
 
 namespace fc::primitives::address {
 

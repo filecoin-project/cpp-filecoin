@@ -9,6 +9,7 @@
 #include <map>
 
 #include <rapidjson/document.h>
+#include <boost/signals2.hpp>
 
 #include "common/outcome.hpp"
 
@@ -44,6 +45,7 @@ namespace fc::api::rpc {
 
   struct Rpc {
     std::map<std::string, Method> ms;
+    std::map<uint64_t, boost::signals2::connection> channels;
 
     inline void setup(const std::string &name, Method &&method) {
       ms.emplace(name, std::move(method));

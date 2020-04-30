@@ -80,7 +80,6 @@ struct ChainStoreTest : public ::testing::Test {
 
     EXPECT_OUTCOME_TRUE(store,
                         ChainStoreImpl::create(std::move(block_service),
-                                               std::move(data_store),
                                                std::move(block_validator),
                                                std::move(weight_calculator)));
     chain_store = std::move(store);
@@ -100,10 +99,11 @@ struct ChainStoreTest : public ::testing::Test {
 TEST_F(ChainStoreTest, AddBlockSuccess) {
   EXPECT_OUTCOME_TRUE(block_cid, getCidOfCbor(block));
   // doesn't have yet
-  EXPECT_OUTCOME_FALSE_1(chain_store->getBlock(block_cid));
+  EXPECT_OUTCOME_FALSE_1(chain_store->getCbor<BlockHeader>(block_cid));
   // add
   EXPECT_OUTCOME_TRUE_1(chain_store->addBlock(block));
   // now it has block
-  EXPECT_OUTCOME_TRUE(stored_block, chain_store->getBlock(block_cid));
+  EXPECT_OUTCOME_TRUE(stored_block,
+                      chain_store->getCbor<BlockHeader>(block_cid));
   ASSERT_EQ(block, stored_block);
 }

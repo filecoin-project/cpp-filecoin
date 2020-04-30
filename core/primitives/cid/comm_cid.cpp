@@ -4,7 +4,7 @@
  */
 
 #include "primitives/cid/comm_cid.hpp"
-#include "common/outcome_throw.hpp"
+#include "common/outcome.hpp"
 #include "primitives/cid/comm_cid_errors.hpp"
 
 namespace fc::common {
