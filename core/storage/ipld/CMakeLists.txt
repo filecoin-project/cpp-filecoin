@@ -53,5 +53,4 @@ add_library(ipld_walker
     )
 target_link_libraries(ipld_walker
     cbor
-    todo_error
     )

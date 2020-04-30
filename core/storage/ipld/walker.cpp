@@ -8,8 +8,6 @@
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 
-#include "common/todo_error.hpp"
-
 namespace fc::storage::ipld::walker {
   using google::protobuf::io::CodedInputStream;
   using Input = gsl::span<const uint8_t>;
@@ -49,9 +47,6 @@ namespace fc::storage::ipld::walker {
           break;
         }
         auto cid_bytes = link._str(1);
-        if (cid_bytes.empty()) {
-          return TodoError::ERROR;
-        }
         OUTCOME_TRY(cid, CID::fromBytes(cid_bytes));
         cids.push_back(std::move(cid));
       }

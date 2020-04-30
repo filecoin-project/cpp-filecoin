@@ -26,7 +26,8 @@ namespace fc::storage::ipld::walker {
 
     Ipld &store;
     std::set<CID> visited;
-    std::vector<CID> cids;  };
+    std::vector<CID> cids;
+  };
 }  // namespace fc::storage::ipld::walker
 
 #endif  // CPP_FILECOIN_CORE_STORAGE_IPLD_WALKER_HPP
