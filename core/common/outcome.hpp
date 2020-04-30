@@ -31,7 +31,7 @@ namespace fc::outcome {
    * @brief throws outcome::result error as boost exception
    * @param t error code
    */
-  inline void raise(const std::error_code &ec) {
+  [[noreturn]] inline void raise(const std::error_code &ec) {
     boost::throw_exception(std::system_error(ec));
   }
 
