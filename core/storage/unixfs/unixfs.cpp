@@ -17,11 +17,7 @@ namespace fc::storage::unixfs {
   using google::protobuf::io::CodedOutputStream;
   using google::protobuf::io::StringOutputStream;
 
-  constexpr size_t kMaxLinks = 1024;
-  constexpr size_t kChunkSize = 1024;
-
   outcome::result<CID> makeLeaf(Ipld &ipld, gsl::span<const uint8_t> data) {
-    assert(static_cast<size_t>(data.size()) <= kChunkSize);
     CID cid{CID::Version::V1, CID::Multicodec::RAW, Hasher::sha2_256(data)};
     OUTCOME_TRY(ipld.set(cid, Ipld::Value{data}));
     return cid;
@@ -99,20 +95,20 @@ namespace fc::storage::unixfs {
 
   outcome::result<Tree> makeTree(Ipld &ipld,
                                  size_t height,
-                                 gsl::span<const uint8_t> &data) {
+                                 gsl::span<const uint8_t> &data, size_t chunk_size, size_t max_links) {
     Tree root;
     PbFileBuilder pb_file;
     PbNodeBuilder pb_node;
-    for (auto i = 0u; i < kMaxLinks && !data.empty(); ++i) {
+    for (auto i = 0u; i < max_links && !data.empty(); ++i) {
       Tree tree;
       if (height == 1) {
         tree.size = tree.file_size =
-            std::min(kChunkSize, static_cast<size_t>(data.size()));
+            std::min(chunk_size, static_cast<size_t>(data.size()));
         OUTCOME_TRY(cid, makeLeaf(ipld, data.subspan(0, tree.file_size)));
         tree.cid = std::move(cid);
         data = data.subspan(tree.file_size);
       } else {
-        OUTCOME_TRY(tree2, makeTree(ipld, height - 1, data));
+        OUTCOME_TRY(tree2, makeTree(ipld, height - 1, data, chunk_size, max_links));
         tree = std::move(tree2);
       }
       root.size += tree.size;
@@ -129,15 +125,15 @@ namespace fc::storage::unixfs {
     return root;
   }
 
-  outcome::result<CID> wrapFile(Ipld &ipld, gsl::span<const uint8_t> data) {
+  outcome::result<CID> wrapFile(Ipld &ipld, gsl::span<const uint8_t> data, size_t chunk_size, size_t max_links) {
     size_t height = 0;
-    for (ssize_t max = kChunkSize; max < data.size(); max *= kMaxLinks) {
+    for (ssize_t max = chunk_size; max < data.size(); max *= max_links) {
       ++height;
     }
     if (height == 0) {
       return makeLeaf(ipld, data);
     }
-    OUTCOME_TRY(tree, makeTree(ipld, height, data));
+    OUTCOME_TRY(tree, makeTree(ipld, height, data, chunk_size, max_links));
     return std::move(tree.cid);
   }
 }  // namespace fc::storage::unixfs
