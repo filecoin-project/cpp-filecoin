@@ -3,10 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(pieceio
-    pieceio.cpp
+addtest(pieceio_test
+    pieceio_test.cpp
     )
-target_link_libraries(pieceio
-    car
-    comm_cid
+target_link_libraries(pieceio_test
+    pieceio
     )
