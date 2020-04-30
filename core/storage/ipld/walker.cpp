@@ -66,7 +66,8 @@ namespace fc::storage::ipld::walker {
   }
 
   outcome::result<void> Walker::recursiveAll(const CID &cid) {
-    if (cids.insert(cid).second) {
+    if (visited.insert(cid).second) {
+      cids.push_back(cid);
       OUTCOME_TRY(bytes, store.get(cid));
       // TODO(turuslan): what about other types?
       if (cid.content_type == libp2p::multi::MulticodecType::DAG_CBOR) {

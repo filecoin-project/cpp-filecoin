@@ -25,8 +25,8 @@ namespace fc::storage::ipld::walker {
     void recursiveAll(CborDecodeStream &s);
 
     Ipld &store;
-    std::set<CID> cids;
-  };
+    std::set<CID> visited;
+    std::vector<CID> cids;  };
 }  // namespace fc::storage::ipld::walker
 
 #endif  // CPP_FILECOIN_CORE_STORAGE_IPLD_WALKER_HPP
