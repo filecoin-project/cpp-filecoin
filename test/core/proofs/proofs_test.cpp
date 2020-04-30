@@ -137,7 +137,7 @@ TEST_F(ProofsTest, Lifecycle) {
 
   EXPECT_OUTCOME_TRUE(
       piece_cid_a,
-      Proofs::generatePieceCIDFromFile(
+      Proofs::generatePieceCID(
           seal_proof_type, piece_file_a_path, UnpaddedPieceSize(127)));
 
   EXPECT_OUTCOME_TRUE(res_a,
@@ -160,7 +160,7 @@ TEST_F(ProofsTest, Lifecycle) {
 
   EXPECT_OUTCOME_TRUE(
       piece_cid_b,
-      Proofs::generatePieceCIDFromFile(
+      Proofs::generatePieceCID(
           seal_proof_type, piece_file_b_path, UnpaddedPieceSize(1016)));
 
   std::vector<UnpaddedPieceSize> exist_pieces = {piece_commitment_a_size};

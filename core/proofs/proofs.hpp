@@ -13,8 +13,8 @@
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/piece/piece.hpp"
-#include "primitives/sector/sector.hpp"
 #include "primitives/piece/piece_data.hpp"
+#include "primitives/sector/sector.hpp"
 
 namespace fc::proofs {
 
@@ -27,6 +27,7 @@ namespace fc::proofs {
   using primitives::ActorId;
   using primitives::SectorNumber;
   using primitives::SectorSize;
+  using primitives::piece::PieceData;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::PoStCandidate;
@@ -34,7 +35,6 @@ namespace fc::proofs {
   using primitives::sector::PoStRandomness;
   using primitives::sector::PoStVerifyInfo;
   using primitives::sector::Proof;
-  using primitives::piece::PieceData;
   using primitives::sector::SealRandomness;
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::SectorInfo;
@@ -147,12 +147,21 @@ namespace fc::proofs {
         ActorId miner_id);
 
     /**
+     * GeneratePieceCID produces a piece CID for the provided data
+     * stored in a given file(via path).
+     */
+    static outcome::result<CID> generatePieceCID(
+        RegisteredProof proof_type,
+        const std::string &piece_file_path,
+        UnpaddedPieceSize piece_size);
+
+    /**
      * GeneratePieceCIDFromFile produces a piece CID for the provided data
      * stored in a given file.
      */
     static outcome::result<CID> generatePieceCIDFromFile(
         RegisteredProof proof_type,
-        const std::string &piece_file_path,
+        const PieceData &piece,
         UnpaddedPieceSize piece_size);
 
     /** GenerateDataCommitment produces a commitment for the sector containing
@@ -228,7 +237,8 @@ namespace fc::proofs {
     static outcome::result<void> clearCache(const std::string &cache_dir_path);
 
     /**
-     * @brief Returns the identity of the circuit for the provided PoSt proof type
+     * @brief Returns the identity of the circuit for the provided PoSt proof
+     * type
      */
     static outcome::result<std::string> getPoStCircuitIdentifier(
         RegisteredProof registered_proof);
@@ -306,7 +316,8 @@ namespace fc::proofs {
         RegisteredProof proof_type);
 
     /**
-     * @brief Returns an array of strings containing the device names that can be used
+     * @brief Returns an array of strings containing the device names that can
+     * be used
      */
     static outcome::result<Devices> getGPUDevices();
 
