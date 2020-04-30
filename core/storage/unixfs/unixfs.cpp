@@ -95,7 +95,9 @@ namespace fc::storage::unixfs {
 
   outcome::result<Tree> makeTree(Ipld &ipld,
                                  size_t height,
-                                 gsl::span<const uint8_t> &data, size_t chunk_size, size_t max_links) {
+                                 gsl::span<const uint8_t> &data,
+                                 size_t chunk_size,
+                                 size_t max_links) {
     Tree root;
     PbFileBuilder pb_file;
     PbNodeBuilder pb_node;
@@ -108,7 +110,8 @@ namespace fc::storage::unixfs {
         tree.cid = std::move(cid);
         data = data.subspan(tree.file_size);
       } else {
-        OUTCOME_TRY(tree2, makeTree(ipld, height - 1, data, chunk_size, max_links));
+        OUTCOME_TRY(tree2,
+                    makeTree(ipld, height - 1, data, chunk_size, max_links));
         tree = std::move(tree2);
       }
       root.size += tree.size;
@@ -125,7 +128,10 @@ namespace fc::storage::unixfs {
     return root;
   }
 
-  outcome::result<CID> wrapFile(Ipld &ipld, gsl::span<const uint8_t> data, size_t chunk_size, size_t max_links) {
+  outcome::result<CID> wrapFile(Ipld &ipld,
+                                gsl::span<const uint8_t> data,
+                                size_t chunk_size,
+                                size_t max_links) {
     size_t height = 0;
     for (ssize_t max = chunk_size; max < data.size(); max *= max_links) {
       ++height;

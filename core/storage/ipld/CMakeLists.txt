@@ -30,3 +30,10 @@ target_link_libraries(ipld_node
     Boost::boost
     cid
     )
+
+add_library(ipld_walker
+    walker.cpp
+    )
+target_link_libraries(ipld_walker
+    cbor
+    )
