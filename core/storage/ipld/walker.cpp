@@ -6,6 +6,11 @@
 #include "storage/ipld/walker.hpp"
 
 namespace fc::storage::ipld::walker {
+  outcome::result<void> Walker::select(const CID &root,
+                                       const Selector &selector) {
+    // TODO(turuslan): implement selectors
+    return recursiveAll(root);
+  }
 
   outcome::result<void> Walker::recursiveAll(const CID &cid) {
     if (cids.insert(cid).second) {

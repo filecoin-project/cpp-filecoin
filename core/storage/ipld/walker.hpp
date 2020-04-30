@@ -12,8 +12,13 @@ namespace fc::storage::ipld::walker {
   using codec::cbor::CborDecodeStream;
   using Ipld = ipfs::IpfsDatastore;
 
+  // TODO(turuslan): implement selectors
+  struct Selector {};
+
   struct Walker {
     Walker(Ipld &store) : store{store} {}
+
+    outcome::result<void> select(const CID &root, const Selector &selector);
 
     outcome::result<void> recursiveAll(const CID &cid);
 
