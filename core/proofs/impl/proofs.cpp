@@ -739,15 +739,15 @@ namespace fc::proofs {
     return sorted_sector_info;
   }
 
-  outcome::result<CID> Proofs::generatePieceCID(
+  outcome::result<CID> Proofs::generatePieceCIDFromFile(
       RegisteredProof proof_type,
       const std::string &piece_file_path,
       UnpaddedPieceSize piece_size) {
-    return generatePieceCIDFromFile(
+    return generatePieceCID(
         proof_type, PieceData(piece_file_path), piece_size);
   }
 
-  outcome::result<CID> Proofs::generatePieceCIDFromFile(
+  outcome::result<CID> Proofs::generatePieceCID(
       RegisteredProof proof_type,
       const PieceData &piece,
       UnpaddedPieceSize piece_size) {

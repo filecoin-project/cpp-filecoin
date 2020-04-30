@@ -147,19 +147,19 @@ namespace fc::proofs {
         ActorId miner_id);
 
     /**
-     * GeneratePieceCID produces a piece CID for the provided data
+     * generatePieceCIDFromFile produces a piece CID for the provided data
      * stored in a given file(via path).
      */
-    static outcome::result<CID> generatePieceCID(
+    static outcome::result<CID> generatePieceCIDFromFile(
         RegisteredProof proof_type,
         const std::string &piece_file_path,
         UnpaddedPieceSize piece_size);
 
     /**
-     * GeneratePieceCIDFromFile produces a piece CID for the provided data
-     * stored in a given file.
+     * generatePieceCID produces a piece CID for the provided data
+     * stored in a given pieceData.
      */
-    static outcome::result<CID> generatePieceCIDFromFile(
+    static outcome::result<CID> generatePieceCID(
         RegisteredProof proof_type,
         const PieceData &piece,
         UnpaddedPieceSize piece_size);
