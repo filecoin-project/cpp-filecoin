@@ -81,5 +81,7 @@ namespace fc::primitives::piece {
     return lhs.size == rhs.size && lhs.cid == rhs.cid;
   }
 
+  UnpaddedPieceSize paddedSize(uint64_t size);
+
 };      // namespace fc::primitives::piece
 #endif  // CPP_FILECOIN_PIECE_HPP
