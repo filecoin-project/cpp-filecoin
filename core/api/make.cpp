@@ -73,6 +73,12 @@ namespace fc::api {
     auto initState() {
       return actorState<InitActorState, false>(kInitAddress);
     }
+
+    outcome::result<Address> accountKey(const Address &id) {
+      // TODO(turuslan): error if not account
+      OUTCOME_TRY(state, actorState<AccountActorState, false>(id));
+      return state.address;
+    }
   };
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
@@ -82,7 +88,7 @@ namespace fc::api {
                std::shared_ptr<KeyStore> key_store,
                Logger logger) {
     auto chain_randomness = chain_store->createRandomnessProvider();
-    auto tipsetContext = [=](const auto &tipset_key,
+    auto tipsetContext = [=](const TipsetKey &tipset_key,
                              bool interpret =
                                  false) -> outcome::result<TipsetContext> {
       Tipset tipset;
@@ -289,11 +295,7 @@ namespace fc::api {
             return address;
           }
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          // TODO(turuslan): error if not account
-          OUTCOME_TRY(
-              state,
-              context.template actorState<AccountActorState, false>(address));
-          return state.address;
+          return context.accountKey(address);
         }},
         .StateCall = {[=](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
@@ -455,7 +457,12 @@ namespace fc::api {
         .WalletDefaultAddress = {},
         // TODO(turuslan): FIL-165 implement method
         .WalletHas = {},
-        .WalletSign = {[=](auto address, auto data) {
+        .WalletSign = {[=](auto address,
+                           auto data) -> outcome::result<Signature> {
+          if (!address.isKeyType()) {
+            OUTCOME_TRY(context, tipsetContext({}));
+            OUTCOME_RETURN(address, context.accountKey(address));
+          }
           return key_store->sign(address, data);
         }},
     };
