@@ -12,7 +12,5 @@ target_link_libraries(car_test
     unixfs
     )
 target_include_directories(car_test PUBLIC
-  "${CMAKE_CURRENT_BINARY_DIR}"
-  )
-
-configure_file(car_test.hpp.in car_test.hpp @ONLY)
+    "${TEST_RESOURCES_PATH}"
+    )

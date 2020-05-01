@@ -11,11 +11,11 @@
 #include <gsl/span>
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
-#include "ipld_node.pb.h" //TODO: Sergey Kaprovich FIL-150
+#include "storage/ipld/impl/protobuf/ipld_node.pb.h"
 
 namespace fc::storage::ipld {
   /**
-   * @class Protobuf Node decoder
+   * @class     Protobuf Node decoder
    */
   class IPLDNodeDecoderPB {
    public:

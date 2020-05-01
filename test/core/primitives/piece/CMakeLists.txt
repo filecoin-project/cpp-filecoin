@@ -3,5 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(pieceio)
-add_subdirectory(storage)
+addtest(piece_test
+    piece_test.cpp
+    )
+target_link_libraries(piece_test
+    piece
+    )

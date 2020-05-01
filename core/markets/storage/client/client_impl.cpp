@@ -239,10 +239,8 @@ namespace fc::markets::storage::client {
 
     // TODO (a.chernyshov) selector builder
     // https://github.com/filecoin-project/go-fil-markets/blob/master/storagemarket/impl/clientutils/clientutils.go#L31
-    std::shared_ptr<IPLDNode> all_selector;
-
     return piece_io_->generatePieceCommitment(
-        registered_proof, data_ref.root, all_selector);
+        registered_proof, data_ref.root, {});
   }
 
   outcome::result<ClientDealProposal> ClientImpl::signProposal(

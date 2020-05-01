@@ -3,5 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(pieceio)
-add_subdirectory(storage)
+addtest(fsm_test
+        fsm_test.cpp
+       )
+target_link_libraries(fsm_test
+    fuhon_fsm)

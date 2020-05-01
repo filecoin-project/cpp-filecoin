@@ -447,7 +447,6 @@ namespace fc::proofs {
     if (!piece_data.isOpened()) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
-    int piece_fd = piece_data.getFd();
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_WRONLY))
@@ -455,10 +454,10 @@ namespace fc::proofs {
       return ProofsError::CANNOT_OPEN_FILE;
     }
 
-    auto res_ptr =
-        ffi::wrap(fil_write_without_alignment(
-                      c_proof_type, piece_fd, piece_bytes, staged_sector_fd),
-                  fil_destroy_write_without_alignment_response);
+    auto res_ptr = ffi::wrap(
+        fil_write_without_alignment(
+            c_proof_type, piece_data.getFd(), piece_bytes, staged_sector_fd),
+        fil_destroy_write_without_alignment_response);
 
     // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(staged_sector_fd))
@@ -485,7 +484,6 @@ namespace fc::proofs {
     if (!piece_data.isOpened()) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
-    int piece_fd = piece_data.getFd();
 
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
@@ -499,7 +497,7 @@ namespace fc::proofs {
                               existing_piece_sizes.end()};
 
     auto res_ptr = ffi::wrap(fil_write_with_alignment(c_proof_type,
-                                                      piece_fd,
+                                                      piece_data.getFd(),
                                                       uint64_t(piece_bytes),
                                                       staged_sector_fd,
                                                       raw.data(),
@@ -745,22 +743,23 @@ namespace fc::proofs {
       RegisteredProof proof_type,
       const std::string &piece_file_path,
       UnpaddedPieceSize piece_size) {
+    return generatePieceCID(
+        proof_type, PieceData(piece_file_path), piece_size);
+  }
+
+  outcome::result<CID> Proofs::generatePieceCID(
+      RegisteredProof proof_type,
+      const PieceData &piece,
+      UnpaddedPieceSize piece_size) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
-    int piece_fd;
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
-    if ((piece_fd = open(piece_file_path.c_str(), O_RDWR)) == -1) {
+    if (!piece.isOpened()) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
 
     auto res_ptr = ffi::wrap(
-        fil_generate_piece_commitment(c_proof_type, piece_fd, piece_size),
+        fil_generate_piece_commitment(c_proof_type, piece.getFd(), piece_size),
         fil_destroy_generate_piece_commitment_response);
-
-    // NOLINTNEXTLINE(readability-implicit-bool-conversion)
-    if (close(piece_fd))
-      logger_->warn("generatePieceCIDFromFile: error in closing file "
-                    + piece_file_path);
 
     if (res_ptr->status_code != 0) {
       logger_->error("GeneratePieceCIDFromFile: "
