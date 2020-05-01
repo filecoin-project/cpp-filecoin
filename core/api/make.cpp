@@ -464,8 +464,24 @@ namespace fc::api {
         }},
         // TODO(turuslan): FIL-165 implement method
         .StateWaitMsg = {},
-        // TODO(turuslan): FIL-165 implement method
-        .SyncSubmitBlock = {},
+        .SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
+          // TODO(turuslan): chain store must validate blocks before adding
+          MsgMeta meta;
+          meta.load(ipld);
+          for (auto &cid : block.bls_messages) {
+            OUTCOME_TRY(meta.bls_messages.append(cid));
+          }
+          for (auto &cid : block.secp_messages) {
+            OUTCOME_TRY(meta.secp_messages.append(cid));
+          }
+          OUTCOME_TRY(meta.flush());
+          OUTCOME_TRY(messages, ipld->setCbor(meta));
+          if (block.header.messages != messages) {
+            return TodoError::ERROR;
+          }
+          OUTCOME_TRY(chain_store->addBlock(block.header));
+          return outcome::success();
+        }},
         .Version = {[]() {
           return VersionResult{"fuhon", 0x000200, 5};
         }},
