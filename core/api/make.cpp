@@ -324,7 +324,8 @@ namespace fc::api {
                                   -> outcome::result<std::vector<CID>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
 
-          // TODO(artyom-yurin): Make sure at least one of 'to' or 'from' is defined
+          // TODO(artyom-yurin): Make sure at least one of 'to' or 'from' is
+          // defined
 
           auto matchFunc = [&](const UnsignedMessage &message) -> bool {
             if (match.to != message.to) {
@@ -341,12 +342,11 @@ namespace fc::api {
           std::vector<CID> result;
 
           while (static_cast<int64_t>(context.tipset.height) >= to_height) {
-            // TODO(turuslan): FIL-146 randomness from tipset
-            std::shared_ptr<RandomnessProvider> randomness;
-            Env env{randomness,
-                    std::make_shared<StateTreeImpl>(context.state_tree),
-                    std::make_shared<InvokerImpl>(),
-                    static_cast<ChainEpoch>(context.tipset.height)};
+            std::set<CID> visited_cid;
+
+            auto isDuplicateMessage =
+                [&](const CID &cid)
+                    const { return !visited_cid.insert(cid).second; }
 
             for (const BlockHeader &block : context.tipset.blks) {
               OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
@@ -354,9 +354,8 @@ namespace fc::api {
               OUTCOME_TRY(meta.bls_messages.visit(
                   [&](auto, auto &cid) -> outcome::result<void> {
                     OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
-                    OUTCOME_TRY(env.applyImplicitMessage(message));
 
-                    if (matchFunc(message)) {
+                    if (!isDuplicateMessage(cid) && matchFunc(message)) {
                       result.push_back(cid);
                     }
 
@@ -366,9 +365,8 @@ namespace fc::api {
                   [&](auto, auto &cid) -> outcome::result<void> {
                     OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
 
-                    OUTCOME_TRY(env.applyImplicitMessage(message.message));
-
-                    if (matchFunc(message.message)) {
+                    if (!isDuplicateMessage(cid)
+                        && matchFunc(message.message)) {
                       result.push_back(cid);
                     }
                     return outcome::success();
@@ -408,7 +406,7 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(root, context.state_tree.flush());
           adt::Map<Actor, adt::AddressKeyer> actors(root);
-          actors.load(context.state_tree.getStore());
+          actors.load(ipld);
 
           return actors.keys();
         }},
