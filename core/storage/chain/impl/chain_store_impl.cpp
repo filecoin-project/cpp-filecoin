@@ -74,7 +74,7 @@ namespace fc::storage::blockchain {
     // save to cache
     tipsets_cache_[key] = tipset;
 
-    return tipset;
+    return std::move(tipset);
   }
 
   outcome::result<void> ChainStoreImpl::initialize() {
@@ -287,11 +287,8 @@ namespace fc::storage::blockchain {
       const Tipset &current, const Tipset &target) {
     // need to have genesis defined
     ChainPath path{};
-    OUTCOME_TRY(genesis, getGenesis());
-    OUTCOME_TRY(genesis_tipset, Tipset::create({genesis}));
     auto l = current;
     auto r = target;
-    auto height = current.height;
     while (l != r) {
       if (l.height > r.height) {
         path.revert_chain.emplace_back(l);
