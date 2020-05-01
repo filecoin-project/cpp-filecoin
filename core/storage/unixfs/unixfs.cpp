@@ -106,13 +106,12 @@ namespace fc::storage::unixfs {
       if (height == 1) {
         tree.size = tree.file_size =
             std::min(chunk_size, static_cast<size_t>(data.size()));
-        OUTCOME_TRY(cid, makeLeaf(ipld, data.subspan(0, tree.file_size)));
-        tree.cid = std::move(cid);
+        OUTCOME_RETURN(tree.cid,
+                       makeLeaf(ipld, data.subspan(0, tree.file_size)));
         data = data.subspan(tree.file_size);
       } else {
-        OUTCOME_TRY(tree2,
-                    makeTree(ipld, height - 1, data, chunk_size, max_links));
-        tree = std::move(tree2);
+        OUTCOME_RETURN(tree,
+                       makeTree(ipld, height - 1, data, chunk_size, max_links));
       }
       root.size += tree.size;
       root.file_size += tree.file_size;
