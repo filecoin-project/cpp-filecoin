@@ -183,17 +183,15 @@ namespace fc::api {
           return std::move(tipset);
         }},
         .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
-        .ChainNotify = {[=]() -> outcome::result<Chan<HeadChange>> {
-          auto channel = std::make_shared<Channel<HeadChange>>();
-          using connection_t = ChainStore::connection_t;
-          auto cnn = std::make_shared<connection_t>();
-          std::weak_ptr<Channel<HeadChange>> wc = channel;
-
-          auto signal_connection = chain_store->subscribeHeadChanges(
-              [&, wc{std::move(wc)}, cnn](const HeadChange &change) -> void {
+        .ChainNotify = {[=]() {
+          auto channel = std::make_shared<Channel<std::vector<HeadChange>>>();
+          auto cnn = std::make_shared<ChainStore::connection_t>();
+          *cnn = chain_store->subscribeHeadChanges(
+              [&, wc{decltype(channel)::weak_type{channel}}, cnn](
+                  const HeadChange &change) -> void {
                 auto ch = wc.lock();
                 if (ch) {
-                  if (!ch->write(change)) {
+                  if (!ch->write({change})) {
                     if (cnn->connected()) {
                       cnn->disconnect();
                     } else {
@@ -204,8 +202,7 @@ namespace fc::api {
                   }
                 }
               });
-          *cnn = std::move(signal_connection);
-          return Chan<HeadChange>(std::move(channel));
+          return Chan{std::move(channel)};
         }},
         .ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }},
         // TODO(turuslan): FIL-165 implement method
