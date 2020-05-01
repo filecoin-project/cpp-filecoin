@@ -7,7 +7,8 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include "primitives/address/address_codec.hpp"
+
+#include "adt/address_key.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
@@ -60,7 +61,7 @@ TEST(InitActorTest, AddActor) {
   EXPECT_EQ(state.next_id, 4);
   EXPECT_OUTCOME_EQ(
       Hamt(store, state.address_map)
-          .getCbor<uint64_t>(fc::primitives::address::encodeToString(address)),
+          .getCbor<uint64_t>(fc::adt::AddressKeyer::encode(address)),
       3);
 }
 

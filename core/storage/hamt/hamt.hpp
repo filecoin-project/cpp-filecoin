@@ -132,7 +132,9 @@ namespace fc::storage::hamt {
 
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
          size_t bit_width = kDefaultBitWidth);
-    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root);
+    Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
+         Node::Ptr root,
+         size_t bit_width = kDefaultBitWidth);
     Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
          const CID &root,
          size_t bit_width = kDefaultBitWidth);

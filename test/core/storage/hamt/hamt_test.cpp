@@ -35,7 +35,7 @@ class HamtTest : public ::testing::Test {
   std::shared_ptr<fc::storage::ipfs::IpfsDatastore> store_{
       std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
   std::shared_ptr<Node> root_{std::make_shared<Node>()};
-  Hamt hamt_{store_, root_};
+  Hamt hamt_{store_, root_, 8};
 };
 
 /** Hamt node CBOR encoding and decoding, correct CID */

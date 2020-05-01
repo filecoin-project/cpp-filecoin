@@ -152,7 +152,10 @@ namespace fc::vm::actor::builtin::storage_power {
 
   outcome::result<void> StoragePowerActor::clearCronEvents(
       const ChainEpoch &epoch) {
-    OUTCOME_TRY(cron_event_queue.remove(epoch));
+    OUTCOME_TRY(has, cron_event_queue.has(epoch));
+    if (has) {
+      OUTCOME_TRY(cron_event_queue.remove(epoch));
+    }
     return outcome::success();
   }
 

@@ -33,10 +33,12 @@ namespace fc::storage::hamt {
         root_{std::make_shared<Node>()},
         bit_width_{bit_width} {}
 
-  Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, Node::Ptr root)
+  Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
+             Node::Ptr root,
+             size_t bit_width)
       : store_{std::move(store)},
         root_{std::move(root)},
-        bit_width_{kDefaultBitWidth} {}
+        bit_width_{bit_width} {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
              const CID &root,
