@@ -344,9 +344,9 @@ namespace fc::api {
           while (static_cast<int64_t>(context.tipset.height) >= to_height) {
             std::set<CID> visited_cid;
 
-            auto isDuplicateMessage =
-                [&](const CID &cid)
-                    const { return !visited_cid.insert(cid).second; }
+            auto isDuplicateMessage = [&](const CID &cid) -> bool {
+              return !visited_cid.insert(cid).second;
+            };
 
             for (const BlockHeader &block : context.tipset.blks) {
               OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
