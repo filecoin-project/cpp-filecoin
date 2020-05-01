@@ -140,6 +140,14 @@ namespace fc::api {
     uint64_t block_delay;
   };
 
+  struct MiningBaseInfo {
+    StoragePower miner_power;
+    StoragePower network_power;
+    std::vector<ChainSectorInfo> sectors;
+    Address worker;
+    SectorSize sector_size;
+  };
+
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
@@ -169,6 +177,10 @@ namespace fc::api {
                const std::vector<SignedMessage> &,
                ChainEpoch,
                uint64_t)
+    API_METHOD(MinerGetBaseInfo,
+               MiningBaseInfo,
+               const Address &,
+               const TipsetKey &)
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
     API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &)

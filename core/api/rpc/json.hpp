@@ -758,6 +758,16 @@ namespace fc::api {
       return j;
     }
 
+    ENCODE(MiningBaseInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "MinerPower", v.miner_power);
+      Set(j, "NetworkPower", v.network_power);
+      Set(j, "Sectors", v.sectors);
+      Set(j, "Worker", v.worker);
+      Set(j, "SectorSize", v.sector_size);
+      return j;
+    }
+
     ENCODE(DealProposal) {
       Value j{rapidjson::kObjectType};
       Set(j, "PieceCID", v.piece_cid);

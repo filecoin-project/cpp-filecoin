@@ -73,6 +73,7 @@ namespace fc::api {
     setup(rpc, api.ChainTipSetWeight);
     setup(rpc, api.MarketEnsureAvailable);
     setup(rpc, api.MinerCreateBlock);
+    setup(rpc, api.MinerGetBaseInfo);
     setup(rpc, api.MpoolPending);
     setup(rpc, api.MpoolPushMessage);
     setup(rpc, api.MpoolSub);

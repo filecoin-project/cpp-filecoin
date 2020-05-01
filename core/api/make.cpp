@@ -281,6 +281,23 @@ namespace fc::api {
           }
           return block2;
         }},
+        .MinerGetBaseInfo = {[=](auto &miner, auto &tipset_key)
+                                 -> outcome::result<MiningBaseInfo> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key, true));
+          OUTCOME_TRY(state, context.minerState(miner));
+          OUTCOME_TRY(power_state, context.powerState());
+          MiningBaseInfo info;
+          OUTCOME_TRY(claim, power_state.claims.get(miner));
+          info.miner_power = claim.power;
+          info.network_power = power_state.total_network_power;
+          OUTCOME_TRY(state.proving_set.visit([&](auto i, auto s) {
+            info.sectors.push_back({s, i});
+            return outcome::success();
+          }));
+          OUTCOME_RETURN(info.worker, context.accountKey(state.info.worker));
+          info.sector_size = state.info.sector_size;
+          return info;
+        }},
         // TODO(turuslan): FIL-165 implement method
         .MpoolPending = {},
         // TODO(turuslan): FIL-165 implement method
