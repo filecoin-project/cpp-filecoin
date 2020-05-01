@@ -150,11 +150,8 @@ TEST_F(TipsetTest, CreateSuccess) {
   std::vector<BlockHeader> headers{bh2, bh1};
   ASSERT_EQ(ts.height, bh1.height);
   ASSERT_EQ(ts.blks, headers);
-  EXPECT_OUTCOME_TRUE(min_ticket, ts.getMinTicket());
-  ASSERT_EQ(*min_ticket, ticket1);
   ASSERT_EQ(ts.getMinTimestamp(), 7u);
-  EXPECT_OUTCOME_TRUE(min_ticket_block, ts.getMinTicketBlock());
-  ASSERT_EQ(min_ticket_block.get(), bh2);
+  ASSERT_EQ(ts.getMinTicketBlock(), bh2);
   ASSERT_EQ(ts.getParentStateRoot(), parent_state_root);
   ASSERT_EQ(ts.getParentWeight(), parent_weight);
   ASSERT_TRUE(ts.contains(cid1));

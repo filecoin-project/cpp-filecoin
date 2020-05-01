@@ -49,6 +49,7 @@ namespace fc::primitives::tipset {
     std::vector<std::pair<block::BlockHeader, CID>> items;
     items.reserve(blocks.size());
     for (auto &block : blocks) {
+      assert(block.ticket);
       OUTCOME_TRY(cid, fc::primitives::cid::getCidOfCbor(block));
       // need to ensure that all cids are calculated before sort,
       // since it will terminate program in case of exception
@@ -96,12 +97,6 @@ namespace fc::primitives::tipset {
     return TipsetKey::create(cids);
   }
 
-  outcome::result<boost::optional<ticket::Ticket>> Tipset::getMinTicket()
-      const {
-    OUTCOME_TRY(block, getMinTicketBlock());
-    return block.get().ticket;
-  }
-
   uint64_t Tipset::getMinTimestamp() const {
     return std::min_element(blks.begin(),
                             blks.end(),
@@ -111,21 +106,9 @@ namespace fc::primitives::tipset {
         ->timestamp;
   }
 
-  outcome::result<std::reference_wrapper<const block::BlockHeader>>
-  Tipset::getMinTicketBlock() const {
-    std::reference_wrapper<const block::BlockHeader> block = blks[0];
-    if (!block.get().ticket.has_value()) {
-      return TipsetError::TICKET_HAS_NO_VALUE;
-    }
-    for (auto &b : blks) {
-      if (!b.ticket.has_value()) {
-        return TipsetError::TICKET_HAS_NO_VALUE;
-      }
-      if (b.ticket < block.get().ticket) {
-        block = b;
-      }
-    }
-    return block;
+  const block::BlockHeader &Tipset::getMinTicketBlock() const {
+    // i believe that Tipset::create sorts them
+    return blks[0];
   }
 
   CID Tipset::getParentStateRoot() const {
