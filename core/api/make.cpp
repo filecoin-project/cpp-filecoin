@@ -263,10 +263,9 @@ namespace fc::api {
                                         timestamp));
 
           OUTCOME_TRY(miner_state, context.minerState(miner));
-          OUTCOME_TRY(worker_id,
-                      context.state_tree.lookupId(miner_state.info.worker));
           OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
-          OUTCOME_TRY(block_sig, key_store->sign(worker_id, block_signable));
+          OUTCOME_TRY(worker_key, context.accountKey(miner_state.info.worker));
+          OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));
           block.header.block_sig = block_sig;
 
           BlockMsg block2;
