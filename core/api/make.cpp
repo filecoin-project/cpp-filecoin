@@ -85,7 +85,14 @@ namespace fc::api {
     auto tipsetContext = [=](const auto &tipset_key,
                              bool interpret =
                                  false) -> outcome::result<TipsetContext> {
-      OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
+      Tipset tipset;
+      if (tipset_key.cids.empty()) {
+        OUTCOME_TRY(tipset2, chain_store->heaviestTipset());
+        tipset = std::move(tipset2);
+      } else {
+        OUTCOME_TRY(tipset2, chain_store->loadTipset(tipset_key));
+        tipset = std::move(tipset2);
+      }
       TipsetContext context{tipset, {ipld, tipset.getParentStateRoot()}, {}};
       if (interpret) {
         OUTCOME_TRY(result, InterpreterImpl{}.interpret(ipld, tipset));
