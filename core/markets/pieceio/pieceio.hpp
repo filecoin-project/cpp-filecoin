@@ -27,11 +27,9 @@ namespace fc::markets::pieceio {
     virtual ~PieceIO() = default;
 
     outcome::result<std::pair<CID, UnpaddedPieceSize>> generatePieceCommitment(
-//        const RegisteredProof &registered_proof,  // TODO ???
+        const RegisteredProof &registered_proof,
         const CID &payload_cid,
         const Selector &selector);
-
-//    outcome::result<CID> readPiece();
 
    private:
     std::shared_ptr<Ipld> ipld_;
