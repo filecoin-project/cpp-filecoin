@@ -487,8 +487,13 @@ namespace fc::api {
         }},
         // TODO(turuslan): FIL-165 implement method
         .WalletDefaultAddress = {},
-        // TODO(turuslan): FIL-165 implement method
-        .WalletHas = {},
+        .WalletHas = {[=](auto address) -> outcome::result<bool> {
+          if (!address.isKeyType()) {
+            OUTCOME_TRY(context, tipsetContext({}));
+            OUTCOME_RETURN(address, context.accountKey(address));
+          }
+          return key_store->has(address);
+        }},
         .WalletSign = {[=](auto address,
                            auto data) -> outcome::result<Signature> {
           if (!address.isKeyType()) {
