@@ -60,8 +60,6 @@ namespace fc::storage::blockchain {
 
     outcome::result<bool> containsTipset(const TipsetKey &key) const override;
 
-    outcome::result<void> storeTipset(const Tipset &tipset) override;
-
     outcome::result<BlockHeader> getGenesis() const override;
 
     outcome::result<void> writeGenesis(
@@ -112,11 +110,6 @@ namespace fc::storage::blockchain {
      * @param tipset new heaviest tipset
      */
     outcome::result<void> takeHeaviestTipset(const Tipset &tipset);
-
-    /** @brief saves block headers to persistent storage */
-    outcome::result<void> persistBlockHeaders(
-        const std::vector<std::reference_wrapper<const BlockHeader>>
-            &block_headers);
 
     /** @brief finds and returns tipset containing given block header */
     outcome::result<Tipset> expandTipset(const BlockHeader &block_header);

@@ -122,16 +122,6 @@ namespace fc::storage::blockchain {
     return true;
   }
 
-  outcome::result<void> ChainStoreImpl::storeTipset(const Tipset &tipset) {
-    std::vector<std::reference_wrapper<const BlockHeader>> refs;
-    refs.reserve(tipset.blks.size());
-    for (const auto &b : tipset.blks) {
-      refs.emplace_back(std::ref(b));
-    }
-
-    return persistBlockHeaders(refs);
-  }
-
   outcome::result<BlockHeader> ChainStoreImpl::getGenesis() const {
     if (genesis_.has_value()) {
       return *genesis_;
@@ -143,7 +133,6 @@ namespace fc::storage::blockchain {
   outcome::result<void> ChainStoreImpl::writeGenesis(
       const BlockHeader &block_header) {
     OUTCOME_TRY(genesis_tipset, Tipset::create({block_header}));
-    OUTCOME_TRY(storeTipset(genesis_tipset));
     OUTCOME_TRY(buffer,
                 encodeCidVector(std::vector<CID>{genesis_tipset.cids[0]}));
 
@@ -159,21 +148,9 @@ namespace fc::storage::blockchain {
   }
 
   outcome::result<void> ChainStoreImpl::addBlock(const BlockHeader &block) {
-    OUTCOME_TRY(persistBlockHeaders({std::ref(block)}));
+    OUTCOME_TRY(data_store_->setCbor(block));
     OUTCOME_TRY(tipset, expandTipset(block));
     return updateHeaviestTipset(tipset);
-  }
-
-  outcome::result<void> ChainStoreImpl::persistBlockHeaders(
-      const std::vector<std::reference_wrapper<const BlockHeader>>
-          &block_headers) {
-    for (const auto &b : block_headers) {
-      OUTCOME_TRY(data, codec::cbor::encode(b));
-      OUTCOME_TRY(cid, common::getCidOf(data));
-      OUTCOME_TRY(data_store_->set(cid, std::move(data)));
-    }
-
-    return outcome::success();
   }
 
   outcome::result<Tipset> ChainStoreImpl::expandTipset(

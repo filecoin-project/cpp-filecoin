@@ -60,9 +60,6 @@ namespace fc::storage::blockchain {
     virtual outcome::result<bool> containsTipset(
         const TipsetKey &key) const = 0;
 
-    /** @brief store tipset to storage */
-    virtual outcome::result<void> storeTipset(const Tipset &tipset) = 0;
-
     /** @brief returns current heaviest tipset */
     virtual outcome::result<Tipset> heaviestTipset() const = 0;
 
