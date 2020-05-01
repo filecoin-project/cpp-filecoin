@@ -60,6 +60,7 @@ namespace fc::api {
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
   using vm::actor::builtin::miner::MinerInfo;
+  using vm::actor::builtin::miner::PoStState;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::message::SignedMessage;
@@ -197,6 +198,10 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
     API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerPostState,
+               PoStState,
+               const Address &,
+               const TipsetKey &)
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
     API_METHOD(StateMinerProvingSet,
                std::vector<ChainSectorInfo>,

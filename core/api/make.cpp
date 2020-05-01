@@ -376,6 +376,12 @@ namespace fc::api {
           OUTCOME_TRY(miner_state, context.minerState(address));
           return miner_state.info;
         }},
+        .StateMinerPostState = {[&](auto &address, auto &tipset_key)
+                                    -> outcome::result<PoStState> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(miner_state, context.minerState(address));
+          return miner_state.post_state;
+        }},
         .StateMinerPower = {[=](auto &address, auto &tipset_key)
                                 -> outcome::result<MinerPower> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));

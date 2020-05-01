@@ -404,6 +404,13 @@ namespace fc::api {
       decode(v.message, Get(j, "Message"));
     }
 
+    ENCODE(PoStState) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ProvingPeriodStart", v.proving_period_start);
+      Set(j, "NumConsecutiveFailures", v.num_consecutive_failures);
+      return j;
+    }
+
     ENCODE(MinerPower) {
       Value j{rapidjson::kObjectType};
       Set(j, "MinerPower", v.miner);
