@@ -10,6 +10,7 @@
 #include <libp2p/peer/peer_id.hpp>
 #include "blockchain/production/impl/block_producer_impl.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
@@ -20,9 +21,11 @@
 
 namespace fc::api {
   using primitives::block::BlockHeader;
+  using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
   using vm::actor::builtin::account::AccountActorState;
+  using vm::actor::builtin::init::InitActorState;
   using vm::actor::builtin::miner::MinerActorState;
   using vm::actor::builtin::storage_power::StoragePowerActorState;
   using vm::interpreter::InterpreterImpl;
@@ -66,6 +69,10 @@ namespace fc::api {
     auto powerState() {
       return actorState<StoragePowerActorState, true>(kStoragePowerAddress);
     }
+
+    auto initState() {
+      return actorState<InitActorState, false>(kInitAddress);
+    }
   };
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
@@ -75,7 +82,7 @@ namespace fc::api {
                std::shared_ptr<KeyStore> key_store,
                Logger logger) {
     auto chain_randomness = chain_store->createRandomnessProvider();
-    auto tipsetContext = [=](auto &tipset_key,
+    auto tipsetContext = [=](const auto &tipset_key,
                              bool interpret =
                                  false) -> outcome::result<TipsetContext> {
       OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
@@ -424,8 +431,11 @@ namespace fc::api {
           OUTCOME_TRY(state, context.minerState(address));
           return state.info.worker;
         }},
-        // TODO(turuslan): FIL-165 implement method
-        .StateNetworkName = {},
+        .StateNetworkName = {[=]() -> outcome::result<std::string> {
+          OUTCOME_TRY(context, tipsetContext(chain_store->genesisTipsetKey()));
+          OUTCOME_TRY(state, context.initState());
+          return state.network_name;
+        }},
         // TODO(turuslan): FIL-165 implement method
         .StateWaitMsg = {},
         // TODO(turuslan): FIL-165 implement method
