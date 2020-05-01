@@ -15,8 +15,10 @@
 #include <utility>
 
 #include <boost/optional.hpp>
+#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>
 #include "common/outcome.hpp"
+#include "host/context/host_context.hpp"
 
 #include "fsm/error.hpp"
 #include "fsm/type_hashers.hpp"
@@ -28,6 +30,7 @@
 namespace fc::fsm {
   using fc::common::EnumClassHash;
   using libp2p::protocol::Scheduler;
+  using Ticks = libp2p::protocol::Scheduler::Ticks;
 
   const Scheduler::Ticks kSlowModeDelayMs = 100;
 
@@ -232,6 +235,7 @@ namespace fc::fsm {
     using EntityPtr = std::shared_ptr<Entity>;
     using TransitionRule = Transition<EventEnumType, StateEnumType, Entity>;
     using EventQueueItem = std::pair<EntityPtr, EventEnumType>;
+    using HostContext = std::shared_ptr<fc::host::HostContext>;
     using ActionFunction = std::function<void(
         std::shared_ptr<Entity> /* pointer to tracked entity */,
         EventEnumType /* event that caused state transition */,
@@ -244,11 +248,15 @@ namespace fc::fsm {
      * @param scheduler - libp2p Scheduler for async events processing
      */
     FSM(std::vector<TransitionRule> transition_rules,
-        std::shared_ptr<Scheduler> scheduler)
+        HostContext context,
+        Ticks ticks = 50)
         : running_{true},
           delay_{kSlowModeDelayMs},
-          scheduler_{std::move(scheduler)} {
+          host_context_(std::move(context)) {
       initTransitions(std::move(transition_rules));
+      scheduler_ = std::make_shared<libp2p::protocol::AsioScheduler>(
+          *host_context_->getIoContext(),
+          libp2p::protocol::SchedulerConfig{ticks});
       scheduler_handle_ = scheduler_->schedule(1000, [this] { onTimer(); });
     }
 
@@ -301,7 +309,7 @@ namespace fc::fsm {
       if (states_.end() == lookup) {
         return FsmError::ENTITY_NOT_TRACKED;
       }
-      return lookup.second;
+      return lookup->second;
     }
 
     /**
@@ -396,6 +404,7 @@ namespace fc::fsm {
     std::queue<EventQueueItem> event_queue_;
     std::shared_ptr<Scheduler> scheduler_;
     Scheduler::Handle scheduler_handle_;
+    HostContext host_context_;
 
     /// a dispatching list of events and what to do on event
     std::unordered_map<EventEnumType, TransitionRule> transitions_;

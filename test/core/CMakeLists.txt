@@ -12,6 +12,7 @@ add_subdirectory(common)
 add_subdirectory(crypto)
 add_subdirectory(data_transfer)
 add_subdirectory(fslock)
+add_subdirectory(fsm)
 add_subdirectory(markets)
 
 if (TESTING_PROOFS)
