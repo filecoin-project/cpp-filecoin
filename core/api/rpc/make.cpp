@@ -77,6 +77,7 @@ namespace fc::api {
     setup(rpc, api.MpoolPending);
     setup(rpc, api.MpoolPushMessage);
     setup(rpc, api.MpoolSub);
+    setup(rpc, api.NetAddrsListen);
     setup(rpc, api.PaychVoucherAdd);
     setup(rpc, api.StateAccountKey);
     setup(rpc, api.StateCall);

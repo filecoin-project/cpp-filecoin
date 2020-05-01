@@ -642,6 +642,17 @@ namespace fc::api {
       decode(v.value, Get(j, "Val"));
     }
 
+    ENCODE(libp2p::multi::Multiaddress) {
+      return encode(v.getStringAddress());
+    }
+
+    ENCODE(PeerInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id.toBase58());
+      Set(j, "Addrs", v.addresses);
+      return j;
+    }
+
     template <typename T>
     ENCODE(Chan<T>) {
       return encode(v.id);

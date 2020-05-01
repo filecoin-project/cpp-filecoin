@@ -6,6 +6,8 @@
 #ifndef CPP_FILECOIN_CORE_API_API_HPP
 #define CPP_FILECOIN_CORE_API_API_HPP
 
+#include <libp2p/peer/peer_info.hpp>
+
 #include "adt/channel.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "markets/storage/ask_protocol.hpp"
@@ -35,6 +37,7 @@ namespace fc::api {
   using common::Comm;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
+  using libp2p::peer::PeerInfo;
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
   using markets::storage::StorageProviderInfo;
@@ -185,6 +188,8 @@ namespace fc::api {
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
     API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &)
     API_METHOD(MpoolSub, Chan<MpoolUpdate>)
+
+    API_METHOD(NetAddrsListen, PeerInfo)
 
     API_METHOD(PaychVoucherAdd,
                TokenAmount,

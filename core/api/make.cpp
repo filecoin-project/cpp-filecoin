@@ -304,6 +304,8 @@ namespace fc::api {
         // TODO(turuslan): FIL-165 implement method
         .MpoolSub = {},
         // TODO(turuslan): FIL-165 implement method
+        .NetAddrsListen = {},
+        // TODO(turuslan): FIL-165 implement method
         .PaychVoucherAdd = {},
         .StateAccountKey = {[=](auto &address,
                                 auto &tipset_key) -> outcome::result<Address> {
