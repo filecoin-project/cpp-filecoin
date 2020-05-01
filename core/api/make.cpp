@@ -402,13 +402,13 @@ namespace fc::api {
           OUTCOME_TRY(state, context.minerState(address));
           return state.fault_set;
         }},
-        .StateMinerInfo = {[&](auto &address,
+        .StateMinerInfo = {[=](auto &address,
                                auto &tipset_key) -> outcome::result<MinerInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
           return miner_state.info;
         }},
-        .StateMinerPostState = {[&](auto &address, auto &tipset_key)
+        .StateMinerPostState = {[=](auto &address, auto &tipset_key)
                                     -> outcome::result<PoStState> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
