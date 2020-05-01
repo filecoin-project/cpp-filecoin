@@ -4,7 +4,6 @@
  */
 
 #include "storage/car/car.hpp"
-#include "car_test.hpp"
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -14,6 +13,7 @@
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
+#include "testutil/resources/resources.hpp"
 
 using fc::CID;
 using fc::storage::car::CarError;

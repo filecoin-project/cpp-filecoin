@@ -5,6 +5,7 @@
 
 #include "primitives/piece/piece.hpp"
 
+#include <cmath>
 #include <utility>
 #include "primitives/piece/piece_error.hpp"
 
@@ -76,4 +77,16 @@ namespace fc::primitives::piece {
 
   PieceInfo::PieceInfo(const PaddedPieceSize &padded_size, CID piece_CID)
       : size(padded_size), cid(std::move(piece_CID)) {}
+
+  UnpaddedPieceSize paddedSize(uint64_t size) {
+    int logv = static_cast<int>(floor(std::log2(size))) + 1;
+
+    uint64_t sect_size = (1 << logv);
+    UnpaddedPieceSize bound = PaddedPieceSize(sect_size).unpadded();
+    if (size <= bound) {
+      return bound;
+    }
+
+    return PaddedPieceSize(1 << (logv + 1)).unpadded();
+  }
 }  // namespace fc::primitives::piece
