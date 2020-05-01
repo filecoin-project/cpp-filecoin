@@ -56,6 +56,7 @@ namespace fc::api {
   }
 
   void setupRpc(Rpc &rpc, const Api &api) {
+    setup(rpc, api.AuthNew);
     setup(rpc, api.ChainGetBlock);
     setup(rpc, api.ChainGetBlockMessages);
     setup(rpc, api.ChainGetGenesis);

@@ -141,6 +141,8 @@ namespace fc::api {
   };
 
   struct Api {
+    API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
+
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
     API_METHOD(ChainGetGenesis, Tipset)

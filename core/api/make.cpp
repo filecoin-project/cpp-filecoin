@@ -95,6 +95,9 @@ namespace fc::api {
       return context;
     };
     return {
+        .AuthNew = {[](auto) {
+          return Buffer{1, 2, 3};
+        }},
         .ChainGetBlock = {[=](auto &block_cid) {
           return ipld->getCbor<BlockHeader>(block_cid);
         }},
