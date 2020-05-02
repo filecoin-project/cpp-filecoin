@@ -31,7 +31,19 @@ namespace fc::api {
             if constexpr (is_chan<Result>{}) {
               result.id = make_chan();
             }
-            respond(api::encode(result));
+            if constexpr (is_wait<Result>{}) {
+              result.wait([respond{std::move(respond)}](auto maybe_result) {
+                if (!maybe_result) {
+                  respond(Response::Error{kInternalError,
+                                          maybe_result.error().message()});
+                } else {
+                  respond(encode(maybe_result.value()));
+                }
+              });
+              return;
+            } else {
+              respond(api::encode(result));
+            }
             if constexpr (is_chan<Result>{}) {
               result.channel->read([send{std::move(send)},
                                     chan{result}](auto opt) {
@@ -51,7 +63,7 @@ namespace fc::api {
             }
             return;
           }
-          return respond(Document{});
+          respond(Document{});
         });
   }
 

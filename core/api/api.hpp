@@ -89,6 +89,31 @@ namespace fc::api {
   template <typename T>
   struct is_chan<Chan<T>> : std::true_type {};
 
+  template <typename T>
+  struct Wait {
+    using Type = T;
+    using Result = outcome::result<T>;
+
+    Wait(std::shared_ptr<Channel<Result>> channel)
+        : channel{std::move(channel)} {}
+
+    void wait(std::function<void(Result)> cb) {
+      channel->read([cb{std::move(cb)}](auto opt) {
+        assert(opt);
+        cb(std::move(*opt));
+        return false;
+      });
+    }
+
+    std::shared_ptr<Channel<Result>> channel;
+  };
+
+  template <typename T>
+  struct is_wait : std::false_type {};
+
+  template <typename T>
+  struct is_wait<Wait<T>> : std::true_type {};
+
   struct InvocResult {
     UnsignedMessage message;
     MessageReceipt receipt;
@@ -229,7 +254,7 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
     API_METHOD(StateNetworkName, std::string)
-    API_METHOD(StateWaitMsg, MsgWait, const CID &)
+    API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &)
 
     API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
 
