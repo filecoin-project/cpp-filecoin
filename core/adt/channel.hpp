@@ -80,14 +80,17 @@ namespace fc::adt {
         return false;
       }
       auto &[values, closed] = boost::get<Queue>(state);
+      auto stop = false;
       for (auto &&value : values) {
-        if (!handler(std::move(value))) {
-          closed = true;
+        stop = !handler(std::move(value));
+        if (stop) {
           break;
         }
       }
-      if (closed) {
-        handler({});
+      if (closed || stop) {
+        if (!stop) {
+          handler({});
+        }
         state = Closed{};
       } else {
         state = handler;
@@ -111,6 +114,13 @@ namespace fc::adt {
     boost::variant<Queue, Handler, Closed> state{Queue{{}, false}};
     std::mutex mutex;
   };
+
+  template <typename T>
+  void writeMany(std::vector<std::shared_ptr<Channel<T>>> &cs, T v) {
+    cs.erase(std::remove_if(
+                 cs.begin(), cs.end(), [&](auto &c) { return !c->write(v); }),
+             cs.end());
+  }
 }  // namespace fc::adt
 
 #endif  // CPP_FILECOIN_ADT_CHANNEL_HPP
