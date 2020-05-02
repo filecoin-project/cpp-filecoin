@@ -93,9 +93,9 @@ namespace fc::api {
                                  false) -> outcome::result<TipsetContext> {
       Tipset tipset;
       if (tipset_key.cids.empty()) {
-        OUTCOME_RETURN(tipset, chain_store->heaviestTipset());
+        OUTCOME_TRYA(tipset, chain_store->heaviestTipset());
       } else {
-        OUTCOME_RETURN(tipset, chain_store->loadTipset(tipset_key));
+        OUTCOME_TRYA(tipset, chain_store->loadTipset(tipset_key));
       }
       TipsetContext context{tipset, {ipld, tipset.getParentStateRoot()}, {}};
       if (interpret) {
@@ -293,7 +293,7 @@ namespace fc::api {
             info.sectors.push_back({s, i});
             return outcome::success();
           }));
-          OUTCOME_RETURN(info.worker, context.accountKey(state.info.worker));
+          OUTCOME_TRYA(info.worker, context.accountKey(state.info.worker));
           info.sector_size = state.info.sector_size;
           return info;
         }},
@@ -492,7 +492,7 @@ namespace fc::api {
         .WalletHas = {[=](auto address) -> outcome::result<bool> {
           if (!address.isKeyType()) {
             OUTCOME_TRY(context, tipsetContext({}));
-            OUTCOME_RETURN(address, context.accountKey(address));
+            OUTCOME_TRYA(address, context.accountKey(address));
           }
           return key_store->has(address);
         }},
@@ -500,7 +500,7 @@ namespace fc::api {
                            auto data) -> outcome::result<Signature> {
           if (!address.isKeyType()) {
             OUTCOME_TRY(context, tipsetContext({}));
-            OUTCOME_RETURN(address, context.accountKey(address));
+            OUTCOME_TRYA(address, context.accountKey(address));
           }
           return key_store->sign(address, data);
         }},

@@ -22,11 +22,11 @@
   auto &&val = var.value();
 #define OUTCOME_EXCEPT(val, expr) _OUTCOME_EXCEPT(UNIQUE_NAME(_r), val, expr)
 
-#define _OUTCOME_RETURN(var, val, expr) \
-  auto &&var = expr;                    \
-  if (!var) return var.error();         \
+#define _OUTCOME_TRYA(var, val, expr) \
+  auto &&var = expr;                  \
+  if (!var) return var.error();       \
   val = std::move(var.value());
-#define OUTCOME_RETURN(val, expr) _OUTCOME_RETURN(UNIQUE_NAME(_r), val, expr)
+#define OUTCOME_TRYA(val, expr) _OUTCOME_TRYA(UNIQUE_NAME(_r), val, expr)
 
 namespace fc::outcome {
   using libp2p::outcome::failure;
