@@ -207,22 +207,12 @@ namespace fc::api {
         .ChainNotify = {[=]() {
           auto channel = std::make_shared<Channel<std::vector<HeadChange>>>();
           auto cnn = std::make_shared<ChainStore::connection_t>();
-          *cnn = chain_store->subscribeHeadChanges(
-              [&, wc{decltype(channel)::weak_type{channel}}, cnn](
-                  const HeadChange &change) -> void {
-                auto ch = wc.lock();
-                if (ch) {
-                  if (!ch->write({change})) {
-                    if (cnn->connected()) {
-                      cnn->disconnect();
-                    } else {
-                      logger->warn(
-                          "cannot close uninitialized connection when "
-                          "unsubscribing from head change notifications");
-                    }
-                  }
-                }
-              });
+          *cnn = chain_store->subscribeHeadChanges([=](auto &change) {
+            if (!channel->write({change})) {
+              assert(cnn->connected());
+              cnn->disconnect();
+            }
+          });
           return Chan{std::move(channel)};
         }},
         .ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }},
