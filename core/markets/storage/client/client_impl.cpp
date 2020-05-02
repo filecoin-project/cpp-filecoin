@@ -196,7 +196,8 @@ namespace fc::markets::storage::client {
         {}};
     OUTCOME_TRY(signed_message, api_->MpoolPushMessage(unsigned_message));
     OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
-    OUTCOME_TRY(msg_state, api_->StateWaitMsg(message_cid));
+    OUTCOME_TRY(msg_wait, api_->StateWaitMsg(message_cid));
+    OUTCOME_TRY(msg_state, msg_wait.waitSync());
     if (msg_state.receipt.exit_code != VMExitCode::Ok) {
       return StorageMarketClientError::ADD_FUNDS_CALL_ERROR;
     }

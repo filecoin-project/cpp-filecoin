@@ -6,6 +6,8 @@
 #ifndef CPP_FILECOIN_CORE_API_API_HPP
 #define CPP_FILECOIN_CORE_API_API_HPP
 
+#include <condition_variable>
+
 #include <libp2p/peer/peer_info.hpp>
 
 #include "adt/channel.hpp"
@@ -103,6 +105,19 @@ namespace fc::api {
         cb(std::move(*opt));
         return false;
       });
+    }
+
+    auto waitSync() {
+      std::condition_variable c;
+      Result r{outcome::success()};
+      wait([&](auto v) {
+        r = v;
+        c.notify_one();
+      });
+      std::mutex m;
+      auto l = std::unique_lock{m};
+      c.wait(l);
+      return r;
     }
 
     std::shared_ptr<Channel<Result>> channel;
