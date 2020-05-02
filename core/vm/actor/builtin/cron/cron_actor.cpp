@@ -15,7 +15,7 @@ namespace fc::vm::actor::builtin::cron {
       {kStoragePowerAddress, {storage_power::OnEpochTickEnd::Number}}};
 
   ACTOR_METHOD_IMPL(EpochTick) {
-    if ((runtime.getMessage().get().from != kCronAddress)) {
+    if ((runtime.getMessage().get().from != kSystemActorAddress)) {
       return VMExitCode::CRON_ACTOR_WRONG_CALL;
     }
 

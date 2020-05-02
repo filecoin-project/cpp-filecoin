@@ -38,7 +38,7 @@ TEST(BlockTest, BlockHeaderCbor) {
       "010001020005"_cid,
       "010001020006"_cid,
       "010001020007"_cid,
-      kSampleBlsSignature,
+      fc::crypto::signature::Signature{kSampleBlsSignature},
       8,
       boost::none,
       9,

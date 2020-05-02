@@ -140,6 +140,11 @@ namespace fc::api {
       v.message = AsString(Get(j, "message"));
     }
 
+    template <typename T, typename = std::enable_if_t<std::is_same_v<T, bool>>>
+    ENCODE(T) {
+      return Value{v};
+    }
+
     ENCODE(int64_t) {
       return Value{v};
     }
@@ -399,6 +404,13 @@ namespace fc::api {
       decode(v.message, Get(j, "Message"));
     }
 
+    ENCODE(PoStState) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ProvingPeriodStart", v.proving_period_start);
+      Set(j, "NumConsecutiveFailures", v.num_consecutive_failures);
+      return j;
+    }
+
     ENCODE(MinerPower) {
       Value j{rapidjson::kObjectType};
       Set(j, "MinerPower", v.miner);
@@ -630,6 +642,17 @@ namespace fc::api {
       decode(v.value, Get(j, "Val"));
     }
 
+    ENCODE(libp2p::multi::Multiaddress) {
+      return encode(v.getStringAddress());
+    }
+
+    ENCODE(PeerInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id.toBase58());
+      Set(j, "Addrs", v.addresses);
+      return j;
+    }
+
     template <typename T>
     ENCODE(Chan<T>) {
       return encode(v.id);
@@ -736,6 +759,24 @@ namespace fc::api {
 
     DECODE(IpldObject) {
       outcome::raise(JsonError::WRONG_TYPE);
+    }
+
+    ENCODE(VersionResult) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Version", v.version);
+      Set(j, "APIVersion", v.api_version);
+      Set(j, "BlockDelay", v.block_delay);
+      return j;
+    }
+
+    ENCODE(MiningBaseInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "MinerPower", v.miner_power);
+      Set(j, "NetworkPower", v.network_power);
+      Set(j, "Sectors", v.sectors);
+      Set(j, "Worker", v.worker);
+      Set(j, "SectorSize", v.sector_size);
+      return j;
     }
 
     ENCODE(DealProposal) {

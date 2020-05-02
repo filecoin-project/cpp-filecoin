@@ -5,13 +5,11 @@
 
 #include "fsm/fsm.hpp"
 
-#include <vector>
-
 #include <gtest/gtest.h>
+
 #include "host/context/impl/host_context_impl.hpp"
 #include "testutil/outcome.hpp"
 
-using fc::fsm::FSM;
 using HostContext = fc::host::HostContextImpl;
 
 enum class Events { START, STOP };
@@ -23,38 +21,31 @@ struct Data {
   std::string content{};
 };
 
-using Transition = fc::fsm::Transition<Events, States, Data>;
-
-void startHandler(std::shared_ptr<Data> data,
-                  Events e,
-                  States previous,
-                  States next) {
-  data->x = 1;
-}
-
-void stopHandler(std::shared_ptr<Data> data,
-                 Events e,
-                 States previous,
-                 States next) {
-  data->content = "stopped";
-}
+using Fsm = fc::fsm::FSM<Events, States, Data>;
+using Transition = Fsm::TransitionRule;
 
 TEST(Dev, Main) {
   auto context = std::make_shared<HostContext>();
-  std::vector<Transition> transitions = {Transition(Events::START)
-                                             .from(States::READY)
-                                             .to(States::WORKING)
-                                             .action(startHandler),
-                                         Transition(Events::STOP)
-                                             .from(States::WORKING)
-                                             .to(States::STOPPED)
-                                             .action(stopHandler)};
-  fc::fsm::FSM<Events, States, Data> fsm(transitions, context);
+  Fsm fsm{{Transition(Events::START)
+               .from(States::READY)
+               .to(States::WORKING)
+               .action([](auto data, auto, auto, auto) {
+                 data->x = 1;
+                 ASSERT_NE(data->content, "stopped");
+               }),
+           Transition(Events::STOP)
+               .from(States::WORKING)
+               .to(States::STOPPED)
+               .action([](auto data, auto, auto, auto) {
+                 ASSERT_EQ(data->x, 1);
+                 data->content = "stopped";
+               })},
+          context};
   auto entity = std::make_shared<Data>();
   EXPECT_OUTCOME_TRUE_1(fsm.begin(entity, States::READY))
   EXPECT_OUTCOME_TRUE_1(fsm.send(entity, Events::START))
   EXPECT_OUTCOME_TRUE_1(fsm.send(entity, Events::STOP))
-  context->runIoContext(1);
+  context->runIoContext(2);
   ASSERT_EQ(entity->x, 1);
   ASSERT_EQ(entity->content, "stopped");
 }

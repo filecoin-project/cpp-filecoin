@@ -67,7 +67,7 @@ namespace fc::vm::actor::builtin::miner {
     ChainEpoch expiration;
   };
   CBOR_TUPLE(
-      SectorPreCommitInfo, sector, sealed_cid, seal_epoch, deal_ids, expiration)
+      SectorPreCommitInfo, registered_proof, sector, sealed_cid, seal_epoch, deal_ids, expiration)
 
   struct SectorPreCommitOnChainInfo {
     SectorPreCommitInfo info;
