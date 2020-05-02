@@ -78,10 +78,7 @@ namespace fc::api {
   template <typename T>
   struct Chan {
     using Type = T;
-    Chan() = default;
     Chan(std::shared_ptr<Channel<T>> channel) : channel{std::move(channel)} {}
-    Chan(std::shared_ptr<Channel<T>> channel, uint64_t id)
-        : id{id}, channel{std::move(channel)} {}
     uint64_t id{};
     std::shared_ptr<Channel<T>> channel;
   };
