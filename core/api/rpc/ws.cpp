@@ -10,6 +10,8 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 
+#include <thread>
+
 #include "api/rpc/json.hpp"
 #include "api/rpc/make.hpp"
 
@@ -79,6 +81,7 @@ namespace fc::api {
           [&]() { return next_channel++; },
           [self{shared_from_this()}](auto method, auto params, auto cb) {
             if (method == "xrpc.ch.close") {
+              // TODO(turuslan): async wait
               std::this_thread::sleep_for(std::chrono::milliseconds(100));
             }
             self->_write(
