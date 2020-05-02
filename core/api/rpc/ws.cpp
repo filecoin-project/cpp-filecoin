@@ -5,12 +5,13 @@
 
 #include "api/rpc/ws.hpp"
 
+#include <queue>
+
 #include <rapidjson/writer.h>
+#include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
-
-#include <thread>
 
 #include "api/rpc/json.hpp"
 #include "api/rpc/make.hpp"
@@ -21,14 +22,18 @@ namespace fc::api {
   namespace websocket = beast::websocket;
   namespace net = boost::asio;
   using tcp = boost::asio::ip::tcp;
+  using rapidjson::StringBuffer;
+  using rpc::OkCb;
 
   constexpr auto kParseError = INT64_C(-32700);
   constexpr auto kInvalidRequest = INT64_C(-32600);
   constexpr auto kMethodNotFound = INT64_C(-32601);
 
+  const auto kChanCloseDelay{boost::posix_time::milliseconds(100)};
+
   struct ServerSession : std::enable_shared_from_this<ServerSession> {
     ServerSession(tcp::socket &&socket, const Api &api)
-        : socket{std::move(socket)} {
+        : socket{std::move(socket)}, timer{this->socket.get_executor()} {
       setupRpc(rpc, api);
     }
 
@@ -80,33 +85,55 @@ namespace fc::api {
           std::move(respond),
           [&]() { return next_channel++; },
           [self{shared_from_this()}](auto method, auto params, auto cb) {
+            Request req{self->next_request++, method, std::move(params)};
             if (method == "xrpc.ch.close") {
-              // TODO(turuslan): async wait
-              std::this_thread::sleep_for(std::chrono::milliseconds(100));
+              self->timer.expires_from_now(kChanCloseDelay);
+              self->timer.async_wait(
+                  [self, req{std::move(req)}, cb{std::move(cb)}](auto) {
+                    self->_write(req, std::move(cb));
+                  });
+              return;
             }
-            self->_write(
-                Request{self->next_request++, method, std::move(params)},
-                std::move(cb));
+            self->_write(req, std::move(cb));
           });
     }
 
     template <typename T>
-    void _write(const T &v, std::function<void(bool)> cb) {
-      rapidjson::StringBuffer j_buffer;
-      rapidjson::Writer<rapidjson::StringBuffer> writer{j_buffer};
+    void _write(const T &v, OkCb cb) {
+      StringBuffer buffer;
+      rapidjson::Writer<StringBuffer> writer{buffer};
       encode(v).Accept(writer);
-      std::string_view sv{j_buffer.GetString(), j_buffer.GetSize()};
-      // TODO(turuslan): async_write with buffering
-      beast::error_code e;
-      socket.write(net::buffer(sv), e);
-      if (cb) {
-        net::post(socket.get_executor(),
-                  [ok{!e}, cb{std::move(cb)}]() { cb(ok); });
+      pending_writes.emplace(std::move(buffer), std::move(cb));
+      _flush();
+    }
+
+    void _flush() {
+      if (!writing && !pending_writes.empty()) {
+        auto &[buffer, cb] = pending_writes.front();
+        writing = true;
+        socket.async_write(
+            net::buffer(buffer.GetString(), buffer.GetSize()),
+            [self{shared_from_this()}, cb{std::move(cb)}](auto e, auto) {
+              self->writing = false;
+              auto ok = !e;
+              if (!ok) {
+                self->pending_writes = {};
+              } else {
+                self->pending_writes.pop();
+                self->_flush();
+              }
+              if (cb) {
+                cb(ok);
+              }
+            });
       }
     }
 
+    std::queue<std::pair<StringBuffer, OkCb>> pending_writes;
+    bool writing{false};
     uint64_t next_channel{}, next_request{};
     websocket::stream<tcp::socket> socket;
+    net::deadline_timer timer;
     beast::flat_buffer buffer;
     Rpc rpc;
   };
