@@ -7,7 +7,7 @@
 
 #include "markets/storage/stored_ask.hpp"
 
-namespace fc::markets::storage {
+namespace fc::markets::storage::provider {
 
   outcome::result<void> StorageProviderImpl::addAsk(const TokenAmount &price,
                                                     ChainEpoch duration) {
@@ -23,4 +23,4 @@ namespace fc::markets::storage {
     }
     return result;
   }
-}  // namespace fc::markets::storage
+}  // namespace fc::markets::storage::provider

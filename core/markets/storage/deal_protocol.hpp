@@ -74,14 +74,29 @@ namespace fc::markets::storage {
     /** Verify transferred data - generate CAR / piece data */
     STORAGE_DEAL_VERIFY_DATA,
 
+    /** Ensuring that provider collateral is sufficient */
+    STORAGE_DEAL_ENSURE_PROVIDER_FUNDS,
+
+    /** Ensuring that client funds are sufficient */
+    STORAGE_DEAL_ENSURE_CLIENT_FUNDS,
+
+    /** Waiting for funds to appear in Provider balance */
+    STORAGE_DEAL_PROVIDER_FUNDING,
+
+    /** Waiting for funds to appear in Client balance */
+    STORAGE_DEAL_CLIENT_FUNDING,
+
     /** Publishing deal to chain */
+    STORAGE_DEAL_PUBLISH,
+
+    /** Waiting for deal to appear on chain */
     STORAGE_DEAL_PUBLISHING,
 
     /** deal failed with an unexpected error */
     STORAGE_DEAL_ERROR,
 
     /**
-     * on provider side, indicates deal is active and info for retrieval is
+     * On provider side, indicates deal is active and info for retrieval is
      * recorded
      */
     STORAGE_DEAL_COMPLETED
@@ -117,6 +132,7 @@ namespace fc::markets::storage {
   struct ClientDeal {
     ClientDealProposal client_deal_proposal;
     CID proposal_cid;
+    CID add_funds_cid;
     StorageDealStatus state;
     PeerId miner;
     Address miner_worker;
@@ -129,6 +145,7 @@ namespace fc::markets::storage {
   CBOR_TUPLE(ClientDeal,
              client_deal_proposal,
              proposal_cid,
+             add_funds_cid,
              state,
              miner,
              miner_worker,
