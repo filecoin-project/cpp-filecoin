@@ -11,5 +11,5 @@ target_link_libraries(fuhon_fsm
     p2p::p2p
     p2p::asio_scheduler
     outcome
-    fuhon_host
+    host_common_context
     )

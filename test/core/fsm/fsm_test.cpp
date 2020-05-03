@@ -7,10 +7,10 @@
 
 #include <gtest/gtest.h>
 
-#include "host/context/impl/host_context_impl.hpp"
+#include "host/context/common/common_context_impl.hpp"
 #include "testutil/outcome.hpp"
 
-using HostContext = fc::host::HostContextImpl;
+using CommonContextImpl = fc::host::context::common::CommonContextImpl;
 
 enum class Events { START, STOP };
 
@@ -25,7 +25,7 @@ using Fsm = fc::fsm::FSM<Events, States, Data>;
 using Transition = Fsm::TransitionRule;
 
 TEST(Dev, Main) {
-  auto context = std::make_shared<HostContext>();
+  auto context = std::make_shared<CommonContextImpl>();
   Fsm fsm{{Transition(Events::START)
                .from(States::READY)
                .to(States::WORKING)
@@ -45,7 +45,7 @@ TEST(Dev, Main) {
   EXPECT_OUTCOME_TRUE_1(fsm.begin(entity, States::READY))
   EXPECT_OUTCOME_TRUE_1(fsm.send(entity, Events::START))
   EXPECT_OUTCOME_TRUE_1(fsm.send(entity, Events::STOP))
-  context->runIoContext(2);
+  context->runInputOutput(2);
   ASSERT_EQ(entity->x, 1);
   ASSERT_EQ(entity->content, "stopped");
 }
