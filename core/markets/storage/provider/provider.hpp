@@ -27,10 +27,10 @@ namespace fc::markets::storage {
     virtual auto listIncompleteDeals()
         -> outcome::result<std::vector<MinerDeal>>;
 
-    virtual auto addStorageCollaterial(const TokenAmount &amount)
+    virtual auto addStorageCollateral(const TokenAmount &amount)
         -> outcome::result<void>;
 
-    virtual auto getStorageCollaterial() -> outcome::result<TokenAmount>;
+    virtual auto getStorageCollateral() -> outcome::result<TokenAmount>;
 
     virtual auto importDataForDeal(const CID &prop_cid,
                                    const libp2p::connection::Stream &data)

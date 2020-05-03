@@ -6,6 +6,7 @@
 #include "markets/storage/client/client_impl.hpp"
 #include "codec/cbor/cbor.hpp"
 #include "markets/pieceio/pieceio.hpp"
+#include "markets/storage/client/client_fsm_transitions.hpp"
 #include "storage/ipld/impl/ipld_node_impl.hpp"
 #include "storage/ipld/ipld_node.hpp"
 #include "vm/message/message.hpp"
@@ -34,14 +35,17 @@ namespace fc::markets::storage::client {
       std::shared_ptr<IpfsDatastore> block_store,
       std::shared_ptr<FileStore> file_store,
       std::shared_ptr<KeyStore> keystore,
-      std::shared_ptr<PieceIO> piece_io)
+      std::shared_ptr<PieceIO> piece_io,
+      std::shared_ptr<fc::host::HostContext> &fsm_constext)
       : api_{std::move(api)},
         network_{std::move(network)},
         data_transfer_manager_{std::move(data_transfer_manager)},
         block_store_{std::move(block_store)},
         file_store_{std::move(file_store)},
         keystore_{std::move(keystore)},
-        piece_io_{std::move(piece_io)} {}
+        piece_io_{std::move(piece_io)},
+        fsm_{std::make_shared<ClientFSM>(
+            client_transitions, fsm_constext, kFSMTicks)} {}
 
   void ClientImpl::run() {}
 
@@ -81,16 +85,20 @@ namespace fc::markets::storage::client {
     return client_deals;
   }
 
-  outcome::result<std::vector<StorageDeal>> ClientImpl::listLocalDeals() const {
-    // TODO (a.chernyshov) state from FSM
-    // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L115
-    return StorageMarketClientError::UNKNOWN_ERROR;
+  outcome::result<std::vector<ClientDeal>> ClientImpl::listLocalDeals() const {
+    std::vector<ClientDeal> res;
+    for (auto deal : local_deals_) {
+      res.push_back(ClientDeal{*deal.second});
+    }
+    return res;
   }
 
-  outcome::result<StorageDeal> ClientImpl::getLocalDeal(const CID &cid) const {
-    // TODO (a.chernyshov) state from FSM
-    // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L115
-    return StorageMarketClientError::UNKNOWN_ERROR;
+  outcome::result<ClientDeal> ClientImpl::getLocalDeal(const CID &cid) const {
+    auto it = local_deals_.find(cid);
+    if (it == local_deals_.end()) {
+      return StorageMarketClientError::LOCAL_DEAL_NOT_FOUND;
+    }
+    return *it->second;
   }
 
   void ClientImpl::getAsk(const StorageProviderInfo &info,
@@ -160,20 +168,31 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(proposal_node,
                 IPLDNodeImpl::createFromRawBytes(proposal_bytes));
 
-    ClientDeal client_deal{.client_deal_proposal = signed_proposal,
-                           .proposal_cid = proposal_node->getCID(),
-                           .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
-                           .miner = provider_info.peer_id,
-                           .miner_worker = provider_info.worker,
-                           .deal_id = {},
-                           .data_ref = data_ref,
-                           .message = {},
-                           .publish_message = {}};
+    auto client_deal = std::make_shared<ClientDeal>(
+        ClientDeal{.client_deal_proposal = signed_proposal,
+                   .proposal_cid = proposal_node->getCID(),
+                   .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
+                   .miner = provider_info.peer_id,
+                   .miner_worker = provider_info.worker,
+                   .deal_id = {},
+                   .data_ref = data_ref,
+                   .message = {},
+                   .publish_message = {}});
+    local_deals_[client_deal->proposal_cid] = client_deal;
 
-    // TODO (a.chernyshov) state machine
-    // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L115
+    OUTCOME_TRY(
+        fsm_->begin(client_deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
 
-    return StorageMarketClientError::UNKNOWN_ERROR;
+    // TODO handler
+    network_->newDealStream(provider_info.peer_id, {});
+
+    // TODO connection manager - add stream
+    OUTCOME_TRY(fsm_->send(client_deal, ClientEvent::ClientEventOpen));
+
+    // TODO discovery - add peer (address: dealProposal.Provider, ID:
+    // deal.Miner)
+
+    return ProposeStorageDealResult{client_deal->proposal_cid};
   }
 
   outcome::result<StorageParticipantBalance> ClientImpl::getPaymentEscrow(
@@ -275,9 +294,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::client,
       return "StorageMarketClientError: piece size is greater sector size";
     case StorageMarketClientError::ADD_FUNDS_CALL_ERROR:
       return "StorageMarketClientError: add funds method call returned error";
-
-    case StorageMarketClientError::UNKNOWN_ERROR:
-      return "StorageMarketClientError: unknown error";
+    case StorageMarketClientError::LOCAL_DEAL_NOT_FOUND:
+      return "StorageMarketClientError: local deal not found";
   }
 
   return "StorageMarketClientError: unknown error";

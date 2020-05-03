@@ -51,10 +51,9 @@ namespace fc::markets::storage::client {
     virtual outcome::result<std::vector<StorageDeal>> listDeals(
         const Address &address) const = 0;
 
-    virtual outcome::result<std::vector<StorageDeal>> listLocalDeals()
-        const = 0;
+    virtual outcome::result<std::vector<ClientDeal>> listLocalDeals() const = 0;
 
-    virtual outcome::result<StorageDeal> getLocalDeal(const CID &cid) const = 0;
+    virtual outcome::result<ClientDeal> getLocalDeal(const CID &cid) const = 0;
 
     virtual void getAsk(const StorageProviderInfo &info,
                         const SignedAskHandler &signed_ask_handler) const = 0;
@@ -76,6 +75,6 @@ namespace fc::markets::storage::client {
         const Address &address, const TokenAmount &amount) = 0;
   };
 
-}  // namespace fc::markets::storage
+}  // namespace fc::markets::storage::client
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_HPP
