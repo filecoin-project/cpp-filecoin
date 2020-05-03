@@ -42,7 +42,7 @@ namespace fc::primitives::block {
     CID parent_state_root;
     CID parent_message_receipts;
     CID messages;
-    Signature bls_aggregate;
+    boost::optional<Signature> bls_aggregate;
     uint64_t timestamp;
     boost::optional<Signature> block_sig;
     uint64_t fork_signaling;

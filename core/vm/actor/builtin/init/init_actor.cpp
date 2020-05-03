@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/init/init_actor.hpp"
 
-#include "primitives/address/address_codec.hpp"
+#include "adt/address_key.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/runtime/gas_cost.hpp"
 
@@ -15,7 +15,7 @@ namespace fc::vm::actor::builtin::init {
       std::shared_ptr<IpfsDatastore> store, const Address &address) {
     storage::hamt::Hamt hamt(std::move(store), address_map);
     auto id = next_id;
-    OUTCOME_TRY(hamt.setCbor(primitives::address::encodeToString(address), id));
+    OUTCOME_TRY(hamt.setCbor(adt::AddressKeyer::encode(address), id));
     OUTCOME_TRY(hamt.flush());
     address_map = hamt.cid();
     ++next_id;

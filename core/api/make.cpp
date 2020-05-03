@@ -12,6 +12,7 @@
 #include "blockchain/production/impl/block_producer_impl.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
@@ -22,9 +23,11 @@
 
 namespace fc::api {
   using primitives::block::BlockHeader;
+  using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
   using vm::actor::builtin::account::AccountActorState;
+  using vm::actor::builtin::init::InitActorState;
   using vm::actor::builtin::miner::MinerActorState;
   using vm::actor::builtin::storage_power::StoragePowerActorState;
   using vm::interpreter::InterpreterImpl;
@@ -68,6 +71,16 @@ namespace fc::api {
     auto powerState() {
       return actorState<StoragePowerActorState, true>(kStoragePowerAddress);
     }
+
+    auto initState() {
+      return actorState<InitActorState, false>(kInitAddress);
+    }
+
+    outcome::result<Address> accountKey(const Address &id) {
+      // TODO(turuslan): error if not account
+      OUTCOME_TRY(state, actorState<AccountActorState, false>(id));
+      return state.address;
+    }
   };
 
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
@@ -77,10 +90,15 @@ namespace fc::api {
                std::shared_ptr<KeyStore> key_store,
                Logger logger) {
     auto chain_randomness = chain_store->createRandomnessProvider();
-    auto tipsetContext = [=](auto &tipset_key,
+    auto tipsetContext = [=](const TipsetKey &tipset_key,
                              bool interpret =
                                  false) -> outcome::result<TipsetContext> {
-      OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
+      Tipset tipset;
+      if (tipset_key.cids.empty()) {
+        OUTCOME_TRYA(tipset, chain_store->heaviestTipset());
+      } else {
+        OUTCOME_TRYA(tipset, chain_store->loadTipset(tipset_key));
+      }
       TipsetContext context{tipset, {ipld, tipset.getParentStateRoot()}, {}};
       if (interpret) {
         OUTCOME_TRY(result, InterpreterImpl{}.interpret(ipld, tipset));
@@ -90,6 +108,9 @@ namespace fc::api {
       return context;
     };
     return {
+        .AuthNew = {[](auto) {
+          return Buffer{1, 2, 3};
+        }},
         .ChainGetBlock = {[=](auto &block_cid) {
           return ipld->getCbor<BlockHeader>(block_cid);
         }},
@@ -193,29 +214,16 @@ namespace fc::api {
           return std::move(tipset);
         }},
         .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
-        .ChainNotify = {[=]() -> outcome::result<Chan<HeadChange>> {
-          auto channel = std::make_shared<Channel<HeadChange>>();
-          using connection_t = ChainStore::connection_t;
-          auto cnn = std::make_shared<connection_t>();
-          std::weak_ptr<Channel<HeadChange>> wc = channel;
-
-          auto signal_connection = chain_store->subscribeHeadChanges(
-              [&, wc{std::move(wc)}, cnn](const HeadChange &change) -> void {
-                auto ch = wc.lock();
-                if (ch) {
-                  if (!ch->write(change)) {
-                    if (cnn->connected()) {
-                      cnn->disconnect();
-                    } else {
-                      logger->warn(
-                          "cannot close uninitialized connection when "
-                          "unsubscribing from head change notifications");
-                    }
-                  }
-                }
-              });
-          *cnn = std::move(signal_connection);
-          return Chan<HeadChange>(std::move(channel));
+        .ChainNotify = {[=]() {
+          auto channel = std::make_shared<Channel<std::vector<HeadChange>>>();
+          auto cnn = std::make_shared<ChainStore::connection_t>();
+          *cnn = chain_store->subscribeHeadChanges([=](auto &change) {
+            if (!channel->write({change})) {
+              assert(cnn->connected());
+              cnn->disconnect();
+            }
+          });
+          return Chan{std::move(channel)};
         }},
         .ChainReadObj = {[=](const auto &cid) { return ipld->get(cid); }},
         // TODO(turuslan): FIL-165 implement method
@@ -255,10 +263,9 @@ namespace fc::api {
                                         timestamp));
 
           OUTCOME_TRY(miner_state, context.minerState(miner));
-          OUTCOME_TRY(worker_id,
-                      context.state_tree.lookupId(miner_state.info.worker));
           OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
-          OUTCOME_TRY(block_sig, key_store->sign(worker_id, block_signable));
+          OUTCOME_TRY(worker_key, context.accountKey(miner_state.info.worker));
+          OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));
           block.header.block_sig = block_sig;
 
           BlockMsg block2;
@@ -273,12 +280,31 @@ namespace fc::api {
           }
           return block2;
         }},
+        .MinerGetBaseInfo = {[=](auto &miner, auto &tipset_key)
+                                 -> outcome::result<MiningBaseInfo> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key, true));
+          OUTCOME_TRY(state, context.minerState(miner));
+          OUTCOME_TRY(power_state, context.powerState());
+          MiningBaseInfo info;
+          OUTCOME_TRY(claim, power_state.claims.get(miner));
+          info.miner_power = claim.power;
+          info.network_power = power_state.total_network_power;
+          OUTCOME_TRY(state.proving_set.visit([&](auto i, auto s) {
+            info.sectors.push_back({s, i});
+            return outcome::success();
+          }));
+          OUTCOME_TRYA(info.worker, context.accountKey(state.info.worker));
+          info.sector_size = state.info.sector_size;
+          return info;
+        }},
         // TODO(turuslan): FIL-165 implement method
         .MpoolPending = {},
         // TODO(turuslan): FIL-165 implement method
         .MpoolPushMessage = {},
         // TODO(turuslan): FIL-165 implement method
         .MpoolSub = {},
+        // TODO(turuslan): FIL-165 implement method
+        .NetAddrsListen = {},
         // TODO(turuslan): FIL-165 implement method
         .PaychVoucherAdd = {},
         .StateAccountKey = {[=](auto &address,
@@ -287,11 +313,7 @@ namespace fc::api {
             return address;
           }
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          // TODO(turuslan): error if not account
-          OUTCOME_TRY(
-              state,
-              context.template actorState<AccountActorState, false>(address));
-          return state.address;
+          return context.accountKey(address);
         }},
         .StateCall = {[=](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
@@ -464,11 +486,17 @@ namespace fc::api {
           OUTCOME_TRY(state, context.minerState(address));
           return state.fault_set;
         }},
-        .StateMinerInfo = {[&](auto &address,
+        .StateMinerInfo = {[=](auto &address,
                                auto &tipset_key) -> outcome::result<MinerInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
           return miner_state.info;
+        }},
+        .StateMinerPostState = {[=](auto &address, auto &tipset_key)
+                                    -> outcome::result<PoStState> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(miner_state, context.minerState(address));
+          return miner_state.post_state;
         }},
         .StateMinerPower = {[=](auto &address, auto &tipset_key)
                                 -> outcome::result<MinerPower> {
@@ -539,13 +567,49 @@ namespace fc::api {
           OUTCOME_TRY(state, context.minerState(address));
           return state.info.worker;
         }},
+        .StateNetworkName = {[=]() -> outcome::result<std::string> {
+          OUTCOME_TRY(context, tipsetContext(chain_store->genesisTipsetKey()));
+          OUTCOME_TRY(state, context.initState());
+          return state.network_name;
+        }},
         // TODO(turuslan): FIL-165 implement method
         .StateWaitMsg = {},
-        // TODO(turuslan): FIL-165 implement method
-        .SyncSubmitBlock = {},
+        .SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
+          // TODO(turuslan): chain store must validate blocks before adding
+          MsgMeta meta;
+          meta.load(ipld);
+          for (auto &cid : block.bls_messages) {
+            OUTCOME_TRY(meta.bls_messages.append(cid));
+          }
+          for (auto &cid : block.secp_messages) {
+            OUTCOME_TRY(meta.secp_messages.append(cid));
+          }
+          OUTCOME_TRY(meta.flush());
+          OUTCOME_TRY(messages, ipld->setCbor(meta));
+          if (block.header.messages != messages) {
+            return TodoError::ERROR;
+          }
+          OUTCOME_TRY(chain_store->addBlock(block.header));
+          return outcome::success();
+        }},
+        .Version = {[]() {
+          return VersionResult{"fuhon", 0x000200, 5};
+        }},
         // TODO(turuslan): FIL-165 implement method
         .WalletDefaultAddress = {},
-        .WalletSign = {[=](auto address, auto data) {
+        .WalletHas = {[=](auto address) -> outcome::result<bool> {
+          if (!address.isKeyType()) {
+            OUTCOME_TRY(context, tipsetContext({}));
+            OUTCOME_TRYA(address, context.accountKey(address));
+          }
+          return key_store->has(address);
+        }},
+        .WalletSign = {[=](auto address,
+                           auto data) -> outcome::result<Signature> {
+          if (!address.isKeyType()) {
+            OUTCOME_TRY(context, tipsetContext({}));
+            OUTCOME_TRYA(address, context.accountKey(address));
+          }
           return key_store->sign(address, data);
         }},
     };

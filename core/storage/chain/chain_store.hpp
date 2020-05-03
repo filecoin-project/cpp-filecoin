@@ -10,6 +10,7 @@
 #include "blockchain/weight_calculator.hpp"
 #include "crypto/randomness/chain_randomness_provider.hpp"
 #include "primitives/block/block.hpp"
+#include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "vm/message/message.hpp"
 
@@ -59,9 +60,6 @@ namespace fc::storage::blockchain {
     virtual outcome::result<bool> containsTipset(
         const TipsetKey &key) const = 0;
 
-    /** @brief store tipset to storage */
-    virtual outcome::result<void> storeTipset(const Tipset &tipset) = 0;
-
     /** @brief returns current heaviest tipset */
     virtual outcome::result<Tipset> heaviestTipset() const = 0;
 
@@ -93,6 +91,12 @@ namespace fc::storage::blockchain {
      */
     virtual connection_t subscribeHeadChanges(
         const std::function<HeadChangeSignature> &subscriber) = 0;
+
+    inline auto genesisTipsetKey() const {
+      OUTCOME_EXCEPT(genesis, getGenesis());
+      OUTCOME_EXCEPT(genesis_cid, primitives::cid::getCidOfCbor(genesis));
+      return TipsetKey{{std::move(genesis_cid)}};
+    }
   };
 
 }  // namespace fc::storage::blockchain

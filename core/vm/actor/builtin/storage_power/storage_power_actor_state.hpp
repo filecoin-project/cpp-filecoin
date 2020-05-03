@@ -263,6 +263,7 @@ namespace fc::vm::actor::builtin::storage_power {
     power::Power total_network_power;
     size_t miner_count;
     mutable BalanceTable escrow;
+    ChainEpoch last_epoch_tick;
     mutable adt::Map<adt::Array<CronEvent>, ChainEpochKeyer> cron_event_queue;
     mutable adt::Set<AddressKeyer> po_st_detected_fault_miners;
     mutable adt::Map<Claim, AddressKeyer> claims;
@@ -281,6 +282,7 @@ namespace fc::vm::actor::builtin::storage_power {
              miner_count,
              escrow,
              cron_event_queue,
+             last_epoch_tick,
              po_st_detected_fault_miners,
              claims,
              num_miners_meeting_min_power);

@@ -48,11 +48,6 @@ namespace fc::primitives::tipset {
     outcome::result<TipsetKey> getParents() const;
 
     /**
-     * @return optional min ticket or error
-     */
-    outcome::result<boost::optional<ticket::Ticket>> getMinTicket() const;
-
-    /**
      * @return min timestamp
      */
     uint64_t getMinTimestamp() const;
@@ -60,8 +55,7 @@ namespace fc::primitives::tipset {
     /**
      * @return min ticket block
      */
-    outcome::result<std::reference_wrapper<const block::BlockHeader>>
-    getMinTicketBlock() const;
+    const block::BlockHeader &getMinTicketBlock() const;
 
     /**
      * @return parent state root

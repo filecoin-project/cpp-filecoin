@@ -59,7 +59,7 @@ struct ChainStoreTest : public ::testing::Test {
         "010001020005"_cid,
         "010001020006"_cid,
         "010001020007"_cid,
-        BlsSignature{},
+        Signature{BlsSignature{}},
         8,
         Signature{BlsSignature{}},
         9};
