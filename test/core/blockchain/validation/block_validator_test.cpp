@@ -84,7 +84,7 @@ class BlockValidatorTest : public testing::Test {
             "010001020005"_cid,
             "010001020006"_cid,
             "010001020007"_cid,
-            Secp256k1Signature{},
+            Signature{Secp256k1Signature{}},
             8,
             Signature{Secp256k1Signature{}},
             9};

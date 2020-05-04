@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-addtest(miner_actor_test
-    miner_actor_test.cpp
+add_library(discovery
+    discovery.cpp
     )
-target_link_libraries(miner_actor_test
-    miner_actor
+target_link_libraries(discovery
+    cbor
+    outcome
     )

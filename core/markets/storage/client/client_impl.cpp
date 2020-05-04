@@ -215,7 +215,8 @@ namespace fc::markets::storage::client {
         {}};
     OUTCOME_TRY(signed_message, api_->MpoolPushMessage(unsigned_message));
     OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
-    OUTCOME_TRY(msg_state, api_->StateWaitMsg(message_cid));
+    OUTCOME_TRY(msg_wait, api_->StateWaitMsg(message_cid));
+    OUTCOME_TRY(msg_state, msg_wait.waitSync());
     if (msg_state.receipt.exit_code != VMExitCode::Ok) {
       return StorageMarketClientError::ADD_FUNDS_CALL_ERROR;
     }
@@ -258,10 +259,8 @@ namespace fc::markets::storage::client {
 
     // TODO (a.chernyshov) selector builder
     // https://github.com/filecoin-project/go-fil-markets/blob/master/storagemarket/impl/clientutils/clientutils.go#L31
-    std::shared_ptr<IPLDNode> all_selector;
-
     return piece_io_->generatePieceCommitment(
-        registered_proof, data_ref.root, all_selector);
+        registered_proof, data_ref.root, {});
   }
 
   outcome::result<ClientDealProposal> ClientImpl::signProposal(

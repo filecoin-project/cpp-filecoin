@@ -88,7 +88,7 @@ struct SyncTargetBucketTest : public ::testing::Test {
         "010001020005"_cid,
         "010001020006"_cid,
         "010001020007"_cid,
-        signature,
+        Signature{signature},
         8,
         Signature{secp1},
         9,

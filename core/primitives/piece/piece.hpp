@@ -81,5 +81,11 @@ namespace fc::primitives::piece {
     return lhs.size == rhs.size && lhs.cid == rhs.cid;
   }
 
+  /**
+   * @brief PaddedSize takes size to the next power of two and then returns the
+   * number of not-bit-padded bytes that would fit into a sector of that size.
+   */
+  UnpaddedPieceSize paddedSize(uint64_t size);
+
 };      // namespace fc::primitives::piece
 #endif  // CPP_FILECOIN_PIECE_HPP

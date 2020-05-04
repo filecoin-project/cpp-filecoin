@@ -47,25 +47,24 @@ namespace fc::crypto::randomness {
 
   outcome::result<Randomness> ChainRandomnessProviderImpl::sampleRandomness(
       const std::vector<CID> &block_cids, uint64_t round) {
-    std::reference_wrapper<const std::vector<CID>> cids{block_cids};
+    auto cids{block_cids};
 
     while (true) {
-      OUTCOME_TRY(tipset_key, TipsetKey::create(cids.get()));
+      OUTCOME_TRY(tipset_key, TipsetKey::create(cids));
       OUTCOME_TRY(tipset, chain_store_->loadTipset(tipset_key));
-      OUTCOME_TRY(min_ticket_block, tipset.getMinTicketBlock());
+      auto &block = tipset.getMinTicketBlock();
 
       if (tipset.height <= round) {
-        BOOST_ASSERT_MSG(min_ticket_block.get().ticket.has_value(),
+        BOOST_ASSERT_MSG(block.ticket.has_value(),
                          "min ticket block has no value, internal error");
 
-        return drawRandomness(*min_ticket_block.get().ticket, round);
+        return drawRandomness(*block.ticket, round);
       }
 
       // special case for lookback behind genesis block
-      if (min_ticket_block.get().height == 0) {
+      if (block.height == 0) {
         // round is negative
-        auto &&negative_hash =
-            drawRandomness(*min_ticket_block.get().ticket, round - 1);
+        auto &&negative_hash = drawRandomness(*block.ticket, round - 1);
         // for negative lookbacks, just use the hash of the positive ticket hash
         // value
         auto &&positive_hash = libp2p::crypto::sha256(negative_hash);
@@ -74,7 +73,7 @@ namespace fc::crypto::randomness {
 
       // TODO (yuraz) I know it's very ugly, and needs to be refactored
       // I translated it directly from go to C++
-      cids = min_ticket_block.get().parents;
+      cids = block.parents;
     }
   }
 

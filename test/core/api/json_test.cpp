@@ -148,7 +148,7 @@ TEST(ApiJsonTest, MsgWait) {
                   "010001020005"_cid,
                   "010001020006"_cid,
                   "010001020007"_cid,
-                  b65,
+                  Signature{b65},
                   8,
                   Signature{Secp256k1Signature{b65}},
                   9,

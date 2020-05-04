@@ -5,14 +5,13 @@
 
 #include "vm/state/impl/state_tree_impl.hpp"
 
-#include "codec/cbor/cbor.hpp"
-#include "primitives/address/address_codec.hpp"
+#include "adt/address_key.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
 
 namespace fc::vm::state {
   using actor::ActorSubstateCID;
+  using adt::AddressKeyer;
   using codec::cbor::decode;
-  using primitives::address::encodeToString;
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store)
       : store_{store}, hamt_{store} {}
@@ -24,12 +23,12 @@ namespace fc::vm::state {
   outcome::result<void> StateTreeImpl::set(const Address &address,
                                            const Actor &actor) {
     OUTCOME_TRY(address_id, lookupId(address));
-    return hamt_.setCbor(encodeToString(address_id), actor);
+    return hamt_.setCbor(AddressKeyer::encode(address_id), actor);
   }
 
   outcome::result<Actor> StateTreeImpl::get(const Address &address) {
     OUTCOME_TRY(address_id, lookupId(address));
-    return hamt_.getCbor<Actor>(encodeToString(address_id));
+    return hamt_.getCbor<Actor>(AddressKeyer::encode(address_id));
   }
 
   outcome::result<Address> StateTreeImpl::lookupId(const Address &address) {
@@ -41,7 +40,8 @@ namespace fc::vm::state {
         init_actor_state,
         store_->getCbor<actor::builtin::init::InitActorState>(init_actor.head));
     Hamt address_map(store_, init_actor_state.address_map);
-    OUTCOME_TRY(id, address_map.getCbor<uint64_t>(encodeToString(address)));
+    OUTCOME_TRY(id,
+                address_map.getCbor<uint64_t>(AddressKeyer::encode(address)));
     return Address::makeFromId(id);
   }
 

@@ -6,6 +6,10 @@
 #ifndef CPP_FILECOIN_CORE_API_API_HPP
 #define CPP_FILECOIN_CORE_API_API_HPP
 
+#include <condition_variable>
+
+#include <libp2p/peer/peer_info.hpp>
+
 #include "adt/channel.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "markets/storage/ask_protocol.hpp"
@@ -35,6 +39,7 @@ namespace fc::api {
   using common::Comm;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
+  using libp2p::peer::PeerInfo;
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
   using markets::storage::StorageProviderInfo;
@@ -60,6 +65,7 @@ namespace fc::api {
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
   using vm::actor::builtin::miner::MinerInfo;
+  using vm::actor::builtin::miner::PoStState;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::message::SignedMessage;
@@ -74,10 +80,7 @@ namespace fc::api {
   template <typename T>
   struct Chan {
     using Type = T;
-    Chan() = default;
     Chan(std::shared_ptr<Channel<T>> channel) : channel{std::move(channel)} {}
-    Chan(std::shared_ptr<Channel<T>> channel, uint64_t id)
-        : id{id}, channel{std::move(channel)} {}
     uint64_t id{};
     std::shared_ptr<Channel<T>> channel;
   };
@@ -87,6 +90,44 @@ namespace fc::api {
 
   template <typename T>
   struct is_chan<Chan<T>> : std::true_type {};
+
+  template <typename T>
+  struct Wait {
+    using Type = T;
+    using Result = outcome::result<T>;
+
+    Wait(std::shared_ptr<Channel<Result>> channel)
+        : channel{std::move(channel)} {}
+
+    void wait(std::function<void(Result)> cb) {
+      channel->read([cb{std::move(cb)}](auto opt) {
+        assert(opt);
+        cb(std::move(*opt));
+        return false;
+      });
+    }
+
+    auto waitSync() {
+      std::condition_variable c;
+      Result r{outcome::success()};
+      wait([&](auto v) {
+        r = v;
+        c.notify_one();
+      });
+      std::mutex m;
+      auto l = std::unique_lock{m};
+      c.wait(l);
+      return r;
+    }
+
+    std::shared_ptr<Channel<Result>> channel;
+  };
+
+  template <typename T>
+  struct is_wait : std::false_type {};
+
+  template <typename T>
+  struct is_wait<Wait<T>> : std::true_type {};
 
   struct InvocResult {
     UnsignedMessage message;
@@ -133,7 +174,23 @@ namespace fc::api {
     SignedMessage message;
   };
 
+  struct VersionResult {
+    std::string version;
+    uint64_t api_version;
+    uint64_t block_delay;
+  };
+
+  struct MiningBaseInfo {
+    StoragePower miner_power;
+    StoragePower network_power;
+    std::vector<ChainSectorInfo> sectors;
+    Address worker;
+    SectorSize sector_size;
+  };
+
   struct Api {
+    API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
+
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
     API_METHOD(ChainGetGenesis, Tipset)
@@ -144,7 +201,7 @@ namespace fc::api {
     API_METHOD(ChainGetTipSet, Tipset, const TipsetKey &)
     API_METHOD(ChainGetTipSetByHeight, Tipset, ChainEpoch, const TipsetKey &)
     API_METHOD(ChainHead, Tipset)
-    API_METHOD(ChainNotify, Chan<HeadChange>)
+    API_METHOD(ChainNotify, Chan<std::vector<HeadChange>>)
     API_METHOD(ChainReadObj, Buffer, CID)
     API_METHOD(ChainSetHead, void, const TipsetKey &)
     API_METHOD(ChainTipSetWeight, TipsetWeight, const TipsetKey &)
@@ -160,10 +217,16 @@ namespace fc::api {
                const std::vector<SignedMessage> &,
                ChainEpoch,
                uint64_t)
+    API_METHOD(MinerGetBaseInfo,
+               MiningBaseInfo,
+               const Address &,
+               const TipsetKey &)
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
     API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &)
     API_METHOD(MpoolSub, Chan<MpoolUpdate>)
+
+    API_METHOD(NetAddrsListen, PeerInfo)
 
     API_METHOD(PaychVoucherAdd,
                TokenAmount,
@@ -191,6 +254,10 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
     API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerPostState,
+               PoStState,
+               const Address &,
+               const TipsetKey &)
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
     API_METHOD(StateMinerProvingSet,
                std::vector<ChainSectorInfo>,
@@ -201,11 +268,15 @@ namespace fc::api {
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
-    API_METHOD(StateWaitMsg, MsgWait, const CID &)
+    API_METHOD(StateNetworkName, std::string)
+    API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &)
 
     API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
 
+    API_METHOD(Version, VersionResult)
+
     API_METHOD(WalletDefaultAddress, Address)
+    API_METHOD(WalletHas, bool, const Address &)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
   };
 }  // namespace fc::api
