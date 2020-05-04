@@ -7,11 +7,8 @@
 #define CPP_FILECOIN_CORE_MARKETS_DISCOVERY_DISCOVERY_HPP
 
 #include <libp2p/peer/peer_info.hpp>
-#include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
-#include "primitives/address/address.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/face/persistent_map.hpp"
 
@@ -19,7 +16,6 @@ namespace fc::markets::discovery {
 
   using common::Buffer;
   using libp2p::peer::PeerInfo;
-  using primitives::address::Address;
   using Datastore = storage::face::PersistentMap<Buffer, Buffer>;
 
   /**

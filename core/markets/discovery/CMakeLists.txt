@@ -7,7 +7,6 @@ add_library(discovery
     discovery.cpp
     )
 target_link_libraries(discovery
-    address
     cbor
     outcome
     )
