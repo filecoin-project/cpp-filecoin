@@ -6,7 +6,7 @@
 #include "markets/discovery/discovery.hpp"
 
 #include <gmock/gmock.h>
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/peer_id.hpp"
@@ -14,12 +14,11 @@
 namespace fc::markets::discovery {
 
   using libp2p::peer::PeerId;
-  using storage::ipfs::InMemoryDatastore;
+  using storage::InMemoryStorage;
 
   class DiscoveryTest : public ::testing::Test {
    public:
-    std::shared_ptr<IpfsDatastore> datastore =
-        std::make_shared<InMemoryDatastore>();
+    std::shared_ptr<Datastore> datastore = std::make_shared<InMemoryStorage>();
     Discovery discovery{datastore};
 
     CID proposal_cid_1 = "010001020001"_cid;

@@ -8,5 +8,5 @@ addtest(discovery_test
     )
 target_link_libraries(discovery_test
     discovery
-    ipfs_datastore_in_memory
+    in_memory_storage
     )

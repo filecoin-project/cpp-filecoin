@@ -9,7 +9,6 @@
 
 namespace fc::markets::discovery {
   using libp2p::peer::PeerId;
-  using storage::ipfs::IpfsDatastoreError;
 
   /**
    * @struct Everything needed to make a deal with a miner
@@ -35,24 +34,22 @@ namespace fc::markets::discovery {
 
   CBOR_TUPLE(RetrievalPeerCborable, address, peer_id);
 
-  Discovery::Discovery(std::shared_ptr<IpfsDatastore> datastore)
+  Discovery::Discovery(std::shared_ptr<Datastore> datastore)
       : datastore_{std::move(datastore)} {}
 
   outcome::result<void> Discovery::addPeer(const CID &cid,
                                            const RetrievalPeer &peer) {
-    auto maybe_peers = datastore_->get(cid);
-    if (maybe_peers.has_error()
-        && maybe_peers.error() != IpfsDatastoreError::NOT_FOUND) {
-      return maybe_peers.error();
-    }
-
+    OUTCOME_TRY(cid_bytes, cid.toBytes());
+    Buffer cid_key{cid_bytes};
     RetrievalPeerCborable peer_to_add =
         RetrievalPeerCborable::fromRetrievalPeer(peer);
     std::vector<RetrievalPeerCborable> peers_to_store;
-    if (maybe_peers.has_value()) {
+
+    if (datastore_->contains(cid_key)) {
+      OUTCOME_TRY(stored_peers_cbored, datastore_->get(cid_key));
       OUTCOME_TRY(peers,
                   codec::cbor::decode<std::vector<RetrievalPeerCborable>>(
-                      maybe_peers.value()));
+                      stored_peers_cbored));
       // if already present
       if (std::find(peers.begin(), peers.end(), peer_to_add) != peers.end()) {
         return outcome::success();
@@ -61,25 +58,21 @@ namespace fc::markets::discovery {
     }
     peers_to_store.push_back(peer_to_add);
     OUTCOME_TRY(peers_cbored, codec::cbor::encode(peers_to_store));
-    OUTCOME_TRY(datastore_->set(cid, peers_cbored));
+    OUTCOME_TRY(datastore_->put(cid_key, peers_cbored));
     return outcome::success();
   }
 
   outcome::result<std::vector<RetrievalPeer>> Discovery::getPeers(
       const CID &cid) const {
-    auto maybe_peers_cbored = datastore_->get(cid);
-    if (maybe_peers_cbored.has_error()
-        && maybe_peers_cbored.error() != IpfsDatastoreError::NOT_FOUND) {
-      return maybe_peers_cbored.error();
-    }
-    if (maybe_peers_cbored.has_error()
-        && maybe_peers_cbored.error() == IpfsDatastoreError::NOT_FOUND) {
+    OUTCOME_TRY(cid_bytes, cid.toBytes());
+    Buffer cid_key{cid_bytes};
+    if (!datastore_->contains(cid_key)) {
       return std::vector<RetrievalPeer>{};
-    };
-
-    OUTCOME_TRY(peers,
-                codec::cbor::decode<std::vector<RetrievalPeerCborable>>(
-                    maybe_peers_cbored.value()));
+    }
+    OUTCOME_TRY(peers_cbored, datastore_->get(cid_key));
+    OUTCOME_TRY(
+        peers,
+        codec::cbor::decode<std::vector<RetrievalPeerCborable>>(peers_cbored));
     std::vector<RetrievalPeer> result;
     for (const auto &peer_cborable : peers) {
       OUTCOME_TRY(peer, peer_cborable.toRetrievalPeer());
