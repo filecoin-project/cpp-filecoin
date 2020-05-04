@@ -14,6 +14,16 @@
 #include <gsl/span>
 
 namespace fc::codec::cbor {
+
+  /**
+   * Default value for CBORed value instantiation
+   * In case of non default constructible type instantiate default value with
+   * any constant
+   * @tparam T - constructible type
+   */
+  template <typename T>
+  inline const T kDefaultT{};
+
   /** Decodes CBOR */
   class CborDecodeStream {
    public:
@@ -74,7 +84,7 @@ namespace fc::codec::cbor {
         optional = boost::none;
         next();
       } else {
-        T value{};
+        T value{kDefaultT<T>};
         *this >> value;
         optional = value;
       }
@@ -89,7 +99,7 @@ namespace fc::codec::cbor {
       values.clear();
       values.reserve(n);
       for (auto i = 0u; i < n; ++i) {
-        T value{};
+        T value{kDefaultT<T>};
         l >> value;
         values.push_back(value);
       }
