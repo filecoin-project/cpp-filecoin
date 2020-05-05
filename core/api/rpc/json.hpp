@@ -761,6 +761,18 @@ namespace fc::api {
       outcome::raise(JsonError::WRONG_TYPE);
     }
 
+    ENCODE(ActorState) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Balance", v.balance);
+      Set(j, "State", v.state);
+      return j;
+    }
+
+    DECODE(ActorState) {
+        // Because IpldObject cannot be decoded
+        outcome::raise(JsonError::WRONG_TYPE);
+    }
+
     ENCODE(VersionResult) {
       Value j{rapidjson::kObjectType};
       Set(j, "Version", v.version);

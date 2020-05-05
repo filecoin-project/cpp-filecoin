@@ -15,6 +15,7 @@
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
 #include "markets/storage/types.hpp"
+#include "primitives/big_int.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
@@ -58,6 +59,7 @@ namespace fc::api {
   using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
+  using primitives::BigInt;
   using primitives::tipset::TipsetKey;
   using vm::actor::Actor;
   using vm::actor::builtin::market::ClientDealProposal;
@@ -188,6 +190,11 @@ namespace fc::api {
     SectorSize sector_size;
   };
 
+  struct ActorState {
+    BigInt balance;
+    IpldObject state;
+  };
+
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
@@ -247,7 +254,7 @@ namespace fc::api {
                const TipsetKey &,
                ChainEpoch)
     API_METHOD(StateGetActor, Actor, const Address &, const TipsetKey &)
-    API_METHOD(StateReadState, IpldObject, const Actor&, const TipsetKey &)
+    API_METHOD(StateReadState, ActorState, const Actor &, const TipsetKey &)
     API_METHOD(StateListMiners, std::vector<Address>, const TipsetKey &)
     API_METHOD(StateListActors, std::vector<Address>, const TipsetKey &)
     API_METHOD(StateMarketBalance,
@@ -255,7 +262,7 @@ namespace fc::api {
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
-      API_METHOD(StateLookupID, Address, const Address &, const TipsetKey &)
+    API_METHOD(StateLookupID, Address, const Address &, const TipsetKey &)
     API_METHOD(StateMarketStorageDeal, StorageDeal, DealId, const TipsetKey &)
     API_METHOD(StateMinerElectionPeriodStart,
                ChainEpoch,
