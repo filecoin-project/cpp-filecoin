@@ -167,6 +167,18 @@ namespace fc::api {
       v = j.GetUint64();
     }
 
+    DECODE(bool) {
+      if (!j.IsBool()) {
+        outcome::raise(JsonError::WRONG_TYPE);
+      }
+      v = j.GetBool();
+    }
+
+    // TODO(artyom-yurin): remove it after BitField will be implemented
+    DECODE(void *) {
+      v = nullptr;
+    }
+
     ENCODE(std::string_view) {
       return {v.data(), static_cast<rapidjson::SizeType>(v.size()), allocator};
     }
@@ -769,8 +781,8 @@ namespace fc::api {
     }
 
     DECODE(ActorState) {
-        // Because IpldObject cannot be decoded
-        outcome::raise(JsonError::WRONG_TYPE);
+      // Because IpldObject cannot be decoded
+      outcome::raise(JsonError::WRONG_TYPE);
     }
 
     ENCODE(VersionResult) {

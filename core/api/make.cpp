@@ -415,7 +415,7 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           auto cid = actor.head;
           OUTCOME_TRY(raw, context.state_tree.getStore()->get(cid));
-          return ActorState {
+          return ActorState{
               .balance = actor.balance,
               .state = IpldObject{std::move(cid), std::move(raw)},
           };
@@ -535,7 +535,7 @@ namespace fc::api {
               return sectors;
             }},
         .StateMinerSectors =
-            {[=](auto address, auto tipset_key)
+            {[=](auto address, auto filter, auto filter_out, auto tipset_key)
                  -> outcome::result<std::vector<ChainSectorInfo>> {
               OUTCOME_TRY(context, tipsetContext(tipset_key));
               OUTCOME_TRY(state, context.minerState(address));
@@ -545,6 +545,10 @@ namespace fc::api {
               auto visitor =
                   [&](uint64_t i,
                       const SectorOnChainInfo &info) -> outcome::result<void> {
+                if (filter != nullptr) {
+                  // TODO(artyom-yurin): implement filter
+                };
+
                 ChainSectorInfo sector_info{
                     .info = info,
                     .id = i,

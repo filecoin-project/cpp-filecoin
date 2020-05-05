@@ -44,6 +44,7 @@ namespace fc::api {
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
   using markets::storage::StorageProviderInfo;
+  using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::RleBitset;
@@ -59,7 +60,6 @@ namespace fc::api {
   using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
-  using primitives::BigInt;
   using primitives::tipset::TipsetKey;
   using vm::actor::Actor;
   using vm::actor::builtin::market::ClientDealProposal;
@@ -282,6 +282,8 @@ namespace fc::api {
     API_METHOD(StateMinerSectors,
                std::vector<ChainSectorInfo>,
                const Address &,
+               void *,
+               bool,
                const TipsetKey &)
     API_METHOD(StateMinerSectorSize,
                SectorSize,
