@@ -159,7 +159,6 @@ namespace fc::storage::blockchain {
     OUTCOME_TRY(block_cid, getCidOfCbor(block_header));
 
     if (tipsets_.find(block_header.height) == std::end(tipsets_)) {
-      tipsets_[block_header.height] = {block_cid};
       return Tipset::create(all_headers);
     }
     auto &&tipsets = tipsets_[block_header.height];
@@ -190,7 +189,6 @@ namespace fc::storage::blockchain {
       }
     }
 
-    tipsets_[block_header.height].push_back(block_cid);
     return Tipset::create(all_headers);
   }
 
