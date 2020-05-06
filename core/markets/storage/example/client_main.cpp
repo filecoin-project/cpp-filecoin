@@ -80,7 +80,11 @@ namespace fc::markets::storage::example {
     api->StateMinerInfo = {
         [worker_address](auto &address,
                          auto &tipset_key) -> outcome::result<MinerInfo> {
-          return MinerInfo{.worker = worker_address};
+          return MinerInfo{.owner = {},
+                           .worker = worker_address,
+                           .pending_worker_key = boost::none,
+                           .peer_id = {},
+                           .sector_size = {}};
         }};
 
     api->StateAccountKey = {
@@ -133,6 +137,9 @@ namespace fc::markets::storage::example {
         client_host, context, api, keystore, piece_io);
 
     StorageProviderInfo info{.address = Address::makeFromId(1),
+                             .owner = {},
+                             .worker = {},
+                             .sector_size = {},
                              .peer_info = provider_peer_info};
 
     client->getAsk(info, [](outcome::result<SignedStorageAsk> ask_res) {

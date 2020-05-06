@@ -29,12 +29,11 @@ namespace fc::markets::storage::client {
   const BigInt kGasPrice{0};
   const GasAmount kGasLimit{1000000};
 
-  ClientImpl::ClientImpl(
-      std::shared_ptr<Host> host,
-      std::shared_ptr<boost::asio::io_context> context,
-      std::shared_ptr<Api> api,
-      std::shared_ptr<KeyStore> keystore,
-      std::shared_ptr<PieceIO> piece_io)
+  ClientImpl::ClientImpl(std::shared_ptr<Host> host,
+                         std::shared_ptr<boost::asio::io_context> context,
+                         std::shared_ptr<Api> api,
+                         std::shared_ptr<KeyStore> keystore,
+                         std::shared_ptr<PieceIO> piece_io)
       : host_{std::move(host)},
         context_{std::move(context)},
         api_{std::move(api)},
@@ -161,6 +160,7 @@ namespace fc::markets::storage::client {
 
     ClientDeal client_deal{.client_deal_proposal = signed_proposal,
                            .proposal_cid = proposal_node->getCID(),
+                           .add_funds_cid = {},
                            .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
                            .miner = provider_info.peer_info,
                            .miner_worker = provider_info.worker,
