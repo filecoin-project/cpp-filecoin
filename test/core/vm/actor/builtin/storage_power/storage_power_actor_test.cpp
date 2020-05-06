@@ -365,7 +365,7 @@ TEST_F(StoragePowerActorTest, CreateMinerSuccess) {
 
   Address worker_address{Address::makeFromId(1334)};
   uint64_t sector_size = 2446;
-  PeerId peer_id = "peer_id";
+  PeerId peer_id = "DEAD"_unhex;
 
   Address any_address_1 = Address::makeBls(
       "1111111111111111111111111111111111111111"

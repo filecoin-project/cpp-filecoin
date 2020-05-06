@@ -76,6 +76,6 @@ namespace fc::markets::storage::client {
         const Address &address, const TokenAmount &amount) = 0;
   };
 
-}  // namespace fc::markets::storage
+}  // namespace fc::markets::storage::client
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_HPP

@@ -4,7 +4,7 @@
 #
 
 add_library(pieceio
-    pieceio.cpp
+    pieceio_impl.cpp
     pieceio_error.cpp
     )
 target_link_libraries(pieceio

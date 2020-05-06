@@ -13,7 +13,7 @@
 
 namespace fc::common::libp2p {
   /// Reads and writes cbor objects
-  class CborStream : std::enable_shared_from_this<CborStream> {
+  class CborStream : public std::enable_shared_from_this<CborStream> {
    public:
     using Stream = ::libp2p::connection::Stream;
     using ReadCallback = void(outcome::result<gsl::span<const uint8_t>>);

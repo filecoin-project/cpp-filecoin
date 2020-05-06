@@ -4,10 +4,11 @@
  */
 
 #include "markets/storage/client/client_impl.hpp"
+
+#include <libp2p/peer/peer_id.hpp>
 #include "codec/cbor/cbor.hpp"
-#include "markets/pieceio/pieceio.hpp"
+#include "markets/pieceio/pieceio_impl.hpp"
 #include "storage/ipld/impl/ipld_node_impl.hpp"
-#include "storage/ipld/ipld_node.hpp"
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 
@@ -15,6 +16,7 @@ namespace fc::markets::storage::client {
 
   using fc::storage::ipld::IPLDNode;
   using fc::storage::ipld::IPLDNodeImpl;
+  using libp2p::peer::PeerId;
   using primitives::BigInt;
   using primitives::GasAmount;
   using vm::VMExitCode;
@@ -28,20 +30,17 @@ namespace fc::markets::storage::client {
   const GasAmount kGasLimit{1000000};
 
   ClientImpl::ClientImpl(
+      std::shared_ptr<Host> host,
+      std::shared_ptr<boost::asio::io_context> context,
       std::shared_ptr<Api> api,
-      std::shared_ptr<StorageMarketNetwork> network,
-      std::shared_ptr<data_transfer::Manager> data_transfer_manager,
-      std::shared_ptr<IpfsDatastore> block_store,
-      std::shared_ptr<FileStore> file_store,
       std::shared_ptr<KeyStore> keystore,
       std::shared_ptr<PieceIO> piece_io)
-      : api_{std::move(api)},
-        network_{std::move(network)},
-        data_transfer_manager_{std::move(data_transfer_manager)},
-        block_store_{std::move(block_store)},
-        file_store_{std::move(file_store)},
+      : host_{std::move(host)},
+        context_{std::move(context)},
+        api_{std::move(api)},
         keystore_{std::move(keystore)},
-        piece_io_{std::move(piece_io)} {}
+        piece_io_{std::move(piece_io)},
+        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)} {}
 
   void ClientImpl::run() {}
 
@@ -55,14 +54,14 @@ namespace fc::markets::storage::client {
     std::vector<StorageProviderInfo> storage_providers;
     for (const auto &miner_address : miners) {
       OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address, tipset_key));
-      // TODO (a.chernyshov) is it actually base58?
-      OUTCOME_TRY(peer_id, PeerId::fromBase58(miner_info.peer_id));
+      OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
+      PeerInfo peer_info{.id = peer_id, .addresses = {}};
       storage_providers.push_back(
           StorageProviderInfo{.address = miner_address,
                               .owner = {},
                               .worker = miner_info.worker,
                               .sector_size = miner_info.sector_size,
-                              .peer_id = peer_id});
+                              .peer_info = peer_info});
     }
     return storage_providers;
   }
@@ -96,12 +95,12 @@ namespace fc::markets::storage::client {
   void ClientImpl::getAsk(const StorageProviderInfo &info,
                           const SignedAskHandler &signed_ask_handler) const {
     network_->newAskStream(
-        info.peer_id,
+        info.peer_info,
         [self{shared_from_this()}, info, signed_ask_handler](
             auto &&stream_res) {
           if (stream_res.has_error()) {
             self->logger_->error("Cannot open stream to "
-                                 + info.peer_id.toBase58() + ": "
+                                 + info.peer_info.id.toBase58() + ": "
                                  + stream_res.error().message());
             signed_ask_handler(outcome::failure(stream_res.error()));
             return;
@@ -163,7 +162,7 @@ namespace fc::markets::storage::client {
     ClientDeal client_deal{.client_deal_proposal = signed_proposal,
                            .proposal_cid = proposal_node->getCID(),
                            .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
-                           .miner = provider_info.peer_id,
+                           .miner = provider_info.peer_info,
                            .miner_worker = provider_info.worker,
                            .deal_id = {},
                            .data_ref = data_ref,

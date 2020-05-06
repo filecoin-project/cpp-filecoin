@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(provider)
+
 addtest(storage_market_test
     storage_market_types_encoding_test.cpp
     )

@@ -6,10 +6,24 @@
 add_library(storage_market_provider
     provider.cpp
     provider_fsm_transitions.cpp
+    storage_provider_error.cpp
     )
 target_link_libraries(storage_market_provider
     Boost::boost
-    fsm
+    api
+    fuhon_fsm
+    fuhon_stored_ask
     outcome
     piece
+    libp2p_storage_market_network
+    todo_error
+    )
+
+add_library(fuhon_stored_ask
+    stored_ask.cpp
+    )
+target_link_libraries(fuhon_stored_ask
+    p2p::p2p
+    piece
+    tipset
     )
