@@ -6,9 +6,11 @@
 #include "api/make.hpp"
 
 #include <boost/algorithm/string.hpp>
+#include <boost/range/adaptor/indexed.hpp>
 
 #include <libp2p/peer/peer_id.hpp>
 #include "blockchain/production/impl/block_producer_impl.hpp"
+#include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
@@ -144,6 +146,14 @@ namespace fc::api {
           }
           OUTCOME_TRY(root, CID::fromString(parts[2]));
           return getNode(ipld, root, gsl::make_span(parts).subspan(3));
+        }},
+        .ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
+          auto res = chain_store->getCbor<SignedMessage>(cid);
+          if (!res.has_error()) {
+            return res.value().message;
+          }
+
+          return chain_store->getCbor<UnsignedMessage>(cid);
         }},
         .ChainGetParentMessages =
             {[=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
@@ -332,16 +342,98 @@ namespace fc::api {
           }
           return result;
         }},
+        .StateListMessages = {[=](auto &match, auto &tipset_key, auto to_height)
+                                  -> outcome::result<std::vector<CID>> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+
+          // TODO(artyom-yurin): Make sure at least one of 'to' or 'from' is
+          // defined
+
+          auto matchFunc = [&](const UnsignedMessage &message) -> bool {
+            if (match.to != message.to) {
+              return false;
+            }
+
+            if (match.from != message.from) {
+              return false;
+            }
+
+            return true;
+          };
+
+          std::vector<CID> result;
+
+          while (static_cast<int64_t>(context.tipset.height) >= to_height) {
+            std::set<CID> visited_cid;
+
+            auto isDuplicateMessage = [&](const CID &cid) -> bool {
+              return !visited_cid.insert(cid).second;
+            };
+
+            for (const BlockHeader &block : context.tipset.blks) {
+              OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
+              meta.load(ipld);
+              OUTCOME_TRY(meta.bls_messages.visit(
+                  [&](auto, auto &cid) -> outcome::result<void> {
+                    OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+
+                    if (!isDuplicateMessage(cid) && matchFunc(message)) {
+                      result.push_back(cid);
+                    }
+
+                    return outcome::success();
+                  }));
+              OUTCOME_TRY(meta.secp_messages.visit(
+                  [&](auto, auto &cid) -> outcome::result<void> {
+                    OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+
+                    if (!isDuplicateMessage(cid)
+                        && matchFunc(message.message)) {
+                      result.push_back(cid);
+                    }
+                    return outcome::success();
+                  }));
+            }
+
+            if (context.tipset.height == 0) break;
+
+            OUTCOME_TRY(parent_tipset_key, context.tipset.getParents());
+            OUTCOME_TRY(parent_context, tipsetContext(parent_tipset_key));
+
+            context = std::move(parent_context);
+          }
+
+          return result;
+        }},
         .StateGetActor = {[=](auto &address,
                               auto &tipset_key) -> outcome::result<Actor> {
           OUTCOME_TRY(context, tipsetContext(tipset_key, true));
           return context.state_tree.get(address);
+        }},
+        .StateReadState = {[=](auto &actor, auto &tipset_key)
+                               -> outcome::result<ActorState> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          auto cid = actor.head;
+          OUTCOME_TRY(raw, context.state_tree.getStore()->get(cid));
+          return ActorState{
+              .balance = actor.balance,
+              .state = IpldObject{std::move(cid), std::move(raw)},
+          };
         }},
         .StateListMiners = {[=](auto &tipset_key)
                                 -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(power_state, context.powerState());
           return power_state.claims.keys();
+        }},
+        .StateListActors = {[=](auto &tipset_key)
+                                -> outcome::result<std::vector<Address>> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(root, context.state_tree.flush());
+          adt::Map<Actor, adt::AddressKeyer> actors(root);
+          actors.load(ipld);
+
+          return actors.keys();
         }},
         .StateMarketBalance =
             {[=](auto &address, auto &tipset_key)
@@ -371,6 +463,11 @@ namespace fc::api {
             return outcome::success();
           }));
           return map;
+        }},
+        .StateLookupID = {[=](auto &address,
+                              auto &tipset_key) -> outcome::result<Address> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          return context.state_tree.lookupId(address);
         }},
         .StateMarketStorageDeal = {[=](auto deal_id, auto &tipset_key)
                                        -> outcome::result<StorageDeal> {
@@ -436,6 +533,34 @@ namespace fc::api {
                 return outcome::success();
               }));
               return sectors;
+            }},
+        .StateMinerSectors =
+            {[=](auto address, auto filter, auto filter_out, auto tipset_key)
+                 -> outcome::result<std::vector<ChainSectorInfo>> {
+              OUTCOME_TRY(context, tipsetContext(tipset_key));
+              OUTCOME_TRY(state, context.minerState(address));
+
+              std::vector<ChainSectorInfo> res = {};
+
+              auto visitor =
+                  [&](uint64_t i,
+                      const SectorOnChainInfo &info) -> outcome::result<void> {
+                if (filter != nullptr) {
+                  // TODO(artyom-yurin): implement filter
+                };
+
+                ChainSectorInfo sector_info{
+                    .info = info,
+                    .id = i,
+                };
+
+                res.push_back(sector_info);
+                return outcome::success();
+              };
+
+              OUTCOME_TRY(state.sectors.visit(visitor));
+
+              return res;
             }},
         .StateMinerSectorSize = {[=](auto address, auto tipset_key)
                                      -> outcome::result<SectorSize> {

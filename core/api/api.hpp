@@ -15,6 +15,7 @@
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
 #include "markets/storage/types.hpp"
+#include "primitives/big_int.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
@@ -43,6 +44,7 @@ namespace fc::api {
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
   using markets::storage::StorageProviderInfo;
+  using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::RleBitset;
@@ -188,6 +190,11 @@ namespace fc::api {
     SectorSize sector_size;
   };
 
+  struct ActorState {
+    BigInt balance;
+    IpldObject state;
+  };
+
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
@@ -195,6 +202,7 @@ namespace fc::api {
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
     API_METHOD(ChainGetGenesis, Tipset)
     API_METHOD(ChainGetNode, IpldObject, const std::string &)
+    API_METHOD(ChainGetMessage, UnsignedMessage, const CID &)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
     API_METHOD(ChainGetRandomness, Randomness, const TipsetKey &, int64_t)
@@ -240,13 +248,21 @@ namespace fc::api {
                InvocResult,
                const UnsignedMessage &,
                const TipsetKey &)
+    API_METHOD(StateListMessages,
+               std::vector<CID>,
+               const UnsignedMessage &,
+               const TipsetKey &,
+               ChainEpoch)
     API_METHOD(StateGetActor, Actor, const Address &, const TipsetKey &)
+    API_METHOD(StateReadState, ActorState, const Actor &, const TipsetKey &)
     API_METHOD(StateListMiners, std::vector<Address>, const TipsetKey &)
+    API_METHOD(StateListActors, std::vector<Address>, const TipsetKey &)
     API_METHOD(StateMarketBalance,
                StorageParticipantBalance,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
+    API_METHOD(StateLookupID, Address, const Address &, const TipsetKey &)
     API_METHOD(StateMarketStorageDeal, StorageDeal, DealId, const TipsetKey &)
     API_METHOD(StateMinerElectionPeriodStart,
                ChainEpoch,
@@ -262,6 +278,12 @@ namespace fc::api {
     API_METHOD(StateMinerProvingSet,
                std::vector<ChainSectorInfo>,
                const Address &,
+               const TipsetKey &)
+    API_METHOD(StateMinerSectors,
+               std::vector<ChainSectorInfo>,
+               const Address &,
+               void *,
+               bool,
                const TipsetKey &)
     API_METHOD(StateMinerSectorSize,
                SectorSize,
