@@ -15,6 +15,7 @@
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/client/client_impl.hpp"
 #include "markets/storage/network/libp2p_storage_market_network.hpp"
+#include "primitives/sector/sector.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 
@@ -38,6 +39,11 @@ namespace fc::markets::storage::example {
   using vm::actor::builtin::miner::MinerInfo;
   using libp2p::common::operator""_unhex;
   using HostContext = fc::host::HostContextImpl;
+  using libp2p::multi::HashType;
+  using libp2p::multi::MulticodecType;
+  using libp2p::multi::Multihash;
+  using primitives::piece::UnpaddedPieceSize;
+  using primitives::sector::RegisteredProof;
   using BlsKeyPair = fc::crypto::bls::KeyPair;
 
   PeerInfo getPeerInfo(std::string conn_string) {
@@ -99,13 +105,19 @@ namespace fc::markets::storage::example {
     return api;
   }
 
-  int main() {
-    spdlog::set_level(spdlog::level::debug);
-
+  StorageProviderInfo makeStorageProviderInfo() {
     PeerInfo provider_peer_info = getPeerInfo(
         "/ip4/127.0.0.1/tcp/40010/ipfs/"
         "12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV");
+    return StorageProviderInfo{
+        .address = Address::makeFromId(1),
+        .owner = {},
+        .worker = {},
+        .sector_size = SectorSize{1000000},  // large enough
+        .peer_info = provider_peer_info};
+  }
 
+  std::shared_ptr<ClientImpl> makeClient() {
     auto injector = libp2p::injector::makeHostInjector(
         libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
 
@@ -130,6 +142,8 @@ namespace fc::markets::storage::example {
     Address bls_address = Address::makeBls(bls_public_key);
     std::shared_ptr<Api> api = makeApi(bls_address);
 
+    keystore->put(bls_address, bls_private_key);
+
     std::shared_ptr<IpfsDatastore> datastore =
         std::make_shared<InMemoryDatastore>();
     std::shared_ptr<PieceIO> piece_io =
@@ -137,15 +151,12 @@ namespace fc::markets::storage::example {
 
     auto fsm_context = std::make_shared<HostContext>();
 
-    std::shared_ptr<ClientImpl> client = std::make_shared<ClientImpl>(
+    return std::make_shared<ClientImpl>(
         client_host, context, api, keystore, piece_io, fsm_context);
+  }
 
-    StorageProviderInfo info{.address = Address::makeFromId(1),
-                             .owner = {},
-                             .worker = {},
-                             .sector_size = {},
-                             .peer_info = provider_peer_info};
-
+  void sendGetAsk(const StorageProviderInfo &info,
+                  const std::shared_ptr<ClientImpl> &client) {
     client->getAsk(info, [](outcome::result<SignedStorageAsk> ask_res) {
       if (ask_res.has_error()) {
         std::cout << "response error " << ask_res.error().message()
@@ -157,11 +168,63 @@ namespace fc::markets::storage::example {
                   << std::endl;
       }
     });
+  }
 
-    context->run_for(std::chrono::seconds(10));
+  void sendProposeDeal(const StorageProviderInfo &info,
+                       const std::shared_ptr<ClientImpl> &client) {
+    CID cid{CID::Version::V1,
+            MulticodecType::SHA2_256,
+            Multihash::create(HashType::sha256,
+                              "0123456789ABCDEF0123456789ABCDEF"_unhex)
+                .value()};
+
+    Address address = Address::makeFromId(22);
+
+    DataRef data_ref{.transfer_type = kTransferTypeManual,
+                     .root = cid,
+                     .piece_cid = cid,
+                     .piece_size = UnpaddedPieceSize{100500}};
+    ChainEpoch start_epoch{200};
+    ChainEpoch end_epoch{33333};
+    TokenAmount price{1334};
+    TokenAmount collateral{3556};
+    RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
+
+    auto res = client->proposeStorageDeal(
+        address,
+        info,
+        data_ref,
+        start_epoch,
+        end_epoch,
+        price,
+        collateral,
+        registered_proof,
+        [](outcome::result<void> proposal_res) {
+          if (proposal_res.has_error()) {
+            std::cout << "response error " << proposal_res.error().message()
+                      << std::endl;
+          } else {
+            std::cout << "propose success" << std::endl;
+          }
+        });
+
+    if (res.has_error()) {
+      std::cerr << res.error().message();
+    }
+  }
+
+  int main() {
+    spdlog::set_level(spdlog::level::debug);
+
+    StorageProviderInfo info = makeStorageProviderInfo();
+    std::shared_ptr<ClientImpl> client = makeClient();
+
+    sendProposeDeal(info, client);
+
+    client->run();
 
     return 0;
-  }
+  }  // namespace fc::markets::storage::example
 
 }  // namespace fc::markets::storage::example
 

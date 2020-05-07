@@ -69,7 +69,8 @@ namespace fc::markets::storage::client {
         const ChainEpoch &end_epoch,
         const TokenAmount &price,
         const TokenAmount &collateral,
-        const RegisteredProof &registered_proof) override;
+        const RegisteredProof &registered_proof,
+        const ProposalHandler &proposal_handler) override;
 
     outcome::result<StorageParticipantBalance> getPaymentEscrow(
         const Address &address) const override;
@@ -87,6 +88,9 @@ namespace fc::markets::storage::client {
 
     outcome::result<ClientDealProposal> signProposal(
         const Address &address, const DealProposal &proposal) const;
+
+    outcome::result<CID> getProposalCid(
+        const ClientDealProposal &signed_proposal) const;
 
     /** libp2p host */
     std::shared_ptr<Host> host_;

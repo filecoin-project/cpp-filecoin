@@ -7,16 +7,15 @@
 
 #include <libp2p/peer/peer_id.hpp>
 #include "codec/cbor/cbor.hpp"
+#include "crypto/hasher/hasher.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/client_fsm_transitions.hpp"
-#include "storage/ipld/impl/ipld_node_impl.hpp"
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 
 namespace fc::markets::storage::client {
 
-  using fc::storage::ipld::IPLDNode;
-  using fc::storage::ipld::IPLDNodeImpl;
+  using crypto::Hasher;
   using libp2p::peer::PeerId;
   using primitives::BigInt;
   using primitives::GasAmount;
@@ -45,7 +44,16 @@ namespace fc::markets::storage::client {
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
         fsm_{std::make_shared<ClientFSM>(client_transitions, fsm_constext)} {}
 
-  void ClientImpl::run() {}
+  void ClientImpl::run() {
+    try {
+      context_->run();
+    } catch (const boost::system::error_code &ec) {
+      logger_->error("Server cannot run: " + ec.message());
+      return;
+    } catch (...) {
+      logger_->error("Unknown error happened");
+    }
+  }
 
   void ClientImpl::stop() {}
 
@@ -143,7 +151,8 @@ namespace fc::markets::storage::client {
       const ChainEpoch &end_epoch,
       const TokenAmount &price,
       const TokenAmount &collateral,
-      const RegisteredProof &registered_proof) {
+      const RegisteredProof &registered_proof,
+      const ProposalHandler &proposal_handler) {
     OUTCOME_TRY(comm_p_res, calculateCommP(registered_proof, data_ref));
     CID comm_p = comm_p_res.first;
     UnpaddedPieceSize piece_size = comm_p_res.second;
@@ -162,13 +171,11 @@ namespace fc::markets::storage::client {
         .provider_collateral = static_cast<uint64_t>(piece_size),
         .client_collateral = 0};
     OUTCOME_TRY(signed_proposal, signProposal(address, deal_proposal));
-    OUTCOME_TRY(proposal_bytes, codec::cbor::encode(signed_proposal));
-    OUTCOME_TRY(proposal_node,
-                IPLDNodeImpl::createFromRawBytes(proposal_bytes));
+    OUTCOME_TRY(proposal_cid, getProposalCid(signed_proposal));
 
     auto client_deal = std::make_shared<ClientDeal>(
         ClientDeal{.client_deal_proposal = signed_proposal,
-                   .proposal_cid = proposal_node->getCID(),
+                   .proposal_cid = proposal_cid,
                    .add_funds_cid = {},
                    .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
                    .miner = provider_info.peer_info,
@@ -179,14 +186,35 @@ namespace fc::markets::storage::client {
                    .publish_message = {}});
     local_deals_[client_deal->proposal_cid] = client_deal;
 
-    OUTCOME_TRY(
-        fsm_->begin(client_deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
-
     // TODO handler
-    network_->newDealStream(provider_info.peer_info, {});
+    network_->newDealStream(
+        provider_info.peer_info,
+        [self{shared_from_this()},
+         provider_info,
+         deal_proposal,
+         proposal_handler](
+            outcome::result<std::shared_ptr<CborStream>> stream_res) {
+          if (stream_res.has_error()) {
+            self->logger_->error("Cannot open stream to "
+                                 + provider_info.peer_info.id.toBase58() + ": "
+                                 + stream_res.error().message());
+            return;
+          }
 
-    // TODO connection manager - add stream
-    OUTCOME_TRY(fsm_->send(client_deal, ClientEvent::ClientEventOpen));
+          // TODO ensure funds, etc
+
+          // OUTCOME_TRY(fsm_->begin(client_deal,
+          // StorageDealStatus::STORAGE_DEAL_UNKNOWN));
+
+          // TODO connection manager - add stream
+          // OUTCOME_TRY(fsm_->send(client_deal, ClientEvent::ClientEventOpen));
+
+          stream_res.value()->write(
+              deal_proposal,
+              [self, proposal_handler](outcome::result<size_t> written) {
+                proposal_handler(outcome::success());
+              });
+        });
 
     // TODO discovery - add peer (address: dealProposal.Provider, ID:
     // deal.Miner)
@@ -271,6 +299,13 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(signature, keystore_->sign(key_address, proposal_bytes));
     return ClientDealProposal{.proposal = proposal,
                               .client_signature = signature};
+  }
+
+  outcome::result<CID> ClientImpl::getProposalCid(
+      const ClientDealProposal &signed_proposal) const {
+    OUTCOME_TRY(bytes, codec::cbor::encode(signed_proposal));
+    auto hash = Hasher::sha2_256(bytes);
+    return CID(CID::Version::V1, CID::Multicodec::DAG_CBOR, hash);
   }
 
 }  // namespace fc::markets::storage::client

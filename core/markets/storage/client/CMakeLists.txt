@@ -11,12 +11,12 @@ target_link_libraries(storage_market_client
     address
     blob
     fuhon_fsm
+    filecoin_hasher
     outcome
     logger
     libp2p_storage_market_network
     piece
     signature
-    ipld_node
     message
     tipset
     )

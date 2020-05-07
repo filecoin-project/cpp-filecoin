@@ -115,6 +115,15 @@ namespace fc::markets::storage::provider {
   void StorageProviderImpl::handleDealStream(
       const std::shared_ptr<CborStream> &stream) {
     logger_->debug("New deal stream");
+    stream->read<DealProposal>([self{shared_from_this()}, stream](
+                                   outcome::result<DealProposal> proposal_res) {
+      if (proposal_res.has_error()) {
+        self->logger_->error("Deal proposal read error "
+                             + proposal_res.error().message());
+        return;
+      }
+      self->logger_->debug("Proposal received");
+    });
   }
 
 }  // namespace fc::markets::storage::provider
