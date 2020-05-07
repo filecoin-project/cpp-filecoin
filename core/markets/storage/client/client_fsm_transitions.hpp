@@ -232,7 +232,7 @@ namespace fc::markets::storage::client {
                           StorageDealStatus from,
                           StorageDealStatus to);
 
-  std::vector<ClientTransition> client_transitions = {
+  static std::vector<ClientTransition> client_transitions = {
       ClientTransition(ClientEvent::ClientEventOpen)
           .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
           .to(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)

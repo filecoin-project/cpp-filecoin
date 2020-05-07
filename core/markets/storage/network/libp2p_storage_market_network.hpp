@@ -22,12 +22,14 @@ namespace fc::markets::storage::network {
    */
   class Libp2pStorageMarketNetwork
       : public StorageMarketNetwork,
-        std::enable_shared_from_this<Libp2pStorageMarketNetwork> {
+        public std::enable_shared_from_this<Libp2pStorageMarketNetwork> {
    public:
-    auto newAskStream(const PeerId &peer_id,
+    explicit Libp2pStorageMarketNetwork(std::shared_ptr<Host> host);
+
+    auto newAskStream(const PeerInfo &peer,
                       const CborStreamResultHandler &handler) -> void override;
 
-    auto newDealStream(const PeerId &peer_id,
+    auto newDealStream(const PeerInfo &peer,
                        const CborStreamResultHandler &handler) -> void override;
 
     auto setDelegate(std::shared_ptr<StorageReceiver> receiver)
@@ -38,7 +40,7 @@ namespace fc::markets::storage::network {
    private:
     std::shared_ptr<Host> host_;
 
-    /** inbound messages from the network are forwarded to the receiver */
+    /** Inbound messages from the network are forwarded to the receiver */
     std::shared_ptr<StorageReceiver> receiver_;
 
     common::Logger logger_ = common::createLogger("Libp2pStorageMarketNetwork");

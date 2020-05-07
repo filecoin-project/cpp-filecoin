@@ -6,16 +6,17 @@
 #ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
 
+#include <libp2p/host/host.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>
 #include "api/api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/manager.hpp"
 #include "fsm/fsm.hpp"
 #include "host/context/host_context.hpp"
-#include "markets/pieceio/pieceio.hpp"
+#include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/client.hpp"
 #include "markets/storage/client/client_events.hpp"
-#include "markets/storage/storage_market_network.hpp"
+#include "markets/storage/network/libp2p_storage_market_network.hpp"
 #include "storage/filestore/filestore.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/keystore/keystore.hpp"
@@ -27,22 +28,21 @@ namespace fc::markets::storage::client {
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::keystore::KeyStore;
   using fsm::FSM;
+  using libp2p::Host;
+  using network::Libp2pStorageMarketNetwork;
   using pieceio::PieceIO;
   using ClientFSM = fsm::FSM<ClientEvent, StorageDealStatus, ClientDeal>;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
 
-  class ClientImpl : public Client, std::enable_shared_from_this<ClientImpl> {
+  class ClientImpl : public Client,
+                     public std::enable_shared_from_this<ClientImpl> {
    public:
-    const static Ticks kFSMTicks = 50;
-
-    ClientImpl(std::shared_ptr<Api> api,
-               std::shared_ptr<StorageMarketNetwork> network,
-               std::shared_ptr<data_transfer::Manager> data_transfer_manager,
-               std::shared_ptr<IpfsDatastore> block_store,
-               std::shared_ptr<FileStore> file_store,
+    ClientImpl(std::shared_ptr<Host> host,
+               std::shared_ptr<boost::asio::io_context> context,
+               std::shared_ptr<Api> api,
                std::shared_ptr<KeyStore> keystore,
                std::shared_ptr<PieceIO> piece_io,
-               std::shared_ptr<fc::host::HostContext> &fsm_constext);
+               const std::shared_ptr<fc::host::HostContext> &fsm_constext);
 
     void run() override;
 
@@ -88,13 +88,14 @@ namespace fc::markets::storage::client {
     outcome::result<ClientDealProposal> signProposal(
         const Address &address, const DealProposal &proposal) const;
 
+    /** libp2p host */
+    std::shared_ptr<Host> host_;
+    std::shared_ptr<boost::asio::io_context> context_;
+
     std::shared_ptr<Api> api_;
-    std::shared_ptr<StorageMarketNetwork> network_;
-    std::shared_ptr<data_transfer::Manager> data_transfer_manager_;
-    std::shared_ptr<IpfsDatastore> block_store_;
-    std::shared_ptr<FileStore> file_store_;
     std::shared_ptr<KeyStore> keystore_;
     std::shared_ptr<PieceIO> piece_io_;
+    std::shared_ptr<StorageMarketNetwork> network_;
 
     // TODO
     // discovery

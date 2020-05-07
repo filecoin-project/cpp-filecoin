@@ -156,6 +156,7 @@ namespace fc::storage::blockchain {
   outcome::result<Tipset> ChainStoreImpl::expandTipset(
       const BlockHeader &block_header) {
     std::vector<BlockHeader> all_headers{block_header};
+
     if (tipsets_.find(block_header.height) == std::end(tipsets_)) {
       return Tipset::create(all_headers);
     }

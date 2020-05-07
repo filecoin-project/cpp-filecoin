@@ -36,7 +36,7 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::sector::RegisteredProof;
   using Ipld = storage::ipfs::IpfsDatastore;
 
-  using PeerId = std::string;
+  using PeerId = std::vector<uint8_t>;
 
   struct PoStState {
     inline bool hasFailedPost() const {

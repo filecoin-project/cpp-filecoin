@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_DEAL_PROTOCOL_HPP
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_DEAL_PROTOCOL_HPP
 
-#include <libp2p/peer/peer_id.hpp>
+#include <libp2p/peer/peer_info.hpp>
 #include <libp2p/peer/protocol.hpp>
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/signature/signature.hpp"
@@ -21,7 +21,7 @@ namespace fc::markets::storage {
 
   using crypto::signature::Signature;
   using ::fc::storage::filestore::Path;
-  using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
   using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
@@ -87,13 +87,16 @@ namespace fc::markets::storage {
     STORAGE_DEAL_CLIENT_FUNDING,
 
     /** Publishing deal to chain */
+    STORAGE_DEAL_PUBLISH,
+
+    /** Waiting for deal to appear on chain */
     STORAGE_DEAL_PUBLISHING,
 
     /** deal failed with an unexpected error */
     STORAGE_DEAL_ERROR,
 
     /**
-     * on provider side, indicates deal is active and info for retrieval is
+     * On provider side, indicates deal is active and info for retrieval is
      * recorded
      */
     STORAGE_DEAL_COMPLETED
@@ -102,8 +105,8 @@ namespace fc::markets::storage {
   struct MinerDeal {
     ClientDealProposal client_deal_proposal;
     CID proposal_cid;
-    PeerId miner;
-    PeerId client;
+    PeerInfo miner;
+    PeerInfo client;
     StorageDealStatus state;
     Path piece_path;
     Path metadata_path;
@@ -131,7 +134,7 @@ namespace fc::markets::storage {
     CID proposal_cid;
     CID add_funds_cid;
     StorageDealStatus state;
-    PeerId miner;
+    PeerInfo miner;
     Address miner_worker;
     DealId deal_id;
     DataRef data_ref;
