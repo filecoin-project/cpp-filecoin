@@ -6,12 +6,13 @@
 #ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
 
+#include <libp2p/host/host.hpp>
 #include "api/api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/manager.hpp"
-#include "markets/pieceio/pieceio.hpp"
+#include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/client.hpp"
-#include "markets/storage/storage_market_network.hpp"
+#include "markets/storage/network/libp2p_storage_market_network.hpp"
 #include "storage/filestore/filestore.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/keystore/keystore.hpp"
@@ -22,15 +23,16 @@ namespace fc::markets::storage::client {
   using fc::storage::filestore::FileStore;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::keystore::KeyStore;
+  using libp2p::Host;
+  using network::Libp2pStorageMarketNetwork;
   using pieceio::PieceIO;
 
-  class ClientImpl : public Client, std::enable_shared_from_this<ClientImpl> {
+  class ClientImpl : public Client,
+                     public std::enable_shared_from_this<ClientImpl> {
    public:
-    ClientImpl(std::shared_ptr<Api> api,
-               std::shared_ptr<StorageMarketNetwork> network,
-               std::shared_ptr<data_transfer::Manager> data_transfer_manager,
-               std::shared_ptr<IpfsDatastore> block_store,
-               std::shared_ptr<FileStore> file_store,
+    ClientImpl(std::shared_ptr<Host> host,
+               std::shared_ptr<boost::asio::io_context> context,
+               std::shared_ptr<Api> api,
                std::shared_ptr<KeyStore> keystore,
                std::shared_ptr<PieceIO> piece_io);
 
@@ -78,13 +80,37 @@ namespace fc::markets::storage::client {
     outcome::result<ClientDealProposal> signProposal(
         const Address &address, const DealProposal &proposal) const;
 
+    /**
+     * If error is present, closes connection and prints message
+     * @tparam T - result type
+     * @param res - result to check for error
+     * @param on_error_msg - message to log on error
+     * @param stream - stream to close on error
+     * @param handler - error handler
+     * @return true if
+     */
+    template <class T, class THandler>
+    bool hasValue(outcome::result<T> res,
+                  const std::string &on_error_msg,
+                  const std::shared_ptr<CborStream> &stream,
+                  const THandler &handler) const {
+      if (res.has_error()) {
+        logger_->error(on_error_msg + res.error().message());
+        handler(res.error());
+        network_->closeStreamGracefully(stream);
+        return false;
+      }
+      return true;
+    };
+
+    /** libp2p host */
+    std::shared_ptr<Host> host_;
+    std::shared_ptr<boost::asio::io_context> context_;
+
     std::shared_ptr<Api> api_;
-    std::shared_ptr<StorageMarketNetwork> network_;
-    std::shared_ptr<data_transfer::Manager> data_transfer_manager_;
-    std::shared_ptr<IpfsDatastore> block_store_;
-    std::shared_ptr<FileStore> file_store_;
     std::shared_ptr<KeyStore> keystore_;
     std::shared_ptr<PieceIO> piece_io_;
+    std::shared_ptr<StorageMarketNetwork> network_;
 
     // TODO
     // discovery

@@ -29,14 +29,21 @@ namespace fc::markets::storage {
     // Price per GiB / Epoch
     TokenAmount price;
     PaddedPieceSize min_piece_size;
+    PaddedPieceSize max_piece_size;
     Address miner;
     ChainEpoch timestamp;
     ChainEpoch expiry;
     uint64_t seq_no;
   };
 
-  CBOR_TUPLE(
-      StorageAsk, price, min_piece_size, miner, timestamp, expiry, seq_no)
+  CBOR_TUPLE(StorageAsk,
+             price,
+             min_piece_size,
+             max_piece_size,
+             miner,
+             timestamp,
+             expiry,
+             seq_no)
 
   struct SignedStorageAsk {
     StorageAsk ask;

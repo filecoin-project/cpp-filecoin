@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "markets/pieceio/pieceio.hpp"
+#include "markets/pieceio/pieceio_impl.hpp"
 
 #include <unistd.h>
 #include "markets/pieceio/pieceio_error.hpp"
@@ -17,10 +17,10 @@ namespace fc::markets::pieceio {
   using proofs::Proofs;
   using storage::car::makeSelectiveCar;
 
-  PieceIO::PieceIO(std::shared_ptr<Ipld> ipld) : ipld_{std::move(ipld)} {}
+  PieceIOImpl::PieceIOImpl(std::shared_ptr<Ipld> ipld) : ipld_{std::move(ipld)} {}
 
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
-  PieceIO::generatePieceCommitment(const RegisteredProof &registered_proof,
+  PieceIOImpl::generatePieceCommitment(const RegisteredProof &registered_proof,
                                    const CID &payload_cid,
                                    const Selector &selector) {
     OUTCOME_TRY(selective_car,
