@@ -85,4 +85,15 @@ namespace fc::markets::storage::network {
     return outcome::success();
   }
 
+  void Libp2pStorageMarketNetwork::closeStreamGracefully(
+      const std::shared_ptr<CborStream> &stream) const {
+    stream->stream()->close(
+        [self{shared_from_this()}](outcome::result<void> close_res) {
+          if (close_res.has_error()) {
+            self->logger_->error("Close stream error "
+                                 + close_res.error().message());
+          }
+        });
+  }
+
 }  // namespace fc::markets::storage::network

@@ -37,6 +37,13 @@ namespace fc::markets::storage::network {
 
     auto stopHandlingRequests() -> outcome::result<void> override;
 
+    /**
+     * Closes stream and handles close result
+     * @param stream to close
+     */
+    auto closeStreamGracefully(const std::shared_ptr<CborStream> &stream) const
+        -> void override;
+
    private:
     std::shared_ptr<Host> host_;
 

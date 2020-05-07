@@ -104,26 +104,25 @@ namespace fc::markets::storage::client {
             signed_ask_handler(outcome::failure(stream_res.error()));
             return;
           }
-          auto stream_p = std::move(stream_res.value());
+          auto stream = std::move(stream_res.value());
           AskRequest request{.miner = info.address};
-          stream_p->write(
-              request,
-              [self, info, signed_ask_handler, stream_p](
-                  outcome::result<size_t> written) {
-                if (written.has_error()) {
-                  self->logger_->error("Cannot send request: "
-                                       + written.error().message());
-                  signed_ask_handler(outcome::failure(written.error()));
-                  return;
-                }
-                stream_p->template read<AskResponse>(
-                    [self, info, signed_ask_handler](
-                        outcome::result<AskResponse> response) {
-                      auto validated_ask_response =
-                          self->validateAskResponse(response, info);
-                      signed_ask_handler(validated_ask_response);
-                    });
-              });
+          stream->write(request,
+                        [self, info, stream, signed_ask_handler](
+                            outcome::result<size_t> written) {
+                          if (!self->hasValue(written,
+                                              "Cannot send request ",
+                                              stream,
+                                              signed_ask_handler))
+                            return;
+                          stream->template read<AskResponse>(
+                              [self, info, stream, signed_ask_handler](
+                                  outcome::result<AskResponse> response) {
+                                auto validated_ask_response =
+                                    self->validateAskResponse(response, info);
+                                signed_ask_handler(validated_ask_response);
+                                self->network_->closeStreamGracefully(stream);
+                              });
+                        });
         });
   }
 

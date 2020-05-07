@@ -60,12 +60,38 @@ namespace fc::markets::storage::provider {
         -> void override;
 
    private:
+    /**
+     * If error is present, closes connection and prints message
+     * @tparam T - result type
+     * @param res - result to check for error
+     * @param on_error_msg - message to log on error
+     * @param stream - stream to close on error
+     * @return true if
+     */
+    template <class T>
+    bool hasValue(outcome::result<T> res,
+                  const std::string &on_error_msg,
+                  const std::shared_ptr<CborStream> &stream) const {
+      if (res.has_error()) {
+        logger_->error(on_error_msg + res.error().message());
+        network_->closeStreamGracefully(stream);
+        return false;
+      }
+      return true;
+    };
+
+    /**
+     * Closes stream and handles close result
+     * @param stream to close
+     */
+    void closeStreamGracefully(const std::shared_ptr<CborStream> &stream) const;
+
     std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
 
     std::shared_ptr<StoredAsk> stored_ask_;
 
-    std::shared_ptr<Libp2pStorageMarketNetwork> network_;
+    std::shared_ptr<StorageMarketNetwork> network_;
 
     common::Logger logger_ = common::createLogger("StorageMarketProvider");
   };

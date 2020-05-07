@@ -88,27 +88,17 @@ namespace fc::markets::storage::provider {
     logger_->debug("New ask stream");
     stream->read<AskRequest>([self{shared_from_this()},
                               stream](outcome::result<AskRequest> request_res) {
-      if (request_res.has_error()) {
-        self->logger_->error("Ask request error "
-                             + request_res.error().message());
-        return;
-      }
-      AskRequest request = std::move(request_res.value());
-      auto maybe_ask = self->stored_ask_->getAsk(request.miner);
-      if (maybe_ask.has_error()) {
-        self->logger_->error("Get stored ask error "
-                             + maybe_ask.error().message());
-        return;
-      }
+      if (!self->hasValue(request_res, "Ask request error ", stream)) return;
+      auto maybe_ask = self->stored_ask_->getAsk(request_res.value().miner);
+      if (!self->hasValue(maybe_ask, "Get stored ask error ", stream)) return;
       AskResponse response{.ask = maybe_ask.value()};
-      stream->write(response, [self](outcome::result<size_t> maybe_res) {
-        if (maybe_res.has_error()) {
-          self->logger_->error("Write ask response error "
-                               + maybe_res.error().message());
-          return;
-        }
-        self->logger_->debug("Ask response written");
-      });
+      stream->write(
+          response, [self, stream](outcome::result<size_t> maybe_res) {
+            if (!self->hasValue(maybe_res, "Write ask response error ", stream))
+              return;
+            self->network_->closeStreamGracefully(stream);
+            self->logger_->debug("Ask response written, connection closed");
+          });
     });
   }
 

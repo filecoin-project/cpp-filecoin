@@ -80,6 +80,29 @@ namespace fc::markets::storage::client {
     outcome::result<ClientDealProposal> signProposal(
         const Address &address, const DealProposal &proposal) const;
 
+    /**
+     * If error is present, closes connection and prints message
+     * @tparam T - result type
+     * @param res - result to check for error
+     * @param on_error_msg - message to log on error
+     * @param stream - stream to close on error
+     * @param handler - error handler
+     * @return true if
+     */
+    template <class T, class THandler>
+    bool hasValue(outcome::result<T> res,
+                  const std::string &on_error_msg,
+                  const std::shared_ptr<CborStream> &stream,
+                  const THandler &handler) const {
+      if (res.has_error()) {
+        logger_->error(on_error_msg + res.error().message());
+        handler(res.error());
+        network_->closeStreamGracefully(stream);
+        return false;
+      }
+      return true;
+    };
+
     /** libp2p host */
     std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
