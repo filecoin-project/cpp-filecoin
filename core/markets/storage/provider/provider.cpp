@@ -34,15 +34,6 @@ namespace fc::markets::storage::provider {
           + std::string(self->host_->getAddresses().front().getStringAddress())
           + "\nPeer id: " + self->host_->getPeerInfo().id.toBase58());
     });
-    try {
-      context_->run();
-    } catch (const boost::system::error_code &ec) {
-      logger_->error("Server cannot run: " + ec.message());
-      return StorageProviderError::PROVIDER_START_ERROR;
-    } catch (...) {
-      logger_->error("Unknown error happened");
-      return StorageProviderError::PROVIDER_START_ERROR;
-    }
 
     return outcome::success();
   }
