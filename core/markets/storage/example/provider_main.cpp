@@ -59,23 +59,9 @@ namespace fc::markets::storage::example {
     return api;
   }
 
-  std::shared_ptr<StorageProviderImpl> makeProvider() {
-    spdlog::set_level(spdlog::level::debug);
-
-    // resulting PeerId should be
-    // 12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV
-    KeyPair keypair{PublicKey{{Key::Type::Ed25519,
-                               "48453469c62f4885373099421a7365520b5ffb"
-                               "0d93726c124166be4b81d852e6"_unhex}},
-                    PrivateKey{{Key::Type::Ed25519,
-                                "4a9361c525840f7086b893d584ebbe475b4ec"
-                                "7069951d2e897e8bceb0a3f35ce"_unhex}}};
-
-    auto injector = libp2p::injector::makeHostInjector(
-        libp2p::injector::useKeyPair(keypair),
-        libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
-    auto provider_host = injector.create<std::shared_ptr<libp2p::Host>>();
-    auto context = injector.create<std::shared_ptr<boost::asio::io_context>>();
+  std::shared_ptr<StorageProviderImpl> makeProvider(
+      std::shared_ptr<libp2p::Host> provider_host,
+      const std::shared_ptr<boost::asio::io_context> &context) {
     auto ma =
         libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/40010").value();
     provider_host->listen(ma);
@@ -109,12 +95,40 @@ namespace fc::markets::storage::example {
   }
 
   int main() {
-    auto provider = makeProvider();
+    spdlog::set_level(spdlog::level::debug);
+
+    // resulting PeerId should be
+    // 12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV
+    KeyPair keypair{PublicKey{{Key::Type::Ed25519,
+                               "48453469c62f4885373099421a7365520b5ffb"
+                               "0d93726c124166be4b81d852e6"_unhex}},
+                    PrivateKey{{Key::Type::Ed25519,
+                                "4a9361c525840f7086b893d584ebbe475b4ec"
+                                "7069951d2e897e8bceb0a3f35ce"_unhex}}};
+
+    auto injector = libp2p::injector::makeHostInjector(
+        libp2p::injector::useKeyPair(keypair),
+        libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
+    auto provider_host = injector.create<std::shared_ptr<libp2p::Host>>();
+
+    auto context = injector.create<std::shared_ptr<boost::asio::io_context>>();
+
+    auto provider = makeProvider(provider_host, context);
 
     TokenAmount price = 1334;
     ChainEpoch duration = 2334;
     provider->addAsk(price, duration);
     provider->start();
+
+    try {
+      context->run();
+    } catch (const boost::system::error_code &ec) {
+      std::cerr << "Server cannot run: " + ec.message() << std::endl;
+      return 1;
+    } catch (...) {
+      std::cerr << "Unknown error happened" << std::endl;
+      return 1;
+    }
 
     return 0;
   }

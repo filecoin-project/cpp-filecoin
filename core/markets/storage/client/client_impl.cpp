@@ -10,6 +10,7 @@
 #include "crypto/hasher/hasher.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/client_fsm_transitions.hpp"
+#include "storage/ipld/impl/ipld_node_impl.hpp"
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 
@@ -44,16 +45,7 @@ namespace fc::markets::storage::client {
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
         fsm_{std::make_shared<ClientFSM>(client_transitions, fsm_constext)} {}
 
-  void ClientImpl::run() {
-    try {
-      context_->run();
-    } catch (const boost::system::error_code &ec) {
-      logger_->error("Server cannot run: " + ec.message());
-      return;
-    } catch (...) {
-      logger_->error("Unknown error happened");
-    }
-  }
+  void ClientImpl::run() {}
 
   void ClientImpl::stop() {}
 
@@ -120,26 +112,25 @@ namespace fc::markets::storage::client {
             signed_ask_handler(outcome::failure(stream_res.error()));
             return;
           }
-          auto stream_p = std::move(stream_res.value());
+          auto stream = std::move(stream_res.value());
           AskRequest request{.miner = info.address};
-          stream_p->write(
-              request,
-              [self, info, signed_ask_handler, stream_p](
-                  outcome::result<size_t> written) {
-                if (written.has_error()) {
-                  self->logger_->error("Cannot send request: "
-                                       + written.error().message());
-                  signed_ask_handler(outcome::failure(written.error()));
-                  return;
-                }
-                stream_p->template read<AskResponse>(
-                    [self, info, signed_ask_handler](
-                        outcome::result<AskResponse> response) {
-                      auto validated_ask_response =
-                          self->validateAskResponse(response, info);
-                      signed_ask_handler(validated_ask_response);
-                    });
-              });
+          stream->write(request,
+                        [self, info, stream, signed_ask_handler](
+                            outcome::result<size_t> written) {
+                          if (!self->hasValue(written,
+                                              "Cannot send request ",
+                                              stream,
+                                              signed_ask_handler))
+                            return;
+                          stream->template read<AskResponse>(
+                              [self, info, stream, signed_ask_handler](
+                                  outcome::result<AskResponse> response) {
+                                auto validated_ask_response =
+                                    self->validateAskResponse(response, info);
+                                signed_ask_handler(validated_ask_response);
+                                self->network_->closeStreamGracefully(stream);
+                              });
+                        });
         });
   }
 

@@ -37,6 +37,13 @@ namespace fc::markets::storage {
         -> outcome::result<void> = 0;
 
     virtual auto stopHandlingRequests() -> outcome::result<void> = 0;
+
+    /**
+     * Closes stream and handles close result
+     * @param stream to close
+     */
+    virtual auto closeStreamGracefully(
+        const std::shared_ptr<CborStream> &stream) const -> void = 0;
   };
 }  // namespace fc::markets::storage
 

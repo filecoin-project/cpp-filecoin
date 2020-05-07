@@ -38,13 +38,13 @@ namespace fc::markets::storage::example {
   using primitives::tipset::Tipset;
   using vm::actor::builtin::miner::MinerInfo;
   using libp2p::common::operator""_unhex;
-  using HostContext = fc::host::HostContextImpl;
   using libp2p::multi::HashType;
   using libp2p::multi::MulticodecType;
   using libp2p::multi::Multihash;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::RegisteredProof;
   using BlsKeyPair = fc::crypto::bls::KeyPair;
+  using HostContext = fc::host::HostContextImpl;
 
   PeerInfo getPeerInfo(std::string conn_string) {
     auto server_ma_res =
@@ -117,13 +117,9 @@ namespace fc::markets::storage::example {
         .peer_info = provider_peer_info};
   }
 
-  std::shared_ptr<ClientImpl> makeClient() {
-    auto injector = libp2p::injector::makeHostInjector(
-        libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
-
-    auto client_host = injector.create<std::shared_ptr<libp2p::Host>>();
-    auto context = injector.create<std::shared_ptr<boost::asio::io_context>>();
-
+  std::shared_ptr<ClientImpl> makeClient(
+      const std::shared_ptr<libp2p::Host> &client_host,
+      const std::shared_ptr<boost::asio::io_context> &context) {
     std::shared_ptr<BlsProvider> bls_provider_ =
         std::make_shared<BlsProviderImpl>();
     std::shared_ptr<Secp256k1ProviderDefault> secp256k1_provider_ =
@@ -216,15 +212,27 @@ namespace fc::markets::storage::example {
   int main() {
     spdlog::set_level(spdlog::level::debug);
 
-    StorageProviderInfo info = makeStorageProviderInfo();
-    std::shared_ptr<ClientImpl> client = makeClient();
+    auto injector = libp2p::injector::makeHostInjector(
+        libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
 
+    auto client_host = injector.create<std::shared_ptr<libp2p::Host>>();
+    auto context = injector.create<std::shared_ptr<boost::asio::io_context>>();
+
+    StorageProviderInfo info = makeStorageProviderInfo();
+    std::shared_ptr<ClientImpl> client = makeClient(client_host, context);
+
+    // send ask request
+    // sendGetAsk(info, client);
+
+    // propose storage deal
     sendProposeDeal(info, client);
 
     client->run();
 
+    context->run_for(std::chrono::seconds(10));
+
     return 0;
-  }  // namespace fc::markets::storage::example
+  }
 
 }  // namespace fc::markets::storage::example
 

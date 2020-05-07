@@ -7,7 +7,6 @@
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
 
 #include <libp2p/host/host.hpp>
-#include <libp2p/protocol/common/scheduler.hpp>
 #include "api/api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/manager.hpp"
@@ -91,6 +90,29 @@ namespace fc::markets::storage::client {
 
     outcome::result<CID> getProposalCid(
         const ClientDealProposal &signed_proposal) const;
+
+    /**
+     * If error is present, closes connection and prints message
+     * @tparam T - result type
+     * @param res - result to check for error
+     * @param on_error_msg - message to log on error
+     * @param stream - stream to close on error
+     * @param handler - error handler
+     * @return true if
+     */
+    template <class T, class THandler>
+    bool hasValue(outcome::result<T> res,
+                  const std::string &on_error_msg,
+                  const std::shared_ptr<CborStream> &stream,
+                  const THandler &handler) const {
+      if (res.has_error()) {
+        logger_->error(on_error_msg + res.error().message());
+        handler(res.error());
+        network_->closeStreamGracefully(stream);
+        return false;
+      }
+      return true;
+    };
 
     /** libp2p host */
     std::shared_ptr<Host> host_;
