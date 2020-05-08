@@ -71,8 +71,7 @@ namespace fc::markets::storage::client {
         const ChainEpoch &end_epoch,
         const TokenAmount &price,
         const TokenAmount &collateral,
-        const RegisteredProof &registered_proof,
-        const ProposalHandler &proposal_handler) override;
+        const RegisteredProof &registered_proof) override;
 
     outcome::result<StorageParticipantBalance> getPaymentEscrow(
         const Address &address) const override;
@@ -111,6 +110,225 @@ namespace fc::markets::storage::client {
                            ClientEvent event,
                            StorageDealStatus from,
                            StorageDealStatus to);
+
+    /**
+     * @brief Handle open storage deal event
+     * @param deal  - current storage deal
+     * @param event - ClientEventOpenStreamError
+     * @param from  - STORAGE_DEAL_UNKNOWN
+     * @param to    - STORAGE_DEAL_ENSURE_CLIENT_FUNDS
+     */
+    void onClientEventOpenStreamError(std::shared_ptr<ClientDeal> deal,
+                                      ClientEvent event,
+                                      StorageDealStatus from,
+                                      StorageDealStatus to);
+
+    /**
+     * @brief Handle initiate funding
+     * @param deal  - current storage deal
+     * @param event - ClientEventFundingInitiated
+     * @param from  - STORAGE_DEAL_ENSURE_CLIENT_FUNDS
+     * @param to    - STORAGE_DEAL_CLIENT_FUNDING
+     */
+    void onClientEventFundingInitiated(std::shared_ptr<ClientDeal> deal,
+                                       ClientEvent event,
+                                       StorageDealStatus from,
+                                       StorageDealStatus to);
+
+    /**
+     * @brief Handle ensure funds fail
+     * @param deal  - current storage deal
+     * @param event - ClientEventEnsureFundsFailed
+     * @param from  - STORAGE_DEAL_CLIENT_FUNDING or
+     * STORAGE_DEAL_ENSURE_CLIENT_FUNDS
+     * @param to    - STORAGE_DEAL_FAILING
+     */
+    void onClientEventEnsureFundsFailed(std::shared_ptr<ClientDeal> deal,
+                                        ClientEvent event,
+                                        StorageDealStatus from,
+                                        StorageDealStatus to);
+
+    /**
+     * @brief Handle ensure funds
+     * @param deal  - current storage deal
+     * @param event - ClientEventEnsureFundsFailed
+     * @param from  - STORAGE_DEAL_ENSURE_CLIENT_FUNDS or
+     * STORAGE_DEAL_CLIENT_FUNDING
+     * @param to    - STORAGE_DEAL_FUNDS_ENSURED
+     */
+    void onClientEventFundsEnsured(std::shared_ptr<ClientDeal> deal,
+                                   ClientEvent event,
+                                   StorageDealStatus from,
+                                   StorageDealStatus to);
+
+    /**
+     * @brief Handle write proposal fail
+     * @param deal  - current storage deal
+     * @param event - ClientEventEnsureFundsFailed
+     * @param from  - STORAGE_DEAL_FUNDS_ENSURED
+     * @param to    - STORAGE_DEAL_ERROR
+     */
+    void onClientEventWriteProposalFailed(std::shared_ptr<ClientDeal> deal,
+                                          ClientEvent event,
+                                          StorageDealStatus from,
+                                          StorageDealStatus to);
+
+    /**
+     * @brief Handle deal proposal
+     * @param deal  - current storage deal
+     * @param event - ClientEventEnsureFundsFailed
+     * @param from  - STORAGE_DEAL_FUNDS_ENSURED
+     * @param to    - STORAGE_DEAL_VALIDATING
+     */
+    void onClientEventDealProposed(std::shared_ptr<ClientDeal> deal,
+                                   ClientEvent event,
+                                   StorageDealStatus from,
+                                   StorageDealStatus to);
+
+    /**
+     * @brief Handle deal stream lookup error
+     * @param deal  - current storage deal
+     * @param event - ClientEventDealStreamLookupErrored
+     * @param from  - any state
+     * @param to    - STORAGE_DEAL_FAILING
+     */
+    void onClientEventDealStreamLookupErrored(std::shared_ptr<ClientDeal> deal,
+                                              ClientEvent event,
+                                              StorageDealStatus from,
+                                              StorageDealStatus to);
+
+    /**
+     * @brief Handle read response fail
+     * @param deal  - current storage deal
+     * @param event - ClientEventReadResponseFailed
+     * @param from  - STORAGE_DEAL_VALIDATING
+     * @param to    - STORAGE_DEAL_ERROR
+     */
+    void onClientEventReadResponseFailed(std::shared_ptr<ClientDeal> deal,
+                                         ClientEvent event,
+                                         StorageDealStatus from,
+                                         StorageDealStatus to);
+
+    /**
+     * @brief Handle response verification fail
+     * @param deal  - current storage deal
+     * @param event - ClientEventResponseVerificationFailed
+     * @param from  - STORAGE_DEAL_VALIDATING
+     * @param to    - STORAGE_DEAL_FAILING
+     */
+    void onClientEventResponseVerificationFailed(
+        std::shared_ptr<ClientDeal> deal,
+        ClientEvent event,
+        StorageDealStatus from,
+        StorageDealStatus to);
+
+    /**
+     * @brief Handle response deal didn't match
+     * @param deal  - current storage deal
+     * @param event - ClientEventResponseDealDidNotMatch
+     * @param from  - STORAGE_DEAL_VALIDATING
+     * @param to    - STORAGE_DEAL_FAILING
+     */
+    void onClientEventResponseDealDidNotMatch(std::shared_ptr<ClientDeal> deal,
+                                              ClientEvent event,
+                                              StorageDealStatus from,
+                                              StorageDealStatus to);
+
+    /**
+     * @brief Handle deal reject
+     * @param deal  - current storage deal
+     * @param event - ClientEventDealRejected
+     * @param from  - STORAGE_DEAL_VALIDATING
+     * @param to    - STORAGE_DEAL_FAILING
+     */
+    void onClientEventDealRejected(std::shared_ptr<ClientDeal> deal,
+                                   ClientEvent event,
+                                   StorageDealStatus from,
+                                   StorageDealStatus to);
+
+    /**
+     * @brief Handle deal accepted
+     * @param deal  - current storage deal
+     * @param event - ClientEventDealAccepted
+     * @param from  - STORAGE_DEAL_VALIDATING
+     * @param to    - STORAGE_DEAL_PROPOSAL_ACCEPTED
+     */
+    void onClientEventDealAccepted(std::shared_ptr<ClientDeal> deal,
+                                   ClientEvent event,
+                                   StorageDealStatus from,
+                                   StorageDealStatus to);
+
+    /**
+     * @brief Handle stream close error
+     * @param deal  - current storage deal
+     * @param event - ClientEventStreamCloseError
+     * @param from  - any
+     * @param to    - STORAGE_DEAL_ERROR
+     */
+    void onClientEventStreamCloseError(std::shared_ptr<ClientDeal> deal,
+                                       ClientEvent event,
+                                       StorageDealStatus from,
+                                       StorageDealStatus to);
+
+    /**
+     * @brief Handle deal publish fail
+     * @param deal  - current storage deal
+     * @param event - ClientEventDealPublishFailed
+     * @param from  - STORAGE_DEAL_PROPOSAL_ACCEPTED
+     * @param to    - STORAGE_DEAL_ERROR
+     */
+    void onClientEventDealPublishFailed(std::shared_ptr<ClientDeal> deal,
+                                        ClientEvent event,
+                                        StorageDealStatus from,
+                                        StorageDealStatus to);
+
+    /**
+     * @brief Handle deal published
+     * @param deal  - current storage deal
+     * @param event - ClientEventDealPublished
+     * @param from  - STORAGE_DEAL_PROPOSAL_ACCEPTED
+     * @param to    - STORAGE_DEAL_SEALING
+     */
+    void onClientEventDealPublished(std::shared_ptr<ClientDeal> deal,
+                                    ClientEvent event,
+                                    StorageDealStatus from,
+                                    StorageDealStatus to);
+
+    /**
+     * @brief Handle activation fail
+     * @param deal  - current storage deal
+     * @param event - ClientEventDealActivationFailed
+     * @param from  - STORAGE_DEAL_SEALING
+     * @param to    - STORAGE_DEAL_ERROR
+     */
+    void onClientEventDealActivationFailed(std::shared_ptr<ClientDeal> deal,
+                                           ClientEvent event,
+                                           StorageDealStatus from,
+                                           StorageDealStatus to);
+
+    /**
+     * @brief Handle deal activation
+     * @param deal  - current storage deal
+     * @param event - ClientEventDealActivated
+     * @param from  - STORAGE_DEAL_SEALING
+     * @param to    - STORAGE_DEAL_ACTIVE
+     */
+    void onClientEventDealActivated(std::shared_ptr<ClientDeal> deal,
+                                    ClientEvent event,
+                                    StorageDealStatus from,
+                                    StorageDealStatus to);
+
+    /**
+     * @brief Handle event fail
+     * @param deal  - current storage deal
+     * @param event - ClientEventFailed
+     * @param from  - STORAGE_DEAL_FAILING
+     * @param to    - STORAGE_DEAL_ERROR
+     */
+    void onClientEventFailed(std::shared_ptr<ClientDeal> deal,
+                             ClientEvent event,
+                             StorageDealStatus from,
+                             StorageDealStatus to);
 
     /**
      * If error is present, closes connection and prints message

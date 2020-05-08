@@ -10,12 +10,12 @@
 #include "crypto/hasher/hasher.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
-#include "markets/storage/client/client_fsm_transitions.hpp"
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 
 #define CALLBACK_ACTION(_action)                                          \
   [self{shared_from_this()}](auto deal, auto event, auto from, auto to) { \
+    self->logger_->debug("Client FSM " #_action);                         \
     self->_action(deal, event, from, to);                                 \
     deal->state = to;                                                     \
   }
@@ -157,8 +157,7 @@ namespace fc::markets::storage::client {
       const ChainEpoch &end_epoch,
       const TokenAmount &price,
       const TokenAmount &collateral,
-      const RegisteredProof &registered_proof,
-      const ProposalHandler &proposal_handler) {
+      const RegisteredProof &registered_proof) {
     OUTCOME_TRY(comm_p_res, calculateCommP(registered_proof, data_ref));
     CID comm_p = comm_p_res.first;
     UnpaddedPieceSize piece_size = comm_p_res.second;
@@ -194,19 +193,21 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(
         fsm_->begin(client_deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
 
-    // TODO handler
     network_->newDealStream(
         provider_info.peer_info,
-        [self{shared_from_this()},
-         provider_info,
-         client_deal,
-         proposal_cid,
-         proposal_handler](
+        [self{shared_from_this()}, provider_info, client_deal, proposal_cid](
             outcome::result<std::shared_ptr<CborStream>> stream) {
           if (stream.has_error()) {
             self->logger_->error("Cannot open stream to "
                                  + provider_info.peer_info.id.toBase58() + ": "
                                  + stream.error().message());
+            auto res = self->fsm_->send(
+                client_deal, ClientEvent::ClientEventOpenStreamError);
+            if (res.has_error()) {
+              self->logger_->error(
+                  "Error while open error handling. Cannot send FSM event. "
+                  + res.error().message());
+            }
             return;
           }
           self->logger_->debug("DealStream opened");
@@ -215,7 +216,8 @@ namespace fc::markets::storage::client {
           auto res =
               self->fsm_->send(client_deal, ClientEvent::ClientEventOpen);
           if (res.has_error()) {
-            self->logger_->error("Error " + res.error().message());
+            self->logger_->error("Cannot send FSM event. "
+                                 + res.error().message());
           }
         });
 
@@ -312,17 +314,91 @@ namespace fc::markets::storage::client {
   }
 
   std::vector<ClientTransition> ClientImpl::makeFSMTransitions() {
-    return {ClientTransition(ClientEvent::ClientEventOpen)
-                .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
-                .to(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
-                .action(CALLBACK_ACTION(onClientEventOpen))};
+    return {
+        ClientTransition(ClientEvent::ClientEventOpen)
+            .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
+            .to(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
+            .action(CALLBACK_ACTION(onClientEventOpen)),
+        ClientTransition(ClientEvent::ClientEventOpenStreamError)
+            .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
+            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
+            .action(CALLBACK_ACTION(onClientEventOpenStreamError)),
+        ClientTransition(ClientEvent::ClientEventFundingInitiated)
+            .from(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
+            .to(StorageDealStatus::STORAGE_DEAL_CLIENT_FUNDING)
+            .action(CALLBACK_ACTION(onClientEventFundingInitiated)),
+        ClientTransition(ClientEvent::ClientEventEnsureFundsFailed)
+            .fromMany(StorageDealStatus::STORAGE_DEAL_CLIENT_FUNDING,
+                      StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
+            .to(StorageDealStatus::STORAGE_DEAL_FAILING)
+            .action(CALLBACK_ACTION(onClientEventEnsureFundsFailed)),
+        ClientTransition(ClientEvent::ClientEventFundsEnsured)
+            .fromMany(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS,
+                      StorageDealStatus::STORAGE_DEAL_CLIENT_FUNDING)
+            .to(StorageDealStatus::STORAGE_DEAL_FUNDS_ENSURED)
+            .action(CALLBACK_ACTION(onClientEventFundsEnsured)),
+        ClientTransition(ClientEvent::ClientEventWriteProposalFailed)
+            .from(StorageDealStatus::STORAGE_DEAL_FUNDS_ENSURED)
+            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
+            .action(CALLBACK_ACTION(onClientEventWriteProposalFailed)),
+        ClientTransition(ClientEvent::ClientEventDealProposed)
+            .from(StorageDealStatus::STORAGE_DEAL_FUNDS_ENSURED)
+            .to(StorageDealStatus::STORAGE_DEAL_VALIDATING)
+            .action(CALLBACK_ACTION(onClientEventDealProposed)),
+        ClientTransition(ClientEvent::ClientEventDealStreamLookupErrored)
+            .fromAny()
+            .to(StorageDealStatus::STORAGE_DEAL_FAILING)
+            .action(CALLBACK_ACTION(onClientEventDealStreamLookupErrored)),
+        ClientTransition(ClientEvent::ClientEventReadResponseFailed)
+            .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
+            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
+            .action(CALLBACK_ACTION(onClientEventReadResponseFailed)),
+        ClientTransition(ClientEvent::ClientEventResponseVerificationFailed)
+            .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
+            .to(StorageDealStatus::STORAGE_DEAL_FAILING)
+            .action(CALLBACK_ACTION(onClientEventResponseVerificationFailed)),
+        ClientTransition(ClientEvent::ClientEventResponseDealDidNotMatch)
+            .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
+            .to(StorageDealStatus::STORAGE_DEAL_FAILING)
+            .action(CALLBACK_ACTION(onClientEventResponseDealDidNotMatch)),
+        ClientTransition(ClientEvent::ClientEventDealRejected)
+            .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
+            .to(StorageDealStatus::STORAGE_DEAL_FAILING)
+            .action(CALLBACK_ACTION(onClientEventDealRejected)),
+        ClientTransition(ClientEvent::ClientEventDealAccepted)
+            .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
+            .to(StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED)
+            .action(CALLBACK_ACTION(onClientEventDealAccepted)),
+        ClientTransition(ClientEvent::ClientEventStreamCloseError)
+            .fromAny()
+            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
+            .action(CALLBACK_ACTION(onClientEventStreamCloseError)),
+        ClientTransition(ClientEvent::ClientEventDealPublishFailed)
+            .from(StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED)
+            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
+            .action(CALLBACK_ACTION(onClientEventDealPublishFailed)),
+        ClientTransition(ClientEvent::ClientEventDealPublished)
+            .from(StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED)
+            .to(StorageDealStatus::STORAGE_DEAL_SEALING)
+            .action(CALLBACK_ACTION(onClientEventDealPublished)),
+        ClientTransition(ClientEvent::ClientEventDealActivationFailed)
+            .from(StorageDealStatus::STORAGE_DEAL_SEALING)
+            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
+            .action(CALLBACK_ACTION(onClientEventDealActivationFailed)),
+        ClientTransition(ClientEvent::ClientEventDealActivated)
+            .from(StorageDealStatus::STORAGE_DEAL_SEALING)
+            .to(StorageDealStatus::STORAGE_DEAL_ACTIVE)
+            .action(CALLBACK_ACTION(onClientEventDealActivated)),
+        ClientTransition(ClientEvent::ClientEventFailed)
+            .from(StorageDealStatus::STORAGE_DEAL_FAILING)
+            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
+            .action(CALLBACK_ACTION(onClientEventFailed))};
   }
 
   void ClientImpl::onClientEventOpen(std::shared_ptr<ClientDeal> deal,
                                      ClientEvent event,
                                      StorageDealStatus from,
                                      StorageDealStatus to) {
-    logger_->debug("FSM ClientEventOpen");
     auto stream = connections_[deal->proposal_cid];
     std::shared_ptr<ClientDeal> client_deal = local_deals_[deal->proposal_cid];
 
@@ -338,6 +414,107 @@ namespace fc::markets::storage::client {
           self->network_->closeStreamGracefully(stream);
         });
   }
+
+  void ClientImpl::onClientEventOpenStreamError(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventFundingInitiated(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventEnsureFundsFailed(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventFundsEnsured(std::shared_ptr<ClientDeal> deal,
+                                             ClientEvent event,
+                                             StorageDealStatus from,
+                                             StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventWriteProposalFailed(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventDealProposed(std::shared_ptr<ClientDeal> deal,
+                                             ClientEvent event,
+                                             StorageDealStatus from,
+                                             StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventDealStreamLookupErrored(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventReadResponseFailed(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventResponseVerificationFailed(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventResponseDealDidNotMatch(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventDealRejected(std::shared_ptr<ClientDeal> deal,
+                                             ClientEvent event,
+                                             StorageDealStatus from,
+                                             StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventDealAccepted(std::shared_ptr<ClientDeal> deal,
+                                             ClientEvent event,
+                                             StorageDealStatus from,
+                                             StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventStreamCloseError(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventDealPublishFailed(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventDealPublished(std::shared_ptr<ClientDeal> deal,
+                                              ClientEvent event,
+                                              StorageDealStatus from,
+                                              StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventDealActivationFailed(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventDealActivated(std::shared_ptr<ClientDeal> deal,
+                                              ClientEvent event,
+                                              StorageDealStatus from,
+                                              StorageDealStatus to) {}
+
+  void ClientImpl::onClientEventFailed(std::shared_ptr<ClientDeal> deal,
+                                       ClientEvent event,
+                                       StorageDealStatus from,
+                                       StorageDealStatus to) {}
 
 }  // namespace fc::markets::storage::client
 

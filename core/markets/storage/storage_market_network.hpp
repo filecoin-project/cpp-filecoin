@@ -26,7 +26,7 @@ namespace fc::markets::storage {
     virtual ~StorageMarketNetwork() = default;
 
     virtual auto newAskStream(const PeerInfo &peer,
-                               const CborStreamResultHandler &handler)
+                              const CborStreamResultHandler &handler)
         -> void = 0;
 
     virtual auto newDealStream(const PeerInfo &peer,

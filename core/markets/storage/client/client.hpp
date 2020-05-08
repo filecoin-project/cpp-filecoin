@@ -29,8 +29,6 @@ namespace fc::markets::storage::client {
    public:
     using SignedAskHandler =
         std::function<void(outcome::result<SignedStorageAsk>)>;
-    using ProposalHandler =
-        std::function<void(outcome::result<ProposeStorageDealResult>)>;
 
     virtual ~Client() = default;
 
@@ -73,8 +71,7 @@ namespace fc::markets::storage::client {
         const ChainEpoch &end_epoch,
         const TokenAmount &price,
         const TokenAmount &collateral,
-        const RegisteredProof &registered_proof,
-        const ProposalHandler &proposal_handler) = 0;
+        const RegisteredProof &registered_proof) = 0;
 
     virtual outcome::result<StorageParticipantBalance> getPaymentEscrow(
         const Address &address) const = 0;

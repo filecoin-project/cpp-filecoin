@@ -184,29 +184,22 @@ namespace fc::markets::storage::example {
     TokenAmount collateral{3556};
     RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
 
-    auto res = client->proposeStorageDeal(
-        address,
-        info,
-        data_ref,
-        start_epoch,
-        end_epoch,
-        price,
-        collateral,
-        registered_proof,
-        [](outcome::result<ProposeStorageDealResult> proposal_res) {
-          if (proposal_res.has_error()) {
-            std::cout << "Pesponse error " << proposal_res.error().message()
-                      << std::endl;
-          } else {
-            std::cout << "Proposal send, cid: "
-                      << proposal_res.value().proposal_cid.toString().value()
-                      << std::endl;
-          }
-        });
+    auto proposal_res = client->proposeStorageDeal(address,
+                                                   info,
+                                                   data_ref,
+                                                   start_epoch,
+                                                   end_epoch,
+                                                   price,
+                                                   collateral,
+                                                   registered_proof);
 
-    if (res.has_error()) {
-      std::cerr << res.error().message();
+    if (proposal_res.has_error()) {
+      std::cout << "Response error " << proposal_res.error().message()
+                << std::endl;
     }
+    std::cout << "Proposal send, cid: "
+              << proposal_res.value().proposal_cid.toString().value()
+              << std::endl;
   }
 
   int main() {

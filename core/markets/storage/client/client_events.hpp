@@ -12,6 +12,9 @@ namespace fc::markets::storage::client {
     /* ClientEventOpen indicates a new deal was started */
     ClientEventOpen = 1,
 
+    /* Emitted on stream open error */
+    ClientEventOpenStreamError,
+
     /**
      * ClientEventEnsureFundsFailed happens when attempting to ensure the client
      * has enough funds available fails
