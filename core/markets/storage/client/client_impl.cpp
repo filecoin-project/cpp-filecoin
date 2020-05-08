@@ -14,6 +14,12 @@
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 
+#define CALLBACK_ACTION(_action)                                          \
+  [self{shared_from_this()}](auto deal, auto event, auto from, auto to) { \
+    self->_action(deal, event, from, to);                                 \
+    deal->state = to;                                                     \
+  }
+
 namespace fc::markets::storage::client {
 
   using crypto::Hasher;
@@ -306,16 +312,10 @@ namespace fc::markets::storage::client {
   }
 
   std::vector<ClientTransition> ClientImpl::makeFSMTransitions() {
-    return {
-        ClientTransition(ClientEvent::ClientEventOpen)
-            .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
-            .to(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
-            .action([self{shared_from_this()}](std::shared_ptr<ClientDeal> deal,
-                                               ClientEvent event,
-                                               StorageDealStatus from,
-                                               StorageDealStatus to) {
-              self->onClientEventOpen(deal, event, from, to);
-            })};
+    return {ClientTransition(ClientEvent::ClientEventOpen)
+                .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
+                .to(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
+                .action(CALLBACK_ACTION(onClientEventOpen))};
   }
 
   void ClientImpl::onClientEventOpen(std::shared_ptr<ClientDeal> deal,
@@ -337,7 +337,6 @@ namespace fc::markets::storage::client {
           }
           self->network_->closeStreamGracefully(stream);
         });
-    deal->state = to;
   }
 
 }  // namespace fc::markets::storage::client
