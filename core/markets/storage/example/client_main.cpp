@@ -11,7 +11,6 @@
 #include "crypto/bls/bls_types.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
-#include "host/context/impl/host_context_impl.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/client/client_impl.hpp"
 #include "markets/storage/network/libp2p_storage_market_network.hpp"
@@ -44,7 +43,6 @@ namespace fc::markets::storage::example {
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::RegisteredProof;
   using BlsKeyPair = fc::crypto::bls::KeyPair;
-  using HostContext = fc::host::HostContextImpl;
 
   PeerInfo getPeerInfo(std::string conn_string) {
     auto server_ma_res =
@@ -145,10 +143,10 @@ namespace fc::markets::storage::example {
     std::shared_ptr<PieceIO> piece_io =
         std::make_shared<PieceIOImpl>(datastore);
 
-    auto fsm_context = std::make_shared<HostContext>();
-
-    return std::make_shared<ClientImpl>(
-        client_host, context, api, keystore, piece_io, fsm_context);
+    auto client = std::make_shared<ClientImpl>(
+        client_host, context, api, keystore, piece_io);
+    client->init();
+    return client;
   }
 
   void sendGetAsk(const StorageProviderInfo &info,
@@ -229,9 +227,7 @@ namespace fc::markets::storage::example {
     // propose storage deal
     sendProposeDeal(info, client);
 
-    client->run();
-
-    context->run_for(std::chrono::seconds(10));
+    context->run_for(std::chrono::seconds(5));
 
     return 0;
   }

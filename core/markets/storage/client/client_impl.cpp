@@ -8,15 +8,17 @@
 #include <libp2p/peer/peer_id.hpp>
 #include "codec/cbor/cbor.hpp"
 #include "crypto/hasher/hasher.hpp"
+#include "host/context/impl/host_context_impl.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/client_fsm_transitions.hpp"
-#include "storage/ipld/impl/ipld_node_impl.hpp"
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 
 namespace fc::markets::storage::client {
 
   using crypto::Hasher;
+  using host::HostContext;
+  using host::HostContextImpl;
   using libp2p::peer::PeerId;
   using primitives::BigInt;
   using primitives::GasAmount;
@@ -30,20 +32,23 @@ namespace fc::markets::storage::client {
   const BigInt kGasPrice{0};
   const GasAmount kGasLimit{1000000};
 
-  ClientImpl::ClientImpl(
-      std::shared_ptr<Host> host,
-      std::shared_ptr<boost::asio::io_context> context,
-      std::shared_ptr<Api> api,
-      std::shared_ptr<KeyStore> keystore,
-      std::shared_ptr<PieceIO> piece_io,
-      const std::shared_ptr<fc::host::HostContext> &fsm_constext)
+  ClientImpl::ClientImpl(std::shared_ptr<Host> host,
+                         std::shared_ptr<boost::asio::io_context> context,
+                         std::shared_ptr<Api> api,
+                         std::shared_ptr<KeyStore> keystore,
+                         std::shared_ptr<PieceIO> piece_io)
       : host_{std::move(host)},
         context_{std::move(context)},
         api_{std::move(api)},
         keystore_{std::move(keystore)},
         piece_io_{std::move(piece_io)},
-        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
-        fsm_{std::make_shared<ClientFSM>(client_transitions, fsm_constext)} {}
+        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)} {}
+
+  void ClientImpl::init() {
+    std::shared_ptr<HostContext> fsm_context =
+        std::make_shared<HostContextImpl>(context_);
+    fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), fsm_context);
+  }
 
   void ClientImpl::run() {}
 
@@ -180,12 +185,15 @@ namespace fc::markets::storage::client {
                    .message = {},
                    .publish_message = {}});
     local_deals_[client_deal->proposal_cid] = client_deal;
+    OUTCOME_TRY(
+        fsm_->begin(client_deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
 
     // TODO handler
     network_->newDealStream(
         provider_info.peer_info,
         [self{shared_from_this()},
          provider_info,
+         client_deal,
          proposal_cid,
          proposal_handler](
             outcome::result<std::shared_ptr<CborStream>> stream) {
@@ -195,27 +203,14 @@ namespace fc::markets::storage::client {
                                  + stream.error().message());
             return;
           }
+          self->logger_->debug("DealStream opened");
 
-          // TODO ensure funds, etc
-
-          // OUTCOME_TRY(fsm_->begin(client_deal,
-          // StorageDealStatus::STORAGE_DEAL_UNKNOWN));
-
-          // TODO connection manager - add stream
-          // OUTCOME_TRY(fsm_->send(client_deal, ClientEvent::ClientEventOpen));
-
-          stream.value()->write(
-              proposal_cid,
-              [self, stream, proposal_cid, proposal_handler](
-                  outcome::result<size_t> written) {
-                if (written.has_error()) {
-                  proposal_handler(outcome::failure(written.error()));
-                } else {
-                  proposal_handler(
-                      ProposeStorageDealResult{.proposal_cid = proposal_cid});
-                }
-                self->network_->closeStreamGracefully(stream.value());
-              });
+          self->connections_[proposal_cid] = stream.value();
+          auto res =
+              self->fsm_->send(client_deal, ClientEvent::ClientEventOpen);
+          if (res.has_error()) {
+            self->logger_->error("Error " + res.error().message());
+          }
         });
 
     // TODO discovery - add peer (address: dealProposal.Provider, ID:
@@ -308,6 +303,41 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(bytes, codec::cbor::encode(signed_proposal));
     auto hash = Hasher::sha2_256(bytes);
     return CID(CID::Version::V1, CID::Multicodec::DAG_CBOR, hash);
+  }
+
+  std::vector<ClientTransition> ClientImpl::makeFSMTransitions() {
+    return {
+        ClientTransition(ClientEvent::ClientEventOpen)
+            .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
+            .to(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
+            .action([self{shared_from_this()}](std::shared_ptr<ClientDeal> deal,
+                                               ClientEvent event,
+                                               StorageDealStatus from,
+                                               StorageDealStatus to) {
+              self->onClientEventOpen(deal, event, from, to);
+            })};
+  }
+
+  void ClientImpl::onClientEventOpen(std::shared_ptr<ClientDeal> deal,
+                                     ClientEvent event,
+                                     StorageDealStatus from,
+                                     StorageDealStatus to) {
+    logger_->debug("FSM ClientEventOpen");
+    auto stream = connections_[deal->proposal_cid];
+    std::shared_ptr<ClientDeal> client_deal = local_deals_[deal->proposal_cid];
+
+    stream->write(
+        client_deal->client_deal_proposal.proposal,
+        [self{shared_from_this()}, stream](outcome::result<size_t> written) {
+          if (written.has_error()) {
+            self->logger_->error("Proposal write error "
+                                 + written.error().message());
+          } else {
+            self->logger_->debug("Proposal write success");
+          }
+          self->network_->closeStreamGracefully(stream);
+        });
+    deal->state = to;
   }
 
 }  // namespace fc::markets::storage::client

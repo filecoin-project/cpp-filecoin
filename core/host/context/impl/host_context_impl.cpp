@@ -6,7 +6,11 @@
 #include "host/context/impl/host_context_impl.hpp"
 
 namespace fc::host {
-  HostContextImpl::HostContextImpl() {
+  HostContextImpl::HostContextImpl()
+      : HostContextImpl(std::make_shared<IoContext>()) {}
+
+  HostContextImpl::HostContextImpl(std::shared_ptr<IoContext> context)
+      : io_context_{std::move(context)} {
     signals_->async_wait([this](const auto &error, int code) {
       if (!error) {
         this->getIoContext()->stop();
@@ -14,7 +18,8 @@ namespace fc::host {
     });
   }
 
-  std::shared_ptr<HostContext::IoContext> HostContextImpl::getIoContext() const {
+  std::shared_ptr<HostContext::IoContext> HostContextImpl::getIoContext()
+      const {
     return io_context_;
   }
 

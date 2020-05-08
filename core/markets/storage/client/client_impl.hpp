@@ -30,6 +30,8 @@ namespace fc::markets::storage::client {
   using libp2p::Host;
   using network::Libp2pStorageMarketNetwork;
   using pieceio::PieceIO;
+  using ClientTransition =
+      fsm::Transition<ClientEvent, StorageDealStatus, ClientDeal>;
   using ClientFSM = fsm::FSM<ClientEvent, StorageDealStatus, ClientDeal>;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
 
@@ -40,8 +42,9 @@ namespace fc::markets::storage::client {
                std::shared_ptr<boost::asio::io_context> context,
                std::shared_ptr<Api> api,
                std::shared_ptr<KeyStore> keystore,
-               std::shared_ptr<PieceIO> piece_io,
-               const std::shared_ptr<fc::host::HostContext> &fsm_constext);
+               std::shared_ptr<PieceIO> piece_io);
+
+    void init() override;
 
     void run() override;
 
@@ -92,6 +95,24 @@ namespace fc::markets::storage::client {
         const ClientDealProposal &signed_proposal) const;
 
     /**
+     * Creates all FSM transitions
+     * @return vector of transitions for fsm
+     */
+    std::vector<ClientTransition> makeFSMTransitions();
+
+    /**
+     * @brief Handle open storage deal event
+     * @param deal  - current storage deal
+     * @param event - ClientEventOpen
+     * @param from  - STORAGE_DEAL_UNKNOWN
+     * @param to    - STORAGE_DEAL_ENSURE_CLIENT_FUNDS
+     */
+    void onClientEventOpen(std::shared_ptr<ClientDeal> deal,
+                           ClientEvent event,
+                           StorageDealStatus from,
+                           StorageDealStatus to);
+
+    /**
      * If error is present, closes connection and prints message
      * @tparam T - result type
      * @param res - result to check for error
@@ -128,6 +149,7 @@ namespace fc::markets::storage::client {
 
     // TODO
     // connection manager
+    std::map<CID, std::shared_ptr<CborStream>> connections_;
 
     /** State machine */
     std::shared_ptr<ClientFSM> fsm_;
