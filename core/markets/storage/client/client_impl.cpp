@@ -7,6 +7,7 @@
 
 #include <libp2p/peer/peer_id.hpp>
 #include "codec/cbor/cbor.hpp"
+#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "crypto/hasher/hasher.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
@@ -118,7 +119,7 @@ namespace fc::markets::storage::client {
             auto &&stream_res) {
           if (stream_res.has_error()) {
             self->logger_->error("Cannot open stream to "
-                                 + info.peer_info.id.toBase58() + ": "
+                                 + peerInfoToPrettyString(info.peer_info)
                                  + stream_res.error().message());
             signed_ask_handler(outcome::failure(stream_res.error()));
             return;
@@ -198,9 +199,10 @@ namespace fc::markets::storage::client {
         [self{shared_from_this()}, provider_info, client_deal, proposal_cid](
             outcome::result<std::shared_ptr<CborStream>> stream) {
           if (stream.has_error()) {
-            self->logger_->error("Cannot open stream to "
-                                 + provider_info.peer_info.id.toBase58() + ": "
-                                 + stream.error().message());
+            self->logger_->error(
+                "Cannot open stream to "
+                + peerInfoToPrettyString(provider_info.peer_info)
+                + stream.error().message());
             auto res = self->fsm_->send(
                 client_deal, ClientEvent::ClientEventOpenStreamError);
             if (res.has_error()) {
@@ -210,7 +212,9 @@ namespace fc::markets::storage::client {
             }
             return;
           }
-          self->logger_->debug("DealStream opened");
+          self->logger_->debug(
+              "DealStream opened to "
+              + peerInfoToPrettyString(provider_info.peer_info));
 
           self->connections_[proposal_cid] = stream.value();
           auto res =
