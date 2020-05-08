@@ -195,12 +195,14 @@ namespace fc::markets::storage::example {
         price,
         collateral,
         registered_proof,
-        [](outcome::result<void> proposal_res) {
+        [](outcome::result<ProposeStorageDealResult> proposal_res) {
           if (proposal_res.has_error()) {
-            std::cout << "response error " << proposal_res.error().message()
+            std::cout << "Pesponse error " << proposal_res.error().message()
                       << std::endl;
           } else {
-            std::cout << "propose success" << std::endl;
+            std::cout << "Proposal send, cid: "
+                      << proposal_res.value().proposal_cid.toString().value()
+                      << std::endl;
           }
         });
 

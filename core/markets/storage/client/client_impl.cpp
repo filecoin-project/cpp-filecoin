@@ -114,23 +114,27 @@ namespace fc::markets::storage::client {
           }
           auto stream = std::move(stream_res.value());
           AskRequest request{.miner = info.address};
-          stream->write(request,
-                        [self, info, stream, signed_ask_handler](
-                            outcome::result<size_t> written) {
-                          if (!self->hasValue(written,
-                                              "Cannot send request ",
-                                              stream,
-                                              signed_ask_handler))
-                            return;
-                          stream->template read<AskResponse>(
-                              [self, info, stream, signed_ask_handler](
-                                  outcome::result<AskResponse> response) {
-                                auto validated_ask_response =
-                                    self->validateAskResponse(response, info);
-                                signed_ask_handler(validated_ask_response);
-                                self->network_->closeStreamGracefully(stream);
-                              });
-                        });
+          stream->write(
+              request,
+              [self, info, stream, signed_ask_handler](
+                  outcome::result<size_t> written) {
+                if (!self->hasValue(written,
+                                    "Cannot send request ",
+                                    stream,
+                                    signed_ask_handler)) {
+                  self->network_->closeStreamGracefully(stream);
+                  signed_ask_handler(outcome::failure(written.error()));
+                  return;
+                }
+                stream->template read<AskResponse>(
+                    [self, info, stream, signed_ask_handler](
+                        outcome::result<AskResponse> response) {
+                      auto validated_ask_response =
+                          self->validateAskResponse(response, info);
+                      signed_ask_handler(validated_ask_response);
+                      self->network_->closeStreamGracefully(stream);
+                    });
+              });
         });
   }
 
@@ -182,13 +186,13 @@ namespace fc::markets::storage::client {
         provider_info.peer_info,
         [self{shared_from_this()},
          provider_info,
-         deal_proposal,
+         proposal_cid,
          proposal_handler](
-            outcome::result<std::shared_ptr<CborStream>> stream_res) {
-          if (stream_res.has_error()) {
+            outcome::result<std::shared_ptr<CborStream>> stream) {
+          if (stream.has_error()) {
             self->logger_->error("Cannot open stream to "
                                  + provider_info.peer_info.id.toBase58() + ": "
-                                 + stream_res.error().message());
+                                 + stream.error().message());
             return;
           }
 
@@ -200,10 +204,17 @@ namespace fc::markets::storage::client {
           // TODO connection manager - add stream
           // OUTCOME_TRY(fsm_->send(client_deal, ClientEvent::ClientEventOpen));
 
-          stream_res.value()->write(
-              deal_proposal,
-              [self, proposal_handler](outcome::result<size_t> written) {
-                proposal_handler(outcome::success());
+          stream.value()->write(
+              proposal_cid,
+              [self, stream, proposal_cid, proposal_handler](
+                  outcome::result<size_t> written) {
+                if (written.has_error()) {
+                  proposal_handler(outcome::failure(written.error()));
+                } else {
+                  proposal_handler(
+                      ProposeStorageDealResult{.proposal_cid = proposal_cid});
+                }
+                self->network_->closeStreamGracefully(stream.value());
               });
         });
 

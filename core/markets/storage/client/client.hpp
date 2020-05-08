@@ -29,7 +29,8 @@ namespace fc::markets::storage::client {
    public:
     using SignedAskHandler =
         std::function<void(outcome::result<SignedStorageAsk>)>;
-    using ProposalHandler = std::function<void(outcome::result<void>)>;
+    using ProposalHandler =
+        std::function<void(outcome::result<ProposeStorageDealResult>)>;
 
     virtual ~Client() = default;
 
