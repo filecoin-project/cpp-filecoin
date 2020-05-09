@@ -25,3 +25,11 @@ target_link_libraries(le_encoder_test
     blob
     buffer
     )
+
+addtest(outcome_test
+    outcome_test.cpp
+    )
+target_link_libraries(outcome_test
+    outcome
+    todo_error
+    )
