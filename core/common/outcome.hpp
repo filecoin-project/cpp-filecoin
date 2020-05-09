@@ -16,11 +16,23 @@
 
 #define UNIQUE_NAME(base) PP_CAT(base, __LINE__)
 
-#define _OUTCOME_EXCEPT(var, val, expr)        \
+/**
+ * OUTCOME_EXCEPT raises exception in case of result has error.
+ * Supports 2 forms:
+ * OUTCOME_EXCEPT(expr);
+ * OUTCOME_EXCEPT(var, expr); // var = expr
+ */
+#define _OUTCOME_EXCEPT_2(var, val, expr)      \
   auto &&var = expr;                           \
   if (!var) ::fc::outcome::raise(var.error()); \
   auto &&val = var.value();
-#define OUTCOME_EXCEPT(val, expr) _OUTCOME_EXCEPT(UNIQUE_NAME(_r), val, expr)
+#define _OUTCOME_EXCEPT_1(var, expr) \
+  if (expr.has_error()) ::fc::outcome::raise(expr.error());
+#define _OUTCOME_EXCEPT_OVERLOAD(_1, _2, NAME, ...) NAME
+#define OUTCOME_EXCEPT(...)                                           \
+  _OUTCOME_EXCEPT_OVERLOAD(                                           \
+      __VA_ARGS__, _OUTCOME_EXCEPT_2, _OUTCOME_EXCEPT_1) \
+  (UNIQUE_NAME(_r), __VA_ARGS__)
 
 #define _OUTCOME_TRYA(var, val, expr) \
   auto &&var = expr;                  \
