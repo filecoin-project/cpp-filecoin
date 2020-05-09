@@ -15,6 +15,7 @@ target_link_libraries(storage_market_provider
     outcome
     piece
     libp2p_storage_market_network
+    market_actor
     todo_error
     )
 

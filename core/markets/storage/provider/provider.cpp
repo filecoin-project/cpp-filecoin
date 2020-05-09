@@ -11,6 +11,7 @@
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/storage/provider/storage_provider_error.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
+#include "vm/actor/builtin/market/actor.hpp"
 
 #define CALLBACK_ACTION(_action)                                          \
   [self{shared_from_this()}](auto deal, auto event, auto from, auto to) { \
@@ -23,6 +24,7 @@ namespace fc::markets::storage::provider {
 
   using host::HostContext;
   using host::HostContextImpl;
+  using vm::actor::builtin::market::getProposalCid;
 
   StorageProviderImpl::StorageProviderImpl(
       std::shared_ptr<Host> host,
@@ -124,9 +126,12 @@ namespace fc::markets::storage::provider {
         return;
       }
 
-      // todo cid from proposal
-      // TODO wrong proposal cid
-      CID proposal_cid = proposal.value().deal_proposal.proposal.piece_cid;
+      auto proposal_cid = getProposalCid(proposal.value().deal_proposal);
+      if (proposal_cid.has_error()) {
+        self->logger_->error("Read proposal error");
+        self->network_->closeStreamGracefully(stream);
+        return;
+      }
       auto remote_peer_id = stream->stream()->remotePeerId();
       auto remote_multiaddress = stream->stream()->remoteMultiaddr();
       if (remote_peer_id.has_error() || remote_multiaddress.has_error()) {
@@ -139,7 +144,7 @@ namespace fc::markets::storage::provider {
                                 .addresses = {remote_multiaddress.value()}};
       std::shared_ptr<MinerDeal> deal = std::make_shared<MinerDeal>(
           MinerDeal{.client_deal_proposal = proposal.value().deal_proposal,
-                    .proposal_cid = proposal_cid,
+                    .proposal_cid = proposal_cid.value(),
                     .miner = self->host_->getPeerInfo(),
                     .client = remote_peer_info,
                     .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
@@ -149,8 +154,8 @@ namespace fc::markets::storage::provider {
                     .message = {},
                     .ref = proposal.value().piece,
                     .deal_id = {}});
-      self->local_deals_[proposal_cid] = deal;
-      self->connections_[proposal_cid] = stream;
+      self->local_deals_[proposal_cid.value()] = deal;
+      self->connections_[proposal_cid.value()] = stream;
       OUTCOME_EXCEPT(
           self->fsm_->begin(deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
       OUTCOME_EXCEPT(self->fsm_->send(deal, ProviderEvent::ProviderEventOpen));
