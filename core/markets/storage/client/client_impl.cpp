@@ -203,13 +203,8 @@ namespace fc::markets::storage::client {
                 "Cannot open stream to "
                 + peerInfoToPrettyString(provider_info.peer_info)
                 + stream.error().message());
-            auto res = self->fsm_->send(
-                client_deal, ClientEvent::ClientEventOpenStreamError);
-            if (res.has_error()) {
-              self->logger_->error(
-                  "Error while open error handling. Cannot send FSM event. "
-                  + res.error().message());
-            }
+            OUTCOME_EXCEPT(self->fsm_->send(
+                client_deal, ClientEvent::ClientEventOpenStreamError));
             return;
           }
           self->logger_->debug(
@@ -217,12 +212,8 @@ namespace fc::markets::storage::client {
               + peerInfoToPrettyString(provider_info.peer_info));
 
           self->connections_[proposal_cid] = stream.value();
-          auto res =
-              self->fsm_->send(client_deal, ClientEvent::ClientEventOpen);
-          if (res.has_error()) {
-            self->logger_->error("Cannot send FSM event. "
-                                 + res.error().message());
-          }
+          OUTCOME_EXCEPT(
+              self->fsm_->send(client_deal, ClientEvent::ClientEventOpen));
         });
 
     // TODO discovery - add peer (address: dealProposal.Provider, ID:
