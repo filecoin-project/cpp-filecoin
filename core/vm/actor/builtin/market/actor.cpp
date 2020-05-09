@@ -5,12 +5,20 @@
 
 #include "vm/actor/builtin/market/actor.hpp"
 
+#include "crypto/hasher/hasher.hpp"
 #include "vm/actor/builtin/market/policy.hpp"
 #include "vm/actor/builtin/shared/shared.hpp"
 
 namespace fc::vm::actor::builtin::market {
+  using crypto::Hasher;
   using primitives::kChainEpochUndefined;
   using primitives::piece::PieceInfo;
+
+  outcome::result<CID> getProposalCid(const ClientDealProposal &deal_proposal) {
+    OUTCOME_TRY(bytes, codec::cbor::encode(deal_proposal));
+    auto hash = Hasher::sha2_256(bytes);
+    return CID(CID::Version::V1, CID::Multicodec::DAG_CBOR, hash);
+  }
 
   void State::load(std::shared_ptr<Ipld> ipld) {
     proposals.load(ipld);

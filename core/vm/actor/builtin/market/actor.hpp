@@ -112,6 +112,8 @@ namespace fc::vm::actor::builtin::market {
   };
   CBOR_TUPLE(ClientDealProposal, proposal, client_signature)
 
+  outcome::result<CID> getProposalCid(const ClientDealProposal &deal_proposal);
+
   struct StorageParticipantBalance {
     TokenAmount locked;
     TokenAmount available;
