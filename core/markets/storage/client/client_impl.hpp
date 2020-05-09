@@ -90,9 +90,6 @@ namespace fc::markets::storage::client {
     outcome::result<ClientDealProposal> signProposal(
         const Address &address, const DealProposal &proposal) const;
 
-    outcome::result<CID> getProposalCid(
-        const ClientDealProposal &signed_proposal) const;
-
     /**
      * Creates all FSM transitions
      * @return vector of transitions for fsm

@@ -8,7 +8,6 @@
 #include <libp2p/peer/peer_id.hpp>
 #include "codec/cbor/cbor.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
-#include "crypto/hasher/hasher.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "vm/message/message.hpp"
@@ -23,7 +22,6 @@
 
 namespace fc::markets::storage::client {
 
-  using crypto::Hasher;
   using host::HostContext;
   using host::HostContextImpl;
   using libp2p::peer::PeerId;
@@ -31,6 +29,7 @@ namespace fc::markets::storage::client {
   using primitives::GasAmount;
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
+  using vm::actor::builtin::market::getProposalCid;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
@@ -299,13 +298,6 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(signature, keystore_->sign(key_address, proposal_bytes));
     return ClientDealProposal{.proposal = proposal,
                               .client_signature = signature};
-  }
-
-  outcome::result<CID> ClientImpl::getProposalCid(
-      const ClientDealProposal &signed_proposal) const {
-    OUTCOME_TRY(bytes, codec::cbor::encode(signed_proposal));
-    auto hash = Hasher::sha2_256(bytes);
-    return CID(CID::Version::V1, CID::Multicodec::DAG_CBOR, hash);
   }
 
   std::vector<ClientTransition> ClientImpl::makeFSMTransitions() {
