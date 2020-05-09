@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "markets/pieceio/pieceio.hpp"
+#include "markets/pieceio/pieceio_impl.hpp"
 
 #include <gmock/gmock.h>
 
@@ -13,7 +13,7 @@
 #include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
 
-using fc::markets::pieceio::PieceIO;
+using fc::markets::pieceio::PieceIOImpl;
 using fc::primitives::piece::UnpaddedPieceSize;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::storage::ipfs::IpfsDatastore;
@@ -30,7 +30,7 @@ TEST(PieceIO, generatePieceCommitment) {
   auto input = readFile(PAYLOAD_FILE);
   EXPECT_OUTCOME_TRUE(payload_cid, fc::storage::unixfs::wrapFile(*ipld, input));
 
-  PieceIO piece_io{ipld};
+  PieceIOImpl piece_io{ipld};
   EXPECT_OUTCOME_TRUE(
       res,
       piece_io.generatePieceCommitment(

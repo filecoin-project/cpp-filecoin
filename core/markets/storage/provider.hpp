@@ -10,7 +10,6 @@
 #include <vector>
 
 #include <libp2p/connection/stream.hpp>
-
 #include "common/outcome.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
@@ -28,11 +27,13 @@ namespace fc::markets::storage::provider {
    public:
     virtual ~StorageProvider() = default;
 
+    virtual auto start() -> outcome::result<void> = 0;
+
     virtual auto addAsk(const TokenAmount &price, ChainEpoch duration)
         -> outcome::result<void> = 0;
 
     virtual auto listAsks(const Address &address)
-        -> outcome::result<std::vector<std::shared_ptr<SignedStorageAsk>>> = 0;
+        -> outcome::result<std::vector<SignedStorageAsk>> = 0;
 
     virtual auto listDeals() -> outcome::result<std::vector<StorageDeal>> = 0;
 

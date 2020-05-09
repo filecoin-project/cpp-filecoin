@@ -6,14 +6,14 @@
 #ifndef CPP_FILECOIN_MARKETS_STORAGE_TYPES_HPP
 #define CPP_FILECOIN_MARKETS_STORAGE_TYPES_HPP
 
-#include <libp2p/peer/peer_id.hpp>
+#include <libp2p/peer/peer_info.hpp>
 #include "primitives/address/address.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::markets::storage {
 
-  using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
   using primitives::SectorSize;
   using primitives::address::Address;
 
@@ -27,7 +27,7 @@ namespace fc::markets::storage {
     Address owner;
     Address worker;  // signs messages
     SectorSize sector_size;
-    PeerId peer_id;
+    PeerInfo peer_info;
   };
 
 }  // namespace fc::markets::storage
