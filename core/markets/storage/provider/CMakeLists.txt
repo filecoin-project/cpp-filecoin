@@ -5,7 +5,6 @@
 
 add_library(storage_market_provider
     provider.cpp
-    provider_fsm_transitions.cpp
     storage_provider_error.cpp
     )
 target_link_libraries(storage_market_provider
