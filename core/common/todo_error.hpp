@@ -9,8 +9,6 @@
 #include "common/outcome.hpp"
 
 namespace fc {
-  enum class CborEncodeError { INVALID_CID = 1, EXPECTED_MAP_VALUE_SINGLE };
-
   enum class TodoError {
     ERROR = 1,
   };
