@@ -416,9 +416,10 @@ namespace fc::markets::storage::client {
     auto stream = connections_[deal->proposal_cid];
     std::shared_ptr<ClientDeal> client_deal = local_deals_[deal->proposal_cid];
 
-    // TODO write proposal and dataref
+    Proposal proposal{.deal_proposal = client_deal->client_deal_proposal,
+                      .piece = client_deal->data_ref};
     stream->write(
-        client_deal->client_deal_proposal.proposal,
+        proposal,
         [self{shared_from_this()}, stream](outcome::result<size_t> written) {
           if (written.has_error()) {
             self->logger_->error("Proposal write error "
