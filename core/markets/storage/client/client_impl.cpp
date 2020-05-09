@@ -403,20 +403,8 @@ namespace fc::markets::storage::client {
                                      ClientEvent event,
                                      StorageDealStatus from,
                                      StorageDealStatus to) {
-    auto stream = connections_[deal->proposal_cid];
-    std::shared_ptr<ClientDeal> client_deal = local_deals_[deal->proposal_cid];
-
-    stream->write(
-        client_deal->client_deal_proposal.proposal,
-        [self{shared_from_this()}, stream](outcome::result<size_t> written) {
-          if (written.has_error()) {
-            self->logger_->error("Proposal write error "
-                                 + written.error().message());
-          } else {
-            self->logger_->debug("Proposal write success");
-          }
-          self->network_->closeStreamGracefully(stream);
-        });
+    // TODO ensure funds
+    fsm_->send(deal, ClientEvent::ClientEventFundsEnsured);
   }
 
   void ClientImpl::onClientEventOpenStreamError(
@@ -440,7 +428,25 @@ namespace fc::markets::storage::client {
   void ClientImpl::onClientEventFundsEnsured(std::shared_ptr<ClientDeal> deal,
                                              ClientEvent event,
                                              StorageDealStatus from,
-                                             StorageDealStatus to) {}
+                                             StorageDealStatus to) {
+    // TODO handle if stream is absent
+    auto stream = connections_[deal->proposal_cid];
+    std::shared_ptr<ClientDeal> client_deal = local_deals_[deal->proposal_cid];
+
+    // TODO write proposal and dataref
+    stream->write(
+        client_deal->client_deal_proposal.proposal,
+        [self{shared_from_this()}, stream](outcome::result<size_t> written) {
+          if (written.has_error()) {
+            self->logger_->error("Proposal write error "
+                                 + written.error().message());
+          } else {
+            self->logger_->debug("Proposal write success");
+          }
+          self->network_->closeStreamGracefully(stream);
+        });
+    fsm_->send(deal, ClientEvent::ClientEventDealProposed);
+  }
 
   void ClientImpl::onClientEventWriteProposalFailed(
       std::shared_ptr<ClientDeal> deal,
@@ -451,7 +457,11 @@ namespace fc::markets::storage::client {
   void ClientImpl::onClientEventDealProposed(std::shared_ptr<ClientDeal> deal,
                                              ClientEvent event,
                                              StorageDealStatus from,
-                                             StorageDealStatus to) {}
+                                             StorageDealStatus to) {
+    // todo verify deal proposal
+    // read response and validate
+    fsm_->send(deal, ClientEvent::ClientEventDealAccepted);
+  }
 
   void ClientImpl::onClientEventDealStreamLookupErrored(
       std::shared_ptr<ClientDeal> deal,
@@ -485,7 +495,10 @@ namespace fc::markets::storage::client {
   void ClientImpl::onClientEventDealAccepted(std::shared_ptr<ClientDeal> deal,
                                              ClientEvent event,
                                              StorageDealStatus from,
-                                             StorageDealStatus to) {}
+                                             StorageDealStatus to) {
+    // todo validate deal published
+    fsm_->send(deal, ClientEvent::ClientEventDealPublished);
+  }
 
   void ClientImpl::onClientEventStreamCloseError(
       std::shared_ptr<ClientDeal> deal,
@@ -502,7 +515,10 @@ namespace fc::markets::storage::client {
   void ClientImpl::onClientEventDealPublished(std::shared_ptr<ClientDeal> deal,
                                               ClientEvent event,
                                               StorageDealStatus from,
-                                              StorageDealStatus to) {}
+                                              StorageDealStatus to) {
+    // verify deal activated
+    fsm_->send(deal, ClientEvent::ClientEventDealActivated);
+  }
 
   void ClientImpl::onClientEventDealActivationFailed(
       std::shared_ptr<ClientDeal> deal,
@@ -513,7 +529,10 @@ namespace fc::markets::storage::client {
   void ClientImpl::onClientEventDealActivated(std::shared_ptr<ClientDeal> deal,
                                               ClientEvent event,
                                               StorageDealStatus from,
-                                              StorageDealStatus to) {}
+                                              StorageDealStatus to) {
+    // final state
+    // todo cleanup
+  }
 
   void ClientImpl::onClientEventFailed(std::shared_ptr<ClientDeal> deal,
                                        ClientEvent event,
