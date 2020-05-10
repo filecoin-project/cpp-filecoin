@@ -386,8 +386,33 @@ namespace fc::markets::storage::client {
                                      ClientEvent event,
                                      StorageDealStatus from,
                                      StorageDealStatus to) {
-    // TODO ensure funds
-    fsm_->send(deal, ClientEvent::ClientEventFundsEnsured);
+    auto chain_head = api_->ChainHead();
+    if (chain_head.has_error()) {
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ClientEvent::ClientEventEnsureFundsFailed));
+      return;
+    }
+
+    Address address = deal->client_deal_proposal.proposal.client;
+    Address wallet = deal->client_deal_proposal.proposal.client;
+    TokenAmount amount =
+        deal->client_deal_proposal.proposal.clientBalanceRequirement();
+    auto maybe_cid = api_->MarketEnsureAvailable(address, wallet, amount);
+    if (maybe_cid.has_error()) {
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ClientEvent::ClientEventEnsureFundsFailed));
+      return;
+    }
+
+    // funding message was sent
+    if (maybe_cid.value().has_value()) {
+      deal->add_funds_cid = *maybe_cid.value();
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ClientEvent::ClientEventFundingInitiated));
+      return;
+    }
+
+    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventFundsEnsured));
   }
 
   void ClientImpl::onClientEventOpenStreamError(

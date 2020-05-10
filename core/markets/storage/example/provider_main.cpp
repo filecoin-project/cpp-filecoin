@@ -12,6 +12,7 @@
 #include "crypto/bls/bls_types.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
+#include "markets/storage/example/storage_market_example.hpp"
 #include "markets/storage/network/libp2p_storage_market_network.hpp"
 #include "markets/storage/provider/provider.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -62,8 +63,7 @@ namespace fc::markets::storage::example {
   std::shared_ptr<StorageProviderImpl> makeProvider(
       std::shared_ptr<libp2p::Host> provider_host,
       const std::shared_ptr<boost::asio::io_context> &context) {
-    auto ma =
-        libp2p::multi::Multiaddress::create("/ip4/127.0.0.1/tcp/40010").value();
+    auto ma = libp2p::multi::Multiaddress::create(kProviderAddress).value();
     provider_host->listen(ma);
 
     std::shared_ptr<BlsProvider> bls_provider_ =

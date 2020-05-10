@@ -214,7 +214,21 @@ namespace fc::api {
     API_METHOD(ChainSetHead, void, const TipsetKey &)
     API_METHOD(ChainTipSetWeight, TipsetWeight, const TipsetKey &)
 
-    API_METHOD(MarketEnsureAvailable, void, const Address &, TokenAmount)
+    /**
+     * Ensures that a storage market participant has a certain amount of
+     * available funds. If additional funds are needed, they will be sent from
+     * the 'wallet' address callback is immediately called if sufficient funds
+     * are available
+     * @param address to ensure
+     * @param wallet to send from
+     * @param amount to ensure
+     * @return CID of transfer message if message was sent
+     */
+    API_METHOD(MarketEnsureAvailable,
+               boost::optional<CID>,
+               const Address &,
+               const Address &,
+               const TokenAmount&)
 
     API_METHOD(MinerCreateBlock,
                BlockMsg,

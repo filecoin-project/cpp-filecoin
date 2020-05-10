@@ -98,6 +98,8 @@ namespace fc::markets::storage::client {
 
     /**
      * @brief Handle open storage deal event
+     * Attempts to ensure the client has enough funds for the deal being
+     * proposed
      * @param deal  - current storage deal
      * @param event - ClientEventOpen
      * @param from  - STORAGE_DEAL_UNKNOWN

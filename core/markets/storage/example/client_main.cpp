@@ -13,6 +13,7 @@
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/client/client_impl.hpp"
+#include "markets/storage/example/storage_market_example.hpp"
 #include "markets/storage/network/libp2p_storage_market_network.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
@@ -93,6 +94,11 @@ namespace fc::markets::storage::example {
                            .sector_size = {}};
         }};
 
+    api->MarketEnsureAvailable = {[](auto, auto, auto) -> boost::optional<CID> {
+      // funds ensured
+      return boost::none;
+    }};
+
     api->StateAccountKey = {
         [worker_address, bls_address](
             auto &address, auto &tipset_key) -> outcome::result<Address> {
@@ -105,8 +111,8 @@ namespace fc::markets::storage::example {
 
   StorageProviderInfo makeStorageProviderInfo() {
     PeerInfo provider_peer_info = getPeerInfo(
-        "/ip4/127.0.0.1/tcp/40010/ipfs/"
-        "12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV");
+        kProviderAddress
+        + "/ipfs/12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV");
     return StorageProviderInfo{
         .address = Address::makeFromId(1),
         .owner = {},
