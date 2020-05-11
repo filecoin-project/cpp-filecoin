@@ -3,6 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+set(EXAMPLE_RESOURCES_PATH "${PROJECT_SOURCE_DIR}/core/markets/storage/example/")
+configure_file(
+    "${PROJECT_SOURCE_DIR}/core/markets/storage/example/resources.hpp.in"
+    "${PROJECT_SOURCE_DIR}/core/markets/storage/example/resources.hpp"
+)
 
 add_executable(example_provider_main
     provider_main.cpp
@@ -32,4 +37,16 @@ target_link_libraries(example_client_main
     in_memory_storage
     ipfs_datastore_in_memory
     pieceio
+    )
+
+add_executable(storage_market_example
+    storage_market_example.cpp
+    )
+target_link_libraries(storage_market_example
+    ipfs_datastore_in_memory
+    pieceio
+    todo_error
+    )
+target_include_directories(storage_market_example PUBLIC
+    "${TEST_RESOURCES_PATH}"
     )
