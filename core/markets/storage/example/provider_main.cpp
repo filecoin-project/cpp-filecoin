@@ -90,8 +90,11 @@ namespace fc::markets::storage::example {
 
     Address actor_address = Address::makeFromId(1);
 
-    return std::make_shared<StorageProviderImpl>(
-        provider_host, context, keystore, datastore, api, actor_address);
+    std::shared_ptr<StorageProviderImpl> provider =
+        std::make_shared<StorageProviderImpl>(
+            provider_host, context, keystore, datastore, api, actor_address);
+    provider->init();
+    return provider;
   }
 
   int main() {

@@ -27,6 +27,8 @@ namespace fc::markets::storage::provider {
    public:
     virtual ~StorageProvider() = default;
 
+    virtual auto init() -> void = 0;
+
     virtual auto start() -> outcome::result<void> = 0;
 
     virtual auto addAsk(const TokenAmount &price, ChainEpoch duration)
