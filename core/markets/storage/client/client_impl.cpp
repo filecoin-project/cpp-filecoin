@@ -150,7 +150,7 @@ namespace fc::markets::storage::client {
   }
 
   outcome::result<ProposeStorageDealResult> ClientImpl::proposeStorageDeal(
-      const Address &address,
+      const Address &client_address,
       const StorageProviderInfo &provider_info,
       const DataRef &data_ref,
       const ChainEpoch &start_epoch,
@@ -168,14 +168,14 @@ namespace fc::markets::storage::client {
     DealProposal deal_proposal{
         .piece_cid = comm_p,
         .piece_size = piece_size.padded(),
-        .client = address,
+        .client = client_address,
         .provider = provider_info.address,
         .start_epoch = start_epoch,
         .end_epoch = end_epoch,
         .storage_price_per_epoch = price,
         .provider_collateral = static_cast<uint64_t>(piece_size),
         .client_collateral = 0};
-    OUTCOME_TRY(signed_proposal, signProposal(address, deal_proposal));
+    OUTCOME_TRY(signed_proposal, signProposal(client_address, deal_proposal));
     OUTCOME_TRY(proposal_cid, getProposalCid(signed_proposal));
 
     auto client_deal = std::make_shared<ClientDeal>(
