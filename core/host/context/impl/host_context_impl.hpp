@@ -13,6 +13,8 @@ namespace fc::host {
    public:
     HostContextImpl();
 
+    HostContextImpl(std::shared_ptr<IoContext> context);
+
     std::shared_ptr<IoContext> getIoContext() const override;
 
     void runIoContext(size_t seconds) override;

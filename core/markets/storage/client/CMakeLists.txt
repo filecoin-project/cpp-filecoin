@@ -9,12 +9,13 @@ add_library(storage_market_client
 target_link_libraries(storage_market_client
     address
     blob
+    fuhon_fsm
     outcome
     logger
     libp2p_storage_market_network
     piece
     signature
-    ipld_node
+    market_actor
     message
     tipset
     )

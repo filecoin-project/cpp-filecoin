@@ -32,6 +32,11 @@ namespace fc::markets::storage::client {
 
     virtual ~Client() = default;
 
+    /**
+     * Initialise client instance
+     */
+    virtual void init() = 0;
+
     virtual void run() = 0;
 
     virtual void stop() = 0;
@@ -51,10 +56,9 @@ namespace fc::markets::storage::client {
     virtual outcome::result<std::vector<StorageDeal>> listDeals(
         const Address &address) const = 0;
 
-    virtual outcome::result<std::vector<StorageDeal>> listLocalDeals()
-        const = 0;
+    virtual outcome::result<std::vector<ClientDeal>> listLocalDeals() const = 0;
 
-    virtual outcome::result<StorageDeal> getLocalDeal(const CID &cid) const = 0;
+    virtual outcome::result<ClientDeal> getLocalDeal(const CID &cid) const = 0;
 
     virtual void getAsk(const StorageProviderInfo &info,
                         const SignedAskHandler &signed_ask_handler) const = 0;

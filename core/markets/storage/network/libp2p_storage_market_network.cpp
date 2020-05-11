@@ -21,6 +21,7 @@ namespace fc::markets::storage::network {
     host_->newStream(peer_info, kAskProtocolId, [handler](auto stream) {
       if (stream.has_error()) {
         handler(stream.error());
+        return;
       }
       handler(std::make_shared<CborStream>(stream.value()));
     });
@@ -31,6 +32,7 @@ namespace fc::markets::storage::network {
     host_->newStream(peer_info, kDealProtocolId, [handler](auto stream) {
       if (stream.has_error()) {
         handler(stream.error());
+        return;
       }
       handler(std::make_shared<CborStream>(stream.value()));
     });
