@@ -23,6 +23,7 @@ namespace fc::proofs {
 
   using Devices = std::vector<std::string>;
   using Phase1Output = std::vector<uint8_t>;
+  using Challenge = std::vector<uint8_t>;
   using fc::primitives::sector::RegisteredProof;
   using primitives::ActorId;
   using primitives::SectorNumber;
@@ -159,10 +160,9 @@ namespace fc::proofs {
      * generatePieceCID produces a piece CID for the provided data
      * stored in a given pieceData.
      */
-    static outcome::result<CID> generatePieceCID(
-        RegisteredProof proof_type,
-        const PieceData &piece,
-        UnpaddedPieceSize piece_size);
+    static outcome::result<CID> generatePieceCID(RegisteredProof proof_type,
+                                                 const PieceData &piece,
+                                                 UnpaddedPieceSize piece_size);
 
     /** GenerateDataCommitment produces a commitment for the sector containing
      * the provided pieces.
@@ -179,6 +179,12 @@ namespace fc::proofs {
         const PoStRandomness &randomness,
         uint64_t challenge_count,
         const SortedPrivateSectorInfo &sorted_private_replica_info);
+
+    outcome::result<Challenge> generateWinningPoStSectorChallenge(
+        RegisteredProof proof_type,
+        ActorId miner_id,
+        const PoStRandomness &randomness,
+        uint64_t eligible_sectors_len);
 
     /**
      * @brief Generate a proof-of-spacetime

@@ -28,16 +28,36 @@ namespace fc::primitives::sector {
   /// This ordering, defines mappings to UInt in a way which MUST never change.
   enum class RegisteredProof : int64_t {
     StackedDRG32GiBSeal = 1,
-    StackedDRG32GiBPoSt = 2,
+    StackedDRG32GiBPoSt = 2,  // No longer used
     StackedDRG2KiBSeal = 3,
-    StackedDRG2KiBPoSt = 4,
+    StackedDRG2KiBPoSt = 4,  // No longer used
     StackedDRG8MiBSeal = 5,
-    StackedDRG8MiBPoSt = 6,
+    StackedDRG8MiBPoSt = 6,  // No longer used
     StackedDRG512MiBSeal = 7,
-    StackedDRG512MiBPoSt = 8,
+    StackedDRG512MiBPoSt = 8,  // No longer used
+
+    StackedDRG2KiBWinningPoSt = 9,
+    StackedDRG2KiBWindowPoSt = 10,
+
+    StackedDRG8MiBWinningPoSt = 11,
+    StackedDRG8MiBWindowPoSt = 12,
+
+    StackedDRG512MiBWinningPoSt = 13,
+    StackedDRG512MiBWindowPoSt = 14,
+
+    StackedDRG32GiBWinningPoSt = 15,
+    StackedDRG32GiBWindowPoSt = 16,
+
+    // TODO(artyom-yurin): [FIL-186] Set compatible values ​​when in lotus
+    // they will support them
+    StackedDRG64GiBSeal = 17,
+    StackedDRG64GiBWinningPoSt = 18,
+    StackedDRG64GiBWindowPoSt = 19,
   };
 
-  outcome::result<RegisteredProof> getRegisteredPoStProof(
+  outcome::result<RegisteredProof> getRegisteredWindowPoStProof(
+      RegisteredProof proof);
+  outcome::result<RegisteredProof> getRegisteredWinningPoStProof(
       RegisteredProof proof);
   outcome::result<RegisteredProof> getRegisteredSealProof(
       RegisteredProof proof);

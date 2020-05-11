@@ -30,8 +30,9 @@ namespace fc::proofs {
   using common::pieceCommitmentV1ToCID;
   using common::replicaCommitmentV1ToCID;
   using crypto::randomness::Randomness;
-  using primitives::sector::getRegisteredPoStProof;
   using primitives::sector::getRegisteredSealProof;
+  using primitives::sector::getRegisteredWindowPoStProof;
+  using primitives::sector::getRegisteredWinningPoStProof;
   using primitives::sector::SectorId;
 
   // ******************
@@ -41,14 +42,36 @@ namespace fc::proofs {
   outcome::result<RegisteredProof> cppRegisteredPoStProof(
       fil_RegisteredPoStProof proof_type) {
     switch (proof_type) {
-      case fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg2KiBV1:
-        return RegisteredProof::StackedDRG2KiBPoSt;
-      case fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg8MiBV1:
-        return RegisteredProof::StackedDRG8MiBPoSt;
-      case fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg512MiBV1:
-        return RegisteredProof::StackedDRG512MiBPoSt;
-      case fil_RegisteredPoStProof::fil_RegisteredPoStProof_StackedDrg32GiBV1:
-        return RegisteredProof::StackedDRG32GiBPoSt;
+      case fil_RegisteredPoStProof::
+          fil_RegisteredPoStProof_StackedDrgWindow2KiBV1:
+        return RegisteredProof::StackedDRG2KiBWindowPoSt;
+      case fil_RegisteredPoStProof::
+          fil_RegisteredPoStProof_StackedDrgWindow8MiBV1:
+        return RegisteredProof::StackedDRG8MiBWindowPoSt;
+      case fil_RegisteredPoStProof::
+          fil_RegisteredPoStProof_StackedDrgWindow512MiBV1:
+        return RegisteredProof::StackedDRG512MiBWindowPoSt;
+      case fil_RegisteredPoStProof::
+          fil_RegisteredPoStProof_StackedDrgWindow32GiBV1:
+        return RegisteredProof::StackedDRG32GiBWindowPoSt;
+      case fil_RegisteredPoStProof::
+          fil_RegisteredPoStProof_StackedDrgWindow64GiBV1:
+        return RegisteredProof::StackedDRG64GiBWindowPoSt;
+      case fil_RegisteredPoStProof::
+          fil_RegisteredPoStProof_StackedDrgWinning2KiBV1:
+        return RegisteredProof::StackedDRG2KiBWinningPoSt;
+      case fil_RegisteredPoStProof::
+          fil_RegisteredPoStProof_StackedDrgWinning8MiBV1:
+        return RegisteredProof::StackedDRG8MiBWinningPoSt;
+      case fil_RegisteredPoStProof::
+          fil_RegisteredPoStProof_StackedDrgWinning512MiBV1:
+        return RegisteredProof::StackedDRG512MiBWinningPoSt;
+      case fil_RegisteredPoStProof::
+          fil_RegisteredPoStProof_StackedDrgWinning32GiBV1:
+        return RegisteredProof::StackedDRG32GiBWinningPoSt;
+      case fil_RegisteredPoStProof::
+          fil_RegisteredPoStProof_StackedDrgWinning64GiBV1:
+        return RegisteredProof::StackedDRG64GiBWinningPoSt;
       default:
         return ProofsError::INVALID_POST_PROOF;
     }
@@ -125,22 +148,69 @@ namespace fc::proofs {
   // TO С CASTED FUNCTIONS
   // ******************
 
+  enum PoStType {
+    Window,
+    Winning,
+    Either,
+  };
+
   outcome::result<fil_RegisteredPoStProof> cRegisteredPoStProof(
-      RegisteredProof proof_type) {
-    OUTCOME_TRY(post_proof, getRegisteredPoStProof(proof_type));
-    switch (post_proof) {
-      case RegisteredProof::StackedDRG2KiBPoSt:
+      RegisteredProof proof_type, PoStType post_type) {
+    RegisteredProof proof;
+    switch (post_type) {
+      case PoStType::Window: {
+        OUTCOME_TRYA(proof, getRegisteredWindowPoStProof(proof_type));
+        break;
+      }
+      case PoStType::Winning: {
+        OUTCOME_TRYA(proof, getRegisteredWinningPoStProof(proof_type));
+        break;
+      }
+      case PoStType::Either: {
+        auto proof_opt = getRegisteredWinningPoStProof(proof_type);
+        if (proof_opt.has_error()) {
+          OUTCOME_TRYA(proof, getRegisteredWindowPoStProof(proof_type));
+        } else {
+          proof = proof_opt.value();
+        }
+        break;
+      }
+      default:
+        return ProofsError::NO_SUCH_POST_PROOF;
+    }
+
+    switch (proof) {
+      case RegisteredProof::StackedDRG2KiBWindowPoSt:
         return fil_RegisteredPoStProof::
-            fil_RegisteredPoStProof_StackedDrg2KiBV1;
-      case RegisteredProof::StackedDRG8MiBPoSt:
+            fil_RegisteredPoStProof_StackedDrgWindow2KiBV1;
+      case RegisteredProof::StackedDRG8MiBWindowPoSt:
         return fil_RegisteredPoStProof::
-            fil_RegisteredPoStProof_StackedDrg8MiBV1;
-      case RegisteredProof::StackedDRG512MiBPoSt:
+            fil_RegisteredPoStProof_StackedDrgWindow8MiBV1;
+      case RegisteredProof::StackedDRG512MiBWindowPoSt:
         return fil_RegisteredPoStProof::
-            fil_RegisteredPoStProof_StackedDrg512MiBV1;
-      case RegisteredProof::StackedDRG32GiBPoSt:
+            fil_RegisteredPoStProof_StackedDrgWindow512MiBV1;
+      case RegisteredProof::StackedDRG32GiBWindowPoSt:
         return fil_RegisteredPoStProof::
-            fil_RegisteredPoStProof_StackedDrg32GiBV1;
+            fil_RegisteredPoStProof_StackedDrgWindow32GiBV1;
+      case RegisteredProof::StackedDRG64GiBWindowPoSt:
+        return fil_RegisteredPoStProof::
+            fil_RegisteredPoStProof_StackedDrgWindow64GiBV1;
+
+      case RegisteredProof::StackedDRG2KiBWinningPoSt:
+        return fil_RegisteredPoStProof::
+            fil_RegisteredPoStProof_StackedDrgWinning2KiBV1;
+      case RegisteredProof::StackedDRG8MiBWinningPoSt:
+        return fil_RegisteredPoStProof::
+            fil_RegisteredPoStProof_StackedDrgWinning8MiBV1;
+      case RegisteredProof::StackedDRG512MiBWinningPoSt:
+        return fil_RegisteredPoStProof::
+            fil_RegisteredPoStProof_StackedDrgWinning512MiBV1;
+      case RegisteredProof::StackedDRG32GiBWinningPoSt:
+        return fil_RegisteredPoStProof::
+            fil_RegisteredPoStProof_StackedDrgWinning32GiBV1;
+      case RegisteredProof::StackedDRG64GiBWinningPoSt:
+        return fil_RegisteredPoStProof::
+            fil_RegisteredPoStProof_StackedDrgWinning64GiBV1;
       default:
         return ProofsError::NO_SUCH_POST_PROOF;
     }
@@ -162,6 +232,9 @@ namespace fc::proofs {
       case RegisteredProof::StackedDRG32GiBSeal:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg32GiBV1;
+      case RegisteredProof::StackedDRG64GiBSeal:
+        return fil_RegisteredSealProof::
+            fil_RegisteredSealProof_StackedDrg64GiBV1;
       default:
         return ProofsError::NO_SUCH_SEAL_PROOF;
     }
@@ -435,6 +508,33 @@ namespace fc::proofs {
 
     return cppPoStProofs(
         gsl::make_span(res_ptr->proofs_ptr, res_ptr->proofs_len));  // NOLINT
+  }
+
+  outcome::result<Challenge> Proofs::generateWinningPoStSectorChallenge(
+      RegisteredProof proof_type,
+      ActorId miner_id,
+      const PoStRandomness &randomness,
+      uint64_t eligible_sectors_len) {
+    OUTCOME_TRY(c_proof_type,
+                cRegisteredPoStProof(proof_type, PoStType::Winning));
+    auto prover_id = toProverID(miner_id);
+
+    auto res_ptr = ffi::wrap(
+        fil_generate_winning_post_sector_challenge(c_proof_type,
+                                                   c32ByteArray(randomness),
+                                                   eligible_sectors_len,
+                                                   c32ByteArray(prover_id)),
+        fil_destroy_generate_winning_post_sector_challenge);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("generateWinningPoStSectorChallenge: "
+                     + std::string(res_ptr->error_msg));
+
+      return ProofsError::UNKNOWN;
+    }
+
+    return Challenge(res_ptr->ids_ptr,
+                     res_ptr->ids_ptr + res_ptr->ids_len);  // NOLINT
   }
 
   outcome::result<WriteWithoutAlignmentResult> Proofs::writeWithoutAlignment(
@@ -743,14 +843,12 @@ namespace fc::proofs {
       RegisteredProof proof_type,
       const std::string &piece_file_path,
       UnpaddedPieceSize piece_size) {
-    return generatePieceCID(
-        proof_type, PieceData(piece_file_path), piece_size);
+    return generatePieceCID(proof_type, PieceData(piece_file_path), piece_size);
   }
 
-  outcome::result<CID> Proofs::generatePieceCID(
-      RegisteredProof proof_type,
-      const PieceData &piece,
-      UnpaddedPieceSize piece_size) {
+  outcome::result<CID> Proofs::generatePieceCID(RegisteredProof proof_type,
+                                                const PieceData &piece,
+                                                UnpaddedPieceSize piece_size) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
     if (!piece.isOpened()) {
