@@ -105,6 +105,7 @@ namespace fc::markets::storage {
   struct MinerDeal {
     ClientDealProposal client_deal_proposal;
     CID proposal_cid;
+    CID add_funds_cid;
     PeerInfo miner;
     PeerInfo client;
     StorageDealStatus state;
@@ -119,6 +120,7 @@ namespace fc::markets::storage {
   CBOR_TUPLE(MinerDeal,
              client_deal_proposal,
              proposal_cid,
+             add_funds_cid,
              miner,
              client,
              state,

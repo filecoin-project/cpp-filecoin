@@ -300,6 +300,20 @@ namespace fc::markets::storage::client {
                               .client_signature = signature};
   }
 
+  outcome::result<boost::optional<CID>> ClientImpl::ensureFunds(
+      std::shared_ptr<ClientDeal> deal) {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(
+        maybe_cid,
+        api_->MarketEnsureAvailable(
+            deal->client_deal_proposal.proposal.client,
+            deal->client_deal_proposal.proposal.client,
+            deal->client_deal_proposal.proposal.clientBalanceRequirement(),
+            tipset_key));
+    return std::move(maybe_cid);
+  }
+
   std::vector<ClientTransition> ClientImpl::makeFSMTransitions() {
     return {
         ClientTransition(ClientEvent::ClientEventOpen)
@@ -386,18 +400,7 @@ namespace fc::markets::storage::client {
                                      ClientEvent event,
                                      StorageDealStatus from,
                                      StorageDealStatus to) {
-    auto chain_head = api_->ChainHead();
-    if (chain_head.has_error()) {
-      OUTCOME_EXCEPT(
-          fsm_->send(deal, ClientEvent::ClientEventEnsureFundsFailed));
-      return;
-    }
-
-    Address address = deal->client_deal_proposal.proposal.client;
-    Address wallet = deal->client_deal_proposal.proposal.client;
-    TokenAmount amount =
-        deal->client_deal_proposal.proposal.clientBalanceRequirement();
-    auto maybe_cid = api_->MarketEnsureAvailable(address, wallet, amount);
+    auto maybe_cid = ensureFunds(deal);
     if (maybe_cid.has_error()) {
       OUTCOME_EXCEPT(
           fsm_->send(deal, ClientEvent::ClientEventEnsureFundsFailed));

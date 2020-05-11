@@ -40,6 +40,7 @@ namespace fc::markets::storage::provider {
         context_{std::move(context)},
         stored_ask_{std::make_shared<StoredAsk>(
             keystore, datastore, api, actor_address)},
+        api_{std::move(api)},
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
         piece_io_{std::move(piece_io)} {}
 
@@ -166,6 +167,7 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<MinerDeal> deal = std::make_shared<MinerDeal>(
           MinerDeal{.client_deal_proposal = proposal.value().deal_proposal,
                     .proposal_cid = proposal_cid.value(),
+                    .add_funds_cid = {},
                     .miner = self->host_->getPeerInfo(),
                     .client = remote_peer_info,
                     .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
@@ -181,6 +183,22 @@ namespace fc::markets::storage::provider {
           self->fsm_->begin(deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
       OUTCOME_EXCEPT(self->fsm_->send(deal, ProviderEvent::ProviderEventOpen));
     });
+  }
+
+  outcome::result<boost::optional<CID>> StorageProviderImpl::ensureFunds(
+      std::shared_ptr<MinerDeal> deal) {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(worker_info,
+                api_->StateMinerInfo(
+                    deal->client_deal_proposal.proposal.provider, tipset_key));
+    OUTCOME_TRY(maybe_cid,
+                api_->MarketEnsureAvailable(
+                    deal->client_deal_proposal.proposal.provider,
+                    worker_info.worker,
+                    deal->client_deal_proposal.proposal.provider_collateral,
+                    tipset_key));
+    return std::move(maybe_cid);
   }
 
   std::vector<ProviderTransition> StorageProviderImpl::makeFSMTransitions() {
@@ -400,7 +418,20 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO EnsureProviderFunds
+    auto maybe_cid = ensureFunds(deal);
+    if (maybe_cid.has_error()) {
+      OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventNodeErrored));
+      return;
+    }
+
+    // funding message was sent
+    if (maybe_cid.value().has_value()) {
+      deal->add_funds_cid = *maybe_cid.value();
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ProviderEvent::ProviderEventFundingInitiated));
+      return;
+    }
+
     OUTCOME_EXCEPT(
         fsm_->send(deal, ProviderEvent::ProviderEventFundingInitiated));
   }

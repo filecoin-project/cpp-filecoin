@@ -73,6 +73,9 @@ namespace fc::markets::storage::provider {
         -> void override;
 
    private:
+    outcome::result<boost::optional<CID>> ensureFunds(
+        std::shared_ptr<MinerDeal> deal);
+
     /**
      * Creates all FSM transitions
      * @return vector of transitions for fsm
@@ -457,8 +460,8 @@ namespace fc::markets::storage::provider {
 
     std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
-
     std::shared_ptr<StoredAsk> stored_ask_;
+    std::shared_ptr<Api> api_;
 
     std::shared_ptr<StorageMarketNetwork> network_;
     std::shared_ptr<PieceIO> piece_io_;

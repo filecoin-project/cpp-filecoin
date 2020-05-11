@@ -228,7 +228,8 @@ namespace fc::api {
                boost::optional<CID>,
                const Address &,
                const Address &,
-               const TokenAmount&)
+               const TokenAmount &,
+               const TipsetKey &)
 
     API_METHOD(MinerCreateBlock,
                BlockMsg,
@@ -303,6 +304,10 @@ namespace fc::api {
                SectorSize,
                const Address &,
                const TipsetKey &)
+    /**
+     * Returnes miner actor worker address
+     * // TODO duplicates StateMinerInfo?
+     */
     API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
     API_METHOD(StateNetworkName, std::string)
     API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &)

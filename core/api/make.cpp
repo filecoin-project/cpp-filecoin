@@ -236,7 +236,8 @@ namespace fc::api {
         // TODO(turuslan): FIL-165 implement method
         .MarketEnsureAvailable = {[](auto address,
                                      auto wallet,
-                                     auto amount) -> boost::optional<CID> {
+                                     auto amount,
+                                     auto &tipset_key) -> boost::optional<CID> {
           return boost::none;
         }},
         .MinerCreateBlock = {[=](auto &miner,

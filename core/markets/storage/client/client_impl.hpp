@@ -90,6 +90,9 @@ namespace fc::markets::storage::client {
     outcome::result<ClientDealProposal> signProposal(
         const Address &address, const DealProposal &proposal) const;
 
+    outcome::result<boost::optional<CID>> ensureFunds(
+        std::shared_ptr<ClientDeal> deal);
+
     /**
      * Creates all FSM transitions
      * @return vector of transitions for fsm

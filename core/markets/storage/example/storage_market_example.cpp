@@ -161,10 +161,11 @@ namespace fc::markets::storage::example {
                            .sector_size = {}};
         }};
 
-    api->MarketEnsureAvailable = {[](auto, auto, auto) -> boost::optional<CID> {
-      // funds ensured
-      return boost::none;
-    }};
+    api->MarketEnsureAvailable = {
+        [](auto, auto, auto, auto) -> boost::optional<CID> {
+          // funds ensured
+          return boost::none;
+        }};
 
     api->StateAccountKey = {
         [provider_actor_address,
