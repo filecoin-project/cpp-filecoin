@@ -15,6 +15,8 @@ target_link_libraries(example_provider_main
     bls_provider
     p2p::p2p_literals
     in_memory_storage
+    ipfs_datastore_in_memory
+    pieceio
     )
 
 add_executable(example_client_main

@@ -12,10 +12,13 @@
 #include "crypto/bls/bls_types.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
+#include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/example/storage_market_example.hpp"
 #include "markets/storage/network/libp2p_storage_market_network.hpp"
 #include "markets/storage/provider/provider.hpp"
+#include "primitives/sector/sector.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 
 namespace fc::markets::storage::example {
@@ -27,15 +30,21 @@ namespace fc::markets::storage::example {
   using libp2p::peer::PeerInfo;
   using libp2p::common::operator""_unhex;
   using api::Api;
+  using common::Buffer;
   using fc::crypto::bls::BlsProvider;
   using fc::crypto::bls::BlsProviderImpl;
   using fc::crypto::secp256k1::Secp256k1ProviderDefault;
   using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
   using fc::storage::InMemoryStorage;
+  using fc::storage::ipfs::InMemoryDatastore;
+  using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::keystore::InMemoryKeyStore;
   using fc::storage::keystore::KeyStore;
+  using pieceio::PieceIO;
+  using pieceio::PieceIOImpl;
   using primitives::ChainEpoch;
   using primitives::address::Address;
+  using primitives::sector::RegisteredProof;
   using primitives::tipset::Tipset;
   using provider::Datastore;
   using provider::StorageProvider;
@@ -63,6 +72,8 @@ namespace fc::markets::storage::example {
   std::shared_ptr<StorageProviderImpl> makeProvider(
       std::shared_ptr<libp2p::Host> provider_host,
       const std::shared_ptr<boost::asio::io_context> &context) {
+    RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
+
     auto ma = libp2p::multi::Multiaddress::create(kProviderAddress).value();
     provider_host->listen(ma);
 
@@ -90,11 +101,38 @@ namespace fc::markets::storage::example {
 
     Address actor_address = Address::makeFromId(1);
 
+    std::shared_ptr<IpfsDatastore> ipfs_datastore =
+        std::make_shared<InMemoryDatastore>();
+    std::shared_ptr<PieceIO> piece_io =
+        std::make_shared<PieceIOImpl>(ipfs_datastore);
+
     std::shared_ptr<StorageProviderImpl> provider =
-        std::make_shared<StorageProviderImpl>(
-            provider_host, context, keystore, datastore, api, actor_address);
+        std::make_shared<StorageProviderImpl>(registered_proof,
+                                              provider_host,
+                                              context,
+                                              keystore,
+                                              datastore,
+                                              api,
+                                              actor_address,
+                                              piece_io);
     provider->init();
     return provider;
+  }
+
+  void importDataForDeal(const std::shared_ptr<StorageProviderImpl> &provider,
+                         const std::string &kProposalCid,
+                         const Buffer &data) {
+    auto proposal_cid = CID::fromString(kProposalCid);
+    if (proposal_cid.has_error()) {
+      std::cerr << "Cannot make proposal CID" << proposal_cid.error().message()
+                << std::endl;
+      return;
+    }
+    auto res = provider->importDataForDeal(proposal_cid.value(), data);
+    if (res.has_error()) {
+      std::cerr << "Cannot import data for deal" << res.error().message()
+                << std::endl;
+    }
   }
 
   int main() {
@@ -124,6 +162,9 @@ namespace fc::markets::storage::example {
     provider->start();
 
     try {
+      context->run_for(std::chrono::seconds(20));
+      std::cout << "Import data for deal " << kProposalCid << std::endl;
+      importDataForDeal(provider, kProposalCid, {});
       context->run();
     } catch (const boost::system::error_code &ec) {
       std::cerr << "Server cannot run: " + ec.message() << std::endl;

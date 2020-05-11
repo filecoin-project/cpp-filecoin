@@ -27,17 +27,21 @@ namespace fc::markets::storage::provider {
   using vm::actor::builtin::market::getProposalCid;
 
   StorageProviderImpl::StorageProviderImpl(
+      const RegisteredProof &registered_proof,
       std::shared_ptr<Host> host,
       std::shared_ptr<boost::asio::io_context> context,
       std::shared_ptr<KeyStore> keystore,
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
-      const Address &actor_address)
-      : host_{std::move(host)},
+      const Address &actor_address,
+      std::shared_ptr<PieceIO> piece_io)
+      : registered_proof_{registered_proof},
+        host_{std::move(host)},
         context_{std::move(context)},
         stored_ask_{std::make_shared<StoredAsk>(
             keystore, datastore, api, actor_address)},
-        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)} {}
+        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
+        piece_io_{std::move(piece_io)} {}
 
   void StorageProviderImpl::init() {
     std::shared_ptr<HostContext> fsm_context =
@@ -80,6 +84,15 @@ namespace fc::markets::storage::provider {
     return TodoError::ERROR;
   }
 
+  outcome::result<std::shared_ptr<MinerDeal>> StorageProviderImpl::getDeal(
+      const CID &proposal_cid) const {
+    auto it = local_deals_.find(proposal_cid);
+    if (it == local_deals_.end()) {
+      return StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND;
+    }
+    return it->second;
+  }
+
   outcome::result<void> StorageProviderImpl::addStorageCollateral(
       const TokenAmount &amount) {
     return TodoError::ERROR;
@@ -90,8 +103,17 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<void> StorageProviderImpl::importDataForDeal(
-      const CID &prop_cid, const libp2p::connection::Stream &data) {
-    return TodoError::ERROR;
+      const CID &proposal_cid, const Buffer &data) {
+    OUTCOME_TRY(piece_commitment,
+                piece_io_->generatePieceCommitment(registered_proof_, data));
+    OUTCOME_TRY(deal, getDeal(proposal_cid));
+    if (piece_commitment.first
+        != deal->client_deal_proposal.proposal.piece_cid) {
+      return StorageMarketProviderError::PIECE_CID_DOESNT_MATCH;
+    }
+
+    OUTCOME_TRY(fsm_->send(deal, ProviderEvent::ProviderEventVerifiedData));
+    return outcome::success();
   }
 
   void StorageProviderImpl::handleAskStream(
@@ -119,7 +141,6 @@ namespace fc::markets::storage::provider {
 
     stream->read<Proposal>([self{shared_from_this()},
                             stream](outcome::result<Proposal> proposal) {
-      // todo check result
       if (proposal.has_error()) {
         self->logger_->error("Read proposal error");
         self->network_->closeStreamGracefully(stream);
@@ -302,9 +323,13 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
+    if (deal->ref.transfer_type == kTransferTypeManual) {
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ProviderEvent::ProviderEventWaitingForManualData));
+      return;
+    }
+
     // TODO transfer data
-    OUTCOME_EXCEPT(
-        fsm_->send(deal, ProviderEvent::ProviderEventWaitingForManualData));
   }
 
   void StorageProviderImpl::onProviderEventWaitingForManualData(
@@ -312,8 +337,7 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO
-    OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventVerifiedData));
+    // wait for importDataForDeal() call
   }
 
   void StorageProviderImpl::onProviderEventInsufficientFunds(
@@ -480,3 +504,19 @@ namespace fc::markets::storage::provider {
       StorageDealStatus to) {}
 
 }  // namespace fc::markets::storage::provider
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider,
+                            StorageMarketProviderError,
+                            e) {
+  using fc::markets::storage::provider::StorageMarketProviderError;
+
+  switch (e) {
+    case StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND:
+      return "StorageMarketProviderError: local deal not found";
+    case StorageMarketProviderError::PIECE_CID_DOESNT_MATCH:
+      return "StorageMarketProviderError: imported piece cid doensn't match "
+             "proposal piece cid";
+  }
+
+  return "StorageMarketProviderError: unknown error";
+}

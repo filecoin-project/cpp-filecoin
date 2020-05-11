@@ -12,6 +12,9 @@ namespace fc::markets::storage::example {
 
   static const std::string kProviderAddress = "/ip4/127.0.0.1/tcp/40011";
 
-}
+  static const std::string kProposalCid =
+      "bafyreiglm3gcbmjzugvpzelsajdw3lqfyu7apvr6lu3v2rilownz4qtkua";
+
+}  // namespace fc::markets::storage::example
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_EXAMPLE_STORAGE_MARKET_EXAMPLE_HPP
