@@ -22,8 +22,10 @@
 
 namespace fc::markets::storage::provider {
 
+  using api::MsgWait;
   using host::HostContext;
   using host::HostContextImpl;
+  using vm::VMExitCode;
   using vm::actor::MethodParams;
   using vm::actor::builtin::market::getProposalCid;
   using vm::actor::builtin::market::PublishStorageDeals;
@@ -172,6 +174,7 @@ namespace fc::markets::storage::provider {
           MinerDeal{.client_deal_proposal = proposal.value().deal_proposal,
                     .proposal_cid = proposal_cid.value(),
                     .add_funds_cid = {},
+                    .publish_cid = {},
                     .miner = self->host_->getPeerInfo(),
                     .client = remote_peer_info,
                     .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
@@ -224,7 +227,35 @@ namespace fc::markets::storage::provider {
                                      MethodParams{encoded_params});
     OUTCOME_TRY(signed_message, api_->MpoolPushMessage(unsigned_message));
     OUTCOME_TRY(cid, signed_message.getCid());
+    OUTCOME_TRY(str_cid, cid.toString());
+    logger_->debug("Deal published with CID = " + str_cid);
     return std::move(cid);
+  }
+
+  void StorageProviderImpl::sendSignedResponse(std::shared_ptr<MinerDeal> deal,
+                                               const StorageDealStatus &status,
+                                               const std::string &message) {
+    Response response{.state = status,
+                      .message = message,
+                      .proposal = deal->proposal_cid,
+                      .publish_message = deal->publish_cid};
+    // TODO handle if stream is absent
+    auto stream = connections_[deal->proposal_cid];
+    stream->write(
+        response,
+        [self{shared_from_this()}, stream, deal](
+            outcome::result<size_t> maybe_res) {
+          if (!self->hasValue(
+                  maybe_res, "Write deal response error ", stream)) {
+            OUTCOME_EXCEPT(self->fsm_->send(
+                deal, ProviderEvent::ProviderEventSendResponseFailed));
+            return;
+          }
+          self->network_->closeStreamGracefully(stream);
+          self->logger_->debug("Deal response written, connection closed");
+          OUTCOME_EXCEPT(self->fsm_->send(
+              deal, ProviderEvent::ProviderEventDealPublished));
+        });
   }
 
   std::vector<ProviderTransition> StorageProviderImpl::makeFSMTransitions() {
@@ -410,6 +441,7 @@ namespace fc::markets::storage::provider {
       return;
     }
 
+    deal->publish_cid = maybe_cid.value();
     OUTCOME_EXCEPT(
         fsm_->send(deal, ProviderEvent::ProviderEventDealPublishInitiated));
   }
@@ -477,8 +509,46 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO WaitForPublish
-    OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealPublished));
+    auto maybe_wait = api_->StateWaitMsg(deal->publish_cid);
+    if (maybe_wait.has_error()) {
+      OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventNodeErrored));
+      return;
+    }
+    maybe_wait.value().wait(
+        [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {
+          if (result.has_error()) {
+            self->logger_->error("Publish storage deal message error "
+                                 + result.error().message());
+            OUTCOME_EXCEPT(self->fsm_->send(
+                deal, ProviderEvent::ProviderEventDealPublishError));
+            return;
+          }
+          if (result.value().receipt.exit_code != VMExitCode::Ok) {
+            self->logger_->error("Publish storage deal exit code "
+                                 + std::to_string(static_cast<uint64_t>(
+                                     result.value().receipt.exit_code)));
+            OUTCOME_EXCEPT(self->fsm_->send(
+                deal, ProviderEvent::ProviderEventDealPublishError));
+            return;
+          }
+          auto maybe_res = codec::cbor::decode<PublishStorageDeals::Result>(
+              result.value().receipt.return_value);
+          if (maybe_res.has_error()) {
+            self->logger_->error("Publish storage deal decode result error");
+            OUTCOME_EXCEPT(self->fsm_->send(
+                deal, ProviderEvent::ProviderEventDealPublishError));
+            return;
+          }
+          if (maybe_res.value().deals.size() != 1) {
+            self->logger_->error("Publish storage deal result size error");
+            OUTCOME_EXCEPT(self->fsm_->send(
+                deal, ProviderEvent::ProviderEventDealPublishError));
+            return;
+          }
+          deal->deal_id = maybe_res.value().deals.front();
+          self->sendSignedResponse(
+              deal, StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED, "");
+        });
   }
 
   void StorageProviderImpl::onProviderEventDealPublished(

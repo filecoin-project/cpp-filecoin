@@ -10,6 +10,7 @@
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/security/plaintext.hpp>
+#include "adt/channel.hpp"
 #include "common/buffer.hpp"
 #include "common/span.hpp"
 #include "common/todo_error.hpp"
@@ -26,6 +27,9 @@
 
 namespace fc::markets::storage::example {
 
+  using adt::Channel;
+  using api::MsgWait;
+  using api::Wait;
   using common::Buffer;
   using crypto::bls::BlsProvider;
   using crypto::bls::BlsProviderImpl;
@@ -40,9 +44,14 @@ namespace fc::markets::storage::example {
   using libp2p::crypto::PublicKey;
   using pieceio::PieceIO;
   using pieceio::PieceIOImpl;
+  using primitives::DealId;
   using primitives::sector::RegisteredProof;
   using provider::Datastore;
+  using vm::VMExitCode;
+  using vm::actor::builtin::market::PublishStorageDeals;
+  using vm::runtime::MessageReceipt;
   using libp2p::common::operator""_unhex;
+  using primitives::GasAmount;
   using primitives::tipset::Tipset;
   using vm::actor::builtin::miner::MinerInfo;
   using vm::message::SignedMessage;
@@ -146,14 +155,12 @@ namespace fc::markets::storage::example {
     Address provider_bls_address =
         Address::makeBls(provider_keypair.public_key);
     Address client_bls_address = Address::makeBls(client_keypair.public_key);
+    ChainEpoch epoch = 100;
+    Tipset chain_head;
+    chain_head.height = epoch;
 
     std::shared_ptr<Api> api = std::make_shared<Api>();
-    api->ChainHead = {[]() {
-      ChainEpoch epoch = 100;
-      Tipset chain_head;
-      chain_head.height = epoch;
-      return chain_head;
-    }};
+    api->ChainHead = {[chain_head]() { return chain_head; }};
 
     api->StateMinerInfo = {
         [](auto &address, auto &tipset_key) -> outcome::result<MinerInfo> {
@@ -193,6 +200,28 @@ namespace fc::markets::storage::example {
                                  .signature = signature};
           };
           throw "MpoolPushMessage: Wrong from address parameter";
+        }};
+
+    api->StateWaitMsg = {
+        [chain_head](auto &message_cid) -> outcome::result<Wait<MsgWait>> {
+          std::cout << "StateWaitMsg called for message cid "
+                    << message_cid.toString().value() << std::endl;
+          PublishStorageDeals::Result publish_deal_result{};
+          publish_deal_result.deals.emplace_back(1);
+          auto publish_deal_result_encoded =
+              codec::cbor::encode(publish_deal_result).value();
+
+          MsgWait message_result{
+              .receipt =
+                  MessageReceipt{.exit_code = VMExitCode::Ok,
+                                 .return_value = publish_deal_result_encoded,
+                                 .gas_used = GasAmount{0}},
+              .tipset = chain_head};
+          auto channel = std::make_shared<Channel<Wait<MsgWait>::Result>>();
+          channel->write(message_result);
+          channel->closeWrite();
+          Wait<MsgWait> wait_msg{channel};
+          return wait_msg;
         }};
 
     return api;
@@ -289,7 +318,7 @@ namespace fc::markets::storage::example {
                                            kRegisteredProof));
     auto proposal_cid = proposal_res.proposal_cid;
 
-    context->run_for(std::chrono::seconds(5));
+    context->run_for(std::chrono::seconds(3));
     std::cout << "Import data for deal " << proposal_cid.toString().value()
               << std::endl;
     OUTCOME_TRY(provider->importDataForDeal(proposal_cid, data));

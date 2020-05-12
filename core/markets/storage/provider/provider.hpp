@@ -96,6 +96,16 @@ namespace fc::markets::storage::provider {
     outcome::result<CID> publishDeal(std::shared_ptr<MinerDeal> deal);
 
     /**
+     * Send signed response to storage deal proposal
+     * @param deal - state of deal
+     * @param status - status of proposed deal
+     * @param message - message to send in case of proposal reject
+     */
+    void sendSignedResponse(std::shared_ptr<MinerDeal> deal,
+                                             const StorageDealStatus &status,
+                                             const std::string &message);
+
+    /**
      * Creates all FSM transitions
      * @return vector of transitions for fsm
      */
