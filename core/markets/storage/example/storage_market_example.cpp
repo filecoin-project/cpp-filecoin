@@ -45,6 +45,8 @@ namespace fc::markets::storage::example {
   using libp2p::common::operator""_unhex;
   using primitives::tipset::Tipset;
   using vm::actor::builtin::miner::MinerInfo;
+  using vm::message::SignedMessage;
+  using vm::message::UnsignedMessage;
   using BlsKeyPair = fc::crypto::bls::KeyPair;
 
   static const RegisteredProof kRegisteredProof{
@@ -135,6 +137,7 @@ namespace fc::markets::storage::example {
   }
 
   std::shared_ptr<Api> makeApi(
+      const BlsKeyPair &miner_worker_keypair,
       const Address &provider_actor_address,
       const BlsKeyPair &provider_keypair,
       const Address &client_id_address,
@@ -175,7 +178,21 @@ namespace fc::markets::storage::example {
                              auto &tipset_key) -> outcome::result<Address> {
           if (address == provider_actor_address) return provider_bls_address;
           if (address == client_id_address) return client_bls_address;
-          throw "Wrong address parameter";
+          throw "StateAccountKey: Wrong address parameter";
+        }};
+
+    api->MpoolPushMessage = {
+        [bls_provider, miner_worker_keypair](
+            auto &unsigned_message) -> outcome::result<SignedMessage> {
+          if (unsigned_message.from == kMinerActorAddress) {
+            OUTCOME_TRY(encoded_message, codec::cbor::encode(unsigned_message));
+            OUTCOME_TRY(signature,
+                        bls_provider->sign(encoded_message,
+                                           miner_worker_keypair.private_key));
+            return SignedMessage{.message = unsigned_message,
+                                 .signature = signature};
+          };
+          throw "MpoolPushMessage: Wrong from address parameter";
         }};
 
     return api;
@@ -194,9 +211,11 @@ namespace fc::markets::storage::example {
     std::shared_ptr<PieceIO> piece_io =
         std::make_shared<PieceIOImpl>(ipfs_datastore);
 
+    OUTCOME_TRY(miner_worker_keypair, bls_provider->generateKeyPair());
     OUTCOME_TRY(provider_keypair, bls_provider->generateKeyPair());
     OUTCOME_TRY(client_keypair, bls_provider->generateKeyPair());
-    std::shared_ptr<Api> api = makeApi(kMinerActorAddress,
+    std::shared_ptr<Api> api = makeApi(miner_worker_keypair,
+                                       kMinerActorAddress,
                                        provider_keypair,
                                        kClientAddress,
                                        client_keypair,

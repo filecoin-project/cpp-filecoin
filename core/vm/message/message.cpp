@@ -5,6 +5,35 @@
 
 #include "vm/message/message.hpp"
 
+namespace fc::vm::message {
+  using primitives::BigInt;
+
+  bool UnsignedMessage::operator==(const UnsignedMessage &other) const {
+    return to == other.to && from == other.from && nonce == other.nonce
+           && value == other.value && gasPrice == other.gasPrice
+           && gasLimit == other.gasLimit && method == other.method
+           && params == other.params;
+  }
+
+  bool UnsignedMessage::operator!=(const UnsignedMessage &other) const {
+    return !(*this == other);
+  }
+
+  BigInt UnsignedMessage::requiredFunds() const {
+    return value + gasLimit * gasPrice;
+  }
+
+  outcome::result<CID> SignedMessage::getCid() const {
+    if (signature.isBls()) {
+      OUTCOME_TRY(data, codec::cbor::encode(message));
+      return getCidOf(data);
+    }
+    OUTCOME_TRY(data, codec::cbor::encode(*this));
+    return getCidOf(data);
+  }
+
+}  // namespace fc::vm::message
+
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::message, MessageError, e) {
   using fc::vm::message::MessageError;
   switch (e) {
@@ -17,22 +46,4 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::message, MessageError, e) {
     default:
       return "Unknown error";
   };
-}
-
-using fc::primitives::BigInt;
-using fc::vm::message::UnsignedMessage;
-
-bool UnsignedMessage::operator==(const UnsignedMessage &other) const {
-  return to == other.to && from == other.from && nonce == other.nonce
-         && value == other.value && gasPrice == other.gasPrice
-         && gasLimit == other.gasLimit && method == other.method
-         && params == other.params;
-}
-
-bool UnsignedMessage::operator!=(const UnsignedMessage &other) const {
-  return !(*this == other);
-}
-
-BigInt UnsignedMessage::requiredFunds() const {
-  return value + gasLimit * gasPrice;
 }

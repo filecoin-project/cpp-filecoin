@@ -101,6 +101,12 @@ namespace fc::vm::message {
   struct SignedMessage {
     UnsignedMessage message;
     Signature signature;
+
+    /**
+     * Returnes CID of signed message
+     * @return CID
+     */
+    outcome::result<CID> getCid() const;
   };
 
   CBOR_TUPLE(SignedMessage, message, signature)

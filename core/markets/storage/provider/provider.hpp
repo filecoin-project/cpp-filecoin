@@ -20,10 +20,17 @@ namespace fc::markets::storage::provider {
   using libp2p::Host;
   using network::Libp2pStorageMarketNetwork;
   using pieceio::PieceIO;
+  using primitives::BigInt;
+  using primitives::GasAmount;
   using primitives::sector::RegisteredProof;
   using ProviderTransition =
       fsm::Transition<ProviderEvent, StorageDealStatus, MinerDeal>;
   using ProviderFSM = fsm::FSM<ProviderEvent, StorageDealStatus, MinerDeal>;
+
+  // from lotus
+  // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/provider.go#L71
+  const BigInt kGasPrice{0};
+  const GasAmount kGasLimit{1000000};
 
   class StorageProviderImpl
       : public StorageProvider,
@@ -73,8 +80,20 @@ namespace fc::markets::storage::provider {
         -> void override;
 
    private:
-    outcome::result<boost::optional<CID>> ensureFunds(
+    /**
+     * Ensure provider has enough funds
+     * @param deal - storage deal
+     * @return cid of funding message if it was sent
+     */
+    outcome::result<boost::optional<CID>> ensureProviderFunds(
         std::shared_ptr<MinerDeal> deal);
+
+    /**
+     * Publish storage deal
+     * @param deal to publish
+     * @return CID of message sent
+     */
+    outcome::result<CID> publishDeal(std::shared_ptr<MinerDeal> deal);
 
     /**
      * Creates all FSM transitions
