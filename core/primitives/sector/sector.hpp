@@ -168,6 +168,7 @@ namespace fc::primitives::sector {
     ActorId prover;
   };
 
+  // TODO(artyom-yurin): Remove it after complete migrate to v26 proofs
   struct PoStVerifyInfo {
     PoStRandomness randomness;
     /// From OnChainPoStVerifyInfo

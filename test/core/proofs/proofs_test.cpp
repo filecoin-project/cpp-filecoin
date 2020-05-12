@@ -27,6 +27,7 @@ using fc::primitives::piece::PieceData;
 using fc::primitives::piece::UnpaddedPieceSize;
 using fc::primitives::sector::OnChainSealVerifyInfo;
 using fc::primitives::sector::SealVerifyInfo;
+using fc::primitives::sector::WinningPoStVerifyInfo;
 using fc::primitives::sector::SectorId;
 using fc::primitives::sector::SectorInfo;
 using fc::primitives::sector::Ticket;
@@ -62,13 +63,12 @@ class ProofsTest : public test::BaseFS_Test {
  * @then success
  */
 TEST_F(ProofsTest, Lifecycle) {
-  uint64_t challenge_count = 2;
   ActorId miner_id = 42;
   Randomness randomness{{9, 9, 9}};
   fc::proofs::RegisteredProof seal_proof_type =
       fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal;
-  fc::proofs::RegisteredProof post_proof_type =
-      fc::primitives::sector::RegisteredProof::StackedDRG2KiBPoSt;
+  fc::proofs::RegisteredProof winning_post_proof_type =
+      fc::primitives::sector::RegisteredProof::StackedDRG2KiBWinningPoSt;
   SectorNumber sector_num = 42;
   EXPECT_OUTCOME_TRUE(sector_size,
                       fc::primitives::sector::getSectorSize(seal_proof_type));
@@ -301,54 +301,43 @@ TEST_F(ProofsTest, Lifecycle) {
   private_replicas_info.push_back(PrivateSectorInfo{
       .info =
           SectorInfo{
-              .registered_proof = post_proof_type,
+              .registered_proof = winning_post_proof_type,
               .sector = sector_num,
               .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
           },
       .cache_dir_path = sector_cache_dir_path,
-      .post_proof_type = post_proof_type,
+      .post_proof_type = winning_post_proof_type,
       .sealed_sector_path = sealed_sector_file,
   });
   auto private_info = Proofs::newSortedPrivateSectorInfo(private_replicas_info);
 
-  std::vector<PublicSectorInfo> public_sectors_info = {PublicSectorInfo{
-      .post_proof_type = post_proof_type,
-      .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
-      .sector_num = sector_num,
-  }};
-  auto public_info = Proofs::newSortedPublicSectorInfo(public_sectors_info);
-
-  std::vector<SectorInfo> elignable_sectors = {SectorInfo{
+  std::vector<SectorInfo> proving_set = {SectorInfo{
       .registered_proof = seal_proof_type,
       .sector = sector_num,
       .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
   }};
 
-  EXPECT_OUTCOME_TRUE(candidates_with_tickets,
-                      Proofs::generateCandidates(
-                          miner_id, randomness, challenge_count, private_info))
+  EXPECT_OUTCOME_TRUE(
+      indices_in_proving_set,
+      Proofs::generateWinningPoStSectorChallenge(
+          winning_post_proof_type, miner_id, randomness, proving_set.size()));
 
-  std::vector<PoStCandidate> candidates = {};
-  for (const auto &candidate_with_ticket : candidates_with_tickets) {
-    candidates.push_back(candidate_with_ticket.candidate);
+  std::vector<SectorInfo> challenged_sectors;
+
+  for (auto index : indices_in_proving_set) {
+    challenged_sectors.push_back(proving_set.at(index));
   }
-
-  EXPECT_OUTCOME_TRUE(final_ticket,
-                      Proofs::finalizeTicket(candidates[0].partial_ticket));
-  ASSERT_EQ(final_ticket, candidates_with_tickets[0].ticket);
 
   EXPECT_OUTCOME_TRUE(
       proofs,
-      Proofs::generatePoSt(miner_id, private_info, randomness, candidates))
+      Proofs::generateWinningPoSt(miner_id, private_info, randomness));
 
   EXPECT_OUTCOME_TRUE(res,
-                      Proofs::verifyPoSt(PoStVerifyInfo{
+                      Proofs::verifyWinningPoSt(WinningPoStVerifyInfo{
                           .randomness = randomness,
-                          .candidates = candidates,
                           .proofs = proofs,
-                          .eligible_sectors = elignable_sectors,
+                          .challenged_sectors = challenged_sectors,
                           .prover = miner_id,
-                          .challenge_count = challenge_count,
                       }));
   ASSERT_TRUE(res);
 }

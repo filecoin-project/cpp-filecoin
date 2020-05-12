@@ -480,7 +480,7 @@ namespace fc::proofs {
         gsl::make_span(res_ptr->proofs_ptr, res_ptr->proofs_len));
   }
 
-  outcome::result<Challenge> Proofs::generateWinningPoStSectorChallenge(
+  outcome::result<ChallengeIndexes> Proofs::generateWinningPoStSectorChallenge(
       RegisteredProof proof_type,
       ActorId miner_id,
       const PoStRandomness &randomness,
@@ -503,7 +503,7 @@ namespace fc::proofs {
       return ProofsError::UNKNOWN;
     }
 
-    return Challenge(res_ptr->ids_ptr,
+    return ChallengeIndexes(res_ptr->ids_ptr,
                      res_ptr->ids_ptr + res_ptr->ids_len);  // NOLINT
   }
 

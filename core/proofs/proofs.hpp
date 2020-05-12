@@ -23,7 +23,7 @@ namespace fc::proofs {
 
   using Devices = std::vector<std::string>;
   using Phase1Output = std::vector<uint8_t>;
-  using Challenge = std::vector<uint8_t>;
+  using ChallengeIndexes = std::vector<uint8_t>;
   using fc::primitives::sector::RegisteredProof;
   using primitives::ActorId;
   using primitives::SectorNumber;
@@ -167,7 +167,7 @@ namespace fc::proofs {
     static outcome::result<CID> generateUnsealedCID(
         RegisteredProof proof_type, gsl::span<PieceInfo> pieces);
 
-    static outcome::result<Challenge> generateWinningPoStSectorChallenge(
+    static outcome::result<ChallengeIndexes> generateWinningPoStSectorChallenge(
         RegisteredProof proof_type,
         ActorId miner_id,
         const PoStRandomness &randomness,
