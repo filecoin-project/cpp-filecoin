@@ -149,6 +149,25 @@ namespace fc::primitives::sector {
     CID sealed_cid;
   };
 
+  // Information needed to verify a Winning PoSt attached to a block header.
+  // Note: this is not used within the state machine, but by the
+  // consensus/election mechanisms.
+  struct WinningPoStVerifyInfo {
+    PoStRandomness randomness;
+    std::vector<PoStProof> proofs;
+    std::vector<SectorInfo> challenged_sectors;
+    ActorId prover;
+  };
+
+  // Information needed to verify a Window PoSt submitted directly to a miner
+  // actor.
+  struct WindowPoStVerifyInfo {
+    PoStRandomness randomness;
+    std::vector<PoStProof> proofs;
+    std::vector<SectorInfo> challenged_sectors;
+    ActorId prover;
+  };
+
   struct PoStVerifyInfo {
     PoStRandomness randomness;
     /// From OnChainPoStVerifyInfo

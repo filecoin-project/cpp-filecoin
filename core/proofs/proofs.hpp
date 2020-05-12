@@ -40,6 +40,8 @@ namespace fc::proofs {
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::SectorInfo;
   using primitives::sector::Ticket;
+  using primitives::sector::WindowPoStVerifyInfo;
+  using primitives::sector::WinningPoStVerifyInfo;
   using SealedCID = CID;
   using UnsealedCID = CID;
   using Devices = std::vector<std::string>;
@@ -67,11 +69,6 @@ namespace fc::proofs {
   struct SortedPrivateSectorInfo {
    public:
     std::vector<PrivateSectorInfo> values;
-  };
-
-  struct PoStCandidateWithTicket {
-    PoStCandidate candidate;
-    Ticket ticket;
   };
 
   struct WriteWithoutAlignmentResult {
@@ -170,35 +167,28 @@ namespace fc::proofs {
     static outcome::result<CID> generateUnsealedCID(
         RegisteredProof proof_type, gsl::span<PieceInfo> pieces);
 
-    /**
-     * @brief Generates proof-of-spacetime candidates for ElectionPoSt
-     */
-    static outcome::result<std::vector<PoStCandidateWithTicket>>
-    generateCandidates(
-        ActorId miner_id,
-        const PoStRandomness &randomness,
-        uint64_t challenge_count,
-        const SortedPrivateSectorInfo &sorted_private_replica_info);
-
-    outcome::result<Challenge> generateWinningPoStSectorChallenge(
+    static outcome::result<Challenge> generateWinningPoStSectorChallenge(
         RegisteredProof proof_type,
         ActorId miner_id,
         const PoStRandomness &randomness,
         uint64_t eligible_sectors_len);
 
-    /**
-     * @brief Generate a proof-of-spacetime
-     */
-    static outcome::result<std::vector<PoStProof>> generatePoSt(
+    static outcome::result<std::vector<PoStProof>> generateWinningPoSt(
         ActorId miner_id,
         const SortedPrivateSectorInfo &private_replica_info,
-        const PoStRandomness &randomness,
-        gsl::span<const PoStCandidate> winners);
+        const PoStRandomness &randomness);
 
-    /**
-     * @brief Verifies a proof-of-spacetime
-     */
-    static outcome::result<bool> verifyPoSt(const PoStVerifyInfo &info);
+    static outcome::result<std::vector<PoStProof>> generateWindowPoSt(
+        ActorId miner_id,
+        const SortedPrivateSectorInfo &private_replica_info,
+        const PoStRandomness &randomness);
+
+
+    static outcome::result<bool> verifyWinningPoSt(
+        const WinningPoStVerifyInfo &info);
+
+    static outcome::result<bool> verifyWindowPoSt(
+        const WindowPoStVerifyInfo &info);
 
     /**
      * VerifySeal returns true if the sealing operation from which its inputs
@@ -235,85 +225,14 @@ namespace fc::proofs {
         uint64_t offset,
         uint64_t length);
 
-    /**
-     *  FinalizeTicket creates an actual ticket from a partial ticket
-     */
-    static outcome::result<Ticket> finalizeTicket(const Ticket &partialTicket);
-
-    static outcome::result<void> clearCache(const std::string &cache_dir_path);
-
-    /**
-     * @brief Returns the identity of the circuit for the provided PoSt proof
-     * type
-     */
-    static outcome::result<std::string> getPoStCircuitIdentifier(
-        RegisteredProof registered_proof);
-
-    /**
-     * @brief Returns the CID of the Groth parameter file for generating a PoSt
-     */
-    static outcome::result<CID> getPoStParamsCID(
-        RegisteredProof registered_proof);
-
-    /**
-     * @brief Returns the path from which the proofs library expects to find the
-     * Groth parameter file used when generating a PoSt
-     */
-    static outcome::result<std::string> getPoStParamsPath(
-        RegisteredProof registered_proof);
-
-    /**
-     * @brief Returns the CID of the verifying key-file for verifying a PoSt
-     * proof
-     */
-    static outcome::result<CID> getPoStVerifyingKeyCID(
-        RegisteredProof registered_proof);
-
-    /**
-     * @brief Returns the path from which the proofs library expects to find the
-     * verifying key-file used when verifying a PoSt proof
-     */
-    static outcome::result<std::string> getPoStVerifyingKeyPath(
-        RegisteredProof registered_proof);
+    static outcome::result<void> clearCache(SectorSize sector_size,
+                                            const std::string &cache_dir_path);
 
     /**
      * @brief Returns the version of the provided PoSt proof
      */
     static outcome::result<std::string> getPoStVersion(
         RegisteredProof proof_type);
-
-    /**
-     * @brief Returns the identity of the circuit for the provided seal proof
-     */
-    static outcome::result<std::string> getSealCircuitIdentifier(
-        RegisteredProof registered_proof);
-
-    /**
-     * @brief Returns the CID of the Groth parameter file for sealing
-     */
-    static outcome::result<CID> getSealParamsCID(
-        RegisteredProof registered_proof);
-
-    /**
-     * @brief Returns the path from which the proofs library expects to find the
-     * Groth parameter file used when sealing
-     */
-    static outcome::result<std::string> getSealParamsPath(
-        RegisteredProof registered_proof);
-
-    /**
-     * @brief Returns the CID of the verifying key-file for verifying a seal
-     * proof
-     */
-    static outcome::result<CID> getSealVerifyingKeyCID(
-        RegisteredProof registered_proof);
-
-    /**
-     * @brief Returns the path from which the proofs library expects to find the
-     * verifying key-file used when verifying a seal proof
-     */
-    static outcome::result<std::string> getSealVerifyingKeyPath(
-        RegisteredProof registered_proof);
 
     /**
      * @brief  Returns the version of the provided seal proof type
@@ -326,13 +245,6 @@ namespace fc::proofs {
      * be used
      */
     static outcome::result<Devices> getGPUDevices();
-
-    /**
-     *  @brief Returns the number of user bytes that will fit into a staged
-     * sector
-     */
-    static outcome::result<uint64_t> getMaxUserBytesPerStagedSector(
-        RegisteredProof registered_proof);
 
    private:
     static fc::common::Logger logger_;

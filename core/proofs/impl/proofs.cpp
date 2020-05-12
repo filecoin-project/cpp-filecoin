@@ -97,30 +97,6 @@ namespace fc::proofs {
     return cpp_post_proofs;
   }
 
-  PoStCandidateWithTicket cppCandidateWithTicket(
-      const fil_Candidate &c_candidate) {
-    PoStCandidateWithTicket candidate_with_ticket;
-
-    candidate_with_ticket.ticket = ffi::array(c_candidate.ticket);
-    candidate_with_ticket.candidate.partial_ticket =
-        ffi::array(c_candidate.partial_ticket);
-    candidate_with_ticket.candidate.challenge_index =
-        c_candidate.sector_challenge_index;
-    candidate_with_ticket.candidate.sector =
-        SectorId{.miner = 0, .sector = c_candidate.sector_id};
-
-    return candidate_with_ticket;
-  }
-
-  std::vector<PoStCandidateWithTicket> cppCandidatesWithTickets(
-      gsl::span<const fil_Candidate> c_candidates) {
-    std::vector<PoStCandidateWithTicket> cpp_candidates;
-    for (const auto &c_candidate : c_candidates) {
-      cpp_candidates.push_back(cppCandidateWithTicket(c_candidate));
-    }
-    return cpp_candidates;
-  }
-
   WriteWithoutAlignmentResult cppWriteWithoutAlignmentResult(
       const fil_WriteWithoutAlignmentResponse &response) {
     WriteWithoutAlignmentResult result;
@@ -240,12 +216,12 @@ namespace fc::proofs {
     }
   }
 
-  Prover toProverID(ActorId miner_id) {
+  fil_32ByteArray toProverID(ActorId miner_id) {
     auto maddr = primitives::address::encode(
         primitives::address::Address::makeFromId(miner_id));
-    Prover prover = {};
+    fil_32ByteArray prover = {};
     // +1: because payload start from 1 position
-    std::copy(maddr.cbegin() + 1, maddr.cend(), prover.begin());
+    std::copy(maddr.cbegin() + 1, maddr.cend(), prover.inner);
     return prover;
   }
 
@@ -255,26 +231,8 @@ namespace fc::proofs {
     return array;
   }
 
-  fil_Candidate cCandidate(const PoStCandidate &cpp_candidate) {
-    fil_Candidate c_candidate;
-    c_candidate.sector_id = cpp_candidate.sector.sector;
-    c_candidate.sector_challenge_index = cpp_candidate.challenge_index;
-    ffi::array(c_candidate.partial_ticket, cpp_candidate.partial_ticket);
-    ffi::array(c_candidate.ticket, cpp_candidate.partial_ticket);
-    return c_candidate;
-  }
-
-  std::vector<fil_Candidate> cCandidates(
-      gsl::span<const PoStCandidate> cpp_candidates) {
-    std::vector<fil_Candidate> c_candidates = {};
-    for (const auto &cpp_candidate : cpp_candidates) {
-      c_candidates.push_back(cCandidate(cpp_candidate));
-    }
-    return c_candidates;
-  }
-
   outcome::result<fil_PrivateReplicaInfo> cPrivateReplicaInfo(
-      const PrivateSectorInfo &cpp_private_replica_info) {
+      const PrivateSectorInfo &cpp_private_replica_info, PoStType post_type) {
     fil_PrivateReplicaInfo c_private_replica_info;
 
     c_private_replica_info.sector_id = cpp_private_replica_info.info.sector;
@@ -284,7 +242,8 @@ namespace fc::proofs {
     c_private_replica_info.replica_path =
         cpp_private_replica_info.sealed_sector_path.data();
     OUTCOME_TRY(c_proof_type,
-                cRegisteredPoStProof(cpp_private_replica_info.post_proof_type));
+                cRegisteredPoStProof(cpp_private_replica_info.post_proof_type,
+                                     post_type));
 
     c_private_replica_info.registered_proof = c_proof_type;
 
@@ -297,24 +256,26 @@ namespace fc::proofs {
   }
 
   outcome::result<std::vector<fil_PrivateReplicaInfo>> cPrivateReplicasInfo(
-      gsl::span<const PrivateSectorInfo> cpp_private_replicas_info) {
+      gsl::span<const PrivateSectorInfo> cpp_private_replicas_info,
+      PoStType post_type) {
     std::vector<fil_PrivateReplicaInfo> c_private_replicas_info = {};
     for (const auto &cpp_private_replica_info : cpp_private_replicas_info) {
       OUTCOME_TRY(c_private_replica_info,
-                  cPrivateReplicaInfo(cpp_private_replica_info));
+                  cPrivateReplicaInfo(cpp_private_replica_info, post_type));
       c_private_replicas_info.push_back(c_private_replica_info);
     }
     return c_private_replicas_info;
   }
 
   outcome::result<fil_PublicReplicaInfo> cPublicReplicaInfo(
-      const PublicSectorInfo &cpp_public_replica_info) {
+      const SectorInfo &cpp_public_replica_info, PoStType post_type) {
     fil_PublicReplicaInfo c_public_replica_info{};
 
-    c_public_replica_info.sector_id = cpp_public_replica_info.sector_num;
+    c_public_replica_info.sector_id = cpp_public_replica_info.sector;
 
     OUTCOME_TRY(c_proof_type,
-                cRegisteredPoStProof(cpp_public_replica_info.post_proof_type));
+                cRegisteredPoStProof(cpp_public_replica_info.registered_proof,
+                                     post_type));
 
     c_public_replica_info.registered_proof = c_proof_type;
 
@@ -325,12 +286,13 @@ namespace fc::proofs {
     return c_public_replica_info;
   }
 
-  outcome::result<std::vector<fil_PublicReplicaInfo>> cPublicReplicasInfo(
-      gsl::span<const PublicSectorInfo> cpp_public_replicas_info) {
+  outcome::result<std::vector<fil_PublicReplicaInfo>> cPublicReplicaInfos(
+      gsl::span<const SectorInfo> cpp_public_replicas_info,
+      PoStType post_type) {
     std::vector<fil_PublicReplicaInfo> c_public_replicas_info = {};
     for (const auto &cpp_public_replica_info : cpp_public_replicas_info) {
       OUTCOME_TRY(c_public_replica_info,
-                  cPublicReplicaInfo(cpp_public_replica_info));
+                  cPublicReplicaInfo(cpp_public_replica_info, post_type));
       c_public_replicas_info.push_back(c_public_replica_info);
     }
     return c_public_replicas_info;
@@ -347,7 +309,7 @@ namespace fc::proofs {
     return c_public_piece_info;
   }
 
-  outcome::result<std::vector<fil_PublicPieceInfo>> cPublicPiecesInfo(
+  outcome::result<std::vector<fil_PublicPieceInfo>> cPublicPieceInfos(
       gsl::span<const PieceInfo> cpp_public_pieces_info) {
     std::vector<fil_PublicPieceInfo> c_public_pieces_info = {};
     for (const auto &cpp_public_piece_info : cpp_public_pieces_info) {
@@ -357,8 +319,11 @@ namespace fc::proofs {
     return c_public_pieces_info;
   }
 
-  outcome::result<fil_PoStProof> cPoStProof(const PoStProof &cpp_post_proof) {
-    OUTCOME_TRY(c_proof, cRegisteredPoStProof(cpp_post_proof.registered_proof));
+  outcome::result<fil_PoStProof> cPoStProof(const PoStProof &cpp_post_proof,
+                                            PoStType post_type) {
+    OUTCOME_TRY(
+        c_proof,
+        cRegisteredPoStProof(cpp_post_proof.registered_proof, post_type));
     return fil_PoStProof{
         .registered_proof = c_proof,
         .proof_len = cpp_post_proof.proof.size(),
@@ -367,10 +332,10 @@ namespace fc::proofs {
   }
 
   outcome::result<std::vector<fil_PoStProof>> cPoStProofs(
-      gsl::span<const PoStProof> cpp_post_proofs) {
+      gsl::span<const PoStProof> cpp_post_proofs, PoStType post_type) {
     std::vector<fil_PoStProof> c_proofs = {};
     for (const auto &cpp_post_proof : cpp_post_proofs) {
-      OUTCOME_TRY(c_post_proof, cPoStProof(cpp_post_proof));
+      OUTCOME_TRY(c_post_proof, cPoStProof(cpp_post_proof, post_type));
       c_proofs.push_back(c_post_proof);
     }
     return c_proofs;
@@ -380,41 +345,51 @@ namespace fc::proofs {
   // VERIFIED FUNCTIONS
   // ******************
 
-  outcome::result<bool> Proofs::verifyPoSt(const PoStVerifyInfo &info) {
-    std::vector<PublicSectorInfo> public_sector_info = {};
-
-    for (const auto &sector_info : info.eligible_sectors) {
-      public_sector_info.push_back(PublicSectorInfo{
-          .post_proof_type = sector_info.registered_proof,
-          .sealed_cid = sector_info.sealed_cid,
-          .sector_num = sector_info.sector,
-      });
-    }
-
-    auto sorted_public_sector_info =
-        newSortedPublicSectorInfo(public_sector_info);
-    OUTCOME_TRY(c_public_sector_info,
-                cPublicReplicasInfo(sorted_public_sector_info.values));
-
-    std::vector<fil_Candidate> c_winners = cCandidates(info.candidates);
-
+  outcome::result<bool> Proofs::verifyWinningPoSt(
+      const WinningPoStVerifyInfo &info) {
+    OUTCOME_TRY(
+        c_public_replica_infos,
+        cPublicReplicaInfos(info.challenged_sectors, PoStType::Winning));
+    OUTCOME_TRY(c_post_proofs,
+                cPoStProofs(gsl::make_span(info.proofs), PoStType::Winning));
     auto prover_id = toProverID(info.prover);
 
-    OUTCOME_TRY(c_post_proofs, cPoStProofs(gsl::make_span(info.proofs)));
-
-    auto res_ptr = ffi::wrap(fil_verify_post(c32ByteArray(info.randomness),
-                                             info.challenge_count,
-                                             c_public_sector_info.data(),
-                                             c_public_sector_info.size(),
-                                             c_post_proofs.data(),
-                                             c_post_proofs.size(),
-                                             c_winners.data(),
-                                             c_winners.size(),
-                                             c32ByteArray(prover_id)),
-                             fil_destroy_verify_post_response);
+    auto res_ptr =
+        ffi::wrap(fil_verify_winning_post(c32ByteArray(info.randomness),
+                                          c_public_replica_infos.data(),
+                                          c_public_replica_infos.size(),
+                                          c_post_proofs.data(),
+                                          c_post_proofs.size(),
+                                          prover_id),
+                  fil_destroy_verify_winning_post_response);
 
     if (res_ptr->status_code != 0) {
-      logger_->error("verifyPoSt: " + std::string(res_ptr->error_msg));
+      logger_->error("verifyWindowPoSt: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return res_ptr->is_valid;
+  }
+
+  outcome::result<bool> Proofs::verifyWindowPoSt(
+      const WindowPoStVerifyInfo &info) {
+    OUTCOME_TRY(c_public_replica_infos,
+                cPublicReplicaInfos(info.challenged_sectors, PoStType::Window));
+    OUTCOME_TRY(c_post_proofs,
+                cPoStProofs(gsl::make_span(info.proofs), PoStType::Window));
+    auto prover_id = toProverID(info.prover);
+
+    auto res_ptr =
+        ffi::wrap(fil_verify_window_post(c32ByteArray(info.randomness),
+                                         c_public_replica_infos.data(),
+                                         c_public_replica_infos.size(),
+                                         c_post_proofs.data(),
+                                         c_post_proofs.size(),
+                                         prover_id),
+                  fil_destroy_verify_window_post_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("verifyWindowPoSt: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 
@@ -434,7 +409,7 @@ namespace fc::proofs {
         ffi::wrap(fil_verify_seal(c_proof_type,
                                   c32ByteArray(comm_r),
                                   c32ByteArray(comm_d),
-                                  c32ByteArray(prover_id),
+                                  prover_id,
                                   c32ByteArray(info.randomness),
                                   c32ByteArray(info.interactive_randomness),
                                   info.info.sector,
@@ -455,59 +430,54 @@ namespace fc::proofs {
   // GENERATED FUNCTIONS
   // ******************
 
-  outcome::result<std::vector<PoStCandidateWithTicket>>
-  Proofs::generateCandidates(
-      ActorId miner_id,
-      const PoStRandomness &randomness,
-      uint64_t challenge_count,
-      const SortedPrivateSectorInfo &sorted_private_replica_info) {
-    OUTCOME_TRY(c_sorted_private_sector_info,
-                cPrivateReplicasInfo(sorted_private_replica_info.values));
-    auto prover_id = toProverID(miner_id);
-    auto res_ptr =
-        ffi::wrap(fil_generate_candidates(c32ByteArray(randomness),
-                                          challenge_count,
-                                          c_sorted_private_sector_info.data(),
-                                          c_sorted_private_sector_info.size(),
-                                          c32ByteArray(prover_id)),
-                  fil_destroy_generate_candidates_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("generateCandidates: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return cppCandidatesWithTickets(gsl::span<const fil_Candidate>(
-        res_ptr->candidates_ptr, res_ptr->candidates_len));
-  }
-
-  outcome::result<std::vector<PoStProof>> Proofs::generatePoSt(
+  outcome::result<std::vector<PoStProof>> Proofs::generateWinningPoSt(
       ActorId miner_id,
       const SortedPrivateSectorInfo &private_replica_info,
-      const PoStRandomness &randomness,
-      gsl::span<const PoStCandidate> winners) {
-    std::vector<fil_Candidate> c_winners = cCandidates(winners);
-
-    OUTCOME_TRY(c_sorted_private_sector_info,
-                cPrivateReplicasInfo(private_replica_info.values));
+      const PoStRandomness &randomness) {
+    OUTCOME_TRY(
+        c_sorted_private_sector_info,
+        cPrivateReplicasInfo(private_replica_info.values, PoStType::Winning));
 
     auto prover_id = toProverID(miner_id);
     auto res_ptr =
-        ffi::wrap(fil_generate_post(c32ByteArray(randomness),
-                                    c_sorted_private_sector_info.data(),
-                                    c_sorted_private_sector_info.size(),
-                                    c_winners.data(),
-                                    c_winners.size(),
-                                    c32ByteArray(prover_id)),
-                  fil_destroy_generate_post_response);
+        ffi::wrap(fil_generate_winning_post(c32ByteArray(randomness),
+                                            c_sorted_private_sector_info.data(),
+                                            c_sorted_private_sector_info.size(),
+                                            prover_id),
+                  fil_destroy_generate_winning_post_response);
 
     if (res_ptr->status_code != 0) {
-      logger_->error("generatePoSt: " + std::string(res_ptr->error_msg));
+      logger_->error("generateWinningPoSt: " + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 
     return cppPoStProofs(
-        gsl::make_span(res_ptr->proofs_ptr, res_ptr->proofs_len));  // NOLINT
+        gsl::make_span(res_ptr->proofs_ptr, res_ptr->proofs_len));
+  }
+
+  outcome::result<std::vector<PoStProof>> Proofs::generateWindowPoSt(
+      ActorId miner_id,
+      const SortedPrivateSectorInfo &private_replica_info,
+      const PoStRandomness &randomness) {
+    OUTCOME_TRY(
+        c_sorted_private_sector_info,
+        cPrivateReplicasInfo(private_replica_info.values, PoStType::Window));
+
+    auto prover_id = toProverID(miner_id);
+    auto res_ptr =
+        ffi::wrap(fil_generate_window_post(c32ByteArray(randomness),
+                                           c_sorted_private_sector_info.data(),
+                                           c_sorted_private_sector_info.size(),
+                                           prover_id),
+                  fil_destroy_generate_window_post_response);
+
+    if (res_ptr->status_code != 0) {
+      logger_->error("generateWindowPoSt: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
+
+    return cppPoStProofs(
+        gsl::make_span(res_ptr->proofs_ptr, res_ptr->proofs_len));
   }
 
   outcome::result<Challenge> Proofs::generateWinningPoStSectorChallenge(
@@ -523,7 +493,7 @@ namespace fc::proofs {
         fil_generate_winning_post_sector_challenge(c_proof_type,
                                                    c32ByteArray(randomness),
                                                    eligible_sectors_len,
-                                                   c32ByteArray(prover_id)),
+                                                   prover_id),
         fil_destroy_generate_winning_post_sector_challenge);
 
     if (res_ptr->status_code != 0) {
@@ -626,7 +596,7 @@ namespace fc::proofs {
       gsl::span<const PieceInfo> pieces) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
-    OUTCOME_TRY(c_pieces, cPublicPiecesInfo(pieces));
+    OUTCOME_TRY(c_pieces, cPublicPieceInfos(pieces));
 
     auto prover_id = toProverID(miner_id);
 
@@ -636,7 +606,7 @@ namespace fc::proofs {
                                              staged_sector_path.c_str(),
                                              sealed_sector_path.c_str(),
                                              sector_num,
-                                             c32ByteArray(prover_id),
+                                             prover_id,
                                              c32ByteArray(ticket),
                                              c_pieces.data(),
                                              c_pieces.size()),
@@ -692,7 +662,7 @@ namespace fc::proofs {
       gsl::span<const PieceInfo> pieces) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
-    OUTCOME_TRY(c_pieces, cPublicPiecesInfo(pieces));
+    OUTCOME_TRY(c_pieces, cPublicPieceInfos(pieces));
 
     OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(sealed_cid));
 
@@ -706,7 +676,7 @@ namespace fc::proofs {
                                                     cache_dir_path.c_str(),
                                                     sealed_sector_path.c_str(),
                                                     sector_num,
-                                                    c32ByteArray(prover_id),
+                                                    prover_id,
                                                     c32ByteArray(ticket),
                                                     c32ByteArray(seed),
                                                     c_pieces.data(),
@@ -729,11 +699,10 @@ namespace fc::proofs {
       SectorNumber sector_id,
       ActorId miner_id) {
     auto prover_id = toProverID(miner_id);
-    auto res_ptr = ffi::wrap(fil_seal_commit_phase2(phase1_output.data(),
-                                                    phase1_output.size(),
-                                                    sector_id,
-                                                    c32ByteArray(prover_id)),
-                             fil_destroy_seal_commit_phase2_response);
+    auto res_ptr = ffi::wrap(
+        fil_seal_commit_phase2(
+            phase1_output.data(), phase1_output.size(), sector_id, prover_id),
+        fil_destroy_seal_commit_phase2_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("sealCommit Phase 2: " + std::string(res_ptr->error_msg));
@@ -761,7 +730,7 @@ namespace fc::proofs {
                                         sealed_sector_path.c_str(),
                                         unseal_output_path.c_str(),
                                         sector_num,
-                                        c32ByteArray(prover_id),
+                                        prover_id,
                                         c32ByteArray(ticket),
                                         c32ByteArray(comm_d)),
                              fil_destroy_unseal_response);
@@ -796,7 +765,7 @@ namespace fc::proofs {
                                               sealed_sector_path.c_str(),
                                               unseal_output_path.c_str(),
                                               sector_num,
-                                              c32ByteArray(prover_id),
+                                              prover_id,
                                               c32ByteArray(ticket),
                                               c32ByteArray(comm_d),
                                               offset,
@@ -873,7 +842,7 @@ namespace fc::proofs {
       RegisteredProof proof_type, gsl::span<PieceInfo> pieces) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
-    OUTCOME_TRY(c_pieces, cPublicPiecesInfo(pieces));
+    OUTCOME_TRY(c_pieces, cPublicPieceInfos(pieces));
 
     auto res_ptr =
         ffi::wrap(fil_generate_data_commitment(
@@ -889,21 +858,11 @@ namespace fc::proofs {
         gsl::make_span(res_ptr->comm_d, kCommitmentBytesLen));
   }
 
-  outcome::result<Ticket> Proofs::finalizeTicket(const Ticket &partialTicket) {
-    auto res_ptr = ffi::wrap(fil_finalize_ticket(c32ByteArray(partialTicket)),
-                             fil_destroy_finalize_ticket_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("finalizeTicket: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return ffi::array(res_ptr->ticket);
-  }
-
-  outcome::result<void> Proofs::clearCache(const std::string &cache_dir_path) {
-    auto res_ptr = ffi::wrap(fil_clear_cache(cache_dir_path.c_str()),
-                             fil_destroy_clear_cache_response);
+  outcome::result<void> Proofs::clearCache(SectorSize sector_size,
+                                           const std::string &cache_dir_path) {
+    auto res_ptr =
+        ffi::wrap(fil_clear_cache(sector_size, cache_dir_path.c_str()),
+                  fil_destroy_clear_cache_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("clearCache: " + std::string(res_ptr->error_msg));
@@ -913,164 +872,15 @@ namespace fc::proofs {
     return outcome::success();
   }
 
-  outcome::result<std::string> Proofs::getPoStCircuitIdentifier(
-      RegisteredProof registered_proof) {
-    OUTCOME_TRY(c_registered_proof, cRegisteredPoStProof(registered_proof));
-    auto res_ptr =
-        ffi::wrap(fil_get_post_circuit_identifier(c_registered_proof),
-                  fil_destroy_string_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("getPoStCircuitIdentifier: "
-                     + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return std::string(res_ptr->string_val);
-  }
-
-  outcome::result<CID> Proofs::getPoStParamsCID(
-      RegisteredProof registered_proof) {
-    OUTCOME_TRY(c_registered_proof, cRegisteredPoStProof(registered_proof));
-    auto res_ptr = ffi::wrap(fil_get_post_params_cid(c_registered_proof),
-                             fil_destroy_string_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("getPoStParamsCID: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return fc::CID::fromString(std::string(res_ptr->string_val));
-  }
-
-  outcome::result<std::string> Proofs::getPoStParamsPath(
-      RegisteredProof registered_proof) {
-    OUTCOME_TRY(c_registered_proof, cRegisteredPoStProof(registered_proof));
-    auto res_ptr = ffi::wrap(fil_get_post_params_path(c_registered_proof),
-                             fil_destroy_string_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("getPoStParamsPath: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return std::string(res_ptr->string_val);
-  }
-
-  outcome::result<CID> Proofs::getPoStVerifyingKeyCID(
-      RegisteredProof registered_proof) {
-    OUTCOME_TRY(c_registered_proof, cRegisteredPoStProof(registered_proof));
-    auto res_ptr = ffi::wrap(fil_get_post_verifying_key_cid(c_registered_proof),
-                             fil_destroy_string_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("getPoStVerifyingKeyCID: "
-                     + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return fc::CID::fromString(std::string(res_ptr->string_val));
-  }
-
-  outcome::result<std::string> Proofs::getPoStVerifyingKeyPath(
-      RegisteredProof registered_proof) {
-    OUTCOME_TRY(c_registered_proof, cRegisteredPoStProof(registered_proof));
-    auto res_ptr =
-        ffi::wrap(fil_get_post_verifying_key_path(c_registered_proof),
-                  fil_destroy_string_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("getPoStVerifyingKeyPath: "
-                     + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return std::string(res_ptr->string_val);
-  }
-
   outcome::result<std::string> Proofs::getPoStVersion(
       RegisteredProof proof_type) {
-    OUTCOME_TRY(c_proof_type, cRegisteredPoStProof(proof_type));
+    OUTCOME_TRY(c_proof_type,
+                cRegisteredPoStProof(proof_type, PoStType::Either));
     auto res_ptr = ffi::wrap(fil_get_post_version(c_proof_type),
                              fil_destroy_string_response);
 
     if (res_ptr->status_code != 0) {
       logger_->error("getPoStVersion: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return std::string(res_ptr->string_val);
-  }
-
-  outcome::result<std::string> Proofs::getSealCircuitIdentifier(
-      RegisteredProof registered_proof) {
-    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
-    auto res_ptr =
-        ffi::wrap(fil_get_seal_circuit_identifier(c_registered_proof),
-                  fil_destroy_string_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("getSealCircuitIdentifier: "
-                     + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return std::string(res_ptr->string_val);
-  }
-
-  outcome::result<CID> Proofs::getSealParamsCID(
-      RegisteredProof registered_proof) {
-    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
-    auto res_ptr = ffi::wrap(fil_get_seal_params_cid(c_registered_proof),
-                             fil_destroy_string_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("getSealParamsCID: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return fc::CID::fromString(std::string(res_ptr->string_val));
-  }
-
-  outcome::result<std::string> Proofs::getSealParamsPath(
-      RegisteredProof registered_proof) {
-    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
-    auto res_ptr = ffi::wrap(fil_get_seal_params_path(c_registered_proof),
-                             fil_destroy_string_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("getSealParamsPath: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return std::string(res_ptr->string_val);
-  }
-
-  outcome::result<CID> Proofs::getSealVerifyingKeyCID(
-      RegisteredProof registered_proof) {
-    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
-    auto res_ptr = ffi::wrap(fil_get_seal_verifying_key_cid(c_registered_proof),
-                             fil_destroy_string_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("getSealVerifyingKeyCID: "
-                     + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
-
-    return fc::CID::fromString(std::string(res_ptr->string_val));
-  }
-
-  outcome::result<std::string> Proofs::getSealVerifyingKeyPath(
-      RegisteredProof registered_proof) {
-    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
-    auto res_ptr =
-        ffi::wrap(fil_get_seal_verifying_key_path(c_registered_proof),
-                  fil_destroy_string_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("getSealVerifyingKeyPath: "
-                     + std::string(res_ptr->error_msg));
       return ProofsError::UNKNOWN;
     }
 
@@ -1106,13 +916,6 @@ namespace fc::proofs {
 
     return Devices(res_ptr->devices_ptr,
                    res_ptr->devices_ptr + res_ptr->devices_len);  // NOLINT
-  }
-
-  outcome::result<uint64_t> Proofs::getMaxUserBytesPerStagedSector(
-      RegisteredProof registered_proof) {
-    OUTCOME_TRY(c_registered_proof, cRegisteredSealProof(registered_proof));
-
-    return fil_get_max_user_bytes_per_staged_sector(c_registered_proof);
   }
 
 }  // namespace fc::proofs
