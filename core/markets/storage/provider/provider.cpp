@@ -24,6 +24,7 @@
 namespace fc::markets::storage::provider {
 
   using api::MsgWait;
+  using fc::storage::piece::PayloadLocation;
   using fc::storage::piece::PieceStorageImpl;
   using host::HostContext;
   using host::HostContextImpl;
@@ -263,17 +264,29 @@ namespace fc::markets::storage::provider {
         });
   }
 
-  outcome::result<void> StorageProviderImpl::recordPieceInfo(
+  outcome::result<PieceInfo> StorageProviderImpl::locatePiece(
       std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(
+        piece_info,
+        miner_api_->LocatePieceForDealWithinSector(deal->deal_id, tipset_key));
+    return piece_info;
+  }
 
-    // miner_node_api.LocatePieceForDealWithinSector()
-    // TODO PieceStorage.addPayloadLocations
-    // TODO PieceStorage.addPieceInfo
+  outcome::result<void> StorageProviderImpl::recordPieceInfo(
+      std::shared_ptr<MinerDeal> deal, const PieceInfo &piece_info) {
+    // TODO handle metadata file
+
+    std::map<CID, PayloadLocation> locations;
+    locations[deal->ref.root] = {};
+    OUTCOME_TRY(piece_storage_->addPayloadLocations(
+        deal->client_deal_proposal.proposal.piece_cid, locations));
+    OUTCOME_TRY(piece_storage_->addPieceInfo(
+        deal->client_deal_proposal.proposal.piece_cid, piece_info));
 
     return outcome::success();
-  }
+  }  // namespace fc::markets::storage::provider
 
   std::vector<ProviderTransition> StorageProviderImpl::makeFSMTransitions() {
     return {
@@ -623,7 +636,15 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto res = recordPieceInfo(deal);
+    auto maybe_piece_info = locatePiece(deal);
+    if (maybe_piece_info.has_error()) {
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ProviderEvent::ProviderEventUnableToLocatePiece));
+    }
+    if (recordPieceInfo(deal, maybe_piece_info.value()).has_error()) {
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ProviderEvent::ProviderEventPieceStoreErrored));
+    }
     OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealCompleted));
   }
 

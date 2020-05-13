@@ -235,8 +235,7 @@ namespace fc::markets::storage::example {
 
     miner_api->LocatePieceForDealWithinSector = {
         [](auto &deal_id, auto &tipset_key) -> outcome::result<PieceInfo> {
-          // TODO
-          throw "TODO";
+          return PieceInfo{};
         }};
 
     return miner_api;

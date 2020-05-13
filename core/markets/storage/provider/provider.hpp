@@ -20,6 +20,7 @@
 
 namespace fc::markets::storage::provider {
   using api::MinerApi;
+  using fc::storage::piece::PieceInfo;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
   using network::Libp2pStorageMarketNetwork;
@@ -111,12 +112,21 @@ namespace fc::markets::storage::provider {
                             const std::string &message);
 
     /**
+     * Locate piece for deal
+     * @param deal - activated deal
+     * @return piece info with location
+     */
+    outcome::result<PieceInfo> locatePiece(std::shared_ptr<MinerDeal> deal);
+
+    /**
      * Records sector information about an activated deal so that the data can
      * be retrieved later
      * @param deal - activated deal
+     * @param piece_info - piece location
      * @return error in case of failure
      */
-    outcome::result<void> recordPieceInfo(std::shared_ptr<MinerDeal> deal);
+    outcome::result<void> recordPieceInfo(std::shared_ptr<MinerDeal> deal,
+                                          const PieceInfo &piece_info);
 
     /**
      * Creates all FSM transitions
