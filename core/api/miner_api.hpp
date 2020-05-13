@@ -8,9 +8,12 @@
 
 #include "api/api.hpp"
 #include "sector_storage/sealing/types.hpp"
+#include "storage/piece/piece_storage.hpp"
 
 namespace fc::api {
+  using primitives::DealId;
   using primitives::piece::UnpaddedPieceSize;
+  using primitives::sector::PieceInfo;
   using sector_storage::sealing::DealInfo;
   using sector_storage::sealing::DealSchedule;
 
@@ -27,6 +30,14 @@ namespace fc::api {
                const UnpaddedPieceSize &,
                const Buffer &,
                const DealInfo &)
+
+    /**
+     * Get location for the data for storage deal
+     */
+    API_METHOD(LocatePieceForDealWithinSector,
+               PieceInfo,
+               const DealId &,
+               const TipsetKey &)
   };
 
 }  // namespace fc::api
