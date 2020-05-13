@@ -11,11 +11,11 @@
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::api {
-  using fc::storage::piece::PieceInfo;
   using primitives::DealId;
   using primitives::piece::UnpaddedPieceSize;
   using sector_storage::sealing::DealInfo;
   using sector_storage::sealing::DealSchedule;
+  using storage::piece::PieceInfo;
 
   // TODO(a.chernyshov): FIL-165 implement methods
   struct MinerApi {
