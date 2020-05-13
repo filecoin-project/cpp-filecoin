@@ -106,7 +106,7 @@ namespace fc::vm::message {
      * Returnes CID of signed message
      * @return CID
      */
-    outcome::result<CID> getCid() const;
+    CID getCid() const;
   };
 
   CBOR_TUPLE(SignedMessage, message, signature)

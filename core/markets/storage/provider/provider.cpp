@@ -232,7 +232,7 @@ namespace fc::markets::storage::provider {
                                      PublishStorageDeals::Number,
                                      MethodParams{encoded_params});
     OUTCOME_TRY(signed_message, api_->MpoolPushMessage(unsigned_message));
-    OUTCOME_TRY(cid, signed_message.getCid());
+    CID cid = signed_message.getCid();
     OUTCOME_TRY(str_cid, cid.toString());
     logger_->debug("Deal published with CID = " + str_cid);
     return std::move(cid);

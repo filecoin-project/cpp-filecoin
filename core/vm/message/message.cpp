@@ -23,13 +23,15 @@ namespace fc::vm::message {
     return value + gasLimit * gasPrice;
   }
 
-  outcome::result<CID> SignedMessage::getCid() const {
+  CID SignedMessage::getCid() const {
     if (signature.isBls()) {
-      OUTCOME_TRY(data, codec::cbor::encode(message));
-      return getCidOf(data);
+      OUTCOME_EXCEPT(data, codec::cbor::encode(message));
+      OUTCOME_EXCEPT(res, getCidOf(data));
+      return res;
     }
-    OUTCOME_TRY(data, codec::cbor::encode(*this));
-    return getCidOf(data);
+    OUTCOME_EXCEPT(data, codec::cbor::encode(*this));
+    OUTCOME_EXCEPT(res, getCidOf(data));
+    return res;
   }
 
 }  // namespace fc::vm::message
