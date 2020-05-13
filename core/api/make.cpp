@@ -568,12 +568,6 @@ namespace fc::api {
           OUTCOME_TRY(state, context.minerState(address));
           return state.info.sector_size;
         }},
-        .StateMinerWorker = {[=](auto address,
-                                 auto tipset_key) -> outcome::result<Address> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          OUTCOME_TRY(state, context.minerState(address));
-          return state.info.worker;
-        }},
         .StateNetworkName = {[=]() -> outcome::result<std::string> {
           OUTCOME_TRY(context, tipsetContext(chain_store->genesisTipsetKey()));
           OUTCOME_TRY(state, context.initState());

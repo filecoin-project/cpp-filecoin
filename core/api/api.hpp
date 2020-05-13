@@ -289,7 +289,6 @@ namespace fc::api {
                SectorSize,
                const Address &,
                const TipsetKey &)
-    API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
     API_METHOD(StateNetworkName, std::string)
     API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &)
 
