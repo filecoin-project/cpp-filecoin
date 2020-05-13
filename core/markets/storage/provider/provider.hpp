@@ -102,8 +102,8 @@ namespace fc::markets::storage::provider {
      * @param message - message to send in case of proposal reject
      */
     void sendSignedResponse(std::shared_ptr<MinerDeal> deal,
-                                             const StorageDealStatus &status,
-                                             const std::string &message);
+                            const StorageDealStatus &status,
+                            const std::string &message);
 
     /**
      * Creates all FSM transitions
@@ -391,6 +391,8 @@ namespace fc::markets::storage::provider {
 
     /**
      * @brief Handle event deal activation
+     * Records sector information about an activated deal so that the data can
+     * be retrieved later
      * @param deal  - current storage deal
      * @param event - ProviderEventDealActivationFailed
      * @param from  - STORAGE_DEAL_SEALING

@@ -557,6 +557,7 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     // TODO hand off
+    // miner_node_api.addPiece
     OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealHandedOff));
   }
 
@@ -584,6 +585,7 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     // TODO verify deal activated
+    // on deal sector commited
     OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealActivated));
   }
 
@@ -604,7 +606,8 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO Record Piece Info
+    // miner_node_api.LocatePieceForDealWithinSector()
+    // TODO Record Piece Info to PieceStorage
     OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealCompleted));
   }
 
