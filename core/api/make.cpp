@@ -108,8 +108,9 @@ namespace fc::api {
       return context;
     };
     return {
-        // TODO(a.chernyshov): FIL-165 implement method
-        .AddPiece = {},
+        .AuthNew = {[](auto) {
+          return Buffer{1, 2, 3};
+        }},
         .ChainGetBlock = {[=](auto &block_cid) {
           return ipld->getCbor<BlockHeader>(block_cid);
         }},

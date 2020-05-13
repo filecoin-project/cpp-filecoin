@@ -22,7 +22,6 @@
 #include "primitives/ticket/epost_ticket.hpp"
 #include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset.hpp"
-#include "sector_storage/sealing/types.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
@@ -57,14 +56,11 @@ namespace fc::api {
   using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::block::BlockMsg;
-  using primitives::piece::UnpaddedPieceSize;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
-  using sector_storage::sealing::DealInfo;
-  using sector_storage::sealing::DealSchedule;
   using vm::actor::Actor;
   using vm::actor::builtin::market::ClientDealProposal;
   using vm::actor::builtin::market::DealProposal;
@@ -200,12 +196,6 @@ namespace fc::api {
   };
 
   struct Api {
-    API_METHOD(AddPiece,
-               void,
-               const UnpaddedPieceSize &,
-               const Buffer &,
-               const DealInfo &)
-
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
