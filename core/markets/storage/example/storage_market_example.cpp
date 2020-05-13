@@ -91,7 +91,7 @@ namespace fc::markets::storage::example {
     return buffer;
   }
 
-  outcome::result<DataRef> makeDataRef(std::shared_ptr<PieceIO> piece_io,
+  outcome::result<DataRef> makeDataRef(std::shared_ptr<PieceIO> &piece_io,
                                        const Buffer &data) {
     OUTCOME_TRY(root_cid, CID::fromString(kPayloadCid));
     OUTCOME_TRY(piece_commitment,
@@ -107,7 +107,7 @@ namespace fc::markets::storage::example {
    * @param conn_string
    * @return libp2p::PeerInfo
    */
-  PeerInfo getPeerInfo(std::string conn_string) {
+  PeerInfo getPeerInfo(const std::string &conn_string) {
     auto server_ma_res =
         libp2p::multi::Multiaddress::create(conn_string);  // NOLINT
     if (!server_ma_res) {
