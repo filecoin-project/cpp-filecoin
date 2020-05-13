@@ -14,6 +14,7 @@
 namespace fc::markets::storage::example {
 
   using api::Api;
+  using api::MinerApi;
   using common::Buffer;
   using crypto::bls::BlsProvider;
   using crypto::secp256k1::Secp256k1ProviderDefault;
@@ -39,6 +40,7 @@ namespace fc::markets::storage::example {
       const std::shared_ptr<libp2p::Host> &provider_host,
       const std::shared_ptr<boost::asio::io_context> &context,
       const std::shared_ptr<Api> &api,
+      const std::shared_ptr<MinerApi> &miner_api,
       const Address &miner_actor_address) {
     OUTCOME_TRY(provider_host->listen(provider_multiaddress));
 
@@ -55,6 +57,7 @@ namespace fc::markets::storage::example {
                                               keystore,
                                               datastore,
                                               api,
+                                              miner_api,
                                               miner_actor_address,
                                               piece_io);
     provider->init();

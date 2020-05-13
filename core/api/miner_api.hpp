@@ -11,9 +11,9 @@
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::api {
+  using fc::storage::piece::PieceInfo;
   using primitives::DealId;
   using primitives::piece::UnpaddedPieceSize;
-  using primitives::sector::PieceInfo;
   using sector_storage::sealing::DealInfo;
   using sector_storage::sealing::DealSchedule;
 

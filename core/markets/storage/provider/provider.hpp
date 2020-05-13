@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_MARKETS_STORAGE_PROVIDER_PROVIDER_HPP
 
 #include <libp2p/host/host.hpp>
+#include "api/miner_api.hpp"
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
 #include "markets/pieceio/pieceio.hpp"
@@ -15,8 +16,11 @@
 #include "markets/storage/provider/provider_events.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
 #include "markets/storage/storage_receiver.hpp"
+#include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::storage::provider {
+  using api::MinerApi;
+  using fc::storage::piece::PieceStorage;
   using libp2p::Host;
   using network::Libp2pStorageMarketNetwork;
   using pieceio::PieceIO;
@@ -43,6 +47,7 @@ namespace fc::markets::storage::provider {
                         std::shared_ptr<KeyStore> keystore,
                         std::shared_ptr<Datastore> datastore,
                         std::shared_ptr<Api> api,
+                        std::shared_ptr<MinerApi> miner_api,
                         const Address &actor_address,
                         std::shared_ptr<PieceIO> piece_io);
 
@@ -104,6 +109,14 @@ namespace fc::markets::storage::provider {
     void sendSignedResponse(std::shared_ptr<MinerDeal> deal,
                             const StorageDealStatus &status,
                             const std::string &message);
+
+    /**
+     * Records sector information about an activated deal so that the data can
+     * be retrieved later
+     * @param deal - activated deal
+     * @return error in case of failure
+     */
+    outcome::result<void> recordPieceInfo(std::shared_ptr<MinerDeal> deal);
 
     /**
      * Creates all FSM transitions
@@ -391,8 +404,6 @@ namespace fc::markets::storage::provider {
 
     /**
      * @brief Handle event deal activation
-     * Records sector information about an activated deal so that the data can
-     * be retrieved later
      * @param deal  - current storage deal
      * @param event - ProviderEventDealActivationFailed
      * @param from  - STORAGE_DEAL_SEALING
@@ -493,9 +504,11 @@ namespace fc::markets::storage::provider {
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<StoredAsk> stored_ask_;
     std::shared_ptr<Api> api_;
+    std::shared_ptr<MinerApi> miner_api_;
 
     std::shared_ptr<StorageMarketNetwork> network_;
     std::shared_ptr<PieceIO> piece_io_;
+    std::shared_ptr<PieceStorage> piece_storage_;
 
     common::Logger logger_ = common::createLogger("StorageMarketProvider");
   };

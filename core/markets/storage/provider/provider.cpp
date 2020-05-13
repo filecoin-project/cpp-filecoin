@@ -11,6 +11,7 @@
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/storage/provider/storage_provider_error.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
+#include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 
 #define CALLBACK_ACTION(_action)                                          \
@@ -23,6 +24,7 @@
 namespace fc::markets::storage::provider {
 
   using api::MsgWait;
+  using fc::storage::piece::PieceStorageImpl;
   using host::HostContext;
   using host::HostContextImpl;
   using vm::VMExitCode;
@@ -39,6 +41,7 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<KeyStore> keystore,
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
+      std::shared_ptr<MinerApi> miner_api,
       const Address &actor_address,
       std::shared_ptr<PieceIO> piece_io)
       : registered_proof_{registered_proof},
@@ -47,8 +50,10 @@ namespace fc::markets::storage::provider {
         stored_ask_{std::make_shared<StoredAsk>(
             keystore, datastore, api, actor_address)},
         api_{std::move(api)},
+        miner_api_{std::move(miner_api)},
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
-        piece_io_{std::move(piece_io)} {}
+        piece_io_{std::move(piece_io)},
+        piece_storage_{std::make_shared<PieceStorageImpl>(datastore)} {}
 
   void StorageProviderImpl::init() {
     std::shared_ptr<HostContext> fsm_context =
@@ -256,6 +261,18 @@ namespace fc::markets::storage::provider {
           OUTCOME_EXCEPT(self->fsm_->send(
               deal, ProviderEvent::ProviderEventDealPublished));
         });
+  }
+
+  outcome::result<void> StorageProviderImpl::recordPieceInfo(
+      std::shared_ptr<MinerDeal> deal) {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+
+    // miner_node_api.LocatePieceForDealWithinSector()
+    // TODO PieceStorage.addPayloadLocations
+    // TODO PieceStorage.addPieceInfo
+
+    return outcome::success();
   }
 
   std::vector<ProviderTransition> StorageProviderImpl::makeFSMTransitions() {
@@ -606,8 +623,7 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // miner_node_api.LocatePieceForDealWithinSector()
-    // TODO Record Piece Info to PieceStorage
+    auto res = recordPieceInfo(deal);
     OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealCompleted));
   }
 

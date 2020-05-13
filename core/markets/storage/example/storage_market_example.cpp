@@ -11,6 +11,7 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/security/plaintext.hpp>
 #include "adt/channel.hpp"
+#include "api/miner_api.hpp"
 #include "common/buffer.hpp"
 #include "common/span.hpp"
 #include "common/todo_error.hpp"
@@ -28,6 +29,7 @@
 namespace fc::markets::storage::example {
 
   using adt::Channel;
+  using api::MinerApi;
   using api::MsgWait;
   using api::Wait;
   using common::Buffer;
@@ -51,6 +53,7 @@ namespace fc::markets::storage::example {
   using vm::actor::builtin::market::PublishStorageDeals;
   using vm::runtime::MessageReceipt;
   using libp2p::common::operator""_unhex;
+  using fc::storage::piece::PieceInfo;
   using primitives::GasAmount;
   using primitives::tipset::Tipset;
   using vm::actor::builtin::miner::MinerInfo;
@@ -227,6 +230,18 @@ namespace fc::markets::storage::example {
     return api;
   }
 
+  std::shared_ptr<MinerApi> makeMinerApi() {
+    std::shared_ptr<MinerApi> miner_api = std::make_shared<MinerApi>();
+
+    miner_api->LocatePieceForDealWithinSector = {
+        [](auto &deal_id, auto &tipset_key) -> outcome::result<PieceInfo> {
+          // TODO
+          throw "TODO";
+        }};
+
+    return miner_api;
+  }
+
   outcome::result<void> makeExample() {
     spdlog::set_level(spdlog::level::debug);
 
@@ -249,6 +264,7 @@ namespace fc::markets::storage::example {
                                        kClientAddress,
                                        client_keypair,
                                        bls_provider);
+    std::shared_ptr<MinerApi> miner_api = makeMinerApi();
 
     // Initialize provider
 
@@ -280,6 +296,7 @@ namespace fc::markets::storage::example {
                              host,
                              context,
                              api,
+                             miner_api,
                              kMinerActorAddress));
 
     TokenAmount provider_price = 1334;

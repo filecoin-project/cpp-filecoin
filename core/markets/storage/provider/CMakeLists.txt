@@ -17,6 +17,7 @@ target_link_libraries(storage_market_provider
     libp2p_storage_market_network
     market_actor
     todo_error
+    piece_storage
     )
 
 add_library(fuhon_stored_ask
