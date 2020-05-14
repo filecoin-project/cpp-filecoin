@@ -96,6 +96,7 @@ namespace fc::vm::interpreter {
           }));
       OUTCOME_TRY(reward_encoded, codec::cbor::encode(reward));
       OUTCOME_TRY(env->applyImplicitMessage(UnsignedMessage{
+          0,
           kRewardAddress,
           kSystemActorAddress,
           {},
@@ -108,6 +109,7 @@ namespace fc::vm::interpreter {
     }
 
     OUTCOME_TRY(env->applyImplicitMessage(UnsignedMessage{
+        0,
         kCronAddress,
         kSystemActorAddress,
         {},

@@ -154,7 +154,7 @@ namespace fc::sector_storage {
       const SectorId &sector) {
     OUTCOME_TRY(paths, acquireSector(sector, SectorFileType::FTCache));
 
-    return proofs::clearCache(paths.cache);
+    return proofs::clearCache(size_, paths.cache);
   }
 
   outcome::result<PieceInfo> SectorStorageImpl::addPiece(

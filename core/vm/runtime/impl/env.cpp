@@ -152,7 +152,8 @@ namespace fc::vm::runtime {
                                  {},
                                  {}}));
     OUTCOME_TRY(params, actor::encodeActorParams(address));
-    OUTCOME_TRY(sendWithRevert({id,
+    OUTCOME_TRY(sendWithRevert({0,
+                                id,
                                 kSystemActorAddress,
                                 {},
                                 {},

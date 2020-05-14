@@ -70,7 +70,7 @@ namespace fc::vm::runtime {
                                        const Address &address,
                                        gsl::span<const uint8_t> data));
 
-    MOCK_METHOD1(verifyPoSt, outcome::result<bool>(const PoStVerifyInfo &info));
+    MOCK_METHOD1(verifyPoSt, outcome::result<bool>(const WindowPoStVerifyInfo &info));
 
     MOCK_METHOD1(verifySeal, outcome::result<bool>(const SealVerifyInfo &info));
 

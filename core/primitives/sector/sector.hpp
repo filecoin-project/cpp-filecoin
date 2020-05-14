@@ -48,8 +48,6 @@ namespace fc::primitives::sector {
     StackedDRG32GiBWinningPoSt = 15,
     StackedDRG32GiBWindowPoSt = 16,
 
-    // TODO(artyom-yurin): [FIL-186] Set compatible values ​​when in lotus
-    // they will support them
     StackedDRG64GiBSeal = 17,
     StackedDRG64GiBWinningPoSt = 18,
     StackedDRG64GiBWindowPoSt = 19,
