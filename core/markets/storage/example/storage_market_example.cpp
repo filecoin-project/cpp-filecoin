@@ -108,8 +108,7 @@ namespace fc::markets::storage::example {
    * @return libp2p::PeerInfo
    */
   PeerInfo getPeerInfo(const std::string &conn_string) {
-    auto server_ma_res =
-        libp2p::multi::Multiaddress::create(conn_string);  // NOLINT
+    auto server_ma_res = libp2p::multi::Multiaddress::create(conn_string);
     if (!server_ma_res) {
       std::cerr << "unable to create server multiaddress: "
                 << server_ma_res.error().message() << std::endl;
@@ -151,12 +150,11 @@ namespace fc::markets::storage::example {
   std::shared_ptr<Api> makeApi(
       const BlsKeyPair &miner_worker_keypair,
       const Address &provider_actor_address,
-      const BlsKeyPair &provider_keypair,
       const Address &client_id_address,
       const BlsKeyPair &client_keypair,
       const std::shared_ptr<BlsProvider> &bls_provider) {
-    Address provider_bls_address =
-        Address::makeBls(provider_keypair.public_key);
+    Address miner_worker_address =
+        Address::makeBls(miner_worker_keypair.public_key);
     Address client_bls_address = Address::makeBls(client_keypair.public_key);
     ChainEpoch epoch = 100;
     Tipset chain_head;
@@ -182,11 +180,11 @@ namespace fc::markets::storage::example {
 
     api->StateAccountKey = {
         [provider_actor_address,
-         provider_bls_address,
+            miner_worker_address,
          client_id_address,
          client_bls_address](auto &address,
                              auto &tipset_key) -> outcome::result<Address> {
-          if (address == provider_actor_address) return provider_bls_address;
+          if (address == provider_actor_address) return miner_worker_address;
           if (address == client_id_address) return client_bls_address;
           throw "StateAccountKey: Wrong address parameter";
         }};
@@ -255,11 +253,9 @@ namespace fc::markets::storage::example {
         std::make_shared<PieceIOImpl>(ipfs_datastore);
 
     OUTCOME_TRY(miner_worker_keypair, bls_provider->generateKeyPair());
-    OUTCOME_TRY(provider_keypair, bls_provider->generateKeyPair());
     OUTCOME_TRY(client_keypair, bls_provider->generateKeyPair());
     std::shared_ptr<Api> api = makeApi(miner_worker_keypair,
                                        kMinerActorAddress,
-                                       provider_keypair,
                                        kClientAddress,
                                        client_keypair,
                                        bls_provider);
@@ -287,7 +283,7 @@ namespace fc::markets::storage::example {
     OUTCOME_TRY(provider,
                 makeProvider(provider_info.peer_info.addresses.front(),
                              kRegisteredProof,
-                             provider_keypair,
+                             miner_worker_keypair,
                              bls_provider,
                              secp256k1_provider,
                              datastore,
@@ -319,10 +315,10 @@ namespace fc::markets::storage::example {
     // propose storage deal
     OUTCOME_TRY(data, readFile(CAR_FROM_PAYLOAD_FILE));
     OUTCOME_TRY(data_ref, makeDataRef(piece_io, data));
-    ChainEpoch start_epoch{200};
-    ChainEpoch end_epoch{33333};
-    TokenAmount client_price{1000};
-    TokenAmount collateral{3556};
+    ChainEpoch start_epoch{10};
+    ChainEpoch end_epoch{200};
+    TokenAmount client_price{10};
+    TokenAmount collateral{10};
     OUTCOME_TRY(proposal_res,
                 client->proposeStorageDeal(kClientAddress,
                                            provider_info,

@@ -49,7 +49,7 @@ namespace fc::markets::storage::provider {
                         std::shared_ptr<Datastore> datastore,
                         std::shared_ptr<Api> api,
                         std::shared_ptr<MinerApi> miner_api,
-                        const Address &actor_address,
+                        const Address &miner_actor_address,
                         std::shared_ptr<PieceIO> piece_io);
 
     auto init() -> void override;

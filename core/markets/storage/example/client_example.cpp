@@ -6,6 +6,7 @@
 #include "markets/storage/example/client_example.hpp"
 
 #include <iostream>
+#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/client/client_impl.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
@@ -49,6 +50,8 @@ namespace fc::markets::storage::example {
 
   void sendGetAsk(const std::shared_ptr<Client> &client,
                   const StorageProviderInfo &info) {
+    std::cout << "Send get storage ask to "
+              << peerInfoToPrettyString(info.peer_info) << std::endl;
     client->getAsk(info, [](outcome::result<SignedStorageAsk> ask_res) {
       if (ask_res.has_error()) {
         std::cout << "Response error " << ask_res.error().message()

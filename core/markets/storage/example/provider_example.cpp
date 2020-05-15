@@ -32,7 +32,7 @@ namespace fc::markets::storage::example {
   outcome::result<std::shared_ptr<StorageProviderImpl>> makeProvider(
       const Multiaddress &provider_multiaddress,
       const RegisteredProof &registered_proof,
-      const BlsKeyPair &provider_keypair,
+      const BlsKeyPair &miner_worker_keypair,
       const std::shared_ptr<BlsProvider> &bls_provider,
       const std::shared_ptr<Secp256k1ProviderDefault> &secp256k1_provider,
       const std::shared_ptr<Datastore> &datastore,
@@ -46,9 +46,8 @@ namespace fc::markets::storage::example {
 
     std::shared_ptr<KeyStore> keystore =
         std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
-
-    Address bls_address = Address::makeBls(provider_keypair.public_key);
-    OUTCOME_TRY(keystore->put(bls_address, provider_keypair.private_key));
+    Address bls_address = Address::makeBls(miner_worker_keypair.public_key);
+    OUTCOME_TRY(keystore->put(bls_address, miner_worker_keypair.private_key));
 
     std::shared_ptr<StorageProviderImpl> provider =
         std::make_shared<StorageProviderImpl>(registered_proof,

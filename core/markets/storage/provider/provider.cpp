@@ -43,13 +43,13 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
       std::shared_ptr<MinerApi> miner_api,
-      const Address &actor_address,
+      const Address &miner_actor_address,
       std::shared_ptr<PieceIO> piece_io)
       : registered_proof_{registered_proof},
         host_{std::move(host)},
         context_{std::move(context)},
         stored_ask_{std::make_shared<StoredAsk>(
-            keystore, datastore, api, actor_address)},
+            keystore, datastore, api, miner_actor_address)},
         api_{std::move(api)},
         miner_api_{std::move(miner_api)},
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
