@@ -39,7 +39,7 @@ jobs:
       uses: actions/cache@v1.1.2
       env:
         cache-name: cache-filecoin-ffi-proofs
-        version: v24
+        version: v26
       with:
         path: /var/tmp/filecoin-proof-parameters
         key: build-${{ env.cache-name }}-${{ env.version }}
