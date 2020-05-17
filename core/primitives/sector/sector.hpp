@@ -166,18 +166,6 @@ namespace fc::primitives::sector {
     ActorId prover;
   };
 
-  // TODO(artyom-yurin): Remove it after complete migrate to v26 proofs
-  struct PoStVerifyInfo {
-    PoStRandomness randomness;
-    /// From OnChainPoStVerifyInfo
-    std::vector<PoStCandidate> candidates;
-    std::vector<PoStProof> proofs;
-    std::vector<SectorInfo> eligible_sectors;
-    /// used to derive 32-byte prover ID
-    ActorId prover;
-    uint64_t challenge_count;
-  };
-
   CBOR_TUPLE(SectorId, miner, sector)
 
   CBOR_TUPLE(OnChainSealVerifyInfo,

@@ -34,7 +34,6 @@ namespace fc::proofs {
   using primitives::sector::PoStCandidate;
   using primitives::sector::PoStProof;
   using primitives::sector::PoStRandomness;
-  using primitives::sector::PoStVerifyInfo;
   using primitives::sector::Proof;
   using primitives::sector::SealRandomness;
   using primitives::sector::SealVerifyInfo;
