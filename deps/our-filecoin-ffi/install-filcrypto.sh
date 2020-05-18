@@ -19,7 +19,7 @@ fi
 main() {
     mkdir -p include/filecoin-ffi
     mkdir -p lib/pkgconfig
-    $( cd "${ffi_dir}" && ./install-filcrypto)
+    ./${ffi_dir}/install-filcrypto
 
     find -L "${ffi_dir}" -type f -name filcrypto.h -exec rsync --checksum "{}" ./include/filecoin-ffi \;
     find -L "${ffi_dir}" -type f -name libfilcrypto.a -exec rsync --checksum "{}" ./lib \;
