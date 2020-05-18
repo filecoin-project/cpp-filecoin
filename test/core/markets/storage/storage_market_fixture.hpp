@@ -32,6 +32,7 @@ namespace fc::markets::storage::test {
   using api::Wait;
   using client::Client;
   using client::ClientImpl;
+  using common::Buffer;
   using crypto::bls::BlsProvider;
   using crypto::bls::BlsProviderImpl;
   using crypto::secp256k1::Secp256k1ProviderDefault;
@@ -97,15 +98,10 @@ namespace fc::markets::storage::test {
           std::make_shared<InMemoryStorage>();
       std::shared_ptr<IpfsDatastore> ipfs_datastore =
           std::make_shared<InMemoryDatastore>();
-      std::shared_ptr<PieceIO> piece_io =
-          std::make_shared<PieceIOImpl>(ipfs_datastore);
+      piece_io_ = std::make_shared<PieceIOImpl>(ipfs_datastore);
 
-      auto miner_actor_address = Address::makeFromId(100);
-      auto client_id_address = Address::makeFromId(102);
       OUTCOME_EXCEPT(miner_worker_keypair, bls_provider->generateKeyPair());
       OUTCOME_EXCEPT(client_keypair, bls_provider->generateKeyPair());
-
-      RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
 
       auto node_api = makeNodeApi(miner_actor_address,
                                   miner_worker_keypair,
@@ -120,7 +116,6 @@ namespace fc::markets::storage::test {
                               bls_provider,
                               secp256k1_provider,
                               datastore,
-                              piece_io,
                               host,
                               context_,
                               node_api,
@@ -131,7 +126,6 @@ namespace fc::markets::storage::test {
       client = makeClient(client_keypair,
                           bls_provider,
                           secp256k1_provider,
-                          piece_io,
                           host,
                           context_,
                           node_api);
@@ -266,7 +260,6 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<BlsProvider> &bls_provider,
         const std::shared_ptr<Secp256k1ProviderDefault> &secp256k1_provider,
         const std::shared_ptr<Datastore> &datastore,
-        const std::shared_ptr<PieceIO> piece_io,
         const std::shared_ptr<libp2p::Host> &provider_host,
         const std::shared_ptr<boost::asio::io_context> &context,
         const std::shared_ptr<Api> &api,
@@ -289,7 +282,7 @@ namespace fc::markets::storage::test {
                                                 api,
                                                 miner_api,
                                                 miner_actor_address,
-                                                piece_io);
+                                                piece_io_);
       new_provider->init();
       return new_provider;
     }
@@ -310,7 +303,6 @@ namespace fc::markets::storage::test {
         const BlsKeyPair &client_keypair,
         const std::shared_ptr<BlsProvider> &bls_provider,
         const std::shared_ptr<Secp256k1ProviderDefault> &secp256k1_provider,
-        const std::shared_ptr<PieceIO> &piece_io,
         const std::shared_ptr<libp2p::Host> &client_host,
         const std::shared_ptr<boost::asio::io_context> &context,
         const std::shared_ptr<Api> &api) {
@@ -321,20 +313,48 @@ namespace fc::markets::storage::test {
       OUTCOME_EXCEPT(keystore->put(bls_address, client_keypair.private_key));
 
       auto new_client = std::make_shared<ClientImpl>(
-          client_host, context, api, keystore, piece_io);
+          client_host, context, api, keystore, piece_io_);
       new_client->init();
       return new_client;
     }
 
-    common::Logger logger = common::createLogger("StorageMarketProvider");
+    outcome::result<DataRef> makeDataRef(const CID &root_cid,
+                                         const Buffer &data) {
+      OUTCOME_TRY(piece_commitment,
+                  piece_io_->generatePieceCommitment(registered_proof, data));
+      return DataRef{.transfer_type = kTransferTypeManual,
+                     .root = root_cid,
+                     .piece_cid = piece_commitment.first,
+                     .piece_size = piece_commitment.second};
+    }
 
+    /**
+     * Waits for deal state in provider
+     * @param proposal_cid - proposal deal cid
+     * @param state - desired state
+     */
+    void waitForProviderDealStatus(const CID &proposal_cid,
+                                   const StorageDealStatus &state) {
+      // wait 2 sec max
+      for (int i = 0; i < 20; i++) {
+        auto deal = provider->getDeal(proposal_cid);
+        if (deal.has_value() && deal.value()->state == state) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+    }
+
+    common::Logger logger = common::createLogger("StorageMarketTest");
+
+    Address miner_actor_address = Address::makeFromId(100);
+    Address client_id_address = Address::makeFromId(102);
     Tipset chain_head;
     std::shared_ptr<Client> client;
     std::shared_ptr<StorageProvider> provider;
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
 
-   protected:
+    RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
     std::shared_ptr<boost::asio::io_context> context_;
+    std::shared_ptr<PieceIO> piece_io_;
   };
 
 }  // namespace fc::markets::storage::test

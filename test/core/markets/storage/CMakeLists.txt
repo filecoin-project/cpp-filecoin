@@ -8,6 +8,7 @@ add_subdirectory(provider)
 addtest(storage_market_test
     storage_market_types_encoding_test.cpp
     storage_market_ask.cpp
+    storage_market_deal.cpp
     )
 target_link_libraries(storage_market_test
     address
