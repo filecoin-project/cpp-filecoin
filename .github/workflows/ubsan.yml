@@ -15,7 +15,7 @@ jobs:
     - uses: actions/checkout@v2
       name: checkout repo
     - name: cache
-      uses: actions/cache@v1.1.2
+      uses: actions/cache@v1.2.0
       env:
         cache-name: cache-filecoin-ffi-proofs
         version: v26
