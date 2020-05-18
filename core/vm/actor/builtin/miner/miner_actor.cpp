@@ -150,6 +150,7 @@ namespace fc::vm::actor::builtin::miner {
                         state.post_state.proving_period_start,
                         seed),
                     .proofs = params.proofs,
+                    .challenged_sectors = {},
                     .prover = miner.getId(),
                 }));
     if (!verified) {
