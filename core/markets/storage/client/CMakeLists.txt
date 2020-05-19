@@ -9,6 +9,7 @@ add_library(storage_market_client
 target_link_libraries(storage_market_client
     address
     blob
+    discovery
     fuhon_fsm
     outcome
     logger

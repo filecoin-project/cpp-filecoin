@@ -113,6 +113,7 @@ namespace fc::markets::storage::test {
 
       std::map<Address, BlsKeyPair> private_keys;
       private_keys[miner_worker_address] = miner_worker_keypair;
+      private_keys[client_bls_address] = client_keypair;
 
       node_api = makeNodeApi(miner_actor_address,
                              miner_worker_keypair,
@@ -139,6 +140,7 @@ namespace fc::markets::storage::test {
                           secp256k1_provider,
                           host,
                           context_,
+                          datastore,
                           node_api);
       storage_provider_info = makeStorageProviderInfo(miner_actor_address,
                                                       miner_worker_address,
@@ -315,6 +317,7 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<Secp256k1ProviderDefault> &secp256k1_provider,
         const std::shared_ptr<libp2p::Host> &client_host,
         const std::shared_ptr<boost::asio::io_context> &context,
+        const std::shared_ptr<Datastore> &datastore,
         const std::shared_ptr<Api> &api) {
       std::shared_ptr<KeyStore> keystore =
           std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
@@ -323,7 +326,7 @@ namespace fc::markets::storage::test {
       OUTCOME_EXCEPT(keystore->put(bls_address, client_keypair.private_key));
 
       auto new_client = std::make_shared<ClientImpl>(
-          client_host, context, api, keystore, piece_io_);
+          client_host, context, datastore, api, keystore, piece_io_);
       new_client->init();
       return new_client;
     }

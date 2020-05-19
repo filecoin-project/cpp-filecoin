@@ -40,6 +40,7 @@ namespace fc::markets::storage::client {
 
   ClientImpl::ClientImpl(std::shared_ptr<Host> host,
                          std::shared_ptr<boost::asio::io_context> context,
+                         std::shared_ptr<Datastore> datastore,
                          std::shared_ptr<Api> api,
                          std::shared_ptr<KeyStore> keystore,
                          std::shared_ptr<PieceIO> piece_io)
@@ -48,7 +49,8 @@ namespace fc::markets::storage::client {
         api_{std::move(api)},
         keystore_{std::move(keystore)},
         piece_io_{std::move(piece_io)},
-        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)} {}
+        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
+        discovery_{std::make_shared<Discovery>(datastore)} {}
 
   void ClientImpl::init() {
     std::shared_ptr<HostContext> fsm_context =
@@ -215,8 +217,7 @@ namespace fc::markets::storage::client {
               self->fsm_->send(client_deal, ClientEvent::ClientEventOpen));
         });
 
-    // TODO discovery - add peer (address: dealProposal.Provider, ID:
-    // deal.Miner)
+    OUTCOME_TRY(discovery_->addPeer(data_ref.root, provider_info.peer_info));
 
     return ProposeStorageDealResult{client_deal->proposal_cid};
   }

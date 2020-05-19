@@ -12,6 +12,7 @@
 #include "data_transfer/manager.hpp"
 #include "fsm/fsm.hpp"
 #include "host/context/host_context.hpp"
+#include "markets/discovery/discovery.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/client.hpp"
 #include "markets/storage/client/client_events.hpp"
@@ -23,6 +24,8 @@
 namespace fc::markets::storage::client {
 
   using api::Api;
+  using common::Buffer;
+  using discovery::Discovery;
   using fc::storage::filestore::FileStore;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::keystore::KeyStore;
@@ -33,6 +36,7 @@ namespace fc::markets::storage::client {
   using ClientTransition =
       fsm::Transition<ClientEvent, StorageDealStatus, ClientDeal>;
   using ClientFSM = fsm::FSM<ClientEvent, StorageDealStatus, ClientDeal>;
+  using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
 
   class ClientImpl : public Client,
@@ -40,6 +44,7 @@ namespace fc::markets::storage::client {
    public:
     ClientImpl(std::shared_ptr<Host> host,
                std::shared_ptr<boost::asio::io_context> context,
+               std::shared_ptr<Datastore> datastore,
                std::shared_ptr<Api> api,
                std::shared_ptr<KeyStore> keystore,
                std::shared_ptr<PieceIO> piece_io);
@@ -367,9 +372,7 @@ namespace fc::markets::storage::client {
     std::shared_ptr<KeyStore> keystore_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<StorageMarketNetwork> network_;
-
-    // TODO
-    // discovery
+    std::shared_ptr<Discovery> discovery_;
 
     // TODO
     // connection manager
