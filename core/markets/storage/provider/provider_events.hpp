@@ -16,18 +16,6 @@ namespace fc::markets::storage::provider {
     ProviderEventOpen = 1,
 
     /**
-     * ProviderEventNodeErrored indicates an error happened talking to the node
-     * implementation
-     */
-    ProviderEventNodeErrored,
-
-    /**
-     * ProviderEventDealRejected happens when a deal proposal is rejected for
-     * not meeting criteria
-     */
-    ProviderEventDealRejected,
-
-    /**
      * ProviderEventDealAccepted happens when a deal is accepted based on
      * provider criteria
      */

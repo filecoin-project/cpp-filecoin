@@ -85,9 +85,9 @@ namespace fc::markets::storage::test {
     CID proposal_cid = proposal_res.proposal_cid;
 
     waitForProviderDealStatus(proposal_cid,
-                              StorageDealStatus::STORAGE_DEAL_FAILING);
+                              StorageDealStatus::STORAGE_DEAL_ERROR);
     EXPECT_OUTCOME_TRUE(deal, provider->getDeal(proposal_cid));
-    EXPECT_EQ(deal->state, StorageDealStatus::STORAGE_DEAL_FAILING);
+    EXPECT_EQ(deal->state, StorageDealStatus::STORAGE_DEAL_ERROR);
   }
 
 }  // namespace fc::markets::storage::test

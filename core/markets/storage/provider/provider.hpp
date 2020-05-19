@@ -114,14 +114,10 @@ namespace fc::markets::storage::provider {
     outcome::result<CID> publishDeal(std::shared_ptr<MinerDeal> deal);
 
     /**
-     * Send signed response to storage deal proposal
+     * Send signed response to storage deal proposal and close connection
      * @param deal - state of deal
-     * @param status - status of proposed deal
-     * @param message - message to send in case of proposal reject
      */
-    void sendSignedResponse(std::shared_ptr<MinerDeal> deal,
-                            const StorageDealStatus &status,
-                            const std::string &message);
+    void sendSignedResponse(std::shared_ptr<MinerDeal> deal);
 
     /**
      * Locate piece for deal
@@ -158,30 +154,6 @@ namespace fc::markets::storage::provider {
                              ProviderEvent event,
                              StorageDealStatus from,
                              StorageDealStatus to);
-
-    /**
-     * @brief Handle event node error
-     * @param deal  - current storage deal
-     * @param event - ProviderEventNodeErrored
-     * @param from  - any
-     * @param to    - STORAGE_DEAL_FAILING
-     */
-    void onProviderEventNodeErrored(std::shared_ptr<MinerDeal> deal,
-                                    ProviderEvent event,
-                                    StorageDealStatus from,
-                                    StorageDealStatus to);
-
-    /**
-     * @brief Handle event deal rejected
-     * @param deal  - current storage deal
-     * @param event - ProviderEventOpen
-     * @param from  - STORAGE_DEAL_VALIDATING or STORAGE_DEAL_VERIFY_DATA
-     * @param to    - STORAGE_DEAL_FAILING
-     */
-    void onProviderEventDealRejected(std::shared_ptr<MinerDeal> deal,
-                                     ProviderEvent event,
-                                     StorageDealStatus from,
-                                     StorageDealStatus to);
 
     /**
      * @brief Handle event deal accepted
