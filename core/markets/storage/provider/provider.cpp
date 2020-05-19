@@ -39,6 +39,7 @@ namespace fc::markets::storage::provider {
       const RegisteredProof &registered_proof,
       std::shared_ptr<Host> host,
       std::shared_ptr<boost::asio::io_context> context,
+      std::shared_ptr<KeyStore> keystore,
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
       std::shared_ptr<MinerApi> miner_api,
@@ -47,6 +48,7 @@ namespace fc::markets::storage::provider {
       : registered_proof_{registered_proof},
         host_{std::move(host)},
         context_{std::move(context)},
+        keystore_{std::move(keystore)},
         stored_ask_{
             std::make_shared<StoredAsk>(datastore, api, miner_actor_address)},
         api_{std::move(api)},
@@ -65,7 +67,6 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(network_->setDelegate(shared_from_this()));
 
     context_->post([self{shared_from_this()}] {
-      self->host_->start();
       self->logger_->debug(
           "Server started\nListening on: "
           + peerInfoToPrettyString(self->host_->getPeerInfo()));
@@ -153,26 +154,18 @@ namespace fc::markets::storage::provider {
 
     stream->read<Proposal>([self{shared_from_this()},
                             stream](outcome::result<Proposal> proposal) {
-      if (proposal.has_error()) {
-        self->logger_->error("Read proposal error");
-        self->network_->closeStreamGracefully(stream);
-        return;
-      }
-
+      if (!self->hasValue(proposal, "Read proposal error: ", stream)) return;
       auto proposal_cid = getProposalCid(proposal.value().deal_proposal);
-      if (proposal_cid.has_error()) {
-        self->logger_->error("Read proposal error");
-        self->network_->closeStreamGracefully(stream);
-        return;
-      }
-      auto remote_peer_id = stream->stream()->remotePeerId();
-      auto remote_multiaddress = stream->stream()->remoteMultiaddr();
-      if (remote_peer_id.has_error() || remote_multiaddress.has_error()) {
-        self->logger_->error("Cannot get remote peer info");
-        self->network_->closeStreamGracefully(stream);
-        return;
-      }
+      if (!self->hasValue(proposal, "Read proposal error: ", stream)) return;
 
+      auto remote_peer_id = stream->stream()->remotePeerId();
+      if (!self->hasValue(
+              remote_peer_id, "Cannot get remote peer info: ", stream))
+        return;
+      auto remote_multiaddress = stream->stream()->remoteMultiaddr();
+      if (!self->hasValue(
+              remote_multiaddress, "Cannot get remote peer info: ", stream))
+        return;
       PeerInfo remote_peer_info{.id = remote_peer_id.value(),
                                 .addresses = {remote_multiaddress.value()}};
       std::shared_ptr<MinerDeal> deal = std::make_shared<MinerDeal>(
@@ -195,6 +188,23 @@ namespace fc::markets::storage::provider {
           self->fsm_->begin(deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
       OUTCOME_EXCEPT(self->fsm_->send(deal, ProviderEvent::ProviderEventOpen));
     });
+  }
+
+  outcome::result<void> StorageProviderImpl::verifyDealProposal(
+      std::shared_ptr<MinerDeal> deal) const {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(client_key_address,
+                api_->StateAccountKey(
+                    deal->client_deal_proposal.proposal.client, tipset_key));
+    OUTCOME_TRY(proposal_bytes,
+                codec::cbor::encode(deal->client_deal_proposal.proposal));
+    OUTCOME_TRY(verified,
+                keystore_->verify(client_key_address,
+                                  proposal_bytes,
+                                  deal->client_deal_proposal.client_signature));
+    if (!verified) return StorageProviderError::WRONG_CLIENT_SIGNTATURE;
+    return outcome::success();
   }
 
   outcome::result<boost::optional<CID>>
@@ -408,7 +418,19 @@ namespace fc::markets::storage::provider {
                                                 ProviderEvent event,
                                                 StorageDealStatus from,
                                                 StorageDealStatus to) {
-    // TODO validate deal proposal
+    auto verified = verifyDealProposal(deal);
+    if (verified.has_error()) {
+      logger_->debug("Deal proposal wrong signature, rejected");
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ProviderEvent::ProviderEventDealRejected));
+      return;
+    }
+    // TODO provider address
+    // TODO chain height
+    // TODO storage price per epoch < min price
+    // TODO proposal piece size < min piece size
+    // TODO proposal piece size > max piece size
+    // TODO client market balance < total storage fee
     OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealAccepted));
   }
 

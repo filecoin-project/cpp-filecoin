@@ -16,10 +16,12 @@
 #include "markets/storage/provider/provider_events.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
 #include "markets/storage/storage_receiver.hpp"
+#include "storage/keystore/keystore.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::storage::provider {
   using api::MinerApi;
+  using fc::storage::keystore::KeyStore;
   using fc::storage::piece::PieceInfo;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
@@ -45,6 +47,7 @@ namespace fc::markets::storage::provider {
     StorageProviderImpl(const RegisteredProof &registered_proof,
                         std::shared_ptr<Host> host,
                         std::shared_ptr<boost::asio::io_context> context,
+                        std::shared_ptr<KeyStore> keystore,
                         std::shared_ptr<Datastore> datastore,
                         std::shared_ptr<Api> api,
                         std::shared_ptr<MinerApi> miner_api,
@@ -85,6 +88,14 @@ namespace fc::markets::storage::provider {
         -> void override;
 
    private:
+    /**
+     * Verify client signature for deal proposal
+     * @param deal to verify
+     * @return success if verified or error otherwise
+     */
+    outcome::result<void> verifyDealProposal(
+        std::shared_ptr<MinerDeal> deal) const;
+
     /**
      * Ensure provider has enough funds
      * @param deal - storage deal
@@ -511,6 +522,7 @@ namespace fc::markets::storage::provider {
 
     std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
+    std::shared_ptr<KeyStore> keystore_;
     std::shared_ptr<StoredAsk> stored_ask_;
     std::shared_ptr<Api> api_;
     std::shared_ptr<MinerApi> miner_api_;

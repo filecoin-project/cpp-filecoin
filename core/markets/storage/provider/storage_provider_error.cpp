@@ -12,6 +12,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider,
   switch (e) {
     case E::PROVIDER_START_ERROR:
       return "StorageProviderError: cannot start provider";
+    case E::WRONG_CLIENT_SIGNTATURE:
+      return "StorageProviderError: wrong client signature";
     default:
       return "StorageProviderError: unknown error";
   }

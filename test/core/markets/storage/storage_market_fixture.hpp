@@ -65,11 +65,14 @@ namespace fc::markets::storage::test {
   using vm::runtime::MessageReceipt;
   using BlsKeyPair = fc::crypto::bls::KeyPair;
 
+  /** Shared resources */
+  static std::shared_ptr<libp2p::Host> host;
+  static std::shared_ptr<boost::asio::io_context> context;
+  static std::shared_ptr<Multiaddress> provider_multiaddress;
+
   class StorageMarketTest : public ::testing::Test {
    public:
-    void SetUp() override {
-      spdlog::set_level(spdlog::level::debug);
-
+    static void SetUpTestCase() {
       std::string address_string =
           "/ip4/127.0.0.1/tcp/40010/ipfs/"
           "12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV";
@@ -86,11 +89,23 @@ namespace fc::markets::storage::test {
       auto injector = libp2p::injector::makeHostInjector(
           libp2p::injector::useKeyPair(keypair),
           libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
-      auto host = injector.create<std::shared_ptr<libp2p::Host>>();
-      auto provider_multiaddress = Multiaddress::create(address_string).value();
-      OUTCOME_EXCEPT(host->listen(provider_multiaddress));
+      host = injector.create<std::shared_ptr<libp2p::Host>>();
+      provider_multiaddress = std::make_shared<Multiaddress>(
+          Multiaddress::create(address_string).value());
+      OUTCOME_EXCEPT(host->listen(*provider_multiaddress));
+      host->start();
 
-      context_ = injector.create<std::shared_ptr<boost::asio::io_context>>();
+      context = injector.create<std::shared_ptr<boost::asio::io_context>>();
+    }
+
+    static void TearDownTestCase() {
+      host.reset();
+      context.reset();
+      provider_multiaddress.reset();
+    }
+
+    void SetUp() override {
+      spdlog::set_level(spdlog::level::debug);
 
       std::shared_ptr<BlsProvider> bls_provider =
           std::make_shared<BlsProviderImpl>();
@@ -107,7 +122,7 @@ namespace fc::markets::storage::test {
       OUTCOME_EXCEPT(client_keypair, bls_provider->generateKeyPair());
 
       std::map<Address, Address> account_keys;
-      Address client_bls_address = Address::makeBls(client_keypair.public_key);
+      client_bls_address = Address::makeBls(client_keypair.public_key);
       account_keys[client_id_address] = client_bls_address;
       account_keys[miner_actor_address] = miner_worker_address;
 
@@ -122,14 +137,14 @@ namespace fc::markets::storage::test {
                              private_keys);
       auto miner_api = makeMinerApi();
 
-      provider = makeProvider(provider_multiaddress,
+      provider = makeProvider(*provider_multiaddress,
                               registered_proof,
                               miner_worker_keypair,
                               bls_provider,
                               secp256k1_provider,
                               datastore,
                               host,
-                              context_,
+                              context,
                               node_api,
                               miner_api,
                               miner_actor_address);
@@ -139,23 +154,24 @@ namespace fc::markets::storage::test {
                           bls_provider,
                           secp256k1_provider,
                           host,
-                          context_,
+                          context,
                           datastore,
                           node_api);
       storage_provider_info = makeStorageProviderInfo(miner_actor_address,
                                                       miner_worker_address,
                                                       host,
-                                                      provider_multiaddress);
+                                                      *provider_multiaddress);
 
       logger->debug(
           "Provider info "
           + peerInfoToPrettyString(storage_provider_info.get()->peer_info));
 
-      std::thread([this]() { context_->run(); }).detach();
+      context->restart();
+      std::thread([]() { context->run(); }).detach();
     }
 
     void TearDown() override {
-      context_->stop();
+      context->stop();
     }
 
    protected:
@@ -285,10 +301,14 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<Api> &api,
         const std::shared_ptr<MinerApi> &miner_api,
         const Address &miner_actor_address) {
+      std::shared_ptr<KeyStore> keystore =
+          std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
+
       std::shared_ptr<StorageProviderImpl> new_provider =
           std::make_shared<StorageProviderImpl>(registered_proof,
                                                 provider_host,
                                                 context,
+                                                keystore,
                                                 datastore,
                                                 api,
                                                 miner_api,
@@ -321,9 +341,6 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<Api> &api) {
       std::shared_ptr<KeyStore> keystore =
           std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
-
-      Address bls_address = Address::makeBls(client_keypair.public_key);
-      OUTCOME_EXCEPT(keystore->put(bls_address, client_keypair.private_key));
 
       auto new_client = std::make_shared<ClientImpl>(
           client_host, context, datastore, api, keystore, piece_io_);
@@ -359,8 +376,9 @@ namespace fc::markets::storage::test {
     common::Logger logger = common::createLogger("StorageMarketTest");
 
     Address miner_actor_address = Address::makeFromId(100);
-    Address client_id_address = Address::makeFromId(102);
     Address miner_worker_address;
+    Address client_id_address = Address::makeFromId(102);
+    Address client_bls_address;
     Tipset chain_head;
     std::shared_ptr<Api> node_api;
     std::shared_ptr<Client> client;
@@ -368,7 +386,6 @@ namespace fc::markets::storage::test {
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
 
     RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
-    std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<PieceIO> piece_io_;
   };
 
