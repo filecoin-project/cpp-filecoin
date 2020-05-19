@@ -22,7 +22,7 @@ namespace fc::markets::storage::test {
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(root_cid, data));
     ChainEpoch start_epoch{210};
     ChainEpoch end_epoch{300};
-    TokenAmount client_price{10};
+    TokenAmount client_price{20000};
     TokenAmount collateral{10};
     EXPECT_OUTCOME_TRUE(proposal_res,
                         client->proposeStorageDeal(client_id_address,
@@ -71,7 +71,7 @@ namespace fc::markets::storage::test {
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(root_cid, data));
     ChainEpoch start_epoch{210};
     ChainEpoch end_epoch{300};
-    TokenAmount client_price{10};
+    TokenAmount client_price{20000};
     TokenAmount collateral{10};
     EXPECT_OUTCOME_TRUE(proposal_res,
                         client->proposeStorageDeal(client_id_address,

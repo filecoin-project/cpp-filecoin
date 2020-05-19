@@ -45,6 +45,10 @@ namespace fc::vm::actor::builtin::market {
       return end_epoch - start_epoch;
     }
 
+    inline TokenAmount getTotalStorageFee() const {
+      return storage_price_per_epoch * duration();
+    }
+
     CID piece_cid;
     PaddedPieceSize piece_size;
     Address client;

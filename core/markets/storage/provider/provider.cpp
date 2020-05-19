@@ -221,11 +221,49 @@ namespace fc::markets::storage::provider {
           "deal already expired");
       return false;
     }
-    // TODO chain height
-    // TODO storage price per epoch < min price
-    // TODO proposal piece size < min piece size
-    // TODO proposal piece size > max piece size
-    // TODO client market balance < total storage fee
+
+    OUTCOME_TRY(ask, stored_ask_->getAsk(miner_actor_address_));
+    auto min_price =
+        (ask.ask.price * static_cast<uint64_t>(proposal.piece_size))
+        / (1 << 30);
+    if (proposal.storage_price_per_epoch < min_price) {
+      std::stringstream ss;
+      ss << "Deal proposal verification failed, storage price per epoch less "
+            "than asking price: "
+         << proposal.storage_price_per_epoch << " < " << min_price;
+      logger_->debug(ss.str());
+      return false;
+    }
+
+    if (proposal.piece_size < ask.ask.min_piece_size) {
+      std::stringstream ss;
+      ss << "Deal proposal verification failed, piece size less than minimum "
+            "required size: "
+         << proposal.piece_size << " < " << ask.ask.min_piece_size;
+      logger_->debug(ss.str());
+      return false;
+    }
+    if (proposal.piece_size > ask.ask.max_piece_size) {
+      std::stringstream ss;
+      ss << "Deal proposal verification failed, piece size more than maximum "
+            "allowed size: "
+         << proposal.piece_size << " > " << ask.ask.max_piece_size;
+      logger_->debug(ss.str());
+      return false;
+    }
+
+    // This doesn't guarantee that the client won't withdraw / lock those funds
+    // but it's a decent first filter
+    OUTCOME_TRY(client_balance,
+                api_->StateMarketBalance(proposal.client, tipset_key));
+    if (client_balance.available < proposal.getTotalStorageFee()) {
+      std::stringstream ss;
+      ss << "Deal proposal verification failed, client market available "
+            "balance too small: "
+         << client_balance.available << " < " << proposal.getTotalStorageFee();
+      logger_->debug(ss.str());
+      return false;
+    }
 
     return true;
   }

@@ -207,6 +207,17 @@ namespace fc::markets::storage::test {
                              .sector_size = {}};
           }};
 
+      api->StateMarketBalance = {
+          [this](
+              auto &address,
+              auto &tipset_key) -> outcome::result<StorageParticipantBalance> {
+            if (address == this->client_id_address) {
+              return StorageParticipantBalance{.locked = 0,
+                                               .available = 2000000};
+            }
+            throw "StateMarketBalance: wrong address";
+          }};
+
       api->MarketEnsureAvailable = {
           [](auto, auto, auto, auto) -> boost::optional<CID> {
             // funds ensured
