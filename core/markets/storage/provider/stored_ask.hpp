@@ -19,13 +19,11 @@
 #include "primitives/piece/piece.hpp"
 #include "primitives/types.hpp"
 #include "storage/face/persistent_map.hpp"
-#include "storage/keystore/keystore.hpp"
 
 namespace fc::markets::storage::provider {
 
   using api::Api;
   using common::Buffer;
-  using fc::storage::keystore::KeyStore;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
   using primitives::address::Address;
@@ -41,16 +39,14 @@ namespace fc::markets::storage::provider {
 
   class StoredAsk {
    public:
-    StoredAsk(std::shared_ptr<KeyStore> keystore,
-              std::shared_ptr<Datastore> datastore,
+    StoredAsk(std::shared_ptr<Datastore> datastore,
               std::shared_ptr<Api> api,
               const Address &actor_address);
 
     auto addAsk(const TokenAmount &price, ChainEpoch duration)
         -> outcome::result<void>;
 
-    auto getAsk(const Address &address)
-        -> outcome::result<SignedStorageAsk>;
+    auto getAsk(const Address &address) -> outcome::result<SignedStorageAsk>;
 
    private:
     /**
@@ -67,18 +63,15 @@ namespace fc::markets::storage::provider {
     auto signAsk(const StorageAsk &ask, const Tipset &chain_head)
         -> outcome::result<SignedStorageAsk>;
 
-    std::shared_ptr<KeyStore> keystore_;
     boost::optional<SignedStorageAsk> last_signed_storage_ask_;
     std::shared_ptr<Datastore> datastore_;
     std::shared_ptr<Api> api_;
     Address actor_;
   };
 
-  enum class StoredAskError {
-    WRONG_ADDRESS = 1
-  };
+  enum class StoredAskError { WRONG_ADDRESS = 1 };
 
-}  // namespace fc::markets::storage
+}  // namespace fc::markets::storage::provider
 
 OUTCOME_HPP_DECLARE_ERROR(fc::markets::storage::provider, StoredAskError);
 

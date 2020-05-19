@@ -269,6 +269,7 @@ namespace fc::markets::storage::client {
         keystore_->verify(
             miner_key_address, ask_bytes, response.value().ask.signature));
     if (!signature_valid) {
+      logger_->debug("Ask response signature invalid");
       return StorageMarketClientError::SIGNATURE_INVALID;
     }
     return response.value().ask;
@@ -295,7 +296,7 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
     OUTCOME_TRY(key_address, api_->StateAccountKey(address, tipset_key));
     OUTCOME_TRY(proposal_bytes, codec::cbor::encode(proposal));
-    OUTCOME_TRY(signature, keystore_->sign(key_address, proposal_bytes));
+    OUTCOME_TRY(signature, api_->WalletSign(key_address, proposal_bytes));
     return ClientDealProposal{.proposal = proposal,
                               .client_signature = signature};
   }
@@ -312,6 +313,22 @@ namespace fc::markets::storage::client {
             deal->client_deal_proposal.proposal.clientBalanceRequirement(),
             tipset_key));
     return std::move(maybe_cid);
+  }
+
+  outcome::result<void> ClientImpl::verifyDealResponseSignature(
+      const SignedResponse &response, const std::shared_ptr<ClientDeal> &deal) {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(miner_key_address,
+                api_->StateAccountKey(deal->miner_worker, tipset_key));
+    OUTCOME_TRY(response_bytes, codec::cbor::encode(response.response));
+    OUTCOME_TRY(signature_valid,
+                keystore_->verify(
+                    miner_key_address, response_bytes, response.signature));
+    if (!signature_valid) {
+      return StorageMarketClientError::SIGNATURE_INVALID;
+    }
+    return outcome::success();
   }
 
   std::vector<ClientTransition> ClientImpl::makeFSMTransitions() {
@@ -457,7 +474,7 @@ namespace fc::markets::storage::client {
           }
           self->network_->closeStreamGracefully(stream);
         });
-    fsm_->send(deal, ClientEvent::ClientEventDealProposed);
+    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealProposed));
   }
 
   void ClientImpl::onClientEventWriteProposalFailed(
@@ -470,9 +487,36 @@ namespace fc::markets::storage::client {
                                              ClientEvent event,
                                              StorageDealStatus from,
                                              StorageDealStatus to) {
-    // todo verify deal proposal
-    // read response and validate
-    fsm_->send(deal, ClientEvent::ClientEventDealAccepted);
+    // TODO handle if stream is absent
+    auto stream = connections_[deal->proposal_cid];
+    stream->read<SignedResponse>([self{shared_from_this()}, deal, stream](
+                                     outcome::result<SignedResponse> response) {
+      if (response.has_error()) {
+        OUTCOME_EXCEPT(
+            self->fsm_->send(deal, ClientEvent::ClientEventReadResponseFailed));
+        return;
+      }
+      if (self->verifyDealResponseSignature(response.value(), deal)
+              .has_error()) {
+        OUTCOME_EXCEPT(self->fsm_->send(
+            deal, ClientEvent::ClientEventResponseVerificationFailed));
+        return;
+      }
+      if (response.value().response.proposal != deal->proposal_cid) {
+        OUTCOME_EXCEPT(self->fsm_->send(
+            deal, ClientEvent::ClientEventResponseDealDidNotMatch));
+        return;
+      }
+      if (response.value().response.state
+          != StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED) {
+        OUTCOME_EXCEPT(
+            self->fsm_->send(deal, ClientEvent::ClientEventDealRejected));
+        return;
+      }
+      self->network_->closeStreamGracefully(stream);
+      OUTCOME_EXCEPT(
+          self->fsm_->send(deal, ClientEvent::ClientEventDealAccepted));
+    });
   }
 
   void ClientImpl::onClientEventDealStreamLookupErrored(
@@ -509,7 +553,7 @@ namespace fc::markets::storage::client {
                                              StorageDealStatus from,
                                              StorageDealStatus to) {
     // todo validate deal published
-    fsm_->send(deal, ClientEvent::ClientEventDealPublished);
+    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealPublished));
   }
 
   void ClientImpl::onClientEventStreamCloseError(
@@ -529,7 +573,7 @@ namespace fc::markets::storage::client {
                                               StorageDealStatus from,
                                               StorageDealStatus to) {
     // verify deal activated
-    fsm_->send(deal, ClientEvent::ClientEventDealActivated);
+    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealActivated));
   }
 
   void ClientImpl::onClientEventDealActivationFailed(

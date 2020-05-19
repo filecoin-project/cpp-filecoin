@@ -93,6 +93,10 @@ namespace fc::markets::storage::client {
     outcome::result<boost::optional<CID>> ensureFunds(
         std::shared_ptr<ClientDeal> deal);
 
+    outcome::result<void> verifyDealResponseSignature(
+        const SignedResponse &response,
+        const std::shared_ptr<ClientDeal> &deal);
+
     /**
      * Creates all FSM transitions
      * @return vector of transitions for fsm

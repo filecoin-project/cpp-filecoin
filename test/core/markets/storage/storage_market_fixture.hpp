@@ -68,6 +68,8 @@ namespace fc::markets::storage::test {
   class StorageMarketTest : public ::testing::Test {
    public:
     void SetUp() override {
+      spdlog::set_level(spdlog::level::debug);
+
       std::string address_string =
           "/ip4/127.0.0.1/tcp/40010/ipfs/"
           "12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV";
@@ -101,13 +103,22 @@ namespace fc::markets::storage::test {
       piece_io_ = std::make_shared<PieceIOImpl>(ipfs_datastore);
 
       OUTCOME_EXCEPT(miner_worker_keypair, bls_provider->generateKeyPair());
+      miner_worker_address = Address::makeBls(miner_worker_keypair.public_key);
       OUTCOME_EXCEPT(client_keypair, bls_provider->generateKeyPair());
 
-      auto node_api = makeNodeApi(miner_actor_address,
-                                  miner_worker_keypair,
-                                  client_id_address,
-                                  client_keypair,
-                                  bls_provider);
+      std::map<Address, Address> account_keys;
+      Address client_bls_address = Address::makeBls(client_keypair.public_key);
+      account_keys[client_id_address] = client_bls_address;
+      account_keys[miner_actor_address] = miner_worker_address;
+
+      std::map<Address, BlsKeyPair> private_keys;
+      private_keys[miner_worker_address] = miner_worker_keypair;
+
+      node_api = makeNodeApi(miner_actor_address,
+                             miner_worker_keypair,
+                             bls_provider,
+                             account_keys,
+                             private_keys);
       auto miner_api = makeMinerApi();
 
       provider = makeProvider(provider_multiaddress,
@@ -129,8 +140,10 @@ namespace fc::markets::storage::test {
                           host,
                           context_,
                           node_api);
-      storage_provider_info = makeStorageProviderInfo(
-          miner_actor_address, host, provider_multiaddress);
+      storage_provider_info = makeStorageProviderInfo(miner_actor_address,
+                                                      miner_worker_address,
+                                                      host,
+                                                      provider_multiaddress);
 
       logger->debug(
           "Provider info "
@@ -157,12 +170,9 @@ namespace fc::markets::storage::test {
     std::shared_ptr<Api> makeNodeApi(
         const Address &miner_actor_address,
         const BlsKeyPair &miner_worker_keypair,
-        const Address &client_id_address,
-        const BlsKeyPair &client_keypair,
-        const std::shared_ptr<BlsProvider> &bls_provider) {
-      Address miner_worker_address =
-          Address::makeBls(miner_worker_keypair.public_key);
-      Address client_bls_address = Address::makeBls(client_keypair.public_key);
+        const std::shared_ptr<BlsProvider> &bls_provider,
+        const std::map<Address, Address> &account_keys,
+        const std::map<Address, BlsKeyPair> &private_keys) {
       ChainEpoch epoch = 100;
       chain_head.height = epoch;
 
@@ -186,16 +196,13 @@ namespace fc::markets::storage::test {
           }};
 
       api->StateAccountKey = {
-          [this,
-           miner_worker_address,
-           miner_actor_address,
-           client_id_address,
-           client_bls_address](auto &address,
-                               auto &tipset_key) -> outcome::result<Address> {
-            if (address == miner_actor_address) return miner_worker_address;
-            if (address == client_id_address) return client_bls_address;
-            logger->error("StateAccountKey: Wrong address parameter");
-            throw "StateAccountKey: Wrong address parameter";
+          [account_keys](auto &address,
+                         auto &tipset_key) -> outcome::result<Address> {
+            if (address.isKeyType()) return address;
+            auto it = account_keys.find(address);
+            if (it == account_keys.end())
+              throw "StateAccountKey: address not found";
+            return it->second;
           }};
 
       api->MpoolPushMessage = {
@@ -235,6 +242,17 @@ namespace fc::markets::storage::test {
             return wait_msg;
           }};
 
+      api->WalletSign = {
+          [private_keys, bls_provider](
+              const Address &address,
+              const Buffer &buffer) -> outcome::result<Signature> {
+            auto it = private_keys.find(address);
+            if (it == private_keys.end())
+              throw "API WalletSign: address not found";
+            return Signature{
+                bls_provider->sign(buffer, it->second.private_key).value()};
+          }};
+
       return api;
     }
 
@@ -265,19 +283,10 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<Api> &api,
         const std::shared_ptr<MinerApi> &miner_api,
         const Address &miner_actor_address) {
-      std::shared_ptr<KeyStore> keystore =
-          std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
-
-      Address miner_worker_address =
-          Address::makeBls(miner_worker_keypair.public_key);
-      OUTCOME_EXCEPT(keystore->put(miner_worker_address,
-                                   miner_worker_keypair.private_key));
-
       std::shared_ptr<StorageProviderImpl> new_provider =
           std::make_shared<StorageProviderImpl>(registered_proof,
                                                 provider_host,
                                                 context,
-                                                keystore,
                                                 datastore,
                                                 api,
                                                 miner_api,
@@ -289,12 +298,13 @@ namespace fc::markets::storage::test {
 
     std::shared_ptr<StorageProviderInfo> makeStorageProviderInfo(
         const Address &miner_actor_address,
+        const Address &miner_worker_address,
         const std::shared_ptr<Host> &provider_host,
         const Multiaddress &multi_address) {
       return std::make_shared<StorageProviderInfo>(StorageProviderInfo{
           .address = miner_actor_address,
           .owner = {},
-          .worker = {},
+          .worker = miner_worker_address,
           .sector_size = SectorSize{1000000},
           .peer_info = PeerInfo{provider_host->getId(), {multi_address}}});
     }
@@ -347,7 +357,9 @@ namespace fc::markets::storage::test {
 
     Address miner_actor_address = Address::makeFromId(100);
     Address client_id_address = Address::makeFromId(102);
+    Address miner_worker_address;
     Tipset chain_head;
+    std::shared_ptr<Api> node_api;
     std::shared_ptr<Client> client;
     std::shared_ptr<StorageProvider> provider;
     std::shared_ptr<StorageProviderInfo> storage_provider_info;

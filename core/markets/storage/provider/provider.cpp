@@ -39,7 +39,6 @@ namespace fc::markets::storage::provider {
       const RegisteredProof &registered_proof,
       std::shared_ptr<Host> host,
       std::shared_ptr<boost::asio::io_context> context,
-      std::shared_ptr<KeyStore> keystore,
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
       std::shared_ptr<MinerApi> miner_api,
@@ -48,8 +47,8 @@ namespace fc::markets::storage::provider {
       : registered_proof_{registered_proof},
         host_{std::move(host)},
         context_{std::move(context)},
-        stored_ask_{std::make_shared<StoredAsk>(
-            keystore, datastore, api, miner_actor_address)},
+        stored_ask_{
+            std::make_shared<StoredAsk>(datastore, api, miner_actor_address)},
         api_{std::move(api)},
         miner_api_{std::move(miner_api)},
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
@@ -245,10 +244,12 @@ namespace fc::markets::storage::provider {
                       .message = message,
                       .proposal = deal->proposal_cid,
                       .publish_message = deal->publish_cid};
+    // TODO sign response
+    SignedResponse signed_response{.response = response};
     // TODO handle if stream is absent
     auto stream = connections_[deal->proposal_cid];
     stream->write(
-        response,
+        signed_response,
         [self{shared_from_this()}, stream, deal](
             outcome::result<size_t> maybe_res) {
           if (!self->hasValue(

@@ -45,7 +45,6 @@ namespace fc::markets::storage::provider {
     StorageProviderImpl(const RegisteredProof &registered_proof,
                         std::shared_ptr<Host> host,
                         std::shared_ptr<boost::asio::io_context> context,
-                        std::shared_ptr<KeyStore> keystore,
                         std::shared_ptr<Datastore> datastore,
                         std::shared_ptr<Api> api,
                         std::shared_ptr<MinerApi> miner_api,
