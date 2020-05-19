@@ -20,8 +20,8 @@ namespace fc::markets::storage::test {
   CID root_cid = "010001020001"_cid;
     auto data = readFile(CAR_FROM_PAYLOAD_FILE);
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(root_cid, data));
-    ChainEpoch start_epoch{10};
-    ChainEpoch end_epoch{200};
+    ChainEpoch start_epoch{210};
+    ChainEpoch end_epoch{300};
     TokenAmount client_price{10};
     TokenAmount collateral{10};
     EXPECT_OUTCOME_TRUE(proposal_res,
@@ -69,8 +69,8 @@ namespace fc::markets::storage::test {
     CID root_cid = "010001020001"_cid;
     auto data = readFile(CAR_FROM_PAYLOAD_FILE);
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(root_cid, data));
-    ChainEpoch start_epoch{10};
-    ChainEpoch end_epoch{200};
+    ChainEpoch start_epoch{210};
+    ChainEpoch end_epoch{300};
     TokenAmount client_price{10};
     TokenAmount collateral{10};
     EXPECT_OUTCOME_TRUE(proposal_res,

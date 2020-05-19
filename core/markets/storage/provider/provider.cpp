@@ -53,6 +53,7 @@ namespace fc::markets::storage::provider {
             std::make_shared<StoredAsk>(datastore, api, miner_actor_address)},
         api_{std::move(api)},
         miner_api_{std::move(miner_api)},
+        miner_actor_address_{miner_actor_address},
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
         piece_io_{std::move(piece_io)},
         piece_storage_{std::make_shared<PieceStorageImpl>(datastore)} {}
@@ -190,36 +191,57 @@ namespace fc::markets::storage::provider {
     });
   }
 
-  outcome::result<void> StorageProviderImpl::verifyDealProposal(
+  outcome::result<bool> StorageProviderImpl::verifyDealProposal(
       std::shared_ptr<MinerDeal> deal) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    auto proposal = deal->client_deal_proposal.proposal;
     OUTCOME_TRY(client_key_address,
-                api_->StateAccountKey(
-                    deal->client_deal_proposal.proposal.client, tipset_key));
-    OUTCOME_TRY(proposal_bytes,
-                codec::cbor::encode(deal->client_deal_proposal.proposal));
+                api_->StateAccountKey(proposal.client, tipset_key));
+    OUTCOME_TRY(proposal_bytes, codec::cbor::encode(proposal));
     OUTCOME_TRY(verified,
                 keystore_->verify(client_key_address,
                                   proposal_bytes,
                                   deal->client_deal_proposal.client_signature));
-    if (!verified) return StorageProviderError::WRONG_CLIENT_SIGNTATURE;
-    return outcome::success();
+    if (!verified) {
+      logger_->debug("Deal proposal verification failed, wrong signature");
+      return false;
+    }
+
+    if (proposal.provider != miner_actor_address_) {
+      logger_->debug(
+          "Deal proposal verification failed, incorrect provider for deal");
+      return false;
+    }
+
+    if (static_cast<ChainEpoch>(chain_head.height)
+        > proposal.start_epoch - kDefaultDealAcceptanceBuffer) {
+      logger_->debug(
+          "Deal proposal verification failed, deal start epoch is too soon or "
+          "deal already expired");
+      return false;
+    }
+    // TODO chain height
+    // TODO storage price per epoch < min price
+    // TODO proposal piece size < min piece size
+    // TODO proposal piece size > max piece size
+    // TODO client market balance < total storage fee
+
+    return true;
   }
 
   outcome::result<boost::optional<CID>>
   StorageProviderImpl::ensureProviderFunds(std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    auto proposal = deal->client_deal_proposal.proposal;
     OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(
-                    deal->client_deal_proposal.proposal.provider, tipset_key));
+                api_->StateMinerInfo(proposal.provider, tipset_key));
     OUTCOME_TRY(maybe_cid,
-                api_->MarketEnsureAvailable(
-                    deal->client_deal_proposal.proposal.provider,
-                    worker_info.worker,
-                    deal->client_deal_proposal.proposal.provider_collateral,
-                    tipset_key));
+                api_->MarketEnsureAvailable(proposal.provider,
+                                            worker_info.worker,
+                                            proposal.provider_collateral,
+                                            tipset_key));
     return std::move(maybe_cid);
   }
 
@@ -420,17 +442,15 @@ namespace fc::markets::storage::provider {
                                                 StorageDealStatus to) {
     auto verified = verifyDealProposal(deal);
     if (verified.has_error()) {
-      logger_->debug("Deal proposal wrong signature, rejected");
+      logger_->debug("Deal proposal verify error, rejected");
+      OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventNodeErrored));
+      return;
+    }
+    if (!verified.value()) {
       OUTCOME_EXCEPT(
           fsm_->send(deal, ProviderEvent::ProviderEventDealRejected));
       return;
     }
-    // TODO provider address
-    // TODO chain height
-    // TODO storage price per epoch < min price
-    // TODO proposal piece size < min piece size
-    // TODO proposal piece size > max piece size
-    // TODO client market balance < total storage fee
     OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealAccepted));
   }
 

@@ -28,6 +28,7 @@ namespace fc::markets::storage::provider {
   using network::Libp2pStorageMarketNetwork;
   using pieceio::PieceIO;
   using primitives::BigInt;
+  using primitives::EpochDuration;
   using primitives::GasAmount;
   using primitives::sector::RegisteredProof;
   using ProviderTransition =
@@ -38,6 +39,7 @@ namespace fc::markets::storage::provider {
   // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/provider.go#L71
   const BigInt kGasPrice{0};
   const GasAmount kGasLimit{1000000};
+  const EpochDuration kDefaultDealAcceptanceBuffer{100};
 
   class StorageProviderImpl
       : public StorageProvider,
@@ -91,9 +93,9 @@ namespace fc::markets::storage::provider {
     /**
      * Verify client signature for deal proposal
      * @param deal to verify
-     * @return success if verified or error otherwise
+     * @return true if verified or false otherwise
      */
-    outcome::result<void> verifyDealProposal(
+    outcome::result<bool> verifyDealProposal(
         std::shared_ptr<MinerDeal> deal) const;
 
     /**
@@ -526,7 +528,7 @@ namespace fc::markets::storage::provider {
     std::shared_ptr<StoredAsk> stored_ask_;
     std::shared_ptr<Api> api_;
     std::shared_ptr<MinerApi> miner_api_;
-
+    Address miner_actor_address_;
     std::shared_ptr<StorageMarketNetwork> network_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<PieceStorage> piece_storage_;
