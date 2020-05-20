@@ -8,6 +8,7 @@
 
 #include "primitives/sector/sector.hpp"
 #include "primitives/sector_file/sector_file.hpp"
+#include "common/outcome.hpp"
 
 namespace fc::sector_storage::stores {
   // ID identifies sector storage by UUID. One sector storage should map to one
@@ -48,7 +49,7 @@ namespace fc::sector_storage::stores {
                                                 const FsStat &stat) = 0;
 
     virtual outcome::result<StorageInfo> getStorageInfo(
-        const ID &storage_id) = 0;
+        const ID &storage_id) const = 0;
 
     virtual outcome::result<void> StorageReportHealth(
         const ID &storage_id, const HealthReport &report) = 0;
@@ -73,5 +74,12 @@ namespace fc::sector_storage::stores {
         RegisteredProof seal_proof_type,
         bool sealing) = 0;
   };
+
+    enum class IndexErrors {
+        StorageNotFound = 1,
+    };
 }  // namespace fc::sector_storage::stores
+
+OUTCOME_HPP_DECLARE_ERROR(fc::sector_storage::stores, IndexErrors);
+
 #endif  // CPP_FILECOIN_CORE_SECTOR_INDEX_HPP
