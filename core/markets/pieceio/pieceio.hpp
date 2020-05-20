@@ -14,6 +14,7 @@
 
 namespace fc::markets::pieceio {
 
+  using common::Buffer;
   using fc::storage::ipld::walker::Selector;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::RegisteredProof;
@@ -26,6 +27,10 @@ namespace fc::markets::pieceio {
     generatePieceCommitment(const RegisteredProof &registered_proof,
                             const CID &payload_cid,
                             const Selector &selector) = 0;
+
+    virtual outcome::result<std::pair<CID, UnpaddedPieceSize>>
+    generatePieceCommitment(const RegisteredProof &registered_proof,
+                            const Buffer &piece) = 0;
   };
 
 }  // namespace fc::markets::pieceio

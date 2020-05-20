@@ -10,6 +10,7 @@
 #include <vector>
 
 #include <libp2p/connection/stream.hpp>
+#include "common/buffer.hpp"
 #include "common/outcome.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
@@ -19,6 +20,7 @@
 #include "primitives/types.hpp"
 
 namespace fc::markets::storage::provider {
+  using common::Buffer;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
   using primitives::address::Address;
@@ -42,13 +44,20 @@ namespace fc::markets::storage::provider {
     virtual auto listIncompleteDeals()
         -> outcome::result<std::vector<MinerDeal>> = 0;
 
+    /**
+     * Get deal by proposal cid
+     * @param proposal_cid - proposal data cid
+     * @return deal data
+     */
+    virtual auto getDeal(const CID &proposal_cid) const
+        -> outcome::result<std::shared_ptr<MinerDeal>> = 0;
+
     virtual auto addStorageCollateral(const TokenAmount &amount)
         -> outcome::result<void> = 0;
 
     virtual auto getStorageCollateral() -> outcome::result<TokenAmount> = 0;
 
-    virtual auto importDataForDeal(const CID &prop_cid,
-                                   const libp2p::connection::Stream &data)
+    virtual auto importDataForDeal(const CID &proposal_cid, const Buffer &data)
         -> outcome::result<void> = 0;
   };
 }  // namespace fc::markets::storage::provider

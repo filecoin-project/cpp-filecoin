@@ -234,7 +234,12 @@ namespace fc::api {
           return weight_calculator->calculateWeight(tipset);
         }},
         // TODO(turuslan): FIL-165 implement method
-        .MarketEnsureAvailable = {},
+        .MarketEnsureAvailable = {[](auto address,
+                                     auto wallet,
+                                     auto amount,
+                                     auto &tipset_key) -> boost::optional<CID> {
+          return boost::none;
+        }},
         .MinerCreateBlock = {[=](auto &miner,
                                  auto &parent,
                                  auto &ticket,

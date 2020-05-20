@@ -16,7 +16,7 @@ using libp2p::peer::PeerInfo;
  * @param peer_info to prettify
  * @return string
  */
-std::string peerInfoToPrettyString(const PeerInfo &peer_info) {
+static std::string peerInfoToPrettyString(const PeerInfo &peer_info) {
   std::stringstream ss;
   for (const auto &address : peer_info.addresses) {
     ss << std::string(address.getStringAddress()) << " ";

@@ -64,7 +64,7 @@ namespace fc::markets::storage::client {
                         const SignedAskHandler &signed_ask_handler) const = 0;
 
     virtual outcome::result<ProposeStorageDealResult> proposeStorageDeal(
-        const Address &address,
+        const Address &client_address,
         const StorageProviderInfo &provider_info,
         const DataRef &data_ref,
         const ChainEpoch &start_epoch,
