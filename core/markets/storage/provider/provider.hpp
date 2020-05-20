@@ -50,7 +50,7 @@ namespace fc::markets::storage::provider {
      * @return deal data
      */
     virtual auto getDeal(const CID &proposal_cid) const
-        -> outcome::result<std::shared_ptr<MinerDeal>> = 0;
+        -> outcome::result<MinerDeal> = 0;
 
     virtual auto addStorageCollateral(const TokenAmount &amount)
         -> outcome::result<void> = 0;

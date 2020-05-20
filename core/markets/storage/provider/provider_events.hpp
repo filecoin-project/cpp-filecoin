@@ -41,12 +41,6 @@ namespace fc::markets::storage::provider {
     ProviderEventFunded,
 
     /**
-     * ProviderEventDataTransferFailed happens when an error occurs transferring
-     * data
-     */
-    ProviderEventDataTransferFailed,
-
-    /**
      * ProviderEventDataTransferInitiated happens when a data transfer starts
      */
     ProviderEventDataTransferInitiated,
@@ -58,22 +52,10 @@ namespace fc::markets::storage::provider {
     ProviderEventDataTransferCompleted,
 
     /**
-     * ProviderEventGeneratePieceCIDFailed happens when generating a piece cid
-     * from received data errors
-     */
-    ProviderEventGeneratePieceCIDFailed,
-
-    /**
      * ProviderEventVerifiedData happens when received data is verified as
      * matching the pieceCID in a deal proposal
      */
     ProviderEventVerifiedData,
-
-    /**
-     * ProviderEventSendResponseFailed happens when a response cannot be sent to
-     * a deal
-     */
-    ProviderEventSendResponseFailed,
 
     /**
      * ProviderEventDealPublishInitiated happens when a provider has sent a
@@ -87,58 +69,16 @@ namespace fc::markets::storage::provider {
     ProviderEventDealPublished,
 
     /**
-     * ProviderEventDealPublishError happens when PublishStorageDeals returns a
-     * non-ok exit code
-     */
-    ProviderEventDealPublishError,
-
-    /**
-     * ProviderEventFileStoreErrored happens when an error occurs accessing the
-     * filestore
-     */
-    ProviderEventFileStoreErrored,
-
-    /**
-     * ProviderEventDealHandoffFailed happens when an error occurs handing off a
-     * deal with OnDealComplete
-     */
-    ProviderEventDealHandoffFailed,
-
-    /**
      * ProviderEventDealHandedOff happens when a deal is successfully handed off
      * to the node for processing in a sector
      */
     ProviderEventDealHandedOff,
 
     /**
-     * ProviderEventDealActivationFailed happens when an error occurs activating
-     * a deal
-     */
-    ProviderEventDealActivationFailed,
-
-    /**
-     * ProviderEventUnableToLocatePiece happens when an attempt to learn the
-     * location of a piece from the node fails
-     */
-    ProviderEventUnableToLocatePiece,
-
-    /**
      * ProviderEventDealActivated happens when a deal is successfully activated
      * and commited to a sector
      */
     ProviderEventDealActivated,
-
-    /**
-     * ProviderEventPieceStoreErrored happens when an attempt to save data in
-     * the piece store errors
-     */
-    ProviderEventPieceStoreErrored,
-
-    /**
-     * ProviderEventReadMetadataErrored happens when an error occurs reading
-     * recorded piece metadata
-     */
-    ProviderEventReadMetadataErrored,
 
     /** ProviderEventDealCompleted happens when a deal completes successfully */
     ProviderEventDealCompleted,

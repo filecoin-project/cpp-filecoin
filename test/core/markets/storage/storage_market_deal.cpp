@@ -40,7 +40,7 @@ namespace fc::markets::storage::test {
     waitForProviderDealStatus(proposal_cid,
                               StorageDealStatus::STORAGE_DEAL_COMPLETED);
     EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
-    EXPECT_EQ(provider_deal_state->state,
+    EXPECT_EQ(provider_deal_state.state,
               StorageDealStatus::STORAGE_DEAL_COMPLETED);
 
     // TODO wait for STORAGE_DEAL_COMPLETED
@@ -89,8 +89,13 @@ namespace fc::markets::storage::test {
                                                    registered_proof));
     waitForProviderDealStatus(proposal_cid,
                               StorageDealStatus::STORAGE_DEAL_ERROR);
-    EXPECT_OUTCOME_TRUE(deal, provider->getDeal(proposal_cid));
-    EXPECT_EQ(deal->state, StorageDealStatus::STORAGE_DEAL_ERROR);
+    EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
+    EXPECT_EQ(provider_deal_state.state, StorageDealStatus::STORAGE_DEAL_ERROR);
+
+    waitForClientDealStatus(proposal_cid,
+                            StorageDealStatus::STORAGE_DEAL_ERROR);
+    EXPECT_OUTCOME_TRUE(client_deal_state, client->getLocalDeal(proposal_cid));
+    EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ERROR);
   }
 
 }  // namespace fc::markets::storage::test
