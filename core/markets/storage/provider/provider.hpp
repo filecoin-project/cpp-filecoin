@@ -7,32 +7,50 @@
 #define CPP_FILECOIN_MARKETS_STORAGE_PROVIDER_PROVIDER_HPP
 
 #include <libp2p/host/host.hpp>
+#include "api/miner_api.hpp"
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
+#include "markets/pieceio/pieceio.hpp"
 #include "markets/storage/network/libp2p_storage_market_network.hpp"
 #include "markets/storage/provider.hpp"
 #include "markets/storage/provider/provider_events.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
 #include "markets/storage/storage_receiver.hpp"
+#include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::storage::provider {
+  using api::MinerApi;
+  using fc::storage::piece::PieceInfo;
+  using fc::storage::piece::PieceStorage;
   using libp2p::Host;
   using network::Libp2pStorageMarketNetwork;
+  using pieceio::PieceIO;
+  using primitives::BigInt;
+  using primitives::GasAmount;
+  using primitives::sector::RegisteredProof;
   using ProviderTransition =
       fsm::Transition<ProviderEvent, StorageDealStatus, MinerDeal>;
   using ProviderFSM = fsm::FSM<ProviderEvent, StorageDealStatus, MinerDeal>;
+
+  // from lotus
+  // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/provider.go#L71
+  const BigInt kGasPrice{0};
+  const GasAmount kGasLimit{1000000};
 
   class StorageProviderImpl
       : public StorageProvider,
         public StorageReceiver,
         public std::enable_shared_from_this<StorageProviderImpl> {
    public:
-    StorageProviderImpl(std::shared_ptr<Host> host,
+    StorageProviderImpl(const RegisteredProof &registered_proof,
+                        std::shared_ptr<Host> host,
                         std::shared_ptr<boost::asio::io_context> context,
                         std::shared_ptr<KeyStore> keystore,
                         std::shared_ptr<Datastore> datastore,
                         std::shared_ptr<Api> api,
-                        const Address &actor_address);
+                        std::shared_ptr<MinerApi> miner_api,
+                        const Address &actor_address,
+                        std::shared_ptr<PieceIO> piece_io);
 
     auto init() -> void override;
 
@@ -49,13 +67,15 @@ namespace fc::markets::storage::provider {
     auto listIncompleteDeals()
         -> outcome::result<std::vector<MinerDeal>> override;
 
+    auto getDeal(const CID &proposal_cid) const
+        -> outcome::result<std::shared_ptr<MinerDeal>> override;
+
     auto addStorageCollateral(const TokenAmount &amount)
         -> outcome::result<void> override;
 
     auto getStorageCollateral() -> outcome::result<TokenAmount> override;
 
-    auto importDataForDeal(const CID &prop_cid,
-                           const libp2p::connection::Stream &data)
+    auto importDataForDeal(const CID &proposal_cid, const Buffer &data)
         -> outcome::result<void> override;
 
    protected:
@@ -67,6 +87,48 @@ namespace fc::markets::storage::provider {
 
    private:
     /**
+     * Ensure provider has enough funds
+     * @param deal - storage deal
+     * @return cid of funding message if it was sent
+     */
+    outcome::result<boost::optional<CID>> ensureProviderFunds(
+        std::shared_ptr<MinerDeal> deal);
+
+    /**
+     * Publish storage deal
+     * @param deal to publish
+     * @return CID of message sent
+     */
+    outcome::result<CID> publishDeal(std::shared_ptr<MinerDeal> deal);
+
+    /**
+     * Send signed response to storage deal proposal
+     * @param deal - state of deal
+     * @param status - status of proposed deal
+     * @param message - message to send in case of proposal reject
+     */
+    void sendSignedResponse(std::shared_ptr<MinerDeal> deal,
+                            const StorageDealStatus &status,
+                            const std::string &message);
+
+    /**
+     * Locate piece for deal
+     * @param deal - activated deal
+     * @return piece info with location
+     */
+    outcome::result<PieceInfo> locatePiece(std::shared_ptr<MinerDeal> deal);
+
+    /**
+     * Records sector information about an activated deal so that the data can
+     * be retrieved later
+     * @param deal - activated deal
+     * @param piece_info - piece location
+     * @return error in case of failure
+     */
+    outcome::result<void> recordPieceInfo(std::shared_ptr<MinerDeal> deal,
+                                          const PieceInfo &piece_info);
+
+    /**
      * Creates all FSM transitions
      * @return vector of transitions for fsm
      */
@@ -74,6 +136,7 @@ namespace fc::markets::storage::provider {
 
     /**
      * @brief Handle event open deal
+     * Validates deal proposal
      * @param deal  - current storage deal
      * @param event - ProviderEventOpen
      * @param from  - STORAGE_DEAL_UNKNOWN
@@ -429,6 +492,8 @@ namespace fc::markets::storage::provider {
       return true;
     };
 
+    RegisteredProof registered_proof_;
+
     std::map<CID, std::shared_ptr<CborStream>> connections_;
 
     /**
@@ -447,14 +512,28 @@ namespace fc::markets::storage::provider {
 
     std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
-
     std::shared_ptr<StoredAsk> stored_ask_;
+    std::shared_ptr<Api> api_;
+    std::shared_ptr<MinerApi> miner_api_;
 
     std::shared_ptr<StorageMarketNetwork> network_;
+    std::shared_ptr<PieceIO> piece_io_;
+    std::shared_ptr<PieceStorage> piece_storage_;
 
     common::Logger logger_ = common::createLogger("StorageMarketProvider");
   };
 
+  /**
+   * @brief Type of errors returned by Storage Market Provider
+   */
+  enum class StorageMarketProviderError {
+    LOCAL_DEAL_NOT_FOUND = 1,
+    PIECE_CID_DOESNT_MATCH
+  };
+
 }  // namespace fc::markets::storage::provider
+
+OUTCOME_HPP_DECLARE_ERROR(fc::markets::storage::provider,
+                          StorageMarketProviderError);
 
 #endif  // CPP_FILECOIN_MARKETS_STORAGE_PROVIDER_PROVIDER_HPP

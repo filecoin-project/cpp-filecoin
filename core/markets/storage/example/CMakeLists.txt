@@ -3,31 +3,43 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+set(EXAMPLE_RESOURCES_PATH "${PROJECT_SOURCE_DIR}/core/markets/storage/example/")
+configure_file(
+    "${PROJECT_SOURCE_DIR}/core/markets/storage/example/resources.hpp.in"
+    "${PROJECT_SOURCE_DIR}/core/markets/storage/example/resources.hpp"
+)
 
-add_executable(example_provider_main
-    provider_main.cpp
+add_library(storage_market_provider_example
+    provider_example.cpp
     )
-target_link_libraries(example_provider_main
-    p2p::p2p
+target_link_libraries(storage_market_provider_example
     storage_market_provider
     keystore
-    secp256k1_provider
-    bls_provider
-    p2p::p2p_literals
-    in_memory_storage
     )
 
-add_executable(example_client_main
-    client_main.cpp
+add_library(storage_market_client_example
+    client_example.cpp
     )
-target_link_libraries(example_client_main
-    p2p::p2p
+target_link_libraries(storage_market_client_example
     storage_market_client
     keystore
-    secp256k1_provider
-    bls_provider
-    p2p::p2p_literals
+    )
+
+add_executable(storage_market_example
+    storage_market_example.cpp
+    )
+target_link_libraries(storage_market_example
     in_memory_storage
     ipfs_datastore_in_memory
     pieceio
+    todo_error
+    secp256k1_provider
+    bls_provider
+    pieceio
+    storage_market_provider_example
+    storage_market_client_example
+    p2p::p2p_literals
+    )
+target_include_directories(storage_market_example PUBLIC
+    "${TEST_RESOURCES_PATH}"
     )

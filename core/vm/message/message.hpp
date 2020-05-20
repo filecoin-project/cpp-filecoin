@@ -36,6 +36,8 @@ namespace fc::vm::message {
   using primitives::GasAmount;
   using primitives::address::Address;
 
+  static int64_t kMessageVersion = 0;
+
   /**
    * @brief UnsignedMessage struct
    */
@@ -106,6 +108,12 @@ namespace fc::vm::message {
   struct SignedMessage {
     UnsignedMessage message;
     Signature signature;
+
+    /**
+     * Returnes CID of signed message
+     * @return CID
+     */
+    CID getCid() const;
   };
 
   CBOR_TUPLE(SignedMessage, message, signature)

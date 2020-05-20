@@ -30,6 +30,7 @@ namespace fc::markets::storage::client {
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::builtin::market::getProposalCid;
+  using vm::message::kMessageVersion;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
@@ -150,7 +151,7 @@ namespace fc::markets::storage::client {
   }
 
   outcome::result<ProposeStorageDealResult> ClientImpl::proposeStorageDeal(
-      const Address &address,
+      const Address &client_address,
       const StorageProviderInfo &provider_info,
       const DataRef &data_ref,
       const ChainEpoch &start_epoch,
@@ -168,14 +169,14 @@ namespace fc::markets::storage::client {
     DealProposal deal_proposal{
         .piece_cid = comm_p,
         .piece_size = piece_size.padded(),
-        .client = address,
+        .client = client_address,
         .provider = provider_info.address,
         .start_epoch = start_epoch,
         .end_epoch = end_epoch,
         .storage_price_per_epoch = price,
         .provider_collateral = static_cast<uint64_t>(piece_size),
         .client_collateral = 0};
-    OUTCOME_TRY(signed_proposal, signProposal(address, deal_proposal));
+    OUTCOME_TRY(signed_proposal, signProposal(client_address, deal_proposal));
     OUTCOME_TRY(proposal_cid, getProposalCid(signed_proposal));
 
     auto client_deal = std::make_shared<ClientDeal>(
@@ -231,7 +232,7 @@ namespace fc::markets::storage::client {
   outcome::result<void> ClientImpl::addPaymentEscrow(
       const Address &address, const TokenAmount &amount) {
     UnsignedMessage unsigned_message{
-        0,
+        kMessageVersion,
         kStorageMarketAddress,
         address,
         {},
@@ -299,6 +300,20 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(signature, keystore_->sign(key_address, proposal_bytes));
     return ClientDealProposal{.proposal = proposal,
                               .client_signature = signature};
+  }
+
+  outcome::result<boost::optional<CID>> ClientImpl::ensureFunds(
+      std::shared_ptr<ClientDeal> deal) {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(
+        maybe_cid,
+        api_->MarketEnsureAvailable(
+            deal->client_deal_proposal.proposal.client,
+            deal->client_deal_proposal.proposal.client,
+            deal->client_deal_proposal.proposal.clientBalanceRequirement(),
+            tipset_key));
+    return std::move(maybe_cid);
   }
 
   std::vector<ClientTransition> ClientImpl::makeFSMTransitions() {
@@ -387,8 +402,22 @@ namespace fc::markets::storage::client {
                                      ClientEvent event,
                                      StorageDealStatus from,
                                      StorageDealStatus to) {
-    // TODO ensure funds
-    fsm_->send(deal, ClientEvent::ClientEventFundsEnsured);
+    auto maybe_cid = ensureFunds(deal);
+    if (maybe_cid.has_error()) {
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ClientEvent::ClientEventEnsureFundsFailed));
+      return;
+    }
+
+    // funding message was sent
+    if (maybe_cid.value().has_value()) {
+      deal->add_funds_cid = *maybe_cid.value();
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ClientEvent::ClientEventFundingInitiated));
+      return;
+    }
+
+    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventFundsEnsured));
   }
 
   void ClientImpl::onClientEventOpenStreamError(
@@ -417,9 +446,10 @@ namespace fc::markets::storage::client {
     auto stream = connections_[deal->proposal_cid];
     std::shared_ptr<ClientDeal> client_deal = local_deals_[deal->proposal_cid];
 
-    // TODO write proposal and dataref
+    Proposal proposal{.deal_proposal = client_deal->client_deal_proposal,
+                      .piece = client_deal->data_ref};
     stream->write(
-        client_deal->client_deal_proposal.proposal,
+        proposal,
         [self{shared_from_this()}, stream](outcome::result<size_t> written) {
           if (written.has_error()) {
             self->logger_->error("Proposal write error "

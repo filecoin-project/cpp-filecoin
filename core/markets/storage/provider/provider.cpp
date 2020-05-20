@@ -11,6 +11,7 @@
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/storage/provider/storage_provider_error.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
+#include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 
 #define CALLBACK_ACTION(_action)                                          \
@@ -22,22 +23,39 @@
 
 namespace fc::markets::storage::provider {
 
+  using api::MsgWait;
+  using fc::storage::piece::PayloadLocation;
+  using fc::storage::piece::PieceStorageImpl;
   using host::HostContext;
   using host::HostContextImpl;
+  using vm::VMExitCode;
+  using vm::actor::MethodParams;
   using vm::actor::builtin::market::getProposalCid;
+  using vm::actor::builtin::market::PublishStorageDeals;
+  using vm::message::kMessageVersion;
+  using vm::message::SignedMessage;
+  using vm::message::UnsignedMessage;
 
   StorageProviderImpl::StorageProviderImpl(
+      const RegisteredProof &registered_proof,
       std::shared_ptr<Host> host,
       std::shared_ptr<boost::asio::io_context> context,
       std::shared_ptr<KeyStore> keystore,
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
-      const Address &actor_address)
-      : host_{std::move(host)},
+      std::shared_ptr<MinerApi> miner_api,
+      const Address &actor_address,
+      std::shared_ptr<PieceIO> piece_io)
+      : registered_proof_{registered_proof},
+        host_{std::move(host)},
         context_{std::move(context)},
         stored_ask_{std::make_shared<StoredAsk>(
             keystore, datastore, api, actor_address)},
-        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)} {}
+        api_{std::move(api)},
+        miner_api_{std::move(miner_api)},
+        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
+        piece_io_{std::move(piece_io)},
+        piece_storage_{std::make_shared<PieceStorageImpl>(datastore)} {}
 
   void StorageProviderImpl::init() {
     std::shared_ptr<HostContext> fsm_context =
@@ -80,6 +98,15 @@ namespace fc::markets::storage::provider {
     return TodoError::ERROR;
   }
 
+  outcome::result<std::shared_ptr<MinerDeal>> StorageProviderImpl::getDeal(
+      const CID &proposal_cid) const {
+    auto it = local_deals_.find(proposal_cid);
+    if (it == local_deals_.end()) {
+      return StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND;
+    }
+    return it->second;
+  }
+
   outcome::result<void> StorageProviderImpl::addStorageCollateral(
       const TokenAmount &amount) {
     return TodoError::ERROR;
@@ -90,8 +117,17 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<void> StorageProviderImpl::importDataForDeal(
-      const CID &prop_cid, const libp2p::connection::Stream &data) {
-    return TodoError::ERROR;
+      const CID &proposal_cid, const Buffer &data) {
+    OUTCOME_TRY(piece_commitment,
+                piece_io_->generatePieceCommitment(registered_proof_, data));
+    OUTCOME_TRY(deal, getDeal(proposal_cid));
+    if (piece_commitment.first
+        != deal->client_deal_proposal.proposal.piece_cid) {
+      return StorageMarketProviderError::PIECE_CID_DOESNT_MATCH;
+    }
+
+    OUTCOME_TRY(fsm_->send(deal, ProviderEvent::ProviderEventVerifiedData));
+    return outcome::success();
   }
 
   void StorageProviderImpl::handleAskStream(
@@ -119,7 +155,6 @@ namespace fc::markets::storage::provider {
 
     stream->read<Proposal>([self{shared_from_this()},
                             stream](outcome::result<Proposal> proposal) {
-      // todo check result
       if (proposal.has_error()) {
         self->logger_->error("Read proposal error");
         self->network_->closeStreamGracefully(stream);
@@ -145,6 +180,8 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<MinerDeal> deal = std::make_shared<MinerDeal>(
           MinerDeal{.client_deal_proposal = proposal.value().deal_proposal,
                     .proposal_cid = proposal_cid.value(),
+                    .add_funds_cid = {},
+                    .publish_cid = {},
                     .miner = self->host_->getPeerInfo(),
                     .client = remote_peer_info,
                     .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
@@ -161,6 +198,97 @@ namespace fc::markets::storage::provider {
       OUTCOME_EXCEPT(self->fsm_->send(deal, ProviderEvent::ProviderEventOpen));
     });
   }
+
+  outcome::result<boost::optional<CID>>
+  StorageProviderImpl::ensureProviderFunds(std::shared_ptr<MinerDeal> deal) {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(worker_info,
+                api_->StateMinerInfo(
+                    deal->client_deal_proposal.proposal.provider, tipset_key));
+    OUTCOME_TRY(maybe_cid,
+                api_->MarketEnsureAvailable(
+                    deal->client_deal_proposal.proposal.provider,
+                    worker_info.worker,
+                    deal->client_deal_proposal.proposal.provider_collateral,
+                    tipset_key));
+    return std::move(maybe_cid);
+  }
+
+  outcome::result<CID> StorageProviderImpl::publishDeal(
+      std::shared_ptr<MinerDeal> deal) {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(worker_info,
+                api_->StateMinerInfo(
+                    deal->client_deal_proposal.proposal.provider, tipset_key));
+    std::vector<ClientDealProposal> params{deal->client_deal_proposal};
+    OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
+    UnsignedMessage unsigned_message(kMessageVersion,
+                                     vm::actor::kStorageMarketAddress,
+                                     worker_info.worker,
+                                     0,
+                                     TokenAmount{0},
+                                     kGasPrice,
+                                     kGasLimit,
+                                     PublishStorageDeals::Number,
+                                     MethodParams{encoded_params});
+    OUTCOME_TRY(signed_message, api_->MpoolPushMessage(unsigned_message));
+    CID cid = signed_message.getCid();
+    OUTCOME_TRY(str_cid, cid.toString());
+    logger_->debug("Deal published with CID = " + str_cid);
+    return std::move(cid);
+  }
+
+  void StorageProviderImpl::sendSignedResponse(std::shared_ptr<MinerDeal> deal,
+                                               const StorageDealStatus &status,
+                                               const std::string &message) {
+    Response response{.state = status,
+                      .message = message,
+                      .proposal = deal->proposal_cid,
+                      .publish_message = deal->publish_cid};
+    // TODO handle if stream is absent
+    auto stream = connections_[deal->proposal_cid];
+    stream->write(
+        response,
+        [self{shared_from_this()}, stream, deal](
+            outcome::result<size_t> maybe_res) {
+          if (!self->hasValue(
+                  maybe_res, "Write deal response error ", stream)) {
+            OUTCOME_EXCEPT(self->fsm_->send(
+                deal, ProviderEvent::ProviderEventSendResponseFailed));
+            return;
+          }
+          self->network_->closeStreamGracefully(stream);
+          self->logger_->debug("Deal response written, connection closed");
+          OUTCOME_EXCEPT(self->fsm_->send(
+              deal, ProviderEvent::ProviderEventDealPublished));
+        });
+  }
+
+  outcome::result<PieceInfo> StorageProviderImpl::locatePiece(
+      std::shared_ptr<MinerDeal> deal) {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(
+        piece_info,
+        miner_api_->LocatePieceForDealWithinSector(deal->deal_id, tipset_key));
+    return piece_info;
+  }
+
+  outcome::result<void> StorageProviderImpl::recordPieceInfo(
+      std::shared_ptr<MinerDeal> deal, const PieceInfo &piece_info) {
+    // TODO handle metadata file
+
+    std::map<CID, PayloadLocation> locations;
+    locations[deal->ref.root] = {};
+    OUTCOME_TRY(piece_storage_->addPayloadLocations(
+        deal->client_deal_proposal.proposal.piece_cid, locations));
+    OUTCOME_TRY(piece_storage_->addPieceInfo(
+        deal->client_deal_proposal.proposal.piece_cid, piece_info));
+
+    return outcome::success();
+  }  // namespace fc::markets::storage::provider
 
   std::vector<ProviderTransition> StorageProviderImpl::makeFSMTransitions() {
     return {
@@ -302,9 +430,13 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
+    if (deal->ref.transfer_type == kTransferTypeManual) {
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ProviderEvent::ProviderEventWaitingForManualData));
+      return;
+    }
+
     // TODO transfer data
-    OUTCOME_EXCEPT(
-        fsm_->send(deal, ProviderEvent::ProviderEventWaitingForManualData));
   }
 
   void StorageProviderImpl::onProviderEventWaitingForManualData(
@@ -312,8 +444,7 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO
-    OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventVerifiedData));
+    // wait for importDataForDeal() call
   }
 
   void StorageProviderImpl::onProviderEventInsufficientFunds(
@@ -336,7 +467,13 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO PublishDeal
+    auto maybe_cid = publishDeal(deal);
+    if (maybe_cid.has_error()) {
+      OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventNodeErrored));
+      return;
+    }
+
+    deal->publish_cid = maybe_cid.value();
     OUTCOME_EXCEPT(
         fsm_->send(deal, ProviderEvent::ProviderEventDealPublishInitiated));
   }
@@ -376,9 +513,21 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO EnsureProviderFunds
-    OUTCOME_EXCEPT(
-        fsm_->send(deal, ProviderEvent::ProviderEventFundingInitiated));
+    auto maybe_cid = ensureProviderFunds(deal);
+    if (maybe_cid.has_error()) {
+      OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventNodeErrored));
+      return;
+    }
+
+    // funding message was sent
+    if (maybe_cid.value().has_value()) {
+      deal->add_funds_cid = *maybe_cid.value();
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ProviderEvent::ProviderEventFundingInitiated));
+      return;
+    }
+
+    OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventFunded));
   }
 
   void StorageProviderImpl::onProviderEventSendResponseFailed(
@@ -392,8 +541,46 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO WaitForPublish
-    OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealPublished));
+    auto maybe_wait = api_->StateWaitMsg(deal->publish_cid);
+    if (maybe_wait.has_error()) {
+      OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventNodeErrored));
+      return;
+    }
+    maybe_wait.value().wait(
+        [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {
+          if (result.has_error()) {
+            self->logger_->error("Publish storage deal message error "
+                                 + result.error().message());
+            OUTCOME_EXCEPT(self->fsm_->send(
+                deal, ProviderEvent::ProviderEventDealPublishError));
+            return;
+          }
+          if (result.value().receipt.exit_code != VMExitCode::Ok) {
+            self->logger_->error("Publish storage deal exit code "
+                                 + std::to_string(static_cast<uint64_t>(
+                                     result.value().receipt.exit_code)));
+            OUTCOME_EXCEPT(self->fsm_->send(
+                deal, ProviderEvent::ProviderEventDealPublishError));
+            return;
+          }
+          auto maybe_res = codec::cbor::decode<PublishStorageDeals::Result>(
+              result.value().receipt.return_value);
+          if (maybe_res.has_error()) {
+            self->logger_->error("Publish storage deal decode result error");
+            OUTCOME_EXCEPT(self->fsm_->send(
+                deal, ProviderEvent::ProviderEventDealPublishError));
+            return;
+          }
+          if (maybe_res.value().deals.size() != 1) {
+            self->logger_->error("Publish storage deal result size error");
+            OUTCOME_EXCEPT(self->fsm_->send(
+                deal, ProviderEvent::ProviderEventDealPublishError));
+            return;
+          }
+          deal->deal_id = maybe_res.value().deals.front();
+          self->sendSignedResponse(
+              deal, StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED, "");
+        });
   }
 
   void StorageProviderImpl::onProviderEventDealPublished(
@@ -402,6 +589,7 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     // TODO hand off
+    // miner_node_api.addPiece
     OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealHandedOff));
   }
 
@@ -429,6 +617,7 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     // TODO verify deal activated
+    // on deal sector commited
     OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealActivated));
   }
 
@@ -449,7 +638,15 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO Record Piece Info
+    auto maybe_piece_info = locatePiece(deal);
+    if (maybe_piece_info.has_error()) {
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ProviderEvent::ProviderEventUnableToLocatePiece));
+    }
+    if (recordPieceInfo(deal, maybe_piece_info.value()).has_error()) {
+      OUTCOME_EXCEPT(
+          fsm_->send(deal, ProviderEvent::ProviderEventPieceStoreErrored));
+    }
     OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealCompleted));
   }
 
@@ -480,3 +677,19 @@ namespace fc::markets::storage::provider {
       StorageDealStatus to) {}
 
 }  // namespace fc::markets::storage::provider
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider,
+                            StorageMarketProviderError,
+                            e) {
+  using fc::markets::storage::provider::StorageMarketProviderError;
+
+  switch (e) {
+    case StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND:
+      return "StorageMarketProviderError: local deal not found";
+    case StorageMarketProviderError::PIECE_CID_DOESNT_MATCH:
+      return "StorageMarketProviderError: imported piece cid doensn't match "
+             "proposal piece cid";
+  }
+
+  return "StorageMarketProviderError: unknown error";
+}

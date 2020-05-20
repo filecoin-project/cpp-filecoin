@@ -64,7 +64,7 @@ namespace fc::markets::storage::client {
                 const SignedAskHandler &signed_ask_handler) const override;
 
     outcome::result<ProposeStorageDealResult> proposeStorageDeal(
-        const Address &address,
+        const Address &client_address,
         const StorageProviderInfo &provider_info,
         const DataRef &data_ref,
         const ChainEpoch &start_epoch,
@@ -90,6 +90,9 @@ namespace fc::markets::storage::client {
     outcome::result<ClientDealProposal> signProposal(
         const Address &address, const DealProposal &proposal) const;
 
+    outcome::result<boost::optional<CID>> ensureFunds(
+        std::shared_ptr<ClientDeal> deal);
+
     /**
      * Creates all FSM transitions
      * @return vector of transitions for fsm
@@ -98,6 +101,8 @@ namespace fc::markets::storage::client {
 
     /**
      * @brief Handle open storage deal event
+     * Attempts to ensure the client has enough funds for the deal being
+     * proposed
      * @param deal  - current storage deal
      * @param event - ClientEventOpen
      * @param from  - STORAGE_DEAL_UNKNOWN
