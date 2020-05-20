@@ -30,6 +30,7 @@ namespace fc::markets::storage::client {
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::builtin::market::getProposalCid;
+  using vm::message::kMessageVersion;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
@@ -231,7 +232,7 @@ namespace fc::markets::storage::client {
   outcome::result<void> ClientImpl::addPaymentEscrow(
       const Address &address, const TokenAmount &amount) {
     UnsignedMessage unsigned_message{
-        0,
+        kMessageVersion,
         kStorageMarketAddress,
         address,
         {},
