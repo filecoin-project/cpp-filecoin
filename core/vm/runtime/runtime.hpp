@@ -41,9 +41,9 @@ namespace fc::vm::runtime {
   using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::piece::PieceInfo;
-  using primitives::sector::PoStVerifyInfo;
   using primitives::sector::RegisteredProof;
   using primitives::sector::SealVerifyInfo;
+  using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using Serialization = Buffer;
   using crypto::signature::Signature;
@@ -151,7 +151,7 @@ namespace fc::vm::runtime {
         gsl::span<const uint8_t> data) = 0;
 
     /// Verify PoSt
-    virtual outcome::result<bool> verifyPoSt(const PoStVerifyInfo &info) = 0;
+    virtual outcome::result<bool> verifyPoSt(const WindowPoStVerifyInfo &info) = 0;
 
     /// Verify seal
     virtual outcome::result<bool> verifySeal(const SealVerifyInfo &info) = 0;

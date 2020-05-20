@@ -149,11 +149,9 @@ namespace fc::vm::actor::builtin::miner {
                         DomainSeparationTag::PoStDST,
                         state.post_state.proving_period_start,
                         seed),
-                    .candidates = params.candidates,
                     .proofs = params.proofs,
-                    .eligible_sectors = sectors,
+                    .challenged_sectors = {},
                     .prover = miner.getId(),
-                    .challenge_count = challenge_count,
                 }));
     if (!verified) {
       return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;

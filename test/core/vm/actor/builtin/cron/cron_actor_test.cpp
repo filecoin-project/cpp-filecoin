@@ -26,7 +26,7 @@ using fc::vm::runtime::MockRuntime;
  */
 TEST(CronActorTest, WrongSender) {
   auto message_wrong_sender = UnsignedMessage{
-      actor::kInitAddress, actor::kInitAddress, {}, {}, {}, {}, {}, {}};
+      0, actor::kInitAddress, actor::kInitAddress, {}, {}, {}, {}, {}, {}};
   MockRuntime runtime;
   actor::Actor actor;
   EXPECT_CALL(runtime, getMessage())
@@ -42,7 +42,7 @@ TEST(CronActorTest, WrongSender) {
  */
 TEST(CronActorTest, Correct) {
   auto message = UnsignedMessage{
-      actor::kInitAddress, actor::kSystemActorAddress, {}, {}, {}, {}, {}, {}};
+      0, actor::kInitAddress, actor::kSystemActorAddress, {}, {}, {}, {}, {}, {}};
   MockRuntime runtime;
   actor::Actor actor;
   EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));

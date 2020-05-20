@@ -28,16 +28,34 @@ namespace fc::primitives::sector {
   /// This ordering, defines mappings to UInt in a way which MUST never change.
   enum class RegisteredProof : int64_t {
     StackedDRG32GiBSeal = 1,
-    StackedDRG32GiBPoSt = 2,
+    StackedDRG32GiBPoSt = 2,  // No longer used
     StackedDRG2KiBSeal = 3,
-    StackedDRG2KiBPoSt = 4,
+    StackedDRG2KiBPoSt = 4,  // No longer used
     StackedDRG8MiBSeal = 5,
-    StackedDRG8MiBPoSt = 6,
+    StackedDRG8MiBPoSt = 6,  // No longer used
     StackedDRG512MiBSeal = 7,
-    StackedDRG512MiBPoSt = 8,
+    StackedDRG512MiBPoSt = 8,  // No longer used
+
+    StackedDRG2KiBWinningPoSt = 9,
+    StackedDRG2KiBWindowPoSt = 10,
+
+    StackedDRG8MiBWinningPoSt = 11,
+    StackedDRG8MiBWindowPoSt = 12,
+
+    StackedDRG512MiBWinningPoSt = 13,
+    StackedDRG512MiBWindowPoSt = 14,
+
+    StackedDRG32GiBWinningPoSt = 15,
+    StackedDRG32GiBWindowPoSt = 16,
+
+    StackedDRG64GiBSeal = 17,
+    StackedDRG64GiBWinningPoSt = 18,
+    StackedDRG64GiBWindowPoSt = 19,
   };
 
-  outcome::result<RegisteredProof> getRegisteredPoStProof(
+  outcome::result<RegisteredProof> getRegisteredWindowPoStProof(
+      RegisteredProof proof);
+  outcome::result<RegisteredProof> getRegisteredWinningPoStProof(
       RegisteredProof proof);
   outcome::result<RegisteredProof> getRegisteredSealProof(
       RegisteredProof proof);
@@ -129,15 +147,23 @@ namespace fc::primitives::sector {
     CID sealed_cid;
   };
 
-  struct PoStVerifyInfo {
+  // Information needed to verify a Winning PoSt attached to a block header.
+  // Note: this is not used within the state machine, but by the
+  // consensus/election mechanisms.
+  struct WinningPoStVerifyInfo {
     PoStRandomness randomness;
-    /// From OnChainPoStVerifyInfo
-    std::vector<PoStCandidate> candidates;
     std::vector<PoStProof> proofs;
-    std::vector<SectorInfo> eligible_sectors;
-    /// used to derive 32-byte prover ID
+    std::vector<SectorInfo> challenged_sectors;
     ActorId prover;
-    uint64_t challenge_count;
+  };
+
+  // Information needed to verify a Window PoSt submitted directly to a miner
+  // actor.
+  struct WindowPoStVerifyInfo {
+    PoStRandomness randomness;
+    std::vector<PoStProof> proofs;
+    std::vector<SectorInfo> challenged_sectors;
+    ActorId prover;
   };
 
   CBOR_TUPLE(SectorId, miner, sector)
