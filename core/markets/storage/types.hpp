@@ -17,10 +17,6 @@ namespace fc::markets::storage {
   using primitives::SectorSize;
   using primitives::address::Address;
 
-  struct ProposeStorageDealResult {
-    CID proposal_cid;
-  };
-
   // Closely follows the MinerInfo struct in the spec
   struct StorageProviderInfo {
     Address address;  // actor address

@@ -20,6 +20,19 @@
     deal->state = to;                                                     \
   }
 
+#define FSM_SEND(client_deal, event) \
+  OUTCOME_EXCEPT(fsm_->send(client_deal, event))
+
+#define SELF_FSM_SEND(client_deal, event) \
+  OUTCOME_EXCEPT(self->fsm_->send(client_deal, event))
+
+#define SELF_FSM_HALT_ON_ERROR(result, msg, deal)                       \
+  if (result.has_error()) {                                             \
+    deal->message = msg + std::string(". ") + result.error().message(); \
+    SELF_FSM_SEND(deal, ClientEvent::ClientEventFailed);                \
+    return;                                                             \
+  }
+
 namespace fc::markets::storage::client {
 
   using host::HostContext;
@@ -127,31 +140,28 @@ namespace fc::markets::storage::client {
           }
           auto stream = std::move(stream_res.value());
           AskRequest request{.miner = info.address};
-          stream->write(
-              request,
-              [self, info, stream, signed_ask_handler](
-                  outcome::result<size_t> written) {
-                if (!self->hasValue(written,
-                                    "Cannot send request ",
-                                    stream,
-                                    signed_ask_handler)) {
-                  self->network_->closeStreamGracefully(stream);
-                  signed_ask_handler(outcome::failure(written.error()));
-                  return;
-                }
-                stream->template read<AskResponse>(
-                    [self, info, stream, signed_ask_handler](
-                        outcome::result<AskResponse> response) {
-                      auto validated_ask_response =
-                          self->validateAskResponse(response, info);
-                      signed_ask_handler(validated_ask_response);
-                      self->network_->closeStreamGracefully(stream);
-                    });
-              });
+          stream->write(request,
+                        [self, info, stream, signed_ask_handler](
+                            outcome::result<size_t> written) {
+                          if (!self->hasValue(written,
+                                              "Cannot send request",
+                                              stream,
+                                              signed_ask_handler)) {
+                            return;
+                          }
+                          stream->template read<AskResponse>(
+                              [self, info, stream, signed_ask_handler](
+                                  outcome::result<AskResponse> response) {
+                                auto validated_ask_response =
+                                    self->validateAskResponse(response, info);
+                                signed_ask_handler(validated_ask_response);
+                                self->network_->closeStreamGracefully(stream);
+                              });
+                        });
         });
   }
 
-  outcome::result<ProposeStorageDealResult> ClientImpl::proposeStorageDeal(
+  outcome::result<CID> ClientImpl::proposeStorageDeal(
       const Address &client_address,
       const StorageProviderInfo &provider_info,
       const DataRef &data_ref,
@@ -183,7 +193,7 @@ namespace fc::markets::storage::client {
     auto client_deal = std::make_shared<ClientDeal>(
         ClientDeal{.client_deal_proposal = signed_proposal,
                    .proposal_cid = proposal_cid,
-                   .add_funds_cid = {},
+                   .add_funds_cid = boost::none,
                    .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
                    .miner = provider_info.peer_info,
                    .miner_worker = provider_info.worker,
@@ -199,27 +209,22 @@ namespace fc::markets::storage::client {
         provider_info.peer_info,
         [self{shared_from_this()}, provider_info, client_deal, proposal_cid](
             outcome::result<std::shared_ptr<CborStream>> stream) {
-          if (stream.has_error()) {
-            self->logger_->error(
-                "Cannot open stream to "
-                + peerInfoToPrettyString(provider_info.peer_info)
-                + stream.error().message());
-            OUTCOME_EXCEPT(self->fsm_->send(
-                client_deal, ClientEvent::ClientEventOpenStreamError));
-            return;
-          }
+          SELF_FSM_HALT_ON_ERROR(
+              stream,
+              "Cannot open stream to "
+                  + peerInfoToPrettyString(provider_info.peer_info),
+              client_deal);
           self->logger_->debug(
               "DealStream opened to "
               + peerInfoToPrettyString(provider_info.peer_info));
 
           self->connections_[proposal_cid] = stream.value();
-          OUTCOME_EXCEPT(
-              self->fsm_->send(client_deal, ClientEvent::ClientEventOpen));
+          SELF_FSM_SEND(client_deal, ClientEvent::ClientEventOpen);
         });
 
     OUTCOME_TRY(discovery_->addPeer(data_ref.root, provider_info.peer_info));
 
-    return ProposeStorageDealResult{client_deal->proposal_cid};
+    return client_deal->proposal_cid;
   }
 
   outcome::result<StorageParticipantBalance> ClientImpl::getPaymentEscrow(
@@ -333,85 +338,43 @@ namespace fc::markets::storage::client {
   }
 
   std::vector<ClientTransition> ClientImpl::makeFSMTransitions() {
-    return {
-        ClientTransition(ClientEvent::ClientEventOpen)
-            .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
-            .to(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
-            .action(CALLBACK_ACTION(onClientEventOpen)),
-        ClientTransition(ClientEvent::ClientEventOpenStreamError)
-            .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
-            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
-            .action(CALLBACK_ACTION(onClientEventOpenStreamError)),
-        ClientTransition(ClientEvent::ClientEventFundingInitiated)
-            .from(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
-            .to(StorageDealStatus::STORAGE_DEAL_CLIENT_FUNDING)
-            .action(CALLBACK_ACTION(onClientEventFundingInitiated)),
-        ClientTransition(ClientEvent::ClientEventEnsureFundsFailed)
-            .fromMany(StorageDealStatus::STORAGE_DEAL_CLIENT_FUNDING,
-                      StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
-            .to(StorageDealStatus::STORAGE_DEAL_FAILING)
-            .action(CALLBACK_ACTION(onClientEventEnsureFundsFailed)),
-        ClientTransition(ClientEvent::ClientEventFundsEnsured)
-            .fromMany(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS,
-                      StorageDealStatus::STORAGE_DEAL_CLIENT_FUNDING)
-            .to(StorageDealStatus::STORAGE_DEAL_FUNDS_ENSURED)
-            .action(CALLBACK_ACTION(onClientEventFundsEnsured)),
-        ClientTransition(ClientEvent::ClientEventWriteProposalFailed)
-            .from(StorageDealStatus::STORAGE_DEAL_FUNDS_ENSURED)
-            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
-            .action(CALLBACK_ACTION(onClientEventWriteProposalFailed)),
-        ClientTransition(ClientEvent::ClientEventDealProposed)
-            .from(StorageDealStatus::STORAGE_DEAL_FUNDS_ENSURED)
-            .to(StorageDealStatus::STORAGE_DEAL_VALIDATING)
-            .action(CALLBACK_ACTION(onClientEventDealProposed)),
-        ClientTransition(ClientEvent::ClientEventDealStreamLookupErrored)
-            .fromAny()
-            .to(StorageDealStatus::STORAGE_DEAL_FAILING)
-            .action(CALLBACK_ACTION(onClientEventDealStreamLookupErrored)),
-        ClientTransition(ClientEvent::ClientEventReadResponseFailed)
-            .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
-            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
-            .action(CALLBACK_ACTION(onClientEventReadResponseFailed)),
-        ClientTransition(ClientEvent::ClientEventResponseVerificationFailed)
-            .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
-            .to(StorageDealStatus::STORAGE_DEAL_FAILING)
-            .action(CALLBACK_ACTION(onClientEventResponseVerificationFailed)),
-        ClientTransition(ClientEvent::ClientEventResponseDealDidNotMatch)
-            .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
-            .to(StorageDealStatus::STORAGE_DEAL_FAILING)
-            .action(CALLBACK_ACTION(onClientEventResponseDealDidNotMatch)),
-        ClientTransition(ClientEvent::ClientEventDealRejected)
-            .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
-            .to(StorageDealStatus::STORAGE_DEAL_FAILING)
-            .action(CALLBACK_ACTION(onClientEventDealRejected)),
-        ClientTransition(ClientEvent::ClientEventDealAccepted)
-            .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
-            .to(StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED)
-            .action(CALLBACK_ACTION(onClientEventDealAccepted)),
-        ClientTransition(ClientEvent::ClientEventStreamCloseError)
-            .fromAny()
-            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
-            .action(CALLBACK_ACTION(onClientEventStreamCloseError)),
-        ClientTransition(ClientEvent::ClientEventDealPublishFailed)
-            .from(StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED)
-            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
-            .action(CALLBACK_ACTION(onClientEventDealPublishFailed)),
-        ClientTransition(ClientEvent::ClientEventDealPublished)
-            .from(StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED)
-            .to(StorageDealStatus::STORAGE_DEAL_SEALING)
-            .action(CALLBACK_ACTION(onClientEventDealPublished)),
-        ClientTransition(ClientEvent::ClientEventDealActivationFailed)
-            .from(StorageDealStatus::STORAGE_DEAL_SEALING)
-            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
-            .action(CALLBACK_ACTION(onClientEventDealActivationFailed)),
-        ClientTransition(ClientEvent::ClientEventDealActivated)
-            .from(StorageDealStatus::STORAGE_DEAL_SEALING)
-            .to(StorageDealStatus::STORAGE_DEAL_ACTIVE)
-            .action(CALLBACK_ACTION(onClientEventDealActivated)),
-        ClientTransition(ClientEvent::ClientEventFailed)
-            .from(StorageDealStatus::STORAGE_DEAL_FAILING)
-            .to(StorageDealStatus::STORAGE_DEAL_ERROR)
-            .action(CALLBACK_ACTION(onClientEventFailed))};
+    return {ClientTransition(ClientEvent::ClientEventOpen)
+                .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
+                .to(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
+                .action(CALLBACK_ACTION(onClientEventOpen)),
+            ClientTransition(ClientEvent::ClientEventFundingInitiated)
+                .from(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
+                .to(StorageDealStatus::STORAGE_DEAL_CLIENT_FUNDING)
+                .action(CALLBACK_ACTION(onClientEventFundingInitiated)),
+            ClientTransition(ClientEvent::ClientEventFundsEnsured)
+                .fromMany(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS,
+                          StorageDealStatus::STORAGE_DEAL_CLIENT_FUNDING)
+                .to(StorageDealStatus::STORAGE_DEAL_FUNDS_ENSURED)
+                .action(CALLBACK_ACTION(onClientEventFundsEnsured)),
+            ClientTransition(ClientEvent::ClientEventDealProposed)
+                .from(StorageDealStatus::STORAGE_DEAL_FUNDS_ENSURED)
+                .to(StorageDealStatus::STORAGE_DEAL_VALIDATING)
+                .action(CALLBACK_ACTION(onClientEventDealProposed)),
+            ClientTransition(ClientEvent::ClientEventDealRejected)
+                .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
+                .to(StorageDealStatus::STORAGE_DEAL_FAILING)
+                .action(CALLBACK_ACTION(onClientEventDealRejected)),
+            ClientTransition(ClientEvent::ClientEventDealAccepted)
+                .from(StorageDealStatus::STORAGE_DEAL_VALIDATING)
+                .to(StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED)
+                .action(CALLBACK_ACTION(onClientEventDealAccepted)),
+            ClientTransition(ClientEvent::ClientEventDealPublished)
+                .from(StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED)
+                .to(StorageDealStatus::STORAGE_DEAL_SEALING)
+                .action(CALLBACK_ACTION(onClientEventDealPublished)),
+            ClientTransition(ClientEvent::ClientEventDealActivated)
+                .from(StorageDealStatus::STORAGE_DEAL_SEALING)
+                .to(StorageDealStatus::STORAGE_DEAL_ACTIVE)
+                .action(CALLBACK_ACTION(onClientEventDealActivated)),
+            ClientTransition(ClientEvent::ClientEventFailed)
+                .fromAny()
+                .to(StorageDealStatus::STORAGE_DEAL_ERROR)
+                .action(CALLBACK_ACTION(onClientEventFailed))};
   }
 
   void ClientImpl::onClientEventOpen(std::shared_ptr<ClientDeal> deal,
@@ -420,28 +383,19 @@ namespace fc::markets::storage::client {
                                      StorageDealStatus to) {
     auto maybe_cid = ensureFunds(deal);
     if (maybe_cid.has_error()) {
-      OUTCOME_EXCEPT(
-          fsm_->send(deal, ClientEvent::ClientEventEnsureFundsFailed));
+      deal->message = "Ensure funds failed: " + maybe_cid.error().message();
+      FSM_SEND(deal, ClientEvent::ClientEventFailed);
       return;
     }
 
     // funding message was sent
     if (maybe_cid.value().has_value()) {
       deal->add_funds_cid = *maybe_cid.value();
-      OUTCOME_EXCEPT(
-          fsm_->send(deal, ClientEvent::ClientEventFundingInitiated));
+      FSM_SEND(deal, ClientEvent::ClientEventFundingInitiated);
       return;
     }
 
-    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventFundsEnsured));
-  }
-
-  void ClientImpl::onClientEventOpenStreamError(
-      std::shared_ptr<ClientDeal> deal,
-      ClientEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {
-    // TODO no need in error states
+    FSM_SEND(deal, ClientEvent::ClientEventFundsEnsured);
   }
 
   void ClientImpl::onClientEventFundingInitiated(
@@ -452,44 +406,23 @@ namespace fc::markets::storage::client {
     // TODO wait for funding
   }
 
-  void ClientImpl::onClientEventEnsureFundsFailed(
-      std::shared_ptr<ClientDeal> deal,
-      ClientEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {
-    // TODO no need in error states
-  }
-
   void ClientImpl::onClientEventFundsEnsured(std::shared_ptr<ClientDeal> deal,
                                              ClientEvent event,
                                              StorageDealStatus from,
                                              StorageDealStatus to) {
     // TODO handle if stream is absent
     auto stream = connections_[deal->proposal_cid];
-    std::shared_ptr<ClientDeal> client_deal = local_deals_[deal->proposal_cid];
 
-    Proposal proposal{.deal_proposal = client_deal->client_deal_proposal,
-                      .piece = client_deal->data_ref};
-    stream->write(
-        proposal,
-        [self{shared_from_this()}, stream](outcome::result<size_t> written) {
-          if (written.has_error()) {
-            self->logger_->error("Proposal write error "
-                                 + written.error().message());
-          } else {
-            self->logger_->debug("Proposal write success");
-          }
-          self->network_->closeStreamGracefully(stream);
-        });
-    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealProposed));
-  }
-
-  void ClientImpl::onClientEventWriteProposalFailed(
-      std::shared_ptr<ClientDeal> deal,
-      ClientEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {
-    // TODO no need in error states
+    Proposal proposal{.deal_proposal = deal->client_deal_proposal,
+                      .piece = deal->data_ref};
+    stream->write(proposal,
+                  [self{shared_from_this()}, deal, stream](
+                      outcome::result<size_t> written) {
+                    SELF_FSM_HALT_ON_ERROR(
+                        written, "Send proposal error", deal);
+                    self->network_->closeStreamGracefully(stream);
+                    SELF_FSM_SEND(deal, ClientEvent::ClientEventDealProposed);
+                  });
   }
 
   void ClientImpl::onClientEventDealProposed(std::shared_ptr<ClientDeal> deal,
@@ -500,72 +433,33 @@ namespace fc::markets::storage::client {
     auto stream = connections_[deal->proposal_cid];
     stream->read<SignedResponse>([self{shared_from_this()}, deal, stream](
                                      outcome::result<SignedResponse> response) {
-      if (response.has_error()) {
-        OUTCOME_EXCEPT(
-            self->fsm_->send(deal, ClientEvent::ClientEventReadResponseFailed));
-        return;
-      }
-      if (self->verifyDealResponseSignature(response.value(), deal)
-              .has_error()) {
-        OUTCOME_EXCEPT(self->fsm_->send(
-            deal, ClientEvent::ClientEventResponseVerificationFailed));
-        return;
-      }
+      SELF_FSM_HALT_ON_ERROR(response, "Read response error", deal);
+      SELF_FSM_HALT_ON_ERROR(
+          self->verifyDealResponseSignature(response.value(), deal),
+          "Response signature verification error",
+          deal);
       if (response.value().response.proposal != deal->proposal_cid) {
-        OUTCOME_EXCEPT(self->fsm_->send(
-            deal, ClientEvent::ClientEventResponseDealDidNotMatch));
+        deal->message = "Response proposal cid doesn't match";
+        SELF_FSM_SEND(deal, ClientEvent::ClientEventFailed);
         return;
       }
       if (response.value().response.state
           != StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED) {
         // TODO handle reject reason
-        OUTCOME_EXCEPT(
-            self->fsm_->send(deal, ClientEvent::ClientEventDealRejected));
+        SELF_FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
         return;
       }
       self->network_->closeStreamGracefully(stream);
-      OUTCOME_EXCEPT(
-          self->fsm_->send(deal, ClientEvent::ClientEventDealAccepted));
+      SELF_FSM_SEND(deal, ClientEvent::ClientEventDealAccepted);
     });
-  }
-
-  void ClientImpl::onClientEventDealStreamLookupErrored(
-      std::shared_ptr<ClientDeal> deal,
-      ClientEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {
-    // TODO no need in error states
-  }
-
-  void ClientImpl::onClientEventReadResponseFailed(
-      std::shared_ptr<ClientDeal> deal,
-      ClientEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {
-    // TODO no need in error states
-  }
-
-  void ClientImpl::onClientEventResponseVerificationFailed(
-      std::shared_ptr<ClientDeal> deal,
-      ClientEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {
-    // TODO no need in error states
-  }
-
-  void ClientImpl::onClientEventResponseDealDidNotMatch(
-      std::shared_ptr<ClientDeal> deal,
-      ClientEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {
-    // TODO no need in error states
   }
 
   void ClientImpl::onClientEventDealRejected(std::shared_ptr<ClientDeal> deal,
                                              ClientEvent event,
                                              StorageDealStatus from,
                                              StorageDealStatus to) {
-    // todo log reject
+    logger_->debug("Deal rejected");
+    FSM_SEND(deal, ClientEvent::ClientEventFailed);
   }
 
   void ClientImpl::onClientEventDealAccepted(std::shared_ptr<ClientDeal> deal,
@@ -576,36 +470,12 @@ namespace fc::markets::storage::client {
     OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealPublished));
   }
 
-  void ClientImpl::onClientEventStreamCloseError(
-      std::shared_ptr<ClientDeal> deal,
-      ClientEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {
-    // TODO no need in error states
-  }
-
-  void ClientImpl::onClientEventDealPublishFailed(
-      std::shared_ptr<ClientDeal> deal,
-      ClientEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {
-    // TODO no need in error states
-  }
-
   void ClientImpl::onClientEventDealPublished(std::shared_ptr<ClientDeal> deal,
                                               ClientEvent event,
                                               StorageDealStatus from,
                                               StorageDealStatus to) {
     // verify deal activated - on deal sector commit
     OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealActivated));
-  }
-
-  void ClientImpl::onClientEventDealActivationFailed(
-      std::shared_ptr<ClientDeal> deal,
-      ClientEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {
-    // TODO no need in error states
   }
 
   void ClientImpl::onClientEventDealActivated(std::shared_ptr<ClientDeal> deal,
@@ -619,7 +489,14 @@ namespace fc::markets::storage::client {
   void ClientImpl::onClientEventFailed(std::shared_ptr<ClientDeal> deal,
                                        ClientEvent event,
                                        StorageDealStatus from,
-                                       StorageDealStatus to) {}
+                                       StorageDealStatus to) {
+    std::stringstream ss;
+    ss << "Proposal ";
+    auto maybe_prpoposal_cid = deal->proposal_cid.toString();
+    if (maybe_prpoposal_cid) ss << maybe_prpoposal_cid.value() << " ";
+    ss << "failed. " << deal->message;
+    logger_->error(ss.str());
+  }
 
 }  // namespace fc::markets::storage::client
 

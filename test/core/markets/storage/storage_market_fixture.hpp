@@ -384,6 +384,21 @@ namespace fc::markets::storage::test {
       }
     }
 
+    /**
+     * Waits for deal state in client
+     * @param proposal_cid - proposal deal cid
+     * @param state - desired state
+     */
+    void waitForClientDealStatus(const CID &proposal_cid,
+                                   const StorageDealStatus &state) {
+      // wait 2 sec max
+      for (int i = 0; i < 20; i++) {
+        auto deal = client->getLocalDeal(proposal_cid);
+        if (deal.has_value() && deal.value().state == state) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+    }
+
     common::Logger logger = common::createLogger("StorageMarketTest");
 
     Address miner_actor_address = Address::makeFromId(100);

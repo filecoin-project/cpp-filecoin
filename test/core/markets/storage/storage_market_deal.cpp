@@ -24,7 +24,7 @@ namespace fc::markets::storage::test {
     ChainEpoch end_epoch{300};
     TokenAmount client_price{20000};
     TokenAmount collateral{10};
-    EXPECT_OUTCOME_TRUE(proposal_res,
+    EXPECT_OUTCOME_TRUE(proposal_cid,
                         client->proposeStorageDeal(client_id_address,
                                                    *storage_provider_info,
                                                    data_ref,
@@ -33,16 +33,21 @@ namespace fc::markets::storage::test {
                                                    client_price,
                                                    collateral,
                                                    registered_proof));
-    CID proposal_cid = proposal_res.proposal_cid;
-
     waitForProviderDealStatus(proposal_cid,
                               StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA);
     EXPECT_OUTCOME_TRUE_1(provider->importDataForDeal(proposal_cid, data));
 
     waitForProviderDealStatus(proposal_cid,
                               StorageDealStatus::STORAGE_DEAL_COMPLETED);
-    EXPECT_OUTCOME_TRUE(deal, provider->getDeal(proposal_cid));
-    EXPECT_EQ(deal->state, StorageDealStatus::STORAGE_DEAL_COMPLETED);
+    EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
+    EXPECT_EQ(provider_deal_state->state,
+              StorageDealStatus::STORAGE_DEAL_COMPLETED);
+
+    // TODO wait for STORAGE_DEAL_COMPLETED
+    waitForClientDealStatus(proposal_cid,
+                            StorageDealStatus::STORAGE_DEAL_ERROR);
+    EXPECT_OUTCOME_TRUE(client_deal_state, client->getLocalDeal(proposal_cid));
+    EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ERROR);
   }
 
   /**
@@ -73,7 +78,7 @@ namespace fc::markets::storage::test {
     ChainEpoch end_epoch{300};
     TokenAmount client_price{20000};
     TokenAmount collateral{10};
-    EXPECT_OUTCOME_TRUE(proposal_res,
+    EXPECT_OUTCOME_TRUE(proposal_cid,
                         client->proposeStorageDeal(client_id_address,
                                                    *storage_provider_info,
                                                    data_ref,
@@ -82,8 +87,6 @@ namespace fc::markets::storage::test {
                                                    client_price,
                                                    collateral,
                                                    registered_proof));
-    CID proposal_cid = proposal_res.proposal_cid;
-
     waitForProviderDealStatus(proposal_cid,
                               StorageDealStatus::STORAGE_DEAL_ERROR);
     EXPECT_OUTCOME_TRUE(deal, provider->getDeal(proposal_cid));

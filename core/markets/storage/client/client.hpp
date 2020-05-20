@@ -63,7 +63,19 @@ namespace fc::markets::storage::client {
     virtual void getAsk(const StorageProviderInfo &info,
                         const SignedAskHandler &signed_ask_handler) const = 0;
 
-    virtual outcome::result<ProposeStorageDealResult> proposeStorageDeal(
+    /**
+     * Initiate deal by proposing storage deal
+     * @param client_address
+     * @param provider_info
+     * @param data_ref
+     * @param start_epoch
+     * @param end_epoch
+     * @param price
+     * @param collateral
+     * @param registered_proof
+     * @return proposal CID
+     */
+    virtual outcome::result<CID> proposeStorageDeal(
         const Address &client_address,
         const StorageProviderInfo &provider_info,
         const DataRef &data_ref,

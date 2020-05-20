@@ -12,15 +12,6 @@ namespace fc::markets::storage::client {
     /* ClientEventOpen indicates a new deal was started */
     ClientEventOpen = 1,
 
-    /* Emitted on stream open error */
-    ClientEventOpenStreamError,
-
-    /**
-     * ClientEventEnsureFundsFailed happens when attempting to ensure the client
-     * has enough funds available fails
-     */
-    ClientEventEnsureFundsFailed,
-
     /**
      * ClientEventFundsInitiated happens when a client has sent a message adding
      * funds to its balance
@@ -34,44 +25,9 @@ namespace fc::markets::storage::client {
     ClientEventFundsEnsured,
 
     /**
-     * ClientEventWriteProposalFailed indicates an attempt to send a deal
-     * proposal to a provider failed
-     */
-    ClientEventWriteProposalFailed,
-
-    /**
      * ClientEventDealProposed happens when a new proposal is sent to a provider
      */
     ClientEventDealProposed,
-
-    /**
-     * ClientEventDealStreamLookupErrored the deal stream for a deal could not
-     * be found
-     */
-    ClientEventDealStreamLookupErrored,
-
-    /**
-     * ClientEventReadResponseFailed means a network error occurred reading a
-     * deal response
-     */
-    ClientEventReadResponseFailed,
-
-    /**
-     * ClientEventResponseVerificationFailed means a response was not verified
-     */
-    ClientEventResponseVerificationFailed,
-
-    /**
-     * ClientEventResponseDealDidNotMatch means a response was sent for the
-     * wrong deal
-     */
-    ClientEventResponseDealDidNotMatch,
-
-    /**
-     * ClientEventStreamCloseError happens when an attempt to close a deals
-     * stream fails
-     */
-    ClientEventStreamCloseError,
 
     /**
      * ClientEventDealRejected happens when the provider does not accept a deal
@@ -85,21 +41,9 @@ namespace fc::markets::storage::client {
     ClientEventDealAccepted,
 
     /**
-     * ClientEventDealPublishFailed happens when a client cannot verify a deal
-     * was published
-     */
-    ClientEventDealPublishFailed,
-
-    /**
      * ClientEventDealPublished happens when a deal is successfully published
      */
     ClientEventDealPublished,
-
-    /**
-     * ClientEventDealActivationFailed happens when a client cannot verify a
-     * deal was activated
-     */
-    ClientEventDealActivationFailed,
 
     /**
      * ClientEventDealActivated happens when a deal is successfully activated
