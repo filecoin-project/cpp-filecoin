@@ -459,6 +459,7 @@ namespace fc::api {
 
     ENCODE(UnsignedMessage) {
       Value j{rapidjson::kObjectType};
+      Set(j, "Version", v.version);
       Set(j, "To", v.to);
       Set(j, "From", v.from);
       Set(j, "Nonce", v.nonce);
@@ -471,6 +472,7 @@ namespace fc::api {
     }
 
     DECODE(UnsignedMessage) {
+      decode(v.version, Get(j, "Version"));
       decode(v.to, Get(j, "To"));
       decode(v.from, Get(j, "From"));
       decode(v.nonce, Get(j, "Nonce"));

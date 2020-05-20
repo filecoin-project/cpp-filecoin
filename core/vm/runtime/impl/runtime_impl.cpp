@@ -91,7 +91,7 @@ namespace fc::vm::runtime {
       MethodParams params,
       BigInt value) {
     return execution_->sendWithRevert(
-        {to_address, message_.to, {}, value, {}, {}, method_number, params});
+        {0, to_address, message_.to, {}, value, {}, {}, method_number, params});
   }
 
   fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,
@@ -148,11 +148,10 @@ namespace fc::vm::runtime {
     return RuntimeError::UNKNOWN;
   }
 
-  fc::outcome::result<bool> RuntimeImpl::verifyPoSt(
-      const PoStVerifyInfo &info) {
-    PoStVerifyInfo preprocess_info = info;
+  outcome::result<bool> RuntimeImpl::verifyPoSt(const WindowPoStVerifyInfo &info) {
+    WindowPoStVerifyInfo preprocess_info = info;
     preprocess_info.randomness[31] = 0;
-    return proofs::Proofs::verifyPoSt(preprocess_info);
+    return proofs::Proofs::verifyWindowPoSt(preprocess_info);
   }
 
   fc::outcome::result<bool> RuntimeImpl::verifySeal(

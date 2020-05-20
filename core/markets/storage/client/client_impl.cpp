@@ -231,6 +231,7 @@ namespace fc::markets::storage::client {
   outcome::result<void> ClientImpl::addPaymentEscrow(
       const Address &address, const TokenAmount &amount) {
     UnsignedMessage unsigned_message{
+        0,
         kStorageMarketAddress,
         address,
         {},
