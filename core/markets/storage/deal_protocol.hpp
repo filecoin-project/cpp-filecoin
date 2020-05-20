@@ -105,8 +105,8 @@ namespace fc::markets::storage {
   struct MinerDeal {
     ClientDealProposal client_deal_proposal;
     CID proposal_cid;
-    CID add_funds_cid;
-    CID publish_cid;
+    boost::optional<CID> add_funds_cid;
+    boost::optional<CID> publish_cid;
     PeerInfo miner;
     PeerInfo client;
     StorageDealStatus state;

@@ -172,10 +172,8 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<MinerDeal> deal = std::make_shared<MinerDeal>(
           MinerDeal{.client_deal_proposal = proposal.value().deal_proposal,
                     .proposal_cid = proposal_cid.value(),
-                    .add_funds_cid = {},
-                    // TODO (a.chernyshov) empty cid used in error response
-                    // cannot be serialized, so place some value
-                    .publish_cid = proposal_cid.value(),
+                    .add_funds_cid = boost::none,
+                    .publish_cid = boost::none,
                     .miner = self->host_->getPeerInfo(),
                     .client = remote_peer_info,
                     .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
@@ -314,7 +312,10 @@ namespace fc::markets::storage::provider {
     Response response{.state = deal->state,
                       .message = deal->message,
                       .proposal = deal->proposal_cid,
-                      .publish_message = deal->publish_cid};
+                      // if deal is not published, set any valid value
+                      .publish_message = deal->publish_cid
+                                             ? deal->publish_cid.get()
+                                             : deal->proposal_cid};
     // TODO sign response
     SignedResponse signed_response{.response = response};
     // TODO handle if stream is absent
@@ -504,13 +505,8 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     // wait for importDataForDeal() call
+    // add log
   }
-
-  void StorageProviderImpl::onProviderEventInsufficientFunds(
-      std::shared_ptr<MinerDeal> deal,
-      ProviderEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {}
 
   void StorageProviderImpl::onProviderEventFundingInitiated(
       std::shared_ptr<MinerDeal> deal,
@@ -542,31 +538,33 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo no need in error states
+  }
 
   void StorageProviderImpl::onProviderEventDataTransferInitiated(
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo log?
+  }
 
   void StorageProviderImpl::onProviderEventDataTransferCompleted(
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
-
-  void StorageProviderImpl::onProviderEventManualDataReceived(
-      std::shared_ptr<MinerDeal> deal,
-      ProviderEvent event,
-      StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo verify data
+  }
 
   void StorageProviderImpl::onProviderEventGeneratePieceCIDFailed(
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo no need in error states
+  }
 
   void StorageProviderImpl::onProviderEventVerifiedData(
       std::shared_ptr<MinerDeal> deal,
@@ -596,14 +594,16 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo no need in error states
+  }
 
   void StorageProviderImpl::onProviderEventDealPublishInitiated(
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto maybe_wait = api_->StateWaitMsg(deal->publish_cid);
+    auto maybe_wait = api_->StateWaitMsg(deal->publish_cid.get());
     if (maybe_wait.has_error()) {
       deal->message =
           "Wait for publish failed: " + maybe_wait.error().message();
@@ -661,19 +661,25 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo no need in error states
+  }
 
   void StorageProviderImpl::onProviderEventFileStoreErrored(
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo no need in error states
+  }
 
   void StorageProviderImpl::onProviderEventDealHandoffFailed(
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo no need in error states
+  }
 
   void StorageProviderImpl::onProviderEventDealHandedOff(
       std::shared_ptr<MinerDeal> deal,
@@ -681,7 +687,7 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     // TODO verify deal activated
-    // on deal sector commited
+    // on deal sector committed
     OUTCOME_EXCEPT(fsm_->send(deal, ProviderEvent::ProviderEventDealActivated));
   }
 
@@ -689,13 +695,17 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo no need in error states
+  }
 
   void StorageProviderImpl::onProviderEventUnableToLocatePiece(
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo no need in error states
+  }
 
   void StorageProviderImpl::onProviderEventDealActivated(
       std::shared_ptr<MinerDeal> deal,
@@ -718,13 +728,17 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo no need in error states
+  }
 
   void StorageProviderImpl::onProviderEventReadMetadataErrored(
       std::shared_ptr<MinerDeal> deal,
       ProviderEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // todo no need in error states
+  }
 
   void StorageProviderImpl::onProviderEventDealCompleted(
       std::shared_ptr<MinerDeal> deal,
@@ -732,6 +746,7 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     logger_->debug("Deal completed");
+    // todo clean up
   }
 
   void StorageProviderImpl::onProviderEventFailed(

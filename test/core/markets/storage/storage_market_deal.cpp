@@ -17,7 +17,7 @@ namespace fc::markets::storage::test {
    * @then deal activated
    */
   TEST_F(StorageMarketTest, Deal) {
-  CID root_cid = "010001020001"_cid;
+    CID root_cid = "010001020001"_cid;
     auto data = readFile(CAR_FROM_PAYLOAD_FILE);
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(root_cid, data));
     ChainEpoch start_epoch{210};

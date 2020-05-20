@@ -180,18 +180,6 @@ namespace fc::markets::storage::provider {
                                              StorageDealStatus to);
 
     /**
-     * @brief Handle event insufficient funds
-     * @param deal  - current storage deal
-     * @param event - ProviderEventWaitingForManualData
-     * @param from  - STORAGE_DEAL_PROPOSAL_ACCEPTED
-     * @param to    - STORAGE_DEAL_WAITING_FOR_DATA
-     */
-    void onProviderEventInsufficientFunds(std::shared_ptr<MinerDeal> deal,
-                                          ProviderEvent event,
-                                          StorageDealStatus from,
-                                          StorageDealStatus to);
-
-    /**
      * @brief Handle event funding initiated
      * @param deal  - current storage deal
      * @param event - ProviderEventWaitingForManualData
@@ -251,18 +239,6 @@ namespace fc::markets::storage::provider {
                                               ProviderEvent event,
                                               StorageDealStatus from,
                                               StorageDealStatus to);
-
-    /**
-     * @brief Handle event data manual data received
-     * @param deal  - current storage deal
-     * @param event - ProviderEventDataTransferCompleted
-     * @param from  - STORAGE_DEAL_TRANSFERRING
-     * @param to    - STORAGE_DEAL_VERIFY_DATA
-     */
-    void onProviderEventManualDataReceived(std::shared_ptr<MinerDeal> deal,
-                                           ProviderEvent event,
-                                           StorageDealStatus from,
-                                           StorageDealStatus to);
 
     /**
      * @brief Handle event generate piece CID failed

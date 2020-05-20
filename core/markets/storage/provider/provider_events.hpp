@@ -29,12 +29,6 @@ namespace fc::markets::storage::provider {
     ProviderEventWaitingForManualData,
 
     /**
-     * ProviderEventInsufficientFunds indicates not enough funds available for a
-     * deal
-     */
-    ProviderEventInsufficientFunds,
-
-    /**
      * ProviderEventFundingInitiated indicates provider collateral funding has
      * been initiated
      */
@@ -62,12 +56,6 @@ namespace fc::markets::storage::provider {
      * successful
      */
     ProviderEventDataTransferCompleted,
-
-    /**
-     * ProviderEventManualDataReceived happens when data is received manually
-     * for an offline deal
-     */
-    ProviderEventManualDataReceived,
 
     /**
      * ProviderEventGeneratePieceCIDFailed happens when generating a piece cid

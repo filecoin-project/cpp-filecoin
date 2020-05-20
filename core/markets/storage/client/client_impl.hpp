@@ -161,6 +161,7 @@ namespace fc::markets::storage::client {
 
     /**
      * @brief Handle ensure funds
+     * Propose deal
      * @param deal  - current storage deal
      * @param event - ClientEventEnsureFundsFailed
      * @param from  - STORAGE_DEAL_ENSURE_CLIENT_FUNDS or

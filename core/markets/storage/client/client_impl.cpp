@@ -440,19 +440,25 @@ namespace fc::markets::storage::client {
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // TODO no need in error states
+  }
 
   void ClientImpl::onClientEventFundingInitiated(
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // TODO wait for funding
+  }
 
   void ClientImpl::onClientEventEnsureFundsFailed(
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // TODO no need in error states
+  }
 
   void ClientImpl::onClientEventFundsEnsured(std::shared_ptr<ClientDeal> deal,
                                              ClientEvent event,
@@ -482,7 +488,9 @@ namespace fc::markets::storage::client {
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // TODO no need in error states
+  }
 
   void ClientImpl::onClientEventDealProposed(std::shared_ptr<ClientDeal> deal,
                                              ClientEvent event,
@@ -510,6 +518,7 @@ namespace fc::markets::storage::client {
       }
       if (response.value().response.state
           != StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED) {
+        // TODO handle reject reason
         OUTCOME_EXCEPT(
             self->fsm_->send(deal, ClientEvent::ClientEventDealRejected));
         return;
@@ -524,30 +533,40 @@ namespace fc::markets::storage::client {
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // TODO no need in error states
+  }
 
   void ClientImpl::onClientEventReadResponseFailed(
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // TODO no need in error states
+  }
 
   void ClientImpl::onClientEventResponseVerificationFailed(
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // TODO no need in error states
+  }
 
   void ClientImpl::onClientEventResponseDealDidNotMatch(
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // TODO no need in error states
+  }
 
   void ClientImpl::onClientEventDealRejected(std::shared_ptr<ClientDeal> deal,
                                              ClientEvent event,
                                              StorageDealStatus from,
-                                             StorageDealStatus to) {}
+                                             StorageDealStatus to) {
+    // todo log reject
+  }
 
   void ClientImpl::onClientEventDealAccepted(std::shared_ptr<ClientDeal> deal,
                                              ClientEvent event,
@@ -561,19 +580,23 @@ namespace fc::markets::storage::client {
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // TODO no need in error states
+  }
 
   void ClientImpl::onClientEventDealPublishFailed(
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // TODO no need in error states
+  }
 
   void ClientImpl::onClientEventDealPublished(std::shared_ptr<ClientDeal> deal,
                                               ClientEvent event,
                                               StorageDealStatus from,
                                               StorageDealStatus to) {
-    // verify deal activated
+    // verify deal activated - on deal sector commit
     OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealActivated));
   }
 
@@ -581,7 +604,9 @@ namespace fc::markets::storage::client {
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
-      StorageDealStatus to) {}
+      StorageDealStatus to) {
+    // TODO no need in error states
+  }
 
   void ClientImpl::onClientEventDealActivated(std::shared_ptr<ClientDeal> deal,
                                               ClientEvent event,
