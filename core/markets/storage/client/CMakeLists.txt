@@ -4,7 +4,7 @@
 #
 
 add_library(storage_market_client
-    impl/client_impl.cpp
+    impl/storage_market_client_impl.cpp
     )
 target_link_libraries(storage_market_client
     address

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "client_impl.hpp"
+#include "storage_market_client_impl.hpp"
 
 #include <libp2p/peer/peer_id.hpp>
 #include "codec/cbor/cbor.hpp"
@@ -51,12 +51,13 @@ namespace fc::markets::storage::client {
   const BigInt kGasPrice{0};
   const GasAmount kGasLimit{1000000};
 
-  ClientImpl::ClientImpl(std::shared_ptr<Host> host,
-                         std::shared_ptr<boost::asio::io_context> context,
-                         std::shared_ptr<Datastore> datastore,
-                         std::shared_ptr<Api> api,
-                         std::shared_ptr<KeyStore> keystore,
-                         std::shared_ptr<PieceIO> piece_io)
+  StorageMarketClientImpl::StorageMarketClientImpl(
+      std::shared_ptr<Host> host,
+      std::shared_ptr<boost::asio::io_context> context,
+      std::shared_ptr<Datastore> datastore,
+      std::shared_ptr<Api> api,
+      std::shared_ptr<KeyStore> keystore,
+      std::shared_ptr<PieceIO> piece_io)
       : host_{std::move(host)},
         context_{std::move(context)},
         api_{std::move(api)},
@@ -65,18 +66,18 @@ namespace fc::markets::storage::client {
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
         discovery_{std::make_shared<Discovery>(datastore)} {}
 
-  void ClientImpl::init() {
+  void StorageMarketClientImpl::init() {
     std::shared_ptr<HostContext> fsm_context =
         std::make_shared<HostContextImpl>(context_);
     fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), fsm_context);
   }
 
-  void ClientImpl::run() {}
+  void StorageMarketClientImpl::run() {}
 
-  void ClientImpl::stop() {}
+  void StorageMarketClientImpl::stop() {}
 
-  outcome::result<std::vector<StorageProviderInfo>> ClientImpl::listProviders()
-      const {
+  outcome::result<std::vector<StorageProviderInfo>>
+  StorageMarketClientImpl::listProviders() const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
     OUTCOME_TRY(miners, api_->StateListMiners(tipset_key));
@@ -95,7 +96,7 @@ namespace fc::markets::storage::client {
     return storage_providers;
   }
 
-  outcome::result<std::vector<StorageDeal>> ClientImpl::listDeals(
+  outcome::result<std::vector<StorageDeal>> StorageMarketClientImpl::listDeals(
       const Address &address) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
@@ -109,7 +110,8 @@ namespace fc::markets::storage::client {
     return client_deals;
   }
 
-  outcome::result<std::vector<ClientDeal>> ClientImpl::listLocalDeals() const {
+  outcome::result<std::vector<ClientDeal>>
+  StorageMarketClientImpl::listLocalDeals() const {
     std::vector<ClientDeal> res;
     for (auto deal : local_deals_) {
       res.push_back(ClientDeal{*deal.second});
@@ -117,7 +119,8 @@ namespace fc::markets::storage::client {
     return res;
   }
 
-  outcome::result<ClientDeal> ClientImpl::getLocalDeal(const CID &cid) const {
+  outcome::result<ClientDeal> StorageMarketClientImpl::getLocalDeal(
+      const CID &cid) const {
     auto it = local_deals_.find(cid);
     if (it == local_deals_.end()) {
       return StorageMarketClientError::LOCAL_DEAL_NOT_FOUND;
@@ -125,8 +128,9 @@ namespace fc::markets::storage::client {
     return *it->second;
   }
 
-  void ClientImpl::getAsk(const StorageProviderInfo &info,
-                          const SignedAskHandler &signed_ask_handler) const {
+  void StorageMarketClientImpl::getAsk(
+      const StorageProviderInfo &info,
+      const SignedAskHandler &signed_ask_handler) const {
     network_->newAskStream(
         info.peer_info,
         [self{shared_from_this()}, info, signed_ask_handler](
@@ -161,7 +165,7 @@ namespace fc::markets::storage::client {
         });
   }
 
-  outcome::result<CID> ClientImpl::proposeStorageDeal(
+  outcome::result<CID> StorageMarketClientImpl::proposeStorageDeal(
       const Address &client_address,
       const StorageProviderInfo &provider_info,
       const DataRef &data_ref,
@@ -227,14 +231,14 @@ namespace fc::markets::storage::client {
     return client_deal->proposal_cid;
   }
 
-  outcome::result<StorageParticipantBalance> ClientImpl::getPaymentEscrow(
-      const Address &address) const {
+  outcome::result<StorageParticipantBalance>
+  StorageMarketClientImpl::getPaymentEscrow(const Address &address) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
     return api_->StateMarketBalance(address, tipset_key);
   }
 
-  outcome::result<void> ClientImpl::addPaymentEscrow(
+  outcome::result<void> StorageMarketClientImpl::addPaymentEscrow(
       const Address &address, const TokenAmount &amount) {
     UnsignedMessage unsigned_message{
         kStorageMarketAddress,
@@ -255,7 +259,8 @@ namespace fc::markets::storage::client {
     return outcome::success();
   }
 
-  outcome::result<SignedStorageAsk> ClientImpl::validateAskResponse(
+  outcome::result<SignedStorageAsk>
+  StorageMarketClientImpl::validateAskResponse(
       const outcome::result<AskResponse> &response,
       const StorageProviderInfo &info) const {
     if (response.has_error()) {
@@ -281,7 +286,8 @@ namespace fc::markets::storage::client {
     return response.value().ask;
   }
 
-  outcome::result<std::pair<CID, UnpaddedPieceSize>> ClientImpl::calculateCommP(
+  outcome::result<std::pair<CID, UnpaddedPieceSize>>
+  StorageMarketClientImpl::calculateCommP(
       const RegisteredProof &registered_proof, const DataRef &data_ref) const {
     if (data_ref.piece_cid.has_value()) {
       return std::pair(data_ref.piece_cid.value(), data_ref.piece_size);
@@ -296,7 +302,7 @@ namespace fc::markets::storage::client {
         registered_proof, data_ref.root, {});
   }
 
-  outcome::result<ClientDealProposal> ClientImpl::signProposal(
+  outcome::result<ClientDealProposal> StorageMarketClientImpl::signProposal(
       const Address &address, const DealProposal &proposal) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
@@ -307,7 +313,7 @@ namespace fc::markets::storage::client {
                               .client_signature = signature};
   }
 
-  outcome::result<boost::optional<CID>> ClientImpl::ensureFunds(
+  outcome::result<boost::optional<CID>> StorageMarketClientImpl::ensureFunds(
       std::shared_ptr<ClientDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
@@ -321,7 +327,7 @@ namespace fc::markets::storage::client {
     return std::move(maybe_cid);
   }
 
-  outcome::result<void> ClientImpl::verifyDealResponseSignature(
+  outcome::result<void> StorageMarketClientImpl::verifyDealResponseSignature(
       const SignedResponse &response, const std::shared_ptr<ClientDeal> &deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
@@ -337,7 +343,7 @@ namespace fc::markets::storage::client {
     return outcome::success();
   }
 
-  std::vector<ClientTransition> ClientImpl::makeFSMTransitions() {
+  std::vector<ClientTransition> StorageMarketClientImpl::makeFSMTransitions() {
     return {ClientTransition(ClientEvent::ClientEventOpen)
                 .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
                 .to(StorageDealStatus::STORAGE_DEAL_ENSURE_CLIENT_FUNDS)
@@ -377,10 +383,11 @@ namespace fc::markets::storage::client {
                 .action(CALLBACK_ACTION(onClientEventFailed))};
   }
 
-  void ClientImpl::onClientEventOpen(std::shared_ptr<ClientDeal> deal,
-                                     ClientEvent event,
-                                     StorageDealStatus from,
-                                     StorageDealStatus to) {
+  void StorageMarketClientImpl::onClientEventOpen(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {
     auto maybe_cid = ensureFunds(deal);
     if (maybe_cid.has_error()) {
       deal->message = "Ensure funds failed: " + maybe_cid.error().message();
@@ -398,7 +405,7 @@ namespace fc::markets::storage::client {
     FSM_SEND(deal, ClientEvent::ClientEventFundsEnsured);
   }
 
-  void ClientImpl::onClientEventFundingInitiated(
+  void StorageMarketClientImpl::onClientEventFundingInitiated(
       std::shared_ptr<ClientDeal> deal,
       ClientEvent event,
       StorageDealStatus from,
@@ -406,10 +413,11 @@ namespace fc::markets::storage::client {
     // TODO wait for funding
   }
 
-  void ClientImpl::onClientEventFundsEnsured(std::shared_ptr<ClientDeal> deal,
-                                             ClientEvent event,
-                                             StorageDealStatus from,
-                                             StorageDealStatus to) {
+  void StorageMarketClientImpl::onClientEventFundsEnsured(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {
     // TODO handle if stream is absent
     auto stream = connections_[deal->proposal_cid];
 
@@ -425,10 +433,11 @@ namespace fc::markets::storage::client {
                   });
   }
 
-  void ClientImpl::onClientEventDealProposed(std::shared_ptr<ClientDeal> deal,
-                                             ClientEvent event,
-                                             StorageDealStatus from,
-                                             StorageDealStatus to) {
+  void StorageMarketClientImpl::onClientEventDealProposed(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {
     // TODO handle if stream is absent
     auto stream = connections_[deal->proposal_cid];
     stream->read<SignedResponse>([self{shared_from_this()}, deal, stream](
@@ -454,42 +463,47 @@ namespace fc::markets::storage::client {
     });
   }
 
-  void ClientImpl::onClientEventDealRejected(std::shared_ptr<ClientDeal> deal,
-                                             ClientEvent event,
-                                             StorageDealStatus from,
-                                             StorageDealStatus to) {
+  void StorageMarketClientImpl::onClientEventDealRejected(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {
     logger_->debug("Deal rejected");
     FSM_SEND(deal, ClientEvent::ClientEventFailed);
   }
 
-  void ClientImpl::onClientEventDealAccepted(std::shared_ptr<ClientDeal> deal,
-                                             ClientEvent event,
-                                             StorageDealStatus from,
-                                             StorageDealStatus to) {
+  void StorageMarketClientImpl::onClientEventDealAccepted(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {
     // todo validate deal published
     OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealPublished));
   }
 
-  void ClientImpl::onClientEventDealPublished(std::shared_ptr<ClientDeal> deal,
-                                              ClientEvent event,
-                                              StorageDealStatus from,
-                                              StorageDealStatus to) {
+  void StorageMarketClientImpl::onClientEventDealPublished(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {
     // verify deal activated - on deal sector commit
     OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealActivated));
   }
 
-  void ClientImpl::onClientEventDealActivated(std::shared_ptr<ClientDeal> deal,
-                                              ClientEvent event,
-                                              StorageDealStatus from,
-                                              StorageDealStatus to) {
+  void StorageMarketClientImpl::onClientEventDealActivated(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {
     // final state
     // todo cleanup
   }
 
-  void ClientImpl::onClientEventFailed(std::shared_ptr<ClientDeal> deal,
-                                       ClientEvent event,
-                                       StorageDealStatus from,
-                                       StorageDealStatus to) {
+  void StorageMarketClientImpl::onClientEventFailed(
+      std::shared_ptr<ClientDeal> deal,
+      ClientEvent event,
+      StorageDealStatus from,
+      StorageDealStatus to) {
     std::stringstream ss;
     ss << "Proposal ";
     auto maybe_prpoposal_cid = deal->proposal_cid.toString();

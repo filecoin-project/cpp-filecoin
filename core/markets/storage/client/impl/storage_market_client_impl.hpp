@@ -14,8 +14,8 @@
 #include "host/context/host_context.hpp"
 #include "markets/discovery/discovery.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
-#include "markets/storage/client/client.hpp"
 #include "markets/storage/client/client_events.hpp"
+#include "markets/storage/client/storage_market_client.hpp"
 #include "markets/storage/network/libp2p_storage_market_network.hpp"
 #include "storage/filestore/filestore.hpp"
 #include "storage/ipfs/datastore.hpp"
@@ -39,15 +39,16 @@ namespace fc::markets::storage::client {
   using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
 
-  class ClientImpl : public Client,
-                     public std::enable_shared_from_this<ClientImpl> {
+  class StorageMarketClientImpl
+      : public StorageMarketClient,
+        public std::enable_shared_from_this<StorageMarketClientImpl> {
    public:
-    ClientImpl(std::shared_ptr<Host> host,
-               std::shared_ptr<boost::asio::io_context> context,
-               std::shared_ptr<Datastore> datastore,
-               std::shared_ptr<Api> api,
-               std::shared_ptr<KeyStore> keystore,
-               std::shared_ptr<PieceIO> piece_io);
+    StorageMarketClientImpl(std::shared_ptr<Host> host,
+                            std::shared_ptr<boost::asio::io_context> context,
+                            std::shared_ptr<Datastore> datastore,
+                            std::shared_ptr<Api> api,
+                            std::shared_ptr<KeyStore> keystore,
+                            std::shared_ptr<PieceIO> piece_io);
 
     void init() override;
 

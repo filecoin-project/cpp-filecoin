@@ -16,7 +16,7 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
-#include "markets/storage/client/impl/client_impl.hpp"
+#include "markets/storage/client/impl/storage_market_client_impl.hpp"
 #include "markets/storage/provider/impl/provider_impl.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -30,8 +30,8 @@ namespace fc::markets::storage::test {
   using api::MinerApi;
   using api::MsgWait;
   using api::Wait;
-  using client::Client;
-  using client::ClientImpl;
+  using client::StorageMarketClient;
+  using client::StorageMarketClientImpl;
   using common::Buffer;
   using crypto::bls::BlsProvider;
   using crypto::bls::BlsProviderImpl;
@@ -342,7 +342,7 @@ namespace fc::markets::storage::test {
           .peer_info = PeerInfo{provider_host->getId(), {multi_address}}});
     }
 
-    std::shared_ptr<Client> makeClient(
+    std::shared_ptr<StorageMarketClient> makeClient(
         const BlsKeyPair &client_keypair,
         const std::shared_ptr<BlsProvider> &bls_provider,
         const std::shared_ptr<Secp256k1ProviderDefault> &secp256k1_provider,
@@ -353,7 +353,7 @@ namespace fc::markets::storage::test {
       std::shared_ptr<KeyStore> keystore =
           std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
 
-      auto new_client = std::make_shared<ClientImpl>(
+      auto new_client = std::make_shared<StorageMarketClientImpl>(
           client_host, context, datastore, api, keystore, piece_io_);
       new_client->init();
       return new_client;
@@ -407,7 +407,7 @@ namespace fc::markets::storage::test {
     Address client_bls_address;
     Tipset chain_head;
     std::shared_ptr<Api> node_api;
-    std::shared_ptr<Client> client;
+    std::shared_ptr<StorageMarketClient> client;
     std::shared_ptr<StorageProvider> provider;
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
 

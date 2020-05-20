@@ -25,12 +25,12 @@ namespace fc::markets::storage::client {
   using primitives::address::Address;
   using primitives::sector::RegisteredProof;
 
-  class Client {
+  class StorageMarketClient {
    public:
     using SignedAskHandler =
         std::function<void(outcome::result<SignedStorageAsk>)>;
 
-    virtual ~Client() = default;
+    virtual ~StorageMarketClient() = default;
 
     /**
      * Initialise client instance
