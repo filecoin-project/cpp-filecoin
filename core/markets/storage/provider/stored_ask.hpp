@@ -13,11 +13,11 @@
 #include "api/api.hpp"
 #include "common/outcome.hpp"
 #include "markets/storage/ask_protocol.hpp"
-#include "markets/storage/provider.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/types.hpp"
+#include "provider.hpp"
 #include "storage/face/persistent_map.hpp"
 
 namespace fc::markets::storage::provider {

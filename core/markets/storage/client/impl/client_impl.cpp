@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "markets/storage/client/client_impl.hpp"
+#include "client_impl.hpp"
 
 #include <libp2p/peer/peer_id.hpp>
 #include "codec/cbor/cbor.hpp"

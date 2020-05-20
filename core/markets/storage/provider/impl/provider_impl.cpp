@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "markets/storage/provider/provider.hpp"
+#include "provider_impl.hpp"
 
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/todo_error.hpp"
