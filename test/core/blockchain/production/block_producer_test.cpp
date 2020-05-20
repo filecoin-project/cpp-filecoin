@@ -25,7 +25,8 @@ std::vector<BlockProducerTest::SignedMessage>
 BlockProducerTest::getSampleMessages() const {
   using fc::vm::actor::MethodNumber;
   using fc::vm::actor::MethodParams;
-  UnsignedMessage message_A{Address::makeFromId(1),
+  UnsignedMessage message_A{0,
+                            Address::makeFromId(1),
                             Address::makeFromId(2),
                             123,
                             5,
@@ -33,7 +34,8 @@ BlockProducerTest::getSampleMessages() const {
                             1000,
                             MethodNumber{1},
                             MethodParams{}};
-  UnsignedMessage message_B{Address::makeFromId(2),
+  UnsignedMessage message_B{0,
+                            Address::makeFromId(2),
                             Address::makeFromId(3),
                             456,
                             10,

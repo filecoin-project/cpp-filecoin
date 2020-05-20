@@ -6,59 +6,102 @@
 #include "primitives/sector/sector.hpp"
 
 namespace fc::primitives::sector {
-  outcome::result<RegisteredProof> getRegisteredPoStProof(
+  outcome::result<RegisteredProof> getRegisteredWindowPoStProof(
       RegisteredProof proof) {
     switch (proof) {
+      case RegisteredProof::StackedDRG64GiBSeal:
+      case RegisteredProof::StackedDRG64GiBWinningPoSt:
+      case RegisteredProof::StackedDRG64GiBWindowPoSt:
+        return RegisteredProof::StackedDRG64GiBWindowPoSt;
       case RegisteredProof::StackedDRG32GiBSeal:
-      case RegisteredProof::StackedDRG32GiBPoSt:
-        return RegisteredProof::StackedDRG32GiBPoSt;
-      case RegisteredProof::StackedDRG2KiBSeal:
-      case RegisteredProof::StackedDRG2KiBPoSt:
-        return RegisteredProof::StackedDRG2KiBPoSt;
-      case RegisteredProof::StackedDRG8MiBSeal:
-      case RegisteredProof::StackedDRG8MiBPoSt:
-        return RegisteredProof::StackedDRG8MiBPoSt;
+      case RegisteredProof::StackedDRG32GiBWinningPoSt:
+      case RegisteredProof::StackedDRG32GiBWindowPoSt:
+        return RegisteredProof::StackedDRG32GiBWindowPoSt;
       case RegisteredProof::StackedDRG512MiBSeal:
-      case RegisteredProof::StackedDRG512MiBPoSt:
-        return RegisteredProof::StackedDRG512MiBPoSt;
+      case RegisteredProof::StackedDRG512MiBWinningPoSt:
+      case RegisteredProof::StackedDRG512MiBWindowPoSt:
+        return RegisteredProof::StackedDRG512MiBWindowPoSt;
+      case RegisteredProof::StackedDRG8MiBSeal:
+      case RegisteredProof::StackedDRG8MiBWinningPoSt:
+      case RegisteredProof::StackedDRG8MiBWindowPoSt:
+        return RegisteredProof::StackedDRG8MiBWindowPoSt;
+      case RegisteredProof::StackedDRG2KiBSeal:
+      case RegisteredProof::StackedDRG2KiBWinningPoSt:
+      case RegisteredProof::StackedDRG2KiBWindowPoSt:
+        return RegisteredProof::StackedDRG2KiBWindowPoSt;
       default:
         return Errors::InvalidPoStProof;
     }
   }
 
+    outcome::result<RegisteredProof> getRegisteredWinningPoStProof(
+            RegisteredProof proof) {
+        switch (proof) {
+            case RegisteredProof::StackedDRG64GiBSeal:
+            case RegisteredProof::StackedDRG64GiBWinningPoSt:
+            case RegisteredProof::StackedDRG64GiBWindowPoSt:
+                return RegisteredProof::StackedDRG64GiBWinningPoSt;
+            case RegisteredProof::StackedDRG32GiBSeal:
+            case RegisteredProof::StackedDRG32GiBWinningPoSt:
+            case RegisteredProof::StackedDRG32GiBWindowPoSt:
+                return RegisteredProof::StackedDRG32GiBWinningPoSt;
+            case RegisteredProof::StackedDRG512MiBSeal:
+            case RegisteredProof::StackedDRG512MiBWinningPoSt:
+            case RegisteredProof::StackedDRG512MiBWindowPoSt:
+                return RegisteredProof::StackedDRG512MiBWinningPoSt;
+            case RegisteredProof::StackedDRG8MiBSeal:
+            case RegisteredProof::StackedDRG8MiBWinningPoSt:
+            case RegisteredProof::StackedDRG8MiBWindowPoSt:
+                return RegisteredProof::StackedDRG8MiBWinningPoSt;
+            case RegisteredProof::StackedDRG2KiBSeal:
+            case RegisteredProof::StackedDRG2KiBWinningPoSt:
+            case RegisteredProof::StackedDRG2KiBWindowPoSt:
+                return RegisteredProof::StackedDRG2KiBWinningPoSt;
+            default:
+                return Errors::InvalidPoStProof;
+        }
+    }
+
   outcome::result<RegisteredProof> getRegisteredSealProof(
       RegisteredProof proof) {
     switch (proof) {
+      case RegisteredProof::StackedDRG64GiBSeal:
+      case RegisteredProof::StackedDRG64GiBWinningPoSt:
+      case RegisteredProof::StackedDRG64GiBWindowPoSt:
+        return RegisteredProof::StackedDRG64GiBSeal;
       case RegisteredProof::StackedDRG32GiBSeal:
-      case RegisteredProof::StackedDRG32GiBPoSt:
+      case RegisteredProof::StackedDRG32GiBWinningPoSt:
+      case RegisteredProof::StackedDRG32GiBWindowPoSt:
         return RegisteredProof::StackedDRG32GiBSeal;
-      case RegisteredProof::StackedDRG2KiBSeal:
-      case RegisteredProof::StackedDRG2KiBPoSt:
-        return RegisteredProof::StackedDRG2KiBSeal;
-      case RegisteredProof::StackedDRG8MiBSeal:
-      case RegisteredProof::StackedDRG8MiBPoSt:
-        return RegisteredProof::StackedDRG8MiBSeal;
       case RegisteredProof::StackedDRG512MiBSeal:
-      case RegisteredProof::StackedDRG512MiBPoSt:
+      case RegisteredProof::StackedDRG512MiBWinningPoSt:
+      case RegisteredProof::StackedDRG512MiBWindowPoSt:
         return RegisteredProof::StackedDRG512MiBSeal;
+      case RegisteredProof::StackedDRG8MiBSeal:
+      case RegisteredProof::StackedDRG8MiBWinningPoSt:
+      case RegisteredProof::StackedDRG8MiBWindowPoSt:
+        return RegisteredProof::StackedDRG8MiBSeal;
+      case RegisteredProof::StackedDRG2KiBSeal:
+      case RegisteredProof::StackedDRG2KiBWinningPoSt:
+      case RegisteredProof::StackedDRG2KiBWindowPoSt:
+        return RegisteredProof::StackedDRG2KiBSeal;
       default:
         return Errors::InvalidSealProof;
     }
   }
 
   outcome::result<SectorSize> getSectorSize(RegisteredProof proof) {
-    switch (proof) {
+    OUTCOME_TRY(seal_proof, getRegisteredSealProof(proof));
+    switch (seal_proof) {
+      case RegisteredProof::StackedDRG64GiBSeal:
+        return SectorSize{64} << 30;
       case RegisteredProof::StackedDRG32GiBSeal:
-      case RegisteredProof::StackedDRG32GiBPoSt:
         return SectorSize{32} << 30;
       case RegisteredProof::StackedDRG2KiBSeal:
-      case RegisteredProof::StackedDRG2KiBPoSt:
         return SectorSize{2} << 10;
       case RegisteredProof::StackedDRG8MiBSeal:
-      case RegisteredProof::StackedDRG8MiBPoSt:
         return SectorSize{8} << 20;
       case RegisteredProof::StackedDRG512MiBSeal:
-      case RegisteredProof::StackedDRG512MiBPoSt:
         return SectorSize{512} << 20;
       default:
         return Errors::InvalidProofType;

@@ -57,6 +57,7 @@ UnsignedMessage makeMessage(Address const &from,
                             Address const &to,
                             uint64_t nonce) {
   return UnsignedMessage{
+      0,
       to,                     // to Address
       from,                   // from Address
       nonce,                  // nonce
@@ -129,7 +130,7 @@ TEST_F(MessageTest, BlsSignedMessageCID) {
   EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
   EXPECT_OUTCOME_EQ(
       cid(signed_message),
-      "0171a0e40220529861773f061d3e214b66fe2f8e013c00bc35f156bf7772b316fd6279275ec3"_cid);
+      "0171a0e402209ceafc6131fd812b6e00a2f8fe57c508092f9c8251a9e9d46d33d0037c2b32c0"_cid);
 }
 
 // TODO(ekovalev): the following test is currently disabled due to Secp256k1
@@ -158,7 +159,7 @@ TEST_F(MessageTest, DISABLED_Secp256k1SignedMessageCID) {
 TEST_F(MessageTest, UnsignedMessagesEncoding) {
   expectEncodeAndReencode<UnsignedMessage>(
       message,
-      "884300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe7270042000140010040"_unhex);
+      "89004300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe7270042000140010040"_unhex);
 }
 
 /**
@@ -172,7 +173,7 @@ TEST_F(MessageTest, SignedMessagesEncoding) {
   EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
   expectEncodeAndReencode<SignedMessage>(
       signed_message,
-      "82884300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe72700420001400100405861028230039cb4f7b7615769ac4b0faba5bfb2a91c856e0620f297755bb6924422cd90c47b36ccff49e61158351e9a90d31c12cbc53758df1c91ead6bed249a28854c56b96143600cf5453db626e02467cea57688084f9cea082cf07fc7b287fc709"_unhex);
+      "8289004300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe727004200014001004058610284eeae4a0c5c46c39f5229e934356c4420e6771f647fae2b229f7f016fcf1ff195b4f5d98ec147e67b924b1eebfa76f81604e3b0d3ff0ef26cbc8ec22b99e2e47e95e8440acc81ba09a7b08a90233d28e0adfcbd468694551a313e471297b0f3"_unhex);
 }
 
 /**
@@ -183,9 +184,10 @@ TEST_F(MessageTest, SignedMessagesEncoding) {
  */
 TEST_F(MessageTest, BlsSignatureEncoding) {
   EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
+
   expectEncodeAndReencode<Signature>(
       signed_message.signature,
-      "5861028230039cb4f7b7615769ac4b0faba5bfb2a91c856e0620f297755bb6924422cd90c47b36ccff49e61158351e9a90d31c12cbc53758df1c91ead6bed249a28854c56b96143600cf5453db626e02467cea57688084f9cea082cf07fc7b287fc709"_unhex);
+      "58610284eeae4a0c5c46c39f5229e934356c4420e6771f647fae2b229f7f016fcf1ff195b4f5d98ec147e67b924b1eebfa76f81604e3b0d3ff0ef26cbc8ec22b99e2e47e95e8440acc81ba09a7b08a90233d28e0adfcbd468694551a313e471297b0f3"_unhex);
 }
 
 // TODO(ekovalev): the following test is currently disabled due to Secp256k1

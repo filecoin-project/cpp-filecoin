@@ -6,7 +6,6 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 
 #include <gtest/gtest.h>
-#include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 #include "testutil/cbor.hpp"
@@ -59,7 +58,7 @@ class RuntimeTest : public ::testing::Test {
   std::shared_ptr<MockStateTree> state_tree_ =
       std::make_shared<MockStateTree>();
   std::shared_ptr<MockInvoker> invoker_ = std::make_shared<MockInvoker>();
-  UnsignedMessage message_{message_to, message_from, {}, {}, {}, 100, {}, {}};
+  UnsignedMessage message_{0, message_to, message_from, {}, {}, {}, 100, {}, {}};
 
   std::shared_ptr<Runtime> runtime_ = std::make_shared<RuntimeImpl>(
       Execution::make(

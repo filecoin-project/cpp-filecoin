@@ -98,7 +98,7 @@ namespace fc::vm::runtime {
         const Address &address,
         gsl::span<const uint8_t> data) override;
 
-    outcome::result<bool> verifyPoSt(const PoStVerifyInfo &info) override;
+    outcome::result<bool> verifyPoSt(const WindowPoStVerifyInfo &info) override;
 
     outcome::result<bool> verifySeal(const SealVerifyInfo &info) override;
 

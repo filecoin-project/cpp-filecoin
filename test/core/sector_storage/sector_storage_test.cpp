@@ -37,7 +37,7 @@ class SectorStorageTest : public test::BaseFS_Test {
 
  protected:
   RegisteredProof seal_proof_ = RegisteredProof::StackedDRG2KiBSeal;
-  RegisteredProof post_proof_ = RegisteredProof::StackedDRG2KiBPoSt;
+  RegisteredProof post_proof_ = RegisteredProof::StackedDRG2KiBWindowPoSt;
   std::unique_ptr<SectorStorage> sector_storage_;
 };
 

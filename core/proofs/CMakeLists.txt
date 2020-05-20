@@ -22,7 +22,7 @@ add_custom_command(
 
 add_custom_command(
         TARGET proof_param_provider PRE_LINK
-        COMMAND ${CMAKE_COMMAND} -E copy
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_CURRENT_SOURCE_DIR}/parameters.json
         /var/tmp/filecoin-proof-parameters/parameters.json)
 

@@ -36,13 +36,16 @@ namespace fc::vm::message {
   using primitives::GasAmount;
   using primitives::address::Address;
 
+  static int64_t kMessageVersion = 0;
+
   /**
    * @brief UnsignedMessage struct
    */
   struct UnsignedMessage {
     UnsignedMessage() = default;
 
-    UnsignedMessage(Address to,
+    UnsignedMessage(int64_t version,
+                    Address to,
                     Address from,
                     uint64_t nonce,
                     BigInt value,
@@ -50,7 +53,8 @@ namespace fc::vm::message {
                     GasAmount gasLimit,
                     MethodNumber method,
                     MethodParams params)
-        : to{std::move(to)},
+        : version{version},
+          to{std::move(to)},
           from{std::move(from)},
           nonce{nonce},
           value{std::move(value)},
@@ -58,6 +62,8 @@ namespace fc::vm::message {
           gasLimit{std::move(gasLimit)},
           method{method},
           params{std::move(params)} {}
+
+    int64_t version;
 
     Address to;
     Address from;
@@ -86,6 +92,7 @@ namespace fc::vm::message {
   };
 
   CBOR_TUPLE(UnsignedMessage,
+             version,
              to,
              from,
              nonce,
