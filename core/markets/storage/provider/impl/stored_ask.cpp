@@ -12,12 +12,10 @@ namespace fc::markets::storage::provider {
   // Key to store last ask in datastore
   const Buffer kBestAskKey{codec::cbor::encode("latest-ask").value()};
 
-  StoredAsk::StoredAsk(std::shared_ptr<KeyStore> keystore,
-                       std::shared_ptr<Datastore> datastore,
+  StoredAsk::StoredAsk(std::shared_ptr<Datastore> datastore,
                        std::shared_ptr<Api> api,
                        const Address &actor_address)
-      : keystore_{std::move(keystore)},
-        datastore_{std::move(datastore)},
+      : datastore_{std::move(datastore)},
         api_{std::move(api)},
         actor_{actor_address} {}
 
@@ -86,7 +84,7 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
     OUTCOME_TRY(key_address, api_->StateAccountKey(actor_, tipset_key));
     OUTCOME_TRY(ask_bytes, codec::cbor::encode(ask));
-    OUTCOME_TRY(signature, keystore_->sign(key_address, ask_bytes));
+    OUTCOME_TRY(signature, api_->WalletSign(key_address, ask_bytes));
     return SignedStorageAsk{.ask = ask, .signature = signature};
   }
 

@@ -9,18 +9,18 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::markets::storage::provider {
 
+  using crypto::signature::Signature;
   using fc::crypto::bls::BlsProvider;
   using fc::crypto::bls::BlsProviderImpl;
   using fc::crypto::bls::KeyPair;
   using fc::crypto::secp256k1::Secp256k1ProviderDefault;
   using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
   using fc::storage::InMemoryStorage;
-  using fc::storage::keystore::InMemoryKeyStore;
+  using BlsSignature = fc::crypto::bls::Signature;
 
   class StoredAskTest : public ::testing::Test {
    public:
@@ -28,8 +28,6 @@ namespace fc::markets::storage::provider {
         std::make_shared<BlsProviderImpl>();
     std::shared_ptr<Secp256k1ProviderDefault> secp256k1_provider_ =
         std::make_shared<Secp256k1Sha256ProviderImpl>();
-    std::shared_ptr<KeyStore> keystore =
-        std::make_shared<InMemoryKeyStore>(bls_provider_, secp256k1_provider_);
 
     std::shared_ptr<Datastore> datastore = std::make_shared<InMemoryStorage>();
 
@@ -39,17 +37,25 @@ namespace fc::markets::storage::provider {
     Address actor_address = Address::makeFromId(1);
     Address bls_address;
     KeyPair bls_keypair;
-    StoredAsk stored_ask{keystore, datastore, api, actor_address};
+    StoredAsk stored_ask{datastore, api, actor_address};
 
     void SetUp() override {
       chain_head.height = epoch;
       api->ChainHead = {[=]() { return chain_head; }};
+
       bls_keypair = bls_provider_->generateKeyPair().value();
       bls_address = Address::makeBls(bls_keypair.public_key);
-      keystore->put(bls_address, bls_keypair.private_key);
+      api->WalletSign = {
+          [=](const Address &address,
+              const Buffer &buffer) -> outcome::result<Signature> {
+            if (address != bls_address) throw "API WalletSign: Wrong address";
+            return Signature{
+                bls_provider_->sign(buffer, bls_keypair.private_key).value()};
+          }};
+
       api->StateAccountKey = {[=](auto &address, auto &tipset_key) {
         if (address == actor_address) return bls_address;
-        throw "Unexpected address";
+        throw "API StateAccountKey: Unexpected address";
       }};
     }
   };
@@ -70,8 +76,11 @@ namespace fc::markets::storage::provider {
     EXPECT_EQ(ask.ask.expiry, epoch + kDefaultDuration);
     EXPECT_EQ(ask.ask.seq_no, 0);
     EXPECT_OUTCOME_TRUE(verify_data, codec::cbor::encode(ask.ask));
-    EXPECT_OUTCOME_EQ(keystore->verify(bls_address, verify_data, ask.signature),
-                      true);
+    EXPECT_OUTCOME_EQ(
+        bls_provider_->verifySignature(verify_data,
+                                       boost::get<BlsSignature>(ask.signature),
+                                       bls_keypair.public_key),
+        true);
   }
 
   /**
@@ -94,8 +103,11 @@ namespace fc::markets::storage::provider {
     EXPECT_EQ(ask.ask.expiry, epoch + duration);
     EXPECT_EQ(ask.ask.seq_no, 0);
     EXPECT_OUTCOME_TRUE(verify_data, codec::cbor::encode(ask.ask));
-    EXPECT_OUTCOME_EQ(keystore->verify(bls_address, verify_data, ask.signature),
-                      true);
+    EXPECT_OUTCOME_EQ(
+        bls_provider_->verifySignature(verify_data,
+                                       boost::get<BlsSignature>(ask.signature),
+                                       bls_keypair.public_key),
+        true);
   }
 
   /**
@@ -119,8 +131,11 @@ namespace fc::markets::storage::provider {
     EXPECT_EQ(ask.ask.expiry, epoch + duration);
     EXPECT_EQ(ask.ask.seq_no, 1);
     EXPECT_OUTCOME_TRUE(verify_data, codec::cbor::encode(ask.ask));
-    EXPECT_OUTCOME_EQ(keystore->verify(bls_address, verify_data, ask.signature),
-                      true);
+    EXPECT_OUTCOME_EQ(
+        bls_provider_->verifySignature(verify_data,
+                                       boost::get<BlsSignature>(ask.signature),
+                                       bls_keypair.public_key),
+        true);
   }
 
   /**
@@ -144,7 +159,7 @@ namespace fc::markets::storage::provider {
     ChainEpoch duration = 2445;
     EXPECT_OUTCOME_TRUE_1(stored_ask.addAsk(price, duration));
 
-    StoredAsk fresh_stored_ask{keystore, datastore, api, actor_address};
+    StoredAsk fresh_stored_ask{datastore, api, actor_address};
 
     EXPECT_OUTCOME_TRUE(ask, fresh_stored_ask.getAsk(actor_address));
 
@@ -156,8 +171,11 @@ namespace fc::markets::storage::provider {
     EXPECT_EQ(ask.ask.expiry, epoch + duration);
     EXPECT_EQ(ask.ask.seq_no, 0);
     EXPECT_OUTCOME_TRUE(verify_data, codec::cbor::encode(ask.ask));
-    EXPECT_OUTCOME_EQ(keystore->verify(bls_address, verify_data, ask.signature),
-                      true);
+    EXPECT_OUTCOME_EQ(
+        bls_provider_->verifySignature(verify_data,
+                                       boost::get<BlsSignature>(ask.signature),
+                                       bls_keypair.public_key),
+        true);
   }
 
 }  // namespace fc::markets::storage::provider
