@@ -335,11 +335,6 @@ namespace fc::markets::storage::provider {
 
     std::map<CID, std::shared_ptr<CborStream>> connections_;
 
-    /**
-     * Set of local deals proposal_cid -> client deal, handled by fsm
-     */
-    std::map<CID, std::shared_ptr<MinerDeal>> local_deals_;
-
     /** State machine */
     std::shared_ptr<ProviderFSM> fsm_;
 

@@ -64,7 +64,8 @@ namespace fc::markets::storage::client {
 
     outcome::result<std::vector<ClientDeal>> listLocalDeals() const override;
 
-    outcome::result<ClientDeal> getLocalDeal(const CID &cid) const override;
+    outcome::result<ClientDeal> getLocalDeal(
+        const CID &proposal_cid) const override;
 
     void getAsk(const StorageProviderInfo &info,
                 const SignedAskHandler &signed_ask_handler) const override;
@@ -260,17 +261,11 @@ namespace fc::markets::storage::client {
     std::shared_ptr<StorageMarketNetwork> network_;
     std::shared_ptr<Discovery> discovery_;
 
-    // TODO
     // connection manager
     std::map<CID, std::shared_ptr<CborStream>> connections_;
 
     /** State machine */
     std::shared_ptr<ClientFSM> fsm_;
-
-    /**
-     * Set of local deals proposal_cid -> client deal, handled by fsm
-     */
-    std::map<CID, std::shared_ptr<ClientDeal>> local_deals_;
 
     common::Logger logger_ = common::createLogger("StorageMarketClient");
   };

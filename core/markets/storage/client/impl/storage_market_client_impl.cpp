@@ -114,19 +114,20 @@ namespace fc::markets::storage::client {
   outcome::result<std::vector<ClientDeal>>
   StorageMarketClientImpl::listLocalDeals() const {
     std::vector<ClientDeal> res;
-    for (auto deal : local_deals_) {
-      res.push_back(ClientDeal{*deal.second});
+    for (const auto &it : fsm_->list()) {
+      res.push_back(*it.first);
     }
     return res;
   }
 
   outcome::result<ClientDeal> StorageMarketClientImpl::getLocalDeal(
-      const CID &cid) const {
-    auto it = local_deals_.find(cid);
-    if (it == local_deals_.end()) {
-      return StorageMarketClientError::LOCAL_DEAL_NOT_FOUND;
+      const CID &proposal_cid) const {
+    for (const auto &it : fsm_->list()) {
+      if (it.first->proposal_cid == proposal_cid) {
+        return *it.first;
+      }
     }
-    return *it->second;
+    return StorageMarketClientError::LOCAL_DEAL_NOT_FOUND;
   }
 
   void StorageMarketClientImpl::getAsk(
@@ -206,7 +207,6 @@ namespace fc::markets::storage::client {
                    .data_ref = data_ref,
                    .message = {},
                    .publish_message = {}});
-    local_deals_[client_deal->proposal_cid] = client_deal;
     OUTCOME_TRY(
         fsm_->begin(client_deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
 

@@ -72,6 +72,8 @@ namespace fc::markets::storage::test {
 
   class StorageMarketTest : public ::testing::Test {
    public:
+    static const int kNumberOfWaitCycles = 30; // 3 sec
+
     static void SetUpTestCase() {
       std::string address_string =
           "/ip4/127.0.0.1/tcp/40010/ipfs/"
@@ -377,7 +379,7 @@ namespace fc::markets::storage::test {
     void waitForProviderDealStatus(const CID &proposal_cid,
                                    const StorageDealStatus &state) {
       // wait 2 sec max
-      for (int i = 0; i < 20; i++) {
+      for (int i = 0; i < kNumberOfWaitCycles; i++) {
         auto deal = provider->getDeal(proposal_cid);
         if (deal.has_value() && deal.value().state == state) break;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
@@ -392,7 +394,7 @@ namespace fc::markets::storage::test {
     void waitForClientDealStatus(const CID &proposal_cid,
                                  const StorageDealStatus &state) {
       // wait 2 sec max
-      for (int i = 0; i < 20; i++) {
+      for (int i = 0; i < kNumberOfWaitCycles; i++) {
         auto deal = client->getLocalDeal(proposal_cid);
         if (deal.has_value() && deal.value().state == state) break;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));

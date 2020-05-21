@@ -121,11 +121,12 @@ namespace fc::markets::storage::provider {
 
   outcome::result<MinerDeal> StorageProviderImpl::getDeal(
       const CID &proposal_cid) const {
-    auto it = local_deals_.find(proposal_cid);
-    if (it == local_deals_.end()) {
-      return StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND;
+    for (const auto &it : fsm_->list()) {
+      if (it.first->proposal_cid == proposal_cid) {
+        return *it.first;
+      }
     }
-    return *it->second;
+    return StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND;
   }
 
   outcome::result<void> StorageProviderImpl::addStorageCollateral(
@@ -143,11 +144,20 @@ namespace fc::markets::storage::provider {
       const CID &proposal_cid, const Buffer &data) {
     OUTCOME_TRY(piece_commitment,
                 piece_io_->generatePieceCommitment(registered_proof_, data));
-    auto it = local_deals_.find(proposal_cid);
-    if (it == local_deals_.end()) {
+
+    auto fsm_state_table = fsm_->list();
+    auto found_fsm_entity =
+        std::find_if(fsm_state_table.begin(),
+                     fsm_state_table.end(),
+                     [proposal_cid](const auto &it) -> bool {
+                       if (it.first->proposal_cid == proposal_cid) return true;
+                       return false;
+                     });
+    if (found_fsm_entity == fsm_state_table.end()) {
       return StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND;
     }
-    auto deal = it->second;
+    auto deal = found_fsm_entity->first;
+
     if (piece_commitment.first
         != deal->client_deal_proposal.proposal.piece_cid) {
       return StorageMarketProviderError::PIECE_CID_DOESNT_MATCH;
@@ -185,6 +195,8 @@ namespace fc::markets::storage::provider {
           if (!self->hasValue(proposal, "Read proposal error: ", stream))
             return;
           auto proposal_cid = getProposalCid(proposal.value().deal_proposal);
+          if (!self->hasValue(proposal_cid, "Get proposal cid error: ", stream))
+            return;
           auto remote_peer_id = stream->stream()->remotePeerId();
           if (!self->hasValue(
                   remote_peer_id, "Cannot get remote peer info: ", stream))
@@ -209,7 +221,6 @@ namespace fc::markets::storage::provider {
                         .message = {},
                         .ref = proposal.value().piece,
                         .deal_id = {}});
-          self->local_deals_[proposal_cid.value()] = deal;
           self->connections_[proposal_cid.value()] = stream;
           OUTCOME_EXCEPT(
               self->fsm_->begin(deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
