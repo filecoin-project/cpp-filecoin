@@ -18,7 +18,7 @@ namespace fc::markets::storage::test {
    * @when client send get ask
    * @then ask returned in answer
    */
-  TEST_F(StorageMarketTest, Ask) {
+  TEST_F(StorageMarketTest, DISABLED_Ask) {
     TokenAmount provider_price = 1334;
     ChainEpoch duration = 2334;
     EXPECT_OUTCOME_TRUE_1(provider->addAsk(provider_price, duration));
@@ -45,7 +45,7 @@ namespace fc::markets::storage::test {
    * @when client send get ask
    * @then result with error wrong signature
    */
-  TEST_F(StorageMarketTest, WrongSignedAsk) {
+  TEST_F(StorageMarketTest, DISABLED_WrongSignedAsk) {
     std::shared_ptr<BlsProvider> bls_provider =
         std::make_shared<BlsProviderImpl>();
     OUTCOME_EXCEPT(wrong_keypair, bls_provider->generateKeyPair());

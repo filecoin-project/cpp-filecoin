@@ -378,7 +378,6 @@ namespace fc::markets::storage::test {
      */
     void waitForProviderDealStatus(const CID &proposal_cid,
                                    const StorageDealStatus &state) {
-      // wait 2 sec max
       for (int i = 0; i < kNumberOfWaitCycles; i++) {
         auto deal = provider->getDeal(proposal_cid);
         if (deal.has_value() && deal.value().state == state) break;
@@ -393,7 +392,6 @@ namespace fc::markets::storage::test {
      */
     void waitForClientDealStatus(const CID &proposal_cid,
                                  const StorageDealStatus &state) {
-      // wait 2 sec max
       for (int i = 0; i < kNumberOfWaitCycles; i++) {
         auto deal = client->getLocalDeal(proposal_cid);
         if (deal.has_value() && deal.value().state == state) break;

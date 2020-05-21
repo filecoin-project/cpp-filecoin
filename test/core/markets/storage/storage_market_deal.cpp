@@ -16,7 +16,7 @@ namespace fc::markets::storage::test {
    * @when client send deal proposal, then send data
    * @then deal activated
    */
-  TEST_F(StorageMarketTest, Deal) {
+  TEST_F(StorageMarketTest, DISABLED_Deal) {
     CID root_cid = "010001020001"_cid;
     auto data = readFile(CAR_FROM_PAYLOAD_FILE);
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(root_cid, data));
@@ -55,7 +55,7 @@ namespace fc::markets::storage::test {
    * @when client send deal proposal with wrong signature
    * @then state deal rejected in provider
    */
-  TEST_F(StorageMarketTest, WrongSignedDealProposal) {
+  TEST_F(StorageMarketTest, DISABLED_WrongSignedDealProposal) {
     std::shared_ptr<BlsProvider> bls_provider =
         std::make_shared<BlsProviderImpl>();
     OUTCOME_EXCEPT(wrong_keypair, bls_provider->generateKeyPair());
