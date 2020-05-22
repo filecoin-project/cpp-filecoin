@@ -115,13 +115,15 @@ namespace fc::api {
     auto waitSync() {
       std::condition_variable c;
       Result r{outcome::success()};
+      bool notified = false;
       wait([&](auto v) {
-        r = std::move(v);
+        r = v;
+        notified = true;
         c.notify_one();
       });
       std::mutex m;
       auto l = std::unique_lock{m};
-      c.wait(l);
+      while (!notified) c.wait(l);
       return r;
     }
 
