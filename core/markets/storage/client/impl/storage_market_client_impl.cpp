@@ -26,6 +26,13 @@
 #define SELF_FSM_SEND(client_deal, event) \
   OUTCOME_EXCEPT(self->fsm_->send(client_deal, event))
 
+#define FSM_HALT_ON_ERROR(result, msg, deal)                            \
+  if (result.has_error()) {                                             \
+    deal->message = msg + std::string(". ") + result.error().message(); \
+    FSM_SEND(deal, ClientEvent::ClientEventFailed);                     \
+    return;                                                             \
+  }
+
 #define SELF_FSM_HALT_ON_ERROR(result, msg, deal)                       \
   if (result.has_error()) {                                             \
     deal->message = msg + std::string(". ") + result.error().message(); \
@@ -34,7 +41,7 @@
   }
 
 namespace fc::markets::storage::client {
-
+  using api::MsgWait;
   using host::HostContext;
   using host::HostContextImpl;
   using libp2p::peer::PeerId;
@@ -412,7 +419,20 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO wait for funding
+    auto maybe_wait = api_->StateWaitMsg(deal->add_funds_cid.get());
+    FSM_HALT_ON_ERROR(maybe_wait, "Wait for funding error", deal);
+    maybe_wait.value().wait(
+        [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {
+          SELF_FSM_HALT_ON_ERROR(result, "Wait for funding error", deal);
+          if (result.value().receipt.exit_code != VMExitCode::Ok) {
+            deal->message = "Funding exit code "
+                            + std::to_string(static_cast<uint64_t>(
+                                result.value().receipt.exit_code));
+            SELF_FSM_SEND(deal, ClientEvent::ClientEventFailed);
+            return;
+          }
+          SELF_FSM_SEND(deal, ClientEvent::ClientEventFundsEnsured);
+        });
   }
 
   void StorageMarketClientImpl::onClientEventFundsEnsured(

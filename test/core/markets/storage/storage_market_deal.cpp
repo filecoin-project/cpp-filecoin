@@ -97,4 +97,51 @@ namespace fc::markets::storage::test {
     EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ERROR);
   }
 
+  /**
+   * @given provider and client, and client doesn't have enough funds
+   * @when client initiates deal and waits for funding
+   * @then when funding completed, proposal sent and deal activated
+   */
+  TEST_F(StorageMarketTest, DISABLED_WaitFundingDeal) {
+    // some unique valid CID of funding message
+    CID funding_cid = "010001020002"_cid;
+    node_api->MarketEnsureAvailable = {
+        [this, funding_cid](auto, auto, auto, auto) -> boost::optional<CID> {
+          this->logger->debug("Funding message sent "
+                              + funding_cid.toString().value());
+          return funding_cid;
+        }};
+
+    CID root_cid = "010001020001"_cid;
+    auto data = readFile(CAR_FROM_PAYLOAD_FILE);
+    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(root_cid, data));
+    ChainEpoch start_epoch{210};
+    ChainEpoch end_epoch{300};
+    TokenAmount client_price{20000};
+    TokenAmount collateral{10};
+    EXPECT_OUTCOME_TRUE(proposal_cid,
+                        client->proposeStorageDeal(client_id_address,
+                                                   *storage_provider_info,
+                                                   data_ref,
+                                                   start_epoch,
+                                                   end_epoch,
+                                                   client_price,
+                                                   collateral,
+                                                   registered_proof));
+    waitForProviderDealStatus(proposal_cid,
+                              StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA);
+    EXPECT_OUTCOME_TRUE_1(provider->importDataForDeal(proposal_cid, data));
+
+    waitForProviderDealStatus(proposal_cid,
+                              StorageDealStatus::STORAGE_DEAL_COMPLETED);
+    EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
+    EXPECT_EQ(provider_deal_state.state,
+              StorageDealStatus::STORAGE_DEAL_COMPLETED);
+
+    waitForClientDealStatus(proposal_cid,
+                            StorageDealStatus::STORAGE_DEAL_ACTIVE);
+    EXPECT_OUTCOME_TRUE(client_deal_state, client->getLocalDeal(proposal_cid));
+    EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ACTIVE);
+  }
+
 }  // namespace fc::markets::storage::test
