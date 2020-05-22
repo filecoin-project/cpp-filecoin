@@ -6,23 +6,34 @@
 #include <gtest/gtest.h>
 #include "sector_storage/stores/impl/index_impl.hpp"
 
+#include <memory>
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
+using fc::primitives::sector::RegisteredProof;
+using fc::primitives::sector_file::SectorFileType;
 using fc::sector_storage::stores::FsStat;
 using fc::sector_storage::stores::IndexErrors;
+using fc::sector_storage::stores::SectorIndex;
 using fc::sector_storage::stores::SectorIndexImpl;
 using fc::sector_storage::stores::StorageInfo;
 
 class SectorIndexTest : public test::BaseFS_Test {
  public:
   SectorIndexTest() : test::BaseFS_Test("fc_sector_index_test") {
-    sector_index_ = std::make_unique<SectorIndexImpl>();
+    sector_index_ = std::make_shared<SectorIndexImpl>();
   }
 
  protected:
-  std::unique_ptr<SectorIndexImpl> sector_index_;
+  std::shared_ptr<SectorIndex> sector_index_;
 };
+
+bool operator==(const StorageInfo &lhs, const StorageInfo &rhs) {
+  return lhs.id == rhs.id && lhs.urls == rhs.urls && lhs.weight == rhs.weight
+         && lhs.can_seal == rhs.can_seal && lhs.can_store == rhs.can_store
+         && lhs.last_heartbreak == rhs.last_heartbreak
+         && lhs.error == rhs.error;
+}
 
 /**
  * @given sector
@@ -41,8 +52,14 @@ TEST_F(SectorIndexTest, AttachNewStorage) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
+      .last_heartbreak = std::chrono::system_clock::now(),
+      .error = {},
   };
-  FsStat file_system_stat{};
+  FsStat file_system_stat{
+      .capacity = 100,
+      .available = 100,
+      .used = 0,
+  };
 
   EXPECT_OUTCOME_TRUE_1(
       sector_index_->storageAttach(storage_info, file_system_stat));
@@ -70,8 +87,14 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
+      .last_heartbreak = std::chrono::system_clock::now(),
+      .error = {},
   };
-  FsStat file_system_stat{};
+  FsStat file_system_stat{
+      .capacity = 100,
+      .available = 100,
+      .used = 0,
+  };
 
   EXPECT_OUTCOME_TRUE_1(
       sector_index_->storageAttach(storage_info, file_system_stat));
@@ -99,4 +122,79 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
 TEST_F(SectorIndexTest, NotFoundStorage) {
   EXPECT_OUTCOME_ERROR(IndexErrors::StorageNotFound,
                        sector_index_->getStorageInfo("not_found_id"));
+}
+
+TEST_F(SectorIndexTest, BestAllocationNoSuitableStorage) {
+  EXPECT_OUTCOME_ERROR(
+      IndexErrors::NoSuitableCandidate,
+      sector_index_->storageBestAlloc(
+          SectorFileType::FTCache, RegisteredProof::StackedDRG2KiBSeal, false));
+}
+
+TEST_F(SectorIndexTest, BestAllocation) {
+  std::string id1 = "id1";
+  StorageInfo storage_info1{
+      .id = id1,
+      .urls = {},
+      .weight = 10,
+      .can_seal = false,
+      .can_store = true,
+      .last_heartbreak = std::chrono::system_clock::now(),
+      .error = {},
+  };
+  FsStat file_system_stat1{
+      .capacity = 7 * 2048,
+      .available = 7 * 2048,
+      .used = 0,
+  };
+
+  EXPECT_OUTCOME_TRUE_1(
+      sector_index_->storageAttach(storage_info1, file_system_stat1));
+
+  std::string id2 = "id2";
+  StorageInfo storage_info2{
+      .id = id2,
+      .urls = {},
+      .weight = 30,
+      .can_seal = false,
+      .can_store = true,
+      .last_heartbreak = std::chrono::system_clock::now(),
+      .error = {},
+  };
+  FsStat file_system_stat2{
+      .capacity = 6 * 2048,
+      .available = 6 * 2048,
+      .used = 0,
+  };
+
+  EXPECT_OUTCOME_TRUE_1(
+      sector_index_->storageAttach(storage_info2, file_system_stat2));
+
+  std::string id3 = "id3";
+  StorageInfo storage_info3{
+      .id = id3,
+      .urls = {},
+      .weight = 5,
+      .can_seal = false,
+      .can_store = true,
+      .last_heartbreak = std::chrono::system_clock::now(),
+      .error = {},
+  };
+  FsStat file_system_stat3{
+      .capacity = 8 * 2048,
+      .available = 8 * 2048,
+      .used = 0,
+  };
+
+  EXPECT_OUTCOME_TRUE_1(
+      sector_index_->storageAttach(storage_info3, file_system_stat3));
+
+  EXPECT_OUTCOME_TRUE(
+      candidates,
+      sector_index_->storageBestAlloc(
+          SectorFileType::FTCache, RegisteredProof::StackedDRG2KiBSeal, false));
+
+  ASSERT_EQ(candidates.size(), 2);
+  ASSERT_EQ(candidates.at(0).id, id1);
+  ASSERT_EQ(candidates.at(1).id, id3);
 }

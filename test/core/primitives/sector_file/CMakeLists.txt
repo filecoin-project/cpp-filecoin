@@ -3,11 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(sector_index
-        impl/index_impl.cpp
+addtest(sector_file_test
+        sector_file_test.cpp
         )
 
-target_link_libraries(sector_index
+target_link_libraries(sector_file_test
         sector_file
-        outcome
         )

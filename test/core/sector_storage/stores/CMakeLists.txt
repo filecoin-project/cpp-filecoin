@@ -8,5 +8,5 @@ addtest(sector_index_test
 
 target_link_libraries(sector_index_test
         base_fs_test
-        index
+        sector_index
         )

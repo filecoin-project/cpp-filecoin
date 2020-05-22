@@ -6,9 +6,9 @@
 #ifndef CPP_FILECOIN_CORE_SECTOR_INDEX_HPP
 #define CPP_FILECOIN_CORE_SECTOR_INDEX_HPP
 
+#include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/sector_file/sector_file.hpp"
-#include "common/outcome.hpp"
 
 namespace fc::sector_storage::stores {
   // ID identifies sector storage by UUID. One sector storage should map to one
@@ -17,6 +17,11 @@ namespace fc::sector_storage::stores {
   using fc::primitives::sector::RegisteredProof;
   using fc::primitives::sector::SectorId;
   using fc::primitives::sector_file::SectorFileType;
+  using std::chrono::system_clock;
+
+  const std::chrono::seconds kHeartbeatInterval(10);
+  const std::chrono::seconds kSkippedHeartbeatThreshold =
+      kHeartbeatInterval * 5;
 
   struct StorageInfo {
     ID id;
@@ -26,7 +31,8 @@ namespace fc::sector_storage::stores {
     bool can_seal;
     bool can_store;
 
-    // TODO: add heartbeat
+    system_clock::time_point last_heartbreak;
+    boost::optional<std::string> error;
   };
 
   struct FsStat {
@@ -35,10 +41,9 @@ namespace fc::sector_storage::stores {
     uint64_t used;
   };
 
-  // TODO: remove after integrate heartbeat
   struct HealthReport {
     FsStat stat;
-    std::string err;
+    boost::optional<std::string> error;
   };
 
   class SectorIndex {
@@ -51,33 +56,34 @@ namespace fc::sector_storage::stores {
     virtual outcome::result<StorageInfo> getStorageInfo(
         const ID &storage_id) const = 0;
 
-    virtual outcome::result<void> StorageReportHealth(
+    virtual outcome::result<void> storageReportHealth(
         const ID &storage_id, const HealthReport &report) = 0;
 
-    virtual outcome::result<void> StorageDeclareSector(
+    virtual outcome::result<void> storageDeclareSector(
         const ID &storage_id,
         const SectorId &sector,
         const SectorFileType &file_type) = 0;
 
-    virtual outcome::result<void> StorageDropSector(
+    virtual outcome::result<void> storageDropSector(
         const ID &storage_id,
         const SectorId &sector,
         const SectorFileType &file_type) = 0;
 
-    virtual outcome::result<std::vector<StorageInfo>> StorageFindSector(
+    virtual outcome::result<std::vector<StorageInfo>> storageFindSector(
         const SectorId &sector,
         const SectorFileType &file_type,
         bool allow_fetch) = 0;
 
-    virtual outcome::result<std::vector<StorageInfo>> StorageBestAlloc(
+    virtual outcome::result<std::vector<StorageInfo>> storageBestAlloc(
         const SectorFileType &allocate,
         RegisteredProof seal_proof_type,
         bool sealing) = 0;
   };
 
-    enum class IndexErrors {
-        StorageNotFound = 1,
-    };
+  enum class IndexErrors {
+    StorageNotFound = 1,
+    NoSuitableCandidate,
+  };
 }  // namespace fc::sector_storage::stores
 
 OUTCOME_HPP_DECLARE_ERROR(fc::sector_storage::stores, IndexErrors);

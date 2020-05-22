@@ -8,42 +8,55 @@
 
 #include "sector_storage/stores/index.hpp"
 
-#include <unordered_map>
 #include <shared_mutex>
+#include <unordered_map>
 
 namespace fc::sector_storage::stores {
 
-    struct StorageEntry{
-        StorageInfo info;
-        FsStat file_stat;
+  struct StorageEntry {
+    StorageInfo info;
+    FsStat fs_stat;
 
-        // TODO: add heartbeat
-    };
+    system_clock::time_point last_heartbreak;
+    boost::optional<std::string> error;
+  };
 
-    class SectorIndexImpl : SectorIndex {
-    public:
-        outcome::result<void> storageAttach(const StorageInfo &storage_info, const FsStat &stat) override;
+  class SectorIndexImpl : public SectorIndex {
+   public:
 
-        outcome::result<StorageInfo> getStorageInfo(const ID &storage_id) const override;
+    outcome::result<void> storageAttach(const StorageInfo &storage_info,
+                                        const FsStat &stat) override;
 
-        outcome::result<void> StorageReportHealth(const ID &storage_id, const HealthReport &report) override;
+    outcome::result<StorageInfo> getStorageInfo(
+        const ID &storage_id) const override;
 
-        outcome::result<void>
-        StorageDeclareSector(const ID &storage_id, const SectorId &sector, const SectorFileType &file_type) override;
+    outcome::result<void> storageReportHealth(
+        const ID &storage_id, const HealthReport &report) override;
 
-        outcome::result<void>
-        StorageDropSector(const ID &storage_id, const SectorId &sector, const SectorFileType &file_type) override;
+    outcome::result<void> storageDeclareSector(
+        const ID &storage_id,
+        const SectorId &sector,
+        const SectorFileType &file_type) override;
 
-        outcome::result<std::vector<StorageInfo>>
-        StorageFindSector(const SectorId &sector, const SectorFileType &file_type, bool allow_fetch) override;
+    outcome::result<void> storageDropSector(
+        const ID &storage_id,
+        const SectorId &sector,
+        const SectorFileType &file_type) override;
 
-        outcome::result<std::vector<StorageInfo>>
-        StorageBestAlloc(const SectorFileType &allocate, RegisteredProof seal_proof_type, bool sealing) override;
+    outcome::result<std::vector<StorageInfo>> storageFindSector(
+        const SectorId &sector,
+        const SectorFileType &file_type,
+        bool allow_fetch) override;
 
-    private:
-        mutable std::shared_mutex mutex_;
-        std::unordered_map<ID, StorageEntry> stores_;
-    };
-}
+    outcome::result<std::vector<StorageInfo>> storageBestAlloc(
+        const SectorFileType &allocate,
+        RegisteredProof seal_proof_type,
+        bool sealing) override;
 
-#endif //CPP_FILECOIN_INDEX_IMPL_HPP
+   private:
+    mutable std::shared_mutex mutex_;
+    std::unordered_map<ID, StorageEntry> stores_;
+  };
+}  // namespace fc::sector_storage::stores
+
+#endif  // CPP_FILECOIN_INDEX_IMPL_HPP
