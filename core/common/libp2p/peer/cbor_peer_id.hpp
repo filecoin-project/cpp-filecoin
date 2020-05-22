@@ -7,19 +7,22 @@
 #define CPP_FILECOIN_CORE_COMMON_LIBP2P_PEER_CBOR_PEER_ID_HPP
 
 #include <libp2p/peer/peer_id.hpp>
-#include "codec/cbor/streams_annotation.hpp"
 
-using libp2p::multi::Multihash;
+#include "codec/cbor/streams_annotation.hpp"
+#include "common/outcome.hpp"
+
 using libp2p::peer::PeerId;
 
-/**
- * Default value of PeerId for CBOR stream decoder
- */
-template <>
-inline const PeerId fc::codec::cbor::kDefaultT<PeerId>{
-    PeerId::fromHash(
-        Multihash::create(libp2p::multi::sha256, Buffer(43, 1)).value())
-        .value()};
+namespace fc::codec::cbor {
+  /// Default value of PeerId for CBOR stream decoder
+  template <>
+  inline PeerId kDefaultT<PeerId>() {
+    return PeerId::fromHash(
+               libp2p::multi::Multihash::create(libp2p::multi::sha256, {})
+                   .value())
+        .value();
+  }
+}  // namespace fc::codec::cbor
 
 namespace libp2p::peer {
 

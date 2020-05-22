@@ -23,6 +23,7 @@ namespace fc::adt {
     using Queue = std::pair<std::vector<T>, bool>;
     using Handler = std::function<bool(boost::optional<T>)>;
     struct Closed {};
+    using Many = std::vector<std::shared_ptr<Channel<T>>>;
 
     Channel() = default;
     Channel(Channel &&) = default;

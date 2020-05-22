@@ -81,10 +81,7 @@ namespace fc {
     } else {
       OUTCOME_TRY(version,
                   codec::uvarint::read<Error::EMPTY_VERSION, Version>(input));
-      if (version <= Version::V0) {
-        return Error::MALFORMED_VERSION;
-      }
-      if (version != Version::V1) {
+      if (version != Version::V0 && version != Version::V1) {
         return Error::RESERVED_VERSION;
       }
       cid.version = version;

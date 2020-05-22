@@ -6,9 +6,8 @@
 #include "api/make.hpp"
 
 #include <boost/algorithm/string.hpp>
-#include <boost/range/adaptor/indexed.hpp>
-
 #include <libp2p/peer/peer_id.hpp>
+
 #include "blockchain/production/impl/block_producer_impl.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
@@ -234,12 +233,21 @@ namespace fc::api {
           return weight_calculator->calculateWeight(tipset);
         }},
         // TODO(turuslan): FIL-165 implement method
-        .MarketEnsureAvailable = {[](auto address,
-                                     auto wallet,
-                                     auto amount,
-                                     auto &tipset_key) -> boost::optional<CID> {
-          return boost::none;
-        }},
+        .ClientFindData = {},
+        // TODO(turuslan): FIL-165 implement method
+        .ClientHasLocal = {},
+        // TODO(turuslan): FIL-165 implement method
+        .ClientImport = {},
+        // TODO(turuslan): FIL-165 implement method
+        .ClientListImports = {},
+        // TODO(turuslan): FIL-165 implement method
+        .ClientQueryAsk = {},
+        // TODO(turuslan): FIL-165 implement method
+        .ClientRetrieve = {},
+        // TODO(turuslan): FIL-165 implement method
+        .ClientStartDeal = {},
+        // TODO(turuslan): FIL-165 implement method
+        .MarketEnsureAvailable = {},
         .MinerCreateBlock = {[=](auto &miner,
                                  auto &parent,
                                  auto &ticket,
@@ -325,13 +333,14 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           // TODO(turuslan): FIL-146 randomness from tipset
           std::shared_ptr<RandomnessProvider> randomness;
-          Env env{randomness,
-                  std::make_shared<StateTreeImpl>(context.state_tree),
-                  std::make_shared<InvokerImpl>(),
-                  static_cast<ChainEpoch>(context.tipset.height)};
+          auto env = std::make_shared<Env>(
+              randomness,
+              std::make_shared<StateTreeImpl>(context.state_tree),
+              std::make_shared<InvokerImpl>(),
+              static_cast<ChainEpoch>(context.tipset.height));
           InvocResult result;
           result.message = message;
-          auto maybe_result = env.applyImplicitMessage(message);
+          auto maybe_result = env->applyImplicitMessage(message);
           if (maybe_result) {
             result.receipt = {VMExitCode::Ok, maybe_result.value(), 0};
           } else {
@@ -425,6 +434,8 @@ namespace fc::api {
               .state = IpldObject{std::move(cid), std::move(raw)},
           };
         }},
+        // TODO(turuslan): FIL-165 implement method
+        .StateGetReceipt = {},
         .StateListMiners = {[=](auto &tipset_key)
                                 -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
@@ -440,22 +451,21 @@ namespace fc::api {
 
           return actors.keys();
         }},
-        .StateMarketBalance =
-            {[=](auto &address, auto &tipset_key)
-                 -> outcome::result<StorageParticipantBalance> {
-              OUTCOME_TRY(context, tipsetContext(tipset_key));
-              OUTCOME_TRY(state, context.marketState());
-              OUTCOME_TRY(id_address, context.state_tree.lookupId(address));
-              OUTCOME_TRY(escrow, state.escrow_table.tryGet(id_address));
-              OUTCOME_TRY(locked, state.locked_table.tryGet(id_address));
-              if (!escrow) {
-                escrow = 0;
-              }
-              if (!locked) {
-                locked = 0;
-              }
-              return StorageParticipantBalance{*locked, *escrow - *locked};
-            }},
+        .StateMarketBalance = {[=](auto &address, auto &tipset_key)
+                                   -> outcome::result<MarketBalance> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.marketState());
+          OUTCOME_TRY(id_address, context.state_tree.lookupId(address));
+          OUTCOME_TRY(escrow, state.escrow_table.tryGet(id_address));
+          OUTCOME_TRY(locked, state.locked_table.tryGet(id_address));
+          if (!escrow) {
+            escrow = 0;
+          }
+          if (!locked) {
+            locked = 0;
+          }
+          return MarketBalance{*escrow, *locked};
+        }},
         .StateMarketDeals = {[=](auto &tipset_key)
                                  -> outcome::result<MarketDealMap> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
@@ -463,7 +473,7 @@ namespace fc::api {
           MarketDealMap map;
           OUTCOME_TRY(state.proposals.visit([&](auto deal_id, auto &deal)
                                                 -> outcome::result<void> {
-            OUTCOME_TRY(deal_state, state.states.get(deal_id));
+            OUTCOME_TRY(deal_state, state.getState(deal_id));
             map.emplace(std::to_string(deal_id), StorageDeal{deal, deal_state});
             return outcome::success();
           }));
@@ -479,7 +489,7 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
           OUTCOME_TRY(deal, state.proposals.get(deal_id));
-          OUTCOME_TRY(deal_state, state.states.get(deal_id));
+          OUTCOME_TRY(deal_state, state.getState(deal_id));
           return StorageDeal{deal, deal_state};
         }},
         .StateMinerElectionPeriodStart = {[=](auto address, auto tipset_key)
@@ -606,6 +616,11 @@ namespace fc::api {
         }},
         .Version = {[]() {
           return VersionResult{"fuhon", 0x000200, 5};
+        }},
+        .WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
+          OUTCOME_TRY(context, tipsetContext({}));
+          OUTCOME_TRY(actor, context.state_tree.get(address));
+          return actor.balance;
         }},
         // TODO(turuslan): FIL-165 implement method
         .WalletDefaultAddress = {},

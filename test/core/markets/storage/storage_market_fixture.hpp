@@ -27,6 +27,7 @@
 namespace fc::markets::storage::test {
   using adt::Channel;
   using api::Api;
+  using api::MarketBalance;
   using api::MinerApi;
   using api::MsgWait;
   using api::Wait;
@@ -72,7 +73,7 @@ namespace fc::markets::storage::test {
 
   class StorageMarketTest : public ::testing::Test {
    public:
-    static const int kNumberOfWaitCycles = 30; // 3 sec
+    static const int kNumberOfWaitCycles = 30;  // 3 sec
 
     static void SetUpTestCase() {
       std::string address_string =
@@ -210,18 +211,16 @@ namespace fc::markets::storage::test {
           }};
 
       api->StateMarketBalance = {
-          [this](
-              auto &address,
-              auto &tipset_key) -> outcome::result<StorageParticipantBalance> {
+          [this](auto &address,
+                 auto &tipset_key) -> outcome::result<MarketBalance> {
             if (address == this->client_id_address) {
-              return StorageParticipantBalance{.locked = 0,
-                                               .available = 2000000};
+              return MarketBalance{2000000, 0};
             }
             throw "StateMarketBalance: wrong address";
           }};
 
       api->MarketEnsureAvailable = {
-          [](auto, auto, auto, auto) -> boost::optional<CID> {
+          [](auto, auto, auto, auto) -> outcome::result<boost::optional<CID>> {
             // funds ensured
             return boost::none;
           }};
