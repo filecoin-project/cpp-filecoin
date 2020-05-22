@@ -87,7 +87,7 @@ namespace fc::common::libp2p {
     } else {
       assert(!more_nested.empty());
     }
-    while (consumed < size) {
+    while (consumed < size && !more_nested.empty()) {
       if (!partial_head) {
         OUTCOME_TRY(head, Head::first(more_bytes, input[consumed]));
         ++consumed;

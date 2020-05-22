@@ -75,4 +75,17 @@
     return s;                              \
   }
 
+namespace fc::codec::cbor {
+  /**
+   * Default value for CBORed value instantiation
+   * In case of non default constructible type instantiate default value with
+   * any constant
+   * @tparam T - constructible type
+   */
+  template <typename T>
+  inline T kDefaultT() {
+    return {};
+  }
+}  // namespace fc::codec::cbor
+
 #endif  // CPP_FILECOIN_STREAMS_ANNOTATION_HPP

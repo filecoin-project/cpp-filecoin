@@ -57,3 +57,15 @@ TEST_F(CborBufferingTest, ConsumeEachByte) {
   EXPECT_TRUE(buffering.done());
   EXPECT_EQ(buffering.moreBytes(), 0);
 }
+
+/**
+ * @given multiple cbor encoded objects
+ * @when consume buffer
+ * @then first object read successfully
+ */
+TEST_F(CborBufferingTest, ConsumeOneRootObject) {
+  buffering.reset();
+  EXPECT_OUTCOME_EQ(buffering.consume("010203"_unhex), 1);
+  EXPECT_TRUE(buffering.done());
+  EXPECT_EQ(buffering.moreBytes(), 0);
+}

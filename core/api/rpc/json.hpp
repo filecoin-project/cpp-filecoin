@@ -14,6 +14,7 @@
 #include "api/rpc/rpc.hpp"
 #include "common/enum.hpp"
 #include "primitives/address/address_codec.hpp"
+#include "primitives/cid/cid_of_cbor.hpp"
 
 #define COMMA ,
 
@@ -22,13 +23,17 @@
 #define DECODE(type) static void decode(type &v, const Value &j)
 
 namespace fc::api {
+  using codec::cbor::CborDecodeStream;
   using common::Blob;
   using crypto::signature::BlsSignature;
   using crypto::signature::Secp256k1Signature;
   using crypto::signature::Signature;
+  using markets::storage::StorageAsk;
   using primitives::BigInt;
   using primitives::block::BlockHeader;
+  using primitives::cid::getCidOfCbor;
   using primitives::sector::PoStProof;
+  using primitives::sector::RegisteredProof;
   using primitives::ticket::EPostProof;
   using primitives::ticket::EPostTicket;
   using primitives::ticket::Ticket;
@@ -40,8 +45,6 @@ namespace fc::api {
   using vm::actor::builtin::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
   using SignatureType = crypto::signature::Type;
-  using codec::cbor::CborDecodeStream;
-  using primitives::sector::RegisteredProof;
 
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
@@ -145,6 +148,10 @@ namespace fc::api {
       return Value{v};
     }
 
+    ENCODE(None) {
+      return {};
+    }
+
     ENCODE(int64_t) {
       return Value{v};
     }
@@ -218,6 +225,15 @@ namespace fc::api {
     DECODE(CID) {
       OUTCOME_EXCEPT(cid, CID::fromString(AsString(Get(j, "/"))));
       v = std::move(cid);
+    }
+
+    ENCODE(PeerId) {
+      return encode(v.toBase58());
+    }
+
+    DECODE(PeerId) {
+      OUTCOME_EXCEPT(id, PeerId::fromBase58(AsString(j)));
+      v = std::move(id);
     }
 
     ENCODE(Ticket) {
@@ -435,6 +451,13 @@ namespace fc::api {
       decode(v.total, Get(j, "TotalPower"));
     }
 
+    ENCODE(MarketBalance) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Escrow", v.escrow);
+      Set(j, "Locked", v.locked);
+      return j;
+    }
+
     ENCODE(StorageParticipantBalance) {
       Value j{rapidjson::kObjectType};
       Set(j, "Locked", v.locked);
@@ -487,6 +510,9 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Message", v.message);
       Set(j, "Signature", v.signature);
+      OUTCOME_EXCEPT(
+          cid, v.signature.isBls() ? getCidOfCbor(v.message) : getCidOfCbor(v));
+      Set(j, "_cid", cid);
       return j;
     }
 
@@ -608,7 +634,7 @@ namespace fc::api {
       Set(j, "Lane", v.lane);
       Set(j, "Nonce", v.nonce);
       Set(j, "Amount", v.amount);
-      Set(j, "MinCloseHeight", v.min_close_height);
+      Set(j, "MinSettleHeight", v.min_close_height);
       Set(j, "Merges", v.merges);
       Set(j, "Signature", v.signature);
       return j;
@@ -622,7 +648,7 @@ namespace fc::api {
       decode(v.lane, Get(j, "Lane"));
       decode(v.nonce, Get(j, "Nonce"));
       decode(v.amount, Get(j, "Amount"));
-      decode(v.min_close_height, Get(j, "MinCloseHeight"));
+      decode(v.min_close_height, Get(j, "MinSettleHeight"));
       decode(v.merges, Get(j, "Merges"));
       decode(v.signature, Get(j, "Signature"));
     }
@@ -665,6 +691,40 @@ namespace fc::api {
       Set(j, "ID", v.id.toBase58());
       Set(j, "Addrs", v.addresses);
       return j;
+    }
+
+    ENCODE(StorageAsk) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Price", v.price);
+      Set(j, "MinPieceSize", v.min_piece_size);
+      Set(j, "Miner", v.miner);
+      Set(j, "Timestamp", v.timestamp);
+      Set(j, "Expiry", v.expiry);
+      Set(j, "SeqNo", v.seq_no);
+      return j;
+    }
+
+    ENCODE(SignedStorageAsk) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Ask", v.ask);
+      Set(j, "Signature", v.signature);
+      return j;
+    }
+
+    DECODE(DataRef) {
+      decode(v.transfer_type, Get(j, "TransferType"));
+      decode(v.root, Get(j, "Root"));
+      decode(v.piece_cid, Get(j, "PieceCid"));
+      v.piece_size = decode<uint64_t>(Get(j, "PieceSize"));
+    }
+
+    DECODE(StartDealParams) {
+      decode(v.data, Get(j, "Data"));
+      decode(v.wallet, Get(j, "Wallet"));
+      decode(v.miner, Get(j, "Miner"));
+      decode(v.epoch_price, Get(j, "EpochPrice"));
+      decode(v.min_blocks_duration, Get(j, "MinBlocksDuration"));
+      decode(v.deal_start_epoch, Get(j, "DealStartEpoch"));
     }
 
     template <typename T>
@@ -871,6 +931,44 @@ namespace fc::api {
       decode(v.secp_messages, Get(j, "SecpkMessages"));
     }
 
+    ENCODE(QueryOffer) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Err", v.error);
+      Set(j, "Root", v.root);
+      Set(j, "Size", v.size);
+      Set(j, "MinPrice", v.min_price);
+      Set(j, "PaymentInterval", v.payment_interval);
+      Set(j, "PaymentIntervalIncrease", v.payment_interval_increase);
+      Set(j, "Miner", v.miner);
+      Set(j, "MinerPeerID", v.peer);
+      return j;
+    }
+
+    DECODE(FileRef) {
+      decode(v.path, Get(j, "Path"));
+      decode(v.is_car, Get(j, "IsCAR"));
+    }
+
+    DECODE(RetrievalOrder) {
+      decode(v.root, Get(j, "Root"));
+      decode(v.size, Get(j, "Size"));
+      decode(v.total, Get(j, "Total"));
+      decode(v.interval, Get(j, "PaymentInterval"));
+      decode(v.interval_inc, Get(j, "PaymentIntervalIncrease"));
+      decode(v.client, Get(j, "Client"));
+      decode(v.miner, Get(j, "Miner"));
+      decode(v.peer, Get(j, "MinerPeerID"));
+    }
+
+    ENCODE(Import) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Status", v.status);
+      Set(j, "Key", v.key);
+      Set(j, "FilePath", v.path);
+      Set(j, "Size", v.size);
+      return j;
+    }
+
     template <typename T>
     ENCODE(boost::optional<T>) {
       if (v) {
@@ -899,6 +997,9 @@ namespace fc::api {
 
     template <typename T>
     DECODE(std::vector<T>) {
+      if (j.IsNull()) {
+        return;
+      }
       if (!j.IsArray()) {
         outcome::raise(JsonError::WRONG_TYPE);
       }
@@ -947,6 +1048,9 @@ namespace fc::api {
         outcome::raise(JsonError::WRONG_TYPE);
       }
       if constexpr (i < sizeof...(T)) {
+        if (i >= j.Size()) {
+          outcome::raise(JsonError::OUT_OF_RANGE);
+        }
         decode(std::get<i>(v), j[i]);
         decode<i + 1>(v, j);
       }
@@ -954,7 +1058,7 @@ namespace fc::api {
 
     template <typename T>
     static T decode(const Value &j) {
-      T v;
+      T v{codec::cbor::kDefaultT<T>()};
       decode(v, j);
       return v;
     }

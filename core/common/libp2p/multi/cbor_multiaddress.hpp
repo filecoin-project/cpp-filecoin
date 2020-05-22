@@ -7,16 +7,18 @@
 #define CPP_FILECOIN_CORE_COMMON_LIBP2P_MULTI_CBOR_MULTIADDRESS_HPP
 
 #include <libp2p/multi/multiaddress.hpp>
+
 #include "codec/cbor/streams_annotation.hpp"
 
 using libp2p::multi::Multiaddress;
 
-/**
- * Default value of Multiaddress for CBOR stream decoder
- */
-template <>
-inline const Multiaddress fc::codec::cbor::kDefaultT<Multiaddress>{
-    Multiaddress::create("/ip4/0.0.0.1/udp/1").value()};
+namespace fc::codec::cbor {
+  /// Default value of Multiaddress for CBOR stream decoder
+  template <>
+  inline Multiaddress kDefaultT<Multiaddress>() {
+    return Multiaddress::create("/ip4/0.0.0.1/udp/1").value();
+  };
+}  // namespace fc::codec::cbor
 
 namespace libp2p::multi {
 
