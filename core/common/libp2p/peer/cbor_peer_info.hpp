@@ -14,9 +14,12 @@
 using libp2p::peer::PeerId;
 using libp2p::peer::PeerInfo;
 
-template <>
-inline const PeerInfo fc::codec::cbor::kDefaultT<PeerInfo>{
-    PeerInfo{.id = fc::codec::cbor::kDefaultT<PeerId>, .addresses = {}}};
+namespace fc::codec::cbor {
+  template <>
+  inline PeerInfo kDefaultT<PeerInfo>() {
+    return PeerInfo{.id = kDefaultT<PeerId>(), .addresses = {}};
+  }
+}  // namespace fc::codec::cbor
 
 namespace libp2p::peer {
 
