@@ -98,18 +98,25 @@ namespace fc::markets::storage::test {
   }
 
   /**
-   * @given provider and client, and client doesn't have enough funds
+   * @given provider and client don't have enough funds
    * @when client initiates deal and waits for funding
    * @then when funding completed, proposal sent and deal activated
    */
   TEST_F(StorageMarketTest, DISABLED_WaitFundingDeal) {
     // some unique valid CID of funding message
-    CID funding_cid = "010001020002"_cid;
+    CID client_funding_cid = "010001020002"_cid;
+    CID provider_funding_cid = "010001020003"_cid;
     node_api->MarketEnsureAvailable = {
-        [this, funding_cid](auto, auto, auto, auto) -> boost::optional<CID> {
-          this->logger->debug("Funding message sent "
-                              + funding_cid.toString().value());
-          return funding_cid;
+        [this, client_funding_cid, provider_funding_cid](
+            auto address, auto wallet, auto amount, auto &tipset_key)
+            -> boost::optional<CID> {
+          boost::optional<CID> result = boost::none;
+          if (address == client_id_address) result = client_funding_cid;
+          if (address == miner_actor_address) result = provider_funding_cid;
+          if (result)
+            this->logger->debug("Funding message sent "
+                                + result->toString().value());
+          return result;
         }};
 
     CID root_cid = "010001020001"_cid;
