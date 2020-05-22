@@ -111,6 +111,13 @@ namespace fc::markets::storage::client {
         const std::shared_ptr<ClientDeal> &deal);
 
     /**
+     * Verifies if deal was published correctly
+     * @param deal state with publish message cid set
+     * @return true if published or false otherwise
+     */
+    outcome::result<bool> verifyDealPublished(std::shared_ptr<ClientDeal> deal);
+
+    /**
      * Creates all FSM transitions
      * @return vector of transitions for fsm
      */
@@ -182,6 +189,8 @@ namespace fc::markets::storage::client {
 
     /**
      * @brief Handle deal accepted
+     * Validates that the provided deal has appeared on chain and references the
+     * same ClientDeal
      * @param deal  - current storage deal
      * @param event - ClientEventDealAccepted
      * @param from  - STORAGE_DEAL_VALIDATING

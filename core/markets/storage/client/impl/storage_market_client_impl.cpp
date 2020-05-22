@@ -50,6 +50,7 @@ namespace fc::markets::storage::client {
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::builtin::market::getProposalCid;
+  using vm::actor::builtin::market::PublishStorageDeals;
   using vm::message::kMessageVersion;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
@@ -352,6 +353,60 @@ namespace fc::markets::storage::client {
     return outcome::success();
   }
 
+  outcome::result<bool> StorageMarketClientImpl::verifyDealPublished(
+      std::shared_ptr<ClientDeal> deal) {
+    OUTCOME_TRY(msg_wait, api_->StateWaitMsg(deal->publish_message));
+    OUTCOME_TRY(msg_state, msg_wait.waitSync());
+    if (msg_state.receipt.exit_code != VMExitCode::Ok) {
+      deal->message =
+          "Publish deal exit code "
+          + std::to_string(static_cast<uint64_t>(msg_state.receipt.exit_code));
+      return false;
+    }
+
+    // check if published
+    OUTCOME_TRY(publish_message, api_->ChainGetMessage(deal->publish_message));
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(miner_info,
+                api_->StateMinerInfo(
+                    deal->client_deal_proposal.proposal.provider, tipset_key));
+    OUTCOME_TRY(from_id_address,
+                api_->StateLookupID(publish_message.from, tipset_key));
+    if (from_id_address != miner_info.worker) {
+      deal->message = "Publisher is not storage provider";
+      return false;
+    }
+    if (publish_message.to != kStorageMarketAddress) {
+      deal->message = "Receiver is not storage market actor";
+      return false;
+    }
+    if (publish_message.method != PublishStorageDeals::Number) {
+      deal->message = "Wrong method called";
+      return false;
+    }
+
+    // check publish contains proposal cid
+    OUTCOME_TRY(proposals,
+                codec::cbor::decode<std::vector<ClientDealProposal>>(
+                    publish_message.params));
+    auto it = std::find(
+        proposals.begin(), proposals.end(), deal->client_deal_proposal);
+    if (it == proposals.end()) {
+      OUTCOME_TRY(proposal_cid_str, deal->proposal_cid.toString());
+      deal->message = "deal publish didn't contain our deal (message cid: "
+                      + proposal_cid_str + ")";
+    }
+
+    // get proposal id from publish call return
+    int index = std::distance(proposals.begin(), it);
+    OUTCOME_TRY(publish_result,
+                codec::cbor::decode<PublishStorageDeals::Result>(
+                    msg_state.receipt.return_value));
+    deal->deal_id = publish_result.deals[index];
+    return true;
+  }
+
   std::vector<ClientTransition> StorageMarketClientImpl::makeFSMTransitions() {
     return {ClientTransition(ClientEvent::ClientEventOpen)
                 .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
@@ -480,6 +535,7 @@ namespace fc::markets::storage::client {
         SELF_FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
         return;
       }
+      deal->publish_message = response.value().response.publish_message;
       self->network_->closeStreamGracefully(stream);
       SELF_FSM_SEND(deal, ClientEvent::ClientEventDealAccepted);
     });
@@ -499,8 +555,13 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // todo validate deal published
-    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealPublished));
+    auto verified = verifyDealPublished(deal);
+    FSM_HALT_ON_ERROR(verified, "Cannot get publish message", deal);
+    if (!verified.value()) {
+      FSM_SEND(deal, ClientEvent::ClientEventFailed);
+      return;
+    }
+    FSM_SEND(deal, ClientEvent::ClientEventDealPublished);
   }
 
   void StorageMarketClientImpl::onClientEventDealPublished(
