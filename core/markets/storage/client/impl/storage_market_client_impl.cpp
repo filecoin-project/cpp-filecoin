@@ -455,8 +455,8 @@ namespace fc::markets::storage::client {
         return;
       }
       if (response.value().response.state
-          != StorageDealStatus::STORAGE_DEAL_PROPOSAL_ACCEPTED) {
-        // TODO handle reject reason
+          != StorageDealStatus::STORAGE_DEAL_PUBLISHING) {
+        deal->message = response.value().response.message;
         SELF_FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
         return;
       }

@@ -117,7 +117,7 @@ namespace fc::markets::storage::provider {
      * Send signed response to storage deal proposal and close connection
      * @param deal - state of deal
      */
-    void sendSignedResponse(std::shared_ptr<MinerDeal> deal);
+    outcome::result<void> sendSignedResponse(std::shared_ptr<MinerDeal> deal);
 
     /**
      * Locate piece for deal

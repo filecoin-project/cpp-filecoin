@@ -43,11 +43,10 @@ namespace fc::markets::storage::test {
     EXPECT_EQ(provider_deal_state.state,
               StorageDealStatus::STORAGE_DEAL_COMPLETED);
 
-    // TODO wait for STORAGE_DEAL_COMPLETED - signature not implemented yet
     waitForClientDealStatus(proposal_cid,
-                            StorageDealStatus::STORAGE_DEAL_ERROR);
+                            StorageDealStatus::STORAGE_DEAL_ACTIVE);
     EXPECT_OUTCOME_TRUE(client_deal_state, client->getLocalDeal(proposal_cid));
-    EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ERROR);
+    EXPECT_EQ(client_deal_state.state, StorageDealStatus::STORAGE_DEAL_ACTIVE);
   }
 
   /**
