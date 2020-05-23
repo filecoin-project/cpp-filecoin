@@ -293,11 +293,12 @@ namespace fc::markets::storage::provider {
     // but it's a decent first filter
     OUTCOME_TRY(client_balance,
                 api_->StateMarketBalance(proposal.client, tipset_key));
-    if (client_balance.available < proposal.getTotalStorageFee()) {
+    TokenAmount available = client_balance.escrow - client_balance.locked;
+    if (available < proposal.getTotalStorageFee()) {
       std::stringstream ss;
       ss << "Deal proposal verification failed, client market available "
             "balance too small: "
-         << client_balance.available << " < " << proposal.getTotalStorageFee();
+         << available << " < " << proposal.getTotalStorageFee();
       deal->message = ss.str();
       return false;
     }

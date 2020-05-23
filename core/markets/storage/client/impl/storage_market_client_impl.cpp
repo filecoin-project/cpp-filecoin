@@ -244,7 +244,9 @@ namespace fc::markets::storage::client {
   StorageMarketClientImpl::getPaymentEscrow(const Address &address) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    return api_->StateMarketBalance(address, tipset_key);
+    OUTCOME_TRY(balance, api_->StateMarketBalance(address, tipset_key));
+    return StorageParticipantBalance{balance.locked,
+                                     balance.escrow - balance.locked};
   }
 
   outcome::result<void> StorageMarketClientImpl::addPaymentEscrow(

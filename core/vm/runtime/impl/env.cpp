@@ -141,11 +141,11 @@ namespace fc::vm::runtime {
 
   outcome::result<Actor> Execution::tryCreateAccountActor(
       const Address &address) {
-    OUTCOME_TRY(id, state_tree->registerNewAddress(address));
-    OUTCOME_TRY(chargeGas(kCreateActorGasCost));
     if (!address.isKeyType()) {
       return VMExitCode{1};
     }
+    OUTCOME_TRY(id, state_tree->registerNewAddress(address));
+    OUTCOME_TRY(chargeGas(kCreateActorGasCost));
     OUTCOME_TRY(state_tree->set(id,
                                 {actor::kAccountCodeCid,
                                  ActorSubstateCID{actor::kEmptyObjectCid},
@@ -210,8 +210,12 @@ namespace fc::vm::runtime {
     }
 
     if (message.method != kSendMethodNumber) {
-      return env->invoker->invoke(
+      auto result = env->invoker->invoke(
           to_actor, runtime, message.method, message.params);
+      OUTCOME_TRYA(to_actor, state_tree->get(message.to));
+      to_actor.head = runtime.getCurrentActorState();
+      OUTCOME_TRY(state_tree->set(message.to, to_actor));
+      return result;
     }
 
     return outcome::success();

@@ -30,20 +30,20 @@ namespace fc::common::libp2p {
       return cb(gsl::make_span(buffer_).subspan(0, size_));
     }
     buffer_.resize(size_ + kReserveBytes);
-    auto input = gsl::make_span(buffer_).subspan(size_, kReserveBytes);
     stream_->readSome(
-        input,
-        input.size(),
-        [cb{std::move(cb)}, self{shared_from_this()}, input](auto count) {
+        gsl::make_span(buffer_).subspan(size_),
+        kReserveBytes,
+        [cb{std::move(cb)}, self{shared_from_this()}](auto count) {
           if (!count) {
             return cb(count.error());
           }
-          self->consume(input, std::move(cb));
+          self->buffer_.resize(self->size_ + count.value());
+          self->consume(gsl::make_span(self->buffer_).subspan(self->size_),
+                        std::move(cb));
         });
   }
 
-  void CborStream::consume(gsl::span<uint8_t> input,
-                           const ReadCallbackFunc &cb) {
+  void CborStream::consume(gsl::span<uint8_t> input, ReadCallbackFunc cb) {
     auto consumed = buffering_.consume(input);
     if (!consumed) {
       return cb(consumed.error());

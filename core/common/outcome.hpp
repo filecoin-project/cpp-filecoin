@@ -22,16 +22,15 @@
  * OUTCOME_EXCEPT(expr);
  * OUTCOME_EXCEPT(var, expr); // var = expr
  */
-#define _OUTCOME_EXCEPT_2(var, val, expr)      \
-  auto &&var = expr;                           \
-  if (!var) ::fc::outcome::raise(var.error()); \
-  auto &&val = var.value();
 #define _OUTCOME_EXCEPT_1(var, expr) \
-  if (expr.has_error()) ::fc::outcome::raise(expr.error());
+  auto &&var = expr;                 \
+  if (!var) ::fc::outcome::raise(var.error());
+#define _OUTCOME_EXCEPT_2(var, val, expr) \
+  _OUTCOME_EXCEPT_1(var, expr)            \
+  auto &&val = var.value();
 #define _OUTCOME_EXCEPT_OVERLOAD(_1, _2, NAME, ...) NAME
-#define OUTCOME_EXCEPT(...)                                           \
-  _OUTCOME_EXCEPT_OVERLOAD(                                           \
-      __VA_ARGS__, _OUTCOME_EXCEPT_2, _OUTCOME_EXCEPT_1) \
+#define OUTCOME_EXCEPT(...)                                                   \
+  _OUTCOME_EXCEPT_OVERLOAD(__VA_ARGS__, _OUTCOME_EXCEPT_2, _OUTCOME_EXCEPT_1) \
   (UNIQUE_NAME(_r), __VA_ARGS__)
 
 #define _OUTCOME_TRYA(var, val, expr) \

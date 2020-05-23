@@ -57,7 +57,7 @@ namespace fc::common::libp2p {
 
    private:
     void readMore(ReadCallbackFunc cb);
-    void consume(gsl::span<uint8_t> input, const ReadCallbackFunc &cb);
+    void consume(gsl::span<uint8_t> input, ReadCallbackFunc cb);
 
     std::shared_ptr<Stream> stream_;
     CborBuffering buffering_;

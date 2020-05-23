@@ -84,6 +84,13 @@ namespace fc::api {
     setup(rpc, api.ChainReadObj);
     setup(rpc, api.ChainSetHead);
     setup(rpc, api.ChainTipSetWeight);
+    setup(rpc, api.ClientFindData);
+    setup(rpc, api.ClientHasLocal);
+    setup(rpc, api.ClientImport);
+    setup(rpc, api.ClientListImports);
+    setup(rpc, api.ClientQueryAsk);
+    setup(rpc, api.ClientRetrieve);
+    setup(rpc, api.ClientStartDeal);
     setup(rpc, api.MarketEnsureAvailable);
     setup(rpc, api.MinerCreateBlock);
     setup(rpc, api.MinerGetBaseInfo);
@@ -97,6 +104,7 @@ namespace fc::api {
     setup(rpc, api.StateListMessages);
     setup(rpc, api.StateGetActor);
     setup(rpc, api.StateReadState);
+    setup(rpc, api.StateGetReceipt);
     setup(rpc, api.StateListMiners);
     setup(rpc, api.StateListActors);
     setup(rpc, api.StateMarketBalance);
@@ -115,6 +123,7 @@ namespace fc::api {
     setup(rpc, api.StateWaitMsg);
     setup(rpc, api.SyncSubmitBlock);
     setup(rpc, api.Version);
+    setup(rpc, api.WalletBalance);
     setup(rpc, api.WalletDefaultAddress);
     setup(rpc, api.WalletHas);
     setup(rpc, api.WalletSign);

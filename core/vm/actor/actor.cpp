@@ -56,7 +56,7 @@ namespace fc::vm::actor {
   const CodeId kStoragePowerCodeCid =
       CodeId(makeRawIdentityCid("fil/1/storagepower"));
   const CodeId kStorageMarketCodeCid =
-      CodeId(makeRawIdentityCid("fil/1/market"));
+      CodeId(makeRawIdentityCid("fil/1/storagemarket"));
   const CodeId kStorageMinerCodeCid =
       CodeId(makeRawIdentityCid("fil/1/storageminer"));
   const CodeId kMultisigCodeCid = CodeId(makeRawIdentityCid("fil/1/multisig"));
