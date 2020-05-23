@@ -43,8 +43,7 @@ namespace fc::common::libp2p {
         });
   }
 
-  void CborStream::consume(gsl::span<uint8_t> input,
-                           const ReadCallbackFunc &cb) {
+  void CborStream::consume(gsl::span<uint8_t> input, ReadCallbackFunc cb) {
     auto consumed = buffering_.consume(input);
     if (!consumed) {
       return cb(consumed.error());
