@@ -12,6 +12,7 @@
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
+#include "markets/storage/common.hpp"
 
 #define CALLBACK_ACTION(_action)                                          \
   [self{shared_from_this()}](auto deal, auto event, auto from, auto to) { \
@@ -19,12 +20,6 @@
     self->_action(deal, event, from, to);                                 \
     deal->state = to;                                                     \
   }
-
-#define FSM_SEND(client_deal, event) \
-  OUTCOME_EXCEPT(fsm_->send(client_deal, event))
-
-#define SELF_FSM_SEND(client_deal, event) \
-  OUTCOME_EXCEPT(self->fsm_->send(client_deal, event))
 
 #define FSM_HALT_ON_ERROR(result, msg, deal)                            \
   if (result.has_error()) {                                             \

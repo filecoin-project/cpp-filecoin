@@ -13,6 +13,7 @@
 #include "markets/storage/provider/stored_ask.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
+#include "markets/storage/common.hpp"
 
 #define CALLBACK_ACTION(_action)                                          \
   [self{shared_from_this()}](auto deal, auto event, auto from, auto to) { \
@@ -20,10 +21,6 @@
     self->_action(deal, event, from, to);                                 \
     deal->state = to;                                                     \
   }
-
-#define FSM_SEND(deal, event) OUTCOME_EXCEPT(fsm_->send(deal, event))
-
-#define SELF_FSM_SEND(deal, event) OUTCOME_EXCEPT(self->fsm_->send(deal, event))
 
 #define FSM_HALT_ON_ERROR(result, msg, deal)                            \
   if (result.has_error()) {                                             \
@@ -517,7 +514,7 @@ namespace fc::markets::storage::provider {
           if (result.value().receipt.exit_code != VMExitCode::Ok) {
             deal->message = "Funding exit code "
                             + std::to_string(static_cast<uint64_t>(
-                                                 result.value().receipt.exit_code));
+                                result.value().receipt.exit_code));
             SELF_FSM_SEND(deal, ProviderEvent::ProviderEventFailed);
             return;
           }
