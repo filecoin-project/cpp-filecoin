@@ -53,6 +53,14 @@ namespace fc::sector_storage::stores {
 
   outcome::result<void> SectorIndexImpl::storageReportHealth(
       const ID &storage_id, const HealthReport &report) {
+    std::unique_lock lock(mutex_);
+    auto storage_iter = stores_.find(storage_id);
+    if (storage_iter == stores_.end()) return IndexErrors::StorageNotFound;
+
+    storage_iter->second.fs_stat = report.stat;
+    storage_iter->second.error = report.error;
+    storage_iter->second.last_heartbreak = system_clock::now();
+
     return outcome::success();
   }
 
