@@ -275,7 +275,6 @@ namespace fc::markets::storage::client {
       return true;
     };
 
-    std::mutex mutex_;
     /** libp2p host */
     std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
@@ -287,6 +286,7 @@ namespace fc::markets::storage::client {
     std::shared_ptr<Discovery> discovery_;
 
     // connection manager
+    std::mutex connections_mutex_;
     std::map<CID, std::shared_ptr<CborStream>> connections_;
 
     /** State machine */

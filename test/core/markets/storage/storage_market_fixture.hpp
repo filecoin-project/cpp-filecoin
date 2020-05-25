@@ -75,7 +75,7 @@ namespace fc::markets::storage::test {
 
   class StorageMarketTest : public ::testing::Test {
    public:
-    static const int kNumberOfWaitCycles = 30;  // 3 sec
+    static const int kNumberOfWaitCycles = 50;  // 5 sec
 
     static void SetUpTestCase() {
       std::string address_string =

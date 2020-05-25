@@ -157,7 +157,6 @@ namespace fc::markets::storage::client {
                                     "Cannot send request",
                                     stream,
                                     signed_ask_handler)) {
-                  signed_ask_handler(outcome::failure(written.error()));
                   return;
                 }
                 stream->template read<AskResponse>(
@@ -228,7 +227,7 @@ namespace fc::markets::storage::client {
               "DealStream opened to "
               + peerInfoToPrettyString(provider_info.peer_info));
 
-          std::lock_guard<std::mutex> lock(self->mutex_);
+          std::lock_guard<std::mutex> lock(self->connections_mutex_);
           self->connections_.emplace(proposal_cid, stream.value());
           SELF_FSM_SEND(client_deal, ClientEvent::ClientEventOpen);
         });
@@ -409,7 +408,7 @@ namespace fc::markets::storage::client {
 
   outcome::result<std::shared_ptr<CborStream>>
   StorageMarketClientImpl::getStream(const CID &proposal_cid) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(connections_mutex_);
     auto stream_it = connections_.find(proposal_cid);
     if (stream_it == connections_.end()) {
       return StorageMarketClientError::STREAM_LOOKUP_ERROR;
@@ -418,7 +417,7 @@ namespace fc::markets::storage::client {
   }
 
   void StorageMarketClientImpl::finalizeDeal(std::shared_ptr<ClientDeal> deal) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    std::lock_guard<std::mutex> lock(connections_mutex_);
     auto stream_it = connections_.find(deal->proposal_cid);
     if (stream_it != connections_.end()) {
       network_->closeStreamGracefully(stream_it->second);

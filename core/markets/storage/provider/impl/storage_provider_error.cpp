@@ -12,6 +12,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider,
   switch (e) {
     case E::PROVIDER_START_ERROR:
       return "StorageProviderError: cannot start provider";
+    case E::STREAM_LOOKUP_ERROR:
+      return "StorageProviderError: stream lookup error";
     default:
       return "StorageProviderError: unknown error";
   }

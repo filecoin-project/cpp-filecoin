@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_MARKETS_STORAGE_PROVIDER_PROVIDER_HPP
 
 #include <libp2p/host/host.hpp>
+#include <mutex>
 #include "api/miner_api.hpp"
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
@@ -65,11 +66,6 @@ namespace fc::markets::storage::provider {
 
     auto listAsks(const Address &address)
         -> outcome::result<std::vector<SignedStorageAsk>> override;
-
-    auto listDeals() -> outcome::result<std::vector<StorageDeal>> override;
-
-    auto listIncompleteDeals()
-        -> outcome::result<std::vector<MinerDeal>> override;
 
     auto getDeal(const CID &proposal_cid) const
         -> outcome::result<MinerDeal> override;
@@ -135,6 +131,20 @@ namespace fc::markets::storage::provider {
      */
     outcome::result<void> recordPieceInfo(std::shared_ptr<MinerDeal> deal,
                                           const PieceInfo &piece_info);
+
+    /**
+     * Look up stream by proposal cid
+     * @param proposal_cid - key to find stream
+     * @return stream associated with proposal
+     */
+    outcome::result<std::shared_ptr<CborStream>> getStream(
+        const CID &proposal_cid);
+
+    /**
+     * Finalize deal, close connection, clean up
+     * @param deal - deal to clean up
+     */
+    void finalizeDeal(std::shared_ptr<MinerDeal> deal);
 
     /**
      * Creates all FSM transitions
@@ -333,6 +343,8 @@ namespace fc::markets::storage::provider {
 
     RegisteredProof registered_proof_;
 
+    // coonnection manager
+    std::mutex connections_mutex_;
     std::map<CID, std::shared_ptr<CborStream>> connections_;
 
     /** State machine */
