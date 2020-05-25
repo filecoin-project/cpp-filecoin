@@ -327,7 +327,6 @@ namespace fc::fsm {
 
     /// Prevent further events processing
     void stop() {
-      std::unique_lock lock(event_queue_mutex_);
       running_ = false;
       scheduler_handle_.cancel();
     }
@@ -381,21 +380,22 @@ namespace fc::fsm {
         event_queue_.pop();
       }
 
-      typename std::unordered_map<EntityPtr, StateEnumType>::const_iterator
-          current_state;
+      StateEnumType source_state;
       {
         std::shared_lock lock(states_mutex_);
-        current_state = states_.find(event_pair.first);
+        auto current_state = states_.find(event_pair.first);
         if (states_.end() == current_state) {
           return;  // entity is not tracked
         }
+        // copy to prevent invalidation of iterator
+        source_state = current_state->second;
       }
       auto event_handler = transitions_.find(event_pair.second);
       if (transitions_.end() == event_handler) {
         return;  // transition from the state by the event is not set
       }
-      auto resulting_state = event_handler->second.dispatch(
-          current_state->second, event_pair.first);
+      auto resulting_state =
+          event_handler->second.dispatch(source_state, event_pair.first);
       if (resulting_state) {
         {
           std::unique_lock lock(states_mutex_);
@@ -404,7 +404,7 @@ namespace fc::fsm {
         if (any_change_cb_) {
           any_change_cb_.get()(event_pair.first,        // pointer to entity
                                event_pair.second,       // trigger event
-                               current_state->second,   // source state
+                               source_state,            // source state
                                resulting_state.get());  // destination state
         }
       }
