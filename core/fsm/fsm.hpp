@@ -10,6 +10,7 @@
 #include <mutex>
 #include <queue>
 #include <set>
+#include <shared_mutex>
 #include <string>
 #include <unordered_map>
 #include <utility>
@@ -272,21 +273,22 @@ namespace fc::fsm {
      */
     outcome::result<void> begin(const EntityPtr &entity_ptr,
                                 StateEnumType initial_state) {
+      std::unique_lock lock(states_mutex_);
       auto lookup = states_.find(entity_ptr);
       if (states_.end() != lookup) {
         return FsmError::ENTITY_ALREADY_BEING_TRACKED;
       }
-      states_[entity_ptr] = initial_state;
+      states_.emplace(entity_ptr, initial_state);
       return outcome::success();
     }
 
     // schedule an event for an object
     outcome::result<void> send(const EntityPtr &entity_ptr,
                                EventEnumType event) {
-      std::lock_guard<std::mutex> lock(mutex_);
       if (not running_) {
         return FsmError::MACHINE_STOPPED;
       }
+      std::lock_guard lock(event_queue_mutex_);
       event_queue_.emplace(entity_ptr, event);
       return outcome::success();
     }
@@ -305,7 +307,7 @@ namespace fc::fsm {
      * @return entity state
      */
     outcome::result<StateEnumType> get(const EntityPtr &entity_pointer) const {
-      std::lock_guard<std::mutex> lock(mutex_);
+      std::shared_lock lock(states_mutex_);
       auto lookup = states_.find(entity_pointer);
       if (states_.end() == lookup) {
         return FsmError::ENTITY_NOT_TRACKED;
@@ -319,13 +321,13 @@ namespace fc::fsm {
      * state
      */
     std::unordered_map<EntityPtr, StateEnumType> list() const {
-      std::lock_guard<std::mutex> lock(mutex_);
+      std::shared_lock lock(states_mutex_);
       return states_;
     }
 
     /// Prevent further events processing
     void stop() {
-      std::lock_guard<std::mutex> lock(mutex_);
+      std::unique_lock lock(event_queue_mutex_);
       running_ = false;
       scheduler_handle_.cancel();
     }
@@ -365,20 +367,28 @@ namespace fc::fsm {
     /// async events processor routine
     void onTimer() {
       EventQueueItem event_pair;
-      std::lock_guard<std::mutex> lock(mutex_);
       if (not running_) {
         return;
       }
-      if (event_queue_.empty()) {
-        scheduler_handle_.reschedule(kSlowModeDelayMs);
-        return;
+      {
+        std::lock_guard lock(event_queue_mutex_);
+        if (event_queue_.empty()) {
+          scheduler_handle_.reschedule(kSlowModeDelayMs);
+          return;
+        }
+        scheduler_handle_.reschedule(0);
+        event_pair = event_queue_.front();
+        event_queue_.pop();
       }
-      scheduler_handle_.reschedule(0);
-      event_pair = event_queue_.front();
-      event_queue_.pop();
-      auto current_state = states_.find(event_pair.first);
-      if (states_.end() == current_state) {
-        return;  // entity is not tracked
+
+      typename std::unordered_map<EntityPtr, StateEnumType>::const_iterator
+          current_state;
+      {
+        std::shared_lock lock(states_mutex_);
+        current_state = states_.find(event_pair.first);
+        if (states_.end() == current_state) {
+          return;  // entity is not tracked
+        }
       }
       auto event_handler = transitions_.find(event_pair.second);
       if (transitions_.end() == event_handler) {
@@ -387,7 +397,10 @@ namespace fc::fsm {
       auto resulting_state = event_handler->second.dispatch(
           current_state->second, event_pair.first);
       if (resulting_state) {
-        states_[event_pair.first] = resulting_state.get();
+        {
+          std::unique_lock lock(states_mutex_);
+          states_[event_pair.first] = resulting_state.get();
+        }
         if (any_change_cb_) {
           any_change_cb_.get()(event_pair.first,        // pointer to entity
                                event_pair.second,       // trigger event
@@ -400,7 +413,7 @@ namespace fc::fsm {
     bool running_;            ///< FSM is enabled to process events
     Scheduler::Ticks delay_;  ///< minimum async loop delay
 
-    mutable std::mutex mutex_;
+    std::mutex event_queue_mutex_;
     std::queue<EventQueueItem> event_queue_;
     std::shared_ptr<Scheduler> scheduler_;
     Scheduler::Handle scheduler_handle_;
@@ -410,6 +423,7 @@ namespace fc::fsm {
     std::unordered_map<EventEnumType, TransitionRule> transitions_;
 
     /// a list of entities' current states
+    mutable std::shared_mutex states_mutex_;
     std::unordered_map<EntityPtr, StateEnumType> states_;
 
     /// optional callback for any transition
