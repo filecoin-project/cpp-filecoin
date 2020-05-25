@@ -304,7 +304,8 @@ namespace fc::fsm {
      * @param entity_pointer - a shared pointer to the entity
      * @return entity state
      */
-    outcome::result<StateEnumType> get(const EntityPtr &entity_pointer) {
+    outcome::result<StateEnumType> get(const EntityPtr &entity_pointer) const {
+      std::lock_guard<std::mutex> lock(mutex_);
       auto lookup = states_.find(entity_pointer);
       if (states_.end() == lookup) {
         return FsmError::ENTITY_NOT_TRACKED;
@@ -318,6 +319,7 @@ namespace fc::fsm {
      * state
      */
     std::unordered_map<EntityPtr, StateEnumType> list() const {
+      std::lock_guard<std::mutex> lock(mutex_);
       return states_;
     }
 
@@ -363,19 +365,17 @@ namespace fc::fsm {
     /// async events processor routine
     void onTimer() {
       EventQueueItem event_pair;
-      {
-        std::lock_guard<std::mutex> lock(mutex_);
-        if (not running_) {
-          return;
-        }
-        if (event_queue_.empty()) {
-          scheduler_handle_.reschedule(kSlowModeDelayMs);
-          return;
-        }
-        scheduler_handle_.reschedule(0);
-        event_pair = event_queue_.front();
-        event_queue_.pop();
+      std::lock_guard<std::mutex> lock(mutex_);
+      if (not running_) {
+        return;
       }
+      if (event_queue_.empty()) {
+        scheduler_handle_.reschedule(kSlowModeDelayMs);
+        return;
+      }
+      scheduler_handle_.reschedule(0);
+      event_pair = event_queue_.front();
+      event_queue_.pop();
       auto current_state = states_.find(event_pair.first);
       if (states_.end() == current_state) {
         return;  // entity is not tracked
@@ -400,7 +400,7 @@ namespace fc::fsm {
     bool running_;            ///< FSM is enabled to process events
     Scheduler::Ticks delay_;  ///< minimum async loop delay
 
-    std::mutex mutex_;
+    mutable std::mutex mutex_;
     std::queue<EventQueueItem> event_queue_;
     std::shared_ptr<Scheduler> scheduler_;
     Scheduler::Handle scheduler_handle_;
