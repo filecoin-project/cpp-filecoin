@@ -11,6 +11,3 @@ target_link_libraries(car_test
     ipfs_datastore_in_memory
     unixfs
     )
-target_include_directories(car_test PUBLIC
-    "${TEST_RESOURCES_PATH}"
-    )
