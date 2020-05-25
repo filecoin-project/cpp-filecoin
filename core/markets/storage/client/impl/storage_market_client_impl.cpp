@@ -154,24 +154,26 @@ namespace fc::markets::storage::client {
           }
           auto stream = std::move(stream_res.value());
           AskRequest request{.miner = info.address};
-          stream->write(request,
-                        [self, info, stream, signed_ask_handler](
-                            outcome::result<size_t> written) {
-                          if (!self->hasValue(written,
-                                              "Cannot send request",
-                                              stream,
-                                              signed_ask_handler)) {
-                            return;
-                          }
-                          stream->template read<AskResponse>(
-                              [self, info, stream, signed_ask_handler](
-                                  outcome::result<AskResponse> response) {
-                                auto validated_ask_response =
-                                    self->validateAskResponse(response, info);
-                                signed_ask_handler(validated_ask_response);
-                                self->network_->closeStreamGracefully(stream);
-                              });
-                        });
+          stream->write(
+              request,
+              [self, info, stream, signed_ask_handler](
+                  outcome::result<size_t> written) {
+                if (!self->hasValue(written,
+                                    "Cannot send request",
+                                    stream,
+                                    signed_ask_handler)) {
+                  signed_ask_handler(outcome::failure(written.error()));
+                  return;
+                }
+                stream->template read<AskResponse>(
+                    [self, info, stream, signed_ask_handler](
+                        outcome::result<AskResponse> response) {
+                      auto validated_ask_response =
+                          self->validateAskResponse(response, info);
+                      signed_ask_handler(validated_ask_response);
+                      self->network_->closeStreamGracefully(stream);
+                    });
+              });
         });
   }
 
@@ -231,7 +233,8 @@ namespace fc::markets::storage::client {
               "DealStream opened to "
               + peerInfoToPrettyString(provider_info.peer_info));
 
-          self->connections_[proposal_cid] = stream.value();
+          std::lock_guard<std::mutex> lock(self->mutex_);
+          self->connections_.emplace(proposal_cid, stream.value());
           SELF_FSM_SEND(client_deal, ClientEvent::ClientEventOpen);
         });
 
@@ -409,6 +412,25 @@ namespace fc::markets::storage::client {
     return true;
   }
 
+  outcome::result<std::shared_ptr<CborStream>>
+  StorageMarketClientImpl::getStream(const CID &proposal_cid) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto stream_it = connections_.find(proposal_cid);
+    if (stream_it == connections_.end()) {
+      return StorageMarketClientError::STREAM_LOOKUP_ERROR;
+    }
+    return stream_it->second;
+  }
+
+  void StorageMarketClientImpl::finalizeDeal(std::shared_ptr<ClientDeal> deal) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto stream_it = connections_.find(deal->proposal_cid);
+    if (stream_it != connections_.end()) {
+      network_->closeStreamGracefully(stream_it->second);
+    }
+    connections_.erase(stream_it);
+  }
+
   std::vector<ClientTransition> StorageMarketClientImpl::makeFSMTransitions() {
     return {ClientTransition(ClientEvent::ClientEventOpen)
                 .from(StorageDealStatus::STORAGE_DEAL_UNKNOWN)
@@ -497,19 +519,18 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO handle if stream is absent
-    auto stream = connections_[deal->proposal_cid];
+    auto stream = getStream(deal->proposal_cid);
+    FSM_HALT_ON_ERROR(stream, "Stream not found.", deal);
 
     Proposal proposal{.deal_proposal = deal->client_deal_proposal,
                       .piece = deal->data_ref};
-    stream->write(proposal,
-                  [self{shared_from_this()}, deal, stream](
-                      outcome::result<size_t> written) {
-                    SELF_FSM_HALT_ON_ERROR(
-                        written, "Send proposal error", deal);
-                    self->network_->closeStreamGracefully(stream);
-                    SELF_FSM_SEND(deal, ClientEvent::ClientEventDealProposed);
-                  });
+    stream.value()->write(
+        proposal,
+        [self{shared_from_this()}, deal, stream](
+            outcome::result<size_t> written) {
+          SELF_FSM_HALT_ON_ERROR(written, "Send proposal error", deal);
+          SELF_FSM_SEND(deal, ClientEvent::ClientEventDealProposed);
+        });
   }
 
   void StorageMarketClientImpl::onClientEventDealProposed(
@@ -517,8 +538,9 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // TODO handle if stream is absent
-    auto stream = connections_[deal->proposal_cid];
+    auto stream_res = getStream(deal->proposal_cid);
+    FSM_HALT_ON_ERROR(stream_res, "Stream not found.", deal);
+    auto stream = std::move(stream_res.value());
     stream->read<SignedResponse>([self{shared_from_this()}, deal, stream](
                                      outcome::result<SignedResponse> response) {
       SELF_FSM_HALT_ON_ERROR(response, "Read response error", deal);
@@ -571,7 +593,7 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // verify deal activated - on deal sector commit
+    // TODO (a.chernyshov) verify deal activated - on deal sector commit
     OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealActivated));
   }
 
@@ -580,8 +602,8 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    // final state
-    // todo cleanup
+    // final success state
+    finalizeDeal(deal);
   }
 
   void StorageMarketClientImpl::onClientEventFailed(
@@ -589,12 +611,14 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
+    // final error state
     std::stringstream ss;
     ss << "Proposal ";
     auto maybe_prpoposal_cid = deal->proposal_cid.toString();
     if (maybe_prpoposal_cid) ss << maybe_prpoposal_cid.value() << " ";
     ss << "failed. " << deal->message;
     logger_->error(ss.str());
+    finalizeDeal(deal);
   }
 
 }  // namespace fc::markets::storage::client
@@ -618,6 +642,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::client,
       return "StorageMarketClientError: add funds method call returned error";
     case StorageMarketClientError::LOCAL_DEAL_NOT_FOUND:
       return "StorageMarketClientError: local deal not found";
+    case StorageMarketClientError::STREAM_LOOKUP_ERROR:
+      return "StorageMarketClientError: stream look up error";
   }
 
   return "StorageMarketClientError: unknown error";

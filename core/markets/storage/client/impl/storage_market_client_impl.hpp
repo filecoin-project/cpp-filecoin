@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE_CLIENT_IMPL_HPP
 
 #include <libp2p/host/host.hpp>
+#include <mutex>
 #include "api/api.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/manager.hpp"
@@ -116,6 +117,20 @@ namespace fc::markets::storage::client {
      * @return true if published or false otherwise
      */
     outcome::result<bool> verifyDealPublished(std::shared_ptr<ClientDeal> deal);
+
+    /**
+     * Look up stream by proposal cid
+     * @param proposal_cid - key to find stream
+     * @return stream associated with proposal
+     */
+    outcome::result<std::shared_ptr<CborStream>> getStream(
+        const CID &proposal_cid);
+
+    /**
+     * Finalize deal, close connection, clean up
+     * @param deal - deal to clean up
+     */
+    void finalizeDeal(std::shared_ptr<ClientDeal> deal);
 
     /**
      * Creates all FSM transitions
@@ -260,6 +275,7 @@ namespace fc::markets::storage::client {
       return true;
     };
 
+    std::mutex mutex_;
     /** libp2p host */
     std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
@@ -288,7 +304,8 @@ namespace fc::markets::storage::client {
     PIECE_DATA_NOT_SET_MANUAL_TRANSFER,
     PIECE_SIZE_GREATER_SECTOR_SIZE,
     ADD_FUNDS_CALL_ERROR,
-    LOCAL_DEAL_NOT_FOUND
+    LOCAL_DEAL_NOT_FOUND,
+    STREAM_LOOKUP_ERROR
   };
 
 }  // namespace fc::markets::storage::client
