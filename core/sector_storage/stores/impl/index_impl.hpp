@@ -56,6 +56,7 @@ namespace fc::sector_storage::stores {
    private:
     mutable std::shared_mutex mutex_;
     std::unordered_map<ID, StorageEntry> stores_;
+    std::unordered_map<std::string, std::vector<ID>> sectors_;
   };
 }  // namespace fc::sector_storage::stores
 

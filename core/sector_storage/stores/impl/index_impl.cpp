@@ -11,6 +11,12 @@ namespace fc::sector_storage::stores {
   using fc::primitives::TokenAmount;
   using std::chrono::system_clock;
 
+  std::string toSectorsID(const SectorId &sector_id,
+                          const SectorFileType &file_type) {
+    return primitives::sector_file::sectorName(sector_id) + "_"
+           + toString(file_type);
+  }
+
   outcome::result<void> SectorIndexImpl::storageAttach(
       const StorageInfo &storage_info, const FsStat &stat) {
     std::unique_lock lock(mutex_);
@@ -67,7 +73,31 @@ namespace fc::sector_storage::stores {
   outcome::result<void> SectorIndexImpl::storageDeclareSector(
       const ID &storage_id,
       const SectorId &sector,
-      const fc::primitives::sector_file::SectorFileType &file_type) {
+      const SectorFileType &file_type) {
+    std::unique_lock lock(mutex_);
+
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      if ((file_type & type) == 0) {
+        continue;
+      }
+
+      std::string sector_id = toSectorsID(sector, type);
+
+      auto sector_iter = sectors_.find(sector_id);
+      if (sector_iter == sectors_.end()) {
+        sectors_[sector_id] = {};
+        sector_iter = sectors_.find(sector_id);
+      }
+      for (const auto &s_id : sector_iter->second) {
+        if (storage_id == s_id) {
+          // already there
+          return outcome::success();
+        }
+      }
+
+      sector_iter->second.push_back(storage_id);
+    }
+
     return outcome::success();
   }
 
@@ -75,6 +105,34 @@ namespace fc::sector_storage::stores {
       const ID &storage_id,
       const SectorId &sector,
       const fc::primitives::sector_file::SectorFileType &file_type) {
+    std::unique_lock lock(mutex_);
+
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      if ((file_type & type) == 0) {
+        continue;
+      }
+
+      std::string sector_id = toSectorsID(sector, type);
+
+      auto sector_iter = sectors_.find(sector_id);
+      if (sector_iter == sectors_.end()) {
+        return outcome::success();
+      }
+      std::vector<ID> sectors;
+      for (const auto &s_id : sector_iter->second) {
+        if (storage_id == s_id) {
+          continue;
+        }
+        sectors.push_back(s_id);
+      }
+      if (sectors.size() == 0) {
+        sectors_.erase(sector_iter);
+        return outcome::success();
+      }
+
+      sector_iter->second = sectors;
+    }
+
     return outcome::success();
   }
 
@@ -82,7 +140,60 @@ namespace fc::sector_storage::stores {
       const SectorId &sector,
       const fc::primitives::sector_file::SectorFileType &file_type,
       bool allow_fetch) {
-    return outcome::success();
+    std::shared_lock lock(mutex_);
+    std::unordered_map<ID, uint64_t> storage_ids;
+
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      if ((file_type & type) == 0) {
+        continue;
+      }
+
+      std::string sector_id = toSectorsID(sector, type);
+      auto sector_iter = sectors_.find(sector_id);
+      if (sector_iter == sectors_.end()) {
+        continue;
+      }
+      for (const auto &id : sector_iter->second) {
+        storage_ids[id]++;
+      }
+    }
+
+    std::vector<StorageInfo> result;
+    for (const auto &[id, count] : storage_ids) {
+      if (stores_.find(id) == stores_.end()) {
+        // logger
+        continue;
+      }
+
+      auto store = stores_[id].info;
+
+      for (uint64_t i = 0; i < store.urls.size(); i++) {
+        // check url
+        // add to url type and sectorName
+      }
+
+      store.weight = store.weight * count;
+      result.push_back(store);
+    }
+
+    if (allow_fetch) {
+      for (const auto &[id, storage_info] : stores_) {
+        if (storage_ids.find(id) != storage_ids.end()) {
+          continue;
+        }
+        auto store = stores_[id].info;
+
+        for (uint64_t i = 0; i < store.urls.size(); i++) {
+          // check url
+          // add to url type and sectorName
+        }
+
+        store.weight = 0;
+        result.push_back(store);
+      }
+    }
+
+    return result;
   }
 
   outcome::result<std::vector<StorageInfo>> SectorIndexImpl::storageBestAlloc(
