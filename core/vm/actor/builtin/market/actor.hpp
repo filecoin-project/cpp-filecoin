@@ -113,6 +113,11 @@ namespace fc::vm::actor::builtin::market {
   struct ClientDealProposal {
     DealProposal proposal;
     Signature client_signature;
+
+    inline bool operator==(const ClientDealProposal &rhs) const {
+      return proposal == rhs.proposal
+             && client_signature == rhs.client_signature;
+    }
   };
   CBOR_TUPLE(ClientDealProposal, proposal, client_signature)
 
