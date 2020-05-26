@@ -6,17 +6,8 @@
 #ifndef CPP_FILECOIN_MARKETS_STORAGE_COMMON_HPP
 #define CPP_FILECOIN_MARKETS_STORAGE_COMMON_HPP
 
-#include "primitives/types.hpp"
+#define FSM_SEND(deal, event) OUTCOME_EXCEPT(fsm_->send(deal, event))
 
-namespace fc::markets::storage {
-
-  using primitives::TokenAmount;
-
-  struct Balance {
-    TokenAmount locked;
-    TokenAmount available;
-  };
-
-}  // namespace fc::markets::storage
+#define SELF_FSM_SEND(deal, event) OUTCOME_EXCEPT(self->fsm_->send(deal, event))
 
 #endif  // CPP_FILECOIN_MARKETS_STORAGE_COMMON_HPP

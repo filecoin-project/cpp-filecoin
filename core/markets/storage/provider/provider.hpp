@@ -39,11 +39,6 @@ namespace fc::markets::storage::provider {
     virtual auto listAsks(const Address &address)
         -> outcome::result<std::vector<SignedStorageAsk>> = 0;
 
-    virtual auto listDeals() -> outcome::result<std::vector<StorageDeal>> = 0;
-
-    virtual auto listIncompleteDeals()
-        -> outcome::result<std::vector<MinerDeal>> = 0;
-
     /**
      * Get deal by proposal cid
      * @param proposal_cid - proposal data cid

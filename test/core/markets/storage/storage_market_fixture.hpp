@@ -18,6 +18,7 @@
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/impl/storage_market_client_impl.hpp"
 #include "markets/storage/provider/impl/provider_impl.hpp"
+#include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
@@ -53,6 +54,7 @@ namespace fc::markets::storage::test {
   using pieceio::PieceIO;
   using pieceio::PieceIOImpl;
   using primitives::GasAmount;
+  using primitives::cid::getCidOfCbor;
   using primitives::sector::RegisteredProof;
   using primitives::tipset::Tipset;
   using provider::Datastore;
@@ -73,7 +75,7 @@ namespace fc::markets::storage::test {
 
   class StorageMarketTest : public ::testing::Test {
    public:
-    static const int kNumberOfWaitCycles = 30;  // 3 sec
+    static const int kNumberOfWaitCycles = 50;  // 5 sec
 
     static void SetUpTestCase() {
       std::string address_string =
@@ -198,6 +200,24 @@ namespace fc::markets::storage::test {
       chain_head.height = epoch;
 
       std::shared_ptr<Api> api = std::make_shared<Api>();
+
+      api->ChainGetMessage = {
+          [this](const CID &message_cid) -> outcome::result<UnsignedMessage> {
+            return this->messages[message_cid].message;
+          }};
+
+      api->StateLookupID = {[account_keys](const Address &address,
+                                           auto &) -> outcome::result<Address> {
+        auto it = std::find_if(
+            account_keys.begin(), account_keys.end(), [address](auto &pair) {
+              return pair.second == address;
+            });
+        if (it != account_keys.end()) {
+          return it->first;
+        }
+        return address;
+      }};
+
       api->ChainHead = {[this]() { return chain_head; }};
 
       api->StateMinerInfo = {
@@ -236,7 +256,7 @@ namespace fc::markets::storage::test {
           }};
 
       api->MpoolPushMessage = {
-          [bls_provider, miner_worker_keypair, miner_actor_address](
+          [this, bls_provider, miner_worker_keypair, miner_actor_address](
               auto &unsigned_message) -> outcome::result<SignedMessage> {
             if (unsigned_message.from == miner_actor_address) {
               OUTCOME_TRY(encoded_message,
@@ -244,8 +264,12 @@ namespace fc::markets::storage::test {
               OUTCOME_TRY(signature,
                           bls_provider->sign(encoded_message,
                                              miner_worker_keypair.private_key));
-              return SignedMessage{.message = unsigned_message,
-                                   .signature = signature};
+              auto signed_message = SignedMessage{.message = unsigned_message,
+                                                  .signature = signature};
+              this->messages[signed_message.getCid()] = signed_message;
+              this->logger->debug("MpoolPushMessage: message committed "
+                                  + signed_message.getCid().toString().value());
+              return signed_message;
             };
             throw "MpoolPushMessage: Wrong from address parameter";
           }};
@@ -412,6 +436,10 @@ namespace fc::markets::storage::test {
 
     RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
     std::shared_ptr<PieceIO> piece_io_;
+
+   private:
+    // published messages
+    std::map<CID, SignedMessage> messages;
   };
 
 }  // namespace fc::markets::storage::test
