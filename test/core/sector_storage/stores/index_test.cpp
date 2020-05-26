@@ -18,9 +18,9 @@ using fc::sector_storage::stores::SectorIndex;
 using fc::sector_storage::stores::SectorIndexImpl;
 using fc::sector_storage::stores::StorageInfo;
 
-class SectorIndexTest : public test::BaseFS_Test {
+class SectorIndexTest : public testing::Test {
  public:
-  SectorIndexTest() : test::BaseFS_Test("fc_sector_index_test") {
+  void SetUp() override {
     sector_index_ = std::make_shared<SectorIndexImpl>();
   }
 
@@ -28,17 +28,10 @@ class SectorIndexTest : public test::BaseFS_Test {
   std::shared_ptr<SectorIndex> sector_index_;
 };
 
-bool operator==(const StorageInfo &lhs, const StorageInfo &rhs) {
-  return lhs.id == rhs.id && lhs.urls == rhs.urls && lhs.weight == rhs.weight
-         && lhs.can_seal == rhs.can_seal && lhs.can_store == rhs.can_store
-         && lhs.last_heartbreak == rhs.last_heartbreak
-         && lhs.error == rhs.error;
-}
-
 /**
- * @given
- * @when
- * @then
+ * @given storage info
+ * @when try to attach new storage
+ * @then storage is in the system
  */
 TEST_F(SectorIndexTest, AttachNewStorage) {
   std::string id = "test_id";
@@ -67,6 +60,11 @@ TEST_F(SectorIndexTest, AttachNewStorage) {
   ASSERT_EQ(si.urls, urls);
 }
 
+/**
+ * @given storage info and extended storage info with same id
+ * @when try to attach storage with same id
+ * @then url list is extended
+ */
 TEST_F(SectorIndexTest, AttachExistStorage) {
   std::string id = "test_id";
   std::vector<std::string> urls;
@@ -119,6 +117,11 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
   ASSERT_EQ(si.urls, urls);
 }
 
+/**
+ * @given storage info with invalid url
+ * @when try to attach storage
+ * @then get error Invalid Url
+ */
 TEST_F(SectorIndexTest, AttachStorageWithInvalidUrl) {
   std::string id = "test_id";
   std::vector<std::string> urls;
@@ -145,11 +148,21 @@ TEST_F(SectorIndexTest, AttachStorageWithInvalidUrl) {
       sector_index_->storageAttach(storage_info, file_system_stat));
 }
 
+/**
+ * @given empty system
+ * @when try to find storage
+ * @then get error NotFound
+ */
 TEST_F(SectorIndexTest, NotFoundStorage) {
   EXPECT_OUTCOME_ERROR(IndexErrors::StorageNotFound,
                        sector_index_->getStorageInfo("not_found_id"));
 }
 
+/**
+ * @given empty system
+ * @when try to find best allocation for file
+ * @then get error NoCandidates
+ */
 TEST_F(SectorIndexTest, BestAllocationNoSuitableStorage) {
   EXPECT_OUTCOME_ERROR(
       IndexErrors::NoSuitableCandidate,
@@ -157,6 +170,12 @@ TEST_F(SectorIndexTest, BestAllocationNoSuitableStorage) {
           SectorFileType::FTCache, RegisteredProof::StackedDRG2KiBSeal, false));
 }
 
+/**
+ * @given 3 storage info
+ * @when try to find best allocation for file
+ * @then get list satisfactory storages in decreasing order. Second storage is
+ * unsatisfactory.
+ */
 TEST_F(SectorIndexTest, BestAllocation) {
   std::string id1 = "id1";
   StorageInfo storage_info1{
@@ -223,4 +242,173 @@ TEST_F(SectorIndexTest, BestAllocation) {
   ASSERT_EQ(candidates.size(), 2);
   ASSERT_EQ(candidates.at(0).id, id1);
   ASSERT_EQ(candidates.at(1).id, id3);
+}
+
+/**
+ * @given storage info and sector id
+ * @when try to add sector to local storage
+ * @then sector is successfuly added
+ */
+TEST_F(SectorIndexTest, StorageDeclareSector) {
+  std::string id = "test_id";
+  std::vector<std::string> urls;
+  urls.emplace_back("http://url1.com/");
+  urls.emplace_back("http://url2.com/");
+  urls.emplace_back("https://url3.com/");
+  StorageInfo storage_info{
+      .id = id,
+      .urls = urls,
+      .weight = 0,
+      .can_seal = false,
+      .can_store = false,
+      .last_heartbreak = std::chrono::system_clock::now(),
+      .error = {},
+  };
+  FsStat file_system_stat{
+      .capacity = 100,
+      .available = 100,
+      .used = 0,
+  };
+
+  SectorId sector{
+      .miner = 42,
+      .sector = 123,
+  };
+
+  EXPECT_OUTCOME_TRUE_1(
+      sector_index_->storageAttach(storage_info, file_system_stat));
+  EXPECT_OUTCOME_TRUE_1(
+      sector_index_->storageDeclareSector(id, sector, SectorFileType::FTCache));
+  EXPECT_OUTCOME_TRUE(
+      storages,
+      sector_index_->storageFindSector(sector, SectorFileType::FTCache, false));
+  ASSERT_EQ(storages.size(), 1);
+  ASSERT_EQ(storages[0].id, id);
+}
+
+/**
+ * @given local storage with sector and sector id
+ * @when try to drop sector
+ * @then sector is dropped
+ */
+TEST_F(SectorIndexTest, StorageDropSector) {
+  std::string id = "test_id";
+  std::vector<std::string> urls;
+  urls.emplace_back("http://url1.com/");
+  urls.emplace_back("http://url2.com/");
+  urls.emplace_back("https://url3.com/");
+  StorageInfo storage_info{
+      .id = id,
+      .urls = urls,
+      .weight = 0,
+      .can_seal = false,
+      .can_store = false,
+      .last_heartbreak = std::chrono::system_clock::now(),
+      .error = {},
+  };
+  FsStat file_system_stat{
+      .capacity = 100,
+      .available = 100,
+      .used = 0,
+  };
+
+  SectorId sector{
+      .miner = 42,
+      .sector = 123,
+  };
+
+  EXPECT_OUTCOME_TRUE_1(
+      sector_index_->storageAttach(storage_info, file_system_stat));
+  EXPECT_OUTCOME_TRUE_1(
+      sector_index_->storageDeclareSector(id, sector, SectorFileType::FTCache));
+  EXPECT_OUTCOME_TRUE_1(
+      sector_index_->storageDropSector(id, sector, SectorFileType::FTCache));
+  EXPECT_OUTCOME_TRUE(
+      storages,
+      sector_index_->storageFindSector(sector, SectorFileType::FTCache, false));
+  ASSERT_TRUE(storages.empty());
+}
+
+/**
+ * @given storage info and sector id
+ * @when try to find sector wihout fetch flag
+ * @then get storage info from all local storages
+ */
+TEST_F(SectorIndexTest, StorageFindSector) {
+  std::string id = "test_id";
+  std::string result_url = "http://url1.com/cache/s-t042-123";
+  std::vector<std::string> urls;
+  urls.emplace_back("http://url1.com/");
+  StorageInfo storage_info{
+      .id = id,
+      .urls = urls,
+      .weight = 0,
+      .can_seal = false,
+      .can_store = false,
+      .last_heartbreak = std::chrono::system_clock::now(),
+      .error = {},
+  };
+  FsStat file_system_stat{
+      .capacity = 100,
+      .available = 100,
+      .used = 0,
+  };
+
+  SectorId sector{
+      .miner = 42,
+      .sector = 123,
+  };
+
+  EXPECT_OUTCOME_TRUE_1(
+      sector_index_->storageAttach(storage_info, file_system_stat));
+  EXPECT_OUTCOME_TRUE_1(
+      sector_index_->storageDeclareSector(id, sector, SectorFileType::FTCache));
+  EXPECT_OUTCOME_TRUE(
+      storages,
+      sector_index_->storageFindSector(sector, SectorFileType::FTCache, false));
+  ASSERT_FALSE(storages.empty());
+  auto store = storages[0];
+  ASSERT_FALSE(store.urls.empty());
+  ASSERT_EQ(store.urls[0], result_url);
+}
+
+/**
+ * @given storage info and sector id
+ * @when try to find sector with fetch flag
+ * @then get storage info from all storages
+ */
+TEST_F(SectorIndexTest, StorageFindSectorFetch) {
+  std::string id = "test_id";
+  std::string result_url = "http://url1.com/cache/s-t042-123";
+  std::vector<std::string> urls;
+  urls.emplace_back("http://url1.com/");
+  StorageInfo storage_info{
+      .id = id,
+      .urls = urls,
+      .weight = 0,
+      .can_seal = false,
+      .can_store = false,
+      .last_heartbreak = std::chrono::system_clock::now(),
+      .error = {},
+  };
+  FsStat file_system_stat{
+      .capacity = 100,
+      .available = 100,
+      .used = 0,
+  };
+
+  SectorId sector{
+      .miner = 42,
+      .sector = 123,
+  };
+
+  EXPECT_OUTCOME_TRUE_1(
+      sector_index_->storageAttach(storage_info, file_system_stat));
+  EXPECT_OUTCOME_TRUE(
+      storages,
+      sector_index_->storageFindSector(sector, SectorFileType::FTCache, true));
+  ASSERT_FALSE(storages.empty());
+  auto store = storages[0];
+  ASSERT_FALSE(store.urls.empty());
+  ASSERT_EQ(store.urls[0], result_url);
 }
