@@ -4,23 +4,40 @@
  */
 
 #include "sector_storage/stores/impl/index_impl.hpp"
+
+#include <filesystem>
+#include <regex>
 #include "primitives/types.hpp"
+#include "primitives/uri_parser/uri_parser.hpp"
 
 namespace fc::sector_storage::stores {
 
   using fc::primitives::TokenAmount;
+  using fc::primitives::uri_parser::HttpUri;
+  using primitives::sector_file::sectorName;
   using std::chrono::system_clock;
 
   std::string toSectorsID(const SectorId &sector_id,
                           const SectorFileType &file_type) {
-    return primitives::sector_file::sectorName(sector_id) + "_"
-           + toString(file_type);
+    return sectorName(sector_id) + "_" + toString(file_type);
+  }
+
+  bool isValidUrl(const std::string &url) {
+    static std::regex url_regex(
+        "https?:\\/\\/"
+        "(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,4}\\b([-a-zA-Z0-9@:%"
+        "_\\+.~#?&//=]*)");
+    return std::regex_match(url, url_regex);
   }
 
   outcome::result<void> SectorIndexImpl::storageAttach(
       const StorageInfo &storage_info, const FsStat &stat) {
     std::unique_lock lock(mutex_);
-    // TODO(artyom-yurin): check validity of urls
+    for (const auto &new_url : storage_info.urls) {
+      if (!isValidUrl(new_url)) {
+        return IndexErrors::InvalidUrl;
+      }
+    }
 
     auto stores_iter = stores_.find(storage_info.id);
     if (stores_iter != stores_.end()) {
@@ -168,8 +185,16 @@ namespace fc::sector_storage::stores {
       auto store = stores_[id].info;
 
       for (uint64_t i = 0; i < store.urls.size(); i++) {
-        // check url
-        // add to url type and sectorName
+        HttpUri uri;
+        try {
+          uri.parse(store.urls[i]);
+        } catch (const std::runtime_error &err) {
+          return IndexErrors::InvalidUrl;
+        }
+        std::filesystem::path path = uri.path();
+        path = path / toString(file_type) / sectorName(sector);
+        uri.setPath(path.string());
+        store.urls[i] = uri.str();
       }
 
       store.weight = store.weight * count;
@@ -184,8 +209,16 @@ namespace fc::sector_storage::stores {
         auto store = stores_[id].info;
 
         for (uint64_t i = 0; i < store.urls.size(); i++) {
-          // check url
-          // add to url type and sectorName
+          HttpUri uri;
+          try {
+            uri.parse(store.urls[i]);
+          } catch (const std::runtime_error &err) {
+            return IndexErrors::InvalidUrl;
+          }
+          std::filesystem::path path = uri.path();
+          path = path / toString(file_type) / sectorName(sector);
+          uri.setPath(path.string());
+          store.urls[i] = uri.str();
         }
 
         store.weight = 0;
@@ -264,6 +297,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, IndexErrors, e) {
       return "Sector Index: storage by ID not found";
     case (IndexErrors::NoSuitableCandidate):
       return "Sector Index: not found a suitable storage";
+    case (IndexErrors::InvalidUrl):
+      return "Sector Index: failed to parse url";
     default:
       return "Sector Index: unknown error";
   }

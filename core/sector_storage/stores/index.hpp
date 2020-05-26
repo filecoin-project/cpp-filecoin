@@ -83,6 +83,7 @@ namespace fc::sector_storage::stores {
   enum class IndexErrors {
     StorageNotFound = 1,
     NoSuitableCandidate,
+    InvalidUrl,
   };
 }  // namespace fc::sector_storage::stores
 

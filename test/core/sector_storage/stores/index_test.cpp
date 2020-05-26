@@ -36,16 +36,16 @@ bool operator==(const StorageInfo &lhs, const StorageInfo &rhs) {
 }
 
 /**
- * @given sector
- * @when want to get path to sealed and cache sector
- * @then sealed sector was obtained. cache and unsealed paths are empty
+ * @given
+ * @when
+ * @then
  */
 TEST_F(SectorIndexTest, AttachNewStorage) {
   std::string id = "test_id";
   std::vector<std::string> urls;
-  urls.emplace_back("url1.com");
-  urls.emplace_back("url2.com");
-  urls.emplace_back("url3.com");
+  urls.emplace_back("http://url1.com");
+  urls.emplace_back("http://url2.com");
+  urls.emplace_back("https://url3.com");
   StorageInfo storage_info{
       .id = id,
       .urls = urls,
@@ -73,7 +73,7 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
   urls.reserve(5);
 
   for (int i = 0; i < 5; i++) {
-    urls.emplace_back("url" + std::to_string(i) + ".com");
+    urls.emplace_back("http://url" + std::to_string(i) + ".com");
   }
 
   std::vector<std::string> urls1;
@@ -117,6 +117,32 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
   EXPECT_OUTCOME_TRUE(si, sector_index_->getStorageInfo(id));
 
   ASSERT_EQ(si.urls, urls);
+}
+
+TEST_F(SectorIndexTest, AttachStorageWithInvalidUrl) {
+  std::string id = "test_id";
+  std::vector<std::string> urls;
+  urls.emplace_back("http://url1.com");
+  urls.emplace_back("http://url2.com");
+  urls.emplace_back("invalid_url");
+  StorageInfo storage_info{
+      .id = id,
+      .urls = urls,
+      .weight = 0,
+      .can_seal = false,
+      .can_store = false,
+      .last_heartbreak = std::chrono::system_clock::now(),
+      .error = {},
+  };
+  FsStat file_system_stat{
+      .capacity = 100,
+      .available = 100,
+      .used = 0,
+  };
+
+  EXPECT_OUTCOME_ERROR(
+      IndexErrors::InvalidUrl,
+      sector_index_->storageAttach(storage_info, file_system_stat));
 }
 
 TEST_F(SectorIndexTest, NotFoundStorage) {
