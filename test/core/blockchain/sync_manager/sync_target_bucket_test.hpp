@@ -42,14 +42,15 @@ struct SyncTargetBucketTest : public ::testing::Test {
     BlockHeader block_header = fc::primitives::block::BlockHeader{
         fc::primitives::address::Address::makeFromId(1),
         ticket2,
-        {
-            {fc::primitives::sector::PoStProof{
-                fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
-                "F00D"_unhex,
-            }},
-            bls1,
-            {},
-        },
+        {fc::common::Buffer{"F00D"_unhex}},
+        {fc::primitives::block::BeaconEntry{
+            4,
+            fc::common::Buffer{"F00D"_unhex},
+        }},
+        {fc::primitives::sector::PoStProof{
+            fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+            "F00D"_unhex,
+        }},
         {"010001020002"_cid},
         BigInt(3),
         4,
@@ -74,14 +75,15 @@ struct SyncTargetBucketTest : public ::testing::Test {
     BlockHeader block_header = fc::primitives::block::BlockHeader{
         fc::primitives::address::Address::makeFromId(2),
         ticket2,
-        {
-            {fc::primitives::sector::PoStProof{
-                fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
-                "F00D"_unhex,
-            }},
-            bls1,
-            {},
-        },
+        {fc::common::Buffer{"F00D"_unhex}},
+        {fc::primitives::block::BeaconEntry{
+            4,
+            fc::common::Buffer{"F00D"_unhex},
+        }},
+        {fc::primitives::sector::PoStProof{
+            fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+            "F00D"_unhex,
+        }},
         {"010001020002"_cid},
         BigInt(4),
         4,

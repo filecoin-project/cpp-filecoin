@@ -89,6 +89,17 @@ namespace fc::primitives::tipset {
     return ts;
   }
 
+  outcome::result<Tipset> Tipset::load(Ipld &ipld,
+                                       const std::vector<CID> &cids) {
+    std::vector<BlockHeader> blocks;
+    blocks.reserve(cids.size());
+    for (auto &cid : cids) {
+      OUTCOME_TRY(block, ipld.getCbor<BlockHeader>(cid));
+      blocks.emplace_back(std::move(block));
+    }
+    return create(std::move(blocks));
+  }
+
   outcome::result<TipsetKey> Tipset::getParents() const {
     return TipsetKey::create(blks[0].parents);
   }

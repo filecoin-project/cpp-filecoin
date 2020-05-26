@@ -52,24 +52,33 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
                                            .balance = {},
                                        }));
   EXPECT_OUTCOME_TRUE(state_root, state_tree.flush());
-  Tipset tipset{{},
-                {params.block_count,
-                 BlockHeader{
-                     Address::makeFromId(0),
-                     {},
-                     {},
-                     {},
-                     params.parent_weight,
-                     {},
-                     state_root,
-                     some_cid,
-                     some_cid,
-                     {},
-                     {},
-                     {},
-                     {},
-                 }},
-                {}};
+  Tipset tipset{
+      {},
+      {params.block_count,
+       BlockHeader{
+           Address::makeFromId(0),
+           {},
+           {fc::common::Buffer{"F00D"_unhex}},
+           {fc::primitives::block::BeaconEntry{
+               4,
+               fc::common::Buffer{"F00D"_unhex},
+           }},
+           {fc::primitives::sector::PoStProof{
+               fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+               "F00D"_unhex,
+           }},
+           {},
+           params.parent_weight,
+           {},
+           state_root,
+           some_cid,
+           some_cid,
+           {},
+           {},
+           {},
+           {},
+       }},
+      {}};
 
   return WeightCalculatorImpl{ipld}.calculateWeight(tipset);
 }
