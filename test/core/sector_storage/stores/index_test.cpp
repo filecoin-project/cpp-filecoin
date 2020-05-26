@@ -8,7 +8,6 @@
 
 #include <memory>
 #include "testutil/outcome.hpp"
-#include "testutil/storage/base_fs_test.hpp"
 
 using fc::primitives::sector::RegisteredProof;
 using fc::primitives::sector_file::SectorFileType;
@@ -108,6 +107,8 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
+      .last_heartbreak = std::chrono::system_clock::now(),
+      .error = {},
   };
 
   EXPECT_OUTCOME_TRUE_1(

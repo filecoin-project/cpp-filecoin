@@ -5,7 +5,7 @@
 
 #include "sector_storage/stores/impl/index_impl.hpp"
 
-#include <filesystem>
+#include <boost/filesystem/path.hpp>
 #include <regex>
 #include "primitives/types.hpp"
 #include "primitives/uri_parser/uri_parser.hpp"
@@ -191,7 +191,7 @@ namespace fc::sector_storage::stores {
         } catch (const std::runtime_error &err) {
           return IndexErrors::InvalidUrl;
         }
-        std::filesystem::path path = uri.path();
+        boost::filesystem::path path = uri.path();
         path = path / toString(file_type) / sectorName(sector);
         uri.setPath(path.string());
         store.urls[i] = uri.str();
@@ -215,7 +215,7 @@ namespace fc::sector_storage::stores {
           } catch (const std::runtime_error &err) {
             return IndexErrors::InvalidUrl;
           }
-          std::filesystem::path path = uri.path();
+          boost::filesystem::path path = uri.path();
           path = path / toString(file_type) / sectorName(sector);
           uri.setPath(path.string());
           store.urls[i] = uri.str();
@@ -273,9 +273,9 @@ namespace fc::sector_storage::stores {
               candidates.end(),
               [](const StorageEntry &lhs, const StorageEntry &rhs) {
                 auto lw = TokenAmount(lhs.fs_stat.available)
-                          * TokenAmount(lhs.info.weight);
+                          * lhs.info.weight;
                 auto rw = TokenAmount(rhs.fs_stat.available)
-                          * TokenAmount(rhs.info.weight);
+                          * rhs.info.weight;
                 return lw > rw;
               });
 

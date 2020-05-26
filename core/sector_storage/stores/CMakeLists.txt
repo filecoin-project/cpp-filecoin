@@ -11,4 +11,5 @@ target_link_libraries(sector_index
         sector_file
         outcome
         uri_parser
+        Boost::filesystem
         )
