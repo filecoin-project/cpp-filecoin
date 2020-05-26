@@ -84,7 +84,7 @@ TEST(SerializationVectorsTest, SignedMessage) {
 }
 
 /// BlockHeader JSON and CBOR
-TEST(SerializationVectorsTest, BlockHeader) {
+TEST(SerializationVectorsTest, DISABLED_BlockHeader) {
   auto tests = loadJson("block_headers.json");
   for (auto it = tests.Begin(); it != tests.End(); ++it) {
     auto block = Codec::decode<BlockHeader>(Codec::Get(*it, "block"));
