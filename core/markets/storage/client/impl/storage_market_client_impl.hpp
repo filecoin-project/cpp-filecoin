@@ -305,7 +305,7 @@ namespace fc::markets::storage::client {
     PIECE_SIZE_GREATER_SECTOR_SIZE,
     ADD_FUNDS_CALL_ERROR,
     LOCAL_DEAL_NOT_FOUND,
-    STREAM_LOOKUP_ERROR
+    STREAM_LOOKUP_ERROR,
   };
 
 }  // namespace fc::markets::storage::client
