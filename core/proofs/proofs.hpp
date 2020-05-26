@@ -164,7 +164,7 @@ namespace fc::proofs {
      * the provided pieces.
      */
     static outcome::result<CID> generateUnsealedCID(
-        RegisteredProof proof_type, gsl::span<PieceInfo> pieces);
+        RegisteredProof proof_type, gsl::span<const PieceInfo> pieces);
 
     static outcome::result<ChallengeIndexes> generateWinningPoStSectorChallenge(
         RegisteredProof proof_type,
@@ -181,7 +181,6 @@ namespace fc::proofs {
         ActorId miner_id,
         const SortedPrivateSectorInfo &private_replica_info,
         const PoStRandomness &randomness);
-
 
     static outcome::result<bool> verifyWinningPoSt(
         const WinningPoStVerifyInfo &info);

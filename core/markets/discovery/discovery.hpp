@@ -16,7 +16,7 @@ namespace fc::markets::discovery {
 
   using common::Buffer;
   using libp2p::peer::PeerInfo;
-  using Datastore = storage::face::PersistentMap<Buffer, Buffer>;
+  using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
 
   /**
    * Deal discovery

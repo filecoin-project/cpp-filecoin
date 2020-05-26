@@ -8,7 +8,6 @@ addtest(stored_ask_test
     )
 target_link_libraries(stored_ask_test
     fuhon_stored_ask
-    keystore
     secp256k1_provider
     bls_provider
     in_memory_storage
