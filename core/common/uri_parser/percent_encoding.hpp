@@ -23,16 +23,13 @@
 
 // PercentEncoding.hpp
 
-
 #pragma once
-
 
 #include <string>
 
-class PercentEncoding final
-{
-public:
-    static std::string encode(const std::string& input);
+class PercentEncoding final {
+ public:
+  static std::string encode(const std::string &input);
 
-    static std::string decode(std::string const& input);
+  static std::string decode(std::string const &input);
 };
