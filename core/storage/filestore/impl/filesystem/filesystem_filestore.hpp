@@ -28,6 +28,9 @@ namespace fc::storage::filestore {
     fc::outcome::result<std::shared_ptr<File>> create(
         const Path &path) noexcept override;
 
+    /** @copydoc FileStore::createDirectories() */
+    outcome::result<void> createDirectories(const Path &path) override;
+
     /** @copydoc FileStore::remove() */
     fc::outcome::result<void> remove(const Path &path) noexcept override;
 
