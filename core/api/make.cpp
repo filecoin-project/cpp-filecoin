@@ -8,7 +8,7 @@
 #include <boost/algorithm/string.hpp>
 #include <libp2p/peer/peer_id.hpp>
 
-#include "blockchain/production/impl/block_producer_impl.hpp"
+#include "blockchain/production/block_producer.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
@@ -33,7 +33,6 @@ namespace fc::api {
   using InterpreterResult = vm::interpreter::Result;
   using vm::state::StateTreeImpl;
   using MarketActorState = vm::actor::builtin::market::State;
-  using blockchain::production::BlockProducerImpl;
   using crypto::randomness::RandomnessProvider;
   using crypto::signature::BlsSignature;
   using libp2p::peer::PeerId;
@@ -248,34 +247,12 @@ namespace fc::api {
         .ClientStartDeal = {},
         // TODO(turuslan): FIL-165 implement method
         .MarketEnsureAvailable = {},
-        .MinerCreateBlock = {[=](auto &miner,
-                                 auto &parent,
-                                 auto &ticket,
-                                 auto &proof,
-                                 auto &messages,
-                                 auto height,
-                                 auto timestamp) -> outcome::result<BlockMsg> {
-          OUTCOME_TRY(context, tipsetContext(parent, true));
-          BlockProducerImpl producer{
-              ipld,
-              nullptr,
-              nullptr,
-              nullptr,
-              weight_calculator,
-              bls_provider,
-              std::make_shared<InterpreterImpl>(),
-          };
+        .MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockMsg> {
+          OUTCOME_TRY(context, tipsetContext(t.parents, true));
+          OUTCOME_TRY(miner_state, context.minerState(t.miner));
           OUTCOME_TRY(block,
-                      producer.generate(miner,
-                                        context.tipset,
-                                        *context.interpreted,
-                                        proof,
-                                        ticket,
-                                        messages,
-                                        height,
-                                        timestamp));
+                      blockchain::production::generate(ipld, std::move(t)));
 
-          OUTCOME_TRY(miner_state, context.minerState(miner));
           OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
           OUTCOME_TRY(worker_key, context.accountKey(miner_state.info.worker));
           OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));

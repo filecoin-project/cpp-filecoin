@@ -30,7 +30,9 @@ namespace fc::api {
   using crypto::signature::Signature;
   using markets::storage::StorageAsk;
   using primitives::BigInt;
+  using primitives::block::BeaconEntry;
   using primitives::block::BlockHeader;
+  using primitives::block::ElectionProof;
   using primitives::cid::getCidOfCbor;
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredProof;
@@ -350,7 +352,9 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Miner", v.miner);
       Set(j, "Ticket", v.ticket);
-      Set(j, "EPostProof", v.epost_proof);
+      Set(j, "ElectionProof", v.election_proof);
+      Set(j, "BeaconEntries", v.beacon_entries);
+      Set(j, "WinPoStProof", v.win_post_proof);
       Set(j, "Parents", v.parents);
       Set(j, "ParentWeight", v.parent_weight);
       Set(j, "Height", v.height);
@@ -367,7 +371,9 @@ namespace fc::api {
     DECODE(BlockHeader) {
       decode(v.miner, Get(j, "Miner"));
       decode(v.ticket, Get(j, "Ticket"));
-      decode(v.epost_proof, Get(j, "EPostProof"));
+      decode(v.election_proof, Get(j, "ElectionProof"));
+      decode(v.beacon_entries, Get(j, "BeaconEntries"));
+      decode(v.win_post_proof, Get(j, "WinPoStProof"));
       decode(v.parents, Get(j, "Parents"));
       decode(v.parent_weight, Get(j, "ParentWeight"));
       decode(v.height, Get(j, "Height"));
@@ -378,6 +384,40 @@ namespace fc::api {
       decode(v.timestamp, Get(j, "Timestamp"));
       decode(v.block_sig, Get(j, "BlockSig"));
       decode(v.fork_signaling, Get(j, "ForkSignaling"));
+    }
+
+    DECODE(BlockTemplate) {
+      decode(v.miner, Get(j, "Miner"));
+      decode(v.parents, Get(j, "Parents"));
+      decode(v.ticket, Get(j, "Ticket"));
+      decode(v.election_proof, Get(j, "Eproof"));
+      decode(v.beacon_entries, Get(j, "BeaconValues"));
+      decode(v.messages, Get(j, "Messages"));
+      decode(v.height, Get(j, "Epoch"));
+      decode(v.timestamp, Get(j, "Timestamp"));
+      decode(v.win_post_proof, Get(j, "WinningPoStProof"));
+    }
+
+    ENCODE(ElectionProof) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "VRFProof", v.vrf_proof);
+      return j;
+    }
+
+    DECODE(ElectionProof) {
+      decode(v.vrf_proof, Get(j, "VRFProof"));
+    }
+
+    ENCODE(BeaconEntry) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Round", v.round);
+      Set(j, "Data", v.data);
+      return j;
+    }
+
+    DECODE(BeaconEntry) {
+      decode(v.round, Get(j, "Round"));
+      decode(v.data, Get(j, "Data"));
     }
 
     ENCODE(Tipset) {

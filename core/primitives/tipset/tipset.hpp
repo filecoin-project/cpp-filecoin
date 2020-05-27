@@ -6,11 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
 
-#include <boost/optional.hpp>
-#include "common/outcome.hpp"
 #include "primitives/block/block.hpp"
-#include "primitives/cid/cid.hpp"
-#include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::primitives::tipset {
@@ -29,13 +25,18 @@ namespace fc::primitives::tipset {
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::tipset, TipsetError);
 
 namespace fc::primitives::tipset {
+  using block::BlockHeader;
+  using block::Ipld;
+
   /**
    * @struct Tipset implemented according to
    * https://github.com/filecoin-project/lotus/blob/6e94377469e49fa4e643f9204b6f46ef3cb3bf04/chain/types/tipset.go#L18
    */
   struct Tipset {
-    static outcome::result<Tipset> create(
-        std::vector<block::BlockHeader> blocks);
+    static outcome::result<Tipset> create(std::vector<BlockHeader> blocks);
+
+    static outcome::result<Tipset> load(Ipld &ipld,
+                                        const std::vector<CID> &cids);
 
     /**
      * @brief makes key of cids

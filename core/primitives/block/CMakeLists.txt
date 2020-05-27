@@ -6,6 +6,7 @@
 add_library(block INTERFACE)
 target_link_libraries(block INTERFACE
     address
+    amt
     cbor
     signature
     tickets

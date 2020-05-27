@@ -61,16 +61,7 @@ namespace fc::storage::blockchain {
     if (auto it = tipsets_cache_.find(key); it != tipsets_cache_.end()) {
       return it->second;
     }
-    std::vector<BlockHeader> blocks;
-    blocks.reserve(key.cids.size());
-
-    for (const auto &cid : key.cids) {
-      OUTCOME_TRY(block, getCbor<BlockHeader>(cid));
-      blocks.emplace_back(std::move(block));
-    }
-
-    OUTCOME_TRY(tipset, Tipset::create(std::move(blocks)));
-
+    OUTCOME_TRY(tipset, Tipset::load(*data_store_, key.cids));
     // save to cache
     tipsets_cache_[key] = tipset;
 

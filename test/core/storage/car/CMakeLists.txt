@@ -11,6 +11,13 @@ target_link_libraries(car_test
     ipfs_datastore_in_memory
     unixfs
     )
-target_include_directories(car_test PUBLIC
-    "${TEST_RESOURCES_PATH}"
+
+addtest(genesis_test
+    genesis_test.cpp
+    )
+target_link_libraries(genesis_test
+    block
+    car
+    ipfs_datastore_in_memory
+    state_tree
     )

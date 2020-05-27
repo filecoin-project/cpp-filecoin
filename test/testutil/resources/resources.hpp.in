@@ -3,7 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#define GENESIS_FILE "@TEST_RESOURCES_PATH@/devnet_genesis.car"
+#define RESOURCES_ROOT "@TEST_RESOURCES_PATH@"
+
+auto resourcePath(std::string s) {
+  return std::string{RESOURCES_ROOT} + "/" + s;
+}
 
 /**
  * Binary payload from go-fil-markets integration tests
