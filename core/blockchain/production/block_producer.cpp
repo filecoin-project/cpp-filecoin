@@ -12,7 +12,6 @@
 namespace fc::blockchain::production {
   using crypto::signature::BlsSignature;
   using crypto::signature::Secp256k1Signature;
-  using primitives::block::BlockHeader;
   using primitives::block::MsgMeta;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
@@ -62,7 +61,7 @@ namespace fc::blockchain::production {
         b.header.bls_aggregate,
         crypto::bls::BlsProviderImpl{}.aggregateSignatures(bls_signatures));
     b.header.timestamp = t.timestamp;
-    // TODO: sign
+    // TODO: the only caller of "generate" is MinerCreateBlock, it signs block
     b.header.block_sig = {};
     b.header.fork_signaling = 0;
     return std::move(b);

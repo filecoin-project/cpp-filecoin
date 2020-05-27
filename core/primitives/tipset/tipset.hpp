@@ -33,8 +33,7 @@ namespace fc::primitives::tipset {
    * https://github.com/filecoin-project/lotus/blob/6e94377469e49fa4e643f9204b6f46ef3cb3bf04/chain/types/tipset.go#L18
    */
   struct Tipset {
-    static outcome::result<Tipset> create(
-        std::vector<block::BlockHeader> blocks);
+    static outcome::result<Tipset> create(std::vector<BlockHeader> blocks);
 
     static outcome::result<Tipset> load(Ipld &ipld,
                                         const std::vector<CID> &cids);

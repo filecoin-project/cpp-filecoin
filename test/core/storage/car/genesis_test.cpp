@@ -33,6 +33,7 @@ TEST(GenesisTest, Decode) {
       block.parent_state_root};
   state_tree.load(ipld);
   EXPECT_OUTCOME_TRUE_1(state_tree.visit([&](auto &a, auto &actor) {
+    // TODO(turuslan): FIL-201
     auto disabled = true;
     if (actor.code == fc::vm::actor::kStorageMinerCodeCid && !disabled) {
       // TODO: update miner actor state
@@ -64,13 +65,11 @@ TEST(GenesisTest, Decode) {
     } else if (actor.code == fc::vm::actor::kVerifiedRegistryCode) {
       // TODO: verified registry actor state
     } else if (actor.code == fc::vm::actor::kStoragePowerCodeCid && !disabled) {
+      // TODO: update power actor state
       EXPECT_OUTCOME_TRUE_1(
           ipld->getCbor<
               fc::vm::actor::builtin::storage_power::StoragePowerActorState>(
               actor.head));
-    } else {
-      auto a = actor.code.content_address.getHash();
-      std::cout << std::string{a.begin(), a.end()} << std::endl;
     }
     return fc::outcome::success();
   }));

@@ -26,8 +26,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
 
 namespace fc::primitives::tipset {
 
-  outcome::result<Tipset> Tipset::create(
-      std::vector<block::BlockHeader> blocks) {
+  outcome::result<Tipset> Tipset::create(std::vector<BlockHeader> blocks) {
     // required to have at least one block
     if (blocks.empty()) {
       return TipsetError::NO_BLOCKS;
