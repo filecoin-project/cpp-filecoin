@@ -17,7 +17,7 @@ namespace fc::sector_storage::stores {
     StorageInfo info;
     FsStat fs_stat;
 
-    system_clock::time_point last_heartbreak;
+    system_clock::time_point last_heartbeat;
     boost::optional<std::string> error;
   };
 

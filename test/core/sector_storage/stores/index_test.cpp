@@ -44,7 +44,7 @@ TEST_F(SectorIndexTest, AttachNewStorage) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbreak = std::chrono::system_clock::now(),
+      .last_heartbeat = std::chrono::system_clock::now(),
       .error = {},
   };
   FsStat file_system_stat{
@@ -84,7 +84,7 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbreak = std::chrono::system_clock::now(),
+      .last_heartbeat = std::chrono::system_clock::now(),
       .error = {},
   };
   FsStat file_system_stat{
@@ -107,7 +107,7 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbreak = std::chrono::system_clock::now(),
+      .last_heartbeat = std::chrono::system_clock::now(),
       .error = {},
   };
 
@@ -135,7 +135,7 @@ TEST_F(SectorIndexTest, AttachStorageWithInvalidUrl) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbreak = std::chrono::system_clock::now(),
+      .last_heartbeat = std::chrono::system_clock::now(),
       .error = {},
   };
   FsStat file_system_stat{
@@ -185,7 +185,7 @@ TEST_F(SectorIndexTest, BestAllocation) {
       .weight = 10,
       .can_seal = false,
       .can_store = true,
-      .last_heartbreak = std::chrono::system_clock::now(),
+      .last_heartbeat = std::chrono::system_clock::now(),
       .error = {},
   };
   FsStat file_system_stat1{
@@ -204,7 +204,7 @@ TEST_F(SectorIndexTest, BestAllocation) {
       .weight = 30,
       .can_seal = false,
       .can_store = true,
-      .last_heartbreak = std::chrono::system_clock::now(),
+      .last_heartbeat = std::chrono::system_clock::now(),
       .error = {},
   };
   FsStat file_system_stat2{
@@ -223,7 +223,7 @@ TEST_F(SectorIndexTest, BestAllocation) {
       .weight = 5,
       .can_seal = false,
       .can_store = true,
-      .last_heartbreak = std::chrono::system_clock::now(),
+      .last_heartbeat = std::chrono::system_clock::now(),
       .error = {},
   };
   FsStat file_system_stat3{
@@ -262,7 +262,7 @@ TEST_F(SectorIndexTest, StorageDeclareSector) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbreak = std::chrono::system_clock::now(),
+      .last_heartbeat = std::chrono::system_clock::now(),
       .error = {},
   };
   FsStat file_system_stat{
@@ -304,7 +304,7 @@ TEST_F(SectorIndexTest, StorageDropSector) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbreak = std::chrono::system_clock::now(),
+      .last_heartbeat = std::chrono::system_clock::now(),
       .error = {},
   };
   FsStat file_system_stat{
@@ -346,7 +346,7 @@ TEST_F(SectorIndexTest, StorageFindSector) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbreak = std::chrono::system_clock::now(),
+      .last_heartbeat = std::chrono::system_clock::now(),
       .error = {},
   };
   FsStat file_system_stat{
@@ -389,7 +389,7 @@ TEST_F(SectorIndexTest, StorageFindSectorFetch) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbreak = std::chrono::system_clock::now(),
+      .last_heartbeat = std::chrono::system_clock::now(),
       .error = {},
   };
   FsStat file_system_stat{

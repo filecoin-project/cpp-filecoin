@@ -60,7 +60,7 @@ namespace fc::sector_storage::stores {
     stores_[storage_info.id] = StorageEntry{
         .info = storage_info,
         .fs_stat = stat,
-        .last_heartbreak = system_clock::now(),
+        .last_heartbeat = system_clock::now(),
         .error = {},
     };
     return outcome::success();
@@ -82,7 +82,7 @@ namespace fc::sector_storage::stores {
 
     storage_iter->second.fs_stat = report.stat;
     storage_iter->second.error = report.error;
-    storage_iter->second.last_heartbreak = system_clock::now();
+    storage_iter->second.last_heartbeat = system_clock::now();
 
     return outcome::success();
   }
@@ -171,7 +171,7 @@ namespace fc::sector_storage::stores {
         continue;
       }
       for (const auto &id : sector_iter->second) {
-        storage_ids[id]++;
+        ++storage_ids[id];
       }
     }
 
@@ -253,7 +253,7 @@ namespace fc::sector_storage::stores {
         continue;
       }
 
-      if (system_clock::now() - storage.last_heartbreak
+      if (system_clock::now() - storage.last_heartbeat
           > kSkippedHeartbeatThreshold) {
         continue;
       }
@@ -272,10 +272,8 @@ namespace fc::sector_storage::stores {
     std::sort(candidates.begin(),
               candidates.end(),
               [](const StorageEntry &lhs, const StorageEntry &rhs) {
-                auto lw = TokenAmount(lhs.fs_stat.available)
-                          * lhs.info.weight;
-                auto rw = TokenAmount(rhs.fs_stat.available)
-                          * rhs.info.weight;
+                auto lw = TokenAmount(lhs.fs_stat.available) * lhs.info.weight;
+                auto rw = TokenAmount(rhs.fs_stat.available) * rhs.info.weight;
                 return lw > rw;
               });
 

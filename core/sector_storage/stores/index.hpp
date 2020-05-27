@@ -33,7 +33,7 @@ namespace fc::sector_storage::stores {
     bool can_seal;
     bool can_store;
 
-    system_clock::time_point last_heartbreak;
+    system_clock::time_point last_heartbeat;
     boost::optional<std::string> error;
   };
 

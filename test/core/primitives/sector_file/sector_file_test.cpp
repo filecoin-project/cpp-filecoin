@@ -10,6 +10,11 @@
 
 using namespace fc::primitives::sector_file;
 
+/**
+ * @given Seal Proof type and Sector File type
+ * @when try to get amount of used memory for sealing
+ * @then get amount of used memory for this configuration
+ */
 TEST(SealSpaceUse, Success){
     RegisteredProof seal_proof_type = RegisteredProof::StackedDRG2KiBSeal;
     SectorFileType file_type = SectorFileType::FTCache;
