@@ -35,8 +35,6 @@ using testing::_;
 
 struct ChainStoreTest : public ::testing::Test {
   BlockHeader makeBlock() {
-    auto bls1 =
-        "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
     auto bls2 =
         "020101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 
@@ -45,14 +43,15 @@ struct ChainStoreTest : public ::testing::Test {
     BlockHeader block_header = fc::primitives::block::BlockHeader{
         fc::primitives::address::Address::makeFromId(1),
         ticket,
-        {
-            {fc::primitives::sector::PoStProof{
-                fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
-                "DEAD"_unhex,
-            }},
-            bls1,
-            {},
-        },
+        {fc::common::Buffer{"F00D"_unhex}},
+        {fc::primitives::block::BeaconEntry{
+            4,
+            fc::common::Buffer{"F00D"_unhex},
+        }},
+        {fc::primitives::sector::PoStProof{
+            fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+            "F00D"_unhex,
+        }},
         {"010001020002"_cid},
         BigInt(3),
         4,

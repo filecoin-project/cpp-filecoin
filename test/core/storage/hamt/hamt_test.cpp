@@ -48,11 +48,11 @@ TEST_F(HamtTest, NodeCbor) {
 
   n.items[17] =
       Node::Leaf{{"a", fc::storage::hamt::Value(encode("b").value())}};
-  expectEncodeAndReencode(n, "824302000081a16131818261616162"_unhex);
+  expectEncodeAndReencode(n, "824302000081a16131818241616162"_unhex);
 
   n.items[2] = Node::Leaf{{"b", fc::storage::hamt::Value(encode("a").value())}};
   expectEncodeAndReencode(
-      n, "824302000482a16131818261626161a16131818261616162"_unhex);
+      n, "824302000482a16131818241626161a16131818241616162"_unhex);
 
   n.items[17] = Node::Ptr{};
   EXPECT_OUTCOME_ERROR(HamtError::EXPECTED_CID, encode(n));
@@ -190,7 +190,7 @@ TEST_F(HamtTest, FlushEmpty) {
 /** Flush node of leafs, intermediate state not stored */
 TEST_F(HamtTest, FlushNoCollision) {
   auto cidWithLeaf =
-      "0171a0e4022055e50395a85788650fc83874f45442e531f6289b0402d95ef3da8b01870c2629"_cid;
+      "0171a0e40220bec0c31a5efc2b514dc7f2829f1c30a0b29f6a598ab65ecf0632f03f2c599afe"_cid;
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("aai"));
@@ -205,7 +205,7 @@ TEST_F(HamtTest, FlushNoCollision) {
 /** Flush node with shard, intermediate state not stored */
 TEST_F(HamtTest, FlushCollisionChild) {
   auto cidShard =
-      "0171a0e402209431b57360c7ee799ffbc1f6fa83dce5239eb48f7fef6cb167190fd15267daf0"_cid;
+      "0171a0e4022056cf4b833c2ffbe0e03070208e7de2a974f96a4eea3442497852e8f436381d49"_cid;
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
@@ -229,19 +229,19 @@ TEST_F(HamtTest, CollisionChildBitWidth5) {
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ails", "01"_unhex));
   EXPECT_OUTCOME_EQ(
       hamt_.flush(),
-      "0171a0e40220963f12f112adbaa0e56ad77152a259224ac41eed6e5d909eaeb714f65add029f"_cid);
+      "0171a0e40220319f9f2bbb317b16fb843f99202b97875f483c24a1383596525d3f92095149b8"_cid);
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aufx", "02"_unhex));
   EXPECT_OUTCOME_EQ(
       hamt_.flush(),
-      "0171a0e402207df36ed88d694b1bfe7161dd598bdfac05426a9beab0bf828d3e838d2c198e16"_cid);
+      "0171a0e40220714d82a051527787786a38f02b0be81499faa1a947092e0cb74999c6a366a60a"_cid);
   EXPECT_OUTCOME_TRUE_1(hamt_.set("bmvm", "03"_unhex));
   EXPECT_OUTCOME_EQ(
       hamt_.flush(),
-      "0171a0e40220823751c22261961ca5a97917c9ce6c681e44a8265873d66ae2dadf3908c12357"_cid);
+      "0171a0e40220d192445fe6fc890e6c2abd5697a6b05fe0a78a83128ddf53c2dd09db9746cd76"_cid);
   EXPECT_OUTCOME_TRUE_1(hamt_.set("cnyh", "04"_unhex));
   EXPECT_OUTCOME_EQ(
       hamt_.flush(),
-      "0171a0e40220f77809a02565e12cbadbab9ab8713958c5bb66b061508bbb01b37d73923f8c2b"_cid);
+      "0171a0e402205455981eb2af710c47df6265fc26a9a006ee01ef5037b50d43a13e788199f41a"_cid);
 }
 
 /** Visit all key value pairs */

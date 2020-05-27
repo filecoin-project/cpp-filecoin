@@ -34,26 +34,27 @@ struct TipsetTest : public ::testing::Test {
     ticket1 = Ticket{bls1};
     ticket2 = Ticket{bls2};
 
-    BlockHeader block_header = fc::primitives::block::BlockHeader{
+    BlockHeader block_header{
         fc::primitives::address::Address::makeFromId(1),
         ticket2,
-        {
-            {fc::primitives::sector::PoStProof{
-                fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
-                "F00D"_unhex,
-            }},
-            bls1,
-            {},
-        },
+        {fc::common::Buffer{"F00D"_unhex}},
+        {fc::primitives::block::BeaconEntry{
+            4,
+            fc::common::Buffer{"F00D"_unhex},
+        }},
+        {fc::primitives::sector::PoStProof{
+            fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+            "F00D"_unhex,
+        }},
         {"010001020002"_cid},
-        BigInt(3),
+        fc::primitives::BigInt(3),
         4,
         "010001020005"_cid,
         "010001020006"_cid,
         "010001020007"_cid,
-        Signature{kSampleBlsSignatureBytes},
+        boost::none,
         8,
-        Signature{kSampleBlsSignatureBytes},
+        boost::none,
         9,
     };
     return block_header;
@@ -80,23 +81,6 @@ struct TipsetTest : public ::testing::Test {
 
     parent_state_root = "010001020005"_cid;
     parent_weight = BigInt(3);
-
-    tipset_cbor_hex =
-        "8381D82A5827000171A0E40220D820E1A8ED5635DC4A023F27F85FB6EC5968059F711B"
-        "D8AA27633D24EDFAFA09818D4200018158600201010101010101010101010101010101"
-        "0101010101010101010101010101010101010101010101010101010101010101010101"
-        "0101010101010101010101010101010101010101010101010101010101010101010101"
-        "0101010101010101018381820342F00D58600101010101010101010101010101010101"
-        "0101010101010101010101010101010101010101010101010101010101010101010101"
-        "0101010101010101010101010101010101010101010101010101010101010101010101"
-        "0101010101010101018081D82A470001000102000242000304D82A4700010001020005"
-        "D82A4700010001020006D82A4700010001020007586102010101010101010101010101"
-        "0101010101010101010101010101010101010101010101010101010101010101010101"
-        "0101010101010101010101010101010101010101010101010101010101010101010101"
-        "0101010101010101010101010101085861020101010101010101010101010101010101"
-        "0101010101010101010101010101010101010101010101010101010101010101010101"
-        "0101010101010101010101010101010101010101010101010101010101010101010101"
-        "0101010101010101010904";
   }
 
   BlockHeader bh1, bh2, bh3, bh4;
@@ -105,7 +89,6 @@ struct TipsetTest : public ::testing::Test {
   Ticket ticket1, ticket2;
   Signature signature;
   BigInt parent_weight;
-  std::string tipset_cbor_hex;
 };
 
 /**
@@ -166,6 +149,7 @@ TEST_F(TipsetTest, CreateSuccess) {
  */
 TEST_F(TipsetTest, LotusCrossTestSuccess) {
   EXPECT_OUTCOME_TRUE(ts, Tipset::create({bh1}));
-  EXPECT_OUTCOME_TRUE(tipset_cbor_bytes, fc::common::unhex(tipset_cbor_hex));
-  expectEncodeAndReencode(ts, tipset_cbor_bytes);
+  expectEncodeAndReencode(
+      ts,
+      "8381D82A5827000171A0E402209C9796303464DF1DC914244249A0A8DA032BF08B5782A6E9121C44BAF185DBC2818F4200018158600201010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101018142F00D81820442F00D81820342F00D81D82A470001000102000242000304D82A4700010001020005D82A4700010001020006D82A4700010001020007F608F60904"_unhex);
 }

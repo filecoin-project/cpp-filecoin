@@ -23,19 +23,52 @@
 #include "vm/message/message.hpp"
 
 namespace fc::primitives::block {
+  using common::Buffer;
   using crypto::signature::Signature;
   using primitives::BigInt;
   using primitives::address::Address;
+  using primitives::sector::PoStProof;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using Ipld = storage::ipfs::IpfsDatastore;
 
+  struct ElectionProof {
+    Buffer vrf_proof;
+  };
+  inline bool operator==(const ElectionProof &lhs, const ElectionProof &rhs) {
+    return lhs.vrf_proof == rhs.vrf_proof;
+  }
+  CBOR_TUPLE(ElectionProof, vrf_proof)
+
+  struct BeaconEntry {
+    uint64_t round;
+    Buffer data;
+  };
+  inline bool operator==(const BeaconEntry &lhs, const BeaconEntry &rhs) {
+    return lhs.round == rhs.round && lhs.data == rhs.data;
+  }
+  CBOR_TUPLE(BeaconEntry, round, data)
+
+  struct BlockTemplate {
+    Address miner;
+    std::vector<CID> parents;
+    boost::optional<Ticket> ticket;
+    ElectionProof election_proof;
+    std::vector<BeaconEntry> beacon_entries;
+    std::vector<SignedMessage> messages;
+    uint64_t height;
+    uint64_t timestamp;
+    std::vector<PoStProof> win_post_proof;
+  };
+
   struct BlockHeader {
     Address miner;
     boost::optional<Ticket> ticket;
-    EPostProof epost_proof;
+    ElectionProof election_proof;
+    std::vector<BeaconEntry> beacon_entries;
+    std::vector<PoStProof> win_post_proof;
     std::vector<CID> parents;
     BigInt parent_weight;
     uint64_t height;
@@ -78,7 +111,10 @@ namespace fc::primitives::block {
 
   inline bool operator==(const BlockHeader &lhs, const BlockHeader &rhs) {
     return lhs.miner == rhs.miner && lhs.ticket == rhs.ticket
-           && lhs.epost_proof == rhs.epost_proof && lhs.parents == rhs.parents
+           && lhs.election_proof == rhs.election_proof
+           && lhs.beacon_entries == rhs.beacon_entries
+           && lhs.win_post_proof == rhs.win_post_proof
+           && lhs.parents == rhs.parents
            && lhs.parent_weight == rhs.parent_weight && lhs.height == rhs.height
            && lhs.parent_state_root == rhs.parent_state_root
            && lhs.parent_message_receipts == rhs.parent_message_receipts
@@ -91,7 +127,9 @@ namespace fc::primitives::block {
   CBOR_TUPLE(BlockHeader,
              miner,
              ticket,
-             epost_proof,
+             election_proof,
+             beacon_entries,
+             win_post_proof,
              parents,
              parent_weight,
              height,

@@ -27,14 +27,14 @@ using fc::storage::ipfs::InMemoryDatastore;
  * @when loadCar
  * @then success
  */
-TEST(GenesisTest, LoadSuccess) {
+TEST(CarTest, LoadSuccess) {
   InMemoryDatastore ipld;
-  auto input = readFile(GENESIS_FILE);
+  auto input = readFile(resourcePath("genesis.car"));
   EXPECT_OUTCOME_TRUE(roots, loadCar(ipld, input));
   EXPECT_THAT(
       roots,
       testing::ElementsAre(
-          "0171a0e402202ecd6c8f4c987ff715c888294420aad8a15db507bc150c81189b8b6c2988bfca"_cid));
+          "0171a0e402202d4c00840d4227f198ec6c5343b8c70af7f008a7775d67393d10430ea2fa012f"_cid));
 }
 
 /**
@@ -42,9 +42,9 @@ TEST(GenesisTest, LoadSuccess) {
  * @when loadCar
  * @then error
  */
-TEST(GenesisTest, LoadTruncatedError) {
+TEST(CarTest, LoadTruncatedError) {
   InMemoryDatastore ipld;
-  auto input = readFile(GENESIS_FILE);
+  auto input = readFile(resourcePath("genesis.car"));
   EXPECT_OUTCOME_ERROR(CarError::DECODE_ERROR,
                        loadCar(ipld, input.subbuffer(0, input.size() - 1)));
 }

@@ -4,15 +4,11 @@
 #
 
 add_library(block_producer
-    impl/block_producer_impl.cpp
+    block_producer.cpp
     )
 target_link_libraries(block_producer
     bls_provider
-    outcome
-    buffer
-    address
-    clock
     interpreter
     tipset
-    ipfs_datastore_in_memory
+    weight_calculator
     )
