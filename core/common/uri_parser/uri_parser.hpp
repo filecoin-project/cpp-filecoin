@@ -28,7 +28,7 @@
 
 #include <string>
 
-namespace fc::primitives::uri_parser {
+namespace fc::common {
     class HttpUri final {
     public:
         enum class Scheme {

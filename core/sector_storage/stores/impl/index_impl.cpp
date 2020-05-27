@@ -7,13 +7,13 @@
 
 #include <boost/filesystem/path.hpp>
 #include <regex>
+#include "common/uri_parser/uri_parser.hpp"
 #include "primitives/types.hpp"
-#include "primitives/uri_parser/uri_parser.hpp"
 
 namespace fc::sector_storage::stores {
 
+  using fc::common::HttpUri;
   using fc::primitives::TokenAmount;
-  using fc::primitives::uri_parser::HttpUri;
   using primitives::sector_file::sectorName;
   using std::chrono::system_clock;
 

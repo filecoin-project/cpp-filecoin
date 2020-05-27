@@ -23,17 +23,16 @@
 
 // HttpUri.cpp
 
-#include "primitives/uri_parser/uri_parser.hpp"
-#include "primitives/uri_parser/percent_encoding.hpp"
+#include "common/uri_parser/uri_parser.hpp"
+#include "common/uri_parser/percent_encoding.hpp"
 
 #include <algorithm>
 #include <cstring>
 #include <iomanip>
 #include <sstream>
 #include <stdexcept>
-#include <vector>
 
-namespace fc::primitives::uri_parser {
+namespace fc::common {
     HttpUri::HttpUri()
             : _scheme(Scheme::UNDEFINED),
               _port(0),

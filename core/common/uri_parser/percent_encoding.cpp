@@ -24,7 +24,7 @@
 // PercentEncoding.cpp
 
 
-#include "primitives/uri_parser/percent_encoding.hpp"
+#include "common/uri_parser/percent_encoding.hpp"
 
 #include <stdexcept>
 #include <sstream>
