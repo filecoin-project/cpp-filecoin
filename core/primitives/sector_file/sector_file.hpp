@@ -29,7 +29,8 @@ namespace fc::primitives::sector_file {
   const std::unordered_map<SectorFileType, int> kOverheadSeal{
       {SectorFileType::FTUnsealed, 10},
       {SectorFileType::FTSealed, 10},
-      {SectorFileType::FTCache, 70}  // TODO(artyom-yurin): confirm for 32G
+      {SectorFileType::FTCache,
+       70}  // TODO(artyom-yurin): [FIL-199] confirm for 32G
   };
 
   std::string toString(const SectorFileType &file_type);
@@ -48,9 +49,9 @@ namespace fc::primitives::sector_file {
                        const std::string &path);
   };
 
-    enum class SectorFileTypeErrors{
-        InvalidSectorFileType = 1,
-    };
+  enum class SectorFileTypeErrors {
+    InvalidSectorFileType = 1,
+  };
 
 }  // namespace fc::primitives::sector_file
 
