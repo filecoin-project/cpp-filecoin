@@ -86,7 +86,7 @@ namespace fc::codec::cbor {
   }
 
   CborDecodeStream CborDecodeStream::list() {
-    if (!cbor_value_is_array(&value_)) {
+    if (!isList()) {
       outcome::raise(CborDecodeError::WRONG_TYPE);
     }
     auto stream = container();
@@ -157,6 +157,9 @@ namespace fc::codec::cbor {
   }
 
   size_t CborDecodeStream::listLength() const {
+    if (!isList()) {
+      outcome::raise(CborDecodeError::WRONG_TYPE);
+    }
     size_t length;
     if (CborNoError != cbor_value_get_array_length(&value_, &length)) {
       outcome::raise(CborDecodeError::INVALID_CBOR);

@@ -43,6 +43,7 @@ target_link_libraries(logger
     )
 
 add_subdirectory(libp2p)
+add_subdirectory(uri_parser)
 
 add_library(todo_error
     todo_error.hpp

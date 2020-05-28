@@ -26,8 +26,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
 
 namespace fc::primitives::tipset {
 
-  outcome::result<Tipset> Tipset::create(
-      std::vector<block::BlockHeader> blocks) {
+  outcome::result<Tipset> Tipset::create(std::vector<BlockHeader> blocks) {
     // required to have at least one block
     if (blocks.empty()) {
       return TipsetError::NO_BLOCKS;
@@ -87,6 +86,17 @@ namespace fc::primitives::tipset {
     }
 
     return ts;
+  }
+
+  outcome::result<Tipset> Tipset::load(Ipld &ipld,
+                                       const std::vector<CID> &cids) {
+    std::vector<BlockHeader> blocks;
+    blocks.reserve(cids.size());
+    for (auto &cid : cids) {
+      OUTCOME_TRY(block, ipld.getCbor<BlockHeader>(cid));
+      blocks.emplace_back(std::move(block));
+    }
+    return create(std::move(blocks));
   }
 
   outcome::result<TipsetKey> Tipset::getParents() const {

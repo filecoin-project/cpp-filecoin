@@ -33,10 +33,7 @@ namespace fc::sector_storage {
         .id = id,
     };
 
-    std::vector<SectorFileType> types = {SectorFileType::FTCache,
-                                         SectorFileType::FTSealed,
-                                         SectorFileType::FTUnsealed};
-    for (const auto &type : types) {
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
       if ((sector_type & type) == 0) {
         continue;
       }

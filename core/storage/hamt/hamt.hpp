@@ -15,6 +15,7 @@
 #include "codec/cbor/cbor.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
+#include "common/span.hpp"
 #include "common/visitor.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/ipfs/datastore.hpp"
@@ -27,6 +28,7 @@ OUTCOME_HPP_DECLARE_ERROR(fc::storage::hamt, HamtError);
 
 namespace fc::storage::hamt {
   using boost::multiprecision::cpp_int;
+  using common::Buffer;
   using Value = ipfs::IpfsDatastore::Value;
 
   constexpr size_t kLeafMax = 3;
@@ -76,8 +78,8 @@ namespace fc::storage::hamt {
             auto &s_leaf = m_item["1"];
             auto l_pairs = s_leaf.list();
             for (auto &pair : leaf) {
-              l_pairs << (l_pairs.list()
-                          << pair.first << l_pairs.wrap(pair.second, 1));
+              l_pairs << (l_pairs.list() << common::span::cbytes(pair.first)
+                                         << l_pairs.wrap(pair.second, 1));
             }
             s_leaf << l_pairs;
           });
@@ -110,9 +112,9 @@ namespace fc::storage::hamt {
         Node::Leaf leaf;
         for (size_t j = 0; j < n_leaf; ++j) {
           auto l_pair = l_leaf.list();
-          std::string key;
+          Buffer key;
           l_pair >> key;
-          leaf.emplace(key, l_pair.raw());
+          leaf.emplace(std::string{key.begin(), key.end()}, l_pair.raw());
         }
         node.items[j] = std::move(leaf);
       }

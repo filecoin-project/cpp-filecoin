@@ -65,5 +65,7 @@ namespace fc::vm::actor {
       CodeId(makeRawIdentityCid("fil/1/paymentchannel"));
   const CodeId kRewardActorCodeID = CodeId(makeRawIdentityCid("fil/1/reward"));
   const CodeId kSystemActorCodeID = CodeId(makeRawIdentityCid("fil/1/system"));
+  const CodeId kVerifiedRegistryCode =
+      CodeId(makeRawIdentityCid("fil/1/verifiedregistry"));
 
 }  // namespace fc::vm::actor

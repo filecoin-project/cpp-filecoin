@@ -59,6 +59,7 @@ namespace fc::api {
   using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::block::BlockMsg;
+  using primitives::block::BlockTemplate;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
@@ -299,15 +300,7 @@ namespace fc::api {
                const TokenAmount &,
                const TipsetKey &)
 
-    API_METHOD(MinerCreateBlock,
-               BlockMsg,
-               const Address &,
-               const TipsetKey &,
-               const Ticket &,
-               const EPostProof &,
-               const std::vector<SignedMessage> &,
-               ChainEpoch,
-               uint64_t)
+    API_METHOD(MinerCreateBlock, BlockMsg, const BlockTemplate &)
     API_METHOD(MinerGetBaseInfo,
                MiningBaseInfo,
                const Address &,

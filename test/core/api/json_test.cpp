@@ -135,13 +135,16 @@ TEST(ApiJsonTest, MsgWait) {
               {BlockHeader{
                   Address::makeFromId(1),
                   Ticket{b96},
-                  {{fc::primitives::sector::PoStProof{
-                       fc::primitives::sector::RegisteredProof::
-                           StackedDRG2KiBSeal,
-                       "DEAD"_unhex,
-                   }},
-                   b96,
-                   {}},
+                  {fc::common::Buffer{"F00D"_unhex}},
+                  {fc::primitives::block::BeaconEntry{
+                      4,
+                      fc::common::Buffer{"F00D"_unhex},
+                  }},
+                  {fc::primitives::sector::PoStProof{
+                      fc::primitives::sector::RegisteredProof::
+                          StackedDRG2KiBSeal,
+                      "F00D"_unhex,
+                  }},
                   {"010001020002"_cid},
                   3,
                   4,
@@ -160,9 +163,9 @@ TEST(ApiJsonTest, MsgWait) {
       "\"TipSet\":{\"Cids\":[{\"/"
       "\":\"baeaacaqaae\"}],\"Blocks\":[{\"Miner\":\"t01\",\"Ticket\":{"
       "\"VRFProof\":" J96
-      "},\"EPostProof\":{\"Proofs\":[{\"RegisteredProof\":3,\"ProofBytes\":"
-      "\"3q0=\"}],\"PostRand\":" J96
-      ",\"Candidates\":[]},\"Parents\":[{\"/"
+      "},\"ElectionProof\":{\"VRFProof\":\"8A0=\"},\"BeaconEntries\":[{"
+      "\"Round\":4,\"Data\":\"8A0=\"}],\"WinPoStProof\":[{\"RegisteredProof\":"
+      "3,\"ProofBytes\":\"8A0=\"}],\"Parents\":[{\"/"
       "\":\"baeaacaqaai\"}],\"ParentWeight\":\"3\",\"Height\":4,"
       "\"ParentStateRoot\":{\"/"
       "\":\"baeaacaqaau\"},\"ParentMessageReceipts\":{\"/"

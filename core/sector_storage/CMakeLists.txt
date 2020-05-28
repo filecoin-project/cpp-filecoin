@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(stores)
+
 add_library(sector_storage
         impl/sector_storage_impl.cpp
         impl/sector_storage_error.cpp

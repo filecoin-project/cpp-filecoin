@@ -121,7 +121,7 @@ namespace fc::vm::actor {
   extern const CodeId kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
       kStorageMarketCodeCid, kStorageMinerCodeCid, kMultisigCodeCid,
       kInitCodeCid, kPaymentChannelCodeCid, kRewardActorCodeID,
-      kSystemActorCodeID;
+      kSystemActorCodeID, kVerifiedRegistryCode;
 
   inline static const auto kSystemActorAddress = Address::makeFromId(0);
   inline static const auto kInitAddress = Address::makeFromId(1);

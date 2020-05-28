@@ -11,6 +11,3 @@ target_link_libraries(pieceio_test
     unixfs
     ipfs_datastore_in_memory
     )
-target_include_directories(pieceio_test PUBLIC
-    "${TEST_RESOURCES_PATH}"
-    )

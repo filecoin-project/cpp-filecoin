@@ -12,3 +12,5 @@ target_link_libraries( sector_storage_test
        base_fs_test
        proof_param_provider
        )
+
+add_subdirectory(stores)
