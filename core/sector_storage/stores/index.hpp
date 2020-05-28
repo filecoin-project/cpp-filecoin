@@ -10,14 +10,15 @@
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/sector_file/sector_file.hpp"
+#include "primitives/types.hpp"
 
 namespace fc::sector_storage::stores {
-  // ID identifies sector storage by UUID. One sector storage should map to one
-  //  filesystem, local or networked / shared by multiple machines
-  using ID = std::string;
+
   using fc::primitives::sector::RegisteredProof;
   using fc::primitives::sector::SectorId;
   using fc::primitives::sector_file::SectorFileType;
+  using primitives::StorageID;
+  using primitives::FsStat;
   using std::chrono::system_clock;
 
   const std::chrono::seconds kHeartbeatInterval(10);
@@ -25,7 +26,7 @@ namespace fc::sector_storage::stores {
       kHeartbeatInterval * 5;
 
   struct StorageInfo {
-    ID id;
+    StorageID id;
     std::vector<std::string>
         urls;  // TODO (artyom-yurin): [FIL-200] Support non-http transports
     uint64_t weight;
@@ -35,12 +36,6 @@ namespace fc::sector_storage::stores {
 
     system_clock::time_point last_heartbeat;
     boost::optional<std::string> error;
-  };
-
-  struct FsStat {
-    uint64_t capacity;
-    uint64_t available;  // Available to use for sector storage
-    uint64_t used;
   };
 
   struct HealthReport {
@@ -56,18 +51,18 @@ namespace fc::sector_storage::stores {
                                                 const FsStat &stat) = 0;
 
     virtual outcome::result<StorageInfo> getStorageInfo(
-        const ID &storage_id) const = 0;
+        const StorageID &storage_id) const = 0;
 
     virtual outcome::result<void> storageReportHealth(
-        const ID &storage_id, const HealthReport &report) = 0;
+        const StorageID &storage_id, const HealthReport &report) = 0;
 
     virtual outcome::result<void> storageDeclareSector(
-        const ID &storage_id,
+        const StorageID &storage_id,
         const SectorId &sector,
         const SectorFileType &file_type) = 0;
 
     virtual outcome::result<void> storageDropSector(
-        const ID &storage_id,
+        const StorageID &storage_id,
         const SectorId &sector,
         const SectorFileType &file_type) = 0;
 
