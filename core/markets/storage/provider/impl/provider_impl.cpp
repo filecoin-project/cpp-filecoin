@@ -430,7 +430,7 @@ namespace fc::markets::storage::provider {
       OUTCOME_TRY(filestore_->remove(deal->piece_path));
     }
     if (!deal->metadata_path.empty()) {
-      OUTCOME_TRY(filestore_->remove(deal->piece_path));
+      OUTCOME_TRY(filestore_->remove(deal->metadata_path));
     }
     return outcome::success();
   }
