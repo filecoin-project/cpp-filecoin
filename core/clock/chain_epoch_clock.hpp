@@ -19,12 +19,12 @@ namespace fc::clock {
    */
   class ChainEpochClock {
    public:
-    virtual Time genesisTime() const = 0;
-    virtual outcome::result<ChainEpoch> epochAtTime(const Time &time) const = 0;
+    virtual UnixTime genesisTime() const = 0;
+    virtual outcome::result<ChainEpoch> epochAtTime(UnixTime time) const = 0;
     virtual ~ChainEpochClock() = default;
   };
 
-  constexpr std::chrono::nanoseconds kEpochDuration = std::chrono::seconds(15);
+  constexpr UnixTime kEpochDuration{15};
 }  // namespace fc::clock
 
 OUTCOME_HPP_DECLARE_ERROR(fc::clock, EpochAtTimeError);
