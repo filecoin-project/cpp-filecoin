@@ -57,6 +57,7 @@ namespace fc::api {
   using primitives::TipsetWeight;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using primitives::block::BeaconEntry;
   using primitives::block::BlockHeader;
   using primitives::block::BlockMsg;
   using primitives::block::BlockTemplate;
@@ -196,6 +197,8 @@ namespace fc::api {
     std::vector<ChainSectorInfo> sectors;
     Address worker;
     SectorSize sector_size;
+    BeaconEntry prev_beacon;
+    std::vector<BeaconEntry> beacons;
   };
 
   struct ActorState {
@@ -304,6 +307,7 @@ namespace fc::api {
     API_METHOD(MinerGetBaseInfo,
                MiningBaseInfo,
                const Address &,
+               ChainEpoch,
                const TipsetKey &)
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
