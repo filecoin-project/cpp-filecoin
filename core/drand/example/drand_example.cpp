@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <memory>
+#include <string>
 
 #include "drand/impl/client.hpp"
 
@@ -15,10 +16,16 @@
  * This solves gRPC issue of looking the OS's certificates in the wrong place.
  */
 
-int main() {
+int main(int argc, char *argv[]) {
+  if (argc != 3) {
+    std::cout << "Please pass hostname and port separated with space"
+              << std::endl;
+    return 0;
+  }
+
   std::shared_ptr<fc::drand::DrandSyncClient> client =
       std::make_shared<fc::drand::DrandSyncClientImpl>(
-          "s5.stg2.fuhon.soramitsu.co.jp", 8081);
+          std::string(argv[1]), std::stoi(std::string(argv[2])));
 
   auto result = client->publicRand(1);
   std::cout << static_cast<int>(result.has_value()) << std::endl;
