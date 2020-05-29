@@ -6,31 +6,22 @@
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 
 #include <gtest/gtest.h>
+
 #include "testutil/outcome.hpp"
 
-using fc::clock::Time;
-using fc::clock::UnixTimeNano;
 using fc::clock::ChainEpoch;
-using fc::clock::ChainEpochClock;
-using fc::clock::kEpochDuration;
 using fc::clock::ChainEpochClockImpl;
+using fc::clock::kEpochDuration;
+using fc::clock::UnixTime;
 
-static Time kGenesisTime(UnixTimeNano(1));
-static std::chrono::nanoseconds kNano1(1);
+static UnixTime kGenesisTime{1};
+static UnixTime kSec1{1};
 static ChainEpoch kEpoch(3);
-static std::chrono::nanoseconds kNanoEpoch(kEpoch * kEpochDuration);
+static UnixTime kSecEpoch{kEpoch * kEpochDuration};
 
 class ChainEpochClockTest : public ::testing::Test {
  public:
-  void SetUp() override {
-    chain_epoch_clock_ = std::make_unique<ChainEpochClockImpl>(kGenesisTime);
-  }
-
-  fc::outcome::result<ChainEpoch> epochAtTime(const std::chrono::nanoseconds &nano) const {
-    return chain_epoch_clock_->epochAtTime(Time(nano));
-  }
-
-  std::unique_ptr<ChainEpochClock> chain_epoch_clock_;
+  ChainEpochClockImpl epoch_clock{kGenesisTime};
 };
 
 /**
@@ -39,7 +30,7 @@ class ChainEpochClockTest : public ::testing::Test {
  * @then equals to original
  */
 TEST_F(ChainEpochClockTest, GenesisTime) {
-  EXPECT_EQ(chain_epoch_clock_->genesisTime(), kGenesisTime);
+  EXPECT_EQ(epoch_clock.genesisTime(), kGenesisTime);
 }
 
 /**
@@ -48,9 +39,7 @@ TEST_F(ChainEpochClockTest, GenesisTime) {
  * @then error
  */
 TEST_F(ChainEpochClockTest, BeforeGenesis) {
-  auto epoch_at_time = epochAtTime(kGenesisTime.unixTimeNano() - kNano1);
-
-  EXPECT_OUTCOME_FALSE_1(epoch_at_time);
+  EXPECT_OUTCOME_FALSE_1(epoch_clock.epochAtTime(kGenesisTime - kSec1));
 }
 
 /**
@@ -59,9 +48,7 @@ TEST_F(ChainEpochClockTest, BeforeGenesis) {
  * @then epoch 0
  */
 TEST_F(ChainEpochClockTest, AtGenesis) {
-  auto epoch = chain_epoch_clock_->epochAtTime(kGenesisTime).value();
-
-  EXPECT_EQ(epoch, ChainEpoch(0));
+  EXPECT_OUTCOME_EQ(epoch_clock.epochAtTime(kGenesisTime), ChainEpoch(0));
 }
 
 /**
@@ -70,9 +57,8 @@ TEST_F(ChainEpochClockTest, AtGenesis) {
  * @then epoch N - 1
  */
 TEST_F(ChainEpochClockTest, BeforeEpoch) {
-  auto epoch = epochAtTime(kGenesisTime.unixTimeNano() + kNanoEpoch - kNano1).value();
-
-  EXPECT_EQ(epoch, ChainEpoch(kEpoch - 1));
+  EXPECT_OUTCOME_EQ(epoch_clock.epochAtTime(kGenesisTime + kSecEpoch - kSec1),
+                    ChainEpoch(kEpoch - 1));
 }
 
 /**
@@ -81,9 +67,7 @@ TEST_F(ChainEpochClockTest, BeforeEpoch) {
  * @then epoch N
  */
 TEST_F(ChainEpochClockTest, AtEpoch) {
-  auto epoch = epochAtTime(kGenesisTime.unixTimeNano() + kNanoEpoch).value();
-
-  EXPECT_EQ(epoch, kEpoch);
+  EXPECT_OUTCOME_EQ(epoch_clock.epochAtTime(kGenesisTime + kSecEpoch), kEpoch);
 }
 
 /**
@@ -92,7 +76,6 @@ TEST_F(ChainEpochClockTest, AtEpoch) {
  * @then epoch N
  */
 TEST_F(ChainEpochClockTest, AfterEpoch) {
-  auto epoch = epochAtTime(kGenesisTime.unixTimeNano() + kNanoEpoch + kNano1).value();
-
-  EXPECT_EQ(epoch, kEpoch);
+  EXPECT_OUTCOME_EQ(epoch_clock.epochAtTime(kGenesisTime + kSecEpoch + kSec1),
+                    kEpoch);
 }
