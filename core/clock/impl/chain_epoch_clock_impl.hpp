@@ -11,12 +11,12 @@
 namespace fc::clock {
   class ChainEpochClockImpl : public ChainEpochClock {
    public:
-    explicit ChainEpochClockImpl(const Time &genesis_time);
-    Time genesisTime() const override;
-    outcome::result<ChainEpoch> epochAtTime(const Time &time) const override;
+    explicit ChainEpochClockImpl(UnixTime genesis_time);
+    UnixTime genesisTime() const override;
+    outcome::result<ChainEpoch> epochAtTime(UnixTime time) const override;
 
    private:
-    Time genesis_time_;
+    UnixTime genesis_time_;
   };
 }  // namespace fc::clock
 

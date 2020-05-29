@@ -7,7 +7,8 @@
 
 namespace fc::clock {
   // TODO(turuslan): add NTP sync if necessary
-  Time UTCClockImpl::nowUTC() const {
-    return Time(std::chrono::system_clock::now().time_since_epoch());
+  UnixTime UTCClockImpl::nowUTC() const {
+    return std::chrono::duration_cast<UnixTime>(
+        std::chrono::system_clock::now().time_since_epoch());
   }
 }  // namespace fc::clock
