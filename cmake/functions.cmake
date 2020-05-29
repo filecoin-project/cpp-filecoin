@@ -154,8 +154,8 @@ function(add_grpc_proto_library NAME)
       ${SOURCES}
       )
   target_link_libraries(${NAME}
-      protobuf::libprotobuf
       gRPC::grpc++
+      protobuf::libprotobuf
       )
   target_include_directories(${NAME} PUBLIC
       ${CMAKE_BINARY_DIR}/generated/

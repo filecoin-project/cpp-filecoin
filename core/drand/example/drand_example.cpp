@@ -21,7 +21,7 @@ int main() {
           "s5.stg2.fuhon.soramitsu.co.jp", 8081);
 
   auto result = client->publicRand(1);
-  std::cout << (int)result.has_value() << std::endl;
+  std::cout << static_cast<int>(result.has_value()) << std::endl;
   for (auto e : result.value().randomness) {
     std::cout << e;
   }
