@@ -9,11 +9,7 @@ add_library(clock
     impl/utc_clock_impl.cpp
     time.cpp
     )
-target_compile_definitions(clock PRIVATE
-    BOOST_DATE_TIME_POSIX_TIME_STD_CONFIG
-    )
 target_link_libraries(clock
     Boost::date_time
     outcome
-    p2p::p2p_uvarint
     )

@@ -6,19 +6,19 @@
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 
 namespace fc::clock {
-  ChainEpochClockImpl::ChainEpochClockImpl(const Time &genesis_time)
+  ChainEpochClockImpl::ChainEpochClockImpl(UnixTime genesis_time)
       : genesis_time_(genesis_time) {}
 
-  Time ChainEpochClockImpl::genesisTime() const {
+  UnixTime ChainEpochClockImpl::genesisTime() const {
     return genesis_time_;
   }
 
   outcome::result<ChainEpoch> ChainEpochClockImpl::epochAtTime(
-      const Time &time) const {
+      UnixTime time) const {
     if (time < genesis_time_) {
       return outcome::failure(EpochAtTimeError::BEFORE_GENESIS);
     }
-    auto difference = time.unixTimeNano() - genesis_time_.unixTimeNano();
+    auto difference = time - genesis_time_;
     return ChainEpoch(difference / kEpochDuration);
   }
 }  // namespace fc::clock
