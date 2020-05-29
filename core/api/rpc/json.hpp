@@ -30,7 +30,6 @@ namespace fc::api {
   using crypto::signature::Signature;
   using markets::storage::StorageAsk;
   using primitives::BigInt;
-  using primitives::block::BeaconEntry;
   using primitives::block::BlockHeader;
   using primitives::block::ElectionProof;
   using primitives::cid::getCidOfCbor;
@@ -902,6 +901,8 @@ namespace fc::api {
       Set(j, "Sectors", v.sectors);
       Set(j, "Worker", v.worker);
       Set(j, "SectorSize", v.sector_size);
+      Set(j, "PrevBeaconEntry", v.prev_beacon);
+      Set(j, "BeaconEntries", v.beacons);
       return j;
     }
 
