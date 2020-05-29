@@ -270,7 +270,7 @@ namespace fc::api {
           }
           return block2;
         }},
-        .MinerGetBaseInfo = {[=](auto &miner, auto &tipset_key)
+        .MinerGetBaseInfo = {[=](auto &miner, auto epoch, auto &tipset_key)
                                  -> outcome::result<MiningBaseInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key, true));
           OUTCOME_TRY(state, context.minerState(miner));
