@@ -241,8 +241,8 @@ TEST_F(SectorIndexTest, BestAllocation) {
           SectorFileType::FTCache, RegisteredProof::StackedDRG2KiBSeal, false));
 
   ASSERT_EQ(candidates.size(), 2);
-  ASSERT_EQ(candidates.at(0).id, id1);
-  ASSERT_EQ(candidates.at(1).id, id3);
+  ASSERT_EQ(candidates.at(0).id, id3);
+  ASSERT_EQ(candidates.at(1).id, id1);
 }
 
 /**

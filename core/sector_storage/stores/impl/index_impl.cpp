@@ -274,7 +274,7 @@ namespace fc::sector_storage::stores {
               [](const StorageEntry &lhs, const StorageEntry &rhs) {
                 auto lw = TokenAmount(lhs.fs_stat.available) * lhs.info.weight;
                 auto rw = TokenAmount(rhs.fs_stat.available) * rhs.info.weight;
-                return lw > rw;
+                return lw < rw;
               });
 
     std::vector<StorageInfo> result;

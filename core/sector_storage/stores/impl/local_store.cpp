@@ -7,14 +7,15 @@
 
 #include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
+#include <utility>
 #include "primitives/sector_file/sector_file.hpp"
 
 namespace fc::sector_storage::stores {
 
-  LocalStore::LocalStore(std::shared_ptr<LocalStorage> storage,
-                         std::shared_ptr<SectorIndex> index,
+  LocalStore::LocalStore(const std::shared_ptr<LocalStorage> &storage,
+                         const std::shared_ptr<SectorIndex> &index,
                          gsl::span<std::string> urls)
-      : index_(index), urls_(urls.begin(), urls.end()) {}
+      : index_(std::move(index)), urls_(urls.begin(), urls.end()) {}
 
   outcome::result<AcquireSectorResponse> LocalStore::acquireSector(
       SectorId sector,
@@ -84,13 +85,6 @@ namespace fc::sector_storage::stores {
       std::string best_path;
       StorageID best_storage;
 
-      auto req_size_opt =
-          fc::primitives::sector_file::sealSpaceUse(type, seal_proof_type);
-
-      if (req_size_opt.has_error()) {
-        // TODO: Unlock mutex
-        return req_size_opt.error();
-      }
       for (const auto &info : sectors_info_opt.value()) {
         auto path_iter = paths_.find(info.id);
         if (path_iter == paths_.end()) {
@@ -115,6 +109,7 @@ namespace fc::sector_storage::stores {
 
         best_path = spath.string();
         best_storage = info.id;
+        break;
       }
 
       if (best_path.empty()) {

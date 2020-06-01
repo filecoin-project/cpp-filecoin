@@ -17,8 +17,8 @@ namespace fc::sector_storage::stores {
 
   class LocalStore : public Store {
    public:
-    LocalStore(std::shared_ptr<LocalStorage> storage,
-               std::shared_ptr<SectorIndex> index,
+    LocalStore(const std::shared_ptr<LocalStorage> &storage,
+               const std::shared_ptr<SectorIndex> &index,
                gsl::span<std::string> urls);
 
     outcome::result<AcquireSectorResponse> acquireSector(
