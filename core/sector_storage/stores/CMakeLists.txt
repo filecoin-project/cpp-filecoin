@@ -13,3 +13,11 @@ target_link_libraries(sector_index
         uri_parser
         Boost::filesystem
         )
+
+add_library(local_store
+        impl/local_store.cpp
+        )
+
+target_link_libraries(local_store
+        sector_index
+        )

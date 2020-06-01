@@ -8,6 +8,7 @@
 
 #include <functional>
 #include "primitives/sector_file/sector_file.hpp"
+#include "common/outcome.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::sector_storage::stores {
