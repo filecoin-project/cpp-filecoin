@@ -5,10 +5,10 @@
 
 #include "sector_storage/stores/impl/local_store.hpp"
 
-#include <boost/filesystem/operations.hpp>
 #include <boost/filesystem/path.hpp>
 #include <utility>
 #include "primitives/sector_file/sector_file.hpp"
+#include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage::stores {
 
@@ -24,7 +24,7 @@ namespace fc::sector_storage::stores {
       SectorFileType allocate,
       bool can_seal) {
     if ((existing | allocate) != (existing ^ allocate)) {
-      return outcome::success();  // TODO: ERROR
+      return StoreErrors::FindAndAllocate;
     }
 
     // mutex_.lock_shared();
@@ -95,14 +95,6 @@ namespace fc::sector_storage::stores {
           continue;
         }
 
-        if (can_seal && !info.can_seal) {
-          continue;
-        }
-
-        if (!can_seal && !info.can_store) {
-          continue;
-        }
-
         boost::filesystem::path spath(path_iter->second);
         spath /= toString(type);
         spath /= primitives::sector_file::sectorName(sector);
@@ -114,7 +106,7 @@ namespace fc::sector_storage::stores {
 
       if (best_path.empty()) {
         // TODO: Unlock mutex
-        return outcome::success();  // TODO: ERROR
+        return StoreErrors::NotFoundPath;
       }
 
       result.paths.setPathByType(type, best_path);

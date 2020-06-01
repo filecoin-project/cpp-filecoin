@@ -14,10 +14,11 @@ target_link_libraries(sector_index
         Boost::filesystem
         )
 
-add_library(local_store
+add_library(store
         impl/local_store.cpp
+        impl/store_error.cpp
         )
 
-target_link_libraries(local_store
+target_link_libraries(store
         sector_index
         )
