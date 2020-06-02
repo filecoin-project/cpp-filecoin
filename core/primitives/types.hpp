@@ -40,6 +40,14 @@ namespace fc::primitives {
     uint64_t used;
   };
 
+  struct LocalStorageMeta {
+    StorageID id;
+    uint64_t weight;  // 0 = readonly
+
+    bool can_seal;
+    bool can_store;
+  };
+
   struct SectorStorageWeightDesc {
     SectorSize sector_size;
     EpochDuration duration;

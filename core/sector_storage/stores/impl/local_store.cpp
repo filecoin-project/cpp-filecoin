@@ -5,17 +5,27 @@
 
 #include "sector_storage/stores/impl/local_store.hpp"
 
-#include <boost/filesystem/path.hpp>
+#include <rapidjson/document.h>
+#include <boost/filesystem.hpp>
+#include <fstream>
 #include <utility>
+#include "api/rpc/json.hpp"
 #include "primitives/sector_file/sector_file.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
+using fc::primitives::LocalStorageMeta;
+using fc::primitives::sector_file::kSectorFileTypes;
+
 namespace fc::sector_storage::stores {
+
+  outcome::result<SectorId> parseSectorId(const std::string &filename) {
+    return outcome::success();  // TODO: ERROR
+  }
 
   LocalStore::LocalStore(const std::shared_ptr<LocalStorage> &storage,
                          const std::shared_ptr<SectorIndex> &index,
                          gsl::span<std::string> urls)
-      : index_(std::move(index)), urls_(urls.begin(), urls.end()) {}
+      : index_(index), urls_(urls.begin(), urls.end()) {}
 
   outcome::result<AcquireSectorResponse> LocalStore::acquireSector(
       SectorId sector,
@@ -133,4 +143,68 @@ namespace fc::sector_storage::stores {
       fc::primitives::StorageID id) {
     return outcome::success();
   }
+
+  outcome::result<void> LocalStore::openPath(const std::string &path) {
+    std::unique_lock lock(mutex_);
+    auto root = boost::filesystem::path(path);
+    std::ifstream file{(root / kMetaFileName).string(),
+                       std::ios::binary | std::ios::ate};
+    if (!file.good()) {
+      return outcome::success();  // TODO: ERROR
+    }
+    fc::common::Buffer buffer;
+    buffer.resize(file.tellg());
+    file.seekg(0, std::ios::beg);
+    file.read(fc::common::span::string(buffer).data(), buffer.size());
+
+    rapidjson::Document j_file;
+    j_file.Parse(fc::common::span::cstring(buffer).data(), buffer.size());
+    buffer.clear();
+    if (j_file.HasParseError()) {
+      return outcome::success();  // TODO: ERROR
+    }
+    OUTCOME_TRY(meta, api::decode<LocalStorageMeta>(j_file));
+
+    auto path_iter = paths_.find(meta.id);
+    if (path_iter != paths_.end()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    FsStat stat{};  // TODO: GetStat from path
+
+    OUTCOME_TRY(index_->storageAttach(
+        StorageInfo{
+            .id = meta.id,
+            .urls = urls_,
+            .weight = meta.weight,
+            .can_seal = meta.can_seal,
+            .can_store = meta.can_store,
+        },
+        stat));
+
+    for (const auto &type : kSectorFileTypes) {
+      auto dir_path = root / toString(type);
+      if (!boost::filesystem::exists(dir_path)) {
+        if (!boost::filesystem::create_directories(dir_path)) {
+          return outcome::success();  // TODO: ERROR
+        }
+        continue;
+      }
+
+      boost::filesystem::directory_iterator dir_iter(dir_path), end;
+      while (dir_iter != end) {
+        OUTCOME_TRY(sector,
+                    parseSectorId(dir_iter->path().filename().string()));
+
+        OUTCOME_TRY(index_->storageDeclareSector(meta.id, sector, type));
+
+        ++dir_iter;
+      }
+    }
+
+    paths_[meta.id] = path;
+
+    return outcome::success();
+  }
+
 }  // namespace fc::sector_storage::stores

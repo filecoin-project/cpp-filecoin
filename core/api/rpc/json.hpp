@@ -30,6 +30,7 @@ namespace fc::api {
   using crypto::signature::Signature;
   using markets::storage::StorageAsk;
   using primitives::BigInt;
+  using primitives::LocalStorageMeta;
   using primitives::block::BeaconEntry;
   using primitives::block::BlockHeader;
   using primitives::block::ElectionProof;
@@ -1007,6 +1008,22 @@ namespace fc::api {
       Set(j, "FilePath", v.path);
       Set(j, "Size", v.size);
       return j;
+    }
+
+    ENCODE(LocalStorageMeta) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "ID", v.id);
+      Set(j, "Weight", v.weight);
+      Set(j, "CanSeal", v.can_seal);
+      Set(j, "CanStore", v.can_store);
+      return j;
+    }
+
+    DECODE(LocalStorageMeta) {
+      decode(v.id, Get(j, "ID"));
+      decode(v.weight, Get(j, "Weight"));
+      decode(v.can_seal, Get(j, "CanSeal"));
+      decode(v.can_store, Get(j, "CanStore"));
     }
 
     template <typename T>

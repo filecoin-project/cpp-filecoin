@@ -6,7 +6,6 @@
 #ifndef CPP_FILECOIN_CORE_SECTOR_INDEX_HPP
 #define CPP_FILECOIN_CORE_SECTOR_INDEX_HPP
 
-#include <chrono>
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/sector_file/sector_file.hpp"
@@ -17,8 +16,8 @@ namespace fc::sector_storage::stores {
   using fc::primitives::sector::RegisteredProof;
   using fc::primitives::sector::SectorId;
   using fc::primitives::sector_file::SectorFileType;
-  using primitives::StorageID;
   using primitives::FsStat;
+  using primitives::StorageID;
   using std::chrono::system_clock;
 
   const std::chrono::seconds kHeartbeatInterval(10);
@@ -33,9 +32,6 @@ namespace fc::sector_storage::stores {
 
     bool can_seal;
     bool can_store;
-
-    system_clock::time_point last_heartbeat;
-    boost::optional<std::string> error;
   };
 
   struct HealthReport {

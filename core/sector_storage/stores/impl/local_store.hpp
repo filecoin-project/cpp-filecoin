@@ -15,11 +15,15 @@ namespace fc::sector_storage::stores {
 
   class LocalStorage;
 
+  const std::string kMetaFileName = "sectorstore.json";
+
   class LocalStore : public Store {
    public:
     LocalStore(const std::shared_ptr<LocalStorage> &storage,
                const std::shared_ptr<SectorIndex> &index,
                gsl::span<std::string> urls);
+
+    outcome::result<void> openPath(const std::string &path);
 
     outcome::result<AcquireSectorResponse> acquireSector(
         SectorId sector,
