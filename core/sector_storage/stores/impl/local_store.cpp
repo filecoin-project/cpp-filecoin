@@ -158,7 +158,7 @@ namespace fc::sector_storage::stores {
       boost::system::error_code ec;
       boost::filesystem::remove_all(sector_path, ec);
       if (ec.failed()) {
-          return outcome::success(); // TODO: ERROR
+        return outcome::success();  // TODO: ERROR
       }
     }
 
@@ -168,6 +168,48 @@ namespace fc::sector_storage::stores {
   outcome::result<void> LocalStore::moveStorage(SectorId sector,
                                                 RegisteredProof seal_proof_type,
                                                 SectorFileType types) {
+    OUTCOME_TRY(
+        dest,
+        acquireSector(
+            sector, seal_proof_type, SectorFileType::FTNone, types, false));
+
+    OUTCOME_TRY(
+        src,
+        acquireSector(
+            sector, seal_proof_type, types, SectorFileType::FTNone, false));
+
+    for (const auto &type : kSectorFileTypes) {
+      if ((types & type) == 0) {
+        continue;
+      }
+
+      OUTCOME_TRY(source_storage_id, src.stores.getPathByType(type));
+      OUTCOME_TRY(sst, index_->getStorageInfo(source_storage_id));
+
+      OUTCOME_TRY(dest_storage_id, dest.stores.getPathByType(type));
+      OUTCOME_TRY(dst, index_->getStorageInfo(dest_storage_id));
+
+      if (sst.id == dst.id) {
+        continue;
+      }
+
+      if (sst.can_store) {
+        continue;
+      }
+      OUTCOME_TRY(index_->storageDropSector(source_storage_id, sector, type));
+
+      OUTCOME_TRY(source_path, src.paths.getPathByType(type));
+      OUTCOME_TRY(dest_path, dest.paths.getPathByType(type));
+
+      boost::system::error_code ec;
+      boost::filesystem::rename(source_path, dest_path, ec);
+      if (ec.failed()) {
+        return outcome::success();  // TODO: ERROR
+      }
+
+      OUTCOME_TRY(index_->storageDeclareSector(dest_storage_id, sector, type));
+    }
+
     return outcome::success();
   }
 

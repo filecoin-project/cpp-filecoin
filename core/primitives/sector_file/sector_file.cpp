@@ -57,6 +57,20 @@ namespace fc::primitives::sector_file {
     }
   }
 
+  outcome::result<std::string> SectorPaths::getPathByType(
+      const SectorFileType &file_type) {
+    switch (file_type) {
+      case FTCache:
+        return cache;
+      case FTUnsealed:
+        return unsealed;
+      case FTSealed:
+        return sealed;
+      default:
+        return SectorFileTypeErrors::InvalidSectorFileType;
+    }
+  }
+
   std::string sectorName(const SectorId &sid) {
     return "s-t0" + std::to_string(sid.miner) + "-"
            + std::to_string(sid.sector);

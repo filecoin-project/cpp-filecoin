@@ -15,6 +15,7 @@ using fc::primitives::sector::SectorId;
 
 namespace fc::primitives::sector_file {
   enum SectorFileType : int {
+    FTNone = 0,
     FTUnsealed = 1,
     FTSealed = 2,
     FTCache = 4,
@@ -53,6 +54,7 @@ namespace fc::primitives::sector_file {
 
     void setPathByType(const SectorFileType &file_type,
                        const std::string &path);
+    outcome::result<std::string> getPathByType(const SectorFileType &file_type);
   };
 
   enum class SectorFileTypeErrors {
