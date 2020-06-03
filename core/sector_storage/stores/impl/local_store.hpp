@@ -33,8 +33,7 @@ namespace fc::sector_storage::stores {
         bool can_seal) override;
 
     outcome::result<void> remove(SectorId sector,
-                                 SectorFileType types,
-                                 bool force) override;
+                                 SectorFileType type) override;
 
     outcome::result<void> moveStorage(SectorId sector,
                                       RegisteredProof seal_proof_type,

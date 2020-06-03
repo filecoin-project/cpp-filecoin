@@ -128,8 +128,40 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<void> LocalStore::remove(SectorId sector,
-                                           SectorFileType types,
-                                           bool force) {
+                                           SectorFileType type) {
+    // TODO: Check that delete only one type
+
+    OUTCOME_TRY(storages_info, index_->storageFindSector(sector, type, false));
+
+    if (storages_info.empty()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    for (const auto &info : storages_info) {
+      auto path_iter = paths_.find(info.id);
+      if (path_iter == paths_.end()) {
+        continue;
+      }
+
+      if (path_iter->second.empty()) {
+        continue;
+      }
+
+      OUTCOME_TRY(index_->storageDropSector(info.id, sector, type));
+
+      boost::filesystem::path sector_path(path_iter->second);
+      sector_path /= toString(type);
+      sector_path /= primitives::sector_file::sectorName(sector);
+
+      // TODO: Log about removing
+
+      boost::system::error_code ec;
+      boost::filesystem::remove_all(sector_path, ec);
+      if (ec.failed()) {
+          return outcome::success(); // TODO: ERROR
+      }
+    }
+
     return outcome::success();
   }
 
@@ -170,7 +202,7 @@ namespace fc::sector_storage::stores {
       return outcome::success();  // TODO: ERROR
     }
 
-    FsStat stat{};  // TODO: GetStat from path
+    OUTCOME_TRY(stat, getFsStat(path));
 
     OUTCOME_TRY(index_->storageAttach(
         StorageInfo{

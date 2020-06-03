@@ -36,8 +36,7 @@ namespace fc::sector_storage::stores {
         bool can_seal) = 0;
 
     virtual outcome::result<void> remove(SectorId sector,
-                                         SectorFileType types,
-                                         bool force) = 0;
+                                         SectorFileType type) = 0;
 
     virtual outcome::result<void> moveStorage(SectorId sector,
                                               RegisteredProof seal_proof_type,
