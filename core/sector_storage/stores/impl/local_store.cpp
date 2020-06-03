@@ -22,10 +22,12 @@ namespace fc::sector_storage::stores {
     return outcome::success();  // TODO: ERROR
   }
 
-  LocalStore::LocalStore(const std::shared_ptr<LocalStorage> &storage,
-                         const std::shared_ptr<SectorIndex> &index,
+  LocalStore::LocalStore(std::shared_ptr<LocalStorage> storage,
+                         std::shared_ptr<SectorIndex> index,
                          gsl::span<std::string> urls)
-      : index_(index), urls_(urls.begin(), urls.end()) {}
+      : storage_(std::move(storage)),
+        index_(std::move(index)),
+        urls_(urls.begin(), urls.end()) {}
 
   outcome::result<AcquireSectorResponse> LocalStore::acquireSector(
       SectorId sector,
@@ -213,9 +215,15 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<fc::primitives::FsStat> LocalStore::getFsStat(
-      fc::primitives::StorageID id) {
-    return outcome::success();
+  outcome::result<FsStat> LocalStore::getFsStat(fc::primitives::StorageID id) {
+    std::shared_lock lock(mutex_);
+
+    auto path_iter = paths_.find(id);
+    if (path_iter == paths_.end()) {
+      return outcome::success();  // TODO: ERROR;
+    }
+
+    return storage_->getStat(path_iter->second);
   }
 
   outcome::result<void> LocalStore::openPath(const std::string &path) {

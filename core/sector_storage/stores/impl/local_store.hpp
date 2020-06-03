@@ -13,14 +13,19 @@
 
 namespace fc::sector_storage::stores {
 
-  class LocalStorage;
+  class LocalStorage {
+   public:
+    virtual ~LocalStorage() = default;
+
+    virtual outcome::result<FsStat> getStat(const std::string &path) = 0;
+  };
 
   const std::string kMetaFileName = "sectorstore.json";
 
   class LocalStore : public Store {
    public:
-    LocalStore(const std::shared_ptr<LocalStorage> &storage,
-               const std::shared_ptr<SectorIndex> &index,
+    LocalStore(std::shared_ptr<LocalStorage> storage,
+               std::shared_ptr<SectorIndex> index,
                gsl::span<std::string> urls);
 
     outcome::result<void> openPath(const std::string &path);
@@ -32,8 +37,7 @@ namespace fc::sector_storage::stores {
         SectorFileType allocate,
         bool can_seal) override;
 
-    outcome::result<void> remove(SectorId sector,
-                                 SectorFileType type) override;
+    outcome::result<void> remove(SectorId sector, SectorFileType type) override;
 
     outcome::result<void> moveStorage(SectorId sector,
                                       RegisteredProof seal_proof_type,
@@ -42,6 +46,7 @@ namespace fc::sector_storage::stores {
     outcome::result<FsStat> getFsStat(StorageID id) override;
 
    private:
+    std::shared_ptr<LocalStorage> storage_;
     std::shared_ptr<SectorIndex> index_;
     std::vector<std::string> urls_;
     std::unordered_map<StorageID, std::string> paths_;
