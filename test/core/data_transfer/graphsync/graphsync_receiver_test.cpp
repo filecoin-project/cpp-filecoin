@@ -30,13 +30,14 @@ namespace fc::data_transfer {
         std::make_shared<GraphsyncMock>();
     std::shared_ptr<ManagerMock> graphsync_manager =
         std::make_shared<ManagerMock>();
-    PeerId peer_id = generatePeerId(1);
+    PeerInfo peer_info{.id = generatePeerId(1), .addresses = {}};
 
-    GraphsyncReceiver receiver{network, graphsync, graphsync_manager, peer_id};
+    GraphsyncReceiver receiver{
+        network, graphsync, graphsync_manager, peer_info};
 
     std::shared_ptr<RequestValidatorMock> request_validator =
         std::make_shared<RequestValidatorMock>();
-    PeerId initiator = generatePeerId(2);
+    PeerInfo initiator{.id = generatePeerId(2), .addresses = {}};
     std::shared_ptr<MessageSenderMock> message_sender =
         std::make_shared<MessageSenderMock>();
   };
@@ -113,7 +114,7 @@ namespace fc::data_transfer {
                               _,
                               _,
                               Eq(initiator),
-                              Eq(peer_id),
+                              Eq(peer_info),
                               Eq(initiator)))
         .WillOnce(::testing::Return(outcome::success(
             ChannelId{.initiator = initiator, .id = transfer_id})));
@@ -163,11 +164,11 @@ namespace fc::data_transfer {
                               _,
                               Eq(initiator),
                               Eq(initiator),
-                              Eq(peer_id)))
+                              Eq(peer_info)))
         .WillOnce(::testing::Return(outcome::success(
             ChannelId{.initiator = initiator, .id = transfer_id})));
     EXPECT_CALL(*graphsync,
-                makeRequest(Eq(initiator), _, Eq(base_cid), _, _, _));
+                makeRequest(Eq(initiator.id), _, Eq(base_cid), _, _, _));
 
     EXPECT_CALL(*request_validator, validatePush(Eq(initiator), _, base_cid, _))
         .WillOnce(::testing::Return(outcome::success()));

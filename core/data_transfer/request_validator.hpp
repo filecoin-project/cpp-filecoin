@@ -6,15 +6,15 @@
 #ifndef CPP_FILECOIN_REQUEST_VALIDATOR_HPP
 #define CPP_FILECOIN_REQUEST_VALIDATOR_HPP
 
-#include <libp2p/peer/peer_id.hpp>
+#include <libp2p/peer/peer_info.hpp>
 #include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/ipld/ipld_node.hpp"
 
 namespace fc::data_transfer {
 
-  using libp2p::peer::PeerId;
-  using storage::ipld::IPLDNode;
+  using libp2p::peer::PeerInfo;
+  using storage::ipld::walker::Selector;
 
   /**
    * RequestValidator is an interface implemented by the client of the data
@@ -29,19 +29,19 @@ namespace fc::data_transfer {
      * send data
      */
     virtual outcome::result<void> validatePush(
-        const PeerId &sender,
+        const PeerInfo &sender,
         std::vector<uint8_t> voucher,
         CID base_cid,
-        std::shared_ptr<IPLDNode> selector) = 0;
+        std::shared_ptr<Selector> selector) = 0;
     /**
      * ValidatePull validates a pull request received from the peer thatF will
      * receive data
      */
     virtual outcome::result<void> validatePull(
-        const PeerId &receiver,
+        const PeerInfo &receiver,
         std::vector<uint8_t> voucher,
         CID base_cid,
-        std::shared_ptr<IPLDNode> selector) = 0;
+        std::shared_ptr<Selector> selector) = 0;
   };
 
 }  // namespace fc::data_transfer

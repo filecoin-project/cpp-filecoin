@@ -10,7 +10,6 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <mock/libp2p/connection/stream_mock.hpp>
 #include <mock/libp2p/host/host_mock.hpp>
-#include <mock/libp2p/peer/peer_repository_mock.hpp>
 #include "testutil/mocks/data_transfer/message_receiver_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/peer_id.hpp"
@@ -26,6 +25,7 @@ using fc::data_transfer::MessageReceiverMock;
 using fc::data_transfer::TransferId;
 using ReadCallbackFunc = libp2p::basic::Reader::ReadCallbackFunc;
 using libp2p::connection::Stream;
+using libp2p::multi::Multiaddress;
 using libp2p::peer::PeerId;
 using libp2p::peer::PeerInfo;
 using libp2p::peer::Protocol;
@@ -95,37 +95,28 @@ class Libp2pDataTransferNetworkTest : public ::testing::Test {
   std::shared_ptr<libp2p::HostMock> host = std::make_shared<libp2p::HostMock>();
   std::shared_ptr<DataTransferNetwork> network =
       std::make_shared<Libp2pDataTransferNetwork>(host);
-  libp2p::peer::PeerRepositoryMock peer_repository;
+  Multiaddress multiaddress =
+      Multiaddress::create("/ip4/127.0.0.1/tcp/40005").value();
 };
 
 /**
  * Successful connect to peer
  */
 TEST_F(Libp2pDataTransferNetworkTest, Connect) {
-  PeerId peer_id = generatePeerId(1);
-  PeerInfo peer_info{.id = peer_id, .addresses = {}};
-  EXPECT_CALL(*host, getPeerRepository())
-      .WillOnce(testing::ReturnRef(peer_repository));
-  EXPECT_CALL(peer_repository, getPeerInfo(Eq(peer_id)))
-      .WillOnce(testing::Return(peer_info));
+  PeerInfo peer_info{.id = generatePeerId(1), .addresses = {}};
   EXPECT_CALL(*host, connect(Eq(peer_info))).WillOnce(testing::Return());
-  EXPECT_OUTCOME_TRUE_1(network->connectTo(peer_id));
+  EXPECT_OUTCOME_TRUE_1(network->connectTo(peer_info));
 }
 
 /**
  * Successful creation new MessageSender
  */
 TEST_F(Libp2pDataTransferNetworkTest, NewMessageSender) {
-  PeerId peer_id = generatePeerId(1);
-  PeerInfo peer_info{.id = peer_id, .addresses = {}};
-  EXPECT_CALL(*host, getPeerRepository())
-      .WillOnce(testing::ReturnRef(peer_repository));
-  EXPECT_CALL(peer_repository, getPeerInfo(Eq(peer_id)))
-      .WillOnce(testing::Return(peer_info));
+  PeerInfo peer_info{.id = generatePeerId(1), .addresses = {}};
   EXPECT_CALL(*host,
               newStream(Eq(peer_info), Eq(kDataTransferLibp2pProtocol), _))
       .WillOnce(testing::Return());
-  EXPECT_FALSE(network->newMessageSender(peer_id).has_error());
+  EXPECT_FALSE(network->newMessageSender(peer_info).has_error());
 }
 
 /**
@@ -182,6 +173,8 @@ TEST_F(Libp2pDataTransferNetworkTest, SendRequestMessage) {
   PeerId peer_id = generatePeerId(2);
   EXPECT_CALL(*stream, remotePeerId())
       .WillOnce(testing::Return(fc::outcome::success(peer_id)));
+  EXPECT_CALL(*stream, remoteMultiaddr())
+      .WillOnce(testing::Return(fc::outcome::success(multiaddress)));
   EXPECT_CALL(*receiver, receiveRequest(_, _))
       .WillOnce(testing::Return(fc::outcome::failure(
           libp2p::basic::MessageReadWriterError::BUFFER_IS_EMPTY)));
@@ -224,6 +217,8 @@ TEST_F(Libp2pDataTransferNetworkTest, SendResponseMessage) {
   PeerId peer_id = generatePeerId(2);
   EXPECT_CALL(*stream, remotePeerId())
       .WillOnce(testing::Return(fc::outcome::success(peer_id)));
+  EXPECT_CALL(*stream, remoteMultiaddr())
+      .WillOnce(testing::Return(fc::outcome::success(multiaddress)));
   EXPECT_CALL(*receiver, receiveResponse(_, _))
       .WillOnce(testing::Return(fc::outcome::failure(
           libp2p::basic::MessageReadWriterError::BUFFER_IS_EMPTY)));

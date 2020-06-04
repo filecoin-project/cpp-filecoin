@@ -13,14 +13,14 @@ namespace fc::data_transfer::graphsync {
   using common::Buffer;
 
   GraphSyncManager::GraphSyncManager(std::shared_ptr<Host> host,
-                                     PeerId peer)
+                                     PeerInfo peer)
       : network_(std::move(host)), peer_(std::move(peer)) {}
 
   outcome::result<ChannelId> GraphSyncManager::openPushDataChannel(
-      const PeerId &to,
+      const PeerInfo &to,
       const Voucher &voucher,
       CID base_cid,
-      std::shared_ptr<IPLDNode> selector) {
+      std::shared_ptr<Selector> selector) {
     OUTCOME_TRY(transfer_id,
                 sendDtRequest(selector, false, voucher, base_cid, to));
     // initiator = us, sender = us, receiver = them
@@ -32,10 +32,10 @@ namespace fc::data_transfer::graphsync {
   }
 
   outcome::result<ChannelId> GraphSyncManager::openPullDataChannel(
-      const PeerId &to,
+      const PeerInfo &to,
       const Voucher &voucher,
       CID base_cid,
-      std::shared_ptr<IPLDNode> selector) {
+      std::shared_ptr<Selector> selector) {
     OUTCOME_TRY(transfer_id,
                 sendDtRequest(selector, true, voucher, base_cid, to));
     // initiator = us, sender = them, receiver = us
@@ -49,11 +49,11 @@ namespace fc::data_transfer::graphsync {
   outcome::result<ChannelId> GraphSyncManager::createChannel(
       const TransferId &transfer_id,
       const CID &base_cid,
-      std::shared_ptr<IPLDNode> selector,
+      std::shared_ptr<Selector> selector,
       const std::vector<uint8_t> &voucher,
-      const PeerId &initiator,
-      const PeerId &sender_peer,
-      const PeerId &receiver_peer) {
+      const PeerInfo &initiator,
+      const PeerInfo &sender_peer,
+      const PeerInfo &receiver_peer) {
     ChannelId channel_id{.initiator = initiator, .id = transfer_id};
     Channel channel{.transfer_id = 0,
                     .base_cid = base_cid,
@@ -77,12 +77,13 @@ namespace fc::data_transfer::graphsync {
   }
 
   outcome::result<TransferId> GraphSyncManager::sendDtRequest(
-      const std::shared_ptr<IPLDNode> &selector,
+      const std::shared_ptr<Selector> &selector,
       bool is_pull,
       const Voucher &voucher,
       const CID &base_cid,
-      const PeerId &to) {
-    std::vector<uint8_t> selector_bytes = selector->getRawBytes().toVector();
+      const PeerInfo &to) {
+    // TODO (a.chernyshov) implement selectors and serialize
+    std::vector<uint8_t> selector_bytes{};
 
     TransferId tx_id = ++last_tx_id;
     OUTCOME_TRY(base_cid_str, base_cid.toString());
@@ -98,7 +99,7 @@ namespace fc::data_transfer::graphsync {
   }
 
   boost::optional<ChannelState> GraphSyncManager::getChannelByIdAndSender(
-      const ChannelId &channel_id, const PeerId &sender) {
+      const ChannelId &channel_id, const PeerInfo &sender) {
     // TODO check thread-safety of channels_
     auto found = channels_.find(channel_id);
     if (found == channels_.end() || found->second.channel.sender != sender) {
@@ -109,7 +110,7 @@ namespace fc::data_transfer::graphsync {
   }
 
   outcome::result<void> GraphSyncManager::sendResponse(bool is_accepted,
-                                                       const PeerId &to,
+                                                       const PeerInfo &to,
                                                        TransferId transfer_id) {
     DataTransferMessage message = createResponse(is_accepted, transfer_id);
     OUTCOME_TRY(sender, network_.newMessageSender(to));

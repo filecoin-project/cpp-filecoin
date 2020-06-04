@@ -18,33 +18,33 @@ namespace fc::data_transfer::graphsync {
 
   class GraphSyncManager : public Manager {
    public:
-    GraphSyncManager(std::shared_ptr<Host> host, PeerId peer);
+    GraphSyncManager(std::shared_ptr<Host> host, PeerInfo peer);
 
     outcome::result<ChannelId> openPushDataChannel(
-        const PeerId &to,
+        const PeerInfo &to,
         const Voucher &voucher,
         CID base_cid,
-        std::shared_ptr<IPLDNode> selector) override;
+        std::shared_ptr<Selector> selector) override;
 
     outcome::result<ChannelId> openPullDataChannel(
-        const PeerId &to,
+        const PeerInfo &to,
         const Voucher &voucher,
         CID base_cid,
-        std::shared_ptr<IPLDNode> selector) override;
+        std::shared_ptr<Selector> selector) override;
 
     outcome::result<ChannelId> createChannel(
         const TransferId &transfer_id,
         const CID &base_cid,
-        std::shared_ptr<IPLDNode> selector,
+        std::shared_ptr<Selector> selector,
         const std::vector<uint8_t> &voucher,
-        const PeerId &initiator,
-        const PeerId &sender_peer,
-        const PeerId &receiver_peer) override;
+        const PeerInfo &initiator,
+        const PeerInfo &sender_peer,
+        const PeerInfo &receiver_peer) override;
 
     outcome::result<void> closeChannel(const ChannelId &channel_id) override;
 
     boost::optional<ChannelState> getChannelByIdAndSender(
-        const ChannelId &channel_id, const PeerId &sender) override;
+        const ChannelId &channel_id, const PeerInfo &sender) override;
 
    private:
     /**
@@ -54,25 +54,26 @@ namespace fc::data_transfer::graphsync {
      * @param is_pool
      * @param voucher
      * @param base_cid
+     * @param to - destination peer info
      * @return transfer id
      */
     outcome::result<TransferId> sendDtRequest(
-        const std::shared_ptr<IPLDNode> &selector,
+        const std::shared_ptr<Selector> &selector,
         bool is_pull,
         const Voucher &voucher,
         const CID &base_cid,
-        const PeerId &to);
+        const PeerInfo &to);
 
     /**
      * Sends response
      */
     outcome::result<void> sendResponse(bool is_accepted,
-                                       const PeerId &to,
+                                       const PeerInfo &to,
                                        TransferId transfer_id);
 
     std::atomic<TransferId> last_tx_id{0};
     Libp2pDataTransferNetwork network_;
-    PeerId peer_;
+    PeerInfo peer_;
     std::map<ChannelId, ChannelState> channels_;
   };
 

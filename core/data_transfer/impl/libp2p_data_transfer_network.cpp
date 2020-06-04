@@ -17,12 +17,13 @@
   }
 
 #define GET_OUTCOME_RESULT(result, expression, receiver) \
-  if (expression.has_error()) {                          \
+  auto UNIQUE_NAME(_r) = expression;                     \
+  if (UNIQUE_NAME(_r).has_error()) {                     \
     receiver->receiveError();                            \
     stream->reset();                                     \
     return;                                              \
   }                                                      \
-  auto result = expression.value();
+  auto result = UNIQUE_NAME(_r).value();
 
 namespace fc::data_transfer {
 
@@ -55,22 +56,21 @@ namespace fc::data_transfer {
             GET_OUTCOME_RESULT(message,
                                codec::cbor::decode<DataTransferMessage>(buffer),
                                this->receiver_);
-            auto maybe_peer_id = stream->remotePeerId();
-            if (maybe_peer_id.has_error()) {
-              receiver_->receiveError();
-              stream->reset();
-              return;
-            }
-            PeerId peer_id = maybe_peer_id.value();
+            GET_OUTCOME_RESULT(
+                peer_id, stream->remotePeerId(), this->receiver_);
+            GET_OUTCOME_RESULT(
+                multiaddress, stream->remoteMultiaddr(), this->receiver_);
+            PeerInfo remote_peer_info{.id = peer_id,
+                                      .addresses = {multiaddress}};
 
             if (message.is_request) {
               CHECK_OUTCOME_RESULT(
-                  receiver_->receiveRequest(peer_id, *message.request),
+                  receiver_->receiveRequest(remote_peer_info, *message.request),
                   this->receiver_);
             } else {
-              CHECK_OUTCOME_RESULT(
-                  receiver_->receiveResponse(peer_id, *message.response),
-                  this->receiver_);
+              CHECK_OUTCOME_RESULT(receiver_->receiveResponse(
+                                       remote_peer_info, *message.response),
+                                   this->receiver_);
             }
           }
         });
@@ -78,16 +78,14 @@ namespace fc::data_transfer {
   }
 
   outcome::result<void> Libp2pDataTransferNetwork::connectTo(
-      const PeerId &peer) {
-    PeerInfo peer_info = host_->getPeerRepository().getPeerInfo(peer);
+      const PeerInfo &peer_info) {
     host_->connect(peer_info);
     return outcome::success();
   }
 
   outcome::result<std::shared_ptr<MessageSender>>
-  Libp2pDataTransferNetwork::newMessageSender(const PeerId &peer) {
+  Libp2pDataTransferNetwork::newMessageSender(const PeerInfo &peer_info) {
     std::shared_ptr<libp2p::connection::Stream> stream;
-    PeerInfo peer_info = host_->getPeerRepository().getPeerInfo(peer);
     host_->newStream(
         peer_info,
         kDataTransferLibp2pProtocol,

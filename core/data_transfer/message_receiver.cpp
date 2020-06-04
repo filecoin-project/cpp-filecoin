@@ -17,13 +17,15 @@ namespace fc::data_transfer {
   }
 
   outcome::result<void> MessageReceiver::validateVoucher(
-      const PeerId &sender, const DataTransferRequest &request) const {
+      const PeerInfo &sender, const DataTransferRequest &request) const {
     auto validator = voucher_validators_.find(request.voucher_type);
     if (validator == voucher_validators_.end()) {
       return MessageReceiverError::VOUCHER_VALIDATOR_NOT_FOUND;
     }
     OUTCOME_TRY(base_cid, CID::fromString(request.base_cid));
-    OUTCOME_TRY(selector, IPLDNodeImpl::createFromRawBytes(request.selector));
+    // TODO (a.chernyshov) implement selectors and deserialize from
+    // request.selector
+    auto selector = std::make_shared<Selector>();
     if (request.is_pull) {
       OUTCOME_TRY(validator->second->validatePull(
           sender, request.voucher, base_cid, selector));

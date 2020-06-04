@@ -18,9 +18,9 @@ namespace fc::data_transfer::graphsync {
   class GraphsyncManagerTest : public ::testing::Test {
    public:
     std::shared_ptr<HostMock> host = std::make_shared<HostMock>();
-    PeerId peer_id = generatePeerId(1);
+    PeerInfo peer_info{.id = generatePeerId(1), .addresses = {}};
 
-    GraphSyncManager manager{host, peer_id};
+    GraphSyncManager manager{host, peer_info};
   };
 
   /**
@@ -31,11 +31,11 @@ namespace fc::data_transfer::graphsync {
   TEST_F(GraphsyncManagerTest, CreateChannelTwice) {
     TransferId transfer_id = 1;
     CID base_cid = "010001020005"_cid;
-    std::shared_ptr<IPLDNode> selector;
+    auto selector = std::make_shared<Selector>();
     std::vector<uint8_t> voucher{};
-    PeerId initiator = generatePeerId(2);
-    PeerId sender_peer = generatePeerId(3);
-    PeerId receiver_peer = generatePeerId(4);
+    PeerInfo initiator{.id = generatePeerId(2), .addresses = {}};
+    PeerInfo sender_peer{.id = generatePeerId(3), .addresses = {}};
+    PeerInfo receiver_peer{.id = generatePeerId(4), .addresses = {}};
 
     EXPECT_OUTCOME_TRUE(channel_id,
                         manager.createChannel(transfer_id,

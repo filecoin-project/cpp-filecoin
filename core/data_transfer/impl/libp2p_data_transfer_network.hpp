@@ -21,10 +21,10 @@ namespace fc::data_transfer {
     outcome::result<void> setDelegate(
         std::shared_ptr<MessageReceiver> receiver) override;
 
-    outcome::result<void> connectTo(const PeerId &peer) override;
+    outcome::result<void> connectTo(const PeerInfo &peer) override;
 
     outcome::result<std::shared_ptr<MessageSender>> newMessageSender(
-        const PeerId &peer) override;
+        const PeerInfo &peer) override;
 
    private:
     std::shared_ptr<libp2p::Host> host_;

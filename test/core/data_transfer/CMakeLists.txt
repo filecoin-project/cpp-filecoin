@@ -18,3 +18,21 @@ target_link_libraries(data_transfer_test
     data_transfer_graphsync
     libp2p_data_transfer_network
     )
+
+add_executable(data_transfer_example
+    data_transfer_example.cpp
+    )
+target_link_libraries(data_transfer_example
+    data_transfer
+    data_transfer_graphsync
+    libp2p_data_transfer_network
+    )
+
+add_executable(data_transfer_example_2
+    data_transfer_example_2.cpp
+    )
+target_link_libraries(data_transfer_example_2
+    data_transfer
+    data_transfer_graphsync
+    libp2p_data_transfer_network
+    )
