@@ -18,15 +18,18 @@ namespace fc::sector_storage::stores {
     virtual ~LocalStorage() = default;
 
     virtual outcome::result<FsStat> getStat(const std::string &path) = 0;
+
+    virtual outcome::result<std::vector<std::string>> getPaths() = 0;
   };
 
   const std::string kMetaFileName = "sectorstore.json";
 
   class LocalStore : public Store {
    public:
-    LocalStore(std::shared_ptr<LocalStorage> storage,
-               std::shared_ptr<SectorIndex> index,
-               gsl::span<std::string> urls);
+    static outcome::result<std::shared_ptr<LocalStore>> newLocalStore(
+        std::shared_ptr<LocalStorage> storage,
+        std::shared_ptr<SectorIndex> index,
+        gsl::span<std::string> urls);
 
     outcome::result<void> openPath(const std::string &path);
 
@@ -46,6 +49,10 @@ namespace fc::sector_storage::stores {
     outcome::result<FsStat> getFsStat(StorageID id) override;
 
    private:
+    LocalStore(std::shared_ptr<LocalStorage> storage,
+               std::shared_ptr<SectorIndex> index,
+               gsl::span<std::string> urls);
+
     std::shared_ptr<LocalStorage> storage_;
     std::shared_ptr<SectorIndex> index_;
     std::vector<std::string> urls_;

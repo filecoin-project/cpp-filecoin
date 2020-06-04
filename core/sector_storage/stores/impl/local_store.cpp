@@ -289,4 +289,20 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
+  outcome::result<std::shared_ptr<LocalStore>> LocalStore::newLocalStore(
+      std::shared_ptr<LocalStorage> storage,
+      std::shared_ptr<SectorIndex> index,
+      gsl::span<std::string> urls) {
+    std::shared_ptr<LocalStore> local(
+        new LocalStore(std::move(storage), std::move(index), urls));
+
+    OUTCOME_TRY(paths, local->storage_->getPaths());
+
+    for (const auto &path : paths) {
+      OUTCOME_TRY(local->openPath(path));
+    }
+
+    return local;
+  }
+
 }  // namespace fc::sector_storage::stores

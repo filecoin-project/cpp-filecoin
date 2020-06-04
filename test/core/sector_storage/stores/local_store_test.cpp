@@ -9,28 +9,44 @@
 #include "common/outcome.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/stores/store_error.hpp"
+#include "testutil/mocks/sector_storage/stores/local_storage_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
 using fc::primitives::sector_file::SectorFileType;
+using fc::sector_storage::stores::LocalStorageMock;
 using fc::sector_storage::stores::LocalStore;
 using fc::sector_storage::stores::SectorIndexMock;
 using fc::sector_storage::stores::StorageInfo;
-using fc::sector_storage::stores::Store;
 using fc::sector_storage::stores::StoreErrors;
 
 class LocalStoreTest : public test::BaseFS_Test {
  public:
   LocalStoreTest() : test::BaseFS_Test("fc_local_store_test") {
     index_ = std::make_shared<SectorIndexMock>();
-    local_store_ = std::make_shared<LocalStore>(
-        nullptr, index_, gsl::make_span<std::string>(nullptr, 0));
+    storage_ = std::make_shared<LocalStorageMock>();
+    urls_ = {"http://url1.com", "http://url2.com"};
+    std::vector<std::string> paths = {storage_path1_, storage_path2_};
+
+    EXPECT_CALL(*storage_, getPaths())
+        .WillOnce(testing::Return(fc::outcome::success(paths)));
+
+    auto maybe_local = LocalStore::newLocalStore(storage_, index_, urls_);
+    if (maybe_local.has_error()) {
+      local_store_ = nullptr;
+    } else {
+      local_store_ = maybe_local.value();
+    }
   }
 
  protected:
-  std::shared_ptr<Store> local_store_;
+  std::shared_ptr<LocalStore> local_store_;
   std::shared_ptr<SectorIndexMock> index_;
+  std::shared_ptr<LocalStorageMock> storage_;
+  std::vector<std::string> urls_;
+  std::string storage_path1_;
+  std::string storage_path2_;
 };
 
 TEST_F(LocalStoreTest, AcqireSectorFindAndAllocate) {
@@ -63,8 +79,6 @@ TEST_F(LocalStoreTest, AcqireSectorNotFoundPath) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   }};
 
   EXPECT_CALL(*index_,

@@ -21,4 +21,6 @@ add_library(store
 
 target_link_libraries(store
         sector_index
+        buffer
+        rpc
         )
