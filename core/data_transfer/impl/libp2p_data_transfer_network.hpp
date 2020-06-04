@@ -14,7 +14,9 @@ namespace fc::data_transfer {
 
   using libp2p::Host;
 
-  class Libp2pDataTransferNetwork : public DataTransferNetwork {
+  class Libp2pDataTransferNetwork
+      : public DataTransferNetwork,
+        public std::enable_shared_from_this<Libp2pDataTransferNetwork> {
    public:
     explicit Libp2pDataTransferNetwork(std::shared_ptr<Host> host);
 

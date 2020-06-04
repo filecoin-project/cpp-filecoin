@@ -4,6 +4,7 @@
  */
 
 #include "data_transfer/impl/libp2p_data_transfer_network.hpp"
+#include "common/libp2p/cbor_stream.hpp"
 #include "data_transfer/message.hpp"
 
 /**
@@ -12,7 +13,7 @@
 #define CHECK_OUTCOME_RESULT(expression, receiver) \
   if (expression.has_error()) {                    \
     receiver->receiveError();                      \
-    stream->reset();                               \
+    stream->stream()->reset();                     \
     return;                                        \
   }
 
@@ -27,6 +28,7 @@
 
 namespace fc::data_transfer {
 
+  using common::libp2p::CborStream;
   using libp2p::peer::PeerId;
   using libp2p::peer::PeerInfo;
 
@@ -44,34 +46,33 @@ namespace fc::data_transfer {
             stream->reset();
             return;
           }
+          auto cbor_stream = std::make_shared<CborStream>(stream);
+          GET_OUTCOME_RESULT(peer_id, stream->remotePeerId(), this->receiver_);
+          GET_OUTCOME_RESULT(
+              multiaddress, stream->remoteMultiaddr(), this->receiver_);
+          PeerInfo remote_peer_info{.id = peer_id, .addresses = {multiaddress}};
           while (true) {
-            // read up to buffer_max bytes and try decode
-            std::array<uint8_t, 1024> buffer{0};
-            stream->read(
-                buffer, buffer.size(), [this](outcome::result<size_t> read) {
-                  if (!read) {
-                    this->receiver_->receiveError();
+            cbor_stream->read<DataTransferMessage>(
+                [self{shared_from_this()},
+                 remote_peer_info,
+                 stream{cbor_stream}](
+                    outcome::result<DataTransferMessage> message) {
+                  if (message.has_error()) {
+                    self->receiver_->receiveError();
+                    return;
+                  }
+                  if (message.value().is_request) {
+                    CHECK_OUTCOME_RESULT(
+                        self->receiver_->receiveRequest(
+                            remote_peer_info, *message.value().request),
+                        self->receiver_);
+                  } else {
+                    CHECK_OUTCOME_RESULT(
+                        self->receiver_->receiveResponse(
+                            remote_peer_info, *message.value().response),
+                        self->receiver_);
                   }
                 });
-            GET_OUTCOME_RESULT(message,
-                               codec::cbor::decode<DataTransferMessage>(buffer),
-                               this->receiver_);
-            GET_OUTCOME_RESULT(
-                peer_id, stream->remotePeerId(), this->receiver_);
-            GET_OUTCOME_RESULT(
-                multiaddress, stream->remoteMultiaddr(), this->receiver_);
-            PeerInfo remote_peer_info{.id = peer_id,
-                                      .addresses = {multiaddress}};
-
-            if (message.is_request) {
-              CHECK_OUTCOME_RESULT(
-                  receiver_->receiveRequest(remote_peer_info, *message.request),
-                  this->receiver_);
-            } else {
-              CHECK_OUTCOME_RESULT(receiver_->receiveResponse(
-                                       remote_peer_info, *message.response),
-                                   this->receiver_);
-            }
           }
         });
     return outcome::success();

@@ -11,5 +11,6 @@ add_library(libp2p_data_transfer_network
     )
 target_link_libraries(libp2p_data_transfer_network
     data_transfer
+    cbor_stream
     p2p::p2p
     )
