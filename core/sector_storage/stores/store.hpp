@@ -7,8 +7,8 @@
 #define CPP_FILECOIN_STORE_HPP
 
 #include <functional>
-#include "primitives/sector_file/sector_file.hpp"
 #include "common/outcome.hpp"
+#include "primitives/sector_file/sector_file.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::sector_storage::stores {
@@ -21,7 +21,6 @@ namespace fc::sector_storage::stores {
   struct AcquireSectorResponse {
     SectorPaths paths;
     SectorPaths stores;
-    std::function<void()> release;
   };
 
   class Store {

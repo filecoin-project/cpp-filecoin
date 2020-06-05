@@ -53,6 +53,13 @@ namespace fc::sector_storage::stores {
                std::shared_ptr<SectorIndex> index,
                gsl::span<std::string> urls);
 
+    outcome::result<AcquireSectorResponse> acquireSectorWithoutLock(
+        SectorId sector,
+        RegisteredProof seal_proof_type,
+        SectorFileType existing,
+        SectorFileType allocate,
+        bool can_seal);
+
     std::shared_ptr<LocalStorage> storage_;
     std::shared_ptr<SectorIndex> index_;
     std::vector<std::string> urls_;
@@ -61,6 +68,6 @@ namespace fc::sector_storage::stores {
     mutable std::shared_mutex mutex_;
   };
 
-};  // namespace fc::sector_storage::stores
+}  // namespace fc::sector_storage::stores
 
 #endif  // CPP_FILECOIN_LOCAL_STORE_HPP
