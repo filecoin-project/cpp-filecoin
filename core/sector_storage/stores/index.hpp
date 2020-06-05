@@ -34,6 +34,11 @@ namespace fc::sector_storage::stores {
     bool can_store;
   };
 
+  inline bool operator==(const StorageInfo &lhs, const StorageInfo &rhs) {
+    return lhs.id == rhs.id && lhs.urls == rhs.urls && lhs.weight == rhs.weight
+           && lhs.can_seal == rhs.can_seal && lhs.can_store == rhs.can_store;
+  }
+
   struct HealthReport {
     FsStat stat;
     boost::optional<std::string> error;

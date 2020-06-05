@@ -42,13 +42,6 @@ void writeToJSON(const T &obj, const std::string &path) {
   doc.Accept(writer);
 }
 
-void createStorage(const std::string &path, const LocalStorageMeta &meta) {
-  boost::filesystem::path file(path);
-  file /= kMetaFileName;
-
-  writeToJSON(meta, file.string());
-}
-
 class LocalStoreTest : public test::BaseFS_Test {
  public:
   LocalStoreTest() : test::BaseFS_Test("fc_local_store_test") {
@@ -56,62 +49,41 @@ class LocalStoreTest : public test::BaseFS_Test {
     storage_ = std::make_shared<LocalStorageMock>();
     urls_ = {"http://url1.com", "http://url2.com"};
 
-    storage_path1_ = boost::filesystem::unique_path(
-                         fs::canonical(base_path).append("%%%%%-storage"))
-                         .string();
-    boost::filesystem::create_directory(storage_path1_);
-
-    storage_1 = "storage_1";
-
-    fc::primitives::LocalStorageMeta storage_meta1{
-        .id = storage_1,
-        .weight = 0,
-        .can_store = true,
-        .can_seal = true,
-    };
-
-    createStorage(storage_path1_, storage_meta1);
-
-    storage_path2_ = boost::filesystem::unique_path(
-                         fs::canonical(base_path).append("%%%%%-storage"))
-                         .string();
-    boost::filesystem::create_directory(storage_path2_);
-
-    storage_2 = "storage_2";
-
-    fc::primitives::LocalStorageMeta storage_meta2{
-        .id = storage_2,
-        .weight = 0,
-        .can_store = true,
-        .can_seal = true,
-    };
-
-    createStorage(storage_path2_, storage_meta2);
-
-    std::vector<std::string> paths = {storage_path1_, storage_path2_};
-
-    EXPECT_CALL(*storage_, getStat(storage_path1_))
-        .WillRepeatedly(testing::Return(fc::outcome::success(FsStat{
-            .capacity = 100,
-            .available = 100,
-            .used = 0,
-        })));
-
-    EXPECT_CALL(*storage_, getStat(storage_path2_))
-        .WillRepeatedly(testing::Return(fc::outcome::success(FsStat{
-            .capacity = 200,
-            .available = 200,
-            .used = 0,
-        })));
-
     EXPECT_CALL(*storage_, getPaths())
-        .WillOnce(testing::Return(fc::outcome::success(paths)));
-
-    EXPECT_CALL(*index_, storageAttach(_, _))
-        .WillRepeatedly(testing::Return(fc::outcome::success()));
+        .WillOnce(testing::Return(
+            fc::outcome::success(std::vector<std::string>({}))));
 
     auto maybe_local = LocalStore::newLocalStore(storage_, index_, urls_);
     local_store_ = maybe_local.value();
+  }
+
+  void createStorage(const std::string &path,
+                     const LocalStorageMeta &meta,
+                     const FsStat &stat) {
+    if (!boost::filesystem::exists(path)) {
+      boost::filesystem::create_directory(path);
+    }
+
+    boost::filesystem::path file(path);
+    file /= kMetaFileName;
+
+    writeToJSON(meta, file.string());
+
+    StorageInfo storage_info{
+        .id = meta.id,
+        .urls = urls_,
+        .weight = 0,
+        .can_seal = true,
+        .can_store = true,
+    };
+
+    EXPECT_CALL(*storage_, getStat(path))
+        .WillOnce(testing::Return(fc::outcome::success(stat)));
+
+    EXPECT_CALL(*index_, storageAttach(storage_info, stat))
+        .WillOnce(testing::Return(fc::outcome::success()));
+
+    EXPECT_OUTCOME_TRUE_1(local_store_->openPath(path));
   }
 
  protected:
@@ -119,10 +91,6 @@ class LocalStoreTest : public test::BaseFS_Test {
   std::shared_ptr<SectorIndexMock> index_;
   std::shared_ptr<LocalStorageMock> storage_;
   std::vector<std::string> urls_;
-  std::string storage_path1_;
-  std::string storage_path2_;
-  StorageID storage_1;
-  StorageID storage_2;
 };
 
 TEST_F(LocalStoreTest, AcqireSectorFindAndAllocate) {
@@ -179,20 +147,36 @@ TEST_F(LocalStoreTest, AcqireSectorAllocateSuccess) {
 
   SectorFileType file_type = SectorFileType::FTCache;
 
-  std::vector res = {StorageInfo{
-                         .id = storage_1,
-                         .urls = urls_,
-                         .weight = 0,
-                         .can_seal = true,
-                         .can_store = true,
-                     },
-                     StorageInfo{
-                         .id = storage_2,
-                         .urls = urls_,
-                         .weight = 0,
-                         .can_seal = true,
-                         .can_store = true,
-                     }};
+  auto storage_path = boost::filesystem::unique_path(
+                          fs::canonical(base_path).append("%%%%%-storage"))
+                          .string();
+
+  StorageID storage_id = "storage_id";
+
+  fc::primitives::LocalStorageMeta storage_meta{
+      .id = storage_id,
+      .weight = 0,
+      .can_store = true,
+      .can_seal = true,
+  };
+
+  FsStat stat{
+      .capacity = 100,
+      .available = 100,
+      .used = 0,
+  };
+
+  createStorage(storage_path, storage_meta, stat);
+
+  StorageInfo storage_info{
+      .id = storage_id,
+      .urls = urls_,
+      .weight = 0,
+      .can_seal = true,
+      .can_store = true,
+  };
+
+  std::vector res = {storage_info};
 
   EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type, false))
       .WillOnce(testing::Return(fc::outcome::success(res)));
@@ -203,12 +187,12 @@ TEST_F(LocalStoreTest, AcqireSectorAllocateSuccess) {
           sector, seal_proof_type, SectorFileType::FTNone, file_type, false));
 
   std::string res_path =
-      (boost::filesystem::path(storage_path1_) / toString(file_type)
+      (boost::filesystem::path(storage_path) / toString(file_type)
        / fc::primitives::sector_file::sectorName(sector))
           .string();
 
   EXPECT_OUTCOME_EQ(sectors.paths.getPathByType(file_type), res_path);
-  EXPECT_OUTCOME_EQ(sectors.stores.getPathByType(file_type), storage_1);
+  EXPECT_OUTCOME_EQ(sectors.stores.getPathByType(file_type), storage_id);
 }
 
 TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
@@ -221,13 +205,36 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
 
   SectorFileType file_type = SectorFileType::FTCache;
 
-  std::vector res = {StorageInfo{
-      .id = storage_2,
+  auto storage_path = boost::filesystem::unique_path(
+                          fs::canonical(base_path).append("%%%%%-storage"))
+                          .string();
+
+  StorageID storage_id = "storage_id";
+
+  fc::primitives::LocalStorageMeta storage_meta{
+      .id = storage_id,
+      .weight = 0,
+      .can_store = true,
+      .can_seal = true,
+  };
+
+  FsStat stat{
+      .capacity = 200,
+      .available = 200,
+      .used = 0,
+  };
+
+  createStorage(storage_path, storage_meta, stat);
+
+  StorageInfo storage_info{
+      .id = storage_id,
       .urls = urls_,
       .weight = 0,
       .can_seal = true,
       .can_store = true,
-  }};
+  };
+
+  std::vector res = {storage_info};
 
   EXPECT_CALL(*index_, storageFindSector(sector, file_type, false))
       .WillOnce(testing::Return(fc::outcome::success(res)));
@@ -238,12 +245,12 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
           sector, seal_proof_type, file_type, SectorFileType::FTNone, false));
 
   std::string res_path =
-      (boost::filesystem::path(storage_path2_) / toString(file_type)
+      (boost::filesystem::path(storage_path) / toString(file_type)
        / fc::primitives::sector_file::sectorName(sector))
           .string();
 
   EXPECT_OUTCOME_EQ(sectors.paths.getPathByType(file_type), res_path);
-  EXPECT_OUTCOME_EQ(sectors.stores.getPathByType(file_type), storage_2);
+  EXPECT_OUTCOME_EQ(sectors.stores.getPathByType(file_type), storage_id);
 }
 
 TEST_F(LocalStoreTest, getFSStatNotFound) {
@@ -252,13 +259,39 @@ TEST_F(LocalStoreTest, getFSStatNotFound) {
 }
 
 TEST_F(LocalStoreTest, getFSStatSuccess) {
-  FsStat res{
+  auto storage_path = boost::filesystem::unique_path(
+                          fs::canonical(base_path).append("%%%%%-storage"))
+                          .string();
+
+  StorageID storage_id = "storage_id";
+
+  fc::primitives::LocalStorageMeta storage_meta{
+      .id = storage_id,
+      .weight = 0,
+      .can_store = true,
+      .can_seal = true,
+  };
+
+  FsStat res_stat{
       .capacity = 100,
       .available = 100,
       .used = 0,
   };
-  EXPECT_OUTCOME_TRUE(stat, local_store_->getFsStat(storage_1));
-  ASSERT_EQ(stat.capacity, res.capacity);
-  ASSERT_EQ(stat.available, res.available);
-  ASSERT_EQ(stat.used, res.used);
+
+  createStorage(storage_path, storage_meta, res_stat);
+
+  EXPECT_CALL(*storage_, getStat(storage_path))
+      .WillOnce(testing::Return(fc::outcome::success(res_stat)));
+
+  StorageInfo storage_info{
+      .id = storage_id,
+      .urls = urls_,
+      .weight = 0,
+      .can_seal = true,
+      .can_store = true,
+  };
+
+  std::vector res = {storage_info};
+
+  EXPECT_OUTCOME_EQ(local_store_->getFsStat(storage_id), res_stat);
 }

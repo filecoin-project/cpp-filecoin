@@ -40,6 +40,11 @@ namespace fc::primitives {
     uint64_t used;
   };
 
+  inline bool operator==(const FsStat &lhs, const FsStat &rhs) {
+    return lhs.capacity == rhs.capacity && lhs.available == rhs.available
+           && lhs.used == rhs.used;
+  };
+
   struct LocalStorageMeta {
     StorageID id;
     uint64_t weight;  // 0 = readonly
