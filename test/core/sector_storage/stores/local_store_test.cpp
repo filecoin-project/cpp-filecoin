@@ -91,14 +91,14 @@ class LocalStoreTest : public test::BaseFS_Test {
     std::vector<std::string> paths = {storage_path1_, storage_path2_};
 
     EXPECT_CALL(*storage_, getStat(storage_path1_))
-        .WillOnce(testing::Return(fc::outcome::success(FsStat{
+        .WillRepeatedly(testing::Return(fc::outcome::success(FsStat{
             .capacity = 100,
             .available = 100,
             .used = 0,
         })));
 
     EXPECT_CALL(*storage_, getStat(storage_path2_))
-        .WillOnce(testing::Return(fc::outcome::success(FsStat{
+        .WillRepeatedly(testing::Return(fc::outcome::success(FsStat{
             .capacity = 200,
             .available = 200,
             .used = 0,
@@ -222,12 +222,12 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
   SectorFileType file_type = SectorFileType::FTCache;
 
   std::vector res = {StorageInfo{
-                         .id = storage_2,
-                         .urls = urls_,
-                         .weight = 0,
-                         .can_seal = true,
-                         .can_store = true,
-                     }};
+      .id = storage_2,
+      .urls = urls_,
+      .weight = 0,
+      .can_seal = true,
+      .can_store = true,
+  }};
 
   EXPECT_CALL(*index_, storageFindSector(sector, file_type, false))
       .WillOnce(testing::Return(fc::outcome::success(res)));
@@ -244,4 +244,21 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
 
   EXPECT_OUTCOME_EQ(sectors.paths.getPathByType(file_type), res_path);
   EXPECT_OUTCOME_EQ(sectors.stores.getPathByType(file_type), storage_2);
+}
+
+TEST_F(LocalStoreTest, getFSStatNotFound) {
+  EXPECT_OUTCOME_ERROR(StoreErrors::NotFoundStorage,
+                       local_store_->getFsStat("not_found_id"));
+}
+
+TEST_F(LocalStoreTest, getFSStatSuccess) {
+  FsStat res{
+      .capacity = 100,
+      .available = 100,
+      .used = 0,
+  };
+  EXPECT_OUTCOME_TRUE(stat, local_store_->getFsStat(storage_1));
+  ASSERT_EQ(stat.capacity, res.capacity);
+  ASSERT_EQ(stat.available, res.available);
+  ASSERT_EQ(stat.used, res.used);
 }

@@ -6,8 +6,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
   switch (e) {
     case (StoreErrors::FindAndAllocate):
       return "Store: can't both find and allocate a sector";
-      case (StoreErrors::NotFoundPath):
+    case (StoreErrors::NotFoundPath):
       return "Store: couldn't find a suitable path for a sector";
+    case (StoreErrors::NotFoundStorage):
+      return "Store: couldn't find the storage";
     default:
       return "Store: unknown error";
   }

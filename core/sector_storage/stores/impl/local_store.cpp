@@ -137,7 +137,7 @@ namespace fc::sector_storage::stores {
 
     auto path_iter = paths_.find(id);
     if (path_iter == paths_.end()) {
-      return outcome::success();  // TODO: ERROR;
+      return StoreErrors::NotFoundStorage;
     }
 
     return storage_->getStat(path_iter->second);

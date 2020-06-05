@@ -12,6 +12,7 @@ namespace fc::sector_storage::stores {
   enum class StoreErrors {
     FindAndAllocate = 1,
     NotFoundPath,
+    NotFoundStorage,
   };
 }  // namespace fc::sector_storage::stores
 
