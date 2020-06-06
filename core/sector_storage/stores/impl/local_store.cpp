@@ -62,12 +62,16 @@ namespace fc::sector_storage::stores {
 
   outcome::result<void> LocalStore::remove(SectorId sector,
                                            SectorFileType type) {
-    // TODO: Check that delete only one type
+    if (type == SectorFileType::FTNone || ((type & (type - 1)) != 0)) {
+      return StoreErrors::RemoveSeveralFileTypes;
+    }
+
+    std::unique_lock lock(mutex_);
 
     OUTCOME_TRY(storages_info, index_->storageFindSector(sector, type, false));
 
     if (storages_info.empty()) {
-      return outcome::success();  // TODO: ERROR
+      return StoreErrors::NotFoundSector;
     }
 
     for (const auto &info : storages_info) {
@@ -91,7 +95,8 @@ namespace fc::sector_storage::stores {
       boost::system::error_code ec;
       boost::filesystem::remove_all(sector_path, ec);
       if (ec.failed()) {
-        return outcome::success();  // TODO: ERROR
+        // TODO: Log error
+        return StoreErrors::CannotRemoveSector;
       }
     }
 

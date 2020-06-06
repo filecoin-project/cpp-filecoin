@@ -17,6 +17,9 @@ namespace fc::sector_storage::stores {
     InvalidStorageConfig,
     CannotCreateDir,
     DuplicateStorage,
+    NotFoundSector,
+    CannotRemoveSector,
+    RemoveSeveralFileTypes,
   };
 }  // namespace fc::sector_storage::stores
 

@@ -18,6 +18,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
       return "Store: can not create a directory";
     case (StoreErrors::DuplicateStorage):
       return "Store: the storage is a duplicate";
+    case (StoreErrors::NotFoundSector):
+      return "Store: couldn't find the sector";
+    case (StoreErrors::CannotRemoveSector):
+      return "Store: cannot remove the sector";
+    case (StoreErrors::RemoveSeveralFileTypes):
+      return "Store: remove expects one file type";
     default:
       return "Store: unknown error";
   }
