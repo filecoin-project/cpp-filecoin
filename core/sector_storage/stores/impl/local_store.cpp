@@ -8,6 +8,7 @@
 #include <rapidjson/document.h>
 #include <boost/filesystem.hpp>
 #include <fstream>
+#include <regex>
 #include <utility>
 #include "api/rpc/json.hpp"
 #include "primitives/sector_file/sector_file.hpp"
@@ -19,7 +20,21 @@ using fc::primitives::sector_file::kSectorFileTypes;
 namespace fc::sector_storage::stores {
 
   outcome::result<SectorId> parseSectorId(const std::string &filename) {
-    return outcome::success();  // TODO: ERROR
+    std::regex regex(R"(s-t0([0-9]+)-([0-9]+))");
+    std::smatch sm;
+    if (std::regex_match(filename, sm, regex)) {
+      try {
+        auto miner = boost::lexical_cast<primitives::ActorId>(sm[1]);
+        auto sector = boost::lexical_cast<primitives::SectorNumber>(sm[2]);
+        return SectorId{
+            .miner = miner,
+            .sector = sector,
+        };
+      } catch (const boost::bad_lexical_cast &) {
+        return StoreErrors::InvalidSectorName;
+      }
+    }
+    return StoreErrors::InvalidSectorName;
   }
 
   LocalStore::LocalStore(std::shared_ptr<LocalStorage> storage,
@@ -149,7 +164,7 @@ namespace fc::sector_storage::stores {
     std::ifstream file{(root / kMetaFileName).string(),
                        std::ios::binary | std::ios::ate};
     if (!file.good()) {
-      return outcome::success();  // TODO: ERROR
+      return StoreErrors::InvalidStorageConfig;
     }
     fc::common::Buffer buffer;
     buffer.resize(file.tellg());
@@ -160,13 +175,13 @@ namespace fc::sector_storage::stores {
     j_file.Parse(fc::common::span::cstring(buffer).data(), buffer.size());
     buffer.clear();
     if (j_file.HasParseError()) {
-      return outcome::success();  // TODO: ERROR
+      return StoreErrors::InvalidStorageConfig;
     }
     OUTCOME_TRY(meta, api::decode<LocalStorageMeta>(j_file));
 
     auto path_iter = paths_.find(meta.id);
     if (path_iter != paths_.end()) {
-      return outcome::success();  // TODO: ERROR
+      return StoreErrors::DuplicateStorage;
     }
 
     OUTCOME_TRY(stat, storage_->getStat(path));
@@ -185,7 +200,7 @@ namespace fc::sector_storage::stores {
       auto dir_path = root / toString(type);
       if (!boost::filesystem::exists(dir_path)) {
         if (!boost::filesystem::create_directories(dir_path)) {
-          return outcome::success();  // TODO: ERROR
+          return StoreErrors::CannotCreateDir;
         }
         continue;
       }

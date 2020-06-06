@@ -42,6 +42,14 @@ void writeToJSON(const T &obj, const std::string &path) {
   doc.Accept(writer);
 }
 
+void createMetaFile(const std::string &storage_path,
+                    const LocalStorageMeta &meta) {
+  boost::filesystem::path file(storage_path);
+  file /= kMetaFileName;
+
+  writeToJSON(meta, file.string());
+}
+
 class LocalStoreTest : public test::BaseFS_Test {
  public:
   LocalStoreTest() : test::BaseFS_Test("fc_local_store_test") {
@@ -64,10 +72,7 @@ class LocalStoreTest : public test::BaseFS_Test {
       boost::filesystem::create_directory(path);
     }
 
-    boost::filesystem::path file(path);
-    file /= kMetaFileName;
-
-    writeToJSON(meta, file.string());
+    createMetaFile(path, meta);
 
     StorageInfo storage_info{
         .id = meta.id,
@@ -294,4 +299,162 @@ TEST_F(LocalStoreTest, getFSStatSuccess) {
   std::vector res = {storage_info};
 
   EXPECT_OUTCOME_EQ(local_store_->getFsStat(storage_id), res_stat);
+}
+
+TEST_F(LocalStoreTest, openPathExistingSector) {
+  auto storage_path = boost::filesystem::unique_path(
+      fs::canonical(base_path).append("%%%%%-storage"));
+
+  SectorFileType file_type = SectorFileType::FTCache;
+
+  boost::filesystem::create_directories((storage_path / toString(file_type)));
+
+  StorageID storage_id = "storage_id";
+
+  fc::primitives::LocalStorageMeta storage_meta{
+      .id = storage_id,
+      .weight = 0,
+      .can_store = true,
+      .can_seal = true,
+  };
+
+  createMetaFile(storage_path.string(), storage_meta);
+
+  FsStat stat{
+      .capacity = 200,
+      .available = 200,
+      .used = 0,
+  };
+
+  SectorId sector{
+      .miner = 42,
+      .sector = 1,
+  };
+
+  std::string sector_file = (storage_path / toString(file_type)
+                             / fc::primitives::sector_file::sectorName(sector))
+                                .string();
+
+  std::ofstream(sector_file).close();
+
+  EXPECT_CALL(*storage_, getStat(storage_path.string()))
+      .WillOnce(testing::Return(fc::outcome::success(stat)));
+
+  EXPECT_CALL(*index_,
+              storageAttach(
+                  StorageInfo{
+                      .id = storage_id,
+                      .urls = urls_,
+                      .weight = 0,
+                      .can_seal = true,
+                      .can_store = true,
+                  },
+                  stat))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(*index_, storageDeclareSector(storage_id, sector, file_type))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
+}
+
+TEST_F(LocalStoreTest, openPathInvalidSectorName) {
+  auto storage_path = boost::filesystem::unique_path(
+      fs::canonical(base_path).append("%%%%%-storage"));
+
+  SectorFileType file_type = SectorFileType::FTCache;
+
+  boost::filesystem::create_directories((storage_path / toString(file_type)));
+
+  StorageID storage_id = "storage_id";
+
+  fc::primitives::LocalStorageMeta storage_meta{
+      .id = storage_id,
+      .weight = 0,
+      .can_store = true,
+      .can_seal = true,
+  };
+
+  createMetaFile(storage_path.string(), storage_meta);
+
+  FsStat stat{
+      .capacity = 200,
+      .available = 200,
+      .used = 0,
+  };
+
+  std::string sector_file =
+      (storage_path / toString(file_type) / "s-t0-42").string();
+
+  std::ofstream(sector_file).close();
+
+  EXPECT_CALL(*storage_, getStat(storage_path.string()))
+      .WillOnce(testing::Return(fc::outcome::success(stat)));
+
+  EXPECT_CALL(*index_,
+              storageAttach(
+                  StorageInfo{
+                      .id = storage_id,
+                      .urls = urls_,
+                      .weight = 0,
+                      .can_seal = true,
+                      .can_store = true,
+                  },
+                  stat))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_ERROR(StoreErrors::InvalidSectorName,
+                       local_store_->openPath(storage_path.string()));
+}
+
+TEST_F(LocalStoreTest, openPathDuplicateStorage) {
+  auto storage_path = boost::filesystem::unique_path(
+                          fs::canonical(base_path).append("%%%%%-storage"))
+                          .string();
+
+  fc::primitives::LocalStorageMeta storage_meta{
+      .id = "storage_id",
+      .weight = 0,
+      .can_store = true,
+      .can_seal = true,
+  };
+
+  FsStat stat{
+      .capacity = 100,
+      .available = 100,
+      .used = 0,
+  };
+
+  createStorage(storage_path, storage_meta, stat);
+
+  EXPECT_OUTCOME_ERROR(StoreErrors::DuplicateStorage,
+                       local_store_->openPath(storage_path));
+}
+
+TEST_F(LocalStoreTest, openPathInvalidConfig) {
+  auto storage_path = boost::filesystem::unique_path(
+      fs::canonical(base_path).append("%%%%%-storage"));
+
+  boost::filesystem::create_directory(storage_path);
+
+  std::ofstream file((storage_path / kMetaFileName).string());
+
+  ASSERT_TRUE(file.good());
+
+  file << "some not JSON info" << std::endl;
+
+  file.close();
+
+  EXPECT_OUTCOME_ERROR(StoreErrors::InvalidStorageConfig,
+                       local_store_->openPath(storage_path.string()));
+}
+
+TEST_F(LocalStoreTest, openPathNoConfig) {
+  auto storage_path = boost::filesystem::unique_path(
+      fs::canonical(base_path).append("%%%%%-storage"));
+
+  boost::filesystem::create_directory(storage_path);
+
+  EXPECT_OUTCOME_ERROR(StoreErrors::InvalidStorageConfig,
+                       local_store_->openPath(storage_path.string()));
 }

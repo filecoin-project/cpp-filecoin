@@ -10,6 +10,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
       return "Store: couldn't find a suitable path for a sector";
     case (StoreErrors::NotFoundStorage):
       return "Store: couldn't find the storage";
+    case (StoreErrors::InvalidSectorName):
+      return "Store: invalid sector file name";
+    case (StoreErrors::InvalidStorageConfig):
+      return "Store: can not open or parse the storage config";
+    case (StoreErrors::CannotCreateDir):
+      return "Store: can not create a directory";
+    case (StoreErrors::DuplicateStorage):
+      return "Store: the storage is a duplicate";
     default:
       return "Store: unknown error";
   }

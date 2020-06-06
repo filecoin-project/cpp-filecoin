@@ -13,6 +13,10 @@ namespace fc::sector_storage::stores {
     FindAndAllocate = 1,
     NotFoundPath,
     NotFoundStorage,
+    InvalidSectorName,
+    InvalidStorageConfig,
+    CannotCreateDir,
+    DuplicateStorage,
   };
 }  // namespace fc::sector_storage::stores
 
