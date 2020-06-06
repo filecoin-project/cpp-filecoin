@@ -20,6 +20,7 @@ namespace fc::sector_storage::stores {
     NotFoundSector,
     CannotRemoveSector,
     RemoveSeveralFileTypes,
+    CannotMoveSector,
   };
 }  // namespace fc::sector_storage::stores
 

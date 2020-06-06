@@ -143,7 +143,7 @@ namespace fc::sector_storage::stores {
       boost::system::error_code ec;
       boost::filesystem::rename(source_path, dest_path, ec);
       if (ec.failed()) {
-        return outcome::success();  // TODO: ERROR
+        return StoreErrors::CannotMoveSector;
       }
 
       OUTCOME_TRY(index_->storageDeclareSector(dest_storage_id, sector, type));

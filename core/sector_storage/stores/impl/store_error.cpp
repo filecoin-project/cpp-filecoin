@@ -24,6 +24,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
       return "Store: cannot remove the sector";
     case (StoreErrors::RemoveSeveralFileTypes):
       return "Store: remove expects one file type";
+    case (StoreErrors::CannotMoveSector):
+      return "Store: cannot move the sector";
     default:
       return "Store: unknown error";
   }

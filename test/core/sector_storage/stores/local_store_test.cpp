@@ -558,3 +558,121 @@ TEST_F(LocalStoreTest, removeSuccess) {
   EXPECT_OUTCOME_TRUE_1(local_store_->remove(sector, file_type));
   ASSERT_FALSE(boost::filesystem::exists(sector_file));
 }
+
+TEST_F(LocalStoreTest, moveStorageSuccess) {
+  auto storage_path = boost::filesystem::unique_path(
+      fs::canonical(base_path).append("%%%%%-storage"));
+
+  SectorFileType file_type = SectorFileType::FTCache;
+
+  RegisteredProof seal_proof_type = RegisteredProof::StackedDRG2KiBSeal;
+
+  boost::filesystem::create_directories((storage_path / toString(file_type)));
+
+  StorageID storage_id = "storage_id";
+
+  fc::primitives::LocalStorageMeta storage_meta{
+      .id = storage_id,
+      .weight = 0,
+      .can_store = false,
+      .can_seal = true,
+  };
+
+  createMetaFile(storage_path.string(), storage_meta);
+
+  FsStat stat{
+      .capacity = 200,
+      .available = 200,
+      .used = 0,
+  };
+
+  SectorId sector{
+      .miner = 42,
+      .sector = 1,
+  };
+
+  std::string sector_file = (storage_path / toString(file_type)
+                             / fc::primitives::sector_file::sectorName(sector))
+                                .string();
+
+  std::ofstream(sector_file).close();
+
+  EXPECT_CALL(*storage_, getStat(storage_path.string()))
+      .WillOnce(testing::Return(fc::outcome::success(stat)));
+
+  StorageInfo info{
+      .id = storage_id,
+      .urls = urls_,
+      .weight = 0,
+      .can_seal = true,
+      .can_store = false,
+  };
+
+  EXPECT_CALL(*index_, storageAttach(info, stat))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(*index_, storageDeclareSector(storage_id, sector, file_type))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
+
+  auto storage_path_2 = boost::filesystem::unique_path(
+      fs::canonical(base_path).append("%%%%%-storage"));
+
+  StorageID storage_id2 = "storage_id2";
+
+  fc::primitives::LocalStorageMeta storage_meta2{
+      .id = storage_id2,
+      .weight = 0,
+      .can_store = true,
+      .can_seal = true,
+  };
+
+  FsStat stat2{
+      .capacity = 200,
+      .available = 200,
+      .used = 0,
+  };
+
+  createStorage(storage_path_2.string(), storage_meta2, stat2);
+
+  EXPECT_CALL(*index_, getStorageInfo(storage_id))
+      .WillOnce(testing::Return(fc::outcome::success(info)));
+
+  StorageInfo info2{
+      .id = storage_id2,
+      .urls = urls_,
+      .weight = 0,
+      .can_seal = true,
+      .can_store = true,
+  };
+
+  EXPECT_CALL(*index_, getStorageInfo(storage_id2))
+      .WillOnce(testing::Return(fc::outcome::success(info2)));
+
+  EXPECT_CALL(*index_, storageDropSector(storage_id, sector, file_type))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(*index_, storageDeclareSector(storage_id2, sector, file_type))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  std::string moved_sector_file =
+      (storage_path_2 / toString(file_type)
+       / fc::primitives::sector_file::sectorName(sector))
+          .string();
+
+  ASSERT_FALSE(boost::filesystem::exists(moved_sector_file));
+  ASSERT_TRUE(boost::filesystem::exists(sector_file));
+
+  EXPECT_CALL(*index_, storageFindSector(sector, file_type, false))
+      .WillOnce(testing::Return(fc::outcome::success(std::vector({info}))));
+
+  EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type, false))
+      .WillOnce(testing::Return(fc::outcome::success(std::vector({info2}))));
+
+  EXPECT_OUTCOME_TRUE_1(
+      local_store_->moveStorage(sector, seal_proof_type, file_type));
+
+  ASSERT_TRUE(boost::filesystem::exists(moved_sector_file));
+  ASSERT_FALSE(boost::filesystem::exists(sector_file));
+}
