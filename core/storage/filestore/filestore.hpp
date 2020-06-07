@@ -46,6 +46,13 @@ namespace fc::storage::filestore {
         const Path &path) noexcept = 0;
 
     /**
+     * Creates directories for every element in path if doesn't exist
+     * @param path to create
+     * @return error in case of failure
+     */
+    virtual outcome::result<void> createDirectories(const Path &path) = 0;
+
+    /**
      * @brief Delete file
      * @param path to a file
      * @return filestore error on failure

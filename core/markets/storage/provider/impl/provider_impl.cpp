@@ -60,7 +60,8 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<Api> api,
       std::shared_ptr<MinerApi> miner_api,
       const Address &miner_actor_address,
-      std::shared_ptr<PieceIO> piece_io)
+      std::shared_ptr<PieceIO> piece_io,
+      std::shared_ptr<FileStore> filestore)
       : registered_proof_{registered_proof},
         host_{std::move(host)},
         context_{std::move(context)},
@@ -72,12 +73,17 @@ namespace fc::markets::storage::provider {
         miner_actor_address_{miner_actor_address},
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
         piece_io_{std::move(piece_io)},
-        piece_storage_{std::make_shared<PieceStorageImpl>(datastore)} {}
+        piece_storage_{std::make_shared<PieceStorageImpl>(datastore)},
+        filestore_{filestore} {}
 
-  void StorageProviderImpl::init() {
+  outcome::result<void> StorageProviderImpl::init() {
+    OUTCOME_TRY(filestore_->createDirectories(kFilestoreTempDir));
+
     std::shared_ptr<HostContext> fsm_context =
         std::make_shared<HostContextImpl>(context_);
     fsm_ = std::make_shared<ProviderFSM>(makeFSMTransitions(), fsm_context);
+
+    return outcome::success();
   }
 
   outcome::result<void> StorageProviderImpl::start() {
@@ -128,9 +134,6 @@ namespace fc::markets::storage::provider {
 
   outcome::result<void> StorageProviderImpl::importDataForDeal(
       const CID &proposal_cid, const Buffer &data) {
-    OUTCOME_TRY(piece_commitment,
-                piece_io_->generatePieceCommitment(registered_proof_, data));
-
     auto fsm_state_table = fsm_->list();
     auto found_fsm_entity =
         std::find_if(fsm_state_table.begin(),
@@ -144,10 +147,19 @@ namespace fc::markets::storage::provider {
     }
     auto deal = found_fsm_entity->first;
 
+    OUTCOME_TRY(piece_commitment,
+                piece_io_->generatePieceCommitment(registered_proof_, data));
+
     if (piece_commitment.first
         != deal->client_deal_proposal.proposal.piece_cid) {
       return StorageMarketProviderError::PIECE_CID_DOESNT_MATCH;
     }
+
+    OUTCOME_TRY(cid_str, proposal_cid.toString());
+    Path path = kFilestoreTempDir + cid_str;
+    OUTCOME_TRY(file, filestore_->create(path));
+    deal->piece_path = path;
+    OUTCOME_TRY(file->write(0, data));
 
     OUTCOME_TRY(fsm_->send(deal, ProviderEvent::ProviderEventVerifiedData));
     return outcome::success();
@@ -381,10 +393,13 @@ namespace fc::markets::storage::provider {
 
   outcome::result<void> StorageProviderImpl::recordPieceInfo(
       std::shared_ptr<MinerDeal> deal, const PieceInfo &piece_info) {
-    // TODO handle metadata file
-
     std::map<CID, PayloadLocation> locations;
-    locations[deal->ref.root] = {};
+    if (!deal->metadata_path.empty()) {
+      // TODO (a.chernyshov) load block locations from metadata file
+      // https://github.com/filecoin-project/go-fil-markets/blob/master/storagemarket/impl/providerstates/provider_states.go#L310
+    } else {
+      locations[deal->ref.root] = {};
+    }
     OUTCOME_TRY(piece_storage_->addPayloadLocations(
         deal->client_deal_proposal.proposal.piece_cid, locations));
     OUTCOME_TRY(piece_storage_->addPieceInfo(
@@ -403,13 +418,21 @@ namespace fc::markets::storage::provider {
     return stream_it->second;
   }
 
-  void StorageProviderImpl::finalizeDeal(std::shared_ptr<MinerDeal> deal) {
+  outcome::result<void> StorageProviderImpl::finalizeDeal(
+      std::shared_ptr<MinerDeal> deal) {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     auto stream_it = connections_.find(deal->proposal_cid);
     if (stream_it != connections_.end()) {
       network_->closeStreamGracefully(stream_it->second);
     }
     connections_.erase(stream_it);
+    if (!deal->piece_path.empty()) {
+      OUTCOME_TRY(filestore_->remove(deal->piece_path));
+    }
+    if (!deal->metadata_path.empty()) {
+      OUTCOME_TRY(filestore_->remove(deal->metadata_path));
+    }
+    return outcome::success();
   }
 
   std::vector<ProviderTransition> StorageProviderImpl::makeFSMTransitions() {
@@ -497,7 +520,14 @@ namespace fc::markets::storage::provider {
       return;
     }
 
-    // TODO transfer data
+    // initiate a pull data transfer. This will complete asynchronously and the
+    // completion of the data transfer will trigger a change in deal state
+    // (see onDataTransferEvent)
+
+    // TODO start datatransfer
+    // datatransfer->openPullDataChannel
+
+    FSM_SEND(deal, ProviderEvent::ProviderEventDataTransferInitiated);
   }
 
   void StorageProviderImpl::onProviderEventWaitingForManualData(
@@ -554,6 +584,12 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     // todo verify data
+    // pieceCid, piecePath, metadataPath = generatePieceCommitmentToFile
+    //  - if universalRetrievalEnabled GeneratePieceCommitmentWithMetadata
+    //    - generates a piece commitment along with block metadata
+    //  - else pio.GeneratePieceCommitmentToFile
+    // if compare pieceCid != deal.Proposal.PieceCID error
+    // else ok
   }
 
   void StorageProviderImpl::onProviderEventVerifiedData(
@@ -647,7 +683,10 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     logger_->debug("Deal completed");
-    finalizeDeal(deal);
+    auto res = finalizeDeal(deal);
+    if (res.has_error()) {
+      logger_->error("Deal finalization error. " + res.error().message());
+    }
   }
 
   void StorageProviderImpl::onProviderEventFailed(
@@ -657,12 +696,15 @@ namespace fc::markets::storage::provider {
       StorageDealStatus to) {
     logger_->error("Deal failed with message: " + deal->message);
     deal->state = to;
-    auto res = sendSignedResponse(deal);
-    if (res.has_error()) {
+    auto response_res = sendSignedResponse(deal);
+    if (response_res.has_error()) {
       logger_->error("Error when sending error response. "
-                     + res.error().message());
+                     + response_res.error().message());
     }
-    finalizeDeal(deal);
+    auto res = finalizeDeal(deal);
+    if (res.has_error()) {
+      logger_->error("Deal finalization error. " + res.error().message());
+    }
   }
 
 }  // namespace fc::markets::storage::provider

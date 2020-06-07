@@ -20,6 +20,8 @@
 #include "markets/storage/provider/impl/provider_impl.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/sector/sector.hpp"
+#include "storage/filestore/filestore.hpp"
+#include "storage/filestore/impl/filesystem/filesystem_filestore.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
@@ -40,6 +42,8 @@ namespace fc::markets::storage::test {
   using crypto::secp256k1::Secp256k1ProviderDefault;
   using crypto::secp256k1::Secp256k1Sha256ProviderImpl;
   using fc::storage::InMemoryStorage;
+  using fc::storage::filestore::FileStore;
+  using fc::storage::filestore::FileSystemFileStore;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::keystore::InMemoryKeyStore;
@@ -340,6 +344,9 @@ namespace fc::markets::storage::test {
       std::shared_ptr<KeyStore> keystore =
           std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
 
+      std::shared_ptr<FileStore> filestore =
+          std::make_shared<FileSystemFileStore>();
+
       std::shared_ptr<StorageProviderImpl> new_provider =
           std::make_shared<StorageProviderImpl>(registered_proof,
                                                 provider_host,
@@ -349,8 +356,9 @@ namespace fc::markets::storage::test {
                                                 api,
                                                 miner_api,
                                                 miner_actor_address,
-                                                piece_io_);
-      new_provider->init();
+                                                piece_io_,
+                                                filestore);
+      OUTCOME_EXCEPT(new_provider->init());
       return new_provider;
     }
 
