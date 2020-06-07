@@ -25,6 +25,7 @@ namespace fc::sector_storage::stores {
 
   const std::string kMetaFileName = "sectorstore.json";
 
+  // TODO(artyom-yurin): [FIL-231] Health Report for storages
   class LocalStore : public Store {
    public:
     static outcome::result<std::shared_ptr<LocalStore>> newLocalStore(

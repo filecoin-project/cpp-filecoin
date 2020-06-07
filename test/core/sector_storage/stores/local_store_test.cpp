@@ -98,7 +98,12 @@ class LocalStoreTest : public test::BaseFS_Test {
   std::vector<std::string> urls_;
 };
 
-TEST_F(LocalStoreTest, AcqireSectorFindAndAllocate) {
+/**
+ * @given sector and registered proof type and sector file types
+ * @when try to acquire sector with intersation in exisiting and allocate types
+ * @then StoreErrors::FindAndAllocate error occurs
+ */
+TEST_F(LocalStoreTest, AcquireSectorFindAndAllocate) {
   SectorId sector{
       .miner = 42,
       .sector = 1,
@@ -106,15 +111,26 @@ TEST_F(LocalStoreTest, AcqireSectorFindAndAllocate) {
 
   RegisteredProof seal_proof_type = RegisteredProof::StackedDRG2KiBSeal;
 
+  auto file_type_allocate = static_cast<SectorFileType>(
+      SectorFileType::FTCache | SectorFileType::FTUnsealed);
+
+  auto file_type_existing = static_cast<SectorFileType>(
+      SectorFileType::FTCache | SectorFileType::FTSealed);
+
   EXPECT_OUTCOME_ERROR(StoreErrors::FindAndAllocate,
                        local_store_->acquireSector(sector,
                                                    seal_proof_type,
-                                                   SectorFileType::FTCache,
-                                                   SectorFileType::FTCache,
+                                                   file_type_existing,
+                                                   file_type_allocate,
                                                    false))
 }
 
-TEST_F(LocalStoreTest, AcqireSectorNotFoundPath) {
+/**
+ * @given sector and registered proof type
+ * @when try to allocate for not existing storage
+ * @then StoreErrors::NotFoundPath error occurs
+ */
+TEST_F(LocalStoreTest, AcquireSectorNotFoundPath) {
   SectorId sector{
       .miner = 42,
       .sector = 1,
@@ -142,7 +158,12 @@ TEST_F(LocalStoreTest, AcqireSectorNotFoundPath) {
                                                    false))
 }
 
-TEST_F(LocalStoreTest, AcqireSectorAllocateSuccess) {
+/**
+ * @given storage, sector, registered proof type
+ * @when try to acquire sector for allocate
+ * @then get id of the storage and specific path for that storage
+ */
+TEST_F(LocalStoreTest, AcquireSectorAllocateSuccess) {
   SectorId sector{
       .miner = 42,
       .sector = 1,
@@ -200,6 +221,11 @@ TEST_F(LocalStoreTest, AcqireSectorAllocateSuccess) {
   EXPECT_OUTCOME_EQ(sectors.stores.getPathByType(file_type), storage_id);
 }
 
+/**
+ * @given storage, sector, registered proof type
+ * @when try to acquire sector for find existing sector
+ * @then get id of the storage and specific path for that storage
+ */
 TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
   SectorId sector{
       .miner = 42,
@@ -258,11 +284,21 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
   EXPECT_OUTCOME_EQ(sectors.stores.getPathByType(file_type), storage_id);
 }
 
+/**
+ * @given nothing
+ * @when try to get stat for some not existing storage
+ * @then StoreErrors::NotFoundStorage error occurs
+ */
 TEST_F(LocalStoreTest, getFSStatNotFound) {
   EXPECT_OUTCOME_ERROR(StoreErrors::NotFoundStorage,
                        local_store_->getFsStat("not_found_id"));
 }
 
+/**
+ * @given storage
+ * @when try to get stat for the storage
+ * @then get stat of the storage from index
+ */
 TEST_F(LocalStoreTest, getFSStatSuccess) {
   auto storage_path = boost::filesystem::unique_path(
                           fs::canonical(base_path).append("%%%%%-storage"))
@@ -301,6 +337,11 @@ TEST_F(LocalStoreTest, getFSStatSuccess) {
   EXPECT_OUTCOME_EQ(local_store_->getFsStat(storage_id), res_stat);
 }
 
+/**
+ * @given storage with sector
+ * @when open this storage for store
+ * @then storage and sector successfully added
+ */
 TEST_F(LocalStoreTest, openPathExistingSector) {
   auto storage_path = boost::filesystem::unique_path(
       fs::canonical(base_path).append("%%%%%-storage"));
@@ -358,6 +399,11 @@ TEST_F(LocalStoreTest, openPathExistingSector) {
   EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
 }
 
+/**
+ * @given storage with sector with invalid name
+ * @when open this storage for store
+ * @then StoreErrors::InvalidSectorName error occurs
+ */
 TEST_F(LocalStoreTest, openPathInvalidSectorName) {
   auto storage_path = boost::filesystem::unique_path(
       fs::canonical(base_path).append("%%%%%-storage"));
@@ -407,6 +453,11 @@ TEST_F(LocalStoreTest, openPathInvalidSectorName) {
                        local_store_->openPath(storage_path.string()));
 }
 
+/**
+ * @given storage in the store and same storage
+ * @when open the same storage for store
+ * @then StoreErrors::DuplicateStorage error occurs
+ */
 TEST_F(LocalStoreTest, openPathDuplicateStorage) {
   auto storage_path = boost::filesystem::unique_path(
                           fs::canonical(base_path).append("%%%%%-storage"))
@@ -431,6 +482,11 @@ TEST_F(LocalStoreTest, openPathDuplicateStorage) {
                        local_store_->openPath(storage_path));
 }
 
+/**
+ * @given storage with invalid config file
+ * @when open this storage for store
+ * @then StoreErrors::InvalidStorageConfig error occurs
+ */
 TEST_F(LocalStoreTest, openPathInvalidConfig) {
   auto storage_path = boost::filesystem::unique_path(
       fs::canonical(base_path).append("%%%%%-storage"));
@@ -449,6 +505,11 @@ TEST_F(LocalStoreTest, openPathInvalidConfig) {
                        local_store_->openPath(storage_path.string()));
 }
 
+/**
+ * @given storage withou config file
+ * @when open this storage for store
+ * @then StoreErrors::InvalidStorageConfig error occurs
+ */
 TEST_F(LocalStoreTest, openPathNoConfig) {
   auto storage_path = boost::filesystem::unique_path(
       fs::canonical(base_path).append("%%%%%-storage"));
@@ -459,14 +520,19 @@ TEST_F(LocalStoreTest, openPathNoConfig) {
                        local_store_->openPath(storage_path.string()));
 }
 
+/**
+ * @given sector and complex sector file type
+ * @when try to remove sector files with this type
+ * @then StoreErrors::RemoveSeveralFileTypes error occurs
+ */
 TEST_F(LocalStoreTest, removeSeveralSectorTypes) {
   SectorId sector{
       .miner = 42,
       .sector = 1,
   };
 
-  SectorFileType type = static_cast<SectorFileType>(
-      SectorFileType::FTCache | SectorFileType::FTUnsealed);
+  auto type = static_cast<SectorFileType>(SectorFileType::FTCache
+                                          | SectorFileType::FTUnsealed);
 
   EXPECT_OUTCOME_ERROR(StoreErrors::RemoveSeveralFileTypes,
                        local_store_->remove(sector, type));
@@ -475,6 +541,11 @@ TEST_F(LocalStoreTest, removeSeveralSectorTypes) {
                        local_store_->remove(sector, SectorFileType::FTNone));
 }
 
+/**
+ * @given non existing sector info
+ * @when try to remove this sector
+ * @then StoreErrors::NotFoundSector error occurs
+ */
 TEST_F(LocalStoreTest, removeNotExistSector) {
   SectorId sector{
       .miner = 42,
@@ -491,6 +562,11 @@ TEST_F(LocalStoreTest, removeNotExistSector) {
                        local_store_->remove(sector, type));
 }
 
+/**
+ * @given storage with sector
+ * @when try to remove the sector
+ * @then sector successfully deleted
+ */
 TEST_F(LocalStoreTest, removeSuccess) {
   auto storage_path = boost::filesystem::unique_path(
       fs::canonical(base_path).append("%%%%%-storage"));
@@ -559,6 +635,11 @@ TEST_F(LocalStoreTest, removeSuccess) {
   ASSERT_FALSE(boost::filesystem::exists(sector_file));
 }
 
+/**
+ * @given 2 storages, 1 sector in the first
+ * @when try to move from one sector to another
+ * @then sector successfuly moved
+ */
 TEST_F(LocalStoreTest, moveStorageSuccess) {
   auto storage_path = boost::filesystem::unique_path(
       fs::canonical(base_path).append("%%%%%-storage"));
