@@ -9,6 +9,7 @@
 #include "sector_storage/stores/store.hpp"
 
 #include <shared_mutex>
+#include "common/logger.hpp"
 #include "sector_storage/stores/index.hpp"
 
 namespace fc::sector_storage::stores {
@@ -64,6 +65,7 @@ namespace fc::sector_storage::stores {
     std::shared_ptr<SectorIndex> index_;
     std::vector<std::string> urls_;
     std::unordered_map<StorageID, std::string> paths_;
+    fc::common::Logger logger_;
 
     mutable std::shared_mutex mutex_;
   };

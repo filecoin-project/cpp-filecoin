@@ -42,7 +42,9 @@ namespace fc::sector_storage::stores {
                          gsl::span<std::string> urls)
       : storage_(std::move(storage)),
         index_(std::move(index)),
-        urls_(urls.begin(), urls.end()) {}
+        urls_(urls.begin(), urls.end()) {
+    logger_ = common::createLogger("Local Store");
+  }
 
   outcome::result<AcquireSectorResponse> LocalStore::acquireSector(
       SectorId sector,
@@ -90,12 +92,12 @@ namespace fc::sector_storage::stores {
       sector_path /= toString(type);
       sector_path /= primitives::sector_file::sectorName(sector);
 
-      // TODO: Log about removing
+      logger_->info("Remove " + sector_path.string());
 
       boost::system::error_code ec;
       boost::filesystem::remove_all(sector_path, ec);
       if (ec.failed()) {
-        // TODO: Log error
+        logger_->error(ec.message());
         return StoreErrors::CannotRemoveSector;
       }
     }
@@ -233,6 +235,10 @@ namespace fc::sector_storage::stores {
     std::shared_ptr<LocalStore> local(
         new LocalStore(std::move(storage), std::move(index), urls));
 
+    if (local->logger_ == nullptr) {
+      return StoreErrors::CannotInitLogger;
+    }
+
     OUTCOME_TRY(paths, local->storage_->getPaths());
 
     for (const auto &path : paths) {
@@ -258,7 +264,8 @@ namespace fc::sector_storage::stores {
       auto sectors_info_opt = index_->storageFindSector(sector, type, false);
 
       if (sectors_info_opt.has_error()) {
-        // TODO: logger warning
+        logger_->warn("Finding existing sector: "
+                      + sectors_info_opt.error().message());
         continue;
       }
 
@@ -289,18 +296,13 @@ namespace fc::sector_storage::stores {
         continue;
       }
 
-      auto sectors_info_opt =
-          index_->storageBestAlloc(type, seal_proof_type, can_seal);
-
-      if (sectors_info_opt.has_error()) {
-        // TODO: logger
-        return sectors_info_opt.error();
-      }
+      OUTCOME_TRY(sectors_info,
+                  index_->storageBestAlloc(type, seal_proof_type, can_seal));
 
       std::string best_path;
       StorageID best_storage;
 
-      for (const auto &info : sectors_info_opt.value()) {
+      for (const auto &info : sectors_info) {
         auto path_iter = paths_.find(info.id);
         if (path_iter == paths_.end()) {
           continue;
