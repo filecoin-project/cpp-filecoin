@@ -8,7 +8,6 @@
 
 #include "sector_storage/stores/index.hpp"
 
-#include <chrono>
 #include <shared_mutex>
 #include <unordered_map>
 

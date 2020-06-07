@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_SECTOR_INDEX_HPP
 #define CPP_FILECOIN_CORE_SECTOR_INDEX_HPP
 
+#include <chrono>
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/sector_file/sector_file.hpp"
