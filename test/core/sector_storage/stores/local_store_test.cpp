@@ -182,8 +182,8 @@ TEST_F(LocalStoreTest, AcquireSectorAllocateSuccess) {
   fc::primitives::LocalStorageMeta storage_meta{
       .id = storage_id,
       .weight = 0,
-      .can_store = true,
       .can_seal = true,
+      .can_store = true,
   };
 
   FsStat stat{
@@ -245,8 +245,8 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
   fc::primitives::LocalStorageMeta storage_meta{
       .id = storage_id,
       .weight = 0,
-      .can_store = true,
       .can_seal = true,
+      .can_store = true,
   };
 
   FsStat stat{
@@ -309,8 +309,8 @@ TEST_F(LocalStoreTest, getFSStatSuccess) {
   fc::primitives::LocalStorageMeta storage_meta{
       .id = storage_id,
       .weight = 0,
-      .can_store = true,
       .can_seal = true,
+      .can_store = true,
   };
 
   FsStat res_stat{
@@ -355,8 +355,8 @@ TEST_F(LocalStoreTest, openPathExistingSector) {
   fc::primitives::LocalStorageMeta storage_meta{
       .id = storage_id,
       .weight = 0,
-      .can_store = true,
       .can_seal = true,
+      .can_store = true,
   };
 
   createMetaFile(storage_path.string(), storage_meta);
@@ -417,8 +417,8 @@ TEST_F(LocalStoreTest, openPathInvalidSectorName) {
   fc::primitives::LocalStorageMeta storage_meta{
       .id = storage_id,
       .weight = 0,
-      .can_store = true,
       .can_seal = true,
+      .can_store = true,
   };
 
   createMetaFile(storage_path.string(), storage_meta);
@@ -466,8 +466,8 @@ TEST_F(LocalStoreTest, openPathDuplicateStorage) {
   fc::primitives::LocalStorageMeta storage_meta{
       .id = "storage_id",
       .weight = 0,
-      .can_store = true,
       .can_seal = true,
+      .can_store = true,
   };
 
   FsStat stat{
@@ -580,8 +580,8 @@ TEST_F(LocalStoreTest, removeSuccess) {
   fc::primitives::LocalStorageMeta storage_meta{
       .id = storage_id,
       .weight = 0,
-      .can_store = true,
       .can_seal = true,
+      .can_store = true,
   };
 
   createMetaFile(storage_path.string(), storage_meta);
@@ -655,8 +655,8 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
   fc::primitives::LocalStorageMeta storage_meta{
       .id = storage_id,
       .weight = 0,
-      .can_store = false,
       .can_seal = true,
+      .can_store = false,
   };
 
   createMetaFile(storage_path.string(), storage_meta);
@@ -705,8 +705,8 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
   fc::primitives::LocalStorageMeta storage_meta2{
       .id = storage_id2,
       .weight = 0,
-      .can_store = true,
       .can_seal = true,
+      .can_store = true,
   };
 
   FsStat stat2{
