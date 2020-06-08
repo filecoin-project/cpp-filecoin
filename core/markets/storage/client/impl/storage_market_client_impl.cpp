@@ -187,6 +187,7 @@ namespace fc::markets::storage::client {
     DealProposal deal_proposal{
         .piece_cid = comm_p,
         .piece_size = piece_size.padded(),
+        .verified = false,
         .client = client_address,
         .provider = provider_info.address,
         .start_epoch = start_epoch,
