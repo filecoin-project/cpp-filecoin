@@ -471,13 +471,6 @@ namespace fc::api {
       decode(v.message, Get(j, "Message"));
     }
 
-    ENCODE(PoStState) {
-      Value j{rapidjson::kObjectType};
-      Set(j, "ProvingPeriodStart", v.proving_period_start);
-      Set(j, "NumConsecutiveFailures", v.num_consecutive_failures);
-      return j;
-    }
-
     ENCODE(MinerPower) {
       Value j{rapidjson::kObjectType};
       Set(j, "MinerPower", v.miner);
@@ -488,6 +481,18 @@ namespace fc::api {
     DECODE(MinerPower) {
       decode(v.miner, Get(j, "MinerPower"));
       decode(v.total, Get(j, "TotalPower"));
+    }
+
+    ENCODE(Claim) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "RawBytePower", v.raw_power);
+      Set(j, "QualityAdjPower", v.qa_power);
+      return j;
+    }
+
+    DECODE(Claim) {
+      decode(v.raw_power, Get(j, "RawBytePower"));
+      decode(v.qa_power, Get(j, "QualityAdjPower"));
     }
 
     ENCODE(MarketBalance) {
@@ -611,9 +616,7 @@ namespace fc::api {
       Set(j, "Info", v.info);
       Set(j, "ActivationEpoch", v.activation_epoch);
       Set(j, "DealWeight", v.deal_weight);
-      Set(j, "PledgeRequirement", v.pledge_requirement);
-      Set(j, "DeclaredFaultEpoch", v.declared_fault_duration);
-      Set(j, "DeclaredFaultDuration", v.declared_fault_duration);
+      Set(j, "VerifiedDealWeight", v.verified_deal_weight);
       return j;
     }
 
@@ -621,9 +624,7 @@ namespace fc::api {
       decode(v.info, Get(j, "Info"));
       decode(v.activation_epoch, Get(j, "ActivationEpoch"));
       decode(v.deal_weight, Get(j, "DealWeight"));
-      decode(v.pledge_requirement, Get(j, "PledgeRequirement"));
-      decode(v.declared_fault_duration, Get(j, "DeclaredFaultEpoch"));
-      decode(v.declared_fault_duration, Get(j, "DeclaredFaultDuration"));
+      decode(v.verified_deal_weight, Get(j, "VerifiedDealWeight"));
     }
 
     ENCODE(ChainSectorInfo) {

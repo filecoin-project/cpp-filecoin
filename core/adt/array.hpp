@@ -10,7 +10,6 @@
 
 namespace fc::adt {
   using storage::amt::Amt;
-  using Ipld = storage::ipfs::IpfsDatastore;
 
   /// Strongly typed amt wrapper
   template <typename Value>
@@ -18,14 +17,9 @@ namespace fc::adt {
     using Key = uint64_t;
     using Visitor = std::function<outcome::result<void>(Key, const Value &)>;
 
-    Array() : amt{nullptr} {}
+    Array(IpldPtr ipld = nullptr) : amt{ipld} {}
 
-    explicit Array(const CID &root) : amt{nullptr, root} {}
-
-    Array &load(std::shared_ptr<Ipld> ipld) {
-      amt.setIpld(ipld);
-      return *this;
-    }
+    Array(const CID &root, IpldPtr ipld = nullptr) : amt{ipld, root} {}
 
     outcome::result<boost::optional<Value>> tryGet(Key key) {
       auto maybe = get(key);
@@ -59,14 +53,9 @@ namespace fc::adt {
       return set(count, value);
     }
 
-    outcome::result<void> flush() {
-      OUTCOME_TRY(amt.flush());
-      return outcome::success();
-    }
-
     outcome::result<void> visit(const Visitor &visitor) {
       return amt.visit([&](auto key, auto &value) -> outcome::result<void> {
-        OUTCOME_TRY(value2, codec::cbor::decode<Value>(value));
+        OUTCOME_TRY(value2, amt.ipld->decode<Value>(value));
         return visitor(key, value2);
       });
     }
@@ -104,5 +93,21 @@ namespace fc::adt {
     return s;
   }
 }  // namespace fc::adt
+
+namespace fc {
+  template <typename V>
+  struct Ipld::Load<adt::Array<V>> {
+    static void f(Ipld &ipld, adt::Array<V> &array) {
+      array.amt.ipld = ipld.shared();
+    }
+  };
+
+  template <typename V>
+  struct Ipld::Flush<adt::Array<V>> {
+    static auto f(adt::Array<V> &array) {
+      return array.amt.flush();
+    }
+  };
+}  // namespace fc
 
 #endif  // CPP_FILECOIN_ARRAY_HPP

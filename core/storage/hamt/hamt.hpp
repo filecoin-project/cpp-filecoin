@@ -170,18 +170,10 @@ namespace fc::storage::hamt {
     /** Apply visitor for key value pairs */
     outcome::result<void> visit(const Visitor &visitor);
 
-    inline void setIpld(std::shared_ptr<ipfs::IpfsDatastore> ipld) {
-      store_ = std::move(ipld);
-    }
-
-    inline std::shared_ptr<ipfs::IpfsDatastore> getIpld() const {
-      return store_;
-    }
-
     /// Store CBOR encoded value by key
     template <typename T>
     outcome::result<void> setCbor(const std::string &key, const T &value) {
-      OUTCOME_TRY(bytes, codec::cbor::encode(value));
+      OUTCOME_TRY(bytes, Ipld::encode(value));
       return set(key, bytes);
     }
 
@@ -189,7 +181,7 @@ namespace fc::storage::hamt {
     template <typename T>
     outcome::result<T> getCbor(const std::string &key) {
       OUTCOME_TRY(bytes, get(key));
-      return codec::cbor::decode<T>(bytes);
+      return ipld->decode<T>(bytes);
     }
 
     /// Get CBOR decoded value by key
@@ -202,9 +194,11 @@ namespace fc::storage::hamt {
         }
         return boost::none;
       }
-      OUTCOME_TRY(value, codec::cbor::decode<T>(maybe.value()));
+      OUTCOME_TRY(value, ipld->decode<T>(maybe.value()));
       return std::move(value);
     }
+
+    IpldPtr ipld;
 
    private:
     std::vector<size_t> keyToIndices(const std::string &key, int n = -1) const;
@@ -220,7 +214,6 @@ namespace fc::storage::hamt {
     outcome::result<void> loadItem(Node::Item &item) const;
     outcome::result<void> visit(Node::Item &item, const Visitor &visitor);
 
-    std::shared_ptr<ipfs::IpfsDatastore> store_;
     Node::Item root_;
     size_t bit_width_;
   };

@@ -132,11 +132,11 @@ namespace fc::vm {
       case E::INIT_ACTOR_SINGLETON_ACTOR:
         return E{1};
 
-      case E::CRON_ACTOR_WRONG_CALL:
-        return E{1};
-
       case E::REWARD_ACTOR_NEGATIVE_WITHDRAWABLE:
       case E::REWARD_ACTOR_WRONG_CALLER:
+        return E{1};
+
+      case E::ASSERT:
         return E{1};
     }
     return {};

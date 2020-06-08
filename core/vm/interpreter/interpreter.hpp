@@ -24,14 +24,12 @@ namespace fc::vm::interpreter {
   class Interpreter {
    protected:
     using Tipset = primitives::tipset::Tipset;
-    using IpfsDatastore = storage::ipfs::IpfsDatastore;
 
    public:
     virtual ~Interpreter() = default;
 
-    virtual outcome::result<Result> interpret(
-        const std::shared_ptr<IpfsDatastore> &store,
-        const Tipset &tipset) const = 0;
+    virtual outcome::result<Result> interpret(const IpldPtr &store,
+                                              const Tipset &tipset) const = 0;
   };
 
 }  // namespace fc::vm::interpreter

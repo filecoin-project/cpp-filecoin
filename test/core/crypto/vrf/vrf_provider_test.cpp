@@ -35,11 +35,11 @@ struct VRFProviderTest : public ::testing::Test {
         "1234567890123456789012345678901234567890"
         "1122334455667788"_blob48;
     vrf_params = VRFParams{
-        .personalization_tag = DomainSeparationTag::TicketProductionDST,
+        .personalization_tag = DomainSeparationTag::ElectionProofProduction,
         .miner_address = Address::makeBls(bls_blob),
         .message = message};
     wrong_vrf_params = VRFParams{
-        .personalization_tag = DomainSeparationTag::TicketProductionDST,
+        .personalization_tag = DomainSeparationTag::ElectionProofProduction,
         .miner_address = Address::makeBls(bls_blob),
         .message = wrong_message};
   }

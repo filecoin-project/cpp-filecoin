@@ -11,13 +11,9 @@
 
 namespace fc::vm::actor::builtin::init {
 
-  outcome::result<Address> InitActorState::addActor(
-      std::shared_ptr<IpfsDatastore> store, const Address &address) {
-    storage::hamt::Hamt hamt(std::move(store), address_map);
+  outcome::result<Address> InitActorState::addActor(const Address &address) {
     auto id = next_id;
-    OUTCOME_TRY(hamt.setCbor(adt::AddressKeyer::encode(address), id));
-    OUTCOME_TRY(hamt.flush());
-    address_map = hamt.cid();
+    OUTCOME_TRY(address_map.set(address, id));
     ++next_id;
     return Address::makeFromId(id);
   }
@@ -35,7 +31,7 @@ namespace fc::vm::actor::builtin::init {
         Buffer{primitives::address::encode(message.from)}.putUint64(
             message.nonce))};
     OUTCOME_TRY(init_actor, runtime.getCurrentActorStateCbor<InitActorState>());
-    OUTCOME_TRY(id_address, init_actor.addActor(runtime, actor_address));
+    OUTCOME_TRY(id_address, init_actor.addActor(actor_address));
     OUTCOME_TRY(runtime.createActor(
         id_address,
         Actor{params.code, ActorSubstateCID{kEmptyObjectCid}, 0, 0}));

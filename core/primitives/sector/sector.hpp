@@ -62,6 +62,8 @@ namespace fc::primitives::sector {
 
   outcome::result<SectorSize> getSectorSize(RegisteredProof proof);
 
+  outcome::result<size_t> getWindowPoStPartitionSectors(RegisteredProof proof);
+
   using SealRandomness = Randomness;
 
   using Ticket = SealRandomness;

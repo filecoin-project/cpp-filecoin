@@ -31,10 +31,12 @@ namespace fc::vm::runtime {
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
                            UnsignedMessage message,
+                           const Address &caller_id,
                            ActorSubstateCID current_actor_state)
       : execution_{std::move(execution)},
         state_tree_{execution_->state_tree},
         message_{std::move(message)},
+        caller_id{caller_id},
         current_actor_state_{std::move(current_actor_state)} {}
 
   ChainEpoch RuntimeImpl::getCurrentEpoch() const {
@@ -55,7 +57,7 @@ namespace fc::vm::runtime {
   }
 
   Address RuntimeImpl::getImmediateCaller() const {
-    return message_.from;
+    return caller_id;
   }
 
   Address RuntimeImpl::getCurrentReceiver() const {
@@ -102,6 +104,8 @@ namespace fc::vm::runtime {
   }
 
   fc::outcome::result<void> RuntimeImpl::deleteActor() {
+    // TODO: charge
+    // TODO: transfer to kBurntFundsActorAddress
     // TODO(a.chernyshov) FIL-137 implement state_tree remove if needed
     // return state_tree_->remove(address);
     return fc::outcome::failure(RuntimeError::UNKNOWN);
@@ -224,8 +228,8 @@ namespace fc::vm::runtime {
     return proofs::Proofs::generateUnsealedCID(type, pieces2);
   }
 
-  fc::outcome::result<bool> RuntimeImpl::verifyConsensusFault(
-      const BlockHeader &block_header_1, const BlockHeader &block_header_2) {
+  fc::outcome::result<ConsensusFault> RuntimeImpl::verifyConsensusFault(
+      const Buffer &block1, const Buffer &block2, const Buffer &extra) {
     // TODO(a.chernyshov): implement
     return RuntimeError::UNKNOWN;
   }
@@ -233,12 +237,4 @@ namespace fc::vm::runtime {
   fc::outcome::result<void> RuntimeImpl::chargeGas(GasAmount amount) {
     return execution_->chargeGas(amount);
   }
-
-  std::shared_ptr<Runtime> RuntimeImpl::createRuntime(
-      const UnsignedMessage &message,
-      const ActorSubstateCID &current_actor_state) const {
-    return std::make_shared<RuntimeImpl>(
-        execution_, message, current_actor_state);
-  }
-
 }  // namespace fc::vm::runtime

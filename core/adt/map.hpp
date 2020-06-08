@@ -11,7 +11,6 @@
 namespace fc::adt {
   using storage::hamt::Hamt;
   using storage::hamt::kDefaultBitWidth;
-  using Ipld = storage::ipfs::IpfsDatastore;
 
   struct StringKeyer {
     using Key = std::string;
@@ -34,13 +33,10 @@ namespace fc::adt {
     using Visitor =
         std::function<outcome::result<void>(const Key &, const Value &)>;
 
-    Map() : hamt{nullptr, bit_width} {}
+    Map(IpldPtr ipld = nullptr) : hamt{ipld, bit_width} {}
 
-    explicit Map(const CID &root) : hamt{nullptr, root, bit_width} {}
-
-    void load(std::shared_ptr<Ipld> ipld) {
-      hamt.setIpld(ipld);
-    }
+    Map(const CID &root, IpldPtr ipld = nullptr)
+        : hamt{ipld, root, bit_width} {}
 
     outcome::result<boost::optional<Value>> tryGet(const Key &key) {
       return hamt.tryGetCbor<Value>(Keyer::encode(key));
@@ -62,15 +58,10 @@ namespace fc::adt {
       return hamt.remove(Keyer::encode(key));
     }
 
-    outcome::result<void> flush() {
-      OUTCOME_TRY(hamt.flush());
-      return outcome::success();
-    }
-
     outcome::result<void> visit(const Visitor &visitor) {
       return hamt.visit([&](auto &key, auto &value) -> outcome::result<void> {
         OUTCOME_TRY(key2, Keyer::decode(key));
-        OUTCOME_TRY(value2, codec::cbor::decode<Value>(value));
+        OUTCOME_TRY(value2, hamt.ipld->decode<Value>(value));
         return visitor(key2, value2);
       });
     }
@@ -113,5 +104,21 @@ namespace fc::adt {
     return s;
   }
 }  // namespace fc::adt
+
+namespace fc {
+  template <typename V, typename Keyer, size_t bit_width>
+  struct Ipld::Load<adt::Map<V, Keyer, bit_width>> {
+    static void f(Ipld &ipld, adt::Map<V, Keyer, bit_width> &map) {
+      map.hamt.ipld = ipld.shared();
+    }
+  };
+
+  template <typename V, typename Keyer, size_t bit_width>
+  struct Ipld::Flush<adt::Map<V, Keyer, bit_width>> {
+    static auto f(adt::Map<V, Keyer, bit_width> &map) {
+      return map.hamt.flush();
+    }
+  };
+}  // namespace fc
 
 #endif  // CPP_FILECOIN_ADT_MAP_HPP

@@ -31,9 +31,10 @@ TEST(InvokerTest, InvokeCron) {
   EXPECT_OUTCOME_ERROR(
       VMExitCode::SysErrInvalidMethod,
       invoker.invoke({kCronCodeCid}, runtime, MethodNumber{1000}, {}));
-  EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
+  EXPECT_CALL(runtime, getImmediateCaller())
+      .WillOnce(testing::Return(kInitAddress));
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::CRON_ACTOR_WRONG_CALL,
+      VMExitCode::SysErrForbidden,
       invoker.invoke(
           {kCronCodeCid}, runtime, builtin::cron::EpochTick::Number, {}));
 }

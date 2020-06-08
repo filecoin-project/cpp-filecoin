@@ -32,7 +32,7 @@ namespace fc::vm::actor {
     }
     auto maybe_params = codec::cbor::decode<T>(params_bytes);
     if (!maybe_params) {
-      return VMExitCode::DECODE_ACTOR_PARAMS_ERROR;
+      return outcome::failure(VMExitCode::DECODE_ACTOR_PARAMS_ERROR);
     }
     return maybe_params;
   }

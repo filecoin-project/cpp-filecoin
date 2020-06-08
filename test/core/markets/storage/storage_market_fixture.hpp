@@ -230,7 +230,7 @@ namespace fc::markets::storage::test {
             return MinerInfo{.owner = {},
                              .worker = miner_actor_address,
                              .pending_worker_key = boost::none,
-                             .peer_id = {},
+                             .peer_id = fc::codec::cbor::kDefaultT<PeerId>(),
                              .sector_size = {}};
           }};
 

@@ -24,6 +24,7 @@ namespace fc::common::libp2p {
       case Type::Array:
       case Type::Map:
       case Type::Tag:
+      case Type::Special:
         break;
       default:
         return Error::INVALID_HEAD_TYPE;
@@ -106,6 +107,7 @@ namespace fc::common::libp2p {
       switch (head.type) {
         case Type::Unsigned:
         case Type::Signed:
+        case Type::Special:
           break;
         case Type::Bytes:
         case Type::Text: {

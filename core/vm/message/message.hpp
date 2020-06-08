@@ -36,7 +36,7 @@ namespace fc::vm::message {
   using primitives::GasAmount;
   using primitives::address::Address;
 
-  static int64_t kMessageVersion = 0;
+  constexpr int64_t kMessageVersion = 0;
 
   /**
    * @brief UnsignedMessage struct

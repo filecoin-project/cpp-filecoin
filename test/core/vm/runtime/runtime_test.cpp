@@ -66,6 +66,7 @@ class RuntimeTest : public ::testing::Test {
           std::make_shared<Env>(randomness_provider_, state_tree_, invoker_, 0),
           message_),
       message_,
+      message_.from,
       ActorSubstateCID{"010001020001"_cid});
 };
 
@@ -153,6 +154,8 @@ TEST_F(RuntimeTest, send) {
       .WillRepeatedly(testing::Return(fc::outcome::success(to_actor)));
   EXPECT_CALL(*state_tree_, set(Eq(to_address), _))
       .WillRepeatedly(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(*state_tree_, lookupId(Eq(message_.to)))
+      .WillRepeatedly(testing::Return(fc::outcome::success(message_.to)));
   EXPECT_CALL(*invoker_, invoke(Eq(to_actor), _, Eq(method), Eq(params)))
       .WillOnce(testing::Return(fc::outcome::success(res)));
 
@@ -181,6 +184,8 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
       .WillOnce(testing::Return(fc::outcome::success(from_actor)));
   EXPECT_CALL(*state_tree_, get(Eq(to_address)))
       .WillOnce(testing::Return(fc::outcome::success(to_actor)));
+  EXPECT_CALL(*state_tree_, lookupId(Eq(message_.to)))
+      .WillRepeatedly(testing::Return(fc::outcome::success(message_.to)));
 
   EXPECT_OUTCOME_ERROR(VMExitCode::SEND_TRANSFER_INSUFFICIENT,
                        runtime_->send(to_address, method, params, amount));

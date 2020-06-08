@@ -22,4 +22,14 @@ namespace fc::adt {
   struct Set : Map<SetValue, Keyer> {};
 }  // namespace fc::adt
 
+namespace fc {
+  template <typename Keyer>
+  struct Ipld::Visit<adt::Set<Keyer>> {
+    template <typename F>
+    static void f(adt::Map<adt::SetValue, Keyer> &s, const F &f) {
+      f(s);
+    }
+  };
+}  // namespace fc
+
 #endif  // CPP_FILECOIN_ADT_SET_HPP

@@ -32,7 +32,6 @@ namespace fc::primitives::block {
   using primitives::ticket::Ticket;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
-  using Ipld = storage::ipfs::IpfsDatastore;
 
   struct ElectionProof {
     Buffer vrf_proof;
@@ -82,16 +81,6 @@ namespace fc::primitives::block {
   };
 
   struct MsgMeta {
-    void load(std::shared_ptr<Ipld> ipld) {
-      bls_messages.load(ipld);
-      secp_messages.load(ipld);
-    }
-    outcome::result<void> flush() {
-      OUTCOME_TRY(bls_messages.flush());
-      OUTCOME_TRY(secp_messages.flush());
-      return outcome::success();
-    }
-
     adt::Array<CID> bls_messages;
     adt::Array<CID> secp_messages;
   };
@@ -141,5 +130,16 @@ namespace fc::primitives::block {
              block_sig,
              fork_signaling)
 }  // namespace fc::primitives::block
+
+namespace fc {
+  template <>
+  struct Ipld::Visit<primitives::block::MsgMeta> {
+    template <typename F>
+    static void f(primitives::block::MsgMeta &s, const F &f) {
+      f(s.bls_messages);
+      f(s.secp_messages);
+    }
+  };
+}  // namespace fc
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_BLOCK_BLOCK_HPP

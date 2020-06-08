@@ -30,6 +30,17 @@ namespace fc::adt {
   };
 }  // namespace fc::adt
 
+namespace fc {
+  template <>
+  struct Ipld::Visit<adt::BalanceTable> {
+    template <typename F>
+    static void f(adt::Map<adt::TokenAmount, adt::AddressKeyer> &s,
+                  const F &f) {
+      f(s);
+    }
+  };
+}  // namespace fc
+
 OUTCOME_HPP_DECLARE_ERROR(fc::adt, BalanceTableError);
 
 #endif  // CPP_FILECOIN_ADT_BALANCE_TABLE_HPP

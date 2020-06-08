@@ -29,6 +29,7 @@ namespace fc::common::libp2p {
       Array = 4,
       Map = 5,
       Tag = 6,
+      Special = 7,
     };
 
     struct Head {

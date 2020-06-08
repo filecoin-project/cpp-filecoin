@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_API_API_HPP
 #define CPP_FILECOIN_CORE_API_API_HPP
 
-#include <condition_variable>
+#include <future>
 
 #include <libp2p/peer/peer_info.hpp>
 
@@ -26,6 +26,7 @@
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 #define API_METHOD(_name, _result, ...)                                    \
@@ -72,9 +73,9 @@ namespace fc::api {
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
   using vm::actor::builtin::miner::MinerInfo;
-  using vm::actor::builtin::miner::PoStState;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::SignedVoucher;
+  using vm::actor::builtin::storage_power::Claim;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::runtime::ExecutionResult;
@@ -115,18 +116,9 @@ namespace fc::api {
     }
 
     auto waitSync() {
-      std::condition_variable c;
-      Result r{outcome::success()};
-      bool notified = false;
-      wait([&](auto v) {
-        r = v;
-        notified = true;
-        c.notify_one();
-      });
-      std::mutex m;
-      auto l = std::unique_lock{m};
-      while (!notified) c.wait(l);
-      return r;
+      std::promise<Result> p;
+      wait([&](auto v) { p.set_value(std::move(v)); });
+      return p.get_future().get();
     }
 
     std::shared_ptr<Channel<Result>> channel;
@@ -150,8 +142,7 @@ namespace fc::api {
   using MarketDealMap = std::map<std::string, StorageDeal>;
 
   struct MinerPower {
-    StoragePower miner;
-    StoragePower total;
+    Claim miner, total;
   };
 
   struct ChainSectorInfo {
@@ -351,10 +342,6 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
     API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
-    API_METHOD(StateMinerPostState,
-               PoStState,
-               const Address &,
-               const TipsetKey &)
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
     API_METHOD(StateMinerProvingSet,
                std::vector<ChainSectorInfo>,

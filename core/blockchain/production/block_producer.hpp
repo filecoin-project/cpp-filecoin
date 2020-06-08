@@ -8,7 +8,6 @@
 namespace fc::blockchain::production {
   using primitives::block::Block;
   using primitives::block::BlockTemplate;
-  using Ipld = storage::ipfs::IpfsDatastore;
 
   constexpr size_t kBlockMaxMessagesCount = 1000;
 

@@ -6,18 +6,16 @@
 #include "vm/actor/builtin/cron/cron_actor.hpp"
 
 #include <gtest/gtest.h>
+
+#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
-#include "testutil/outcome.hpp"
-#include "vm/actor/actor.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 
 using namespace fc::vm;
-using fc::vm::actor::MethodNumber;
-using fc::vm::actor::MethodParams;
-using fc::vm::actor::builtin::cron::EpochTick;
-using fc::vm::actor::builtin::storage_power::OnEpochTickEnd;
-using fc::vm::message::UnsignedMessage;
-using fc::vm::runtime::MockRuntime;
+using actor::MethodParams;
+using actor::builtin::cron::EpochTick;
+using actor::builtin::storage_power::OnEpochTickEnd;
+using runtime::MockRuntime;
 
 /**
  * @given Virtual Machine context
@@ -25,14 +23,11 @@ using fc::vm::runtime::MockRuntime;
  * @then error WRONG_CALL
  */
 TEST(CronActorTest, WrongSender) {
-  auto message_wrong_sender = UnsignedMessage{
-      0, actor::kInitAddress, actor::kInitAddress, {}, {}, {}, {}, {}, {}};
   MockRuntime runtime;
-  actor::Actor actor;
-  EXPECT_CALL(runtime, getMessage())
-      .WillOnce(testing::Return(message_wrong_sender));
-  EXPECT_OUTCOME_FALSE(err, EpochTick::call(runtime, {}));
-  ASSERT_EQ(err, VMExitCode::CRON_ACTOR_WRONG_CALL);
+  EXPECT_CALL(runtime, getImmediateCaller())
+      .WillOnce(testing::Return(actor::kInitAddress));
+  EXPECT_OUTCOME_ERROR(VMExitCode::SysErrForbidden,
+                       EpochTick::call(runtime, {}));
 }
 
 /**
@@ -41,16 +36,21 @@ TEST(CronActorTest, WrongSender) {
  * @then success
  */
 TEST(CronActorTest, Correct) {
-  auto message = UnsignedMessage{
-      0, actor::kInitAddress, actor::kSystemActorAddress, {}, {}, {}, {}, {}, {}};
   MockRuntime runtime;
-  actor::Actor actor;
-  EXPECT_CALL(runtime, getMessage()).WillOnce(testing::Return(message));
+  auto ipld = std::make_shared<fc::storage::ipfs::InMemoryDatastore>();
+  EXPECT_OUTCOME_TRUE(
+      state,
+      ipld->setCbor(actor::builtin::cron::State{
+          {{actor::kStoragePowerAddress, OnEpochTickEnd::Number}}}));
+  EXPECT_CALL(runtime, getCurrentActorState()).WillOnce(testing::Return(state));
+  EXPECT_CALL(runtime, getIpfsDatastore()).WillOnce(testing::Return(ipld));
   EXPECT_CALL(runtime,
               send(actor::kStoragePowerAddress,
                    OnEpochTickEnd::Number,
                    MethodParams{},
-                   actor::BigInt(0)))
+                   fc::primitives::TokenAmount{0}))
       .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(runtime, getImmediateCaller())
+      .WillOnce(testing::Return(actor::kSystemActorAddress));
   EXPECT_OUTCOME_TRUE_1(EpochTick::call(runtime, {}));
 }

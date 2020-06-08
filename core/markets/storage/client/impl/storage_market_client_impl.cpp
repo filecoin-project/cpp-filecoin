@@ -10,9 +10,9 @@
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
+#include "markets/storage/common.hpp"
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
-#include "markets/storage/common.hpp"
 
 #define CALLBACK_ACTION(_action)                                          \
   [self{shared_from_this()}](auto deal, auto event, auto from, auto to) { \
@@ -44,7 +44,6 @@ namespace fc::markets::storage::client {
   using primitives::GasAmount;
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
-  using vm::actor::builtin::market::getProposalCid;
   using vm::actor::builtin::market::PublishStorageDeals;
   using vm::message::kMessageVersion;
   using vm::message::SignedMessage;
@@ -88,8 +87,7 @@ namespace fc::markets::storage::client {
     std::vector<StorageProviderInfo> storage_providers;
     for (const auto &miner_address : miners) {
       OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address, tipset_key));
-      OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
-      PeerInfo peer_info{.id = peer_id, .addresses = {}};
+      PeerInfo peer_info{.id = miner_info.peer_id, .addresses = {}};
       storage_providers.push_back(
           StorageProviderInfo{.address = miner_address,
                               .owner = {},
@@ -149,25 +147,24 @@ namespace fc::markets::storage::client {
           }
           auto stream = std::move(stream_res.value());
           AskRequest request{.miner = info.address};
-          stream->write(
-              request,
-              [self, info, stream, signed_ask_handler](
-                  outcome::result<size_t> written) {
-                if (!self->hasValue(written,
-                                    "Cannot send request",
-                                    stream,
-                                    signed_ask_handler)) {
-                  return;
-                }
-                stream->template read<AskResponse>(
-                    [self, info, stream, signed_ask_handler](
-                        outcome::result<AskResponse> response) {
-                      auto validated_ask_response =
-                          self->validateAskResponse(response, info);
-                      signed_ask_handler(validated_ask_response);
-                      self->network_->closeStreamGracefully(stream);
-                    });
-              });
+          stream->write(request,
+                        [self, info, stream, signed_ask_handler](
+                            outcome::result<size_t> written) {
+                          if (!self->hasValue(written,
+                                              "Cannot send request",
+                                              stream,
+                                              signed_ask_handler)) {
+                            return;
+                          }
+                          stream->template read<AskResponse>(
+                              [self, info, stream, signed_ask_handler](
+                                  outcome::result<AskResponse> response) {
+                                auto validated_ask_response =
+                                    self->validateAskResponse(response, info);
+                                signed_ask_handler(validated_ask_response);
+                                self->network_->closeStreamGracefully(stream);
+                              });
+                        });
         });
   }
 
@@ -198,7 +195,7 @@ namespace fc::markets::storage::client {
         .provider_collateral = static_cast<uint64_t>(piece_size),
         .client_collateral = 0};
     OUTCOME_TRY(signed_proposal, signProposal(client_address, deal_proposal));
-    OUTCOME_TRY(proposal_cid, getProposalCid(signed_proposal));
+    auto proposal_cid{signed_proposal.cid()};
 
     auto client_deal = std::make_shared<ClientDeal>(
         ClientDeal{.client_deal_proposal = signed_proposal,
