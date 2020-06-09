@@ -44,8 +44,6 @@ TEST_F(SectorIndexTest, AttachNewStorage) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   };
   FsStat file_system_stat{
       .capacity = 100,
@@ -84,8 +82,6 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   };
   FsStat file_system_stat{
       .capacity = 100,
@@ -107,8 +103,6 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   };
 
   EXPECT_OUTCOME_TRUE_1(
@@ -135,8 +129,6 @@ TEST_F(SectorIndexTest, AttachStorageWithInvalidUrl) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   };
   FsStat file_system_stat{
       .capacity = 100,
@@ -185,8 +177,6 @@ TEST_F(SectorIndexTest, BestAllocation) {
       .weight = 10,
       .can_seal = false,
       .can_store = true,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   };
   FsStat file_system_stat1{
       .capacity = 7 * 2048,
@@ -204,8 +194,6 @@ TEST_F(SectorIndexTest, BestAllocation) {
       .weight = 30,
       .can_seal = false,
       .can_store = true,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   };
   FsStat file_system_stat2{
       .capacity = 6 * 2048,
@@ -223,8 +211,6 @@ TEST_F(SectorIndexTest, BestAllocation) {
       .weight = 5,
       .can_seal = false,
       .can_store = true,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   };
   FsStat file_system_stat3{
       .capacity = 8 * 2048,
@@ -241,8 +227,8 @@ TEST_F(SectorIndexTest, BestAllocation) {
           SectorFileType::FTCache, RegisteredProof::StackedDRG2KiBSeal, false));
 
   ASSERT_EQ(candidates.size(), 2);
-  ASSERT_EQ(candidates.at(0).id, id1);
-  ASSERT_EQ(candidates.at(1).id, id3);
+  ASSERT_EQ(candidates.at(0).id, id3);
+  ASSERT_EQ(candidates.at(1).id, id1);
 }
 
 /**
@@ -262,8 +248,6 @@ TEST_F(SectorIndexTest, StorageDeclareSector) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   };
   FsStat file_system_stat{
       .capacity = 100,
@@ -304,8 +288,6 @@ TEST_F(SectorIndexTest, StorageDropSector) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   };
   FsStat file_system_stat{
       .capacity = 100,
@@ -346,8 +328,6 @@ TEST_F(SectorIndexTest, StorageFindSector) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   };
   FsStat file_system_stat{
       .capacity = 100,
@@ -389,8 +369,6 @@ TEST_F(SectorIndexTest, StorageFindSectorFetch) {
       .weight = 0,
       .can_seal = false,
       .can_store = false,
-      .last_heartbeat = std::chrono::system_clock::now(),
-      .error = {},
   };
   FsStat file_system_stat{
       .capacity = 100,

@@ -29,6 +29,30 @@ namespace fc::primitives {
 
   using GasAmount = int64_t;
 
+  // StorageID identifies sector storage by UUID. One sector storage should map
+  // to one
+  //  filesystem, local or networked / shared by multiple machines
+  using StorageID = std::string;
+
+  struct FsStat {
+    uint64_t capacity;
+    uint64_t available;  // Available to use for sector storage
+    uint64_t used;
+  };
+
+  inline bool operator==(const FsStat &lhs, const FsStat &rhs) {
+    return lhs.capacity == rhs.capacity && lhs.available == rhs.available
+           && lhs.used == rhs.used;
+  };
+
+  struct LocalStorageMeta {
+    StorageID id;
+    uint64_t weight;  // 0 = readonly
+
+    bool can_seal;
+    bool can_store;
+  };
+
   struct SectorStorageWeightDesc {
     SectorSize sector_size;
     EpochDuration duration;
