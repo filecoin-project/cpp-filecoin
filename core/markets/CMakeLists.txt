@@ -5,4 +5,5 @@
 
 add_subdirectory(discovery)
 add_subdirectory(pieceio)
+add_subdirectory(retrieval)
 add_subdirectory(storage)

@@ -18,11 +18,14 @@
 #include "markets/storage/provider/provider_events.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
 #include "markets/storage/storage_receiver.hpp"
+#include "storage/filestore/filestore.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::storage::provider {
   using api::MinerApi;
+  using fc::storage::filestore::FileStore;
+  using fc::storage::filestore::Path;
   using fc::storage::keystore::KeyStore;
   using fc::storage::piece::PieceInfo;
   using fc::storage::piece::PieceStorage;
@@ -44,6 +47,8 @@ namespace fc::markets::storage::provider {
   const GasAmount kGasLimit{1000000};
   const EpochDuration kDefaultDealAcceptanceBuffer{100};
 
+  const Path kFilestoreTempDir = "/tmp/fuhon/storage-market/";
+
   class StorageProviderImpl
       : public StorageProvider,
         public StorageReceiver,
@@ -57,7 +62,8 @@ namespace fc::markets::storage::provider {
                         std::shared_ptr<Api> api,
                         std::shared_ptr<MinerApi> miner_api,
                         const Address &miner_actor_address,
-                        std::shared_ptr<PieceIO> piece_io);
+                        std::shared_ptr<PieceIO> piece_io,
+                        std::shared_ptr<FileStore> filestore);
 
     auto init() -> outcome::result<void> override;
 
@@ -146,7 +152,7 @@ namespace fc::markets::storage::provider {
      * Finalize deal, close connection, clean up
      * @param deal - deal to clean up
      */
-    void finalizeDeal(std::shared_ptr<MinerDeal> deal);
+    outcome::result<void> finalizeDeal(std::shared_ptr<MinerDeal> deal);
 
     /**
      * Creates all FSM transitions
@@ -368,6 +374,7 @@ namespace fc::markets::storage::provider {
     std::shared_ptr<StorageMarketNetwork> network_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<PieceStorage> piece_storage_;
+    std::shared_ptr<FileStore> filestore_;
     std::shared_ptr<DataTransfer> datatransfer_;
 
     common::Logger logger_ = common::createLogger("StorageMarketProvider");
