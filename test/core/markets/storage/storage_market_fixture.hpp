@@ -212,14 +212,15 @@ namespace fc::markets::storage::test {
 
       api->StateLookupID = {[account_keys](const Address &address,
                                            auto &) -> outcome::result<Address> {
-        auto it = std::find_if(
-            account_keys.begin(), account_keys.end(), [address](auto &pair) {
-              return pair.second == address;
-            });
-        if (it != account_keys.end()) {
-          return it->first;
+        if (address.isId()) {
+          return address;
         }
-        return address;
+        for (auto &[k, v] : account_keys) {
+          if (v == address) {
+            return k;
+          }
+        }
+        throw "StateLookupID: address not found";
       }};
 
       api->ChainHead = {[this]() { return chain_head; }};

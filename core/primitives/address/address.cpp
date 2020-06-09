@@ -35,6 +35,13 @@ namespace fc::primitives::address {
         [](const BLSPublicKeyHash &v) { return true; });
   }
 
+  bool Address::isId() const {
+    return visit_in_place(
+        data,
+        [](uint64_t v) { return true; },
+        [](const auto &) { return false; });
+  }
+
   Protocol Address::getProtocol() const {
     return visit_in_place(
         data,

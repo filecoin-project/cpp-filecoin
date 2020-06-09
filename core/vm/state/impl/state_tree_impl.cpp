@@ -29,7 +29,7 @@ namespace fc::vm::state {
   }
 
   outcome::result<Address> StateTreeImpl::lookupId(const Address &address) {
-    if (address.getProtocol() == primitives::address::Protocol::ID) {
+    if (address.isId()) {
       return address;
     }
     OUTCOME_TRY(init_actor_state, state<InitActorState>(actor::kInitAddress));
