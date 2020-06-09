@@ -104,14 +104,13 @@ namespace fc::data_transfer {
   }
 
   void GraphsyncReceiver::receiveError() {
-    logger_->warn("Receive Error");
+    logger_->warn("Receive error");
   }
 
   outcome::result<void> GraphsyncReceiver::sendResponse(
       const PeerInfo &peer, bool is_accepted, const TransferId &transfer_id) {
     DataTransferMessage response = createResponse(is_accepted, transfer_id);
-    OUTCOME_TRY(sender, network_->newMessageSender(peer));
-    OUTCOME_TRY(sender->sendMessage(response));
+    network_->sendMessage(peer, response);
     return outcome::success();
   }
 

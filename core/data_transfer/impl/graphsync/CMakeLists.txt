@@ -12,4 +12,5 @@ target_link_libraries(data_transfer_graphsync
     clock
     graphsync
     libp2p_data_transfer_network
+    logger
     )

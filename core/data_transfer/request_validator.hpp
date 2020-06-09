@@ -9,7 +9,7 @@
 #include <libp2p/peer/peer_info.hpp>
 #include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
-#include "storage/ipld/ipld_node.hpp"
+#include "storage/ipld/walker.hpp"
 
 namespace fc::data_transfer {
 

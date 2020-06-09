@@ -20,9 +20,8 @@ namespace fc::data_transfer {
 
     MOCK_METHOD1(connectTo, outcome::result<void>(const PeerInfo &peer));
 
-    MOCK_METHOD1(
-        newMessageSender,
-        outcome::result<std::shared_ptr<MessageSender>>(const PeerInfo &peer));
+    MOCK_METHOD2(sendMessage,
+                 void(const PeerInfo &to, const DataTransferMessage &message));
   };
 
 }  // namespace fc::data_transfer

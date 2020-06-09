@@ -65,17 +65,6 @@ TEST_F(Libp2pDataTransferNetworkTest, Connect) {
 }
 
 /**
- * Successful creation new MessageSender
- */
-TEST_F(Libp2pDataTransferNetworkTest, NewMessageSender) {
-  PeerInfo peer_info{.id = generatePeerId(1), .addresses = {}};
-  EXPECT_CALL(*host,
-              newStream(Eq(peer_info), Eq(kDataTransferLibp2pProtocol), _))
-      .WillOnce(testing::Return());
-  EXPECT_FALSE(network->newMessageSender(peer_info).has_error());
-}
-
-/**
  * Set protocol receiver
  * @given host
  * @when invalid receiver is passed

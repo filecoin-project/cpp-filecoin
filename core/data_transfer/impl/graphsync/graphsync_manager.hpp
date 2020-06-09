@@ -11,14 +11,23 @@
 #include <libp2p/host/host.hpp>
 #include "data_transfer/impl/libp2p_data_transfer_network.hpp"
 #include "data_transfer/types.hpp"
+#include "storage/ipfs/graphsync/graphsync.hpp"
 
 namespace fc::data_transfer::graphsync {
 
   using libp2p::Host;
+  using storage::ipfs::graphsync::Graphsync;
 
-  class GraphSyncManager : public Manager {
+  class GraphSyncManager
+      : public Manager,
+        public std::enable_shared_from_this<GraphSyncManager> {
    public:
-    GraphSyncManager(std::shared_ptr<Host> host, PeerInfo peer);
+    GraphSyncManager(std::shared_ptr<Host> host,
+                     std::shared_ptr<Graphsync> graphsync);
+
+    outcome::result<void> init(
+        const std::string &voucher_type,
+        std::shared_ptr<RequestValidator> validator) override;
 
     outcome::result<ChannelId> openPushDataChannel(
         const PeerInfo &to,
@@ -72,8 +81,9 @@ namespace fc::data_transfer::graphsync {
                                        TransferId transfer_id);
 
     std::atomic<TransferId> last_tx_id{0};
-    Libp2pDataTransferNetwork network_;
     PeerInfo peer_;
+    std::shared_ptr<Libp2pDataTransferNetwork> network_;
+    std::shared_ptr<Graphsync> graphsync_;
     std::map<ChannelId, ChannelState> channels_;
   };
 

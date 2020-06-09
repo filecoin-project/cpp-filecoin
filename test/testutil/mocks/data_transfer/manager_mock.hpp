@@ -14,6 +14,11 @@ namespace fc::data_transfer {
 
   class ManagerMock : public Manager {
    public:
+    MOCK_METHOD2(
+        init,
+        outcome::result<void>(const std::string &voucher_type,
+                              std::shared_ptr<RequestValidator> validator));
+
     MOCK_METHOD4(
         openPushDataChannel,
         outcome::result<ChannelId>(const PeerInfo &to,

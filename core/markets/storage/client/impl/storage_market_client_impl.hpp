@@ -39,6 +39,7 @@ namespace fc::markets::storage::client {
   using ClientFSM = fsm::FSM<ClientEvent, StorageDealStatus, ClientDeal>;
   using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
+  using DataTransfer = data_transfer::Manager;
 
   class StorageMarketClientImpl
       : public StorageMarketClient,
@@ -51,7 +52,7 @@ namespace fc::markets::storage::client {
                             std::shared_ptr<KeyStore> keystore,
                             std::shared_ptr<PieceIO> piece_io);
 
-    void init() override;
+    outcome::result<void> init() override;
 
     void run() override;
 
@@ -284,6 +285,7 @@ namespace fc::markets::storage::client {
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<StorageMarketNetwork> network_;
     std::shared_ptr<Discovery> discovery_;
+    std::shared_ptr<DataTransfer> datatransfer_;
 
     // connection manager
     std::mutex connections_mutex_;

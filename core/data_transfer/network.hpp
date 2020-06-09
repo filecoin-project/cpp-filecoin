@@ -42,8 +42,8 @@ namespace fc::data_transfer {
      */
     virtual outcome::result<void> connectTo(const PeerInfo &peer) = 0;
 
-    virtual outcome::result<std::shared_ptr<MessageSender>> newMessageSender(
-        const PeerInfo &peer) = 0;
+    virtual void sendMessage(const PeerInfo &to,
+                             const DataTransferMessage &message) = 0;
   };
 
 }  // namespace fc::data_transfer

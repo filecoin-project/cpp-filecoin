@@ -56,7 +56,7 @@ namespace fc::data_transfer {
     outcome::result<void> validateVoucher(
         const PeerInfo &sender, const DataTransferRequest &request) const;
 
-    common::Logger logger_ = common::createLogger("data_transfer");
+    common::Logger logger_ = common::createLogger("MessageReceiver");
 
    private:
     std::map<std::string, std::shared_ptr<RequestValidator>>

@@ -6,6 +6,7 @@
 #include "data_transfer/impl/graphsync/graphsync_manager.hpp"
 
 #include <utility>
+#include "data_transfer/impl/graphsync/graphsync_receiver.hpp"
 #include "data_transfer/message.hpp"
 
 namespace fc::data_transfer::graphsync {
@@ -13,8 +14,19 @@ namespace fc::data_transfer::graphsync {
   using common::Buffer;
 
   GraphSyncManager::GraphSyncManager(std::shared_ptr<Host> host,
-                                     PeerInfo peer)
-      : network_(std::move(host)), peer_(std::move(peer)) {}
+                                     std::shared_ptr<Graphsync> graphsync)
+      : peer_{host->getPeerInfo()},
+        network_(std::make_shared<Libp2pDataTransferNetwork>(std::move(host))),
+        graphsync_(std::move(graphsync)) {}
+
+  outcome::result<void> GraphSyncManager::init(
+      const std::string &voucher_type,
+      std::shared_ptr<RequestValidator> validator) {
+    auto receiver = std::make_shared<GraphsyncReceiver>(
+        network_, std::move(graphsync_), shared_from_this(), peer_);
+    OUTCOME_TRY(receiver->registerVoucherType(voucher_type, validator));
+    return network_->setDelegate(receiver);
+  }
 
   outcome::result<ChannelId> GraphSyncManager::openPushDataChannel(
       const PeerInfo &to,
@@ -93,8 +105,7 @@ namespace fc::data_transfer::graphsync {
                                                 voucher.bytes,
                                                 voucher.type,
                                                 tx_id);
-    OUTCOME_TRY(sender, network_.newMessageSender(to));
-    OUTCOME_TRY(sender->sendMessage(message));
+    network_->sendMessage(to, message);
     return tx_id;
   }
 
@@ -113,8 +124,7 @@ namespace fc::data_transfer::graphsync {
                                                        const PeerInfo &to,
                                                        TransferId transfer_id) {
     DataTransferMessage message = createResponse(is_accepted, transfer_id);
-    OUTCOME_TRY(sender, network_.newMessageSender(to));
-    OUTCOME_TRY(sender->sendMessage(message));
+    network_->sendMessage(to, message);
     return outcome::success();
   }
 

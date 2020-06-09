@@ -10,6 +10,7 @@
 #include <mutex>
 #include "api/miner_api.hpp"
 #include "common/logger.hpp"
+#include "data_transfer/manager.hpp"
 #include "fsm/fsm.hpp"
 #include "markets/pieceio/pieceio.hpp"
 #include "markets/storage/network/libp2p_storage_market_network.hpp"
@@ -35,6 +36,7 @@ namespace fc::markets::storage::provider {
   using ProviderTransition =
       fsm::Transition<ProviderEvent, StorageDealStatus, MinerDeal>;
   using ProviderFSM = fsm::FSM<ProviderEvent, StorageDealStatus, MinerDeal>;
+  using DataTransfer = data_transfer::Manager;
 
   // from lotus
   // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/provider.go#L71
@@ -57,7 +59,7 @@ namespace fc::markets::storage::provider {
                         const Address &miner_actor_address,
                         std::shared_ptr<PieceIO> piece_io);
 
-    auto init() -> void override;
+    auto init() -> outcome::result<void> override;
 
     auto start() -> outcome::result<void> override;
 
@@ -366,6 +368,7 @@ namespace fc::markets::storage::provider {
     std::shared_ptr<StorageMarketNetwork> network_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<PieceStorage> piece_storage_;
+    std::shared_ptr<DataTransfer> datatransfer_;
 
     common::Logger logger_ = common::createLogger("StorageMarketProvider");
   };

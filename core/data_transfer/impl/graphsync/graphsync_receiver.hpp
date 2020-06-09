@@ -11,6 +11,7 @@
 #include "data_transfer/impl/graphsync/graphsync_manager.hpp"
 #include "data_transfer/impl/libp2p_data_transfer_network.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
+#include "common/logger.hpp"
 
 namespace fc::data_transfer {
 
@@ -61,6 +62,7 @@ namespace fc::data_transfer {
     std::shared_ptr<Manager> graphsync_manager_;
     PeerInfo peer_;
     std::vector<std::shared_ptr<Subscriber>> subscribers_;
+    common::Logger logger_ = common::createLogger("GraphsyncReceiver");
   };
 
 }  // namespace fc::data_transfer

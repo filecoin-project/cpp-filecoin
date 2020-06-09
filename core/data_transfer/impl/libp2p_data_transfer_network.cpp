@@ -10,11 +10,13 @@
 /**
  * Check outcome and calls receiver->receiveError in case of failure
  */
-#define CHECK_OUTCOME_RESULT(expression, receiver) \
-  if (expression.has_error()) {                    \
-    receiver->receiveError();                      \
-    stream->stream()->reset();                     \
-    return;                                        \
+#define CHECK_OUTCOME_RESULT(expression, receiver)                           \
+  auto UNIQUE_NAME(_r) = expression;                                         \
+  if (UNIQUE_NAME(_r).has_error()) {                                         \
+    self->logger_->error("Read error " + UNIQUE_NAME(_r).error().message()); \
+    receiver->receiveError();                                                \
+    stream->stream()->reset();                                               \
+    return;                                                                  \
   }
 
 #define GET_OUTCOME_RESULT(result, expression, receiver) \
@@ -51,29 +53,28 @@ namespace fc::data_transfer {
           GET_OUTCOME_RESULT(
               multiaddress, stream->remoteMultiaddr(), this->receiver_);
           PeerInfo remote_peer_info{.id = peer_id, .addresses = {multiaddress}};
-          while (true) {
-            cbor_stream->read<DataTransferMessage>(
-                [self{shared_from_this()},
-                 remote_peer_info,
-                 stream{cbor_stream}](
-                    outcome::result<DataTransferMessage> message) {
-                  if (message.has_error()) {
-                    self->receiver_->receiveError();
-                    return;
-                  }
-                  if (message.value().is_request) {
-                    CHECK_OUTCOME_RESULT(
-                        self->receiver_->receiveRequest(
-                            remote_peer_info, *message.value().request),
-                        self->receiver_);
-                  } else {
-                    CHECK_OUTCOME_RESULT(
-                        self->receiver_->receiveResponse(
-                            remote_peer_info, *message.value().response),
-                        self->receiver_);
-                  }
-                });
-          }
+          cbor_stream->read<DataTransferMessage>(
+              [self{shared_from_this()}, remote_peer_info, stream{cbor_stream}](
+                  outcome::result<DataTransferMessage> message) {
+                self->logger_->debug("New message");
+                if (message.has_error()) {
+                  self->logger_->error("Read error "
+                                       + message.error().message());
+                  self->receiver_->receiveError();
+                  return;
+                }
+                if (message.value().is_request) {
+                  CHECK_OUTCOME_RESULT(
+                      self->receiver_->receiveRequest(remote_peer_info,
+                                                      *message.value().request),
+                      self->receiver_);
+                } else {
+                  CHECK_OUTCOME_RESULT(
+                      self->receiver_->receiveResponse(
+                          remote_peer_info, *message.value().response),
+                      self->receiver_);
+                }
+              });
         });
     return outcome::success();
   }
@@ -84,17 +85,33 @@ namespace fc::data_transfer {
     return outcome::success();
   }
 
-  outcome::result<std::shared_ptr<MessageSender>>
-  Libp2pDataTransferNetwork::newMessageSender(const PeerInfo &peer_info) {
-    std::shared_ptr<libp2p::connection::Stream> stream;
+  void Libp2pDataTransferNetwork::sendMessage(
+      const PeerInfo &to, const DataTransferMessage &message) {
     host_->newStream(
-        peer_info,
+        to,
         kDataTransferLibp2pProtocol,
-        [&stream](
-            outcome::result<std::shared_ptr<libp2p::connection::Stream>> s) {
-          stream = std::move(s.value());
+        [self{shared_from_this()},
+         message](outcome::result<std::shared_ptr<libp2p::connection::Stream>>
+                      stream_res) {
+          if (stream_res.has_error()) {
+            self->logger_->error("Open stream error "
+                                 + stream_res.error().message());
+            return;
+          }
+          CborStream stream(stream_res.value());
+          stream.write(
+              message, [self, stream](outcome::result<size_t> written) {
+                if (written.has_error()) {
+                  self->logger_->error("Send error "
+                                       + written.error().message());
+                  return;
+                }
+                self->logger_->debug("Message sent "
+                                     + std::to_string(written.value()));
+                // TODO (a.chernyshov) read response
+                // validate response voucher
+              });
         });
-    return std::make_shared<StreamMessageSender>(stream);
   }
 
 }  // namespace fc::data_transfer

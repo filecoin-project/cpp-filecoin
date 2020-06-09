@@ -9,6 +9,7 @@
 #include <map>
 
 #include <libp2p/peer/peer_info.hpp>
+#include "data_transfer/request_validator.hpp"
 #include "data_transfer/types.hpp"
 #include "storage/ipld/walker.hpp"
 
@@ -24,6 +25,10 @@ namespace fc::data_transfer {
   class Manager {
    public:
     virtual ~Manager() = default;
+
+    virtual outcome::result<void> init(
+        const std::string &voucher_type,
+        std::shared_ptr<RequestValidator> validator) = 0;
 
     /**
      * Open a data transfer that will send data to the recipient peer and

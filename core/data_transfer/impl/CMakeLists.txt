@@ -13,4 +13,5 @@ target_link_libraries(libp2p_data_transfer_network
     data_transfer
     cbor_stream
     p2p::p2p
+    logger
     )

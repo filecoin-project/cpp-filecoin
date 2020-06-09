@@ -6,13 +6,18 @@
 #include "storage_market_client_impl.hpp"
 
 #include <libp2p/peer/peer_id.hpp>
+#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include "codec/cbor/cbor.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
+#include "data_transfer/impl/graphsync/graphsync_manager.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
+#include "markets/storage/client/impl/client_data_transfer_request_validator.hpp"
+#include "markets/storage/common.hpp"
+#include "markets/storage/storage_datatransfer_voucher.hpp"
+#include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
-#include "markets/storage/common.hpp"
 
 #define CALLBACK_ACTION(_action)                                          \
   [self{shared_from_this()}](auto deal, auto event, auto from, auto to) { \
@@ -37,6 +42,8 @@
 
 namespace fc::markets::storage::client {
   using api::MsgWait;
+  using data_transfer::graphsync::GraphSyncManager;
+  using fc::storage::ipfs::graphsync::GraphsyncImpl;
   using host::HostContext;
   using host::HostContextImpl;
   using libp2p::peer::PeerId;
@@ -68,12 +75,27 @@ namespace fc::markets::storage::client {
         keystore_{std::move(keystore)},
         piece_io_{std::move(piece_io)},
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
-        discovery_{std::make_shared<Discovery>(datastore)} {}
+        discovery_{std::make_shared<Discovery>(datastore)} {
+    auto scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
+        *context_, libp2p::protocol::SchedulerConfig{});
+    auto graphsync =
+        std::make_shared<GraphsyncImpl>(host_, std::move(scheduler));
+    datatransfer_ = std::make_shared<GraphSyncManager>(host_, graphsync);
+  }
 
-  void StorageMarketClientImpl::init() {
+  outcome::result<void> StorageMarketClientImpl::init() {
+    // init fsm transitions
     std::shared_ptr<HostContext> fsm_context =
         std::make_shared<HostContextImpl>(context_);
     fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), fsm_context);
+
+    // register request validator
+    auto state_store = std::make_shared<ClientFsmStateStore>(fsm_);
+    auto validator =
+        std::make_shared<ClientDataTransferRequestValidator>(state_store);
+    OUTCOME_TRY(datatransfer_->init(StorageDataTransferVoucherType, validator));
+
+    return outcome::success();
   }
 
   void StorageMarketClientImpl::run() {}
@@ -149,25 +171,24 @@ namespace fc::markets::storage::client {
           }
           auto stream = std::move(stream_res.value());
           AskRequest request{.miner = info.address};
-          stream->write(
-              request,
-              [self, info, stream, signed_ask_handler](
-                  outcome::result<size_t> written) {
-                if (!self->hasValue(written,
-                                    "Cannot send request",
-                                    stream,
-                                    signed_ask_handler)) {
-                  return;
-                }
-                stream->template read<AskResponse>(
-                    [self, info, stream, signed_ask_handler](
-                        outcome::result<AskResponse> response) {
-                      auto validated_ask_response =
-                          self->validateAskResponse(response, info);
-                      signed_ask_handler(validated_ask_response);
-                      self->network_->closeStreamGracefully(stream);
-                    });
-              });
+          stream->write(request,
+                        [self, info, stream, signed_ask_handler](
+                            outcome::result<size_t> written) {
+                          if (!self->hasValue(written,
+                                              "Cannot send request",
+                                              stream,
+                                              signed_ask_handler)) {
+                            return;
+                          }
+                          stream->template read<AskResponse>(
+                              [self, info, stream, signed_ask_handler](
+                                  outcome::result<AskResponse> response) {
+                                auto validated_ask_response =
+                                    self->validateAskResponse(response, info);
+                                signed_ask_handler(validated_ask_response);
+                                self->network_->closeStreamGracefully(stream);
+                              });
+                        });
         });
   }
 

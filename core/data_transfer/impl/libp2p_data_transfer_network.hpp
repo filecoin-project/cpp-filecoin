@@ -9,6 +9,7 @@
 #include "data_transfer/network.hpp"
 
 #include <libp2p/host/host.hpp>
+#include "common/logger.hpp"
 
 namespace fc::data_transfer {
 
@@ -25,12 +26,13 @@ namespace fc::data_transfer {
 
     outcome::result<void> connectTo(const PeerInfo &peer) override;
 
-    outcome::result<std::shared_ptr<MessageSender>> newMessageSender(
-        const PeerInfo &peer) override;
+    void sendMessage(const PeerInfo &to,
+                     const DataTransferMessage &message) override;
 
    private:
     std::shared_ptr<libp2p::Host> host_;
     std::shared_ptr<MessageReceiver> receiver_;
+    common::Logger logger_ = common::createLogger("Libp2pDataTransferNetwork");
   };
 
 }  // namespace fc::data_transfer
