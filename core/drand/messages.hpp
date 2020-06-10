@@ -24,13 +24,8 @@ namespace fc::drand {
     bool tls;
   };
 
-  struct Node {
-    Identity public_identity;  // named as "public" in drand proto
-    uint32_t index;
-  };
-
   struct GroupPacket {
-    std::vector<Node> nodes;
+    std::vector<Identity> nodes;
     uint32_t threshold;
     uint32_t period;  // in seconds
     uint64_t genesis_time;

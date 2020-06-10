@@ -22,8 +22,6 @@ namespace fc::drand {
    public:
     static Identity protoToHandy(const ::drand::Identity &identity);
 
-    static Node protoToHandy(const ::drand::Node &node);
-
     static GroupPacket protoToHandy(const ::drand::GroupPacket &group_packet);
 
     static PublicRandResponse protoToHandy(

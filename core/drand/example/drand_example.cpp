@@ -27,10 +27,16 @@ int main(int argc, char *argv[]) {
       std::make_shared<fc::drand::DrandSyncClientImpl>(
           std::string(argv[1]), std::stoi(std::string(argv[2])));
 
-  auto result = client->publicRand(1);
-  std::cout << static_cast<int>(result.has_value()) << std::endl;
-  for (auto e : result.value().randomness) {
-    std::cout << e;
+  if (auto result = client->publicRand(1)) {
+    std::cout << static_cast<int>(result.has_value()) << std::endl;
+    for (auto e : result.value().randomness) {
+      std::cout << e;
+    }
+    std::cout << std::endl;
+  }
+
+  if (auto result = client->group()) {
+    std::cout << "Dist Keys " << result.value().dist_key.size() << std::endl;
   }
   return 0;
 }
