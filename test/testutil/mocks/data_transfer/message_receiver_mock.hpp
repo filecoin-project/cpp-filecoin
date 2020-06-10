@@ -17,10 +17,10 @@ namespace fc::data_transfer {
     ~MessageReceiverMock() override = default;
 
     MOCK_METHOD2(receiveRequest,
-                 outcome::result<void>(const PeerId &initiator,
+                 outcome::result<void>(const PeerInfo &initiator,
                                        const DataTransferRequest &request));
     MOCK_METHOD2(receiveResponse,
-                 outcome::result<void>(const PeerId &sender,
+                 outcome::result<void>(const PeerInfo &sender,
                                        const DataTransferResponse &response));
     MOCK_METHOD0(receiveError, void());
     MOCK_METHOD2(

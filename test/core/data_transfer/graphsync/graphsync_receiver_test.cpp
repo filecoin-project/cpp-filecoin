@@ -30,15 +30,14 @@ namespace fc::data_transfer {
         std::make_shared<GraphsyncMock>();
     std::shared_ptr<ManagerMock> graphsync_manager =
         std::make_shared<ManagerMock>();
-    PeerId peer_id = generatePeerId(1);
+    PeerInfo peer_info{.id = generatePeerId(1), .addresses = {}};
 
-    GraphsyncReceiver receiver{network, graphsync, graphsync_manager, peer_id};
+    GraphsyncReceiver receiver{
+        network, graphsync, graphsync_manager, peer_info};
 
     std::shared_ptr<RequestValidatorMock> request_validator =
         std::make_shared<RequestValidatorMock>();
-    PeerId initiator = generatePeerId(2);
-    std::shared_ptr<MessageSenderMock> message_sender =
-        std::make_shared<MessageSenderMock>();
+    PeerInfo initiator{.id = generatePeerId(2), .addresses = {}};
   };
 
   /**
@@ -71,17 +70,13 @@ namespace fc::data_transfer {
                                 .voucher = {},
                                 .voucher_type = "not_found",
                                 .transfer_id = 1};
-    EXPECT_CALL(*network, newMessageSender(Eq(initiator)))
-        .WillOnce(::testing::Return(message_sender));
-
     DataTransferMessage expected_response{
         .is_request = false,
         .request = boost::none,
         .response =
             DataTransferResponse{.is_accepted = false, .transfer_id = 1}};
-    EXPECT_CALL(*message_sender, sendMessage(Eq(expected_response)))
-        .WillOnce(::testing::Return(outcome::success()));
-
+    EXPECT_CALL(*network, sendMessage(Eq(initiator), Eq(expected_response)))
+        .WillOnce(::testing::Return());
     EXPECT_FALSE(receiver.receiveRequest(initiator, request).has_error());
   }
 
@@ -105,15 +100,13 @@ namespace fc::data_transfer {
                                 .voucher = {},
                                 .voucher_type = voucher_type,
                                 .transfer_id = transfer_id};
-    EXPECT_CALL(*network, newMessageSender(Eq(initiator)))
-        .WillOnce(::testing::Return(message_sender));
     EXPECT_CALL(*graphsync_manager,
                 createChannel(Eq(transfer_id),
                               Eq(base_cid),
                               _,
                               _,
                               Eq(initiator),
-                              Eq(peer_id),
+                              Eq(peer_info),
                               Eq(initiator)))
         .WillOnce(::testing::Return(outcome::success(
             ChannelId{.initiator = initiator, .id = transfer_id})));
@@ -128,9 +121,9 @@ namespace fc::data_transfer {
         .request = boost::none,
         .response = DataTransferResponse{.is_accepted = true,
                                          .transfer_id = transfer_id}};
-    EXPECT_CALL(*message_sender, sendMessage(Eq(expected_response)))
-        .WillOnce(::testing::Return(outcome::success()));
 
+    EXPECT_CALL(*network, sendMessage(Eq(initiator), Eq(expected_response)))
+        .WillOnce(::testing::Return());
     EXPECT_FALSE(receiver.receiveRequest(initiator, request).has_error());
   }
 
@@ -154,8 +147,6 @@ namespace fc::data_transfer {
                                 .voucher = {},
                                 .voucher_type = voucher_type,
                                 .transfer_id = transfer_id};
-    EXPECT_CALL(*network, newMessageSender(Eq(initiator)))
-        .WillOnce(::testing::Return(message_sender));
     EXPECT_CALL(*graphsync_manager,
                 createChannel(Eq(transfer_id),
                               Eq(base_cid),
@@ -163,11 +154,11 @@ namespace fc::data_transfer {
                               _,
                               Eq(initiator),
                               Eq(initiator),
-                              Eq(peer_id)))
+                              Eq(peer_info)))
         .WillOnce(::testing::Return(outcome::success(
             ChannelId{.initiator = initiator, .id = transfer_id})));
     EXPECT_CALL(*graphsync,
-                makeRequest(Eq(initiator), _, Eq(base_cid), _, _, _));
+                makeRequest(Eq(initiator.id), _, Eq(base_cid), _, _, _));
 
     EXPECT_CALL(*request_validator, validatePush(Eq(initiator), _, base_cid, _))
         .WillOnce(::testing::Return(outcome::success()));
@@ -180,9 +171,8 @@ namespace fc::data_transfer {
         .request = boost::none,
         .response = DataTransferResponse{.is_accepted = true,
                                          .transfer_id = transfer_id}};
-    EXPECT_CALL(*message_sender, sendMessage(Eq(expected_response)))
-        .WillOnce(::testing::Return(outcome::success()));
-
+    EXPECT_CALL(*network, sendMessage(Eq(initiator), Eq(expected_response)))
+        .WillOnce(::testing::Return());
     EXPECT_FALSE(receiver.receiveRequest(initiator, request).has_error());
   }
 

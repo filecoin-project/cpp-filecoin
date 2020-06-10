@@ -5,6 +5,7 @@
 
 #include "data_transfer/impl/graphsync/graphsync_receiver.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
+#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "data_transfer/impl/graphsync/data_transfer_extension.hpp"
 
 namespace fc::data_transfer {
@@ -17,21 +18,23 @@ namespace fc::data_transfer {
       std::shared_ptr<DataTransferNetwork> network,
       std::shared_ptr<Graphsync> graphsync,
       std::shared_ptr<Manager> graphsync_manager,
-      PeerId peer)
+      PeerInfo peer)
       : network_(std::move(network)),
         graphsync_(std::move(graphsync)),
         graphsync_manager_(std::move(graphsync_manager)),
         peer_(std::move(peer)) {}
 
   outcome::result<void> GraphsyncReceiver::receiveRequest(
-      const PeerId &initiator, const DataTransferRequest &request) {
+      const PeerInfo &initiator, const DataTransferRequest &request) {
     auto validated = validateVoucher(initiator, request);
     if (!validated) {
       logger_->warn("Voucher is not valid: " + validated.error().message());
       return sendResponse(initiator, false, request.transfer_id);
     }
 
-    OUTCOME_TRY(selector, IPLDNodeImpl::createFromRawBytes(request.selector));
+    // TODO (a.chernyshov) implement selectors and deserialize from
+    // request.selector
+    auto selector = std::make_shared<Selector>();
     OUTCOME_TRY(base_cid, CID::fromString(request.base_cid));
 
     if (request.is_pull) {
@@ -71,7 +74,7 @@ namespace fc::data_transfer {
   }
 
   outcome::result<void> GraphsyncReceiver::receiveResponse(
-      const PeerId &sender, const DataTransferResponse &response) {
+      const PeerInfo &sender, const DataTransferResponse &response) {
     Event event{.code = EventCode::ERROR,
                 .message = "",
                 .timestamp = clock::UTCClockImpl().nowUTC()};
@@ -90,7 +93,9 @@ namespace fc::data_transfer {
             true,
             sender,
             channel_state->channel.base_cid,
-            channel_state->channel.selector->getRawBytes()));
+            // TODO (a.chernyshov) implement selectors and serialize
+            // channel_state->channel.selector
+            {}));
         event.code = EventCode::PROGRESS;
         notifySubscribers(event, *channel_state);
       }
@@ -99,14 +104,13 @@ namespace fc::data_transfer {
   }
 
   void GraphsyncReceiver::receiveError() {
-    logger_->warn("Receive Error");
+    logger_->warn("Receive error");
   }
 
   outcome::result<void> GraphsyncReceiver::sendResponse(
-      const PeerId &peer, bool is_accepted, const TransferId &transfer_id) {
+      const PeerInfo &peer, bool is_accepted, const TransferId &transfer_id) {
     DataTransferMessage response = createResponse(is_accepted, transfer_id);
-    OUTCOME_TRY(sender, network_->newMessageSender(peer));
-    OUTCOME_TRY(sender->sendMessage(response));
+    network_->sendMessage(peer, response);
     return outcome::success();
   }
 
@@ -123,19 +127,20 @@ namespace fc::data_transfer {
   }
 
   outcome::result<void> GraphsyncReceiver::sendGraphSyncRequest(
-      const PeerId &initiator,
+      const PeerInfo &initiator,
       const TransferId &transfer_id,
       bool is_pull,
-      const PeerId &sender,
+      const PeerInfo &sender,
       const CID &root,
       gsl::span<const uint8_t> selector) {
-    ExtensionDataTransferData extension_data{.transfer_id = transfer_id,
-                                             .initiator = initiator.toBase58(),
-                                             .is_pull = is_pull};
+    ExtensionDataTransferData extension_data{
+        .transfer_id = transfer_id,
+        .initiator = peerInfoToPrettyString(initiator),
+        .is_pull = is_pull};
     OUTCOME_TRY(extension, encodeDataTransferExtension(extension_data));
 
     graphsync_->makeRequest(
-        sender,
+        sender.id,
         boost::none,
         root,
         selector,
