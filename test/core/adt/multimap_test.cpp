@@ -20,12 +20,8 @@ struct MultimapTest : public ::testing::Test {
   std::vector<Value> values{1, 2, 3};
   std::shared_ptr<fc::storage::ipfs::IpfsDatastore> ipld{
       std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
-  Map mmap;
+  Map mmap{ipld};
   std::string key = "mykey";
-
-  void SetUp() override {
-    mmap.load(ipld);
-  }
 
   void appendValues() {
     for (auto value : values) {
@@ -50,7 +46,7 @@ struct MultimapTest : public ::testing::Test {
  * @then its root CID equals to expected
  */
 TEST_F(MultimapTest, BasicEmpty) {
-  EXPECT_OUTCOME_TRUE_1(mmap.flush());
+  EXPECT_OUTCOME_TRUE_1(mmap.hamt.flush());
   // empty CID is generated on golang side
   EXPECT_EQ(
       mmap.hamt.cid(),
@@ -84,8 +80,7 @@ TEST_F(MultimapTest, AppendAndVisit) {
  */
 TEST_F(MultimapTest, ReloadFromCid) {
   appendValues();
-  EXPECT_OUTCOME_TRUE_1(mmap.flush());
-  mmap = Map{mmap.hamt.cid()};
-  mmap.load(ipld);
+  EXPECT_OUTCOME_TRUE_1(fc::Ipld::flush(mmap));
+  mmap = {mmap.hamt.cid(), ipld};
   expectVisitValues();
 }

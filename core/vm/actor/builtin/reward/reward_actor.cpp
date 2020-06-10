@@ -5,158 +5,108 @@
 
 #include "vm/actor/builtin/reward/reward_actor.hpp"
 
-#include "adt/multimap.hpp"
-#include "primitives/address/address_codec.hpp"
-#include "vm/exit_code/exit_code.hpp"
-
-using fc::adt::Multimap;
+#include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "vm/actor/builtin/miner/policy.hpp"
 
 namespace fc::vm::actor::builtin::reward {
-  outcome::result<State> loadState(Runtime &runtime) {
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    state.load(runtime);
-    return std::move(state);
-  }
+  constexpr auto kMintingInputFixedPoint{30};
+  constexpr auto kMintingOutputFixedPoint{97};
+  inline const StoragePower kBaselinePower{1ll << 50};
+  constexpr auto kExpectedLeadersPerEpoch{5};
 
-  outcome::result<void> commitState(Runtime &runtime, State &state) {
-    OUTCOME_TRY(state.flush());
-    return runtime.commitState(state);
-  }
-
-  TokenAmount computeBlockReward(const State &state,
-                                 const TokenAmount &balance);
-
-  primitives::BigInt Reward::amountVested(
-      const primitives::ChainEpoch &current_epoch) const {
-    auto elapsed = current_epoch - start_epoch;
-    switch (vesting_function) {
-      case VestingFunction::NONE:
-        return value;
-      case VestingFunction::LINEAR: {
-        auto vest_duration{end_epoch - start_epoch};
-        if (elapsed >= vest_duration) {
-          return value;
-        }
-        return (value * elapsed) / vest_duration;
+  BigInt taylorSeriesExpansion(BigInt ln, BigInt ld, BigInt t) {
+    BigInt nb{-ln * t}, db{ld << kMintingInputFixedPoint};
+    BigInt n{-nb}, d{db};
+    BigInt res;
+    for (auto i{0}; i < 25; ++i) {
+      d *= i;
+      res += (n << kMintingOutputFixedPoint) / d;
+      n *= nb;
+      d *= db;
+      auto b{0};
+      for (auto d2{d}; !d2.is_zero(); d2 >>= 1) {
+        ++b;
       }
-      default:
-        return 0;
+      b = std::max(0, b - kMintingOutputFixedPoint);
+      n >>= b;
+      d >>= b;
     }
+    return res;
   }
 
-  outcome::result<void> State::addReward(
-      const std::shared_ptr<storage::ipfs::IpfsDatastore> &store,
-      const Address &owner,
-      const Reward &reward) {
-    OUTCOME_TRY(Multimap::append(rewards, owner, reward));
-    reward_total += reward.value;
-    return outcome::success();
+  BigInt mintingFunction(BigInt f, BigInt t) {
+    return (f
+            * taylorSeriesExpansion(
+                miner::kEpochDurationSeconds
+                    * TokenAmount{"6931471805599453094172321215"},
+                6 * miner::kSecondsInYear
+                    * TokenAmount{"10000000000000000000000000000"},
+                t))
+           >> kMintingOutputFixedPoint;
   }
 
-  outcome::result<TokenAmount> State::withdrawReward(
-      const std::shared_ptr<storage::ipfs::IpfsDatastore> &store,
-      const Address &owner,
-      const primitives::ChainEpoch &current_epoch) {
-    std::vector<Reward> remaining_rewards;
-    TokenAmount withdrawable_sum{0};
-    OUTCOME_TRY(Multimap::visit(
-        rewards, owner, {[&](auto &reward) -> outcome::result<void> {
-          auto unlocked = reward.amountVested(current_epoch);
-          auto withdrawable = unlocked - reward.amount_withdrawn;
-          if (withdrawable < 0) {
-            /*
-             * could be good to log somehow these values:
-             * - withdrawable
-             * - reward
-             * - current epoch
-             */
-            return vm::VMExitCode::REWARD_ACTOR_NEGATIVE_WITHDRAWABLE;
-          }
-          withdrawable_sum += withdrawable;
-          if (unlocked < reward.value) {
-            Reward new_reward(reward);
-            new_reward.amount_withdrawn = unlocked;
-            remaining_rewards.emplace_back(std::move(new_reward));
-          }
-          return outcome::success();
-        }}));
-
-    assert(withdrawable_sum < reward_total);
-
-    OUTCOME_TRY(rewards.remove(owner));
-    for (const Reward &rr : remaining_rewards) {
-      OUTCOME_TRY(Multimap::append(rewards, owner, rr));
-    }
-    reward_total -= withdrawable_sum;
-    return withdrawable_sum;
+  void computePerEpochReward(State &state, int64_t tickets) {
+    using boost::multiprecision::pow;
+    auto old_simple{state.simple_supply};
+    BigInt e6e18{pow(BigInt{10}, 6 * 18)};
+    state.simple_supply = mintingFunction(
+        100 * e6e18,
+        BigInt{state.reward_epochs_paid} << kMintingInputFixedPoint);
+    auto old_baseline{state.baseline_supply};
+    state.baseline_supply = mintingFunction(900 * e6e18, state.effective_time);
+    state.last_per_epoch_reward =
+        std::max<TokenAmount>(0, state.baseline_supply - old_baseline)
+        + std::max<TokenAmount>(0, state.simple_supply - old_simple);
   }
 
-  ACTOR_METHOD_IMPL(Construct) {
-    if (runtime.getImmediateCaller() != kSystemActorAddress) {
-      return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
-    }
-    State state{.reward_total = 0, .rewards = {}};
-    state.load(runtime);
-    OUTCOME_TRY(commitState(runtime, state));
+  ACTOR_METHOD_IMPL(Constructor) {
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
+    OUTCOME_TRY(runtime.commitState(State{}));
     return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(AwardBlockReward) {
-    if (runtime.getImmediateCaller() != kSystemActorAddress) {
-      return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
-    }
-    assert(params.gas_reward == runtime.getValueReceived());
-    OUTCOME_TRY(prior_balance, runtime.getCurrentBalance());
-    TokenAmount penalty{0};
-    OUTCOME_TRY(state, loadState(runtime));
-
-    auto block_reward = computeBlockReward(state, params.gas_reward);
-    TokenAmount total_reward = block_reward + params.gas_reward;
-
-    penalty = std::min(params.penalty, total_reward);
-    auto reward_payable = total_reward - penalty;
-
-    assert(total_reward <= prior_balance);
-
-    if (reward_payable > TokenAmount{0}) {
-      auto current_epoch = runtime.getCurrentEpoch();
-      Reward new_reward{.vesting_function = kRewardVestingFunction,
-                        .start_epoch = current_epoch,
-                        .end_epoch = current_epoch + kRewardVestingPeriod,
-                        .value = reward_payable,
-                        .amount_withdrawn = 0};
-      OUTCOME_TRY(state.addReward(runtime, params.miner, new_reward));
-    }
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
+    OUTCOME_TRY(balance, runtime.getCurrentBalance());
+    VM_ASSERT(balance >= params.gas_reward);
+    VM_ASSERT(params.tickets > 0);
+    OUTCOME_TRY(miner, runtime.resolveAddress(params.miner));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    TokenAmount total{params.gas_reward
+                      + state.last_per_epoch_reward / kExpectedLeadersPerEpoch};
+    auto penalty{std::min(params.penalty, total)};
+    TokenAmount payable{total - penalty};
+    VM_ASSERT(balance >= payable + penalty);
+    OUTCOME_TRY(runtime.sendM<miner::AddLockedFund>(miner, payable, payable));
     OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, penalty));
-    OUTCOME_TRY(commitState(runtime, state));
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(WithdrawReward) {
-    OUTCOME_TRY(code, runtime.getActorCodeID(runtime.getImmediateCaller()));
-    if (!isSignableActor(code)) {
-      return VMExitCode::REWARD_ACTOR_WRONG_CALLER;
-    }
-    auto owner = runtime.getMessage().get().from;
-
-    OUTCOME_TRY(state, loadState(runtime));
-    OUTCOME_TRY(
-        withdrawn,
-        state.withdrawReward(runtime, owner, runtime.getCurrentEpoch()));
-    OUTCOME_TRY(runtime.sendFunds(owner, withdrawn));
-    OUTCOME_TRY(commitState(runtime, state));
-    return outcome::success();
+  ACTOR_METHOD_IMPL(LastPerEpochReward) {
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    return state.last_per_epoch_reward;
   }
 
-  TokenAmount computeBlockReward(const State &state,
-                                 const TokenAmount &balance) {
-    TokenAmount treasury = balance - state.reward_total;
-    auto target_reward = kBlockRewardTarget;
-    return std::min(target_reward, treasury);
+  ACTOR_METHOD_IMPL(UpdateNetworkKPI) {
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kStoragePowerAddress));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    ++state.reward_epochs_paid;
+    state.realized_power = params;
+    state.baseline_power = kBaselinePower;
+    state.sum_realized += state.realized_power;
+    state.sum_baseline += state.baseline_power;
+    state.effective_time = (std::min(state.sum_baseline, state.sum_realized)
+                            << kMintingInputFixedPoint)
+                           / kBaselinePower;
+    computePerEpochReward(state, 1);
+    OUTCOME_TRY(runtime.commitState(state));
+    return outcome::success();
   }
 
   const ActorExports exports{
+      exportMethod<Constructor>(),
       exportMethod<AwardBlockReward>(),
-      exportMethod<WithdrawReward>(),
+      exportMethod<LastPerEpochReward>(),
+      exportMethod<UpdateNetworkKPI>(),
   };
 }  // namespace fc::vm::actor::builtin::reward

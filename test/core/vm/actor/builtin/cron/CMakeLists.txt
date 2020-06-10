@@ -8,4 +8,5 @@ addtest(cron_actor_test
     )
 target_link_libraries(cron_actor_test
     cron_actor
+    ipfs_datastore_in_memory
     )

@@ -149,18 +149,10 @@ namespace fc::storage::amt {
     /// Apply visitor for key value pairs
     outcome::result<void> visit(const Visitor &visitor);
 
-    inline void setIpld(std::shared_ptr<ipfs::IpfsDatastore> ipld) {
-      store_ = std::move(ipld);
-    }
-
-    inline std::shared_ptr<ipfs::IpfsDatastore> getIpld() const {
-      return store_;
-    }
-
     /// Store CBOR encoded value by key
     template <typename T>
     outcome::result<void> setCbor(uint64_t key, const T &value) {
-      OUTCOME_TRY(bytes, codec::cbor::encode(value));
+      OUTCOME_TRY(bytes, Ipld::encode(value));
       return set(key, bytes);
     }
 
@@ -168,8 +160,10 @@ namespace fc::storage::amt {
     template <typename T>
     outcome::result<T> getCbor(uint64_t key) {
       OUTCOME_TRY(bytes, get(key));
-      return codec::cbor::decode<T>(bytes);
+      return ipld->decode<T>(bytes);
     }
+
+    IpldPtr ipld;
 
    private:
     outcome::result<bool> set(Node &node,
@@ -187,7 +181,6 @@ namespace fc::storage::amt {
                                         uint64_t index,
                                         bool create);
 
-    std::shared_ptr<ipfs::IpfsDatastore> store_;
     boost::variant<CID, Root> root_;
   };
 }  // namespace fc::storage::amt

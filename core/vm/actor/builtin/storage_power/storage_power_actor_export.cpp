@@ -7,383 +7,220 @@
 
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "vm/actor/builtin/reward/reward_actor.hpp"
 #include "vm/actor/builtin/shared/shared.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
-
-  using primitives::SectorStorageWeightDesc;
-  using primitives::TokenAmount;
-  using primitives::address::decode;
-  using vm::actor::ActorExports;
-  using vm::actor::kConstructorMethodNumber;
-  using vm::actor::builtin::requestMinerControlAddress;
-  using vm::runtime::InvocationOutput;
-  using vm::runtime::Runtime;
-
-  outcome::result<void> assertImmediateCallerTypeIsMiner(Runtime &runtime) {
-    OUTCOME_TRY(immediate_caller_code_id,
-                runtime.getActorCodeID(runtime.getImmediateCaller()));
-    if (immediate_caller_code_id != kStorageMinerCodeCid)
-      return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
-    return outcome::success();
-  }
-
-  /**
-   * Get current storage power actor state
-   * @param runtime - current runtime
-   * @return current storage power actor state or appropriate error
-   */
-  outcome::result<StoragePowerActor> getCurrentState(Runtime &runtime) {
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<StoragePowerActor>());
-    state.load(runtime);
-    return std::move(state);
-  }
-
-  outcome::result<void> commitState(Runtime &runtime,
-                                    StoragePowerActorState &state) {
-    OUTCOME_TRY(state.flush());
-    return runtime.commitState(state);
-  }
-
-  outcome::result<InvocationOutput> slashPledgeCollateral(
-      Runtime &runtime,
-      StoragePowerActor &power_actor,
-      Address miner,
-      TokenAmount to_slash) {
+  outcome::result<TokenAmount> computeInitialPledge(
+      Runtime &runtime, State &state, const SectorStorageWeightDesc &weight) {
     OUTCOME_TRY(
-        slashed,
-        power_actor.subtractMinerBalance(miner, to_slash, TokenAmount{0}));
-    OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, slashed));
+        epoch_reward,
+        runtime.sendM<reward::LastPerEpochReward>(kRewardAddress, {}, 0));
+    TokenAmount circ_supply;  // unused yet, TODO: runtime
+    return initialPledgeForWeight(qaPowerForWeight(weight),
+                                  state.total_qa_power,
+                                  circ_supply,
+                                  state.total_pledge,
+                                  epoch_reward);
+  }
 
+  outcome::result<void> processDeferredCronEvents(Runtime &runtime,
+                                                  State &state) {
+    auto now{runtime.getCurrentEpoch()};
+    for (auto epoch = state.last_epoch_tick + 1; epoch <= now; ++epoch) {
+      OUTCOME_TRY(events, state.cron_event_queue.tryGet(epoch));
+      if (events) {
+        OUTCOME_TRY(events->visit([&](auto, auto &event) {
+          auto res{runtime.send(event.miner_address,
+                                miner::OnDeferredCronEvent::Number,
+                                MethodParams{event.callback_payload},
+                                0)};
+          if (!res) {
+            spdlog::warn(
+                "PowerActor.processDeferredCronEvents: error {} \"{}\", epoch "
+                "{}, miner {}, payload {}",
+                res.error(),
+                res.error().message(),
+                now,
+                event.miner_address,
+                common::hex_lower(event.callback_payload));
+          }
+          return outcome::success();
+        }));
+        OUTCOME_TRY(state.cron_event_queue.remove(epoch));
+      }
+    }
+    state.last_epoch_tick = now;
     return outcome::success();
   }
 
-  /**
-   * Deletes miner from state and slashes miner balance
-   * @param runtime - current runtime
-   * @param state - current storage power actor state
-   * @param miner address to delete
-   * @return error in case of failure
-   */
-  outcome::result<void> deleteMinerActor(Runtime &runtime,
-                                         StoragePowerActor &state,
-                                         const Address &miner) {
-    OUTCOME_TRY(amount_slashed, state.deleteMiner(miner));
-    OUTCOME_TRY(runtime.sendM<miner::OnDeleteMiner>(miner, {}, 0));
-    OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, amount_slashed));
+  outcome::result<void> deleteMinerActor(State &state, const Address &miner) {
+    OUTCOME_TRY(state.claims.remove(miner));
+    --state.miner_count;
+    return outcome::success();
+  }
+
+  std::pair<StoragePower, StoragePower> powersForWeights(
+      const std::vector<SectorStorageWeightDesc> &weights) {
+    StoragePower raw{}, qa{};
+    for (auto &w : weights) {
+      raw += w.sector_size;
+      qa += qaPowerForWeight(w);
+    }
+    return {raw, qa};
+  }
+
+  outcome::result<None> addToClaim(
+      Runtime &runtime,
+      bool add,
+      const std::vector<SectorStorageWeightDesc> &weights) {
+    OUTCOME_TRY(runtime.validateImmediateCallerIsMiner());
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    auto [raw, qa] = powersForWeights(weights);
+    OUTCOME_TRY(state.addToClaim(
+        runtime.getImmediateCaller(), add ? raw : -raw, add ? qa : -qa));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(Construct) {
-    if (runtime.getImmediateCaller() != kSystemActorAddress)
-      return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
-
-    OUTCOME_TRY(empty_state, StoragePowerActor::createEmptyState(runtime));
-
-    OUTCOME_TRY(commitState(runtime, empty_state));
-    return outcome::success();
-  }
-
-  ACTOR_METHOD_IMPL(AddBalance) {
-    OUTCOME_TRY(miner_code_cid, runtime.getActorCodeID(params.miner));
-    if (miner_code_cid != kStorageMinerCodeCid)
-      return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
-
-    Address immediate_caller = runtime.getImmediateCaller();
-    OUTCOME_TRY(control_addresses,
-                requestMinerControlAddress(runtime, params.miner));
-    if (immediate_caller != control_addresses.owner
-        && immediate_caller != control_addresses.worker)
-      return VMExitCode::STORAGE_POWER_FORBIDDEN;
-
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    OUTCOME_TRY(power_actor.addMinerBalance(params.miner,
-                                            runtime.getMessage().get().value));
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
-    return outcome::success();
-  }
-
-  ACTOR_METHOD_IMPL(WithdrawBalance) {
-    OUTCOME_TRY(miner_code_cid, runtime.getActorCodeID(params.miner));
-    if (miner_code_cid != kStorageMinerCodeCid)
-      return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
-
-    Address immediate_caller = runtime.getImmediateCaller();
-    OUTCOME_TRY(control_addresses,
-                requestMinerControlAddress(runtime, params.miner));
-    if (immediate_caller != control_addresses.owner
-        && immediate_caller != control_addresses.worker)
-      return VMExitCode::STORAGE_POWER_FORBIDDEN;
-
-    if (params.requested < TokenAmount{0})
-      return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
-
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-
-    OUTCOME_TRY(claim, power_actor.getClaim(params.miner));
-
-    /*
-     * Pledge for sectors in temporary fault has already been subtracted from
-     * the claim. If the miner has failed a scheduled PoSt, collateral remains
-     * locked for further penalization. Thus the current claimed pledge is the
-     * amount to keep locked.
-     */
-    OUTCOME_TRY(subtracted,
-                power_actor.subtractMinerBalance(
-                    params.miner, params.requested, claim.pledge));
-
-    OUTCOME_TRY(runtime.sendFunds(control_addresses.owner, subtracted));
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
+    OUTCOME_TRY(runtime.commitState(State::empty(runtime)));
     return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(CreateMiner) {
-    OUTCOME_TRY(immediate_caller_code_id,
-                runtime.getActorCodeID(runtime.getImmediateCaller()));
-    if (!isSignableActor((immediate_caller_code_id)))
-      return VMExitCode::STORAGE_POWER_FORBIDDEN;
-
-    auto message = runtime.getMessage().get();
-    miner::Construct::Params construct_miner_parameters{
-        message.from, params.worker, params.sector_size, params.peer_id};
-    OUTCOME_TRY(encoded_construct_miner_parameters,
-                encodeActorParams(construct_miner_parameters));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
+    OUTCOME_TRY(
+        miner_params,
+        encodeActorParams(miner::Construct::Params{params.owner,
+                                                   params.worker,
+                                                   params.seal_proof_type,
+                                                   params.peer_id}));
     OUTCOME_TRY(addresses_created,
-                runtime.sendM<init::Exec>(
-                    kInitAddress,
-                    {
-                        .code = kStorageMinerCodeCid,
-                        .params = encoded_construct_miner_parameters,
-                    },
-                    TokenAmount{0}));
-
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    OUTCOME_TRY(power_actor.addMiner(addresses_created.id_address));
-    OUTCOME_TRY(power_actor.setMinerBalance(addresses_created.id_address,
-                                            message.value));
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
+                runtime.sendM<init::Exec>(kInitAddress,
+                                          {kStorageMinerCodeCid, miner_params},
+                                          runtime.getValueReceived()));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state.claims.set(addresses_created.id_address, {0, 0}));
+    ++state.miner_count;
+    OUTCOME_TRY(runtime.commitState(state));
     return Result{addresses_created.id_address,
                   addresses_created.robust_address};
   }
 
   ACTOR_METHOD_IMPL(DeleteMiner) {
-    Address immediate_caller = runtime.getImmediateCaller();
-    OUTCOME_TRY(control_addresses,
-                requestMinerControlAddress(runtime, params.miner));
-    if (immediate_caller != control_addresses.owner
-        && immediate_caller != control_addresses.worker)
-      return VMExitCode::STORAGE_POWER_FORBIDDEN;
-
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-
-    OUTCOME_TRY(deleteMinerActor(runtime, power_actor, params.miner));
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
+    OUTCOME_TRY(nominal, runtime.resolveAddress(params.miner));
+    OUTCOME_TRY(miner, requestMinerControlAddress(runtime, nominal));
+    if (runtime.getImmediateCaller() != miner.worker
+        && runtime.getImmediateCaller() != miner.owner) {
+      return VMExitCode::SysErrForbidden;
+    }
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(claim, state.claims.get(nominal));
+    VM_ASSERT(claim.raw_power >= 0);
+    VM_ASSERT(claim.qa_power >= 0);
+    state.total_raw_power -= claim.raw_power;
+    state.total_qa_power -= claim.qa_power;
+    OUTCOME_TRY(deleteMinerActor(state, nominal));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(OnSectorProveCommit) {
-    OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-
-    StoragePower power = consensusPowerForWeight(params.weight);
-    OUTCOME_TRY(network_power, power_actor.getTotalNetworkPower());
-    TokenAmount pledge = pledgeForWeight(params.weight, network_power);
-    OUTCOME_TRY(
-        power_actor.addToClaim(runtime.getMessage().get().from, power, pledge));
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
-
-    return pledge;
+    OUTCOME_TRY(runtime.validateImmediateCallerIsMiner());
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(pledge, computeInitialPledge(runtime, state, params.weight));
+    OUTCOME_TRY(state.addToClaim(runtime.getImmediateCaller(),
+                                 params.weight.sector_size,
+                                 qaPowerForWeight(params.weight)));
+    OUTCOME_TRY(runtime.commitState(state));
+    return std::move(pledge);
   }
 
   ACTOR_METHOD_IMPL(OnSectorTerminate) {
-    OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-
-    Address miner_address = runtime.getMessage().get().from;
-    StoragePower power = consensusPowerForWeights(params.weights);
-
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-
-    OUTCOME_TRY(power_actor.addToClaim(miner_address, -power, -params.pledge));
-
-    if (params.termination_type
-        != SectorTerminationType::SECTOR_TERMINATION_EXPIRED) {
-      TokenAmount amount_to_slash = pledgePenaltyForSectorTermination(
-          params.pledge, params.termination_type);
-      OUTCOME_TRY(slashPledgeCollateral(
-          runtime, power_actor, miner_address, amount_to_slash));
-    }
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
-    return outcome::success();
+    return addToClaim(runtime, false, params.weights);
   }
 
-  ACTOR_METHOD_IMPL(OnSectorTemporaryFaultEffectiveBegin) {
-    OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    StoragePower power = consensusPowerForWeights(params.weights);
-
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-
-    OUTCOME_TRY(power_actor.addToClaim(
-        runtime.getMessage().get().from, -power, -params.pledge));
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
-    return outcome::success();
+  ACTOR_METHOD_IMPL(OnFaultBegin) {
+    return addToClaim(runtime, false, params.weights);
   }
 
-  ACTOR_METHOD_IMPL(OnSectorTemporaryFaultEffectiveEnd) {
-    OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    StoragePower power = consensusPowerForWeights(params.weights);
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    OUTCOME_TRY(power_actor.addToClaim(
-        runtime.getMessage().get().from, power, params.pledge));
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
-    return outcome::success();
+  ACTOR_METHOD_IMPL(OnFaultEnd) {
+    return addToClaim(runtime, true, params.weights);
   }
 
   ACTOR_METHOD_IMPL(OnSectorModifyWeightDesc) {
-    OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    Address miner = runtime.getMessage().get().from;
-
-    StoragePower prev_power = consensusPowerForWeight(params.prev_weight);
-    OUTCOME_TRY(
-        power_actor.addToClaim(miner, -prev_power, -params.prev_pledge));
-
-    StoragePower new_power = consensusPowerForWeight(params.new_weight);
-    OUTCOME_TRY(total_power, power_actor.getTotalNetworkPower());
-    TokenAmount new_pledge = pledgeForWeight(params.new_weight, total_power);
-    OUTCOME_TRY(power_actor.addToClaim(miner, new_power, new_pledge));
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
-    return new_pledge;
-  }
-
-  ACTOR_METHOD_IMPL(OnMinerWindowedPoStSuccess) {
-    OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    Address miner = runtime.getMessage().get().from;
-    OUTCOME_TRY(fault, power_actor.hasFaultMiner(miner));
-    if (fault) {
-      OUTCOME_TRY(power_actor.deleteFaultMiner(miner));
-    }
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
-    return outcome::success();
-  }
-
-  ACTOR_METHOD_IMPL(OnMinerWindowedPoStFailure) {
-    OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    Address miner = runtime.getMessage().get().from;
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    OUTCOME_TRY(power_actor.addFaultMiner(miner));
-
-    if (params.num_consecutive_failures > kWindowedPostFailureLimit) {
-      OUTCOME_TRY(deleteMinerActor(runtime, power_actor, miner));
-    } else {
-      OUTCOME_TRY(claim, power_actor.getClaim(miner));
-      TokenAmount to_slash = pledgePenaltyForWindowedPoStFailure(
-          claim.pledge, params.num_consecutive_failures);
-      OUTCOME_TRY(slashPledgeCollateral(runtime, power_actor, miner, to_slash));
-    }
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
-    return outcome::success();
+    OUTCOME_TRY(runtime.validateImmediateCallerIsMiner());
+    auto miner{runtime.getImmediateCaller()};
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(pledge,
+                computeInitialPledge(runtime, state, params.new_weight));
+    OUTCOME_TRY(state.addToClaim(miner,
+                                 -params.prev_weight.sector_size,
+                                 -qaPowerForWeight(params.prev_weight)));
+    OUTCOME_TRY(state.addToClaim(miner,
+                                 params.new_weight.sector_size,
+                                 qaPowerForWeight(params.new_weight)));
+    OUTCOME_TRY(runtime.commitState(state));
+    return std::move(pledge);
   }
 
   ACTOR_METHOD_IMPL(EnrollCronEvent) {
-    OUTCOME_TRY(assertImmediateCallerTypeIsMiner(runtime));
-    Address miner = runtime.getMessage().get().from;
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    OUTCOME_TRY(power_actor.appendCronEvent(
-        params.event_epoch,
-        CronEvent{.miner_address = miner, .callback_payload = params.payload}));
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
-    return outcome::success();
-  }
-
-  ACTOR_METHOD_IMPL(ReportConsensusFault) {
-    // Note: only the first reporter of any fault is rewarded.
-    // Subsequent invocations fail because the miner has been removed.
-    OUTCOME_TRY(fault,
-                runtime.verifyConsensusFault(params.block_header_1,
-                                             params.block_header_2));
-    if (!fault) {
-      return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
-    }
-
-    Address reporter = runtime.getMessage().get().from;
-    OUTCOME_TRY(target, runtime.resolveAddress(params.target));
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    OUTCOME_TRY(claim, power_actor.getClaim(target));
-    if (claim.power < 0) {
-      return VMExitCode::STORAGE_POWER_ILLEGAL_STATE;
-    }
-    OUTCOME_TRY(balance, power_actor.getMinerBalance(target));
-    // elapsed epoch from the latter block which committed the fault
-    ChainEpoch elapsed = runtime.getCurrentEpoch() - params.fault_epoch;
-    if (elapsed < 0) {
-      return VMExitCode::STORAGE_POWER_ILLEGAL_ARGUMENT;
-    }
-    OUTCOME_TRY(collateral_to_slash,
-                pledgePenaltyForConsensusFault(balance, params.fault_type));
-    TokenAmount target_reward =
-        rewardForConsensusSlashReport(elapsed, collateral_to_slash);
-    OUTCOME_TRY(reward,
-                power_actor.subtractMinerBalance(
-                    target, target_reward, TokenAmount{0}));
-    OUTCOME_TRY(runtime.sendFunds(reporter, reward));
-    OUTCOME_TRY(deleteMinerActor(runtime, power_actor, target));
-
-    OUTCOME_TRY(commitState(runtime, power_actor));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsMiner());
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state.appendCronEvent(
+        params.event_epoch, {runtime.getImmediateCaller(), params.payload}));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(OnEpochTickEnd) {
-    if (runtime.getImmediateCaller() != kCronAddress)
-      return VMExitCode::STORAGE_POWER_ACTOR_WRONG_CALLER;
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kCronAddress));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(processDeferredCronEvents(runtime, state));
+    OUTCOME_TRY(runtime.commitState(state));
+    OUTCOME_TRY(runtime.sendM<reward::UpdateNetworkKPI>(
+        kRewardAddress, state.total_raw_power, 0));
+    return outcome::success();
+  }
 
-    ChainEpoch epoch = runtime.getCurrentEpoch();
-    OUTCOME_TRY(power_actor, getCurrentState(runtime));
-    OUTCOME_TRY(events, power_actor.getCronEvents(epoch));
-    OUTCOME_TRY(power_actor.clearCronEvents(epoch));
-    for (const auto event : events) {
-      OUTCOME_TRY(runtime.send(event.miner_address,
-                               miner::OnDeferredCronEvent::Number,
-                               MethodParams{event.callback_payload},
-                               TokenAmount{0}));
-    }
+  ACTOR_METHOD_IMPL(UpdatePledgeTotal) {
+    OUTCOME_TRY(runtime.validateImmediateCallerIsMiner());
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(state.addPledgeTotal(params));
+    OUTCOME_TRY(runtime.commitState(state));
+    return outcome::success();
+  }
 
-    OUTCOME_TRY(commitState(runtime, power_actor));
+  ACTOR_METHOD_IMPL(OnConsensusFault) {
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kCronAddress));
+    auto miner{runtime.getImmediateCaller()};
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(claim, state.claims.get(miner));
+    VM_ASSERT(claim.raw_power >= 0);
+    VM_ASSERT(claim.qa_power >= 0);
+    state.total_raw_power -= claim.raw_power;
+    state.total_qa_power -= claim.qa_power;
+    OUTCOME_TRY(state.addPledgeTotal(-params));
+    OUTCOME_TRY(deleteMinerActor(state, miner));
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
   const ActorExports exports{
       exportMethod<Construct>(),
-      exportMethod<AddBalance>(),
-      exportMethod<WithdrawBalance>(),
       exportMethod<CreateMiner>(),
       exportMethod<DeleteMiner>(),
       exportMethod<OnSectorProveCommit>(),
       exportMethod<OnSectorTerminate>(),
-      exportMethod<OnSectorTemporaryFaultEffectiveBegin>(),
-      exportMethod<OnSectorTemporaryFaultEffectiveEnd>(),
+      exportMethod<OnFaultBegin>(),
+      exportMethod<OnFaultEnd>(),
       exportMethod<OnSectorModifyWeightDesc>(),
-      exportMethod<OnMinerWindowedPoStSuccess>(),
-      exportMethod<OnMinerWindowedPoStFailure>(),
       exportMethod<EnrollCronEvent>(),
-      exportMethod<ReportConsensusFault>(),
       exportMethod<OnEpochTickEnd>(),
+      exportMethod<UpdatePledgeTotal>(),
+      exportMethod<OnConsensusFault>(),
   };
-
 }  // namespace fc::vm::actor::builtin::storage_power

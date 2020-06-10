@@ -42,7 +42,7 @@ struct VRFHashEncoderTest : public ::testing::Test {
  */
 TEST_F(VRFHashEncoderTest,
        HashIdAddressFail){EXPECT_OUTCOME_FALSE_1(encodeVrfParams(VRFParams{
-    DomainSeparationTag::TicketProductionDST, id_address, message}))}
+    DomainSeparationTag::ElectionProofProduction, id_address, message}))}
 
 /**
  * @given bls-based address, DST-tag value and some message
@@ -53,6 +53,6 @@ TEST_F(VRFHashEncoderTest, HashBlsAddressSuccess) {
   EXPECT_OUTCOME_TRUE(
       result,
       encodeVrfParams(VRFParams{
-          DomainSeparationTag::TicketProductionDST, bls_address, message}))
+          DomainSeparationTag::ElectionProofProduction, bls_address, message}))
   ASSERT_EQ(result, vrf_hash);
 }

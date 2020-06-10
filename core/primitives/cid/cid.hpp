@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_COMMON_CID_HPP
 #define CPP_FILECOIN_CORE_COMMON_CID_HPP
 
+#include <spdlog/fmt/fmt.h>
 #include <libp2p/multi/content_identifier.hpp>
 
 #include "common/outcome.hpp"
@@ -67,6 +68,15 @@ namespace fc {
                                      bool prefix = false);
   };
 }  // namespace fc
+
+template <>
+struct fmt::formatter<fc::CID> : formatter<std::string_view> {
+  template <typename C>
+  auto format(const fc::CID &cid, C &ctx) {
+    OUTCOME_EXCEPT(str, cid.toString());
+    return formatter<std::string_view>::format(str, ctx);
+  }
+};
 
 namespace fc::common {
   /// Compute CID from bytes

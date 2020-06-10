@@ -10,6 +10,11 @@
 
 #include "common/outcome.hpp"
 
+#define VM_ASSERT(condition)                     \
+  if (!(condition)) {                            \
+    return outcome::failure(VMExitCode::ASSERT); \
+  }
+
 namespace fc::vm {
   /**
    * specs-actors and custom exit code enum for outcome errors.
@@ -91,10 +96,10 @@ namespace fc::vm {
     INIT_ACTOR_NOT_BUILTIN_ACTOR,
     INIT_ACTOR_SINGLETON_ACTOR,
 
-    CRON_ACTOR_WRONG_CALL,
-
     REWARD_ACTOR_NEGATIVE_WITHDRAWABLE,
     REWARD_ACTOR_WRONG_CALLER,
+
+    ASSERT,
   };
 
   /// Distinguish VMExitCode errors from other errors

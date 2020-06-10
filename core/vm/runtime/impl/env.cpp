@@ -195,7 +195,8 @@ namespace fc::vm::runtime {
     } else {
       to_actor = maybe_to_actor.value();
     }
-    RuntimeImpl runtime{shared_from_this(), message, to_actor.head};
+    OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
+    RuntimeImpl runtime{shared_from_this(), message, caller_id, to_actor.head};
 
     if (message.value != 0) {
       BOOST_ASSERT(message.value > 0);

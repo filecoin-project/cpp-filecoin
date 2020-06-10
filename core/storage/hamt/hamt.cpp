@@ -29,21 +29,19 @@ namespace fc::storage::hamt {
   }
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store, size_t bit_width)
-      : store_{std::move(store)},
+      : ipld{std::move(store)},
         root_{std::make_shared<Node>()},
         bit_width_{bit_width} {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
              Node::Ptr root,
              size_t bit_width)
-      : store_{std::move(store)},
-        root_{std::move(root)},
-        bit_width_{bit_width} {}
+      : ipld{std::move(store)}, root_{std::move(root)}, bit_width_{bit_width} {}
 
   Hamt::Hamt(std::shared_ptr<ipfs::IpfsDatastore> store,
              const CID &root,
              size_t bit_width)
-      : store_{std::move(store)}, root_{root}, bit_width_{bit_width} {}
+      : ipld{std::move(store)}, root_{root}, bit_width_{bit_width} {}
 
   outcome::result<void> Hamt::set(const std::string &key,
                                   gsl::span<const uint8_t> value) {
@@ -219,7 +217,7 @@ namespace fc::storage::hamt {
       for (auto &item2 : node.items) {
         OUTCOME_TRY(flush(item2.second));
       }
-      OUTCOME_TRY(cid, store_->setCbor(node));
+      OUTCOME_TRY(cid, ipld->setCbor(node));
       item = cid;
     }
     return outcome::success();
@@ -227,7 +225,7 @@ namespace fc::storage::hamt {
 
   outcome::result<void> Hamt::loadItem(Node::Item &item) const {
     if (which<CID>(item)) {
-      OUTCOME_TRY(child, store_->getCbor<Node>(boost::get<CID>(item)));
+      OUTCOME_TRY(child, ipld->getCbor<Node>(boost::get<CID>(item)));
       item = std::make_shared<Node>(std::move(child));
     }
     return outcome::success();

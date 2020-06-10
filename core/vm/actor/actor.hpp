@@ -76,11 +76,7 @@ namespace fc::vm::actor {
     explicit CodeId(CID cid) : CID{std::move(cid)} {}
   };
 
-  class ActorSubstateCID : public CID {
-   public:
-    ActorSubstateCID() = default;
-    explicit ActorSubstateCID(CID cid) : CID{std::move(cid)} {}
-  };
+  using ActorSubstateCID = CID;
 
   /**
    * Common actor state interface represents the on-chain storage all actors
@@ -90,7 +86,7 @@ namespace fc::vm::actor {
     /// Identifies the code this actor executes
     CodeId code{};
     /// CID of the root of optional actor-specific sub-state
-    ActorSubstateCID head{};
+    CID head{};
     /// Expected sequence number of the next message sent by this actor
     uint64_t nonce{};
     /// Balance of tokens held by this actor
@@ -129,6 +125,7 @@ namespace fc::vm::actor {
   inline static const auto kCronAddress = Address::makeFromId(3);
   inline static const auto kStoragePowerAddress = Address::makeFromId(4);
   inline static const auto kStorageMarketAddress = Address::makeFromId(5);
+  inline static const auto kVerifiedRegistryAddress = Address::makeFromId(6);
   inline static const auto kBurntFundsActorAddress = Address::makeFromId(99);
 }  // namespace fc::vm::actor
 

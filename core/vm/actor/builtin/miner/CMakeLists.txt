@@ -12,5 +12,6 @@ target_link_libraries(miner_actor
     cbor
     map
     rle_bitset
+    sector
     uvarint_key
     )

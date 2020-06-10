@@ -50,10 +50,10 @@ namespace fc::storage::amt {
   }
 
   Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store)
-      : store_(std::move(store)), root_(Root{}) {}
+      : ipld(std::move(store)), root_(Root{}) {}
 
   Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root)
-      : store_(std::move(store)), root_(root) {}
+      : ipld(std::move(store)), root_(root) {}
 
   outcome::result<uint64_t> Amt::count() {
     OUTCOME_TRY(loadRoot());
@@ -130,7 +130,7 @@ namespace fc::storage::amt {
     if (which<Root>(root_)) {
       auto &root = boost::get<Root>(root_);
       OUTCOME_TRY(flush(root.node));
-      OUTCOME_TRY(root_cid, store_->setCbor(root));
+      OUTCOME_TRY(root_cid, ipld->setCbor(root));
       root_ = root_cid;
     }
     return cid();
@@ -205,7 +205,7 @@ namespace fc::storage::amt {
         if (which<Node::Ptr>(pair.second)) {
           auto &child = *boost::get<Node::Ptr>(pair.second);
           OUTCOME_TRY(flush(child));
-          OUTCOME_TRY(cid, store_->setCbor(child));
+          OUTCOME_TRY(cid, ipld->setCbor(child));
           pair.second = cid;
         }
       }
@@ -236,7 +236,7 @@ namespace fc::storage::amt {
 
   outcome::result<void> Amt::loadRoot() {
     if (which<CID>(root_)) {
-      OUTCOME_TRY(root, store_->getCbor<Root>(boost::get<CID>(root_)));
+      OUTCOME_TRY(root, ipld->getCbor<Root>(boost::get<CID>(root_)));
       root_ = root;
     }
     return outcome::success();
@@ -261,7 +261,7 @@ namespace fc::storage::amt {
     }
     auto &link = it->second;
     if (which<CID>(link)) {
-      OUTCOME_TRY(node, store_->getCbor<Node>(boost::get<CID>(link)));
+      OUTCOME_TRY(node, ipld->getCbor<Node>(boost::get<CID>(link)));
       link = std::make_shared<Node>(std::move(node));
     }
     return boost::get<Node::Ptr>(link);

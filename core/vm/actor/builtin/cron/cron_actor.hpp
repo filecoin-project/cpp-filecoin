@@ -14,13 +14,15 @@ namespace fc::vm::actor::builtin::cron {
     Address to_addr;
     MethodNumber method_num{};
   };
+  CBOR_TUPLE(CronTableEntry, to_addr, method_num)
+
+  struct State {
+    std::vector<CronTableEntry> entries;
+  };
+  CBOR_TUPLE(State, entries)
 
   /**
    * @brief EpochTick executes built-in periodic actions, run at every Epoch.
-   * @param actor from Lotus(doesn't use)
-   * @param runtime is virtual machine context
-   * @param params from Lotus(doesn't use)
-   * @return success or error
    */
   struct EpochTick : ActorMethodBase<2> {
     ACTOR_METHOD_DECL();

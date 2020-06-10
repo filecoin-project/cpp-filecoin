@@ -14,7 +14,7 @@ namespace fc::storage::ipfs {
      * @param value key value to encode
      * @return encoded value as Buffer
      */
-    inline outcome::result<common::Buffer> encode(const CID &value) {
+    inline outcome::result<common::Buffer> encodeKey(const CID &value) {
       OUTCOME_TRY(encoded, value.toBytes());
       return common::Buffer(std::move(encoded));
     }
@@ -33,19 +33,19 @@ namespace fc::storage::ipfs {
   }
 
   outcome::result<bool> LeveldbDatastore::contains(const CID &key) const {
-    OUTCOME_TRY(encoded_key, encode(key));
+    OUTCOME_TRY(encoded_key, encodeKey(key));
     return leveldb_->contains(encoded_key);
   }
 
   outcome::result<void> LeveldbDatastore::set(const CID &key, Value value) {
     // TODO(turuslan): FIL-117 maybe check value hash matches cid
-    OUTCOME_TRY(encoded_key, encode(key));
+    OUTCOME_TRY(encoded_key, encodeKey(key));
     return leveldb_->put(encoded_key, common::Buffer(std::move(value)));
   }
 
   outcome::result<LeveldbDatastore::Value> LeveldbDatastore::get(
       const CID &key) const {
-    OUTCOME_TRY(encoded_key, encode(key));
+    OUTCOME_TRY(encoded_key, encodeKey(key));
     auto res = leveldb_->get(encoded_key);
     if (res.has_error() && res.error() == fc::storage::LevelDBError::NOT_FOUND)
       return fc::storage::ipfs::IpfsDatastoreError::NOT_FOUND;
@@ -53,7 +53,7 @@ namespace fc::storage::ipfs {
   }
 
   outcome::result<void> LeveldbDatastore::remove(const CID &key) {
-    OUTCOME_TRY(encoded_key, encode(key));
+    OUTCOME_TRY(encoded_key, encodeKey(key));
     return leveldb_->remove(encoded_key);
   }
 

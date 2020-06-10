@@ -27,6 +27,10 @@ namespace fc::storage::ipfs {
 
     outcome::result<void> remove(const CID &key) override;
 
+    IpldPtr shared() override {
+      throw "not implemented";
+    }
+
    private:
     std::shared_ptr<IpfsDatastore> local_storage_; /**< Local data storage */
   };

@@ -52,7 +52,6 @@ namespace fc::markets::storage::provider {
   using host::HostContextImpl;
   using vm::VMExitCode;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::market::getProposalCid;
   using vm::actor::builtin::market::PublishStorageDeals;
   using vm::message::kMessageVersion;
   using vm::message::SignedMessage;
@@ -212,9 +211,7 @@ namespace fc::markets::storage::provider {
         [self{shared_from_this()}, stream](outcome::result<Proposal> proposal) {
           if (!self->hasValue(proposal, "Read proposal error: ", stream))
             return;
-          auto proposal_cid = getProposalCid(proposal.value().deal_proposal);
-          if (!self->hasValue(proposal_cid, "Get proposal cid error: ", stream))
-            return;
+          auto proposal_cid{proposal.value().deal_proposal.cid()};
           auto remote_peer_id = stream->stream()->remotePeerId();
           if (!self->hasValue(
                   remote_peer_id, "Cannot get remote peer info: ", stream))
@@ -227,7 +224,7 @@ namespace fc::markets::storage::provider {
                                     .addresses = {remote_multiaddress.value()}};
           std::shared_ptr<MinerDeal> deal = std::make_shared<MinerDeal>(
               MinerDeal{.client_deal_proposal = proposal.value().deal_proposal,
-                        .proposal_cid = proposal_cid.value(),
+                        .proposal_cid = proposal_cid,
                         .add_funds_cid = boost::none,
                         .publish_cid = boost::none,
                         .client = remote_peer_info,
@@ -238,7 +235,7 @@ namespace fc::markets::storage::provider {
                         .ref = proposal.value().piece,
                         .deal_id = {}});
           std::lock_guard<std::mutex> lock(self->connections_mutex_);
-          self->connections_.emplace(proposal_cid.value(), stream);
+          self->connections_.emplace(proposal_cid, stream);
           OUTCOME_EXCEPT(
               self->fsm_->begin(deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
           SELF_FSM_SEND(deal, ProviderEvent::ProviderEventOpen);

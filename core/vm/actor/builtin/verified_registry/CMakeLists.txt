@@ -3,9 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(cron_actor
-    cron_actor.cpp
+add_library(verified_registry
+    actor.cpp
     )
-target_link_libraries(cron_actor
+target_link_libraries(verified_registry
     actor
+    outcome
     )

@@ -8,16 +8,10 @@
 
 #include "vm/state/state_tree.hpp"
 
-#include "storage/hamt/hamt.hpp"
-#include "vm/actor/actor.hpp"
+#include "adt/address_key.hpp"
+#include "adt/map.hpp"
 
 namespace fc::vm::state {
-
-  using actor::Actor;
-  using primitives::address::Address;
-  using storage::hamt::Hamt;
-  using storage::ipfs::IpfsDatastore;
-
   /// State tree
   class StateTreeImpl : public StateTree {
    public:
@@ -42,7 +36,7 @@ namespace fc::vm::state {
 
    private:
     std::shared_ptr<IpfsDatastore> store_;
-    Hamt hamt_;
+    adt::Map<actor::Actor, adt::AddressKeyer> by_id;
   };
 }  // namespace fc::vm::state
 

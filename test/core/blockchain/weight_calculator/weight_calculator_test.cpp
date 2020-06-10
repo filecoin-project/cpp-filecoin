@@ -26,11 +26,11 @@ using fc::vm::actor::kStoragePowerCodeCid;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
 using fc::vm::state::StateTreeImpl;
 using Weight = fc::primitives::BigInt;
-using fc::power::Power;
+using fc::primitives::StoragePower;
 
 struct Params {
   Weight parent_weight;
-  Power network_power;
+  StoragePower network_power;
   size_t block_count;
   Weight expected_weight;
 };
@@ -39,9 +39,8 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
   auto ipld = std::make_shared<InMemoryDatastore>();
   auto some_cid = "010001020001"_cid;
   StoragePowerActorState state;
-  state.load(ipld);
-  state.total_network_power = params.network_power;
-  EXPECT_OUTCOME_TRUE_1(state.flush());
+  ipld->load(state);
+  state.total_qa_power = params.network_power;
   EXPECT_OUTCOME_TRUE(state_cid, ipld->setCbor(state));
   StateTreeImpl state_tree{ipld};
   EXPECT_OUTCOME_TRUE_1(state_tree.set(kStoragePowerAddress,

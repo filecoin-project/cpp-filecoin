@@ -26,7 +26,6 @@ OUTCOME_HPP_DECLARE_ERROR(fc::primitives::tipset, TipsetError);
 
 namespace fc::primitives::tipset {
   using block::BlockHeader;
-  using block::Ipld;
 
   /**
    * @struct Tipset implemented according to

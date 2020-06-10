@@ -19,11 +19,13 @@ namespace fc::crypto::randomness {
 
   /// @brief domain separation tag enum
   enum class DomainSeparationTag : size_t {
-    TicketDrawingDST = 1,
-    TicketProductionDST = 2,
-    PoStDST = 3,
-    SealRandomness = 4,
-    InteractiveSealChallengeSeed = 5,
+    TicketProduction = 1,
+    ElectionProofProduction,
+    WinningPoStChallengeSeed,
+    WindowedPoStChallengeSeed,
+    SealRandomness,
+    InteractiveSealChallengeSeed,
+    WindowedPoStDeadlineAssignment,
   };
 
 }  // namespace fc::crypto::randomness

@@ -100,6 +100,10 @@ namespace fc::storage::blockchain {
       return head_change_signal_.connect(subscriber);
     }
 
+    IpldPtr shared() override {
+      BOOST_ASSERT_MSG(false, "not implemented");
+    }
+
    private:
     ChainStoreImpl(std::shared_ptr<IpfsDatastore> data_store,
                    std::shared_ptr<BlockValidator> block_validator,

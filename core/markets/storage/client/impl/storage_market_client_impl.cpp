@@ -51,7 +51,6 @@ namespace fc::markets::storage::client {
   using primitives::GasAmount;
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
-  using vm::actor::builtin::market::getProposalCid;
   using vm::actor::builtin::market::PublishStorageDeals;
   using vm::message::kMessageVersion;
   using vm::message::SignedMessage;
@@ -110,8 +109,7 @@ namespace fc::markets::storage::client {
     std::vector<StorageProviderInfo> storage_providers;
     for (const auto &miner_address : miners) {
       OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address, tipset_key));
-      OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
-      PeerInfo peer_info{.id = peer_id, .addresses = {}};
+      PeerInfo peer_info{.id = miner_info.peer_id, .addresses = {}};
       storage_providers.push_back(
           StorageProviderInfo{.address = miner_address,
                               .owner = {},
@@ -211,6 +209,7 @@ namespace fc::markets::storage::client {
     DealProposal deal_proposal{
         .piece_cid = comm_p,
         .piece_size = piece_size.padded(),
+        .verified = false,
         .client = client_address,
         .provider = provider_info.address,
         .start_epoch = start_epoch,
@@ -219,7 +218,7 @@ namespace fc::markets::storage::client {
         .provider_collateral = static_cast<uint64_t>(piece_size),
         .client_collateral = 0};
     OUTCOME_TRY(signed_proposal, signProposal(client_address, deal_proposal));
-    OUTCOME_TRY(proposal_cid, getProposalCid(signed_proposal));
+    auto proposal_cid{signed_proposal.cid()};
 
     auto client_deal = std::make_shared<ClientDeal>(
         ClientDeal{.client_deal_proposal = signed_proposal,

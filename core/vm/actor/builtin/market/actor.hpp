@@ -30,11 +30,10 @@ namespace fc::vm::actor::builtin::market {
   using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
   using primitives::sector::RegisteredProof;
-  using Ipld = storage::ipfs::IpfsDatastore;
 
   struct DealProposal {
     inline TokenAmount clientBalanceRequirement() const {
-      return client_collateral + storage_price_per_epoch * duration();
+      return client_collateral + getTotalStorageFee();
     }
 
     inline TokenAmount providerBalanceRequirement() const {
@@ -49,8 +48,11 @@ namespace fc::vm::actor::builtin::market {
       return storage_price_per_epoch * duration();
     }
 
+    CID cid() const;
+
     CID piece_cid;
     PaddedPieceSize piece_size;
+    bool verified;
     Address client;
     Address provider;
     ChainEpoch start_epoch;
@@ -62,6 +64,7 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(DealProposal,
              piece_cid,
              piece_size,
+             verified,
              client,
              provider,
              start_epoch,
@@ -88,19 +91,15 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(DealState, sector_start_epoch, last_updated_epoch, slash_epoch)
 
   struct State {
-    using PartyDeals = adt::Set<UvarintKeyer>;
-
-    void load(std::shared_ptr<Ipld> ipld);
-    outcome::result<void> flush();
-    outcome::result<DealState> getState(DealId deal_id);
-    outcome::result<void> addDeal(DealId deal_id, const DealProposal &deal);
+    using DealSet = adt::Set<UvarintKeyer>;
 
     adt::Array<DealProposal> proposals;
     adt::Array<DealState> states;
     BalanceTable escrow_table;
     BalanceTable locked_table;
     DealId next_deal;
-    adt::Map<PartyDeals, AddressKeyer> deals_by_party;
+    adt::Map<DealSet, UvarintKeyer> deals_by_epoch;
+    ChainEpoch last_cron;
   };
   CBOR_TUPLE(State,
              proposals,
@@ -108,11 +107,14 @@ namespace fc::vm::actor::builtin::market {
              escrow_table,
              locked_table,
              next_deal,
-             deals_by_party)
+             deals_by_epoch,
+             last_cron)
 
   struct ClientDealProposal {
     DealProposal proposal;
     Signature client_signature;
+
+    CID cid() const;
 
     inline bool operator==(const ClientDealProposal &rhs) const {
       return proposal == rhs.proposal
@@ -121,16 +123,10 @@ namespace fc::vm::actor::builtin::market {
   };
   CBOR_TUPLE(ClientDealProposal, proposal, client_signature)
 
-  outcome::result<CID> getProposalCid(const ClientDealProposal &deal_proposal);
-
   struct StorageParticipantBalance {
     TokenAmount locked;
     TokenAmount available;
   };
-
-  TokenAmount clientPayment(ChainEpoch epoch,
-                            const DealProposal &deal,
-                            const DealState &deal_state);
 
   struct Construct : ActorMethodBase<1> {
     ACTOR_METHOD_DECL();
@@ -150,15 +146,7 @@ namespace fc::vm::actor::builtin::market {
   };
   CBOR_TUPLE(WithdrawBalance::Params, address, amount)
 
-  struct HandleExpiredDeals : ActorMethodBase<4> {
-    struct Params {
-      std::vector<DealId> deals;
-    };
-    ACTOR_METHOD_DECL();
-  };
-  CBOR_TUPLE(HandleExpiredDeals::Params, deals)
-
-  struct PublishStorageDeals : ActorMethodBase<5> {
+  struct PublishStorageDeals : ActorMethodBase<4> {
     struct Params {
       std::vector<ClientDealProposal> deals;
     };
@@ -170,17 +158,22 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(PublishStorageDeals::Params, deals)
   CBOR_TUPLE(PublishStorageDeals::Result, deals)
 
-  struct VerifyDealsOnSectorProveCommit : ActorMethodBase<6> {
+  struct VerifyDealsOnSectorProveCommit : ActorMethodBase<5> {
     struct Params {
       std::vector<DealId> deals;
       ChainEpoch sector_expiry;
     };
-    using Result = DealWeight;
+    struct Result {
+      DealWeight deal_weight, verified_deal_weight;
+    };
     ACTOR_METHOD_DECL();
   };
   CBOR_TUPLE(VerifyDealsOnSectorProveCommit::Params, deals, sector_expiry)
+  CBOR_TUPLE(VerifyDealsOnSectorProveCommit::Result,
+             deal_weight,
+             verified_deal_weight)
 
-  struct OnMinerSectorsTerminate : ActorMethodBase<7> {
+  struct OnMinerSectorsTerminate : ActorMethodBase<6> {
     struct Params {
       std::vector<DealId> deals;
     };
@@ -188,7 +181,7 @@ namespace fc::vm::actor::builtin::market {
   };
   CBOR_TUPLE(OnMinerSectorsTerminate::Params, deals)
 
-  struct ComputeDataCommitment : ActorMethodBase<8> {
+  struct ComputeDataCommitment : ActorMethodBase<7> {
     struct Params {
       std::vector<DealId> deals;
       RegisteredProof sector_type;
@@ -198,7 +191,26 @@ namespace fc::vm::actor::builtin::market {
   };
   CBOR_TUPLE(ComputeDataCommitment::Params, deals, sector_type)
 
+  struct CronTick : ActorMethodBase<8> {
+    ACTOR_METHOD_DECL();
+  };
+
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::market
+
+namespace fc {
+  template <>
+  struct Ipld::Visit<vm::actor::builtin::market::State> {
+    template <typename Visitor>
+    static void call(vm::actor::builtin::market::State &state,
+                     const Visitor &visit) {
+      visit(state.proposals);
+      visit(state.states);
+      visit(state.escrow_table);
+      visit(state.locked_table);
+      visit(state.deals_by_epoch);
+    }
+  };
+}  // namespace fc
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MARKET_ACTOR_HPP

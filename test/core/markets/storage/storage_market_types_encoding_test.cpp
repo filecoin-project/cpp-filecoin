@@ -39,20 +39,21 @@ namespace fc::markets::storage {
 
     StorageDeal storage_deal{
         .proposal = {.piece_cid = piece_cid,
-                          .piece_size = piece_size,
-                          .client = client,
-                          .provider = provider,
-                          .start_epoch = start_epoch,
-                          .end_epoch = end_epoch,
-                          .storage_price_per_epoch = storage_price_per_epoch,
-                          .provider_collateral = provider_collateral,
-                          .client_collateral = client_collateral},
+                     .piece_size = piece_size,
+                     .verified = false,
+                     .client = client,
+                     .provider = provider,
+                     .start_epoch = start_epoch,
+                     .end_epoch = end_epoch,
+                     .storage_price_per_epoch = storage_price_per_epoch,
+                     .provider_collateral = provider_collateral,
+                     .client_collateral = client_collateral},
         .state = {.sector_start_epoch = sector_start_epoch,
-                       .last_updated_epoch = last_updated_epoch,
-                       .slash_epoch = slash_epoch}};
+                  .last_updated_epoch = last_updated_epoch,
+                  .slash_epoch = slash_epoch}};
 
     std::vector<uint8_t> expected_bytes{
-        "8289D82A47000100010200001864420001420002010242000142000242000383040506"_unhex};
+        "828AD82A47000100010200001864F4420001420002010242000142000242000383040506"_unhex};
     expectEncodeAndReencode(storage_deal, expected_bytes);
   }
 
