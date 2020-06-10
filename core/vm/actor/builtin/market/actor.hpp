@@ -201,13 +201,14 @@ namespace fc::vm::actor::builtin::market {
 namespace fc {
   template <>
   struct Ipld::Visit<vm::actor::builtin::market::State> {
-    template <typename F>
-    static void f(vm::actor::builtin::market::State &s, const F &f) {
-      f(s.proposals);
-      f(s.states);
-      f(s.escrow_table);
-      f(s.locked_table);
-      f(s.deals_by_epoch);
+    template <typename Visitor>
+    static void call(vm::actor::builtin::market::State &state,
+                     const Visitor &visit) {
+      visit(state.proposals);
+      visit(state.states);
+      visit(state.escrow_table);
+      visit(state.locked_table);
+      visit(state.deals_by_epoch);
     }
   };
 }  // namespace fc

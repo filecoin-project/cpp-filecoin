@@ -134,10 +134,10 @@ namespace fc::primitives::block {
 namespace fc {
   template <>
   struct Ipld::Visit<primitives::block::MsgMeta> {
-    template <typename F>
-    static void f(primitives::block::MsgMeta &s, const F &f) {
-      f(s.bls_messages);
-      f(s.secp_messages);
+    template <typename Visitor>
+    static void call(primitives::block::MsgMeta &meta, const Visitor &visit) {
+      visit(meta.bls_messages);
+      visit(meta.secp_messages);
     }
   };
 }  // namespace fc

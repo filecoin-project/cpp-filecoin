@@ -89,34 +89,34 @@ namespace fc::storage::ipfs {
 
     template <typename T>
     void load(T &value) const {
-      Load<T>::f(const_cast<IpfsDatastore &>(*this), value);
+      Load<T>::call(const_cast<IpfsDatastore &>(*this), value);
     }
 
     template <typename T>
     static auto flush(T &value) {
       using Z = std::remove_const_t<T>;
-      return Flush<Z>::f(const_cast<Z &>(value));
+      return Flush<Z>::call(const_cast<Z &>(value));
     }
 
     template <typename T>
     struct Visit {
-      template <typename F>
-      static void f(T &value, const F &f) {}
+      template <typename Visitor>
+      static void call(T &, const Visitor &) {}
     };
 
     template <typename T>
     struct Load {
-      static void f(IpfsDatastore &ipld, T &value) {
-        Visit<T>::f(value, [&](auto &x) { ipld.load(x); });
+      static void call(IpfsDatastore &ipld, T &value) {
+        Visit<T>::call(value, [&](auto &x) { ipld.load(x); });
       }
     };
 
     template <typename T>
     struct Flush {
-      static outcome::result<void> f(T &value) {
+      static outcome::result<void> call(T &value) {
         try {
-          Visit<T>::f(value,
-                      [](auto &x) { OUTCOME_EXCEPT(IpfsDatastore::flush(x)); });
+          Visit<T>::call(
+              value, [](auto &x) { OUTCOME_EXCEPT(IpfsDatastore::flush(x)); });
         } catch (std::system_error &e) {
           return outcome::failure(e.code());
         }

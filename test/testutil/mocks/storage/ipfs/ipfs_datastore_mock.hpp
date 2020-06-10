@@ -18,9 +18,7 @@ namespace fc::storage::ipfs {
     MOCK_METHOD2(set, outcome::result<void>(const CID &key, Value value));
     MOCK_CONST_METHOD1(get, outcome::result<Value>(const CID &key));
     MOCK_METHOD1(remove, outcome::result<void>(const CID &key));
-    IpldPtr shared() override {
-      throw "not implemented";
-    }
+    MOCK_METHOD0(shared, IpldPtr());
 
     bool operator==(const MockIpfsDatastore &) const {
       return true;

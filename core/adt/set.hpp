@@ -25,9 +25,10 @@ namespace fc::adt {
 namespace fc {
   template <typename Keyer>
   struct Ipld::Visit<adt::Set<Keyer>> {
-    template <typename F>
-    static void f(adt::Map<adt::SetValue, Keyer> &s, const F &f) {
-      f(s);
+    template <typename Visitor>
+    static void call(adt::Map<adt::SetValue, Keyer> &map,
+                     const Visitor &visit) {
+      visit(map);
     }
   };
 }  // namespace fc

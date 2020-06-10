@@ -97,14 +97,14 @@ namespace fc::adt {
 namespace fc {
   template <typename V>
   struct Ipld::Load<adt::Array<V>> {
-    static void f(Ipld &ipld, adt::Array<V> &array) {
+    static void call(Ipld &ipld, adt::Array<V> &array) {
       array.amt.ipld = ipld.shared();
     }
   };
 
   template <typename V>
   struct Ipld::Flush<adt::Array<V>> {
-    static auto f(adt::Array<V> &array) {
+    static auto call(adt::Array<V> &array) {
       return array.amt.flush();
     }
   };

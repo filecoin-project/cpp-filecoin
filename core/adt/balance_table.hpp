@@ -33,10 +33,10 @@ namespace fc::adt {
 namespace fc {
   template <>
   struct Ipld::Visit<adt::BalanceTable> {
-    template <typename F>
-    static void f(adt::Map<adt::TokenAmount, adt::AddressKeyer> &s,
-                  const F &f) {
-      f(s);
+    template <typename Visitor>
+    static void call(adt::Map<adt::TokenAmount, adt::AddressKeyer> &map,
+                     const Visitor &visit) {
+      visit(map);
     }
   };
 }  // namespace fc

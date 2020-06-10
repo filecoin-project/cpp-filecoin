@@ -24,7 +24,7 @@ namespace fc::vm::actor::builtin::reward {
       n *= nb;
       d *= db;
       auto b{0};
-      for (auto d2{d}; d2; d2 >>= 1) {
+      for (auto d2{d}; !d2.is_zero(); d2 >>= 1) {
         ++b;
       }
       b = std::max(0, b - kMintingOutputFixedPoint);

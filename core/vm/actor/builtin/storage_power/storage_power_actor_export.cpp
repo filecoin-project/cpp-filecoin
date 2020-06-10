@@ -32,11 +32,20 @@ namespace fc::vm::actor::builtin::storage_power {
       OUTCOME_TRY(events, state.cron_event_queue.tryGet(epoch));
       if (events) {
         OUTCOME_TRY(events->visit([&](auto, auto &event) {
-          // TODO: log, ignored in lotus
-          std::ignore = runtime.send(event.miner_address,
-                                     miner::OnDeferredCronEvent::Number,
-                                     MethodParams{event.callback_payload},
-                                     0);
+          auto res{runtime.send(event.miner_address,
+                                miner::OnDeferredCronEvent::Number,
+                                MethodParams{event.callback_payload},
+                                0)};
+          if (!res) {
+            spdlog::warn(
+                "PowerActor.processDeferredCronEvents: error {} \"{}\", epoch "
+                "{}, miner {}, payload {}",
+                res.error(),
+                res.error().message(),
+                now,
+                event.miner_address,
+                common::hex_lower(event.callback_payload));
+          }
           return outcome::success();
         }));
         OUTCOME_TRY(state.cron_event_queue.remove(epoch));

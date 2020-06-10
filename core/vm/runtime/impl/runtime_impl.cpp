@@ -104,7 +104,7 @@ namespace fc::vm::runtime {
   }
 
   fc::outcome::result<void> RuntimeImpl::deleteActor() {
-    // TODO: charge
+    OUTCOME_TRY(chargeGas(kDeleteActorGasCost));
     // TODO: transfer to kBurntFundsActorAddress
     // TODO(a.chernyshov) FIL-137 implement state_tree remove if needed
     // return state_tree_->remove(address);

@@ -331,7 +331,7 @@ namespace fc::vm::actor::builtin::miner {
       OUTCOME_TRY(sector, state.sectors.get(sector_num));
       detected_sectors.push_back(std::move(sector));
     }
-    // TODO: zero penalty now
+    // TODO(turuslan): zero penalty now, FIL-233
     TokenAmount penalty{0};
     return std::make_pair(std::move(detected_sectors), std::move(penalty));
   }
@@ -364,7 +364,7 @@ namespace fc::vm::actor::builtin::miner {
     std::vector<size_t> faults;
     size_t i{0};
     boost::optional<size_t> good;
-    for (auto s : proven) {
+    for (auto &s : proven) {
       auto fault{state.fault_set.count(s) != 0};
       auto recovery{fault && state.recoveries.count(s) != 0};
       if (recovery) {
@@ -661,7 +661,7 @@ namespace fc::vm::actor::builtin::miner {
                  runtime.getIpfsDatastore()->setCbor(deadlines));
     TokenAmount penalty{0};
     if (type != SectorTerminationType::EXPIRED) {
-      // TODO: zero penalty now
+      // TODO(turuslan): zero penalty now, FIL-233
     }
     OUTCOME_TRY(runtime.commitState(state));
     OUTCOME_TRY(requestEndFaults(runtime, state.info.sector_size, faults));
@@ -731,7 +731,7 @@ namespace fc::vm::actor::builtin::miner {
 
     OUTCOME_TRY(expired_faults,
                 popExpiredFaults(state, deadline.periodEnd() - kFaultMaxAge));
-    // TODO: zero penalty now
+    // TODO(turuslan): zero penalty now, FIL-233
     TokenAmount ongoing_penalty{0};
     OUTCOME_TRY(terminateSectorsInternal(
         runtime, state, expired_faults, SectorTerminationType::FAULTY));
@@ -1052,7 +1052,7 @@ namespace fc::vm::actor::builtin::miner {
       OUTCOME_TRY(sector, state.sectors.get(sector_num));
       faults_penalty.first.push_back(std::move(sector));
     }
-    // TODO: zero penalty now
+    // TODO(turuslan): zero penalty now, FIL-233
     OUTCOME_TRY(runtime.commitState(state));
     OUTCOME_TRY(requestBeginFaults(
         runtime, state.info.sector_size, faults_penalty.first));

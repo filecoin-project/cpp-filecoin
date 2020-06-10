@@ -6,5 +6,6 @@
 add_subdirectory(account)
 add_subdirectory(cron)
 add_subdirectory(init)
+add_subdirectory(market)
 add_subdirectory(multisig_actor)
 add_subdirectory(payment_channel)

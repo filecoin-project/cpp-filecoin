@@ -70,10 +70,11 @@ namespace fc::vm::actor::builtin::storage_power {
 namespace fc {
   template <>
   struct Ipld::Visit<vm::actor::builtin::storage_power::State> {
-    template <typename F>
-    static void f(vm::actor::builtin::storage_power::State &s, const F &f) {
-      f(s.cron_event_queue);
-      f(s.claims);
+    template <typename Visitor>
+    static void call(vm::actor::builtin::storage_power::State &state,
+                     const Visitor &visit) {
+      visit(state.cron_event_queue);
+      visit(state.claims);
     }
   };
 }  // namespace fc

@@ -49,9 +49,10 @@ namespace fc::vm::actor::builtin::init {
 namespace fc {
   template <>
   struct Ipld::Visit<vm::actor::builtin::init::InitActorState> {
-    template <typename F>
-    static void f(vm::actor::builtin::init::InitActorState &s, const F &f) {
-      f(s.address_map);
+    template <typename Visitor>
+    static void call(vm::actor::builtin::init::InitActorState &state,
+                     const Visitor &visit) {
+      visit(state.address_map);
     }
   };
 }  // namespace fc

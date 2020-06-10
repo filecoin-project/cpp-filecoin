@@ -217,14 +217,15 @@ namespace fc::vm::actor::builtin::miner {
 namespace fc {
   template <>
   struct Ipld::Visit<vm::actor::builtin::miner::State> {
-    template <typename F>
-    static void f(vm::actor::builtin::miner::State &s, const F &f) {
-      f(s.vesting_funds);
-      f(s.precommitted_sectors);
-      f(s.sectors);
-      f(s.sector_expirations);
-      f(s.sector_expirations);
-      f(s.fault_epochs);
+    template <typename Visitor>
+    static void call(vm::actor::builtin::miner::State &state,
+                     const Visitor &visit) {
+      visit(state.vesting_funds);
+      visit(state.precommitted_sectors);
+      visit(state.sectors);
+      visit(state.sector_expirations);
+      visit(state.sector_expirations);
+      visit(state.fault_epochs);
     }
   };
 }  // namespace fc

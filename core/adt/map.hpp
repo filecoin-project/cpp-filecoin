@@ -108,14 +108,14 @@ namespace fc::adt {
 namespace fc {
   template <typename V, typename Keyer, size_t bit_width>
   struct Ipld::Load<adt::Map<V, Keyer, bit_width>> {
-    static void f(Ipld &ipld, adt::Map<V, Keyer, bit_width> &map) {
+    static void call(Ipld &ipld, adt::Map<V, Keyer, bit_width> &map) {
       map.hamt.ipld = ipld.shared();
     }
   };
 
   template <typename V, typename Keyer, size_t bit_width>
   struct Ipld::Flush<adt::Map<V, Keyer, bit_width>> {
-    static auto f(adt::Map<V, Keyer, bit_width> &map) {
+    static auto call(adt::Map<V, Keyer, bit_width> &map) {
       return map.hamt.flush();
     }
   };

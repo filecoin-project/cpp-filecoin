@@ -101,7 +101,7 @@ namespace fc::storage::blockchain {
     }
 
     IpldPtr shared() override {
-      throw "not implemented";
+      BOOST_ASSERT_MSG(false, "not implemented");
     }
 
    private:

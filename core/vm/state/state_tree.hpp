@@ -42,6 +42,7 @@ namespace fc::vm::state {
     /// Get store
     virtual std::shared_ptr<IpfsDatastore> getStore() = 0;
 
+    /// Get decoded actor state
     template <typename T>
     outcome::result<T> state(const Address &address) {
       OUTCOME_TRY(actor, get(address));
