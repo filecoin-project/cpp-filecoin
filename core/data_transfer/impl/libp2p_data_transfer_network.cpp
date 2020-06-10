@@ -10,14 +10,16 @@
 /**
  * Check outcome and calls receiver->receiveError in case of failure
  */
-#define CHECK_OUTCOME_RESULT(expression, receiver)                           \
-  auto UNIQUE_NAME(_r) = expression;                                         \
-  if (UNIQUE_NAME(_r).has_error()) {                                         \
-    self->logger_->error("Read error " + UNIQUE_NAME(_r).error().message()); \
-    receiver->receiveError();                                                \
-    stream->stream()->reset();                                               \
-    return;                                                                  \
+#define _CHECK_OUTCOME_RESULT(res, expression, receiver)         \
+  auto &&res = (expression);                                     \
+  if (res.has_error()) {                                         \
+    self->logger_->error("Read error " + res.error().message()); \
+    receiver->receiveError();                                    \
+    stream->stream()->reset();                                   \
+    return;                                                      \
   }
+#define CHECK_OUTCOME_RESULT(expression, receiver) \
+  _CHECK_OUTCOME_RESULT(UNIQUE_NAME(_r), expression, receiver)
 
 #define GET_OUTCOME_RESULT(result, expression, receiver) \
   auto UNIQUE_NAME(_r) = expression;                     \
