@@ -67,7 +67,7 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<StorageInfo> SectorIndexImpl::getStorageInfo(
-      const ID &storage_id) const {
+      const StorageID &storage_id) const {
     std::shared_lock lock(mutex_);
     auto maybe_storage = stores_.find(storage_id);
     if (maybe_storage == stores_.end()) return IndexErrors::StorageNotFound;
@@ -75,7 +75,7 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<void> SectorIndexImpl::storageReportHealth(
-      const ID &storage_id, const HealthReport &report) {
+      const StorageID &storage_id, const HealthReport &report) {
     std::unique_lock lock(mutex_);
     auto storage_iter = stores_.find(storage_id);
     if (storage_iter == stores_.end()) return IndexErrors::StorageNotFound;
@@ -88,7 +88,7 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<void> SectorIndexImpl::storageDeclareSector(
-      const ID &storage_id,
+      const StorageID &storage_id,
       const SectorId &sector,
       const SectorFileType &file_type) {
     std::unique_lock lock(mutex_);
@@ -119,7 +119,7 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<void> SectorIndexImpl::storageDropSector(
-      const ID &storage_id,
+      const StorageID &storage_id,
       const SectorId &sector,
       const fc::primitives::sector_file::SectorFileType &file_type) {
     std::unique_lock lock(mutex_);
@@ -135,7 +135,7 @@ namespace fc::sector_storage::stores {
       if (sector_iter == sectors_.end()) {
         return outcome::success();
       }
-      std::vector<ID> sectors;
+      std::vector<StorageID> sectors;
       for (const auto &s_id : sector_iter->second) {
         if (storage_id == s_id) {
           continue;
@@ -158,7 +158,7 @@ namespace fc::sector_storage::stores {
       const fc::primitives::sector_file::SectorFileType &file_type,
       bool allow_fetch) {
     std::shared_lock lock(mutex_);
-    std::unordered_map<ID, uint64_t> storage_ids;
+    std::unordered_map<StorageID, uint64_t> storage_ids;
 
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
       if ((file_type & type) == 0) {
@@ -274,7 +274,7 @@ namespace fc::sector_storage::stores {
               [](const StorageEntry &lhs, const StorageEntry &rhs) {
                 auto lw = TokenAmount(lhs.fs_stat.available) * lhs.info.weight;
                 auto rw = TokenAmount(rhs.fs_stat.available) * rhs.info.weight;
-                return lw > rw;
+                return lw < rw;
               });
 
     std::vector<StorageInfo> result;
