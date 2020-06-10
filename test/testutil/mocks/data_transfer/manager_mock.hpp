@@ -14,35 +14,40 @@ namespace fc::data_transfer {
 
   class ManagerMock : public Manager {
    public:
+    MOCK_METHOD2(
+        init,
+        outcome::result<void>(const std::string &voucher_type,
+                              std::shared_ptr<RequestValidator> validator));
+
     MOCK_METHOD4(
         openPushDataChannel,
-        outcome::result<ChannelId>(const PeerId &to,
+        outcome::result<ChannelId>(const PeerInfo &to,
                                    const Voucher &voucher,
                                    CID base_cid,
-                                   std::shared_ptr<IPLDNode> selector));
+                                   std::shared_ptr<Selector> selector));
 
     MOCK_METHOD4(
         openPullDataChannel,
-        outcome::result<ChannelId>(const PeerId &to,
+        outcome::result<ChannelId>(const PeerInfo &to,
                                    const Voucher &voucher,
                                    CID base_cid,
-                                   std::shared_ptr<IPLDNode> selector));
+                                   std::shared_ptr<Selector> selector));
 
     MOCK_METHOD7(createChannel,
                  outcome::result<ChannelId>(const TransferId &transfer_id,
                                             const CID &base_cid,
-                                            std::shared_ptr<IPLDNode> selector,
+                                            std::shared_ptr<Selector> selector,
                                             const std::vector<uint8_t> &voucher,
-                                            const PeerId &initiator,
-                                            const PeerId &sender_peer,
-                                            const PeerId &receiver_peer));
+                                            const PeerInfo &initiator,
+                                            const PeerInfo &sender_peer,
+                                            const PeerInfo &receiver_peer));
 
     MOCK_METHOD1(closeChannel,
                  outcome::result<void>(const ChannelId &channel_id));
 
     MOCK_METHOD2(getChannelByIdAndSender,
                  boost::optional<ChannelState>(const ChannelId &channel_id,
-                                               const PeerId &sender));
+                                               const PeerInfo &sender));
   };
 
 }  // namespace fc::data_transfer

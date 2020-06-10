@@ -6,17 +6,20 @@
 #ifndef CPP_FILECOIN_DATA_TRANSFER_TYPES_HPP
 #define CPP_FILECOIN_DATA_TRANSFER_TYPES_HPP
 
-#include <libp2p/peer/peer_id.hpp>
+#include <libp2p/peer/peer_info.hpp>
 #include "clock/time.hpp"
+#include "common/libp2p/peer/peer_info_helper.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
 #include "storage/ipld/ipld_node.hpp"
+#include "storage/ipld/walker.hpp"
 
 namespace fc::data_transfer {
 
   using fc::storage::ipfs::graphsync::statusCodeToString;
-  using libp2p::peer::PeerId;
+  using libp2p::peer::PeerInfo;
   using storage::ipld::IPLDNode;
+  using storage::ipld::walker::Selector;
 
   /**
    * TransferID is an identifier for a data transfer, shared between
@@ -53,12 +56,14 @@ namespace fc::data_transfer {
    * party's peer ID + the transfer ID
    */
   struct ChannelId {
-    PeerId initiator;
+    PeerInfo initiator;
     TransferId id;
 
     bool operator<(const ChannelId &other) const {
-      return initiator.toBase58() < other.initiator.toBase58()
-             || (initiator == other.initiator && id < other.id);
+      return id < other.id
+             || (id == other.id
+                 && peerInfoToPrettyString(initiator)
+                        < peerInfoToPrettyString(other.initiator));
     }
   };
 
@@ -76,16 +81,16 @@ namespace fc::data_transfer {
     CID base_cid;
 
     /** portion of Piece to return, specified by an IPLD selector */
-    std::shared_ptr<IPLDNode> selector;
+    std::shared_ptr<Selector> selector;
 
     /** used to verify this channel */
     std::vector<uint8_t> voucher;
 
     /** the party that is sending the data (not who initiated the request) */
-    PeerId sender;
+    PeerInfo sender;
 
     /** the party that is receiving the data (not who initiated the request) */
-    PeerId recipient;
+    PeerInfo recipient;
 
     /** expected amount of data to be transferred */
     size_t total_size;

@@ -107,6 +107,7 @@ namespace fc::markets::storage {
     CID proposal_cid;
     boost::optional<CID> add_funds_cid;
     boost::optional<CID> publish_cid;
+    PeerInfo client;
     StorageDealStatus state;
     Path piece_path;
     Path metadata_path;
@@ -120,6 +121,7 @@ namespace fc::markets::storage {
              proposal_cid,
              add_funds_cid,
              publish_cid,
+             client,
              state,
              piece_path,
              metadata_path,

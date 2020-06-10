@@ -15,16 +15,16 @@ namespace fc::data_transfer {
   class RequestValidatorMock : public RequestValidator {
    public:
     MOCK_METHOD4(validatePush,
-                 outcome::result<void>(const PeerId &sender,
+                 outcome::result<void>(const PeerInfo &sender,
                                        std::vector<uint8_t> voucher,
                                        CID base_cid,
-                                       std::shared_ptr<IPLDNode> selector));
+                                       std::shared_ptr<Selector> selector));
 
     MOCK_METHOD4(validatePull,
-                 outcome::result<void>(const PeerId &receiver,
+                 outcome::result<void>(const PeerInfo &receiver,
                                        std::vector<uint8_t> voucher,
                                        CID base_cid,
-                                       std::shared_ptr<IPLDNode> selector));
+                                       std::shared_ptr<Selector> selector));
   };
 
 }  // namespace fc::data_transfer

@@ -35,7 +35,7 @@ namespace fc::markets::storage::client {
     /**
      * Initialise client instance
      */
-    virtual void init() = 0;
+    virtual outcome::result<void> init() = 0;
 
     virtual void run() = 0;
 

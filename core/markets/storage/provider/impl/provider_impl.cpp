@@ -5,13 +5,18 @@
 
 #include "provider_impl.hpp"
 
+#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/todo_error.hpp"
+#include "data_transfer/impl/graphsync/graphsync_manager.hpp"
 #include "host/context/host_context.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/storage/common.hpp"
+#include "markets/storage/provider/impl/provider_data_transfer_request_validator.hpp"
 #include "markets/storage/provider/storage_provider_error.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
+#include "markets/storage/storage_datatransfer_voucher.hpp"
+#include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 
@@ -37,8 +42,10 @@
   }
 
 namespace fc::markets::storage::provider {
-
   using api::MsgWait;
+  using data_transfer::Voucher;
+  using data_transfer::graphsync::GraphSyncManager;
+  using fc::storage::ipfs::graphsync::GraphsyncImpl;
   using fc::storage::piece::PayloadLocation;
   using fc::storage::piece::PieceStorageImpl;
   using host::HostContext;
@@ -74,14 +81,27 @@ namespace fc::markets::storage::provider {
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
         piece_io_{std::move(piece_io)},
         piece_storage_{std::make_shared<PieceStorageImpl>(datastore)},
-        filestore_{filestore} {}
+        filestore_{filestore} {
+    auto scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
+        *context_, libp2p::protocol::SchedulerConfig{});
+    auto graphsync =
+        std::make_shared<GraphsyncImpl>(host_, std::move(scheduler));
+    datatransfer_ = std::make_shared<GraphSyncManager>(host_, graphsync);
+  }
 
   outcome::result<void> StorageProviderImpl::init() {
     OUTCOME_TRY(filestore_->createDirectories(kFilestoreTempDir));
 
+    // init fsm transitions
     std::shared_ptr<HostContext> fsm_context =
         std::make_shared<HostContextImpl>(context_);
     fsm_ = std::make_shared<ProviderFSM>(makeFSMTransitions(), fsm_context);
+
+    // register request validator
+    auto state_store = std::make_shared<ProviderFsmStateStore>(fsm_);
+    auto validator =
+        std::make_shared<ProviderDataTransferRequestValidator>(state_store);
+    OUTCOME_TRY(datatransfer_->init(StorageDataTransferVoucherType, validator));
 
     return outcome::success();
   }
@@ -210,6 +230,7 @@ namespace fc::markets::storage::provider {
                         .proposal_cid = proposal_cid.value(),
                         .add_funds_cid = boost::none,
                         .publish_cid = boost::none,
+                        .client = remote_peer_info,
                         .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
                         .piece_path = {},
                         .metadata_path = {},
@@ -520,13 +541,19 @@ namespace fc::markets::storage::provider {
       return;
     }
 
-    // initiate a pull data transfer. This will complete asynchronously and the
-    // completion of the data transfer will trigger a change in deal state
-    // (see onDataTransferEvent)
-
-    // TODO start datatransfer
-    // datatransfer->openPullDataChannel
-
+    auto voucher_encoded = codec::cbor::encode(
+        StorageDataTransferVoucher{.proposal_cid = deal->proposal_cid});
+    FSM_HALT_ON_ERROR(
+        voucher_encoded, "Encode data transfer voucher error", deal);
+    Voucher voucher{.type = StorageDataTransferVoucherType,
+                    .bytes = voucher_encoded.value().toVector()};
+    // TODO (a.chernyshov) implement selectors and deserialize from
+    // request.selector
+    auto selector = std::make_shared<Selector>();
+    FSM_HALT_ON_ERROR(datatransfer_->openPullDataChannel(
+                          deal->client, voucher, deal->ref.root, selector),
+                      "Data transfer open pull data channel error",
+                      deal);
     FSM_SEND(deal, ProviderEvent::ProviderEventDataTransferInitiated);
   }
 
