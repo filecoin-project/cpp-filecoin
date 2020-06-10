@@ -14,13 +14,10 @@ namespace fc::drand {
                     .key = {identity.key().begin(), identity.key().end()},
                     .tls = identity.tls()};
   }
-  Node ProtoParser::protoToHandy(const ::drand::Node &node) {
-    return Node{.public_identity = protoToHandy(node.public_()),
-                .index = node.index()};
-  }
+
   GroupPacket ProtoParser::protoToHandy(
       const ::drand::GroupPacket &group_packet) {
-    std::vector<Node> nodes;
+    std::vector<Identity> nodes;
     nodes.reserve(group_packet.nodes_size());
     for (auto i = 0; i < group_packet.nodes_size(); ++i) {
       nodes.push_back(protoToHandy(group_packet.nodes(i)));
