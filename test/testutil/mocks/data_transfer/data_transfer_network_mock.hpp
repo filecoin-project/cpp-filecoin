@@ -18,11 +18,10 @@ namespace fc::data_transfer {
         setDelegate,
         outcome::result<void>(std::shared_ptr<MessageReceiver> receiver));
 
-    MOCK_METHOD1(connectTo, outcome::result<void>(const PeerId &peer));
+    MOCK_METHOD1(connectTo, outcome::result<void>(const PeerInfo &peer));
 
-    MOCK_METHOD1(
-        newMessageSender,
-        outcome::result<std::shared_ptr<MessageSender>>(const PeerId &peer));
+    MOCK_METHOD2(sendMessage,
+                 void(const PeerInfo &to, const DataTransferMessage &message));
   };
 
 }  // namespace fc::data_transfer

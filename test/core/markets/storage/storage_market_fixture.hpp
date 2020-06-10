@@ -114,8 +114,6 @@ namespace fc::markets::storage::test {
     }
 
     void SetUp() override {
-      spdlog::set_level(spdlog::level::debug);
-
       std::shared_ptr<BlsProvider> bls_provider =
           std::make_shared<BlsProviderImpl>();
       std::shared_ptr<Secp256k1ProviderDefault> secp256k1_provider =
@@ -388,7 +386,7 @@ namespace fc::markets::storage::test {
 
       auto new_client = std::make_shared<StorageMarketClientImpl>(
           client_host, context, datastore, api, keystore, piece_io_);
-      new_client->init();
+      OUTCOME_EXCEPT(new_client->init());
       return new_client;
     }
 

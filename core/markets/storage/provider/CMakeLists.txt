@@ -6,6 +6,8 @@
 add_library(storage_market_provider
     impl/provider_impl.cpp
     impl/storage_provider_error.cpp
+    impl/provider_state_store.cpp
+    impl/provider_data_transfer_request_validator.cpp
     )
 target_link_libraries(storage_market_provider
     Boost::boost
