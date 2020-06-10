@@ -70,7 +70,8 @@ namespace fc::vm::runtime {
                                        const Address &address,
                                        gsl::span<const uint8_t> data));
 
-    MOCK_METHOD1(verifyPoSt, outcome::result<bool>(const WindowPoStVerifyInfo &info));
+    MOCK_METHOD1(verifyPoSt,
+                 outcome::result<bool>(const WindowPoStVerifyInfo &info));
 
     MOCK_METHOD1(verifySeal, outcome::result<bool>(const SealVerifyInfo &info));
 
@@ -78,9 +79,10 @@ namespace fc::vm::runtime {
                  outcome::result<CID>(RegisteredProof,
                                       const std::vector<PieceInfo> &));
 
-    MOCK_METHOD2(verifyConsensusFault,
-                 outcome::result<bool>(const BlockHeader &block_header_1,
-                                       const BlockHeader &block_header_2));
+    MOCK_METHOD3(verifyConsensusFault,
+                 outcome::result<ConsensusFault>(const Buffer &block1,
+                                                 const Buffer &block2,
+                                                 const Buffer &extra));
 
     /// Expect call to send with params returing result
     template <typename M>

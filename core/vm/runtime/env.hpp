@@ -8,6 +8,7 @@
 
 #include "crypto/randomness/randomness_provider.hpp"
 #include "primitives/types.hpp"
+#include "storage/hamt/hamt.hpp"
 #include "vm/actor/invoker.hpp"
 #include "vm/state/state_tree.hpp"
 

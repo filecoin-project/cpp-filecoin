@@ -24,7 +24,7 @@ namespace fc::blockchain::production {
         vm::interpreter::InterpreterImpl{}.interpret(ipld, parent_tipset));
     Block b;
     MsgMeta msg_meta;
-    msg_meta.load(ipld);
+    ipld->load(msg_meta);
     std::vector<crypto::bls::Signature> bls_signatures;
     for (auto &message : t.messages) {
       OUTCOME_TRY(visit_in_place(
@@ -55,7 +55,6 @@ namespace fc::blockchain::production {
     b.header.height = t.height;
     b.header.parent_state_root = std::move(vm_result.state_root);
     b.header.parent_message_receipts = std::move(vm_result.message_receipts);
-    OUTCOME_TRY(msg_meta.flush());
     OUTCOME_TRYA(b.header.messages, ipld->setCbor(msg_meta));
     OUTCOME_TRYA(
         b.header.bls_aggregate,

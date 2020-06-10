@@ -8,6 +8,8 @@
 
 #include <cstdint>
 
+#include <spdlog/fmt/fmt.h>
+
 #include <boost/variant.hpp>
 #include "common/blob.hpp"
 #include "crypto/bls/bls_types.hpp"
@@ -72,6 +74,8 @@ namespace fc::primitives::address {
      */
     bool isKeyType() const;
 
+    bool isId() const;
+
     /// id - number assigned to actors in a Filecoin Chain
     static Address makeFromId(uint64_t id, Network network = kDefaultNetwork);
 
@@ -107,7 +111,18 @@ namespace fc::primitives::address {
    */
   bool operator<(const Address &lhs, const Address &rhs);
 
+  std::string encodeToString(const Address &address);
 };  // namespace fc::primitives::address
+
+template <>
+struct fmt::formatter<fc::primitives::address::Address>
+    : formatter<std::string_view> {
+  template <typename C>
+  auto format(const fc::primitives::address::Address &address, C &ctx) {
+    auto str = fc::primitives::address::encodeToString(address);
+    return formatter<std::string_view>::format(str, ctx);
+  }
+};
 
 /**
  * @brief Outcome errors declaration

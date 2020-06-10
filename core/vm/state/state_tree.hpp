@@ -6,14 +6,13 @@
 #ifndef CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
 #define CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
 
-#include "storage/hamt/hamt.hpp"
+#include "storage/ipfs/datastore.hpp"
 #include "vm/actor/actor.hpp"
 
 namespace fc::vm::state {
 
   using actor::Actor;
   using primitives::address::Address;
-  using storage::hamt::Hamt;
   using storage::ipfs::IpfsDatastore;
 
   /// State tree
@@ -42,6 +41,13 @@ namespace fc::vm::state {
 
     /// Get store
     virtual std::shared_ptr<IpfsDatastore> getStore() = 0;
+
+    /// Get decoded actor state
+    template <typename T>
+    outcome::result<T> state(const Address &address) {
+      OUTCOME_TRY(actor, get(address));
+      return getStore()->template getCbor<T>(actor.head);
+    }
   };
 }  // namespace fc::vm::state
 

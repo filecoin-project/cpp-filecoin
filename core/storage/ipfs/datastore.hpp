@@ -52,6 +52,8 @@ namespace fc::storage::ipfs {
      */
     virtual outcome::result<void> remove(const CID &key) = 0;
 
+    virtual std::shared_ptr<IpfsDatastore> shared() = 0;
+
     /**
      * @brief CBOR-serialize value and store
      * @param value - data to serialize and store
@@ -59,7 +61,7 @@ namespace fc::storage::ipfs {
      */
     template <typename T>
     outcome::result<CID> setCbor(const T &value) {
-      OUTCOME_TRY(bytes, codec::cbor::encode(value));
+      OUTCOME_TRY(bytes, encode(value));
       OUTCOME_TRY(key, common::getCidOf(bytes));
       OUTCOME_TRY(set(key, Value(bytes)));
       return std::move(key);
@@ -69,9 +71,64 @@ namespace fc::storage::ipfs {
     template <typename T>
     outcome::result<T> getCbor(const CID &key) const {
       OUTCOME_TRY(bytes, get(key));
-      return codec::cbor::decode<T>(bytes);
+      return decode<T>(bytes);
     }
+
+    template <typename T>
+    static outcome::result<Value> encode(const T &value) {
+      OUTCOME_TRY(flush(value));
+      return codec::cbor::encode(value);
+    }
+
+    template <typename T>
+    outcome::result<T> decode(gsl::span<const uint8_t> input) const {
+      OUTCOME_TRY(value, codec::cbor::decode<T>(input));
+      load(value);
+      return std::move(value);
+    }
+
+    template <typename T>
+    void load(T &value) const {
+      Load<T>::call(const_cast<IpfsDatastore &>(*this), value);
+    }
+
+    template <typename T>
+    static auto flush(T &value) {
+      using Z = std::remove_const_t<T>;
+      return Flush<Z>::call(const_cast<Z &>(value));
+    }
+
+    template <typename T>
+    struct Visit {
+      template <typename Visitor>
+      static void call(T &, const Visitor &) {}
+    };
+
+    template <typename T>
+    struct Load {
+      static void call(IpfsDatastore &ipld, T &value) {
+        Visit<T>::call(value, [&](auto &x) { ipld.load(x); });
+      }
+    };
+
+    template <typename T>
+    struct Flush {
+      static outcome::result<void> call(T &value) {
+        try {
+          Visit<T>::call(
+              value, [](auto &x) { OUTCOME_EXCEPT(IpfsDatastore::flush(x)); });
+        } catch (std::system_error &e) {
+          return outcome::failure(e.code());
+        }
+        return outcome::success();
+      }
+    };
   };
 }  // namespace fc::storage::ipfs
+
+namespace fc {
+  using Ipld = storage::ipfs::IpfsDatastore;
+  using IpldPtr = std::shared_ptr<Ipld>;
+}  // namespace fc
 
 #endif  // CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_HPP

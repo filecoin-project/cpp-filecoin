@@ -151,7 +151,8 @@ namespace fc::vm::runtime {
         gsl::span<const uint8_t> data) = 0;
 
     /// Verify PoSt
-    virtual outcome::result<bool> verifyPoSt(const WindowPoStVerifyInfo &info) = 0;
+    virtual outcome::result<bool> verifyPoSt(
+        const WindowPoStVerifyInfo &info) = 0;
 
     /// Verify seal
     virtual outcome::result<bool> verifySeal(const SealVerifyInfo &info) = 0;
@@ -161,11 +162,10 @@ namespace fc::vm::runtime {
         RegisteredProof type, const std::vector<PieceInfo> &pieces) = 0;
 
     /// Verify consensus fault
-    virtual outcome::result<bool> verifyConsensusFault(
-        const BlockHeader &block_header_1,
-        const BlockHeader &block_header_2) = 0;
+    virtual outcome::result<ConsensusFault> verifyConsensusFault(
+        const Buffer &block1, const Buffer &block2, const Buffer &extra) = 0;
 
-    inline Blake2b256Hash hashBlake2b(gsl::span<const uint8_t> data) {
+    static inline Blake2b256Hash hashBlake2b(gsl::span<const uint8_t> data) {
       return crypto::blake2b::blake2b_256(data);
     }
 
@@ -247,6 +247,27 @@ namespace fc::vm::runtime {
         return outcome::success();
       }
       return VMExitCode::SysErrForbidden;
+    }
+
+    inline outcome::result<void> validateImmediateCallerType(
+        const CID &expected_code) {
+      OUTCOME_TRY(actual_code, getActorCodeID(getImmediateCaller()));
+      if (actual_code == expected_code) {
+        return outcome::success();
+      }
+      return VMExitCode::SysErrForbidden;
+    }
+
+    inline outcome::result<void> validateImmediateCallerIsSignable() {
+      OUTCOME_TRY(code, getActorCodeID(getImmediateCaller()));
+      if (isSignableActor(code)) {
+        return outcome::success();
+      }
+      return VMExitCode::SysErrForbidden;
+    }
+
+    inline auto validateImmediateCallerIsMiner() {
+      return validateImmediateCallerType(actor::kStorageMinerCodeCid);
     }
   };
 

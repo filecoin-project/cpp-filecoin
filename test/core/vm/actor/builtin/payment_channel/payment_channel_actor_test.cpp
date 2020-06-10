@@ -245,9 +245,9 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateExtraFailed) {
   EXPECT_CALL(
       runtime,
       send(voucher.extra->actor, voucher.extra->method, params, TokenAmount{0}))
-      .WillOnce(Return(VMExitCode::CRON_ACTOR_WRONG_CALL));
+      .WillOnce(Return(VMExitCode::SysErrForbidden));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::CRON_ACTOR_WRONG_CALL,
+  EXPECT_OUTCOME_ERROR(VMExitCode::SysErrForbidden,
                        PaymentChannel::UpdateChannelState::call(
                            runtime, {voucher, {}, Buffer{"01"_unhex}}));
 }

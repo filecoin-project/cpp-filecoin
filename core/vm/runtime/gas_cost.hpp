@@ -86,16 +86,19 @@ namespace fc::vm::runtime {
   inline static const GasAmount kUpdateActorSubstateGasCost{
       kGasAmountPlaceholder};
 
+  inline static const GasAmount kCreateActorExtraGasCost{500};
+
   /**
    * Gas cost for creating a new actor (via InitActor's Exec method). Actor
    * sub-state is charged separately.
    */
-  inline static const GasAmount kCreateActorGasCost{40 + 500};
+  inline static const GasAmount kCreateActorGasCost{40
+                                                    + kCreateActorExtraGasCost};
 
   /**
    * Gas cost for deleting an actor.
    */
-  inline static const GasAmount kDeleteActorGasCost{kGasAmountPlaceholder};
+  inline static const GasAmount kDeleteActorGasCost{-kCreateActorExtraGasCost};
 
   /**
    * Gas cost charged per public-key cryptography operation (e.g., signature

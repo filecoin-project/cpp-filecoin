@@ -31,11 +31,10 @@ namespace fc::blockchain::weight {
 
   outcome::result<BigInt> WeightCalculatorImpl::calculateWeight(
       const Tipset &tipset) {
-    OUTCOME_TRY(actor,
-                StateTreeImpl{ipld_, tipset.getParentStateRoot()}.get(
-                    kStoragePowerAddress));
-    OUTCOME_TRY(state, ipld_->getCbor<StoragePowerActorState>(actor.head));
-    auto network_power = state.total_network_power;
+    OUTCOME_TRY(state,
+                StateTreeImpl{ipld_, tipset.getParentStateRoot()}
+                    .state<StoragePowerActorState>(kStoragePowerAddress));
+    auto network_power = state.total_qa_power;
     if (network_power <= 0) {
       return outcome::failure(WeightCalculatorError::NO_NETWORK_POWER);
     }

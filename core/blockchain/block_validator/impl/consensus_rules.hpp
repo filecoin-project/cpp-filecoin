@@ -21,7 +21,6 @@ namespace fc::blockchain::block_validator {
     using WeightCalculator = weight::WeightCalculator;
     using BlockHeader = primitives::block::BlockHeader;
     using PowerTable = power::PowerTable;
-    using IpfsDatastore = storage::ipfs::IpfsDatastore;
     using ChainEpoch = primitives::ChainEpoch;
     using Tipset = primitives::tipset::Tipset;
 

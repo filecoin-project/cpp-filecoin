@@ -25,8 +25,7 @@ class BalanceTableHamtTest : public ::testing::Test {
   Address address{Address::makeFromId(123)};
 
   void SetUp() override {
-    table = std::make_shared<BalanceTable>();
-    table->load(datastore);
+    table = std::make_shared<BalanceTable>(datastore);
   }
 };
 

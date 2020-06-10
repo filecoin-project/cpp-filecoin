@@ -32,7 +32,7 @@ using fc::vm::runtime::MockRuntime;
 
 /** Init actor state CBOR encoding and decoding */
 TEST(InitActorTest, InitActorStateCbor) {
-  InitActorState init_actor_state{"010001020000"_cid, 3, "n"};
+  InitActorState init_actor_state{{"010001020000"_cid}, 3, "n"};
   expectEncodeAndReencode(init_actor_state,
                           "83d82a470001000102000003616e"_unhex);
 }
@@ -52,17 +52,13 @@ TEST(InitActorTest, AddActor) {
   using fc::primitives::address::Address;
   using fc::storage::hamt::Hamt;
   auto store = std::make_shared<fc::storage::ipfs::InMemoryDatastore>();
-  EXPECT_OUTCOME_TRUE(empty_map, Hamt(store).flush());
-  InitActorState state{empty_map, 3, "n"};
+  InitActorState state{{store}, 3, "n"};
   Address address{fc::primitives::address::TESTNET,
                   fc::primitives::address::ActorExecHash{}};
   auto expected = Address::makeFromId(state.next_id);
-  EXPECT_OUTCOME_EQ(state.addActor(store, address), expected);
+  EXPECT_OUTCOME_EQ(state.addActor(address), expected);
   EXPECT_EQ(state.next_id, 4);
-  EXPECT_OUTCOME_EQ(
-      Hamt(store, state.address_map)
-          .getCbor<uint64_t>(fc::adt::AddressKeyer::encode(address)),
-      3);
+  EXPECT_OUTCOME_EQ(state.address_map.get(address), 3);
 }
 
 /**
@@ -104,7 +100,7 @@ TEST(InitActorExecText, ExecSuccess) {
       .WillOnce(testing::Return(std::cref(message)));
 
   EXPECT_CALL(runtime, getIpfsDatastore())
-      .Times(3)
+      .Times(testing::AnyNumber())
       .WillRepeatedly(testing::Return(state_tree->getStore()));
 
   EXPECT_CALL(runtime,

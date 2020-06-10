@@ -75,17 +75,17 @@ INSTANTIATE_TEST_CASE_P(
     RandomnessProviderTest,
     ::testing::Values(
         RandomnessProviderTest::makeParams(
-            DomainSeparationTag::TicketDrawingDST,
+            DomainSeparationTag::TicketProduction,
             Buffer{1, 2, 3},
             1,
             "C4E51A115F7505FD0992CC5B638875D3BCA313CB2F5D7DE1F1D0B2CB3A3857E8"_hash256),
         RandomnessProviderTest::makeParams(
-            DomainSeparationTag::TicketProductionDST,
+            DomainSeparationTag::ElectionProofProduction,
             Buffer{1, 2},
             2,
             "EBB9FAA31980E474AD7D0D3D51369E76D7DB383945545F5A23075A27544D1412"_hash256),
         RandomnessProviderTest::makeParams(
-            DomainSeparationTag::PoStDST,
+            DomainSeparationTag::WinningPoStChallengeSeed,
             Buffer{1},
             3,
             "4FB8E678AF9CD7DD078EE47249A5AFC10D53DC3F548A22AAEE9DB4903A9D0212"_hash256)));

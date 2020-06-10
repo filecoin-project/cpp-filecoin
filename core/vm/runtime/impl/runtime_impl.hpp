@@ -29,6 +29,7 @@ namespace fc::vm::runtime {
    public:
     RuntimeImpl(std::shared_ptr<Execution> execution,
                 UnsignedMessage message,
+                const Address &caller_id,
                 ActorSubstateCID current_actor_state);
 
     /** \copydoc Runtime::getCurrentEpoch() */
@@ -105,19 +106,16 @@ namespace fc::vm::runtime {
     outcome::result<CID> computeUnsealedSectorCid(
         RegisteredProof type, const std::vector<PieceInfo> &pieces) override;
 
-    outcome::result<bool> verifyConsensusFault(
-        const BlockHeader &block_header_1,
-        const BlockHeader &block_header_2) override;
-
-   private:
-    std::shared_ptr<Runtime> createRuntime(
-        const UnsignedMessage &message,
-        const ActorSubstateCID &current_actor_state) const;
+    outcome::result<ConsensusFault> verifyConsensusFault(
+        const Buffer &block1,
+        const Buffer &block2,
+        const Buffer &extra) override;
 
    private:
     std::shared_ptr<Execution> execution_;
     std::shared_ptr<StateTree> state_tree_;
     UnsignedMessage message_;
+    Address caller_id;
     ActorSubstateCID current_actor_state_;
   };
 

@@ -107,6 +107,7 @@ namespace fc::common::libp2p {
       switch (head.type) {
         case Type::Unsigned:
         case Type::Signed:
+        case Type::Special:
           break;
         case Type::Bytes:
         case Type::Text: {

@@ -18,7 +18,9 @@ namespace fc::vm::runtime {
   using common::Buffer;
   using message::UnsignedMessage;
   using primitives::BigInt;
+  using primitives::ChainEpoch;
   using primitives::GasAmount;
+  using primitives::address::Address;
 
   using InvocationOutput = Buffer;
 
@@ -42,6 +44,18 @@ namespace fc::vm::runtime {
     UnsignedMessage message;
     MessageReceipt receipt;
     std::string error;
+  };
+
+  enum class ConsensusFaultType {
+    DoubleForkMining = 1,
+    ParentGrinding = 2,
+    TimeOffsetMining = 3,
+  };
+
+  struct ConsensusFault {
+    Address target;
+    ChainEpoch epoch;
+    ConsensusFaultType type;
   };
 }  // namespace fc::vm::runtime
 

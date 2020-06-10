@@ -21,12 +21,14 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::api {
+  using primitives::kChainEpochUndefined;
   using primitives::block::BlockHeader;
   using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
   using vm::actor::builtin::account::AccountActorState;
   using vm::actor::builtin::init::InitActorState;
+  using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::miner::MinerActorState;
   using vm::actor::builtin::storage_power::StoragePowerActorState;
   using vm::interpreter::InterpreterImpl;
@@ -48,35 +50,25 @@ namespace fc::api {
     StateTreeImpl state_tree;
     boost::optional<InterpreterResult> interpreted;
 
-    template <typename T, bool load>
-    outcome::result<T> actorState(const Address &address) {
-      OUTCOME_TRY(actor, state_tree.get(address));
-      OUTCOME_TRY(state, state_tree.getStore()->getCbor<T>(actor.head));
-      if constexpr (load) {
-        state.load(state_tree.getStore());
-      }
-      return std::move(state);
-    }
-
     auto marketState() {
-      return actorState<MarketActorState, true>(kStorageMarketAddress);
+      return state_tree.state<MarketActorState>(kStorageMarketAddress);
     }
 
     auto minerState(const Address &address) {
-      return actorState<MinerActorState, true>(address);
+      return state_tree.state<MinerActorState>(address);
     }
 
     auto powerState() {
-      return actorState<StoragePowerActorState, true>(kStoragePowerAddress);
+      return state_tree.state<StoragePowerActorState>(kStoragePowerAddress);
     }
 
     auto initState() {
-      return actorState<InitActorState, false>(kInitAddress);
+      return state_tree.state<InitActorState>(kInitAddress);
     }
 
     outcome::result<Address> accountKey(const Address &id) {
       // TODO(turuslan): error if not account
-      OUTCOME_TRY(state, actorState<AccountActorState, false>(id));
+      OUTCOME_TRY(state, state_tree.state<AccountActorState>(id));
       return state.address;
     }
   };
@@ -85,8 +77,7 @@ namespace fc::api {
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
-               std::shared_ptr<KeyStore> key_store,
-               Logger logger) {
+               std::shared_ptr<KeyStore> key_store) {
     auto chain_randomness = chain_store->createRandomnessProvider();
     auto tipsetContext = [=](const TipsetKey &tipset_key,
                              bool interpret =
@@ -117,7 +108,6 @@ namespace fc::api {
           BlockMessages messages;
           OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
           OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
-          meta.load(ipld);
           OUTCOME_TRY(meta.bls_messages.visit(
               [&](auto, auto &cid) -> outcome::result<void> {
                 OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
@@ -160,7 +150,6 @@ namespace fc::api {
               for (auto &parent_cid : block.parents) {
                 OUTCOME_TRY(parent, ipld->getCbor<BlockHeader>(parent_cid));
                 OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(parent.messages));
-                meta.load(ipld);
                 OUTCOME_TRY(meta.bls_messages.visit(
                     [&](auto, auto &cid) -> outcome::result<void> {
                       OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
@@ -180,8 +169,8 @@ namespace fc::api {
             {[=](auto &block_cid)
                  -> outcome::result<std::vector<MessageReceipt>> {
               OUTCOME_TRY(block, ipld->getCbor<BlockHeader>(block_cid));
-              return adt::Array<MessageReceipt>{block.parent_message_receipts}
-                  .load(ipld)
+              return adt::Array<MessageReceipt>{block.parent_message_receipts,
+                                                ipld}
                   .values();
             }},
         .ChainGetRandomness = {[=](auto &tipset_key, auto round) {
@@ -277,12 +266,8 @@ namespace fc::api {
           OUTCOME_TRY(power_state, context.powerState());
           MiningBaseInfo info;
           OUTCOME_TRY(claim, power_state.claims.get(miner));
-          info.miner_power = claim.power;
-          info.network_power = power_state.total_network_power;
-          OUTCOME_TRY(state.proving_set.visit([&](auto i, auto s) {
-            info.sectors.push_back({s, i});
-            return outcome::success();
-          }));
+          info.miner_power = claim.qa_power;
+          info.network_power = power_state.total_qa_power;
           OUTCOME_TRYA(info.worker, context.accountKey(state.info.worker));
           info.sector_size = state.info.sector_size;
           return info;
@@ -363,7 +348,6 @@ namespace fc::api {
 
             for (const BlockHeader &block : context.tipset.blks) {
               OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
-              meta.load(ipld);
               OUTCOME_TRY(meta.bls_messages.visit(
                   [&](auto, auto &cid) -> outcome::result<void> {
                     OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
@@ -423,8 +407,7 @@ namespace fc::api {
                                 -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(root, context.state_tree.flush());
-          adt::Map<Actor, adt::AddressKeyer> actors(root);
-          actors.load(ipld);
+          adt::Map<Actor, adt::AddressKeyer> actors{root, ipld};
 
           return actors.keys();
         }},
@@ -450,7 +433,7 @@ namespace fc::api {
           MarketDealMap map;
           OUTCOME_TRY(state.proposals.visit([&](auto deal_id, auto &deal)
                                                 -> outcome::result<void> {
-            OUTCOME_TRY(deal_state, state.getState(deal_id));
+            OUTCOME_TRY(deal_state, state.states.get(deal_id));
             map.emplace(std::to_string(deal_id), StorageDeal{deal, deal_state});
             return outcome::success();
           }));
@@ -466,14 +449,19 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.marketState());
           OUTCOME_TRY(deal, state.proposals.get(deal_id));
-          OUTCOME_TRY(deal_state, state.getState(deal_id));
-          return StorageDeal{deal, deal_state};
+          OUTCOME_TRY(deal_state, state.states.tryGet(deal_id));
+          if (!deal_state) {
+            deal_state = DealState{kChainEpochUndefined,
+                                   kChainEpochUndefined,
+                                   kChainEpochUndefined};
+          }
+          return StorageDeal{deal, *deal_state};
         }},
         .StateMinerElectionPeriodStart = {[=](auto address, auto tipset_key)
                                               -> outcome::result<ChainEpoch> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          return state.post_state.proving_period_start;
+          return state.proving_period_start;
         }},
         .StateMinerFaults = {[=](auto address, auto tipset_key)
                                  -> outcome::result<RleBitset> {
@@ -487,31 +475,14 @@ namespace fc::api {
           OUTCOME_TRY(miner_state, context.minerState(address));
           return miner_state.info;
         }},
-        .StateMinerPostState = {[=](auto &address, auto &tipset_key)
-                                    -> outcome::result<PoStState> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          OUTCOME_TRY(miner_state, context.minerState(address));
-          return miner_state.post_state;
-        }},
         .StateMinerPower = {[=](auto &address, auto &tipset_key)
                                 -> outcome::result<MinerPower> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-
           OUTCOME_TRY(power_state, context.powerState());
-          StoragePower miner_power = 0;
-          OUTCOME_TRY(claim, power_state.claims.tryGet(address));
-          if (claim) {
-            miner_power = claim->power;
-          }
-
-          OUTCOME_TRY(miner_state, context.minerState(address));
-          if (miner_state.post_state.hasFailedPost()) {
-            miner_power = 0;
-          }
-
+          OUTCOME_TRY(miner_power, power_state.claims.get(address));
           return MinerPower{
               miner_power,
-              power_state.total_network_power,
+              {power_state.total_raw_power, power_state.total_qa_power},
           };
         }},
         .StateMinerProvingSet =
@@ -520,8 +491,11 @@ namespace fc::api {
               OUTCOME_TRY(context, tipsetContext(tipset_key));
               OUTCOME_TRY(state, context.minerState(address));
               std::vector<ChainSectorInfo> sectors;
-              OUTCOME_TRY(state.proving_set.visit([&](auto id, auto &info) {
-                sectors.emplace_back(ChainSectorInfo{info, id});
+              OUTCOME_TRY(state.sectors.visit([&](auto id, auto &info) {
+                if (state.fault_set.find(id) == state.fault_set.end()
+                    && state.recoveries.find(id) == state.recoveries.end()) {
+                  sectors.emplace_back(ChainSectorInfo{info, id});
+                }
                 return outcome::success();
               }));
               return sectors;
@@ -576,14 +550,13 @@ namespace fc::api {
         .SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
           // TODO(turuslan): chain store must validate blocks before adding
           MsgMeta meta;
-          meta.load(ipld);
+          ipld->load(meta);
           for (auto &cid : block.bls_messages) {
             OUTCOME_TRY(meta.bls_messages.append(cid));
           }
           for (auto &cid : block.secp_messages) {
             OUTCOME_TRY(meta.secp_messages.append(cid));
           }
-          OUTCOME_TRY(meta.flush());
           OUTCOME_TRY(messages, ipld->setCbor(meta));
           if (block.header.messages != messages) {
             return TodoError::ERROR;

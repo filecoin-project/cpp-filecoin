@@ -18,11 +18,9 @@ namespace fc::adt {
         const Value &value) {
       OUTCOME_TRY(array, map.tryGet(key));
       if (!array) {
-        array = Array<Value>{};
+        array = Array<Value>{map.hamt.ipld};
       }
-      array->load(map.hamt.getIpld());
       OUTCOME_TRY(array->append(value));
-      OUTCOME_TRY(array->flush());
       return map.set(key, *array);
     }
 
@@ -33,7 +31,6 @@ namespace fc::adt {
         const std::function<outcome::result<void>(const Value &)> &visitor) {
       OUTCOME_TRY(array, map.tryGet(key));
       if (array) {
-        array->load(map.hamt.getIpld());
         OUTCOME_TRY(
             array->visit([&](auto, auto &value) { return visitor(value); }));
       }
