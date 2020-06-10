@@ -27,18 +27,18 @@ namespace fc::sector_storage::stores {
                                         const FsStat &stat) override;
 
     outcome::result<StorageInfo> getStorageInfo(
-        const ID &storage_id) const override;
+        const StorageID &storage_id) const override;
 
     outcome::result<void> storageReportHealth(
-        const ID &storage_id, const HealthReport &report) override;
+        const StorageID &storage_id, const HealthReport &report) override;
 
     outcome::result<void> storageDeclareSector(
-        const ID &storage_id,
+        const StorageID &storage_id,
         const SectorId &sector,
         const SectorFileType &file_type) override;
 
     outcome::result<void> storageDropSector(
-        const ID &storage_id,
+        const StorageID &storage_id,
         const SectorId &sector,
         const SectorFileType &file_type) override;
 
@@ -54,8 +54,8 @@ namespace fc::sector_storage::stores {
 
    private:
     mutable std::shared_mutex mutex_;
-    std::unordered_map<ID, StorageEntry> stores_;
-    std::unordered_map<std::string, std::vector<ID>> sectors_;
+    std::unordered_map<StorageID, StorageEntry> stores_;
+    std::unordered_map<std::string, std::vector<StorageID>> sectors_;
   };
 }  // namespace fc::sector_storage::stores
 
