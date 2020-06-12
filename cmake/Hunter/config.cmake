@@ -48,7 +48,7 @@ hunter_config(
 )
 
 hunter_config(libp2p
-    URL https://github.com/soramitsu/libp2p/archive/768d344662234131ca84c593180e9b33335ae9d7.zip
-    SHA1 96e14decbd708025bba9940c9500f62e7ec1e577
+    URL https://github.com/soramitsu/libp2p/archive/4673d4cf3e36a63876f6a2b6bdc29b6dd787975b.zip
+    SHA1 4763a6d907d6b57e5edbd16ab326f982436f1bb9
     CMAKE_ARGS TESTING=OFF EXPOSE_MOCKS=ON
     )
