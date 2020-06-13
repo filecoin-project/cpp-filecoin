@@ -17,6 +17,7 @@
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
+#include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
@@ -44,6 +45,7 @@ namespace fc::api {
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
   using vm::runtime::Env;
+  using connection_t = boost::signals2::connection;
 
   struct TipsetContext {
     Tipset tipset;
@@ -77,6 +79,7 @@ namespace fc::api {
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
+               std::shared_ptr<Mpool> mpool,
                std::shared_ptr<KeyStore> key_store) {
     auto chain_randomness = chain_store->createRandomnessProvider();
     auto tipsetContext = [=](const TipsetKey &tipset_key,
@@ -203,7 +206,7 @@ namespace fc::api {
         .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
         .ChainNotify = {[=]() {
           auto channel = std::make_shared<Channel<std::vector<HeadChange>>>();
-          auto cnn = std::make_shared<ChainStore::connection_t>();
+          auto cnn = std::make_shared<connection_t>();
           *cnn = chain_store->subscribeHeadChanges([=](auto &change) {
             if (!channel->write({change})) {
               assert(cnn->connected());
@@ -272,12 +275,40 @@ namespace fc::api {
           info.sector_size = state.info.sector_size;
           return info;
         }},
-        // TODO(turuslan): FIL-165 implement method
-        .MpoolPending = {},
-        // TODO(turuslan): FIL-165 implement method
-        .MpoolPushMessage = {},
-        // TODO(turuslan): FIL-165 implement method
-        .MpoolSub = {},
+        .MpoolPending = {[=](auto &tipset_key)
+                             -> outcome::result<std::vector<SignedMessage>> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(heaviest, chain_store->heaviestTipset());
+          if (context.tipset.height > heaviest.height) {
+            // tipset from future requested
+            return TodoError::ERROR;
+          }
+          return mpool->pending();
+        }},
+        .MpoolPushMessage = {[=](auto message)
+                                 -> outcome::result<SignedMessage> {
+          OUTCOME_TRY(context, tipsetContext({}));
+          if (message.from.isId()) {
+            OUTCOME_TRYA(message.from, context.accountKey(message.from));
+          }
+          OUTCOME_TRYA(message.nonce, mpool->nonce(message.from));
+          OUTCOME_TRY(signed_message,
+                      vm::message::MessageSignerImpl{key_store}.sign(
+                          message.from, message));
+          OUTCOME_TRY(mpool->add(signed_message));
+          return std::move(signed_message);
+        }},
+        .MpoolSub = {[=]() {
+          auto channel{std::make_shared<Channel<MpoolUpdate>>()};
+          auto cnn{std::make_shared<connection_t>()};
+          *cnn = mpool->subscribe([=](auto &change) {
+            if (!channel->write(change)) {
+              assert(cnn->connected());
+              cnn->disconnect();
+            }
+          });
+          return Chan{std::move(channel)};
+        }},
         // TODO(turuslan): FIL-165 implement method
         .NetAddrsListen = {},
         // TODO(turuslan): FIL-165 implement method

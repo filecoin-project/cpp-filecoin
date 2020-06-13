@@ -13,12 +13,14 @@
 #include "storage/chain/chain_store.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/keystore/keystore.hpp"
+#include "storage/mpool/mpool.hpp"
 
 namespace fc::api {
   using blockchain::weight::WeightCalculator;
   using crypto::bls::BlsProvider;
   using storage::blockchain::ChainStore;
   using storage::keystore::KeyStore;
+  using storage::mpool::Mpool;
   using Logger = common::Logger;
 
   outcome::result<IpldObject> getNode(std::shared_ptr<Ipld> ipld,
@@ -29,6 +31,7 @@ namespace fc::api {
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
+               std::shared_ptr<Mpool> mpool,
                std::shared_ptr<KeyStore> key_store);
 }  // namespace fc::api
 
