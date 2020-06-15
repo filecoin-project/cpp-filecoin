@@ -17,6 +17,7 @@ target_link_libraries(sector_index
 add_library(store
         impl/local_store.cpp
         impl/store_error.cpp
+        impl/remote_store.cpp
         )
 
 target_link_libraries(store
