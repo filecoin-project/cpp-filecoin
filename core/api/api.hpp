@@ -23,6 +23,7 @@
 #include "primitives/ticket/epost_ticket.hpp"
 #include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset.hpp"
+#include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
@@ -67,6 +68,7 @@ namespace fc::api {
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
+  using storage::mpool::MpoolUpdate;
   using vm::actor::Actor;
   using vm::actor::builtin::market::ClientDealProposal;
   using vm::actor::builtin::market::DealProposal;
@@ -169,11 +171,6 @@ namespace fc::api {
   struct IpldObject {
     CID cid;
     Buffer raw;
-  };
-
-  struct MpoolUpdate {
-    int64_t type;
-    SignedMessage message;
   };
 
   struct VersionResult {

@@ -462,13 +462,13 @@ namespace fc::api {
 
     ENCODE(MpoolUpdate) {
       Value j{rapidjson::kObjectType};
-      Set(j, "Type", v.type);
+      Set(j, "Type", common::to_int(v.type));
       Set(j, "Message", v.message);
       return j;
     }
 
     DECODE(MpoolUpdate) {
-      decode(v.type, Get(j, "Type"));
+      decodeEnum(v.type, Get(j, "Type"));
       decode(v.message, Get(j, "Message"));
     }
 
