@@ -28,17 +28,17 @@ namespace fc::storage::mpool {
   };
 
   struct Mpool : public std::enable_shared_from_this<Mpool> {
-    struct ByFrom {
+    struct Pending {
       std::map<uint64_t, SignedMessage> by_nonce;
       uint64_t nonce;
     };
     using Subscriber = void(const MpoolUpdate &);
 
-    Mpool(IpldPtr ipld);
+    explicit Mpool(IpldPtr ipld);
     static std::shared_ptr<Mpool> create(
         IpldPtr ipld, std::shared_ptr<ChainStore> chain_store);
-    std::vector<SignedMessage> pending();
-    outcome::result<uint64_t> nonce(const Address &from);
+    std::vector<SignedMessage> pending() const;
+    outcome::result<uint64_t> nonce(const Address &from) const;
     outcome::result<void> add(const SignedMessage &message);
     void remove(const Address &from, uint64_t nonce);
     outcome::result<void> onHeadChange(const HeadChange &change);
@@ -46,10 +46,11 @@ namespace fc::storage::mpool {
       return signal.connect(subscriber);
     }
 
+   private:
     IpldPtr ipld;
     ChainStore::connection_t head_sub;
     Tipset head;
-    std::map<Address, ByFrom> by_from;
+    std::map<Address, Pending> by_from;
     std::map<CID, Signature> bls_cache;
     boost::signals2::signal<Subscriber> signal;
   };

@@ -28,24 +28,24 @@ namespace fc::storage::mpool {
     return mpool;
   }
 
-  std::vector<SignedMessage> Mpool::pending() {
+  std::vector<SignedMessage> Mpool::pending() const {
     std::vector<SignedMessage> messages;
-    for (auto &[addr, by_from2] : by_from) {
-      for (auto &[nonce, message] : by_from2.by_nonce) {
+    for (auto &[addr, pending] : by_from) {
+      for (auto &[nonce, message] : pending.by_nonce) {
         messages.push_back(message);
       }
     }
     return messages;
   }
 
-  outcome::result<uint64_t> Mpool::nonce(const Address &from) {
+  outcome::result<uint64_t> Mpool::nonce(const Address &from) const {
     OUTCOME_TRY(interpeted,
                 vm::interpreter::InterpreterImpl{}.interpret(ipld, head));
     OUTCOME_TRY(
         actor, vm::state::StateTreeImpl{ipld, interpeted.state_root}.get(from));
-    auto by_from2{by_from.find(from)};
-    if (by_from2 != by_from.end() && by_from2->second.nonce > actor.nonce) {
-      return by_from2->second.nonce;
+    auto by_from_it{by_from.find(from)};
+    if (by_from_it != by_from.end() && by_from_it->second.nonce > actor.nonce) {
+      return by_from_it->second.nonce;
     }
     return actor.nonce;
   }
@@ -56,28 +56,27 @@ namespace fc::storage::mpool {
     }
     OUTCOME_TRY(ipld->setCbor(message));
     OUTCOME_TRY(ipld->setCbor(message.message));
-    auto &by_from2{by_from[message.message.from]};
-    if (by_from2.by_nonce.empty() || message.message.nonce >= by_from2.nonce) {
-      by_from2.nonce = message.message.nonce + 1;
+    auto &pending{by_from[message.message.from]};
+    if (pending.by_nonce.empty() || message.message.nonce >= pending.nonce) {
+      pending.nonce = message.message.nonce + 1;
     }
-    by_from2.by_nonce[message.message.nonce] = message;
+    pending.by_nonce[message.message.nonce] = message;
     signal({MpoolUpdate::Type::ADD, message});
     return outcome::success();
   }
 
   void Mpool::remove(const Address &from, uint64_t nonce) {
-    auto by_from2{by_from.find(from)};
-    if (by_from2 != by_from.end()) {
-      auto &by_from3{by_from2->second};
-      auto message{by_from3.by_nonce.find(nonce)};
-      if (message != by_from3.by_nonce.end()) {
+    auto by_from_it{by_from.find(from)};
+    if (by_from_it != by_from.end()) {
+      auto &pending{by_from_it->second};
+      auto message{pending.by_nonce.find(nonce)};
+      if (message != pending.by_nonce.end()) {
         signal({MpoolUpdate::Type::REMOVE, message->second});
-        by_from3.by_nonce.erase(message);
-        if (by_from3.by_nonce.empty()) {
-          by_from.erase(by_from2);
+        pending.by_nonce.erase(message);
+        if (pending.by_nonce.empty()) {
+          by_from.erase(by_from_it);
         } else {
-          by_from3.nonce =
-              std::max(by_from3.by_nonce.rbegin()->first, nonce) + 1;
+          pending.nonce = std::max(pending.by_nonce.rbegin()->first, nonce) + 1;
         }
       }
     }
