@@ -20,6 +20,7 @@ namespace fc::vm::interpreter {
     CID state_root;
     CID message_receipts;
   };
+  CBOR_TUPLE(Result, state_root, message_receipts)
 
   class Interpreter {
    protected:

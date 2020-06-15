@@ -138,4 +138,23 @@ namespace fc::vm::interpreter {
     }
     return false;
   }
+
+  outcome::result<Result> CachedInterpreter::interpret(
+      const IpldPtr &ipld, const Tipset &tipset) const {
+    // TODO: TipsetKey from arg-gor
+    common::Buffer key;
+    for (auto &cid : tipset.cids) {
+      OUTCOME_TRY(encoded, cid.toBytes());
+      key.put(encoded);
+    }
+
+    if (store->contains(key)) {
+      OUTCOME_TRY(raw, store->get(key));
+      return codec::cbor::decode<Result>(raw);
+    }
+    OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
+    OUTCOME_TRY(raw, codec::cbor::encode(result));
+    OUTCOME_TRY(store->put(key, raw));
+    return result;
+  }
 }  // namespace fc::vm::interpreter
