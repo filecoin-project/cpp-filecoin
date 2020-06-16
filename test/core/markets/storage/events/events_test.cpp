@@ -23,14 +23,20 @@ namespace fc::markets::storage::events {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
-  class DiscoveryTest : public ::testing::Test {
+  class EventsTest : public ::testing::Test {
    public:
+    void SetUp() override {
+      api = std::make_shared<Api>();
+      context = std::make_shared<HostContextImpl>();
+      events = std::make_shared<EventsImpl>(api, context);
+    }
+
     Address provider = Address::makeFromId(1);
     DealId deal_id{1};
     SectorNumber sector_number{13};
-    std::shared_ptr<Api> api = std::make_shared<Api>();
-    std::shared_ptr<HostContext> context = std::make_shared<HostContextImpl>();
-    std::shared_ptr<Events> events = std::make_shared<EventsImpl>(api, context);
+    std::shared_ptr<Api> api;
+    std::shared_ptr<HostContext> context;
+    std::shared_ptr<Events> events;
   };
 
   /**
@@ -38,7 +44,7 @@ namespace fc::markets::storage::events {
    * @when PreCommit and then ProveCommit called
    * @then event is triggered
    */
-  TEST_F(DiscoveryTest, CommitSector) {
+  TEST_F(EventsTest, CommitSector) {
     api->MpoolSub = {[=]() -> outcome::result<Chan<MpoolUpdate>> {
       auto channel{std::make_shared<Channel<MpoolUpdate>>()};
 
@@ -94,7 +100,7 @@ namespace fc::markets::storage::events {
    * @when no message committed
    * @then future in wait status
    */
-  TEST_F(DiscoveryTest, WaitCommitSector) {
+  TEST_F(EventsTest, WaitCommitSector) {
     api->MpoolSub = {[=]() -> outcome::result<Chan<MpoolUpdate>> {
       auto channel{std::make_shared<Channel<MpoolUpdate>>()};
       return Chan{std::move(channel)};

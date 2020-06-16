@@ -66,7 +66,6 @@ namespace fc::markets::storage::events {
              watch_it != self->watched_events_.end();
              ++watch_it) {
           // message committed iff removed
-          // TODO ask when boost::optional is none?
           if (update.has_value() && update->type == MpoolUpdate::Type::REMOVE
               && update->message.message.to == watch_it->provider) {
             auto message = update->message.message;
@@ -118,8 +117,6 @@ namespace fc::markets::storage::events {
           self->watched_events_.erase(watch_it);
         }
       }
-
-      // TODO ask when return false
       return true;
     });
   }

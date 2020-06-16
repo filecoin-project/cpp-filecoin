@@ -26,6 +26,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "testutil/literals.hpp"
+#include "testutil/mocks/markets/storage/events/events_mock.hpp"
 
 namespace fc::markets::storage::test {
   using adt::Channel;
@@ -41,6 +42,7 @@ namespace fc::markets::storage::test {
   using crypto::bls::BlsProviderImpl;
   using crypto::secp256k1::Secp256k1ProviderDefault;
   using crypto::secp256k1::Secp256k1Sha256ProviderImpl;
+  using events::EventsMock;
   using fc::storage::InMemoryStorage;
   using fc::storage::filestore::FileStore;
   using fc::storage::filestore::FileSystemFileStore;
@@ -143,6 +145,8 @@ namespace fc::markets::storage::test {
                              account_keys,
                              private_keys);
       auto miner_api = makeMinerApi();
+
+      EXPECT_CALL(*events, run()).WillOnce(testing::Return(outcome::success()));
 
       provider = makeProvider(*provider_multiaddress,
                               registered_proof,
@@ -356,6 +360,7 @@ namespace fc::markets::storage::test {
                                                 datastore,
                                                 api,
                                                 miner_api,
+                                                events,
                                                 miner_actor_address,
                                                 piece_io_,
                                                 filestore);
@@ -439,6 +444,7 @@ namespace fc::markets::storage::test {
     Address client_bls_address;
     Tipset chain_head;
     std::shared_ptr<Api> node_api;
+    std::shared_ptr<EventsMock> events = std::make_shared<EventsMock>();
     std::shared_ptr<StorageMarketClient> client;
     std::shared_ptr<StorageProvider> provider;
     std::shared_ptr<StorageProviderInfo> storage_provider_info;

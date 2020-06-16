@@ -10,6 +10,7 @@
 #include "testutil/resources/resources.hpp"
 
 namespace fc::markets::storage::test {
+  using testing::_;
 
   /**
    * @given provider and client
@@ -17,6 +18,11 @@ namespace fc::markets::storage::test {
    * @then deal activated
    */
   TEST_F(StorageMarketTest, Deal) {
+    auto promise = std::make_shared<std::promise<outcome::result<void>>>();
+    promise->set_value(outcome::success());
+    EXPECT_CALL(*events, onDealSectorCommitted(_, _))
+        .WillOnce(testing::Return(promise));
+
     CID root_cid = "010001020001"_cid;
     auto data = readFile(CAR_FROM_PAYLOAD_FILE);
     EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(root_cid, data));
@@ -103,6 +109,11 @@ namespace fc::markets::storage::test {
    * @then when funding completed, proposal sent and deal activated
    */
   TEST_F(StorageMarketTest, WaitFundingDeal) {
+    auto promise = std::make_shared<std::promise<outcome::result<void>>>();
+    promise->set_value(outcome::success());
+    EXPECT_CALL(*events, onDealSectorCommitted(_, _))
+        .WillOnce(testing::Return(promise));
+
     // some unique valid CID of funding message
     CID client_funding_cid = "010001020002"_cid;
     CID provider_funding_cid = "010001020003"_cid;

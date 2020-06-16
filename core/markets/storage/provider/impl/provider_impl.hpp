@@ -13,6 +13,7 @@
 #include "data_transfer/manager.hpp"
 #include "fsm/fsm.hpp"
 #include "markets/pieceio/pieceio.hpp"
+#include "markets/storage/events/events.hpp"
 #include "markets/storage/network/libp2p_storage_market_network.hpp"
 #include "markets/storage/provider/provider.hpp"
 #include "markets/storage/provider/provider_events.hpp"
@@ -36,6 +37,7 @@ namespace fc::markets::storage::provider {
   using primitives::EpochDuration;
   using primitives::GasAmount;
   using primitives::sector::RegisteredProof;
+  using events::Events;
   using ProviderTransition =
       fsm::Transition<ProviderEvent, StorageDealStatus, MinerDeal>;
   using ProviderFSM = fsm::FSM<ProviderEvent, StorageDealStatus, MinerDeal>;
@@ -61,6 +63,7 @@ namespace fc::markets::storage::provider {
                         std::shared_ptr<Datastore> datastore,
                         std::shared_ptr<Api> api,
                         std::shared_ptr<MinerApi> miner_api,
+                        std::shared_ptr<Events> events,
                         const Address &miner_actor_address,
                         std::shared_ptr<PieceIO> piece_io,
                         std::shared_ptr<FileStore> filestore);
@@ -370,6 +373,7 @@ namespace fc::markets::storage::provider {
     std::shared_ptr<StoredAsk> stored_ask_;
     std::shared_ptr<Api> api_;
     std::shared_ptr<MinerApi> miner_api_;
+    std::shared_ptr<Events> events_;
     Address miner_actor_address_;
     std::shared_ptr<StorageMarketNetwork> network_;
     std::shared_ptr<PieceIO> piece_io_;
