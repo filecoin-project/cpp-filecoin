@@ -120,6 +120,43 @@ namespace fc::sector_storage::stores {
                                  RegisteredProof seal_proof_type,
                                  SectorFileType file_type,
                                  bool can_seal) {
+    OUTCOME_TRY(infos, index_->storageFindSector(sector, file_type, false));
+
+    if (infos.empty()) {
+      return StoreErrors::NotFoundSector;
+    }
+
+    std::sort(infos.begin(),
+              infos.end(),
+              [](const auto &lhs, const auto &rhs) -> bool {
+                return lhs.weight < rhs.weight;
+              });
+
+    OUTCOME_TRY(response,
+                local_->acquireSector(sector,
+                                      seal_proof_type,
+                                      SectorFileType::FTNone,
+                                      file_type,
+                                      can_seal));
+
+    RemoveAcquireSectorResponse res{};
+    OUTCOME_TRYA(res.path, response.paths.getPathByType(file_type));
+    OUTCOME_TRYA(res.storage_id, response.storages.getPathByType(file_type));
+
+    for (const auto &info : infos) {
+      for (const auto &url : info.urls) {
+        auto maybe_error = fetch(url, res.path);
+        if (maybe_error.has_error()) {
+          // TODO: log it
+          continue;
+        }
+
+        res.url = url;
+
+        return res;
+      }
+    }
+
     return outcome::success();
   }
 
