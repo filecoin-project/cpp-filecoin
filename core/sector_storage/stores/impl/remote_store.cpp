@@ -5,7 +5,11 @@
 
 #include "sector_storage/stores/impl/remote_store.hpp"
 
-#include <utility>
+#include <boost/filesystem.hpp>
+#include "common/uri_parser/uri_parser.hpp"
+#include "sector_storage/stores/store_error.hpp"
+
+namespace fs = boost::filesystem;
 
 namespace fc::sector_storage::stores {
 
@@ -33,6 +37,32 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<FsStat> RemoteStore::getFsStat(StorageID id) {
+    auto maybe_stat = local_->getFsStat(id);
+    if (maybe_stat.has_error()
+        && maybe_stat != outcome::failure(StoreErrors::NotFoundStorage)) {
+      return maybe_stat;
+    }
+
+    OUTCOME_TRY(info, index_->getStorageInfo(id));
+
+    if (info.urls.empty()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    fc::common::HttpUri parser;
+    try {
+      parser.parse(info.urls[0]);
+    } catch (const std::runtime_error &e) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    parser.setPath((fs::path(parser.path()) / "stat" / id).string());
+
+    // TODO: make request
+    // TODO: add auth header
+    // TODO: check response code
+    // TODO: parse json answer
+
     return outcome::success();
   }
 
