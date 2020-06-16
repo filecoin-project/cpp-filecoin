@@ -5,11 +5,25 @@
 
 #include "sector_storage/stores/impl/remote_store.hpp"
 
+#include <curl/curl.h>
+#include <rapidjson/document.h>
 #include <boost/filesystem.hpp>
+#include "api/rpc/json.hpp"
 #include "common/uri_parser/uri_parser.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fs = boost::filesystem;
+
+namespace {
+  std::size_t callback(const char *in,
+                       std::size_t size,
+                       std::size_t num,
+                       std::string *out) {
+    const std::size_t totalBytes(size * num);
+    out->append(in, totalBytes);
+    return totalBytes;
+  }
+}  // namespace
 
 namespace fc::sector_storage::stores {
 
@@ -107,12 +121,46 @@ namespace fc::sector_storage::stores {
 
     parser.setPath((fs::path(parser.path()) / "stat" / id).string());
 
-    // TODO: make request
-    // TODO: add auth header
-    // TODO: check response code
-    // TODO: parse json answer
+    CURL *curl = curl_easy_init();
 
-    return outcome::success();
+    curl_easy_setopt(curl, CURLOPT_URL, parser.str().c_str());
+
+    curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+
+    // Follow HTTP redirects if necessary
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+    // TODO: add auth header
+
+    long httpCode;
+    std::string httpData;
+
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback);
+
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &httpData);
+
+    curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+    curl_easy_cleanup(curl);
+
+    switch (httpCode) {
+      case 404:
+        return StoreErrors::NotFoundPath;
+      case 500:
+        // TODO: log error
+        return outcome::success();  // TODO: error
+      default:
+        break;
+    }
+
+    rapidjson::Document j_file;
+    j_file.Parse(httpData.data(), httpData.size());
+    httpData.clear();
+    if (j_file.HasParseError()) {
+      return outcome::success();  // TODO: error
+    }
+
+    return api::decode<FsStat>(j_file);
   }
 
   outcome::result<RemoteStore::RemoveAcquireSectorResponse>
