@@ -28,6 +28,20 @@ namespace fc::sector_storage::stores {
 
   outcome::result<void> RemoteStore::remove(SectorId sector,
                                             SectorFileType type) {
+    OUTCOME_TRY(local_->remove(sector, type));
+    OUTCOME_TRY(infos, index_->storageFindSector(sector, type, false));
+
+    for (const auto &info : infos) {
+        for (const auto& url : info.urls) {
+            auto maybe_error = deleteFromRemote(url);
+            if (maybe_error.has_error()) {
+                // TODO: Log warning
+                continue;
+            }
+            break;
+        }
+    }
+
     return outcome::success();
   }
 
