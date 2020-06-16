@@ -62,7 +62,7 @@ class LocalStoreTest : public test::BaseFS_Test {
             fc::outcome::success(std::vector<std::string>({}))));
 
     auto maybe_local = LocalStore::newLocalStore(storage_, index_, urls_);
-    local_store_ = maybe_local.value();
+    local_store_ = std::move(maybe_local.value());
   }
 
   void createStorage(const std::string &path,
@@ -92,7 +92,7 @@ class LocalStoreTest : public test::BaseFS_Test {
   }
 
  protected:
-  std::shared_ptr<LocalStore> local_store_;
+  std::unique_ptr<LocalStore> local_store_;
   std::shared_ptr<SectorIndexMock> index_;
   std::shared_ptr<LocalStorageMock> storage_;
   std::vector<std::string> urls_;
@@ -218,7 +218,7 @@ TEST_F(LocalStoreTest, AcquireSectorAllocateSuccess) {
           .string();
 
   EXPECT_OUTCOME_EQ(sectors.paths.getPathByType(file_type), res_path);
-  EXPECT_OUTCOME_EQ(sectors.stores.getPathByType(file_type), storage_id);
+  EXPECT_OUTCOME_EQ(sectors.storages.getPathByType(file_type), storage_id);
 }
 
 /**
@@ -281,7 +281,7 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
           .string();
 
   EXPECT_OUTCOME_EQ(sectors.paths.getPathByType(file_type), res_path);
-  EXPECT_OUTCOME_EQ(sectors.stores.getPathByType(file_type), storage_id);
+  EXPECT_OUTCOME_EQ(sectors.storages.getPathByType(file_type), storage_id);
 }
 
 /**

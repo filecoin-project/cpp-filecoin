@@ -46,7 +46,7 @@ namespace fc::sector_storage::stores {
                   acquireFromRemote(sector, seal_proof_type, type, can_seal));
 
       response.paths.setPathByType(type, remote_response.path);
-      response.stores.setPathByType(type, remote_response.storage_id);
+      response.storages.setPathByType(type, remote_response.storage_id);
 
       auto maybe_err = index_->storageDeclareSector(
           remote_response.storage_id, sector, type);

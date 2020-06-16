@@ -124,10 +124,10 @@ namespace fc::sector_storage::stores {
         continue;
       }
 
-      OUTCOME_TRY(source_storage_id, src.stores.getPathByType(type));
+      OUTCOME_TRY(source_storage_id, src.storages.getPathByType(type));
       OUTCOME_TRY(sst, index_->getStorageInfo(source_storage_id));
 
-      OUTCOME_TRY(dest_storage_id, dest.stores.getPathByType(type));
+      OUTCOME_TRY(dest_storage_id, dest.storages.getPathByType(type));
       OUTCOME_TRY(dst, index_->getStorageInfo(dest_storage_id));
 
       if (sst.id == dst.id) {
@@ -228,11 +228,11 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<std::shared_ptr<LocalStore>> LocalStore::newLocalStore(
+  outcome::result<std::unique_ptr<LocalStore>> LocalStore::newLocalStore(
       std::shared_ptr<LocalStorage> storage,
       std::shared_ptr<SectorIndex> index,
       gsl::span<std::string> urls) {
-    std::shared_ptr<LocalStore> local(
+    std::unique_ptr<LocalStore> local(
         new LocalStore(std::move(storage), std::move(index), urls));
 
     if (local->logger_ == nullptr) {
@@ -245,7 +245,7 @@ namespace fc::sector_storage::stores {
       OUTCOME_TRY(local->openPath(path));
     }
 
-    return local;
+    return std::move(local);
   }
 
   outcome::result<AcquireSectorResponse> LocalStore::acquireSectorWithoutLock(
@@ -284,7 +284,7 @@ namespace fc::sector_storage::stores {
         spath /= primitives::sector_file::sectorName(sector);
 
         result.paths.setPathByType(type, spath.string());
-        result.stores.setPathByType(type, info.id);
+        result.storages.setPathByType(type, info.id);
 
         existing = static_cast<SectorFileType>(existing ^ type);
         break;
@@ -326,7 +326,7 @@ namespace fc::sector_storage::stores {
       }
 
       result.paths.setPathByType(type, best_path);
-      result.stores.setPathByType(type, best_storage);
+      result.storages.setPathByType(type, best_storage);
       allocate = static_cast<SectorFileType>(allocate ^ type);
     }
 
