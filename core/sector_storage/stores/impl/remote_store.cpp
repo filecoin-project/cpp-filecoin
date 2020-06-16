@@ -33,7 +33,9 @@ namespace fc::sector_storage::stores {
 
   outcome::result<void> RemoteStore::moveStorage(
       SectorId sector, RegisteredProof seal_proof_type, SectorFileType types) {
-    return outcome::success();
+    OUTCOME_TRY(acquireSector(
+        sector, seal_proof_type, types, SectorFileType::FTNone, false));
+    return local_->moveStorage(sector, seal_proof_type, types);
   }
 
   outcome::result<FsStat> RemoteStore::getFsStat(StorageID id) {
