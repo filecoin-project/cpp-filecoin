@@ -16,7 +16,6 @@
 #include "vm/actor/builtin/miner/types.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
-#include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -32,7 +31,6 @@ namespace fc::api {
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::miner::MinerActorState;
   using vm::actor::builtin::storage_power::StoragePowerActorState;
-  using vm::interpreter::InterpreterImpl;
   using InterpreterResult = vm::interpreter::Result;
   using vm::state::StateTreeImpl;
   using MarketActorState = vm::actor::builtin::market::State;
@@ -80,6 +78,7 @@ namespace fc::api {
                std::shared_ptr<Ipld> ipld,
                std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<Mpool> mpool,
+               std::shared_ptr<Interpreter> interpreter,
                std::shared_ptr<KeyStore> key_store) {
     auto chain_randomness = chain_store->createRandomnessProvider();
     auto tipsetContext = [=](const TipsetKey &tipset_key,
@@ -93,7 +92,7 @@ namespace fc::api {
       }
       TipsetContext context{tipset, {ipld, tipset.getParentStateRoot()}, {}};
       if (interpret) {
-        OUTCOME_TRY(result, InterpreterImpl{}.interpret(ipld, tipset));
+        OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
         context.state_tree = {ipld, result.state_root};
         context.interpreted = result;
       }
@@ -243,7 +242,8 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(t.parents, true));
           OUTCOME_TRY(miner_state, context.minerState(t.miner));
           OUTCOME_TRY(block,
-                      blockchain::production::generate(ipld, std::move(t)));
+                      blockchain::production::generate(
+                          *interpreter, ipld, std::move(t)));
 
           OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
           OUTCOME_TRY(worker_key, context.accountKey(miner_state.info.worker));
