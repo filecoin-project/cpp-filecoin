@@ -14,6 +14,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::pieceio, PieceIOError, e) {
       return "PieceIOError: cannot write to pipe";
     case PieceIOError::CANNOT_CLOSE_PIPE:
       return "PieceIOError: cannot close pipe";
+    case PieceIOError::PAYLOAD_NOT_FOUND:
+      return "PieceIOError: Piece, containing selected payload, not found";
+    case PieceIOError::PAYLOAD_READ_ERROR:
+      return "PieceIOError: error reading payload block from the Piece";
     default:
       return "Unknown error";
   }

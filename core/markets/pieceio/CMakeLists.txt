@@ -13,4 +13,5 @@ target_link_libraries(pieceio
     piece
     piece_data
     proofs
+    piece_storage
     )

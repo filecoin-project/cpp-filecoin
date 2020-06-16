@@ -82,11 +82,11 @@ namespace fc::storage::piece {
 
     /**
      * @brief Get location of the payload block
-     * @param paload_cid - id of the payload block
+     * @param payload_cid - id of the payload block
      * @return operation result
      */
     virtual outcome::result<PayloadBlockInfo> getPayloadLocation(
-        const CID &paload_cid) const = 0;
+        const CID &payload_cid) const = 0;
   };
 
   /**
