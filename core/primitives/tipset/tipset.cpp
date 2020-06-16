@@ -25,6 +25,21 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
 }
 
 namespace fc::primitives::tipset {
+  outcome::result<void> MessageVisitor::visit(const BlockHeader &block,
+                                              const Visitor &visitor) {
+    auto onMessage = [&](auto bls, auto &cid) -> outcome::result<void> {
+      if (visited.insert(cid).second) {
+        OUTCOME_TRY(visitor(visited.size() - 1, bls, cid));
+      }
+      return outcome::success();
+    };
+    OUTCOME_TRY(meta, ipld->getCbor<block::MsgMeta>(block.messages));
+    OUTCOME_TRY(meta.bls_messages.visit(
+        [&](auto, auto &cid) { return onMessage(true, cid); }));
+    OUTCOME_TRY(meta.secp_messages.visit(
+        [&](auto, auto &cid) { return onMessage(false, cid); }));
+    return outcome::success();
+  }
 
   outcome::result<Tipset> Tipset::create(std::vector<BlockHeader> blocks) {
     // required to have at least one block
@@ -97,6 +112,19 @@ namespace fc::primitives::tipset {
       blocks.emplace_back(std::move(block));
     }
     return create(std::move(blocks));
+  }
+
+  outcome::result<Tipset> Tipset::loadParent(Ipld &ipld) const {
+    return load(ipld, blks[0].parents);
+  }
+
+  outcome::result<void> Tipset::visitMessages(
+      IpldPtr ipld, const MessageVisitor::Visitor &visitor) const {
+    MessageVisitor message_visitor{ipld};
+    for (auto &block : blks) {
+      OUTCOME_TRY(message_visitor.visit(block, visitor));
+    }
+    return outcome::success();
   }
 
   outcome::result<TipsetKey> Tipset::getParents() const {

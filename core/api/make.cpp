@@ -194,7 +194,7 @@ namespace fc::api {
             return TodoError::ERROR;
           }
           while (tipset.height > height) {
-            OUTCOME_TRY(parent, chain_store->loadParent(tipset));
+            OUTCOME_TRY(parent, tipset.loadParent(*ipld));
             if (parent.height < height) {
               break;
             }
