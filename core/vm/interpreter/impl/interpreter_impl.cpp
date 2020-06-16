@@ -147,6 +147,6 @@ namespace fc::vm::interpreter {
     OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
     OUTCOME_TRY(raw, codec::cbor::encode(result));
     OUTCOME_TRY(store->put(key, raw));
-    return result;
+    return std::move(result);
   }
 }  // namespace fc::vm::interpreter

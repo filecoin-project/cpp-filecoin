@@ -33,7 +33,7 @@ namespace fc::primitives::tipset {
     outcome::result<void> visit(const BlockHeader &block,
                                 const Visitor &visitor);
     IpldPtr ipld;
-    std::set<CID> visited;
+    std::set<CID> visited{};
   };
 
   /**
