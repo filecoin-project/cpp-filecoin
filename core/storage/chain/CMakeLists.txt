@@ -25,3 +25,10 @@ add_library(chain_data_store
 target_link_libraries(chain_data_store
     datastore_key
     )
+
+add_library(msg_waiter
+    msg_waiter.cpp
+    )
+target_link_libraries(msg_waiter
+    message
+    )

@@ -73,10 +73,6 @@ namespace fc::storage::blockchain {
     /** @brief returns heaviest tipset weight, 0 if not set */
     virtual primitives::BigInt getHeaviestWeight() const = 0;
 
-    inline outcome::result<Tipset> loadParent(const Tipset &tipset) {
-      return loadTipset(tipset.blks[0].parents);
-    }
-
     /** @brief creates chain randomness provider */
     virtual std::shared_ptr<ChainRandomnessProvider>
     createRandomnessProvider() = 0;

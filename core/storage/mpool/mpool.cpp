@@ -87,10 +87,9 @@ namespace fc::storage::mpool {
       head = change.value;
     } else {
       auto apply{change.type == HeadChangeType::APPLY};
-      for (auto &block : change.value.blks) {
-        OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
-        OUTCOME_TRY(meta.bls_messages.visit(
-            [&](auto, auto &cid) -> outcome::result<void> {
+      OUTCOME_TRY(change.value.visitMessages(
+          ipld, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
+            if (bls) {
               OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
               if (apply) {
                 remove(message.from, message.nonce);
@@ -100,24 +99,20 @@ namespace fc::storage::mpool {
                   OUTCOME_TRY(add({message, sig->second}));
                 }
               }
-              return outcome::success();
-            }));
-        OUTCOME_TRY(meta.secp_messages.visit(
-            [&](auto, auto &cid) -> outcome::result<void> {
+            } else {
               OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
               if (apply) {
                 remove(message.message.from, message.message.nonce);
               } else {
                 OUTCOME_TRY(add(message));
               }
-              return outcome::success();
-            }));
-      }
+            }
+            return outcome::success();
+          }));
       if (apply) {
         head = change.value;
       } else {
-        OUTCOME_TRY(parent, change.value.getParents());
-        OUTCOME_TRYA(head, Tipset::load(*ipld, parent.cids));
+        OUTCOME_TRYA(head, change.value.loadParent(*ipld));
       }
     }
     return outcome::success();

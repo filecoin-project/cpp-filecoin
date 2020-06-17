@@ -11,7 +11,7 @@
 #include "common/logger.hpp"
 #include "common/todo_error.hpp"
 #include "storage/chain/chain_store.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/chain/msg_waiter.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/interpreter/interpreter.hpp"
@@ -20,6 +20,7 @@ namespace fc::api {
   using blockchain::weight::WeightCalculator;
   using crypto::bls::BlsProvider;
   using storage::blockchain::ChainStore;
+  using storage::blockchain::MsgWaiter;
   using storage::keystore::KeyStore;
   using storage::mpool::Mpool;
   using vm::interpreter::Interpreter;
@@ -35,6 +36,7 @@ namespace fc::api {
                std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<Mpool> mpool,
                std::shared_ptr<Interpreter> interpreter,
+               std::shared_ptr<MsgWaiter> msg_waiter,
                std::shared_ptr<KeyStore> key_store);
 }  // namespace fc::api
 

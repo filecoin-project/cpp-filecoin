@@ -27,6 +27,15 @@ OUTCOME_HPP_DECLARE_ERROR(fc::primitives::tipset, TipsetError);
 namespace fc::primitives::tipset {
   using block::BlockHeader;
 
+  struct MessageVisitor {
+    using Visitor =
+        std::function<outcome::result<void>(size_t, bool bls, const CID &)>;
+    outcome::result<void> visit(const BlockHeader &block,
+                                const Visitor &visitor);
+    IpldPtr ipld;
+    std::set<CID> visited{};
+  };
+
   /**
    * @struct Tipset implemented according to
    * https://github.com/filecoin-project/lotus/blob/6e94377469e49fa4e643f9204b6f46ef3cb3bf04/chain/types/tipset.go#L18
@@ -36,6 +45,11 @@ namespace fc::primitives::tipset {
 
     static outcome::result<Tipset> load(Ipld &ipld,
                                         const std::vector<CID> &cids);
+
+    outcome::result<Tipset> loadParent(Ipld &ipld) const;
+
+    outcome::result<void> visitMessages(
+        IpldPtr ipld, const MessageVisitor::Visitor &visitor) const;
 
     /**
      * @brief makes key of cids
