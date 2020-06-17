@@ -79,6 +79,7 @@ namespace fc::api {
                std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<Mpool> mpool,
                std::shared_ptr<Interpreter> interpreter,
+               std::shared_ptr<MsgWaiter> msg_waiter,
                std::shared_ptr<KeyStore> key_store) {
     auto chain_randomness = chain_store->createRandomnessProvider();
     auto tipsetContext = [=](const TipsetKey &tipset_key,
@@ -194,7 +195,7 @@ namespace fc::api {
             return TodoError::ERROR;
           }
           while (tipset.height > height) {
-            OUTCOME_TRY(parent, chain_store->loadParent(tipset));
+            OUTCOME_TRY(parent, tipset.loadParent(*ipld));
             if (parent.height < height) {
               break;
             }
@@ -426,8 +427,18 @@ namespace fc::api {
               .state = IpldObject{std::move(cid), std::move(raw)},
           };
         }},
-        // TODO(turuslan): FIL-165 implement method
-        .StateGetReceipt = {},
+        .StateGetReceipt = {[=](auto &cid, auto &tipset_key)
+                                -> outcome::result<MessageReceipt> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          auto result{msg_waiter->results.find(cid)};
+          if (result != msg_waiter->results.end()) {
+            OUTCOME_TRY(ts, Tipset::load(*ipld, result->second.second.cids));
+            if (context.tipset.height <= ts.height) {
+              return result->second.first;
+            }
+          }
+          return TodoError::ERROR;
+        }},
         .StateListMiners = {[=](auto &tipset_key)
                                 -> outcome::result<std::vector<Address>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
@@ -576,8 +587,18 @@ namespace fc::api {
           OUTCOME_TRY(state, context.initState());
           return state.network_name;
         }},
-        // TODO(turuslan): FIL-165 implement method
-        .StateWaitMsg = {},
+        .StateWaitMsg = {[=](auto &cid) -> outcome::result<Wait<MsgWait>> {
+          auto channel = std::make_shared<Channel<outcome::result<MsgWait>>>();
+          msg_waiter->wait(cid, [=](auto &result) {
+            auto ts{Tipset::load(*ipld, result.second.cids)};
+            if (ts) {
+              channel->write(MsgWait{result.first, std::move(ts.value())});
+            } else {
+              channel->write(ts.error());
+            }
+          });
+          return Wait{channel};
+        }},
         .SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
           // TODO(turuslan): chain store must validate blocks before adding
           MsgMeta meta;

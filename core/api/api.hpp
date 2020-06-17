@@ -12,6 +12,7 @@
 
 #include "adt/channel.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
+#include "common/todo_error.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
@@ -111,8 +112,11 @@ namespace fc::api {
 
     void wait(std::function<void(Result)> cb) {
       channel->read([cb{std::move(cb)}](auto opt) {
-        assert(opt);
-        cb(std::move(*opt));
+        if (opt) {
+          cb(std::move(*opt));
+        } else {
+          cb(TodoError::ERROR);
+        }
         return false;
       });
     }

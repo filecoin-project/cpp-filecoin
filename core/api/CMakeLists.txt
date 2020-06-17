@@ -14,6 +14,7 @@ target_link_libraries(api
     cid
     interpreter
     message
+    msg_waiter
     state_tree
     todo_error
     )
