@@ -9,14 +9,19 @@
 #include <string>
 #include <vector>
 
-/**
- * The file contains handy analogies of proto-generated message structures that
- * are used in public API of Drand protocol.
- */
-
 namespace fc::drand {
 
   using Bytes = std::vector<uint8_t>;
+
+  struct BeaconEntry {
+    uint64_t round;
+    Bytes data; // which is PublicRandResponse.signature
+  };
+
+  /**
+   * Below are handy analogies of proto-generated message structures that
+   * are used in public API of Drand protocol.
+   */
 
   struct Identity {
     std::string address;

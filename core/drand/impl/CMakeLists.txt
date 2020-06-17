@@ -18,3 +18,10 @@ target_link_libraries(drand_client
     drand_grpc_proto
     drand_marshaller
     )
+
+add_library(drand_beacon
+    beaconizer.cpp
+    )
+target_link_libraries(drand_beacon
+    drand_client
+    )
