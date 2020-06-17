@@ -41,11 +41,36 @@ namespace fc::sector_storage::stores {
       return StoreErrors::FindAndAllocate;
     }
 
-    // TODO: Lock Mutex with waiting
+    while (true) {
+      {
+        const std::lock_guard<std::mutex> lock(mutex_);
+        if (processing_.insert(sector).second) {
+          unlock_ = false;
+          break;
+        }
+      }
 
-    OUTCOME_TRY(response,
-                local_->acquireSector(
-                    sector, seal_proof_type, existing, allocate, can_seal));
+      std::unique_lock<std::mutex> lock(waiting_room_);
+
+      cv_.wait(lock, [&] { return unlock_; });
+    }
+
+    auto clear = [&]() {
+      const std::lock_guard<std::mutex> lock(mutex_);
+      processing_.erase(sector);
+      unlock_ = true;
+      cv_.notify_all();
+    };
+
+    auto maybe_response = local_->acquireSector(
+        sector, seal_proof_type, existing, allocate, can_seal);
+
+    if (maybe_response.has_error()) {
+      clear();
+      return maybe_response.error();
+    }
+
+    auto response = maybe_response.value();
 
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
       if ((type & existing) == 0) {
@@ -56,20 +81,27 @@ namespace fc::sector_storage::stores {
         continue;
       }
 
-      OUTCOME_TRY(remote_response,
-                  acquireFromRemote(sector, seal_proof_type, type, can_seal));
+      auto maybe_remote_response =
+          acquireFromRemote(sector, seal_proof_type, type, can_seal);
 
-      response.paths.setPathByType(type, remote_response.path);
-      response.storages.setPathByType(type, remote_response.storage_id);
+      if (maybe_remote_response.has_error()) {
+        clear();
+        return maybe_remote_response.error();
+      }
+
+      response.paths.setPathByType(type, maybe_remote_response.value().path);
+      response.storages.setPathByType(type,
+                                      maybe_remote_response.value().storage_id);
 
       auto maybe_err = index_->storageDeclareSector(
-          remote_response.storage_id, sector, type);
+          maybe_remote_response.value().storage_id, sector, type);
       if (maybe_err.has_error()) {
         // TODO: Log warn
         continue;
       }
     }
 
+    clear();
     return std::move(response);
   }
 

@@ -53,7 +53,11 @@ namespace fc::sector_storage::stores {
     std::shared_ptr<LocalStore> local_;
     std::shared_ptr<SectorIndex> index_;
 
-    mutable std::shared_mutex mutex_;
+    bool unlock_;
+    std::condition_variable cv_;
+    std::set<SectorId> processing_;
+    std::mutex waiting_room_;
+    std::mutex mutex_;
   };
 
 }  // namespace fc::sector_storage::stores
