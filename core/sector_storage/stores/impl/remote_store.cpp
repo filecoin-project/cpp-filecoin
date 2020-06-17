@@ -123,6 +123,10 @@ namespace fc::sector_storage::stores {
 
     CURL *curl = curl_easy_init();
 
+    if (!curl) {
+      return outcome::success();  // TODO: ERROR
+    }
+
     curl_easy_setopt(curl, CURLOPT_URL, parser.str().c_str());
 
     curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
@@ -214,6 +218,35 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<void> RemoteStore::deleteFromRemote(const std::string &url) {
+    // TODO: Log it
+
+    CURL *curl = curl_easy_init();
+
+    if (!curl) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+
+    curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+
+    // Follow HTTP redirects if necessary
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+    // TODO: add auth header
+
+    long httpCode;
+
+    curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+    curl_easy_cleanup(curl);
+
+    if (httpCode != 200) {
+      return outcome::success();  // TODO: ERROR
+    }
+
     return outcome::success();
   }
 
