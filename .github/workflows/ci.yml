@@ -17,8 +17,8 @@ jobs:
         # 3 jobs in total
         os: [ubuntu-18.04, macOS-latest]
         compiler: [{
-          "cc": "gcc",
-          "cxx": "g++"
+          "cc": "gcc-9",
+          "cxx": "g++-9"
          }, {
           "cc": "clang",
           "cxx": "clang++"
@@ -26,7 +26,7 @@ jobs:
         exclude:
           - os: macOS-latest
             compiler:
-              cc: gcc
+              cc: gcc-9
         include:
           - os: macOS-latest
             env:
