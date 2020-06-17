@@ -14,8 +14,6 @@ namespace fc::markets::storage::events {
 
   class EventsMock : public Events {
    public:
-    MOCK_METHOD0(run, outcome::result<void>());
-    MOCK_METHOD0(stop, void());
     MOCK_METHOD2(onDealSectorCommitted,
                  std::shared_ptr<PromiseResult>(const Address &,
                                                 const DealId &));

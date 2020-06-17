@@ -27,16 +27,14 @@ namespace fc::markets::storage::events {
    public:
     void SetUp() override {
       api = std::make_shared<Api>();
-      context = std::make_shared<HostContextImpl>();
-      events = std::make_shared<EventsImpl>(api, context);
+      events = std::make_shared<EventsImpl>(api);
     }
 
     Address provider = Address::makeFromId(1);
     DealId deal_id{1};
     SectorNumber sector_number{13};
     std::shared_ptr<Api> api;
-    std::shared_ptr<HostContext> context;
-    std::shared_ptr<Events> events;
+    std::shared_ptr<EventsImpl> events;
   };
 
   /**
@@ -86,8 +84,7 @@ namespace fc::markets::storage::events {
 
     auto res = events->onDealSectorCommitted(provider, deal_id);
 
-    EXPECT_OUTCOME_TRUE_1(events->run());
-    context->runIoContext(2);
+    EXPECT_OUTCOME_TRUE_1(events->init());
 
     auto future = res->get_future();
     EXPECT_EQ(std::future_status::ready,
@@ -106,7 +103,7 @@ namespace fc::markets::storage::events {
       return Chan{std::move(channel)};
     }};
 
-    EXPECT_OUTCOME_TRUE_1(events->run());
+    EXPECT_OUTCOME_TRUE_1(events->init());
     auto res = events->onDealSectorCommitted(provider, deal_id);
     auto future = res->get_future();
     EXPECT_EQ(std::future_status::timeout,

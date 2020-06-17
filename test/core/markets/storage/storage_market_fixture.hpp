@@ -42,6 +42,7 @@ namespace fc::markets::storage::test {
   using crypto::bls::BlsProviderImpl;
   using crypto::secp256k1::Secp256k1ProviderDefault;
   using crypto::secp256k1::Secp256k1Sha256ProviderImpl;
+  using events::Events;
   using events::EventsMock;
   using fc::storage::InMemoryStorage;
   using fc::storage::filestore::FileStore;
@@ -146,8 +147,6 @@ namespace fc::markets::storage::test {
                              private_keys);
       auto miner_api = makeMinerApi();
 
-      EXPECT_CALL(*events, run()).WillOnce(testing::Return(outcome::success()));
-
       provider = makeProvider(*provider_multiaddress,
                               registered_proof,
                               miner_worker_keypair,
@@ -158,6 +157,7 @@ namespace fc::markets::storage::test {
                               context,
                               node_api,
                               miner_api,
+                              events_,
                               miner_actor_address);
       OUTCOME_EXCEPT(provider->start());
 
@@ -182,6 +182,7 @@ namespace fc::markets::storage::test {
     }
 
     void TearDown() override {
+      provider->stop();
       context->stop();
     }
 
@@ -345,6 +346,7 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<boost::asio::io_context> &context,
         const std::shared_ptr<Api> &api,
         const std::shared_ptr<MinerApi> &miner_api,
+        const std::shared_ptr<EventsMock> &events,
         const Address &miner_actor_address) {
       std::shared_ptr<KeyStore> keystore =
           std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
@@ -444,7 +446,7 @@ namespace fc::markets::storage::test {
     Address client_bls_address;
     Tipset chain_head;
     std::shared_ptr<Api> node_api;
-    std::shared_ptr<EventsMock> events = std::make_shared<EventsMock>();
+    std::shared_ptr<EventsMock> events_ = std::make_shared<EventsMock>();
     std::shared_ptr<StorageMarketClient> client;
     std::shared_ptr<StorageProvider> provider;
     std::shared_ptr<StorageProviderInfo> storage_provider_info;

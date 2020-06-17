@@ -72,6 +72,8 @@ namespace fc::markets::storage::provider {
 
     auto start() -> outcome::result<void> override;
 
+    auto stop() -> void override;
+
     auto addAsk(const TokenAmount &price, ChainEpoch duration)
         -> outcome::result<void> override;
 

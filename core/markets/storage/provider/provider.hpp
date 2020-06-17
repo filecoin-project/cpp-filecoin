@@ -33,6 +33,8 @@ namespace fc::markets::storage::provider {
 
     virtual auto start() -> outcome::result<void> = 0;
 
+    virtual auto stop() -> void = 0;
+
     virtual auto addAsk(const TokenAmount &price, ChainEpoch duration)
         -> outcome::result<void> = 0;
 

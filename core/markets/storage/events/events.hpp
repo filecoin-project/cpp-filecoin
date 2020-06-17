@@ -12,8 +12,8 @@
 namespace fc::markets::storage::events {
   using fc::storage::mpool::MpoolUpdate;
   using primitives::DealId;
-  using primitives::address::Address;
   using primitives::SectorNumber;
+  using primitives::address::Address;
 
   /**
    * Watches for a specified method on an actor is called
@@ -30,10 +30,6 @@ namespace fc::markets::storage::events {
     };
 
     virtual ~Events() = default;
-
-    virtual outcome::result<void> run() = 0;
-
-    virtual void stop() = 0;
 
     /**
      * Returnes promise with result when miner actor DealSectorCommitted is

@@ -104,8 +104,6 @@ namespace fc::markets::storage::provider {
         std::make_shared<ProviderDataTransferRequestValidator>(state_store);
     OUTCOME_TRY(datatransfer_->init(StorageDataTransferVoucherType, validator));
 
-    OUTCOME_TRY(events_->run());
-
     return outcome::success();
   }
 
@@ -119,6 +117,10 @@ namespace fc::markets::storage::provider {
     });
 
     return outcome::success();
+  }
+
+  void StorageProviderImpl::stop() {
+    fsm_->stop();
   }
 
   outcome::result<void> StorageProviderImpl::addAsk(const TokenAmount &price,
