@@ -12,10 +12,14 @@
 
 namespace fc::sector_storage::stores {
 
+  using HeaderName = std::string;
+  using HeaderValue = std::string;
+
   class RemoteStore : public Store {
    public:
     RemoteStore(std::shared_ptr<LocalStore> local,
-                std::shared_ptr<SectorIndex> index);
+                std::shared_ptr<SectorIndex> index,
+                std::unordered_map<HeaderName, HeaderValue> auth_headers);
 
     outcome::result<AcquireSectorResponse> acquireSector(
         SectorId sector,
@@ -52,6 +56,8 @@ namespace fc::sector_storage::stores {
 
     std::shared_ptr<LocalStore> local_;
     std::shared_ptr<SectorIndex> index_;
+
+    std::unordered_map<HeaderName, HeaderValue> auth_headers_;
 
     bool unlock_;
     std::condition_variable cv_;

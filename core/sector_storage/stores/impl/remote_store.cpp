@@ -8,6 +8,7 @@
 #include <curl/curl.h>
 #include <rapidjson/document.h>
 #include <boost/filesystem.hpp>
+#include <utility>
 #include "api/rpc/json.hpp"
 #include "common/uri_parser/uri_parser.hpp"
 #include "sector_storage/stores/store_error.hpp"
@@ -27,9 +28,13 @@ namespace {
 
 namespace fc::sector_storage::stores {
 
-  RemoteStore::RemoteStore(std::shared_ptr<LocalStore> local,
-                           std::shared_ptr<SectorIndex> index)
-      : local_(std::move(local)), index_(std::move(index)) {}
+  RemoteStore::RemoteStore(
+      std::shared_ptr<LocalStore> local,
+      std::shared_ptr<SectorIndex> index,
+      std::unordered_map<HeaderName, HeaderValue> auth_headers)
+      : local_(std::move(local)),
+        index_(std::move(index)),
+        auth_headers_(std::move(auth_headers)) {}
 
   outcome::result<AcquireSectorResponse> RemoteStore::acquireSector(
       SectorId sector,
@@ -166,7 +171,17 @@ namespace fc::sector_storage::stores {
     // Follow HTTP redirects if necessary
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
-    // TODO: add auth header
+    struct curl_slist *headers = nullptr;
+
+    for (const auto &[name, value] : auth_headers_) {
+      std::string header(name);
+      header.append(": ");
+      header.append(value);
+      headers = curl_slist_append(headers, header.c_str());
+    }
+    if (headers) {
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    }
 
     long httpCode;
     std::string httpData;
@@ -178,6 +193,9 @@ namespace fc::sector_storage::stores {
     curl_easy_perform(curl);
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
     curl_easy_cleanup(curl);
+    if (headers) {
+      curl_slist_free_all(headers);
+    }
 
     switch (httpCode) {
       case 404:
@@ -260,7 +278,17 @@ namespace fc::sector_storage::stores {
     // Follow HTTP redirects if necessary
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
-    // TODO: add auth header
+    struct curl_slist *headers = nullptr;
+
+    for (const auto &[name, value] : auth_headers_) {
+      std::string header(name);
+      header.append(": ");
+      header.append(value);
+      headers = curl_slist_append(headers, header.c_str());
+    }
+    if (headers) {
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    }
 
     // TODO: Add callback
 
@@ -271,6 +299,9 @@ namespace fc::sector_storage::stores {
     char *ct = nullptr;
     curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &ct);
     curl_easy_cleanup(curl);
+    if (headers) {
+      curl_slist_free_all(headers);
+    }
 
     if (httpCode != 200) {
       return outcome::success();  // TODO: ERROR
@@ -320,13 +351,25 @@ namespace fc::sector_storage::stores {
     // Follow HTTP redirects if necessary
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
-    // TODO: add auth header
+    struct curl_slist *headers = nullptr;
+
+    for (const auto &[name, value] : auth_headers_) {
+      std::string header(name);
+      header.append(": ");
+      header.append(value);
+      headers = curl_slist_append(headers, header.c_str());
+    }
+    if (headers) {
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    }
 
     long httpCode;
-
     curl_easy_perform(curl);
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
     curl_easy_cleanup(curl);
+    if (headers) {
+      curl_slist_free_all(headers);
+    }
 
     if (httpCode != 200) {
       return outcome::success();  // TODO: ERROR
