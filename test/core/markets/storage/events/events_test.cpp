@@ -4,8 +4,8 @@
  */
 
 #include <gtest/gtest.h>
-#include "host/context/impl/host_context_impl.hpp"
 #include "markets/storage/events/impl/events_impl.hpp"
+#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
@@ -14,8 +14,13 @@ namespace fc::markets::storage::events {
   using adt::Channel;
   using api::Api;
   using api::Chan;
-  using fc::storage::mpool::MpoolUpdate;
-  using host::HostContextImpl;
+  using fc::storage::ipfs::InMemoryDatastore;
+  using fc::storage::ipfs::IpfsDatastore;
+  using primitives::block::BlockHeader;
+  using primitives::block::MsgMeta;
+  using primitives::tipset::HeadChange;
+  using primitives::tipset::HeadChangeType;
+  using primitives::tipset::Tipset;
   using vm::actor::MethodParams;
   using vm::actor::builtin::miner::PreCommitSector;
   using vm::actor::builtin::miner::ProveCommitSector;
@@ -27,13 +32,14 @@ namespace fc::markets::storage::events {
    public:
     void SetUp() override {
       api = std::make_shared<Api>();
-      events = std::make_shared<EventsImpl>(api);
+      events = std::make_shared<EventsImpl>(api, ipld);
     }
 
     Address provider = Address::makeFromId(1);
     DealId deal_id{1};
     SectorNumber sector_number{13};
     std::shared_ptr<Api> api;
+    std::shared_ptr<IpfsDatastore> ipld = std::make_shared<InMemoryDatastore>();
     std::shared_ptr<EventsImpl> events;
   };
 
@@ -43,8 +49,9 @@ namespace fc::markets::storage::events {
    * @then event is triggered
    */
   TEST_F(EventsTest, CommitSector) {
-    api->MpoolSub = {[=]() -> outcome::result<Chan<MpoolUpdate>> {
-      auto channel{std::make_shared<Channel<MpoolUpdate>>()};
+    api->ChainNotify = {[=]()
+                            -> outcome::result<Chan<std::vector<HeadChange>>> {
+      auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
 
       // PreCommitSector message call
       SectorPreCommitInfo pre_commit_info;
@@ -56,12 +63,7 @@ namespace fc::markets::storage::events {
       pre_commit_message.to = provider;
       pre_commit_message.method = PreCommitSector::Number;
       pre_commit_message.params = MethodParams{pre_commit_params};
-      SignedMessage pre_commit_signed_message;
-      pre_commit_signed_message.message = pre_commit_message;
-      MpoolUpdate pre_commit_update{};
-      pre_commit_update.type = MpoolUpdate::Type::REMOVE;
-      pre_commit_update.message = pre_commit_signed_message;
-      channel->write(pre_commit_update);
+      OUTCOME_TRY(pre_commit_message_cid, ipld->setCbor(pre_commit_message));
 
       // ProveCommitSector message call
       ProveCommitSector::Params prove_commit_param;
@@ -72,12 +74,19 @@ namespace fc::markets::storage::events {
       prove_commit_message.to = provider;
       prove_commit_message.method = ProveCommitSector::Number;
       prove_commit_message.params = MethodParams{encoded_prove_commit_params};
-      SignedMessage prove_commit_signed_message;
-      prove_commit_signed_message.message = prove_commit_message;
-      MpoolUpdate prove_commit_update{};
-      prove_commit_update.type = MpoolUpdate::Type::REMOVE;
-      prove_commit_update.message = prove_commit_signed_message;
-      channel->write(prove_commit_update);
+      OUTCOME_TRY(prove_commit_message_cid,
+                  ipld->setCbor(prove_commit_message));
+
+      MsgMeta meta;
+      ipld->load(meta);
+      OUTCOME_TRY(meta.bls_messages.append(pre_commit_message_cid));
+      OUTCOME_TRY(meta.bls_messages.append(prove_commit_message_cid));
+      OUTCOME_TRY(messages, ipld->setCbor(meta));
+      BlockHeader block_header{.messages = messages};
+
+      Tipset tipset{.blks = {block_header}};
+      HeadChange change{.type = HeadChangeType::APPLY, .value = tipset};
+      channel->write({change});
 
       return Chan{std::move(channel)};
     }};
@@ -98,10 +107,11 @@ namespace fc::markets::storage::events {
    * @then future in wait status
    */
   TEST_F(EventsTest, WaitCommitSector) {
-    api->MpoolSub = {[=]() -> outcome::result<Chan<MpoolUpdate>> {
-      auto channel{std::make_shared<Channel<MpoolUpdate>>()};
-      return Chan{std::move(channel)};
-    }};
+    api->ChainNotify = {
+        [=]() -> outcome::result<Chan<std::vector<HeadChange>>> {
+          auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
+          return Chan{std::move(channel)};
+        }};
 
     EXPECT_OUTCOME_TRUE_1(events->init());
     auto res = events->onDealSectorCommitted(provider, deal_id);

@@ -8,5 +8,5 @@ addtest(events_test
     )
 target_link_libraries(events_test
     events
-    fuhon_host
+    ipfs_datastore_in_memory
     )

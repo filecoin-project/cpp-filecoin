@@ -7,19 +7,24 @@
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 
 namespace fc::markets::storage::events {
+  using primitives::tipset::HeadChangeType;
   using vm::actor::builtin::miner::PreCommitSector;
   using vm::actor::builtin::miner::ProveCommitSector;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
+  using vm::message::SignedMessage;
+  using vm::message::UnsignedMessage;
   using PromiseResult = Events::PromiseResult;
 
-  EventsImpl::EventsImpl(std::shared_ptr<Api> api) : api_{std::move(api)} {}
+  EventsImpl::EventsImpl(std::shared_ptr<Api> api, IpldPtr ipld)
+      : api_{std::move(api)}, ipld_{std::move(ipld)} {}
 
   outcome::result<void> EventsImpl::init() {
-    OUTCOME_TRY(chan, api_->MpoolSub());
-    chan.channel->read([self{shared_from_this()}, channel{chan.channel}](
-                           boost::optional<MpoolUpdate> update) -> bool {
-      return self->onRead(update);
-    });
+    OUTCOME_TRY(chan, api_->ChainNotify());
+    chan.channel->read(
+        [self{shared_from_this()}, channel{chan.channel}](
+            boost::optional<std::vector<HeadChange>> update) -> bool {
+          return self->onRead(update);
+        });
     return outcome::success();
   }
 
@@ -40,7 +45,34 @@ namespace fc::markets::storage::events {
    * contain sector number used in the next call
    *  2) ProveCommitSector with desired provider address and sector number
    */
-  bool EventsImpl::onRead(const boost::optional<MpoolUpdate> &update) {
+  bool EventsImpl::onRead(
+      const boost::optional<std::vector<HeadChange>> &changes) {
+    if (changes) {
+      for (const auto &change : changes.get()) {
+        if (change.type == HeadChangeType::APPLY) {
+          auto visited = change.value.visitMessages(
+              ipld_, [this](auto, auto bls, auto cid) -> outcome::result<void> {
+                return onMessage(bls, cid);
+              });
+          if (visited.has_error()) {
+            logger_->error("Visit message error: " + visited.error().message());
+          }
+        }
+      }
+    }
+    return true;
+  };
+
+  outcome::result<void> EventsImpl::onMessage(bool bls,
+                                              const CID &message_cid) {
+    UnsignedMessage message;
+    if (bls) {
+      OUTCOME_TRYA(message, ipld_->getCbor<UnsignedMessage>(message_cid));
+    } else {
+      OUTCOME_TRY(signed_message, ipld_->getCbor<SignedMessage>(message_cid));
+      message = std::move(signed_message.message);
+    }
+
     std::vector<EventWatch>::iterator watch_it;
     boost::optional<SectorNumber> update_sector_number;
     bool prove_sector_committed = false;
@@ -49,37 +81,25 @@ namespace fc::markets::storage::events {
       for (watch_it = watched_events_.begin();
            watch_it != watched_events_.end();
            ++watch_it) {
-        // message committed iff removed
-        if (update.has_value() && update->type == MpoolUpdate::Type::REMOVE
-            && update->message.message.to == watch_it->provider) {
-          auto message = update->message.message;
+        if (message.to == watch_it->provider) {
           if (message.method == PreCommitSector::Number) {
-            auto maybe_pre_commit_info =
-                codec::cbor::decode<SectorPreCommitInfo>(message.params);
-            if (maybe_pre_commit_info.has_error()) {
-              logger_->error("Decode SectorPreCommitInfo params error "
-                             + maybe_pre_commit_info.error().message());
-              break;
-            }
-
-            auto deal_ids = maybe_pre_commit_info.value().deal_ids;
+            OUTCOME_TRY(
+                pre_commit_info,
+                codec::cbor::decode<SectorPreCommitInfo>(message.params));
+            auto deal_ids = pre_commit_info.deal_ids;
+            // save sector number if deal id matches
             if (std::find(deal_ids.begin(), deal_ids.end(), watch_it->deal_id)
                 != deal_ids.end()) {
-              update_sector_number = maybe_pre_commit_info.value().sector;
+              update_sector_number = pre_commit_info.sector;
               break;
             }
           } else if (message.method == ProveCommitSector::Number) {
-            auto maybe_prove_commit_params =
-                codec::cbor::decode<ProveCommitSector::Params>(message.params);
-            if (maybe_prove_commit_params.has_error()) {
-              logger_->error("Decode ProveCommitSector params error "
-                             + maybe_prove_commit_params.error().message());
-              break;
-            }
-
+            OUTCOME_TRY(
+                prove_commit_params,
+                codec::cbor::decode<ProveCommitSector::Params>(message.params));
+            // notify if sector number matches,
             if (watch_it->sector_number
-                && maybe_prove_commit_params.value().sector
-                       == watch_it->sector_number) {
+                && prove_commit_params.sector == watch_it->sector_number) {
               prove_sector_committed = true;
               break;
             }
@@ -99,7 +119,7 @@ namespace fc::markets::storage::events {
         watched_events_.erase(watch_it);
       }
     }
-    return true;
+    return outcome::success();
   }
 
 }  // namespace fc::markets::storage::events

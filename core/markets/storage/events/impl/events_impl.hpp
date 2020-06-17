@@ -17,12 +17,12 @@ namespace fc::markets::storage::events {
   using adt::Channel;
   using api::Api;
   using api::Chan;
-  using fc::storage::mpool::MpoolUpdate;
+  using primitives::tipset::HeadChange;
 
   class EventsImpl : public Events,
                      public std::enable_shared_from_this<EventsImpl> {
    public:
-    explicit EventsImpl(std::shared_ptr<Api> api);
+    EventsImpl(std::shared_ptr<Api> api, IpldPtr ipld);
 
     /**
      * Subscribe to messages
@@ -33,9 +33,11 @@ namespace fc::markets::storage::events {
         const Address &provider, const DealId &deal_id) override;
 
    private:
-    bool onRead(const boost::optional<MpoolUpdate> &update);
+    bool onRead(const boost::optional<std::vector<HeadChange>> &changes);
+    outcome::result<void> onMessage(bool bls, const CID &message_cid);
 
     std::shared_ptr<Api> api_;
+    IpldPtr ipld_;
     mutable std::shared_mutex watched_events_mutex_;
     std::vector<EventWatch> watched_events_;
 
