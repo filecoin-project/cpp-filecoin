@@ -214,7 +214,60 @@ namespace fc::sector_storage::stores {
 
   outcome::result<void> RemoteStore::fetch(const std::string &url,
                                            const std::string &output_name) {
-    return outcome::success();
+    // TODO: Log it
+    CURL *curl = curl_easy_init();
+
+    if (!curl) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+
+    curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+
+    // Follow HTTP redirects if necessary
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+    // TODO: add auth header
+
+    // TODO: Add callback
+
+    long httpCode;
+
+    curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
+    char *ct = nullptr;
+    curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &ct);
+    curl_easy_cleanup(curl);
+
+    if (httpCode != 200) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    if (!ct) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    boost::system::error_code ec;
+    fs::remove_all(output_name, ec);
+
+    if (ec.failed()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    std::string mediatype(ct);
+
+    if (mediatype == "application/x-tar") {
+      // TODO: Processing tar
+      return outcome::success();
+    }
+
+    if (mediatype == "application/octet-stream") {
+      // TODO: Write to file
+      return outcome::success();
+    }
+
+    return outcome::success();  // TODO: ERROR
   }
 
   outcome::result<void> RemoteStore::deleteFromRemote(const std::string &url) {
