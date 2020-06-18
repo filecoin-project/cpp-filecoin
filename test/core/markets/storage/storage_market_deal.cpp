@@ -20,7 +20,7 @@ namespace fc::markets::storage::test {
   TEST_F(StorageMarketTest, Deal) {
     auto promise = std::make_shared<std::promise<outcome::result<void>>>();
     promise->set_value(outcome::success());
-    EXPECT_CALL(*events_, onDealSectorCommitted(_, _))
+    EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _))
         .WillOnce(testing::Return(promise));
 
     CID root_cid = "010001020001"_cid;
@@ -111,7 +111,7 @@ namespace fc::markets::storage::test {
   TEST_F(StorageMarketTest, WaitFundingDeal) {
     auto promise = std::make_shared<std::promise<outcome::result<void>>>();
     promise->set_value(outcome::success());
-    EXPECT_CALL(*events_, onDealSectorCommitted(_, _))
+    EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _))
         .WillOnce(testing::Return(promise));
 
     // some unique valid CID of funding message

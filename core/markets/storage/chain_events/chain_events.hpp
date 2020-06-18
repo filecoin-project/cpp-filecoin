@@ -9,7 +9,7 @@
 #include <future>
 #include "storage/mpool/mpool.hpp"
 
-namespace fc::markets::storage::events {
+namespace fc::markets::storage::chain_events {
   using fc::storage::mpool::MpoolUpdate;
   using primitives::DealId;
   using primitives::SectorNumber;
@@ -18,7 +18,7 @@ namespace fc::markets::storage::events {
   /**
    * Watches for a specified method on an actor is called
    */
-  class Events {
+  class ChainEvents {
    public:
     using PromiseResult = std::promise<outcome::result<void>>;
 
@@ -29,7 +29,7 @@ namespace fc::markets::storage::events {
       std::shared_ptr<PromiseResult> result;
     };
 
-    virtual ~Events() = default;
+    virtual ~ChainEvents() = default;
 
     /**
      * Returnes promise with result when miner actor DealSectorCommitted is
@@ -41,6 +41,6 @@ namespace fc::markets::storage::events {
     virtual std::shared_ptr<PromiseResult> onDealSectorCommitted(
         const Address &provider, const DealId &deal_id) = 0;
   };
-}  // namespace fc::markets::storage::events
+}  // namespace fc::markets::storage::chain_events
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_EVENTS_HPP

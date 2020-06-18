@@ -6,12 +6,12 @@
 #ifndef CPP_FILECOIN_CORE_MARKETS_STORAGE_EVENTS_IMPL_EVENTS_IMPL_HPP
 #define CPP_FILECOIN_CORE_MARKETS_STORAGE_EVENTS_IMPL_EVENTS_IMPL_HPP
 
-#include "markets/storage/events/events.hpp"
+#include "markets/storage/chain_events/chain_events.hpp"
 
 #include <shared_mutex>
 #include "api/api.hpp"
 
-namespace fc::markets::storage::events {
+namespace fc::markets::storage::chain_events {
 
   using adt::Channel;
   using api::Api;
@@ -19,10 +19,10 @@ namespace fc::markets::storage::events {
   using primitives::tipset::HeadChange;
   using vm::message::UnsignedMessage;
 
-  class EventsImpl : public Events,
-                     public std::enable_shared_from_this<EventsImpl> {
+  class ChainEventsImpl : public ChainEvents,
+                     public std::enable_shared_from_this<ChainEventsImpl> {
    public:
-    EventsImpl(std::shared_ptr<Api> api);
+    ChainEventsImpl(std::shared_ptr<Api> api);
 
     /**
      * Subscribe to messages

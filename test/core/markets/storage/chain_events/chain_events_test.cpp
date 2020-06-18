@@ -4,13 +4,13 @@
  */
 
 #include <gtest/gtest.h>
-#include "markets/storage/events/impl/events_impl.hpp"
+#include "markets/storage/chain_events/impl/chain_events_impl.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 
-namespace fc::markets::storage::events {
+namespace fc::markets::storage::chain_events {
   using adt::Channel;
   using api::Api;
   using api::BlockMessages;
@@ -29,18 +29,14 @@ namespace fc::markets::storage::events {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
-  class EventsTest : public ::testing::Test {
+  class ChainEventsTest : public ::testing::Test {
    public:
-    void SetUp() override {
-      api = std::make_shared<Api>();
-      events = std::make_shared<EventsImpl>(api);
-    }
-
     Address provider = Address::makeFromId(1);
     DealId deal_id{1};
     SectorNumber sector_number{13};
-    std::shared_ptr<Api> api;
-    std::shared_ptr<EventsImpl> events;
+    std::shared_ptr<Api> api{std::make_shared<Api>()};
+    std::shared_ptr<ChainEventsImpl> events{
+        std::make_shared<ChainEventsImpl>(api)};
   };
 
   /**
@@ -48,8 +44,8 @@ namespace fc::markets::storage::events {
    * @when PreCommit and then ProveCommit called
    * @then event is triggered
    */
-  TEST_F(EventsTest, CommitSector) {
-    CID block_cid = "010001020002"_cid;
+  TEST_F(ChainEventsTest, CommitSector) {
+    CID block_cid{"010001020002"_cid};
 
     api->ChainGetBlockMessages = {[block_cid, this](const CID &cid)
                                       -> outcome::result<BlockMessages> {
@@ -105,12 +101,11 @@ namespace fc::markets::storage::events {
    * @when no message committed
    * @then future in wait status
    */
-  TEST_F(EventsTest, WaitCommitSector) {
-    api->ChainNotify = {
-        []() -> outcome::result<Chan<std::vector<HeadChange>>> {
-          auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
-          return Chan{std::move(channel)};
-        }};
+  TEST_F(ChainEventsTest, WaitCommitSector) {
+    api->ChainNotify = {[]() -> outcome::result<Chan<std::vector<HeadChange>>> {
+      auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
+      return Chan{std::move(channel)};
+    }};
 
     EXPECT_OUTCOME_TRUE_1(events->init());
     auto res = events->onDealSectorCommitted(provider, deal_id);
@@ -119,4 +114,4 @@ namespace fc::markets::storage::events {
               future.wait_for(std::chrono::seconds(0)));
   }
 
-}  // namespace fc::markets::storage::events
+}  // namespace fc::markets::storage::chain_events

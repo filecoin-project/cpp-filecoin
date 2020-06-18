@@ -3,11 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(events
-    impl/events_impl.cpp
+add_library(chain_events
+    impl/chain_events_impl.cpp
     )
-target_link_libraries(events
+target_link_libraries(chain_events
     api
-    p2p::asio_scheduler
-    outcome
     )

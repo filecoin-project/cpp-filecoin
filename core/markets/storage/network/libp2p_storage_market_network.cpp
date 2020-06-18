@@ -43,39 +43,43 @@ namespace fc::markets::storage::network {
     receiver_ = std::move(receiver);
     host_->setProtocolHandler(
         kAskProtocolId,
-        [self{shared_from_this()}](std::shared_ptr<Stream> stream) {
-          if (!self->receiver_) {
-            self->logger_->error("Receiver is not set");
-            stream->reset();
-            return;
+        [self_wptr{weak_from_this()}](std::shared_ptr<Stream> stream) {
+          if (auto self = self_wptr.lock()) {
+            if (!self->receiver_) {
+              self->logger_->error("Receiver is not set");
+              stream->reset();
+              return;
+            }
+            auto maybe_peer_id = stream->remotePeerId();
+            if (maybe_peer_id.has_error()) {
+              self->logger_->error("Cannot get remote peer id: "
+                                   + maybe_peer_id.error().message());
+              stream->reset();
+              return;
+            }
+            self->receiver_->handleAskStream(
+                std::make_shared<CborStream>(stream));
           }
-          auto maybe_peer_id = stream->remotePeerId();
-          if (maybe_peer_id.has_error()) {
-            self->logger_->error("Cannot get remote peer id: "
-                                 + maybe_peer_id.error().message());
-            stream->reset();
-            return;
-          }
-          self->receiver_->handleAskStream(
-              std::make_shared<CborStream>(stream));
         });
     host_->setProtocolHandler(
         kDealProtocolId,
-        [self{shared_from_this()}](std::shared_ptr<Stream> stream) {
-          if (!self->receiver_) {
-            self->logger_->error("Receiver is not set");
-            stream->reset();
-            return;
+        [self_wptr{weak_from_this()}](std::shared_ptr<Stream> stream) {
+          if (auto self = self_wptr.lock()) {
+            if (!self->receiver_) {
+              self->logger_->error("Receiver is not set");
+              stream->reset();
+              return;
+            }
+            auto maybe_peer_id = stream->remotePeerId();
+            if (maybe_peer_id.has_error()) {
+              self->logger_->error("Cannot get remote peer id: "
+                                   + maybe_peer_id.error().message());
+              stream->reset();
+              return;
+            }
+            self->receiver_->handleDealStream(
+                std::make_shared<CborStream>(stream));
           }
-          auto maybe_peer_id = stream->remotePeerId();
-          if (maybe_peer_id.has_error()) {
-            self->logger_->error("Cannot get remote peer id: "
-                                 + maybe_peer_id.error().message());
-            stream->reset();
-            return;
-          }
-          self->receiver_->handleDealStream(
-              std::make_shared<CborStream>(stream));
         });
     return outcome::success();
   }

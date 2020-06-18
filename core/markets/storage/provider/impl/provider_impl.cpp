@@ -65,7 +65,7 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
       std::shared_ptr<MinerApi> miner_api,
-      std::shared_ptr<Events> events,
+      std::shared_ptr<ChainEvents> chain_events,
       const Address &miner_actor_address,
       std::shared_ptr<PieceIO> piece_io,
       std::shared_ptr<FileStore> filestore)
@@ -77,7 +77,7 @@ namespace fc::markets::storage::provider {
             std::make_shared<StoredAsk>(datastore, api, miner_actor_address)},
         api_{std::move(api)},
         miner_api_{std::move(miner_api)},
-        events_{std::move(events)},
+        chain_events_{std::move(chain_events)},
         miner_actor_address_{miner_actor_address},
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
         piece_io_{std::move(piece_io)},
@@ -696,7 +696,7 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     auto res =
-        events_
+        chain_events_
             ->onDealSectorCommitted(
                 deal->client_deal_proposal.proposal.provider, deal->deal_id)
             ->get_future()

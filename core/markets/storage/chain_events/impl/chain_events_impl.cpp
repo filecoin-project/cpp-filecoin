@@ -3,31 +3,34 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "markets/storage/events/impl/events_impl.hpp"
+#include "markets/storage/chain_events/impl/chain_events_impl.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 
-namespace fc::markets::storage::events {
+namespace fc::markets::storage::chain_events {
   using primitives::tipset::HeadChangeType;
   using vm::actor::builtin::miner::PreCommitSector;
   using vm::actor::builtin::miner::ProveCommitSector;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
   using vm::message::SignedMessage;
-  using PromiseResult = Events::PromiseResult;
+  using PromiseResult = ChainEvents::PromiseResult;
 
-  EventsImpl::EventsImpl(std::shared_ptr<Api> api)
+  ChainEventsImpl::ChainEventsImpl(std::shared_ptr<Api> api)
       : api_{std::move(api)} {}
 
-  outcome::result<void> EventsImpl::init() {
+  outcome::result<void> ChainEventsImpl::init() {
     OUTCOME_TRY(chan, api_->ChainNotify());
     chan.channel->read(
-        [self{shared_from_this()}, channel{chan.channel}](
+        [self_weak{weak_from_this()}](
             boost::optional<std::vector<HeadChange>> update) -> bool {
-          return self->onRead(update);
+          if (auto self = self_weak.lock())
+            return self->onRead(update);
+          else
+            return false;
         });
     return outcome::success();
   }
 
-  std::shared_ptr<PromiseResult> EventsImpl::onDealSectorCommitted(
+  std::shared_ptr<PromiseResult> ChainEventsImpl::onDealSectorCommitted(
       const Address &provider, const DealId &deal_id) {
     auto result = std::make_shared<PromiseResult>();
     std::unique_lock lock(watched_events_mutex_);
@@ -44,7 +47,7 @@ namespace fc::markets::storage::events {
    * contain sector number used in the next call
    *  2) ProveCommitSector with desired provider address and sector number
    */
-  bool EventsImpl::onRead(
+  bool ChainEventsImpl::onRead(
       const boost::optional<std::vector<HeadChange>> &changes) {
     if (changes) {
       for (const auto &change : changes.get()) {
@@ -77,7 +80,8 @@ namespace fc::markets::storage::events {
     return true;
   };
 
-  outcome::result<void> EventsImpl::onMessage(const UnsignedMessage &message) {
+  outcome::result<void> ChainEventsImpl::onMessage(
+      const UnsignedMessage &message) {
     std::vector<EventWatch>::iterator watch_it;
     boost::optional<SectorNumber> update_sector_number;
     bool prove_sector_committed = false;
@@ -128,4 +132,4 @@ namespace fc::markets::storage::events {
     return outcome::success();
   }
 
-}  // namespace fc::markets::storage::events
+}  // namespace fc::markets::storage::chain_events

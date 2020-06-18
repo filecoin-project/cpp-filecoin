@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(events)
+add_subdirectory(chain_events)
 add_subdirectory(provider)
 
 addtest(storage_market_test

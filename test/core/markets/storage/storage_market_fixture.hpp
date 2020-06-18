@@ -26,7 +26,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "testutil/literals.hpp"
-#include "testutil/mocks/markets/storage/events/events_mock.hpp"
+#include "testutil/mocks/markets/storage/chain_events/chain_events_mock.hpp"
 
 namespace fc::markets::storage::test {
   using adt::Channel;
@@ -35,6 +35,8 @@ namespace fc::markets::storage::test {
   using api::MinerApi;
   using api::MsgWait;
   using api::Wait;
+  using chain_events::ChainEvents;
+  using chain_events::ChainEventsMock;
   using client::StorageMarketClient;
   using client::StorageMarketClientImpl;
   using common::Buffer;
@@ -42,8 +44,6 @@ namespace fc::markets::storage::test {
   using crypto::bls::BlsProviderImpl;
   using crypto::secp256k1::Secp256k1ProviderDefault;
   using crypto::secp256k1::Secp256k1Sha256ProviderImpl;
-  using events::Events;
-  using events::EventsMock;
   using fc::storage::InMemoryStorage;
   using fc::storage::filestore::FileStore;
   using fc::storage::filestore::FileSystemFileStore;
@@ -157,7 +157,7 @@ namespace fc::markets::storage::test {
                               context,
                               node_api,
                               miner_api,
-                              events_,
+                              chain_events_,
                               miner_actor_address);
       OUTCOME_EXCEPT(provider->start());
 
@@ -347,7 +347,7 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<boost::asio::io_context> &context,
         const std::shared_ptr<Api> &api,
         const std::shared_ptr<MinerApi> &miner_api,
-        const std::shared_ptr<EventsMock> &events,
+        const std::shared_ptr<ChainEventsMock> &chain_events,
         const Address &miner_actor_address) {
       std::shared_ptr<KeyStore> keystore =
           std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
@@ -363,7 +363,7 @@ namespace fc::markets::storage::test {
                                                 datastore,
                                                 api,
                                                 miner_api,
-                                                events,
+                                                chain_events,
                                                 miner_actor_address,
                                                 piece_io_,
                                                 filestore);
@@ -447,7 +447,8 @@ namespace fc::markets::storage::test {
     Address client_bls_address;
     Tipset chain_head;
     std::shared_ptr<Api> node_api;
-    std::shared_ptr<EventsMock> events_ = std::make_shared<EventsMock>();
+    std::shared_ptr<ChainEventsMock> chain_events_ =
+        std::make_shared<ChainEventsMock>();
     std::shared_ptr<StorageMarketClient> client;
     std::shared_ptr<StorageProvider> provider;
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
