@@ -5,6 +5,8 @@
 
 #include "client.hpp"
 
+#include <utility>
+
 #include "network/grpc_channel_builder.hpp"
 #include "parser.hpp"
 
@@ -18,14 +20,17 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::drand, DrandSyncClientImpl::Error, e) {
 
 namespace fc::drand {
   DrandSyncClientImpl::DrandSyncClientImpl(
-      std::string host,
+      std::string address, boost::optional<std::string> pem_root_certs)
+      : address_{std::move(address)},
+        stub_{fc::network::createSecureClient<::drand::Public>(
+            address_, (pem_root_certs ? pem_root_certs.get() : ""))} {}
+
+  DrandSyncClientImpl::DrandSyncClientImpl(
+      const std::string &host,
       size_t port,
       boost::optional<std::string> pem_root_certs)
-      : host_{std::move(host)},
-        port_{port},
-        stub_{fc::network::createSecureClient<::drand::Public>(
-            host_ + ":" + std::to_string(port_),
-            (pem_root_certs ? pem_root_certs.get() : ""))} {}
+      : DrandSyncClientImpl{host + ":" + std::to_string(port),
+                            std::move(pem_root_certs)} {}
 
   outcome::result<PublicRandResponse> DrandSyncClientImpl::publicRand(
       uint64_t round) {
