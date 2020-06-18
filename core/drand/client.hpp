@@ -38,6 +38,7 @@ namespace fc::drand {
      * @return group packet message
      */
     virtual outcome::result<GroupPacket> group() = 0;
+
   };
 }  // namespace fc::drand
 
