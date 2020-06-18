@@ -29,6 +29,12 @@ namespace fc::primitives::sector {
     return lhs.miner == rhs.miner && lhs.sector == rhs.sector;
   }
 
+  // for set insert
+  inline bool operator<(const SectorId &lhs, const SectorId &rhs) {
+    return lhs.sector < rhs.sector
+           || (lhs.sector == rhs.sector && lhs.miner < rhs.miner);
+  }
+
   /// This ordering, defines mappings to UInt in a way which MUST never change.
   enum class RegisteredProof : int64_t {
     StackedDRG32GiBSeal = 1,
