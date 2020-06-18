@@ -10,7 +10,6 @@
 
 #include <shared_mutex>
 #include "api/api.hpp"
-#include "storage/mpool/mpool.hpp"
 
 namespace fc::markets::storage::events {
 
@@ -18,11 +17,12 @@ namespace fc::markets::storage::events {
   using api::Api;
   using api::Chan;
   using primitives::tipset::HeadChange;
+  using vm::message::UnsignedMessage;
 
   class EventsImpl : public Events,
                      public std::enable_shared_from_this<EventsImpl> {
    public:
-    EventsImpl(std::shared_ptr<Api> api, IpldPtr ipld);
+    EventsImpl(std::shared_ptr<Api> api);
 
     /**
      * Subscribe to messages
@@ -34,10 +34,9 @@ namespace fc::markets::storage::events {
 
    private:
     bool onRead(const boost::optional<std::vector<HeadChange>> &changes);
-    outcome::result<void> onMessage(bool bls, const CID &message_cid);
+    outcome::result<void> onMessage(const UnsignedMessage &message);
 
     std::shared_ptr<Api> api_;
-    IpldPtr ipld_;
     mutable std::shared_mutex watched_events_mutex_;
     std::vector<EventWatch> watched_events_;
 

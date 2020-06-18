@@ -13,6 +13,7 @@
 namespace fc::markets::storage::events {
   using adt::Channel;
   using api::Api;
+  using api::BlockMessages;
   using api::Chan;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
@@ -32,14 +33,13 @@ namespace fc::markets::storage::events {
    public:
     void SetUp() override {
       api = std::make_shared<Api>();
-      events = std::make_shared<EventsImpl>(api, ipld);
+      events = std::make_shared<EventsImpl>(api);
     }
 
     Address provider = Address::makeFromId(1);
     DealId deal_id{1};
     SectorNumber sector_number{13};
     std::shared_ptr<Api> api;
-    std::shared_ptr<IpfsDatastore> ipld = std::make_shared<InMemoryDatastore>();
     std::shared_ptr<EventsImpl> events;
   };
 
@@ -49,47 +49,46 @@ namespace fc::markets::storage::events {
    * @then event is triggered
    */
   TEST_F(EventsTest, CommitSector) {
-    api->ChainNotify = {[=]()
-                            -> outcome::result<Chan<std::vector<HeadChange>>> {
-      auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
+    // PreCommitSector message call
+    SectorPreCommitInfo pre_commit_info;
+    pre_commit_info.sealed_cid = "010001020001"_cid;
+    pre_commit_info.deal_ids.emplace_back(deal_id);
+    pre_commit_info.sector = sector_number;
+    EXPECT_OUTCOME_TRUE(pre_commit_params,
+                        codec::cbor::encode(pre_commit_info));
+    UnsignedMessage pre_commit_message;
+    pre_commit_message.to = provider;
+    pre_commit_message.method = PreCommitSector::Number;
+    pre_commit_message.params = MethodParams{pre_commit_params};
 
-      // PreCommitSector message call
-      SectorPreCommitInfo pre_commit_info;
-      pre_commit_info.sealed_cid = "010001020001"_cid;
-      pre_commit_info.deal_ids.emplace_back(deal_id);
-      pre_commit_info.sector = sector_number;
-      OUTCOME_TRY(pre_commit_params, codec::cbor::encode(pre_commit_info));
-      UnsignedMessage pre_commit_message;
-      pre_commit_message.to = provider;
-      pre_commit_message.method = PreCommitSector::Number;
-      pre_commit_message.params = MethodParams{pre_commit_params};
-      OUTCOME_TRY(pre_commit_message_cid, ipld->setCbor(pre_commit_message));
+    // ProveCommitSector message call
+    ProveCommitSector::Params prove_commit_param;
+    prove_commit_param.sector = sector_number;
+    EXPECT_OUTCOME_TRUE(encoded_prove_commit_params,
+                        codec::cbor::encode(prove_commit_param));
+    UnsignedMessage prove_commit_message;
+    prove_commit_message.to = provider;
+    prove_commit_message.method = ProveCommitSector::Number;
+    prove_commit_message.params = MethodParams{encoded_prove_commit_params};
 
-      // ProveCommitSector message call
-      ProveCommitSector::Params prove_commit_param;
-      prove_commit_param.sector = sector_number;
-      OUTCOME_TRY(encoded_prove_commit_params,
-                  codec::cbor::encode(prove_commit_param));
-      UnsignedMessage prove_commit_message;
-      prove_commit_message.to = provider;
-      prove_commit_message.method = ProveCommitSector::Number;
-      prove_commit_message.params = MethodParams{encoded_prove_commit_params};
-      OUTCOME_TRY(prove_commit_message_cid,
-                  ipld->setCbor(prove_commit_message));
+    CID block_cid = "010001020002"_cid;
 
-      MsgMeta meta;
-      ipld->load(meta);
-      OUTCOME_TRY(meta.bls_messages.append(pre_commit_message_cid));
-      OUTCOME_TRY(meta.bls_messages.append(prove_commit_message_cid));
-      OUTCOME_TRY(messages, ipld->setCbor(meta));
-      BlockHeader block_header{.messages = messages};
-
-      Tipset tipset{.blks = {block_header}};
-      HeadChange change{.type = HeadChangeType::APPLY, .value = tipset};
-      channel->write({change});
-
-      return Chan{std::move(channel)};
+    api->ChainGetBlockMessages = {[=](const CID &cid)
+                                      -> outcome::result<BlockMessages> {
+      if (cid != block_cid) throw "wrong block requested";
+      return BlockMessages{.bls = {pre_commit_message, prove_commit_message}};
     }};
+
+    api->ChainNotify = {
+        [=]() -> outcome::result<Chan<std::vector<HeadChange>>> {
+          auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
+
+          Tipset tipset{.cids = {block_cid}};
+          HeadChange change{.type = HeadChangeType::APPLY, .value = tipset};
+          channel->write({change});
+
+          return Chan{std::move(channel)};
+        }};
 
     auto res = events->onDealSectorCommitted(provider, deal_id);
 

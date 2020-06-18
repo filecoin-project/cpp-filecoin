@@ -86,13 +86,13 @@ namespace fc::primitives::tipset {
     BigInt getParentWeight() const;
 
     /**
-     * @brief checks whether tipset contains cid
+     * @brief checks whether tipset contains block by cid
      * @param cid content identifier to look for
      * @return true if contains, false otherwise
      */
     bool contains(const CID &cid) const;
 
-    std::vector<CID> cids;                 ///< cids
+    std::vector<CID> cids;                 ///< block cids
     std::vector<block::BlockHeader> blks;  ///< block headers
     uint64_t height{};                     ///< height
   };

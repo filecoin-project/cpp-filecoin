@@ -12,11 +12,10 @@ namespace fc::markets::storage::events {
   using vm::actor::builtin::miner::ProveCommitSector;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
   using vm::message::SignedMessage;
-  using vm::message::UnsignedMessage;
   using PromiseResult = Events::PromiseResult;
 
-  EventsImpl::EventsImpl(std::shared_ptr<Api> api, IpldPtr ipld)
-      : api_{std::move(api)}, ipld_{std::move(ipld)} {}
+  EventsImpl::EventsImpl(std::shared_ptr<Api> api)
+      : api_{std::move(api)} {}
 
   outcome::result<void> EventsImpl::init() {
     OUTCOME_TRY(chan, api_->ChainNotify());
@@ -50,12 +49,27 @@ namespace fc::markets::storage::events {
     if (changes) {
       for (const auto &change : changes.get()) {
         if (change.type == HeadChangeType::APPLY) {
-          auto visited = change.value.visitMessages(
-              ipld_, [this](auto, auto bls, auto cid) -> outcome::result<void> {
-                return onMessage(bls, cid);
-              });
-          if (visited.has_error()) {
-            logger_->error("Visit message error: " + visited.error().message());
+          for (auto &block_cid : change.value.cids) {
+            auto block_messages = api_->ChainGetBlockMessages(block_cid);
+            if (block_messages.has_error()) {
+              logger_->error("ChainGetBlockMessages error: "
+                             + block_messages.error().message());
+              continue;
+            }
+            for (const auto &message : block_messages.value().bls) {
+              auto message_processed = onMessage(message);
+              if (onMessage(message).has_error()) {
+                logger_->error("Message process error: "
+                               + message_processed.error().message());
+              }
+            }
+            for (const auto &message : block_messages.value().secp) {
+              auto message_processed = onMessage(message.message);
+              if (message_processed.has_error()) {
+                logger_->error("Message process error: "
+                               + message_processed.error().message());
+              }
+            }
           }
         }
       }
@@ -63,16 +77,7 @@ namespace fc::markets::storage::events {
     return true;
   };
 
-  outcome::result<void> EventsImpl::onMessage(bool bls,
-                                              const CID &message_cid) {
-    UnsignedMessage message;
-    if (bls) {
-      OUTCOME_TRYA(message, ipld_->getCbor<UnsignedMessage>(message_cid));
-    } else {
-      OUTCOME_TRY(signed_message, ipld_->getCbor<SignedMessage>(message_cid));
-      message = std::move(signed_message.message);
-    }
-
+  outcome::result<void> EventsImpl::onMessage(const UnsignedMessage &message) {
     std::vector<EventWatch>::iterator watch_it;
     boost::optional<SectorNumber> update_sector_number;
     bool prove_sector_committed = false;
@@ -87,9 +92,10 @@ namespace fc::markets::storage::events {
                 pre_commit_info,
                 codec::cbor::decode<SectorPreCommitInfo>(message.params));
             auto deal_ids = pre_commit_info.deal_ids;
-            // save sector number if deal id matches
+            // save sector number if deal id matches and it is not saved yet
             if (std::find(deal_ids.begin(), deal_ids.end(), watch_it->deal_id)
-                != deal_ids.end()) {
+                    != deal_ids.end()
+                && !watch_it->sector_number) {
               update_sector_number = pre_commit_info.sector;
               break;
             }

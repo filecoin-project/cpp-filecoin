@@ -8,5 +8,4 @@ addtest(events_test
     )
 target_link_libraries(events_test
     events
-    ipfs_datastore_in_memory
     )
