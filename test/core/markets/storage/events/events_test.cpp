@@ -49,38 +49,38 @@ namespace fc::markets::storage::events {
    * @then event is triggered
    */
   TEST_F(EventsTest, CommitSector) {
-    // PreCommitSector message call
-    SectorPreCommitInfo pre_commit_info;
-    pre_commit_info.sealed_cid = "010001020001"_cid;
-    pre_commit_info.deal_ids.emplace_back(deal_id);
-    pre_commit_info.sector = sector_number;
-    EXPECT_OUTCOME_TRUE(pre_commit_params,
-                        codec::cbor::encode(pre_commit_info));
-    UnsignedMessage pre_commit_message;
-    pre_commit_message.to = provider;
-    pre_commit_message.method = PreCommitSector::Number;
-    pre_commit_message.params = MethodParams{pre_commit_params};
-
-    // ProveCommitSector message call
-    ProveCommitSector::Params prove_commit_param;
-    prove_commit_param.sector = sector_number;
-    EXPECT_OUTCOME_TRUE(encoded_prove_commit_params,
-                        codec::cbor::encode(prove_commit_param));
-    UnsignedMessage prove_commit_message;
-    prove_commit_message.to = provider;
-    prove_commit_message.method = ProveCommitSector::Number;
-    prove_commit_message.params = MethodParams{encoded_prove_commit_params};
-
     CID block_cid = "010001020002"_cid;
 
-    api->ChainGetBlockMessages = {[=](const CID &cid)
+    api->ChainGetBlockMessages = {[block_cid, this](const CID &cid)
                                       -> outcome::result<BlockMessages> {
+      // PreCommitSector message call
+      SectorPreCommitInfo pre_commit_info;
+      pre_commit_info.sealed_cid = "010001020001"_cid;
+      pre_commit_info.deal_ids.emplace_back(deal_id);
+      pre_commit_info.sector = sector_number;
+      EXPECT_OUTCOME_TRUE(pre_commit_params,
+                          codec::cbor::encode(pre_commit_info));
+      UnsignedMessage pre_commit_message;
+      pre_commit_message.to = provider;
+      pre_commit_message.method = PreCommitSector::Number;
+      pre_commit_message.params = MethodParams{pre_commit_params};
+
+      // ProveCommitSector message call
+      ProveCommitSector::Params prove_commit_param;
+      prove_commit_param.sector = sector_number;
+      EXPECT_OUTCOME_TRUE(encoded_prove_commit_params,
+                          codec::cbor::encode(prove_commit_param));
+      UnsignedMessage prove_commit_message;
+      prove_commit_message.to = provider;
+      prove_commit_message.method = ProveCommitSector::Number;
+      prove_commit_message.params = MethodParams{encoded_prove_commit_params};
+
       if (cid != block_cid) throw "wrong block requested";
       return BlockMessages{.bls = {pre_commit_message, prove_commit_message}};
     }};
 
     api->ChainNotify = {
-        [=]() -> outcome::result<Chan<std::vector<HeadChange>>> {
+        [block_cid]() -> outcome::result<Chan<std::vector<HeadChange>>> {
           auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
 
           Tipset tipset{.cids = {block_cid}};
@@ -107,7 +107,7 @@ namespace fc::markets::storage::events {
    */
   TEST_F(EventsTest, WaitCommitSector) {
     api->ChainNotify = {
-        [=]() -> outcome::result<Chan<std::vector<HeadChange>>> {
+        []() -> outcome::result<Chan<std::vector<HeadChange>>> {
           auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
           return Chan{std::move(channel)};
         }};
