@@ -263,7 +263,7 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<void> RemoteStore::fetch(const std::string &url,
-                                           const std::string &output_name) {
+                                           const std::string &output_path) {
     // TODO: Log it
     CURL *curl = curl_easy_init();
 
@@ -293,6 +293,7 @@ namespace fc::sector_storage::stores {
     // TODO: Add callback
 
     long httpCode;
+    std::string temp_file_path;
 
     curl_easy_perform(curl);
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
@@ -312,11 +313,12 @@ namespace fc::sector_storage::stores {
     }
 
     boost::system::error_code ec;
-    fs::remove_all(output_name, ec);
+    fs::remove_all(output_path, ec);
 
     if (ec.failed()) {
       return outcome::success();  // TODO: ERROR
     }
+    ec.clear();
 
     std::string mediatype(ct);
 
@@ -326,7 +328,10 @@ namespace fc::sector_storage::stores {
     }
 
     if (mediatype == "application/octet-stream") {
-      // TODO: Write to file
+      fs::rename(temp_file_path, output_path, ec);
+      if (ec.failed()) {
+        return outcome::success();  // TODO: ERROR
+      }
       return outcome::success();
     }
 

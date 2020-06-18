@@ -50,7 +50,7 @@ namespace fc::sector_storage::stores {
         bool can_seal);
 
     outcome::result<void> fetch(const std::string &url,
-                                const std::string &output_name);
+                                const std::string &output_path);
 
     outcome::result<void> deleteFromRemote(const std::string &url);
 
