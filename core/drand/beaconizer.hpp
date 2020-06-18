@@ -26,7 +26,7 @@ namespace fc::drand {
                                               const BeaconEntry &previous) = 0;
 
     /// Calculates the maximum beacon round for the given filecoin epoch
-    virtual outcome::result<uint64_t> MaxBeaconRoundForEpoch(
+    virtual outcome::result<uint64_t> maxBeaconRoundForEpoch(
         ChainEpoch fil_epoch) = 0;
   };
 }  // namespace fc::drand

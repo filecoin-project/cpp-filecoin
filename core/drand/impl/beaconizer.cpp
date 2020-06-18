@@ -70,7 +70,7 @@ namespace fc::drand {
                                               std::move(net_key),
                                               max_cache_size);
     OUTCOME_TRY(instance->init());
-    return instance;
+    return outcome::success(std::move(instance));
   }
 
   BeaconizerImpl::BeaconizerImpl(uint64_t filecoin_genesis_time,
@@ -86,8 +86,6 @@ namespace fc::drand {
         bls_{std::make_unique<crypto::bls::BlsProviderImpl>()} {
     BOOST_ASSERT(not peers_.empty());
     BOOST_ASSERT(max_cache_size > 0);
-    rotatePeersIndex();
-    dial();
   }
 
   outcome::result<BeaconEntry> BeaconizerImpl::entry(uint64_t round) {
@@ -123,7 +121,7 @@ namespace fc::drand {
     return outcome::success();
   }
 
-  outcome::result<uint64_t> BeaconizerImpl::MaxBeaconRoundForEpoch(
+  outcome::result<uint64_t> BeaconizerImpl::maxBeaconRoundForEpoch(
       ChainEpoch fil_epoch) {
     if (fil_epoch < 0) {
       return Error::NEGATIVE_EPOCH;

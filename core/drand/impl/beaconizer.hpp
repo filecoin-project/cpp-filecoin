@@ -60,7 +60,7 @@ namespace fc::drand {
     outcome::result<void> verifyEntry(const BeaconEntry &current,
                                       const BeaconEntry &previous) override;
 
-    outcome::result<uint64_t> MaxBeaconRoundForEpoch(
+    outcome::result<uint64_t> maxBeaconRoundForEpoch(
         ChainEpoch fil_epoch) override;
 
    private:
