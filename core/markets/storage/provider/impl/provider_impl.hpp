@@ -25,6 +25,7 @@
 
 namespace fc::markets::storage::provider {
   using api::MinerApi;
+  using events::Events;
   using fc::storage::filestore::FileStore;
   using fc::storage::filestore::Path;
   using fc::storage::keystore::KeyStore;
@@ -37,7 +38,6 @@ namespace fc::markets::storage::provider {
   using primitives::EpochDuration;
   using primitives::GasAmount;
   using primitives::sector::RegisteredProof;
-  using events::Events;
   using ProviderTransition =
       fsm::Transition<ProviderEvent, StorageDealStatus, MinerDeal>;
   using ProviderFSM = fsm::FSM<ProviderEvent, StorageDealStatus, MinerDeal>;
@@ -72,7 +72,7 @@ namespace fc::markets::storage::provider {
 
     auto start() -> outcome::result<void> override;
 
-    auto stop() -> void override;
+    auto stop() -> outcome::result<void> override;
 
     auto addAsk(const TokenAmount &price, ChainEpoch duration)
         -> outcome::result<void> override;

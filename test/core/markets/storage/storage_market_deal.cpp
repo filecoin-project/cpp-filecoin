@@ -17,7 +17,7 @@ namespace fc::markets::storage::test {
    * @when client send deal proposal, then send data
    * @then deal activated
    */
-  TEST_F(StorageMarketTest, DISABLED_Deal) {
+  TEST_F(StorageMarketTest, Deal) {
     auto promise = std::make_shared<std::promise<outcome::result<void>>>();
     promise->set_value(outcome::success());
     EXPECT_CALL(*events_, onDealSectorCommitted(_, _))
@@ -108,7 +108,7 @@ namespace fc::markets::storage::test {
    * @when client initiates deal and waits for funding
    * @then when funding completed, proposal sent and deal activated
    */
-  TEST_F(StorageMarketTest, DISABLED_WaitFundingDeal) {
+  TEST_F(StorageMarketTest, WaitFundingDeal) {
     auto promise = std::make_shared<std::promise<outcome::result<void>>>();
     promise->set_value(outcome::success());
     EXPECT_CALL(*events_, onDealSectorCommitted(_, _))
