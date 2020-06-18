@@ -5,7 +5,6 @@
 
 #include "sector_storage/stores/impl/remote_store.hpp"
 
-#include <curl/curl.h>
 #include <rapidjson/document.h>
 #include <boost/filesystem.hpp>
 #include <utility>
@@ -14,6 +13,7 @@
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fs = boost::filesystem;
+using fc::common::ReqMethod;
 
 namespace {
   std::size_t callback(const char *in,
@@ -31,10 +31,12 @@ namespace fc::sector_storage::stores {
   RemoteStore::RemoteStore(
       std::shared_ptr<LocalStore> local,
       std::shared_ptr<SectorIndex> index,
-      std::unordered_map<HeaderName, HeaderValue> auth_headers)
+      std::unordered_map<HeaderName, HeaderValue> auth_headers,
+      std::shared_ptr<RequestFactory> request_factory)
       : local_(std::move(local)),
         index_(std::move(index)),
-        auth_headers_(std::move(auth_headers)) {}
+        auth_headers_(std::move(auth_headers)),
+        request_factory_(std::move(request_factory)) {}
 
   outcome::result<AcquireSectorResponse> RemoteStore::acquireSector(
       SectorId sector,
@@ -158,46 +160,19 @@ namespace fc::sector_storage::stores {
 
     parser.setPath((fs::path(parser.path()) / "stat" / id).string());
 
-    CURL *curl = curl_easy_init();
+    OUTCOME_TRY(req, request_factory_->newRequest(parser.str()));
 
-    if (!curl) {
-      return outcome::success();  // TODO: ERROR
-    }
+    req->setupHeaders(auth_headers_);
 
-    curl_easy_setopt(curl, CURLOPT_URL, parser.str().c_str());
-
-    curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-
-    // Follow HTTP redirects if necessary
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-
-    struct curl_slist *headers = nullptr;
-
-    for (const auto &[name, value] : auth_headers_) {
-      std::string header(name);
-      header.append(": ");
-      header.append(value);
-      headers = curl_slist_append(headers, header.c_str());
-    }
-    if (headers) {
-      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    }
-
-    long httpCode;
     std::string httpData;
 
-    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callback);
+    req->setupWriteFunction(callback);
 
-    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &httpData);
+    req->setupWriteOutput(&httpData);
 
-    curl_easy_perform(curl);
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-    curl_easy_cleanup(curl);
-    if (headers) {
-      curl_slist_free_all(headers);
-    }
+    auto res = req->perform();
 
-    switch (httpCode) {
+    switch (res.status_code) {
       case 404:
         return StoreErrors::NotFoundPath;
       case 500:
@@ -265,50 +240,16 @@ namespace fc::sector_storage::stores {
   outcome::result<void> RemoteStore::fetch(const std::string &url,
                                            const std::string &output_path) {
     // TODO: Log it
-    CURL *curl = curl_easy_init();
+    OUTCOME_TRY(req, request_factory_->newRequest(url));
 
-    if (!curl) {
-      return outcome::success();  // TODO: ERROR
-    }
-
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-
-    curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-
-    // Follow HTTP redirects if necessary
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-
-    struct curl_slist *headers = nullptr;
-
-    for (const auto &[name, value] : auth_headers_) {
-      std::string header(name);
-      header.append(": ");
-      header.append(value);
-      headers = curl_slist_append(headers, header.c_str());
-    }
-    if (headers) {
-      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    }
+    req->setupHeaders(auth_headers_);
 
     // TODO: Add callback
-
-    long httpCode;
     std::string temp_file_path;
 
-    curl_easy_perform(curl);
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-    char *ct = nullptr;
-    curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &ct);
-    curl_easy_cleanup(curl);
-    if (headers) {
-      curl_slist_free_all(headers);
-    }
+    auto res = req->perform();
 
-    if (httpCode != 200) {
-      return outcome::success();  // TODO: ERROR
-    }
-
-    if (!ct) {
+    if (res.status_code != 200) {
       return outcome::success();  // TODO: ERROR
     }
 
@@ -320,14 +261,12 @@ namespace fc::sector_storage::stores {
     }
     ec.clear();
 
-    std::string mediatype(ct);
-
-    if (mediatype == "application/x-tar") {
+    if (res.content_type == "application/x-tar") {
       // TODO: Processing tar
       return outcome::success();
     }
 
-    if (mediatype == "application/octet-stream") {
+    if (res.content_type == "application/octet-stream") {
       fs::rename(temp_file_path, output_path, ec);
       if (ec.failed()) {
         return outcome::success();  // TODO: ERROR
@@ -341,42 +280,15 @@ namespace fc::sector_storage::stores {
   outcome::result<void> RemoteStore::deleteFromRemote(const std::string &url) {
     // TODO: Log it
 
-    CURL *curl = curl_easy_init();
+    OUTCOME_TRY(req, request_factory_->newRequest(url));
 
-    if (!curl) {
-      return outcome::success();  // TODO: ERROR
-    }
+    req->setupMethod(ReqMethod::DELETE);
 
-    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+    req->setupHeaders(auth_headers_);
 
-    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+    auto res = req->perform();
 
-    curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
-
-    // Follow HTTP redirects if necessary
-    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-
-    struct curl_slist *headers = nullptr;
-
-    for (const auto &[name, value] : auth_headers_) {
-      std::string header(name);
-      header.append(": ");
-      header.append(value);
-      headers = curl_slist_append(headers, header.c_str());
-    }
-    if (headers) {
-      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-    }
-
-    long httpCode;
-    curl_easy_perform(curl);
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpCode);
-    curl_easy_cleanup(curl);
-    if (headers) {
-      curl_slist_free_all(headers);
-    }
-
-    if (httpCode != 200) {
+    if (res.status_code != 200) {
       return outcome::success();  // TODO: ERROR
     }
 

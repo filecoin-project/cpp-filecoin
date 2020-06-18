@@ -42,6 +42,7 @@ target_link_libraries(logger
     spdlog::spdlog
     )
 
+add_subdirectory(http_requests)
 add_subdirectory(libp2p)
 add_subdirectory(uri_parser)
 
