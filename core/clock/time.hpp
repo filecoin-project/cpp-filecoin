@@ -15,8 +15,23 @@ namespace fc::clock {
   enum class TimeFromStringError { INVALID_FORMAT = 1 };
 
   using UnixTime = std::chrono::seconds;
-  using Time = UnixTime;
+  using UnixTimeNano = std::chrono::nanoseconds;
 
+  class Time {
+   public:
+    explicit Time(const UnixTimeNano &unix_time_nano);
+    std::string time() const;
+    UnixTime unixTime() const;
+    UnixTimeNano unixTimeNano() const;
+    bool operator<(const Time &other) const;
+    bool operator==(const Time &other) const;
+    static outcome::result<Time> fromString(const std::string &str);
+
+   private:
+    UnixTimeNano unix_time_nano_;
+  };
+
+  // TODO FIL-236 remove free functions and use Time::time and Time::fromString
   std::string unixTimeToString(UnixTime);
   outcome::result<UnixTime> unixTimeFromString(const std::string &str);
 }  // namespace fc::clock

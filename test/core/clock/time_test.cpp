@@ -13,6 +13,9 @@ using fc::clock::UnixTime;
 using fc::clock::unixTimeFromString;
 using fc::clock::unixTimeToString;
 
+// TODO FIL-236 employ class Time instead of free functions
+// TODO add additional tests for a string with nanoseconds
+
 static std::string kValidStr = "2019-10-21T23:12:37Z";
 
 /**

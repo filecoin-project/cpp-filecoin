@@ -21,9 +21,11 @@
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "power/impl/power_table_impl.hpp"
 #include "storage/chain/impl/chain_store_impl.hpp"
+#include "storage/chain/msg_waiter.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "storage/mpool/mpool.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
 namespace fc::node {
@@ -86,8 +88,8 @@ namespace fc::node {
     o.utc_clock = injector.create<std::shared_ptr<clock::UTCClock>>();
 
     // TODO: genesis time
-    o.chain_epoch_clock =
-        std::make_shared<clock::ChainEpochClockImpl>(clock::Time{});
+    o.chain_epoch_clock = std::make_shared<clock::ChainEpochClockImpl>(
+        clock::Time{std::chrono::nanoseconds(0)}.unixTime());
 
     // TODO - switch on real storage after debugging all the stuff
     o.ipfs_datastore = std::make_shared<storage::ipfs::InMemoryDatastore>();
@@ -140,10 +142,21 @@ namespace fc::node {
     o.graphsync = std::make_shared<storage::ipfs::graphsync::GraphsyncImpl>(
         o.host, o.scheduler);
 
+    // ARTEM, why all the todos above are without jira ids?
+
+    // TODO Artem - replace two stubs below with proper implementations
+    auto mpool = storage::mpool::Mpool::create(o.ipfs_datastore, o.chain_store);
+    auto msg_waiter =
+        storage::blockchain::MsgWaiter::create(o.ipfs_datastore, o.chain_store);
+
+    // TODO Artem - pass the correct interpreter below
     o.api = std::make_shared<api::Api>(api::makeImpl(o.chain_store,
                                                      weight_calculator,
                                                      o.ipfs_datastore,
                                                      bls_provider,
+                                                     mpool,
+                                                     vm_interpreter,
+                                                     msg_waiter,
                                                      key_store));
 
     return o;

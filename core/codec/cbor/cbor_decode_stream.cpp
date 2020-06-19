@@ -156,6 +156,10 @@ namespace fc::codec::cbor {
     return cbor_value_is_byte_string(&value_);
   }
 
+  bool CborDecodeStream::isEOF() const {
+    return value_.ptr == value_.parser->end;
+  }
+
   size_t CborDecodeStream::listLength() const {
     if (!isList()) {
       outcome::raise(CborDecodeError::WRONG_TYPE);

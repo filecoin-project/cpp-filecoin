@@ -130,6 +130,10 @@ namespace fc::codec::cbor {
     bool isInt() const;
     bool isStr() const;
     bool isBytes() const;
+
+    // no more bytes to decode
+    bool isEOF() const;
+
     /** Returns count of items in current element list container */
     size_t listLength() const;
     /** Reads CBOR bytes of current element (and advances to the next element)

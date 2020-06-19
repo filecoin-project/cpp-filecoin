@@ -69,7 +69,7 @@ namespace fc::sync {
         *ls >> ret.first;
         *ls >> ret.second;
 
-        //return std::move(ret); redundant move
+        // return std::move(ret); redundant move
         return ret;
 
       } catch (const std::exception &e) {
@@ -109,7 +109,7 @@ namespace fc::sync {
         *ls >> ret.first.heaviest_tipset_weight;
         *ls >> ret.second;
 
-        //return std::move(ret);
+        // return std::move(ret);
         return ret;
 
       } catch (const std::exception &e) {

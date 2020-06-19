@@ -28,7 +28,10 @@ target_link_libraries(node_builder
     ipfs_datastore_in_memory
     weight_calculator
     secp256k1_provider
-    Boost::program_options)
+    Boost::program_options
+    mpool
+    msg_waiter
+    )
 
 add_executable(node_main
     main.cpp

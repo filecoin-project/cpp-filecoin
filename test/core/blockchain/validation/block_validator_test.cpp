@@ -50,7 +50,8 @@ class BlockValidatorTest : public testing::Test {
     auto datastore = std::make_shared<DataStore>();
     auto utc_clock = std::make_shared<UTCClockMock>();
     std::chrono::duration<uint64_t> genesis_time{config::kGenesisTime};
-    auto epoch_clock = std::make_shared<EpochClock>(Time{genesis_time});
+    auto epoch_clock =
+        std::make_shared<EpochClock>(Time{genesis_time}.unixTime());
     auto weight_calculator = std::make_shared<WeightCalculator>();
     auto power_table = std::make_shared<PowerTable>();
     auto result = power_table->setMinerPower(
