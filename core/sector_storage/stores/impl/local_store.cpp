@@ -229,11 +229,18 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<std::unique_ptr<LocalStore>> LocalStore::newLocalStore(
-      std::shared_ptr<LocalStorage> storage,
-      std::shared_ptr<SectorIndex> index,
+      const std::shared_ptr<LocalStorage> &storage,
+      const std::shared_ptr<SectorIndex> &index,
       gsl::span<std::string> urls) {
-    std::unique_ptr<LocalStore> local(
-        new LocalStore(std::move(storage), std::move(index), urls));
+    struct make_unique_enabler : public LocalStore {
+      make_unique_enabler(const std::shared_ptr<LocalStorage> &storage,
+                          const std::shared_ptr<SectorIndex> &index,
+                          gsl::span<std::string> urls)
+          : LocalStore{storage, index, urls} {};
+    };
+
+    std::unique_ptr<LocalStore> local =
+        std::make_unique<make_unique_enabler>(storage, index, urls);
 
     if (local->logger_ == nullptr) {
       return StoreErrors::CannotInitLogger;

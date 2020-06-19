@@ -29,8 +29,8 @@ namespace fc::sector_storage::stores {
   class LocalStore : public Store {
    public:
     static outcome::result<std::unique_ptr<LocalStore>> newLocalStore(
-        std::shared_ptr<LocalStorage> storage,
-        std::shared_ptr<SectorIndex> index,
+        const std::shared_ptr<LocalStorage> &storage,
+        const std::shared_ptr<SectorIndex> &index,
         gsl::span<std::string> urls);
 
     outcome::result<void> openPath(const std::string &path);
