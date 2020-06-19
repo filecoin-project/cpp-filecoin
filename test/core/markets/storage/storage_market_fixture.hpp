@@ -178,6 +178,8 @@ namespace fc::markets::storage::test {
     }
 
     void TearDown() override {
+      OUTCOME_EXCEPT(provider->stop());
+      OUTCOME_EXCEPT(client->stop());
       context->stop();
     }
 

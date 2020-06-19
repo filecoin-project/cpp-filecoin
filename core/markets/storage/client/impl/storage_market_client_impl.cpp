@@ -19,11 +19,11 @@
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 
-#define CALLBACK_ACTION(_action)                                          \
-  [self{shared_from_this()}](auto deal, auto event, auto from, auto to) { \
-    self->logger_->debug("Client FSM " #_action);                         \
-    self->_action(deal, event, from, to);                                 \
-    deal->state = to;                                                     \
+#define CALLBACK_ACTION(_action)                      \
+  [this](auto deal, auto event, auto from, auto to) { \
+    logger_->debug("Client FSM " #_action);           \
+    _action(deal, event, from, to);                   \
+    deal->state = to;                                 \
   }
 
 #define FSM_HALT_ON_ERROR(result, msg, deal)                            \
@@ -99,7 +99,15 @@ namespace fc::markets::storage::client {
 
   void StorageMarketClientImpl::run() {}
 
-  void StorageMarketClientImpl::stop() {}
+  outcome::result<void> StorageMarketClientImpl::stop() {
+    fsm_->stop();
+    OUTCOME_TRY(network_->stopHandlingRequests());
+    std::lock_guard<std::mutex> lock(connections_mutex_);
+    for (auto &[_, stream] : connections_) {
+      network_->closeStreamGracefully(stream);
+    }
+    return outcome::success();
+  }
 
   outcome::result<std::vector<StorageProviderInfo>>
   StorageMarketClientImpl::listProviders() const {
