@@ -6,19 +6,26 @@
 #ifndef CPP_FILECOIN_SYNC_PEER_MANAGER_HPP
 #define CPP_FILECOIN_SYNC_PEER_MANAGER_HPP
 
+#include <functional>
+#include <list>
 #include <set>
 #include <unordered_map>
 
 #include <libp2p/peer/peer_info.hpp>
 #include "node/builder.hpp"
 #include "node/config.hpp"
-#include "hello.hpp"
+#include "sync/hello.hpp"
 
 namespace fc::sync {
 
   class PeerManager : public std::enable_shared_from_this<PeerManager> {
    public:
     using PeerId = libp2p::peer::PeerId;
+
+    using PeerStatusUpdateCallback = void(const PeerId &,
+                                          bool /*is connected now*/,
+                                          bool /*all protocols are supported*/,
+                                          bool /*belongs to our network*/);
 
     struct GetPeerOptions {
       bool must_be_network_node = false;
@@ -40,8 +47,7 @@ namespace fc::sync {
 
     const std::vector<libp2p::peer::PeerInfo> &getBootstrapPeers() const;
 
-    // chooses max weight peer from connected node peers
-    boost::optional<PeerId> choosePeer();
+    std::vector<PeerId> getPeers();
 
     // connects to bootstrap peers
     outcome::result<void> start();
@@ -49,18 +55,20 @@ namespace fc::sync {
     // disconnects from peers
     void stop();
 
-   private:
-    void onIdentifyReceived(const PeerId& peer);
-    void onHello(const PeerId &peer,
-        outcome::result<Hello::Message> state);
-    void onHelloLatencyMessage(const PeerId &peer,
-                         outcome::result<uint64_t> result);
+    boost::signals2::connection subscribe(
+        const std::function<PeerStatusUpdateCallback> &cb);
 
-    struct InfoAndProtocols {
-      primitives::BigInt current_weight;
-      boost::optional<libp2p::multi::Multiaddress> connect_to;
-      std::vector<std::string> protocols;
-    };
+    /// tell peer manager and others that given peer gone
+    void reportOfflinePeer(const PeerId &peer_id);
+
+   private:
+    void onIdentifyReceived(const PeerId &peer_id);
+    void onHello(const PeerId &peer_id,
+                 outcome::result<Hello::Message> hello_message);
+    void onHelloLatencyMessage(const PeerId &peer,
+                               outcome::result<uint64_t> result);
+
+    void postPeerStatus(const PeerId &peer_id);
 
     const std::set<std::string> node_protocols_;
     std::shared_ptr<libp2p::Host> host_;
@@ -71,13 +79,39 @@ namespace fc::sync {
     std::shared_ptr<libp2p::protocol::IdentifyDelta> identify_delta_protocol_;
     std::shared_ptr<storage::blockchain::ChainStore> chain_store_;
     std::vector<libp2p::peer::PeerInfo> bootstrap_peers_;
-    std::unordered_map<PeerId, InfoAndProtocols> node_peers_;
-    std::set<std::pair<primitives::BigInt, PeerId>, std::greater<>>
-        node_peers_weighted_;
-    std::unordered_map<PeerId, InfoAndProtocols> other_peers_;
     bool started_ = false;
 
     boost::signals2::connection on_identify_;
+    boost::signals2::signal<PeerStatusUpdateCallback> peer_update_signal_;
+
+    struct PeersRepository {
+      using PeersList = std::list<PeerId>;
+      using PeersIter = PeersList::iterator;
+      using PeersIndex = std::vector<PeersIter>;
+
+      struct PeerInfoAndProtocols {
+        PeersIter peer_iter;
+        primitives::BigInt current_weight;
+        boost::optional<libp2p::multi::Multiaddress> connect_to;
+        std::vector<std::string> protocols;
+      };
+
+      PeerInfoAndProtocols &getRecord(const PeerId &peer_id);
+
+      PeersList list;
+      PeersIndex online;
+      PeersIndex all_protocols;
+      PeersIndex our_network;
+      std::unordered_map<PeerId, PeerInfoAndProtocols> map;
+
+      struct PeerIdComparator {
+        bool operator()(const PeersIter &lhs, const PeersIter &rhs);
+
+       private:
+        static const std::string &peerToString(const PeerId &peer_id);
+        static std::unordered_map<PeerId, std::string> cache;
+      };
+    } peers_;
   };
 
 }  // namespace fc::sync
