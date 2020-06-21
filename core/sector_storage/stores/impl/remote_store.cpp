@@ -253,8 +253,8 @@ namespace fc::sector_storage::stores {
 
     req->setupHeaders(auth_headers_);
 
-    fs::path temp_file_path("/tmp");
-    temp_file_path /= (fs::unique_path().string() + ".tar");
+    fs::path temp_file_path =
+        fs::temp_directory_path() / (fs::unique_path().string() + ".tar");
 
     std::ofstream temp_file(temp_file_path.string(),
                             std::ios_base::out | std::ios_base::binary);
