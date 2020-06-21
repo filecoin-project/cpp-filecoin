@@ -18,10 +18,8 @@ namespace fc::common {
    public:
     ~RequestImpl() override;
 
-    void setupWriteFunction(
-        const std::function<std::size_t(
-            const char *, std::size_t, std::size_t, std::string *)> &callback)
-        override;
+    void setupWriteFunction(std::size_t (*callback)(
+        const char *, std::size_t, std::size_t, void *)) override;
 
     void setupWriteOutput(void *output) override;
 

@@ -16,12 +16,21 @@ namespace fs = boost::filesystem;
 using fc::common::ReqMethod;
 
 namespace {
-  std::size_t callback(const char *in,
-                       std::size_t size,
-                       std::size_t num,
-                       std::string *out) {
+  std::size_t callbackString(const char *in,
+                             std::size_t size,
+                             std::size_t num,
+                             void *out) {
     const std::size_t totalBytes(size * num);
-    out->append(in, totalBytes);
+    (static_cast<std::string *>(out))->append(in, totalBytes);
+    return totalBytes;
+  }
+
+  std::size_t callbackFile(const char *ptr,
+                           std::size_t size,
+                           std::size_t nmemb,
+                           void *stream) {
+    const std::size_t totalBytes(size * nmemb);
+    static_cast<std::ofstream *>(stream)->write(ptr, size);
     return totalBytes;
   }
 }  // namespace
@@ -164,11 +173,11 @@ namespace fc::sector_storage::stores {
 
     req->setupHeaders(auth_headers_);
 
-    std::string httpData;
+    std::string body;
 
-    req->setupWriteFunction(callback);
+    req->setupWriteFunction(callbackString);
 
-    req->setupWriteOutput(&httpData);
+    req->setupWriteOutput(&body);
 
     auto res = req->perform();
 
@@ -183,8 +192,8 @@ namespace fc::sector_storage::stores {
     }
 
     rapidjson::Document j_file;
-    j_file.Parse(httpData.data(), httpData.size());
-    httpData.clear();
+    j_file.Parse(body.data(), body.size());
+    body.clear();
     if (j_file.HasParseError()) {
       return outcome::success();  // TODO: error
     }
@@ -244,11 +253,23 @@ namespace fc::sector_storage::stores {
 
     req->setupHeaders(auth_headers_);
 
-    // TODO: Add callback
-    std::string temp_file_path;
+    fs::path temp_file_path("/tmp");
+    temp_file_path /= (fs::unique_path().string() + ".tar");
+
+    std::ofstream temp_file(temp_file_path.string(),
+                            std::ios_base::out | std::ios_base::binary);
+
+    if (!temp_file.good()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    req->setupWriteFunction(callbackFile);
+
+    req->setupWriteOutput(&temp_file);
 
     auto res = req->perform();
 
+    temp_file.close();
     if (res.status_code != 200) {
       return outcome::success();  // TODO: ERROR
     }
@@ -263,6 +284,10 @@ namespace fc::sector_storage::stores {
 
     if (res.content_type == "application/x-tar") {
       // TODO: Processing tar
+      fs::remove_all(temp_file_path, ec);
+      if (ec.failed()) {
+        return outcome::success();  // TODO: ERROR
+      }
       return outcome::success();
     }
 

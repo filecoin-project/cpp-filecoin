@@ -31,10 +31,8 @@ namespace fc::common {
    public:
     virtual ~Request() = default;
 
-    virtual void setupWriteFunction(
-        const std::function<
-            std::size_t(const char *, std::size_t, std::size_t, std::string *)>
-            &callback) = 0;
+    virtual void setupWriteFunction(std::size_t (*callback)(
+        const char *, std::size_t, std::size_t, void *)) = 0;
 
     virtual void setupWriteOutput(void *output) = 0;
 

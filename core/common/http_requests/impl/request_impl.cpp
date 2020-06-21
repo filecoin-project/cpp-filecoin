@@ -7,9 +7,8 @@
 
 namespace fc::common {
   void RequestImpl::setupWriteFunction(
-      const std::function<std::size_t(
-          const char *, std::size_t, std::size_t, std::string *)> &callback) {
-    curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, &callback);
+      std::size_t (*callback)(const char *, std::size_t, std::size_t, void *)) {
+    curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, callback);
   }
 
   void RequestImpl::setupWriteOutput(void *output) {
