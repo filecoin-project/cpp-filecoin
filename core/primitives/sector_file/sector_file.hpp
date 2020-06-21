@@ -20,6 +20,7 @@ namespace fc::primitives::sector_file {
     FTSealed = 2,
     FTCache = 4,
   };
+  constexpr size_t kSectorFileTypeBits{3};
 
   const std::vector<SectorFileType> kSectorFileTypes = {
       SectorFileType::FTUnsealed,
