@@ -43,6 +43,9 @@ namespace fc::markets::storage::provider {
       // TODO generate valid chain_head with proper height
       //chain_head.height = epoch;
 
+      // BlockHeader { .... height = epoch, ... }
+      // chain_head = Tipset::create( { header} ).value();
+
       api->ChainHead = {[=]() { return chain_head; }};
 
       bls_keypair = bls_provider_->generateKeyPair().value();
