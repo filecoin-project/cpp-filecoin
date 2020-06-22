@@ -50,7 +50,7 @@ namespace fc::api {
 
   constexpr EpochDuration kWinningPoStSectorSetLookback{10};
 
-  // TODO: move
+  // TODO: move if can be reused
   Randomness drawRandomness(gsl::span<const uint8_t> base,
                             DomainSeparationTag tag,
                             ChainEpoch round,
