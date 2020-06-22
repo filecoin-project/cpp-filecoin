@@ -64,12 +64,7 @@ namespace fc::data_transfer {
                     outcome::result<DataTransferMessage> message) {
                   if (auto self = self_weak.lock()) {
                     self->logger_->debug("New message");
-                    if (message.has_error()) {
-                      self->logger_->error("Read error "
-                                           + message.error().message());
-                      self->receiver_->receiveError();
-                      return;
-                    }
+                    CHECK_OUTCOME_RESULT(message, self->receiver_);
                     if (message.value().is_request) {
                       CHECK_OUTCOME_RESULT(
                           self->receiver_->receiveRequest(

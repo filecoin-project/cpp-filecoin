@@ -15,7 +15,7 @@ namespace fc::data_transfer {
   using storage::ipfs::graphsync::ResponseStatusCode;
 
   GraphsyncReceiver::GraphsyncReceiver(
-      std::shared_ptr<DataTransferNetwork> network,
+      std::weak_ptr<DataTransferNetwork> network,
       std::shared_ptr<Graphsync> graphsync,
       std::weak_ptr<Manager> graphsync_manager,
       PeerInfo peer)
@@ -37,8 +37,8 @@ namespace fc::data_transfer {
     auto selector = std::make_shared<Selector>();
     OUTCOME_TRY(base_cid, CID::fromString(request.base_cid));
 
-    if (request.is_pull) {
-      if (auto manager = graphsync_manager_.lock()) {
+    if (auto manager = graphsync_manager_.lock()) {
+      if (request.is_pull) {
         auto channel = manager->createChannel(request.transfer_id,
                                               base_cid,
                                               selector,
@@ -50,15 +50,13 @@ namespace fc::data_transfer {
           logger_->warn("Cannot create channel: " + channel.error().message());
           return sendResponse(initiator, false, request.transfer_id);
         }
-      }
-    } else {
-      OUTCOME_TRY(sendGraphSyncRequest(initiator,
-                                       request.transfer_id,
-                                       request.is_pull,
-                                       initiator,
-                                       base_cid,
-                                       request.selector));
-      if (auto manager = graphsync_manager_.lock()) {
+      } else {
+        OUTCOME_TRY(sendGraphSyncRequest(initiator,
+                                         request.transfer_id,
+                                         request.is_pull,
+                                         initiator,
+                                         base_cid,
+                                         request.selector));
         auto channel = manager->createChannel(request.transfer_id,
                                               base_cid,
                                               selector,
@@ -115,7 +113,9 @@ namespace fc::data_transfer {
   outcome::result<void> GraphsyncReceiver::sendResponse(
       const PeerInfo &peer, bool is_accepted, const TransferId &transfer_id) {
     DataTransferMessage response = createResponse(is_accepted, transfer_id);
-    network_->sendMessage(peer, response);
+    if (auto network = network_.lock()) {
+      network->sendMessage(peer, response);
+    }
     return outcome::success();
   }
 
