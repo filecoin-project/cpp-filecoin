@@ -9,6 +9,7 @@
 #include <boost/filesystem.hpp>
 #include <utility>
 #include "api/rpc/json.hpp"
+#include "common/tar_util.hpp"
 #include "common/uri_parser/uri_parser.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
@@ -283,12 +284,13 @@ namespace fc::sector_storage::stores {
     ec.clear();
 
     if (res.content_type == "application/x-tar") {
-      // TODO: Processing tar
+      auto result =
+          fc::common::extractTar(temp_file_path.string(), output_path);
       fs::remove_all(temp_file_path, ec);
       if (ec.failed()) {
-        return outcome::success();  // TODO: ERROR
+        // TODO: Log it
       }
-      return outcome::success();
+      return result;
     }
 
     if (res.content_type == "application/octet-stream") {

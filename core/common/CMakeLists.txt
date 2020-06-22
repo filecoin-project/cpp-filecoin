@@ -42,6 +42,16 @@ target_link_libraries(logger
     spdlog::spdlog
     )
 
+add_library(tar_util
+        tar_util.cpp
+        )
+
+target_link_libraries(tar_util
+        outcome
+        logger
+        # TODO: Add libarchive dep
+        )
+
 add_subdirectory(http_requests)
 add_subdirectory(libp2p)
 add_subdirectory(uri_parser)

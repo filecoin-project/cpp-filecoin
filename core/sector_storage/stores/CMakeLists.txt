@@ -26,4 +26,5 @@ target_link_libraries(store
         logger
         rpc
         sector_index
+        tar_util
         )
