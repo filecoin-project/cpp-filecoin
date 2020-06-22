@@ -46,7 +46,8 @@ namespace fc::sector_storage::stores {
       : local_(std::move(local)),
         index_(std::move(index)),
         auth_headers_(std::move(auth_headers)),
-        request_factory_(std::move(request_factory)) {}
+        request_factory_(std::move(request_factory)),
+        logger_{common::createLogger("remote store")} {}
 
   outcome::result<AcquireSectorResponse> RemoteStore::acquireSector(
       SectorId sector,
@@ -113,7 +114,9 @@ namespace fc::sector_storage::stores {
       auto maybe_err = index_->storageDeclareSector(
           maybe_remote_response.value().storage_id, sector, type);
       if (maybe_err.has_error()) {
-        // TODO: Log warn
+        logger_->warn("acquireSector: failed to declare sector {} - {}",
+                      primitives::sector_file::sectorName(sector),
+                      maybe_err.error().message());
         continue;
       }
     }
@@ -131,7 +134,9 @@ namespace fc::sector_storage::stores {
       for (const auto &url : info.urls) {
         auto maybe_error = deleteFromRemote(url);
         if (maybe_error.has_error()) {
-          // TODO: Log warning
+          logger_->warn("remove: failed to remove from {} - {}",
+                        url,
+                        maybe_error.error().message());
           continue;
         }
         break;
@@ -186,7 +191,7 @@ namespace fc::sector_storage::stores {
       case 404:
         return StoreErrors::NotFoundPath;
       case 500:
-        // TODO: log error
+        logger_->error("getFsStat: 500 error received - {}", body);
         return outcome::success();  // TODO: error
       default:
         break;
@@ -234,7 +239,9 @@ namespace fc::sector_storage::stores {
       for (const auto &url : info.urls) {
         auto maybe_error = fetch(url, res.path);
         if (maybe_error.has_error()) {
-          // TODO: log it
+          logger_->warn("acquireFromRemote: failed to acqiure from {} - {}",
+                        url,
+                        maybe_error.error().message());
           continue;
         }
 
@@ -244,12 +251,12 @@ namespace fc::sector_storage::stores {
       }
     }
 
-    return outcome::success();
+    return outcome::success();  // TODO: ERROR
   }
 
   outcome::result<void> RemoteStore::fetch(const std::string &url,
                                            const std::string &output_path) {
-    // TODO: Log it
+    logger_->info("fetch: {} -> {}", url, output_path);
     OUTCOME_TRY(req, request_factory_->newRequest(url));
 
     req->setupHeaders(auth_headers_);
@@ -288,7 +295,7 @@ namespace fc::sector_storage::stores {
           fc::common::extractTar(temp_file_path.string(), output_path);
       fs::remove_all(temp_file_path, ec);
       if (ec.failed()) {
-        // TODO: Log it
+        logger_->warn("fetch: failed to remove archive - {}", ec.message());
       }
       return result;
     }
@@ -305,7 +312,7 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<void> RemoteStore::deleteFromRemote(const std::string &url) {
-    // TODO: Log it
+    logger_->info("delete from remote: {}", url);
 
     OUTCOME_TRY(req, request_factory_->newRequest(url));
 

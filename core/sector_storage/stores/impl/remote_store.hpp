@@ -70,6 +70,8 @@ namespace fc::sector_storage::stores {
     std::set<SectorId> processing_;
     std::mutex waiting_room_;
     std::mutex mutex_;
+
+    common::Logger logger_;
   };
 
 }  // namespace fc::sector_storage::stores
