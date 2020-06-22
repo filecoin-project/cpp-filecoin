@@ -190,8 +190,8 @@ namespace fc::sync {
     identify_delta_protocol_->start();
 
     fc::sync::Hello::Message initial_state;
-    initial_state.heaviest_tipset = tipset.cids;
-    initial_state.heaviest_tipset_height = tipset.height;
+    initial_state.heaviest_tipset = tipset.key.cids();
+    initial_state.heaviest_tipset_height = tipset.height();
     initial_state.heaviest_tipset_weight = chain_store_->getHeaviestWeight();
 
     hello_->start(
@@ -370,5 +370,8 @@ namespace fc::sync {
                 peer.toBase58(),
                 result.value() / 1000);
   }
+
+  std::unordered_map<libp2p::peer::PeerId, std::string>
+      PeerManager::PeersRepository::PeerIdComparator::cache;
 
 }  // namespace fc::sync

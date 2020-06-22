@@ -6,7 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
 
+#include <boost/optional.hpp>
+#include "common/outcome.hpp"
 #include "primitives/block/block.hpp"
+#include "primitives/cid/cid.hpp"
+#include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::primitives::tipset {
@@ -16,6 +20,8 @@ namespace fc::primitives::tipset {
     MISMATCHING_HEIGHTS,  // cannot create tipset, mismatching blocks heights
     MISMATCHING_PARENTS,  // cannot create tipset, mismatching block parents
     TICKET_HAS_NO_VALUE,  // optional ticket is not initialized
+    TICKETS_COLLISION,    // duplicate tickets in tipset
+    BLOCK_ORDER_FAILURE,  // wrong order of blocks
   };
 }
 
@@ -25,6 +31,7 @@ namespace fc::primitives::tipset {
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::tipset, TipsetError);
 
 namespace fc::primitives::tipset {
+
   using block::BlockHeader;
 
   struct MessageVisitor {
@@ -36,12 +43,16 @@ namespace fc::primitives::tipset {
     std::set<CID> visited{};
   };
 
-  /**
-   * @struct Tipset implemented according to
-   * https://github.com/filecoin-project/lotus/blob/6e94377469e49fa4e643f9204b6f46ef3cb3bf04/chain/types/tipset.go#L18
-   */
   struct Tipset {
-    static outcome::result<Tipset> create(std::vector<BlockHeader> blocks);
+    using BlocksAvailable = std::vector<boost::optional<block::BlockHeader>>;
+
+    /// Creates tipset from loaded blocks, order matters, every block must have
+    /// value
+    static outcome::result<Tipset> create(TipsetKey key,
+                                          BlocksAvailable blocks);
+
+    static outcome::result<Tipset> create(
+        std::vector<block::BlockHeader> blocks);
 
     static outcome::result<Tipset> load(Ipld &ipld,
                                         const std::vector<CID> &cids);
@@ -50,11 +61,6 @@ namespace fc::primitives::tipset {
 
     outcome::result<void> visitMessages(
         IpldPtr ipld, const MessageVisitor::Visitor &visitor) const;
-
-    /**
-     * @brief makes key of cids
-     */
-    outcome::result<TipsetKey> makeKey() const;
 
     /**
      * @return key made of parents
@@ -74,16 +80,16 @@ namespace fc::primitives::tipset {
     /**
      * @return parent state root
      */
-    CID getParentStateRoot() const;
+    const CID &getParentStateRoot() const;
 
-    inline CID getParentMessageReceipts() const {
-      return blks[0].parent_message_receipts;
-    }
+    const CID &getParentMessageReceipts() const;
+
+    uint64_t height() const;
 
     /**
      * @return parent weight
      */
-    BigInt getParentWeight() const;
+    const BigInt &getParentWeight() const;
 
     /**
      * @brief checks whether tipset contains cid
@@ -92,9 +98,8 @@ namespace fc::primitives::tipset {
      */
     bool contains(const CID &cid) const;
 
-    std::vector<CID> cids;                 ///< cids
+    TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers
-    uint64_t height{};                     ///< height
   };
 
   /**
@@ -113,7 +118,7 @@ namespace fc::primitives::tipset {
    */
   bool operator!=(const Tipset &l, const Tipset &r);
 
-  CBOR_TUPLE(Tipset, cids, blks, height)
+  CBOR_ENCODE_TUPLE(Tipset, key.cids(), blks, height())
 
   /**
    * @brief change type
@@ -128,5 +133,13 @@ namespace fc::primitives::tipset {
     Tipset value;
   };
 }  // namespace fc::primitives::tipset
+
+namespace fc::codec::cbor {
+
+  template <>
+  outcome::result<fc::primitives::tipset::Tipset>
+  decode<fc::primitives::tipset::Tipset>(gsl::span<const uint8_t> input);
+
+}  // namespace fc::codec::cbor
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP

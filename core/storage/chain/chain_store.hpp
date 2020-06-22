@@ -88,10 +88,11 @@ namespace fc::storage::blockchain {
     virtual connection_t subscribeHeadChanges(
         const std::function<HeadChangeSignature> &subscriber) = 0;
 
-    inline auto genesisTipsetKey() const {
+    inline TipsetKey genesisTipsetKey() const {
       OUTCOME_EXCEPT(genesis, getGenesis());
       OUTCOME_EXCEPT(genesis_cid, primitives::cid::getCidOfCbor(genesis));
-      return TipsetKey{{std::move(genesis_cid)}};
+      OUTCOME_EXCEPT(key, TipsetKey::create({std::move(genesis_cid)}));
+      return key;
     }
   };
 

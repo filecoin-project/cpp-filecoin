@@ -40,7 +40,9 @@ namespace fc::markets::storage::provider {
     StoredAsk stored_ask{datastore, api, actor_address};
 
     void SetUp() override {
-      chain_head.height = epoch;
+      // TODO generate valid chain_head with proper height
+      //chain_head.height = epoch;
+
       api->ChainHead = {[=]() { return chain_head; }};
 
       bls_keypair = bls_provider_->generateKeyPair().value();

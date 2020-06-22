@@ -35,8 +35,8 @@ namespace fc::markets::storage::test {
     EXPECT_EQ(ask_res.value().ask.min_piece_size, kDefaultMinPieceSize);
     EXPECT_EQ(ask_res.value().ask.max_piece_size, kDefaultMaxPieceSize);
     EXPECT_EQ(ask_res.value().ask.miner, storage_provider_info->address);
-    EXPECT_EQ(ask_res.value().ask.timestamp, chain_head.height);
-    EXPECT_EQ(ask_res.value().ask.expiry, chain_head.height + duration);
+    EXPECT_EQ(ask_res.value().ask.timestamp, chain_head.height());
+    EXPECT_EQ(ask_res.value().ask.expiry, chain_head.height() + duration);
     EXPECT_EQ(ask_res.value().ask.seq_no, 0);
   }
 

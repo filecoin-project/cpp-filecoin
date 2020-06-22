@@ -28,13 +28,12 @@ namespace fc::storage::blockchain {
   outcome::result<void> MsgWaiter::onHeadChange(const HeadChange &change) {
     auto onTipset = [&](auto &ts, auto apply) -> outcome::result<Tipset> {
       OUTCOME_TRY(parent, ts.loadParent(*ipld));
-      OUTCOME_TRY(key, ts.makeKey());
       adt::Array<MessageReceipt> receipts{ts.getParentMessageReceipts(), ipld};
       OUTCOME_TRY(parent.visitMessages(
           ipld, [&](auto i, auto, auto &cid) -> outcome::result<void> {
             if (apply) {
               OUTCOME_TRY(receipt, receipts.get(i));
-              auto result{results.emplace(cid, std::make_pair(receipt, key))};
+              auto result{results.emplace(cid, std::make_pair(receipt, ts.key))};
               auto callbacks{waiting.find(cid)};
               if (callbacks != waiting.end()) {
                 for (auto &callback : callbacks->second) {
@@ -51,7 +50,7 @@ namespace fc::storage::blockchain {
     };
     if (change.type == HeadChangeType::CURRENT) {
       auto ts{change.value};
-      while (ts.height > 0) {
+      while (ts.height() > 0) {
         OUTCOME_TRYA(ts, onTipset(ts, true));
       }
     } else {

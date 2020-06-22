@@ -86,7 +86,7 @@ namespace fc::api {
                              bool interpret =
                                  false) -> outcome::result<TipsetContext> {
       Tipset tipset;
-      if (tipset_key.cids.empty()) {
+      if (tipset_key.cids().empty()) {
         OUTCOME_TRYA(tipset, chain_store->heaviestTipset());
       } else {
         OUTCOME_TRYA(tipset, chain_store->loadTipset(tipset_key));
@@ -177,7 +177,7 @@ namespace fc::api {
                   .values();
             }},
         .ChainGetRandomness = {[=](auto &tipset_key, auto round) {
-          return chain_randomness->sampleRandomness(tipset_key.cids, round);
+          return chain_randomness->sampleRandomness(tipset_key.cids(), round);
         }},
         .ChainGetTipSet = {[=](auto &tipset_key) {
           return chain_store->loadTipset(tipset_key);
@@ -188,15 +188,15 @@ namespace fc::api {
           // TODO(turuslan): return genesis if height is zero
           auto height = static_cast<uint64_t>(height2);
           OUTCOME_TRY(tipset,
-                      tipset_key.cids.empty()
+                      tipset_key.cids().empty()
                           ? chain_store->heaviestTipset()
                           : chain_store->loadTipset(tipset_key));
-          if (tipset.height < height) {
+          if (tipset.height() < height) {
             return TodoError::ERROR;
           }
-          while (tipset.height > height) {
+          while (tipset.height() > height) {
             OUTCOME_TRY(parent, tipset.loadParent(*ipld));
-            if (parent.height < height) {
+            if (parent.height() < height) {
               break;
             }
             tipset = std::move(parent);
@@ -240,7 +240,8 @@ namespace fc::api {
         // TODO(turuslan): FIL-165 implement method
         .MarketEnsureAvailable = {},
         .MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockMsg> {
-          OUTCOME_TRY(context, tipsetContext(t.parents, true));
+          OUTCOME_TRY(parents_key, TipsetKey::create(t.parents));
+          OUTCOME_TRY(context, tipsetContext(parents_key, true));
           OUTCOME_TRY(miner_state, context.minerState(t.miner));
           OUTCOME_TRY(block,
                       blockchain::production::generate(
@@ -280,7 +281,7 @@ namespace fc::api {
                              -> outcome::result<std::vector<SignedMessage>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(heaviest, chain_store->heaviestTipset());
-          if (context.tipset.height > heaviest.height) {
+          if (context.tipset.height() > heaviest.height()) {
             // tipset from future requested
             return TodoError::ERROR;
           }
@@ -331,7 +332,7 @@ namespace fc::api {
               randomness,
               std::make_shared<StateTreeImpl>(context.state_tree),
               std::make_shared<InvokerImpl>(),
-              static_cast<ChainEpoch>(context.tipset.height));
+              static_cast<ChainEpoch>(context.tipset.height()));
           InvocResult result;
           result.message = message;
           auto maybe_result = env->applyImplicitMessage(message);
@@ -371,7 +372,7 @@ namespace fc::api {
 
           std::vector<CID> result;
 
-          while (static_cast<int64_t>(context.tipset.height) >= to_height) {
+          while (static_cast<int64_t>(context.tipset.height()) >= to_height) {
             std::set<CID> visited_cid;
 
             auto isDuplicateMessage = [&](const CID &cid) -> bool {
@@ -402,7 +403,7 @@ namespace fc::api {
                   }));
             }
 
-            if (context.tipset.height == 0) break;
+            if (context.tipset.height() == 0) break;
 
             OUTCOME_TRY(parent_tipset_key, context.tipset.getParents());
             OUTCOME_TRY(parent_context, tipsetContext(parent_tipset_key));
@@ -432,8 +433,8 @@ namespace fc::api {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           auto result{msg_waiter->results.find(cid)};
           if (result != msg_waiter->results.end()) {
-            OUTCOME_TRY(ts, Tipset::load(*ipld, result->second.second.cids));
-            if (context.tipset.height <= ts.height) {
+            OUTCOME_TRY(ts, Tipset::load(*ipld, result->second.second.cids()));
+            if (context.tipset.height() <= ts.height()) {
               return result->second.first;
             }
           }
@@ -590,7 +591,7 @@ namespace fc::api {
         .StateWaitMsg = {[=](auto &cid) -> outcome::result<Wait<MsgWait>> {
           auto channel = std::make_shared<Channel<outcome::result<MsgWait>>>();
           msg_waiter->wait(cid, [=](auto &result) {
-            auto ts{Tipset::load(*ipld, result.second.cids)};
+            auto ts{Tipset::load(*ipld, result.second.cids())};
             if (ts) {
               channel->write(MsgWait{result.first, std::move(ts.value())});
             } else {

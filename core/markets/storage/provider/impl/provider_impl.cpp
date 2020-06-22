@@ -245,10 +245,9 @@ namespace fc::markets::storage::provider {
   outcome::result<bool> StorageProviderImpl::verifyDealProposal(
       std::shared_ptr<MinerDeal> deal) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
     auto proposal = deal->client_deal_proposal.proposal;
     OUTCOME_TRY(client_key_address,
-                api_->StateAccountKey(proposal.client, tipset_key));
+                api_->StateAccountKey(proposal.client, chain_head.key));
     OUTCOME_TRY(proposal_bytes, codec::cbor::encode(proposal));
     OUTCOME_TRY(verified,
                 keystore_->verify(client_key_address,
@@ -265,7 +264,7 @@ namespace fc::markets::storage::provider {
       return false;
     }
 
-    if (static_cast<ChainEpoch>(chain_head.height)
+    if (static_cast<ChainEpoch>(chain_head.height())
         > proposal.start_epoch - kDefaultDealAcceptanceBuffer) {
       deal->message =
           "Deal proposal verification failed, deal start epoch is too soon or "
@@ -306,7 +305,7 @@ namespace fc::markets::storage::provider {
     // This doesn't guarantee that the client won't withdraw / lock those funds
     // but it's a decent first filter
     OUTCOME_TRY(client_balance,
-                api_->StateMarketBalance(proposal.client, tipset_key));
+                api_->StateMarketBalance(proposal.client, chain_head.key));
     TokenAmount available = client_balance.escrow - client_balance.locked;
     if (available < proposal.getTotalStorageFee()) {
       std::stringstream ss;
@@ -323,25 +322,24 @@ namespace fc::markets::storage::provider {
   outcome::result<boost::optional<CID>>
   StorageProviderImpl::ensureProviderFunds(std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
     auto proposal = deal->client_deal_proposal.proposal;
     OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(proposal.provider, tipset_key));
+                api_->StateMinerInfo(proposal.provider, chain_head.key));
     OUTCOME_TRY(maybe_cid,
                 api_->MarketEnsureAvailable(proposal.provider,
                                             worker_info.worker,
                                             proposal.provider_collateral,
-                                            tipset_key));
+                                            chain_head.key));
     return std::move(maybe_cid);
   }
 
   outcome::result<CID> StorageProviderImpl::publishDeal(
       std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(
-                    deal->client_deal_proposal.proposal.provider, tipset_key));
+    OUTCOME_TRY(
+        worker_info,
+        api_->StateMinerInfo(deal->client_deal_proposal.proposal.provider,
+                             chain_head.key));
     std::vector<ClientDealProposal> params{deal->client_deal_proposal};
     OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
     UnsignedMessage unsigned_message(kMessageVersion,
@@ -363,12 +361,13 @@ namespace fc::markets::storage::provider {
   outcome::result<void> StorageProviderImpl::sendSignedResponse(
       std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(
-                    deal->client_deal_proposal.proposal.provider, tipset_key));
+    ;
+    OUTCOME_TRY(
+        worker_info,
+        api_->StateMinerInfo(deal->client_deal_proposal.proposal.provider,
+                             chain_head.key));
     OUTCOME_TRY(worker_key_address,
-                api_->StateAccountKey(worker_info.worker, tipset_key));
+                api_->StateAccountKey(worker_info.worker, chain_head.key));
     Response response{.state = deal->state,
                       .message = deal->message,
                       .proposal = deal->proposal_cid,
@@ -402,10 +401,9 @@ namespace fc::markets::storage::provider {
   outcome::result<PieceInfo> StorageProviderImpl::locatePiece(
       std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(
-        piece_info,
-        miner_api_->LocatePieceForDealWithinSector(deal->deal_id, tipset_key));
+    OUTCOME_TRY(piece_info,
+                miner_api_->LocatePieceForDealWithinSector(deal->deal_id,
+                                                           chain_head.key));
     return piece_info;
   }
 

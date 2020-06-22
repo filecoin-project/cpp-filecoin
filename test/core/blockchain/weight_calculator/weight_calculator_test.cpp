@@ -51,8 +51,7 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
                                            .balance = {},
                                        }));
   EXPECT_OUTCOME_TRUE(state_root, state_tree.flush());
-  Tipset tipset{
-      {},
+  EXPECT_OUTCOME_TRUE_2(tipset, Tipset::create(
       {params.block_count,
        BlockHeader{
            Address::makeFromId(0),
@@ -76,8 +75,7 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
            {},
            {},
            {},
-       }},
-      {}};
+       }}));
 
   return WeightCalculatorImpl{ipld}.calculateWeight(tipset);
 }

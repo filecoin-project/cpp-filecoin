@@ -22,8 +22,8 @@ namespace fc::markets::storage::provider {
   outcome::result<void> StoredAsk::addAsk(const TokenAmount &price,
                                           ChainEpoch duration) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    ChainEpoch timestamp = chain_head.height;
-    ChainEpoch expiry = chain_head.height + duration;
+    ChainEpoch timestamp = chain_head.height();
+    ChainEpoch expiry = chain_head.height() + duration;
     StorageAsk ask{.price = price,
                    .min_piece_size = kDefaultMinPieceSize,
                    .max_piece_size = kDefaultMaxPieceSize,
@@ -59,8 +59,8 @@ namespace fc::markets::storage::provider {
 
     // otherwise return default which 'not actively accepting deals'
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    ChainEpoch timestamp = chain_head.height;
-    ChainEpoch expiry = chain_head.height + kDefaultDuration;
+    ChainEpoch timestamp = chain_head.height();
+    ChainEpoch expiry = chain_head.height() + kDefaultDuration;
     StorageAsk default_ask{.price = kDefaultPrice,
                            .min_piece_size = kDefaultMinPieceSize,
                            .max_piece_size = kDefaultMaxPieceSize,
@@ -81,8 +81,7 @@ namespace fc::markets::storage::provider {
 
   outcome::result<SignedStorageAsk> StoredAsk::signAsk(
       const StorageAsk &ask, const Tipset &chain_head) {
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(key_address, api_->StateAccountKey(actor_, tipset_key));
+    OUTCOME_TRY(key_address, api_->StateAccountKey(actor_, chain_head.key));
     OUTCOME_TRY(ask_bytes, codec::cbor::encode(ask));
     OUTCOME_TRY(signature, api_->WalletSign(key_address, ask_bytes));
     return SignedStorageAsk{.ask = ask, .signature = signature};

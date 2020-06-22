@@ -91,7 +91,8 @@ TEST(ApiJsonTest, Ticket) {
 }
 
 TEST(ApiJsonTest, TipsetKey) {
-  expectJson(TipsetKey{{"010001020001"_cid}}, "[{\"/\":\"baeaacaqaae\"}]");
+  expectJson(TipsetKey::create({{"010001020001"_cid}}).value(),
+             "[{\"/\":\"baeaacaqaae\"}]");
 }
 
 TEST(ApiJsonTest, Address) {
@@ -127,36 +128,37 @@ TEST(ApiJsonTest, BigInt) {
 }
 
 TEST(ApiJsonTest, MsgWait) {
+  OUTCOME_EXCEPT(tipset, fc::primitives::tipset::Tipset::create(
+      {BlockHeader{
+          Address::makeFromId(1),
+          Ticket{b96},
+          {fc::common::Buffer{"F00D"_unhex}},
+          {fc::primitives::block::BeaconEntry{
+              4,
+              fc::common::Buffer{"F00D"_unhex},
+          }},
+          {fc::primitives::sector::PoStProof{
+              fc::primitives::sector::RegisteredProof::
+              StackedDRG2KiBSeal,
+              "F00D"_unhex,
+          }},
+          {"010001020002"_cid},
+          3,
+          4,
+          "010001020005"_cid,
+          "010001020006"_cid,
+          "010001020007"_cid,
+          Signature{b65},
+          8,
+          Signature{Secp256k1Signature{b65}},
+          9,
+      }}));
+
   expectJson(
       MsgWait{
           {fc::vm::VMExitCode{1}, Buffer{"DEAD"_unhex}, 2},
           {
-              {"010001020001"_cid},
-              {BlockHeader{
-                  Address::makeFromId(1),
-                  Ticket{b96},
-                  {fc::common::Buffer{"F00D"_unhex}},
-                  {fc::primitives::block::BeaconEntry{
-                      4,
-                      fc::common::Buffer{"F00D"_unhex},
-                  }},
-                  {fc::primitives::sector::PoStProof{
-                      fc::primitives::sector::RegisteredProof::
-                          StackedDRG2KiBSeal,
-                      "F00D"_unhex,
-                  }},
-                  {"010001020002"_cid},
-                  3,
-                  4,
-                  "010001020005"_cid,
-                  "010001020006"_cid,
-                  "010001020007"_cid,
-                  Signature{b65},
-                  8,
-                  Signature{Secp256k1Signature{b65}},
-                  9,
-              }},
-              3,
+              tipset
           },
       },
       "{\"Receipt\":{\"ExitCode\":1,\"Return\":\"3q0=\",\"GasUsed\":2},"

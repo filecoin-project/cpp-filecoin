@@ -61,7 +61,7 @@ namespace fc::storage::blockchain {
     if (auto it = tipsets_cache_.find(key); it != tipsets_cache_.end()) {
       return it->second;
     }
-    OUTCOME_TRY(tipset, Tipset::load(*data_store_, key.cids));
+    OUTCOME_TRY(tipset, Tipset::load(*data_store_, key.cids()));
     // save to cache
     tipsets_cache_[key] = tipset;
 
@@ -125,7 +125,7 @@ namespace fc::storage::blockchain {
       const BlockHeader &block_header) {
     OUTCOME_TRY(genesis_tipset, Tipset::create({block_header}));
     OUTCOME_TRY(buffer,
-                encodeCidVector(std::vector<CID>{genesis_tipset.cids[0]}));
+                encodeCidVector(std::vector<CID>{genesis_tipset.key.cids()[0]}));
 
     return chain_data_store_->set(kGenesisKey, buffer);
   }
@@ -134,7 +134,7 @@ namespace fc::storage::blockchain {
     heaviest_tipset_.reset(tipset);
     OUTCOME_TRY(weight, weight_calculator_->calculateWeight(tipset));
     heaviest_weight_ = weight;
-    OUTCOME_TRY(data, encodeCidVector(tipset.cids));
+    OUTCOME_TRY(data, encodeCidVector(tipset.key.cids()));
     return chain_data_store_->set(kChainHeadKey, data);
   }
 
@@ -203,13 +203,13 @@ namespace fc::storage::blockchain {
 
   outcome::result<void> ChainStoreImpl::takeHeaviestTipset(
       const Tipset &tipset) {
-    OUTCOME_TRY(cids_json, encodeCidVector(tipset.cids));
+    OUTCOME_TRY(cids_json, encodeCidVector(tipset.key.cids()));
 
     if (!heaviest_tipset_.has_value()) {
       logger_->warn(
           "No heaviest tipset found, using provided tipset: {}, height: {}",
           cids_json,
-          tipset.height);
+          tipset.height());
       head_change_signal_(
           HeadChange{.type = HeadChangeType::CURRENT, .value = tipset});
       return writeHead(tipset);
@@ -222,7 +222,7 @@ namespace fc::storage::blockchain {
     }
 
     logger_->info(
-        "New heaviest tipset {} (height={})", cids_json, tipset.height);
+        "New heaviest tipset {} (height={})", cids_json, tipset.height());
 
     OUTCOME_TRY(notifyHeadChange(*heaviest_tipset_, tipset));
     OUTCOME_TRY(writeHead(tipset));
@@ -259,7 +259,7 @@ namespace fc::storage::blockchain {
     auto l = current;
     auto r = target;
     while (l != r) {
-      if (l.height > r.height) {
+      if (l.height() > r.height()) {
         path.revert_chain.emplace_back(l);
         OUTCOME_TRY(key, l.getParents());
         OUTCOME_TRY(ts, loadTipset(key));

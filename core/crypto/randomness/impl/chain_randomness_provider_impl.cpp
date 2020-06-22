@@ -54,7 +54,7 @@ namespace fc::crypto::randomness {
       OUTCOME_TRY(tipset, chain_store_->loadTipset(tipset_key));
       auto &block = tipset.getMinTicketBlock();
 
-      if (tipset.height <= round) {
+      if (tipset.height() <= round) {
         BOOST_ASSERT_MSG(block.ticket.has_value(),
                          "min ticket block has no value, internal error");
 

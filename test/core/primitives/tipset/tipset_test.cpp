@@ -129,9 +129,9 @@ TEST_F(TipsetTest, CreateMismatchingParentsFailure) {
 TEST_F(TipsetTest, CreateSuccess) {
   EXPECT_OUTCOME_TRUE(ts, Tipset::create({bh1, bh2}));
   std::vector<CID> cids{cid2, cid1};
-  ASSERT_EQ(ts.cids, cids);
+  ASSERT_EQ(ts.key.cids(), cids);
   std::vector<BlockHeader> headers{bh2, bh1};
-  ASSERT_EQ(ts.height, bh1.height);
+  ASSERT_EQ(ts.height(), bh1.height);
   ASSERT_EQ(ts.blks, headers);
   ASSERT_EQ(ts.getMinTimestamp(), 7u);
   ASSERT_EQ(ts.getMinTicketBlock(), bh2);

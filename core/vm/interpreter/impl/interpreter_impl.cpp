@@ -46,7 +46,7 @@ namespace fc::vm::interpreter {
 
   outcome::result<Result> InterpreterImpl::interpret(
       const IpldPtr &ipld, const Tipset &tipset) const {
-    if (tipset.height == 0) {
+    if (tipset.height() == 0) {
       return Result{
           tipset.getParentStateRoot(),
           tipset.getParentMessageReceipts(),
@@ -62,7 +62,7 @@ namespace fc::vm::interpreter {
     // TODO(turuslan): FIL-146 randomness from tipset
     std::shared_ptr<RandomnessProvider> randomness;
     auto env = std::make_shared<Env>(
-        randomness, state_tree, std::make_shared<InvokerImpl>(), tipset.height);
+        randomness, state_tree, std::make_shared<InvokerImpl>(), tipset.height());
 
     adt::Array<MessageReceipt> receipts{ipld};
     MessageVisitor message_visitor{ipld};
@@ -135,7 +135,7 @@ namespace fc::vm::interpreter {
       const IpldPtr &ipld, const Tipset &tipset) const {
     // TODO: TipsetKey from arg-gor
     common::Buffer key;
-    for (auto &cid : tipset.cids) {
+    for (auto &cid : tipset.key.cids()) {
       OUTCOME_TRY(encoded, cid.toBytes());
       key.put(encoded);
     }

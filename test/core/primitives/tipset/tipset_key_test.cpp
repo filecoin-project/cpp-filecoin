@@ -46,48 +46,6 @@ TEST_F(TipsetKeyTest, DISABLED_ToPrettyStringSuccess) {
 }
 
 /**
- * @given we have different tipset keys
- * @when call toBytes() method and calculate hex representation
- * @then the representation meets lotus-calculated value
- */
-TEST_F(TipsetKeyTest, ToBytesSuccess) {
-  EXPECT_OUTCOME_TRUE(vec2, key2->toBytes());
-  EXPECT_OUTCOME_TRUE(vec3, key3->toBytes());
-  EXPECT_OUTCOME_TRUE(vec4, key4->toBytes());
-  ASSERT_EQ(fc::common::hex_lower(vec2),
-            "0171a0e402208928aae63c84d87ea098564d1e03ad813f107add474e56aedd2863"
-            "49c0c03ea4");
-  ASSERT_EQ(fc::common::hex_lower(vec3),
-            "0171a0e402208928aae63c84d87ea098564d1e03ad813f107add474e56aedd2863"
-            "49c0c03ea40171a0e402206e5c1f45cbaf19f94230ba3501c378a5335af71a331b"
-            "5b5aed62792332288dc3");
-  ASSERT_EQ(fc::common::hex_lower(vec4),
-            "0171a0e402208928aae63c84d87ea098564d1e03ad813f107add474e56aedd2863"
-            "49c0c03ea40171a0e402206e5c1f45cbaf19f94230ba3501c378a5335af71a331b"
-            "5b5aed62792332288dc30171a0e40220ed5402299a6208014e0f5f25ae6ca3badd"
-            "dc95db67dce164cb8aa086bd48978a");
-}
-
-/**
- * @given set of non-equivalent leys key1, key2, key3, key4
- * @when get their bytes representation @and compare representations
- * @then representation don't match
- */
-TEST_F(TipsetKeyTest, BytesRepresentationsDontMatch) {
-  auto &&repr1 = key1->toBytes();
-  auto &&repr2 = key2->toBytes();
-  auto &&repr3 = key3->toBytes();
-  auto &&repr4 = key4->toBytes();
-
-  ASSERT_NE(repr1, repr2);
-  ASSERT_NE(repr2, repr3);
-  ASSERT_NE(repr3, repr4);
-  ASSERT_NE(repr4, repr1);
-  ASSERT_NE(repr1, repr3);
-  ASSERT_NE(repr2, repr4);
-}
-
-/**
  * @given set of non-equivalent leys key1, key2, key3, key4
  * @when get their string representation @and compare representations
  * @then representation don't match

@@ -15,18 +15,18 @@ target_link_libraries(weight_calculator
     tipset
     )
 
-add_library(sync_manager
-    impl/sync_manager_impl.cpp
-    )
-target_link_libraries(sync_manager
-    block
-    Boost::boost
-    cid
-    syncer_state
-    sync_bucket_set
-    sync_target_bucket
-    tipset
-    )
+#add_library(sync_manager
+#    impl/sync_manager_impl.cpp
+#    )
+#target_link_libraries(sync_manager
+#    block
+#    Boost::boost
+#    cid
+#    syncer_state
+#    sync_bucket_set
+#    sync_target_bucket
+#    tipset
+#    )
 
 add_library(syncer_state
     syncer_state.cpp
@@ -36,17 +36,17 @@ target_link_libraries(syncer_state
     tipset
     )
 
-add_library(sync_target_bucket
-    impl/sync_target_bucket.cpp
-    )
-target_link_libraries(sync_target_bucket
-    Boost::boost
-    tipset
-    )
-
-add_library(sync_bucket_set
-    impl/sync_bucket_set.cpp
-    )
-target_link_libraries(sync_bucket_set
-    sync_target_bucket
-    )
+#add_library(sync_target_bucket
+#    impl/sync_target_bucket.cpp
+#    )
+#target_link_libraries(sync_target_bucket
+#    Boost::boost
+#    tipset
+#    )
+#
+#add_library(sync_bucket_set
+#    impl/sync_bucket_set.cpp
+#    )
+#target_link_libraries(sync_bucket_set
+#    sync_target_bucket
+#    )
