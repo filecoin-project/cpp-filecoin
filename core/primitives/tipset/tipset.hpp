@@ -16,6 +16,7 @@ namespace fc::primitives::tipset {
     MISMATCHING_HEIGHTS,  // cannot create tipset, mismatching blocks heights
     MISMATCHING_PARENTS,  // cannot create tipset, mismatching block parents
     TICKET_HAS_NO_VALUE,  // optional ticket is not initialized
+    NO_BEACONS,
   };
 }
 
@@ -25,6 +26,7 @@ namespace fc::primitives::tipset {
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::tipset, TipsetError);
 
 namespace fc::primitives::tipset {
+  using block::BeaconEntry;
   using block::BlockHeader;
 
   struct MessageVisitor {
@@ -47,6 +49,8 @@ namespace fc::primitives::tipset {
                                         const std::vector<CID> &cids);
 
     outcome::result<Tipset> loadParent(Ipld &ipld) const;
+
+    outcome::result<BeaconEntry> latestBeacon(Ipld &ipld) const;
 
     outcome::result<void> visitMessages(
         IpldPtr ipld, const MessageVisitor::Visitor &visitor) const;

@@ -108,6 +108,24 @@ namespace fc::primitives::sector {
     }
   }
 
+  outcome::result<RegisteredProof> sealProofTypeFromSectorSize(
+      SectorSize size) {
+    switch (size) {
+      case SectorSize{64} << 30:
+        return RegisteredProof::StackedDRG64GiBSeal;
+      case SectorSize{32} << 30:
+        return RegisteredProof::StackedDRG32GiBSeal;
+      case SectorSize{2} << 10:
+        return RegisteredProof::StackedDRG2KiBSeal;
+      case SectorSize{8} << 20:
+        return RegisteredProof::StackedDRG8MiBSeal;
+      case SectorSize{512} << 20:
+        return RegisteredProof::StackedDRG512MiBSeal;
+      default:
+        return Errors::InvalidProofType;
+    }
+  }
+
   outcome::result<size_t> getWindowPoStPartitionSectors(RegisteredProof proof) {
     OUTCOME_TRY(seal_proof, getRegisteredSealProof(proof));
     switch (seal_proof) {
