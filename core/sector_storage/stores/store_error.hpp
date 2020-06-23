@@ -22,6 +22,17 @@ namespace fc::sector_storage::stores {
     RemoveSeveralFileTypes,
     CannotMoveSector,
     CannotInitLogger,
+    NoRemoteStorageURLs,
+    InvalidUrl,
+    InvalidFsStatResponse,
+    InternalServerError,
+    UnableCreateRequest,
+    NotOkStatusCode,
+    UnableRemoteAcquireSector,
+    CannotOpenTempFile,
+    UnknownContentType,
+    CannotRemoveOutputPath,
+    CannotMoveFile,
   };
 }  // namespace fc::sector_storage::stores
 
