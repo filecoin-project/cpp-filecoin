@@ -8,23 +8,18 @@
 
 #include "sector_storage/stores/store.hpp"
 
-#include "common/http_requests/impl/request_factory_impl.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
 
-using fc::common::HeaderName;
-using fc::common::HeaderValue;
-using fc::common::RequestFactory;
-using fc::common::RequestFactoryImpl;
-
 namespace fc::sector_storage::stores {
+
+    using HeaderName = std::string;
+    using HeaderValue = std::string;
 
   class RemoteStore : public Store {
    public:
     RemoteStore(std::shared_ptr<LocalStore> local,
                 std::shared_ptr<SectorIndex> index,
-                std::unordered_map<HeaderName, HeaderValue> auth_headers,
-                std::shared_ptr<RequestFactory> request_factory =
-                    std::make_unique<RequestFactoryImpl>());
+                std::unordered_map<HeaderName, HeaderValue> auth_headers);
 
     outcome::result<AcquireSectorResponse> acquireSector(
         SectorId sector,
@@ -63,7 +58,6 @@ namespace fc::sector_storage::stores {
     std::shared_ptr<SectorIndex> index_;
 
     std::unordered_map<HeaderName, HeaderValue> auth_headers_;
-    std::shared_ptr<RequestFactory> request_factory_;
 
     bool unlock_;
     std::condition_variable cv_;

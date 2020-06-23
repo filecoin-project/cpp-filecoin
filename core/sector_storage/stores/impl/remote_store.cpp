@@ -5,6 +5,7 @@
 
 #include "sector_storage/stores/impl/remote_store.hpp"
 
+#include <curl/curl.h>
 #include <rapidjson/document.h>
 #include <boost/filesystem.hpp>
 #include <utility>
@@ -14,24 +15,23 @@
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fs = boost::filesystem;
-using fc::common::ReqMethod;
 
 namespace {
   std::size_t callbackString(const char *in,
                              std::size_t size,
                              std::size_t num,
-                             void *out) {
+                             std::string *out) {
     const std::size_t totalBytes(size * num);
-    (static_cast<std::string *>(out))->append(in, totalBytes);
+    out->append(in, totalBytes);
     return totalBytes;
   }
 
   std::size_t callbackFile(const char *ptr,
                            std::size_t size,
                            std::size_t nmemb,
-                           void *stream) {
+                           std::ofstream *stream) {
     const std::size_t totalBytes(size * nmemb);
-    static_cast<std::ofstream *>(stream)->write(ptr, size);
+    stream->write(ptr, size);
     return totalBytes;
   }
 }  // namespace
@@ -41,12 +41,10 @@ namespace fc::sector_storage::stores {
   RemoteStore::RemoteStore(
       std::shared_ptr<LocalStore> local,
       std::shared_ptr<SectorIndex> index,
-      std::unordered_map<HeaderName, HeaderValue> auth_headers,
-      std::shared_ptr<RequestFactory> request_factory)
+      std::unordered_map<HeaderName, HeaderValue> auth_headers)
       : local_(std::move(local)),
         index_(std::move(index)),
         auth_headers_(std::move(auth_headers)),
-        request_factory_(std::move(request_factory)),
         logger_{common::createLogger("remote store")} {}
 
   outcome::result<AcquireSectorResponse> RemoteStore::acquireSector(
@@ -175,19 +173,44 @@ namespace fc::sector_storage::stores {
 
     parser.setPath((fs::path(parser.path()) / "stat" / id).string());
 
-    OUTCOME_TRY(req, request_factory_->newRequest(parser.str()));
+    CURL *curl = curl_easy_init();
 
-    req->setupHeaders(auth_headers_);
+    if (!curl) {
+      return outcome::success();  // TODO: ERROR
+    }
+    curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+
+    // Follow HTTP redirects if necessary
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+    curl_easy_setopt(curl, CURLOPT_URL, parser.str().c_str());
+
+    struct curl_slist *headers = nullptr;
+
+    for (const auto &header : auth_headers_) {
+      headers = curl_slist_append(
+          headers, (header.first + ": " + header.second).c_str());
+    }
 
     std::string body;
 
-    req->setupWriteFunction(callbackString);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callbackString);
 
-    req->setupWriteOutput(&body);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &body);
 
-    auto res = req->perform();
+    if (headers) {
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    }
 
-    switch (res.status_code) {
+    long status_code;
+    curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status_code);
+    curl_easy_cleanup(curl);
+    if (headers) {
+      curl_slist_free_all(headers);
+    }
+
+    switch (status_code) {
       case 404:
         return StoreErrors::NotFoundPath;
       case 500:
@@ -257,9 +280,25 @@ namespace fc::sector_storage::stores {
   outcome::result<void> RemoteStore::fetch(const std::string &url,
                                            const std::string &output_path) {
     logger_->info("fetch: {} -> {}", url, output_path);
-    OUTCOME_TRY(req, request_factory_->newRequest(url));
 
-    req->setupHeaders(auth_headers_);
+    CURL *curl = curl_easy_init();
+
+    if (!curl) {
+      return outcome::success();  // TODO: ERROR
+    }
+    curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+
+    // Follow HTTP redirects if necessary
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+
+    struct curl_slist *headers = nullptr;
+
+    for (const auto &header : auth_headers_) {
+      headers = curl_slist_append(
+          headers, (header.first + ": " + header.second).c_str());
+    }
 
     fs::path temp_file_path =
         fs::temp_directory_path() / (fs::unique_path().string() + ".tar");
@@ -268,17 +307,35 @@ namespace fc::sector_storage::stores {
                             std::ios_base::out | std::ios_base::binary);
 
     if (!temp_file.good()) {
+      curl_easy_cleanup(curl);
+      if (headers) {
+        curl_slist_free_all(headers);
+      }
       return outcome::success();  // TODO: ERROR
     }
 
-    req->setupWriteFunction(callbackFile);
+    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, callbackFile);
 
-    req->setupWriteOutput(&temp_file);
+    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &temp_file);
 
-    auto res = req->perform();
+    if (headers) {
+      curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+    }
+
+    long status_code;
+    std::string content_type;
+    curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status_code);
+    curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &content_type);
+    curl_easy_cleanup(curl);
+    if (headers) {
+      curl_slist_free_all(headers);
+    }
 
     temp_file.close();
-    if (res.status_code != 200) {
+
+    if (status_code != 200) {
+      // TODO: log error
       return outcome::success();  // TODO: ERROR
     }
 
@@ -290,7 +347,7 @@ namespace fc::sector_storage::stores {
     }
     ec.clear();
 
-    if (res.content_type == "application/x-tar") {
+    if (content_type == "application/x-tar") {
       auto result =
           fc::common::extractTar(temp_file_path.string(), output_path);
       fs::remove_all(temp_file_path, ec);
@@ -300,7 +357,7 @@ namespace fc::sector_storage::stores {
       return result;
     }
 
-    if (res.content_type == "application/octet-stream") {
+    if (content_type == "application/octet-stream") {
       fs::rename(temp_file_path, output_path, ec);
       if (ec.failed()) {
         return outcome::success();  // TODO: ERROR
@@ -314,15 +371,36 @@ namespace fc::sector_storage::stores {
   outcome::result<void> RemoteStore::deleteFromRemote(const std::string &url) {
     logger_->info("delete from remote: {}", url);
 
-    OUTCOME_TRY(req, request_factory_->newRequest(url));
+    CURL *curl = curl_easy_init();
 
-    req->setupMethod(ReqMethod::DELETE);
+    if (!curl) {
+      return outcome::success();  // TODO: ERROR
+    }
+    curl_easy_setopt(curl, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
 
-    req->setupHeaders(auth_headers_);
+    // Follow HTTP redirects if necessary
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
-    auto res = req->perform();
+    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 
-    if (res.status_code != 200) {
+    curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, "DELETE");
+
+    struct curl_slist *headers = nullptr;
+
+    for (const auto &header : auth_headers_) {
+      headers = curl_slist_append(
+          headers, (header.first + ": " + header.second).c_str());
+    }
+
+    long status_code;
+    curl_easy_perform(curl);
+    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status_code);
+    curl_easy_cleanup(curl);
+    if (headers) {
+      curl_slist_free_all(headers);
+    }
+
+    if (status_code != 200) {
       return outcome::success();  // TODO: ERROR
     }
 

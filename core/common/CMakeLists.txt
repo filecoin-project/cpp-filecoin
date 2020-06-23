@@ -52,7 +52,6 @@ target_link_libraries(tar_util
         # TODO: Add libarchive dep
         )
 
-add_subdirectory(http_requests)
 add_subdirectory(libp2p)
 add_subdirectory(uri_parser)
 
