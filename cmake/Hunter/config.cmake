@@ -48,8 +48,8 @@ hunter_config(
 )
 
 hunter_config(libp2p
-    URL https://github.com/libp2p/cpp-libp2p/archive/8ea1af5ca511cea3d6567ab928dec57b4316f4c9.zip
-    SHA1 5eaf49b946512791d5c289778e35e97655894b62
+    URL https://github.com/libp2p/cpp-libp2p/archive/9aabc1078f7cd88049a82e2b4987a71c77774819.zip
+    SHA1 adf518271f84c9d92858b61d8f5aedbddda9e4ac
     CMAKE_ARGS TESTING=OFF EXAMPLES=OFF EXPOSE_MOCKS=ON
     KEEP_PACKAGE_SOURCES
     )

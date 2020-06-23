@@ -133,7 +133,7 @@ namespace fc::vm::interpreter {
 
   outcome::result<Result> CachedInterpreter::interpret(
       const IpldPtr &ipld, const Tipset &tipset) const {
-    // TODO: TipsetKey from arg-gor
+    // TODO: TipsetKey from art-gor
     common::Buffer key;
     for (auto &cid : tipset.cids) {
       OUTCOME_TRY(encoded, cid.toBytes());

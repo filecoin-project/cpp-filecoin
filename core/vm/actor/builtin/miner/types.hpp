@@ -179,6 +179,16 @@ namespace fc::vm::actor::builtin::miner {
       }
       return std::move(result);
     }
+    template <typename Visitor>
+    auto visitProvingSet(const Visitor &visitor) {
+      return sectors.visit([&](auto id, auto &info) {
+        if (fault_set.find(id) == fault_set.end()
+            && recoveries.find(id) == recoveries.end()) {
+          visitor(id, info);
+        }
+        return outcome::success();
+      });
+    }
     auto getDeadlines(IpldPtr ipld) {
       return ipld->getCbor<Deadlines>(deadlines);
     }
