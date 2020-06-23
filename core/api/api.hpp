@@ -64,6 +64,7 @@ namespace fc::api {
   using primitives::block::BlockHeader;
   using primitives::block::BlockMsg;
   using primitives::block::BlockTemplate;
+  using primitives::sector::SectorInfo;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
@@ -186,7 +187,7 @@ namespace fc::api {
   struct MiningBaseInfo {
     StoragePower miner_power;
     StoragePower network_power;
-    std::vector<ChainSectorInfo> sectors;
+    std::vector<SectorInfo> sectors;
     Address worker;
     SectorSize sector_size;
     BeaconEntry prev_beacon;
@@ -297,7 +298,7 @@ namespace fc::api {
 
     API_METHOD(MinerCreateBlock, BlockMsg, const BlockTemplate &)
     API_METHOD(MinerGetBaseInfo,
-               MiningBaseInfo,
+               boost::optional<MiningBaseInfo>,
                const Address &,
                ChainEpoch,
                const TipsetKey &)
@@ -351,7 +352,7 @@ namespace fc::api {
     API_METHOD(StateMinerSectors,
                std::vector<ChainSectorInfo>,
                const Address &,
-               void *,
+               const boost::optional<RleBitset> &,
                bool,
                const TipsetKey &)
     API_METHOD(StateMinerSectorSize,
