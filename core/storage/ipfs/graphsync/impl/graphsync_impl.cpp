@@ -29,14 +29,16 @@ namespace fc::storage::ipfs::graphsync {
     doStop();
   }
 
-  void GraphsyncImpl::start(std::shared_ptr<MerkleDagBridge> dag,
-                            Graphsync::BlockCallback callback) {
+  Graphsync::DataConnection GraphsyncImpl::subscribe(
+      std::function<OnDataReceived> handler) {
+    return data_signal_.connect(handler);
+  }
+
+  void GraphsyncImpl::start(std::shared_ptr<MerkleDagBridge> dag) {
     assert(dag);
-    assert(callback);
 
     network_->start(shared_from_this());
     dag_ = std::move(dag);
-    block_cb_ = std::move(callback);
     started_ = true;
   }
 
@@ -47,7 +49,6 @@ namespace fc::storage::ipfs::graphsync {
   void GraphsyncImpl::doStop() {
     if (started_) {
       started_ = false;
-      block_cb_ = Graphsync::BlockCallback{};
       dag_.reset();
       network_->stop();
       local_requests_->cancelAll();
@@ -112,7 +113,7 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
-    block_cb_(std::move(cid), std::move(data));
+    data_signal_(from, cid, data);
   }
 
   void GraphsyncImpl::onRemoteRequest(const PeerId &from,

@@ -31,7 +31,7 @@ namespace fc::storage::ipfs::graphsync::test {
     // io->stop() is called
     Node(std::shared_ptr<boost::asio::io_context> io,
          std::shared_ptr<MerkleDagBridge> data_service,
-         Graphsync::BlockCallback cb,
+         std::function<Graphsync::OnDataReceived> cb,
          size_t n_responses_expected)
         : io_(std::move(io)),
           data_service_(std::move(data_service)),
@@ -89,7 +89,8 @@ namespace fc::storage::ipfs::graphsync::test {
    private:
     void start() {
       if (!started_) {
-        graphsync_->start(data_service_, block_cb_);
+        graphsync_->start(data_service_);
+        graphsync_->subscribe(std::move(block_cb_));
         host_->start();
         started_ = true;
       }
@@ -127,7 +128,7 @@ namespace fc::storage::ipfs::graphsync::test {
 
     std::shared_ptr<MerkleDagBridge> data_service_;
 
-    Graphsync::BlockCallback block_cb_;
+    std::function<Graphsync::OnDataReceived> block_cb_;
 
     // keeping subscriptions alive, otherwise they cancel themselves
     std::vector<Subscription> requests_;
@@ -160,13 +161,20 @@ namespace fc::storage::ipfs::graphsync::test {
     auto server_data = std::make_shared<TestDataService>();
 
     // server block callback expects no blocks
-    auto server_cb = [&unexpected](CID, common::Buffer) { ++unexpected; };
+    auto server_cb = [&unexpected](const libp2p::peer::PeerId &from,
+                                   const CID &cid,
+                                   const common::Buffer &data) {
+      ++unexpected;
+    };
 
     auto client_data = std::make_shared<TestDataService>();
 
     // clienc block callback expect 3 blocks from the string above
-    auto client_cb = [&client_data, &unexpected](CID cid, common::Buffer data) {
-      if (!client_data->onDataBlock(std::move(cid), std::move(data))) {
+    auto client_cb = [&client_data, &unexpected](
+                         const libp2p::peer::PeerId &from,
+                         const CID &cid,
+                         const common::Buffer &data) {
+      if (!client_data->onDataBlock(cid, data)) {
         ++unexpected;
       }
     };
@@ -274,13 +282,15 @@ namespace fc::storage::ipfs::graphsync::test {
                  &expected,
                  &unexpected_responses,
                  &total_responses,
-                 &io](CID cid, common::Buffer data) {
+                 &io](const libp2p::peer::PeerId &from,
+                      const CID &cid,
+                      const common::Buffer &data) {
         logger->trace("data block received, {}:{}, {}/{}",
                       cid.toString().value(),
                       std::string((const char *)data.data(), data.size()),
                       total_responses + 1,
                       expected);
-        if (!ds->onDataBlock(std::move(cid), std::move(data))) {
+        if (!ds->onDataBlock(cid, data)) {
           ++unexpected_responses;
         } else if (++total_responses == expected) {
           io->stop();

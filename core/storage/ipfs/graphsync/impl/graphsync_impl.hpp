@@ -42,8 +42,8 @@ namespace fc::storage::ipfs::graphsync {
     void cancelLocalRequest(RequestId request_id, SharedData body);
 
     // Graphsync interface overrides
-    void start(std::shared_ptr<MerkleDagBridge> dag,
-               BlockCallback callback) override;
+    DataConnection subscribe(std::function<OnDataReceived> handler) override;
+    void start(std::shared_ptr<MerkleDagBridge> dag) override;
     void stop() override;
     Subscription makeRequest(
         const libp2p::peer::PeerId &peer,
@@ -76,8 +76,8 @@ namespace fc::storage::ipfs::graphsync {
     /// Interface to MerkleDAG component
     std::shared_ptr<MerkleDagBridge> dag_;
 
-    /// The only subscription to blocks (at the moment)
-    Graphsync::BlockCallback block_cb_;
+    /// Subscriptions to data to blocks
+    boost::signals2::signal<OnDataReceived> data_signal_;
 
     /// Flag, indicates that instance is started
     bool started_ = false;

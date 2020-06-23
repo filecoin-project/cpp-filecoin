@@ -9,6 +9,7 @@
 #include <functional>
 
 #include <boost/optional.hpp>
+#include <boost/signals2.hpp>
 #include <libp2p/multi/multiaddress.hpp>
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/common/subscription.hpp>
@@ -103,15 +104,21 @@ namespace fc::storage::ipfs::graphsync {
    public:
     virtual ~Graphsync() = default;
 
-    /// New nodes received go through this callback
-    using BlockCallback = std::function<void(CID cid, common::Buffer data)>;
+    using DataConnection = boost::signals2::connection;
+
+    /// New data go through this callback
+    using OnDataReceived = void(const libp2p::peer::PeerId &from,
+                                const CID &cid,
+                                const common::Buffer &data);
+
+    /// Subscribes to data
+    virtual DataConnection subscribe(std::function<OnDataReceived> handler) = 0;
 
     /// Starts instance and subscribes to blocks
     /// \param dag Object which allows to select in local storage as per
     /// incoming requests
     /// \param callback Callback which receives blocks of data from the network
-    virtual void start(std::shared_ptr<MerkleDagBridge> dag,
-                       BlockCallback callback) = 0;
+    virtual void start(std::shared_ptr<MerkleDagBridge> dag) = 0;
 
     /// Stops the instance. Active requests will be cancelled and return
     /// RS_REJECTED_LOCALLY to their callbacks

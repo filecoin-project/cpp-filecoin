@@ -14,9 +14,11 @@ namespace fc::storage::ipfs::graphsync {
 
   class GraphsyncMock : public Graphsync {
    public:
-    MOCK_METHOD2(start,
-                 void(std::shared_ptr<MerkleDagBridge> dag,
-                      Graphsync::BlockCallback callback));
+    MOCK_METHOD1(subscribe,
+                 DataConnection(std::function<OnDataReceived>));
+
+    MOCK_METHOD1(start,
+                 void(std::shared_ptr<MerkleDagBridge> dag));
 
     MOCK_METHOD0(stop, void());
 
