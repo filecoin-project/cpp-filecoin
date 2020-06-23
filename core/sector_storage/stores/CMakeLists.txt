@@ -5,6 +5,7 @@
 
 add_library(sector_index
         impl/index_impl.cpp
+        index_lock.cpp
         )
 
 target_link_libraries(sector_index

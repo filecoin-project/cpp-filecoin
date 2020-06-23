@@ -21,7 +21,11 @@ namespace fc::drand {
       GRPC_FAILURE = 1,
     };
     DrandSyncClientImpl(
-        std::string host,
+        std::string address,
+        boost::optional<std::string> pem_root_certs = boost::none);
+
+    DrandSyncClientImpl(
+        const std::string &host,
         size_t port,
         boost::optional<std::string> pem_root_certs = boost::none);
 
@@ -33,8 +37,7 @@ namespace fc::drand {
     outcome::result<GroupPacket> group() override;
 
    private:
-    std::string host_;
-    size_t port_;
+    std::string address_;
     std::unique_ptr<::drand::Public::StubInterface> stub_;
   };
 }  // namespace fc::drand

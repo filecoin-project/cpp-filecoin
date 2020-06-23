@@ -39,6 +39,7 @@ namespace fc::vm::interpreter {
   using message::UnsignedMessage;
   using primitives::TokenAmount;
   using primitives::block::MsgMeta;
+  using primitives::tipset::MessageVisitor;
   using runtime::Env;
   using runtime::kInfiniteGas;
   using runtime::MessageReceipt;
@@ -64,34 +65,25 @@ namespace fc::vm::interpreter {
         randomness, state_tree, std::make_shared<InvokerImpl>(), tipset.height);
 
     adt::Array<MessageReceipt> receipts{ipld};
-    std::set<CID> processed_messages;
+    MessageVisitor message_visitor{ipld};
     for (auto &block : tipset.blks) {
       AwardBlockReward::Params reward{block.miner, 0, 0, 1};
-      auto apply_message =
-          [&](const CID &cid,
-              const UnsignedMessage &message) -> outcome::result<void> {
-        if (!processed_messages.insert(cid).second) {
-          return outcome::success();
-        }
-
-        TokenAmount penalty;
-        OUTCOME_TRY(receipt, env->applyMessage(message, penalty));
-        reward.penalty += penalty;
-        OUTCOME_TRY(receipts.append(std::move(receipt)));
-        return outcome::success();
-      };
-
-      OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
-      OUTCOME_TRY(meta.bls_messages.visit(
-          [&](auto, auto &cid) -> outcome::result<void> {
-            OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
-            return apply_message(cid, message);
+      OUTCOME_TRY(message_visitor.visit(
+          block, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
+            UnsignedMessage message;
+            if (bls) {
+              OUTCOME_TRYA(message, ipld->getCbor<UnsignedMessage>(cid));
+            } else {
+              OUTCOME_TRY(signed_message, ipld->getCbor<SignedMessage>(cid));
+              message = std::move(signed_message.message);
+            }
+            TokenAmount penalty;
+            OUTCOME_TRY(receipt, env->applyMessage(message, penalty));
+            reward.penalty += penalty;
+            OUTCOME_TRY(receipts.append(std::move(receipt)));
+            return outcome::success();
           }));
-      OUTCOME_TRY(meta.secp_messages.visit(
-          [&](auto, auto &cid) -> outcome::result<void> {
-            OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
-            return apply_message(cid, message.message);
-          }));
+
       OUTCOME_TRY(reward_encoded, codec::cbor::encode(reward));
       OUTCOME_TRY(env->applyImplicitMessage(UnsignedMessage{
           0,
@@ -137,5 +129,24 @@ namespace fc::vm::interpreter {
       }
     }
     return false;
+  }
+
+  outcome::result<Result> CachedInterpreter::interpret(
+      const IpldPtr &ipld, const Tipset &tipset) const {
+    // TODO: TipsetKey from art-gor
+    common::Buffer key;
+    for (auto &cid : tipset.cids) {
+      OUTCOME_TRY(encoded, cid.toBytes());
+      key.put(encoded);
+    }
+
+    if (store->contains(key)) {
+      OUTCOME_TRY(raw, store->get(key));
+      return codec::cbor::decode<Result>(raw);
+    }
+    OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
+    OUTCOME_TRY(raw, codec::cbor::encode(result));
+    OUTCOME_TRY(store->put(key, raw));
+    return std::move(result);
   }
 }  // namespace fc::vm::interpreter

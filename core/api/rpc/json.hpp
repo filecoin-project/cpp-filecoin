@@ -184,11 +184,6 @@ namespace fc::api {
       v = j.GetBool();
     }
 
-    // TODO(artyom-yurin): remove it after BitField will be implemented
-    DECODE(void *) {
-      v = nullptr;
-    }
-
     ENCODE(std::string_view) {
       return {v.data(), static_cast<rapidjson::SizeType>(v.size()), allocator};
     }
@@ -591,6 +586,14 @@ namespace fc::api {
     DECODE(CidMessage) {
       decode(v.cid, Get(j, "Cid"));
       decode(v.message, Get(j, "Message"));
+    }
+
+    ENCODE(SectorInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "SectorNumber", v.sector);
+      Set(j, "SealedCID", v.sealed_cid);
+      return j;
     }
 
     ENCODE(SectorPreCommitInfo) {
