@@ -89,4 +89,11 @@ namespace fc::primitives::piece {
 
     return PaddedPieceSize(1 << (logv + 1)).unpadded();
   }
+
+  PaddedByteIndex paddedIndex(UnpaddedByteIndex index) {
+    return PaddedByteIndex(UnpaddedPieceSize(index).padded());
+  }
+  UnpaddedByteIndex unpaddedIndex(PaddedByteIndex index) {
+    return UnpaddedByteIndex(PaddedPieceSize(index).unpadded());
+  }
 }  // namespace fc::primitives::piece

@@ -87,5 +87,11 @@ namespace fc::primitives::piece {
    */
   UnpaddedPieceSize paddedSize(uint64_t size);
 
+  using UnpaddedByteIndex = uint64_t;
+  using PaddedByteIndex = uint64_t;
+
+  PaddedByteIndex paddedIndex(UnpaddedByteIndex index);
+  UnpaddedByteIndex unpaddedIndex(PaddedByteIndex index);
+
 };      // namespace fc::primitives::piece
 #endif  // CPP_FILECOIN_PIECE_HPP
