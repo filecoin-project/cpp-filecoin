@@ -27,8 +27,8 @@ hunter_add_package(Protobuf)
 find_package(Protobuf CONFIG REQUIRED)
 
 # https://github.com/hunter-packages/grpc
-#hunter_add_package(gRPC)
-#find_package(gRPC CONFIG REQUIRED)
+hunter_add_package(gRPC)
+find_package(gRPC CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/spdlog.html
 hunter_add_package(spdlog)

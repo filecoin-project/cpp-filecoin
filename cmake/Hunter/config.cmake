@@ -16,11 +16,11 @@ hunter_config(
     CMAKE_ARGS "HTTP_ONLY=ON"
 )
 
-#hunter_config(
-#    gRPC
-#    VERSION "1.17.2-p0"
-#    CMAKE_ARGS "gRPC_BUILD_CSHARP_EXT=OFF"
-#)
+hunter_config(
+    gRPC
+    VERSION "1.29.1.1"
+    CMAKE_ARGS "gRPC_BUILD_CSHARP_EXT=OFF"
+)
 
 hunter_config(
     spdlog
