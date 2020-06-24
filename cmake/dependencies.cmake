@@ -57,3 +57,7 @@ find_package(cppcodec CONFIG REQUIRED)
 # http://rapidjson.org
 hunter_add_package(RapidJSON)
 find_package(RapidJSON CONFIG REQUIRED)
+
+# https://github.com/soramitsu/libp2p-sqlite-modern-cpp/tree/hunter
+hunter_add_package(SQLiteModernCpp)
+find_package(SQLiteModernCpp CONFIG REQUIRED)
