@@ -56,7 +56,7 @@ namespace fc::markets::storage::client {
 
     void run() override;
 
-    void stop() override;
+    outcome::result<void> stop() override;
 
     outcome::result<std::vector<StorageProviderInfo>> listProviders()
         const override;

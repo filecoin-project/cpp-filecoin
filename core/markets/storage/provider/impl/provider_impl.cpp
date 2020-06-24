@@ -20,11 +20,11 @@
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 
-#define CALLBACK_ACTION(_action)                                          \
-  [self{shared_from_this()}](auto deal, auto event, auto from, auto to) { \
-    self->logger_->debug("Provider FSM " #_action);                       \
-    self->_action(deal, event, from, to);                                 \
-    deal->state = to;                                                     \
+#define CALLBACK_ACTION(_action)                      \
+  [this](auto deal, auto event, auto from, auto to) { \
+    logger_->debug("Provider FSM " #_action);         \
+    _action(deal, event, from, to);                   \
+    deal->state = to;                                 \
   }
 
 #define FSM_HALT_ON_ERROR(result, msg, deal)                            \
@@ -114,6 +114,16 @@ namespace fc::markets::storage::provider {
           + peerInfoToPrettyString(self->host_->getPeerInfo()));
     });
 
+    return outcome::success();
+  }
+
+  outcome::result<void> StorageProviderImpl::stop() {
+    fsm_->stop();
+    OUTCOME_TRY(network_->stopHandlingRequests());
+    std::lock_guard<std::mutex> lock(connections_mutex_);
+    for (auto &[_, stream] : connections_) {
+      network_->closeStreamGracefully(stream);
+    }
     return outcome::success();
   }
 
