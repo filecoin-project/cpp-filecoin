@@ -8,6 +8,7 @@ add_library(sync
     hello.cpp
     pubsub_gate.cpp
     object_loader.cpp
+    block_loader.cpp
     )
 
 target_link_libraries(sync
