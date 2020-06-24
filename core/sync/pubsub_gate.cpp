@@ -8,6 +8,7 @@
 #include "clock/utc_clock.hpp"
 #include "codec/cbor/cbor.hpp"
 #include "primitives/block/block.hpp"
+#include "primitives/cid/cid_of_cbor.hpp"
 
 namespace fc::sync {
 
@@ -149,7 +150,10 @@ namespace fc::sync {
       codec::cbor::CborDecodeStream decoder(raw);
       decoder.list() >> bm.header >> bm.bls_messages >> bm.secp_messages;
 
-      blocks_signal_(from, bm);
+      OUTCOME_EXCEPT(cid,
+                     primitives::cid::getCidOfCbor<BlockHeader>(bm.header));
+
+      blocks_signal_(from, cid, bm);
     } catch (std::system_error &e) {
       // TODO peer feedbacks
       log()->error(
@@ -198,23 +202,36 @@ namespace fc::sync {
       return;
     }
 
-    bool decoding_secp_msg = (raw.data()[0] == kCborTwoElementsArrayHeader);
-
     std::error_code e;
-    if (decoding_secp_msg) {
-      auto res = codec::cbor::decode<SignedMessage>(raw);
-      if (res) {
-        msgs_signal_(
-            from, res.value().message, std::cref(res.value().signature));
-      } else {
-        e = res.error();
-      }
+
+    auto cid_res = common::getCidOf(raw);
+    if (!cid_res) {
+      e = cid_res.error();
     } else {
-      auto res = codec::cbor::decode<UnsignedMessage>(raw);
-      if (res) {
-        msgs_signal_(from, res.value(), boost::none);
+      bool decoding_secp_msg = (raw.data()[0] == kCborTwoElementsArrayHeader);
+
+      if (decoding_secp_msg) {
+        auto res = codec::cbor::decode<SignedMessage>(raw);
+        if (res) {
+          msgs_signal_(from,
+                       cid_res.value(),
+                       common::Buffer(raw),
+                       res.value().message,
+                       std::cref(res.value().signature));
+        } else {
+          e = res.error();
+        }
       } else {
-        e = res.error();
+        auto res = codec::cbor::decode<UnsignedMessage>(raw);
+        if (res) {
+          msgs_signal_(from,
+                       cid_res.value(),
+                       common::Buffer(raw),
+                       res.value(),
+                       boost::none);
+        } else {
+          e = res.error();
+        }
       }
     }
 

@@ -32,7 +32,9 @@ namespace fc::sync {
     /// Unsubscribes from everything
     void stop();
 
-    using OnBlockAvailable = void(const PeerId &from, const BlockMsg &msg);
+    using OnBlockAvailable = void(const PeerId &from,
+                                  const CID &block_cid,
+                                  const BlockMsg &msg);
     connection_t subscribeToBlocks(
         const std::function<OnBlockAvailable> &subscriber);
 
@@ -44,6 +46,8 @@ namespace fc::sync {
     /// be composed by consumer
     using OnMessageAvailable = void(
         const PeerId &from,
+        const CID &cid,
+        const common::Buffer& raw,
         const UnsignedMessage &msg,
         boost::optional<std::reference_wrapper<const Signature>> signature);
 
