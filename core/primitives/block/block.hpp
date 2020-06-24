@@ -12,6 +12,7 @@
 #include "adt/array.hpp"
 #include "codec/cbor/streams_annotation.hpp"
 #include "crypto/signature/signature.hpp"
+#include "drand/messages.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
@@ -25,6 +26,7 @@
 namespace fc::primitives::block {
   using common::Buffer;
   using crypto::signature::Signature;
+  using drand::BeaconEntry;
   using primitives::BigInt;
   using primitives::address::Address;
   using primitives::sector::PoStProof;
@@ -40,15 +42,6 @@ namespace fc::primitives::block {
     return lhs.vrf_proof == rhs.vrf_proof;
   }
   CBOR_TUPLE(ElectionProof, vrf_proof)
-
-  struct BeaconEntry {
-    uint64_t round;
-    Buffer data;
-  };
-  inline bool operator==(const BeaconEntry &lhs, const BeaconEntry &rhs) {
-    return lhs.round == rhs.round && lhs.data == rhs.data;
-  }
-  CBOR_TUPLE(BeaconEntry, round, data)
 
   struct BlockTemplate {
     Address miner;

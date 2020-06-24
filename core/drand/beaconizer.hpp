@@ -28,6 +28,22 @@ namespace fc::drand {
     /// Calculates the maximum beacon round for the given filecoin epoch
     virtual outcome::result<uint64_t> maxBeaconRoundForEpoch(
         ChainEpoch fil_epoch) = 0;
+
+    inline outcome::result<std::vector<BeaconEntry>> beaconEntriesForBlock(
+        ChainEpoch fil_epoch, const BeaconEntry &prev) {
+      std::vector<BeaconEntry> beacons;
+      OUTCOME_TRY(max_round, maxBeaconRoundForEpoch(fil_epoch));
+      if (max_round != prev.round) {
+        auto prev_round{prev.round == 0 ? max_round - 1 : prev.round};
+        for (auto round{max_round}; round > prev_round; --round) {
+          OUTCOME_TRY(beacon, entry(round));
+          BOOST_ASSERT(beacon.round == round);
+          beacons.push_back(std::move(beacon));
+        }
+        std::reverse(beacons.begin(), beacons.end());
+      }
+      return beacons;
+    }
   };
 }  // namespace fc::drand
 

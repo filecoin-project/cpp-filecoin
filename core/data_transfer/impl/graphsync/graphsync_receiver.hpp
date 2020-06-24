@@ -8,10 +8,10 @@
 
 #include "data_transfer/message_receiver.hpp"
 
+#include "common/logger.hpp"
 #include "data_transfer/impl/graphsync/graphsync_manager.hpp"
 #include "data_transfer/impl/libp2p_data_transfer_network.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
-#include "common/logger.hpp"
 
 namespace fc::data_transfer {
 
@@ -19,9 +19,9 @@ namespace fc::data_transfer {
 
   class GraphsyncReceiver : public MessageReceiver {
    public:
-    GraphsyncReceiver(std::shared_ptr<DataTransferNetwork> network,
+    GraphsyncReceiver(std::weak_ptr<DataTransferNetwork> network,
                       std::shared_ptr<Graphsync> graphsync,
-                      std::shared_ptr<Manager> graphsync_manager,
+                      std::weak_ptr<Manager> graphsync_manager,
                       PeerInfo peer);
 
     outcome::result<void> receiveRequest(
@@ -57,9 +57,9 @@ namespace fc::data_transfer {
     void notifySubscribers(const Event &event,
                            const ChannelState &channel_state);
 
-    std::shared_ptr<DataTransferNetwork> network_;
+    std::weak_ptr<DataTransferNetwork> network_;
     std::shared_ptr<Graphsync> graphsync_;
-    std::shared_ptr<Manager> graphsync_manager_;
+    std::weak_ptr<Manager> graphsync_manager_;
     PeerInfo peer_;
     std::vector<std::shared_ptr<Subscriber>> subscribers_;
     common::Logger logger_ = common::createLogger("GraphsyncReceiver");

@@ -82,6 +82,7 @@ namespace fc::markets::storage::test {
 
   class StorageMarketTest : public ::testing::Test {
    public:
+    static constexpr auto kWaitTime = std::chrono::milliseconds(100);
     static const int kNumberOfWaitCycles = 50;  // 5 sec
 
     static void SetUpTestCase() {
@@ -106,7 +107,6 @@ namespace fc::markets::storage::test {
           Multiaddress::create(address_string).value());
       OUTCOME_EXCEPT(host->listen(*provider_multiaddress));
       host->start();
-
       context = injector.create<std::shared_ptr<boost::asio::io_context>>();
     }
 
@@ -117,6 +117,7 @@ namespace fc::markets::storage::test {
     }
 
     void SetUp() override {
+      context_ = context;
       std::shared_ptr<BlsProvider> bls_provider =
           std::make_shared<BlsProviderImpl>();
       std::shared_ptr<Secp256k1ProviderDefault> secp256k1_provider =
@@ -154,7 +155,7 @@ namespace fc::markets::storage::test {
                               secp256k1_provider,
                               datastore,
                               host,
-                              context,
+                              context_,
                               node_api,
                               miner_api,
                               chain_events_,
@@ -165,7 +166,7 @@ namespace fc::markets::storage::test {
                           bls_provider,
                           secp256k1_provider,
                           host,
-                          context,
+                          context_,
                           datastore,
                           node_api);
       storage_provider_info = makeStorageProviderInfo(miner_actor_address,
@@ -177,14 +178,12 @@ namespace fc::markets::storage::test {
           "Provider info "
           + peerInfoToPrettyString(storage_provider_info.get()->peer_info));
 
-      context->restart();
-      std::thread([]() { context->run(); }).detach();
+      context_->restart();
     }
 
     void TearDown() override {
       OUTCOME_EXCEPT(provider->stop());
       OUTCOME_EXCEPT(client->stop());
-      context->stop();
     }
 
    protected:
@@ -419,9 +418,9 @@ namespace fc::markets::storage::test {
     void waitForProviderDealStatus(const CID &proposal_cid,
                                    const StorageDealStatus &state) {
       for (int i = 0; i < kNumberOfWaitCycles; i++) {
+        context_->run_for(kWaitTime);
         auto deal = provider->getDeal(proposal_cid);
         if (deal.has_value() && deal.value().state == state) break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
     }
 
@@ -433,9 +432,9 @@ namespace fc::markets::storage::test {
     void waitForClientDealStatus(const CID &proposal_cid,
                                  const StorageDealStatus &state) {
       for (int i = 0; i < kNumberOfWaitCycles; i++) {
+        context_->run_for(kWaitTime);
         auto deal = client->getLocalDeal(proposal_cid);
         if (deal.has_value() && deal.value().state == state) break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
     }
 
@@ -455,6 +454,7 @@ namespace fc::markets::storage::test {
 
     RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
     std::shared_ptr<PieceIO> piece_io_;
+    std::shared_ptr<boost::asio::io_context> context_;
 
    private:
     // published messages
