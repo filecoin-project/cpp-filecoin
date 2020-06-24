@@ -98,7 +98,6 @@ namespace fc::api {
     setup(rpc, api.MpoolPushMessage);
     setup(rpc, api.MpoolSub);
     setup(rpc, api.NetAddrsListen);
-    setup(rpc, api.PaychVoucherAdd);
     setup(rpc, api.StateAccountKey);
     setup(rpc, api.StateCall);
     setup(rpc, api.StateListMessages);
@@ -126,5 +125,6 @@ namespace fc::api {
     setup(rpc, api.WalletDefaultAddress);
     setup(rpc, api.WalletHas);
     setup(rpc, api.WalletSign);
+    setup(rpc, api.WalletVerify);
   }
 }  // namespace fc::api

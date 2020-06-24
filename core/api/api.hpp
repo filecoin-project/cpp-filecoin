@@ -309,13 +309,6 @@ namespace fc::api {
 
     API_METHOD(NetAddrsListen, PeerInfo)
 
-    API_METHOD(PaychVoucherAdd,
-               TokenAmount,
-               const Address &,
-               const SignedVoucher &,
-               const Buffer &,
-               TokenAmount)
-
     API_METHOD(StateAccountKey, Address, const Address &, const TipsetKey &)
     API_METHOD(StateCall,
                InvocResult,
@@ -371,6 +364,8 @@ namespace fc::api {
     API_METHOD(WalletDefaultAddress, Address)
     API_METHOD(WalletHas, bool, const Address &)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
+    API_METHOD(
+        WalletVerify, bool, const Address &, const Buffer &, const Signature &)
   };
 }  // namespace fc::api
 

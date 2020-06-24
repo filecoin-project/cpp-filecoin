@@ -46,18 +46,11 @@ namespace fc::markets::storage::test {
    * @then result with error wrong signature
    */
   TEST_F(StorageMarketTest, WrongSignedAsk) {
-    std::shared_ptr<BlsProvider> bls_provider =
-        std::make_shared<BlsProviderImpl>();
-    OUTCOME_EXCEPT(wrong_keypair, bls_provider->generateKeyPair());
-
-    node_api->WalletSign = {
-        [this, wrong_keypair, bls_provider](
-            const Address &address,
-            const Buffer &buffer) -> outcome::result<Signature> {
-          if (address == this->miner_worker_address)
-            return Signature{
-                bls_provider->sign(buffer, wrong_keypair.private_key).value()};
-          throw "API WalletSign: address not found";
+    node_api->WalletVerify = {
+        [](const Address &address,
+           const Buffer &buffer,
+           const Signature &signature) -> outcome::result<bool> {
+          return outcome::success(false);
         }};
 
     TokenAmount provider_price = 1334;

@@ -33,8 +33,6 @@ namespace fc::api {
   using vm::actor::builtin::miner::MinerActorState;
   using vm::actor::builtin::storage_power::StoragePowerActorState;
   using InterpreterResult = vm::interpreter::Result;
-  using vm::state::StateTreeImpl;
-  using MarketActorState = vm::actor::builtin::market::State;
   using crypto::blake2b::blake2b_256;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::RandomnessProvider;
@@ -46,7 +44,9 @@ namespace fc::api {
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
   using vm::runtime::Env;
+  using vm::state::StateTreeImpl;
   using connection_t = boost::signals2::connection;
+  using MarketActorState = vm::actor::builtin::market::State;
 
   constexpr EpochDuration kWinningPoStSectorSetLookback{10};
 
@@ -387,8 +387,6 @@ namespace fc::api {
         }},
         // TODO(turuslan): FIL-165 implement method
         .NetAddrsListen = {},
-        // TODO(turuslan): FIL-165 implement method
-        .PaychVoucherAdd = {},
         .StateAccountKey = {[=](auto &address,
                                 auto &tipset_key) -> outcome::result<Address> {
           if (address.isKeyType()) {
@@ -701,6 +699,15 @@ namespace fc::api {
             OUTCOME_TRYA(address, context.accountKey(address));
           }
           return key_store->sign(address, data);
+        }},
+        .WalletVerify = {[=](auto address,
+                             auto data,
+                             auto signature) -> outcome::result<bool> {
+          if (!address.isKeyType()) {
+            OUTCOME_TRY(context, tipsetContext({}));
+            OUTCOME_TRYA(address, context.accountKey(address));
+          }
+          return key_store->verify(address, data, signature);
         }},
     };
   }

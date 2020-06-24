@@ -21,6 +21,7 @@ namespace fc::vm::actor::builtin::payment_channel {
 
   struct LaneState {
     LaneId id{};
+    /** Total amount for vouchers have been redeemed from the lane */
     TokenAmount redeem{};
     uint64_t nonce{};
 
@@ -40,6 +41,7 @@ namespace fc::vm::actor::builtin::payment_channel {
 
     Address from;
     Address to;
+    /** Token amount to send on collect after voucher was redeemed */
     TokenAmount to_send{};
     ChainEpoch settling_at;
     ChainEpoch min_settling_height;
