@@ -96,6 +96,7 @@ namespace fc::markets::storage::network {
     if (!stream->stream()->isClosed()) {
       stream->stream()->close(
           [self{shared_from_this()}](outcome::result<void> close_res) {
+            self->logger_->debug("Close stream");
             if (close_res.has_error()) {
               self->logger_->error("Close stream error "
                                    + close_res.error().message());
