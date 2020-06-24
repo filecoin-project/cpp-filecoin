@@ -9,6 +9,7 @@ add_library(sync
     pubsub_gate.cpp
     object_loader.cpp
     block_loader.cpp
+    tipset_loader.cpp
     )
 
 target_link_libraries(sync
