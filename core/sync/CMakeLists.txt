@@ -7,6 +7,7 @@ add_library(sync
     peer_manager.cpp
     hello.cpp
     pubsub_gate.cpp
+    object_loader.cpp
     )
 
 target_link_libraries(sync
