@@ -124,9 +124,10 @@ namespace fc::storage::blockchain {
   outcome::result<void> ChainStoreImpl::writeGenesis(
       const BlockHeader &block_header) {
     OUTCOME_TRY(genesis_tipset, Tipset::create({block_header}));
-    OUTCOME_TRY(buffer,
-                encodeCidVector(std::vector<CID>{genesis_tipset.key.cids()[0]}));
-
+    OUTCOME_TRY(
+        buffer,
+        encodeCidVector(std::vector<CID>{genesis_tipset.key.cids()[0]}));
+    genesis_ = block_header;
     return chain_data_store_->set(kGenesisKey, buffer);
   }
 

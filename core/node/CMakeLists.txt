@@ -38,6 +38,7 @@ add_executable(node_main
     )
 target_link_libraries(node_main
     node_builder
+    sync
     )
 
 add_subdirectory(integration)

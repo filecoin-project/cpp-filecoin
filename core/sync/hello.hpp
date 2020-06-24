@@ -6,8 +6,8 @@
 #ifndef CPP_FILECOIN_SYNC_HELLO_HPP
 #define CPP_FILECOIN_SYNC_HELLO_HPP
 
-#include <unordered_map>
 #include <set>
+#include <unordered_map>
 
 #include <libp2p/connection/stream.hpp>
 #include <libp2p/host/host.hpp>
@@ -15,10 +15,12 @@
 
 #include "clock/utc_clock.hpp"
 #include "common/buffer.hpp"
-#include "primitives/tipset/tipset_key.hpp"
+#include "common/libp2p/cbor_stream.hpp"
 #include "primitives/big_int.hpp"
+#include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::sync {
+  using common::libp2p::CborStream;
 
   class Hello : public std::enable_shared_from_this<Hello> {
    public:
@@ -29,6 +31,11 @@ namespace fc::sync {
       std::vector<CID> heaviest_tipset;
       uint64_t heaviest_tipset_height;
       BigInt heaviest_tipset_weight;
+      CID genesis;
+    };
+
+    struct LatencyMessage {
+      int64_t arrival, sent;
     };
 
     /// Callback for incoming hellos
@@ -54,7 +61,7 @@ namespace fc::sync {
     void start(std::shared_ptr<libp2p::Host> host,
                std::shared_ptr<clock::UTCClock> clock,
                CID genesis_cid,
-               const Message& initial_state,
+               const Message &initial_state,
                HelloFeedback hello_feedback,
                LatencyFeedback latency_feedback);
 
@@ -66,10 +73,10 @@ namespace fc::sync {
     /// Periodic callback to detect timed out requests
     void onHeartbeat();
 
-    void onHeadChanged(const Message& state);
+    void onHeadChanged(Message state);
 
    private:
-    using StreamPtr = std::shared_ptr<libp2p::connection::Stream>;
+    using StreamPtr = std::shared_ptr<CborStream>;
     using SharedBuffer = std::shared_ptr<const common::Buffer>;
 
     /// Says if protocol started: genesis must not be empty
@@ -81,25 +88,16 @@ namespace fc::sync {
     void onRequestWritten(const PeerId &peer_id,
                           outcome::result<size_t> result);
 
-    void readResponse(const PeerId &peer_id, const StreamPtr &stream);
-
     void onResponseRead(const PeerId &peer_id,
-                        outcome::result<size_t> result,
-                        const std::vector<uint8_t> &read_buf);
+                        outcome::result<LatencyMessage> result);
 
     void clearRequest(const PeerId &peer_id);
 
     /// Inbound stream accepted
-    void onAccepted(outcome::result<StreamPtr> rstream);
-
-    void readRequest(const StreamPtr &stream,
-                     std::vector<uint8_t> &read_buf,
-                     size_t offset);
+    void onAccepted(StreamPtr stream);
 
     void onRequestRead(const StreamPtr &stream,
-                       std::vector<uint8_t> &read_buf,
-                       size_t offset,
-                       outcome::result<size_t> result);
+                       outcome::result<Message> result);
 
     std::shared_ptr<libp2p::Host> host_;
 
@@ -119,7 +117,6 @@ namespace fc::sync {
     struct RequestCtx {
       StreamPtr stream;
       clock::Time sent;
-      std::vector<uint8_t> read_buf;
 
       explicit RequestCtx(clock::Time t);
     };
@@ -130,11 +127,17 @@ namespace fc::sync {
       clock::Time t;
       PeerId p;
 
-      bool operator<(const TimeAndPeerId& other) const;
+      bool operator<(const TimeAndPeerId &other) const;
     };
 
     std::multiset<TimeAndPeerId> active_requests_by_sent_time_;
   };
+  CBOR_TUPLE(Hello::Message,
+             heaviest_tipset,
+             heaviest_tipset_height,
+             heaviest_tipset_weight,
+             genesis)
+  CBOR_TUPLE(Hello::LatencyMessage, arrival, sent)
 
 }  // namespace fc::sync
 

@@ -16,6 +16,7 @@
 #include "storage/chain/chain_store.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "sync/hello.hpp"
+#include "sync/peer_manager.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
@@ -85,7 +86,7 @@ namespace fc::node {
     // TODO: feed cached heaviest tipset
     OUTCOME_EXCEPT(objects.chain_store->addBlock(genesis_block));
 
-    std::shared_ptr<sync::Hello> hello = std::make_shared<sync::Hello>();
+    auto peer_manager{std::make_shared<sync::PeerManager>(objects, config)};
 
     io.post([&] {
       OUTCOME_EXCEPT(host->listen(config.listen_address));
@@ -98,65 +99,7 @@ namespace fc::node {
 
       // TODO: graphsync start
 
-      hello->start(
-          host,
-          objects.utc_clock,
-          config.genesis_cid,
-          {{config.genesis_cid}, 0, genesis_block.parent_weight},
-          [&](auto &peer, auto _s) {
-            if (!_s) {
-              spdlog::info("hello feedback failed for peer {}: {}",
-                           peer,
-                           _s.error().message());
-              return;
-            }
-            auto &s = _s.value();
-            spdlog::info(
-                "hello feedback from peer {}: cids {}, height {}, weight {}",
-                peer,
-                fmt::join(s.heaviest_tipset, ","),
-                s.heaviest_tipset_height,
-                s.heaviest_tipset_weight.str());
-          },
-          [&](auto &peer, auto _latency) {
-            if (!_latency) {
-              spdlog::info("latency feedback failed for peer {}: {}",
-                           peer,
-                           _latency.error().message());
-              return;
-            }
-            spdlog::info("latency feedback from peer {}: {} microsec",
-                         peer,
-                         _latency.value() / 1000);
-          });
-
-      auto handleProtocol = [&](auto &protocol) {
-        host->setProtocolHandler(protocol.getProtocolId(), [&](auto res) {
-          protocol.handle(std::move(res));
-        });
-      };
-      handleProtocol(*objects.identify_protocol);
-      handleProtocol(*objects.identify_push_protocol);
-      handleProtocol(*objects.identify_delta_protocol);
-      objects.identify_protocol->start();
-      objects.identify_push_protocol->start();
-      objects.identify_delta_protocol->start();
-
-      auto identify_conn =
-          objects.identify_protocol->onIdentifyReceived([&](auto &peer) {
-            spdlog::info("Peer identify for {}:", peer);
-            OUTCOME_EXCEPT(
-                addresses,
-                host->getPeerRepository().getAddressRepository().getAddresses(
-                    peer));
-            spdlog::info("  addresses: {}", fmt::join(addresses, " "));
-            OUTCOME_EXCEPT(
-                protocols,
-                host->getPeerRepository().getProtocolRepository().getProtocols(
-                    peer));
-            spdlog::info("  protocols: {}", fmt::join(protocols, " "));
-            hello->sayHello(peer);
-          });
+      OUTCOME_EXCEPT(peer_manager->start());
 
       spdlog::info("Node started: /ip4/{}/tcp/{}/p2p/{}",
                    config.local_ip_address,

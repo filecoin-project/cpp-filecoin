@@ -96,6 +96,7 @@ namespace fc::sync {
                          "/meshsub/1.0.0",
                          "/p2p/id/delta/1.0.0"}),
         host_(o.host),
+        utc_clock_(o.utc_clock),
         hello_(std::make_shared<Hello>()),
         identify_protocol_(o.identify_protocol),
         identify_push_protocol_(o.identify_push_protocol),
@@ -217,8 +218,6 @@ namespace fc::sync {
           }
         });
 
-    host_->start();
-
     started_ = true;
 
     for (const auto &pi : bootstrap_peers_) {
@@ -226,6 +225,14 @@ namespace fc::sync {
     }
 
     return outcome::success();
+  }
+
+  void PeerManager::addBootstrapPeer(const std::string &p2p_address) {
+    using libp2p::multi::Multiaddress;
+    OUTCOME_EXCEPT(ma, Multiaddress::create(p2p_address));
+    OUTCOME_EXCEPT(id,
+                   libp2p::peer::PeerId::fromBase58(ma.getPeerId().value()));
+    bootstrap_peers_.push_back({id, {ma}});
   }
 
   void PeerManager::stop() {
