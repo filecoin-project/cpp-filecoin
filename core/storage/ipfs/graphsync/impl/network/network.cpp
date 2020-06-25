@@ -162,7 +162,7 @@ namespace fc::storage::ipfs::graphsync {
 
     auto it = peers_.find(peer);
     if (it != peers_.end()) {
-      ctx = *it;
+      ctx = it->second;
       if (ctx->getState() == PeerContext::is_closed) {
         peers_.erase(it);
         ctx.reset();
@@ -171,7 +171,7 @@ namespace fc::storage::ipfs::graphsync {
 
     if (!ctx && create_if_not_found) {
       ctx = std::make_shared<PeerContext>(peer, *feedback_, *this, *scheduler_);
-      peers_.insert(ctx);
+      peers_.insert({peer, ctx});
     }
 
     return ctx;
@@ -226,7 +226,7 @@ namespace fc::storage::ipfs::graphsync {
 
   void Network::closeAllPeers() {
     PeerSet peers = std::move(peers_);
-    for (auto &ctx : peers) {
+    for (auto &[_, ctx] : peers) {
       ctx->close(RS_REJECTED_LOCALLY);
     }
 
