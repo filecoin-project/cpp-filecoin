@@ -27,10 +27,10 @@ using fc::primitives::piece::PieceData;
 using fc::primitives::piece::UnpaddedPieceSize;
 using fc::primitives::sector::OnChainSealVerifyInfo;
 using fc::primitives::sector::SealVerifyInfo;
-using fc::primitives::sector::WinningPoStVerifyInfo;
 using fc::primitives::sector::SectorId;
 using fc::primitives::sector::SectorInfo;
 using fc::primitives::sector::Ticket;
+using fc::primitives::sector::WinningPoStVerifyInfo;
 using fc::proofs::ActorId;
 using fc::proofs::PieceInfo;
 using fc::proofs::PoStCandidate;
@@ -179,8 +179,8 @@ TEST_F(ProofsTest, Lifecycle) {
   ASSERT_EQ(res_b.piece_cid, piece_cid_b);
 
   std::vector<PieceInfo> public_pieces = {
-      PieceInfo(piece_commitment_a_size.padded(), piece_cid_a),
-      PieceInfo(piece_commitment_b_size.padded(), piece_cid_b),
+      PieceInfo{.size = piece_commitment_a_size.padded(), .cid = piece_cid_a},
+      PieceInfo{.size = piece_commitment_b_size.padded(), .cid = piece_cid_b},
   };
 
   EXPECT_OUTCOME_TRUE(
@@ -328,8 +328,7 @@ TEST_F(ProofsTest, Lifecycle) {
   }
 
   EXPECT_OUTCOME_TRUE(
-      proofs,
-      Proofs::generateWinningPoSt(miner_id, private_info, randomness));
+      proofs, Proofs::generateWinningPoSt(miner_id, private_info, randomness));
 
   EXPECT_OUTCOME_TRUE(res,
                       Proofs::verifyWinningPoSt(WinningPoStVerifyInfo{

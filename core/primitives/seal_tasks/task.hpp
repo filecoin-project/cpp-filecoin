@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_CORE_PRIMITIVES_SEAL_TASKS_TASK_HPP
 
 #include <string>
+#include <unordered_map>
 
 namespace fc::primitives {
 

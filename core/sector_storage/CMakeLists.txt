@@ -20,3 +20,14 @@ target_link_libraries(sector_storage
         proofs
         Boost::filesystem
         )
+
+add_library(worker
+        impl/local_worker.cpp
+        )
+
+target_link_libraries(worker
+        outcome
+        sector
+        piece
+        proofs
+        )

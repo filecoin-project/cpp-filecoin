@@ -180,7 +180,8 @@ namespace fc::sector_storage {
                                            staged_path.unsealed,
                                            piece_sizes));
 
-    return PieceInfo(new_piece_size.padded(), response.piece_cid);
+    return PieceInfo{.size = new_piece_size.padded(),
+                     .cid = response.piece_cid};
   }
 
   outcome::result<PieceData> SectorStorageImpl::readPieceFromSealedSector(

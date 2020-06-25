@@ -1,0 +1,91 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
+#define CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
+
+#include "primitives/worker_config.hpp"
+#include "sector_storage/stores/impl/local_store.hpp"
+#include "sector_storage/worker.hpp"
+
+namespace fc::sector_storage {
+
+  class LocalWorker : public Worker {
+   public:
+    LocalWorker(const primitives::WorkerConfig &config,
+                std::shared_ptr<stores::Store> store,
+                std::shared_ptr<stores::LocalStore> local,
+                std::shared_ptr<stores::SectorIndex> sector_index);
+
+    outcome::result<PreCommit1Output> sealPreCommit1(
+        const SectorId &sector,
+        const SealRandomness &ticket,
+        gsl::span<const PieceInfo> pieces) override;
+
+    outcome::result<SectorCids> sealPreCommit2(
+        const SectorId &sector, const PreCommit1Output &pc1o) override;
+
+    outcome::result<Commit1Output> sealCommit1(
+        const SectorId &sector,
+        const SealRandomness &ticket,
+        const InteractiveRandomness &seed,
+        gsl::span<const PieceInfo> pieces,
+        const SectorCids &cids) override;
+
+    outcome::result<Proof> sealCommit2(const SectorId &sector,
+                                       const Commit1Output &c1o) override;
+
+    outcome::result<void> finalizeSector(
+        const SectorId &sector, const gsl::span<Range> &keep_unsealed) override;
+
+    outcome::result<void> releaseUnsealed(
+        const SectorId &sector, const gsl::span<Range> &safe_to_free) override;
+
+    outcome::result<void> moveStorage(const SectorId &sector) override;
+
+    outcome::result<void> fetch(const SectorId &sector,
+                                const SectorFileType &file_type,
+                                bool can_seal) override;
+
+    outcome::result<void> unsealPiece(const SectorId &sector,
+                                      UnpaddedByteIndex index,
+                                      const UnpaddedPieceSize &size,
+                                      const SealRandomness &randomness,
+                                      const CID &cid) override;
+
+    outcome::result<void> readPiece(common::Buffer &output,
+                                    const SectorId &sector,
+                                    UnpaddedByteIndex index,
+                                    const UnpaddedPieceSize &size) override;
+
+    outcome::result<primitives::WorkerInfo> getInfo() override;
+
+    outcome::result<std::vector<primitives::TaskType>> getSupportedTask()
+        override;
+
+    outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths()
+        override;
+
+    outcome::result<void> remove(const SectorId &sector) override;
+
+    outcome::result<void> newSector(const SectorId &sector) override;
+
+    outcome::result<PieceInfo> addPiece(
+        const SectorId &sector,
+        gsl::span<const UnpaddedPieceSize> piece_sizes,
+        const UnpaddedPieceSize &new_piece_size,
+        const proofs::PieceData &piece_data) override;
+
+   private:
+    std::shared_ptr<stores::Store> storage_;
+    std::shared_ptr<stores::LocalStore> local_store_;
+    std::shared_ptr<stores::SectorIndex> index_;
+
+    primitives::WorkerConfig config_;
+  };
+
+}  // namespace fc::sector_storage
+
+#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP

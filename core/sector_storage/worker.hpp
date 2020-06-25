@@ -9,7 +9,6 @@
 #include "sector_storage/spec_interfaces/sealer.hpp"
 #include "sector_storage/spec_interfaces/storage.hpp"
 
-#include <set>
 #include "common/outcome.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/seal_tasks/task.hpp"

@@ -7,10 +7,12 @@
 #define CPP_FILECOIN_CORE_PRIMITIVES_TYPES_HPP
 
 #include <cstdint>
+#include <primitives/sector/sector.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
+#include "primitives/seal_tasks/task.hpp"
 
 namespace fc::primitives {
   using ActorId = uint64_t;

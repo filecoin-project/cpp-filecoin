@@ -75,9 +75,6 @@ namespace fc::primitives::piece {
     return outcome::success();
   }
 
-  PieceInfo::PieceInfo(const PaddedPieceSize &padded_size, CID piece_CID)
-      : size(padded_size), cid(std::move(piece_CID)) {}
-
   UnpaddedPieceSize paddedSize(uint64_t size) {
     int logv = static_cast<int>(floor(std::log2(size))) + 1;
 

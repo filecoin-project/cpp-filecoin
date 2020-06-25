@@ -69,10 +69,7 @@ namespace fc::primitives::piece {
     return s;
   }
 
-  class PieceInfo {
-   public:
-    PieceInfo(const PaddedPieceSize &size, CID piece_CID);
-
+  struct PieceInfo {
     PaddedPieceSize size;
     CID cid;
   };
