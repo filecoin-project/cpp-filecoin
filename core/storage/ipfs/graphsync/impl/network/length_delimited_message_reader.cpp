@@ -44,7 +44,7 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     reading_ = true;
-    
+
     // clang-format off
     libp2p::basic::VarintReader::readVarint(
         stream_,

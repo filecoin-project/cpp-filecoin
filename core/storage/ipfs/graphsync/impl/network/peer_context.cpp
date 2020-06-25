@@ -118,7 +118,7 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     StreamCtx stream_ctx;
-    stream_ctx.reader = std::make_unique<MessageReader>(stream, *this);
+    stream_ctx.reader = std::make_unique<MessageReader>(*this);
 
     if (getState() == is_connecting) {
       assert(requests_endpoint_);
@@ -139,7 +139,8 @@ namespace fc::storage::ipfs::graphsync {
 
     shiftExpireTime(stream_ctx);
 
-    streams_.emplace(std::move(stream), std::move(stream_ctx));
+    auto [it, _] = streams_.emplace(stream, std::move(stream_ctx));
+    it->second.reader->read(std::move(stream));
   }
 
   void PeerContext::onStreamConnected(outcome::result<StreamPtr> rstream) {

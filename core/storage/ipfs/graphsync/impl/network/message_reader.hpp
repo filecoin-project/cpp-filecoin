@@ -16,10 +16,12 @@ namespace fc::storage::ipfs::graphsync {
   class MessageReader {
    public:
     /// Ctor.
-    /// \param stream libp2p stream
     /// \param feedback Owner's feedback interface
-    MessageReader(StreamPtr stream,
-                  EndpointToPeerFeedback &feedback);
+    explicit MessageReader(EndpointToPeerFeedback &feedback);
+
+    /// begins reading
+    /// \param stream libp2p stream
+    bool read(StreamPtr stream);
 
     ~MessageReader();
 
