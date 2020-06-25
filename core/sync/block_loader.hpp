@@ -8,6 +8,7 @@
 
 #include <libp2p/protocol/common/scheduler.hpp>
 #include "common.hpp"
+#include "object_loader.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::ipfs::graphsync {
@@ -15,60 +16,6 @@ namespace fc::storage::ipfs::graphsync {
 }
 
 namespace fc::sync {
-
-  class PubSubListener {
-   public:
-  };
-
-  class ObjectLoader {
-   public:
-    // If these callbacks return true, the ObjectLoader saves them into
-    // datastore, and ignores otherwise
-
-    using OnBlockHeader =
-        std::function<bool(const CID &cid,
-                           bool object_is_valid,
-                           boost::optional<BlockHeader> header)>;
-
-    using OnMsgMetaAvailable =
-        std::function<bool(const CID &cid,
-                           bool object_is_valid,
-                           const std::vector<CID> &bls_messages,
-                           const std::vector<CID> &secp_messages)>;
-
-    using OnMessageAvailable = std::function<bool(
-        const CID &cid, bool is_secp_message, bool object_is_valid)>;
-
-    enum ExpectedType {
-      WHATEVER,
-      BLOCK_HEADER,
-      MSG_META,
-      BLS_MESSAGE,
-      SECP_MESSAGE,
-    };
-
-    struct ObjectWanted {
-      CID cid;
-      ExpectedType type = WHATEVER;
-    };
-
-    ObjectLoader(
-        std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-        std::shared_ptr<PubSubListener> pub_sub_litener,
-        std::shared_ptr<fc::storage::ipfs::graphsync::Graphsync> graphsync);
-
-    void init(OnBlockHeader block_cb,
-              OnMsgMetaAvailable meta_cb,
-              OnMessageAvailable msg_cb);
-
-    // TODO callback about peers
-
-    void setDefaultPeer(const PeerId &peer);
-
-    outcome::result<void> loadObjects(
-        const std::vector<ObjectWanted> &objects,
-        boost::optional<std::reference_wrapper<const PeerId>> preferred_peer);
-  };
 
   class BlockLoader {
    public:
