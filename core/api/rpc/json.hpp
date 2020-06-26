@@ -13,6 +13,7 @@
 #include "api/rpc/json_errors.hpp"
 #include "api/rpc/rpc.hpp"
 #include "common/enum.hpp"
+#include "payment_channel_manager/payment_channel_manager.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 
@@ -29,6 +30,7 @@ namespace fc::api {
   using crypto::signature::Secp256k1Signature;
   using crypto::signature::Signature;
   using markets::storage::StorageAsk;
+  using payment_channel_manager::ChannelInfo;
   using primitives::BigInt;
   using primitives::LocalStorageMeta;
   using primitives::block::BlockHeader;
@@ -746,6 +748,18 @@ namespace fc::api {
       Set(j, "Expiry", v.expiry);
       Set(j, "SeqNo", v.seq_no);
       return j;
+    }
+
+    ENCODE(AddChannelInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Channel", v.channel);
+      Set(j, "ChannelMessage", v.channel_message);
+      return j;
+    }
+
+    DECODE(AddChannelInfo) {
+      decode(v.channel, Get(j, "Channel"));
+      decode(v.channel_message, Get(j, "ChannelMessage"));
     }
 
     ENCODE(SignedStorageAsk) {

@@ -26,7 +26,7 @@ namespace fc::payment_channel_manager {
     PaymentChannelManagerImpl(std::shared_ptr<Api> api,
                               std::shared_ptr<Ipld> ipld);
 
-    outcome::result<std::tuple<Address, CID>> getOrCreatePaymentChannel(
+    outcome::result<AddChannelInfo> getOrCreatePaymentChannel(
         const Address &client,
         const Address &miner,
         const TokenAmount &amount_available) override;
@@ -38,7 +38,7 @@ namespace fc::payment_channel_manager {
         const LaneId &lane,
         const TokenAmount &amount) override;
 
-    outcome::result<void> savePaymentVoucher(
+    outcome::result<TokenAmount> savePaymentVoucher(
         const Address &channel_address, const SignedVoucher &voucher) override;
 
     outcome::result<void> validateVoucher(
@@ -47,6 +47,8 @@ namespace fc::payment_channel_manager {
 
     boost::optional<Address> findChannel(const Address &control,
                                          const Address &target) const override;
+
+    void makeApi(Api &api) override;
 
    private:
     /**
@@ -77,9 +79,8 @@ namespace fc::payment_channel_manager {
      * @param amount ensure token amount
      * @return cid of message and actor address
      */
-    outcome::result<CID> createPaymentChannelActor(const Address &to,
-                                                   const Address &from,
-                                                   const TokenAmount &amount);
+    outcome::result<AddChannelInfo> createPaymentChannelActor(
+        const Address &to, const Address &from, const TokenAmount &amount);
 
     /**
      * Loads payment channel actor state

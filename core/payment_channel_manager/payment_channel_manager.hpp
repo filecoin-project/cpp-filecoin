@@ -6,11 +6,14 @@
 #ifndef CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_HPP
 #define CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_HPP
 
+#include "api/api.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::payment_channel_manager {
+  using api::AddChannelInfo;
+  using api::Api;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using vm::actor::builtin::payment_channel::LaneId;
@@ -37,7 +40,7 @@ namespace fc::payment_channel_manager {
      * @return payment channel address and funding or channel creation message
      * CID
      */
-    virtual outcome::result<std::tuple<Address, CID>> getOrCreatePaymentChannel(
+    virtual outcome::result<AddChannelInfo> getOrCreatePaymentChannel(
         const Address &client,
         const Address &miner,
         const TokenAmount &amount_available) = 0;
@@ -68,9 +71,9 @@ namespace fc::payment_channel_manager {
      * Adds existing payment voucher
      * @param channel_address
      * @param voucher
-     * @return
+     * @return amount to redeem
      */
-    virtual outcome::result<void> savePaymentVoucher(
+    virtual outcome::result<TokenAmount> savePaymentVoucher(
         const Address &channel_address, const SignedVoucher &voucher) = 0;
 
     /**
@@ -90,7 +93,13 @@ namespace fc::payment_channel_manager {
      */
     virtual boost::optional<Address> findChannel(
         const Address &control, const Address &target) const = 0;
+
+    /**
+     * Adds payment channel manager methods to API
+     * @param api to add methods
+     */
+    virtual void makeApi(Api &api) = 0;
   };
-}  // namespace fc::paychannel_manager
+}  // namespace fc::payment_channel_manager
 
 #endif  // CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_HPP

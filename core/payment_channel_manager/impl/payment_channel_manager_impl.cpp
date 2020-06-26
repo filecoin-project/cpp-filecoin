@@ -12,6 +12,7 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::payment_channel_manager {
+  using api::AddChannelInfo;
   using fc::vm::message::cid;
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
@@ -31,22 +32,20 @@ namespace fc::payment_channel_manager {
       std::shared_ptr<Api> api, std::shared_ptr<Ipld> ipld)
       : api_{std::move(api)}, ipld_{std::move(ipld)} {}
 
-  outcome::result<std::tuple<Address, CID>>
+  outcome::result<AddChannelInfo>
   PaymentChannelManagerImpl::getOrCreatePaymentChannel(
       const Address &client,
       const Address &miner,
       const TokenAmount &amount_available) {
     auto channel_address = findChannel(client, miner);
-    CID message_cid;
     if (channel_address) {
       // TODO track available funds
-      OUTCOME_TRYA(message_cid,
-                   addFunds(channel_address.get(), client, amount_available));
+      OUTCOME_TRY(message_cid,
+                  addFunds(channel_address.get(), client, amount_available));
+      return AddChannelInfo{channel_address.get(), message_cid};
     } else {
-      OUTCOME_TRYA(message_cid,
-                   createPaymentChannelActor(client, miner, amount_available));
+      return createPaymentChannelActor(client, miner, amount_available);
     }
-    return std::make_tuple(channel_address.get(), message_cid);
   }
 
   outcome::result<LaneId> PaymentChannelManagerImpl::allocateLane(
@@ -87,19 +86,36 @@ namespace fc::payment_channel_manager {
     return new_voucher;
   }
 
-  outcome::result<void> PaymentChannelManagerImpl::savePaymentVoucher(
+  outcome::result<TokenAmount> PaymentChannelManagerImpl::savePaymentVoucher(
       const Address &channel_address, const SignedVoucher &voucher) {
     OUTCOME_TRY(validateVoucher(channel_address, voucher));
+    OUTCOME_TRY(payment_channel_actor_state,
+                loadPaymentChannelActorState(channel_address));
+    std::unique_lock lock(channels_mutex_);
 
     // add channel to local storage if hasn't been added yet
-    if (channels_.find(channel_address) == channels_.end()) {
-      OUTCOME_TRY(payment_channel_actor_state,
-                  loadPaymentChannelActorState(channel_address));
+    auto channel_lookup = channels_.find(channel_address);
+    if (channel_lookup == channels_.end()) {
       saveChannel(channel_address,
                   payment_channel_actor_state.from,
                   payment_channel_actor_state.to);
+      channel_lookup = channels_.find(channel_address);
     }
-    return outcome::success();
+
+    // insert if no duplicates
+    auto vouchers = channel_lookup->second.vouchers[voucher.lane];
+    if (find(vouchers.begin(), vouchers.end(), voucher) == vouchers.end()) {
+      channel_lookup->second.vouchers[voucher.lane].push_back(voucher);
+    }
+
+    // get redeemed
+    TokenAmount redeemed{0};
+    auto lane_lookup = payment_channel_actor_state.findLane(voucher.lane);
+    if (lane_lookup != payment_channel_actor_state.lanes.end()) {
+      redeemed = lane_lookup->redeem;
+    }
+
+    return voucher.amount - redeemed;
   }
 
   outcome::result<void> PaymentChannelManagerImpl::validateVoucher(
@@ -171,8 +187,37 @@ namespace fc::payment_channel_manager {
                              .target = target,
                              .vouchers = {},
                              .next_lane = 0};
-    std::unique_lock lock(channels_mutex_);
     channels_[channel_actor_address] = channel_info;
+  }
+
+  void PaymentChannelManagerImpl::makeApi(Api &api) {
+    api.PaychGet = {[self{shared_from_this()}](
+                        auto client, auto miner, auto amount_available)
+                        -> outcome::result<AddChannelInfo> {
+      return self->getOrCreatePaymentChannel(client, miner, amount_available);
+    }};
+    api.PaychAllocateLane = {
+        [self{shared_from_this()}](auto channel) -> outcome::result<LaneId> {
+          return self->allocateLane(channel);
+        }};
+    api.PaychVoucherCheckValid = {
+        [self{shared_from_this()}](auto channel,
+                                   auto voucher) -> outcome::result<void> {
+          return self->validateVoucher(channel, voucher);
+        }};
+    api.PaychVoucherCreate = {[self{shared_from_this()}](
+                                  auto channel,
+                                  auto amount,
+                                  auto lane) -> outcome::result<SignedVoucher> {
+      return self->createPaymentVoucher(channel, lane, amount);
+    }};
+    api.PaychVoucherAdd = {
+        [self{shared_from_this()}](auto channel,
+                                   auto voucher,
+                                   auto proof,
+                                   auto delta) -> outcome::result<TokenAmount> {
+          return self->savePaymentVoucher(channel, voucher);
+        }};
   }
 
   outcome::result<CID> PaymentChannelManagerImpl::addFunds(
@@ -197,7 +242,8 @@ namespace fc::payment_channel_manager {
     return std::move(message_cid);
   }
 
-  outcome::result<CID> PaymentChannelManagerImpl::createPaymentChannelActor(
+  outcome::result<AddChannelInfo>
+  PaymentChannelManagerImpl::createPaymentChannelActor(
       const Address &client, const Address &miner, const TokenAmount &amount) {
     // payment channel constructor params
     PaymentChannelConstruct::Params construct_params{.from = client,
@@ -231,9 +277,10 @@ namespace fc::payment_channel_manager {
                 codec::cbor::decode<InitActorExec::Result>(
                     message_state.receipt.return_value));
     Address channel_actor_address = ret.robust_address;
+    std::unique_lock lock(channels_mutex_);
     saveChannel(channel_actor_address, client, miner);
 
-    return std::move(message_cid);
+    return AddChannelInfo{channel_actor_address, message_cid};
   }
 
   outcome::result<PaymentChannelState>
