@@ -87,7 +87,17 @@ namespace fc::sector_storage {
   outcome::result<sector_storage::SectorCids>
   sector_storage::LocalWorker::sealPreCommit2(
       const SectorId &sector, const sector_storage::PreCommit1Output &pc1o) {
-    return outcome::success();
+    OUTCOME_TRY(response,
+                storage_->acquireSector(
+                    sector,
+                    config_.seal_proof_type,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    SectorFileType::FTNone,
+                    true));
+
+    return proofs::Proofs::sealPreCommitPhase2(
+        pc1o, response.paths.cache, response.paths.sealed);
   }
 
   outcome::result<sector_storage::Commit1Output>
@@ -97,18 +107,48 @@ namespace fc::sector_storage {
       const primitives::sector::InteractiveRandomness &seed,
       gsl::span<const PieceInfo> pieces,
       const sector_storage::SectorCids &cids) {
-    return outcome::success();
+    OUTCOME_TRY(response,
+                storage_->acquireSector(
+                    sector,
+                    config_.seal_proof_type,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    SectorFileType::FTNone,
+                    true));
+
+    return proofs::Proofs::sealCommitPhase1(config_.seal_proof_type,
+                                            cids.sealed_cid,
+                                            cids.unsealed_cid,
+                                            response.paths.cache,
+                                            response.paths.sealed,
+                                            sector.sector,
+                                            sector.miner,
+                                            ticket,
+                                            seed,
+                                            pieces);
   }
 
   outcome::result<primitives::sector::Proof>
   sector_storage::LocalWorker::sealCommit2(
       const SectorId &sector, const sector_storage::Commit1Output &c1o) {
-    return outcome::success();
+    return proofs::Proofs::sealCommitPhase2(c1o, sector.sector, sector.miner);
   }
 
   outcome::result<void> sector_storage::LocalWorker::finalizeSector(
       const SectorId &sector, const gsl::span<Range> &keep_unsealed) {
-    return outcome::success();
+    OUTCOME_TRY(size,
+                primitives::sector::getSectorSize(config_.seal_proof_type));
+
+    OUTCOME_TRY(response,
+                storage_->acquireSector(sector,
+                                        config_.seal_proof_type,
+                                        SectorFileType::FTCache,
+                                        SectorFileType::FTNone,
+                                        false));
+
+    OUTCOME_TRY(proofs::Proofs::clearCache(size, response.paths.cache));
+
+    return storage_->remove(sector, SectorFileType::FTUnsealed);
   }
 
   outcome::result<void> sector_storage::LocalWorker::releaseUnsealed(
