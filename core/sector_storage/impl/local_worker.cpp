@@ -218,7 +218,7 @@ namespace fc::sector_storage {
 
   outcome::result<std::vector<primitives::StoragePath>>
   sector_storage::LocalWorker::getAccessiblePaths() {
-    return outcome::success();
+    return local_store_->getAccessiblePaths();
   }
 
   outcome::result<void> sector_storage::LocalWorker::remove(

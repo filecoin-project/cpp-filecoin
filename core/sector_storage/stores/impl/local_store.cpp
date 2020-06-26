@@ -333,4 +333,28 @@ namespace fc::sector_storage::stores {
     return result;
   }
 
+  outcome::result<std::vector<primitives::StoragePath>>
+  LocalStore::getAccessiblePaths() {
+    std::shared_lock lock(mutex_);
+
+    std::vector<primitives::StoragePath> res;
+    for (const auto &[id, path] : paths_) {
+      if (path.empty()) {
+        continue;
+      }
+
+      OUTCOME_TRY(info, index_->getStorageInfo(id));
+
+      res.push_back(primitives::StoragePath{
+          .id = id,
+          .weight = info.weight,
+          .local_path = path,
+          .can_seal = info.can_seal,
+          .can_store = info.can_store,
+      });
+    }
+
+    return std::move(res);
+  }
+
 }  // namespace fc::sector_storage::stores

@@ -50,6 +50,8 @@ namespace fc::sector_storage::stores {
 
     outcome::result<FsStat> getFsStat(StorageID id) override;
 
+    outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths();
+
    private:
     LocalStore(std::shared_ptr<LocalStorage> storage,
                std::shared_ptr<SectorIndex> index,
