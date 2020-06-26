@@ -10,15 +10,23 @@
 #include "primitives/types.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 
-namespace fc::paychannel_manager {
+namespace fc::payment_channel_manager {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using vm::actor::builtin::payment_channel::LaneId;
   using vm::actor::builtin::payment_channel::SignedVoucher;
 
-  class PayChannelManager {
+  struct ChannelInfo {
+    Address channel_actor;
+    Address control;
+    Address target;
+    std::map<LaneId, std::vector<SignedVoucher>> vouchers;
+    LaneId next_lane;
+  };
+
+  class PaymentChannelManager {
    public:
-    virtual ~PayChannelManager() = default;
+    virtual ~PaymentChannelManager() = default;
 
     /**
      * Sets up a new payment channel if one does not exist between a client and

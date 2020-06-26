@@ -9,27 +9,22 @@
 #include <shared_mutex>
 #include "api/api.hpp"
 #include "common/buffer.hpp"
-#include "paychannel_manager/paychannel_manager.hpp"
+#include "payment_channel_manager/payment_channel_manager.hpp"
 #include "storage/ipfs/datastore.hpp"
 
-namespace fc::paychannel_manager {
+namespace fc::payment_channel_manager {
   using api::Api;
   using common::Buffer;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using Ipld = fc::storage::ipfs::IpfsDatastore;
   using PaymentChannelState = vm::actor::builtin::payment_channel::State;
 
-  struct ChannelInfo {
-    Address channel_actor;
-    Address control;
-    Address target;
-    std::map<LaneId, std::vector<SignedVoucher>> vouchers;
-    LaneId next_lane;
-  };
-
-  class PayChannelManagerImpl : public PayChannelManager {
+  class PaymentChannelManagerImpl
+      : public PaymentChannelManager,
+        public std::enable_shared_from_this<PaymentChannelManagerImpl> {
    public:
-    PayChannelManagerImpl(std::shared_ptr<Api> api, std::shared_ptr<Ipld> ipld);
+    PaymentChannelManagerImpl(std::shared_ptr<Api> api,
+                              std::shared_ptr<Ipld> ipld);
 
     outcome::result<std::tuple<Address, CID>> getOrCreatePaymentChannel(
         const Address &client,
@@ -113,6 +108,6 @@ namespace fc::paychannel_manager {
     mutable std::shared_mutex channels_mutex_;
   };
 
-}  // namespace fc::paychannel_manager
+}  // namespace fc::payment_channel_manager
 
 #endif  // CPP_FILECOIN_PAYCHANNEL_MANAGER_PAYCHANNEL_MANAGER_IMPL_HPP

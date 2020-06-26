@@ -3,15 +3,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "paychannel_manager/impl/paychannel_manager_impl.hpp"
+#include "payment_channel_manager/impl/payment_channel_manager_impl.hpp"
 #include "common/todo_error.hpp"
-#include "paychannel_manager/impl/paychannel_manager_error.hpp"
+#include "payment_channel_manager/impl/payment_channel_manager_error.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor.hpp"
 #include "vm/message/message_util.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
-namespace fc::paychannel_manager {
+namespace fc::payment_channel_manager {
   using fc::vm::message::cid;
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
@@ -27,12 +27,12 @@ namespace fc::paychannel_manager {
   using PaymentChannelConstruct =
       vm::actor::builtin::payment_channel::Construct;
 
-  PayChannelManagerImpl::PayChannelManagerImpl(std::shared_ptr<Api> api,
-                                               std::shared_ptr<Ipld> ipld)
+  PaymentChannelManagerImpl::PaymentChannelManagerImpl(
+      std::shared_ptr<Api> api, std::shared_ptr<Ipld> ipld)
       : api_{std::move(api)}, ipld_{std::move(ipld)} {}
 
   outcome::result<std::tuple<Address, CID>>
-  PayChannelManagerImpl::getOrCreatePaymentChannel(
+  PaymentChannelManagerImpl::getOrCreatePaymentChannel(
       const Address &client,
       const Address &miner,
       const TokenAmount &amount_available) {
@@ -49,17 +49,18 @@ namespace fc::paychannel_manager {
     return std::make_tuple(channel_address.get(), message_cid);
   }
 
-  outcome::result<LaneId> PayChannelManagerImpl::allocateLane(
+  outcome::result<LaneId> PaymentChannelManagerImpl::allocateLane(
       const Address &channel_address) {
     std::unique_lock lock(channels_mutex_);
     auto lookup = channels_.find(channel_address);
     if (lookup == channels_.end()) {
-      return PayChannelManagerError::kChannelNotFound;
+      return PaymentChannelManagerError::kChannelNotFound;
     }
     return lookup->second.next_lane++;
   }
 
-  outcome::result<SignedVoucher> PayChannelManagerImpl::createPaymentVoucher(
+  outcome::result<SignedVoucher>
+  PaymentChannelManagerImpl::createPaymentVoucher(
       const Address &channel_address,
       const LaneId &lane,
       const TokenAmount &amount) {
@@ -70,7 +71,7 @@ namespace fc::paychannel_manager {
     std::unique_lock lock(channels_mutex_);
     auto lookup_channel = channels_.find(channel_address);
     if (lookup_channel == channels_.end()) {
-      return PayChannelManagerError::kChannelNotFound;
+      return PaymentChannelManagerError::kChannelNotFound;
     }
     OUTCOME_TRYA(new_voucher.nonce, getNextNonce(lookup_channel->second, lane));
 
@@ -86,7 +87,7 @@ namespace fc::paychannel_manager {
     return new_voucher;
   }
 
-  outcome::result<void> PayChannelManagerImpl::savePaymentVoucher(
+  outcome::result<void> PaymentChannelManagerImpl::savePaymentVoucher(
       const Address &channel_address, const SignedVoucher &voucher) {
     OUTCOME_TRY(validateVoucher(channel_address, voucher));
 
@@ -101,14 +102,14 @@ namespace fc::paychannel_manager {
     return outcome::success();
   }
 
-  outcome::result<void> PayChannelManagerImpl::validateVoucher(
+  outcome::result<void> PaymentChannelManagerImpl::validateVoucher(
       const Address &channel_address, const SignedVoucher &voucher) const {
     OUTCOME_TRY(payment_channel_actor_state,
                 loadPaymentChannelActorState(channel_address));
 
     // check signature
     if (!voucher.signature.has_value()) {
-      return PayChannelManagerError::kWrongSignature;
+      return PaymentChannelManagerError::kWrongSignature;
     }
     auto voucher_to_verify = voucher;
     voucher_to_verify.signature = boost::none;
@@ -118,7 +119,7 @@ namespace fc::paychannel_manager {
                                    bytes_to_verify,
                                    voucher.signature.get()));
     if (!verified) {
-      return PayChannelManagerError::kWrongSignature;
+      return PaymentChannelManagerError::kWrongSignature;
     }
 
     // check lane nonce if any lane exists
@@ -126,10 +127,10 @@ namespace fc::paychannel_manager {
     auto lane_lookup = payment_channel_actor_state.findLane(voucher.lane);
     if (lane_lookup != payment_channel_actor_state.lanes.end()) {
       if (lane_lookup->nonce >= voucher.nonce) {
-        return PayChannelManagerError::kWrongNonce;
+        return PaymentChannelManagerError::kWrongNonce;
       }
       if (lane_lookup->redeem >= voucher.amount) {
-        return PayChannelManagerError::kAlreadyRedeemed;
+        return PaymentChannelManagerError::kAlreadyRedeemed;
       }
       voucher_send_amount -= lane_lookup->redeem;
     }
@@ -140,7 +141,7 @@ namespace fc::paychannel_manager {
     OUTCOME_TRY(payment_channel_actor_balance,
                 api_->WalletBalance(channel_address));
     if (payment_channel_actor_balance < total_amoun) {
-      return PayChannelManagerError::kInsufficientFunds;
+      return PaymentChannelManagerError::kInsufficientFunds;
     }
 
     if (!voucher.merges.empty()) {
@@ -151,7 +152,7 @@ namespace fc::paychannel_manager {
     return outcome::success();
   }
 
-  boost::optional<Address> PayChannelManagerImpl::findChannel(
+  boost::optional<Address> PaymentChannelManagerImpl::findChannel(
       const Address &control, const Address &target) const {
     std::shared_lock lock(channels_mutex_);
     for (const auto &[address, channel_info] : channels_) {
@@ -161,9 +162,10 @@ namespace fc::paychannel_manager {
     return boost::none;
   }
 
-  void PayChannelManagerImpl::saveChannel(const Address &channel_actor_address,
-                                          const Address &control,
-                                          const Address &target) {
+  void PaymentChannelManagerImpl::saveChannel(
+      const Address &channel_actor_address,
+      const Address &control,
+      const Address &target) {
     ChannelInfo channel_info{.channel_actor = channel_actor_address,
                              .control = control,
                              .target = target,
@@ -173,7 +175,7 @@ namespace fc::paychannel_manager {
     channels_[channel_actor_address] = channel_info;
   }
 
-  outcome::result<CID> PayChannelManagerImpl::addFunds(
+  outcome::result<CID> PaymentChannelManagerImpl::addFunds(
       const Address &to, const Address &from, const TokenAmount &amount) {
     UnsignedMessage unsigned_message{
         kMessageVersion,
@@ -190,12 +192,12 @@ namespace fc::paychannel_manager {
     OUTCOME_TRY(message_wait, api_->StateWaitMsg(message_cid));
     OUTCOME_TRY(message_state, message_wait.waitSync());
     if (message_state.receipt.exit_code != VMExitCode::Ok) {
-      return PayChannelManagerError::kSendFundsErrored;
+      return PaymentChannelManagerError::kSendFundsErrored;
     }
     return std::move(message_cid);
   }
 
-  outcome::result<CID> PayChannelManagerImpl::createPaymentChannelActor(
+  outcome::result<CID> PaymentChannelManagerImpl::createPaymentChannelActor(
       const Address &client, const Address &miner, const TokenAmount &amount) {
     // payment channel constructor params
     PaymentChannelConstruct::Params construct_params{.from = client,
@@ -223,7 +225,7 @@ namespace fc::paychannel_manager {
     OUTCOME_TRY(message_wait, api_->StateWaitMsg(message_cid));
     OUTCOME_TRY(message_state, message_wait.waitSync());
     if (message_state.receipt.exit_code != VMExitCode::Ok) {
-      return PayChannelManagerError::kCreateChannelActorErrored;
+      return PaymentChannelManagerError::kCreateChannelActorErrored;
     }
     OUTCOME_TRY(ret,
                 codec::cbor::decode<InitActorExec::Result>(
@@ -235,7 +237,7 @@ namespace fc::paychannel_manager {
   }
 
   outcome::result<PaymentChannelState>
-  PayChannelManagerImpl::loadPaymentChannelActorState(
+  PaymentChannelManagerImpl::loadPaymentChannelActorState(
       const Address &channel_address) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
@@ -245,11 +247,11 @@ namespace fc::paychannel_manager {
     return state_tree->state<PaymentChannelState>(channel_address);
   }
 
-  outcome::result<uint64_t> PayChannelManagerImpl::getNextNonce(
+  outcome::result<uint64_t> PaymentChannelManagerImpl::getNextNonce(
       const ChannelInfo &channel, const LaneId &lane) const {
     auto lookup_lane = channel.vouchers.find(lane);
     if (lookup_lane == channel.vouchers.end()) {
-      return PayChannelManagerError::kChannelNotFound;
+      return PaymentChannelManagerError::kChannelNotFound;
     }
     uint64_t nonce{0};
     for (auto &voucher : lookup_lane->second) {
@@ -258,4 +260,4 @@ namespace fc::paychannel_manager {
     return ++nonce;
   }
 
-}  // namespace fc::paychannel_manager
+}  // namespace fc::payment_channel_manager

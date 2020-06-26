@@ -3,10 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "paychannel_manager/impl/paychannel_manager_error.hpp"
+#include "payment_channel_manager/impl/payment_channel_manager_error.hpp"
 
-OUTCOME_CPP_DEFINE_CATEGORY(fc::paychannel_manager, PayChannelManagerError, e) {
-  using E = fc::paychannel_manager::PayChannelManagerError;
+OUTCOME_CPP_DEFINE_CATEGORY(fc::payment_channel_manager,
+                            PaymentChannelManagerError,
+                            e) {
+  using E = fc::payment_channel_manager::PaymentChannelManagerError;
   switch (e) {
     case E::kSendFundsErrored:
       return "PayChannelManager: error code on send funds returned";
