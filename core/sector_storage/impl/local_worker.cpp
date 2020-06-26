@@ -5,23 +5,83 @@
 
 #include "sector_storage/impl/local_worker.hpp"
 
+#include <boost/filesystem.hpp>
+#include "proofs/proofs.hpp"
+
 namespace fc::sector_storage {
 
-  LocalWorker::LocalWorker(const primitives::WorkerConfig &config,
+  LocalWorker::LocalWorker(primitives::WorkerConfig config,
                            std::shared_ptr<stores::Store> store,
                            std::shared_ptr<stores::LocalStore> local,
                            std::shared_ptr<stores::SectorIndex> sector_index)
       : storage_(std::move(store)),
         local_store_(std::move(local)),
         index_(std::move(sector_index)),
-        config_(config) {}
+        config_(std::move(config)) {}
 
   outcome::result<sector_storage::PreCommit1Output>
   sector_storage::LocalWorker::sealPreCommit1(
       const SectorId &sector,
       const primitives::sector::SealRandomness &ticket,
       gsl::span<const PieceInfo> pieces) {
-    return outcome::success();
+    OUTCOME_TRY(storage_->remove(sector, SectorFileType::FTSealed));
+    OUTCOME_TRY(storage_->remove(sector, SectorFileType::FTCache));
+
+    OUTCOME_TRY(response,
+                storage_->acquireSector(
+                    sector,
+                    config_.seal_proof_type,
+                    SectorFileType::FTUnsealed,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    true));
+
+    OUTCOME_TRY(index_->storageDeclareSector(
+        response.stores.cache, sector, SectorFileType::FTCache));
+    OUTCOME_TRY(index_->storageDeclareSector(
+        response.stores.sealed, sector, SectorFileType::FTSealed));
+
+    boost::filesystem::ofstream sealed_file(response.paths.sealed);
+    if (!sealed_file.good()) {
+      return outcome::success();  // TODO: ERROR
+    }
+    sealed_file.close();
+
+    if (!boost::filesystem::create_directory(response.paths.cache)) {
+      if (boost::filesystem::exists(response.paths.cache)) {
+        boost::system::error_code ec;
+        boost::filesystem::remove_all(response.paths.cache, ec);
+        if (ec.failed()) {
+          return outcome::success();  // TODO: ERROR
+        }
+        if (!boost::filesystem::create_directory(response.paths.cache)) {
+          return outcome::success();  // TODO: ERROR
+        }
+      } else {
+        return outcome::success();  // TODO: ERROR
+      }
+    }
+
+    UnpaddedPieceSize sum;
+    for (const auto &piece : pieces) {
+      sum += piece.size.unpadded();
+    }
+
+    OUTCOME_TRY(size,
+                primitives::sector::getSectorSize(config_.seal_proof_type));
+
+    if (sum != primitives::piece::PaddedPieceSize(size).unpadded()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    return proofs::Proofs::sealPreCommitPhase1(config_.seal_proof_type,
+                                               response.paths.cache,
+                                               response.paths.unsealed,
+                                               response.paths.sealed,
+                                               sector.sector,
+                                               sector.miner,
+                                               ticket,
+                                               pieces);
   }
 
   outcome::result<sector_storage::SectorCids>

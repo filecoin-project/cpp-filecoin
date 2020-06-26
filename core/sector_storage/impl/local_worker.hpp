@@ -14,7 +14,7 @@ namespace fc::sector_storage {
 
   class LocalWorker : public Worker {
    public:
-    LocalWorker(const primitives::WorkerConfig &config,
+    LocalWorker(primitives::WorkerConfig config,
                 std::shared_ptr<stores::Store> store,
                 std::shared_ptr<stores::LocalStore> local,
                 std::shared_ptr<stores::SectorIndex> sector_index);
