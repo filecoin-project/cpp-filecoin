@@ -169,6 +169,11 @@ namespace fc::sector_storage {
       const SectorId &sector,
       const primitives::sector_file::SectorFileType &file_type,
       bool can_seal) {
+    OUTCOME_TRY(storage_->acquireSector(sector,
+                                        config_.seal_proof_type,
+                                        file_type,
+                                        SectorFileType::FTNone,
+                                        can_seal));
     return outcome::success();
   }
 
