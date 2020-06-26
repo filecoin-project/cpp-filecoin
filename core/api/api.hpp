@@ -364,6 +364,7 @@ namespace fc::api {
     API_METHOD(WalletDefaultAddress, Address)
     API_METHOD(WalletHas, bool, const Address &)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
+    /** Verify signature by address (may be id or key address) */
     API_METHOD(
         WalletVerify, bool, const Address &, const Buffer &, const Signature &)
   };

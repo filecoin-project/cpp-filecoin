@@ -29,6 +29,7 @@ namespace fc::markets::storage::test {
                      promise_ask_res.set_value(ask_res);
                    });
     // wait for result
+    context_->run_for(std::chrono::seconds(3));
     auto ask_res = promise_ask_res.get_future().get();
     EXPECT_TRUE(ask_res.has_value());
     EXPECT_EQ(ask_res.value().ask.price, provider_price);
@@ -63,6 +64,7 @@ namespace fc::markets::storage::test {
                      promise_ask_res.set_value(ask_res);
                    });
     // wait for result
+    context_->run_for(std::chrono::seconds(3));
     EXPECT_OUTCOME_ERROR(StorageMarketClientError::SIGNATURE_INVALID,
                          promise_ask_res.get_future().get());
   }
