@@ -19,6 +19,11 @@ namespace fc::payment_channel_manager {
   using vm::actor::builtin::payment_channel::LaneId;
   using vm::actor::builtin::payment_channel::SignedVoucher;
 
+  /**
+   * PaymentChannelManager is a module responsible for off-chain payments via
+   * payment channels. Tracks on-chain channel actor states, and off-chain lane
+   * states and vouchers. Providers API for node. Used for retrieval markets.
+   */
   class PaymentChannelManager {
    public:
     virtual ~PaymentChannelManager() = default;
