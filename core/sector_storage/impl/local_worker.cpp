@@ -264,6 +264,43 @@ namespace fc::sector_storage {
       gsl::span<const UnpaddedPieceSize> piece_sizes,
       const primitives::piece::UnpaddedPieceSize &new_piece_size,
       const primitives::piece::PieceData &piece_data) {
-    return outcome::success();
+    if (piece_sizes.empty()) {
+      OUTCOME_TRY(response,
+                  storage_->acquireSector(sector,
+                                          config_.seal_proof_type,
+                                          SectorFileType::FTNone,
+                                          SectorFileType::FTUnsealed,
+                                          true));
+
+      OUTCOME_TRY(
+          write_response,
+          proofs::Proofs::writeWithoutAlignment(config_.seal_proof_type,
+                                                piece_data,
+                                                new_piece_size,
+                                                response.paths.unsealed));
+
+      OUTCOME_TRY(index_->storageDeclareSector(
+          response.stores.unsealed, sector, SectorFileType::FTUnsealed));
+
+      return PieceInfo{.size = new_piece_size.padded(),
+                       .cid = write_response.piece_cid};
+    }
+
+    OUTCOME_TRY(response,
+                storage_->acquireSector(sector,
+                                        config_.seal_proof_type,
+                                        SectorFileType::FTUnsealed,
+                                        SectorFileType::FTNone,
+                                        true));
+
+    OUTCOME_TRY(write_response,
+                proofs::Proofs::writeWithAlignment(config_.seal_proof_type,
+                                                   piece_data,
+                                                   new_piece_size,
+                                                   response.paths.unsealed,
+                                                   piece_sizes));
+
+    return PieceInfo{.size = new_piece_size.padded(),
+                     .cid = write_response.piece_cid};
   }
 }  // namespace fc::sector_storage
