@@ -30,32 +30,34 @@ namespace fc::markets::retrieval::provider {
       response.min_price_per_byte = self->provider_config_.price_per_byte;
       response.payment_interval = self->provider_config_.payment_interval;
       response.interval_increase = self->provider_config_.interval_increase;
-      stream->write(
-          response,
-          [self = self->shared_from_this(), stream](outcome::result<size_t> result) {
-            if (!result.has_value()) {
-              self->logger_->debug("Failed to send response");
-            }
-            self->closeNetworkStream(stream->stream());
-          });
+      stream->write(response,
+                    [self = self->shared_from_this(),
+                     stream](outcome::result<size_t> result) {
+                      if (!result.has_value()) {
+                        self->logger_->debug("Failed to send response");
+                      }
+                      self->closeNetworkStream(stream->stream());
+                    });
     });
   }
 
   QueryItemStatus QueryResponderImpl::getItemStatus(
       const CID &payload_cid, const CID &piece_cid) const {
-    auto payload_info = piece_storage_->getPayloadLocation(payload_cid);
-    if (payload_info.has_value()) {
-      if (payload_cid != piece_cid
-          && payload_info.value().parent_piece != piece_cid) {
+    auto result = piece_io_->locatePiecePayload(payload_cid);
+    if (result.has_error()) {
+      return QueryItemStatus::QueryItemUnavailable;
+    }
+    if (piece_cid != payload_cid
+        && result.value().first
+               != pieceio::PiecePayloadLocation::
+                   IPLD_STORE) {  // If specified a CID of the parent Piece,
+                                  // which should contain payload
+      if (result.value().second
+          != piece_cid) {  // If the payload is in a different parent Piece
         return QueryItemStatus::QueryItemUnavailable;
       }
-      auto piece_info =
-          piece_storage_->getPieceInfo(payload_info.value().parent_piece);
-      if (piece_info.has_value()) {
-        return QueryItemStatus::QueryItemAvailable;
-      }
     }
-    return QueryItemStatus::QueryItemUnknown;
+    return QueryItemStatus::QueryItemAvailable;
   }
 
   void QueryResponderImpl::closeNetworkStream(StreamShPtr stream) const {

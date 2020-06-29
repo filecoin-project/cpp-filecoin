@@ -12,26 +12,25 @@
 #include "api/api.hpp"
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
+#include "markets/pieceio/pieceio.hpp"
 #include "markets/retrieval/protocols/query_protocol.hpp"
 #include "markets/retrieval/provider/retrieval_provider_types.hpp"
-#include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::retrieval::provider {
   class QueryResponderImpl
       : public std::enable_shared_from_this<QueryResponderImpl> {
    protected:
     using StreamShPtr = std::shared_ptr<libp2p::connection::Stream>;
-    using PieceStorageShPtr =
-        std::shared_ptr<::fc::storage::piece::PieceStorage>;
+    using PieceIOShPtr = std::shared_ptr<fc::markets::pieceio::PieceIO>;
     using ApiShPtr = std::shared_ptr<api::Api>;
     using CborStreamShPtr = std::shared_ptr<common::libp2p::CborStream>;
 
    public:
-    QueryResponderImpl(PieceStorageShPtr piece_storage,
+    QueryResponderImpl(PieceIOShPtr piece_io,
                        ApiShPtr api,
                        common::Logger logger,
                        const ProviderConfig &config)
-        : piece_storage_{std::move(piece_storage)},
+        : piece_io_{std::move(piece_io)},
           api_{std::move(api)},
           logger_{std::move(logger)},
           provider_config_{config} {}
@@ -39,7 +38,7 @@ namespace fc::markets::retrieval::provider {
     void onNewRequest(const CborStreamShPtr &stream);
 
    private:
-    PieceStorageShPtr piece_storage_;
+    PieceIOShPtr piece_io_;
     ApiShPtr api_;
     common::Logger logger_;
     const ProviderConfig &provider_config_;

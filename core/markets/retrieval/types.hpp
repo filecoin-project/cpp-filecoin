@@ -32,6 +32,14 @@ namespace fc::markets::retrieval {
   };
 
   /**
+   * @struct Retrieval block
+   */
+  struct RetrievalBlock {
+    std::vector<uint8_t> prefix;
+    std::vector<uint8_t> data;
+  };
+
+  /**
    * @enum Deal statuses
    */
   enum class DealStatus : uint64_t {
