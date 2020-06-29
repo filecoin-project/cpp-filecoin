@@ -38,7 +38,7 @@ namespace fc::sync {
       std::set<std::string> must_handle_protocols;
     };
 
-    PeerManager(const node::NodeObjects &o, const node::Config &c);
+    PeerManager(const node::NodeObjects &o);
 
     ~PeerManager();
 
@@ -48,13 +48,8 @@ namespace fc::sync {
     boost::optional<libp2p::peer::PeerInfo> getPeerInfo(
         const PeerId &peer_id, const GetPeerOptions &options) const;
 
-    void addBootstrapPeer(const std::string &p2p_address);
-
-    const std::vector<libp2p::peer::PeerInfo> &getBootstrapPeers() const;
-
     std::vector<PeerId> getPeers();
 
-    // connects to bootstrap peers
     outcome::result<void> start(const CID &genesis_cid,
                                 const Tipset &tipset,
                                 const BigInt &weight,
@@ -87,7 +82,6 @@ namespace fc::sync {
     std::shared_ptr<libp2p::protocol::Identify> identify_protocol_;
     std::shared_ptr<libp2p::protocol::IdentifyPush> identify_push_protocol_;
     std::shared_ptr<libp2p::protocol::IdentifyDelta> identify_delta_protocol_;
-    std::vector<libp2p::peer::PeerInfo> bootstrap_peers_;
     OnHello on_hello_;
     bool started_ = false;
 

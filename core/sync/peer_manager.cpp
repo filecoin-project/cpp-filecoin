@@ -87,7 +87,7 @@ namespace fc::sync {
     return cache[peer_id];
   }
 
-  PeerManager::PeerManager(const node::NodeObjects &o, const node::Config &c)
+  PeerManager::PeerManager(const node::NodeObjects &o)
       : node_protocols_({"/fil/hello/1.0.0",
                          "/ipfs/graphsync/1.0.0",
                          "/ipfs/id/1.0.0",
@@ -100,14 +100,7 @@ namespace fc::sync {
         hello_(std::make_shared<Hello>()),
         identify_protocol_(o.identify_protocol),
         identify_push_protocol_(o.identify_push_protocol),
-        identify_delta_protocol_(o.identify_delta_protocol) {
-    auto id = host_->getId();
-    for (const auto &peer : c.bootstrap_list) {
-      if (id != peer.id) {
-        bootstrap_peers_.push_back(peer);
-      }
-    }
-  }
+        identify_delta_protocol_(o.identify_delta_protocol) {}
 
   PeerManager::~PeerManager() {
     stop();
@@ -124,11 +117,6 @@ namespace fc::sync {
       pi.addresses.push_back(it->second.connect_to.value());
     }
     return pi;
-  }
-
-  const std::vector<libp2p::peer::PeerInfo> &PeerManager::getBootstrapPeers()
-      const {
-    return bootstrap_peers_;
   }
 
   std::vector<libp2p::peer::PeerId> PeerManager::getPeers() {
@@ -220,19 +208,7 @@ namespace fc::sync {
 
     started_ = true;
 
-    for (const auto &pi : bootstrap_peers_) {
-      host_->connect(pi);
-    }
-
     return outcome::success();
-  }
-
-  void PeerManager::addBootstrapPeer(const std::string &p2p_address) {
-    using libp2p::multi::Multiaddress;
-    OUTCOME_EXCEPT(ma, Multiaddress::create(p2p_address));
-    OUTCOME_EXCEPT(id,
-                   libp2p::peer::PeerId::fromBase58(ma.getPeerId().value()));
-    bootstrap_peers_.push_back({id, {ma}});
   }
 
   void PeerManager::stop() {

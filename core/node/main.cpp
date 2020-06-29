@@ -87,19 +87,23 @@ namespace fc::node {
     // TODO: feed cached heaviest tipset
     OUTCOME_EXCEPT(objects.chain_store->addBlock(genesis_block));
 
-    auto peer_manager{std::make_shared<sync::PeerManager>(objects, config)};
+    auto peer_manager{std::make_shared<sync::PeerManager>(objects)};
 
     auto head_sub{objects.chain_store->subscribeHeadChanges([&](auto &change) {
-      OUTCOME_EXCEPT(weight,
-                     blockchain::weight::WeightCalculatorImpl{objects.ipfs_datastore}
-                         .calculateWeight(change.value));
+      OUTCOME_EXCEPT(
+          weight,
+          blockchain::weight::WeightCalculatorImpl{objects.ipfs_datastore}
+              .calculateWeight(change.value));
       peer_manager->onHeadChanged(change.value, weight);
     })};
 
     io.post([&] {
       OUTCOME_EXCEPT(host->listen(config.listen_address));
+      auto id{host->getId()};
       for (auto &pi : config.bootstrap_list) {
-        host->connect(pi);
+        if (id != pi.id) {
+          host->connect(pi);
+        }
       }
 
       host->start();
