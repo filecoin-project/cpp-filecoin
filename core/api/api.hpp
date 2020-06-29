@@ -376,6 +376,14 @@ namespace fc::api {
         WalletVerify, bool, const Address &, const Buffer &, const Signature &)
 
     /** Payment channel manager */
+
+    /**
+     * Allocate new payment channel lane
+     * @param payment channel actor address
+     * @return new lane id
+     */
+    API_METHOD(PaychAllocateLane, LaneId, const Address &)
+
     /**
      * Get or create payment channel
      * Searcg for payment channel in local storage.
@@ -393,11 +401,19 @@ namespace fc::api {
                const TokenAmount &)
 
     /**
-     * Allocate new payment channel lane
-     * @param payment channel actor address
-     * @return new lane id
+     * Add voucher to local storage
+     * @param payment channel address
+     * @param signed voucher
+     * @param signature one more time - not used
+     * @param delta - not used
+     * @return delta
      */
-    API_METHOD(PaychAllocateLane, LaneId, const Address &)
+    API_METHOD(PaychVoucherAdd,
+               TokenAmount,
+               const Address &,
+               const SignedVoucher &,
+               const Buffer &,
+               TokenAmount)
 
     /**
      * Validate voucher
@@ -421,21 +437,6 @@ namespace fc::api {
                const Address &,
                const TokenAmount &,
                const LaneId &)
-
-    /**
-     * Add voucher to local storage
-     * @param payment channel address
-     * @param signed voucher
-     * @param signature one more time - not used
-     * @param delta - not used
-     * @return delta
-     */
-    API_METHOD(PaychVoucherAdd,
-               TokenAmount,
-               const Address &,
-               const SignedVoucher &,
-               const Buffer &,
-               TokenAmount)
   };
 }  // namespace fc::api
 

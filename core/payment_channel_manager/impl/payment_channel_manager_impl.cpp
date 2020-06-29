@@ -55,7 +55,8 @@ namespace fc::payment_channel_manager {
     if (lookup == channels_.end()) {
       return PaymentChannelManagerError::kChannelNotFound;
     }
-    return lookup->second.next_lane++;
+    lookup->second.lanes.try_emplace(lookup->second.next_lane++);
+    return lookup->second.next_lane;
   }
 
   outcome::result<SignedVoucher>
@@ -82,7 +83,7 @@ namespace fc::payment_channel_manager {
     new_voucher.signature = signature;
 
     OUTCOME_TRY(validateVoucher(channel_address, new_voucher));
-    lookup_channel->second.vouchers[lane].push_back(new_voucher);
+    lookup_channel->second.lanes[lane].push_back(new_voucher);
     return new_voucher;
   }
 
@@ -103,9 +104,9 @@ namespace fc::payment_channel_manager {
     }
 
     // insert if no duplicates
-    auto vouchers = channel_lookup->second.vouchers[voucher.lane];
-    if (find(vouchers.begin(), vouchers.end(), voucher) == vouchers.end()) {
-      channel_lookup->second.vouchers[voucher.lane].push_back(voucher);
+    auto lanes = channel_lookup->second.lanes[voucher.lane];
+    if (find(lanes.begin(), lanes.end(), voucher) == lanes.end()) {
+      channel_lookup->second.lanes[voucher.lane].push_back(voucher);
     }
 
     // get redeemed
@@ -185,38 +186,37 @@ namespace fc::payment_channel_manager {
     ChannelInfo channel_info{.channel_actor = channel_actor_address,
                              .control = control,
                              .target = target,
-                             .vouchers = {},
+                             .lanes = {},
                              .next_lane = 0};
     channels_[channel_actor_address] = channel_info;
   }
 
   void PaymentChannelManagerImpl::makeApi(Api &api) {
+    api.PaychAllocateLane = {
+        [self{shared_from_this()}](auto &&channel) -> outcome::result<LaneId> {
+          return self->allocateLane(channel);
+        }};
     api.PaychGet = {[self{shared_from_this()}](
-                        auto client, auto miner, auto amount_available)
+                        auto &&client, auto &&miner, auto &&amount_available)
                         -> outcome::result<AddChannelInfo> {
       return self->getOrCreatePaymentChannel(client, miner, amount_available);
     }};
-    api.PaychAllocateLane = {
-        [self{shared_from_this()}](auto channel) -> outcome::result<LaneId> {
-          return self->allocateLane(channel);
-        }};
+    api.PaychVoucherAdd = {[self{shared_from_this()}](
+                               auto &&channel,
+                               auto &&voucher,
+                               auto &&proof,
+                               auto &&delta) -> outcome::result<TokenAmount> {
+      return self->savePaymentVoucher(channel, voucher);
+    }};
     api.PaychVoucherCheckValid = {
-        [self{shared_from_this()}](auto channel,
-                                   auto voucher) -> outcome::result<void> {
+        [self{shared_from_this()}](auto &&channel,
+                                   auto &&voucher) -> outcome::result<void> {
           return self->validateVoucher(channel, voucher);
         }};
-    api.PaychVoucherCreate = {[self{shared_from_this()}](
-                                  auto channel,
-                                  auto amount,
-                                  auto lane) -> outcome::result<SignedVoucher> {
-      return self->createPaymentVoucher(channel, lane, amount);
-    }};
-    api.PaychVoucherAdd = {
-        [self{shared_from_this()}](auto channel,
-                                   auto voucher,
-                                   auto proof,
-                                   auto delta) -> outcome::result<TokenAmount> {
-          return self->savePaymentVoucher(channel, voucher);
+    api.PaychVoucherCreate = {
+        [self{shared_from_this()}](auto &&channel, auto &&amount, auto &&lane)
+            -> outcome::result<SignedVoucher> {
+          return self->createPaymentVoucher(channel, lane, amount);
         }};
   }
 
@@ -286,9 +286,7 @@ namespace fc::payment_channel_manager {
   outcome::result<PaymentChannelState>
   PaymentChannelManagerImpl::loadPaymentChannelActorState(
       const Address &channel_address) const {
-    OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(tipset, api_->ChainGetTipSet(tipset_key));
+    OUTCOME_TRY(tipset, api_->ChainHead());
     auto state_tree =
         std::make_shared<StateTreeImpl>(ipld_, tipset.getParentStateRoot());
     return state_tree->state<PaymentChannelState>(channel_address);
@@ -296,8 +294,8 @@ namespace fc::payment_channel_manager {
 
   outcome::result<uint64_t> PaymentChannelManagerImpl::getNextNonce(
       const ChannelInfo &channel, const LaneId &lane) const {
-    auto lookup_lane = channel.vouchers.find(lane);
-    if (lookup_lane == channel.vouchers.end()) {
+    auto lookup_lane = channel.lanes.find(lane);
+    if (lookup_lane == channel.lanes.end()) {
       return PaymentChannelManagerError::kChannelNotFound;
     }
     uint64_t nonce{0};

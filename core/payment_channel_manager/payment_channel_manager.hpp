@@ -23,7 +23,7 @@ namespace fc::payment_channel_manager {
     Address channel_actor;
     Address control;
     Address target;
-    std::map<LaneId, std::vector<SignedVoucher>> vouchers;
+    std::map<LaneId, std::vector<SignedVoucher>> lanes;
     LaneId next_lane;
   };
 

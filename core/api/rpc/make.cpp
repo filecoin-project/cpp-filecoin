@@ -127,10 +127,10 @@ namespace fc::api {
     setup(rpc, api.WalletSign);
     setup(rpc, api.WalletVerify);
 
-    setup(rpc, api.PaychGet);
     setup(rpc, api.PaychAllocateLane);
+    setup(rpc, api.PaychGet);
+    setup(rpc, api.PaychVoucherAdd);
     setup(rpc, api.PaychVoucherCheckValid);
     setup(rpc, api.PaychVoucherCreate);
-    setup(rpc, api.PaychVoucherAdd);
   }
 }  // namespace fc::api

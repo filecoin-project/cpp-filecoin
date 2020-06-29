@@ -709,6 +709,15 @@ namespace fc::api {
           }
           return key_store->verify(address, data, signature);
         }},
+        /**
+         * Payment channel methods are initialized with
+         * PaymentChannelManager::makeApi(Api &api)
+         */
+        .PaychAllocateLane = {},
+        .PaychGet = {},
+        .PaychVoucherAdd = {},
+        .PaychVoucherCheckValid = {},
+        .PaychVoucherCreate = {},
     };
   }
 }  // namespace fc::api
