@@ -87,7 +87,12 @@ namespace fc::node {
     // TODO: feed cached heaviest tipset
     OUTCOME_EXCEPT(objects.chain_store->addBlock(genesis_block));
 
-    auto peer_manager{std::make_shared<sync::PeerManager>(objects)};
+    auto peer_manager{
+        std::make_shared<sync::PeerManager>(objects.host,
+                                            objects.utc_clock,
+                                            objects.identify_protocol,
+                                            objects.identify_push_protocol,
+                                            objects.identify_delta_protocol)};
 
     auto head_sub{objects.chain_store->subscribeHeadChanges([&](auto &change) {
       OUTCOME_EXCEPT(

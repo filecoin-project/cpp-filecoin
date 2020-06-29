@@ -38,7 +38,13 @@ namespace fc::sync {
       std::set<std::string> must_handle_protocols;
     };
 
-    PeerManager(const node::NodeObjects &o);
+    PeerManager(
+        std::shared_ptr<libp2p::Host> host,
+        std::shared_ptr<clock::UTCClock> utc_clock,
+        std::shared_ptr<libp2p::protocol::Identify> identify_protocol,
+        std::shared_ptr<libp2p::protocol::IdentifyPush> identify_push_protocol,
+        std::shared_ptr<libp2p::protocol::IdentifyDelta>
+            identify_delta_protocol);
 
     ~PeerManager();
 

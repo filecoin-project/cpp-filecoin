@@ -87,7 +87,12 @@ namespace fc::sync {
     return cache[peer_id];
   }
 
-  PeerManager::PeerManager(const node::NodeObjects &o)
+  PeerManager::PeerManager(
+      std::shared_ptr<libp2p::Host> host,
+      std::shared_ptr<clock::UTCClock> utc_clock,
+      std::shared_ptr<libp2p::protocol::Identify> identify_protocol,
+      std::shared_ptr<libp2p::protocol::IdentifyPush> identify_push_protocol,
+      std::shared_ptr<libp2p::protocol::IdentifyDelta> identify_delta_protocol)
       : node_protocols_({"/fil/hello/1.0.0",
                          "/ipfs/graphsync/1.0.0",
                          "/ipfs/id/1.0.0",
@@ -95,12 +100,12 @@ namespace fc::sync {
                          "/ipfs/ping/1.0.0",
                          "/meshsub/1.0.0",
                          "/p2p/id/delta/1.0.0"}),
-        host_(o.host),
-        utc_clock_(o.utc_clock),
+        host_(host),
+        utc_clock_(utc_clock),
         hello_(std::make_shared<Hello>()),
-        identify_protocol_(o.identify_protocol),
-        identify_push_protocol_(o.identify_push_protocol),
-        identify_delta_protocol_(o.identify_delta_protocol) {}
+        identify_protocol_(identify_protocol),
+        identify_push_protocol_(identify_push_protocol),
+        identify_delta_protocol_(identify_delta_protocol) {}
 
   PeerManager::~PeerManager() {
     stop();
