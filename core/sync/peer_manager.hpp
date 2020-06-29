@@ -14,9 +14,12 @@
 #include <libp2p/peer/peer_info.hpp>
 #include "node/builder.hpp"
 #include "node/config.hpp"
+#include "primitives/tipset/tipset.hpp"
 #include "sync/hello.hpp"
 
 namespace fc::sync {
+  using primitives::BigInt;
+  using primitives::tipset::Tipset;
 
   class PeerManager : public std::enable_shared_from_this<PeerManager> {
    public:
@@ -26,6 +29,8 @@ namespace fc::sync {
                                           bool /*is connected now*/,
                                           bool /*all protocols are supported*/,
                                           bool /*belongs to our network*/);
+
+    using OnHello = std::function<void(const PeerId &, const Hello::Message &)>;
 
     struct GetPeerOptions {
       bool must_be_network_node = false;
@@ -50,10 +55,15 @@ namespace fc::sync {
     std::vector<PeerId> getPeers();
 
     // connects to bootstrap peers
-    outcome::result<void> start();
+    outcome::result<void> start(const CID &genesis_cid,
+                                const Tipset &tipset,
+                                const BigInt &weight,
+                                OnHello on_hello);
 
     // disconnects from peers
     void stop();
+
+    void onHeadChanged(const Tipset &tipset, const BigInt &weight);
 
     boost::signals2::connection subscribe(
         const std::function<PeerStatusUpdateCallback> &cb);
@@ -77,8 +87,8 @@ namespace fc::sync {
     std::shared_ptr<libp2p::protocol::Identify> identify_protocol_;
     std::shared_ptr<libp2p::protocol::IdentifyPush> identify_push_protocol_;
     std::shared_ptr<libp2p::protocol::IdentifyDelta> identify_delta_protocol_;
-    std::shared_ptr<storage::blockchain::ChainStore> chain_store_;
     std::vector<libp2p::peer::PeerInfo> bootstrap_peers_;
+    OnHello on_hello_;
     bool started_ = false;
 
     boost::signals2::connection on_identify_;

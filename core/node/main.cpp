@@ -9,6 +9,7 @@
 #include <libp2p/protocol/identify.hpp>
 
 #include "api/rpc/ws.hpp"
+#include "blockchain/impl/weight_calculator_impl.hpp"
 #include "common/span.hpp"
 #include "common/todo_error.hpp"
 #include "node/builder.hpp"
@@ -88,6 +89,13 @@ namespace fc::node {
 
     auto peer_manager{std::make_shared<sync::PeerManager>(objects, config)};
 
+    auto head_sub{objects.chain_store->subscribeHeadChanges([&](auto &change) {
+      OUTCOME_EXCEPT(weight,
+                     blockchain::weight::WeightCalculatorImpl{objects.ipfs_datastore}
+                         .calculateWeight(change.value));
+      peer_manager->onHeadChanged(change.value, weight);
+    })};
+
     io.post([&] {
       OUTCOME_EXCEPT(host->listen(config.listen_address));
       for (auto &pi : config.bootstrap_list) {
@@ -99,7 +107,12 @@ namespace fc::node {
 
       // TODO: graphsync start
 
-      OUTCOME_EXCEPT(peer_manager->start());
+      OUTCOME_EXCEPT(head, objects.chain_store->heaviestTipset());
+      OUTCOME_EXCEPT(
+          peer_manager->start(config.genesis_cid,
+                              head,
+                              objects.chain_store->getHeaviestWeight(),
+                              [](auto &, auto &) {}));
 
       spdlog::info("Node started: /ip4/{}/tcp/{}/p2p/{}",
                    config.local_ip_address,

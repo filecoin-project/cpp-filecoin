@@ -100,8 +100,7 @@ namespace fc::sync {
         hello_(std::make_shared<Hello>()),
         identify_protocol_(o.identify_protocol),
         identify_push_protocol_(o.identify_push_protocol),
-        identify_delta_protocol_(o.identify_delta_protocol),
-        chain_store_(o.chain_store) {
+        identify_delta_protocol_(o.identify_delta_protocol) {
     auto id = host_->getId();
     for (const auto &peer : c.bootstrap_list) {
       if (id != peer.id) {
@@ -165,13 +164,14 @@ namespace fc::sync {
     return result;
   }
 
-  outcome::result<void> PeerManager::start() {
+  outcome::result<void> PeerManager::start(const CID &genesis_cid,
+                                           const Tipset &tipset,
+                                           const BigInt &weight,
+                                           OnHello on_hello) {
     if (started_) {
       return outcome::success();
     }
-    OUTCOME_TRY(tipset, chain_store_->heaviestTipset());
-    OUTCOME_TRY(genesis, chain_store_->getGenesis());
-    OUTCOME_TRY(genesis_cid, primitives::cid::getCidOfCbor(genesis));
+    on_hello_ = std::move(on_hello);
     on_identify_ = identify_protocol_->onIdentifyReceived(
         [wptr = weak_from_this()](const PeerId &peer) {
           if (not wptr.expired()) {
@@ -193,7 +193,7 @@ namespace fc::sync {
     fc::sync::Hello::Message initial_state;
     initial_state.heaviest_tipset = tipset.key.cids();
     initial_state.heaviest_tipset_height = tipset.height();
-    initial_state.heaviest_tipset_weight = chain_store_->getHeaviestWeight();
+    initial_state.heaviest_tipset_weight = weight;
 
     hello_->start(
         host_,
@@ -242,6 +242,10 @@ namespace fc::sync {
       on_identify_.disconnect();
       hello_->stop();
     }
+  }
+
+  void PeerManager::onHeadChanged(const Tipset &tipset, const BigInt &weight) {
+    hello_->onHeadChanged({tipset.key.cids(), tipset.height(), weight, {}});
   }
 
   boost::signals2::connection PeerManager::subscribe(
