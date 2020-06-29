@@ -30,7 +30,6 @@ namespace fc::api {
   using crypto::signature::Secp256k1Signature;
   using crypto::signature::Signature;
   using markets::storage::StorageAsk;
-  using payment_channel_manager::ChannelInfo;
   using primitives::BigInt;
   using primitives::LocalStorageMeta;
   using primitives::block::BlockHeader;

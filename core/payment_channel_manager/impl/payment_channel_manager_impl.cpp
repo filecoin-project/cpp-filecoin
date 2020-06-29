@@ -296,13 +296,13 @@ namespace fc::payment_channel_manager {
       const ChannelInfo &channel, const LaneId &lane) const {
     auto lookup_lane = channel.lanes.find(lane);
     if (lookup_lane == channel.lanes.end()) {
-      return PaymentChannelManagerError::kChannelNotFound;
+      return 1;
     }
     uint64_t nonce{0};
     for (auto &voucher : lookup_lane->second) {
       if (nonce < voucher.nonce) nonce = voucher.nonce;
     }
-    return ++nonce;
+    return nonce + 1;
   }
 
 }  // namespace fc::payment_channel_manager

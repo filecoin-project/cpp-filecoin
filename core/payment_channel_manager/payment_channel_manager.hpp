@@ -19,14 +19,6 @@ namespace fc::payment_channel_manager {
   using vm::actor::builtin::payment_channel::LaneId;
   using vm::actor::builtin::payment_channel::SignedVoucher;
 
-  struct ChannelInfo {
-    Address channel_actor;
-    Address control;
-    Address target;
-    std::map<LaneId, std::vector<SignedVoucher>> lanes;
-    LaneId next_lane;
-  };
-
   class PaymentChannelManager {
    public:
     virtual ~PaymentChannelManager() = default;

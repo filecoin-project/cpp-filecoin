@@ -19,6 +19,14 @@ namespace fc::payment_channel_manager {
   using Ipld = fc::storage::ipfs::IpfsDatastore;
   using PaymentChannelState = vm::actor::builtin::payment_channel::State;
 
+  struct ChannelInfo {
+    Address channel_actor;
+    Address control;
+    Address target;
+    std::map<LaneId, std::vector<SignedVoucher>> lanes;
+    LaneId next_lane;
+  };
+
   class PaymentChannelManagerImpl
       : public PaymentChannelManager,
         public std::enable_shared_from_this<PaymentChannelManagerImpl> {
