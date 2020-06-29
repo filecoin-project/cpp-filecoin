@@ -31,7 +31,7 @@ namespace fc::primitives {
   const TaskType kTTUnseal("seal/v0/unseal");
   const TaskType kTTReadUnsealed("seal/v0/unsealread");
 
-  bool operator<(const TaskType &lhs, const TaskType &rhs) {
+  inline bool operator<(const TaskType &lhs, const TaskType &rhs) {
     static std::unordered_map<std::string, int> order = {{kTTReadUnsealed, 0},
                                                          {kTTUnseal, 0},
                                                          {kTTFinalize, 1},
