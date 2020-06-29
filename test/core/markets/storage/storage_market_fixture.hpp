@@ -24,7 +24,6 @@
 #include "storage/filestore/impl/filesystem/filesystem_filestore.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/markets/storage/chain_events/chain_events_mock.hpp"
 
@@ -49,8 +48,6 @@ namespace fc::markets::storage::test {
   using fc::storage::filestore::FileSystemFileStore;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
-  using fc::storage::keystore::InMemoryKeyStore;
-  using fc::storage::keystore::KeyStore;
   using fc::storage::piece::PieceInfo;
   using libp2p::Host;
   using libp2p::crypto::Key;
@@ -317,6 +314,13 @@ namespace fc::markets::storage::test {
                 bls_provider->sign(buffer, it->second.private_key).value()};
           }};
 
+      api->WalletVerify = {
+          [](const Address &address,
+             const Buffer &buffer,
+             const Signature &signature) -> outcome::result<bool> {
+            return true;
+          }};
+
       return api;
     }
 
@@ -348,9 +352,6 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<MinerApi> &miner_api,
         const std::shared_ptr<ChainEventsMock> &chain_events,
         const Address &miner_actor_address) {
-      std::shared_ptr<KeyStore> keystore =
-          std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
-
       std::shared_ptr<FileStore> filestore =
           std::make_shared<FileSystemFileStore>();
 
@@ -358,7 +359,6 @@ namespace fc::markets::storage::test {
           std::make_shared<StorageProviderImpl>(registered_proof,
                                                 provider_host,
                                                 context,
-                                                keystore,
                                                 datastore,
                                                 api,
                                                 miner_api,
@@ -391,11 +391,8 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<boost::asio::io_context> &context,
         const std::shared_ptr<Datastore> &datastore,
         const std::shared_ptr<Api> &api) {
-      std::shared_ptr<KeyStore> keystore =
-          std::make_shared<InMemoryKeyStore>(bls_provider, secp256k1_provider);
-
       auto new_client = std::make_shared<StorageMarketClientImpl>(
-          client_host, context, datastore, api, keystore, piece_io_);
+          client_host, context, datastore, api, piece_io_);
       OUTCOME_EXCEPT(new_client->init());
       return new_client;
     }

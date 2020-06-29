@@ -61,19 +61,11 @@ namespace fc::markets::storage::test {
    * @then state deal rejected in provider
    */
   TEST_F(StorageMarketTest, WrongSignedDealProposal) {
-    std::shared_ptr<BlsProvider> bls_provider =
-        std::make_shared<BlsProviderImpl>();
-    OUTCOME_EXCEPT(wrong_keypair, bls_provider->generateKeyPair());
-
-    auto wallet_sign = node_api->WalletSign;
-    node_api->WalletSign = {
-        [this, wrong_keypair, bls_provider, wallet_sign](
-            const Address &address,
-            const Buffer &buffer) -> outcome::result<Signature> {
-          if (address == this->client_bls_address)
-            return Signature{
-                bls_provider->sign(buffer, wrong_keypair.private_key).value()};
-          return wallet_sign(address, buffer);
+    node_api->WalletVerify = {
+        [](const Address &address,
+           const Buffer &buffer,
+           const Signature &signature) -> outcome::result<bool> {
+          return outcome::success(false);
         }};
 
     CID root_cid = "010001020001"_cid;

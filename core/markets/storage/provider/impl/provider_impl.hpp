@@ -28,7 +28,6 @@ namespace fc::markets::storage::provider {
   using chain_events::ChainEvents;
   using fc::storage::filestore::FileStore;
   using fc::storage::filestore::Path;
-  using fc::storage::keystore::KeyStore;
   using fc::storage::piece::PieceInfo;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
@@ -43,10 +42,6 @@ namespace fc::markets::storage::provider {
   using ProviderFSM = fsm::FSM<ProviderEvent, StorageDealStatus, MinerDeal>;
   using DataTransfer = data_transfer::Manager;
 
-  // from lotus
-  // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/provider.go#L71
-  const BigInt kGasPrice{0};
-  const GasAmount kGasLimit{1000000};
   const EpochDuration kDefaultDealAcceptanceBuffer{100};
 
   const Path kFilestoreTempDir = "/tmp/fuhon/storage-market/";
@@ -59,7 +54,6 @@ namespace fc::markets::storage::provider {
     StorageProviderImpl(const RegisteredProof &registered_proof,
                         std::shared_ptr<Host> host,
                         std::shared_ptr<boost::asio::io_context> context,
-                        std::shared_ptr<KeyStore> keystore,
                         std::shared_ptr<Datastore> datastore,
                         std::shared_ptr<Api> api,
                         std::shared_ptr<MinerApi> miner_api,
@@ -371,7 +365,6 @@ namespace fc::markets::storage::provider {
 
     std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
-    std::shared_ptr<KeyStore> keystore_;
     std::shared_ptr<StoredAsk> stored_ask_;
     std::shared_ptr<Api> api_;
     std::shared_ptr<MinerApi> miner_api_;
