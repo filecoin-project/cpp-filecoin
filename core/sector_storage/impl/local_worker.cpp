@@ -7,6 +7,7 @@
 
 #include <boost/filesystem.hpp>
 #include "proofs/proofs.hpp"
+#include "sector_storage/stores/store_error.hpp"
 
 namespace fc::sector_storage {
 
@@ -179,17 +180,56 @@ namespace fc::sector_storage {
 
   outcome::result<void> sector_storage::LocalWorker::unsealPiece(
       const SectorId &sector,
-      primitives::piece::UnpaddedByteIndex index,
+      primitives::piece::UnpaddedByteIndex offset,
       const primitives::piece::UnpaddedPieceSize &size,
       const primitives::sector::SealRandomness &randomness,
       const CID &cid) {
-    return outcome::success();
+    auto maybe_unseal_file = storage_->acquireSector(sector,
+                                                     config_.seal_proof_type,
+                                                     SectorFileType::FTUnsealed,
+                                                     SectorFileType::FTNone,
+                                                     false);
+    if (maybe_unseal_file.has_error()) {
+      if (maybe_unseal_file
+          != outcome::failure(
+              stores::StoreErrors::NotFoundRequestedSectorType)) {
+        return maybe_unseal_file.error();
+      }
+      maybe_unseal_file = storage_->acquireSector(sector,
+                                                  config_.seal_proof_type,
+                                                  SectorFileType::FTUnsealed,
+                                                  SectorFileType::FTNone,
+                                                  false);
+      if (maybe_unseal_file.has_error()) {
+        return maybe_unseal_file.error();
+      }
+    }
+
+    OUTCOME_TRY(response,
+                storage_->acquireSector(
+                    sector,
+                    config_.seal_proof_type,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    SectorFileType::FTNone,
+                    false));
+
+    return proofs::Proofs::unsealRange(config_.seal_proof_type,
+                                       response.paths.cache,
+                                       response.paths.sealed,
+                                       maybe_unseal_file.value().paths.unsealed,
+                                       sector.sector,
+                                       sector.miner,
+                                       randomness,
+                                       cid,
+                                       primitives::piece::paddedIndex(offset),
+                                       size.padded());
   }
 
   outcome::result<void> sector_storage::LocalWorker::readPiece(
       common::Buffer &output,
       const SectorId &sector,
-      primitives::piece::UnpaddedByteIndex index,
+      primitives::piece::UnpaddedByteIndex offset,
       const primitives::piece::UnpaddedPieceSize &size) {
     return outcome::success();
   }

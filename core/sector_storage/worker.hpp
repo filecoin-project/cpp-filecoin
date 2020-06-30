@@ -32,14 +32,14 @@ namespace fc::sector_storage {
                                         bool can_seal) = 0;
 
     virtual outcome::result<void> unsealPiece(const SectorId &sector,
-                                              UnpaddedByteIndex index,
+                                              UnpaddedByteIndex offset,
                                               const UnpaddedPieceSize &size,
                                               const SealRandomness &randomness,
                                               const CID &cid) = 0;
 
     virtual outcome::result<void> readPiece(common::Buffer &output,
                                             const SectorId &sector,
-                                            UnpaddedByteIndex index,
+                                            UnpaddedByteIndex offset,
                                             const UnpaddedPieceSize &size) = 0;
 
     virtual outcome::result<primitives::WorkerInfo> getInfo() = 0;

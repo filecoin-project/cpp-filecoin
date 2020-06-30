@@ -50,14 +50,14 @@ namespace fc::sector_storage {
                                 bool can_seal) override;
 
     outcome::result<void> unsealPiece(const SectorId &sector,
-                                      UnpaddedByteIndex index,
+                                      UnpaddedByteIndex offset,
                                       const UnpaddedPieceSize &size,
                                       const SealRandomness &randomness,
                                       const CID &cid) override;
 
     outcome::result<void> readPiece(common::Buffer &output,
                                     const SectorId &sector,
-                                    UnpaddedByteIndex index,
+                                    UnpaddedByteIndex offset,
                                     const UnpaddedPieceSize &size) override;
 
     outcome::result<primitives::WorkerInfo> getInfo() override;
