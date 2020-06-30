@@ -6,6 +6,9 @@ hunter_add_package(GTest)
 find_package(GTest CONFIG REQUIRED)
 find_package(GMock CONFIG REQUIRED)
 
+hunter_add_package(libarchive)
+find_package(libarchive CONFIG REQUIRED)
+
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
 hunter_add_package(Boost COMPONENTS date_time filesystem random)
 find_package(Boost CONFIG REQUIRED date_time filesystem random)

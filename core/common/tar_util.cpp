@@ -5,9 +5,10 @@
 
 #include "common/tar_util.hpp"
 
+#include <libarchive/archive.h>
+#include <libarchive/archive_entry.h>
 #include <boost/filesystem.hpp>
 #include "common/logger.hpp"
-// TODO: Add libarchive include
 
 namespace fs = boost::filesystem;
 

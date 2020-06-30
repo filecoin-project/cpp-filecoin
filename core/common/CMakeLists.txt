@@ -43,14 +43,14 @@ target_link_libraries(logger
     )
 
 add_library(tar_util
-        tar_util.cpp
-        )
+    tar_util.cpp
+    )
 
 target_link_libraries(tar_util
-        outcome
-        logger
-        # TODO: Add libarchive dep
-        )
+    outcome
+    logger
+    libarchive::archive
+    )
 
 add_subdirectory(libp2p)
 add_subdirectory(uri_parser)
