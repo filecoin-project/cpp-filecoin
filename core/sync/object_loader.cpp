@@ -78,7 +78,7 @@ namespace fc::sync {
 
   outcome::result<void> ObjectLoader::loadObjects(
       const std::vector<ObjectWanted> &objects,
-      boost::optional<std::reference_wrapper<const PeerId>> preferred_peer) {
+      boost::optional<PeerId> preferred_peer) {
     if (!initialized_) {
       return Error::SYNC_NOT_INITIALIZED;
     }
@@ -93,7 +93,7 @@ namespace fc::sync {
     }
 
     const PeerId &peer = preferred_peer.has_value()
-                             ? preferred_peer.value().get()
+                             ? preferred_peer.value()
                              : default_peer_.value();
 
     for (const auto &wanted : objects) {

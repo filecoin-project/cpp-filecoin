@@ -64,9 +64,8 @@ namespace fc::sync {
 
     void setDefaultPeer(const PeerId &peer);
 
-    outcome::result<void> loadObjects(
-        const std::vector<ObjectWanted> &objects,
-        boost::optional<std::reference_wrapper<const PeerId>> preferred_peer);
+    outcome::result<void> loadObjects(const std::vector<ObjectWanted> &objects,
+                                      boost::optional<PeerId> preferred_peer);
 
    private:
     struct CIDRequest {
@@ -110,7 +109,7 @@ namespace fc::sync {
     void onMessageFromPubSub(
         const PeerId &from,
         const CID &cid,
-        const common::Buffer& raw,
+        const common::Buffer &raw,
         const UnsignedMessage &msg,
         boost::optional<std::reference_wrapper<const Signature>> signature);
 

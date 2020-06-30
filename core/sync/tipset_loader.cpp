@@ -34,16 +34,16 @@ namespace fc::sync {
     initialized_ = true;
   }
 
-  outcome::result<boost::optional<Tipset>> TipsetLoader::loadTipset(
+  outcome::result<void> TipsetLoader::loadTipsetAsync(
       const TipsetKey &key,
-      boost::optional<std::reference_wrapper<const PeerId>> preferred_peer) {
+      boost::optional<PeerId> preferred_peer) {
     if (!initialized_) {
       return Error::SYNC_NOT_INITIALIZED;
     }
 
     if (tipset_requests_.count(key.hash()) != 0) {
       // already waiting, do nothing
-      return boost::none;
+      return outcome::success();
     }
 
     OUTCOME_TRY(blocks_available,
@@ -68,7 +68,18 @@ namespace fc::sync {
                      res.error().message());
         return Error::SYNC_BAD_TIPSET;
       }
-      return res.value();
+
+      scheduler_
+          ->schedule(
+              [wptr = weak_from_this(), res = std::move(res)]() {
+                auto self = wptr.lock();
+                if (self) {
+                  self->callback_(res.value().key.hash(), std::move(res));
+                }
+              })
+          .detach();
+
+      return outcome::success();
     }
 
     global_wantlist_.insert(wantlist.begin(), wantlist.end());
@@ -78,7 +89,7 @@ namespace fc::sync {
     ctx.blocks_filled = std::move(blocks_available);
 
     tipset_requests_.insert({key.hash(), std::move(ctx)});
-    return boost::none;
+    return outcome::success();
   }
 
   TipsetLoader::RequestCtx::RequestCtx(TipsetLoader &o, const TipsetKey &key)

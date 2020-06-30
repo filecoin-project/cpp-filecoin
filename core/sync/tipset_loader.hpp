@@ -14,7 +14,7 @@
 
 namespace fc::sync {
 
-  class TipsetLoader {
+  class TipsetLoader : public std::enable_shared_from_this<TipsetLoader> {
    public:
     /// Called when all tipset subobjects are available
     /// or tipset appeared to be bad
@@ -26,11 +26,9 @@ namespace fc::sync {
 
     void init(OnTipset callback);
 
-    /// Returns immediately if tipset is available locally, otherwise
-    /// begins synchronizing its subobjects from the network
-    outcome::result<boost::optional<Tipset>> loadTipset(
+    outcome::result<void> loadTipsetAsync(
         const TipsetKey &key,
-        boost::optional<std::reference_wrapper<const PeerId>> preferred_peer);
+        boost::optional<PeerId> preferred_peer);
 
    private:
     void onBlock(const CID& cid, outcome::result<BlockHeader> bh);

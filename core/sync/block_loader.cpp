@@ -52,7 +52,7 @@ namespace fc::sync {
 
   outcome::result<BlockLoader::BlocksAvailable> BlockLoader::loadBlocks(
       const std::vector<CID> &cids,
-      boost::optional<std::reference_wrapper<const PeerId>> preferred_peer) {
+      boost::optional<PeerId> preferred_peer) {
     if (!initialized_) {
       return Error::SYNC_NOT_INITIALIZED;
     }

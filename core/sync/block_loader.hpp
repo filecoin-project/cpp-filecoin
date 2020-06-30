@@ -34,7 +34,7 @@ namespace fc::sync {
 
     outcome::result<BlocksAvailable> loadBlocks(
         const std::vector<CID> &cids,
-        boost::optional<std::reference_wrapper<const PeerId>> preferred_peer);
+        boost::optional<PeerId> preferred_peer);
 
    private:
     bool onBlockHeader(const CID &cid,
