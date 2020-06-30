@@ -78,6 +78,7 @@ namespace fc::api {
   using vm::actor::builtin::market::StorageParticipantBalance;
   using vm::actor::builtin::miner::MinerInfo;
   using vm::actor::builtin::miner::SectorOnChainInfo;
+  using vm::actor::builtin::payment_channel::LaneId;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::actor::builtin::storage_power::Claim;
   using vm::message::SignedMessage;
@@ -246,6 +247,11 @@ namespace fc::api {
     uint64_t size;
   };
 
+  struct AddChannelInfo {
+    Address channel;      // payment channel actor address
+    CID channel_message;  // message cid
+  };
+
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
@@ -309,13 +315,6 @@ namespace fc::api {
 
     API_METHOD(NetAddrsListen, PeerInfo)
 
-    API_METHOD(PaychVoucherAdd,
-               TokenAmount,
-               const Address &,
-               const SignedVoucher &,
-               const Buffer &,
-               TokenAmount)
-
     API_METHOD(StateAccountKey, Address, const Address &, const TipsetKey &)
     API_METHOD(StateCall,
                InvocResult,
@@ -367,10 +366,77 @@ namespace fc::api {
 
     API_METHOD(Version, VersionResult)
 
+    /** Wallet */
     API_METHOD(WalletBalance, TokenAmount, const Address &)
     API_METHOD(WalletDefaultAddress, Address)
     API_METHOD(WalletHas, bool, const Address &)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
+    /** Verify signature by address (may be id or key address) */
+    API_METHOD(
+        WalletVerify, bool, const Address &, const Buffer &, const Signature &)
+
+    /** Payment channel manager */
+
+    /**
+     * Allocate new payment channel lane
+     * @param payment channel actor address
+     * @return new lane id
+     */
+    API_METHOD(PaychAllocateLane, LaneId, const Address &)
+
+    /**
+     * Get or create payment channel
+     * Searcg for payment channel in local storage.
+     * If found, adds ensure_funds to payment channel actor.
+     * If not found, creates payment channel actor with ensure_funds
+     * @param from address
+     * @param to address
+     * @param ensure_funds - amount allocated for payment channel
+     * @return add payment channel info with actor address and message cid
+     */
+    API_METHOD(PaychGet,
+               AddChannelInfo,
+               const Address &,
+               const Address &,
+               const TokenAmount &)
+
+    /**
+     * Add voucher to local storage
+     * @param payment channel address
+     * @param signed voucher
+     * @param signature one more time - not used
+     * @param delta - not used
+     * @return delta
+     */
+    API_METHOD(PaychVoucherAdd,
+               TokenAmount,
+               const Address &,
+               const SignedVoucher &,
+               const Buffer &,
+               TokenAmount)
+
+    /**
+     * Validate voucher
+     * @param payment channel actor address
+     * @param voucher to validate
+     */
+    API_METHOD(PaychVoucherCheckValid,
+               void,
+               const Address &,
+               const SignedVoucher &)
+
+    /**
+     * Creates voucher for payment channel lane
+     * @param payment channel actor address
+     * @param token amound to redeem
+     * @param lane id
+     * @return signed voucher
+     */
+    API_METHOD(PaychVoucherCreate,
+               SignedVoucher,
+               const Address &,
+               const TokenAmount &,
+               const LaneId &)
   };
 }  // namespace fc::api
 

@@ -39,7 +39,7 @@ namespace fc::markets::storage::client {
 
     virtual void run() = 0;
 
-    virtual void stop() = 0;
+    virtual outcome::result<void> stop() = 0;
 
     /**
      * Lists the providers in the storage market state

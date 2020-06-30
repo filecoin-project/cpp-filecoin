@@ -19,11 +19,11 @@
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 
-#define CALLBACK_ACTION(_action)                                          \
-  [self{shared_from_this()}](auto deal, auto event, auto from, auto to) { \
-    self->logger_->debug("Client FSM " #_action);                         \
-    self->_action(deal, event, from, to);                                 \
-    deal->state = to;                                                     \
+#define CALLBACK_ACTION(_action)                      \
+  [this](auto deal, auto event, auto from, auto to) { \
+    logger_->debug("Client FSM " #_action);           \
+    _action(deal, event, from, to);                   \
+    deal->state = to;                                 \
   }
 
 #define FSM_HALT_ON_ERROR(result, msg, deal)                            \
@@ -52,26 +52,21 @@ namespace fc::markets::storage::client {
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::builtin::market::PublishStorageDeals;
+  using vm::message::kDefaultGasLimit;
+  using vm::message::kDefaultGasPrice;
   using vm::message::kMessageVersion;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
-
-  // from lotus
-  // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/client.go#L122
-  const BigInt kGasPrice{0};
-  const GasAmount kGasLimit{1000000};
 
   StorageMarketClientImpl::StorageMarketClientImpl(
       std::shared_ptr<Host> host,
       std::shared_ptr<boost::asio::io_context> context,
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
-      std::shared_ptr<KeyStore> keystore,
       std::shared_ptr<PieceIO> piece_io)
       : host_{std::move(host)},
         context_{std::move(context)},
         api_{std::move(api)},
-        keystore_{std::move(keystore)},
         piece_io_{std::move(piece_io)},
         network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
         discovery_{std::make_shared<Discovery>(datastore)} {
@@ -99,7 +94,15 @@ namespace fc::markets::storage::client {
 
   void StorageMarketClientImpl::run() {}
 
-  void StorageMarketClientImpl::stop() {}
+  outcome::result<void> StorageMarketClientImpl::stop() {
+    fsm_->stop();
+    OUTCOME_TRY(network_->stopHandlingRequests());
+    std::lock_guard<std::mutex> lock(connections_mutex_);
+    for (auto &[_, stream] : connections_) {
+      network_->closeStreamGracefully(stream);
+    }
+    return outcome::success();
+  }
 
   outcome::result<std::vector<StorageProviderInfo>>
   StorageMarketClientImpl::listProviders() const {
@@ -274,8 +277,8 @@ namespace fc::markets::storage::client {
         address,
         {},
         amount,
-        kGasPrice,
-        kGasLimit,
+        kDefaultGasPrice,
+        kDefaultGasLimit,
         vm::actor::builtin::market::AddBalance::Number,
         {}};
     OUTCOME_TRY(signed_message, api_->MpoolPushMessage(unsigned_message));
@@ -301,13 +304,11 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
     OUTCOME_TRY(miner_info, api_->StateMinerInfo(info.address, tipset_key));
-    OUTCOME_TRY(miner_key_address,
-                api_->StateAccountKey(miner_info.worker, tipset_key));
     OUTCOME_TRY(ask_bytes, codec::cbor::encode(response.value().ask.ask));
     OUTCOME_TRY(
         signature_valid,
-        keystore_->verify(
-            miner_key_address, ask_bytes, response.value().ask.signature));
+        api_->WalletVerify(
+            miner_info.worker, ask_bytes, response.value().ask.signature));
     if (!signature_valid) {
       logger_->debug("Ask response signature invalid");
       return StorageMarketClientError::SIGNATURE_INVALID;
@@ -358,14 +359,10 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> StorageMarketClientImpl::verifyDealResponseSignature(
       const SignedResponse &response, const std::shared_ptr<ClientDeal> &deal) {
-    OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(miner_key_address,
-                api_->StateAccountKey(deal->miner_worker, tipset_key));
     OUTCOME_TRY(response_bytes, codec::cbor::encode(response.response));
     OUTCOME_TRY(signature_valid,
-                keystore_->verify(
-                    miner_key_address, response_bytes, response.signature));
+                api_->WalletVerify(
+                    deal->miner_worker, response_bytes, response.signature));
     if (!signature_valid) {
       return StorageMarketClientError::SIGNATURE_INVALID;
     }

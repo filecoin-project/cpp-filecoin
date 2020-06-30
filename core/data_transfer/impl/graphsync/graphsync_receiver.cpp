@@ -15,9 +15,9 @@ namespace fc::data_transfer {
   using storage::ipfs::graphsync::ResponseStatusCode;
 
   GraphsyncReceiver::GraphsyncReceiver(
-      std::shared_ptr<DataTransferNetwork> network,
+      std::weak_ptr<DataTransferNetwork> network,
       std::shared_ptr<Graphsync> graphsync,
-      std::shared_ptr<Manager> graphsync_manager,
+      std::weak_ptr<Manager> graphsync_manager,
       PeerInfo peer)
       : network_(std::move(network)),
         graphsync_(std::move(graphsync)),
@@ -37,36 +37,37 @@ namespace fc::data_transfer {
     auto selector = std::make_shared<Selector>();
     OUTCOME_TRY(base_cid, CID::fromString(request.base_cid));
 
-    if (request.is_pull) {
-      auto channel = graphsync_manager_->createChannel(request.transfer_id,
-                                                       base_cid,
-                                                       selector,
-                                                       request.voucher,
-                                                       initiator,
-                                                       peer_,
-                                                       initiator);
-      if (!channel) {
-        logger_->warn("Cannot create channel: " + channel.error().message());
-        return sendResponse(initiator, false, request.transfer_id);
-      }
-    } else {
-      OUTCOME_TRY(sendGraphSyncRequest(initiator,
-                                       request.transfer_id,
-                                       request.is_pull,
-                                       initiator,
-                                       base_cid,
-                                       request.selector));
-
-      auto channel = graphsync_manager_->createChannel(request.transfer_id,
-                                                       base_cid,
-                                                       selector,
-                                                       request.voucher,
-                                                       initiator,
-                                                       initiator,
-                                                       peer_);
-      if (!channel) {
-        logger_->warn("Cannot create channel: " + channel.error().message());
-        return sendResponse(initiator, false, request.transfer_id);
+    if (auto manager = graphsync_manager_.lock()) {
+      if (request.is_pull) {
+        auto channel = manager->createChannel(request.transfer_id,
+                                              base_cid,
+                                              selector,
+                                              request.voucher,
+                                              initiator,
+                                              peer_,
+                                              initiator);
+        if (!channel) {
+          logger_->warn("Cannot create channel: " + channel.error().message());
+          return sendResponse(initiator, false, request.transfer_id);
+        }
+      } else {
+        OUTCOME_TRY(sendGraphSyncRequest(initiator,
+                                         request.transfer_id,
+                                         request.is_pull,
+                                         initiator,
+                                         base_cid,
+                                         request.selector));
+        auto channel = manager->createChannel(request.transfer_id,
+                                              base_cid,
+                                              selector,
+                                              request.voucher,
+                                              initiator,
+                                              initiator,
+                                              peer_);
+        if (!channel) {
+          logger_->warn("Cannot create channel: " + channel.error().message());
+          return sendResponse(initiator, false, request.transfer_id);
+        }
       }
     }
 
@@ -80,24 +81,26 @@ namespace fc::data_transfer {
                 .timestamp = clock::UTCClockImpl().nowUTC()};
     if (response.is_accepted) {
       // if we are handling a response to a pull request then they are sending
-      // data and the initiator is us. construct a channel id for a pull request
-      // that we initiated and see if there is one in our saved channel list.
-      // otherwise we should not respond
+      // data and the initiator is us. construct a channel id for a pull
+      // request that we initiated and see if there is one in our saved
+      // channel list. otherwise we should not respond
       ChannelId channel_id{.initiator = peer_, .id = response.transfer_id};
-      auto channel_state =
-          graphsync_manager_->getChannelByIdAndSender(channel_id, sender);
-      if (channel_state) {
-        OUTCOME_TRY(sendGraphSyncRequest(
-            peer_,
-            response.transfer_id,
-            true,
-            sender,
-            channel_state->channel.base_cid,
-            // TODO (a.chernyshov) implement selectors and serialize
-            // channel_state->channel.selector
-            {}));
-        event.code = EventCode::PROGRESS;
-        notifySubscribers(event, *channel_state);
+      if (auto manager = graphsync_manager_.lock()) {
+        auto channel_state =
+            manager->getChannelByIdAndSender(channel_id, sender);
+        if (channel_state) {
+          OUTCOME_TRY(sendGraphSyncRequest(
+              peer_,
+              response.transfer_id,
+              true,
+              sender,
+              channel_state->channel.base_cid,
+              // TODO (a.chernyshov) implement selectors and
+              // serialize channel_state->channel.selector
+              {}));
+          event.code = EventCode::PROGRESS;
+          notifySubscribers(event, *channel_state);
+        }
       }
     }
     return outcome::success();
@@ -110,7 +113,9 @@ namespace fc::data_transfer {
   outcome::result<void> GraphsyncReceiver::sendResponse(
       const PeerInfo &peer, bool is_accepted, const TransferId &transfer_id) {
     DataTransferMessage response = createResponse(is_accepted, transfer_id);
-    network_->sendMessage(peer, response);
+    if (auto network = network_.lock()) {
+      network->sendMessage(peer, response);
+    }
     return outcome::success();
   }
 
@@ -152,19 +157,20 @@ namespace fc::data_transfer {
                       .timestamp = clock::UTCClockImpl().nowUTC()};
 
           ChannelId channel_id{.initiator = initiator, .id = transfer_id};
-          auto channel = this->graphsync_manager_->getChannelByIdAndSender(
-              channel_id, sender);
-          if (!channel) {
-            event.code = EventCode::ERROR;
-            event.message = "cannot find a matching channel for this request";
-          } else if (isError(code)) {
-            event.code = EventCode::ERROR;
-            event.message = statusCodeToString(code);
-          } else if (isSuccess(code)) {
-            event.code = EventCode::COMPLETE;
-          }
+          if (auto manager = graphsync_manager_.lock()) {
+            auto channel = manager->getChannelByIdAndSender(channel_id, sender);
+            if (!channel) {
+              event.code = EventCode::ERROR;
+              event.message = "cannot find a matching channel for this request";
+            } else if (isError(code)) {
+              event.code = EventCode::ERROR;
+              event.message = statusCodeToString(code);
+            } else if (isSuccess(code)) {
+              event.code = EventCode::COMPLETE;
+            }
 
-          this->notifySubscribers(event, *channel);
+            this->notifySubscribers(event, *channel);
+          }
         });
     return outcome::success();
   }
