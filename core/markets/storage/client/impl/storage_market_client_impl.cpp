@@ -47,6 +47,7 @@ namespace fc::markets::storage::client {
   using host::HostContext;
   using host::HostContextImpl;
   using libp2p::peer::PeerId;
+  using network::Libp2pMarketNetwork;
   using primitives::BigInt;
   using primitives::GasAmount;
   using vm::VMExitCode;
@@ -68,7 +69,7 @@ namespace fc::markets::storage::client {
         context_{std::move(context)},
         api_{std::move(api)},
         piece_io_{std::move(piece_io)},
-        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
+        network_{std::make_shared<Libp2pMarketNetwork>(host_)},
         discovery_{std::make_shared<Discovery>(datastore)} {
     auto scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
         *context_, libp2p::protocol::SchedulerConfig{});
@@ -159,8 +160,9 @@ namespace fc::markets::storage::client {
   void StorageMarketClientImpl::getAsk(
       const StorageProviderInfo &info,
       const SignedAskHandler &signed_ask_handler) const {
-    network_->newAskStream(
+    network_->newStream(
         info.peer_info,
+        kAskProtocolId,
         [self{shared_from_this()}, info, signed_ask_handler](
             auto &&stream_res) {
           if (stream_res.has_error()) {
@@ -237,8 +239,9 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(
         fsm_->begin(client_deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
 
-    network_->newDealStream(
+    network_->newStream(
         provider_info.peer_info,
+        kDealProtocolId,
         [self{shared_from_this()}, provider_info, client_deal, proposal_cid](
             outcome::result<std::shared_ptr<CborStream>> stream) {
           SELF_FSM_HALT_ON_ERROR(
@@ -438,8 +441,8 @@ namespace fc::markets::storage::client {
     auto stream_it = connections_.find(deal->proposal_cid);
     if (stream_it != connections_.end()) {
       network_->closeStreamGracefully(stream_it->second);
+      connections_.erase(stream_it);
     }
-    connections_.erase(stream_it);
   }
 
   std::vector<ClientTransition> StorageMarketClientImpl::makeFSMTransitions() {

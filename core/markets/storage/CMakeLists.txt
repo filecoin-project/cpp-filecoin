@@ -6,4 +6,3 @@
 add_subdirectory(chain_events)
 add_subdirectory(client)
 add_subdirectory(provider)
-add_subdirectory(network)

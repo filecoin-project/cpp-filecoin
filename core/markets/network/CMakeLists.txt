@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(libp2p_storage_market_network
-    libp2p_storage_market_network.cpp
+add_library(libp2p_market_network
+    impl/libp2p_market_network.cpp
     )
-target_link_libraries(libp2p_storage_market_network
+target_link_libraries(libp2p_market_network
     cbor_stream
     p2p::p2p
     logger

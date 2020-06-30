@@ -50,6 +50,7 @@ namespace fc::markets::storage::provider {
   using fc::storage::piece::PieceStorageImpl;
   using host::HostContext;
   using host::HostContextImpl;
+  using network::Libp2pMarketNetwork;
   using vm::VMExitCode;
   using vm::actor::MethodParams;
   using vm::actor::builtin::market::PublishStorageDeals;
@@ -79,7 +80,7 @@ namespace fc::markets::storage::provider {
         miner_api_{std::move(miner_api)},
         chain_events_{std::move(chain_events)},
         miner_actor_address_{miner_actor_address},
-        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
+        network_{std::make_shared<Libp2pMarketNetwork>(host_)},
         piece_io_{std::move(piece_io)},
         piece_storage_{std::make_shared<PieceStorageImpl>(datastore)},
         filestore_{filestore} {
@@ -92,6 +93,23 @@ namespace fc::markets::storage::provider {
 
   outcome::result<void> StorageProviderImpl::init() {
     OUTCOME_TRY(filestore_->createDirectories(kFilestoreTempDir));
+
+    OUTCOME_TRY(network_->setDelegate(
+        kAskProtocolId,
+        [self_wptr{weak_from_this()}](
+            std::shared_ptr<libp2p::connection::Stream> stream) {
+          if (auto self = self_wptr.lock()) {
+            self->handleAskStream(std::make_shared<CborStream>(stream));
+          }
+        }));
+    OUTCOME_TRY(network_->setDelegate(
+        kDealProtocolId,
+        [self_wptr{weak_from_this()}](
+            std::shared_ptr<libp2p::connection::Stream> stream) {
+          if (auto self = self_wptr.lock()) {
+            self->handleDealStream(std::make_shared<CborStream>(stream));
+          }
+        }));
 
     // init fsm transitions
     std::shared_ptr<HostContext> fsm_context =
@@ -108,8 +126,6 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<void> StorageProviderImpl::start() {
-    OUTCOME_TRY(network_->setDelegate(shared_from_this()));
-
     context_->post([self{shared_from_this()}] {
       self->logger_->debug(
           "Server started\nListening on: "
@@ -453,8 +469,8 @@ namespace fc::markets::storage::provider {
     auto stream_it = connections_.find(deal->proposal_cid);
     if (stream_it != connections_.end()) {
       network_->closeStreamGracefully(stream_it->second);
+      connections_.erase(stream_it);
     }
-    connections_.erase(stream_it);
     if (!deal->piece_path.empty()) {
       OUTCOME_TRY(filestore_->remove(deal->piece_path));
     }
