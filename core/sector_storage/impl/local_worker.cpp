@@ -231,6 +231,36 @@ namespace fc::sector_storage {
       const SectorId &sector,
       primitives::piece::UnpaddedByteIndex offset,
       const primitives::piece::UnpaddedPieceSize &size) {
+    OUTCOME_TRY(response,
+                storage_->acquireSector(sector,
+                                        config_.seal_proof_type,
+                                        SectorFileType::FTUnsealed,
+                                        SectorFileType::FTNone,
+                                        false));
+
+    OUTCOME_TRY(max_size,
+                primitives::sector::getSectorSize(config_.seal_proof_type));
+
+    if (primitives::piece::paddedIndex(offset) + size.padded() > max_size) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    output.resize(size);
+
+    std::ifstream input(response.paths.unsealed,
+                        std::ios_base::in | std::ios_base::binary);
+
+    if (!input.good()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    input.seekg(primitives::piece::paddedIndex(offset), std::ios_base::beg);
+
+    input.read(reinterpret_cast<char *>(output.data()),
+               size);  // TODO: make it without reinterpret_cast
+
+    input.close();
+
     return outcome::success();
   }
 
