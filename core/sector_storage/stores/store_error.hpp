@@ -22,6 +22,7 @@ namespace fc::sector_storage::stores {
     RemoveSeveralFileTypes,
     CannotMoveSector,
     CannotInitLogger,
+    NotFoundRequestedSectorType,
   };
 }  // namespace fc::sector_storage::stores
 

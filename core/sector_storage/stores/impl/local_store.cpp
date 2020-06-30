@@ -58,8 +58,89 @@ namespace fc::sector_storage::stores {
 
     std::shared_lock lock(mutex_);
 
-    return acquireSectorWithoutLock(
-        sector, seal_proof_type, existing, allocate, can_seal);
+    AcquireSectorResponse result{};
+
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      if ((type & existing) == 0) {
+        continue;
+      }
+
+      auto storages_info_opt = index_->storageFindSector(sector, type, false);
+
+      if (storages_info_opt.has_error()) {
+        logger_->warn("Finding existing sector: "
+                      + storages_info_opt.error().message());
+        continue;
+      }
+
+      for (const auto &info : storages_info_opt.value()) {
+        auto store_path_iter = paths_.find(info.id);
+        if (store_path_iter == paths_.end()) {
+          continue;
+        }
+
+        if (store_path_iter->second.empty()) {
+          continue;
+        }
+
+        boost::filesystem::path spath(store_path_iter->second);
+        spath /= toString(type);
+        spath /= primitives::sector_file::sectorName(sector);
+
+        result.paths.setPathByType(type, spath.string());
+        result.stores.setPathByType(type, info.id);
+
+        existing = static_cast<SectorFileType>(existing ^ type);
+        break;
+      }
+
+      OUTCOME_TRY(path, result.paths.getPathByType(type));
+
+      if (path.empty()) {
+        return StoreErrors::NotFoundRequestedSectorType;
+      }
+    }
+
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      if ((type & allocate) == 0) {
+        continue;
+      }
+
+      OUTCOME_TRY(sectors_info,
+                  index_->storageBestAlloc(type, seal_proof_type, can_seal));
+
+      std::string best_path;
+      StorageID best_storage;
+
+      for (const auto &info : sectors_info) {
+        auto path_iter = paths_.find(info.id);
+        if (path_iter == paths_.end()) {
+          continue;
+        }
+
+        if (path_iter->second.empty()) {
+          continue;
+        }
+
+        boost::filesystem::path spath(path_iter->second);
+        spath /= toString(type);
+        spath /= primitives::sector_file::sectorName(sector);
+
+        best_path = spath.string();
+        best_storage = info.id;
+        break;
+      }
+
+      if (best_path.empty()) {
+        return StoreErrors::NotFoundPath;
+      }
+
+      result.paths.setPathByType(type, best_path);
+      result.stores.setPathByType(type, best_storage);
+      allocate = static_cast<SectorFileType>(allocate ^ type);
+    }
+
+    return result;
   }
 
   outcome::result<void> LocalStore::remove(SectorId sector,
@@ -67,8 +148,6 @@ namespace fc::sector_storage::stores {
     if (type == SectorFileType::FTNone || ((type & (type - 1)) != 0)) {
       return StoreErrors::RemoveSeveralFileTypes;
     }
-
-    std::unique_lock lock(mutex_);
 
     OUTCOME_TRY(storages_info, index_->storageFindSector(sector, type, false));
 
@@ -108,15 +187,14 @@ namespace fc::sector_storage::stores {
   outcome::result<void> LocalStore::moveStorage(SectorId sector,
                                                 RegisteredProof seal_proof_type,
                                                 SectorFileType types) {
-    std::unique_lock lock(mutex_);
     OUTCOME_TRY(
         dest,
-        acquireSectorWithoutLock(
+        acquireSector(
             sector, seal_proof_type, SectorFileType::FTNone, types, false));
 
     OUTCOME_TRY(
         src,
-        acquireSectorWithoutLock(
+        acquireSector(
             sector, seal_proof_type, types, SectorFileType::FTNone, false));
 
     for (const auto &type : kSectorFileTypes) {
@@ -246,91 +324,6 @@ namespace fc::sector_storage::stores {
     }
 
     return local;
-  }
-
-  outcome::result<AcquireSectorResponse> LocalStore::acquireSectorWithoutLock(
-      SectorId sector,
-      RegisteredProof seal_proof_type,
-      SectorFileType existing,
-      SectorFileType allocate,
-      bool can_seal) {
-    AcquireSectorResponse result{};
-
-    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
-      if ((type & existing) == 0) {
-        continue;
-      }
-
-      auto sectors_info_opt = index_->storageFindSector(sector, type, false);
-
-      if (sectors_info_opt.has_error()) {
-        logger_->warn("Finding existing sector: "
-                      + sectors_info_opt.error().message());
-        continue;
-      }
-
-      for (const auto &info : sectors_info_opt.value()) {
-        auto store_path_iter = paths_.find(info.id);
-        if (store_path_iter == paths_.end()) {
-          continue;
-        }
-
-        if (store_path_iter->second.empty()) {
-          continue;
-        }
-
-        boost::filesystem::path spath(store_path_iter->second);
-        spath /= toString(type);
-        spath /= primitives::sector_file::sectorName(sector);
-
-        result.paths.setPathByType(type, spath.string());
-        result.stores.setPathByType(type, info.id);
-
-        existing = static_cast<SectorFileType>(existing ^ type);
-        break;
-      }
-    }
-
-    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
-      if ((type & allocate) == 0) {
-        continue;
-      }
-
-      OUTCOME_TRY(sectors_info,
-                  index_->storageBestAlloc(type, seal_proof_type, can_seal));
-
-      std::string best_path;
-      StorageID best_storage;
-
-      for (const auto &info : sectors_info) {
-        auto path_iter = paths_.find(info.id);
-        if (path_iter == paths_.end()) {
-          continue;
-        }
-
-        if (path_iter->second.empty()) {
-          continue;
-        }
-
-        boost::filesystem::path spath(path_iter->second);
-        spath /= toString(type);
-        spath /= primitives::sector_file::sectorName(sector);
-
-        best_path = spath.string();
-        best_storage = info.id;
-        break;
-      }
-
-      if (best_path.empty()) {
-        return StoreErrors::NotFoundPath;
-      }
-
-      result.paths.setPathByType(type, best_path);
-      result.stores.setPathByType(type, best_storage);
-      allocate = static_cast<SectorFileType>(allocate ^ type);
-    }
-
-    return result;
   }
 
   outcome::result<std::vector<primitives::StoragePath>>

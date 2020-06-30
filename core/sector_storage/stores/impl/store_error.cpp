@@ -28,6 +28,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
       return "Store: cannot move the sector";
     case (StoreErrors::CannotInitLogger):
       return "Store: cannot init logger";
+    case (StoreErrors::NotFoundRequestedSectorType):
+      return "Store: Not found the requested type";
     default:
       return "Store: unknown error";
   }

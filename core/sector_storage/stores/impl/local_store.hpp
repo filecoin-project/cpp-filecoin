@@ -57,13 +57,6 @@ namespace fc::sector_storage::stores {
                std::shared_ptr<SectorIndex> index,
                gsl::span<std::string> urls);
 
-    outcome::result<AcquireSectorResponse> acquireSectorWithoutLock(
-        SectorId sector,
-        RegisteredProof seal_proof_type,
-        SectorFileType existing,
-        SectorFileType allocate,
-        bool can_seal);
-
     std::shared_ptr<LocalStorage> storage_;
     std::shared_ptr<SectorIndex> index_;
     std::vector<std::string> urls_;
