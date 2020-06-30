@@ -20,7 +20,6 @@
 #include "markets/storage/network/libp2p_storage_market_network.hpp"
 #include "storage/filestore/filestore.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "storage/keystore/keystore.hpp"
 
 namespace fc::markets::storage::client {
 
@@ -29,7 +28,6 @@ namespace fc::markets::storage::client {
   using discovery::Discovery;
   using fc::storage::filestore::FileStore;
   using fc::storage::ipfs::IpfsDatastore;
-  using fc::storage::keystore::KeyStore;
   using fsm::FSM;
   using libp2p::Host;
   using network::Libp2pStorageMarketNetwork;
@@ -49,14 +47,13 @@ namespace fc::markets::storage::client {
                             std::shared_ptr<boost::asio::io_context> context,
                             std::shared_ptr<Datastore> datastore,
                             std::shared_ptr<Api> api,
-                            std::shared_ptr<KeyStore> keystore,
                             std::shared_ptr<PieceIO> piece_io);
 
     outcome::result<void> init() override;
 
     void run() override;
 
-    void stop() override;
+    outcome::result<void> stop() override;
 
     outcome::result<std::vector<StorageProviderInfo>> listProviders()
         const override;
@@ -281,7 +278,6 @@ namespace fc::markets::storage::client {
     std::shared_ptr<boost::asio::io_context> context_;
 
     std::shared_ptr<Api> api_;
-    std::shared_ptr<KeyStore> keystore_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<StorageMarketNetwork> network_;
     std::shared_ptr<Discovery> discovery_;

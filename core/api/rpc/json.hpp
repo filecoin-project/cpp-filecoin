@@ -13,6 +13,7 @@
 #include "api/rpc/json_errors.hpp"
 #include "api/rpc/rpc.hpp"
 #include "common/enum.hpp"
+#include "payment_channel_manager/payment_channel_manager.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 
@@ -181,11 +182,6 @@ namespace fc::api {
         outcome::raise(JsonError::WRONG_TYPE);
       }
       v = j.GetBool();
-    }
-
-    // TODO(artyom-yurin): remove it after BitField will be implemented
-    DECODE(void *) {
-      v = nullptr;
     }
 
     ENCODE(std::string_view) {
@@ -592,6 +588,14 @@ namespace fc::api {
       decode(v.message, Get(j, "Message"));
     }
 
+    ENCODE(SectorInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "SectorNumber", v.sector);
+      Set(j, "SealedCID", v.sealed_cid);
+      return j;
+    }
+
     ENCODE(SectorPreCommitInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "RegisteredProof", common::to_int(v.registered_proof));
@@ -743,6 +747,18 @@ namespace fc::api {
       Set(j, "Expiry", v.expiry);
       Set(j, "SeqNo", v.seq_no);
       return j;
+    }
+
+    ENCODE(AddChannelInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Channel", v.channel);
+      Set(j, "ChannelMessage", v.channel_message);
+      return j;
+    }
+
+    DECODE(AddChannelInfo) {
+      decode(v.channel, Get(j, "Channel"));
+      decode(v.channel_message, Get(j, "ChannelMessage"));
     }
 
     ENCODE(SignedStorageAsk) {
