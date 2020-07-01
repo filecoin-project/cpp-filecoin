@@ -9,12 +9,13 @@
 #include <libp2p/host/host.hpp>
 #include <mutex>
 #include "api/api.hpp"
+#include "common/libp2p/cbor_host.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/manager.hpp"
 #include "fsm/fsm.hpp"
 #include "host/context/host_context.hpp"
+#include "markets/common.hpp"
 #include "markets/discovery/discovery.hpp"
-#include "markets/network/impl/libp2p_market_network.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/client_events.hpp"
 #include "markets/storage/client/storage_market_client.hpp"
@@ -25,13 +26,13 @@ namespace fc::markets::storage::client {
 
   using api::Api;
   using common::Buffer;
+  using common::libp2p::CborHost;
   using common::libp2p::CborStream;
   using discovery::Discovery;
   using fc::storage::filestore::FileStore;
   using fc::storage::ipfs::IpfsDatastore;
   using fsm::FSM;
   using libp2p::Host;
-  using network::MarketNetwork;
   using pieceio::PieceIO;
   using ClientTransition =
       fsm::Transition<ClientEvent, StorageDealStatus, ClientDeal>;
@@ -68,7 +69,7 @@ namespace fc::markets::storage::client {
         const CID &proposal_cid) const override;
 
     void getAsk(const StorageProviderInfo &info,
-                const SignedAskHandler &signed_ask_handler) const override;
+                const SignedAskHandler &signed_ask_handler) override;
 
     outcome::result<CID> proposeStorageDeal(
         const Address &client_address,
@@ -264,23 +265,22 @@ namespace fc::markets::storage::client {
     bool hasValue(outcome::result<T> res,
                   const std::string &on_error_msg,
                   const std::shared_ptr<CborStream> &stream,
-                  const THandler &handler) const {
+                  const THandler &handler) {
       if (res.has_error()) {
         logger_->error(on_error_msg + " " + res.error().message());
         handler(res.error());
-        network_->closeStreamGracefully(stream);
+        closeStreamGracefully(stream, logger_);
         return false;
       }
       return true;
     };
 
     /** libp2p host */
-    std::shared_ptr<Host> host_;
+    std::shared_ptr<CborHost> host_;
     std::shared_ptr<boost::asio::io_context> context_;
 
     std::shared_ptr<Api> api_;
     std::shared_ptr<PieceIO> piece_io_;
-    std::shared_ptr<MarketNetwork> network_;
     std::shared_ptr<Discovery> discovery_;
     std::shared_ptr<DataTransfer> datatransfer_;
 

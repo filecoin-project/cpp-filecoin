@@ -9,10 +9,11 @@
 #include <libp2p/host/host.hpp>
 #include <mutex>
 #include "api/miner_api.hpp"
+#include "common/libp2p/cbor_host.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/manager.hpp"
 #include "fsm/fsm.hpp"
-#include "markets/network/impl/libp2p_market_network.hpp"
+#include "markets/common.hpp"
 #include "markets/pieceio/pieceio.hpp"
 #include "markets/storage/chain_events/chain_events.hpp"
 #include "markets/storage/provider/provider.hpp"
@@ -25,13 +26,13 @@
 namespace fc::markets::storage::provider {
   using api::MinerApi;
   using chain_events::ChainEvents;
+  using common::libp2p::CborHost;
   using common::libp2p::CborStream;
   using fc::storage::filestore::FileStore;
   using fc::storage::filestore::Path;
   using fc::storage::piece::PieceInfo;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
-  using network::MarketNetwork;
   using pieceio::PieceIO;
   using primitives::BigInt;
   using primitives::EpochDuration;
@@ -343,10 +344,10 @@ namespace fc::markets::storage::provider {
     template <class T>
     bool hasValue(outcome::result<T> res,
                   const std::string &on_error_msg,
-                  const std::shared_ptr<CborStream> &stream) const {
+                  const std::shared_ptr<CborStream> &stream) {
       if (res.has_error()) {
         logger_->error(on_error_msg + res.error().message());
-        network_->closeStreamGracefully(stream);
+        closeStreamGracefully(stream, logger_);
         return false;
       }
       return true;
@@ -361,20 +362,13 @@ namespace fc::markets::storage::provider {
     /** State machine */
     std::shared_ptr<ProviderFSM> fsm_;
 
-    /**
-     * Closes stream and handles close result
-     * @param stream to close
-     */
-    void closeStreamGracefully(const std::shared_ptr<CborStream> &stream) const;
-
-    std::shared_ptr<Host> host_;
+    std::shared_ptr<CborHost> host_;
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<StoredAsk> stored_ask_;
     std::shared_ptr<Api> api_;
     std::shared_ptr<MinerApi> miner_api_;
     std::shared_ptr<ChainEvents> chain_events_;
     Address miner_actor_address_;
-    std::shared_ptr<MarketNetwork> network_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<PieceStorage> piece_storage_;
     std::shared_ptr<FileStore> filestore_;
