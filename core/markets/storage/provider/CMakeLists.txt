@@ -16,7 +16,6 @@ target_link_libraries(storage_market_provider
     fuhon_stored_ask
     outcome
     piece
-    libp2p_storage_market_network
     market_actor
     todo_error
     piece_storage

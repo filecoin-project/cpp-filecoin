@@ -11,9 +11,9 @@
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "data_transfer/impl/graphsync/graphsync_manager.hpp"
 #include "host/context/impl/host_context_impl.hpp"
+#include "markets/common.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/impl/client_data_transfer_request_validator.hpp"
-#include "markets/storage/common.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "vm/message/message.hpp"
@@ -64,17 +64,16 @@ namespace fc::markets::storage::client {
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
       std::shared_ptr<PieceIO> piece_io)
-      : host_{std::move(host)},
+      : host_{std::make_shared<CborHost>(host)},
         context_{std::move(context)},
         api_{std::move(api)},
         piece_io_{std::move(piece_io)},
-        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
         discovery_{std::make_shared<Discovery>(datastore)} {
     auto scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
         *context_, libp2p::protocol::SchedulerConfig{});
     auto graphsync =
-        std::make_shared<GraphsyncImpl>(host_, std::move(scheduler));
-    datatransfer_ = std::make_shared<GraphSyncManager>(host_, graphsync);
+        std::make_shared<GraphsyncImpl>(host, std::move(scheduler));
+    datatransfer_ = std::make_shared<GraphSyncManager>(host, graphsync);
   }
 
   outcome::result<void> StorageMarketClientImpl::init() {
@@ -96,10 +95,9 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> StorageMarketClientImpl::stop() {
     fsm_->stop();
-    OUTCOME_TRY(network_->stopHandlingRequests());
     std::lock_guard<std::mutex> lock(connections_mutex_);
     for (auto &[_, stream] : connections_) {
-      network_->closeStreamGracefully(stream);
+      closeStreamGracefully(stream, logger_);
     }
     return outcome::success();
   }
@@ -158,9 +156,10 @@ namespace fc::markets::storage::client {
 
   void StorageMarketClientImpl::getAsk(
       const StorageProviderInfo &info,
-      const SignedAskHandler &signed_ask_handler) const {
-    network_->newAskStream(
+      const SignedAskHandler &signed_ask_handler) {
+    host_->newCborStream(
         info.peer_info,
+        kAskProtocolId,
         [self{shared_from_this()}, info, signed_ask_handler](
             auto &&stream_res) {
           if (stream_res.has_error()) {
@@ -187,7 +186,8 @@ namespace fc::markets::storage::client {
                                 auto validated_ask_response =
                                     self->validateAskResponse(response, info);
                                 signed_ask_handler(validated_ask_response);
-                                self->network_->closeStreamGracefully(stream);
+                                closeStreamGracefully(stream, self->logger_);
+                                ;
                               });
                         });
         });
@@ -237,8 +237,9 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(
         fsm_->begin(client_deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
 
-    network_->newDealStream(
+    host_->newCborStream(
         provider_info.peer_info,
+        kDealProtocolId,
         [self{shared_from_this()}, provider_info, client_deal, proposal_cid](
             outcome::result<std::shared_ptr<CborStream>> stream) {
           SELF_FSM_HALT_ON_ERROR(
@@ -437,9 +438,9 @@ namespace fc::markets::storage::client {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     auto stream_it = connections_.find(deal->proposal_cid);
     if (stream_it != connections_.end()) {
-      network_->closeStreamGracefully(stream_it->second);
+      closeStreamGracefully(stream_it->second, logger_);
+      connections_.erase(stream_it);
     }
-    connections_.erase(stream_it);
   }
 
   std::vector<ClientTransition> StorageMarketClientImpl::makeFSMTransitions() {
@@ -571,7 +572,7 @@ namespace fc::markets::storage::client {
         return;
       }
       deal->publish_message = response.value().response.publish_message;
-      self->network_->closeStreamGracefully(stream);
+      closeStreamGracefully(stream, self->logger_);
       SELF_FSM_SEND(deal, ClientEvent::ClientEventDealAccepted);
     });
   }
