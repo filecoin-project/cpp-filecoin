@@ -97,7 +97,6 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> StorageMarketClientImpl::stop() {
     fsm_->stop();
-    OUTCOME_TRY(network_->stopHandlingRequests());
     std::lock_guard<std::mutex> lock(connections_mutex_);
     for (auto &[_, stream] : connections_) {
       network_->closeStreamGracefully(stream);

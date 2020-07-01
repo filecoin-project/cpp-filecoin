@@ -45,8 +45,6 @@ namespace fc::markets::network {
                              const NewStreamHandler &handler)
         -> outcome::result<void> = 0;
 
-    virtual auto stopHandlingRequests() -> outcome::result<void> = 0;
-
     /**
      * Closes stream and handles close result
      * @param stream to close

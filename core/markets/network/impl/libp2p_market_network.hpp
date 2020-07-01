@@ -33,8 +33,6 @@ namespace fc::markets::network {
         const std::function<libp2p::connection::Stream::Handler> &handler)
         -> outcome::result<void> override;
 
-    auto stopHandlingRequests() -> outcome::result<void> override;
-
     /**
      * Closes stream and handles close result
      * @param stream to close

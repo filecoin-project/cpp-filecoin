@@ -33,12 +33,6 @@ namespace fc::markets::network {
     return outcome::success();
   }
 
-  outcome::result<void> Libp2pMarketNetwork::stopHandlingRequests() {
-    // TODO (a.chernyshov) remove protocol handlers - not supported by
-    // cpp-libp2p Host
-    return outcome::success();
-  }
-
   void Libp2pMarketNetwork::closeStreamGracefully(
       const std::shared_ptr<CborStream> &stream) const {
     if (!stream->stream()->isClosed()) {

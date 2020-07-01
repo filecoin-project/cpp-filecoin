@@ -137,7 +137,6 @@ namespace fc::markets::storage::provider {
 
   outcome::result<void> StorageProviderImpl::stop() {
     fsm_->stop();
-    OUTCOME_TRY(network_->stopHandlingRequests());
     std::lock_guard<std::mutex> lock(connections_mutex_);
     for (auto &[_, stream] : connections_) {
       network_->closeStreamGracefully(stream);
