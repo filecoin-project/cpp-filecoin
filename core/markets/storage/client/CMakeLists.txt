@@ -16,7 +16,7 @@ target_link_libraries(storage_market_client
     fuhon_fsm
     outcome
     logger
-    libp2p_market_network
+    market_network
     piece
     signature
     market_actor
