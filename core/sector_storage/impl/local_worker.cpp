@@ -227,10 +227,14 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> sector_storage::LocalWorker::readPiece(
-      common::Buffer &output,
+      const proofs::PieceData &output,
       const SectorId &sector,
       primitives::piece::UnpaddedByteIndex offset,
       const primitives::piece::UnpaddedPieceSize &size) {
+    if (!output.isOpened()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
     OUTCOME_TRY(response,
                 storage_->acquireSector(sector,
                                         config_.seal_proof_type,
@@ -245,8 +249,6 @@ namespace fc::sector_storage {
       return outcome::success();  // TODO: ERROR
     }
 
-    output.resize(size);
-
     std::ifstream input(response.paths.unsealed,
                         std::ios_base::in | std::ios_base::binary);
 
@@ -256,8 +258,23 @@ namespace fc::sector_storage {
 
     input.seekg(primitives::piece::paddedIndex(offset), std::ios_base::beg);
 
-    input.read(reinterpret_cast<char *>(output.data()),
-               size);  // TODO: make it without reinterpret_cast
+    constexpr uint64_t chunk_size = 256;
+    char buffer[chunk_size];
+
+    auto sealed_file_fd = output.getFd();
+
+    for (uint64_t read_size = 0; read_size < size;) {
+      uint64_t curr_read_size = std::min(chunk_size, size - read_size);
+
+      // read data as a block:
+      input.read(buffer, curr_read_size);
+
+      auto read_bytes = input.gcount();
+
+      write(sealed_file_fd, buffer, read_bytes);
+
+      read_size += read_bytes;
+    }
 
     input.close();
 

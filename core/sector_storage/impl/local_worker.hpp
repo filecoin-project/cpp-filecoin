@@ -55,7 +55,7 @@ namespace fc::sector_storage {
                                       const SealRandomness &randomness,
                                       const CID &cid) override;
 
-    outcome::result<void> readPiece(common::Buffer &output,
+    outcome::result<void> readPiece(const proofs::PieceData &output,
                                     const SectorId &sector,
                                     UnpaddedByteIndex offset,
                                     const UnpaddedPieceSize &size) override;

@@ -37,7 +37,10 @@ namespace fc::sector_storage {
                                               const SealRandomness &randomness,
                                               const CID &cid) = 0;
 
-    virtual outcome::result<void> readPiece(common::Buffer &output,
+    /**
+     * @param output is PieceData with write part of pipe
+     */
+    virtual outcome::result<void> readPiece(const proofs::PieceData &output,
                                             const SectorId &sector,
                                             UnpaddedByteIndex offset,
                                             const UnpaddedPieceSize &size) = 0;
