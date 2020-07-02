@@ -65,7 +65,6 @@ namespace fc::markets::retrieval::client {
         });
   }
 
-  // TODO (a.chernyshov) handler - ???
   void RetrievalClientImpl::proposeDeal(
       const std::shared_ptr<CborStream> &stream,
       const DealProposal &proposal,
