@@ -31,10 +31,10 @@ namespace fc::sector_storage::stores {
             .sector = sector,
         };
       } catch (const boost::bad_lexical_cast &) {
-        return StoreErrors::InvalidSectorName;
+        return StoreErrors::INVALID_SECTOR_NAME;
       }
     }
-    return StoreErrors::InvalidSectorName;
+    return StoreErrors::INVALID_SECTOR_NAME;
   }
 
   LocalStore::LocalStore(std::shared_ptr<LocalStorage> storage,
@@ -53,7 +53,7 @@ namespace fc::sector_storage::stores {
       SectorFileType allocate,
       bool can_seal) {
     if ((existing | allocate) != (existing ^ allocate)) {
-      return StoreErrors::FindAndAllocate;
+      return StoreErrors::FIND_AND_ALLOCATE;
     }
 
     std::shared_lock lock(mutex_);
@@ -65,7 +65,7 @@ namespace fc::sector_storage::stores {
   outcome::result<void> LocalStore::remove(SectorId sector,
                                            SectorFileType type) {
     if (type == SectorFileType::FTNone || ((type & (type - 1)) != 0)) {
-      return StoreErrors::RemoveSeveralFileTypes;
+      return StoreErrors::REMOVE_SEVERAL_FILE_TYPES;
     }
 
     std::unique_lock lock(mutex_);
@@ -73,7 +73,7 @@ namespace fc::sector_storage::stores {
     OUTCOME_TRY(storages_info, index_->storageFindSector(sector, type, false));
 
     if (storages_info.empty()) {
-      return StoreErrors::NotFoundSector;
+      return StoreErrors::NOT_FOUND_SECTOR;
     }
 
     for (const auto &info : storages_info) {
@@ -98,7 +98,7 @@ namespace fc::sector_storage::stores {
       boost::filesystem::remove_all(sector_path, ec);
       if (ec.failed()) {
         logger_->error(ec.message());
-        return StoreErrors::CannotRemoveSector;
+        return StoreErrors::CANNOT_REMOVE_SECTOR;
       }
     }
 
@@ -145,7 +145,7 @@ namespace fc::sector_storage::stores {
       boost::system::error_code ec;
       boost::filesystem::rename(source_path, dest_path, ec);
       if (ec.failed()) {
-        return StoreErrors::CannotMoveSector;
+        return StoreErrors::CANNOT_MOVE_SECTOR;
       }
 
       OUTCOME_TRY(index_->storageDeclareSector(dest_storage_id, sector, type));
@@ -159,7 +159,7 @@ namespace fc::sector_storage::stores {
 
     auto path_iter = paths_.find(id);
     if (path_iter == paths_.end()) {
-      return StoreErrors::NotFoundStorage;
+      return StoreErrors::NOT_FOUND_STORAGE;
     }
 
     return storage_->getStat(path_iter->second);
@@ -171,7 +171,7 @@ namespace fc::sector_storage::stores {
     std::ifstream file{(root / kMetaFileName).string(),
                        std::ios::binary | std::ios::ate};
     if (!file.good()) {
-      return StoreErrors::InvalidStorageConfig;
+      return StoreErrors::INVALID_STORAGE_CONFIG;
     }
     fc::common::Buffer buffer;
     buffer.resize(file.tellg());
@@ -182,13 +182,13 @@ namespace fc::sector_storage::stores {
     j_file.Parse(fc::common::span::cstring(buffer).data(), buffer.size());
     buffer.clear();
     if (j_file.HasParseError()) {
-      return StoreErrors::InvalidStorageConfig;
+      return StoreErrors::INVALID_STORAGE_CONFIG;
     }
     OUTCOME_TRY(meta, api::decode<LocalStorageMeta>(j_file));
 
     auto path_iter = paths_.find(meta.id);
     if (path_iter != paths_.end()) {
-      return StoreErrors::DuplicateStorage;
+      return StoreErrors::DUPLICATE_STORAGE;
     }
 
     OUTCOME_TRY(stat, storage_->getStat(path));
@@ -207,7 +207,7 @@ namespace fc::sector_storage::stores {
       auto dir_path = root / toString(type);
       if (!boost::filesystem::exists(dir_path)) {
         if (!boost::filesystem::create_directories(dir_path)) {
-          return StoreErrors::CannotCreateDir;
+          return StoreErrors::CANNOT_CREATE_DIR;
         }
         continue;
       }
@@ -243,7 +243,7 @@ namespace fc::sector_storage::stores {
         std::make_unique<make_unique_enabler>(storage, index, urls);
 
     if (local->logger_ == nullptr) {
-      return StoreErrors::CannotInitLogger;
+      return StoreErrors::CANNOT_INIT_LOGGER;
     }
 
     OUTCOME_TRY(paths, local->storage_->getPaths());
@@ -329,7 +329,7 @@ namespace fc::sector_storage::stores {
       }
 
       if (best_path.empty()) {
-        return StoreErrors::NotFoundPath;
+        return StoreErrors::NOT_FOUND_PATH;
       }
 
       result.paths.setPathByType(type, best_path);
