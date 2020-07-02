@@ -48,7 +48,9 @@ namespace fc::sync::blocksync {
         }
       }
 
-      callback(std::move(m));
+      OUTCOME_TRY(block_cid, ipld->setCbor<BlockHeader>(m.header));
+
+      callback(block_cid, std::move(m));
       return outcome::success();
     }
 
