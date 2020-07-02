@@ -42,11 +42,11 @@ target_link_libraries(logger
     spdlog::spdlog
     )
 
-add_library(tar_util
-    tar_util.cpp
+add_library(tarutil
+        tarutil.cpp
     )
 
-target_link_libraries(tar_util
+target_link_libraries(tarutil
     outcome
     logger
     libarchive::archive

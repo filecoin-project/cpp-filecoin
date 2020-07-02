@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "common/tar_util.hpp"
+#include "common/tarutil.hpp"
 
 #include <libarchive/archive.h>
 #include <libarchive/archive_entry.h>
