@@ -7,7 +7,7 @@
 
 #include "common/libp2p/cbor_stream.hpp"
 #include "markets/retrieval/provider/query_responder/query_responder_impl.hpp"
-#include "markets/retrieval/provider/retrieval_provider_impl.hpp"
+#include "retrieval_provider_impl.hpp"
 
 namespace fc::markets::retrieval::provider {
   using common::libp2p::CborStream;
