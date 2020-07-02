@@ -11,7 +11,6 @@
 #include "data_transfer/impl/graphsync/graphsync_manager.hpp"
 #include "host/context/host_context.hpp"
 #include "host/context/impl/host_context_impl.hpp"
-#include "markets/storage/common.hpp"
 #include "markets/storage/provider/impl/provider_data_transfer_request_validator.hpp"
 #include "markets/storage/provider/storage_provider_error.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
@@ -71,7 +70,7 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<PieceIO> piece_io,
       std::shared_ptr<FileStore> filestore)
       : registered_proof_{registered_proof},
-        host_{std::move(host)},
+        host_{std::make_shared<CborHost>(host)},
         context_{std::move(context)},
         stored_ask_{
             std::make_shared<StoredAsk>(datastore, api, miner_actor_address)},
@@ -79,19 +78,31 @@ namespace fc::markets::storage::provider {
         miner_api_{std::move(miner_api)},
         chain_events_{std::move(chain_events)},
         miner_actor_address_{miner_actor_address},
-        network_{std::make_shared<Libp2pStorageMarketNetwork>(host_)},
         piece_io_{std::move(piece_io)},
         piece_storage_{std::make_shared<PieceStorageImpl>(datastore)},
         filestore_{filestore} {
     auto scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
         *context_, libp2p::protocol::SchedulerConfig{});
     auto graphsync =
-        std::make_shared<GraphsyncImpl>(host_, std::move(scheduler));
-    datatransfer_ = std::make_shared<GraphSyncManager>(host_, graphsync);
+        std::make_shared<GraphsyncImpl>(host, std::move(scheduler));
+    datatransfer_ = std::make_shared<GraphSyncManager>(host, graphsync);
   }
 
   outcome::result<void> StorageProviderImpl::init() {
     OUTCOME_TRY(filestore_->createDirectories(kFilestoreTempDir));
+
+    host_->setCborProtocolHandler(kAskProtocolId,
+                                  [self_wptr{weak_from_this()}](auto stream) {
+                                    if (auto self = self_wptr.lock()) {
+                                      self->handleAskStream(stream);
+                                    }
+                                  });
+    host_->setCborProtocolHandler(kDealProtocolId,
+                                  [self_wptr{weak_from_this()}](auto stream) {
+                                    if (auto self = self_wptr.lock()) {
+                                      self->handleDealStream(stream);
+                                    }
+                                  });
 
     // init fsm transitions
     std::shared_ptr<HostContext> fsm_context =
@@ -108,8 +119,6 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<void> StorageProviderImpl::start() {
-    OUTCOME_TRY(network_->setDelegate(shared_from_this()));
-
     context_->post([self{shared_from_this()}] {
       self->logger_->debug(
           "Server started\nListening on: "
@@ -121,10 +130,9 @@ namespace fc::markets::storage::provider {
 
   outcome::result<void> StorageProviderImpl::stop() {
     fsm_->stop();
-    OUTCOME_TRY(network_->stopHandlingRequests());
     std::lock_guard<std::mutex> lock(connections_mutex_);
     for (auto &[_, stream] : connections_) {
-      network_->closeStreamGracefully(stream);
+      closeStreamGracefully(stream, logger_);
     }
     return outcome::success();
   }
@@ -209,7 +217,7 @@ namespace fc::markets::storage::provider {
           response, [self, stream](outcome::result<size_t> maybe_res) {
             if (!self->hasValue(maybe_res, "Write ask response error ", stream))
               return;
-            self->network_->closeStreamGracefully(stream);
+            closeStreamGracefully(stream, self->logger_);
             self->logger_->debug("Ask response written, connection closed");
           });
     });
@@ -402,7 +410,7 @@ namespace fc::markets::storage::provider {
                                            + maybe_res.error().message());
                       return;
                     }
-                    self->network_->closeStreamGracefully(stream);
+                    closeStreamGracefully(stream, self->logger_);
                     SELF_FSM_SEND(deal,
                                   ProviderEvent::ProviderEventDealPublished);
                   });
@@ -452,9 +460,9 @@ namespace fc::markets::storage::provider {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     auto stream_it = connections_.find(deal->proposal_cid);
     if (stream_it != connections_.end()) {
-      network_->closeStreamGracefully(stream_it->second);
+      closeStreamGracefully(stream_it->second, logger_);
+      connections_.erase(stream_it);
     }
-    connections_.erase(stream_it);
     if (!deal->piece_path.empty()) {
       OUTCOME_TRY(filestore_->remove(deal->piece_path));
     }

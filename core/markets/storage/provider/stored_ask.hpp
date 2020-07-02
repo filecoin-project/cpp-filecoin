@@ -21,7 +21,6 @@
 #include "storage/face/persistent_map.hpp"
 
 namespace fc::markets::storage::provider {
-
   using api::Api;
   using common::Buffer;
   using primitives::ChainEpoch;
@@ -37,6 +36,9 @@ namespace fc::markets::storage::provider {
   static const PaddedPieceSize kDefaultMinPieceSize(256);
   static const PaddedPieceSize kDefaultMaxPieceSize{1 << 20};
 
+  /**
+   * Storage for storage market asks.
+   */
   class StoredAsk {
    public:
     StoredAsk(std::shared_ptr<Datastore> datastore,

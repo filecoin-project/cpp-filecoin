@@ -61,7 +61,7 @@ namespace fc::markets::storage::client {
     virtual outcome::result<ClientDeal> getLocalDeal(const CID &cid) const = 0;
 
     virtual void getAsk(const StorageProviderInfo &info,
-                        const SignedAskHandler &signed_ask_handler) const = 0;
+                        const SignedAskHandler &signed_ask_handler) = 0;
 
     /**
      * Initiate deal by proposing storage deal
