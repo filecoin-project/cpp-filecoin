@@ -33,3 +33,11 @@ target_link_libraries(outcome_test
     outcome
     todo_error
     )
+
+addtest(tarutil_test
+        tarutil_test.cpp
+        )
+target_link_libraries(tarutil_test
+        tarutil
+        base_fs_test
+        )
