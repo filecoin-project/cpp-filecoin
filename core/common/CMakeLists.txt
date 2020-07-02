@@ -42,6 +42,16 @@ target_link_libraries(logger
     spdlog::spdlog
     )
 
+add_library(tarutil
+        tarutil.cpp
+    )
+
+target_link_libraries(tarutil
+    outcome
+    logger
+    libarchive::archive
+    )
+
 add_subdirectory(libp2p)
 add_subdirectory(uri_parser)
 
