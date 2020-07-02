@@ -35,9 +35,9 @@ using ::testing::Eq;
 class Libp2pDataTransferNetworkTest : public ::testing::Test {
  public:
   /**
- * Imitates network.setDelegate(Protocol, Handler) call and captures handler
- * for further inspection
- */
+   * Imitates network.setDelegate(Protocol, Handler) call and captures handler
+   * for further inspection
+   */
   void captureProtocolHandler(const Protocol &,
                               const std::function<Stream::Handler> &handler) {
     protocol_handler_ = handler;

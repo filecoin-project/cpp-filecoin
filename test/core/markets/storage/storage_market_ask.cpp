@@ -29,6 +29,7 @@ namespace fc::markets::storage::test {
                      promise_ask_res.set_value(ask_res);
                    });
     // wait for result
+    context_->run_for(std::chrono::seconds(3));
     auto ask_res = promise_ask_res.get_future().get();
     EXPECT_TRUE(ask_res.has_value());
     EXPECT_EQ(ask_res.value().ask.price, provider_price);
@@ -46,18 +47,11 @@ namespace fc::markets::storage::test {
    * @then result with error wrong signature
    */
   TEST_F(StorageMarketTest, WrongSignedAsk) {
-    std::shared_ptr<BlsProvider> bls_provider =
-        std::make_shared<BlsProviderImpl>();
-    OUTCOME_EXCEPT(wrong_keypair, bls_provider->generateKeyPair());
-
-    node_api->WalletSign = {
-        [this, wrong_keypair, bls_provider](
-            const Address &address,
-            const Buffer &buffer) -> outcome::result<Signature> {
-          if (address == this->miner_worker_address)
-            return Signature{
-                bls_provider->sign(buffer, wrong_keypair.private_key).value()};
-          throw "API WalletSign: address not found";
+    node_api->WalletVerify = {
+        [](const Address &address,
+           const Buffer &buffer,
+           const Signature &signature) -> outcome::result<bool> {
+          return outcome::success(false);
         }};
 
     TokenAmount provider_price = 1334;
@@ -70,6 +64,7 @@ namespace fc::markets::storage::test {
                      promise_ask_res.set_value(ask_res);
                    });
     // wait for result
+    context_->run_for(std::chrono::seconds(3));
     EXPECT_OUTCOME_ERROR(StorageMarketClientError::SIGNATURE_INVALID,
                          promise_ask_res.get_future().get());
   }

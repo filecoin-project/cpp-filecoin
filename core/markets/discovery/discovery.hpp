@@ -19,7 +19,9 @@ namespace fc::markets::discovery {
   using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
 
   /**
-   * Deal discovery
+   * Storage/retrieval markets peer resolver.
+   * Storage market adds peers on deal by payload root cid. Later, retrieval
+   * market can find provider peer by payload cid interested in.
    */
   class Discovery {
    public:
@@ -29,7 +31,7 @@ namespace fc::markets::discovery {
 
     /**
      * Add peer
-     * @param cid - deal proposal cid
+     * @param cid - payload root cid
      * @param peer - peer to add
      * @return error if happens
      */
@@ -37,8 +39,8 @@ namespace fc::markets::discovery {
 
     /**
      * Get peers by proposal cid
-     * @param cid - deal proposal cid
-     * @return vector of peers
+     * @param cid - payload root cid
+     * @return vector of peers housing payload with cid
      */
     outcome::result<std::vector<PeerInfo>> getPeers(const CID &cid) const;
 

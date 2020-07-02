@@ -38,9 +38,9 @@ namespace fc::sector_storage {
                     true));
 
     OUTCOME_TRY(index_->storageDeclareSector(
-        response.stores.cache, sector, SectorFileType::FTCache));
+        response.storages.cache, sector, SectorFileType::FTCache));
     OUTCOME_TRY(index_->storageDeclareSector(
-        response.stores.sealed, sector, SectorFileType::FTSealed));
+        response.storages.sealed, sector, SectorFileType::FTSealed));
 
     boost::filesystem::ofstream sealed_file(response.paths.sealed);
     if (!sealed_file.good()) {
@@ -192,7 +192,7 @@ namespace fc::sector_storage {
     if (maybe_unseal_file.has_error()) {
       if (maybe_unseal_file
           != outcome::failure(
-              stores::StoreErrors::NotFoundRequestedSectorType)) {
+              stores::StoreErrors::NOT_FOUND_REQUESTED_SECTOR_TYPE)) {
         return maybe_unseal_file.error();
       }
       maybe_unseal_file = storage_->acquireSector(sector,
@@ -367,7 +367,7 @@ namespace fc::sector_storage {
                                                 response.paths.unsealed));
 
       OUTCOME_TRY(index_->storageDeclareSector(
-          response.stores.unsealed, sector, SectorFileType::FTUnsealed));
+          response.storages.unsealed, sector, SectorFileType::FTUnsealed));
 
       return PieceInfo{.size = new_piece_size.padded(),
                        .cid = write_response.piece_cid};

@@ -20,7 +20,7 @@ namespace fc::sector_storage::stores {
 
   struct AcquireSectorResponse {
     SectorPaths paths;
-    SectorPaths stores;
+    SectorPaths storages;
   };
 
   class Store {

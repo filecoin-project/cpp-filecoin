@@ -7,7 +7,6 @@
 #define CPP_FILECOIN_CORE_PRIMITIVES_TYPES_HPP
 
 #include <cstdint>
-#include <primitives/sector/sector.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/big_int.hpp"

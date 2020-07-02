@@ -23,7 +23,7 @@ namespace fc::data_transfer::graphsync {
       const std::string &voucher_type,
       std::shared_ptr<RequestValidator> validator) {
     auto receiver = std::make_shared<GraphsyncReceiver>(
-        network_, std::move(graphsync_), shared_from_this(), peer_);
+        network_, graphsync_, weak_from_this(), peer_);
     OUTCOME_TRY(receiver->registerVoucherType(voucher_type, validator));
     return network_->setDelegate(receiver);
   }
