@@ -23,7 +23,8 @@ namespace fc::sync::blocksync {
       BlockMsg m{std::move(header), {}, {}};
 
       if (store_messages) {
-        MsgMeta meta { ipld, ipld };
+        MsgMeta meta;
+        ipld->load(meta);
 
         m.secp_messages.reserve(secp_includes.size());
         for (auto idx : secp_includes) {
@@ -31,15 +32,11 @@ namespace fc::sync::blocksync {
           OUTCOME_TRY(meta.secp_messages.append(secp_cids[idx]));
         }
 
-        OUTCOME_TRY(meta.secp_messages.amt.flush());
-
         m.bls_messages.reserve(bls_includes.size());
         for (auto idx : bls_includes) {
           m.bls_messages.push_back(bls_cids[idx]);
           OUTCOME_TRY(meta.bls_messages.append(bls_cids[idx]));
         }
-
-        OUTCOME_TRY(meta.bls_messages.amt.flush());
 
         OUTCOME_TRY(meta_cid, ipld->setCbor<MsgMeta>(meta));
 
@@ -50,7 +47,7 @@ namespace fc::sync::blocksync {
 
       OUTCOME_TRY(block_cid, ipld->setCbor<BlockHeader>(m.header));
 
-      callback(block_cid, std::move(m));
+      callback(std::move(block_cid), std::move(m));
       return outcome::success();
     }
 
@@ -70,13 +67,13 @@ namespace fc::sync::blocksync {
           return Error::SYNC_INCONSISTENT_BLOCKSYNC_RESPONSE;
         }
 
-        secp_cids.reserve(sz);
+        secp_cids.reserve(bundle.secp_msgs.size());
         for (const auto &msg : bundle.secp_msgs) {
           OUTCOME_TRY(cid, ipld->setCbor<SignedMessage>(msg));
           secp_cids.push_back(std::move(cid));
         }
 
-        bls_cids.reserve(sz);
+        bls_cids.reserve(bundle.bls_msgs.size());
         for (const auto &msg : bundle.bls_msgs) {
           OUTCOME_TRY(cid, ipld->setCbor<UnsignedMessage>(msg));
           bls_cids.push_back(std::move(cid));

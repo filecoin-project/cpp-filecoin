@@ -11,6 +11,7 @@ add_library(sync
     block_loader.cpp
     tipset_loader.cpp
     blocksync_common.cpp
+    blocksync_client.cpp
     )
 
 target_link_libraries(sync

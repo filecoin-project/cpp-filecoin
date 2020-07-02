@@ -34,13 +34,13 @@ namespace fc::sync::blocksync {
     // TODO use not so heap consuming containers, like small_vector
 
     std::vector<BlockHeader> blocks;
-    std::vector<SignedMessage> secp_msgs;
-    MsgIncudes secp_msg_includes;
     std::vector<UnsignedMessage> bls_msgs;
     MsgIncudes bls_msg_includes;
+    std::vector<SignedMessage> secp_msgs;
+    MsgIncudes secp_msg_includes;
   };
 
-  enum ResponseStatus {
+  enum class ResponseStatus : int {
     RESPONSE_COMPLETE = 0,
     RESPONSE_PARTIAL = 101,
     BLOCK_NOT_FOUND = 201,
@@ -52,10 +52,17 @@ namespace fc::sync::blocksync {
   struct Response {
     std::vector<TipsetBundle> chain;
     ResponseStatus status;
+    std::string message;
   };
 
   CBOR_TUPLE(Request, block_cids, depth, options);
-  CBOR_TUPLE(Response, chain, status);
+  CBOR_TUPLE(TipsetBundle,
+             blocks,
+             bls_msgs,
+             bls_msg_includes,
+             secp_msgs,
+             secp_msg_includes);
+  CBOR_TUPLE(Response, chain, status, message);
 
   using OnBlockStored =
       std::function<void(CID block_cid, outcome::result<BlockMsg>)>;
