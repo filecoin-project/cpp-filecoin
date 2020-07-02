@@ -71,18 +71,17 @@ namespace fc::sector_storage::stores {
       cv_.wait(lock, [&] { return unlock_; });
     }
 
-    auto clear = [&]() {
+    auto _ = gsl::finally([&]() {
       const std::lock_guard<std::mutex> lock(mutex_);
       processing_.erase(sector);
       unlock_ = true;
       cv_.notify_all();
-    };
+    });
 
     auto maybe_response = local_->acquireSector(
         sector, seal_proof_type, existing, allocate, can_seal);
 
     if (maybe_response.has_error()) {
-      clear();
       return maybe_response.error();
     }
 
@@ -101,7 +100,6 @@ namespace fc::sector_storage::stores {
           acquireFromRemote(sector, seal_proof_type, type, can_seal);
 
       if (maybe_remote_response.has_error()) {
-        clear();
         return maybe_remote_response.error();
       }
 
@@ -119,7 +117,6 @@ namespace fc::sector_storage::stores {
       }
     }
 
-    clear();
     return std::move(response);
   }
 
