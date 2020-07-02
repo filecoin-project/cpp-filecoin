@@ -21,6 +21,7 @@ namespace fc::markets::retrieval::client {
   using libp2p::peer::PeerInfo;
   using QueryResponseHandler =
       std::function<void(outcome::result<QueryResponse>)>;
+  using RetrieveResponseHandler = std::function<void(outcome::result<void>)>;
 
   /*
    * @class Retrieval market client
@@ -52,23 +53,17 @@ namespace fc::markets::retrieval::client {
 
     /**
      * @brief Retrieve Piece from selected provider
-     * @param piece_cid - identifier of the Piece to retrieve
+     * @param payload_cid - identifier of the data to retrieve
+     * @param deal_params - deal properties
      * @param provider_peer - provider to make a deal
-     * @param deal_profile - deal properties
-     * @return Identifier of the deal or error
+     * @param handler - deal response handler, called on error or completion
      */
-    virtual outcome::result<std::vector<Block>> retrieve(
-        const CID &piece_cid,
-        const PeerInfo &provider_peer,
-        const DealProfile &deal_profile) = 0;
+    virtual void retrieve(const CID &payload_cid,
+                          const DealProposalParams &deal_params,
+                          const PeerInfo &provider_peer,
+                          const RetrieveResponseHandler &handler) = 0;
   };
 
-  /**
-   * @enum Retrieval client errors
-   */
-  enum class RetrievalClientError { NOT_IMPLEMENTED };
 }  // namespace fc::markets::retrieval::client
-
-OUTCOME_HPP_DECLARE_ERROR(fc::markets::retrieval::client, RetrievalClientError);
 
 #endif

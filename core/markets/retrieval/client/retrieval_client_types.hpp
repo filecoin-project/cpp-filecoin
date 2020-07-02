@@ -40,89 +40,6 @@ namespace fc::markets::retrieval::client {
     Address payment_address;
   };
 
-  /*
-   * @enum Client-side deal events
-   */
-  enum class DealStatus : uint16_t {
-    /* Deal was initiated */
-    DealOpen = 1,
-
-    /* Creating payment channel error */
-    PaymentChannelError,
-
-    /* Creating lane in the payment channel error */
-    AllocateLaneError,
-
-    /* Waiting for a message to create a payment channel */
-    PaymentChannelCreateInitiated,
-
-    /* Newly created payment channel is ready to for the deal to resume */
-    PaymentChannelReady,
-
-    /* Waiting for funds to be added to payment channel */
-    PaymentChannelAddingFunds,
-
-    /* Failed to add funds to payment channel */
-    PaymentChannelAddFundsError,
-
-    /* Send deal proposal network error */
-    WriteDealProposalError,
-
-    /* Receive deal proposal response network error */
-    ReadDealResponseError,
-
-    /* Provider rejected deal */
-    DealRejected,
-
-    /* Provider couldn't find a piece for a deal */
-    DealNotFound,
-
-    /* Provider accepted a deal */
-    DealAccepted,
-
-    /* Received unknown deal proposal response from provider */
-    UnknownResponseReceived,
-
-    /* Need to add more funds to a payment channel to continue a deal */
-    FundsExpended,
-
-    /* Provider asked for funds in a way that doesn't match the deal terms */
-    BadPaymentRequested,
-
-    /* Failed to create payment voucher */
-    CreateVoucherFailed,
-
-    /* Send payment voucher network error */
-    WriteDealPaymentError,
-
-    /* Payment voucher was sent to a provider */
-    PaymentSent,
-
-    /* Network error while reading block from provider */
-    ConsumeBlockError,
-
-    /* Provider requested last payment */
-    LastPaymentRequested,
-
-    /* Provider has sent all blocks */
-    AllBlocksReceived,
-
-    /* Provider completed a deal without sending all blocks */
-    EarlyTermination,
-
-    /* Provider requested a next payment */
-    PaymentRequested,
-
-    /* Received next data from a provider */
-    DealProgress,
-
-    /* Error occurred during a deal */
-    DealFailed,
-
-    /* Deal has been completed */
-    DealComplete
-  };
-
   /**
    * @struct Client-side states of a deal
    */
@@ -137,9 +54,6 @@ namespace fc::markets::retrieval::client {
 
     /* Payment channel and lane id */
     PaymentInfo payment_info;
-
-    /* Current deal status */
-    DealStatus deal_status;
 
     /* Sender peer id */
     uint64_t sender_peer_id;

@@ -36,55 +36,55 @@ namespace fc::markets::retrieval {
    */
   enum class DealStatus : uint64_t {
     /* New deal, nothing happened with it */
-    DealStatusNew = 1,
+    kDealStatusNew = 1,
 
     /* Waiting for the payment channel creation to complete */
-    DealStatusPaymentChannelCreating,
+    kDealStatusPaymentChannelCreating,
 
     /* Waiting for funds to finish being sent to the payment channel */
-    DealStatusPaymentChannelAddingFunds,
+    kDealStatusPaymentChannelAddingFunds,
 
     /* Waiting for the lane allocation to complete */
-    DealStatusPaymentChannelAllocatingLane,
+    kDealStatusPaymentChannelAllocatingLane,
 
     /* Payment channel and lane are ready */
-    DealStatusPaymentChannelReady,
+    kDealStatusPaymentChannelReady,
 
     /* Ready to proceed with retrieval */
-    DealStatusAccepted,
+    kDealStatusAccepted,
 
     /* Something went wrong during retrieval */
-    DealStatusFailed,
+    kDealStatusFailed,
 
     /* Provider rejected client's deal proposal */
-    DealStatusRejected,
+    kDealStatusRejected,
 
     /* Provider needs a payment voucher to continue */
-    DealStatusFundsNeeded,
+    kDealStatusFundsNeeded,
 
     /* Provider is continuing to process a deal */
-    DealStatusOngoing,
+    kDealStatusOngoing,
 
     /* Provider need a last payment voucher to complete a deal */
-    DealStatusFundsNeededLastPayment,
+    kDealStatusFundsNeededLastPayment,
 
     /* Deal is completed */
-    DealStatusCompleted,
+    kDealStatusCompleted,
 
     /* Deal couldn't be identified */
-    DealStatusDealNotFound,
+    kDealStatusDealNotFound,
 
     /* Deal had been verified as having right params */
-    DealStatusVerified,
+    kDealStatusVerified,
 
     /* Something went wrong with deal */
-    DealStatusErrored,
+    kDealStatusErrored,
 
     /* All blocks has been processed for the piece */
-    DealStatusBlocksComplete,
+    kDealStatusBlocksComplete,
 
     /* Last payment has been received, confirming deal */
-    DealStatusFinalizing
+    kDealStatusFinalizing
 
   };
 }  // namespace fc::markets::retrieval

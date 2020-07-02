@@ -11,9 +11,11 @@
 #include <libp2p/host/host.hpp>
 #include "common/logger.hpp"
 #include "markets/retrieval/client/retrieval_client.hpp"
+#include "markets/retrieval/client/retrieval_client_error.hpp"
 
 namespace fc::markets::retrieval::client {
   using common::libp2p::CborHost;
+  using common::libp2p::CborStream;
   using libp2p::Host;
 
   class RetrievalClientImpl
@@ -33,12 +35,33 @@ namespace fc::markets::retrieval::client {
                const QueryRequest &request,
                const QueryResponseHandler &response_handler) override;
 
-    outcome::result<std::vector<Block>> retrieve(
-        const CID &piece_cid,
-        const PeerInfo &provider_peer,
-        const DealProfile &deal_profile) override;
+    void retrieve(const CID &payload_cid,
+                  const DealProposalParams &deal_params,
+                  const PeerInfo &provider_peer,
+                  const RetrieveResponseHandler &handler) override;
 
    private:
+    void proposeDeal(const std::shared_ptr<CborStream> &stream,
+                     const DealProposal &proposal,
+                     const RetrieveResponseHandler &handler);
+
+    void setupPaymentChannelStart(const std::shared_ptr<CborStream> &stream,
+                                  const RetrieveResponseHandler &handler);
+
+    void processNextResponse(const std::shared_ptr<CborStream> &stream,
+                             const RetrieveResponseHandler &handler);
+
+    void processPaymentRequest(const std::shared_ptr<CborStream> &stream,
+                               const RetrieveResponseHandler &handler);
+
+    void completeDeal(const std::shared_ptr<CborStream> &stream,
+                      const RetrieveResponseHandler &handler);
+
+    void failDeal(const std::shared_ptr<CborStream> &stream,
+                  const RetrieveResponseHandler &handler,
+                  const RetrievalClientError &error);
+
+    DealId next_deal_id;
     std::shared_ptr<CborHost> host_;
     common::Logger logger_ = common::createLogger("RetrievalMarketClient");
   };
