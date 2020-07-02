@@ -21,6 +21,10 @@ namespace fc::sync {
     SYNC_BAD_TIPSET = 5,
     SYNC_BAD_BLOCK = 6,
     SYNC_PUBSUB_FAILURE = 7,
+    SYNC_MSG_LOAD_FAILURE = 8,
+    SYNC_INCONSISTENT_BLOCKSYNC_RESPONSE = 9,
+    SYNC_INCOMPLETE_BLOCKSYNC_RESPONSE = 10,
+    SYNC_BLOCKSYNC_RESPONSE_ERROR = 11,
   };
 
   using crypto::signature::Signature;
