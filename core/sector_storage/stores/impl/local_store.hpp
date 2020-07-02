@@ -28,9 +28,9 @@ namespace fc::sector_storage::stores {
   // TODO(artyom-yurin): [FIL-231] Health Report for storages
   class LocalStore : public Store {
    public:
-    static outcome::result<std::shared_ptr<LocalStore>> newLocalStore(
-        std::shared_ptr<LocalStorage> storage,
-        std::shared_ptr<SectorIndex> index,
+    static outcome::result<std::unique_ptr<LocalStore>> newLocalStore(
+        const std::shared_ptr<LocalStorage> &storage,
+        const std::shared_ptr<SectorIndex> &index,
         gsl::span<std::string> urls);
 
     outcome::result<void> openPath(const std::string &path);
