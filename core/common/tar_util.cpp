@@ -8,6 +8,7 @@
 #include <libarchive/archive.h>
 #include <libarchive/archive_entry.h>
 #include <boost/filesystem.hpp>
+#include "common/ffi.hpp"
 #include "common/logger.hpp"
 
 namespace fs = boost::filesystem;
@@ -24,8 +25,12 @@ namespace fc::common {
 
     for (;;) {
       r = archive_read_data_block(ar, &buff, &size, &offset);
-      if (r == ARCHIVE_EOF) return (ARCHIVE_OK);
-      if (r < ARCHIVE_OK) return (r);
+      if (r == ARCHIVE_EOF) {
+        return (ARCHIVE_OK);
+      }
+      if (r < ARCHIVE_OK) {
+        return (r);
+      }
       r = archive_write_data_block(aw, buff, size, offset);
       if (r < ARCHIVE_OK) {
         return (r);
@@ -45,8 +50,6 @@ namespace fc::common {
       }
     }
 
-    struct archive *a;
-    struct archive *ext;
     struct archive_entry *entry;
     int flags;
     int r;
@@ -57,57 +60,60 @@ namespace fc::common {
     flags |= ARCHIVE_EXTRACT_ACL;
     flags |= ARCHIVE_EXTRACT_FFLAGS;
 
-    a = archive_read_new();
-    archive_read_support_format_tar(a);
-    ext = archive_write_disk_new();
-    archive_write_disk_set_options(ext, flags);
-    archive_write_disk_set_standard_lookup(ext);
-    if (archive_read_open_filename(a, tar_path.c_str(), kTarBlockSize)
+    auto a = ffi::wrap(archive_read_new(), archive_read_free);
+    archive_read_support_format_tar(a.get());
+    auto ext = ffi::wrap(archive_write_disk_new(), archive_write_free);
+    archive_write_disk_set_options(ext.get(), flags);
+    archive_write_disk_set_standard_lookup(ext.get());
+    if (archive_read_open_filename(a.get(), tar_path.c_str(), kTarBlockSize)
         != ARCHIVE_OK) {
-      logger->error("Extract tar: {}", archive_error_string(a));
+      logger->error("Extract tar: {}", archive_error_string(a.get()));
       return TarErrors::CANNOT_UNTAR_ARCHIVE;
     }
     for (;;) {
-      r = archive_read_next_header(a, &entry);
-      if (r == ARCHIVE_EOF) break;
+      r = archive_read_next_header(a.get(), &entry);
+      if (r == ARCHIVE_EOF) {
+        break;
+      }
       if (r < ARCHIVE_WARN) {
-        logger->error("Extract tar: {}", archive_error_string(a));
+        logger->error("Extract tar: {}", archive_error_string(a.get()));
         return TarErrors::CANNOT_UNTAR_ARCHIVE;
       }
-      if (r < ARCHIVE_OK)
-        logger->warn("Extract tar: {}", archive_error_string(a));
+      if (r < ARCHIVE_OK) {
+        logger->warn("Extract tar: {}", archive_error_string(a.get()));
+      }
 
       std::string currentFile(archive_entry_pathname(entry));
       archive_entry_set_pathname(entry,
                                  (fs::path(output_path) / currentFile).c_str());
-      r = archive_write_header(ext, entry);
-      if (r < ARCHIVE_OK)
+      r = archive_write_header(ext.get(), entry);
+      if (r < ARCHIVE_OK) {
         if (r < ARCHIVE_WARN) {
-          logger->error("Extract tar: {}", archive_error_string(a));
+          logger->error("Extract tar: {}", archive_error_string(a.get()));
         } else {
-          logger->warn("Extract tar: {}", archive_error_string(a));
+          logger->warn("Extract tar: {}", archive_error_string(a.get()));
         }
-      else if (archive_entry_size(entry) > 0) {
-        r = copy_data(a, ext);
+      } else if (archive_entry_size(entry) > 0) {
+        r = copy_data(a.get(), ext.get());
         if (r < ARCHIVE_WARN) {
-          logger->error("Extract tar: {}", archive_error_string(a));
+          logger->error("Extract tar: {}", archive_error_string(a.get()));
           return TarErrors::CANNOT_UNTAR_ARCHIVE;
         }
-        if (r < ARCHIVE_OK)
-          logger->warn("Extract tar: {}", archive_error_string(a));
+        if (r < ARCHIVE_OK) {
+          logger->warn("Extract tar: {}", archive_error_string(a.get()));
+        }
       }
-      r = archive_write_finish_entry(ext);
+      r = archive_write_finish_entry(ext.get());
       if (r < ARCHIVE_WARN) {
-        logger->error("Extract tar: {}", archive_error_string(a));
+        logger->error("Extract tar: {}", archive_error_string(a.get()));
         return TarErrors::CANNOT_UNTAR_ARCHIVE;
       }
-      if (r < ARCHIVE_OK)
-        logger->warn("Extract tar: {}", archive_error_string(a));
+      if (r < ARCHIVE_OK) {
+        logger->warn("Extract tar: {}", archive_error_string(a.get()));
+      }
     }
-    archive_read_close(a);
-    archive_read_free(a);
-    archive_write_close(ext);
-    archive_write_free(ext);
+    archive_read_close(a.get());
+    archive_write_close(ext.get());
 
     return outcome::success();
   }
