@@ -52,7 +52,7 @@ namespace fc::sector_storage::stores {
       SectorFileType existing,
       SectorFileType allocate,
       bool can_seal) {
-    if ((existing | allocate) != (existing ^ allocate)) {
+    if ((existing & allocate) != 0) {
       return StoreErrors::FIND_AND_ALLOCATE;
     }
 
