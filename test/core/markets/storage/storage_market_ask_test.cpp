@@ -28,9 +28,9 @@ namespace fc::markets::storage::test {
                    [&](outcome::result<SignedStorageAsk> ask_res) {
                      promise_ask_res.set_value(ask_res);
                    });
-    // wait for result
-    context_->run_for(std::chrono::seconds(3));
-    auto ask_res = promise_ask_res.get_future().get();
+    auto future = promise_ask_res.get_future();
+    waitForAskResponse(future);
+    auto ask_res = future.get();
     EXPECT_TRUE(ask_res.has_value());
     EXPECT_EQ(ask_res.value().ask.price, provider_price);
     EXPECT_EQ(ask_res.value().ask.min_piece_size, kDefaultMinPieceSize);
@@ -63,10 +63,10 @@ namespace fc::markets::storage::test {
                    [&](outcome::result<SignedStorageAsk> ask_res) {
                      promise_ask_res.set_value(ask_res);
                    });
-    // wait for result
-    context_->run_for(std::chrono::seconds(3));
+    auto future = promise_ask_res.get_future();
+    waitForAskResponse(future);
     EXPECT_OUTCOME_ERROR(StorageMarketClientError::SIGNATURE_INVALID,
-                         promise_ask_res.get_future().get());
+                         future.get());
   }
 
 }  // namespace fc::markets::storage::test

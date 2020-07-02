@@ -10,8 +10,8 @@
 #include "common/logger.hpp"
 #include "markets/retrieval/protocols/query_protocol.hpp"
 #include "markets/retrieval/provider/query_responder/query_responder_impl.hpp"
+#include "markets/retrieval/provider/retrieval_provider.hpp"
 #include "markets/retrieval/provider/retrieval_provider_types.hpp"
-#include "markets/retrieval/retrieval_provider.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::retrieval::provider {

@@ -187,7 +187,6 @@ namespace fc::markets::storage::client {
                                     self->validateAskResponse(response, info);
                                 signed_ask_handler(validated_ask_response);
                                 closeStreamGracefully(stream, self->logger_);
-                                ;
                               });
                         });
         });
