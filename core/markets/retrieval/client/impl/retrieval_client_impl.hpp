@@ -11,10 +11,26 @@
 #include <libp2p/host/host.hpp>
 #include "common/logger.hpp"
 #include "markets/retrieval/client/retrieval_client.hpp"
+#include "markets/retrieval/client/retrieval_client_error.hpp"
 
 namespace fc::markets::retrieval::client {
   using common::libp2p::CborHost;
+  using common::libp2p::CborStream;
   using libp2p::Host;
+
+  /**
+   * State of ongoing retrieval deal.
+   */
+  struct DealState {
+    DealState(const DealProposal &proposal,
+              std::shared_ptr<CborStream> stream,
+              const RetrieveResponseHandler &handler)
+        : proposal{proposal}, stream{std::move(stream)}, handler{handler} {}
+
+    DealProposal proposal;
+    std::shared_ptr<CborStream> stream;
+    RetrieveResponseHandler handler;
+  };
 
   class RetrievalClientImpl
       : public RetrievalClient,
@@ -33,12 +49,26 @@ namespace fc::markets::retrieval::client {
                const QueryRequest &request,
                const QueryResponseHandler &response_handler) override;
 
-    outcome::result<std::vector<Block>> retrieve(
-        const CID &piece_cid,
-        const PeerInfo &provider_peer,
-        const DealProfile &deal_profile) override;
+    void retrieve(const CID &payload_cid,
+                  const DealProposalParams &deal_params,
+                  const PeerInfo &provider_peer,
+                  const RetrieveResponseHandler &handler) override;
 
    private:
+    void proposeDeal(const std::shared_ptr<DealState> &deal_state);
+
+    void setupPaymentChannelStart(const std::shared_ptr<DealState> &deal_state);
+
+    void processNextResponse(const std::shared_ptr<DealState> &deal_state);
+
+    void processPaymentRequest(const std::shared_ptr<DealState> &deal_state);
+
+    void completeDeal(const std::shared_ptr<DealState> &deal_state);
+
+    void failDeal(const std::shared_ptr<DealState> &deal_state,
+                  const RetrievalClientError &error);
+
+    DealId next_deal_id;
     std::shared_ptr<CborHost> host_;
     common::Logger logger_ = common::createLogger("RetrievalMarketClient");
   };

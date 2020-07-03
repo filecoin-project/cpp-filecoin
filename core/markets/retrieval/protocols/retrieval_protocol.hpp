@@ -17,6 +17,7 @@
 #include "primitives/types.hpp"
 
 namespace fc::markets::retrieval {
+  using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
 
@@ -52,7 +53,7 @@ namespace fc::markets::retrieval {
     CID payload_cid;
 
     /* Identifier of the deal, can be the same for the different clients */
-    uint64_t deal_id;
+    DealId deal_id;
 
     /* Deal params */
     DealProposalParams params;
@@ -68,7 +69,7 @@ namespace fc::markets::retrieval {
     DealStatus status;
 
     /* Deal ID */
-    uint64_t deal_id;
+    DealId deal_id;
 
     /* Required tokens amount */
     TokenAmount payment_owed;
@@ -77,10 +78,12 @@ namespace fc::markets::retrieval {
     std::string message;
 
     /* Requested data */
-    std::vector<Block> blocks;
+    // TODO (a.chernyshov) decide on blocks format and serialization
+    //    std::vector<Block> blocks;
   };
 
-  CBOR_TUPLE(DealResponse, status, deal_id, payment_owed, message, blocks);
+  CBOR_TUPLE(DealResponse, status, deal_id, payment_owed, message
+             /*, blocks */);
 }  // namespace fc::markets::retrieval
 
 #endif

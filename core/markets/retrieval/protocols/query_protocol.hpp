@@ -34,9 +34,11 @@ namespace fc::markets::retrieval {
   };
 
   struct QueryRequest {
+    /* V0 protocol */
     /* Identifier of the requested item */
     CID payload_cid;
 
+    /* V1 protocol */
     /* Additional params */
     QueryParams params;
   };
