@@ -22,6 +22,11 @@ namespace fc::markets::retrieval::client {
    * State of ongoing retrieval deal.
    */
   struct DealState {
+    DealState(const DealProposal &proposal,
+              std::shared_ptr<CborStream> stream,
+              const RetrieveResponseHandler &handler)
+        : proposal{proposal}, stream{std::move(stream)}, handler{handler} {}
+
     DealProposal proposal;
     std::shared_ptr<CborStream> stream;
     RetrieveResponseHandler handler;
@@ -50,17 +55,17 @@ namespace fc::markets::retrieval::client {
                   const RetrieveResponseHandler &handler) override;
 
    private:
-    void proposeDeal(const DealState &deal_state);
+    void proposeDeal(const std::shared_ptr<DealState> &deal_state);
 
-    void setupPaymentChannelStart(const DealState &deal_state);
+    void setupPaymentChannelStart(const std::shared_ptr<DealState> &deal_state);
 
-    void processNextResponse(const DealState &deal_state);
+    void processNextResponse(const std::shared_ptr<DealState> &deal_state);
 
-    void processPaymentRequest(const DealState &deal_state);
+    void processPaymentRequest(const std::shared_ptr<DealState> &deal_state);
 
-    void completeDeal(const DealState &deal_state);
+    void completeDeal(const std::shared_ptr<DealState> &deal_state);
 
-    void failDeal(const DealState &deal_state,
+    void failDeal(const std::shared_ptr<DealState> &deal_state,
                   const RetrievalClientError &error);
 
     DealId next_deal_id;

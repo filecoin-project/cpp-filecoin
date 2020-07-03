@@ -61,43 +61,47 @@ namespace fc::markets::retrieval::client {
         kRetrievalProtocolId,
         [self{shared_from_this()}, proposal, handler](auto stream_res) {
           IF_ERROR_RETURN(stream_res, handler);
-          DealState deal_state{.proposal = proposal,
-                               .stream = stream_res.value(),
-                               .handler = handler};
+          auto deal_state = std::make_shared<DealState>(
+              proposal, stream_res.value(), handler);
           self->proposeDeal(deal_state);
         });
   }
 
-  void RetrievalClientImpl::proposeDeal(const DealState &deal_state) {
-    deal_state.stream->write(
-        deal_state.proposal,
-        [self{shared_from_this()}, deal_state](auto written) {
-          IF_ERROR_RETURN(written, deal_state.handler);
-          deal_state.stream->template read<DealResponse>([self, deal_state](
-                                                             auto response) {
-            IF_ERROR_RETURN(response, deal_state.handler);
-            if (response.value().status == DealStatus::kDealStatusAccepted) {
-              self->setupPaymentChannelStart(deal_state);
-            } else {
-              // TODO (a.chernyshov) handle not accepted status
-            }
-          });
+  void RetrievalClientImpl::proposeDeal(
+      const std::shared_ptr<DealState> &deal_state) {
+    deal_state->stream->write(
+        deal_state->proposal,
+        [self{shared_from_this()},
+         deal_state{std::move(deal_state)}](auto written) {
+          IF_ERROR_RETURN(written, deal_state->handler);
+          deal_state->stream->template read<DealResponse>(
+              [self, deal_state{std::move(deal_state)}](auto response) {
+                IF_ERROR_RETURN(response, deal_state->handler);
+                if (response.value().status
+                    == DealStatus::kDealStatusAccepted) {
+                  self->setupPaymentChannelStart(deal_state);
+                } else {
+                  // TODO (a.chernyshov) handle not accepted status
+                }
+              });
         });
   }
 
   void RetrievalClientImpl::setupPaymentChannelStart(
-      const DealState &deal_state) {
+      const std::shared_ptr<DealState> &deal_state) {
     // TODO (a.chernyshov) api->GetOrCreatePaymentChannel
     // wait for create and funding
     // allocate lane - ???
     processNextResponse(deal_state);
   }
 
-  void RetrievalClientImpl::processNextResponse(const DealState &deal_state) {
+  void RetrievalClientImpl::processNextResponse(
+      const std::shared_ptr<DealState> &deal_state) {
     // TODO not clear - 2 responses one by one?
-    deal_state.stream->read<DealResponse>([self{shared_from_this()},
-                                           deal_state](auto response) {
-      IF_ERROR_RETURN(response, deal_state.handler);
+    deal_state->stream->read<DealResponse>([self{shared_from_this()},
+                                            deal_state{std::move(deal_state)}](
+                                               auto response) {
+      IF_ERROR_RETURN(response, deal_state->handler);
 
       // TODO consume blocks
       bool completed = true;
@@ -138,21 +142,23 @@ namespace fc::markets::retrieval::client {
     });
   }
 
-  void RetrievalClientImpl::processPaymentRequest(const DealState &deal_state) {
-  }
+  void RetrievalClientImpl::processPaymentRequest(
+      const std::shared_ptr<DealState> &deal_state) {}
 
-  void RetrievalClientImpl::completeDeal(const DealState &deal_state) {
-    if (!deal_state.stream->stream()->isClosed()) {
-      deal_state.stream->stream()->close(deal_state.handler);
+  void RetrievalClientImpl::completeDeal(
+      const std::shared_ptr<DealState> &deal_state) {
+    if (!deal_state->stream->stream()->isClosed()) {
+      deal_state->stream->stream()->close(deal_state->handler);
     }
   }
 
-  void RetrievalClientImpl::failDeal(const DealState &deal_state,
-                                     const RetrievalClientError &error) {
-    if (!deal_state.stream->stream()->isClosed()) {
-      deal_state.stream->stream()->close(deal_state.handler);
+  void RetrievalClientImpl::failDeal(
+      const std::shared_ptr<DealState> &deal_state,
+      const RetrievalClientError &error) {
+    if (!deal_state->stream->stream()->isClosed()) {
+      deal_state->stream->stream()->close(deal_state->handler);
     }
-    deal_state.handler(error);
+    deal_state->handler(error);
   }
 
 }  // namespace fc::markets::retrieval::client
