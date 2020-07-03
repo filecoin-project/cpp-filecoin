@@ -12,23 +12,18 @@
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "storage/ipld/ipld_block.hpp"
+#include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval {
-  using common::Buffer;
-  using libp2p::peer::PeerId;
   using primitives::address::Address;
-  using Block = ::fc::storage::ipld::IPLDBlock;
-  using Protocol = libp2p::peer::Protocol;
-  using HostService = libp2p::Host;
-  using ConnectionId = uint64_t;
-  using DealID = uint64_t;
+  using vm::actor::builtin::payment_channel::LaneId;
 
   /**
    * @struct Payment info
    */
   struct PaymentInfo {
     Address payment_channel;
-    uint64_t lane;
+    LaneId lane;
   };
 
   /**

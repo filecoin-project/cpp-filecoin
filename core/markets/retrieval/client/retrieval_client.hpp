@@ -11,7 +11,6 @@
 #include <libp2p/peer/peer_info.hpp>
 #include "common/libp2p/cbor_host.hpp"
 #include "common/outcome.hpp"
-#include "markets/retrieval/client/retrieval_client_types.hpp"
 #include "markets/retrieval/protocols/query_protocol.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "primitives/address/address.hpp"
