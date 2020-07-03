@@ -15,11 +15,12 @@
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::retrieval::provider {
+  using libp2p::Host;
+
   class RetrievalProviderImpl
       : public RetrievalProvider,
         public std::enable_shared_from_this<RetrievalProviderImpl> {
    protected:
-    using HostServiceShPtr = std::shared_ptr<HostService>;
     using PieceStorageShPtr =
         std::shared_ptr<::fc::storage::piece::PieceStorage>;
     using ApiShPtr = std::shared_ptr<api::Api>;
@@ -27,7 +28,7 @@ namespace fc::markets::retrieval::provider {
     using QueryResponderShPtr = std::shared_ptr<QueryResponderImpl>;
 
    public:
-    RetrievalProviderImpl(HostServiceShPtr host_service,
+    RetrievalProviderImpl(std::shared_ptr<Host> host_service,
                           PieceStorageShPtr piece_storage,
                           ApiShPtr api)
         : host_service_{std::move(host_service)},
@@ -46,7 +47,7 @@ namespace fc::markets::retrieval::provider {
                             uint64_t payment_interval_increase) override;
 
    private:
-    HostServiceShPtr host_service_;
+    std::shared_ptr<Host> host_service_;
     PieceStorageShPtr piece_storage_;
     common::Logger logger_;
     ProviderConfig config_;
