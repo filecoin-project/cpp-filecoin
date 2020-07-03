@@ -5,7 +5,19 @@
 
 #include "sector_storage/impl/local_worker.hpp"
 
+#if __APPLE__
+
+#include <mach/mach_host.h>
+#include <mach/mach_time.h>
+#include <sys/sysctl.h>
+
+#elif __linux__
+// TODO: Add linux headers
+#endif
+
+#include <boost/asio.hpp>
 #include <boost/filesystem.hpp>
+#include <thread>
 #include "proofs/proofs.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
@@ -136,7 +148,7 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> sector_storage::LocalWorker::finalizeSector(
-      const SectorId &sector, const gsl::span<Range> &keep_unsealed) {
+      const SectorId &sector) {
     OUTCOME_TRY(size,
                 primitives::sector::getSectorSize(config_.seal_proof_type));
 
@@ -150,11 +162,6 @@ namespace fc::sector_storage {
     OUTCOME_TRY(proofs::Proofs::clearCache(size, response.paths.cache));
 
     return storage_->remove(sector, SectorFileType::FTUnsealed);
-  }
-
-  outcome::result<void> sector_storage::LocalWorker::releaseUnsealed(
-      const SectorId &sector, const gsl::span<Range> &safe_to_free) {
-    return outcome::success();
   }
 
   outcome::result<void> sector_storage::LocalWorker::moveStorage(
@@ -285,22 +292,60 @@ namespace fc::sector_storage {
   sector_storage::LocalWorker::getInfo() {
     std::string hostname = config_.hostname;
     if (hostname.empty()) {
-      // TODO: Get hostname
+      config_.hostname = boost::asio::ip::host_name();
+      hostname = config_.hostname;
     }
 
-    OUTCOME_TRY(devices, proofs::Proofs::getGPUDevices());
+    primitives::WorkerInfo result;
+    result.hostname = hostname;
 
-    return primitives::WorkerInfo{
-        .hostname = hostname,
-        .resources =
-            primitives::WorkerResources{
-                .physical_memory = 0,
-                .swap_memory = 0,
-                .reserved_memory = 0,
-                .cpus = 0,
-                .gpus = devices,
-            },
-    };
+    result.resources.cpus = std::thread::hardware_concurrency();
+
+    if (result.resources.cpus == 0) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+#if __APPLE__
+    size_t memorySize = sizeof(int64_t);
+    int64_t memory;
+    sysctlbyname("hw.memsize", (void *)&memory, &memorySize, nullptr, 0);
+
+    result.resources.physical_memory = memory;
+
+    mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
+    struct vm_statistics64 vm_stat {};
+    if (host_statistics64(host_t(mach_host_self()),
+                          HOST_VM_INFO64,
+                          (host_info_t)(&vm_stat),
+                          &count)
+        != KERN_SUCCESS) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    uint64_t page_size;
+    if (host_page_size(host_t(mach_host_self()), (vm_size_t *)(&page_size))
+        != KERN_SUCCESS) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    uint64_t available_memory =
+        (vm_stat.free_count + vm_stat.inactive_count + vm_stat.purgeable_count)
+        * page_size;
+
+    xsw_usage vmusage{};
+    size_t size = sizeof(vmusage);
+    sysctlbyname("vm.swapusage", &vmusage, &size, nullptr, 0);
+
+    result.resources.swap_memory = vmusage.xsu_total;
+    result.resources.reserved_memory =
+        vmusage.xsu_used + memory - available_memory;
+#elif __linux__
+    // TODO: made linux version
+#endif
+
+    OUTCOME_TRYA(result.resources.gpus, proofs::Proofs::getGPUDevices());
+
+    return std::move(result);
   }
 
   outcome::result<std::vector<primitives::TaskType>>
@@ -338,11 +383,6 @@ namespace fc::sector_storage {
     if (isError) {
       return outcome::success();  // TODO: Error
     }
-    return outcome::success();
-  }
-
-  outcome::result<void> sector_storage::LocalWorker::newSector(
-      const SectorId &sector) {
     return outcome::success();
   }
 

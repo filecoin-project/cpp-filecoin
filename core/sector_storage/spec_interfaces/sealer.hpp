@@ -22,11 +22,6 @@ namespace fc::sector_storage {
   using fc::primitives::sector::Proof;
   using fc::primitives::sector::SealRandomness;
 
-  struct Range {
-    UnpaddedPieceSize offset;
-    UnpaddedPieceSize size;
-  };
-
   class Sealer {
    public:
     virtual ~Sealer() = default;
@@ -49,14 +44,7 @@ namespace fc::sector_storage {
     virtual outcome::result<Proof> sealCommit2(const SectorId &sector,
                                                const Commit1Output &c1o) = 0;
 
-    virtual outcome::result<void> finalizeSector(
-        const SectorId &sector, const gsl::span<Range> &keep_unsealed) = 0;
-
-    // ReleaseUnsealed marks parts of the unsealed sector file as safe to drop
-    // (called by the fsm on restart, allows storage to keep no persistent state
-    // about unsealed fast-retrieval copies)
-    virtual outcome::result<void> releaseUnsealed(
-        const SectorId &sector, const gsl::span<Range> &safe_to_free) = 0;
+    virtual outcome::result<void> finalizeSector(const SectorId &sector) = 0;
 
     virtual outcome::result<void> remove(const SectorId &sector) = 0;
   };

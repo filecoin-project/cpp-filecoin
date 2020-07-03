@@ -38,10 +38,7 @@ namespace fc::sector_storage {
                                        const Commit1Output &c1o) override;
 
     outcome::result<void> finalizeSector(
-        const SectorId &sector, const gsl::span<Range> &keep_unsealed) override;
-
-    outcome::result<void> releaseUnsealed(
-        const SectorId &sector, const gsl::span<Range> &safe_to_free) override;
+        const SectorId &sector) override;
 
     outcome::result<void> moveStorage(const SectorId &sector) override;
 
