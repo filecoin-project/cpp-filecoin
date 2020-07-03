@@ -7,13 +7,8 @@
 #define CPP_FILECOIN_SYNC_BLOCK_LOADER_HPP
 
 #include <libp2p/protocol/common/scheduler.hpp>
-#include "common.hpp"
-#include "object_loader.hpp"
 #include "storage/ipfs/datastore.hpp"
-
-namespace fc::storage::ipfs::graphsync {
-  class Graphsync;
-}
+#include "blocksync_client.hpp"
 
 namespace fc::sync {
 
@@ -28,25 +23,23 @@ namespace fc::sync {
 
     BlockLoader(std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
                 std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-                std::shared_ptr<ObjectLoader> object_loader);
+                std::shared_ptr<blocksync::BlocksyncClient> blocksync);
 
     void init(OnBlockSynced callback);
 
     outcome::result<BlocksAvailable> loadBlocks(
         const std::vector<CID> &cids,
-        boost::optional<PeerId> preferred_peer);
+        boost::optional<PeerId> preferred_peer,
+        uint64_t load_parents_depth = 1);
 
    private:
+    // Block and all its subobjects are in local storage if result has value,
+    // otherwise error
+    void onBlockStored(CID block_cid, outcome::result<BlockMsg> result);
+
     bool onBlockHeader(const CID &cid,
-                       bool object_is_valid,
-                       boost::optional<BlockHeader> header);
-
-    bool onMsgMeta(const CID &cid,
-                   bool object_is_valid,
-                   const std::vector<CID> &bls_messages,
-                   const std::vector<CID> &secp_messages);
-
-    bool onMessage(const CID &cid, bool is_secp_message, bool valid);
+                       boost::optional<BlockHeader> header,
+                       bool block_completed);
 
     using Wantlist = std::set<CID>;
 
@@ -54,19 +47,13 @@ namespace fc::sync {
       BlockLoader &owner;
       CID block_cid;
       boost::optional<BlockHeader> header;
-      Wantlist bls_messages;
-      Wantlist secp_messages;
       bool is_bad = false;
 
       libp2p::protocol::scheduler::Handle call_completed;
 
       RequestCtx(BlockLoader &o, const CID &cid);
 
-      void onBlockHeader(bool object_is_valid, boost::optional<BlockHeader> bh);
-
-      void onMeta(bool object_is_valid, bool no_more_messages);
-
-      void onMessage(const CID &cid, bool is_secp, bool object_is_valid);
+      void onBlockHeader(boost::optional<BlockHeader> bh, bool block_completed);
     };
 
     struct BlockAvailable {
@@ -86,17 +73,14 @@ namespace fc::sync {
 
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld_;
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
-    std::shared_ptr<ObjectLoader> object_loader_;
+    std::shared_ptr<blocksync::BlocksyncClient> blocksync_;
     OnBlockSynced callback_;
     bool initialized_ = false;
 
     using RequestCtxPtr = std::shared_ptr<RequestCtx>;
 
     std::map<CID, RequestCtxPtr> block_requests_;
-    std::multimap<CID, RequestCtxPtr> meta_requests_;
-    std::multimap<CID, RequestCtxPtr> msg_requests_;
-
-    std::vector<ObjectLoader::ObjectWanted> wanted_;
+    std::vector<CID> wanted_;
 
     // friendship with contained objects is ok
     friend RequestCtx;

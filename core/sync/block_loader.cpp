@@ -20,39 +20,35 @@ namespace fc::sync {
   BlockLoader::BlockLoader(
       std::shared_ptr<storage::ipfs::IpfsDatastore> ipld,
       std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
-      std::shared_ptr<ObjectLoader> object_loader)
+      std::shared_ptr<blocksync::BlocksyncClient> blocksync)
       : ipld_(std::move(ipld)),
         scheduler_(std::move(scheduler)),
-        object_loader_(std::move(object_loader)) {
+        blocksync_(std::move(blocksync)) {
     assert(ipld_);
     assert(scheduler_);
-    assert(object_loader_);
+    assert(blocksync_);
   }
 
   void BlockLoader::init(OnBlockSynced callback) {
     assert(callback);
     callback_ = std::move(callback);
-    object_loader_->init(
-        [this](const CID &cid,
-               bool object_is_valid,
-               boost::optional<BlockHeader> header) {
-          return onBlockHeader(cid, object_is_valid, std::move(header));
+    blocksync_->init(
+        [this](CID block_cid, outcome::result<BlockMsg> result) {
+          onBlockStored(std::move(block_cid), std::move(result));
         },
-        [this](const CID &cid,
-               bool object_is_valid,
-               const std::vector<CID> &bls_messages,
-               const std::vector<CID> &secp_messages) {
-          return onMsgMeta(cid, object_is_valid, bls_messages, secp_messages);
-        },
-        [this](const CID &cid, bool is_secp_message, bool object_is_valid) {
-          return onMessage(cid, is_secp_message, object_is_valid);
+        [](const PeerId &peer, std::error_code error) {
+          // TODO (artem) handle and forward this (to choose another peer)
+          if (error) {
+            log()->error("peer {}: {}", peer.toBase58(), error.message());
+          }
         });
     initialized_ = true;
   }
 
   outcome::result<BlockLoader::BlocksAvailable> BlockLoader::loadBlocks(
       const std::vector<CID> &cids,
-      boost::optional<PeerId> preferred_peer) {
+      boost::optional<PeerId> preferred_peer,
+      uint64_t load_parents_depth) {
     if (!initialized_) {
       return Error::SYNC_NOT_INITIALIZED;
     }
@@ -78,107 +74,49 @@ namespace fc::sync {
     }
 
     if (!wanted_.empty()) {
-      OUTCOME_TRY(object_loader_->loadObjects(std::move(wanted_),
-                                              std::move(preferred_peer)));
+      if (preferred_peer.has_value()) {
+        uint64_t depth = load_parents_depth;
+        if (depth == 0) {
+          depth = 1;
+        } else if (depth > 500) {
+          depth = 500;
+        }
+        OUTCOME_TRY(blocksync_->makeRequest(preferred_peer.value(),
+                                            std::move(wanted_),
+                                            depth,
+                                            blocksync::BLOCKS_AND_MESSAGES));
+      }
     }
     return blocks_available;
   }
 
+  void BlockLoader::onBlockStored(CID block_cid,
+                                  outcome::result<BlockMsg> result) {
+    bool was_requested = false;
+    if (!result) {
+      log()->error("blocksync failure, cid: {}, error: {}",
+                   block_cid.toString().value(),
+                   result.error().message());
+      was_requested = onBlockHeader(block_cid, boost::none, false);
+    } else {
+      BlockMsg &m = result.value();
+      was_requested = onBlockHeader(block_cid, std::move(m.header), true);
+    }
+    if (!was_requested) {
+      log()->debug("block cid {} was not requested",
+                   block_cid.toString().value());
+    }
+  }
+
   bool BlockLoader::onBlockHeader(const CID &cid,
-                                  bool object_is_valid,
-                                  boost::optional<BlockHeader> header) {
+                                  boost::optional<BlockHeader> header,
+                                  bool block_completed) {
     auto it = block_requests_.find(cid);
     if (it == block_requests_.end()) {
       return false;
     }
-    it->second->onBlockHeader(object_is_valid, std::move(header));
-    return object_is_valid;
-  }
-
-  bool BlockLoader::onMsgMeta(const CID &cid,
-                              bool object_is_valid,
-                              const std::vector<CID> &bls_messages,
-                              const std::vector<CID> &secp_messages) {
-    auto range = meta_requests_.equal_range(cid);
-    if (range.first == range.second) {
-      return false;
-    }
-
-    if (!object_is_valid || (bls_messages.empty() && secp_messages.empty())) {
-      for (auto it = range.first; it != range.second; ++it) {
-        it->second->onMeta(object_is_valid, true);
-      }
-    } else {
-      Wantlist bls_wantlist;
-      Wantlist secp_wantlist;
-      wanted_.clear();
-
-      for (const auto &m : bls_messages) {
-        auto contains = ipld_->contains(m);
-        if (!contains || !contains.value()) {  // TODO !contains is db error
-          if (!msg_requests_.count(cid)) {
-            wanted_.push_back({cid, ObjectLoader::BLS_MESSAGE});
-            bls_wantlist.insert(cid);
-          }
-        }
-      }
-
-      for (const auto &m : secp_messages) {
-        auto contains = ipld_->contains(m);
-        if (!contains || !contains.value()) {
-          if (!msg_requests_.count(cid)) {
-            wanted_.push_back({cid, ObjectLoader::SECP_MESSAGE});
-            secp_wantlist.insert(cid);
-          }
-        }
-      }
-
-      if (wanted_.empty()) {
-        for (auto it = range.first; it != range.second; ++it) {
-          it->second->onMeta(object_is_valid, true);
-        }
-      } else {
-        bool cannot_load = false;
-        auto res = object_loader_->loadObjects(wanted_, boost::none);
-        if (!res) {
-          log()->error("onMeta error: {}", res.error().message());
-          cannot_load = true;
-        }
-
-        for (auto it = range.first; it != range.second; ++it) {
-          auto &ctx = it->second;
-          if (cannot_load) {
-            ctx->onMeta(false, true);
-          } else {
-            for (const auto &w : wanted_) {
-              msg_requests_.insert({w.cid, ctx});
-            }
-            ctx->bls_messages = bls_wantlist;
-            ctx->secp_messages = secp_wantlist;
-            ;
-          }
-        }
-
-        wanted_.clear();
-      }
-    }
-
-    meta_requests_.erase(range.first, range.second);
-    return object_is_valid;
-  }
-
-  bool BlockLoader::onMessage(const CID &cid,
-                              bool is_secp_message,
-                              bool object_is_valid) {
-    auto range = msg_requests_.equal_range(cid);
-    if (range.first == range.second) {
-      return false;
-    }
-    for (auto it = range.first; it != range.second; ++it) {
-      it->second->onMessage(cid, is_secp_message, object_is_valid);
-    }
-    msg_requests_.erase(range.first, range.second);
-    return object_is_valid;
+    it->second->onBlockHeader(std::move(header), block_completed);
+    return true;
   }
 
   outcome::result<BlockLoader::BlockAvailable>
@@ -251,30 +189,7 @@ namespace fc::sync {
     auto ctx = std::make_shared<RequestCtx>(*this, cid);
     block_requests_[cid] = ctx;
 
-    if (info.header.has_value()) {
-      ctx->header = std::move(info.header);
-
-      if (!info.meta_available) {
-        meta_requests_.insert({ctx->header->messages, ctx});
-        wanted_.push_back({ctx->header->messages, ObjectLoader::MSG_META});
-
-      } else {
-        for (const auto &m : info.bls_messages_to_load) {
-          msg_requests_.insert({m, ctx});
-          wanted_.push_back({m, ObjectLoader::BLS_MESSAGE});
-        }
-        ctx->bls_messages = std::move(info.bls_messages_to_load);
-
-        for (const auto &m : info.secp_messages_to_load) {
-          msg_requests_.insert({m, ctx});
-          wanted_.push_back({m, ObjectLoader::SECP_MESSAGE});
-        }
-        ctx->secp_messages = std::move(info.secp_messages_to_load);
-      }
-
-    } else {
-      wanted_.push_back({cid, ObjectLoader::BLOCK_HEADER});
-    }
+    // TODO (artem): restore previous code to load mesages for block
 
     return boost::none;
   }
@@ -293,67 +208,26 @@ namespace fc::sync {
   BlockLoader::RequestCtx::RequestCtx(BlockLoader &o, const CID &cid)
       : owner(o), block_cid(cid) {}
 
-  void BlockLoader::RequestCtx::onBlockHeader(bool object_is_valid,
-                                              boost::optional<BlockHeader> bh) {
+  void BlockLoader::RequestCtx::onBlockHeader(boost::optional<BlockHeader> bh,
+                                              bool block_completed) {
     if (is_bad || header.has_value()) {
       return;
     }
 
-    if (!object_is_valid) {
+    if (!bh) {
       is_bad = true;
       call_completed = owner.scheduler_->schedule(
           [this]() { owner.onRequestCompleted(block_cid, std::move(header)); });
     }
 
     header = std::move(bh);
-  }
 
-  void BlockLoader::RequestCtx::onMeta(bool object_is_valid,
-                                       bool no_more_messages) {
-    if (is_bad || !header.has_value()) {
-      return;
-    }
-
-    bool completed = false;
-
-    if (!object_is_valid) {
-      is_bad = true;
-      header = boost::none;
-      completed = true;
-    } else if (no_more_messages) {
-      completed = true;
-    }
-
-    if (completed) {
+    if (block_completed) {
       call_completed = owner.scheduler_->schedule(
           [this]() { owner.onRequestCompleted(block_cid, std::move(header)); });
     }
-  }
 
-  void BlockLoader::RequestCtx::onMessage(const CID &cid,
-                                          bool is_secp,
-                                          bool object_is_valid) {
-    if (is_bad || !header.has_value()) {
-      return;
-    }
-
-    bool completed = false;
-
-    Wantlist &wantlist = is_secp ? secp_messages : bls_messages;
-    wantlist.erase(cid);
-
-    if (!object_is_valid) {
-      is_bad = true;
-      header = boost::none;
-      completed = true;
-    } else {
-      completed = bls_messages.empty() && secp_messages.empty();
-    }
-
-    if (completed) {
-      call_completed = owner.scheduler_->schedule(
-          [this]() { owner.onRequestCompleted(block_cid, std::move(header)); });
-    }
+    // TODO (artem) wait for messages : separate loader
   }
 
 }  // namespace fc::sync
