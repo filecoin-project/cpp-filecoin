@@ -61,22 +61,23 @@ namespace fc::markets::retrieval::client {
         kRetrievalProtocolId,
         [self{shared_from_this()}, proposal, handler](auto stream_res) {
           IF_ERROR_RETURN(stream_res, handler);
-          self->proposeDeal(stream_res.value(), proposal, handler);
+          DealState deal_state{.proposal = proposal,
+                               .stream = stream_res.value(),
+                               .handler = handler};
+          self->proposeDeal(deal_state);
         });
   }
 
-  void RetrievalClientImpl::proposeDeal(
-      const std::shared_ptr<CborStream> &stream,
-      const DealProposal &proposal,
-      const RetrieveResponseHandler &handler) {
-    stream->write(
-        proposal, [self{shared_from_this()}, stream, handler](auto written) {
-          IF_ERROR_RETURN(written, handler);
-          stream->template read<DealResponse>([self, stream, handler](
-                                                  auto response) {
-            IF_ERROR_RETURN(response, handler);
+  void RetrievalClientImpl::proposeDeal(const DealState &deal_state) {
+    deal_state.stream->write(
+        deal_state.proposal,
+        [self{shared_from_this()}, deal_state](auto written) {
+          IF_ERROR_RETURN(written, deal_state.handler);
+          deal_state.stream->template read<DealResponse>([self, deal_state](
+                                                             auto response) {
+            IF_ERROR_RETURN(response, deal_state.handler);
             if (response.value().status == DealStatus::kDealStatusAccepted) {
-              self->setupPaymentChannelStart(stream, handler);
+              self->setupPaymentChannelStart(deal_state);
             } else {
               // TODO (a.chernyshov) handle not accepted status
             }
@@ -85,83 +86,73 @@ namespace fc::markets::retrieval::client {
   }
 
   void RetrievalClientImpl::setupPaymentChannelStart(
-      const std::shared_ptr<CborStream> &stream,
-      const RetrieveResponseHandler &handler) {
+      const DealState &deal_state) {
     // TODO (a.chernyshov) api->GetOrCreatePaymentChannel
     // wait for create and funding
     // allocate lane - ???
-    processNextResponse(stream, handler);
+    processNextResponse(deal_state);
   }
 
-  void RetrievalClientImpl::processNextResponse(
-      const std::shared_ptr<CborStream> &stream,
-      const RetrieveResponseHandler &handler) {
+  void RetrievalClientImpl::processNextResponse(const DealState &deal_state) {
     // TODO not clear - 2 responses one by one?
-    stream->read<DealResponse>(
-        [self{shared_from_this()}, stream, handler](auto response) {
-          IF_ERROR_RETURN(response, handler);
+    deal_state.stream->read<DealResponse>([self{shared_from_this()},
+                                           deal_state](auto response) {
+      IF_ERROR_RETURN(response, deal_state.handler);
 
-          // TODO consume blocks
-          bool completed = true;
+      // TODO consume blocks
+      bool completed = true;
 
-          if (completed) {
-            switch (response.value().status) {
-              case DealStatus::kDealStatusFundsNeededLastPayment:
-                self->processPaymentRequest(stream, handler);
-                break;
-              case DealStatus::kDealStatusBlocksComplete:
-                // TODO check this status
-                self->processNextResponse(stream, handler);
-                break;
-              case DealStatus::kDealStatusCompleted:
-                self->completeDeal(stream, handler);
-                break;
-              default:
-                self->failDeal(stream,
-                               handler,
-                               RetrievalClientError::kUnknownResponseReceived);
-            }
-          } else {
-            switch (response.value().status) {
-              case DealStatus::kDealStatusFundsNeededLastPayment:
-              case DealStatus::kDealStatusBlocksComplete:
-                self->failDeal(
-                    stream, handler, RetrievalClientError::kEarlyTermination);
-                break;
-              case DealStatus::kDealStatusFundsNeeded:
-                self->processPaymentRequest(stream, handler);
-                break;
-              case DealStatus::kDealStatusOngoing:
-                self->processNextResponse(stream, handler);
-                break;
-              default:
-                self->failDeal(stream,
-                               handler,
-                               RetrievalClientError::kUnknownResponseReceived);
-            }
-          }
-        });
+      if (completed) {
+        switch (response.value().status) {
+          case DealStatus::kDealStatusFundsNeededLastPayment:
+            self->processPaymentRequest(deal_state);
+            break;
+          case DealStatus::kDealStatusBlocksComplete:
+            // TODO check this status
+            self->processNextResponse(deal_state);
+            break;
+          case DealStatus::kDealStatusCompleted:
+            self->completeDeal(deal_state);
+            break;
+          default:
+            self->failDeal(deal_state,
+                           RetrievalClientError::kUnknownResponseReceived);
+        }
+      } else {
+        switch (response.value().status) {
+          case DealStatus::kDealStatusFundsNeededLastPayment:
+          case DealStatus::kDealStatusBlocksComplete:
+            self->failDeal(deal_state, RetrievalClientError::kEarlyTermination);
+            break;
+          case DealStatus::kDealStatusFundsNeeded:
+            self->processPaymentRequest(deal_state);
+            break;
+          case DealStatus::kDealStatusOngoing:
+            self->processNextResponse(deal_state);
+            break;
+          default:
+            self->failDeal(deal_state,
+                           RetrievalClientError::kUnknownResponseReceived);
+        }
+      }
+    });
   }
 
-  void RetrievalClientImpl::processPaymentRequest(
-      const std::shared_ptr<CborStream> &stream,
-      const RetrieveResponseHandler &handler) {}
+  void RetrievalClientImpl::processPaymentRequest(const DealState &deal_state) {
+  }
 
-  void RetrievalClientImpl::completeDeal(
-      const std::shared_ptr<CborStream> &stream,
-      const RetrieveResponseHandler &handler) {
-    if (!stream->stream()->isClosed()) {
-      stream->stream()->close(handler);
+  void RetrievalClientImpl::completeDeal(const DealState &deal_state) {
+    if (!deal_state.stream->stream()->isClosed()) {
+      deal_state.stream->stream()->close(deal_state.handler);
     }
   }
 
-  void RetrievalClientImpl::failDeal(const std::shared_ptr<CborStream> &stream,
-                                     const RetrieveResponseHandler &handler,
+  void RetrievalClientImpl::failDeal(const DealState &deal_state,
                                      const RetrievalClientError &error) {
-    if (!stream->stream()->isClosed()) {
-      stream->stream()->close(handler);
+    if (!deal_state.stream->stream()->isClosed()) {
+      deal_state.stream->stream()->close(deal_state.handler);
     }
-    handler(error);
+    deal_state.handler(error);
   }
 
 }  // namespace fc::markets::retrieval::client

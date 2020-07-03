@@ -18,6 +18,15 @@ namespace fc::markets::retrieval::client {
   using common::libp2p::CborStream;
   using libp2p::Host;
 
+  /**
+   * State of ongoing retrieval deal.
+   */
+  struct DealState {
+    DealProposal proposal;
+    std::shared_ptr<CborStream> stream;
+    RetrieveResponseHandler handler;
+  };
+
   class RetrievalClientImpl
       : public RetrievalClient,
         public std::enable_shared_from_this<RetrievalClientImpl> {
@@ -41,24 +50,17 @@ namespace fc::markets::retrieval::client {
                   const RetrieveResponseHandler &handler) override;
 
    private:
-    void proposeDeal(const std::shared_ptr<CborStream> &stream,
-                     const DealProposal &proposal,
-                     const RetrieveResponseHandler &handler);
+    void proposeDeal(const DealState &deal_state);
 
-    void setupPaymentChannelStart(const std::shared_ptr<CborStream> &stream,
-                                  const RetrieveResponseHandler &handler);
+    void setupPaymentChannelStart(const DealState &deal_state);
 
-    void processNextResponse(const std::shared_ptr<CborStream> &stream,
-                             const RetrieveResponseHandler &handler);
+    void processNextResponse(const DealState &deal_state);
 
-    void processPaymentRequest(const std::shared_ptr<CborStream> &stream,
-                               const RetrieveResponseHandler &handler);
+    void processPaymentRequest(const DealState &deal_state);
 
-    void completeDeal(const std::shared_ptr<CborStream> &stream,
-                      const RetrieveResponseHandler &handler);
+    void completeDeal(const DealState &deal_state);
 
-    void failDeal(const std::shared_ptr<CborStream> &stream,
-                  const RetrieveResponseHandler &handler,
+    void failDeal(const DealState &deal_state,
                   const RetrievalClientError &error);
 
     DealId next_deal_id;
