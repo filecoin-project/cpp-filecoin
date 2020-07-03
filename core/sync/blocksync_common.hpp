@@ -17,9 +17,9 @@ namespace fc::storage::ipfs {
 namespace fc::sync::blocksync {
 
   enum RequestOptions {
-    BLOCKS_ONLY = 0,
-    MESSAGES_ONLY = 1,
-    BLOCKS_AND_MESSAGES = 2,
+    BLOCKS_ONLY = 1,
+    MESSAGES_ONLY = 2,
+    BLOCKS_AND_MESSAGES = 3,
   };
 
   struct Request {
