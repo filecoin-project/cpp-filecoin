@@ -56,6 +56,22 @@ namespace fc::sector_storage {
     // TODO(artyom-yurin): [FIL-222] think about how to close the worker
   };
 
+  enum class WorkerErrors {
+    CANNOT_CREATE_SEALED_FILE = 1,
+    CANNOT_CREATE_CACHE_DIR,
+    CANNOT_REMOVE_CACHE_DIR,
+    PIECES_DO_NOT_MATCH_SECTOR_SIZE,
+    OUTPUT_DOES_NOT_OPEN,
+    OUT_OF_BOUND_OF_FILE,
+    CANNOT_OPEN_UNSEALED_FILE,
+    CANNOT_GET_NUMBER_OF_CPUS,
+    CANNOT_GET_VM_STAT,
+    CANNOT_GET_PAGE_SIZE,
+    CANNOT_OPEN_MEM_INFO_FILE,
+    CANNOT_REMOVE_SECTOR,
+  };
 }  // namespace fc::sector_storage
+
+OUTCOME_HPP_DECLARE_ERROR(fc::sector_storage, WorkerErrors);
 
 #endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_WORKER_HPP

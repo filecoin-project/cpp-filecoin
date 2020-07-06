@@ -23,6 +23,7 @@ target_link_libraries(sector_storage
 
 add_library(worker
         impl/local_worker.cpp
+        impl/worker_error.cpp
         )
 
 target_link_libraries(worker

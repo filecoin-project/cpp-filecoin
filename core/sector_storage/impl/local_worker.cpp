@@ -6,13 +6,9 @@
 #include "sector_storage/impl/local_worker.hpp"
 
 #if __APPLE__
-
 #include <mach/mach_host.h>
 #include <mach/mach_time.h>
 #include <sys/sysctl.h>
-
-#elif __linux__
-// TODO: Add linux headers
 #endif
 
 #include <boost/asio.hpp>
@@ -56,7 +52,7 @@ namespace fc::sector_storage {
 
     boost::filesystem::ofstream sealed_file(response.paths.sealed);
     if (!sealed_file.good()) {
-      return outcome::success();  // TODO: ERROR
+      return WorkerErrors::CANNOT_CREATE_SEALED_FILE;
     }
     sealed_file.close();
 
@@ -65,13 +61,13 @@ namespace fc::sector_storage {
         boost::system::error_code ec;
         boost::filesystem::remove_all(response.paths.cache, ec);
         if (ec.failed()) {
-          return outcome::success();  // TODO: ERROR
+          return WorkerErrors::CANNOT_REMOVE_CACHE_DIR;
         }
         if (!boost::filesystem::create_directory(response.paths.cache)) {
-          return outcome::success();  // TODO: ERROR
+          return WorkerErrors::CANNOT_CREATE_CACHE_DIR;
         }
       } else {
-        return outcome::success();  // TODO: ERROR
+        return WorkerErrors::CANNOT_CREATE_CACHE_DIR;
       }
     }
 
@@ -84,7 +80,7 @@ namespace fc::sector_storage {
                 primitives::sector::getSectorSize(config_.seal_proof_type));
 
     if (sum != primitives::piece::PaddedPieceSize(size).unpadded()) {
-      return outcome::success();  // TODO: ERROR
+      return WorkerErrors::PIECES_DO_NOT_MATCH_SECTOR_SIZE;
     }
 
     return proofs::Proofs::sealPreCommitPhase1(config_.seal_proof_type,
@@ -239,7 +235,7 @@ namespace fc::sector_storage {
       primitives::piece::UnpaddedByteIndex offset,
       const primitives::piece::UnpaddedPieceSize &size) {
     if (!output.isOpened()) {
-      return outcome::success();  // TODO: ERROR
+      return WorkerErrors::OUTPUT_DOES_NOT_OPEN;
     }
 
     OUTCOME_TRY(response,
@@ -253,14 +249,14 @@ namespace fc::sector_storage {
                 primitives::sector::getSectorSize(config_.seal_proof_type));
 
     if (primitives::piece::paddedIndex(offset) + size.padded() > max_size) {
-      return outcome::success();  // TODO: ERROR
+      return WorkerErrors::OUT_OF_BOUND_OF_FILE;
     }
 
     std::ifstream input(response.paths.unsealed,
                         std::ios_base::in | std::ios_base::binary);
 
     if (!input.good()) {
-      return outcome::success();  // TODO: ERROR
+      return WorkerErrors::CANNOT_OPEN_UNSEALED_FILE;
     }
 
     input.seekg(primitives::piece::paddedIndex(offset), std::ios_base::beg);
@@ -302,7 +298,7 @@ namespace fc::sector_storage {
     result.resources.cpus = std::thread::hardware_concurrency();
 
     if (result.resources.cpus == 0) {
-      return outcome::success();  // TODO: ERROR
+      return WorkerErrors::CANNOT_GET_NUMBER_OF_CPUS;
     }
 
 #if __APPLE__
@@ -319,13 +315,13 @@ namespace fc::sector_storage {
                           (host_info_t)(&vm_stat),
                           &count)
         != KERN_SUCCESS) {
-      return outcome::success();  // TODO: ERROR
+      return WorkerErrors::CANNOT_GET_VM_STAT;
     }
 
     uint64_t page_size;
     if (host_page_size(host_t(mach_host_self()), (vm_size_t *)(&page_size))
         != KERN_SUCCESS) {
-      return outcome::success();  // TODO: ERROR
+      return WorkerErrors::CANNOT_GET_PAGE_SIZE;
     }
 
     uint64_t available_memory =
@@ -343,7 +339,7 @@ namespace fc::sector_storage {
     static const std::string memory_file_path = "/proc/meminfo";
     std::ifstream memory_file(memory_file_path);
     if (!memory_file.good()) {
-      return outcome::success();  // TODO: ERROR
+      return WorkerErrors::CANNOT_OPEN_MEM_INFO_FILE;
     }
 
     struct {
@@ -438,7 +434,7 @@ namespace fc::sector_storage {
     }
 
     if (isError) {
-      return outcome::success();  // TODO: Error
+      return WorkerErrors::CANNOT_REMOVE_SECTOR;
     }
     return outcome::success();
   }
