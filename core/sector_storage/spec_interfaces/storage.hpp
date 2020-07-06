@@ -13,10 +13,6 @@ namespace fc::sector_storage {
    public:
     virtual ~Storage() = default;
 
-    // Creates a new empty sector (only allocate on disk. Layers above
-    //  storage are responsible for assigning sector IDs)
-    virtual outcome::result<void> newSector(const SectorId &sector) = 0;
-
     // Add a piece to an existing *unsealed* sector
     virtual outcome::result<PieceInfo> addPiece(
         const SectorId &sector,

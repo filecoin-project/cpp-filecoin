@@ -26,7 +26,8 @@ namespace fc::sector_storage {
       : storage_(std::move(store)),
         local_store_(std::move(local)),
         index_(std::move(sector_index)),
-        config_(std::move(config)) {}
+        config_(std::move(config)),
+        logger_(common::createLogger("local worker")) {}
 
   outcome::result<sector_storage::PreCommit1Output>
   sector_storage::LocalWorker::sealPreCommit1(
@@ -418,19 +419,25 @@ namespace fc::sector_storage {
     auto cache_err = storage_->remove(sector, SectorFileType::FTCache);
     if (cache_err.has_error()) {
       isError = true;
-      // TODO: Log it
+      logger_->error("removing cached sector {} : {}",
+                     primitives::sector_file::sectorName(sector),
+                     cache_err.error().message());
     }
 
     auto sealed_err = storage_->remove(sector, SectorFileType::FTSealed);
     if (sealed_err.has_error()) {
       isError = true;
-      // TODO: Log it
+      logger_->error("removing sealed sector {} : {}",
+                     primitives::sector_file::sectorName(sector),
+                     sealed_err.error().message());
     }
 
     auto unsealed_err = storage_->remove(sector, SectorFileType::FTUnsealed);
     if (unsealed_err.has_error()) {
       isError = true;
-      // TODO: Log it
+      logger_->error("removing unsealed sector {} : {}",
+                     primitives::sector_file::sectorName(sector),
+                     unsealed_err.error().message());
     }
 
     if (isError) {

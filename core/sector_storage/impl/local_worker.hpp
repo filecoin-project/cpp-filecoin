@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
 #define CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
 
+#include "common/logger.hpp"
 #include "primitives/worker_config.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/worker.hpp"
@@ -37,8 +38,7 @@ namespace fc::sector_storage {
     outcome::result<Proof> sealCommit2(const SectorId &sector,
                                        const Commit1Output &c1o) override;
 
-    outcome::result<void> finalizeSector(
-        const SectorId &sector) override;
+    outcome::result<void> finalizeSector(const SectorId &sector) override;
 
     outcome::result<void> moveStorage(const SectorId &sector) override;
 
@@ -67,8 +67,6 @@ namespace fc::sector_storage {
 
     outcome::result<void> remove(const SectorId &sector) override;
 
-    outcome::result<void> newSector(const SectorId &sector) override;
-
     outcome::result<PieceInfo> addPiece(
         const SectorId &sector,
         gsl::span<const UnpaddedPieceSize> piece_sizes,
@@ -81,6 +79,7 @@ namespace fc::sector_storage {
     std::shared_ptr<stores::SectorIndex> index_;
 
     primitives::WorkerConfig config_;
+    common::Logger logger_;
   };
 
 }  // namespace fc::sector_storage

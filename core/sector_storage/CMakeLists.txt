@@ -31,4 +31,5 @@ target_link_libraries(worker
         sector
         piece
         proofs
+        logger
         )
