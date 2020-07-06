@@ -67,15 +67,30 @@ class LocalWorkerTest : public test::BaseFS_Test {
   std::unique_ptr<LocalWorker> local_worker_;
 };
 
-TEST_F(LocalWorkerTest, getTypes) {
+/**
+ * @given local worker
+ * @when when try to getSupportedTask
+ * @then gets supported tasks for the worker
+ */
+TEST_F(LocalWorkerTest, getSupportedTask) {
   EXPECT_OUTCOME_EQ(local_worker_->getSupportedTask(), tasks_);
 }
 
+/**
+ * @given local worker
+ * @when when try to getInfo
+ * @then gets info about the worker
+ */
 TEST_F(LocalWorkerTest, getInfo) {
   EXPECT_OUTCOME_TRUE(info, local_worker_->getInfo());
   ASSERT_EQ(info.hostname, worker_name_);
 }
 
+/**
+ * @given local worker
+ * @when when try to getAccessiblePaths
+ * @then gets paths that accessible by the worker
+ */
 TEST_F(LocalWorkerTest, getAccessiblePaths) {
   std::vector<StoragePath> paths = {StoragePath{
                                         .id = "id1",
@@ -96,6 +111,69 @@ TEST_F(LocalWorkerTest, getAccessiblePaths) {
   EXPECT_OUTCOME_EQ(local_worker_->getAccessiblePaths(), paths);
 }
 
+/**
+ * @given sector
+ * @when when try to preSealCommit with sum of sizes of pieces and not equal to
+ * sector size
+ * @then Error occurs
+ */
+TEST_F(LocalWorkerTest, PreCommit_MatchSumError) {
+  SectorId sector{
+      .miner = 1,
+      .sector = 3,
+  };
+
+  fc::proofs::SealRandomness ticket{{5, 4, 2}};
+
+  AcquireSectorResponse response{};
+
+  response.paths.sealed = (base_path / toString(SectorFileType::FTSealed)
+                           / fc::primitives::sector_file::sectorName(sector))
+                              .string();
+  response.paths.cache = (base_path / toString(SectorFileType::FTCache)
+                          / fc::primitives::sector_file::sectorName(sector))
+                             .string();
+
+  EXPECT_CALL(*store_, remove(sector, SectorFileType::FTSealed))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(*store_, remove(sector, SectorFileType::FTCache))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(*sector_index_,
+              storageDeclareSector(
+                  response.storages.cache, sector, SectorFileType::FTCache))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(*sector_index_,
+              storageDeclareSector(
+                  response.storages.sealed, sector, SectorFileType::FTSealed))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(
+      *store_,
+      acquireSector(sector,
+                    config_.seal_proof_type,
+                    SectorFileType::FTUnsealed,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    true))
+      .WillOnce(testing::Return(fc::outcome::success(response)));
+
+  ASSERT_TRUE(boost::filesystem::create_directory(
+      base_path / toString(SectorFileType::FTSealed)));
+  ASSERT_TRUE(boost::filesystem::create_directory(
+      base_path / toString(SectorFileType::FTCache)));
+
+  EXPECT_OUTCOME_ERROR(
+      fc::sector_storage::WorkerErrors::PIECES_DO_NOT_MATCH_SECTOR_SIZE,
+      local_worker_->sealPreCommit1(sector, ticket, {}));
+}
+
+/**
+ * @given pieces
+ * @when try to add Pieces, Seal, Unseal, ReadPiece and compare with original
+ * @then Success
+ */
 TEST_F(LocalWorkerTest, Sealer) {
   EXPECT_OUTCOME_TRUE(
       params,
@@ -339,6 +417,11 @@ TEST_F(LocalWorkerTest, Sealer) {
   }
 }
 
+/**
+ * @given sector
+ * @when try to remove sector
+ * @then Success
+ */
 TEST_F(LocalWorkerTest, Remove_Success) {
   SectorId sector{
       .miner = 1,
@@ -353,6 +436,11 @@ TEST_F(LocalWorkerTest, Remove_Success) {
   EXPECT_OUTCOME_TRUE_1(local_worker_->remove(sector));
 }
 
+/**
+ * @given sector
+ * @when try to remove sector and one type removed with error
+ * @then error occurs
+ */
 TEST_F(LocalWorkerTest, Remove_Error) {
   SectorId sector{
       .miner = 1,
