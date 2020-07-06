@@ -56,6 +56,12 @@ namespace fc::primitives {
     bool can_store;
   };
 
+  inline bool operator==(const StoragePath &lhs, const StoragePath &rhs) {
+    return lhs.id == rhs.id && lhs.weight == rhs.weight
+           && lhs.local_path == rhs.local_path && lhs.can_seal == rhs.can_seal
+           && lhs.can_store == rhs.can_store;
+  };
+
   struct LocalStorageMeta {
     StorageID id;
     uint64_t weight;  // 0 = readonly

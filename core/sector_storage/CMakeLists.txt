@@ -28,8 +28,9 @@ add_library(worker
 
 target_link_libraries(worker
         outcome
-        sector
+        sector_file
         piece
+        store
         proofs
         logger
         )

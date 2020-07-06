@@ -5,12 +5,15 @@
 
 #include "sector_storage/impl/local_worker.hpp"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include "testutil/mocks/sector_storage/stores/local_store_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/store_mock.hpp"
+#include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
+using fc::primitives::StoragePath;
 using fc::primitives::WorkerConfig;
 using fc::sector_storage::LocalWorker;
 using fc::sector_storage::stores::LocalStoreMock;
@@ -48,3 +51,32 @@ class LocalWorkerTest : public test::BaseFS_Test {
   std::shared_ptr<SectorIndexMock> sector_index_;
   std::unique_ptr<LocalWorker> local_worker_;
 };
+
+TEST_F(LocalWorkerTest, getTypes) {
+  EXPECT_OUTCOME_EQ(local_worker_->getSupportedTask(), tasks_);
+}
+
+TEST_F(LocalWorkerTest, getInfo) {
+  EXPECT_OUTCOME_TRUE(info, local_worker_->getInfo());
+  ASSERT_EQ(info.hostname, worker_name_);
+}
+
+TEST_F(LocalWorkerTest, getAccessiblePaths) {
+  std::vector<StoragePath> paths = {StoragePath{
+                                        .id = "id1",
+                                        .weight = 10,
+                                        .local_path = "/some/path/1",
+                                        .can_seal = false,
+                                        .can_store = true,
+                                    },
+                                    StoragePath{
+                                        .id = "id2",
+                                        .weight = 100,
+                                        .local_path = "/some/path/2",
+                                        .can_seal = true,
+                                        .can_store = false,
+                                    }};
+  EXPECT_CALL(*local_store_, getAccessiblePaths())
+      .WillOnce(testing::Return(fc::outcome::success(paths)));
+  EXPECT_OUTCOME_EQ(local_worker_->getAccessiblePaths(), paths);
+}
