@@ -333,7 +333,7 @@ namespace fc::markets::storage::test {
 
       miner_api->LocatePieceForDealWithinSector = {
           [](auto &deal_id, auto &tipset_key) -> outcome::result<PieceInfo> {
-            return PieceInfo{};
+            return PieceInfo{.piece_cid = "010001020001"_cid};
           }};
 
       return miner_api;

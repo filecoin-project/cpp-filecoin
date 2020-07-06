@@ -12,6 +12,7 @@
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/buffer.hpp"
 #include "storage/face/persistent_map.hpp"
+#include "storage/piece/impl/piece_storage_error.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::storage::piece {
@@ -24,8 +25,7 @@ namespace fc::storage::piece {
     using PersistentMap = storage::face::PersistentMap<Buffer, Buffer>;
 
    public:
-    PieceStorageImpl(std::shared_ptr<PersistentMap> storage_backend)
-        : storage_{std::move(storage_backend)} {}
+    PieceStorageImpl(std::shared_ptr<PersistentMap> storage_backend);
 
     outcome::result<void> addPieceInfo(const CID &piece_cid,
                                        PieceInfo piece_info) override;
@@ -37,8 +37,20 @@ namespace fc::storage::piece {
         const CID &parent_piece,
         std::map<CID, PayloadLocation> locations) override;
 
+    outcome::result<CidInfo> getCidInfo(const CID &piece_cid) const override;
+
     outcome::result<PayloadBlockInfo> getPayloadLocation(
         const CID &paload_cid) const override;
+
+    outcome::result<PieceInfo> getPieceInfoFromCid(
+        const CID &payload_cid,
+        const boost::optional<CID> &piece_cid) const override;
+
+    outcome::result<bool> hasPieceInfo(
+        CID payload_cid, const boost::optional<CID> &piece_cid) const override;
+
+    outcome::result<uint64_t> getPieceSize(
+        CID payload_cid, const boost::optional<CID> &piece_cid) const override;
 
    private:
     std::shared_ptr<PersistentMap> storage_;
@@ -52,11 +64,6 @@ namespace fc::storage::piece {
     static Buffer convertKey(std::string prefix, std::string key);
   };
 
-  CBOR_TUPLE(PieceInfo, deal_id, sector_id, offset, length)
-
-  CBOR_TUPLE(PayloadLocation, relative_offset, block_size)
-
-  CBOR_TUPLE(PayloadBlockInfo, parent_piece, block_location)
 }  // namespace fc::storage::piece
 
 #endif

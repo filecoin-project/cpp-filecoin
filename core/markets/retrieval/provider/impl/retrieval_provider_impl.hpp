@@ -12,13 +12,13 @@
 #include "common/logger.hpp"
 #include "markets/retrieval/protocols/query_protocol.hpp"
 #include "markets/retrieval/provider/retrieval_provider.hpp"
-// TODO rename to config or remove
 #include "markets/retrieval/provider/retrieval_provider_types.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::retrieval::provider {
   using common::libp2p::CborHost;
   using common::libp2p::CborStream;
+  using ::fc::storage::piece::PieceInfo;
   using ::fc::storage::piece::PieceStorage;
   using libp2p::Host;
 
@@ -44,8 +44,13 @@ namespace fc::markets::retrieval::provider {
      */
     void handleQuery(const std::shared_ptr<CborStream> &stream);
 
+    outcome::result<QueryResponse> makeQueryResponse(const QueryRequest &query);
+    void respondErrorQueryResponse(const std::shared_ptr<CborStream> &stream,
+                                   const std::string &message);
+
     std::shared_ptr<CborHost> host_;
     std::shared_ptr<api::Api> api_;
+    Address miner_address;
     std::shared_ptr<PieceStorage> piece_storage_;
     ProviderConfig config_;
     common::Logger logger_ = common::createLogger("RetrievalProvider");

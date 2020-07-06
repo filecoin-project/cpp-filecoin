@@ -12,10 +12,13 @@
 #include "api/api.hpp"
 #include "core/markets/retrieval/config.hpp"
 #include "core/markets/retrieval/data.hpp"
+#include "primitives/tipset/tipset.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
 
 namespace fc::markets::retrieval::test {
+  using primitives::tipset::Tipset;
+
   struct RetrievalMarketFixture : public ::testing::Test {
     /* Types */
     using ClientShPtr = std::shared_ptr<client::RetrievalClientImpl>;
@@ -86,7 +89,15 @@ namespace fc::markets::retrieval::test {
       std::thread([this]() { context->run(); }).detach();
       BOOST_ASSERT_MSG(addPieceSample(data::green_piece).has_value(),
                        "Failed to add sample green piece");
-      api->WalletDefaultAddress = {[=]() { return config::provider::wallet; }};
+
+      Tipset chain_head;
+      Address miner_worker_address = Address::makeFromId(100);
+      api->ChainHead = {[=]() { return chain_head; }};
+
+      api->StateMinerWorker = {
+          [=](auto &address, auto &tipset_key) -> outcome::result<Address> {
+            return miner_worker_address;
+          }};
     }
 
     /**

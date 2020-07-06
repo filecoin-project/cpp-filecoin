@@ -22,7 +22,8 @@ struct PieceStorageTest : public ::testing::Test {
   CID piece_cid{"010001020001"_cid};
   CID payload_cid_A{"010001020002"_cid};
   CID payload_cid_B{"010001020003"_cid};
-  PieceInfo piece_info{.deal_id = 1, .sector_id = 2, .offset = 3, .length = 4};
+  DealInfo deal_info{.deal_id = 1, .sector_id = 2, .offset = 3, .length = 4};
+  PieceInfo piece_info{.piece_cid = piece_cid, .deals = {deal_info}};
   PayloadLocation location_A{.relative_offset = 0, .block_size = 100};
   PayloadLocation location_B{.relative_offset = 100, .block_size = 50};
 

@@ -5,9 +5,11 @@
 
 #include "markets/retrieval/provider/impl/retrieval_provider_impl.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
-#include "markets/retrieval/provider/query_responder/query_responder_impl.hpp"
+#include "markets/common.hpp"
+#include "storage/piece/impl/piece_storage_error.hpp"
 
 namespace fc::markets::retrieval::provider {
+  using ::fc::storage::piece::PieceStorageError;
 
   RetrievalProviderImpl::RetrievalProviderImpl(
       std::shared_ptr<Host> host,
@@ -23,7 +25,8 @@ namespace fc::markets::retrieval::provider {
     host_->setCborProtocolHandler(
         kQueryProtocolId,
         [self{shared_from_this()}](auto stream) { self->handleQuery(stream); });
-    logger_->info("has been launched with ID " + peerInfoToPrettyString(host_->getPeerInfo());
+    logger_->info("has been launched with ID "
+                  + peerInfoToPrettyString(host_->getPeerInfo()));
   }
 
   void RetrievalProviderImpl::setPricePerByte(TokenAmount amount) {
@@ -38,36 +41,67 @@ namespace fc::markets::retrieval::provider {
 
   void RetrievalProviderImpl::handleQuery(
       const std::shared_ptr<CborStream> &stream) {
-    stream->read<QueryRequest>([self{shared_from_this()}, stream](
-                                   outcome::result<QueryRequest> request_res) {
-      auto payment_address_res = self->api_->WalletDefaultAddress();
-      if (!payment_address_res.has_value()) {
-        self->logger_->error("Failed to determine payment address");
-        self->closeNetworkStream(stream->stream());
+    stream->read<QueryRequest>([self{shared_from_this()},
+                                stream](auto request_res) {
+      if (request_res.has_error()) {
+        self->respondErrorQueryResponse(stream, request_res.error().message());
         return;
       }
-      if (!request_res.has_value()) {
-        self->logger_->debug("Received incorrect request");
-        self->closeNetworkStream(stream->stream());
+      auto response_res = self->makeQueryResponse(request_res.value());
+      if (response_res.has_error()) {
+        self->respondErrorQueryResponse(stream, response_res.error().message());
         return;
       }
-      QueryResponse response;
-      response.response_status = QueryResponseStatus::QueryResponseAvailable,
-      response.item_status =
-          self->getItemStatus(request_res.value().payload_cid,
-                              request_res.value().params.piece_cid);
-      response.payment_address = payment_address_res.value();
-      response.min_price_per_byte = self->provider_config_.price_per_byte;
-      response.payment_interval = self->provider_config_.payment_interval;
-      response.interval_increase = self->provider_config_.interval_increase;
-      stream->write(response,
-                    [self = self->shared_from_this(),
-                     stream](outcome::result<size_t> result) {
-                      if (!result.has_value()) {
-                        self->logger_->debug("Failed to send response");
-                      }
-                      self->closeNetworkStream(stream->stream());
-                    });
+      stream->write(response_res.value(), [self, stream](auto written) {
+        if (written.has_error()) {
+          self->logger_->error("Error while error response "
+                               + written.error().message());
+        }
+        closeStreamGracefully(stream, self->logger_);
+      });
+    });
+  }
+
+  outcome::result<QueryResponse> RetrievalProviderImpl::makeQueryResponse(
+      const QueryRequest &query) {
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, chain_head.makeKey());
+    OUTCOME_TRY(miner_worker_address,
+                api_->StateMinerWorker(miner_address, tipset_key));
+
+    OUTCOME_TRY(piece_available,
+                piece_storage_->hasPieceInfo(query.payload_cid,
+                                             query.params.piece_cid));
+    if (!piece_available) {
+      return QueryResponse{
+          .response_status = QueryResponseStatus::kQueryResponseUnavailable,
+          .item_status = QueryItemStatus::kQueryItemUnavailable};
+    }
+    OUTCOME_TRY(piece_size,
+                piece_storage_->getPieceSize(query.payload_cid,
+                                             query.params.piece_cid));
+    return QueryResponse{
+        .response_status = QueryResponseStatus::kQueryResponseAvailable,
+        .item_status = QueryItemStatus::kQueryItemAvailable,
+        .item_size = piece_size,
+        .payment_address = miner_worker_address,
+        .min_price_per_byte = config_.price_per_byte,
+        .payment_interval = config_.payment_interval,
+        .interval_increase = config_.interval_increase};
+  }
+
+  void RetrievalProviderImpl::respondErrorQueryResponse(
+      const std::shared_ptr<CborStream> &stream, const std::string &message) {
+    QueryResponse response;
+    response.response_status = QueryResponseStatus::kQueryResponseError;
+    response.item_status = QueryItemStatus::kQueryItemUnknown;
+    response.message = message;
+    stream->write(response, [self{shared_from_this()}, stream](auto written) {
+      if (written.has_error()) {
+        self->logger_->error("Error while error response "
+                             + written.error().message());
+      }
+      closeStreamGracefully(stream, self->logger_);
     });
   }
 
