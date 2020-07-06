@@ -37,16 +37,16 @@ namespace fc::sector_storage::stores {
     return StoreErrors::INVALID_SECTOR_NAME;
   }
 
-  LocalStore::LocalStore(std::shared_ptr<LocalStorage> storage,
-                         std::shared_ptr<SectorIndex> index,
-                         gsl::span<std::string> urls)
+  LocalStoreImpl::LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
+                                 std::shared_ptr<SectorIndex> index,
+                                 gsl::span<std::string> urls)
       : storage_(std::move(storage)),
         index_(std::move(index)),
         urls_(urls.begin(), urls.end()) {
     logger_ = common::createLogger("Local Store");
   }
 
-  outcome::result<AcquireSectorResponse> LocalStore::acquireSector(
+  outcome::result<AcquireSectorResponse> LocalStoreImpl::acquireSector(
       SectorId sector,
       RegisteredProof seal_proof_type,
       SectorFileType existing,
@@ -143,8 +143,8 @@ namespace fc::sector_storage::stores {
     return result;
   }
 
-  outcome::result<void> LocalStore::remove(SectorId sector,
-                                           SectorFileType type) {
+  outcome::result<void> LocalStoreImpl::remove(SectorId sector,
+                                               SectorFileType type) {
     if (type == SectorFileType::FTNone || ((type & (type - 1)) != 0)) {
       return StoreErrors::REMOVE_SEVERAL_FILE_TYPES;
     }
@@ -184,9 +184,8 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<void> LocalStore::moveStorage(SectorId sector,
-                                                RegisteredProof seal_proof_type,
-                                                SectorFileType types) {
+  outcome::result<void> LocalStoreImpl::moveStorage(
+      SectorId sector, RegisteredProof seal_proof_type, SectorFileType types) {
     OUTCOME_TRY(
         dest,
         acquireSector(
@@ -232,7 +231,8 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<FsStat> LocalStore::getFsStat(fc::primitives::StorageID id) {
+  outcome::result<FsStat> LocalStoreImpl::getFsStat(
+      fc::primitives::StorageID id) {
     std::shared_lock lock(mutex_);
 
     auto path_iter = paths_.find(id);
@@ -243,7 +243,7 @@ namespace fc::sector_storage::stores {
     return storage_->getStat(path_iter->second);
   }
 
-  outcome::result<void> LocalStore::openPath(const std::string &path) {
+  outcome::result<void> LocalStoreImpl::openPath(const std::string &path) {
     std::unique_lock lock(mutex_);
     auto root = boost::filesystem::path(path);
     std::ifstream file{(root / kMetaFileName).string(),
@@ -306,18 +306,18 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<std::unique_ptr<LocalStore>> LocalStore::newLocalStore(
+  outcome::result<std::unique_ptr<LocalStore>> LocalStoreImpl::newLocalStore(
       const std::shared_ptr<LocalStorage> &storage,
       const std::shared_ptr<SectorIndex> &index,
       gsl::span<std::string> urls) {
-    struct make_unique_enabler : public LocalStore {
+    struct make_unique_enabler : public LocalStoreImpl {
       make_unique_enabler(const std::shared_ptr<LocalStorage> &storage,
                           const std::shared_ptr<SectorIndex> &index,
                           gsl::span<std::string> urls)
-          : LocalStore{storage, index, urls} {};
+          : LocalStoreImpl{storage, index, urls} {};
     };
 
-    std::unique_ptr<LocalStore> local =
+    std::unique_ptr<LocalStoreImpl> local =
         std::make_unique<make_unique_enabler>(storage, index, urls);
 
     if (local->logger_ == nullptr) {
@@ -334,7 +334,7 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<std::vector<primitives::StoragePath>>
-  LocalStore::getAccessiblePaths() {
+  LocalStoreImpl::getAccessiblePaths() {
     std::shared_lock lock(mutex_);
 
     std::vector<primitives::StoragePath> res;

@@ -13,4 +13,13 @@ target_link_libraries( sector_storage_test
        proof_param_provider
        )
 
+addtest(local_worker_test
+        local_worker_test.cpp)
+
+target_link_libraries(local_worker_test
+        worker
+        base_fs_test
+        proof_param_provider
+        )
+
 add_subdirectory(stores)
