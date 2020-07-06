@@ -11,6 +11,7 @@
 #include <random>
 #include "proofs/proof_param_provider.hpp"
 #include "proofs/proofs.hpp"
+#include "sector_storage/stores/store_error.hpp"
 #include "testutil/mocks/sector_storage/stores/local_store_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/store_mock.hpp"
@@ -336,4 +337,36 @@ TEST_F(LocalWorkerTest, Sealer) {
     read(piece[0], &piece_ch, 1);
     ASSERT_EQ(original_ch, piece_ch);
   }
+}
+
+TEST_F(LocalWorkerTest, Remove_Success) {
+  SectorId sector{
+      .miner = 1,
+      .sector = 3,
+  };
+
+  for (const auto &type : fc::primitives::sector_file::kSectorFileTypes) {
+    EXPECT_CALL(*store_, remove(sector, type))
+        .WillOnce(testing::Return(fc::outcome::success()));
+  }
+
+  EXPECT_OUTCOME_TRUE_1(local_worker_->remove(sector));
+}
+
+TEST_F(LocalWorkerTest, Remove_Error) {
+  SectorId sector{
+      .miner = 1,
+      .sector = 3,
+  };
+
+  EXPECT_CALL(*store_, remove(sector, SectorFileType::FTUnsealed))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(*store_, remove(sector, SectorFileType::FTSealed))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(*store_, remove(sector, SectorFileType::FTCache))
+      .WillOnce(testing::Return(fc::outcome::failure(
+          fc::sector_storage::stores::StoreErrors::NOT_FOUND_SECTOR)));
+
+  EXPECT_OUTCOME_ERROR(fc::sector_storage::WorkerErrors::CANNOT_REMOVE_SECTOR,
+                       local_worker_->remove(sector));
 }
