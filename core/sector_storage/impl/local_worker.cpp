@@ -340,7 +340,64 @@ namespace fc::sector_storage {
     result.resources.reserved_memory =
         vmusage.xsu_used + memory - available_memory;
 #elif __linux__
-    // TODO: made linux version
+    static const std::string memory_file_path = "/proc/meminfo";
+    std::ifstream memory_file(memory_file_path);
+    if (!memory_file.good()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    struct {
+      uint64_t total;
+      uint64_t used;
+      uint64_t available;
+      uint64_t free;
+      uint64_t virtual_total;
+      uint64_t virtual_used;
+      uint64_t virtual_free;
+      std::unordered_map<std::string, uint64_t> metrics;
+    } mem_info{};
+
+    bool has_available = false;
+    std::string key;
+    uint64_t value = 0;
+    std::string kb;
+
+    while (std::getline(memory_file, key, ':')) {
+      memory_file >> value;
+      std::getline(memory_file, kb, '\n');
+
+      if (kb.find("kB") != std::string::npos) {
+        value *= 1024;
+      }
+
+      if (key == "MemTotal") {
+        mem_info.total = value;
+        result.resources.physical_memory = value;
+      } else if (key == "MemAvailable") {
+        has_available = true;
+        mem_info.available = value;
+      } else if (key == "MemFree") {
+        mem_info.free = value;
+      } else if (key == "SwapTotal") {
+        mem_info.virtual_total = value;
+        result.resources.swap_memory = value;
+      } else if (key == "SwapFree") {
+        mem_info.virtual_free = value;
+      } else {
+        mem_info.metrics[key] = value;
+      }
+    }
+
+    mem_info.used = mem_info.total - mem_info.free;
+    mem_info.virtual_used = mem_info.virtual_total - mem_info.virtual_free;
+
+    if (!has_available) {
+      mem_info.available = mem_info.free + mem_info.metrics["Buffers"]
+                           + mem_info.metrics["Cached"];
+    }
+
+    result.resources.reserved_memory =
+        mem_info.virtual_used + mem_info.total - mem_info.available;
 #endif
 
     OUTCOME_TRYA(result.resources.gpus, proofs::Proofs::getGPUDevices());
