@@ -50,7 +50,7 @@ namespace fc::sector_storage {
                                       UnpaddedByteIndex offset,
                                       const UnpaddedPieceSize &size,
                                       const SealRandomness &randomness,
-                                      const CID &cid) override;
+                                      const CID &unsealed_cid) override;
 
     outcome::result<void> readPiece(const proofs::PieceData &output,
                                     const SectorId &sector,

@@ -187,7 +187,7 @@ namespace fc::sector_storage {
       primitives::piece::UnpaddedByteIndex offset,
       const primitives::piece::UnpaddedPieceSize &size,
       const primitives::sector::SealRandomness &randomness,
-      const CID &cid) {
+      const CID &unsealed_cid) {
     auto maybe_unseal_file = storage_->acquireSector(sector,
                                                      config_.seal_proof_type,
                                                      SectorFileType::FTUnsealed,
@@ -225,7 +225,7 @@ namespace fc::sector_storage {
                                        sector.sector,
                                        sector.miner,
                                        randomness,
-                                       cid,
+                                       unsealed_cid,
                                        primitives::piece::paddedIndex(offset),
                                        size.padded());
   }

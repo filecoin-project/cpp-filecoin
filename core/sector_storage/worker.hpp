@@ -35,7 +35,7 @@ namespace fc::sector_storage {
                                               UnpaddedByteIndex offset,
                                               const UnpaddedPieceSize &size,
                                               const SealRandomness &randomness,
-                                              const CID &cid) = 0;
+                                              const CID &unsealed_cid) = 0;
 
     /**
      * @param output is PieceData with write part of pipe
