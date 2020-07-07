@@ -21,7 +21,6 @@ namespace fc::markets::retrieval::provider {
         config_{} {}
 
   void RetrievalProviderImpl::start() {
-    // TODO move set handler to init
     host_->setCborProtocolHandler(
         kQueryProtocolId,
         [self{shared_from_this()}](auto stream) { self->handleQuery(stream); });

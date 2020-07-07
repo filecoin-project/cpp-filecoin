@@ -13,7 +13,7 @@ namespace fc::storage::piece {
   /**
    * @enum Piece storage errors
    */
-  enum class PieceStorageError { kPieceNotFound, kPayloadNotFound };
+  enum class PieceStorageError { kPieceNotFound = 1, kPayloadNotFound };
 
 }  // namespace fc::storage::piece
 

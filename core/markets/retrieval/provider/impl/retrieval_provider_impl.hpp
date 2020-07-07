@@ -12,7 +12,6 @@
 #include "common/logger.hpp"
 #include "markets/retrieval/protocols/query_protocol.hpp"
 #include "markets/retrieval/provider/retrieval_provider.hpp"
-#include "markets/retrieval/provider/retrieval_provider_types.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::retrieval::provider {
@@ -21,6 +20,15 @@ namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceInfo;
   using ::fc::storage::piece::PieceStorage;
   using libp2p::Host;
+
+  /**
+   * @struct Provider config
+   */
+  struct ProviderConfig {
+    TokenAmount price_per_byte;
+    uint64_t payment_interval;
+    uint64_t interval_increase;
+  };
 
   class RetrievalProviderImpl
       : public RetrievalProvider,
