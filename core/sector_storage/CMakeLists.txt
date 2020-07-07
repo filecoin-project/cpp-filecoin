@@ -20,3 +20,10 @@ target_link_libraries(sector_storage
         proofs
         Boost::filesystem
         )
+
+add_library(request_queue
+        impl/request_queue.cpp)
+
+target_link_libraries(request_queue
+        sector
+        )

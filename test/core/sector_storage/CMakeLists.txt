@@ -14,3 +14,10 @@ target_link_libraries( sector_storage_test
        )
 
 add_subdirectory(stores)
+
+addtest(request_queue_test
+        request_queue_test.cpp)
+
+target_link_libraries(request_queue_test
+        request_queue
+        )
