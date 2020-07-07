@@ -30,19 +30,17 @@ namespace fc::sector_storage {
    public:
     bool insert(const WorkerRequest &request);
 
-    boost::optional<WorkerRequest> pop();
+    boost::optional<WorkerRequest> deque();
 
-    boost::optional<WorkerRequest> at(int index) const;
+    std::vector<WorkerRequest>::const_iterator cbegin() const;
 
-    bool remove(int index);
+    std::vector<WorkerRequest>::const_iterator cend() const;
+
+    bool remove(const std::vector<WorkerRequest>::const_iterator &iterator);
 
     size_t size() const;
 
    private:
-    void maxHeapify(int index);
-
-    bool minHeapify(int index);
-
     std::vector<WorkerRequest> queue_;
   };
 }  // namespace fc::sector_storage

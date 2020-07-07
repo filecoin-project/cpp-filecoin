@@ -60,33 +60,32 @@ TEST_F(RequestQueueTest, Order) {
     request_queue_->insert(request);
   }
 
-  auto res1 = request_queue_->pop();
+  auto res1 = request_queue_->deque();
   ASSERT_TRUE(res1);
   ASSERT_EQ((*res1).task_type, fc::primitives::kTTPreCommit2);
 
-  auto res2 = request_queue_->pop();
+  auto res2 = request_queue_->deque();
   ASSERT_TRUE(res2);
   ASSERT_EQ((*res2).task_type, fc::primitives::kTTPreCommit1);
 }
 
 /**
  * @given queue and 3 requests
- * @when added 3 requests, remove request with index 2(kTTPreCommit1) and pop 2
- * @then first is kTTPreCommit2 and second is kTTAddPiece
+ * @when added 3 requests, remove first one and pop 2
+ * @then first is kTTPreCommit1 and second is kTTAddPiece
  */
 TEST_F(RequestQueueTest, Remove) {
   for (const auto &request : requests_) {
     request_queue_->insert(request);
   }
 
-  // 2 is kTTPreCommit1
-  ASSERT_TRUE(request_queue_->remove(2));
+  ASSERT_TRUE(request_queue_->remove(request_queue_->cbegin()));
 
-  auto res1 = request_queue_->pop();
+  auto res1 = request_queue_->deque();
   ASSERT_TRUE(res1);
-  ASSERT_EQ((*res1).task_type, fc::primitives::kTTPreCommit2);
+  ASSERT_EQ((*res1).task_type, fc::primitives::kTTPreCommit1);
 
-  auto res2 = request_queue_->pop();
+  auto res2 = request_queue_->deque();
   ASSERT_TRUE(res2);
   ASSERT_EQ((*res2).task_type, fc::primitives::kTTAddPiece);
 }

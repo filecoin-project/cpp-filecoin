@@ -8,101 +8,63 @@
 namespace fc::sector_storage {
 
   bool RequestQueue::insert(const WorkerRequest &request) {
-    if (queue_.size() == queue_.max_size()) {
+    size_t max_index = queue_.size();
+    if (max_index == queue_.max_size()) {
       return false;
     }
 
-    queue_.push_back(request);
+    if (max_index == 0) {
+      queue_.push_back(request);
+      return true;
+    }
 
-    maxHeapify(queue_.size() - 1);
+    size_t min_index = 0;
+    size_t current_index = (min_index + max_index) / 2;
+    while (min_index < max_index && current_index != 0) {
+      if (request < queue_[current_index]) {
+        max_index = current_index - 1;
+      } else {
+        min_index = current_index + 1;
+      }
+      current_index = (min_index + max_index) / 2;
+    }
+
+    if (request < queue_[min_index]) {
+      queue_.insert(queue_.begin() + min_index, request);
+    } else if (min_index + 1 > queue_.size()) {
+      queue_.push_back(request);
+    } else {
+      queue_.insert(queue_.begin() + min_index + 1, request);
+    }
 
     return true;
-  }
-
-  boost::optional<WorkerRequest> RequestQueue::pop() {
-    if (queue_.empty()) {
-      return boost::none;
-    }
-    auto res = queue_[0];
-    queue_[0] = queue_[queue_.size() - 1];
-
-    minHeapify(0);
-
-    queue_.pop_back();
-    return std::move(res);
-  }
-
-  boost::optional<WorkerRequest> RequestQueue::at(int index) const {
-    if (0 > index || static_cast<uint>(index) < queue_.size()) {
-      return boost::none;
-    }
-
-    return queue_.at(index);
   }
 
   size_t RequestQueue::size() const {
     return queue_.size();
   }
 
-  bool RequestQueue::remove(int index) {
-    if (0 > index) {
-      return false;
-    }
-
-    auto current_index = queue_.size() - 1;
-    if (current_index != static_cast<uint>(index)) {
-      queue_[index] = queue_[current_index];
-      if (!minHeapify(index)) {
-        maxHeapify(index);
-      }
-    }
-
-    queue_.pop_back();
+  bool RequestQueue::remove(
+      const std::vector<WorkerRequest>::const_iterator &iterator) {
+    queue_.erase(iterator);
     return true;
   }
 
-  bool RequestQueue::minHeapify(int index) {
-    if (0 > index) {
-      return false;
+  boost::optional<WorkerRequest> RequestQueue::deque() {
+    if (queue_.empty()) {
+      return boost::none;
     }
-    auto request = queue_[index];
-    int current_index = index;
-    int smallest;
-    int right_child_index;
-    while (current_index <= ((std::numeric_limits<int>::max() - 1) / 2)
-           && static_cast<uint>(2 * current_index + 1) < queue_.size()) {
-      smallest = 2 * current_index + 1;
-      if (current_index <= ((std::numeric_limits<int>::max() - 2) / 2)
-          && static_cast<uint>(2 * current_index + 2) < queue_.size()) {
-        right_child_index = 2 * current_index + 2;
-        if (queue_[right_child_index] < queue_[smallest]) {
-          smallest = right_child_index;
-        }
-      }
-      queue_[current_index] = queue_[smallest];
-      current_index = smallest;
-    }
-    if (index != current_index) {
-      queue_[current_index] = request;
-      return true;
-    }
-    return false;
+
+    auto res = *queue_.cbegin();
+    queue_.erase(queue_.cbegin());
+    return res;
   }
 
-  void RequestQueue::maxHeapify(int index) {
-    if (0 > index) {
-      return;
-    }
-    auto request = queue_[index];
-    int current_index = index;
-    int parent_index = (current_index - 1) / 2;
-    while (current_index != parent_index && request < queue_[parent_index]) {
-      queue_[current_index] = queue_[parent_index];
-      current_index = parent_index;
-      parent_index = (current_index - 1) / 2;
-    }
-    if (current_index != index) {
-      queue_[current_index] = request;
-    }
+  std::vector<WorkerRequest>::const_iterator RequestQueue::cbegin() const {
+    return queue_.cbegin();
+  }
+
+  std::vector<WorkerRequest>::const_iterator RequestQueue::cend() const {
+    return queue_.cend();
   }
 }  // namespace fc::sector_storage
