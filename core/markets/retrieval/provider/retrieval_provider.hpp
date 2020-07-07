@@ -9,6 +9,7 @@
 #include "primitives/types.hpp"
 
 namespace fc::markets::retrieval::provider {
+  using primitives::TokenAmount;
 
   /**
    * @class Retrieval market provider

@@ -15,11 +15,13 @@
 #include "primitives/address/address.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval {
   using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using vm::actor::builtin::payment_channel::SignedVoucher;
 
   /*
    * @brief Retrieval Protocol ID V0
@@ -84,6 +86,17 @@ namespace fc::markets::retrieval {
 
   CBOR_TUPLE(DealResponse, status, deal_id, payment_owed, message
              /*, blocks */);
+
+  /**
+   * Payment for an in progress retrieval deal
+   */
+  struct DealPayment {
+    DealId deal_id;
+    Address payment_channel;
+    SignedVoucher payment_voucher;
+  };
+  CBOR_TUPLE(DealPayment, deal_id, payment_channel, payment_voucher);
+
 }  // namespace fc::markets::retrieval
 
 #endif
