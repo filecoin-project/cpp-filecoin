@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "markets/retrieval/client/retrieval_client_impl.hpp"
-#include "markets/retrieval/provider/retrieval_provider_impl.hpp"
+#include "markets/retrieval/client/impl/retrieval_client_impl.hpp"
+#include "markets/retrieval/provider/impl/retrieval_provider_impl.hpp"
 
 #include <gtest/gtest.h>
 #include <libp2p/injector/host_injector.hpp>
@@ -48,6 +48,8 @@ namespace fc::markets::retrieval::test {
 
     /* Common application interface */
     ApiShPtr api;
+
+    common::Logger logger = common::createLogger("RetrievalMarketTest");
 
     /**
      * @brief Constructor

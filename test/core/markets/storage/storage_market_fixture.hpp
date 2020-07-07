@@ -422,6 +422,20 @@ namespace fc::markets::storage::test {
     }
 
     /**
+     * Wait for future result or timeout
+     * @param future
+     */
+    void waitForAskResponse(
+        std::future<outcome::result<SignedStorageAsk>> &future) {
+      for (int i = 0; i < kNumberOfWaitCycles; i++) {
+        context_->run_for(kWaitTime);
+        if (future.wait_for(std::chrono::seconds(0))
+            == std::future_status::ready)
+          break;
+      }
+    }
+
+    /**
      * Waits for deal state in client
      * @param proposal_cid - proposal deal cid
      * @param state - desired state
