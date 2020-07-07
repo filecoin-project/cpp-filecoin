@@ -11,6 +11,7 @@
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
 #include "markets/retrieval/protocols/query_protocol.hpp"
+#include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "markets/retrieval/provider/retrieval_provider.hpp"
 #include "storage/piece/piece_storage.hpp"
 
@@ -28,6 +29,20 @@ namespace fc::markets::retrieval::provider {
     TokenAmount price_per_byte;
     uint64_t payment_interval;
     uint64_t interval_increase;
+  };
+
+  struct DealState {
+    DealState(DealProposal proposal, std::shared_ptr<CborStream> stream)
+        : proposal{proposal},
+          stream{std::move(stream)},
+          current_interval{proposal.params.payment_interval} {}
+
+    DealProposal proposal;
+    std::shared_ptr<CborStream> stream;
+    uint64_t current_interval;
+    uint64_t total_sent;
+    TokenAmount funds_received;
+    TokenAmount payment_owed;
   };
 
   class RetrievalProviderImpl
@@ -52,9 +67,74 @@ namespace fc::markets::retrieval::provider {
      */
     void handleQuery(const std::shared_ptr<CborStream> &stream);
 
+    /**
+     * Look for piece by cid and make response
+     * @param query with piece look for
+     * @return network response
+     */
     outcome::result<QueryResponse> makeQueryResponse(const QueryRequest &query);
+
+    /**
+     * Send error response for query and close stream
+     * @param stream to send and close
+     * @param message error to send
+     */
     void respondErrorQueryResponse(const std::shared_ptr<CborStream> &stream,
                                    const std::string &message);
+
+    /**
+     * Handle deal stream
+     * @param stream - cbor stream
+     */
+    void handleRetrievalDeal(const std::shared_ptr<CborStream> &stream);
+
+    /**
+     * Read deal proposal and validate
+     * @param deal_state
+     * @return
+     */
+    outcome::result<void> receiveDeal(
+        const std::shared_ptr<DealState> &deal_state);
+
+    /**
+     * Run decision logic
+     * @param deal_state
+     */
+    void decideOnDeal(const std::shared_ptr<DealState> &deal_state);
+
+    /**
+     * Prepare blocks to send (up to size of deal interval) and requests next
+     * payment (owed)
+     * @param deal_state
+     */
+    void prepareBlocks(const std::shared_ptr<DealState> &deal_state);
+
+    /**
+     * Sends response - possibly payload blocks and payment request
+     * @param deal_state
+     * @param response
+     */
+    void sendRetrievalResponse(const std::shared_ptr<DealState> &deal_state,
+                               const DealResponse &response);
+
+    void processPayment(const std::shared_ptr<DealState> &deal_state,
+                        const DealStatus &payment_status);
+
+    /**
+     * Send error response for retrieval proposal and close stream
+     * @param stream to communicate through and close
+     * @param status - response deal status
+     * @param message - error description
+     */
+    void respondErrorRetrievalDeal(const std::shared_ptr<CborStream> &stream,
+                                   const DealStatus &status,
+                                   const std::string &message);
+
+    /**
+     * Finalize deal - send deal complete response and close stream
+     * @param deal_state
+     */
+    void finalizeDeal(const std::shared_ptr<DealState> &deal_state);
 
     std::shared_ptr<CborHost> host_;
     std::shared_ptr<api::Api> api_;
