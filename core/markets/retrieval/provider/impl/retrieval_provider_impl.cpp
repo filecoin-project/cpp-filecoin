@@ -8,12 +8,15 @@
 #include "markets/common.hpp"
 #include "storage/piece/impl/piece_storage_error.hpp"
 
-#define SELF_IF_ERROR_RESPOND_AND_RETURN(result, status, stream)               \
-  if (result.has_error()) {                                                    \
-    self->logger_->error(result.error().message());                            \
-    self->respondErrorRetrievalDeal(stream, status, result.error().message()); \
-    return;                                                                    \
+#define _SELF_IF_ERROR_RESPOND_AND_RETURN(res, expr, status, stream)        \
+  auto &&res = (expr);                                                      \
+  if (res.has_error()) {                                                    \
+    self->logger_->error(res.error().message());                            \
+    self->respondErrorRetrievalDeal(stream, status, res.error().message()); \
+    return;                                                                 \
   }
+#define SELF_IF_ERROR_RESPOND_AND_RETURN(expr, status, stream) \
+  _SELF_IF_ERROR_RESPOND_AND_RETURN(UNIQUE_NAME(_r), expr, status, stream)
 
 namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceStorageError;
