@@ -1,0 +1,40 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_SELECTOR_HPP
+#define CPP_FILECOIN_CORE_SECTOR_STORAGE_SELECTOR_HPP
+
+#include "common/outcome.hpp"
+#include "primitives/seal_tasks/task.hpp"
+#include "primitives/sector/sector.hpp"
+
+namespace fc::sector_storage {
+  class Worker;
+  class WorkerInfo {}; // TODO: Replace with real classes
+
+  struct WorkerHandle {
+    std::shared_ptr<Worker> worker;
+    WorkerInfo info;
+  };
+
+  using primitives::TaskType;
+  using primitives::sector::RegisteredProof;
+
+  class WorkerSelector {
+    virtual ~WorkerSelector() = default;
+
+    virtual outcome::result<bool> is_satisfying(
+        const TaskType &task,
+        RegisteredProof seal_proof_type,
+        const std::shared_ptr<WorkerHandle> &worker) = 0;
+
+    virtual outcome::result<bool> is_preferred(
+        const TaskType &task,
+        const std::shared_ptr<WorkerHandle> &challenger,
+        const std::shared_ptr<WorkerHandle> &current_best) = 0;
+  };
+}  // namespace fc::sector_storage
+
+#endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_SELECTOR_HPP

@@ -18,3 +18,10 @@ target_link_libraries(worker
         proofs
         logger
         )
+
+add_library(scheduler
+        impl/scheduler_impl.cpp)
+
+target_link_libraries(scheduler
+        outcome
+        )
