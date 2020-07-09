@@ -96,7 +96,8 @@ namespace fc::sector_storage {
 
   outcome::result<sector_storage::SectorCids>
   sector_storage::LocalWorker::sealPreCommit2(
-      const SectorId &sector, const sector_storage::PreCommit1Output &pc1o) {
+      const SectorId &sector,
+      const sector_storage::PreCommit1Output &pre_commit_1_output) {
     OUTCOME_TRY(response,
                 storage_->acquireSector(
                     sector,
@@ -107,7 +108,7 @@ namespace fc::sector_storage {
                     true));
 
     return proofs::Proofs::sealPreCommitPhase2(
-        pc1o, response.paths.cache, response.paths.sealed);
+        pre_commit_1_output, response.paths.cache, response.paths.sealed);
   }
 
   outcome::result<sector_storage::Commit1Output>
@@ -140,8 +141,10 @@ namespace fc::sector_storage {
 
   outcome::result<primitives::sector::Proof>
   sector_storage::LocalWorker::sealCommit2(
-      const SectorId &sector, const sector_storage::Commit1Output &c1o) {
-    return proofs::Proofs::sealCommitPhase2(c1o, sector.sector, sector.miner);
+      const SectorId &sector,
+      const sector_storage::Commit1Output &commit_1_output) {
+    return proofs::Proofs::sealCommitPhase2(
+        commit_1_output, sector.sector, sector.miner);
   }
 
   outcome::result<void> sector_storage::LocalWorker::finalizeSector(

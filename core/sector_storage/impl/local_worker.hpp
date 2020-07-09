@@ -31,7 +31,8 @@ namespace fc::sector_storage {
         gsl::span<const PieceInfo> pieces) override;
 
     outcome::result<SectorCids> sealPreCommit2(
-        const SectorId &sector, const PreCommit1Output &pc1o) override;
+        const SectorId &sector,
+        const PreCommit1Output &pre_commit_1_output) override;
 
     outcome::result<Commit1Output> sealCommit1(
         const SectorId &sector,
@@ -40,8 +41,8 @@ namespace fc::sector_storage {
         gsl::span<const PieceInfo> pieces,
         const SectorCids &cids) override;
 
-    outcome::result<Proof> sealCommit2(const SectorId &sector,
-                                       const Commit1Output &c1o) override;
+    outcome::result<Proof> sealCommit2(
+        const SectorId &sector, const Commit1Output &commit_1_output) override;
 
     outcome::result<void> finalizeSector(const SectorId &sector) override;
 

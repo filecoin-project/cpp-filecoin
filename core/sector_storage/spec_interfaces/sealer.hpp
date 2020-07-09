@@ -32,7 +32,8 @@ namespace fc::sector_storage {
         gsl::span<const PieceInfo> pieces) = 0;
 
     virtual outcome::result<SectorCids> sealPreCommit2(
-        const SectorId &sector, const PreCommit1Output &pc1o) = 0;
+        const SectorId &sector,
+        const PreCommit1Output &pre_commit_1_output) = 0;
 
     virtual outcome::result<Commit1Output> sealCommit1(
         const SectorId &sector,
@@ -41,8 +42,8 @@ namespace fc::sector_storage {
         gsl::span<const PieceInfo> pieces,
         const SectorCids &cids) = 0;
 
-    virtual outcome::result<Proof> sealCommit2(const SectorId &sector,
-                                               const Commit1Output &c1o) = 0;
+    virtual outcome::result<Proof> sealCommit2(
+        const SectorId &sector, const Commit1Output &commit_1_output) = 0;
 
     virtual outcome::result<void> finalizeSector(const SectorId &sector) = 0;
 
