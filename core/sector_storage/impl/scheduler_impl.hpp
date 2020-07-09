@@ -38,7 +38,7 @@ namespace fc::sector_storage {
         std::unique_ptr<WorkerHandle> &&worker) override;
 
    private:
-    outcome::result<void> maybeScheduleRequest(const TaskRequest &request);
+    outcome::result<bool> maybeScheduleRequest(const TaskRequest &request);
 
     outcome::result<void> assignWorker(
         const std::pair<WorkerID, std::shared_ptr<WorkerHandle>> &worker,
@@ -46,10 +46,10 @@ namespace fc::sector_storage {
 
     outcome::result<void> freeWorker(WorkerID wid);
 
-    std::shared_mutex workers_lock_;
+    std::mutex workers_lock_;
     std::unordered_map<WorkerID, std::shared_ptr<WorkerHandle>> workers_;
 
-    std::shared_mutex request_lock_;
+    std::mutex request_lock_;
     std::multiset<TaskRequest> request_queue_;
   };
 
