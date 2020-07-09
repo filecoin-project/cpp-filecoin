@@ -290,20 +290,7 @@ namespace fc::sector_storage {
 
   outcome::result<primitives::WorkerInfo>
   sector_storage::LocalWorker::getInfo() {
-    std::string hostname = config_.hostname;
-    if (hostname.empty()) {
-      config_.hostname = boost::asio::ip::host_name();
-      hostname = config_.hostname;
-    }
-
     primitives::WorkerInfo result;
-    result.hostname = hostname;
-
-    result.resources.cpus = std::thread::hardware_concurrency();
-
-    if (result.resources.cpus == 0) {
-      return WorkerErrors::CANNOT_GET_NUMBER_OF_CPUS;
-    }
 
 #if __APPLE__
     size_t memorySize = sizeof(int64_t);
@@ -398,7 +385,23 @@ namespace fc::sector_storage {
 
     result.resources.reserved_memory =
         mem_info.virtual_used + mem_info.total - mem_info.available;
+#else
+    return WorkerErrors::UNSUPPORTED_PLATFORM;
 #endif
+
+    std::string hostname = config_.hostname;
+    if (hostname.empty()) {
+      config_.hostname = boost::asio::ip::host_name();
+      hostname = config_.hostname;
+    }
+
+    result.hostname = hostname;
+
+    result.resources.cpus = std::thread::hardware_concurrency();
+
+    if (result.resources.cpus == 0) {
+      return WorkerErrors::CANNOT_GET_NUMBER_OF_CPUS;
+    }
 
     OUTCOME_TRYA(result.resources.gpus, proofs::Proofs::getGPUDevices());
 

@@ -69,6 +69,7 @@ namespace fc::sector_storage {
     CANNOT_GET_PAGE_SIZE,
     CANNOT_OPEN_MEM_INFO_FILE,
     CANNOT_REMOVE_SECTOR,
+    UNSUPPORTED_PLATFORM,
   };
 }  // namespace fc::sector_storage
 

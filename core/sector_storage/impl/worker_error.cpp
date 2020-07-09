@@ -32,6 +32,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, WorkerErrors, e) {
       return "Worker: cannot open memory info file";
     case (WorkerErrors::CANNOT_REMOVE_SECTOR):
       return "Worker: some errors occurred while removing sector";
+    case (WorkerErrors::UNSUPPORTED_PLATFORM):
+      return "Worker: the platfrom not supported ";
     default:
       return "Worker: unknown error";
   }
