@@ -37,16 +37,16 @@ namespace fc::sector_storage::stores {
     return StoreErrors::INVALID_SECTOR_NAME;
   }
 
-  LocalStore::LocalStore(std::shared_ptr<LocalStorage> storage,
-                         std::shared_ptr<SectorIndex> index,
-                         gsl::span<std::string> urls)
+  LocalStoreImpl::LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
+                                 std::shared_ptr<SectorIndex> index,
+                                 gsl::span<std::string> urls)
       : storage_(std::move(storage)),
         index_(std::move(index)),
         urls_(urls.begin(), urls.end()) {
     logger_ = common::createLogger("Local Store");
   }
 
-  outcome::result<AcquireSectorResponse> LocalStore::acquireSector(
+  outcome::result<AcquireSectorResponse> LocalStoreImpl::acquireSector(
       SectorId sector,
       RegisteredProof seal_proof_type,
       SectorFileType existing,
@@ -58,17 +58,96 @@ namespace fc::sector_storage::stores {
 
     std::shared_lock lock(mutex_);
 
-    return acquireSectorWithoutLock(
-        sector, seal_proof_type, existing, allocate, can_seal);
+    AcquireSectorResponse result{};
+
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      if ((type & existing) == 0) {
+        continue;
+      }
+
+      auto storages_info_opt = index_->storageFindSector(sector, type, false);
+
+      if (storages_info_opt.has_error()) {
+        logger_->warn("Finding existing sector: "
+                      + storages_info_opt.error().message());
+        continue;
+      }
+
+      for (const auto &info : storages_info_opt.value()) {
+        auto store_path_iter = paths_.find(info.id);
+        if (store_path_iter == paths_.end()) {
+          continue;
+        }
+
+        if (store_path_iter->second.empty()) {
+          continue;
+        }
+
+        boost::filesystem::path spath(store_path_iter->second);
+        spath /= toString(type);
+        spath /= primitives::sector_file::sectorName(sector);
+
+        result.paths.setPathByType(type, spath.string());
+        result.storages.setPathByType(type, info.id);
+
+        existing = static_cast<SectorFileType>(existing ^ type);
+        break;
+      }
+
+      OUTCOME_TRY(path, result.paths.getPathByType(type));
+
+      if (path.empty()) {
+        return StoreErrors::NOT_FOUND_REQUESTED_SECTOR_TYPE;
+      }
+    }
+
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      if ((type & allocate) == 0) {
+        continue;
+      }
+
+      OUTCOME_TRY(sectors_info,
+                  index_->storageBestAlloc(type, seal_proof_type, can_seal));
+
+      std::string best_path;
+      StorageID best_storage;
+
+      for (const auto &info : sectors_info) {
+        auto path_iter = paths_.find(info.id);
+        if (path_iter == paths_.end()) {
+          continue;
+        }
+
+        if (path_iter->second.empty()) {
+          continue;
+        }
+
+        boost::filesystem::path spath(path_iter->second);
+        spath /= toString(type);
+        spath /= primitives::sector_file::sectorName(sector);
+
+        best_path = spath.string();
+        best_storage = info.id;
+        break;
+      }
+
+      if (best_path.empty()) {
+        return StoreErrors::NOT_FOUND_PATH;
+      }
+
+      result.paths.setPathByType(type, best_path);
+      result.storages.setPathByType(type, best_storage);
+      allocate = static_cast<SectorFileType>(allocate ^ type);
+    }
+
+    return result;
   }
 
-  outcome::result<void> LocalStore::remove(SectorId sector,
-                                           SectorFileType type) {
+  outcome::result<void> LocalStoreImpl::remove(SectorId sector,
+                                               SectorFileType type) {
     if (type == SectorFileType::FTNone || ((type & (type - 1)) != 0)) {
       return StoreErrors::REMOVE_SEVERAL_FILE_TYPES;
     }
-
-    std::unique_lock lock(mutex_);
 
     OUTCOME_TRY(storages_info, index_->storageFindSector(sector, type, false));
 
@@ -105,18 +184,16 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<void> LocalStore::moveStorage(SectorId sector,
-                                                RegisteredProof seal_proof_type,
-                                                SectorFileType types) {
-    std::unique_lock lock(mutex_);
+  outcome::result<void> LocalStoreImpl::moveStorage(
+      SectorId sector, RegisteredProof seal_proof_type, SectorFileType types) {
     OUTCOME_TRY(
         dest,
-        acquireSectorWithoutLock(
+        acquireSector(
             sector, seal_proof_type, SectorFileType::FTNone, types, false));
 
     OUTCOME_TRY(
         src,
-        acquireSectorWithoutLock(
+        acquireSector(
             sector, seal_proof_type, types, SectorFileType::FTNone, false));
 
     for (const auto &type : kSectorFileTypes) {
@@ -154,7 +231,8 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<FsStat> LocalStore::getFsStat(fc::primitives::StorageID id) {
+  outcome::result<FsStat> LocalStoreImpl::getFsStat(
+      fc::primitives::StorageID id) {
     std::shared_lock lock(mutex_);
 
     auto path_iter = paths_.find(id);
@@ -165,7 +243,7 @@ namespace fc::sector_storage::stores {
     return storage_->getStat(path_iter->second);
   }
 
-  outcome::result<void> LocalStore::openPath(const std::string &path) {
+  outcome::result<void> LocalStoreImpl::openPath(const std::string &path) {
     std::unique_lock lock(mutex_);
     auto root = boost::filesystem::path(path);
     std::ifstream file{(root / kMetaFileName).string(),
@@ -228,18 +306,18 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<std::unique_ptr<LocalStore>> LocalStore::newLocalStore(
+  outcome::result<std::unique_ptr<LocalStore>> LocalStoreImpl::newLocalStore(
       const std::shared_ptr<LocalStorage> &storage,
       const std::shared_ptr<SectorIndex> &index,
       gsl::span<std::string> urls) {
-    struct make_unique_enabler : public LocalStore {
+    struct make_unique_enabler : public LocalStoreImpl {
       make_unique_enabler(const std::shared_ptr<LocalStorage> &storage,
                           const std::shared_ptr<SectorIndex> &index,
                           gsl::span<std::string> urls)
-          : LocalStore{storage, index, urls} {};
+          : LocalStoreImpl{storage, index, urls} {};
     };
 
-    std::unique_ptr<LocalStore> local =
+    std::unique_ptr<LocalStoreImpl> local =
         std::make_unique<make_unique_enabler>(storage, index, urls);
 
     if (local->logger_ == nullptr) {
@@ -255,89 +333,28 @@ namespace fc::sector_storage::stores {
     return std::move(local);
   }
 
-  outcome::result<AcquireSectorResponse> LocalStore::acquireSectorWithoutLock(
-      SectorId sector,
-      RegisteredProof seal_proof_type,
-      SectorFileType existing,
-      SectorFileType allocate,
-      bool can_seal) {
-    AcquireSectorResponse result{};
+  outcome::result<std::vector<primitives::StoragePath>>
+  LocalStoreImpl::getAccessiblePaths() {
+    std::shared_lock lock(mutex_);
 
-    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
-      if ((type & existing) == 0) {
+    std::vector<primitives::StoragePath> res;
+    for (const auto &[id, path] : paths_) {
+      if (path.empty()) {
         continue;
       }
 
-      auto sectors_info_opt = index_->storageFindSector(sector, type, false);
+      OUTCOME_TRY(info, index_->getStorageInfo(id));
 
-      if (sectors_info_opt.has_error()) {
-        logger_->warn("Finding existing sector: "
-                      + sectors_info_opt.error().message());
-        continue;
-      }
-
-      for (const auto &info : sectors_info_opt.value()) {
-        auto store_path_iter = paths_.find(info.id);
-        if (store_path_iter == paths_.end()) {
-          continue;
-        }
-
-        if (store_path_iter->second.empty()) {
-          continue;
-        }
-
-        boost::filesystem::path spath(store_path_iter->second);
-        spath /= toString(type);
-        spath /= primitives::sector_file::sectorName(sector);
-
-        result.paths.setPathByType(type, spath.string());
-        result.storages.setPathByType(type, info.id);
-
-        existing = static_cast<SectorFileType>(existing ^ type);
-        break;
-      }
+      res.push_back(primitives::StoragePath{
+          .id = id,
+          .weight = info.weight,
+          .local_path = path,
+          .can_seal = info.can_seal,
+          .can_store = info.can_store,
+      });
     }
 
-    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
-      if ((type & allocate) == 0) {
-        continue;
-      }
-
-      OUTCOME_TRY(sectors_info,
-                  index_->storageBestAlloc(type, seal_proof_type, can_seal));
-
-      std::string best_path;
-      StorageID best_storage;
-
-      for (const auto &info : sectors_info) {
-        auto path_iter = paths_.find(info.id);
-        if (path_iter == paths_.end()) {
-          continue;
-        }
-
-        if (path_iter->second.empty()) {
-          continue;
-        }
-
-        boost::filesystem::path spath(path_iter->second);
-        spath /= toString(type);
-        spath /= primitives::sector_file::sectorName(sector);
-
-        best_path = spath.string();
-        best_storage = info.id;
-        break;
-      }
-
-      if (best_path.empty()) {
-        return StoreErrors::NOT_FOUND_PATH;
-      }
-
-      result.paths.setPathByType(type, best_path);
-      result.storages.setPathByType(type, best_storage);
-      allocate = static_cast<SectorFileType>(allocate ^ type);
-    }
-
-    return result;
+    return std::move(res);
   }
 
 }  // namespace fc::sector_storage::stores

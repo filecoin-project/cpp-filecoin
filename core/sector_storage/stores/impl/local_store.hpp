@@ -25,15 +25,23 @@ namespace fc::sector_storage::stores {
 
   const std::string kMetaFileName = "sectorstore.json";
 
-  // TODO(artyom-yurin): [FIL-231] Health Report for storages
   class LocalStore : public Store {
+   public:
+    virtual outcome::result<void> openPath(const std::string &path) = 0;
+
+    virtual outcome::result<std::vector<primitives::StoragePath>>
+    getAccessiblePaths() = 0;
+  };
+
+  // TODO(artyom-yurin): [FIL-231] Health Report for storages
+  class LocalStoreImpl : public LocalStore {
    public:
     static outcome::result<std::unique_ptr<LocalStore>> newLocalStore(
         const std::shared_ptr<LocalStorage> &storage,
         const std::shared_ptr<SectorIndex> &index,
         gsl::span<std::string> urls);
 
-    outcome::result<void> openPath(const std::string &path);
+    outcome::result<void> openPath(const std::string &path) override;
 
     outcome::result<AcquireSectorResponse> acquireSector(
         SectorId sector,
@@ -50,17 +58,13 @@ namespace fc::sector_storage::stores {
 
     outcome::result<FsStat> getFsStat(StorageID id) override;
 
-   private:
-    LocalStore(std::shared_ptr<LocalStorage> storage,
-               std::shared_ptr<SectorIndex> index,
-               gsl::span<std::string> urls);
+    outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths()
+        override;
 
-    outcome::result<AcquireSectorResponse> acquireSectorWithoutLock(
-        SectorId sector,
-        RegisteredProof seal_proof_type,
-        SectorFileType existing,
-        SectorFileType allocate,
-        bool can_seal);
+   private:
+    LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
+                   std::shared_ptr<SectorIndex> index,
+                   gsl::span<std::string> urls);
 
     std::shared_ptr<LocalStorage> storage_;
     std::shared_ptr<SectorIndex> index_;

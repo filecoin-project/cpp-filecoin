@@ -75,9 +75,6 @@ namespace fc::primitives::piece {
     return outcome::success();
   }
 
-  PieceInfo::PieceInfo(const PaddedPieceSize &padded_size, CID piece_CID)
-      : size(padded_size), cid(std::move(piece_CID)) {}
-
   UnpaddedPieceSize paddedSize(uint64_t size) {
     int logv = static_cast<int>(floor(std::log2(size))) + 1;
 
@@ -88,5 +85,12 @@ namespace fc::primitives::piece {
     }
 
     return PaddedPieceSize(1 << (logv + 1)).unpadded();
+  }
+
+  PaddedByteIndex paddedIndex(UnpaddedByteIndex index) {
+    return PaddedByteIndex(UnpaddedPieceSize(index).padded());
+  }
+  UnpaddedByteIndex unpaddedIndex(PaddedByteIndex index) {
+    return UnpaddedByteIndex(PaddedPieceSize(index).unpadded());
   }
 }  // namespace fc::primitives::piece

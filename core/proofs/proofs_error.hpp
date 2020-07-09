@@ -18,6 +18,8 @@ namespace fc::proofs {
     NO_SUCH_SEAL_PROOF,
     NO_SUCH_POST_PROOF,
     INVALID_POST_PROOF,
+    OUT_OF_BOUND,
+    UNABLE_MOVE_CURSOR,
     UNKNOWN = 1000
   };
 

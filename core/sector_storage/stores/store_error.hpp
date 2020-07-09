@@ -33,6 +33,7 @@ namespace fc::sector_storage::stores {
     UNKNOWN_CONTENT_TYPE,
     CANNOT_REMOVE_OUTPUT_PATH,
     CANNOT_MOVE_FILE,
+    NOT_FOUND_REQUESTED_SECTOR_TYPE,
   };
 }  // namespace fc::sector_storage::stores
 

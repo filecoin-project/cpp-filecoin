@@ -519,7 +519,8 @@ namespace fc::proofs {
     }
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
-    if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_WRONLY))
+    if ((staged_sector_fd =
+             open(staged_sector_file_path.c_str(), O_RDWR | O_CREAT, 0644))
         == -1) {
       return ProofsError::CANNOT_OPEN_FILE;
     }
@@ -557,10 +558,33 @@ namespace fc::proofs {
 
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
-    if ((staged_sector_fd =
-             open(staged_sector_file_path.c_str(), O_WRONLY | O_APPEND))
+    if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR, 0644))
         == -1) {
       return ProofsError::CANNOT_OPEN_FILE;
+    }
+
+    OUTCOME_TRY(max_size, primitives::sector::getSectorSize(proof_type));
+
+    UnpaddedPieceSize offset;
+
+    for (const auto &piece_size : existing_piece_sizes) {
+      offset += piece_size;
+    }
+
+    if ((offset.padded() + piece_bytes.padded()) > max_size) {
+      // NOLINTNEXTLINE(readability-implicit-bool-conversion)
+      if (close(staged_sector_fd))
+        logger_->warn("writeWithAlignment: error in closing file "
+                      + staged_sector_file_path);
+      return ProofsError::OUT_OF_BOUND;
+    }
+
+    if (lseek(staged_sector_fd, offset.padded(), SEEK_SET) == -1) {
+      // NOLINTNEXTLINE(readability-implicit-bool-conversion)
+      if (close(staged_sector_fd))
+        logger_->warn("writeWithAlignment: error in closing file "
+                      + staged_sector_file_path);
+      return ProofsError::UNABLE_MOVE_CURSOR;
     }
 
     std::vector<uint64_t> raw{existing_piece_sizes.begin(),
@@ -574,14 +598,14 @@ namespace fc::proofs {
                                                       raw.size()),
                              fil_destroy_write_with_alignment_response);
 
-    if (res_ptr->status_code != 0) {
-      logger_->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
-    }
     // NOLINTNEXTLINE(readability-implicit-bool-conversion)
     if (close(staged_sector_fd))
       logger_->warn("writeWithAlignment: error in closing file "
                     + staged_sector_file_path);
+    if (res_ptr->status_code != 0) {
+      logger_->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
+      return ProofsError::UNKNOWN;
+    }
     return cppWriteWithAlignmentResult(*res_ptr);
   }
 

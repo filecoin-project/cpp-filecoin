@@ -1,3 +1,7 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
 
 #include "sector_storage/stores/store_error.hpp"
 
@@ -50,6 +54,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
       return "Store: cannot remove output path";
     case (StoreErrors::CANNOT_MOVE_FILE):
       return "Store: cannot move file";
+    case (StoreErrors::NOT_FOUND_REQUESTED_SECTOR_TYPE):
+      return "Store: Not found the requested type";
     default:
       return "Store: unknown error";
   }

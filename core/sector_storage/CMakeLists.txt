@@ -5,18 +5,16 @@
 
 add_subdirectory(stores)
 
-add_library(sector_storage
-        impl/sector_storage_impl.cpp
-        impl/sector_storage_error.cpp
+add_library(worker
+        impl/local_worker.cpp
+        impl/worker_error.cpp
         )
 
-target_link_libraries(sector_storage
-        filecoin_ffi
+target_link_libraries(worker
         outcome
-        piece
-        sector
-        piece_data
         sector_file
+        piece
+        store
         proofs
-        Boost::filesystem
+        logger
         )
