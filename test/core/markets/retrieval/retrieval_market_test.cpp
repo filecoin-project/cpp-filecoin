@@ -24,8 +24,8 @@ namespace fc::markets::retrieval::test {
     auto response_res = future.get();
     EXPECT_TRUE(response_res.has_value());
     EXPECT_EQ(response_res.value().response_status,
-              QueryResponseStatus::QueryResponseAvailable);
+              QueryResponseStatus::kQueryResponseUnavailable);
     EXPECT_EQ(response_res.value().item_status,
-              QueryItemStatus::QueryItemAvailable);
+              QueryItemStatus::kQueryItemUnavailable);
   }
 }  // namespace fc::markets::retrieval::test

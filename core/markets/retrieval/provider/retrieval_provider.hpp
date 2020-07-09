@@ -6,13 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROVIDER_HPP
 #define CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROVIDER_HPP
 
-#include <functional>
-
-#include "common/outcome.hpp"
-#include "markets/retrieval/protocols/query_protocol.hpp"
-#include "markets/retrieval/types.hpp"
+#include "primitives/types.hpp"
 
 namespace fc::markets::retrieval::provider {
+  using primitives::TokenAmount;
+
   /**
    * @class Retrieval market provider
    */
@@ -43,6 +41,7 @@ namespace fc::markets::retrieval::provider {
     virtual void setPaymentInterval(uint64_t payment_interval,
                                     uint64_t payment_interval_increase) = 0;
   };
+
 }  // namespace fc::markets::retrieval::provider
 
 #endif

@@ -41,10 +41,17 @@ namespace fc::markets::retrieval::client {
               request,
               [stream{stream_res.value()}, response_handler](auto written_res) {
                 IF_ERROR_RETURN(written_res, response_handler);
-                stream->template read<QueryResponse>(
-                    [response_handler](auto response) {
-                      response_handler(response);
+                stream->template read<QueryResponse>([response_handler,
+                                                      stream](auto response) {
+                  if (!stream->stream()->isClosed()) {
+                    stream->stream()->close([response_handler](auto closed) {
+                      if (closed.has_error()) {
+                        response_handler(closed.error());
+                      }
                     });
+                  }
+                  response_handler(response);
+                });
               });
         });
   }

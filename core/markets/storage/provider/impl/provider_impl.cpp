@@ -425,7 +425,7 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(
         piece_info,
         miner_api_->LocatePieceForDealWithinSector(deal->deal_id, tipset_key));
-    return piece_info;
+    return std::move(piece_info);
   }
 
   outcome::result<void> StorageProviderImpl::recordPieceInfo(
