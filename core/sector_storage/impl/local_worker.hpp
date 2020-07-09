@@ -7,15 +7,20 @@
 #define CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
 
 #include "common/logger.hpp"
-#include "primitives/worker_config.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/worker.hpp"
 
 namespace fc::sector_storage {
 
+  struct WorkerConfig {
+    std::string hostname;
+    primitives::sector::RegisteredProof seal_proof_type;
+    std::vector<primitives::TaskType> task_types;
+  };
+
   class LocalWorker : public Worker {
    public:
-    LocalWorker(primitives::WorkerConfig config,
+    LocalWorker(WorkerConfig config,
                 std::shared_ptr<stores::Store> store,
                 std::shared_ptr<stores::LocalStore> local,
                 std::shared_ptr<stores::SectorIndex> sector_index);
@@ -78,7 +83,7 @@ namespace fc::sector_storage {
     std::shared_ptr<stores::LocalStore> local_store_;
     std::shared_ptr<stores::SectorIndex> index_;
 
-    primitives::WorkerConfig config_;
+    WorkerConfig config_;
     common::Logger logger_;
   };
 

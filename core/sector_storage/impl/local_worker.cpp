@@ -19,7 +19,7 @@
 
 namespace fc::sector_storage {
 
-  LocalWorker::LocalWorker(primitives::WorkerConfig config,
+  LocalWorker::LocalWorker(WorkerConfig config,
                            std::shared_ptr<stores::Store> store,
                            std::shared_ptr<stores::LocalStore> local,
                            std::shared_ptr<stores::SectorIndex> sector_index)

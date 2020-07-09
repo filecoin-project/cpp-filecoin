@@ -19,7 +19,6 @@
 #include "testutil/storage/base_fs_test.hpp"
 
 using fc::primitives::StoragePath;
-using fc::primitives::WorkerConfig;
 using fc::primitives::piece::PieceData;
 using fc::primitives::piece::UnpaddedPieceSize;
 using fc::primitives::sector::InteractiveRandomness;
@@ -28,6 +27,7 @@ using fc::proofs::PieceInfo;
 using fc::proofs::ProofParamProvider;
 using fc::proofs::SealVerifyInfo;
 using fc::sector_storage::LocalWorker;
+using fc::sector_storage::WorkerConfig;
 using fc::sector_storage::stores::LocalStoreMock;
 using fc::sector_storage::stores::SectorIndexMock;
 using fc::sector_storage::stores::StoreMock;
