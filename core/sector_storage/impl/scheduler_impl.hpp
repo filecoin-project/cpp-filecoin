@@ -68,9 +68,9 @@ namespace fc::sector_storage {
     outcome::result<bool> maybeScheduleRequest(
         const std::shared_ptr<TaskRequest> &request);
 
-    outcome::result<void> assignWorker(
-        const std::pair<WorkerID, std::shared_ptr<WorkerHandle>> &worker,
-        const TaskRequest &request);
+    void assignWorker(WorkerID wid,
+                      const std::shared_ptr<WorkerHandle> &worker,
+                      const std::shared_ptr<TaskRequest> &request);
 
     void freeWorker(WorkerID wid);
 

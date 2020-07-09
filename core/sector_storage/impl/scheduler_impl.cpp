@@ -4,6 +4,7 @@
  */
 
 #include "sector_storage/impl/scheduler_impl.hpp"
+#include <thread>
 
 namespace fc::sector_storage {
   outcome::result<void> SchedulerImpl::schedule(
@@ -46,13 +47,80 @@ namespace fc::sector_storage {
 
   outcome::result<bool> SchedulerImpl::maybeScheduleRequest(
       const std::shared_ptr<TaskRequest> &request) {
-    return outcome::success();
+    std::lock_guard<std::mutex> lock(workers_lock_);
+
+    std::vector<WorkerID> acceptable;
+    uint64_t tried = 0;
+
+    // TODO: get necessary resources
+
+    for (const auto &[wid, worker] : workers_) {
+      OUTCOME_TRY(satisfies,
+                  request->sel->is_satisfying(
+                      request->task_type, seal_proof_type_, worker));
+
+      if (!satisfies) {
+        continue;
+      }
+      tried++;
+
+      // TODO: check can handle or not
+
+      acceptable.push_back(wid);
+    }
+
+    if (!acceptable.empty()) {
+      bool does_error_occurs = false;
+      std::stable_sort(acceptable.begin(),
+                       acceptable.end(),
+                       [&](WorkerID lhs, WorkerID rhs) {
+                         auto maybe_res = request->sel->is_preferred(
+                             request->task_type, workers_[lhs], workers_[rhs]);
+
+                         if (maybe_res.has_error()) {
+                           // TODO: Log it
+                           does_error_occurs = true;
+                           return false;
+                         }
+
+                         return maybe_res.value();
+                       });
+
+      if (does_error_occurs) {
+        return outcome::success();  // TODO: ERROR
+      }
+
+      WorkerID wid = acceptable[0];
+
+      std::thread t(
+          &SchedulerImpl::assignWorker, this, wid, workers_[wid], request);
+      t.detach();
+
+      return true;
+    }
+
+    if (tried == 0) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    return false;
   }
 
-  outcome::result<void> SchedulerImpl::assignWorker(
-      const std::pair<WorkerID, std::shared_ptr<WorkerHandle>> &worker,
-      const TaskRequest &request) {
-    return outcome::success();
+  void SchedulerImpl::assignWorker(
+      WorkerID wid,
+      const std::shared_ptr<WorkerHandle> &worker,
+      const std::shared_ptr<TaskRequest> &request) {
+    // TODO: get resources
+
+    // TODO: prepare
+
+    // TODO: lock
+
+    // TODO: if error. Send Err and Free Worker
+
+    // TODO: run with resources
+
+    // TODO: check that everthing is correct
   }
 
   void SchedulerImpl::freeWorker(WorkerID wid) {
