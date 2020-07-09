@@ -13,7 +13,7 @@
 #include <utility>
 
 namespace fc::sector_storage {
-  using WorkerID = std::string;
+  using WorkerID = uint64_t;
 
   struct TaskRequest {
     inline TaskRequest(const SectorId &sector,
@@ -38,6 +38,15 @@ namespace fc::sector_storage {
     WorkerAction prepare;
     WorkerAction work;
 
+    inline void respond(const std::error_code &resp) {
+      if (resp) {
+        response = resp;
+      } else {
+        response = outcome::success();
+      }
+      cv_.notify_one();
+    }
+
     boost::optional<outcome::result<void>> response;
     std::mutex mutex_;
     std::condition_variable cv_;
@@ -53,8 +62,7 @@ namespace fc::sector_storage {
         const WorkerAction &work,
         uint64_t priority) override;
 
-    outcome::result<void> newWorker(
-        std::unique_ptr<WorkerHandle> &&worker) override;
+    void newWorker(std::unique_ptr<WorkerHandle> &&worker) override;
 
    private:
     outcome::result<bool> maybeScheduleRequest(
@@ -64,9 +72,12 @@ namespace fc::sector_storage {
         const std::pair<WorkerID, std::shared_ptr<WorkerHandle>> &worker,
         const TaskRequest &request);
 
-    outcome::result<void> freeWorker(WorkerID wid);
+    void freeWorker(WorkerID wid);
+
+    RegisteredProof seal_proof_type_;
 
     std::mutex workers_lock_;
+    WorkerID current_worker_id_;
     std::unordered_map<WorkerID, std::shared_ptr<WorkerHandle>> workers_;
 
     std::mutex request_lock_;

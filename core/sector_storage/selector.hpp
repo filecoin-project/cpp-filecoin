@@ -21,6 +21,7 @@ namespace fc::sector_storage {
   using primitives::sector::RegisteredProof;
 
   class WorkerSelector {
+   public:
     virtual ~WorkerSelector() = default;
 
     virtual outcome::result<bool> is_satisfying(

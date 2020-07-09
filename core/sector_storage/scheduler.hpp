@@ -32,8 +32,7 @@ namespace fc::sector_storage {
         const WorkerAction &work,
         uint64_t priority = kDefaultTaskPriority) = 0;
 
-    virtual outcome::result<void> newWorker(
-        std::unique_ptr<WorkerHandle> &&worker) = 0;
+    virtual void newWorker(std::unique_ptr<WorkerHandle> &&worker) = 0;
   };
 
 }  // namespace fc::sector_storage
