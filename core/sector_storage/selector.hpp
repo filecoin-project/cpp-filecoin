@@ -9,14 +9,12 @@
 #include "common/outcome.hpp"
 #include "primitives/seal_tasks/task.hpp"
 #include "primitives/sector/sector.hpp"
+#include "sector_storage/worker.hpp"
 
 namespace fc::sector_storage {
-  class Worker;
-  class WorkerInfo {}; // TODO: Replace with real classes
-
   struct WorkerHandle {
     std::shared_ptr<Worker> worker;
-    WorkerInfo info;
+    primitives::WorkerInfo info;
   };
 
   using primitives::TaskType;
