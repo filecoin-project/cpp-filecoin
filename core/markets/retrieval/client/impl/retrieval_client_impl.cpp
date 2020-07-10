@@ -147,7 +147,8 @@ namespace fc::markets::retrieval::client {
                                deal_state->miner_wallet,
                                deal_state->total_funds));
     deal_state->payment_channel_address = paychannel_funded.channel;
-    OUTCOME_TRY(api_->PaychAllocateLane(paychannel_funded.channel));
+    OUTCOME_TRYA(deal_state->lane_id,
+                 api_->PaychAllocateLane(paychannel_funded.channel));
     return outcome::success();
   }
 
