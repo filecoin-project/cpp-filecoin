@@ -55,11 +55,17 @@ namespace fc::markets::retrieval::client {
      * @param payload_cid - identifier of the data to retrieve
      * @param deal_params - deal properties
      * @param provider_peer - provider to make a deal
+     * @param client_wallet - client wallet to send funds for deal from
+     * @param miner_wallet - miner wallet to pay to
+     * @param total_funds - funds for deal
      * @param handler - deal response handler, called on error or completion
      */
     virtual void retrieve(const CID &payload_cid,
                           const DealProposalParams &deal_params,
                           const PeerInfo &provider_peer,
+                          const Address &client_wallet,
+                          const Address &miner_wallet,
+                          const TokenAmount &total_funds,
                           const RetrieveResponseHandler &handler) = 0;
   };
 
