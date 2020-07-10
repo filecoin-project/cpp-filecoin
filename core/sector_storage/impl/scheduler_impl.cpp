@@ -94,7 +94,7 @@ namespace fc::sector_storage {
 
       std::thread t(
           &SchedulerImpl::assignWorker, this, wid, workers_[wid], request);
-      t.detach();
+      t.detach();  // TODO: Make it via boost::asio
 
       return true;
     }
