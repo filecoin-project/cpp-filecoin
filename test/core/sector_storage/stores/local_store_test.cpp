@@ -24,6 +24,7 @@ using fc::primitives::sector_file::SectorFileType;
 using fc::sector_storage::stores::kMetaFileName;
 using fc::sector_storage::stores::LocalStorageMock;
 using fc::sector_storage::stores::LocalStore;
+using fc::sector_storage::stores::LocalStoreImpl;
 using fc::sector_storage::stores::SectorIndexMock;
 using fc::sector_storage::stores::StorageInfo;
 using fc::sector_storage::stores::StoreErrors;
@@ -61,7 +62,7 @@ class LocalStoreTest : public test::BaseFS_Test {
         .WillOnce(testing::Return(
             fc::outcome::success(std::vector<std::string>({}))));
 
-    auto maybe_local = LocalStore::newLocalStore(storage_, index_, urls_);
+    auto maybe_local = LocalStoreImpl::newLocalStore(storage_, index_, urls_);
     local_store_ = std::move(maybe_local.value());
   }
 

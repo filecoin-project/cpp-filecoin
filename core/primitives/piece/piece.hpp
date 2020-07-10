@@ -69,10 +69,7 @@ namespace fc::primitives::piece {
     return s;
   }
 
-  class PieceInfo {
-   public:
-    PieceInfo(const PaddedPieceSize &size, CID piece_CID);
-
+  struct PieceInfo {
     PaddedPieceSize size;
     CID cid;
   };
@@ -86,6 +83,12 @@ namespace fc::primitives::piece {
    * number of not-bit-padded bytes that would fit into a sector of that size.
    */
   UnpaddedPieceSize paddedSize(uint64_t size);
+
+  using UnpaddedByteIndex = uint64_t;
+  using PaddedByteIndex = uint64_t;
+
+  PaddedByteIndex paddedIndex(UnpaddedByteIndex index);
+  UnpaddedByteIndex unpaddedIndex(PaddedByteIndex index);
 
 };      // namespace fc::primitives::piece
 #endif  // CPP_FILECOIN_PIECE_HPP

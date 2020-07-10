@@ -307,7 +307,8 @@ namespace fc::vm::actor::builtin::market {
     std::vector<PieceInfo> pieces;
     for (auto deal_id : params.deals) {
       OUTCOME_TRY(deal, state.proposals.get(deal_id));
-      pieces.emplace_back(PieceInfo{deal.piece_size, deal.piece_cid});
+      pieces.emplace_back(
+          PieceInfo{.size = deal.piece_size, .cid = deal.piece_cid});
     }
     return runtime.computeUnsealedSectorCid(params.sector_type, pieces);
   }

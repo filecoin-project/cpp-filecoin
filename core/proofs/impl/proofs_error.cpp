@@ -17,6 +17,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofsError, e) {
       return "Proofs: No mapping to FFIRegisteredPoStProof";
     case (ProofsError::INVALID_POST_PROOF):
       return "Proofs: No mapping to RegisteredPoSt";
+    case (ProofsError::OUT_OF_BOUND):
+      return "Proofs: Piece will exceed the maximum size";
+    case (ProofsError::UNABLE_MOVE_CURSOR):
+      return "Proofs: Unable to move cursor to write piece";
     default:
       return "Proofs: unknown error";
   }
