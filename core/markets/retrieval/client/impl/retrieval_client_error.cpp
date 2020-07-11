@@ -12,10 +12,21 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::retrieval::client,
 
   switch (e) {
     case RetrievalClientError::kEarlyTermination:
-      return "RetrievalClientError: deal terminated early";
+      return "RetrievalClient: deal terminated early";
+    case RetrievalClientError::kResponseDealRejected:
+      return "RetrievalClient: deal rejected";
+    case RetrievalClientError::kResponseNotFound:
+      return "RetrievalClient: piece not found";
     case RetrievalClientError::kUnknownResponseReceived:
-      return "RetrievalClientError: unknown response";
+      return "RetrievalClient: unknown response";
+    case RetrievalClientError::kRequestedTooMuch:
+      return "RetrievalClient: amount requested more than left";
+    case RetrievalClientError::kBadPaymentRequestBytesNotReceived:
+      return "RetrievalClient: not enough bytes received between payment "
+             "requests";
+    case RetrievalClientError::kBadPaymentRequestTooMuch:
+      return "RetrievalClient: too much money requested for bytes sent";
   }
 
-  return "RetrievalClientError: unknown error";
+  return "RetrievalClient: unknown error";
 }

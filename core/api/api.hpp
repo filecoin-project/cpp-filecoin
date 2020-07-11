@@ -385,8 +385,8 @@ namespace fc::api {
     API_METHOD(PaychAllocateLane, LaneId, const Address &)
 
     /**
-     * Get or create payment channel
-     * Searcg for payment channel in local storage.
+     * Get or create payment channel and waits for message is committed
+     * Search for payment channel in local storage.
      * If found, adds ensure_funds to payment channel actor.
      * If not found, creates payment channel actor with ensure_funds
      * @param from address
