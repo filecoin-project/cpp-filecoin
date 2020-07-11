@@ -229,8 +229,8 @@ namespace fc::markets::retrieval::client {
     }
     // check if payment requested > price of bytes received
     if (payment_requested
-        > (deal_state->total_received - deal_state->bytes_paid_for)
-              * deal_state->proposal.params.price_per_byte) {
+        > ((deal_state->total_received - deal_state->bytes_paid_for)
+           * deal_state->proposal.params.price_per_byte)) {
       failDeal(deal_state, RetrievalClientError::kBadPaymentRequestTooMuch);
       return;
     }
