@@ -29,12 +29,12 @@ namespace fc::primitives {
     outcome::result<void> withResources(
         const WorkerResources &worker_resources,
         const Resources &resources,
+        std::mutex &locker,
         const std::function<outcome::result<void>()> &callback);
 
     double utilization(const WorkerResources &worker_resources);
 
    private:
-    std::mutex mutex_;
     bool unlock_;
     std::condition_variable cv_;
   };

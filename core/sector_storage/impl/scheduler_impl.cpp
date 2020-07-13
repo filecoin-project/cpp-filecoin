@@ -59,7 +59,7 @@ namespace fc::sector_storage {
     auto resource_iter =
         primitives::kResourceTable.find({request->task_type, seal_proof_type_});
 
-    Resources need_resources;
+    Resources need_resources{};
     if (resource_iter != primitives::kResourceTable.end()) {
       need_resources = resource_iter->second;
     }
@@ -126,22 +126,47 @@ namespace fc::sector_storage {
     auto resource_iter =
         primitives::kResourceTable.find({request->task_type, seal_proof_type_});
 
-    Resources need_resources;
+    Resources need_resources{};
     if (resource_iter != primitives::kResourceTable.end()) {
       need_resources = resource_iter->second;
     }
 
-    // TODO: get resources
+    worker->preparing.add(worker->info.resources, need_resources);
 
-    // TODO: prepare
+    auto maybe_err = request->prepare(worker->worker);
+    std::unique_lock<std::mutex> lock(workers_lock_);
+    if (maybe_err.has_error()) {
+      worker->preparing.free(worker->info.resources, need_resources);
+      lock.unlock();
+      freeWorker(wid);
+      request->respond(maybe_err.error());
+      return;
+    }
 
-    // TODO: lock
+    maybe_err = worker->active.withResources(
+        worker->info.resources,
+        need_resources,
+        workers_lock_,
+        [&]() -> outcome::result<void> {
+          worker->preparing.free(worker->info.resources, need_resources);
+          lock.unlock();
 
-    // TODO: if error. Send Err and Free Worker
+          auto res = request->work(worker->worker);
 
-    // TODO: run with resources
+          if (res.has_error()) {
+            request->respond(res.error());
+          } else {
+            request->respond(std::error_code());
+          }
 
-    // TODO: check that everthing is correct
+          freeWorker(wid);
+          lock.lock();
+          return outcome::success();
+        });
+
+    if (maybe_err.has_error()) {
+      // TODO: log it
+    }
   }
 
   void SchedulerImpl::freeWorker(WorkerID wid) {
