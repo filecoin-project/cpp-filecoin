@@ -12,9 +12,20 @@
 #include "sector_storage/worker.hpp"
 
 namespace fc::sector_storage {
+
+  struct ActiveResources {
+    uint64_t memory_used_min;
+    uint64_t memory_used_max;
+    bool gpu_used;
+    uint64_t cpu_use;
+  };
+
   struct WorkerHandle {
     std::shared_ptr<Worker> worker;
     primitives::WorkerInfo info;
+
+    ActiveResources preparing;
+    ActiveResources active;
   };
 
   using primitives::TaskType;

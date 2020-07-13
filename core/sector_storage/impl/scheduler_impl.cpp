@@ -5,8 +5,50 @@
 
 #include "sector_storage/impl/scheduler_impl.hpp"
 #include <thread>
+#include "primitives/resources/resources.hpp"
 
 namespace fc::sector_storage {
+  using primitives::Resources;
+  using primitives::WorkerResources;
+
+  bool canHandleRequest(const Resources &need_resources,
+                        const WorkerResources &resources,
+                        const ActiveResources &active) {
+    // TODO: dedupe needRes.BaseMinMemory per task type
+    // (don't add if that task is already running)
+    uint64_t min_need_memory =
+        resources.reserved_memory + active.memory_used_min
+        + need_resources.min_memory + need_resources.base_min_memory;
+    if (min_need_memory > resources.physical_memory) {
+      return false;
+    }
+
+    uint64_t max_need_memory =
+        resources.reserved_memory + active.memory_used_min
+        + need_resources.max_memory + need_resources.base_min_memory;
+    if (max_need_memory > (resources.swap_memory + resources.physical_memory)) {
+      return false;
+    }
+
+    if (need_resources.threads) {
+      if ((active.cpu_use + *need_resources.threads) > resources.cpus) {
+        return false;
+      }
+    } else {
+      if (active.cpu_use > 0) {
+        return false;
+      }
+    }
+
+    if (!resources.gpus.empty() && need_resources.can_gpu) {
+      if (active.gpu_used) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   outcome::result<void> SchedulerImpl::schedule(
       const primitives::sector::SectorId &sector,
       const primitives::TaskType &task_type,
@@ -52,7 +94,13 @@ namespace fc::sector_storage {
     std::vector<WorkerID> acceptable;
     uint64_t tried = 0;
 
-    // TODO: get necessary resources
+    auto resource_iter =
+        primitives::kResourceTable.find({request->task_type, seal_proof_type_});
+
+    Resources need_resources;
+    if (resource_iter != primitives::kResourceTable.end()) {
+      need_resources = resource_iter->second;
+    }
 
     for (const auto &[wid, worker] : workers_) {
       OUTCOME_TRY(satisfies,
@@ -64,7 +112,10 @@ namespace fc::sector_storage {
       }
       tried++;
 
-      // TODO: check can handle or not
+      if (!canHandleRequest(
+              need_resources, worker->info.resources, worker->preparing)) {
+        continue;
+      }
 
       acceptable.push_back(wid);
     }
