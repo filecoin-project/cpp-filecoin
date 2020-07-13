@@ -7,18 +7,15 @@
 #define CPP_FILECOIN_CORE_SECTOR_STORAGE_SELECTOR_HPP
 
 #include "common/outcome.hpp"
+#include "primitives/resources/active_resources.hpp"
 #include "primitives/seal_tasks/task.hpp"
 #include "primitives/sector/sector.hpp"
 #include "sector_storage/worker.hpp"
 
 namespace fc::sector_storage {
-
-  struct ActiveResources {
-    uint64_t memory_used_min;
-    uint64_t memory_used_max;
-    bool gpu_used;
-    uint64_t cpu_use;
-  };
+  using primitives::ActiveResources;
+  using primitives::TaskType;
+  using primitives::sector::RegisteredProof;
 
   struct WorkerHandle {
     std::shared_ptr<Worker> worker;
@@ -27,9 +24,6 @@ namespace fc::sector_storage {
     ActiveResources preparing;
     ActiveResources active;
   };
-
-  using primitives::TaskType;
-  using primitives::sector::RegisteredProof;
 
   class WorkerSelector {
    public:
