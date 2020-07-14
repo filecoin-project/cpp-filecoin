@@ -25,6 +25,7 @@ add_library(scheduler
 target_link_libraries(scheduler
         outcome
         resources
+        logger
         worker
         Boost::boost
         )

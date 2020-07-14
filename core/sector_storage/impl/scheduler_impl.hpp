@@ -87,6 +87,8 @@ namespace fc::sector_storage {
         request_queue_;
 
     boost::asio::thread_pool pool_;
+
+    common::Logger logger_;
   };
 
 }  // namespace fc::sector_storage

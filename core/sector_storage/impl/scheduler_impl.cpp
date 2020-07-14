@@ -92,7 +92,8 @@ namespace fc::sector_storage {
                              request->task_type, workers_[lhs], workers_[rhs]);
 
                          if (maybe_res.has_error()) {
-                           // TODO: Log it
+                           logger_->error("selecting best worker: "
+                                          + maybe_res.error().message());
                            does_error_occurs = true;
                            return false;
                          }
@@ -164,7 +165,7 @@ namespace fc::sector_storage {
               return outcome::success();
             });
         if (maybe_err.has_error()) {
-          // TODO: log it
+          logger_->error("worker's execution: " + maybe_err.error().message());
         }
       }
 
@@ -178,7 +179,7 @@ namespace fc::sector_storage {
       std::lock_guard<std::mutex> lock(workers_lock_);
       auto iter = workers_.find(wid);
       if (iter == workers_.cend()) {
-        // TODO: Log it
+        logger_->warn("free worker: wid {} is invalid", wid);
         return;
       }
     }
@@ -189,7 +190,8 @@ namespace fc::sector_storage {
       auto maybe_satisfying =
           req->sel->is_satisfying(req->task_type, seal_proof_type_, worker);
       if (maybe_satisfying.has_error()) {
-        // TODO: Log it
+        logger_->error("free worker satisfactory check: "
+                       + maybe_satisfying.error().message());
         continue;
       }
 
