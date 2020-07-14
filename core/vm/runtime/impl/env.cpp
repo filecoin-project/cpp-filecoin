@@ -215,18 +215,25 @@ namespace fc::vm::runtime {
     return outcome::success();
   }
 
+  // lotus read-write patterns differ, causing different gas in receipts
+  constexpr auto kDisableChargingIpld{true};
+
   outcome::result<void> ChargingIpld::set(const CID &key, Value value) {
     auto execution{execution_.lock()};
-    OUTCOME_TRY(execution->chargeGas(
-        execution->env->pricelist.onIpldPut(value.size())));
+    if (!kDisableChargingIpld) {
+      OUTCOME_TRY(execution->chargeGas(
+          execution->env->pricelist.onIpldPut(value.size())));
+    }
     return execution->env->ipld->set(key, value);
   }
 
   outcome::result<Ipld::Value> ChargingIpld::get(const CID &key) const {
     auto execution{execution_.lock()};
     OUTCOME_TRY(value, execution->env->ipld->get(key));
-    OUTCOME_TRY(execution->chargeGas(
-        execution->env->pricelist.onIpldGet(value.size())));
+    if (!kDisableChargingIpld) {
+      OUTCOME_TRY(execution->chargeGas(
+          execution->env->pricelist.onIpldGet(value.size())));
+    }
     return std::move(value);
   }
 }  // namespace fc::vm::runtime

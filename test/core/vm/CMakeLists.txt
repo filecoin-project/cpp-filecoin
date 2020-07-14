@@ -7,3 +7,13 @@ add_subdirectory(actor)
 add_subdirectory(exit_code)
 add_subdirectory(message)
 add_subdirectory(state)
+
+addtest(chains_test
+    chains.cpp
+    )
+target_link_libraries(chains_test
+    car
+    interpreter
+    ipfs_datastore_in_memory
+    state_tree
+    )
