@@ -46,6 +46,7 @@ namespace fc::primitives {
 
   void ActiveResources::add(const WorkerResources &worker_resources,
                             const Resources &resources) {
+    std::unique_lock lock(mutex_);
     gpu_used = resources.can_gpu;
     if (resources.threads) {
       cpu_use += *resources.threads;
@@ -59,6 +60,7 @@ namespace fc::primitives {
 
   void ActiveResources::free(const WorkerResources &worker_resources,
                              const Resources &resources) {
+    std::unique_lock lock(mutex_);
     if (resources.can_gpu) {
       gpu_used = false;
     }
@@ -97,6 +99,7 @@ namespace fc::primitives {
   }
 
   double ActiveResources::utilization(const WorkerResources &worker_resources) {
+    std::shared_lock lock(mutex_);
     double max = static_cast<double>(cpu_use) / worker_resources.cpus;
 
     double memory_min =
