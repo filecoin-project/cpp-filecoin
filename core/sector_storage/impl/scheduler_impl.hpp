@@ -53,6 +53,18 @@ namespace fc::sector_storage {
     std::condition_variable cv_;
   };
 
+  inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
+    if (lhs.priority != rhs.priority) {
+      return lhs.priority > rhs.priority;
+    }
+
+    if (lhs.task_type != rhs.task_type) {
+      return lhs.task_type < rhs.task_type;
+    }
+
+    return lhs.sector.sector < rhs.sector.sector;
+  }
+
   class SchedulerImpl : public Scheduler {
    public:
     SchedulerImpl(RegisteredProof seal_proof_type);
