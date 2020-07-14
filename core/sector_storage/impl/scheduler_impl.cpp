@@ -5,6 +5,7 @@
 
 #include "sector_storage/impl/scheduler_impl.hpp"
 #include <thread>
+#include "boost/asio/post.hpp"
 #include "primitives/resources/active_resources.hpp"
 
 namespace fc::sector_storage {
@@ -105,9 +106,7 @@ namespace fc::sector_storage {
 
       WorkerID wid = acceptable[0];
 
-      std::thread t(
-          &SchedulerImpl::assignWorker, this, wid, workers_[wid], request);
-      t.detach();  // TODO: Make it via boost::asio
+      assignWorker(wid, workers_[wid], request);
 
       return true;
     }
@@ -133,40 +132,44 @@ namespace fc::sector_storage {
 
     worker->preparing.add(worker->info.resources, need_resources);
 
-    auto maybe_err = request->prepare(worker->worker);
-    std::unique_lock<std::mutex> lock(workers_lock_);
-    if (maybe_err.has_error()) {
-      worker->preparing.free(worker->info.resources, need_resources);
-      lock.unlock();
-      freeWorker(wid);
-      request->respond(maybe_err.error());
-      return;
-    }
-
-    maybe_err = worker->active.withResources(
-        worker->info.resources,
-        need_resources,
-        workers_lock_,
-        [&]() -> outcome::result<void> {
+    boost::asio::post(pool_, [this, wid, worker, request, need_resources]() {
+      {
+        auto maybe_err = request->prepare(worker->worker);
+        std::unique_lock<std::mutex> lock(workers_lock_);
+        if (maybe_err.has_error()) {
           worker->preparing.free(worker->info.resources, need_resources);
+          request->respond(maybe_err.error());
           lock.unlock();
-
-          auto res = request->work(worker->worker);
-
-          if (res.has_error()) {
-            request->respond(res.error());
-          } else {
-            request->respond(std::error_code());
-          }
-
           freeWorker(wid);
-          lock.lock();
-          return outcome::success();
-        });
+          return;
+        }
 
-    if (maybe_err.has_error()) {
-      // TODO: log it
-    }
+        maybe_err = worker->active.withResources(
+            worker->info.resources,
+            need_resources,
+            workers_lock_,
+            [&]() -> outcome::result<void> {
+              worker->preparing.free(worker->info.resources, need_resources);
+              lock.unlock();
+
+              auto res = request->work(worker->worker);
+
+              if (res.has_error()) {
+                request->respond(res.error());
+              } else {
+                request->respond(std::error_code());
+              }
+
+              lock.lock();
+              return outcome::success();
+            });
+        if (maybe_err.has_error()) {
+          // TODO: log it
+        }
+      }
+
+      freeWorker(wid);
+    });
   }
 
   void SchedulerImpl::freeWorker(WorkerID wid) {

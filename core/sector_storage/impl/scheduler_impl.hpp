@@ -8,6 +8,7 @@
 
 #include "sector_storage/scheduler.hpp"
 
+#include <boost/asio/thread_pool.hpp>
 #include <mutex>
 #include <unordered_map>
 #include <utility>
@@ -84,6 +85,8 @@ namespace fc::sector_storage {
     std::multiset<std::shared_ptr<TaskRequest>,
                   std::owner_less<std::shared_ptr<TaskRequest>>>
         request_queue_;
+
+    boost::asio::thread_pool pool_;
   };
 
 }  // namespace fc::sector_storage
