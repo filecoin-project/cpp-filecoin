@@ -101,7 +101,7 @@ namespace fc::sector_storage {
                        });
 
       if (does_error_occurs) {
-        return outcome::success();  // TODO: ERROR
+        return SchedulerErrors::kCannotSelectWorker;
       }
 
       WorkerID wid = acceptable[0];
@@ -112,7 +112,7 @@ namespace fc::sector_storage {
     }
 
     if (tried == 0) {
-      return outcome::success();  // TODO: ERROR
+      return SchedulerErrors::kNotFoundWorker;
     }
 
     return false;
@@ -210,3 +210,15 @@ namespace fc::sector_storage {
     }
   }
 }  // namespace fc::sector_storage
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, SchedulerErrors, e) {
+  using fc::sector_storage::SchedulerErrors;
+  switch (e) {
+    case (SchedulerErrors::kCannotSelectWorker):
+      return "Scheduler: some error occurred during select worker";
+    case (SchedulerErrors::kNotFoundWorker):
+      return "Scheduler: didn't find any good workers";
+    default:
+      return "Scheduler: unknown error";
+  }
+}

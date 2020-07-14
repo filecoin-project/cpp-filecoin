@@ -35,6 +35,13 @@ namespace fc::sector_storage {
     virtual void newWorker(std::unique_ptr<WorkerHandle> &&worker) = 0;
   };
 
+
+  enum class SchedulerErrors {
+      kCannotSelectWorker = 0,
+      kNotFoundWorker,
+  };
 }  // namespace fc::sector_storage
+
+OUTCOME_HPP_DECLARE_ERROR(fc::sector_storage, SchedulerErrors);
 
 #endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_SCHEDULER_HPP
