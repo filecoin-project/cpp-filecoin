@@ -12,7 +12,9 @@ namespace fc::sector_storage {
   using primitives::WorkerResources;
 
   SchedulerImpl::SchedulerImpl(RegisteredProof seal_proof_type)
-      : seal_proof_type_(seal_proof_type) {}
+      : seal_proof_type_(seal_proof_type),
+        current_worker_id_(0),
+        logger_(common::createLogger("scheduler")) {}
 
   outcome::result<void> SchedulerImpl::schedule(
       const primitives::sector::SectorId &sector,
@@ -187,6 +189,7 @@ namespace fc::sector_storage {
         logger_->warn("free worker: wid {} is invalid", wid);
         return;
       }
+      worker = iter->second;
     }
 
     std::lock_guard<std::mutex> lock(request_lock_);
@@ -213,6 +216,9 @@ namespace fc::sector_storage {
       }
 
       it = request_queue_.erase(it);
+      if (it == request_queue_.cend()) {
+        break;
+      }
       --it;
     }
   }

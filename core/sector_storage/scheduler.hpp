@@ -20,6 +20,8 @@ namespace fc::sector_storage {
 
   constexpr uint64_t kDefaultTaskPriority = 0;
 
+  // TODO(artyom-yurin): [FIL-238] randomly wake up and try to clean request
+  // queue
   class Scheduler {
    public:
     virtual ~Scheduler() = default;
@@ -35,10 +37,9 @@ namespace fc::sector_storage {
     virtual void newWorker(std::unique_ptr<WorkerHandle> &&worker) = 0;
   };
 
-
   enum class SchedulerErrors {
-      kCannotSelectWorker = 0,
-      kNotFoundWorker,
+    kCannotSelectWorker = 0,
+    kNotFoundWorker,
   };
 }  // namespace fc::sector_storage
 
