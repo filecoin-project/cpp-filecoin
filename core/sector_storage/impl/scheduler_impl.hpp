@@ -55,6 +55,8 @@ namespace fc::sector_storage {
 
   class SchedulerImpl : public Scheduler {
    public:
+    SchedulerImpl(RegisteredProof seal_proof_type);
+
     outcome::result<void> schedule(
         const SectorId &sector,
         const primitives::TaskType &task_type,

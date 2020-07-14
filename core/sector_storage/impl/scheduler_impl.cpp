@@ -4,13 +4,15 @@
  */
 
 #include "sector_storage/impl/scheduler_impl.hpp"
-#include <thread>
 #include "boost/asio/post.hpp"
 #include "primitives/resources/active_resources.hpp"
 
 namespace fc::sector_storage {
   using primitives::Resources;
   using primitives::WorkerResources;
+
+  SchedulerImpl::SchedulerImpl(RegisteredProof seal_proof_type)
+      : seal_proof_type_(seal_proof_type) {}
 
   outcome::result<void> SchedulerImpl::schedule(
       const primitives::sector::SectorId &sector,
@@ -43,6 +45,9 @@ namespace fc::sector_storage {
 
   void SchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> &&worker) {
     std::unique_lock<std::mutex> lock(workers_lock_);
+    if (current_worker_id_ == std::numeric_limits<uint64_t>::max()) {
+      current_worker_id_ = 0;
+    }
     WorkerID wid = current_worker_id_++;
     workers_.insert({wid, std::move(worker)});
     lock.unlock();
