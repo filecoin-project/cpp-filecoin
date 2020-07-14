@@ -20,7 +20,6 @@ using fc::primitives::block::BlockHeader;
 using fc::primitives::tipset::Tipset;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::vm::actor::Actor;
-using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::kStoragePowerAddress;
 using fc::vm::actor::kStoragePowerCodeCid;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
@@ -46,7 +45,7 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
   EXPECT_OUTCOME_TRUE_1(state_tree.set(kStoragePowerAddress,
                                        Actor{
                                            .code = kStoragePowerCodeCid,
-                                           .head = ActorSubstateCID{state_cid},
+                                           .head = state_cid,
                                            .nonce = {},
                                            .balance = {},
                                        }));

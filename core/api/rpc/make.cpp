@@ -76,7 +76,6 @@ namespace fc::api {
     setup(rpc, api.ChainGetMessage);
     setup(rpc, api.ChainGetParentMessages);
     setup(rpc, api.ChainGetParentReceipts);
-    setup(rpc, api.ChainGetRandomness);
     setup(rpc, api.ChainGetTipSet);
     setup(rpc, api.ChainGetTipSetByHeight);
     setup(rpc, api.ChainHead);

@@ -18,9 +18,9 @@ namespace fc::vm::actor::builtin::reward {
     BigInt nb{-ln * t}, db{ld << kMintingInputFixedPoint};
     BigInt n{-nb}, d{db};
     BigInt res;
-    for (auto i{0}; i < 25; ++i) {
+    for (auto i{1}; i < 25; ++i) {
       d *= i;
-      res += (n << kMintingOutputFixedPoint) / d;
+      res += bigdiv(n << kMintingOutputFixedPoint, d);
       n *= nb;
       d *= db;
       auto b{0};
@@ -48,7 +48,7 @@ namespace fc::vm::actor::builtin::reward {
   void computePerEpochReward(State &state, int64_t tickets) {
     using boost::multiprecision::pow;
     auto old_simple{state.simple_supply};
-    BigInt e6e18{pow(BigInt{10}, 6 * 18)};
+    BigInt e6e18{pow(BigInt{10}, 6 + 18)};
     state.simple_supply = mintingFunction(
         100 * e6e18,
         BigInt{state.reward_epochs_paid} << kMintingInputFixedPoint);
@@ -72,8 +72,9 @@ namespace fc::vm::actor::builtin::reward {
     VM_ASSERT(params.tickets > 0);
     OUTCOME_TRY(miner, runtime.resolveAddress(params.miner));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    TokenAmount total{params.gas_reward
-                      + state.last_per_epoch_reward / kExpectedLeadersPerEpoch};
+    TokenAmount total{
+        params.gas_reward
+        + bigdiv(state.last_per_epoch_reward, kExpectedLeadersPerEpoch)};
     auto penalty{std::min(params.penalty, total)};
     TokenAmount payable{total - penalty};
     VM_ASSERT(balance >= payable + penalty);
@@ -95,9 +96,10 @@ namespace fc::vm::actor::builtin::reward {
     state.baseline_power = kBaselinePower;
     state.sum_realized += state.realized_power;
     state.sum_baseline += state.baseline_power;
-    state.effective_time = (std::min(state.sum_baseline, state.sum_realized)
-                            << kMintingInputFixedPoint)
-                           / kBaselinePower;
+    state.effective_time =
+        bigdiv(std::min(state.sum_baseline, state.sum_realized)
+                   << kMintingInputFixedPoint,
+               kBaselinePower);
     computePerEpochReward(state, 1);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();

@@ -6,7 +6,6 @@
 #include "storage/chain/impl/chain_store_impl.hpp"
 
 #include "common/outcome.hpp"
-#include "crypto/randomness/impl/chain_randomness_provider_impl.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/cid/json_codec.hpp"
@@ -16,8 +15,6 @@
 
 namespace fc::storage::blockchain {
   /** types */
-  using crypto::randomness::ChainRandomnessProvider;
-  using crypto::randomness::ChainRandomnessProviderImpl;
   using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::tipset::Tipset;
@@ -245,11 +242,6 @@ namespace fc::storage::blockchain {
     }
 
     return outcome::success();
-  }
-
-  std::shared_ptr<ChainRandomnessProvider>
-  ChainStoreImpl::createRandomnessProvider() {
-    return std::make_shared<ChainRandomnessProviderImpl>(shared_from_this());
   }
 
   outcome::result<ChainPath> ChainStoreImpl::findChainPath(

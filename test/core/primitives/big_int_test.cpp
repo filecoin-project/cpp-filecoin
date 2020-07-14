@@ -42,6 +42,9 @@ TEST(BigInt, Divide) {
   BigInt a{8};
   BigInt b{2};
   ASSERT_EQ(a / b, BigInt{4});
+  ASSERT_EQ(BigInt{-1} / BigInt{3}, BigInt{0});
+  ASSERT_EQ(fc::bigdiv(0, 3), BigInt{0});
+  ASSERT_EQ(fc::bigdiv(-1, 3), BigInt{-1});
 }
 
 TEST(BigInt, DivideByZero) {
