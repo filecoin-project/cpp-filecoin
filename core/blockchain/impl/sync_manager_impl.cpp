@@ -87,7 +87,7 @@ namespace fc::blockchain::sync_manager {
           next_sync_target_ = related_bucket;
           auto heaviest_tipset = next_sync_target_->getHeaviestTipset();
           if (boost::none == heaviest_tipset) {
-            return SyncTargetBucketError::BUCKET_IS_EMPTY;
+            return SyncTargetBucketError::kBucketIsEmpty;
           }
           OUTCOME_TRY(processSyncTargets(*heaviest_tipset));
         } else {
@@ -108,7 +108,7 @@ namespace fc::blockchain::sync_manager {
         next_sync_target_ = std::move(target);
         auto heaviest_tipset = next_sync_target_->getHeaviestTipset();
         if (boost::none == heaviest_tipset) {
-          return SyncTargetBucketError::BUCKET_IS_EMPTY;
+          return SyncTargetBucketError::kBucketIsEmpty;
         }
         OUTCOME_TRY(processSyncTargets(*heaviest_tipset));
       }
@@ -158,7 +158,7 @@ namespace fc::blockchain::sync_manager {
         next_sync_target_ = sync_queue_.pop();
         auto heaviest_tipset = next_sync_target_->getHeaviestTipset();
         if (boost::none == heaviest_tipset) {
-          return SyncTargetBucketError::BUCKET_IS_EMPTY;
+          return SyncTargetBucketError::kBucketIsEmpty;
         }
         OUTCOME_TRY(processSyncTargets(*heaviest_tipset));
       }
