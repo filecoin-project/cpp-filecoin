@@ -12,11 +12,11 @@
 namespace fc::primitives::tipset {
 
   enum class TipsetError : int {
-    NO_BLOCKS = 1,        // need to have at least one block to create tipset
-    MISMATCHING_HEIGHTS,  // cannot create tipset, mismatching blocks heights
-    MISMATCHING_PARENTS,  // cannot create tipset, mismatching block parents
-    TICKET_HAS_NO_VALUE,  // optional ticket is not initialized
-    NO_BEACONS,
+    kNoBlocks = 1,        // need to have at least one block to create tipset
+    kMismatchingHeights,  // cannot create tipset, mismatching blocks heights
+    kMismatchingParents,  // cannot create tipset, mismatching block parents
+    kTicketHasNoValue,    // optional ticket is not initialized
+    kNoBeacons,
   };
 }
 

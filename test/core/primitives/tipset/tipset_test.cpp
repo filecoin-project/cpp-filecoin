@@ -98,7 +98,7 @@ struct TipsetTest : public ::testing::Test {
  */
 TEST_F(TipsetTest, CreateEmptyFailure) {
   EXPECT_OUTCOME_FALSE(err, Tipset::create({}));
-  ASSERT_EQ(err, TipsetError::NO_BLOCKS);
+  ASSERT_EQ(err, TipsetError::kNoBlocks);
 }
 
 /**
@@ -108,7 +108,7 @@ TEST_F(TipsetTest, CreateEmptyFailure) {
  */
 TEST_F(TipsetTest, CreateMismatchingHeightsFailure) {
   EXPECT_OUTCOME_FALSE(err, Tipset::create({bh1, bh3}));
-  ASSERT_EQ(err, TipsetError::MISMATCHING_HEIGHTS);
+  ASSERT_EQ(err, TipsetError::kMismatchingHeights);
 }
 
 /**
@@ -118,7 +118,7 @@ TEST_F(TipsetTest, CreateMismatchingHeightsFailure) {
  */
 TEST_F(TipsetTest, CreateMismatchingParentsFailure) {
   EXPECT_OUTCOME_FALSE(err, Tipset::create({bh1, bh4}));
-  ASSERT_EQ(err, TipsetError::MISMATCHING_PARENTS);
+  ASSERT_EQ(err, TipsetError::kMismatchingParents);
 }
 
 /**
