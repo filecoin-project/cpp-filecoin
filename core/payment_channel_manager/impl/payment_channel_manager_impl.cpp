@@ -163,7 +163,7 @@ namespace fc::payment_channel_manager {
 
     if (!voucher.merges.empty()) {
       // TODO don't currently support paych lane merges
-      return TodoError::ERROR;
+      return TodoError::kError;
     }
 
     return outcome::success();

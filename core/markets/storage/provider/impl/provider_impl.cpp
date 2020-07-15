@@ -163,12 +163,12 @@ namespace fc::markets::storage::provider {
   outcome::result<void> StorageProviderImpl::addStorageCollateral(
       const TokenAmount &amount) {
     // TODO
-    return TodoError::ERROR;
+    return TodoError::kError;
   }
 
   outcome::result<TokenAmount> StorageProviderImpl::getStorageCollateral() {
     // TODO
-    return outcome::failure(TodoError::ERROR);
+    return outcome::failure(TodoError::kError);
   }
 
   outcome::result<void> StorageProviderImpl::importDataForDeal(
