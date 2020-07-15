@@ -234,9 +234,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::sync_manager, SyncManagerError, e) {
   // SHUTTING_DOWN
   switch (e) {
     using Error = fc::blockchain::sync_manager::SyncManagerError;
-    case Error::SHUTTING_DOWN:
+    case Error::kShuttingDown:
       return "shutting down";
-    case Error::NO_SYNC_TARGET:
+    case Error::kNoSyncTarget:
       return "no sync target present";
   }
 }
