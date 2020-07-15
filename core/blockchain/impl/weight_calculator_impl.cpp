@@ -11,7 +11,7 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
   using E = fc::blockchain::weight::WeightCalculatorError;
   switch (e) {
-    case E::NO_NETWORK_POWER:
+    case E::kNoNetworkPower:
       return "No network power";
   }
 }
