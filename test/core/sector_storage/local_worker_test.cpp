@@ -453,7 +453,7 @@ TEST_F(LocalWorkerTest, Remove_Error) {
       .WillOnce(testing::Return(fc::outcome::success()));
   EXPECT_CALL(*store_, remove(sector, SectorFileType::FTCache))
       .WillOnce(testing::Return(fc::outcome::failure(
-          fc::sector_storage::stores::StoreErrors::NOT_FOUND_SECTOR)));
+          fc::sector_storage::stores::StoreErrors::kNotFoundSector)));
 
   EXPECT_OUTCOME_ERROR(fc::sector_storage::WorkerErrors::CANNOT_REMOVE_SECTOR,
                        local_worker_->remove(sector));

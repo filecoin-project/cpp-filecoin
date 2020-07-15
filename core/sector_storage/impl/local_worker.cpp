@@ -199,7 +199,7 @@ namespace fc::sector_storage {
     if (maybe_unseal_file.has_error()) {
       if (maybe_unseal_file
           != outcome::failure(
-              stores::StoreErrors::NOT_FOUND_REQUESTED_SECTOR_TYPE)) {
+              stores::StoreErrors::kNotFoundRequestedSectorType)) {
         return maybe_unseal_file.error();
       }
       maybe_unseal_file = storage_->acquireSector(sector,
