@@ -9,24 +9,24 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofParamProviderError, e) {
   using fc::proofs::ProofParamProviderError;
 
   switch (e) {
-    case (ProofParamProviderError::CHECKSUM_MISMATCH):
+    case (ProofParamProviderError::kChecksumMismatch):
       return "ParamProvider: checksum mismatch";
-    case (ProofParamProviderError::FILE_DOES_NOT_OPEN):
+    case (ProofParamProviderError::kFileDoesNotOpen):
       return "ParamProvider: file does not open";
-    case (ProofParamProviderError::MISSING_ENTRY):
+    case (ProofParamProviderError::kMissingEntry):
       return "ParamProvider: a required entry is missing in the provided JSON "
              "file";
-    case (ProofParamProviderError::INVALID_SECTOR_SIZE):
+    case (ProofParamProviderError::kInvalidSectorSize):
       return "ParamProvider: cannot convert sector size";
-    case (ProofParamProviderError::INVALID_JSON):
+    case (ProofParamProviderError::kInvalidJSON):
       return "ParamProvider: cannot read json file";
-    case (ProofParamProviderError::INVALID_URL):
+    case (ProofParamProviderError::kInvalidURL):
       return "ParamProvider: can not parse url";
-    case (ProofParamProviderError::FAILED_DOWNLOADING_FILE):
+    case (ProofParamProviderError::kFailedDownloadingFile):
       return "ParamProvider: could not download file";
-    case (ProofParamProviderError::CANNOT_CREATE_DIR):
+    case (ProofParamProviderError::kCannotCreateDir):
       return "ParamProvider: could not create directory";
-    case (ProofParamProviderError::FAILED_DOWNLOADING):
+    case (ProofParamProviderError::kFailedDownloading):
       return "ParamProvider: errors occurred while downloading files";
   }
 
