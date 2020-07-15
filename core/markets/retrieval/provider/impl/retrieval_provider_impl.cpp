@@ -11,7 +11,6 @@
 #define _SELF_IF_ERROR_RESPOND_AND_RETURN(res, expr, status, stream)        \
   auto &&res = (expr);                                                      \
   if (res.has_error()) {                                                    \
-    self->logger_->error(res.error().message());                            \
     self->respondErrorRetrievalDeal(stream, status, res.error().message()); \
     return;                                                                 \
   }
@@ -185,13 +184,12 @@ namespace fc::markets::retrieval::provider {
 
   void RetrievalProviderImpl::prepareBlocks(
       const std::shared_ptr<DealState> &deal_state) {
-    TokenAmount total_sent = deal_state->total_sent;
     auto total_paid_for =
         deal_state->funds_received / deal_state->proposal.params.price_per_byte;
-
-    while (total_sent - total_paid_for < deal_state->current_interval) {
+    while (deal_state->total_sent - total_paid_for
+           < deal_state->current_interval) {
       // TODO add blocks
-      // total_sent += block.length
+      // deal_state->total_sent += block.length
     }
 
     // TODO check if completed
@@ -203,7 +201,7 @@ namespace fc::markets::retrieval::provider {
       payment_status = DealStatus::kDealStatusFundsNeeded;
     }
 
-    auto payment_owed = (total_sent - total_paid_for)
+    auto payment_owed = (deal_state->total_sent - total_paid_for)
                         * deal_state->proposal.params.price_per_byte;
 
     DealResponse response;
@@ -220,9 +218,7 @@ namespace fc::markets::retrieval::provider {
     deal_state->stream->write(
         response,
         [self{shared_from_this()},
-         deal_state{
-             std::move(deal_state),
-         },
+         deal_state{std::move(deal_state)},
          payment_owed{response.payment_owed},
          payment_status{response.status}](auto written) {
           SELF_IF_ERROR_RESPOND_AND_RETURN(
@@ -230,7 +226,6 @@ namespace fc::markets::retrieval::provider {
 
           // data sent, now client have to pay
           deal_state->payment_owed = payment_owed;
-          // TODO update deal_state->total_sent
           self->processPayment(deal_state, payment_status);
         });
   }
@@ -243,29 +238,34 @@ namespace fc::markets::retrieval::provider {
                                            payment_status](auto payment_res) {
       SELF_IF_ERROR_RESPOND_AND_RETURN(
           payment_res, DealStatus::kDealStatusErrored, deal_state->stream);
+      SELF_IF_ERROR_RESPOND_AND_RETURN(
+          self->api_->PaychVoucherAdd(payment_res.value().payment_channel,
+                                      payment_res.value().payment_voucher,
+                                      {},
+                                      {}),
+          DealStatus::kDealStatusFailed,
+          deal_state->stream);
 
-      // TODO redeem voucher
-
-      // TODO update deal_state->funds_received
-
-      // TODO check if received < deal_state.payment_owed
-      bool partial_payment_received = false;
-      if (partial_payment_received) {
+      deal_state->funds_received += payment_res.value().payment_voucher.amount;
+      deal_state->payment_owed -= payment_res.value().payment_voucher.amount;
+      // if not full current round payment received, ask to send owed amount
+      if (deal_state->payment_owed > 0) {
         DealResponse response;
         response.deal_id = deal_state->proposal.deal_id;
         response.status = payment_status;
-        // TODO response.payment_owed = payment_owed - received;
+        response.payment_owed = deal_state->payment_owed;
         self->sendRetrievalResponse(deal_state, response);
         return;
-      }
-
-      // last payment received => deal completed
-      if (payment_status == DealStatus::kDealStatusFundsNeededLastPayment) {
-        self->finalizeDeal(deal_state);
       } else {
-        deal_state->current_interval +=
-            deal_state->proposal.params.payment_interval_increase;
-        self->prepareBlocks(deal_state);
+        // full payment for current round received, decide on next
+        // last payment received => deal completed
+        if (payment_status == DealStatus::kDealStatusFundsNeededLastPayment) {
+          self->finalizeDeal(deal_state);
+        } else {
+          deal_state->current_interval +=
+              deal_state->proposal.params.payment_interval_increase;
+          self->prepareBlocks(deal_state);
+        }
       }
     });
   }
@@ -274,6 +274,8 @@ namespace fc::markets::retrieval::provider {
       const std::shared_ptr<CborStream> &stream,
       const DealStatus &status,
       const std::string &message) {
+    logger_->error("Retrieval deal status " + message);
+
     DealResponse response;
     response.status = status;
     response.message = message;

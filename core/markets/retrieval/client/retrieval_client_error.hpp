@@ -15,7 +15,12 @@ namespace fc::markets::retrieval::client {
    */
   enum class RetrievalClientError {
     kEarlyTermination = 1,
+    kResponseDealRejected,
+    kResponseNotFound,
     kUnknownResponseReceived,
+    kRequestedTooMuch,
+    kBadPaymentRequestBytesNotReceived,
+    kBadPaymentRequestTooMuch,
   };
 
 }  // namespace fc::markets::retrieval::client
