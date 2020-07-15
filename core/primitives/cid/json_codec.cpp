@@ -41,10 +41,10 @@ namespace fc::codec::json {
     try {
       boost::property_tree::read_json(stream, tree);
     } catch (const boost::property_tree::json_parser::json_parser_error &) {
-      return JsonCodecError::BAD_JSON;
+      return JsonCodecError::kBadJSON;
     }
     if (tree.count("/") == 0) {
-      return JsonCodecError::WRONG_CID_ARRAY_FORMAT;
+      return JsonCodecError::kWrongCIDArrayFormat;
     }
 
     auto &&array = tree.get_child("/");
@@ -62,9 +62,9 @@ namespace fc::codec::json {
 OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::json, JsonCodecError, e) {
   using fc::codec::json::JsonCodecError;
   switch (e) {
-    case JsonCodecError::BAD_JSON:
+    case JsonCodecError::kBadJSON:
       return "Source data is not json document";
-    case JsonCodecError::WRONG_CID_ARRAY_FORMAT:
+    case JsonCodecError::kWrongCIDArrayFormat:
       return "Failed to decode CID object";
   }
   return "Unknown error";
