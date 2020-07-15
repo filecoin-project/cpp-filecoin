@@ -44,7 +44,7 @@ namespace fc::drand {
     }
     crypto::bls::PublicKey net_key;
     if (network_public_key.size() != net_key.size()) {
-      return crypto::bls::Errors::InvalidPublicKey;
+      return crypto::bls::Errors::kInvalidPublicKey;
     }
     std::copy(
         network_public_key.begin(), network_public_key.end(), net_key.begin());
@@ -154,7 +154,7 @@ namespace fc::drand {
       const Bytes &key) const {
     auto &key1 = network_key_;
     if (key.size() != key1.size()) {
-      return crypto::bls::Errors::InvalidPublicKey;
+      return crypto::bls::Errors::kInvalidPublicKey;
     }
     if (not std::equal(key1.begin(), key1.end(), key.begin())) {
       return Error::NETWORK_KEY_MISMATCH;

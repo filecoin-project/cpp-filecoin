@@ -22,13 +22,13 @@ namespace fc::crypto::bls {
   };
 
   enum class Errors {
-    InternalError = 1,
-    KeyPairGenerationFailed,
-    SignatureGenerationFailed,
-    SignatureVerificationFailed,
-    InvalidPrivateKey,
-    InvalidPublicKey,
-    AggregateError,
+    kInternalError = 1,
+    kKeyPairGenerationFailed,
+    kSignatureGenerationFailed,
+    kSignatureVerificationFailed,
+    kInvalidPrivateKey,
+    kInvalidPublicKey,
+    kAggregateError,
   };
 };  // namespace fc::crypto::bls
 
