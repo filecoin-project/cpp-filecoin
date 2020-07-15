@@ -151,7 +151,7 @@ namespace fc::markets::storage::client {
         return *it.first;
       }
     }
-    return StorageMarketClientError::LOCAL_DEAL_NOT_FOUND;
+    return StorageMarketClientError::kLocalDealNotFound;
   }
 
   void StorageMarketClientImpl::getAsk(
@@ -205,7 +205,7 @@ namespace fc::markets::storage::client {
     CID comm_p = comm_p_res.first;
     UnpaddedPieceSize piece_size = comm_p_res.second;
     if (piece_size.padded() > provider_info.sector_size) {
-      return StorageMarketClientError::PIECE_SIZE_GREATER_SECTOR_SIZE;
+      return StorageMarketClientError::kPieceSizeGreaterSectorSize;
     }
 
     DealProposal deal_proposal{
@@ -286,7 +286,7 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(msg_wait, api_->StateWaitMsg(message_cid));
     OUTCOME_TRY(msg_state, msg_wait.waitSync());
     if (msg_state.receipt.exit_code != VMExitCode::Ok) {
-      return StorageMarketClientError::ADD_FUNDS_CALL_ERROR;
+      return StorageMarketClientError::kAddFundsCallError;
     }
     return outcome::success();
   }
@@ -299,7 +299,7 @@ namespace fc::markets::storage::client {
       return response.error();
     }
     if (response.value().ask.ask.miner != info.address) {
-      return StorageMarketClientError::WRONG_MINER;
+      return StorageMarketClientError::kWrongMiner;
     }
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
@@ -311,7 +311,7 @@ namespace fc::markets::storage::client {
             miner_info.worker, ask_bytes, response.value().ask.signature));
     if (!signature_valid) {
       logger_->debug("Ask response signature invalid");
-      return StorageMarketClientError::SIGNATURE_INVALID;
+      return StorageMarketClientError::kSignatureInvalid;
     }
     return response.value().ask;
   }
@@ -323,7 +323,7 @@ namespace fc::markets::storage::client {
       return std::pair(data_ref.piece_cid.value(), data_ref.piece_size);
     }
     if (data_ref.transfer_type == kTransferTypeManual) {
-      return StorageMarketClientError::PIECE_DATA_NOT_SET_MANUAL_TRANSFER;
+      return StorageMarketClientError::kPieceDataNotSetManualTransfer;
     }
 
     // TODO (a.chernyshov) selector builder
@@ -364,7 +364,7 @@ namespace fc::markets::storage::client {
                 api_->WalletVerify(
                     deal->miner_worker, response_bytes, response.signature));
     if (!signature_valid) {
-      return StorageMarketClientError::SIGNATURE_INVALID;
+      return StorageMarketClientError::kSignatureInvalid;
     }
     return outcome::success();
   }
@@ -428,7 +428,7 @@ namespace fc::markets::storage::client {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     auto stream_it = connections_.find(proposal_cid);
     if (stream_it == connections_.end()) {
-      return StorageMarketClientError::STREAM_LOOKUP_ERROR;
+      return StorageMarketClientError::kStreamLookupError;
     }
     return stream_it->second;
   }
@@ -640,20 +640,20 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::client,
   using fc::markets::storage::client::StorageMarketClientError;
 
   switch (e) {
-    case StorageMarketClientError::WRONG_MINER:
+    case StorageMarketClientError::kWrongMiner:
       return "StorageMarketClientError: wrong miner address";
-    case StorageMarketClientError::SIGNATURE_INVALID:
+    case StorageMarketClientError::kSignatureInvalid:
       return "StorageMarketClientError: signature invalid";
-    case StorageMarketClientError::PIECE_DATA_NOT_SET_MANUAL_TRANSFER:
+    case StorageMarketClientError::kPieceDataNotSetManualTransfer:
       return "StorageMarketClientError: piece data is not set for manual "
              "transfer";
-    case StorageMarketClientError::PIECE_SIZE_GREATER_SECTOR_SIZE:
+    case StorageMarketClientError::kPieceSizeGreaterSectorSize:
       return "StorageMarketClientError: piece size is greater sector size";
-    case StorageMarketClientError::ADD_FUNDS_CALL_ERROR:
+    case StorageMarketClientError::kAddFundsCallError:
       return "StorageMarketClientError: add funds method call returned error";
-    case StorageMarketClientError::LOCAL_DEAL_NOT_FOUND:
+    case StorageMarketClientError::kLocalDealNotFound:
       return "StorageMarketClientError: local deal not found";
-    case StorageMarketClientError::STREAM_LOOKUP_ERROR:
+    case StorageMarketClientError::kStreamLookupError:
       return "StorageMarketClientError: stream look up error";
   }
 
