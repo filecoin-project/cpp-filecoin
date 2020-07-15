@@ -48,7 +48,7 @@ namespace fc::storage::ipfs {
     OUTCOME_TRY(encoded_key, encodeKey(key));
     auto res = leveldb_->get(encoded_key);
     if (res.has_error() && res.error() == fc::storage::LevelDBError::NOT_FOUND)
-      return fc::storage::ipfs::IpfsDatastoreError::NOT_FOUND;
+      return fc::storage::ipfs::IpfsDatastoreError::kNotFound;
     return res;
   }
 

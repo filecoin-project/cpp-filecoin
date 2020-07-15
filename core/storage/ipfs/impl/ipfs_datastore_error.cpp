@@ -9,11 +9,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipfs, IpfsDatastoreError, e) {
   using fc::storage::ipfs::IpfsDatastoreError;
 
   switch (e) {
-    case IpfsDatastoreError::NOT_FOUND:
+    case IpfsDatastoreError::kNotFound:
       return "IpfsDatastoreError: cid not found";
-    case IpfsDatastoreError::UNKNOWN:
-      break;
+    default:
+      return "unknown error";
   }
-
-  return "unknown error";
 }
