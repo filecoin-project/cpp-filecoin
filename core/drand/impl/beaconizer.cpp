@@ -15,19 +15,19 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::drand, BeaconizerImpl::Error, e) {
   using E = fc::drand::BeaconizerImpl::Error;
   switch (e) {
-    case E::NO_PUBLIC_KEY:
+    case E::kNoPublicKey:
       return "Drand node did not return dist key.";
-    case E::NETWORK_KEY_MISMATCH:
+    case E::kNetworkKeyMismatch:
       return "Drand peer's key don't match the known network key.";
-    case E::EMPTY_SERVERS_LIST:
+    case E::kEmptyServersList:
       return "No drand servers specified to connect to.";
-    case E::ZERO_CACHE_SIZE:
+    case E::kZeroCacheSize:
       return "Cache size cannot be zero.";
-    case E::INVALID_SIGNATURE_FORMAT:
+    case E::kInvalidSignatureFormat:
       return "Signature has invalid format.";
-    case E::INVALID_BEACON:
+    case E::kInvalidBeacon:
       return "Beacon did not pass the verification";
-    case E::NEGATIVE_EPOCH:
+    case E::kNegativeEpoch:
       return "Negative filecoin epoch is not allowed in calculations";
   }
 }
@@ -40,7 +40,7 @@ namespace fc::drand {
       gsl::span<const uint8_t> network_public_key,
       size_t max_cache_size) {
     if (drand_servers.empty()) {
-      return Error::EMPTY_SERVERS_LIST;
+      return Error::kEmptyServersList;
     }
     crypto::bls::PublicKey net_key;
     if (network_public_key.size() != net_key.size()) {
@@ -49,7 +49,7 @@ namespace fc::drand {
     std::copy(
         network_public_key.begin(), network_public_key.end(), net_key.begin());
     if (0 == max_cache_size) {
-      return Error::ZERO_CACHE_SIZE;
+      return Error::kZeroCacheSize;
     }
     struct make_unique_enabler : public BeaconizerImpl {
       make_unique_enabler(uint64_t filecoin_genesis_time,
@@ -115,7 +115,7 @@ namespace fc::drand {
     OUTCOME_TRY(is_valid,
                 verifyBeaconData(current.round, current.data, previous.data));
     if (not is_valid) {
-      return Error::INVALID_BEACON;
+      return Error::kInvalidBeacon;
     }
     cacheEntry(current.round, current.data);
     return outcome::success();
@@ -124,7 +124,7 @@ namespace fc::drand {
   outcome::result<uint64_t> BeaconizerImpl::maxBeaconRoundForEpoch(
       ChainEpoch fil_epoch) {
     if (fil_epoch < 0) {
-      return Error::NEGATIVE_EPOCH;
+      return Error::kNegativeEpoch;
     }
     auto epoch = static_cast<uint64_t>(fil_epoch);
 
@@ -142,7 +142,7 @@ namespace fc::drand {
     dial();
     OUTCOME_TRY(group, client_->group());
     if (group.dist_key.empty()) {
-      return Error::NO_PUBLIC_KEY;
+      return Error::kNoPublicKey;
     }
     OUTCOME_TRY(verifyNetworkKey(group.dist_key[0]));
     drand_interval_ = group.period;
@@ -157,7 +157,7 @@ namespace fc::drand {
       return crypto::bls::Errors::kInvalidPublicKey;
     }
     if (not std::equal(key1.begin(), key1.end(), key.begin())) {
-      return Error::NETWORK_KEY_MISMATCH;
+      return Error::kNetworkKeyMismatch;
     }
     return outcome::success();
   }
@@ -188,7 +188,7 @@ namespace fc::drand {
     };
     crypto::bls::Signature bls_sig;
     if (bls_sig.size() != signature.size()) {
-      return Error::INVALID_SIGNATURE_FORMAT;
+      return Error::kInvalidSignatureFormat;
     }
     std::copy(signature.begin(), signature.end(), bls_sig.begin());
     OUTCOME_TRY(is_valid,

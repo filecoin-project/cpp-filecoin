@@ -29,13 +29,13 @@ namespace fc::drand {
   class BeaconizerImpl : public Beaconizer {
    public:
     enum class Error {
-      NO_PUBLIC_KEY = 1,
-      NETWORK_KEY_MISMATCH,
-      EMPTY_SERVERS_LIST,
-      ZERO_CACHE_SIZE,
-      INVALID_SIGNATURE_FORMAT,
-      INVALID_BEACON,
-      NEGATIVE_EPOCH,
+      kNoPublicKey = 1,
+      kNetworkKeyMismatch,
+      kEmptyServersList,
+      kZeroCacheSize,
+      kInvalidSignatureFormat,
+      kInvalidBeacon,
+      kNegativeEpoch,
     };
 
     /**
