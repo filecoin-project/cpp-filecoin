@@ -38,12 +38,12 @@ namespace fc::vm::actor {
       const MethodParams &params) {
     auto maybe_builtin_actor = builtin_.find(actor.code);
     if (maybe_builtin_actor == builtin_.end()) {
-      return VMExitCode::SysErrorIllegalActor;
+      return VMExitCode::kSysErrorIllegalActor;
     }
     auto builtin_actor = maybe_builtin_actor->second;
     auto maybe_builtin_method = builtin_actor.find(method);
     if (maybe_builtin_method == builtin_actor.end()) {
-      return VMExitCode::SysErrInvalidMethod;
+      return VMExitCode::kSysErrInvalidMethod;
     }
     return maybe_builtin_method->second(runtime, params);
   }

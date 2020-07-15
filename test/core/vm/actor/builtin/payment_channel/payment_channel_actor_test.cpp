@@ -121,7 +121,7 @@ struct PaymentChannelActorTest : testing::Test {
 TEST_F(PaymentChannelActorTest, ConstructCallerNotInit) {
   caller = from_address;
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::PAYMENT_CHANNEL_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kPaymentChannelWrongCaller,
                        PaymentChannel::Construct::call(runtime, {}));
 }
 
@@ -130,7 +130,7 @@ TEST_F(PaymentChannelActorTest, ConstructToNotAccount) {
   caller = kInitAddress;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
+      VMExitCode::kPaymentChannelIllegalArgument,
       PaymentChannel::Construct::call(runtime, {{}, kInitAddress}));
 }
 
@@ -139,7 +139,7 @@ TEST_F(PaymentChannelActorTest, ConstructFromNotAccount) {
   caller = kInitAddress;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
+      VMExitCode::kPaymentChannelIllegalArgument,
       PaymentChannel::Construct::call(runtime, {kInitAddress, to_address}));
 }
 
@@ -186,7 +186,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateNoSignature) {
   voucher.signature = boost::none;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
+      VMExitCode::kPaymentChannelIllegalArgument,
       PaymentChannel::UpdateChannelState::call(runtime, {voucher, {}, {}}));
 }
 
@@ -196,7 +196,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateSignatureNotVerified) {
   voucher.signature = Secp256k1Signature{1};
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
+      VMExitCode::kPaymentChannelIllegalArgument,
       PaymentChannel::UpdateChannelState::call(runtime, {voucher, {}, {}}));
 }
 
@@ -206,7 +206,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateBeforeMin) {
   voucher.time_lock_min = epoch + 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
+      VMExitCode::kPaymentChannelIllegalArgument,
       PaymentChannel::UpdateChannelState::call(runtime, {voucher, {}, {}}));
 }
 
@@ -216,7 +216,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateAfterMax) {
   voucher.time_lock_max = epoch - 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
+      VMExitCode::kPaymentChannelIllegalArgument,
       PaymentChannel::UpdateChannelState::call(runtime, {voucher, {}, {}}));
 }
 
@@ -225,7 +225,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateInvalidSecretPreimage) {
   auto voucher = setupUpdateChannelState();
   voucher.secret_preimage = Buffer{blake2b_256("01"_unhex)};
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kPaymentChannelIllegalArgument,
                        PaymentChannel::UpdateChannelState::call(
                            runtime, {voucher, Buffer{"02"_unhex}, {}}));
 }
@@ -245,9 +245,9 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateExtraFailed) {
   EXPECT_CALL(
       runtime,
       send(voucher.extra->actor, voucher.extra->method, params, TokenAmount{0}))
-      .WillOnce(Return(VMExitCode::SysErrForbidden));
+      .WillOnce(Return(VMExitCode::kSysErrForbidden));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::SysErrForbidden,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
                        PaymentChannel::UpdateChannelState::call(
                            runtime, {voucher, {}, Buffer{"01"_unhex}}));
 }
@@ -259,7 +259,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateLaneLimit) {
   state.lanes.resize(PaymentChannel::kLaneLimit, LaneState{});
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
+      VMExitCode::kPaymentChannelIllegalArgument,
       PaymentChannel::UpdateChannelState::call(runtime, {voucher, {}, {}}));
 }
 
@@ -269,7 +269,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateInvalidVoucherNonce) {
   state.lanes.push_back(LaneState{voucher.lane, {}, voucher.nonce + 1});
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
+      VMExitCode::kPaymentChannelIllegalArgument,
       PaymentChannel::UpdateChannelState::call(runtime, {voucher, {}, {}}));
 }
 
@@ -279,7 +279,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateMergeSelf) {
   voucher.merges.push_back(Merge{voucher.lane, {}});
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
+      VMExitCode::kPaymentChannelIllegalArgument,
       PaymentChannel::UpdateChannelState::call(runtime, {voucher, {}, {}}));
 }
 
@@ -292,7 +292,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateInvalidMergeNonce) {
   voucher.merges.push_back(Merge{lane.id, lane.nonce});
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
+      VMExitCode::kPaymentChannelIllegalArgument,
       PaymentChannel::UpdateChannelState::call(runtime, {voucher, {}, {}}));
 }
 
@@ -304,7 +304,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateNegative) {
       voucher.lane, voucher.amount + state.to_send + 1, voucher.nonce});
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_STATE,
+      VMExitCode::kPaymentChannelIllegalState,
       PaymentChannel::UpdateChannelState::call(runtime, {voucher, {}, {}}));
 }
 
@@ -315,7 +315,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateAboveBalance) {
   balance = state.to_send + voucher.amount - 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::PAYMENT_CHANNEL_ILLEGAL_STATE,
+      VMExitCode::kPaymentChannelIllegalState,
       PaymentChannel::UpdateChannelState::call(runtime, {voucher, {}, {}}));
 }
 
@@ -367,7 +367,7 @@ TEST_F(PaymentChannelActorTest, SettleCallerNotInChannel) {
   setupState();
   caller = kInitAddress;
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::PAYMENT_CHANNEL_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kPaymentChannelWrongCaller,
                        PaymentChannel::Settle::call(runtime, {}));
 }
 
@@ -398,7 +398,7 @@ TEST_F(PaymentChannelActorTest, CollectNotSettling) {
   setupState();
   caller = from_address;
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::PAYMENT_CHANNEL_FORBIDDEN,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kPaymentChannelForbidden,
                        PaymentChannel::Collect::call(runtime, {}));
 }
 
@@ -408,7 +408,7 @@ TEST_F(PaymentChannelActorTest, CollectBeforeSettled) {
   state.settling_at = epoch + 1;
   caller = from_address;
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::PAYMENT_CHANNEL_FORBIDDEN,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kPaymentChannelForbidden,
                        PaymentChannel::Collect::call(runtime, {}));
 }
 

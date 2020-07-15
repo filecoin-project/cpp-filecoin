@@ -187,7 +187,7 @@ TEST_F(RuntimeTest, sendNotEnoughFunds) {
   EXPECT_CALL(*state_tree_, lookupId(Eq(message_.to)))
       .WillRepeatedly(testing::Return(fc::outcome::success(message_.to)));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::SEND_TRANSFER_INSUFFICIENT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kSendTransferInsufficient,
                        runtime_->send(to_address, method, params, amount));
 }
 

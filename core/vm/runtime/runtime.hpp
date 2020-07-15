@@ -246,7 +246,7 @@ namespace fc::vm::runtime {
       if (getImmediateCaller() == address) {
         return outcome::success();
       }
-      return VMExitCode::SysErrForbidden;
+      return VMExitCode::kSysErrForbidden;
     }
 
     inline outcome::result<void> validateImmediateCallerType(
@@ -255,7 +255,7 @@ namespace fc::vm::runtime {
       if (actual_code == expected_code) {
         return outcome::success();
       }
-      return VMExitCode::SysErrForbidden;
+      return VMExitCode::kSysErrForbidden;
     }
 
     inline outcome::result<void> validateImmediateCallerIsSignable() {
@@ -263,7 +263,7 @@ namespace fc::vm::runtime {
       if (isSignableActor(code)) {
         return outcome::success();
       }
-      return VMExitCode::SysErrForbidden;
+      return VMExitCode::kSysErrForbidden;
     }
 
     inline auto validateImmediateCallerIsMiner() {

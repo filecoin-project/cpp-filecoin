@@ -591,7 +591,7 @@ namespace fc::markets::storage::provider {
     maybe_wait.value().wait(
         [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {
           SELF_FSM_HALT_ON_ERROR(result, "Wait for funding error", deal);
-          if (result.value().receipt.exit_code != VMExitCode::Ok) {
+          if (result.value().receipt.exit_code != VMExitCode::kOk) {
             deal->message = "Funding exit code "
                             + std::to_string(static_cast<uint64_t>(
                                 result.value().receipt.exit_code));
@@ -664,7 +664,7 @@ namespace fc::markets::storage::provider {
                                 outcome::result<MsgWait> result) {
       SELF_FSM_HALT_ON_ERROR(
           result, "Publish storage deal message error", deal);
-      if (result.value().receipt.exit_code != VMExitCode::Ok) {
+      if (result.value().receipt.exit_code != VMExitCode::kOk) {
         deal->message = "Publish storage deal exit code "
                         + std::to_string(static_cast<uint64_t>(
                             result.value().receipt.exit_code));

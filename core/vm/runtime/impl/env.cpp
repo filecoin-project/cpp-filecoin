@@ -202,7 +202,7 @@ namespace fc::vm::runtime {
       BOOST_ASSERT(message.value > 0);
       OUTCOME_TRY(from_actor, state_tree->get(message.from));
       if (from_actor.balance < message.value) {
-        return VMExitCode::SEND_TRANSFER_INSUFFICIENT;
+        return VMExitCode::kSendTransferInsufficient;
       }
       from_actor.balance -= message.value;
       to_actor.balance += message.value;
