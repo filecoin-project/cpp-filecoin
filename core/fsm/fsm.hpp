@@ -276,7 +276,7 @@ namespace fc::fsm {
       std::unique_lock lock(states_mutex_);
       auto lookup = states_.find(entity_ptr);
       if (states_.end() != lookup) {
-        return FsmError::ENTITY_ALREADY_BEING_TRACKED;
+        return FsmError::kEntityAlreadyBeingTracked;
       }
       states_.emplace(entity_ptr, initial_state);
       return outcome::success();
@@ -286,7 +286,7 @@ namespace fc::fsm {
     outcome::result<void> send(const EntityPtr &entity_ptr,
                                EventEnumType event) {
       if (not running_) {
-        return FsmError::MACHINE_STOPPED;
+        return FsmError::kMachineStopped;
       }
       std::lock_guard lock(event_queue_mutex_);
       event_queue_.emplace(entity_ptr, event);
@@ -310,7 +310,7 @@ namespace fc::fsm {
       std::shared_lock lock(states_mutex_);
       auto lookup = states_.find(entity_pointer);
       if (states_.end() == lookup) {
-        return FsmError::ENTITY_NOT_TRACKED;
+        return FsmError::kEntityNotTracked;
       }
       return lookup->second;
     }
