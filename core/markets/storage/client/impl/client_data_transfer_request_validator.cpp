@@ -18,7 +18,7 @@ namespace fc::markets::storage::client {
       std::vector<uint8_t> voucher,
       CID base_cid,
       std::shared_ptr<Selector> selector) {
-    return ClientRequestValidatorError::ERROR_NO_PUSH_ACCEPTED;
+    return ClientRequestValidatorError::kErrorNoPushAccepted;
   }
 
   outcome::result<void> ClientDataTransferRequestValidator::validatePull(
@@ -32,14 +32,14 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(deal, client_state_store_->get(voucher.proposal_cid));
 
     if (deal.miner != receiver) {
-      return ClientRequestValidatorError::WRONG_PEER;
+      return ClientRequestValidatorError::kWrongPeer;
     }
     if (deal.data_ref.root != base_cid) {
-      return ClientRequestValidatorError::WRONG_PAYLOAD_CID;
+      return ClientRequestValidatorError::kWrongPayloadCID;
     }
     if (deal.state != StorageDealStatus::STORAGE_DEAL_UNKNOWN
         && deal.state != StorageDealStatus::STORAGE_DEAL_VALIDATING) {
-      return ClientRequestValidatorError::INACCEPTABLE_DEAL_STATE;
+      return ClientRequestValidatorError::kInacceptableDealState;
     }
 
     return outcome::success();
@@ -52,13 +52,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::client,
   using fc::markets::storage::client::ClientRequestValidatorError;
 
   switch (e) {
-    case ClientRequestValidatorError::ERROR_NO_PUSH_ACCEPTED:
+    case ClientRequestValidatorError::kErrorNoPushAccepted:
       return "ClientRequestValidatorError: client doesn't accept push requests";
-    case ClientRequestValidatorError::WRONG_PEER:
+    case ClientRequestValidatorError::kWrongPeer:
       return "ClientRequestValidatorError: proposal has another peer";
-    case ClientRequestValidatorError::WRONG_PAYLOAD_CID:
+    case ClientRequestValidatorError::kWrongPayloadCID:
       return "ClientRequestValidatorError: proposal has another payload cid";
-    case ClientRequestValidatorError::INACCEPTABLE_DEAL_STATE:
+    case ClientRequestValidatorError::kInacceptableDealState:
       return "ClientRequestValidatorError: inacceptable deal state";
     default:
       return "ClientRequestValidatorError: unknown error";
