@@ -450,7 +450,7 @@ namespace fc::markets::storage::provider {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     auto stream_it = connections_.find(proposal_cid);
     if (stream_it == connections_.end()) {
-      return StorageProviderError::STREAM_LOOKUP_ERROR;
+      return StorageProviderError::kStreamLookupError;
     }
     return stream_it->second;
   }
