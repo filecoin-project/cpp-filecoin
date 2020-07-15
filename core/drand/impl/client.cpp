@@ -13,7 +13,7 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::drand, DrandSyncClientImpl::Error, e) {
   using E = fc::drand::DrandSyncClientImpl::Error;
   switch (e) {
-    case E::GRPC_FAILURE:
+    case E::kGRPCFailure:
       return "gRPC error occurred";
   }
 }
@@ -40,7 +40,7 @@ namespace fc::drand {
     ::drand::PublicRandResponse response;
     auto status = stub_->PublicRand(&context, request, &response);
     if (not status.ok()) {
-      return Error::GRPC_FAILURE;
+      return Error::kGRPCFailure;
     }
     return ProtoParser::protoToHandy(response);
   }
@@ -58,7 +58,7 @@ namespace fc::drand {
     }
     auto status = reader->Finish();
     if (not status.ok()) {
-      return Error::GRPC_FAILURE;
+      return Error::kGRPCFailure;
     }
     return result;
   }
@@ -69,7 +69,7 @@ namespace fc::drand {
     ::drand::GroupPacket response;
     auto status = stub_->Group(&context, request, &response);
     if (not status.ok()) {
-      return Error::GRPC_FAILURE;
+      return Error::kGRPCFailure;
     }
     return ProtoParser::protoToHandy(response);
   }
