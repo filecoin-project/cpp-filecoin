@@ -9,7 +9,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::message_pool, MessagePoolError, e) {
   using fc::blockchain::message_pool::MessagePoolError;
 
   switch (e) {
-    case MessagePoolError::MESSAGE_ALREADY_IN_POOL:
+    case MessagePoolError::kMessageAlreadyInPool:
       return "MessagePoolError: message is already in pool";
   }
 
