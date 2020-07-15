@@ -33,7 +33,7 @@ class ConfigImplTest : public test::BaseFS_Test {
  */
 TEST_F(ConfigImplTest, FileNotFound) {
   std::string path_not_exists = "/not/exists/file/config";
-  EXPECT_OUTCOME_ERROR(ConfigError::CANNOT_OPEN_FILE,
+  EXPECT_OUTCOME_ERROR(ConfigError::kCannotOpenFile,
                        config.load(path_not_exists));
 }
 
@@ -44,7 +44,7 @@ TEST_F(ConfigImplTest, FileNotFound) {
  */
 TEST_F(ConfigImplTest, EmptyFile) {
   auto empty_file_path = fs::canonical(createFile("empty.txt")).string();
-  EXPECT_OUTCOME_ERROR(ConfigError::JSON_PARSER_ERROR,
+  EXPECT_OUTCOME_ERROR(ConfigError::kJSONParserError,
                        config.load(empty_file_path));
 }
 
@@ -58,7 +58,7 @@ TEST_F(ConfigImplTest, InvalidFile) {
   std::ofstream file(file_path);
   file << "not a valid JSON content";
   file.flush();
-  EXPECT_OUTCOME_ERROR(ConfigError::JSON_PARSER_ERROR, config.load(file_path));
+  EXPECT_OUTCOME_ERROR(ConfigError::kJSONParserError, config.load(file_path));
 }
 
 /**
@@ -78,7 +78,7 @@ TEST_F(ConfigImplTest, ReadKeyNotExists) {
   EXPECT_OUTCOME_TRUE_1(config.load(file_path));
   EXPECT_OUTCOME_TRUE(val, config.get<int>("config.field"));
   EXPECT_EQ(1, val);
-  EXPECT_OUTCOME_ERROR(ConfigError::BAD_PATH, config.get<int>("not.exists"));
+  EXPECT_OUTCOME_ERROR(ConfigError::kBadPath, config.get<int>("not.exists"));
 }
 
 /**
@@ -165,7 +165,7 @@ TEST_F(ConfigImplTest, ReadTwiceJson) {
   file2.flush();
   EXPECT_OUTCOME_TRUE_1(config.load(file_path2));
 
-  EXPECT_OUTCOME_ERROR(ConfigError::BAD_PATH, config.get<int>("config.field1"));
+  EXPECT_OUTCOME_ERROR(ConfigError::kBadPath, config.get<int>("config.field1"));
   EXPECT_OUTCOME_TRUE(val2, config.get<int>("config.field2"));
   EXPECT_EQ(2, val2);
 }
@@ -202,5 +202,5 @@ TEST_F(ConfigImplTest, SaveConfig) {
  */
 TEST_F(ConfigImplTest, SaveInvalidPath) {
   auto filename = "[:\\\\\\\\/*\\\"?|<>']";
-  EXPECT_OUTCOME_ERROR(ConfigError::CANNOT_OPEN_FILE, config.save(filename));
+  EXPECT_OUTCOME_ERROR(ConfigError::kCannotOpenFile, config.save(filename));
 }

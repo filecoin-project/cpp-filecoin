@@ -9,11 +9,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::config, ConfigError, e) {
   using fc::storage::config::ConfigError;
 
   switch (e) {
-    case (ConfigError::JSON_PARSER_ERROR):
+    case (ConfigError::kJSONParserError):
       return "ConfigError: JSON parser error";
-    case (ConfigError::BAD_PATH):
+    case (ConfigError::kBadPath):
       return "ConfigError: config key is wrong";
-    case (ConfigError::CANNOT_OPEN_FILE):
+    case (ConfigError::kCannotOpenFile):
       return "ConfigError: cannot open file";
     default:
       return "ConfigError: unknown error";
