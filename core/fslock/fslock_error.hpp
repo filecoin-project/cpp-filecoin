@@ -14,10 +14,8 @@ namespace fc::fslock {
    * @brief FSLock returns these types of errors
    */
   enum class FSLockError {
-    FILE_LOCKED = 1,
-    IS_DIRECTORY,
-
-    UNKNOWN = 1000
+    kFileLocked = 1,
+    kIsDirectory,
   };
 
 }  // namespace fc::fslock
