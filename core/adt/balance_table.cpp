@@ -8,7 +8,7 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::adt, BalanceTableError, e) {
   using E = fc::adt::BalanceTableError;
   switch (e) {
-    case E::INSUFFICIENT_FUNDS:
+    case E::kInsufficientFunds:
       return "Insufficient funds";
   }
 }
@@ -21,7 +21,8 @@ namespace fc::adt {
     return outcome::success();
   }
 
-  outcome::result<void> BalanceTable::addCreate(const Key &key, TokenAmount amount) {
+  outcome::result<void> BalanceTable::addCreate(const Key &key,
+                                                TokenAmount amount) {
     OUTCOME_TRY(value, tryGet(key));
     if (value) {
       amount += *value;
@@ -43,7 +44,7 @@ namespace fc::adt {
                                                TokenAmount amount) {
     OUTCOME_TRY(substracted, subtractWithMin(key, amount, 0));
     if (substracted != amount) {
-      return BalanceTableError::INSUFFICIENT_FUNDS;
+      return BalanceTableError::kInsufficientFunds;
     }
     return outcome::success();
   }
