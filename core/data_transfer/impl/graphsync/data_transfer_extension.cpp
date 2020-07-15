@@ -25,7 +25,7 @@ namespace fc::data_transfer {
   outcome::result<ExtensionDataTransferData> decodeDataTransferExtension(
       const Extension &extension) {
     if (extension.name != kDataTransferExtensionName) {
-      return DataTransferExtensionError::UNEXPECTED_EXTENSION_NAME;
+      return DataTransferExtensionError::kUnexpectedExtensionName;
     }
     return codec::cbor::decode<ExtensionDataTransferData>(extension.data);
   }
@@ -36,7 +36,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::data_transfer, DataTransferExtensionError, e) {
   using fc::data_transfer::DataTransferExtensionError;
 
   switch (e) {
-    case DataTransferExtensionError::UNEXPECTED_EXTENSION_NAME:
+    case DataTransferExtensionError::kUnexpectedExtensionName:
       return "DataTransferExtensionError: unexpected extension name";
   }
 
