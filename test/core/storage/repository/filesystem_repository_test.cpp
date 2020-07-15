@@ -146,7 +146,7 @@ TEST_F(FilesSystemRepositoryTest, WrongVersion) {
   version_file << "123" << std::endl;
   version_file.close();
 
-  EXPECT_OUTCOME_ERROR(RepositoryError::WRONG_VERSION,
+  EXPECT_OUTCOME_ERROR(RepositoryError::kWrongVersion,
                        FileSystemRepository::create(
                            base_path.string(), api_address, leveldb_options));
 }
@@ -162,7 +162,7 @@ TEST_F(FilesSystemRepositoryTest, InvalidVersion) {
   version_file << "invalid version number" << std::endl;
   version_file.close();
 
-  EXPECT_OUTCOME_ERROR(RepositoryError::WRONG_VERSION,
+  EXPECT_OUTCOME_ERROR(RepositoryError::kWrongVersion,
                        FileSystemRepository::create(
                            base_path.string(), api_address, leveldb_options));
 }

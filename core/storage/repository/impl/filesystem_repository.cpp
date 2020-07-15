@@ -48,7 +48,7 @@ fc::outcome::result<std::shared_ptr<Repository>> FileSystemRepository::create(
     // returns version number or 0 in case of failure
     Version version = atoi(version_line.c_str());
     if (version != kFileSystemRepositoryVersion)
-      return RepositoryError::WRONG_VERSION;
+      return RepositoryError::kWrongVersion;
   } else {
     logger_->debug("Version file does not exist \"" + repo_path
                    + fc::storage::filestore::DELIMITER + version_filename
@@ -74,13 +74,13 @@ fc::outcome::result<std::shared_ptr<Repository>> FileSystemRepository::create(
   auto api_filename =
       repo_path + fc::storage::filestore::DELIMITER + kApiFilename;
   boost::filesystem::ofstream api_os(api_filename);
-  if (!api_os.is_open()) return RepositoryError::OPEN_FILE_ERROR;
+  if (!api_os.is_open()) return RepositoryError::kOpenFileError;
   api_os << api_address << std::endl;
   api_os.close();
 
   // write version
   boost::filesystem::ofstream version_os(version_filename);
-  if (!version_os.is_open()) return RepositoryError::OPEN_FILE_ERROR;
+  if (!version_os.is_open()) return RepositoryError::kOpenFileError;
   version_os << kFileSystemRepositoryVersion << std::endl;
   version_os.close();
 
