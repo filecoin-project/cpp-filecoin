@@ -29,10 +29,10 @@ namespace fc::storage::blockchain {
 
   /** @brief chain store errors enum */
   enum class ChainStoreError : int {
-    NO_MIN_TICKET_BLOCK = 1,
-    NO_HEAVIEST_TIPSET,
-    NO_GENESIS_BLOCK,
-    STORE_NOT_INITIALIZED,
+    kNoMinTicketBlock = 1,
+    kNoHeaviestTipset,
+    kNoGenesisBlock,
+    kStoreNotInitialized,
   };
 
   class ChainStoreImpl : public ChainStore,
