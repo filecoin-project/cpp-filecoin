@@ -34,10 +34,10 @@ class PowerTableHamtTest : public ::testing::Test {
 /**
  * @given Empty power table
  * @when setting the negative power to miner
- * @then error NEGATIVE_POWER
+ * @then error kNegativePower
  */
 TEST_F(PowerTableHamtTest, SetPower_NegativePower) {
-  EXPECT_OUTCOME_ERROR(PowerTableError::NEGATIVE_POWER,
+  EXPECT_OUTCOME_ERROR(PowerTableError::kNegativePower,
                        power_table.setMinerPower(addr, -1));
 }
 
