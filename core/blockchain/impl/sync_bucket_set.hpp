@@ -11,7 +11,7 @@
 
 namespace fc::blockchain::sync_manager {
 
-  enum class SyncBucketSetError { BUCKET_NOT_FOUND = 1 };
+  enum class SyncBucketSetError { kBucketNotFound = 1 };
 
   /** @brief keeps and updates set of chains */
   class SyncBucketSet {

@@ -116,7 +116,7 @@ namespace fc::blockchain::sync_manager {
       return *heaviest;
     }
 
-    return SyncBucketSetError::BUCKET_NOT_FOUND;
+    return SyncBucketSetError::kBucketNotFound;
   }
 
   bool SyncBucketSet::isEmpty() const {
@@ -134,7 +134,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::sync_manager,
                             error) {
   using Error = fc::blockchain::sync_manager::SyncBucketSetError;
   switch (error) {
-    case Error::BUCKET_NOT_FOUND:
+    case Error::kBucketNotFound:
       return "bucket not found";
   }
 }
