@@ -19,7 +19,7 @@ namespace fc::common {
   /**
    * Error codes for exceptions that may occur during blob initialization
    */
-  enum class BlobError { INCORRECT_LENGTH = 1 };
+  enum class BlobError { kIncorrectLength = 1 };
 
   using byte_t = uint8_t;
 
@@ -98,7 +98,7 @@ namespace fc::common {
     static outcome::result<Blob<size_>> fromSpan(
         const gsl::span<const uint8_t> &span) {
       if (span.size() != size_) {
-        return BlobError::INCORRECT_LENGTH;
+        return BlobError::kIncorrectLength;
       }
 
       Blob<size_> blob;
