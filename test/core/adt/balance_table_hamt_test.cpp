@@ -35,7 +35,7 @@ class BalanceTableHamtTest : public ::testing::Test {
  * @then returns error address not found
  */
 TEST_F(BalanceTableHamtTest, SubtractWithMinimumNotFound) {
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND,
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound,
                        table->subtractWithMin(address, 0, 0));
 }
 

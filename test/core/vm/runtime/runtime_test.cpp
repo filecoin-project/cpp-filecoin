@@ -95,7 +95,7 @@ TEST_F(RuntimeTest, getBalanceActorNotFound) {
   Address not_found_address{kInitAddress};
 
   EXPECT_CALL(*state_tree_, get(Eq(not_found_address)))
-      .WillOnce(testing::Return(fc::outcome::failure(HamtError::NOT_FOUND)));
+      .WillOnce(testing::Return(fc::outcome::failure(HamtError::kNotFound)));
 
   EXPECT_OUTCOME_EQ(runtime_->getBalance(not_found_address), BigInt{0});
 }
@@ -110,9 +110,9 @@ TEST_F(RuntimeTest, getBalanceError) {
   Address not_found_address{kInitAddress};
 
   EXPECT_CALL(*state_tree_, get(Eq(not_found_address)))
-      .WillOnce(testing::Return(fc::outcome::failure(HamtError::MAX_DEPTH)));
+      .WillOnce(testing::Return(fc::outcome::failure(HamtError::kMaxDepth)));
 
-  EXPECT_OUTCOME_ERROR(HamtError::MAX_DEPTH,
+  EXPECT_OUTCOME_ERROR(HamtError::kMaxDepth,
                        runtime_->getBalance(not_found_address));
 }
 

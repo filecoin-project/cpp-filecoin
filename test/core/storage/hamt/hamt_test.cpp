@@ -55,13 +55,13 @@ TEST_F(HamtTest, NodeCbor) {
       n, "824302000482a16131818241626161a16131818241616162"_unhex);
 
   n.items[17] = Node::Ptr{};
-  EXPECT_OUTCOME_ERROR(HamtError::EXPECTED_CID, encode(n));
+  EXPECT_OUTCOME_ERROR(HamtError::kExpectedCID, encode(n));
 }
 
 /** Set-remove single element */
 TEST_F(HamtTest, SetRemoveOne) {
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("aai"));
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.remove("aai"));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.get("aai"));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.remove("aai"));
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
@@ -69,8 +69,8 @@ TEST_F(HamtTest, SetRemoveOne) {
   EXPECT_EQ(root_->items.size(), 1);
 
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("aai"));
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("aai"));
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.remove("aai"));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.get("aai"));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.remove("aai"));
   EXPECT_FALSE(bit(253));
   EXPECT_EQ(root_->items.size(), 0);
 }
@@ -90,7 +90,7 @@ TEST_F(HamtTest, SetRemoveNoCollision) {
   EXPECT_FALSE(bit(190));
   EXPECT_EQ(root_->items.size(), 1);
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("aaa"));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.get("aaa"));
 }
 
 /** Set-remove kLeafMax colliding elements, does not shard */
@@ -107,8 +107,8 @@ TEST_F(HamtTest, SetRemoveCollisionMax) {
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("ade"));
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("agd"));
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("ade"));
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("agd"));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.get("ade"));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.get("agd"));
 }
 
 /** Set-remove kLeafMax + 1 colliding elements, creates shard */
@@ -132,7 +132,7 @@ TEST_F(HamtTest, SetRemoveCollisionChild) {
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
   EXPECT_OUTCOME_EQ(hamt_.get("ade"), "02"_unhex);
   EXPECT_OUTCOME_EQ(hamt_.get("agd"), "03"_unhex);
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, hamt_.get("agm"));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.get("agm"));
 }
 
 /** Set-remove kLeafMax + 1 double colliding elements, creates two nested shards
@@ -281,12 +281,12 @@ TEST_F(HamtTest, VisitorError) {
   auto n = 0;
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
-  EXPECT_OUTCOME_ERROR(HamtError::EXPECTED_CID,
+  EXPECT_OUTCOME_ERROR(HamtError::kExpectedCID,
                        hamt_.visit([&n](auto k, auto v) {
                          ++n;
                          EXPECT_EQ(k, "aai");
                          EXPECT_EQ(v, "01"_unhex);
-                         return HamtError::EXPECTED_CID;
+                         return HamtError::kExpectedCID;
                        }));
   EXPECT_EQ(n, 1);
 }
