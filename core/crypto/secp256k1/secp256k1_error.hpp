@@ -11,14 +11,13 @@
 namespace fc::crypto::secp256k1 {
 
   enum class Secp256k1Error {
-    KEY_GENERATION_FAILED = 1,
-    SIGNATURE_PARSE_ERROR,
-    SIGNATURE_SERIALIZATION_ERROR,
-    CANNOT_SIGN_ERROR,
-    PUBKEY_PARSE_ERROR,
-    PUBKEY_SERIALIZATION_ERROR,
-    RECOVER_ERROR,
-    UNKNOWN_ERROR
+    kKeyGenerationFailed = 1,
+    kSignatureParseError,
+    kSignatureSerializationError,
+    kCannotSignError,
+    kPubkeyParseError,
+    kPubkeySerializationError,
+    kRecoverError,
   };
 
 }

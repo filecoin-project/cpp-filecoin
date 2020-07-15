@@ -246,7 +246,7 @@ namespace fc::storage::keystore {
     Secp256k1Signature invalid_signature;
     invalid_signature[64] = 99;
     EXPECT_OUTCOME_ERROR(
-        Secp256k1Error::SIGNATURE_PARSE_ERROR,
+        Secp256k1Error::kSignatureParseError,
         ks->verify(secp256k1_address_, data_, invalid_signature));
   }
 
