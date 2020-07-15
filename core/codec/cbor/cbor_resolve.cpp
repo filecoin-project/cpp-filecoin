@@ -8,13 +8,13 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::cbor, CborResolveError, e) {
   using fc::codec::cbor::CborResolveError;
   switch (e) {
-    case CborResolveError::INT_KEY_EXPECTED:
+    case CborResolveError::kIntKeyExpected:
       return "Int key expected";
-    case CborResolveError::KEY_NOT_FOUND:
+    case CborResolveError::kKeyNotFound:
       return "Key not found";
-    case CborResolveError::CONTAINER_EXPECTED:
+    case CborResolveError::kContainerExpected:
       return "Container expected";
-    case CborResolveError::INT_KEY_TOO_BIG:
+    case CborResolveError::kIntKeyTooBig:
       return "Int key too big";
     default:
       return "Unknown error";
@@ -28,15 +28,15 @@ namespace fc::codec::cbor {
     try {
       value = std::stoul(str, &chars);
     } catch (std::invalid_argument &) {
-      return outcome::failure(CborResolveError::INT_KEY_EXPECTED);
+      return outcome::failure(CborResolveError::kIntKeyExpected);
     } catch (std::out_of_range &) {
-      return outcome::failure(CborResolveError::KEY_NOT_FOUND);
+      return outcome::failure(CborResolveError::kKeyNotFound);
     }
     if (chars != str.size()) {
-      return outcome::failure(CborResolveError::INT_KEY_EXPECTED);
+      return outcome::failure(CborResolveError::kIntKeyExpected);
     }
     if (str[0] == '-') {
-      return outcome::failure(CborResolveError::INT_KEY_EXPECTED);
+      return outcome::failure(CborResolveError::kIntKeyExpected);
     }
     return value;
   }
@@ -47,7 +47,7 @@ namespace fc::codec::cbor {
       if (stream.isList()) {
         OUTCOME_TRY(index, parseIndex(part));
         if (index >= stream.listLength()) {
-          return CborResolveError::KEY_NOT_FOUND;
+          return CborResolveError::kKeyNotFound;
         }
         stream = stream.list();
         for (size_t i = 0; i < index; i++) {
@@ -57,11 +57,11 @@ namespace fc::codec::cbor {
         auto map = stream.map();
         auto it = map.find(part);
         if (it == map.end()) {
-          return CborResolveError::KEY_NOT_FOUND;
+          return CborResolveError::kKeyNotFound;
         }
         stream = std::move(it->second);
       } else {
-        return CborResolveError::CONTAINER_EXPECTED;
+        return CborResolveError::kContainerExpected;
       }
     } catch (std::system_error &e) {
       return outcome::failure(e.code());

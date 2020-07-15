@@ -459,7 +459,7 @@ struct CborResolve : testing::Test {
  * @then Error
  */
 TEST_F(CborResolve, Cid) {
-  EXPECT_OUTCOME_ERROR(CborResolveError::CONTAINER_EXPECTED,
+  EXPECT_OUTCOME_ERROR(CborResolveError::kContainerExpected,
                        resolve(kCidCbor, "a"));
 }
 
@@ -473,10 +473,10 @@ TEST_F(CborResolve, IntKey) {
 
   EXPECT_OUTCOME_EQ(resolve(a, "2"), "07"_unhex);
 
-  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, "a"));
-  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, "1a"));
-  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, "-4"));
-  EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, "4"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::kIntKeyExpected, resolve(a, "a"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::kIntKeyExpected, resolve(a, "1a"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::kIntKeyExpected, resolve(a, "-4"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::kKeyNotFound, resolve(a, "4"));
 }
 
 /**
@@ -489,7 +489,7 @@ TEST_F(CborResolve, StringKey) {
 
   EXPECT_OUTCOME_EQ(resolve(a, "b"), "04"_unhex);
 
-  EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, "1"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::kKeyNotFound, resolve(a, "1"));
 }
 
 /**
@@ -498,7 +498,7 @@ TEST_F(CborResolve, StringKey) {
  * @then Error
  */
 TEST_F(CborResolve, Errors) {
-  EXPECT_OUTCOME_ERROR(CborResolveError::CONTAINER_EXPECTED,
+  EXPECT_OUTCOME_ERROR(CborResolveError::kContainerExpected,
                        resolve("01"_unhex, "0"));
   EXPECT_OUTCOME_ERROR(CborDecodeError::kInvalidCbor,
                        resolve("8281"_unhex, "1"));
