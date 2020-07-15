@@ -16,11 +16,11 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
   using E = fc::vm::interpreter::InterpreterError;
   switch (e) {
-    case E::DUPLICATE_MINER:
+    case E::kDuplicateMiner:
       return "Duplicate miner";
-    case E::MINER_SUBMIT_FAILED:
+    case E::kMinerSubmitFailed:
       return "Miner submit failed";
-    case E::CRON_TICK_FAILED:
+    case E::kCronTickFailed:
       return "Cron tick failed";
   }
 }
@@ -54,7 +54,7 @@ namespace fc::vm::interpreter {
     }
 
     if (hasDuplicateMiners(tipset.blks)) {
-      return InterpreterError::DUPLICATE_MINER;
+      return InterpreterError::kDuplicateMiner;
     }
 
     auto state_tree = std::make_shared<state::StateTreeImpl>(
