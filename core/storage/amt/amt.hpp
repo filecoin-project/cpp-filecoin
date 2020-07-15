@@ -17,10 +17,10 @@
 
 namespace fc::storage::amt {
   enum class AmtError {
-    EXPECTED_CID = 1,
-    DECODE_WRONG,
-    INDEX_TOO_BIG,
-    NOT_FOUND,
+    kExpectedCID = 1,
+    kDecodeWrong,
+    kIndexTooBig,
+    kNotFound,
   };
 }  // namespace fc::storage::amt
 
@@ -57,7 +57,7 @@ namespace fc::storage::amt {
             for (auto &item : links) {
               bits[0] |= 1 << item.first;
               if (which<Node::Ptr>(item.second)) {
-                outcome::raise(AmtError::EXPECTED_CID);
+                outcome::raise(AmtError::kExpectedCID);
               }
               l_links << boost::get<CID>(item.second);
             }
@@ -91,11 +91,11 @@ namespace fc::storage::amt {
     auto n_values = l_node.listLength();
     auto l_values = l_node.list();
     if (n_links != 0 && n_values != 0) {
-      outcome::raise(AmtError::DECODE_WRONG);
+      outcome::raise(AmtError::kDecodeWrong);
     }
     if (n_links != 0) {
       if (n_links != indices.size()) {
-        outcome::raise(AmtError::DECODE_WRONG);
+        outcome::raise(AmtError::kDecodeWrong);
       }
       Node::Links links;
       for (auto i = 0u; i < n_links; ++i) {
@@ -106,7 +106,7 @@ namespace fc::storage::amt {
       node.items = links;
     } else {
       if (n_values != indices.size()) {
-        outcome::raise(AmtError::DECODE_WRONG);
+        outcome::raise(AmtError::kDecodeWrong);
       }
       Node::Values values;
       for (auto i = 0u; i < n_values; ++i) {

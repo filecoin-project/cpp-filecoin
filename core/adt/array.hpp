@@ -24,7 +24,7 @@ namespace fc::adt {
     outcome::result<boost::optional<Value>> tryGet(Key key) {
       auto maybe = get(key);
       if (!maybe) {
-        if (maybe.error() != storage::amt::AmtError::NOT_FOUND) {
+        if (maybe.error() != storage::amt::AmtError::kNotFound) {
           return maybe.error();
         }
         return boost::none;

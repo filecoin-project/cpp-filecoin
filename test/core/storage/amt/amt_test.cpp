@@ -49,15 +49,15 @@ TEST_F(AmtTest, NodeCbor) {
   expectEncodeAndReencode(n, "83410881d82a470001000002000080"_unhex);
 
   n.items = Node::Links{{3, Node::Ptr{}}};
-  EXPECT_OUTCOME_ERROR(AmtError::EXPECTED_CID, encode(n));
+  EXPECT_OUTCOME_ERROR(AmtError::kExpectedCID, encode(n));
 }
 
 TEST_F(AmtTest, SetRemoveRootLeaf) {
   auto key = 3llu;
   auto value = Value{"07"_unhex};
 
-  EXPECT_OUTCOME_ERROR(AmtError::NOT_FOUND, amt.get(key));
-  EXPECT_OUTCOME_ERROR(AmtError::NOT_FOUND, amt.remove(key));
+  EXPECT_OUTCOME_ERROR(AmtError::kNotFound, amt.get(key));
+  EXPECT_OUTCOME_ERROR(AmtError::kNotFound, amt.remove(key));
   EXPECT_OUTCOME_EQ(amt.count(), 0);
   EXPECT_FALSE(getRoot().node.has_bits);
 
@@ -67,7 +67,7 @@ TEST_F(AmtTest, SetRemoveRootLeaf) {
   EXPECT_TRUE(getRoot().node.has_bits);
 
   EXPECT_OUTCOME_TRUE_1(amt.remove(key));
-  EXPECT_OUTCOME_ERROR(AmtError::NOT_FOUND, amt.get(key));
+  EXPECT_OUTCOME_ERROR(AmtError::kNotFound, amt.get(key));
   EXPECT_OUTCOME_EQ(amt.count(), 0);
   EXPECT_TRUE(getRoot().node.has_bits);
 }
@@ -141,15 +141,15 @@ TEST_F(AmtVisitTest, VisitAfterFlush) {
   }));
   EXPECT_EQ(i, items.size());
 
-  EXPECT_OUTCOME_ERROR(AmtError::INDEX_TOO_BIG,
+  EXPECT_OUTCOME_ERROR(AmtError::kIndexTooBig,
                        amt.visit([](uint64_t, const Value &) {
-                         return AmtError::INDEX_TOO_BIG;
+                         return AmtError::kIndexTooBig;
                        }));
 }
 
 TEST_F(AmtVisitTest, VisitError) {
-  EXPECT_OUTCOME_ERROR(AmtError::INDEX_TOO_BIG,
+  EXPECT_OUTCOME_ERROR(AmtError::kIndexTooBig,
                        amt.visit([](uint64_t, const Value &) {
-                         return AmtError::INDEX_TOO_BIG;
+                         return AmtError::kIndexTooBig;
                        }));
 }
