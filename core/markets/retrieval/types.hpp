@@ -31,7 +31,7 @@ namespace fc::markets::retrieval {
    */
   enum class DealStatus : uint64_t {
     /* New deal, nothing happened with it */
-    kDealStatusNew = 1,
+    kDealStatusNew,
 
     /* Waiting for the payment channel creation to complete */
     kDealStatusPaymentChannelCreating,

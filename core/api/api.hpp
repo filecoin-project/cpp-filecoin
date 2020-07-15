@@ -76,6 +76,7 @@ namespace fc::api {
   using vm::actor::builtin::market::DealProposal;
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
+  using vm::actor::builtin::miner::DeadlineInfo;
   using vm::actor::builtin::miner::MinerInfo;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::LaneId;
@@ -343,6 +344,10 @@ namespace fc::api {
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
     API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerProvingDeadline,
+               DeadlineInfo,
+               const Address &,
+               const TipsetKey &)
     API_METHOD(StateMinerProvingSet,
                std::vector<ChainSectorInfo>,
                const Address &,
@@ -412,7 +417,7 @@ namespace fc::api {
                const Address &,
                const SignedVoucher &,
                const Buffer &,
-               TokenAmount)
+               const TokenAmount &)
 
     /**
      * Validate voucher

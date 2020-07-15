@@ -111,7 +111,9 @@ namespace fc::api {
     setup(rpc, api.StateMarketStorageDeal);
     setup(rpc, api.StateMinerElectionPeriodStart);
     setup(rpc, api.StateMinerFaults);
+    setup(rpc, api.StateMinerInfo);
     setup(rpc, api.StateMinerPower);
+    setup(rpc, api.StateMinerProvingDeadline);
     setup(rpc, api.StateMinerProvingSet);
     setup(rpc, api.StateMinerSectors);
     setup(rpc, api.StateMinerSectorSize);

@@ -165,8 +165,10 @@ namespace fc::api {
               }));
           return messages;
         }},
-        // TODO(turuslan): FIL-165 implement method
-        .ChainGetGenesis = {},
+        .ChainGetGenesis = {[=]() -> outcome::result<Tipset> {
+          OUTCOME_TRY(genesis, chain_store->getGenesis());
+          return Tipset::create({genesis});
+        }},
         .ChainGetNode = {[=](auto &path) -> outcome::result<IpldObject> {
           std::vector<std::string> parts;
           boost::split(parts, path, [](auto c) { return c == '/'; });
@@ -576,6 +578,12 @@ namespace fc::api {
               {power_state.total_raw_power, power_state.total_qa_power},
           };
         }},
+        .StateMinerProvingDeadline = {[=](auto &address, auto &tipset_key)
+                                          -> outcome::result<DeadlineInfo> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.minerState(address));
+          return state.deadlineInfo(context.tipset.height);
+        }},
         .StateMinerProvingSet =
             {[=](auto address, auto tipset_key)
                  -> outcome::result<std::vector<ChainSectorInfo>> {
@@ -652,7 +660,7 @@ namespace fc::api {
           return outcome::success();
         }},
         .Version = {[]() {
-          return VersionResult{"fuhon", 0x000200, 5};
+          return VersionResult{"fuhon", 0x000300, 5};
         }},
         .WalletBalance = {[=](auto &address) -> outcome::result<TokenAmount> {
           OUTCOME_TRY(context, tipsetContext({}));
