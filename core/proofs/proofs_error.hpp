@@ -14,13 +14,13 @@ namespace fc::proofs {
    * @brief Proofs engine returns these types of errors
    */
   enum class ProofsError {
-    CANNOT_OPEN_FILE = 1,
-    NO_SUCH_SEAL_PROOF,
-    NO_SUCH_POST_PROOF,
-    INVALID_POST_PROOF,
-    OUT_OF_BOUND,
-    UNABLE_MOVE_CURSOR,
-    UNKNOWN = 1000
+    kCannotOpenFile = 1,
+    kNoSuchSealProof,
+    kNoSuchPostProof,
+    kInvalidPostProof,
+    kOutOfBound,
+    kUnableMoveCursor,
+    kUnknown = 1000
   };
 
 }  // namespace fc::proofs
