@@ -30,7 +30,7 @@ namespace fc::primitives::sector {
       case RegisteredProof::StackedDRG2KiBWindowPoSt:
         return RegisteredProof::StackedDRG2KiBWindowPoSt;
       default:
-        return Errors::InvalidPoStProof;
+        return Errors::kInvalidPoStProof;
     }
   }
 
@@ -58,7 +58,7 @@ namespace fc::primitives::sector {
       case RegisteredProof::StackedDRG2KiBWindowPoSt:
         return RegisteredProof::StackedDRG2KiBWinningPoSt;
       default:
-        return Errors::InvalidPoStProof;
+        return Errors::kInvalidPoStProof;
     }
   }
 
@@ -86,7 +86,7 @@ namespace fc::primitives::sector {
       case RegisteredProof::StackedDRG2KiBWindowPoSt:
         return RegisteredProof::StackedDRG2KiBSeal;
       default:
-        return Errors::InvalidSealProof;
+        return Errors::kInvalidSealProof;
     }
   }
 
@@ -104,7 +104,7 @@ namespace fc::primitives::sector {
       case RegisteredProof::StackedDRG512MiBSeal:
         return SectorSize{512} << 20;
       default:
-        return Errors::InvalidProofType;
+        return Errors::kInvalidProofType;
     }
   }
 
@@ -122,7 +122,7 @@ namespace fc::primitives::sector {
       case SectorSize{512} << 20:
         return RegisteredProof::StackedDRG512MiBSeal;
       default:
-        return Errors::InvalidProofType;
+        return Errors::kInvalidProofType;
     }
   }
 
@@ -140,7 +140,7 @@ namespace fc::primitives::sector {
       case RegisteredProof::StackedDRG512MiBSeal:
         return 2;
       default:
-        return Errors::InvalidProofType;
+        return Errors::kInvalidProofType;
     }
   }
 };  // namespace fc::primitives::sector
@@ -148,11 +148,11 @@ namespace fc::primitives::sector {
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::sector, Errors, e) {
   using fc::primitives::sector::Errors;
   switch (e) {
-    case (Errors::InvalidSealProof):
+    case (Errors::kInvalidSealProof):
       return "Sector: unsupported mapping to Seal-specific RegisteredProof";
-    case (Errors::InvalidPoStProof):
+    case (Errors::kInvalidPoStProof):
       return "Sector: unsupported mapping to PoSt-specific RegisteredProof";
-    case (Errors::InvalidProofType):
+    case (Errors::kInvalidProofType):
       return "Sector: unsupported proof type";
     default:
       return "Sector: unknown error";
