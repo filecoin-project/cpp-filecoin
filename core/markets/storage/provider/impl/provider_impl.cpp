@@ -157,7 +157,7 @@ namespace fc::markets::storage::provider {
         return *it.first;
       }
     }
-    return StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND;
+    return StorageMarketProviderError::kLocalDealNotFound;
   }
 
   outcome::result<void> StorageProviderImpl::addStorageCollateral(
@@ -182,7 +182,7 @@ namespace fc::markets::storage::provider {
                        return false;
                      });
     if (found_fsm_entity == fsm_state_table.end()) {
-      return StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND;
+      return StorageMarketProviderError::kLocalDealNotFound;
     }
     auto deal = found_fsm_entity->first;
 
@@ -191,7 +191,7 @@ namespace fc::markets::storage::provider {
 
     if (piece_commitment.first
         != deal->client_deal_proposal.proposal.piece_cid) {
-      return StorageMarketProviderError::PIECE_CID_DOESNT_MATCH;
+      return StorageMarketProviderError::kPieceCIDDoesNotMatch;
     }
 
     OUTCOME_TRY(cid_str, proposal_cid.toString());
@@ -763,9 +763,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider,
   using fc::markets::storage::provider::StorageMarketProviderError;
 
   switch (e) {
-    case StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND:
+    case StorageMarketProviderError::kLocalDealNotFound:
       return "StorageMarketProviderError: local deal not found";
-    case StorageMarketProviderError::PIECE_CID_DOESNT_MATCH:
+    case StorageMarketProviderError::kPieceCIDDoesNotMatch:
       return "StorageMarketProviderError: imported piece cid doensn't match "
              "proposal piece cid";
   }
