@@ -14,7 +14,7 @@ namespace fc::crypto::vrf {
 
   outcome::result<VRFHash> encodeVrfParams(const VRFParams &params) {
     if (params.miner_address.getProtocol() != Protocol::BLS) {
-      return VRFError::ADDRESS_IS_NOT_BLS;
+      return VRFError::kAddressIsNotBLS;
     }
     auto &&miner_bytes = primitives::address::encode(params.miner_address);
 
