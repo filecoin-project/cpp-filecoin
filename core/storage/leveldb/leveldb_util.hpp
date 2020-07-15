@@ -18,26 +18,26 @@ namespace fc::storage {
   template <typename T>
   inline outcome::result<T> error_as_result(const leveldb::Status &s) {
     if (s.IsNotFound()) {
-      return LevelDBError::NOT_FOUND;
+      return LevelDBError::kNotFound;
     }
 
     if (s.IsIOError()) {
-      return LevelDBError::IO_ERROR;
+      return LevelDBError::kIOError;
     }
 
     if (s.IsInvalidArgument()) {
-      return LevelDBError::INVALID_ARGUMENT;
+      return LevelDBError::kInvalidArgument;
     }
 
     if (s.IsCorruption()) {
-      return LevelDBError::CORRUPTION;
+      return LevelDBError::kCorruption;
     }
 
     if (s.IsNotSupportedError()) {
-      return LevelDBError::NOT_SUPPORTED;
+      return LevelDBError::kNotSupported;
     }
 
-    return LevelDBError::UNKNOWN;
+    return LevelDBError::kUnknown;
   }
 
   template <typename T>
