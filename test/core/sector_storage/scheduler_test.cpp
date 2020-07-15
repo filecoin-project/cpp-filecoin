@@ -173,8 +173,6 @@ TEST_F(SchedulerTest, RequestQueue) {
     thread_error = maybe_err.has_error();
   });
 
-  std::this_thread::sleep_for(std::chrono::nanoseconds(5));
-
   auto task2 = fc::primitives::kTTFinalize;
   EXPECT_CALL(
       *selector_,

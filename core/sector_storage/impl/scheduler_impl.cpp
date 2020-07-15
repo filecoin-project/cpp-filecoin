@@ -26,11 +26,14 @@ namespace fc::sector_storage {
     std::shared_ptr<TaskRequest> request = std::make_shared<TaskRequest>(
         sector, task_type, priority, selector, prepare, work);
 
-    OUTCOME_TRY(scheduled, maybeScheduleRequest(request));
-
-    if (!scheduled) {
+    {
       std::lock_guard<std::mutex> lock(request_lock_);
-      request_queue_.insert(request);
+
+      OUTCOME_TRY(scheduled, maybeScheduleRequest(request));
+
+      if (!scheduled) {
+        request_queue_.insert(request);
+      }
     }
 
     while (true) {
