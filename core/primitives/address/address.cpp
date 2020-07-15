@@ -11,12 +11,12 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::address, AddressError, e) {
   using fc::primitives::address::AddressError;
   switch (e) {
-    case (AddressError::UNKNOWN_PROTOCOL):
+    case (AddressError::kUnknownProtocol):
       return "Failed to create address: unknown address protocol";
-    case (AddressError::INVALID_PAYLOAD):
+    case (AddressError::kInvalidPayload):
       return "Failed to create address: invalid payload for the specified "
              "protocol";
-    case (AddressError::UNKNOWN_NETWORK):
+    case (AddressError::kUnknownNetwork):
       return "Failed to create address: network must either be MAINNET or "
              "TESTNET";
   }
