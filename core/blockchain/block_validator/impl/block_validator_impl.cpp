@@ -164,10 +164,10 @@ namespace fc::blockchain::block_validator {
         if (block_header_result.has_value()) {
           parent_blocks.emplace_back(std::move(block_header_result.value()));
         } else {
-          return ConsensusError::GET_PARENT_TIPSET_ERROR;
+          return ConsensusError::kGetParentTipsetError;
         }
       } else {
-        return ConsensusError::GET_PARENT_TIPSET_ERROR;
+        return ConsensusError::kGetParentTipsetError;
       }
     }
     OUTCOME_TRY(tipset, Tipset::create(parent_blocks));
