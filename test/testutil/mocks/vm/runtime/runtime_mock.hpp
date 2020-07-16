@@ -17,18 +17,15 @@ namespace fc::vm::runtime {
    public:
     MOCK_CONST_METHOD0(getCurrentEpoch, ChainEpoch());
 
-    MOCK_CONST_METHOD2(getRandomness,
-                       Randomness(DomainSeparationTag tag, ChainEpoch epoch));
-    MOCK_CONST_METHOD3(getRandomness,
-                       Randomness(DomainSeparationTag tag,
-                                  ChainEpoch epoch,
-                                  Serialization seed));
+    MOCK_CONST_METHOD3(
+        getRandomness,
+        outcome::result<Randomness>(DomainSeparationTag tag,
+                                    ChainEpoch epoch,
+                                    gsl::span<const uint8_t> seed));
 
     MOCK_CONST_METHOD0(getImmediateCaller, Address());
 
     MOCK_CONST_METHOD0(getCurrentReceiver, Address());
-
-    MOCK_CONST_METHOD0(acquireState, std::shared_ptr<ActorStateHandle>());
 
     MOCK_CONST_METHOD1(getBalance,
                        outcome::result<BigInt>(const Address &address));
@@ -57,10 +54,9 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD1(chargeGas, outcome::result<void>(GasAmount amount));
 
-    MOCK_METHOD0(getCurrentActorState, ActorSubstateCID());
+    MOCK_METHOD0(getCurrentActorState, CID());
 
-    MOCK_METHOD1(commit,
-                 outcome::result<void>(const ActorSubstateCID &new_state));
+    MOCK_METHOD1(commit, outcome::result<void>(const CID &new_state));
 
     MOCK_METHOD1(resolveAddress,
                  outcome::result<Address>(const Address &address));

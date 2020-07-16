@@ -293,9 +293,8 @@ namespace fc::markets::storage::provider {
     }
 
     OUTCOME_TRY(ask, stored_ask_->getAsk(miner_actor_address_));
-    auto min_price =
-        (ask.ask.price * static_cast<uint64_t>(proposal.piece_size))
-        / (1 << 30);
+    auto min_price = bigdiv(
+        ask.ask.price * static_cast<uint64_t>(proposal.piece_size), 1 << 30);
     if (proposal.storage_price_per_epoch < min_price) {
       std::stringstream ss;
       ss << "Deal proposal verification failed, storage price per epoch less "

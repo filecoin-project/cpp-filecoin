@@ -45,6 +45,7 @@ namespace fc::api {
   using rapidjson::Document;
   using rapidjson::Value;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::miner::WorkerKeyChange;
   using vm::actor::builtin::payment_channel::Merge;
   using vm::actor::builtin::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
@@ -343,6 +344,37 @@ namespace fc::api {
 
     DECODE(BigInt) {
       v = BigInt{AsString(j)};
+    }
+
+    ENCODE(MinerInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Owner", v.owner);
+      Set(j, "Worker", v.worker);
+      Set(j, "PendingWorkerKey", v.pending_worker_key);
+      Set(j, "PeerId", v.peer_id);
+      Set(j, "SealProofType", common::to_int(v.seal_proof_type));
+      Set(j, "SectorSize", v.sector_size);
+      Set(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
+      return j;
+    }
+
+    ENCODE(WorkerKeyChange) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "NewWorker", v.new_worker);
+      Set(j, "EffectiveAt", v.effective_at);
+      return j;
+    }
+
+    ENCODE(DeadlineInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "CurrentEpoch", v.current_epoch);
+      Set(j, "PeriodStart", v.period_start);
+      Set(j, "Index", v.index);
+      Set(j, "Open", v.open);
+      Set(j, "Close", v.close);
+      Set(j, "Challenge", v.challenge);
+      Set(j, "FaultCutoff", v.fault_cutoff);
+      return j;
     }
 
     ENCODE(BlockHeader) {
@@ -918,7 +950,7 @@ namespace fc::api {
       Set(j, "MinerPower", v.miner_power);
       Set(j, "NetworkPower", v.network_power);
       Set(j, "Sectors", v.sectors);
-      Set(j, "Worker", v.worker);
+      Set(j, "WorkerKey", v.worker);
       Set(j, "SectorSize", v.sector_size);
       Set(j, "PrevBeaconEntry", v.prev_beacon);
       Set(j, "BeaconEntries", v.beacons);

@@ -15,9 +15,12 @@
 #include "primitives/address/address.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
+#include "storage/ipld/walker.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval {
+  using common::Buffer;
+  using fc::storage::ipld::walker::Selector;
   using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
@@ -32,6 +35,9 @@ namespace fc::markets::retrieval {
    * @struct Deal proposal params
    */
   struct DealProposalParams {
+    Selector selector;
+    boost::optional<CID> piece;
+
     /* Proposed price */
     TokenAmount price_per_byte;
 
@@ -43,6 +49,8 @@ namespace fc::markets::retrieval {
   };
 
   CBOR_TUPLE(DealProposalParams,
+             selector,
+             piece,
              price_per_byte,
              payment_interval,
              payment_interval_increase);
@@ -67,6 +75,13 @@ namespace fc::markets::retrieval {
    * Deal proposal response
    */
   struct DealResponse {
+    /// ipld block
+    struct Block {
+      /// CID bytes with multihash without hash bytes
+      Buffer prefix;
+      Buffer data;
+    };
+
     /* Current deal status */
     DealStatus status;
 
@@ -80,12 +95,10 @@ namespace fc::markets::retrieval {
     std::string message;
 
     /* Requested data */
-    // TODO (a.chernyshov) decide on blocks format and serialization
-    //    std::vector<Block> blocks;
+    std::vector<Block> blocks;
   };
-
-  CBOR_TUPLE(DealResponse, status, deal_id, payment_owed, message
-             /*, blocks */);
+  CBOR_TUPLE(DealResponse, status, deal_id, payment_owed, message, blocks)
+  CBOR_TUPLE(DealResponse::Block, prefix, data)
 
   /**
    * Payment for an in progress retrieval deal

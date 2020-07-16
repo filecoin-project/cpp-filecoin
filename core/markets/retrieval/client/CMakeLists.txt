@@ -11,4 +11,5 @@ target_link_libraries(retrieval_market_client
     address
     logger
     cbor
+    cbor_stream
     )

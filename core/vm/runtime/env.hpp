@@ -6,27 +6,26 @@
 #ifndef FILECOIN_CORE_VM_RUNTIME_ENV_HPP
 #define FILECOIN_CORE_VM_RUNTIME_ENV_HPP
 
-#include "crypto/randomness/randomness_provider.hpp"
+#include "primitives/tipset/tipset.hpp"
 #include "primitives/types.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/invoker.hpp"
-#include "vm/state/state_tree.hpp"
+#include "vm/runtime/pricelist.hpp"
+#include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::vm::runtime {
   using actor::Invoker;
-  using crypto::randomness::RandomnessProvider;
-  using state::StateTree;
+  using primitives::tipset::Tipset;
+  using state::StateTreeImpl;
 
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {
-    Env(std::shared_ptr<RandomnessProvider> randomness_provider,
-        std::shared_ptr<StateTree> state_tree,
-        std::shared_ptr<Invoker> invoker,
-        ChainEpoch chain_epoch)
-        : randomness_provider{std::move(randomness_provider)},
-          state_tree{std::move(state_tree)},
+    Env(std::shared_ptr<Invoker> invoker, IpldPtr ipld, Tipset tipset)
+        : state_tree{std::make_shared<StateTreeImpl>(
+            ipld, tipset.getParentStateRoot())},
           invoker{std::move(invoker)},
-          chain_epoch{chain_epoch} {}
+          ipld{std::move(ipld)},
+          tipset{std::move(tipset)} {}
 
     outcome::result<MessageReceipt> applyMessage(const UnsignedMessage &message,
                                                  TokenAmount &penalty);
@@ -34,11 +33,14 @@ namespace fc::vm::runtime {
     outcome::result<InvocationOutput> applyImplicitMessage(
         UnsignedMessage message);
 
-    std::shared_ptr<RandomnessProvider> randomness_provider;
-    std::shared_ptr<StateTree> state_tree;
+    std::shared_ptr<StateTreeImpl> state_tree;
     std::shared_ptr<Invoker> invoker;
-    ChainEpoch chain_epoch;
+    IpldPtr ipld;
+    Tipset tipset;
+    Pricelist pricelist;
   };
+
+  struct ChargingIpld;
 
   struct Execution : std::enable_shared_from_this<Execution> {
     static std::shared_ptr<Execution> make(std::shared_ptr<Env> env,
@@ -54,10 +56,29 @@ namespace fc::vm::runtime {
     outcome::result<InvocationOutput> send(const UnsignedMessage &message);
 
     std::shared_ptr<Env> env;
-    std::shared_ptr<StateTree> state_tree;
+    std::shared_ptr<StateTreeImpl> state_tree;
+    std::shared_ptr<ChargingIpld> charging_ipld;
     GasAmount gas_used;
     GasAmount gas_limit;
     Address origin;
+  };
+
+  struct ChargingIpld : public Ipld,
+                        public std::enable_shared_from_this<ChargingIpld> {
+    ChargingIpld(std::weak_ptr<Execution> execution) : execution_{execution} {}
+    outcome::result<bool> contains(const CID &key) const override {
+      throw "not implemented";
+    }
+    outcome::result<void> set(const CID &key, Value value) override;
+    outcome::result<Value> get(const CID &key) const override;
+    outcome::result<void> remove(const CID &key) override {
+      throw "deprecated";
+    }
+    IpldPtr shared() override {
+      return shared_from_this();
+    }
+
+    std::weak_ptr<Execution> execution_;
   };
 }  // namespace fc::vm::runtime
 

@@ -12,7 +12,19 @@
 
 namespace fc::primitives {
   using BigInt = boost::multiprecision::cpp_int;
+
+  /// div with round-floor, like `big.Div` from go
+  inline BigInt bigdiv(const BigInt &n, const BigInt &d) {
+    if (!n.is_zero() && n.sign() != d.sign()) {
+      return (n + 1) / d - 1;
+    }
+    return n / d;
+  }
 }  // namespace fc::primitives
+
+namespace fc {
+  using primitives::bigdiv;
+}
 
 namespace boost::multiprecision {
   CBOR_ENCODE(cpp_int, big_int) {

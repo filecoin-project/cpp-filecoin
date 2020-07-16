@@ -13,7 +13,16 @@ namespace fc::storage::ipld::walker {
   using Ipld = ipfs::IpfsDatastore;
 
   // TODO(turuslan): implement selectors
-  struct Selector {};
+  struct Selector {
+    common::Buffer raw;
+  };
+  CBOR_ENCODE(Selector, selector) {
+    return s << s.wrap(selector.raw, 1);
+  }
+  CBOR_DECODE(Selector, selector) {
+    selector.raw = common::Buffer{s.raw()};
+    return s;
+  }
 
   struct Walker {
     Walker(Ipld &store) : store{store} {}

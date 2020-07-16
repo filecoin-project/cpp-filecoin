@@ -40,8 +40,8 @@ namespace fc::blockchain::weight {
     }
     BigInt log{boost::multiprecision::msb(network_power) << 8};
     return tipset.getParentWeight() + log
-           + (log * tipset.blks.size() * kWRatioNum)
-                 / (kBlocksPerEpoch * kWRatioDen);
+           + bigdiv(log * tipset.blks.size() * kWRatioNum,
+                    kBlocksPerEpoch * kWRatioDen);
   }
 
 }  // namespace fc::blockchain::weight

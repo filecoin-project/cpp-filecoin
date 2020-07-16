@@ -12,8 +12,6 @@
 #include "blockchain/weight_calculator.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
-#include "crypto/randomness/chain_randomness_provider.hpp"
-#include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/chain/chain_data_store.hpp"
 #include "storage/chain/chain_store.hpp"
@@ -85,10 +83,6 @@ namespace fc::storage::blockchain {
     outcome::result<void> remove(const CID &key) override {
       return data_store_->remove(key);
     }
-
-    /** chain randomness */
-    std::shared_ptr<ChainRandomnessProvider> createRandomnessProvider()
-        override;
 
     /** @brief head change subscription */
     connection_t subscribeHeadChanges(

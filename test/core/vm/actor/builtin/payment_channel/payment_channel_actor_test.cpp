@@ -26,7 +26,6 @@ using fc::primitives::TokenAmount;
 using fc::primitives::address::Address;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::vm::VMExitCode;
-using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::kAccountCodeCid;
 using fc::vm::actor::kInitAddress;
 using fc::vm::actor::kInitCodeCid;
@@ -67,7 +66,7 @@ struct PaymentChannelActorTest : testing::Test {
         .Times(testing::AtMost(1))
         .WillOnce(testing::Invoke([&]() {
           EXPECT_OUTCOME_TRUE(cid, ipld->setCbor(state));
-          return ActorSubstateCID{std::move(cid)};
+          return std::move(cid);
         }));
 
     EXPECT_CALL(runtime, commit(testing::_))

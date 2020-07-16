@@ -5,34 +5,24 @@
 
 #include "vm/runtime/impl/runtime_impl.hpp"
 
-#include "codec/cbor/cbor.hpp"
+#include "crypto/bls/impl/bls_provider_impl.hpp"
+#include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs.hpp"
+#include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/runtime/gas_cost.hpp"
-#include "vm/runtime/impl/actor_state_handle_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"
 
 namespace fc::vm::runtime {
-
-  using fc::crypto::randomness::ChainEpoch;
-  using fc::crypto::randomness::Randomness;
-  using fc::crypto::randomness::Serialization;
   using fc::primitives::BigInt;
-  using fc::primitives::address::Address;
   using fc::primitives::address::Protocol;
   using fc::storage::hamt::HamtError;
-  using fc::storage::ipfs::IpfsDatastore;
-  using fc::vm::actor::Actor;
-  using fc::vm::actor::ActorSubstateCID;
-  using fc::vm::actor::CodeId;
-  using fc::vm::actor::MethodNumber;
-  using fc::vm::message::UnsignedMessage;
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
                            UnsignedMessage message,
                            const Address &caller_id,
-                           ActorSubstateCID current_actor_state)
+                           CID current_actor_state)
       : execution_{std::move(execution)},
         state_tree_{execution_->state_tree},
         message_{std::move(message)},
@@ -40,20 +30,15 @@ namespace fc::vm::runtime {
         current_actor_state_{std::move(current_actor_state)} {}
 
   ChainEpoch RuntimeImpl::getCurrentEpoch() const {
-    return execution_->env->chain_epoch;
+    return execution_->env->tipset.height;
   }
 
-  Randomness RuntimeImpl::getRandomness(DomainSeparationTag tag,
-                                        ChainEpoch epoch) const {
-    return execution_->env->randomness_provider->deriveRandomness(
-        tag, Serialization{}, epoch);
-  }
-
-  Randomness RuntimeImpl::getRandomness(DomainSeparationTag tag,
-                                        ChainEpoch epoch,
-                                        Serialization seed) const {
-    return execution_->env->randomness_provider->deriveRandomness(
-        tag, seed, epoch);
+  outcome::result<Randomness> RuntimeImpl::getRandomness(
+      DomainSeparationTag tag,
+      ChainEpoch epoch,
+      gsl::span<const uint8_t> seed) const {
+    return execution_->env->tipset.randomness(
+        *execution_->env->ipld, tag, epoch, seed);
   }
 
   Address RuntimeImpl::getImmediateCaller() const {
@@ -62,10 +47,6 @@ namespace fc::vm::runtime {
 
   Address RuntimeImpl::getCurrentReceiver() const {
     return message_.to;
-  }
-
-  std::shared_ptr<ActorStateHandle> RuntimeImpl::acquireState() const {
-    return std::make_shared<ActorStateHandleImpl>();
   }
 
   fc::outcome::result<BigInt> RuntimeImpl::getBalance(
@@ -112,21 +93,18 @@ namespace fc::vm::runtime {
   }
 
   std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() {
-    // TODO(turuslan): FIL-131 charging store
-    return state_tree_->getStore();
+    return execution_->charging_ipld;
   }
 
   std::reference_wrapper<const UnsignedMessage> RuntimeImpl::getMessage() {
     return message_;
   }
 
-  ActorSubstateCID RuntimeImpl::getCurrentActorState() {
+  CID RuntimeImpl::getCurrentActorState() {
     return current_actor_state_;
   }
 
-  fc::outcome::result<void> RuntimeImpl::commit(
-      const ActorSubstateCID &new_state) {
-    OUTCOME_TRY(chargeGas(kCommitGasCost));
+  fc::outcome::result<void> RuntimeImpl::commit(const CID &new_state) {
     current_actor_state_ = new_state;
     return outcome::success();
   }
@@ -149,8 +127,16 @@ namespace fc::vm::runtime {
       const Signature &signature,
       const Address &address,
       gsl::span<const uint8_t> data) {
-    // TODO(turuslan): implement
-    return RuntimeError::kUnknown;
+    OUTCOME_TRY(
+        chargeGas(execution_->env->pricelist.onVerifySignature(data.size())));
+    OUTCOME_TRY(
+        account,
+        execution_->state_tree
+            ->state<actor::builtin::account::AccountActorState>(address));
+    return storage::keystore::InMemoryKeyStore{
+        std::make_shared<crypto::bls::BlsProviderImpl>(),
+        std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}
+        .verify(account.address, data, signature);
   }
 
   outcome::result<bool> RuntimeImpl::verifyPoSt(
@@ -162,11 +148,14 @@ namespace fc::vm::runtime {
 
   fc::outcome::result<bool> RuntimeImpl::verifySeal(
       const SealVerifyInfo &info) {
+    OUTCOME_TRY(chargeGas(execution_->env->pricelist.onVerifySeal()));
     return proofs::Proofs::verifySeal(info);
   }
 
   fc::outcome::result<fc::CID> RuntimeImpl::computeUnsealedSectorCid(
       RegisteredProof type, const std::vector<PieceInfo> &pieces) {
+    OUTCOME_TRY(
+        chargeGas(execution_->env->pricelist.onComputeUnsealedSectorCid()));
     constexpr auto levels = 37u;
     constexpr auto skip = 2u;
     static auto c = [](auto s) { return common::Comm::fromHex(s).value(); };

@@ -32,9 +32,8 @@ namespace fc::vm::actor::builtin::init {
             message.nonce))};
     OUTCOME_TRY(init_actor, runtime.getCurrentActorStateCbor<InitActorState>());
     OUTCOME_TRY(id_address, init_actor.addActor(actor_address));
-    OUTCOME_TRY(runtime.createActor(
-        id_address,
-        Actor{params.code, ActorSubstateCID{kEmptyObjectCid}, 0, 0}));
+    OUTCOME_TRY(runtime.createActor(id_address,
+                                    Actor{params.code, kEmptyObjectCid, 0, 0}));
     OUTCOME_TRY(runtime.send(
         id_address, kConstructorMethodNumber, params.params, message.value));
     OUTCOME_TRY(runtime.commitState(init_actor));
