@@ -20,7 +20,7 @@ namespace fc::storage::ipld::walker {
     return s << s.wrap(selector.raw, 1);
   }
   CBOR_DECODE(Selector, selector) {
-    selector.raw = s.raw();
+    selector.raw = common::Buffer{s.raw()};
     return s;
   }
 
