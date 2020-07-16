@@ -19,6 +19,7 @@
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval {
+  using common::Buffer;
   using fc::storage::ipld::walker::Selector;
   using primitives::DealId;
   using primitives::TokenAmount;
@@ -74,8 +75,11 @@ namespace fc::markets::retrieval {
    * Deal proposal response
    */
   struct DealResponse {
+    /// ipld block
     struct Block {
-      common::Buffer prefix, data;
+      /// CID bytes with multihash without hash bytes
+      Buffer prefix;
+      Buffer data;
     };
 
     /* Current deal status */

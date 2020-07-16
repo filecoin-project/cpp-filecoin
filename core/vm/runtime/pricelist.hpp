@@ -14,7 +14,7 @@ namespace fc::vm::runtime {
 
   struct Pricelist {
     GasAmount onChainMessage(size_t size) const {
-      return 0 + size * 2;
+      return size * 2;
     }
     GasAmount onChainReturnValue(size_t size) const {
       return size * 8;
