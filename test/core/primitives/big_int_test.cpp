@@ -38,14 +38,18 @@ TEST(BigInt, SelfDivide) {
   ASSERT_EQ(a, BigInt{4});
 }
 
+/// `/` is boost::multiprecision behavior with round-to-zero.
+/// `bigdiv` is compatible `big.Div` in go with round-floor.
 TEST(BigInt, Divide) {
-  BigInt a{8};
-  BigInt b{2};
-  ASSERT_EQ(a / b, BigInt{4});
+  ASSERT_EQ(BigInt{4} / BigInt{3}, BigInt{1});
+  ASSERT_EQ(fc::bigdiv(4, 3), BigInt{1});
+  ASSERT_EQ(BigInt{-4} / BigInt{3}, BigInt{-1});
+  ASSERT_EQ(fc::bigdiv(-4, 3), BigInt{-2});
 }
 
 TEST(BigInt, DivideByZero) {
   BigInt a{8};
   BigInt b{0};
   ASSERT_THROW(BigInt{a / b}, std::exception);
+  ASSERT_THROW(fc::bigdiv(a, b), std::exception);
 }

@@ -23,120 +23,120 @@ namespace fc::vm {
   boost::optional<VMExitCode> normalizeVMExitCode(VMExitCode error) {
     using E = VMExitCode;
     switch (error) {
-      case E::Ok:
-      case E::SysErrSenderInvalid:
-      case E::SysErrSenderStateInvalid:
-      case E::SysErrInvalidMethod:
-      case E::SysErrInvalidParameters:
-      case E::SysErrInvalidReceiver:
-      case E::SysErrInsufficientFunds:
-      case E::SysErrOutOfGas:
-      case E::SysErrForbidden:
-      case E::SysErrorIllegalActor:
-      case E::SysErrorIllegalArgument:
-      case E::SysErrSerialization:
-      case E::SysErrorReserved3:
-      case E::SysErrorReserved4:
-      case E::SysErrorReserved5:
-      case E::SysErrInternal:
+      case E::kOk:
+      case E::kSysErrSenderInvalid:
+      case E::kSysErrSenderStateInvalid:
+      case E::kSysErrInvalidMethod:
+      case E::kSysErrInvalidParameters:
+      case E::kSysErrInvalidReceiver:
+      case E::kSysErrInsufficientFunds:
+      case E::kSysErrOutOfGas:
+      case E::kSysErrForbidden:
+      case E::kSysErrorIllegalActor:
+      case E::kSysErrorIllegalArgument:
+      case E::kSysErrSerialization:
+      case E::kSysErrorReserved3:
+      case E::kSysErrorReserved4:
+      case E::kSysErrorReserved5:
+      case E::kSysErrInternal:
         return error;
 
-      case E::ErrIllegalArgument:
-      case E::ErrNotFound:
-      case E::ErrForbidden:
-      case E::ErrInsufficientFunds:
-      case E::ErrIllegalState:
-      case E::ErrSerialization:
+      case E::kErrIllegalArgument:
+      case E::kErrNotFound:
+      case E::kErrForbidden:
+      case E::kErrInsufficientFunds:
+      case E::kErrIllegalState:
+      case E::kErrSerialization:
         return error;
 
-      case E::ErrPlaceholder:
+      case E::kErrPlaceholder:
         return error;
 
-      case E::DECODE_ACTOR_PARAMS_ERROR:
+      case E::kDecodeActorParamsError:
         return E{1};
-      case E::ENCODE_ACTOR_RESULT_ERROR:
+      case E::kEncodeActorResultError:
         return E{2};
 
-      case E::SEND_TRANSFER_INSUFFICIENT:
+      case E::kSendTransferInsufficient:
         return E{1};
 
-      case E::ACCOUNT_ACTOR_CREATE_WRONG_ADDRESS_TYPE:
-        return E::ErrIllegalArgument;
-      case E::ACCOUNT_ACTOR_RESOLVE_NOT_FOUND:
-      case E::ACCOUNT_ACTOR_RESOLVE_NOT_ACCOUNT_ACTOR:
+      case E::kAccountActorCreateWrongAddressType:
+        return E::kErrIllegalArgument;
+      case E::kAccountActorResolveNotFound:
+      case E::kAccountActorResolveNotAccountActor:
         return E{1};
 
-      case E::MINER_ACTOR_OWNER_NOT_SIGNABLE:
-      case E::MINER_ACTOR_MINER_NOT_ACCOUNT:
-      case E::MINER_ACTOR_MINER_NOT_BLS:
-      case E::MINER_ACTOR_ILLEGAL_ARGUMENT:
-        return E::ErrIllegalArgument;
-      case E::MINER_ACTOR_NOT_FOUND:
-        return E::ErrNotFound;
-      case E::MINER_ACTOR_WRONG_CALLER:
-      case E::MINER_ACTOR_WRONG_EPOCH:
-        return E::ErrForbidden;
-      case E::MINER_ACTOR_POST_TOO_LATE:
-      case E::MINER_ACTOR_POST_TOO_EARLY:
-      case E::MINER_ACTOR_INSUFFICIENT_FUNDS:
-        return E::ErrInsufficientFunds;
-      case E::MINER_ACTOR_ILLEGAL_STATE:
-        return E::ErrIllegalState;
+      case E::kMinerActorOwnerNotSignable:
+      case E::kMinerActorNotAccount:
+      case E::kMinerActorMinerNotBls:
+      case E::kMinerActorIllegalArgument:
+        return E::kErrIllegalArgument;
+      case E::kMinerActorNotFound:
+        return E::kErrNotFound;
+      case E::kMinerActorWrongCaller:
+      case E::kMinerActorWrongEpoch:
+        return E::kErrForbidden;
+      case E::kMinerActorPostTooLate:
+      case E::kMinerActorPostTooEarly:
+      case E::kMinerActorInsufficientFunds:
+        return E::kErrInsufficientFunds;
+      case E::kMinerActorIllegalState:
+        return E::kErrIllegalState;
 
-      case E::MARKET_ACTOR_ILLEGAL_ARGUMENT:
-        return E::ErrIllegalArgument;
-      case E::MARKET_ACTOR_WRONG_CALLER:
-      case E::MARKET_ACTOR_FORBIDDEN:
-        return E::ErrForbidden;
-      case E::MARKET_ACTOR_INSUFFICIENT_FUNDS:
-        return E::ErrInsufficientFunds;
-      case E::MARKET_ACTOR_ILLEGAL_STATE:
-        return E::ErrIllegalState;
+      case E::kMarketActorIllegalArgument:
+        return E::kErrIllegalArgument;
+      case E::kMarketActorWrongCaller:
+      case E::kMarketActorForbidden:
+        return E::kErrForbidden;
+      case E::kMarketActorInsufficientFunds:
+        return E::kErrInsufficientFunds;
+      case E::kMarketActorIllegalState:
+        return E::kErrIllegalState;
 
-      case E::MULTISIG_ACTOR_WRONG_CALLER:
+      case E::kMultisigActorWrongCaller:
         return E{1};
-      case E::MULTISIG_ACTOR_ILLEGAL_ARGUMENT:
-        return E::ErrIllegalArgument;
-      case E::MULTISIG_ACTOR_NOT_FOUND:
-        return E::ErrNotFound;
-      case E::MULTISIG_ACTOR_FORBIDDEN:
-        return E::ErrForbidden;
-      case E::MULTISIG_ACTOR_INSUFFICIENT_FUNDS:
-        return E::ErrInsufficientFunds;
-      case E::MULTISIG_ACTOR_ILLEGAL_STATE:
-        return E::ErrIllegalState;
+      case E::kMultisigActorIllegalArgument:
+        return E::kErrIllegalArgument;
+      case E::kMultisigActorNotFound:
+        return E::kErrNotFound;
+      case E::kMultisigActorForbidden:
+        return E::kErrForbidden;
+      case E::kMultisigActorInsufficientFunds:
+        return E::kErrInsufficientFunds;
+      case E::kMultisigActorIllegalState:
+        return E::kErrIllegalState;
 
-      case E::PAYMENT_CHANNEL_WRONG_CALLER:
+      case E::kPaymentChannelWrongCaller:
         return E{1};
-      case E::PAYMENT_CHANNEL_ILLEGAL_ARGUMENT:
-        return E::ErrIllegalArgument;
-      case E::PAYMENT_CHANNEL_FORBIDDEN:
-        return E::ErrForbidden;
-      case E::PAYMENT_CHANNEL_ILLEGAL_STATE:
-        return E::ErrIllegalState;
+      case E::kPaymentChannelIllegalArgument:
+        return E::kErrIllegalArgument;
+      case E::kPaymentChannelForbidden:
+        return E::kErrForbidden;
+      case E::kPaymentChannelIllegalState:
+        return E::kErrIllegalState;
 
       // TODO(turuslan): FIL-128 StoragePowerActor
-      case E::STORAGE_POWER_ACTOR_WRONG_CALLER:
-      case E::STORAGE_POWER_ACTOR_OUT_OF_BOUND:
-      case E::STORAGE_POWER_ACTOR_ALREADY_EXISTS:
-      case E::STORAGE_POWER_DELETION_ERROR:
+      case E::kStoragePowerActorWrongCaller:
+      case E::kStoragePowerActorOutOfBound:
+      case E::kStoragePowerActorAlreadyExists:
+      case E::kStoragePowerActorDeletionError:
         break;
-      case E::STORAGE_POWER_ILLEGAL_ARGUMENT:
-        return E::ErrIllegalArgument;
-      case E::STORAGE_POWER_FORBIDDEN:
-        return E::ErrForbidden;
-      case E::STORAGE_POWER_ILLEGAL_STATE:
-        return E::ErrIllegalState;
+      case E::kStoragePowerActorIllegalArgument:
+        return E::kErrIllegalArgument;
+      case E::kStoragePowerActorForbidden:
+        return E::kErrForbidden;
+      case E::kStoragePowerActorIllegalState:
+        return E::kErrIllegalState;
 
-      case E::INIT_ACTOR_NOT_BUILTIN_ACTOR:
-      case E::INIT_ACTOR_SINGLETON_ACTOR:
+      case E::kInitActorNotBuiltinActor:
+      case E::kInitActorSingletonActor:
         return E{1};
 
-      case E::REWARD_ACTOR_NEGATIVE_WITHDRAWABLE:
-      case E::REWARD_ACTOR_WRONG_CALLER:
+      case E::kRewardActorNegativeWithdrawable:
+      case E::kRewardActorWrongCaller:
         return E{1};
 
-      case E::ASSERT:
+      case E::kAssert:
         return E{1};
     }
     return {};

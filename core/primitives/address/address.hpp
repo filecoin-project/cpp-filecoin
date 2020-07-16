@@ -23,9 +23,9 @@ namespace fc::primitives::address {
    * @brief Potential errors creating and handling Filecoin addresses
    */
   enum class AddressError {
-    UNKNOWN_PROTOCOL = 1, /**< Unknown Address protocol/type */
-    INVALID_PAYLOAD,      /**< Invalid data for a given protocol */
-    UNKNOWN_NETWORK       /**< Unknown network: neither testnet nor mainnet */
+    kUnknownProtocol = 1, /**< Unknown Address protocol/type */
+    kInvalidPayload,      /**< Invalid data for a given protocol */
+    kUnknownNetwork       /**< Unknown network: neither testnet nor mainnet */
   };
 
   /**

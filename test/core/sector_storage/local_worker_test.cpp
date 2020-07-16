@@ -165,7 +165,7 @@ TEST_F(LocalWorkerTest, PreCommit_MatchSumError) {
       base_path / toString(SectorFileType::FTCache)));
 
   EXPECT_OUTCOME_ERROR(
-      fc::sector_storage::WorkerErrors::PIECES_DO_NOT_MATCH_SECTOR_SIZE,
+      fc::sector_storage::WorkerErrors::kPiecesDoNotMatchSectorSize,
       local_worker_->sealPreCommit1(sector, ticket, {}));
 }
 
@@ -453,8 +453,8 @@ TEST_F(LocalWorkerTest, Remove_Error) {
       .WillOnce(testing::Return(fc::outcome::success()));
   EXPECT_CALL(*store_, remove(sector, SectorFileType::FTCache))
       .WillOnce(testing::Return(fc::outcome::failure(
-          fc::sector_storage::stores::StoreErrors::NOT_FOUND_SECTOR)));
+          fc::sector_storage::stores::StoreErrors::kNotFoundSector)));
 
-  EXPECT_OUTCOME_ERROR(fc::sector_storage::WorkerErrors::CANNOT_REMOVE_SECTOR,
+  EXPECT_OUTCOME_ERROR(fc::sector_storage::WorkerErrors::kCannotRemoveSector,
                        local_worker_->remove(sector));
 }

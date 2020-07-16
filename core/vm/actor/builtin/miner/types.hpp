@@ -219,9 +219,8 @@ namespace fc::vm::actor::builtin::miner {
   struct CronEventPayload {
     CronEventType event_type;
     boost::optional<RleBitset> sectors;
-    RegisteredProof registered_proof{};
   };
-  CBOR_TUPLE(CronEventPayload, event_type, sectors, registered_proof)
+  CBOR_TUPLE(CronEventPayload, event_type, sectors)
 }  // namespace fc::vm::actor::builtin::miner
 
 namespace fc {

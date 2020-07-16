@@ -9,7 +9,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::common, BlobError, e) {
   using fc::common::BlobError;
 
   switch (e) {
-    case BlobError::INCORRECT_LENGTH:
+    case BlobError::kIncorrectLength:
       return "Input string has incorrect length, not matching the blob size";
   }
 

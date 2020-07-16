@@ -31,7 +31,7 @@ namespace fc::storage::ipfs::graphsync {
     if (!res) {
       logger()->error("cannot serialize protobuf message, size={}",
                       getSerializedSize());
-      return Error::MESSAGE_SERIALIZE_ERROR;
+      return Error::kMessageSerializeError;
     }
     return res.value();
   }

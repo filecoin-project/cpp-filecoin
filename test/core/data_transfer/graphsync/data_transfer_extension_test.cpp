@@ -20,7 +20,7 @@ namespace fc::data_transfer {
    */
   TEST(DataTransferExtensionTest, WrongExtensionName) {
     Extension wrong_extenstion{.name = "wrong_name"};
-    EXPECT_OUTCOME_ERROR(DataTransferExtensionError::UNEXPECTED_EXTENSION_NAME,
+    EXPECT_OUTCOME_ERROR(DataTransferExtensionError::kUnexpectedExtensionName,
                          decodeDataTransferExtension(wrong_extenstion));
   }
 

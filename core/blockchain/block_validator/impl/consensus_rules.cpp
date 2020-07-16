@@ -13,7 +13,7 @@ namespace fc::blockchain::block_validator {
     if (power_response.has_value() && power_response.value() > 0) {
       return outcome::success();
     }
-    return ConsensusError::INVALID_MINER;
+    return ConsensusError::kInvalidMiner;
   }
 
   outcome::result<void> ConsensusRules::parentWeight(
@@ -26,13 +26,13 @@ namespace fc::blockchain::block_validator {
         return outcome::success();
       }
     }
-    return ConsensusError::INVALID_PARENT_WEIGHT;
+    return ConsensusError::kInvalidParentWeight;
   }
 
   outcome::result<void> ConsensusRules::epoch(const BlockHeader &block,
                                               ChainEpoch current_epoch) {
     if (block.height > static_cast<uint64_t>(current_epoch)) {
-      return ConsensusError::BLOCK_EPOCH_IN_FUTURE;
+      return ConsensusError::kBlockEpochInFuture;
     }
     // TODO: block epoch mast be not farther in the past than the soft
     // finality as defined by SPC
@@ -45,15 +45,15 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::block_validator,
                             e) {
   using fc::blockchain::block_validator::ConsensusError;
   switch (e) {
-    case ConsensusError::INVALID_MINER:
+    case ConsensusError::kInvalidMiner:
       return "Block validation: invalid miner";
-    case ConsensusError::GET_PARENT_TIPSET_ERROR:
+    case ConsensusError::kGetParentTipsetError:
       return "Block validation: get parent tipset error";
-    case ConsensusError::BLOCK_EPOCH_IN_FUTURE:
+    case ConsensusError::kBlockEpochInFuture:
       return "Block validation: block epoch in future";
-    case ConsensusError::INVALID_PARENT_WEIGHT:
+    case ConsensusError::kInvalidParentWeight:
       return "Block validation: invalid parent weight";
-    case ConsensusError::BLOCK_EPOCH_TOO_FAR:
+    case ConsensusError::kBlockEpochTooFar:
       return "Block validation: block eposch too far";
   }
   return "Block validation: unknown error";

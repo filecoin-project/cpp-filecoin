@@ -32,7 +32,7 @@ namespace fc::common {
   outcome::result<CID> commitmentToCID(gsl::span<const uint8_t> commitment,
                                        FilecoinMultihashCode code) {
     if (!validFilecoinMultihash(code)) {
-      return CommCidError::INVALID_HASH;
+      return CommCidError::kInvalidHash;
     }
 
     OUTCOME_TRY(mh, Multihash::create(static_cast<HashType>(code), commitment));
@@ -48,14 +48,14 @@ namespace fc::common {
   outcome::result<Comm> CIDToDataCommitmentV1(const CID &cid) {
     OUTCOME_TRY(result, CIDToCommitment(cid));
     if (static_cast<FilecoinHashType>(result.getType()) != FC_UNSEALED_V1) {
-      return CommCidError::INVALID_HASH;
+      return CommCidError::kInvalidHash;
     }
     return Comm::fromSpan(result.getHash());
   }
 
   outcome::result<Multihash> CIDToCommitment(const CID &cid) {
     if (!validFilecoinMultihash(cid.content_address.getType())) {
-      return CommCidError::INVALID_HASH;
+      return CommCidError::kInvalidHash;
     }
     return cid.content_address;
   }
@@ -63,7 +63,7 @@ namespace fc::common {
   outcome::result<Comm> CIDToReplicaCommitmentV1(const CID &cid) {
     OUTCOME_TRY(result, CIDToCommitment(cid));
     if (static_cast<FilecoinHashType>(result.getType()) != FC_SEALED_V1) {
-      return CommCidError::INVALID_HASH;
+      return CommCidError::kInvalidHash;
     }
     return Comm::fromSpan(result.getHash());
   }

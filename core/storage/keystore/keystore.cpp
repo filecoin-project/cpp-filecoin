@@ -39,14 +39,14 @@ namespace fc::storage::keystore {
       return address.verifySyntax(public_key);
     }
 
-    return KeyStoreError::WRONG_ADDRESS;
+    return KeyStoreError::kWrongAddress;
   }
 
   fc::outcome::result<Signature> KeyStore::sign(
       const Address &address, gsl::span<const uint8_t> data) noexcept {
     OUTCOME_TRY(private_key, get(address));
     OUTCOME_TRY(valid, checkAddress(address, private_key));
-    if (!valid) return KeyStoreError::WRONG_ADDRESS;
+    if (!valid) return KeyStoreError::kWrongAddress;
 
     if (address.getProtocol() == Protocol::BLS) {
       OUTCOME_TRY(
@@ -61,7 +61,7 @@ namespace fc::storage::keystore {
       return std::move(signature);
     }
 
-    return KeyStoreError::WRONG_ADDRESS;
+    return KeyStoreError::kWrongAddress;
   }
 
   fc::outcome::result<bool> KeyStore::verify(const Address &address,
@@ -74,7 +74,7 @@ namespace fc::storage::keystore {
             const BlsSignature &bls_signature) -> fc::outcome::result<bool> {
           if (address.getProtocol() != Protocol::BLS
               || address.data.type() != typeid(BLSPublicKeyHash)) {
-            return KeyStoreError::WRONG_SIGNATURE;
+            return KeyStoreError::kWrongSignature;
           }
 
           BlsPublicKey public_key{boost::get<BLSPublicKeyHash>(address.data)};
@@ -85,7 +85,7 @@ namespace fc::storage::keystore {
             -> fc::outcome::result<bool> {
           if (address.getProtocol() != Protocol::SECP256K1
               || address.data.type() != typeid(Secp256k1PublicKeyHash)) {
-            return KeyStoreError::WRONG_SIGNATURE;
+            return KeyStoreError::kWrongSignature;
           }
 
           OUTCOME_TRY(

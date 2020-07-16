@@ -76,6 +76,7 @@ namespace fc::api {
   using vm::actor::builtin::market::DealProposal;
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
+  using vm::actor::builtin::miner::DeadlineInfo;
   using vm::actor::builtin::miner::MinerInfo;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::LaneId;
@@ -117,7 +118,7 @@ namespace fc::api {
         if (opt) {
           cb(std::move(*opt));
         } else {
-          cb(TodoError::ERROR);
+          cb(TodoError::kError);
         }
         return false;
       });
@@ -262,7 +263,6 @@ namespace fc::api {
     API_METHOD(ChainGetMessage, UnsignedMessage, const CID &)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
-    API_METHOD(ChainGetRandomness, Randomness, const TipsetKey &, int64_t)
     API_METHOD(ChainGetTipSet, Tipset, const TipsetKey &)
     API_METHOD(ChainGetTipSetByHeight, Tipset, ChainEpoch, const TipsetKey &)
     API_METHOD(ChainHead, Tipset)
@@ -344,6 +344,10 @@ namespace fc::api {
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
     API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerProvingDeadline,
+               DeadlineInfo,
+               const Address &,
+               const TipsetKey &)
     API_METHOD(StateMinerProvingSet,
                std::vector<ChainSectorInfo>,
                const Address &,
@@ -413,7 +417,7 @@ namespace fc::api {
                const Address &,
                const SignedVoucher &,
                const Buffer &,
-               TokenAmount)
+               const TokenAmount &)
 
     /**
      * Validate voucher

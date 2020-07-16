@@ -14,7 +14,7 @@ namespace fc::blockchain::message_pool {
    * @brief Type of errors returned by MessagePool
    */
   enum class MessagePoolError {
-    MESSAGE_ALREADY_IN_POOL = 1,
+    kMessageAlreadyInPool = 1,
   };
 
 }  // namespace fc::blockchain::message_pool

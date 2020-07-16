@@ -6,7 +6,6 @@
 #include "storage/chain/impl/chain_store_impl.hpp"
 
 #include "common/outcome.hpp"
-#include "crypto/randomness/impl/chain_randomness_provider_impl.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/cid/json_codec.hpp"
@@ -16,8 +15,6 @@
 
 namespace fc::storage::blockchain {
   /** types */
-  using crypto::randomness::ChainRandomnessProvider;
-  using crypto::randomness::ChainRandomnessProviderImpl;
   using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::tipset::Tipset;
@@ -100,7 +97,7 @@ namespace fc::storage::blockchain {
     if (heaviest_tipset_.has_value()) {
       return *heaviest_tipset_;
     }
-    return ChainStoreError::NO_HEAVIEST_TIPSET;
+    return ChainStoreError::kNoHeaviestTipset;
   }
 
   outcome::result<bool> ChainStoreImpl::containsTipset(
@@ -118,7 +115,7 @@ namespace fc::storage::blockchain {
       return *genesis_;
     }
 
-    return ChainStoreError::NO_GENESIS_BLOCK;
+    return ChainStoreError::kNoGenesisBlock;
   }
 
   outcome::result<void> ChainStoreImpl::writeGenesis(
@@ -247,11 +244,6 @@ namespace fc::storage::blockchain {
     return outcome::success();
   }
 
-  std::shared_ptr<ChainRandomnessProvider>
-  ChainStoreImpl::createRandomnessProvider() {
-    return std::make_shared<ChainRandomnessProviderImpl>(shared_from_this());
-  }
-
   outcome::result<ChainPath> ChainStoreImpl::findChainPath(
       const Tipset &current, const Tipset &target) {
     // need to have genesis defined
@@ -280,13 +272,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {
   using fc::storage::blockchain::ChainStoreError;
 
   switch (e) {
-    case ChainStoreError::NO_MIN_TICKET_BLOCK:
+    case ChainStoreError::kNoMinTicketBlock:
       return "min ticket block has no value";
-    case ChainStoreError::NO_HEAVIEST_TIPSET:
+    case ChainStoreError::kNoHeaviestTipset:
       return "no heaviest tipset in storage";
-    case ChainStoreError::NO_GENESIS_BLOCK:
+    case ChainStoreError::kNoGenesisBlock:
       return "no genesis block in storage";
-    case ChainStoreError::STORE_NOT_INITIALIZED:
+    case ChainStoreError::kStoreNotInitialized:
       return "store is not initialized properly";
   }
 

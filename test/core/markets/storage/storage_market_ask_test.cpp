@@ -65,7 +65,7 @@ namespace fc::markets::storage::test {
                    });
     auto future = promise_ask_res.get_future();
     waitForAskResponse(future);
-    EXPECT_OUTCOME_ERROR(StorageMarketClientError::SIGNATURE_INVALID,
+    EXPECT_OUTCOME_ERROR(StorageMarketClientError::kSignatureInvalid,
                          future.get());
   }
 

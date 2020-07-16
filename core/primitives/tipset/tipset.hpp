@@ -12,11 +12,11 @@
 namespace fc::primitives::tipset {
 
   enum class TipsetError : int {
-    NO_BLOCKS = 1,        // need to have at least one block to create tipset
-    MISMATCHING_HEIGHTS,  // cannot create tipset, mismatching blocks heights
-    MISMATCHING_PARENTS,  // cannot create tipset, mismatching block parents
-    TICKET_HAS_NO_VALUE,  // optional ticket is not initialized
-    NO_BEACONS,
+    kNoBlocks = 1,        // need to have at least one block to create tipset
+    kMismatchingHeights,  // cannot create tipset, mismatching blocks heights
+    kMismatchingParents,  // cannot create tipset, mismatching block parents
+    kTicketHasNoValue,    // optional ticket is not initialized
+    kNoBeacons,
   };
 }
 
@@ -28,6 +28,8 @@ OUTCOME_HPP_DECLARE_ERROR(fc::primitives::tipset, TipsetError);
 namespace fc::primitives::tipset {
   using block::BeaconEntry;
   using block::BlockHeader;
+  using crypto::randomness::DomainSeparationTag;
+  using crypto::randomness::Randomness;
 
   struct MessageVisitor {
     using Visitor =
@@ -54,6 +56,12 @@ namespace fc::primitives::tipset {
 
     outcome::result<void> visitMessages(
         IpldPtr ipld, const MessageVisitor::Visitor &visitor) const;
+
+    outcome::result<Randomness> randomness(
+        Ipld &ipld,
+        DomainSeparationTag tag,
+        ChainEpoch round,
+        gsl::span<const uint8_t> entropy) const;
 
     /**
      * @brief makes key of cids

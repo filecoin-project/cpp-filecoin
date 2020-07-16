@@ -37,7 +37,7 @@ namespace fc::primitives::address {
   }
 
   outcome::result<Address> decode(gsl::span<const uint8_t> v) {
-    if (v.size() < 2) return outcome::failure(AddressError::INVALID_PAYLOAD);
+    if (v.size() < 2) return outcome::failure(AddressError::kInvalidPayload);
 
     // TODO(ekovalev): [FIL-118] make network configurable; hardcoded for now
     Network net{Network::TESTNET};
@@ -50,11 +50,11 @@ namespace fc::primitives::address {
         if (value) {
           return Address{net, value->toUInt64()};
         }
-        return outcome::failure(AddressError::INVALID_PAYLOAD);
+        return outcome::failure(AddressError::kInvalidPayload);
       }
       case Protocol::SECP256K1: {
         if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGTH) {
-          return outcome::failure(AddressError::INVALID_PAYLOAD);
+          return outcome::failure(AddressError::kInvalidPayload);
         }
         Secp256k1PublicKeyHash hash{};
         std::copy_n(std::make_move_iterator(payload.begin()),
@@ -64,7 +64,7 @@ namespace fc::primitives::address {
       }
       case Protocol::ACTOR: {
         if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGTH) {
-          return outcome::failure(AddressError::INVALID_PAYLOAD);
+          return outcome::failure(AddressError::kInvalidPayload);
         }
         ActorExecHash hash{};
         std::copy_n(std::make_move_iterator(payload.begin()),
@@ -74,7 +74,7 @@ namespace fc::primitives::address {
       }
       case Protocol::BLS: {
         if (payload.size() != kBlsPublicKeySize) {
-          return outcome::failure(AddressError::INVALID_PAYLOAD);
+          return outcome::failure(AddressError::kInvalidPayload);
         }
         BLSPublicKeyHash hash{};
         std::copy_n(std::make_move_iterator(payload.begin()),
@@ -83,7 +83,7 @@ namespace fc::primitives::address {
         return Address{net, hash};
       }
       default:
-        return outcome::failure(AddressError::UNKNOWN_PROTOCOL);
+        return outcome::failure(AddressError::kUnknownProtocol);
     }
   }
 
@@ -130,17 +130,17 @@ namespace fc::primitives::address {
   }
 
   outcome::result<Address> decodeFromString(const std::string &s) {
-    if (s.size() < 3) return outcome::failure(AddressError::INVALID_PAYLOAD);
+    if (s.size() < 3) return outcome::failure(AddressError::kInvalidPayload);
 
     if (s[0] != 'f' && s[0] != 't')
-      return outcome::failure(AddressError::UNKNOWN_NETWORK);
+      return outcome::failure(AddressError::kUnknownNetwork);
 
     std::vector<uint8_t> buffer{};
     Network net = s[0] == 't' ? Network::TESTNET : Network::MAINNET;
 
     int protocol = int(s[1]) - int('0');
     if (protocol < Protocol::ID || protocol > Protocol::BLS)
-      return outcome::failure(AddressError::UNKNOWN_PROTOCOL);
+      return outcome::failure(AddressError::kUnknownProtocol);
 
     std::string tail = s.substr(2);
     if (protocol == Protocol::ID) {
@@ -149,10 +149,10 @@ namespace fc::primitives::address {
         return Address{net, value};
 
       } catch (std::invalid_argument &e) {
-        return outcome::failure(AddressError::INVALID_PAYLOAD);
+        return outcome::failure(AddressError::kInvalidPayload);
 
       } catch (std::out_of_range &e) {
-        return outcome::failure(AddressError::INVALID_PAYLOAD);
+        return outcome::failure(AddressError::kInvalidPayload);
       }
     }
 
@@ -171,7 +171,7 @@ namespace fc::primitives::address {
     auto payload = base32::decode(tail);
 
     if (payload.size() < 4)
-      return outcome::failure(AddressError::INVALID_PAYLOAD);
+      return outcome::failure(AddressError::kInvalidPayload);
 
     // Copy the decoded payload except last 4 bytes of the checksum to the
     // buffer

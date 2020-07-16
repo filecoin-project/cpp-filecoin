@@ -19,8 +19,10 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::sector::RegisteredProof;
 
   constexpr size_t kEpochDurationSeconds{25};
+  constexpr size_t kSecondsInHour{3600};
   constexpr size_t kSecondsInDay{86400};
   constexpr size_t kSecondsInYear{31556925};
+  constexpr size_t kEpochsInHour{kSecondsInHour / kEpochDurationSeconds};
   constexpr size_t kEpochsInDay{kSecondsInDay / kEpochDurationSeconds};
   constexpr size_t kEpochsInYear{kSecondsInYear / kEpochDurationSeconds};
 
@@ -47,7 +49,7 @@ namespace fc::vm::actor::builtin::miner {
       case RegisteredProof::StackedDRG64GiBSeal:
         return 10000;
       default:
-        return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
+        return VMExitCode::kMinerActorIllegalArgument;
     }
   }
 
@@ -65,9 +67,9 @@ namespace fc::vm::actor::builtin::miner {
     const auto init{std::make_pair(1, 1000)};
     const auto grow{std::make_pair(TokenAmount{101251}, TokenAmount{100000})};
     using boost::multiprecision::pow;
-    return std::min(TokenAmount{collateral / 2},
-                    TokenAmount{(collateral * init.first * pow(grow.first, age))
-                                / init.second / pow(grow.second, age)});
+    return std::min(bigdiv(collateral, 2),
+                    bigdiv(collateral * init.first * pow(grow.first, age),
+                           init.second * pow(grow.second, age)));
   }
 }  // namespace fc::vm::actor::builtin::miner
 

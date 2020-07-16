@@ -10,9 +10,9 @@
 
 #include "common/outcome.hpp"
 
-#define VM_ASSERT(condition)                     \
-  if (!(condition)) {                            \
-    return outcome::failure(VMExitCode::ASSERT); \
+#define VM_ASSERT(condition)                      \
+  if (!(condition)) {                             \
+    return outcome::failure(VMExitCode::kAssert); \
   }
 
 namespace fc::vm {
@@ -20,86 +20,86 @@ namespace fc::vm {
    * specs-actors and custom exit code enum for outcome errors.
    */
   enum class VMExitCode : int64_t {
-    Ok = 0,
-    SysErrSenderInvalid = 1,
-    SysErrSenderStateInvalid = 2,
-    SysErrInvalidMethod = 3,
-    SysErrInvalidParameters = 4,
-    SysErrInvalidReceiver = 5,
-    SysErrInsufficientFunds = 6,
-    SysErrOutOfGas = 7,
-    SysErrForbidden = 8,
-    SysErrorIllegalActor = 9,
-    SysErrorIllegalArgument = 10,
-    SysErrSerialization = 11,
-    SysErrorReserved3 = 12,
-    SysErrorReserved4 = 13,
-    SysErrorReserved5 = 14,
-    SysErrInternal = 15,
+    kOk = 0,
+    kSysErrSenderInvalid = 1,
+    kSysErrSenderStateInvalid = 2,
+    kSysErrInvalidMethod = 3,
+    kSysErrInvalidParameters = 4,
+    kSysErrInvalidReceiver = 5,
+    kSysErrInsufficientFunds = 6,
+    kSysErrOutOfGas = 7,
+    kSysErrForbidden = 8,
+    kSysErrorIllegalActor = 9,
+    kSysErrorIllegalArgument = 10,
+    kSysErrSerialization = 11,
+    kSysErrorReserved3 = 12,
+    kSysErrorReserved4 = 13,
+    kSysErrorReserved5 = 14,
+    kSysErrInternal = 15,
 
-    ErrIllegalArgument,
-    ErrNotFound,
-    ErrForbidden,
-    ErrInsufficientFunds,
-    ErrIllegalState,
-    ErrSerialization,
+    kErrIllegalArgument,
+    kErrNotFound,
+    kErrForbidden,
+    kErrInsufficientFunds,
+    kErrIllegalState,
+    kErrSerialization,
 
-    ErrPlaceholder = 1000,
+    kErrPlaceholder = 1000,
 
-    DECODE_ACTOR_PARAMS_ERROR,
-    ENCODE_ACTOR_RESULT_ERROR,
+    kDecodeActorParamsError,
+    kEncodeActorResultError,
 
-    SEND_TRANSFER_INSUFFICIENT,
+    kSendTransferInsufficient,
 
-    ACCOUNT_ACTOR_CREATE_WRONG_ADDRESS_TYPE,
-    ACCOUNT_ACTOR_RESOLVE_NOT_FOUND,
-    ACCOUNT_ACTOR_RESOLVE_NOT_ACCOUNT_ACTOR,
+    kAccountActorCreateWrongAddressType,
+    kAccountActorResolveNotFound,
+    kAccountActorResolveNotAccountActor,
 
-    MINER_ACTOR_OWNER_NOT_SIGNABLE,
-    MINER_ACTOR_MINER_NOT_ACCOUNT,
-    MINER_ACTOR_MINER_NOT_BLS,
-    MINER_ACTOR_ILLEGAL_ARGUMENT,
-    MINER_ACTOR_NOT_FOUND,
-    MINER_ACTOR_WRONG_CALLER,
-    MINER_ACTOR_WRONG_EPOCH,
-    MINER_ACTOR_POST_TOO_LATE,
-    MINER_ACTOR_POST_TOO_EARLY,
-    MINER_ACTOR_INSUFFICIENT_FUNDS,
-    MINER_ACTOR_ILLEGAL_STATE,
+    kMinerActorOwnerNotSignable,
+    kMinerActorNotAccount,
+    kMinerActorMinerNotBls,
+    kMinerActorIllegalArgument,
+    kMinerActorNotFound,
+    kMinerActorWrongCaller,
+    kMinerActorWrongEpoch,
+    kMinerActorPostTooLate,
+    kMinerActorPostTooEarly,
+    kMinerActorInsufficientFunds,
+    kMinerActorIllegalState,
 
-    MARKET_ACTOR_ILLEGAL_ARGUMENT,
-    MARKET_ACTOR_WRONG_CALLER,
-    MARKET_ACTOR_FORBIDDEN,
-    MARKET_ACTOR_INSUFFICIENT_FUNDS,
-    MARKET_ACTOR_ILLEGAL_STATE,
+    kMarketActorIllegalArgument,
+    kMarketActorWrongCaller,
+    kMarketActorForbidden,
+    kMarketActorInsufficientFunds,
+    kMarketActorIllegalState,
 
-    MULTISIG_ACTOR_WRONG_CALLER,
-    MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
-    MULTISIG_ACTOR_NOT_FOUND,
-    MULTISIG_ACTOR_FORBIDDEN,
-    MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
-    MULTISIG_ACTOR_ILLEGAL_STATE,
+    kMultisigActorWrongCaller,
+    kMultisigActorIllegalArgument,
+    kMultisigActorNotFound,
+    kMultisigActorForbidden,
+    kMultisigActorInsufficientFunds,
+    kMultisigActorIllegalState,
 
-    PAYMENT_CHANNEL_WRONG_CALLER,
-    PAYMENT_CHANNEL_ILLEGAL_ARGUMENT,
-    PAYMENT_CHANNEL_FORBIDDEN,
-    PAYMENT_CHANNEL_ILLEGAL_STATE,
+    kPaymentChannelWrongCaller,
+    kPaymentChannelIllegalArgument,
+    kPaymentChannelForbidden,
+    kPaymentChannelIllegalState,
 
-    STORAGE_POWER_ACTOR_WRONG_CALLER,
-    STORAGE_POWER_ACTOR_OUT_OF_BOUND,
-    STORAGE_POWER_ACTOR_ALREADY_EXISTS,
-    STORAGE_POWER_DELETION_ERROR,
-    STORAGE_POWER_ILLEGAL_ARGUMENT,
-    STORAGE_POWER_ILLEGAL_STATE,
-    STORAGE_POWER_FORBIDDEN,
+    kStoragePowerActorWrongCaller,
+    kStoragePowerActorOutOfBound,
+    kStoragePowerActorAlreadyExists,
+    kStoragePowerActorDeletionError,
+    kStoragePowerActorIllegalArgument,
+    kStoragePowerActorIllegalState,
+    kStoragePowerActorForbidden,
 
-    INIT_ACTOR_NOT_BUILTIN_ACTOR,
-    INIT_ACTOR_SINGLETON_ACTOR,
+    kInitActorNotBuiltinActor,
+    kInitActorSingletonActor,
 
-    REWARD_ACTOR_NEGATIVE_WITHDRAWABLE,
-    REWARD_ACTOR_WRONG_CALLER,
+    kRewardActorNegativeWithdrawable,
+    kRewardActorWrongCaller,
 
-    ASSERT,
+    kAssert,
   };
 
   /// Distinguish VMExitCode errors from other errors

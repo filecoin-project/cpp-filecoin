@@ -6,11 +6,13 @@
 add_library(runtime
     impl/env.cpp
     impl/runtime_impl.cpp
-    impl/actor_state_handle_impl.cpp
     impl/runtime_error.cpp)
 target_link_libraries(runtime
     actor
     blake2
-    randomness_provider
+    bls_provider
+    keystore
     proofs
+    secp256k1_provider
+    tipset
     )

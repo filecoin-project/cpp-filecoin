@@ -30,7 +30,7 @@ class PowerTableTest : public ::testing::Test {
  * @then error NEGATIVE_POWER
  */
 TEST_F(PowerTableTest, SetPower_NegativePower) {
-  EXPECT_OUTCOME_ERROR(PowerTableError::NEGATIVE_POWER,
+  EXPECT_OUTCOME_ERROR(PowerTableError::kNegativePower,
                        power_table.setMinerPower(addr, -1));
 }
 
@@ -47,20 +47,20 @@ TEST_F(PowerTableTest, SetPower_Success) {
 /**
  * @given Empty power table
  * @when getting the power of the not existing miner
- * @then error NO_SUCH_MINER
+ * @then error kNoSuchMiner
  */
 TEST_F(PowerTableTest, GetPower_NoMiner) {
-  EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
+  EXPECT_OUTCOME_ERROR(PowerTableError::kNoSuchMiner,
                        power_table.getMinerPower(addr));
 }
 
 /**
  * @given Empty power table
  * @when remove not existing miner
- * @then error NO_SUCH_MINER
+ * @then error kNoSuchMiner
  */
 TEST_F(PowerTableTest, RemoveMiner_NoMiner) {
-  EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
+  EXPECT_OUTCOME_ERROR(PowerTableError::kNoSuchMiner,
                        power_table.removeMiner(addr));
 }
 
@@ -73,6 +73,6 @@ TEST_F(PowerTableTest, RemoveMiner_Success) {
   EXPECT_OUTCOME_TRUE_1(power_table.setMinerPower(addr, power));
   EXPECT_OUTCOME_EQ(power_table.getMinerPower(addr), power);
   EXPECT_OUTCOME_TRUE_1(power_table.removeMiner(addr));
-  EXPECT_OUTCOME_ERROR(PowerTableError::NO_SUCH_MINER,
+  EXPECT_OUTCOME_ERROR(PowerTableError::kNoSuchMiner,
                        power_table.getMinerPower(addr));
 }

@@ -21,7 +21,7 @@ namespace fc::storage::ipfs::graphsync {
 
     if (queue_->getState().pending_bytes + serialized_size + data.size()
         > max_pending_bytes_) {
-      return Error::WRITE_QUEUE_OVERFLOW;
+      return Error::kWriteQueueOverflow;
     }
 
     if (serialized_size + data.size() > kMaxMessageSize) {
@@ -47,7 +47,7 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (queue_->getState().pending_bytes > max_pending_bytes_) {
-      return Error::WRITE_QUEUE_OVERFLOW;
+      return Error::kWriteQueueOverflow;
     }
 
     queue_->enqueue(std::move(res.value()));

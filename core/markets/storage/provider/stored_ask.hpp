@@ -71,7 +71,7 @@ namespace fc::markets::storage::provider {
     Address actor_;
   };
 
-  enum class StoredAskError { WRONG_ADDRESS = 1 };
+  enum class StoredAskError { kWrongAddress = 1 };
 
 }  // namespace fc::markets::storage::provider
 

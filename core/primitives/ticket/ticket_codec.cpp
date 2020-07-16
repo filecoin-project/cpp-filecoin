@@ -8,7 +8,7 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::ticket, TicketCodecError, e) {
   using fc::primitives::ticket::TicketCodecError;
   switch (e) {
-    case (TicketCodecError::INVALID_TICKET_LENGTH):
+    case (TicketCodecError::kInvalidTicketLength):
       return "Failed to decode ticket: invalid data length";
   }
 }

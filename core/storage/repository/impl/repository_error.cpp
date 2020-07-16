@@ -9,13 +9,11 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::repository, RepositoryError, e) {
   using fc::storage::repository::RepositoryError;
 
   switch (e) {
-    case RepositoryError::WRONG_VERSION:
+    case RepositoryError::kWrongVersion:
       return "RepositoryError: wrong version";
-    case RepositoryError::OPEN_FILE_ERROR:
+    case RepositoryError::kOpenFileError:
       return "RepositoryError: cannot open file";
-    case RepositoryError::UNKNOWN:
-      break;
+    default:
+      return "RepositoryError: unknown error";
   }
-
-  return "RepositoryError: unknown error";
 }

@@ -14,14 +14,12 @@ namespace fc::storage::keystore {
    * @brief Type of errors returned by Keystore
    */
   enum class KeyStoreError {
-    NOT_FOUND = 1,
-    ALREADY_EXISTS,
-    WRONG_ADDRESS,
-    WRONG_SIGNATURE,
-    CANNOT_STORE,
-    CANNOT_READ,
-
-    UNKNOWN = 1000
+    kNotFound = 1,
+    kAlreadyExists,
+    kWrongAddress,
+    kWrongSignature,
+    kCannotStore,
+    kCannotRead,
   };
 
 }  // namespace fc::storage::keystore

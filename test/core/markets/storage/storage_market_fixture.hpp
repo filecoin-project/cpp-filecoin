@@ -293,7 +293,7 @@ namespace fc::markets::storage::test {
 
             MsgWait message_result{
                 .receipt =
-                    MessageReceipt{.exit_code = VMExitCode::Ok,
+                    MessageReceipt{.exit_code = VMExitCode::kOk,
                                    .return_value = publish_deal_result_encoded,
                                    .gas_used = GasAmount{0}},
                 .tipset = chain_head};

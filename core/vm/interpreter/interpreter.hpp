@@ -11,9 +11,9 @@
 
 namespace fc::vm::interpreter {
   enum class InterpreterError {
-    DUPLICATE_MINER,
-    MINER_SUBMIT_FAILED,
-    CRON_TICK_FAILED,
+    kDuplicateMiner = 1,
+    kMinerSubmitFailed,
+    kCronTickFailed,
   };
 
   struct Result {

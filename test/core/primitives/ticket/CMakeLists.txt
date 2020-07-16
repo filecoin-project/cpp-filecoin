@@ -1,15 +1,6 @@
 # Copyright Soramitsu Co., Ltd. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-#test ticket
-addtest(ticket_test
-    ticket_test.cpp
-    )
-target_link_libraries(ticket_test
-    ticket_generator
-    ticket_printer
-    )
-
 # test epost ticket and proof
 addtest(epost_ticket_test
     epost_ticket_test.cpp

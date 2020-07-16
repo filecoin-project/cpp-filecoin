@@ -73,7 +73,7 @@ namespace fc::proofs {
           fil_RegisteredPoStProof_StackedDrgWinning64GiBV1:
         return RegisteredProof::StackedDRG64GiBWinningPoSt;
       default:
-        return ProofsError::INVALID_POST_PROOF;
+        return ProofsError::kInvalidPostProof;
     }
   }
 
@@ -152,7 +152,7 @@ namespace fc::proofs {
         break;
       }
       default:
-        return ProofsError::NO_SUCH_POST_PROOF;
+        return ProofsError::kNoSuchPostProof;
     }
 
     switch (proof) {
@@ -188,7 +188,7 @@ namespace fc::proofs {
         return fil_RegisteredPoStProof::
             fil_RegisteredPoStProof_StackedDrgWinning64GiBV1;
       default:
-        return ProofsError::NO_SUCH_POST_PROOF;
+        return ProofsError::kNoSuchPostProof;
     }
   }
 
@@ -212,7 +212,7 @@ namespace fc::proofs {
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg64GiBV1;
       default:
-        return ProofsError::NO_SUCH_SEAL_PROOF;
+        return ProofsError::kNoSuchSealProof;
     }
   }
 
@@ -365,7 +365,7 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("verifyWindowPoSt: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return res_ptr->is_valid;
@@ -390,7 +390,7 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("verifyWindowPoSt: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return res_ptr->is_valid;
@@ -420,7 +420,7 @@ namespace fc::proofs {
     if (res_ptr->status_code != 0) {
       logger_->error("verifySeal: " + std::string(res_ptr->error_msg));
 
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return res_ptr->is_valid;
@@ -448,7 +448,7 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("generateWinningPoSt: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return cppPoStProofs(
@@ -473,7 +473,7 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("generateWindowPoSt: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return cppPoStProofs(
@@ -485,13 +485,16 @@ namespace fc::proofs {
       ActorId miner_id,
       const PoStRandomness &randomness,
       uint64_t eligible_sectors_len) {
+    auto rand31{randomness};
+    rand31[31] = 0;
+
     OUTCOME_TRY(c_proof_type,
                 cRegisteredPoStProof(proof_type, PoStType::Winning));
     auto prover_id = toProverID(miner_id);
 
     auto res_ptr = ffi::wrap(
         fil_generate_winning_post_sector_challenge(c_proof_type,
-                                                   c32ByteArray(randomness),
+                                                   c32ByteArray(rand31),
                                                    eligible_sectors_len,
                                                    prover_id),
         fil_destroy_generate_winning_post_sector_challenge);
@@ -500,7 +503,7 @@ namespace fc::proofs {
       logger_->error("generateWinningPoStSectorChallenge: "
                      + std::string(res_ptr->error_msg));
 
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return ChallengeIndexes(res_ptr->ids_ptr,
@@ -515,14 +518,14 @@ namespace fc::proofs {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
     if (!piece_data.isOpened()) {
-      return ProofsError::CANNOT_OPEN_FILE;
+      return ProofsError::kCannotOpenFile;
     }
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd =
              open(staged_sector_file_path.c_str(), O_RDWR | O_CREAT, 0644))
         == -1) {
-      return ProofsError::CANNOT_OPEN_FILE;
+      return ProofsError::kCannotOpenFile;
     }
 
     auto res_ptr = ffi::wrap(
@@ -538,7 +541,7 @@ namespace fc::proofs {
       logger_->error("writeWithoutAlignment: "
                      + std::string(res_ptr->error_msg));
 
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return cppWriteWithoutAlignmentResult(*res_ptr);
@@ -553,14 +556,14 @@ namespace fc::proofs {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
     if (!piece_data.isOpened()) {
-      return ProofsError::CANNOT_OPEN_FILE;
+      return ProofsError::kCannotOpenFile;
     }
 
     int staged_sector_fd;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-vararg, hicpp-vararg)
     if ((staged_sector_fd = open(staged_sector_file_path.c_str(), O_RDWR, 0644))
         == -1) {
-      return ProofsError::CANNOT_OPEN_FILE;
+      return ProofsError::kCannotOpenFile;
     }
 
     OUTCOME_TRY(max_size, primitives::sector::getSectorSize(proof_type));
@@ -576,7 +579,7 @@ namespace fc::proofs {
       if (close(staged_sector_fd))
         logger_->warn("writeWithAlignment: error in closing file "
                       + staged_sector_file_path);
-      return ProofsError::OUT_OF_BOUND;
+      return ProofsError::kOutOfBound;
     }
 
     if (lseek(staged_sector_fd, offset.padded(), SEEK_SET) == -1) {
@@ -584,7 +587,7 @@ namespace fc::proofs {
       if (close(staged_sector_fd))
         logger_->warn("writeWithAlignment: error in closing file "
                       + staged_sector_file_path);
-      return ProofsError::UNABLE_MOVE_CURSOR;
+      return ProofsError::kUnableMoveCursor;
     }
 
     std::vector<uint64_t> raw{existing_piece_sizes.begin(),
@@ -604,7 +607,7 @@ namespace fc::proofs {
                     + staged_sector_file_path);
     if (res_ptr->status_code != 0) {
       logger_->error("writeWithAlignment: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
     return cppWriteWithAlignmentResult(*res_ptr);
   }
@@ -639,7 +642,7 @@ namespace fc::proofs {
     if (res_ptr->status_code != 0) {
       logger_->error("Seal precommit phase 1: "
                      + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return Phase1Output(
@@ -662,7 +665,7 @@ namespace fc::proofs {
     if (res_ptr->status_code != 0) {
       logger_->error("Seal precommit phase 2: "
                      + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return SealedAndUnsealedCID{
@@ -709,7 +712,7 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("sealCommit Phase 1: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return Phase1Output(
@@ -730,7 +733,7 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("sealCommit Phase 2: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return Proof(res_ptr->proof_ptr, res_ptr->proof_ptr + res_ptr->proof_len);
@@ -762,7 +765,7 @@ namespace fc::proofs {
     if (res_ptr->status_code != 0) {
       logger_->error("unseal: " + std::string(res_ptr->error_msg));
 
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return outcome::success();
@@ -799,7 +802,7 @@ namespace fc::proofs {
     if (res_ptr->status_code != 0) {
       logger_->error("unsealRange: " + std::string(res_ptr->error_msg));
 
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return outcome::success();
@@ -845,7 +848,7 @@ namespace fc::proofs {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
     if (!piece.isOpened()) {
-      return ProofsError::CANNOT_OPEN_FILE;
+      return ProofsError::kCannotOpenFile;
     }
 
     auto res_ptr = ffi::wrap(
@@ -855,7 +858,7 @@ namespace fc::proofs {
     if (res_ptr->status_code != 0) {
       logger_->error("GeneratePieceCIDFromFile: "
                      + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return dataCommitmentV1ToCID(
@@ -875,7 +878,7 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("generateUnsealedCID: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return dataCommitmentV1ToCID(
@@ -890,7 +893,7 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("clearCache: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return outcome::success();
@@ -905,7 +908,7 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("getPoStVersion: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return std::string(res_ptr->string_val);
@@ -919,7 +922,7 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("getSealVersion: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     return std::string(res_ptr->string_val);
@@ -931,7 +934,7 @@ namespace fc::proofs {
 
     if (res_ptr->status_code != 0) {
       logger_->error("getGPUDevices: " + std::string(res_ptr->error_msg));
-      return ProofsError::UNKNOWN;
+      return ProofsError::kUnknown;
     }
 
     if (res_ptr->devices_ptr == nullptr || res_ptr->devices_len == 0) {

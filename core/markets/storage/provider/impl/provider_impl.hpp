@@ -381,8 +381,8 @@ namespace fc::markets::storage::provider {
    * @brief Type of errors returned by Storage Market Provider
    */
   enum class StorageMarketProviderError {
-    LOCAL_DEAL_NOT_FOUND = 1,
-    PIECE_CID_DOESNT_MATCH
+    kLocalDealNotFound = 1,
+    kPieceCIDDoesNotMatch
   };
 
 }  // namespace fc::markets::storage::provider

@@ -298,13 +298,13 @@ namespace fc::markets::storage::client {
    * @brief Type of errors returned by Storage Market Client
    */
   enum class StorageMarketClientError {
-    WRONG_MINER = 1,
-    SIGNATURE_INVALID,
-    PIECE_DATA_NOT_SET_MANUAL_TRANSFER,
-    PIECE_SIZE_GREATER_SECTOR_SIZE,
-    ADD_FUNDS_CALL_ERROR,
-    LOCAL_DEAL_NOT_FOUND,
-    STREAM_LOOKUP_ERROR,
+    kWrongMiner = 1,
+    kSignatureInvalid,
+    kPieceDataNotSetManualTransfer,
+    kPieceSizeGreaterSectorSize,
+    kAddFundsCallError,
+    kLocalDealNotFound,
+    kStreamLookupError,
   };
 
 }  // namespace fc::markets::storage::client

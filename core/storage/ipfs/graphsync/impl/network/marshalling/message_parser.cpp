@@ -44,7 +44,7 @@ namespace fc::storage::ipfs::graphsync {
           break;
       }
       logger()->warn("{}: unknonwn status code {}", __FUNCTION__, code);
-      return Error::MESSAGE_PARSE_ERROR;
+      return Error::kMessageParseError;
     }
 
     // Extracts requests from protobuf message
@@ -105,7 +105,7 @@ namespace fc::storage::ipfs::graphsync {
           auto prefix_reader = common::span::cbytes(src.prefix());
           OUTCOME_TRY(cid, CID::read(prefix_reader, true));
           if (!prefix_reader.empty()) {
-            return Error::MESSAGE_PARSE_ERROR;
+            return Error::kMessageParseError;
           }
           cid.content_address =
               crypto::Hasher::calculate(cid.content_address.getType(), data);
@@ -124,7 +124,7 @@ namespace fc::storage::ipfs::graphsync {
       logger()->warn("{}: cannot parse protobuf message, size={}",
                      __FUNCTION__,
                      bytes.size());
-      return Error::MESSAGE_PARSE_ERROR;
+      return Error::kMessageParseError;
     }
 
     Message msg;

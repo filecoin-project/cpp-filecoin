@@ -14,7 +14,7 @@ using fc::vm::message::SignedMessage;
 fc::outcome::result<void> GasPriceScoredMessageStorage::put(
     const SignedMessage &message) {
   auto res = messages_.insert(message);
-  if (!res.second) return MessagePoolError::MESSAGE_ALREADY_IN_POOL;
+  if (!res.second) return MessagePoolError::kMessageAlreadyInPool;
   return fc::outcome::success();
 }
 

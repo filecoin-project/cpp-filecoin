@@ -15,7 +15,7 @@
 namespace fc::blockchain::sync_manager {
 
   enum class SyncTargetBucketError : int {
-    BUCKET_IS_EMPTY = 1,
+    kBucketIsEmpty = 1,
   };
 
   /** @struct SyncTargetBucket stores bucket of tipsets for synchronization */

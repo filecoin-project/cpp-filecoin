@@ -21,7 +21,7 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::hamt {
-  enum class HamtError { EXPECTED_CID = 1, NOT_FOUND, MAX_DEPTH };
+  enum class HamtError { kExpectedCID = 1, kNotFound, kMaxDepth };
 }  // namespace fc::storage::hamt
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::hamt, HamtError);
@@ -73,7 +73,7 @@ namespace fc::storage::hamt {
       visit_in_place(
           item.second,
           [&m_item](const CID &cid) { m_item["0"] << cid; },
-          [](const Node::Ptr &ptr) { outcome::raise(HamtError::EXPECTED_CID); },
+          [](const Node::Ptr &ptr) { outcome::raise(HamtError::kExpectedCID); },
           [&m_item](const Node::Leaf &leaf) {
             auto &s_leaf = m_item["1"];
             auto l_pairs = s_leaf.list();
@@ -149,7 +149,7 @@ namespace fc::storage::hamt {
 
     /**
      * Remove value by key, does not write to storage.
-     * Returns NOT_FOUND if element doesn't exist.
+     * Returns kNotFound if element doesn't exist.
      */
     outcome::result<void> remove(const std::string &key);
 
@@ -189,7 +189,7 @@ namespace fc::storage::hamt {
     outcome::result<boost::optional<T>> tryGetCbor(const std::string &key) {
       auto maybe = get(key);
       if (!maybe) {
-        if (maybe.error() != HamtError::NOT_FOUND) {
+        if (maybe.error() != HamtError::kNotFound) {
           return maybe.error();
         }
         return boost::none;

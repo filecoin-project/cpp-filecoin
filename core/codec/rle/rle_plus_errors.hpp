@@ -26,10 +26,10 @@ namespace fc::codec::rle {
    * @class RLE+ decode errors
    */
   enum class RLEPlusDecodeError : int {
-    VersionMismatch = 1, /**< RLE+ data header has invalid version */
-    DataIndexFailure,    /**< RLE+ incorrect structure */
-    UnpackOverflow,      /**< RLE+ invalid encoding */
-    MaxSizeExceed        /**< RLE+ object size too large */
+    kVersionMismatch = 1, /**< RLE+ data header has invalid version */
+    kDataIndexFailure,    /**< RLE+ incorrect structure */
+    kUnpackOverflow,      /**< RLE+ invalid encoding */
+    kMaxSizeExceed        /**< RLE+ object size too large */
   };
 }  // namespace fc::codec::rle
 

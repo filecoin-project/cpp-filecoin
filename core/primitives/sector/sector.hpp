@@ -201,9 +201,9 @@ namespace fc::primitives::sector {
   CBOR_TUPLE(OnChainPoStVerifyInfo, proof_type, candidates, proofs)
 
   enum class Errors {
-    InvalidPoStProof = 1,
-    InvalidSealProof,
-    InvalidProofType,
+    kInvalidPoStProof = 1,
+    kInvalidSealProof,
+    kInvalidProofType,
   };
 }  // namespace fc::primitives::sector
 

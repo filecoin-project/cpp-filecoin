@@ -59,7 +59,7 @@ namespace fc::primitives::sector_file {
   };
 
   enum class SectorFileTypeErrors {
-    InvalidSectorFileType = 1,
+    kInvalidSectorFileType = 1,
   };
 
 }  // namespace fc::primitives::sector_file

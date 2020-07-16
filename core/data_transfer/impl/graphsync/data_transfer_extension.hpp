@@ -41,7 +41,7 @@ namespace fc::data_transfer {
   /**
    * @brief Type of errors returned by ExtensionDataTransferData
    */
-  enum class DataTransferExtensionError { UNEXPECTED_EXTENSION_NAME };
+  enum class DataTransferExtensionError { kUnexpectedExtensionName = 1 };
 
 }  // namespace fc::data_transfer
 

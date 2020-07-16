@@ -13,7 +13,7 @@ namespace fc::power {
   /**
    * @brief Type of errors returned by Power Table
    */
-  enum class PowerTableError { NO_SUCH_MINER = 1, NEGATIVE_POWER };
+  enum class PowerTableError { kNoSuchMiner = 1, kNegativePower };
 
 }  // namespace fc::power
 
