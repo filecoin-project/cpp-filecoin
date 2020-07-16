@@ -72,7 +72,7 @@ namespace fc::vm::runtime {
       const Address &address) const {
     auto actor_state = state_tree_->get(address);
     if (!actor_state) {
-      if (actor_state.error() == HamtError::NOT_FOUND) return BigInt(0);
+      if (actor_state.error() == HamtError::kNotFound) return BigInt(0);
       return actor_state.error();
     }
     return actor_state.value().balance;
