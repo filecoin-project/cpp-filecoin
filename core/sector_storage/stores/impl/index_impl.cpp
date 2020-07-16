@@ -286,31 +286,37 @@ namespace fc::sector_storage::stores {
     return result;
   }
 
-  outcome::result<Lock> SectorIndexImpl::storageLock(const SectorId &sector,
-                                                     SectorFileType read,
-                                                     SectorFileType write) {
-    auto lock = IndexLock::Lock(sector, read, write);
+  outcome::result<std::unique_ptr<Lock>> SectorIndexImpl::storageLock(
+      const SectorId &sector, SectorFileType read, SectorFileType write) {
+    std::unique_ptr<IndexLock::Lock> lock =
+        std::make_unique<IndexLock::Lock>(sector, read, write);
 
-    auto is_locked = index_lock_->lock(lock, true);
+    if (lock) {
+      auto is_locked = index_lock_->lock(*lock, true);
 
-    if (is_locked) {
-      return std::move(lock);
+      if (is_locked) {
+        return std::move(lock);
+      }
     }
 
-    return outcome::success();  // TODO: ERROR
+    return IndexErrors::kCannotLockStorage;
   }
 
-  boost::optional<Lock> SectorIndexImpl::storageTryLock(
-      const SectorId &sector, SectorFileType read, SectorFileType write) {
-    auto lock = IndexLock::Lock(sector, read, write);
+  std::unique_ptr<Lock> SectorIndexImpl::storageTryLock(const SectorId &sector,
+                                                        SectorFileType read,
+                                                        SectorFileType write) {
+    std::unique_ptr<IndexLock::Lock> lock =
+        std::make_unique<IndexLock::Lock>(sector, read, write);
 
-    auto is_locked = index_lock_->lock(lock, false);
+    if (lock) {
+      auto is_locked = index_lock_->lock(*lock, false);
 
-    if (is_locked) {
-      return std::move(lock);
+      if (is_locked) {
+        return std::move(lock);
+      }
     }
 
-    return boost::none;
+    return nullptr;
   }
 
 }  // namespace fc::sector_storage::stores
@@ -324,6 +330,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, IndexErrors, e) {
       return "Sector Index: not found a suitable storage";
     case (IndexErrors::kInvalidUrl):
       return "Sector Index: failed to parse url";
+    case (IndexErrors::kCannotLockStorage):
+      return "Sector Index: failed to acquire lock";
     default:
       return "Sector Index: unknown error";
   }

@@ -28,7 +28,7 @@ namespace fc::sector_storage::stores {
         assert(((read | write) >> kSectorFileTypeBits) == 0);
       }
       Lock(Lock &&) = default;
-      ~Lock();
+      ~Lock() override;
     };
 
     struct Sector {

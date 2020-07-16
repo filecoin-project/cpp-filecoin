@@ -53,12 +53,16 @@ namespace fc::sector_storage::stores {
         RegisteredProof seal_proof_type,
         bool sealing) override;
 
-      outcome::result<Lock> storageLock(const SectorId &sector, SectorFileType read, SectorFileType write) override;
+    outcome::result<std::unique_ptr<Lock>> storageLock(
+        const SectorId &sector,
+        SectorFileType read,
+        SectorFileType write) override;
 
-      boost::optional<Lock>
-      storageTryLock(const SectorId &sector, SectorFileType read, SectorFileType write) override;
+    std::unique_ptr<Lock> storageTryLock(const SectorId &sector,
+                                         SectorFileType read,
+                                         SectorFileType write) override;
 
-  private:
+   private:
     mutable std::shared_mutex mutex_;
     std::unordered_map<StorageID, StorageEntry> stores_;
     std::unordered_map<std::string, std::vector<StorageID>> sectors_;

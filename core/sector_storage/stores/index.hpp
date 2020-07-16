@@ -82,11 +82,10 @@ namespace fc::sector_storage::stores {
         RegisteredProof seal_proof_type,
         bool sealing) = 0;
 
-    virtual outcome::result<Lock> storageLock(const SectorId &sector,
-                                              SectorFileType read,
-                                              SectorFileType write) = 0;
+    virtual outcome::result<std::unique_ptr<Lock>> storageLock(
+        const SectorId &sector, SectorFileType read, SectorFileType write) = 0;
 
-    virtual boost::optional<Lock> storageTryLock(const SectorId &sector,
+    virtual std::unique_ptr<Lock> storageTryLock(const SectorId &sector,
                                                  SectorFileType read,
                                                  SectorFileType write) = 0;
   };
@@ -95,6 +94,7 @@ namespace fc::sector_storage::stores {
     kStorageNotFound = 1,
     kNoSuitableCandidate,
     kInvalidUrl,
+    kCannotLockStorage,
   };
 }  // namespace fc::sector_storage::stores
 
