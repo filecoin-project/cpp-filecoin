@@ -7,15 +7,21 @@
 #define CPP_FILECOIN_CORE_API_MINER_API_HPP
 
 #include "api/api.hpp"
+#include "primitives/sector/sector.hpp"
 #include "sector_storage/sealing/types.hpp"
-#include "storage/piece/piece_storage.hpp"
 
 namespace fc::api {
   using primitives::DealId;
   using primitives::piece::UnpaddedPieceSize;
+  using primitives::sector::SectorNumber;
   using sector_storage::sealing::DealInfo;
   using sector_storage::sealing::DealSchedule;
-  using storage::piece::PieceInfo;
+
+  struct PieceLocation {
+    SectorNumber sector_number;
+    uint64_t offset;
+    uint64_t length;
+  };
 
   // TODO(a.chernyshov): FIL-165 implement methods
   struct MinerApi {
@@ -35,7 +41,7 @@ namespace fc::api {
      * Get location for the data for storage deal
      */
     API_METHOD(LocatePieceForDealWithinSector,
-               PieceInfo,
+               PieceLocation,
                const DealId &,
                const TipsetKey &)
   };

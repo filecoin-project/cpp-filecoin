@@ -16,19 +16,19 @@
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::storage::piece {
+  using common::Buffer;
   const std::string kPiecePrefix = "/storagemarket/pieces/";
   const std::string kLocationPrefix = "/storagemarket/cid-infos/";
 
   class PieceStorageImpl : public PieceStorage {
    protected:
-    using Buffer = common::Buffer;
     using PersistentMap = storage::face::PersistentMap<Buffer, Buffer>;
 
    public:
     PieceStorageImpl(std::shared_ptr<PersistentMap> storage_backend);
 
-    outcome::result<void> addPieceInfo(const CID &piece_cid,
-                                       PieceInfo piece_info) override;
+    outcome::result<void> addDealForPiece(const CID &piece_cid,
+                                          const DealInfo &deal_info) override;
 
     outcome::result<PieceInfo> getPieceInfo(
         const CID &piece_cid) const override;
@@ -37,7 +37,8 @@ namespace fc::storage::piece {
         const CID &parent_piece,
         std::map<CID, PayloadLocation> locations) override;
 
-    outcome::result<CidInfo> getCidInfo(const CID &piece_cid) const override;
+    outcome::result<PayloadInfo> getPayloadInfo(
+        const CID &piece_cid) const override;
 
     outcome::result<PayloadBlockInfo> getPayloadLocation(
         const CID &paload_cid) const override;
@@ -56,12 +57,13 @@ namespace fc::storage::piece {
     std::shared_ptr<PersistentMap> storage_;
 
     /**
-     * @brief Convert string key to byte buffer
+     * @brief Make a byte buffer key from cid with string prefix
      * @param prefix - key namespace
-     * @param key - data to convert
+     * @param cid - data to convert
      * @return byte buffer
      */
-    static Buffer convertKey(std::string prefix, std::string key);
+    static outcome::result<Buffer> makeKey(const std::string &prefix,
+                                           const CID &cid);
   };
 
 }  // namespace fc::storage::piece

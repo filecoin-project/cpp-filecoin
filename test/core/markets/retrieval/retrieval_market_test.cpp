@@ -12,8 +12,9 @@ namespace fc::markets::retrieval::test {
    * @then Provider must answer with QueryResponse with available item status
    */
   TEST_F(RetrievalMarketFixture, QuerySuccess) {
-    QueryRequest request{.payload_cid = data::green_piece.payloads[0].cid,
-                         .params = {.piece_cid = data::green_piece.cid}};
+    QueryRequest request{
+        .payload_cid = data::green_piece.payloads[0].cid,
+        .params = {.piece_cid = data::green_piece.info.piece_cid}};
     std::promise<outcome::result<QueryResponse>> query_result;
     client->query(host->getPeerInfo(), request, [&](auto response) {
       query_result.set_value(response);

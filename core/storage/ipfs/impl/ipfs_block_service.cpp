@@ -17,15 +17,12 @@ namespace fc::storage::ipfs {
   }
 
   outcome::result<void> IpfsBlockService::set(const CID &key, Value value) {
-    auto result = local_storage_->set(key, std::move(value));
-    if (result.has_error()) return result.error();
-    return outcome::success();
+    return local_storage_->set(key, std::move(value));
   }
 
   outcome::result<IpfsBlockService::Value> IpfsBlockService::get(
       const CID &key) const {
-    OUTCOME_TRY(data, local_storage_->get(key));
-    return std::move(data);
+    return local_storage_->get(key);
   }
 
   outcome::result<void> IpfsBlockService::remove(const CID &key) {
