@@ -14,13 +14,21 @@
 
 namespace fc::sector_storage::stores {
 
+  // .lotusstorage/storage.json
+  struct StorageConfig {
+    std::vector<std::string> storage_paths;
+  };
+
   class LocalStorage {
    public:
     virtual ~LocalStorage() = default;
 
     virtual outcome::result<FsStat> getStat(const std::string &path) = 0;
 
-    virtual outcome::result<std::vector<std::string>> getPaths() = 0;
+    virtual outcome::result<StorageConfig> getStorage() = 0;
+
+    virtual outcome::result<void> setStorage(
+        std::function<void(StorageConfig &)> action) = 0;
   };
 
   const std::string kMetaFileName = "sectorstore.json";

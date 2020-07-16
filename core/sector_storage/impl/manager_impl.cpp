@@ -4,6 +4,9 @@
  */
 
 #include "sector_storage/impl/manager_impl.hpp"
+#include <boost/filesystem.hpp>
+
+namespace fs = boost::filesystem;
 
 namespace fc::sector_storage {
 
@@ -13,6 +16,10 @@ namespace fc::sector_storage {
   }
 
   SectorSize ManagerImpl::getSectorSize() {
+    auto maybe_size = primitives::sector::getSectorSize(seal_proof_type_);
+    if (maybe_size.has_value()) {
+      return maybe_size.value();
+    }
     return 0;
   }
 
@@ -82,19 +89,40 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> ManagerImpl::addLocalStorage(const std::string &path) {
+    // TODO: expand path
+
+    OUTCOME_TRY(local_store_->openPath(path));
+
+    OUTCOME_TRY(
+        local_storage_->setStorage([&path](stores::StorageConfig &config) {
+          config.storage_paths.push_back(path);
+        }));
+
     return outcome::success();
   }
 
-  outcome::result<void> ManagerImpl::addWorker(const Worker &worker) {
+  outcome::result<void> ManagerImpl::addWorker(std::shared_ptr<Worker> worker) {
+    OUTCOME_TRY(info, worker->getInfo());
+
+    // TODO: add scheduler
+
     return outcome::success();
   }
 
   outcome::result<std::unordered_map<StorageID, std::string>>
   ManagerImpl::getStorageLocal() {
-    return outcome::success();
+    OUTCOME_TRY(paths, local_store_->getAccessiblePaths());
+
+    std::unordered_map<StorageID, std::string> out{};
+
+    for (const auto &path : paths) {
+      out[path.id] = path.local_path;
+    }
+
+    return std::move(out);
   }
 
   outcome::result<FsStat> ManagerImpl::getFsStat(StorageID storage_id) {
-    return outcome::success();
+    return storage_->getFsStat(storage_id);
   }
 }  // namespace fc::sector_storage

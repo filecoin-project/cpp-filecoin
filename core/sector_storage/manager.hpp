@@ -13,11 +13,11 @@
 #include "sector_storage/spec_interfaces/storage.hpp"
 #include "sector_storage/worker.hpp"
 
+using fc::primitives::FsStat;
 using fc::primitives::SectorSize;
+using fc::primitives::StorageID;
 using fc::primitives::piece::PieceData;
 using fc::primitives::piece::UnpaddedByteIndex;
-using fc::primitives::StorageID;
-using fc::primitives::FsStat;
 
 namespace fc::sector_storage {
   class Manager : public Sealer, Storage, public Prover, FaultTracker {
@@ -33,9 +33,10 @@ namespace fc::sector_storage {
 
     virtual outcome::result<void> addLocalStorage(const std::string &path) = 0;
 
-    virtual outcome::result<void> addWorker(const Worker &worker) = 0;
+    virtual outcome::result<void> addWorker(std::shared_ptr<Worker> worker) = 0;
 
-    virtual outcome::result<std::unordered_map<StorageID, std::string>> getStorageLocal() = 0;
+    virtual outcome::result<std::unordered_map<StorageID, std::string>>
+    getStorageLocal() = 0;
 
     virtual outcome::result<FsStat> getFsStat(StorageID storage_id) = 0;
   };

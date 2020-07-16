@@ -324,9 +324,9 @@ namespace fc::sector_storage::stores {
       return StoreErrors::CANNOT_INIT_LOGGER;
     }
 
-    OUTCOME_TRY(paths, local->storage_->getPaths());
+    OUTCOME_TRY(config, local->storage_->getStorage());
 
-    for (const auto &path : paths) {
+    for (const auto &path : config.storage_paths) {
       OUTCOME_TRY(local->openPath(path));
     }
 

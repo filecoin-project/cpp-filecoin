@@ -68,16 +68,19 @@ namespace fc::sector_storage {
         const UnpaddedPieceSize &new_piece_size,
         const proofs::PieceData &piece_data) override;
 
-      outcome::result<void> addLocalStorage(const std::string &path) override;
+    outcome::result<void> addLocalStorage(const std::string &path) override;
 
-      outcome::result<void> addWorker(const Worker &worker) override;
+    outcome::result<void> addWorker(std::shared_ptr<Worker> worker) override;
 
-      outcome::result<std::unordered_map<StorageID, std::string>> getStorageLocal() override;
+    outcome::result<std::unordered_map<StorageID, std::string>>
+    getStorageLocal() override;
 
-      outcome::result<FsStat> getFsStat(StorageID storage_id) override;
+    outcome::result<FsStat> getFsStat(StorageID storage_id) override;
 
-  private:
+   private:
     std::shared_ptr<stores::SectorIndex> index_;
+
+    RegisteredProof seal_proof_type_;  // TODO: maybe add config
 
     std::shared_ptr<stores::LocalStorage> local_storage_;
     std::shared_ptr<stores::LocalStore> local_store_;
