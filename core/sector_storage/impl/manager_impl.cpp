@@ -51,11 +51,30 @@ namespace fc::sector_storage {
       const SectorId &sector,
       const SealRandomness &ticket,
       gsl::span<const PieceInfo> pieces) {
+    OUTCOME_TRY(lock,
+                index_->storageLock(
+                    sector,
+                    SectorFileType::FTUnsealed,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache)));
+
+    // TODO: also consider where the unsealed data sits
+
+    // TODO: create alloc selector
+
+    // TODO: schedule it
     return outcome::success();
   }
 
   outcome::result<SectorCids> ManagerImpl::sealPreCommit2(
       const SectorId &sector, const PreCommit1Output &pre_commit_1_output) {
+    OUTCOME_TRY(lock,
+                index_->storageLock(
+                    sector, SectorFileType::FTSealed, SectorFileType::FTCache));
+
+    // TODO: create existing selector
+
+    // TODO: schedule it
     return outcome::success();
   }
 
@@ -65,11 +84,21 @@ namespace fc::sector_storage {
       const InteractiveRandomness &seed,
       gsl::span<const PieceInfo> pieces,
       const SectorCids &cids) {
+    OUTCOME_TRY(lock,
+                index_->storageLock(
+                    sector, SectorFileType::FTSealed, SectorFileType::FTCache));
+
+    // TODO: create existing selector
+
+    // TODO: schedule it
     return outcome::success();
   }
 
   outcome::result<Proof> ManagerImpl::sealCommit2(
       const SectorId &sector, const Commit1Output &commit_1_output) {
+    // TODO: create task selector
+
+    // TODO: schedule it
     return outcome::success();
   }
 
