@@ -14,3 +14,6 @@ target_link_libraries(local_worker_test
         )
 
 add_subdirectory(stores)
+
+addtest(manager_test
+        manager_test.cpp)
