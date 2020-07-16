@@ -267,7 +267,7 @@ ClientDealProposal MarketActorTest::setupPublishStorageDeals() {
 TEST_F(MarketActorTest, PublishStorageDealsNoDeals) {
   callerIs(owner_address);
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ASSERT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
                        MarketActor::PublishStorageDeals::call(runtime, {{}}));
 }
 
@@ -370,7 +370,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsDifferentProviders)) {
   proposal2.proposal.provider = client_address;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::ASSERT,
+      VMExitCode::kAssert,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal, proposal2}}));
 }
 
@@ -442,7 +442,7 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit(
       [&](auto &deal) { deal.provider = client_address; });
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ASSERT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
                        MarketActor::VerifyDealsOnSectorProveCommit::call(
                            runtime, {{deal_1_id}, {}}));
 }
@@ -451,7 +451,7 @@ TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitAlreadyStarted) {
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
   EXPECT_OUTCOME_TRUE_1(state.states.set(deal_1_id, {1, {}, {}}));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ASSERT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
                        MarketActor::VerifyDealsOnSectorProveCommit::call(
                            runtime, {{deal_1_id}, {}}));
 }
@@ -461,7 +461,7 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit(
       [&](auto &deal) { deal.start_epoch = epoch - 1; });
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ASSERT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
                        MarketActor::VerifyDealsOnSectorProveCommit::call(
                            runtime, {{deal_1_id}, {}}));
 }
@@ -470,7 +470,7 @@ TEST_F(MarketActorTest,
        GCC_DISABLE(VerifyDealsOnSectorProveCommitSectorEndsBeforeDeal)) {
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ASSERT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
                        MarketActor::VerifyDealsOnSectorProveCommit::call(
                            runtime, {{deal_1_id}, deal.end_epoch - 1}));
 }
@@ -494,7 +494,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(OnMinerSectorsTerminateNotDealMiner)) {
   callerIs(miner_address);
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::ASSERT,
+      VMExitCode::kAssert,
       MarketActor::OnMinerSectorsTerminate::call(runtime, {{deal_1_id}}));
 }
 

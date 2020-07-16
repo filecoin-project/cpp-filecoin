@@ -16,6 +16,7 @@ namespace fc::fslock {
   enum class FSLockError {
     kFileLocked = 1,
     kIsDirectory,
+    kUnknown = 1000,
   };
 
 }  // namespace fc::fslock

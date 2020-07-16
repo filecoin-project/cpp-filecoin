@@ -30,7 +30,7 @@ class PowerTableTest : public ::testing::Test {
  * @then error NEGATIVE_POWER
  */
 TEST_F(PowerTableTest, SetPower_NegativePower) {
-  EXPECT_OUTCOME_ERROR(PowerTableError::NEGATIVE_POWER,
+  EXPECT_OUTCOME_ERROR(PowerTableError::kNegativePower,
                        power_table.setMinerPower(addr, -1));
 }
 

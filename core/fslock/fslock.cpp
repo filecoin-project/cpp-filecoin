@@ -30,7 +30,7 @@ namespace fc::fslock {
       }
       return std::move(file_lock);
     } catch (...) {
-      return FSLockError::UNKNOWN;
+      return FSLockError::kUnknown;
     }
   }
 

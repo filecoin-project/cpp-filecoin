@@ -285,7 +285,7 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
     OUTCOME_TRY(msg_wait, api_->StateWaitMsg(message_cid));
     OUTCOME_TRY(msg_state, msg_wait.waitSync());
-    if (msg_state.receipt.exit_code != VMExitCode::Ok) {
+    if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       return StorageMarketClientError::kAddFundsCallError;
     }
     return outcome::success();
@@ -373,7 +373,7 @@ namespace fc::markets::storage::client {
       std::shared_ptr<ClientDeal> deal) {
     OUTCOME_TRY(msg_wait, api_->StateWaitMsg(deal->publish_message));
     OUTCOME_TRY(msg_state, msg_wait.waitSync());
-    if (msg_state.receipt.exit_code != VMExitCode::Ok) {
+    if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       deal->message =
           "Publish deal exit code "
           + std::to_string(static_cast<uint64_t>(msg_state.receipt.exit_code));
@@ -514,7 +514,7 @@ namespace fc::markets::storage::client {
     maybe_wait.value().wait(
         [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {
           SELF_FSM_HALT_ON_ERROR(result, "Wait for funding error", deal);
-          if (result.value().receipt.exit_code != VMExitCode::Ok) {
+          if (result.value().receipt.exit_code != VMExitCode::kOk) {
             deal->message = "Funding exit code "
                             + std::to_string(static_cast<uint64_t>(
                                 result.value().receipt.exit_code));
