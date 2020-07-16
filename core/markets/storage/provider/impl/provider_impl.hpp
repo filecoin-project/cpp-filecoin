@@ -25,12 +25,12 @@
 
 namespace fc::markets::storage::provider {
   using api::MinerApi;
+  using api::PieceLocation;
   using chain_events::ChainEvents;
   using common::libp2p::CborHost;
   using common::libp2p::CborStream;
   using fc::storage::filestore::FileStore;
   using fc::storage::filestore::Path;
-  using fc::storage::piece::PieceInfo;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
   using pieceio::PieceIO;
@@ -132,17 +132,17 @@ namespace fc::markets::storage::provider {
      * @param deal - activated deal
      * @return piece info with location
      */
-    outcome::result<PieceInfo> locatePiece(std::shared_ptr<MinerDeal> deal);
+    outcome::result<PieceLocation> locatePiece(std::shared_ptr<MinerDeal> deal);
 
     /**
      * Records sector information about an activated deal so that the data can
      * be retrieved later
      * @param deal - activated deal
-     * @param piece_info - piece location
+     * @param piece_location - piece location
      * @return error in case of failure
      */
     outcome::result<void> recordPieceInfo(std::shared_ptr<MinerDeal> deal,
-                                          const PieceInfo &piece_info);
+                                          const PieceLocation &piece_location);
 
     /**
      * Look up stream by proposal cid

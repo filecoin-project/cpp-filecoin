@@ -30,27 +30,33 @@ namespace fc::storage::piece {
       std::shared_ptr<PersistentMap> storage_backend)
       : storage_{std::move(storage_backend)} {}
 
-  outcome::result<void> PieceStorageImpl::addPieceInfo(const CID &piece_cid,
-                                                       PieceInfo piece_info) {
-    OUTCOME_TRY(key, piece_cid.toString());
+  outcome::result<void> PieceStorageImpl::addDealForPiece(
+      const CID &piece_cid, const DealInfo &deal_info) {
+    OUTCOME_TRY(storage_key,
+                PieceStorageImpl::makeKey(kPiecePrefix, piece_cid));
+    PieceInfo piece_info{.piece_cid = piece_cid, .deals = {}};
+    if (storage_->contains(storage_key)) {
+      OUTCOME_TRYA(piece_info, getPieceInfo(piece_cid));
+    }
+    piece_info.deals.push_back(deal_info);
     OUTCOME_TRY(value, codec::cbor::encode(piece_info));
-    Buffer storage_key =
-        PieceStorageImpl::convertKey(kPiecePrefix, std::move(key));
     OUTCOME_TRY(storage_->put(storage_key, value));
     return outcome::success();
   }
 
   outcome::result<PieceInfo> PieceStorageImpl::getPieceInfo(
       const CID &piece_cid) const {
-    OUTCOME_TRY(key, piece_cid.toString());
-    Buffer storage_key =
-        PieceStorageImpl::convertKey(kPiecePrefix, std::move(key));
+    OUTCOME_TRY(storage_key,
+                PieceStorageImpl::makeKey(kPiecePrefix, piece_cid));
+    if (!storage_->contains(storage_key)) {
+      return PieceStorageError::kPieceNotFound;
+    }
     OUTCOME_TRY(value, storage_->get(storage_key));
     OUTCOME_TRY(piece_info, codec::cbor::decode<PieceInfo>(value));
     return std::move(piece_info);
   }
 
-  outcome::result<CidInfo> PieceStorageImpl::getCidInfo(
+  outcome::result<PayloadInfo> PieceStorageImpl::getPayloadInfo(
       const CID &piece_cid) const {
     // TODO (a.chernyshov) implement
     return PieceStorageError::kPieceNotFound;
@@ -61,10 +67,8 @@ namespace fc::storage::piece {
     for (auto &&[cid, location] : locations) {
       PayloadBlockInfo payload_info{.parent_piece = parent_piece,
                                     .block_location = location};
-      OUTCOME_TRY(key, cid.toString());
+      OUTCOME_TRY(storage_key, PieceStorageImpl::makeKey(kLocationPrefix, cid));
       OUTCOME_TRY(value, codec::cbor::encode(payload_info));
-      Buffer storage_key =
-          PieceStorageImpl::convertKey(kLocationPrefix, std::move(key));
       OUTCOME_TRY(storage_->put(storage_key, value));
     }
     return outcome::success();
@@ -72,9 +76,8 @@ namespace fc::storage::piece {
 
   outcome::result<PayloadBlockInfo> PieceStorageImpl::getPayloadLocation(
       const CID &payload_cid) const {
-    OUTCOME_TRY(key, payload_cid.toString());
-    Buffer storage_key =
-        PieceStorageImpl::convertKey(kLocationPrefix, std::move(key));
+    OUTCOME_TRY(storage_key,
+                PieceStorageImpl::makeKey(kLocationPrefix, payload_cid));
     OUTCOME_TRY(value, storage_->get(storage_key));
     OUTCOME_TRY(payload_info, codec::cbor::decode<PayloadBlockInfo>(value));
     return std::move(payload_info);
@@ -82,7 +85,7 @@ namespace fc::storage::piece {
 
   outcome::result<PieceInfo> PieceStorageImpl::getPieceInfoFromCid(
       const CID &payload_cid, const boost::optional<CID> &piece_cid) const {
-    OUTCOME_TRY(cid_info, getCidInfo(payload_cid));
+    OUTCOME_TRY(cid_info, getPayloadInfo(payload_cid));
     for (auto &&block_location : cid_info.piece_block_locations) {
       OUTCOME_TRY(piece_info, getPieceInfo(block_location.parent_piece));
       if (piece_cid || piece_info.piece_cid == piece_cid.get()) {
@@ -111,13 +114,14 @@ namespace fc::storage::piece {
     return PieceStorageError::kPieceNotFound;
   }
 
-  PieceStorageImpl::Buffer PieceStorageImpl::convertKey(std::string prefix,
-                                                        std::string key) {
+  outcome::result<Buffer> PieceStorageImpl::makeKey(const std::string &prefix,
+                                                    const CID &cid) {
+    OUTCOME_TRY(cid_key, cid.toString());
     std::vector<uint8_t> key_bytes{std::move_iterator(prefix.begin()),
                                    std::move_iterator(prefix.end())};
     key_bytes.insert(key_bytes.end(),
-                     std::move_iterator(key.begin()),
-                     std::move_iterator(key.end()));
+                     std::move_iterator(cid_key.begin()),
+                     std::move_iterator(cid_key.end()));
     return Buffer{std::move(key_bytes)};
   }
 }  // namespace fc::storage::piece
