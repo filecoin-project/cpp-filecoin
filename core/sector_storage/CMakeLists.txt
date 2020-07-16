@@ -18,3 +18,11 @@ target_link_libraries(worker
         proofs
         logger
         )
+
+add_library(manager
+        impl/manager_impl.cpp
+        )
+
+target_link_libraries(manager
+        outcome
+        )
