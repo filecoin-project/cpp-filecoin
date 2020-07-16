@@ -74,6 +74,33 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> ManagerImpl::finalizeSector(const SectorId &sector) {
+    OUTCOME_TRY(lock,
+                index_->storageLock(
+                    sector,
+                    SectorFileType::FTNone,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTUnsealed
+                                                | SectorFileType::FTCache)));
+
+    auto unsealed = SectorFileType::FTUnsealed;
+    {
+      OUTCOME_TRY(
+          unsealed_stores,
+          index_->storageFindSector(sector, SectorFileType::FTUnsealed, false));
+
+      if (unsealed_stores.empty()) {
+        unsealed = SectorFileType::FTNone;
+      }
+    }
+
+    // TODO: create existing selector
+
+    // TODO: schedule it
+
+    // TODO: create allocate selector
+
+    // TODO: schedule move
+
     return outcome::success();
   }
 
@@ -97,7 +124,7 @@ namespace fc::sector_storage {
       }
     }
 
-    // TODO: create selector
+    // TODO: create existing selector
 
     // TODO: schedule it
 
