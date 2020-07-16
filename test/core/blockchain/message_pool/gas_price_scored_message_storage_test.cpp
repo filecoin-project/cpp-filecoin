@@ -61,7 +61,7 @@ TEST_F(GasPricedScoredMessageStorageTest, RemoveNotExists) {
  */
 TEST_F(GasPricedScoredMessageStorageTest, AddTwice) {
   EXPECT_OUTCOME_TRUE_1(message_storage.put(message));
-  EXPECT_OUTCOME_ERROR(MessagePoolError::MESSAGE_ALREADY_IN_POOL,
+  EXPECT_OUTCOME_ERROR(MessagePoolError::kMessageAlreadyInPool,
                        message_storage.put(message));
 }
 

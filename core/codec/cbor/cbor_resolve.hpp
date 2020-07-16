@@ -10,10 +10,10 @@
 
 namespace fc::codec::cbor {
   enum class CborResolveError {
-    INT_KEY_EXPECTED = 1,
-    KEY_NOT_FOUND,
-    CONTAINER_EXPECTED,
-    INT_KEY_TOO_BIG
+    kIntKeyExpected = 1,
+    kKeyNotFound,
+    kContainerExpected,
+    kIntKeyTooBig
   };
 
   using Path = gsl::span<const std::string>;

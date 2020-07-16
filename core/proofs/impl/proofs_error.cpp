@@ -9,17 +9,17 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofsError, e) {
   using fc::proofs::ProofsError;
 
   switch (e) {
-    case (ProofsError::CANNOT_OPEN_FILE):
+    case (ProofsError::kCannotOpenFile):
       return "Proofs: cannot open file";
-    case (ProofsError::NO_SUCH_SEAL_PROOF):
+    case (ProofsError::kNoSuchSealProof):
       return "Proofs: No mapping to FFIRegisteredSealProof";
-    case (ProofsError::NO_SUCH_POST_PROOF):
+    case (ProofsError::kNoSuchPostProof):
       return "Proofs: No mapping to FFIRegisteredPoStProof";
-    case (ProofsError::INVALID_POST_PROOF):
+    case (ProofsError::kInvalidPostProof):
       return "Proofs: No mapping to RegisteredPoSt";
-    case (ProofsError::OUT_OF_BOUND):
+    case (ProofsError::kOutOfBound):
       return "Proofs: Piece will exceed the maximum size";
-    case (ProofsError::UNABLE_MOVE_CURSOR):
+    case (ProofsError::kUnableMoveCursor):
       return "Proofs: Unable to move cursor to write piece";
     default:
       return "Proofs: unknown error";

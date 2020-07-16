@@ -14,13 +14,13 @@ namespace fc::vm::runtime {
    * @brief Type of errors returned by Runtime
    */
   enum class RuntimeError {
-    WRONG_ADDRESS_PROTOCOL = 1,
-    CREATE_ACTOR_OPERATION_NOT_PERMITTED,
-    DELETE_ACTOR_OPERATION_NOT_PERMITTED,
-    ACTOR_NOT_FOUND,
-    NOT_ENOUGH_FUNDS,
-    NOT_ENOUGH_GAS,
-    UNKNOWN = 1000
+    kWrongAddressProtocol = 1,
+    kCreateActorOperationNotPermitted,
+    kDeleteActorOperationNotPermitted,
+    kActorNotFound,
+    kNotEnoughFunds,
+    kNotEnoughGas,
+    kUnknown = 1000
   };
 
 }  // namespace fc::vm::runtime

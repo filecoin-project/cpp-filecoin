@@ -51,7 +51,7 @@ TEST_F(FSLockTest, LockFileSuccess) {
   auto pid = fork();
   if (pid == 0) {
     EXPECT_OUTCOME_FALSE(err, fc::fslock::Locker::lock(lock_file_path));
-    ASSERT_EQ(err, fc::fslock::FSLockError::FILE_LOCKED);
+    ASSERT_EQ(err, fc::fslock::FSLockError::kFileLocked);
   } else {
     wait(NULL);
   }
@@ -68,7 +68,7 @@ TEST_F(FSLockTest, LockNotExistingFileSuccess) {
   if (pid == 0) {
     std::this_thread::sleep_for(std::chrono::milliseconds(1));
     EXPECT_OUTCOME_FALSE(err, fc::fslock::Locker::lock(not_exist_file_path));
-    ASSERT_EQ(err, fc::fslock::FSLockError::FILE_LOCKED);
+    ASSERT_EQ(err, fc::fslock::FSLockError::kFileLocked);
   } else {
     EXPECT_OUTCOME_TRUE_1(fc::fslock::Locker::lock(not_exist_file_path));
     wait(NULL);
@@ -82,5 +82,5 @@ TEST_F(FSLockTest, LockNotExistingFileSuccess) {
  */
 TEST_F(FSLockTest, LockDirectoryFail) {
   EXPECT_OUTCOME_FALSE(err1, fc::fslock::Locker::lock(dir_path));
-  ASSERT_EQ(err1, fc::fslock::FSLockError::IS_DIRECTORY);
+  ASSERT_EQ(err1, fc::fslock::FSLockError::kIsDirectory);
 }

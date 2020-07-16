@@ -90,7 +90,7 @@ namespace fc::data_transfer::graphsync {
   /**
    * @brief Type of errors returned by GraphsyncReceiver
    */
-  enum class GraphsyncManagerError { STATE_ALREADY_EXISTS };
+  enum class GraphsyncManagerError { kStateAlreadyExists = 1 };
 
 }  // namespace fc::data_transfer::graphsync
 

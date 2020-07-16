@@ -50,7 +50,7 @@ namespace fc::storage::ipld {
     if (auto index = links_.find(name); index != links_.end()) {
       return index->second;
     }
-    return IPLDNodeError::LINK_NOT_FOUND;
+    return IPLDNodeError::kLinkNotFound;
   }
 
   void IPLDNodeImpl::removeLink(const std::string &link_name) {
@@ -115,9 +115,9 @@ namespace fc::storage::ipld {
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipld, IPLDNodeError, e) {
   using fc::storage::ipld::IPLDNodeError;
   switch (e) {
-    case (IPLDNodeError::LINK_NOT_FOUND):
+    case (IPLDNodeError::kLinkNotFound):
       return "MerkleDAG Node: link not exist";
-    case (IPLDNodeError::INVALID_RAW_DATA):
+    case (IPLDNodeError::kInvalidRawData):
       return "MerkleDAG Node: failed to deserialize from incorrect raw bytes";
   }
   return "MerkleDAG Node: unknown error";

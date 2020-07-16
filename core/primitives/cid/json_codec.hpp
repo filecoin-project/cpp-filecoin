@@ -11,7 +11,7 @@
 #include "common/buffer.hpp"
 
 namespace fc::codec::json {
-  enum class JsonCodecError : int { BAD_JSON = 1, WRONG_CID_ARRAY_FORMAT };
+  enum class JsonCodecError : int { kBadJSON = 1, kWrongCIDArrayFormat };
   /**
    * @brief json-encodes span of CID objects
    */

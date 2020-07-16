@@ -16,7 +16,7 @@ namespace fc::markets::storage::provider {
         return *it.first;
       }
     }
-    return ProviderStateStoreError::STATE_NOT_FOUND;
+    return ProviderStateStoreError::kStateNotFound;
   }
 
 }  // namespace fc::markets::storage::provider
@@ -27,7 +27,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider,
   using fc::markets::storage::provider::ProviderStateStoreError;
 
   switch (e) {
-    case (ProviderStateStoreError::STATE_NOT_FOUND):
+    case (ProviderStateStoreError::kStateNotFound):
       return "ProviderStateStoreError: state not found";
     default:
       return "ProviderStateStoreError: unknown error";

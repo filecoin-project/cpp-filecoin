@@ -17,7 +17,7 @@ namespace fc::crypto::bls {
     auto response{ffi::wrap(fil_private_key_generate(),
                             fil_destroy_private_key_generate_response)};
     if (response == nullptr) {
-      return Errors::KeyPairGenerationFailed;
+      return Errors::kKeyPairGenerationFailed;
     }
     auto private_key = ffi::array(response->private_key.inner);
     OUTCOME_TRY(public_key, derivePublicKey(private_key));
@@ -29,7 +29,7 @@ namespace fc::crypto::bls {
     auto response{ffi::wrap(fil_private_key_public_key(key.data()),
                             fil_destroy_private_key_public_key_response)};
     if (response == nullptr) {
-      return Errors::InvalidPrivateKey;
+      return Errors::kInvalidPrivateKey;
     }
     return ffi::array(response->public_key.inner);
   }
@@ -40,7 +40,7 @@ namespace fc::crypto::bls {
         fil_private_key_sign(key.data(), message.data(), message.size()),
         fil_destroy_private_key_sign_response)};
     if (response == nullptr) {
-      return Errors::SignatureGenerationFailed;
+      return Errors::kSignatureGenerationFailed;
     }
     return ffi::array(response->signature.inner);
   }
@@ -63,7 +63,7 @@ namespace fc::crypto::bls {
     auto response{ffi::wrap(fil_hash(message.data(), message.size()),
                             fil_destroy_hash_response)};
     if (response == nullptr) {
-      return Errors::InternalError;
+      return Errors::kInternalError;
     }
     return ffi::array(response->digest.inner);
   }
@@ -75,7 +75,7 @@ namespace fc::crypto::bls {
                       signatures.size_bytes()),
         fil_destroy_aggregate_response)};
     if (response == nullptr) {
-      return Errors::InternalError;
+      return Errors::kInternalError;
     }
     return ffi::array(response->signature.inner);
   }
@@ -84,19 +84,19 @@ namespace fc::crypto::bls {
 OUTCOME_CPP_DEFINE_CATEGORY(fc::crypto::bls, Errors, e) {
   using fc::crypto::bls::Errors;
   switch (e) {
-    case (Errors::InternalError):
+    case (Errors::kInternalError):
       return "BLS provider: internal error";
-    case (Errors::InvalidPrivateKey):
+    case (Errors::kInvalidPrivateKey):
       return "BLS provider: invalid private key";
-    case (Errors::InvalidPublicKey):
+    case (Errors::kInvalidPublicKey):
       return "BLS provider:: invalid public key";
-    case (Errors::KeyPairGenerationFailed):
+    case (Errors::kKeyPairGenerationFailed):
       return "BLS provider: key pair generation failed";
-    case (Errors::SignatureGenerationFailed):
+    case (Errors::kSignatureGenerationFailed):
       return "BLS provider: signature generation failed";
-    case (Errors::SignatureVerificationFailed):
+    case (Errors::kSignatureVerificationFailed):
       return "BLS provider: signature verification failed";
-    case (Errors::AggregateError):
+    case (Errors::kAggregateError):
       return "BLS provider: signatures aggregating failed";
     default:
       return "BLS provider: unknown error";

@@ -11,7 +11,7 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
   using E = fc::blockchain::weight::WeightCalculatorError;
   switch (e) {
-    case E::NO_NETWORK_POWER:
+    case E::kNoNetworkPower:
       return "No network power";
   }
 }
@@ -36,7 +36,7 @@ namespace fc::blockchain::weight {
                     .state<StoragePowerActorState>(kStoragePowerAddress));
     auto network_power = state.total_qa_power;
     if (network_power <= 0) {
-      return outcome::failure(WeightCalculatorError::NO_NETWORK_POWER);
+      return outcome::failure(WeightCalculatorError::kNoNetworkPower);
     }
     BigInt log{boost::multiprecision::msb(network_power) << 8};
     return tipset.getParentWeight() + log

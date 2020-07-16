@@ -8,7 +8,7 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc, TodoError, e) {
   using E = fc::TodoError;
   switch (e) {
-    case E::ERROR:
+    case E::kError:
       return "Error";
   }
 }

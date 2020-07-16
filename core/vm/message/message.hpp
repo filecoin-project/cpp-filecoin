@@ -24,9 +24,9 @@ namespace fc::vm::message {
    * @brief Message error codes
    */
   enum class MessageError {
-    INVALID_LENGTH = 1,
-    SERIALIZATION_FAILURE,
-    VERIFICATION_FAILURE
+    kInvalidLength = 1,
+    kSerializationFailure,
+    kVerificationFailure
   };
 
   using actor::MethodNumber;

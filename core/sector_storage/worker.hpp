@@ -57,19 +57,19 @@ namespace fc::sector_storage {
   };
 
   enum class WorkerErrors {
-    CANNOT_CREATE_SEALED_FILE = 1,
-    CANNOT_CREATE_CACHE_DIR,
-    CANNOT_REMOVE_CACHE_DIR,
-    PIECES_DO_NOT_MATCH_SECTOR_SIZE,
-    OUTPUT_DOES_NOT_OPEN,
-    OUT_OF_BOUND_OF_FILE,
-    CANNOT_OPEN_UNSEALED_FILE,
-    CANNOT_GET_NUMBER_OF_CPUS,
-    CANNOT_GET_VM_STAT,
-    CANNOT_GET_PAGE_SIZE,
-    CANNOT_OPEN_MEM_INFO_FILE,
-    CANNOT_REMOVE_SECTOR,
-    UNSUPPORTED_PLATFORM,
+    kCannotCreateSealedFile = 1,
+    kCannotCreateCacheDir,
+    kCannotRemoveCacheDir,
+    kPiecesDoNotMatchSectorSize,
+    kOutputDoesNotOpen,
+    kOutOfBoundOfFile,
+    kCannotOpenUnsealedFile,
+    kCannotGetNumberOfCPUs,
+    kCannotGetVMStat,
+    kCannotGetPageSize,
+    kCannotOpenMemInfoFile,
+    kCannotRemoveSector,
+    kUnsupportedPlatform,
   };
 }  // namespace fc::sector_storage
 

@@ -18,12 +18,12 @@ namespace fc::vm::message {
     auto maybe_cid = cid(msg);
     if (maybe_cid.has_error()) {
       logger_->error(maybe_cid.error().message());
-      return outcome::failure(MessageError::SERIALIZATION_FAILURE);
+      return outcome::failure(MessageError::kSerializationFailure);
     }
     auto maybe_cid_bytes = maybe_cid.value().toBytes();
     if (maybe_cid_bytes.has_error()) {
       logger_->error(maybe_cid_bytes.error().message());
-      return outcome::failure(MessageError::SERIALIZATION_FAILURE);
+      return outcome::failure(MessageError::kSerializationFailure);
     }
     OUTCOME_TRY(signature, keystore_->sign(address, maybe_cid_bytes.value()));
     return SignedMessage{msg, signature};
@@ -34,18 +34,18 @@ namespace fc::vm::message {
     auto maybe_cid = cid(msg.message);
     if (maybe_cid.has_error()) {
       logger_->error(maybe_cid.error().message());
-      return outcome::failure(MessageError::SERIALIZATION_FAILURE);
+      return outcome::failure(MessageError::kSerializationFailure);
     }
     auto maybe_cid_bytes = maybe_cid.value().toBytes();
     if (maybe_cid_bytes.has_error()) {
       logger_->error(maybe_cid_bytes.error().message());
-      return outcome::failure(MessageError::SERIALIZATION_FAILURE);
+      return outcome::failure(MessageError::kSerializationFailure);
     }
     OUTCOME_TRY(
         res,
         keystore_->verify(address, maybe_cid_bytes.value(), msg.signature));
     if (!res) {
-      return outcome::failure(MessageError::VERIFICATION_FAILURE);
+      return outcome::failure(MessageError::kVerificationFailure);
     }
     return msg.message;
   }

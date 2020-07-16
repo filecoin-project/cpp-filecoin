@@ -11,9 +11,9 @@
 namespace fc::fsm {
 
   enum class FsmError {
-    ENTITY_NOT_TRACKED = 1,
-    ENTITY_ALREADY_BEING_TRACKED,
-    MACHINE_STOPPED,
+    kEntityNotTracked = 1,
+    kEntityAlreadyBeingTracked,
+    kMachineStopped,
   };
 
 }

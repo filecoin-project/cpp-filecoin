@@ -9,15 +9,15 @@
 #include "common/outcome.hpp"
 
 namespace fc::codec::cbor {
-  enum class CborEncodeError { INVALID_CID = 1, EXPECTED_MAP_VALUE_SINGLE };
+  enum class CborEncodeError { kInvalidCID = 1, kExpectedMapValueSingle };
 
   enum class CborDecodeError {
-    INVALID_CBOR = 1,
-    WRONG_TYPE,
-    INT_OVERFLOW,
-    INVALID_CBOR_CID,
-    INVALID_CID,
-    WRONG_SIZE,
+    kInvalidCbor = 1,
+    kWrongType,
+    kIntOverflow,
+    kInvalidCborCID,
+    kInvalidCID,
+    kWrongSize,
   };
 }  // namespace fc::codec::cbor
 

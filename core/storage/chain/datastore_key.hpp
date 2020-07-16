@@ -26,7 +26,7 @@ namespace fc::storage {
   };
 
   enum class DatastoreKeyError {
-    INVALID_DATASTORE_KEY = 1,  /// invalid data used for creating datastore key
+    kInvalidDatastoreKey = 1,  /// invalid data used for creating datastore key
   };
 
   /** @brief cbor-encodes DatastoreKey instance */

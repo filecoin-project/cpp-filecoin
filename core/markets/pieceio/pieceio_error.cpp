@@ -8,11 +8,11 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::pieceio, PieceIOError, e) {
   using fc::markets::pieceio::PieceIOError;
   switch (e) {
-    case PieceIOError::CANNOT_CREATE_PIPE:
+    case PieceIOError::kCannotCreatePipe:
       return "PieceIOError: cannot create pipe";
-    case PieceIOError::CANNOT_WRITE_PIPE:
+    case PieceIOError::kCannotWritePipe:
       return "PieceIOError: cannot write to pipe";
-    case PieceIOError::CANNOT_CLOSE_PIPE:
+    case PieceIOError::kCannotClosePipe:
       return "PieceIOError: cannot close pipe";
     default:
       return "Unknown error";

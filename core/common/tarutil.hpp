@@ -17,8 +17,8 @@ namespace fc::common {
                                    const std::string &output_path);
 
   enum class TarErrors {
-    CANNOT_CREATE_DIR = 1,
-    CANNOT_UNTAR_ARCHIVE,
+    kCannotCreateDir = 1,
+    kCannotUntarArchive,
   };
 
 }  // namespace fc::common

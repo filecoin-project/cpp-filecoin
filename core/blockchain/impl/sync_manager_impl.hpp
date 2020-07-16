@@ -23,7 +23,7 @@ namespace fc::blockchain::sync_manager {
   using SyncFunction = std::function<outcome::result<void>(
       std::reference_wrapper<const primitives::tipset::Tipset>)>;
 
-  enum class SyncManagerError { SHUTTING_DOWN = 1, NO_SYNC_TARGET };
+  enum class SyncManagerError { kShuttingDown = 1, kNoSyncTarget };
 
   struct SyncResult {
     primitives::tipset::Tipset tipset;

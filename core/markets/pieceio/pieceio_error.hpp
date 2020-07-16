@@ -11,9 +11,9 @@
 namespace fc::markets::pieceio {
 
   enum class PieceIOError {
-    CANNOT_CREATE_PIPE = 1,
-    CANNOT_WRITE_PIPE,
-    CANNOT_CLOSE_PIPE
+    kCannotCreatePipe = 1,
+    kCannotWritePipe,
+    kCannotClosePipe
   };
 
 }

@@ -9,13 +9,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::piece, PieceError, e) {
   using fc::primitives::piece::PieceError;
 
   switch (e) {
-    case (PieceError::LESS_THAT_MINIMUM_SIZE):
+    case (PieceError::kLessThatMinimumSize):
       return "Piece: minimum piece size is 127 bytes";
-    case (PieceError::LESS_THAT_MINIMUM_PADDED_SIZE):
+    case (PieceError::kLessThatMinimumPaddedSize):
       return "Piece: minimum padded piece size is 128 bytes";
-    case (PieceError::INVALID_UNPADDED_SIZE):
+    case (PieceError::kInvalidUnpaddedSize):
       return "Piece: unpadded piece size must be a power of 2 multiple of 127";
-    case (PieceError::INVALID_PADDED_SIZE):
+    case (PieceError::kInvalidPaddedSize):
       return "Piece: padded piece size must be a power of 2";
     default:
       return "Piece: unknown error";

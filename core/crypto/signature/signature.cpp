@@ -8,11 +8,11 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::crypto::signature, SignatureError, e) {
   using fc::crypto::signature::SignatureError;
   switch (e) {
-    case (SignatureError::INVALID_SIGNATURE_LENGTH):
+    case (SignatureError::kInvalidSignatureLength):
       return "SignatureError: invalid signature length";
-    case (SignatureError::WRONG_SIGNATURE_TYPE):
+    case (SignatureError::kWrongSignatureType):
       return "SignatureError: wrong signature type";
-    case (SignatureError::INVALID_KEY_LENGTH):
+    case (SignatureError::kInvalidKeyLength):
       return "SignatureError: invalid key length";
     default:
       return "SignatureError: unknown error";

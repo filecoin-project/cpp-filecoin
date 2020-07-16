@@ -38,7 +38,7 @@ namespace fc::storage::ipfs::graphsync {
         return true;
       }
       logger()->warn("{}: wrong cbor encoding: bool expected", __FUNCTION__);
-      return Error::MESSAGE_PARSE_ERROR;
+      return Error::kMessageParseError;
     }
 
     // Decodes cbor boolean from string or byte array
@@ -49,7 +49,7 @@ namespace fc::storage::ipfs::graphsync {
       }
       logger()->warn("{}: wrong cbor encoding: single byte expected",
                      __FUNCTION__);
-      return Error::MESSAGE_PARSE_ERROR;
+      return Error::kMessageParseError;
     }
 
   }  // namespace
@@ -78,7 +78,7 @@ namespace fc::storage::ipfs::graphsync {
     ResponseMetadata pairs;
 
     if (extension.name != kResponseMetadataProtocol) {
-      return Error::MESSAGE_PARSE_ERROR;
+      return Error::kMessageParseError;
     }
 
     if (extension.data.empty()) {
@@ -90,7 +90,7 @@ namespace fc::storage::ipfs::graphsync {
 
       if (!decoder.isList()) {
         logger()->warn("{}: wrong cbor encoding: not a list", __FUNCTION__);
-        return Error::MESSAGE_PARSE_ERROR;
+        return Error::kMessageParseError;
       }
       size_t n = decoder.listLength();
       pairs.reserve(n);
@@ -106,7 +106,7 @@ namespace fc::storage::ipfs::graphsync {
         if (!x.isMap()) {
           logger()->warn("{}: wrong cbor encoding: entry is not a map",
                          __FUNCTION__);
-          return Error::MESSAGE_PARSE_ERROR;
+          return Error::kMessageParseError;
         }
 
         m = x.map();
@@ -116,7 +116,7 @@ namespace fc::storage::ipfs::graphsync {
         if (link_p == m.end() || present_p == m.end()) {
           logger()->warn("{}: wrong cbor encoding: required fields missing",
                          __FUNCTION__);
-          return Error::MESSAGE_PARSE_ERROR;
+          return Error::kMessageParseError;
         }
 
         CID cid;
@@ -128,7 +128,7 @@ namespace fc::storage::ipfs::graphsync {
       }
     } catch (const std::exception &e) {
       logger()->warn("{}: {}", __FUNCTION__, e.what());
-      return Error::MESSAGE_PARSE_ERROR;
+      return Error::kMessageParseError;
     }
 
     return pairs;
@@ -146,7 +146,7 @@ namespace fc::storage::ipfs::graphsync {
   outcome::result<std::set<CID>> decodeDontSendCids(
       const Extension &extension) {
     if (extension.name != kDontSendCidsProtocol) {
-      return Error::MESSAGE_PARSE_ERROR;
+      return Error::kMessageParseError;
     }
 
     std::vector<CID> cids;
@@ -155,7 +155,7 @@ namespace fc::storage::ipfs::graphsync {
       decoder >> cids;
     } catch (const std::exception &e) {
       logger()->warn("{}: {}", __FUNCTION__, e.what());
-      return Error::MESSAGE_PARSE_ERROR;
+      return Error::kMessageParseError;
     }
     return std::set<CID>(std::move_iterator(cids.begin()),
                          std::move_iterator(cids.end()));

@@ -51,7 +51,7 @@ namespace fc::data_transfer {
         receiver.registerVoucherType(voucher_type, request_validator));
 
     EXPECT_OUTCOME_ERROR(
-        MessageReceiverError::VOUCHER_VALIDATOR_ALREADY_REGISTERED,
+        MessageReceiverError::kVoucherValidatorAlreadyRegistered,
         receiver.registerVoucherType(voucher_type, request_validator));
   }
 

@@ -36,15 +36,15 @@ namespace fc::markets::pieceio {
 
     int fds[2];
     if (pipe(fds) < 0) {
-      return PieceIOError::CANNOT_CREATE_PIPE;
+      return PieceIOError::kCannotCreatePipe;
     }
     std::vector<uint8_t> data = piece.toVector();
     data.resize(padded_size, 0);
     if (write(fds[1], data.data(), padded_size) == -1) {
-      return PieceIOError::CANNOT_CREATE_PIPE;
+      return PieceIOError::kCannotCreatePipe;
     }
     if (close(fds[1]) == -1) {
-      return PieceIOError::CANNOT_CLOSE_PIPE;
+      return PieceIOError::kCannotClosePipe;
     }
 
     OUTCOME_TRY(commitment,

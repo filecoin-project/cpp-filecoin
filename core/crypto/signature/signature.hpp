@@ -16,9 +16,9 @@
 
 namespace fc::crypto::signature {
   enum class SignatureError {
-    INVALID_SIGNATURE_LENGTH = 1,
-    WRONG_SIGNATURE_TYPE,
-    INVALID_KEY_LENGTH
+    kInvalidSignatureLength = 1,
+    kWrongSignatureType,
+    kInvalidKeyLength,
   };
 }  // namespace fc::crypto::signature
 
@@ -67,13 +67,13 @@ namespace fc::crypto::signature {
     std::vector<uint8_t> data{};
     s >> data;
     if (data.empty() || data.size() > kSignatureMaxLength) {
-      outcome::raise(SignatureError::INVALID_SIGNATURE_LENGTH);
+      outcome::raise(SignatureError::kInvalidSignatureLength);
     }
     switch (data[0]) {
       case (SECP256K1): {
         Secp256k1Signature secp256K1Signature{};
         if (data.size() != secp256K1Signature.size() + 1) {
-          outcome::raise(SignatureError::INVALID_SIGNATURE_LENGTH);
+          outcome::raise(SignatureError::kInvalidSignatureLength);
         }
         std::copy_n(std::make_move_iterator(std::next(data.begin())),
                     secp256K1Signature.size(),
@@ -84,7 +84,7 @@ namespace fc::crypto::signature {
       case (BLS): {
         BlsSignature blsSig{};
         if (data.size() != blsSig.size() + 1) {
-          outcome::raise(SignatureError::INVALID_SIGNATURE_LENGTH);
+          outcome::raise(SignatureError::kInvalidSignatureLength);
         }
         std::copy_n(std::make_move_iterator(std::next(data.begin())),
                     blsSig.size(),
@@ -93,7 +93,7 @@ namespace fc::crypto::signature {
         break;
       }
       default:
-        outcome::raise(SignatureError::WRONG_SIGNATURE_TYPE);
+        outcome::raise(SignatureError::kWrongSignatureType);
     };
     return s;
   }

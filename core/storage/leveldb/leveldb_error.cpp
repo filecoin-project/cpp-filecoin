@@ -8,19 +8,19 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage, LevelDBError, e) {
   using E = fc::storage::LevelDBError;
   switch (e) {
-    case E::OK:
+    case E::kOk:
       return "success";
-    case E::NOT_SUPPORTED:
+    case E::kNotSupported:
       return "operation is not supported";
-    case E::CORRUPTION:
+    case E::kCorruption:
       return "data corruption";
-    case E::INVALID_ARGUMENT:
+    case E::kInvalidArgument:
       return "invalid argument";
-    case E::IO_ERROR:
+    case E::kIOError:
       return "IO error";
-    case E::NOT_FOUND:
+    case E::kNotFound:
       return "not found";
-    case E::UNKNOWN:
+    case E::kUnknown:
       break;
   }
 

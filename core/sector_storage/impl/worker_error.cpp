@@ -8,31 +8,31 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, WorkerErrors, e) {
   using fc::sector_storage::WorkerErrors;
   switch (e) {
-    case (WorkerErrors::CANNOT_CREATE_SEALED_FILE):
+    case (WorkerErrors::kCannotCreateSealedFile):
       return "Worker: cannot create sealed file";
-    case (WorkerErrors::CANNOT_CREATE_CACHE_DIR):
+    case (WorkerErrors::kCannotCreateCacheDir):
       return "Worker: cannot create cache dir";
-    case (WorkerErrors::CANNOT_REMOVE_CACHE_DIR):
+    case (WorkerErrors::kCannotRemoveCacheDir):
       return "Worker: cannot remove cache dir";
-    case (WorkerErrors::PIECES_DO_NOT_MATCH_SECTOR_SIZE):
+    case (WorkerErrors::kPiecesDoNotMatchSectorSize):
       return "Worker: aggregated piece sizes don't match sector size";
-    case (WorkerErrors::OUTPUT_DOES_NOT_OPEN):
+    case (WorkerErrors::kOutputDoesNotOpen):
       return "Worker: output doesn't open to write piece";
-    case (WorkerErrors::OUT_OF_BOUND_OF_FILE):
+    case (WorkerErrors::kOutOfBoundOfFile):
       return "Worker: requested piece is out of bound";
-    case (WorkerErrors::CANNOT_OPEN_UNSEALED_FILE):
+    case (WorkerErrors::kCannotOpenUnsealedFile):
       return "Worker: cannot open unsealed file";
-    case (WorkerErrors::CANNOT_GET_NUMBER_OF_CPUS):
+    case (WorkerErrors::kCannotGetNumberOfCPUs):
       return "Worker: cannot get number of cpus";
-    case (WorkerErrors::CANNOT_GET_VM_STAT):
+    case (WorkerErrors::kCannotGetVMStat):
       return "Worker: cannot get virtual memory statistic";
-    case (WorkerErrors::CANNOT_GET_PAGE_SIZE):
+    case (WorkerErrors::kCannotGetPageSize):
       return "Worker: cannot get page size";
-    case (WorkerErrors::CANNOT_OPEN_MEM_INFO_FILE):
+    case (WorkerErrors::kCannotOpenMemInfoFile):
       return "Worker: cannot open memory info file";
-    case (WorkerErrors::CANNOT_REMOVE_SECTOR):
+    case (WorkerErrors::kCannotRemoveSector):
       return "Worker: some errors occurred while removing sector";
-    case (WorkerErrors::UNSUPPORTED_PLATFORM):
+    case (WorkerErrors::kUnsupportedPlatform):
       return "Worker: the platfrom not supported ";
     default:
       return "Worker: unknown error";

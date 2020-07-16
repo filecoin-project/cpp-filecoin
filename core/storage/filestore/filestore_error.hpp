@@ -14,13 +14,13 @@ namespace fc::storage::filestore {
    * @brief FileStore returns these types of errors
    */
   enum class FileStoreError {
-    FILE_NOT_FOUND = 1,
-    CANNOT_OPEN = 2,
-    FILE_CLOSED = 3,
-    DIRECTORY_NOT_FOUND = 4,
-    NOT_DIRECTORY = 5,
+    kFileNotFound = 1,
+    kCannotOpen = 2,
+    kFileClosed = 3,
+    kDirectoryNotFound = 4,
+    kNotDirectory = 5,
 
-    UNKNOWN = 1000
+    kUnknown = 1000
   };
 
 }  // namespace fc::storage::filestore

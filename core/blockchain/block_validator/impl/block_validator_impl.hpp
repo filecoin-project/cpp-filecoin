@@ -138,11 +138,11 @@ namespace fc::blockchain::block_validator {
   };
 
   enum class ValidatorError {
-    UNKNOWN_STAGE = 1,
-    UNKNOWN_BLOCK_SIGNATURE,
-    INVALID_BLOCK_SIGNATURE,
-    INVALID_MINER_PUBLIC_KEY,
-    INVALID_PARENT_STATE,
+    kUnknownStage = 1,
+    kUnknownBlockSignature,
+    kInvalidBlockSignature,
+    kInvalidMinerPublicKey,
+    kInvalidParentState,
   };
 
 }  // namespace fc::blockchain::block_validator
