@@ -10,6 +10,7 @@
 #include <mutex>
 
 #include "primitives/sector_file/sector_file.hpp"
+#include "sector_storage/stores/index.hpp"
 
 namespace fc::sector_storage::stores {
   using primitives::sector::SectorId;
@@ -17,7 +18,7 @@ namespace fc::sector_storage::stores {
   using primitives::sector_file::SectorFileType;
 
   struct IndexLock : public std::enable_shared_from_this<IndexLock> {
-    struct Lock {
+    struct Lock : public stores::Lock {
       const SectorId sector;
       const SectorFileType read, write;
       std::shared_ptr<IndexLock> index;

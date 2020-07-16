@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "sector_storage/stores/index_lock.hpp"
+#include "index_lock.hpp"
 
 namespace fc::sector_storage::stores {
   IndexLock::Lock::~Lock() {

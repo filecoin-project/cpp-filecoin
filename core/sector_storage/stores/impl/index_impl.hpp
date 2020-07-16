@@ -10,6 +10,7 @@
 
 #include <shared_mutex>
 #include <unordered_map>
+#include "sector_storage/stores/impl/index_lock.hpp"
 
 namespace fc::sector_storage::stores {
 
@@ -52,10 +53,16 @@ namespace fc::sector_storage::stores {
         RegisteredProof seal_proof_type,
         bool sealing) override;
 
-   private:
+      outcome::result<Lock> storageLock(const SectorId &sector, SectorFileType read, SectorFileType write) override;
+
+      boost::optional<Lock>
+      storageTryLock(const SectorId &sector, SectorFileType read, SectorFileType write) override;
+
+  private:
     mutable std::shared_mutex mutex_;
     std::unordered_map<StorageID, StorageEntry> stores_;
     std::unordered_map<std::string, std::vector<StorageID>> sectors_;
+    std::shared_ptr<IndexLock> index_lock_ = std::make_shared<IndexLock>();
   };
 }  // namespace fc::sector_storage::stores
 

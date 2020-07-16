@@ -286,6 +286,33 @@ namespace fc::sector_storage::stores {
     return result;
   }
 
+  outcome::result<Lock> SectorIndexImpl::storageLock(const SectorId &sector,
+                                                     SectorFileType read,
+                                                     SectorFileType write) {
+    auto lock = IndexLock::Lock(sector, read, write);
+
+    auto is_locked = index_lock_->lock(lock, true);
+
+    if (is_locked) {
+      return std::move(lock);
+    }
+
+    return outcome::success();  // TODO: ERROR
+  }
+
+  boost::optional<Lock> SectorIndexImpl::storageTryLock(
+      const SectorId &sector, SectorFileType read, SectorFileType write) {
+    auto lock = IndexLock::Lock(sector, read, write);
+
+    auto is_locked = index_lock_->lock(lock, false);
+
+    if (is_locked) {
+      return std::move(lock);
+    }
+
+    return boost::none;
+  }
+
 }  // namespace fc::sector_storage::stores
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, IndexErrors, e) {
