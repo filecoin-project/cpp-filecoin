@@ -25,7 +25,7 @@ namespace fc::vm::actor::builtin::multisig {
   outcome::result<void> assertCallerIsSignable(Runtime &runtime) {
     OUTCOME_TRY(code, runtime.getActorCodeID(runtime.getImmediateCaller()));
     if (!isSignableActor(code)) {
-      return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+      return VMExitCode::kMultisigActorWrongCaller;
     }
     return outcome::success();
   }
@@ -59,7 +59,7 @@ namespace fc::vm::actor::builtin::multisig {
                        return tx.transaction_number == tx_number;
                      });
     if (pending_tx == pending_transactions.end())
-      return VMExitCode::MULTISIG_ACTOR_NOT_FOUND;
+      return VMExitCode::kMultisigActorNotFound;
 
     return *pending_tx;
   }
@@ -73,7 +73,7 @@ namespace fc::vm::actor::builtin::multisig {
           return tx.transaction_number == transaction.transaction_number;
         });
     if (pending_tx == pending_transactions.end())
-      return VMExitCode::MULTISIG_ACTOR_NOT_FOUND;
+      return VMExitCode::kMultisigActorNotFound;
 
     *pending_tx = transaction;
     return fc::outcome::success();
@@ -88,7 +88,7 @@ namespace fc::vm::actor::builtin::multisig {
                        return tx.transaction_number == tx_number;
                      });
     if (pending_tx == pending_transactions.end())
-      return VMExitCode::MULTISIG_ACTOR_NOT_FOUND;
+      return VMExitCode::kMultisigActorNotFound;
 
     pending_transactions.erase(pending_tx);
     return fc::outcome::success();
@@ -97,25 +97,25 @@ namespace fc::vm::actor::builtin::multisig {
   fc::outcome::result<void> MultiSignatureActorState::approveTransaction(
       Runtime &runtime, const TransactionNumber &tx_number) {
     Address caller = runtime.getImmediateCaller();
-    if (!isSigner(caller)) return VMExitCode::MULTISIG_ACTOR_FORBIDDEN;
+    if (!isSigner(caller)) return VMExitCode::kMultisigActorForbidden;
 
     OUTCOME_TRY(pending_tx, getPendingTransaction(tx_number));
 
     if (std::find(
             pending_tx.approved.begin(), pending_tx.approved.end(), caller)
         != pending_tx.approved.end())
-      return VMExitCode::MULTISIG_ACTOR_ILLEGAL_STATE;
+      return VMExitCode::kMultisigActorIllegalState;
     pending_tx.approved.push_back(caller);
 
     // check threshold
     OUTCOME_TRY(balance, runtime.getCurrentBalance());
     if (pending_tx.approved.size() >= threshold) {
       if (balance < pending_tx.value)
-        return VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS;
+        return VMExitCode::kMultisigActorInsufficientFunds;
 
       auto amount_locked = getAmountLocked(runtime.getCurrentEpoch());
       if (balance - pending_tx.value < amount_locked)
-        return VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS;
+        return VMExitCode::kMultisigActorInsufficientFunds;
 
       // send messsage ignoring value returned
       // https://github.com/filecoin-project/specs-actors/issues/113
@@ -143,10 +143,10 @@ namespace fc::vm::actor::builtin::multisig {
 
   ACTOR_METHOD_IMPL(Construct) {
     if (runtime.getImmediateCaller() != kInitAddress)
-      return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+      return VMExitCode::kMultisigActorWrongCaller;
 
     if (params.signers.size() < params.threshold)
-      return VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT;
+      return VMExitCode::kMultisigActorIllegalArgument;
 
     MultiSignatureActorState state{params.signers,
                                    params.threshold,
@@ -202,14 +202,14 @@ namespace fc::vm::actor::builtin::multisig {
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<MultiSignatureActorState>());
     Address caller = runtime.getImmediateCaller();
-    if (!state.isSigner(caller)) return VMExitCode::MULTISIG_ACTOR_FORBIDDEN;
+    if (!state.isSigner(caller)) return VMExitCode::kMultisigActorForbidden;
 
     OUTCOME_TRY(is_tx_creator,
                 state.isTransactionCreator(params.transaction_number, caller));
     if (is_tx_creator) {
       OUTCOME_TRY(state.deletePendingTransaction(params.transaction_number));
     } else {
-      return VMExitCode::MULTISIG_ACTOR_FORBIDDEN;
+      return VMExitCode::kMultisigActorForbidden;
     }
 
     OUTCOME_TRY(runtime.commitState(state));
@@ -218,14 +218,14 @@ namespace fc::vm::actor::builtin::multisig {
 
   ACTOR_METHOD_IMPL(AddSigner) {
     if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
-      return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+      return VMExitCode::kMultisigActorWrongCaller;
     }
 
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<MultiSignatureActorState>());
 
     if (state.isSigner(params.signer))
-      return VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT;
+      return VMExitCode::kMultisigActorIllegalArgument;
 
     state.signers.push_back(params.signer);
     if (params.increase_threshold) state.threshold++;
@@ -236,7 +236,7 @@ namespace fc::vm::actor::builtin::multisig {
 
   ACTOR_METHOD_IMPL(RemoveSigner) {
     if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
-      return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+      return VMExitCode::kMultisigActorWrongCaller;
     }
 
     OUTCOME_TRY(state,
@@ -245,7 +245,7 @@ namespace fc::vm::actor::builtin::multisig {
     auto signer =
         std::find(state.signers.begin(), state.signers.end(), params.signer);
     if (signer == state.signers.end())
-      return VMExitCode::MULTISIG_ACTOR_FORBIDDEN;
+      return VMExitCode::kMultisigActorForbidden;
     state.signers.erase(signer);
 
     if (params.decrease_threshold) --state.threshold;
@@ -253,7 +253,7 @@ namespace fc::vm::actor::builtin::multisig {
     // actor-spec ignores decrease_threshold parameters in this case and call it
     // automatic threshold decrease
     if (state.threshold < 1 || state.signers.size() < state.threshold)
-      return VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT;
+      return VMExitCode::kMultisigActorIllegalArgument;
 
     OUTCOME_TRY(runtime.commitState(state));
     return fc::outcome::success();
@@ -261,18 +261,18 @@ namespace fc::vm::actor::builtin::multisig {
 
   ACTOR_METHOD_IMPL(SwapSigner) {
     if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
-      return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+      return VMExitCode::kMultisigActorWrongCaller;
     }
 
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<MultiSignatureActorState>());
 
     if (state.isSigner(params.new_signer))
-      return VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT;
+      return VMExitCode::kMultisigActorIllegalArgument;
     auto old_signer = std::find(
         state.signers.begin(), state.signers.end(), params.old_signer);
     if (old_signer == state.signers.end())
-      return VMExitCode::MULTISIG_ACTOR_NOT_FOUND;
+      return VMExitCode::kMultisigActorNotFound;
     *old_signer = params.new_signer;
 
     OUTCOME_TRY(runtime.commitState(state));
@@ -281,14 +281,14 @@ namespace fc::vm::actor::builtin::multisig {
 
   ACTOR_METHOD_IMPL(ChangeThreshold) {
     if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
-      return VMExitCode::MULTISIG_ACTOR_WRONG_CALLER;
+      return VMExitCode::kMultisigActorWrongCaller;
     }
 
     OUTCOME_TRY(state,
                 runtime.getCurrentActorStateCbor<MultiSignatureActorState>());
     if (params.new_threshold == 0
         || params.new_threshold > state.signers.size())
-      return VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT;
+      return VMExitCode::kMultisigActorIllegalArgument;
 
     state.threshold = params.new_threshold;
 

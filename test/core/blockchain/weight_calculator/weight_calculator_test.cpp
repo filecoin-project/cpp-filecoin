@@ -84,7 +84,7 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
 struct WeightCalculatorTest : ::testing::TestWithParam<Params> {};
 
 TEST_F(WeightCalculatorTest, ZeroNetworkPower) {
-  EXPECT_OUTCOME_ERROR(WeightCalculatorError::NO_NETWORK_POWER,
+  EXPECT_OUTCOME_ERROR(WeightCalculatorError::kNoNetworkPower,
                        calculateWeight({{}, 0, 1, {}}));
 }
 

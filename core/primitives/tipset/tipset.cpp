@@ -12,15 +12,15 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
   using fc::primitives::tipset::TipsetError;
   switch (e) {
-    case (TipsetError::NO_BLOCKS):
+    case (TipsetError::kNoBlocks):
       return "Need to have at least one block to create tipset";
-    case TipsetError::MISMATCHING_HEIGHTS:
+    case TipsetError::kMismatchingHeights:
       return "Cannot create tipset, mismatching blocks heights";
-    case TipsetError::MISMATCHING_PARENTS:
+    case TipsetError::kMismatchingParents:
       return "Cannot create tipset, mismatching block parents";
-    case TipsetError::TICKET_HAS_NO_VALUE:
+    case TipsetError::kTicketHasNoValue:
       return "An optional ticket is not initialized";
-    case TipsetError::NO_BEACONS:
+    case TipsetError::kNoBeacons:
       return "No beacons in chain";
   }
   return "Unknown tipset error";
@@ -46,7 +46,7 @@ namespace fc::primitives::tipset {
   outcome::result<Tipset> Tipset::create(std::vector<BlockHeader> blocks) {
     // required to have at least one block
     if (blocks.empty()) {
-      return TipsetError::NO_BLOCKS;
+      return TipsetError::kNoBlocks;
     }
 
     // check for blocks consistency
@@ -55,10 +55,10 @@ namespace fc::primitives::tipset {
     for (size_t i = 1; i < blocks.size(); ++i) {
       const auto &b = blocks[i];
       if (height0 != b.height) {
-        return TipsetError::MISMATCHING_HEIGHTS;
+        return TipsetError::kMismatchingHeights;
       }
       if (parents != b.parents) {
-        return TipsetError::MISMATCHING_PARENTS;
+        return TipsetError::kMismatchingParents;
       }
     }
 
@@ -135,7 +135,7 @@ namespace fc::primitives::tipset {
       OUTCOME_TRYA(parent, ts->loadParent(ipld));
       ts = &parent;
     }
-    return TipsetError::NO_BEACONS;
+    return TipsetError::kNoBeacons;
   }
 
   outcome::result<void> Tipset::visitMessages(

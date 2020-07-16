@@ -58,11 +58,11 @@ namespace fc::blockchain::block_validator {
   };
 
   enum class ConsensusError {
-    INVALID_MINER = 1,
-    GET_PARENT_TIPSET_ERROR,
-    INVALID_PARENT_WEIGHT,
-    BLOCK_EPOCH_IN_FUTURE,
-    BLOCK_EPOCH_TOO_FAR,
+    kInvalidMiner = 1,
+    kGetParentTipsetError,
+    kInvalidParentWeight,
+    kBlockEpochInFuture,
+    kBlockEpochTooFar,
   };
 }  // namespace fc::blockchain::block_validator
 

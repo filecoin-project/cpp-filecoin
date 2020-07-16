@@ -173,7 +173,7 @@ namespace fc::api {
           std::vector<std::string> parts;
           boost::split(parts, path, [](auto c) { return c == '/'; });
           if (parts.size() < 3 || !parts[0].empty() || parts[1] != "ipfs") {
-            return TodoError::ERROR;
+            return TodoError::kError;
           }
           OUTCOME_TRY(root, CID::fromString(parts[2]));
           return getNode(ipld, root, gsl::make_span(parts).subspan(3));
@@ -229,7 +229,7 @@ namespace fc::api {
                           ? chain_store->heaviestTipset()
                           : chain_store->loadTipset(tipset_key));
           if (tipset.height < height) {
-            return TodoError::ERROR;
+            return TodoError::kError;
           }
           while (tipset.height > height) {
             OUTCOME_TRY(parent, tipset.loadParent(*ipld));
@@ -340,7 +340,7 @@ namespace fc::api {
           OUTCOME_TRY(heaviest, chain_store->heaviestTipset());
           if (context.tipset.height > heaviest.height) {
             // tipset from future requested
-            return TodoError::ERROR;
+            return TodoError::kError;
           }
           return mpool->pending();
         }},
@@ -387,7 +387,7 @@ namespace fc::api {
           result.message = message;
           auto maybe_result = env->applyImplicitMessage(message);
           if (maybe_result) {
-            result.receipt = {VMExitCode::Ok, maybe_result.value(), 0};
+            result.receipt = {VMExitCode::kOk, maybe_result.value(), 0};
           } else {
             if (isVMExitCode(maybe_result.error())) {
               auto ret_code =
@@ -488,7 +488,7 @@ namespace fc::api {
               return result->second.first;
             }
           }
-          return TodoError::ERROR;
+          return TodoError::kError;
         }},
         .StateListMiners = {[=](auto &tipset_key)
                                 -> outcome::result<std::vector<Address>> {
@@ -654,7 +654,7 @@ namespace fc::api {
           }
           OUTCOME_TRY(messages, ipld->setCbor(meta));
           if (block.header.messages != messages) {
-            return TodoError::ERROR;
+            return TodoError::kError;
           }
           OUTCOME_TRY(chain_store->addBlock(block.header));
           return outcome::success();

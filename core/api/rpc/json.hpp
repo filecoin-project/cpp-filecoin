@@ -61,18 +61,18 @@ namespace fc::api {
 
     static std::string AsString(const Value &j) {
       if (!j.IsString()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       return {j.GetString(), j.GetStringLength()};
     }
 
     static const Value &Get(const Value &j, const char *key) {
       if (!j.IsObject()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       auto it = j.FindMember(key);
       if (it == j.MemberEnd()) {
-        outcome::raise(JsonError::OUT_OF_RANGE);
+        outcome::raise(JsonError::kOutOfRange);
       }
       return it->value;
     }
@@ -163,7 +163,7 @@ namespace fc::api {
 
     DECODE(int64_t) {
       if (!j.IsInt64()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       v = j.GetInt64();
     }
@@ -174,14 +174,14 @@ namespace fc::api {
 
     DECODE(uint64_t) {
       if (!j.IsUint64()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       v = j.GetUint64();
     }
 
     DECODE(bool) {
       if (!j.IsBool()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       v = j.GetBool();
     }
@@ -202,7 +202,7 @@ namespace fc::api {
     DECODE(std::array<uint8_t COMMA N>) {
       auto bytes = decodeBase64(j);
       if (bytes.size() != N) {
-        outcome::raise(JsonError::WRONG_LENGTH);
+        outcome::raise(JsonError::kWrongLength);
       }
       std::copy(bytes.begin(), bytes.end(), v.begin());
     }
@@ -292,7 +292,7 @@ namespace fc::api {
       } else if (type == SignatureType::SECP256K1) {
         v = decode<Secp256k1Signature>(data);
       } else {
-        outcome::raise(JsonError::WRONG_ENUM);
+        outcome::raise(JsonError::kWrongEnum);
       }
     }
 
@@ -755,7 +755,7 @@ namespace fc::api {
       } else if (type == "apply") {
         v.type = HeadChangeType::APPLY;
       } else {
-        outcome::raise(JsonError::WRONG_ENUM);
+        outcome::raise(JsonError::kWrongEnum);
       }
       decode(v.value, Get(j, "Val"));
     }
@@ -910,7 +910,7 @@ namespace fc::api {
       } else if (s.isBytes()) {
         return encodeAs<std::vector<uint8_t>>(s);
       }
-      outcome::raise(JsonError::WRONG_TYPE);
+      outcome::raise(JsonError::kWrongType);
     }
 
     ENCODE(IpldObject) {
@@ -922,7 +922,7 @@ namespace fc::api {
     }
 
     DECODE(IpldObject) {
-      outcome::raise(JsonError::WRONG_TYPE);
+      outcome::raise(JsonError::kWrongType);
     }
 
     ENCODE(ActorState) {
@@ -934,7 +934,7 @@ namespace fc::api {
 
     DECODE(ActorState) {
       // Because IpldObject cannot be decoded
-      outcome::raise(JsonError::WRONG_TYPE);
+      outcome::raise(JsonError::kWrongType);
     }
 
     ENCODE(VersionResult) {
@@ -1123,7 +1123,7 @@ namespace fc::api {
         return;
       }
       if (!j.IsArray()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       v.reserve(j.Size());
       for (auto it = j.Begin(); it != j.End(); ++it) {
@@ -1167,11 +1167,11 @@ namespace fc::api {
     template <size_t i = 0, typename... T>
     DECODE(std::tuple<T...>) {
       if (!j.IsArray()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       if constexpr (i < sizeof...(T)) {
         if (i >= j.Size()) {
-          outcome::raise(JsonError::OUT_OF_RANGE);
+          outcome::raise(JsonError::kOutOfRange);
         }
         decode(std::get<i>(v), j[i]);
         decode<i + 1>(v, j);

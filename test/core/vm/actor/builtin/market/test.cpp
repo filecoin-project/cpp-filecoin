@@ -164,7 +164,7 @@ struct MarketActorTest : testing::Test {
 TEST_F(MarketActorTest, ConstructorCallerNotInit) {
   callerIs(client_address);
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::SysErrForbidden,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
                        MarketActor::Construct::call(runtime, {}));
 }
 
@@ -177,7 +177,7 @@ TEST_F(MarketActorTest, Constructor) {
 TEST_F(MarketActorTest, AddBalanceNominalNotSignable) {
   callerIs(kInitAddress);
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::SysErrForbidden,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
                        MarketActor::AddBalance::call(runtime, kInitAddress));
 }
 
@@ -187,7 +187,7 @@ TEST_F(MarketActorTest, AddBalanceNominalNotOwnerOrWorker) {
   runtime.expectSendM<MinerActor::ControlAddresses>(
       miner_address, {}, 0, {owner_address, worker_address});
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MARKET_ACTOR_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMarketActorWrongCaller,
                        MarketActor::AddBalance::call(runtime, miner_address));
 }
 
@@ -266,7 +266,7 @@ ClientDealProposal MarketActorTest::setupPublishStorageDeals() {
 TEST_F(MarketActorTest, PublishStorageDealsNoDeals) {
   callerIs(owner_address);
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ASSERT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
                        MarketActor::PublishStorageDeals::call(runtime, {{}}));
 }
 
@@ -280,7 +280,7 @@ TEST_F(MarketActorTest, PublishStorageDealsCallerNotWorker) {
       miner_address, {}, 0, {owner_address, worker_address});
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::SysErrForbidden,
+      VMExitCode::kSysErrForbidden,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -289,7 +289,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsNonPositiveDuration)) {
   proposal.proposal.end_epoch = proposal.proposal.start_epoch;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MARKET_ACTOR_ILLEGAL_ARGUMENT,
+      VMExitCode::kMarketActorIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -298,7 +298,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsWrongClientSignature)) {
   proposal.proposal.client = owner_address;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MARKET_ACTOR_ILLEGAL_ARGUMENT,
+      VMExitCode::kMarketActorIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -307,7 +307,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsStartTimeout)) {
   proposal.proposal.start_epoch = epoch - 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MARKET_ACTOR_ILLEGAL_ARGUMENT,
+      VMExitCode::kMarketActorIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -318,7 +318,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsDurationOutOfBounds)) {
                    + MarketActor::dealDurationBounds(deal.piece_size).max + 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MARKET_ACTOR_ILLEGAL_ARGUMENT,
+      VMExitCode::kMarketActorIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -331,7 +331,7 @@ TEST_F(MarketActorTest,
       + 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MARKET_ACTOR_ILLEGAL_ARGUMENT,
+      VMExitCode::kMarketActorIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -345,7 +345,7 @@ TEST_F(MarketActorTest,
                              + 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MARKET_ACTOR_ILLEGAL_ARGUMENT,
+      VMExitCode::kMarketActorIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -359,7 +359,7 @@ TEST_F(MarketActorTest,
       + 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MARKET_ACTOR_ILLEGAL_ARGUMENT,
+      VMExitCode::kMarketActorIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -369,7 +369,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsDifferentProviders)) {
   proposal2.proposal.provider = client_address;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::ASSERT,
+      VMExitCode::kAssert,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal, proposal2}}));
 }
 
@@ -380,7 +380,7 @@ TEST_F(MarketActorTest,
   EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(miner_address, 0));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MARKET_ACTOR_INSUFFICIENT_FUNDS,
+      VMExitCode::kMarketActorInsufficientFunds,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -391,7 +391,7 @@ TEST_F(MarketActorTest,
   EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(client_address, 0));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MARKET_ACTOR_INSUFFICIENT_FUNDS,
+      VMExitCode::kMarketActorInsufficientFunds,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -432,7 +432,7 @@ TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitCallerNotMiner) {
   callerIs(client_address);
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::SysErrForbidden,
+      VMExitCode::kSysErrForbidden,
       MarketActor::VerifyDealsOnSectorProveCommit::call(runtime, {{}, {}}));
 }
 
@@ -441,7 +441,7 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit(
       [&](auto &deal) { deal.provider = client_address; });
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ASSERT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
                        MarketActor::VerifyDealsOnSectorProveCommit::call(
                            runtime, {{deal_1_id}, {}}));
 }
@@ -450,7 +450,7 @@ TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitAlreadyStarted) {
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
   EXPECT_OUTCOME_TRUE_1(state.states.set(deal_1_id, {1, {}, {}}));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ASSERT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
                        MarketActor::VerifyDealsOnSectorProveCommit::call(
                            runtime, {{deal_1_id}, {}}));
 }
@@ -460,7 +460,7 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit(
       [&](auto &deal) { deal.start_epoch = epoch - 1; });
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ASSERT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
                        MarketActor::VerifyDealsOnSectorProveCommit::call(
                            runtime, {{deal_1_id}, {}}));
 }
@@ -469,7 +469,7 @@ TEST_F(MarketActorTest,
        GCC_DISABLE(VerifyDealsOnSectorProveCommitSectorEndsBeforeDeal)) {
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::ASSERT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
                        MarketActor::VerifyDealsOnSectorProveCommit::call(
                            runtime, {{deal_1_id}, deal.end_epoch - 1}));
 }
@@ -493,7 +493,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(OnMinerSectorsTerminateNotDealMiner)) {
   callerIs(miner_address);
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::ASSERT,
+      VMExitCode::kAssert,
       MarketActor::OnMinerSectorsTerminate::call(runtime, {{deal_1_id}}));
 }
 
@@ -517,7 +517,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(OnMinerSectorsTerminate)) {
 TEST_F(MarketActorTest, ComputeDataCommitmentCallerNotMiner) {
   callerIs(client_address);
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::SysErrForbidden,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
                        MarketActor::ComputeDataCommitment::call(runtime, {}));
 }
 

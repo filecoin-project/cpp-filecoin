@@ -46,7 +46,7 @@ namespace fc::common {
         if (ec.failed()) {
           logger->error("Extract tar: {}", ec.message());
         }
-        return TarErrors::CANNOT_CREATE_DIR;
+        return TarErrors::kCannotCreateDir;
       }
     }
 
@@ -68,7 +68,7 @@ namespace fc::common {
     if (archive_read_open_filename(a.get(), tar_path.c_str(), kTarBlockSize)
         != ARCHIVE_OK) {
       logger->error("Extract tar: {}", archive_error_string(a.get()));
-      return TarErrors::CANNOT_UNTAR_ARCHIVE;
+      return TarErrors::kCannotUntarArchive;
     }
     for (;;) {
       r = archive_read_next_header(a.get(), &entry);
@@ -77,7 +77,7 @@ namespace fc::common {
       }
       if (r < ARCHIVE_WARN) {
         logger->error("Extract tar: {}", archive_error_string(a.get()));
-        return TarErrors::CANNOT_UNTAR_ARCHIVE;
+        return TarErrors::kCannotUntarArchive;
       }
       if (r < ARCHIVE_OK) {
         logger->warn("Extract tar: {}", archive_error_string(a.get()));
@@ -97,7 +97,7 @@ namespace fc::common {
         r = copy_data(a.get(), ext.get());
         if (r < ARCHIVE_WARN) {
           logger->error("Extract tar: {}", archive_error_string(a.get()));
-          return TarErrors::CANNOT_UNTAR_ARCHIVE;
+          return TarErrors::kCannotUntarArchive;
         }
         if (r < ARCHIVE_OK) {
           logger->warn("Extract tar: {}", archive_error_string(a.get()));
@@ -106,7 +106,7 @@ namespace fc::common {
       r = archive_write_finish_entry(ext.get());
       if (r < ARCHIVE_WARN) {
         logger->error("Extract tar: {}", archive_error_string(a.get()));
-        return TarErrors::CANNOT_UNTAR_ARCHIVE;
+        return TarErrors::kCannotUntarArchive;
       }
       if (r < ARCHIVE_OK) {
         logger->warn("Extract tar: {}", archive_error_string(a.get()));
@@ -123,9 +123,9 @@ namespace fc::common {
 OUTCOME_CPP_DEFINE_CATEGORY(fc::common, TarErrors, e) {
   using fc::common::TarErrors;
   switch (e) {
-    case (TarErrors::CANNOT_CREATE_DIR):
+    case (TarErrors::kCannotCreateDir):
       return "Tar Util: cannot create output dir";
-    case (TarErrors::CANNOT_UNTAR_ARCHIVE):
+    case (TarErrors::kCannotUntarArchive):
       return "Tar Util: cannot untar archive";
     default:
       return "Tar Util: unknown error";

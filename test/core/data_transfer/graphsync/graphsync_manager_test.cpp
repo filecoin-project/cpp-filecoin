@@ -54,7 +54,7 @@ namespace fc::data_transfer::graphsync {
     auto channel = manager.getChannelByIdAndSender(channel_id, sender_peer);
     EXPECT_TRUE(channel.has_value());
 
-    EXPECT_OUTCOME_ERROR(GraphsyncManagerError::STATE_ALREADY_EXISTS,
+    EXPECT_OUTCOME_ERROR(GraphsyncManagerError::kStateAlreadyExists,
                          manager.createChannel(transfer_id,
                                                base_cid,
                                                selector,

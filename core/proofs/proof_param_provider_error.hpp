@@ -14,15 +14,15 @@ namespace fc::proofs {
    * @brief Proof Param Provider returns these types of errors
    */
   enum class ProofParamProviderError {
-    CHECKSUM_MISMATCH = 1,
-    FILE_DOES_NOT_OPEN,
-    MISSING_ENTRY,
-    INVALID_SECTOR_SIZE,
-    INVALID_JSON,
-    INVALID_URL,
-    FAILED_DOWNLOADING_FILE,
-    CANNOT_CREATE_DIR,
-    FAILED_DOWNLOADING,
+    kChecksumMismatch = 1,
+    kFileDoesNotOpen,
+    kMissingEntry,
+    kInvalidSectorSize,
+    kInvalidJSON,
+    kInvalidURL,
+    kFailedDownloadingFile,
+    kCannotCreateDir,
+    kFailedDownloading,
   };
 
 }  // namespace fc::proofs

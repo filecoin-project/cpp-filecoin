@@ -10,11 +10,11 @@
 
 namespace fc::api {
   enum class JsonError {
-    WRONG_LENGTH = 1,
-    WRONG_ENUM,
-    WRONG_TYPE,
-    OUT_OF_RANGE,
-    WRONG_PARAMS,
+    kWrongLength = 1,
+    kWrongEnum,
+    kWrongType,
+    kOutOfRange,
+    kWrongParams,
   };
 }  // namespace fc::api
 

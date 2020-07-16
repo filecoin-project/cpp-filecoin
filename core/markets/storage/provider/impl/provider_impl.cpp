@@ -157,18 +157,18 @@ namespace fc::markets::storage::provider {
         return *it.first;
       }
     }
-    return StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND;
+    return StorageMarketProviderError::kLocalDealNotFound;
   }
 
   outcome::result<void> StorageProviderImpl::addStorageCollateral(
       const TokenAmount &amount) {
     // TODO
-    return TodoError::ERROR;
+    return TodoError::kError;
   }
 
   outcome::result<TokenAmount> StorageProviderImpl::getStorageCollateral() {
     // TODO
-    return outcome::failure(TodoError::ERROR);
+    return outcome::failure(TodoError::kError);
   }
 
   outcome::result<void> StorageProviderImpl::importDataForDeal(
@@ -182,7 +182,7 @@ namespace fc::markets::storage::provider {
                        return false;
                      });
     if (found_fsm_entity == fsm_state_table.end()) {
-      return StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND;
+      return StorageMarketProviderError::kLocalDealNotFound;
     }
     auto deal = found_fsm_entity->first;
 
@@ -191,7 +191,7 @@ namespace fc::markets::storage::provider {
 
     if (piece_commitment.first
         != deal->client_deal_proposal.proposal.piece_cid) {
-      return StorageMarketProviderError::PIECE_CID_DOESNT_MATCH;
+      return StorageMarketProviderError::kPieceCIDDoesNotMatch;
     }
 
     OUTCOME_TRY(cid_str, proposal_cid.toString());
@@ -449,7 +449,7 @@ namespace fc::markets::storage::provider {
     std::lock_guard<std::mutex> lock(connections_mutex_);
     auto stream_it = connections_.find(proposal_cid);
     if (stream_it == connections_.end()) {
-      return StorageProviderError::STREAM_LOOKUP_ERROR;
+      return StorageProviderError::kStreamLookupError;
     }
     return stream_it->second;
   }
@@ -590,7 +590,7 @@ namespace fc::markets::storage::provider {
     maybe_wait.value().wait(
         [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {
           SELF_FSM_HALT_ON_ERROR(result, "Wait for funding error", deal);
-          if (result.value().receipt.exit_code != VMExitCode::Ok) {
+          if (result.value().receipt.exit_code != VMExitCode::kOk) {
             deal->message = "Funding exit code "
                             + std::to_string(static_cast<uint64_t>(
                                 result.value().receipt.exit_code));
@@ -663,7 +663,7 @@ namespace fc::markets::storage::provider {
                                 outcome::result<MsgWait> result) {
       SELF_FSM_HALT_ON_ERROR(
           result, "Publish storage deal message error", deal);
-      if (result.value().receipt.exit_code != VMExitCode::Ok) {
+      if (result.value().receipt.exit_code != VMExitCode::kOk) {
         deal->message = "Publish storage deal exit code "
                         + std::to_string(static_cast<uint64_t>(
                             result.value().receipt.exit_code));
@@ -762,9 +762,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider,
   using fc::markets::storage::provider::StorageMarketProviderError;
 
   switch (e) {
-    case StorageMarketProviderError::LOCAL_DEAL_NOT_FOUND:
+    case StorageMarketProviderError::kLocalDealNotFound:
       return "StorageMarketProviderError: local deal not found";
-    case StorageMarketProviderError::PIECE_CID_DOESNT_MATCH:
+    case StorageMarketProviderError::kPieceCIDDoesNotMatch:
       return "StorageMarketProviderError: imported piece cid doensn't match "
              "proposal piece cid";
   }

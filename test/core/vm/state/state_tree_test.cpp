@@ -34,7 +34,7 @@ class StateTreeTest : public ::testing::Test {
  * @then Actor state in the tree is same
  */
 TEST_F(StateTreeTest, Set) {
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, tree_.get(kAddressId));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, tree_.get(kAddressId));
   EXPECT_OUTCOME_TRUE_1(tree_.set(kAddressId, kActor));
   EXPECT_OUTCOME_EQ(tree_.get(kAddressId), kActor);
 }
@@ -60,7 +60,7 @@ TEST_F(StateTreeTest, SetRevert) {
   EXPECT_OUTCOME_TRUE(root, tree_.flush());
   EXPECT_OUTCOME_TRUE_1(tree_.set(kAddressId, kActor));
   EXPECT_OUTCOME_TRUE_1(tree_.revert(root));
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, tree_.get(kAddressId));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, tree_.get(kAddressId));
 }
 
 /**

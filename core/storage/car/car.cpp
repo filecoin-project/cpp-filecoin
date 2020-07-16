@@ -10,7 +10,7 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
   using E = fc::storage::car::CarError;
   switch (e) {
-    case E::DECODE_ERROR:
+    case E::kDecodeError:
       return "Decode error";
   }
 }
@@ -20,13 +20,13 @@ namespace fc::storage::car {
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input) {
     OUTCOME_TRY(header_bytes,
-                codec::uvarint::readBytes<CarError::DECODE_ERROR,
-                                          CarError::DECODE_ERROR>(input));
+                codec::uvarint::readBytes<CarError::kDecodeError,
+                                          CarError::kDecodeError>(input));
     OUTCOME_TRY(header, codec::cbor::decode<CarHeader>(header_bytes));
     while (!input.empty()) {
       OUTCOME_TRY(node,
-                  codec::uvarint::readBytes<CarError::DECODE_ERROR,
-                                            CarError::DECODE_ERROR>(input));
+                  codec::uvarint::readBytes<CarError::kDecodeError,
+                                            CarError::kDecodeError>(input));
       OUTCOME_TRY(cid, CID::read(node));
       OUTCOME_TRY(store.set(cid, common::Buffer{node}));
     }

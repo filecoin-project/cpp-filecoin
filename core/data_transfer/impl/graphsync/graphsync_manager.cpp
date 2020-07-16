@@ -78,7 +78,7 @@ namespace fc::data_transfer::graphsync {
 
     // TODO check thread-safety of channels_
     auto res = channels_.try_emplace(channel_id, state);
-    if (!res.second) return GraphsyncManagerError::STATE_ALREADY_EXISTS;
+    if (!res.second) return GraphsyncManagerError::kStateAlreadyExists;
 
     return channel_id;
   }
@@ -136,7 +136,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::data_transfer::graphsync,
   using fc::data_transfer::graphsync::GraphsyncManagerError;
 
   switch (e) {
-    case GraphsyncManagerError::STATE_ALREADY_EXISTS:
+    case GraphsyncManagerError::kStateAlreadyExists:
       return "GraphsyncManagerError: state already exists";
   }
 

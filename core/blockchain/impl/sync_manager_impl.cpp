@@ -87,7 +87,7 @@ namespace fc::blockchain::sync_manager {
           next_sync_target_ = related_bucket;
           auto heaviest_tipset = next_sync_target_->getHeaviestTipset();
           if (boost::none == heaviest_tipset) {
-            return SyncTargetBucketError::BUCKET_IS_EMPTY;
+            return SyncTargetBucketError::kBucketIsEmpty;
           }
           OUTCOME_TRY(processSyncTargets(*heaviest_tipset));
         } else {
@@ -108,7 +108,7 @@ namespace fc::blockchain::sync_manager {
         next_sync_target_ = std::move(target);
         auto heaviest_tipset = next_sync_target_->getHeaviestTipset();
         if (boost::none == heaviest_tipset) {
-          return SyncTargetBucketError::BUCKET_IS_EMPTY;
+          return SyncTargetBucketError::kBucketIsEmpty;
         }
         OUTCOME_TRY(processSyncTargets(*heaviest_tipset));
       }
@@ -158,7 +158,7 @@ namespace fc::blockchain::sync_manager {
         next_sync_target_ = sync_queue_.pop();
         auto heaviest_tipset = next_sync_target_->getHeaviestTipset();
         if (boost::none == heaviest_tipset) {
-          return SyncTargetBucketError::BUCKET_IS_EMPTY;
+          return SyncTargetBucketError::kBucketIsEmpty;
         }
         OUTCOME_TRY(processSyncTargets(*heaviest_tipset));
       }
@@ -234,9 +234,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::sync_manager, SyncManagerError, e) {
   // SHUTTING_DOWN
   switch (e) {
     using Error = fc::blockchain::sync_manager::SyncManagerError;
-    case Error::SHUTTING_DOWN:
+    case Error::kShuttingDown:
       return "shutting down";
-    case Error::NO_SYNC_TARGET:
+    case Error::kNoSyncTarget:
       return "no sync target present";
   }
 }

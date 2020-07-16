@@ -58,11 +58,11 @@ namespace fc::crypto::vrf {
    * @brief vrf errors enumeration
    */
   enum class VRFError {
-    MINER_ADDRESS_NOT_ID =
+    kMinerAddressNotId =
         1,                // miner address need to be id type to calculate hash
-    VERIFICATION_FAILED,  // vrf verification failed
-    SIGN_FAILED,          // vrf sing message failed
-    ADDRESS_IS_NOT_BLS,   // vrf hash can be based only on bls
+    kVerificationFailed,  // vrf verification failed
+    kSignFailed,          // vrf sing message failed
+    kAddressIsNotBLS,     // vrf hash can be based only on bls
   };
 }  // namespace fc::crypto::vrf
 

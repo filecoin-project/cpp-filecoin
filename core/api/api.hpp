@@ -118,7 +118,7 @@ namespace fc::api {
         if (opt) {
           cb(std::move(*opt));
         } else {
-          cb(TodoError::ERROR);
+          cb(TodoError::kError);
         }
         return false;
       });

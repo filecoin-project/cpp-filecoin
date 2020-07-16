@@ -8,23 +8,23 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipfs::graphsync, Error, e) {
   using E = fc::storage::ipfs::graphsync::Error;
   switch (e) {
-    case E::MESSAGE_PARSE_ERROR:
+    case E::kMessageParseError:
       return "message parse error";
-    case E::MESSAGE_SIZE_OUT_OF_BOUNDS:
+    case E::kMessageSizeOutOfBounds:
       return "message size out of bounds";
-    case E::MESSAGE_VALIDATION_FAILED:
+    case E::kMessageValidationFailed:
       return "message validation failed";
-    case E::MESSAGE_SERIALIZE_ERROR:
+    case E::kMessageSerializeError:
       return "message serialize error";
-    case E::STREAM_NOT_READABLE:
+    case E::kStreamNotReadable:
       return "stream is not readable";
-    case E::MESSAGE_READ_ERROR:
+    case E::kMessageReadError:
       return "message read error";
-    case E::STREAM_NOT_WRITABLE:
+    case E::kStreamNotWritable:
       return "stream is not writable";
-    case E::WRITE_QUEUE_OVERFLOW:
+    case E::kWriteQueueOverflow:
       return "write queue overflow";
-    case E::MESSAGE_WRITE_ERROR:
+    case E::kMessageWriteError:
       return "message write error";
     default:
       break;

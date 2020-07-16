@@ -66,7 +66,7 @@ namespace fc::storage::ipld {
   /**
    * @enum Possible PBNodeDecoder errors
    */
-  enum class IPLDNodeDecoderPBError { INVALID_RAW_BYTES = 1 };
+  enum class IPLDNodeDecoderPBError { kInvalidRawBytes = 1 };
 }  // namespace fc::storage::ipfs::merkledag
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::ipld, IPLDNodeDecoderPBError)

@@ -20,7 +20,7 @@ fc::outcome::result<void> InMemoryDatastore::set(const CID &key, Value value) {
 fc::outcome::result<Value> InMemoryDatastore::get(const CID &key) const {
   OUTCOME_TRY(found, contains(key));
   if (!found) {
-    return IpfsDatastoreError::NOT_FOUND;
+    return IpfsDatastoreError::kNotFound;
   }
   return storage_.at(key);
 }

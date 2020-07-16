@@ -97,7 +97,7 @@ namespace fc::storage::blockchain {
     if (heaviest_tipset_.has_value()) {
       return *heaviest_tipset_;
     }
-    return ChainStoreError::NO_HEAVIEST_TIPSET;
+    return ChainStoreError::kNoHeaviestTipset;
   }
 
   outcome::result<bool> ChainStoreImpl::containsTipset(
@@ -115,7 +115,7 @@ namespace fc::storage::blockchain {
       return *genesis_;
     }
 
-    return ChainStoreError::NO_GENESIS_BLOCK;
+    return ChainStoreError::kNoGenesisBlock;
   }
 
   outcome::result<void> ChainStoreImpl::writeGenesis(
@@ -272,13 +272,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {
   using fc::storage::blockchain::ChainStoreError;
 
   switch (e) {
-    case ChainStoreError::NO_MIN_TICKET_BLOCK:
+    case ChainStoreError::kNoMinTicketBlock:
       return "min ticket block has no value";
-    case ChainStoreError::NO_HEAVIEST_TIPSET:
+    case ChainStoreError::kNoHeaviestTipset:
       return "no heaviest tipset in storage";
-    case ChainStoreError::NO_GENESIS_BLOCK:
+    case ChainStoreError::kNoGenesisBlock:
       return "no genesis block in storage";
-    case ChainStoreError::STORE_NOT_INITIALIZED:
+    case ChainStoreError::kStoreNotInitialized:
       return "store is not initialized properly";
   }
 

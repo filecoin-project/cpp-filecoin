@@ -53,7 +53,7 @@ namespace fc::sector_storage {
 
     boost::filesystem::ofstream sealed_file(response.paths.sealed);
     if (!sealed_file.good()) {
-      return WorkerErrors::CANNOT_CREATE_SEALED_FILE;
+      return WorkerErrors::kCannotCreateSealedFile;
     }
     sealed_file.close();
 
@@ -62,13 +62,13 @@ namespace fc::sector_storage {
         boost::system::error_code ec;
         boost::filesystem::remove_all(response.paths.cache, ec);
         if (ec.failed()) {
-          return WorkerErrors::CANNOT_REMOVE_CACHE_DIR;
+          return WorkerErrors::kCannotRemoveCacheDir;
         }
         if (!boost::filesystem::create_directory(response.paths.cache)) {
-          return WorkerErrors::CANNOT_CREATE_CACHE_DIR;
+          return WorkerErrors::kCannotCreateCacheDir;
         }
       } else {
-        return WorkerErrors::CANNOT_CREATE_CACHE_DIR;
+        return WorkerErrors::kCannotCreateCacheDir;
       }
     }
 
@@ -81,7 +81,7 @@ namespace fc::sector_storage {
                 primitives::sector::getSectorSize(config_.seal_proof_type));
 
     if (sum != primitives::piece::PaddedPieceSize(size).unpadded()) {
-      return WorkerErrors::PIECES_DO_NOT_MATCH_SECTOR_SIZE;
+      return WorkerErrors::kPiecesDoNotMatchSectorSize;
     }
 
     return proofs::Proofs::sealPreCommitPhase1(config_.seal_proof_type,
@@ -199,7 +199,7 @@ namespace fc::sector_storage {
     if (maybe_unseal_file.has_error()) {
       if (maybe_unseal_file
           != outcome::failure(
-              stores::StoreErrors::NOT_FOUND_REQUESTED_SECTOR_TYPE)) {
+              stores::StoreErrors::kNotFoundRequestedSectorType)) {
         return maybe_unseal_file.error();
       }
       maybe_unseal_file = storage_->acquireSector(sector,
@@ -239,7 +239,7 @@ namespace fc::sector_storage {
       primitives::piece::UnpaddedByteIndex offset,
       const primitives::piece::UnpaddedPieceSize &size) {
     if (!output.isOpened()) {
-      return WorkerErrors::OUTPUT_DOES_NOT_OPEN;
+      return WorkerErrors::kOutputDoesNotOpen;
     }
 
     OUTCOME_TRY(response,
@@ -253,14 +253,14 @@ namespace fc::sector_storage {
                 primitives::sector::getSectorSize(config_.seal_proof_type));
 
     if (primitives::piece::paddedIndex(offset) + size.padded() > max_size) {
-      return WorkerErrors::OUT_OF_BOUND_OF_FILE;
+      return WorkerErrors::kOutOfBoundOfFile;
     }
 
     std::ifstream input(response.paths.unsealed,
                         std::ios_base::in | std::ios_base::binary);
 
     if (!input.good()) {
-      return WorkerErrors::CANNOT_OPEN_UNSEALED_FILE;
+      return WorkerErrors::kCannotOpenUnsealedFile;
     }
 
     input.seekg(primitives::piece::paddedIndex(offset), std::ios_base::beg);
@@ -306,13 +306,13 @@ namespace fc::sector_storage {
                           (host_info_t)(&vm_stat),
                           &count)
         != KERN_SUCCESS) {
-      return WorkerErrors::CANNOT_GET_VM_STAT;
+      return WorkerErrors::kCannotGetVMStat;
     }
 
     uint64_t page_size;
     if (host_page_size(host_t(mach_host_self()), (vm_size_t *)(&page_size))
         != KERN_SUCCESS) {
-      return WorkerErrors::CANNOT_GET_PAGE_SIZE;
+      return WorkerErrors::kCannotGetPageSize;
     }
 
     uint64_t available_memory =
@@ -330,7 +330,7 @@ namespace fc::sector_storage {
     static const std::string memory_file_path = "/proc/meminfo";
     std::ifstream memory_file(memory_file_path);
     if (!memory_file.good()) {
-      return WorkerErrors::CANNOT_OPEN_MEM_INFO_FILE;
+      return WorkerErrors::kCannotOpenMemInfoFile;
     }
 
     struct {
@@ -386,7 +386,7 @@ namespace fc::sector_storage {
     result.resources.reserved_memory =
         mem_info.virtual_used + mem_info.total - mem_info.available;
 #else
-    return WorkerErrors::UNSUPPORTED_PLATFORM;
+    return WorkerErrors::kUnsupportedPlatform;
 #endif
 
     std::string hostname = config_.hostname;
@@ -400,7 +400,7 @@ namespace fc::sector_storage {
     result.resources.cpus = std::thread::hardware_concurrency();
 
     if (result.resources.cpus == 0) {
-      return WorkerErrors::CANNOT_GET_NUMBER_OF_CPUS;
+      return WorkerErrors::kCannotGetNumberOfCPUs;
     }
 
     OUTCOME_TRYA(result.resources.gpus, proofs::Proofs::getGPUDevices());
@@ -447,7 +447,7 @@ namespace fc::sector_storage {
     }
 
     if (isError) {
-      return WorkerErrors::CANNOT_REMOVE_SECTOR;
+      return WorkerErrors::kCannotRemoveSector;
     }
     return outcome::success();
   }

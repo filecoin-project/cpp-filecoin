@@ -10,13 +10,13 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::amt, AmtError, e) {
   using fc::storage::amt::AmtError;
   switch (e) {
-    case AmtError::EXPECTED_CID:
+    case AmtError::kExpectedCID:
       return "Expected CID";
-    case AmtError::DECODE_WRONG:
+    case AmtError::kDecodeWrong:
       return "Decode wrong";
-    case AmtError::INDEX_TOO_BIG:
+    case AmtError::kIndexTooBig:
       return "Index too big";
-    case AmtError::NOT_FOUND:
+    case AmtError::kNotFound:
       return "Not found";
   }
   return "Unknown error";
@@ -57,7 +57,7 @@ namespace fc::storage::amt {
 
   outcome::result<void> Amt::set(uint64_t key, gsl::span<const uint8_t> value) {
     if (key >= kMaxIndex) {
-      return AmtError::INDEX_TOO_BIG;
+      return AmtError::kIndexTooBig;
     }
     OUTCOME_TRY(loadRoot());
     auto &root = boost::get<Root>(root_);
@@ -79,12 +79,12 @@ namespace fc::storage::amt {
 
   outcome::result<Value> Amt::get(uint64_t key) {
     if (key >= kMaxIndex) {
-      return AmtError::INDEX_TOO_BIG;
+      return AmtError::kIndexTooBig;
     }
     OUTCOME_TRY(loadRoot());
     auto &root = boost::get<Root>(root_);
     if (key >= maxAt(root.height)) {
-      return AmtError::NOT_FOUND;
+      return AmtError::kNotFound;
     }
     std::reference_wrapper<Node> node = root.node;
     for (auto height = root.height; height != 0; --height) {
@@ -96,19 +96,19 @@ namespace fc::storage::amt {
     auto &values = boost::get<Node::Values>(node.get().items);
     auto it = values.find(key);
     if (it == values.end()) {
-      return AmtError::NOT_FOUND;
+      return AmtError::kNotFound;
     }
     return it->second;
   }
 
   outcome::result<void> Amt::remove(uint64_t key) {
     if (key >= kMaxIndex) {
-      return AmtError::INDEX_TOO_BIG;
+      return AmtError::kIndexTooBig;
     }
     OUTCOME_TRY(loadRoot());
     auto &root = boost::get<Root>(root_);
     if (key >= maxAt(root.height)) {
-      return AmtError::NOT_FOUND;
+      return AmtError::kNotFound;
     }
     OUTCOME_TRY(remove(root.node, root.height, key));
     --root.count;
@@ -167,7 +167,7 @@ namespace fc::storage::amt {
     if (height == 0) {
       auto &values = boost::get<Node::Values>(node.items);
       if (values.erase(key) == 0) {
-        return AmtError::NOT_FOUND;
+        return AmtError::kNotFound;
       }
       return outcome::success();
     }
@@ -191,7 +191,7 @@ namespace fc::storage::amt {
     if (res) {
       return true;
     }
-    if (res.error() == AmtError::NOT_FOUND) {
+    if (res.error() == AmtError::kNotFound) {
       return false;
     }
     return res.error();
@@ -256,7 +256,7 @@ namespace fc::storage::amt {
         links[index] = node;
         return node;
       }
-      return AmtError::NOT_FOUND;
+      return AmtError::kNotFound;
     }
     auto &link = it->second;
     if (which<CID>(link)) {

@@ -20,10 +20,10 @@ namespace fc::vm::actor::builtin::init {
 
   ACTOR_METHOD_IMPL(Exec) {
     if (!isBuiltinActor(params.code)) {
-      return VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR;
+      return VMExitCode::kInitActorNotBuiltinActor;
     }
     if (isSingletonActor(params.code)) {
-      return VMExitCode::INIT_ACTOR_SINGLETON_ACTOR;
+      return VMExitCode::kInitActorSingletonActor;
     }
     OUTCOME_TRY(runtime.chargeGas(runtime::kInitActorExecCost));
     auto &message = runtime.getMessage().get();
