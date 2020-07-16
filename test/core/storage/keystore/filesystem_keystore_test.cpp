@@ -115,7 +115,7 @@ namespace fc::storage::keystore {
    */
   TEST_F(FileSystemKeyStoreTest, AddressAlreadyStored) {
     EXPECT_OUTCOME_TRUE_1(ks->put(bls_address_, bls_keypair_.private_key));
-    EXPECT_OUTCOME_ERROR(KeyStoreError::ALREADY_EXISTS,
+    EXPECT_OUTCOME_ERROR(KeyStoreError::kAlreadyExists,
                          ks->put(bls_address_, bls_keypair_.private_key));
   }
 
@@ -125,7 +125,7 @@ namespace fc::storage::keystore {
    * @then NOT_FOUND returned
    */
   TEST_F(FileSystemKeyStoreTest, RemoveNotExists) {
-    EXPECT_OUTCOME_ERROR(KeyStoreError::NOT_FOUND, ks->remove(bls_address_));
+    EXPECT_OUTCOME_ERROR(KeyStoreError::kNotFound, ks->remove(bls_address_));
   }
 
   /**
@@ -173,10 +173,10 @@ namespace fc::storage::keystore {
   /**
    * @given empty Keystore
    * @when sign with wrong address
-   * @then NOT_FOUND returned
+   * @then kNotFound returned
    */
   TEST_F(FileSystemKeyStoreTest, SignNotFound) {
-    EXPECT_OUTCOME_ERROR(KeyStoreError::NOT_FOUND,
+    EXPECT_OUTCOME_ERROR(KeyStoreError::kNotFound,
                          ks->sign(bls_address_, data_));
   }
 
@@ -189,7 +189,7 @@ namespace fc::storage::keystore {
     // generate id address (type 0) which has no key
     std::vector<uint8_t> bytes{0x0, 0xD1, 0xC2, 0xA7, 0x0F};
     auto wrong_address = decode(bytes).value();
-    EXPECT_OUTCOME_ERROR(KeyStoreError::WRONG_ADDRESS,
+    EXPECT_OUTCOME_ERROR(KeyStoreError::kWrongAddress,
                          ks->put(wrong_address, bls_keypair_.private_key));
   }
 
@@ -253,7 +253,7 @@ namespace fc::storage::keystore {
     Secp256k1Signature invalid_signature;
     invalid_signature[64] = 99;
     EXPECT_OUTCOME_ERROR(
-        Secp256k1Error::SIGNATURE_PARSE_ERROR,
+        Secp256k1Error::kSignatureParseError,
         ks->verify(secp256k1_address_, data_, invalid_signature));
   }
 

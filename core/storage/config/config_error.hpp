@@ -14,11 +14,9 @@ namespace fc::storage::config {
    * @brief FileStore returns these types of errors
    */
   enum class ConfigError {
-    JSON_PARSER_ERROR = 1,
-    BAD_PATH,
-    CANNOT_OPEN_FILE,
-
-    UNKNOWN = 1000
+    kJSONParserError = 1,
+    kBadPath,
+    kCannotOpenFile,
   };
 
 }  // namespace fc::storage::config

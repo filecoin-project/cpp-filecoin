@@ -16,35 +16,35 @@ namespace fc::blockchain::block_validator {
         return outcome::success();
       }
     }
-    return SyntaxError::INVALID_PARENTS_COUNT;
+    return SyntaxError::kInvalidParentsCount;
   }
 
   outcome::result<void> SyntaxRules::parentWeight(const BlockHeader &block) {
     if (block.parent_weight >= 0) {
       return outcome::success();
     }
-    return SyntaxError::INVALID_PARENT_WEIGHT;
+    return SyntaxError::kInvalidParentWeight;
   }
 
   outcome::result<void> SyntaxRules::minerAddress(const BlockHeader &block) {
     if (block.miner.getId() > 0) {
       return outcome::success();
     }
-    return SyntaxError::INVALID_MINER_ADDRESS;
+    return SyntaxError::kInvalidMinerAddress;
   }
 
   outcome::result<void> SyntaxRules::timestamp(const BlockHeader &block) {
     if (block.timestamp > 0) {
       return outcome::success();
     }
-    return SyntaxError::INVALID_TIMESTAMP;
+    return SyntaxError::kInvalidTimestamp;
   }
 
   outcome::result<void> SyntaxRules::ticket(const BlockHeader &block) {
     if (block.ticket) {
       return outcome::success();
     }
-    return SyntaxError::INVALID_TICKET;
+    return SyntaxError::kInvalidTicket;
   }
 
   outcome::result<void> SyntaxRules::electionPost(const BlockHeader &block) {
@@ -55,26 +55,26 @@ namespace fc::blockchain::block_validator {
     if (block.fork_signaling != 0) {
       return outcome::success();
     }
-    return SyntaxError::INVALID_FORK_SIGNAL;
+    return SyntaxError::kInvalidForkSignal;
   }
 }  // namespace fc::blockchain::block_validator
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::block_validator, SyntaxError, e) {
   using fc::blockchain::block_validator::SyntaxError;
   switch (e) {
-    case SyntaxError::INVALID_PARENTS_COUNT:
+    case SyntaxError::kInvalidParentsCount:
       return "Syntax block validator: invalid Parents count";
-    case SyntaxError::INVALID_PARENT_WEIGHT:
+    case SyntaxError::kInvalidParentWeight:
       return "Syntax block validator: invalid Parent weight";
-    case SyntaxError::INVALID_MINER_ADDRESS:
+    case SyntaxError::kInvalidMinerAddress:
       return "Syntax block validator: invalid Miner address";
-    case SyntaxError::INVALID_TIMESTAMP:
+    case SyntaxError::kInvalidTimestamp:
       return "Syntax block validator: invalid Timestamp";
-    case SyntaxError::INVALID_TICKET:
+    case SyntaxError::kInvalidTicket:
       return "Syntax block validator: invalid Ticket";
-    case SyntaxError::INVALID_ELECTION_POST:
+    case SyntaxError::kInvalidElectionPost:
       return "Syntax block validator: invalid Election PoSt";
-    case SyntaxError::INVALID_FORK_SIGNAL:
+    case SyntaxError::kInvalidForkSignal:
       return "Syntax block validator: invalid fork signal";
   }
 }

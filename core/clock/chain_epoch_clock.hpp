@@ -10,7 +10,7 @@
 #include "primitives/chain_epoch/chain_epoch.hpp"
 
 namespace fc::clock {
-  enum class EpochAtTimeError { BEFORE_GENESIS = 1 };
+  enum class EpochAtTimeError { kBeforeGenesis = 1 };
 
   using primitives::ChainEpoch;
 

@@ -8,15 +8,15 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::api, JsonError, e) {
   using E = fc::api::JsonError;
   switch (e) {
-    case E::WRONG_LENGTH:
+    case E::kWrongLength:
       return "wrong length";
-    case E::WRONG_ENUM:
+    case E::kWrongEnum:
       return "wrong enum";
-    case E::WRONG_TYPE:
+    case E::kWrongType:
       return "wrong type";
-    case E::OUT_OF_RANGE:
+    case E::kOutOfRange:
       return "out of range";
-    case E::WRONG_PARAMS:
+    case E::kWrongParams:
       return "wrong params";
   }
 

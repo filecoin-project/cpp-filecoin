@@ -131,7 +131,7 @@ namespace fc::crypto::secp256k1 {
     SignatureCompact wrong_signature{};
     wrong_signature[64] = 99;
     EXPECT_OUTCOME_ERROR(
-        Secp256k1Error::SIGNATURE_PARSE_ERROR,
+        Secp256k1Error::kSignatureParseError,
         secp256K1_provider->recoverPublicKey(go_message_hash, wrong_signature));
   }
 

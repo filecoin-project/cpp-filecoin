@@ -22,7 +22,7 @@ namespace fc::storage::ipfs::merkledag {
     if (auto iter = children_.find(name); iter != children_.end()) {
       return iter->second;
     }
-    return LeafError::LEAF_NOT_FOUND;
+    return LeafError::kLeafNotFound;
   }
 
   std::vector<std::string_view> LeafImpl::getSubLeafNames() const {
@@ -39,16 +39,16 @@ namespace fc::storage::ipfs::merkledag {
     if (result.second) {
       return outcome::success();
     }
-    return LeafError::DUPLICATE_LEAF;
+    return LeafError::kDuplicateLeaf;
   }
 }  // namespace fc::storage::ipfs::merkledag
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipfs::merkledag, LeafError, e) {
   using fc::storage::ipfs::merkledag::LeafError;
   switch (e) {
-    case (LeafError::LEAF_NOT_FOUND):
+    case (LeafError::kLeafNotFound):
       return "MerkleDAG leaf: children leaf not found";
-    case (LeafError::DUPLICATE_LEAF):
+    case (LeafError::kDuplicateLeaf):
       return "MerkleDAG leaf: duplicate leaf name";
   }
   return "MerkleDAG leaf: unknown error";

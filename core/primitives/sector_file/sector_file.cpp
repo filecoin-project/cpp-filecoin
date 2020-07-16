@@ -32,7 +32,7 @@ namespace fc::primitives::sector_file {
 
       auto overhead_iter = kOverheadSeal.find(type);
       if (overhead_iter == kOverheadSeal.end()) {
-        return SectorFileTypeErrors::InvalidSectorFileType;
+        return SectorFileTypeErrors::kInvalidSectorFileType;
       }
 
       result += overhead_iter->second * sector_size / 10;
@@ -67,7 +67,7 @@ namespace fc::primitives::sector_file {
       case FTSealed:
         return sealed;
       default:
-        return SectorFileTypeErrors::InvalidSectorFileType;
+        return SectorFileTypeErrors::kInvalidSectorFileType;
     }
   }
 
@@ -83,7 +83,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::sector_file,
                             e) {
   using fc::primitives::sector_file::SectorFileTypeErrors;
   switch (e) {
-    case (SectorFileTypeErrors::InvalidSectorFileType):
+    case (SectorFileTypeErrors::kInvalidSectorFileType):
       return "SectorFileType: unsupported sector file type";
     default:
       return "SectorFileType: unknown error";

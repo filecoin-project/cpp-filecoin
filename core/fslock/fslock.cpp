@@ -18,7 +18,7 @@ namespace fc::fslock {
       const std::string &file_lock_path) {
     try {
       if (boost::filesystem::is_directory(file_lock_path))
-        return FSLockError::IS_DIRECTORY;
+        return FSLockError::kIsDirectory;
       boost::interprocess::scoped_lock scopedMutex(mutex);
       if (!boost::filesystem::exists(file_lock_path)) {
         boost::filesystem::ofstream os(file_lock_path);
@@ -26,11 +26,11 @@ namespace fc::fslock {
       }
       boost::interprocess::file_lock file_lock(file_lock_path.c_str());
       if (!file_lock.try_lock()) {
-        return FSLockError::FILE_LOCKED;
+        return FSLockError::kFileLocked;
       }
       return std::move(file_lock);
     } catch (...) {
-      return FSLockError::UNKNOWN;
+      return FSLockError::kUnknown;
     }
   }
 

@@ -21,22 +21,22 @@ PowerTableHamt::PowerTableHamt(Hamt hamt) : power_table_{std::move(hamt)} {}
 fc::outcome::result<Power> PowerTableHamt::getMinerPower(
     const Address &address) const {
   auto result = power_table_.getCbor<Power>(AddressKeyer::encode(address));
-  if (!result && result.error() == HamtError::NOT_FOUND) {
-    return outcome::failure(PowerTableError::NO_SUCH_MINER);
+  if (!result && result.error() == HamtError::kNotFound) {
+    return outcome::failure(PowerTableError::kNoSuchMiner);
   }
   return result;
 }
 
 fc::outcome::result<void> PowerTableHamt::setMinerPower(const Address &address,
                                                         Power power_amount) {
-  if (power_amount < 0) return PowerTableError::NEGATIVE_POWER;
+  if (power_amount < 0) return PowerTableError::kNegativePower;
   return power_table_.setCbor(AddressKeyer::encode(address), power_amount);
 }
 
 fc::outcome::result<void> PowerTableHamt::removeMiner(const Address &address) {
   auto result = power_table_.remove(AddressKeyer::encode(address));
-  if (!result && result.error() == HamtError::NOT_FOUND) {
-    return outcome::failure(PowerTableError::NO_SUCH_MINER);
+  if (!result && result.error() == HamtError::kNotFound) {
+    return outcome::failure(PowerTableError::kNoSuchMiner);
   }
   return result;
 }

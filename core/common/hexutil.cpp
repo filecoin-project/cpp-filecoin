@@ -12,9 +12,9 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::common, UnhexError, e) {
   using fc::common::UnhexError;
   switch (e) {
-    case UnhexError::NON_HEX_INPUT:
+    case UnhexError::kNonHexInput:
       return "Input contains non-hex characters";
-    case UnhexError::NOT_ENOUGH_INPUT:
+    case UnhexError::kNotEnoughInput:
       return "Input contains odd number of characters";
     default:
       return "Unknown error";
@@ -60,13 +60,13 @@ namespace fc::common {
       return blob;
 
     } catch (const boost::algorithm::not_enough_input &e) {
-      return UnhexError::NOT_ENOUGH_INPUT;
+      return UnhexError::kNotEnoughInput;
 
     } catch (const boost::algorithm::non_hex_input &e) {
-      return UnhexError::NON_HEX_INPUT;
+      return UnhexError::kNonHexInput;
 
     } catch (const std::exception &e) {
-      return UnhexError::UNKNOWN;
+      return UnhexError::kUnknown;
     }
   }
 }  // namespace filecoin::common

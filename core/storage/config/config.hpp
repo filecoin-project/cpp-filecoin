@@ -62,7 +62,7 @@ namespace fc::storage::config {
       try {
         return ptree_.get<T>(key);
       } catch (const boost::property_tree::ptree_bad_path &) {
-        return ConfigError::BAD_PATH;
+        return ConfigError::kBadPath;
       }
     }
 

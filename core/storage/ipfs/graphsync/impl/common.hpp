@@ -13,15 +13,15 @@ namespace fc::storage::ipfs::graphsync {
 
   /// Graphsync internal error codes
   enum class Error {
-    MESSAGE_SIZE_OUT_OF_BOUNDS = 1,
-    MESSAGE_PARSE_ERROR,
-    MESSAGE_VALIDATION_FAILED,
-    MESSAGE_SERIALIZE_ERROR,
-    STREAM_NOT_READABLE,
-    MESSAGE_READ_ERROR,
-    STREAM_NOT_WRITABLE,
-    WRITE_QUEUE_OVERFLOW,
-    MESSAGE_WRITE_ERROR,
+    kMessageSizeOutOfBounds = 1,
+    kMessageParseError,
+    kMessageValidationFailed,
+    kMessageSerializeError,
+    kStreamNotReadable,
+    kMessageReadError,
+    kStreamNotWritable,
+    kWriteQueueOverflow,
+    kMessageWriteError,
   };
 
   /// Request ID defined as int32 by graphsync protocol, unfortunately

@@ -47,7 +47,7 @@ namespace fc::vm::actor::builtin::miner {
       case RegisteredProof::StackedDRG64GiBSeal:
         return 10000;
       default:
-        return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
+        return VMExitCode::kMinerActorIllegalArgument;
     }
   }
 

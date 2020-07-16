@@ -27,7 +27,7 @@ namespace fc::common::libp2p {
       case Type::Special:
         break;
       default:
-        return Error::INVALID_HEAD_TYPE;
+        return Error::kInvalidHeadType;
     }
     Head head{type, 0};
     // decode additional information length
@@ -51,7 +51,7 @@ namespace fc::common::libp2p {
           more = 8;
           break;
         default:
-          return Error::INVALID_HEAD_VALUE;
+          return Error::kInvalidHeadValue;
       }
     }
     return head;

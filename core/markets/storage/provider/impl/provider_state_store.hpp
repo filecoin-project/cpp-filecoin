@@ -28,7 +28,7 @@ namespace fc::markets::storage::provider {
     std::shared_ptr<ProviderFSM> fsm_;
   };
 
-  enum class ProviderStateStoreError { STATE_NOT_FOUND };
+  enum class ProviderStateStoreError { kStateNotFound = 1 };
 
 }  // namespace fc::markets::storage::provider
 

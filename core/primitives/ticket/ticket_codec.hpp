@@ -14,7 +14,7 @@
 
 namespace fc::primitives::ticket {
   enum class TicketCodecError : int {
-    INVALID_TICKET_LENGTH = 1,  // ticket decode error, invalid data length
+    kInvalidTicketLength = 1,  // ticket decode error, invalid data length
   };
 }  // namespace fc::primitives::ticket
 
@@ -41,7 +41,7 @@ namespace fc::primitives::ticket {
     std::vector<uint8_t> data{};
     s.list() >> data;
     if (data.size() != ticket.bytes.size()) {
-      outcome::raise(TicketCodecError::INVALID_TICKET_LENGTH);
+      outcome::raise(TicketCodecError::kInvalidTicketLength);
     }
     std::copy(data.begin(), data.end(), ticket.bytes.begin());
     return s;

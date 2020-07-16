@@ -47,7 +47,7 @@ namespace fc::storage::ipfs::merkledag {
     const auto &links = node_set.front()->getLinks();
     for (const auto &link : links) {
       auto request = getNode(link.get().getCID());
-      if (request.has_error()) return ServiceError::UNRESOLVED_LINK;
+      if (request.has_error()) return ServiceError::kUnresolvedLink;
       node_set.emplace_back(std::move(request.value()));
     }
     size_t sent_count{};
@@ -88,7 +88,7 @@ namespace fc::storage::ipfs::merkledag {
     }
     for (const auto &link : links) {
       auto request = getNode(link.get().getCID());
-      if (request.has_error()) return ServiceError::UNRESOLVED_LINK;
+      if (request.has_error()) return ServiceError::kUnresolvedLink;
       std::shared_ptr<IPLDNode> node = request.value();
       auto child_leaf = std::make_shared<LeafImpl>(node->content());
       auto build_result = buildGraph(child_leaf,
@@ -112,7 +112,7 @@ namespace fc::storage::ipfs::merkledag {
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipfs::merkledag, ServiceError, e) {
   using fc::storage::ipfs::merkledag::ServiceError;
   switch (e) {
-    case (ServiceError::UNRESOLVED_LINK):
+    case (ServiceError::kUnresolvedLink):
       return "MerkleDAG service: broken link";
   }
   return "MerkleDAG Node: unknown error";

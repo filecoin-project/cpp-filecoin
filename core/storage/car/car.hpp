@@ -15,7 +15,7 @@ namespace fc::storage::car {
   using common::Buffer;
   using ipld::walker::Selector;
 
-  enum class CarError { DECODE_ERROR = 1 };
+  enum class CarError { kDecodeError = 1 };
 
   struct CarHeader {
     static constexpr uint64_t V1 = 1;

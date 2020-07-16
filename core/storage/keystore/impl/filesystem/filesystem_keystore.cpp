@@ -36,9 +36,9 @@ fc::outcome::result<bool> FileSystemKeyStore::has(const Address &address) const
 fc::outcome::result<void> FileSystemKeyStore::put(
     Address address, typename KeyStore::TPrivateKey key) noexcept {
   OUTCOME_TRY(valid, checkAddress(address, key));
-  if (!valid) return KeyStoreError::WRONG_ADDRESS;
+  if (!valid) return KeyStoreError::kWrongAddress;
   OUTCOME_TRY(exists, has(address));
-  if (exists) return KeyStoreError::ALREADY_EXISTS;
+  if (exists) return KeyStoreError::kAlreadyExists;
   OUTCOME_TRY(path, addressToPath(address));
   OUTCOME_TRY(file, filestore_->create(path));
 
@@ -46,7 +46,7 @@ fc::outcome::result<void> FileSystemKeyStore::put(
     auto bls_private_key = boost::get<BlsPrivateKey>(key);
     OUTCOME_TRY(write_size, file->write(0, bls_private_key));
     if (write_size != bls_private_key.size()) {
-      return KeyStoreError::CANNOT_STORE;
+      return KeyStoreError::kCannotStore;
     }
     return fc::outcome::success();
   }
@@ -54,18 +54,18 @@ fc::outcome::result<void> FileSystemKeyStore::put(
     auto secp256k1_private_key = boost::get<Secp256k1PrivateKey>(key);
     OUTCOME_TRY(write_size, file->write(0, secp256k1_private_key));
     if (write_size != secp256k1_private_key.size()) {
-      return KeyStoreError::CANNOT_STORE;
+      return KeyStoreError::kCannotStore;
     }
     return fc::outcome::success();
   }
 
-  return KeyStoreError::WRONG_ADDRESS;
+  return KeyStoreError::kWrongAddress;
 }
 
 fc::outcome::result<void> FileSystemKeyStore::remove(
     const Address &address) noexcept {
   OUTCOME_TRY(found, has(address));
-  if (!found) return KeyStoreError::NOT_FOUND;
+  if (!found) return KeyStoreError::kNotFound;
   OUTCOME_TRY(path, addressToPath(address));
   OUTCOME_TRY(filestore_->remove(path));
   return fc::outcome::success();
@@ -91,7 +91,7 @@ fc::outcome::result<std::vector<Address>> FileSystemKeyStore::list() const
 fc::outcome::result<typename KeyStore::TPrivateKey> FileSystemKeyStore::get(
     const Address &address) const noexcept {
   OUTCOME_TRY(found, has(address));
-  if (!found) return KeyStoreError::NOT_FOUND;
+  if (!found) return KeyStoreError::kNotFound;
   OUTCOME_TRY(path, addressToPath(address));
   OUTCOME_TRY(file, filestore_->open(path));
 
@@ -99,7 +99,7 @@ fc::outcome::result<typename KeyStore::TPrivateKey> FileSystemKeyStore::get(
     BlsPrivateKey private_key{};
     OUTCOME_TRY(read_size, file->read(0, private_key));
     if (read_size != private_key.size()) {
-      return KeyStoreError::CANNOT_READ;
+      return KeyStoreError::kCannotRead;
     }
 
     return private_key;
@@ -108,13 +108,13 @@ fc::outcome::result<typename KeyStore::TPrivateKey> FileSystemKeyStore::get(
     Secp256k1PrivateKey private_key{};
     OUTCOME_TRY(read_size, file->read(0, private_key));
     if (read_size != private_key.size()) {
-      return KeyStoreError::CANNOT_READ;
+      return KeyStoreError::kCannotRead;
     }
 
     return private_key;
   }
 
-  return KeyStoreError::WRONG_ADDRESS;
+  return KeyStoreError::kWrongAddress;
 }
 
 fc::outcome::result<Path> FileSystemKeyStore::addressToPath(

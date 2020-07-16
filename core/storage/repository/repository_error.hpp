@@ -14,10 +14,8 @@ namespace fc::storage::repository {
    * @brief Type of errors returned by Repository
    */
   enum class RepositoryError {
-    WRONG_VERSION = 1,
-    OPEN_FILE_ERROR,
-
-    UNKNOWN
+    kWrongVersion = 1,
+    kOpenFileError,
   };
 
 }  // namespace fc::storage::keystore

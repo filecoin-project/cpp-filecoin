@@ -25,9 +25,9 @@ fc::outcome::result<bool> InMemoryKeyStore::has(const Address &address) const
 fc::outcome::result<void> InMemoryKeyStore::put(
     Address address, typename KeyStore::TPrivateKey key) noexcept {
   OUTCOME_TRY(valid, checkAddress(address, key));
-  if (!valid) return KeyStoreError::WRONG_ADDRESS;
+  if (!valid) return KeyStoreError::kWrongAddress;
   auto res = storage_.try_emplace(address, key);
-  if (!res.second) return KeyStoreError::ALREADY_EXISTS;
+  if (!res.second) return KeyStoreError::kAlreadyExists;
 
   return fc::outcome::success();
 }
@@ -35,7 +35,7 @@ fc::outcome::result<void> InMemoryKeyStore::put(
 fc::outcome::result<void> InMemoryKeyStore::remove(
     const Address &address) noexcept {
   OUTCOME_TRY(found, has(address));
-  if (!found) return KeyStoreError::NOT_FOUND;
+  if (!found) return KeyStoreError::kNotFound;
   storage_.erase(address);
   return fc::outcome::success();
 }
@@ -52,6 +52,6 @@ fc::outcome::result<std::vector<Address>> InMemoryKeyStore::list() const
 fc::outcome::result<typename KeyStore::TPrivateKey> InMemoryKeyStore::get(
     const Address &address) const noexcept {
   OUTCOME_TRY(found, has(address));
-  if (!found) return KeyStoreError::NOT_FOUND;
+  if (!found) return KeyStoreError::kNotFound;
   return storage_.at(address);
 }
