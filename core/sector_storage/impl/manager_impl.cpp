@@ -7,6 +7,7 @@
 #include <boost/filesystem.hpp>
 
 namespace fs = boost::filesystem;
+using fc::primitives::sector_file::SectorFileType;
 
 namespace fc::sector_storage {
 
@@ -77,6 +78,29 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> ManagerImpl::remove(const SectorId &sector) {
+    OUTCOME_TRY(lock,
+                index_->storageLock(
+                    sector,
+                    SectorFileType::FTNone,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTUnsealed
+                                                | SectorFileType::FTCache)));
+
+    auto unsealed = SectorFileType::FTUnsealed;
+    {
+      OUTCOME_TRY(
+          unsealed_stores,
+          index_->storageFindSector(sector, SectorFileType::FTUnsealed, false));
+
+      if (unsealed_stores.empty()) {
+        unsealed = SectorFileType::FTNone;
+      }
+    }
+
+    // TODO: create selector
+
+    // TODO: schedule it
+
     return outcome::success();
   }
 
