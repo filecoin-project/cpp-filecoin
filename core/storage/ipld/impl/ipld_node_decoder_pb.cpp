@@ -12,7 +12,7 @@ namespace fc::storage::ipld {
     if (pb_node_.ParseFromArray(raw_bytes, input.size())) {
       return outcome::success();
     }
-    return IPLDNodeDecoderPBError::INVALID_RAW_BYTES;
+    return IPLDNodeDecoderPBError::kInvalidRawBytes;
   }
 
   const std::string &IPLDNodeDecoderPB::getContent() const {
@@ -40,7 +40,7 @@ namespace fc::storage::ipld {
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipld, IPLDNodeDecoderPBError, error) {
   using fc::storage::ipld::IPLDNodeDecoderPBError;
   switch (error) {
-    case (IPLDNodeDecoderPBError::INVALID_RAW_BYTES):
+    case (IPLDNodeDecoderPBError::kInvalidRawBytes):
       return "IPLD node Protobuf decoder: failed to deserialize from incorrect "
              "raw bytes";
   }

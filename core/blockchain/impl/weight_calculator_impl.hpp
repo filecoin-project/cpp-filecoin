@@ -11,7 +11,7 @@
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::blockchain::weight {
-  enum class WeightCalculatorError { NO_NETWORK_POWER = 1 };
+  enum class WeightCalculatorError { kNoNetworkPower = 1 };
 
   class WeightCalculatorImpl : public WeightCalculator {
    public:

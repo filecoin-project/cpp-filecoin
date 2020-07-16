@@ -10,16 +10,6 @@
 namespace fc::primitives::ticket {
   using crypto::randomness::Randomness;
 
-  libp2p::outcome::result<Randomness> drawRandomness(const Ticket &ticket,
-                                                     int64_t round) {
-    common::Buffer buffer{};
-    buffer.put(ticket.bytes);
-    common::encodeLebInteger(round, buffer);
-    auto &&hash = libp2p::crypto::sha256(buffer);
-
-    return Randomness::fromSpan(hash);
-  }
-
   bool operator==(const Ticket &lhs, const Ticket &rhs) {
     return lhs.bytes == rhs.bytes;
   }

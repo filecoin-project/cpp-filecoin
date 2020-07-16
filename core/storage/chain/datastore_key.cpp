@@ -72,7 +72,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage, DatastoreKeyError, e) {
   using fc::storage::DatastoreKeyError;
 
   switch (e) {
-    case DatastoreKeyError::INVALID_DATASTORE_KEY:
+    case DatastoreKeyError::kInvalidDatastoreKey:
       return "invalid data used to create datastore key";
   }
 

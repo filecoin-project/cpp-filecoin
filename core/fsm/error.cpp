@@ -8,11 +8,11 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::fsm, FsmError, e) {
   using E = fc::fsm::FsmError;
   switch (e) {
-    case E::ENTITY_NOT_TRACKED:
+    case E::kEntityNotTracked:
       return "Specified element was not tracked by FSM.";
-    case E::ENTITY_ALREADY_BEING_TRACKED:
+    case E::kEntityAlreadyBeingTracked:
       return "FSM is tracking the entity's state already.";
-    case E::MACHINE_STOPPED:
+    case E::kMachineStopped:
       return "FSM has been stopped. No more events get processed.";
   }
 }

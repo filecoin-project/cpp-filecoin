@@ -11,7 +11,7 @@
 #include "common/outcome.hpp"
 
 namespace fc::adt {
-  enum class UvarintKeyError { DECODE_ERROR = 1 };
+  enum class UvarintKeyError { kDecodeError = 1 };
 
   struct UvarintKeyer {
     using Key = uint64_t;

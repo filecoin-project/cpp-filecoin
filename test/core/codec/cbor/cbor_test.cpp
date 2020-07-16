@@ -40,13 +40,13 @@ TEST(Cbor, EncodeDecode) {
   EXPECT_OUTCOME_EQ(decode<int>("01"_unhex), 1);
   EXPECT_OUTCOME_EQ(encode(decode<int>("01"_unhex).value()), "01"_unhex);
   EXPECT_OUTCOME_EQ(decode<int>(encode(1).value()), 1);
-  EXPECT_OUTCOME_ERROR(CborDecodeError::WRONG_TYPE, decode<int>("80"_unhex));
+  EXPECT_OUTCOME_ERROR(CborDecodeError::kWrongType, decode<int>("80"_unhex));
 }
 
 /// Decode blob
 TEST(Cbor, DecodeBlob) {
   using Blob3 = fc::common::Blob<3>;
-  EXPECT_OUTCOME_ERROR(CborDecodeError::WRONG_SIZE,
+  EXPECT_OUTCOME_ERROR(CborDecodeError::kWrongSize,
                        decode<Blob3>("42CAFE"_unhex));
   EXPECT_OUTCOME_EQ(decode<Blob3>("43CAFEDE"_unhex),
                     Blob3::fromHex("CAFEDE").value());
@@ -216,7 +216,7 @@ TEST(CborEncoder, Map) {
  * @then Error
  */
 TEST(CborEncoder, CidErrors) {
-  EXPECT_OUTCOME_ERROR(CborEncodeError::INVALID_CID, encode(CID()));
+  EXPECT_OUTCOME_ERROR(CborEncodeError::kInvalidCID, encode(CID()));
 }
 
 /**
@@ -228,11 +228,11 @@ TEST(CborEncoder, MapErrors) {
   CborEncodeStream s;
   auto map1 = s.map();
   map1["a"] << 1 << 2;
-  EXPECT_OUTCOME_RAISE(CborEncodeError::EXPECTED_MAP_VALUE_SINGLE,
+  EXPECT_OUTCOME_RAISE(CborEncodeError::kExpectedMapValueSingle,
                        CborEncodeStream() << map1);
   auto map2 = s.map();
   map2["a"];
-  EXPECT_OUTCOME_RAISE(CborEncodeError::EXPECTED_MAP_VALUE_SINGLE,
+  EXPECT_OUTCOME_RAISE(CborEncodeError::kExpectedMapValueSingle,
                        CborEncodeStream() << map2);
 }
 
@@ -334,9 +334,9 @@ TEST(CborDecoder, Map) {
  * @then Error
  */
 TEST(CborDecoder, InitErrors) {
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kInvalidCbor,
                        CborDecodeStream("FF"_unhex));
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kInvalidCbor,
                        CborDecodeStream("18"_unhex));
 }
 
@@ -349,15 +349,15 @@ TEST(CborDecoder, IntErrors) {
   bool b;
   uint8_t u8;
   int8_t i8;
-  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kWrongType,
                        CborDecodeStream("01"_unhex) >> b);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kWrongType,
                        CborDecodeStream("80"_unhex) >> u8);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INT_OVERFLOW,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kIntOverflow,
                        CborDecodeStream("21"_unhex) >> u8);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INT_OVERFLOW,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kIntOverflow,
                        CborDecodeStream("190100"_unhex) >> u8);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INT_OVERFLOW,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kIntOverflow,
                        CborDecodeStream("1880"_unhex) >> i8);
 }
 
@@ -368,9 +368,9 @@ TEST(CborDecoder, IntErrors) {
  */
 TEST(CborDecoder, FlatErrors) {
   int i;
-  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kWrongType,
                        CborDecodeStream("01"_unhex).list() >> i >> i);
-  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kWrongType,
                        CborDecodeStream("80"_unhex).list() >> i);
 }
 
@@ -380,11 +380,11 @@ TEST(CborDecoder, FlatErrors) {
  * @then Error
  */
 TEST(CborDecoder, ListErrors) {
-  EXPECT_OUTCOME_RAISE(CborDecodeError::WRONG_TYPE,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kWrongType,
                        CborDecodeStream("01"_unhex).list());
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kInvalidCbor,
                        CborDecodeStream("81"_unhex).list());
-  EXPECT_OUTCOME_RAISE(CborDecodeError::INVALID_CBOR,
+  EXPECT_OUTCOME_RAISE(CborDecodeError::kInvalidCbor,
                        CborDecodeStream("8018"_unhex).list());
 }
 
@@ -396,27 +396,27 @@ TEST(CborDecoder, ListErrors) {
 TEST(CborDecoder, CidErrors) {
   // no tag
   EXPECT_OUTCOME_ERROR(
-      CborDecodeError::INVALID_CBOR_CID,
+      CborDecodeError::kInvalidCborCID,
       decode<CID>(
           "582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex));
   // not 42 tag
   EXPECT_OUTCOME_ERROR(
-      CborDecodeError::INVALID_CBOR_CID,
+      CborDecodeError::kInvalidCborCID,
       decode<CID>(
           "D82B582300122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex));
   // empty 42 tag
-  EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CBOR,
+  EXPECT_OUTCOME_ERROR(CborDecodeError::kInvalidCbor,
                        decode<CID>("D82A"_unhex));
   // not bytes
-  EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CBOR_CID,
+  EXPECT_OUTCOME_ERROR(CborDecodeError::kInvalidCborCID,
                        decode<CID>("D82B01"_unhex));
   // no multibase 00 prefix
   EXPECT_OUTCOME_ERROR(
-      CborDecodeError::INVALID_CBOR_CID,
+      CborDecodeError::kInvalidCborCID,
       decode<CID>(
           "D82A5822122031C3D57080D8463A3C63B2923DF5A1D40AD7A73EAE5A14AF584213E5F504AC33"_unhex));
   // invalid cid
-  EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CID,
+  EXPECT_OUTCOME_ERROR(CborDecodeError::kInvalidCID,
                        decode<CID>("D82A420000"_unhex));
 }
 
@@ -459,7 +459,7 @@ struct CborResolve : testing::Test {
  * @then Error
  */
 TEST_F(CborResolve, Cid) {
-  EXPECT_OUTCOME_ERROR(CborResolveError::CONTAINER_EXPECTED,
+  EXPECT_OUTCOME_ERROR(CborResolveError::kContainerExpected,
                        resolve(kCidCbor, "a"));
 }
 
@@ -473,10 +473,10 @@ TEST_F(CborResolve, IntKey) {
 
   EXPECT_OUTCOME_EQ(resolve(a, "2"), "07"_unhex);
 
-  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, "a"));
-  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, "1a"));
-  EXPECT_OUTCOME_ERROR(CborResolveError::INT_KEY_EXPECTED, resolve(a, "-4"));
-  EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, "4"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::kIntKeyExpected, resolve(a, "a"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::kIntKeyExpected, resolve(a, "1a"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::kIntKeyExpected, resolve(a, "-4"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::kKeyNotFound, resolve(a, "4"));
 }
 
 /**
@@ -489,7 +489,7 @@ TEST_F(CborResolve, StringKey) {
 
   EXPECT_OUTCOME_EQ(resolve(a, "b"), "04"_unhex);
 
-  EXPECT_OUTCOME_ERROR(CborResolveError::KEY_NOT_FOUND, resolve(a, "1"));
+  EXPECT_OUTCOME_ERROR(CborResolveError::kKeyNotFound, resolve(a, "1"));
 }
 
 /**
@@ -498,8 +498,8 @@ TEST_F(CborResolve, StringKey) {
  * @then Error
  */
 TEST_F(CborResolve, Errors) {
-  EXPECT_OUTCOME_ERROR(CborResolveError::CONTAINER_EXPECTED,
+  EXPECT_OUTCOME_ERROR(CborResolveError::kContainerExpected,
                        resolve("01"_unhex, "0"));
-  EXPECT_OUTCOME_ERROR(CborDecodeError::INVALID_CBOR,
+  EXPECT_OUTCOME_ERROR(CborDecodeError::kInvalidCbor,
                        resolve("8281"_unhex, "1"));
 }

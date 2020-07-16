@@ -65,7 +65,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::sync_manager,
                             error) {
   using Error = fc::blockchain::sync_manager::SyncTargetBucketError;
   switch (error) {
-    case Error::BUCKET_IS_EMPTY:
+    case Error::kBucketIsEmpty:
       return "bucket is empty";
   }
 }

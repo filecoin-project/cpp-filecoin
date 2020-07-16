@@ -18,7 +18,7 @@ namespace fc::drand {
   class DrandSyncClientImpl : public DrandSyncClient {
    public:
     enum class Error {
-      GRPC_FAILURE = 1,
+      kGRPCFailure = 1,
     };
     DrandSyncClientImpl(
         std::string address,

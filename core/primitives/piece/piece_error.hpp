@@ -14,10 +14,10 @@ namespace fc::primitives::piece {
    * @brief Pieces returns these types of errors
    */
   enum class PieceError {
-    LESS_THAT_MINIMUM_SIZE = 1,
-    LESS_THAT_MINIMUM_PADDED_SIZE,
-    INVALID_UNPADDED_SIZE,
-    INVALID_PADDED_SIZE,
+    kLessThatMinimumSize = 1,
+    kLessThatMinimumPaddedSize,
+    kInvalidUnpaddedSize,
+    kInvalidPaddedSize,
   };
 
 }  // namespace fc::primitives::piece

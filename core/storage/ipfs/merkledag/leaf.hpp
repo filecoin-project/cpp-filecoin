@@ -50,7 +50,7 @@ namespace fc::storage::ipfs::merkledag {
   /**
    * @enum Possible leaf errors
    */
-  enum class LeafError : int { LEAF_NOT_FOUND = 1, DUPLICATE_LEAF };
+  enum class LeafError : int { kLeafNotFound = 1, kDuplicateLeaf };
 }  // namespace fc::storage::ipfs::merkledag
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::ipfs::merkledag, LeafError)

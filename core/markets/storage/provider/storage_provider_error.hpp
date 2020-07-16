@@ -11,8 +11,8 @@
 namespace fc::markets::storage::provider {
 
   enum class StorageProviderError {
-    PROVIDER_START_ERROR = 1,
-    STREAM_LOOKUP_ERROR,
+    kProviderStartError = 1,
+    kStreamLookupError,
   };
 
 }  // namespace fc::markets::storage::provider

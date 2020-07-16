@@ -20,7 +20,7 @@ namespace fc::api {
                                       const CID &root,
                                       gsl::span<const std::string> parts) {
     if (root.content_type != libp2p::multi::MulticodecType::DAG_CBOR) {
-      return TodoError::ERROR;
+      return TodoError::kError;
     }
     OUTCOME_TRY(raw, ipld->get(root));
     try {
@@ -73,7 +73,7 @@ namespace fc::api {
             s = CborDecodeStream{raw2};
           } else {
             if (i != parts.size() - 1) {
-              return TodoError::ERROR;
+              return TodoError::kError;
             }
           }
         }

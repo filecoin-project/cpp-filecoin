@@ -8,53 +8,53 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
   using fc::sector_storage::stores::StoreErrors;
   switch (e) {
-    case (StoreErrors::FIND_AND_ALLOCATE):
+    case (StoreErrors::kFindAndAllocate):
       return "Store: can't both find and allocate a sector";
-    case (StoreErrors::NOT_FOUND_PATH):
+    case (StoreErrors::kNotFoundPath):
       return "Store: couldn't find a suitable path for a sector";
-    case (StoreErrors::NOT_FOUND_STORAGE):
+    case (StoreErrors::kNotFoundStorage):
       return "Store: couldn't find the storage";
-    case (StoreErrors::INVALID_SECTOR_NAME):
+    case (StoreErrors::kInvalidSectorName):
       return "Store: invalid sector file name";
-    case (StoreErrors::INVALID_STORAGE_CONFIG):
+    case (StoreErrors::kInvalidStorageConfig):
       return "Store: can not open or parse the storage config";
-    case (StoreErrors::CANNOT_CREATE_DIR):
+    case (StoreErrors::kCannotCreateDir):
       return "Store: can not create a directory";
-    case (StoreErrors::DUPLICATE_STORAGE):
+    case (StoreErrors::kDuplicateStorage):
       return "Store: the storage is a duplicate";
-    case (StoreErrors::NOT_FOUND_SECTOR):
+    case (StoreErrors::kNotFoundSector):
       return "Store: couldn't find the sector";
-    case (StoreErrors::CANNOT_REMOVE_SECTOR):
+    case (StoreErrors::kCannotRemoveSector):
       return "Store: cannot remove the sector";
-    case (StoreErrors::REMOVE_SEVERAL_FILE_TYPES):
+    case (StoreErrors::kRemoveSeveralFileTypes):
       return "Store: remove expects one file type";
-    case (StoreErrors::CANNOT_MOVE_SECTOR):
+    case (StoreErrors::kCannotMoveSector):
       return "Store: cannot move the sector";
-    case (StoreErrors::CANNOT_INIT_LOGGER):
+    case (StoreErrors::kCannotInitLogger):
       return "Store: cannot init logger";
-    case (StoreErrors::NO_REMOTE_STORAGE_URLS):
+    case (StoreErrors::kNoRemoteStorageUrls):
       return "Store: no known URLs for remote storage";
-    case (StoreErrors::INVALID_URL):
+    case (StoreErrors::kInvalidUrl):
       return "Store: invalid url of storage";
-    case (StoreErrors::INVALID_FS_STAT_RESPONSE):
+    case (StoreErrors::kInvalidFsStatResponse):
       return "Store: response with FS stat is invalid";
-    case (StoreErrors::INTERNAL_SEVER_ERROR):
+    case (StoreErrors::kInternalServerError):
       return "Store: 500 response code received";
-    case (StoreErrors::UNABLE_CREATE_REQUEST):
+    case (StoreErrors::kUnableCreateRequest):
       return "Store: unable to create a response";
-    case (StoreErrors::NOT_OK_STATUS_CODE):
+    case (StoreErrors::kNotOkStatusCode):
       return "Store: non 200 response code received";
-    case (StoreErrors::UNABLE_REMOTE_ACQUIRE_SECTOR):
+    case (StoreErrors::kUnableRemoteAcquireSector):
       return "Store: failed to acquire sector from remote";
-    case (StoreErrors::CANNOT_OPEN_TEMP_FILE):
+    case (StoreErrors::kCannotOpenTempFile):
       return "Store: cannot open temp file for downloading";
-    case (StoreErrors::UNKNOWN_CONTENT_TYPE):
+    case (StoreErrors::kUnknownContentType):
       return "Store: received unsupported content type";
-    case (StoreErrors::CANNOT_REMOVE_OUTPUT_PATH):
+    case (StoreErrors::kCannotRemoveOutputPath):
       return "Store: cannot remove output path";
-    case (StoreErrors::CANNOT_MOVE_FILE):
+    case (StoreErrors::kCannotMoveFile):
       return "Store: cannot move file";
-    case (StoreErrors::NOT_FOUND_REQUESTED_SECTOR_TYPE):
+    case (StoreErrors::kNotFoundRequestedSectorType):
       return "Store: Not found the requested type";
     default:
       return "Store: unknown error";

@@ -46,7 +46,7 @@ TEST_F(FileSystemFileTest, FileNotFound) {
   auto file = std::make_shared<FileSystemFile>(path);
   auto res = file->open();
   ASSERT_FALSE(res);
-  ASSERT_EQ(FileStoreError::FILE_NOT_FOUND, res.error());
+  ASSERT_EQ(FileStoreError::kFileNotFound, res.error());
   ASSERT_FALSE(file->is_open());
 
   auto res_size = file->size();
@@ -55,16 +55,16 @@ TEST_F(FileSystemFileTest, FileNotFound) {
   std::vector<uint8_t> buff{'a', 'b', 'c'};
   auto write_res = file->write(0, buff);
   ASSERT_FALSE(write_res);
-  ASSERT_EQ(FileStoreError::FILE_NOT_FOUND, write_res.error());
+  ASSERT_EQ(FileStoreError::kFileNotFound, write_res.error());
 
   std::array<uint8_t, 3> read_buff{};
   auto read_res = file->read(0, read_buff);
   ASSERT_FALSE(read_res);
-  ASSERT_EQ(FileStoreError::FILE_NOT_FOUND, read_res.error());
+  ASSERT_EQ(FileStoreError::kFileNotFound, read_res.error());
 
   auto close_res = file->close();
   ASSERT_FALSE(close_res);
-  ASSERT_EQ(FileStoreError::FILE_NOT_FOUND, close_res.error());
+  ASSERT_EQ(FileStoreError::kFileNotFound, close_res.error());
 }
 
 /**
@@ -80,7 +80,7 @@ TEST_F(FileSystemFileTest, DoubleOpen) {
   // open again
   auto open_res = empty_file->open();
   ASSERT_FALSE(open_res);
-  ASSERT_EQ(FileStoreError::CANNOT_OPEN, open_res.error());
+  ASSERT_EQ(FileStoreError::kCannotOpen, open_res.error());
   ASSERT_TRUE(empty_file->is_open());
 }
 
@@ -98,16 +98,16 @@ TEST_F(FileSystemFileTest, CloseFile) {
   std::vector<uint8_t> buff{'A', 'B', 'C'};
   auto write_res = empty_file->write(0, buff);
   ASSERT_FALSE(write_res);
-  ASSERT_EQ(FileStoreError::FILE_CLOSED, write_res.error());
+  ASSERT_EQ(FileStoreError::kFileClosed, write_res.error());
 
   std::array<uint8_t, 3> read_buff{};
   auto read_res = empty_file->read(0, read_buff);
   ASSERT_FALSE(read_res);
-  ASSERT_EQ(FileStoreError::FILE_CLOSED, read_res.error());
+  ASSERT_EQ(FileStoreError::kFileClosed, read_res.error());
 
   auto close_again_res = empty_file->close();
   ASSERT_FALSE(close_again_res);
-  ASSERT_EQ(FileStoreError::FILE_CLOSED, close_again_res.error());
+  ASSERT_EQ(FileStoreError::kFileClosed, close_again_res.error());
 
   auto res_size = empty_file->size();
   ASSERT_TRUE(res_size);

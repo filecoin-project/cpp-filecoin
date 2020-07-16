@@ -54,10 +54,10 @@ namespace fc::markets::storage::provider {
   };
 
   enum class ProviderRequestValidatorError {
-    ERROR_NO_PUSH_ACCEPTED,
-    WRONG_PEER,
-    WRONG_PAYLOAD_CID,
-    INACCEPTABLE_DEAL_STATE,
+    kErrorNoPushAccepted,
+    kWrongPeer,
+    kWrongPayloadCID,
+    kInacceptableDealState,
   };
 
 }  // namespace fc::markets::storage::provider

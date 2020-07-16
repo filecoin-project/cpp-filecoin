@@ -11,7 +11,7 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::adt, UvarintKeyError, e) {
   using E = fc::adt::UvarintKeyError;
   switch (e) {
-    case E::DECODE_ERROR:
+    case E::kDecodeError:
       return "Decode error";
   }
 }
@@ -29,7 +29,7 @@ namespace fc::adt {
       const std::string &key) {
     auto maybe = UVarint::create(common::span::cbytes(key));
     if (!maybe) {
-      return UvarintKeyError::DECODE_ERROR;
+      return UvarintKeyError::kDecodeError;
     }
     return maybe->toUInt64();
   }

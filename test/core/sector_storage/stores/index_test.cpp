@@ -137,7 +137,7 @@ TEST_F(SectorIndexTest, AttachStorageWithInvalidUrl) {
   };
 
   EXPECT_OUTCOME_ERROR(
-      IndexErrors::InvalidUrl,
+      IndexErrors::kInvalidUrl,
       sector_index_->storageAttach(storage_info, file_system_stat));
 }
 
@@ -147,7 +147,7 @@ TEST_F(SectorIndexTest, AttachStorageWithInvalidUrl) {
  * @then get error NotFound
  */
 TEST_F(SectorIndexTest, NotFoundStorage) {
-  EXPECT_OUTCOME_ERROR(IndexErrors::StorageNotFound,
+  EXPECT_OUTCOME_ERROR(IndexErrors::kStorageNotFound,
                        sector_index_->getStorageInfo("not_found_id"));
 }
 
@@ -158,7 +158,7 @@ TEST_F(SectorIndexTest, NotFoundStorage) {
  */
 TEST_F(SectorIndexTest, BestAllocationNoSuitableStorage) {
   EXPECT_OUTCOME_ERROR(
-      IndexErrors::NoSuitableCandidate,
+      IndexErrors::kNoSuitableCandidate,
       sector_index_->storageBestAlloc(
           SectorFileType::FTCache, RegisteredProof::StackedDRG2KiBSeal, false));
 }

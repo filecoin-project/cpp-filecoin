@@ -69,9 +69,9 @@ TEST(InitActorTest, AddActor) {
 TEST(InitActorExecText, ExecError) {
   MockRuntime runtime;
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::INIT_ACTOR_NOT_BUILTIN_ACTOR,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kInitActorNotBuiltinActor,
                        Exec::call(runtime, {CodeId{"010001020000"_cid}, {}}));
-  EXPECT_OUTCOME_ERROR(VMExitCode::INIT_ACTOR_SINGLETON_ACTOR,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kInitActorSingletonActor,
                        Exec::call(runtime, {fc::vm::actor::kInitCodeCid, {}}));
 }
 

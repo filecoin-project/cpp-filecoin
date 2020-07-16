@@ -93,7 +93,7 @@ TYPED_TEST(RLEPlusCodecTester, MixedBlocksSuccess) {
  * @then Decode operation must be failed with appropriate error code
  */
 TYPED_TEST(RLEPlusCodecTester, InvalidHeaderDecodeFailure) {
-  auto expected = RLEPlusDecodeError::VersionMismatch;
+  auto expected = RLEPlusDecodeError::kVersionMismatch;
   std::vector<uint8_t> data{0xFF, 0x8, 0x15, 0x16};
   this->checkDecodeFailure(data, expected);
 }
@@ -104,7 +104,7 @@ TYPED_TEST(RLEPlusCodecTester, InvalidHeaderDecodeFailure) {
  * @then Decode operation must be failed with appropriate error code
  */
 TYPED_TEST(RLEPlusCodecTester, InvalidStructureDecodeFailure) {
-  auto expected = RLEPlusDecodeError::DataIndexFailure;
+  auto expected = RLEPlusDecodeError::kDataIndexFailure;
   std::vector<uint8_t> data{0x4, 0x8, 0x15, 0x16};
   this->checkDecodeFailure(data, expected);
 }
@@ -136,7 +136,7 @@ TEST(RLEPlusDecode, MaxSizeExceedFailure) {
     value += 2;
   }
   auto encoded = encode(data_set);
-  auto expected = RLEPlusDecodeError::MaxSizeExceed;
+  auto expected = RLEPlusDecodeError::kMaxSizeExceed;
   auto result = decode<uint64_t>(encoded);
   ASSERT_TRUE(result.has_error());
   ASSERT_EQ(result.error().value(), static_cast<int>(expected));

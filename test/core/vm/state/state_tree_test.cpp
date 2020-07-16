@@ -14,15 +14,12 @@ using fc::primitives::address::Address;
 using fc::storage::hamt::Hamt;
 using fc::storage::hamt::HamtError;
 using fc::vm::actor::Actor;
-using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::CodeId;
 using fc::vm::state::StateTreeImpl;
 
 auto kAddressId = Address::makeFromId(13);
-const Actor kActor{CodeId{"010001020001"_cid},
-                   ActorSubstateCID{"010001020002"_cid},
-                   3,
-                   BigInt(5)};
+const Actor kActor{
+    CodeId{"010001020001"_cid}, "010001020002"_cid, 3, BigInt(5)};
 
 class StateTreeTest : public ::testing::Test {
  public:
@@ -37,7 +34,7 @@ class StateTreeTest : public ::testing::Test {
  * @then Actor state in the tree is same
  */
 TEST_F(StateTreeTest, Set) {
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, tree_.get(kAddressId));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, tree_.get(kAddressId));
   EXPECT_OUTCOME_TRUE_1(tree_.set(kAddressId, kActor));
   EXPECT_OUTCOME_EQ(tree_.get(kAddressId), kActor);
 }
@@ -63,7 +60,7 @@ TEST_F(StateTreeTest, SetRevert) {
   EXPECT_OUTCOME_TRUE(root, tree_.flush());
   EXPECT_OUTCOME_TRUE_1(tree_.set(kAddressId, kActor));
   EXPECT_OUTCOME_TRUE_1(tree_.revert(root));
-  EXPECT_OUTCOME_ERROR(HamtError::NOT_FOUND, tree_.get(kAddressId));
+  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, tree_.get(kAddressId));
 }
 
 /**

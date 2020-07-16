@@ -6,52 +6,35 @@
 #ifndef CPP_FILECOIN_CORE_VM_RUNTIME_IMPL_RUNTIME_IMPL_HPP
 #define CPP_FILECOIN_CORE_VM_RUNTIME_IMPL_RUNTIME_IMPL_HPP
 
-#include "crypto/randomness/randomness_provider.hpp"
-#include "storage/ipfs/datastore.hpp"
 #include "vm/actor/invoker.hpp"
-#include "vm/runtime/actor_state_handle.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime.hpp"
 #include "vm/state/state_tree.hpp"
 
 namespace fc::vm::runtime {
-
-  using actor::Actor;
   using actor::Invoker;
-  using crypto::randomness::ChainEpoch;
-  using crypto::randomness::Randomness;
-  using crypto::randomness::RandomnessProvider;
-  using primitives::address::Address;
   using state::StateTree;
-  using storage::ipfs::IpfsDatastore;
 
   class RuntimeImpl : public Runtime {
    public:
     RuntimeImpl(std::shared_ptr<Execution> execution,
                 UnsignedMessage message,
                 const Address &caller_id,
-                ActorSubstateCID current_actor_state);
+                CID current_actor_state);
 
     /** \copydoc Runtime::getCurrentEpoch() */
     ChainEpoch getCurrentEpoch() const override;
 
-    /** \copydoc Runtime::getRandomness() */
-    Randomness getRandomness(DomainSeparationTag tag,
-                             ChainEpoch epoch) const override;
-
-    /** \copydoc Runtime::getRandomness() */
-    Randomness getRandomness(DomainSeparationTag tag,
-                             ChainEpoch epoch,
-                             Serialization seed) const override;
+    outcome::result<Randomness> getRandomness(
+        DomainSeparationTag tag,
+        ChainEpoch epoch,
+        gsl::span<const uint8_t> seed) const override;
 
     /** \copydoc Runtime::getImmediateCaller() */
     Address getImmediateCaller() const override;
 
     /** \copydoc Runtime::getCurrentReceiver() */
     Address getCurrentReceiver() const override;
-
-    /** \copydoc Runtime::acquireState() */
-    std::shared_ptr<ActorStateHandle> acquireState() const override;
 
     /** \copydoc Runtime::getBalance() */
     outcome::result<BigInt> getBalance(const Address &address) const override;
@@ -84,9 +67,9 @@ namespace fc::vm::runtime {
 
     outcome::result<void> chargeGas(GasAmount amount) override;
 
-    ActorSubstateCID getCurrentActorState() override;
+    CID getCurrentActorState() override;
 
-    outcome::result<void> commit(const ActorSubstateCID &new_state) override;
+    outcome::result<void> commit(const CID &new_state) override;
 
     static outcome::result<void> transfer(Actor &from,
                                           Actor &to,
@@ -116,7 +99,7 @@ namespace fc::vm::runtime {
     std::shared_ptr<StateTree> state_tree_;
     UnsignedMessage message_;
     Address caller_id;
-    ActorSubstateCID current_actor_state_;
+    CID current_actor_state_;
   };
 
 }  // namespace fc::vm::runtime

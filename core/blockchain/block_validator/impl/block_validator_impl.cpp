@@ -41,7 +41,7 @@ namespace fc::blockchain::block_validator {
           return result;
         }
       } else {
-        return ValidatorError::UNKNOWN_STAGE;
+        return ValidatorError::kUnknownStage;
       }
     }
     return outcome::success();
@@ -80,10 +80,10 @@ namespace fc::blockchain::block_validator {
     auto validation_result = visit_in_place(
         block.miner.data,
         [](uint64_t) -> outcome::result<void> {
-          return ValidatorError::INVALID_MINER_PUBLIC_KEY;
+          return ValidatorError::kInvalidMinerPublicKey;
         },
         [](const ActorExecHash &) -> outcome::result<void> {
-          return ValidatorError::INVALID_MINER_PUBLIC_KEY;
+          return ValidatorError::kInvalidMinerPublicKey;
         },
         [&block_signature, &block_bytes, *this](
             const SecpPubKey &public_key) -> outcome::result<void> {
@@ -100,7 +100,7 @@ namespace fc::blockchain::block_validator {
           if (result) {
             return outcome::success();
           }
-          return ValidatorError::INVALID_BLOCK_SIGNATURE;
+          return ValidatorError::kInvalidBlockSignature;
         },
         [&block_signature, &block_bytes, *this](
             const BlsPubKey &public_key) -> outcome::result<void> {
@@ -117,7 +117,7 @@ namespace fc::blockchain::block_validator {
           if (result) {
             return outcome::success();
           }
-          return ValidatorError::INVALID_BLOCK_SIGNATURE;
+          return ValidatorError::kInvalidBlockSignature;
         });
     return validation_result;
   }
@@ -145,7 +145,7 @@ namespace fc::blockchain::block_validator {
         && result.message_receipts == block.parent_message_receipts) {
       return outcome::success();
     }
-    return ValidatorError::INVALID_PARENT_STATE;
+    return ValidatorError::kInvalidParentState;
   }
 
   outcome::result<std::reference_wrapper<BlockValidatorImpl::Tipset>>
@@ -164,10 +164,10 @@ namespace fc::blockchain::block_validator {
         if (block_header_result.has_value()) {
           parent_blocks.emplace_back(std::move(block_header_result.value()));
         } else {
-          return ConsensusError::GET_PARENT_TIPSET_ERROR;
+          return ConsensusError::kGetParentTipsetError;
         }
       } else {
-        return ConsensusError::GET_PARENT_TIPSET_ERROR;
+        return ConsensusError::kGetParentTipsetError;
       }
     }
     OUTCOME_TRY(tipset, Tipset::create(parent_blocks));
@@ -183,15 +183,15 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::block_validator,
                             e) {
   using fc::blockchain::block_validator::ValidatorError;
   switch (e) {
-    case ValidatorError::UNKNOWN_STAGE:
+    case ValidatorError::kUnknownStage:
       return "Block validation: unknown validation stage";
-    case ValidatorError::UNKNOWN_BLOCK_SIGNATURE:
+    case ValidatorError::kUnknownBlockSignature:
       return "Block validation: unknown block signature";
-    case ValidatorError::INVALID_BLOCK_SIGNATURE:
+    case ValidatorError::kInvalidBlockSignature:
       return "Block validation: invalid block signature";
-    case ValidatorError::INVALID_MINER_PUBLIC_KEY:
+    case ValidatorError::kInvalidMinerPublicKey:
       return "Block validation: invalid miner public key";
-    case ValidatorError::INVALID_PARENT_STATE:
+    case ValidatorError::kInvalidParentState:
       return "Block validation: invalid parent state";
   }
   return "Block validation: unknown error";

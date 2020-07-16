@@ -17,7 +17,7 @@ namespace fc {
   }
 
   outcome::result<void> funcFailure() {
-    return TodoError::ERROR;
+    return TodoError::kError;
   }
 
   outcome::result<int> funcSuccessReturn() {
@@ -25,7 +25,7 @@ namespace fc {
   }
 
   outcome::result<int> funcFailureReturn() {
-    return TodoError::ERROR;
+    return TodoError::kError;
   }
 
   /**

@@ -35,12 +35,12 @@ namespace fc::primitives::piece {
 
   outcome::result<void> UnpaddedPieceSize::validate() const {
     if (size_ < 127) {
-      return PieceError::LESS_THAT_MINIMUM_SIZE;
+      return PieceError::kLessThatMinimumSize;
     }
 
     // is 127 * 2^n
     if (!((size_ % 127) || ((size_ / 127) & ((size_ / 127) - 1)))) {
-      return PieceError::INVALID_UNPADDED_SIZE;
+      return PieceError::kInvalidUnpaddedSize;
     }
 
     return outcome::success();
@@ -65,11 +65,11 @@ namespace fc::primitives::piece {
 
   outcome::result<void> PaddedPieceSize::validate() const {
     if (size_ < 128) {
-      return PieceError::LESS_THAT_MINIMUM_PADDED_SIZE;
+      return PieceError::kLessThatMinimumPaddedSize;
     }
 
     if (!((size_) & (size_ - 1))) {
-      return PieceError::INVALID_PADDED_SIZE;
+      return PieceError::kInvalidPaddedSize;
     }
 
     return outcome::success();

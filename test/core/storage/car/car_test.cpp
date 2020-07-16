@@ -45,7 +45,7 @@ TEST(CarTest, LoadSuccess) {
 TEST(CarTest, LoadTruncatedError) {
   InMemoryDatastore ipld;
   auto input = readFile(resourcePath("genesis.car"));
-  EXPECT_OUTCOME_ERROR(CarError::DECODE_ERROR,
+  EXPECT_OUTCOME_ERROR(CarError::kDecodeError,
                        loadCar(ipld, input.subbuffer(0, input.size() - 1)));
 }
 

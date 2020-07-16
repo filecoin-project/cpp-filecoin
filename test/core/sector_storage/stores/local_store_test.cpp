@@ -119,7 +119,7 @@ TEST_F(LocalStoreTest, AcquireSectorFindAndAllocate) {
   auto file_type_existing = static_cast<SectorFileType>(
       SectorFileType::FTCache | SectorFileType::FTSealed);
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::FIND_AND_ALLOCATE,
+  EXPECT_OUTCOME_ERROR(StoreErrors::kFindAndAllocate,
                        local_store_->acquireSector(sector,
                                                    seal_proof_type,
                                                    file_type_existing,
@@ -152,7 +152,7 @@ TEST_F(LocalStoreTest, AcquireSectorNotFoundPath) {
               storageBestAlloc(SectorFileType::FTCache, seal_proof_type, false))
       .WillOnce(testing::Return(fc::outcome::success(res)));
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::NOT_FOUND_PATH,
+  EXPECT_OUTCOME_ERROR(StoreErrors::kNotFoundPath,
                        local_store_->acquireSector(sector,
                                                    seal_proof_type,
                                                    SectorFileType::FTNone,
@@ -292,7 +292,7 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
  * @then StoreErrors::NotFoundStorage error occurs
  */
 TEST_F(LocalStoreTest, getFSStatNotFound) {
-  EXPECT_OUTCOME_ERROR(StoreErrors::NOT_FOUND_STORAGE,
+  EXPECT_OUTCOME_ERROR(StoreErrors::kNotFoundStorage,
                        local_store_->getFsStat("not_found_id"));
 }
 
@@ -451,7 +451,7 @@ TEST_F(LocalStoreTest, openPathInvalidSectorName) {
                   stat))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::INVALID_SECTOR_NAME,
+  EXPECT_OUTCOME_ERROR(StoreErrors::kInvalidSectorName,
                        local_store_->openPath(storage_path.string()));
 }
 
@@ -480,7 +480,7 @@ TEST_F(LocalStoreTest, openPathDuplicateStorage) {
 
   createStorage(storage_path, storage_meta, stat);
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::DUPLICATE_STORAGE,
+  EXPECT_OUTCOME_ERROR(StoreErrors::kDuplicateStorage,
                        local_store_->openPath(storage_path));
 }
 
@@ -503,7 +503,7 @@ TEST_F(LocalStoreTest, openPathInvalidConfig) {
 
   file.close();
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::INVALID_STORAGE_CONFIG,
+  EXPECT_OUTCOME_ERROR(StoreErrors::kInvalidStorageConfig,
                        local_store_->openPath(storage_path.string()));
 }
 
@@ -518,7 +518,7 @@ TEST_F(LocalStoreTest, openPathNoConfig) {
 
   boost::filesystem::create_directory(storage_path);
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::INVALID_STORAGE_CONFIG,
+  EXPECT_OUTCOME_ERROR(StoreErrors::kInvalidStorageConfig,
                        local_store_->openPath(storage_path.string()));
 }
 
@@ -536,10 +536,10 @@ TEST_F(LocalStoreTest, removeSeveralSectorTypes) {
   auto type = static_cast<SectorFileType>(SectorFileType::FTCache
                                           | SectorFileType::FTUnsealed);
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::REMOVE_SEVERAL_FILE_TYPES,
+  EXPECT_OUTCOME_ERROR(StoreErrors::kRemoveSeveralFileTypes,
                        local_store_->remove(sector, type));
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::REMOVE_SEVERAL_FILE_TYPES,
+  EXPECT_OUTCOME_ERROR(StoreErrors::kRemoveSeveralFileTypes,
                        local_store_->remove(sector, SectorFileType::FTNone));
 }
 
@@ -560,7 +560,7 @@ TEST_F(LocalStoreTest, removeNotExistSector) {
       .WillOnce(
           testing::Return(fc::outcome::success(std::vector<StorageInfo>())));
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::NOT_FOUND_SECTOR,
+  EXPECT_OUTCOME_ERROR(StoreErrors::kNotFoundSector,
                        local_store_->remove(sector, type));
 }
 

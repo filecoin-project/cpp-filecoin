@@ -65,7 +65,7 @@ void expectJson(const T &value, std::string expected) {
 /// Following tests check json encoding and decoding
 
 TEST(ApiJsonTest, WrongType) {
-  EXPECT_OUTCOME_ERROR(fc::api::JsonError::WRONG_TYPE,
+  EXPECT_OUTCOME_ERROR(fc::api::JsonError::kWrongType,
                        fc::api::decode<Ticket>(jsonDecode("4")));
 }
 

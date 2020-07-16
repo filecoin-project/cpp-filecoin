@@ -17,7 +17,7 @@ namespace fc::common {
   /**
    * @brief error codes for exceptions that may occur during unhexing
    */
-  enum class UnhexError { NOT_ENOUGH_INPUT = 1, NON_HEX_INPUT, UNKNOWN };
+  enum class UnhexError { kNotEnoughInput = 1, kNonHexInput, kUnknown };
 
   /**
    * @brief Converts an integer to an uppercase hex representation

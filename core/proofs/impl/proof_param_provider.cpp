@@ -97,7 +97,7 @@ namespace fc::proofs {
 
     } catch (std::exception const &e) {
       logger_->error("Error: " + std::string(e.what()));
-      return ProofParamProviderError::FAILED_DOWNLOADING;
+      return ProofParamProviderError::kFailedDownloading;
     }
     return outcome::success();
   }
@@ -114,7 +114,7 @@ namespace fc::proofs {
       boost::filesystem::create_directories(getParamDir());
     } catch (const std::exception &e) {
       logger_->error("Error:" + std::string(e.what()));
-      return ProofParamProviderError::CANNOT_CREATE_DIR;
+      return ProofParamProviderError::kCannotCreateDir;
     }
 
     curl_global_init(CURL_GLOBAL_ALL);
@@ -135,7 +135,7 @@ namespace fc::proofs {
 
     if (!errors_) return outcome::success();
 
-    return ProofParamProviderError::FAILED_DOWNLOADING;
+    return ProofParamProviderError::kFailedDownloading;
   }
 
   outcome::result<void> checkFile(const std::string &path,
@@ -148,13 +148,13 @@ namespace fc::proofs {
 
     std::ifstream ifs(path, std::ios::binary);
 
-    if (!ifs.is_open()) return ProofParamProviderError::FILE_DOES_NOT_OPEN;
+    if (!ifs.is_open()) return ProofParamProviderError::kFileDoesNotOpen;
 
     auto sum = crypto::blake2b::blake2b_512_from_file(ifs);
 
     auto our_some = common::hex_lower(gsl::make_span(sum).subspan(0, 16));
     if (our_some != info.digest) {
-      return ProofParamProviderError::CHECKSUM_MISMATCH;
+      return ProofParamProviderError::kChecksumMismatch;
     }
 
     return outcome::success();
@@ -204,7 +204,7 @@ namespace fc::proofs {
   template <typename T>
   outcome::result<std::decay_t<T>> ensure(boost::optional<T> opt_entry) {
     if (not opt_entry) {
-      return ProofParamProviderError::MISSING_ENTRY;
+      return ProofParamProviderError::kMissingEntry;
     }
     return opt_entry.value();
   }
@@ -215,7 +215,7 @@ namespace fc::proofs {
     try {
       pt::read_json(path, tree);
     } catch (pt::json_parser_error &e) {
-      return ProofParamProviderError::INVALID_JSON;
+      return ProofParamProviderError::kInvalidJSON;
     }
 
     std::vector<ParamFile> result = {};
@@ -233,7 +233,7 @@ namespace fc::proofs {
         param_file.sector_size =
             boost::lexical_cast<uint64_t>(sector_size.data());
       } catch (const boost::bad_lexical_cast &e) {
-        return ProofParamProviderError::INVALID_SECTOR_SIZE;
+        return ProofParamProviderError::kInvalidSectorSize;
       }
 
       result.push_back(param_file);

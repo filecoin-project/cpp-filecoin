@@ -13,7 +13,7 @@
 namespace fc::adt {
   using primitives::TokenAmount;
 
-  enum class BalanceTableError { INSUFFICIENT_FUNDS = 1 };
+  enum class BalanceTableError { kInsufficientFunds = 1 };
 
   struct BalanceTable : public Map<TokenAmount, AddressKeyer> {
     using Map::Map;

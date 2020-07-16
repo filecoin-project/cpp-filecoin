@@ -67,7 +67,7 @@ TEST_F(AddressCodecTest, AddressDecodeOk) {
  * integer
  */
 TEST_F(AddressCodecTest, AddressDecodeFailure) {
-  int expected = static_cast<int>(AddressError::INVALID_PAYLOAD);
+  int expected = static_cast<int>(AddressError::kInvalidPayload);
   EXPECT_OUTCOME_FALSE_2(error_code,
                          decode("008080808080808080808001"_unhex));  // 2^70
   ASSERT_EQ(error_code.value(), expected);
@@ -79,7 +79,7 @@ TEST_F(AddressCodecTest, AddressDecodeFailure) {
  * @then INVALID_PAYLOAD error while creating the Address
  */
 TEST_F(AddressCodecTest, InvalidPayloadSize) {
-  int expected = static_cast<int>(AddressError::INVALID_PAYLOAD);
+  int expected = static_cast<int>(AddressError::kInvalidPayload);
   EXPECT_OUTCOME_FALSE_2(
       error_code,
       decode(
@@ -93,7 +93,7 @@ TEST_F(AddressCodecTest, InvalidPayloadSize) {
  * @then Address is not created due to UNKNOWN_PROTOCOL error
  */
 TEST_F(AddressCodecTest, UnknownProtocol) {
-  int expected = static_cast<int>(AddressError::UNKNOWN_PROTOCOL);
+  int expected = static_cast<int>(AddressError::kUnknownProtocol);
   EXPECT_OUTCOME_FALSE_2(
       error_code, decode("042c39095318f8f2fd4b5927e2042bbd47af0fb4a0"_unhex));
   ASSERT_EQ(error_code.value(), expected);

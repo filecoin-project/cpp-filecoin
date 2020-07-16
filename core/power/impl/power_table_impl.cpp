@@ -15,7 +15,7 @@ namespace fc::power {
     auto result =
         power_table_.find(primitives::address::encodeToString(address));
     if (result == power_table_.end()) {
-      return outcome::failure(PowerTableError::NO_SUCH_MINER);
+      return outcome::failure(PowerTableError::kNoSuchMiner);
     }
 
     return result->second;
@@ -23,7 +23,7 @@ namespace fc::power {
 
   outcome::result<void> PowerTableImpl::setMinerPower(
       const primitives::address::Address &address, Power power_amount) {
-    if (power_amount < 0) return PowerTableError::NEGATIVE_POWER;
+    if (power_amount < 0) return PowerTableError::kNegativePower;
     power_table_[primitives::address::encodeToString(address)] = power_amount;
     return outcome::success();
   }
@@ -31,7 +31,7 @@ namespace fc::power {
   outcome::result<void> PowerTableImpl::removeMiner(
       const primitives::address::Address &address) {
     if (power_table_.erase(primitives::address::encodeToString(address)) == 0)
-      return PowerTableError::NO_SUCH_MINER;
+      return PowerTableError::kNoSuchMiner;
 
     return outcome::success();
   }

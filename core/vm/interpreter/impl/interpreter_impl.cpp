@@ -5,7 +5,6 @@
 
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
-#include "crypto/randomness/randomness_provider.hpp"
 #include "vm/actor/builtin/cron/cron_actor.hpp"
 #include "vm/actor/builtin/reward/reward_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
@@ -16,11 +15,11 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
   using E = fc::vm::interpreter::InterpreterError;
   switch (e) {
-    case E::DUPLICATE_MINER:
+    case E::kDuplicateMiner:
       return "Duplicate miner";
-    case E::MINER_SUBMIT_FAILED:
+    case E::kMinerSubmitFailed:
       return "Miner submit failed";
-    case E::CRON_TICK_FAILED:
+    case E::kCronTickFailed:
       return "Cron tick failed";
   }
 }
@@ -34,7 +33,6 @@ namespace fc::vm::interpreter {
   using actor::MethodParams;
   using actor::builtin::cron::EpochTick;
   using actor::builtin::reward::AwardBlockReward;
-  using crypto::randomness::RandomnessProvider;
   using message::SignedMessage;
   using message::UnsignedMessage;
   using primitives::TokenAmount;
@@ -54,15 +52,11 @@ namespace fc::vm::interpreter {
     }
 
     if (hasDuplicateMiners(tipset.blks)) {
-      return InterpreterError::DUPLICATE_MINER;
+      return InterpreterError::kDuplicateMiner;
     }
 
-    auto state_tree = std::make_shared<state::StateTreeImpl>(
-        ipld, tipset.getParentStateRoot());
-    // TODO(turuslan): FIL-146 randomness from tipset
-    std::shared_ptr<RandomnessProvider> randomness;
-    auto env = std::make_shared<Env>(
-        randomness, state_tree, std::make_shared<InvokerImpl>(), tipset.height);
+    auto env =
+        std::make_shared<Env>(std::make_shared<InvokerImpl>(), ipld, tipset);
 
     adt::Array<MessageReceipt> receipts{ipld};
     MessageVisitor message_visitor{ipld};
@@ -79,6 +73,7 @@ namespace fc::vm::interpreter {
             }
             TokenAmount penalty;
             OUTCOME_TRY(receipt, env->applyMessage(message, penalty));
+            reward.gas_reward += message.gasPrice * receipt.gas_used;
             reward.penalty += penalty;
             OUTCOME_TRY(receipts.append(std::move(receipt)));
             return outcome::success();
@@ -110,7 +105,7 @@ namespace fc::vm::interpreter {
         {},
     }));
 
-    OUTCOME_TRY(new_state_root, state_tree->flush());
+    OUTCOME_TRY(new_state_root, env->state_tree->flush());
 
     OUTCOME_TRY(Ipld::flush(receipts));
 

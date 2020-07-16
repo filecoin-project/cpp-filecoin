@@ -39,11 +39,11 @@ namespace fc::vm::message {
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::message, MessageError, e) {
   using fc::vm::message::MessageError;
   switch (e) {
-    case (MessageError::INVALID_LENGTH):
+    case (MessageError::kInvalidLength):
       return "MessageError: invalid message length";
-    case (MessageError::SERIALIZATION_FAILURE):
+    case (MessageError::kSerializationFailure):
       return "MessageError: message serialization failed";
-    case (MessageError::VERIFICATION_FAILURE):
+    case (MessageError::kVerificationFailure):
       return "MessageError: signature verification failed";
     default:
       return "Unknown error";

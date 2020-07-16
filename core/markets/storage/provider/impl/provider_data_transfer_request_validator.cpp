@@ -24,14 +24,14 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(deal, provider_state_store_->get(voucher.proposal_cid));
 
     if (deal.client != sender) {
-      return ProviderRequestValidatorError::WRONG_PEER;
+      return ProviderRequestValidatorError::kWrongPeer;
     }
     if (deal.ref.root != base_cid) {
-      return ProviderRequestValidatorError::WRONG_PAYLOAD_CID;
+      return ProviderRequestValidatorError::kWrongPayloadCID;
     }
     if (deal.state != StorageDealStatus::STORAGE_DEAL_UNKNOWN
         && deal.state != StorageDealStatus::STORAGE_DEAL_VALIDATING) {
-      return ProviderRequestValidatorError::INACCEPTABLE_DEAL_STATE;
+      return ProviderRequestValidatorError::kInacceptableDealState;
     }
 
     return outcome::success();
@@ -42,7 +42,7 @@ namespace fc::markets::storage::provider {
       std::vector<uint8_t> encoded_voucher,
       CID base_cid,
       std::shared_ptr<Selector> selector) {
-    return ProviderRequestValidatorError::ERROR_NO_PUSH_ACCEPTED;
+    return ProviderRequestValidatorError::kErrorNoPushAccepted;
   }
 }  // namespace fc::markets::storage::provider
 
@@ -52,14 +52,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider,
   using fc::markets::storage::provider::ProviderRequestValidatorError;
 
   switch (e) {
-    case ProviderRequestValidatorError::ERROR_NO_PUSH_ACCEPTED:
+    case ProviderRequestValidatorError::kErrorNoPushAccepted:
       return "ProviderRequestValidatorError: provider doesn't accept pull "
              "requests";
-    case ProviderRequestValidatorError::WRONG_PEER:
+    case ProviderRequestValidatorError::kWrongPeer:
       return "ProviderRequestValidatorError: proposal has another peer";
-    case ProviderRequestValidatorError::WRONG_PAYLOAD_CID:
+    case ProviderRequestValidatorError::kWrongPayloadCID:
       return "ProviderRequestValidatorError: proposal has another payload cid";
-    case ProviderRequestValidatorError::INACCEPTABLE_DEAL_STATE:
+    case ProviderRequestValidatorError::kInacceptableDealState:
       return "ProviderRequestValidatorError: inacceptable deal state";
     default:
       return "ProviderRequestValidatorError: unknown error";

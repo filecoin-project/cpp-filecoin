@@ -92,9 +92,9 @@ namespace fc::sector_storage::stores {
   };
 
   enum class IndexErrors {
-    StorageNotFound = 1,
-    NoSuitableCandidate,
-    InvalidUrl,
+    kStorageNotFound = 1,
+    kNoSuitableCandidate,
+    kInvalidUrl,
   };
 }  // namespace fc::sector_storage::stores
 

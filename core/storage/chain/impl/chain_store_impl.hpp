@@ -12,8 +12,6 @@
 #include "blockchain/weight_calculator.hpp"
 #include "common/logger.hpp"
 #include "common/outcome.hpp"
-#include "crypto/randomness/chain_randomness_provider.hpp"
-#include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
 #include "storage/chain/chain_data_store.hpp"
 #include "storage/chain/chain_store.hpp"
@@ -29,10 +27,10 @@ namespace fc::storage::blockchain {
 
   /** @brief chain store errors enum */
   enum class ChainStoreError : int {
-    NO_MIN_TICKET_BLOCK = 1,
-    NO_HEAVIEST_TIPSET,
-    NO_GENESIS_BLOCK,
-    STORE_NOT_INITIALIZED,
+    kNoMinTicketBlock = 1,
+    kNoHeaviestTipset,
+    kNoGenesisBlock,
+    kStoreNotInitialized,
   };
 
   class ChainStoreImpl : public ChainStore,
@@ -85,10 +83,6 @@ namespace fc::storage::blockchain {
     outcome::result<void> remove(const CID &key) override {
       return data_store_->remove(key);
     }
-
-    /** chain randomness */
-    std::shared_ptr<ChainRandomnessProvider> createRandomnessProvider()
-        override;
 
     /** @brief head change subscription */
     connection_t subscribeHeadChanges(

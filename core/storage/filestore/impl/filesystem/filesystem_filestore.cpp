@@ -28,7 +28,7 @@ namespace fc::storage::filestore {
       OUTCOME_TRY(file->open());
       return file;
     } catch (std::exception &) {
-      return FileStoreError::UNKNOWN;
+      return FileStoreError::kUnknown;
     }
   }
 
@@ -40,7 +40,7 @@ namespace fc::storage::filestore {
       os.close();
       return open(path);
     } catch (std::exception &) {
-      return FileStoreError::UNKNOWN;
+      return FileStoreError::kUnknown;
     }
   }
 
@@ -49,19 +49,19 @@ namespace fc::storage::filestore {
     try {
       boost::filesystem::create_directories(path);
     } catch (std::exception &) {
-      return FileStoreError::UNKNOWN;
+      return FileStoreError::kUnknown;
     }
     return outcome::success();
   }
 
   outcome::result<void> FileSystemFileStore::remove(const Path &path) noexcept {
-    if (!boost::filesystem::exists(path)) return FileStoreError::FILE_NOT_FOUND;
+    if (!boost::filesystem::exists(path)) return FileStoreError::kFileNotFound;
 
     boost::system::error_code error_code;
     boost::filesystem::remove(path, error_code);
 
     if (error_code != boost::system::errc::success)
-      return FileStoreError::UNKNOWN;
+      return FileStoreError::kUnknown;
 
     return outcome::success();
   }
@@ -69,9 +69,9 @@ namespace fc::storage::filestore {
   outcome::result<std::vector<Path>> FileSystemFileStore::list(
       const Path &directory) noexcept {
     if (!boost::filesystem::exists(directory))
-      return FileStoreError::DIRECTORY_NOT_FOUND;
+      return FileStoreError::kDirectoryNotFound;
     if (!boost::filesystem::is_directory(directory))
-      return FileStoreError::NOT_DIRECTORY;
+      return FileStoreError::kNotDirectory;
     std::vector<Path> res{};
     for (boost::filesystem::directory_iterator itr(directory);
          itr != boost::filesystem::directory_iterator();

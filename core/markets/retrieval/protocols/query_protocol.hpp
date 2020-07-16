@@ -52,7 +52,7 @@ namespace fc::markets::retrieval {
    */
   enum class QueryResponseStatus : uint64_t {
     /* Provider has a piece and is prepared to return it */
-    kQueryResponseAvailable = 1,
+    kQueryResponseAvailable,
 
     /* Provider either does not have a piece or cannot serve request */
     kQueryResponseUnavailable,
@@ -66,7 +66,7 @@ namespace fc::markets::retrieval {
    */
   enum class QueryItemStatus : uint64_t {
     /* Requested part of the piece is available to be served */
-    kQueryItemAvailable = 1,
+    kQueryItemAvailable,
 
     /* Requested part of the piece is unavailable or cannot be served */
     kQueryItemUnavailable,

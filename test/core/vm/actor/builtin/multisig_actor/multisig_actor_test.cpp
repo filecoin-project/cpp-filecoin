@@ -22,7 +22,6 @@ using fc::primitives::address::Address;
 using fc::storage::ipfs::MockIpfsDatastore;
 using fc::vm::VMExitCode;
 using fc::vm::actor::Actor;
-using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::encodeActorParams;
 using fc::vm::actor::kAccountCodeCid;
 using fc::vm::actor::kCronAddress;
@@ -67,7 +66,7 @@ MATCHER_P(MultiSignatureActorStateMatcher,
 class MultisigActorTest : public ::testing::Test {
  protected:
   /** CID of actor state stored in ipld store */
-  ActorSubstateCID actor_head{"010001020005"_cid};
+  CID actor_head{"010001020005"_cid};
 
   /** Immediate caller address */
   Address caller_address = Address::makeBls(
@@ -109,7 +108,7 @@ TEST_F(MultisigActorTest, ConstructWrongCaller) {
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(kCronAddress));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
                        Construct::call(runtime, {}));
 }
 
@@ -126,7 +125,7 @@ TEST_F(MultisigActorTest, ConstructWrongThreshold) {
       .WillOnce(testing::Return(kInitAddress));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+      VMExitCode::kMultisigActorIllegalArgument,
       Construct::call(runtime, {signers, threshold, default_unlock_duration}));
 }
 
@@ -161,7 +160,7 @@ TEST_F(MultisigActorTest, ProposeWrongCaller) {
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
                        Propose::call(runtime, {}));
 }
 
@@ -187,7 +186,7 @@ TEST_F(MultisigActorTest, ProposetWrongSigner) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorForbidden,
                        Propose::call(runtime, {}));
 }
 
@@ -225,7 +224,7 @@ TEST_F(MultisigActorTest, ProposeSendInsufficientFunds) {
       .WillOnce(testing::Return(fc::outcome::success(actor_balance)));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
+      VMExitCode::kMultisigActorInsufficientFunds,
       Propose::call(runtime,
                     {to_address, value_to_send, method_number, method_params}));
 }
@@ -268,7 +267,7 @@ TEST_F(MultisigActorTest, ProposeSendFundsLocked) {
   EXPECT_CALL(runtime, getCurrentEpoch()).WillOnce(testing::Return(epoch));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
+      VMExitCode::kMultisigActorInsufficientFunds,
       Propose::call(runtime,
                     {to_address, value_to_send, method_number, method_params}));
 }
@@ -312,7 +311,7 @@ TEST_F(MultisigActorTest, ProposeSendFundsLockedStartEpoch) {
   EXPECT_CALL(runtime, getCurrentEpoch()).WillOnce(testing::Return(epoch));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_INSUFFICIENT_FUNDS,
+      VMExitCode::kMultisigActorInsufficientFunds,
       Propose::call(runtime,
                     {to_address, value_to_send, method_number, method_params}));
 }
@@ -451,7 +450,7 @@ TEST_F(MultisigActorTest, ApproveWrongCaller) {
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
                        Approve::call(runtime, {}));
 }
 
@@ -481,7 +480,7 @@ TEST_F(MultisigActorTest, ApproveWrongSigner) {
       .Times(2)
       .WillRepeatedly(testing::Return(caller_address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorForbidden,
                        Approve::call(runtime, {}));
 }
 
@@ -512,7 +511,7 @@ TEST_F(MultisigActorTest, ApproveWrongTxNumber) {
       .Times(2)
       .WillRepeatedly(testing::Return(caller_address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorNotFound,
                        Approve::call(runtime, {}));
 }
 
@@ -555,7 +554,7 @@ TEST_F(MultisigActorTest, ApproveAlreadySigned) {
       .Times(2)
       .WillRepeatedly(testing::Return(caller_address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_STATE,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalState,
                        Approve::call(runtime, {pending_tx_number}));
 }
 
@@ -642,7 +641,7 @@ TEST_F(MultisigActorTest, CancelWrongCaller) {
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(caller_address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
                        Cancel::call(runtime, {}));
 }
 
@@ -672,7 +671,7 @@ TEST_F(MultisigActorTest, CancelWrongSigner) {
       .Times(2)
       .WillRepeatedly(testing::Return(caller_address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorForbidden,
                        Cancel::call(runtime, {}));
 }
 
@@ -703,7 +702,7 @@ TEST_F(MultisigActorTest, CancelWrongTxNumber) {
       .Times(2)
       .WillRepeatedly(testing::Return(caller_address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorNotFound,
                        Cancel::call(runtime, {}));
 }
 
@@ -746,7 +745,7 @@ TEST_F(MultisigActorTest, CancelNotCreator) {
       .Times(2)
       .WillRepeatedly(testing::Return(caller_address));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorForbidden,
                        Cancel::call(runtime, {pending_tx_number}));
 }
 
@@ -820,7 +819,7 @@ TEST_F(MultisigActorTest, AddSignerWrongCaller) {
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
                        AddSigner::call(runtime, {}));
 }
 
@@ -850,7 +849,7 @@ TEST_F(MultisigActorTest, AddSignerAlreadyAdded) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalArgument,
                        AddSigner::call(runtime, {caller_address}));
 }
 
@@ -955,7 +954,7 @@ TEST_F(MultisigActorTest, RemoveSignerWrongCaller) {
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
                        RemoveSigner::call(runtime, {}));
 }
 
@@ -985,7 +984,7 @@ TEST_F(MultisigActorTest, RemoveSignerNotAdded) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_FORBIDDEN,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorForbidden,
                        RemoveSigner::call(runtime, {caller_address}));
 }
 
@@ -1106,7 +1105,7 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdZero) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalArgument,
                        RemoveSigner::call(runtime, {caller_address, true}));
 }
 
@@ -1137,7 +1136,7 @@ TEST_F(MultisigActorTest, RemoveSignerChangeThresholdError) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalArgument,
                        RemoveSigner::call(runtime, {caller_address, false}));
 }
 
@@ -1152,7 +1151,7 @@ TEST_F(MultisigActorTest, SwapSignerWrongCaller) {
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
                        SwapSigner::call(runtime, {}));
 }
 
@@ -1184,7 +1183,7 @@ TEST_F(MultisigActorTest, SwapSignerNotAdded) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_NOT_FOUND,
+      VMExitCode::kMultisigActorNotFound,
       SwapSigner::call(runtime, {caller_address, kCronAddress}));
 }
 
@@ -1216,7 +1215,7 @@ TEST_F(MultisigActorTest, SwapSignerAlreadyAdded) {
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+      VMExitCode::kMultisigActorIllegalArgument,
       SwapSigner::call(runtime, {caller_address, kCronAddress}));
 }
 
@@ -1277,7 +1276,7 @@ TEST_F(MultisigActorTest, ChangeThresholdWrongCaller) {
   EXPECT_CALL(runtime, getCurrentReceiver())
       .WillOnce(testing::Return(kInitAddress));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_WRONG_CALLER,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorWrongCaller,
                        ChangeThreshold::call(runtime, {}));
 }
 
@@ -1307,7 +1306,7 @@ TEST_F(MultisigActorTest, ChangeThresholdZero) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalArgument,
                        ChangeThreshold::call(runtime, {0}));
 }
 
@@ -1337,7 +1336,7 @@ TEST_F(MultisigActorTest, ChangeThresholdMoreThanSigners) {
   EXPECT_CALL(*datastore, get(_))
       .WillOnce(testing::Return(fc::outcome::success(encoded_state)));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::MULTISIG_ACTOR_ILLEGAL_ARGUMENT,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kMultisigActorIllegalArgument,
                        ChangeThreshold::call(runtime, {100500}));
 }
 
