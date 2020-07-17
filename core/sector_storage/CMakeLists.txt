@@ -36,4 +36,5 @@ add_library(manager
 
 target_link_libraries(manager
         outcome
+        scheduler
         )

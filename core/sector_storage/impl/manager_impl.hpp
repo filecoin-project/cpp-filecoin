@@ -8,6 +8,7 @@
 
 #include "sector_storage/manager.hpp"
 
+#include "sector_storage/scheduler.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/stores/index.hpp"
 #include "sector_storage/stores/store.hpp"
@@ -89,8 +90,8 @@ namespace fc::sector_storage {
         ActorId miner,
         gsl::span<const SectorInfo> sector_info,
         gsl::span<const SectorNumber> faults,
-        const std::function<outcome::result<RegisteredProof>(RegisteredProof)>&
-            to_post_transform);
+        const std::function<outcome::result<RegisteredProof>(RegisteredProof)>
+            &to_post_transform);
 
     std::shared_ptr<stores::SectorIndex> index_;
 
@@ -99,6 +100,8 @@ namespace fc::sector_storage {
     std::shared_ptr<stores::LocalStorage> local_storage_;
     std::shared_ptr<stores::LocalStore> local_store_;
     std::shared_ptr<stores::Store> storage_;
+
+    std::shared_ptr<Scheduler> scheduler_;
   };
 
 }  // namespace fc::sector_storage

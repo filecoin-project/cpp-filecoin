@@ -217,7 +217,12 @@ namespace fc::sector_storage {
   outcome::result<void> ManagerImpl::addWorker(std::shared_ptr<Worker> worker) {
     OUTCOME_TRY(info, worker->getInfo());
 
-    // TODO: add scheduler
+    auto worker_handler = std::make_unique<WorkerHandle>();
+
+    worker_handler->worker = std::move(worker);
+    worker_handler->info = std::move(info);
+
+    scheduler_->newWorker(std::move(worker_handler));
 
     return outcome::success();
   }
