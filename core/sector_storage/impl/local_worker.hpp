@@ -6,16 +6,17 @@
 #ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
 #define CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
 
+#include "sector_storage/worker.hpp"
+
 #include "common/logger.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
-#include "sector_storage/worker.hpp"
 
 namespace fc::sector_storage {
 
   struct WorkerConfig {
     std::string hostname;
     primitives::sector::RegisteredProof seal_proof_type;
-    std::vector<primitives::TaskType> task_types;
+    std::unordered_set<primitives::TaskType> task_types;
   };
 
   class LocalWorker : public Worker {
@@ -65,8 +66,7 @@ namespace fc::sector_storage {
 
     outcome::result<primitives::WorkerInfo> getInfo() override;
 
-    outcome::result<std::vector<primitives::TaskType>> getSupportedTask()
-        override;
+    outcome::result<std::set<primitives::TaskType>> getSupportedTask() override;
 
     outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths()
         override;

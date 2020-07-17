@@ -408,7 +408,7 @@ namespace fc::sector_storage {
     return std::move(result);
   }
 
-  outcome::result<std::vector<primitives::TaskType>>
+  outcome::result<std::set<primitives::TaskType>>
   sector_storage::LocalWorker::getSupportedTask() {
     return config_.task_types;
   }

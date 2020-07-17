@@ -47,7 +47,7 @@ namespace fc::sector_storage {
 
     virtual outcome::result<primitives::WorkerInfo> getInfo() = 0;
 
-    virtual outcome::result<std::vector<primitives::TaskType>>
+    virtual outcome::result<std::set<primitives::TaskType>>
     getSupportedTask() = 0;
 
     virtual outcome::result<std::vector<primitives::StoragePath>>

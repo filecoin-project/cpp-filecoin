@@ -57,7 +57,7 @@ class LocalWorkerTest : public test::BaseFS_Test {
   }
 
  protected:
-  std::vector<fc::primitives::TaskType> tasks_;
+  std::set<fc::primitives::TaskType> tasks_;
   RegisteredProof seal_proof_type_;
   std::string worker_name_;
   WorkerConfig config_;

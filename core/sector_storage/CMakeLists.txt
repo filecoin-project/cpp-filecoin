@@ -20,7 +20,8 @@ target_link_libraries(worker
         )
 
 add_library(scheduler
-        impl/scheduler_impl.cpp)
+        impl/scheduler_impl.cpp
+        )
 
 target_link_libraries(scheduler
         outcome
@@ -30,6 +31,14 @@ target_link_libraries(scheduler
         Boost::boost
         )
 
+add_library(selector
+        impl/allocate_selector.cpp
+        )
+
+target_link_libraries(selector
+        outcome
+        )
+
 add_library(manager
         impl/manager_impl.cpp
         )
@@ -37,4 +46,5 @@ add_library(manager
 target_link_libraries(manager
         outcome
         scheduler
+        selector
         )
