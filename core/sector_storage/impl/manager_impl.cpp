@@ -7,9 +7,28 @@
 
 #include <boost/filesystem.hpp>
 #include <unordered_set>
+#include "sector_storage/impl/allocate_selector.hpp"
+#include "sector_storage/impl/existing_selector.hpp"
+#include "sector_storage/impl/task_selector.hpp"
 
 namespace fs = boost::filesystem;
 using fc::primitives::sector_file::SectorFileType;
+
+namespace {
+  fc::sector_storage::WorkerAction schedFetch(const SectorId &sector,
+                                              SectorFileType file_type,
+                                              bool sealing) {
+    return [=](const std::shared_ptr<fc::sector_storage::Worker> &worker)
+               -> fc::outcome::result<void> {
+      return worker->fetch(sector, file_type, sealing);
+    };
+  }
+
+  fc::outcome::result<void> schedNothing(
+      const std::shared_ptr<fc::sector_storage::Worker> &worker) {
+    return fc::outcome::success();
+  }
+}  // namespace
 
 namespace fc::sector_storage {
 
@@ -93,10 +112,25 @@ namespace fc::sector_storage {
 
     // TODO: also consider where the unsealed data sits
 
-    // TODO: create alloc selector
+    auto selector = std::make_unique<AllocateSelector>(
+        index_,
+        static_cast<SectorFileType>(SectorFileType::FTSealed
+                                    | SectorFileType::FTCache),
+        true);
 
-    // TODO: schedule it
-    return outcome::success();
+    PreCommit1Output out;
+
+    OUTCOME_TRY(scheduler_->schedule(
+        sector,
+        primitives::kTTPreCommit1,
+        std::move(selector),
+        schedFetch(sector, SectorFileType::FTUnsealed, true),
+        [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
+          OUTCOME_TRYA(out, worker->sealPreCommit1(sector, ticket, pieces));
+          return outcome::success();
+        }));
+
+    return std::move(out);
   }
 
   outcome::result<SectorCids> ManagerImpl::sealPreCommit2(
@@ -105,10 +139,30 @@ namespace fc::sector_storage {
                 index_->storageLock(
                     sector, SectorFileType::FTSealed, SectorFileType::FTCache));
 
-    // TODO: create existing selector
+    OUTCOME_TRY(selector,
+                ExistingSelector::newExistingSelector(
+                    index_,
+                    sector,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    true));
 
-    // TODO: schedule it
-    return outcome::success();
+    SectorCids out;
+
+    OUTCOME_TRY(scheduler_->schedule(
+        sector,
+        primitives::kTTPreCommit2,
+        std::move(selector),
+        schedFetch(sector,
+                   static_cast<SectorFileType>(SectorFileType::FTSealed
+                                               | SectorFileType::FTCache),
+                   true),
+        [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
+          OUTCOME_TRYA(out, worker->sealPreCommit2(sector, pre_commit_1_output))
+          return outcome::success();
+        }));
+
+    return std::move(out);
   }
 
   outcome::result<Commit1Output> ManagerImpl::sealCommit1(
@@ -121,18 +175,50 @@ namespace fc::sector_storage {
                 index_->storageLock(
                     sector, SectorFileType::FTSealed, SectorFileType::FTCache));
 
-    // TODO: create existing selector
+    OUTCOME_TRY(selector,
+                ExistingSelector::newExistingSelector(
+                    index_,
+                    sector,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    false));
 
-    // TODO: schedule it
-    return outcome::success();
+    Commit1Output out;
+
+    OUTCOME_TRY(scheduler_->schedule(
+        sector,
+        primitives::kTTCommit1,
+        std::move(selector),
+        schedFetch(sector,
+                   static_cast<SectorFileType>(SectorFileType::FTSealed
+                                               | SectorFileType::FTCache),
+                   true),
+        [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
+          OUTCOME_TRYA(out,
+                       worker->sealCommit1(sector, ticket, seed, pieces, cids))
+          return outcome::success();
+        }));
+
+    return std::move(out);
   }
 
   outcome::result<Proof> ManagerImpl::sealCommit2(
       const SectorId &sector, const Commit1Output &commit_1_output) {
-    // TODO: create task selector
+    std::unique_ptr<TaskSelector> selector = std::make_unique<TaskSelector>();
 
-    // TODO: schedule it
-    return outcome::success();
+    Proof out;
+
+    OUTCOME_TRY(scheduler_->schedule(
+        sector,
+        primitives::kTTCommit2,
+        std::move(selector),
+        schedNothing,
+        [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
+          OUTCOME_TRYA(out, worker->sealCommit2(sector, commit_1_output))
+          return outcome::success();
+        }));
+
+    return std::move(out);
   }
 
   outcome::result<void> ManagerImpl::finalizeSector(const SectorId &sector) {
