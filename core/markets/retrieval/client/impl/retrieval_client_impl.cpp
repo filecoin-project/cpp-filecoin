@@ -20,8 +20,11 @@
 namespace fc::markets::retrieval::client {
 
   RetrievalClientImpl::RetrievalClientImpl(std::shared_ptr<Host> host,
-                                           std::shared_ptr<Api> api)
-      : host_{std::make_shared<CborHost>(host)}, api_{std::move(api)} {}
+                                           std::shared_ptr<Api> api,
+                                           std::shared_ptr<IpfsDatastore> ipfs)
+      : host_{std::make_shared<CborHost>(host)},
+        api_{std::move(api)},
+        ipfs_{std::move(ipfs)} {}
 
   outcome::result<std::vector<PeerInfo>> RetrievalClientImpl::findProviders(
       const CID &piece_cid) const {
@@ -152,6 +155,30 @@ namespace fc::markets::retrieval::client {
     return outcome::success();
   }
 
+  outcome::result<bool> RetrievalClientImpl::processBlock(
+      const std::shared_ptr<DealState> &deal_state,
+      const DealResponse::Block &block) {
+    // reconstruct cid from parsed prefix and calculated data multihash
+    auto prefix_reader = gsl::make_span(block.prefix);
+    OUTCOME_TRY(cid, CID::read(prefix_reader, true));
+    if (!prefix_reader.empty()) {
+      return RetrievalClientError::kBlockCidParseError;
+    }
+    cid.content_address =
+        crypto::Hasher::calculate(cid.content_address.getType(), block.data);
+
+    // TODO validate block
+    // root cid == payload cid
+    // deal_state->proposal.params.selector
+    // check if complete
+
+    OUTCOME_TRY(ipfs_->set(cid, block.data));
+
+    deal_state->total_received += block.data.size();
+
+    return outcome::success(true);
+  }
+
   void RetrievalClientImpl::setupPaymentChannelStart(
       const std::shared_ptr<DealState> &deal_state) {
     auto paychannel_funded = createAndFundPaymentChannel(deal_state);
@@ -169,9 +196,18 @@ namespace fc::markets::retrieval::client {
                                                auto response) {
       SELF_IF_ERROR_FAIL_AND_RETURN(response);
 
-      // TODO consume blocks
-      bool completed = true;
-      // TODO deal_state->total_received += TotalProcessed
+      bool completed =
+          deal_state->deal_status == DealStatus::kDealStatusBlocksComplete;
+      if (!completed) {
+        for (auto &&block : response.value().blocks) {
+          auto maybe_completed = self->processBlock(deal_state, block);
+          SELF_IF_ERROR_FAIL_AND_RETURN(maybe_completed);
+          if (maybe_completed.value() == true) {
+            completed = true;
+            break;
+          }
+        }
+      }
 
       if (completed) {
         switch (response.value().status) {
@@ -180,6 +216,7 @@ namespace fc::markets::retrieval::client {
                 deal_state, response.value().payment_owed, true);
             break;
           case DealStatus::kDealStatusBlocksComplete:
+            deal_state->deal_status = DealStatus::kDealStatusBlocksComplete;
             self->processNextResponse(deal_state);
             break;
           case DealStatus::kDealStatusCompleted:

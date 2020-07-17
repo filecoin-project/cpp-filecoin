@@ -4,8 +4,8 @@
  */
 
 #include "storage/car/car.hpp"
-
 #include "codec/uvarint.hpp"
+#include "storage/ipld/traverser.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
   using E = fc::storage::car::CarError;
@@ -16,7 +16,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
 }
 
 namespace fc::storage::car {
-  using ipld::walker::Walker;
+  using ipld::traverser::Traverser;
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input) {
     OUTCOME_TRY(header_bytes,
@@ -58,31 +58,35 @@ namespace fc::storage::car {
 
   outcome::result<Buffer> makeCar(Ipld &store,
                                   const std::vector<CID> &roots,
-                                  const Walker &walker) {
+                                  const std::vector<CID> &cids) {
     Buffer output;
     writeHeader(output, roots);
-    for (auto &cid : walker.cids) {
+    for (auto &cid : cids) {
       OUTCOME_TRY(writeItem(output, store, cid));
     }
     return std::move(output);
   }
 
   outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots) {
-    Walker walker{store};
+    std::vector<CID> cids;
     for (auto &root : roots) {
-      OUTCOME_TRY(walker.recursiveAll(root));
+      Traverser traverser{store, root};
+      OUTCOME_TRY(visited, traverser.traverseAll());
+      cids.insert(cids.end(), visited.begin(), visited.end());
     }
-    return makeCar(store, roots, walker);
+    return makeCar(store, roots, cids);
   }
 
   outcome::result<Buffer> makeSelectiveCar(
       Ipld &store, const std::vector<std::pair<CID, Selector>> &dags) {
-    Walker walker{store};
     std::vector<CID> roots;
+    std::vector<CID> cids;
     for (auto &dag : dags) {
-      OUTCOME_TRY(walker.select(dag.first, dag.second));
+      Traverser traverser{store, dag.first, dag.second};
+      OUTCOME_TRY(visited, traverser.traverseAll());
       roots.push_back(dag.first);
+      cids.insert(cids.end(), visited.begin(), visited.end());
     }
-    return makeCar(store, roots, walker);
+    return makeCar(store, roots, cids);
   }
 }  // namespace fc::storage::car

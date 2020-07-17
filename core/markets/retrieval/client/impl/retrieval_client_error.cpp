@@ -26,6 +26,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::retrieval::client,
              "requests";
     case RetrievalClientError::kBadPaymentRequestTooMuch:
       return "RetrievalClient: too much money requested for bytes sent";
+    case RetrievalClientError::kBlockCidParseError:
+      return "RetrievalClient: block cid parse error";
   }
 
   return "RetrievalClient: unknown error";

@@ -9,12 +9,12 @@
 #include <libp2p/peer/peer_info.hpp>
 #include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
-#include "storage/ipld/walker.hpp"
+#include "storage/ipld/selector.hpp"
 
 namespace fc::data_transfer {
 
   using libp2p::peer::PeerInfo;
-  using storage::ipld::walker::Selector;
+  using storage::ipld::Selector;
 
   /**
    * RequestValidator is an interface implemented by the client of the data

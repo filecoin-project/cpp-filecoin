@@ -13,12 +13,14 @@
 #include "common/logger.hpp"
 #include "markets/retrieval/client/retrieval_client.hpp"
 #include "markets/retrieval/client/retrieval_client_error.hpp"
+#include "storage/ipfs/datastore.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval::client {
   using api::Api;
   using common::libp2p::CborHost;
   using common::libp2p::CborStream;
+  using fc::storage::ipfs::IpfsDatastore;
   using libp2p::Host;
   using vm::actor::builtin::payment_channel::LaneId;
 
@@ -38,7 +40,8 @@ namespace fc::markets::retrieval::client {
           client_wallet{client_wallet},
           miner_wallet{miner_wallet},
           total_funds(total_funds),
-          current_interval{proposal.params.payment_interval} {}
+          current_interval{proposal.params.payment_interval},
+          deal_status{DealStatus::kDealStatusOngoing} {}
 
     DealProposal proposal;
     std::shared_ptr<CborStream> stream;
@@ -66,6 +69,14 @@ namespace fc::markets::retrieval::client {
 
     /** Funds already have been paid to miner during deal */
     TokenAmount funds_spent;
+
+    /**
+     * Status of current deal.
+     * Actually statuses used:
+     * - kDealStatusOngoing - deal in active state
+     * - kDealStatusBlocksComplete - blocks sending complete, finalize deal
+     */
+    DealStatus deal_status;
   };
 
   class RetrievalClientImpl
@@ -75,8 +86,11 @@ namespace fc::markets::retrieval::client {
     /**
      * @brief Constructor
      * @param host - libp2p network backend
+     * @param IpfsDatastore - ipfs datastore
      */
-    RetrievalClientImpl(std::shared_ptr<Host> host, std::shared_ptr<Api> api);
+    RetrievalClientImpl(std::shared_ptr<Host> host,
+                        std::shared_ptr<Api> api,
+                        std::shared_ptr<IpfsDatastore> ipfs);
 
     outcome::result<std::vector<PeerInfo>> findProviders(
         const CID &piece_cid) const override;
@@ -107,6 +121,16 @@ namespace fc::markets::retrieval::client {
     outcome::result<void> createAndFundPaymentChannel(
         const std::shared_ptr<DealState> &deal_state);
 
+    /**
+     * Process one block from response
+     * @param deal_state - state of ongoing deal
+     * @param block to process
+     * @return true if last block processed (blocks are completed)
+     */
+    outcome::result<bool> processBlock(
+        const std::shared_ptr<DealState> &deal_state,
+        const DealResponse::Block &block);
+
     void setupPaymentChannelStart(const std::shared_ptr<DealState> &deal_state);
 
     void processNextResponse(const std::shared_ptr<DealState> &deal_state);
@@ -129,6 +153,7 @@ namespace fc::markets::retrieval::client {
     DealId next_deal_id;
     std::shared_ptr<CborHost> host_;
     std::shared_ptr<Api> api_;
+    std::shared_ptr<IpfsDatastore> ipfs_;
     common::Logger logger_ = common::createLogger("RetrievalMarketClient");
   };
 

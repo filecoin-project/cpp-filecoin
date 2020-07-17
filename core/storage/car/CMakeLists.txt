@@ -5,6 +5,6 @@ add_library(car
     car.cpp
     )
 target_link_libraries(car
-    ipld_walker
+    ipld_traverser
     p2p::p2p_uvarint
     )

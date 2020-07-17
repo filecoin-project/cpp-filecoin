@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipld/walker.hpp"
+#include "storage/ipld/traverser.hpp"
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 
-namespace fc::storage::ipld::walker {
+namespace fc::storage::ipld::traverser {
   using google::protobuf::io::CodedInputStream;
   using Input = gsl::span<const uint8_t>;
 
@@ -54,53 +54,69 @@ namespace fc::storage::ipld::walker {
     }
   };
 
-  outcome::result<void> Walker::select(const CID &root,
-                                       const Selector &selector) {
+  outcome::result<std::vector<CID>> Traverser::traverseAll() {
     // TODO(turuslan): implement selectors
-    return recursiveAll(root);
+    while (!isCompleted()) {
+      OUTCOME_TRY(advance());
+    }
+    return std::vector(visit_order_.begin(), visit_order_.end());
   }
 
-  outcome::result<void> Walker::recursiveAll(const CID &cid) {
-    if (visited.insert(cid).second) {
-      cids.push_back(cid);
+  outcome::result<CID> Traverser::advance() {
+    CID cid = to_visit_.front();
+    to_visit_.pop();
+    if (visited_.insert(cid).second) {
+      visit_order_.push_back(cid);
       OUTCOME_TRY(bytes, store.get(cid));
       // TODO(turuslan): what about other types?
       if (cid.content_type == libp2p::multi::MulticodecType::DAG_CBOR) {
-        try {
-          CborDecodeStream s{bytes};
-          recursiveAll(s);
-        } catch (std::system_error &e) {
-          return outcome::failure(e.code());
-        }
+        CborDecodeStream s{bytes};
+        OUTCOME_TRY(parseCbor(s));
       } else if (cid.content_type == libp2p::multi::MulticodecType::DAG_PB) {
         OUTCOME_TRY(cids, PbNodeDecoder::links(bytes));
-        for (auto &cid : cids) {
-          OUTCOME_TRY(recursiveAll(cid));
+        for (auto &&c : cids) {
+          to_visit_.push(c);
         }
       }
+    } else {
+      return TraverserError::kAlreadyVisited;
     }
-    return outcome::success();
+    return cid;
   }
 
-  void Walker::recursiveAll(CborDecodeStream &s) {
+  bool Traverser::isCompleted() const {
+    return to_visit_.empty();
+  }
+
+  outcome::result<void> Traverser::parseCbor(CborDecodeStream &s) {
     if (s.isCid()) {
       CID cid;
       s >> cid;
-      auto result = recursiveAll(cid);
-      if (!result) {
-        outcome::raise(result.error());
-      }
+      to_visit_.push(cid);
     } else if (s.isList()) {
       auto n = s.listLength();
       for (auto l = s.list(); n != 0; --n) {
-        recursiveAll(l);
+        OUTCOME_TRY(parseCbor(l));
       }
     } else if (s.isMap()) {
       for (auto &p : s.map()) {
-        recursiveAll(p.second);
+        OUTCOME_TRY(parseCbor(p.second));
       }
     } else {
       s.next();
     }
+    return outcome::success();
   }
-}  // namespace fc::storage::ipld::walker
+
+}  // namespace fc::storage::ipld::traverser
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipld::traverser, TraverserError, e) {
+  using fc::storage::ipld::traverser::TraverserError;
+
+  switch (e) {
+    case TraverserError::kAlreadyVisited:
+      return "Traverser: CID already visited";
+  }
+
+  return "Traverser: unknown error";
+}

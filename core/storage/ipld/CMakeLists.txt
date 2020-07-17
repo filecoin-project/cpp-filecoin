@@ -31,9 +31,9 @@ target_link_libraries(ipld_node
     cid
     )
 
-add_library(ipld_walker
-    walker.cpp
+add_library(ipld_traverser
+    traverser.cpp
     )
-target_link_libraries(ipld_walker
+target_link_libraries(ipld_traverser
     cbor
     )

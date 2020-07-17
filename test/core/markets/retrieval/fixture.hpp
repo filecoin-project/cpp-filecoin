@@ -14,9 +14,12 @@
 #include "core/markets/retrieval/data.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
 
 namespace fc::markets::retrieval::test {
+  using fc::storage::ipfs::InMemoryDatastore;
+  using fc::storage::ipfs::IpfsDatastore;
   using primitives::tipset::Tipset;
 
   struct RetrievalMarketFixture : public ::testing::Test {
@@ -52,6 +55,9 @@ namespace fc::markets::retrieval::test {
     /* Common application interface */
     ApiShPtr api;
 
+    /** IPFS datastore */
+    std::shared_ptr<IpfsDatastore> ipfs{std::make_shared<InMemoryDatastore>()};
+
     common::Logger logger = common::createLogger("RetrievalMarketTest");
 
     /**
@@ -70,7 +76,7 @@ namespace fc::markets::retrieval::test {
               storage_backend);
       provider = std::make_shared<provider::RetrievalProviderImpl>(
           host, api, piece_storage);
-      client = std::make_shared<client::RetrievalClientImpl>(host, api);
+      client = std::make_shared<client::RetrievalClientImpl>(host, api, ipfs);
       provider->start();
     }
 
