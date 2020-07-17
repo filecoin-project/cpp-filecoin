@@ -33,6 +33,7 @@ target_link_libraries(scheduler
 
 add_library(selector
         impl/allocate_selector.cpp
+        impl/existing_selector.cpp
         )
 
 target_link_libraries(selector
