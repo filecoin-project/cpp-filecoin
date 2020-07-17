@@ -35,9 +35,12 @@ namespace fc::primitives {
 
     double utilization(const WorkerResources &worker_resources);
 
-   private:
-    std::shared_mutex mutex_;
+    friend bool canHandleRequest(const Resources &need_resources,
+                                 const WorkerResources &resources,
+                                 const ActiveResources &active);
 
+   private:
+    mutable std::shared_mutex mutex_;
     bool unlock_;
     std::condition_variable cv_;
   };

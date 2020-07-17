@@ -61,18 +61,14 @@ class SchedulerTest : public ::testing::Test {
  * @then work is done
  */
 TEST_F(SchedulerTest, ScheuleTask) {
-  std::string prepare_string = "everything ";
-  std::string work_string = "works";
-  std::string result = prepare_string + work_string;
-
-  std::string test_string;
+  uint64_t counter = 0;
 
   WorkerAction prepare = [&](const std::shared_ptr<Worker> &worker) {
-    test_string = prepare_string;
+    EXPECT_EQ(counter++, 0);
     return fc::outcome::success();
   };
   WorkerAction work = [&](const std::shared_ptr<Worker> &worker) {
-    test_string += work_string;
+    EXPECT_EQ(counter++, 1);
     return fc::outcome::success();
   };
 
@@ -90,7 +86,7 @@ TEST_F(SchedulerTest, ScheuleTask) {
   EXPECT_OUTCOME_TRUE_1(
       scheduler_->schedule(sector, task, selector_, prepare, work))
 
-  ASSERT_EQ(test_string, result);
+  EXPECT_EQ(counter, 2);
 }
 
 /**
@@ -125,34 +121,25 @@ TEST_F(SchedulerTest, RequestQueue) {
 
   scheduler_->newWorker(std::move(worker1));
 
-  std::string test_string;
-
-  std::string prepare1_string = " with ";
-  std::string work1_string = " requests";
+  uint64_t counter = 0;
 
   WorkerAction prepare1 = [&](const std::shared_ptr<Worker> &worker) {
-    test_string += prepare1_string;
+    EXPECT_EQ(counter++, 2);
     return fc::outcome::success();
   };
   WorkerAction work1 = [&](const std::shared_ptr<Worker> &worker) {
-    test_string += work1_string;
+    EXPECT_EQ(counter++, 3);
     return fc::outcome::success();
   };
 
-  std::string prepare2_string = "Request queue";
-  std::string work2_string = " works ";
-
   WorkerAction prepare2 = [&](const std::shared_ptr<Worker> &worker) {
-    test_string += prepare2_string;
+    EXPECT_EQ(counter++, 0);
     return fc::outcome::success();
   };
   WorkerAction work2 = [&](const std::shared_ptr<Worker> &worker) {
-    test_string += work2_string;
+    EXPECT_EQ(counter++, 1);
     return fc::outcome::success();
   };
-
-  std::string result =
-      prepare2_string + work2_string + prepare1_string + work1_string;
 
   SectorId sector{
       .miner = 42,
@@ -184,5 +171,5 @@ TEST_F(SchedulerTest, RequestQueue) {
 
   t.join();
   ASSERT_FALSE(thread_error);
-  ASSERT_EQ(test_string, result);
+  EXPECT_EQ(counter, 4);
 }
