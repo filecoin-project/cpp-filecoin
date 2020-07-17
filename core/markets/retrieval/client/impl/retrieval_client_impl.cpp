@@ -167,16 +167,11 @@ namespace fc::markets::retrieval::client {
     cid.content_address =
         crypto::Hasher::calculate(cid.content_address.getType(), block.data);
 
-    // TODO validate block
-    // root cid == payload cid
-    // deal_state->proposal.params.selector
-    // check if complete
-
+    OUTCOME_TRY(completed,
+                deal_state->verifier.verifyNextBlock(cid, block.data));
     OUTCOME_TRY(ipfs_->set(cid, block.data));
-
     deal_state->total_received += block.data.size();
-
-    return outcome::success(true);
+    return outcome::success(completed);
   }
 
   void RetrievalClientImpl::setupPaymentChannelStart(

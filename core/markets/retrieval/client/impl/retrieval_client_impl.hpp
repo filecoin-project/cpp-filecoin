@@ -14,6 +14,7 @@
 #include "markets/retrieval/client/retrieval_client.hpp"
 #include "markets/retrieval/client/retrieval_client_error.hpp"
 #include "storage/ipfs/datastore.hpp"
+#include "storage/ipld/verifier.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval::client {
@@ -21,6 +22,7 @@ namespace fc::markets::retrieval::client {
   using common::libp2p::CborHost;
   using common::libp2p::CborStream;
   using fc::storage::ipfs::IpfsDatastore;
+  using fc::storage::ipld::verifier::Verifier;
   using libp2p::Host;
   using vm::actor::builtin::payment_channel::LaneId;
 
@@ -41,7 +43,8 @@ namespace fc::markets::retrieval::client {
           miner_wallet{miner_wallet},
           total_funds(total_funds),
           current_interval{proposal.params.payment_interval},
-          deal_status{DealStatus::kDealStatusOngoing} {}
+          deal_status{DealStatus::kDealStatusOngoing},
+          verifier{proposal.payload_cid, proposal.params.selector} {}
 
     DealProposal proposal;
     std::shared_ptr<CborStream> stream;
@@ -77,6 +80,11 @@ namespace fc::markets::retrieval::client {
      * - kDealStatusBlocksComplete - blocks sending complete, finalize deal
      */
     DealStatus deal_status;
+
+    /**
+     * Received ipld blocks verifier
+     */
+    Verifier verifier;
   };
 
   class RetrievalClientImpl
