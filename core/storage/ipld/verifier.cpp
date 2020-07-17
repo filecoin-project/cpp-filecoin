@@ -9,6 +9,10 @@ namespace fc::storage::ipld::verifier {
 
   outcome::result<bool> Verifier::verifyNextBlock(const CID &block_cid,
                                                   const Buffer &data) {
+    OUTCOME_TRY(data_cid, common::getCidOf(data));
+    if (block_cid != data_cid) {
+      return VerifierError::kUnexpectedCid;
+    }
     OUTCOME_TRY(store_.set(block_cid, data));
     OUTCOME_TRY(traversed_cid, traverser_.advance());
     if (block_cid != traversed_cid) {

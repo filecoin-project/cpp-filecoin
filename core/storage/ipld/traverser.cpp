@@ -63,6 +63,9 @@ namespace fc::storage::ipld::traverser {
   }
 
   outcome::result<CID> Traverser::advance() {
+1    if (isCompleted()) {
+      return TraverserError::kTraverseCompleted;
+    }
     CID cid = to_visit_.front();
     to_visit_.pop();
     if (visited_.insert(cid).second) {
@@ -78,8 +81,6 @@ namespace fc::storage::ipld::traverser {
           to_visit_.push(c);
         }
       }
-    } else {
-      return TraverserError::kAlreadyVisited;
     }
     return cid;
   }
@@ -114,8 +115,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipld::traverser, TraverserError, e) {
   using fc::storage::ipld::traverser::TraverserError;
 
   switch (e) {
-    case TraverserError::kAlreadyVisited:
-      return "Traverser: CID already visited";
+    case TraverserError::kTraverseCompleted:
+      return "Traverser: blocks already completed";
   }
 
   return "Traverser: unknown error";

@@ -18,7 +18,7 @@ namespace fc::storage::ipld::traverser {
    * @brief Type of errors returned by IPLD traverser
    */
   enum class TraverserError {
-    kAlreadyVisited = 1,
+    kTraverseCompleted = 1,
   };
 
   /**
