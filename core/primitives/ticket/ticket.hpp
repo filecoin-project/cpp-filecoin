@@ -38,16 +38,6 @@ namespace fc::primitives::ticket {
    * @return true if lhs less thatn rhs, false othewise
    */
   bool operator<(const Ticket &lhs, const Ticket &rhs);
-
-  /**
-   * @brief draws randomness from ticket
-   * @param ticket ticket
-   * @param round round number
-   * @return randomness value or error
-   */
-  outcome::result<crypto::randomness::Randomness> drawRandomness(
-      const Ticket &ticket, int64_t round);
-
 }  // namespace fc::primitives::ticket
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TICKET_TICKET_HPP

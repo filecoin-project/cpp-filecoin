@@ -8,12 +8,19 @@
 
 #include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
+#include "primitives/sector/sector.hpp"
+#include "primitives/types.hpp"
 
 namespace fc::storage::piece {
-  /* Information about a single deal for a given piece */
+  using primitives::DealId;
+  using primitives::sector::SectorNumber;
+
+  /**
+   * Information about a single deal for a given piece
+   */
   struct DealInfo {
-    uint64_t deal_id;
-    uint64_t sector_id;
+    DealId deal_id;
+    SectorNumber sector_id;
     uint64_t offset;
     uint64_t length;
 
@@ -53,9 +60,9 @@ namespace fc::storage::piece {
   CBOR_TUPLE(PayloadBlockInfo, parent_piece, block_location)
 
   /**
-   * Information about where a given CID will live inside a piece
+   * Information about where a given payload with CID will live inside a piece
    */
-  struct CidInfo {
+  struct PayloadInfo {
     CID cid;
     std::vector<PayloadBlockInfo> piece_block_locations;
   };
@@ -79,13 +86,13 @@ namespace fc::storage::piece {
     virtual ~PieceStorage() = default;
 
     /**
-     * @brief Add new piece info
+     * @brief Append new deal info for piece
      * @param piece_cid - id of the Piece
-     * @param piece_info - info about Piece
+     * @param deal_info - info about deal
      * @return operation result
      */
-    virtual outcome::result<void> addPieceInfo(const CID &piece_cid,
-                                               PieceInfo piece_info) = 0;
+    virtual outcome::result<void> addDealForPiece(
+        const CID &piece_cid, const DealInfo &deal_info) = 0;
 
     /**
      * @brief Get info about selected Piece
@@ -97,10 +104,11 @@ namespace fc::storage::piece {
 
     /**
      * Retrieve the CIDInfo associated with `pieceCID` from the CID info store
-     * @param piece_cid - id of the Piece
+     * @param payload_cid - cid of the payload
      * @return operation result
      */
-    virtual outcome::result<CidInfo> getCidInfo(const CID &piece_cid) const = 0;
+    virtual outcome::result<PayloadInfo> getPayloadInfo(
+        const CID &payload_cid) const = 0;
 
     /**
      * @brief Add locations of the payload blocks in the Piece

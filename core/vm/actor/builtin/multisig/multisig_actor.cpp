@@ -138,7 +138,7 @@ namespace fc::vm::actor::builtin::multisig {
     if (current_epoch < start_epoch) return initial_balance;
     auto elapsed_epoch = current_epoch - start_epoch;
     if (unlock_duration < elapsed_epoch) return 0;
-    return initial_balance / unlock_duration * elapsed_epoch;
+    return bigdiv(initial_balance, unlock_duration) * elapsed_epoch;
   }
 
   ACTOR_METHOD_IMPL(Construct) {

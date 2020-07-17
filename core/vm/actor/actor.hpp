@@ -76,8 +76,6 @@ namespace fc::vm::actor {
     explicit CodeId(CID cid) : CID{std::move(cid)} {}
   };
 
-  using ActorSubstateCID = CID;
-
   /**
    * Common actor state interface represents the on-chain storage all actors
    * keep

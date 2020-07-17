@@ -45,6 +45,7 @@ namespace fc::markets::storage::provider {
   using data_transfer::Voucher;
   using data_transfer::graphsync::GraphSyncManager;
   using fc::storage::ipfs::graphsync::GraphsyncImpl;
+  using fc::storage::piece::DealInfo;
   using fc::storage::piece::PayloadLocation;
   using fc::storage::piece::PieceStorageImpl;
   using host::HostContext;
@@ -293,9 +294,8 @@ namespace fc::markets::storage::provider {
     }
 
     OUTCOME_TRY(ask, stored_ask_->getAsk(miner_actor_address_));
-    auto min_price =
-        (ask.ask.price * static_cast<uint64_t>(proposal.piece_size))
-        / (1 << 30);
+    auto min_price = bigdiv(
+        ask.ask.price * static_cast<uint64_t>(proposal.piece_size), 1 << 30);
     if (proposal.storage_price_per_epoch < min_price) {
       std::stringstream ss;
       ss << "Deal proposal verification failed, storage price per epoch less "
@@ -418,18 +418,18 @@ namespace fc::markets::storage::provider {
     return outcome::success();
   }
 
-  outcome::result<PieceInfo> StorageProviderImpl::locatePiece(
+  outcome::result<PieceLocation> StorageProviderImpl::locatePiece(
       std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
     OUTCOME_TRY(
-        piece_info,
+        piece_location,
         miner_api_->LocatePieceForDealWithinSector(deal->deal_id, tipset_key));
-    return std::move(piece_info);
+    return std::move(piece_location);
   }
 
   outcome::result<void> StorageProviderImpl::recordPieceInfo(
-      std::shared_ptr<MinerDeal> deal, const PieceInfo &piece_info) {
+      std::shared_ptr<MinerDeal> deal, const PieceLocation &piece_location) {
     std::map<CID, PayloadLocation> locations;
     if (!deal->metadata_path.empty()) {
       // TODO (a.chernyshov) load block locations from metadata file
@@ -439,9 +439,12 @@ namespace fc::markets::storage::provider {
     }
     OUTCOME_TRY(piece_storage_->addPayloadLocations(
         deal->client_deal_proposal.proposal.piece_cid, locations));
-    OUTCOME_TRY(piece_storage_->addPieceInfo(
-        deal->client_deal_proposal.proposal.piece_cid, piece_info));
-
+    OUTCOME_TRY(piece_storage_->addDealForPiece(
+        deal->client_deal_proposal.proposal.piece_cid,
+        DealInfo{.deal_id = deal->deal_id,
+                 .sector_id = piece_location.sector_number,
+                 .offset = piece_location.offset,
+                 .length = piece_location.length}));
     return outcome::success();
   }
 
@@ -717,9 +720,9 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto maybe_piece_info = locatePiece(deal);
-    FSM_HALT_ON_ERROR(maybe_piece_info, "Unable to locate piece", deal);
-    FSM_HALT_ON_ERROR(recordPieceInfo(deal, maybe_piece_info.value()),
+    auto maybe_piece_location = locatePiece(deal);
+    FSM_HALT_ON_ERROR(maybe_piece_location, "Unable to locate piece", deal);
+    FSM_HALT_ON_ERROR(recordPieceInfo(deal, maybe_piece_location.value()),
                       "Record piece failed",
                       deal);
     FSM_SEND(deal, ProviderEvent::ProviderEventDealCompleted);

@@ -14,15 +14,12 @@ using fc::primitives::address::Address;
 using fc::storage::hamt::Hamt;
 using fc::storage::hamt::HamtError;
 using fc::vm::actor::Actor;
-using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::CodeId;
 using fc::vm::state::StateTreeImpl;
 
 auto kAddressId = Address::makeFromId(13);
-const Actor kActor{CodeId{"010001020001"_cid},
-                   ActorSubstateCID{"010001020002"_cid},
-                   3,
-                   BigInt(5)};
+const Actor kActor{
+    CodeId{"010001020001"_cid}, "010001020002"_cid, 3, BigInt(5)};
 
 class StateTreeTest : public ::testing::Test {
  public:

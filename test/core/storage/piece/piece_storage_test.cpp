@@ -33,12 +33,21 @@ struct PieceStorageTest : public ::testing::Test {
 };
 
 /**
+ * @given Example Piece CID and empty storage
+ * @when retrieving nonexisting Piece info
+ * @then return error piece info not found
+ */
+TEST_F(PieceStorageTest, GetPieceInfoNotFound){
+    EXPECT_OUTCOME_ERROR(PieceStorageError::kPieceNotFound,
+                         piece_storage->getPieceInfo(piece_cid))}
+
+/**
  * @given Example Piece CID and Piece info
  * @when Writing and retrieving Piece info
  * @then All operations must be successful and retrieved info must be the same
  */
 TEST_F(PieceStorageTest, AddPieceInfoSuccess) {
-  EXPECT_OUTCOME_TRUE_1(piece_storage->addPieceInfo(piece_cid, piece_info))
+  EXPECT_OUTCOME_TRUE_1(piece_storage->addDealForPiece(piece_cid, deal_info))
   EXPECT_OUTCOME_TRUE(received_info, piece_storage->getPieceInfo(piece_cid))
   ASSERT_EQ(received_info, piece_info);
 }
