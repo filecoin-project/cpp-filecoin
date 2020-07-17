@@ -14,6 +14,8 @@
 
 namespace fc::sector_storage {
 
+  using primitives::SectorNumber;
+
   class ManagerImpl : public Manager {
    public:
     outcome::result<std::vector<SectorId>> checkProvable(
@@ -32,12 +34,12 @@ namespace fc::sector_storage {
     outcome::result<std::vector<PoStProof>> generateWinningPoSt(
         ActorId miner_id,
         gsl::span<const SectorInfo> sector_info,
-        const PoStRandomness &randomness) override;
+        PoStRandomness randomness) override;
 
     outcome::result<WindowPoStResponse> generateWindowPoSt(
         ActorId miner_id,
         gsl::span<const SectorInfo> sector_info,
-        const PoStRandomness &randomness) override;
+        PoStRandomness randomness) override;
 
     outcome::result<PreCommit1Output> sealPreCommit1(
         const SectorId &sector,
@@ -78,6 +80,18 @@ namespace fc::sector_storage {
     outcome::result<FsStat> getFsStat(StorageID storage_id) override;
 
    private:
+    struct PubToPrivateResponse {
+      proofs::SortedPrivateSectorInfo private_info;
+      std::vector<SectorId> skipped;
+    };
+
+    outcome::result<PubToPrivateResponse> publicSectorToPrivate(
+        ActorId miner,
+        gsl::span<const SectorInfo> sector_info,
+        gsl::span<const SectorNumber> faults,
+        const std::function<outcome::result<RegisteredProof>(RegisteredProof)>&
+            to_post_transform);
+
     std::shared_ptr<stores::SectorIndex> index_;
 
     RegisteredProof seal_proof_type_;  // TODO: maybe add config

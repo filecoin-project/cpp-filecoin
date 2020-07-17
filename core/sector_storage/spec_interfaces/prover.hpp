@@ -29,12 +29,12 @@ namespace fc::sector_storage {
     virtual outcome::result<std::vector<PoStProof>> generateWinningPoSt(
         ActorId miner_id,
         gsl::span<const SectorInfo> sector_info,
-        const PoStRandomness &randomness) = 0;
+        PoStRandomness randomness) = 0;
 
     virtual outcome::result<WindowPoStResponse> generateWindowPoSt(
         ActorId miner_id,
         gsl::span<const SectorInfo> sector_info,
-        const PoStRandomness &randomness) = 0;
+        PoStRandomness randomness) = 0;
   };
 }  // namespace fc::sector_storage
 #endif  // CPP_FILECOIN_SECTOR_STROAGE_SPEC_INTERFACES_PROVER_HPP

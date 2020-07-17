@@ -4,7 +4,9 @@
  */
 
 #include "sector_storage/impl/manager_impl.hpp"
+
 #include <boost/filesystem.hpp>
+#include <unordered_set>
 
 namespace fs = boost::filesystem;
 using fc::primitives::sector_file::SectorFileType;
@@ -36,15 +38,46 @@ namespace fc::sector_storage {
   outcome::result<std::vector<PoStProof>> ManagerImpl::generateWinningPoSt(
       ActorId miner_id,
       gsl::span<const SectorInfo> sector_info,
-      const PoStRandomness &randomness) {
-    return outcome::success();
+      PoStRandomness randomness) {
+    randomness[31] = 0;
+
+    OUTCOME_TRY(res,
+                publicSectorToPrivate(
+                    miner_id,
+                    sector_info,
+                    {},
+                    primitives::sector::getRegisteredWinningPoStProof));
+
+    if (!res.skipped.empty()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    return proofs::Proofs::generateWinningPoSt(
+        miner_id, res.private_info, randomness);
   }
 
   outcome::result<Prover::WindowPoStResponse> ManagerImpl::generateWindowPoSt(
       ActorId miner_id,
       gsl::span<const SectorInfo> sector_info,
-      const PoStRandomness &randomness) {
-    return outcome::success();
+      PoStRandomness randomness) {
+    // TODO: maybe some manipulation with randomness
+
+    Prover::WindowPoStResponse response{};
+
+    OUTCOME_TRY(res,
+                publicSectorToPrivate(
+                    miner_id,
+                    sector_info,
+                    {},
+                    primitives::sector::getRegisteredWindowPoStProof));
+
+    OUTCOME_TRYA(response.proof,
+                 proofs::Proofs::generateWindowPoSt(
+                     miner_id, res.private_info, randomness));
+
+    response.skipped = std::move(res.skipped);
+
+    return std::move(response);
   }
 
   outcome::result<PreCommit1Output> ManagerImpl::sealPreCommit1(
@@ -204,5 +237,58 @@ namespace fc::sector_storage {
 
   outcome::result<FsStat> ManagerImpl::getFsStat(StorageID storage_id) {
     return storage_->getFsStat(storage_id);
+  }
+
+  outcome::result<ManagerImpl::PubToPrivateResponse>
+  ManagerImpl::publicSectorToPrivate(
+      ActorId miner,
+      gsl::span<const SectorInfo> sector_info,
+      gsl::span<const SectorNumber> faults,
+      const std::function<outcome::result<RegisteredProof>(RegisteredProof)>
+          &to_post_transform) {
+    PubToPrivateResponse result;
+
+    std::unordered_set<SectorNumber> faults_set;
+    for (const auto &fault : faults) {
+      faults_set.insert(fault);
+    }
+
+    std::vector<proofs::PrivateSectorInfo> out{};
+    for (const auto &sector : sector_info) {
+      if (faults_set.find(sector.sector) != faults_set.end()) {
+        continue;
+      }
+
+      SectorId sector_id{
+          .miner = miner,
+          .sector = sector.sector,
+      };
+
+      auto res = local_store_->acquireSector(
+          sector_id,
+          seal_proof_type_,
+          static_cast<SectorFileType>(SectorFileType::FTCache
+                                      | SectorFileType::FTSealed),
+          SectorFileType::FTNone,
+          false);
+      if (res.has_error()) {
+        // TODO: log it
+        result.skipped.push_back(sector_id);
+        continue;
+      }
+
+      OUTCOME_TRY(post_proof_type, to_post_transform(sector.registered_proof));
+
+      out.push_back(proofs::PrivateSectorInfo{
+          .info = sector,
+          .cache_dir_path = res.value().paths.cache,
+          .post_proof_type = post_proof_type,
+          .sealed_sector_path = res.value().paths.sealed,
+      });
+    }
+
+    result.private_info = proofs::Proofs::newSortedPrivateSectorInfo(out);
+
+    return std::move(result);
   }
 }  // namespace fc::sector_storage
