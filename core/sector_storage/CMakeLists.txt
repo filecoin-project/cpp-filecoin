@@ -19,6 +19,17 @@ target_link_libraries(worker
         logger
         )
 
+add_library(scheduler
+        impl/scheduler_impl.cpp)
+
+target_link_libraries(scheduler
+        outcome
+        resources
+        logger
+        worker
+        Boost::boost
+        )
+
 add_library(manager
         impl/manager_impl.cpp
         )

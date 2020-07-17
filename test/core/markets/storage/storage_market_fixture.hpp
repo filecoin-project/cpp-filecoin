@@ -33,6 +33,7 @@ namespace fc::markets::storage::test {
   using api::MarketBalance;
   using api::MinerApi;
   using api::MsgWait;
+  using api::PieceLocation;
   using api::Wait;
   using chain_events::ChainEvents;
   using chain_events::ChainEventsMock;
@@ -332,8 +333,9 @@ namespace fc::markets::storage::test {
       std::shared_ptr<MinerApi> miner_api = std::make_shared<MinerApi>();
 
       miner_api->LocatePieceForDealWithinSector = {
-          [](auto &deal_id, auto &tipset_key) -> outcome::result<PieceInfo> {
-            return PieceInfo{.piece_cid = "010001020001"_cid};
+          [](auto &deal_id,
+             auto &tipset_key) -> outcome::result<PieceLocation> {
+            return PieceLocation{};
           }};
 
       return miner_api;

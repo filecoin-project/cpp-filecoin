@@ -108,10 +108,11 @@ namespace fc::markets::retrieval::test {
     }
 
     outcome::result<void> addPieceSample(const SamplePiece &piece) {
-      OUTCOME_TRY(piece_storage->addPieceInfo(piece.cid, piece.info));
+      OUTCOME_TRY(piece_storage->addDealForPiece(piece.info.piece_cid,
+                                                 piece.info.deals.front()));
       for (const auto &payload : piece.payloads) {
         OUTCOME_TRY(piece_storage->addPayloadLocations(
-            piece.cid, {{payload.cid, payload.location}}));
+            piece.info.piece_cid, {{payload.cid, payload.location}}));
       }
       return outcome::success();
     }
