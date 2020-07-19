@@ -10,6 +10,7 @@
 #include "sector_storage/impl/allocate_selector.hpp"
 #include "sector_storage/impl/existing_selector.hpp"
 #include "sector_storage/impl/task_selector.hpp"
+#include "sector_storage/stores/store_error.hpp"
 
 namespace fs = boost::filesystem;
 using fc::primitives::sector_file::SectorFileType;
@@ -28,13 +29,116 @@ namespace {
       const std::shared_ptr<fc::sector_storage::Worker> &worker) {
     return fc::outcome::success();
   }
+
+  void addCachePathsForSectorSize(
+      std::unordered_map<std::string, uint64_t> &check,
+      const std::string &cache_dir,
+      SectorSize ssize) {
+    switch (ssize) {
+      case SectorSize(2) << 10:
+      case SectorSize(8) << 20:
+      case SectorSize(512) << 20:
+        check[(fs::path(cache_dir) / "sc-02-data-tree-r-last.dat").string()] =
+            0;
+        break;
+      case SectorSize(32) << 30:
+        for (int i = 0; i < 8; i++) {
+          check[(fs::path(cache_dir)
+                 / ("sc-02-data-tree-r-last-" + std::to_string(i) + ".dat"))
+                    .string()] = 0;
+        }
+        break;
+      case SectorSize(64) << 30:
+        for (int i = 0; i < 16; i++) {
+          check[(fs::path(cache_dir)
+                 / ("sc-02-data-tree-r-last-" + std::to_string(i) + ".dat"))
+                    .string()] = 0;
+        }
+        break;
+      default:
+        // TODO: log it
+        break;
+    }
+  }
 }  // namespace
 
 namespace fc::sector_storage {
 
   outcome::result<std::vector<SectorId>> ManagerImpl::checkProvable(
       RegisteredProof seal_proof_type, gsl::span<const SectorId> sectors) {
-    return outcome::success();
+    std::vector<SectorId> bad{};
+
+    OUTCOME_TRY(ssize, primitives::sector::getSectorSize(seal_proof_type));
+
+    for (const auto &sector : sectors) {
+      auto locked = index_->storageTryLock(
+          sector,
+          static_cast<SectorFileType>(SectorFileType::FTSealed
+                                      | SectorFileType::FTCache),
+          SectorFileType::FTNone);
+
+      if (!locked) {
+        // TODO: Log it
+        bad.push_back(sector);
+        continue;
+      }
+
+      auto maybe_response = local_store_->acquireSector(
+          sector,
+          seal_proof_type,
+          static_cast<SectorFileType>(SectorFileType::FTSealed
+                                      | SectorFileType::FTCache),
+          SectorFileType::FTNone,
+          false);
+
+      if (maybe_response.has_error()) {
+        if (maybe_response
+            == outcome::failure(
+                stores::StoreErrors::kNotFoundRequestedSectorType)) {
+          // TODO: Log it
+          bad.push_back(sector);
+          continue;
+        }
+        return maybe_response.error();
+      }
+
+      std::unordered_map<std::string, uint64_t> to_check = {
+          {maybe_response.value().paths.sealed, 1},
+          {(fs::path(maybe_response.value().paths.cache) / "t_aux").string(),
+           0},
+          {(fs::path(maybe_response.value().paths.cache) / "p_aux").string(),
+           0},
+      };
+
+      addCachePathsForSectorSize(
+          to_check, maybe_response.value().paths.cache, ssize);
+
+      for (const auto &[path, size] : to_check) {
+        if (!fs::exists(path)) {
+          // TODO: Log it
+          bad.push_back(sector);
+          break;
+        }
+
+        if (size != 0) {
+          boost::system::error_code ec;
+          size_t actual_size = fs::file_size(path, ec);
+          if (ec.failed()) {
+            // TODO: Log it
+            bad.push_back(sector);
+            break;
+          }
+
+          if (actual_size != ssize * size) {
+            // TODO: Log it
+            bad.push_back(sector);
+            break;
+          }
+        }
+      }
+    }
+
+    return std::move(bad);
   }
 
   SectorSize ManagerImpl::getSectorSize() {
