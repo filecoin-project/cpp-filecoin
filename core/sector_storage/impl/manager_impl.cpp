@@ -332,7 +332,36 @@ namespace fc::sector_storage {
       gsl::span<const UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
       const proofs::PieceData &piece_data) {
-    return outcome::success();
+    OUTCOME_TRY(
+        lock,
+        index_->storageLock(
+            sector, SectorFileType::FTNone, SectorFileType::FTUnsealed));
+
+    std::shared_ptr<WorkerSelector> selector;
+    if (piece_sizes.empty()) {
+      selector = std::make_unique<AllocateSelector>(
+          index_, SectorFileType::FTUnsealed, true);
+    } else {
+      OUTCOME_TRYA(selector,
+                   ExistingSelector::newExistingSelector(
+                       index_, sector, SectorFileType::FTUnsealed, false));
+    }
+
+    PieceInfo out;
+
+    OUTCOME_TRY(scheduler_->schedule(
+        sector,
+        primitives::kTTAddPiece,
+        selector,
+        schedNothing,
+        [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
+          OUTCOME_TRYA(out,
+                       worker->addPiece(
+                           sector, piece_sizes, new_piece_size, piece_data));
+          return outcome::success();
+        }));
+
+    return std::move(out);
   }
 
   outcome::result<void> ManagerImpl::addLocalStorage(const std::string &path) {

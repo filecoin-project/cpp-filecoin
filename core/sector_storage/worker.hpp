@@ -23,7 +23,7 @@ namespace fc::sector_storage {
   using primitives::sector::SectorId;
   using primitives::sector_file::SectorFileType;
 
-  class Worker : public Sealer, Storage {
+  class Worker : public Sealer, public Storage {
    public:
     virtual outcome::result<void> moveStorage(const SectorId &sector) = 0;
 
