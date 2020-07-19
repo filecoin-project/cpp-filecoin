@@ -241,15 +241,46 @@ namespace fc::sector_storage {
       }
     }
 
-    // TODO: create existing selector
+    std::shared_ptr<WorkerSelector> selector;
 
-    // TODO: schedule it
+    OUTCOME_TRYA(selector,
+                 ExistingSelector::newExistingSelector(
+                     index_,
+                     sector,
+                     static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                 | SectorFileType::FTCache),
+                     false));
 
-    // TODO: create allocate selector
+    OUTCOME_TRY(scheduler_->schedule(
+        sector,
+        primitives::kTTFinalize,
+        selector,
+        schedFetch(
+            sector,
+            static_cast<SectorFileType>(SectorFileType::FTSealed
+                                        | SectorFileType::FTCache | unsealed),
+            true),
+        [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
+          return worker->finalizeSector(sector);
+        }));
 
-    // TODO: schedule move
+    auto fetch_selector = std::make_shared<AllocateSelector>(
+        index_,
+        static_cast<SectorFileType>(SectorFileType::FTSealed
+                                    | SectorFileType::FTCache),
+        false);
 
-    return outcome::success();
+    return scheduler_->schedule(
+        sector,
+        primitives::kTTFetch,
+        fetch_selector,
+        schedFetch(sector,
+                   static_cast<SectorFileType>(SectorFileType::FTSealed
+                                               | SectorFileType::FTCache),
+                   false),
+        [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
+          return worker->moveStorage(sector);
+        });
   }
 
   outcome::result<void> ManagerImpl::remove(const SectorId &sector) {
@@ -272,11 +303,28 @@ namespace fc::sector_storage {
       }
     }
 
-    // TODO: create existing selector
+    std::shared_ptr<WorkerSelector> selector;
 
-    // TODO: schedule it
+    OUTCOME_TRYA(selector,
+                 ExistingSelector::newExistingSelector(
+                     index_,
+                     sector,
+                     static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                 | SectorFileType::FTCache),
+                     false));
 
-    return outcome::success();
+    return scheduler_->schedule(
+        sector,
+        primitives::kTTFinalize,
+        selector,
+        schedFetch(
+            sector,
+            static_cast<SectorFileType>(SectorFileType::FTSealed
+                                        | SectorFileType::FTCache | unsealed),
+            false),
+        [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
+          return worker->remove(sector);
+        });
   }
 
   outcome::result<PieceInfo> ManagerImpl::addPiece(
