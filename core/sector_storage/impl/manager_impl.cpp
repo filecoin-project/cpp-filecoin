@@ -51,7 +51,68 @@ namespace fc::sector_storage {
                                                const UnpaddedPieceSize &size,
                                                const SealRandomness &randomness,
                                                const CID &cid) {
-    return outcome::success();
+    OUTCOME_TRY(lock,
+                index_->storageLock(
+                    sector,
+                    static_cast<SectorFileType>(SectorFileType::FTSealed
+                                                | SectorFileType::FTCache),
+                    SectorFileType::FTUnsealed));
+
+    {
+      OUTCOME_TRY(
+          best,
+          index_->storageFindSector(sector, SectorFileType::FTUnsealed, false));
+
+      std::shared_ptr<WorkerSelector> selector;
+      if (best.empty()) {
+        selector = std::make_unique<AllocateSelector>(
+            index_, SectorFileType::FTUnsealed, true);
+      } else {
+        OUTCOME_TRYA(selector,
+                     ExistingSelector::newExistingSelector(
+                         index_, sector, SectorFileType::FTUnsealed, false));
+      }
+
+      // TODO: Optimization: don't send unseal to a worker if the requested
+      // range is already unsealed
+
+      WorkerAction unseal_fetch =
+          [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
+        SectorFileType unsealed =
+            best.empty() ? SectorFileType::FTNone : SectorFileType::FTUnsealed;
+
+        OUTCOME_TRY(worker->fetch(
+            sector,
+            static_cast<SectorFileType>(SectorFileType::FTSealed
+                                        | SectorFileType::FTCache | unsealed),
+            true));
+
+        return outcome::success();
+      };
+
+      OUTCOME_TRY(scheduler_->schedule(
+          sector,
+          primitives::kTTUnseal,
+          selector,
+          unseal_fetch,
+          [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
+            return worker->unsealPiece(sector, offset, size, randomness, cid);
+          }));
+    }
+
+    std::shared_ptr<WorkerSelector> selector;
+    OUTCOME_TRYA(selector,
+                 ExistingSelector::newExistingSelector(
+                     index_, sector, SectorFileType::FTUnsealed, false));
+
+    return scheduler_->schedule(
+        sector,
+        primitives::kTTReadUnsealed,
+        selector,
+        schedFetch(sector, SectorFileType::FTUnsealed, true),
+        [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
+          return worker->readPiece(output, sector, offset, size);
+        });
   }
 
   outcome::result<std::vector<PoStProof>> ManagerImpl::generateWinningPoSt(
