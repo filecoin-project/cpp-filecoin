@@ -10,6 +10,8 @@
 #include <unordered_set>
 #include "sector_storage/impl/allocate_selector.hpp"
 #include "sector_storage/impl/existing_selector.hpp"
+#include "sector_storage/impl/local_worker.hpp"
+#include "sector_storage/impl/scheduler_impl.hpp"
 #include "sector_storage/impl/task_selector.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
@@ -660,6 +662,100 @@ namespace fc::sector_storage {
 
     return std::move(result);
   }
+
+  outcome::result<std::unique_ptr<Manager>> ManagerImpl::newManager(
+      std::shared_ptr<stores::LocalStorage> local_storage,
+      std::shared_ptr<stores::SectorIndex> sector_index,
+      RegisteredProof seal_proof_type,
+      const SealerConfig &config,
+      gsl::span<const std::string> urls,
+      const std::unordered_map<stores::HeaderName, stores::HeaderValue>
+          &auth_headers) {
+    struct make_unique_enabler : public ManagerImpl {
+      make_unique_enabler(std::shared_ptr<stores::SectorIndex> sector_index,
+                          RegisteredProof seal_proof_type,
+                          std::shared_ptr<stores::LocalStorage> local_storage,
+                          std::shared_ptr<stores::LocalStore> local_store,
+                          std::shared_ptr<stores::Store> store,
+                          std::shared_ptr<Scheduler> scheduler)
+          : ManagerImpl{std::move(sector_index),
+                        seal_proof_type,
+                        std::move(local_storage),
+                        std::move(local_store),
+                        std::move(store),
+                        std::move(scheduler)} {};
+    };
+
+    std::shared_ptr<stores::LocalStore> local_store;
+    OUTCOME_TRYA(local_store,
+                 stores::LocalStoreImpl::newLocalStore(
+                     local_storage, sector_index, urls));
+
+    std::shared_ptr<stores::Store> storage =
+        std::make_unique<stores::RemoteStore>(
+            local_store, sector_index, auth_headers);
+
+    std::unique_ptr<ManagerImpl> manager =
+        std::make_unique<make_unique_enabler>(
+            sector_index,
+            seal_proof_type,
+            std::move(local_storage),
+            local_store,
+            storage,
+            std::make_unique<SchedulerImpl>(seal_proof_type));
+
+    std::set<TaskType> local_tasks{
+        primitives::kTTAddPiece,
+        primitives::kTTCommit1,
+        primitives::kTTFinalize,
+        primitives::kTTFetch,
+        primitives::kTTReadUnsealed,
+
+    };
+
+    if (config.allow_precommit_1) {
+      local_tasks.insert(primitives::kTTPreCommit1);
+    }
+
+    if (config.allow_precommit_2) {
+      local_tasks.insert(primitives::kTTPreCommit2);
+    }
+
+    if (config.allow_commit) {
+      local_tasks.insert(primitives::kTTCommit2);
+    }
+
+    if (config.allow_unseal) {
+      local_tasks.insert(primitives::kTTUnseal);
+    }
+
+    std::unique_ptr<Worker> worker = std::make_unique<LocalWorker>(
+        WorkerConfig{
+            .hostname = "",
+            .seal_proof_type = seal_proof_type,
+            .task_types = std::move(local_tasks),
+        },
+        std::move(storage),
+        std::move(local_store),
+        std::move(sector_index));
+
+    OUTCOME_TRY(manager->addWorker(std::move(worker)));
+    return std::move(manager);
+  }
+
+  ManagerImpl::ManagerImpl(std::shared_ptr<stores::SectorIndex> sector_index,
+                           RegisteredProof seal_proof_type,
+                           std::shared_ptr<stores::LocalStorage> local_storage,
+                           std::shared_ptr<stores::LocalStore> local_store,
+                           std::shared_ptr<stores::Store> store,
+                           std::shared_ptr<Scheduler> scheduler)
+      : index_(std::move(sector_index)),
+        seal_proof_type_(seal_proof_type),
+        local_storage_(std::move(local_storage)),
+        local_store_(std::move(local_store)),
+        storage_(std::move(store)),
+        scheduler_(std::move(scheduler)),
+        logger_(common::createLogger("manager")) {}
 }  // namespace fc::sector_storage
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, ManagerErrors, e) {

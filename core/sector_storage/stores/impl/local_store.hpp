@@ -47,7 +47,7 @@ namespace fc::sector_storage::stores {
     static outcome::result<std::unique_ptr<LocalStore>> newLocalStore(
         const std::shared_ptr<LocalStorage> &storage,
         const std::shared_ptr<SectorIndex> &index,
-        gsl::span<std::string> urls);
+        gsl::span<const std::string> urls);
 
     outcome::result<void> openPath(const std::string &path) override;
 
@@ -72,7 +72,7 @@ namespace fc::sector_storage::stores {
    private:
     LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
                    std::shared_ptr<SectorIndex> index,
-                   gsl::span<std::string> urls);
+                   gsl::span<const std::string> urls);
 
     std::shared_ptr<LocalStorage> storage_;
     std::shared_ptr<SectorIndex> index_;

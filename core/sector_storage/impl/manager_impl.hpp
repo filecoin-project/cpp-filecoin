@@ -10,6 +10,7 @@
 
 #include "sector_storage/scheduler.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
+#include "sector_storage/stores/impl/remote_store.hpp"
 #include "sector_storage/stores/index.hpp"
 #include "sector_storage/stores/store.hpp"
 
@@ -17,8 +18,24 @@ namespace fc::sector_storage {
 
   using primitives::SectorNumber;
 
+  struct SealerConfig {
+    bool allow_precommit_1;
+    bool allow_precommit_2;
+    bool allow_commit;
+    bool allow_unseal;
+  };
+
   class ManagerImpl : public Manager {
    public:
+    static outcome::result<std::unique_ptr<Manager>> newManager(
+        std::shared_ptr<stores::LocalStorage> local_storage,
+        std::shared_ptr<stores::SectorIndex> sector_index,
+        RegisteredProof seal_proof_type,
+        const SealerConfig &config,
+        gsl::span<const std::string> urls,
+        const std::unordered_map<stores::HeaderName, stores::HeaderValue>
+            &auth_headers);
+
     outcome::result<std::vector<SectorId>> checkProvable(
         RegisteredProof seal_proof_type,
         gsl::span<const SectorId> sectors) override;
@@ -81,6 +98,13 @@ namespace fc::sector_storage {
     outcome::result<FsStat> getFsStat(StorageID storage_id) override;
 
    private:
+    ManagerImpl(std::shared_ptr<stores::SectorIndex> sector_index,
+                RegisteredProof seal_proof_type,
+                std::shared_ptr<stores::LocalStorage> local_storage,
+                std::shared_ptr<stores::LocalStore> local_store,
+                std::shared_ptr<stores::Store> store,
+                std::shared_ptr<Scheduler> scheduler);
+
     struct PubToPrivateResponse {
       proofs::SortedPrivateSectorInfo private_info;
       std::vector<SectorId> skipped;

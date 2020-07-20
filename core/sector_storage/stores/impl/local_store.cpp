@@ -39,7 +39,7 @@ namespace fc::sector_storage::stores {
 
   LocalStoreImpl::LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
                                  std::shared_ptr<SectorIndex> index,
-                                 gsl::span<std::string> urls)
+                                 gsl::span<const std::string> urls)
       : storage_(std::move(storage)),
         index_(std::move(index)),
         urls_(urls.begin(), urls.end()) {
@@ -309,11 +309,11 @@ namespace fc::sector_storage::stores {
   outcome::result<std::unique_ptr<LocalStore>> LocalStoreImpl::newLocalStore(
       const std::shared_ptr<LocalStorage> &storage,
       const std::shared_ptr<SectorIndex> &index,
-      gsl::span<std::string> urls) {
+      gsl::span<const std::string> urls) {
     struct make_unique_enabler : public LocalStoreImpl {
       make_unique_enabler(const std::shared_ptr<LocalStorage> &storage,
                           const std::shared_ptr<SectorIndex> &index,
-                          gsl::span<std::string> urls)
+                          gsl::span<const std::string> urls)
           : LocalStoreImpl{storage, index, urls} {};
     };
 

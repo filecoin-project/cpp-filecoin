@@ -49,4 +49,7 @@ target_link_libraries(manager
         outcome
         scheduler
         selector
+        store
+        sector_index
+        sector
         )
