@@ -12,7 +12,6 @@
 
 namespace fc::storage::ipld::traverser {
   using codec::cbor::CborDecodeStream;
-  using Ipld = ipfs::IpfsDatastore;
 
   /**
    * @brief Type of errors returned by IPLD traverser

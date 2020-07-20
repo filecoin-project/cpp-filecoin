@@ -63,7 +63,7 @@ namespace fc::storage::ipld::traverser {
   }
 
   outcome::result<CID> Traverser::advance() {
-1    if (isCompleted()) {
+    if (isCompleted()) {
       return TraverserError::kTraverseCompleted;
     }
     CID cid = to_visit_.front();
