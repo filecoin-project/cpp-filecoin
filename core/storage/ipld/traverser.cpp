@@ -59,7 +59,7 @@ namespace fc::storage::ipld::traverser {
     while (!isCompleted()) {
       OUTCOME_TRY(advance());
     }
-    return std::vector(visit_order_.begin(), visit_order_.end());
+    return std::vector<CID>(visit_order_.begin(), visit_order_.end());
   }
 
   outcome::result<CID> Traverser::advance() {
