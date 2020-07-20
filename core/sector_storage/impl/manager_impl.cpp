@@ -15,6 +15,7 @@
 
 namespace fs = boost::filesystem;
 using fc::primitives::sector_file::SectorFileType;
+using fc::primitives::sector_file::sectorName;
 
 namespace {
   fc::sector_storage::WorkerAction schedFetch(const SectorId &sector,
@@ -34,7 +35,8 @@ namespace {
   void addCachePathsForSectorSize(
       std::unordered_map<std::string, uint64_t> &check,
       const std::string &cache_dir,
-      SectorSize ssize) {
+      SectorSize ssize,
+      const fc::common::Logger &logger) {
     switch (ssize) {
       case SectorSize(2) << 10:
       case SectorSize(8) << 20:
@@ -57,7 +59,8 @@ namespace {
         }
         break;
       default:
-        // TODO: log it
+        logger->warn("not checking cache files of {} sectors for faults",
+                     ssize);
         break;
     }
   }
@@ -97,7 +100,8 @@ namespace fc::sector_storage {
           SectorFileType::FTNone);
 
       if (!locked) {
-        // TODO: Log it
+        logger_->warn("can't acquire read lock for {} sector",
+                      sectorName(sector));
         bad.push_back(sector);
         continue;
       }
@@ -114,7 +118,8 @@ namespace fc::sector_storage {
         if (maybe_response
             == outcome::failure(
                 stores::StoreErrors::kNotFoundRequestedSectorType)) {
-          // TODO: Log it
+          logger_->warn("cache an/or sealed paths not found for {} sector",
+                        sectorName(sector));
           bad.push_back(sector);
           continue;
         }
@@ -130,11 +135,12 @@ namespace fc::sector_storage {
       };
 
       addCachePathsForSectorSize(
-          to_check, maybe_response.value().paths.cache, ssize);
+          to_check, maybe_response.value().paths.cache, ssize, logger_);
 
       for (const auto &[path, size] : to_check) {
         if (!fs::exists(path)) {
-          // TODO: Log it
+          logger_->warn(
+              "{} doesnt exist for {} sector", path, sectorName(sector));
           bad.push_back(sector);
           break;
         }
@@ -143,13 +149,19 @@ namespace fc::sector_storage {
           boost::system::error_code ec;
           size_t actual_size = fs::file_size(path, ec);
           if (ec.failed()) {
-            // TODO: Log it
+            logger_->warn("sector {}. Can't get size for {}: {}",
+                          sectorName(sector),
+                          path,
+                          ec.message());
             bad.push_back(sector);
             break;
           }
 
           if (actual_size != ssize * size) {
-            // TODO: Log it
+            logger_->warn(
+                "sector {}. Actual and declared sizes do not match for {}",
+                sectorName(sector),
+                path);
             bad.push_back(sector);
             break;
           }
@@ -252,7 +264,11 @@ namespace fc::sector_storage {
                     primitives::sector::getRegisteredWinningPoStProof));
 
     if (!res.skipped.empty()) {
-      // TODO: log it
+      std::string skipped_sectors = sectorName(res.skipped[0]);
+      for (size_t i = 1; i < res.skipped.size(); i++) {
+        skipped_sectors += ", " + sectorName(res.skipped[i]);
+      }
+      logger_->error("skipped sectors: " + skipped_sectors);
       return ManagerErrors::kSomeSectorSkipped;
     }
 
@@ -625,7 +641,7 @@ namespace fc::sector_storage {
           SectorFileType::FTNone,
           false);
       if (res.has_error()) {
-        // TODO: log it
+        logger_->warn("failed to acquire sector {}", sectorName(sector_id));
         result.skipped.push_back(sector_id);
         continue;
       }

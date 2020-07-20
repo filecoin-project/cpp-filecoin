@@ -102,6 +102,8 @@ namespace fc::sector_storage {
     std::shared_ptr<stores::Store> storage_;
 
     std::shared_ptr<Scheduler> scheduler_;
+
+    common::Logger logger_;
   };
 
 }  // namespace fc::sector_storage
