@@ -5,6 +5,7 @@
 
 #include "sector_storage/impl/manager_impl.hpp"
 
+#include <pwd.h>
 #include <boost/filesystem.hpp>
 #include <unordered_set>
 #include "sector_storage/impl/allocate_selector.hpp"
@@ -59,6 +60,24 @@ namespace {
         // TODO: log it
         break;
     }
+  }
+
+  fc::outcome::result<std::string> expandPath(const std::string &path) {
+    if (path.empty() || path[0] != '~') return path;
+
+    std::string home_dir;
+    struct passwd *pwd = getpwuid(getuid());
+    if (pwd) {
+      home_dir = pwd->pw_dir;
+    } else {
+      const char *home = getenv("HOME");
+      if (home == nullptr) {
+        return fc::outcome::success();  // TODO: ERROR
+      }
+      home_dir = home;
+    }
+
+    return home_dir + path.substr(1, path.size() - 1);
   }
 }  // namespace
 
@@ -530,13 +549,13 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> ManagerImpl::addLocalStorage(const std::string &path) {
-    // TODO: expand path
+    OUTCOME_TRY(ePath, expandPath(path));
 
-    OUTCOME_TRY(local_store_->openPath(path));
+    OUTCOME_TRY(local_store_->openPath(ePath));
 
     OUTCOME_TRY(
-        local_storage_->setStorage([&path](stores::StorageConfig &config) {
-          config.storage_paths.push_back(path);
+        local_storage_->setStorage([&ePath](stores::StorageConfig &config) {
+          config.storage_paths.push_back(ePath);
         }));
 
     return outcome::success();
