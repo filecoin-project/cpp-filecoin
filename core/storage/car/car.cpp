@@ -72,23 +72,26 @@ namespace fc::storage::car {
     for (auto &root : roots) {
       Traverser traverser{store, root};
       OUTCOME_TRY(visited, traverser.traverseAll());
-      for (auto &cid : visited) {
-        cids.insert(cid);
-      }
+      cids.insert(visited.begin(), visited.end());
     }
-    return makeCar(store, roots, std::vector<CID>(cids.begin(), cids.end()));
+    return makeCar(store, roots, {cids.begin(), cids.end()});
   }
 
   outcome::result<Buffer> makeSelectiveCar(
       Ipld &store, const std::vector<std::pair<CID, Selector>> &dags) {
     std::vector<CID> roots;
-    std::vector<CID> cids;
+    std::vector<CID> cid_order;
+    std::set<CID> cids;
     for (auto &dag : dags) {
       Traverser traverser{store, dag.first, dag.second};
       OUTCOME_TRY(visited, traverser.traverseAll());
       roots.push_back(dag.first);
-      cids.insert(cids.end(), visited.begin(), visited.end());
+      for (auto &cid : visited) {
+        if (cids.insert(cid).second) {
+          cid_order.push_back(cid);
+        }
+      }
     }
-    return makeCar(store, roots, cids);
+    return makeCar(store, roots, cid_order);
   }
 }  // namespace fc::storage::car
