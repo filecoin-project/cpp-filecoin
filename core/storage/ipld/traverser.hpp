@@ -53,6 +53,7 @@ namespace fc::storage::ipld::traverser {
 
     /**
      * Visit only next element
+     * Starts with root CID
      * @return cid of traversed block
      */
     outcome::result<CID> advance();

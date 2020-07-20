@@ -13,11 +13,13 @@
 #include "markets/retrieval/protocols/query_protocol.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "markets/retrieval/provider/retrieval_provider.hpp"
+#include "storage/ipld/traverser.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::retrieval::provider {
   using common::libp2p::CborHost;
   using common::libp2p::CborStream;
+  using ::fc::storage::ipld::traverser::Traverser;
   using ::fc::storage::piece::PieceInfo;
   using ::fc::storage::piece::PieceStorage;
   using libp2p::Host;
@@ -32,10 +34,13 @@ namespace fc::markets::retrieval::provider {
   };
 
   struct DealState {
-    DealState(DealProposal proposal, std::shared_ptr<CborStream> stream)
+    DealState(std::shared_ptr<Ipld> ipld,
+              DealProposal proposal,
+              std::shared_ptr<CborStream> stream)
         : proposal{proposal},
           stream{std::move(stream)},
-          current_interval{proposal.params.payment_interval} {}
+          current_interval{proposal.params.payment_interval},
+          traverser{*ipld, proposal.payload_cid, proposal.params.selector} {}
 
     DealProposal proposal;
     std::shared_ptr<CborStream> stream;
@@ -43,6 +48,7 @@ namespace fc::markets::retrieval::provider {
     uint64_t total_sent;
     TokenAmount funds_received;
     TokenAmount payment_owed;
+    Traverser traverser;
   };
 
   class RetrievalProviderImpl
@@ -51,7 +57,8 @@ namespace fc::markets::retrieval::provider {
    public:
     RetrievalProviderImpl(std::shared_ptr<Host> host,
                           std::shared_ptr<api::Api> api,
-                          std::shared_ptr<PieceStorage> piece_storage);
+                          std::shared_ptr<PieceStorage> piece_storage,
+                          std::shared_ptr<Ipld> ipld);
 
     void start() override;
 
@@ -103,6 +110,14 @@ namespace fc::markets::retrieval::provider {
     void decideOnDeal(const std::shared_ptr<DealState> &deal_state);
 
     /**
+     * Prepares single block for deal
+     * @param deal state
+     * @return block in retrieval market response format
+     */
+    outcome::result<DealResponse::Block> prepareNextBlock(
+        const std::shared_ptr<DealState> &deal_state);
+
+    /**
      * Prepare blocks to send (up to size of deal interval) and requests next
      * payment (owed)
      * @param deal_state
@@ -140,6 +155,7 @@ namespace fc::markets::retrieval::provider {
     std::shared_ptr<api::Api> api_;
     Address miner_address;
     std::shared_ptr<PieceStorage> piece_storage_;
+    std::shared_ptr<Ipld> ipld_;
     ProviderConfig config_;
     common::Logger logger_ = common::createLogger("RetrievalProvider");
   };

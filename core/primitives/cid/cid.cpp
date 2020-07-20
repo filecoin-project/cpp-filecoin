@@ -50,6 +50,14 @@ namespace fc {
     return *this;
   }
 
+  outcome::result<std::vector<uint8_t>> CID::getPrefix() const {
+    OUTCOME_TRY(bytes, toBytes());
+    auto prefix_reader = gsl::make_span(std::as_const(bytes));
+    OUTCOME_TRY(read(prefix_reader, true));
+    bytes.resize(bytes.size() - prefix_reader.size());
+    return std::move(bytes);
+  }
+
   outcome::result<std::string> CID::toString() const {
     return libp2p::multi::ContentIdentifierCodec::toString(*this);
   }

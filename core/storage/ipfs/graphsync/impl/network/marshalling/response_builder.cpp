@@ -35,10 +35,8 @@ namespace fc::storage::ipfs::graphsync {
                                      const common::Buffer &data) {
     auto *dst = pb_msg_->add_data();
 
-    OUTCOME_EXCEPT(d, cid.toBytes());
-    auto prefix_reader = gsl::make_span(std::as_const(d));
-    OUTCOME_EXCEPT(CID::read(prefix_reader, true));
-    dst->set_prefix(d.data(), d.size() - prefix_reader.size());
+    OUTCOME_EXCEPT(prefix, cid.getPrefix());
+    dst->set_prefix(prefix.data(), prefix.size());
     dst->set_data(data.data(), data.size());
     empty_ = false;
   }

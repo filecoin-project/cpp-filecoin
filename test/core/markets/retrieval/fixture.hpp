@@ -75,7 +75,7 @@ namespace fc::markets::retrieval::test {
           std::make_shared<::fc::storage::piece::PieceStorageImpl>(
               storage_backend);
       provider = std::make_shared<provider::RetrievalProviderImpl>(
-          host, api, piece_storage);
+          host, api, piece_storage, ipfs);
       client = std::make_shared<client::RetrievalClientImpl>(host, api, ipfs);
       provider->start();
     }
