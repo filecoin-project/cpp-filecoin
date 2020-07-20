@@ -72,7 +72,7 @@ namespace {
     } else {
       const char *home = getenv("HOME");
       if (home == nullptr) {
-        return fc::outcome::success();  // TODO: ERROR
+        return fc::sector_storage::ManagerErrors::kCannotGetHomeDir;
       }
       home_dir = home;
     }
@@ -252,7 +252,8 @@ namespace fc::sector_storage {
                     primitives::sector::getRegisteredWinningPoStProof));
 
     if (!res.skipped.empty()) {
-      return outcome::success();  // TODO: ERROR
+      // TODO: log it
+      return ManagerErrors::kSomeSectorSkipped;
     }
 
     return proofs::Proofs::generateWinningPoSt(
@@ -644,3 +645,16 @@ namespace fc::sector_storage {
     return std::move(result);
   }
 }  // namespace fc::sector_storage
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, ManagerErrors, e) {
+  using fc::sector_storage::ManagerErrors;
+  switch (e) {
+    case (ManagerErrors::kCannotGetHomeDir):
+      return "Manager: cannot get HOME dir to expand path";
+    case (ManagerErrors::kSomeSectorSkipped):
+      return "Manager: some of sectors was skipped during generating of "
+             "winning PoSt";
+    default:
+      return "Manager: unknown error";
+  }
+}

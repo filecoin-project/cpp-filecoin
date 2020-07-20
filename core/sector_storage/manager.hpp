@@ -20,7 +20,10 @@ using fc::primitives::piece::PieceData;
 using fc::primitives::piece::UnpaddedByteIndex;
 
 namespace fc::sector_storage {
-  class Manager : public Sealer, Storage, public Prover, FaultTracker {
+  class Manager : public Sealer,
+                  public Storage,
+                  public Prover,
+                  public FaultTracker {
    public:
     virtual SectorSize getSectorSize() = 0;
 
@@ -40,6 +43,13 @@ namespace fc::sector_storage {
 
     virtual outcome::result<FsStat> getFsStat(StorageID storage_id) = 0;
   };
+
+  enum class ManagerErrors {
+    kCannotGetHomeDir = 1,
+    kSomeSectorSkipped,
+  };
 }  // namespace fc::sector_storage
+
+OUTCOME_HPP_DECLARE_ERROR(fc::sector_storage, ManagerErrors);
 
 #endif  // CPP_FILECOIN_CORE_SECTOR_STORAGE_MANAGER_HPP
