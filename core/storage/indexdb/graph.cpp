@@ -16,6 +16,10 @@ namespace fc::storage::indexdb {
     }
   }  // namespace
 
+  bool Graph::empty() const {
+    return roots_.empty();
+  }
+
   Branches Graph::getRoots() const {
     return getRootsOrHeads(roots_);
   }

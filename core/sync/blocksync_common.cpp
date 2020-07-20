@@ -11,6 +11,11 @@ namespace fc::sync::blocksync {
 
   namespace {
 
+    auto log() {
+      static common::Logger logger = common::createLogger("sync");
+      return logger.get();
+    }
+
     outcome::result<void> storeBlock(
         const std::shared_ptr<storage::ipfs::IpfsDatastore> &ipld,
         BlockHeader header,
@@ -58,6 +63,13 @@ namespace fc::sync::blocksync {
         const OnBlockStored &callback) {
       size_t sz = bundle.blocks.size();
 
+      log()->debug(
+          "storing tipset bundle of {} blocks, {} bls messages, {} secp "
+          "messages",
+          sz,
+          bundle.bls_msgs.size(),
+          bundle.secp_msgs.size());
+
       std::vector<CID> secp_cids;
       std::vector<CID> bls_cids;
 
@@ -102,6 +114,8 @@ namespace fc::sync::blocksync {
       bool store_messages,
       const OnBlockStored &callback) {
     assert(callback);
+
+    log()->debug("storing {} tipset bundles", chain.size());
 
     for (auto &bundle : chain) {
       OUTCOME_TRY(storeTipsetBundle(ipld, bundle, store_messages, callback));

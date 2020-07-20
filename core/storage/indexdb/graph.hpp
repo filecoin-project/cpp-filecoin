@@ -15,6 +15,8 @@ namespace fc::storage::indexdb {
   /// Graph of chain branches: auxiliary structure used by IndexDB
   class Graph {
    public:
+    bool empty() const;
+
     Branches getRoots() const;
 
     Branches getHeads() const;
@@ -31,22 +33,46 @@ namespace fc::storage::indexdb {
 
     outcome::result<void> switchToHead(BranchId head);
 
+    outcome::result<void> newBranch(BranchId branch_id,
+                                    const TipsetHash &new_top,
+                                    Height new_height);
+
+    outcome::result<void> updateTop(BranchId branch_id,
+                                    const TipsetHash &new_top,
+                                    Height new_height);
+
+    outcome::result<void> updateBottom(BranchId branch_id,
+                                       const TipsetHash &new_top,
+                                       Height new_height);
+
+    /// merges successor into parent
+    outcome::result<void> mergeBranches(BranchId parent_id,
+                                        BranchId successor_id);
+
+    outcome::result<void> linkBranches(BranchId parent_id,
+                                        BranchId successor_id);
+
+    outcome::result<void> splitBranch(BranchId branch_id,
+                                      BranchId tail_branch_id,
+                                      TipsetHash tail_bottom_tipset,
+                                      Height tail_bottom_height);
+
     /// All removes can be performed from head only
     /// returns parent branch id and successor branch id
     outcome::result<std::pair<BranchId, BranchId>> removeHead(BranchId head);
 
     /// Returns branch id of the new base
-    outcome::result<BranchId> linkBranches(BranchId base_branch,
-                                           BranchId successor_branch,
-                                           TipsetHash base_tipset,
-                                           Height base_height);
-
-    outcome::result<void> linkToHead(BranchId base_branch,
-                                     BranchId successor_branch);
-
-    outcome::result<void> appendToHead(BranchId branch,
-                                       TipsetHash new_top,
-                                       Height new_top_height);
+//    outcome::result<BranchId> linkBranches(BranchId base_branch,
+//                                           BranchId successor_branch,
+//                                           TipsetHash base_tipset,
+//                                           Height base_height);
+//
+//    outcome::result<void> linkToHead(BranchId base_branch,
+//                                     BranchId successor_branch);
+//
+//    outcome::result<void> appendToHead(BranchId branch,
+//                                       TipsetHash new_top,
+//                                       Height new_top_height);
 
     void clear();
 

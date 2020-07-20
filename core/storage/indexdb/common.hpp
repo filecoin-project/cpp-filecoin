@@ -26,6 +26,7 @@ namespace fc::storage::indexdb {
     INDEXDB_INVALID_ARGUMENT,
     INDEXDB_EXECUTE_ERROR,
     INDEXDB_DECODE_ERROR,
+    INDEXDB_MUST_BE_EMPTY,
     GRAPH_LOAD_ERROR,
     NO_CURRENT_CHAIN,
     BRANCH_NOT_FOUND,
@@ -34,6 +35,7 @@ namespace fc::storage::indexdb {
     BRANCH_IS_NOT_A_ROOT,
     LINK_HEIGHT_MISMATCH,
     UNEXPECTED_TIPSET_PARENT,
+
   };
 
   struct TipsetInfo {

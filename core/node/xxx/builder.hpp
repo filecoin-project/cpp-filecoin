@@ -48,10 +48,6 @@ namespace fc {
       }
     }  // namespace ipfs
 
-    namespace indexdb {
-      class IndexDb;
-    }
-
     namespace blockchain {
       class ChainStore;
     }
@@ -66,51 +62,32 @@ namespace fc {
   namespace api {
     struct Api;
   }  // namespace api
-
-  namespace sync {
-    class TipsetLoader;
-    class BlockLoader;
-    class ObjectLoader;
-
-    namespace blocksync {
-      class BlocksyncClient;
-    }
-  } // namespace sync
 }  // namespace fc
 
 namespace fc::node {
 
   struct NodeObjects {
     std::shared_ptr<boost::asio::io_context> io_context;
-
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler;
 
     std::shared_ptr<libp2p::Host> host;
 
-    std::shared_ptr<clock::UTCClock> utc_clock;
+    std::shared_ptr<libp2p::protocol::Identify> identify_protocol;
+    std::shared_ptr<libp2p::protocol::IdentifyPush> identify_push_protocol;
+    std::shared_ptr<libp2p::protocol::IdentifyDelta> identify_delta_protocol;
 
+    std::shared_ptr<clock::UTCClock> utc_clock;
     std::shared_ptr<clock::ChainEpochClock> chain_epoch_clock;
 
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipfs_datastore;
 
     std::shared_ptr<blockchain::block_validator::BlockValidator>
         block_validator;
-
-    std::shared_ptr<storage::indexdb::IndexDb> index_db;
-
-    std::shared_ptr<sync::ObjectLoader> object_loader;
-
-    std::shared_ptr<sync::blocksync::BlocksyncClient> blocksync_client;
-
-    std::shared_ptr<sync::BlockLoader> block_loader;
-
-    std::shared_ptr<sync::TipsetLoader> tipset_loader;
+    std::shared_ptr<storage::blockchain::ChainStore> chain_store;
 
     std::shared_ptr<libp2p::protocol::gossip::Gossip> gossip;
 
     std::shared_ptr<storage::ipfs::graphsync::Graphsync> graphsync;
-
-    std::shared_ptr<storage::blockchain::ChainStore> chain_store;
 
     std::shared_ptr<api::Api> api;
   };

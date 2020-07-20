@@ -270,6 +270,8 @@ namespace fc::sync {
     }
 
     if (result.value().genesis != genesis_.value()) {
+      log()->error("Peer {} has other genesis: {}", peer_res.value().toBase58(),
+result.value().genesis.toString().value());
       hello_feedback_(peer_res.value(), Error::HELLO_GENESIS_MISMATCH);
       stream->stream()->reset();
       return;

@@ -31,6 +31,8 @@ namespace fc::storage::indexdb {
 
   outcome::result<TipsetInfo> IndexDbImpl::getTipsetInfo(
       const TipsetHash &hash) {
+    // TODO LRU cache
+
     TipsetInfo info;
     auto cb = [&info](Blob hash,
                       BranchId branch,
@@ -72,9 +74,10 @@ namespace fc::storage::indexdb {
     return decode_res.value();
   }
 
-  outcome::result<void> IndexDbImpl::appendTipsetOnTop(const Tipset &tipset,
-                                                       // ???const TipsetHash& parent,
-                                                       BranchId branchId) {
+  /*
+  outcome::result<void> IndexDbImpl::applyToTop(const Tipset &tipset,
+                                                // TODO parent hash
+                                                BranchId branchId) {
     OUTCOME_TRY(b, graph_.getBranch(branchId));
     const auto &branch_info = b.get();
     if (!branch_info.forks.empty()) {
@@ -113,6 +116,235 @@ namespace fc::storage::indexdb {
     return outcome::success();
   }
 
+   */
+
+  //
+  //  outcome::result<void> IndexDbImpl::eraseChain(const TipsetHash &from) {
+  //    // TODO nyi
+  //    return Error::INDEXDB_INVALID_ARGUMENT;
+  //  }
+
+  outcome::result<IndexDb::ApplyResult> IndexDbImpl::applyTipset(
+      const Tipset &tipset,
+      bool parent_must_exist,
+      boost::optional<const TipsetHash &> parent,
+      boost::optional<const TipsetHash &> successor) {
+    // Variants of tipset indexing:
+    // 1) parent_must_exist && successor: linking branches after doing (2) and
+    // (3) - this typically ends synchronisation process;
+    //
+    // 2) !parent_must_exist && successor: applying the tipset to the
+    // bottom of successor's branch;
+    //
+    // 3) parent_must_exist && !successor: applying the tipset on top of parent:
+    //   3a) if parent is a tip (i.e. head) then continuing parent's branch;
+    //   3b) if parent is a top of a branch then making a fork;
+    //   3c) if parent is in the middle of its branch then making a fork and
+    //   splitting parent's branch;
+    //
+    // 4) !parent_must_exist && !successor: inserting genesis tipset into empty
+    // db.
+
+    boost::optional<TipsetInfo> parent_info;
+    boost::optional<TipsetInfo> successor_info;
+    BranchId parent_branch = kNoBranch;
+    bool parent_is_top = false;
+    bool parent_is_head = false;
+    BranchId successor_branch = kNoBranch;
+    bool new_branch_created = false;
+
+    if (parent_must_exist) {
+      // then we are linking to existing branch
+
+      if (!parent) {
+        return Error::INDEXDB_INVALID_ARGUMENT;
+      }
+
+      OUTCOME_TRYA(parent_info, getTipsetInfo(parent.value()));
+
+      if (parent_info->height >= tipset.height()) {
+        return Error::LINK_HEIGHT_MISMATCH;
+      }
+
+      parent_branch = parent_info->branch;
+
+      OUTCOME_TRY(b, graph_.getBranch(parent_branch));
+      const auto &info = b.get();
+      if (info.top == parent.value()) {
+        parent_is_top = true;
+      }
+      if (parent_is_top && info.forks.empty()) {
+        parent_is_head = true;
+      }
+    }
+
+    if (successor) {
+      // applying to the bottom of successor's branch, it must exist
+
+      OUTCOME_TRYA(successor_info, getTipsetInfo(successor.value()));
+
+      if (successor_info->height <= tipset.height()) {
+        return Error::LINK_HEIGHT_MISMATCH;
+      }
+
+      if (successor_info->parent_hash != tipset.key.hash()) {
+        return Error::UNEXPECTED_TIPSET_PARENT;
+      }
+
+      if (successor_info->parent_branch != kNoBranch) {
+        return Error::BRANCH_IS_NOT_A_ROOT;
+      }
+
+      successor_branch = successor_info->branch;
+
+      OUTCOME_TRY(b, graph_.getBranch(successor_branch));
+      const auto &info = b.get();
+      if (info.bottom != successor.value()) {
+        return Error::BRANCH_IS_NOT_A_ROOT;
+      }
+    }
+
+    BranchId branch_assigned = kNoBranch;
+    if (successor) {
+      branch_assigned = successor_branch;
+    } else if (parent_is_head) {
+      branch_assigned = parent_branch;
+    }
+
+    if (!parent_must_exist && !successor) {
+      // inserting genesis branch
+      if (!graph_.empty()) {
+        return Error::INDEXDB_MUST_BE_EMPTY;
+      }
+      branch_assigned = kGenesisBranch;
+      new_branch_created = true;
+    }
+
+    if (branch_assigned == kNoBranch) {
+      branch_assigned = ++branch_id_counter_;
+      new_branch_created = true;
+    }
+
+    OUTCOME_TRY(buffer, codec::cbor::encode(tipset.key.cids()));
+
+    auto tx = beginTx();
+
+    int rows = 0;
+
+    if (parent) {
+      rows = db_.execCommand(insert_tipset_,
+                             tipset.key.hash(),
+                             branch_assigned,
+                             tipset.height(),
+                             parent.value(),
+                             parent_branch,
+                             buffer.toVector());
+    } else {
+      assert(branch_assigned == kGenesisBranch);
+      assert(tipset.height() == 0);
+      rows = db_.execCommand(insert_tipset_,
+                             tipset.key.hash(),
+                             kGenesisBranch,
+                             0,
+                             "",
+                             kNoBranch,
+                             buffer.toVector());
+    }
+
+    if (rows != 1) {
+      return Error::INDEXDB_EXECUTE_ERROR;
+    }
+
+    // split parent branch into 2 branches
+    BranchId branch_splitted = kNoBranch;
+
+    if (parent_is_head) {
+      //      rename_branch_ = db_.createStatement(
+      //          R"(UPDATE tipsets SET branch=? WHERE branch=? AND
+      //          height>=?)");
+      //
+      //      rename_parent_branch_ = db_.createStatement(
+      //          R"(UPDATE tipsets SET parent_branch=? WHERE branch=?)");
+      //
+      if (branch_assigned != parent_branch) {
+        // renaming successor branch -> parent branch
+        rows =
+            db_.execCommand(rename_branch_, parent_branch, branch_assigned, 0);
+        if (rows <= 0) {
+          return Error::INDEXDB_EXECUTE_ERROR;
+        }
+        rows = db_.execCommand(
+            rename_parent_branch_, parent_branch, branch_assigned);
+        if (rows < 0) {
+          return Error::INDEXDB_EXECUTE_ERROR;
+        }
+
+        OUTCOME_TRY(graph_.mergeBranches(parent_branch, branch_assigned));
+        branch_assigned = parent_branch;
+
+      } else {
+        // making tipset a new head
+        assert(!successor);
+
+        OUTCOME_TRY(graph_.updateTop(
+            parent_branch, tipset.key.hash(), tipset.height()));
+      }
+    } else {
+      if (new_branch_created) {
+        // new branch created which contains this single tipset
+        OUTCOME_TRY(graph_.newBranch(
+            branch_assigned, tipset.key.hash(), tipset.height()));
+      } else if (branch_assigned == successor_branch) {
+        // tipset was appended to bottom of existing branch
+        OUTCOME_TRY(graph_.updateBottom(
+            branch_assigned, tipset.key.hash(), tipset.height()));
+      }
+
+      if (parent_must_exist) {
+        if (parent_is_top) {
+          // make fork from parent branch which is not a head
+          
+
+        } else {
+          // making fork in the middle of existing branch, thus producing a new
+          // branch
+          branch_splitted = ++branch_id_counter_;
+
+          // find existing successor of parent and make sure it's on the same
+          // branch
+
+
+        }
+      }
+    }
+
+    if (successor_branch != kNoBranch && !parent_must_exist) {
+    }
+
+    if (parent_is_top && !parent_is_head) {
+      branches_merged = true;
+    }
+
+    if (parent_must_exist && !parent_is_top) {
+      branches_merged = true;
+    }
+
+    tx.commit();
+
+    return ApplyResult{.on_top_of_branch = parent_is_top,
+                       .on_bottom_of_branch = successor.has_value(),
+                       .branches_merged = (branch_assigned == parent_branch),
+                       .branches_splitted = (branch_splitted != kNoBranch),
+                       .this_branch = branch_assigned,
+                       .parent_branch = parent_branch,
+                       .splitted_branch = branch_splitted};
+  }
+
+  outcome::result<void> IndexDbImpl::writeGenesis(const Tipset &tipset) {
+    OUTCOME_TRY(applyTipset(tipset, false, boost::none, boost::none));
+    return outcome::success();
+  }
+
   IndexDbImpl::Tx::Tx(IndexDbImpl &db) : db_(db) {
     db_.db_ << "begin";
   }
@@ -148,9 +380,7 @@ namespace fc::storage::indexdb {
             hash BLOB PRIMARY KEY,
             branch INTEGER NOT NULL,
             height INTEGER NOT NULL,
-            parent_hash BLOB NOT NULL,
-            parent_branch INTEGER NOT NULL,
-            blocks BLOB NOT NULL
+            parent_hash BLOB NOT NULL
         )",
 
         R"(CREATE UNIQUE INDEX IF NOT EXISTS tipsets_b_h ON tipsets
@@ -166,15 +396,16 @@ namespace fc::storage::indexdb {
       }
 
       get_tipset_info_ = db_.createStatement(
-          R"(SELECT hash,branch,height,parent_hash,parent_branch FROM tipsets
+          R"(SELECT hash,branch,height,parent_hash FROM tipsets
           WHERE hash=?
           )");
 
-      get_tipset_blocks_ =
-          db_.createStatement(R"(SELECT blocks FROM tipsets WHERE hash=?)");
-
       insert_tipset_ =
           db_.createStatement(R"(INSERT INTO tipsets VALUES(?,?,?,?,?,?))");
+
+      rename_branch_ = db_.createStatement(
+          R"(UPDATE tipsets SET branch=? WHERE branch=? AND height>?)");
+
 
       tx.commit();
     } catch (const sqlite::sqlite_exception &e) {
@@ -240,7 +471,9 @@ namespace fc::storage::indexdb {
 
     OUTCOME_TRY(graph_.load(std::move(branches)));
 
-    branch_id_counter_ = graph_.getLastBranchId();
+    if (!graph_.empty()) {
+      branch_id_counter_ = graph_.getLastBranchId();
+    }
 
     return outcome::success();
   }

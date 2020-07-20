@@ -46,114 +46,130 @@ namespace fc::primitives::tipset {
     return outcome::success();
   }
 
-  outcome::result<Tipset> Tipset::create(TipsetKey key,
-                                         BlocksAvailable blocks) {
-    if (blocks.empty() || !blocks[0].has_value()
-        || key.cids().size() != blocks.size()) {
-      return TipsetError::NO_BLOCKS;
+  outcome::result<void> TipsetCreator::canExpandTipset(
+      const block::BlockHeader &hdr) const {
+    if (blks_.empty()) {
+      return outcome::success();
     }
-    const auto &block0 = blocks[0].value();
-    if (!block0.ticket.has_value()) {
+
+    if (!hdr.ticket.has_value()) {
       return TipsetError::TICKET_HAS_NO_VALUE;
     }
-    auto height = block0.height;
 
-    std::vector<block::BlockHeader> b;
-    b.reserve(blocks.size());
-    b.push_back(std::move(blocks[0].value()));
+    const auto &first_block = blks_[0];
 
-    for (size_t i = 1; i < blocks.size(); ++i) {
-      const auto &block_opt = blocks[i];
-      if (!block_opt.has_value()) {
-        return TipsetError::NO_BLOCKS;
-      }
-      const auto &block = block_opt.value();
-      if (!block.ticket.has_value()) {
-        return TipsetError::TICKET_HAS_NO_VALUE;
-      }
-      if (block.height != height) {
-        return TipsetError::MISMATCHING_HEIGHTS;
-      }
-      if (block.parents != b.back().parents) {
-        return TipsetError::MISMATCHING_PARENTS;
-      }
-      if (block.ticket.value() < b.back().ticket.value()) {
-        return TipsetError::BLOCK_ORDER_FAILURE;
-      }
-      if (block.ticket.value() == b.back().ticket.value()) {
-        return TipsetError::TICKETS_COLLISION;
-      }
-      b.push_back(std::move(blocks[i].value()));
+    if (hdr.height != first_block.height) {
+      return TipsetError::MISMATCHING_HEIGHTS;
     }
 
-    return Tipset{std::move(key), std::move(b)};
+    if (hdr.parents != first_block.parents) {
+      return TipsetError::MISMATCHING_PARENTS;
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<void> TipsetCreator::expandTipset(block::BlockHeader hdr) {
+    OUTCOME_TRY(cid, fc::primitives::cid::getCidOfCbor(hdr));
+    return expandTipset(std::move(cid), std::move(hdr));
+  }
+
+  outcome::result<void> TipsetCreator::expandTipset(CID cid,
+                                                    block::BlockHeader hdr) {
+    // must be called prior to expand()
+    assert(canExpandTipset(hdr));
+
+    constexpr auto kReserveSize = 5;
+
+    if (blks_.empty()) {
+      blks_.reserve(kReserveSize);
+      blks_.emplace_back(std::move(hdr));
+      cids_.reserve(kReserveSize);
+      cids_.emplace_back(std::move(cid));
+      return outcome::success();
+    }
+
+    auto it = blks_.begin();
+    const auto &ticket = hdr.ticket.value();
+    size_t idx = 0;
+    for (auto e = blks_.end(); it != e; ++it, ++idx) {
+      int c = ticket::compare(ticket, it->ticket.value());
+      if (c == 0) {
+        return TipsetError::TICKETS_COLLISION;
+      }
+      if (c < 0) {
+        continue;
+      }
+      break;
+    }
+
+    if (++it == blks_.end()) {
+      // most likely they come in proper order
+      blks_.push_back(std::move(hdr));
+      cids_.push_back(std::move(cid));
+    } else {
+      blks_.insert(blks_.begin() + idx, std::move(hdr));
+      cids_.insert(cids_.begin() + idx, std::move(cid));
+    }
+
+    return outcome::success();
+  }
+
+  Tipset TipsetCreator::getTipset(bool clear) {
+    if (blks_.empty()) {
+      return Tipset{};
+    }
+    if (clear) {
+      OUTCOME_EXCEPT(key, TipsetKey::create(std::move(cids_)));
+      return Tipset{std::move(key), std::move(blks_)};
+    }
+
+    // make copy, don't erase
+    OUTCOME_EXCEPT(key, TipsetKey::create(cids_));
+    return Tipset{key, blks_};
+  }
+
+  void TipsetCreator::clear() {
+    blks_.clear();
+    cids_.clear();
+  }
+
+  uint64_t TipsetCreator::height() const {
+    return blks_.empty() ? 0 : blks_[0].height;
+  }
+
+  outcome::result<Tipset> Tipset::create(const TipsetHash &hash,
+                                         BlocksAvailable blocks) {
+    TipsetCreator creator;
+
+    for (auto &b : blocks) {
+      if (!b.has_value()) {
+        return TipsetError::NO_BLOCKS;
+      }
+
+      auto &hdr = b.value();
+      OUTCOME_TRY(creator.canExpandTipset(hdr));
+      OUTCOME_TRY(creator.expandTipset(std::move(hdr)));
+    }
+
+    Tipset tipset = creator.getTipset(true);
+    if (tipset.key.hash() != hash) {
+      return TipsetError::BLOCK_ORDER_FAILURE;
+    }
+
+    return std::move(tipset);
   }
 
   outcome::result<Tipset> Tipset::create(
       std::vector<block::BlockHeader> blocks) {
-    // required to have at least one block
-    if (blocks.empty()) {
-      return TipsetError::NO_BLOCKS;
+    TipsetCreator creator;
+
+    for (auto &hdr : blocks) {
+      OUTCOME_TRY(creator.canExpandTipset(hdr));
+      OUTCOME_TRY(creator.expandTipset(std::move(hdr)));
     }
 
-    // check for blocks consistency
-    const auto height0 = blocks[0].height;
-    const auto &parents = blocks[0].parents;
-    for (size_t i = 1; i < blocks.size(); ++i) {
-      const auto &b = blocks[i];
-      if (height0 != b.height) {
-        return TipsetError::MISMATCHING_HEIGHTS;
-      }
-      if (parents != b.parents) {
-        return TipsetError::MISMATCHING_PARENTS;
-      }
-    }
-
-    std::vector<std::pair<block::BlockHeader, CID>> items;
-    items.reserve(blocks.size());
-    for (auto &block : blocks) {
-      assert(block.ticket);
-      OUTCOME_TRY(cid, fc::primitives::cid::getCidOfCbor(block));
-      // need to ensure that all cids are calculated before sort,
-      // since it will terminate program in case of exception
-      items.emplace_back(std::make_pair(std::move(block), cid));
-    }
-
-    // the sort function shouldn't throw exceptions
-    // if an exception is thrown from std::sort, program will be terminated
-    std::sort(items.begin(),
-              items.end(),
-              [logger = common::createLogger("tipset")](
-                  const auto &p1, const auto &p2) -> bool {
-                auto &[b1, cid1] = p1;
-                auto &[b2, cid2] = p2;
-                const auto &t1 = b1.ticket;
-                const auto &t2 = b2.ticket;
-                if (b1.ticket == b2.ticket) {
-                  logger->warn(
-                      "create tipset failed, blocks have same ticket ({} {})",
-                      address::encodeToString(b1.miner),
-                      address::encodeToString(b2.miner));
-                  return cid1.toPrettyString("") < cid2.toPrettyString("");
-                }
-                return *t1 < *t2;
-              });
-
-    Tipset ts{};
-    std::vector<CID> cids;
-
-    cids.reserve(items.size());
-    ts.blks.reserve(items.size());
-
-    for (auto &[b, c] : items) {
-      ts.blks.push_back(std::move(b));
-      cids.push_back(std::move(c));
-    }
-
-    OUTCOME_TRY(key, TipsetKey::create(std::move(cids)));
-    ts.key = std::move(key);
-
-    return ts;
+    return creator.getTipset(true);
   }
 
   outcome::result<Tipset> Tipset::load(Ipld &ipld,

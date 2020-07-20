@@ -40,6 +40,14 @@ namespace fc::primitives::ticket {
   bool operator<(const Ticket &lhs, const Ticket &rhs);
 
   /**
+   * @brief compares two tickets alphabetically
+   * @param lhs first ticket
+   * @param rhs second ticket
+   * @return memcmp result
+   */
+  int compare(const Ticket &lhs, const Ticket &rhs);
+
+  /**
    * @brief draws randomness from ticket
    * @param ticket ticket
    * @param round round number

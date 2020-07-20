@@ -28,7 +28,8 @@ namespace fc::sync {
 
     outcome::result<void> loadTipsetAsync(
         const TipsetKey &key,
-        boost::optional<PeerId> preferred_peer);
+        boost::optional<PeerId> preferred_peer,
+        uint64_t depth = 1);
 
    private:
     void onBlock(const CID& cid, outcome::result<BlockHeader> bh);

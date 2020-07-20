@@ -53,6 +53,13 @@ namespace fc::sync {
       return Error::SYNC_NOT_INITIALIZED;
     }
 
+    if (preferred_peer.has_value()) {
+      if (!last_peer_.has_value()
+          || last_peer_.value() != preferred_peer.value()) {
+        last_peer_ = std::move(preferred_peer);
+      }
+    }
+
     BlocksAvailable blocks_available;
     if (cids.empty()) {
       return blocks_available;
@@ -74,17 +81,19 @@ namespace fc::sync {
     }
 
     if (!wanted_.empty()) {
-      if (preferred_peer.has_value()) {
+      if (last_peer_.has_value()) {
         uint64_t depth = load_parents_depth;
         if (depth == 0) {
           depth = 1;
         } else if (depth > 500) {
           depth = 500;
         }
-        OUTCOME_TRY(blocksync_->makeRequest(preferred_peer.value(),
+        OUTCOME_TRY(blocksync_->makeRequest(last_peer_.value(),
                                             std::move(wanted_),
                                             depth,
                                             blocksync::BLOCKS_AND_MESSAGES));
+      } else {
+        return Error::SYNC_NO_PEERS;
       }
     }
     return blocks_available;
@@ -103,7 +112,7 @@ namespace fc::sync {
       was_requested = onBlockHeader(block_cid, std::move(m.header), true);
     }
     if (!was_requested) {
-      log()->debug("block cid {} was not requested",
+      log()->trace("block cid {} was not requested",
                    block_cid.toString().value());
     }
   }
@@ -189,7 +198,9 @@ namespace fc::sync {
     auto ctx = std::make_shared<RequestCtx>(*this, cid);
     block_requests_[cid] = ctx;
 
-    // TODO (artem): restore previous code to load mesages for block
+    wanted_.push_back(cid);
+
+    // TODO (artem): restore previous code to load messages for block
 
     return boost::none;
   }
@@ -198,7 +209,11 @@ namespace fc::sync {
                                        boost::optional<BlockHeader> bh) {
     assert(callback_);
     block_requests_.erase(block_cid);
+
     if (bh.has_value()) {
+      log()->info("request completed for block {} with height={}",
+                  block_cid.toString().value(),
+                  bh.value().height);
       callback_(block_cid, std::move(bh.value()));
     } else {
       callback_(block_cid, Error::SYNC_BAD_BLOCK);  // TODO more errors

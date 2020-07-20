@@ -25,6 +25,22 @@ namespace fc::sync {
     SYNC_INCONSISTENT_BLOCKSYNC_RESPONSE = 9,
     SYNC_INCOMPLETE_BLOCKSYNC_RESPONSE = 10,
     SYNC_BLOCKSYNC_RESPONSE_ERROR = 11,
+
+    BRANCHES_LOAD_ERROR,
+    BRANCHES_NO_GENESIS_BRANCH,
+    BRANCHES_PARENT_EXPECTED,
+    BRANCHES_NO_CURRENT_CHAIN,
+    BRANCHES_BRANCH_NOT_FOUND,
+    BRANCHES_HEAD_NOT_FOUND,
+    BRANCHES_HEAD_NOT_SYNCED,
+    BRANCHES_CYCLE_DETECTED,
+    BRANCHES_STORE_ERROR,
+    BRANCHES_HEIGHT_MISMATCH,
+
+    INDEXDB_CANNOT_CREATE,
+    INDEXDB_ALREADY_EXISTS,
+    INDEXDB_EXECUTE_ERROR,
+    INDEXDB_TIPSET_NOT_FOUND,
   };
 
   using crypto::signature::Signature;
@@ -44,6 +60,40 @@ namespace fc::sync {
     Tipset tipset;
     BigInt weight;
   };
+
+  using BranchId = uint64_t;
+  using Height = uint64_t;
+
+  constexpr BranchId kNoBranch = 0;
+  constexpr BranchId kGenesisBranch = 1;
+
+  struct SplitBranch {
+    BranchId old_id = kNoBranch;
+    BranchId new_id = kNoBranch;
+    Height above_height = 0;
+  };
+
+  struct BranchInfo {
+    BranchId id = kNoBranch;
+    TipsetHash top;
+    Height top_height = 0;
+    TipsetHash bottom;
+    Height bottom_height = 0;
+    BranchId parent = kNoBranch;
+    TipsetHash parent_hash;
+
+    bool synced_to_genesis = false;
+
+    /// Height of this branch above its root branch
+    // unsigned fork_height = 0;
+
+    std::set<BranchId> forks;
+  };
+
+  /// Heads configuration changed callback. If both values are present then
+  /// it means that 'added' replaces 'removed'
+  using HeadCallback = std::function<void(boost::optional<TipsetHash> removed,
+                                          boost::optional<TipsetHash> added)>;
 
 }  // namespace fc::sync
 

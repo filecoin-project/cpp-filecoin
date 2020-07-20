@@ -4,6 +4,7 @@
 #
 
 add_library(sync
+    common.cpp
     peer_manager.cpp
     hello.cpp
     pubsub_gate.cpp
@@ -12,6 +13,11 @@ add_library(sync
     tipset_loader.cpp
     blocksync_common.cpp
     blocksync_client.cpp
+    #sync_job.cpp
+    tipset_graph.cpp
+    branches.cpp
+    index_db.cpp
+    index_db_backend.cpp
     )
 
 target_link_libraries(sync

@@ -11,6 +11,13 @@
 
 namespace fc::sync::blocksync {
 
+  namespace {
+    auto log() {
+      static common::Logger logger = common::createLogger("sync");
+      return logger.get();
+    }
+  }  // namespace
+
   BlocksyncClient::BlocksyncClient(
       std::shared_ptr<libp2p::Host> host,
       std::shared_ptr<storage::ipfs::IpfsDatastore> ipld)

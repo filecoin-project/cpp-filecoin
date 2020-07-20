@@ -14,7 +14,7 @@ namespace fc::primitives::tipset {
 
   using TipsetHash = std::vector<uint8_t>;
 
-  /// Returns blake2b-256 from concatenated cids bytes
+  /// Returns blake2b-256 from concatenated sorted cids bytes
   outcome::result<TipsetHash> tipsetHash(const std::vector<CID> &cids);
 
   /// Returns hex string repr of hash
@@ -26,6 +26,9 @@ namespace fc::primitives::tipset {
     /// Creates TipsetKey and calculates hash
     static outcome::result<TipsetKey> create(std::vector<CID> cids);
 
+    /// Creates TipsetKey and asserts has is proper (debug mde)
+    static TipsetKey create(std::vector<CID> cids, TipsetHash hash);
+
     TipsetKey();
     TipsetKey(const TipsetKey &) = default;
     TipsetKey(TipsetKey &&) = default;
@@ -34,6 +37,7 @@ namespace fc::primitives::tipset {
 
     bool operator==(const TipsetKey &rhs) const;
     bool operator!=(const TipsetKey &rhs) const;
+    bool operator<(const TipsetKey &rhs) const;
 
     const std::vector<CID>& cids() const;
 

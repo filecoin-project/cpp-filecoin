@@ -46,9 +46,9 @@ namespace fc::primitives::tipset {
   struct Tipset {
     using BlocksAvailable = std::vector<boost::optional<block::BlockHeader>>;
 
-    /// Creates tipset from loaded blocks, order matters, every block must have
-    /// value
-    static outcome::result<Tipset> create(TipsetKey key,
+    /// Creates tipset from loaded blocks, every block must have value,
+    /// hashes must match
+    static outcome::result<Tipset> create(const TipsetHash &hash,
                                           BlocksAvailable blocks);
 
     static outcome::result<Tipset> create(
@@ -132,6 +132,27 @@ namespace fc::primitives::tipset {
     HeadChangeType type;
     Tipset value;
   };
+
+  class TipsetCreator {
+   public:
+    /// returns success if the tipset created can be expanded with this block
+    outcome::result<void> canExpandTipset(const block::BlockHeader &hdr) const;
+
+    outcome::result<void> expandTipset(block::BlockHeader hdr);
+
+    outcome::result<void> expandTipset(CID cid, block::BlockHeader hdr);
+
+    Tipset getTipset(bool clear);
+
+    void clear();
+
+    uint64_t height() const;
+
+   private:
+    std::vector<block::BlockHeader> blks_;
+    std::vector<CID> cids_;
+  };
+
 }  // namespace fc::primitives::tipset
 
 namespace fc::codec::cbor {

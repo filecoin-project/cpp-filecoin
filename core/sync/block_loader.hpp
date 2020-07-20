@@ -76,6 +76,7 @@ namespace fc::sync {
     std::shared_ptr<blocksync::BlocksyncClient> blocksync_;
     OnBlockSynced callback_;
     bool initialized_ = false;
+    boost::optional<PeerId> last_peer_;
 
     using RequestCtxPtr = std::shared_ptr<RequestCtx>;
 

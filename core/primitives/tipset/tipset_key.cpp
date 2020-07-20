@@ -35,10 +35,22 @@ namespace fc::primitives::tipset {
       return HashError::HASH_INITIALIZE_ERROR;
     }
 
-    // TODO sort cids so that their order won't affect hash
+    size_t sz = cids.size();
+    auto indices = (size_t *)alloca(sizeof(size_t) * sz);
+    auto ptr = indices;
+    for (size_t i = 0; i < sz; ++i, ++ptr) {
+      *ptr = i;
+    }
 
-    for (const auto &cid : cids) {
-      OUTCOME_TRY(bytes, cid.toBytes());
+    if (sz > 1) {
+      std::sort(indices, indices + sz, [&cids](auto x, auto y) {
+        return cids[x] < cids[y];
+      });
+    }
+
+    std::vector<uint8_t> bytes;
+    for (size_t i = 0; i < sz; ++i) {
+      OUTCOME_TRYA(bytes, cids[indices[i]].toBytes());
       blake2b_update(&ctx, bytes.data(), bytes.size());
     }
 
@@ -49,7 +61,7 @@ namespace fc::primitives::tipset {
     return hash;
   }
 
-  std::string tipsetHashToString(const TipsetHash& hash) {
+  std::string tipsetHashToString(const TipsetHash &hash) {
     return common::hex_lower(hash);
   }
 
@@ -59,11 +71,15 @@ namespace fc::primitives::tipset {
       : cids_(std::move(c)), hash_(std::move(h)) {}
 
   bool TipsetKey::operator==(const TipsetKey &rhs) const {
-    return hash_ == rhs.hash_ && cids_ == rhs.cids_;
+    return hash_ == rhs.hash_;
   }
 
   bool TipsetKey::operator!=(const TipsetKey &rhs) const {
-    return hash_ != rhs.hash_ || cids_ != rhs.cids_;
+    return hash_ != rhs.hash_;
+  }
+
+  bool TipsetKey::operator<(const TipsetKey &rhs) const {
+    return hash_ < rhs.hash_;
   }
 
   const std::vector<CID> &TipsetKey::cids() const {
@@ -101,12 +117,19 @@ namespace fc::primitives::tipset {
     return TipsetKey{std::move(cids), std::move(hash)};
   }
 
+  TipsetKey TipsetKey::create(std::vector<CID> cids, TipsetHash hash) {
+    assert(tipsetHash(cids).value() == hash);
+    return TipsetKey{std::move(cids), std::move(hash)};
+  }
+
 }  // namespace fc::primitives::tipset
 
 namespace std {
   size_t hash<fc::primitives::tipset::TipsetKey>::operator()(
       const fc::primitives::tipset::TipsetKey &x) const {
-    return boost::hash_range(x.hash().begin(), x.hash().end());
+    size_t h;
+    memcpy(&h, x.hash().data(), sizeof(size_t));
+    return h;
   }
 }  // namespace std
 

@@ -57,8 +57,9 @@ namespace fc::sync {
     std::vector<PeerId> getPeers();
 
     outcome::result<void> start(const CID &genesis_cid,
-                                const Tipset &tipset,
+                                std::vector<CID> tipset,
                                 const BigInt &weight,
+                                uint64_t height,
                                 OnHello on_hello);
 
     // disconnects from peers

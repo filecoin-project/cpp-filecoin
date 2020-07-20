@@ -26,7 +26,6 @@ namespace fc::node {
     std::vector<libp2p::peer::PeerInfo> bootstrap_list;
     libp2p::protocol::gossip::Config gossip_config;
 
-
     Config();
 
     bool init(const std::string &config_file, int argc, char *argv[]);

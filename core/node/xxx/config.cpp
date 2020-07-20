@@ -20,7 +20,7 @@ namespace fc::node {
         boost::asio::ip::tcp::resolver resolver(io);
         boost::asio::ip::tcp::resolver::query query(
             boost::asio::ip::host_name(), "");
-        boost::asio::ip::tcp::resolver::iterator it = resolver.resolve(query);
+        boost::asio::ip::tcp::resolver::iterator it; // = resolver.resolve(query);
         boost::asio::ip::tcp::resolver::iterator end;
         std::string addr("127.0.0.1");
         while (it != end) {
@@ -46,7 +46,7 @@ namespace fc::node {
     const CID &getDefaultGenesisCID() {
       static const CID cid =
           CID::fromString(
-              "bafy2bzaceawuyaeebvbcp4my5rwfgq5yy4fpp4aiu53v2zzzhuiegdvc7ias6")
+              "bafy2bzacecbcmikekv2hvyqprfj6dyvbklvdeuht3mr736owhovfx75hops7m")
               .value();
       return cid;
     }
@@ -103,16 +103,12 @@ namespace fc::node {
         std::string remote;
         int port = 0;
         char log_level = 'i';
-        std::string gen_car, gen_cid;
 
         po::options_description desc("Fuhon node options");
         desc.add_options()("help,h", "print usage message")(
             "port,p", po::value(&port), "port to listen to")(
             "remote,r", po::value(&remote), "remote peer uri to connect to")(
-            "log,l", po::value(&log_level), "log level, [e,w,i,d,t]")(
-            "gencar,f", po::value(&gen_car), "genesis car file")(
-            "gencid,c", po::value(&gen_cid), "genesis CID"
-            );
+            "log,l", po::value(&log_level), "log level, [e,w,i,d,t]");
 
         po::variables_map vm;
         po::store(parse_command_line(argc, argv, desc), vm);
@@ -136,20 +132,6 @@ namespace fc::node {
             return false;
           }
           config.bootstrap_list.push_back(res.value());
-        }
-
-        if (!gen_car.empty()) {
-          config.storage_car_file_name = gen_car;
-        }
-
-        if (!gen_cid.empty()) {
-          auto res = CID::fromString(gen_cid);
-          if (!res) {
-            std::cerr << "Cannot decode CID from " << gen_cid
-                      << "\n";
-            return false;
-          }
-          config.genesis_cid = std::move(res.value());
         }
 
         config.log_level = getLogLevel(log_level);

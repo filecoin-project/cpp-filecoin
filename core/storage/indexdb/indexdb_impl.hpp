@@ -42,8 +42,29 @@ namespace fc::storage::indexdb {
     outcome::result<std::vector<CID>> getTipsetCIDs(
         const TipsetHash &hash) override;
 
-    outcome::result<void> appendTipsetOnTop(const Tipset &tipset,
-                                            BranchId branchId) override;
+//    outcome::result<void> applyToTop(const Tipset &tipset,
+//                                            BranchId branchId) override;
+//
+//    outcome::result<void> applyToBottom(const Tipset &tipset,
+//                                                BranchId branchId) override;
+//
+//    outcome::result<void> linkBranches(BranchId parent,
+//                                               BranchId top) override;
+
+    outcome::result<ApplyResult> applyTipset(
+        const Tipset &tipset,
+        bool parent_must_exist,
+        boost::optional<const TipsetHash &> parent,
+        boost::optional<const TipsetHash &> successor) override;
+
+    outcome::result<void> eraseChain(const TipsetHash& from) override;
+
+    outcome::result<void> loadChain(
+        TipsetHash root,
+        std::function<void(TipsetHash hash, std::vector<CID> cids)>
+        callback) override;
+
+    outcome::result<void> writeGenesis(const Tipset &tipset) override;
 
    private:
     /// RAII tx helper
@@ -65,8 +86,10 @@ namespace fc::storage::indexdb {
     StatementHandle get_tipset_info_{};
     StatementHandle get_tipset_blocks_{};
     StatementHandle insert_tipset_{};
+    StatementHandle rename_branch_{};
+    StatementHandle rename_parent_branch_{};
     Graph graph_;
-    BranchId branch_id_counter_ = 1;
+    BranchId branch_id_counter_ = kGenesisBranch;
 
     friend Tx;
   };

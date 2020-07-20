@@ -36,7 +36,7 @@ namespace fc::sync {
 
   outcome::result<void> TipsetLoader::loadTipsetAsync(
       const TipsetKey &key,
-      boost::optional<PeerId> preferred_peer) {
+      boost::optional<PeerId> preferred_peer, uint64_t depth) {
     if (!initialized_) {
       return Error::SYNC_NOT_INITIALIZED;
     }
@@ -47,7 +47,7 @@ namespace fc::sync {
     }
 
     OUTCOME_TRY(blocks_available,
-                block_loader_->loadBlocks(key.cids(), preferred_peer));
+                block_loader_->loadBlocks(key.cids(), preferred_peer, depth));
 
     size_t n = key.cids().size();
 
@@ -62,7 +62,7 @@ namespace fc::sync {
     }
 
     if (wantlist.empty()) {
-      auto res = Tipset::create(key, std::move(blocks_available));
+      auto res = Tipset::create(key.hash(), std::move(blocks_available));
       if (!res) {
         log()->error("TipsetLoader: cannot create tipset, err=",
                      res.error().message());
@@ -125,7 +125,7 @@ namespace fc::sync {
     }
 
     call_completed = owner.scheduler_->schedule([this]() {
-      auto res = Tipset::create(tipset_key, std::move(blocks_filled));
+      auto res = Tipset::create(tipset_key.hash(), std::move(blocks_filled));
       owner.onRequestCompleted(tipset_key.hash(), std::move(res));
     });
   }

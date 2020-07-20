@@ -22,7 +22,6 @@
 #include "power/impl/power_table_impl.hpp"
 #include "storage/chain/impl/chain_store_impl.hpp"
 #include "storage/chain/msg_waiter.hpp"
-#include "storage/indexdb/indexdb.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
@@ -30,6 +29,41 @@
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
 namespace fc::node {
+
+  class Identify2 : public libp2p::protocol::Identify {
+   public:
+    Identify2(std::shared_ptr<libp2p::Host> host,
+              std::shared_ptr<libp2p::protocol::IdentifyMessageProcessor>
+                  msg_processor,
+              libp2p::event::Bus &event_bus)
+        : Identify(std::move(msg_processor), event_bus),
+          host_(std::move(host)) {}
+
+    void handle(StreamResult stream_res) override {
+      if (!stream_res) {
+        return;
+      }
+
+      // TODO: Kolhoz, change in libp2p: AddressRepository
+
+      auto a = stream_res.value()->remoteMultiaddr();
+      auto p = stream_res.value()->remotePeerId();
+      if (!a || !p) {
+        return;
+      }
+      auto &repo = host_->getPeerRepository().getAddressRepository();
+      auto r = repo.addAddresses(
+          p.value(), gsl::span(&a.value(), 1), std::chrono::seconds(1));
+      if (r) {
+        repo.clear(p.value());
+      }
+
+      Identify::handle(std::move(stream_res));
+    }
+
+   private:
+    std::shared_ptr<libp2p::Host> host_;
+  };
 
   outcome::result<NodeObjects> createNodeObjects(const Config &config) {
     NodeObjects o;
@@ -45,11 +79,10 @@ namespace fc::node {
 
     o.host = injector.create<std::shared_ptr<libp2p::Host>>();
 
-    auto identify_protocol =
-        injector.create<std::shared_ptr<libp2p::protocol::Identify>>();
-    auto identify_push_protocol =
+    o.identify_protocol = injector.create<std::shared_ptr<Identify2>>();
+    o.identify_push_protocol =
         injector.create<std::shared_ptr<libp2p::protocol::IdentifyPush>>();
-    auto identify_delta_protocol =
+    o.identify_delta_protocol =
         injector.create<std::shared_ptr<libp2p::protocol::IdentifyDelta>>();
 
     o.utc_clock = injector.create<std::shared_ptr<clock::UTCClock>>();
@@ -61,10 +94,10 @@ namespace fc::node {
     // TODO - switch on real storage after debugging all the stuff
     o.ipfs_datastore = std::make_shared<storage::ipfs::InMemoryDatastore>();
 
+    // load car (config.carfile)
 
-
-    //    auto block_service =
-    //        std::make_shared<storage::ipfs::IpfsBlockService>(o.ipfs_datastore);
+    auto block_service =
+        std::make_shared<storage::ipfs::IpfsBlockService>(o.ipfs_datastore);
 
     auto weight_calculator =
         std::make_shared<blockchain::weight::WeightCalculatorImpl>(
@@ -94,15 +127,13 @@ namespace fc::node {
             secp_provider,
             vm_interpreter);
 
-    /*
-
     auto chain_store_res = storage::blockchain::ChainStoreImpl::create(
         block_service, o.block_validator, weight_calculator);
     if (!chain_store_res) {
       return chain_store_res.error();
     }
     o.chain_store = std::move(chain_store_res.value());
-*/
+
     // TODO feed genesis into store
 
     o.gossip =

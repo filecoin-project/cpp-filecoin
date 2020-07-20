@@ -158,8 +158,9 @@ namespace fc::sync {
   }
 
   outcome::result<void> PeerManager::start(const CID &genesis_cid,
-                                           const Tipset &tipset,
+                                           std::vector<CID> tipset,
                                            const BigInt &weight,
+                                           uint64_t height,
                                            OnHello on_hello) {
     if (started_) {
       return outcome::success();
@@ -184,8 +185,8 @@ namespace fc::sync {
     identify_delta_protocol_->start();
 
     fc::sync::Hello::Message initial_state;
-    initial_state.heaviest_tipset = tipset.key.cids();
-    initial_state.heaviest_tipset_height = tipset.height();
+    initial_state.heaviest_tipset = std::move(tipset);
+    initial_state.heaviest_tipset_height = height;
     initial_state.heaviest_tipset_weight = weight;
 
     hello_->start(
@@ -347,6 +348,7 @@ namespace fc::sync {
 
     peer_info.current_weight = s.heaviest_tipset_weight;
     postPeerStatus(peer_id);
+    on_hello_(peer_id, hello_message.value());
   }
 
   void PeerManager::onHelloLatencyMessage(

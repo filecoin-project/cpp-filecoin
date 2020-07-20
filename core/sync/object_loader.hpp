@@ -12,6 +12,7 @@
 #include "storage/ipfs/graphsync/graphsync.hpp"
 
 #include "pubsub_gate.hpp"
+#include "blocksync_client.hpp"
 
 namespace fc::sync {
 

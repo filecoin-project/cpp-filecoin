@@ -20,12 +20,16 @@ namespace fc::primitives::ticket {
     return Randomness::fromSpan(hash);
   }
 
+  int compare(const Ticket &lhs, const Ticket &rhs) {
+    return memcmp(lhs.bytes.data(), rhs.bytes.data(), lhs.bytes.size());
+  }
+
   bool operator==(const Ticket &lhs, const Ticket &rhs) {
-    return lhs.bytes == rhs.bytes;
+    return compare(lhs, rhs) == 0;
   }
 
   bool operator<(const Ticket &lhs, const Ticket &rhs) {
-    return lhs.bytes < rhs.bytes;
+    return compare(lhs, rhs) < 0;
   }
 
 }  // namespace fc::primitives::ticket
