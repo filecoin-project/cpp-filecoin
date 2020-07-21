@@ -186,6 +186,7 @@ namespace fc::markets::retrieval::provider {
 
   outcome::result<DealResponse::Block> RetrievalProviderImpl::prepareNextBlock(
       const std::shared_ptr<DealState> &deal_state) {
+    // TODO if block not found, attempt unseal
     OUTCOME_TRY(block_cid, deal_state->traverser.advance());
     OUTCOME_TRY(data, ipld_->get(block_cid));
     OUTCOME_TRY(prefix, block_cid.getPrefix());
