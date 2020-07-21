@@ -24,12 +24,13 @@ namespace fc::markets::retrieval::provider {
       std::shared_ptr<Host> host,
       std::shared_ptr<api::Api> api,
       std::shared_ptr<PieceStorage> piece_storage,
-      std::shared_ptr<Ipld> ipld)
+      std::shared_ptr<Ipld> ipld,
+      const ProviderConfig &config)
       : host_{std::make_shared<CborHost>(host)},
         api_{std::move(api)},
         piece_storage_{std::move(piece_storage)},
         ipld_{std::move(ipld)},
-        config_{} {}
+        config_{config} {}
 
   void RetrievalProviderImpl::start() {
     host_->setCborProtocolHandler(
@@ -195,10 +196,11 @@ namespace fc::markets::retrieval::provider {
 
   void RetrievalProviderImpl::prepareBlocks(
       const std::shared_ptr<DealState> &deal_state) {
-    auto total_paid_for =
-        deal_state->funds_received / deal_state->proposal.params.price_per_byte;
+    BigInt total_paid_for = bigdiv(deal_state->funds_received,
+                                   deal_state->proposal.params.price_per_byte);
     DealResponse response;
     response.deal_id = deal_state->proposal.deal_id;
+    response.status = DealStatus::kDealStatusFundsNeeded;
     while (deal_state->total_sent - total_paid_for
            < deal_state->current_interval) {
       auto maybe_block = prepareNextBlock(deal_state);
@@ -210,12 +212,11 @@ namespace fc::markets::retrieval::provider {
       }
       response.blocks.push_back(maybe_block.value());
       deal_state->total_sent += maybe_block.value().data.size();
-    }
 
-    if (deal_state->traverser.isCompleted()) {
-      response.status = DealStatus::kDealStatusFundsNeededLastPayment;
-    } else {
-      response.status = DealStatus::kDealStatusFundsNeeded;
+      if (deal_state->traverser.isCompleted()) {
+        response.status = DealStatus::kDealStatusFundsNeededLastPayment;
+        break;
+      }
     }
 
     response.payment_owed = (deal_state->total_sent - total_paid_for)

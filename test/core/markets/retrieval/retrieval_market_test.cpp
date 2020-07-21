@@ -4,6 +4,7 @@
  */
 
 #include "core/markets/retrieval/fixture.hpp"
+#include "testutil/outcome.hpp"
 
 namespace fc::markets::retrieval::test {
   /**
@@ -28,5 +29,36 @@ namespace fc::markets::retrieval::test {
               QueryResponseStatus::kQueryResponseUnavailable);
     EXPECT_EQ(response_res.value().item_status,
               QueryItemStatus::kQueryItemUnavailable);
+  }
+
+  /**
+   * @given retrieval provider has payload with cid
+   * @when sending retrieval proposal
+   * @then retrieval deal is committed and client receives requested data
+   */
+  TEST_F(RetrievalMarketFixture, RetrieveSuccess) {
+    EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), false);
+
+    DealProposalParams params{.selector = boost::none,
+                              .piece = boost::none,
+                              .price_per_byte = 2,
+                              .payment_interval = 100,
+                              .payment_interval_increase = 10};
+    TokenAmount total_funds{100};
+    std::promise<outcome::result<void>> retrieve_result;
+    client->retrieve(
+        payload_cid,
+        params,
+        host->getPeerInfo(),
+        client_wallet,
+        miner_wallet,
+        total_funds,
+        [&](outcome::result<void> res) { retrieve_result.set_value(res); });
+    auto future = retrieve_result.get_future();
+    ASSERT_EQ(future.wait_for(std::chrono::seconds(5)),
+              std::future_status::ready);
+    EXPECT_OUTCOME_TRUE_1(future.get());
+
+    EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), true);
   }
 }  // namespace fc::markets::retrieval::test

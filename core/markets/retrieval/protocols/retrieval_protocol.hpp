@@ -35,7 +35,7 @@ namespace fc::markets::retrieval {
    * @struct Deal proposal params
    */
   struct DealProposalParams {
-    Selector selector;
+    boost::optional<Selector> selector;
     boost::optional<CID> piece;
 
     /* Proposed price */

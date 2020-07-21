@@ -24,6 +24,7 @@ namespace fc::markets::retrieval::client {
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::ipld::verifier::Verifier;
   using libp2p::Host;
+  using primitives::BigInt;
   using vm::actor::builtin::payment_channel::LaneId;
 
   /**
@@ -42,9 +43,9 @@ namespace fc::markets::retrieval::client {
           client_wallet{client_wallet},
           miner_wallet{miner_wallet},
           total_funds(total_funds),
-          current_interval{proposal.params.payment_interval},
+          current_interval{100},  // proposal.params.payment_interval},
           deal_status{DealStatus::kDealStatusOngoing},
-          verifier{proposal.payload_cid, proposal.params.selector} {}
+          verifier{proposal.payload_cid, {}} {}  // proposal.params.selector} {}
 
     DealProposal proposal;
     std::shared_ptr<CborStream> stream;
@@ -56,13 +57,13 @@ namespace fc::markets::retrieval::client {
     TokenAmount total_funds;
 
     /** Number of bytes to process in the current round */
-    uint64_t current_interval;
+    BigInt current_interval;
 
     /** Bytes have been paid */
-    uint64_t bytes_paid_for;
+    BigInt bytes_paid_for;
 
     /** Total bytes received */
-    uint64_t total_received;
+    BigInt total_received;
 
     /** Payment channel actor address */
     Address payment_channel_address;

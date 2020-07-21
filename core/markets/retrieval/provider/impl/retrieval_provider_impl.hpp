@@ -23,6 +23,7 @@ namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceInfo;
   using ::fc::storage::piece::PieceStorage;
   using libp2p::Host;
+  using primitives::BigInt;
 
   /**
    * @struct Provider config
@@ -39,13 +40,14 @@ namespace fc::markets::retrieval::provider {
               std::shared_ptr<CborStream> stream)
         : proposal{proposal},
           stream{std::move(stream)},
-          current_interval{proposal.params.payment_interval},
-          traverser{*ipld, proposal.payload_cid, proposal.params.selector} {}
+          current_interval{10},  // proposal.params.payment_interval},
+          traverser{*ipld, proposal.payload_cid, {}} {
+    }  // proposal.params.selector} {}
 
     DealProposal proposal;
     std::shared_ptr<CborStream> stream;
-    uint64_t current_interval;
-    uint64_t total_sent;
+    BigInt current_interval;
+    BigInt total_sent;
     TokenAmount funds_received;
     TokenAmount payment_owed;
     Traverser traverser;
@@ -58,7 +60,8 @@ namespace fc::markets::retrieval::provider {
     RetrievalProviderImpl(std::shared_ptr<Host> host,
                           std::shared_ptr<api::Api> api,
                           std::shared_ptr<PieceStorage> piece_storage,
-                          std::shared_ptr<Ipld> ipld);
+                          std::shared_ptr<Ipld> ipld,
+                          const ProviderConfig &config);
 
     void start() override;
 

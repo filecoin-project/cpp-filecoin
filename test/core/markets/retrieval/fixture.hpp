@@ -18,9 +18,15 @@
 #include "storage/piece/impl/piece_storage_impl.hpp"
 
 namespace fc::markets::retrieval::test {
+  using api::AddChannelInfo;
+  using common::Buffer;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
+  using fc::storage::piece::DealInfo;
+  using fc::storage::piece::PayloadLocation;
   using primitives::tipset::Tipset;
+  using provider::ProviderConfig;
+  using vm::actor::builtin::payment_channel::SignedVoucher;
 
   struct RetrievalMarketFixture : public ::testing::Test {
     /* Types */
@@ -56,7 +62,16 @@ namespace fc::markets::retrieval::test {
     ApiShPtr api;
 
     /** IPFS datastore */
-    std::shared_ptr<IpfsDatastore> ipfs{std::make_shared<InMemoryDatastore>()};
+    std::shared_ptr<IpfsDatastore> client_ipfs{
+        std::make_shared<InMemoryDatastore>()};
+    std::shared_ptr<IpfsDatastore> provider_ipfs{
+        std::make_shared<InMemoryDatastore>()};
+
+    /** filecoin addresses */
+    Address miner_worker_address = Address::makeFromId(100);
+    Address miner_wallet = Address::makeFromId(101);
+    Address client_wallet = Address::makeFromId(200);
+    CID payload_cid;
 
     common::Logger logger = common::createLogger("RetrievalMarketTest");
 
@@ -71,12 +86,15 @@ namespace fc::markets::retrieval::test {
       context = injector.create<std::shared_ptr<boost::asio::io_context>>();
       storage_backend = std::make_shared<::fc::storage::InMemoryStorage>();
       api = std::make_shared<api::Api>();
-      this->piece_storage =
-          std::make_shared<::fc::storage::piece::PieceStorageImpl>(
-              storage_backend);
+      piece_storage = std::make_shared<::fc::storage::piece::PieceStorageImpl>(
+          storage_backend);
+      ProviderConfig config{.price_per_byte = 2,
+                            .payment_interval = 100,
+                            .interval_increase = 10};
       provider = std::make_shared<provider::RetrievalProviderImpl>(
-          host, api, piece_storage, ipfs);
-      client = std::make_shared<client::RetrievalClientImpl>(host, api, ipfs);
+          host, api, piece_storage, provider_ipfs, config);
+      client =
+          std::make_shared<client::RetrievalClientImpl>(host, api, client_ipfs);
       provider->start();
     }
 
@@ -93,18 +111,43 @@ namespace fc::markets::retrieval::test {
                        "Failed to listen on provider multiaddress");
       host->start();
       std::thread([this]() { context->run(); }).detach();
-      BOOST_ASSERT_MSG(addPieceSample(data::green_piece).has_value(),
-                       "Failed to add sample green piece");
+      BOOST_ASSERT_MSG(
+          addPieceSample(data::green_piece, provider_ipfs).has_value(),
+          "Failed to add sample green piece");
 
       Tipset chain_head;
-      Address miner_worker_address = Address::makeFromId(100);
       api->ChainHead = {[=]() { return chain_head; }};
 
       api->StateMinerWorker = {
           [=](auto &address, auto &tipset_key) -> outcome::result<Address> {
             return miner_worker_address;
           }};
-    }
+
+      api->PaychGet = {
+          [=](auto &, auto &, auto &) -> outcome::result<AddChannelInfo> {
+            return AddChannelInfo{.channel = Address::makeFromId(333)};
+          }};
+
+      api->PaychAllocateLane = {
+          [=](auto &) -> outcome::result<LaneId> { return LaneId{1}; }};
+
+      api->PaychVoucherCreate = {
+          [=](const Address &,
+              const TokenAmount &,
+              const LaneId &) -> outcome::result<SignedVoucher> {
+            SignedVoucher voucher;
+            voucher.amount = 100;
+            return voucher;
+          }};
+
+      api->PaychVoucherAdd = {
+          [=](const Address &,
+              const SignedVoucher &,
+              const Buffer &,
+              const TokenAmount &) -> outcome::result<TokenAmount> {
+            return TokenAmount{0};
+          }};
+    };
 
     /**
      * @brief On all test finished
@@ -113,13 +156,19 @@ namespace fc::markets::retrieval::test {
       context->stop();
     }
 
-    outcome::result<void> addPieceSample(const SamplePiece &piece) {
-      OUTCOME_TRY(piece_storage->addDealForPiece(piece.info.piece_cid,
-                                                 piece.info.deals.front()));
-      for (const auto &payload : piece.payloads) {
-        OUTCOME_TRY(piece_storage->addPayloadLocations(
-            piece.info.piece_cid, {{payload.cid, payload.location}}));
-      }
+    outcome::result<void> addPieceSample(
+        const SamplePiece &piece, const std::shared_ptr<IpfsDatastore> &ipfs) {
+      Buffer payload{"deadface"_unhex};
+      OUTCOME_TRY(bytes, codec::cbor::encode(payload));
+      OUTCOME_TRYA(payload_cid, common::getCidOf(bytes));
+      CID piece_cid =
+          "12209139839e65fabea9efd230898ad8b574509147e48d7c1e87a33d6da70fd2efae"_cid;
+      DealInfo deal{.deal_id = 18, .sector_id = 4, .offset = 128, .length = 64};
+      PayloadLocation location{.relative_offset = 16, .block_size = 4};
+      OUTCOME_TRY(piece_storage->addDealForPiece(piece_cid, deal));
+      OUTCOME_TRY(piece_storage->addPayloadLocations(
+          piece_cid, {{payload_cid, location}}));
+      OUTCOME_TRY(ipfs->setCbor(payload));
       return outcome::success();
     }
   };
