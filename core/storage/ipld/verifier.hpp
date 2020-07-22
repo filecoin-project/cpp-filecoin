@@ -27,12 +27,13 @@ namespace fc::storage::ipld::verifier {
    */
   class Verifier {
    public:
+    Verifier(const CID &root);
+
     /**
      * @param root - payload root cid
      * @param selector - selector
      */
-    Verifier(const CID &root, const Selector &selector)
-        : traverser_{store_, root, selector} {}
+    Verifier(const CID &root, const Selector &selector);
 
     /**
      * Try apply next block
