@@ -168,7 +168,7 @@ namespace fc::markets::retrieval::client {
         crypto::Hasher::calculate(cid.content_address.getType(), block.data);
 
     OUTCOME_TRY(completed,
-                deal_state->verifier.verifyNextBlock(cid, block.data));
+                deal_state->verifier->verifyNextBlock(cid, block.data));
     OUTCOME_TRY(ipfs_->set(cid, block.data));
     deal_state->total_received += block.data.size();
     return outcome::success(completed);
@@ -289,8 +289,7 @@ namespace fc::markets::retrieval::client {
           SELF_IF_ERROR_FAIL_AND_RETURN(written);
 
           deal_state->funds_spent += payment_requested;
-          uint64_t bytes_paid_in_round = static_cast<uint64_t>(
-              payment_requested / deal_state->proposal.params.price_per_byte);
+          BigInt bytes_paid_in_round = bigdiv(payment_requested, deal_state->proposal.params.price_per_byte);
           if (bytes_paid_in_round >= deal_state->current_interval) {
             deal_state->current_interval +=
                 deal_state->proposal.params.payment_interval_increase;

@@ -12,4 +12,5 @@ target_link_libraries(retrieval_market_provider
     cbor
     cbor_stream
     tipset
+    ipld_traverser
     )
