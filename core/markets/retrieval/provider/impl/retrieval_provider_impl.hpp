@@ -60,7 +60,7 @@ namespace fc::markets::retrieval::provider {
     RetrievalProviderImpl(std::shared_ptr<Host> host,
                           std::shared_ptr<api::Api> api,
                           std::shared_ptr<PieceStorage> piece_storage,
-                          std::shared_ptr<Ipld> ipld,
+                          IpldPtr ipld,
                           const ProviderConfig &config);
 
     void start() override;
