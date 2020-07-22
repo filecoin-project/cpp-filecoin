@@ -14,7 +14,7 @@ namespace fc::markets::retrieval::test {
    */
   TEST_F(RetrievalMarketFixture, QuerySuccess) {
     QueryRequest request{
-        .payload_cid = data::green_piece.payloads[0].cid,
+        .payload_cid = payload_cid,
         .params = {.piece_cid = data::green_piece.info.piece_cid}};
     std::promise<outcome::result<QueryResponse>> query_result;
     client->query(host->getPeerInfo(), request, [&](auto response) {
@@ -26,9 +26,9 @@ namespace fc::markets::retrieval::test {
     auto response_res = future.get();
     EXPECT_TRUE(response_res.has_value());
     EXPECT_EQ(response_res.value().response_status,
-              QueryResponseStatus::kQueryResponseUnavailable);
+              QueryResponseStatus::kQueryResponseAvailable);
     EXPECT_EQ(response_res.value().item_status,
-              QueryItemStatus::kQueryItemUnavailable);
+              QueryItemStatus::kQueryItemAvailable);
   }
 
   /**

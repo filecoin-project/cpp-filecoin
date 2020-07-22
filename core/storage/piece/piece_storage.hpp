@@ -120,14 +120,6 @@ namespace fc::storage::piece {
     virtual outcome::result<void> addPayloadLocations(
         const CID &parent_piece, std::map<CID, PayloadLocation> locations) = 0;
 
-    /**
-     * @brief Get location of the payload block
-     * @param paload_cid - id of the payload block
-     * @return operation result
-     */
-    virtual outcome::result<PayloadBlockInfo> getPayloadLocation(
-        const CID &payload_cid) const = 0;
-
     virtual outcome::result<PieceInfo> getPieceInfoFromCid(
         const CID &payload_cid,
         const boost::optional<CID> &piece_cid) const = 0;
