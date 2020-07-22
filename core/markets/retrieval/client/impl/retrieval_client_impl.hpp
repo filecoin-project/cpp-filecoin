@@ -44,14 +44,8 @@ namespace fc::markets::retrieval::client {
           miner_wallet{miner_wallet},
           total_funds(total_funds),
           current_interval{proposal.params.payment_interval},
-          deal_status{DealStatus::kDealStatusOngoing} {
-      if (proposal.params.selector.has_value()) {
-        verifier = std::make_shared<Verifier>(proposal.payload_cid,
-                                              proposal.params.selector.value());
-      } else {
-        verifier = std::make_shared<Verifier>(proposal.payload_cid);
-      }
-    }
+          deal_status{DealStatus::kDealStatusOngoing},
+          verifier{proposal.payload_cid, proposal.params.selector} {}
 
     DealProposal proposal;
     std::shared_ptr<CborStream> stream;
@@ -91,7 +85,7 @@ namespace fc::markets::retrieval::client {
     /**
      * Received ipld blocks verifier
      */
-    std::shared_ptr<Verifier> verifier;
+    Verifier verifier;
   };
 
   class RetrievalClientImpl

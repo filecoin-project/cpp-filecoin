@@ -188,7 +188,7 @@ namespace fc::markets::retrieval::provider {
   outcome::result<DealResponse::Block> RetrievalProviderImpl::prepareNextBlock(
       const std::shared_ptr<DealState> &deal_state) {
     // TODO if block not found, attempt unseal
-    OUTCOME_TRY(block_cid, deal_state->traverser->advance());
+    OUTCOME_TRY(block_cid, deal_state->traverser.advance());
     OUTCOME_TRY(data, ipld_->get(block_cid));
     OUTCOME_TRY(prefix, block_cid.getPrefix());
     return DealResponse::Block{.prefix = Buffer{prefix}, .data = data};
@@ -213,7 +213,7 @@ namespace fc::markets::retrieval::provider {
       response.blocks.push_back(maybe_block.value());
       deal_state->total_sent += maybe_block.value().data.size();
 
-      if (deal_state->traverser->isCompleted()) {
+      if (deal_state->traverser.isCompleted()) {
         response.status = DealStatus::kDealStatusFundsNeededLastPayment;
         break;
       }

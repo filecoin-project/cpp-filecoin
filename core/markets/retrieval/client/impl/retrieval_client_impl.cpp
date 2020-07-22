@@ -168,7 +168,7 @@ namespace fc::markets::retrieval::client {
         crypto::Hasher::calculate(cid.content_address.getType(), block.data);
 
     OUTCOME_TRY(completed,
-                deal_state->verifier->verifyNextBlock(cid, block.data));
+                deal_state->verifier.verifyNextBlock(cid, block.data));
     OUTCOME_TRY(ipfs_->set(cid, block.data));
     deal_state->total_received += block.data.size();
     return outcome::success(completed);

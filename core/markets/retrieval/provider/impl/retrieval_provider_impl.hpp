@@ -40,14 +40,8 @@ namespace fc::markets::retrieval::provider {
               std::shared_ptr<CborStream> stream)
         : proposal{proposal},
           stream{std::move(stream)},
-          current_interval{proposal.params.payment_interval} {
-      if (proposal.params.selector.has_value()) {
-        traverser = std::make_shared<Traverser>(
-            *ipld, proposal.payload_cid, proposal.params.selector.value());
-      } else {
-        traverser = std::make_shared<Traverser>(*ipld, proposal.payload_cid);
-      }
-    }
+          current_interval{proposal.params.payment_interval},
+          traverser{*ipld, proposal.payload_cid, proposal.params.selector} {}
 
     DealProposal proposal;
     std::shared_ptr<CborStream> stream;
@@ -55,7 +49,7 @@ namespace fc::markets::retrieval::provider {
     BigInt total_sent;
     TokenAmount funds_received;
     TokenAmount payment_owed;
-    std::shared_ptr<Traverser> traverser;
+    Traverser traverser;
   };
 
   class RetrievalProviderImpl
