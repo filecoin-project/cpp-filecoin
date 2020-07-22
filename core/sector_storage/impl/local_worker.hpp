@@ -22,9 +22,7 @@ namespace fc::sector_storage {
   class LocalWorker : public Worker {
    public:
     LocalWorker(WorkerConfig config,
-                std::shared_ptr<stores::Store> store,
-                std::shared_ptr<stores::LocalStore> local,
-                std::shared_ptr<stores::SectorIndex> sector_index);
+                std::shared_ptr<stores::RemoteStore> store);
 
     outcome::result<PreCommit1Output> sealPreCommit1(
         const SectorId &sector,
@@ -80,7 +78,7 @@ namespace fc::sector_storage {
         const proofs::PieceData &piece_data) override;
 
    private:
-    std::shared_ptr<stores::Store> storage_;
+    std::shared_ptr<stores::RemoteStore> remote_store_;
     std::shared_ptr<stores::LocalStore> local_store_;
     std::shared_ptr<stores::SectorIndex> index_;
 

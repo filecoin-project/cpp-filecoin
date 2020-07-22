@@ -301,6 +301,9 @@ namespace fc::sector_storage::stores {
       }
     }
 
+    OUTCOME_TRY(storage_->setStorage([path](stores::StorageConfig &config) {
+      config.storage_paths.push_back(std::move(path));
+    }));
     paths_[meta.id] = path;
 
     return outcome::success();
@@ -355,6 +358,14 @@ namespace fc::sector_storage::stores {
     }
 
     return std::move(res);
+  }
+
+  std::shared_ptr<SectorIndex> LocalStoreImpl::getSectorIndex() const {
+    return index_;
+  }
+
+  std::shared_ptr<LocalStorage> LocalStoreImpl::getLocalStorage() const {
+    return storage_;
   }
 
 }  // namespace fc::sector_storage::stores

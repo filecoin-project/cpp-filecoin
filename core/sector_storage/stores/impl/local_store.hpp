@@ -14,33 +14,6 @@
 
 namespace fc::sector_storage::stores {
 
-  // .lotusstorage/storage.json
-  struct StorageConfig {
-    std::vector<std::string> storage_paths;
-  };
-
-  class LocalStorage {
-   public:
-    virtual ~LocalStorage() = default;
-
-    virtual outcome::result<FsStat> getStat(const std::string &path) = 0;
-
-    virtual outcome::result<StorageConfig> getStorage() = 0;
-
-    virtual outcome::result<void> setStorage(
-        std::function<void(StorageConfig &)> action) = 0;
-  };
-
-  const std::string kMetaFileName = "sectorstore.json";
-
-  class LocalStore : public Store {
-   public:
-    virtual outcome::result<void> openPath(const std::string &path) = 0;
-
-    virtual outcome::result<std::vector<primitives::StoragePath>>
-    getAccessiblePaths() = 0;
-  };
-
   // TODO(artyom-yurin): [FIL-231] Health Report for storages
   class LocalStoreImpl : public LocalStore {
    public:
@@ -68,6 +41,10 @@ namespace fc::sector_storage::stores {
 
     outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths()
         override;
+
+    std::shared_ptr<SectorIndex> getSectorIndex() const override;
+
+    std::shared_ptr<LocalStorage> getLocalStorage() const override;
 
    private:
     LocalStoreImpl(std::shared_ptr<LocalStorage> storage,

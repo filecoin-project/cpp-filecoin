@@ -13,8 +13,8 @@
 #include "proofs/proofs.hpp"
 #include "sector_storage/stores/store_error.hpp"
 #include "testutil/mocks/sector_storage/stores/local_store_mock.hpp"
+#include "testutil/mocks/sector_storage/stores/remote_store_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
-#include "testutil/mocks/sector_storage/stores/store_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
@@ -29,8 +29,8 @@ using fc::proofs::SealVerifyInfo;
 using fc::sector_storage::LocalWorker;
 using fc::sector_storage::WorkerConfig;
 using fc::sector_storage::stores::LocalStoreMock;
+using fc::sector_storage::stores::RemoteStoreMock;
 using fc::sector_storage::stores::SectorIndexMock;
-using fc::sector_storage::stores::StoreMock;
 using proofs = fc::proofs::Proofs;
 using fc::primitives::sector_file::SectorFileType;
 using fc::sector_storage::stores::AcquireSectorResponse;
@@ -49,11 +49,20 @@ class LocalWorkerTest : public test::BaseFS_Test {
     config_ = WorkerConfig{.hostname = worker_name_,
                            .seal_proof_type = seal_proof_type_,
                            .task_types = tasks_};
-    store_ = std::make_shared<StoreMock>();
+    store_ = std::make_shared<RemoteStoreMock>();
     local_store_ = std::make_shared<LocalStoreMock>();
     sector_index_ = std::make_shared<SectorIndexMock>();
-    local_worker_ = std::make_unique<LocalWorker>(
-        config_, store_, local_store_, sector_index_);
+
+    EXPECT_CALL(*store_, getLocalStore())
+        .WillRepeatedly(testing::Return(local_store_));
+
+    EXPECT_CALL(*store_, getSectorIndex())
+        .WillRepeatedly(testing::Return(sector_index_));
+
+    EXPECT_CALL(*local_store_, getSectorIndex())
+        .WillRepeatedly(testing::Return(sector_index_));
+
+    local_worker_ = std::make_unique<LocalWorker>(config_, store_);
   }
 
  protected:
@@ -61,7 +70,7 @@ class LocalWorkerTest : public test::BaseFS_Test {
   RegisteredProof seal_proof_type_;
   std::string worker_name_;
   WorkerConfig config_;
-  std::shared_ptr<StoreMock> store_;
+  std::shared_ptr<RemoteStoreMock> store_;
   std::shared_ptr<LocalStoreMock> local_store_;
   std::shared_ptr<SectorIndexMock> sector_index_;
   std::unique_ptr<LocalWorker> local_worker_;

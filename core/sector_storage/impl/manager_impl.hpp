@@ -28,13 +28,9 @@ namespace fc::sector_storage {
   class ManagerImpl : public Manager {
    public:
     static outcome::result<std::unique_ptr<Manager>> newManager(
-        std::shared_ptr<stores::LocalStorage> local_storage,
-        std::shared_ptr<stores::SectorIndex> sector_index,
-        RegisteredProof seal_proof_type,
-        const SealerConfig &config,
-        gsl::span<const std::string> urls,
-        const std::unordered_map<stores::HeaderName, stores::HeaderValue>
-            &auth_headers);
+        const std::shared_ptr<stores::RemoteStore> &remote,
+        const std::shared_ptr<Scheduler> &scheduler,
+        const SealerConfig &config);
 
     outcome::result<std::vector<SectorId>> checkProvable(
         RegisteredProof seal_proof_type,
@@ -102,7 +98,7 @@ namespace fc::sector_storage {
                 RegisteredProof seal_proof_type,
                 std::shared_ptr<stores::LocalStorage> local_storage,
                 std::shared_ptr<stores::LocalStore> local_store,
-                std::shared_ptr<stores::Store> store,
+                std::shared_ptr<stores::RemoteStore> store,
                 std::shared_ptr<Scheduler> scheduler);
 
     struct PubToPrivateResponse {
@@ -123,7 +119,7 @@ namespace fc::sector_storage {
 
     std::shared_ptr<stores::LocalStorage> local_storage_;
     std::shared_ptr<stores::LocalStore> local_store_;
-    std::shared_ptr<stores::Store> storage_;
+    std::shared_ptr<stores::RemoteStore> remote_store_;
 
     std::shared_ptr<Scheduler> scheduler_;
 

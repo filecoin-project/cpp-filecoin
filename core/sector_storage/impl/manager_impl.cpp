@@ -11,7 +11,6 @@
 #include "sector_storage/impl/allocate_selector.hpp"
 #include "sector_storage/impl/existing_selector.hpp"
 #include "sector_storage/impl/local_worker.hpp"
-#include "sector_storage/impl/scheduler_impl.hpp"
 #include "sector_storage/impl/task_selector.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
@@ -570,14 +569,7 @@ namespace fc::sector_storage {
   outcome::result<void> ManagerImpl::addLocalStorage(const std::string &path) {
     OUTCOME_TRY(ePath, expandPath(path));
 
-    OUTCOME_TRY(local_store_->openPath(ePath));
-
-    OUTCOME_TRY(
-        local_storage_->setStorage([&ePath](stores::StorageConfig &config) {
-          config.storage_paths.push_back(ePath);
-        }));
-
-    return outcome::success();
+    return local_store_->openPath(ePath);
   }
 
   outcome::result<void> ManagerImpl::addWorker(std::shared_ptr<Worker> worker) {
@@ -607,7 +599,7 @@ namespace fc::sector_storage {
   }
 
   outcome::result<FsStat> ManagerImpl::getFsStat(StorageID storage_id) {
-    return storage_->getFsStat(storage_id);
+    return local_store_->getFsStat(storage_id);
   }
 
   outcome::result<ManagerImpl::PubToPrivateResponse>
@@ -664,19 +656,15 @@ namespace fc::sector_storage {
   }
 
   outcome::result<std::unique_ptr<Manager>> ManagerImpl::newManager(
-      std::shared_ptr<stores::LocalStorage> local_storage,
-      std::shared_ptr<stores::SectorIndex> sector_index,
-      RegisteredProof seal_proof_type,
-      const SealerConfig &config,
-      gsl::span<const std::string> urls,
-      const std::unordered_map<stores::HeaderName, stores::HeaderValue>
-          &auth_headers) {
+      const std::shared_ptr<stores::RemoteStore> &remote,
+      const std::shared_ptr<Scheduler> &scheduler,
+      const SealerConfig &config) {
     struct make_unique_enabler : public ManagerImpl {
       make_unique_enabler(std::shared_ptr<stores::SectorIndex> sector_index,
                           RegisteredProof seal_proof_type,
                           std::shared_ptr<stores::LocalStorage> local_storage,
                           std::shared_ptr<stores::LocalStore> local_store,
-                          std::shared_ptr<stores::Store> store,
+                          std::shared_ptr<stores::RemoteStore> store,
                           std::shared_ptr<Scheduler> scheduler)
           : ManagerImpl{std::move(sector_index),
                         seal_proof_type,
@@ -686,23 +674,17 @@ namespace fc::sector_storage {
                         std::move(scheduler)} {};
     };
 
-    std::shared_ptr<stores::LocalStore> local_store;
-    OUTCOME_TRYA(local_store,
-                 stores::LocalStoreImpl::newLocalStore(
-                     local_storage, sector_index, urls));
-
-    std::shared_ptr<stores::Store> storage =
-        std::make_unique<stores::RemoteStore>(
-            local_store, sector_index, auth_headers);
-
+    auto proof_type = scheduler->getSealProofType();
+    auto local_store = remote->getLocalStore();
+    auto local_storage = local_store->getLocalStorage();
+    auto sector_index = remote->getSectorIndex();
     std::unique_ptr<ManagerImpl> manager =
-        std::make_unique<make_unique_enabler>(
-            sector_index,
-            seal_proof_type,
-            std::move(local_storage),
-            local_store,
-            storage,
-            std::make_unique<SchedulerImpl>(seal_proof_type));
+        std::make_unique<make_unique_enabler>(sector_index,
+                                              proof_type,
+                                              local_storage,
+                                              local_store,
+                                              remote,
+                                              scheduler);
 
     std::set<TaskType> local_tasks{
         primitives::kTTAddPiece,
@@ -732,12 +714,10 @@ namespace fc::sector_storage {
     std::unique_ptr<Worker> worker = std::make_unique<LocalWorker>(
         WorkerConfig{
             .hostname = "",
-            .seal_proof_type = seal_proof_type,
+            .seal_proof_type = proof_type,
             .task_types = std::move(local_tasks),
         },
-        std::move(storage),
-        std::move(local_store),
-        std::move(sector_index));
+        std::move(remote));
 
     OUTCOME_TRY(manager->addWorker(std::move(worker)));
     return std::move(manager);
@@ -747,13 +727,13 @@ namespace fc::sector_storage {
                            RegisteredProof seal_proof_type,
                            std::shared_ptr<stores::LocalStorage> local_storage,
                            std::shared_ptr<stores::LocalStore> local_store,
-                           std::shared_ptr<stores::Store> store,
+                           std::shared_ptr<stores::RemoteStore> store,
                            std::shared_ptr<Scheduler> scheduler)
       : index_(std::move(sector_index)),
         seal_proof_type_(seal_proof_type),
         local_storage_(std::move(local_storage)),
         local_store_(std::move(local_store)),
-        storage_(std::move(store)),
+        remote_store_(std::move(store)),
         scheduler_(std::move(scheduler)),
         logger_(common::createLogger("manager")) {}
 }  // namespace fc::sector_storage

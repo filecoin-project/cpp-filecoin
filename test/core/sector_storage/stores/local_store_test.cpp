@@ -63,6 +63,9 @@ class LocalStoreTest : public test::BaseFS_Test {
         .WillOnce(testing::Return(fc::outcome::success(
             StorageConfig{.storage_paths = std::vector<std::string>({})})));
 
+    EXPECT_CALL(*storage_, setStorage(_))
+        .WillRepeatedly(testing::Return(fc::outcome::success()));
+
     auto maybe_local = LocalStoreImpl::newLocalStore(storage_, index_, urls_);
     local_store_ = std::move(maybe_local.value());
   }
