@@ -29,7 +29,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipld::verifier, VerifierError, e) {
   switch (e) {
     case VerifierError::kUnexpectedCid:
       return "IPLD Block Verifier: unexpected CID encountered";
+    default:
+      return "IPLD Block Verifier: unknown error";
   }
-
-  return "IPLD Block Verifier: unknown error";
 }

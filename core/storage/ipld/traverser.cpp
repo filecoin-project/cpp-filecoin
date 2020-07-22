@@ -117,7 +117,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::ipld::traverser, TraverserError, e) {
   switch (e) {
     case TraverserError::kTraverseCompleted:
       return "Traverser: blocks already completed";
+    default:
+      return "Traverser: unknown error";
   }
-
-  return "Traverser: unknown error";
 }
