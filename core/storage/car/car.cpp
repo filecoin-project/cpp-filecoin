@@ -16,6 +16,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
 }
 
 namespace fc::storage::car {
+  using ipld::kAllSelector;
   using ipld::traverser::Traverser;
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input) {
@@ -70,7 +71,7 @@ namespace fc::storage::car {
   outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots) {
     std::set<CID> cids;
     for (auto &root : roots) {
-      Traverser traverser{store, root};
+      Traverser traverser{store, root, kAllSelector};
       OUTCOME_TRY(visited, traverser.traverseAll());
       for (auto &cid : visited) {
         cids.insert(cid);

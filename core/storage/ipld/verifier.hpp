@@ -27,8 +27,6 @@ namespace fc::storage::ipld::verifier {
    */
   class Verifier {
    public:
-    Verifier(const CID &root);
-
     /**
      * @param root - payload root cid
      * @param selector - selector

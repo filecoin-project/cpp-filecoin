@@ -37,15 +37,6 @@ namespace fc::storage::ipld::traverser {
     }
 
     /**
-     * Constructor without selector to visit all subnodes
-     * @param store - ipld store
-     * @param root - root cid
-     */
-    Traverser(Ipld &store, const CID &root) : store{store} {
-      to_visit_.push(root);
-    }
-
-    /**
      * Traverse all from the root
      * @return all the visited cids
      */

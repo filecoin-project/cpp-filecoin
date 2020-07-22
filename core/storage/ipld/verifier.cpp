@@ -7,8 +7,6 @@
 
 namespace fc::storage::ipld::verifier {
 
-  Verifier::Verifier(const CID &root) : traverser_{store_, root} {}
-
   Verifier::Verifier(const CID &root, const Selector &selector)
       : traverser_{store_, root, selector} {}
 

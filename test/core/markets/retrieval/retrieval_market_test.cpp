@@ -7,6 +7,8 @@
 #include "testutil/outcome.hpp"
 
 namespace fc::markets::retrieval::test {
+  using fc::storage::ipld::kAllSelector;
+
   /**
    * @given Piece, which was stored to a Piece Storage
    * @when Sending QueryRequest to a provider
@@ -39,7 +41,7 @@ namespace fc::markets::retrieval::test {
   TEST_F(RetrievalMarketFixture, RetrieveSuccess) {
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), false);
 
-    DealProposalParams params{.selector = boost::none,
+    DealProposalParams params{.selector = kAllSelector,
                               .piece = boost::none,
                               .price_per_byte = 2,
                               .payment_interval = 100,
