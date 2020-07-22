@@ -28,6 +28,10 @@ namespace fc::markets::retrieval::test {
   using provider::ProviderConfig;
   using vm::actor::builtin::payment_channel::SignedVoucher;
 
+  /** Shared resources */
+  static std::shared_ptr<libp2p::Host> host;
+  static std::shared_ptr<boost::asio::io_context> context;
+
   struct RetrievalMarketFixture : public ::testing::Test {
     /* Types */
     using ClientShPtr = std::shared_ptr<client::RetrievalClientImpl>;
@@ -40,17 +44,33 @@ namespace fc::markets::retrieval::test {
     using Multiaddress = libp2p::multi::Multiaddress;
     using ApiShPtr = std::shared_ptr<api::Api>;
 
+    static void SetUpTestCase() {
+      auto injector = libp2p::injector::makeHostInjector(
+          libp2p::injector::useKeyPair(config::provider::keypair),
+          libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
+      host = injector.create<std::shared_ptr<libp2p::Host>>();
+      context = injector.create<std::shared_ptr<boost::asio::io_context>>();
+      auto listen_address =
+          Multiaddress::create(config::provider::multiaddress);
+      BOOST_ASSERT_MSG(listen_address.has_value(),
+                       "Failed to create server multiaddress");
+      auto listen_status = host->listen(listen_address.value());
+      BOOST_ASSERT_MSG(listen_status.has_value(),
+                       "Failed to listen on provider multiaddress");
+      host->start();
+      std::thread([]() { context->run(); }).detach();
+    }
+
+    static void TearDownTestCase() {
+      host.reset();
+      context.reset();
+    }
+
     /* Retrieval market client */
     ClientShPtr client;
 
     /* Retrieval market provider */
     ProviderShPtr provider;
-
-    /* Libp2p network host */
-    HostShPtr host;
-
-    /* I/O context */
-    ContextShPtr context;
 
     /* Piece storage */
     PieceStorageShPtr piece_storage;
@@ -79,11 +99,6 @@ namespace fc::markets::retrieval::test {
      * @brief Constructor
      */
     RetrievalMarketFixture() {
-      auto injector = libp2p::injector::makeHostInjector(
-          libp2p::injector::useKeyPair(config::provider::keypair),
-          libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
-      host = injector.create<std::shared_ptr<libp2p::Host>>();
-      context = injector.create<std::shared_ptr<boost::asio::io_context>>();
       storage_backend = std::make_shared<::fc::storage::InMemoryStorage>();
       api = std::make_shared<api::Api>();
       piece_storage = std::make_shared<::fc::storage::piece::PieceStorageImpl>(
@@ -102,15 +117,6 @@ namespace fc::markets::retrieval::test {
      * @brief On before all test cases
      */
     void SetUp() override {
-      auto listen_address =
-          Multiaddress::create(config::provider::multiaddress);
-      BOOST_ASSERT_MSG(listen_address.has_value(),
-                       "Failed to create server multiaddress");
-      auto listen_status = host->listen(listen_address.value());
-      BOOST_ASSERT_MSG(listen_status.has_value(),
-                       "Failed to listen on provider multiaddress");
-      host->start();
-      std::thread([this]() { context->run(); }).detach();
       BOOST_ASSERT_MSG(
           addPieceSample(data::green_piece, provider_ipfs).has_value(),
           "Failed to add sample green piece");
@@ -148,13 +154,6 @@ namespace fc::markets::retrieval::test {
             return TokenAmount{0};
           }};
     };
-
-    /**
-     * @brief On all test finished
-     */
-    void TearDown() override {
-      context->stop();
-    }
 
     outcome::result<void> addPieceSample(
         const SamplePiece &piece, const std::shared_ptr<IpfsDatastore> &ipfs) {
