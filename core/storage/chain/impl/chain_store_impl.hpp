@@ -13,8 +13,6 @@
 #include "blockchain/block_validator/block_validator.hpp"
 #include "blockchain/weight_calculator.hpp"
 #include "common/outcome.hpp"
-#include "crypto/randomness/chain_randomness_provider.hpp"
-#include "crypto/randomness/randomness_types.hpp"
 #include "storage/chain/chain_data_store.hpp"
 //#include "storage/ipfs/impl/ipfs_block_service.hpp"
 #include "storage/indexdb/indexdb.hpp"

@@ -20,7 +20,6 @@
 #include "vm/actor/actor_encoding.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
-#include "vm/runtime/actor_state_handle.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::runtime {
@@ -34,6 +33,7 @@ namespace fc::vm::runtime {
   using crypto::blake2b::Blake2b256Hash;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
+  using crypto::signature::Signature;
   using message::UnsignedMessage;
   using primitives::ChainEpoch;
   using primitives::GasAmount;
@@ -45,8 +45,6 @@ namespace fc::vm::runtime {
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
-  using Serialization = Buffer;
-  using crypto::signature::Signature;
 
   /**
    * @class Runtime is the VM's internal runtime object exposed to actors
@@ -64,11 +62,10 @@ namespace fc::vm::runtime {
     /**
      * @brief Returns a (pseudo)random string for the given epoch and tag.
      */
-    virtual Randomness getRandomness(DomainSeparationTag tag,
-                                     ChainEpoch epoch) const = 0;
-    virtual Randomness getRandomness(DomainSeparationTag tag,
-                                     ChainEpoch epoch,
-                                     Serialization seed) const = 0;
+    virtual outcome::result<Randomness> getRandomness(
+        DomainSeparationTag tag,
+        ChainEpoch epoch,
+        gsl::span<const uint8_t> seed) const = 0;
 
     /**
      * The address of the immediate calling actor. Not necessarily the actor in
@@ -78,8 +75,6 @@ namespace fc::vm::runtime {
 
     /** The address of the actor receiving the message. Always an ID-address. */
     virtual Address getCurrentReceiver() const = 0;
-
-    virtual std::shared_ptr<ActorStateHandle> acquireState() const = 0;
 
     virtual outcome::result<BigInt> getBalance(
         const Address &address) const = 0;
@@ -136,10 +131,10 @@ namespace fc::vm::runtime {
     virtual outcome::result<void> chargeGas(GasAmount amount) = 0;
 
     /// Get current actor state root CID
-    virtual ActorSubstateCID getCurrentActorState() = 0;
+    virtual CID getCurrentActorState() = 0;
 
     /// Update actor state CID
-    virtual outcome::result<void> commit(const ActorSubstateCID &new_state) = 0;
+    virtual outcome::result<void> commit(const CID &new_state) = 0;
 
     /// Resolve address to id-address
     virtual outcome::result<Address> resolveAddress(const Address &address) = 0;
@@ -229,7 +224,7 @@ namespace fc::vm::runtime {
     template <typename T>
     outcome::result<void> commitState(const T &state) {
       OUTCOME_TRY(state_cid, getIpfsDatastore()->setCbor(state));
-      OUTCOME_TRY(commit(ActorSubstateCID{state_cid}));
+      OUTCOME_TRY(commit(state_cid));
       return outcome::success();
     }
 

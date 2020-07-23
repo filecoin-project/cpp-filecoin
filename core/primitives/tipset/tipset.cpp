@@ -196,6 +196,21 @@ namespace fc::primitives::tipset {
     return outcome::success();
   }
 
+  outcome::result<Randomness> Tipset::randomness(
+      Ipld &ipld,
+      DomainSeparationTag tag,
+      ChainEpoch round,
+      gsl::span<const uint8_t> entropy) const {
+    auto ts{this};
+    Tipset parent;
+    while (ts->height() != 0 && static_cast<ChainEpoch>(ts->height()) > round) {
+      OUTCOME_TRYA(parent, ts->loadParent(ipld));
+      ts = &parent;
+    }
+    return crypto::randomness::drawRandomness(
+        ts->getMinTicketBlock().ticket->bytes, tag, round, entropy);
+  }
+
   outcome::result<TipsetKey> Tipset::getParents() const {
     return blks.empty() ? TipsetKey() : TipsetKey::create(blks[0].parents);
   }

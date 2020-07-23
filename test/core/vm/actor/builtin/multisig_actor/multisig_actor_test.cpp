@@ -22,7 +22,6 @@ using fc::primitives::address::Address;
 using fc::storage::ipfs::MockIpfsDatastore;
 using fc::vm::VMExitCode;
 using fc::vm::actor::Actor;
-using fc::vm::actor::ActorSubstateCID;
 using fc::vm::actor::encodeActorParams;
 using fc::vm::actor::kAccountCodeCid;
 using fc::vm::actor::kCronAddress;
@@ -67,7 +66,7 @@ MATCHER_P(MultiSignatureActorStateMatcher,
 class MultisigActorTest : public ::testing::Test {
  protected:
   /** CID of actor state stored in ipld store */
-  ActorSubstateCID actor_head{"010001020005"_cid};
+  CID actor_head{"010001020005"_cid};
 
   /** Immediate caller address */
   Address caller_address = Address::makeBls(

@@ -23,7 +23,7 @@ namespace fc::proofs {
 
   using Devices = std::vector<std::string>;
   using Phase1Output = std::vector<uint8_t>;
-  using ChallengeIndexes = std::vector<uint8_t>;
+  using ChallengeIndexes = std::vector<uint64_t>;
   using fc::primitives::sector::RegisteredProof;
   using primitives::ActorId;
   using primitives::SectorNumber;

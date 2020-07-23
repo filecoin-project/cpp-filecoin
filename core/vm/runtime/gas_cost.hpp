@@ -18,17 +18,6 @@ namespace fc::vm::runtime {
   // initialized with this value.
   inline static const GasAmount kGasAmountPlaceholder{0};
 
-  /**
-   * Gas cost charged to the originator of an on-chain message (regardless of
-   * whether it succeeds or fails in application) is given by:
-   *   OnChainMessageBase + len(serialized message) * OnChainMessagePerByte
-   * Together, these account for the cost of message propagation and validation,
-   * up to but excluding any actual processing by the VM.
-   * This is the cost a block producer burns when including an invalid message.
-   */
-  inline static const GasAmount kOnChainMessageBaseGasCost{0};
-  inline static const GasAmount kOnChainMessagePerByteGasCharge{2};
-
   inline static const GasAmount kOnChainReturnValuePerByteCost{8};
 
   /**
@@ -38,29 +27,6 @@ namespace fc::vm::runtime {
    */
   inline static const GasAmount kOnChainReturnValuePerByteGasCost{
       kGasAmountPlaceholder};
-
-  /**
-   * Gas cost for any message send execution (including the top-level one
-   * initiated by an on-chain message). This accounts for the cost of loading
-   * sender and receiver actors and (for top-level messages) incrementing the
-   * sender's sequence number. Load and store of actor sub-state is charged
-   * separately.
-   */
-  inline static const GasAmount kSendBaseGasCost{kGasAmountPlaceholder};
-
-  /**
-   * Gas cost charged, in addition to SendBase, if a message send is accompanied
-   * by any nonzero currency amount. Accounts for writing receiver's new balance
-   * (the sender's state is already accounted for).
-   */
-  inline static const GasAmount kSendTransferFundsGasCost{5};
-
-  /**
-   * Gas cost charged, in addition to SendBase, if a message invokes a method on
-   * the receiver. Accounts for the cost of loading receiver code and method
-   * dispatch.
-   */
-  inline static const GasAmount kSendInvokeMethodGasCost{10};
 
   /**
    * Gas cost (Base + len * PerByte) for any Get operation to the IPLD store in
@@ -99,18 +65,6 @@ namespace fc::vm::runtime {
    * Gas cost for deleting an actor.
    */
   inline static const GasAmount kDeleteActorGasCost{-kCreateActorExtraGasCost};
-
-  /**
-   * Gas cost charged per public-key cryptography operation (e.g., signature
-   * verification).
-   */
-  inline static const GasAmount kPublicKeyCryptoOperationGasCost{
-      kGasAmountPlaceholder};
-
-  /**
-   * Gas cost of new state commit
-   */
-  inline static const GasAmount kCommitGasCost{50};
 
   inline static const GasAmount kInitActorExecCost{100};
 }  // namespace fc::vm::runtime

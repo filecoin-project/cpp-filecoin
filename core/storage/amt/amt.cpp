@@ -25,18 +25,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::amt, AmtError, e) {
 namespace fc::storage::amt {
   auto pow(uint64_t base, uint64_t exponent) {
     uint64_t result{1};
-    if (exponent != 0) {
-      --exponent;
-      result *= base;
-    }
     while (exponent != 0) {
-      if (exponent % 2 == 0) {
-        exponent /= 2;
-        result *= result;
-      } else {
-        --exponent;
+      if (exponent % 2 != 0) {
         result *= base;
+        --exponent;
       }
+      exponent /= 2;
+      base *= base;
     }
     return result;
   }
@@ -67,8 +62,12 @@ namespace fc::storage::amt {
     OUTCOME_TRY(loadRoot());
     auto &root = boost::get<Root>(root_);
     while (key >= maxAt(root.height)) {
-      root.node = {
-          true, Node::Links{{0, std::make_shared<Node>(std::move(root.node))}}};
+      if (!visit_in_place(root.node.items,
+                          [](auto &xs) { return xs.empty(); })) {
+        root.node = {
+            true,
+            Node::Links{{0, std::make_shared<Node>(std::move(root.node))}}};
+      }
       ++root.height;
     }
     OUTCOME_TRY(add, set(root.node, root.height, key, value));
