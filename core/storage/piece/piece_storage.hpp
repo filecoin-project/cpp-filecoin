@@ -57,7 +57,7 @@ namespace fc::storage::piece {
 
     bool operator==(const PayloadBlockInfo &) const;
   };
-  CBOR_TUPLE(PayloadBlockInfo, parent_piece, block_location)
+  CBOR_TUPLE(PayloadBlockInfo, parent_piece, block_location);
 
   /**
    * Information about where a given payload with CID will live inside a piece
@@ -66,6 +66,7 @@ namespace fc::storage::piece {
     CID cid;
     std::vector<PayloadBlockInfo> piece_block_locations;
   };
+  CBOR_TUPLE(PayloadInfo, cid, piece_block_locations);
 
   /**
    * @brief Piece consists of the number of payload blocks, each of them has
@@ -118,14 +119,6 @@ namespace fc::storage::piece {
      */
     virtual outcome::result<void> addPayloadLocations(
         const CID &parent_piece, std::map<CID, PayloadLocation> locations) = 0;
-
-    /**
-     * @brief Get location of the payload block
-     * @param paload_cid - id of the payload block
-     * @return operation result
-     */
-    virtual outcome::result<PayloadBlockInfo> getPayloadLocation(
-        const CID &paload_cid) const = 0;
 
     virtual outcome::result<PieceInfo> getPieceInfoFromCid(
         const CID &payload_cid,

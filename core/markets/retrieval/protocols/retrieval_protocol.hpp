@@ -15,12 +15,12 @@
 #include "primitives/address/address.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
-#include "storage/ipld/walker.hpp"
+#include "storage/ipld/selector.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval {
   using common::Buffer;
-  using fc::storage::ipld::walker::Selector;
+  using fc::storage::ipld::Selector;
   using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;

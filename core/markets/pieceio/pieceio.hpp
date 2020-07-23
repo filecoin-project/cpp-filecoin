@@ -10,12 +10,12 @@
 #include "primitives/cid/cid.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
-#include "storage/ipld/walker.hpp"
+#include "storage/ipld/selector.hpp"
 
 namespace fc::markets::pieceio {
 
   using common::Buffer;
-  using fc::storage::ipld::walker::Selector;
+  using fc::storage::ipld::Selector;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::RegisteredProof;
 

@@ -23,11 +23,14 @@ namespace fc::markets::retrieval::provider {
   RetrievalProviderImpl::RetrievalProviderImpl(
       std::shared_ptr<Host> host,
       std::shared_ptr<api::Api> api,
-      std::shared_ptr<PieceStorage> piece_storage)
+      std::shared_ptr<PieceStorage> piece_storage,
+      std::shared_ptr<Ipld> ipld,
+      const ProviderConfig &config)
       : host_{std::make_shared<CborHost>(host)},
         api_{std::move(api)},
         piece_storage_{std::move(piece_storage)},
-        config_{} {}
+        ipld_{std::move(ipld)},
+        config_{config} {}
 
   void RetrievalProviderImpl::start() {
     host_->setCborProtocolHandler(
@@ -123,8 +126,8 @@ namespace fc::markets::retrieval::provider {
         [self{shared_from_this()}, stream](auto proposal_res) {
           SELF_IF_ERROR_RESPOND_AND_RETURN(
               proposal_res, DealStatus::kDealStatusErrored, stream);
-          auto deal_state =
-              std::make_shared<DealState>(proposal_res.value(), stream);
+          auto deal_state = std::make_shared<DealState>(
+              self->ipld_, proposal_res.value(), stream);
           SELF_IF_ERROR_RESPOND_AND_RETURN(self->receiveDeal(deal_state),
                                            DealStatus::kDealStatusErrored,
                                            stream);
@@ -182,33 +185,43 @@ namespace fc::markets::retrieval::provider {
     }
   }
 
+  outcome::result<DealResponse::Block> RetrievalProviderImpl::prepareNextBlock(
+      const std::shared_ptr<DealState> &deal_state) {
+    // TODO if block not found, attempt unseal
+    OUTCOME_TRY(block_cid, deal_state->traverser.advance());
+    OUTCOME_TRY(data, ipld_->get(block_cid));
+    OUTCOME_TRY(prefix, block_cid.getPrefix());
+    return DealResponse::Block{.prefix = Buffer{prefix}, .data = data};
+  }
+
   void RetrievalProviderImpl::prepareBlocks(
       const std::shared_ptr<DealState> &deal_state) {
-    auto total_paid_for =
-        deal_state->funds_received / deal_state->proposal.params.price_per_byte;
-    while (deal_state->total_sent - total_paid_for
-           < deal_state->current_interval) {
-      // TODO add blocks
-      // deal_state->total_sent += block.length
-    }
-
-    // TODO check if completed
-    bool completed = true;
-    DealStatus payment_status;
-    if (completed) {
-      payment_status = DealStatus::kDealStatusFundsNeededLastPayment;
-    } else {
-      payment_status = DealStatus::kDealStatusFundsNeeded;
-    }
-
-    auto payment_owed = (deal_state->total_sent - total_paid_for)
-                        * deal_state->proposal.params.price_per_byte;
-
+    BigInt total_paid_for = bigdiv(deal_state->funds_received,
+                                   deal_state->proposal.params.price_per_byte);
     DealResponse response;
     response.deal_id = deal_state->proposal.deal_id;
-    response.status = payment_status;
-    response.payment_owed = payment_owed;
-    // TODO add response.blocks
+    response.status = DealStatus::kDealStatusFundsNeeded;
+    while (deal_state->total_sent - total_paid_for
+           < deal_state->current_interval) {
+      auto maybe_block = prepareNextBlock(deal_state);
+      if (maybe_block.has_error()) {
+        respondErrorRetrievalDeal(deal_state->stream,
+                                  DealStatus::kDealStatusErrored,
+                                  maybe_block.error().message());
+        return;
+      }
+      response.blocks.push_back(maybe_block.value());
+      deal_state->total_sent += maybe_block.value().data.size();
+
+      if (deal_state->traverser.isCompleted()) {
+        response.status = DealStatus::kDealStatusFundsNeededLastPayment;
+        break;
+      }
+    }
+
+    response.payment_owed = (deal_state->total_sent - total_paid_for)
+                            * deal_state->proposal.params.price_per_byte;
+
     sendRetrievalResponse(deal_state, response);
   }
 

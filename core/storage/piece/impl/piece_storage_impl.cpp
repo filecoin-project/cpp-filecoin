@@ -57,30 +57,33 @@ namespace fc::storage::piece {
   }
 
   outcome::result<PayloadInfo> PieceStorageImpl::getPayloadInfo(
-      const CID &piece_cid) const {
-    // TODO (a.chernyshov) implement
-    return PieceStorageError::kPieceNotFound;
+      const CID &payload_cid) const {
+    OUTCOME_TRY(storage_key,
+                PieceStorageImpl::makeKey(kLocationPrefix, payload_cid));
+    if (!storage_->contains(storage_key)) {
+      return PieceStorageError::kPayloadNotFound;
+    }
+    OUTCOME_TRY(buffer, storage_->get(storage_key));
+    OUTCOME_TRY(payload_info, codec::cbor::decode<PayloadInfo>(buffer));
+    return std::move(payload_info);
   }
 
   outcome::result<void> PieceStorageImpl::addPayloadLocations(
       const CID &parent_piece, std::map<CID, PayloadLocation> locations) {
-    for (auto &&[cid, location] : locations) {
-      PayloadBlockInfo payload_info{.parent_piece = parent_piece,
-                                    .block_location = location};
-      OUTCOME_TRY(storage_key, PieceStorageImpl::makeKey(kLocationPrefix, cid));
+    for (auto &&[payload_cid, location] : locations) {
+      OUTCOME_TRY(storage_key,
+                  PieceStorageImpl::makeKey(kLocationPrefix, payload_cid));
+      PayloadInfo payload_info{.cid = payload_cid, .piece_block_locations = {}};
+      if (storage_->contains(storage_key)) {
+        OUTCOME_TRYA(payload_info, getPayloadInfo(payload_cid));
+      }
+      PayloadBlockInfo payload_block_info{.parent_piece = parent_piece,
+                                          .block_location = location};
+      payload_info.piece_block_locations.push_back(payload_block_info);
       OUTCOME_TRY(value, codec::cbor::encode(payload_info));
       OUTCOME_TRY(storage_->put(storage_key, value));
     }
     return outcome::success();
-  }
-
-  outcome::result<PayloadBlockInfo> PieceStorageImpl::getPayloadLocation(
-      const CID &payload_cid) const {
-    OUTCOME_TRY(storage_key,
-                PieceStorageImpl::makeKey(kLocationPrefix, payload_cid));
-    OUTCOME_TRY(value, storage_->get(storage_key));
-    OUTCOME_TRY(payload_info, codec::cbor::decode<PayloadBlockInfo>(value));
-    return std::move(payload_info);
   }
 
   outcome::result<PieceInfo> PieceStorageImpl::getPieceInfoFromCid(
@@ -88,7 +91,7 @@ namespace fc::storage::piece {
     OUTCOME_TRY(cid_info, getPayloadInfo(payload_cid));
     for (auto &&block_location : cid_info.piece_block_locations) {
       OUTCOME_TRY(piece_info, getPieceInfo(block_location.parent_piece));
-      if (piece_cid || piece_info.piece_cid == piece_cid.get()) {
+      if (!piece_cid.has_value() || piece_info.piece_cid == piece_cid.get()) {
         return std::move(piece_info);
       }
     }
