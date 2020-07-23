@@ -39,7 +39,7 @@ namespace fc::sector_storage {
     virtual outcome::result<void> addWorker(std::shared_ptr<Worker> worker) = 0;
 
     virtual outcome::result<std::unordered_map<StorageID, std::string>>
-    getStorageLocal() = 0;
+    getLocalStorages() = 0;
 
     virtual outcome::result<FsStat> getFsStat(StorageID storage_id) = 0;
   };

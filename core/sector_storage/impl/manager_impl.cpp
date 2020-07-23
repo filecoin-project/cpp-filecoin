@@ -586,7 +586,7 @@ namespace fc::sector_storage {
   }
 
   outcome::result<std::unordered_map<StorageID, std::string>>
-  ManagerImpl::getStorageLocal() {
+  ManagerImpl::getLocalStorages() {
     OUTCOME_TRY(paths, local_store_->getAccessiblePaths());
 
     std::unordered_map<StorageID, std::string> out{};

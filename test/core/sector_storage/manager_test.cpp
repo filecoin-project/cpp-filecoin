@@ -11,8 +11,8 @@
 #include "testutil/mocks/sector_storage/stores/remote_store_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
 #include "testutil/outcome.hpp"
-#include "testutil/storage/base_fs_test.hpp"
 
+using fc::primitives::StoragePath;
 using fc::sector_storage::Manager;
 using fc::sector_storage::ManagerImpl;
 using fc::sector_storage::SchedulerMock;
@@ -23,9 +23,9 @@ using fc::sector_storage::stores::RemoteStoreMock;
 using fc::sector_storage::stores::SectorIndexMock;
 using ::testing::_;
 
-class ManagerTest : public test::BaseFS_Test {
+class ManagerTest : public ::testing::Test {
  public:
-  ManagerTest() : test::BaseFS_Test("fc_manager_test") {
+  void SetUp() override {
     seal_proof_type_ = RegisteredProof::StackedDRG2KiBSeal;
 
     sector_index_ = std::make_shared<SectorIndexMock>();
@@ -80,3 +80,60 @@ class ManagerTest : public test::BaseFS_Test {
   std::shared_ptr<SchedulerMock> scheduler_;
   std::unique_ptr<Manager> manager_;
 };
+
+/**
+ * @given absolute path
+ * @when when try to add new local storage
+ * @then opened this path
+ */
+TEST_F(ManagerTest, addLocalStorageWithoutExpand) {
+  std::string path = "/some/path/here";
+
+  EXPECT_CALL(*local_store_, openPath(path))
+      .WillOnce(::testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_TRUE_1(manager_->addLocalStorage(path));
+}
+
+/**
+ * @given path from home
+ * @when when try to add new local storage
+ * @then opened absolute path
+ */
+TEST_F(ManagerTest, addLocalStorageWithExpand) {
+  std::string path = "~/some/path/here";
+
+  EXPECT_CALL(*local_store_, openPath(::testing::Ne(path)))
+      .WillOnce(::testing::Return(fc::outcome::success()));
+
+  EXPECT_OUTCOME_TRUE_1(manager_->addLocalStorage(path));
+}
+
+/**
+ * @given manager
+ * @when when try to getLocalStorages
+ * @then gets maps with id and paths
+ */
+TEST_F(ManagerTest, getLocalStorages) {
+  std::vector<StoragePath> paths = {};
+  std::unordered_map<StorageID, std::string> result = {};
+
+  for (int i = 0; i < 5; i++) {
+    std::string id = "id_" + std::to_string(i);
+    std::string path = "/some/path/" + std::to_string(i);
+    result[id] = path;
+    paths.push_back(StoragePath{
+        .id = id,
+        .weight = 0,
+        .local_path = path,
+        .can_seal = false,
+        .can_store = false,
+    });
+  }
+
+  EXPECT_CALL(*local_store_, getAccessiblePaths())
+      .WillOnce(::testing::Return(fc::outcome::success(paths)));
+
+  EXPECT_OUTCOME_TRUE(storages, manager_->getLocalStorages());
+  EXPECT_THAT(storages, ::testing::UnorderedElementsAreArray(result));
+}

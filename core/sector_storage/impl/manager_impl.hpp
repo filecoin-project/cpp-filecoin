@@ -89,7 +89,7 @@ namespace fc::sector_storage {
     outcome::result<void> addWorker(std::shared_ptr<Worker> worker) override;
 
     outcome::result<std::unordered_map<StorageID, std::string>>
-    getStorageLocal() override;
+    getLocalStorages() override;
 
     outcome::result<FsStat> getFsStat(StorageID storage_id) override;
 
@@ -116,6 +116,7 @@ namespace fc::sector_storage {
     std::shared_ptr<stores::SectorIndex> index_;
 
     RegisteredProof seal_proof_type_;  // TODO: maybe add config
+    SectorSize sector_size_;
 
     std::shared_ptr<stores::LocalStorage> local_storage_;
     std::shared_ptr<stores::LocalStore> local_store_;
