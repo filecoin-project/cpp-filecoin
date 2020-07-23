@@ -21,6 +21,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofsError, e) {
       return "Proofs: Piece will exceed the maximum size";
     case (ProofsError::kUnableMoveCursor):
       return "Proofs: Unable to move cursor to write piece";
+    case (ProofsError::kFileDoesntExist):
+      return "Proofs: unsealed file doesn't exist";
     default:
       return "Proofs: unknown error";
   }

@@ -7,6 +7,7 @@
 
 #include <random>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "primitives/piece/piece.hpp"
@@ -338,4 +339,176 @@ TEST_F(ProofsTest, Lifecycle) {
                           .prover = miner_id,
                       }));
   ASSERT_TRUE(res);
+}
+
+TEST_F(ProofsTest, WriteAndReadPieces) {
+  fc::proofs::RegisteredProof seal_proof_type =
+      fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal;
+
+  fc::common::Blob<2032> some_bytes;
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<uint8_t> dis(0, 255);
+  for (size_t i = 0; i < some_bytes.size(); i++) {
+    some_bytes[i] = dis(gen);
+  }
+
+  size_t start = 0;
+
+  auto path_model = fs::canonical(base_path).append("%%%%%");
+  Path unseal_path = boost::filesystem::unique_path(path_model).string();
+
+  Path piece_file_a_path = boost::filesystem::unique_path(path_model).string();
+  boost::filesystem::ofstream piece_file_a(piece_file_a_path);
+
+  UnpaddedPieceSize piece_commitment_a_size(254);
+  for (size_t i = start; i < start + piece_commitment_a_size; i++) {
+    piece_file_a << some_bytes[i];
+  }
+  piece_file_a.close();
+
+  start += piece_commitment_a_size;
+  PieceData file_a(piece_file_a_path);
+
+  EXPECT_OUTCOME_TRUE(
+      piece_cid_a,
+      Proofs::generatePieceCIDFromFile(
+          seal_proof_type, piece_file_a_path, UnpaddedPieceSize(254)));
+
+  EXPECT_OUTCOME_TRUE(
+      res_a,
+      Proofs::writeWithoutAlignment(
+          seal_proof_type, file_a, piece_commitment_a_size, unseal_path));
+
+  ASSERT_EQ(res_a.total_write_unpadded, 254);
+  ASSERT_EQ(res_a.piece_cid, piece_cid_a);
+
+  std::vector<Path> paths = {piece_file_a_path};
+  std::vector<UnpaddedPieceSize> exist_pieces = {piece_commitment_a_size};
+
+  Path piece_file_b_path = boost::filesystem::unique_path(path_model).string();
+  boost::filesystem::ofstream piece_file_b(piece_file_b_path);
+
+  UnpaddedPieceSize piece_commitment_b_size(1016);
+  for (size_t i = start; i < start + piece_commitment_b_size; i++) {
+    piece_file_b << some_bytes[i];
+  }
+  piece_file_b.close();
+
+  EXPECT_OUTCOME_TRUE(
+      piece_cid_b,
+      Proofs::generatePieceCIDFromFile(
+          seal_proof_type, piece_file_b_path, UnpaddedPieceSize(1016)));
+
+  PieceData file_b(piece_file_b_path);
+  EXPECT_OUTCOME_TRUE(res_b,
+                      Proofs::writeWithAlignment(seal_proof_type,
+                                                 file_b,
+                                                 piece_commitment_b_size,
+                                                 unseal_path,
+                                                 exist_pieces));
+
+  ASSERT_EQ(res_b.total_write_unpadded, 1016);
+  ASSERT_EQ(res_b.piece_cid, piece_cid_b);
+
+  start += piece_commitment_b_size;
+  paths.push_back(piece_file_b_path);
+  exist_pieces.push_back(piece_commitment_b_size);
+
+  Path piece_file_c_path = boost::filesystem::unique_path(path_model).string();
+  boost::filesystem::ofstream piece_file_c(piece_file_c_path);
+
+  UnpaddedPieceSize piece_commitment_c_size(254);
+  for (size_t i = start; i < start + piece_commitment_c_size; i++) {
+    piece_file_c << some_bytes[i];
+  }
+  piece_file_c.close();
+
+  EXPECT_OUTCOME_TRUE(
+      piece_cid_c,
+      Proofs::generatePieceCIDFromFile(
+          seal_proof_type, piece_file_c_path, UnpaddedPieceSize(254)));
+
+  PieceData file_c(piece_file_c_path);
+  EXPECT_OUTCOME_TRUE(res_c,
+                      Proofs::writeWithAlignment(seal_proof_type,
+                                                 file_c,
+                                                 piece_commitment_c_size,
+                                                 unseal_path,
+                                                 exist_pieces));
+
+  ASSERT_EQ(res_c.total_write_unpadded, 254);
+  ASSERT_EQ(res_c.piece_cid, piece_cid_c);
+  start += piece_commitment_c_size;
+  paths.push_back(piece_file_c_path);
+  exist_pieces.push_back(piece_commitment_c_size);
+
+  Path piece_file_d_path = boost::filesystem::unique_path(path_model).string();
+  boost::filesystem::ofstream piece_file_d(piece_file_d_path);
+
+  UnpaddedPieceSize piece_commitment_d_size(254);
+  for (size_t i = start; i < start + piece_commitment_d_size; i++) {
+    piece_file_d << some_bytes[i];
+  }
+  piece_file_d.close();
+
+  EXPECT_OUTCOME_TRUE(
+      piece_cid_d,
+      Proofs::generatePieceCIDFromFile(
+          seal_proof_type, piece_file_d_path, UnpaddedPieceSize(254)));
+
+  PieceData file_d(piece_file_d_path);
+  EXPECT_OUTCOME_TRUE(res_d,
+                      Proofs::writeWithAlignment(seal_proof_type,
+                                                 file_d,
+                                                 piece_commitment_d_size,
+                                                 unseal_path,
+                                                 exist_pieces));
+
+  ASSERT_EQ(res_d.total_write_unpadded, 254);
+  ASSERT_EQ(res_d.piece_cid, piece_cid_d);
+  start += piece_commitment_d_size;
+  paths.push_back(piece_file_d_path);
+  exist_pieces.push_back(piece_commitment_d_size);
+
+  Path piece_file_e_path = boost::filesystem::unique_path(path_model).string();
+  boost::filesystem::ofstream piece_file_e(piece_file_e_path);
+
+  UnpaddedPieceSize piece_commitment_e_size(254);
+  for (size_t i = start; i < start + piece_commitment_e_size; i++) {
+    piece_file_e << some_bytes[i];
+  }
+  piece_file_e.close();
+
+  EXPECT_OUTCOME_TRUE(
+      piece_cid_e,
+      Proofs::generatePieceCIDFromFile(
+          seal_proof_type, piece_file_e_path, UnpaddedPieceSize(254)));
+
+  PieceData file_e(piece_file_e_path);
+  EXPECT_OUTCOME_TRUE(res_e,
+                      Proofs::writeWithAlignment(seal_proof_type,
+                                                 file_e,
+                                                 piece_commitment_e_size,
+                                                 unseal_path,
+                                                 exist_pieces));
+
+  ASSERT_EQ(res_e.total_write_unpadded, 254);
+  ASSERT_EQ(res_e.piece_cid, piece_cid_e);
+  start += piece_commitment_e_size;
+  paths.push_back(piece_file_e_path);
+  exist_pieces.push_back(piece_commitment_e_size);
+
+  PaddedPieceSize offset(0);
+  for (size_t i = 0; i < paths.size(); i++) {
+    EXPECT_OUTCOME_TRUE(
+        read_piece,
+        Proofs::readPieceData(unseal_path, offset, exist_pieces[i]));
+    auto piece = readFile(paths[i]);
+    ASSERT_EQ(read_piece.size(), piece.size());
+    for (size_t j = 0; j < read_piece.size(); j++) {
+      EXPECT_EQ(read_piece[j], piece[j]);
+    }
+    offset = offset + exist_pieces[i].padded();
+  }
 }

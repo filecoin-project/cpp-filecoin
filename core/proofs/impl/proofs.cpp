@@ -8,14 +8,76 @@
 #include <fcntl.h>
 #include <filecoin-ffi/filcrypto.h>
 
+#include <boost/filesystem.hpp>
 #include "common/ffi.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs_error.hpp"
 
+namespace {
+  void internalUnpad(const std::vector<uint8_t> &in,
+                     std::vector<uint8_t> &out) {
+    auto chunks = in.size() / 128;
+    for (size_t chunk = 0; chunk < chunks; chunk++) {
+      auto input_offset_next = chunk * 128 + 1;
+      auto output_offset = chunk * 127;
+
+      auto current = in[chunk * 128];
+
+      for (size_t i = 0; i < 32; i++) {
+        out[output_offset + i] = current;
+
+        current = in[i + input_offset_next];
+      }
+
+      out[output_offset + 31] |= current << 6;
+
+      for (size_t i = 32; i < 64; i++) {
+        auto next = in[i + input_offset_next];
+
+        out[output_offset + i] = current >> 2;
+        out[output_offset + i] |= next << 6;
+
+        current = next;
+      }
+
+      out[output_offset + 63] ^= (current << 6) ^ (current << 4);
+
+      for (size_t i = 64; i < 96; i++) {
+        auto next = in[i + input_offset_next];
+
+        out[output_offset + i] = current >> 4;
+        out[output_offset + i] |= next << 4;
+
+        current = next;
+      }
+
+      out[output_offset + 95] ^= (current << 4) ^ (current << 2);
+
+      for (size_t i = 96; i < 127; i++) {
+        auto next = in[i + input_offset_next];
+
+        out[output_offset + i] = current >> 6;
+        out[output_offset + i] |= next << 2;
+
+        current = next;
+      }
+    }
+  }
+
+  void unpad(const std::vector<uint8_t> &in, std::vector<uint8_t> &out) {
+    if (in.size() > fc::proofs::kMTTresh) {
+      // TODO: run MT unpad
+    }
+
+    return internalUnpad(in, out);
+  }
+}  // namespace
+
 namespace fc::proofs {
   namespace ffi = common::ffi;
+  namespace fs = boost::filesystem;
 
   common::Logger Proofs::logger_ = common::createLogger("proofs");
 
@@ -590,15 +652,12 @@ namespace fc::proofs {
       return ProofsError::kUnableMoveCursor;
     }
 
-    std::vector<uint64_t> raw{existing_piece_sizes.begin(),
-                              existing_piece_sizes.end()};
-
     auto res_ptr = ffi::wrap(fil_write_with_alignment(c_proof_type,
                                                       piece_data.getFd(),
                                                       uint64_t(piece_bytes),
                                                       staged_sector_fd,
-                                                      raw.data(),
-                                                      raw.size()),
+                                                      nullptr,
+                                                      0),
                              fil_destroy_write_with_alignment_response);
 
     // NOLINTNEXTLINE(readability-implicit-bool-conversion)
@@ -943,6 +1002,44 @@ namespace fc::proofs {
 
     return Devices(res_ptr->devices_ptr,
                    res_ptr->devices_ptr + res_ptr->devices_len);  // NOLINT
+  }
+
+  outcome::result<std::vector<uint8_t>> Proofs::readPieceData(
+      const std::string &staged_sector_file_path,
+      const PaddedPieceSize &offset,
+      const UnpaddedPieceSize &piece_size) {
+    OUTCOME_TRY(piece_size.validate());
+
+    if (!fs::exists(staged_sector_file_path)) {
+      return ProofsError::kFileDoesntExist;
+    }
+
+    auto max_size = fs::file_size(staged_sector_file_path);
+
+    if ((offset + piece_size.padded()) > max_size) {
+      return ProofsError::kOutOfBound;
+    }
+
+    std::ifstream input(staged_sector_file_path);
+    if (!input.good()) {
+      return ProofsError::kCannotOpenFile;
+    }
+    if (!input.seekg(offset, std::ios_base::beg)) {
+      return ProofsError::kUnableMoveCursor;
+    }
+
+    std::vector<uint8_t> in(piece_size.padded());
+    std::vector<uint8_t> result(piece_size);
+
+    char ch;
+    for (size_t i = 0; i < piece_size.padded(); i++) {
+      input.get(ch);
+      in[i] = ch;
+    }
+
+    unpad(in, result);
+
+    return std::move(result);
   }
 
 }  // namespace fc::proofs

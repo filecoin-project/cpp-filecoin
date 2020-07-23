@@ -18,6 +18,9 @@
 
 namespace fc::proofs {
 
+  constexpr uint64_t kMTTresh = uint64_t(32)
+                                << 20;  // multi threading threshold
+
   using common::Blob;
   using crypto::randomness::Randomness;
 
@@ -28,6 +31,7 @@ namespace fc::proofs {
   using primitives::ActorId;
   using primitives::SectorNumber;
   using primitives::SectorSize;
+  using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceData;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
@@ -106,6 +110,11 @@ namespace fc::proofs {
         const UnpaddedPieceSize &piece_bytes,
         const std::string &staged_sector_file_path,
         gsl::span<const UnpaddedPieceSize> existing_piece_sizes);
+
+    static outcome::result<std::vector<uint8_t>> readPieceData(
+        const std::string &staged_sector_file_path,
+        const PaddedPieceSize &offset,
+        const UnpaddedPieceSize &piece_size);
 
     /**
      * @brief  Seals the staged sector at staged_sector_path in place, saving
