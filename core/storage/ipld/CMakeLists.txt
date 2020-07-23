@@ -31,9 +31,17 @@ target_link_libraries(ipld_node
     cid
     )
 
-add_library(ipld_walker
-    walker.cpp
+add_library(ipld_traverser
+    traverser.cpp
     )
-target_link_libraries(ipld_walker
+target_link_libraries(ipld_traverser
     cbor
+    )
+
+add_library(ipld_verifier
+    verifier.cpp
+    )
+target_link_libraries(ipld_verifier
+    ipld_traverser
+    ipfs_datastore_in_memory
     )

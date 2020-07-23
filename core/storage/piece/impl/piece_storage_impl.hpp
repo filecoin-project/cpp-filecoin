@@ -40,9 +40,6 @@ namespace fc::storage::piece {
     outcome::result<PayloadInfo> getPayloadInfo(
         const CID &piece_cid) const override;
 
-    outcome::result<PayloadBlockInfo> getPayloadLocation(
-        const CID &paload_cid) const override;
-
     outcome::result<PieceInfo> getPieceInfoFromCid(
         const CID &payload_cid,
         const boost::optional<CID> &piece_cid) const override;

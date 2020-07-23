@@ -11,11 +11,11 @@
 #include "fsm/state_store.hpp"
 #include "markets/storage/deal_protocol.hpp"
 #include "markets/storage/provider/impl/provider_state_store.hpp"
-#include "storage/ipld/walker.hpp"
+#include "storage/ipld/selector.hpp"
 
 namespace fc::markets::storage::provider {
   using data_transfer::RequestValidator;
-  using fc::storage::ipld::walker::Selector;
+  using fc::storage::ipld::Selector;
   using libp2p::peer::PeerInfo;
 
   class ProviderDataTransferRequestValidator : public RequestValidator {

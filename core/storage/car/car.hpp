@@ -7,13 +7,13 @@
 #define CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
 
 #include "storage/ipfs/datastore.hpp"
-#include "storage/ipld/walker.hpp"
+#include "storage/ipld/selector.hpp"
 
 namespace fc::storage::car {
   using Ipld = ipfs::IpfsDatastore;
   using Input = gsl::span<const uint8_t>;
   using common::Buffer;
-  using ipld::walker::Selector;
+  using ipld::Selector;
 
   enum class CarError { kDecodeError = 1 };
 

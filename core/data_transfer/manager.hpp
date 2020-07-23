@@ -11,12 +11,12 @@
 #include <libp2p/peer/peer_info.hpp>
 #include "data_transfer/request_validator.hpp"
 #include "data_transfer/types.hpp"
-#include "storage/ipld/walker.hpp"
+#include "storage/ipld/selector.hpp"
 
 namespace fc::data_transfer {
 
   using libp2p::peer::PeerInfo;
-  using storage::ipld::walker::Selector;
+  using storage::ipld::Selector;
 
   /**
    * Manager is the core interface presented by all implementations of of

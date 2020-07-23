@@ -62,12 +62,22 @@ TEST_F(PieceStorageTest, AddBlockLocationSuccess) {
                                            {payload_cid_B, location_B}};
   EXPECT_OUTCOME_TRUE_1(
       piece_storage->addPayloadLocations(piece_cid, locations));
-  EXPECT_OUTCOME_TRUE(payload_location_A,
-                      piece_storage->getPayloadLocation(payload_cid_A));
-  ASSERT_EQ(payload_location_A.parent_piece, piece_cid);
-  ASSERT_EQ(payload_location_A.block_location, location_A);
-  EXPECT_OUTCOME_TRUE(payload_location_B,
-                      piece_storage->getPayloadLocation(payload_cid_B));
-  ASSERT_EQ(payload_location_B.parent_piece, piece_cid);
-  ASSERT_EQ(payload_location_B.block_location, location_B);
+
+  EXPECT_OUTCOME_TRUE(payload_info_A,
+                      piece_storage->getPayloadInfo(payload_cid_A));
+  EXPECT_EQ(payload_info_A.cid, payload_cid_A);
+  EXPECT_EQ(payload_info_A.piece_block_locations.size(), 1);
+  EXPECT_EQ(payload_info_A.piece_block_locations.front().parent_piece,
+            piece_cid);
+  EXPECT_EQ(payload_info_A.piece_block_locations.front().block_location,
+            location_A);
+
+  EXPECT_OUTCOME_TRUE(payload_info_B,
+                      piece_storage->getPayloadInfo(payload_cid_B));
+  EXPECT_EQ(payload_info_B.cid, payload_cid_B);
+  EXPECT_EQ(payload_info_B.piece_block_locations.size(), 1);
+  EXPECT_EQ(payload_info_B.piece_block_locations.front().parent_piece,
+            piece_cid);
+  EXPECT_EQ(payload_info_B.piece_block_locations.front().block_location,
+            location_B);
 }

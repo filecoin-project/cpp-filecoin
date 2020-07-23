@@ -99,6 +99,8 @@ TEST(SelectiveCar, MakeSelectiveCar) {
 
   auto expected_car = readFile(CAR_FROM_PAYLOAD_FILE);
   EXPECT_EQ(selective_car, expected_car) << std::endl
+                                         << "actual" << std::endl
                                          << selective_car << std::endl
+                                         << "expected" << std::endl
                                          << expected_car << std::endl;
 }

@@ -21,6 +21,7 @@ namespace fc::markets::retrieval::client {
     kRequestedTooMuch,
     kBadPaymentRequestBytesNotReceived,
     kBadPaymentRequestTooMuch,
+    kBlockCidParseError,
   };
 
 }  // namespace fc::markets::retrieval::client
