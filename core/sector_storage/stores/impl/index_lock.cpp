@@ -10,7 +10,6 @@ namespace fc::sector_storage::stores {
     if (index) {
       index->unlock(*this);
     }
-    stores::Lock::~Lock();
   }
 
   bool IndexLock::Sector::canLock(SectorFileType read,
