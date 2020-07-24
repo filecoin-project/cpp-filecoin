@@ -17,7 +17,7 @@ namespace fc::crypto::randomness {
   using Randomness = common::Hash256;
 
   /// @brief domain separation tag enum
-  enum class DomainSeparationTag : size_t {
+  enum class DomainSeparationTag : uint64_t {
     TicketProduction = 1,
     ElectionProofProduction,
     WinningPoStChallengeSeed,

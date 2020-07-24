@@ -54,17 +54,7 @@ namespace fc::vm::actor {
     return s >> method.method_number;
   }
 
-  /**
-   * MethodParams is serialized parameters to the method call
-   */
-  class MethodParams : public Buffer {
-    using Buffer::Buffer;
-
-   public:
-    inline bool operator==(const MethodParams &other) const {
-      return Buffer::operator==(static_cast<const Buffer &>(other));
-    }
-  };
+  using MethodParams = Buffer;
 
   /**
    * CodeID identifies an actor's code (either one of the builtin actors, or, in

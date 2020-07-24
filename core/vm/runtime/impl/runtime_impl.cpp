@@ -75,7 +75,7 @@ namespace fc::vm::runtime {
       MethodParams params,
       BigInt value) {
     return execution_->sendWithRevert(
-        {0, to_address, message_.to, {}, value, {}, {}, method_number, params});
+        {to_address, message_.to, {}, value, {}, {}, method_number, params});
   }
 
   fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,

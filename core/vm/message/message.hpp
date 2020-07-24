@@ -46,8 +46,7 @@ namespace fc::vm::message {
   struct UnsignedMessage {
     UnsignedMessage() = default;
 
-    UnsignedMessage(int64_t version,
-                    Address to,
+    UnsignedMessage(Address to,
                     Address from,
                     uint64_t nonce,
                     BigInt value,
@@ -55,7 +54,7 @@ namespace fc::vm::message {
                     GasAmount gasLimit,
                     MethodNumber method,
                     MethodParams params)
-        : version{version},
+        : version{kMessageVersion},
           to{std::move(to)},
           from{std::move(from)},
           nonce{nonce},

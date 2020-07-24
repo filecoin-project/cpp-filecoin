@@ -57,7 +57,6 @@ UnsignedMessage makeMessage(Address const &from,
                             Address const &to,
                             uint64_t nonce) {
   return UnsignedMessage{
-      0,
       to,                     // to Address
       from,                   // from Address
       nonce,                  // nonce

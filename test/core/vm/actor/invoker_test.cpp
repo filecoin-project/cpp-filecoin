@@ -21,7 +21,7 @@ TEST(InvokerTest, InvokeCron) {
   using namespace fc::vm::actor;
 
   auto message =
-      UnsignedMessage{0, kInitAddress, kInitAddress, {}, {}, {}, {}, {}, {}};
+      UnsignedMessage{kInitAddress, kInitAddress, {}, {}, {}, {}, {}, {}};
   InvokerImpl invoker;
   MockRuntime runtime;
 

@@ -42,6 +42,7 @@ namespace fc::api {
   using adt::Channel;
   using common::Buffer;
   using common::Comm;
+  using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
   using libp2p::peer::PeerInfo;
@@ -77,6 +78,7 @@ namespace fc::api {
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
   using vm::actor::builtin::miner::DeadlineInfo;
+  using vm::actor::builtin::miner::Deadlines;
   using vm::actor::builtin::miner::MinerInfo;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::LaneId;
@@ -263,6 +265,12 @@ namespace fc::api {
     API_METHOD(ChainGetMessage, UnsignedMessage, const CID &)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
+    API_METHOD(ChainGetRandomness,
+               Randomness,
+               const TipsetKey &,
+               DomainSeparationTag,
+               ChainEpoch,
+               const Buffer &)
     API_METHOD(ChainGetTipSet, Tipset, const TipsetKey &)
     API_METHOD(ChainGetTipSetByHeight, Tipset, ChainEpoch, const TipsetKey &)
     API_METHOD(ChainHead, Tipset)
@@ -337,8 +345,8 @@ namespace fc::api {
     API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
     API_METHOD(StateLookupID, Address, const Address &, const TipsetKey &)
     API_METHOD(StateMarketStorageDeal, StorageDeal, DealId, const TipsetKey &)
-    API_METHOD(StateMinerElectionPeriodStart,
-               ChainEpoch,
+    API_METHOD(StateMinerDeadlines,
+               Deadlines,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
