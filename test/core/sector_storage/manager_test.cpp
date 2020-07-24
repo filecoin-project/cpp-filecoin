@@ -26,6 +26,17 @@ using ::testing::_;
 class ManagerTest : public ::testing::Test {
  public:
   void SetUp() override {
+    {
+      home_dir_ = "/home";
+      char *home = std::getenv("HOME");
+      if (home) {
+        old_home_dir_ = home;
+      } else {
+        old_home_dir_ = boost::none;
+      }
+      setenv("HOME", home_dir_.c_str(), 1);
+    }
+
     seal_proof_type_ = RegisteredProof::StackedDRG2KiBSeal;
 
     sector_index_ = std::make_shared<SectorIndexMock>();
@@ -70,6 +81,14 @@ class ManagerTest : public ::testing::Test {
     manager_ = std::move(maybe_manager.value());
   }
 
+  void TearDown() override {
+    if (old_home_dir_) {
+      setenv("HOME", (*old_home_dir_).c_str(), 1);
+    } else {
+      unsetenv("HOME");
+    }
+  }
+
  protected:
   RegisteredProof seal_proof_type_;
 
@@ -79,6 +98,11 @@ class ManagerTest : public ::testing::Test {
   std::shared_ptr<RemoteStoreMock> remote_store_;
   std::shared_ptr<SchedulerMock> scheduler_;
   std::unique_ptr<Manager> manager_;
+
+  std::string home_dir_;
+
+ private:
+  boost::optional<std::string> old_home_dir_;
 };
 
 /**
@@ -102,8 +126,9 @@ TEST_F(ManagerTest, addLocalStorageWithoutExpand) {
  */
 TEST_F(ManagerTest, addLocalStorageWithExpand) {
   std::string path = "~/some/path/here";
+  std::string result = "/home/some/path/here";
 
-  EXPECT_CALL(*local_store_, openPath(::testing::Ne(path)))
+  EXPECT_CALL(*local_store_, openPath(result))
       .WillOnce(::testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(manager_->addLocalStorage(path));
