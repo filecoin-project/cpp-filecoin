@@ -81,7 +81,6 @@ namespace fc::api {
                std::shared_ptr<Interpreter> interpreter,
                std::shared_ptr<MsgWaiter> msg_waiter,
                std::shared_ptr<KeyStore> key_store) {
-    auto chain_randomness = chain_store->createRandomnessProvider();
     auto tipsetContext = [=](const TipsetKey &tipset_key,
                              bool interpret =
                                  false) -> outcome::result<TipsetContext> {
@@ -176,9 +175,6 @@ namespace fc::api {
                                                 ipld}
                   .values();
             }},
-        .ChainGetRandomness = {[=](auto &tipset_key, auto round) {
-          return chain_randomness->sampleRandomness(tipset_key.cids(), round);
-        }},
         .ChainGetTipSet = {[=](auto &tipset_key) {
           return chain_store->loadTipset(tipset_key);
         }},
@@ -326,13 +322,8 @@ namespace fc::api {
         .StateCall = {[=](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          // TODO(turuslan): FIL-146 randomness from tipset
-          std::shared_ptr<RandomnessProvider> randomness;
           auto env = std::make_shared<Env>(
-              randomness,
-              std::make_shared<StateTreeImpl>(context.state_tree),
-              std::make_shared<InvokerImpl>(),
-              static_cast<ChainEpoch>(context.tipset.height()));
+              std::make_shared<InvokerImpl>(), ipld, context.tipset);
           InvocResult result;
           result.message = message;
           auto maybe_result = env->applyImplicitMessage(message);

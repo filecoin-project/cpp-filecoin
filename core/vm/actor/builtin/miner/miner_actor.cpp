@@ -88,7 +88,7 @@ namespace fc::vm::actor::builtin::miner {
     constexpr EpochDuration kInitialDelay{7 * kEpochsInDay};
     constexpr EpochDuration kVestPeriod{7 * kEpochsInDay};
     constexpr EpochDuration kStepDuration{kEpochsInDay};
-    constexpr EpochDuration kQuantization{12 * kEpochsInDay};
+    constexpr EpochDuration kQuantization{12 * kEpochsInHour};
 
     VM_ASSERT(vesting_sum >= 0);
     auto vest_begin{now + kInitialDelay};
@@ -98,9 +98,9 @@ namespace fc::vm::actor::builtin::miner {
       auto vest_epoch{quantizeUp(epoch, kQuantization)};
       auto elapsed{vest_epoch - vest_begin};
       auto target{elapsed < kVestPeriod
-                      ? TokenAmount{(vesting_sum * elapsed) / kVestPeriod}
+                      ? bigdiv(vesting_sum * elapsed, kVestPeriod)
                       : vesting_sum};
-      auto vest_this_time{target - vested};
+      TokenAmount vest_this_time{target - vested};
       vested = target;
       OUTCOME_TRY(entry, state.vesting_funds.tryGet(vest_epoch));
       if (!entry) {
@@ -452,9 +452,12 @@ namespace fc::vm::actor::builtin::miner {
       const std::vector<PoStProof> &proofs) {
     OUTCOME_TRY(miner, runtime.resolveAddress(runtime.getCurrentReceiver()));
     OUTCOME_TRY(seed, codec::cbor::encode(miner));
+    OUTCOME_TRY(
+        randomness,
+        runtime.getRandomness(
+            DomainSeparationTag::WindowedPoStChallengeSeed, challenge, seed));
     primitives::sector::WindowPoStVerifyInfo params{
-        .randomness = runtime.getRandomness(
-            DomainSeparationTag::WindowedPoStChallengeSeed, challenge, seed),
+        .randomness = randomness,
         .proofs = proofs,
         .challenged_sectors = {},
         .prover = miner.getId(),
@@ -495,6 +498,16 @@ namespace fc::vm::actor::builtin::miner {
                     0));
 
     OUTCOME_TRY(miner, runtime.resolveAddress(runtime.getCurrentReceiver()));
+    OUTCOME_TRY(seed, codec::cbor::encode(miner));
+    OUTCOME_TRY(
+        randomness,
+        runtime.getRandomness(
+            DomainSeparationTag::SealRandomness, info.seal_rand_epoch, seed));
+    OUTCOME_TRY(
+        interactive_randomness,
+        runtime.getRandomness(DomainSeparationTag::InteractiveSealChallengeSeed,
+                              info.interactive_epoch,
+                              seed));
     OUTCOME_TRY(runtime.verifySeal({
         .sector =
             {
@@ -502,11 +515,8 @@ namespace fc::vm::actor::builtin::miner {
                 .sector = info.sector,
             },
         .info = info,
-        .randomness = runtime.getRandomness(DomainSeparationTag::SealRandomness,
-                                            info.seal_rand_epoch),
-        .interactive_randomness = runtime.getRandomness(
-            DomainSeparationTag::InteractiveSealChallengeSeed,
-            info.interactive_epoch),
+        .randomness = randomness,
+        .interactive_randomness = interactive_randomness,
         .unsealed_cid = comm_d,
     }));
     return outcome::success();

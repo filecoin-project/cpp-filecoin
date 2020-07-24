@@ -485,13 +485,16 @@ namespace fc::proofs {
       ActorId miner_id,
       const PoStRandomness &randomness,
       uint64_t eligible_sectors_len) {
+    auto rand31{randomness};
+    rand31[31] = 0;
+
     OUTCOME_TRY(c_proof_type,
                 cRegisteredPoStProof(proof_type, PoStType::Winning));
     auto prover_id = toProverID(miner_id);
 
     auto res_ptr = ffi::wrap(
         fil_generate_winning_post_sector_challenge(c_proof_type,
-                                                   c32ByteArray(randomness),
+                                                   c32ByteArray(rand31),
                                                    eligible_sectors_len,
                                                    prover_id),
         fil_destroy_generate_winning_post_sector_challenge);

@@ -30,9 +30,7 @@ namespace fc::vm::runtime {
     receipt.gas_used = 0;
 
     OUTCOME_TRY(serialized_message, codec::cbor::encode(message));
-    GasAmount msg_gas_cost =
-        kOnChainMessageBaseGasCost
-        + serialized_message.size() * kOnChainMessagePerByteGasCharge;
+    auto msg_gas_cost{pricelist.onChainMessage(serialized_message.size())};
     penalty = msg_gas_cost * message.gasPrice;
     if (msg_gas_cost > message.gasLimit) {
       receipt.exit_code = VMExitCode::SysErrOutOfGas;
@@ -78,10 +76,11 @@ namespace fc::vm::runtime {
     } else {
       receipt.return_value = std::move(result.value());
       auto result_charged = execution->chargeGas(
-          receipt.return_value.size() * kOnChainReturnValuePerByteCost);
+          pricelist.onChainReturnValue(receipt.return_value.size()));
       if (!result_charged) {
         BOOST_ASSERT(isVMExitCode(result_charged.error()));
         exit_code = VMExitCode{result_charged.error().value()};
+        receipt.return_value.clear();
       }
     }
     if (exit_code != VMExitCode::Ok) {
@@ -133,6 +132,7 @@ namespace fc::vm::runtime {
     auto execution = std::make_shared<Execution>();
     execution->env = env;
     execution->state_tree = env->state_tree;
+    execution->charging_ipld = std::make_shared<ChargingIpld>(execution);
     execution->gas_used = 0;
     execution->gas_limit = message.gasLimit;
     execution->origin = message.from;
@@ -146,11 +146,8 @@ namespace fc::vm::runtime {
     }
     OUTCOME_TRY(id, state_tree->registerNewAddress(address));
     OUTCOME_TRY(chargeGas(kCreateActorGasCost));
-    OUTCOME_TRY(state_tree->set(id,
-                                {actor::kAccountCodeCid,
-                                 ActorSubstateCID{actor::kEmptyObjectCid},
-                                 {},
-                                 {}}));
+    OUTCOME_TRY(state_tree->set(
+        id, {actor::kAccountCodeCid, actor::kEmptyObjectCid, {}, {}}));
     OUTCOME_TRY(params, actor::encodeActorParams(address));
     OUTCOME_TRY(sendWithRevert({0,
                                 id,
@@ -177,12 +174,8 @@ namespace fc::vm::runtime {
 
   outcome::result<InvocationOutput> Execution::send(
       const UnsignedMessage &message) {
-    if (message.value != 0) {
-      OUTCOME_TRY(chargeGas(kSendTransferFundsGasCost));
-    }
-    if (message.method != kSendMethodNumber) {
-      OUTCOME_TRY(chargeGas(kSendInvokeMethodGasCost));
-    }
+    OUTCOME_TRY(chargeGas(env->pricelist.onMethodInvocation(
+        message.value, message.method.method_number)));
 
     Actor to_actor;
     auto maybe_to_actor = state_tree->get(message.to);
@@ -220,5 +213,27 @@ namespace fc::vm::runtime {
     }
 
     return outcome::success();
+  }
+
+  // lotus read-write patterns differ, causing different gas in receipts
+  constexpr auto kDisableChargingIpld{true};
+
+  outcome::result<void> ChargingIpld::set(const CID &key, Value value) {
+    auto execution{execution_.lock()};
+    if (!kDisableChargingIpld) {
+      OUTCOME_TRY(execution->chargeGas(
+          execution->env->pricelist.onIpldPut(value.size())));
+    }
+    return execution->env->ipld->set(key, value);
+  }
+
+  outcome::result<Ipld::Value> ChargingIpld::get(const CID &key) const {
+    auto execution{execution_.lock()};
+    OUTCOME_TRY(value, execution->env->ipld->get(key));
+    if (!kDisableChargingIpld) {
+      OUTCOME_TRY(execution->chargeGas(
+          execution->env->pricelist.onIpldGet(value.size())));
+    }
+    return std::move(value);
   }
 }  // namespace fc::vm::runtime

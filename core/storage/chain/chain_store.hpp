@@ -8,15 +8,12 @@
 
 #include <boost/signals2.hpp>
 #include "blockchain/weight_calculator.hpp"
-#include "crypto/randomness/chain_randomness_provider.hpp"
 #include "primitives/block/block.hpp"
 //#include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "vm/message/message.hpp"
 
 namespace fc::storage::blockchain {
-  using crypto::randomness::ChainRandomnessProvider;
-  using crypto::randomness::Randomness;
   using primitives::block::BlockHeader;
   using primitives::tipset::HeadChange;
   using primitives::tipset::HeadChangeType;
@@ -31,8 +28,6 @@ namespace fc::storage::blockchain {
     std::deque<Tipset> apply_chain;   ///< tipsets to apply
   };
 
-  using crypto::randomness::ChainRandomnessProvider;
-  using crypto::randomness::Randomness;
   using primitives::block::BlockHeader;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
@@ -66,9 +61,6 @@ namespace fc::storage::blockchain {
 //        const BlockHeader &block_header) = 0;
 
 //    //virtual primitives::BigInt getHeaviestWeight() const = 0;
-
-    virtual std::shared_ptr<ChainRandomnessProvider>
-    createRandomnessProvider() = 0;
 
     using connection_t = boost::signals2::connection;
     using HeadChangeSignature = void(const HeadChange &);

@@ -16,11 +16,13 @@ namespace fc::vm::actor::builtin::storage_power {
     BigInt sector{BigInt{weight.sector_size} * weight.duration};
     BigInt total_deal{weight.deal_weight + weight.verified_deal_weight};
     assert(sector > 0);
-    return ((kBaseMultiplier * (sector - total_deal)
-             + weight.deal_weight * kDealWeightMultiplier
-             + weight.verified_deal_weight * kVerifiedDealWeightMultiplier)
-            << kSectorQualityPrecision)
-           / sector / kBaseMultiplier;
+    return bigdiv(
+        bigdiv((kBaseMultiplier * (sector - total_deal)
+                + weight.deal_weight * kDealWeightMultiplier
+                + weight.verified_deal_weight * kVerifiedDealWeightMultiplier)
+                   << kSectorQualityPrecision,
+               sector),
+        kBaseMultiplier);
   }
 
   StoragePower qaPowerForWeight(const SectorStorageWeightDesc &weight) {
