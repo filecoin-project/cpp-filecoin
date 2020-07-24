@@ -30,9 +30,9 @@ namespace fc::sector_storage {
         const std::shared_ptr<WorkerHandle> &current_best) override;
 
    private:
-    explicit ExistingSelector(std::vector<stores::StorageInfo> best);
+    explicit ExistingSelector(std::set<primitives::StorageID> best);
 
-    std::vector<stores::StorageInfo> best_;
+    std::set<primitives::StorageID> best_;
   };
 }  // namespace fc::sector_storage
 

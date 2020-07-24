@@ -17,12 +17,17 @@ namespace fc::sector_storage {
     OUTCOME_TRY(best, index->storageFindSector(sector, allocate, allow_fetch));
 
     struct make_unique_enabler : public ExistingSelector {
-      explicit make_unique_enabler(std::vector<stores::StorageInfo> best)
+      explicit make_unique_enabler(std::set<primitives::StorageID> best)
           : ExistingSelector{std::move(best)} {};
     };
 
+    std::set<primitives::StorageID> storages;
+    for (const auto &storage : best) {
+      storages.insert(storage.id);
+    }
+
     std::unique_ptr<ExistingSelector> selector =
-        std::make_unique<make_unique_enabler>(std::move(best));
+        std::make_unique<make_unique_enabler>(storages);
 
     return std::move(selector);
   }
@@ -38,13 +43,8 @@ namespace fc::sector_storage {
 
     OUTCOME_TRY(paths, worker->worker->getAccessiblePaths());
 
-    std::unordered_set<primitives::StorageID> storages{};
     for (const auto &path : paths) {
-      storages.insert(path.id);
-    }
-
-    for (const auto &info : best_) {
-      if (storages.find(info.id) != storages.end()) {
+      if (best_.find(path.id) != best_.end()) {
         return true;
       }
     }
@@ -60,6 +60,6 @@ namespace fc::sector_storage {
            < current_best->active.utilization(current_best->info.resources);
   }
 
-  ExistingSelector::ExistingSelector(std::vector<stores::StorageInfo> best)
+  ExistingSelector::ExistingSelector(std::set<primitives::StorageID> best)
       : best_(std::move(best)) {}
 }  // namespace fc::sector_storage

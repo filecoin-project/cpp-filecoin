@@ -70,18 +70,19 @@ namespace {
     if (path.empty() || path[0] != '~') return path;
 
     std::string home_dir;
-    struct passwd *pwd = getpwuid(getuid());
-    if (pwd) {
-      home_dir = pwd->pw_dir;
-    } else {
-      const char *home = getenv("HOME");
-      if (home == nullptr) {
+    const char *home = getenv("HOME");
+    if (home == nullptr) {
+      struct passwd *pwd = getpwuid(getuid());
+      if (pwd) {
+        home_dir = pwd->pw_dir;
+      } else {
         return fc::sector_storage::ManagerErrors::kCannotGetHomeDir;
       }
+    } else {
       home_dir = home;
     }
 
-    return home_dir + path.substr(1, path.size() - 1);
+    return (fs::path(home_dir) / path.substr(1, path.size() - 1)).string();
   }
 }  // namespace
 

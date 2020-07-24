@@ -305,15 +305,12 @@ namespace fc::sector_storage::stores {
   std::unique_ptr<Lock> SectorIndexImpl::storageTryLock(const SectorId &sector,
                                                         SectorFileType read,
                                                         SectorFileType write) {
-    std::unique_ptr<IndexLock::Lock> lock =
-        std::make_unique<IndexLock::Lock>(sector, read, write);
+    auto lock = std::make_unique<IndexLock::Lock>(sector, read, write);
 
-    if (lock) {
-      auto is_locked = index_lock_->lock(*lock, false);
+    auto is_locked = index_lock_->lock(*lock, false);
 
-      if (is_locked) {
-        return std::move(lock);
-      }
+    if (is_locked) {
+      return std::move(lock);
     }
 
     return nullptr;
