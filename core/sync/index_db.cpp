@@ -18,14 +18,14 @@ namespace fc::sync {
                    std::shared_ptr<IndexDbBackend> backend)
       : kv_store_(std::move(kv_store)),
         backend_(std::move(backend)),
-        cache_(1000, [](const TipsetInfo &info) { return info.key.hash(); }) {}
+        cache_(10, [](const TipsetInfo &info) { return info.key.hash(); }) {}
 
   outcome::result<void> IndexDb::store(
       TipsetInfoPtr info, const boost::optional<SplitBranch> &branch_rename) {
     common::Buffer hash(info->key.hash());
-    if (kv_store_->contains(hash)) {
-      return Error::INDEXDB_ALREADY_EXISTS;
-    }
+//  TODO  if (kv_store_->contains(hash)) {
+//      return Error::INDEXDB_ALREADY_EXISTS;
+//    }
     auto tx = backend_->beginTx();
     OUTCOME_TRY(backend_->store(*info, branch_rename));
     OUTCOME_TRY(buffer, codec::cbor::encode(info->key.cids()));

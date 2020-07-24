@@ -57,6 +57,9 @@ namespace fc::primitives::tipset {
     static outcome::result<Tipset> load(Ipld &ipld,
                                         const std::vector<CID> &cids);
 
+    static outcome::result<Tipset> loadGenesis(Ipld &ipld,
+                                        const CID &cid);
+
     outcome::result<Tipset> loadParent(Ipld &ipld) const;
 
     outcome::result<void> visitMessages(
@@ -151,6 +154,7 @@ namespace fc::primitives::tipset {
    private:
     std::vector<block::BlockHeader> blks_;
     std::vector<CID> cids_;
+    std::vector<std::array<uint8_t, 32>> ticket_hashes_;
   };
 
 }  // namespace fc::primitives::tipset

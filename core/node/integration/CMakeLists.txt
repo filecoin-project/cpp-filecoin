@@ -10,6 +10,7 @@ add_executable(integration
 target_link_libraries(integration
     #node_builder
     sync
+    ipfs_datastore_leveldb
     p2p::p2p_basic_host
     p2p::p2p_default_network
     p2p::p2p_peer_repository

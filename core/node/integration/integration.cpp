@@ -25,14 +25,15 @@
 #include "common/logger.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "storage/car/car.hpp"
+#include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "storage/leveldb/leveldb.hpp"
 #include "sync/block_loader.hpp"
 #include "sync/blocksync_client.hpp"
 #include "sync/hello.hpp"
+#include "sync/index_db_backend.hpp"
 #include "sync/peer_manager.hpp"
 #include "sync/tipset_loader.hpp"
-#include "sync/index_db_backend.hpp"
-#include "storage/leveldb/leveldb.hpp"
 
 std::ostream &operator<<(std::ostream &os, const fc::CID &cid) {
   os << cid.toString().value();
@@ -65,7 +66,7 @@ namespace {
     auto res = fc::sync::TipsetKey::create(std::move(cids));
     if (res) {
       log()->info("loading tipset...");
-      auto load_res = loader.loadTipsetAsync(res.value(), peer, 25);
+      auto load_res = loader.loadTipsetAsync(res.value(), peer, 50);
       if (!load_res) {
         e = load_res.error();
       }
@@ -79,6 +80,8 @@ namespace {
 
     return (!e);
   }
+
+  boost::optional<std::vector<fc::CID>> start_from;
 
   void helloFeedback(std::shared_ptr<fc::sync::TipsetLoader> loader,
                      std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
@@ -99,24 +102,31 @@ namespace {
                 s.heaviest_tipset_height,
                 s.heaviest_tipset_weight.str());
 
-    scheduler->schedule( 3000, [loader, s=std::move(s), peer] {
-      tryLoadTipset(*loader, std::move(s.heaviest_tipset), peer);
-    }).detach();
-  }
-
-  void latencyFeedback(const libp2p::peer::PeerId &peer,
-                       fc::outcome::result<uint64_t> result) {
-    if (!result) {
-      log()->info("latency feedback failed for peer {}: {}",
-                  peer.toBase58(),
-                  result.error().message());
-      return;
+    if (!start_from.has_value()) {
+      start_from = std::move(s.heaviest_tipset);
     }
 
-    log()->info("latency feedback from peer {}: {} microsec",
-                peer.toBase58(),
-                result.value() / 1000);
+    scheduler
+        ->schedule(1000,
+                   [loader, s = std::move(s), peer] {
+                     tryLoadTipset(*loader, std::move(start_from.value()), peer);
+                   })
+        .detach();
   }
+
+  //  void latencyFeedback(const libp2p::peer::PeerId &peer,
+  //                       fc::outcome::result<uint64_t> result) {
+  //    if (!result) {
+  //      log()->info("latency feedback failed for peer {}: {}",
+  //                  peer.toBase58(),
+  //                  result.error().message());
+  //      return;
+  //    }
+  //
+  //    log()->info("latency feedback from peer {}: {} microsec",
+  //                peer.toBase58(),
+  //                result.value() / 1000);
+  //  }
 
   fc::outcome::result<void> loadCar(const std::string &file_name,
                                     fc::storage::ipfs::IpfsDatastore &storage,
@@ -185,138 +195,177 @@ int main(int argc, char *argv[]) {
 
   fc::common::createLogger("sync")->set_level(spdlog::level::debug);
 
-  //try {
-    auto injector = libp2p::injector::makeGossipInjector<
-        boost::di::extension::shared_config>(
-        boost::di::bind<fc::clock::UTCClock>.template to<fc::clock::UTCClockImpl>(),
- //       boost::di::bind<libp2p::security::SecurityAdaptor *[]>().template to<libp2p::security::Plaintext>()[boost::di::override],
-        libp2p::injector::useGossipConfig(config.gossip_config));
+  // try {
+  auto injector = libp2p::injector::makeGossipInjector<
+      boost::di::extension::shared_config>(
+      boost::di::bind<fc::clock::UTCClock>.template to<fc::clock::UTCClockImpl>(),
+      //       boost::di::bind<libp2p::security::SecurityAdaptor *[]>().template
+      //       to<libp2p::security::Plaintext>()[boost::di::override],
+      libp2p::injector::useGossipConfig(config.gossip_config));
 
-    auto io = injector.create<std::shared_ptr<boost::asio::io_context>>();
-    auto scheduler =
-        injector.create<std::shared_ptr<libp2p::protocol::Scheduler>>();
-    auto host = injector.create<std::shared_ptr<libp2p::Host>>();
-    auto identify_protocol =
-        injector.create<std::shared_ptr<libp2p::protocol::Identify>>();
-    auto identify_push_protocol =
-        injector.create<std::shared_ptr<libp2p::protocol::IdentifyPush>>();
-    auto identify_delta_protocol =
-        injector.create<std::shared_ptr<libp2p::protocol::IdentifyDelta>>();
-    auto utc_clock = injector.create<std::shared_ptr<fc::clock::UTCClock>>();
-    auto ipld = std::make_shared<fc::storage::ipfs::InMemoryDatastore>();
+  auto io = injector.create<std::shared_ptr<boost::asio::io_context>>();
+  auto scheduler =
+      injector.create<std::shared_ptr<libp2p::protocol::Scheduler>>();
+  auto host = injector.create<std::shared_ptr<libp2p::Host>>();
+  auto identify_protocol =
+      injector.create<std::shared_ptr<libp2p::protocol::Identify>>();
+  auto identify_push_protocol =
+      injector.create<std::shared_ptr<libp2p::protocol::IdentifyPush>>();
+  auto identify_delta_protocol =
+      injector.create<std::shared_ptr<libp2p::protocol::IdentifyDelta>>();
+  auto utc_clock = injector.create<std::shared_ptr<fc::clock::UTCClock>>();
 
-    //OUTCOME_EXCEPT(leveldb, fc::storage::LevelDB::create("ldb");
+  const auto path("ldb");
+  boost::filesystem::create_directories(path);
+  leveldb::Options options;
+  options.create_if_missing = true;
+  OUTCOME_EXCEPT(
+      leveldb,
+      fc::storage::LevelDB::create(boost::filesystem::canonical(path).string(),
+                                   std::move(options)));
+  auto ipld = std::make_shared<fc::storage::ipfs::LeveldbDatastore>(leveldb);
 
+  auto weight_calculator =
+      std::make_shared<fc::blockchain::weight::WeightCalculatorImpl>(ipld);
+  auto peer_manager =
+      std::make_shared<fc::sync::PeerManager>(host,
+                                              utc_clock,
+                                              identify_protocol,
+                                              identify_push_protocol,
+                                              identify_delta_protocol);
 
-    auto weight_calculator =
-        std::make_shared<fc::blockchain::weight::WeightCalculatorImpl>(ipld);
-    auto peer_manager =
-        std::make_shared<fc::sync::PeerManager>(host,
-                                                utc_clock,
-                                                identify_protocol,
-                                                identify_push_protocol,
-                                                identify_delta_protocol);
+  auto blocksync =
+      std::make_shared<fc::sync::blocksync::BlocksyncClient>(host, ipld);
 
-    auto blocksync =
-        std::make_shared<fc::sync::blocksync::BlocksyncClient>(host, ipld);
+  auto block_loader =
+      std::make_shared<fc::sync::BlockLoader>(ipld, scheduler, blocksync);
 
-    auto block_loader =
-        std::make_shared<fc::sync::BlockLoader>(ipld, scheduler, blocksync);
+  auto tipset_loader =
+      std::make_shared<fc::sync::TipsetLoader>(scheduler, block_loader);
 
-    auto tipset_loader =
-        std::make_shared<fc::sync::TipsetLoader>(scheduler, block_loader);
+  OUTCOME_EXCEPT(index_db_backend, fc::sync::IndexDbBackend::create("x.db"));
+  auto branches = index_db_backend->initDb();
+  if (!branches) {
+    throw std::system_error(branches.error());
+  }
 
+  auto index_db =
+      std::make_shared<fc::sync::IndexDb>(leveldb, index_db_backend);
 
+  // TODO kolhoz
+  auto m = branches.value();
+  if (!m.empty()) {
+    auto info = m.rbegin()->second;
 
-    //OUTCOME_TRY(index_db_backend, fc::sync::IndexDbBackend::create("x.db"));
-    //OUTCOME_TRY(branches, index_db_backend->initDb());
-    //auto IndexDb = std::make_shared<fc::sync::IndexDb>("x.db");
+    auto contains = index_db->get(info->bottom);
+    if (contains) {
+      start_from = contains.value()->key.cids();
+    }
+  }
 
+  OUTCOME_EXCEPT(
+      loadCar(config.storage_car_file_name, *ipld, config.genesis_cid));
 
-//    OUTCOME_EXCEPT(
-//        loadCar(config.storage_car_file_name, *ipld, config.genesis_cid));
+  auto genesis_tipset =
+      fc::sync::Tipset::loadGenesis(*ipld, config.genesis_cid);
 
-    //auto genesis_tipset = fc::sync::Tipset::load(*ipld, {config.genesis_cid});
+  if (!genesis_tipset) {
+    throw std::system_error(genesis_tipset.error());
+  }
 
-    //if (!genesis_tipset) {
-    //  throw std::system_error(genesis_tipset.error());
-    //}
+  auto genesis_weight =
+      weight_calculator->calculateWeight(genesis_tipset.value());
 
-    //auto genesis_weight =
-    //    weight_calculator->calculateWeight(genesis_tipset.value());
+  if (!genesis_weight) {
+    throw std::system_error(genesis_weight.error());
+  }
 
-    //if (!genesis_weight) {
-    //  throw std::system_error(genesis_weight.error());
-    //}
+  // start the node as soon as async engine starts
+  io->post([&] {
+    auto listen_res = host->listen(config.listen_address);
+    if (!listen_res) {
+      std::cerr << "Cannot listen to multiaddress "
+                << config.listen_address.getStringAddress() << ", "
+                << listen_res.error().message() << "\n";
+      io->stop();
+      return;
+    }
 
-    // start the node as soon as async engine starts
-    io->post([&] {
-      auto listen_res = host->listen(config.listen_address);
-      if (!listen_res) {
-        std::cerr << "Cannot listen to multiaddress "
-                  << config.listen_address.getStringAddress() << ", "
-                  << listen_res.error().message() << "\n";
+    host->start();
+
+    tipset_loader->init([=](fc::sync::TipsetHash hash,
+                            fc::outcome::result<fc::sync::Tipset> tipset) {
+      using namespace fc::sync;
+
+      if (!tipset) {
+        log()->error("tipset load error, {}", tipset.error().message());
         io->stop();
-        return;
-      }
+      } else {
+        const auto &t = tipset.value();
+        log()->info("tipset loaded at height {}", t.height());
 
-      host->start();
+        auto info = std::make_shared<TipsetInfo>(TipsetInfo{
+            tipset.value().key,
+            222,
+            t.height(),
+            fc::primitives::tipset::tipsetHash(t.blks[0].parents).value()});
 
-      tipset_loader->init([=](fc::sync::TipsetHash hash,
-                              fc::outcome::result<fc::sync::Tipset> tipset) {
-        if (!tipset) {
-          log()->error("tipset load error, {}", tipset.error().message());
-          io->stop();
-        } else {
-          auto h = tipset.value().height();
-          log()->info("tipset loaded at height {}", h);
-          if (h > 0) {
-            if (!tryLoadTipset(*tipset_loader,
-                               tipset.value().blks[0].parents,
-                               boost::none)) {
-              io->stop();
-            }
-          } else {
+        auto store_res = index_db->store(std::move(info), boost::none);
+        if (!store_res) {
+          log()->error("tipset store error, {}", store_res.error().message());
+          // io->stop();
+          // return;
+        }
+
+        if (t.height() > 0) {
+          if (!tryLoadTipset(*tipset_loader, t.blks[0].parents, boost::none)) {
             io->stop();
           }
+        } else {
+          io->stop();
         }
-      });
-
-      peer_manager->start(
-          config.genesis_cid,
-          { config.genesis_cid },
-          1213,
-          0,
-          //genesis_tipset.value(),
-          //genesis_weight.value(),
-          [tipset_loader, scheduler](const libp2p::peer::PeerId &peer,
-                          fc::outcome::result<fc::sync::Hello::Message> state) {
-            helloFeedback(tipset_loader, scheduler, peer, std::move(state));
-          });
-
-      for (const auto &pi : config.bootstrap_list) {
-        ///ip4/192.168.0.103/tcp/37613/p2p/12D3KooWDvaty58tskHsHKAR9qhLRxyKZfez8WmfgmASqibQeRCd
-        host->connect(pi);
       }
-
-
-      // gossip->start();
-      std::cerr << "Node started: "
-                << fmt::format("/ip4/{}/tcp/{}/p2p/{}",
-                               config.local_ip_address,
-                               config.port,
-                               host->getId().toBase58())
-                << "\n";
     });
 
-    // gracefully shutdown on signal
-    boost::asio::signal_set signals(*io, SIGINT, SIGTERM);
-    signals.async_wait(
-        [&io](const boost::system::error_code &, int) { io->stop(); });
+    auto res = peer_manager->start(
+        config.genesis_cid,
+        {config.genesis_cid},
+        1213,
+        0,
+        // genesis_tipset.value(),
+        // genesis_weight.value(),
+        [tipset_loader, scheduler](
+            const libp2p::peer::PeerId &peer,
+            fc::outcome::result<fc::sync::Hello::Message> state) {
+          helloFeedback(tipset_loader, scheduler, peer, std::move(state));
+        });
 
-    // run event loop
-    io->run();
-    std::cerr << "Node stopped\n";
+    if (!res) {
+      io->stop();
+    }
+
+    for (const auto &pi : config.bootstrap_list) {
+      /// ip4/192.168.0.103/tcp/37613/p2p/12D3KooWDvaty58tskHsHKAR9qhLRxyKZfez8WmfgmASqibQeRCd
+      host->connect(pi);
+    }
+
+    // gossip->start();
+    std::cerr << "Node started: "
+              << fmt::format("/ip4/{}/tcp/{}/p2p/{}",
+                             config.local_ip_address,
+                             config.port,
+                             host->getId().toBase58())
+              << "\n";
+  });
+
+  // gracefully shutdown on signal
+  boost::asio::signal_set signals(*io, SIGINT, SIGTERM);
+  signals.async_wait(
+      [&io](const boost::system::error_code &, int) { io->stop(); });
+
+  // run event loop
+  io->run();
+  std::cerr << "Node stopped\n";
   //} catch (const std::exception &e) {
   //  std::cerr << e.what();
   //  return 2;

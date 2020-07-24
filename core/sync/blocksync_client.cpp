@@ -218,6 +218,9 @@ namespace fc::sync::blocksync {
       }
     }
 
+    if (ctx.stream) {
+      ctx.stream->stream()->reset();
+    }
     peer_cb_(ctx.peer, peer_feedback_code);
     requests_.erase(it);
   }

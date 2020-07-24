@@ -8,79 +8,71 @@
 
 #include <cassert>
 #include <functional>
-#include <list>
-#include <memory>
 #include <map>
+#include <memory>
 
 namespace fc::sync {
 
   template <typename Key, typename Value>
   class LRUCache {
+    static constexpr size_t kNpos = -1;
+
    public:
-    using ExtractKey = std::function<const Key &(const Value &)>;
+    using ExtractKey = std::function<Key(const Value &)>;
 
     LRUCache(size_t size_limit, ExtractKey extract_key_fn)
         : size_limit_(size_limit), extract_key_(std::move(extract_key_fn)) {
       assert(size_limit_ >= 1);
       assert(extract_key_);
+      items_.reserve(size_limit_);
     }
 
     std::shared_ptr<const Value> get(const Key &key) {
-      auto it = items_.find(key);
-      if (it == items_.end()) {
+      auto it = map_.find(key);
+      if (it == map_.end()) {
         return std::shared_ptr<const Value>{};
       }
-      auto &item = it->second;
-      bring_to_front(item);
+      size_t pos = it->second;
+      auto &item = items_[pos];
+      bringToFront(item, pos);
       return item.value;
     }
 
-    std::shared_ptr<Value> get_mutable(const Key &key) {
-      auto it = items_.find(key);
-      if (it == items_.end()) {
-        return std::shared_ptr<Value>{};
-      }
-      auto &item = it->second;
-      if (item.value.use_count() > 1) {
-        item.value = std::make_shared<Value>(*item.value);
-        *item.lru_it = std::weak_ptr<Value>(item.value);
-      }
-      return item.value;
-    }
-
-    void modifyValues(std::function<void(Value& value)> cb) {
-      for (auto& [_, item] : items_) {
+    void modifyValues(std::function<void(Value &value)> cb) {
+      for (auto &item : items_) {
         cb(*(item.value));
       }
     }
 
     void put(std::shared_ptr<Value> value, bool update_if_exists) {
       assert(value);
-      assert(items_.size() == lru_.size());
+      assert(items_.size() == map_.size());
 
-      const auto &key = extract_key_(*value);
-      auto it = items_.find(key);
-      if (it == items_.end()) {
-        typename LRUList::iterator lru_it;
+      auto key = extract_key_(*value);
+      auto it = map_.find(key);
+      if (it == map_.end()) {
         if (items_.size() >= size_limit_) {
-          lru_it = lru_.rbegin().base();
-          auto sptr = lru_it->lock();
-
-          assert(sptr);
-
-          if (sptr) {
-            items_.erase(extract_key_(*sptr));
-          }
-          lru_.splice(lru_.begin(), lru_, lru_it);
-          *lru_it = value;
+          assert(lru_last_ < items_.size());
+          auto &item = items_[lru_last_];
+          bringToFront(item, lru_last_);
+          map_.erase(extract_key_(*item.value));
+          item.value = std::move(value);
         } else {
-          lru_.push_front(std::weak_ptr<Value>(value));
-          lru_it = lru_.begin();
+          size_t pos = items_.size();
+          Item new_item{std::move(value), kNpos, lru_first_};
+          if (pos == 0) {
+            lru_last_ = pos;
+          } else {
+            items_[lru_first_].prev = pos;
+          }
+          lru_first_ = pos;
+          items_.push_back(std::move(new_item));
         }
-        items_[extract_key_(*value)] = {std::move(value), lru_it};
+        map_[key] = lru_first_;
       } else {
-        auto &item = it->second;
-        bring_to_front(item);
+        auto pos = it->second;
+        auto &item = items_[pos];
+        bringToFront(item, pos);
         if (update_if_exists) {
           item.value = std::move(value);
         }
@@ -88,25 +80,49 @@ namespace fc::sync {
     }
 
    private:
-    using LRUList = std::list<std::weak_ptr<Value>>;
     struct Item {
       std::shared_ptr<Value> value;
-      typename LRUList::iterator lru_it;
+      size_t prev = kNpos;
+      size_t next = kNpos;
     };
 
     // TODO (artem): make std::hash out of TipsetHash and use unordered
-    using Items = std::map<Key, Item>;
+    using Map = std::map<Key, size_t>;
 
-    void bring_to_front(Item &item) {
-      if (item.lru_it != lru_.begin()) {
-        lru_.splice(lru_.begin(), lru_, item.lru_it);
+    void unlinkItem(Item &item) {
+      if (item.next != kNpos) {
+        items_[item.next].prev = item.prev;
+      } else {
+        lru_last_ = item.prev;
+      }
+      if (item.prev != kNpos) {
+        items_[item.prev].next = item.next;
+      } else {
+        lru_first_ = item.next;
+      }
+    }
+
+    void bringToFront(Item& item, size_t pos) {
+      assert(pos < items_.size());
+      assert(lru_first_ < items_.size());
+      if (pos != lru_first_) {
+        assert(item.prev != kNpos);
+        unlinkItem(item);
+        Item &first = items_[lru_first_];
+        assert(first.prev == kNpos);
+        item.prev = kNpos;
+        item.next = lru_first_;
+        first.prev = pos;
+        lru_first_ = pos;
       }
     }
 
     const size_t size_limit_;
     ExtractKey extract_key_;
-    Items items_;
-    LRUList lru_;
+    std::vector<Item> items_;
+    size_t lru_first_ = kNpos;
+    size_t lru_last_ = kNpos;
+    Map map_;
   };
 
 }  // namespace fc::sync

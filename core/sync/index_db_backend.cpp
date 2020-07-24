@@ -123,7 +123,7 @@ namespace fc::sync {
             hash BLOB PRIMARY KEY,
             branch INTEGER NOT NULL,
             height INTEGER NOT NULL,
-            parent_hash BLOB NOT NULL
+            parent_hash BLOB NOT NULL)
         )",
 
         R"(CREATE UNIQUE INDEX IF NOT EXISTS tipsets_b_h ON tipsets

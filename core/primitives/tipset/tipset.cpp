@@ -6,8 +6,10 @@
 #include "primitives/tipset/tipset.hpp"
 
 #include "common/logger.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
+
+#include "crypto/blake2/blake2b.h"
+#include "crypto/blake2/blake2b160.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
   using fc::primitives::tipset::TipsetError;
@@ -29,6 +31,44 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
 }
 
 namespace fc::primitives::tipset {
+
+  using TicketHash =
+      std::array<uint8_t, crypto::blake2b::BLAKE2B256_HASH_LENGTH>;
+
+  namespace {
+
+    outcome::result<TicketHash> ticketHash(const block::BlockHeader &hdr) {
+      if (hdr.height == 0) {
+        // Genesis block may not have ticket
+        return TicketHash{};
+      }
+
+      if (!hdr.ticket.has_value()) {
+        return TipsetError::TICKET_HAS_NO_VALUE;
+      }
+
+      blake2b_ctx ctx;
+
+      if (blake2b_init(
+              &ctx, crypto::blake2b::BLAKE2B256_HASH_LENGTH, nullptr, 0)
+          != 0) {
+        return HashError::HASH_INITIALIZE_ERROR;
+      }
+
+      const auto &ticket_bytes = hdr.ticket.value().bytes;
+
+      blake2b_update(&ctx, ticket_bytes.data(), ticket_bytes.size());
+      TicketHash hash;
+      blake2b_final(&ctx, hash.data());
+      return hash;
+    }
+
+    int compareHashes(const TicketHash &a, const TicketHash &b) {
+      return memcmp(
+          a.data(), b.data(), crypto::blake2b::BLAKE2B256_HASH_LENGTH);
+    }
+
+  }  // namespace
 
   outcome::result<void> MessageVisitor::visit(const BlockHeader &block,
                                               const Visitor &visitor) {
@@ -52,7 +92,7 @@ namespace fc::primitives::tipset {
       return outcome::success();
     }
 
-    if (!hdr.ticket.has_value()) {
+    if (hdr.height > 0 && !hdr.ticket.has_value()) {
       return TipsetError::TICKET_HAS_NO_VALUE;
     }
 
@@ -83,17 +123,21 @@ namespace fc::primitives::tipset {
 
     if (blks_.empty()) {
       blks_.reserve(kReserveSize);
-      blks_.emplace_back(std::move(hdr));
       cids_.reserve(kReserveSize);
+      ticket_hashes_.reserve(kReserveSize);
+      OUTCOME_TRY(hash, ticketHash(hdr));
+      ticket_hashes_.emplace_back(std::move(hash));
       cids_.emplace_back(std::move(cid));
+      blks_.emplace_back(std::move(hdr));
       return outcome::success();
     }
 
-    auto it = blks_.begin();
-    const auto &ticket = hdr.ticket.value();
+    auto it = ticket_hashes_.begin();
+    OUTCOME_TRY(ticket_hash, ticketHash(hdr));
     size_t idx = 0;
-    for (auto e = blks_.end(); it != e; ++it, ++idx) {
-      int c = ticket::compare(ticket, it->ticket.value());
+    for (auto e = ticket_hashes_.end(); it != e; ++it, ++idx) {
+      // int c = ticket::compare(ticket, it->ticket.value());
+      int c = compareHashes(ticket_hash, *it);
       if (c == 0) {
         return TipsetError::TICKETS_COLLISION;
       }
@@ -103,13 +147,16 @@ namespace fc::primitives::tipset {
       break;
     }
 
-    if (++it == blks_.end()) {
+    if (++it == ticket_hashes_.end()) {
       // most likely they come in proper order
       blks_.push_back(std::move(hdr));
       cids_.push_back(std::move(cid));
+      ticket_hashes_.push_back(std::move(ticket_hash));
     } else {
       blks_.insert(blks_.begin() + idx, std::move(hdr));
       cids_.insert(cids_.begin() + idx, std::move(cid));
+      ticket_hashes_.insert(ticket_hashes_.begin() + idx,
+                            std::move(ticket_hash));
     }
 
     return outcome::success();
@@ -132,6 +179,7 @@ namespace fc::primitives::tipset {
   void TipsetCreator::clear() {
     blks_.clear();
     cids_.clear();
+    ticket_hashes_.clear();
   }
 
   uint64_t TipsetCreator::height() const {
@@ -181,6 +229,36 @@ namespace fc::primitives::tipset {
       blocks.emplace_back(std::move(block));
     }
     return create(std::move(blocks));
+  }
+
+  outcome::result<Tipset> Tipset::loadGenesis(Ipld &ipld,
+                                             const CID &cid) {
+    BlockHeader block;
+    OUTCOME_TRY(bytes, ipld.get(cid));
+    std::vector<std::vector<uint8_t>> dummy;
+    try {
+      codec::cbor::CborDecodeStream decoder(bytes);
+      decoder.list() >> block.miner
+          >> dummy
+          >> block.election_proof
+          >> block.beacon_entries
+          >> block.win_post_proof
+          >> block.parents
+          >> block.parent_weight
+          >> block.height
+          >> block.parent_state_root
+          >> block.parent_message_receipts
+          >> block.messages
+          >> block.bls_aggregate
+          >> block.timestamp
+          >> block.block_sig
+          >> block.fork_signaling;
+
+    } catch (std::system_error &e) {
+      return e.code();
+    }
+
+    return create( { std::move(block) });
   }
 
   outcome::result<Tipset> Tipset::loadParent(Ipld &ipld) const {
