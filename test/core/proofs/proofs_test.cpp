@@ -7,7 +7,6 @@
 
 #include <random>
 
-#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "primitives/piece/piece.hpp"
@@ -127,7 +126,7 @@ TEST_F(ProofsTest, Lifecycle) {
   Path piece_file_a_path = boost::filesystem::unique_path(path_model).string();
   boost::filesystem::ofstream piece_file_a(piece_file_a_path);
 
-  UnpaddedPieceSize piece_commitment_a_size(127);
+  UnpaddedPieceSize piece_commitment_a_size(1016);
   for (size_t i = 0; i < piece_commitment_a_size; i++) {
     piece_file_a << some_bytes[i];
   }
@@ -138,7 +137,7 @@ TEST_F(ProofsTest, Lifecycle) {
   EXPECT_OUTCOME_TRUE(
       piece_cid_a,
       Proofs::generatePieceCIDFromFile(
-          seal_proof_type, piece_file_a_path, UnpaddedPieceSize(127)));
+          seal_proof_type, piece_file_a_path, UnpaddedPieceSize(1016)));
 
   EXPECT_OUTCOME_TRUE(res_a,
                       Proofs::writeWithoutAlignment(seal_proof_type,
@@ -146,14 +145,16 @@ TEST_F(ProofsTest, Lifecycle) {
                                                     piece_commitment_a_size,
                                                     staged_sector_file));
 
-  ASSERT_EQ(res_a.total_write_unpadded, 127);
+  ASSERT_EQ(res_a.total_write_unpadded, 1016);
   ASSERT_EQ(res_a.piece_cid, piece_cid_a);
 
   Path piece_file_b_path = boost::filesystem::unique_path(path_model).string();
   boost::filesystem::ofstream piece_file_b(piece_file_b_path);
 
   UnpaddedPieceSize piece_commitment_b_size(1016);
-  for (size_t i = 0; i < piece_commitment_b_size; i++) {
+  for (size_t i = piece_commitment_a_size;
+       i < piece_commitment_a_size + piece_commitment_b_size;
+       i++) {
     piece_file_b << some_bytes[i];
   }
   piece_file_b.close();
@@ -173,10 +174,8 @@ TEST_F(ProofsTest, Lifecycle) {
                                                  staged_sector_file,
                                                  exist_pieces));
 
-  ASSERT_EQ(res_b.left_alignment_unpadded, 889);
-
-  ASSERT_EQ(res_b.total_write_unpadded, 1905);
-
+  ASSERT_EQ(res_b.left_alignment_unpadded, 0);
+  ASSERT_EQ(res_b.total_write_unpadded, 1016);
   ASSERT_EQ(res_b.piece_cid, piece_cid_b);
 
   std::vector<PieceInfo> public_pieces = {
@@ -258,10 +257,10 @@ TEST_F(ProofsTest, Lifecycle) {
 
   auto file_a_bytes = readFile(unseal_output_file_a);
 
-  ASSERT_EQ(gsl::make_span(file_a_bytes.data(), 127),
-            gsl::make_span(some_bytes.data(), 127));
-  ASSERT_EQ(gsl::make_span(file_a_bytes.data() + 1016, 1016),
+  ASSERT_EQ(gsl::make_span(file_a_bytes.data(), 1016),
             gsl::make_span(some_bytes.data(), 1016));
+  ASSERT_EQ(gsl::make_span(file_a_bytes.data() + 1016, 1016),
+            gsl::make_span(some_bytes.data() + 1016, 1016));
 
   EXPECT_OUTCOME_TRUE_1(
       Proofs::unsealRange(seal_proof_type,
@@ -273,12 +272,12 @@ TEST_F(ProofsTest, Lifecycle) {
                           ticket,
                           sealed_and_unsealed_cid.unsealed_cid,
                           0,
-                          127));
+                          1016));
 
   auto file_b_bytes = readFile(unseal_output_file_b);
 
   ASSERT_EQ(gsl::make_span(file_b_bytes),
-            gsl::make_span(some_bytes.data(), 127));
+            gsl::make_span(some_bytes.data(), 1016));
 
   EXPECT_OUTCOME_TRUE_1(
       Proofs::unsealRange(seal_proof_type,
@@ -295,7 +294,7 @@ TEST_F(ProofsTest, Lifecycle) {
   auto file_c_bytes = readFile(unseal_output_file_c);
 
   ASSERT_EQ(gsl::make_span(file_c_bytes),
-            gsl::make_span(some_bytes.data(), 1016));
+            gsl::make_span(some_bytes.data() + 1016, 1016));
 
   std::vector<PrivateSectorInfo> private_replicas_info = {};
   private_replicas_info.push_back(PrivateSectorInfo{
@@ -495,7 +494,6 @@ TEST_F(ProofsTest, WriteAndReadPieces) {
 
   ASSERT_EQ(res_e.total_write_unpadded, 254);
   ASSERT_EQ(res_e.piece_cid, piece_cid_e);
-  start += piece_commitment_e_size;
   paths.push_back(piece_file_e_path);
   exist_pieces.push_back(piece_commitment_e_size);
 
