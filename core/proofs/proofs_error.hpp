@@ -21,6 +21,8 @@ namespace fc::proofs {
     kOutOfBound,
     kUnableMoveCursor,
     kFileDoesntExist,
+    kNotReadEnough,
+    kNotWriteEnough,
     kUnknown = 1000
   };
 

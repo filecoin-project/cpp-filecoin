@@ -17,13 +17,8 @@
 #include "primitives/sector/sector.hpp"
 
 namespace fc::proofs {
-
-  constexpr uint64_t kMTTresh = uint64_t(32)
-                                << 20;  // multi threading threshold
-
   using common::Blob;
   using crypto::randomness::Randomness;
-
   using Devices = std::vector<std::string>;
   using Phase1Output = std::vector<uint8_t>;
   using ChallengeIndexes = std::vector<uint64_t>;
@@ -111,10 +106,10 @@ namespace fc::proofs {
         const std::string &staged_sector_file_path,
         gsl::span<const UnpaddedPieceSize> existing_piece_sizes);
 
-    static outcome::result<std::vector<uint8_t>> readPieceData(
-        const std::string &staged_sector_file_path,
-        const PaddedPieceSize &offset,
-        const UnpaddedPieceSize &piece_size);
+    static outcome::result<void> readPiece(PieceData output,
+                                           const std::string &unsealed_file,
+                                           const PaddedPieceSize &offset,
+                                           const UnpaddedPieceSize &piece_size);
 
     /**
      * @brief  Seals the staged sector at staged_sector_path in place, saving

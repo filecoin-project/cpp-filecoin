@@ -16,10 +16,9 @@
 #include "proofs/proofs_error.hpp"
 
 namespace {
-  void internalUnpad(const std::vector<uint8_t> &in,
-                     std::vector<uint8_t> &out) {
+  void unpad(gsl::span<const uint8_t> in, gsl::span<uint8_t> out) {
     auto chunks = in.size() / 128;
-    for (size_t chunk = 0; chunk < chunks; chunk++) {
+    for (auto chunk = 0; chunk < chunks; chunk++) {
       auto input_offset_next = chunk * 128 + 1;
       auto output_offset = chunk * 127;
 
@@ -64,14 +63,6 @@ namespace {
         current = next;
       }
     }
-  }
-
-  void unpad(const std::vector<uint8_t> &in, std::vector<uint8_t> &out) {
-    if (in.size() > fc::proofs::kMTTresh) {
-      // TODO: run MT unpad
-    }
-
-    return internalUnpad(in, out);
   }
 }  // namespace
 
@@ -1004,23 +995,27 @@ namespace fc::proofs {
                    res_ptr->devices_ptr + res_ptr->devices_len);  // NOLINT
   }
 
-  outcome::result<std::vector<uint8_t>> Proofs::readPieceData(
-      const std::string &staged_sector_file_path,
-      const PaddedPieceSize &offset,
-      const UnpaddedPieceSize &piece_size) {
+  outcome::result<void> Proofs::readPiece(PieceData output,
+                                          const std::string &unsealed_file,
+                                          const PaddedPieceSize &offset,
+                                          const UnpaddedPieceSize &piece_size) {
+    if (!output.isOpened()) {
+      return ProofsError::kCannotOpenFile;
+    }
+
     OUTCOME_TRY(piece_size.validate());
 
-    if (!fs::exists(staged_sector_file_path)) {
+    if (!fs::exists(unsealed_file)) {
       return ProofsError::kFileDoesntExist;
     }
 
-    auto max_size = fs::file_size(staged_sector_file_path);
+    auto max_size = fs::file_size(unsealed_file);
 
     if ((offset + piece_size.padded()) > max_size) {
       return ProofsError::kOutOfBound;
     }
 
-    std::ifstream input(staged_sector_file_path);
+    std::ifstream input(unsealed_file);
     if (!input.good()) {
       return ProofsError::kCannotOpenFile;
     }
@@ -1028,18 +1023,42 @@ namespace fc::proofs {
       return ProofsError::kUnableMoveCursor;
     }
 
-    std::vector<uint8_t> in(piece_size.padded());
-    std::vector<uint8_t> result(piece_size);
+    uint64_t left = piece_size;
+    constexpr auto kDefaultBufferSize = uint64_t(32 * 1024);
+    std::vector<uint8_t> buffer(kDefaultBufferSize);
+    auto chunks = kDefaultBufferSize / 127;
+    PaddedPieceSize outTwoPow =
+        primitives::piece::paddedSize(chunks * 128).padded();
 
-    char ch;
-    for (size_t i = 0; i < piece_size.padded(); i++) {
-      input.get(ch);
-      in[i] = ch;
+    while (left > 0) {
+      if (left < outTwoPow.unpadded()) {
+        outTwoPow = primitives::piece::paddedSize(left).padded();
+      }
+      std::vector<uint8_t> read(outTwoPow);
+
+      size_t j;
+      char ch;
+      for (j = 0; j < outTwoPow && input; j++) {
+        input.get(ch);
+        read[j] = ch;
+      }
+
+      if (j != outTwoPow) {
+        return ProofsError::kNotReadEnough;
+      }
+
+      unpad(gsl::make_span(read.data(), outTwoPow),
+            gsl::make_span(buffer.data(), outTwoPow.unpadded()));
+
+      uint64_t write_size =
+          write(output.getFd(), buffer.data(), outTwoPow.unpadded());
+
+      if (write_size != outTwoPow.unpadded()) {
+        return ProofsError::kNotWriteEnough;
+      }
+
+      left -= outTwoPow.unpadded();
     }
-
-    unpad(in, result);
-
-    return std::move(result);
+    return outcome::success();
   }
-
 }  // namespace fc::proofs

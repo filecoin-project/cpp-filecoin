@@ -118,7 +118,7 @@ TEST_F(ProofsTest, Lifecycle) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<uint8_t> dis(0, 255);
-  for (size_t i = 0; i < some_bytes.size(); i++) {
+  for (size_t i = 0; i < 2032; i++) {
     some_bytes[i] = dis(gen);
   }
 
@@ -340,7 +340,12 @@ TEST_F(ProofsTest, Lifecycle) {
   ASSERT_TRUE(res);
 }
 
-TEST_F(ProofsTest, WriteAndReadPieces) {
+/**
+ * @given 5 pieces
+ * @when write all in one file and then read it
+ * @then pieces are identical
+ */
+TEST_F(ProofsTest, WriteAndReadPiecesFile) {
   fc::proofs::RegisteredProof seal_proof_type =
       fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal;
 
@@ -348,7 +353,7 @@ TEST_F(ProofsTest, WriteAndReadPieces) {
   std::random_device rd;
   std::mt19937 gen(rd());
   std::uniform_int_distribution<uint8_t> dis(0, 255);
-  for (size_t i = 0; i < some_bytes.size(); i++) {
+  for (size_t i = 0; i < 2032; i++) {
     some_bytes[i] = dis(gen);
   }
 
@@ -499,13 +504,19 @@ TEST_F(ProofsTest, WriteAndReadPieces) {
 
   PaddedPieceSize offset(0);
   for (size_t i = 0; i < paths.size(); i++) {
-    EXPECT_OUTCOME_TRUE(
-        read_piece,
-        Proofs::readPieceData(unseal_path, offset, exist_pieces[i]));
-    auto piece = readFile(paths[i]);
-    ASSERT_EQ(read_piece.size(), piece.size());
-    for (size_t j = 0; j < read_piece.size(); j++) {
-      EXPECT_EQ(read_piece[j], piece[j]);
+    int p[2];
+    auto _ = gsl::finally([&p]() { close(p[0]); });
+
+    ASSERT_FALSE(pipe(p) < 0);
+    PieceData piece(p[1]);
+
+    EXPECT_OUTCOME_TRUE_1(Proofs::readPiece(
+        std::move(piece), unseal_path, offset, exist_pieces[i]));
+    auto actual_piece = readFile(paths[i]);
+    char ch;
+    for (char j : actual_piece) {
+      read(p[0], &ch, 1);
+      EXPECT_EQ(ch, j);
     }
     offset = offset + exist_pieces[i].padded();
   }
