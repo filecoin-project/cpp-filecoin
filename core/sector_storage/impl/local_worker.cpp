@@ -267,10 +267,6 @@ namespace fc::sector_storage {
       const SectorId &sector,
       primitives::piece::UnpaddedByteIndex offset,
       const primitives::piece::UnpaddedPieceSize &size) {
-    if (!output.isOpened()) {
-      return WorkerErrors::kOutputDoesNotOpen;
-    }
-
     OUTCOME_TRY(response,
                 remote_store_->acquireSector(sector,
                                              config_.seal_proof_type,
