@@ -8,7 +8,7 @@
 
 #include <gmock/gmock.h>
 
-#include "sector_storage/stores/impl/local_store.hpp"
+#include "sector_storage/stores/store.hpp"
 
 namespace fc::sector_storage::stores {
   class LocalStoreMock : public LocalStore {
@@ -33,6 +33,10 @@ namespace fc::sector_storage::stores {
                                        SectorFileType));
 
     MOCK_METHOD1(getFsStat, outcome::result<FsStat>(StorageID));
+
+    MOCK_CONST_METHOD0(getLocalStorage, std::shared_ptr<LocalStorage>());
+
+    MOCK_CONST_METHOD0(getSectorIndex, std::shared_ptr<SectorIndex>());
   };
 }  // namespace fc::sector_storage::stores
 

@@ -43,6 +43,16 @@ namespace fc::sector_storage::stores {
                      const SectorFileType &allocate,
                      RegisteredProof seal_proof_type,
                      bool sealing));
+
+    MOCK_METHOD3(storageLock,
+                 outcome::result<std::unique_ptr<Lock>>(const SectorId &,
+                                                        SectorFileType,
+                                                        SectorFileType));
+
+    MOCK_METHOD3(storageTryLock,
+                 std::unique_ptr<Lock>(const SectorId &,
+                                       SectorFileType,
+                                       SectorFileType));
   };
 }  // namespace fc::sector_storage::stores
 

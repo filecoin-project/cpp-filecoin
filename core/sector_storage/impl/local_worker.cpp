@@ -20,12 +20,10 @@
 namespace fc::sector_storage {
 
   LocalWorker::LocalWorker(WorkerConfig config,
-                           std::shared_ptr<stores::Store> store,
-                           std::shared_ptr<stores::LocalStore> local,
-                           std::shared_ptr<stores::SectorIndex> sector_index)
-      : storage_(std::move(store)),
-        local_store_(std::move(local)),
-        index_(std::move(sector_index)),
+                           std::shared_ptr<stores::RemoteStore> store)
+      : remote_store_(std::move(store)),
+        local_store_(remote_store_->getLocalStore()),
+        index_(local_store_->getSectorIndex()),
         config_(std::move(config)),
         logger_(common::createLogger("local worker")) {}
 
@@ -34,11 +32,11 @@ namespace fc::sector_storage {
       const SectorId &sector,
       const primitives::sector::SealRandomness &ticket,
       gsl::span<const PieceInfo> pieces) {
-    OUTCOME_TRY(storage_->remove(sector, SectorFileType::FTSealed));
-    OUTCOME_TRY(storage_->remove(sector, SectorFileType::FTCache));
+    OUTCOME_TRY(remote_store_->remove(sector, SectorFileType::FTSealed));
+    OUTCOME_TRY(remote_store_->remove(sector, SectorFileType::FTCache));
 
     OUTCOME_TRY(response,
-                storage_->acquireSector(
+                remote_store_->acquireSector(
                     sector,
                     config_.seal_proof_type,
                     SectorFileType::FTUnsealed,
@@ -99,7 +97,7 @@ namespace fc::sector_storage {
       const SectorId &sector,
       const sector_storage::PreCommit1Output &pre_commit_1_output) {
     OUTCOME_TRY(response,
-                storage_->acquireSector(
+                remote_store_->acquireSector(
                     sector,
                     config_.seal_proof_type,
                     static_cast<SectorFileType>(SectorFileType::FTSealed
@@ -119,7 +117,7 @@ namespace fc::sector_storage {
       gsl::span<const PieceInfo> pieces,
       const sector_storage::SectorCids &cids) {
     OUTCOME_TRY(response,
-                storage_->acquireSector(
+                remote_store_->acquireSector(
                     sector,
                     config_.seal_proof_type,
                     static_cast<SectorFileType>(SectorFileType::FTSealed
@@ -153,20 +151,20 @@ namespace fc::sector_storage {
                 primitives::sector::getSectorSize(config_.seal_proof_type));
 
     OUTCOME_TRY(response,
-                storage_->acquireSector(sector,
-                                        config_.seal_proof_type,
-                                        SectorFileType::FTCache,
-                                        SectorFileType::FTNone,
-                                        false));
+                remote_store_->acquireSector(sector,
+                                             config_.seal_proof_type,
+                                             SectorFileType::FTCache,
+                                             SectorFileType::FTNone,
+                                             false));
 
     OUTCOME_TRY(proofs::Proofs::clearCache(size, response.paths.cache));
 
-    return storage_->remove(sector, SectorFileType::FTUnsealed);
+    return remote_store_->remove(sector, SectorFileType::FTUnsealed);
   }
 
   outcome::result<void> sector_storage::LocalWorker::moveStorage(
       const SectorId &sector) {
-    return storage_->moveStorage(
+    return remote_store_->moveStorage(
         sector,
         config_.seal_proof_type,
         static_cast<SectorFileType>(SectorFileType::FTCache
@@ -177,11 +175,11 @@ namespace fc::sector_storage {
       const SectorId &sector,
       const primitives::sector_file::SectorFileType &file_type,
       bool can_seal) {
-    OUTCOME_TRY(storage_->acquireSector(sector,
-                                        config_.seal_proof_type,
-                                        file_type,
-                                        SectorFileType::FTNone,
-                                        can_seal));
+    OUTCOME_TRY(remote_store_->acquireSector(sector,
+                                             config_.seal_proof_type,
+                                             file_type,
+                                             SectorFileType::FTNone,
+                                             can_seal));
     return outcome::success();
   }
 
@@ -191,29 +189,31 @@ namespace fc::sector_storage {
       const primitives::piece::UnpaddedPieceSize &size,
       const primitives::sector::SealRandomness &randomness,
       const CID &unsealed_cid) {
-    auto maybe_unseal_file = storage_->acquireSector(sector,
-                                                     config_.seal_proof_type,
-                                                     SectorFileType::FTUnsealed,
-                                                     SectorFileType::FTNone,
-                                                     false);
+    auto maybe_unseal_file =
+        remote_store_->acquireSector(sector,
+                                     config_.seal_proof_type,
+                                     SectorFileType::FTUnsealed,
+                                     SectorFileType::FTNone,
+                                     false);
     if (maybe_unseal_file.has_error()) {
       if (maybe_unseal_file
           != outcome::failure(
               stores::StoreErrors::kNotFoundRequestedSectorType)) {
         return maybe_unseal_file.error();
       }
-      maybe_unseal_file = storage_->acquireSector(sector,
-                                                  config_.seal_proof_type,
-                                                  SectorFileType::FTUnsealed,
-                                                  SectorFileType::FTNone,
-                                                  false);
+      maybe_unseal_file =
+          remote_store_->acquireSector(sector,
+                                       config_.seal_proof_type,
+                                       SectorFileType::FTUnsealed,
+                                       SectorFileType::FTNone,
+                                       false);
       if (maybe_unseal_file.has_error()) {
         return maybe_unseal_file.error();
       }
     }
 
     OUTCOME_TRY(response,
-                storage_->acquireSector(
+                remote_store_->acquireSector(
                     sector,
                     config_.seal_proof_type,
                     static_cast<SectorFileType>(SectorFileType::FTSealed
@@ -243,11 +243,11 @@ namespace fc::sector_storage {
     }
 
     OUTCOME_TRY(response,
-                storage_->acquireSector(sector,
-                                        config_.seal_proof_type,
-                                        SectorFileType::FTUnsealed,
-                                        SectorFileType::FTNone,
-                                        false));
+                remote_store_->acquireSector(sector,
+                                             config_.seal_proof_type,
+                                             SectorFileType::FTUnsealed,
+                                             SectorFileType::FTNone,
+                                             false));
 
     OUTCOME_TRY(max_size,
                 primitives::sector::getSectorSize(config_.seal_proof_type));
@@ -408,7 +408,7 @@ namespace fc::sector_storage {
     return std::move(result);
   }
 
-  outcome::result<std::vector<primitives::TaskType>>
+  outcome::result<std::set<primitives::TaskType>>
   sector_storage::LocalWorker::getSupportedTask() {
     return config_.task_types;
   }
@@ -422,7 +422,7 @@ namespace fc::sector_storage {
       const SectorId &sector) {
     bool isError = false;
 
-    auto cache_err = storage_->remove(sector, SectorFileType::FTCache);
+    auto cache_err = remote_store_->remove(sector, SectorFileType::FTCache);
     if (cache_err.has_error()) {
       isError = true;
       logger_->error("removing cached sector {} : {}",
@@ -430,7 +430,7 @@ namespace fc::sector_storage {
                      cache_err.error().message());
     }
 
-    auto sealed_err = storage_->remove(sector, SectorFileType::FTSealed);
+    auto sealed_err = remote_store_->remove(sector, SectorFileType::FTSealed);
     if (sealed_err.has_error()) {
       isError = true;
       logger_->error("removing sealed sector {} : {}",
@@ -438,7 +438,8 @@ namespace fc::sector_storage {
                      sealed_err.error().message());
     }
 
-    auto unsealed_err = storage_->remove(sector, SectorFileType::FTUnsealed);
+    auto unsealed_err =
+        remote_store_->remove(sector, SectorFileType::FTUnsealed);
     if (unsealed_err.has_error()) {
       isError = true;
       logger_->error("removing unsealed sector {} : {}",
@@ -459,11 +460,11 @@ namespace fc::sector_storage {
       const primitives::piece::PieceData &piece_data) {
     if (piece_sizes.empty()) {
       OUTCOME_TRY(response,
-                  storage_->acquireSector(sector,
-                                          config_.seal_proof_type,
-                                          SectorFileType::FTNone,
-                                          SectorFileType::FTUnsealed,
-                                          true));
+                  remote_store_->acquireSector(sector,
+                                               config_.seal_proof_type,
+                                               SectorFileType::FTNone,
+                                               SectorFileType::FTUnsealed,
+                                               true));
 
       OUTCOME_TRY(
           write_response,
@@ -480,11 +481,11 @@ namespace fc::sector_storage {
     }
 
     OUTCOME_TRY(response,
-                storage_->acquireSector(sector,
-                                        config_.seal_proof_type,
-                                        SectorFileType::FTUnsealed,
-                                        SectorFileType::FTNone,
-                                        true));
+                remote_store_->acquireSector(sector,
+                                             config_.seal_proof_type,
+                                             SectorFileType::FTUnsealed,
+                                             SectorFileType::FTNone,
+                                             true));
 
     OUTCOME_TRY(write_response,
                 proofs::Proofs::writeWithAlignment(config_.seal_proof_type,

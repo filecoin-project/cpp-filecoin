@@ -48,7 +48,7 @@ namespace fc::sector_storage {
     return *request->response;
   }
 
-  void SchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> &&worker) {
+  void SchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> worker) {
     std::unique_lock<std::mutex> lock(workers_lock_);
     if (current_worker_id_ == std::numeric_limits<uint64_t>::max()) {
       current_worker_id_ = 0;
@@ -224,6 +224,10 @@ namespace fc::sector_storage {
       }
       --it;
     }
+  }
+
+  RegisteredProof SchedulerImpl::getSealProofType() const {
+    return seal_proof_type_;
   }
 }  // namespace fc::sector_storage
 

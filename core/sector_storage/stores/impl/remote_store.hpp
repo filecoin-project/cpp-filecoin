@@ -12,14 +12,14 @@
 
 namespace fc::sector_storage::stores {
 
-    using HeaderName = std::string;
-    using HeaderValue = std::string;
+  using HeaderName = std::string;
+  using HeaderValue = std::string;
 
-  class RemoteStore : public Store {
+  class RemoteStoreImpl : public RemoteStore {
    public:
-    RemoteStore(std::shared_ptr<LocalStore> local,
-                std::shared_ptr<SectorIndex> index,
-                std::unordered_map<HeaderName, HeaderValue> auth_headers);
+    RemoteStoreImpl(
+        std::shared_ptr<LocalStore> local,
+        std::unordered_map<HeaderName, HeaderValue> auth_headers);
 
     outcome::result<AcquireSectorResponse> acquireSector(
         SectorId sector,
@@ -35,6 +35,10 @@ namespace fc::sector_storage::stores {
                                       SectorFileType types) override;
 
     outcome::result<FsStat> getFsStat(StorageID id) override;
+
+    std::shared_ptr<SectorIndex> getSectorIndex() const override;
+
+    std::shared_ptr<LocalStore> getLocalStore() const override;
 
    private:
     struct RemoveAcquireSectorResponse {
@@ -55,7 +59,7 @@ namespace fc::sector_storage::stores {
     outcome::result<void> deleteFromRemote(const std::string &url);
 
     std::shared_ptr<LocalStore> local_;
-    std::shared_ptr<SectorIndex> index_;
+    std::shared_ptr<SectorIndex> sector_index_;
 
     std::unordered_map<HeaderName, HeaderValue> auth_headers_;
 

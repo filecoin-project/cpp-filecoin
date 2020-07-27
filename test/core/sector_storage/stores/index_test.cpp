@@ -391,3 +391,39 @@ TEST_F(SectorIndexTest, StorageFindSectorFetch) {
   ASSERT_FALSE(store.urls.empty());
   ASSERT_EQ(store.urls[0], result_url);
 }
+
+/**
+ * @given Sector
+ * @when try to lock with waiting and lock again without waiting
+ * @then first attempt is success and second is failed
+ */
+TEST_F(SectorIndexTest, LockSector) {
+  SectorId sector{
+      .miner = 42,
+      .sector = 123,
+  };
+
+  SectorFileType read = SectorFileType::FTSealed;
+  SectorFileType write = SectorFileType::FTUnsealed;
+
+  EXPECT_OUTCOME_TRUE(lock, sector_index_->storageLock(sector, read, write))
+  ASSERT_FALSE(sector_index_->storageTryLock(sector, read, write));
+}
+
+/**
+ * @given Sector
+ * @when try to lock for reading and lock again for reading
+ * @then both attempts are successful
+ */
+TEST_F(SectorIndexTest, LockSectorReading) {
+  SectorId sector{
+      .miner = 42,
+      .sector = 123,
+  };
+
+  SectorFileType read = SectorFileType::FTSealed;
+  SectorFileType write = SectorFileType::FTNone;
+
+  EXPECT_OUTCOME_TRUE(lock, sector_index_->storageLock(sector, read, write))
+  EXPECT_OUTCOME_TRUE(lock1, sector_index_->storageLock(sector, read, write))
+}
