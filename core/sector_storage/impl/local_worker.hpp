@@ -6,24 +6,23 @@
 #ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
 #define CPP_FILECOIN_CORE_SECTOR_STORAGE_IMPL_LOCAL_WORKER_HPP
 
+#include "sector_storage/worker.hpp"
+
 #include "common/logger.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
-#include "sector_storage/worker.hpp"
 
 namespace fc::sector_storage {
 
   struct WorkerConfig {
     std::string hostname;
     primitives::sector::RegisteredProof seal_proof_type;
-    std::vector<primitives::TaskType> task_types;
+    std::set<primitives::TaskType> task_types;
   };
 
   class LocalWorker : public Worker {
    public:
     LocalWorker(WorkerConfig config,
-                std::shared_ptr<stores::Store> store,
-                std::shared_ptr<stores::LocalStore> local,
-                std::shared_ptr<stores::SectorIndex> sector_index);
+                std::shared_ptr<stores::RemoteStore> store);
 
     outcome::result<PreCommit1Output> sealPreCommit1(
         const SectorId &sector,
@@ -65,8 +64,7 @@ namespace fc::sector_storage {
 
     outcome::result<primitives::WorkerInfo> getInfo() override;
 
-    outcome::result<std::vector<primitives::TaskType>> getSupportedTask()
-        override;
+    outcome::result<std::set<primitives::TaskType>> getSupportedTask() override;
 
     outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths()
         override;
@@ -80,7 +78,7 @@ namespace fc::sector_storage {
         const proofs::PieceData &piece_data) override;
 
    private:
-    std::shared_ptr<stores::Store> storage_;
+    std::shared_ptr<stores::RemoteStore> remote_store_;
     std::shared_ptr<stores::LocalStore> local_store_;
     std::shared_ptr<stores::SectorIndex> index_;
 

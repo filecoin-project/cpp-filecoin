@@ -22,3 +22,10 @@ target_link_libraries(scheduler_test
         scheduler
         base_fs_test
         )
+
+addtest(manager_test
+        manager_test.cpp)
+
+target_link_libraries(manager_test
+        manager
+        )
