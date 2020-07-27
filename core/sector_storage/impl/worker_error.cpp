@@ -16,12 +16,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, WorkerErrors, e) {
       return "Worker: cannot remove cache dir";
     case (WorkerErrors::kPiecesDoNotMatchSectorSize):
       return "Worker: aggregated piece sizes don't match sector size";
-    case (WorkerErrors::kOutputDoesNotOpen):
-      return "Worker: output doesn't open to write piece";
-    case (WorkerErrors::kOutOfBoundOfFile):
-      return "Worker: requested piece is out of bound";
-    case (WorkerErrors::kCannotOpenUnsealedFile):
-      return "Worker: cannot open unsealed file";
+    case (WorkerErrors::kCannotCreateTempFile):
+      return "Worker: cannot create a temp file to place piece";
     case (WorkerErrors::kCannotGetNumberOfCPUs):
       return "Worker: cannot get number of cpus";
     case (WorkerErrors::kCannotGetVMStat):

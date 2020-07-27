@@ -521,3 +521,91 @@ TEST_F(ProofsTest, WriteAndReadPiecesFile) {
     offset = offset + exist_pieces[i].padded();
   }
 }
+
+/**
+ * @given 2 pieces
+ * @when write their with lib function and custom
+ * @then files are identical
+ */
+TEST_F(ProofsTest, LibAndCustomWriteCmp) {
+  fc::proofs::RegisteredProof seal_proof_type =
+      fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal;
+
+  fc::common::Blob<2032> some_bytes;
+  std::random_device rd;
+  std::mt19937 gen(rd());
+  std::uniform_int_distribution<uint8_t> dis(0, 255);
+  for (size_t i = 0; i < 2032; i++) {
+    some_bytes[i] = dis(gen);
+  }
+
+  size_t start = 0;
+
+  auto path_model = fs::canonical(base_path).append("%%%%%");
+  Path unseal_path = boost::filesystem::unique_path(path_model).string();
+  Path custom_unseal_path = boost::filesystem::unique_path(path_model).string();
+
+  Path piece_file_a_path = boost::filesystem::unique_path(path_model).string();
+  boost::filesystem::ofstream piece_file_a(piece_file_a_path);
+
+  UnpaddedPieceSize piece_commitment_a_size(1016);
+  for (size_t i = start; i < start + piece_commitment_a_size; i++) {
+    piece_file_a << some_bytes[i];
+  }
+  piece_file_a.close();
+
+  EXPECT_OUTCOME_TRUE_1(Proofs::writeUnsealPiece(piece_file_a_path,
+                                                 custom_unseal_path,
+                                                 seal_proof_type,
+                                                 PaddedPieceSize(0),
+                                                 piece_commitment_a_size));
+
+  start += piece_commitment_a_size;
+  PieceData file_a(piece_file_a_path);
+
+  EXPECT_OUTCOME_TRUE_1(Proofs::writeWithoutAlignment(
+      seal_proof_type, file_a, piece_commitment_a_size, unseal_path));
+
+  std::vector<Path> paths = {piece_file_a_path};
+  std::vector<UnpaddedPieceSize> exist_pieces = {piece_commitment_a_size};
+
+  Path piece_file_b_path = boost::filesystem::unique_path(path_model).string();
+  boost::filesystem::ofstream piece_file_b(piece_file_b_path);
+
+  UnpaddedPieceSize piece_commitment_b_size(1016);
+  for (size_t i = start; i < start + piece_commitment_b_size; i++) {
+    piece_file_b << some_bytes[i];
+  }
+  piece_file_b.close();
+
+  EXPECT_OUTCOME_TRUE_1(
+      Proofs::writeUnsealPiece(piece_file_b_path,
+                               custom_unseal_path,
+                               seal_proof_type,
+                               UnpaddedPieceSize(start).padded(),
+                               piece_commitment_a_size));
+
+  PieceData file_b(piece_file_b_path);
+  EXPECT_OUTCOME_TRUE_1(Proofs::writeWithAlignment(seal_proof_type,
+                                                   file_b,
+                                                   piece_commitment_b_size,
+                                                   unseal_path,
+                                                   exist_pieces));
+
+  std::ifstream unseal_file(unseal_path);
+
+  ASSERT_TRUE(unseal_file.good());
+
+  std::ifstream custom_unseal_file(custom_unseal_path);
+
+  ASSERT_TRUE(custom_unseal_file.good());
+
+  ASSERT_TRUE(unseal_file.tellg() == custom_unseal_file.tellg());
+
+  unseal_file.seekg(0, std::ifstream::beg);
+  custom_unseal_file.seekg(0, std::ifstream::beg);
+  ASSERT_TRUE(
+      std::equal(std::istreambuf_iterator<char>(custom_unseal_file.rdbuf()),
+                 std::istreambuf_iterator<char>(),
+                 std::istreambuf_iterator<char>(unseal_file.rdbuf())));
+}

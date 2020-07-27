@@ -64,6 +64,48 @@ namespace {
       }
     }
   }
+
+  void pad(gsl::span<const uint8_t> in, gsl::span<uint8_t> out) {
+    auto chunks = out.size() / 128;
+    for (auto chunk = 0; chunk < chunks; chunk++) {
+      size_t input_offset = chunk * 127;
+      size_t output_offset = chunk * 128;
+
+      std::copy(in.begin() + input_offset,
+                in.begin() + input_offset + 31,
+                out.begin() + output_offset);
+
+      auto t = in[input_offset + 31] >> 6;
+      out[output_offset + 31] = in[input_offset + 31] & 0x3f;
+      uint8_t v;
+
+      for (int i = 32; i < 64; i++) {
+        v = in[input_offset + i];
+        out[output_offset + i] = (v << 2) | t;
+        t = v >> 6;
+      }
+
+      t = v >> 4;
+      out[output_offset + 63] &= 0x3f;
+
+      for (size_t i = 64; i < 96; i++) {
+        v = in[input_offset + i];
+        out[output_offset + i] = (v << 4) | t;
+        t = v >> 4;
+      }
+
+      t = v >> 2;
+      out[output_offset + 95] &= 0x3f;
+
+      for (size_t i = 96; i < 127; i++) {
+        v = in[input_offset + i];
+        out[output_offset + i] = (v << 6) | t;
+        t = v >> 2;
+      }
+
+      out[output_offset + 127] = t & 0x3f;
+    }
+  }
 }  // namespace
 
 namespace fc::proofs {
@@ -1061,4 +1103,83 @@ namespace fc::proofs {
     }
     return outcome::success();
   }
+
+  outcome::result<void> Proofs::writeUnsealPiece(
+      const std::string &unseal_piece_file_path,
+      const std::string &staged_sector_file_path,
+      RegisteredProof seal_proof_type,
+      const PaddedPieceSize &offset,
+      const UnpaddedPieceSize &piece_size) {
+    std::ifstream input(unseal_piece_file_path);
+
+    if (!input.good()) {
+      return ProofsError::kCannotOpenFile;
+    }
+
+    if (!fs::exists(staged_sector_file_path)) {
+      std::ofstream ofs(staged_sector_file_path,
+                        std::ios::binary | std::ios::out);
+
+      if (!ofs.good()) {
+        return ProofsError::kCannotCreateUnsealedFile;
+      }
+
+      OUTCOME_TRY(size, getSectorSize(seal_proof_type));
+
+      char ch = 0;
+      size_t i;
+      for (i = 0; i < size && ofs; i++) {
+        ofs.write(&ch, 1);
+      }
+
+      if (i != size) {
+        return ProofsError::kNotWriteEnough;
+      }
+    }
+
+    auto size = fs::file_size(staged_sector_file_path);
+
+    if (offset + piece_size.padded() > size) {
+      return ProofsError::kOutOfBound;
+    }
+
+    std::fstream unsealed_file(staged_sector_file_path,
+                               std::ios::in | std::ios::out);
+
+    if (!unsealed_file.good()) {
+      return ProofsError::kCannotOpenFile;
+    }
+
+    if (!unsealed_file.seekg(offset, std::ios_base::beg)) {
+      return ProofsError::kUnableMoveCursor;
+    }
+
+    std::vector<uint8_t> in(127);
+    std::vector<uint8_t> out(128);
+
+    for (size_t read = 0; read < piece_size; read += 127) {
+      char ch;
+      size_t i;
+      for (i = 0; i < 127 && input; i++) {
+        input.get(ch);
+        in[i] = ch;
+      }
+
+      if (i != 127) {
+        return ProofsError::kNotReadEnough;
+      }
+
+      pad(in, out);
+      for (i = 0; i < 128 && unsealed_file; i++) {
+        ch = out[i];
+        unsealed_file.write(&ch, 1);
+      }
+      if (i != 128) {
+        return ProofsError::kNotWriteEnough;
+      }
+    }
+
+    return outcome::success();
+  }
+
 }  // namespace fc::proofs

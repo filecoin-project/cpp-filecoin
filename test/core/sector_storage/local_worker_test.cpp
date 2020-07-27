@@ -373,6 +373,16 @@ TEST_F(LocalWorkerTest, Sealer) {
                             SectorFileType::FTUnsealed,
                             SectorFileType::FTNone,
                             false))
+      .WillOnce(testing::Return(
+          fc::outcome::failure(fc::sector_storage::stores::StoreErrors::
+                                   kNotFoundRequestedSectorType)));
+
+  EXPECT_CALL(*store_,
+              acquireSector(sector,
+                            config_.seal_proof_type,
+                            SectorFileType::FTNone,
+                            SectorFileType::FTUnsealed,
+                            false))
       .WillOnce(testing::Return(fc::outcome::success(unseal_response)));
 
   EXPECT_CALL(

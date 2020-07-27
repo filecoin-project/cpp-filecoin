@@ -40,7 +40,7 @@ namespace fc::sector_storage {
     /**
      * @param output is PieceData with write part of pipe
      */
-    virtual outcome::result<void> readPiece(const proofs::PieceData &output,
+    virtual outcome::result<void> readPiece(proofs::PieceData output,
                                             const SectorId &sector,
                                             UnpaddedByteIndex offset,
                                             const UnpaddedPieceSize &size) = 0;
@@ -52,8 +52,6 @@ namespace fc::sector_storage {
 
     virtual outcome::result<std::vector<primitives::StoragePath>>
     getAccessiblePaths() = 0;
-
-    // TODO(artyom-yurin): [FIL-222] think about how to close the worker
   };
 
   enum class WorkerErrors {
@@ -61,9 +59,7 @@ namespace fc::sector_storage {
     kCannotCreateCacheDir,
     kCannotRemoveCacheDir,
     kPiecesDoNotMatchSectorSize,
-    kOutputDoesNotOpen,
-    kOutOfBoundOfFile,
-    kCannotOpenUnsealedFile,
+    kCannotCreateTempFile,
     kCannotGetNumberOfCPUs,
     kCannotGetVMStat,
     kCannotGetPageSize,

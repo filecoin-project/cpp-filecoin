@@ -111,6 +111,13 @@ namespace fc::proofs {
                                            const PaddedPieceSize &offset,
                                            const UnpaddedPieceSize &piece_size);
 
+    static outcome::result<void> writeUnsealPiece(
+        const std::string &unseal_piece_file_path,
+        const std::string &staged_sector_file_path,
+        RegisteredProof seal_proof_type,
+        const PaddedPieceSize &offset,
+        const UnpaddedPieceSize &piece_size);
+
     /**
      * @brief  Seals the staged sector at staged_sector_path in place, saving
      * the resulting replica to sealed_sector_path

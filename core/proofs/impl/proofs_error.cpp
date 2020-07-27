@@ -23,6 +23,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofsError, e) {
       return "Proofs: Unable to move cursor to write piece";
     case (ProofsError::kFileDoesntExist):
       return "Proofs: unsealed file doesn't exist";
+    case (ProofsError::kNotReadEnough):
+      return "Proofs: cannot read chunk";
+    case (ProofsError::kNotWriteEnough):
+      return "Proofs: cannot write chunk";
+    case (ProofsError::kCannotCreateUnsealedFile):
+      return "Proofs: cannot create unsealed file";
     default:
       return "Proofs: unknown error";
   }

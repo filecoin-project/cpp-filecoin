@@ -23,6 +23,7 @@ namespace fc::proofs {
     kFileDoesntExist,
     kNotReadEnough,
     kNotWriteEnough,
+    kCannotCreateUnsealedFile,
     kUnknown = 1000
   };
 
