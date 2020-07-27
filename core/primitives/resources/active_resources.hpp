@@ -13,10 +13,10 @@
 namespace fc::primitives {
 
   struct ActiveResources {
-    uint64_t memory_used_min;
-    uint64_t memory_used_max;
-    bool gpu_used;
-    uint64_t cpu_use;
+    uint64_t memory_used_min = 0;
+    uint64_t memory_used_max = 0;
+    bool gpu_used = false;
+    uint64_t cpu_use = 0;
 
     void add(const WorkerResources &worker_resources,
              const Resources &resources);

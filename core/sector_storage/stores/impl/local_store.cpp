@@ -39,7 +39,7 @@ namespace fc::sector_storage::stores {
 
   LocalStoreImpl::LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
                                  std::shared_ptr<SectorIndex> index,
-                                 gsl::span<std::string> urls)
+                                 gsl::span<const std::string> urls)
       : storage_(std::move(storage)),
         index_(std::move(index)),
         urls_(urls.begin(), urls.end()) {
@@ -301,6 +301,9 @@ namespace fc::sector_storage::stores {
       }
     }
 
+    OUTCOME_TRY(storage_->setStorage([path](stores::StorageConfig &config) {
+      config.storage_paths.push_back(std::move(path));
+    }));
     paths_[meta.id] = path;
 
     return outcome::success();
@@ -309,11 +312,11 @@ namespace fc::sector_storage::stores {
   outcome::result<std::unique_ptr<LocalStore>> LocalStoreImpl::newLocalStore(
       const std::shared_ptr<LocalStorage> &storage,
       const std::shared_ptr<SectorIndex> &index,
-      gsl::span<std::string> urls) {
+      gsl::span<const std::string> urls) {
     struct make_unique_enabler : public LocalStoreImpl {
       make_unique_enabler(const std::shared_ptr<LocalStorage> &storage,
                           const std::shared_ptr<SectorIndex> &index,
-                          gsl::span<std::string> urls)
+                          gsl::span<const std::string> urls)
           : LocalStoreImpl{storage, index, urls} {};
     };
 
@@ -324,9 +327,9 @@ namespace fc::sector_storage::stores {
       return StoreErrors::kCannotInitLogger;
     }
 
-    OUTCOME_TRY(paths, local->storage_->getPaths());
+    OUTCOME_TRY(config, local->storage_->getStorage());
 
-    for (const auto &path : paths) {
+    for (const auto &path : config.storage_paths) {
       OUTCOME_TRY(local->openPath(path));
     }
 
@@ -355,6 +358,14 @@ namespace fc::sector_storage::stores {
     }
 
     return std::move(res);
+  }
+
+  std::shared_ptr<SectorIndex> LocalStoreImpl::getSectorIndex() const {
+    return index_;
+  }
+
+  std::shared_ptr<LocalStorage> LocalStoreImpl::getLocalStorage() const {
+    return storage_;
   }
 
 }  // namespace fc::sector_storage::stores

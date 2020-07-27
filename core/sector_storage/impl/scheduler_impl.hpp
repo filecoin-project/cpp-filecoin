@@ -67,7 +67,7 @@ namespace fc::sector_storage {
 
   class SchedulerImpl : public Scheduler {
    public:
-    SchedulerImpl(RegisteredProof seal_proof_type);
+    explicit SchedulerImpl(RegisteredProof seal_proof_type);
 
     outcome::result<void> schedule(
         const SectorId &sector,
@@ -77,7 +77,9 @@ namespace fc::sector_storage {
         const WorkerAction &work,
         uint64_t priority) override;
 
-    void newWorker(std::unique_ptr<WorkerHandle> &&worker) override;
+    void newWorker(std::unique_ptr<WorkerHandle> worker) override;
+
+    RegisteredProof getSealProofType() const override;
 
    private:
     outcome::result<bool> maybeScheduleRequest(

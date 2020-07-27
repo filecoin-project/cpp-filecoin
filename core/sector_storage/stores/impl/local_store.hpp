@@ -14,32 +14,13 @@
 
 namespace fc::sector_storage::stores {
 
-  class LocalStorage {
-   public:
-    virtual ~LocalStorage() = default;
-
-    virtual outcome::result<FsStat> getStat(const std::string &path) = 0;
-
-    virtual outcome::result<std::vector<std::string>> getPaths() = 0;
-  };
-
-  const std::string kMetaFileName = "sectorstore.json";
-
-  class LocalStore : public Store {
-   public:
-    virtual outcome::result<void> openPath(const std::string &path) = 0;
-
-    virtual outcome::result<std::vector<primitives::StoragePath>>
-    getAccessiblePaths() = 0;
-  };
-
   // TODO(artyom-yurin): [FIL-231] Health Report for storages
   class LocalStoreImpl : public LocalStore {
    public:
     static outcome::result<std::unique_ptr<LocalStore>> newLocalStore(
         const std::shared_ptr<LocalStorage> &storage,
         const std::shared_ptr<SectorIndex> &index,
-        gsl::span<std::string> urls);
+        gsl::span<const std::string> urls);
 
     outcome::result<void> openPath(const std::string &path) override;
 
@@ -61,10 +42,14 @@ namespace fc::sector_storage::stores {
     outcome::result<std::vector<primitives::StoragePath>> getAccessiblePaths()
         override;
 
+    std::shared_ptr<SectorIndex> getSectorIndex() const override;
+
+    std::shared_ptr<LocalStorage> getLocalStorage() const override;
+
    private:
     LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
                    std::shared_ptr<SectorIndex> index,
-                   gsl::span<std::string> urls);
+                   gsl::span<const std::string> urls);
 
     std::shared_ptr<LocalStorage> storage_;
     std::shared_ptr<SectorIndex> index_;

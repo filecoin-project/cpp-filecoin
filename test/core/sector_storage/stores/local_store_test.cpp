@@ -26,6 +26,7 @@ using fc::sector_storage::stores::LocalStorageMock;
 using fc::sector_storage::stores::LocalStore;
 using fc::sector_storage::stores::LocalStoreImpl;
 using fc::sector_storage::stores::SectorIndexMock;
+using fc::sector_storage::stores::StorageConfig;
 using fc::sector_storage::stores::StorageInfo;
 using fc::sector_storage::stores::StoreErrors;
 using testing::_;
@@ -58,9 +59,12 @@ class LocalStoreTest : public test::BaseFS_Test {
     storage_ = std::make_shared<LocalStorageMock>();
     urls_ = {"http://url1.com", "http://url2.com"};
 
-    EXPECT_CALL(*storage_, getPaths())
-        .WillOnce(testing::Return(
-            fc::outcome::success(std::vector<std::string>({}))));
+    EXPECT_CALL(*storage_, getStorage())
+        .WillOnce(testing::Return(fc::outcome::success(
+            StorageConfig{.storage_paths = std::vector<std::string>({})})));
+
+    EXPECT_CALL(*storage_, setStorage(_))
+        .WillRepeatedly(testing::Return(fc::outcome::success()));
 
     auto maybe_local = LocalStoreImpl::newLocalStore(storage_, index_, urls_);
     local_store_ = std::move(maybe_local.value());
