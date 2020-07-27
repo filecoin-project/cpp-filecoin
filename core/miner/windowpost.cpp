@@ -8,11 +8,14 @@
 
 namespace fc {
   outcome::result<std::shared_ptr<WindowPoStScheduler>>
-  WindowPoStScheduler::create(std::shared_ptr<Api> api, const Address &miner) {
+  WindowPoStScheduler::create(std::shared_ptr<Api> api,
+                              std::shared_ptr<Prover> prover,
+                              const Address &miner) {
     OUTCOME_TRY(chan, api->ChainNotify());
     auto scheduler{std::make_shared<WindowPoStScheduler>()};
     scheduler->channel = std::move(chan.channel);
-    scheduler->api = std::move(api);
+    scheduler->api = api;
+    scheduler->prover = std::move(prover);
     scheduler->miner = miner;
     OUTCOME_TRY(info, api->StateMinerInfo(miner, {}));
     OUTCOME_TRYA(scheduler->worker, api->StateAccountKey(info.worker, {}));
@@ -72,9 +75,9 @@ namespace fc {
                         api::DomainSeparationTag::WindowedPoStChallengeSeed,
                         deadline.challenge,
                         seed));
-        // TODO: generateWindowPoSt
-        // OUTCOME_TRYA(params.proofs, generateWindowPoSt(miner.getId(),
-        // sectors2, rand));
+        OUTCOME_TRY(proof,
+                    prover->generateWindowPoSt(miner.getId(), sectors2, rand));
+        params.proofs = std::move(proof.proof);
         OUTCOME_TRY(api->MpoolPushMessage({
             miner,
             worker,
