@@ -60,7 +60,7 @@ class SchedulerTest : public ::testing::Test {
  * @when when try to schedule it
  * @then work is done
  */
-TEST_F(SchedulerTest, ScheuleTask) {
+TEST_F(SchedulerTest, DISABLED_ScheuleTask) {
   uint64_t counter = 0;
 
   WorkerAction prepare = [&](const std::shared_ptr<Worker> &worker) {
@@ -95,7 +95,7 @@ TEST_F(SchedulerTest, ScheuleTask) {
  * the second will processed
  * @then worker gets first from request queue and process it
  */
-TEST_F(SchedulerTest, RequestQueue) {
+TEST_F(SchedulerTest, DISABLED_RequestQueue) {
   std::unique_ptr<WorkerHandle> worker1 = std::make_unique<WorkerHandle>();
 
   std::string worker1_name_ = "everything";
