@@ -59,6 +59,8 @@ class SchedulerTest : public ::testing::Test {
  * @given Task data
  * @when when try to schedule it
  * @then work is done
+ * @note Disabled due to the fact that there are not always threads in the
+ * thread pool
  */
 TEST_F(SchedulerTest, DISABLED_ScheuleTask) {
   uint64_t counter = 0;
@@ -94,6 +96,8 @@ TEST_F(SchedulerTest, DISABLED_ScheuleTask) {
  * @when when try to schedule first, it will be in request queue
  * the second will processed
  * @then worker gets first from request queue and process it
+ * @note Disabled due to the fact that there are not always threads in the
+ * thread pool
  */
 TEST_F(SchedulerTest, DISABLED_RequestQueue) {
   std::unique_ptr<WorkerHandle> worker1 = std::make_unique<WorkerHandle>();
