@@ -10,8 +10,8 @@ hunter_add_package(libarchive)
 find_package(libarchive CONFIG REQUIRED)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Boost.html
-hunter_add_package(Boost COMPONENTS date_time filesystem random)
-find_package(Boost CONFIG REQUIRED date_time filesystem random)
+hunter_add_package(Boost COMPONENTS date_time filesystem random thread)
+find_package(Boost CONFIG REQUIRED date_time filesystem random thread)
 
 # https://docs.hunter.sh/en/latest/packages/pkg/Microsoft.GSL.html
 hunter_add_package(Microsoft.GSL)
