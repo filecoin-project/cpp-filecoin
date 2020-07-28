@@ -7,6 +7,10 @@
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 
 namespace fc {
+  inline constexpr auto kValue{1000};
+  inline constexpr auto kGasPrice{1};
+  inline constexpr auto kGasLimit{10000000};
+
   outcome::result<std::shared_ptr<WindowPoStScheduler>>
   WindowPoStScheduler::create(std::shared_ptr<Api> api,
                               std::shared_ptr<Prover> prover,
@@ -82,9 +86,9 @@ namespace fc {
             miner,
             worker,
             0,
-            1000,
-            1,
-            10000000,
+            kValue,
+            kGasPrice,
+            kGasLimit,
             SubmitWindowedPoSt::Number,
             codec::cbor::encode(params).value(),
         }));
