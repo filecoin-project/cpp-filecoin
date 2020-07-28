@@ -377,6 +377,16 @@ namespace fc::api {
       return j;
     }
 
+    DECODE(DomainSeparationTag) {
+      decodeEnum(v, j);
+    }
+
+    ENCODE(Deadlines) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Due", v.due);
+      return j;
+    }
+
     ENCODE(BlockHeader) {
       Value j{rapidjson::kObjectType};
       Set(j, "Miner", v.miner);

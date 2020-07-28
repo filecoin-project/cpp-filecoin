@@ -216,6 +216,12 @@ namespace fc::api {
                                                 ipld}
                   .values();
             }},
+        .ChainGetRandomness =
+            {[=](auto &tipset_key, auto tag, auto epoch, auto &entropy)
+                 -> outcome::result<Randomness> {
+              OUTCOME_TRY(context, tipsetContext(tipset_key));
+              return context.tipset.randomness(*ipld, tag, epoch, entropy);
+            }},
         .ChainGetTipSet = {[=](auto &tipset_key) {
           return chain_store->loadTipset(tipset_key);
         }},
@@ -550,11 +556,11 @@ namespace fc::api {
           }
           return StorageDeal{deal, *deal_state};
         }},
-        .StateMinerElectionPeriodStart = {[=](auto address, auto tipset_key)
-                                              -> outcome::result<ChainEpoch> {
+        .StateMinerDeadlines = {[=](auto &address, auto &tipset_key)
+                                    -> outcome::result<Deadlines> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          return state.proving_period_start;
+          return state.getDeadlines(ipld);
         }},
         .StateMinerFaults = {[=](auto address, auto tipset_key)
                                  -> outcome::result<RleBitset> {

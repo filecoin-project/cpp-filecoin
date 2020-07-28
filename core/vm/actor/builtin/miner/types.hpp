@@ -145,9 +145,27 @@ namespace fc::vm::actor::builtin::miner {
   struct Deadlines {
     std::vector<RleBitset> due;
 
-    std::pair<size_t, size_t> count(size_t partition_size, size_t id) const;
-    std::pair<size_t, size_t> partitions(size_t partition_size,
-                                         size_t id) const;
+    std::pair<size_t, size_t> count(size_t partition_size, size_t index) const {
+      assert(index < due.size());
+      auto sectors{due[index].size()};
+      auto parts{sectors / partition_size};
+      if (sectors % partition_size != 0) {
+        ++parts;
+      }
+      return {parts, sectors};
+    }
+
+    std::pair<size_t, size_t> partitions(size_t part_size, size_t index) const {
+      assert(index < due.size());
+      size_t first_part{0};
+      for (size_t i{0};; ++i) {
+        auto [parts, sectors]{count(part_size, index)};
+        if (i == index) {
+          return {first_part, sectors};
+        }
+        first_part += parts;
+      }
+    }
   };
   CBOR_TUPLE(Deadlines, due)
 
