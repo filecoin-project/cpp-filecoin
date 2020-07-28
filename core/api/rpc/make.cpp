@@ -76,6 +76,7 @@ namespace fc::api {
     setup(rpc, api.ChainGetMessage);
     setup(rpc, api.ChainGetParentMessages);
     setup(rpc, api.ChainGetParentReceipts);
+    setup(rpc, api.ChainGetRandomness);
     setup(rpc, api.ChainGetTipSet);
     setup(rpc, api.ChainGetTipSetByHeight);
     setup(rpc, api.ChainHead);
@@ -109,7 +110,7 @@ namespace fc::api {
     setup(rpc, api.StateMarketDeals);
     setup(rpc, api.StateLookupID);
     setup(rpc, api.StateMarketStorageDeal);
-    setup(rpc, api.StateMinerElectionPeriodStart);
+    setup(rpc, api.StateMinerDeadlines);
     setup(rpc, api.StateMinerFaults);
     setup(rpc, api.StateMinerInfo);
     setup(rpc, api.StateMinerPower);

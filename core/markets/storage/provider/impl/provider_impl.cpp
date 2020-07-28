@@ -55,7 +55,6 @@ namespace fc::markets::storage::provider {
   using vm::actor::builtin::market::PublishStorageDeals;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
-  using vm::message::kMessageVersion;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
@@ -363,8 +362,7 @@ namespace fc::markets::storage::provider {
                     deal->client_deal_proposal.proposal.provider, tipset_key));
     std::vector<ClientDealProposal> params{deal->client_deal_proposal};
     OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
-    UnsignedMessage unsigned_message(kMessageVersion,
-                                     vm::actor::kStorageMarketAddress,
+    UnsignedMessage unsigned_message(vm::actor::kStorageMarketAddress,
                                      worker_info.worker,
                                      0,
                                      TokenAmount{0},

@@ -52,7 +52,7 @@ namespace fc::vm::actor::builtin::miner {
 
   struct SubmitWindowedPoSt : ActorMethodBase<5> {
     struct Params {
-      uint64_t deadline;
+      uint64_t deadline{};
       std::vector<uint64_t> partitions;
       std::vector<PoStProof> proofs;
       RleBitset skipped;

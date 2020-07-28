@@ -21,7 +21,6 @@ namespace fc::payment_channel_manager {
   using vm::actor::builtin::payment_channel::State;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
-  using vm::message::kMessageVersion;
   using vm::message::UnsignedMessage;
   using vm::state::StateTreeImpl;
   using InitActorExec = vm::actor::builtin::init::Exec;
@@ -223,7 +222,6 @@ namespace fc::payment_channel_manager {
   outcome::result<CID> PaymentChannelManagerImpl::addFunds(
       const Address &to, const Address &from, const TokenAmount &amount) {
     UnsignedMessage unsigned_message{
-        kMessageVersion,
         to,
         from,
         {},
@@ -257,8 +255,7 @@ namespace fc::payment_channel_manager {
         .params = MethodParams{encoded_construct_params}};
     OUTCOME_TRY(encoded_init_params, codec::cbor::encode(init_params));
 
-    UnsignedMessage unsigned_message{kMessageVersion,
-                                     kInitAddress,
+    UnsignedMessage unsigned_message{kInitAddress,
                                      client,
                                      {},
                                      amount,
