@@ -38,7 +38,7 @@ namespace fc::sector_storage {
 
     SectorSize getSectorSize() override;
 
-    outcome::result<void> ReadPiece(const proofs::PieceData &output,
+    outcome::result<void> ReadPiece(proofs::PieceData output,
                                     const SectorId &sector,
                                     UnpaddedByteIndex offset,
                                     const UnpaddedPieceSize &size,
