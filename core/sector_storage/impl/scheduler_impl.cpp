@@ -22,7 +22,9 @@ namespace fc::sector_storage {
         || (nthreads = boost::thread::hardware_concurrency())) {
       pool_ = std::make_unique<boost::asio::thread_pool>(nthreads);
     } else {
-      pool_ = std::make_unique<boost::asio::thread_pool>();
+      pool_ = std::make_unique<boost::asio::thread_pool>(
+          1);  // if we cannot get the number of cores, we think that the
+               // processor has 1 core
     }
   }
 
