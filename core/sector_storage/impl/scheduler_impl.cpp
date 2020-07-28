@@ -4,7 +4,9 @@
  */
 
 #include "sector_storage/impl/scheduler_impl.hpp"
-#include "boost/asio/post.hpp"
+#include <boost/asio/post.hpp>
+#include <boost/thread.hpp>
+#include <thread>
 #include "primitives/resources/active_resources.hpp"
 
 namespace fc::sector_storage {
@@ -14,7 +16,15 @@ namespace fc::sector_storage {
   SchedulerImpl::SchedulerImpl(RegisteredProof seal_proof_type)
       : seal_proof_type_(seal_proof_type),
         current_worker_id_(0),
-        logger_(common::createLogger("scheduler")) {}
+        logger_(common::createLogger("scheduler")) {
+    unsigned int nthreads = 0;
+    if ((nthreads = std::thread::hardware_concurrency())
+        || (nthreads = boost::thread::hardware_concurrency())) {
+      pool_ = std::make_unique<boost::asio::thread_pool>(nthreads);
+    } else {
+      pool_ = std::make_unique<boost::asio::thread_pool>();
+    }
+  }
 
   outcome::result<void> SchedulerImpl::schedule(
       const primitives::sector::SectorId &sector,
@@ -143,7 +153,7 @@ namespace fc::sector_storage {
 
     worker->preparing.add(worker->info.resources, need_resources);
 
-    boost::asio::post(pool_, [this, wid, worker, request, need_resources]() {
+    boost::asio::post(*pool_, [this, wid, worker, request, need_resources]() {
       {
         auto maybe_err = request->prepare(worker->worker);
         std::unique_lock<std::mutex> lock(workers_lock_);

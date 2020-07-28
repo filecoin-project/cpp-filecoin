@@ -102,7 +102,7 @@ namespace fc::sector_storage {
                   std::owner_less<std::shared_ptr<TaskRequest>>>
         request_queue_;
 
-    boost::asio::thread_pool pool_;
+    std::unique_ptr<boost::asio::thread_pool> pool_;
 
     common::Logger logger_;
   };
