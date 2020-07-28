@@ -41,4 +41,5 @@ target_link_libraries(proofs
         address
         sector
         piece_data
+        Boost::filesystem
         )

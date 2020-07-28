@@ -19,6 +19,9 @@
 
 namespace fc::sector_storage {
 
+  using primitives::piece::PaddedPieceSize;
+  using proofs::PieceData;
+
   LocalWorker::LocalWorker(WorkerConfig config,
                            std::shared_ptr<stores::RemoteStore> store)
       : remote_store_(std::move(store)),
@@ -204,8 +207,8 @@ namespace fc::sector_storage {
       maybe_unseal_file =
           remote_store_->acquireSector(sector,
                                        config_.seal_proof_type,
-                                       SectorFileType::FTUnsealed,
                                        SectorFileType::FTNone,
+                                       SectorFileType::FTUnsealed,
                                        false);
       if (maybe_unseal_file.has_error()) {
         return maybe_unseal_file.error();
@@ -221,27 +224,49 @@ namespace fc::sector_storage {
                     SectorFileType::FTNone,
                     false));
 
-    return proofs::Proofs::unsealRange(config_.seal_proof_type,
-                                       response.paths.cache,
-                                       response.paths.sealed,
-                                       maybe_unseal_file.value().paths.unsealed,
-                                       sector.sector,
-                                       sector.miner,
-                                       randomness,
-                                       unsealed_cid,
-                                       primitives::piece::paddedIndex(offset),
-                                       size.padded());
+    boost::filesystem::path temp_file_path =
+        boost::filesystem::temp_directory_path()
+        / boost::filesystem::unique_path();
+
+    std::ofstream temp_file(temp_file_path.string());
+    if (!temp_file.good()) {
+      return WorkerErrors::kCannotCreateTempFile;
+    }
+    temp_file.close();
+
+    auto _ = gsl::finally([&]() {
+      boost::system::error_code ec;
+      boost::filesystem::remove(temp_file_path, ec);
+      if (ec.failed()) {
+        logger_->warn("Unable remove temp file: " + ec.message());
+      }
+    });
+
+    OUTCOME_TRY(
+        proofs::Proofs::unsealRange(config_.seal_proof_type,
+                                    response.paths.cache,
+                                    response.paths.sealed,
+                                    temp_file_path.string(),
+                                    sector.sector,
+                                    sector.miner,
+                                    randomness,
+                                    unsealed_cid,
+                                    primitives::piece::paddedIndex(offset),
+                                    size.padded()));
+
+    return proofs::Proofs::writeUnsealPiece(
+        temp_file_path.string(),
+        maybe_unseal_file.value().paths.unsealed,
+        config_.seal_proof_type,
+        PaddedPieceSize(primitives::piece::paddedIndex(offset)),
+        size);
   }
 
   outcome::result<void> sector_storage::LocalWorker::readPiece(
-      const proofs::PieceData &output,
+      proofs::PieceData output,
       const SectorId &sector,
       primitives::piece::UnpaddedByteIndex offset,
       const primitives::piece::UnpaddedPieceSize &size) {
-    if (!output.isOpened()) {
-      return WorkerErrors::kOutputDoesNotOpen;
-    }
-
     OUTCOME_TRY(response,
                 remote_store_->acquireSector(sector,
                                              config_.seal_proof_type,
@@ -249,43 +274,12 @@ namespace fc::sector_storage {
                                              SectorFileType::FTNone,
                                              false));
 
-    OUTCOME_TRY(max_size,
-                primitives::sector::getSectorSize(config_.seal_proof_type));
-
-    if (primitives::piece::paddedIndex(offset) + size.padded() > max_size) {
-      return WorkerErrors::kOutOfBoundOfFile;
-    }
-
-    std::ifstream input(response.paths.unsealed,
-                        std::ios_base::in | std::ios_base::binary);
-
-    if (!input.good()) {
-      return WorkerErrors::kCannotOpenUnsealedFile;
-    }
-
-    input.seekg(primitives::piece::paddedIndex(offset), std::ios_base::beg);
-
-    constexpr uint64_t chunk_size = 256;
-    char buffer[chunk_size];
-
-    auto sealed_file_fd = output.getFd();
-
-    for (uint64_t read_size = 0; read_size < size;) {
-      uint64_t curr_read_size = std::min(chunk_size, size - read_size);
-
-      // read data as a block:
-      input.read(buffer, curr_read_size);
-
-      auto read_bytes = input.gcount();
-
-      write(sealed_file_fd, buffer, read_bytes);
-
-      read_size += read_bytes;
-    }
-
-    input.close();
-
-    return outcome::success();
+    return proofs::Proofs::readPiece(
+        std::move(output),
+        response.paths.unsealed,
+        primitives::piece::PaddedPieceSize(
+            primitives::piece::paddedIndex(offset)),
+        size);
   }
 
   outcome::result<primitives::WorkerInfo>

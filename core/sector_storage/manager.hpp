@@ -27,7 +27,7 @@ namespace fc::sector_storage {
    public:
     virtual SectorSize getSectorSize() = 0;
 
-    virtual outcome::result<void> ReadPiece(const proofs::PieceData &output,
+    virtual outcome::result<void> ReadPiece(proofs::PieceData output,
                                             const SectorId &sector,
                                             UnpaddedByteIndex offset,
                                             const UnpaddedPieceSize &size,

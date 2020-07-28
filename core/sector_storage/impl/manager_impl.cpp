@@ -182,7 +182,7 @@ namespace fc::sector_storage {
     return 0;
   }
 
-  outcome::result<void> ManagerImpl::ReadPiece(const proofs::PieceData &output,
+  outcome::result<void> ManagerImpl::ReadPiece(proofs::PieceData output,
                                                const SectorId &sector,
                                                UnpaddedByteIndex offset,
                                                const UnpaddedPieceSize &size,
@@ -248,7 +248,7 @@ namespace fc::sector_storage {
         selector,
         schedFetch(sector, SectorFileType::FTUnsealed, true),
         [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
-          return worker->readPiece(output, sector, offset, size);
+          return worker->readPiece(std::move(output), sector, offset, size);
         });
   }
 

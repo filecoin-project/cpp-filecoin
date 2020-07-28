@@ -20,6 +20,10 @@ namespace fc::proofs {
     kInvalidPostProof,
     kOutOfBound,
     kUnableMoveCursor,
+    kFileDoesntExist,
+    kNotReadEnough,
+    kNotWriteEnough,
+    kCannotCreateUnsealedFile,
     kUnknown = 1000
   };
 

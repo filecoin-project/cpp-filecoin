@@ -17,10 +17,8 @@
 #include "primitives/sector/sector.hpp"
 
 namespace fc::proofs {
-
   using common::Blob;
   using crypto::randomness::Randomness;
-
   using Devices = std::vector<std::string>;
   using Phase1Output = std::vector<uint8_t>;
   using ChallengeIndexes = std::vector<uint64_t>;
@@ -28,6 +26,7 @@ namespace fc::proofs {
   using primitives::ActorId;
   using primitives::SectorNumber;
   using primitives::SectorSize;
+  using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceData;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
@@ -106,6 +105,18 @@ namespace fc::proofs {
         const UnpaddedPieceSize &piece_bytes,
         const std::string &staged_sector_file_path,
         gsl::span<const UnpaddedPieceSize> existing_piece_sizes);
+
+    static outcome::result<void> readPiece(PieceData output,
+                                           const std::string &unsealed_file,
+                                           const PaddedPieceSize &offset,
+                                           const UnpaddedPieceSize &piece_size);
+
+    static outcome::result<void> writeUnsealPiece(
+        const std::string &unseal_piece_file_path,
+        const std::string &staged_sector_file_path,
+        RegisteredProof seal_proof_type,
+        const PaddedPieceSize &offset,
+        const UnpaddedPieceSize &piece_size);
 
     /**
      * @brief  Seals the staged sector at staged_sector_path in place, saving

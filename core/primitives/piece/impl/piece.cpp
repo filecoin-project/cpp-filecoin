@@ -39,7 +39,7 @@ namespace fc::primitives::piece {
     }
 
     // is 127 * 2^n
-    if (!((size_ % 127) || ((size_ / 127) & ((size_ / 127) - 1)))) {
+    if ((size_ % 127) || ((size_ / 127) & ((size_ / 127) - 1))) {
       return PieceError::kInvalidUnpaddedSize;
     }
 
@@ -68,7 +68,7 @@ namespace fc::primitives::piece {
       return PieceError::kLessThatMinimumPaddedSize;
     }
 
-    if (!((size_) & (size_ - 1))) {
+    if ((size_) & (size_ - 1)) {
       return PieceError::kInvalidPaddedSize;
     }
 
