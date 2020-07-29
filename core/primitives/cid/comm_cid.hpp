@@ -15,73 +15,41 @@ namespace fc::common {
   // CommRStar.
   const int kCommitmentBytesLen = 32;
   using Comm = Blob<kCommitmentBytesLen>;
-  using ::libp2p::multi::MulticodecType;
-  using ::libp2p::multi::Multihash;
 
-  CID replicaCommitmentV1ToCID(gsl::span<const uint8_t> comm_r);
-  CID dataCommitmentV1ToCID(gsl::span<const uint8_t> comm_d);
-  CID pieceCommitmentV1ToCID(gsl::span<const uint8_t> comm_p);
+  using FilMultiCodec = CID::Multicodec;
+  using FilMultiHash = libp2p::multi::HashType;
 
-  using FilecoinMultihashCode = uint64_t;
+  const FilMultiCodec kFilCodecUndefined = static_cast<FilMultiCodec>(0);
+  const FilMultiHash kFilMultiHashUndefined = static_cast<FilMultiHash>(0);
 
-  enum FilecoinHashType : FilecoinMultihashCode {
-    // FC_UNSEALED_V1 is the v1 hashing algorithm used in
-    // constructing merkleproofs of unsealed data
-    FC_UNSEALED_V1 = 0xfc1,
-    // FC_SEALED_V1 is the v1 hashing algorithm used in
-    // constructing merkleproofs of sealed replicated data
-    FC_SEALED_V1,
+  outcome::result<CID> commitmentToCID(FilMultiCodec codec,
+                                       FilMultiHash hash,
+                                       gsl::span<const uint8_t> comm_x);
 
-    // FC_RESERVED3 is reserved for future use
-    FC_RESERVED3,
-
-    // FC_RESERVED4 is reserved for future use
-    FC_RESERVED4,
-
-    // FC_RESERVED5 is reserved for future use
-    FC_RESERVED5,
-
-    // FC_RESERVED6 is reserved for future use
-    FC_RESERVED6,
-
-    // FC_RESERVED7 is reserved for future use
-    FC_RESERVED7,
-
-    // FC_RESERVED8 is reserved for future use
-    FC_RESERVED8,
-
-    // FC_RESERVED9 is reserved for future use
-    FC_RESERVED9,
-
-    // FC_RESERVED10 is reserved for future use
-    FC_RESERVED10,
+  struct Commitment {
+    FilMultiCodec codec = kFilCodecUndefined;
+    FilMultiHash hash = kFilMultiHashUndefined;
+    Comm comm_x;
   };
 
-  const std::unordered_map<FilecoinMultihashCode, const std::string>
-      kFilecoinMultihashNames({
-          {FC_UNSEALED_V1, "Filecoin Merkleproof Of Unsealed Data, V1"},
-          {FC_SEALED_V1, "Filecoin Merkleproof Of Sealed Data, V1"},
-          {FC_RESERVED3, "Reserved"},
-          {FC_RESERVED4, "Reserved"},
-          {FC_RESERVED5, "Reserved"},
-          {FC_RESERVED6, "Reserved"},
-          {FC_RESERVED7, "Reserved"},
-          {FC_RESERVED8, "Reserved"},
-          {FC_RESERVED9, "Reserved"},
-          {FC_RESERVED10, "Reserved"},
-      });
+  outcome::result<Commitment> CIDToCommitment(const CID &cid);
 
-  const auto kFilecoinCodecType = MulticodecType::Code::RAW;
-
-  outcome::result<CID> commitmentToCID(gsl::span<const uint8_t> commitment,
-                                       FilecoinMultihashCode code);
+  outcome::result<CID> replicaCommitmentV1ToCID(
+      gsl::span<const uint8_t> comm_r);
+  outcome::result<CID> dataCommitmentV1ToCID(gsl::span<const uint8_t> comm_d);
+  outcome::result<CID> pieceCommitmentV1ToCID(gsl::span<const uint8_t> comm_p);
 
   outcome::result<Comm> CIDToPieceCommitmentV1(const CID &cid);
   outcome::result<Comm> CIDToReplicaCommitmentV1(const CID &cid);
-
   outcome::result<Comm> CIDToDataCommitmentV1(const CID &cid);
-  outcome::result<Multihash> CIDToCommitment(const CID &cid);
 
+  enum class CommCidErrors {
+    kIncorrectCodec = 1,
+    kIncorrectHash,
+    kInvalidCommSize,
+  };
 };  // namespace fc::common
+
+OUTCOME_HPP_DECLARE_ERROR(fc::common, CommCidErrors);
 
 #endif  // CPP_FILECOIN_COMM_CID_HPP
