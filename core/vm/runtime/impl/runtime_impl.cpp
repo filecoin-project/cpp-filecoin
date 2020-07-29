@@ -211,7 +211,8 @@ namespace fc::vm::runtime {
         }
         auto level = z - skip - 5;
         assert(level >= 0 && level < std::size(comms));
-        pieces2.push_back({p, common::pieceCommitmentV1ToCID(comms[level])});
+        OUTCOME_TRY(cid, common::pieceCommitmentV1ToCID(comms[level]));
+        pieces2.push_back({p, std::move(cid)});
       }
     }
     return proofs::Proofs::generateUnsealedCID(type, pieces2);
