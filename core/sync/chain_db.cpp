@@ -3,36 +3,82 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "tipset_graph.hpp"
+#include "chain_db.hpp"
 
 namespace fc::sync {
 
-  TipsetCache createTipsetCache(size_t max_size) {
-    return TipsetCache(max_size,
-                       [](const Tipset &tipset) { return tipset.key.hash(); });
-  }
+  namespace {
+    TipsetCache createTipsetCache(size_t max_size) {
+      return TipsetCache(
+          max_size, [](const Tipset &tipset) { return tipset.key.hash(); });
+    }
+  }  // namespace
 
   ChainDb::ChainDb()
-      : state_error_(NOT_INITIALIZED), tipset_cache_(createTipsetCache(1000)) {}
+      : state_error_(Error::SYNC_NOT_INITIALIZED),
+        tipset_cache_(createTipsetCache(1000)) {}
 
   outcome::result<void> ChainDb::init(KeyValueStoragePtr key_value_storage,
-                                      IpfsStoragePtr ipfs_storage,
+                                      IpfsStoragePtr ipld,
                                       std::shared_ptr<IndexDb> index_db,
-                                      const std::string &load_car_path) {
+                                      const boost::optional<CID> &genesis_cid,
+                                      bool creating_new_db) {
     assert(key_value_storage);
-    assert(ipfs_storage);
+    assert(ipld);
     assert(index_db);
 
+    key_value_storage_ = std::move(key_value_storage);
+    ipld_ = std::move(ipld);
+    index_db_ = std::move(index_db);
+
     try {
-      // load car
-      // load genesis tipset
-      // load branches
+      OUTCOME_EXCEPT(branches_map, index_db_->init());
 
       state_error_.clear();
+
+      if (creating_new_db) {
+        if (!genesis_cid) {
+          throw std::system_error(Error::SYNC_NO_GENESIS);
+        }
+        if (!branches_map.empty()) {
+          throw std::system_error(Error::SYNC_DATA_INTEGRITY_ERROR);
+        }
+        OUTCOME_EXCEPT(gt, Tipset::loadGenesis(*ipld_, genesis_cid.value()));
+
+        assert(gt.key.cids()[0] == genesis_cid.value());
+
+        genesis_tipset_ = std::make_shared<Tipset>(std::move(gt));
+        OUTCOME_EXCEPT(branches_.storeGenesis(genesis_tipset_));
+        OUTCOME_EXCEPT(index_db_->storeGenesis(*genesis_tipset_));
+      } else {
+        if (branches_map.empty()) {
+          throw std::system_error(Error::SYNC_NO_GENESIS);
+        }
+        OUTCOME_EXCEPT(branches_.init(std::move(branches_map)));
+        OUTCOME_EXCEPT(info, index_db_->get(kGenesisBranch, 0));
+        genesis_tipset_ = std::make_shared<Tipset>();
+        if (genesis_cid) {
+          if (genesis_cid.value() != info->key.cids()[0]) {
+            throw std::system_error(Error::SYNC_GENESIS_MISMATCH);
+          }
+        }
+        OUTCOME_TRYA(*genesis_tipset_,
+                     Tipset::loadGenesis(*ipld_, info->key.cids()[0]));
+      }
+
     } catch (const std::system_error &e) {
+      state_error_ = e.code();
       return e.code();
     }
 
+    return outcome::success();
+  }
+
+  outcome::result<void> ChainDb::start(HeadCallback on_heads_changed) {
+    assert(on_heads_changed);
+    OUTCOME_TRY(stateIsConsistent());
+    head_callback_ = std::move(on_heads_changed);
+    started_ = true;
     return outcome::success();
   }
 
@@ -55,9 +101,9 @@ namespace fc::sync {
     return *genesis_tipset_;
   }
 
-  const std::string &ChainDb::networkName() const {
+  bool ChainDb::tipsetIsStored(const TipsetHash &hash) const {
     OUTCOME_EXCEPT(stateIsConsistent());
-    return network_name_;
+    return key_value_storage_->contains(common::Buffer(hash));
   }
 
   outcome::result<void> ChainDb::getHeads(const HeadCallback &callback) {
@@ -65,7 +111,6 @@ namespace fc::sync {
     OUTCOME_TRY(stateIsConsistent());
     auto heads = branches_.getAllHeads();
     for (const auto &[hash, _] : heads) {
-      // TODO OUTCOME_TRY(tipset, getTipsetByHash(hash));
       callback(boost::none, hash);
     }
     return outcome::success();
@@ -73,13 +118,17 @@ namespace fc::sync {
 
   outcome::result<TipsetCPtr> ChainDb::getTipsetByHash(const TipsetHash &hash) {
     OUTCOME_TRY(stateIsConsistent());
+    if (hash == genesis_tipset_->key.hash()) {
+      // special case due to tickets and loading
+      return genesis_tipset_;
+    }
     TipsetCPtr tipset = tipset_cache_.get(hash);
     if (tipset) {
       return tipset;
     }
     OUTCOME_TRY(info, index_db_->get(hash));
     auto sptr = std::make_shared<Tipset>();
-    OUTCOME_TRYA(*sptr, Tipset::load(*ipfs_storage_, info->key.cids()));
+    OUTCOME_TRYA(*sptr, Tipset::load(*ipld_, info->key.cids()));
     tipset_cache_.put(sptr, false);
     return sptr;
   }
@@ -147,57 +196,86 @@ namespace fc::sync {
     return e;
   }
 
-  outcome::result<void> ChainDb::storeTipset(
-      std::shared_ptr<Tipset> tipset,
-      const TipsetHash &parent_hash,
-      const HeadCallback &on_heads_changed) {
+  outcome::result<boost::optional<TipsetCPtr>> ChainDb::storeTipset(
+      std::shared_ptr<Tipset> tipset, const TipsetKey &parent) {
     OUTCOME_TRY(stateIsConsistent());
+    if (!started_) {
+      return Error::SYNC_NOT_INITIALIZED;
+    }
 
-    assert(on_heads_changed);
     assert(tipset);
 
     if (tipsetIsStored(tipset->key.hash())) {
-      return outcome::success();
+      return getUnsyncedBottom(tipset->key);
     }
     if (tipset->height() == 0) {
-      return Error::TIPSET_IS_BAD;
+      return Error::SYNC_BAD_TIPSET;
     }
     if ((tipset->height() == 1)
-        && (parent_hash != genesis_tipset_->key.hash())) {
-      return Error::TIPSET_IS_BAD;
+        && (parent.hash() != genesis_tipset_->key.hash())) {
+      return Error::SYNC_BAD_TIPSET;
     }
 
-    bool parent_must_exist = tipsetIsStored(parent_hash);
+    bool parent_must_exist = tipsetIsStored(parent.hash());
     BranchId parent_branch = kNoBranch;
     Height parent_height = 0;
     if (parent_must_exist) {
-      OUTCOME_TRY(info, index_db_->get(parent_hash));
+      OUTCOME_TRY(info, index_db_->get(parent.hash()));
       parent_branch = info->branch;
       parent_height = info->height;
     }
 
     OUTCOME_TRY(store_position,
                 branches_.findStorePosition(
-                    *tipset, parent_hash, parent_branch, parent_height));
+                    *tipset, parent.hash(), parent_branch, parent_height));
 
     auto info =
         std::make_shared<TipsetInfo>(TipsetInfo{tipset->key,
                                                 store_position.assigned_branch,
                                                 tipset->height(),
-                                                parent_hash});
+                                                parent.hash()});
 
     OUTCOME_TRY(index_db_->store(std::move(info), store_position.split));
 
     tipset_cache_.put(tipset, false);
 
     auto head_changes =
-        branches_.storeTipset(tipset, parent_hash, store_position);
+        branches_.storeTipset(tipset, parent.hash(), store_position);
 
-    for (auto& change : head_changes) {
-      on_heads_changed(std::move(change.removed), std::move(change.added));
+    if (head_changes.empty()) {
+      // no heads appeared, this branch is unsynced
+      if (store_position.at_bottom_of_branch
+          == store_position.assigned_branch) {
+        return TipsetCPtr(tipset);
+      }
+
+      // need to search for bottom
+      OUTCOME_TRY(branch_info,
+                  branches_.getRootBranch(store_position.assigned_branch));
+      if (branch_info->id != kGenesisBranch) {
+        OUTCOME_TRY(last_loaded, getTipsetByHash(branch_info->bottom));
+        return std::move(last_loaded);
+      }
+
+    } else {
+      for (auto &change : head_changes) {
+        head_callback_(std::move(change.removed), std::move(change.added));
+      }
     }
 
-    return outcome::success();
+    return boost::none;
+  }
+
+  outcome::result<boost::optional<TipsetCPtr>> ChainDb::getUnsyncedBottom(
+      const TipsetKey &key) {
+    OUTCOME_TRY(tipset_info, index_db_->get(key.hash()));
+    OUTCOME_TRY(branch_info,
+                branches_.getRootBranch(tipset_info->branch));
+    if (branch_info->id != kGenesisBranch) {
+      OUTCOME_TRY(last_loaded, getTipsetByHash(branch_info->bottom));
+      return std::move(last_loaded);
+    }
+    return boost::none;
   }
 
 }  // namespace fc::sync

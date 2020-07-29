@@ -222,8 +222,19 @@ namespace fc::sync {
     }
   }
 
+  outcome::result<void> Branches::storeGenesis(
+      const TipsetCPtr &genesis_tipset) {
+    if (!empty()) {
+      return Error::BRANCHES_STORE_ERROR;
+    }
+    StorePosition pos;
+    pos.assigned_branch = kGenesisBranch;
+    storeTipset(genesis_tipset, TipsetHash{}, pos);
+    return outcome::success();
+  }
+
   std::vector<Branches::HeadChange> Branches::storeTipset(
-      TipsetCPtr tipset,
+      const TipsetCPtr &tipset,
       const TipsetHash &parent_hash,
       const StorePosition &pos) {
     std::vector<Branches::HeadChange> changes;
@@ -240,7 +251,7 @@ namespace fc::sync {
       newBranch(hash, height, parent_hash, pos);
       if (height == 0) {
         // genesis
-        return {HeadChange{boost::none, hash}};
+        return {};
       }
     }
 
@@ -361,23 +372,21 @@ namespace fc::sync {
     ptr->bottom_height = height;
     ptr->parent_hash = parent_hash;
 
-    all_branches_[ptr->id] = std::move(ptr);
+    all_branches_[ptr->id] = ptr;
     heads_[hash] = ptr;
 
     if (parent_hash.empty()) {
       // here is genesis
       assert(pos.assigned_branch == kGenesisBranch);
       assert(height == 0);
-      assert(empty());
 
       ptr->synced_to_genesis = true;
-      genesis_branch_ = ptr;
-
+      genesis_branch_ = std::move(ptr);
       return;
     }
 
     assert(height > 0);
-    unloaded_roots_[parent_hash] = ptr;
+    unloaded_roots_[parent_hash] = std::move(ptr);
   }
 
   void Branches::mergeBranches(const BranchPtr &branch,
@@ -415,6 +424,17 @@ namespace fc::sync {
       return Error::BRANCHES_BRANCH_NOT_FOUND;
     }
     return it->second;
+  }
+
+  outcome::result<BranchCPtr> Branches::getRootBranch(BranchId id) const {
+    for (;;) {
+      OUTCOME_TRY(info, getBranch(id));
+      if (info->parent == kNoBranch) {
+        return std::move(info);
+      }
+      id = info->id;
+    }
+    return Error::BRANCHES_BRANCH_NOT_FOUND;
   }
 
   Branches::BranchPtr Branches::getBranch(BranchId id) {
@@ -465,7 +485,7 @@ namespace fc::sync {
         return loadFailed();
       }
 
-      auto& b = *ptr;
+      auto &b = *ptr;
 
       if (id != b.id || id == kNoBranch) {
         log()->error("cannot load graph: inconsistent branch id {}", id);
@@ -513,10 +533,12 @@ namespace fc::sync {
       } else {
         if (b.id == kGenesisBranch) {
           genesis_branch_ = ptr;
-        } else  {
+        } else {
           if (b.parent_hash.empty()) {
-            log()->error("cannot load graph: expected parent hash for "
-                         "branch id={}", b.id);
+            log()->error(
+                "cannot load graph: expected parent hash for "
+                "branch id={}",
+                b.id);
             return Error::BRANCHES_PARENT_EXPECTED;
           }
           unloaded_roots_[b.parent_hash] = ptr;
@@ -536,7 +558,6 @@ namespace fc::sync {
       if (ptr->forks.empty() && !ptr->synced_to_genesis) {
         heads_[ptr->top] = ptr;
       } else if (ptr->forks.size() == 1) {
-
         // this is intermediate state between splitBranch and storeTipset,
         // should not be stored
 

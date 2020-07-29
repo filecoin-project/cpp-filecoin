@@ -10,18 +10,16 @@ namespace fc::sync {
 
   SyncJob::SyncJob(libp2p::protocol::Scheduler &scheduler,
                    TipsetLoader &tipset_loader,
-                   storage::indexdb::IndexDb &index_db,
+                   ChainDb &chain_db,
                    Callback callback)
       : scheduler_(scheduler),
         tipset_loader_(tipset_loader),
-        index_db_(index_db),
+        chain_db_(chain_db),
         callback_(std::move(callback)) {
     assert(callback_);
   }
 
   void SyncJob::start(PeerId peer, TipsetKey head, uint64_t probable_depth) {
-    using namespace storage::indexdb;
-
     if (active_) {
       // log~~
       return;
@@ -32,7 +30,7 @@ namespace fc::sync {
     status_.head = std::move(head);
 
     try {
-      if (!index_db_.tipsetExists(head.hash())) {
+      if (!chain_db_.tipsetIsStored(head.hash())) {
         // not indexed, loading...
         OUTCOME_EXCEPT(tipset_loader_.loadTipsetAsync(
             status_.head.value(), status_.peer, probable_depth));
@@ -41,36 +39,10 @@ namespace fc::sync {
         return;
       }
 
-      OUTCOME_EXCEPT(tipset_info, index_db_.getTipsetInfo(head.hash()));
+      OUTCOME_EXCEPT(maybe_next_target, chain_db_.getUnsyncedBottom(head));
 
-      // we should resume interrupted syncing
-      status_.branch = tipset_info.branch;
+      nextTarget(std::move(maybe_next_target));
 
-      bool already_synced = (status_.branch == kGenesisBranch);
-
-      if (!already_synced) {
-        OUTCOME_EXCEPT(branch_info, index_db_.getBranchInfo(status_.branch));
-
-        if (branch_info.root == kGenesisBranch) {
-          already_synced = true;
-        } else {
-          OUTCOME_EXCEPT(root_branch,
-                         index_db_.getBranchInfo(branch_info.root));
-          OUTCOME_EXCEPT(parent_key,
-                         index_db_.getParentTipsetKey(root_branch.bottom));
-          status_.last_loaded = root_branch.bottom;
-          status_.next = parent_key.hash();
-          OUTCOME_EXCEPT(tipset_loader_.loadTipsetAsync(
-              parent_key, status_.peer, root_branch.bottom_height));
-          status_.branch = root_branch.id;
-          status_.code = SyncStatus::IN_PROGRESS;
-        }
-      }
-
-      if (already_synced) {
-        status_.code = SyncStatus::SYNCED_TO_GENESIS;
-        scheduleCallback();
-      }
     } catch (const std::system_error &e) {
       // log ~~~
       internalError(e.code());
@@ -94,8 +66,8 @@ namespace fc::sync {
     return status_;
   }
 
-  void SyncJob::onTipsetLoaded(TipsetHash hash,
-                               outcome::result<Tipset> result) {
+  void SyncJob::onTipsetLoaded(
+      TipsetHash hash, outcome::result<std::shared_ptr<Tipset>> result) {
     if (status_.code != SyncStatus::IN_PROGRESS || !status_.next.has_value()
         || hash != status_.next.value()) {
       // dont need this tipset
@@ -104,36 +76,15 @@ namespace fc::sync {
 
     try {
       OUTCOME_EXCEPT(tipset, result);
-      OUTCOME_EXCEPT(parent_key, tipset.getParents());
-      bool parent_exists = index_db_.tipsetExists(parent_key.hash());
-      OUTCOME_EXCEPT(
-          apply_result,
-          index_db_.applyTipset(
-              tipset, parent_exists, parent_key.hash(), status_.last_loaded));
+      OUTCOME_EXCEPT(parent_key, tipset->getParents());
+      OUTCOME_EXCEPT(maybe_next_target,
+                     chain_db_.storeTipset(tipset, parent_key));
 
-      status_.last_loaded = tipset.key.hash();
-      status_.branch = apply_result.this_branch;
-
-      if (apply_result.root_is_genesis) {
-        status_.next = parent_key.hash();
-        status_.code = SyncStatus::SYNCED_TO_GENESIS;
-        scheduleCallback();
-        return;
-      }
-
-      if (parent_exists) {
-        OUTCOME_EXCEPT(roots,
-                       index_db_.getUnsyncedRootsOf(parent_key.hash()));
-        status_.last_loaded = std::move(roots.last_loaded);
-        status_.next = roots.to_load.hash();
-        status_.branch = roots.branch;
-
-        OUTCOME_EXCEPT(tipset_loader_.loadTipsetAsync(
-            roots.to_load, status_.peer, roots.height));
-      }
+      nextTarget(std::move(maybe_next_target));
 
     } catch (const std::system_error &e) {
       // TODO (artem) separate bad blocks error vs. other errors
+      internalError(e.code());
     }
   }
 
@@ -150,6 +101,24 @@ namespace fc::sync {
       active_ = false;
       callback_(s);
     });
+  }
+
+  void SyncJob::nextTarget(boost::optional<TipsetCPtr> last_loaded) {
+    if (!last_loaded) {
+      status_.next = TipsetHash{};
+      status_.code = SyncStatus::SYNCED_TO_GENESIS;
+      scheduleCallback();
+      return;
+    }
+
+    auto &roots = last_loaded.value();
+
+    status_.last_loaded = roots->key.hash();
+    OUTCOME_EXCEPT(next_key, roots->getParents());
+    status_.next = next_key.hash();
+
+    OUTCOME_EXCEPT(tipset_loader_.loadTipsetAsync(
+        std::move(next_key), status_.peer, roots->height()));
   }
 
   void Syncer::start() {
@@ -233,7 +202,7 @@ namespace fc::sync {
 
     if (!current_job_) {
       current_job_ = std::make_unique<SyncJob>(
-          *scheduler_, *tipset_loader_, *index_db_, [this](SyncStatus status) {
+          *scheduler_, *tipset_loader_, *chain_db_, [this](SyncStatus status) {
             onSyncJobFinished(std::move(status));
           });
     }
@@ -249,9 +218,16 @@ namespace fc::sync {
         std::move(peer), std::move(head_tipset), probable_depth);
   }
 
-  void Syncer::onTipsetLoaded(TipsetHash hash, outcome::result<Tipset> tipset) {
+  void Syncer::onTipsetLoaded(TipsetHash hash,
+                              outcome::result<Tipset> tipset_res) {
     if (isActive()) {
-      current_job_->onTipsetLoaded(std::move(hash), std::move(tipset));
+      if (tipset_res) {
+        current_job_->onTipsetLoaded(
+            std::move(hash),
+            std::make_shared<Tipset>(std::move(tipset_res.value())));
+      } else {
+        current_job_->onTipsetLoaded(std::move(hash), tipset_res.error());
+      }
     }
   }
 

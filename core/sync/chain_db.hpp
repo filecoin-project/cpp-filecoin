@@ -3,47 +3,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/ipfs/datastore.hpp"
 #include "branches.hpp"
 #include "index_db.hpp"
+#include "storage/ipfs/datastore.hpp"
 
-#ifndef CPP_FILECOIN_SYNC_TIPSET_GRAPH_HPP
-#define CPP_FILECOIN_SYNC_TIPSET_GRAPH_HPP
+#ifndef CPP_FILECOIN_SYNC_CHAIN_DB_HPP
+#define CPP_FILECOIN_SYNC_CHAIN_DB_HPP
 
 namespace fc::sync {
 
   using TipsetCache = LRUCache<TipsetHash, Tipset>;
 
-  TipsetCache createTipsetCache(size_t max_size = 10000);
-
   using IpfsStoragePtr = std::shared_ptr<storage::ipfs::IpfsDatastore>;
-
-  std::pair<KeyValueStoragePtr, IpfsStoragePtr> createStorages(
-      const std::string &path);
 
   class ChainDb {
    public:
-    enum Error {
-      NOT_INITIALIZED = 1,
-      GENESIS_MISMATCH,
-      TIPSET_IS_BAD,
-      TIPSET_NOT_FOUND,
-    };
-
     ChainDb();
 
     outcome::result<void> init(KeyValueStoragePtr key_value_storage,
-                               IpfsStoragePtr ipfs_storage,
+                               IpfsStoragePtr ipld,
                                std::shared_ptr<IndexDb> index_db,
-                               const std::string &load_car_path);
+                               const boost::optional<CID> &genesis_cid,
+                               bool creating_new_db);
+
+    outcome::result<void> start(HeadCallback on_heads_changed);
 
     outcome::result<void> stateIsConsistent() const;
 
     const CID &genesisCID() const;
 
     const Tipset &genesisTipset() const;
-
-    const std::string &networkName() const;
 
     bool tipsetIsStored(const TipsetHash &hash) const;
 
@@ -63,24 +52,25 @@ namespace fc::sync {
                                        Height to_height,
                                        const WalkCallback &cb);
 
-    outcome::result<void> storeTipset(std::shared_ptr<Tipset> tipset,
-                                      const TipsetHash &parent_hash,
-                                      const HeadCallback &on_heads_changed);
+    /// returns next unsynced tipset to be loaded, if any
+    outcome::result<boost::optional<TipsetCPtr>> storeTipset(
+        std::shared_ptr<Tipset> tipset, const TipsetKey &parent);
+
+    outcome::result<boost::optional<TipsetCPtr>> getUnsyncedBottom(
+        const TipsetKey &key);
 
    private:
     std::error_code state_error_;
     KeyValueStoragePtr key_value_storage_;
-    IpfsStoragePtr ipfs_storage_;
+    IpfsStoragePtr ipld_;
     std::shared_ptr<IndexDb> index_db_;
-    TipsetCPtr genesis_tipset_;
-    std::string network_name_;
+    std::shared_ptr<Tipset> genesis_tipset_;
     Branches branches_;
     TipsetCache tipset_cache_;
-
+    HeadCallback head_callback_;
+    bool started_ = false;
   };
 
 }  // namespace fc::sync
 
-OUTCOME_HPP_DECLARE_ERROR(fc::sync, ChainDb::Error);
-
-#endif  // CPP_FILECOIN_SYNC_TIPSET_GRAPH_HPP
+#endif  // CPP_FILECOIN_SYNC_CHAIN_DB_HPP

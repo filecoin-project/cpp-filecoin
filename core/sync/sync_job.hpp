@@ -7,14 +7,11 @@
 #define CPP_FILECOIN_SYNC_JOB_HPP
 
 #include <libp2p/protocol/common/scheduler.hpp>
-#include "common.hpp"
-#include "storage/indexdb/indexdb.hpp"
+#include "chain_db.hpp"
 
 namespace fc::sync {
 
   class TipsetLoader;
-
-  using storage::indexdb::BranchId;
 
   struct SyncStatus {
     enum StatusCode {
@@ -32,7 +29,6 @@ namespace fc::sync {
     boost::optional<TipsetKey> head;
     boost::optional<TipsetHash> last_loaded;
     boost::optional<TipsetHash> next;
-    BranchId branch = storage::indexdb::kNoBranch;
     uint64_t total = 0;
   };
 
@@ -42,7 +38,7 @@ namespace fc::sync {
 
     SyncJob(libp2p::protocol::Scheduler &scheduler,
             TipsetLoader &tipset_loader,
-            storage::indexdb::IndexDb &index_db,
+            ChainDb &chain_db,
             Callback callback);
 
     void start(PeerId peer, TipsetKey head, uint64_t probable_depth);
@@ -53,16 +49,19 @@ namespace fc::sync {
 
     const SyncStatus &getStatus() const;
 
-    void onTipsetLoaded(TipsetHash hash, outcome::result<Tipset> result);
+    void onTipsetLoaded(TipsetHash hash,
+                        outcome::result<std::shared_ptr<Tipset>> result);
 
    private:
     void internalError(std::error_code e);
 
     void scheduleCallback();
 
+    void nextTarget(boost::optional<TipsetCPtr> last_loaded);
+
     libp2p::protocol::Scheduler &scheduler_;
     TipsetLoader &tipset_loader_;
-    storage::indexdb::IndexDb &index_db_;
+    ChainDb &chain_db_;
     bool active_ = false;
     SyncStatus status_;
     Callback callback_;
@@ -105,7 +104,7 @@ namespace fc::sync {
 
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<TipsetLoader> tipset_loader_;
-    std::shared_ptr<storage::indexdb::IndexDb> index_db_;
+    std::shared_ptr<ChainDb> chain_db_;
     Callback callback_;
 
     PendingTargets pending_targets_;

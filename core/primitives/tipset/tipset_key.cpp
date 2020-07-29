@@ -102,7 +102,7 @@ namespace fc::primitives::tipset {
     std::string result = "{";
     auto size = cids_.size();
     for (size_t i = 0; i < size; ++i) {
-      result += cids_[i].toPrettyString("");
+      result += cids_[i].toString().value();
       if (i != size - 1) {
         result += ", ";
       }

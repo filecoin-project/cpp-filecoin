@@ -10,9 +10,6 @@
 
 namespace fc::sync {
 
-  using TipsetCPtr = std::shared_ptr<const Tipset>;
-  using BranchCPtr = std::shared_ptr<const BranchInfo>;
-
   class Branches {
     using BranchPtr = std::shared_ptr<BranchInfo>;
 
@@ -51,14 +48,20 @@ namespace fc::sync {
                      Height new_bottom_height,
                      const SplitBranch &pos);
 
-    std::vector<HeadChange> storeTipset(TipsetCPtr tipset,
+    std::vector<HeadChange> storeTipset(const TipsetCPtr &tipset,
                                         const TipsetHash &parent_hash,
                                         const StorePosition &pos);
+
+    outcome::result<BranchCPtr> getBranch(BranchId id) const;
+
+    outcome::result<BranchCPtr> getRootBranch(BranchId id) const;
 
     void clear();
 
     outcome::result<std::vector<HeadChange>> init(
         std::map<BranchId, BranchPtr> all_branches);
+
+    outcome::result<void> storeGenesis(const TipsetCPtr &genesis_tipset);
 
    private:
     void newBranch(const TipsetHash &hash,
@@ -73,8 +76,6 @@ namespace fc::sync {
     void updateHeads(BranchPtr &branch,
                      bool synced,
                      std::vector<HeadChange> &changes);
-
-    outcome::result<BranchCPtr> getBranch(BranchId id) const;
 
     BranchPtr getBranch(BranchId id);
 

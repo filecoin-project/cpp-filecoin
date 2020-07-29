@@ -223,11 +223,15 @@ namespace fc::sync::blocksync {
     }
     peer_cb_(ctx.peer, peer_feedback_code);
     requests_.erase(it);
+
+    log()->debug("blocksync client successful response");
   }
 
   void BlocksyncClient::closeRequest(Requests::iterator it,
                                      std::error_code error) {
     assert(error);
+
+    log()->debug("blocksync client response error {}", error.message());
 
     auto ctx = std::move(it->second);
     requests_.erase(it);

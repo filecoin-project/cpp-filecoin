@@ -19,18 +19,20 @@ target_link_libraries(node_builder
     graphsync
     clock
     car
-    chain_store
-    chain_data_store
+ #   chain_store
+ #   chain_data_store
     block_validator
     interpreter
-    rpc
+ #   rpc
     runtime
+    ipfs_datastore_leveldb
     ipfs_datastore_in_memory
+    in_memory_storage
     weight_calculator
     secp256k1_provider
     Boost::program_options
-    mpool
-    msg_waiter
+#    mpool
+#    msg_waiter
     )
 
 add_executable(node_main

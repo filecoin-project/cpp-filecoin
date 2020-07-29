@@ -258,7 +258,8 @@ namespace fc::primitives::tipset {
       return e.code();
     }
 
-    return create( { std::move(block) });
+    OUTCOME_TRY(key, TipsetKey::create( { std::move(cid) } ));
+    return Tipset { std::move(key), {std::move(block) } };
   }
 
   outcome::result<Tipset> Tipset::loadParent(Ipld &ipld) const {

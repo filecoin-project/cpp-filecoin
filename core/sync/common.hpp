@@ -15,16 +15,18 @@ namespace fc::sync {
 
   enum class Error {
     SYNC_NOT_INITIALIZED = 1,
-    SYNC_DATA_INTEGRITY_ERROR = 2,
-    SYNC_UNEXPECTED_OBJECT_STATE = 3,
-    SYNC_NO_PEERS = 4,
-    SYNC_BAD_TIPSET = 5,
-    SYNC_BAD_BLOCK = 6,
-    SYNC_PUBSUB_FAILURE = 7,
-    SYNC_MSG_LOAD_FAILURE = 8,
-    SYNC_INCONSISTENT_BLOCKSYNC_RESPONSE = 9,
-    SYNC_INCOMPLETE_BLOCKSYNC_RESPONSE = 10,
-    SYNC_BLOCKSYNC_RESPONSE_ERROR = 11,
+    SYNC_NO_GENESIS,
+    SYNC_GENESIS_MISMATCH,
+    SYNC_DATA_INTEGRITY_ERROR,
+    SYNC_UNEXPECTED_OBJECT_STATE,
+    SYNC_NO_PEERS,
+    SYNC_BAD_TIPSET,
+    SYNC_BAD_BLOCK,
+    SYNC_PUBSUB_FAILURE,
+    SYNC_MSG_LOAD_FAILURE,
+    SYNC_INCONSISTENT_BLOCKSYNC_RESPONSE,
+    SYNC_INCOMPLETE_BLOCKSYNC_RESPONSE,
+    SYNC_BLOCKSYNC_RESPONSE_ERROR,
 
     BRANCHES_LOAD_ERROR,
     BRANCHES_NO_GENESIS_BRANCH,
@@ -94,6 +96,9 @@ namespace fc::sync {
   /// it means that 'added' replaces 'removed'
   using HeadCallback = std::function<void(boost::optional<TipsetHash> removed,
                                           boost::optional<TipsetHash> added)>;
+
+  using TipsetCPtr = std::shared_ptr<const Tipset>;
+  using BranchCPtr = std::shared_ptr<const BranchInfo>;
 
 }  // namespace fc::sync
 

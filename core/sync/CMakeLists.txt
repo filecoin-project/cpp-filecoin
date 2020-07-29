@@ -13,8 +13,8 @@ add_library(sync
     tipset_loader.cpp
     blocksync_common.cpp
     blocksync_client.cpp
-    #sync_job.cpp
-    tipset_graph.cpp
+    sync_job.cpp
+    chain_db.cpp
     branches.cpp
     index_db.cpp
     index_db_backend.cpp

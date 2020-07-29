@@ -57,7 +57,8 @@ namespace fc::storage {
   bool LevelDB::contains(const Buffer &key) const {
     // here we interpret all kinds of errors as "not found".
     // is there a better way?
-    return get(key).has_value();
+    std::string value;
+    return db_->Get(ro_, make_slice(key), &value).ok();
   }
 
   outcome::result<void> LevelDB::put(const Buffer &key, const Buffer &value) {

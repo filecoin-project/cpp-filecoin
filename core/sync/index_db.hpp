@@ -34,6 +34,10 @@ namespace fc::sync {
     IndexDb(KeyValueStoragePtr kv_store,
             std::shared_ptr<IndexDbBackend> backend);
 
+    outcome::result<std::map<BranchId, std::shared_ptr<BranchInfo>>> init();
+
+    outcome::result<void> storeGenesis(const Tipset& genesis_tipset);
+
     outcome::result<void> store(
         TipsetInfoPtr info, const boost::optional<SplitBranch> &branch_rename);
 
