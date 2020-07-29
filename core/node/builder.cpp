@@ -242,8 +242,9 @@ namespace fc::node {
     //    std::make_shared<storage::keystore::InMemoryKeyStore>(
     //        bls_provider, secp_provider);
     //
-    //    auto vm_interpreter =
-    //    std::make_shared<vm::interpreter::InterpreterImpl>();
+
+    o.vm_interpreter =
+        std::make_shared<vm::interpreter::InterpreterImpl>();
 
     //    o.block_validator =
     //        std::make_shared<blockchain::block_validator::BlockValidatorImpl>(

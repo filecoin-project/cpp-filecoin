@@ -47,7 +47,10 @@ namespace fc::sync {
 
     outcome::result<TipsetInfoCPtr> get(BranchId branch, Height height);
 
-    using WalkCallback = std::function<void(const TipsetInfo &info)>;
+    using WalkCallback = std::function<void(const TipsetHash &hash,
+                                            BranchId branch,
+                                            Height height,
+                                            const TipsetHash &parent_hash)>;
 
     outcome::result<void> walkForward(BranchId branch,
                                       Height from_height,

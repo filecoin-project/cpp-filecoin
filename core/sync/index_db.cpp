@@ -112,23 +112,18 @@ namespace fc::sync {
     }
     auto limit = to_height - from_height;
     std::error_code e;
-    auto res =
-        backend_->walk(branch,
-                       from_height,
-                       limit,
-                       [this, &e, &cb, to_height](TipsetHash hash,
-                                                  BranchId branch,
-                                                  Height height,
-                                                  TipsetHash parent_hash) {
-                         if (!e && height <= to_height) {
-                           auto res = get(hash);
-                           if (!res) {
-                             e = res.error();
-                           } else {
-                             cb(*res.value());
-                           }
-                         }
-                       });
+    auto res = backend_->walk(
+        branch,
+        from_height,
+        limit,
+        [&e, &cb, to_height](TipsetHash hash,
+                             BranchId branch,
+                             Height height,
+                             TipsetHash parent_hash) {
+          if (!e && height <= to_height) {
+            cb(std::move(hash), branch, height, std::move(parent_hash));
+          }
+        });
     if (!res) {
       return res.error();
     }
@@ -148,7 +143,7 @@ namespace fc::sync {
       if (info->height <= to_height) {
         break;
       }
-      cb(*info);
+      cb(info->key.hash(), info->branch, info->height, info->parent_hash);
     }
     return outcome::success();
   }

@@ -119,8 +119,10 @@ namespace fc::sync {
     assert(callback);
     OUTCOME_TRY(stateIsConsistent());
     auto heads = branches_.getAllHeads();
-    for (const auto &[hash, _] : heads) {
-      callback(boost::none, hash);
+    for (const auto &[hash, info] : heads) {
+      if (info->synced_to_genesis) {
+        callback(boost::none, hash);
+      }
     }
     return outcome::success();
   }
@@ -142,6 +144,12 @@ namespace fc::sync {
     return sptr;
   }
 
+  outcome::result<void> ChainDb::setCurrentHead(const TipsetHash &head) {
+    OUTCOME_TRY(stateIsConsistent());
+    OUTCOME_TRY(info, index_db_->get(head));
+    return branches_.setCurrentHead(info->branch, info->height);
+  }
+
   outcome::result<TipsetCPtr> ChainDb::getTipsetByHeight(Height height) {
     OUTCOME_TRY(stateIsConsistent());
     OUTCOME_TRY(branch_id, branches_.getBranchAtHeight(height, true));
@@ -156,11 +164,14 @@ namespace fc::sync {
 
     Height last_height = 0;
     std::error_code e;
-    auto internal_cb = [&, this](const TipsetInfo &info) {
+    auto internal_cb = [&, this](const TipsetHash &hash,
+                                 BranchId branch,
+                                 Height height,
+                                 const TipsetHash &parent_hash) {
       if (!e) {
-        auto res = getTipsetByHash(info.key.hash());
+        auto res = getTipsetByHash(hash);
         if (res) {
-          last_height = info.height;
+          last_height = height;
           cb(std::move(res.value()));
         } else {
           e = res.error();
@@ -178,10 +189,13 @@ namespace fc::sync {
       if (e) {
         break;
       }
-      from_height = last_height;
+      from_height = last_height + 1;
     }
 
-    return e;
+    if (e) {
+      return e;
+    }
+    return outcome::success();
   }
 
   outcome::result<void> ChainDb::walkBackward(const TipsetHash &from,
@@ -189,20 +203,20 @@ namespace fc::sync {
                                               const WalkCallback &cb) {
     OUTCOME_TRY(stateIsConsistent());
 
-    std::error_code e;
-    auto internal_cb = [this, &cb, &e](const TipsetInfo &info) {
-      if (!e) {
-        auto res = getTipsetByHash(info.key.hash());
-        if (res) {
-          cb(std::move(res.value()));
-        } else {
-          e = res.error();
-        }
+    TipsetHash h = from;
+    for (;;) {
+      OUTCOME_TRY(tipset, getTipsetByHash(h));
+      auto height = tipset->height();
+      if (height > 0) {
+        OUTCOME_TRY(parent_key, tipset->getParents());
+        h = parent_key.hash();
       }
-    };
-
-    OUTCOME_TRY(index_db_->walkBackward(from, to_height, internal_cb));
-    return e;
+      cb(std::move(tipset));
+      if (height <= to_height) {
+        break;
+      }
+    }
+    return outcome::success();
   }
 
   outcome::result<boost::optional<TipsetCPtr>> ChainDb::storeTipset(

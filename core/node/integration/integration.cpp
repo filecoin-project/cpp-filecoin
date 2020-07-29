@@ -11,6 +11,7 @@
 #include "sync/peer_manager.hpp"
 #include "sync/sync_job.hpp"
 #include "sync/tipset_loader.hpp"
+#include "vm/interpreter/interpreter.hpp"
 
 namespace fc {
 
@@ -48,8 +49,9 @@ namespace fc {
 
     void start() {
       if (!started) {
-        if (!o.chain_db->start([](boost::optional<sync::TipsetHash> removed,
-                             boost::optional<sync::TipsetHash> added) {})) {
+        if (!o.chain_db->start(
+                [](boost::optional<sync::TipsetHash> removed,
+                   boost::optional<sync::TipsetHash> added) {})) {
           o.io_context->stop();
           return;
         }
@@ -92,6 +94,7 @@ namespace fc {
         heads.insert({std::move(added.value()), {}});
       }
     });
+
     if (!res3) {
       log()->error("getHeads: {}", res3.error().message());
       return 3;
@@ -106,6 +109,81 @@ namespace fc {
       OUTCOME_EXCEPT(p, o.chain_db->getTipsetByHash(hash));
       log()->info("Head: {}, height={}", p->key.toPrettyString(), p->height());
       ptr = p;
+    }
+
+    OUTCOME_EXCEPT(o.chain_db->setCurrentHead(heads.begin()->first));
+
+    if (std::getenv("VM_INTERPRET") != nullptr) {
+      size_t tipsets_interpreted = 0;
+      size_t mismatches = 0;
+      bool interpret_error = false;
+
+      vm::interpreter::Result result;
+
+      OUTCOME_EXCEPT(
+          o.chain_db->walkForward(0, -1, [&](sync::TipsetCPtr tipset) {
+            if (!interpret_error) {
+              if (tipset->height() % 1000 == 0) {
+                log()->info("interpreting at {}", tipset->height());
+              }
+              auto r = o.vm_interpreter->interpret(o.ipld, *tipset);
+              if (!r) {
+                log()->error("Interpret error at height {} : {}",
+                             tipset->height(),
+                             r.error().message());
+                interpret_error = true;
+              } else {
+                if (tipset->height() > 0) {
+                  if (result.message_receipts
+                          != tipset->getParentMessageReceipts()
+                      || result.state_root != tipset->getParentStateRoot()) {
+                    ++mismatches;
+                  }
+                }
+                result = std::move(r.value());
+                ++tipsets_interpreted;
+              }
+            }
+          }));
+
+      log()->info("interpreted {} tipsets, found {} mismatches",
+                  tipsets_interpreted,
+                  mismatches);
+
+      return 0;
+    }
+
+    if (std::getenv("WALK_FWD") != nullptr) {
+      size_t tipsets_visited = 0;
+      OUTCOME_EXCEPT(
+          o.chain_db->walkForward(0, 10000, [&](sync::TipsetCPtr tipset) {
+            if (tipset->height() % 1000 == 0) {
+              log()->info("walking fwd at {}", tipset->height());
+            }
+            ++tipsets_visited;
+          }));
+      log()->info("visited {} tipsets", tipsets_visited);
+      return 0;
+    }
+
+    if (std::getenv("WALK_BWD") != nullptr) {
+      size_t tipsets_visited = 0;
+      TipsetHash from;
+      if (heads.begin()->second->height() <= 10000) {
+        from = heads.begin()->first;
+      } else {
+        OUTCOME_EXCEPT(ts, o.chain_db->getTipsetByHeight(10000));
+        from = std::move(ts->key.hash());
+      }
+      OUTCOME_EXCEPT(o.chain_db->walkBackward(
+          from, 0, [&](sync::TipsetCPtr tipset) {
+            if (tipset->height() % 1000 == 0) {
+              log()->info("walking bwd at {}", tipset->height());
+            }
+            ++tipsets_visited;
+          }));
+      log()->info("visited {} tipsets", tipsets_visited);
+      return 0;
     }
 
     SyncerCtx ctx(o);

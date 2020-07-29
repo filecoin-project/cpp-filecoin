@@ -73,6 +73,10 @@ namespace fc {
       class BlocksyncClient;
     }
   }  // namespace sync
+
+  namespace vm::interpreter {
+    class Interpreter;
+  }
 }  // namespace fc
 
 namespace fc::node {
@@ -114,15 +118,17 @@ namespace fc::node {
 
     std::shared_ptr<sync::TipsetLoader> tipset_loader;
 
-    //std::shared_ptr<libp2p::protocol::gossip::Gossip> gossip;
+    std::shared_ptr<vm::interpreter::Interpreter> vm_interpreter;
 
-    //std::shared_ptr<storage::ipfs::graphsync::Graphsync> graphsync;
+    // std::shared_ptr<libp2p::protocol::gossip::Gossip> gossip;
 
-    //std::shared_ptr<storage::blockchain::ChainStore> chain_store;
+    // std::shared_ptr<storage::ipfs::graphsync::Graphsync> graphsync;
 
-    //std::shared_ptr<api::Api> api;
+    // std::shared_ptr<storage::blockchain::ChainStore> chain_store;
 
-    //std::shared_ptr<clock::ChainEpochClock> chain_epoch_clock;
+    // std::shared_ptr<api::Api> api;
+
+    // std::shared_ptr<clock::ChainEpochClock> chain_epoch_clock;
   };
 
   outcome::result<NodeObjects> createNodeObjects(Config &config);

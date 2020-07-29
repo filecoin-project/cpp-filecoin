@@ -42,6 +42,8 @@ namespace fc::sync {
 
     outcome::result<TipsetCPtr> getTipsetByHeight(Height height);
 
+    outcome::result<void> setCurrentHead(const TipsetHash &head);
+
     using WalkCallback = std::function<void(TipsetCPtr tipset)>;
 
     outcome::result<void> walkForward(Height from_height,
