@@ -28,7 +28,7 @@ target_link_libraries(scheduler
         resources
         logger
         worker
-        Boost::boost
+        Boost::thread
         )
 
 add_library(selector
