@@ -7,21 +7,19 @@
 #include "common/outcome.hpp"
 
 namespace fc::common {
-  using libp2p::multi::HashType;
-  using ::libp2p::multi::MulticodecType;
   using ::libp2p::multi::Multihash;
 
   outcome::result<CID> replicaCommitmentV1ToCID(
       gsl::span<const uint8_t> comm_r) {
-    return commitmentToCID(kFilCodecUndefined,
-                           kFilMultiHashUndefined,
-                           comm_r);  // TODO: change hash and codec
+    return commitmentToCID(FilMultiCodec::FILECOIN_COMMITMENT_SEALED,
+                           FilMultiHash::poseidon_bls12_381_a1_fc1,
+                           comm_r);
   }
 
   outcome::result<CID> dataCommitmentV1ToCID(gsl::span<const uint8_t> comm_d) {
-    return commitmentToCID(kFilCodecUndefined,
-                           kFilMultiHashUndefined,
-                           comm_d);  // TODO: change hash and codec
+    return commitmentToCID(FilMultiCodec::FILECOIN_COMMITMENT_UNSEALED,
+                           FilMultiHash::sha2_256_trunc254_padded,
+                           comm_d);
   }
 
   outcome::result<CID> pieceCommitmentV1ToCID(gsl::span<const uint8_t> comm_p) {
@@ -31,13 +29,13 @@ namespace fc::common {
   outcome::result<void> validateFilCIDSegments(
       FilMultiCodec codec, FilMultiHash hash, gsl::span<const uint8_t> comm_x) {
     switch (codec) {
-      case FilMultiCodec::RAW:               // TODO: change codec
-        if (hash != FilMultiHash::sha256) {  // TODO: change hash
+      case FilMultiCodec::FILECOIN_COMMITMENT_UNSEALED:
+        if (hash != FilMultiHash::sha2_256_trunc254_padded) {
           return CommCidErrors::kIncorrectHash;
         }
         break;
-      case FilMultiCodec::DAG_CBOR:               // TODO: change codec
-        if (hash != FilMultiHash::blake2b_256) {  // TODO: change hash
+      case FilMultiCodec::FILECOIN_COMMITMENT_SEALED:
+        if (hash != FilMultiHash::poseidon_bls12_381_a1_fc1) {
           return CommCidErrors::kIncorrectHash;
         }
         break;
@@ -68,7 +66,7 @@ namespace fc::common {
 
   outcome::result<Comm> CIDToDataCommitmentV1(const CID &cid) {
     OUTCOME_TRY(commitment, CIDToCommitment(cid));
-    if (commitment.codec != FilMultiCodec::RAW) {  // TODO: change codec
+    if (commitment.codec != FilMultiCodec::FILECOIN_COMMITMENT_UNSEALED) {
       return CommCidErrors::kIncorrectCodec;
     }
     return commitment.comm_x;
@@ -88,7 +86,7 @@ namespace fc::common {
 
   outcome::result<Comm> CIDToReplicaCommitmentV1(const CID &cid) {
     OUTCOME_TRY(commitment, CIDToCommitment(cid));
-    if (commitment.codec != FilMultiCodec::RAW) {  // TODO: change codec
+    if (commitment.codec != FilMultiCodec::FILECOIN_COMMITMENT_SEALED) {
       return CommCidErrors::kIncorrectCodec;
     }
     return commitment.comm_x;
