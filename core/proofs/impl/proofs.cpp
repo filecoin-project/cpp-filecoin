@@ -12,7 +12,7 @@
 #include "common/ffi.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
-#include "primitives/cid/comm_cid.hpp"
+#include "common/comm_cid.hpp"
 #include "proofs/proofs_error.hpp"
 
 namespace {

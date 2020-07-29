@@ -7,7 +7,7 @@
 
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
-#include "primitives/cid/comm_cid.hpp"
+#include "common/comm_cid.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"

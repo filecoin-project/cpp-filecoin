@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_COMM_CID_HPP
-#define CPP_FILECOIN_COMM_CID_HPP
+#ifndef CPP_FILECOIN_CORE_COMMON_COMM_CID_HPP
+#define CPP_FILECOIN_CORE_COMMON_COMM_CID_HPP
 
 #include <unordered_map>
 #include "common/blob.hpp"
@@ -18,21 +18,6 @@ namespace fc::common {
 
   using FilMultiCodec = CID::Multicodec;
   using FilMultiHash = libp2p::multi::HashType;
-
-  const FilMultiCodec kFilCodecUndefined = static_cast<FilMultiCodec>(0);
-  const FilMultiHash kFilMultiHashUndefined = static_cast<FilMultiHash>(0);
-
-  outcome::result<CID> commitmentToCID(FilMultiCodec codec,
-                                       FilMultiHash hash,
-                                       gsl::span<const uint8_t> comm_x);
-
-  struct Commitment {
-    FilMultiCodec codec = kFilCodecUndefined;
-    FilMultiHash hash = kFilMultiHashUndefined;
-    Comm comm_x;
-  };
-
-  outcome::result<Commitment> CIDToCommitment(const CID &cid);
 
   outcome::result<CID> replicaCommitmentV1ToCID(
       gsl::span<const uint8_t> comm_r);
@@ -52,4 +37,4 @@ namespace fc::common {
 
 OUTCOME_HPP_DECLARE_ERROR(fc::common, CommCidErrors);
 
-#endif  // CPP_FILECOIN_COMM_CID_HPP
+#endif  // CPP_FILECOIN_CORE_COMMON_COMM_CID_HPP

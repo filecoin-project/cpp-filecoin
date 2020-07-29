@@ -19,7 +19,7 @@
 #include "markets/storage/types.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/block/block.hpp"
-#include "primitives/cid/comm_cid.hpp"
+#include "common/comm_cid.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "primitives/ticket/epost_ticket.hpp"
 #include "primitives/ticket/ticket.hpp"
