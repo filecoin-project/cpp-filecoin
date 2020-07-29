@@ -29,7 +29,7 @@ namespace fc::sync {
       BranchId assigned_branch = kNoBranch;
       BranchId at_bottom_of_branch = kNoBranch;
       BranchId on_top_of_branch = kNoBranch;
-      boost::optional<SplitBranch> split;
+      boost::optional<RenameBranch> rename;
     };
 
     outcome::result<StorePosition> findStorePosition(
@@ -46,7 +46,7 @@ namespace fc::sync {
     void splitBranch(const TipsetHash &new_top,
                      const TipsetHash &new_bottom,
                      Height new_bottom_height,
-                     const SplitBranch &pos);
+                     const RenameBranch &pos);
 
     std::vector<HeadChange> storeTipset(const TipsetCPtr &tipset,
                                         const TipsetHash &parent_hash,

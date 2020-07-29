@@ -37,10 +37,13 @@ namespace fc::sync {
   }
 
   outcome::result<void> IndexDb::store(
-      TipsetInfoPtr info, const boost::optional<SplitBranch> &branch_rename) {
+      TipsetInfoPtr info, const boost::optional<RenameBranch> &branch_rename) {
     common::Buffer hash(info->key.hash());
 
-    log()->debug("store: {}", info->key.toPrettyString());
+    log()->debug("store: {}:{}:{}",
+                 info->height,
+                 info->branch,
+                 info->key.toPrettyString());
 
     auto tx = backend_->beginTx();
     OUTCOME_TRY(backend_->store(*info, branch_rename));
@@ -59,6 +62,11 @@ namespace fc::sync {
     return outcome::success();
   }
 
+  bool IndexDb::contains(const TipsetHash &hash) {
+    auto res = get(hash);
+    return res.has_value();
+  }
+
   outcome::result<TipsetInfoCPtr> IndexDb::get(const TipsetHash &hash) {
     TipsetInfoCPtr cached = cache_.get(hash);
     if (cached) {
@@ -72,7 +80,7 @@ namespace fc::sync {
         std::move(key), idx.branch, idx.height, std::move(idx.parent_hash)});
     cache_.put(info, false);
 
-    log()->debug("get: {}", info->key.toPrettyString());
+    log()->debug("get: {}:{}", info->height, info->key.toPrettyString());
 
     return info;
   }
@@ -90,7 +98,7 @@ namespace fc::sync {
         std::move(key), idx.branch, idx.height, std::move(idx.parent_hash)});
     cache_.put(info, false);
 
-    log()->debug("get: {}", info->key.toPrettyString());
+    log()->debug("get: {}:{}", info->height, info->key.toPrettyString());
 
     return info;
   }

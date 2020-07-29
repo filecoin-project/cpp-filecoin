@@ -118,12 +118,25 @@ namespace fc::sync {
     status_.next = next_key.hash();
 
     OUTCOME_EXCEPT(tipset_loader_.loadTipsetAsync(
-        std::move(next_key), status_.peer, roots->height()));
+        std::move(next_key), status_.peer, roots->height() - 1));
   }
+
+  Syncer::Syncer(std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+                 std::shared_ptr<TipsetLoader> tipset_loader,
+                 std::shared_ptr<ChainDb> chain_db,
+                 Callback callback)
+      : scheduler_(std::move(scheduler)),
+        tipset_loader_(std::move(tipset_loader)),
+        chain_db_(std::move(chain_db)),
+        callback_(std::move(callback)) {}
 
   void Syncer::start() {
     if (!started_) {
       started_ = true;
+      tipset_loader_->init([this](sync::TipsetHash hash,
+                                 outcome::result<fc::sync::Tipset> tipset) {
+        onTipsetLoaded(std::move(hash), std::move(tipset));
+      });
     }
 
     if (!isActive()) {

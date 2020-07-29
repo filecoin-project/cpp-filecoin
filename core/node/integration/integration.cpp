@@ -7,8 +7,10 @@
 
 #include "common/logger.hpp"
 #include "node/builder.hpp"
-#include "sync/peer_manager.hpp"
 #include "sync/chain_db.hpp"
+#include "sync/peer_manager.hpp"
+#include "sync/sync_job.hpp"
+#include "sync/tipset_loader.hpp"
 
 namespace fc {
 
@@ -29,6 +31,34 @@ namespace fc {
 
   }  // namespace
 
+  struct SyncerCtx {
+    node::NodeObjects &o;
+    sync::Syncer syncer;
+    bool started = false;
+    libp2p::protocol::scheduler::Handle sch_handle;
+
+    SyncerCtx(node::NodeObjects &objects)
+        : o(objects),
+          syncer(o.scheduler,
+                 o.tipset_loader,
+                 o.chain_db,
+                 [](sync::SyncStatus st) {
+                   log()->info("Sync status {}, total={}", st.code, st.total);
+                 }) {}
+
+    void start() {
+      if (!started) {
+        if (!o.chain_db->start([](boost::optional<sync::TipsetHash> removed,
+                             boost::optional<sync::TipsetHash> added) {})) {
+          o.io_context->stop();
+          return;
+        }
+        started = true;
+        sch_handle = o.scheduler->schedule(2000, [this] { syncer.start(); });
+      }
+    }
+  };
+
   int main(int argc, char *argv[]) {
     using primitives::tipset::Tipset;
     using primitives::tipset::TipsetHash;
@@ -37,6 +67,12 @@ namespace fc {
 
     if (!config.init(argc, argv)) {
       return 1;
+    }
+
+    // suppress verbose logging from secio
+    if (config.log_level >= spdlog::level::debug) {
+      common::createLogger("SECCONN")->set_level(spdlog::level::info);
+      common::createLogger("SECIO")->set_level(spdlog::level::info);
     }
 
     auto res = fc::node::createNodeObjects(config);
@@ -72,6 +108,8 @@ namespace fc {
       ptr = p;
     }
 
+    SyncerCtx ctx(o);
+
     o.io_context->post([&] {
       auto listen_res = o.host->listen(config.listen_address);
       if (!listen_res) {
@@ -89,8 +127,8 @@ namespace fc {
           heads.begin()->second->key.cids(),
           0,
           0,
-          [](const libp2p::peer::PeerId &peer,
-             fc::outcome::result<fc::sync::Hello::Message> state) {
+          [&](const libp2p::peer::PeerId &peer,
+              fc::outcome::result<fc::sync::Hello::Message> state) {
             if (!state) {
               log()->info("hello feedback failed for peer {}: {}",
                           peer.toBase58(),
@@ -106,6 +144,15 @@ namespace fc {
                 fmt::join(toStrings(s.heaviest_tipset), ","),
                 s.heaviest_tipset_height,
                 s.heaviest_tipset_weight.str());
+
+            auto tk = primitives::tipset::TipsetKey::create(s.heaviest_tipset);
+            if (tk) {
+              ctx.syncer.newTarget(peer,
+                                   std::move(tk.value()),
+                                   s.heaviest_tipset_weight,
+                                   s.heaviest_tipset_height);
+              ctx.start();
+            }
           });
 
       if (!res) {
@@ -123,9 +170,8 @@ namespace fc {
 
     // gracefully shutdown on signal
     boost::asio::signal_set signals(*o.io_context, SIGINT, SIGTERM);
-    signals.async_wait([&](const boost::system::error_code &, int) {
-      o.io_context->stop();
-    });
+    signals.async_wait(
+        [&](const boost::system::error_code &, int) { o.io_context->stop(); });
 
     // run event loop
     o.io_context->run();

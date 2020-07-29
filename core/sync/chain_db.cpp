@@ -12,6 +12,11 @@ namespace fc::sync {
       return TipsetCache(
           max_size, [](const Tipset &tipset) { return tipset.key.hash(); });
     }
+
+    auto log() {
+      static common::Logger logger = common::createLogger("chaindb");
+      return logger.get();
+    }
   }  // namespace
 
   ChainDb::ChainDb()
@@ -103,7 +108,11 @@ namespace fc::sync {
 
   bool ChainDb::tipsetIsStored(const TipsetHash &hash) const {
     OUTCOME_EXCEPT(stateIsConsistent());
-    return key_value_storage_->contains(common::Buffer(hash));
+
+    return index_db_->contains(hash);
+
+    //TODO revert back after restoring db
+    // return key_value_storage_->contains(common::Buffer(hash));
   }
 
   outcome::result<void> ChainDb::getHeads(const HeadCallback &callback) {
@@ -229,13 +238,28 @@ namespace fc::sync {
                 branches_.findStorePosition(
                     *tipset, parent.hash(), parent_branch, parent_height));
 
+    if (store_position.rename && store_position.rename.value().split) {
+      auto &split = store_position.rename.value();
+      assert(parent_height == split.above_height);
+      assert(parent_branch == split.old_id);
+      OUTCOME_TRY(new_bottom_info,
+                  index_db_->get(parent_branch, parent_height + 1));
+
+      assert(new_bottom_info->parent_hash == parent.hash());
+
+      branches_.splitBranch(parent.hash(),
+                            new_bottom_info->key.hash(),
+                            new_bottom_info->height,
+                            split);
+    }
+
     auto info =
         std::make_shared<TipsetInfo>(TipsetInfo{tipset->key,
                                                 store_position.assigned_branch,
                                                 tipset->height(),
                                                 parent.hash()});
 
-    OUTCOME_TRY(index_db_->store(std::move(info), store_position.split));
+    OUTCOME_TRY(index_db_->store(std::move(info), store_position.rename));
 
     tipset_cache_.put(tipset, false);
 
@@ -269,8 +293,7 @@ namespace fc::sync {
   outcome::result<boost::optional<TipsetCPtr>> ChainDb::getUnsyncedBottom(
       const TipsetKey &key) {
     OUTCOME_TRY(tipset_info, index_db_->get(key.hash()));
-    OUTCOME_TRY(branch_info,
-                branches_.getRootBranch(tipset_info->branch));
+    OUTCOME_TRY(branch_info, branches_.getRootBranch(tipset_info->branch));
     if (branch_info->id != kGenesisBranch) {
       OUTCOME_TRY(last_loaded, getTipsetByHash(branch_info->bottom));
       return std::move(last_loaded);

@@ -26,7 +26,7 @@ namespace fc::sync {
 
   outcome::result<void> IndexDbBackend::store(
       const TipsetInfo &info,
-      const boost::optional<SplitBranch> &branch_rename) {
+      const boost::optional<RenameBranch> &branch_rename) {
     int rows = 0;
 
     if (!info.parent_hash.empty()) {

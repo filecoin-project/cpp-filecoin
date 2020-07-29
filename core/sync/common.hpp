@@ -69,10 +69,11 @@ namespace fc::sync {
   constexpr BranchId kNoBranch = 0;
   constexpr BranchId kGenesisBranch = 1;
 
-  struct SplitBranch {
+  struct RenameBranch {
     BranchId old_id = kNoBranch;
     BranchId new_id = kNoBranch;
     Height above_height = 0;
+    bool split = false;
   };
 
   struct BranchInfo {

@@ -85,8 +85,8 @@ namespace fc::sync {
         uint64_t depth = load_parents_depth;
         if (depth == 0) {
           depth = 1;
-        } else if (depth > 500) {
-          depth = 500;
+        } else if (depth > 50) {
+          depth = 50;
         }
         OUTCOME_TRY(blocksync_->makeRequest(last_peer_.value(),
                                             std::move(wanted_),

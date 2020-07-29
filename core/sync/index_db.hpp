@@ -19,7 +19,7 @@ namespace fc::sync {
     Height height = 0;
     TipsetHash parent_hash;
 
-    // 2 CIDs here
+    // TODO 2 CIDs here parent_state_root
   };
 
   using TipsetInfoPtr = std::shared_ptr<TipsetInfo>;
@@ -39,7 +39,9 @@ namespace fc::sync {
     outcome::result<void> storeGenesis(const Tipset& genesis_tipset);
 
     outcome::result<void> store(
-        TipsetInfoPtr info, const boost::optional<SplitBranch> &branch_rename);
+        TipsetInfoPtr info, const boost::optional<RenameBranch> &branch_rename);
+
+    bool contains(const TipsetHash &hash);
 
     outcome::result<TipsetInfoCPtr> get(const TipsetHash &hash);
 

@@ -21,7 +21,7 @@ namespace fc::sync {
 
     outcome::result<void> store(
         const TipsetInfo &info,
-        const boost::optional<SplitBranch> &branch_rename);
+        const boost::optional<RenameBranch> &branch_rename);
 
     struct TipsetIdx {
       TipsetHash hash;

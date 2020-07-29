@@ -152,9 +152,14 @@ namespace fc::sync {
       p.on_top_of_branch = parent_branch;
 
       if (parent_height != info->top_height) {
-        p.split = SplitBranch{parent_branch, newBranchId(), parent_height};
+        p.rename =
+            RenameBranch{parent_branch, newBranchId(), parent_height, true};
       } else if (info->forks.empty()) {
         p.assigned_branch = parent_branch;
+        if (p.at_bottom_of_branch != kNoBranch) {
+          p.rename =
+              RenameBranch{p.at_bottom_of_branch, parent_branch, 0, false};
+        }
       }
     }
 
@@ -168,7 +173,7 @@ namespace fc::sync {
   void Branches::splitBranch(const TipsetHash &new_top,
                              const TipsetHash &new_bottom,
                              Height new_bottom_height,
-                             const SplitBranch &pos) {
+                             const RenameBranch &pos) {
     assert(pos.old_id != kNoBranch);
     assert(pos.new_id != kNoBranch);
     assert(pos.new_id != pos.old_id);
@@ -249,10 +254,7 @@ namespace fc::sync {
       // branch id must be assigned at the moment
 
       newBranch(hash, height, parent_hash, pos);
-      if (height == 0) {
-        // genesis
-        return {};
-      }
+      return {};
     }
 
     assert(height > 0 && !parent_hash.empty());
@@ -280,7 +282,7 @@ namespace fc::sync {
       unloaded_roots_.erase(it);
 
       if (pos.on_top_of_branch == kNoBranch) {
-        unloaded_roots_[parent_hash] = std::move(b);
+        unloaded_roots_[parent_hash] = std::move(linked_to_bottom);
         return changes;
       }
     }
@@ -432,7 +434,7 @@ namespace fc::sync {
       if (info->parent == kNoBranch) {
         return std::move(info);
       }
-      id = info->id;
+      id = info->parent;
     }
     return Error::BRANCHES_BRANCH_NOT_FOUND;
   }

@@ -18,9 +18,9 @@ namespace fc::sync {
       IDLE,
       IN_PROGRESS,
       SYNCED_TO_GENESIS,
-      INTERRUPTED,
-      BAD_BLOCKS,
-      INTERNAL_ERROR,
+      INTERRUPTED = -1,
+      BAD_BLOCKS = -2,
+      INTERNAL_ERROR = -3,
     };
 
     StatusCode code = IDLE;
@@ -71,6 +71,11 @@ namespace fc::sync {
   class Syncer {
    public:
     using Callback = std::function<void(SyncStatus status)>;
+
+    Syncer(std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
+           std::shared_ptr<TipsetLoader> tipset_loader,
+           std::shared_ptr<ChainDb> chain_db,
+           Callback callback);
 
     void start();
 
