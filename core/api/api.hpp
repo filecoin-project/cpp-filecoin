@@ -33,6 +33,7 @@
 
 #define API_METHOD(_name, _result, ...)                                    \
   struct _##_name : std::function<outcome::result<_result>(__VA_ARGS__)> { \
+    using function::function;                                              \
     using Result = _result;                                                \
     using Params = ParamsTuple<__VA_ARGS__>;                               \
     static constexpr auto name = "Filecoin." #_name;                       \
@@ -196,6 +197,10 @@ namespace fc::api {
     SectorSize sector_size;
     BeaconEntry prev_beacon;
     std::vector<BeaconEntry> beacons;
+
+    auto &beacon() const {
+      return beacons.empty() ? prev_beacon : *beacons.rbegin();
+    }
   };
 
   struct ActorState {
