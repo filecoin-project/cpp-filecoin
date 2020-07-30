@@ -40,7 +40,7 @@ namespace fc::markets::storage::provider {
 
   outcome::result<SignedStorageAsk> StoredAsk::getAsk(const Address &address) {
     if (address != actor_) {
-      return StoredAskError::WRONG_ADDRESS;
+      return StoredAskError::kWrongAddress;
     }
     if (!last_signed_storage_ask_) {
       OUTCOME_TRY(ask, loadSignedAsk());
@@ -92,7 +92,7 @@ namespace fc::markets::storage::provider {
 OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider, StoredAskError, e) {
   using E = fc::markets::storage::provider::StoredAskError;
   switch (e) {
-    case E::WRONG_ADDRESS:
+    case E::kWrongAddress:
       return "StoredAskError: wrong address";
     default:
       return "StoredAskError: unknown error";

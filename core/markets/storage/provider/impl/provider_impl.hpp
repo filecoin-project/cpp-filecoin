@@ -9,28 +9,30 @@
 #include <libp2p/host/host.hpp>
 #include <mutex>
 #include "api/miner_api.hpp"
+#include "common/libp2p/cbor_host.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/manager.hpp"
 #include "fsm/fsm.hpp"
+#include "markets/common.hpp"
 #include "markets/pieceio/pieceio.hpp"
-#include "markets/storage/network/libp2p_storage_market_network.hpp"
+#include "markets/storage/chain_events/chain_events.hpp"
 #include "markets/storage/provider/provider.hpp"
 #include "markets/storage/provider/provider_events.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
-#include "markets/storage/storage_receiver.hpp"
 #include "storage/filestore/filestore.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::storage::provider {
   using api::MinerApi;
+  using api::PieceLocation;
+  using chain_events::ChainEvents;
+  using common::libp2p::CborHost;
+  using common::libp2p::CborStream;
   using fc::storage::filestore::FileStore;
   using fc::storage::filestore::Path;
-  using fc::storage::keystore::KeyStore;
-  using fc::storage::piece::PieceInfo;
   using fc::storage::piece::PieceStorage;
   using libp2p::Host;
-  using network::Libp2pStorageMarketNetwork;
   using pieceio::PieceIO;
   using primitives::BigInt;
   using primitives::EpochDuration;
@@ -41,26 +43,21 @@ namespace fc::markets::storage::provider {
   using ProviderFSM = fsm::FSM<ProviderEvent, StorageDealStatus, MinerDeal>;
   using DataTransfer = data_transfer::Manager;
 
-  // from lotus
-  // https://github.com/filecoin-project/lotus/blob/7e0be91cfd44c1664ac18f81080544b1341872f1/markets/storageadapter/provider.go#L71
-  const BigInt kGasPrice{0};
-  const GasAmount kGasLimit{1000000};
   const EpochDuration kDefaultDealAcceptanceBuffer{100};
 
   const Path kFilestoreTempDir = "/tmp/fuhon/storage-market/";
 
   class StorageProviderImpl
       : public StorageProvider,
-        public StorageReceiver,
         public std::enable_shared_from_this<StorageProviderImpl> {
    public:
     StorageProviderImpl(const RegisteredProof &registered_proof,
                         std::shared_ptr<Host> host,
                         std::shared_ptr<boost::asio::io_context> context,
-                        std::shared_ptr<KeyStore> keystore,
                         std::shared_ptr<Datastore> datastore,
                         std::shared_ptr<Api> api,
                         std::shared_ptr<MinerApi> miner_api,
+                        std::shared_ptr<ChainEvents> events,
                         const Address &miner_actor_address,
                         std::shared_ptr<PieceIO> piece_io,
                         std::shared_ptr<FileStore> filestore);
@@ -68,6 +65,8 @@ namespace fc::markets::storage::provider {
     auto init() -> outcome::result<void> override;
 
     auto start() -> outcome::result<void> override;
+
+    auto stop() -> outcome::result<void> override;
 
     auto addAsk(const TokenAmount &price, ChainEpoch duration)
         -> outcome::result<void> override;
@@ -86,14 +85,19 @@ namespace fc::markets::storage::provider {
     auto importDataForDeal(const CID &proposal_cid, const Buffer &data)
         -> outcome::result<void> override;
 
-   protected:
-    auto handleAskStream(const std::shared_ptr<CborStream> &stream)
-        -> void override;
-
-    auto handleDealStream(const std::shared_ptr<CborStream> &stream)
-        -> void override;
-
    private:
+    /**
+     * Handle incoming ask stream
+     * @param stream
+     */
+    auto handleAskStream(const std::shared_ptr<CborStream> &stream) -> void;
+
+    /**
+     * Handle incoming deal proposal stream
+     * @param stream
+     */
+    auto handleDealStream(const std::shared_ptr<CborStream> &stream) -> void;
+
     /**
      * Verify client signature for deal proposal
      * @param deal to verify
@@ -128,17 +132,17 @@ namespace fc::markets::storage::provider {
      * @param deal - activated deal
      * @return piece info with location
      */
-    outcome::result<PieceInfo> locatePiece(std::shared_ptr<MinerDeal> deal);
+    outcome::result<PieceLocation> locatePiece(std::shared_ptr<MinerDeal> deal);
 
     /**
      * Records sector information about an activated deal so that the data can
      * be retrieved later
      * @param deal - activated deal
-     * @param piece_info - piece location
+     * @param piece_location - piece location
      * @return error in case of failure
      */
     outcome::result<void> recordPieceInfo(std::shared_ptr<MinerDeal> deal,
-                                          const PieceInfo &piece_info);
+                                          const PieceLocation &piece_location);
 
     /**
      * Look up stream by proposal cid
@@ -340,10 +344,10 @@ namespace fc::markets::storage::provider {
     template <class T>
     bool hasValue(outcome::result<T> res,
                   const std::string &on_error_msg,
-                  const std::shared_ptr<CborStream> &stream) const {
+                  const std::shared_ptr<CborStream> &stream) {
       if (res.has_error()) {
         logger_->error(on_error_msg + res.error().message());
-        network_->closeStreamGracefully(stream);
+        closeStreamGracefully(stream, logger_);
         return false;
       }
       return true;
@@ -358,20 +362,13 @@ namespace fc::markets::storage::provider {
     /** State machine */
     std::shared_ptr<ProviderFSM> fsm_;
 
-    /**
-     * Closes stream and handles close result
-     * @param stream to close
-     */
-    void closeStreamGracefully(const std::shared_ptr<CborStream> &stream) const;
-
-    std::shared_ptr<Host> host_;
+    std::shared_ptr<CborHost> host_;
     std::shared_ptr<boost::asio::io_context> context_;
-    std::shared_ptr<KeyStore> keystore_;
     std::shared_ptr<StoredAsk> stored_ask_;
     std::shared_ptr<Api> api_;
     std::shared_ptr<MinerApi> miner_api_;
+    std::shared_ptr<ChainEvents> chain_events_;
     Address miner_actor_address_;
-    std::shared_ptr<StorageMarketNetwork> network_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<PieceStorage> piece_storage_;
     std::shared_ptr<FileStore> filestore_;
@@ -384,8 +381,8 @@ namespace fc::markets::storage::provider {
    * @brief Type of errors returned by Storage Market Provider
    */
   enum class StorageMarketProviderError {
-    LOCAL_DEAL_NOT_FOUND = 1,
-    PIECE_CID_DOESNT_MATCH
+    kLocalDealNotFound = 1,
+    kPieceCIDDoesNotMatch
   };
 
 }  // namespace fc::markets::storage::provider

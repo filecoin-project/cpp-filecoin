@@ -13,6 +13,7 @@
 #include "vm/message/message.hpp"
 
 namespace fc::storage::blockchain {
+  using ::fc::blockchain::weight::WeightCalculator;
   using primitives::block::BlockHeader;
   using primitives::tipset::HeadChange;
   using primitives::tipset::HeadChangeType;
@@ -55,8 +56,6 @@ namespace fc::storage::blockchain {
 
 //    virtual outcome::result<void> writeGenesis(
 //        const BlockHeader &block_header) = 0;
-
-//    //virtual primitives::BigInt getHeaviestWeight() const = 0;
 
     using connection_t = boost::signals2::connection;
     using HeadChangeSignature = void(const HeadChange &);

@@ -15,7 +15,10 @@ namespace fc::sector_storage::stores {
    public:
     MOCK_METHOD1(getStat, outcome::result<FsStat>(const std::string &path));
 
-    MOCK_METHOD0(getPaths, outcome::result<std::vector<std::string>>());
+    MOCK_METHOD0(getStorage, outcome::result<StorageConfig>());
+
+    MOCK_METHOD1(setStorage,
+                 outcome::result<void>(std::function<void(StorageConfig &)>));
   };
 }  // namespace fc::sector_storage::stores
 

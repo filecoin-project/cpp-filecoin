@@ -8,13 +8,13 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::rle, RLEPlusDecodeError, e) {
   using fc::codec::rle::RLEPlusDecodeError;
   switch (e) {
-    case (RLEPlusDecodeError::VersionMismatch):
+    case (RLEPlusDecodeError::kVersionMismatch):
       return "RLE+ data header has invalid version";
-    case (RLEPlusDecodeError::DataIndexFailure):
+    case (RLEPlusDecodeError::kDataIndexFailure):
       return "RLE+ incorrect structure";
-    case (RLEPlusDecodeError::UnpackOverflow):
+    case (RLEPlusDecodeError::kUnpackOverflow):
       return "RLE+ invalid encoding";
-    case (RLEPlusDecodeError::MaxSizeExceed):
+    case (RLEPlusDecodeError::kMaxSizeExceed):
       return "RLE+ object size too large";
     default:
       return "RLE+ unknown error";

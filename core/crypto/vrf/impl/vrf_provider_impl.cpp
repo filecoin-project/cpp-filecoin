@@ -22,7 +22,7 @@ namespace fc::crypto::vrf {
 
     auto &&result = bls_provider_->sign(hash, secret_key);
     if (!result) {
-      return VRFError::SIGN_FAILED;
+      return VRFError::kSignFailed;
     }
     return result.value();
   }
@@ -34,7 +34,7 @@ namespace fc::crypto::vrf {
     OUTCOME_TRY(hash, encodeVrfParams(params));
     auto &&res = bls_provider_->verifySignature(hash, proof, public_key);
     if (res.has_failure()) {
-      return VRFError::VERIFICATION_FAILED;
+      return VRFError::kVerificationFailed;
     }
     return res.value();
   }

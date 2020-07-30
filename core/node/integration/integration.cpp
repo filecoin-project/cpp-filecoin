@@ -196,7 +196,7 @@ namespace fc {
               if (tipset->height() % 1000 == 0) {
                 log()->info("interpreting at {}", tipset->height());
               }
-              auto r = o.vm_interpreter->interpret(o.ipld, *tipset);
+              auto r = o.vm_interpreter->interpret(o.ipld, tipset);
               if (!r) {
                 log()->error("Interpret error at height {} : {}",
                              tipset->height(),

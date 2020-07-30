@@ -46,7 +46,7 @@ struct ChainStoreTest : public ::testing::Test {
         {fc::common::Buffer{"F00D"_unhex}},
         {fc::primitives::block::BeaconEntry{
             4,
-            fc::common::Buffer{"F00D"_unhex},
+            "F00D"_unhex,
         }},
         {fc::primitives::sector::PoStProof{
             fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,

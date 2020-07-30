@@ -22,7 +22,6 @@ namespace fc::markets::retrieval::test {
    * @brief Piece - data unit, which is stored in Sectors
    */
   struct SamplePiece {
-    CID cid;
     ::fc::storage::piece::PieceInfo info;
     std::vector<SamplePayload> payloads;
   };
@@ -31,9 +30,12 @@ namespace fc::markets::retrieval::test {
     using libp2p::common::operator""_unhex;
 
     SamplePiece green_piece{
-        .cid =
-            "12209139839e65fabea9efd230898ad8b574509147e48d7c1e87a33d6da70fd2efae"_cid,
-        .info = {.deal_id = 18, .sector_id = 4, .offset = 128, .length = 64},
+        .info = {.piece_cid = "12209139839e65fabea9efd230898ad8b574509147e48d7c"
+                              "1e87a33d6da70fd2efae"_cid,
+                 .deals = {{.deal_id = 18,
+                            .sector_id = 4,
+                            .offset = 128,
+                            .length = 64}}},
         .payloads = {
             {.cid =
                  "12209139839e65fabea9efd230898ad8b574509147e48d7c1e87a33d6da70fd2efbf"_cid,

@@ -20,6 +20,7 @@ namespace fc::primitives::sector_file {
     FTSealed = 2,
     FTCache = 4,
   };
+  constexpr size_t kSectorFileTypeBits{3};
 
   const std::vector<SectorFileType> kSectorFileTypes = {
       SectorFileType::FTUnsealed,
@@ -58,7 +59,7 @@ namespace fc::primitives::sector_file {
   };
 
   enum class SectorFileTypeErrors {
-    InvalidSectorFileType = 1,
+    kInvalidSectorFileType = 1,
   };
 
 }  // namespace fc::primitives::sector_file

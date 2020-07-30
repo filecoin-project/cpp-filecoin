@@ -15,10 +15,16 @@
 #include "primitives/address/address.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
+#include "storage/ipld/selector.hpp"
+#include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval {
+  using common::Buffer;
+  using fc::storage::ipld::Selector;
+  using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using vm::actor::builtin::payment_channel::SignedVoucher;
 
   /*
    * @brief Retrieval Protocol ID V0
@@ -29,6 +35,9 @@ namespace fc::markets::retrieval {
    * @struct Deal proposal params
    */
   struct DealProposalParams {
+    Selector selector;
+    boost::optional<CID> piece;
+
     /* Proposed price */
     TokenAmount price_per_byte;
 
@@ -40,6 +49,8 @@ namespace fc::markets::retrieval {
   };
 
   CBOR_TUPLE(DealProposalParams,
+             selector,
+             piece,
              price_per_byte,
              payment_interval,
              payment_interval_increase);
@@ -52,7 +63,7 @@ namespace fc::markets::retrieval {
     CID payload_cid;
 
     /* Identifier of the deal, can be the same for the different clients */
-    uint64_t deal_id;
+    DealId deal_id;
 
     /* Deal params */
     DealProposalParams params;
@@ -64,11 +75,18 @@ namespace fc::markets::retrieval {
    * Deal proposal response
    */
   struct DealResponse {
+    /// ipld block
+    struct Block {
+      /// CID bytes with multihash without hash bytes
+      Buffer prefix;
+      Buffer data;
+    };
+
     /* Current deal status */
     DealStatus status;
 
     /* Deal ID */
-    uint64_t deal_id;
+    DealId deal_id;
 
     /* Required tokens amount */
     TokenAmount payment_owed;
@@ -79,8 +97,19 @@ namespace fc::markets::retrieval {
     /* Requested data */
     std::vector<Block> blocks;
   };
+  CBOR_TUPLE(DealResponse, status, deal_id, payment_owed, message, blocks)
+  CBOR_TUPLE(DealResponse::Block, prefix, data)
 
-  CBOR_TUPLE(DealResponse, status, deal_id, payment_owed, message, blocks);
+  /**
+   * Payment for an in progress retrieval deal
+   */
+  struct DealPayment {
+    DealId deal_id;
+    Address payment_channel;
+    SignedVoucher payment_voucher;
+  };
+  CBOR_TUPLE(DealPayment, deal_id, payment_channel, payment_voucher);
+
 }  // namespace fc::markets::retrieval
 
 #endif

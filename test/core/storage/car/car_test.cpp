@@ -45,7 +45,7 @@ TEST(CarTest, LoadSuccess) {
 TEST(CarTest, LoadTruncatedError) {
   InMemoryDatastore ipld;
   auto input = readFile(resourcePath("genesis.car"));
-  EXPECT_OUTCOME_ERROR(CarError::DECODE_ERROR,
+  EXPECT_OUTCOME_ERROR(CarError::kDecodeError,
                        loadCar(ipld, input.subbuffer(0, input.size() - 1)));
 }
 
@@ -99,6 +99,8 @@ TEST(SelectiveCar, MakeSelectiveCar) {
 
   auto expected_car = readFile(CAR_FROM_PAYLOAD_FILE);
   EXPECT_EQ(selective_car, expected_car) << std::endl
+                                         << "actual" << std::endl
                                          << selective_car << std::endl
+                                         << "expected" << std::endl
                                          << expected_car << std::endl;
 }

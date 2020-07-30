@@ -28,7 +28,9 @@ namespace fc::markets::storage::client {
     std::shared_ptr<ClientFSM> fsm_;
   };
 
-  enum class ClientStateStoreError { STATE_NOT_FOUND };
+  enum class ClientStateStoreError {
+    kStateNotFound = 1,
+  };
 
 }  // namespace fc::markets::storage::client
 

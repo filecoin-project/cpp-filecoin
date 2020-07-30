@@ -150,7 +150,7 @@ namespace fc::markets::storage::provider {
    */
   TEST_F(StoredAskTest, WrongAddress) {
     Address wrong_address = Address::makeFromId(2);
-    EXPECT_OUTCOME_ERROR(StoredAskError::WRONG_ADDRESS,
+    EXPECT_OUTCOME_ERROR(StoredAskError::kWrongAddress,
                          stored_ask.getAsk(wrong_address));
   }
 

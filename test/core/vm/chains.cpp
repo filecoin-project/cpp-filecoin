@@ -38,7 +38,7 @@ TEST(ChainsTest, StoreDeal) {
     EXPECT_EQ(last.second, t->getParentMessageReceipts())
         << "receipts differ at " << t->height() - 1;
     EXPECT_OUTCOME_TRUE(
-        result, fc::vm::interpreter::InterpreterImpl{}.interpret(ipld, *t));
+        result, fc::vm::interpreter::InterpreterImpl{}.interpret(ipld, t));
     last = {result.state_root, result.message_receipts};
   }
 }

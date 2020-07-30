@@ -11,6 +11,7 @@ target_link_libraries(retrieval_market_test
     retrieval_market_client
     piece_storage
     in_memory_storage
+    ipfs_datastore_in_memory
     p2p::p2p
     p2p::p2p_literals
     )

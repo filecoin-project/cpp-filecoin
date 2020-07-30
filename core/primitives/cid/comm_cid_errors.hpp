@@ -15,12 +15,7 @@ namespace fc::common {
      * @brief Pieces returns these types of errors
      */
     enum class CommCidError {
-        TOO_SHORT = 1,
-        CANT_READ_CODE,
-        CANT_READ_LENGTH,
-        DATA_TOO_BIG,
-        DIFFERENT_LENGTH,
-        INVALID_HASH
+        kInvalidHash = 1
     };
 
 }  // namespace fc::primitives::piece

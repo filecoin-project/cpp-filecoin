@@ -12,14 +12,14 @@
 #include "primitives/cid/cid.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
 #include "storage/ipld/ipld_node.hpp"
-#include "storage/ipld/walker.hpp"
+#include "storage/ipld/selector.hpp"
 
 namespace fc::data_transfer {
 
   using fc::storage::ipfs::graphsync::statusCodeToString;
   using libp2p::peer::PeerInfo;
   using storage::ipld::IPLDNode;
-  using storage::ipld::walker::Selector;
+  using storage::ipld::Selector;
 
   /**
    * TransferID is an identifier for a data transfer, shared between

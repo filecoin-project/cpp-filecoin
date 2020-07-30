@@ -31,21 +31,6 @@ namespace fc::primitives::ticket {
    */
   bool operator==(const Ticket &lhs, const Ticket &rhs);
 
-  /**
-   * @brief compares two tickets alphabetically
-   * @param lhs first ticket
-   * @param rhs second ticket
-   * @return true if lhs less thatn rhs, false othewise
-   */
-  bool operator<(const Ticket &lhs, const Ticket &rhs);
-
-  /**
-   * @brief compares two tickets alphabetically
-   * @param lhs first ticket
-   * @param rhs second ticket
-   * @return memcmp result
-   */
-  int compare(const Ticket &lhs, const Ticket &rhs);
 }  // namespace fc::primitives::ticket
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TICKET_TICKET_HPP

@@ -135,7 +135,7 @@ namespace fc::sync {
     auto header_available = ipld_->getCbor<BlockHeader>(cid);
     if (!header_available) {
       if (header_available.error()
-          != storage::ipfs::IpfsDatastoreError::NOT_FOUND) {
+          != storage::ipfs::IpfsDatastoreError::kNotFound) {
         return Error::SYNC_BAD_BLOCK;
       }
       return ret;
@@ -145,7 +145,7 @@ namespace fc::sync {
     auto meta_available = ipld_->getCbor<MsgMeta>(ret.header->messages);
     if (!meta_available) {
       if (meta_available.error()
-          != storage::ipfs::IpfsDatastoreError::NOT_FOUND) {
+          != storage::ipfs::IpfsDatastoreError::kNotFound) {
         return Error::SYNC_BAD_BLOCK;
       }
       return ret;

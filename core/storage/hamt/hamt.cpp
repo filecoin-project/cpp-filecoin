@@ -11,11 +11,11 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::hamt, HamtError, e) {
   using fc::storage::hamt::HamtError;
   switch (e) {
-    case HamtError::EXPECTED_CID:
+    case HamtError::kExpectedCID:
       return "Expected CID";
-    case HamtError::NOT_FOUND:
+    case HamtError::kNotFound:
       return "Not found";
-    case HamtError::MAX_DEPTH:
+    case HamtError::kMaxDepth:
       return "Max depth exceeded";
   }
   return "Unknown error";
@@ -55,7 +55,7 @@ namespace fc::storage::hamt {
     for (auto index : keyToIndices(key)) {
       auto it = node->items.find(index);
       if (it == node->items.end()) {
-        return HamtError::NOT_FOUND;
+        return HamtError::kNotFound;
       }
       auto &item = it->second;
       OUTCOME_TRY(loadItem(item));
@@ -64,12 +64,12 @@ namespace fc::storage::hamt {
       } else {
         auto &leaf = boost::get<Node::Leaf>(item);
         if (leaf.find(key) == leaf.end()) {
-          return HamtError::NOT_FOUND;
+          return HamtError::kNotFound;
         }
         return leaf[key];
       }
     }
-    return HamtError::MAX_DEPTH;
+    return HamtError::kMaxDepth;
   }
 
   outcome::result<void> Hamt::remove(const std::string &key) {
@@ -80,7 +80,7 @@ namespace fc::storage::hamt {
   outcome::result<bool> Hamt::contains(const std::string &key) {
     auto res = get(key);
     if (!res) {
-      if (res.error() == HamtError::NOT_FOUND) return false;
+      if (res.error() == HamtError::kNotFound) return false;
       return res.error();
     }
     return true;
@@ -124,7 +124,7 @@ namespace fc::storage::hamt {
                                   const std::string &key,
                                   gsl::span<const uint8_t> value) {
     if (indices.empty()) {
-      return HamtError::MAX_DEPTH;
+      return HamtError::kMaxDepth;
     }
     auto index = indices[0];
     auto it = node.items.find(index);
@@ -159,12 +159,12 @@ namespace fc::storage::hamt {
                                      gsl::span<const size_t> indices,
                                      const std::string &key) {
     if (indices.empty()) {
-      return HamtError::MAX_DEPTH;
+      return HamtError::kMaxDepth;
     }
     auto index = indices[0];
     auto it = node.items.find(index);
     if (it == node.items.end()) {
-      return HamtError::NOT_FOUND;
+      return HamtError::kNotFound;
     }
     auto &item = it->second;
     OUTCOME_TRY(loadItem(item));
@@ -175,7 +175,7 @@ namespace fc::storage::hamt {
     } else {
       auto &leaf = boost::get<Node::Leaf>(item);
       if (leaf.find(key) == leaf.end()) {
-        return HamtError::NOT_FOUND;
+        return HamtError::kNotFound;
       }
       if (leaf.size() == 1) {
         node.items.erase(index);

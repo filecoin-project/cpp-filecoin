@@ -13,6 +13,7 @@
 #include "api/rpc/json_errors.hpp"
 #include "api/rpc/rpc.hpp"
 #include "common/enum.hpp"
+#include "payment_channel_manager/payment_channel_manager.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 
@@ -30,6 +31,7 @@ namespace fc::api {
   using crypto::signature::Signature;
   using markets::storage::StorageAsk;
   using primitives::BigInt;
+  using primitives::FsStat;
   using primitives::LocalStorageMeta;
   using primitives::block::BlockHeader;
   using primitives::block::ElectionProof;
@@ -43,6 +45,7 @@ namespace fc::api {
   using rapidjson::Document;
   using rapidjson::Value;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::miner::WorkerKeyChange;
   using vm::actor::builtin::payment_channel::Merge;
   using vm::actor::builtin::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
@@ -58,18 +61,18 @@ namespace fc::api {
 
     static std::string AsString(const Value &j) {
       if (!j.IsString()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       return {j.GetString(), j.GetStringLength()};
     }
 
     static const Value &Get(const Value &j, const char *key) {
       if (!j.IsObject()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       auto it = j.FindMember(key);
       if (it == j.MemberEnd()) {
-        outcome::raise(JsonError::OUT_OF_RANGE);
+        outcome::raise(JsonError::kOutOfRange);
       }
       return it->value;
     }
@@ -160,7 +163,7 @@ namespace fc::api {
 
     DECODE(int64_t) {
       if (!j.IsInt64()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       v = j.GetInt64();
     }
@@ -171,21 +174,16 @@ namespace fc::api {
 
     DECODE(uint64_t) {
       if (!j.IsUint64()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       v = j.GetUint64();
     }
 
     DECODE(bool) {
       if (!j.IsBool()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       v = j.GetBool();
-    }
-
-    // TODO(artyom-yurin): remove it after BitField will be implemented
-    DECODE(void *) {
-      v = nullptr;
     }
 
     ENCODE(std::string_view) {
@@ -204,7 +202,7 @@ namespace fc::api {
     DECODE(std::array<uint8_t COMMA N>) {
       auto bytes = decodeBase64(j);
       if (bytes.size() != N) {
-        outcome::raise(JsonError::WRONG_LENGTH);
+        outcome::raise(JsonError::kWrongLength);
       }
       std::copy(bytes.begin(), bytes.end(), v.begin());
     }
@@ -297,7 +295,7 @@ namespace fc::api {
       } else if (type == SignatureType::SECP256K1) {
         v = decode<Secp256k1Signature>(data);
       } else {
-        outcome::raise(JsonError::WRONG_ENUM);
+        outcome::raise(JsonError::kWrongEnum);
       }
     }
 
@@ -349,6 +347,47 @@ namespace fc::api {
 
     DECODE(BigInt) {
       v = BigInt{AsString(j)};
+    }
+
+    ENCODE(MinerInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Owner", v.owner);
+      Set(j, "Worker", v.worker);
+      Set(j, "PendingWorkerKey", v.pending_worker_key);
+      Set(j, "PeerId", v.peer_id);
+      Set(j, "SealProofType", common::to_int(v.seal_proof_type));
+      Set(j, "SectorSize", v.sector_size);
+      Set(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
+      return j;
+    }
+
+    ENCODE(WorkerKeyChange) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "NewWorker", v.new_worker);
+      Set(j, "EffectiveAt", v.effective_at);
+      return j;
+    }
+
+    ENCODE(DeadlineInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "CurrentEpoch", v.current_epoch);
+      Set(j, "PeriodStart", v.period_start);
+      Set(j, "Index", v.index);
+      Set(j, "Open", v.open);
+      Set(j, "Close", v.close);
+      Set(j, "Challenge", v.challenge);
+      Set(j, "FaultCutoff", v.fault_cutoff);
+      return j;
+    }
+
+    DECODE(DomainSeparationTag) {
+      decodeEnum(v, j);
+    }
+
+    ENCODE(Deadlines) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Due", v.due);
+      return j;
     }
 
     ENCODE(BlockHeader) {
@@ -600,6 +639,14 @@ namespace fc::api {
       decode(v.message, Get(j, "Message"));
     }
 
+    ENCODE(SectorInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "SectorNumber", v.sector);
+      Set(j, "SealedCID", v.sealed_cid);
+      return j;
+    }
+
     ENCODE(SectorPreCommitInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "RegisteredProof", common::to_int(v.registered_proof));
@@ -726,7 +773,7 @@ namespace fc::api {
       } else if (type == "apply") {
         v.type = HeadChangeType::APPLY;
       } else {
-        outcome::raise(JsonError::WRONG_ENUM);
+        outcome::raise(JsonError::kWrongEnum);
       }
       decode(v.value, Get(j, "Val"));
     }
@@ -751,6 +798,18 @@ namespace fc::api {
       Set(j, "Expiry", v.expiry);
       Set(j, "SeqNo", v.seq_no);
       return j;
+    }
+
+    ENCODE(AddChannelInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Channel", v.channel);
+      Set(j, "ChannelMessage", v.channel_message);
+      return j;
+    }
+
+    DECODE(AddChannelInfo) {
+      decode(v.channel, Get(j, "Channel"));
+      decode(v.channel_message, Get(j, "ChannelMessage"));
     }
 
     ENCODE(SignedStorageAsk) {
@@ -869,7 +928,7 @@ namespace fc::api {
       } else if (s.isBytes()) {
         return encodeAs<std::vector<uint8_t>>(s);
       }
-      outcome::raise(JsonError::WRONG_TYPE);
+      outcome::raise(JsonError::kWrongType);
     }
 
     ENCODE(IpldObject) {
@@ -881,7 +940,7 @@ namespace fc::api {
     }
 
     DECODE(IpldObject) {
-      outcome::raise(JsonError::WRONG_TYPE);
+      outcome::raise(JsonError::kWrongType);
     }
 
     ENCODE(ActorState) {
@@ -893,7 +952,7 @@ namespace fc::api {
 
     DECODE(ActorState) {
       // Because IpldObject cannot be decoded
-      outcome::raise(JsonError::WRONG_TYPE);
+      outcome::raise(JsonError::kWrongType);
     }
 
     ENCODE(VersionResult) {
@@ -909,7 +968,7 @@ namespace fc::api {
       Set(j, "MinerPower", v.miner_power);
       Set(j, "NetworkPower", v.network_power);
       Set(j, "Sectors", v.sectors);
-      Set(j, "Worker", v.worker);
+      Set(j, "WorkerKey", v.worker);
       Set(j, "SectorSize", v.sector_size);
       Set(j, "PrevBeaconEntry", v.prev_beacon);
       Set(j, "BeaconEntries", v.beacons);
@@ -1036,6 +1095,20 @@ namespace fc::api {
       decode(v.can_store, Get(j, "CanStore"));
     }
 
+    ENCODE(FsStat) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Capacity", v.capacity);
+      Set(j, "Available", v.available);
+      Set(j, "Used", v.used);
+      return j;
+    }
+
+    DECODE(FsStat) {
+      decode(v.capacity, Get(j, "Capacity"));
+      decode(v.available, Get(j, "Available"));
+      decode(v.used, Get(j, "Used"));
+    }
+
     template <typename T>
     ENCODE(boost::optional<T>) {
       if (v) {
@@ -1068,7 +1141,7 @@ namespace fc::api {
         return;
       }
       if (!j.IsArray()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       v.reserve(j.Size());
       for (auto it = j.Begin(); it != j.End(); ++it) {
@@ -1112,11 +1185,11 @@ namespace fc::api {
     template <size_t i = 0, typename... T>
     DECODE(std::tuple<T...>) {
       if (!j.IsArray()) {
-        outcome::raise(JsonError::WRONG_TYPE);
+        outcome::raise(JsonError::kWrongType);
       }
       if constexpr (i < sizeof...(T)) {
         if (i >= j.Size()) {
-          outcome::raise(JsonError::OUT_OF_RANGE);
+          outcome::raise(JsonError::kOutOfRange);
         }
         decode(std::get<i>(v), j[i]);
         decode<i + 1>(v, j);

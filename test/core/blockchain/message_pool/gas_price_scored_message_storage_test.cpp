@@ -29,7 +29,6 @@ class GasPricedScoredMessageStorageTest : public testing::Test {
   Address to{Network::TESTNET, 1001};
   Address from{Network::TESTNET, 1002};
   UnsignedMessage unsigned_message{
-      0,                      // version
       to,                     // to Address
       from,                   // from Address
       0,                      // nonce
@@ -61,7 +60,7 @@ TEST_F(GasPricedScoredMessageStorageTest, RemoveNotExists) {
  */
 TEST_F(GasPricedScoredMessageStorageTest, AddTwice) {
   EXPECT_OUTCOME_TRUE_1(message_storage.put(message));
-  EXPECT_OUTCOME_ERROR(MessagePoolError::MESSAGE_ALREADY_IN_POOL,
+  EXPECT_OUTCOME_ERROR(MessagePoolError::kMessageAlreadyInPool,
                        message_storage.put(message));
 }
 
@@ -97,7 +96,6 @@ TEST_F(GasPricedScoredMessageStorageTest, SunnyDay) {
   BigInt gas_price2{2};
   BigInt gas_price3{3};
   UnsignedMessage unsigned_message1{
-      0,                     // version
       to,                     // to Address
       from,                   // from Address
       0,                      // nonce
@@ -112,7 +110,6 @@ TEST_F(GasPricedScoredMessageStorageTest, SunnyDay) {
   EXPECT_OUTCOME_TRUE_1(message_storage.put(message1));
 
   UnsignedMessage unsigned_message2{
-      0,                     // version
       to,                     // to Address
       from,                   // from Address
       1,                      // nonce
@@ -127,7 +124,6 @@ TEST_F(GasPricedScoredMessageStorageTest, SunnyDay) {
   EXPECT_OUTCOME_TRUE_1(message_storage.put(message2));
 
   UnsignedMessage unsigned_message3{
-      0,                     // version
       to,                     // to Address
       from,                   // from Address
       2,                      // nonce
@@ -142,7 +138,6 @@ TEST_F(GasPricedScoredMessageStorageTest, SunnyDay) {
   EXPECT_OUTCOME_TRUE_1(message_storage.put(message3));
 
   UnsignedMessage unsigned_message4{
-      0,                     // version
       to,                     // to Address
       from,                   // from Address
       3,                      // nonce

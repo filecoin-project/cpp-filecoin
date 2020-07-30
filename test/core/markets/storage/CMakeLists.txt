@@ -3,12 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(chain_events)
 add_subdirectory(provider)
 
 addtest(storage_market_test
     storage_market_types_encoding_test.cpp
-    storage_market_ask.cpp
-    storage_market_deal.cpp
+    storage_market_ask_test.cpp
+    storage_market_deal_test.cpp
     )
 target_link_libraries(storage_market_test
     address

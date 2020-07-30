@@ -15,14 +15,14 @@
 
 namespace fc::vm::runtime {
   using actor::Invoker;
-  using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetCPtr;
   using state::StateTreeImpl;
 
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {
-    Env(std::shared_ptr<Invoker> invoker, IpldPtr ipld, Tipset tipset)
+    Env(std::shared_ptr<Invoker> invoker, IpldPtr ipld, TipsetCPtr tipset)
         : state_tree{std::make_shared<StateTreeImpl>(
-            ipld, tipset.getParentStateRoot())},
+            ipld, tipset->getParentStateRoot())},
           invoker{std::move(invoker)},
           ipld{std::move(ipld)},
           tipset{std::move(tipset)} {}
@@ -36,7 +36,7 @@ namespace fc::vm::runtime {
     std::shared_ptr<StateTreeImpl> state_tree;
     std::shared_ptr<Invoker> invoker;
     IpldPtr ipld;
-    Tipset tipset;
+    TipsetCPtr tipset;
     Pricelist pricelist;
   };
 

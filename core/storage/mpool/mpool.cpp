@@ -40,7 +40,7 @@ namespace fc::storage::mpool {
 
   outcome::result<uint64_t> Mpool::nonce(const Address &from) const {
     OUTCOME_TRY(interpeted,
-                vm::interpreter::InterpreterImpl{}.interpret(ipld, *head));
+                vm::interpreter::InterpreterImpl{}.interpret(ipld, head));
     OUTCOME_TRY(
         actor, vm::state::StateTreeImpl{ipld, interpeted.state_root}.get(from));
     auto by_from_it{by_from.find(from)};

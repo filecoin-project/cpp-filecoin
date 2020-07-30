@@ -30,13 +30,15 @@ namespace fc::markets::retrieval {
    */
   struct QueryParams {
     /* Identifier of the parent's Piece */
-    CID piece_cid;
+    boost::optional<CID> piece_cid;
   };
 
   struct QueryRequest {
+    /* V0 protocol */
     /* Identifier of the requested item */
     CID payload_cid;
 
+    /* V1 protocol */
     /* Additional params */
     QueryParams params;
   };
@@ -50,13 +52,13 @@ namespace fc::markets::retrieval {
    */
   enum class QueryResponseStatus : uint64_t {
     /* Provider has a piece and is prepared to return it */
-    QueryResponseAvailable = 1,
+    kQueryResponseAvailable,
 
     /* Provider either does not have a piece or cannot serve request */
-    QueryResponseUnavailable,
+    kQueryResponseUnavailable,
 
     /* Something went wrong generating a query response */
-    QueryResponseError
+    kQueryResponseError
   };
 
   /**
@@ -64,13 +66,13 @@ namespace fc::markets::retrieval {
    */
   enum class QueryItemStatus : uint64_t {
     /* Requested part of the piece is available to be served */
-    QueryItemAvailable = 1,
+    kQueryItemAvailable,
 
     /* Requested part of the piece is unavailable or cannot be served */
-    QueryItemUnavailable,
+    kQueryItemUnavailable,
 
     /* Cannot determine if the given item is part of the requested piece */
-    QueryItemUnknown
+    kQueryItemUnknown
   };
 
   /**

@@ -8,33 +8,65 @@
 
 #include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
+#include "primitives/sector/sector.hpp"
+#include "primitives/types.hpp"
 
 namespace fc::storage::piece {
-  /* Information about Piece location and it's deal */
-  struct PieceInfo {
-    uint64_t deal_id;
-    uint64_t sector_id;
+  using primitives::DealId;
+  using primitives::sector::SectorNumber;
+
+  /**
+   * Information about a single deal for a given piece
+   */
+  struct DealInfo {
+    DealId deal_id;
+    SectorNumber sector_id;
     uint64_t offset;
     uint64_t length;
 
-    bool operator==(const PieceInfo&) const;
+    bool operator==(const DealInfo &) const;
   };
+  CBOR_TUPLE(DealInfo, deal_id, sector_id, offset, length)
+
+  /**
+   * Metadata about a piece a provider may be storing based on its PieceCID --
+   * so that, given a pieceCID during retrieval, the miner can determine how to
+   * unseal it if needed
+   */
+  struct PieceInfo {
+    CID piece_cid;
+    std::vector<DealInfo> deals;
+
+    bool operator==(const PieceInfo &) const;
+  };
+  CBOR_TUPLE(PieceInfo, piece_cid, deals)
 
   /* Location of the payload block inside the Piece */
   struct PayloadLocation {
     uint64_t relative_offset;
     uint64_t block_size;
 
-    bool operator==(const PayloadLocation&) const;
+    bool operator==(const PayloadLocation &) const;
   };
+  CBOR_TUPLE(PayloadLocation, relative_offset, block_size)
 
   /* Information about parent Piece and block location */
   struct PayloadBlockInfo {
     CID parent_piece;
     PayloadLocation block_location;
 
-    bool operator==(const PayloadBlockInfo&) const;
+    bool operator==(const PayloadBlockInfo &) const;
   };
+  CBOR_TUPLE(PayloadBlockInfo, parent_piece, block_location);
+
+  /**
+   * Information about where a given payload with CID will live inside a piece
+   */
+  struct PayloadInfo {
+    CID cid;
+    std::vector<PayloadBlockInfo> piece_block_locations;
+  };
+  CBOR_TUPLE(PayloadInfo, cid, piece_block_locations);
 
   /**
    * @brief Piece consists of the number of payload blocks, each of them has
@@ -55,13 +87,13 @@ namespace fc::storage::piece {
     virtual ~PieceStorage() = default;
 
     /**
-     * @brief Add new piece info
+     * @brief Append new deal info for piece
      * @param piece_cid - id of the Piece
-     * @param piece_info - info about Piece
+     * @param deal_info - info about deal
      * @return operation result
      */
-    virtual outcome::result<void> addPieceInfo(const CID &piece_cid,
-                                               PieceInfo piece_info) = 0;
+    virtual outcome::result<void> addDealForPiece(
+        const CID &piece_cid, const DealInfo &deal_info) = 0;
 
     /**
      * @brief Get info about selected Piece
@@ -72,6 +104,14 @@ namespace fc::storage::piece {
         const CID &piece_cid) const = 0;
 
     /**
+     * Retrieve the CIDInfo associated with `pieceCID` from the CID info store
+     * @param payload_cid - cid of the payload
+     * @return operation result
+     */
+    virtual outcome::result<PayloadInfo> getPayloadInfo(
+        const CID &payload_cid) const = 0;
+
+    /**
      * @brief Add locations of the payload blocks in the Piece
      * @param parent_piece - id of the Piece, which contains given payload
      * blocks
@@ -80,25 +120,17 @@ namespace fc::storage::piece {
     virtual outcome::result<void> addPayloadLocations(
         const CID &parent_piece, std::map<CID, PayloadLocation> locations) = 0;
 
-    /**
-     * @brief Get location of the payload block
-     * @param paload_cid - id of the payload block
-     * @return operation result
-     */
-    virtual outcome::result<PayloadBlockInfo> getPayloadLocation(
-        const CID &paload_cid) const = 0;
+    virtual outcome::result<PieceInfo> getPieceInfoFromCid(
+        const CID &payload_cid,
+        const boost::optional<CID> &piece_cid) const = 0;
+
+    virtual outcome::result<bool> hasPieceInfo(
+        CID payload_cid, const boost::optional<CID> &piece_cid) const = 0;
+
+    virtual outcome::result<uint64_t> getPieceSize(
+        CID payload_cid, const boost::optional<CID> &piece_cid) const = 0;
   };
 
-  /**
-   * @enum Piece storage errors
-   */
-  enum class PieceStorageError {
-    STORAGE_BACKEND_ERROR,
-    PIECE_NOT_FOUND,
-    PAYLOAD_NOT_FOUND
-  };
 }  // namespace fc::storage::piece
-
-OUTCOME_HPP_DECLARE_ERROR(fc::storage::piece, PieceStorageError);
 
 #endif

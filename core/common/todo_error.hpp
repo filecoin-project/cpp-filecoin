@@ -10,7 +10,7 @@
 
 namespace fc {
   enum class TodoError {
-    ERROR = 1,
+    kError = 1,
   };
 }  // namespace fc
 

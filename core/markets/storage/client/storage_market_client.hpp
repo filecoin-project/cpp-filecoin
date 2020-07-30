@@ -39,7 +39,7 @@ namespace fc::markets::storage::client {
 
     virtual void run() = 0;
 
-    virtual void stop() = 0;
+    virtual outcome::result<void> stop() = 0;
 
     /**
      * Lists the providers in the storage market state
@@ -61,7 +61,7 @@ namespace fc::markets::storage::client {
     virtual outcome::result<ClientDeal> getLocalDeal(const CID &cid) const = 0;
 
     virtual void getAsk(const StorageProviderInfo &info,
-                        const SignedAskHandler &signed_ask_handler) const = 0;
+                        const SignedAskHandler &signed_ask_handler) = 0;
 
     /**
      * Initiate deal by proposing storage deal

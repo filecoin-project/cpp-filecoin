@@ -217,30 +217,6 @@ namespace fc::vm::actor::builtin::miner {
     return {now, start, index, after, after, after, 0};
   }
 
-  std::pair<size_t, size_t> Deadlines::count(size_t partition_size,
-                                             size_t index) const {
-    assert(index < due.size());
-    auto sectors{due[index].size()};
-    auto parts{sectors / partition_size};
-    if (sectors % partition_size != 0) {
-      ++parts;
-    }
-    return {parts, sectors};
-  }
-
-  std::pair<size_t, size_t> Deadlines::partitions(size_t part_size,
-                                                  size_t index) const {
-    assert(index < due.size());
-    size_t first_part{0};
-    for (size_t i{0};; ++i) {
-      auto [parts, sectors]{count(part_size, index)};
-      if (i == index) {
-        return {first_part, sectors};
-      }
-      first_part += parts;
-    }
-  }
-
   DeadlineInfo State::deadlineInfo(ChainEpoch now) const {
     auto progress{now - proving_period_start};
     size_t deadline{kWPoStPeriodDeadlines};
@@ -405,7 +381,7 @@ namespace fc::vm::actor::builtin::miner {
     OUTCOME_TRY(id, runtime.resolveAddress(address));
     OUTCOME_TRY(code, runtime.getActorCodeID(id));
     if (!isSignableActor(code)) {
-      return VMExitCode::MINER_ACTOR_OWNER_NOT_SIGNABLE;
+      return VMExitCode::kMinerActorOwnerNotSignable;
     }
     return std::move(id);
   }
@@ -420,12 +396,12 @@ namespace fc::vm::actor::builtin::miner {
     OUTCOME_TRY(id, runtime.resolveAddress(address));
     OUTCOME_TRY(code, runtime.getActorCodeID(id));
     if (code != kAccountCodeCid) {
-      return VMExitCode::MINER_ACTOR_MINER_NOT_ACCOUNT;
+      return VMExitCode::kMinerActorNotAccount;
     }
     if (address.getProtocol() != Protocol::BLS) {
       OUTCOME_TRY(key, runtime.sendM<account::PubkeyAddress>(id, {}, 0));
       if (key.getProtocol() != Protocol::BLS) {
-        return VMExitCode::MINER_ACTOR_MINER_NOT_BLS;
+        return VMExitCode::kMinerActorMinerNotBls;
       }
     }
     return std::move(id);
@@ -471,7 +447,7 @@ namespace fc::vm::actor::builtin::miner {
     }
     OUTCOME_TRY(verified, runtime.verifyPoSt(params));
     if (!verified) {
-      return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
+      return VMExitCode::kMinerActorIllegalArgument;
     }
     return outcome::success();
   }
@@ -480,12 +456,12 @@ namespace fc::vm::actor::builtin::miner {
                                    const OnChainSealVerifyInfo &info) {
     ChainEpoch current_epoch = runtime.getCurrentEpoch();
     if (current_epoch <= info.interactive_epoch) {
-      return VMExitCode::MINER_ACTOR_WRONG_EPOCH;
+      return VMExitCode::kMinerActorWrongEpoch;
     }
 
     OUTCOME_TRY(duration, maxSealDuration(info.registered_proof));
     if (info.seal_rand_epoch < current_epoch - kChainFinalityish - duration) {
-      return VMExitCode::MINER_ACTOR_ILLEGAL_ARGUMENT;
+      return VMExitCode::kMinerActorIllegalArgument;
     }
 
     OUTCOME_TRY(comm_d,
@@ -704,11 +680,11 @@ namespace fc::vm::actor::builtin::miner {
   outcome::result<void> commitWorkerKeyChange(Runtime &runtime,
                                               MinerActorState &state) {
     if (!state.info.pending_worker_key) {
-      return VMExitCode::MINER_ACTOR_ILLEGAL_STATE;
+      return VMExitCode::kMinerActorIllegalState;
     }
     if (state.info.pending_worker_key->effective_at
         > runtime.getCurrentEpoch()) {
-      return VMExitCode::MINER_ACTOR_ILLEGAL_STATE;
+      return VMExitCode::kMinerActorIllegalState;
     }
     state.info.worker = state.info.pending_worker_key->new_worker;
     state.info.pending_worker_key = boost::none;
@@ -1115,7 +1091,7 @@ namespace fc::vm::actor::builtin::miner {
     OUTCOME_TRY(state, loadState(runtime));
     OUTCOME_TRY(found, state.sectors.has(params.sector));
     if (!found) {
-      return VMExitCode::MINER_ACTOR_NOT_FOUND;
+      return VMExitCode::kMinerActorNotFound;
     }
     return outcome::success();
   }
@@ -1125,7 +1101,7 @@ namespace fc::vm::actor::builtin::miner {
     auto caller{runtime.getImmediateCaller()};
     if (caller != kRewardAddress && caller != state.info.owner
         && caller != state.info.worker) {
-      return VMExitCode::SysErrForbidden;
+      return VMExitCode::kSysErrForbidden;
     }
     auto now{runtime.getCurrentEpoch()};
     OUTCOME_TRY(new_vest, unlockVestedFunds(state, now));

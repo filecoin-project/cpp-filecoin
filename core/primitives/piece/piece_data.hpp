@@ -15,7 +15,7 @@ namespace fc::primitives::piece {
   class PieceData {
    public:
     explicit PieceData(const std::string &path_to_file);
-    explicit PieceData(int pipe_fd);
+    explicit PieceData(int &pipe_fd);
 
     PieceData(PieceData &&other) noexcept;
 

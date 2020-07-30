@@ -28,6 +28,14 @@ namespace fc::storage::blockchain {
   using primitives::tipset::TipsetHash;
   using primitives::tipset::TipsetKey;
 
+
+  enum class ChainStoreError : int {
+    kNoMinTicketBlock = 1,
+    kNoHeaviestTipset,
+    kNoGenesisBlock,
+    kStoreNotInitialized,
+  };
+
   class ChainStoreImpl : public ChainStore,
                          public std::enable_shared_from_this<ChainStoreImpl> {
    public:
@@ -109,9 +117,11 @@ namespace fc::storage::blockchain {
 
     void synchronizeTipset(TipsetKey key);
 
+
     void choosePeer();
 
     outcome::result<void> applyHead(TipsetHash hash, std::vector<CID> cids);
+
 
     //    outcome::result<void> takeHeaviestTipset(const Tipset &tipset);
     //

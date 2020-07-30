@@ -16,7 +16,7 @@ namespace fc::markets::storage::client {
         return *it.first;
       }
     }
-    return ClientStateStoreError::STATE_NOT_FOUND;
+    return ClientStateStoreError::kStateNotFound;
   }
 
 }  // namespace fc::markets::storage::client
@@ -27,7 +27,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::client,
   using fc::markets::storage::client::ClientStateStoreError;
 
   switch (e) {
-    case (ClientStateStoreError::STATE_NOT_FOUND):
+    case (ClientStateStoreError::kStateNotFound):
       return "ClientStateStoreError: state not found";
     default:
       return "ClientStateStoreError: unknown error";

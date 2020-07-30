@@ -69,13 +69,13 @@ namespace fc::blockchain::block_validator {
   };
 
   enum class SyntaxError {
-    INVALID_PARENTS_COUNT = 1,
-    INVALID_PARENT_WEIGHT,
-    INVALID_MINER_ADDRESS,
-    INVALID_TIMESTAMP,
-    INVALID_TICKET,
-    INVALID_ELECTION_POST,
-    INVALID_FORK_SIGNAL,
+    kInvalidParentsCount = 1,
+    kInvalidParentWeight,
+    kInvalidMinerAddress,
+    kInvalidTimestamp,
+    kInvalidTicket,
+    kInvalidElectionPost,
+    kInvalidForkSignal,
   };
 }  // namespace fc::blockchain::block_validator
 

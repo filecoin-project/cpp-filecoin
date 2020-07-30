@@ -22,7 +22,8 @@ struct PieceStorageTest : public ::testing::Test {
   CID piece_cid{"010001020001"_cid};
   CID payload_cid_A{"010001020002"_cid};
   CID payload_cid_B{"010001020003"_cid};
-  PieceInfo piece_info{.deal_id = 1, .sector_id = 2, .offset = 3, .length = 4};
+  DealInfo deal_info{.deal_id = 1, .sector_id = 2, .offset = 3, .length = 4};
+  PieceInfo piece_info{.piece_cid = piece_cid, .deals = {deal_info}};
   PayloadLocation location_A{.relative_offset = 0, .block_size = 100};
   PayloadLocation location_B{.relative_offset = 100, .block_size = 50};
 
@@ -32,12 +33,21 @@ struct PieceStorageTest : public ::testing::Test {
 };
 
 /**
+ * @given Example Piece CID and empty storage
+ * @when retrieving nonexisting Piece info
+ * @then return error piece info not found
+ */
+TEST_F(PieceStorageTest, GetPieceInfoNotFound){
+    EXPECT_OUTCOME_ERROR(PieceStorageError::kPieceNotFound,
+                         piece_storage->getPieceInfo(piece_cid))}
+
+/**
  * @given Example Piece CID and Piece info
  * @when Writing and retrieving Piece info
  * @then All operations must be successful and retrieved info must be the same
  */
 TEST_F(PieceStorageTest, AddPieceInfoSuccess) {
-  EXPECT_OUTCOME_TRUE_1(piece_storage->addPieceInfo(piece_cid, piece_info))
+  EXPECT_OUTCOME_TRUE_1(piece_storage->addDealForPiece(piece_cid, deal_info))
   EXPECT_OUTCOME_TRUE(received_info, piece_storage->getPieceInfo(piece_cid))
   ASSERT_EQ(received_info, piece_info);
 }
@@ -52,12 +62,22 @@ TEST_F(PieceStorageTest, AddBlockLocationSuccess) {
                                            {payload_cid_B, location_B}};
   EXPECT_OUTCOME_TRUE_1(
       piece_storage->addPayloadLocations(piece_cid, locations));
-  EXPECT_OUTCOME_TRUE(payload_location_A,
-                      piece_storage->getPayloadLocation(payload_cid_A));
-  ASSERT_EQ(payload_location_A.parent_piece, piece_cid);
-  ASSERT_EQ(payload_location_A.block_location, location_A);
-  EXPECT_OUTCOME_TRUE(payload_location_B,
-                      piece_storage->getPayloadLocation(payload_cid_B));
-  ASSERT_EQ(payload_location_B.parent_piece, piece_cid);
-  ASSERT_EQ(payload_location_B.block_location, location_B);
+
+  EXPECT_OUTCOME_TRUE(payload_info_A,
+                      piece_storage->getPayloadInfo(payload_cid_A));
+  EXPECT_EQ(payload_info_A.cid, payload_cid_A);
+  EXPECT_EQ(payload_info_A.piece_block_locations.size(), 1);
+  EXPECT_EQ(payload_info_A.piece_block_locations.front().parent_piece,
+            piece_cid);
+  EXPECT_EQ(payload_info_A.piece_block_locations.front().block_location,
+            location_A);
+
+  EXPECT_OUTCOME_TRUE(payload_info_B,
+                      piece_storage->getPayloadInfo(payload_cid_B));
+  EXPECT_EQ(payload_info_B.cid, payload_cid_B);
+  EXPECT_EQ(payload_info_B.piece_block_locations.size(), 1);
+  EXPECT_EQ(payload_info_B.piece_block_locations.front().parent_piece,
+            piece_cid);
+  EXPECT_EQ(payload_info_B.piece_block_locations.front().block_location,
+            location_B);
 }

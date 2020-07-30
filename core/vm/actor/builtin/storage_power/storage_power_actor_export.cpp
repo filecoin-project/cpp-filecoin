@@ -115,7 +115,7 @@ namespace fc::vm::actor::builtin::storage_power {
     OUTCOME_TRY(miner, requestMinerControlAddress(runtime, nominal));
     if (runtime.getImmediateCaller() != miner.worker
         && runtime.getImmediateCaller() != miner.owner) {
-      return VMExitCode::SysErrForbidden;
+      return VMExitCode::kSysErrForbidden;
     }
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(claim, state.claims.get(nominal));

@@ -5,7 +5,9 @@
 
 #include "storage/chain/impl/chain_store_impl.hpp"
 
+
 #include "common/logger.hpp"
+
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/cid/json_codec.hpp"
@@ -85,7 +87,7 @@ namespace fc::storage::blockchain {
   }
 
   outcome::result<void> ChainStoreImpl::chooseHead() {
-    using namespace storage::indexdb;
+
 
     if (heads_.empty()) {
       return ChainStoreError::DATA_INTEGRITY_ERROR;
@@ -111,11 +113,13 @@ namespace fc::storage::blockchain {
       }
     }
 
+
     // at least 1 branch must originate from genesis
     if (idx >= heads_.size()) {
       // TODO logs everywhere
       return ChainStoreError::DATA_INTEGRITY_ERROR;
     }
+
 
     heaviest_weight_ = std::move(max_weight);
     heaviest_tipset_ = std::move(head_tipset);
@@ -429,6 +433,7 @@ namespace fc::storage::blockchain {
     ChainStoreImpl::createRandomnessProvider() {
       return
       std::make_shared<ChainRandomnessProviderImpl>(shared_from_this());
+
     }
   //
   //  outcome::result<ChainPath> ChainStoreImpl::findChainPath(
@@ -459,13 +464,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {
   using fc::storage::blockchain::ChainStoreError;
 
   switch (e) {
-    case ChainStoreError::NO_MIN_TICKET_BLOCK:
+    case ChainStoreError::kNoMinTicketBlock:
       return "min ticket block has no value";
-    case ChainStoreError::NO_HEAVIEST_TIPSET:
+    case ChainStoreError::kNoHeaviestTipset:
       return "no heaviest tipset in storage";
-    case ChainStoreError::NO_GENESIS_BLOCK:
+    case ChainStoreError::kNoGenesisBlock:
       return "no genesis block in storage";
-    case ChainStoreError::STORE_NOT_INITIALIZED:
+    case ChainStoreError::kStoreNotInitialized:
       return "store is not initialized properly";
     case ChainStoreError::DATA_INTEGRITY_ERROR:
       return "chain store data integrity error";

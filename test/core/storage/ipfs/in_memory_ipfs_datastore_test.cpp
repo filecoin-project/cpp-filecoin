@@ -77,7 +77,7 @@ TEST_F(InMemoryIpfsDatastoreTest, GetExistingSuccess) {
  */
 TEST_F(InMemoryIpfsDatastoreTest, GetNotExistingFailure) {
   EXPECT_OUTCOME_TRUE_1(datastore->set(cid1, value));
-  EXPECT_OUTCOME_ERROR(IpfsDatastoreError::NOT_FOUND, datastore->get(cid2));
+  EXPECT_OUTCOME_ERROR(IpfsDatastoreError::kNotFound, datastore->get(cid2));
 }
 
 /**

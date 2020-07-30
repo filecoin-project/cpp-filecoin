@@ -35,7 +35,7 @@ namespace fc::sector_storage::stores {
     std::unique_lock lock(mutex_);
     for (const auto &new_url : storage_info.urls) {
       if (!isValidUrl(new_url)) {
-        return IndexErrors::InvalidUrl;
+        return IndexErrors::kInvalidUrl;
       }
     }
 
@@ -70,7 +70,7 @@ namespace fc::sector_storage::stores {
       const StorageID &storage_id) const {
     std::shared_lock lock(mutex_);
     auto maybe_storage = stores_.find(storage_id);
-    if (maybe_storage == stores_.end()) return IndexErrors::StorageNotFound;
+    if (maybe_storage == stores_.end()) return IndexErrors::kStorageNotFound;
     return maybe_storage->second.info;
   }
 
@@ -78,7 +78,7 @@ namespace fc::sector_storage::stores {
       const StorageID &storage_id, const HealthReport &report) {
     std::unique_lock lock(mutex_);
     auto storage_iter = stores_.find(storage_id);
-    if (storage_iter == stores_.end()) return IndexErrors::StorageNotFound;
+    if (storage_iter == stores_.end()) return IndexErrors::kStorageNotFound;
 
     storage_iter->second.fs_stat = report.stat;
     storage_iter->second.error = report.error;
@@ -189,7 +189,7 @@ namespace fc::sector_storage::stores {
         try {
           uri.parse(store.urls[i]);
         } catch (const std::runtime_error &err) {
-          return IndexErrors::InvalidUrl;
+          return IndexErrors::kInvalidUrl;
         }
         boost::filesystem::path path = uri.path();
         path = path / toString(file_type) / sectorName(sector);
@@ -213,7 +213,7 @@ namespace fc::sector_storage::stores {
           try {
             uri.parse(store.urls[i]);
           } catch (const std::runtime_error &err) {
-            return IndexErrors::InvalidUrl;
+            return IndexErrors::kInvalidUrl;
           }
           boost::filesystem::path path = uri.path();
           path = path / toString(file_type) / sectorName(sector);
@@ -266,7 +266,7 @@ namespace fc::sector_storage::stores {
     }
 
     if (candidates.empty()) {
-      return IndexErrors::NoSuitableCandidate;
+      return IndexErrors::kNoSuitableCandidate;
     }
 
     std::sort(candidates.begin(),
@@ -286,17 +286,49 @@ namespace fc::sector_storage::stores {
     return result;
   }
 
+  outcome::result<std::unique_ptr<Lock>> SectorIndexImpl::storageLock(
+      const SectorId &sector, SectorFileType read, SectorFileType write) {
+    std::unique_ptr<IndexLock::Lock> lock =
+        std::make_unique<IndexLock::Lock>(sector, read, write);
+
+    if (lock) {
+      auto is_locked = index_lock_->lock(*lock, true);
+
+      if (is_locked) {
+        return std::move(lock);
+      }
+    }
+
+    return IndexErrors::kCannotLockStorage;
+  }
+
+  std::unique_ptr<Lock> SectorIndexImpl::storageTryLock(const SectorId &sector,
+                                                        SectorFileType read,
+                                                        SectorFileType write) {
+    auto lock = std::make_unique<IndexLock::Lock>(sector, read, write);
+
+    auto is_locked = index_lock_->lock(*lock, false);
+
+    if (is_locked) {
+      return std::move(lock);
+    }
+
+    return nullptr;
+  }
+
 }  // namespace fc::sector_storage::stores
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, IndexErrors, e) {
   using fc::sector_storage::stores::IndexErrors;
   switch (e) {
-    case (IndexErrors::StorageNotFound):
+    case (IndexErrors::kStorageNotFound):
       return "Sector Index: storage by ID not found";
-    case (IndexErrors::NoSuitableCandidate):
+    case (IndexErrors::kNoSuitableCandidate):
       return "Sector Index: not found a suitable storage";
-    case (IndexErrors::InvalidUrl):
+    case (IndexErrors::kInvalidUrl):
       return "Sector Index: failed to parse url";
+    case (IndexErrors::kCannotLockStorage):
+      return "Sector Index: failed to acquire lock";
     default:
       return "Sector Index: unknown error";
   }

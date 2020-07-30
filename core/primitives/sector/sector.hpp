@@ -24,7 +24,9 @@ namespace fc::primitives::sector {
     ActorId miner;
     SectorNumber sector;
   };
-
+  inline bool operator<(const SectorId &lhs, const SectorId &rhs) {
+    return lhs.miner < rhs.miner && lhs.sector < rhs.sector;
+  }
   inline bool operator==(const SectorId &lhs, const SectorId &rhs) {
     return lhs.miner == rhs.miner && lhs.sector == rhs.sector;
   }
@@ -65,6 +67,8 @@ namespace fc::primitives::sector {
       RegisteredProof proof);
 
   outcome::result<SectorSize> getSectorSize(RegisteredProof proof);
+
+  outcome::result<RegisteredProof> sealProofTypeFromSectorSize(SectorSize size);
 
   outcome::result<size_t> getWindowPoStPartitionSectors(RegisteredProof proof);
 
@@ -197,9 +201,9 @@ namespace fc::primitives::sector {
   CBOR_TUPLE(OnChainPoStVerifyInfo, proof_type, candidates, proofs)
 
   enum class Errors {
-    InvalidPoStProof = 1,
-    InvalidSealProof,
-    InvalidProofType,
+    kInvalidPoStProof = 1,
+    kInvalidSealProof,
+    kInvalidProofType,
   };
 }  // namespace fc::primitives::sector
 

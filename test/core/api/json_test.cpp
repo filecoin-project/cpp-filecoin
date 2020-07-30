@@ -65,7 +65,7 @@ void expectJson(const T &value, std::string expected) {
 /// Following tests check json encoding and decoding
 
 TEST(ApiJsonTest, WrongType) {
-  EXPECT_OUTCOME_ERROR(fc::api::JsonError::WRONG_TYPE,
+  EXPECT_OUTCOME_ERROR(fc::api::JsonError::kWrongType,
                        fc::api::decode<Ticket>(jsonDecode("4")));
 }
 
@@ -135,7 +135,7 @@ TEST(ApiJsonTest, MsgWait) {
           {fc::common::Buffer{"F00D"_unhex}},
           {fc::primitives::block::BeaconEntry{
               4,
-              fc::common::Buffer{"F00D"_unhex},
+              fc::common::Buffer{"F00D"_unhex}.toVector(),
           }},
           {fc::primitives::sector::PoStProof{
               fc::primitives::sector::RegisteredProof::
@@ -157,10 +157,34 @@ TEST(ApiJsonTest, MsgWait) {
   expectJson(
       MsgWait{
           {fc::vm::VMExitCode{1}, Buffer{"DEAD"_unhex}, 2},
-          {
-              tipset
+          std::make_shared<fc::primitives::tipset::Tipset>(
+              TipsetKey::create({"010001020001"_cid}).value(),
+              std::vector<BlockHeader>({BlockHeader{
+                  Address::makeFromId(1),
+                  Ticket{b96},
+                  {fc::common::Buffer{"F00D"_unhex}},
+                  {fc::primitives::block::BeaconEntry{
+                      4,
+                      "F00D"_unhex,
+                  }},
+                  {fc::primitives::sector::PoStProof{
+                      fc::primitives::sector::RegisteredProof::
+                          StackedDRG2KiBSeal,
+                      "F00D"_unhex,
+                  }},
+                  {"010001020002"_cid},
+                  3,
+                  4,
+                  "010001020005"_cid,
+                  "010001020006"_cid,
+                  "010001020007"_cid,
+                  Signature{b65},
+                  8,
+                  Signature{Secp256k1Signature{b65}},
+                  9,
+              }}))
           },
-      },
+
       "{\"Receipt\":{\"ExitCode\":1,\"Return\":\"3q0=\",\"GasUsed\":2},"
       "\"TipSet\":{\"Cids\":[{\"/"
       "\":\"baeaacaqaae\"}],\"Blocks\":[{\"Miner\":\"t01\",\"Ticket\":{"

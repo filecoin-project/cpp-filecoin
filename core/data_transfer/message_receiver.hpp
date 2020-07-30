@@ -67,8 +67,8 @@ namespace fc::data_transfer {
    * @brief Type of errors returned by Keystore
    */
   enum class MessageReceiverError {
-    VOUCHER_VALIDATOR_ALREADY_REGISTERED,
-    VOUCHER_VALIDATOR_NOT_FOUND
+    kVoucherValidatorAlreadyRegistered = 1,
+    kVoucherValidatorNotFound
   };
 
 }  // namespace fc::data_transfer

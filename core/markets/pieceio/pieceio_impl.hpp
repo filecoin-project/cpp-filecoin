@@ -12,7 +12,7 @@
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/ipfs/datastore.hpp"
-#include "storage/ipld/walker.hpp"
+#include "storage/ipld/selector.hpp"
 
 namespace fc::markets::pieceio {
   using Ipld = fc::storage::ipfs::IpfsDatastore;
@@ -27,8 +27,7 @@ namespace fc::markets::pieceio {
         const Selector &selector) override;
 
     outcome::result<std::pair<CID, UnpaddedPieceSize>> generatePieceCommitment(
-        const RegisteredProof &registered_proof,
-        const Buffer &piece) override;
+        const RegisteredProof &registered_proof, const Buffer &piece) override;
 
    private:
     std::shared_ptr<Ipld> ipld_;

@@ -64,7 +64,7 @@ TEST_F(FileSystemFileStoreTest, TryToOpenDirectory) {
   auto file_res = fs->open(path);
 
   ASSERT_FALSE(file_res);
-  ASSERT_EQ(FileStoreError::CANNOT_OPEN, file_res.error());
+  ASSERT_EQ(FileStoreError::kCannotOpen, file_res.error());
 }
 
 /**
@@ -77,7 +77,7 @@ TEST_F(FileSystemFileStoreTest, FileNotFound) {
   auto file_res = fs->open(path);
 
   ASSERT_FALSE(file_res);
-  ASSERT_EQ(FileStoreError::FILE_NOT_FOUND, file_res.error());
+  ASSERT_EQ(FileStoreError::kFileNotFound, file_res.error());
 }
 
 /**
@@ -126,7 +126,7 @@ TEST_F(FileSystemFileStoreTest, ListDirectoryNotFound) {
   Path path((base_path /= "not_exists").string());
   auto res = fs->list(path);
   ASSERT_FALSE(res);
-  ASSERT_EQ(FileStoreError::DIRECTORY_NOT_FOUND, res.error());
+  ASSERT_EQ(FileStoreError::kDirectoryNotFound, res.error());
 }
 
 /**
@@ -138,7 +138,7 @@ TEST_F(FileSystemFileStoreTest, ListFile) {
   auto filename = fs::canonical(createFile("file.txt")).string();
   auto res = fs->list(filename);
   ASSERT_FALSE(res);
-  ASSERT_EQ(FileStoreError::NOT_DIRECTORY, res.error());
+  ASSERT_EQ(FileStoreError::kNotDirectory, res.error());
 }
 
 /**

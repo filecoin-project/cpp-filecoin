@@ -33,7 +33,7 @@ namespace fc::vm::actor::builtin::market {
       OUTCOME_TRY(miner, requestMinerControlAddress(runtime, nominal));
       if (runtime.getImmediateCaller() != miner.worker
           && runtime.getImmediateCaller() != miner.owner) {
-        return VMExitCode::MARKET_ACTOR_WRONG_CALLER;
+        return VMExitCode::kMarketActorWrongCaller;
       }
       return std::make_pair(nominal, miner.owner);
     }
@@ -45,7 +45,7 @@ namespace fc::vm::actor::builtin::market {
                                       const Address &address,
                                       TokenAmount amount) {
     if (amount < 0) {
-      return VMExitCode::MARKET_ACTOR_ILLEGAL_STATE;
+      return VMExitCode::kMarketActorIllegalState;
     }
     return state.locked_table.subtract(address, amount);
   }
@@ -142,7 +142,7 @@ namespace fc::vm::actor::builtin::market {
     OUTCOME_TRY(escrow, state.escrow_table.get(address));
     OUTCOME_TRY(locked, state.locked_table.get(address));
     if (locked + amount > escrow) {
-      return VMExitCode::MARKET_ACTOR_INSUFFICIENT_FUNDS;
+      return VMExitCode::kMarketActorInsufficientFunds;
     }
     OUTCOME_TRY(state.locked_table.add(address, amount));
     return outcome::success();
@@ -153,7 +153,7 @@ namespace fc::vm::actor::builtin::market {
     auto &deal = proposal.proposal;
     auto duration = deal.duration();
     if (duration <= 0) {
-      return VMExitCode::MARKET_ACTOR_ILLEGAL_ARGUMENT;
+      return VMExitCode::kMarketActorIllegalArgument;
     }
     OUTCOME_TRY(encoded, codec::cbor::encode(deal));
     OUTCOME_TRY(verified,
@@ -167,7 +167,7 @@ namespace fc::vm::actor::builtin::market {
                 .in(deal.provider_collateral)
         || !dealClientCollateralBounds(deal.piece_size, duration)
                 .in(deal.client_collateral)) {
-      return VMExitCode::MARKET_ACTOR_ILLEGAL_ARGUMENT;
+      return VMExitCode::kMarketActorIllegalArgument;
     }
     return outcome::success();
   }
@@ -307,7 +307,8 @@ namespace fc::vm::actor::builtin::market {
     std::vector<PieceInfo> pieces;
     for (auto deal_id : params.deals) {
       OUTCOME_TRY(deal, state.proposals.get(deal_id));
-      pieces.emplace_back(PieceInfo{deal.piece_size, deal.piece_cid});
+      pieces.emplace_back(
+          PieceInfo{.size = deal.piece_size, .cid = deal.piece_cid});
     }
     return runtime.computeUnsealedSectorCid(params.sector_type, pieces);
   }

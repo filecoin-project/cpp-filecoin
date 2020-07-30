@@ -52,7 +52,7 @@ namespace fc::storage::ipfs::graphsync {
         queue_ ? queue_->getState().pending_bytes : pending_bytes_;
 
     if (pending_bytes + data->size() > max_pending_bytes_) {
-      return Error::WRITE_QUEUE_OVERFLOW;
+      return Error::kWriteQueueOverflow;
     }
 
     if (queue_) {

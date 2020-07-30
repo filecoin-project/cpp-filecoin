@@ -15,11 +15,11 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
   using E = fc::vm::interpreter::InterpreterError;
   switch (e) {
-    case E::DUPLICATE_MINER:
+    case E::kDuplicateMiner:
       return "Duplicate miner";
-    case E::MINER_SUBMIT_FAILED:
+    case E::kMinerSubmitFailed:
       return "Miner submit failed";
-    case E::CRON_TICK_FAILED:
+    case E::kCronTickFailed:
       return "Cron tick failed";
   }
 }
@@ -43,16 +43,16 @@ namespace fc::vm::interpreter {
   using runtime::MessageReceipt;
 
   outcome::result<Result> InterpreterImpl::interpret(
-      const IpldPtr &ipld, const Tipset &tipset) const {
-    if (tipset.height() == 0) {
+      const IpldPtr &ipld, const TipsetCPtr &tipset) const {
+    if (tipset->height() == 0) {
       return Result{
-          tipset.getParentStateRoot(),
-          tipset.getParentMessageReceipts(),
+          tipset->getParentStateRoot(),
+          tipset->getParentMessageReceipts(),
       };
     }
 
-    if (hasDuplicateMiners(tipset.blks)) {
-      return InterpreterError::DUPLICATE_MINER;
+    if (hasDuplicateMiners(tipset->blks)) {
+      return InterpreterError::kDuplicateMiner;
     }
 
     auto env =
@@ -60,7 +60,7 @@ namespace fc::vm::interpreter {
 
     adt::Array<MessageReceipt> receipts{ipld};
     MessageVisitor message_visitor{ipld};
-    for (auto &block : tipset.blks) {
+    for (auto &block : tipset->blks) {
       AwardBlockReward::Params reward{block.miner, 0, 0, 1};
       OUTCOME_TRY(message_visitor.visit(
           block, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
@@ -81,7 +81,6 @@ namespace fc::vm::interpreter {
 
       OUTCOME_TRY(reward_encoded, codec::cbor::encode(reward));
       OUTCOME_TRY(env->applyImplicitMessage(UnsignedMessage{
-          0,
           kRewardAddress,
           kSystemActorAddress,
           {},
@@ -94,7 +93,6 @@ namespace fc::vm::interpreter {
     }
 
     OUTCOME_TRY(env->applyImplicitMessage(UnsignedMessage{
-        0,
         kCronAddress,
         kSystemActorAddress,
         {},
@@ -127,10 +125,10 @@ namespace fc::vm::interpreter {
   }
 
   outcome::result<Result> CachedInterpreter::interpret(
-      const IpldPtr &ipld, const Tipset &tipset) const {
-    // TODO: TipsetKey from arg-gor
+      const IpldPtr &ipld, const TipsetCPtr &tipset) const {
+    // TODO: TipsetKey from art-gor
     common::Buffer key;
-    for (auto &cid : tipset.key.cids()) {
+    for (auto &cid : tipset->key.cids()) {
       OUTCOME_TRY(encoded, cid.toBytes());
       key.put(encoded);
     }

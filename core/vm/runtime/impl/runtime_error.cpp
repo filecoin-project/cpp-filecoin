@@ -9,21 +9,19 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::runtime, RuntimeError, e) {
   using fc::vm::runtime::RuntimeError;
 
   switch (e) {
-    case RuntimeError::WRONG_ADDRESS_PROTOCOL:
+    case RuntimeError::kWrongAddressProtocol:
       return "RuntimeError: wrong address protocol";
-    case RuntimeError::CREATE_ACTOR_OPERATION_NOT_PERMITTED:
+    case RuntimeError::kCreateActorOperationNotPermitted:
       return "RuntimeError: create actor operation is not permitted";
-    case RuntimeError::DELETE_ACTOR_OPERATION_NOT_PERMITTED:
+    case RuntimeError::kDeleteActorOperationNotPermitted:
       return "RuntimeError: delete actor operation is not permitted";
-    case RuntimeError::ACTOR_NOT_FOUND:
+    case RuntimeError::kActorNotFound:
       return "RuntimeError: receiver actor not found";
-    case RuntimeError::NOT_ENOUGH_FUNDS:
+    case RuntimeError::kNotEnoughFunds:
       return "RuntimeError: not enough funds";
-    case RuntimeError::NOT_ENOUGH_GAS:
+    case RuntimeError::kNotEnoughGas:
       return "RuntimeError: not enough gas";
-    case RuntimeError::UNKNOWN:
-      break;
+    default:
+      return "unknown error";
   }
-
-  return "unknown error";
 }

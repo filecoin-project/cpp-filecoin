@@ -14,8 +14,8 @@
 
 namespace fc::primitives::ticket {
   enum class EPoSTTicketCodecError : int {
-    INVALID_PARTIAL_LENGTH = 1,  // invalid length of field partial
-    INVALID_POST_RAND_LENGTH,    // invalid length of field post_rand
+    kInvalidPartialLength = 1,  // invalid length of field partial
+    kInvalidPostRandLength,    // invalid length of field post_rand
   };
 }  // namespace fc::primitives::ticket
 
@@ -35,7 +35,7 @@ namespace fc::primitives::ticket {
     std::vector<uint8_t> data{};
     s.list() >> data >> ticket.sector_id >> ticket.challenge_index;
     if (data.size() != ticket.partial.size()) {
-      outcome::raise(EPoSTTicketCodecError::INVALID_PARTIAL_LENGTH);
+      outcome::raise(EPoSTTicketCodecError::kInvalidPartialLength);
     }
     std::copy(data.begin(), data.end(), ticket.partial.begin());
     return s;
@@ -54,7 +54,7 @@ namespace fc::primitives::ticket {
     std::vector<uint8_t> rand;
     s.list() >> epp.proofs >> rand >> epp.candidates;
     if (rand.size() != epp.post_rand.size()) {
-      outcome::raise(EPoSTTicketCodecError::INVALID_POST_RAND_LENGTH);
+      outcome::raise(EPoSTTicketCodecError::kInvalidPostRandLength);
     }
     std::copy(rand.begin(), rand.end(), epp.post_rand.begin());
     return s;

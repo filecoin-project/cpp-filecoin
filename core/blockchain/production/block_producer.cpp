@@ -20,7 +20,7 @@ namespace fc::blockchain::production {
                                   BlockTemplate t) {
     OUTCOME_TRY(parent_tipset,
                 primitives::tipset::Tipset::load(*ipld, t.parents));
-    OUTCOME_TRY(vm_result, interpreter.interpret(ipld, *parent_tipset));
+    OUTCOME_TRY(vm_result, interpreter.interpret(ipld, parent_tipset));
     Block b;
     MsgMeta msg_meta;
     ipld->load(msg_meta);

@@ -10,7 +10,7 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::clock, TimeFromStringError, e) {
   using fc::clock::TimeFromStringError;
   switch (e) {
-    case TimeFromStringError::INVALID_FORMAT:
+    case TimeFromStringError::kInvalidFormat:
       return "Input has invalid format";
     default:
       return "Unknown error";
@@ -50,13 +50,13 @@ namespace fc::clock {
 
   outcome::result<Time> Time::fromString(const std::string &str) {
     if (str.size() != 30 || str[str.size() - 1] != 'Z') {
-      return TimeFromStringError::INVALID_FORMAT;
+      return TimeFromStringError::kInvalidFormat;
     }
     boost::posix_time::ptime ptime;
     try {
       ptime = boost::posix_time::from_iso_extended_string(str);
     } catch (const boost::bad_lexical_cast &e) {
-      return TimeFromStringError::INVALID_FORMAT;
+      return TimeFromStringError::kInvalidFormat;
     }
     return Time(UnixTimeNano((ptime - kPtimeUnixZero).total_nanoseconds()));
   }
@@ -69,14 +69,14 @@ namespace fc::clock {
 
   outcome::result<UnixTime> unixTimeFromString(const std::string &str) {
     if (str.size() != 20 || str[str.size() - 1] != 'Z') {
-      return TimeFromStringError::INVALID_FORMAT;
+      return TimeFromStringError::kInvalidFormat;
     }
     boost::posix_time::ptime ptime;
     try {
       ptime = boost::posix_time::from_iso_extended_string(
           str.substr(0, str.size() - 1));
     } catch (const boost::bad_lexical_cast &e) {
-      return TimeFromStringError::INVALID_FORMAT;
+      return TimeFromStringError::kInvalidFormat;
     }
     return UnixTime{(ptime - kPtimeUnixZero).total_seconds()};
   }

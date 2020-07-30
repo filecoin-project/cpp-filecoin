@@ -22,7 +22,7 @@ namespace fc::vm::runtime {
   outcome::result<MessageReceipt> Env::applyMessage(
       const UnsignedMessage &message, TokenAmount &penalty) {
     if (message.gasLimit <= 0) {
-      return RuntimeError::UNKNOWN;
+      return RuntimeError::kUnknown;
     }
 
     auto execution = Execution::make(shared_from_this(), message);
@@ -33,31 +33,31 @@ namespace fc::vm::runtime {
     auto msg_gas_cost{pricelist.onChainMessage(serialized_message.size())};
     penalty = msg_gas_cost * message.gasPrice;
     if (msg_gas_cost > message.gasLimit) {
-      receipt.exit_code = VMExitCode::SysErrOutOfGas;
+      receipt.exit_code = VMExitCode::kSysErrOutOfGas;
       return receipt;
     }
 
     auto maybe_from = state_tree->get(message.from);
     if (!maybe_from) {
-      if (maybe_from.error() == HamtError::NOT_FOUND) {
-        receipt.exit_code = VMExitCode::SysErrSenderInvalid;
+      if (maybe_from.error() == HamtError::kNotFound) {
+        receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
         return receipt;
       }
       return maybe_from.error();
     }
     auto &from = maybe_from.value();
     if (from.code != actor::kAccountCodeCid) {
-      receipt.exit_code = VMExitCode::SysErrSenderInvalid;
+      receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
       return receipt;
     }
     if (message.nonce != from.nonce) {
-      receipt.exit_code = VMExitCode::SysErrSenderStateInvalid;
+      receipt.exit_code = VMExitCode::kSysErrSenderStateInvalid;
       return receipt;
     }
 
     BigInt gas_cost = message.gasLimit * message.gasPrice;
     if (from.balance < gas_cost + message.value) {
-      receipt.exit_code = VMExitCode::SysErrSenderStateInvalid;
+      receipt.exit_code = VMExitCode::kSysErrSenderStateInvalid;
       return receipt;
     }
     from.balance -= gas_cost;
@@ -67,7 +67,7 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(snapshot, state_tree->flush());
     OUTCOME_TRY(execution->chargeGas(msg_gas_cost));
     auto result = execution->send(message);
-    auto exit_code = VMExitCode::Ok;
+    auto exit_code = VMExitCode::kOk;
     if (!result) {
       if (!isVMExitCode(result.error())) {
         return result.error();
@@ -83,7 +83,7 @@ namespace fc::vm::runtime {
         receipt.return_value.clear();
       }
     }
-    if (exit_code != VMExitCode::Ok) {
+    if (exit_code != VMExitCode::kOk) {
       OUTCOME_TRY(state_tree->revert(snapshot));
     }
 
@@ -122,7 +122,7 @@ namespace fc::vm::runtime {
     gas_used += amount;
     if (gas_limit != kInfiniteGas && gas_used > gas_limit) {
       gas_used = gas_limit;
-      return VMExitCode::SysErrOutOfGas;
+      return VMExitCode::kSysErrOutOfGas;
     }
     return outcome::success();
   }
@@ -149,8 +149,7 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(state_tree->set(
         id, {actor::kAccountCodeCid, actor::kEmptyObjectCid, {}, {}}));
     OUTCOME_TRY(params, actor::encodeActorParams(address));
-    OUTCOME_TRY(sendWithRevert({0,
-                                id,
+    OUTCOME_TRY(sendWithRevert({id,
                                 kSystemActorAddress,
                                 {},
                                 {},
@@ -180,7 +179,7 @@ namespace fc::vm::runtime {
     Actor to_actor;
     auto maybe_to_actor = state_tree->get(message.to);
     if (!maybe_to_actor) {
-      if (maybe_to_actor.error() != HamtError::NOT_FOUND) {
+      if (maybe_to_actor.error() != HamtError::kNotFound) {
         return maybe_to_actor.error();
       }
       OUTCOME_TRY(account_actor, tryCreateAccountActor(message.to));
@@ -195,7 +194,7 @@ namespace fc::vm::runtime {
       BOOST_ASSERT(message.value > 0);
       OUTCOME_TRY(from_actor, state_tree->get(message.from));
       if (from_actor.balance < message.value) {
-        return VMExitCode::SEND_TRANSFER_INSUFFICIENT;
+        return VMExitCode::kSendTransferInsufficient;
       }
       from_actor.balance -= message.value;
       to_actor.balance += message.value;

@@ -5,18 +5,52 @@
 
 add_subdirectory(stores)
 
-add_library(sector_storage
-        impl/sector_storage_impl.cpp
-        impl/sector_storage_error.cpp
+add_library(worker
+        impl/local_worker.cpp
+        impl/worker_error.cpp
         )
 
-target_link_libraries(sector_storage
-        filecoin_ffi
+target_link_libraries(worker
         outcome
-        piece
-        sector
-        piece_data
         sector_file
+        piece
+        store
         proofs
-        Boost::filesystem
+        logger
+        )
+
+add_library(scheduler
+        impl/scheduler_impl.cpp
+        )
+
+target_link_libraries(scheduler
+        outcome
+        resources
+        logger
+        worker
+        Boost::thread
+        )
+
+add_library(selector
+        impl/allocate_selector.cpp
+        impl/existing_selector.cpp
+        impl/task_selector.cpp
+        )
+
+target_link_libraries(selector
+        outcome
+        resources
+        )
+
+add_library(manager
+        impl/manager_impl.cpp
+        )
+
+target_link_libraries(manager
+        outcome
+        scheduler
+        selector
+        store
+        sector_index
+        sector
         )

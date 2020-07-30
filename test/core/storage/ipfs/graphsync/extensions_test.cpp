@@ -35,7 +35,7 @@ TEST(GraphsyncExtensions, ResponseMetadataEncodeDecode) {
  */
 TEST(GraphsyncExtensions, ResponseMetadataWrongName) {
   Extension extension{.name = "wrong_name"};
-  EXPECT_OUTCOME_ERROR(Error::MESSAGE_PARSE_ERROR,
+  EXPECT_OUTCOME_ERROR(Error::kMessageParseError,
                        decodeResponseMetadata(extension));
 }
 
@@ -56,6 +56,6 @@ TEST(GraphsyncExtensions, DontSendCidsEncodeDecode) {
  */
 TEST(GraphsyncExtensions, DontSendCidsWrongName) {
   Extension extension{.name = "wrong_name"};
-  EXPECT_OUTCOME_ERROR(Error::MESSAGE_PARSE_ERROR,
+  EXPECT_OUTCOME_ERROR(Error::kMessageParseError,
                        decodeDontSendCids(extension));
 }

@@ -30,14 +30,14 @@ namespace fc::vm::runtime {
         current_actor_state_{std::move(current_actor_state)} {}
 
   ChainEpoch RuntimeImpl::getCurrentEpoch() const {
-    return execution_->env->tipset.height();
+    return execution_->env->tipset->height();
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomness(
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return execution_->env->tipset.randomness(
+    return execution_->env->tipset->randomness(
         *execution_->env->ipld, tag, epoch, seed);
   }
 
@@ -53,7 +53,7 @@ namespace fc::vm::runtime {
       const Address &address) const {
     auto actor_state = state_tree_->get(address);
     if (!actor_state) {
-      if (actor_state.error() == HamtError::NOT_FOUND) return BigInt(0);
+      if (actor_state.error() == HamtError::kNotFound) return BigInt(0);
       return actor_state.error();
     }
     return actor_state.value().balance;
@@ -75,7 +75,7 @@ namespace fc::vm::runtime {
       MethodParams params,
       BigInt value) {
     return execution_->sendWithRevert(
-        {0, to_address, message_.to, {}, value, {}, {}, method_number, params});
+        {to_address, message_.to, {}, value, {}, {}, method_number, params});
   }
 
   fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,
@@ -89,7 +89,7 @@ namespace fc::vm::runtime {
     // TODO: transfer to kBurntFundsActorAddress
     // TODO(a.chernyshov) FIL-137 implement state_tree remove if needed
     // return state_tree_->remove(address);
-    return fc::outcome::failure(RuntimeError::UNKNOWN);
+    return fc::outcome::failure(RuntimeError::kUnknown);
   }
 
   std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() {
@@ -112,7 +112,7 @@ namespace fc::vm::runtime {
   fc::outcome::result<void> RuntimeImpl::transfer(Actor &from,
                                                   Actor &to,
                                                   const BigInt &amount) {
-    if (from.balance < amount) return RuntimeError::NOT_ENOUGH_FUNDS;
+    if (from.balance < amount) return RuntimeError::kNotEnoughFunds;
     from.balance = from.balance - amount;
     to.balance = to.balance + amount;
     return outcome::success();
@@ -220,7 +220,7 @@ namespace fc::vm::runtime {
   fc::outcome::result<ConsensusFault> RuntimeImpl::verifyConsensusFault(
       const Buffer &block1, const Buffer &block2, const Buffer &extra) {
     // TODO(a.chernyshov): implement
-    return RuntimeError::UNKNOWN;
+    return RuntimeError::kUnknown;
   }
 
   fc::outcome::result<void> RuntimeImpl::chargeGas(GasAmount amount) {

@@ -49,6 +49,12 @@ namespace fc {
     CID &operator=(ContentIdentifier &&cid);
 
     /**
+     * Get cid prefix
+     * @return
+     */
+    outcome::result<std::vector<uint8_t>> getPrefix() const;
+
+    /**
      * @brief string-encodes cid
      * @return encoded value or error
      */

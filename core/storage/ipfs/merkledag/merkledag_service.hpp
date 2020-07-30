@@ -81,7 +81,7 @@ namespace fc::storage::ipfs::merkledag {
    * @class Possible MerkleDAG service errors
    */
   enum class ServiceError {
-    UNRESOLVED_LINK = 1  // This error can occur if child node not found
+    kUnresolvedLink = 1  // This error can occur if child node not found
   };
 }  // namespace fc::storage::ipfs::merkledag
 

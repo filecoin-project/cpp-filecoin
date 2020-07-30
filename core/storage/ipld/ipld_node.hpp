@@ -107,7 +107,7 @@ namespace fc::storage::ipld {
   /**
    * @class Possible Node errors
    */
-  enum class IPLDNodeError { LINK_NOT_FOUND = 1, INVALID_RAW_DATA };
+  enum class IPLDNodeError { kLinkNotFound = 1, kInvalidRawData };
 }  // namespace fc::storage::ipld
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::ipld, IPLDNodeError)

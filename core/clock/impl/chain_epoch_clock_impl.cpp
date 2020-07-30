@@ -16,7 +16,7 @@ namespace fc::clock {
   outcome::result<ChainEpoch> ChainEpochClockImpl::epochAtTime(
       UnixTime time) const {
     if (time < genesis_time_) {
-      return outcome::failure(EpochAtTimeError::BEFORE_GENESIS);
+      return outcome::failure(EpochAtTimeError::kBeforeGenesis);
     }
     auto difference = time - genesis_time_;
     return ChainEpoch(difference / kEpochDuration);

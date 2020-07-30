@@ -261,12 +261,14 @@ namespace fc::primitives::tipset {
   outcome::result<BeaconEntry> Tipset::latestBeacon(Ipld &ipld) const {
     auto ts{this};
     TipsetCPtr parent;
+
     // TODO: magic number from lotus
     for (auto i{0}; i < 20; ++i) {
       auto beacons{ts->blks[0].beacon_entries};
       if (!beacons.empty()) {
         return *beacons.rbegin();
       }
+
       if (ts->height() == 0) {
         break;
       }

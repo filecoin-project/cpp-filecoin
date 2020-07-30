@@ -9,9 +9,9 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::ticket, EPoSTTicketCodecError, e) {
   using fc::primitives::ticket::EPoSTTicketCodecError;
   switch (e) {
-    case (EPoSTTicketCodecError::INVALID_PARTIAL_LENGTH):
+    case (EPoSTTicketCodecError::kInvalidPartialLength):
       return "Invalid data size of field `partial`";
-    case (EPoSTTicketCodecError::INVALID_POST_RAND_LENGTH):
+    case (EPoSTTicketCodecError::kInvalidPostRandLength):
       return "Invalid data size of field `post_rand`";
   }
 }

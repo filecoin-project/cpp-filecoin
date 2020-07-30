@@ -12,7 +12,7 @@
 #include "common/outcome.hpp"
 
 namespace fc::clock {
-  enum class TimeFromStringError { INVALID_FORMAT = 1 };
+  enum class TimeFromStringError { kInvalidFormat = 1 };
 
   using UnixTime = std::chrono::seconds;
   using UnixTimeNano = std::chrono::nanoseconds;

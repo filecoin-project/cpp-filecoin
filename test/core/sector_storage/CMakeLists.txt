@@ -3,14 +3,29 @@
 # SPDX - License - Identifier : Apache - 2.0
 #
 
-addtest(sector_storage_test
-        sector_storage_test.cpp)
-
-target_link_libraries( sector_storage_test
-       Boost::filesystem
-       sector_storage
-       base_fs_test
-       proof_param_provider
-       )
-
 add_subdirectory(stores)
+
+addtest(local_worker_test
+        local_worker_test.cpp)
+
+target_link_libraries(local_worker_test
+        Boost::filesystem
+        worker
+        base_fs_test
+        proof_param_provider
+        )
+
+addtest(scheduler_test
+        scheduler_test.cpp)
+
+target_link_libraries(scheduler_test
+        scheduler
+        base_fs_test
+        )
+
+addtest(manager_test
+        manager_test.cpp)
+
+target_link_libraries(manager_test
+        manager
+        )

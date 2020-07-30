@@ -42,6 +42,7 @@ namespace fc::api {
   using adt::Channel;
   using common::Buffer;
   using common::Comm;
+  using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
   using libp2p::peer::PeerInfo;
@@ -64,6 +65,7 @@ namespace fc::api {
   using primitives::block::BlockHeader;
   using primitives::block::BlockMsg;
   using primitives::block::BlockTemplate;
+  using primitives::sector::SectorInfo;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
@@ -76,8 +78,11 @@ namespace fc::api {
   using vm::actor::builtin::market::DealProposal;
   using vm::actor::builtin::market::DealState;
   using vm::actor::builtin::market::StorageParticipantBalance;
+  using vm::actor::builtin::miner::DeadlineInfo;
+  using vm::actor::builtin::miner::Deadlines;
   using vm::actor::builtin::miner::MinerInfo;
   using vm::actor::builtin::miner::SectorOnChainInfo;
+  using vm::actor::builtin::payment_channel::LaneId;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::actor::builtin::storage_power::Claim;
   using vm::message::SignedMessage;
@@ -116,7 +121,7 @@ namespace fc::api {
         if (opt) {
           cb(std::move(*opt));
         } else {
-          cb(TodoError::ERROR);
+          cb(TodoError::kError);
         }
         return false;
       });
@@ -187,7 +192,7 @@ namespace fc::api {
   struct MiningBaseInfo {
     StoragePower miner_power;
     StoragePower network_power;
-    std::vector<ChainSectorInfo> sectors;
+    std::vector<SectorInfo> sectors;
     Address worker;
     SectorSize sector_size;
     BeaconEntry prev_beacon;
@@ -246,6 +251,10 @@ namespace fc::api {
     uint64_t size;
   };
 
+  struct AddChannelInfo {
+    Address channel;      // payment channel actor address
+    CID channel_message;  // message cid
+  };
 
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
@@ -257,6 +266,12 @@ namespace fc::api {
     API_METHOD(ChainGetMessage, UnsignedMessage, const CID &)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
+    API_METHOD(ChainGetRandomness,
+               Randomness,
+               const TipsetKey &,
+               DomainSeparationTag,
+               ChainEpoch,
+               const Buffer &)
     API_METHOD(ChainGetTipSet, TipsetCPtr, const TipsetKey &)
     API_METHOD(ChainGetTipSetByHeight,
                TipsetCPtr,
@@ -301,7 +316,7 @@ namespace fc::api {
 
     API_METHOD(MinerCreateBlock, BlockMsg, const BlockTemplate &)
     API_METHOD(MinerGetBaseInfo,
-               MiningBaseInfo,
+               boost::optional<MiningBaseInfo>,
                const Address &,
                ChainEpoch,
                const TipsetKey &)
@@ -311,13 +326,6 @@ namespace fc::api {
     API_METHOD(MpoolSub, Chan<MpoolUpdate>)
 
     API_METHOD(NetAddrsListen, PeerInfo)
-
-    API_METHOD(PaychVoucherAdd,
-               TokenAmount,
-               const Address &,
-               const SignedVoucher &,
-               const Buffer &,
-               TokenAmount)
 
     API_METHOD(StateAccountKey, Address, const Address &, const TipsetKey &)
     API_METHOD(StateCall,
@@ -341,13 +349,17 @@ namespace fc::api {
     API_METHOD(StateMarketDeals, MarketDealMap, const TipsetKey &)
     API_METHOD(StateLookupID, Address, const Address &, const TipsetKey &)
     API_METHOD(StateMarketStorageDeal, StorageDeal, DealId, const TipsetKey &)
-    API_METHOD(StateMinerElectionPeriodStart,
-               ChainEpoch,
+    API_METHOD(StateMinerDeadlines,
+               Deadlines,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
     API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerProvingDeadline,
+               DeadlineInfo,
+               const Address &,
+               const TipsetKey &)
     API_METHOD(StateMinerProvingSet,
                std::vector<ChainSectorInfo>,
                const Address &,
@@ -355,7 +367,7 @@ namespace fc::api {
     API_METHOD(StateMinerSectors,
                std::vector<ChainSectorInfo>,
                const Address &,
-               void *,
+               const boost::optional<RleBitset> &,
                bool,
                const TipsetKey &)
     API_METHOD(StateMinerSectorSize,
@@ -370,10 +382,77 @@ namespace fc::api {
 
     API_METHOD(Version, VersionResult)
 
+    /** Wallet */
     API_METHOD(WalletBalance, TokenAmount, const Address &)
     API_METHOD(WalletDefaultAddress, Address)
     API_METHOD(WalletHas, bool, const Address &)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
+    /** Verify signature by address (may be id or key address) */
+    API_METHOD(
+        WalletVerify, bool, const Address &, const Buffer &, const Signature &)
+
+    /** Payment channel manager */
+
+    /**
+     * Allocate new payment channel lane
+     * @param payment channel actor address
+     * @return new lane id
+     */
+    API_METHOD(PaychAllocateLane, LaneId, const Address &)
+
+    /**
+     * Get or create payment channel and waits for message is committed
+     * Search for payment channel in local storage.
+     * If found, adds ensure_funds to payment channel actor.
+     * If not found, creates payment channel actor with ensure_funds
+     * @param from address
+     * @param to address
+     * @param ensure_funds - amount allocated for payment channel
+     * @return add payment channel info with actor address and message cid
+     */
+    API_METHOD(PaychGet,
+               AddChannelInfo,
+               const Address &,
+               const Address &,
+               const TokenAmount &)
+
+    /**
+     * Add voucher to local storage
+     * @param payment channel address
+     * @param signed voucher
+     * @param signature one more time - not used
+     * @param delta - not used
+     * @return delta
+     */
+    API_METHOD(PaychVoucherAdd,
+               TokenAmount,
+               const Address &,
+               const SignedVoucher &,
+               const Buffer &,
+               const TokenAmount &)
+
+    /**
+     * Validate voucher
+     * @param payment channel actor address
+     * @param voucher to validate
+     */
+    API_METHOD(PaychVoucherCheckValid,
+               void,
+               const Address &,
+               const SignedVoucher &)
+
+    /**
+     * Creates voucher for payment channel lane
+     * @param payment channel actor address
+     * @param token amound to redeem
+     * @param lane id
+     * @return signed voucher
+     */
+    API_METHOD(PaychVoucherCreate,
+               SignedVoucher,
+               const Address &,
+               const TokenAmount &,
+               const LaneId &)
   };
 }  // namespace fc::api
 

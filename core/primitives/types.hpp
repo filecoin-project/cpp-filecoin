@@ -11,6 +11,7 @@
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
+#include "primitives/seal_tasks/task.hpp"
 
 namespace fc::primitives {
   using ActorId = uint64_t;
@@ -45,6 +46,22 @@ namespace fc::primitives {
            && lhs.used == rhs.used;
   };
 
+  struct StoragePath {
+    StorageID id;
+    uint64_t weight;
+
+    std::string local_path;
+
+    bool can_seal;
+    bool can_store;
+  };
+
+  inline bool operator==(const StoragePath &lhs, const StoragePath &rhs) {
+    return lhs.id == rhs.id && lhs.weight == rhs.weight
+           && lhs.local_path == rhs.local_path && lhs.can_seal == rhs.can_seal
+           && lhs.can_store == rhs.can_store;
+  };
+
   struct LocalStorageMeta {
     StorageID id;
     uint64_t weight;  // 0 = readonly
@@ -58,6 +75,31 @@ namespace fc::primitives {
     EpochDuration duration;
     DealWeight deal_weight;
     DealWeight verified_deal_weight;
+  };
+
+  struct WorkerResources {
+    uint64_t physical_memory;
+    uint64_t swap_memory;
+
+    uint64_t reserved_memory;  // Used by system / other processes
+
+    uint64_t cpus;  // Logical cores
+    std::vector<std::string> gpus;
+  };
+
+  struct WorkerInfo {
+    std::string hostname;
+    WorkerResources resources;
+  };
+
+  struct WorkerStats {
+    WorkerInfo info;
+
+    uint64_t min_used_memory;
+    uint64_t max_used_memory;
+
+    bool is_gpu_used;
+    uint64_t cpu_use;
   };
 
   struct PieceDescriptor {

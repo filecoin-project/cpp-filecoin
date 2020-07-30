@@ -4,29 +4,30 @@
  */
 
 #include "storage/car/car.hpp"
-
 #include "codec/uvarint.hpp"
+#include "storage/ipld/traverser.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
   using E = fc::storage::car::CarError;
   switch (e) {
-    case E::DECODE_ERROR:
+    case E::kDecodeError:
       return "Decode error";
   }
 }
 
 namespace fc::storage::car {
-  using ipld::walker::Walker;
+  using ipld::kAllSelector;
+  using ipld::traverser::Traverser;
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input) {
     OUTCOME_TRY(header_bytes,
-                codec::uvarint::readBytes<CarError::DECODE_ERROR,
-                                          CarError::DECODE_ERROR>(input));
+                codec::uvarint::readBytes<CarError::kDecodeError,
+                                          CarError::kDecodeError>(input));
     OUTCOME_TRY(header, codec::cbor::decode<CarHeader>(header_bytes));
     while (!input.empty()) {
       OUTCOME_TRY(node,
-                  codec::uvarint::readBytes<CarError::DECODE_ERROR,
-                                            CarError::DECODE_ERROR>(input));
+                  codec::uvarint::readBytes<CarError::kDecodeError,
+                                            CarError::kDecodeError>(input));
       OUTCOME_TRY(cid, CID::read(node));
       OUTCOME_TRY(store.set(cid, common::Buffer{node}));
     }
@@ -58,31 +59,40 @@ namespace fc::storage::car {
 
   outcome::result<Buffer> makeCar(Ipld &store,
                                   const std::vector<CID> &roots,
-                                  const Walker &walker) {
+                                  const std::vector<CID> &cids) {
     Buffer output;
     writeHeader(output, roots);
-    for (auto &cid : walker.cids) {
+    for (auto &cid : cids) {
       OUTCOME_TRY(writeItem(output, store, cid));
     }
     return std::move(output);
   }
 
   outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots) {
-    Walker walker{store};
+    std::set<CID> cids;
     for (auto &root : roots) {
-      OUTCOME_TRY(walker.recursiveAll(root));
+      Traverser traverser{store, root, kAllSelector};
+      OUTCOME_TRY(visited, traverser.traverseAll());
+      cids.insert(visited.begin(), visited.end());
     }
-    return makeCar(store, roots, walker);
+    return makeCar(store, roots, {cids.begin(), cids.end()});
   }
 
   outcome::result<Buffer> makeSelectiveCar(
       Ipld &store, const std::vector<std::pair<CID, Selector>> &dags) {
-    Walker walker{store};
     std::vector<CID> roots;
+    std::vector<CID> cid_order;
+    std::set<CID> cids;
     for (auto &dag : dags) {
-      OUTCOME_TRY(walker.select(dag.first, dag.second));
+      Traverser traverser{store, dag.first, dag.second};
+      OUTCOME_TRY(visited, traverser.traverseAll());
       roots.push_back(dag.first);
+      for (auto &cid : visited) {
+        if (cids.insert(cid).second) {
+          cid_order.push_back(cid);
+        }
+      }
     }
-    return makeCar(store, roots, walker);
+    return makeCar(store, roots, cid_order);
   }
 }  // namespace fc::storage::car

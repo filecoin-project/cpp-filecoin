@@ -67,12 +67,12 @@ namespace fc::storage::ipfs::graphsync {
 
     if (length == 0) {
       reading_ = false;
-      return feedback_(stream_, Error::STREAM_NOT_READABLE);
+      return feedback_(stream_, Error::kStreamNotReadable);
     }
 
     if (length > max_message_size_) {
       reading_ = false;
-      return feedback_(stream_, Error::MESSAGE_SIZE_OUT_OF_BOUNDS);
+      return feedback_(stream_, Error::kMessageSizeOutOfBounds);
     }
 
     buffer_->resize(length);
@@ -104,7 +104,7 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (buffer_->size() != res.value()) {
-      return feedback_(stream_, Error::MESSAGE_READ_ERROR);
+      return feedback_(stream_, Error::kMessageReadError);
     }
 
     feedback_(stream_, std::move(*buffer_));

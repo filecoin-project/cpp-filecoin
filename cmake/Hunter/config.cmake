@@ -1,4 +1,11 @@
 hunter_config(
+    libarchive
+    URL https://github.com/soramitsu/fuhon-libarchive/archive/hunter-v3.4.3.tar.gz
+    SHA1 0996fd781195df120744164ba5e0033a14c79e06
+    CMAKE_ARGS ENABLE_INSTALL=ON
+)
+
+hunter_config(
     Boost
     VERSION 1.72.0-p1
     CMAKE_ARGS CMAKE_POSITION_INDEPENDENT_CODE=ON
@@ -18,7 +25,7 @@ hunter_config(
 
 hunter_config(
     gRPC
-    VERSION "1.29.1.1"
+    VERSION "1.29.1"
     CMAKE_ARGS "gRPC_BUILD_CSHARP_EXT=OFF"
 )
 

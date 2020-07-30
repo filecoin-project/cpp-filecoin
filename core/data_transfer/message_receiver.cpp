@@ -11,7 +11,7 @@ namespace fc::data_transfer {
       const std::string &type, std::shared_ptr<RequestValidator> validator) {
     auto res = voucher_validators_.try_emplace(type, validator);
     if (!res.second)
-      return MessageReceiverError::VOUCHER_VALIDATOR_ALREADY_REGISTERED;
+      return MessageReceiverError::kVoucherValidatorAlreadyRegistered;
 
     return fc::outcome::success();
   }
@@ -20,7 +20,7 @@ namespace fc::data_transfer {
       const PeerInfo &sender, const DataTransferRequest &request) const {
     auto validator = voucher_validators_.find(request.voucher_type);
     if (validator == voucher_validators_.end()) {
-      return MessageReceiverError::VOUCHER_VALIDATOR_NOT_FOUND;
+      return MessageReceiverError::kVoucherValidatorNotFound;
     }
     OUTCOME_TRY(base_cid, CID::fromString(request.base_cid));
     // TODO (a.chernyshov) implement selectors and deserialize from
@@ -43,10 +43,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::data_transfer, MessageReceiverError, e) {
   using fc::data_transfer::MessageReceiverError;
 
   switch (e) {
-    case MessageReceiverError::VOUCHER_VALIDATOR_ALREADY_REGISTERED:
+    case MessageReceiverError::kVoucherValidatorAlreadyRegistered:
       return "MessageReceiverError: voucher validator is already "
              "registered";
-    case MessageReceiverError::VOUCHER_VALIDATOR_NOT_FOUND:
+    case MessageReceiverError::kVoucherValidatorNotFound:
       return "MessageReceiverError: voucher validator not found";
   }
 

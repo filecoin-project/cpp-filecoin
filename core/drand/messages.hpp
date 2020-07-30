@@ -9,14 +9,20 @@
 #include <string>
 #include <vector>
 
+#include "codec/cbor/streams_annotation.hpp"
+
 namespace fc::drand {
 
   using Bytes = std::vector<uint8_t>;
 
   struct BeaconEntry {
     uint64_t round;
-    Bytes data; // which is PublicRandResponse.signature
+    Bytes data;  // which is PublicRandResponse.signature
   };
+  CBOR_TUPLE(BeaconEntry, round, data)
+  inline bool operator==(const BeaconEntry &lhs, const BeaconEntry &rhs) {
+    return lhs.round == rhs.round && lhs.data == rhs.data;
+  }
 
   /**
    * Below are handy analogies of proto-generated message structures that

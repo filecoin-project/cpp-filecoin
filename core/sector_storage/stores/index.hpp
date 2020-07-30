@@ -13,6 +13,10 @@
 #include "primitives/types.hpp"
 
 namespace fc::sector_storage::stores {
+  class Lock {
+   public:
+    virtual ~Lock() = default;
+  };
 
   using fc::primitives::sector::RegisteredProof;
   using fc::primitives::sector::SectorId;
@@ -77,12 +81,20 @@ namespace fc::sector_storage::stores {
         const SectorFileType &allocate,
         RegisteredProof seal_proof_type,
         bool sealing) = 0;
+
+    virtual outcome::result<std::unique_ptr<Lock>> storageLock(
+        const SectorId &sector, SectorFileType read, SectorFileType write) = 0;
+
+    virtual std::unique_ptr<Lock> storageTryLock(const SectorId &sector,
+                                                 SectorFileType read,
+                                                 SectorFileType write) = 0;
   };
 
   enum class IndexErrors {
-    StorageNotFound = 1,
-    NoSuitableCandidate,
-    InvalidUrl,
+    kStorageNotFound = 1,
+    kNoSuitableCandidate,
+    kInvalidUrl,
+    kCannotLockStorage,
   };
 }  // namespace fc::sector_storage::stores
 

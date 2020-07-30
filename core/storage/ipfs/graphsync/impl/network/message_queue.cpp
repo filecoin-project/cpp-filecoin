@@ -101,7 +101,7 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (n != res.value()) {
-      feedback_(state_.stream, Error::MESSAGE_WRITE_ERROR);
+      feedback_(state_.stream, Error::kMessageWriteError);
       return;
     }
 

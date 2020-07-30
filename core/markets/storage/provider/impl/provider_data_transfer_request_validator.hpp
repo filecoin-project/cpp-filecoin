@@ -11,11 +11,11 @@
 #include "fsm/state_store.hpp"
 #include "markets/storage/deal_protocol.hpp"
 #include "markets/storage/provider/impl/provider_state_store.hpp"
-#include "storage/ipld/walker.hpp"
+#include "storage/ipld/selector.hpp"
 
 namespace fc::markets::storage::provider {
   using data_transfer::RequestValidator;
-  using fc::storage::ipld::walker::Selector;
+  using fc::storage::ipld::Selector;
   using libp2p::peer::PeerInfo;
 
   class ProviderDataTransferRequestValidator : public RequestValidator {
@@ -54,10 +54,10 @@ namespace fc::markets::storage::provider {
   };
 
   enum class ProviderRequestValidatorError {
-    ERROR_NO_PUSH_ACCEPTED,
-    WRONG_PEER,
-    WRONG_PAYLOAD_CID,
-    INACCEPTABLE_DEAL_STATE,
+    kErrorNoPushAccepted,
+    kWrongPeer,
+    kWrongPayloadCID,
+    kInacceptableDealState,
   };
 
 }  // namespace fc::markets::storage::provider

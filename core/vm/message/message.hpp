@@ -24,9 +24,9 @@ namespace fc::vm::message {
    * @brief Message error codes
    */
   enum class MessageError {
-    INVALID_LENGTH = 1,
-    SERIALIZATION_FAILURE,
-    VERIFICATION_FAILURE
+    kInvalidLength = 1,
+    kSerializationFailure,
+    kVerificationFailure
   };
 
   using actor::MethodNumber;
@@ -37,6 +37,8 @@ namespace fc::vm::message {
   using primitives::address::Address;
 
   static constexpr int64_t kMessageVersion = 0;
+  static const BigInt kDefaultGasPrice = 0;
+  static constexpr GasAmount kDefaultGasLimit = 1000000;
 
   /**
    * @brief UnsignedMessage struct
@@ -44,8 +46,7 @@ namespace fc::vm::message {
   struct UnsignedMessage {
     UnsignedMessage() = default;
 
-    UnsignedMessage(int64_t version,
-                    Address to,
+    UnsignedMessage(Address to,
                     Address from,
                     uint64_t nonce,
                     BigInt value,
@@ -53,7 +54,7 @@ namespace fc::vm::message {
                     GasAmount gasLimit,
                     MethodNumber method,
                     MethodParams params)
-        : version{version},
+        : version{kMessageVersion},
           to{std::move(to)},
           from{std::move(from)},
           nonce{nonce},
