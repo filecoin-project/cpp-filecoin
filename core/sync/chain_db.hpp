@@ -20,7 +20,7 @@ namespace fc::sync {
    public:
     ChainDb();
 
-    outcome::result<void> init(KeyValueStoragePtr key_value_storage,
+    outcome::result<void> init(/*KeyValueStoragePtr key_value_storage,*/
                                IpfsStoragePtr ipld,
                                std::shared_ptr<IndexDb> index_db,
                                const boost::optional<CID> &genesis_cid,
@@ -42,6 +42,8 @@ namespace fc::sync {
 
     outcome::result<TipsetCPtr> getTipsetByHeight(Height height);
 
+    outcome::result<TipsetCPtr> getTipsetByKey(const TipsetKey &key);
+
     outcome::result<void> setCurrentHead(const TipsetHash &head);
 
     using WalkCallback = std::function<void(TipsetCPtr tipset)>;
@@ -62,8 +64,10 @@ namespace fc::sync {
         const TipsetKey &key);
 
    private:
+    outcome::result<TipsetCPtr> loadTipsetFromIpld(const TipsetKey &key);
+
     std::error_code state_error_;
-    KeyValueStoragePtr key_value_storage_;
+    //KeyValueStoragePtr key_value_storage_;
     IpfsStoragePtr ipld_;
     std::shared_ptr<IndexDb> index_db_;
     std::shared_ptr<Tipset> genesis_tipset_;

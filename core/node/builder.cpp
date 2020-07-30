@@ -32,9 +32,9 @@
 #include "storage/mpool/mpool.hpp"
 #include "sync/block_loader.hpp"
 #include "sync/blocksync_client.hpp"
+#include "sync/chain_db.hpp"
 #include "sync/index_db_backend.hpp"
 #include "sync/peer_manager.hpp"
-#include "sync/chain_db.hpp"
 #include "sync/tipset_loader.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
@@ -145,7 +145,7 @@ namespace fc::node {
       leveldb::Options options;
       if (!config.car_file_name.empty()) {
         options.create_if_missing = true;
-        options.error_if_exists = true;
+  //      options.error_if_exists = true;
         creating_new_db = true;
       }
       auto leveldb_res =
@@ -169,12 +169,16 @@ namespace fc::node {
 
     log()->debug("Creating chain DB...");
 
-    o.index_db_backend = std::move(index_db_backend);
-    o.index_db =
-        std::make_shared<sync::IndexDb>(o.kvstorage, o.index_db_backend);
+    // o.index_db_backend = std::move(index_db_backend);
+    o.index_db = std::make_shared<sync::IndexDb>(
+        /*o.kvstorage,*/ std::move(index_db_backend));
     o.chain_db = std::make_shared<sync::ChainDb>();
     OUTCOME_TRY(o.chain_db->init(
-        o.kvstorage, o.ipld, o.index_db, config.genesis_cid, creating_new_db));
+        /*o.kvstorage,*/
+        o.ipld,
+        o.index_db,
+        config.genesis_cid,
+        creating_new_db));
 
     if (!config.genesis_cid) {
       config.genesis_cid = o.chain_db->genesisCID();
@@ -243,8 +247,7 @@ namespace fc::node {
     //        bls_provider, secp_provider);
     //
 
-    o.vm_interpreter =
-        std::make_shared<vm::interpreter::InterpreterImpl>();
+    o.vm_interpreter = std::make_shared<vm::interpreter::InterpreterImpl>();
 
     //    o.block_validator =
     //        std::make_shared<blockchain::block_validator::BlockValidatorImpl>(

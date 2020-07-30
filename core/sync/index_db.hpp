@@ -18,8 +18,6 @@ namespace fc::sync {
     BranchId branch = kNoBranch;
     Height height = 0;
     TipsetHash parent_hash;
-
-    // TODO 2 CIDs here parent_state_root
   };
 
   using TipsetInfoPtr = std::shared_ptr<TipsetInfo>;
@@ -31,7 +29,7 @@ namespace fc::sync {
 
   class IndexDb {
    public:
-    IndexDb(KeyValueStoragePtr kv_store,
+    explicit IndexDb(/*KeyValueStoragePtr kv_store,*/
             std::shared_ptr<IndexDbBackend> backend);
 
     outcome::result<std::map<BranchId, std::shared_ptr<BranchInfo>>> init();
@@ -47,10 +45,7 @@ namespace fc::sync {
 
     outcome::result<TipsetInfoCPtr> get(BranchId branch, Height height);
 
-    using WalkCallback = std::function<void(const TipsetHash &hash,
-                                            BranchId branch,
-                                            Height height,
-                                            const TipsetHash &parent_hash)>;
+    using WalkCallback = std::function<void(TipsetInfoCPtr info)>;
 
     outcome::result<void> walkForward(BranchId branch,
                                       Height from_height,
@@ -64,7 +59,7 @@ namespace fc::sync {
    private:
     using Cache = LRUCache<TipsetHash, TipsetInfo>;
 
-    KeyValueStoragePtr kv_store_;
+//    KeyValueStoragePtr kv_store_;
     std::shared_ptr<IndexDbBackend> backend_;
     Cache cache_;
   };

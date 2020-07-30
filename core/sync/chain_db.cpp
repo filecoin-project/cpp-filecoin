@@ -23,16 +23,16 @@ namespace fc::sync {
       : state_error_(Error::SYNC_NOT_INITIALIZED),
         tipset_cache_(createTipsetCache(1000)) {}
 
-  outcome::result<void> ChainDb::init(KeyValueStoragePtr key_value_storage,
+  outcome::result<void> ChainDb::init(/*KeyValueStoragePtr key_value_storage,*/
                                       IpfsStoragePtr ipld,
                                       std::shared_ptr<IndexDb> index_db,
                                       const boost::optional<CID> &genesis_cid,
                                       bool creating_new_db) {
-    assert(key_value_storage);
+    //assert(key_value_storage);
     assert(ipld);
     assert(index_db);
 
-    key_value_storage_ = std::move(key_value_storage);
+    //key_value_storage_ = std::move(key_value_storage);
     ipld_ = std::move(ipld);
     index_db_ = std::move(index_db);
 
@@ -111,7 +111,7 @@ namespace fc::sync {
 
     return index_db_->contains(hash);
 
-    //TODO revert back after restoring db
+    // TODO revert back after restoring db
     // return key_value_storage_->contains(common::Buffer(hash));
   }
 
@@ -138,10 +138,7 @@ namespace fc::sync {
       return tipset;
     }
     OUTCOME_TRY(info, index_db_->get(hash));
-    auto sptr = std::make_shared<Tipset>();
-    OUTCOME_TRYA(*sptr, Tipset::load(*ipld_, info->key.cids()));
-    tipset_cache_.put(sptr, false);
-    return sptr;
+    return loadTipsetFromIpld(info->key);
   }
 
   outcome::result<void> ChainDb::setCurrentHead(const TipsetHash &head) {
@@ -152,9 +149,29 @@ namespace fc::sync {
 
   outcome::result<TipsetCPtr> ChainDb::getTipsetByHeight(Height height) {
     OUTCOME_TRY(stateIsConsistent());
+    if (height == 0) {
+      // special case due to tickets and loading
+      return genesis_tipset_;
+    }
     OUTCOME_TRY(branch_id, branches_.getBranchAtHeight(height, true));
     OUTCOME_TRY(info, index_db_->get(branch_id, height));
-    return getTipsetByHash(info->key.hash());
+    return getTipsetByKey(info->key);
+  }
+
+  outcome::result<TipsetCPtr> ChainDb::getTipsetByKey(const TipsetKey &key) {
+    TipsetCPtr tipset = tipset_cache_.get(key.hash());
+    if (tipset) {
+      return tipset;
+    }
+    return loadTipsetFromIpld(key);
+  }
+
+  outcome::result<TipsetCPtr> ChainDb::loadTipsetFromIpld(
+      const TipsetKey &key) {
+    auto sptr = std::make_shared<Tipset>();
+    OUTCOME_TRYA(*sptr, Tipset::load(*ipld_, key.cids()));
+    tipset_cache_.put(sptr, false);
+    return sptr;
   }
 
   outcome::result<void> ChainDb::walkForward(Height from_height,
@@ -162,16 +179,22 @@ namespace fc::sync {
                                              const WalkCallback &cb) {
     OUTCOME_TRY(stateIsConsistent());
 
+    if (from_height == 0) {
+      cb(genesis_tipset_);
+      from_height = 1;
+    }
+
+    if (from_height > to_height) {
+      return outcome::success();
+    }
+
     Height last_height = 0;
     std::error_code e;
-    auto internal_cb = [&, this](const TipsetHash &hash,
-                                 BranchId branch,
-                                 Height height,
-                                 const TipsetHash &parent_hash) {
+    auto internal_cb = [&, this](TipsetInfoCPtr info) {
       if (!e) {
-        auto res = getTipsetByHash(hash);
+        auto res = getTipsetByKey(info->key);
         if (res) {
-          last_height = height;
+          last_height = info->height;
           cb(std::move(res.value()));
         } else {
           e = res.error();

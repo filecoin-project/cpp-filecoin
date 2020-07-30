@@ -15,13 +15,16 @@ namespace fc::sync {
     }
 
     // TODO more fields here
-    CBOR_ENCODE_TUPLE(TipsetInfo, key.cids());
+ //   CBOR_ENCODE_TUPLE(TipsetInfo, key.cids());
+
+
+
 
   }  // namespace
 
-  IndexDb::IndexDb(KeyValueStoragePtr kv_store,
+  IndexDb::IndexDb(/*KeyValueStoragePtr kv_store,*/
                    std::shared_ptr<IndexDbBackend> backend)
-      : kv_store_(std::move(kv_store)),
+      : /*kv_store_(std::move(kv_store)),*/
         backend_(std::move(backend)),
         cache_(1000, [](const TipsetInfo &info) { return info.key.hash(); }) {}
 
@@ -47,8 +50,8 @@ namespace fc::sync {
 
     auto tx = backend_->beginTx();
     OUTCOME_TRY(backend_->store(*info, branch_rename));
-    OUTCOME_TRY(buffer, codec::cbor::encode(info->key.cids()));
-    OUTCOME_TRY(kv_store_->put(hash, std::move(buffer)));
+    //OUTCOME_TRY(buffer, codec::cbor::encode(info->key.cids()));
+    // OUTCOME_TRY(kv_store_->put(hash, std::move(buffer)));
     if (branch_rename) {
       cache_.modifyValues([branch_rename](TipsetInfo &v) {
         if (v.branch == branch_rename->old_id
@@ -72,17 +75,19 @@ namespace fc::sync {
     if (cached) {
       return cached;
     }
-    OUTCOME_TRY(buffer, kv_store_->get(common::Buffer(hash)));
-    OUTCOME_TRY(cids, codec::cbor::decode<std::vector<CID>>(buffer));
-    auto key = TipsetKey::create(std::move(cids), hash);
+    //OUTCOME_TRY(buffer, kv_store_->get(common::Buffer(hash)));
+    //OUTCOME_TRY(cids, codec::cbor::decode<std::vector<CID>>(buffer));
+    //auto key = TipsetKey::create(std::move(cids), hash);
     OUTCOME_TRY(idx, backend_->get(hash));
-    auto info = std::make_shared<TipsetInfo>(TipsetInfo{
-        std::move(key), idx.branch, idx.height, std::move(idx.parent_hash)});
+    OUTCOME_TRY(info, IndexDbBackend::decode(std::move(idx)));
+//
+//    auto info = std::make_shared<TipsetInfo>(TipsetInfo{
+//        std::move(key), idx.branch, idx.height, std::move(idx.parent_hash)});
     cache_.put(info, false);
 
     log()->debug("get: {}:{}", info->height, info->key.toPrettyString());
 
-    return info;
+    return std::move(info);
   }
 
   outcome::result<TipsetInfoCPtr> IndexDb::get(BranchId branch, Height height) {
@@ -91,16 +96,19 @@ namespace fc::sync {
     if (cached) {
       return cached;
     }
-    OUTCOME_TRY(buffer, kv_store_->get(common::Buffer(idx.hash)));
-    OUTCOME_TRY(cids, codec::cbor::decode<std::vector<CID>>(buffer));
-    auto key = TipsetKey::create(std::move(cids), idx.hash);
-    auto info = std::make_shared<TipsetInfo>(TipsetInfo{
-        std::move(key), idx.branch, idx.height, std::move(idx.parent_hash)});
+    OUTCOME_TRY(info, IndexDbBackend::decode(std::move(idx)));
+
+//    OUTCOME_TRY(buffer, kv_store_->get(common::Buffer(idx.hash)));
+//    OUTCOME_TRY(cids, codec::cbor::decode<std::vector<CID>>(buffer));
+//    auto key = TipsetKey::create(std::move(cids), idx.hash);
+//    auto info = std::make_shared<TipsetInfo>(TipsetInfo{
+//        std::move(key), idx.branch, idx.height, std::move(idx.parent_hash)});
+
     cache_.put(info, false);
 
     log()->debug("get: {}:{}", info->height, info->key.toPrettyString());
 
-    return info;
+    return std::move(info);
   }
 
   outcome::result<void> IndexDb::walkForward(BranchId branch,
@@ -116,12 +124,14 @@ namespace fc::sync {
         branch,
         from_height,
         limit,
-        [&e, &cb, to_height](TipsetHash hash,
-                             BranchId branch,
-                             Height height,
-                             TipsetHash parent_hash) {
-          if (!e && height <= to_height) {
-            cb(std::move(hash), branch, height, std::move(parent_hash));
+        [&e, &cb, to_height](IndexDbBackend::TipsetIdx raw) {
+          if (!e && raw.height <= to_height) {
+            auto decode_res = IndexDbBackend::decode(std::move(raw));
+            if (!decode_res) {
+              e = decode_res.error();
+            } else {
+              cb(std::move(decode_res.value()));
+            }
           }
         });
     if (!res) {
@@ -143,7 +153,7 @@ namespace fc::sync {
       if (info->height <= to_height) {
         break;
       }
-      cb(info->key.hash(), info->branch, info->height, info->parent_hash);
+      cb(info);
     }
     return outcome::success();
   }

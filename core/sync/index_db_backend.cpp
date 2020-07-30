@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <libp2p/multi/content_identifier_codec.hpp>
+
 #include "index_db_backend.hpp"
 
 namespace fc::sync {
@@ -12,13 +14,58 @@ namespace fc::sync {
       static common::Logger logger = common::createLogger("indexdb");
       return logger.get();
     }
+
+    constexpr size_t kBytesInHash = 32;
+
+    outcome::result<std::vector<uint8_t>> encodeCids(
+        const std::vector<CID> &cids) {
+      std::vector<uint8_t> buffer;
+      size_t sz = cids.size();
+      if (sz != 0) {
+        buffer.resize(sz * kBytesInHash);
+        size_t offset = 0;
+        for (const auto &cid : cids) {
+          auto hash_raw = cid.content_address.getHash();
+          if (hash_raw.size() != kBytesInHash) {
+            return Error::SYNC_DATA_INTEGRITY_ERROR;
+          }
+          memcpy(buffer.data() + offset, hash_raw.data(), kBytesInHash);
+          offset += kBytesInHash;
+        }
+      }
+      return buffer;
+    }
+
+    outcome::result<std::vector<CID>> decodeCids(
+        gsl::span<const uint8_t> bytes) {
+      size_t sz = bytes.size();
+      if (sz % kBytesInHash != 0) {
+        return Error::SYNC_DATA_INTEGRITY_ERROR;
+      }
+      std::vector<CID> cids;
+      if (sz != 0) {
+        cids.reserve(sz / kBytesInHash);
+
+        for (size_t offset = 0; offset < sz; offset += kBytesInHash) {
+          gsl::span<const uint8_t> hash_raw =
+              bytes.subspan(offset, kBytesInHash);
+          OUTCOME_TRY(hash,
+                      libp2p::multi::Multihash::create(
+                          libp2p::multi::HashType::blake2b_256, hash_raw));
+          cids.emplace_back(
+              CID::Version::V1, CID::Multicodec::DAG_CBOR, std::move(hash));
+        }
+      }
+      return cids;
+    }
+
   }  // namespace
 
   outcome::result<std::shared_ptr<IndexDbBackend>> IndexDbBackend::create(
       const std::string &db_filename) {
     try {
       return std::make_shared<IndexDbBackend>(db_filename);
-    } catch (const std::exception& e) {
+    } catch (const std::exception &e) {
       log()->error("cannot create: {}", e.what());
     }
     return Error::INDEXDB_CANNOT_CREATE;
@@ -29,17 +76,20 @@ namespace fc::sync {
       const boost::optional<RenameBranch> &branch_rename) {
     int rows = 0;
 
+    OUTCOME_TRY(cids, encodeCids(info.key.cids()));
+
     if (!info.parent_hash.empty()) {
       rows = db_.execCommand(insert_tipset_,
                              info.key.hash(),
                              info.branch,
                              info.height,
-                             info.parent_hash);
+                             info.parent_hash,
+                             cids);
     } else {
       assert(info.branch == kGenesisBranch);
       assert(info.height == 0);
       rows = db_.execCommand(
-          insert_tipset_, info.key.hash(), kGenesisBranch, 0, "");
+          insert_tipset_, info.key.hash(), kGenesisBranch, 0, "", cids);
     }
 
     if (rows != 1) {
@@ -66,11 +116,13 @@ namespace fc::sync {
     auto cb = [&idx](TipsetHash hash,
                      BranchId branch,
                      Height height,
-                     TipsetHash parent_hash) {
+                     TipsetHash parent_hash,
+                     Blob cids) {
       idx.hash = std::move(hash);
       idx.branch = branch;
       idx.height = height;
       idx.parent_hash = std::move(parent_hash);
+      idx.cids = std::move(cids);
     };
     bool res = db_.execQuery(get_by_hash_, cb, hash);
     if (!res) {
@@ -85,15 +137,7 @@ namespace fc::sync {
   outcome::result<IndexDbBackend::TipsetIdx> IndexDbBackend::get(
       BranchId branch, Height height) {
     TipsetIdx idx;
-    auto cb = [&idx](TipsetHash hash,
-                     BranchId branch,
-                     Height height,
-                     TipsetHash parent_hash) {
-      idx.hash = std::move(hash);
-      idx.branch = branch;
-      idx.height = height;
-      idx.parent_hash = std::move(parent_hash);
-    };
+    auto cb = [&idx](TipsetIdx raw) { idx = std::move(raw); };
     OUTCOME_TRY(walk(branch, height, 1, cb));
     if (idx.hash.empty()) {
       return Error::INDEXDB_TIPSET_NOT_FOUND;
@@ -101,15 +145,34 @@ namespace fc::sync {
     return idx;
   }
 
+  outcome::result<std::shared_ptr<TipsetInfo>> IndexDbBackend::decode(
+      TipsetIdx raw) {
+    OUTCOME_TRY(cids, decodeCids(raw.cids));
+    return std::make_shared<TipsetInfo>(
+        TipsetInfo{TipsetKey::create(std::move(cids), std::move(raw.hash)),
+                   raw.branch,
+                   raw.height,
+                   std::move(raw.parent_hash)});
+  }
+
   outcome::result<void> IndexDbBackend::walk(
       BranchId branch,
       Height height,
       uint64_t limit,
-      const std::function<void(TipsetHash hash,
-                               BranchId branch,
-                               Height height,
-                               TipsetHash parent_hash)> &cb) {
-    bool res = db_.execQuery(get_by_position_, cb, branch, height, limit);
+      const std::function<void(TipsetIdx raw)> &cb) {
+    auto raw_cb = [&cb](TipsetHash hash,
+                        BranchId branch,
+                        Height height,
+                        TipsetHash parent_hash,
+                        Blob cids) {
+      cb(TipsetIdx{std::move(hash),
+                   branch,
+                   height,
+                   std::move(parent_hash),
+                   std::move(cids)});
+    };
+
+    bool res = db_.execQuery(get_by_position_, raw_cb, branch, height, limit);
     if (!res) {
       return Error::INDEXDB_EXECUTE_ERROR;
     }
@@ -123,7 +186,8 @@ namespace fc::sync {
             hash BLOB PRIMARY KEY,
             branch INTEGER NOT NULL,
             height INTEGER NOT NULL,
-            parent_hash BLOB NOT NULL)
+            parent_hash BLOB NOT NULL,
+            cids BLOB NOT NULL)
         )",
 
         R"(CREATE UNIQUE INDEX IF NOT EXISTS tipsets_b_h ON tipsets
@@ -141,17 +205,17 @@ namespace fc::sync {
       }
 
       get_by_hash_ = db_.createStatement(
-          R"(SELECT hash,branch,height,parent_hash FROM tipsets
+          R"(SELECT hash,branch,height,parent_hash,cids FROM tipsets
           WHERE hash=?
           )");
 
       get_by_position_ = db_.createStatement(
-          R"(SELECT hash,branch,height,parent_hash FROM tipsets
+          R"(SELECT hash,branch,height,parent_hash,cids FROM tipsets
           WHERE branch=? AND height>=? LIMIT ?
           )");
 
       insert_tipset_ =
-          db_.createStatement(R"(INSERT INTO tipsets VALUES(?,?,?,?))");
+          db_.createStatement(R"(INSERT INTO tipsets VALUES(?,?,?,?,?))");
 
       rename_branch_ = db_.createStatement(
           R"(UPDATE tipsets SET branch=? WHERE branch=? AND height>?)");

@@ -14,6 +14,8 @@ namespace fc::sync {
 
   class IndexDbBackend {
    public:
+    using Blob = std::vector<uint8_t>;
+
     static outcome::result<std::shared_ptr<IndexDbBackend>> create(
         const std::string &db_filename);
 
@@ -28,20 +30,20 @@ namespace fc::sync {
       BranchId branch = kNoBranch;
       Height height = 0;
       TipsetHash parent_hash;
+      Blob cids;
     };
 
     outcome::result<TipsetIdx> get(const TipsetHash &hash);
 
     outcome::result<TipsetIdx> get(BranchId branch, Height height);
 
+    static outcome::result<std::shared_ptr<TipsetInfo>> decode(TipsetIdx raw);
+
     outcome::result<void> walk(
         BranchId branch,
         Height height,
         uint64_t limit,
-        const std::function<void(TipsetHash hash,
-                                 BranchId branch,
-                                 Height height,
-                                 TipsetHash parent_hash)> &cb);
+        const std::function<void(TipsetIdx)> &cb);
 
     /// RAII tx helper
     class Tx {

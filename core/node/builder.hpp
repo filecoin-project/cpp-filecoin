@@ -65,7 +65,7 @@ namespace fc {
     class TipsetLoader;
     class BlockLoader;
     class IndexDb;
-    class IndexDbBackend;
+    // class IndexDbBackend;
     class ChainDb;
     class PeerManager;
 
@@ -104,7 +104,7 @@ namespace fc::node {
 
     std::shared_ptr<clock::UTCClock> utc_clock;
 
-    std::shared_ptr<sync::IndexDbBackend> index_db_backend;
+    // std::shared_ptr<sync::IndexDbBackend> index_db_backend;
 
     std::shared_ptr<sync::IndexDb> index_db;
 
