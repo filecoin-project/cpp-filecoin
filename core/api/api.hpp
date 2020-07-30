@@ -199,7 +199,7 @@ namespace fc::api {
     std::vector<BeaconEntry> beacons;
 
     auto &beacon() const {
-      return beacons.empty() ? prev_beacon : *beacons.rbegin();
+      return beacons.empty() ? prev_beacon : beacons.back();
     }
   };
 
