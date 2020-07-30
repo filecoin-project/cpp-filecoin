@@ -423,15 +423,15 @@ namespace fc::api {
       decode(v.data, Get(j, "Data"));
     }
 
-    ENCODE(Tipset) {
+    ENCODE(TipsetCPtr) {
       Value j{rapidjson::kObjectType};
-      Set(j, "Cids", v.key.cids());
-      Set(j, "Blocks", v.blks);
-      Set(j, "Height", v.height());
+      Set(j, "Cids", v->key.cids());
+      Set(j, "Blocks", v->blks);
+      Set(j, "Height", v->height());
       return j;
     }
 
-    DECODE(Tipset) {
+    DECODE(TipsetCPtr) {
       std::vector<primitives::block::BlockHeader> blks;
       decode(blks, Get(j, "Blocks"));
 
@@ -1135,14 +1135,6 @@ namespace fc::api {
   static Document encode(const T &v) {
     Document document;
     static_cast<Value &>(document) = Codec{document.GetAllocator()}.encode(v);
-    return document;
-  }
-
-  template <typename T>
-  static Document encode(const std::shared_ptr<const T> &v) {
-    assert(v);
-    Document document;
-    static_cast<Value &>(document) = Codec{document.GetAllocator()}.encode(*v);
     return document;
   }
 

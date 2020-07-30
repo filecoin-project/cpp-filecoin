@@ -295,7 +295,7 @@ namespace fc::markets::storage::test {
                     MessageReceipt{.exit_code = VMExitCode::Ok,
                                    .return_value = publish_deal_result_encoded,
                                    .gas_used = GasAmount{0}},
-                .tipset = *chain_head};
+                .tipset = chain_head};
             auto channel = std::make_shared<Channel<Wait<MsgWait>::Result>>();
             channel->write(message_result);
             channel->closeWrite();

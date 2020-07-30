@@ -68,6 +68,7 @@ namespace fc::api {
   using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetCPtr;
   using primitives::tipset::TipsetKey;
   using storage::mpool::MpoolUpdate;
   using vm::actor::Actor;
@@ -158,7 +159,7 @@ namespace fc::api {
 
   struct MsgWait {
     MessageReceipt receipt;
-    Tipset tipset;
+    TipsetCPtr tipset;
   };
 
   struct BlockMessages {
@@ -245,7 +246,6 @@ namespace fc::api {
     uint64_t size;
   };
 
-  using TipsetCPtr = std::shared_ptr<const Tipset>;
 
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)

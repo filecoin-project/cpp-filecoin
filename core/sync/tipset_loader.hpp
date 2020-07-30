@@ -8,8 +8,8 @@
 
 #include <set>
 
-#include "common.hpp"
 #include "block_loader.hpp"
+#include "common.hpp"
 #include "primitives/tipset/tipset.hpp"
 
 namespace fc::sync {
@@ -19,7 +19,7 @@ namespace fc::sync {
     /// Called when all tipset subobjects are available
     /// or tipset appeared to be bad
     using OnTipset = std::function<void(TipsetHash hash,
-                                        outcome::result<Tipset> tipset)>;
+                                        outcome::result<TipsetCPtr> tipset)>;
 
     TipsetLoader(std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
                  std::shared_ptr<BlockLoader> block_loader);
@@ -32,7 +32,7 @@ namespace fc::sync {
         uint64_t depth = 1);
 
    private:
-    void onBlock(const CID& cid, outcome::result<BlockHeader> bh);
+    void onBlock(const CID &cid, outcome::result<BlockHeader> bh);
 
     using Wantlist = std::set<CID>;
 
@@ -59,7 +59,7 @@ namespace fc::sync {
     };
 
     void onRequestCompleted(TipsetHash hash,
-        outcome::result<Tipset> tipset);
+                            outcome::result<TipsetCPtr> tipset);
 
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<BlockLoader> block_loader_;

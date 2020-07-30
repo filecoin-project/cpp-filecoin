@@ -13,26 +13,26 @@ namespace fc::sync {
           max_size, [](const Tipset &tipset) { return tipset.key.hash(); });
     }
 
-    auto log() {
-      static common::Logger logger = common::createLogger("chaindb");
-      return logger.get();
-    }
+    // TODO move this to config
+    constexpr size_t kCacheSize = 1000;
+
+//    auto log() {
+//      static common::Logger logger = common::createLogger("chaindb");
+//      return logger.get();
+//    }
   }  // namespace
 
   ChainDb::ChainDb()
       : state_error_(Error::SYNC_NOT_INITIALIZED),
-        tipset_cache_(createTipsetCache(1000)) {}
+        tipset_cache_(createTipsetCache(kCacheSize)) {}
 
-  outcome::result<void> ChainDb::init(/*KeyValueStoragePtr key_value_storage,*/
-                                      IpfsStoragePtr ipld,
+  outcome::result<void> ChainDb::init(IpfsStoragePtr ipld,
                                       std::shared_ptr<IndexDb> index_db,
                                       const boost::optional<CID> &genesis_cid,
                                       bool creating_new_db) {
-    //assert(key_value_storage);
     assert(ipld);
     assert(index_db);
 
-    //key_value_storage_ = std::move(key_value_storage);
     ipld_ = std::move(ipld);
     index_db_ = std::move(index_db);
 
@@ -50,9 +50,9 @@ namespace fc::sync {
         }
         OUTCOME_EXCEPT(gt, Tipset::loadGenesis(*ipld_, genesis_cid.value()));
 
-        assert(gt.key.cids()[0] == genesis_cid.value());
+        assert(gt->key.cids()[0] == genesis_cid.value());
 
-        genesis_tipset_ = std::make_shared<Tipset>(std::move(gt));
+        genesis_tipset_ = std::move(gt);
         OUTCOME_EXCEPT(branches_.storeGenesis(genesis_tipset_));
         OUTCOME_EXCEPT(index_db_->storeGenesis(*genesis_tipset_));
       } else {
@@ -61,13 +61,12 @@ namespace fc::sync {
         }
         OUTCOME_EXCEPT(branches_.init(std::move(branches_map)));
         OUTCOME_EXCEPT(info, index_db_->get(kGenesisBranch, 0));
-        genesis_tipset_ = std::make_shared<Tipset>();
         if (genesis_cid) {
           if (genesis_cid.value() != info->key.cids()[0]) {
             throw std::system_error(Error::SYNC_GENESIS_MISMATCH);
           }
         }
-        OUTCOME_TRYA(*genesis_tipset_,
+        OUTCOME_TRYA(genesis_tipset_,
                      Tipset::loadGenesis(*ipld_, info->key.cids()[0]));
       }
 
@@ -168,10 +167,9 @@ namespace fc::sync {
 
   outcome::result<TipsetCPtr> ChainDb::loadTipsetFromIpld(
       const TipsetKey &key) {
-    auto sptr = std::make_shared<Tipset>();
-    OUTCOME_TRYA(*sptr, Tipset::load(*ipld_, key.cids()));
-    tipset_cache_.put(sptr, false);
-    return sptr;
+    OUTCOME_TRY(tipset, Tipset::load(*ipld_, key.cids()));
+    tipset_cache_.put(tipset, false);
+    return std::move(tipset);
   }
 
   outcome::result<void> ChainDb::walkForward(Height from_height,
@@ -243,7 +241,7 @@ namespace fc::sync {
   }
 
   outcome::result<boost::optional<TipsetCPtr>> ChainDb::storeTipset(
-      std::shared_ptr<Tipset> tipset, const TipsetKey &parent) {
+      TipsetCPtr tipset, const TipsetKey &parent) {
     OUTCOME_TRY(stateIsConsistent());
     if (!started_) {
       return Error::SYNC_NOT_INITIALIZED;

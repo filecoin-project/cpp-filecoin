@@ -12,7 +12,7 @@
 
 namespace fc::sync {
 
-  using TipsetCache = LRUCache<TipsetHash, Tipset>;
+  using TipsetCache = LRUCache<TipsetHash, const Tipset>;
 
   using IpfsStoragePtr = std::shared_ptr<storage::ipfs::IpfsDatastore>;
 
@@ -58,7 +58,7 @@ namespace fc::sync {
 
     /// returns next unsynced tipset to be loaded, if any
     outcome::result<boost::optional<TipsetCPtr>> storeTipset(
-        std::shared_ptr<Tipset> tipset, const TipsetKey &parent);
+        TipsetCPtr tipset, const TipsetKey &parent);
 
     outcome::result<boost::optional<TipsetCPtr>> getUnsyncedBottom(
         const TipsetKey &key);
@@ -70,7 +70,7 @@ namespace fc::sync {
     //KeyValueStoragePtr key_value_storage_;
     IpfsStoragePtr ipld_;
     std::shared_ptr<IndexDb> index_db_;
-    std::shared_ptr<Tipset> genesis_tipset_;
+    TipsetCPtr genesis_tipset_;
     Branches branches_;
     TipsetCache tipset_cache_;
     HeadCallback head_callback_;

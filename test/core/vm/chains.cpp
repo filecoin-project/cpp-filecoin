@@ -13,31 +13,32 @@
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
 using fc::primitives::tipset::Tipset;
+using fc::primitives::tipset::TipsetCPtr;
 
 TEST(ChainsTest, StoreDeal) {
   auto ipld{std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
   auto car{readFile(resourcePath("chain-store-deal.car"))};
   EXPECT_OUTCOME_TRUE(head, fc::storage::car::loadCar(*ipld, car));
   EXPECT_OUTCOME_TRUE(ts, Tipset::load(*ipld, head));
-  std::vector<Tipset> tss;
+  std::vector<TipsetCPtr> tss;
   while (true) {
     tss.push_back(ts);
-    if (ts.height() == 0) {
+    if (ts->height() == 0) {
       break;
     }
-    EXPECT_OUTCOME_TRUE(parent, ts.loadParent(*ipld));
+    EXPECT_OUTCOME_TRUE(parent, ts->loadParent(*ipld));
     ts = std::move(parent);
   }
   std::reverse(tss.begin(), tss.end());
-  auto last{std::make_pair(tss[0].getParentStateRoot(),
-                           tss[0].getParentMessageReceipts())};
-  for (auto &ts : tss) {
-    EXPECT_EQ(last.first, ts.getParentStateRoot())
-        << "state differs at " << ts.height() - 1;
-    EXPECT_EQ(last.second, ts.getParentMessageReceipts())
-        << "receipts differ at " << ts.height() - 1;
+  auto last{std::make_pair(tss[0]->getParentStateRoot(),
+                           tss[0]->getParentMessageReceipts())};
+  for (auto &t : tss) {
+    EXPECT_EQ(last.first, t->getParentStateRoot())
+        << "state differs at " << t->height() - 1;
+    EXPECT_EQ(last.second, t->getParentMessageReceipts())
+        << "receipts differ at " << t->height() - 1;
     EXPECT_OUTCOME_TRUE(
-        result, fc::vm::interpreter::InterpreterImpl{}.interpret(ipld, ts));
+        result, fc::vm::interpreter::InterpreterImpl{}.interpret(ipld, *t));
     last = {result.state_root, result.message_receipts};
   }
 }

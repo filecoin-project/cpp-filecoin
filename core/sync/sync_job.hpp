@@ -50,7 +50,7 @@ namespace fc::sync {
     const SyncStatus &getStatus() const;
 
     void onTipsetLoaded(TipsetHash hash,
-                        outcome::result<std::shared_ptr<Tipset>> result);
+                        outcome::result<TipsetCPtr> result);
 
    private:
     void internalError(std::error_code e);
@@ -103,7 +103,7 @@ namespace fc::sync {
 
     void startJob(PeerId peer, TipsetKey head_tipset, uint64_t height);
 
-    void onTipsetLoaded(TipsetHash hash, outcome::result<Tipset> tipset);
+    void onTipsetLoaded(TipsetHash hash, outcome::result<TipsetCPtr> tipset);
 
     void onSyncJobFinished(SyncStatus status);
 

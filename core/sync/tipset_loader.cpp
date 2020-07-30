@@ -74,7 +74,7 @@ namespace fc::sync {
               [wptr = weak_from_this(), res = std::move(res)]() {
                 auto self = wptr.lock();
                 if (self) {
-                  self->callback_(res.value().key.hash(), std::move(res));
+                  self->callback_(res.value()->key.hash(), std::move(res));
                 }
               })
           .detach();
@@ -149,7 +149,7 @@ namespace fc::sync {
   }
 
   void TipsetLoader::onRequestCompleted(TipsetHash hash,
-                                        outcome::result<Tipset> tipset) {
+                                        outcome::result<TipsetCPtr> tipset) {
     tipset_requests_.erase(hash);
     callback_(std::move(hash), std::move(tipset));
   }

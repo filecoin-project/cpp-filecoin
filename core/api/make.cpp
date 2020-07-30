@@ -44,8 +44,6 @@ namespace fc::api {
   using vm::runtime::Env;
   using connection_t = boost::signals2::connection;
 
-  using TipsetCPtr = std::shared_ptr<const Tipset>;
-
   struct TipsetContext {
     TipsetCPtr tipset;
     StateTreeImpl state_tree;
@@ -409,7 +407,7 @@ namespace fc::api {
           auto result{msg_waiter->results.find(cid)};
           if (result != msg_waiter->results.end()) {
             OUTCOME_TRY(ts, Tipset::load(*ipld, result->second.second.cids()));
-            if (context.tipset->height() <= ts.height()) {
+            if (context.tipset->height() <= ts->height()) {
               return result->second.first;
             }
           }

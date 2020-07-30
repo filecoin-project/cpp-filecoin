@@ -67,7 +67,7 @@ namespace fc::sync {
   }
 
   void SyncJob::onTipsetLoaded(
-      TipsetHash hash, outcome::result<std::shared_ptr<Tipset>> result) {
+      TipsetHash hash, outcome::result<TipsetCPtr> result) {
     if (status_.code != SyncStatus::IN_PROGRESS || !status_.next.has_value()
         || hash != status_.next.value()) {
       // dont need this tipset
@@ -134,7 +134,7 @@ namespace fc::sync {
     if (!started_) {
       started_ = true;
       tipset_loader_->init([this](sync::TipsetHash hash,
-                                 outcome::result<fc::sync::Tipset> tipset) {
+                                  outcome::result<sync::TipsetCPtr> tipset) {
         onTipsetLoaded(std::move(hash), std::move(tipset));
       });
     }
@@ -232,15 +232,9 @@ namespace fc::sync {
   }
 
   void Syncer::onTipsetLoaded(TipsetHash hash,
-                              outcome::result<Tipset> tipset_res) {
+                              outcome::result<TipsetCPtr> tipset_res) {
     if (isActive()) {
-      if (tipset_res) {
-        current_job_->onTipsetLoaded(
-            std::move(hash),
-            std::make_shared<Tipset>(std::move(tipset_res.value())));
-      } else {
-        current_job_->onTipsetLoaded(std::move(hash), tipset_res.error());
-      }
+      current_job_->onTipsetLoaded(std::move(hash), std::move(tipset_res));
     }
   }
 

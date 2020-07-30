@@ -40,7 +40,7 @@ namespace fc::storage::mpool {
 
   outcome::result<uint64_t> Mpool::nonce(const Address &from) const {
     OUTCOME_TRY(interpeted,
-                vm::interpreter::InterpreterImpl{}.interpret(ipld, head));
+                vm::interpreter::InterpreterImpl{}.interpret(ipld, *head));
     OUTCOME_TRY(
         actor, vm::state::StateTreeImpl{ipld, interpeted.state_root}.get(from));
     auto by_from_it{by_from.find(from)};
@@ -87,7 +87,7 @@ namespace fc::storage::mpool {
       head = change.value;
     } else {
       auto apply{change.type == HeadChangeType::APPLY};
-      OUTCOME_TRY(change.value.visitMessages(
+      OUTCOME_TRY(change.value->visitMessages(
           ipld, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
             if (bls) {
               OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
@@ -112,7 +112,7 @@ namespace fc::storage::mpool {
       if (apply) {
         head = change.value;
       } else {
-        OUTCOME_TRYA(head, change.value.loadParent(*ipld));
+        OUTCOME_TRYA(head, change.value->loadParent(*ipld));
       }
     }
     return outcome::success();

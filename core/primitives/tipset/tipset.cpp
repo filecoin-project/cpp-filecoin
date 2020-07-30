@@ -14,18 +14,20 @@
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
   using fc::primitives::tipset::TipsetError;
   switch (e) {
-    case (TipsetError::NO_BLOCKS):
-      return "No blocks to create tipset";
-    case TipsetError::MISMATCHING_HEIGHTS:
+    case (TipsetError::kNoBlocks):
+      return "Need to have at least one block to create tipset";
+    case TipsetError::kMismatchingHeights:
       return "Cannot create tipset, mismatching blocks heights";
-    case TipsetError::MISMATCHING_PARENTS:
+    case TipsetError::kMismatchingParents:
       return "Cannot create tipset, mismatching block parents";
-    case TipsetError::TICKET_HAS_NO_VALUE:
+    case TipsetError::kTicketHasNoValue:
       return "An optional ticket is not initialized";
-    case TipsetError::TICKETS_COLLISION:
+    case TipsetError::kTicketsCollision:
       return "Duplicate tickets in tipset";
-    case TipsetError::BLOCK_ORDER_FAILURE:
+    case TipsetError::kBlockOrderFailure:
       return "Wrong order of blocks in tipset";
+    case TipsetError::kNoBeacons:
+      return "No beacons in chain";
   }
   return "Unknown tipset error";
 }
@@ -44,7 +46,7 @@ namespace fc::primitives::tipset {
       }
 
       if (!hdr.ticket.has_value()) {
-        return TipsetError::TICKET_HAS_NO_VALUE;
+        return TipsetError::kTicketHasNoValue;
       }
 
       blake2b_ctx ctx;
@@ -93,17 +95,17 @@ namespace fc::primitives::tipset {
     }
 
     if (hdr.height > 0 && !hdr.ticket.has_value()) {
-      return TipsetError::TICKET_HAS_NO_VALUE;
+      return TipsetError::kTicketHasNoValue;
     }
 
     const auto &first_block = blks_[0];
 
     if (hdr.height != first_block.height) {
-      return TipsetError::MISMATCHING_HEIGHTS;
+      return TipsetError::kMismatchingHeights;
     }
 
     if (hdr.parents != first_block.parents) {
-      return TipsetError::MISMATCHING_PARENTS;
+      return TipsetError::kMismatchingParents;
     }
 
     return outcome::success();
@@ -136,10 +138,9 @@ namespace fc::primitives::tipset {
     OUTCOME_TRY(ticket_hash, ticketHash(hdr));
     size_t idx = 0;
     for (auto e = ticket_hashes_.end(); it != e; ++it, ++idx) {
-      // int c = ticket::compare(ticket, it->ticket.value());
       int c = compareHashes(ticket_hash, *it);
       if (c == 0) {
-        return TipsetError::TICKETS_COLLISION;
+        return TipsetError::kTicketsCollision;
       }
       if (c < 0) {
         continue;
@@ -162,18 +163,18 @@ namespace fc::primitives::tipset {
     return outcome::success();
   }
 
-  Tipset TipsetCreator::getTipset(bool clear) {
+  TipsetCPtr TipsetCreator::getTipset(bool clear) {
     if (blks_.empty()) {
-      return Tipset{};
+      return std::make_shared<Tipset>();
     }
     if (clear) {
       OUTCOME_EXCEPT(key, TipsetKey::create(std::move(cids_)));
-      return Tipset{std::move(key), std::move(blks_)};
+      return std::make_shared<Tipset>(std::move(key), std::move(blks_));
     }
 
     // make copy, don't erase
     OUTCOME_EXCEPT(key, TipsetKey::create(cids_));
-    return Tipset{key, blks_};
+    return std::make_shared<Tipset>(key, blks_);
   }
 
   void TipsetCreator::clear() {
@@ -186,13 +187,13 @@ namespace fc::primitives::tipset {
     return blks_.empty() ? 0 : blks_[0].height;
   }
 
-  outcome::result<Tipset> Tipset::create(const TipsetHash &hash,
-                                         BlocksAvailable blocks) {
+  outcome::result<TipsetCPtr> Tipset::create(const TipsetHash &hash,
+                                             BlocksFromNetwork blocks) {
     TipsetCreator creator;
 
     for (auto &b : blocks) {
       if (!b.has_value()) {
-        return TipsetError::NO_BLOCKS;
+        return TipsetError::kNoBlocks;
       }
 
       auto &hdr = b.value();
@@ -200,15 +201,15 @@ namespace fc::primitives::tipset {
       OUTCOME_TRY(creator.expandTipset(std::move(hdr)));
     }
 
-    Tipset tipset = creator.getTipset(true);
-    if (tipset.key.hash() != hash) {
-      return TipsetError::BLOCK_ORDER_FAILURE;
+    TipsetCPtr tipset = creator.getTipset(true);
+    if (tipset->key.hash() != hash) {
+      return TipsetError::kBlockOrderFailure;
     }
 
     return std::move(tipset);
   }
 
-  outcome::result<Tipset> Tipset::create(
+  outcome::result<TipsetCPtr> Tipset::create(
       std::vector<block::BlockHeader> blocks) {
     TipsetCreator creator;
 
@@ -220,8 +221,8 @@ namespace fc::primitives::tipset {
     return creator.getTipset(true);
   }
 
-  outcome::result<Tipset> Tipset::load(Ipld &ipld,
-                                       const std::vector<CID> &cids) {
+  outcome::result<TipsetCPtr> Tipset::load(Ipld &ipld,
+                                           const std::vector<CID> &cids) {
     std::vector<BlockHeader> blocks;
     blocks.reserve(cids.size());
     for (auto &cid : cids) {
@@ -231,39 +232,48 @@ namespace fc::primitives::tipset {
     return create(std::move(blocks));
   }
 
-  outcome::result<Tipset> Tipset::loadGenesis(Ipld &ipld,
-                                             const CID &cid) {
+  outcome::result<TipsetCPtr> Tipset::loadGenesis(Ipld &ipld, const CID &cid) {
     BlockHeader block;
     OUTCOME_TRY(bytes, ipld.get(cid));
     std::vector<std::vector<uint8_t>> dummy;
     try {
       codec::cbor::CborDecodeStream decoder(bytes);
-      decoder.list() >> block.miner
-          >> dummy
-          >> block.election_proof
-          >> block.beacon_entries
-          >> block.win_post_proof
-          >> block.parents
-          >> block.parent_weight
-          >> block.height
-          >> block.parent_state_root
-          >> block.parent_message_receipts
-          >> block.messages
-          >> block.bls_aggregate
-          >> block.timestamp
-          >> block.block_sig
+      decoder.list() >> block.miner >> dummy >> block.election_proof
+          >> block.beacon_entries >> block.win_post_proof >> block.parents
+          >> block.parent_weight >> block.height >> block.parent_state_root
+          >> block.parent_message_receipts >> block.messages
+          >> block.bls_aggregate >> block.timestamp >> block.block_sig
           >> block.fork_signaling;
 
     } catch (std::system_error &e) {
       return e.code();
     }
 
-    OUTCOME_TRY(key, TipsetKey::create( { std::move(cid) } ));
-    return Tipset { std::move(key), {std::move(block) } };
+    OUTCOME_TRY(key, TipsetKey::create({std::move(cid)}));
+    std::vector<BlockHeader> blocks{std::move(block)};
+    return std::make_shared<Tipset>(std::move(key), std::move(blocks));
   }
 
-  outcome::result<Tipset> Tipset::loadParent(Ipld &ipld) const {
+  outcome::result<TipsetCPtr> Tipset::loadParent(Ipld &ipld) const {
     return load(ipld, blks[0].parents);
+  }
+
+  outcome::result<BeaconEntry> Tipset::latestBeacon(Ipld &ipld) const {
+    auto ts{this};
+    TipsetCPtr parent;
+    // TODO: magic number from lotus
+    for (auto i{0}; i < 20; ++i) {
+      auto beacons{ts->blks[0].beacon_entries};
+      if (!beacons.empty()) {
+        return *beacons.rbegin();
+      }
+      if (ts->height() == 0) {
+        break;
+      }
+      OUTCOME_TRYA(parent, ts->loadParent(ipld));
+      ts = parent.get();
+    }
+    return TipsetError::kNoBeacons;
   }
 
   outcome::result<void> Tipset::visitMessages(
@@ -281,10 +291,10 @@ namespace fc::primitives::tipset {
       ChainEpoch round,
       gsl::span<const uint8_t> entropy) const {
     auto ts{this};
-    Tipset parent;
+    TipsetCPtr parent;
     while (ts->height() != 0 && static_cast<ChainEpoch>(ts->height()) > round) {
       OUTCOME_TRYA(parent, ts->loadParent(ipld));
-      ts = &parent;
+      ts = parent.get();
     }
     return crypto::randomness::drawRandomness(
         ts->getMinTicketBlock().ticket->bytes, tag, round, entropy);
@@ -355,17 +365,17 @@ namespace fc::codec::cbor {
   }  // namespace
 
   template <>
-  outcome::result<fc::primitives::tipset::Tipset>
-  decode<fc::primitives::tipset::Tipset>(gsl::span<const uint8_t> input) {
+  outcome::result<fc::primitives::tipset::TipsetCPtr>
+  decode<fc::primitives::tipset::TipsetCPtr>(gsl::span<const uint8_t> input) {
     using namespace fc::primitives::tipset;
 
     OUTCOME_TRY(decoded, decode<TipsetDecodeCandidate>(input));
     if (decoded.blks.empty() && decoded.height != 0) {
-      return TipsetError::MISMATCHING_HEIGHTS;
+      return TipsetError::kMismatchingHeights;
     }
     OUTCOME_TRY(tipset, Tipset::create(std::move(decoded.blks)));
-    if (tipset.key.cids() != decoded.cids) {
-      return TipsetError::BLOCK_ORDER_FAILURE;
+    if (tipset->key.cids() != decoded.cids) {
+      return TipsetError::kBlockOrderFailure;
     }
     return std::move(tipset);
   }

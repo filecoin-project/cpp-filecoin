@@ -35,6 +35,7 @@ namespace fc::blockchain::block_validator {
     using SecpProvider = crypto::secp256k1::Secp256k1ProviderDefault;
     using Interpreter = vm::interpreter::Interpreter;
     using Tipset = primitives::tipset::Tipset;
+    using TipsetCPtr = primitives::tipset::TipsetCPtr;
 
    public:
     using StageExecutor = outcome::result<void> (BlockValidatorImpl::*)(
@@ -77,7 +78,7 @@ namespace fc::blockchain::block_validator {
      * Assuming that block validation executes sequentially,
      * so for several blocks parent tipset will be the same
      */
-    mutable boost::optional<std::pair<CID, Tipset>> parent_tipset_cache_;
+    mutable boost::optional<std::pair<CID, TipsetCPtr>> parent_tipset_cache_;
 
     /**
      * @brief Check block syntax
@@ -133,7 +134,7 @@ namespace fc::blockchain::block_validator {
      * @param header - selected block
      * @return operation result
      */
-    outcome::result<std::reference_wrapper<Tipset>> getParentTipset(
+    outcome::result<std::reference_wrapper<TipsetCPtr>> getParentTipset(
         const BlockHeader &header) const;
   };
 

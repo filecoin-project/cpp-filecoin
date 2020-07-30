@@ -76,7 +76,7 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
            {},
        }}));
 
-  return WeightCalculatorImpl{ipld}.calculateWeight(tipset);
+  return WeightCalculatorImpl{ipld}.calculateWeight(*tipset);
 }
 
 struct WeightCalculatorTest : ::testing::TestWithParam<Params> {};

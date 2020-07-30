@@ -16,12 +16,13 @@
 namespace fc::primitives::tipset {
 
   enum class TipsetError : int {
-    NO_BLOCKS = 1,        // need to have at least one block to create tipset
-    MISMATCHING_HEIGHTS,  // cannot create tipset, mismatching blocks heights
-    MISMATCHING_PARENTS,  // cannot create tipset, mismatching block parents
-    TICKET_HAS_NO_VALUE,  // optional ticket is not initialized
-    TICKETS_COLLISION,    // duplicate tickets in tipset
-    BLOCK_ORDER_FAILURE,  // wrong order of blocks
+    kNoBlocks = 1,        // need to have at least one block to create tipset
+    kMismatchingHeights,  // cannot create tipset, mismatching blocks heights
+    kMismatchingParents,  // cannot create tipset, mismatching block parents
+    kTicketHasNoValue,    // optional ticket is not initialized
+    kTicketsCollision,    // duplicate tickets in tipset
+    kBlockOrderFailure,   // wrong order of blocks
+    kNoBeacons,
   };
 }
 
@@ -31,7 +32,7 @@ namespace fc::primitives::tipset {
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::tipset, TipsetError);
 
 namespace fc::primitives::tipset {
-
+  using block::BeaconEntry;
   using block::BlockHeader;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
@@ -45,24 +46,29 @@ namespace fc::primitives::tipset {
     std::set<CID> visited{};
   };
 
+  struct Tipset;
+  using TipsetCPtr = std::shared_ptr<const Tipset>;
+
   struct Tipset {
-    using BlocksAvailable = std::vector<boost::optional<block::BlockHeader>>;
+    /// Blocks from network, they may come in improper order
+    using BlocksFromNetwork = std::vector<boost::optional<block::BlockHeader>>;
 
     /// Creates tipset from loaded blocks, every block must have value,
     /// hashes must match
-    static outcome::result<Tipset> create(const TipsetHash &hash,
-                                          BlocksAvailable blocks);
+    static outcome::result<TipsetCPtr> create(const TipsetHash &hash,
+                                              BlocksFromNetwork blocks);
 
-    static outcome::result<Tipset> create(
+    static outcome::result<TipsetCPtr> create(
         std::vector<block::BlockHeader> blocks);
 
-    static outcome::result<Tipset> load(Ipld &ipld,
-                                        const std::vector<CID> &cids);
+    static outcome::result<TipsetCPtr> load(Ipld &ipld,
+                                            const std::vector<CID> &cids);
 
-    static outcome::result<Tipset> loadGenesis(Ipld &ipld,
-                                        const CID &cid);
+    static outcome::result<TipsetCPtr> loadGenesis(Ipld &ipld, const CID &cid);
 
-    outcome::result<Tipset> loadParent(Ipld &ipld) const;
+    outcome::result<TipsetCPtr> loadParent(Ipld &ipld) const;
+
+    outcome::result<BeaconEntry> latestBeacon(Ipld &ipld) const;
 
     outcome::result<void> visitMessages(
         IpldPtr ipld, const MessageVisitor::Visitor &visitor) const;
@@ -103,11 +109,16 @@ namespace fc::primitives::tipset {
     const BigInt &getParentWeight() const;
 
     /**
-     * @brief checks whether tipset contains cid
+     * @brief checks whether tipset contains block by cid
      * @param cid content identifier to look for
      * @return true if contains, false otherwise
      */
     bool contains(const CID &cid) const;
+
+    Tipset() = default;
+
+    Tipset(TipsetKey _key, std::vector<block::BlockHeader> _blks)
+        : key(std::move(_key)), blks(std::move(_blks)) {}
 
     TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers
@@ -141,7 +152,7 @@ namespace fc::primitives::tipset {
    */
   struct HeadChange {
     HeadChangeType type;
-    Tipset value;
+    TipsetCPtr value;
   };
 
   class TipsetCreator {
@@ -153,7 +164,7 @@ namespace fc::primitives::tipset {
 
     outcome::result<void> expandTipset(CID cid, block::BlockHeader hdr);
 
-    Tipset getTipset(bool clear);
+    TipsetCPtr getTipset(bool clear);
 
     void clear();
 
@@ -170,8 +181,15 @@ namespace fc::primitives::tipset {
 namespace fc::codec::cbor {
 
   template <>
-  outcome::result<fc::primitives::tipset::Tipset>
-  decode<fc::primitives::tipset::Tipset>(gsl::span<const uint8_t> input);
+  outcome::result<fc::primitives::tipset::TipsetCPtr>
+  decode<fc::primitives::tipset::TipsetCPtr>(gsl::span<const uint8_t> input);
+
+  template <> inline
+  outcome::result<common::Buffer> encode<fc::primitives::tipset::TipsetCPtr>(
+      const fc::primitives::tipset::TipsetCPtr &ts) {
+    assert(ts);
+    return encode<fc::primitives::tipset::Tipset>(*ts);
+  }
 
 }  // namespace fc::codec::cbor
 

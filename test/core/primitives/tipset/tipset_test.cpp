@@ -98,7 +98,7 @@ struct TipsetTest : public ::testing::Test {
  */
 TEST_F(TipsetTest, CreateEmptyFailure) {
   EXPECT_OUTCOME_FALSE(err, Tipset::create({}));
-  ASSERT_EQ(err, TipsetError::NO_BLOCKS);
+  ASSERT_EQ(err, TipsetError::kNoBlocks);
 }
 
 /**
@@ -108,7 +108,7 @@ TEST_F(TipsetTest, CreateEmptyFailure) {
  */
 TEST_F(TipsetTest, CreateMismatchingHeightsFailure) {
   EXPECT_OUTCOME_FALSE(err, Tipset::create({bh1, bh3}));
-  ASSERT_EQ(err, TipsetError::MISMATCHING_HEIGHTS);
+  ASSERT_EQ(err, TipsetError::kMismatchingHeights);
 }
 
 /**
@@ -118,7 +118,7 @@ TEST_F(TipsetTest, CreateMismatchingHeightsFailure) {
  */
 TEST_F(TipsetTest, CreateMismatchingParentsFailure) {
   EXPECT_OUTCOME_FALSE(err, Tipset::create({bh1, bh4}));
-  ASSERT_EQ(err, TipsetError::MISMATCHING_PARENTS);
+  ASSERT_EQ(err, TipsetError::kMismatchingParents);
 }
 
 /**
@@ -127,7 +127,8 @@ TEST_F(TipsetTest, CreateMismatchingParentsFailure) {
  * @then creation succeeds and methods return expected values
  */
 TEST_F(TipsetTest, CreateSuccess) {
-  EXPECT_OUTCOME_TRUE(ts, Tipset::create({bh1, bh2}));
+  EXPECT_OUTCOME_TRUE(tipset, Tipset::create({bh1, bh2}));
+  const auto& ts = *tipset;
   std::vector<CID> cids{cid2, cid1};
   ASSERT_EQ(ts.key.cids(), cids);
   std::vector<BlockHeader> headers{bh2, bh1};

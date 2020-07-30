@@ -20,7 +20,7 @@ namespace fc::blockchain::production {
                                   BlockTemplate t) {
     OUTCOME_TRY(parent_tipset,
                 primitives::tipset::Tipset::load(*ipld, t.parents));
-    OUTCOME_TRY(vm_result, interpreter.interpret(ipld, parent_tipset));
+    OUTCOME_TRY(vm_result, interpreter.interpret(ipld, *parent_tipset));
     Block b;
     MsgMeta msg_meta;
     ipld->load(msg_meta);
@@ -50,7 +50,7 @@ namespace fc::blockchain::production {
     b.header.parents = std::move(t.parents);
     OUTCOME_TRYA(
         b.header.parent_weight,
-        weight::WeightCalculatorImpl{ipld}.calculateWeight(parent_tipset));
+        weight::WeightCalculatorImpl{ipld}.calculateWeight(*parent_tipset));
     b.header.height = t.height;
     b.header.parent_state_root = std::move(vm_result.state_root);
     b.header.parent_message_receipts = std::move(vm_result.message_receipts);

@@ -58,8 +58,10 @@ namespace fc::sync {
   using vm::message::SignedMessage;
   using PeerId = libp2p::peer::PeerId;
 
+  using TipsetCPtr = std::shared_ptr<const Tipset>;
+
   struct HeadMsg {
-    Tipset tipset;
+    TipsetCPtr tipset;
     BigInt weight;
   };
 
@@ -87,19 +89,17 @@ namespace fc::sync {
 
     bool synced_to_genesis = false;
 
-    /// Height of this branch above its root branch
-    // unsigned fork_height = 0;
-
     std::set<BranchId> forks;
   };
+
+  using BranchCPtr = std::shared_ptr<const BranchInfo>;
 
   /// Heads configuration changed callback. If both values are present then
   /// it means that 'added' replaces 'removed'
   using HeadCallback = std::function<void(boost::optional<TipsetHash> removed,
                                           boost::optional<TipsetHash> added)>;
 
-  using TipsetCPtr = std::shared_ptr<const Tipset>;
-  using BranchCPtr = std::shared_ptr<const BranchInfo>;
+
 
 }  // namespace fc::sync
 
