@@ -1139,6 +1139,14 @@ namespace fc::api {
   }
 
   template <typename T>
+  static Document encode(const std::shared_ptr<const T> &v) {
+    assert(v);
+    Document document;
+    static_cast<Value &>(document) = Codec{document.GetAllocator()}.encode(*v);
+    return document;
+  }
+
+  template <typename T>
   outcome::result<T> decode(const Value &j) {
     try {
       return Codec::decode<T>(j);

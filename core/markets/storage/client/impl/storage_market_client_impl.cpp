@@ -104,11 +104,11 @@ namespace fc::markets::storage::client {
   outcome::result<std::vector<StorageProviderInfo>>
   StorageMarketClientImpl::listProviders() const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(miners, api_->StateListMiners(chain_head.key));
+    OUTCOME_TRY(miners, api_->StateListMiners(chain_head->key));
     std::vector<StorageProviderInfo> storage_providers;
     for (const auto &miner_address : miners) {
       OUTCOME_TRY(miner_info,
-                  api_->StateMinerInfo(miner_address, chain_head.key));
+                  api_->StateMinerInfo(miner_address, chain_head->key));
       PeerInfo peer_info{.id = miner_info.peer_id, .addresses = {}};
       storage_providers.push_back(
           StorageProviderInfo{.address = miner_address,
@@ -123,7 +123,7 @@ namespace fc::markets::storage::client {
   outcome::result<std::vector<StorageDeal>> StorageMarketClientImpl::listDeals(
       const Address &address) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(all_deals, api_->StateMarketDeals(chain_head.key));
+    OUTCOME_TRY(all_deals, api_->StateMarketDeals(chain_head->key));
     std::vector<StorageDeal> client_deals;
     for (const auto &deal : all_deals) {
       if (deal.second.proposal.client == address) {
@@ -259,7 +259,7 @@ namespace fc::markets::storage::client {
   outcome::result<StorageParticipantBalance>
   StorageMarketClientImpl::getPaymentEscrow(const Address &address) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(balance, api_->StateMarketBalance(address, chain_head.key));
+    OUTCOME_TRY(balance, api_->StateMarketBalance(address, chain_head->key));
     return StorageParticipantBalance{balance.locked,
                                      balance.escrow - balance.locked};
   }
@@ -297,9 +297,9 @@ namespace fc::markets::storage::client {
       return StorageMarketClientError::WRONG_MINER;
     }
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(miner_info, api_->StateMinerInfo(info.address, chain_head.key));
+    OUTCOME_TRY(miner_info, api_->StateMinerInfo(info.address, chain_head->key));
     OUTCOME_TRY(miner_key_address,
-                api_->StateAccountKey(miner_info.worker, chain_head.key));
+                api_->StateAccountKey(miner_info.worker, chain_head->key));
     OUTCOME_TRY(ask_bytes, codec::cbor::encode(response.value().ask.ask));
     OUTCOME_TRY(
         signature_valid,
@@ -331,7 +331,7 @@ namespace fc::markets::storage::client {
   outcome::result<ClientDealProposal> StorageMarketClientImpl::signProposal(
       const Address &address, const DealProposal &proposal) const {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(key_address, api_->StateAccountKey(address, chain_head.key));
+    OUTCOME_TRY(key_address, api_->StateAccountKey(address, chain_head->key));
     OUTCOME_TRY(proposal_bytes, codec::cbor::encode(proposal));
     OUTCOME_TRY(signature, api_->WalletSign(key_address, proposal_bytes));
     return ClientDealProposal{.proposal = proposal,
@@ -347,7 +347,7 @@ namespace fc::markets::storage::client {
             deal->client_deal_proposal.proposal.client,
             deal->client_deal_proposal.proposal.client,
             deal->client_deal_proposal.proposal.clientBalanceRequirement(),
-            chain_head.key));
+            chain_head->key));
     return std::move(maybe_cid);
   }
 
@@ -355,7 +355,7 @@ namespace fc::markets::storage::client {
       const SignedResponse &response, const std::shared_ptr<ClientDeal> &deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(miner_key_address,
-                api_->StateAccountKey(deal->miner_worker, chain_head.key));
+                api_->StateAccountKey(deal->miner_worker, chain_head->key));
     OUTCOME_TRY(response_bytes, codec::cbor::encode(response.response));
     OUTCOME_TRY(signature_valid,
                 keystore_->verify(
@@ -383,9 +383,9 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(
         miner_info,
         api_->StateMinerInfo(deal->client_deal_proposal.proposal.provider,
-                             chain_head.key));
+                             chain_head->key));
     OUTCOME_TRY(from_id_address,
-                api_->StateLookupID(publish_message.from, chain_head.key));
+                api_->StateLookupID(publish_message.from, chain_head->key));
     if (from_id_address != miner_info.worker) {
       deal->message = "Publisher is not storage provider";
       return false;

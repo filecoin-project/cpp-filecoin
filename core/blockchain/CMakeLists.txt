@@ -28,13 +28,13 @@ target_link_libraries(weight_calculator
 #    tipset
 #    )
 
-add_library(syncer_state
-    syncer_state.cpp
-    )
-target_link_libraries(syncer_state
-    clock
-    tipset
-    )
+#add_library(syncer_state
+#    syncer_state.cpp
+#    )
+#target_link_libraries(syncer_state
+#    clock
+#    tipset
+#    )
 
 #add_library(sync_target_bucket
 #    impl/sync_target_bucket.cpp

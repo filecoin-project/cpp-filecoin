@@ -34,7 +34,6 @@ namespace fc::api {
   using InterpreterResult = vm::interpreter::Result;
   using vm::state::StateTreeImpl;
   using MarketActorState = vm::actor::builtin::market::State;
-  using crypto::randomness::RandomnessProvider;
   using crypto::signature::BlsSignature;
   using libp2p::peer::PeerId;
   using primitives::block::MsgMeta;
@@ -45,8 +44,10 @@ namespace fc::api {
   using vm::runtime::Env;
   using connection_t = boost::signals2::connection;
 
+  using TipsetCPtr = std::shared_ptr<const Tipset>;
+
   struct TipsetContext {
-    Tipset tipset;
+    TipsetCPtr tipset;
     StateTreeImpl state_tree;
     boost::optional<InterpreterResult> interpreted;
 
@@ -84,15 +85,15 @@ namespace fc::api {
     auto tipsetContext = [=](const TipsetKey &tipset_key,
                              bool interpret =
                                  false) -> outcome::result<TipsetContext> {
-      Tipset tipset;
+      TipsetCPtr tipset;
       if (tipset_key.cids().empty()) {
         OUTCOME_TRYA(tipset, chain_store->heaviestTipset());
       } else {
         OUTCOME_TRYA(tipset, chain_store->loadTipset(tipset_key));
       }
-      TipsetContext context{tipset, {ipld, tipset.getParentStateRoot()}, {}};
+      TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
       if (interpret) {
-        OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
+        OUTCOME_TRY(result, interpreter->interpret(ipld, *tipset));
         context.state_tree = {ipld, result.state_root};
         context.interpreted = result;
       }
@@ -138,12 +139,12 @@ namespace fc::api {
           return getNode(ipld, root, gsl::make_span(parts).subspan(3));
         }},
         .ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
-          auto res = chain_store->getCbor<SignedMessage>(cid);
+          auto res = ipld->getCbor<SignedMessage>(cid);
           if (!res.has_error()) {
             return res.value().message;
           }
 
-          return chain_store->getCbor<UnsignedMessage>(cid);
+          return ipld->getCbor<UnsignedMessage>(cid);
         }},
         .ChainGetParentMessages =
             {[=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
@@ -177,27 +178,10 @@ namespace fc::api {
             }},
         .ChainGetTipSet = {[=](auto &tipset_key) {
           return chain_store->loadTipset(tipset_key);
-        }},
-        .ChainGetTipSetByHeight = {[=](auto height2, auto &tipset_key)
-                                       -> outcome::result<Tipset> {
-          // TODO(turuslan): use height index from chain store
-          // TODO(turuslan): return genesis if height is zero
+         }},
+        .ChainGetTipSetByHeight = {[=](auto height2, auto &tipset_key) {
           auto height = static_cast<uint64_t>(height2);
-          OUTCOME_TRY(tipset,
-                      tipset_key.cids().empty()
-                          ? chain_store->heaviestTipset()
-                          : chain_store->loadTipset(tipset_key));
-          if (tipset.height() < height) {
-            return TodoError::ERROR;
-          }
-          while (tipset.height() > height) {
-            OUTCOME_TRY(parent, tipset.loadParent(*ipld));
-            if (parent.height() < height) {
-              break;
-            }
-            tipset = std::move(parent);
-          }
-          return std::move(tipset);
+          return chain_store->loadTipsetByHeight(height);
         }},
         .ChainHead = {[=]() { return chain_store->heaviestTipset(); }},
         .ChainNotify = {[=]() {
@@ -217,7 +201,7 @@ namespace fc::api {
         .ChainTipSetWeight = {[=](auto &tipset_key)
                                   -> outcome::result<TipsetWeight> {
           OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
-          return weight_calculator->calculateWeight(tipset);
+          return weight_calculator->calculateWeight(*tipset);
         }},
         // TODO(turuslan): FIL-165 implement method
         .ClientFindData = {},
@@ -277,7 +261,7 @@ namespace fc::api {
                              -> outcome::result<std::vector<SignedMessage>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(heaviest, chain_store->heaviestTipset());
-          if (context.tipset.height() > heaviest.height()) {
+          if (context.tipset->height() > heaviest->height()) {
             // tipset from future requested
             return TodoError::ERROR;
           }
@@ -323,7 +307,7 @@ namespace fc::api {
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           auto env = std::make_shared<Env>(
-              std::make_shared<InvokerImpl>(), ipld, context.tipset);
+              std::make_shared<InvokerImpl>(), ipld, *context.tipset);
           InvocResult result;
           result.message = message;
           auto maybe_result = env->applyImplicitMessage(message);
@@ -363,14 +347,14 @@ namespace fc::api {
 
           std::vector<CID> result;
 
-          while (static_cast<int64_t>(context.tipset.height()) >= to_height) {
+          while (static_cast<int64_t>(context.tipset->height()) >= to_height) {
             std::set<CID> visited_cid;
 
             auto isDuplicateMessage = [&](const CID &cid) -> bool {
               return !visited_cid.insert(cid).second;
             };
 
-            for (const BlockHeader &block : context.tipset.blks) {
+            for (const BlockHeader &block : context.tipset->blks) {
               OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
               OUTCOME_TRY(meta.bls_messages.visit(
                   [&](auto, auto &cid) -> outcome::result<void> {
@@ -394,9 +378,9 @@ namespace fc::api {
                   }));
             }
 
-            if (context.tipset.height() == 0) break;
+            if (context.tipset->height() == 0) break;
 
-            OUTCOME_TRY(parent_tipset_key, context.tipset.getParents());
+            OUTCOME_TRY(parent_tipset_key, context.tipset->getParents());
             OUTCOME_TRY(parent_context, tipsetContext(parent_tipset_key));
 
             context = std::move(parent_context);
@@ -425,7 +409,7 @@ namespace fc::api {
           auto result{msg_waiter->results.find(cid)};
           if (result != msg_waiter->results.end()) {
             OUTCOME_TRY(ts, Tipset::load(*ipld, result->second.second.cids()));
-            if (context.tipset.height() <= ts.height()) {
+            if (context.tipset->height() <= ts.height()) {
               return result->second.first;
             }
           }

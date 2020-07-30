@@ -22,8 +22,8 @@ namespace fc::markets::storage::provider {
   outcome::result<void> StoredAsk::addAsk(const TokenAmount &price,
                                           ChainEpoch duration) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    ChainEpoch timestamp = chain_head.height();
-    ChainEpoch expiry = chain_head.height() + duration;
+    ChainEpoch timestamp = chain_head->height();
+    ChainEpoch expiry = chain_head->height() + duration;
     StorageAsk ask{.price = price,
                    .min_piece_size = kDefaultMinPieceSize,
                    .max_piece_size = kDefaultMaxPieceSize,
@@ -33,7 +33,7 @@ namespace fc::markets::storage::provider {
                    .seq_no = last_signed_storage_ask_
                                  ? last_signed_storage_ask_->ask.seq_no + 1
                                  : 0};
-    OUTCOME_TRY(signed_ask, signAsk(ask, chain_head));
+    OUTCOME_TRY(signed_ask, signAsk(ask, *chain_head));
     OUTCOME_TRY(saveSignedAsk(signed_ask));
     return outcome::success();
   }
@@ -59,8 +59,8 @@ namespace fc::markets::storage::provider {
 
     // otherwise return default which 'not actively accepting deals'
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    ChainEpoch timestamp = chain_head.height();
-    ChainEpoch expiry = chain_head.height() + kDefaultDuration;
+    ChainEpoch timestamp = chain_head->height();
+    ChainEpoch expiry = chain_head->height() + kDefaultDuration;
     StorageAsk default_ask{.price = kDefaultPrice,
                            .min_piece_size = kDefaultMinPieceSize,
                            .max_piece_size = kDefaultMaxPieceSize,
@@ -68,7 +68,7 @@ namespace fc::markets::storage::provider {
                            .timestamp = timestamp,
                            .expiry = expiry,
                            .seq_no = 0};
-    OUTCOME_TRY(signed_ask, signAsk(default_ask, chain_head));
+    OUTCOME_TRY(signed_ask, signAsk(default_ask, *chain_head));
     return std::move(signed_ask);
   }
 

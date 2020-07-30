@@ -14,8 +14,7 @@
 #include "blockchain/weight_calculator.hpp"
 #include "common/outcome.hpp"
 #include "storage/chain/chain_data_store.hpp"
-//#include "storage/ipfs/impl/ipfs_block_service.hpp"
-#include "storage/indexdb/indexdb.hpp"
+
 #include "sync/peer_manager.hpp"
 #include "sync/tipset_loader.hpp"
 

@@ -62,7 +62,8 @@ namespace fc::node {
     auto ipld = std::make_shared<storage::ipfs::InMemoryDatastore>();
     OUTCOME_EXCEPT(roots, loadCar(*ipld, car));
     config.genesis_cid = roots[0];
-    OUTCOME_EXCEPT(block, ipld->getCbor<BlockHeader>(config.genesis_cid));
+    OUTCOME_EXCEPT(block,
+                   ipld->getCbor<BlockHeader>(config.genesis_cid.value()));
     OUTCOME_EXCEPT(init_state,
                    vm::state::StateTreeImpl(ipld, block.parent_state_root)
                        .state<vm::actor::builtin::init::InitActorState>(

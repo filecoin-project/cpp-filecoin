@@ -9,7 +9,6 @@
 #include <boost/signals2.hpp>
 #include "blockchain/weight_calculator.hpp"
 #include "primitives/block/block.hpp"
-//#include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "vm/message/message.hpp"
 
@@ -21,16 +20,11 @@ namespace fc::storage::blockchain {
   using primitives::tipset::TipsetKey;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
-
-  /// represents chain path between 2 tipsets in a tree
-  struct ChainPath {
-    std::deque<Tipset> revert_chain;  ///< tipsets to revert
-    std::deque<Tipset> apply_chain;   ///< tipsets to apply
-  };
-
   using primitives::block::BlockHeader;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
+
+  using TipsetCPtr = std::shared_ptr<const Tipset>;
 
   enum class ChainStoreError : int {
     NO_MIN_TICKET_BLOCK = 1,
@@ -44,18 +38,20 @@ namespace fc::storage::blockchain {
    public:
     virtual ~ChainStore() = default;
 
-    virtual outcome::result<void> init(BlockHeader genesis_header) = 0;
+    virtual outcome::result<void> start() = 0;
 
-    virtual outcome::result<Tipset> loadTipset(const TipsetKey &key) = 0;
+    virtual outcome::result<TipsetCPtr> loadTipset(const TipsetKey &key) = 0;
+
+    virtual outcome::result<TipsetCPtr> loadTipsetByHeight(uint64_t height) = 0;
 
     virtual outcome::result<void> addBlock(const BlockHeader &block) = 0;
 //
 //    //virtual outcome::result<bool> containsTipset(
 //    //    const TipsetKey &key) const = 0;
 //
-    virtual outcome::result<Tipset> heaviestTipset() const = 0;
+    virtual outcome::result<TipsetCPtr> heaviestTipset() const = 0;
 
-    virtual outcome::result<BlockHeader> getGenesis() const = 0;
+//    virtual outcome::result<BlockHeader> getGenesis() const = 0;
 
 //    virtual outcome::result<void> writeGenesis(
 //        const BlockHeader &block_header) = 0;
@@ -68,8 +64,8 @@ namespace fc::storage::blockchain {
     virtual connection_t subscribeHeadChanges(
         const std::function<HeadChangeSignature> &subscriber) = 0;
 
-    virtual outcome::result<TipsetKey> genesisTipsetKey() const = 0;
-    virtual outcome::result<CID> genesisCID() const = 0;
+    virtual const TipsetKey& genesisTipsetKey() const = 0;
+    virtual const CID& genesisCID() const = 0;
 
   };
 

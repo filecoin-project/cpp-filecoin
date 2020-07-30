@@ -35,12 +35,12 @@ target_link_libraries(node_builder
 #    msg_waiter
     )
 
-add_executable(node_main
-    main.cpp
-    )
-target_link_libraries(node_main
-    node_builder
-    sync
-    )
+#add_executable(node_main
+#    main.cpp
+#    )
+#target_link_libraries(node_main
+#    node_builder
+#    sync
+#    )
 
 add_subdirectory(integration)

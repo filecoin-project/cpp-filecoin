@@ -33,7 +33,7 @@ namespace fc::markets::storage::provider {
 
     ChainEpoch epoch = 100;
     std::shared_ptr<Api> api = std::make_shared<Api>();
-    Tipset chain_head;
+    std::shared_ptr<Tipset> chain_head = std::make_shared<Tipset>();
     Address actor_address = Address::makeFromId(1);
     Address bls_address;
     KeyPair bls_keypair;

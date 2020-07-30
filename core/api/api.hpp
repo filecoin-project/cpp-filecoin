@@ -245,19 +245,24 @@ namespace fc::api {
     uint64_t size;
   };
 
+  using TipsetCPtr = std::shared_ptr<const Tipset>;
+
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
-    API_METHOD(ChainGetGenesis, Tipset)
+    API_METHOD(ChainGetGenesis, TipsetCPtr)
     API_METHOD(ChainGetNode, IpldObject, const std::string &)
     API_METHOD(ChainGetMessage, UnsignedMessage, const CID &)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
-    API_METHOD(ChainGetTipSet, Tipset, const TipsetKey &)
-    API_METHOD(ChainGetTipSetByHeight, Tipset, ChainEpoch, const TipsetKey &)
-    API_METHOD(ChainHead, Tipset)
+    API_METHOD(ChainGetTipSet, TipsetCPtr, const TipsetKey &)
+    API_METHOD(ChainGetTipSetByHeight,
+               TipsetCPtr,
+               ChainEpoch,
+               const TipsetKey &)
+    API_METHOD(ChainHead, TipsetCPtr)
     API_METHOD(ChainNotify, Chan<std::vector<HeadChange>>)
     API_METHOD(ChainReadObj, Buffer, CID)
     API_METHOD(ChainSetHead, void, const TipsetKey &)

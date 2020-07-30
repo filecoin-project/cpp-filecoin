@@ -295,7 +295,7 @@ namespace fc::markets::storage::test {
                     MessageReceipt{.exit_code = VMExitCode::Ok,
                                    .return_value = publish_deal_result_encoded,
                                    .gas_used = GasAmount{0}},
-                .tipset = chain_head};
+                .tipset = *chain_head};
             auto channel = std::make_shared<Channel<Wait<MsgWait>::Result>>();
             channel->write(message_result);
             channel->closeWrite();
@@ -439,7 +439,7 @@ namespace fc::markets::storage::test {
     Address miner_worker_address;
     Address client_id_address = Address::makeFromId(102);
     Address client_bls_address;
-    Tipset chain_head;
+    std::shared_ptr<Tipset> chain_head = std::make_shared<Tipset>();
     std::shared_ptr<Api> node_api;
     std::shared_ptr<StorageMarketClient> client;
     std::shared_ptr<StorageProvider> provider;
