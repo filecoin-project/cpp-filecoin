@@ -25,6 +25,8 @@ namespace fc::sync {
 
     outcome::result<void> setCurrentHead(BranchId head_branch, Height height);
 
+    outcome::result<BranchCPtr> getCommonRoot(BranchId a, BranchId b) const;
+
     struct StorePosition {
       BranchId assigned_branch = kNoBranch;
       BranchId at_bottom_of_branch = kNoBranch;
@@ -38,17 +40,17 @@ namespace fc::sync {
         BranchId parent_branch,
         Height parent_height) const;
 
-    struct HeadChange {
-      boost::optional<TipsetHash> removed;
-      boost::optional<TipsetHash> added;
-    };
-
     void splitBranch(const TipsetHash &new_top,
                      const TipsetHash &new_bottom,
                      Height new_bottom_height,
                      const RenameBranch &pos);
 
-    std::vector<HeadChange> storeTipset(const TipsetCPtr &tipset,
+    struct HeadChanges {
+      std::vector<TipsetHash> removed;
+      std::vector<TipsetHash> added;
+    };
+
+    HeadChanges storeTipset(const TipsetCPtr &tipset,
                                         const TipsetHash &parent_hash,
                                         const StorePosition &pos);
 
@@ -58,7 +60,7 @@ namespace fc::sync {
 
     void clear();
 
-    outcome::result<std::vector<HeadChange>> init(
+    outcome::result<HeadChanges> init(
         std::map<BranchId, BranchPtr> all_branches);
 
     outcome::result<void> storeGenesis(const TipsetCPtr &genesis_tipset);
@@ -71,11 +73,11 @@ namespace fc::sync {
 
     void mergeBranches(const BranchPtr &branch,
                        BranchPtr &parent_branch,
-                       std::vector<HeadChange> &changes);
+                       HeadChanges &changes);
 
     void updateHeads(BranchPtr &branch,
                      bool synced,
-                     std::vector<HeadChange> &changes);
+                     HeadChanges &changes);
 
     BranchPtr getBranch(BranchId id);
 

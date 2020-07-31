@@ -615,9 +615,7 @@ namespace fc::api {
           return state.info.worker;
         }},
         .StateNetworkName = {[=]() -> outcome::result<std::string> {
-          OUTCOME_TRY(context, tipsetContext(chain_store->genesisTipsetKey()));
-          OUTCOME_TRY(state, context.initState());
-          return state.network_name;
+          return chain_store->getNetworkName();
         }},
         .StateWaitMsg = {[=](auto &cid) -> outcome::result<Wait<MsgWait>> {
           auto channel = std::make_shared<Channel<outcome::result<MsgWait>>>();

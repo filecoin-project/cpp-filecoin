@@ -22,6 +22,7 @@ namespace fc::primitives::tipset {
     kTicketHasNoValue,    // optional ticket is not initialized
     kTicketsCollision,    // duplicate tickets in tipset
     kBlockOrderFailure,   // wrong order of blocks
+    kMinerAlreadyExists,  // miner already in tipset
     kNoBeacons,
   };
 }
@@ -160,7 +161,7 @@ namespace fc::primitives::tipset {
     /// returns success if the tipset created can be expanded with this block
     outcome::result<void> canExpandTipset(const block::BlockHeader &hdr) const;
 
-    outcome::result<void> expandTipset(block::BlockHeader hdr);
+    outcome::result<CID> expandTipset(block::BlockHeader hdr);
 
     outcome::result<void> expandTipset(CID cid, block::BlockHeader hdr);
 

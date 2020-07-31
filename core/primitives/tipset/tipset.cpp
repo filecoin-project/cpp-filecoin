@@ -26,6 +26,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
       return "Duplicate tickets in tipset";
     case TipsetError::kBlockOrderFailure:
       return "Wrong order of blocks in tipset";
+    case TipsetError::kMinerAlreadyExists:
+      return "Same miner already in tipset";
     case TipsetError::kNoBeacons:
       return "No beacons in chain";
   }
@@ -108,12 +110,19 @@ namespace fc::primitives::tipset {
       return TipsetError::kMismatchingParents;
     }
 
+    for (const auto& b : blks_) {
+      if (b.miner == hdr.miner) {
+        return TipsetError::kMinerAlreadyExists;
+      }
+    }
+
     return outcome::success();
   }
 
-  outcome::result<void> TipsetCreator::expandTipset(block::BlockHeader hdr) {
+  outcome::result<CID> TipsetCreator::expandTipset(block::BlockHeader hdr) {
     OUTCOME_TRY(cid, fc::primitives::cid::getCidOfCbor(hdr));
-    return expandTipset(std::move(cid), std::move(hdr));
+    OUTCOME_TRY(expandTipset(cid, std::move(hdr)));
+    return std::move(cid);
   }
 
   outcome::result<void> TipsetCreator::expandTipset(CID cid,

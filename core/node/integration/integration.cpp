@@ -45,15 +45,18 @@ namespace fc {
           syncer(o.scheduler,
                  o.tipset_loader,
                  o.chain_db,
-                 [](sync::SyncStatus st) {
+                 [this](sync::SyncStatus st) {
                    log()->info("Sync status {}, total={}", st.code, st.total);
+                   o.io_context->stop();
                  }) {}
 
     void start() {
       if (!started) {
         if (!o.chain_db->start(
-                [](boost::optional<sync::TipsetHash> removed,
-                   boost::optional<sync::TipsetHash> added) {})) {
+                [](std::vector<sync::TipsetHash> removed,
+                   std::vector<sync::TipsetHash> added) {
+                  log()->info("Head change callback called");
+                })) {
           o.io_context->stop();
           return;
         }
@@ -158,10 +161,10 @@ namespace fc {
 
     std::map<TipsetHash, sync::TipsetCPtr> heads;
 
-    auto res3 = o.chain_db->getHeads([&](boost::optional<TipsetHash> removed,
-                                         boost::optional<TipsetHash> added) {
-      if (added) {
-        heads.insert({std::move(added.value()), {}});
+    auto res3 = o.chain_db->getHeads([&](std::vector<TipsetHash> removed,
+                                         std::vector<TipsetHash> added) {
+      for (auto& hash : added) {
+        heads.insert({std::move(hash), {}});
       }
     });
 

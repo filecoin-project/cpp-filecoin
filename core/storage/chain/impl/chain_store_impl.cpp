@@ -5,30 +5,17 @@
 
 #include "storage/chain/impl/chain_store_impl.hpp"
 
-
 #include "common/logger.hpp"
 
-#include "primitives/address/address_codec.hpp"
-#include "primitives/cid/cid_of_cbor.hpp"
-#include "primitives/cid/json_codec.hpp"
-#include "primitives/tipset/tipset.hpp"
-#include "storage/chain/datastore_key.hpp"
-#include "storage/chain/impl/chain_data_store_impl.hpp"
+#include "sync/peer_manager.hpp"
+#include "sync/sync_job.hpp"
 
 namespace fc::storage::blockchain {
 
   using primitives::address::Address;
-  //  using primitives::block::BlockHeader;
   using primitives::tipset::Tipset;
-  //  using primitives::tipset::TipsetKey;
 
   using primitives::BigInt;
-
-  //
-  //  /** functions */
-  //  using codec::json::decodeCidVector;
-  //  using codec::json::encodeCidVector;
-  //  using primitives::cid::getCidOfCbor;
 
   namespace {
     auto log() {
@@ -36,427 +23,216 @@ namespace fc::storage::blockchain {
       return logger.get();
     }
 
-    // const DatastoreKey kChainHeadKey{DatastoreKey::makeFromString("head")};
-    // const DatastoreKey kGenesisKey{DatastoreKey::makeFromString("0")};
   }  // namespace
 
-  ChainStoreImpl::ChainStoreImpl(
-      std::shared_ptr<IpfsDatastore> data_store,
-      std::shared_ptr<BlockValidator> block_validator,
-      std::shared_ptr<WeightCalculator> weight_calculator,
-      std::shared_ptr<storage::indexdb::IndexDb> index_db,
-      std::shared_ptr<sync::TipsetLoader> tipset_loader,
-      std::shared_ptr<sync::PeerManager> peer_manager)
-      : data_store_{std::move(data_store)},
-        block_validator_{std::move(block_validator)},
-        weight_calculator_{std::move(weight_calculator)},
-        index_db_(std::move(index_db)),
-        tipset_loader_(std::move(tipset_loader)),
-        peer_manager_(std::move(peer_manager)) {
-    // TODO assert
-  }
-
-  outcome::result<void> ChainStoreImpl::init(BlockHeader genesis_header) {
-    OUTCOME_TRYA(genesis_, Tipset::create({std::move(genesis_header)}));
-
-    heads_ = index_db_->getHeads();
-    if (heads_.empty()) {
-      // we are launching empty node from scratch
-      OUTCOME_TRY(index_db_->writeGenesis(genesis_.value()));
-      heads_ = index_db_->getHeads();
-      if (heads_.size() != 1) {
-        return ChainStoreError::DATA_INTEGRITY_ERROR;
-      }
-
-      // TODO verify fields
-
-      heaviest_tipset_ = genesis_;
-
-      OUTCOME_TRYA(
-          heaviest_weight_,
-          weight_calculator_->calculateWeight(heaviest_tipset_.value()));
-    } else {
-      // TODO verify genesis tipset hash
-
-      OUTCOME_TRY(chooseHead());
+  outcome::result<void> ChainStoreImpl::addBlock(const BlockHeader &block) {
+    if (block.height != current_epoch_) {
+      return ChainStoreError::kBlockRejected;
     }
 
-    // TODO transfer actual head to peer manager
+    OUTCOME_TRY(parent_key, TipsetKey::create(block.parents));
+
+    // TODO validate block even if its parent is not yet in chain_db,
+    // it is possible that parent will be catched by syncer during this epoch
+
+    // TODO ensure block messages are inside ipld store (???)
+    // extract from blocksync_common.cpp storeBlock (???) to store msg meta
+
+    auto &creator = head_candidates_[parent_key.hash()];
+
+    // note, 2 calls due to performance, not to spoil the creator
+    OUTCOME_TRY(creator.canExpandTipset(block));
+    OUTCOME_TRY(cid, creator.expandTipset(block));
+
+    // TODO store block into ipld, to make sure the tipset is loaded w/o errors
+    // see TODO above
+
+    if (head_
+        && (head_->key.hash() == parent_key.hash()
+            || heads_parent_ == parent_key.hash())) {
+      TipsetCPtr new_hot_head = creator.getTipset(false);
+      OUTCOME_TRY(need_to_sync_down_from,
+                  chain_db_->storeTipset(new_hot_head, parent_key));
+      if (need_to_sync_down_from) {
+        // this is illegal state
+        log()->error("illegal state, head must be synced!");
+        return ChainStoreError::kIllegalState;
+      }
+    } else {
+      log()->info("need to sync down from {}", parent_key.toPrettyString());
+      // TODO new sync job from parent hash down. Dont store tipset at this
+      // moment
+    }
 
     return outcome::success();
   }
 
-  outcome::result<void> ChainStoreImpl::chooseHead() {
+  outcome::result<TipsetCPtr> ChainStoreImpl::loadTipset(
+      const TipsetHash &hash) {
+    return chain_db_->getTipsetByHash(hash);
+  }
 
+  outcome::result<TipsetCPtr> ChainStoreImpl::loadTipset(const TipsetKey &key) {
+    return chain_db_->getTipsetByKey(key);
+  }
 
-    if (heads_.empty()) {
-      return ChainStoreError::DATA_INTEGRITY_ERROR;
+  outcome::result<TipsetCPtr> ChainStoreImpl::loadTipsetByHeight(
+      uint64_t height) {
+    if (head_) {
+      auto current_height = head_->height();
+      if (height == current_height) {
+        // head_ may be not yet indexed, in progress
+        return head_;
+      } else if (height < current_height) {
+        return chain_db_->getTipsetByHeight(height);
+      }
+    }
+    return ChainStoreError::kNoTipsetAtHeight;
+  }
+
+  outcome::result<TipsetCPtr> ChainStoreImpl::heaviestTipset() const {
+    if (!head_) {
+      return ChainStoreError::kNoHeaviestTipset;
+    }
+    return head_;
+  }
+
+  ChainStore::connection_t ChainStoreImpl::subscribeHeadChanges(
+      const std::function<HeadChangeSignature> &subscriber) {
+    if (head_) {
+      // TODO take a look into ChainNotify api impl.
+      // Is it acceptable to make callback before Chan{} is created?
+
+      subscriber(HeadChange{.type = HeadChangeType::CURRENT, .value = head_});
+    }
+    return head_change_signal_.connect(subscriber);
+  }
+
+  const std::string &ChainStoreImpl::getNetworkName() const {
+    return network_name_;
+  }
+
+  const CID &ChainStoreImpl::genesisCID() const {
+    return chain_db_->genesisCID();
+  }
+
+  void ChainStoreImpl::onHeadsChanged(std::vector<TipsetHash> removed,
+                                      std::vector<TipsetHash> added) {
+    if (added.empty()) {
+      // TODO this is NYI, cleanup of old heads takes place
+      return;
     }
 
-    BigInt max_weight;
-    size_t idx = 0;
-    size_t head_idx = 0;
-    Tipset head_tipset;
-    for (size_t sz = heads_.size(); idx < sz; ++idx) {
-      const auto &head = heads_[idx].get();
-      if (head.root != kGenesisBranch) {
-        // this is not yet synced branch, not suitable to be the head
-        continue;
+    try {
+      auto [tipset, weight] = chooseNewHead(added);
+
+      if (!tipset) {
+        // heads are worse than present
+        return;
       }
 
-      OUTCOME_TRY(tipset, loadTipsetLocally(head.top, {}));
-      OUTCOME_TRY(weight, weight_calculator_->calculateWeight(head_tipset));
+      // now we can switch heads
+
+      // TODO there are variants! Check the epoch
+
+      switchToHead(std::move(tipset), std::move(weight));
+
+    } catch (const std::system_error &e) {
+      log()->error("error in onHeadChanged callback", e.what());
+    }
+  }
+
+  std::pair<TipsetCPtr, BigInt> ChainStoreImpl::chooseNewHead(
+      const std::vector<TipsetHash> &heads_added) {
+    auto max_weight = current_weight_;
+    TipsetCPtr choice;
+    for (const auto &hash : heads_added) {
+      OUTCOME_EXCEPT(head, chain_db_->getTipsetByHash(hash));
+      OUTCOME_EXCEPT(weight, weight_calculator_->calculateWeight(*head));
       if (weight > max_weight) {
         max_weight = weight;
-        head_idx = idx;
-        head_tipset = std::move(tipset);
+        choice = head;
       }
     }
-
-
-    // at least 1 branch must originate from genesis
-    if (idx >= heads_.size()) {
-      // TODO logs everywhere
-      return ChainStoreError::DATA_INTEGRITY_ERROR;
-    }
-
-
-    heaviest_weight_ = std::move(max_weight);
-    heaviest_tipset_ = std::move(head_tipset);
-
-    return outcome::success();
+    return {choice, max_weight};
   }
 
-  outcome::result<Tipset> ChainStoreImpl::loadTipsetLocally(
-      const TipsetHash &hash, const std::vector<CID> &cids) {
-    const std::vector<CID> *cids_ptr;
-    std::vector<CID> cids_loaded;
-    if (!cids.empty()) {
-      cids_ptr = &cids;
+  void ChainStoreImpl::switchToHead(TipsetCPtr new_head, BigInt new_weight) {
+    OUTCOME_EXCEPT(parent_key, new_head->getParents());
+    if (!head_) {
+      // initial head apply
+      head_ = new_head;
+      heads_parent_ = parent_key.hash();
+      current_weight_ = new_weight;
+      head_change_signal_(
+          HeadChange{.type = HeadChangeType::CURRENT, .value = head_});
+
+    } else if (head_->key.hash() == parent_key.hash()) {
+      // current head is father of new head
+      head_ = new_head;
+      heads_parent_ = parent_key.hash();
+      current_weight_ = new_weight;
+      head_change_signal_(
+          HeadChange{.type = HeadChangeType::APPLY, .value = head_});
+    } else if (head_->key.hash() == heads_parent_) {
+      // current head is brother of new head
+      // reentrancy warning: no current head during revert process otherwise we
+      // need to call the notification on every step of revert or apply
+      auto brother = std::move(head_);
+      current_weight_ = 0;
+      head_change_signal_(
+          HeadChange{.type = HeadChangeType::REVERT, .value = brother});
+      head_change_signal_(
+          HeadChange{.type = HeadChangeType::APPLY, .value = head_});
+      head_ = new_head;
+      current_weight_ = new_weight;
     } else {
-      OUTCOME_TRYA(cids_loaded, index_db_->getTipsetCIDs(hash));
-      cids_ptr = &cids_loaded;
-    }
-    OUTCOME_TRY(tipset, Tipset::load(*data_store_, *cids_ptr));
-    return std::move(tipset);
-  }
-
-  outcome::result<Tipset> ChainStoreImpl::loadTipset(const TipsetKey &key) {
-    // TODO cache, load & hash, optimize
-    return Tipset::load(*data_store_, key.cids());
-  }
-
-  void ChainStoreImpl::onTipsetAsyncLoaded(TipsetHash hash,
-                                           outcome::result<Tipset> tipset_res) {
-    if (!tipset_res) {
-      // TODO analyze error & choose retry policy, another peer, ...
-      return;
-    }
-
-    const auto &tipset = tipset_res.value();
-    if (tipset_in_sync_ && tipset.key.hash() == tipset_in_sync_.value()) {
-      auto parent_res = tipset.getParents();
-      if (!parent_res) {
-        // TODO handle this, syncing failed
-
-        tipset_in_sync_ = boost::none;
-        syncing_branch_ = storage::indexdb::kNoBranch;
-        return;
-      }
-/* TODO
-      auto index_res = index_db_->applyToBottom(tipset, syncing_branch_);
-      if (!index_res) {
-        log()->error("indexing tipset failed, {}", index_res.error().message());
-        return;
+      // general case fork
+      OUTCOME_EXCEPT(ancestor,
+                     chain_db_->findHighestCommonAncestor(head_, new_head));
+      if (!ancestor || ancestor == new_head) {
+        outcome::raise(ChainStoreError::kIllegalState);
       }
 
-      const auto &parent_hash = parent_res.value().hash();
-      if (parent_hash == heaviest_tipset_.value().key.hash()) {
-        // syncing is finished
-        index_res = index_db_->linkBranches(head_branch_.id, syncing_branch_);
-        if (!index_res) {
-          log()->error("sync branches index failed, {}",
-                       index_res.error().message());
-          return;
-        }
+      // TODO also think about reentrancy issues, maybe its acceptable not to
+      // null our state
+      auto old_head = std::move(head_);
+      current_weight_ = 0;
 
-        onSyncFinished(outcome::success());
-      } else {
-        synchronizeTipset(std::move(parent_res.value()));
+      if (ancestor != head_) {
+        // need to revert from head to ancestor
+        head_change_signal_(
+            HeadChange{.type = HeadChangeType::REVERT, .value = old_head});
+
+        OUTCOME_EXCEPT(chain_db_->walkBackward(
+            heads_parent_, ancestor->height(), [this](TipsetCPtr tipset) {
+              head_change_signal_(HeadChange{.type = HeadChangeType::REVERT,
+                                             .value = std::move(tipset)});
+            }));
       }
-    */
+
+      // now go forward
+      OUTCOME_EXCEPT(chain_db_->walkForward(ancestor->height() + 1,
+                                            new_head->height(),
+                                            [this](TipsetCPtr tipset) {
+                                              head_change_signal_(HeadChange{
+                                                  .type = HeadChangeType::APPLY,
+                                                  .value = std::move(tipset)});
+                                            }));
+      head_ = new_head;
+      heads_parent_ = parent_key.hash();
+      current_weight_ = new_weight;
     }
 
+    syncer_->setCurrentWeightAndHeight(current_weight_, head_->height());
   }
 
-  void ChainStoreImpl::onSyncFinished(outcome::result<void> result) {
-    if (result) {
-      // apply new head step by step
-      std::error_code e;
-      result = index_db_->loadChain(
-          heaviest_tipset_->key.hash(),
-          [this, &e](TipsetHash hash, std::vector<CID> cids) {
-            if (!e) {
-              auto res = applyHead(std::move(hash), std::move(cids));
-              if (!res) {
-                e = res.error();
-              }
-            }
-          });
+  void ChainStoreImpl::onChainEpochTimer(Height new_epoch) {
+    assert(new_epoch > current_epoch_);
 
-      if (e) {
-        result = e;
-      }
-    }
-
-    if (result) {
-      // reload head branches
-      auto res = index_db_->getBranchInfo(head_branch_.id);
-      if (!res) {
-        result = res.error();
-      }
-      heads_ = index_db_->getHeads();
-    }
-
-    if (!result) {
-      log()->error("sync failed, {}", result.error().message());
-
-      // TODO handle this
-    }
-
-    tipset_in_sync_ = boost::none;
-    syncing_branch_ = storage::indexdb::kNoBranch;
+    current_epoch_ = new_epoch;
+    head_candidates_.clear();
   }
-
-  void ChainStoreImpl::synchronizeTipset(TipsetKey key) {
-    if (!current_peer_) {
-      choosePeer();
-    }
-    auto res = tipset_loader_->loadTipsetAsync(key, current_peer_);
-    if (!res) {
-      onSyncFinished(std::move(res));
-      return;
-    }
-    tipset_in_sync_ = key.hash();
-    if (syncing_branch_ == storage::indexdb::kNoBranch) {
-      syncing_branch_ = index_db_->getNewBranchId();
-    }
-  }
-
-  void ChainStoreImpl::choosePeer() {
-    // TODO call peer_manager_ for most weighted peer
-  }
-
-  outcome::result<void> ChainStoreImpl::applyHead(TipsetHash hash,
-                                                  std::vector<CID> cids) {
-    OUTCOME_TRY(tipset, loadTipsetLocally(hash, cids));
-    OUTCOME_TRY(weight, weight_calculator_->calculateWeight(tipset));
-
-    // TODO check if it's possible in weight calculator
-    //    if (weight <= heaviest_weight_) {
-    assert(weight >= heaviest_weight_);
-
-    heaviest_weight_ = std::move(weight);
-    heaviest_tipset_ = tipset;
-    head_change_signal_(
-        HeadChange{.type = HeadChangeType::APPLY, .value = std::move(tipset)});
-
-    // TODO say to hello about new head
-    // TODO publish into gossip
-
-    return outcome::success();
-  }
-
-    outcome::result<Tipset> ChainStoreImpl::heaviestTipset() const {
-      if (heaviest_tipset_.has_value()) {
-        return *heaviest_tipset_;
-      }
-      return ChainStoreError::NO_HEAVIEST_TIPSET;
-    }
-
-  //  outcome::result<bool> ChainStoreImpl::containsTipset(
-  //      const TipsetKey &key) const {
-  //    if (tipsets_cache_.count(key) > 0) {
-  //      return true;
-  //    }
-  //
-  //    OUTCOME_TRY(loadTipset(key));
-  //    return true;
-  //  }
-
-//    outcome::result<BlockHeader> ChainStoreImpl::getGenesis() const {
-//      if (genesis_.has_value() && !genesis_->blks.empty()) {
-//        return genesis_->blks[0];
-//      }
-//
-//      return ChainStoreError::NO_GENESIS_BLOCK;
-//    }
-
-  outcome::result<TipsetKey> ChainStoreImpl::genesisTipsetKey() const {
-    if (genesis_.has_value() && !genesis_->blks.empty()) {
-      return genesis_->key;
-    }
-
-    return ChainStoreError::NO_GENESIS_BLOCK;
-  }
-
-  //  outcome::result<void> ChainStoreImpl::writeGenesis(
-  //      const BlockHeader &block_header) {
-  //    OUTCOME_TRY(genesis_tipset, Tipset::create({block_header}));
-  //    OUTCOME_TRY(
-  //        buffer,
-  //        encodeCidVector(std::vector<CID>{genesis_tipset.key.cids()[0]}));
-  //
-  //    return chain_data_store_->set(kGenesisKey, buffer);
-  //  }
-  //
-  //  outcome::result<void> ChainStoreImpl::writeHead(const Tipset &tipset) {
-  //    heaviest_tipset_.reset(tipset);
-  //    OUTCOME_TRY(weight, weight_calculator_->calculateWeight(tipset));
-  //    heaviest_weight_ = weight;
-  //    OUTCOME_TRY(data, encodeCidVector(tipset.key.cids()));
-  //    return chain_data_store_->set(kChainHeadKey, data);
-  //  }
-  //
-  //  outcome::result<void> ChainStoreImpl::addBlock(const BlockHeader &block) {
-  //    OUTCOME_TRY(data_store_->setCbor(block));
-  //    OUTCOME_TRY(tipset, expandTipset(block));
-  //    return updateHeaviestTipset(tipset);
-  //  }
-  //
-  //  outcome::result<Tipset> ChainStoreImpl::expandTipset(
-  //      const BlockHeader &block_header) {
-  //    std::vector<BlockHeader> all_headers{block_header};
-  //
-  //    if (tipsets_.find(block_header.height) == std::end(tipsets_)) {
-  //      return Tipset::create(all_headers);
-  //    }
-  //    auto &&tipsets = tipsets_[block_header.height];
-  //
-  //    std::set<Address> included_miners;
-  //    included_miners.insert(block_header.miner);
-  //
-  //    OUTCOME_TRY(block_cid, getCidOfCbor(block_header));
-  //    for (auto &&cid : tipsets) {
-  //      if (cid == block_cid) {
-  //        continue;
-  //      }
-  //
-  //      OUTCOME_TRY(bh, getCbor<BlockHeader>(cid));
-  //
-  //      if (included_miners.count(bh.miner) > 0) {
-  //        auto &&miner_address = encodeToString(bh.miner);
-  //        logger_->warn(
-  //            "Have multiple blocks from miner {} at height {} in our tipset "
-  //            "cache",
-  //            miner_address,
-  //            bh.height);
-  //        continue;
-  //      }
-  //
-  //      if (bh.parents == block_header.parents) {
-  //        all_headers.push_back(bh);
-  //        included_miners.insert(bh.miner);
-  //      }
-  //    }
-  //
-  //    return Tipset::create(all_headers);
-  //  }
-  //
-  //  outcome::result<void> ChainStoreImpl::updateHeaviestTipset(
-  //      const Tipset &tipset) {
-  //    OUTCOME_TRY(weight, weight_calculator_->calculateWeight(tipset));
-  //
-  //    if (!heaviest_tipset_.has_value()) {
-  //      return takeHeaviestTipset(tipset);
-  //    }
-  //
-  //    OUTCOME_TRY(current_weight,
-  //                weight_calculator_->calculateWeight(*heaviest_tipset_));
-  //
-  //    if (weight > current_weight) {
-  //      return takeHeaviestTipset(tipset);
-  //    }
-  //
-  //    return outcome::success();
-  //  }
-  //
-  //  outcome::result<void> ChainStoreImpl::takeHeaviestTipset(
-  //      const Tipset &tipset) {
-  //    OUTCOME_TRY(cids_json, encodeCidVector(tipset.key.cids()));
-  //
-  //    if (!heaviest_tipset_.has_value()) {
-  //      logger_->warn(
-  //          "No heaviest tipset found, using provided tipset: {}, height: {}",
-  //          cids_json,
-  //          tipset.height());
-  //      head_change_signal_(
-  //          HeadChange{.type = HeadChangeType::CURRENT, .value = tipset});
-  //      return writeHead(tipset);
-  //    }
-  //
-  //    if (tipset == *heaviest_tipset_) {
-  //      logger_->warn(
-  //          "provided tipset is equal to the current one, nothing happens");
-  //      return outcome::success();
-  //    }
-  //
-  //    logger_->info(
-  //        "New heaviest tipset {} (height={})", cids_json, tipset.height());
-  //
-  //    OUTCOME_TRY(notifyHeadChange(*heaviest_tipset_, tipset));
-  //    OUTCOME_TRY(writeHead(tipset));
-  //
-  //    return outcome::success();
-  //  }
-  //
-  //  outcome::result<void> ChainStoreImpl::notifyHeadChange(const Tipset
-  //  &current,
-  //                                                         const Tipset
-  //                                                         &target) {
-  //    OUTCOME_TRY(path, findChainPath(current, target));
-  //
-  //    for (auto &revert_item : path.revert_chain) {
-  //      head_change_signal_(
-  //          HeadChange{.type = HeadChangeType::REVERT, .value = revert_item});
-  //    }
-  //
-  //    for (auto &apply_item : path.apply_chain) {
-  //      head_change_signal_(
-  //          HeadChange{.type = HeadChangeType::APPLY, .value = apply_item});
-  //    }
-  //
-  //    return outcome::success();
-  //  }
-  //
-    std::shared_ptr<ChainRandomnessProvider>
-    ChainStoreImpl::createRandomnessProvider() {
-      return
-      std::make_shared<ChainRandomnessProviderImpl>(shared_from_this());
-
-    }
-  //
-  //  outcome::result<ChainPath> ChainStoreImpl::findChainPath(
-  //      const Tipset &current, const Tipset &target) {
-  //    // need to have genesis defined
-  //    ChainPath path{};
-  //    auto l = current;
-  //    auto r = target;
-  //    while (l != r) {
-  //      if (l.height() > r.height()) {
-  //        path.revert_chain.emplace_back(l);
-  //        OUTCOME_TRY(key, l.getParents());
-  //        OUTCOME_TRY(ts, loadTipset(key));
-  //        l = std::move(ts);
-  //      } else {
-  //        path.apply_chain.emplace_front(r);
-  //        OUTCOME_TRY(key, r.getParents());
-  //        OUTCOME_TRY(ts, loadTipset(key));
-  //        r = std::move(ts);
-  //      }
-  //    }
-  //    return path;
-  //  }
 
 }  // namespace fc::storage::blockchain
 
@@ -464,16 +240,16 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {
   using fc::storage::blockchain::ChainStoreError;
 
   switch (e) {
-    case ChainStoreError::kNoMinTicketBlock:
-      return "min ticket block has no value";
     case ChainStoreError::kNoHeaviestTipset:
-      return "no heaviest tipset in storage";
-    case ChainStoreError::kNoGenesisBlock:
-      return "no genesis block in storage";
+      return "ChainStore: no heaviest tipset yet";
+    case ChainStoreError::kNoTipsetAtHeight:
+      return "ChainStore: no tipset at given height";
+    case ChainStoreError::kBlockRejected:
+      return "ChainStore: block rejected";
     case ChainStoreError::kStoreNotInitialized:
-      return "store is not initialized properly";
-    case ChainStoreError::DATA_INTEGRITY_ERROR:
-      return "chain store data integrity error";
+      return "ChainStore: not initialized";
+    case ChainStoreError::kIllegalState:
+      return "ChainStore: illegal state";
   }
 
   return "ChainStoreError: unknown error";

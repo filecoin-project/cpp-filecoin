@@ -23,14 +23,11 @@ namespace fc::sync {
   using TipsetInfoPtr = std::shared_ptr<TipsetInfo>;
   using TipsetInfoCPtr = std::shared_ptr<const TipsetInfo>;
 
-  using KeyValueStoragePtr = std::shared_ptr<storage::PersistentBufferMap>;
-
   class IndexDbBackend;
 
   class IndexDb {
    public:
-    explicit IndexDb(/*KeyValueStoragePtr kv_store,*/
-            std::shared_ptr<IndexDbBackend> backend);
+    explicit IndexDb(std::shared_ptr<IndexDbBackend> backend);
 
     outcome::result<std::map<BranchId, std::shared_ptr<BranchInfo>>> init();
 
@@ -59,7 +56,6 @@ namespace fc::sync {
    private:
     using Cache = LRUCache<TipsetHash, TipsetInfo>;
 
-//    KeyValueStoragePtr kv_store_;
     std::shared_ptr<IndexDbBackend> backend_;
     Cache cache_;
   };

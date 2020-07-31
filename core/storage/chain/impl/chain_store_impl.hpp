@@ -8,156 +8,117 @@
 
 #include "storage/chain/chain_store.hpp"
 
-#include <map>
+#include <libp2p/protocol/common/scheduler.hpp>
 
 #include "blockchain/block_validator/block_validator.hpp"
 #include "blockchain/weight_calculator.hpp"
-#include "common/outcome.hpp"
-#include "storage/chain/chain_data_store.hpp"
+#include "sync/common.hpp"
 
-#include "sync/peer_manager.hpp"
-#include "sync/tipset_loader.hpp"
+namespace fc::sync {
+  class ChainDb;
+  class Syncer;
+  class PeerManager;
+}  // namespace fc::sync
 
 namespace fc::storage::blockchain {
 
-  using ::fc::blockchain::block_validator::BlockValidator;
+  //  using ::fc::blockchain::block_validator::BlockValidator;
   using ::fc::blockchain::weight::WeightCalculator;
-  using ipfs::IpfsDatastore;
-  using libp2p::peer::PeerId;
-  using primitives::tipset::Tipset;
-  using primitives::tipset::TipsetHash;
-  using primitives::tipset::TipsetKey;
+  using sync::BigInt;
+  //  using ipfs::IpfsDatastore;
+  //  using libp2p::peer::PeerId;
+  //  using primitives::tipset::Tipset;
+  //  using primitives::tipset::TipsetHash;
+  //  using primitives::tipset::TipsetKey;
 
+  using primitives::tipset::TipsetCreator;
 
-  enum class ChainStoreError : int {
-    kNoMinTicketBlock = 1,
-    kNoHeaviestTipset,
-    kNoGenesisBlock,
-    kStoreNotInitialized,
-  };
+  using sync::Height;
 
   class ChainStoreImpl : public ChainStore,
                          public std::enable_shared_from_this<ChainStoreImpl> {
    public:
     ChainStoreImpl(ChainStoreImpl &&other) = default;
 
-    ChainStoreImpl(std::shared_ptr<IpfsDatastore> data_store,
+    ChainStoreImpl(/*std::shared_ptr<IpfsDatastore> data_store,
                    std::shared_ptr<BlockValidator> block_validator,
                    std::shared_ptr<WeightCalculator> weight_calculator,
-                   std::shared_ptr<storage::indexdb::IndexDb> index_db,
                    std::shared_ptr<sync::TipsetLoader> tipset_loader,
-                   std::shared_ptr<sync::PeerManager> peer_manager);
+                   std::shared_ptr<sync::PeerManager> peer_manager*/);
 
-    outcome::result<void> init(BlockHeader genesis_header) override;
 
-    //    outcome::result<void> writeHead(const Tipset &tipset);
-    //
-    outcome::result<Tipset> loadTipset(const TipsetKey &key) override;
+    // TODO start peer manager here, wire callbacks from gossip,
+    //  peer manager & syncer & epoch timer
+    outcome::result<void> start() override;
 
     outcome::result<void> addBlock(const BlockHeader &block) override;
 
-    outcome::result<Tipset> heaviestTipset() const override;
-    //
-    //    outcome::result<bool> containsTipset(const TipsetKey &key) const
-    //    override;
-    //
-    //    outcome::result<BlockHeader> getGenesis() const override;
+    outcome::result<TipsetCPtr> loadTipset(const TipsetHash &hash) override;
 
-    outcome::result<TipsetKey> genesisTipsetKey() const override;
-    outcome::result<CID> genesisCID() const override;
+    outcome::result<TipsetCPtr> loadTipset(const TipsetKey &key) override;
 
-    //    outcome::result<void> writeGenesis(
-    //        const BlockHeader &block_header) override;
-    //
-    //    primitives::BigInt getHeaviestWeight() const override {
-    //      return heaviest_weight_;
-    //    }
-    //
-    //    outcome::result<bool> contains(const CID &key) const override {
-    //      return data_store_->contains(key);
-    //    }
-    //
-    //    outcome::result<void> set(const CID &key, Value value) override {
-    //      return data_store_->set(key, value);
-    //    }
-    //
-    //    outcome::result<Value> get(const CID &key) const override {
-    //      return data_store_->get(key);
-    //    }
-    //
-    //    outcome::result<void> remove(const CID &key) override {
-    //      return data_store_->remove(key);
-    //    }
-    //
-    std::shared_ptr<ChainRandomnessProvider> createRandomnessProvider()
-        override;
+    outcome::result<TipsetCPtr> loadTipsetByHeight(uint64_t height) override;
+
+    outcome::result<TipsetCPtr> heaviestTipset() const override;
+
+    using connection_t = boost::signals2::connection;
+    using HeadChangeSignature = void(const HeadChange &);
 
     connection_t subscribeHeadChanges(
         const std::function<HeadChangeSignature> &subscriber) override;
 
-    //        {
-    //          // TODO schedule
-    //          if (heaviest_tipset_.has_value()) {
-    //            subscriber(HeadChange{.type = HeadChangeType::CURRENT,
-    //                                  .value = *heaviest_tipset_});
-    //          }
-    //          return head_change_signal_.connect(subscriber);
-    //        }
+    const std::string &getNetworkName() const override;
+
+    const CID &genesisCID() const override;
 
    private:
-    outcome::result<void> chooseHead();
+    // heads changed callback from ChainDb
+    void onHeadsChanged(std::vector<TipsetHash> removed,
+                        std::vector<TipsetHash> added);
 
-    outcome::result<Tipset> loadTipsetLocally(const TipsetHash &hash,
-                                              const std::vector<CID> &cids);
+    std::pair<TipsetCPtr, BigInt> chooseNewHead(
+        const std::vector<TipsetHash> &heads_added);
 
-    void onTipsetAsyncLoaded(TipsetHash hash,
-                             outcome::result<Tipset> tipset_res);
+    void switchToHead(TipsetCPtr new_head, BigInt new_weight);
 
-    void onSyncFinished(outcome::result<void> result);
+    void onChainEpochTimer(Height new_epoch);
 
-    void synchronizeTipset(TipsetKey key);
+    std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
 
-
-    void choosePeer();
-
-    outcome::result<void> applyHead(TipsetHash hash, std::vector<CID> cids);
-
-
-    //    outcome::result<void> takeHeaviestTipset(const Tipset &tipset);
-    //
-    //    outcome::result<Tipset> expandTipset(const BlockHeader &block_header);
-    //
-    //    outcome::result<void> updateHeaviestTipset(const Tipset &tipset);
-    //
-    //    outcome::result<ChainPath> findChainPath(const Tipset &current,
-    //                                             const Tipset &target);
-    //
-    //    outcome::result<void> notifyHeadChange(const Tipset &current,
-    //                                           const Tipset &target);
-
-    ///< main data storage
-    std::shared_ptr<IpfsDatastore> data_store_;
-    ///< wrapper around main data storage to store tipset keys
-    // std::shared_ptr<ChainDataStore> chain_data_store_;
-    std::shared_ptr<BlockValidator> block_validator_;
-    std::shared_ptr<WeightCalculator> weight_calculator_;
-    std::shared_ptr<storage::indexdb::IndexDb> index_db_;
-    std::shared_ptr<sync::TipsetLoader> tipset_loader_;
+    std::string network_name_;
+    std::shared_ptr<sync::ChainDb> chain_db_;
     std::shared_ptr<sync::PeerManager> peer_manager_;
+    std::shared_ptr<WeightCalculator> weight_calculator_;
+    std::shared_ptr<sync::Syncer> syncer_;
 
-    storage::indexdb::Branches heads_;
-    storage::indexdb::BranchInfo head_branch_;
-    boost::optional<Tipset> heaviest_tipset_;  ///< current heaviest tipset
-    primitives::BigInt heaviest_weight_{0};    ///< current heaviest weight
-    boost::optional<Tipset> genesis_;          ///< genesis block
-    boost::optional<CID> genesis_cid_;
-    boost::optional<PeerId> current_peer_;
-    boost::optional<Tipset> tipset_in_production_;
-    boost::optional<TipsetHash> tipset_in_sync_;
-    storage::indexdb::BranchId syncing_branch_ = storage::indexdb::kNoBranch;
+    TipsetCPtr head_;
+    TipsetHash heads_parent_;
+    BigInt current_weight_;
 
-    // std::unordered_map<uint64_t, std::vector<CID>> tipsets_;
-    // mutable std::unordered_map<TipsetKey, Tipset> tipsets_cache_;
+    // TODO таймер через шедулер на переключение эпох
+
+    Height current_epoch_ = 0;
+
+
+    // creating head candidates for current epoch, parent->possible_head
+    std::map<TipsetHash, TipsetCreator> head_candidates_;
+
+
+    //
+    //    storage::indexdb::Branches heads_;
+    //    storage::indexdb::BranchInfo head_branch_;
+    //    boost::optional<Tipset> heaviest_tipset_;  ///< current heaviest
+    //    tipset primitives::BigInt heaviest_weight_{0};    ///< current
+    //    heaviest weight boost::optional<Tipset> genesis_;          ///<
+    //    genesis block boost::optional<CID> genesis_cid_;
+    //    boost::optional<PeerId> current_peer_;
+    //    boost::optional<Tipset> tipset_in_production_;
+    //    boost::optional<TipsetHash> tipset_in_sync_;
+    //    storage::indexdb::BranchId syncing_branch_ =
+    //    storage::indexdb::kNoBranch;
+    //
+    //    // std::unordered_map<uint64_t, std::vector<CID>> tipsets_;
+    //    // mutable std::unordered_map<TipsetKey, Tipset> tipsets_cache_;
 
     /// when head tipset changes, need to notify all subscribers
     boost::signals2::signal<HeadChangeSignature> head_change_signal_;

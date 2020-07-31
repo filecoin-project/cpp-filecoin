@@ -38,6 +38,7 @@ namespace fc::sync {
     BRANCHES_CYCLE_DETECTED,
     BRANCHES_STORE_ERROR,
     BRANCHES_HEIGHT_MISMATCH,
+    BRANCHES_NO_COMMON_ROOT,
 
     INDEXDB_CANNOT_CREATE,
     INDEXDB_ALREADY_EXISTS,
@@ -93,12 +94,6 @@ namespace fc::sync {
   };
 
   using BranchCPtr = std::shared_ptr<const BranchInfo>;
-
-  /// Heads configuration changed callback. If both values are present then
-  /// it means that 'added' replaces 'removed'
-  using HeadCallback = std::function<void(boost::optional<TipsetHash> removed,
-                                          boost::optional<TipsetHash> added)>;
-
 
 
 }  // namespace fc::sync

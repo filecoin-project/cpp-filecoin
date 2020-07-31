@@ -52,6 +52,36 @@ namespace fc::sync {
     return it->second->id;
   }
 
+  outcome::result<BranchCPtr> Branches::getCommonRoot(BranchId a,
+                                                    BranchId b) const {
+    if (a == kNoBranch || b == kNoBranch) {
+      return Error::BRANCHES_NO_COMMON_ROOT;
+    }
+
+    OUTCOME_TRY(A, getBranch(a));
+    OUTCOME_TRY(B, getBranch(b));
+
+    while (a != b) {
+      if (A->bottom_height <= B->bottom_height) {
+        b = B->parent;
+        if (b == kNoBranch) {
+          return Error::BRANCHES_NO_COMMON_ROOT;
+        }
+        OUTCOME_TRYA(B, getBranch(b));
+      } else if (B->bottom_height <= A->bottom_height) {
+        a = A->parent;
+        if (a == kNoBranch) {
+          return Error::BRANCHES_NO_COMMON_ROOT;
+        }
+        OUTCOME_TRYA(A, getBranch(a));
+      }
+    }
+
+    assert(A == B);
+
+    return std::move(A);
+  }
+
   outcome::result<void> Branches::setCurrentHead(BranchId head_branch,
                                                  Height height) {
     if (head_branch == kNoBranch) {
@@ -238,11 +268,10 @@ namespace fc::sync {
     return outcome::success();
   }
 
-  std::vector<Branches::HeadChange> Branches::storeTipset(
-      const TipsetCPtr &tipset,
-      const TipsetHash &parent_hash,
-      const StorePosition &pos) {
-    std::vector<Branches::HeadChange> changes;
+  Branches::HeadChanges Branches::storeTipset(const TipsetCPtr &tipset,
+                                              const TipsetHash &parent_hash,
+                                              const StorePosition &pos) {
+    HeadChanges changes;
 
     auto height = tipset->height();
     const TipsetHash &hash = tipset->key.hash();
@@ -313,7 +342,8 @@ namespace fc::sync {
         heads_[hash] = std::move(parent_branch);
 
         if (notify_change) {
-          changes.push_back(HeadChange{parent_hash, hash});
+          changes.removed.push_back(parent_hash);
+          changes.added.push_back(hash);
         }
       } else {
         // merging branches by renaming
@@ -322,15 +352,6 @@ namespace fc::sync {
         assert(all_branches_[pos.at_bottom_of_branch] == linked_to_bottom);
 
         mergeBranches(linked_to_bottom, parent_branch, changes);
-        if (changes.size() == 1) {
-          changes[0].removed = parent_hash;
-        } else if (!changes.empty()) {
-          changes.push_back(HeadChange{parent_hash, boost::none});
-          assert(changes.size() >= 2);
-
-          // removed must go first
-          std::swap(*changes.begin(), *changes.rbegin());
-        }
       }
 
       return changes;
@@ -393,7 +414,7 @@ namespace fc::sync {
 
   void Branches::mergeBranches(const BranchPtr &branch,
                                BranchPtr &parent_branch,
-                               std::vector<HeadChange> &changes) {
+                               HeadChanges &changes) {
     parent_branch->top_height = branch->top_height;
     parent_branch->top = std::move(branch->top);
     parent_branch->forks = std::move(branch->forks);
@@ -403,12 +424,12 @@ namespace fc::sync {
 
   void Branches::updateHeads(BranchPtr &branch,
                              bool synced,
-                             std::vector<HeadChange> &changes) {
+                             HeadChanges &changes) {
     branch->synced_to_genesis = synced;
     if (branch->forks.empty()) {
       heads_[branch->top] = branch;
       if (synced) {
-        changes.push_back(HeadChange{boost::none, branch->top});
+        changes.added.push_back(branch->top);
       }
     } else {
       for (auto id : branch->forks) {
@@ -464,7 +485,7 @@ namespace fc::sync {
     current_height_ = 0;
   }
 
-  outcome::result<std::vector<Branches::HeadChange>> Branches::init(
+  outcome::result<Branches::HeadChanges> Branches::init(
       std::map<BranchId, BranchPtr> all_branches) {
     clear();
 
@@ -473,7 +494,7 @@ namespace fc::sync {
       return Error::BRANCHES_LOAD_ERROR;
     };
 
-    std::vector<HeadChange> heads;
+    HeadChanges heads;
 
     if (all_branches.empty()) {
       return heads;

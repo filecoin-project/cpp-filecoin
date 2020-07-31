@@ -18,10 +18,14 @@ namespace fc::sync {
 
   class ChainDb {
    public:
+    /// Heads configuration changed callback. If both values are present then
+    /// it means that 'added' replaces 'removed'
+    using HeadCallback = std::function<void(std::vector<TipsetHash> removed,
+                                            std::vector<TipsetHash> added)>;
+
     ChainDb();
 
-    outcome::result<void> init(/*KeyValueStoragePtr key_value_storage,*/
-                               IpfsStoragePtr ipld,
+    outcome::result<void> init(IpfsStoragePtr ipld,
                                std::shared_ptr<IndexDb> index_db,
                                const boost::optional<CID> &genesis_cid,
                                bool creating_new_db);
@@ -43,6 +47,9 @@ namespace fc::sync {
     outcome::result<TipsetCPtr> getTipsetByHeight(Height height);
 
     outcome::result<TipsetCPtr> getTipsetByKey(const TipsetKey &key);
+
+    outcome::result<TipsetCPtr> findHighestCommonAncestor(const TipsetCPtr &a,
+                                                          const TipsetCPtr &b);
 
     outcome::result<void> setCurrentHead(const TipsetHash &head);
 
@@ -67,7 +74,7 @@ namespace fc::sync {
     outcome::result<TipsetCPtr> loadTipsetFromIpld(const TipsetKey &key);
 
     std::error_code state_error_;
-    //KeyValueStoragePtr key_value_storage_;
+    // KeyValueStoragePtr key_value_storage_;
     IpfsStoragePtr ipld_;
     std::shared_ptr<IndexDb> index_db_;
     TipsetCPtr genesis_tipset_;
