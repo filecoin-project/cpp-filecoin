@@ -247,6 +247,11 @@ namespace fc::common {
 
 }  // namespace fc::common
 
+namespace fc {
+  using common::Buffer;
+  using BytesIn = gsl::span<const uint8_t>;
+}  // namespace fc
+
 namespace std {
   template <>
   struct hash<fc::common::Buffer> {
