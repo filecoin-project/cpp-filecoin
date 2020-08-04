@@ -4,8 +4,12 @@
 #
 
 add_library(miner
+    mining.cpp
     windowpost.cpp
     )
 target_link_libraries(miner
     cbor
+    message
+    rle_plus_codec
+    tipset
     )

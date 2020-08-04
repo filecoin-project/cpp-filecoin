@@ -321,9 +321,7 @@ namespace fc::api {
               OUTCOME_TRY(state, lookback.minerState(miner));
               OUTCOME_TRY(seed, codec::cbor::encode(miner));
               auto post_rand{crypto::randomness::drawRandomness(
-                  (info.beacons.empty() ? info.prev_beacon
-                                        : *info.beacons.rbegin())
-                      .data,
+                  info.beacon().data,
                   DomainSeparationTag::WinningPoStChallengeSeed,
                   epoch,
                   seed)};

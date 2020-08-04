@@ -7,7 +7,6 @@
 
 #include "api/api.hpp"
 #include "sector_storage/spec_interfaces/prover.hpp"
-#include "vm/actor/builtin/miner/miner_actor.hpp"
 
 namespace fc {
   using api::Address;
