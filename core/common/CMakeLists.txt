@@ -35,15 +35,6 @@ target_link_libraries(buffer
     hexutil
     )
 
-add_library(comm_cid
-    comm_cid.cpp
-    )
-
-target_link_libraries(comm_cid
-    cid
-    outcome
-    )
-
 add_library(logger
     logger.cpp
     )

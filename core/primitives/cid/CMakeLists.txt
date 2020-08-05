@@ -14,3 +14,12 @@ target_link_libraries(cid
     cbor
     p2p::p2p_cid
     )
+
+add_library(comm_cid
+    comm_cid.cpp
+    )
+
+target_link_libraries(comm_cid
+    cid
+    outcome
+    )

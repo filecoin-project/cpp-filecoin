@@ -7,7 +7,7 @@
 
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
-#include "common/comm_cid.hpp"
+#include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
@@ -158,8 +158,10 @@ namespace fc::vm::runtime {
         chargeGas(execution_->env->pricelist.onComputeUnsealedSectorCid()));
     constexpr auto levels = 37u;
     constexpr auto skip = 2u;
-    static auto c = [](auto s) { return common::Comm::fromHex(s).value(); };
-    static const common::Comm comms[levels - skip]{
+    static auto c = [](auto s) {
+      return primitives::cid::Comm::fromHex(s).value();
+    };
+    static const primitives::cid::Comm comms[levels - skip]{
         c("3731bb99ac689f66eef5973e4a94da188f4ddcae580724fc6f3fd60dfd488333"),
         c("642a607ef886b004bf2c1978463ae1d4693ac0f410eb2d1b7a47fe205e5e750f"),
         c("57a2381a28652bf47f6bef7aca679be4aede5871ab5cf3eb2c08114488cb8526"),
@@ -211,7 +213,7 @@ namespace fc::vm::runtime {
         }
         auto level = z - skip - 5;
         assert(level >= 0 && level < std::size(comms));
-        OUTCOME_TRY(cid, common::pieceCommitmentV1ToCID(comms[level]));
+        OUTCOME_TRY(cid, primitives::cid::pieceCommitmentV1ToCID(comms[level]));
         pieces2.push_back({p, std::move(cid)});
       }
     }

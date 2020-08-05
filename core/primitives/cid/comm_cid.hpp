@@ -3,21 +3,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_COMM_CID_HPP
-#define CPP_FILECOIN_CORE_COMMON_COMM_CID_HPP
+#ifndef CPP_FILECOIN_CORE_PRIMITIVES_CID_COMM_CID_HPP
+#define CPP_FILECOIN_CORE_PRIMITIVES_CID_COMM_CID_HPP
 
 #include <unordered_map>
 #include "common/blob.hpp"
 #include "primitives/cid/cid.hpp"
 
-namespace fc::common {
+namespace fc::primitives::cid {
   // kCommitmentBytesLen is the number of bytes in a CommR, CommD, CommP, and
   // CommRStar.
   const int kCommitmentBytesLen = 32;
-  using Comm = Blob<kCommitmentBytesLen>;
+  using Comm = common::Blob<kCommitmentBytesLen>;
 
-  using FilMultiCodec = CID::Multicodec;
-  using FilMultiHash = libp2p::multi::HashType;
+  using MultiCodec = CID::Multicodec;
+  using MultiHash = libp2p::multi::HashType;
 
   outcome::result<CID> replicaCommitmentV1ToCID(
       gsl::span<const uint8_t> comm_r);
@@ -33,8 +33,8 @@ namespace fc::common {
     kIncorrectHash,
     kInvalidCommSize,
   };
-};  // namespace fc::common
+};  // namespace fc::primitives::cid
 
-OUTCOME_HPP_DECLARE_ERROR(fc::common, CommCidErrors);
+OUTCOME_HPP_DECLARE_ERROR(fc::primitives::cid, CommCidErrors);
 
-#endif  // CPP_FILECOIN_CORE_COMMON_COMM_CID_HPP
+#endif  // CPP_FILECOIN_CORE_PRIMITIVES_CID_COMM_CID_HPP

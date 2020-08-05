@@ -3,25 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "comm_cid.hpp"
+#include "primitives/cid/comm_cid.hpp"
 #include "common/outcome.hpp"
 
-namespace fc::common {
+namespace fc::primitives::cid {
 
   namespace {
 
     outcome::result<void> validateFilCIDSegments(
-        FilMultiCodec codec,
-        FilMultiHash hash,
-        gsl::span<const uint8_t> comm_x) {
+            MultiCodec codec,
+            MultiHash hash,
+            gsl::span<const uint8_t> comm_x) {
       switch (codec) {
-        case FilMultiCodec::FILECOIN_COMMITMENT_UNSEALED:
-          if (hash != FilMultiHash::sha2_256_trunc254_padded) {
+        case MultiCodec::FILECOIN_COMMITMENT_UNSEALED:
+          if (hash != MultiHash::sha2_256_trunc254_padded) {
             return CommCidErrors::kIncorrectHash;
           }
           break;
-        case FilMultiCodec::FILECOIN_COMMITMENT_SEALED:
-          if (hash != FilMultiHash::poseidon_bls12_381_a1_fc1) {
+        case MultiCodec::FILECOIN_COMMITMENT_SEALED:
+          if (hash != MultiHash::poseidon_bls12_381_a1_fc1) {
             return CommCidErrors::kIncorrectHash;
           }
           break;
@@ -29,15 +29,15 @@ namespace fc::common {
           return CommCidErrors::kIncorrectCodec;
       }
 
-      if (comm_x.size() != common::kCommitmentBytesLen) {
+      if (comm_x.size() != kCommitmentBytesLen) {
         return CommCidErrors::kInvalidCommSize;
       }
 
       return outcome::success();
     }
 
-    outcome::result<CID> commitmentToCID(FilMultiCodec codec,
-                                         FilMultiHash hash,
+    outcome::result<CID> commitmentToCID(MultiCodec codec,
+                                         MultiHash hash,
                                          gsl::span<const uint8_t> comm_x) {
       OUTCOME_TRY(validateFilCIDSegments(codec, hash, comm_x));
 
@@ -47,7 +47,7 @@ namespace fc::common {
     }
 
     outcome::result<Comm> CIDToCommitment(const CID &cid,
-                                          FilMultiCodec expected_codec) {
+                                          MultiCodec expected_codec) {
       if (cid.content_type != expected_codec) {
         return CommCidErrors::kIncorrectCodec;
       }
@@ -62,14 +62,14 @@ namespace fc::common {
 
   outcome::result<CID> replicaCommitmentV1ToCID(
       gsl::span<const uint8_t> comm_r) {
-    return commitmentToCID(FilMultiCodec::FILECOIN_COMMITMENT_SEALED,
-                           FilMultiHash::poseidon_bls12_381_a1_fc1,
+    return commitmentToCID(MultiCodec::FILECOIN_COMMITMENT_SEALED,
+                           MultiHash::poseidon_bls12_381_a1_fc1,
                            comm_r);
   }
 
   outcome::result<CID> dataCommitmentV1ToCID(gsl::span<const uint8_t> comm_d) {
-    return commitmentToCID(FilMultiCodec::FILECOIN_COMMITMENT_UNSEALED,
-                           FilMultiHash::sha2_256_trunc254_padded,
+    return commitmentToCID(MultiCodec::FILECOIN_COMMITMENT_UNSEALED,
+                           MultiHash::sha2_256_trunc254_padded,
                            comm_d);
   }
 
@@ -82,16 +82,16 @@ namespace fc::common {
   }
 
   outcome::result<Comm> CIDToDataCommitmentV1(const CID &cid) {
-    return CIDToCommitment(cid, FilMultiCodec::FILECOIN_COMMITMENT_UNSEALED);
+    return CIDToCommitment(cid, MultiCodec::FILECOIN_COMMITMENT_UNSEALED);
   }
 
   outcome::result<Comm> CIDToReplicaCommitmentV1(const CID &cid) {
-    return CIDToCommitment(cid, FilMultiCodec::FILECOIN_COMMITMENT_SEALED);
+    return CIDToCommitment(cid, MultiCodec::FILECOIN_COMMITMENT_SEALED);
   }
-}  // namespace fc::common
+}  // namespace fc::primitives::cid
 
-OUTCOME_CPP_DEFINE_CATEGORY(fc::common, CommCidErrors, e) {
-  using fc::common::CommCidErrors;
+OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::cid, CommCidErrors, e) {
+  using fc::primitives::cid::CommCidErrors;
 
   switch (e) {
     case (CommCidErrors::kIncorrectCodec):

@@ -19,7 +19,7 @@
 #include "markets/storage/types.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/block/block.hpp"
-#include "common/comm_cid.hpp"
+#include "primitives/cid/comm_cid.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "primitives/ticket/epost_ticket.hpp"
 #include "primitives/ticket/ticket.hpp"
@@ -42,7 +42,6 @@
 namespace fc::api {
   using adt::Channel;
   using common::Buffer;
-  using common::Comm;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
@@ -66,6 +65,7 @@ namespace fc::api {
   using primitives::block::BlockHeader;
   using primitives::block::BlockMsg;
   using primitives::block::BlockTemplate;
+  using primitives::cid::Comm;
   using primitives::sector::SectorInfo;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;

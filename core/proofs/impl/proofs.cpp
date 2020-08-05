@@ -12,7 +12,7 @@
 #include "common/ffi.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
-#include "common/comm_cid.hpp"
+#include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs_error.hpp"
 
 namespace {
@@ -117,14 +117,14 @@ namespace fc::proofs {
   using Prover = Blob<32>;
   using common::Blob;
   using common::Buffer;
-  using common::CIDToDataCommitmentV1;
-  using common::CIDToPieceCommitmentV1;
-  using common::CIDToReplicaCommitmentV1;
-  using common::dataCommitmentV1ToCID;
-  using common::kCommitmentBytesLen;
-  using common::pieceCommitmentV1ToCID;
-  using common::replicaCommitmentV1ToCID;
   using crypto::randomness::Randomness;
+  using primitives::cid::CIDToDataCommitmentV1;
+  using primitives::cid::CIDToPieceCommitmentV1;
+  using primitives::cid::CIDToReplicaCommitmentV1;
+  using primitives::cid::dataCommitmentV1ToCID;
+  using primitives::cid::kCommitmentBytesLen;
+  using primitives::cid::pieceCommitmentV1ToCID;
+  using primitives::cid::replicaCommitmentV1ToCID;
   using primitives::sector::getRegisteredSealProof;
   using primitives::sector::getRegisteredWindowPoStProof;
   using primitives::sector::getRegisteredWinningPoStProof;
