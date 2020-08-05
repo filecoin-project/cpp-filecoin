@@ -6,63 +6,59 @@
 #include "comm_cid.hpp"
 #include "common/outcome.hpp"
 
-namespace {
-  using fc::CID;
-  using fc::common::Comm;
-  using fc::common::CommCidErrors;
-  using fc::common::FilMultiCodec;
-  using fc::common::FilMultiHash;
-  using ::libp2p::multi::Multihash;
-
-  fc::outcome::result<void> validateFilCIDSegments(
-      FilMultiCodec codec, FilMultiHash hash, gsl::span<const uint8_t> comm_x) {
-    switch (codec) {
-      case FilMultiCodec::FILECOIN_COMMITMENT_UNSEALED:
-        if (hash != FilMultiHash::sha2_256_trunc254_padded) {
-          return CommCidErrors::kIncorrectHash;
-        }
-        break;
-      case FilMultiCodec::FILECOIN_COMMITMENT_SEALED:
-        if (hash != FilMultiHash::poseidon_bls12_381_a1_fc1) {
-          return CommCidErrors::kIncorrectHash;
-        }
-        break;
-      default:
-        return CommCidErrors::kIncorrectCodec;
-    }
-
-    if (comm_x.size() != fc::common::kCommitmentBytesLen) {
-      return CommCidErrors::kInvalidCommSize;
-    }
-
-    return fc::outcome::success();
-  }
-
-  fc::outcome::result<CID> commitmentToCID(FilMultiCodec codec,
-                                           FilMultiHash hash,
-                                           gsl::span<const uint8_t> comm_x) {
-    OUTCOME_TRY(validateFilCIDSegments(codec, hash, comm_x));
-
-    OUTCOME_TRY(mh, Multihash::create(hash, comm_x));
-
-    return CID(libp2p::multi::ContentIdentifier::Version::V1, codec, mh);
-  }
-
-  fc::outcome::result<Comm> CIDToCommitment(const CID &cid,
-                                            FilMultiCodec expected_codec) {
-    if (cid.content_type != expected_codec) {
-      return CommCidErrors::kIncorrectCodec;
-    }
-
-    OUTCOME_TRY(validateFilCIDSegments(cid.content_type,
-                                       cid.content_address.getType(),
-                                       cid.content_address.getHash()));
-
-    return Comm::fromSpan(cid.content_address.getHash());
-  }
-}  // namespace
-
 namespace fc::common {
+
+  namespace {
+
+    outcome::result<void> validateFilCIDSegments(
+        FilMultiCodec codec,
+        FilMultiHash hash,
+        gsl::span<const uint8_t> comm_x) {
+      switch (codec) {
+        case FilMultiCodec::FILECOIN_COMMITMENT_UNSEALED:
+          if (hash != FilMultiHash::sha2_256_trunc254_padded) {
+            return CommCidErrors::kIncorrectHash;
+          }
+          break;
+        case FilMultiCodec::FILECOIN_COMMITMENT_SEALED:
+          if (hash != FilMultiHash::poseidon_bls12_381_a1_fc1) {
+            return CommCidErrors::kIncorrectHash;
+          }
+          break;
+        default:
+          return CommCidErrors::kIncorrectCodec;
+      }
+
+      if (comm_x.size() != common::kCommitmentBytesLen) {
+        return CommCidErrors::kInvalidCommSize;
+      }
+
+      return outcome::success();
+    }
+
+    outcome::result<CID> commitmentToCID(FilMultiCodec codec,
+                                         FilMultiHash hash,
+                                         gsl::span<const uint8_t> comm_x) {
+      OUTCOME_TRY(validateFilCIDSegments(codec, hash, comm_x));
+
+      OUTCOME_TRY(mh, libp2p::multi::Multihash::create(hash, comm_x));
+
+      return CID(libp2p::multi::ContentIdentifier::Version::V1, codec, mh);
+    }
+
+    outcome::result<Comm> CIDToCommitment(const CID &cid,
+                                          FilMultiCodec expected_codec) {
+      if (cid.content_type != expected_codec) {
+        return CommCidErrors::kIncorrectCodec;
+      }
+
+      OUTCOME_TRY(validateFilCIDSegments(cid.content_type,
+                                         cid.content_address.getType(),
+                                         cid.content_address.getHash()));
+
+      return Comm::fromSpan(cid.content_address.getHash());
+    }
+  }  // namespace
 
   outcome::result<CID> replicaCommitmentV1ToCID(
       gsl::span<const uint8_t> comm_r) {
