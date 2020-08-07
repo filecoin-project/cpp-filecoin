@@ -16,6 +16,8 @@ namespace fc::storage::blockchain {
   using ::fc::blockchain::weight::WeightCalculator;
   using ipfs::IpfsDatastore;
 
+  enum class ChainStoreError { kNoPath = 1 };
+
   class ChainStoreImpl : public ChainStore {
    public:
     ChainStoreImpl(IpldPtr ipld,
@@ -85,5 +87,7 @@ namespace fc::storage::blockchain {
     common::Logger logger_{common::createLogger("chain store")};
   };
 }  // namespace fc::storage::blockchain
+
+OUTCOME_HPP_DECLARE_ERROR(fc::storage::blockchain, ChainStoreError);
 
 #endif  // CPP_FILECOIN_CORE_STORAGE_CHAIN_CHAIN_STORE_IMPL_HPP

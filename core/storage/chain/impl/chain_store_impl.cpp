@@ -132,7 +132,9 @@ namespace fc::storage::blockchain {
     auto l = current;
     auto r = target;
     while (l != r) {
-      // TODO: stop on height=0
+      if (l.height == 0 && r.height == 0) {
+        return ChainStoreError::kNoPath;
+      }
       if (l.height > r.height) {
         path.revert_chain.emplace_back(l);
         OUTCOME_TRYA(l, l.loadParent(*data_store_));
@@ -145,3 +147,12 @@ namespace fc::storage::blockchain {
   }
 
 }  // namespace fc::storage::blockchain
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {
+  using fc::storage::blockchain::ChainStoreError;
+  switch (e) {
+    case ChainStoreError::kNoPath:
+      return "no path";
+  }
+  return "ChainStoreError: unknown error";
+}
