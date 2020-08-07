@@ -6,7 +6,6 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_KEY_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_KEY_HPP
 
-#include "common/buffer.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::primitives::tipset {
@@ -19,41 +18,8 @@ namespace fc::primitives::tipset {
     std::size_t hash{};
 
     TipsetKey() = default;
-    TipsetKey(const TipsetKey &) = default;
-    TipsetKey(TipsetKey &&) = default;
     TipsetKey(std::vector<CID> cids);
-    TipsetKey(std::vector<CID> cids, std::size_t hash);
-
-    /** @brief calculates hash value */
-    outcome::result<void> initializeHash();
-
-    /** @brief creates TipsetKey and calculates hash */
-    static outcome::result<TipsetKey> create(std::vector<CID> cids);
-
-    /**
-     * @brief makes human-readable representation
-     * it is not the same as lotus implementation for now
-     */
-    std::string toPrettyString() const;
-
-    /**
-     * @brief encodes tipsetkey to a vector suitable for usage as key
-     */
-    outcome::result<std::vector<uint8_t>> toBytes() const;
-
-    /** @brief assigns TipsetKey */
-    TipsetKey &operator=(const TipsetKey &other) {
-      cids = other.cids;
-      hash = other.hash;
-      return *this;
-    }
-
-    /** @brief assigns TipsetKey */
-    TipsetKey &operator=(TipsetKey &&other) {
-      cids = std::move(other.cids);
-      hash = other.hash;
-      return *this;
-    }
+    TipsetKey(std::initializer_list<CID> cids);
   };
 
   /**

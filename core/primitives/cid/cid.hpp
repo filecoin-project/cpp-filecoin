@@ -73,7 +73,18 @@ namespace fc {
     static outcome::result<CID> read(gsl::span<const uint8_t> &input,
                                      bool prefix = false);
   };
+
+  size_t hash_value(const CID &cid);
 }  // namespace fc
+
+namespace std {
+  template <>
+  struct hash<fc::CID> {
+    size_t operator()(const fc::CID &cid) const {
+      return hash_value(cid);
+    }
+  };
+}  // namespace std
 
 template <>
 struct fmt::formatter<fc::CID> : formatter<std::string_view> {

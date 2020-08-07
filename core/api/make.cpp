@@ -23,7 +23,6 @@
 
 namespace fc::api {
   using primitives::kChainEpochUndefined;
-  using primitives::block::BlockHeader;
   using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
@@ -79,7 +78,6 @@ namespace fc::api {
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<Ipld> ipld,
-               std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<Mpool> mpool,
                std::shared_ptr<Interpreter> interpreter,
                std::shared_ptr<MsgWaiter> msg_waiter,
@@ -90,9 +88,9 @@ namespace fc::api {
                                  false) -> outcome::result<TipsetContext> {
       Tipset tipset;
       if (tipset_key.cids.empty()) {
-        OUTCOME_TRYA(tipset, chain_store->heaviestTipset());
+        tipset = chain_store->heaviestTipset();
       } else {
-        OUTCOME_TRYA(tipset, chain_store->loadTipset(tipset_key));
+        OUTCOME_TRYA(tipset, Tipset::load(*ipld, tipset_key.cids));
       }
       TipsetContext context{tipset, {ipld, tipset.getParentStateRoot()}, {}};
       if (interpret) {
@@ -166,8 +164,7 @@ namespace fc::api {
           return messages;
         }},
         .ChainGetGenesis = {[=]() -> outcome::result<Tipset> {
-          OUTCOME_TRY(genesis, chain_store->getGenesis());
-          return Tipset::create({genesis});
+          return Tipset::create({chain_store->getGenesis()});
         }},
         .ChainGetNode = {[=](auto &path) -> outcome::result<IpldObject> {
           std::vector<std::string> parts;
@@ -179,12 +176,12 @@ namespace fc::api {
           return getNode(ipld, root, gsl::make_span(parts).subspan(3));
         }},
         .ChainGetMessage = {[=](auto &cid) -> outcome::result<UnsignedMessage> {
-          auto res = chain_store->getCbor<SignedMessage>(cid);
+          auto res = ipld->getCbor<SignedMessage>(cid);
           if (!res.has_error()) {
             return res.value().message;
           }
 
-          return chain_store->getCbor<UnsignedMessage>(cid);
+          return ipld->getCbor<UnsignedMessage>(cid);
         }},
         .ChainGetParentMessages =
             {[=](auto &block_cid) -> outcome::result<std::vector<CidMessage>> {
@@ -223,17 +220,15 @@ namespace fc::api {
               return context.tipset.randomness(*ipld, tag, epoch, entropy);
             }},
         .ChainGetTipSet = {[=](auto &tipset_key) {
-          return chain_store->loadTipset(tipset_key);
+          return Tipset::load(*ipld, tipset_key.cids);
         }},
         .ChainGetTipSetByHeight = {[=](auto height2, auto &tipset_key)
                                        -> outcome::result<Tipset> {
           // TODO(turuslan): use height index from chain store
           // TODO(turuslan): return genesis if height is zero
           auto height = static_cast<uint64_t>(height2);
-          OUTCOME_TRY(tipset,
-                      tipset_key.cids.empty()
-                          ? chain_store->heaviestTipset()
-                          : chain_store->loadTipset(tipset_key));
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          auto &tipset{context.tipset};
           if (tipset.height < height) {
             return TodoError::kError;
           }
@@ -263,7 +258,7 @@ namespace fc::api {
         .ChainSetHead = {},
         .ChainTipSetWeight = {[=](auto &tipset_key)
                                   -> outcome::result<TipsetWeight> {
-          OUTCOME_TRY(tipset, chain_store->loadTipset(tipset_key));
+          OUTCOME_TRY(tipset, Tipset::load(*ipld, tipset_key.cids));
           return weight_calculator->calculateWeight(tipset);
         }},
         // TODO(turuslan): FIL-165 implement method
@@ -282,7 +277,7 @@ namespace fc::api {
         .ClientStartDeal = {},
         // TODO(turuslan): FIL-165 implement method
         .MarketEnsureAvailable = {},
-        .MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockMsg> {
+        .MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
           OUTCOME_TRY(context, tipsetContext(t.parents, true));
           OUTCOME_TRY(miner_state, context.minerState(t.miner));
           OUTCOME_TRY(block,
@@ -294,7 +289,7 @@ namespace fc::api {
           OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));
           block.header.block_sig = block_sig;
 
-          BlockMsg block2;
+          BlockWithCids block2;
           block2.header = block.header;
           for (auto &msg : block.bls_messages) {
             OUTCOME_TRY(cid, ipld->setCbor(msg));
@@ -341,8 +336,7 @@ namespace fc::api {
         .MpoolPending = {[=](auto &tipset_key)
                              -> outcome::result<std::vector<SignedMessage>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          OUTCOME_TRY(heaviest, chain_store->heaviestTipset());
-          if (context.tipset.height > heaviest.height) {
+          if (context.tipset.height > chain_store->heaviestTipset().height) {
             // tipset from future requested
             return TodoError::kError;
           }
@@ -459,8 +453,8 @@ namespace fc::api {
 
             if (context.tipset.height == 0) break;
 
-            OUTCOME_TRY(parent_tipset_key, context.tipset.getParents());
-            OUTCOME_TRY(parent_context, tipsetContext(parent_tipset_key));
+            OUTCOME_TRY(parent_context,
+                        tipsetContext(context.tipset.getParents()));
 
             context = std::move(parent_context);
           }
@@ -630,7 +624,7 @@ namespace fc::api {
           return state.info.worker;
         }},
         .StateNetworkName = {[=]() -> outcome::result<std::string> {
-          OUTCOME_TRY(context, tipsetContext(chain_store->genesisTipsetKey()));
+          OUTCOME_TRY(context, tipsetContext({chain_store->genesisCid()}));
           OUTCOME_TRY(state, context.initState());
           return state.network_name;
         }},

@@ -35,7 +35,6 @@ namespace fc::api {
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<Ipld> ipld,
-               std::shared_ptr<BlsProvider> bls_provider,
                std::shared_ptr<Mpool> mpool,
                std::shared_ptr<Interpreter> interpreter,
                std::shared_ptr<MsgWaiter> msg_waiter,

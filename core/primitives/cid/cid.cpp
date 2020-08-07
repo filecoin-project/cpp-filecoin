@@ -8,6 +8,7 @@
 #include <libp2p/multi/content_identifier_codec.hpp>
 #include <libp2p/multi/uvarint.hpp>
 #include "codec/uvarint.hpp"
+#include "common/enum.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 
 using libp2p::multi::HashType;
@@ -128,6 +129,16 @@ namespace fc {
     OUTCOME_TRY(hash, Multihash::create(hash_type, hash_span));
     cid.content_address = std::move(hash);
     return cid;
+  }
+
+  size_t hash_value(const CID &cid) {
+    size_t seed{};
+    boost::hash_combine(seed, cid.version);
+    boost::hash_combine(seed, cid.content_type);
+    boost::hash_combine(seed, cid.content_address.getType());
+    auto hash{cid.content_address.getHash()};
+    boost::hash_range(seed, hash.begin(), hash.end());
+    return seed;
   }
 }  // namespace fc
 
