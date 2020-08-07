@@ -92,18 +92,23 @@ namespace fc::sync {
       if (_children != children.end()) {
         if (_valid) {
           OUTCOME_EXCEPT(ts, Tipset::load(*ipld, key.cids));
-          OUTCOME_EXCEPT(
-              weight,
-              blockchain::weight::WeightCalculatorImpl{ipld}.calculateWeight(
-                  ts));
+          blockchain::weight::WeightCalculatorImpl weighter{ipld};
+          OUTCOME_EXCEPT(weight, weighter.calculateWeight(ts));
           OUTCOME_EXCEPT(vm, interpreter->interpret(ipld, ts));
           for (auto &_child : _children->second) {
             OUTCOME_EXCEPT(child, Tipset::load(*ipld, _child.cids));
-            valid.emplace(
-                _child,
-                child.getParentStateRoot() == vm.state_root
-                    && child.getParentMessageReceipts() == vm.message_receipts
-                    && child.getParentWeight() == weight);
+            auto child_valid{child.getParentStateRoot() == vm.state_root
+                             && child.getParentMessageReceipts()
+                                    == vm.message_receipts
+                             && child.getParentWeight() == weight};
+            if (child_valid) {
+              auto _vm{interpreter->interpret(ipld, child)};
+              auto _weight{weighter.calculateWeight(child)};
+              if (!_vm || !_weight) {
+                child_valid = false;
+              }
+            }
+            valid.emplace(_child, child_valid);
           }
         } else {
           for (auto &child : _children->second) {
