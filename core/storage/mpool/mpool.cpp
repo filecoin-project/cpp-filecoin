@@ -4,6 +4,7 @@
  */
 
 #include "storage/mpool/mpool.hpp"
+#include "common/logger.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 

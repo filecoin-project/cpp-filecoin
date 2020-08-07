@@ -129,6 +129,16 @@ namespace fc {
     cid.content_address = std::move(hash);
     return cid;
   }
+
+  size_t hash_value(const CID &cid) {
+    size_t seed{};
+    boost::hash_combine(seed, cid.version);
+    boost::hash_combine(seed, cid.content_type);
+    boost::hash_combine(seed, cid.content_address.getType());
+    auto hash{cid.content_address.getHash()};
+    boost::hash_range(seed, hash.begin(), hash.end());
+    return seed;
+  }
 }  // namespace fc
 
 namespace fc::common {

@@ -79,17 +79,18 @@ namespace fc::primitives::block {
   };
   CBOR_TUPLE(MsgMeta, bls_messages, secp_messages)
 
-  struct Block {
+  struct BlockWithMessages {
     BlockHeader header;
     std::vector<UnsignedMessage> bls_messages;
     std::vector<SignedMessage> secp_messages;
   };
 
-  struct BlockMsg {
+  struct BlockWithCids {
     BlockHeader header;
     std::vector<CID> bls_messages;
     std::vector<CID> secp_messages;
   };
+  CBOR_TUPLE(BlockWithCids, header, bls_messages, secp_messages)
 
   inline bool operator==(const BlockHeader &lhs, const BlockHeader &rhs) {
     return lhs.miner == rhs.miner && lhs.ticket == rhs.ticket

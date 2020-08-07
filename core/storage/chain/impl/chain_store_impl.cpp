@@ -5,13 +5,7 @@
 
 #include "storage/chain/impl/chain_store_impl.hpp"
 
-#include "common/outcome.hpp"
-#include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
-#include "primitives/cid/json_codec.hpp"
-#include "primitives/tipset/tipset_key.hpp"
-#include "storage/chain/datastore_key.hpp"
-#include "storage/chain/impl/chain_data_store_impl.hpp"
 
 namespace fc::storage::blockchain {
   /** types */
@@ -21,118 +15,28 @@ namespace fc::storage::blockchain {
   using primitives::tipset::TipsetKey;
 
   /** functions */
-  using codec::json::decodeCidVector;
-  using codec::json::encodeCidVector;
   using primitives::cid::getCidOfCbor;
 
-  namespace {
-    const DatastoreKey kChainHeadKey{DatastoreKey::makeFromString("head")};
-    const DatastoreKey kGenesisKey{DatastoreKey::makeFromString("0")};
-  }  // namespace
-
   ChainStoreImpl::ChainStoreImpl(
-      std::shared_ptr<IpfsDatastore> data_store,
-      std::shared_ptr<BlockValidator> block_validator,
-      std::shared_ptr<WeightCalculator> weight_calculator)
-      : data_store_{std::move(data_store)},
-        block_validator_{std::move(block_validator)},
-        weight_calculator_{std::move(weight_calculator)} {
-    chain_data_store_ = std::make_shared<ChainDataStoreImpl>(data_store_);
-    logger_ = common::createLogger("chain store");
-  }
-
-  outcome::result<std::shared_ptr<ChainStoreImpl>> ChainStoreImpl::create(
-      std::shared_ptr<IpfsDatastore> data_store,
-      std::shared_ptr<BlockValidator> block_validator,
-      std::shared_ptr<WeightCalculator> weight_calculator) {
-    ChainStoreImpl tmp(std::move(data_store),
-                       std::move(block_validator),
-                       std::move(weight_calculator));
-
-    return std::make_shared<ChainStoreImpl>(std::move(tmp));
-  }
-
-  outcome::result<Tipset> ChainStoreImpl::loadTipset(
-      const TipsetKey &key) const {
-    // check cache first
-    if (auto it = tipsets_cache_.find(key); it != tipsets_cache_.end()) {
-      return it->second;
-    }
-    OUTCOME_TRY(tipset, Tipset::load(*data_store_, key.cids));
-    // save to cache
-    tipsets_cache_[key] = tipset;
-
-    return std::move(tipset);
-  }
-
-  outcome::result<void> ChainStoreImpl::initialize() {
-    // load head tipset
-    auto &&head_key = chain_data_store_->get(kChainHeadKey);
-    if (head_key) {
-      OUTCOME_TRY(cids, decodeCidVector(head_key.value()));
-      OUTCOME_TRY(ts_key, TipsetKey::create(std::move(cids)));
-      OUTCOME_TRY(tipset, loadTipset(ts_key));
-      heaviest_tipset_.reset(tipset);
-    } else {
-      logger_->warn("no previous head tipset found, error = {}",
-                    head_key.error().message());
-    }
-
-    // load genesis block
-    auto genesis_key = chain_data_store_->get(kGenesisKey);
-    if (genesis_key) {
-      OUTCOME_TRY(genesis_cids, decodeCidVector(genesis_key.value()));
-      BOOST_ASSERT_MSG(genesis_cids.size() == 1, "wrong genesis key format");
-      OUTCOME_TRY(genesis_value, getCbor<BlockHeader>(genesis_cids[0]));
-      genesis_.reset(genesis_value);
-    } else {
-      logger_->warn("no previous genesis block found, error = {}",
-                    head_key.error().message());
-    }
-
-    return outcome::success();
-  }
-
-  outcome::result<Tipset> ChainStoreImpl::heaviestTipset() const {
-    if (heaviest_tipset_.has_value()) {
-      return *heaviest_tipset_;
-    }
-    return ChainStoreError::kNoHeaviestTipset;
-  }
-
-  outcome::result<bool> ChainStoreImpl::containsTipset(
-      const TipsetKey &key) const {
-    if (tipsets_cache_.count(key) > 0) {
-      return true;
-    }
-
-    OUTCOME_TRY(loadTipset(key));
-    return true;
-  }
-
-  outcome::result<BlockHeader> ChainStoreImpl::getGenesis() const {
-    if (genesis_.has_value()) {
-      return *genesis_;
-    }
-
-    return ChainStoreError::kNoGenesisBlock;
-  }
-
-  outcome::result<void> ChainStoreImpl::writeGenesis(
-      const BlockHeader &block_header) {
-    OUTCOME_TRY(genesis_tipset, Tipset::create({block_header}));
-    OUTCOME_TRY(buffer,
-                encodeCidVector(std::vector<CID>{genesis_tipset.cids[0]}));
-
-    return chain_data_store_->set(kGenesisKey, buffer);
-  }
-
-  outcome::result<void> ChainStoreImpl::writeHead(const Tipset &tipset) {
-    heaviest_tipset_.reset(tipset);
-    OUTCOME_TRY(weight, weight_calculator_->calculateWeight(tipset));
+      IpldPtr ipld,
+      std::shared_ptr<WeightCalculator> weight_calculator,
+      BlockHeader genesis,
+      Tipset head)
+      : data_store_{std::move(ipld)},
+        weight_calculator_{std::move(weight_calculator)},
+        heaviest_tipset_{std::move(head)},
+        genesis_{std::move(genesis)} {
+    OUTCOME_EXCEPT(weight,
+                   weight_calculator_->calculateWeight(heaviest_tipset_));
     heaviest_weight_ = weight;
-    OUTCOME_TRY(data, encodeCidVector(tipset.cids));
-    return chain_data_store_->set(kChainHeadKey, data);
+  }
+
+  const Tipset &ChainStoreImpl::heaviestTipset() const {
+    return heaviest_tipset_;
+  }
+
+  const BlockHeader &ChainStoreImpl::getGenesis() const {
+    return genesis_;
   }
 
   outcome::result<void> ChainStoreImpl::addBlock(const BlockHeader &block) {
@@ -159,14 +63,13 @@ namespace fc::storage::blockchain {
         continue;
       }
 
-      OUTCOME_TRY(bh, getCbor<BlockHeader>(cid));
+      OUTCOME_TRY(bh, data_store_->getCbor<BlockHeader>(cid));
 
       if (included_miners.count(bh.miner) > 0) {
-        auto &&miner_address = encodeToString(bh.miner);
         logger_->warn(
             "Have multiple blocks from miner {} at height {} in our tipset "
             "cache",
-            miner_address,
+            bh.miner,
             bh.height);
         continue;
       }
@@ -184,12 +87,8 @@ namespace fc::storage::blockchain {
       const Tipset &tipset) {
     OUTCOME_TRY(weight, weight_calculator_->calculateWeight(tipset));
 
-    if (!heaviest_tipset_.has_value()) {
-      return takeHeaviestTipset(tipset);
-    }
-
     OUTCOME_TRY(current_weight,
-                weight_calculator_->calculateWeight(*heaviest_tipset_));
+                weight_calculator_->calculateWeight(heaviest_tipset_));
 
     if (weight > current_weight) {
       return takeHeaviestTipset(tipset);
@@ -200,29 +99,12 @@ namespace fc::storage::blockchain {
 
   outcome::result<void> ChainStoreImpl::takeHeaviestTipset(
       const Tipset &tipset) {
-    OUTCOME_TRY(cids_json, encodeCidVector(tipset.cids));
+    logger_->info("New heaviest tipset {} (height={})",
+                  fmt::join(tipset.cids, ","),
+                  tipset.height);
 
-    if (!heaviest_tipset_.has_value()) {
-      logger_->warn(
-          "No heaviest tipset found, using provided tipset: {}, height: {}",
-          cids_json,
-          tipset.height);
-      head_change_signal_(
-          HeadChange{.type = HeadChangeType::CURRENT, .value = tipset});
-      return writeHead(tipset);
-    }
-
-    if (tipset == *heaviest_tipset_) {
-      logger_->warn(
-          "provided tipset is equal to the current one, nothing happens");
-      return outcome::success();
-    }
-
-    logger_->info(
-        "New heaviest tipset {} (height={})", cids_json, tipset.height);
-
-    OUTCOME_TRY(notifyHeadChange(*heaviest_tipset_, tipset));
-    OUTCOME_TRY(writeHead(tipset));
+    OUTCOME_TRY(notifyHeadChange(heaviest_tipset_, tipset));
+    heaviest_tipset_ = tipset;
 
     return outcome::success();
   }
@@ -246,21 +128,19 @@ namespace fc::storage::blockchain {
 
   outcome::result<ChainPath> ChainStoreImpl::findChainPath(
       const Tipset &current, const Tipset &target) {
-    // need to have genesis defined
     ChainPath path{};
     auto l = current;
     auto r = target;
     while (l != r) {
+      if (l.height == 0 && r.height == 0) {
+        return ChainStoreError::kNoPath;
+      }
       if (l.height > r.height) {
         path.revert_chain.emplace_back(l);
-        OUTCOME_TRY(key, l.getParents());
-        OUTCOME_TRY(ts, loadTipset(key));
-        l = std::move(ts);
+        OUTCOME_TRYA(l, l.loadParent(*data_store_));
       } else {
         path.apply_chain.emplace_front(r);
-        OUTCOME_TRY(key, r.getParents());
-        OUTCOME_TRY(ts, loadTipset(key));
-        r = std::move(ts);
+        OUTCOME_TRYA(r, r.loadParent(*data_store_));
       }
     }
     return path;
@@ -270,17 +150,9 @@ namespace fc::storage::blockchain {
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {
   using fc::storage::blockchain::ChainStoreError;
-
   switch (e) {
-    case ChainStoreError::kNoMinTicketBlock:
-      return "min ticket block has no value";
-    case ChainStoreError::kNoHeaviestTipset:
-      return "no heaviest tipset in storage";
-    case ChainStoreError::kNoGenesisBlock:
-      return "no genesis block in storage";
-    case ChainStoreError::kStoreNotInitialized:
-      return "store is not initialized properly";
+    case ChainStoreError::kNoPath:
+      return "no path";
   }
-
   return "ChainStoreError: unknown error";
 }

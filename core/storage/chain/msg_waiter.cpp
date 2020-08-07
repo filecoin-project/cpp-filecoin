@@ -5,6 +5,7 @@
 
 #include "storage/chain/msg_waiter.hpp"
 #include "adt/array.hpp"
+#include "common/logger.hpp"
 
 namespace fc::storage::blockchain {
   using primitives::tipset::MessageVisitor;

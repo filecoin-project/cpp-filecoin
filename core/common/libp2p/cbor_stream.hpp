@@ -55,6 +55,10 @@ namespace fc::common::libp2p {
       writeRaw(encoded.value(), std::move(cb));
     }
 
+    void close() {
+      stream_->close([](auto) {});
+    }
+
    private:
     void readMore(ReadCallbackFunc cb);
     void consume(gsl::span<uint8_t> input, ReadCallbackFunc cb);

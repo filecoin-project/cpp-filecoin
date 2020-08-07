@@ -31,7 +31,7 @@ namespace fc::codec::cbor {
       if constexpr (std::is_enum_v<T>) {
         std::underlying_type_t<T> value;
         *this >> value;
-        num = T{value};
+        num = static_cast<T>(value);
         return *this;
       }
       if constexpr (std::is_same_v<T, bool>) {
