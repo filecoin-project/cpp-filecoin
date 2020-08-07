@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "codec/cbor/cbor.hpp"
-#include "node/fwd.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
 
 namespace fc::storage::ipfs {
@@ -122,5 +121,10 @@ namespace fc::storage::ipfs {
     };
   };
 }  // namespace fc::storage::ipfs
+
+namespace fc {
+  using Ipld = storage::ipfs::IpfsDatastore;
+  using IpldPtr = std::shared_ptr<Ipld>;
+}  // namespace fc
 
 #endif  // CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_HPP

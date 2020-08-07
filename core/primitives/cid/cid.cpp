@@ -8,7 +8,6 @@
 #include <libp2p/multi/content_identifier_codec.hpp>
 #include <libp2p/multi/uvarint.hpp>
 #include "codec/uvarint.hpp"
-#include "common/enum.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 
 using libp2p::multi::HashType;

@@ -6,8 +6,8 @@
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::blockchain::production {
-  using primitives::block::BlockWithMessages;
   using primitives::block::BlockTemplate;
+  using primitives::block::BlockWithMessages;
   using vm::interpreter::Interpreter;
 
   constexpr size_t kBlockMaxMessagesCount = 1000;

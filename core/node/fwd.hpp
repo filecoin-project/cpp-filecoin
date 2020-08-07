@@ -25,10 +25,6 @@ namespace libp2p {
 namespace fc {
   namespace primitives {
     namespace block {
-      struct BlockHeader;
-      struct Messages;
-      struct BlockTemplate;
-      struct BlockWithMessages;
       struct BlockWithCids;
     }  // namespace block
 
