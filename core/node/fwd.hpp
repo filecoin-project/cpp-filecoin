@@ -23,6 +23,12 @@ namespace libp2p {
 }  // namespace libp2p
 
 namespace fc {
+  class CID;
+
+  namespace hello {
+    struct Hello;
+  }  // namespace hello
+
   namespace primitives {
     namespace block {
       struct BlockWithCids;
