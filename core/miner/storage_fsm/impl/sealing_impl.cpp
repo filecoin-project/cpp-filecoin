@@ -5,13 +5,58 @@
 
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 
+#define FSM_SEND(info, event) OUTCOME_EXCEPT(fsm_->send(info, event))
+
+#define CALLBACK_ACTION(_action)                      \
+  [this](auto info, auto event, auto from, auto to) { \
+    logger_->debug("Storage FSM " #_action);          \
+    _action(info, event, from, to);                   \
+  }
+
 namespace fc::mining {
+
+  uint64_t countTrailingZeros(uint64_t n) {
+    unsigned int count = 0;
+    while ((n & 1) == 0) {
+      count += 1;
+      n >>= 1;
+    }
+    return count;
+  }
+
+  uint64_t countSetBits(uint64_t n) {
+    unsigned int count = 0;
+    while (n) {
+      count += n & 1;
+      n >>= 1;
+    }
+    return count;
+  }
+
+  std::vector<UnpaddedPieceSize> filler(UnpaddedPieceSize in) {
+    uint64_t to_fill = in.padded();
+
+    uint64_t pieces_size = countSetBits(to_fill);
+
+    std::vector<UnpaddedPieceSize> out;
+    for (size_t i = 0; i < pieces_size; ++i) {
+      uint64_t next = countTrailingZeros(to_fill);
+      uint64_t piece_size = uint64_t(1) << next;
+
+      to_fill ^= piece_size;
+
+      out.push_back(PaddedPieceSize(piece_size).unpadded());
+    }
+    return out;
+  }
+
   std::vector<SealingTransition> SealingImpl::makeFSMTransitions() {
     return {
         // Main pipeline
         SealingTransition(SealingEvent::kIncoming)
             .from(SealingState::kStateUnknown)
-            .to(SealingState::kPacking),
+            .to(SealingState::kPacking)
+            .action(CALLBACK_ACTION(onIncoming)),
         SealingTransition(SealingEvent::kPreCommit1)
             .fromMany(SealingState::kPacking,
                       SealingState::kSealPreCommit1Fail,
@@ -75,4 +120,101 @@ namespace fc::mining {
     };
   }
 
+  void SealingImpl::onIncoming(const std::shared_ptr<SectorInfo> &info,
+                               SealingEvent event,
+                               SealingState from,
+                               SealingState to) {
+    logger_->info("Performing filling up rest of the sector",
+                  info->sector_number);
+
+    UnpaddedPieceSize allocated(0);
+    for (const auto &piece : info->pieces) {
+      allocated += piece.size.unpadded();
+    }
+
+    auto ubytes = PaddedPieceSize(sealer_->getSectorSize()).unpadded();
+
+    if (allocated > ubytes) {
+      logger_->error("too much data in sector: {} > {}", allocated, ubytes);
+      return;
+    }
+
+    auto filler_sizes = filler(UnpaddedPieceSize(ubytes - allocated));
+
+    if (!filler_sizes.empty()) {
+      logger_->warn("Creating {} filler pieces for sector {}",
+                    filler_sizes.size(),
+                    info->sector_number);
+    }
+
+    auto maybe_result = pledgeSector(minerSector(info->sector_number),
+                                     info->existingPieceSizes(),
+                                     filler_sizes);
+
+    if (maybe_result.has_error()) {
+      logger_->error("Pledge sector error: {}", maybe_result.error().message());
+      return;
+    }
+
+    for (const auto &new_piece : maybe_result.value()) {
+      info->pieces.push_back(new_piece);
+    }
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommit1))
+  }
+
+  outcome::result<std::vector<PieceInfo>> SealingImpl::pledgeSector(
+      SectorId sector,
+      std::vector<UnpaddedPieceSize> existing_piece_sizes,
+      gsl::span<const UnpaddedPieceSize> sizes) {
+    if (sizes.empty()) {
+      return outcome::success();
+    }
+
+    std::string existing_piece_str = "empty";
+    if (!existing_piece_sizes.empty()) {
+      existing_piece_str = std::to_string(existing_piece_sizes[0]);
+      for (size_t i = 1; i < existing_piece_sizes.size(); ++i) {
+        existing_piece_str += ", ";
+        existing_piece_str += std::to_string(existing_piece_sizes[i]);
+      }
+    }
+
+    logger_->info("Pledge " + primitives::sector_file::sectorName(sector)
+                  + ", contains " + existing_piece_str);
+
+    std::vector<PieceInfo> result;
+
+    PieceData zero_file("/dev/zero");
+    for (const auto &size : sizes) {
+      OUTCOME_TRY(
+          piece_info,
+          sealer_->addPiece(sector, existing_piece_sizes, size, zero_file));
+
+      existing_piece_sizes.push_back(size);
+
+      result.push_back(piece_info);
+    }
+
+    return std::move(result);
+  }
+
+  SectorId SealingImpl::minerSector(SectorNumber num) {
+    auto miner_id = miner_address_.getId();
+
+    return SectorId{
+        .miner = miner_id,
+        .sector = num,
+    };
+  }
+
+  std::vector<UnpaddedPieceSize> SectorInfo::existingPieceSizes() const {
+    std::vector<UnpaddedPieceSize> result;
+
+    for (const auto &piece : pieces) {
+      result.push_back(piece.size.unpadded());
+    }
+
+    return result;
+  }
 }  // namespace fc::mining
