@@ -6,11 +6,11 @@
 #ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_SEALING_IMPL_HPP
 #define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_SEALING_IMPL_HPP
 
-#include <primitives/address/address.hpp>
 #include "miner/storage_fsm/sealing.hpp"
 
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
+#include "miner/storage_fsm/api.hpp"
 #include "miner/storage_fsm/sealing_states.hpp"
 #include "miner/storage_fsm/selaing_events.hpp"
 #include "primitives/address/address.hpp"
@@ -40,6 +40,8 @@ namespace fc::mining {
 
     CID comm_d;
     CID comm_r;
+
+    CID precommit_message;
 
     // TODO: add fields
 
@@ -94,6 +96,18 @@ namespace fc::mining {
                       SealingState from,
                       SealingState to);
 
+    /**
+     * @brief Handle event pre commit sector info
+     * @param info  - current sector info
+     * @param event - kPreCommit
+     * @param from  - kPreCommit2, kPreCommitFail
+     * @param to    - kPreCommitting
+     */
+    void onPreCommit(const std::shared_ptr<SectorInfo> &info,
+                     SealingEvent event,
+                     SealingState from,
+                     SealingState to);
+
     struct TicketInfo {
       SealRandomness ticket;
       ChainEpoch epoch;
@@ -111,6 +125,7 @@ namespace fc::mining {
 
     /** State machine */
     std::shared_ptr<StorageFSM> fsm_;
+    std::shared_ptr<SealingApi> api_;
 
     Address miner_address_;
 

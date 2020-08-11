@@ -4,6 +4,7 @@
  */
 
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
+#include "vm/actor/builtin/miner/miner_actor.hpp"
 
 #define FSM_SEND(info, event) OUTCOME_EXCEPT(fsm_->send(info, event))
 
@@ -70,7 +71,8 @@ namespace fc::mining {
             .action(CALLBACK_ACTION(onPreCommit2)),
         SealingTransition(SealingEvent::kPreCommit)
             .fromMany(SealingState::kPreCommit2, SealingState::kPreCommitFail)
-            .to(SealingState::kPreCommitting),
+            .to(SealingState::kPreCommitting)
+            .action(CALLBACK_ACTION(onPreCommit)),
         SealingTransition(SealingEvent::kWaitSeed)
             .fromMany(SealingState::kPreCommitting, SealingState::kCommitFail)
             .to(SealingState::kWaitSeed),
@@ -264,6 +266,54 @@ namespace fc::mining {
     info->comm_r = maybe_cid.value().sealed_cid;
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommit))
+  }
+
+  void SealingImpl::onPreCommit(const std::shared_ptr<SectorInfo> &info,
+                                SealingEvent event,
+                                SealingState from,
+                                SealingState to) {
+    auto maybe_head = api_->ChainHead();
+    if (maybe_head.has_error()) {
+      logger_->error("handlePreCommitting: api error, not proceeding: {}",
+                     maybe_head.error().message());
+      return;
+    }
+
+    auto maybe_worker_addr = api_->StateMinerWorkerAddress(
+        miner_address_, maybe_head.value().tipset);
+    if (maybe_worker_addr.has_error()) {
+      logger_->error("handlePreCommitting: api error, not proceeding: {}",
+                     maybe_worker_addr.error().message());
+      return;
+    }
+
+    // TODO: check Precommit
+
+    // TODO: check Policy
+
+    // TODO: CBOR params
+
+    logger_->info("submitting precommit for sector: {}", info->sector_number);
+
+    auto maybe_cid =
+        api_->SendMsg(maybe_worker_addr.value(),
+                      miner_address_,
+                      vm::actor::builtin::miner::PreCommitSector::Number,
+                      0,
+                      1,
+                      1000000,
+                      {});
+
+    if (maybe_cid.has_error()) {
+      logger_->error("pushing message to mpool: {}",
+                     maybe_cid.error().message());
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitFailed))
+      return;
+    }
+
+    info->precommit_message = maybe_cid.value();
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitWait))
   }
 
   std::vector<UnpaddedPieceSize> SectorInfo::existingPieceSizes() const {

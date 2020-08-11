@@ -17,6 +17,7 @@ namespace fc::mining {
     kPreCommit1,
     kPreCommit2,
     kPreCommit,
+    kPreCommitWait,
     kWaitSeed,
     kCommit,
     kCommitWait,
