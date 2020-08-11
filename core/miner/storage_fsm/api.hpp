@@ -14,7 +14,9 @@
     static constexpr auto name = "FuhonMiner." #_name;                     \
   } _name;
 
-#include <common/buffer.hpp>
+#include <vm/actor/builtin/miner/types.hpp>
+#include "common/buffer.hpp"
+#include "crypto/randomness/randomness_types.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/cid/cid.hpp"
@@ -26,10 +28,15 @@ namespace fc::mining {
   using common::Buffer;
   using primitives::address::Address;
   using TipsetToken = Buffer;
+  using crypto::randomness::DomainSeparationTag;
+  using crypto::randomness::Randomness;
   using primitives::ChainEpoch;
+  using primitives::SectorNumber;
   using primitives::TokenAmount;
   using vm::VMExitCode;
   using vm::actor::MethodNumber;
+  using vm::actor::builtin::miner::SectorPreCommitOnChainInfo;
+
   template <typename... T>
   using ParamsTuple =
       std::tuple<std::remove_const_t<std::remove_reference_t<T>>...>;
@@ -42,6 +49,19 @@ namespace fc::mining {
     };
 
     API_METHOD(ChainHead, ChainHeadResponse);
+
+    API_METHOD(ChainGetRandomness,
+               Randomness,
+               const TipsetToken &,
+               DomainSeparationTag,
+               ChainEpoch,
+               const Buffer &)
+
+    API_METHOD(StateSectorPreCommitInfo,
+               SectorPreCommitOnChainInfo,
+               const Address &,
+               SectorNumber,
+               const TipsetToken &);
 
     API_METHOD(StateMinerWorkerAddress,
                Address,
