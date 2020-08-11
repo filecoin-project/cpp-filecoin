@@ -66,7 +66,8 @@ namespace fc::mining {
         SealingTransition(SealingEvent::kPreCommit2)
             .fromMany(SealingState::kPreCommit1,
                       SealingState::kSealPreCommit2Fail)
-            .to(SealingState::kPreCommit2),
+            .to(SealingState::kPreCommit2)
+            .action(CALLBACK_ACTION(onPreCommit2)),
         SealingTransition(SealingEvent::kPreCommit)
             .fromMany(SealingState::kPreCommit2, SealingState::kPreCommitFail)
             .to(SealingState::kPreCommitting),
@@ -243,6 +244,26 @@ namespace fc::mining {
     info->precommit2_fails = 0;
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommit2))
+  }
+
+  void SealingImpl::onPreCommit2(const std::shared_ptr<SectorInfo> &info,
+                                 SealingEvent event,
+                                 SealingState from,
+                                 SealingState to) {
+    // TODO: add check priority
+    auto maybe_cid = sealer_->sealPreCommit2(minerSector(info->sector_number),
+                                             info->precommit1_output);
+    if (maybe_cid.has_error()) {
+      logger_->error("Seal pre commit 2 error: {}",
+                     maybe_cid.error().message());
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSealPreCommit2Failed))
+      return;
+    }
+
+    info->comm_d = maybe_cid.value().unsealed_cid;
+    info->comm_r = maybe_cid.value().sealed_cid;
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommit))
   }
 
   std::vector<UnpaddedPieceSize> SectorInfo::existingPieceSizes() const {

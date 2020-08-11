@@ -38,6 +38,9 @@ namespace fc::mining {
     PreCommit1Output precommit1_output;
     uint64_t precommit2_fails;
 
+    CID comm_d;
+    CID comm_r;
+
     // TODO: add fields
 
     std::vector<UnpaddedPieceSize> existingPieceSizes() const;
@@ -75,6 +78,18 @@ namespace fc::mining {
      * @param to    - kPreCommit1
      */
     void onPreCommit1(const std::shared_ptr<SectorInfo> &info,
+                      SealingEvent event,
+                      SealingState from,
+                      SealingState to);
+
+    /**
+     * @brief Handle event pre commit 2 sector info
+     * @param info  - current sector info
+     * @param event - kPreCommit2
+     * @param from  - kPreCommit1, kPreCommit2Failed
+     * @param to    - kPreCommit2
+     */
+    void onPreCommit2(const std::shared_ptr<SectorInfo> &info,
                       SealingEvent event,
                       SealingState from,
                       SealingState to);
