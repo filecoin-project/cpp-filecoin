@@ -61,7 +61,8 @@ namespace fc::mining {
             .fromMany(SealingState::kPacking,
                       SealingState::kSealPreCommit1Fail,
                       SealingState::kSealPreCommit2Fail)
-            .to(SealingState::kPreCommit1),
+            .to(SealingState::kPreCommit1)
+            .action(CALLBACK_ACTION(onPreCommit1)),
         SealingTransition(SealingEvent::kPreCommit2)
             .fromMany(SealingState::kPreCommit1,
                       SealingState::kSealPreCommit2Fail)
@@ -206,6 +207,42 @@ namespace fc::mining {
         .miner = miner_id,
         .sector = num,
     };
+  }
+
+  void SealingImpl::onPreCommit1(const std::shared_ptr<SectorInfo> &info,
+                                 SealingEvent event,
+                                 SealingState from,
+                                 SealingState to) {
+    // TODO: check Packing
+
+    logger_->info("Performing {} sector replication", info->sector_number);
+
+    auto maybe_ticket = getTicket(info);
+    if (maybe_ticket.has_error()) {
+      logger_->error("Get ticket error: {}", maybe_ticket.error().message());
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSealPreCommit1Failed))
+      return;
+    }
+
+    // TODO: add check priority
+    auto maybe_result =
+        sealer_->sealPreCommit1(minerSector(info->sector_number),
+                                maybe_ticket.value().ticket,
+                                info->pieces);
+
+    if (maybe_result.has_error()) {
+      logger_->error("Seal pre commit 1 error: {}",
+                     maybe_result.error().message());
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSealPreCommit1Failed))
+      return;
+    }
+
+    info->precommit1_output = maybe_result.value();
+    info->ticket = maybe_ticket.value().ticket;
+    info->epoch = maybe_ticket.value().epoch;
+    info->precommit2_fails = 0;
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommit2))
   }
 
   std::vector<UnpaddedPieceSize> SectorInfo::existingPieceSizes() const {

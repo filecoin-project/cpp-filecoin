@@ -19,16 +19,24 @@
 #include "sector_storage/manager.hpp"
 
 namespace fc::mining {
+  using primitives::ChainEpoch;
   using primitives::SectorNumber;
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
+  using proofs::SealRandomness;
   using sector_storage::Manager;
+  using sector_storage::PreCommit1Output;
 
   struct SectorInfo {
     primitives::SectorNumber sector_number;
     std::vector<PieceInfo> pieces;
+
+    SealRandomness ticket;
+    ChainEpoch epoch;
+    PreCommit1Output precommit1_output;
+    uint64_t precommit2_fails;
 
     // TODO: add fields
 
@@ -58,6 +66,26 @@ namespace fc::mining {
                     SealingEvent event,
                     SealingState from,
                     SealingState to);
+
+    /**
+     * @brief Handle event pre commit 1 sector info
+     * @param info  - current sector info
+     * @param event - kPreCommit1
+     * @param from  - kPacking, kPreCommit1Failed, kPreCommit2Failed
+     * @param to    - kPreCommit1
+     */
+    void onPreCommit1(const std::shared_ptr<SectorInfo> &info,
+                      SealingEvent event,
+                      SealingState from,
+                      SealingState to);
+
+    struct TicketInfo {
+      SealRandomness ticket;
+      ChainEpoch epoch;
+    };
+
+    outcome::result<TicketInfo> getTicket(
+        const std::shared_ptr<SectorInfo> &info);
 
     outcome::result<std::vector<PieceInfo>> pledgeSector(
         SectorId sector,
