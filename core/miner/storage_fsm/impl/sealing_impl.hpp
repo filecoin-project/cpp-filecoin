@@ -43,6 +43,8 @@ namespace fc::mining {
 
     CID precommit_message;
 
+    TipsetToken precommit_tipset;
+
     // TODO: add fields
 
     std::vector<UnpaddedPieceSize> existingPieceSizes() const;
@@ -107,6 +109,18 @@ namespace fc::mining {
                      SealingEvent event,
                      SealingState from,
                      SealingState to);
+
+    /**
+     * @brief Handle event pre commit waiting sector info
+     * @param info  - current sector info
+     * @param event - kPreCommitWait
+     * @param from  - kPreCommitting
+     * @param to    - kPreCommittingWaiting
+     */
+    void onPreCommitWaiting(const std::shared_ptr<SectorInfo> &info,
+                            SealingEvent event,
+                            SealingState from,
+                            SealingState to);
 
     struct TicketInfo {
       SealRandomness ticket;

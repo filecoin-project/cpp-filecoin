@@ -73,8 +73,14 @@ namespace fc::mining {
             .fromMany(SealingState::kPreCommit2, SealingState::kPreCommitFail)
             .to(SealingState::kPreCommitting)
             .action(CALLBACK_ACTION(onPreCommit)),
+        SealingTransition(SealingEvent::kPreCommitWait)
+            .from(SealingState::kPreCommitting)
+            .to(SealingState::kPreCommittingWait)
+            .action(CALLBACK_ACTION(onPreCommitWaiting)),
         SealingTransition(SealingEvent::kWaitSeed)
-            .fromMany(SealingState::kPreCommitting, SealingState::kCommitFail)
+            .fromMany(SealingState::kPreCommitting,
+                      SealingState::kPreCommittingWait,
+                      SealingState::kCommitFail)
             .to(SealingState::kWaitSeed),
         SealingTransition(SealingEvent::kCommit)
             .fromMany(SealingState::kWaitSeed,
@@ -110,7 +116,9 @@ namespace fc::mining {
             .from(SealingState::kPreCommit2)
             .to(SealingState::kSealPreCommit2Fail),
         SealingTransition(SealingEvent::kPreCommitFailed)
-            .fromMany(SealingState::kPreCommitting, SealingState::kWaitSeed)
+            .fromMany(SealingState::kPreCommitting,
+                      SealingState::kPreCommittingWait,
+                      SealingState::kWaitSeed)
             .to(SealingState::kPreCommitFail),
         SealingTransition(SealingEvent::kComputeProofFailed)
             .from(SealingState::kCommitting)
@@ -314,6 +322,31 @@ namespace fc::mining {
     info->precommit_message = maybe_cid.value();
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitWait))
+  }
+
+  void SealingImpl::onPreCommitWaiting(const std::shared_ptr<SectorInfo> &info,
+                                       SealingEvent event,
+                                       SealingState from,
+                                       SealingState to) {
+    logger_->info("Sector precommitted: {}", info->sector_number);
+    auto maybe_lookup = api_->StateWaitMsg(info->precommit_message);
+    if (maybe_lookup.has_error()) {
+      logger_->error("sector precommit failed: {}",
+                     maybe_lookup.error().message());
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitFailed))
+      return;
+    }
+
+    if (maybe_lookup.value().receipt.exit_code != VMExitCode::kOk) {
+      logger_->error("sector precommit failed: exit code is {}",
+                     maybe_lookup.value().receipt.exit_code);
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitFailed))
+      return;
+    }
+
+    info->precommit_tipset = maybe_lookup.value().tipset_token;
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kWaitSeed))
   }
 
   std::vector<UnpaddedPieceSize> SectorInfo::existingPieceSizes() const {

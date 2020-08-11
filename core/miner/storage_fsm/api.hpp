@@ -20,6 +20,7 @@
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/actor.hpp"
+#include "vm/exit_code/exit_code.hpp"
 
 namespace fc::mining {
   using common::Buffer;
@@ -27,6 +28,7 @@ namespace fc::mining {
   using TipsetToken = Buffer;
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
+  using vm::VMExitCode;
   using vm::actor::MethodNumber;
   template <typename... T>
   using ParamsTuple =
@@ -45,6 +47,20 @@ namespace fc::mining {
                Address,
                const Address &,
                const TipsetToken &);
+
+    struct MessageReceipt {
+      VMExitCode exit_code;
+      Buffer return_value;
+      int64_t gas_used;
+    };
+
+    struct MessageLookup {
+      MessageReceipt receipt;
+      TipsetToken tipset_token;
+      ChainEpoch height;
+    };
+
+    API_METHOD(StateWaitMsg, MessageLookup, CID);
 
     API_METHOD(SendMsg,
                CID,
