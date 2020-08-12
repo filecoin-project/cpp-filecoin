@@ -68,6 +68,12 @@ namespace fc::mining {
                const Address &,
                const TipsetToken &);
 
+    API_METHOD(StateMinerInitialPledgeCollateral,
+               TokenAmount,
+               const Address &,
+               SectorNumber,
+               const TipsetToken &);
+
     struct MessageReceipt {
       VMExitCode exit_code;
       Buffer return_value;

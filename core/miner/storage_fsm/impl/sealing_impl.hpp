@@ -36,7 +36,7 @@ namespace fc::mining {
     std::vector<PieceInfo> pieces;
 
     SealRandomness ticket;
-    ChainEpoch epoch;
+    ChainEpoch ticket_epoch;
     PreCommit1Output precommit1_output;
     uint64_t precommit2_fails;
 
@@ -49,6 +49,9 @@ namespace fc::mining {
 
     InteractiveRandomness seed;
     ChainEpoch seed_epoch;
+
+    proofs::Proof proof;
+    CID message;
 
     // TODO: add fields
 
@@ -138,6 +141,18 @@ namespace fc::mining {
                     SealingEvent event,
                     SealingState from,
                     SealingState to);
+
+    /**
+     * @brief Handle event commit
+     * @param info  - current sector info
+     * @param event - kCommit
+     * @param from  - kWaitSeed, kCommitFail, kComputeProofFail
+     * @param to    - kCommitting
+     */
+    void onCommit(const std::shared_ptr<SectorInfo> &info,
+                   SealingEvent event,
+                   SealingState from,
+                   SealingState to);
 
     struct TicketInfo {
       SealRandomness ticket;

@@ -87,7 +87,8 @@ namespace fc::mining {
             .fromMany(SealingState::kWaitSeed,
                       SealingState::kCommitFail,
                       SealingState::kComputeProofFail)
-            .to(SealingState::kCommitting),
+            .to(SealingState::kCommitting)
+            .action(CALLBACK_ACTION(onCommit)),
         SealingTransition(SealingEvent::kCommitWait)
             .from(SealingState::kCommitting)
             .to(SealingState::kCommitWait),
@@ -251,7 +252,7 @@ namespace fc::mining {
 
     info->precommit1_output = maybe_result.value();
     info->ticket = maybe_ticket.value().ticket;
-    info->epoch = maybe_ticket.value().epoch;
+    info->ticket_epoch = maybe_ticket.value().epoch;
     info->precommit2_fails = 0;
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommit2))
@@ -404,6 +405,100 @@ namespace fc::mining {
       logger_->warn("waitForPreCommitMessage ChainAt errored: {}",
                     maybe_error.error().message());
     }
+  }
+
+  void SealingImpl::onCommit(const std::shared_ptr<SectorInfo> &info,
+                             SealingEvent event,
+                             SealingState from,
+                             SealingState to) {
+    logger_->info("scheduling seal proof computation...");
+
+    logger_->info(
+        "commit {} sector; ticket(epoch): {}({});"
+        "seed(epoch): {}({}); ticket(epoch): {}({}); comm_r: {}; comm_d: {}",
+        info->sector_number,
+        info->ticket,
+        info->ticket_epoch,
+        info->seed,
+        info->seed_epoch,
+        info->comm_r,
+        info->comm_d);
+
+    sector_storage::SectorCids cids{
+        .sealed_cid = info->comm_r,
+        .unsealed_cid = info->comm_d,
+    };
+
+    // TODO: add check priority
+    auto maybe_commit_1_output =
+        sealer_->sealCommit1(minerSector(info->sector_number),
+                             info->ticket,
+                             info->seed,
+                             info->pieces,
+                             cids);
+    if (maybe_commit_1_output.has_error()) {
+      logger_->error("computing seal proof failed(1): {}",
+                     maybe_commit_1_output.error().message());
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kComputeProofFailed));
+      return;
+    }
+
+    auto maybe_proof = sealer_->sealCommit2(minerSector(info->sector_number),
+                                            maybe_commit_1_output.value());
+    if (maybe_proof.has_error()) {
+      logger_->error("computing seal proof failed(2): {}",
+                     maybe_proof.error().message());
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kComputeProofFailed));
+      return;
+    }
+
+    auto maybe_head = api_->ChainHead();
+    if (maybe_head.has_error()) {
+      logger_->error("handleCommitting: api error, not proceeding: {}",
+                     maybe_head.error().message());
+      return;
+    }
+
+    // TODO: check Commit
+
+    // TODO: maybe split into 2 states here
+
+    // TODO: CBOR params
+
+    auto maybe_worker_addr = api_->StateMinerWorkerAddress(
+        miner_address_, maybe_head.value().tipset);
+    if (maybe_worker_addr.has_error()) {
+      logger_->error("handleCommitting: api error, not proceeding: {}",
+                     maybe_worker_addr.error().message());
+      return;
+    }
+
+    auto maybe_collateral = api_->StateMinerInitialPledgeCollateral(
+        miner_address_, info->sector_number, maybe_head.value().tipset);
+    if (maybe_collateral.has_error()) {
+      logger_->error("getting initial pledge collateral: {}",
+                     maybe_collateral.error().message());
+      return;
+    }
+
+    auto maybe_message_cid =
+        api_->SendMsg(maybe_worker_addr.value(),
+                      miner_address_,
+                      vm::actor::builtin::miner::ProveCommitSector::Number,
+                      maybe_collateral.value(),
+                      1,
+                      1000000,
+                      {});
+    if (maybe_message_cid.has_error()) {
+      logger_->error("pushing message to mpool: {}",
+                     maybe_message_cid.error().message());
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommitFailed));
+      return;
+    }
+
+    info->proof = maybe_proof.value();
+    info->message = maybe_message_cid.value();
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommitWait));
   }
 
   outcome::result<SealingImpl::TicketInfo> SealingImpl::getTicket(
