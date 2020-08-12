@@ -81,7 +81,8 @@ namespace fc::mining {
             .fromMany(SealingState::kPreCommitting,
                       SealingState::kPreCommittingWait,
                       SealingState::kCommitFail)
-            .to(SealingState::kWaitSeed),
+            .to(SealingState::kWaitSeed)
+            .action(CALLBACK_ACTION(onWaitSeed)),
         SealingTransition(SealingEvent::kCommit)
             .fromMany(SealingState::kWaitSeed,
                       SealingState::kCommitFail,
@@ -347,6 +348,68 @@ namespace fc::mining {
     info->precommit_tipset = maybe_lookup.value().tipset_token;
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kWaitSeed))
+  }
+
+  void SealingImpl::onWaitSeed(const std::shared_ptr<SectorInfo> &info,
+                               SealingEvent event,
+                               SealingState from,
+                               SealingState to) {
+    auto maybe_precommit_info = api_->StateSectorPreCommitInfo(
+        miner_address_, info->sector_number, info->precommit_tipset);
+    if (maybe_precommit_info.has_error()) {
+      logger_->error("getting precommit info error: {}",
+                     maybe_precommit_info.error().message());
+      return;
+    }
+
+    auto random_height = maybe_precommit_info.value().precommit_epoch
+                         + vm::actor::builtin::miner::kPreCommitChallengeDelay;
+
+    auto maybe_error = events_->chainAt(
+        [&](const TipsetToken &token,
+            ChainEpoch current_height) -> outcome::result<void> {
+          // TODO: CBOR miner address
+          auto maybe_randomness = api_->ChainGetRandomness(
+              token,
+              DomainSeparationTag::InteractiveSealChallengeSeed,
+              random_height,
+              {});
+          if (maybe_randomness.has_error()) {
+            logger_->error(
+                "failed to get randomness for computing seal proof (curHeight "
+                "{}; randHeight {}; tipset {}): {}",
+                current_height,
+                random_height,
+                token,
+                maybe_randomness.error().message());
+            OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitFailed))
+            return maybe_randomness.error();
+          }
+
+          info->seed = maybe_randomness.value();
+          info->seed_epoch = random_height;
+
+          OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommit))
+          return outcome::success();
+        },
+        [&](const TipsetToken &token) -> outcome::result<void> {
+          logger_->warn("revert in interactive commit sector step");
+          // TODO: cancel running and restart
+          return outcome::success();
+        },
+        kInteractivePoRepConfidence,
+        random_height);
+
+    if (maybe_error.has_error()) {
+      logger_->warn("waitForPreCommitMessage ChainAt errored: {}",
+                    maybe_error.error().message());
+    }
+  }
+
+  outcome::result<SealingImpl::TicketInfo> SealingImpl::getTicket(
+      const std::shared_ptr<SectorInfo> &info) {
+    // TODO: Implement me
+    return outcome::success();
   }
 
   std::vector<UnpaddedPieceSize> SectorInfo::existingPieceSizes() const {

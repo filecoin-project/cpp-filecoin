@@ -11,6 +11,7 @@
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
 #include "miner/storage_fsm/api.hpp"
+#include "miner/storage_fsm/events.hpp"
 #include "miner/storage_fsm/sealing_states.hpp"
 #include "miner/storage_fsm/selaing_events.hpp"
 #include "primitives/address/address.hpp"
@@ -26,6 +27,7 @@ namespace fc::mining {
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
   using proofs::SealRandomness;
+  using sector_storage::InteractiveRandomness;
   using sector_storage::Manager;
   using sector_storage::PreCommit1Output;
 
@@ -44,6 +46,9 @@ namespace fc::mining {
     CID precommit_message;
 
     TipsetToken precommit_tipset;
+
+    InteractiveRandomness seed;
+    ChainEpoch seed_epoch;
 
     // TODO: add fields
 
@@ -122,6 +127,18 @@ namespace fc::mining {
                             SealingState from,
                             SealingState to);
 
+    /**
+     * @brief Handle event waiting seed
+     * @param info  - current sector info
+     * @param event - kWaitSeed
+     * @param from  - kPreCommitting, kPreCommittingWait, kCommitFail
+     * @param to    - kWaitSeed
+     */
+    void onWaitSeed(const std::shared_ptr<SectorInfo> &info,
+                    SealingEvent event,
+                    SealingState from,
+                    SealingState to);
+
     struct TicketInfo {
       SealRandomness ticket;
       ChainEpoch epoch;
@@ -139,7 +156,9 @@ namespace fc::mining {
 
     /** State machine */
     std::shared_ptr<StorageFSM> fsm_;
+
     std::shared_ptr<SealingApi> api_;
+    std::shared_ptr<Events> events_;
 
     Address miner_address_;
 

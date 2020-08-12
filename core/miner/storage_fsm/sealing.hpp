@@ -7,6 +7,9 @@
 #define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SEALING_HPP
 
 namespace fc::mining {
+  // Epochs
+  constexpr int kInteractivePoRepConfidence = 6;
+
   class Sealing {
    public:
     virtual ~Sealing() = default;
