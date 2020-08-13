@@ -91,7 +91,8 @@ namespace fc::mining {
             .action(CALLBACK_ACTION(onCommit)),
         SealingTransition(SealingEvent::kCommitWait)
             .from(SealingState::kCommitting)
-            .to(SealingState::kCommitWait),
+            .to(SealingState::kCommitWait)
+            .action(CALLBACK_ACTION(onCommitWait)),
         SealingTransition(SealingEvent::kFinalizeSector)
             .fromMany(SealingState::kCommitWait, SealingState::kFinalizeFail)
             .to(SealingState::kFinalizeSector),
@@ -499,6 +500,44 @@ namespace fc::mining {
     info->proof = maybe_proof.value();
     info->message = maybe_message_cid.value();
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommitWait));
+  }
+
+  void SealingImpl::onCommitWait(const std::shared_ptr<SectorInfo> &info,
+                                 SealingEvent event,
+                                 SealingState from,
+                                 SealingState to) {
+    auto maybe_message_lookup = api_->StateWaitMsg(info->message);
+    if (maybe_message_lookup.has_error()) {
+      logger_->error("failed to wait for porep inclusion: {}",
+                     maybe_message_lookup.error().message());
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommitFailed))
+      return;
+    }
+
+    if (maybe_message_lookup.value().receipt.exit_code != VMExitCode::kOk) {
+      logger_->error(
+          "submitting sector proof failed with code {}, message cid: {}",
+          maybe_message_lookup.value().receipt.exit_code,
+          info->message);
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommitFailed))
+      return;
+    }
+
+    auto maybe_error =
+        api_->StateSectorGetInfo(miner_address_,
+                                 info->sector_number,
+                                 maybe_message_lookup.value().tipset_token);
+
+    if (maybe_error.has_error()) {
+      logger_->error(
+          "proof validation failed, sector not found in sector set after cron: "
+          "{}",
+          maybe_error.error().message());
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommitFailed))
+      return;
+    }
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kFinalizeSector))
   }
 
   outcome::result<SealingImpl::TicketInfo> SealingImpl::getTicket(

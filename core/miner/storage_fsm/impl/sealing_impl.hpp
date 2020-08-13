@@ -150,9 +150,21 @@ namespace fc::mining {
      * @param to    - kCommitting
      */
     void onCommit(const std::shared_ptr<SectorInfo> &info,
-                   SealingEvent event,
-                   SealingState from,
-                   SealingState to);
+                  SealingEvent event,
+                  SealingState from,
+                  SealingState to);
+
+    /**
+     * @brief Handle event wait commit
+     * @param info  - current sector info
+     * @param event - kCommitWait
+     * @param from  - kCommitting
+     * @param to    - kCommitWait
+     */
+    void onCommitWait(const std::shared_ptr<SectorInfo> &info,
+                      SealingEvent event,
+                      SealingState from,
+                      SealingState to);
 
     struct TicketInfo {
       SealRandomness ticket;

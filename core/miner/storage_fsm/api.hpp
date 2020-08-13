@@ -35,6 +35,7 @@ namespace fc::mining {
   using primitives::TokenAmount;
   using vm::VMExitCode;
   using vm::actor::MethodNumber;
+  using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::miner::SectorPreCommitOnChainInfo;
 
   template <typename... T>
@@ -59,6 +60,12 @@ namespace fc::mining {
 
     API_METHOD(StateSectorPreCommitInfo,
                SectorPreCommitOnChainInfo,
+               const Address &,
+               SectorNumber,
+               const TipsetToken &);
+
+    API_METHOD(StateSectorGetInfo,
+               SectorOnChainInfo,
                const Address &,
                SectorNumber,
                const TipsetToken &);
