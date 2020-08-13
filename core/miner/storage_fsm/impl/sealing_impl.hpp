@@ -166,6 +166,18 @@ namespace fc::mining {
                       SealingState from,
                       SealingState to);
 
+    /**
+     * @brief Handle event finalize
+     * @param info  - current sector info
+     * @param event - kFinalizeSector
+     * @param from  - kCommitWait, kFinalizeFail
+     * @param to    - kFinalizeSector
+     */
+    void onFinalize(const std::shared_ptr<SectorInfo> &info,
+                    SealingEvent event,
+                    SealingState from,
+                    SealingState to);
+
     struct TicketInfo {
       SealRandomness ticket;
       ChainEpoch epoch;

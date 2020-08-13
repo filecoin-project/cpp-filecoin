@@ -95,7 +95,8 @@ namespace fc::mining {
             .action(CALLBACK_ACTION(onCommitWait)),
         SealingTransition(SealingEvent::kFinalizeSector)
             .fromMany(SealingState::kCommitWait, SealingState::kFinalizeFail)
-            .to(SealingState::kFinalizeSector),
+            .to(SealingState::kFinalizeSector)
+            .action(CALLBACK_ACTION(onFinalize)),
         SealingTransition(SealingEvent::kProve)
             .from(SealingState::kFinalizeSector)
             .to(SealingState::kProving),
@@ -538,6 +539,23 @@ namespace fc::mining {
     }
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kFinalizeSector))
+  }
+
+  void SealingImpl::onFinalize(const std::shared_ptr<SectorInfo> &info,
+                               SealingEvent event,
+                               SealingState from,
+                               SealingState to) {
+    // TODO: Maybe wait for some finality
+
+    auto maybe_error =
+        sealer_->finalizeSector(minerSector(info->sector_number));
+    if (maybe_error.has_error()) {
+      logger_->error("finalize sector: {}", maybe_error.error().message());
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kFinalizeFailed));
+      return;
+    }
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kProve))
   }
 
   outcome::result<SealingImpl::TicketInfo> SealingImpl::getTicket(
