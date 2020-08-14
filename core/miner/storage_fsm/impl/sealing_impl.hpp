@@ -215,6 +215,18 @@ namespace fc::mining {
                            SealingState from,
                            SealingState to);
 
+    /**
+     * @brief Handle event compute proof failed
+     * @param info  - current sector info
+     * @param event - kComputeProofFailed
+     * @param from  - kCommitting
+     * @param to    - kComputeProofFail
+     */
+    void onComputeProofFailed(const std::shared_ptr<SectorInfo> &info,
+                              SealingEvent event,
+                              SealingState from,
+                              SealingState to);
+
     struct TicketInfo {
       SealRandomness ticket;
       ChainEpoch epoch;

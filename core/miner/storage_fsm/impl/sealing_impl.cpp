@@ -129,7 +129,8 @@ namespace fc::mining {
             .action(CALLBACK_ACTION(onPreCommitFailed)),
         SealingTransition(SealingEvent::kComputeProofFailed)
             .from(SealingState::kCommitting)
-            .to(SealingState::kComputeProofFail),
+            .to(SealingState::kComputeProofFail)
+            .action(CALLBACK_ACTION(onComputeProofFailed)),
         SealingTransition(SealingEvent::kCommitFailed)
             .fromMany(SealingState::kCommitting, SealingState::kCommitWait)
             .to(SealingState::kCommitFail),
@@ -634,6 +635,24 @@ namespace fc::mining {
     // TODO: wait some time
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommit));
+  }
+
+  void SealingImpl::onComputeProofFailed(
+      const std::shared_ptr<SectorInfo> &info,
+      SealingEvent event,
+      SealingState from,
+      SealingState to) {
+    // TODO: Check sector files
+
+    // TODO: wait some time
+
+    if (info->invalid_proofs > 1) {
+      logger_->error("consecutive compute fails");
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSealPreCommit1Failed))
+      return;
+    }
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommit))
   }
 
   outcome::result<SealingImpl::TicketInfo> SealingImpl::getTicket(
