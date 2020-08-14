@@ -191,6 +191,18 @@ namespace fc::mining {
                                 SealingState from,
                                 SealingState to);
 
+    /**
+     * @brief Handle event seal precommit 2 failed
+     * @param info  - current sector info
+     * @param event - kSealPreCommit1Failed
+     * @param from  - kPreCommit2
+     * @param to    - kSealPreCommit2Fail
+     */
+    void onSealPreCommit2Failed(const std::shared_ptr<SectorInfo> &info,
+                                SealingEvent event,
+                                SealingState from,
+                                SealingState to);
+
     struct TicketInfo {
       SealRandomness ticket;
       ChainEpoch epoch;
