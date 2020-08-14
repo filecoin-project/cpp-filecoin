@@ -20,7 +20,6 @@ namespace fc::mining {
     kComputeProofFail,
     kCommitFail,
     kFinalizeFail,
-    kFailUnrecoverable,
 
     // Internal
     kPacking,

@@ -24,7 +24,6 @@ namespace fc::mining {
     kFinalizeSector,
     kProve,
 
-    kUnrecoverableFailed,
     kFinalizeFailed,
     kCommitFailed,
     kComputeProofFailed,

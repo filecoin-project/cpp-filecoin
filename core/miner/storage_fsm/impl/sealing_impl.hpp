@@ -12,8 +12,6 @@
 #include "fsm/fsm.hpp"
 #include "miner/storage_fsm/api.hpp"
 #include "miner/storage_fsm/events.hpp"
-#include "miner/storage_fsm/sealing_states.hpp"
-#include "miner/storage_fsm/selaing_events.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/types.hpp"

@@ -4,6 +4,8 @@
  */
 
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
+#include "miner/storage_fsm/sealing_states.hpp"
+#include "miner/storage_fsm/selaing_events.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 
 #define FSM_SEND(info, event) OUTCOME_EXCEPT(fsm_->send(info, event))
