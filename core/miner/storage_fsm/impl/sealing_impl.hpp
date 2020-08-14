@@ -43,7 +43,7 @@ namespace fc::mining {
     CID comm_d;
     CID comm_r;
 
-    CID precommit_message;
+    boost::optional<CID> precommit_message;
 
     TipsetToken precommit_tipset;
 
@@ -51,7 +51,7 @@ namespace fc::mining {
     ChainEpoch seed_epoch;
 
     proofs::Proof proof;
-    CID message;
+    boost::optional<CID> message;
     uint64_t invalid_proofs;
 
     // TODO: add fields
@@ -202,6 +202,18 @@ namespace fc::mining {
                                 SealingEvent event,
                                 SealingState from,
                                 SealingState to);
+
+    /**
+     * @brief Handle event precommit failed
+     * @param info  - current sector info
+     * @param event - kPreCommitFailed
+     * @param from  - kPreCommitting, kPreCommittingWait, kWaitSeed
+     * @param to    - kPreCommitFail
+     */
+    void onPreCommitFailed(const std::shared_ptr<SectorInfo> &info,
+                           SealingEvent event,
+                           SealingState from,
+                           SealingState to);
 
     struct TicketInfo {
       SealRandomness ticket;

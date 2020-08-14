@@ -125,7 +125,8 @@ namespace fc::mining {
             .fromMany(SealingState::kPreCommitting,
                       SealingState::kPreCommittingWait,
                       SealingState::kWaitSeed)
-            .to(SealingState::kPreCommitFail),
+            .to(SealingState::kPreCommitFail)
+            .action(CALLBACK_ACTION(onPreCommitFailed)),
         SealingTransition(SealingEvent::kComputeProofFailed)
             .from(SealingState::kCommitting)
             .to(SealingState::kComputeProofFail),
@@ -334,8 +335,14 @@ namespace fc::mining {
                                        SealingEvent event,
                                        SealingState from,
                                        SealingState to) {
+    if (!info->precommit_message) {
+      logger_->error("precommit message was nil");
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitFailed))
+      return;
+    }
+
     logger_->info("Sector precommitted: {}", info->sector_number);
-    auto maybe_lookup = api_->StateWaitMsg(info->precommit_message);
+    auto maybe_lookup = api_->StateWaitMsg(info->precommit_message.value());
     if (maybe_lookup.has_error()) {
       logger_->error("sector precommit failed: {}",
                      maybe_lookup.error().message());
@@ -367,7 +374,12 @@ namespace fc::mining {
       return;
     }
 
-    auto random_height = maybe_precommit_info.value().precommit_epoch
+    if (!maybe_precommit_info.value()) {
+      logger_->error("precommit info not found on chain");
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitFailed))
+    }
+
+    auto random_height = maybe_precommit_info.value().get().precommit_epoch
                          + vm::actor::builtin::miner::kPreCommitChallengeDelay;
 
     auto maybe_error = events_->chainAt(
@@ -509,7 +521,15 @@ namespace fc::mining {
                                  SealingEvent event,
                                  SealingState from,
                                  SealingState to) {
-    auto maybe_message_lookup = api_->StateWaitMsg(info->message);
+    if (!info->message) {
+      logger_->error(
+          "sector {} entered commit wait state without a message cid",
+          info->sector_number);
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommitFailed))
+      return;
+    }
+
+    auto maybe_message_lookup = api_->StateWaitMsg(info->message.get());
     if (maybe_message_lookup.has_error()) {
       logger_->error("failed to wait for porep inclusion: {}",
                      maybe_message_lookup.error().message());
@@ -589,6 +609,31 @@ namespace fc::mining {
     }
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommit2));
+  }
+
+  void SealingImpl::onPreCommitFailed(const std::shared_ptr<SectorInfo> &info,
+                                      SealingEvent event,
+                                      SealingState from,
+                                      SealingState to) {
+    auto maybe_head = api_->ChainHead();
+    if (maybe_head.has_error()) {
+      logger_->error("handlePreCommitFailed: api error, not proceeding: {}",
+                     maybe_head.error().message());
+      return;
+    }
+
+    // TODO: check precommit
+
+    // TODO: check precommitted
+
+    if (info->precommit_message) {
+      logger_->warn(
+          "retrying precommit even though the message failed to apply");
+    }
+
+    // TODO: wait some time
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommit));
   }
 
   outcome::result<SealingImpl::TicketInfo> SealingImpl::getTicket(

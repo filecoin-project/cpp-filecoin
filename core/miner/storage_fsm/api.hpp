@@ -59,7 +59,7 @@ namespace fc::mining {
                const Buffer &)
 
     API_METHOD(StateSectorPreCommitInfo,
-               SectorPreCommitOnChainInfo,
+               boost::optional<SectorPreCommitOnChainInfo>,
                const Address &,
                SectorNumber,
                const TipsetToken &);
@@ -96,7 +96,7 @@ namespace fc::mining {
     API_METHOD(StateWaitMsg, MessageLookup, CID);
 
     API_METHOD(SendMsg,
-               CID,
+               boost::optional<CID>,
                const Address &,
                const Address &,
                MethodNumber,
