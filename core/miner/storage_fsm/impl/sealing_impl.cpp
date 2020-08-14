@@ -691,8 +691,31 @@ namespace fc::mining {
 
   outcome::result<SealingImpl::TicketInfo> SealingImpl::getTicket(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: Implement me
-    return outcome::success();
+    OUTCOME_TRY(head, api_->ChainHead());
+
+    auto ticket_epoch =
+        head.epoch - vm::actor::builtin::miner::kChainFinalityish;
+
+    OUTCOME_TRY(precommit_info,
+                api_->StateSectorPreCommitInfo(
+                    miner_address_, info->sector_number, head.tipset));
+
+    if (precommit_info) {
+      ticket_epoch = precommit_info.get().info.seal_epoch;
+    }
+
+    // TODO: Marshal param
+
+    OUTCOME_TRY(randomness,
+                api_->ChainGetRandomness(head.tipset,
+                                         DomainSeparationTag::SealRandomness,
+                                         ticket_epoch,
+                                         {}));
+
+    return TicketInfo{
+        .ticket = randomness,
+        .epoch = ticket_epoch,
+    };
   }
 
   std::vector<UnpaddedPieceSize> SectorInfo::existingPieceSizes() const {
