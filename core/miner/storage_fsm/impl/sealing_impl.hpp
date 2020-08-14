@@ -52,6 +52,7 @@ namespace fc::mining {
 
     proofs::Proof proof;
     CID message;
+    uint64_t invalid_proofs;
 
     // TODO: add fields
 
@@ -177,6 +178,18 @@ namespace fc::mining {
                     SealingEvent event,
                     SealingState from,
                     SealingState to);
+
+    /**
+     * @brief Handle event seal precommit 1 failed
+     * @param info  - current sector info
+     * @param event - kSealPreCommit1Failed
+     * @param from  - kPreCommit1, kPreCommitting, kCommitFail
+     * @param to    - kSealPreCommit1Fail
+     */
+    void onSealPreCommit1Failed(const std::shared_ptr<SectorInfo> &info,
+                                SealingEvent event,
+                                SealingState from,
+                                SealingState to);
 
     struct TicketInfo {
       SealRandomness ticket;

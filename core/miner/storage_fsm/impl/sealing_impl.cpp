@@ -115,7 +115,8 @@ namespace fc::mining {
             .fromMany(SealingState::kPreCommit1,
                       SealingState::kPreCommitting,
                       SealingState::kCommitFail)
-            .to(SealingState::kSealPreCommit1Fail),
+            .to(SealingState::kSealPreCommit1Fail)
+            .action(CALLBACK_ACTION(onSealPreCommit1Failed)),
         SealingTransition(SealingEvent::kSealPreCommit2Failed)
             .from(SealingState::kPreCommit2)
             .to(SealingState::kSealPreCommit2Fail),
@@ -556,6 +557,19 @@ namespace fc::mining {
     }
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kProve))
+  }
+
+  void SealingImpl::onSealPreCommit1Failed(
+      const std::shared_ptr<SectorInfo> &info,
+      SealingEvent event,
+      SealingState from,
+      SealingState to) {
+    info->invalid_proofs = 0;
+    info->precommit2_fails = 0;
+
+    // TODO: wait some time
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommit1));
   }
 
   outcome::result<SealingImpl::TicketInfo> SealingImpl::getTicket(
