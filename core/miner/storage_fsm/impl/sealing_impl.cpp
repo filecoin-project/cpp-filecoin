@@ -99,18 +99,13 @@ namespace fc::mining {
             .action(CALLBACK_ACTION(onFinalize)),
         SealingTransition(SealingEvent::kProve)
             .from(SealingState::kFinalizeSector)
-            .to(SealingState::kProving),
+            .to(SealingState::kProving)
+            .action(CALLBACK_ACTION(
+                [this](auto info, auto event, auto from, auto to) {
+                  logger_->info("Proving sector {}", info->sector_number);
+                })),
 
         // Errors
-        SealingTransition(SealingEvent::kUnrecoverableFailed)
-            .fromMany(SealingState::kPacking,
-                      SealingState::kPreCommit1,
-                      SealingState::kPreCommit2,
-                      SealingState::kWaitSeed,
-                      SealingState::kCommitting,
-                      SealingState::kCommitWait,
-                      SealingState::kProving)
-            .to(SealingState::kFailUnrecoverable),
         SealingTransition(SealingEvent::kSealPreCommit1Failed)
             .fromMany(SealingState::kPreCommit1,
                       SealingState::kPreCommitting,
@@ -137,7 +132,8 @@ namespace fc::mining {
             .action(CALLBACK_ACTION(onCommitFailed)),
         SealingTransition(SealingEvent::kFinalizeFailed)
             .from(SealingState::kFinalizeSector)
-            .to(SealingState::kFinalizeFail),
+            .to(SealingState::kFinalizeFail)
+            .action(CALLBACK_ACTION(onFinalizeFailed)),
     };
   }
 
@@ -543,7 +539,7 @@ namespace fc::mining {
       logger_->error(
           "submitting sector proof failed with code {}, message cid: {}",
           maybe_message_lookup.value().receipt.exit_code,
-          info->message);
+          info->message.get());
       OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommitFailed))
       return;
     }
@@ -680,6 +676,17 @@ namespace fc::mining {
     info->invalid_proofs++;
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommit))
+  }
+
+  void SealingImpl::onFinalizeFailed(const std::shared_ptr<SectorInfo> &info,
+                                     SealingEvent event,
+                                     SealingState from,
+                                     SealingState to) {
+    // TODO: Check sector files
+
+    // TODO: wait some type
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kFinalizeSector));
   }
 
   outcome::result<SealingImpl::TicketInfo> SealingImpl::getTicket(
