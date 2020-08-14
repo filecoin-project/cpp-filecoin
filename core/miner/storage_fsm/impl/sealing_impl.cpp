@@ -133,7 +133,8 @@ namespace fc::mining {
             .action(CALLBACK_ACTION(onComputeProofFailed)),
         SealingTransition(SealingEvent::kCommitFailed)
             .fromMany(SealingState::kCommitting, SealingState::kCommitWait)
-            .to(SealingState::kCommitFail),
+            .to(SealingState::kCommitFail)
+            .action(CALLBACK_ACTION(onCommitFailed)),
         SealingTransition(SealingEvent::kFinalizeFailed)
             .from(SealingState::kFinalizeSector)
             .to(SealingState::kFinalizeFail),
@@ -651,6 +652,32 @@ namespace fc::mining {
       OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSealPreCommit1Failed))
       return;
     }
+
+    info->invalid_proofs++;
+
+    OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommit))
+  }
+
+  void SealingImpl::onCommitFailed(const std::shared_ptr<SectorInfo> &info,
+                                   SealingEvent event,
+                                   SealingState from,
+                                   SealingState to) {
+    auto maybe_head = api_->ChainHead();
+    if (maybe_head.has_error()) {
+      logger_->error("handleCommitting: api error, not proceeding: {}",
+                     maybe_head.error().message());
+      return;
+    }
+
+    // TODO: check precommit
+
+    // TODO: check commit
+
+    // TODO: Check sector files
+
+    // TODO: wait some time
+
+    info->invalid_proofs++;
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommit))
   }
