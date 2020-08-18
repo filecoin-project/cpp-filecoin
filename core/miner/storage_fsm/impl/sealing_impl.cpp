@@ -292,8 +292,15 @@ namespace fc::mining {
       return;
     }
 
-    auto maybe_worker_addr = api_->StateMinerWorkerAddress(
-        miner_address_, maybe_head.value().tipset);
+    auto maybe_key = maybe_head.value().makeKey();
+    if (maybe_key.has_error()) {
+      logger_->error("cannot make key from tipset: {}",
+                     maybe_key.error().message());
+      return;
+    }
+
+    auto maybe_worker_addr =
+        api_->StateMinerWorker(miner_address_, maybe_key.value());
     if (maybe_worker_addr.has_error()) {
       logger_->error("handlePreCommitting: api error, not proceeding: {}",
                      maybe_worker_addr.error().message());
@@ -308,23 +315,24 @@ namespace fc::mining {
 
     logger_->info("submitting precommit for sector: {}", info->sector_number);
 
-    auto maybe_cid =
-        api_->SendMsg(maybe_worker_addr.value(),
-                      miner_address_,
-                      vm::actor::builtin::miner::PreCommitSector::Number,
-                      0,
-                      1,
-                      1000000,
-                      {});
+    auto maybe_signed_msg = api_->MpoolPushMessage(vm::message::UnsignedMessage(
+        maybe_worker_addr.value(),
+        miner_address_,
+        0,
+        0,
+        1,
+        1000000,
+        vm::actor::builtin::miner::PreCommitSector::Number,
+        {}));
 
-    if (maybe_cid.has_error()) {
+    if (maybe_signed_msg.has_error()) {
       logger_->error("pushing message to mpool: {}",
-                     maybe_cid.error().message());
+                     maybe_signed_msg.error().message());
       OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitFailed))
       return;
     }
 
-    info->precommit_message = maybe_cid.value();
+    info->precommit_message = maybe_signed_msg.value().getCid();
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitWait))
   }
@@ -340,7 +348,13 @@ namespace fc::mining {
     }
 
     logger_->info("Sector precommitted: {}", info->sector_number);
-    auto maybe_lookup = api_->StateWaitMsg(info->precommit_message.value());
+    auto maybe_channel = api_->StateWaitMsg(info->precommit_message.value());
+    if (maybe_channel.has_error()) {
+      logger_->error("get message failed: {}", maybe_channel.error().message());
+      return;
+    }
+
+    auto maybe_lookup = maybe_channel.value().waitSync();
     if (maybe_lookup.has_error()) {
       logger_->error("sector precommit failed: {}",
                      maybe_lookup.error().message());
@@ -348,14 +362,22 @@ namespace fc::mining {
       return;
     }
 
-    if (maybe_lookup.value().receipt.exit_code != VMExitCode::kOk) {
+    if (maybe_lookup.value().receipt.exit_code != vm::VMExitCode::kOk) {
       logger_->error("sector precommit failed: exit code is {}",
                      maybe_lookup.value().receipt.exit_code);
       OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitFailed))
       return;
     }
 
-    info->precommit_tipset = maybe_lookup.value().tipset_token;
+    auto maybe_tipset_key = maybe_lookup.value().tipset.makeKey();
+
+    if (maybe_tipset_key.has_error()) {
+      logger_->error("tipset make key error: {}",
+                     maybe_tipset_key.error().message());
+      return;
+    }
+
+    info->precommit_tipset = maybe_tipset_key.value();
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kWaitSeed))
   }
@@ -364,38 +386,31 @@ namespace fc::mining {
                                SealingEvent event,
                                SealingState from,
                                SealingState to) {
-    auto maybe_precommit_info = api_->StateSectorPreCommitInfo(
-        miner_address_, info->sector_number, info->precommit_tipset);
-    if (maybe_precommit_info.has_error()) {
-      logger_->error("getting precommit info error: {}",
-                     maybe_precommit_info.error().message());
-      return;
-    }
+    // TODO: get pre commit info from api
 
-    if (!maybe_precommit_info.value()) {
-      logger_->error("precommit info not found on chain");
-      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitFailed))
-    }
-
-    auto random_height = maybe_precommit_info.value().get().precommit_epoch
-                         + vm::actor::builtin::miner::kPreCommitChallengeDelay;
+    auto random_height = vm::actor::builtin::miner::
+        kPreCommitChallengeDelay;  // TODO: add height from pre commit info
 
     auto maybe_error = events_->chainAt(
-        [&](const TipsetToken &token,
+        [=](const Tipset &tipset,
             ChainEpoch current_height) -> outcome::result<void> {
           // TODO: CBOR miner address
-          auto maybe_randomness = api_->ChainGetRandomness(
-              token,
-              DomainSeparationTag::InteractiveSealChallengeSeed,
-              random_height,
-              {});
+
+          OUTCOME_TRY(tipset_key, tipset.makeKey());
+
+          auto maybe_randomness =
+              api_->ChainGetRandomness(tipset_key,
+                                       crypto::randomness::DomainSeparationTag::
+                                           InteractiveSealChallengeSeed,
+                                       random_height,
+                                       {});
           if (maybe_randomness.has_error()) {
             logger_->error(
                 "failed to get randomness for computing seal proof (curHeight "
                 "{}; randHeight {}; tipset {}): {}",
                 current_height,
                 random_height,
-                token,
+                tipset_key,
                 maybe_randomness.error().message());
             OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitFailed))
             return maybe_randomness.error();
@@ -407,7 +422,7 @@ namespace fc::mining {
           OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommit))
           return outcome::success();
         },
-        [&](const TipsetToken &token) -> outcome::result<void> {
+        [=](const Tipset &token) -> outcome::result<void> {
           logger_->warn("revert in interactive commit sector step");
           // TODO: cancel running and restart
           return outcome::success();
@@ -479,8 +494,16 @@ namespace fc::mining {
 
     // TODO: CBOR params
 
-    auto maybe_worker_addr = api_->StateMinerWorkerAddress(
-        miner_address_, maybe_head.value().tipset);
+    auto maybe_tipset_key = maybe_head.value().makeKey();
+
+    if (maybe_tipset_key.has_error()) {
+      logger_->error("make tipset key error: {}",
+                     maybe_tipset_key.error().message());
+      return;
+    }
+
+    auto maybe_worker_addr =
+        api_->StateMinerWorker(miner_address_, maybe_tipset_key.value());
     if (maybe_worker_addr.has_error()) {
       logger_->error("handleCommitting: api error, not proceeding: {}",
                      maybe_worker_addr.error().message());
@@ -488,30 +511,32 @@ namespace fc::mining {
     }
 
     auto maybe_collateral = api_->StateMinerInitialPledgeCollateral(
-        miner_address_, info->sector_number, maybe_head.value().tipset);
+        miner_address_, info->sector_number, maybe_tipset_key.value());
     if (maybe_collateral.has_error()) {
       logger_->error("getting initial pledge collateral: {}",
                      maybe_collateral.error().message());
       return;
     }
 
-    auto maybe_message_cid =
-        api_->SendMsg(maybe_worker_addr.value(),
-                      miner_address_,
-                      vm::actor::builtin::miner::ProveCommitSector::Number,
-                      maybe_collateral.value(),
-                      1,
-                      1000000,
-                      {});
-    if (maybe_message_cid.has_error()) {
+    auto maybe_signed_msg = api_->MpoolPushMessage(vm::message::UnsignedMessage(
+        maybe_worker_addr.value(),
+        miner_address_,
+        0,
+        maybe_collateral.value(),
+        1,
+        1000000,
+        vm::actor::builtin::miner::ProveCommitSector::Number,
+        {}));
+
+    if (maybe_signed_msg.has_error()) {
       logger_->error("pushing message to mpool: {}",
-                     maybe_message_cid.error().message());
+                     maybe_signed_msg.error().message());
       OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommitFailed));
       return;
     }
 
     info->proof = maybe_proof.value();
-    info->message = maybe_message_cid.value();
+    info->message = maybe_signed_msg.value().getCid();
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kCommitWait));
   }
 
@@ -527,7 +552,15 @@ namespace fc::mining {
       return;
     }
 
-    auto maybe_message_lookup = api_->StateWaitMsg(info->message.get());
+    auto maybe_channel = api_->StateWaitMsg(info->message.get());
+
+    if (maybe_channel.has_error()) {
+      logger_->error("get message failed: {}", maybe_channel.error().message());
+      return;
+    }
+
+    auto maybe_message_lookup = maybe_channel.value().waitSync();
+
     if (maybe_message_lookup.has_error()) {
       logger_->error("failed to wait for porep inclusion: {}",
                      maybe_message_lookup.error().message());
@@ -535,7 +568,7 @@ namespace fc::mining {
       return;
     }
 
-    if (maybe_message_lookup.value().receipt.exit_code != VMExitCode::kOk) {
+    if (maybe_message_lookup.value().receipt.exit_code != vm::VMExitCode::kOk) {
       logger_->error(
           "submitting sector proof failed with code {}, message cid: {}",
           maybe_message_lookup.value().receipt.exit_code,
@@ -544,10 +577,16 @@ namespace fc::mining {
       return;
     }
 
-    auto maybe_error =
-        api_->StateSectorGetInfo(miner_address_,
-                                 info->sector_number,
-                                 maybe_message_lookup.value().tipset_token);
+    auto maybe_tipset_key = maybe_message_lookup.value().tipset.makeKey();
+
+    if (maybe_tipset_key.has_error()) {
+      logger_->error("make tipset key error: {}",
+                     maybe_tipset_key.error().message());
+      return;
+    }
+
+    auto maybe_error = api_->StateSectorGetInfo(
+        miner_address_, info->sector_number, maybe_tipset_key.value());
 
     if (maybe_error.has_error()) {
       logger_->error(
@@ -693,24 +732,21 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
 
-    auto ticket_epoch =
-        head.epoch - vm::actor::builtin::miner::kChainFinalityish;
+    OUTCOME_TRY(tipset_key, head.makeKey());
 
-    OUTCOME_TRY(precommit_info,
-                api_->StateSectorPreCommitInfo(
-                    miner_address_, info->sector_number, head.tipset));
+    ChainEpoch ticket_epoch =
+        head.height - vm::actor::builtin::miner::kChainFinalityish;
 
-    if (precommit_info) {
-      ticket_epoch = precommit_info.get().info.seal_epoch;
-    }
+    // TODO: get precommit info from api
 
     // TODO: Marshal param
 
-    OUTCOME_TRY(randomness,
-                api_->ChainGetRandomness(head.tipset,
-                                         DomainSeparationTag::SealRandomness,
-                                         ticket_epoch,
-                                         {}));
+    OUTCOME_TRY(
+        randomness,
+        api_->ChainGetRandomness(tipset_key,
+                                 api::DomainSeparationTag::SealRandomness,
+                                 ticket_epoch,
+                                 {}));
 
     return TicketInfo{
         .ticket = randomness,

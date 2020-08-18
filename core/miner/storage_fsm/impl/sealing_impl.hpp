@@ -8,24 +8,27 @@
 
 #include "miner/storage_fsm/sealing.hpp"
 
+#include "api/api.hpp"
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
-#include "miner/storage_fsm/api.hpp"
 #include "miner/storage_fsm/events.hpp"
 #include "miner/storage_fsm/sealing_states.hpp"
 #include "miner/storage_fsm/selaing_events.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/piece/piece.hpp"
+#include "primitives/tipset/tipset_key.hpp"
 #include "primitives/types.hpp"
 #include "sector_storage/manager.hpp"
 
 namespace fc::mining {
+  using api::Api;
   using primitives::ChainEpoch;
   using primitives::SectorNumber;
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
+  using primitives::tipset::TipsetKey;
   using proofs::SealRandomness;
   using sector_storage::InteractiveRandomness;
   using sector_storage::Manager;
@@ -45,7 +48,7 @@ namespace fc::mining {
 
     boost::optional<CID> precommit_message;
 
-    TipsetToken precommit_tipset;
+    TipsetKey precommit_tipset;
 
     InteractiveRandomness seed;
     ChainEpoch seed_epoch;
@@ -269,7 +272,7 @@ namespace fc::mining {
     /** State machine */
     std::shared_ptr<StorageFSM> fsm_;
 
-    std::shared_ptr<SealingApi> api_;
+    std::shared_ptr<Api> api_;
     std::shared_ptr<Events> events_;
 
     Address miner_address_;

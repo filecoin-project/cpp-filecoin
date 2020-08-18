@@ -634,6 +634,20 @@ namespace fc::api {
           OUTCOME_TRY(state, context.initState());
           return state.network_name;
         }},
+        .StateMinerInitialPledgeCollateral =
+            {[=](auto address,
+                 auto sector_number,
+                 auto tipset_key) -> outcome::result<TokenAmount> {
+              // TODO(artyom-yurin): FIL-165 implement method
+              return outcome::success();
+            }},
+        .StateSectorGetInfo = {[=](auto address,
+                                   auto sector_number,
+                                   auto tipset_key)
+                                   -> outcome::result<SectorOnChainInfo> {
+          // TODO(artyom-yurin): FIL-165 implement method
+          return outcome::success();
+        }},
         .StateWaitMsg = {[=](auto &cid) -> outcome::result<Wait<MsgWait>> {
           auto channel = std::make_shared<Channel<outcome::result<MsgWait>>>();
           msg_waiter->wait(cid, [=](auto &result) {
