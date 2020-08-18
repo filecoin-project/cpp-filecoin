@@ -377,6 +377,16 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
     API_METHOD(StateNetworkName, std::string)
+    API_METHOD(StateMinerInitialPledgeCollateral,
+               TokenAmount,
+               const Address &,
+               SectorNumber,
+               const TipsetKey &)
+    API_METHOD(StateSectorGetInfo,
+               SectorOnChainInfo,
+               const Address &,
+               SectorNumber,
+               const TipsetKey &);
     API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &)
 
     API_METHOD(SyncSubmitBlock, void, const BlockWithCids &)

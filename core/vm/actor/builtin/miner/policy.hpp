@@ -9,6 +9,7 @@
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::miner {
   using primitives::ChainEpoch;

@@ -120,6 +120,8 @@ namespace fc::api {
     setup(rpc, api.StateMinerSectorSize);
     setup(rpc, api.StateMinerWorker);
     setup(rpc, api.StateNetworkName);
+    setup(rpc, api.StateMinerInitialPledgeCollateral);
+    setup(rpc, api.StateSectorGetInfo);
     setup(rpc, api.StateWaitMsg);
     setup(rpc, api.SyncSubmitBlock);
     setup(rpc, api.Version);
