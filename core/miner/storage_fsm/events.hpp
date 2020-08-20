@@ -12,6 +12,9 @@ namespace fc::mining {
   using primitives::ChainEpoch;
   using primitives::tipset::Tipset;
 
+  constexpr ChainEpoch kGlobalChainConfidence =
+      2 * vm::actor::builtin::miner::kChainFinalityish;
+
   class Events {
    public:
     /**
@@ -25,7 +28,7 @@ namespace fc::mining {
 
     virtual outcome::result<void> chainAt(HeightHandler,
                                           RevertHandler,
-                                          int confidence,
+                                          ChainEpoch confidence,
                                           ChainEpoch height) = 0;
   };
 
