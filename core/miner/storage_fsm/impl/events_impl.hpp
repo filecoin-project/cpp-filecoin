@@ -6,8 +6,10 @@
 #ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_EVENTS_IMPL_HPP
 #define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_IMPL_EVENTS_IMPL_HPP
 
-#include <storage/chain/chain_store.hpp>
 #include "miner/storage_fsm/events.hpp"
+
+#include "miner/storage_fsm/tipset_cache.hpp"
+#include "storage/chain/chain_store.hpp"
 
 namespace fc::mining {
   using primitives::tipset::HeadChange;
@@ -44,7 +46,7 @@ namespace fc::mining {
 
     std::mutex mutex_;
 
-    // TODO: tipset cache
+    std::shared_ptr<TipsetCache> tipset_cache_;
   };
 
 }  // namespace fc::mining

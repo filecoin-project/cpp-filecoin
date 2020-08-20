@@ -12,16 +12,17 @@ namespace fc::mining {
                                             ChainEpoch confidence,
                                             ChainEpoch height) {
     std::unique_lock<std::mutex> lock(mutex_);
-    auto best_height = 0;  // TODO: get best from cache
+    ChainEpoch best_height = tipset_cache_->best()->height;
 
     if (best_height >= height + confidence) {
-      Tipset stub;  // TODO: get Tipset
+      OUTCOME_TRY(tipset, tipset_cache_->getNonNull(height));
 
       lock.unlock();
-      OUTCOME_TRY(handler(stub, best_height));
+
+      OUTCOME_TRY(handler(tipset, best_height));
 
       lock.lock();
-      best_height = 0;  // TODO: get best from cache, height can be changed
+      best_height = tipset_cache_->best()->height;
     }
 
     if (best_height >= height + confidence + kGlobalChainConfidence) {
@@ -49,7 +50,11 @@ namespace fc::mining {
     if (change.type == HeadChangeType::APPLY) {
       std::unique_lock<std::mutex> lock(mutex_);
 
-      // TODO: add to cache
+      auto maybe_error = tipset_cache_->add(change.value);
+      if (maybe_error.has_error()) {
+        // TODO: log it
+        return;
+      }
 
       auto apply = [&](ChainEpoch height,
                        const Tipset &tipset) -> outcome::result<void> {
@@ -61,11 +66,11 @@ namespace fc::mining {
 
           auto trigger_height = height - handler.confidence;
 
-          Tipset stub;  // TODO: get tipset
+          OUTCOME_TRY(income_tipset, tipset_cache_->getNonNull(trigger_height));
 
           auto handle = handler.handler;
           lock.unlock();
-          auto maybe_error = handle(stub, height);
+          auto maybe_error = handle(income_tipset, height);
           lock.lock();
           height_triggers_[tid].called = true;
           if (maybe_error.has_error()) {
@@ -75,13 +80,35 @@ namespace fc::mining {
         return outcome::success();
       };
       auto tipset = change.value;
-      auto maybe_error = apply(tipset.height, tipset);
+      maybe_error = apply(tipset.height, tipset);
 
       if (maybe_error.has_error()) {
         // TODO: log it
         return;
       }
-      // TODO: loop until find some not null tipset
+
+      ChainEpoch sub_height = tipset.height - 1;
+      while (true) {
+        auto maybe_tipset_opt = tipset_cache_->get(sub_height);
+
+        if (maybe_tipset_opt.has_error()) {
+          // TODO: log it
+          return;
+        }
+
+        if (maybe_tipset_opt.value()) {
+          return;
+        }
+
+        maybe_error = apply(sub_height, tipset);
+
+        if (maybe_error.has_error()) {
+          // TODO: log it
+          return;
+        }
+
+        sub_height--;
+      }
     }
 
     if (change.type == HeadChangeType::REVERT) {
@@ -108,9 +135,28 @@ namespace fc::mining {
 
       revert(tipset.height, tipset);
 
-      // TODO: loop until find some not null tipset
+      ChainEpoch sub_height = tipset.height - 1;
+      while (true) {
+        auto maybe_tipset_opt = tipset_cache_->get(sub_height);
 
-      // TODO: revert tipset from cache
+        if (maybe_tipset_opt.has_error()) {
+          // TODO: log it
+          break;
+        }
+
+        if (maybe_tipset_opt.value()) {
+          break;
+        }
+
+        revert(sub_height, tipset);
+        sub_height--;
+      }
+
+      auto maybe_error = tipset_cache_->revert(tipset);
+      if (maybe_error.has_error()) {
+        // TODO: log it
+      }
+      return;
     }
 
     // TODO: log it
