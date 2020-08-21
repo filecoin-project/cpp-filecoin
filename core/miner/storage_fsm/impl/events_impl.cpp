@@ -12,7 +12,13 @@ namespace fc::mining {
                                             ChainEpoch confidence,
                                             ChainEpoch height) {
     std::unique_lock<std::mutex> lock(mutex_);
-    ChainEpoch best_height = tipset_cache_->best()->height;
+    auto best_tipset = tipset_cache_->best();
+
+    if (!best_tipset) {
+      return outcome::success();  // TODO: error
+    }
+
+    ChainEpoch best_height = best_tipset->height;
 
     if (best_height >= height + confidence) {
       OUTCOME_TRY(tipset, tipset_cache_->getNonNull(height));
@@ -22,7 +28,12 @@ namespace fc::mining {
       OUTCOME_TRY(handler(tipset, best_height));
 
       lock.lock();
-      best_height = tipset_cache_->best()->height;
+      best_tipset = tipset_cache_->best();
+
+      if (!best_tipset) {
+        return outcome::success();  // TODO: error
+      }
+      best_height = best_tipset->height;
     }
 
     if (best_height >= height + confidence + kGlobalChainConfidence) {

@@ -6,7 +6,12 @@
 #ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_TIPSET_CACHE_HPP
 #define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_TIPSET_CACHE_HPP
 
+#include "primitives/chain_epoch/chain_epoch.hpp"
+#include "primitives/tipset/tipset.hpp"
+
 namespace fc::mining {
+  using primitives::ChainEpoch;
+  using primitives::tipset::Tipset;
 
   class TipsetCache {
    public:
@@ -16,10 +21,9 @@ namespace fc::mining {
 
     virtual outcome::result<void> revert(const Tipset &tipset) = 0;
 
-    virtual outcome::result<Tipset> getNonNull(ChainEpoch height) const = 0;
+    virtual outcome::result<Tipset> getNonNull(uint64_t height) = 0;
 
-    virtual outcome::result<boost::optional<Tipset>> get(
-        ChainEpoch height) const = 0;
+    virtual outcome::result<boost::optional<Tipset>> get(uint64_t height) = 0;
 
     virtual boost::optional<Tipset> best() const = 0;
   };
