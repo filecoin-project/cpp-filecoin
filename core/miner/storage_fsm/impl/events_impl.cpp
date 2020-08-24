@@ -5,6 +5,8 @@
 
 #include "miner/storage_fsm/impl/events_impl.hpp"
 
+#include <set>
+
 namespace fc::mining {
 
   outcome::result<void> EventsImpl::chainAt(HeightHandler handler,
@@ -51,8 +53,8 @@ namespace fc::mining {
         .revert = revert_handler,
     };
 
-    message_height_to_trigger_[height].push_back(id);
-    height_to_trigger_[trigger_at].push_back(id);
+    message_height_to_trigger_[height].insert(id);
+    height_to_trigger_[trigger_at].insert(id);
 
     return outcome::success();
   }
@@ -128,12 +130,29 @@ namespace fc::mining {
     }
 
     if (change.type == HeadChangeType::REVERT) {
-      // TODO: log error if h below gcconfidence
-      // revert height-based triggers
-
       std::unique_lock<std::mutex> lock(mutex_);
 
+      auto best_tipset = tipset_cache_->best();
+
+      if (!best_tipset) {
+        logger_->error("Cache is empty");
+        return;
+      }
+
+      ChainEpoch best_height = best_tipset->height;
+
       auto revert = [&](ChainEpoch height, const Tipset &tipset) {
+        if (best_height >= height + kGlobalChainConfidence) {
+          logger_->warn("Tipset is deprecated");
+          for (const auto tid : message_height_to_trigger_[height]) {
+            auto id = height + height_triggers_[tid].confidence;
+            height_to_trigger_[id].erase(tid);
+            height_triggers_.erase(tid);
+          }
+          message_height_to_trigger_.erase(height);
+          return;
+        }
+
         for (const auto tid : message_height_to_trigger_[height]) {
           auto revert_handle = height_triggers_[tid].revert;
           lock.unlock();
@@ -145,6 +164,15 @@ namespace fc::mining {
             logger_->error("Revert handler is failed: {}",
                            maybe_error.error().message());
           }
+
+          auto best_tipset = tipset_cache_->best();
+
+          if (!best_tipset) {
+            logger_->error("Cache is empty");
+            return;
+          }
+
+          ChainEpoch best_height = best_tipset->height;
         }
       };
 

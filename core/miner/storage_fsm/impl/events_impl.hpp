@@ -40,9 +40,8 @@ namespace fc::mining {
 
     std::unordered_map<uint64_t, HeightHandle> height_triggers_;
 
-    std::map<ChainEpoch, std::vector<uint64_t>>
-        height_to_trigger_;  // for apply
-    std::map<ChainEpoch, std::vector<uint64_t>>
+    std::map<ChainEpoch, std::set<uint64_t>> height_to_trigger_;  // for apply
+    std::map<ChainEpoch, std::set<uint64_t>>
         message_height_to_trigger_;  // for revert
 
     std::mutex mutex_;
