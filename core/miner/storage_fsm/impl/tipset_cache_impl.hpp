@@ -8,10 +8,17 @@
 
 #include "miner/storage_fsm/tipset_cache.hpp"
 
+#include "primitives/tipset/tipset_key.hpp"
+
 namespace fc::mining {
+  using primitives::tipset::TipsetKey;
+
   class TipsetCacheImpl : public TipsetCache {
    public:
-    TipsetCacheImpl(uint64_t capability); // TODO: add download function
+    using GetTipsetFunction =
+        std::function<outcome::result<Tipset>(ChainEpoch, const TipsetKey &)>;
+
+    TipsetCacheImpl(uint64_t capability, GetTipsetFunction get_function);
 
     outcome::result<void> add(const Tipset &tipset) override;
 
@@ -29,6 +36,8 @@ namespace fc::mining {
     int64_t start_;
 
     uint64_t len_;
+
+    GetTipsetFunction get_function_;
   };
 }  // namespace fc::mining
 

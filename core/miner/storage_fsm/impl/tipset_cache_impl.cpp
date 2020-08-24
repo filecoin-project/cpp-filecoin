@@ -13,7 +13,9 @@ namespace fc::mining {
     return ((n % m) + m) % m;
   }
 
-  TipsetCacheImpl::TipsetCacheImpl(uint64_t capability) {
+  TipsetCacheImpl::TipsetCacheImpl(uint64_t capability,
+                                   GetTipsetFunction get_function)
+      : get_function_(std::move(get_function)) {
     cache_.reserve(capability);
     start_ = 0;
     len_ = 0;
@@ -81,9 +83,9 @@ namespace fc::mining {
   outcome::result<boost::optional<Tipset>> TipsetCacheImpl::get(
       uint64_t height) {
     if (len_ == 0) {
-      // TODO: download tipset
-      // TODO: save
-      return outcome::success();  // TODO: return Tipset
+      OUTCOME_TRY(tipset, get_function_(height, TipsetKey()));
+      OUTCOME_TRY(add(tipset));
+      return std::move(tipset);
     }
 
     auto head_height = cache_[start_]->height;
@@ -94,7 +96,8 @@ namespace fc::mining {
 
     auto cache_length = cache_.size();
     boost::optional<Tipset> tail = boost::none;
-    for (uint64_t i = 1; i <= len_; i++) {
+    uint64_t i;
+    for (i = 1; i <= len_; i++) {
       tail = cache_[normalModulo(start_ - len_ + i, cache_length)];
       if (tail) {
         break;
@@ -102,9 +105,14 @@ namespace fc::mining {
     }
 
     if (height < tail->height) {
-      // TODO: download tipset
-      // TODO: save if can be allocated
-      return outcome::success();
+      OUTCOME_TRY(key, tail->makeKey());
+      OUTCOME_TRY(tipset, get_function_(height, key));
+      if (i > (tail->height - height)) {
+        cache_[normalModulo(start_ - len_ + (tail->height - height),
+                            cache_length)] = tipset;
+        // TODO: Maybe extend cache, if len less than cache size
+      }
+      return std::move(tipset);
     }
 
     return cache_[normalModulo(start_ - (head_height - height), cache_length)];
