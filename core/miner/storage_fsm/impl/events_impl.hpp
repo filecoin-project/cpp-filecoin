@@ -15,9 +15,13 @@
 namespace fc::mining {
   using primitives::tipset::HeadChange;
   using primitives::tipset::HeadChangeType;
+  using storage::blockchain::ChainStore;
 
   class EventsImpl : public Events {
    public:
+    EventsImpl(const std::shared_ptr<ChainStore> &chain_store,
+               std::shared_ptr<TipsetCache> tipset_cache);
+
     outcome::result<void> chainAt(HeightHandler handler,
                                   RevertHandler revert_handler,
                                   ChainEpoch confidence,

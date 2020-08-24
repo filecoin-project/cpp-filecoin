@@ -209,6 +209,13 @@ namespace fc::mining {
     logger_->warn("Unexpected head change notification type");
   }
 
+  EventsImpl::EventsImpl(const std::shared_ptr<ChainStore> &chain_store,
+                         std::shared_ptr<TipsetCache> tipset_cache)
+      : global_id_(0), tipset_cache_(std::move(tipset_cache)) {
+    connection_ = chain_store->subscribeHeadChanges(
+        std::bind(&EventsImpl::callback_function, this, std::placeholders::_1));
+  }
+
 }  // namespace fc::mining
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::mining, EventsError, e) {

@@ -17,6 +17,7 @@ add_library(events
 target_link_libraries(events
         logger
         tipset_cache
+        chain_store
         )
 
 add_library(storage_fsm
