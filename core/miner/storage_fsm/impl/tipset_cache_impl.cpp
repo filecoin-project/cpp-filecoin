@@ -53,21 +53,7 @@ namespace fc::mining {
   }
 
   outcome::result<void> TipsetCacheImpl::revert(const Tipset &tipset) {
-    if (len_ == 0) {
-      return outcome::success();
-    }
-
-    if (cache_[start_].get() != tipset) {
-      return TipsetCacheError::kNotMatchHead;
-    }
-
-    cache_[start_] = boost::none;
-    start_ = normalModulo(start_ - 1, cache_.size());
-    len_--;
-
-    // TODO: remove null blocks
-
-    return outcome::success();
+    return revert_(tipset);
   }
 
   outcome::result<Tipset> TipsetCacheImpl::getNonNull(uint64_t height) {
@@ -120,6 +106,25 @@ namespace fc::mining {
 
   boost::optional<Tipset> TipsetCacheImpl::best() const {
     return cache_[start_];
+  }
+
+  outcome::result<void> TipsetCacheImpl::revert_(
+      const boost::optional<Tipset> &maybe_tipset) {
+    if (len_ == 0) {
+      return outcome::success();
+    }
+
+    if (cache_[start_] != maybe_tipset) {
+      return TipsetCacheError::kNotMatchHead;
+    }
+
+    cache_[start_] = boost::none;
+    start_ = normalModulo(start_ - 1, cache_.size());
+    len_--;
+
+    // NOLINTNEXTLINE
+    revert_(boost::none);  // remove previous boost::none entries
+    return outcome::success();
   }
 
 }  // namespace fc::mining

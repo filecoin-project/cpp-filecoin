@@ -7,7 +7,8 @@ add_library(tipset_cache
         impl/tipset_cache_impl.cpp
         )
 target_link_libraries(tipset_cache
-        logger
+        tipset
+        Boost::boost
         )
 
 add_library(events
