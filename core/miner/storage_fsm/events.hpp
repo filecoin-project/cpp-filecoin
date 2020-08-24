@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_EVENTS_HPP
 
 #include "primitives/tipset/tipset.hpp"
+#include "vm/actor/builtin/miner/policy.hpp"
 
 namespace fc::mining {
   using primitives::ChainEpoch;
@@ -32,6 +33,12 @@ namespace fc::mining {
                                           ChainEpoch height) = 0;
   };
 
+  enum class EventsError {
+    kNotFoundTipset = 1,
+  };
+
 }  // namespace fc::mining
+
+OUTCOME_HPP_DECLARE_ERROR(fc::mining, EventsError);
 
 #endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_EVENTS_HPP

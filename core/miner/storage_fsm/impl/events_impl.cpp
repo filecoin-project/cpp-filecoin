@@ -15,7 +15,7 @@ namespace fc::mining {
     auto best_tipset = tipset_cache_->best();
 
     if (!best_tipset) {
-      return outcome::success();  // TODO: error
+      return EventsError::kNotFoundTipset;
     }
 
     ChainEpoch best_height = best_tipset->height;
@@ -31,7 +31,7 @@ namespace fc::mining {
       best_tipset = tipset_cache_->best();
 
       if (!best_tipset) {
-        return outcome::success();  // TODO: error
+        return EventsError::kNotFoundTipset;
       }
       best_height = best_tipset->height;
     }
@@ -174,3 +174,13 @@ namespace fc::mining {
   }
 
 }  // namespace fc::mining
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::mining, EventsError, e) {
+  using fc::mining::EventsError;
+  switch (e) {
+    case (EventsError::kNotFoundTipset):
+      return "Events: not found tipset";
+    default:
+      return "Events: unknown error";
+  }
+}
