@@ -8,6 +8,7 @@
 
 #include "miner/storage_fsm/events.hpp"
 
+#include "common/logger.hpp"
 #include "miner/storage_fsm/tipset_cache.hpp"
 #include "storage/chain/chain_store.hpp"
 
@@ -47,6 +48,8 @@ namespace fc::mining {
     std::mutex mutex_;
 
     std::shared_ptr<TipsetCache> tipset_cache_;
+
+    common::Logger logger_;
   };
 
 }  // namespace fc::mining

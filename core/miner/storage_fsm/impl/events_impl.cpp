@@ -63,7 +63,8 @@ namespace fc::mining {
 
       auto maybe_error = tipset_cache_->add(change.value);
       if (maybe_error.has_error()) {
-        // TODO: log it
+        logger_->error("Adding tipset into cache failed: {}",
+                       maybe_error.error().message());
         return;
       }
 
@@ -85,7 +86,8 @@ namespace fc::mining {
           lock.lock();
           height_triggers_[tid].called = true;
           if (maybe_error.has_error()) {
-            // TODO: log it
+            logger_->error("Height handler is failed: {}",
+                           maybe_error.error().message());
           }
         }
         return outcome::success();
@@ -94,7 +96,8 @@ namespace fc::mining {
       maybe_error = apply(tipset.height, tipset);
 
       if (maybe_error.has_error()) {
-        // TODO: log it
+        logger_->error("Applying tipset failed: {}",
+                       maybe_error.error().message());
         return;
       }
 
@@ -103,7 +106,8 @@ namespace fc::mining {
         auto maybe_tipset_opt = tipset_cache_->get(sub_height);
 
         if (maybe_tipset_opt.has_error()) {
-          // TODO: log it
+          logger_->error("Getting tipset from cache failed: {}",
+                         maybe_tipset_opt.error().message());
           return;
         }
 
@@ -114,7 +118,8 @@ namespace fc::mining {
         maybe_error = apply(sub_height, tipset);
 
         if (maybe_error.has_error()) {
-          // TODO: log it
+          logger_->error("Applying tipset failed: {}",
+                         maybe_error.error().message());
           return;
         }
 
@@ -137,7 +142,8 @@ namespace fc::mining {
           height_triggers_[tid].called = false;
 
           if (maybe_error.has_error()) {
-            // TODO: log it
+            logger_->error("Revert handler is failed: {}",
+                           maybe_error.error().message());
           }
         }
       };
@@ -151,7 +157,8 @@ namespace fc::mining {
         auto maybe_tipset_opt = tipset_cache_->get(sub_height);
 
         if (maybe_tipset_opt.has_error()) {
-          // TODO: log it
+          logger_->error("Getting tipset from cache failed: {}",
+                         maybe_tipset_opt.error().message());
           break;
         }
 
@@ -165,12 +172,13 @@ namespace fc::mining {
 
       auto maybe_error = tipset_cache_->revert(tipset);
       if (maybe_error.has_error()) {
-        // TODO: log it
+        logger_->error("Reverting tipset failed: {}",
+                       maybe_error.error().message());
       }
       return;
     }
 
-    // TODO: log it
+    logger_->warn("Unexpected head change notification type");
   }
 
 }  // namespace fc::mining
