@@ -25,7 +25,7 @@ namespace fc::mining {
   outcome::result<void> TipsetCacheImpl::add(const Tipset &tipset) {
     if (len_ > 0) {
       if (cache_[start_]->height >= tipset.height) {
-        return outcome::success();  // TODO: Error
+        return TipsetCacheError::kSmallerHeight;
       }
     }
 
@@ -58,7 +58,7 @@ namespace fc::mining {
     }
 
     if (cache_[start_].get() != tipset) {
-      return outcome::success();  // TODO: Error
+      return TipsetCacheError::kNotMatchHead;
     }
 
     cache_[start_] = boost::none;
@@ -91,7 +91,7 @@ namespace fc::mining {
     auto head_height = cache_[start_]->height;
 
     if (height > head_height) {
-      return outcome::success();  // TODO: Error
+      return TipsetCacheError::kNotInCache;
     }
 
     auto cache_length = cache_.size();
@@ -123,3 +123,17 @@ namespace fc::mining {
   }
 
 }  // namespace fc::mining
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::mining, TipsetCacheError, e) {
+  using fc::mining::TipsetCacheError;
+  switch (e) {
+    case (TipsetCacheError::kSmallerHeight):
+      return "TipsetCache: cache height is higher than the new tipset";
+    case (TipsetCacheError::kNotMatchHead):
+      return "TipsetCache: revert tipset doesn't match cache head";
+    case (TipsetCacheError::kNotInCache):
+      return "TipsetCache: requested tipset not in cache";
+    default:
+      return "TipsetCache: unknown error";
+  }
+}

@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_TIPSET_CACHE_HPP
 #define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_TIPSET_CACHE_HPP
 
+#include "common/outcome.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/tipset/tipset.hpp"
 
@@ -28,6 +29,13 @@ namespace fc::mining {
     virtual boost::optional<Tipset> best() const = 0;
   };
 
+  enum class TipsetCacheError {
+    kSmallerHeight = 1,
+    kNotMatchHead,
+    kNotInCache,
+  };
 }  // namespace fc::mining
+
+OUTCOME_HPP_DECLARE_ERROR(fc::mining, TipsetCacheError);
 
 #endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_TIPSET_CACHE_HPP
