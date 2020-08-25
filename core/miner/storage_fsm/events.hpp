@@ -7,10 +7,15 @@
 #define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_EVENTS_HPP
 
 #include "primitives/tipset/tipset.hpp"
+#include "vm/actor/builtin/miner/policy.hpp"
 
 namespace fc::mining {
   using primitives::ChainEpoch;
+  using primitives::EpochDuration;
   using primitives::tipset::Tipset;
+
+  constexpr ChainEpoch kGlobalChainConfidence =
+      2 * vm::actor::builtin::miner::kChainFinalityish;
 
   class Events {
    public:
@@ -25,10 +30,16 @@ namespace fc::mining {
 
     virtual outcome::result<void> chainAt(HeightHandler,
                                           RevertHandler,
-                                          int confidence,
+                                          EpochDuration confidence,
                                           ChainEpoch height) = 0;
   };
 
+  enum class EventsError {
+    kNotFoundTipset = 1,
+  };
+
 }  // namespace fc::mining
+
+OUTCOME_HPP_DECLARE_ERROR(fc::mining, EventsError);
 
 #endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_EVENTS_HPP
