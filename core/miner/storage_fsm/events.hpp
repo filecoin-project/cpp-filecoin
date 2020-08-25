@@ -11,6 +11,7 @@
 
 namespace fc::mining {
   using primitives::ChainEpoch;
+  using primitives::EpochDuration;
   using primitives::tipset::Tipset;
 
   constexpr ChainEpoch kGlobalChainConfidence =
@@ -29,7 +30,7 @@ namespace fc::mining {
 
     virtual outcome::result<void> chainAt(HeightHandler,
                                           RevertHandler,
-                                          ChainEpoch confidence,
+                                          EpochDuration confidence,
                                           ChainEpoch height) = 0;
   };
 

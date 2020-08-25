@@ -9,17 +9,12 @@
 
 namespace fc::mining {
 
-  int64_t normalModulo(int64_t n, int64_t m) {
-    return ((n % m) + m) % m;
-  }
-
   TipsetCacheImpl::TipsetCacheImpl(uint64_t capability,
                                    GetTipsetFunction get_function)
       : get_function_(std::move(get_function)) {
-    cache_.reserve(capability);
+    cache_.resize(capability);
     start_ = 0;
     len_ = 0;
-    cache_[start_] = boost::none;
   }
 
   outcome::result<void> TipsetCacheImpl::add(const Tipset &tipset) {
@@ -29,31 +24,43 @@ namespace fc::mining {
       }
     }
 
-    auto next_height = tipset.height;
+    auto current_height = tipset.height;
     if (len_ > 0) {
-      next_height = cache_[start_]->height + 1;
+      current_height = cache_[start_]->height;
     }
 
-    while (next_height != tipset.height) {
-      start_ = normalModulo(start_ + 1, cache_.size());
+    while (current_height <= tipset.height) {
+      start_ = mod(start_ + 1);
       cache_[start_] = boost::none;
       if (len_ < cache_.size()) {
         len_++;
       }
-      next_height++;
+      current_height++;
     }
 
-    start_ = normalModulo(start_ + 1, cache_.size());
     cache_[start_] = tipset;
-    if (len_ < cache_.size()) {
-      len_++;
-    }
 
     return outcome::success();
   }
 
   outcome::result<void> TipsetCacheImpl::revert(const Tipset &tipset) {
-    return revert_(tipset);
+    if (len_ == 0) {
+      return outcome::success();
+    }
+
+    if (cache_[start_] != tipset) {
+      return TipsetCacheError::kNotMatchHead;
+    }
+
+    cache_[start_] = boost::none;
+    start_ = mod(start_ - 1);
+    len_--;
+
+    while (len_ && cache_[start_] == boost::none) {
+      start_ = mod(start_ - 1);
+      len_--;
+    }
+    return outcome::success();
   }
 
   outcome::result<Tipset> TipsetCacheImpl::getNonNull(uint64_t height) {
@@ -80,11 +87,10 @@ namespace fc::mining {
       return TipsetCacheError::kNotInCache;
     }
 
-    auto cache_length = cache_.size();
     boost::optional<Tipset> tail = boost::none;
     uint64_t i;
     for (i = 1; i <= len_; i++) {
-      tail = cache_[normalModulo(start_ - len_ + i, cache_length)];
+      tail = cache_[mod(start_ - len_ + i)];
       if (tail) {
         break;
       }
@@ -94,37 +100,22 @@ namespace fc::mining {
       OUTCOME_TRY(key, tail->makeKey());
       OUTCOME_TRY(tipset, get_function_(height, key));
       if (i > (tail->height - height)) {
-        cache_[normalModulo(start_ - len_ + (tail->height - height),
-                            cache_length)] = tipset;
+        cache_[mod(start_ - len_ + i - (tail->height - height))] = tipset;
         // TODO: Maybe extend cache, if len less than cache size
       }
       return std::move(tipset);
     }
 
-    return cache_[normalModulo(start_ - (head_height - height), cache_length)];
+    return cache_[mod(start_ - (head_height - height))];
   }
 
   boost::optional<Tipset> TipsetCacheImpl::best() const {
     return cache_[start_];
   }
 
-  outcome::result<void> TipsetCacheImpl::revert_(
-      const boost::optional<Tipset> &maybe_tipset) {
-    if (len_ == 0) {
-      return outcome::success();
-    }
-
-    if (cache_[start_] != maybe_tipset) {
-      return TipsetCacheError::kNotMatchHead;
-    }
-
-    cache_[start_] = boost::none;
-    start_ = normalModulo(start_ - 1, cache_.size());
-    len_--;
-
-    // NOLINTNEXTLINE
-    revert_(boost::none);  // remove previous boost::none entries
-    return outcome::success();
+  int64_t TipsetCacheImpl::mod(int64_t x) {
+    auto size = cache_.size();
+    return ((x % size) + size) % size;
   }
 
 }  // namespace fc::mining

@@ -19,17 +19,18 @@ namespace fc::mining {
 
   class EventsImpl : public Events {
    public:
+    // TODO(artyom-yurin): [FIL-242] change ChainStore to ChainNotifier
     EventsImpl(const std::shared_ptr<ChainStore> &chain_store,
                std::shared_ptr<TipsetCache> tipset_cache);
 
     outcome::result<void> chainAt(HeightHandler handler,
                                   RevertHandler revert_handler,
-                                  ChainEpoch confidence,
+                                  EpochDuration confidence,
                                   ChainEpoch height) override;
 
    private:
     struct HeightHandle {
-      ChainEpoch confidence;
+      EpochDuration confidence;
       bool called;
 
       HeightHandler handler;

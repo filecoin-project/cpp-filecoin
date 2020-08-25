@@ -31,7 +31,7 @@ namespace fc::mining {
     boost::optional<Tipset> best() const override;
 
    private:
-    outcome::result<void> revert_(const boost::optional<Tipset> &maybe_tipset);
+    int64_t mod(int64_t x);
 
     std::vector<boost::optional<Tipset>> cache_;
 

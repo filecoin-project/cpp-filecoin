@@ -11,7 +11,7 @@ namespace fc::mining {
 
   outcome::result<void> EventsImpl::chainAt(HeightHandler handler,
                                             RevertHandler revert_handler,
-                                            ChainEpoch confidence,
+                                            EpochDuration confidence,
                                             ChainEpoch height) {
     std::unique_lock<std::mutex> lock(mutex_);
     auto best_tipset = tipset_cache_->best();
@@ -70,10 +70,9 @@ namespace fc::mining {
         return;
       }
 
-      auto apply = [&](ChainEpoch height,
-                       const Tipset &tipset) -> outcome::result<void> {
+      auto apply = [&](ChainEpoch height) -> outcome::result<void> {
         for (const auto tid : height_to_trigger_[height]) {
-          auto handler = height_triggers_[tid];
+          auto &handler{height_triggers_.at(tid)};
           if (handler.called) {
             return outcome::success();
           }
@@ -82,7 +81,7 @@ namespace fc::mining {
 
           OUTCOME_TRY(income_tipset, tipset_cache_->getNonNull(trigger_height));
 
-          auto handle = handler.handler;
+          auto &handle{handler.handler};
           lock.unlock();
           auto maybe_error = handle(income_tipset, height);
           lock.lock();
@@ -95,7 +94,7 @@ namespace fc::mining {
         return outcome::success();
       };
       auto tipset = change.value;
-      maybe_error = apply(tipset.height, tipset);
+      maybe_error = apply(tipset.height);
 
       if (maybe_error.has_error()) {
         logger_->error("Applying tipset failed: {}",
@@ -117,7 +116,7 @@ namespace fc::mining {
           return;
         }
 
-        maybe_error = apply(sub_height, tipset);
+        maybe_error = apply(sub_height);
 
         if (maybe_error.has_error()) {
           logger_->error("Applying tipset failed: {}",
@@ -145,7 +144,14 @@ namespace fc::mining {
         if (best_height >= height + kGlobalChainConfidence) {
           logger_->warn("Tipset is deprecated");
           for (const auto tid : message_height_to_trigger_[height]) {
-            auto id = height + height_triggers_[tid].confidence;
+            auto &trigger{height_triggers_.at(tid)};
+            auto id = height + trigger.confidence;
+            auto maybe_error = trigger.revert(tipset);
+            if (maybe_error.has_error()) {
+              logger_->error("Revert tipset (height {}) is failed: {}",
+                             tipset.height,
+                             maybe_error.has_error());
+            }
             height_to_trigger_[id].erase(tid);
             height_triggers_.erase(tid);
           }
@@ -154,7 +160,7 @@ namespace fc::mining {
         }
 
         for (const auto tid : message_height_to_trigger_[height]) {
-          auto revert_handle = height_triggers_[tid].revert;
+          auto &revert_handle{height_triggers_[tid].revert};
           lock.unlock();
           auto maybe_error = revert_handle(tipset);
           lock.lock();
@@ -172,7 +178,7 @@ namespace fc::mining {
             return;
           }
 
-          ChainEpoch best_height = best_tipset->height;
+          best_height = best_tipset->height;
         }
       };
 
