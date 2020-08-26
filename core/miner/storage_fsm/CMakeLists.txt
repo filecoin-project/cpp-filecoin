@@ -26,6 +26,8 @@ add_library(storage_fsm
 target_link_libraries(storage_fsm
         fuhon_fsm
         logger
+        address
+        tipset
         api
         events
         )
