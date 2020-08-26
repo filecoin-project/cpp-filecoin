@@ -7,15 +7,15 @@
 #define CPP_FILECOIN_CORE_API_MINER_API_HPP
 
 #include "api/api.hpp"
+#include "miner/storage_fsm/sealing.hpp"
 #include "primitives/sector/sector.hpp"
-#include "sector_storage/sealing/types.hpp"
 
 namespace fc::api {
+  using mining::DealInfo;
+  using mining::DealSchedule;
   using primitives::DealId;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::SectorNumber;
-  using sector_storage::sealing::DealInfo;
-  using sector_storage::sealing::DealSchedule;
 
   struct PieceLocation {
     SectorNumber sector_number;

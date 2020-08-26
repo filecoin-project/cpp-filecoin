@@ -408,10 +408,9 @@ namespace fc::mining {
           if (maybe_randomness.has_error()) {
             logger_->error(
                 "failed to get randomness for computing seal proof (curHeight "
-                "{}; randHeight {}; tipset {}): {}",
+                "{}; randHeight {}): {}",
                 current_height,
                 random_height,
-                tipset_key,
                 maybe_randomness.error().message());
             OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommitFailed))
             return maybe_randomness.error();
@@ -753,15 +752,5 @@ namespace fc::mining {
         .ticket = randomness,
         .epoch = ticket_epoch,
     };
-  }
-
-  std::vector<UnpaddedPieceSize> SectorInfo::existingPieceSizes() const {
-    std::vector<UnpaddedPieceSize> result;
-
-    for (const auto &piece : pieces) {
-      result.push_back(piece.size.unpadded());
-    }
-
-    return result;
   }
 }  // namespace fc::mining

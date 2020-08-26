@@ -12,55 +12,12 @@
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
 #include "miner/storage_fsm/events.hpp"
-#include "miner/storage_fsm/sealing_states.hpp"
 #include "miner/storage_fsm/selaing_events.hpp"
-#include "primitives/address/address.hpp"
-#include "primitives/piece/piece.hpp"
-#include "primitives/tipset/tipset_key.hpp"
-#include "primitives/types.hpp"
-#include "sector_storage/manager.hpp"
 
 namespace fc::mining {
   using api::Api;
-  using primitives::ChainEpoch;
-  using primitives::SectorNumber;
-  using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
-  using primitives::piece::PieceInfo;
-  using primitives::piece::UnpaddedPieceSize;
-  using primitives::tipset::TipsetKey;
-  using proofs::SealRandomness;
-  using sector_storage::InteractiveRandomness;
   using sector_storage::Manager;
-  using sector_storage::PreCommit1Output;
-
-  struct SectorInfo {
-    primitives::SectorNumber sector_number;
-    std::vector<PieceInfo> pieces;
-
-    SealRandomness ticket;
-    ChainEpoch ticket_epoch;
-    PreCommit1Output precommit1_output;
-    uint64_t precommit2_fails;
-
-    CID comm_d;
-    CID comm_r;
-
-    boost::optional<CID> precommit_message;
-
-    TipsetKey precommit_tipset;
-
-    InteractiveRandomness seed;
-    ChainEpoch seed_epoch;
-
-    proofs::Proof proof;
-    boost::optional<CID> message;
-    uint64_t invalid_proofs;
-
-    // TODO: add fields
-
-    std::vector<UnpaddedPieceSize> existingPieceSizes() const;
-  };
 
   using SealingTransition =
       fsm::Transition<SealingEvent, SealingState, SectorInfo>;
