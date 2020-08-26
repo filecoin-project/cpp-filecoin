@@ -17,6 +17,84 @@
 
 namespace fc::mining {
 
+  outcome::result<void> SealingImpl::run() {
+    // TODO: restart fsm
+    return outcome::success();
+  }
+
+  void SealingImpl::stop() {
+    // TODO: log it
+    fsm_->stop();
+  }
+
+  outcome::result<SectorNumber> SealingImpl::allocatePiece(
+      UnpaddedPieceSize size) {
+    if (primitives::piece::paddedSize(size) != size) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    auto sid = 0;  // TODO: get next sid for sector
+
+    // TODO: log it
+
+    // TODO: new sector from manager
+    // note: now we allocate piece in add piece
+
+    return sid;
+  }
+
+  outcome::result<void> SealingImpl::sealPiece(UnpaddedPieceSize size,
+                                               const PieceData &piece_data,
+                                               SectorNumber sector_id,
+                                               DealInfo deal) {
+    // TODO: Log it
+
+    // TODO: with priority
+    OUTCOME_TRY(
+        piece_info,
+        sealer_->addPiece(minerSector(sector_id), {}, size, piece_data));
+
+    OUTCOME_TRY(proof_type,
+                primitives::sector::sealProofTypeFromSectorSize(
+                    sealer_->getSectorSize()));
+
+    // TODO: create a new Sector
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::remove(SectorNumber sector_id) {
+    // TODO: send fsm event
+    return outcome::success();
+  }
+
+  Address SealingImpl::getAddress() const {
+    return miner_address_;
+  }
+
+  std::unordered_map<std::shared_ptr<SectorInfo>, SealingState>
+  SealingImpl::getListSectors() const {
+    return fsm_->list();
+  }
+
+  // TODO: try to optimize
+  outcome::result<std::shared_ptr<SectorInfo>> SealingImpl::getSectorInfo(
+      SectorNumber id) const {
+    std::shared_ptr<SectorInfo> need_sector = std::make_shared<SectorInfo>();
+    need_sector->sector_number = id;
+    auto state_machines = fsm_->list();
+    const auto &maybe_machine{state_machines.find(need_sector)};
+    if (maybe_machine == state_machines.cend()) {
+      return outcome::success();  // TODO: error
+    }
+    return maybe_machine->first;
+  }
+
+  outcome::result<void> SealingImpl::forceSectorState(SectorNumber id,
+                                                      SealingState state) {
+    // TODO: send fsm event
+    return outcome::success();
+  }
+
   uint64_t countTrailingZeros(uint64_t n) {
     unsigned int count = 0;
     while ((n & 1) == 0) {

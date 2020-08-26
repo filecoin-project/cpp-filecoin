@@ -23,7 +23,40 @@ namespace fc::mining {
       fsm::Transition<SealingEvent, SealingState, SectorInfo>;
   using StorageFSM = fsm::FSM<SealingEvent, SealingState, SectorInfo>;
 
+  /**
+   * @note for find sectorinfo
+   */
+  inline bool operator==(const SectorInfo &lhs, const SectorInfo &rhs) {
+    return lhs.sector_number == rhs.sector_number;
+  }
+
   class SealingImpl : public Sealing {
+   public:
+    outcome::result<void> run() override;
+
+    void stop() override;
+
+    outcome::result<SectorNumber> allocatePiece(
+        UnpaddedPieceSize size) override;
+
+    outcome::result<void> sealPiece(UnpaddedPieceSize size,
+                                    const PieceData &piece_data,
+                                    SectorNumber sector_id,
+                                    DealInfo deal) override;
+
+    outcome::result<void> remove(SectorNumber sector_id) override;
+
+    Address getAddress() const override;
+
+    std::unordered_map<std::shared_ptr<SectorInfo>, SealingState>
+    getListSectors() const override;
+
+    outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
+        SectorNumber id) const override;
+
+    outcome::result<void> forceSectorState(SectorNumber id,
+                                           SealingState state) override;
+
    private:
     /**
      * Creates all FSM transitions
