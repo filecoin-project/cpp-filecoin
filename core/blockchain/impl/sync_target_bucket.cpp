@@ -12,18 +12,16 @@ namespace fc::blockchain::sync_manager {
     for (auto &t : tipsets) {
       OUTCOME_TRY(ts_key, ts.makeKey());
       OUTCOME_TRY(t_key, t.makeKey());
-      OUTCOME_TRY(t_parents_key, t.getParents());
-      OUTCOME_TRY(ts_parents_key, t.getParents());
 
       if (t == ts) {
         return true;
       }
 
-      if (ts_key == t_parents_key) {
+      if (ts_key == t.getParents()) {
         return true;
       }
 
-      if (ts_parents_key == t_key) {
+      if (ts.getParents() == t_key) {
         return true;
       }
     }

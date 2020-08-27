@@ -15,13 +15,13 @@ namespace fc::blockchain::production {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
-  outcome::result<Block> generate(Interpreter &interpreter,
-                                  std::shared_ptr<Ipld> ipld,
-                                  BlockTemplate t) {
+  outcome::result<BlockWithMessages> generate(Interpreter &interpreter,
+                                              std::shared_ptr<Ipld> ipld,
+                                              BlockTemplate t) {
     OUTCOME_TRY(parent_tipset,
                 primitives::tipset::Tipset::load(*ipld, t.parents));
     OUTCOME_TRY(vm_result, interpreter.interpret(ipld, parent_tipset));
-    Block b;
+    BlockWithMessages b;
     MsgMeta msg_meta;
     ipld->load(msg_meta);
     std::vector<crypto::bls::Signature> bls_signatures;

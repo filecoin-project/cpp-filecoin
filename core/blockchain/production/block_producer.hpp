@@ -6,13 +6,13 @@
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::blockchain::production {
-  using primitives::block::Block;
   using primitives::block::BlockTemplate;
+  using primitives::block::BlockWithMessages;
   using vm::interpreter::Interpreter;
 
   constexpr size_t kBlockMaxMessagesCount = 1000;
 
-  outcome::result<Block> generate(Interpreter &interpreter,
-                                  std::shared_ptr<Ipld> ipld,
-                                  BlockTemplate t);
+  outcome::result<BlockWithMessages> generate(Interpreter &interpreter,
+                                              std::shared_ptr<Ipld> ipld,
+                                              BlockTemplate t);
 }  // namespace fc::blockchain::production

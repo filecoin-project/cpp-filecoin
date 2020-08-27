@@ -33,7 +33,6 @@ namespace fc::api {
   using primitives::BigInt;
   using primitives::FsStat;
   using primitives::LocalStorageMeta;
-  using primitives::block::BlockHeader;
   using primitives::block::ElectionProof;
   using primitives::cid::getCidOfCbor;
   using primitives::sector::PoStProof;
@@ -1019,7 +1018,7 @@ namespace fc::api {
       decode(v.state, Get(j, "State"));
     }
 
-    ENCODE(BlockMsg) {
+    ENCODE(BlockWithCids) {
       Value j{rapidjson::kObjectType};
       Set(j, "Header", v.header);
       Set(j, "BlsMessages", v.bls_messages);
@@ -1027,7 +1026,7 @@ namespace fc::api {
       return j;
     }
 
-    DECODE(BlockMsg) {
+    DECODE(BlockWithCids) {
       decode(v.header, Get(j, "Header"));
       decode(v.bls_messages, Get(j, "BlsMessages"));
       decode(v.secp_messages, Get(j, "SecpkMessages"));

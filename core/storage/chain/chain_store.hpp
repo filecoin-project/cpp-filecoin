@@ -31,39 +31,21 @@ namespace fc::storage::blockchain {
     std::deque<Tipset> apply_chain;   ///< tipsets to apply
   };
 
-  using primitives::block::BlockHeader;
-  using primitives::tipset::Tipset;
-  using primitives::tipset::TipsetKey;
-
   /**
    * @class ChainStore keeps track of blocks
    */
-  class ChainStore : public ipfs::IpfsDatastore {
+  class ChainStore {
    public:
     virtual ~ChainStore() = default;
-
-    /**
-     * @brief loads tipset from storage
-     * @param key tipset key
-     */
-    virtual outcome::result<Tipset> loadTipset(const TipsetKey &key) const = 0;
 
     /** @brief adds block to storage */
     virtual outcome::result<void> addBlock(const BlockHeader &block) = 0;
 
-    /** @brief checks whether store contains tipset */
-    virtual outcome::result<bool> containsTipset(
-        const TipsetKey &key) const = 0;
-
     /** @brief returns current heaviest tipset */
-    virtual outcome::result<Tipset> heaviestTipset() const = 0;
+    virtual const Tipset &heaviestTipset() const = 0;
 
     /** @brief loads genesis block from storage */
-    virtual outcome::result<BlockHeader> getGenesis() const = 0;
-
-    /** @brief saves genesis block to storage */
-    virtual outcome::result<void> writeGenesis(
-        const BlockHeader &block_header) = 0;
+    virtual const BlockHeader &getGenesis() const = 0;
 
     /** @brief returns heaviest tipset weight, 0 if not set */
     virtual primitives::BigInt getHeaviestWeight() const = 0;
@@ -79,10 +61,12 @@ namespace fc::storage::blockchain {
     virtual connection_t subscribeHeadChanges(
         const std::function<HeadChangeSignature> &subscriber) = 0;
 
-    inline auto genesisTipsetKey() const {
-      OUTCOME_EXCEPT(genesis, getGenesis());
-      OUTCOME_EXCEPT(genesis_cid, primitives::cid::getCidOfCbor(genesis));
-      return TipsetKey{{std::move(genesis_cid)}};
+    virtual outcome::result<void> updateHeaviestTipset(
+        const Tipset &tipset) = 0;
+
+    inline auto genesisCid() const {
+      OUTCOME_EXCEPT(cid, primitives::cid::getCidOfCbor(getGenesis()));
+      return cid;
     }
   };
 

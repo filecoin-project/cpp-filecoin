@@ -71,7 +71,7 @@ namespace fc::primitives::tipset {
     /**
      * @return key made of parents
      */
-    outcome::result<TipsetKey> getParents() const;
+    TipsetKey getParents() const;
 
     /**
      * @return min timestamp
@@ -86,16 +86,14 @@ namespace fc::primitives::tipset {
     /**
      * @return parent state root
      */
-    CID getParentStateRoot() const;
+    const CID &getParentStateRoot() const;
 
-    inline CID getParentMessageReceipts() const {
-      return blks[0].parent_message_receipts;
-    }
+    const CID &getParentMessageReceipts() const;
 
     /**
      * @return parent weight
      */
-    BigInt getParentWeight() const;
+    const BigInt &getParentWeight() const;
 
     /**
      * @brief checks whether tipset contains block by cid

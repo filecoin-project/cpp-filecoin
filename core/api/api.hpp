@@ -63,8 +63,8 @@ namespace fc::api {
   using primitives::address::Address;
   using primitives::block::BeaconEntry;
   using primitives::block::BlockHeader;
-  using primitives::block::BlockMsg;
   using primitives::block::BlockTemplate;
+  using primitives::block::BlockWithCids;
   using primitives::cid::Comm;
   using primitives::sector::SectorInfo;
   using primitives::ticket::EPostProof;
@@ -315,7 +315,7 @@ namespace fc::api {
                const TokenAmount &,
                const TipsetKey &)
 
-    API_METHOD(MinerCreateBlock, BlockMsg, const BlockTemplate &)
+    API_METHOD(MinerCreateBlock, BlockWithCids, const BlockTemplate &)
     API_METHOD(MinerGetBaseInfo,
                boost::optional<MiningBaseInfo>,
                const Address &,
@@ -379,7 +379,7 @@ namespace fc::api {
     API_METHOD(StateNetworkName, std::string)
     API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &)
 
-    API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
+    API_METHOD(SyncSubmitBlock, void, const BlockWithCids &)
 
     API_METHOD(Version, VersionResult)
 
