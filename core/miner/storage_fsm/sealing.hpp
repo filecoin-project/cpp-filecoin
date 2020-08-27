@@ -29,9 +29,31 @@ namespace fc::mining {
   using sector_storage::InteractiveRandomness;
   using sector_storage::PreCommit1Output;
 
+  /**
+   * DealSchedule communicates the time interval of a storage deal. The deal
+   * must appear in a sealed (proven) sector no later than StartEpoch, otherwise
+   * it is invalid.
+   */
+  struct DealSchedule {
+    ChainEpoch start_epoch;
+    ChainEpoch end_epoch;
+  };
+
+  /** DealInfo is a tuple of deal identity and its schedule */
+  struct DealInfo {
+    DealId deal_id;
+    DealSchedule deal_schedule;
+  };
+
+  struct Piece {
+    PieceInfo piece;
+    boost::optional<DealInfo> deal_info;
+  };
+
   struct SectorInfo {
     primitives::SectorNumber sector_number;
-    std::vector<PieceInfo> pieces;
+    RegisteredProof sector_type;
+    std::vector<Piece> pieces;
 
     SealRandomness ticket;
     ChainEpoch ticket_epoch;
@@ -52,31 +74,25 @@ namespace fc::mining {
     boost::optional<CID> message;
     uint64_t invalid_proofs;
 
-    inline std::vector<UnpaddedPieceSize> existingPieceSizes() const {
+    inline std::vector<UnpaddedPieceSize> getExistingPieceSizes() const {
       std::vector<UnpaddedPieceSize> result;
 
       for (const auto &piece : pieces) {
-        result.push_back(piece.size.unpadded());
+        result.push_back(piece.piece.size.unpadded());
       }
 
       return result;
     }
-  };
 
-  /**
-   * DealSchedule communicates the time interval of a storage deal. The deal
-   * must appear in a sealed (proven) sector no later than StartEpoch, otherwise
-   * it is invalid.
-   */
-  struct DealSchedule {
-    ChainEpoch start_epoch;
-    ChainEpoch end_epoch;
-  };
+    inline std::vector<PieceInfo> getPieceInfos() const {
+      std::vector<PieceInfo> result;
 
-  /** DealInfo is a tuple of deal identity and its schedule */
-  struct DealInfo {
-    DealId deal_id;
-    DealSchedule deal_schedule;
+      for (const auto &piece : pieces) {
+        result.push_back(piece.piece);
+      }
+
+      return result;
+    }
   };
 
   // Epochs
@@ -102,8 +118,7 @@ namespace fc::mining {
 
     virtual Address getAddress() const = 0;
 
-    virtual std::unordered_map<std::shared_ptr<SectorInfo>, SealingState>
-    getListSectors() const = 0;
+    virtual std::vector<SectorNumber> getListSectors() const = 0;
 
     virtual outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber id) const = 0;
