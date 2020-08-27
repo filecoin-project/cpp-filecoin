@@ -36,13 +36,9 @@ namespace fc::mining {
 
     void stop() override;
 
-    outcome::result<SectorNumber> allocatePiece(
-        UnpaddedPieceSize size) override;
-
-    outcome::result<void> sealPiece(UnpaddedPieceSize size,
-                                    const PieceData &piece_data,
-                                    SectorNumber sector_id,
-                                    DealInfo deal) override;
+    outcome::result<void> AddPieceToAnySector(UnpaddedPieceSize size,
+                                              const PieceData &piece_data,
+                                              DealInfo deal) override;
 
     outcome::result<void> remove(SectorNumber sector_id) override;
 
@@ -55,6 +51,12 @@ namespace fc::mining {
 
     outcome::result<void> forceSectorState(SectorNumber id,
                                            SealingState state) override;
+
+    outcome::result<void> markForUpgrade(SectorNumber id) override;
+
+    bool isMarkedForUpgrade(SectorNumber id) override;
+
+    outcome::result<void> startPacking(SectorNumber id) override;
 
    private:
     outcome::result<void> newSector(SectorNumber id,
@@ -263,6 +265,9 @@ namespace fc::mining {
     SectorId minerSector(SectorNumber num);
 
     std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>> sectors_;
+
+    std::set<SectorNumber> to_upgrade_;
+    std::shared_mutex upgrade_mutex_;
 
     /** State machine */
     std::shared_ptr<StorageFSM> fsm_;
