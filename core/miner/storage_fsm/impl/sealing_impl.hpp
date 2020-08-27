@@ -48,8 +48,7 @@ namespace fc::mining {
 
     Address getAddress() const override;
 
-    std::unordered_map<std::shared_ptr<SectorInfo>, SealingState>
-    getListSectors() const override;
+    std::vector<SectorNumber> getListSectors() const override;
 
     outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber id) const override;
@@ -58,6 +57,10 @@ namespace fc::mining {
                                            SealingState state) override;
 
    private:
+    outcome::result<void> newSector(SectorNumber id,
+                                    RegisteredProof seal_proof_type,
+                                    const std::vector<Piece> &pieces);
+
     /**
      * Creates all FSM transitions
      * @return vector of transitions for fsm
@@ -258,6 +261,8 @@ namespace fc::mining {
         gsl::span<const UnpaddedPieceSize> sizes);
 
     SectorId minerSector(SectorNumber num);
+
+    std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>> sectors_;
 
     /** State machine */
     std::shared_ptr<StorageFSM> fsm_;

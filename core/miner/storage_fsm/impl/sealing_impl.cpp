@@ -40,6 +40,7 @@ namespace fc::mining {
     // TODO: new sector from manager
     // note: now we allocate piece in add piece
 
+    // TODO: here should sid and offset return
     return sid;
   }
 
@@ -58,8 +59,12 @@ namespace fc::mining {
                 primitives::sector::sealProofTypeFromSectorSize(
                     sealer_->getSectorSize()));
 
-    // TODO: create a new Sector
-    return outcome::success();
+    return newSector(sector_id,
+                     proof_type,
+                     {Piece{
+                         .piece = piece_info,
+                         .deal_info = deal,
+                     }});
   }
 
   outcome::result<void> SealingImpl::remove(SectorNumber sector_id) {
@@ -71,28 +76,42 @@ namespace fc::mining {
     return miner_address_;
   }
 
-  std::unordered_map<std::shared_ptr<SectorInfo>, SealingState>
-  SealingImpl::getListSectors() const {
-    return fsm_->list();
+  std::vector<SectorNumber> SealingImpl::getListSectors() const {
+    std::vector<SectorNumber> keys = {};
+    for (const auto &[key, value] : sectors_) {
+      keys.push_back(key);
+    }
+    return keys;
   }
 
-  // TODO: try to optimize
   outcome::result<std::shared_ptr<SectorInfo>> SealingImpl::getSectorInfo(
       SectorNumber id) const {
-    std::shared_ptr<SectorInfo> need_sector = std::make_shared<SectorInfo>();
-    need_sector->sector_number = id;
-    auto state_machines = fsm_->list();
-    const auto &maybe_machine{state_machines.find(need_sector)};
-    if (maybe_machine == state_machines.cend()) {
+    const auto &maybe_sector{sectors_.find(id)};
+    if (maybe_sector == sectors_.cend()) {
       return outcome::success();  // TODO: error
     }
-    return maybe_machine->first;
+    return maybe_sector->second;
   }
 
   outcome::result<void> SealingImpl::forceSectorState(SectorNumber id,
                                                       SealingState state) {
     // TODO: send fsm event
     return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::newSector(
+      SectorNumber id,
+      RegisteredProof seal_proof_type,
+      const std::vector<Piece> &pieces) {
+    // TODO: log it
+    auto sector = std::make_shared<SectorInfo>();
+    sector->sector_number = id;
+    sector->sector_type = seal_proof_type;
+    sector->pieces = pieces;
+
+    sectors_[id] = sector;
+    OUTCOME_TRY(fsm_->begin(sector, SealingState::kStateUnknown));
+    return fsm_->send(sector, SealingEvent::kIncoming);
   }
 
   uint64_t countTrailingZeros(uint64_t n) {
@@ -225,7 +244,7 @@ namespace fc::mining {
 
     UnpaddedPieceSize allocated(0);
     for (const auto &piece : info->pieces) {
-      allocated += piece.size.unpadded();
+      allocated += piece.piece.size.unpadded();
     }
 
     auto ubytes = PaddedPieceSize(sealer_->getSectorSize()).unpadded();
@@ -244,7 +263,7 @@ namespace fc::mining {
     }
 
     auto maybe_result = pledgeSector(minerSector(info->sector_number),
-                                     info->existingPieceSizes(),
+                                     info->getExistingPieceSizes(),
                                      filler_sizes);
 
     if (maybe_result.has_error()) {
@@ -253,7 +272,8 @@ namespace fc::mining {
     }
 
     for (const auto &new_piece : maybe_result.value()) {
-      info->pieces.push_back(new_piece);
+      info->pieces.push_back(
+          Piece{.piece = new_piece, .deal_info = boost::none});
     }
 
     OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kPreCommit1))
@@ -323,7 +343,7 @@ namespace fc::mining {
     auto maybe_result =
         sealer_->sealPreCommit1(minerSector(info->sector_number),
                                 maybe_ticket.value().ticket,
-                                info->pieces);
+                                info->getPieceInfos());
 
     if (maybe_result.has_error()) {
       logger_->error("Seal pre commit 1 error: {}",
@@ -541,7 +561,7 @@ namespace fc::mining {
         sealer_->sealCommit1(minerSector(info->sector_number),
                              info->ticket,
                              info->seed,
-                             info->pieces,
+                             info->getPieceInfos(),
                              cids);
     if (maybe_commit_1_output.has_error()) {
       logger_->error("computing seal proof failed(1): {}",
