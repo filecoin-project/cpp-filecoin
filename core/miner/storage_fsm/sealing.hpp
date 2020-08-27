@@ -106,13 +106,10 @@ namespace fc::mining {
 
     virtual void stop() = 0;
 
-    virtual outcome::result<SectorNumber> allocatePiece(
-        UnpaddedPieceSize size) = 0;
-
-    virtual outcome::result<void> sealPiece(UnpaddedPieceSize size,
-                                            const PieceData &piece_data,
-                                            SectorNumber sector_id,
-                                            DealInfo deal) = 0;
+    virtual outcome::result<void> AddPieceToAnySector(
+        UnpaddedPieceSize size,
+        const PieceData &piece_data,
+        DealInfo deal) = 0;
 
     virtual outcome::result<void> remove(SectorNumber sector_id) = 0;
 
@@ -125,6 +122,12 @@ namespace fc::mining {
 
     virtual outcome::result<void> forceSectorState(SectorNumber id,
                                                    SealingState state) = 0;
+
+    virtual outcome::result<void> markForUpgrade(SectorNumber id) = 0;
+
+    virtual bool isMarkedForUpgrade(SectorNumber id) = 0;
+
+    virtual outcome::result<void> startPacking(SectorNumber id) = 0;
   };
 }  // namespace fc::mining
 

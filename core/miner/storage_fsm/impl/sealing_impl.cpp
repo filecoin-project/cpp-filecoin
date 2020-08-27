@@ -27,28 +27,11 @@ namespace fc::mining {
     fsm_->stop();
   }
 
-  outcome::result<SectorNumber> SealingImpl::allocatePiece(
-      UnpaddedPieceSize size) {
-    if (primitives::piece::paddedSize(size) != size) {
-      return outcome::success();  // TODO: ERROR
-    }
-
-    auto sid = 0;  // TODO: get next sid for sector
-
-    // TODO: log it
-
-    // TODO: new sector from manager
-    // note: now we allocate piece in add piece
-
-    // TODO: here should sid and offset return
-    return sid;
-  }
-
-  outcome::result<void> SealingImpl::sealPiece(UnpaddedPieceSize size,
-                                               const PieceData &piece_data,
-                                               SectorNumber sector_id,
-                                               DealInfo deal) {
+  outcome::result<void> SealingImpl::AddPieceToAnySector(
+      UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) {
     // TODO: Log it
+
+    SectorNumber sector_id = 0;  // TODO: get sid
 
     // TODO: with priority
     OUTCOME_TRY(
@@ -96,6 +79,23 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::forceSectorState(SectorNumber id,
                                                       SealingState state) {
     // TODO: send fsm event
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::markForUpgrade(SectorNumber id) {
+    std::unique_lock lock(upgrade_mutex_);
+
+    // TODO: Check current state
+
+    return outcome::success();
+  }
+
+  bool SealingImpl::isMarkedForUpgrade(SectorNumber id) {
+    std::shared_lock lock(upgrade_mutex_);
+    return to_upgrade_.find(id) != to_upgrade_.end();
+  }
+
+  outcome::result<void> SealingImpl::startPacking(SectorNumber id) {
     return outcome::success();
   }
 
