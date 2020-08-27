@@ -14,6 +14,7 @@ namespace fc::mining {
    */
   enum class SealingEvent : uint64_t {
     kIncoming = 1,
+    kWaitDeals,
     kPreCommit1,
     kPreCommit2,
     kPreCommit,
@@ -30,6 +31,12 @@ namespace fc::mining {
     kPreCommitFailed,
     kSealPreCommit2Failed,
     kSealPreCommit1Failed,
+
+    kFault,
+    kFaultReport,
+    kRemove,
+    kRemoveFailed,
+    kRemoveFinal,
   };
 }  // namespace fc::mining
 

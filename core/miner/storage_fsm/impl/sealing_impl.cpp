@@ -152,8 +152,11 @@ namespace fc::mining {
   std::vector<SealingTransition> SealingImpl::makeFSMTransitions() {
     return {
         // Main pipeline
+        SealingTransition(SealingEvent::kWaitDeals)  // TODO: add action
+            .fromMany(SealingState::kWaitDeals, SealingState::kStateUnknown)
+            .to(SealingState::kWaitDeals),
         SealingTransition(SealingEvent::kIncoming)
-            .from(SealingState::kStateUnknown)
+            .fromMany(SealingState::kStateUnknown, SealingState::kWaitSeed)
             .to(SealingState::kPacking)
             .action(CALLBACK_ACTION(onIncoming)),
         SealingTransition(SealingEvent::kPreCommit1)
@@ -232,6 +235,23 @@ namespace fc::mining {
             .from(SealingState::kFinalizeSector)
             .to(SealingState::kFinalizeFail)
             .action(CALLBACK_ACTION(onFinalizeFailed)),
+
+        // Post-seal
+        SealingTransition(SealingEvent::kFault)
+            .from(SealingState::kProving)
+            .to(SealingState::kFaulty),
+        SealingTransition(SealingEvent::kFaultReport)
+            .fromMany(SealingState::kFaulty, SealingState::kProving)
+            .to(SealingState::kFaultReported),
+        SealingTransition(SealingEvent::kRemove)
+            .from(SealingState::kProving)
+            .to(SealingState::kRemoving),
+        SealingTransition(SealingEvent::kRemoveFailed)
+            .from(SealingState::kRemoving)
+            .to(SealingState::kRemoveFail),
+        SealingTransition(SealingEvent::kRemoveFinal)
+            .from(SealingState::kRemoving)
+            .to(SealingState::kRemoved),
     };
   }
 

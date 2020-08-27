@@ -23,6 +23,7 @@ namespace fc::mining {
 
     // Internal
     kPacking,
+    kWaitDeals,
     kPreCommit1,
     kPreCommit2,
     kPreCommitting,
@@ -32,6 +33,14 @@ namespace fc::mining {
     kCommitWait,
     kFinalizeSector,
     kProving,
+
+    // Post states
+    kFaulty,
+    kFaultReported,
+
+    kRemoving,
+    kRemoveFail,
+    kRemoved,
   };
 }  // namespace fc::mining
 
