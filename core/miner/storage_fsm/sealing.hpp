@@ -21,6 +21,7 @@ namespace fc::mining {
   using primitives::DealId;
   using primitives::SectorNumber;
   using primitives::address::Address;
+  using primitives::piece::PaddedPieceSize;
   using primitives::piece::PieceData;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
@@ -98,6 +99,13 @@ namespace fc::mining {
   // Epochs
   constexpr int kInteractivePoRepConfidence = 6;
 
+  struct PieceAttributes {
+    SectorNumber sector = 0;
+
+    PaddedPieceSize offset;
+    UnpaddedPieceSize size;
+  };
+
   class Sealing {
    public:
     virtual ~Sealing() = default;
@@ -106,10 +114,8 @@ namespace fc::mining {
 
     virtual void stop() = 0;
 
-    virtual outcome::result<void> AddPieceToAnySector(
-        UnpaddedPieceSize size,
-        const PieceData &piece_data,
-        DealInfo deal) = 0;
+    virtual outcome::result<PieceAttributes> AddPieceToAnySector(
+        UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) = 0;
 
     virtual outcome::result<void> remove(SectorNumber sector_id) = 0;
 

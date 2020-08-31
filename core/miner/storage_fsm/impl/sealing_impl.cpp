@@ -17,6 +17,13 @@
 
 namespace fc::mining {
 
+  uint64_t getDealPerSectorLimit(SectorSize size) {
+    if (size < (uint64_t(64) << 30)) {
+      return 256;
+    }
+    return 512;
+  }
+
   outcome::result<void> SealingImpl::run() {
     // TODO: restart fsm
     return outcome::success();
@@ -27,27 +34,49 @@ namespace fc::mining {
     fsm_->stop();
   }
 
-  outcome::result<void> SealingImpl::AddPieceToAnySector(
+  outcome::result<PieceAttributes> SealingImpl::AddPieceToAnySector(
       UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) {
     // TODO: Log it
 
-    SectorNumber sector_id = 0;  // TODO: get sid
+    if (primitives::piece::paddedSize(size) != size) {
+      return outcome::success();  // TODO: error
+    }
 
-    // TODO: with priority
-    OUTCOME_TRY(
-        piece_info,
-        sealer_->addPiece(minerSector(sector_id), {}, size, piece_data));
+    auto sector_size = sealer_->getSectorSize();
+    if (size > PaddedPieceSize(sector_size).unpadded()) {
+      return outcome::success();  // TODO: error
+    }
 
-    OUTCOME_TRY(proof_type,
-                primitives::sector::sealProofTypeFromSectorSize(
-                    sealer_->getSectorSize()));
+    bool is_start_packing = false;
+    PieceAttributes piece;
+    piece.size = size;
 
-    return newSector(sector_id,
-                     proof_type,
-                     {Piece{
-                         .piece = piece_info,
-                         .deal_info = deal,
-                     }});
+    {
+      std::unique_lock lock(unsealed_mutex_);
+      OUTCOME_TRY(sector_and_padding, getSectorAndPadding(size));
+
+      piece.sector = sector_and_padding.sector;
+
+      PieceData zero_file("/dev/zero");
+      for (const auto &pad : sector_and_padding.pads) {
+        OUTCOME_TRY(addPiece(
+            sector_and_padding.sector, pad.unpadded(), zero_file, boost::none));
+      }
+
+      piece.offset = unsealed_sectors_[sector_and_padding.sector].stored;
+
+      OUTCOME_TRY(addPiece(sector_and_padding.sector, size, piece_data, deal));
+
+      is_start_packing =
+          unsealed_sectors_[sector_and_padding.sector].deals_number
+          >= getDealPerSectorLimit(sector_size);
+    }
+
+    if (is_start_packing) {
+      OUTCOME_TRY(startPacking(piece.sector));
+    }
+
+    return std::move(piece);
   }
 
   outcome::result<void> SealingImpl::remove(SectorNumber sector_id) {
@@ -96,22 +125,16 @@ namespace fc::mining {
   }
 
   outcome::result<void> SealingImpl::startPacking(SectorNumber id) {
+    // TODO: Implement it
     return outcome::success();
   }
 
-  outcome::result<void> SealingImpl::newSector(
-      SectorNumber id,
-      RegisteredProof seal_proof_type,
-      const std::vector<Piece> &pieces) {
-    // TODO: log it
-    auto sector = std::make_shared<SectorInfo>();
-    sector->sector_number = id;
-    sector->sector_type = seal_proof_type;
-    sector->pieces = pieces;
-
-    sectors_[id] = sector;
-    OUTCOME_TRY(fsm_->begin(sector, SealingState::kStateUnknown));
-    return fsm_->send(sector, SealingEvent::kIncoming);
+  outcome::result<void> SealingImpl::addPiece(SectorNumber sector_id,
+                                              UnpaddedPieceSize size,
+                                              const PieceData &piece,
+                                              boost::optional<DealInfo> deal) {
+    // TODO: Implement it
+    return outcome::success();
   }
 
   uint64_t countTrailingZeros(uint64_t n) {
@@ -152,9 +175,13 @@ namespace fc::mining {
   std::vector<SealingTransition> SealingImpl::makeFSMTransitions() {
     return {
         // Main pipeline
-        SealingTransition(SealingEvent::kWaitDeals)  // TODO: add action
+        SealingTransition(SealingEvent::kWaitDeals)
             .fromMany(SealingState::kWaitDeals, SealingState::kStateUnknown)
-            .to(SealingState::kWaitDeals),
+            .to(SealingState::kWaitDeals)
+            .action(CALLBACK_ACTION(
+                [this](auto info, auto event, auto from, auto to) {
+                  logger_->info("Waiting for deals {}", info->sector_number);
+                })),
         SealingTransition(SealingEvent::kIncoming)
             .fromMany(SealingState::kStateUnknown, SealingState::kWaitSeed)
             .to(SealingState::kPacking)
