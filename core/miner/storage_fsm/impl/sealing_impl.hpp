@@ -36,9 +36,10 @@ namespace fc::mining {
 
     void stop() override;
 
-    outcome::result<void> AddPieceToAnySector(UnpaddedPieceSize size,
-                                              const PieceData &piece_data,
-                                              DealInfo deal) override;
+    outcome::result<PieceAttributes> AddPieceToAnySector(
+        UnpaddedPieceSize size,
+        const PieceData &piece_data,
+        DealInfo deal) override;
 
     outcome::result<void> remove(SectorNumber sector_id) override;
 
@@ -59,9 +60,18 @@ namespace fc::mining {
     outcome::result<void> startPacking(SectorNumber id) override;
 
    private:
-    outcome::result<void> newSector(SectorNumber id,
-                                    RegisteredProof seal_proof_type,
-                                    const std::vector<Piece> &pieces);
+    struct SectorPaddingResponse {
+      SectorNumber sector;
+      std::vector<PaddedPieceSize> pads;
+    };
+
+    outcome::result<SectorPaddingResponse> getSectorAndPadding(
+        UnpaddedPieceSize size);
+
+    outcome::result<void> addPiece(SectorNumber sector_id,
+                                   UnpaddedPieceSize size,
+                                   const PieceData &piece,
+                                   boost::optional<DealInfo> deal);
 
     /**
      * Creates all FSM transitions
@@ -265,6 +275,16 @@ namespace fc::mining {
     SectorId minerSector(SectorNumber num);
 
     std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>> sectors_;
+
+    struct UnsealedSectorInfo {
+      uint64_t deals_number;
+      // stored should always equal sum of piece_sizes.padded()
+      PaddedPieceSize stored;
+      std::vector<UnpaddedPieceSize> piece_sizes;
+    };
+
+    std::unordered_map<SectorNumber, UnsealedSectorInfo> unsealed_sectors_;
+    std::shared_mutex unsealed_mutex_;
 
     std::set<SectorNumber> to_upgrade_;
     std::shared_mutex upgrade_mutex_;
