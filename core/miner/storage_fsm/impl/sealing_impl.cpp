@@ -125,7 +125,19 @@ namespace fc::mining {
   }
 
   outcome::result<void> SealingImpl::startPacking(SectorNumber id) {
-    // TODO: Implement it
+    // TODO: log it
+    auto sector_info = sectors_.find(id);
+    if (sector_info == sectors_.end()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    OUTCOME_TRY(fsm_->send(sector_info->second, SealingEvent::kIncoming));
+
+    {
+      std::lock_guard lock(unsealed_mutex_);
+      unsealed_sectors_.erase(id);
+    }
+
     return outcome::success();
   }
 
