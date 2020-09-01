@@ -5,6 +5,7 @@
 
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 
+#include "common/bitsutil.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 
 #define FSM_SEND(info, event) OUTCOME_EXCEPT(fsm_->send(info, event))
@@ -34,7 +35,7 @@ namespace fc::mining {
     fsm_->stop();
   }
 
-  outcome::result<PieceAttributes> SealingImpl::AddPieceToAnySector(
+  outcome::result<PieceAttributes> SealingImpl::addPieceToAnySector(
       UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) {
     // TODO: Log it
 
@@ -141,6 +142,35 @@ namespace fc::mining {
     return outcome::success();
   }
 
+  outcome::result<SealingImpl::SectorPaddingResponse>
+  SealingImpl::getSectorAndPadding(UnpaddedPieceSize size) {
+    auto sector_size = sealer_->getSectorSize();
+
+    for (const auto &[key, value] : unsealed_sectors_) {
+      auto pads =
+          proofs::Proofs::GetRequiredPadding(value.stored, size.padded());
+      if (value.stored + size.padded() + pads.size < sector_size) {
+        return SectorPaddingResponse{
+            .sector = key,
+            .pads = std::move(pads.pads),
+        };
+      }
+    }
+
+    OUTCOME_TRY(new_sector, newDealSector());
+
+    unsealed_sectors_[new_sector] = UnsealedSectorInfo{
+        .deals_number = 0,
+        .stored = PaddedPieceSize(0),
+        .piece_sizes = {},
+    };
+
+    return SectorPaddingResponse{
+        .sector = new_sector,
+        .pads = {},
+    };
+  }
+
   outcome::result<void> SealingImpl::addPiece(SectorNumber sector_id,
                                               UnpaddedPieceSize size,
                                               const PieceData &piece,
@@ -149,32 +179,21 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  uint64_t countTrailingZeros(uint64_t n) {
-    unsigned int count = 0;
-    while ((n & 1) == 0) {
-      count += 1;
-      n >>= 1;
-    }
-    return count;
-  }
+  outcome::result<SectorNumber> SealingImpl::newDealSector() {
+    // TODO: checks available sectors
 
-  uint64_t countSetBits(uint64_t n) {
-    unsigned int count = 0;
-    while (n) {
-      count += n & 1;
-      n >>= 1;
-    }
-    return count;
+    // TODO: allocate new sector
+    return outcome::success();
   }
 
   std::vector<UnpaddedPieceSize> filler(UnpaddedPieceSize in) {
     uint64_t to_fill = in.padded();
 
-    uint64_t pieces_size = countSetBits(to_fill);
+    uint64_t pieces_size = common::countSetBits(to_fill);
 
     std::vector<UnpaddedPieceSize> out;
     for (size_t i = 0; i < pieces_size; ++i) {
-      uint64_t next = countTrailingZeros(to_fill);
+      uint64_t next = common::countTrailingZeros(to_fill);
       uint64_t piece_size = uint64_t(1) << next;
 
       to_fill ^= piece_size;
