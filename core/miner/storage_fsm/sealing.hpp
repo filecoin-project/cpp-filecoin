@@ -114,7 +114,7 @@ namespace fc::mining {
 
     virtual void stop() = 0;
 
-    virtual outcome::result<PieceAttributes> AddPieceToAnySector(
+    virtual outcome::result<PieceAttributes> addPieceToAnySector(
         UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) = 0;
 
     virtual outcome::result<void> remove(SectorNumber sector_id) = 0;

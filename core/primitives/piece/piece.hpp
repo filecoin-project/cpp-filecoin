@@ -52,6 +52,8 @@ namespace fc::primitives::piece {
 
     PaddedPieceSize &operator=(uint64_t rhs);
 
+    PaddedPieceSize &operator+=(uint64_t rhs);
+
     UnpaddedPieceSize unpadded() const;
 
     outcome::result<void> validate() const;

@@ -9,6 +9,7 @@
 #include <filecoin-ffi/filcrypto.h>
 
 #include <boost/filesystem.hpp>
+#include "common/bitsutil.hpp"
 #include "common/ffi.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
@@ -1180,6 +1181,29 @@ namespace fc::proofs {
     }
 
     return outcome::success();
+  }
+
+  RequiredPadding Proofs::GetRequiredPadding(PaddedPieceSize old_length,
+                                             PaddedPieceSize new_piece_length) {
+    std::vector<PaddedPieceSize> pad_pieces;
+
+    auto to_fill = uint64_t(-old_length % new_piece_length);
+
+    PaddedPieceSize sum;
+    auto n = common::countSetBits(to_fill);
+    for (size_t i = 0; i < n; ++i) {
+      auto next = common::countTrailingZeros(to_fill);
+      auto piece_size = uint64_t(1) << next;
+      to_fill ^= piece_size;
+
+      pad_pieces.emplace_back(piece_size);
+      sum += piece_size;
+    }
+
+    return {
+        .pads = std::move(pad_pieces),
+        .size = sum,
+    };
   }
 
 }  // namespace fc::proofs

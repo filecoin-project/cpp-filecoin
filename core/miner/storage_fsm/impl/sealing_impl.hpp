@@ -36,7 +36,7 @@ namespace fc::mining {
 
     void stop() override;
 
-    outcome::result<PieceAttributes> AddPieceToAnySector(
+    outcome::result<PieceAttributes> addPieceToAnySector(
         UnpaddedPieceSize size,
         const PieceData &piece_data,
         DealInfo deal) override;
@@ -72,6 +72,8 @@ namespace fc::mining {
                                    UnpaddedPieceSize size,
                                    const PieceData &piece,
                                    boost::optional<DealInfo> deal);
+
+      outcome::result<SectorNumber> newDealSector();
 
     /**
      * Creates all FSM transitions

@@ -85,8 +85,16 @@ namespace fc::proofs {
     CID unsealed_cid;
   };
 
+  struct RequiredPadding {
+    std::vector<PaddedPieceSize> pads;
+    PaddedPieceSize size;
+  };
+
   class Proofs {
    public:
+    static RequiredPadding GetRequiredPadding(PaddedPieceSize old_length,
+                                              PaddedPieceSize new_piece_length);
+
     static fc::proofs::SortedPrivateSectorInfo newSortedPrivateSectorInfo(
         gsl::span<const PrivateSectorInfo> replica_info);
 
