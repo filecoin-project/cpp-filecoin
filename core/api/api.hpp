@@ -42,7 +42,6 @@
 namespace fc::api {
   using adt::Channel;
   using common::Buffer;
-  using common::Comm;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
@@ -66,6 +65,7 @@ namespace fc::api {
   using primitives::block::BlockHeader;
   using primitives::block::BlockTemplate;
   using primitives::block::BlockWithCids;
+  using primitives::cid::Comm;
   using primitives::sector::SectorInfo;
   using primitives::ticket::EPostProof;
   using primitives::ticket::Ticket;

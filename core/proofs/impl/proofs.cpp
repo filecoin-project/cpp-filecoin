@@ -118,14 +118,14 @@ namespace fc::proofs {
   using Prover = Blob<32>;
   using common::Blob;
   using common::Buffer;
-  using common::CIDToDataCommitmentV1;
-  using common::CIDToPieceCommitmentV1;
-  using common::CIDToReplicaCommitmentV1;
-  using common::dataCommitmentV1ToCID;
-  using common::kCommitmentBytesLen;
-  using common::pieceCommitmentV1ToCID;
-  using common::replicaCommitmentV1ToCID;
   using crypto::randomness::Randomness;
+  using primitives::cid::CIDToDataCommitmentV1;
+  using primitives::cid::CIDToPieceCommitmentV1;
+  using primitives::cid::CIDToReplicaCommitmentV1;
+  using primitives::cid::dataCommitmentV1ToCID;
+  using primitives::cid::kCommitmentBytesLen;
+  using primitives::cid::pieceCommitmentV1ToCID;
+  using primitives::cid::replicaCommitmentV1ToCID;
   using primitives::sector::getRegisteredSealProof;
   using primitives::sector::getRegisteredWindowPoStProof;
   using primitives::sector::getRegisteredWinningPoStProof;
@@ -193,25 +193,27 @@ namespace fc::proofs {
     return cpp_post_proofs;
   }
 
-  WriteWithoutAlignmentResult cppWriteWithoutAlignmentResult(
+  outcome::result<WriteWithoutAlignmentResult> cppWriteWithoutAlignmentResult(
       const fil_WriteWithoutAlignmentResponse &response) {
     WriteWithoutAlignmentResult result;
 
     result.total_write_unpadded = response.total_write_unpadded;
-    result.piece_cid =
-        pieceCommitmentV1ToCID(gsl::span(response.comm_p, kCommitmentBytesLen));
+    OUTCOME_TRYA(
+        result.piece_cid,
+        pieceCommitmentV1ToCID(gsl::span(response.comm_p, kCommitmentBytesLen)))
 
     return result;
   }
 
-  WriteWithAlignmentResult cppWriteWithAlignmentResult(
+  outcome::result<WriteWithAlignmentResult> cppWriteWithAlignmentResult(
       const fil_WriteWithAlignmentResponse &response) {
     WriteWithAlignmentResult result;
 
     result.left_alignment_unpadded = response.left_alignment_unpadded;
     result.total_write_unpadded = response.total_write_unpadded;
-    result.piece_cid =
-        pieceCommitmentV1ToCID(gsl::span(response.comm_p, kCommitmentBytesLen));
+    OUTCOME_TRYA(result.piece_cid,
+                 pieceCommitmentV1ToCID(
+                     gsl::span(response.comm_p, kCommitmentBytesLen)));
 
     return result;
   }
@@ -761,12 +763,17 @@ namespace fc::proofs {
       return ProofsError::kUnknown;
     }
 
-    return SealedAndUnsealedCID{
-        .sealed_cid = replicaCommitmentV1ToCID(
-            gsl::make_span(res_ptr->comm_r, kCommitmentBytesLen)),
-        .unsealed_cid = dataCommitmentV1ToCID(
-            gsl::make_span(res_ptr->comm_d, kCommitmentBytesLen)),
-    };
+    SealedAndUnsealedCID result;
+
+    OUTCOME_TRYA(result.sealed_cid,
+                 replicaCommitmentV1ToCID(
+                     gsl::make_span(res_ptr->comm_r, kCommitmentBytesLen)));
+
+    OUTCOME_TRYA(result.unsealed_cid,
+                 dataCommitmentV1ToCID(
+                     gsl::make_span(res_ptr->comm_d, kCommitmentBytesLen)));
+
+    return result;
   }
 
   outcome::result<Phase1Output> Proofs::sealCommitPhase1(

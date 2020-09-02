@@ -24,8 +24,10 @@ using fc::storage::ipfs::IpfsDatastore;
  * go integration test
  * @when make commitment from root payload cid
  * @then cmmitment and padded size are equal to generated in go
+ * TODO(artyom-yurin): [FIL-240]
+ * @note Disabled because .car file contains old CIDs
  */
-TEST(PieceIO, generatePieceCommitment) {
+TEST(PieceIO, DISABLED_generatePieceCommitment) {
   std::shared_ptr<IpfsDatastore> ipld = std::make_shared<InMemoryDatastore>();
   auto input = readFile(PAYLOAD_FILE);
   EXPECT_OUTCOME_TRUE(payload_cid, fc::storage::unixfs::wrapFile(*ipld, input));
@@ -38,11 +40,11 @@ TEST(PieceIO, generatePieceCommitment) {
           payload_cid,
           {}));
 
-  // padded size from fo-gil-markets integration test
+  // padded size from go-fil-markets integration test
   UnpaddedPieceSize expected_padded_size{32512};
   EXPECT_EQ(expected_padded_size, res.second);
 
-  // commitment cid from fo-gil-markets integration test
+  // commitment cid from go-fil-markets integration test
   std::string commitment_cid_expected{
       "bafk4chza4qfcf6rqteuaudxm3m2liuv2ajcixckjjfcb5vgdbay4pc5jluja"};
   EXPECT_OUTCOME_TRUE(commitment_cid, res.first.toString());

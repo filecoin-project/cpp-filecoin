@@ -16,7 +16,6 @@ target_link_libraries(cid
 
 add_library(comm_cid
     comm_cid.cpp
-    comm_cid_errors.cpp
     )
 
 target_link_libraries(comm_cid
