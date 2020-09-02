@@ -5,11 +5,11 @@
 
 #include "sector_storage/zerocomm/zerocomm.hpp"
 #include "common/bitsutil.hpp"
-#include "common/buffer.hpp"
+#include "common/blob.hpp"
 #include "primitives/cid/comm_cid.hpp"
 
 namespace fc::sector_storage::zerocomm {
-  using common::Buffer;
+  using common::Blob;
   using common::countTrailingZeros;
   using primitives::cid::pieceCommitmentV1ToCID;
 
@@ -53,10 +53,9 @@ namespace fc::sector_storage::zerocomm {
       "aaaa8c4cb40aacee1e02dc65424b2a6c8e99f803b72f7929c4101d7fae6bff32"};
 
   outcome::result<CID> getZeroPieceCommitment(const UnpaddedPieceSize &size) {
-    OUTCOME_TRY(
-        comm,
-        common::Buffer::fromHex(gsl::at(
-            kPieceComms, countTrailingZeros(size.padded()) - kSkip - 5)));
+    OUTCOME_TRY(comm,
+                common::Blob<32>::fromHex(kPieceComms.at(
+                    countTrailingZeros(size.padded()) - kSkip - 5)));
     return pieceCommitmentV1ToCID(comm);
   }
 
