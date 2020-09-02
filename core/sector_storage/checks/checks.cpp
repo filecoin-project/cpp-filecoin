@@ -22,6 +22,7 @@ namespace fc::sector_storage::checks {
         if (piece.piece.cid != expected_cid) {
           return ChecksError::kInvalidDeal;
         }
+        continue;
       }
 
       OUTCOME_TRY(

@@ -23,7 +23,7 @@ namespace fc::sector_storage::zerocomm {
    * extern/sector-storage/zerocomm/zerocomm_test.go from commit
    * (d4fef1b5f82b3602a1ff45979ad035e67280e334).
    */
-  TEST_P(ZerocommTest, trailingZeroes) {
+  TEST_P(ZerocommTest, getZeroCommitment) {
     auto &params = GetParam();
     EXPECT_OUTCOME_EQ(getZeroPieceCommitment(params.unpadded_size),
                       params.expected)
