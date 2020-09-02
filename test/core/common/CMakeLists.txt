@@ -3,6 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+addtest(bitsutil_test
+    bitsutil_test.cpp
+    )
+
 addtest(hexutil_test
     hexutil_test.cpp
     )

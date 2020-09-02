@@ -6,8 +6,12 @@
 #ifndef CPP_FILECOIN_CORE_COMMON_BITSUTIL_HPP
 #define CPP_FILECOIN_CORE_COMMON_BITSUTIL_HPP
 
+#include <cstdint>
+
 namespace fc::common {
-  uint64_t countTrailingZeros(uint64_t n) {
+  inline uint64_t countTrailingZeros(uint64_t n) {
+    if (n == 0) return 64;
+
     unsigned int count = 0;
     while ((n & 1) == 0) {
       count += 1;
@@ -16,9 +20,9 @@ namespace fc::common {
     return count;
   }
 
-  uint64_t countSetBits(uint64_t n) {
+  inline uint64_t countSetBits(uint64_t n) {
     unsigned int count = 0;
-    while (n) {
+    while (n != 0) {
       count += n & 1;
       n >>= 1;
     }
