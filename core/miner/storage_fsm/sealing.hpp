@@ -134,6 +134,8 @@ namespace fc::mining {
     virtual bool isMarkedForUpgrade(SectorNumber id) = 0;
 
     virtual outcome::result<void> startPacking(SectorNumber id) = 0;
+
+    virtual outcome::result<void> pledgeSector() = 0;
   };
 }  // namespace fc::mining
 

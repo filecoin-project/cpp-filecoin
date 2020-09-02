@@ -175,15 +175,50 @@ namespace fc::mining {
                                               UnpaddedPieceSize size,
                                               const PieceData &piece,
                                               boost::optional<DealInfo> deal) {
-    // TODO: Implement it
+    // TODO: log it
+    OUTCOME_TRY(piece_info,
+                sealer_->addPiece(minerSector(sector_id),
+                                  unsealed_sectors_[sector_id].piece_sizes,
+                                  size,
+                                  piece));
+
+    Piece new_piece{
+        .piece = piece_info,
+        .deal_info = deal,
+    };
+
+    auto info = sectors_[sector_id];
+    info->pieces.push_back(new_piece);
+    OUTCOME_TRY(fsm_->send(info, SealingEvent::kWaitDeals));
+
+    auto unsealed_info = unsealed_sectors_.find(sector_id);
+    if (deal) {
+      unsealed_info->second.deals_number++;
+    }
+    unsealed_info->second.stored += new_piece.piece.size;
+    unsealed_info->second.piece_sizes.push_back(
+        new_piece.piece.size.unpadded());
+
     return outcome::success();
   }
 
   outcome::result<SectorNumber> SealingImpl::newDealSector() {
     // TODO: checks available sectors
 
-    // TODO: allocate new sector
-    return outcome::success();
+    // TODO: log it
+    auto sector_id = 0;  // TODO: Next counter
+
+    auto sector = std::make_shared<SectorInfo>();
+    sector->sector_number = sector_id;
+    OUTCOME_TRYA(sector->sector_type,
+                 primitives::sector::sealProofTypeFromSectorSize(
+                     sealer_->getSectorSize()));
+    OUTCOME_TRY(fsm_->begin(sector, SealingState::kStateUnknown));
+    sectors_[sector_id] = sector;
+
+    // TODO: Timer for start packing
+
+    return sector_id;
   }
 
   std::vector<UnpaddedPieceSize> filler(UnpaddedPieceSize in) {
