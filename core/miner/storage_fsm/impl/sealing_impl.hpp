@@ -12,23 +12,17 @@
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
 #include "miner/storage_fsm/events.hpp"
-#include "miner/storage_fsm/selaing_events.hpp"
+#include "miner/storage_fsm/sealing_events.hpp"
 
 namespace fc::mining {
   using api::Api;
   using primitives::piece::PaddedPieceSize;
+  using proofs::SealRandomness;
   using sector_storage::Manager;
-
-  using SealingTransition =
-      fsm::Transition<SealingEvent, SealingState, SectorInfo>;
-  using StorageFSM = fsm::FSM<SealingEvent, SealingState, SectorInfo>;
-
-  /**
-   * @note for find sectorinfo
-   */
-  inline bool operator==(const SectorInfo &lhs, const SectorInfo &rhs) {
-    return lhs.sector_number == rhs.sector_number;
-  }
+  using types::PieceInfo;
+  using EventPtr = std::shared_ptr<SealingEvent>;
+  using SealingTransition = fsm::Transition<EventPtr, SealingState, SectorInfo>;
+  using StorageFSM = fsm::FSM<EventPtr, SealingState, SectorInfo>;
 
   class SealingImpl : public Sealing {
    public:
@@ -59,7 +53,9 @@ namespace fc::mining {
 
     outcome::result<void> startPacking(SectorNumber id) override;
 
-   private:
+      outcome::result<void> pledgeSector() override;
+
+  private:
     struct SectorPaddingResponse {
       SectorNumber sector;
       std::vector<PaddedPieceSize> pads;
@@ -73,7 +69,7 @@ namespace fc::mining {
                                    const PieceData &piece,
                                    boost::optional<DealInfo> deal);
 
-      outcome::result<SectorNumber> newDealSector();
+    outcome::result<primitives::SectorNumber> newDealSector();
 
     /**
      * Creates all FSM transitions
