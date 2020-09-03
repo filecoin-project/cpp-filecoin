@@ -18,7 +18,7 @@
 #include "clock/utc_clock.hpp"
 #include "crypto/bls/bls_provider.hpp"
 #include "power/power_table.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
 namespace fc::blockchain::block_validator {

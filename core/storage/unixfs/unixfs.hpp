@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_UNIXFS_UNIXFS_HPP
 #define CPP_FILECOIN_CORE_STORAGE_UNIXFS_UNIXFS_HPP
 
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 
 namespace fc::storage::unixfs {
   using Ipld = ipfs::IpfsDatastore;

@@ -13,7 +13,7 @@
 #include "common/visitor.hpp"
 #include "common/which.hpp"
 #include "primitives/cid/cid.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 
 namespace fc::storage::amt {
   enum class AmtError {

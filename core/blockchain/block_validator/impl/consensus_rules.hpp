@@ -13,7 +13,7 @@
 #include "power/power_table.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 
 namespace fc::blockchain::block_validator {
   class ConsensusRules {

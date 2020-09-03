@@ -9,7 +9,7 @@
 #include <memory>
 
 #include "common/outcome.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 
 namespace fc::storage::ipfs {

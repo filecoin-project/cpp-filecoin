@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
 #define CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
 
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 #include "vm/actor/actor.hpp"
 
 namespace fc::vm::state {

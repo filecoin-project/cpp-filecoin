@@ -6,7 +6,7 @@
 #include "storage/repository/impl/filesystem_repository.hpp"
 
 #include "crypto/bls/impl/bls_provider_impl.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 #include "storage/repository/repository_error.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"

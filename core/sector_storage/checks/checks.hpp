@@ -23,7 +23,7 @@ namespace fc::sector_storage::checks {
    * Checks that data commitment generated in the sealing process matches
    * pieces, and that the seal ticket isn't expired
    */
-  outcome::result<void> checkPrecommit(const Address &address,
+  outcome::result<void> checkPrecommit(const Address &miner_address,
                                        const SectorInfo &sector_info,
                                        const TipsetKey &tipset_key,
                                        const ChainEpoch &height,

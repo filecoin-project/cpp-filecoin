@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
 #define CPP_FILECOIN_CORE_STORAGE_CAR_CAR_HPP
 
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 #include "storage/ipld/selector.hpp"
 
 namespace fc::storage::car {

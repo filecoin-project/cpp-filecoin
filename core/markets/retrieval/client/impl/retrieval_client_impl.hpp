@@ -13,7 +13,7 @@
 #include "common/logger.hpp"
 #include "markets/retrieval/client/retrieval_client.hpp"
 #include "markets/retrieval/client/retrieval_client_error.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 #include "storage/ipld/verifier.hpp"
 #include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
 

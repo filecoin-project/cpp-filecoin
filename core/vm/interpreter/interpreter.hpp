@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_CORE_VM_INTERPRETER_INTERPRETER_HPP
 
 #include "primitives/tipset/tipset.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 
 namespace fc::vm::interpreter {
   enum class InterpreterError {

@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_CORE_STORAGE_IPLD_TRAVERSER_HPP
 
 #include <queue>
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 #include "storage/ipld/selector.hpp"
 
 namespace fc::storage::ipld::traverser {

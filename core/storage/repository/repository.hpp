@@ -8,7 +8,7 @@
 
 #include "common/outcome.hpp"
 #include "storage/config/config.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 #include "storage/keystore/keystore.hpp"
 
 namespace fc::storage::repository {

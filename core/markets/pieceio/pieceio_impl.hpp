@@ -11,7 +11,7 @@
 #include "primitives/cid/cid.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 #include "storage/ipld/selector.hpp"
 
 namespace fc::markets::pieceio {

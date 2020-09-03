@@ -8,7 +8,7 @@
 
 #include "blockchain/weight_calculator.hpp"
 
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 
 namespace fc::blockchain::weight {
   enum class WeightCalculatorError { kNoNetworkPower = 1 };

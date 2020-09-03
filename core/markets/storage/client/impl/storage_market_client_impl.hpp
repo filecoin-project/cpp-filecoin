@@ -20,7 +20,7 @@
 #include "markets/storage/client/client_events.hpp"
 #include "markets/storage/client/storage_market_client.hpp"
 #include "storage/filestore/filestore.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 
 namespace fc::markets::storage::client {
 

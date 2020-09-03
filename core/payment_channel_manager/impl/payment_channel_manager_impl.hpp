@@ -10,7 +10,7 @@
 #include "api/api.hpp"
 #include "common/buffer.hpp"
 #include "payment_channel_manager/payment_channel_manager.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 
 namespace fc::payment_channel_manager {
   using api::Api;

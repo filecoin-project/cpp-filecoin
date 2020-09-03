@@ -18,7 +18,7 @@
 #include "common/span.hpp"
 #include "common/visitor.hpp"
 #include "primitives/cid/cid.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 
 namespace fc::storage::hamt {
   enum class HamtError { kExpectedCID = 1, kNotFound, kMaxDepth };

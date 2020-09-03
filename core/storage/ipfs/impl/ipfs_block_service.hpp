@@ -8,7 +8,7 @@
 
 #include <memory>
 
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 
 namespace fc::storage::ipfs {
   class IpfsBlockService : public IpfsDatastore {

@@ -4,7 +4,9 @@
  */
 
 #include "sector_storage/checks/checks.hpp"
+#include <storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp>
 #include "sector_storage/zerocomm/zerocomm.hpp"
+#include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 #include "vm/actor/builtin/miner/policy.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
@@ -13,6 +15,7 @@ namespace fc::sector_storage::checks {
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::DealId;
+  using storage::ipfs::ApiIpfsDatastore;
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::MethodParams;
@@ -62,7 +65,7 @@ namespace fc::sector_storage::checks {
     return outcome::success();
   }
 
-  outcome::result<CID> getDataCommitment(const Address &address,
+  outcome::result<CID> getDataCommitment(const Address &miner_address,
                                          const SectorInfo &sector_info,
                                          const TipsetKey &tipset_key,
                                          const std::shared_ptr<Api> &api) {
@@ -76,7 +79,7 @@ namespace fc::sector_storage::checks {
         .deals = deal_ids, .sector_type = sector_info.sector_type};
     OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
     UnsignedMessage message{kStorageMarketAddress,
-                            address,
+                            miner_address,
                             {},
                             BigInt{0},
                             kDefaultGasPrice,
@@ -92,17 +95,15 @@ namespace fc::sector_storage::checks {
   }
 
   outcome::result<boost::optional<SectorPreCommitOnChainInfo>>
-  getStateSectorPreCommitInfo(const Address &address,
+  getStateSectorPreCommitInfo(const Address &miner_address,
                               const SectorInfo &sector_info,
                               const TipsetKey &tipset_key,
                               const std::shared_ptr<Api> &api) {
     boost::optional<SectorPreCommitOnChainInfo> result;
 
-    OUTCOME_TRY(actor, api->StateGetActor(address, tipset_key));
-    OUTCOME_TRY(state_bytes, api->ChainReadObj(actor.head));
-    OUTCOME_TRY(state, codec::cbor::decode<MinerActorState>(state_bytes));
-
-    // TODO can hamt.has() and .get() be used after loading? ipld is nullptr
+    OUTCOME_TRY(actor, api->StateGetActor(miner_address, tipset_key));
+    ApiIpfsDatastore ipfs{api};
+    OUTCOME_TRY(state, ipfs.getCbor<MinerActorState>(actor.head));
     OUTCOME_TRY(has, state.precommitted_sectors.has(sector_info.sector_number));
     if (has) {
       OUTCOME_TRYA(result,

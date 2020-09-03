@@ -16,7 +16,7 @@
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
-#include "storage/ipfs/datastore.hpp"
+#include "storage/ipfs/ipfs_datastore.hpp"
 #include "vm/actor/actor_encoding.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
