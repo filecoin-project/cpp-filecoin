@@ -8,7 +8,7 @@
 
 #include <map>
 
-#include "storage/ipfs/ipfs_datastore.hpp"
+#include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::ipfs {
 
