@@ -5,6 +5,8 @@
 
 #include "sector_storage/checks/checks.hpp"
 #include <storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp>
+#include "primitives/sector/sector.hpp"
+#include "proofs/proofs.hpp"
 #include "sector_storage/zerocomm/zerocomm.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
@@ -15,12 +17,17 @@ namespace fc::sector_storage::checks {
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::DealId;
+  using primitives::sector::OnChainSealVerifyInfo;
+  using primitives::sector::sealProofTypeFromSectorSize;
+  using primitives::sector::SealVerifyInfo;
+  using proofs::Proofs;
   using storage::ipfs::ApiIpfsDatastore;
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::MethodParams;
   using vm::actor::builtin::market::ComputeDataCommitment;
   using vm::actor::builtin::miner::kChainFinalityish;
+  using vm::actor::builtin::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::miner::maxSealDuration;
   using vm::actor::builtin::miner::MinerActorState;
   using vm::actor::builtin::miner::SectorPreCommitOnChainInfo;
@@ -117,13 +124,13 @@ namespace fc::sector_storage::checks {
     return result;
   }
 
-  outcome::result<void> checkPrecommit(const Address &address,
+  outcome::result<void> checkPrecommit(const Address &miner_address,
                                        const SectorInfo &sector_info,
                                        const TipsetKey &tipset_key,
                                        const ChainEpoch &height,
                                        const std::shared_ptr<Api> &api) {
     OUTCOME_TRY(commD,
-                getDataCommitment(address, sector_info, tipset_key, api));
+                getDataCommitment(miner_address, sector_info, tipset_key, api));
     if (commD != sector_info.comm_d) {
       return ChecksError::kBadCommD;
     }
@@ -134,13 +141,71 @@ namespace fc::sector_storage::checks {
       return ChecksError::kExpiredTicket;
     }
 
-    OUTCOME_TRY(
-        state_sector_precommit_info,
-        getStateSectorPreCommitInfo(address, sector_info, tipset_key, api));
+    OUTCOME_TRY(state_sector_precommit_info,
+                getStateSectorPreCommitInfo(
+                    miner_address, sector_info, tipset_key, api));
     if (state_sector_precommit_info.has_value()
         && (state_sector_precommit_info.value().info.seal_epoch
             != sector_info.ticket_epoch)) {
       return ChecksError::kBadTicketEpoch;
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<void> checkCommit(const Address &miner_address,
+                                    const SectorInfo &sector_info,
+                                    const Proof &proof,
+                                    const TipsetKey &tipset_key,
+                                    const std::shared_ptr<Api> &api) {
+    if (sector_info.seed_epoch == 0) {
+      return ChecksError::kBadSeed;
+    }
+
+    OUTCOME_TRY(state_sector_precommit_info,
+                getStateSectorPreCommitInfo(
+                    miner_address, sector_info, tipset_key, api));
+    if (!state_sector_precommit_info.has_value()) {
+      return ChecksError::kPrecommitNotFound;
+    }
+
+    if (state_sector_precommit_info.value().precommit_epoch
+            + kPreCommitChallengeDelay
+        != sector_info.seed_epoch) {
+      return ChecksError::kBadSeed;
+    }
+
+    // TODO
+    // OUTCOME_TRY(seed, api->ChainGetRandomnessFromBeacon());
+    // if (seed != sector_info.seed) {
+    //   return E::kBadSeed;
+    // }
+
+    OUTCOME_TRY(sector_size,
+                api->StateMinerSectorSize(miner_address, tipset_key));
+    OUTCOME_TRY(seal_proof_type, sealProofTypeFromSectorSize(sector_size));
+
+    if (sector_info.comm_r
+        != state_sector_precommit_info.value().info.sealed_cid) {
+      return ChecksError::kBadSealedCid;
+    }
+    OUTCOME_TRY(
+        verified,
+        Proofs::verifySeal(SealVerifyInfo{
+            .sector = SectorId{.miner = miner_address.getId(),
+                               .sector = sector_info.sector_number},
+            .info =
+                // TODO what other parameters means?
+                OnChainSealVerifyInfo{
+                    .sealed_cid =
+                        state_sector_precommit_info.value().info.sealed_cid,
+                    .registered_proof = seal_proof_type,
+                    .proof = proof},
+            .randomness = sector_info.ticket,
+            .interactive_randomness = sector_info.seed,
+            .unsealed_cid = sector_info.comm_d}));
+    if (!verified) {
+      return ChecksError::kInvalidProof;
     }
 
     return outcome::success();
@@ -163,6 +228,14 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::checks, ChecksError, e) {
       return "ChecksError: ticket has expired";
     case E::kBadTicketEpoch:
       return "ChecksError: bad ticket epoch";
+    case E::kBadSeed:
+      return "ChecksError: seed epoch does not match";
+    case E::kPrecommitNotFound:
+      return "ChecksError: precommit info not found on-chain";
+    case E::kBadSealedCid:
+      return "ChecksError: on-chain sealed CID doesn't match";
+    case E::kInvalidProof:
+      return "ChecksError: invalid proof";
     default:
       return "ChecksError: unknown error";
   }
