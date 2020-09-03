@@ -12,13 +12,30 @@
 namespace fc::sector_storage::checks {
   using api::Api;
   using mining::SectorInfo;
+  using primitives::ChainEpoch;
+  using primitives::address::Address;
+  using primitives::tipset::TipsetKey;
 
   outcome::result<void> checkPieces(const SectorInfo &sector_info,
                                     const std::shared_ptr<Api> &api);
 
+  /**
+   * Checks that data commitment generated in the sealing process matches
+   * pieces, and that the seal ticket isn't expired
+   */
+  outcome::result<void> checkPrecommit(const Address &address,
+                                       const SectorInfo &sector_info,
+                                       const TipsetKey &tipset_key,
+                                       const ChainEpoch &height,
+                                       const std::shared_ptr<Api> &api);
+
   enum class ChecksError {
     kInvalidDeal = 1,
     kExpiredDeal,
+    kInvocationErrored,
+    kBadCommD,
+    kExpiredTicket,
+    kBadTicketEpoch,
   };
 
 }  // namespace fc::sector_storage::checks
