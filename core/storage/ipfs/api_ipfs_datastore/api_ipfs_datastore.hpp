@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_STORAGE_IPFS_API_IPFS_DATASTORE_API_IPFS_DATASTORE_HPP
 
 #include "api/api.hpp"
-#include "storage/ipfs/ipfs_datastore.hpp"
+#include "storage/ipfs/datastore.hpp"
 
 namespace fc::storage::ipfs {
   using api::Api;
