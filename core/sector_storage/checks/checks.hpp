@@ -11,10 +11,12 @@
 
 namespace fc::sector_storage::checks {
   using api::Api;
+  using common::Buffer;
   using mining::SectorInfo;
   using primitives::ChainEpoch;
   using primitives::address::Address;
   using primitives::tipset::TipsetKey;
+  using primitives::sector::Proof;
 
   outcome::result<void> checkPieces(const SectorInfo &sector_info,
                                     const std::shared_ptr<Api> &api);
@@ -29,6 +31,12 @@ namespace fc::sector_storage::checks {
                                        const ChainEpoch &height,
                                        const std::shared_ptr<Api> &api);
 
+  outcome::result<void> checkCommit(const Address &miner_address,
+                                    const SectorInfo &sector_info,
+                                    const Proof &proof,
+                                    const TipsetKey &tipset_key,
+                                    const std::shared_ptr<Api> &api);
+
   enum class ChecksError {
     kInvalidDeal = 1,
     kExpiredDeal,
@@ -36,6 +44,10 @@ namespace fc::sector_storage::checks {
     kBadCommD,
     kExpiredTicket,
     kBadTicketEpoch,
+    kBadSeed,
+    kPrecommitNotFound,
+    kBadSealedCid,
+    kInvalidProof,
   };
 
 }  // namespace fc::sector_storage::checks
