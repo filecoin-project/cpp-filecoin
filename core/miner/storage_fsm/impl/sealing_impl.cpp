@@ -610,12 +610,12 @@ namespace fc::mining {
 
           OUTCOME_TRY(tipset_key, tipset.makeKey());
 
-          auto maybe_randomness =
-              api_->ChainGetRandomness(tipset_key,
-                                       crypto::randomness::DomainSeparationTag::
-                                           InteractiveSealChallengeSeed,
-                                       random_height,
-                                       {});
+          auto maybe_randomness = api_->ChainGetRandomnessFromBeacon(
+              tipset_key,
+              crypto::randomness::DomainSeparationTag::
+                  InteractiveSealChallengeSeed,
+              random_height,
+              {});
           if (maybe_randomness.has_error()) {
             logger_->error(
                 "failed to get randomness for computing seal proof (curHeight "
@@ -952,12 +952,12 @@ namespace fc::mining {
 
     // TODO: Marshal param
 
-    OUTCOME_TRY(
-        randomness,
-        api_->ChainGetRandomness(tipset_key,
-                                 api::DomainSeparationTag::SealRandomness,
-                                 ticket_epoch,
-                                 {}));
+    OUTCOME_TRY(randomness,
+                api_->ChainGetRandomnessFromTickets(
+                    tipset_key,
+                    api::DomainSeparationTag::SealRandomness,
+                    ticket_epoch,
+                    {}));
 
     return TicketInfo{
         .ticket = randomness,

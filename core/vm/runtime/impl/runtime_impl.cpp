@@ -37,7 +37,7 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return execution_->env->tipset.randomness(
+    return execution_->env->tipset.ticketRandomness(
         *execution_->env->ipld, tag, epoch, seed);
   }
 

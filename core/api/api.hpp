@@ -81,6 +81,7 @@ namespace fc::api {
   using vm::actor::builtin::miner::DeadlineInfo;
   using vm::actor::builtin::miner::Deadlines;
   using vm::actor::builtin::miner::MinerInfo;
+  using vm::actor::builtin::miner::Partition;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::payment_channel::LaneId;
   using vm::actor::builtin::payment_channel::SignedVoucher;
@@ -270,7 +271,13 @@ namespace fc::api {
     API_METHOD(ChainGetMessage, UnsignedMessage, const CID &)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
-    API_METHOD(ChainGetRandomness,
+    API_METHOD(ChainGetRandomnessFromBeacon,
+               Randomness,
+               const TipsetKey &,
+               DomainSeparationTag,
+               ChainEpoch,
+               const Buffer &)
+    API_METHOD(ChainGetRandomnessFromTickets,
                Randomness,
                const TipsetKey &,
                DomainSeparationTag,
@@ -356,13 +363,14 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
     API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerPartitions,
+               std::vector<Partition>,
+               const Address &,
+               uint64_t,
+               const TipsetKey &)
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
     API_METHOD(StateMinerProvingDeadline,
                DeadlineInfo,
-               const Address &,
-               const TipsetKey &)
-    API_METHOD(StateMinerProvingSet,
-               std::vector<ChainSectorInfo>,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerSectors,

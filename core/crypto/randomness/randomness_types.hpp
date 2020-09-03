@@ -25,6 +25,8 @@ namespace fc::crypto::randomness {
     SealRandomness,
     InteractiveSealChallengeSeed,
     WindowedPoStDeadlineAssignment,
+    MarketDealCronSeed,
+    PoStChainCommit,
   };
 
   inline Randomness drawRandomness(gsl::span<const uint8_t> base,

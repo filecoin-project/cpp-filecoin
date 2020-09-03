@@ -9,6 +9,7 @@
 #include "adt/array.hpp"
 #include "adt/map.hpp"
 #include "adt/uvarint_key.hpp"
+#include "common/libp2p/multi/cbor_multiaddress.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
@@ -27,10 +28,27 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::RleBitset;
   using primitives::SectorNumber;
   using primitives::SectorSize;
+  using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::OnChainPoStVerifyInfo;
   using primitives::sector::Proof;
+  using runtime::Randomness;
+
+  struct PowerPair {
+    StoragePower raw, qa;
+  };
+  CBOR_TUPLE(PowerPair, raw, qa)
+
+  struct VestingFunds {
+    struct Fund {
+      ChainEpoch epoch;
+      TokenAmount amount;
+    };
+    std::vector<Fund> funds;
+  };
+  CBOR_TUPLE(VestingFunds::Fund, epoch, amount)
+  CBOR_TUPLE(VestingFunds, funds)
 
   struct SectorPreCommitInfo {
     RegisteredProof registered_proof;
@@ -41,6 +59,9 @@ namespace fc::vm::actor::builtin::miner {
     std::vector<DealId> deal_ids;
     /// Sector expiration
     ChainEpoch expiration;
+    bool replace_capacity;
+    uint64_t replace_deadline, replace_partition;
+    SectorNumber replace_sector;
   };
   CBOR_TUPLE(SectorPreCommitInfo,
              registered_proof,
@@ -48,32 +69,49 @@ namespace fc::vm::actor::builtin::miner {
              sealed_cid,
              seal_epoch,
              deal_ids,
-             expiration)
+             expiration,
+             replace_capacity,
+             replace_deadline,
+             replace_partition,
+             replace_sector)
 
   struct SectorPreCommitOnChainInfo {
     SectorPreCommitInfo info;
     TokenAmount precommit_deposit;
     ChainEpoch precommit_epoch;
+    DealWeight deal_weight;
+    DealWeight verified_deal_weight;
   };
   CBOR_TUPLE(SectorPreCommitOnChainInfo,
              info,
              precommit_deposit,
-             precommit_epoch)
-
-  struct SectorOnChainInfo {
-    SectorPreCommitInfo info;
-    /// Epoch at which SectorProveCommit is accepted
-    ChainEpoch activation_epoch;
-    /// Integral of active deals over sector lifetime, 0 if CommittedCapacity
-    /// sector
-    DealWeight deal_weight;
-    DealWeight verified_deal_weight;
-  };
-  CBOR_TUPLE(SectorOnChainInfo,
-             info,
-             activation_epoch,
+             precommit_epoch,
              deal_weight,
              verified_deal_weight)
+
+  struct SectorOnChainInfo {
+    SectorNumber sector;
+    RegisteredProof seal_proof;
+    CID sealed_cid;
+    std::vector<DealId> deals;
+    ChainEpoch activation_epoch;
+    ChainEpoch expiration;
+    DealWeight deal_weight;
+    DealWeight verified_deal_weight;
+    TokenAmount init_pledge, expected_day_reward, expected_storage_pledge;
+  };
+  CBOR_TUPLE(SectorOnChainInfo,
+             sector,
+             seal_proof,
+             sealed_cid,
+             deals,
+             activation_epoch,
+             expiration,
+             deal_weight,
+             verified_deal_weight,
+             init_pledge,
+             expected_day_reward,
+             expected_storage_pledge)
 
   struct WorkerKeyChange {
     /// Must be an ID address
@@ -98,9 +136,11 @@ namespace fc::vm::actor::builtin::miner {
      * ID-address.
      */
     Address worker;
+    std::vector<Address> control;
     boost::optional<WorkerKeyChange> pending_worker_key;
     /// Libp2p identity that should be used when connecting to this miner.
     PeerId peer_id{codec::cbor::kDefaultT<PeerId>()};
+    std::vector<Multiaddress> multiaddrs;
     RegisteredProof seal_proof_type;
     /// Amount of space in each sector committed to the network by this miner.
     SectorSize sector_size;
@@ -109,8 +149,10 @@ namespace fc::vm::actor::builtin::miner {
   CBOR_TUPLE(MinerInfo,
              owner,
              worker,
+             control,
              pending_worker_key,
              peer_id,
+             multiaddrs,
              seal_proof_type,
              sector_size,
              window_post_partition_sectors)
@@ -125,6 +167,9 @@ namespace fc::vm::actor::builtin::miner {
     ChainEpoch fault_cutoff;
 
     static DeadlineInfo make(ChainEpoch start, size_t id, ChainEpoch now);
+    auto nextNotElapsed() const {
+      return elapsed() ? make(nextPeriodStart(), index, current_epoch) : *this;
+    }
     ChainEpoch nextPeriodStart() const {
       return period_start + kWPoStProvingPeriod;
     }
@@ -140,51 +185,76 @@ namespace fc::vm::actor::builtin::miner {
     ChainEpoch periodEnd() const {
       return period_start + kWPoStProvingPeriod - 1;
     }
+    auto last() const {
+      return close - 1;
+    }
   };
 
+  struct ExpirationSet {
+    RleBitset on_time_sectors, early_sectors;
+    TokenAmount on_time_pledge;
+    PowerPair active_power, faulty_power;
+  };
+  CBOR_TUPLE(ExpirationSet,
+             on_time_sectors,
+             early_sectors,
+             on_time_pledge,
+             active_power,
+             faulty_power)
+
+  struct Partition {
+    RleBitset sectors, faults, recoveries, terminated;
+    adt::Array<ExpirationSet> expirations_epochs;  // quanted
+    adt::Array<RleBitset> early_terminated;
+    PowerPair live_power, faulty_power, recovering_power;
+  };
+  CBOR_TUPLE(Partition,
+             sectors,
+             faults,
+             recoveries,
+             terminated,
+             expirations_epochs,
+             early_terminated,
+             live_power,
+             faulty_power,
+             recovering_power)
+
+  struct Deadline {
+    adt::Array<Partition> partitions;
+    adt::Array<RleBitset> expirations_epochs;
+    RleBitset post_submissions, early_terminations;
+    uint64_t live_sectors{}, total_sectors{};
+    PowerPair faulty_power;
+  };
+  CBOR_TUPLE(Deadline,
+             partitions,
+             expirations_epochs,
+             post_submissions,
+             early_terminations,
+             live_sectors,
+             total_sectors,
+             faulty_power)
+
   struct Deadlines {
-    std::vector<RleBitset> due;
-
-    std::pair<size_t, size_t> count(size_t partition_size, size_t index) const {
-      assert(index < due.size());
-      auto sectors{due[index].size()};
-      auto parts{sectors / partition_size};
-      if (sectors % partition_size != 0) {
-        ++parts;
-      }
-      return {parts, sectors};
-    }
-
-    std::pair<size_t, size_t> partitions(size_t part_size, size_t index) const {
-      assert(index < due.size());
-      size_t first_part{0};
-      for (size_t i{0};; ++i) {
-        auto [parts, sectors]{count(part_size, index)};
-        if (i == index) {
-          return {first_part, sectors};
-        }
-        first_part += parts;
-      }
-    }
+    std::vector<CIDT<Deadline>> due;
   };
   CBOR_TUPLE(Deadlines, due)
 
   /// Balance of a Actor should equal exactly the sum of PreCommit deposits
   struct State {
-    MinerInfo info;
+    CIDT<MinerInfo> info;
     TokenAmount precommit_deposit;
     TokenAmount locked_funds;
-    adt::Array<TokenAmount> vesting_funds;
+    CIDT<VestingFunds> vesting_funds;
+    TokenAmount initial_pledge;
     adt::Map<SectorPreCommitOnChainInfo, UvarintKeyer> precommitted_sectors;
+    adt::Array<RleBitset> precommitted_expiry;
+    CIDT<RleBitset> allocated_sectors;
     adt::Array<SectorOnChainInfo> sectors;
-    ChainEpoch proving_period_start;
-    RleBitset new_sectors;
-    adt::Array<RleBitset> sector_expirations;
-    CID deadlines;
-    RleBitset fault_set;
-    adt::Array<RleBitset> fault_epochs;
-    RleBitset recoveries;
-    RleBitset post_submissions;  // set of partition indices
+    ChainEpoch proving_period_start{};
+    uint64_t current_deadline{};
+    CIDT<Deadlines> deadlines;
+    RleBitset early_terminations;
 
     DeadlineInfo deadlineInfo(ChainEpoch now) const;
     outcome::result<void> addFaults(const RleBitset &sectors, ChainEpoch epoch);
@@ -197,62 +267,76 @@ namespace fc::vm::actor::builtin::miner {
       }
       return std::move(result);
     }
-    template <typename Visitor>
-    auto visitProvingSet(const Visitor &visitor) {
-      return sectors.visit([&](auto id, auto &info) {
-        if (fault_set.find(id) == fault_set.end()
-            && recoveries.find(id) == recoveries.end()) {
-          visitor(id, info);
-        }
-        return outcome::success();
-      });
-    }
-    auto getDeadlines(IpldPtr ipld) {
-      return ipld->getCbor<Deadlines>(deadlines);
-    }
   };
   CBOR_TUPLE(State,
              info,
              precommit_deposit,
              locked_funds,
              vesting_funds,
+             initial_pledge,
              precommitted_sectors,
+             precommitted_expiry,
+             allocated_sectors,
              sectors,
              proving_period_start,
-             new_sectors,
-             sector_expirations,
+             current_deadline,
              deadlines,
-             fault_set,
-             fault_epochs,
-             recoveries,
-             post_submissions)
+             early_terminations)
   using MinerActorState = State;
 
   enum class CronEventType {
     WorkerKeyChange,
-    PreCommitExpiry,
-    ProvingPeriod,
+    ProvingDeadline,
+    ProcessEarlyTerminations,
   };
 
   struct CronEventPayload {
     CronEventType event_type;
-    boost::optional<RleBitset> sectors;
   };
-  CBOR_TUPLE(CronEventPayload, event_type, sectors)
+  CBOR_TUPLE(CronEventPayload, event_type)
 }  // namespace fc::vm::actor::builtin::miner
 
 namespace fc {
+  template <>
+  struct Ipld::Visit<vm::actor::builtin::miner::Partition> {
+    template <typename Visitor>
+    static void call(vm::actor::builtin::miner::Partition &p,
+                     const Visitor &visit) {
+      visit(p.expirations_epochs);
+      visit(p.early_terminated);
+    }
+  };
+  template <>
+  struct Ipld::Visit<vm::actor::builtin::miner::Deadline> {
+    template <typename Visitor>
+    static void call(vm::actor::builtin::miner::Deadline &d,
+                     const Visitor &visit) {
+      visit(d.partitions);
+      visit(d.expirations_epochs);
+    }
+  };
+  template <>
+  struct Ipld::Visit<vm::actor::builtin::miner::Deadlines> {
+    template <typename Visitor>
+    static void call(vm::actor::builtin::miner::Deadlines &ds,
+                     const Visitor &visit) {
+      for (auto &d : ds.due) {
+        visit(d);
+      }
+    }
+  };
   template <>
   struct Ipld::Visit<vm::actor::builtin::miner::State> {
     template <typename Visitor>
     static void call(vm::actor::builtin::miner::State &state,
                      const Visitor &visit) {
+      visit(state.info);
       visit(state.vesting_funds);
       visit(state.precommitted_sectors);
+      visit(state.precommitted_expiry);
+      visit(state.allocated_sectors);
       visit(state.sectors);
-      visit(state.sector_expirations);
-      visit(state.sector_expirations);
-      visit(state.fault_epochs);
+      visit(state.deadlines);
     }
   };
 }  // namespace fc
