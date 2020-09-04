@@ -116,20 +116,20 @@ namespace fc::api {
             auto &state,
             auto &post_rand) -> outcome::result<std::vector<SectorInfo>> {
       std::vector<SectorInfo> sectors;
-      RleBitset sectors1;
+      RleBitset sectors_bitset;
       OUTCOME_TRY(deadlines, state.deadlines.get());
       for (auto &_deadline : deadlines.due) {
         OUTCOME_TRY(deadline, _deadline.get());
         OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
           for (auto sector : part.sectors) {
             if (!part.faults.has(sector)) {
-              sectors1.insert(sector);
+              sectors_bitset.insert(sector);
             }
           }
           return outcome::success();
         }));
       }
-      if (!sectors1.empty()) {
+      if (!sectors_bitset.empty()) {
         OUTCOME_TRY(minfo, state.info.get());
         OUTCOME_TRY(
             seal_type,
@@ -137,12 +137,14 @@ namespace fc::api {
         OUTCOME_TRY(
             win_type,
             primitives::sector::getRegisteredWinningPoStProof(seal_type));
-        OUTCOME_TRY(indices,
-                    proofs::Proofs::generateWinningPoStSectorChallenge(
-                        win_type, miner.getId(), post_rand, sectors1.size()));
-        std::vector<uint64_t> sectors2{sectors1.begin(), sectors1.end()};
+        OUTCOME_TRY(
+            indices,
+            proofs::Proofs::generateWinningPoStSectorChallenge(
+                win_type, miner.getId(), post_rand, sectors_bitset.size()));
+        std::vector<uint64_t> sector_ids{sectors_bitset.begin(),
+                                         sectors_bitset.end()};
         for (auto &i : indices) {
-          OUTCOME_TRY(sector, state.sectors.get(sectors2[i]));
+          OUTCOME_TRY(sector, state.sectors.get(sector_ids[i]));
           sectors.push_back({win_type, sector.sector, sector.sealed_cid});
         }
       }
