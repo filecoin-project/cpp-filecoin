@@ -4,12 +4,9 @@
  */
 
 #include "sector_storage/checks/checks.hpp"
+#include <storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp>
 #include <storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp>
 #include "sector_storage/zerocomm/zerocomm.hpp"
-#include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
-#include "vm/actor/builtin/market/actor.hpp"
-#include "vm/actor/builtin/miner/policy.hpp"
-#include "vm/actor/builtin/miner/types.hpp"
 
 namespace fc::sector_storage::checks {
   using primitives::BigInt;
