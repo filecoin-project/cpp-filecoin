@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(checks)
 add_subdirectory(stores)
 add_subdirectory(zerocomm)
 
