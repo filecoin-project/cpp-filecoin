@@ -36,6 +36,7 @@ namespace fc::sector_storage::checks {
     kBadCommD,
     kExpiredTicket,
     kBadTicketEpoch,
+    kSectorAllocated,
   };
 
 }  // namespace fc::sector_storage::checks

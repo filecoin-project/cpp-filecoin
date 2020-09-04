@@ -109,10 +109,10 @@ namespace fc::sector_storage::checks {
       OUTCOME_TRYA(result,
                    state.precommitted_sectors.get(sector_info.sector_number));
     } else {
-      // TODO
-      // if not found
-      //   if state.allocated bitset has sector_info.sector_number set
-      //     return error - sector number allocated
+      OUTCOME_TRY(allocated_bitset, state.allocated_sectors.get());
+      if (allocated_bitset.has(sector_info.sector_number)) {
+        return ChecksError::kSectorAllocated;
+      }
     }
     return result;
   }
@@ -163,6 +163,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::checks, ChecksError, e) {
       return "ChecksError: ticket has expired";
     case E::kBadTicketEpoch:
       return "ChecksError: bad ticket epoch";
+    case E::kSectorAllocated:
+      return "ChecksError: sector is allocated";
     default:
       return "ChecksError: unknown error";
   }
