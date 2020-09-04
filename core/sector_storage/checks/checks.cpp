@@ -137,10 +137,12 @@ namespace fc::sector_storage::checks {
     OUTCOME_TRY(
         state_sector_precommit_info,
         getStateSectorPreCommitInfo(address, sector_info, tipset_key, api));
-    if (state_sector_precommit_info.has_value()
-        && (state_sector_precommit_info.value().info.seal_epoch
-            != sector_info.ticket_epoch)) {
-      return ChecksError::kBadTicketEpoch;
+    if (state_sector_precommit_info.has_value()) {
+      if (state_sector_precommit_info.value().info.seal_epoch
+          != sector_info.ticket_epoch) {
+        return ChecksError::kBadTicketEpoch;
+      }
+      return ChecksError::kPrecommitOnChain;
     }
 
     return outcome::success();
@@ -165,6 +167,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::checks, ChecksError, e) {
       return "ChecksError: bad ticket epoch";
     case E::kSectorAllocated:
       return "ChecksError: sector is allocated";
+    case E::kPrecommitOnChain:
+      return "ChecksError: precommit already on chain";
     default:
       return "ChecksError: unknown error";
   }
