@@ -6,6 +6,7 @@
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
 
 #include "common/bitsutil.hpp"
+#include "host/context/impl/host_context_impl.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 
 #define FSM_SEND(info, event) OUTCOME_EXCEPT(fsm_->send(info, event))
@@ -15,6 +16,16 @@
 
 namespace fc::mining {
   using types::Piece;
+
+  SealingImpl::SealingImpl(std::shared_ptr<boost::asio::io_context> context)
+      : context_(std::move(context)) {
+    std::shared_ptr<host::HostContext> fsm_context =
+        std::make_shared<host::HostContextImpl>(context_);
+    fsm_ = std::make_shared<StorageFSM>(makeFSMTransitions(), fsm_context);
+    fsm_->setAnyChangeAction([this](auto info, auto event, auto from, auto to) {
+      callbackHandle(info, event, from, to);
+    });
+  }
 
   uint64_t getDealPerSectorLimit(SectorSize size) {
     if (size < (uint64_t(64) << 30)) {
@@ -414,13 +425,62 @@ namespace fc::mining {
         case SealingState::kWaitDeals:
           logger_->info("Waiting for deals {}", info->sector_number);
           return outcome::success();
-          // TODO: add handles
+        case SealingState::kPacking:
+          return handlePacking(info);
+        case SealingState::kPreCommit1:
+          return handlePreCommit1(info);
+        case SealingState::kPreCommit2:
+          return handlePreCommit2(info);
+        case SealingState::kPreCommitting:
+          return handlePreCommitting(info);
+        case SealingState::kPreCommittingWait:
+          return handlePreCommitWaiting(info);
+        case SealingState::kWaitSeed:
+          return handleWaitSeed(info);
+        case SealingState::kCommitting:
+          return handleCommitting(info);
+        case SealingState::kCommitWait:
+          return handleCommitWait(info);
+        case SealingState::kFinalizeSector:
+          return handleFinalizeSector(info);
+
+        case SealingState::kSealPreCommit1Fail:
+          return handleSealPreCommit1Fail(info);
+        case SealingState::kSealPreCommit2Fail:
+          return handleSealPreCommit2Fail(info);
+        case SealingState::kPreCommitFail:
+          return handlePreCommitFail(info);
+        case SealingState::kComputeProofFail:
+          return handleComputeProofFail(info);
+        case SealingState::kCommitFail:
+          return handleCommitFail(info);
+        case SealingState::kFinalizeFail:
+          return handleFinalizeFail(info);
+
+        case SealingState::kProving:
+          return handleProvingSector(info);
+        case SealingState::kRemoving:
+          return handleRemoving(info);
+        case SealingState::kRemoved:
+          return outcome::success();
+
+        case SealingState::kFaulty:
+          return outcome::success();
+        case SealingState::kFaultReported:
+          return handleFaultReported(info);
+
+        case SealingState::kStateUnknown:
+          logger_->error("sector update with undefined state!");
+          return outcome::success();
         default:
-          logger_->warn("Unknown state {}", to);
+          logger_->error("Unknown state {}", to);
+          return outcome::success();
       }
     }();
     if (maybe_error.has_error()) {
-      // TODO: log about error
+      logger_->error("Unhandled sector error ({}): {}",
+                     info->sector_number,
+                     maybe_error.error());
     }
   }
 

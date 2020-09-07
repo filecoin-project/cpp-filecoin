@@ -26,6 +26,8 @@ namespace fc::mining {
 
   class SealingImpl : public Sealing {
    public:
+    SealingImpl(std::shared_ptr<boost::asio::io_context> context);
+
     outcome::result<void> run() override;
 
     void stop() override;
@@ -224,6 +226,7 @@ namespace fc::mining {
     std::shared_mutex upgrade_mutex_;
 
     /** State machine */
+    std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<StorageFSM> fsm_;
 
     std::shared_ptr<Api> api_;
