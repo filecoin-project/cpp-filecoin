@@ -6,11 +6,13 @@
 #include "sector_storage/checks/checks.hpp"
 #include <storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp>
 #include <storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp>
+#include "crypto/randomness/randomness_types.hpp"
 #include "primitives/sector/sector.hpp"
 #include "proofs/proofs.hpp"
 #include "sector_storage/zerocomm/zerocomm.hpp"
 
 namespace fc::sector_storage::checks {
+  using crypto::randomness::DomainSeparationTag;
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::DealId;
@@ -174,11 +176,16 @@ namespace fc::sector_storage::checks {
       return ChecksError::kBadSeed;
     }
 
-    // TODO
-    // OUTCOME_TRY(seed, api->ChainGetRandomnessFromBeacon());
-    // if (seed != sector_info.seed) {
-    //   return E::kBadSeed;
-    // }
+    OUTCOME_TRY(miner_address_encoded, codec::cbor::encode(miner_address));
+    OUTCOME_TRY(seed,
+                api->ChainGetRandomnessFromBeacon(
+                    tipset_key,
+                    DomainSeparationTag::InteractiveSealChallengeSeed,
+                    sector_info.seed_epoch,
+                    miner_address_encoded));
+    if (seed != sector_info.seed) {
+      return ChecksError::kBadSeed;
+    }
 
     OUTCOME_TRY(sector_size,
                 api->StateMinerSectorSize(miner_address, tipset_key));
@@ -194,7 +201,6 @@ namespace fc::sector_storage::checks {
             .sector = SectorId{.miner = miner_address.getId(),
                                .sector = sector_info.sector_number},
             .info =
-                // TODO what other parameters means?
                 OnChainSealVerifyInfo{
                     .sealed_cid =
                         state_sector_precommit_info.value().info.sealed_cid,
