@@ -4,10 +4,26 @@
  */
 
 #include "sector_storage/checks/checks.hpp"
+#include <storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp>
+#include <storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp>
 #include "sector_storage/zerocomm/zerocomm.hpp"
 
 namespace fc::sector_storage::checks {
+  using primitives::BigInt;
   using primitives::ChainEpoch;
+  using primitives::DealId;
+  using storage::ipfs::ApiIpfsDatastore;
+  using vm::VMExitCode;
+  using vm::actor::kStorageMarketAddress;
+  using vm::actor::MethodParams;
+  using vm::actor::builtin::market::ComputeDataCommitment;
+  using vm::actor::builtin::miner::kChainFinalityish;
+  using vm::actor::builtin::miner::maxSealDuration;
+  using vm::actor::builtin::miner::MinerActorState;
+  using vm::actor::builtin::miner::SectorPreCommitOnChainInfo;
+  using vm::message::kDefaultGasLimit;
+  using vm::message::kDefaultGasPrice;
+  using vm::message::UnsignedMessage;
   using zerocomm::getZeroPieceCommitment;
 
   outcome::result<void> checkPieces(const SectorInfo &sector_info,
@@ -46,6 +62,89 @@ namespace fc::sector_storage::checks {
     return outcome::success();
   }
 
+  outcome::result<CID> getDataCommitment(const Address &miner_address,
+                                         const SectorInfo &sector_info,
+                                         const TipsetKey &tipset_key,
+                                         const std::shared_ptr<Api> &api) {
+    std::vector<DealId> deal_ids;
+    for (const auto &piece : sector_info.pieces) {
+      if (piece.deal_info.has_value()) {
+        deal_ids.push_back(piece.deal_info->deal_id);
+      }
+    }
+    ComputeDataCommitment::Params params{
+        .deals = deal_ids, .sector_type = sector_info.sector_type};
+    OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
+    UnsignedMessage message{kStorageMarketAddress,
+                            miner_address,
+                            {},
+                            BigInt{0},
+                            kDefaultGasPrice,
+                            kDefaultGasLimit,
+                            ComputeDataCommitment::Number,
+                            MethodParams{encoded_params}};
+    OUTCOME_TRY(invocation_result, api->StateCall(message, tipset_key));
+    if (invocation_result.receipt.exit_code != VMExitCode::kOk) {
+      return ChecksError::kInvocationErrored;
+    }
+    return codec::cbor::decode<ComputeDataCommitment::Result>(
+        invocation_result.receipt.return_value);
+  }
+
+  outcome::result<boost::optional<SectorPreCommitOnChainInfo>>
+  getStateSectorPreCommitInfo(const Address &miner_address,
+                              const SectorInfo &sector_info,
+                              const TipsetKey &tipset_key,
+                              const std::shared_ptr<Api> &api) {
+    boost::optional<SectorPreCommitOnChainInfo> result;
+
+    OUTCOME_TRY(actor, api->StateGetActor(miner_address, tipset_key));
+    auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
+    OUTCOME_TRY(state, ipfs->getCbor<MinerActorState>(actor.head));
+    OUTCOME_TRY(has, state.precommitted_sectors.has(sector_info.sector_number));
+    if (has) {
+      OUTCOME_TRYA(result,
+                   state.precommitted_sectors.get(sector_info.sector_number));
+    } else {
+      OUTCOME_TRY(allocated_bitset, state.allocated_sectors.get());
+      if (allocated_bitset.has(sector_info.sector_number)) {
+        return ChecksError::kSectorAllocated;
+      }
+    }
+    return result;
+  }
+
+  outcome::result<void> checkPrecommit(const Address &address,
+                                       const SectorInfo &sector_info,
+                                       const TipsetKey &tipset_key,
+                                       const ChainEpoch &height,
+                                       const std::shared_ptr<Api> &api) {
+    OUTCOME_TRY(commD,
+                getDataCommitment(address, sector_info, tipset_key, api));
+    if (commD != sector_info.comm_d) {
+      return ChecksError::kBadCommD;
+    }
+
+    OUTCOME_TRY(seal_duration, maxSealDuration(sector_info.sector_type));
+    if (height - (sector_info.ticket_epoch + kChainFinalityish)
+        > seal_duration) {
+      return ChecksError::kExpiredTicket;
+    }
+
+    OUTCOME_TRY(
+        state_sector_precommit_info,
+        getStateSectorPreCommitInfo(address, sector_info, tipset_key, api));
+    if (state_sector_precommit_info.has_value()) {
+      if (state_sector_precommit_info.value().info.seal_epoch
+          != sector_info.ticket_epoch) {
+        return ChecksError::kBadTicketEpoch;
+      }
+      return ChecksError::kPrecommitOnChain;
+    }
+
+    return outcome::success();
+  }
+
 }  // namespace fc::sector_storage::checks
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::checks, ChecksError, e) {
@@ -55,6 +154,18 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::checks, ChecksError, e) {
       return "ChecksError: invalid deal";
     case E::kExpiredDeal:
       return "ChecksError: expired deal";
+    case E::kInvocationErrored:
+      return "ChecksError: invocation result has error";
+    case E::kBadCommD:
+      return "ChecksError: on chain CommD differs from sector";
+    case E::kExpiredTicket:
+      return "ChecksError: ticket has expired";
+    case E::kBadTicketEpoch:
+      return "ChecksError: bad ticket epoch";
+    case E::kSectorAllocated:
+      return "ChecksError: sector is allocated";
+    case E::kPrecommitOnChain:
+      return "ChecksError: precommit already on chain";
     default:
       return "ChecksError: unknown error";
   }

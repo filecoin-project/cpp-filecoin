@@ -147,7 +147,22 @@ namespace fc::primitives::tipset {
     return outcome::success();
   }
 
-  outcome::result<Randomness> Tipset::randomness(
+  outcome::result<Randomness> Tipset::beaconRandomness(
+      Ipld &ipld,
+      DomainSeparationTag tag,
+      ChainEpoch round,
+      gsl::span<const uint8_t> entropy) const {
+    auto ts{this};
+    Tipset parent;
+    while (ts->height != 0 && static_cast<ChainEpoch>(ts->height) > round) {
+      OUTCOME_TRYA(parent, ts->loadParent(ipld));
+      ts = &parent;
+    }
+    OUTCOME_TRY(beacon, ts->latestBeacon(ipld));
+    return crypto::randomness::drawRandomness(beacon.data, tag, round, entropy);
+  }
+
+  outcome::result<Randomness> Tipset::ticketRandomness(
       Ipld &ipld,
       DomainSeparationTag tag,
       ChainEpoch round,

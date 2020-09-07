@@ -57,7 +57,13 @@ namespace fc::primitives::tipset {
     outcome::result<void> visitMessages(
         IpldPtr ipld, const MessageVisitor::Visitor &visitor) const;
 
-    outcome::result<Randomness> randomness(
+    outcome::result<Randomness> beaconRandomness(
+        Ipld &ipld,
+        DomainSeparationTag tag,
+        ChainEpoch round,
+        gsl::span<const uint8_t> entropy) const;
+
+    outcome::result<Randomness> ticketRandomness(
         Ipld &ipld,
         DomainSeparationTag tag,
         ChainEpoch round,

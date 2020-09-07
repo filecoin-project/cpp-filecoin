@@ -138,6 +138,9 @@ namespace fc::vm {
 
       case E::kAssert:
         return E{1};
+
+      case E::kNotImplemented:
+        return {};
     }
     return {};
   }

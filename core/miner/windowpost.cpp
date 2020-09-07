@@ -54,27 +54,36 @@ namespace fc {
         && deadline.challenge + kStartConfidence
                < static_cast<int64_t>(ts.height)) {
       last_deadline = deadline;
-      OUTCOME_TRY(deadlines, api->StateMinerDeadlines(miner, ts_key));
-      auto parts{deadlines.count(part_size, deadline.index).first};
-      if (parts != 0) {
-        using vm::actor::builtin::miner::SubmitWindowedPoSt;
-        SubmitWindowedPoSt::Params params;
-        auto first_part{deadlines.partitions(part_size, deadline.index).first};
-        for (auto i{0u}; i < parts; ++i) {
-          params.partitions.push_back(first_part + i);
-        }
+
+      // TODO: check recoveries and faults
+
+      using vm::actor::builtin::miner::SubmitWindowedPoSt;
+      SubmitWindowedPoSt::Params params;
+      params.deadline = deadline.index;
+      OUTCOME_TRY(parts,
+                  api->StateMinerPartitions(miner, deadline.index, ts_key));
+      std::map<api::SectorNumber, size_t> part_of;
+      std::vector<api::SectorInfo> sectors2;
+      for (auto i{0u}; i < parts.size(); ++i) {
+        auto &part{parts[i]};
+        auto to_prove{part.sectors - part.terminated
+                      - (part.faults - part.recoveries)};
+        auto good{to_prove};  // TODO: check provable
         OUTCOME_TRY(sectors1,
-                    api->StateMinerSectors(
-                        miner, deadlines.due[deadline.index], false, ts_key));
-        std::vector<api::SectorInfo> sectors2;
+                    api->StateMinerSectors(miner, good, false, ts_key));
         for (auto &sector : sectors1) {
-          sectors2.push_back({sector.info.info.registered_proof,
-                              sector.id,
-                              sector.info.info.sealed_cid});
+          part_of.emplace(sector.id, i);
+          sectors2.push_back(
+              {sector.info.seal_proof, sector.id, sector.info.sealed_cid});
         }
+        if (!sectors1.empty()) {
+          params.partitions.push_back({i, to_prove - good});
+        }
+      }
+      if (!sectors2.empty()) {
         OUTCOME_TRY(seed, codec::cbor::encode(miner));
         OUTCOME_TRY(rand,
-                    api->ChainGetRandomness(
+                    api->ChainGetRandomnessFromBeacon(
                         ts_key,
                         api::DomainSeparationTag::WindowedPoStChallengeSeed,
                         deadline.challenge,
@@ -82,6 +91,17 @@ namespace fc {
         OUTCOME_TRY(proof,
                     prover->generateWindowPoSt(miner.getId(), sectors2, rand));
         params.proofs = std::move(proof.proof);
+        for (auto &sector : proof.skipped) {
+          params.partitions[part_of.at(sector.sector)].skipped.insert(
+              sector.sector);
+        }
+        params.chain_commit_epoch = deadline.open;
+        OUTCOME_TRYA(params.chain_commit_rand,
+                     api->ChainGetRandomnessFromTickets(
+                         ts_key,
+                         api::DomainSeparationTag::PoStChainCommit,
+                         params.chain_commit_epoch,
+                         {}));
         OUTCOME_TRY(api->MpoolPushMessage({
             miner,
             worker,

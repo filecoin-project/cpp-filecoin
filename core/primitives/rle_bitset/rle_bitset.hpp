@@ -17,6 +17,30 @@ namespace fc::primitives {
     using set::set;
 
     inline RleBitset(set &&s) : set{s} {}
+
+    inline bool has(uint64_t v) const {
+      return find(v) != end();
+    }
+
+    inline void operator+=(const RleBitset &other) {
+      insert(other.begin(), other.end());
+    }
+
+    inline RleBitset operator+(const RleBitset &other) const {
+      auto result{*this};
+      result += other;
+      return result;
+    }
+
+    inline RleBitset operator-(const RleBitset &other) const {
+      RleBitset result;
+      for (auto i : *this) {
+        if (!other.has(i)) {
+          result.insert(i);
+        }
+      }
+      return result;
+    }
   };
 
   CBOR_ENCODE(RleBitset, set) {

@@ -125,6 +125,25 @@ namespace fc::storage::ipfs {
 namespace fc {
   using Ipld = storage::ipfs::IpfsDatastore;
   using IpldPtr = std::shared_ptr<Ipld>;
+
+  template <typename T>
+  struct CIDT : public CID {
+    auto get() const {
+      return ipld->getCbor<T>(*this);
+    }
+    outcome::result<void> set(const T &value) {
+      OUTCOME_TRYA(*this, ipld->setCbor(value));
+      return outcome::success();
+    }
+    IpldPtr ipld;
+  };
+
+  template <typename T>
+  struct Ipld::Load<CIDT<T>> {
+    static void call(Ipld &ipld, CIDT<T> &cid) {
+      cid.ipld = ipld.shared();
+    }
+  };
 }  // namespace fc
 
 #endif  // CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_HPP
