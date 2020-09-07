@@ -114,6 +114,7 @@ namespace fc::api {
     setup(rpc, api.StateMinerDeadlines);
     setup(rpc, api.StateMinerFaults);
     setup(rpc, api.StateMinerInfo);
+    setup(rpc, api.StateMinerPartitions);
     setup(rpc, api.StateMinerPower);
     setup(rpc, api.StateMinerProvingDeadline);
     setup(rpc, api.StateMinerSectors);

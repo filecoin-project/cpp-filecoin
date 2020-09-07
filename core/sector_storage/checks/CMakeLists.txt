@@ -9,5 +9,6 @@ add_library(checks
 
 target_link_libraries(checks
     api
+    api_ipfs_datastore
     zerocomm
     )
