@@ -99,8 +99,8 @@ namespace fc::sector_storage::checks {
     boost::optional<SectorPreCommitOnChainInfo> result;
 
     OUTCOME_TRY(actor, api->StateGetActor(miner_address, tipset_key));
-    ApiIpfsDatastore ipfs{api};
-    OUTCOME_TRY(state, ipfs.getCbor<MinerActorState>(actor.head));
+    auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
+    OUTCOME_TRY(state, ipfs->getCbor<MinerActorState>(actor.head));
     OUTCOME_TRY(has, state.precommitted_sectors.has(sector_info.sector_number));
     if (has) {
       OUTCOME_TRYA(result,
