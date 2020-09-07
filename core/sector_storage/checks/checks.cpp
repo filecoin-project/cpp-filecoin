@@ -170,8 +170,7 @@ namespace fc::sector_storage::checks {
       return ChecksError::kPrecommitNotFound;
     }
 
-    if (state_sector_precommit_info.value().precommit_epoch
-            + kPreCommitChallengeDelay
+    if (state_sector_precommit_info->precommit_epoch + kPreCommitChallengeDelay
         != sector_info.seed_epoch) {
       return ChecksError::kBadSeed;
     }
@@ -191,8 +190,7 @@ namespace fc::sector_storage::checks {
                 api->StateMinerSectorSize(miner_address, tipset_key));
     OUTCOME_TRY(seal_proof_type, sealProofTypeFromSectorSize(sector_size));
 
-    if (sector_info.comm_r
-        != state_sector_precommit_info.value().info.sealed_cid) {
+    if (sector_info.comm_r != state_sector_precommit_info->info.sealed_cid) {
       return ChecksError::kBadSealedCid;
     }
     OUTCOME_TRY(
@@ -202,8 +200,7 @@ namespace fc::sector_storage::checks {
                                .sector = sector_info.sector_number},
             .info =
                 OnChainSealVerifyInfo{
-                    .sealed_cid =
-                        state_sector_precommit_info.value().info.sealed_cid,
+                    .sealed_cid = state_sector_precommit_info->info.sealed_cid,
                     .registered_proof = seal_proof_type,
                     .proof = proof},
             .randomness = sector_info.ticket,
