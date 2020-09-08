@@ -7,16 +7,16 @@
 #define CPP_FILECOIN_CORE_SECTOR_STORAGE_CHECKS_CHECKS_HPP
 
 #include "api/api.hpp"
-#include "miner/storage_fsm/impl/sealing_impl.hpp"
+#include "miner/storage_fsm/types.hpp"
 
 namespace fc::sector_storage::checks {
   using api::Api;
   using common::Buffer;
-  using mining::SectorInfo;
+  using mining::types::SectorInfo;
   using primitives::ChainEpoch;
   using primitives::address::Address;
-  using primitives::tipset::TipsetKey;
   using primitives::sector::Proof;
+  using primitives::tipset::TipsetKey;
 
   outcome::result<void> checkPieces(const SectorInfo &sector_info,
                                     const std::shared_ptr<Api> &api);

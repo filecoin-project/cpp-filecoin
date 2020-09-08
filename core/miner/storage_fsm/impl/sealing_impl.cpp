@@ -8,6 +8,7 @@
 #include "common/bitsutil.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "miner/storage_fsm/impl/basic_precommit_policy.hpp"
 
 #define FSM_SEND(info, event) OUTCOME_EXCEPT(fsm_->send(info, event))
 

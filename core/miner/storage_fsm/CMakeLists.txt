@@ -3,6 +3,14 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(precommit_policy
+        impl/basic_precommit_policy.cpp
+        )
+target_link_libraries(precommit_policy
+        Boost::boost
+        api
+        )
+
 add_library(tipset_cache
         impl/tipset_cache_impl.cpp
         )
@@ -30,4 +38,5 @@ target_link_libraries(storage_fsm
         tipset
         api
         events
+        precommit_policy
         )
