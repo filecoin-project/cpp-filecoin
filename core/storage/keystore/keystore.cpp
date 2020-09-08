@@ -6,6 +6,7 @@
 #include "keystore.hpp"
 
 #include "common/visitor.hpp"
+#include "crypto/blake2/blake2b160.hpp"
 
 namespace fc::storage::keystore {
 
@@ -55,9 +56,10 @@ namespace fc::storage::keystore {
       return signature;
     }
     if (address.getProtocol() == Protocol::SECP256K1) {
+      auto hash{crypto::blake2b::blake2b_256(data)};
       OUTCOME_TRY(signature,
                   secp256k1_provider_->sign(
-                      data, boost::get<Secp256k1PrivateKey>(private_key)));
+                      hash, boost::get<Secp256k1PrivateKey>(private_key)));
       return std::move(signature);
     }
 
@@ -87,10 +89,10 @@ namespace fc::storage::keystore {
               || address.data.type() != typeid(Secp256k1PublicKeyHash)) {
             return KeyStoreError::kWrongSignature;
           }
-
+          auto hash{crypto::blake2b::blake2b_256(data)};
           OUTCOME_TRY(
               public_key,
-              secp256k1_provider_->recoverPublicKey(data, secp256k1_signature));
+              secp256k1_provider_->recoverPublicKey(hash, secp256k1_signature));
           return address.verifySyntax(public_key);
         });
   }

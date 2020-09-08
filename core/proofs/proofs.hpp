@@ -36,6 +36,7 @@ namespace fc::proofs {
   using primitives::sector::Proof;
   using primitives::sector::SealRandomness;
   using primitives::sector::SealVerifyInfo;
+  using primitives::sector::SealVerifyInfo2;
   using primitives::sector::SectorInfo;
   using primitives::sector::Ticket;
   using primitives::sector::WindowPoStVerifyInfo;
@@ -85,8 +86,16 @@ namespace fc::proofs {
     CID unsealed_cid;
   };
 
+  struct RequiredPadding {
+    std::vector<PaddedPieceSize> pads;
+    PaddedPieceSize size;
+  };
+
   class Proofs {
    public:
+    static RequiredPadding GetRequiredPadding(PaddedPieceSize old_length,
+                                              PaddedPieceSize new_piece_length);
+
     static fc::proofs::SortedPrivateSectorInfo newSortedPrivateSectorInfo(
         gsl::span<const PrivateSectorInfo> replica_info);
 
@@ -175,7 +184,9 @@ namespace fc::proofs {
      * the provided pieces.
      */
     static outcome::result<CID> generateUnsealedCID(
-        RegisteredProof proof_type, gsl::span<const PieceInfo> pieces);
+        RegisteredProof proof_type,
+        gsl::span<const PieceInfo> pieces,
+        bool pad = false);
 
     static outcome::result<ChallengeIndexes> generateWinningPoStSectorChallenge(
         RegisteredProof proof_type,
@@ -204,6 +215,8 @@ namespace fc::proofs {
      * were derived was valid, and false if not.
      */
     static outcome::result<bool> verifySeal(const SealVerifyInfo &info);
+
+    static outcome::result<bool> verifySeal2(const SealVerifyInfo2 &info);
 
     /**
      * Unseals sector

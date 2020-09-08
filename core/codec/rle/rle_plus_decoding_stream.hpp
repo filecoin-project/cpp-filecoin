@@ -6,8 +6,8 @@
 #ifndef CPP_FILECOIN_RLE_PLUS_DECODING_STREAM_HPP
 #define CPP_FILECOIN_RLE_PLUS_DECODING_STREAM_HPP
 
-#include <vector>
 #include <set>
+#include <vector>
 
 #include <boost/dynamic_bitset.hpp>
 #include <gsl/span>
@@ -78,10 +78,7 @@ namespace fc::codec::rle {
     T getSpan(size_t count) {
       T value{};
       size_t shift = 0;
-      const size_t end = index_ + count;
-      if (content_.size() < end) {
-        throw errors::IndexOutOfBound();
-      }
+      auto end{std::min(content_.size(), index_ + count)};
       for (size_t i = index_; i < end; ++i) {
         T slice = content_.test(i) ? 1 : 0;
         value |= slice << shift;

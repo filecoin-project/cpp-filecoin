@@ -28,7 +28,7 @@ struct SyncTargetBucketTest : public ::testing::Test {
   using BigInt = fc::primitives::BigInt;
   using CID = fc::CID;
   using Signature = fc::primitives::block::Signature;
-  using Ticket = fc::primitives::ticket::Ticket;
+  using Ticket = fc::primitives::block::Ticket;
   using TipsetError = fc::primitives::tipset::TipsetError;
 
   ~SyncTargetBucketTest() override = default;
@@ -36,13 +36,11 @@ struct SyncTargetBucketTest : public ::testing::Test {
   BlockHeader makeBlock1() {
     auto bls1 =
         "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
-    auto bls2 =
-        "020101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
-    auto ticket2 = Ticket{bls2};
+    auto ticket2 = Ticket{fc::Buffer{bls1}};
     BlockHeader block_header = fc::primitives::block::BlockHeader{
         fc::primitives::address::Address::makeFromId(1),
         ticket2,
-        {fc::common::Buffer{"F00D"_unhex}},
+        {},
         {fc::primitives::block::BeaconEntry{
             4,
             "F00D"_unhex,
@@ -61,21 +59,22 @@ struct SyncTargetBucketTest : public ::testing::Test {
         8,
         Signature{bls1},
         9,
+        {},
     };
     return block_header;
   }
 
   BlockHeader makeBlock2() {
-    auto bls1 =
-        "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
+    auto bls2 =
+        "020101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
     const auto secp1 =
         "0101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob65;
     fc::crypto::bls::Signature signature{};
-    auto ticket2 = Ticket{bls1};
+    auto ticket2 = Ticket{fc::Buffer{bls2}};
     BlockHeader block_header = fc::primitives::block::BlockHeader{
         fc::primitives::address::Address::makeFromId(2),
         ticket2,
-        {fc::common::Buffer{"F00D"_unhex}},
+        {},
         {fc::primitives::block::BeaconEntry{
             4,
             "F00D"_unhex,
@@ -94,6 +93,7 @@ struct SyncTargetBucketTest : public ::testing::Test {
         8,
         Signature{secp1},
         9,
+        {},
     };
     return block_header;
   }

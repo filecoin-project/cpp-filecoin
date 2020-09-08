@@ -56,7 +56,7 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
        BlockHeader{
            Address::makeFromId(0),
            {},
-           {fc::common::Buffer{"F00D"_unhex}},
+           {},
            {fc::primitives::block::BeaconEntry{
                4,
                "F00D"_unhex,
@@ -71,6 +71,7 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
            state_root,
            some_cid,
            some_cid,
+           {},
            {},
            {},
            {},

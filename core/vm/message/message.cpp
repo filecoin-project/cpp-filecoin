@@ -10,8 +10,9 @@ namespace fc::vm::message {
 
   bool UnsignedMessage::operator==(const UnsignedMessage &other) const {
     return to == other.to && from == other.from && nonce == other.nonce
-           && value == other.value && gasPrice == other.gasPrice
-           && gasLimit == other.gasLimit && method == other.method
+           && value == other.value && gas_limit == other.gas_limit
+           && gas_fee_cap == other.gas_fee_cap
+           && gas_premium == other.gas_premium && method == other.method
            && params == other.params;
   }
 
@@ -20,7 +21,7 @@ namespace fc::vm::message {
   }
 
   BigInt UnsignedMessage::requiredFunds() const {
-    return value + gasLimit * gasPrice;
+    return gas_limit * gas_fee_cap;
   }
 
   CID SignedMessage::getCid() const {

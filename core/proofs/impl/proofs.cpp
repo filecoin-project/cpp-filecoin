@@ -9,11 +9,13 @@
 #include <filecoin-ffi/filcrypto.h>
 
 #include <boost/filesystem.hpp>
+#include "common/bitsutil.hpp"
 #include "common/ffi.hpp"
 #include "primitives/address/address.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs_error.hpp"
+#include "sector_storage/zerocomm/zerocomm.hpp"
 
 namespace {
   void unpad(gsl::span<const uint8_t> in, gsl::span<uint8_t> out) {
@@ -129,6 +131,7 @@ namespace fc::proofs {
   using primitives::sector::getRegisteredWindowPoStProof;
   using primitives::sector::getRegisteredWinningPoStProof;
   using primitives::sector::SectorId;
+  using sector_storage::zerocomm::getZeroPieceCommitment;
 
   // ******************
   // TO CPP CASTED FUNCTIONS
@@ -509,7 +512,7 @@ namespace fc::proofs {
                                   prover_id,
                                   c32ByteArray(info.randomness),
                                   c32ByteArray(info.interactive_randomness),
-                                  info.info.sector,
+                                  info.sector.sector,
                                   info.info.proof.data(),
                                   info.info.proof.size()),
                   fil_destroy_verify_seal_response);
@@ -521,6 +524,25 @@ namespace fc::proofs {
     }
 
     return res_ptr->is_valid;
+  }
+
+  outcome::result<bool> Proofs::verifySeal2(const SealVerifyInfo2 &seal) {
+    return verifySeal({
+        .sector = seal.sector,
+        .info =
+            {
+                .sealed_cid = seal.sealed_cid,
+                .interactive_epoch = {},
+                .registered_proof = seal.seal_proof,
+                .proof = seal.proof,
+                .deals = {},
+                .sector = {},
+                .seal_rand_epoch = {},
+            },
+        .randomness = seal.randomness,
+        .interactive_randomness = seal.interactive_randomness,
+        .unsealed_cid = seal.unsealed_cid,
+    });
   }
 
   // ******************
@@ -846,28 +868,17 @@ namespace fc::proofs {
                                        ActorId miner_id,
                                        const Ticket &ticket,
                                        const UnsealedCID &unsealed_cid) {
-    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
-
-    OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
-    auto prover_id = toProverID(miner_id);
-
-    auto res_ptr = ffi::wrap(fil_unseal(c_proof_type,
-                                        cache_dir_path.c_str(),
-                                        sealed_sector_path.c_str(),
-                                        unseal_output_path.c_str(),
-                                        sector_num,
-                                        prover_id,
-                                        c32ByteArray(ticket),
-                                        c32ByteArray(comm_d)),
-                             fil_destroy_unseal_response);
-
-    if (res_ptr->status_code != 0) {
-      logger_->error("unseal: " + std::string(res_ptr->error_msg));
-
-      return ProofsError::kUnknown;
-    }
-
-    return outcome::success();
+    OUTCOME_TRY(size, primitives::sector::getSectorSize(proof_type));
+    return unsealRange(proof_type,
+                       cache_dir_path,
+                       sealed_sector_path,
+                       unseal_output_path,
+                       sector_num,
+                       miner_id,
+                       ticket,
+                       unsealed_cid,
+                       0,
+                       PaddedPieceSize{size}.unpadded());
   }
 
   outcome::result<void> Proofs::unsealRange(
@@ -885,11 +896,20 @@ namespace fc::proofs {
 
     OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
 
+    PieceData sealed{sealed_sector_path, O_RDONLY};
+    if (!sealed.isOpened()) {
+      return ProofsError::kCannotOpenFile;
+    }
+    PieceData unsealed{unseal_output_path};
+    if (!unsealed.isOpened()) {
+      return ProofsError::kCannotCreateUnsealedFile;
+    }
+
     auto prover_id = toProverID(miner_id);
     auto res_ptr = ffi::wrap(fil_unseal_range(c_proof_type,
                                               cache_dir_path.c_str(),
-                                              sealed_sector_path.c_str(),
-                                              unseal_output_path.c_str(),
+                                              sealed.getFd(),
+                                              unsealed.getFd(),
                                               sector_num,
                                               prover_id,
                                               c32ByteArray(ticket),
@@ -965,7 +985,35 @@ namespace fc::proofs {
   }
 
   outcome::result<CID> Proofs::generateUnsealedCID(
-      RegisteredProof proof_type, gsl::span<const PieceInfo> pieces) {
+      RegisteredProof proof_type, gsl::span<const PieceInfo> pieces, bool pad) {
+    std::vector<PieceInfo> padded;
+    if (pad) {
+      OUTCOME_TRY(_sector, primitives::sector::getSectorSize(proof_type));
+      PaddedPieceSize sector{_sector};
+      if (pieces.empty()) {
+        OUTCOME_TRY(zero, getZeroPieceCommitment(sector.unpadded()));
+        padded.push_back({sector, zero});
+      } else {
+        PaddedPieceSize sum;
+        auto pad{[&](auto size) -> outcome::result<void> {
+          auto padding{GetRequiredPadding(sum, size)};
+          for (auto pad : padding.pads) {
+            OUTCOME_TRY(zero, getZeroPieceCommitment(pad.unpadded()));
+            padded.push_back({pad, zero});
+          }
+          sum += padding.size;
+          return outcome::success();
+        }};
+        for (auto &piece : pieces) {
+          OUTCOME_TRY(pad(piece.size));
+          padded.push_back(piece);
+          sum += piece.size;
+        }
+        OUTCOME_TRY(pad(sector));
+      }
+      pieces = padded;
+    }
+
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
     OUTCOME_TRY(c_pieces, cPublicPieceInfos(pieces));
@@ -1187,6 +1235,29 @@ namespace fc::proofs {
     }
 
     return outcome::success();
+  }
+
+  RequiredPadding Proofs::GetRequiredPadding(PaddedPieceSize old_length,
+                                             PaddedPieceSize new_piece_length) {
+    std::vector<PaddedPieceSize> pad_pieces;
+
+    auto to_fill = uint64_t(-old_length % new_piece_length);
+
+    PaddedPieceSize sum;
+    auto n = common::countSetBits(to_fill);
+    for (size_t i = 0; i < n; ++i) {
+      auto next = common::countTrailingZeros(to_fill);
+      auto piece_size = uint64_t(1) << next;
+      to_fill ^= piece_size;
+
+      pad_pieces.emplace_back(piece_size);
+      sum += piece_size;
+    }
+
+    return {
+        .pads = std::move(pad_pieces),
+        .size = sum,
+    };
   }
 
 }  // namespace fc::proofs

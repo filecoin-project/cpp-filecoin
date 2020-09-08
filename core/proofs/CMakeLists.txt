@@ -42,4 +42,5 @@ target_link_libraries(proofs
         sector
         piece_data
         Boost::filesystem
+        zerocomm
         )

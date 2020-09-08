@@ -65,7 +65,6 @@ namespace fc::storage::amt {
       if (!visit_in_place(root.node.items,
                           [](auto &xs) { return xs.empty(); })) {
         root.node = {
-            true,
             Node::Links{{0, std::make_shared<Node>(std::move(root.node))}}};
       }
       ++root.height;
@@ -149,7 +148,6 @@ namespace fc::storage::amt {
                                  uint64_t height,
                                  uint64_t key,
                                  gsl::span<const uint8_t> value) {
-    node.has_bits = true;
     if (height == 0) {
       auto &values = boost::get<Node::Values>(node.items);
       if (values.insert(std::make_pair(key, value)).second) {

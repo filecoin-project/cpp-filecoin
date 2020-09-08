@@ -16,8 +16,6 @@ using fc::api::BigInt;
 using fc::api::BlockHeader;
 using fc::api::BlsSignature;
 using fc::api::Buffer;
-using fc::api::EPostProof;
-using fc::api::EPostTicket;
 using fc::api::MsgWait;
 using fc::api::RleBitset;
 using fc::api::Secp256k1Signature;
@@ -87,7 +85,7 @@ TEST(ApiJsonTest, CID) {
 }
 
 TEST(ApiJsonTest, Ticket) {
-  expectJson(Ticket{b96}, "{\"VRFProof\":" J96 "}");
+  expectJson(Ticket{Buffer{b96}}, "{\"VRFProof\":" J96 "}");
 }
 
 TEST(ApiJsonTest, TipsetKey) {
@@ -106,20 +104,6 @@ TEST(ApiJsonTest, Signature) {
              "{\"Type\":1,\"Data\":" J65 "}");
 }
 
-TEST(ApiJsonTest, EPostProof) {
-  expectJson(
-      EPostProof{
-          {fc::primitives::sector::PoStProof{
-              fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
-              "DEAD"_unhex,
-          }},
-          b96,
-          {EPostTicket{b32, 1, 2}}},
-      "{\"Proofs\":[{\"RegisteredProof\":3,\"ProofBytes\":\"3q0=\"}],"
-      "\"PostRand\":" J96 ",\"Candidates\":[{\"Partial\":" J32
-      ",\"SectorID\":1,\"ChallengeIndex\":2}]}");
-}
-
 TEST(ApiJsonTest, BigInt) {
   expectJson(BigInt{0}, "\"0\"");
   expectJson(BigInt{-1}, "\"-1\"");
@@ -134,8 +118,8 @@ TEST(ApiJsonTest, MsgWait) {
               {"010001020001"_cid},
               {BlockHeader{
                   Address::makeFromId(1),
-                  Ticket{b96},
-                  {fc::common::Buffer{"F00D"_unhex}},
+                  Ticket{Buffer{b96}},
+                  {3, fc::common::Buffer{"F00D"_unhex}},
                   {fc::primitives::block::BeaconEntry{
                       4,
                       "F00D"_unhex,
@@ -155,6 +139,7 @@ TEST(ApiJsonTest, MsgWait) {
                   8,
                   Signature{Secp256k1Signature{b65}},
                   9,
+                  10,
               }},
               3,
           },
@@ -163,14 +148,15 @@ TEST(ApiJsonTest, MsgWait) {
       "\"TipSet\":{\"Cids\":[{\"/"
       "\":\"baeaacaqaae\"}],\"Blocks\":[{\"Miner\":\"t01\",\"Ticket\":{"
       "\"VRFProof\":" J96
-      "},\"ElectionProof\":{\"VRFProof\":\"8A0=\"},\"BeaconEntries\":[{"
+      "},\"ElectionProof\":{\"WinCount\":3,\"VRFProof\":\"8A0=\"},"
+      "\"BeaconEntries\":[{"
       "\"Round\":4,\"Data\":\"8A0=\"}],\"WinPoStProof\":[{\"RegisteredProof\":"
-      "3,\"ProofBytes\":\"8A0=\"}],\"Parents\":[{\"/"
+      "0,\"ProofBytes\":\"8A0=\"}],\"Parents\":[{\"/"
       "\":\"baeaacaqaai\"}],\"ParentWeight\":\"3\",\"Height\":4,"
       "\"ParentStateRoot\":{\"/"
       "\":\"baeaacaqaau\"},\"ParentMessageReceipts\":{\"/"
       "\":\"baeaacaqaay\"},\"Messages\":{\"/"
       "\":\"baeaacaqaa4\"},\"BLSAggregate\":{\"Type\":1,\"Data\":" J65
       "},\"Timestamp\":8,\"BlockSig\":{\"Type\":1,\"Data\":" J65
-      "},\"ForkSignaling\":9}],\"Height\":3}}");
+      "},\"ForkSignaling\":9,\"ParentBaseFee\":\"10\"}],\"Height\":3}}");
 }

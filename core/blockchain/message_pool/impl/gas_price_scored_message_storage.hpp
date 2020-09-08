@@ -28,8 +28,8 @@ namespace fc::blockchain::message_pool {
    */
   auto compareGasFunctor = [](const SignedMessage &lhs,
                               const SignedMessage &rhs) {
-    return (lhs.message.gasPrice > rhs.message.gasPrice)
-           || ((lhs.message.gasPrice == rhs.message.gasPrice)
+    return (lhs.message.gas_fee_cap > rhs.message.gas_fee_cap)
+           || ((lhs.message.gas_fee_cap == rhs.message.gas_fee_cap)
                && (compareMessagesFunctor(lhs, rhs)));
   };
 

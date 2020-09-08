@@ -6,10 +6,10 @@
 #ifndef CODEC_RLE_PLUS_HPP
 #define CODEC_RLE_PLUS_HPP
 
-#include "common/outcome.hpp"
-#include "codec/rle/rle_plus_errors.hpp"
 #include "codec/rle/rle_plus_decoding_stream.hpp"
 #include "codec/rle/rle_plus_encoding_stream.hpp"
+#include "codec/rle/rle_plus_errors.hpp"
+#include "common/outcome.hpp"
 
 namespace fc::codec::rle {
   /**
@@ -35,16 +35,17 @@ namespace fc::codec::rle {
   template <typename T>
   outcome::result<std::set<T>> decode(gsl::span<const uint8_t> input) {
     std::set<T> data;
+    if (input.empty()) {
+      return data;
+    }
     RLEPlusDecodingStream decoder(input);
     try {
       decoder >> data;
-    } catch (errors::VersionMismatch&) {
+    } catch (errors::VersionMismatch &) {
       return RLEPlusDecodeError::kVersionMismatch;
-    } catch (errors::IndexOutOfBound&) {
-      return RLEPlusDecodeError::kDataIndexFailure;
-    } catch (errors::UnpackBytesOverflow&) {
+    } catch (errors::UnpackBytesOverflow &) {
       return RLEPlusDecodeError::kUnpackOverflow;
-    } catch (errors::MaxSizeExceed&) {
+    } catch (errors::MaxSizeExceed &) {
       return RLEPlusDecodeError::kMaxSizeExceed;
     }
     return data;

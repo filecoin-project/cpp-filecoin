@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 
-#include <libp2p/crypto/sha/sha256.hpp>
+#include "crypto/hasher/hasher.hpp"
 
 namespace fc::vm::actor {
 
@@ -35,12 +35,10 @@ namespace fc::vm::actor {
     return code == kAccountCodeCid || code == kMultisigCodeCid;
   }
 
-  const CID kEmptyObjectCid{
-      CID::Version::V1,
-      libp2p::multi::MulticodecType::Code::DAG_CBOR,
-      libp2p::multi::Multihash::create(libp2p::multi::HashType::sha256,
-                                       libp2p::crypto::sha256({"\xA0", 1}))
-          .value()};
+  static uint8_t kCborEmptyList[]{0x80};
+  const CID kEmptyObjectCid{CID::Version::V1,
+                            libp2p::multi::MulticodecType::Code::DAG_CBOR,
+                            crypto::Hasher::blake2b_256(kCborEmptyList)};
 
   CID makeRawIdentityCid(const std::string &str) {
     std::vector<uint8_t> bytes{str.begin(), str.end()};
