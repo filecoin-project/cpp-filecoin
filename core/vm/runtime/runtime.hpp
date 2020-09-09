@@ -42,7 +42,6 @@ namespace fc::vm::runtime {
   using primitives::block::BlockHeader;
   using primitives::piece::PieceInfo;
   using primitives::sector::RegisteredProof;
-  using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
 
@@ -148,9 +147,6 @@ namespace fc::vm::runtime {
     /// Verify PoSt
     virtual outcome::result<bool> verifyPoSt(
         const WindowPoStVerifyInfo &info) = 0;
-
-    /// Verify seal
-    virtual outcome::result<bool> verifySeal(const SealVerifyInfo &info) = 0;
 
     /// Compute unsealed sector cid
     virtual outcome::result<CID> computeUnsealedSectorCid(

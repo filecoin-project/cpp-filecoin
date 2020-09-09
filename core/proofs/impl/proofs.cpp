@@ -497,9 +497,9 @@ namespace fc::proofs {
   }
 
   outcome::result<bool> Proofs::verifySeal(const SealVerifyInfo &info) {
-    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(info.info.registered_proof));
+    OUTCOME_TRY(c_proof_type, cRegisteredSealProof(info.seal_proof));
 
-    OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(info.info.sealed_cid));
+    OUTCOME_TRY(comm_r, CIDToReplicaCommitmentV1(info.sealed_cid));
 
     OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(info.unsealed_cid));
 
@@ -513,8 +513,8 @@ namespace fc::proofs {
                                   c32ByteArray(info.randomness),
                                   c32ByteArray(info.interactive_randomness),
                                   info.sector.sector,
-                                  info.info.proof.data(),
-                                  info.info.proof.size()),
+                                  info.proof.data(),
+                                  info.proof.size()),
                   fil_destroy_verify_seal_response);
 
     if (res_ptr->status_code != 0) {
@@ -524,25 +524,6 @@ namespace fc::proofs {
     }
 
     return res_ptr->is_valid;
-  }
-
-  outcome::result<bool> Proofs::verifySeal2(const SealVerifyInfo2 &seal) {
-    return verifySeal({
-        .sector = seal.sector,
-        .info =
-            {
-                .sealed_cid = seal.sealed_cid,
-                .interactive_epoch = {},
-                .registered_proof = seal.seal_proof,
-                .proof = seal.proof,
-                .deals = {},
-                .sector = {},
-                .seal_rand_epoch = {},
-            },
-        .randomness = seal.randomness,
-        .interactive_randomness = seal.interactive_randomness,
-        .unsealed_cid = seal.unsealed_cid,
-    });
   }
 
   // ******************

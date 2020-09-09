@@ -22,7 +22,7 @@ namespace fc::sector_storage::zerocomm {
           .value();
     };
     static const std::array<CID, levels - skip> comms{
-        c("3731bb99ac689f66eef5973e4a94da188f4ddcae580724fc6f3fd60dfd48833"),
+        c("3731bb99ac689f66eef5973e4a94da188f4ddcae580724fc6f3fd60dfd488333"),
         c("642a607ef886b004bf2c1978463ae1d4693ac0f410eb2d1b7a47fe205e5e750f"),
         c("57a2381a28652bf47f6bef7aca679be4aede5871ab5cf3eb2c08114488cb8526"),
         c("1f7ac9595510e09ea41c460b176430bb322cd6fb412ec57cb17d989a4310372f"),

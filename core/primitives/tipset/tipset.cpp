@@ -88,7 +88,7 @@ namespace fc::primitives::tipset {
           auto &t1 = b1.ticket;
           auto &t2 = b2.ticket;
           if (t1 == t2) {
-            logger->warn("blocks have same ticket ({} {})",
+            logger->warn("blocks have same ticket {} ({} {})",
                          b1.height,
                          b1.miner,
                          b2.miner);

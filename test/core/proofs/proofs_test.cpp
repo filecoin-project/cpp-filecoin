@@ -221,28 +221,21 @@ TEST_F(ProofsTest, Lifecycle) {
                       Proofs::sealCommitPhase2(
                           seal_commit_phase1_output, sector_num, miner_id));
 
-  EXPECT_OUTCOME_TRUE(
-      isValid,
-      Proofs::verifySeal(SealVerifyInfo{
-          .sector =
-              SectorId{
-                  .miner = miner_id,
-                  .sector = sector_num,
-              },
-          .info =
-              OnChainSealVerifyInfo{
-                  .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
-                  .interactive_epoch = 42,
-                  .registered_proof = seal_proof_type,
-                  .proof = seal_proof,
-                  .deals = {},
-                  .sector = sector_num,
-                  .seal_rand_epoch = 42,
-              },
-          .randomness = ticket,
-          .interactive_randomness = seed,
-          .unsealed_cid = sealed_and_unsealed_cid.unsealed_cid,
-      }));
+  EXPECT_OUTCOME_TRUE(isValid,
+                      Proofs::verifySeal(SealVerifyInfo{
+                          .seal_proof = seal_proof_type,
+                          .sector =
+                              SectorId{
+                                  .miner = miner_id,
+                                  .sector = sector_num,
+                              },
+                          .deals = {},
+                          .randomness = ticket,
+                          .interactive_randomness = seed,
+                          .proof = seal_proof,
+                          .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
+                          .unsealed_cid = sealed_and_unsealed_cid.unsealed_cid,
+                      }));
 
   ASSERT_TRUE(isValid);
 

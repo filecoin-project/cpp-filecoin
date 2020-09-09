@@ -36,7 +36,6 @@ namespace fc::proofs {
   using primitives::sector::Proof;
   using primitives::sector::SealRandomness;
   using primitives::sector::SealVerifyInfo;
-  using primitives::sector::SealVerifyInfo2;
   using primitives::sector::SectorInfo;
   using primitives::sector::Ticket;
   using primitives::sector::WindowPoStVerifyInfo;
@@ -215,8 +214,6 @@ namespace fc::proofs {
      * were derived was valid, and false if not.
      */
     static outcome::result<bool> verifySeal(const SealVerifyInfo &info);
-
-    static outcome::result<bool> verifySeal2(const SealVerifyInfo2 &info);
 
     /**
      * Unseals sector

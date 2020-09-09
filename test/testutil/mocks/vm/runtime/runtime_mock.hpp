@@ -69,8 +69,6 @@ namespace fc::vm::runtime {
     MOCK_METHOD1(verifyPoSt,
                  outcome::result<bool>(const WindowPoStVerifyInfo &info));
 
-    MOCK_METHOD1(verifySeal, outcome::result<bool>(const SealVerifyInfo &info));
-
     MOCK_METHOD2(computeUnsealedSectorCid,
                  outcome::result<CID>(RegisteredProof,
                                       const std::vector<PieceInfo> &));

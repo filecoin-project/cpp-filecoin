@@ -97,15 +97,6 @@ namespace fc::primitives::sector {
    * verify a Seal.
    */
   struct SealVerifyInfo {
-    SectorId sector;
-    OnChainSealVerifyInfo info;
-    SealRandomness randomness;
-    InteractiveRandomness interactive_randomness;
-    /// CommD
-    CID unsealed_cid;
-  };
-
-  struct SealVerifyInfo2 {
     RegisteredProof seal_proof;
     SectorId sector;
     std::vector<DealId> deals;
@@ -113,9 +104,10 @@ namespace fc::primitives::sector {
     InteractiveRandomness interactive_randomness;
     Proof proof;
     CID sealed_cid;
+    /// CommD
     CID unsealed_cid;
   };
-  CBOR_TUPLE(SealVerifyInfo2,
+  CBOR_TUPLE(SealVerifyInfo,
              seal_proof,
              sector,
              deals,

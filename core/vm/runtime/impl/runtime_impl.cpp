@@ -145,12 +145,6 @@ namespace fc::vm::runtime {
     return proofs::Proofs::verifyWindowPoSt(preprocess_info);
   }
 
-  fc::outcome::result<bool> RuntimeImpl::verifySeal(
-      const SealVerifyInfo &info) {
-    OUTCOME_TRY(chargeGas(execution_->env->pricelist.onVerifySeal()));
-    return proofs::Proofs::verifySeal(info);
-  }
-
   fc::outcome::result<fc::CID> RuntimeImpl::computeUnsealedSectorCid(
       RegisteredProof type, const std::vector<PieceInfo> &pieces) {
     OUTCOME_TRY(
