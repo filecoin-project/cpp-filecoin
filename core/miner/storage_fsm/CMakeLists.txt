@@ -3,6 +3,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(sector_stat
+        impl/sector_stat_impl.cpp
+        )
+target_link_libraries(sector_stat
+        sector
+        )
+
 add_library(precommit_policy
         impl/basic_precommit_policy.cpp
         )
@@ -39,4 +46,5 @@ target_link_libraries(storage_fsm
         api
         events
         precommit_policy
+        sector_stat
         )
