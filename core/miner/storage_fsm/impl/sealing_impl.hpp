@@ -14,6 +14,7 @@
 #include "miner/storage_fsm/events.hpp"
 #include "miner/storage_fsm/precommit_policy.hpp"
 #include "miner/storage_fsm/sealing_events.hpp"
+#include "miner/storage_fsm/sector_counter.hpp"
 #include "miner/storage_fsm/sector_stat.hpp"
 
 namespace fc::mining {
@@ -235,6 +236,8 @@ namespace fc::mining {
     std::shared_ptr<Events> events_;
 
     std::shared_ptr<PreCommitPolicy> policy_;
+
+    std::shared_ptr<SectorCounter> counter_;
 
     Address miner_address_;
 
