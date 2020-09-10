@@ -27,6 +27,19 @@ namespace fc::mining {
   using SealingTransition = fsm::Transition<EventPtr, SealingState, SectorInfo>;
   using StorageFSM = fsm::FSM<EventPtr, SealingState, SectorInfo>;
 
+  struct Config {
+    // 0 = no limit
+    uint64_t max_wait_deals_sectors;
+
+    // includes failed, 0 = no limit
+    uint64_t max_sealing_sectors;
+
+    // includes failed, 0 = no limit
+    uint64_t max_sealing_sectors_for_deals;
+
+    int64_t wait_deals_delay;  // TODO: maybe change type
+  };
+
   class SealingImpl : public Sealing {
    public:
     SealingImpl(std::shared_ptr<boost::asio::io_context> context);
@@ -72,7 +85,7 @@ namespace fc::mining {
     outcome::result<void> addPiece(SectorNumber sector_id,
                                    UnpaddedPieceSize size,
                                    const PieceData &piece,
-                                   boost::optional<DealInfo> deal);
+                                   const boost::optional<DealInfo> &deal);
 
     outcome::result<primitives::SectorNumber> newDealSector();
 
@@ -213,7 +226,8 @@ namespace fc::mining {
 
     SectorId minerSector(SectorNumber num);
 
-    std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>> sectors_;
+    std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>>
+        sectors_;  // TODO: MUTEX
 
     struct UnsealedSectorInfo {
       uint64_t deals_number;
@@ -239,10 +253,14 @@ namespace fc::mining {
 
     std::shared_ptr<SectorCounter> counter_;
 
+    std::shared_ptr<SectorStat> stat_;
+
     Address miner_address_;
 
     common::Logger logger_;
     std::shared_ptr<Manager> sealer_;
+
+    Config config_;
   };
 }  // namespace fc::mining
 

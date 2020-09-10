@@ -7,8 +7,8 @@
 
 #include "common/bitsutil.hpp"
 #include "host/context/impl/host_context_impl.hpp"
-#include "vm/actor/builtin/miner/miner_actor.hpp"
 #include "miner/storage_fsm/impl/basic_precommit_policy.hpp"
+#include "vm/actor/builtin/miner/miner_actor.hpp"
 
 #define FSM_SEND(info, event) OUTCOME_EXCEPT(fsm_->send(info, event))
 
@@ -87,12 +87,16 @@ namespace fc::mining {
       OUTCOME_TRY(startPacking(piece.sector));
     }
 
-    return std::move(piece);
+    return piece;
   }
 
   outcome::result<void> SealingImpl::remove(SectorNumber sector_id) {
-    // TODO: send fsm event
-    return outcome::success();
+    auto sector = sectors_.find(sector_id);
+    if (sector == sectors_.end()) {
+      return outcome::success();  // TODO: Error
+    }
+
+    return fsm_->send(sector->second, std::make_shared<SectorRemoveEvent>());
   }
 
   Address SealingImpl::getAddress() const {
@@ -125,7 +129,29 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::markForUpgrade(SectorNumber id) {
     std::unique_lock lock(upgrade_mutex_);
 
-    // TODO: Check current state
+    if (to_upgrade_.find(id) != to_upgrade_.end()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    OUTCOME_TRY(sector_info, getSectorInfo(id));
+
+    OUTCOME_TRY(state,
+                fsm_->get(sector_info));  // TODO: maybe save state in info
+
+    if (state != SealingState::kProving) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    if (sector_info->pieces.size() != 1) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    if (sector_info->pieces[0].deal_info.has_value()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    // TODO: more checks to match actor constraints
+    to_upgrade_.insert(id);
 
     return outcome::success();
   }
@@ -187,10 +213,11 @@ namespace fc::mining {
     };
   }
 
-  outcome::result<void> SealingImpl::addPiece(SectorNumber sector_id,
-                                              UnpaddedPieceSize size,
-                                              const PieceData &piece,
-                                              boost::optional<DealInfo> deal) {
+  outcome::result<void> SealingImpl::addPiece(
+      SectorNumber sector_id,
+      UnpaddedPieceSize size,
+      const PieceData &piece,
+      const boost::optional<DealInfo> &deal) {
     // TODO: log it
     OUTCOME_TRY(piece_info,
                 sealer_->addPiece(minerSector(sector_id),
@@ -221,10 +248,48 @@ namespace fc::mining {
   }
 
   outcome::result<SectorNumber> SealingImpl::newDealSector() {
-    // TODO: checks available sectors
+    if (config_.max_sealing_sectors_for_deals > 0) {
+      if (stat_->currentSealing() > config_.max_sealing_sectors_for_deals) {
+        return outcome::success();  // TODO: ERROR
+      }
+    }
+
+    if (config_.max_wait_deals_sectors > 0
+        && unsealed_sectors_.size() >= config_.max_wait_deals_sectors) {
+      for (size_t i = 0; i < 10; i++) {
+        if (i) {
+          // TODO: wait 1 second
+        }
+        uint64_t best_id;
+        {
+          std::lock_guard lock(unsealed_mutex_);
+
+          if (unsealed_sectors_.empty()) {
+            break;
+          }
+
+          auto first_sector{unsealed_sectors_.cbegin()};
+          best_id = first_sector->first;
+          PaddedPieceSize most_stored = first_sector->second.stored;
+
+          for (auto iter = ++(unsealed_sectors_.cbegin());
+               iter != unsealed_sectors_.cend();
+               iter++) {
+            if (iter->second.stored > most_stored) {
+              most_stored = iter->second.stored;
+              best_id = iter->first;
+            }
+          }
+        }
+        auto maybe_error = startPacking(best_id);
+        if (maybe_error.has_error()) {
+          // TODO: log it
+        }
+      }
+    }
 
     // TODO: log it
-    auto sector_id = 0;  // TODO: Next counter
+    OUTCOME_TRY(sector_id, counter_->next());
 
     auto sector = std::make_shared<SectorInfo>();
     OUTCOME_TRY(fsm_->begin(sector, SealingState::kStateUnknown));
