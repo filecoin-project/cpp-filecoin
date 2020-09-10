@@ -99,17 +99,6 @@ TYPED_TEST(RLEPlusCodecTester, InvalidHeaderDecodeFailure) {
 }
 
 /**
- * @given RLE+ encoded data with invalid structure
- * @when RLE+ decode given data
- * @then Decode operation must be failed with appropriate error code
- */
-TYPED_TEST(RLEPlusCodecTester, InvalidStructureDecodeFailure) {
-  auto expected = RLEPlusDecodeError::kDataIndexFailure;
-  std::vector<uint8_t> data{0x4, 0x8, 0x15, 0x16};
-  this->checkDecodeFailure(data, expected);
-}
-
-/**
  * @given Reference RLE+ encoded and decoded data
  * @when RLE+ encode given data
  * @tparam Decode operation must be successful and decoded data must be the same

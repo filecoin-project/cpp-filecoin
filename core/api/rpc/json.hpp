@@ -34,12 +34,10 @@ namespace fc::api {
   using primitives::FsStat;
   using primitives::LocalStorageMeta;
   using primitives::block::ElectionProof;
+  using primitives::block::Ticket;
   using primitives::cid::getCidOfCbor;
   using primitives::sector::PoStProof;
   using primitives::sector::RegisteredProof;
-  using primitives::ticket::EPostProof;
-  using primitives::ticket::EPostTicket;
-  using primitives::ticket::Ticket;
   using primitives::tipset::HeadChangeType;
   using rapidjson::Document;
   using rapidjson::Value;
@@ -295,20 +293,6 @@ namespace fc::api {
       }
     }
 
-    ENCODE(EPostTicket) {
-      Value j{rapidjson::kObjectType};
-      Set(j, "Partial", gsl::make_span(v.partial));
-      Set(j, "SectorID", v.sector_id);
-      Set(j, "ChallengeIndex", v.challenge_index);
-      return j;
-    }
-
-    DECODE(EPostTicket) {
-      decode(v.partial, Get(j, "Partial"));
-      decode(v.sector_id, Get(j, "SectorID"));
-      decode(v.challenge_index, Get(j, "ChallengeIndex"));
-    }
-
     ENCODE(PoStProof) {
       Value j{rapidjson::kObjectType};
       Set(j, "RegisteredProof", common::to_int(v.registered_proof));
@@ -321,20 +305,6 @@ namespace fc::api {
       decode(registered_proof, Get(j, "RegisteredProof"));
       v.registered_proof = RegisteredProof{registered_proof};
       decode(v.proof, Get(j, "ProofBytes"));
-    }
-
-    ENCODE(EPostProof) {
-      Value j{rapidjson::kObjectType};
-      Set(j, "Proofs", v.proofs);
-      Set(j, "PostRand", gsl::make_span(v.post_rand));
-      Set(j, "Candidates", v.candidates);
-      return j;
-    }
-
-    DECODE(EPostProof) {
-      decode(v.proofs, Get(j, "Proofs"));
-      decode(v.post_rand, Get(j, "PostRand"));
-      decode(v.candidates, Get(j, "Candidates"));
     }
 
     ENCODE(BigInt) {
@@ -403,6 +373,7 @@ namespace fc::api {
       Set(j, "Timestamp", v.timestamp);
       Set(j, "BlockSig", v.block_sig);
       Set(j, "ForkSignaling", v.fork_signaling);
+      Set(j, "ParentBaseFee", v.parent_base_fee);
       return j;
     }
 
@@ -422,6 +393,7 @@ namespace fc::api {
       decode(v.timestamp, Get(j, "Timestamp"));
       decode(v.block_sig, Get(j, "BlockSig"));
       decode(v.fork_signaling, Get(j, "ForkSignaling"));
+      decode(v.parent_base_fee, Get(j, "ParentBaseFee"));
     }
 
     DECODE(BlockTemplate) {
@@ -438,11 +410,13 @@ namespace fc::api {
 
     ENCODE(ElectionProof) {
       Value j{rapidjson::kObjectType};
+      Set(j, "WinCount", v.win_count);
       Set(j, "VRFProof", v.vrf_proof);
       return j;
     }
 
     DECODE(ElectionProof) {
+      decode(v.win_count, Get(j, "WinCount"));
       decode(v.vrf_proof, Get(j, "VRFProof"));
     }
 
@@ -570,8 +544,9 @@ namespace fc::api {
       Set(j, "From", v.from);
       Set(j, "Nonce", v.nonce);
       Set(j, "Value", v.value);
-      Set(j, "GasPrice", v.gasPrice);
-      Set(j, "GasLimit", v.gasLimit);
+      Set(j, "GasLimit", v.gas_limit);
+      Set(j, "GasFeeCap", v.gas_fee_cap);
+      Set(j, "GasPremium", v.gas_premium);
       Set(j, "Method", v.method.method_number);
       Set(j, "Params", gsl::make_span(v.params));
       return j;
@@ -583,8 +558,9 @@ namespace fc::api {
       decode(v.from, Get(j, "From"));
       decode(v.nonce, Get(j, "Nonce"));
       decode(v.value, Get(j, "Value"));
-      decode(v.gasPrice, Get(j, "GasPrice"));
-      decode(v.gasLimit, Get(j, "GasLimit"));
+      decode(v.gas_limit, Get(j, "GasLimit"));
+      decode(v.gas_fee_cap, Get(j, "GasFeeCap"));
+      decode(v.gas_premium, Get(j, "GasPremium"));
       decode(v.method.method_number, Get(j, "Method"));
       decode(v.params, Get(j, "Params"));
     }

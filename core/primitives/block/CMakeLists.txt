@@ -9,6 +9,4 @@ target_link_libraries(block INTERFACE
     amt
     cbor
     signature
-    tickets
-    ipld_block
     )

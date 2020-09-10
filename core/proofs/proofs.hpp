@@ -85,8 +85,16 @@ namespace fc::proofs {
     CID unsealed_cid;
   };
 
+  struct RequiredPadding {
+    std::vector<PaddedPieceSize> pads;
+    PaddedPieceSize size;
+  };
+
   class Proofs {
    public:
+    static RequiredPadding GetRequiredPadding(PaddedPieceSize old_length,
+                                              PaddedPieceSize new_piece_length);
+
     static fc::proofs::SortedPrivateSectorInfo newSortedPrivateSectorInfo(
         gsl::span<const PrivateSectorInfo> replica_info);
 
@@ -175,7 +183,9 @@ namespace fc::proofs {
      * the provided pieces.
      */
     static outcome::result<CID> generateUnsealedCID(
-        RegisteredProof proof_type, gsl::span<const PieceInfo> pieces);
+        RegisteredProof proof_type,
+        gsl::span<const PieceInfo> pieces,
+        bool pad = false);
 
     static outcome::result<ChallengeIndexes> generateWinningPoStSectorChallenge(
         RegisteredProof proof_type,

@@ -23,12 +23,5 @@ target_link_libraries(ipfs_datastore_leveldb
     leveldb
     )
 
-add_library(ipfs_blockservice
-    impl/ipfs_block_service.cpp
-    )
-target_link_libraries(ipfs_blockservice
-    buffer
-    )
-
 add_subdirectory(merkledag)
 add_subdirectory(graphsync)

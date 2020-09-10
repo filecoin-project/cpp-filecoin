@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(stores)
+add_subdirectory(zerocomm)
 
 add_library(worker
         impl/local_worker.cpp

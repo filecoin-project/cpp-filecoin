@@ -153,7 +153,7 @@ TEST_F(GasPricedScoredMessageStorageTest, SunnyDay) {
 
   auto top = message_storage.getTopScored(3);
   ASSERT_EQ(top.size(), 3);
-  ASSERT_EQ(top[0].message.gasPrice, gas_price3);
-  ASSERT_EQ(top[1].message.gasPrice, gas_price2);
-  ASSERT_EQ(top[2].message.gasPrice, gas_price1);
+  ASSERT_EQ(top[0].message.gas_fee_cap, gas_price3);
+  ASSERT_EQ(top[1].message.gas_fee_cap, gas_price2);
+  ASSERT_EQ(top[2].message.gas_fee_cap, gas_price1);
 }

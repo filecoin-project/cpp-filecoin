@@ -19,8 +19,7 @@ namespace fc::vm::runtime {
    public:
     RuntimeImpl(std::shared_ptr<Execution> execution,
                 UnsignedMessage message,
-                const Address &caller_id,
-                CID current_actor_state);
+                const Address &caller_id);
 
     /** \copydoc Runtime::getCurrentEpoch() */
     ChainEpoch getCurrentEpoch() const override;
@@ -67,7 +66,7 @@ namespace fc::vm::runtime {
 
     outcome::result<void> chargeGas(GasAmount amount) override;
 
-    CID getCurrentActorState() override;
+    outcome::result<CID> getCurrentActorState() override;
 
     outcome::result<void> commit(const CID &new_state) override;
 
@@ -84,8 +83,6 @@ namespace fc::vm::runtime {
 
     outcome::result<bool> verifyPoSt(const WindowPoStVerifyInfo &info) override;
 
-    outcome::result<bool> verifySeal(const SealVerifyInfo &info) override;
-
     outcome::result<CID> computeUnsealedSectorCid(
         RegisteredProof type, const std::vector<PieceInfo> &pieces) override;
 
@@ -99,7 +96,6 @@ namespace fc::vm::runtime {
     std::shared_ptr<StateTree> state_tree_;
     UnsignedMessage message_;
     Address caller_id;
-    CID current_actor_state_;
   };
 
 }  // namespace fc::vm::runtime

@@ -213,12 +213,22 @@ namespace fc::api {
                                                 ipld}
                   .values();
             }},
-        .ChainGetRandomness =
-            {[=](auto &tipset_key, auto tag, auto epoch, auto &entropy)
-                 -> outcome::result<Randomness> {
-              OUTCOME_TRY(context, tipsetContext(tipset_key));
-              return context.tipset.randomness(*ipld, tag, epoch, entropy);
-            }},
+        .ChainGetRandomnessFromBeacon = {[=](auto &tipset_key,
+                                             auto tag,
+                                             auto epoch,
+                                             auto &entropy)
+                                             -> outcome::result<Randomness> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          return context.tipset.beaconRandomness(*ipld, tag, epoch, entropy);
+        }},
+        .ChainGetRandomnessFromTickets = {[=](auto &tipset_key,
+                                              auto tag,
+                                              auto epoch,
+                                              auto &entropy)
+                                              -> outcome::result<Randomness> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          return context.tipset.ticketRandomness(*ipld, tag, epoch, entropy);
+        }},
         .ChainGetTipSet = {[=](auto &tipset_key) {
           return Tipset::load(*ipld, tipset_key.cids);
         }},
@@ -582,17 +592,6 @@ namespace fc::api {
           OUTCOME_TRY(state, context.minerState(address));
           return state.deadlineInfo(context.tipset.height);
         }},
-        .StateMinerProvingSet =
-            {[=](auto address, auto tipset_key)
-                 -> outcome::result<std::vector<ChainSectorInfo>> {
-              OUTCOME_TRY(context, tipsetContext(tipset_key));
-              OUTCOME_TRY(state, context.minerState(address));
-              std::vector<ChainSectorInfo> sectors;
-              OUTCOME_TRY(state.visitProvingSet([&](auto id, auto &info) {
-                sectors.emplace_back(ChainSectorInfo{info, id});
-              }));
-              return sectors;
-            }},
         .StateMinerSectors =
             {[=](auto &address, auto &filter, auto filter_out, auto &tipset_key)
                  -> outcome::result<std::vector<ChainSectorInfo>> {

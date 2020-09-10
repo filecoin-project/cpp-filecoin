@@ -40,8 +40,6 @@ namespace fc::storage::amt {
     using Values = std::map<size_t, Value>;
     using Items = boost::variant<Values, Links>;
 
-    /// github.com/filecoin-project/go-amt-ipld does not truncate zero bits
-    bool has_bits{};
     Items items;
   };
 
@@ -49,26 +47,24 @@ namespace fc::storage::amt {
     std::vector<uint8_t> bits;
     auto l_links = s.list();
     auto l_values = s.list();
-    if (node.has_bits) {
-      bits.resize(1);
-      visit_in_place(
-          node.items,
-          [&bits, &l_links](const Node::Links &links) {
-            for (auto &item : links) {
-              bits[0] |= 1 << item.first;
-              if (which<Node::Ptr>(item.second)) {
-                outcome::raise(AmtError::kExpectedCID);
-              }
-              l_links << boost::get<CID>(item.second);
+    bits.resize(1);
+    visit_in_place(
+        node.items,
+        [&bits, &l_links](const Node::Links &links) {
+          for (auto &item : links) {
+            bits[0] |= 1 << item.first;
+            if (which<Node::Ptr>(item.second)) {
+              outcome::raise(AmtError::kExpectedCID);
             }
-          },
-          [&bits, &l_values](const Node::Values &values) {
-            for (auto &item : values) {
-              bits[0] |= 1 << item.first;
-              l_values << l_values.wrap(item.second, 1);
-            }
-          });
-    }
+            l_links << boost::get<CID>(item.second);
+          }
+        },
+        [&bits, &l_values](const Node::Values &values) {
+          for (auto &item : values) {
+            bits[0] |= 1 << item.first;
+            l_values << l_values.wrap(item.second, 1);
+          }
+        });
     return s << (s.list() << bits << l_links << l_values);
   }
 
@@ -76,13 +72,13 @@ namespace fc::storage::amt {
     auto l_node = s.list();
     std::vector<uint8_t> bits;
     l_node >> bits;
-    node.has_bits = !bits.empty();
+    if (bits.size() != 1) {
+      outcome::raise(AmtError::kDecodeWrong);
+    }
     std::vector<size_t> indices;
-    if (node.has_bits) {
-      for (auto i = 0u; i < 8; ++i) {
-        if (bits[0] & (1 << i)) {
-          indices.push_back(i);
-        }
+    for (auto i = 0u; i < 8; ++i) {
+      if (bits[0] & (1 << i)) {
+        indices.push_back(i);
       }
     }
 

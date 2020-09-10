@@ -484,17 +484,7 @@ namespace fc::vm::actor::builtin::miner {
         runtime.getRandomness(DomainSeparationTag::InteractiveSealChallengeSeed,
                               info.interactive_epoch,
                               seed));
-    OUTCOME_TRY(runtime.verifySeal({
-        .sector =
-            {
-                .miner = miner.getId(),
-                .sector = info.sector,
-            },
-        .info = info,
-        .randomness = randomness,
-        .interactive_randomness = interactive_randomness,
-        .unsealed_cid = comm_d,
-    }));
+    // TODO: update actors
     return outcome::success();
   }
 

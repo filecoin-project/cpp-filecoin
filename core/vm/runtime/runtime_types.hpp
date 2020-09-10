@@ -35,7 +35,7 @@ namespace fc::vm::runtime {
   struct MessageReceipt {
     VMExitCode exit_code;
     Buffer return_value;
-    GasAmount gas_used;
+    GasAmount gas_used{};
   };
 
   CBOR_TUPLE(MessageReceipt, exit_code, return_value, gas_used)

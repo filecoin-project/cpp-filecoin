@@ -18,11 +18,8 @@
 #include "markets/storage/deal_protocol.hpp"
 #include "markets/storage/types.hpp"
 #include "primitives/big_int.hpp"
-#include "primitives/block/block.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
-#include "primitives/ticket/epost_ticket.hpp"
-#include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
@@ -67,8 +64,6 @@ namespace fc::api {
   using primitives::block::BlockWithCids;
   using primitives::cid::Comm;
   using primitives::sector::SectorInfo;
-  using primitives::ticket::EPostProof;
-  using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
@@ -270,7 +265,13 @@ namespace fc::api {
     API_METHOD(ChainGetMessage, UnsignedMessage, const CID &)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
-    API_METHOD(ChainGetRandomness,
+    API_METHOD(ChainGetRandomnessFromBeacon,
+               Randomness,
+               const TipsetKey &,
+               DomainSeparationTag,
+               ChainEpoch,
+               const Buffer &)
+    API_METHOD(ChainGetRandomnessFromTickets,
                Randomness,
                const TipsetKey &,
                DomainSeparationTag,
@@ -359,10 +360,6 @@ namespace fc::api {
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
     API_METHOD(StateMinerProvingDeadline,
                DeadlineInfo,
-               const Address &,
-               const TipsetKey &)
-    API_METHOD(StateMinerProvingSet,
-               std::vector<ChainSectorInfo>,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerSectors,

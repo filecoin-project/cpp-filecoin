@@ -74,7 +74,7 @@ namespace fc {
         }
         OUTCOME_TRY(seed, codec::cbor::encode(miner));
         OUTCOME_TRY(rand,
-                    api->ChainGetRandomness(
+                    api->ChainGetRandomnessFromTickets(
                         ts_key,
                         api::DomainSeparationTag::WindowedPoStChallengeSeed,
                         deadline.challenge,
@@ -82,6 +82,7 @@ namespace fc {
         OUTCOME_TRY(proof,
                     prover->generateWindowPoSt(miner.getId(), sectors2, rand));
         params.proofs = std::move(proof.proof);
+        // TODO: update fee and sender
         OUTCOME_TRY(api->MpoolPushMessage({
             miner,
             worker,

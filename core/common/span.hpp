@@ -13,7 +13,8 @@ namespace fc::common::span {
   constexpr auto cast(gsl::span<From> span) {
     static_assert(sizeof(To) == 1);
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
-    return gsl::make_span(reinterpret_cast<To *>(span.data()), span.size());
+    return gsl::make_span(reinterpret_cast<To *>(span.data()),
+                          span.size_bytes());
   }
 
   constexpr auto cbytes(gsl::span<const char> span) {
