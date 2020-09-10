@@ -16,7 +16,7 @@ namespace fc::mining {
     kSealing = 0,
     kFailed,
     kProving,
-    kAmount  // END
+    kAmount,  // END
   };
 
   class SectorStatImpl : public SectorStat {
