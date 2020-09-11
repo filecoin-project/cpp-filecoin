@@ -16,7 +16,7 @@ namespace fc::mining {
    public:
     virtual ~PreCommitPolicy() = default;
 
-    virtual ChainEpoch Expiration(gsl::span<const types::Piece> pieces) = 0;
+    virtual ChainEpoch expiration(gsl::span<const types::Piece> pieces) = 0;
   };
 
 }  // namespace fc::mining

@@ -8,7 +8,7 @@
 namespace fc::mining {
   using vm::actor::builtin::miner::kWPoStProvingPeriod;
 
-  ChainEpoch BasicPreCommitPolicy::Expiration(
+  ChainEpoch BasicPreCommitPolicy::expiration(
       gsl::span<const types::Piece> pieces) {
     auto maybe_head = api_->ChainHead();
     if (maybe_head.has_error()) {

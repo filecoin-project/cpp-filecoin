@@ -78,6 +78,7 @@ namespace fc::api {
   using vm::actor::builtin::miner::MinerInfo;
   using vm::actor::builtin::miner::Partition;
   using vm::actor::builtin::miner::SectorOnChainInfo;
+  using vm::actor::builtin::miner::SectorPreCommitInfo;
   using vm::actor::builtin::payment_channel::LaneId;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::actor::builtin::storage_power::Claim;
@@ -256,6 +257,11 @@ namespace fc::api {
     CID channel_message;  // message cid
   };
 
+  struct SectorLocation {
+    uint64_t deadline;
+    uint64_t partition;
+  };
+
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
@@ -380,6 +386,11 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
     API_METHOD(StateNetworkName, std::string)
+    API_METHOD(StateMinerPreCommitDepositForPower,
+               TokenAmount,
+               const Address &,
+               const SectorPreCommitInfo &,
+               const TipsetKey &)
     API_METHOD(StateMinerInitialPledgeCollateral,
                TokenAmount,
                const Address &,
@@ -387,6 +398,11 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(StateSectorGetInfo,
                SectorOnChainInfo,
+               const Address &,
+               SectorNumber,
+               const TipsetKey &);
+    API_METHOD(StateSectorPartition,
+               SectorLocation,
                const Address &,
                SectorNumber,
                const TipsetKey &);

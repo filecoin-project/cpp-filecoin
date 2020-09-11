@@ -665,6 +665,13 @@ namespace fc::api {
           OUTCOME_TRY(state, context.initState());
           return state.network_name;
         }},
+        .StateMinerPreCommitDepositForPower =
+            {[=](auto address,
+                 auto precommit_info,
+                 auto tipset_key) -> outcome::result<TokenAmount> {
+              // TODO(artyom-yurin): FIL-165 implement method
+              return outcome::success();
+            }},
         .StateMinerInitialPledgeCollateral =
             {[=](auto address,
                  auto sector_number,
@@ -676,6 +683,13 @@ namespace fc::api {
                                    auto sector_number,
                                    auto tipset_key)
                                    -> outcome::result<SectorOnChainInfo> {
+          // TODO(artyom-yurin): FIL-165 implement method
+          return outcome::success();
+        }},
+        .StateSectorPartition = {[=](auto address,
+                                     auto sector_number,
+                                     auto tipset_key)
+                                     -> outcome::result<SectorLocation> {
           // TODO(artyom-yurin): FIL-165 implement method
           return outcome::success();
         }},

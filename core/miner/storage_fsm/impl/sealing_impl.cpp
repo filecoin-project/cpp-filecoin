@@ -7,8 +7,7 @@
 
 #include "common/bitsutil.hpp"
 #include "host/context/impl/host_context_impl.hpp"
-#include "miner/storage_fsm/impl/basic_precommit_policy.hpp"
-#include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "miner/storage_fsm/impl/checks.hpp"
 
 #define FSM_SEND(info, event) OUTCOME_EXCEPT(fsm_->send(info, event))
 
@@ -16,7 +15,11 @@
   [](auto info, auto event, auto from, auto to) { event->apply(info); }
 
 namespace fc::mining {
+  using checks::ChecksError;
   using types::Piece;
+  using vm::actor::MethodParams;
+  using vm::actor::builtin::miner::kMinSectorExpiration;
+  using vm::actor::builtin::miner::maxSealDuration;
 
   SealingImpl::SealingImpl(std::shared_ptr<boost::asio::io_context> context)
       : context_(std::move(context)) {
@@ -256,6 +259,7 @@ namespace fc::mining {
 
     if (config_.max_wait_deals_sectors > 0
         && unsealed_sectors_.size() >= config_.max_wait_deals_sectors) {
+      // TODO: check get one before max or several every time
       for (size_t i = 0; i < 10; i++) {
         if (i) {
           // TODO: wait 1 second
@@ -483,9 +487,11 @@ namespace fc::mining {
   }
 
   void SealingImpl::callbackHandle(const std::shared_ptr<SectorInfo> &info,
-                                   EventPtr event,
+                                   const EventPtr &event,
                                    SealingState from,
                                    SealingState to) {
+    stat_->updateSector(minerSector(info->sector_number), to);
+
     auto maybe_error = [&]() -> outcome::result<void> {
       switch (to) {
         case SealingState::kWaitDeals:
@@ -634,7 +640,18 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handlePreCommit1(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: check Packing
+    auto maybe_error = checks::checkPieces(info, api_);
+    if (maybe_error.has_error()) {
+      if (maybe_error == outcome::failure(ChecksError::kInvalidDeal)) {
+        logger_->error("invalid dealIDs in sector {}", info->sector_number);
+        return fsm_->send(info, std::make_shared<SectorPackingFailedEvent>());
+      }
+      if (maybe_error == outcome::failure(ChecksError::kExpiredDeal)) {
+        logger_->error("expired dealIDs in sector {}", info->sector_number);
+        return fsm_->send(info, std::make_shared<SectorPackingFailedEvent>());
+      }
+      return maybe_error.error();
+    }
 
     logger_->info("Performing {} sector replication", info->sector_number);
 
@@ -694,26 +711,82 @@ namespace fc::mining {
 
     OUTCOME_TRY(worker_addr, api_->StateMinerWorker(miner_address_, key));
 
-    // TODO: check Precommit
+    auto maybe_error =
+        checks::checkPrecommit(miner_address_, info, key, head.height, api_);
 
-    // TODO: check Policy
+    if (maybe_error.has_error()) {
+      if (maybe_error == outcome::failure(ChecksError::kBadCommD)) {
+        logger_->error("bad CommD error (sector {})", info->sector_number);
+        return fsm_->send(info,
+                          std::make_shared<SectorSealPreCommit1FailedEvent>());
+      }
+      if (maybe_error == outcome::failure(ChecksError::kExpiredTicket)) {
+        logger_->error("ticket expired (sector {})", info->sector_number);
+        return fsm_->send(info,
+                          std::make_shared<SectorSealPreCommit1FailedEvent>());
+      }
+      if (maybe_error == outcome::failure(ChecksError::kBadTicketEpoch)) {
+        logger_->error("bad ticket epoch (sector {})", info->sector_number);
+        return fsm_->send(info,
+                          std::make_shared<SectorSealPreCommit1FailedEvent>());
+      }
+      if (maybe_error == outcome::failure(ChecksError::kPrecommitOnChain)) {
+        std::shared_ptr<SectorPreCommitLandedEvent> event =
+            std::make_shared<SectorPreCommitLandedEvent>();
+        event->tipset_key = key;
+        return fsm_->send(info, event);
+      }
+      return maybe_error.error();
+    }
 
-    // TODO: CBOR params
+    auto expiration = std::min(
+        policy_->expiration(info->pieces),
+        static_cast<ChainEpoch>(head.height
+                                + maxSealDuration(info->sector_type).value()
+                                + kMinSectorExpiration + 10));
 
-    adt::TokenAmount deposit(0);  // TODO: get deposit
+    SectorPreCommitInfo params;
+    params.expiration = expiration;
+    params.sector = info->sector_number;
+    params.registered_proof = info->sector_type;
+    params.sealed_cid = info->comm_r.get();
+    params.seal_epoch = info->ticket_epoch;
+    params.deal_ids = info->getDealIDs();
+
+    auto deposit = tryUpgradeSector(params);
+
+    auto maybe_params = codec::cbor::encode(params);
+    if (maybe_params.has_error()) {
+      logger_->error("could not serialize pre-commit sector parameters: {}",
+                     maybe_params.error().message());
+      return fsm_->send(info,
+                        std::make_shared<SectorChainPreCommitFailedEvent>());
+    }
+
+    OUTCOME_TRY(
+        collateral,
+        api_->StateMinerPreCommitDepositForPower(miner_address_, params, key));
+
+    deposit = std::max(deposit, collateral);
 
     logger_->info("submitting precommit for sector: {}", info->sector_number);
     auto maybe_signed_msg = api_->MpoolPushMessage(vm::message::UnsignedMessage(
         worker_addr,
         miner_address_,
         0,
-        0,
+        deposit,
         1,
         1000000,
         vm::actor::builtin::miner::PreCommitSector::Number,
-        {}));
+        MethodParams{maybe_params.value()}));  // TODO: max fee options
 
     if (maybe_signed_msg.has_error()) {
+      if (params.replace_capacity) {
+        maybe_error = markForUpgrade(params.replace_sector);
+        if (maybe_error.has_error()) {
+          // TODO: log it
+        }
+      }
       logger_->error("pushing message to mpool: {}",
                      maybe_signed_msg.error().message());
       return fsm_->send(info,
@@ -724,7 +797,7 @@ namespace fc::mining {
         std::make_shared<SectorPreCommittedEvent>();
     event->precommit_message = maybe_signed_msg.value().getCid();
     event->precommit_deposit = deposit;
-    event->precommit_info = {};  // TODO: params
+    event->precommit_info = std::move(params);
 
     return fsm_->send(info, event);
   }
@@ -1095,5 +1168,56 @@ namespace fc::mining {
         .ticket = randomness,
         .epoch = ticket_epoch,
     };
+  }
+
+  TokenAmount SealingImpl::tryUpgradeSector(SectorPreCommitInfo &params) {
+    if (params.deal_ids.empty()) {
+      return 0;
+    }
+
+    auto replace = maybeUpgradableSector();
+    if (replace) {
+      auto maybe_location = api_->StateSectorPartition(
+          miner_address_,
+          *replace,
+          api::TipsetKey());  // TODO: Check empty tipsetkey
+      if (maybe_location.has_error()) {
+        // TODO: log it
+        return 0;
+      }
+
+      params.replace_capacity = true;
+      params.replace_sector = *replace;
+      params.replace_deadline = maybe_location.value().deadline;
+      params.replace_partition = maybe_location.value().partition;
+
+      auto maybe_replace_info =
+          api_->StateSectorGetInfo(miner_address_, *replace, api::TipsetKey());
+      if (maybe_replace_info.has_error()) {
+        // TODO: log it
+        return 0;
+      }
+
+      params.expiration =
+          std::min(params.expiration, maybe_replace_info.value().expiration);
+
+      return maybe_replace_info.value().init_pledge;
+    }
+
+    return 0;
+  }
+
+  boost::optional<SectorNumber> SealingImpl::maybeUpgradableSector() {
+    std::lock_guard lock(upgrade_mutex_);
+    if (to_upgrade_.empty()) {
+      return boost::none;
+    }
+
+    // TODO: checks to match actor constraints
+    // Note: maybe here should be loop
+
+    auto result = *(to_upgrade_.begin());
+    to_upgrade_.erase(to_upgrade_.begin());
+    return result;
   }
 }  // namespace fc::mining

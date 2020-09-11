@@ -45,6 +45,7 @@ target_link_libraries(events
 
 add_library(storage_fsm
         impl/sealing_impl.cpp
+        impl/checks.cpp
         )
 target_link_libraries(storage_fsm
         fuhon_fsm
@@ -56,4 +57,6 @@ target_link_libraries(storage_fsm
         precommit_policy
         sector_stat
         sector_counter
+        api_ipfs_datastore
+        zerocomm
         )

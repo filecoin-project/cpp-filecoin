@@ -1030,6 +1030,18 @@ namespace fc::api {
       decode(v.state, Get(j, "State"));
     }
 
+    ENCODE(SectorLocation) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Deadline", v.deadline);
+      Set(j, "Partition", v.partition);
+      return j;
+    }
+
+    DECODE(SectorLocation) {
+      decode(v.deadline, Get(j, "Deadline"));
+      decode(v.partition, Get(j, "Partition"));
+    }
+
     ENCODE(BlockWithCids) {
       Value j{rapidjson::kObjectType};
       Set(j, "Header", v.header);

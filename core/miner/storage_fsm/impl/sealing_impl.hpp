@@ -16,8 +16,10 @@
 #include "miner/storage_fsm/sealing_events.hpp"
 #include "miner/storage_fsm/sector_counter.hpp"
 #include "miner/storage_fsm/sector_stat.hpp"
+#include "vm/actor/builtin/miner/miner_actor.hpp"
 
 namespace fc::mining {
+  using adt::TokenAmount;
   using api::Api;
   using primitives::piece::PaddedPieceSize;
   using proofs::SealRandomness;
@@ -26,6 +28,7 @@ namespace fc::mining {
   using EventPtr = std::shared_ptr<SealingEvent>;
   using SealingTransition = fsm::Transition<EventPtr, SealingState, SectorInfo>;
   using StorageFSM = fsm::FSM<EventPtr, SealingState, SectorInfo>;
+  using vm::actor::builtin::miner::SectorPreCommitInfo;
 
   struct Config {
     // 0 = no limit
@@ -87,7 +90,11 @@ namespace fc::mining {
                                    const PieceData &piece,
                                    const boost::optional<DealInfo> &deal);
 
-    outcome::result<primitives::SectorNumber> newDealSector();
+    outcome::result<SectorNumber> newDealSector();
+
+    TokenAmount tryUpgradeSector(SectorPreCommitInfo &params);
+
+    boost::optional<SectorNumber> maybeUpgradableSector();
 
     /**
      * Creates all FSM transitions
@@ -99,7 +106,7 @@ namespace fc::mining {
      * callback for fsm to track activity
      */
     void callbackHandle(const std::shared_ptr<SectorInfo> &info,
-                        EventPtr event,
+                        const EventPtr &event,
                         SealingState from,
                         SealingState to);
 

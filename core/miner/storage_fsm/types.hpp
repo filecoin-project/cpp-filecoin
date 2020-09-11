@@ -94,6 +94,18 @@ namespace fc::mining::types {
 
       return result;
     }
+
+    inline std::vector<DealId> getDealIDs() const {
+      std::vector<DealId> result;
+
+      for (const auto &piece : pieces) {
+        if (piece.deal_info) {
+          result.push_back(piece.deal_info->deal_id);
+        }
+      }
+
+      return result;
+    }
   };
 
   // Epochs
