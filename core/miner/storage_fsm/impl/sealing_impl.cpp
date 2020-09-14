@@ -95,12 +95,9 @@ namespace fc::mining {
   }
 
   outcome::result<void> SealingImpl::remove(SectorNumber sector_id) {
-    auto sector = sectors_.find(sector_id);
-    if (sector == sectors_.end()) {
-      return outcome::success();  // TODO: Error
-    }
+    OUTCOME_TRY(info, getSectorInfo(sector_id));
 
-    return fsm_->send(sector->second, std::make_shared<SectorRemoveEvent>());
+    return fsm_->send(info, std::make_shared<SectorRemoveEvent>());
   }
 
   Address SealingImpl::getAddress() const {
@@ -108,6 +105,7 @@ namespace fc::mining {
   }
 
   std::vector<SectorNumber> SealingImpl::getListSectors() const {
+    std::lock_guard lock(sectors_mutex_);
     std::vector<SectorNumber> keys = {};
     for (const auto &[key, value] : sectors_) {
       keys.push_back(key);
@@ -117,6 +115,7 @@ namespace fc::mining {
 
   outcome::result<std::shared_ptr<SectorInfo>> SealingImpl::getSectorInfo(
       SectorNumber id) const {
+    std::lock_guard lock(sectors_mutex_);
     const auto &maybe_sector{sectors_.find(id)};
     if (maybe_sector == sectors_.cend()) {
       return outcome::success();  // TODO: error
@@ -172,13 +171,10 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::startPacking(SectorNumber id) {
     // TODO: log it
-    auto sector_info = sectors_.find(id);
-    if (sector_info == sectors_.end()) {
-      return outcome::success();  // TODO: ERROR
-    }
+    OUTCOME_TRY(sector_info, getSectorInfo(id));
 
-    OUTCOME_TRY(fsm_->send(sector_info->second,
-                           std::make_shared<SectorStartPackingEvent>()));
+    OUTCOME_TRY(
+        fsm_->send(sector_info, std::make_shared<SectorStartPackingEvent>()));
 
     {
       std::lock_guard lock(unsealed_mutex_);
@@ -234,10 +230,10 @@ namespace fc::mining {
         .deal_info = deal,
     };
 
+    OUTCOME_TRY(info, getSectorInfo(sector_id));
     std::shared_ptr<SectorAddPieceEvent> event =
         std::make_shared<SectorAddPieceEvent>();
     event->piece = new_piece;
-    auto info = sectors_[sector_id];
     OUTCOME_TRY(fsm_->send(info, event));
 
     auto unsealed_info = unsealed_sectors_.find(sector_id);
@@ -298,7 +294,10 @@ namespace fc::mining {
 
     auto sector = std::make_shared<SectorInfo>();
     OUTCOME_TRY(fsm_->begin(sector, SealingState::kStateUnknown));
-    sectors_[sector_id] = sector;
+    {
+      std::lock_guard lock(sectors_mutex_);
+      sectors_[sector_id] = sector;
+    }
     std::shared_ptr<SectorStartEvent> event =
         std::make_shared<SectorStartEvent>();
     event->sector_id = sector_id;
