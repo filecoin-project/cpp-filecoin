@@ -22,10 +22,13 @@ namespace fc::mining {
   using vm::actor::builtin::miner::maxSealDuration;
   using vm::actor::builtin::miner::ProveCommitSector;
 
-  SealingImpl::SealingImpl(std::shared_ptr<boost::asio::io_context> context)
+  SealingImpl::SealingImpl(std::shared_ptr<boost::asio::io_context> context,
+                           Ticks ticks)
       : context_(std::move(context)) {
     std::shared_ptr<host::HostContext> fsm_context =
         std::make_shared<host::HostContextImpl>(context_);
+    scheduler_ = std::make_shared<libp2p::protocol::AsioScheduler>(
+        *fsm_context->getIoContext(), libp2p::protocol::SchedulerConfig{ticks});
     fsm_ = std::make_shared<StorageFSM>(makeFSMTransitions(), fsm_context);
     fsm_->setAnyChangeAction([this](auto info, auto event, auto from, auto to) {
       callbackHandle(info, event, from, to);
@@ -309,6 +312,19 @@ namespace fc::mining {
                      sealer_->getSectorSize()));
     OUTCOME_TRY(fsm_->send(sector, event));
 
+    if (config_.max_wait_deals_sectors > 0) {
+      scheduler_
+          ->schedule(config_.max_wait_deals_sectors,
+                     [this, sector_id]() {
+                       auto maybe_error = startPacking(sector_id);
+                       if (maybe_error.has_error()) {
+                         logger_->error("starting sector {}: {}",
+                                        sector_id,
+                                        maybe_error.error().message());
+                       }
+                     })
+          .detach();
+    }
     // TODO: Timer for start packing
 
     return sector_id;

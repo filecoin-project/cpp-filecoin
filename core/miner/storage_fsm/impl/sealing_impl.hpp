@@ -28,6 +28,8 @@ namespace fc::mining {
   using EventPtr = std::shared_ptr<SealingEvent>;
   using SealingTransition = fsm::Transition<EventPtr, SealingState, SectorInfo>;
   using StorageFSM = fsm::FSM<EventPtr, SealingState, SectorInfo>;
+  using libp2p::protocol::Scheduler;
+  using Ticks = libp2p::protocol::Scheduler::Ticks;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
 
   struct Config {
@@ -40,12 +42,13 @@ namespace fc::mining {
     // includes failed, 0 = no limit
     uint64_t max_sealing_sectors_for_deals;
 
-    int64_t wait_deals_delay;  // TODO: maybe change type
+    uint64_t wait_deals_delay;  // in milliseconds
   };
 
   class SealingImpl : public Sealing {
    public:
-    SealingImpl(std::shared_ptr<boost::asio::io_context> context);
+    SealingImpl(std::shared_ptr<boost::asio::io_context> context,
+                Ticks ticks = 50);
 
     outcome::result<void> run() override;
 
@@ -268,6 +271,7 @@ namespace fc::mining {
     std::shared_ptr<Manager> sealer_;
 
     Config config_;
+    std::shared_ptr<Scheduler> scheduler_;
   };
 }  // namespace fc::mining
 
