@@ -6,6 +6,7 @@
 add_custom_target(go_actors_build
     COMMAND ./go_actors.sh
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/go_actors.a
     )
 
 add_library(go_actors SHARED IMPORTED GLOBAL)
