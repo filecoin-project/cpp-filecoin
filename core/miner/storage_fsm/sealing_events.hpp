@@ -54,6 +54,8 @@ namespace fc::mining {
     kSectorRemove,
     kSectorRemoved,
     kSectorRemoveFailed,
+
+    kSectorForce,
   };
 
   class SealingEvent {
@@ -431,6 +433,15 @@ namespace fc::mining {
         : SealingEvent(SealingEventId::kSectorRemoveFailed){};
 
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
+  };
+
+  struct SectorForceEvent final : public SealingEvent {
+   public:
+    SectorForceEvent() : SealingEvent(SealingEventId::kSectorForce){};
+
+    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
+
+    SealingState state;
   };
 }  // namespace fc::mining
 

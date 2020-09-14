@@ -125,8 +125,11 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::forceSectorState(SectorNumber id,
                                                       SealingState state) {
-    // TODO: send fsm event
-    return outcome::success();
+    OUTCOME_TRY(info, getSectorInfo(id));
+    std::shared_ptr<SectorForceEvent> event =
+        std::make_shared<SectorForceEvent>();
+    event->state = state;
+    return fsm_->send(info, event);
   }
 
   outcome::result<void> SealingImpl::markForUpgrade(SectorNumber id) {
@@ -494,9 +497,10 @@ namespace fc::mining {
 
     auto maybe_error = [&]() -> outcome::result<void> {
       switch (to) {
-        case SealingState::kWaitDeals:
+        case SealingState::kWaitDeals: {
           logger_->info("Waiting for deals {}", info->sector_number);
           return outcome::success();
+        }
         case SealingState::kPacking:
           return handlePacking(info);
         case SealingState::kPreCommit1:
@@ -541,12 +545,19 @@ namespace fc::mining {
         case SealingState::kFaultReported:
           return handleFaultReported(info);
 
-        case SealingState::kStateUnknown:
+        case SealingState::kForce: {
+          std::shared_ptr<SectorForceEvent> force_event =
+              std::static_pointer_cast<SectorForceEvent>(event);
+          return fsm_->force(info, force_event->state);
+        }
+        case SealingState::kStateUnknown: {
           logger_->error("sector update with undefined state!");
           return outcome::success();
-        default:
+        }
+        default: {
           logger_->error("Unknown state {}", to);
           return outcome::success();
+        }
       }
     }();
     if (maybe_error.has_error()) {

@@ -42,6 +42,9 @@ namespace fc::mining {
     kRemoving,
     kRemoveFail,
     kRemoved,
+
+    // Hacks
+    kForce,
   };
 }  // namespace fc::mining
 
