@@ -79,6 +79,7 @@ namespace fc::api {
   using vm::actor::builtin::miner::Partition;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::miner::SectorPreCommitOnChainInfo;
   using vm::actor::builtin::payment_channel::LaneId;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::actor::builtin::storage_power::Claim;
@@ -395,7 +396,12 @@ namespace fc::api {
                TokenAmount,
                const Address &,
                SectorNumber,
-               const TipsetKey &)
+               const TipsetKey &);
+    API_METHOD(StateSectorPreCommitInfo,
+               boost::optional<SectorPreCommitOnChainInfo>,
+               const Address &,
+               SectorNumber,
+               const TipsetKey &);
     API_METHOD(StateSectorGetInfo,
                SectorOnChainInfo,
                const Address &,
@@ -406,6 +412,7 @@ namespace fc::api {
                const Address &,
                SectorNumber,
                const TipsetKey &);
+    API_METHOD(StateSearchMsg, boost::optional<MsgWait>, const CID &)
     API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &)
 
     API_METHOD(SyncSubmitBlock, void, const BlockWithCids &)

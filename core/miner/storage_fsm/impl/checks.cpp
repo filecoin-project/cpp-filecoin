@@ -169,9 +169,19 @@ namespace fc::mining::checks {
       return ChecksError::kBadSeed;
     }
 
-    OUTCOME_TRY(state_sector_precommit_info,
-                getStateSectorPreCommitInfo(
-                    miner_address, sector_info, tipset_key, api));
+    auto maybe_precomit_info = getStateSectorPreCommitInfo(
+        miner_address, sector_info, tipset_key, api);
+
+    if (maybe_precomit_info.has_error()) {
+      if (maybe_precomit_info == outcome::failure(ChecksError::kSectorAllocated)
+          && sector_info->message.has_value()) {
+        return ChecksError::kCommitWaitFail;
+      }
+
+      return maybe_precomit_info.error();
+    }
+
+    auto state_sector_precommit_info = maybe_precomit_info.value();
     if (!state_sector_precommit_info.has_value()) {
       return ChecksError::kPrecommitNotFound;
     }
@@ -248,6 +258,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::mining::checks, ChecksError, e) {
       return "ChecksError: on-chain sealed CID doesn't match";
     case E::kInvalidProof:
       return "ChecksError: invalid proof";
+    case E::kCommitWaitFail:
+      return "ChecksError: need to wait commit";
     default:
       return "ChecksError: unknown error";
   }

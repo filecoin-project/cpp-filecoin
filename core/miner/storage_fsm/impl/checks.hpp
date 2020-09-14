@@ -53,6 +53,7 @@ namespace fc::mining::checks {
     kPrecommitNotFound,
     kBadSealedCid,
     kInvalidProof,
+    kCommitWaitFail,
   };
 
 }  // namespace fc::mining::checks

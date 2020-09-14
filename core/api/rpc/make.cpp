@@ -123,8 +123,10 @@ namespace fc::api {
     setup(rpc, api.StateNetworkName);
     setup(rpc, api.StateMinerPreCommitDepositForPower);
     setup(rpc, api.StateMinerInitialPledgeCollateral);
+    setup(rpc, api.StateSectorPreCommitInfo);
     setup(rpc, api.StateSectorGetInfo);
     setup(rpc, api.StateSectorPartition);
+    setup(rpc, api.StateSearchMsg);
     setup(rpc, api.StateWaitMsg);
     setup(rpc, api.SyncSubmitBlock);
     setup(rpc, api.Version);

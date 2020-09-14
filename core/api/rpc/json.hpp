@@ -656,6 +656,24 @@ namespace fc::api {
       decode(v.expiration, Get(j, "Expiration"));
     }
 
+    ENCODE(SectorPreCommitOnChainInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Info", v.info);
+      Set(j, "PreCommitDeposit", v.precommit_deposit);
+      Set(j, "PreCommitEpoch", v.precommit_epoch);
+      Set(j, "DealWeight", v.deal_weight);
+      Set(j, "VerifiedDealWeight", v.verified_deal_weight);
+      return j;
+    }
+
+    DECODE(SectorPreCommitOnChainInfo) {
+      decode(v.info, Get(j, "Info"));
+      decode(v.precommit_deposit, Get(j, "PreCommitDeposit"));
+      decode(v.precommit_epoch, Get(j, "PreCommitEpoch"));
+      decode(v.deal_weight, Get(j, "DealWeight"));
+      decode(v.verified_deal_weight, Get(j, "VerifiedDealWeight"));
+    }
+
     ENCODE(SectorOnChainInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "SectorNumber", v.sector);

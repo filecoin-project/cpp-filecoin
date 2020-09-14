@@ -20,6 +20,7 @@ namespace fc::mining {
   using vm::actor::MethodParams;
   using vm::actor::builtin::miner::kMinSectorExpiration;
   using vm::actor::builtin::miner::maxSealDuration;
+  using vm::actor::builtin::miner::ProveCommitSector;
 
   SealingImpl::SealingImpl(std::shared_ptr<boost::asio::io_context> context)
       : context_(std::move(context)) {
@@ -839,25 +840,35 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleWaitSeed(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: get pre commit info from api
+    OUTCOME_TRY(head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, head.makeKey());
+    OUTCOME_TRY(precommit_info,
+                api_->StateSectorPreCommitInfo(
+                    miner_address_, info->sector_number, tipset_key));
+    if (!precommit_info.has_value()) {
+      logger_->error("precommit info not found on chain");
+      return fsm_->send(info,
+                        std::make_shared<SectorChainPreCommitFailedEvent>());
+    }
 
-    auto random_height = vm::actor::builtin::miner::
-        kPreCommitChallengeDelay;  // TODO: add height from pre commit info
+    auto random_height = precommit_info->precommit_epoch
+                         + vm::actor::builtin::miner::kPreCommitChallengeDelay;
 
     auto maybe_error = events_->chainAt(
         [=](const Tipset &,
             ChainEpoch current_height) -> outcome::result<void> {
-          // TODO: CBOR miner address
-
           OUTCOME_TRY(head, api_->ChainHead());
           OUTCOME_TRY(tipset_key, head.makeKey());
+
+          OUTCOME_TRY(miner_address_encoded,
+                      codec::cbor::encode(miner_address_));
 
           auto maybe_randomness = api_->ChainGetRandomnessFromBeacon(
               tipset_key,
               crypto::randomness::DomainSeparationTag::
                   InteractiveSealChallengeSeed,
               random_height,
-              {});
+              MethodParams{miner_address_encoded});
           if (maybe_randomness.has_error()) {
             OUTCOME_TRY(fsm_->send(
                 info, std::make_shared<SectorChainPreCommitFailedEvent>()));
@@ -890,7 +901,17 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleCommitting(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: check that message exist
+    if (info->message.has_value()) {
+      logger_->warn(
+          "sector {} entered committing state with a commit message cid",
+          info->sector_number);
+
+      OUTCOME_TRY(message, api_->StateSearchMsg(*(info->message)));
+
+      if (message.has_value()) {
+        return fsm_->send(info, std::make_shared<SectorRetryCommitWaitEvent>());
+      }
+    }
 
     logger_->info("scheduling seal proof computation...");
 
@@ -937,24 +958,50 @@ namespace fc::mining {
     }
 
     OUTCOME_TRY(head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, head.makeKey());
 
-    // TODO: check Commit
+    auto maybe_error = checks::checkCommit(
+        miner_address_, info, maybe_proof.value(), tipset_key, api_);
+    if (maybe_error.has_error()) {
+      logger_->error("commit check error: {}", maybe_error.error().message());
+      return fsm_->send(info, std::make_shared<SectorCommitFailedEvent>());
+    }
 
     // TODO: maybe split into 2 states here
 
-    // TODO: CBOR params
+    auto params = ProveCommitSector::Params{
+        .sector = info->sector_number,
+        .proof = maybe_proof.value(),
+    };
 
-    OUTCOME_TRY(tipset_key, head.makeKey());
+    auto maybe_params_encoded = codec::cbor::encode(params);
+    if (maybe_params_encoded.has_error()) {
+      logger_->error("could not serialize commit sector parameters: {}",
+                     maybe_params_encoded.error().message());
+      return fsm_->send(info, std::make_shared<SectorCommitFailedEvent>());
+    }
 
     OUTCOME_TRY(worker_addr,
                 api_->StateMinerWorker(miner_address_, tipset_key));
+
+    OUTCOME_TRY(precommit_info_opt,
+                api_->StateSectorPreCommitInfo(
+                    miner_address_, info->sector_number, tipset_key));
+    if (!precommit_info_opt.has_value()) {
+      logger_->error("precommit info not found on chain");
+      return fsm_->send(info, std::make_shared<SectorCommitFailedEvent>());
+    }
 
     OUTCOME_TRY(collateral,
                 api_->StateMinerInitialPledgeCollateral(
                     miner_address_, info->sector_number, tipset_key));
 
-    // TODO: collateral manipulation
+    collateral -= precommit_info_opt->precommit_deposit;
+    if (collateral < 0) {
+      collateral = 0;
+    }
 
+    // TODO: check seed / ticket are up to date
     auto maybe_signed_msg = api_->MpoolPushMessage(vm::message::UnsignedMessage(
         worker_addr,
         miner_address_,
@@ -963,7 +1010,7 @@ namespace fc::mining {
         1,
         1000000,
         vm::actor::builtin::miner::ProveCommitSector::Number,
-        {}));
+        MethodParams{maybe_params_encoded.value()}));
 
     if (maybe_signed_msg.has_error()) {
       logger_->error("pushing message to mpool: {}",
@@ -1042,7 +1089,7 @@ namespace fc::mining {
 
     logger_->info("Proving sector {}", info->sector_number);
 
-    // TODO: release unsealed
+    // TODO: release unsealed, when it will be implemented
 
     // TODO: Watch termination
     // TODO: Auto-extend if set
@@ -1072,10 +1119,80 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handlePreCommitFail(
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, head.makeKey());
 
-    // TODO: check precommit
+    auto maybe_error = checks::checkPrecommit(
+        miner_address_, info, tipset_key, head.height, api_);
+    if (maybe_error.has_error()) {
+      if (maybe_error == outcome::failure(ChecksError::kBadCommD)) {
+        logger_->error("bad CommD error: {}", maybe_error.error().message());
+        return fsm_->send(info,
+                          std::make_shared<SectorSealPreCommit1FailedEvent>());
+      }
+      if (maybe_error == outcome::failure(ChecksError::kExpiredTicket)) {
+        logger_->error("ticket expired error: {}",
+                       maybe_error.error().message());
+        return fsm_->send(info,
+                          std::make_shared<SectorSealPreCommit1FailedEvent>());
+      }
+      if (maybe_error == outcome::failure(ChecksError::kBadTicketEpoch)) {
+        logger_->error("bad expired: {}", maybe_error.error().message());
+        return fsm_->send(info,
+                          std::make_shared<SectorSealPreCommit1FailedEvent>());
+      }
+      if (maybe_error == outcome::failure(ChecksError::kPrecommitNotFound)) {
+        return fsm_->send(info, std::make_shared<SectorRetryPreCommitEvent>());
+      }
 
-    // TODO: check precommitted
+      if (maybe_error == outcome::failure(ChecksError::kSectorAllocated)) {
+        logger_->error(
+            "handlePreCommitFailed: sector number already allocated, not "
+            "proceeding: {}",
+            maybe_error.error().message());
+        return outcome::success();
+      }
+
+      if (maybe_error != outcome::failure(ChecksError::kPrecommitOnChain)) {
+        return maybe_error;
+      }
+    }
+
+    auto maybe_info_opt = api_->StateSectorPreCommitInfo(
+        miner_address_, info->sector_number, tipset_key);
+    if (maybe_info_opt.has_error()) {
+      logger_->error("Check precommit error: {}",
+                     maybe_info_opt.error().message());
+    } else if (maybe_info_opt.value().has_value()) {
+      if (info->precommit_message.has_value()) {
+        logger_->warn(
+            "sector {} is precommitted on chain, but we don't have precommit "
+            "message",
+            info->sector_number);
+        std::shared_ptr<SectorPreCommitLandedEvent> event =
+            std::make_shared<SectorPreCommitLandedEvent>();
+        event->tipset_key = tipset_key;
+        return fsm_->send(info, event);
+      }
+
+      if (info->comm_r.has_value()) {
+        logger_->warn("Context not have CommR");
+        return outcome::success();
+      }
+      if (maybe_info_opt.value()->info.sealed_cid != info->comm_r.get()) {
+        logger_->warn(
+            "sector {} is precommitted on chain, with different CommR: {} != "
+            "{}",
+            info->sector_number,
+            maybe_info_opt.value()->info.sealed_cid,
+            info->comm_r.get());
+        return outcome::success();  // TODO: remove when the actor allows
+                                    // re-precommit
+      }
+
+      // TODO: wait some type
+
+      return fsm_->send(info, std::make_shared<SectorRetryWaitSeedEvent>());
+    }
 
     if (info->precommit_message) {
       logger_->warn(
@@ -1105,10 +1222,80 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handleCommitFail(
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
+    OUTCOME_TRY(tipset_key, head.makeKey());
 
-    // TODO: check precommit
+    auto maybe_error = checks::checkPrecommit(
+        miner_address_, info, tipset_key, head.height, api_);
+    if (maybe_error.has_error()) {
+      if (maybe_error == outcome::failure(ChecksError::kBadCommD)) {
+        logger_->error("bad CommD error: {}", maybe_error.error().message());
+        return fsm_->send(info,
+                          std::make_shared<SectorSealPreCommit1FailedEvent>());
+      }
+      if (maybe_error == outcome::failure(ChecksError::kExpiredTicket)) {
+        logger_->error("ticket expired error: {}",
+                       maybe_error.error().message());
+        return fsm_->send(info,
+                          std::make_shared<SectorSealPreCommit1FailedEvent>());
+      }
+      if (maybe_error == outcome::failure(ChecksError::kBadTicketEpoch)) {
+        logger_->error("bad expired: {}", maybe_error.error().message());
+        return fsm_->send(info,
+                          std::make_shared<SectorSealPreCommit1FailedEvent>());
+      }
 
-    // TODO: check commit
+      if (maybe_error == outcome::failure(ChecksError::kPrecommitNotFound)) {
+        logger_->error("no precommit: {}", maybe_error.error().message());
+        return fsm_->send(info,
+                          std::make_shared<SectorChainPreCommitFailedEvent>());
+      }
+
+      if (maybe_error != outcome::failure(ChecksError::kPrecommitOnChain)
+          && maybe_error != outcome::failure(ChecksError::kSectorAllocated)) {
+        return maybe_error;
+      }
+    }
+
+    maybe_error = checks::checkCommit(
+        miner_address_, info, info->proof, tipset_key, api_);
+    if (maybe_error.has_error()) {
+      if (maybe_error == outcome::failure(ChecksError::kBadSeed)) {
+        logger_->error("seed changed, will retry: {}",
+                       maybe_error.error().message());
+        return fsm_->send(info, std::make_shared<SectorRetryWaitSeedEvent>());
+      }
+      if (maybe_error == outcome::failure(ChecksError::kInvalidProof)) {
+        // TODO: wait some time
+
+        if (info->invalid_proofs > 0) {
+          logger_->error("consecutive invalid proofs");
+          return fsm_->send(
+              info, std::make_shared<SectorSealPreCommit1FailedEvent>());
+        }
+
+        return fsm_->send(info,
+                          std::make_shared<SectorRetryInvalidProofEvent>());
+      }
+
+      if (maybe_error == outcome::failure(ChecksError::kPrecommitOnChain)) {
+        logger_->error("no precommit on chain, will retry: {}",
+                       maybe_error.error().message());
+        return fsm_->send(info,
+                          std::make_shared<SectorRetryPreCommitWaitEvent>());
+      }
+
+      if (maybe_error == outcome::failure(ChecksError::kPrecommitNotFound)) {
+        return fsm_->send(info, std::make_shared<SectorRetryPreCommitEvent>());
+      }
+
+      if (maybe_error == outcome::failure(ChecksError::kCommitWaitFail)) {
+        // TODO: wait some time
+
+        return fsm_->send(info, std::make_shared<SectorRetryCommitWaitEvent>());
+      }
+
+      return maybe_error;
+    }
 
     // TODO: Check sector files
 
@@ -1128,7 +1315,21 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleFaultReported(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: Implement me
+    if (!info->fault_report_message.has_value()) {
+      return outcome::success();  // TODO: ERROR
+    }
+
+    OUTCOME_TRY(channel, api_->StateWaitMsg(info->fault_report_message.get()));
+    OUTCOME_TRY(message, channel.waitSync());
+
+    if (message.receipt.exit_code != vm::VMExitCode::kOk) {
+      logger_->error(
+          " declaring sector fault failed (exit={}, msg={}) (id: {})",
+          message.receipt.exit_code,
+          info->fault_report_message.get(),
+          info->sector_number);
+      return outcome::success();  // TODO: ERROR
+    }
 
     return fsm_->send(info, std::make_shared<SectorFaultedFinalEvent>());
   }
@@ -1153,16 +1354,22 @@ namespace fc::mining {
     ChainEpoch ticket_epoch =
         head.height - vm::actor::builtin::miner::kChainFinalityish;
 
-    // TODO: get precommit info from api
+    OUTCOME_TRY(address_encoded, codec::cbor::encode(miner_address_));
 
-    // TODO: Marshal param
+    OUTCOME_TRY(precommit_info,
+                api_->StateSectorPreCommitInfo(
+                    miner_address_, info->sector_number, tipset_key));
+
+    if (precommit_info.has_value()) {
+      ticket_epoch = precommit_info->info.seal_epoch;
+    }
 
     OUTCOME_TRY(randomness,
                 api_->ChainGetRandomnessFromTickets(
                     tipset_key,
                     api::DomainSeparationTag::SealRandomness,
                     ticket_epoch,
-                    {}));
+                    MethodParams{address_encoded}));
 
     return TicketInfo{
         .ticket = randomness,
