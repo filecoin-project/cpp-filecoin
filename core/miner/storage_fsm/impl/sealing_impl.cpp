@@ -8,6 +8,7 @@
 #include "common/bitsutil.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "miner/storage_fsm/impl/checks.hpp"
+#include "miner/storage_fsm/impl/sector_stat_impl.hpp"
 
 #define FSM_SEND(info, event) OUTCOME_EXCEPT(fsm_->send(info, event))
 
@@ -22,9 +23,21 @@ namespace fc::mining {
   using vm::actor::builtin::miner::maxSealDuration;
   using vm::actor::builtin::miner::ProveCommitSector;
 
-  SealingImpl::SealingImpl(std::shared_ptr<boost::asio::io_context> context,
+  SealingImpl::SealingImpl(std::shared_ptr<Api> api,
+                           std::shared_ptr<Events> events,
+                           const Address &miner_address,
+                           std::shared_ptr<SectorCounter> counter,
+                           std::shared_ptr<Manager> sealer,
+                           std::shared_ptr<PreCommitPolicy> policy,
+                           std::shared_ptr<boost::asio::io_context> context,
                            Ticks ticks)
-      : context_(std::move(context)) {
+      : context_(std::move(context)),
+        api_(std::move(api)),
+        events_(std::move(events)),
+        policy_(std::move(policy)),
+        counter_(std::move(counter)),
+        miner_address_(miner_address),
+        sealer_(std::move(sealer)) {
     std::shared_ptr<host::HostContext> fsm_context =
         std::make_shared<host::HostContextImpl>(context_);
     scheduler_ = std::make_shared<libp2p::protocol::AsioScheduler>(
@@ -33,6 +46,7 @@ namespace fc::mining {
     fsm_->setAnyChangeAction([this](auto info, auto event, auto from, auto to) {
       callbackHandle(info, event, from, to);
     });
+    stat_ = std::make_shared<SectorStatImpl>();
   }
 
   uint64_t getDealPerSectorLimit(SectorSize size) {

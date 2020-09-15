@@ -47,7 +47,13 @@ namespace fc::mining {
 
   class SealingImpl : public Sealing {
    public:
-    SealingImpl(std::shared_ptr<boost::asio::io_context> context,
+    SealingImpl(std::shared_ptr<Api> api,
+                std::shared_ptr<Events> events,
+                const Address &miner_address,
+                std::shared_ptr<SectorCounter> counter,
+                std::shared_ptr<Manager> sealer,
+                std::shared_ptr<PreCommitPolicy> policy,
+                std::shared_ptr<boost::asio::io_context> context,
                 Ticks ticks = 50);
 
     outcome::result<void> run() override;
@@ -63,7 +69,8 @@ namespace fc::mining {
 
     Address getAddress() const override;
 
-    std::vector<std::shared_ptr<const SectorInfo>> getListSectors() const override;
+    std::vector<std::shared_ptr<const SectorInfo>> getListSectors()
+        const override;
 
     outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber id) const override;
