@@ -63,7 +63,7 @@ namespace fc::mining {
 
     Address getAddress() const override;
 
-    std::vector<SectorNumber> getListSectors() const override;
+    std::vector<std::shared_ptr<const SectorInfo>> getListSectors() const override;
 
     outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber id) const override;

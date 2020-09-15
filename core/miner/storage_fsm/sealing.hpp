@@ -35,7 +35,7 @@ namespace fc::mining {
 
     virtual Address getAddress() const = 0;
 
-    virtual std::vector<SectorNumber> getListSectors() const = 0;
+    virtual std::vector<std::shared_ptr<const SectorInfo>> getListSectors() const = 0;
 
     virtual outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber id) const = 0;

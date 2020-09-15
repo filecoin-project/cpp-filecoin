@@ -43,7 +43,6 @@ namespace fc::mining {
   }
 
   outcome::result<void> SealingImpl::run() {
-    // TODO: restart fsm
     return outcome::success();
   }
 
@@ -107,13 +106,14 @@ namespace fc::mining {
     return miner_address_;
   }
 
-  std::vector<SectorNumber> SealingImpl::getListSectors() const {
+  std::vector<std::shared_ptr<const SectorInfo>> SealingImpl::getListSectors()
+      const {
     std::lock_guard lock(sectors_mutex_);
-    std::vector<SectorNumber> keys = {};
+    std::vector<std::shared_ptr<const SectorInfo>> values = {};
     for (const auto &[key, value] : sectors_) {
-      keys.push_back(key);
+      values.push_back(value);
     }
-    return keys;
+    return values;
   }
 
   outcome::result<std::shared_ptr<SectorInfo>> SealingImpl::getSectorInfo(
