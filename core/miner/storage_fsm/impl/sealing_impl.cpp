@@ -92,12 +92,12 @@ namespace fc::mining {
     // TODO: Log it
 
     if (primitives::piece::paddedSize(size) != size) {
-      return outcome::success();  // TODO: error
+      return SealingError::kCannotAllocatePiece;
     }
 
     auto sector_size = sealer_->getSectorSize();
     if (size > PaddedPieceSize(sector_size).unpadded()) {
-      return outcome::success();  // TODO: error
+      return SealingError::kPieceNotFit;
     }
 
     bool is_start_packing;
@@ -157,7 +157,7 @@ namespace fc::mining {
     std::lock_guard lock(sectors_mutex_);
     const auto &maybe_sector{sectors_.find(id)};
     if (maybe_sector == sectors_.cend()) {
-      return outcome::success();  // TODO: error
+      return SealingError::kCannotFindSector;
     }
     return maybe_sector->second;
   }
@@ -175,7 +175,7 @@ namespace fc::mining {
     std::unique_lock lock(upgrade_mutex_);
 
     if (to_upgrade_.find(id) != to_upgrade_.end()) {
-      return outcome::success();  // TODO: ERROR
+      return SealingError::kAlreadyUpgradeMarked;
     }
 
     OUTCOME_TRY(sector_info, getSectorInfo(id));
@@ -184,15 +184,15 @@ namespace fc::mining {
                 fsm_->get(sector_info));  // TODO: maybe save state in info
 
     if (state != SealingState::kProving) {
-      return outcome::success();  // TODO: ERROR
+      return SealingError::kNotProvingState;
     }
 
     if (sector_info->pieces.size() != 1) {
-      return outcome::success();  // TODO: ERROR
+      return SealingError::kUpgradeSeveralPiece;
     }
 
     if (sector_info->pieces[0].deal_info.has_value()) {
-      return outcome::success();  // TODO: ERROR
+      return SealingError::kUpgradeWithDeal;
     }
 
     // TODO: more checks to match actor constraints
@@ -292,7 +292,7 @@ namespace fc::mining {
   outcome::result<SectorNumber> SealingImpl::newDealSector() {
     if (config_.max_sealing_sectors_for_deals > 0) {
       if (stat_->currentSealing() > config_.max_sealing_sectors_for_deals) {
-        return outcome::success();  // TODO: ERROR
+        return SealingError::kTooManySectors;
       }
     }
 
@@ -361,7 +361,6 @@ namespace fc::mining {
                      })
           .detach();
     }
-    // TODO: Timer for start packing
 
     return sector_id;
   }
@@ -1362,7 +1361,7 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handleFaultReported(
       const std::shared_ptr<SectorInfo> &info) {
     if (!info->fault_report_message.has_value()) {
-      return outcome::success();  // TODO: ERROR
+      return SealingError::kNoFaultMessage;
     }
 
     OUTCOME_TRY(channel, api_->StateWaitMsg(info->fault_report_message.get()));
@@ -1374,7 +1373,7 @@ namespace fc::mining {
           message.receipt.exit_code,
           info->fault_report_message.get(),
           info->sector_number);
-      return outcome::success();  // TODO: ERROR
+      return SealingError::kFailSubmit;
     }
 
     return fsm_->send(info, std::make_shared<SectorFaultedFinalEvent>());
@@ -1474,3 +1473,33 @@ namespace fc::mining {
     return result;
   }
 }  // namespace fc::mining
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::mining, SealingError, e) {
+  using E = fc::mining::SealingError;
+  switch (e) {
+    case E::kPieceNotFit:
+      return "SealingError: piece cannot fit into a sector";
+    case E::kCannotAllocatePiece:
+      return "SealingError: cannot allocate unpadded piece";
+    case E::kCannotFindSector:
+      return "SealingError: sector not found";
+    case E::kAlreadyUpgradeMarked:
+      return "SealingError: sector already marked for upgrade";
+    case E::kNotProvingState:
+      return "SealingError: can't mark sectors not in the 'Proving' state for "
+             "upgrade";
+    case E::kUpgradeSeveralPiece:
+      return "SealingError: not a committed-capacity sector, expected 1 piece";
+    case E::kUpgradeWithDeal:
+      return "SealingError: not a committed-capacity sector, has deals";
+    case E::kTooManySectors:
+      return "SealingError: too many sectors sealing";
+    case E::kNoFaultMessage:
+      return "SealingError: entered fault reported state without a "
+             "FaultReportMsg cid";
+    case E::kFailSubmit:
+      return "SealingError: submitting fault declaration failed";
+    default:
+      return "SealingError: unknown error";
+  }
+}

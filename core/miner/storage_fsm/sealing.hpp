@@ -51,6 +51,21 @@ namespace fc::mining {
 
     virtual outcome::result<void> pledgeSector() = 0;
   };
+
+    enum class SealingError {
+        kPieceNotFit = 1,
+        kCannotAllocatePiece,
+        kCannotFindSector,
+        kAlreadyUpgradeMarked,
+        kNotProvingState,
+        kUpgradeSeveralPiece,
+        kUpgradeWithDeal,
+        kTooManySectors,
+        kNoFaultMessage,
+        kFailSubmit,
+    };
 }  // namespace fc::mining
+
+OUTCOME_HPP_DECLARE_ERROR(fc::mining, SealingError);
 
 #endif  // CPP_FILECOIN_CORE_MINER_STORAGE_FSM_SEALING_HPP
