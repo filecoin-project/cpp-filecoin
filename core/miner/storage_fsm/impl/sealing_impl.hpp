@@ -14,8 +14,8 @@
 #include "miner/storage_fsm/events.hpp"
 #include "miner/storage_fsm/precommit_policy.hpp"
 #include "miner/storage_fsm/sealing_events.hpp"
-#include "miner/storage_fsm/sector_counter.hpp"
 #include "miner/storage_fsm/sector_stat.hpp"
+#include "primitives/stored_counter/stored_counter.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 
 namespace fc::mining {
@@ -30,6 +30,7 @@ namespace fc::mining {
   using StorageFSM = fsm::FSM<EventPtr, SealingState, SectorInfo>;
   using libp2p::protocol::Scheduler;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
+  using primitives::Counter;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
 
   struct Config {
@@ -50,7 +51,7 @@ namespace fc::mining {
     SealingImpl(std::shared_ptr<Api> api,
                 std::shared_ptr<Events> events,
                 const Address &miner_address,
-                std::shared_ptr<SectorCounter> counter,
+                std::shared_ptr<Counter> counter,
                 std::shared_ptr<Manager> sealer,
                 std::shared_ptr<PreCommitPolicy> policy,
                 std::shared_ptr<boost::asio::io_context> context,
@@ -268,7 +269,7 @@ namespace fc::mining {
 
     std::shared_ptr<PreCommitPolicy> policy_;
 
-    std::shared_ptr<SectorCounter> counter_;
+    std::shared_ptr<Counter> counter_;
 
     std::shared_ptr<SectorStat> stat_;
 

@@ -14,11 +14,18 @@
 namespace fc::primitives {
   using Datastore = storage::face::PersistentMap<Buffer, Buffer>;
 
-  class StoredCounter {
+  class Counter {
+   public:
+    virtual ~Counter() = default;
+
+    virtual outcome::result<uint64_t> next() = 0;
+  };
+
+  class StoredCounter : public Counter {
    public:
     StoredCounter(std::shared_ptr<Datastore> datastore, std::string key);
 
-    outcome::result<uint64_t> next();
+    outcome::result<uint64_t> next() override;
 
    private:
     std::shared_ptr<Datastore> datastore_;

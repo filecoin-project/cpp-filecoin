@@ -26,7 +26,7 @@ namespace fc::mining {
   SealingImpl::SealingImpl(std::shared_ptr<Api> api,
                            std::shared_ptr<Events> events,
                            const Address &miner_address,
-                           std::shared_ptr<SectorCounter> counter,
+                           std::shared_ptr<Counter> counter,
                            std::shared_ptr<Manager> sealer,
                            std::shared_ptr<PreCommitPolicy> policy,
                            std::shared_ptr<boost::asio::io_context> context,

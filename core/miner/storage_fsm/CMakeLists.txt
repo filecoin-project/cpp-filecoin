@@ -10,14 +10,6 @@ target_link_libraries(sector_stat
         sector
         )
 
-add_library(sector_counter
-        impl/sector_counter_impl.cpp
-        )
-target_link_libraries(sector_counter
-        stored_counter
-        outcome
-        )
-
 add_library(precommit_policy
         impl/basic_precommit_policy.cpp
         )
@@ -56,7 +48,7 @@ target_link_libraries(storage_fsm
         events
         precommit_policy
         sector_stat
-        sector_counter
+        stored_counter
         api_ipfs_datastore
         zerocomm
         )
