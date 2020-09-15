@@ -236,7 +236,7 @@ namespace fc::mining {
 
     SectorId minerSector(SectorNumber num);
 
-    std::mutex sectors_mutex_;
+    mutable std::mutex sectors_mutex_;
     std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>> sectors_;
 
     struct UnsealedSectorInfo {

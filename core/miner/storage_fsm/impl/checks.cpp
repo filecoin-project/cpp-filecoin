@@ -209,19 +209,17 @@ namespace fc::mining::checks {
     if (sector_info->comm_r != state_sector_precommit_info->info.sealed_cid) {
       return ChecksError::kBadSealedCid;
     }
-    OUTCOME_TRY(
-        verified,
-        Proofs::verifySeal(SealVerifyInfo{
-            .sector = SectorId{.miner = miner_address.getId(),
-                               .sector = sector_info->sector_number},
-            .info =
-                OnChainSealVerifyInfo{
+    OUTCOME_TRY(verified,
+                Proofs::verifySeal(SealVerifyInfo{
+                    .seal_proof = seal_proof_type,
+                    .sector = SectorId{.miner = miner_address.getId(),
+                                       .sector = sector_info->sector_number},
+                    .deals = {},
+                    .randomness = sector_info->ticket,
+                    .interactive_randomness = sector_info->seed,
+                    .proof = proof,
                     .sealed_cid = state_sector_precommit_info->info.sealed_cid,
-                    .registered_proof = seal_proof_type,
-                    .proof = proof},
-            .randomness = sector_info->ticket,
-            .interactive_randomness = sector_info->seed,
-            .unsealed_cid = sector_info->comm_d.get()}));
+                    .unsealed_cid = sector_info->comm_d.get()}));
     if (!verified) {
       return ChecksError::kInvalidProof;
     }
