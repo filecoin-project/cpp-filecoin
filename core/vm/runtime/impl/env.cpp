@@ -6,6 +6,7 @@
 #include "vm/runtime/env.hpp"
 
 #include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"
@@ -97,6 +98,9 @@ namespace fc::vm::runtime {
         return result.error();
       }
       exit_code = VMExitCode{result.error().value()};
+      if (exit_code == VMExitCode::kFatal) {
+        return result.error();
+      }
     } else {
       auto &ret{result.value()};
       if (!ret.empty()) {
@@ -244,32 +248,30 @@ namespace fc::vm::runtime {
     }
 
     if (message.method != kSendMethodNumber) {
-      auto result = env->invoker->invoke(
-          to_actor, runtime, message.method, message.params);
-      return result;
+      auto _message{message};
+      _message.from = caller_id;
+      // TODO: check cpp actor
+      return actor::cgo::invoke(shared_from_this(),
+                                _message,
+                                to_actor.code,
+                                message.method.method_number,
+                                message.params);
     }
 
     return outcome::success();
   }
 
-  // lotus read-write patterns differ, causing different gas in receipts
-  constexpr auto kDisableChargingIpld{false};
-
   outcome::result<void> ChargingIpld::set(const CID &key, Value value) {
     auto execution{execution_.lock()};
-    if (!kDisableChargingIpld) {
-      OUTCOME_TRY(execution->chargeGas(
-          execution->env->pricelist.onIpldPut(value.size())));
-    }
+    OUTCOME_TRY(execution->chargeGas(
+        execution->env->pricelist.onIpldPut(value.size())));
     return execution->env->ipld->set(key, std::move(value));
   }
 
   outcome::result<Ipld::Value> ChargingIpld::get(const CID &key) const {
     auto execution{execution_.lock()};
     OUTCOME_TRY(value, execution->env->ipld->get(key));
-    if (!kDisableChargingIpld) {
-      OUTCOME_TRY(execution->chargeGas(execution->env->pricelist.onIpldGet()));
-    }
+    OUTCOME_TRY(execution->chargeGas(execution->env->pricelist.onIpldGet()));
     return std::move(value);
   }
 }  // namespace fc::vm::runtime
