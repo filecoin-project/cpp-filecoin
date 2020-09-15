@@ -11,8 +11,8 @@
 #include "primitives/sector/sector.hpp"
 
 namespace fc::api {
-  using mining::DealInfo;
-  using mining::DealSchedule;
+  using mining::types::DealInfo;
+  using mining::types::DealSchedule;
   using primitives::DealId;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::SectorNumber;
