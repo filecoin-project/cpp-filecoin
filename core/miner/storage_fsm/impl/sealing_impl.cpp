@@ -65,7 +65,7 @@ namespace fc::mining {
       return outcome::success();  // TODO: error
     }
 
-    bool is_start_packing = false;
+    bool is_start_packing;
     PieceAttributes piece;
     piece.size = size;
 
@@ -364,8 +364,7 @@ namespace fc::mining {
             .action(CALLBACK_ACTION),
         SealingTransition(std::make_shared<SectorStartPackingEvent>())
             .from(SealingState::kWaitDeals)
-            .to(SealingState::kPacking)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kPacking),
         SealingTransition(std::make_shared<SectorPackedEvent>())
             .from(SealingState::kPacking)
             .to(SealingState::kPreCommit1)
@@ -380,8 +379,7 @@ namespace fc::mining {
             .action(CALLBACK_ACTION),
         SealingTransition(std::make_shared<SectorPackingFailedEvent>())
             .fromMany(SealingState::kPreCommit1, SealingState::kPreCommit2)
-            .to(SealingState::kPackingFail)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kPackingFail),
         SealingTransition(std::make_shared<SectorPreCommit2Event>())
             .from(SealingState::kPreCommit2)
             .to(SealingState::kPreCommitting)
@@ -399,8 +397,7 @@ namespace fc::mining {
                       SealingState::kPreCommittingWait,
                       SealingState::kWaitSeed,
                       SealingState::kCommitFail)
-            .to(SealingState::kPreCommitFail)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kPreCommitFail),
         SealingTransition(std::make_shared<SectorPreCommitLandedEvent>())
             .fromMany(SealingState::kPreCommitting,
                       SealingState::kPreCommittingWait,
@@ -417,32 +414,26 @@ namespace fc::mining {
             .action(CALLBACK_ACTION),
         SealingTransition(std::make_shared<SectorComputeProofFailedEvent>())
             .from(SealingState::kCommitting)
-            .to(SealingState::kComputeProofFail)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kComputeProofFail),
         // NOTE: there is not call the apply function
         SealingTransition(std::make_shared<SectorSealPreCommit1FailedEvent>())
             .from(SealingState::kCommitting)
             .to(SealingState::kSealPreCommit1Fail),
         SealingTransition(std::make_shared<SectorCommitFailedEvent>())
             .fromMany(SealingState::kCommitting, SealingState::kCommitWait)
-            .to(SealingState::kCommitFail)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kCommitFail),
         SealingTransition(std::make_shared<SectorRetryCommitWaitEvent>())
             .fromMany(SealingState::kCommitting, SealingState::kCommitFail)
-            .to(SealingState::kCommitWait)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kCommitWait),
         SealingTransition(std::make_shared<SectorProvingEvent>())
             .from(SealingState::kCommitWait)
-            .to(SealingState::kFinalizeSector)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kFinalizeSector),
         SealingTransition(std::make_shared<SectorFinalizedEvent>())
             .from(SealingState::kFinalizeSector)
-            .to(SealingState::kProving)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kProving),
         SealingTransition(std::make_shared<SectorFinalizeFailedEvent>())
             .from(SealingState::kFinalizeSector)
-            .to(SealingState::kFinalizeFail)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kFinalizeFail),
 
         SealingTransition(std::make_shared<SectorRetrySealPreCommit1Event>())
             .fromMany(SealingState::kSealPreCommit1Fail,
@@ -450,20 +441,16 @@ namespace fc::mining {
                       SealingState::kPreCommitFail,
                       SealingState::kComputeProofFail,
                       SealingState::kCommitFail)
-            .to(SealingState::kPreCommit1)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kPreCommit1),
         SealingTransition(std::make_shared<SectorRetrySealPreCommit2Event>())
             .from(SealingState::kSealPreCommit2Fail)
-            .to(SealingState::kPreCommit2)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kPreCommit2),
         SealingTransition(std::make_shared<SectorRetryPreCommitEvent>())
             .fromMany(SealingState::kPreCommitFail, SealingState::kCommitFail)
-            .to(SealingState::kPreCommitting)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kPreCommitting),
         SealingTransition(std::make_shared<SectorRetryWaitSeedEvent>())
             .fromMany(SealingState::kPreCommitFail, SealingState::kCommitFail)
-            .to(SealingState::kWaitSeed)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kWaitSeed),
         SealingTransition(std::make_shared<SectorRetryComputeProofEvent>())
             .fromMany(SealingState::kComputeProofFail,
                       SealingState::kCommitFail)
@@ -475,12 +462,10 @@ namespace fc::mining {
             .action(CALLBACK_ACTION),
         SealingTransition(std::make_shared<SectorRetryPreCommitWaitEvent>())
             .from(SealingState::kCommitFail)
-            .to(SealingState::kPreCommittingWait)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kPreCommittingWait),
         SealingTransition(std::make_shared<SectorRetryFinalizeEvent>())
             .from(SealingState::kFinalizeFail)
-            .to(SealingState::kFinalizeSector)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kFinalizeSector),
 
         SealingTransition(std::make_shared<SectorFaultReportedEvent>())
             .fromMany(SealingState::kProving, SealingState::kFaulty)
@@ -488,20 +473,19 @@ namespace fc::mining {
             .action(CALLBACK_ACTION),
         SealingTransition(std::make_shared<SectorFaultyEvent>())
             .from(SealingState::kProving)
-            .to(SealingState::kFaulty)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kFaulty),
         SealingTransition(std::make_shared<SectorRemoveEvent>())
             .from(SealingState::kProving)
-            .to(SealingState::kRemoving)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kRemoving),
         SealingTransition(std::make_shared<SectorRemovedEvent>())
             .from(SealingState::kRemoving)
-            .to(SealingState::kRemoved)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kRemoved),
         SealingTransition(std::make_shared<SectorRemoveFailedEvent>())
             .from(SealingState::kRemoving)
-            .to(SealingState::kRemoveFail)
-            .action(CALLBACK_ACTION),
+            .to(SealingState::kRemoveFail),
+        SealingTransition(std::make_shared<SectorForceEvent>())
+            .fromAny()
+            .to(SealingState::kForce),
     };
   }
 
