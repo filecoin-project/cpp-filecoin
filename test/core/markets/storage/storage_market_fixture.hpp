@@ -233,6 +233,7 @@ namespace fc::markets::storage::test {
                              .worker = miner_actor_address,
                              .pending_worker_key = boost::none,
                              .peer_id = fc::codec::cbor::kDefaultT<PeerId>(),
+                             .multiaddrs = {},
                              .seal_proof_type = {},
                              .sector_size = {},
                              .window_post_partition_sectors = {}};
