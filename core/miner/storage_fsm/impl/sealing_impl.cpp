@@ -43,6 +43,28 @@ namespace fc::mining {
   }
 
   outcome::result<void> SealingImpl::run() {
+    if (config_.wait_deals_delay == 0) {
+      return outcome::success();
+    }
+    std::lock_guard lock(sectors_mutex_);
+    for (const auto &sector : sectors_) {
+      OUTCOME_TRY(state, fsm_->get(sector.second));
+      if (state == SealingState::kWaitDeals) {
+        scheduler_
+            ->schedule(config_.max_wait_deals_sectors,
+                       [this, sector_id = sector.second->sector_number]() {
+                         auto maybe_error = startPacking(sector_id);
+                         if (maybe_error.has_error()) {
+                           logger_->error("starting sector {}: {}",
+                                          sector_id,
+                                          maybe_error.error().message());
+                         }
+                       })
+            .detach();
+      }
+    }
+
+    // TODO: Grab on-chain sector set and diff with sectors_
     return outcome::success();
   }
 
