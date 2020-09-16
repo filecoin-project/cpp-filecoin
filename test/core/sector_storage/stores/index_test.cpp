@@ -406,7 +406,7 @@ TEST_F(SectorIndexTest, LockSector) {
   SectorFileType read = SectorFileType::FTSealed;
   SectorFileType write = SectorFileType::FTUnsealed;
 
-  EXPECT_OUTCOME_TRUE(lock, sector_index_->storageLock(sector, read, write))
+  EXPECT_OUTCOME_TRUE_1(sector_index_->storageLock(sector, read, write))
   ASSERT_FALSE(sector_index_->storageTryLock(sector, read, write));
 }
 
@@ -424,6 +424,6 @@ TEST_F(SectorIndexTest, LockSectorReading) {
   SectorFileType read = SectorFileType::FTSealed;
   SectorFileType write = SectorFileType::FTNone;
 
-  EXPECT_OUTCOME_TRUE(lock, sector_index_->storageLock(sector, read, write))
-  EXPECT_OUTCOME_TRUE(lock1, sector_index_->storageLock(sector, read, write))
+  EXPECT_OUTCOME_TRUE_1(sector_index_->storageLock(sector, read, write))
+  EXPECT_OUTCOME_TRUE_1(sector_index_->storageLock(sector, read, write))
 }
