@@ -69,6 +69,7 @@ namespace fc::api {
 
   void setupRpc(Rpc &rpc, const Api &api) {
     setup(rpc, api.AuthNew);
+    setup(rpc, api.BeaconGetEntry);
     setup(rpc, api.ChainGetBlock);
     setup(rpc, api.ChainGetBlockMessages);
     setup(rpc, api.ChainGetGenesis);
@@ -126,6 +127,7 @@ namespace fc::api {
     setup(rpc, api.WalletBalance);
     setup(rpc, api.WalletDefaultAddress);
     setup(rpc, api.WalletHas);
+    setup(rpc, api.WalletImport);
     setup(rpc, api.WalletSign);
     setup(rpc, api.WalletVerify);
 
