@@ -188,7 +188,7 @@ namespace fc::sector_storage {
                                                const UnpaddedPieceSize &size,
                                                const SealRandomness &randomness,
                                                const CID &cid) {
-    OUTCOME_TRY(lock,
+    OUTCOME_TRY(
                 index_->storageLock(
                     sector,
                     static_cast<SectorFileType>(SectorFileType::FTSealed
@@ -306,7 +306,7 @@ namespace fc::sector_storage {
       const SectorId &sector,
       const SealRandomness &ticket,
       gsl::span<const PieceInfo> pieces) {
-    OUTCOME_TRY(lock,
+    OUTCOME_TRY(
                 index_->storageLock(
                     sector,
                     SectorFileType::FTUnsealed,
@@ -338,7 +338,7 @@ namespace fc::sector_storage {
 
   outcome::result<SectorCids> ManagerImpl::sealPreCommit2(
       const SectorId &sector, const PreCommit1Output &pre_commit_1_output) {
-    OUTCOME_TRY(lock,
+    OUTCOME_TRY(
                 index_->storageLock(
                     sector, SectorFileType::FTSealed, SectorFileType::FTCache));
 
@@ -374,7 +374,7 @@ namespace fc::sector_storage {
       const InteractiveRandomness &seed,
       gsl::span<const PieceInfo> pieces,
       const SectorCids &cids) {
-    OUTCOME_TRY(lock,
+    OUTCOME_TRY(
                 index_->storageLock(
                     sector, SectorFileType::FTSealed, SectorFileType::FTCache));
 
@@ -425,7 +425,7 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> ManagerImpl::finalizeSector(const SectorId &sector) {
-    OUTCOME_TRY(lock,
+    OUTCOME_TRY(
                 index_->storageLock(
                     sector,
                     SectorFileType::FTNone,
@@ -487,7 +487,7 @@ namespace fc::sector_storage {
   }
 
   outcome::result<void> ManagerImpl::remove(const SectorId &sector) {
-    OUTCOME_TRY(lock,
+    OUTCOME_TRY(
                 index_->storageLock(
                     sector,
                     SectorFileType::FTNone,

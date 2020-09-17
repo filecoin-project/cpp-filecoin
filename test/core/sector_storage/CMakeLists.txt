@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(stores)
+add_subdirectory(zerocomm)
 
 addtest(local_worker_test
         local_worker_test.cpp)
