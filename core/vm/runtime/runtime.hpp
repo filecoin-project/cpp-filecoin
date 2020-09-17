@@ -42,7 +42,6 @@ namespace fc::vm::runtime {
   using primitives::block::BlockHeader;
   using primitives::piece::PieceInfo;
   using primitives::sector::RegisteredProof;
-  using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
 
@@ -131,7 +130,7 @@ namespace fc::vm::runtime {
     virtual outcome::result<void> chargeGas(GasAmount amount) = 0;
 
     /// Get current actor state root CID
-    virtual CID getCurrentActorState() = 0;
+    virtual outcome::result<CID> getCurrentActorState() = 0;
 
     /// Update actor state CID
     virtual outcome::result<void> commit(const CID &new_state) = 0;
@@ -148,9 +147,6 @@ namespace fc::vm::runtime {
     /// Verify PoSt
     virtual outcome::result<bool> verifyPoSt(
         const WindowPoStVerifyInfo &info) = 0;
-
-    /// Verify seal
-    virtual outcome::result<bool> verifySeal(const SealVerifyInfo &info) = 0;
 
     /// Compute unsealed sector cid
     virtual outcome::result<CID> computeUnsealedSectorCid(
@@ -212,7 +208,8 @@ namespace fc::vm::runtime {
     /// Get decoded current actor state
     template <typename T>
     outcome::result<T> getCurrentActorStateCbor() {
-      return getIpfsDatastore()->getCbor<T>(getCurrentActorState());
+      OUTCOME_TRY(head, getCurrentActorState());
+      return getIpfsDatastore()->getCbor<T>(head);
     }
 
     /**
@@ -255,7 +252,7 @@ namespace fc::vm::runtime {
 
     inline outcome::result<void> validateImmediateCallerIsSignable() {
       OUTCOME_TRY(code, getActorCodeID(getImmediateCaller()));
-      if (isSignableActor(code)) {
+      if (actor::isSignableActor(code)) {
         return outcome::success();
       }
       return VMExitCode::kSysErrForbidden;

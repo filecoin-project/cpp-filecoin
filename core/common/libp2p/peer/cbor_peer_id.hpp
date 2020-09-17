@@ -10,7 +10,6 @@
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
-#include "common/span.hpp"
 
 using libp2p::peer::PeerId;
 
@@ -28,14 +27,12 @@ namespace fc::codec::cbor {
 namespace libp2p::peer {
 
   CBOR_ENCODE(PeerId, peer) {
-    auto bytes = peer.toVector();
-    return s << std::string{bytes.begin(), bytes.end()};
+    return s << peer.toVector();
   }
 
   CBOR_DECODE(PeerId, peer) {
-    std::string str;
-    s >> str;
-    OUTCOME_EXCEPT(peer_id, PeerId::fromBytes(fc::common::span::cbytes(str)));
+    OUTCOME_EXCEPT(peer_id,
+                   PeerId::fromBytes(s.template get<std::vector<uint8_t>>()));
     peer = std::move(peer_id);
     return s;
   }

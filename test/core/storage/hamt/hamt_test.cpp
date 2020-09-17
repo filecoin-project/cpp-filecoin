@@ -19,10 +19,6 @@ using fc::storage::hamt::Node;
 
 class HamtTest : public ::testing::Test {
  public:
-  auto bit(size_t i) {
-    return root_->items.find(i) != root_->items.end();
-  }
-
   decltype(auto) minItem(const Node &node) {
     return node.items.begin()->second;
   }
@@ -65,13 +61,11 @@ TEST_F(HamtTest, SetRemoveOne) {
 
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
-  EXPECT_TRUE(bit(253));
   EXPECT_EQ(root_->items.size(), 1);
 
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("aai"));
   EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.get("aai"));
   EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.remove("aai"));
-  EXPECT_FALSE(bit(253));
   EXPECT_EQ(root_->items.size(), 0);
 }
 
@@ -79,101 +73,14 @@ TEST_F(HamtTest, SetRemoveOne) {
 TEST_F(HamtTest, SetRemoveNoCollision) {
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
   EXPECT_OUTCOME_TRUE_1(hamt_.set("aaa", "02"_unhex));
-  EXPECT_TRUE(bit(253));
-  EXPECT_TRUE(bit(190));
   EXPECT_EQ(root_->items.size(), 2);
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
   EXPECT_OUTCOME_EQ(hamt_.get("aaa"), "02"_unhex);
 
   EXPECT_OUTCOME_TRUE_1(hamt_.remove("aaa"));
-  EXPECT_TRUE(bit(253));
-  EXPECT_FALSE(bit(190));
   EXPECT_EQ(root_->items.size(), 1);
   EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
   EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.get("aaa"));
-}
-
-/** Set-remove kLeafMax colliding elements, does not shard */
-TEST_F(HamtTest, SetRemoveCollisionMax) {
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("agd", "03"_unhex));
-  EXPECT_TRUE(bit(253));
-  EXPECT_EQ(root_->items.size(), 1);
-  EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
-  EXPECT_OUTCOME_EQ(hamt_.get("ade"), "02"_unhex);
-  EXPECT_OUTCOME_EQ(hamt_.get("agd"), "03"_unhex);
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.remove("ade"));
-  EXPECT_OUTCOME_TRUE_1(hamt_.remove("agd"));
-  EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
-  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.get("ade"));
-  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.get("agd"));
-}
-
-/** Set-remove kLeafMax + 1 colliding elements, creates shard */
-TEST_F(HamtTest, SetRemoveCollisionChild) {
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("agd", "03"_unhex));
-  EXPECT_TRUE(minItemIs<Node::Leaf>(*root_));
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("agm", "04"_unhex));
-  EXPECT_TRUE(minItemIs<Node::Ptr>(*root_));
-  EXPECT_EQ(boost::get<Node::Ptr>(minItem(*root_))->items.size(), 4);
-  EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
-  EXPECT_OUTCOME_EQ(hamt_.get("ade"), "02"_unhex);
-  EXPECT_OUTCOME_EQ(hamt_.get("agd"), "03"_unhex);
-  EXPECT_OUTCOME_EQ(hamt_.get("agm"), "04"_unhex);
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.remove("agm"));
-  // shard of leaves with key count <= kLeafMax collapses
-  EXPECT_TRUE(minItemIs<Node::Leaf>(*root_));
-  EXPECT_OUTCOME_EQ(hamt_.get("aai"), "01"_unhex);
-  EXPECT_OUTCOME_EQ(hamt_.get("ade"), "02"_unhex);
-  EXPECT_OUTCOME_EQ(hamt_.get("agd"), "03"_unhex);
-  EXPECT_OUTCOME_ERROR(HamtError::kNotFound, hamt_.get("agm"));
-}
-
-/** Set-remove kLeafMax + 1 double colliding elements, creates two nested shards
- */
-TEST_F(HamtTest, SetRemoveDoubleCollisionChild) {
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("ails", "01"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("aufx", "02"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("bmvm", "03"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("cnyh", "04"_unhex));
-  EXPECT_TRUE(minItemIs<Node::Ptr>(*root_));
-  auto &child = *boost::get<Node::Ptr>(minItem(*root_));
-  EXPECT_TRUE(minItemIs<Node::Ptr>(child));
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "05"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "06"_unhex));
-  EXPECT_EQ(child.items.size(), 3);
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.remove("ade"));
-  EXPECT_TRUE(minItemIs<Node::Ptr>(child));
-  EXPECT_EQ(child.items.size(), 2);
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.remove("cnyh"));
-  // shard of leaves with key count > kLeafMax does not collapse
-  EXPECT_TRUE(minItemIs<Node::Ptr>(*root_));
-  // shard of leaf collapses
-  EXPECT_TRUE(minItemIs<Node::Leaf>(child));
-  EXPECT_EQ(child.items.size(), 2);
-}
-
-/// Should collapse shard with single leaf
-TEST_F(HamtTest, CollapseSingleLeafShard) {
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("ails", "01"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("aufx", "02"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("bmvm", "03"_unhex));
-  EXPECT_TRUE(minItemIs<Node::Leaf>(*root_));
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("br", "04"_unhex));
-  EXPECT_TRUE(minItemIs<Node::Ptr>(*root_));
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.remove("br"));
-  EXPECT_TRUE(minItemIs<Node::Leaf>(*root_));
 }
 
 /** Flush empty root */
@@ -185,63 +92,6 @@ TEST_F(HamtTest, FlushEmpty) {
 
   EXPECT_OUTCOME_TRUE_1(hamt_.flush());
   EXPECT_OUTCOME_EQ(store_->contains(cidEmpty), true);
-}
-
-/** Flush node of leafs, intermediate state not stored */
-TEST_F(HamtTest, FlushNoCollision) {
-  auto cidWithLeaf =
-      "0171a0e40220bec0c31a5efc2b514dc7f2829f1c30a0b29f6a598ab65ecf0632f03f2c599afe"_cid;
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.remove("aai"));
-  EXPECT_OUTCOME_TRUE_1(hamt_.flush());
-  EXPECT_OUTCOME_EQ(store_->contains(cidWithLeaf), false);
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.flush());
-  EXPECT_OUTCOME_EQ(store_->contains(cidWithLeaf), true);
-}
-
-/** Flush node with shard, intermediate state not stored */
-TEST_F(HamtTest, FlushCollisionChild) {
-  auto cidShard =
-      "0171a0e4022056cf4b833c2ffbe0e03070208e7de2a974f96a4eea3442497852e8f436381d49"_cid;
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("aai", "01"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("ade", "02"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("agd", "03"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("agm", "04"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.remove("agm"));
-  EXPECT_OUTCOME_TRUE_1(hamt_.flush());
-  EXPECT_OUTCOME_EQ(store_->contains(cidShard), false);
-
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("agm", "04"_unhex));
-  EXPECT_OUTCOME_TRUE_1(hamt_.flush());
-  EXPECT_OUTCOME_EQ(store_->contains(cidShard), true);
-}
-
-/** Go cid compatibility with bit width of 5 */
-TEST_F(HamtTest, CollisionChildBitWidth5) {
-  hamt_ = {store_, 5};
-  EXPECT_OUTCOME_EQ(
-      hamt_.flush(),
-      "0171a0e4022018fe6acc61a3a36b0c373c4a3a8ea64b812bf2ca9b528050909c78d408558a0c"_cid);
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("ails", "01"_unhex));
-  EXPECT_OUTCOME_EQ(
-      hamt_.flush(),
-      "0171a0e40220319f9f2bbb317b16fb843f99202b97875f483c24a1383596525d3f92095149b8"_cid);
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("aufx", "02"_unhex));
-  EXPECT_OUTCOME_EQ(
-      hamt_.flush(),
-      "0171a0e40220714d82a051527787786a38f02b0be81499faa1a947092e0cb74999c6a366a60a"_cid);
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("bmvm", "03"_unhex));
-  EXPECT_OUTCOME_EQ(
-      hamt_.flush(),
-      "0171a0e40220d192445fe6fc890e6c2abd5697a6b05fe0a78a83128ddf53c2dd09db9746cd76"_cid);
-  EXPECT_OUTCOME_TRUE_1(hamt_.set("cnyh", "04"_unhex));
-  EXPECT_OUTCOME_EQ(
-      hamt_.flush(),
-      "0171a0e402205455981eb2af710c47df6265fc26a9a006ee01ef5037b50d43a13e788199f41a"_cid);
 }
 
 /** Visit all key value pairs */

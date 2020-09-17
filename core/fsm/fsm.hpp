@@ -282,6 +282,23 @@ namespace fc::fsm {
       return outcome::success();
     }
 
+    /**
+     * Forces tracking of entity with a certain state
+     * @param entity_ptr - a shared pointer to the entity
+     * @param state - desired entity's state
+     * @return none when successful
+     */
+    outcome::result<void> force(const EntityPtr &entity_ptr,
+                                StateEnumType state) {
+      std::unique_lock lock(states_mutex_);
+      auto lookup = states_.find(entity_ptr);
+      if (states_.end() == lookup) {
+        return FsmError::kEntityNotTracked;
+      }
+      lookup->second = state;
+      return outcome::success();
+    }
+
     // schedule an event for an object
     outcome::result<void> send(const EntityPtr &entity_ptr,
                                EventEnumType event) {

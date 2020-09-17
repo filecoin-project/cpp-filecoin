@@ -16,7 +16,11 @@
 namespace fc::vm::runtime {
   using actor::Invoker;
   using primitives::tipset::Tipset;
+  using state::StateTree;
   using state::StateTreeImpl;
+
+  outcome::result<Address> resolveKey(StateTree &state_tree,
+                                      const Address &address);
 
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {
@@ -27,8 +31,13 @@ namespace fc::vm::runtime {
           ipld{std::move(ipld)},
           tipset{std::move(tipset)} {}
 
-    outcome::result<MessageReceipt> applyMessage(const UnsignedMessage &message,
-                                                 TokenAmount &penalty);
+    struct Apply {
+      MessageReceipt receipt;
+      TokenAmount penalty, reward;
+    };
+
+    outcome::result<Apply> applyMessage(const UnsignedMessage &message,
+                                        size_t size);
 
     outcome::result<InvocationOutput> applyImplicitMessage(
         UnsignedMessage message);
@@ -39,8 +48,6 @@ namespace fc::vm::runtime {
     Tipset tipset;
     Pricelist pricelist;
   };
-
-  struct ChargingIpld;
 
   struct Execution : std::enable_shared_from_this<Execution> {
     static std::shared_ptr<Execution> make(std::shared_ptr<Env> env,
@@ -53,14 +60,17 @@ namespace fc::vm::runtime {
     outcome::result<InvocationOutput> sendWithRevert(
         const UnsignedMessage &message);
 
-    outcome::result<InvocationOutput> send(const UnsignedMessage &message);
+    outcome::result<InvocationOutput> send(const UnsignedMessage &message,
+                                           GasAmount charge = 0);
 
     std::shared_ptr<Env> env;
     std::shared_ptr<StateTreeImpl> state_tree;
-    std::shared_ptr<ChargingIpld> charging_ipld;
+    IpldPtr charging_ipld;
     GasAmount gas_used;
     GasAmount gas_limit;
     Address origin;
+    uint64_t origin_nonce;
+    size_t actors_created{};
   };
 
   struct ChargingIpld : public Ipld,

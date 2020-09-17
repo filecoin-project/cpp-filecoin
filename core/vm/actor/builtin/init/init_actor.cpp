@@ -7,7 +7,6 @@
 
 #include "adt/address_key.hpp"
 #include "storage/hamt/hamt.hpp"
-#include "vm/runtime/gas_cost.hpp"
 
 namespace fc::vm::actor::builtin::init {
 
@@ -25,7 +24,6 @@ namespace fc::vm::actor::builtin::init {
     if (isSingletonActor(params.code)) {
       return VMExitCode::kInitActorSingletonActor;
     }
-    OUTCOME_TRY(runtime.chargeGas(runtime::kInitActorExecCost));
     auto &message = runtime.getMessage().get();
     auto actor_address{Address::makeActorExec(
         Buffer{primitives::address::encode(message.from)}.putUint64(

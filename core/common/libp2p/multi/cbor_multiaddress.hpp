@@ -9,6 +9,7 @@
 #include <libp2p/multi/multiaddress.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
+#include "common/outcome.hpp"
 
 using libp2p::multi::Multiaddress;
 

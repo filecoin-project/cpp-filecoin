@@ -49,9 +49,19 @@ namespace fc {
     }  // namespace ipfs
   }    // namespace storage
 
-  namespace vm::interpreter {
-    class Interpreter;
-  }  // namespace vm::interpreter
+  namespace vm {
+    namespace interpreter {
+      class Interpreter;
+    }  // namespace interpreter
+
+    namespace message {
+      struct UnsignedMessage;
+    }  // namespace message
+
+    namespace runtime {
+      struct Execution;
+    }  // namespace runtime
+  }    // namespace vm
 }  // namespace fc
 
 namespace fc {

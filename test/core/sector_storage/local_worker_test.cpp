@@ -349,19 +349,13 @@ TEST_F(LocalWorkerTest, Sealer) {
 
   EXPECT_OUTCOME_TRUE(valid,
                       proofs::verifySeal(SealVerifyInfo{
+                          .seal_proof = seal_proof_type_,
                           .sector = sector,
-                          .info =
-                              OnChainSealVerifyInfo{
-                                  .sealed_cid = cids.sealed_cid,
-                                  .interactive_epoch = 42,
-                                  .registered_proof = seal_proof_type_,
-                                  .proof = proof,
-                                  .deals = {},
-                                  .sector = sector.sector,
-                                  .seal_rand_epoch = 42,
-                              },
+                          .deals = {},
                           .randomness = ticket,
                           .interactive_randomness = seed,
+                          .proof = proof,
+                          .sealed_cid = cids.sealed_cid,
                           .unsealed_cid = cids.unsealed_cid,
                       }));
 

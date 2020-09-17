@@ -14,8 +14,6 @@ namespace fc::codec::rle {
 
     struct VersionMismatch : public std::exception {};
 
-    struct IndexOutOfBound : public std::exception {};
-
     struct UnpackBytesOverflow : public std::exception {};
 
     struct MaxSizeExceed : public std::exception {};
@@ -27,7 +25,6 @@ namespace fc::codec::rle {
    */
   enum class RLEPlusDecodeError : int {
     kVersionMismatch = 1, /**< RLE+ data header has invalid version */
-    kDataIndexFailure,    /**< RLE+ incorrect structure */
     kUnpackOverflow,      /**< RLE+ invalid encoding */
     kMaxSizeExceed        /**< RLE+ object size too large */
   };

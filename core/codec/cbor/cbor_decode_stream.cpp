@@ -12,9 +12,12 @@ namespace fc::codec::cbor {
     if (CborNoError
         != cbor_parser_init(
             data_->data(), data_->size(), 0, parser_.get(), &value_)) {
-      outcome::raise(CborDecodeError::kInvalidCbor);
+      if (!data.empty()) {
+        outcome::raise(CborDecodeError::kInvalidCbor);
+      }
+    } else {
+      value_.remaining = UINT32_MAX;
     }
-    value_.remaining = UINT32_MAX;
   }
 
   CborDecodeStream &CborDecodeStream::operator>>(gsl::span<uint8_t> bytes) {

@@ -4,23 +4,28 @@
  */
 
 #include <gtest/gtest.h>
+#include <spdlog/spdlog.h>
 
 #include "storage/car/car.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
+#include "vm/actor/cgo/actors.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
+using fc::primitives::StoragePower;
+using fc::primitives::sector::RegisteredProof;
 using fc::primitives::tipset::Tipset;
 
-/**
- * TODO(artyom-yurin): [FIL-240]
- * @note Disabled because .car file contains old CIDs
- */
-TEST(ChainsTest, DISABLED_StoreDeal) {
+TEST(ChainsTest, Testnet_v054_h341) {
+  spdlog::info("loading");
+  fc::vm::actor::cgo::config(StoragePower{1} << 20,
+                             StoragePower{10} << 40,
+                             {RegisteredProof::StackedDRG32GiBSeal,
+                              RegisteredProof::StackedDRG64GiBSeal});
   auto ipld{std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
-  auto car{readFile(resourcePath("chain-store-deal.car"))};
+  auto car{readFile(resourcePath("testnet341.car"))};
   EXPECT_OUTCOME_TRUE(head, fc::storage::car::loadCar(*ipld, car));
   EXPECT_OUTCOME_TRUE(ts, Tipset::load(*ipld, head));
   std::vector<Tipset> tss;
@@ -36,6 +41,7 @@ TEST(ChainsTest, DISABLED_StoreDeal) {
   auto last{std::make_pair(tss[0].getParentStateRoot(),
                            tss[0].getParentMessageReceipts())};
   for (auto &ts : tss) {
+    spdlog::info("validating height {}", ts.height);
     EXPECT_EQ(last.first, ts.getParentStateRoot())
         << "state differs at " << ts.height - 1;
     EXPECT_EQ(last.second, ts.getParentMessageReceipts())
@@ -44,4 +50,5 @@ TEST(ChainsTest, DISABLED_StoreDeal) {
         result, fc::vm::interpreter::InterpreterImpl{}.interpret(ipld, ts));
     last = {result.state_root, result.message_receipts};
   }
+  spdlog::info("done");
 }

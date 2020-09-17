@@ -5,8 +5,33 @@
 
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 
-
 namespace fc::vm::actor::builtin::miner {
+  DeadlineInfo DeadlineInfo::make(ChainEpoch start,
+                                  size_t index,
+                                  ChainEpoch now) {
+    if (index < kWPoStPeriodDeadlines) {
+      auto open{start + static_cast<ChainEpoch>(index) * kWPoStChallengeWindow};
+      return {now,
+              start,
+              index,
+              open,
+              open + kWPoStChallengeWindow,
+              open - kWPoStChallengeLookback,
+              open - kFaultDeclarationCutoff};
+    }
+    auto after{start + kWPoStProvingPeriod};
+    return {now, start, index, after, after, after, 0};
+  }
+
+  DeadlineInfo State::deadlineInfo(ChainEpoch now) const {
+    auto progress{now - proving_period_start};
+    size_t deadline{kWPoStPeriodDeadlines};
+    if (progress < kWPoStProvingPeriod) {
+      deadline = std::max(ChainEpoch{0}, progress / kWPoStChallengeWindow);
+    }
+    return DeadlineInfo::make(proving_period_start, deadline, now);
+  }
+
   ACTOR_METHOD_IMPL(Construct) {
     return VMExitCode::kNotImplemented;
   }

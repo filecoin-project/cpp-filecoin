@@ -10,23 +10,18 @@ namespace fc::primitives::sector {
       RegisteredProof proof) {
     switch (proof) {
       case RegisteredProof::StackedDRG64GiBSeal:
-      case RegisteredProof::StackedDRG64GiBWinningPoSt:
       case RegisteredProof::StackedDRG64GiBWindowPoSt:
         return RegisteredProof::StackedDRG64GiBWindowPoSt;
       case RegisteredProof::StackedDRG32GiBSeal:
-      case RegisteredProof::StackedDRG32GiBWinningPoSt:
       case RegisteredProof::StackedDRG32GiBWindowPoSt:
         return RegisteredProof::StackedDRG32GiBWindowPoSt;
       case RegisteredProof::StackedDRG512MiBSeal:
-      case RegisteredProof::StackedDRG512MiBWinningPoSt:
       case RegisteredProof::StackedDRG512MiBWindowPoSt:
         return RegisteredProof::StackedDRG512MiBWindowPoSt;
       case RegisteredProof::StackedDRG8MiBSeal:
-      case RegisteredProof::StackedDRG8MiBWinningPoSt:
       case RegisteredProof::StackedDRG8MiBWindowPoSt:
         return RegisteredProof::StackedDRG8MiBWindowPoSt;
       case RegisteredProof::StackedDRG2KiBSeal:
-      case RegisteredProof::StackedDRG2KiBWinningPoSt:
       case RegisteredProof::StackedDRG2KiBWindowPoSt:
         return RegisteredProof::StackedDRG2KiBWindowPoSt;
       default:
@@ -38,23 +33,18 @@ namespace fc::primitives::sector {
       RegisteredProof proof) {
     switch (proof) {
       case RegisteredProof::StackedDRG64GiBSeal:
-      case RegisteredProof::StackedDRG64GiBWinningPoSt:
       case RegisteredProof::StackedDRG64GiBWindowPoSt:
         return RegisteredProof::StackedDRG64GiBWinningPoSt;
       case RegisteredProof::StackedDRG32GiBSeal:
-      case RegisteredProof::StackedDRG32GiBWinningPoSt:
       case RegisteredProof::StackedDRG32GiBWindowPoSt:
         return RegisteredProof::StackedDRG32GiBWinningPoSt;
       case RegisteredProof::StackedDRG512MiBSeal:
-      case RegisteredProof::StackedDRG512MiBWinningPoSt:
       case RegisteredProof::StackedDRG512MiBWindowPoSt:
         return RegisteredProof::StackedDRG512MiBWinningPoSt;
       case RegisteredProof::StackedDRG8MiBSeal:
-      case RegisteredProof::StackedDRG8MiBWinningPoSt:
       case RegisteredProof::StackedDRG8MiBWindowPoSt:
         return RegisteredProof::StackedDRG8MiBWinningPoSt;
       case RegisteredProof::StackedDRG2KiBSeal:
-      case RegisteredProof::StackedDRG2KiBWinningPoSt:
       case RegisteredProof::StackedDRG2KiBWindowPoSt:
         return RegisteredProof::StackedDRG2KiBWinningPoSt;
       default:
@@ -66,23 +56,18 @@ namespace fc::primitives::sector {
       RegisteredProof proof) {
     switch (proof) {
       case RegisteredProof::StackedDRG64GiBSeal:
-      case RegisteredProof::StackedDRG64GiBWinningPoSt:
       case RegisteredProof::StackedDRG64GiBWindowPoSt:
         return RegisteredProof::StackedDRG64GiBSeal;
       case RegisteredProof::StackedDRG32GiBSeal:
-      case RegisteredProof::StackedDRG32GiBWinningPoSt:
       case RegisteredProof::StackedDRG32GiBWindowPoSt:
         return RegisteredProof::StackedDRG32GiBSeal;
       case RegisteredProof::StackedDRG512MiBSeal:
-      case RegisteredProof::StackedDRG512MiBWinningPoSt:
       case RegisteredProof::StackedDRG512MiBWindowPoSt:
         return RegisteredProof::StackedDRG512MiBSeal;
       case RegisteredProof::StackedDRG8MiBSeal:
-      case RegisteredProof::StackedDRG8MiBWinningPoSt:
       case RegisteredProof::StackedDRG8MiBWindowPoSt:
         return RegisteredProof::StackedDRG8MiBSeal;
       case RegisteredProof::StackedDRG2KiBSeal:
-      case RegisteredProof::StackedDRG2KiBWinningPoSt:
       case RegisteredProof::StackedDRG2KiBWindowPoSt:
         return RegisteredProof::StackedDRG2KiBSeal;
       default:

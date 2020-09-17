@@ -28,7 +28,7 @@ struct SyncBucketSetTest : public SyncTargetBucketTest {
   using BigInt = fc::primitives::BigInt;
   using CID = fc::CID;
   using Signature = fc::primitives::block::Signature;
-  using Ticket = fc::primitives::ticket::Ticket;
+  using Ticket = fc::primitives::block::Ticket;
   using TipsetError = fc::primitives::tipset::TipsetError;
 
   void SetUp() override {
@@ -68,7 +68,7 @@ TEST_F(SyncBucketSetTest, RemoveBucketSuccess) {
 /** ensure isRelatedToAny works right */
 TEST_F(SyncBucketSetTest, IsRelatedToAnySuccess) {
   EXPECT_OUTCOME_TRUE_1(bucket_set1->isRelatedToAny(tipset1));
-  EXPECT_OUTCOME_TRUE(res,bucket_set1->isRelatedToAny(tipset2));
+  EXPECT_OUTCOME_TRUE(res, bucket_set1->isRelatedToAny(tipset2));
   ASSERT_FALSE(res);
   EXPECT_OUTCOME_TRUE_1(bucket_set2->isRelatedToAny(tipset1));
   EXPECT_OUTCOME_TRUE_1(bucket_set2->isRelatedToAny(tipset2));

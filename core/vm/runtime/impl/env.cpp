@@ -6,8 +6,8 @@
 #include "vm/runtime/env.hpp"
 
 #include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
-#include "vm/runtime/gas_cost.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"
 
@@ -19,95 +19,136 @@ namespace fc::vm::runtime {
   using actor::kSystemActorAddress;
   using storage::hamt::HamtError;
 
-  outcome::result<MessageReceipt> Env::applyMessage(
-      const UnsignedMessage &message, TokenAmount &penalty) {
-    if (message.gasLimit <= 0) {
+  outcome::result<Address> resolveKey(StateTree &state_tree,
+                                      const Address &address) {
+    if (address.isKeyType()) {
+      return address;
+    }
+    if (auto _actor{state_tree.get(address)}) {
+      auto &actor{_actor.value()};
+      if (actor.code == kAccountCodeCid) {
+        if (auto _state{
+                state_tree.getStore()
+                    ->getCbor<actor::builtin::account::AccountActorState>(
+                        actor.head)}) {
+          return _state.value().address;
+        }
+      }
+    }
+    return VMExitCode::kSysErrInvalidParameters;
+  }
+
+  outcome::result<Env::Apply> Env::applyMessage(const UnsignedMessage &message,
+                                                size_t size) {
+    TokenAmount locked;
+    auto add_locked{
+        [&](auto &address, const TokenAmount &add) -> outcome::result<void> {
+          if (add != 0) {
+            OUTCOME_TRY(actor, state_tree->get(address));
+            actor.balance += add;
+            locked -= add;
+            OUTCOME_TRY(state_tree->set(address, actor));
+          }
+          return outcome::success();
+        }};
+    if (message.gas_limit <= 0) {
       return RuntimeError::kUnknown;
     }
-
     auto execution = Execution::make(shared_from_this(), message);
-    MessageReceipt receipt;
-    receipt.gas_used = 0;
-
-    OUTCOME_TRY(serialized_message, codec::cbor::encode(message));
-    auto msg_gas_cost{pricelist.onChainMessage(serialized_message.size())};
-    penalty = msg_gas_cost * message.gasPrice;
-    if (msg_gas_cost > message.gasLimit) {
-      receipt.exit_code = VMExitCode::kSysErrOutOfGas;
-      return receipt;
+    Apply apply;
+    auto msg_gas_cost{pricelist.onChainMessage(size)};
+    if (msg_gas_cost > message.gas_limit) {
+      apply.penalty = msg_gas_cost * tipset.getParentBaseFee();
+      apply.receipt.exit_code = VMExitCode::kSysErrOutOfGas;
+      return apply;
     }
-
+    apply.penalty = message.gas_limit * tipset.getParentBaseFee();
     auto maybe_from = state_tree->get(message.from);
     if (!maybe_from) {
       if (maybe_from.error() == HamtError::kNotFound) {
-        receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
-        return receipt;
+        apply.receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
+        return apply;
       }
       return maybe_from.error();
     }
     auto &from = maybe_from.value();
     if (from.code != actor::kAccountCodeCid) {
-      receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
-      return receipt;
+      apply.receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
+      return apply;
     }
     if (message.nonce != from.nonce) {
-      receipt.exit_code = VMExitCode::kSysErrSenderStateInvalid;
-      return receipt;
+      apply.receipt.exit_code = VMExitCode::kSysErrSenderStateInvalid;
+      return apply;
     }
-
-    BigInt gas_cost = message.gasLimit * message.gasPrice;
-    if (from.balance < gas_cost + message.value) {
-      receipt.exit_code = VMExitCode::kSysErrSenderStateInvalid;
-      return receipt;
+    BigInt gas_cost{message.gas_limit * message.gas_fee_cap};
+    if (from.balance < gas_cost) {
+      apply.receipt.exit_code = VMExitCode::kSysErrSenderStateInvalid;
+      return apply;
     }
-    from.balance -= gas_cost;
+    OUTCOME_TRY(add_locked(message.from, -gas_cost));
+    OUTCOME_TRYA(from, state_tree->get(message.from));
     ++from.nonce;
     OUTCOME_TRY(state_tree->set(message.from, from));
 
     OUTCOME_TRY(snapshot, state_tree->flush());
-    OUTCOME_TRY(execution->chargeGas(msg_gas_cost));
-    auto result = execution->send(message);
+    auto result{execution->send(message, msg_gas_cost)};
     auto exit_code = VMExitCode::kOk;
     if (!result) {
       if (!isVMExitCode(result.error())) {
         return result.error();
       }
       exit_code = VMExitCode{result.error().value()};
+      if (exit_code == VMExitCode::kFatal) {
+        return result.error();
+      }
     } else {
-      receipt.return_value = std::move(result.value());
-      auto result_charged = execution->chargeGas(
-          pricelist.onChainReturnValue(receipt.return_value.size()));
-      if (!result_charged) {
-        BOOST_ASSERT(isVMExitCode(result_charged.error()));
-        exit_code = VMExitCode{result_charged.error().value()};
-        receipt.return_value.clear();
+      auto &ret{result.value()};
+      if (!ret.empty()) {
+        auto charge =
+            execution->chargeGas(pricelist.onChainReturnValue(ret.size()));
+        if (!charge) {
+          BOOST_ASSERT(isVMExitCode(charge.error()));
+          exit_code = VMExitCode{charge.error().value()};
+        } else {
+          apply.receipt.return_value = std::move(ret);
+        }
       }
     }
     if (exit_code != VMExitCode::kOk) {
       OUTCOME_TRY(state_tree->revert(snapshot));
     }
-
-    BOOST_ASSERT_MSG(execution->gas_used >= 0, "negative used gas");
-    BOOST_ASSERT_MSG(execution->gas_used <= message.gasLimit,
-                     "runtime charged gas over limit");
-
-    auto gas_refund = message.gasLimit - execution->gas_used;
-    if (gas_refund != 0) {
-      OUTCOME_TRY(from, state_tree->get(message.from));
-      from.balance += gas_refund * message.gasPrice;
-      OUTCOME_TRY(state_tree->set(message.from, from));
+    auto limit{message.gas_limit}, &used{execution->gas_used};
+    if (used < 0) {
+      used = 0;
     }
-
-    OUTCOME_TRY(reward, state_tree->get(kRewardAddress));
-    reward.balance += execution->gas_used * message.gasPrice;
-    OUTCOME_TRY(state_tree->set(kRewardAddress, reward));
-
-    auto ret_code = normalizeVMExitCode(exit_code);
-    BOOST_ASSERT_MSG(ret_code, "c++ actor code returned unknown error");
-    penalty = 0;
-    receipt.exit_code = *ret_code;
-    receipt.gas_used = execution->gas_used;
-    return receipt;
+    BOOST_ASSERT_MSG(used <= limit, "runtime charged gas over limit");
+    auto base_fee{tipset.getParentBaseFee()}, fee_cap{message.gas_fee_cap},
+        base_fee_pay{std::min(base_fee, fee_cap)};
+    apply.penalty = base_fee > fee_cap ? TokenAmount{base_fee - fee_cap} * used
+                                       : TokenAmount{0};
+    OUTCOME_TRY(
+        add_locked(actor::kBurntFundsActorAddress, base_fee_pay * used));
+    apply.reward =
+        std::min(message.gas_premium, TokenAmount{fee_cap - base_fee_pay})
+        * limit;
+    OUTCOME_TRY(add_locked(kRewardAddress, apply.reward));
+    auto over{limit - 11 * used / 10};
+    auto gas_burned{
+        used == 0
+            ? limit
+            : over < 0 ? 0
+                       : (GasAmount)bigdiv(
+                           BigInt{limit - used} * std::min(used, over), used)};
+    if (gas_burned != 0) {
+      OUTCOME_TRY(add_locked(actor::kBurntFundsActorAddress,
+                             base_fee_pay * gas_burned));
+      apply.penalty += (base_fee - base_fee_pay) * gas_burned;
+    }
+    BOOST_ASSERT_MSG(locked >= 0, "gas math wrong");
+    OUTCOME_TRY(add_locked(message.from, locked));
+    apply.receipt.exit_code = exit_code;
+    apply.receipt.gas_used = used;
+    return apply;
   }
 
   outcome::result<InvocationOutput> Env::applyImplicitMessage(
@@ -120,7 +161,7 @@ namespace fc::vm::runtime {
 
   outcome::result<void> Execution::chargeGas(GasAmount amount) {
     gas_used += amount;
-    if (gas_limit != kInfiniteGas && gas_used > gas_limit) {
+    if (gas_used > gas_limit) {
       gas_used = gas_limit;
       return VMExitCode::kSysErrOutOfGas;
     }
@@ -134,18 +175,19 @@ namespace fc::vm::runtime {
     execution->state_tree = env->state_tree;
     execution->charging_ipld = std::make_shared<ChargingIpld>(execution);
     execution->gas_used = 0;
-    execution->gas_limit = message.gasLimit;
+    execution->gas_limit = message.gas_limit;
     execution->origin = message.from;
+    execution->origin_nonce = message.nonce;
     return execution;
   }
 
   outcome::result<Actor> Execution::tryCreateAccountActor(
       const Address &address) {
     if (!address.isKeyType()) {
-      return VMExitCode{1};
+      return VMExitCode::kSysErrInvalidReceiver;
     }
+    OUTCOME_TRY(chargeGas(env->pricelist.onCreateActor()));
     OUTCOME_TRY(id, state_tree->registerNewAddress(address));
-    OUTCOME_TRY(chargeGas(kCreateActorGasCost));
     OUTCOME_TRY(state_tree->set(
         id, {actor::kAccountCodeCid, actor::kEmptyObjectCid, {}, {}}));
     OUTCOME_TRY(params, actor::encodeActorParams(address));
@@ -172,10 +214,8 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<InvocationOutput> Execution::send(
-      const UnsignedMessage &message) {
-    OUTCOME_TRY(chargeGas(env->pricelist.onMethodInvocation(
-        message.value, message.method.method_number)));
-
+      const UnsignedMessage &message, GasAmount charge) {
+    OUTCOME_TRY(chargeGas(charge));
     Actor to_actor;
     auto maybe_to_actor = state_tree->get(message.to);
     if (!maybe_to_actor) {
@@ -187,52 +227,51 @@ namespace fc::vm::runtime {
     } else {
       to_actor = maybe_to_actor.value();
     }
+    OUTCOME_TRY(chargeGas(env->pricelist.onMethodInvocation(
+        message.value, message.method.method_number)));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
-    RuntimeImpl runtime{shared_from_this(), message, caller_id, to_actor.head};
+    RuntimeImpl runtime{shared_from_this(), message, caller_id};
 
     if (message.value != 0) {
       BOOST_ASSERT(message.value > 0);
-      OUTCOME_TRY(from_actor, state_tree->get(message.from));
-      if (from_actor.balance < message.value) {
-        return VMExitCode::kSendTransferInsufficient;
+      OUTCOME_TRY(to_id, state_tree->lookupId(message.to));
+      if (to_id != caller_id) {
+        OUTCOME_TRY(from_actor, state_tree->get(caller_id));
+        if (from_actor.balance < message.value) {
+          return VMExitCode::kSysErrInsufficientFunds;
+        }
+        from_actor.balance -= message.value;
+        to_actor.balance += message.value;
+        OUTCOME_TRY(state_tree->set(caller_id, from_actor));
+        OUTCOME_TRY(state_tree->set(to_id, to_actor));
       }
-      from_actor.balance -= message.value;
-      to_actor.balance += message.value;
-      OUTCOME_TRY(state_tree->set(message.to, to_actor));
-      OUTCOME_TRY(state_tree->set(message.from, from_actor));
     }
 
     if (message.method != kSendMethodNumber) {
-      auto result = env->invoker->invoke(
-          to_actor, runtime, message.method, message.params);
-      OUTCOME_TRYA(to_actor, state_tree->get(message.to));
-      to_actor.head = runtime.getCurrentActorState();
-      OUTCOME_TRY(state_tree->set(message.to, to_actor));
-      return result;
+      auto _message{message};
+      _message.from = caller_id;
+      // TODO: check cpp actor
+      return actor::cgo::invoke(shared_from_this(),
+                                _message,
+                                to_actor.code,
+                                message.method.method_number,
+                                message.params);
     }
 
     return outcome::success();
   }
 
-  // lotus read-write patterns differ, causing different gas in receipts
-  constexpr auto kDisableChargingIpld{true};
-
   outcome::result<void> ChargingIpld::set(const CID &key, Value value) {
     auto execution{execution_.lock()};
-    if (!kDisableChargingIpld) {
-      OUTCOME_TRY(execution->chargeGas(
-          execution->env->pricelist.onIpldPut(value.size())));
-    }
-    return execution->env->ipld->set(key, value);
+    OUTCOME_TRY(execution->chargeGas(
+        execution->env->pricelist.onIpldPut(value.size())));
+    return execution->env->ipld->set(key, std::move(value));
   }
 
   outcome::result<Ipld::Value> ChargingIpld::get(const CID &key) const {
     auto execution{execution_.lock()};
     OUTCOME_TRY(value, execution->env->ipld->get(key));
-    if (!kDisableChargingIpld) {
-      OUTCOME_TRY(execution->chargeGas(
-          execution->env->pricelist.onIpldGet(value.size())));
-    }
+    OUTCOME_TRY(execution->chargeGas(execution->env->pricelist.onIpldGet()));
     return std::move(value);
   }
 }  // namespace fc::vm::runtime

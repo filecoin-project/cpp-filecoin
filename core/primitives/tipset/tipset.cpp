@@ -6,6 +6,7 @@
 #include "primitives/tipset/tipset.hpp"
 
 #include "common/logger.hpp"
+#include "crypto/blake2/blake2b160.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 
@@ -67,6 +68,7 @@ namespace fc::primitives::tipset {
     for (auto &block : blocks) {
       assert(block.ticket);
       OUTCOME_TRY(cid, fc::primitives::cid::getCidOfCbor(block));
+      OUTCOME_TRY(cid.toBytes());
       // need to ensure that all cids are calculated before sort,
       // since it will terminate program in case of exception
       items.emplace_back(std::make_pair(std::move(block), cid));
@@ -74,23 +76,27 @@ namespace fc::primitives::tipset {
 
     // the sort function shouldn't throw exceptions
     // if an exception is thrown from std::sort, program will be terminated
-    std::sort(items.begin(),
-              items.end(),
-              [logger = common::createLogger("tipset")](
-                  const auto &p1, const auto &p2) -> bool {
-                auto &[b1, cid1] = p1;
-                auto &[b2, cid2] = p2;
-                const auto &t1 = b1.ticket;
-                const auto &t2 = b2.ticket;
-                if (b1.ticket == b2.ticket) {
-                  logger->warn(
-                      "create tipset failed, blocks have same ticket ({} {})",
-                      address::encodeToString(b1.miner),
-                      address::encodeToString(b2.miner));
-                  return cid1.toPrettyString("") < cid2.toPrettyString("");
-                }
-                return *t1 < *t2;
-              });
+    std::sort(
+        items.begin(),
+        items.end(),
+        [logger = common::createLogger("tipset")](auto &p1, auto &p2) -> bool {
+          if (&p1 == &p2) {
+            return false;
+          }
+          auto &[b1, cid1] = p1;
+          auto &[b2, cid2] = p2;
+          auto &t1 = b1.ticket;
+          auto &t2 = b2.ticket;
+          if (t1 == t2) {
+            logger->warn("blocks have same ticket {} ({} {})",
+                         b1.height,
+                         b1.miner,
+                         b2.miner);
+            return cid1.toBytes().value() < cid2.toBytes().value();
+          }
+          return crypto::blake2b::blake2b_256(t1->bytes)
+                 < crypto::blake2b::blake2b_256(t2->bytes);
+        });
 
     Tipset ts{};
     ts.height = height0;
@@ -211,13 +217,16 @@ namespace fc::primitives::tipset {
     return blks[0].parent_weight;
   }
 
+  const BigInt &Tipset::getParentBaseFee() const {
+    return blks[0].parent_base_fee;
+  }
+
   bool Tipset::contains(const CID &cid) const {
     return std::find(cids.begin(), cids.end(), cid) != std::end(cids);
   }
 
   bool operator==(const Tipset &lhs, const Tipset &rhs) {
-    if (lhs.blks.size() != rhs.blks.size()) return false;
-    return std::equal(lhs.blks.begin(), lhs.blks.end(), rhs.blks.begin());
+    return lhs.blks == rhs.blks;
   }
 
   bool operator!=(const Tipset &l, const Tipset &r) {

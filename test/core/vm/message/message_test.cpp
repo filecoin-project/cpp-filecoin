@@ -129,7 +129,7 @@ TEST_F(MessageTest, BlsSignedMessageCID) {
   EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
   EXPECT_OUTCOME_EQ(
       cid(signed_message),
-      "0171a0e402209ceafc6131fd812b6e00a2f8fe57c508092f9c8251a9e9d46d33d0037c2b32c0"_cid);
+      "0171a0e4022024b47692c1f890ba09cb197926ddfdb8a9ec714cf083ea866250463b2976af0a"_cid);
 }
 
 // TODO(ekovalev): the following test is currently disabled due to Secp256k1
@@ -146,62 +146,4 @@ TEST_F(MessageTest, DISABLED_Secp256k1SignedMessageCID) {
   EXPECT_OUTCOME_EQ(
       cid(signed_message),
       "0171a0e402201c9a054f1d0918cf9e215903078d5fa72e3d4de95b11ba5c49c1dffaf1d917c2"_cid);
-}
-
-/**
- * @given An UnsignedMessage
- * @when Serializing it to CBOR and comparing with pre-computed value; then
- * decoding the UnsignedMessage back and re-encoding it to CBOR again to ensure
- * consistency
- * @then All values match
- */
-TEST_F(MessageTest, UnsignedMessagesEncoding) {
-  expectEncodeAndReencode<UnsignedMessage>(
-      message,
-      "89004300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe7270042000140010040"_unhex);
-}
-
-/**
- * @given An UnsignedMessage and having it signed on behalf of any address
- * @when Serializing the signed message to CBOR and comparing with pre-computed
- * value; then decoding the UnsignedMessage back and re-encoding it to CBOR
- * again
- * @then All values match
- */
-TEST_F(MessageTest, SignedMessagesEncoding) {
-  EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
-  expectEncodeAndReencode<SignedMessage>(
-      signed_message,
-      "8289004300e907583103b70dcae7107be6aeb609fd0951d38983d8137192d03ded4754204726817485360026814114f72e66d05155d897cfe727004200014001004058610284eeae4a0c5c46c39f5229e934356c4420e6771f647fae2b229f7f016fcf1ff195b4f5d98ec147e67b924b1eebfa76f81604e3b0d3ff0ef26cbc8ec22b99e2e47e95e8440acc81ba09a7b08a90233d28e0adfcbd468694551a313e471297b0f3"_unhex);
-}
-
-/**
- * @given An UnsignedMessage and having it signed with BLS address
- * @when Serializing the Signature to CBOR and comparing with pre-computed
- * value; then decoding the Signature back and re-encoding it to CBOR again
- * @then All values match
- */
-TEST_F(MessageTest, BlsSignatureEncoding) {
-  EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(bls, message));
-
-  expectEncodeAndReencode<Signature>(
-      signed_message.signature,
-      "58610284eeae4a0c5c46c39f5229e934356c4420e6771f647fae2b229f7f016fcf1ff195b4f5d98ec147e67b924b1eebfa76f81604e3b0d3ff0ef26cbc8ec22b99e2e47e95e8440acc81ba09a7b08a90233d28e0adfcbd468694551a313e471297b0f3"_unhex);
-}
-
-// TODO(ekovalev): the following test is currently disabled due to Secp256k1
-// signature non-determinism. Yet the reference Go implementation has consistent
-// Secp256k1 signatures. More research required
-/**
- * @given An UnsignedMessage and having it signed with Secp256k1 address
- * @when Serializing the Signature to CBOR and comparing with pre-computed
- * value; then decoding the Signature back and re-encoding it to CBOR again
- * @then All values match
- */
-
-TEST_F(MessageTest, DISABLED_Secp256k1SignatureEncoding) {
-  EXPECT_OUTCOME_TRUE(signed_message, msigner->sign(secp, message));
-  expectEncodeAndReencode<Signature>(
-      signed_message.signature,
-      "58420142d60b3b9f27116ae24c46be6da33d310e46a2457b8dce00c73dd9e80e779c3752ba94856d4efdc39c7a61b9ed939bf1832206e4a578bb3f649fe2af3ab1495401"_unhex);
 }

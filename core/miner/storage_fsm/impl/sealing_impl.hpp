@@ -12,26 +12,51 @@
 #include "common/logger.hpp"
 #include "fsm/fsm.hpp"
 #include "miner/storage_fsm/events.hpp"
-#include "miner/storage_fsm/selaing_events.hpp"
+#include "miner/storage_fsm/precommit_policy.hpp"
+#include "miner/storage_fsm/sealing_events.hpp"
+#include "miner/storage_fsm/sector_stat.hpp"
+#include "primitives/stored_counter/stored_counter.hpp"
+#include "vm/actor/builtin/miner/miner_actor.hpp"
 
 namespace fc::mining {
+  using adt::TokenAmount;
   using api::Api;
   using primitives::piece::PaddedPieceSize;
+  using proofs::SealRandomness;
   using sector_storage::Manager;
+  using types::PieceInfo;
+  using EventPtr = std::shared_ptr<SealingEvent>;
+  using SealingTransition = fsm::Transition<EventPtr, SealingState, SectorInfo>;
+  using StorageFSM = fsm::FSM<EventPtr, SealingState, SectorInfo>;
+  using libp2p::protocol::Scheduler;
+  using Ticks = libp2p::protocol::Scheduler::Ticks;
+  using primitives::Counter;
+  using vm::actor::builtin::miner::SectorPreCommitInfo;
 
-  using SealingTransition =
-      fsm::Transition<SealingEvent, SealingState, SectorInfo>;
-  using StorageFSM = fsm::FSM<SealingEvent, SealingState, SectorInfo>;
+  struct Config {
+    // 0 = no limit
+    uint64_t max_wait_deals_sectors;
 
-  /**
-   * @note for find sectorinfo
-   */
-  inline bool operator==(const SectorInfo &lhs, const SectorInfo &rhs) {
-    return lhs.sector_number == rhs.sector_number;
-  }
+    // includes failed, 0 = no limit
+    uint64_t max_sealing_sectors;
+
+    // includes failed, 0 = no limit
+    uint64_t max_sealing_sectors_for_deals;
+
+    uint64_t wait_deals_delay;  // in milliseconds
+  };
 
   class SealingImpl : public Sealing {
    public:
+    SealingImpl(std::shared_ptr<Api> api,
+                std::shared_ptr<Events> events,
+                const Address &miner_address,
+                std::shared_ptr<Counter> counter,
+                std::shared_ptr<Manager> sealer,
+                std::shared_ptr<PreCommitPolicy> policy,
+                std::shared_ptr<boost::asio::io_context> context,
+                Ticks ticks = 50);
+
     outcome::result<void> run() override;
 
     void stop() override;
@@ -45,7 +70,8 @@ namespace fc::mining {
 
     Address getAddress() const override;
 
-    std::vector<SectorNumber> getListSectors() const override;
+    std::vector<std::shared_ptr<const SectorInfo>> getListSectors()
+        const override;
 
     outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber id) const override;
@@ -59,6 +85,8 @@ namespace fc::mining {
 
     outcome::result<void> startPacking(SectorNumber id) override;
 
+    outcome::result<void> pledgeSector() override;
+
    private:
     struct SectorPaddingResponse {
       SectorNumber sector;
@@ -71,9 +99,13 @@ namespace fc::mining {
     outcome::result<void> addPiece(SectorNumber sector_id,
                                    UnpaddedPieceSize size,
                                    const PieceData &piece,
-                                   boost::optional<DealInfo> deal);
+                                   const boost::optional<DealInfo> &deal);
 
-      outcome::result<SectorNumber> newDealSector();
+    outcome::result<SectorNumber> newDealSector();
+
+    TokenAmount tryUpgradeSector(SectorPreCommitInfo &params);
+
+    boost::optional<SectorNumber> maybeUpgradableSector();
 
     /**
      * Creates all FSM transitions
@@ -82,188 +114,124 @@ namespace fc::mining {
     std::vector<SealingTransition> makeFSMTransitions();
 
     /**
-     * @brief Handle event incoming sector info
-     * @param info  - current sector info
-     * @param event - kIncoming
-     * @param from  - kStateUnknown
-     * @param to    - kPacking
+     * callback for fsm to track activity
      */
-    void onIncoming(const std::shared_ptr<SectorInfo> &info,
-                    SealingEvent event,
-                    SealingState from,
-                    SealingState to);
-
-    /**
-     * @brief Handle event pre commit 1 sector info
-     * @param info  - current sector info
-     * @param event - kPreCommit1
-     * @param from  - kPacking, kPreCommit1Failed, kPreCommit2Failed
-     * @param to    - kPreCommit1
-     */
-    void onPreCommit1(const std::shared_ptr<SectorInfo> &info,
-                      SealingEvent event,
-                      SealingState from,
-                      SealingState to);
-
-    /**
-     * @brief Handle event pre commit 2 sector info
-     * @param info  - current sector info
-     * @param event - kPreCommit2
-     * @param from  - kPreCommit1, kPreCommit2Failed
-     * @param to    - kPreCommit2
-     */
-    void onPreCommit2(const std::shared_ptr<SectorInfo> &info,
-                      SealingEvent event,
-                      SealingState from,
-                      SealingState to);
-
-    /**
-     * @brief Handle event pre commit sector info
-     * @param info  - current sector info
-     * @param event - kPreCommit
-     * @param from  - kPreCommit2, kPreCommitFail
-     * @param to    - kPreCommitting
-     */
-    void onPreCommit(const std::shared_ptr<SectorInfo> &info,
-                     SealingEvent event,
-                     SealingState from,
-                     SealingState to);
-
-    /**
-     * @brief Handle event pre commit waiting sector info
-     * @param info  - current sector info
-     * @param event - kPreCommitWait
-     * @param from  - kPreCommitting
-     * @param to    - kPreCommittingWaiting
-     */
-    void onPreCommitWaiting(const std::shared_ptr<SectorInfo> &info,
-                            SealingEvent event,
-                            SealingState from,
-                            SealingState to);
-
-    /**
-     * @brief Handle event waiting seed
-     * @param info  - current sector info
-     * @param event - kWaitSeed
-     * @param from  - kPreCommitting, kPreCommittingWait, kCommitFail
-     * @param to    - kWaitSeed
-     */
-    void onWaitSeed(const std::shared_ptr<SectorInfo> &info,
-                    SealingEvent event,
-                    SealingState from,
-                    SealingState to);
-
-    /**
-     * @brief Handle event commit
-     * @param info  - current sector info
-     * @param event - kCommit
-     * @param from  - kWaitSeed, kCommitFail, kComputeProofFail
-     * @param to    - kCommitting
-     */
-    void onCommit(const std::shared_ptr<SectorInfo> &info,
-                  SealingEvent event,
-                  SealingState from,
-                  SealingState to);
-
-    /**
-     * @brief Handle event wait commit
-     * @param info  - current sector info
-     * @param event - kCommitWait
-     * @param from  - kCommitting
-     * @param to    - kCommitWait
-     */
-    void onCommitWait(const std::shared_ptr<SectorInfo> &info,
-                      SealingEvent event,
-                      SealingState from,
-                      SealingState to);
-
-    /**
-     * @brief Handle event finalize
-     * @param info  - current sector info
-     * @param event - kFinalizeSector
-     * @param from  - kCommitWait, kFinalizeFail
-     * @param to    - kFinalizeSector
-     */
-    void onFinalize(const std::shared_ptr<SectorInfo> &info,
-                    SealingEvent event,
-                    SealingState from,
-                    SealingState to);
-
-    /**
-     * @brief Handle event seal precommit 1 failed
-     * @param info  - current sector info
-     * @param event - kSealPreCommit1Failed
-     * @param from  - kPreCommit1, kPreCommitting, kCommitFail
-     * @param to    - kSealPreCommit1Fail
-     */
-    void onSealPreCommit1Failed(const std::shared_ptr<SectorInfo> &info,
-                                SealingEvent event,
-                                SealingState from,
-                                SealingState to);
-
-    /**
-     * @brief Handle event seal precommit 2 failed
-     * @param info  - current sector info
-     * @param event - kSealPreCommit1Failed
-     * @param from  - kPreCommit2
-     * @param to    - kSealPreCommit2Fail
-     */
-    void onSealPreCommit2Failed(const std::shared_ptr<SectorInfo> &info,
-                                SealingEvent event,
-                                SealingState from,
-                                SealingState to);
-
-    /**
-     * @brief Handle event precommit failed
-     * @param info  - current sector info
-     * @param event - kPreCommitFailed
-     * @param from  - kPreCommitting, kPreCommittingWait, kWaitSeed
-     * @param to    - kPreCommitFail
-     */
-    void onPreCommitFailed(const std::shared_ptr<SectorInfo> &info,
-                           SealingEvent event,
-                           SealingState from,
-                           SealingState to);
-
-    /**
-     * @brief Handle event compute proof failed
-     * @param info  - current sector info
-     * @param event - kComputeProofFailed
-     * @param from  - kCommitting
-     * @param to    - kComputeProofFail
-     */
-    void onComputeProofFailed(const std::shared_ptr<SectorInfo> &info,
-                              SealingEvent event,
-                              SealingState from,
-                              SealingState to);
-
-    /**
-     * @brief Handle event commit failed
-     * @param info  - current sector info
-     * @param event - kCommitFailed
-     * @param from  - kCommitting, kCommitWait
-     * @param to    - kCommitFail
-     */
-    void onCommitFailed(const std::shared_ptr<SectorInfo> &info,
-                        SealingEvent event,
+    void callbackHandle(const std::shared_ptr<SectorInfo> &info,
+                        const EventPtr &event,
                         SealingState from,
                         SealingState to);
 
     /**
-     * @brief Handle event finalize failed
-     * @param info  - current sector info
-     * @param event - kFinalizeFailed
-     * @param from  - kFinalizeSector
-     * @param to    - kFinalizeFail
+     * @brief Handle incoming in kPacking state
      */
-    void onFinalizeFailed(const std::shared_ptr<SectorInfo> &info,
-                          SealingEvent event,
-                          SealingState from,
-                          SealingState to);
+    outcome::result<void> handlePacking(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kPreCommit1 state
+     */
+    outcome::result<void> handlePreCommit1(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kPreCommit2 state
+     */
+    outcome::result<void> handlePreCommit2(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kPreCommitting state
+     */
+    outcome::result<void> handlePreCommitting(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kPreCommittingWaiting state
+     */
+    outcome::result<void> handlePreCommitWaiting(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief  Handle incoming in kWaitSeed state
+     */
+    outcome::result<void> handleWaitSeed(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kCommitting state
+     */
+    outcome::result<void> handleCommitting(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kCommitWait state
+     */
+    outcome::result<void> handleCommitWait(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kFinalizeSector state
+     */
+    outcome::result<void> handleFinalizeSector(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kProving state
+     */
+    outcome::result<void> handleProvingSector(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kSealPreCommit1Fail state
+     */
+    outcome::result<void> handleSealPreCommit1Fail(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kSealPreCommit2Fail state
+     */
+    outcome::result<void> handleSealPreCommit2Fail(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief  Handle incoming in kPreCommitFail state
+     */
+    outcome::result<void> handlePreCommitFail(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kComputeProofFail state
+     */
+    outcome::result<void> handleComputeProofFail(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kCommitFail state
+     */
+    outcome::result<void> handleCommitFail(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kFinalizeFail state
+     */
+    outcome::result<void> handleFinalizeFail(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kFaultReported state
+     */
+    outcome::result<void> handleFaultReported(
+        const std::shared_ptr<SectorInfo> &info);
+
+    /**
+     * @brief Handle incoming in kRemoving state
+     */
+    outcome::result<void> handleRemoving(
+        const std::shared_ptr<SectorInfo> &info);
 
     struct TicketInfo {
       SealRandomness ticket;
-      ChainEpoch epoch;
+      ChainEpoch epoch = 0;
     };
 
     outcome::result<TicketInfo> getTicket(
@@ -276,6 +244,7 @@ namespace fc::mining {
 
     SectorId minerSector(SectorNumber num);
 
+    mutable std::mutex sectors_mutex_;
     std::unordered_map<SectorNumber, std::shared_ptr<SectorInfo>> sectors_;
 
     struct UnsealedSectorInfo {
@@ -292,15 +261,25 @@ namespace fc::mining {
     std::shared_mutex upgrade_mutex_;
 
     /** State machine */
+    std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<StorageFSM> fsm_;
 
     std::shared_ptr<Api> api_;
     std::shared_ptr<Events> events_;
 
+    std::shared_ptr<PreCommitPolicy> policy_;
+
+    std::shared_ptr<Counter> counter_;
+
+    std::shared_ptr<SectorStat> stat_;
+
     Address miner_address_;
 
     common::Logger logger_;
     std::shared_ptr<Manager> sealer_;
+
+    Config config_;
+    std::shared_ptr<Scheduler> scheduler_;
   };
 }  // namespace fc::mining
 

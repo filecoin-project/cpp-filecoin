@@ -3,6 +3,21 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_library(sector_stat
+        impl/sector_stat_impl.cpp
+        )
+target_link_libraries(sector_stat
+        sector
+        )
+
+add_library(precommit_policy
+        impl/basic_precommit_policy.cpp
+        )
+target_link_libraries(precommit_policy
+        Boost::boost
+        api
+        )
+
 add_library(tipset_cache
         impl/tipset_cache_impl.cpp
         )
@@ -22,6 +37,7 @@ target_link_libraries(events
 
 add_library(storage_fsm
         impl/sealing_impl.cpp
+        impl/checks.cpp
         )
 target_link_libraries(storage_fsm
         fuhon_fsm
@@ -30,4 +46,9 @@ target_link_libraries(storage_fsm
         tipset
         api
         events
+        precommit_policy
+        sector_stat
+        stored_counter
+        api_ipfs_datastore
+        zerocomm
         )

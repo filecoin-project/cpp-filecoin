@@ -140,6 +140,13 @@ namespace fc::codec::cbor {
     /// Returns bytestring length
     size_t bytesLength() const;
 
+    template <typename T>
+    auto get() {
+      T v{};
+      *this >> v;
+      return v;
+    }
+
    private:
     CborDecodeStream container() const;
 

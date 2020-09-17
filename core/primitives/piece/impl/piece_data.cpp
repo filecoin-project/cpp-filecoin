@@ -5,14 +5,13 @@
 
 #include "primitives/piece/piece_data.hpp"
 
-#include <fcntl.h>
 #include <boost/filesystem.hpp>
 
 namespace fc::primitives::piece {
-  PieceData::PieceData(const std::string &path_to_file)
+  PieceData::PieceData(const std::string &path_to_file, int flags)
       : fd_(kUnopenedFileDescriptor) {
     if (boost::filesystem::exists(path_to_file)) {
-      fd_ = open(path_to_file.c_str(), O_RDWR);
+      fd_ = open(path_to_file.c_str(), flags);
     }
   }
 

@@ -33,30 +33,23 @@ namespace fc::primitives::sector {
 
   /// This ordering, defines mappings to UInt in a way which MUST never change.
   enum class RegisteredProof : int64_t {
-    StackedDRG32GiBSeal = 1,
-    StackedDRG32GiBPoSt = 2,  // No longer used
-    StackedDRG2KiBSeal = 3,
-    StackedDRG2KiBPoSt = 4,  // No longer used
-    StackedDRG8MiBSeal = 5,
-    StackedDRG8MiBPoSt = 6,  // No longer used
-    StackedDRG512MiBSeal = 7,
-    StackedDRG512MiBPoSt = 8,  // No longer used
+    StackedDRG2KiBSeal,
+    StackedDRG8MiBSeal,
+    StackedDRG512MiBSeal,
+    StackedDRG32GiBSeal,
+    StackedDRG64GiBSeal,
 
-    StackedDRG2KiBWinningPoSt = 9,
-    StackedDRG2KiBWindowPoSt = 10,
+    StackedDRG2KiBWinningPoSt = 0,
+    StackedDRG8MiBWinningPoSt,
+    StackedDRG512MiBWinningPoSt,
+    StackedDRG32GiBWinningPoSt,
+    StackedDRG64GiBWinningPoSt,
 
-    StackedDRG8MiBWinningPoSt = 11,
-    StackedDRG8MiBWindowPoSt = 12,
-
-    StackedDRG512MiBWinningPoSt = 13,
-    StackedDRG512MiBWindowPoSt = 14,
-
-    StackedDRG32GiBWinningPoSt = 15,
-    StackedDRG32GiBWindowPoSt = 16,
-
-    StackedDRG64GiBSeal = 17,
-    StackedDRG64GiBWinningPoSt = 18,
-    StackedDRG64GiBWindowPoSt = 19,
+    StackedDRG2KiBWindowPoSt,
+    StackedDRG8MiBWindowPoSt,
+    StackedDRG512MiBWindowPoSt,
+    StackedDRG32GiBWindowPoSt,
+    StackedDRG64GiBWindowPoSt,
   };
 
   outcome::result<RegisteredProof> getRegisteredWindowPoStProof(
@@ -104,13 +97,25 @@ namespace fc::primitives::sector {
    * verify a Seal.
    */
   struct SealVerifyInfo {
+    RegisteredProof seal_proof;
     SectorId sector;
-    OnChainSealVerifyInfo info;
+    std::vector<DealId> deals;
     SealRandomness randomness;
     InteractiveRandomness interactive_randomness;
+    Proof proof;
+    CID sealed_cid;
     /// CommD
     CID unsealed_cid;
   };
+  CBOR_TUPLE(SealVerifyInfo,
+             seal_proof,
+             sector,
+             deals,
+             randomness,
+             interactive_randomness,
+             proof,
+             sealed_cid,
+             unsealed_cid)
 
   using PoStRandomness = Randomness;
 
@@ -156,6 +161,7 @@ namespace fc::primitives::sector {
     /// CommR
     CID sealed_cid;
   };
+  CBOR_TUPLE(SectorInfo, registered_proof, sector, sealed_cid)
 
   // Information needed to verify a Winning PoSt attached to a block header.
   // Note: this is not used within the state machine, but by the
@@ -175,6 +181,8 @@ namespace fc::primitives::sector {
     std::vector<SectorInfo> challenged_sectors;
     ActorId prover;
   };
+  CBOR_TUPLE(
+      WindowPoStVerifyInfo, randomness, proofs, challenged_sectors, prover)
 
   CBOR_TUPLE(SectorId, miner, sector)
 

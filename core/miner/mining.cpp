@@ -4,6 +4,7 @@
  */
 
 #include "miner/mining.hpp"
+#include "const.hpp"
 #include "vm/actor/builtin/market/policy.hpp"
 #include "vm/runtime/pricelist.hpp"
 
@@ -100,6 +101,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
+  // TODO: win count, poisson
   constexpr auto kBlocksPerEpoch{5};
   bool isTicketWinner(BytesIn ticket,
                       const BigInt &power,
@@ -138,6 +140,7 @@ namespace fc::mining {
                       miner_seed));
       if (isTicketWinner(
               election_vrf, info->miner_power, info->network_power)) {
+        auto win_count{1};
         auto ticket_seed{miner_seed};
         if (info->beacons.empty()) {
           ticket_seed.put(ts.getMinTicketBlock().ticket->bytes);
@@ -158,8 +161,8 @@ namespace fc::mining {
         return BlockTemplate{
             miner,
             ts.cids,
-            primitives::block::Ticket{ticket_vrf},
-            primitives::block::ElectionProof{Buffer{election_vrf}},
+            primitives::block::Ticket{Buffer{ticket_vrf}},
+            primitives::block::ElectionProof{win_count, Buffer{election_vrf}},
             std::move(info->beacons),
             {},
             height,
@@ -171,8 +174,6 @@ namespace fc::mining {
     return boost::none;
   }
 
-  constexpr auto kBlockMessageLimit{512};
-  constexpr auto kBlockGasLimit{100000000};
   outcome::result<std::vector<SignedMessage>> selectMessages(
       std::shared_ptr<Api> api, const Tipset &ts) {
     OUTCOME_TRY(ts_key, ts.makeKey());
@@ -183,15 +184,15 @@ namespace fc::mining {
     for (auto &_msg : messages1) {
       auto &msg{_msg.message};
       if (msg.version != vm::message::kMessageVersion
-          || msg.gasLimit > kBlockGasLimit || msg.value < 0
+          || msg.gas_limit > kBlockGasLimit || msg.value < 0
           || msg.value > vm::actor::builtin::market::kTotalFilecoin
-          || msg.gasPrice < 0) {
+          || msg.gas_fee_cap < 0) {
         continue;
       }
       OUTCOME_TRY(message_bytes,
                   _msg.signature.isBls() ? codec::cbor::encode(msg)
                                          : codec::cbor::encode(_msg));
-      if (msg.gasLimit < pricelist.onChainMessage(message_bytes.size())) {
+      if (msg.gas_limit < pricelist.onChainMessage(message_bytes.size())) {
         continue;
       }
       auto _actor{actors.find(msg.from)};

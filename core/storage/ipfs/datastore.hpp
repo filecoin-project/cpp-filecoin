@@ -59,7 +59,7 @@ namespace fc::storage::ipfs {
     outcome::result<CID> setCbor(const T &value) {
       OUTCOME_TRY(bytes, encode(value));
       OUTCOME_TRY(key, common::getCidOf(bytes));
-      OUTCOME_TRY(set(key, Value(bytes)));
+      OUTCOME_TRY(set(key, std::move(bytes)));
       return std::move(key);
     }
 

@@ -101,6 +101,8 @@ namespace fc::primitives::tipset {
      */
     const BigInt &getParentWeight() const;
 
+    const BigInt &getParentBaseFee() const;
+
     /**
      * @brief checks whether tipset contains block by cid
      * @param cid content identifier to look for

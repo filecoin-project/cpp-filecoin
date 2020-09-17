@@ -18,11 +18,8 @@
 #include "markets/storage/deal_protocol.hpp"
 #include "markets/storage/types.hpp"
 #include "primitives/big_int.hpp"
-#include "primitives/block/block.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
-#include "primitives/ticket/epost_ticket.hpp"
-#include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
@@ -67,8 +64,6 @@ namespace fc::api {
   using primitives::block::BlockWithCids;
   using primitives::cid::Comm;
   using primitives::sector::SectorInfo;
-  using primitives::ticket::EPostProof;
-  using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetKey;
@@ -83,6 +78,8 @@ namespace fc::api {
   using vm::actor::builtin::miner::MinerInfo;
   using vm::actor::builtin::miner::Partition;
   using vm::actor::builtin::miner::SectorOnChainInfo;
+  using vm::actor::builtin::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::miner::SectorPreCommitOnChainInfo;
   using vm::actor::builtin::payment_channel::LaneId;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::actor::builtin::storage_power::Claim;
@@ -261,6 +258,11 @@ namespace fc::api {
     CID channel_message;  // message cid
   };
 
+  struct SectorLocation {
+    uint64_t deadline;
+    uint64_t partition;
+  };
+
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
@@ -385,16 +387,32 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
     API_METHOD(StateNetworkName, std::string)
+    API_METHOD(StateMinerPreCommitDepositForPower,
+               TokenAmount,
+               const Address &,
+               const SectorPreCommitInfo &,
+               const TipsetKey &)
     API_METHOD(StateMinerInitialPledgeCollateral,
                TokenAmount,
                const Address &,
                SectorNumber,
-               const TipsetKey &)
+               const TipsetKey &);
+    API_METHOD(StateSectorPreCommitInfo,
+               boost::optional<SectorPreCommitOnChainInfo>,
+               const Address &,
+               SectorNumber,
+               const TipsetKey &);
     API_METHOD(StateSectorGetInfo,
                SectorOnChainInfo,
                const Address &,
                SectorNumber,
                const TipsetKey &);
+    API_METHOD(StateSectorPartition,
+               SectorLocation,
+               const Address &,
+               SectorNumber,
+               const TipsetKey &);
+    API_METHOD(StateSearchMsg, boost::optional<MsgWait>, const CID &)
     API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &)
 
     API_METHOD(SyncSubmitBlock, void, const BlockWithCids &)

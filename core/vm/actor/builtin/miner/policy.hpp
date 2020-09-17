@@ -41,6 +41,8 @@ namespace fc::vm::actor::builtin::miner {
   constexpr EpochDuration kFaultMaxAge{kWPoStProvingPeriod * 14 - 1};
   constexpr auto kWorkerKeyChangeDelay{2 * kElectionLookback};
 
+  constexpr auto kMinSectorExpiration = 180 * kEpochsInDay;
+
   inline outcome::result<EpochDuration> maxSealDuration(RegisteredProof type) {
     switch (type) {
       case RegisteredProof::StackedDRG32GiBSeal:

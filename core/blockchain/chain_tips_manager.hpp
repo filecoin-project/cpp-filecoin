@@ -13,7 +13,7 @@ namespace fc::primitives::chain {
   class ChainTipsManager {
     virtual ~ChainTipsManager() = default;
     // Returns the ticket that is at round 'r' in the chain behind 'head'
-    virtual outcome::result<std::reference_wrapper<const ticket::Ticket>>
+    virtual outcome::result<std::reference_wrapper<const block::Ticket>>
     getTicketFromRound(const tipset::Tipset &tipset, uint64_t rount) const = 0;
 
     // Returns the tipset that contains round r (Note: multiple rounds' worth of
@@ -30,8 +30,7 @@ namespace fc::primitives::chain {
     // Adds the losing ticket to the chaintips manager so that blocks can be
     // mined on top of it
     virtual outcome::result<void> addLosingTicket(
-        const tipset::Tipset &parent, const ticket::Ticket &ticket) = 0;
-
+        const tipset::Tipset &parent, const block::Ticket &ticket) = 0;
   };
 }  // namespace fc::primitives::chain
 

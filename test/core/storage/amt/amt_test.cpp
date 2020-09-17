@@ -34,12 +34,9 @@ TEST_F(AmtTest, NodeCbor) {
   Root r;
   r.height = 1;
   r.count = 2;
-  expectEncodeAndReencode(r, "83010283408080"_unhex);
+  expectEncodeAndReencode(r, "8301028341008080"_unhex);
 
   Node n;
-  expectEncodeAndReencode(n, "83408080"_unhex);
-
-  n.has_bits = true;
   expectEncodeAndReencode(n, "8341008080"_unhex);
 
   n.items = Node::Values{{2, Value{"01"_unhex}}};
@@ -59,17 +56,14 @@ TEST_F(AmtTest, SetRemoveRootLeaf) {
   EXPECT_OUTCOME_ERROR(AmtError::kNotFound, amt.get(key));
   EXPECT_OUTCOME_ERROR(AmtError::kNotFound, amt.remove(key));
   EXPECT_OUTCOME_EQ(amt.count(), 0);
-  EXPECT_FALSE(getRoot().node.has_bits);
 
   EXPECT_OUTCOME_TRUE_1(amt.set(key, value));
   EXPECT_OUTCOME_EQ(amt.get(key), value);
   EXPECT_OUTCOME_EQ(amt.count(), 1);
-  EXPECT_TRUE(getRoot().node.has_bits);
 
   EXPECT_OUTCOME_TRUE_1(amt.remove(key));
   EXPECT_OUTCOME_ERROR(AmtError::kNotFound, amt.get(key));
   EXPECT_OUTCOME_EQ(amt.count(), 0);
-  EXPECT_TRUE(getRoot().node.has_bits);
 }
 
 TEST_F(AmtTest, SetRemoveCollapseZero) {

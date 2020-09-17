@@ -17,13 +17,5 @@ target_link_libraries(in_memory_ipfs_datastore_test
     ipfs_datastore_in_memory
     )
 
-addtest(ipfs_blockservice_test
-    ipfs_block_service_test.cpp
-    )
-target_link_libraries(ipfs_blockservice_test
-    ipfs_blockservice
-    ipfs_datastore_in_memory
-    )
-
 add_subdirectory(merkledag)
 add_subdirectory(graphsync)
