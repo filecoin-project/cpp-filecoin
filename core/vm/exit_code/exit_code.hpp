@@ -102,6 +102,8 @@ namespace fc::vm {
     kRewardActorWrongCaller,
 
     kAssert,
+
+    kNotImplemented,
   };
 
   /// Distinguish VMExitCode errors from other errors

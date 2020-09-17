@@ -231,8 +231,10 @@ namespace fc::markets::storage::test {
               auto &address, auto &tipset_key) -> outcome::result<MinerInfo> {
             return MinerInfo{.owner = {},
                              .worker = miner_actor_address,
+                             .control = {},
                              .pending_worker_key = boost::none,
                              .peer_id = fc::codec::cbor::kDefaultT<PeerId>(),
+                             .multiaddrs = {},
                              .seal_proof_type = {},
                              .sector_size = {},
                              .window_post_partition_sectors = {}};

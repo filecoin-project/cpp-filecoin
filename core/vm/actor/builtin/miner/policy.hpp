@@ -9,6 +9,7 @@
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::miner {
   using primitives::ChainEpoch;
@@ -39,6 +40,8 @@ namespace fc::vm::actor::builtin::miner {
   constexpr EpochDuration kFaultDeclarationCutoff{kWPoStChallengeLookback};
   constexpr EpochDuration kFaultMaxAge{kWPoStProvingPeriod * 14 - 1};
   constexpr auto kWorkerKeyChangeDelay{2 * kElectionLookback};
+
+  constexpr auto kMinSectorExpiration = 180 * kEpochsInDay;
 
   inline outcome::result<EpochDuration> maxSealDuration(RegisteredProof type) {
     switch (type) {

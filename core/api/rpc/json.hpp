@@ -41,6 +41,7 @@ namespace fc::api {
   using primitives::tipset::HeadChangeType;
   using rapidjson::Document;
   using rapidjson::Value;
+  using vm::actor::builtin::miner::PowerPair;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
   using vm::actor::builtin::miner::WorkerKeyChange;
   using vm::actor::builtin::payment_channel::Merge;
@@ -633,6 +634,27 @@ namespace fc::api {
       return j;
     }
 
+    ENCODE(PowerPair) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Raw", v.raw);
+      Set(j, "QA", v.qa);
+      return j;
+    }
+
+    ENCODE(Partition) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Sectors", v.sectors);
+      Set(j, "Faults", v.faults);
+      Set(j, "Recoveries", v.recoveries);
+      Set(j, "Terminated", v.terminated);
+      Set(j, "ExpirationsEpochs", v.expirations_epochs);
+      Set(j, "EarlyTerminated", v.early_terminated);
+      Set(j, "LivePower", v.live_power);
+      Set(j, "FaultyPower", v.faulty_power);
+      Set(j, "RecoveringPower", v.recovering_power);
+      return j;
+    }
+
     ENCODE(SectorPreCommitInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "RegisteredProof", common::to_int(v.registered_proof));
@@ -653,20 +675,52 @@ namespace fc::api {
       decode(v.expiration, Get(j, "Expiration"));
     }
 
-    ENCODE(SectorOnChainInfo) {
+    ENCODE(SectorPreCommitOnChainInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "Info", v.info);
-      Set(j, "ActivationEpoch", v.activation_epoch);
+      Set(j, "PreCommitDeposit", v.precommit_deposit);
+      Set(j, "PreCommitEpoch", v.precommit_epoch);
       Set(j, "DealWeight", v.deal_weight);
       Set(j, "VerifiedDealWeight", v.verified_deal_weight);
       return j;
     }
 
-    DECODE(SectorOnChainInfo) {
+    DECODE(SectorPreCommitOnChainInfo) {
       decode(v.info, Get(j, "Info"));
-      decode(v.activation_epoch, Get(j, "ActivationEpoch"));
+      decode(v.precommit_deposit, Get(j, "PreCommitDeposit"));
+      decode(v.precommit_epoch, Get(j, "PreCommitEpoch"));
       decode(v.deal_weight, Get(j, "DealWeight"));
       decode(v.verified_deal_weight, Get(j, "VerifiedDealWeight"));
+    }
+
+    ENCODE(SectorOnChainInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "SectorNumber", v.sector);
+      Set(j, "SealProof", common::to_int(v.seal_proof));
+      Set(j, "SealedCID", v.sealed_cid);
+      Set(j, "DealIDs", v.deals);
+      Set(j, "Activation", v.activation_epoch);
+      Set(j, "Expiration", v.expiration);
+      Set(j, "DealWeight", v.deal_weight);
+      Set(j, "VerifiedDealWeight", v.verified_deal_weight);
+      Set(j, "InitialPledge", v.init_pledge);
+      Set(j, "ExpectedDayReward", v.expected_day_reward);
+      Set(j, "ExpectedStoragePledge", v.expected_storage_pledge);
+      return j;
+    }
+
+    DECODE(SectorOnChainInfo) {
+      decode(v.sector, Get(j, "SectorNumber"));
+      decodeEnum(v.seal_proof, Get(j, "SealProof"));
+      decode(v.sealed_cid, Get(j, "SealedCID"));
+      decode(v.deals, Get(j, "DealIDs"));
+      decode(v.activation_epoch, Get(j, "Activation"));
+      decode(v.expiration, Get(j, "Expiration"));
+      decode(v.deal_weight, Get(j, "DealWeight"));
+      decode(v.verified_deal_weight, Get(j, "VerifiedDealWeight"));
+      decode(v.init_pledge, Get(j, "InitialPledge"));
+      decode(v.expected_day_reward, Get(j, "ExpectedDayReward"));
+      decode(v.expected_storage_pledge, Get(j, "ExpectedStoragePledge"));
     }
 
     ENCODE(ChainSectorInfo) {
@@ -1014,6 +1068,18 @@ namespace fc::api {
       decode(v.state, Get(j, "State"));
     }
 
+    ENCODE(SectorLocation) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Deadline", v.deadline);
+      Set(j, "Partition", v.partition);
+      return j;
+    }
+
+    DECODE(SectorLocation) {
+      decode(v.deadline, Get(j, "Deadline"));
+      decode(v.partition, Get(j, "Partition"));
+    }
+
     ENCODE(BlockWithCids) {
       Value j{rapidjson::kObjectType};
       Set(j, "Header", v.header);
@@ -1094,6 +1160,11 @@ namespace fc::api {
       decode(v.capacity, Get(j, "Capacity"));
       decode(v.available, Get(j, "Available"));
       decode(v.used, Get(j, "Used"));
+    }
+
+    template <typename T>
+    ENCODE(adt::Array<T>) {
+      return encode(v.amt.cid());
     }
 
     template <typename T>
