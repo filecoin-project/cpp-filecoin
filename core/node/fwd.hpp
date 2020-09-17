@@ -7,6 +7,12 @@
 
 #include <memory>
 
+namespace boost {
+  namespace asio {
+    class io_context;
+  }  // namespace asio
+}  // namespace boost
+
 namespace libp2p {
   class Host;
 
@@ -19,11 +25,27 @@ namespace libp2p {
     class Identify;
     class IdentifyPush;
     class IdentifyDelta;
+    class Scheduler;
   }  // namespace protocol
 }  // namespace libp2p
 
 namespace fc {
   class CID;
+
+  namespace clock {
+    class UTCClock;
+  }  // namespace clock
+
+  namespace crypto {
+    namespace bls {
+      class BlsProvider;
+    }  // namespace bls
+  }    // namespace crypto
+
+  namespace drand {
+    class Beaconizer;
+    struct DrandSchedule;
+  }  // namespace drand
 
   namespace hello {
     struct Hello;

@@ -6,9 +6,14 @@
 #ifndef CRYPTO_BLS_PROVIDER_TYPES_HPP
 #define CRYPTO_BLS_PROVIDER_TYPES_HPP
 
-#include <array>
-
+#include "common/blob.hpp"
 #include "common/outcome.hpp"
+
+namespace fc {
+  using common::Blob;
+  using BlsPublicKey = Blob<48>;
+  using BlsSignature = Blob<96>;
+}  // namespace fc
 
 namespace fc::crypto::bls {
   using PrivateKey = std::array<uint8_t, 32>;

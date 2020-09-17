@@ -71,7 +71,8 @@ namespace fc::common {
     return Buffer{std::move(bytes)};
   }
 
-  Buffer::Buffer(std::vector<uint8_t> v) : data_(std::move(v)) {}
+  Buffer::Buffer(std::vector<uint8_t> &&v) : data_{std::move(v)} {}
+  Buffer::Buffer(const std::vector<uint8_t> &v) : data_{v} {}
   Buffer::Buffer(gsl::span<const uint8_t> s) : data_(s.begin(), s.end()) {}
 
   const std::vector<uint8_t> &Buffer::toVector() const {

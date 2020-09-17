@@ -4,5 +4,4 @@
 #
 
 add_subdirectory(impl)
-add_subdirectory(protobuf)
 add_subdirectory(example)
