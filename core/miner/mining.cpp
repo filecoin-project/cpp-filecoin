@@ -121,7 +121,8 @@ namespace fc::mining {
       std::shared_ptr<Prover> prover) {
     assert(height > ts.height);
     OUTCOME_TRY(ts_key, ts.makeKey());
-    OUTCOME_TRY(info, api->MinerGetBaseInfo(miner, height, ts_key));
+    OUTCOME_TRY(wait_info, api->MinerGetBaseInfo(miner, height, ts_key));
+    OUTCOME_TRY(info, wait_info.waitSync());
     if (info && info->miner_power > 0) {
       auto vrf{[&](auto tag,
                    auto height,

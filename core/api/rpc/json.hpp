@@ -47,7 +47,6 @@ namespace fc::api {
   using vm::actor::builtin::payment_channel::Merge;
   using vm::actor::builtin::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
-  using SignatureType = crypto::signature::Type;
 
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
@@ -289,6 +288,26 @@ namespace fc::api {
         v = decode<BlsSignature>(data);
       } else if (type == SignatureType::SECP256K1) {
         v = decode<Secp256k1Signature>(data);
+      } else {
+        outcome::raise(JsonError::kWrongEnum);
+      }
+    }
+
+    ENCODE(KeyInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Type", v.type == SignatureType::BLS ? "bls" : "secp256k1");
+      Set(j, "PrivateKey", v.private_key);
+      return j;
+    }
+
+    DECODE(KeyInfo) {
+      std::string type;
+      decode(type, Get(j, "Type"));
+      decode(v.private_key, Get(j, "PrivateKey"));
+      if (type == "bls") {
+        v.type = SignatureType::BLS;
+      } else if (type == "secp256k1") {
+        v.type = SignatureType::SECP256K1;
       } else {
         outcome::raise(JsonError::kWrongEnum);
       }
@@ -993,6 +1012,7 @@ namespace fc::api {
       Set(j, "SectorSize", v.sector_size);
       Set(j, "PrevBeaconEntry", v.prev_beacon);
       Set(j, "BeaconEntries", v.beacons);
+      Set(j, "HasMinPower", v.has_min_power);
       return j;
     }
 

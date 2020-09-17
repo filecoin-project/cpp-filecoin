@@ -87,6 +87,7 @@ namespace fc::api {
   using vm::message::UnsignedMessage;
   using vm::runtime::ExecutionResult;
   using vm::runtime::MessageReceipt;
+  using SignatureType = crypto::signature::Type;
 
   template <typename... T>
   using ParamsTuple =
@@ -195,6 +196,7 @@ namespace fc::api {
     SectorSize sector_size;
     BeaconEntry prev_beacon;
     std::vector<BeaconEntry> beacons;
+    bool has_min_power;
 
     auto &beacon() const {
       return beacons.empty() ? prev_beacon : beacons.back();
@@ -258,6 +260,11 @@ namespace fc::api {
     CID channel_message;  // message cid
   };
 
+  struct KeyInfo {
+    SignatureType type;
+    common::Blob<32> private_key;
+  };
+
   struct SectorLocation {
     uint64_t deadline;
     uint64_t partition;
@@ -265,6 +272,8 @@ namespace fc::api {
 
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
+
+    API_METHOD(BeaconGetEntry, Wait<BeaconEntry>, ChainEpoch)
 
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
@@ -326,7 +335,7 @@ namespace fc::api {
 
     API_METHOD(MinerCreateBlock, BlockWithCids, const BlockTemplate &)
     API_METHOD(MinerGetBaseInfo,
-               boost::optional<MiningBaseInfo>,
+               Wait<boost::optional<MiningBaseInfo>>,
                const Address &,
                ChainEpoch,
                const TipsetKey &)
@@ -423,6 +432,7 @@ namespace fc::api {
     API_METHOD(WalletBalance, TokenAmount, const Address &)
     API_METHOD(WalletDefaultAddress, Address)
     API_METHOD(WalletHas, bool, const Address &)
+    API_METHOD(WalletImport, Address, const KeyInfo &)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
     /** Verify signature by address (may be id or key address) */
     API_METHOD(

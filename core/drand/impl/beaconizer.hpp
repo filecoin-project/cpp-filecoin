@@ -16,17 +16,32 @@
 #include <boost/compute/detail/lru_cache.hpp>
 #include <gsl/span>
 
-#include "crypto/bls/bls_types.hpp"
 #include "drand/beaconizer.hpp"
-#include "drand/client.hpp"
-
-namespace fc::crypto::bls {
-  class BlsProvider;
-}
+#include "node/fwd.hpp"
 
 namespace fc::drand {
+  using boost::asio::io_context;
+  using clock::UTCClock;
+  using libp2p::protocol::Scheduler;
 
-  class BeaconizerImpl : public Beaconizer {
+  struct DrandScheduleImpl : DrandSchedule {
+    DrandScheduleImpl(const ChainInfo &info,
+                      seconds fc_genesis,
+                      seconds fc_period)
+        : genesis{info.genesis},
+          period{info.period},
+          fc_genesis{fc_genesis},
+          fc_period{fc_period} {}
+
+    Round maxRound(ChainEpoch epoch) const override {
+      return ((epoch - 1) * fc_period + fc_genesis - genesis) / period;
+    }
+
+    seconds genesis, period, fc_genesis, fc_period;
+  };
+
+  class BeaconizerImpl : public Beaconizer,
+                         public std::enable_shared_from_this<BeaconizerImpl> {
    public:
     enum class Error {
       kNoPublicKey = 1,
@@ -38,49 +53,26 @@ namespace fc::drand {
       kNegativeEpoch,
     };
 
-    /**
-     * Creates and initializes Drand beacons manager
-     * @param filecoin_genesis_time - filecoin chain genesis time
-     * @param filecoin_round_time - filecoin rounds interval
-     * @param drand_servers - list of drand servers' addresses with port
-     * specified
-     * @param network_public_key - known key for the drand network
-     * @param max_cache_size - beacon entries cache limit
-     * @return unique pointer to an instance
-     */
-    static outcome::result<std::unique_ptr<BeaconizerImpl>> create(
-        uint64_t filecoin_genesis_time,
-        uint64_t filecoin_round_time,
-        std::vector<std::string> drand_servers,
-        gsl::span<const uint8_t> network_public_key,
-        size_t max_cache_size);
+    BeaconizerImpl(std::shared_ptr<io_context> io,
+                   std::shared_ptr<UTCClock> clock,
+                   std::shared_ptr<Scheduler> scheduler,
+                   const ChainInfo &info,
+                   std::vector<std::string> drand_servers,
+                   size_t max_cache_size);
 
-    outcome::result<BeaconEntry> entry(uint64_t round) override;
+    void entry(Round round, CbT<BeaconEntry> cb) override;
 
     outcome::result<void> verifyEntry(const BeaconEntry &current,
                                       const BeaconEntry &previous) override;
-
-    outcome::result<uint64_t> maxBeaconRoundForEpoch(
-        ChainEpoch fil_epoch) override;
 
    private:
     //
     // METHODS
     //
 
-    BeaconizerImpl(uint64_t filecoin_genesis_time,
-                   uint64_t filecoin_round_time,
-                   std::vector<std::string> drand_servers,
-                   crypto::bls::PublicKey network_public_key,
-                   size_t max_cache_size);
+    boost::optional<Buffer> lookupCache(Round round);
 
-    outcome::result<void> init();
-
-    outcome::result<void> verifyNetworkKey(const Bytes &key) const;
-
-    boost::optional<Bytes> lookupCache(uint64_t round);
-
-    void cacheEntry(uint64_t round, const Bytes &signature);
+    void cacheEntry(Round round, const Buffer &signature);
 
     outcome::result<bool> verifyBeaconData(
         uint64_t round,
@@ -89,29 +81,23 @@ namespace fc::drand {
 
     void rotatePeersIndex();
 
-    // creates a client to the currently chosen peer
-    void dial();
-
     //
     // FIELDS
     //
 
-    uint64_t fil_gen_time_;
-    uint64_t fil_round_time_;
+    std::shared_ptr<io_context> io;
+    std::shared_ptr<UTCClock> clock;
+    std::shared_ptr<Scheduler> scheduler;
+
+    ChainInfo info;
 
     std::atomic_size_t peer_index_;
     std::vector<std::string> peers_;
 
-    const crypto::bls::PublicKey network_key_;
-
     std::mutex cache_mutex_;
-    boost::compute::detail::lru_cache<uint64_t, Bytes> cache_;
+    boost::compute::detail::lru_cache<Round, Buffer> cache_;
 
     std::unique_ptr<crypto::bls::BlsProvider> bls_;
-    std::unique_ptr<DrandSyncClient> client_;
-
-    uint64_t drand_gen_time_;
-    uint64_t drand_interval_;
   };
 }  // namespace fc::drand
 

@@ -97,4 +97,19 @@ namespace fc::storage::keystore {
         });
   }
 
+  outcome::result<Address> KeyStore::put(bool bls, TPrivateKey key) {
+    Address address;
+    if (bls) {
+      OUTCOME_TRY(
+          pub, bls_provider_->derivePublicKey(boost::get<BlsPrivateKey>(key)));
+      address = Address::makeBls(pub);
+    } else {
+      OUTCOME_TRY(
+          pub,
+          secp256k1_provider_->derive(boost::get<Secp256k1PrivateKey>(key)));
+      address = Address::makeSecp256k1(pub);
+    }
+    OUTCOME_TRY(put(address, key));
+    return address;
+  }
 }  // namespace fc::storage::keystore

@@ -11,6 +11,7 @@
 #include <unordered_set>
 
 #include "api/api.hpp"
+#include "const.hpp"
 #include "sector_storage/spec_interfaces/prover.hpp"
 
 namespace fc::mining {
@@ -33,8 +34,9 @@ namespace fc::mining {
   };
 
   struct Mining : std::enable_shared_from_this<Mining> {
-    static constexpr std::chrono::seconds kBlockDelay{25};
-    static constexpr std::chrono::seconds kPropagationDelay{6};
+    static constexpr std::chrono::seconds kBlockDelay{kBlockDelaySecs};
+    static constexpr std::chrono::seconds kPropagationDelay{
+        kPropagationDelaySecs};
     static std::shared_ptr<Mining> create(std::shared_ptr<io_context> io,
                                           std::shared_ptr<Api> api,
                                           std::shared_ptr<Prover> prover,
