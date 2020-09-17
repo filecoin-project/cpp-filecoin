@@ -54,7 +54,6 @@ namespace fc::markets::storage::chain_events {
       pre_commit_info.sealed_cid = "010001020001"_cid;
       pre_commit_info.deal_ids.emplace_back(deal_id);
       pre_commit_info.sector = sector_number;
-      pre_commit_info.replace_capacity = false;
       EXPECT_OUTCOME_TRUE(pre_commit_params,
                           codec::cbor::encode(pre_commit_info));
       UnsignedMessage pre_commit_message;

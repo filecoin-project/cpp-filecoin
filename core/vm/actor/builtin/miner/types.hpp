@@ -59,7 +59,7 @@ namespace fc::vm::actor::builtin::miner {
     std::vector<DealId> deal_ids;
     /// Sector expiration
     ChainEpoch expiration;
-    bool replace_capacity;
+    bool replace_capacity = false;
     uint64_t replace_deadline, replace_partition;
     SectorNumber replace_sector;
   };
