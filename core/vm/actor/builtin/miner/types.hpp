@@ -34,22 +34,6 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::address::Address;
   using primitives::sector::OnChainPoStVerifyInfo;
   using primitives::sector::Proof;
-  using runtime::Randomness;
-
-  struct PowerPair {
-    StoragePower raw, qa;
-  };
-  CBOR_TUPLE(PowerPair, raw, qa)
-
-  struct VestingFunds {
-    struct Fund {
-      ChainEpoch epoch;
-      TokenAmount amount;
-    };
-    std::vector<Fund> funds;
-  };
-  CBOR_TUPLE(VestingFunds::Fund, epoch, amount)
-  CBOR_TUPLE(VestingFunds, funds)
 
   struct PowerPair {
     StoragePower raw, qa;
