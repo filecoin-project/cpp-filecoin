@@ -25,3 +25,10 @@ add_subdirectory(proofs)
 add_subdirectory(sector_storage)
 add_subdirectory(storage)
 add_subdirectory(vm)
+
+add_library(const
+    const.cpp
+    )
+target_link_libraries(const
+    Boost::boost
+    )

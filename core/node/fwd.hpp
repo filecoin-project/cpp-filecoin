@@ -26,7 +26,11 @@ namespace libp2p {
     class IdentifyPush;
     class IdentifyDelta;
     class Scheduler;
-  }  // namespace protocol
+
+    namespace gossip {
+      class Gossip;
+    }  // namespace gossip
+  }    // namespace protocol
 }  // namespace libp2p
 
 namespace fc {
@@ -61,6 +65,10 @@ namespace fc {
     }  // namespace tipset
   }    // namespace primitives
 
+  namespace pubsub {
+    struct PubSub;
+  }  // namespace pubsub
+
   namespace storage {
     namespace blockchain {
       class ChainStore;
@@ -77,6 +85,7 @@ namespace fc {
     }  // namespace interpreter
 
     namespace message {
+      struct SignedMessage;
       struct UnsignedMessage;
     }  // namespace message
 

@@ -67,11 +67,11 @@ namespace fc::markets::storage::test {
   using provider::StorageProviderImpl;
   using vm::VMExitCode;
   using vm::actor::builtin::market::PublishStorageDeals;
-  using vm::actor::builtin::miner::MinerInfo;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::runtime::MessageReceipt;
   using BlsKeyPair = fc::crypto::bls::KeyPair;
+  using MinerInfo = api::MinerInfo2;
 
   /** Shared resources */
   static std::shared_ptr<libp2p::Host> host;
@@ -232,7 +232,6 @@ namespace fc::markets::storage::test {
             return MinerInfo{.owner = {},
                              .worker = miner_actor_address,
                              .control = {},
-                             .pending_worker_key = boost::none,
                              .peer_id = fc::codec::cbor::kDefaultT<PeerId>(),
                              .multiaddrs = {},
                              .seal_proof_type = {},
@@ -298,7 +297,7 @@ namespace fc::markets::storage::test {
                     MessageReceipt{.exit_code = VMExitCode::kOk,
                                    .return_value = publish_deal_result_encoded,
                                    .gas_used = GasAmount{0}},
-                .tipset = chain_head};
+                .tipset = chain_head.makeKey().value()};
             auto channel = std::make_shared<Channel<Wait<MsgWait>::Result>>();
             channel->write(message_result);
             channel->closeWrite();
