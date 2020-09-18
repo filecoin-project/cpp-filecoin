@@ -28,14 +28,12 @@ namespace fc::miner {
   Miner::Miner(std::shared_ptr<Api> api,
                Address miner_address,
                Address worker_address,
-               std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<Counter> counter,
                std::shared_ptr<Manager> sector_manager,
                std::shared_ptr<boost::asio::io_context> context)
       : api_{std::move(api)},
         miner_address_{std::move(miner_address)},
         worker_address_{std::move(worker_address)},
-        chain_store_{std::move(chain_store)},
         counter_{std::move(counter)},
         sector_manager_{std::move(sector_manager)},
         context_{std::move(context)} {}
@@ -51,7 +49,8 @@ namespace fc::miner {
         std::make_shared<TipsetCacheImpl>(2 * kGlobalChainConfidence,
                                           api_->ChainGetTipSetByHeight);
     std::shared_ptr<Events> events =
-        std::make_shared<EventsImpl>(chain_store_, tipset_cache);
+        std::make_shared<EventsImpl>(api_, tipset_cache);
+    OUTCOME_TRY(events->subscribeHeadChanges());
     std::shared_ptr<PreCommitPolicy> precommit_policy =
         std::make_shared<BasicPreCommitPolicy>(
             api_,

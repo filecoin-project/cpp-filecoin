@@ -39,6 +39,13 @@ namespace fc::markets::storage::chain_events {
     outcome::result<void> onMessage(const UnsignedMessage &message);
 
     std::shared_ptr<Api> api_;
+
+    /**
+     * Subscription to chain head changes
+     * Is alive until the channel object exists
+     */
+    std::shared_ptr<Chan<std::vector<HeadChange>>> channel_;
+
     mutable std::shared_mutex watched_events_mutex_;
     std::vector<EventWatch> watched_events_;
 
