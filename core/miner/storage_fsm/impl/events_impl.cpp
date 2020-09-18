@@ -9,6 +9,36 @@
 
 namespace fc::mining {
 
+  EventsImpl::EventsImpl(std::shared_ptr<Api> api,
+                         std::shared_ptr<TipsetCache> tipset_cache)
+      : api_{std::move(api)},
+        global_id_(0),
+        tipset_cache_(std::move(tipset_cache)) {}
+
+  outcome::result<void> EventsImpl::subscribeHeadChanges() {
+    OUTCOME_TRY(chan, api_->ChainNotify());
+    channel_ = chan.channel;
+    channel_->read(
+        [self_weak{weak_from_this()}](
+            boost::optional<std::vector<HeadChange>> changes) -> bool {
+          if (auto self = self_weak.lock()) {
+            if (changes) {
+              for (const auto &change : changes.value()) {
+                if (!self->callback_function(change)) return false;
+              }
+            }
+            return true;
+          }
+          return false;
+        });
+
+    return outcome::success();
+  }
+
+  void  EventsImpl::unsubscribeHeadChanges() {
+    channel_ = nullptr;
+  }
+
   outcome::result<void> EventsImpl::chainAt(HeightHandler handler,
                                             RevertHandler revert_handler,
                                             EpochDuration confidence,
@@ -59,7 +89,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  void EventsImpl::callback_function(const HeadChange &change) {
+  bool EventsImpl::callback_function(const HeadChange &change) {
     if (change.type == HeadChangeType::APPLY) {
       std::unique_lock<std::mutex> lock(mutex_);
 
@@ -67,7 +97,7 @@ namespace fc::mining {
       if (maybe_error.has_error()) {
         logger_->error("Adding tipset into cache failed: {}",
                        maybe_error.error().message());
-        return;
+        return false;
       }
 
       auto apply = [&](ChainEpoch height) -> outcome::result<void> {
@@ -99,7 +129,7 @@ namespace fc::mining {
       if (maybe_error.has_error()) {
         logger_->error("Applying tipset failed: {}",
                        maybe_error.error().message());
-        return;
+        return false;
       }
 
       ChainEpoch sub_height = tipset.height - 1;
@@ -109,11 +139,11 @@ namespace fc::mining {
         if (maybe_tipset_opt.has_error()) {
           logger_->error("Getting tipset from cache failed: {}",
                          maybe_tipset_opt.error().message());
-          return;
+          return false;
         }
 
         if (maybe_tipset_opt.value()) {
-          return;
+          return true;
         }
 
         maybe_error = apply(sub_height);
@@ -121,11 +151,13 @@ namespace fc::mining {
         if (maybe_error.has_error()) {
           logger_->error("Applying tipset failed: {}",
                          maybe_error.error().message());
-          return;
+          return false;
         }
 
         sub_height--;
       }
+
+      return true;
     }
 
     if (change.type == HeadChangeType::REVERT) {
@@ -135,7 +167,7 @@ namespace fc::mining {
 
       if (!best_tipset) {
         logger_->error("Cache is empty");
-        return;
+        return false;
       }
 
       ChainEpoch best_height = best_tipset->height;
@@ -208,18 +240,13 @@ namespace fc::mining {
       if (maybe_error.has_error()) {
         logger_->error("Reverting tipset failed: {}",
                        maybe_error.error().message());
+        return false;
       }
-      return;
+      return true;
     }
 
     logger_->warn("Unexpected head change notification type");
-  }
-
-  EventsImpl::EventsImpl(const std::shared_ptr<ChainStore> &chain_store,
-                         std::shared_ptr<TipsetCache> tipset_cache)
-      : global_id_(0), tipset_cache_(std::move(tipset_cache)) {
-    connection_ = chain_store->subscribeHeadChanges(
-        std::bind(&EventsImpl::callback_function, this, std::placeholders::_1));
+    return false;
   }
 
 }  // namespace fc::mining
