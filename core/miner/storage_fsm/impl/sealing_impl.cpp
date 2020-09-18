@@ -16,7 +16,9 @@
   [](auto info, auto event, auto from, auto to) { event->apply(info); }
 
 namespace fc::mining {
+  using api::SectorSize;
   using checks::ChecksError;
+  using types::kDealSectorPriority;
   using types::Piece;
   using vm::actor::MethodParams;
   using vm::actor::builtin::miner::kMinSectorExpiration;
@@ -265,7 +267,8 @@ namespace fc::mining {
                 sealer_->addPiece(minerSector(sector_id),
                                   unsealed_sectors_[sector_id].piece_sizes,
                                   size,
-                                  piece));
+                                  piece,
+                                  kDealSectorPriority));
 
     Piece new_piece{
         .piece = piece_info,
@@ -665,7 +668,7 @@ namespace fc::mining {
     for (const auto &size : sizes) {
       OUTCOME_TRY(
           piece_info,
-          sealer_->addPiece(sector, existing_piece_sizes, size, zero_file));
+          sealer_->addPiece(sector, existing_piece_sizes, size, zero_file, 0));
 
       existing_piece_sizes.push_back(size);
 
@@ -708,11 +711,11 @@ namespace fc::mining {
                         std::make_shared<SectorSealPreCommit1FailedEvent>());
     }
 
-    // TODO: add check priority
     auto maybe_result =
         sealer_->sealPreCommit1(minerSector(info->sector_number),
                                 maybe_ticket.value().ticket,
-                                info->getPieceInfos());
+                                info->getPieceInfos(),
+                                info->sealingPriority());
 
     if (maybe_result.has_error()) {
       logger_->error("Seal pre commit 1 error: {}",
@@ -732,9 +735,10 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handlePreCommit2(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: add check priority
     auto maybe_cid = sealer_->sealPreCommit2(minerSector(info->sector_number),
-                                             info->precommit1_output);
+                                             info->precommit1_output,
+
+                                             info->sealingPriority());
     if (maybe_cid.has_error()) {
       logger_->error("Seal pre commit 2 error: {}",
                      maybe_cid.error().message());
@@ -979,13 +983,13 @@ namespace fc::mining {
         .unsealed_cid = info->comm_d.get(),
     };
 
-    // TODO: add check priority
     auto maybe_commit_1_output =
         sealer_->sealCommit1(minerSector(info->sector_number),
                              info->ticket,
                              info->seed,
                              info->getPieceInfos(),
-                             cids);
+                             cids,
+                             info->sealingPriority());
     if (maybe_commit_1_output.has_error()) {
       logger_->error("computing seal proof failed(1): {}",
                      maybe_commit_1_output.error().message());
@@ -994,7 +998,8 @@ namespace fc::mining {
     }
 
     auto maybe_proof = sealer_->sealCommit2(minerSector(info->sector_number),
-                                            maybe_commit_1_output.value());
+                                            maybe_commit_1_output.value(),
+                                            info->sealingPriority());
     if (maybe_proof.has_error()) {
       logger_->error("computing seal proof failed(2): {}",
                      maybe_proof.error().message());
@@ -1118,8 +1123,8 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     // TODO: Maybe wait for some finality
 
-    auto maybe_error =
-        sealer_->finalizeSector(minerSector(info->sector_number));
+    auto maybe_error = sealer_->finalizeSector(minerSector(info->sector_number),
+                                               info->sealingPriority());
     if (maybe_error.has_error()) {
       logger_->error("finalize sector: {}", maybe_error.error().message());
       return fsm_->send(info, std::make_shared<SectorFinalizeFailedEvent>());

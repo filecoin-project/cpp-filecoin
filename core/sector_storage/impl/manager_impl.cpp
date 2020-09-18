@@ -14,11 +14,11 @@
 #include "sector_storage/impl/task_selector.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
-namespace fs = boost::filesystem;
-using fc::primitives::sector_file::SectorFileType;
-using fc::primitives::sector_file::sectorName;
+namespace fc::sector_storage {
+  using fc::primitives::sector_file::SectorFileType;
+  using fc::primitives::sector_file::sectorName;
+  namespace fs = boost::filesystem;
 
-namespace {
   fc::sector_storage::WorkerAction schedFetch(const SectorId &sector,
                                               SectorFileType file_type,
                                               bool sealing) {
@@ -84,9 +84,6 @@ namespace {
 
     return (fs::path(home_dir) / path.substr(1, path.size() - 1)).string();
   }
-}  // namespace
-
-namespace fc::sector_storage {
 
   outcome::result<std::vector<SectorId>> ManagerImpl::checkProvable(
       RegisteredProof seal_proof_type, gsl::span<const SectorId> sectors) {
@@ -188,12 +185,11 @@ namespace fc::sector_storage {
                                                const UnpaddedPieceSize &size,
                                                const SealRandomness &randomness,
                                                const CID &cid) {
-    OUTCOME_TRY(
-                index_->storageLock(
-                    sector,
-                    static_cast<SectorFileType>(SectorFileType::FTSealed
-                                                | SectorFileType::FTCache),
-                    SectorFileType::FTUnsealed));
+    OUTCOME_TRY(index_->storageLock(
+        sector,
+        static_cast<SectorFileType>(SectorFileType::FTSealed
+                                    | SectorFileType::FTCache),
+        SectorFileType::FTUnsealed));
 
     {
       OUTCOME_TRY(
@@ -305,13 +301,13 @@ namespace fc::sector_storage {
   outcome::result<PreCommit1Output> ManagerImpl::sealPreCommit1(
       const SectorId &sector,
       const SealRandomness &ticket,
-      gsl::span<const PieceInfo> pieces) {
-    OUTCOME_TRY(
-                index_->storageLock(
-                    sector,
-                    SectorFileType::FTUnsealed,
-                    static_cast<SectorFileType>(SectorFileType::FTSealed
-                                                | SectorFileType::FTCache)));
+      gsl::span<const PieceInfo> pieces,
+      uint64_t priority) {
+    OUTCOME_TRY(index_->storageLock(
+        sector,
+        SectorFileType::FTUnsealed,
+        static_cast<SectorFileType>(SectorFileType::FTSealed
+                                    | SectorFileType::FTCache)));
 
     // TODO: also consider where the unsealed data sits
 
@@ -331,16 +327,18 @@ namespace fc::sector_storage {
         [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
           OUTCOME_TRYA(out, worker->sealPreCommit1(sector, ticket, pieces));
           return outcome::success();
-        }));
+        },
+        priority));
 
     return std::move(out);
   }
 
   outcome::result<SectorCids> ManagerImpl::sealPreCommit2(
-      const SectorId &sector, const PreCommit1Output &pre_commit_1_output) {
-    OUTCOME_TRY(
-                index_->storageLock(
-                    sector, SectorFileType::FTSealed, SectorFileType::FTCache));
+      const SectorId &sector,
+      const PreCommit1Output &pre_commit_1_output,
+      uint64_t priority) {
+    OUTCOME_TRY(index_->storageLock(
+        sector, SectorFileType::FTSealed, SectorFileType::FTCache));
 
     OUTCOME_TRY(selector,
                 ExistingSelector::newExistingSelector(
@@ -363,7 +361,8 @@ namespace fc::sector_storage {
         [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
           OUTCOME_TRYA(out, worker->sealPreCommit2(sector, pre_commit_1_output))
           return outcome::success();
-        }));
+        },
+        priority));
 
     return std::move(out);
   }
@@ -373,10 +372,10 @@ namespace fc::sector_storage {
       const SealRandomness &ticket,
       const InteractiveRandomness &seed,
       gsl::span<const PieceInfo> pieces,
-      const SectorCids &cids) {
-    OUTCOME_TRY(
-                index_->storageLock(
-                    sector, SectorFileType::FTSealed, SectorFileType::FTCache));
+      const SectorCids &cids,
+      uint64_t priority) {
+    OUTCOME_TRY(index_->storageLock(
+        sector, SectorFileType::FTSealed, SectorFileType::FTCache));
 
     OUTCOME_TRY(selector,
                 ExistingSelector::newExistingSelector(
@@ -400,13 +399,16 @@ namespace fc::sector_storage {
           OUTCOME_TRYA(out,
                        worker->sealCommit1(sector, ticket, seed, pieces, cids))
           return outcome::success();
-        }));
+        },
+        priority));
 
     return std::move(out);
   }
 
   outcome::result<Proof> ManagerImpl::sealCommit2(
-      const SectorId &sector, const Commit1Output &commit_1_output) {
+      const SectorId &sector,
+      const Commit1Output &commit_1_output,
+      uint64_t priority) {
     std::unique_ptr<TaskSelector> selector = std::make_unique<TaskSelector>();
 
     Proof out;
@@ -419,19 +421,20 @@ namespace fc::sector_storage {
         [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
           OUTCOME_TRYA(out, worker->sealCommit2(sector, commit_1_output))
           return outcome::success();
-        }));
+        },
+        priority));
 
     return std::move(out);
   }
 
-  outcome::result<void> ManagerImpl::finalizeSector(const SectorId &sector) {
-    OUTCOME_TRY(
-                index_->storageLock(
-                    sector,
-                    SectorFileType::FTNone,
-                    static_cast<SectorFileType>(SectorFileType::FTSealed
-                                                | SectorFileType::FTUnsealed
-                                                | SectorFileType::FTCache)));
+  outcome::result<void> ManagerImpl::finalizeSector(const SectorId &sector,
+                                                    uint64_t priority) {
+    OUTCOME_TRY(index_->storageLock(
+        sector,
+        SectorFileType::FTNone,
+        static_cast<SectorFileType>(SectorFileType::FTSealed
+                                    | SectorFileType::FTUnsealed
+                                    | SectorFileType::FTCache)));
 
     auto unsealed = SectorFileType::FTUnsealed;
     {
@@ -465,7 +468,8 @@ namespace fc::sector_storage {
             true),
         [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
           return worker->finalizeSector(sector);
-        }));
+        },
+        priority));
 
     auto fetch_selector = std::make_shared<AllocateSelector>(
         index_,
@@ -483,17 +487,17 @@ namespace fc::sector_storage {
                    false),
         [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
           return worker->moveStorage(sector);
-        });
+        },
+        priority);
   }
 
   outcome::result<void> ManagerImpl::remove(const SectorId &sector) {
-    OUTCOME_TRY(
-                index_->storageLock(
-                    sector,
-                    SectorFileType::FTNone,
-                    static_cast<SectorFileType>(SectorFileType::FTSealed
-                                                | SectorFileType::FTUnsealed
-                                                | SectorFileType::FTCache)));
+    OUTCOME_TRY(index_->storageLock(
+        sector,
+        SectorFileType::FTNone,
+        static_cast<SectorFileType>(SectorFileType::FTSealed
+                                    | SectorFileType::FTUnsealed
+                                    | SectorFileType::FTCache)));
 
     auto unsealed = SectorFileType::FTUnsealed;
     {
@@ -534,11 +538,10 @@ namespace fc::sector_storage {
       const SectorId &sector,
       gsl::span<const UnpaddedPieceSize> piece_sizes,
       const UnpaddedPieceSize &new_piece_size,
-      const proofs::PieceData &piece_data) {
-    OUTCOME_TRY(
-        lock,
-        index_->storageLock(
-            sector, SectorFileType::FTNone, SectorFileType::FTUnsealed));
+      const proofs::PieceData &piece_data,
+      uint64_t priority) {
+    OUTCOME_TRY(index_->storageLock(
+        sector, SectorFileType::FTNone, SectorFileType::FTUnsealed));
 
     std::shared_ptr<WorkerSelector> selector;
     if (piece_sizes.empty()) {
@@ -562,7 +565,8 @@ namespace fc::sector_storage {
                        worker->addPiece(
                            sector, piece_sizes, new_piece_size, piece_data));
           return outcome::success();
-        }));
+        },
+        priority));
 
     return std::move(out);
   }
@@ -718,7 +722,7 @@ namespace fc::sector_storage {
             .seal_proof_type = proof_type,
             .task_types = std::move(local_tasks),
         },
-        std::move(remote));
+        remote);
 
     OUTCOME_TRY(manager->addWorker(std::move(worker)));
     return std::move(manager);
@@ -737,6 +741,7 @@ namespace fc::sector_storage {
         remote_store_(std::move(store)),
         scheduler_(std::move(scheduler)),
         logger_(common::createLogger("manager")) {}
+
 }  // namespace fc::sector_storage
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, ManagerErrors, e) {

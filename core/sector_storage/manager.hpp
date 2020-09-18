@@ -9,25 +9,20 @@
 #include "common/outcome.hpp"
 #include "sector_storage/fault_tracker.hpp"
 #include "sector_storage/spec_interfaces/prover.hpp"
-#include "sector_storage/spec_interfaces/sealer.hpp"
-#include "sector_storage/spec_interfaces/storage.hpp"
 #include "sector_storage/worker.hpp"
 
-using fc::primitives::FsStat;
-using fc::primitives::SectorSize;
-using fc::primitives::StorageID;
-using fc::primitives::piece::PieceData;
-using fc::primitives::piece::UnpaddedByteIndex;
-
 namespace fc::sector_storage {
-  class Manager : public Sealer,
-                  public Storage,
-                  public Prover,
-                  public FaultTracker {
+  using primitives::FsStat;
+  using primitives::SectorSize;
+  using primitives::StorageID;
+  using primitives::piece::PieceData;
+  using primitives::piece::UnpaddedByteIndex;
+
+  class Manager : public Prover, public FaultTracker {
    public:
     virtual SectorSize getSectorSize() = 0;
 
-    virtual outcome::result<void> ReadPiece(proofs::PieceData output,
+    virtual outcome::result<void> ReadPiece(PieceData output,
                                             const SectorId &sector,
                                             UnpaddedByteIndex offset,
                                             const UnpaddedPieceSize &size,
@@ -42,6 +37,44 @@ namespace fc::sector_storage {
     getLocalStorages() = 0;
 
     virtual outcome::result<FsStat> getFsStat(StorageID storage_id) = 0;
+
+    // Sealer
+    virtual outcome::result<PreCommit1Output> sealPreCommit1(
+        const SectorId &sector,
+        const SealRandomness &ticket,
+        gsl::span<const PieceInfo> pieces,
+        uint64_t priority) = 0;
+
+    virtual outcome::result<SectorCids> sealPreCommit2(
+        const SectorId &sector,
+        const PreCommit1Output &pre_commit_1_output,
+        uint64_t priority) = 0;
+
+    virtual outcome::result<Commit1Output> sealCommit1(
+        const SectorId &sector,
+        const SealRandomness &ticket,
+        const InteractiveRandomness &seed,
+        gsl::span<const PieceInfo> pieces,
+        const SectorCids &cids,
+        uint64_t priority) = 0;
+
+    virtual outcome::result<Proof> sealCommit2(
+        const SectorId &sector,
+        const Commit1Output &commit_1_output,
+        uint64_t priority) = 0;
+
+    virtual outcome::result<void> finalizeSector(const SectorId &sector,
+                                                 uint64_t priority) = 0;
+
+    virtual outcome::result<void> remove(const SectorId &sector) = 0;
+
+    // Storage
+    virtual outcome::result<PieceInfo> addPiece(
+        const SectorId &sector,
+        gsl::span<const UnpaddedPieceSize> piece_sizes,
+        const UnpaddedPieceSize &new_piece_size,
+        const proofs::PieceData &piece_data,
+        uint64_t priority) = 0;
   };
 
   enum class ManagerErrors {
