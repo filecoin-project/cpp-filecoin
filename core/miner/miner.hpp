@@ -36,13 +36,13 @@ namespace fc::miner {
 
     void stop();
 
+   private:
     /**
      * Checks miner worker address
      * @return error if worker address is incorrect
      */
     outcome::result<void> runPreflightChecks();
 
-   private:
     std::shared_ptr<Api> api_;
     Address miner_address_;
     Address worker_address_;
