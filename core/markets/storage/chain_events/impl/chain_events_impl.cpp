@@ -19,8 +19,8 @@ namespace fc::markets::storage::chain_events {
 
   outcome::result<void> ChainEventsImpl::init() {
     OUTCOME_TRY(chan, api_->ChainNotify());
-    channel_ = std::make_shared<Chan<std::vector<HeadChange>>>(chan);
-    channel_->channel->read(
+    channel_ = chan.channel;
+    channel_->read(
         [self_weak{weak_from_this()}](
             const boost::optional<std::vector<HeadChange>> &update) -> bool {
           if (auto self = self_weak.lock()) return self->onRead(update);

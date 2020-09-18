@@ -13,8 +13,8 @@
 #include "miner/storage_fsm/tipset_cache.hpp"
 
 namespace fc::mining {
+  using adt::Channel;
   using api::Api;
-  using api::Chan;
   using primitives::tipset::HeadChange;
   using primitives::tipset::HeadChangeType;
 
@@ -50,7 +50,7 @@ namespace fc::mining {
      * Subscription to chain head changes
      * Is alive until the channel object exists
      */
-    std::shared_ptr<Chan<std::vector<HeadChange>>> channel_;
+    std::shared_ptr<Channel<std::vector<HeadChange>>> channel_;
 
     uint64_t global_id_;
 

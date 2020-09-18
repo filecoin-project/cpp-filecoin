@@ -17,8 +17,8 @@ namespace fc::mining {
 
   outcome::result<void> EventsImpl::subscribeHeadChanges() {
     OUTCOME_TRY(chan, api_->ChainNotify());
-    channel_ = std::make_shared<Chan<std::vector<HeadChange>>>(chan);
-    channel_->channel->read(
+    channel_ = chan.channel;
+    channel_->read(
         [self_weak{weak_from_this()}](
             boost::optional<std::vector<HeadChange>> changes) -> bool {
           if (auto self = self_weak.lock()) {
