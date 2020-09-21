@@ -24,8 +24,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
       return "Store: the storage is a duplicate";
     case (StoreErrors::kNotFoundSector):
       return "Store: couldn't find the sector";
-    case (StoreErrors::kCannotRemoveSector):
-      return "Store: cannot remove the sector";
     case (StoreErrors::kRemoveSeveralFileTypes):
       return "Store: remove expects one file type";
     case (StoreErrors::kCannotMoveSector):
@@ -50,12 +48,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
       return "Store: cannot open temp file for downloading";
     case (StoreErrors::kUnknownContentType):
       return "Store: received unsupported content type";
-    case (StoreErrors::kCannotRemoveOutputPath):
-      return "Store: cannot remove output path";
+    case (StoreErrors::kCannotRemovePath):
+      return "Store: cannot remove path";
     case (StoreErrors::kCannotMoveFile):
       return "Store: cannot move file";
-    case (StoreErrors::kNotFoundRequestedSectorType):
-      return "Store: Not found the requested type";
     default:
       return "Store: unknown error";
   }

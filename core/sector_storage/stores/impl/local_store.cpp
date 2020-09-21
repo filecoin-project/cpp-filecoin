@@ -51,7 +51,8 @@ namespace fc::sector_storage::stores {
       RegisteredProof seal_proof_type,
       SectorFileType existing,
       SectorFileType allocate,
-      bool can_seal) {
+      PathType path_type,
+      AcquireMode mode) {
     if ((existing & allocate) != 0) {
       return StoreErrors::kFindAndAllocate;
     }
@@ -65,7 +66,8 @@ namespace fc::sector_storage::stores {
         continue;
       }
 
-      auto storages_info_opt = index_->storageFindSector(sector, type, false);
+      auto storages_info_opt =
+          index_->storageFindSector(sector, type, boost::none);
 
       if (storages_info_opt.has_error()) {
         logger_->warn("Finding existing sector: "
@@ -93,12 +95,6 @@ namespace fc::sector_storage::stores {
         existing = static_cast<SectorFileType>(existing ^ type);
         break;
       }
-
-      OUTCOME_TRY(path, result.paths.getPathByType(type));
-
-      if (path.empty()) {
-        return StoreErrors::kNotFoundRequestedSectorType;
-      }
     }
 
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
@@ -107,7 +103,8 @@ namespace fc::sector_storage::stores {
       }
 
       OUTCOME_TRY(sectors_info,
-                  index_->storageBestAlloc(type, seal_proof_type, can_seal));
+                  index_->storageBestAlloc(
+                      type, seal_proof_type, path_type == PathType::kSealing));
 
       std::string best_path;
       StorageID best_storage;
@@ -119,6 +116,14 @@ namespace fc::sector_storage::stores {
         }
 
         if (path_iter->second.empty()) {
+          continue;
+        }
+
+        if (path_type == PathType::kSealing && !info.can_seal) {
+          continue;
+        }
+
+        if (path_type == PathType::kStorage && !info.can_store) {
           continue;
         }
 
@@ -149,52 +154,101 @@ namespace fc::sector_storage::stores {
       return StoreErrors::kRemoveSeveralFileTypes;
     }
 
-    OUTCOME_TRY(storages_info, index_->storageFindSector(sector, type, false));
+    OUTCOME_TRY(storages_info,
+                index_->storageFindSector(sector, type, boost::none));
 
     if (storages_info.empty()) {
       return StoreErrors::kNotFoundSector;
     }
 
     for (const auto &info : storages_info) {
-      auto path_iter = paths_.find(info.id);
-      if (path_iter == paths_.end()) {
-        continue;
-      }
-
-      if (path_iter->second.empty()) {
-        continue;
-      }
-
-      OUTCOME_TRY(index_->storageDropSector(info.id, sector, type));
-
-      boost::filesystem::path sector_path(path_iter->second);
-      sector_path /= toString(type);
-      sector_path /= primitives::sector_file::sectorName(sector);
-
-      logger_->info("Remove " + sector_path.string());
-
-      boost::system::error_code ec;
-      boost::filesystem::remove_all(sector_path, ec);
-      if (ec.failed()) {
-        logger_->error(ec.message());
-        return StoreErrors::kCannotRemoveSector;
-      }
+      OUTCOME_TRY(removeSector(sector, type, info.id));
     }
 
     return outcome::success();
   }
 
+  outcome::result<void> LocalStoreImpl::removeCopies(SectorId sector,
+                                                     SectorFileType type) {
+    if (type == SectorFileType::FTNone || ((type & (type - 1)) != 0)) {
+      return StoreErrors::kRemoveSeveralFileTypes;
+    }
+
+    OUTCOME_TRY(infos, index_->storageFindSector(sector, type, boost::none));
+
+    bool has_primary = false;
+    for (const auto &info : infos) {
+      if (info.is_primary) {
+        has_primary = true;
+        break;
+      }
+    }
+
+    if (!has_primary) {
+      logger_->warn(
+          "RemoveCopies: no primary copies of sector {} ({}), not removing "
+          "anything",
+          primitives::sector_file::sectorName(sector),
+          type);
+      return outcome::success();
+    }
+
+    for (const auto &info : infos) {
+      if (info.is_primary) {
+        continue;
+      }
+
+      OUTCOME_TRY(removeSector(sector, type, info.id));
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<void> LocalStoreImpl::removeSector(SectorId sector,
+                                                     SectorFileType type,
+                                                     const StorageID &storage) {
+    auto path_iter = paths_.find(storage);
+    if (path_iter == paths_.end()) {
+      return outcome::success();
+    }
+
+    if (path_iter->second.empty()) {
+      return outcome::success();
+    }
+
+    OUTCOME_TRY(index_->storageDropSector(storage, sector, type));
+
+    boost::filesystem::path sector_path(path_iter->second);
+    sector_path /= toString(type);
+    sector_path /= primitives::sector_file::sectorName(sector);
+
+    logger_->info("Remove " + sector_path.string());
+
+    boost::system::error_code ec;
+    boost::filesystem::remove_all(sector_path, ec);
+    if (ec.failed()) {
+      logger_->error(ec.message());
+    }
+    return outcome::success();
+  }
+
   outcome::result<void> LocalStoreImpl::moveStorage(
       SectorId sector, RegisteredProof seal_proof_type, SectorFileType types) {
-    OUTCOME_TRY(
-        dest,
-        acquireSector(
-            sector, seal_proof_type, SectorFileType::FTNone, types, false));
+    OUTCOME_TRY(dest,
+                acquireSector(sector,
+                              seal_proof_type,
+                              SectorFileType::FTNone,
+                              types,
+                              PathType::kStorage,
+                              AcquireMode::kMove));
 
-    OUTCOME_TRY(
-        src,
-        acquireSector(
-            sector, seal_proof_type, types, SectorFileType::FTNone, false));
+    OUTCOME_TRY(src,
+                acquireSector(sector,
+                              seal_proof_type,
+                              types,
+                              SectorFileType::FTNone,
+                              PathType::kStorage,
+                              AcquireMode::kMove));
 
     for (const auto &type : kSectorFileTypes) {
       if ((types & type) == 0) {
@@ -225,7 +279,8 @@ namespace fc::sector_storage::stores {
         return StoreErrors::kCannotMoveSector;
       }
 
-      OUTCOME_TRY(index_->storageDeclareSector(dest_storage_id, sector, type));
+      OUTCOME_TRY(
+          index_->storageDeclareSector(dest_storage_id, sector, type, true));
     }
 
     return outcome::success();
@@ -295,7 +350,8 @@ namespace fc::sector_storage::stores {
         OUTCOME_TRY(sector,
                     parseSectorId(dir_iter->path().filename().string()));
 
-        OUTCOME_TRY(index_->storageDeclareSector(meta.id, sector, type));
+        OUTCOME_TRY(index_->storageDeclareSector(
+            meta.id, sector, type, meta.can_store));
 
         ++dir_iter;
       }

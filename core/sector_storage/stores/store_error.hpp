@@ -18,7 +18,6 @@ namespace fc::sector_storage::stores {
     kCannotCreateDir,
     kDuplicateStorage,
     kNotFoundSector,
-    kCannotRemoveSector,
     kRemoveSeveralFileTypes,
     kCannotMoveSector,
     kCannotInitLogger,
@@ -31,9 +30,8 @@ namespace fc::sector_storage::stores {
     kUnableRemoteAcquireSector,
     kCannotOpenTempFile,
     kUnknownContentType,
-    kCannotRemoveOutputPath,
+    kCannotRemovePath,
     kCannotMoveFile,
-    kNotFoundRequestedSectorType,
   };
 }  // namespace fc::sector_storage::stores
 

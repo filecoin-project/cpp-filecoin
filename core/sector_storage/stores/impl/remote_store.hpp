@@ -17,18 +17,21 @@ namespace fc::sector_storage::stores {
 
   class RemoteStoreImpl : public RemoteStore {
    public:
-    RemoteStoreImpl(
-        std::shared_ptr<LocalStore> local,
-        std::unordered_map<HeaderName, HeaderValue> auth_headers);
+    RemoteStoreImpl(std::shared_ptr<LocalStore> local,
+                    std::unordered_map<HeaderName, HeaderValue> auth_headers);
 
     outcome::result<AcquireSectorResponse> acquireSector(
         SectorId sector,
         RegisteredProof seal_proof_type,
         SectorFileType existing,
         SectorFileType allocate,
-        bool can_seal) override;
+        PathType path_type,
+        AcquireMode mode) override;
 
     outcome::result<void> remove(SectorId sector, SectorFileType type) override;
+
+    outcome::result<void> removeCopies(SectorId sector,
+                                       SectorFileType type) override;
 
     outcome::result<void> moveStorage(SectorId sector,
                                       RegisteredProof seal_proof_type,
@@ -41,22 +44,17 @@ namespace fc::sector_storage::stores {
     std::shared_ptr<LocalStore> getLocalStore() const override;
 
    private:
-    struct RemoveAcquireSectorResponse {
-      std::string path;
-      StorageID storage_id;
-      std::string url;
-    };
-
-    outcome::result<RemoveAcquireSectorResponse> acquireFromRemote(
-        SectorId sector,
-        RegisteredProof seal_proof_type,
-        SectorFileType file_type,
-        bool can_seal);
+    outcome::result<std::string> acquireFromRemote(SectorId sector,
+                                                   SectorFileType file_type,
+                                                   const std::string &dest);
 
     outcome::result<void> fetch(const std::string &url,
                                 const std::string &output_path);
 
     outcome::result<void> deleteFromRemote(const std::string &url);
+
+    outcome::result<std::string> tempFetchDest(const std::string &dest,
+                                               bool allow_creation);
 
     std::shared_ptr<LocalStore> local_;
     std::shared_ptr<SectorIndex> sector_index_;

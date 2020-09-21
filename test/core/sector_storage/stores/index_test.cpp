@@ -262,11 +262,11 @@ TEST_F(SectorIndexTest, StorageDeclareSector) {
 
   EXPECT_OUTCOME_TRUE_1(
       sector_index_->storageAttach(storage_info, file_system_stat));
-  EXPECT_OUTCOME_TRUE_1(
-      sector_index_->storageDeclareSector(id, sector, SectorFileType::FTCache));
-  EXPECT_OUTCOME_TRUE(
-      storages,
-      sector_index_->storageFindSector(sector, SectorFileType::FTCache, false));
+  EXPECT_OUTCOME_TRUE_1(sector_index_->storageDeclareSector(
+      id, sector, SectorFileType::FTCache, false));
+  EXPECT_OUTCOME_TRUE(storages,
+                      sector_index_->storageFindSector(
+                          sector, SectorFileType::FTCache, boost::none));
   ASSERT_EQ(storages.size(), 1);
   ASSERT_EQ(storages[0].id, id);
 }
@@ -302,13 +302,13 @@ TEST_F(SectorIndexTest, StorageDropSector) {
 
   EXPECT_OUTCOME_TRUE_1(
       sector_index_->storageAttach(storage_info, file_system_stat));
-  EXPECT_OUTCOME_TRUE_1(
-      sector_index_->storageDeclareSector(id, sector, SectorFileType::FTCache));
+  EXPECT_OUTCOME_TRUE_1(sector_index_->storageDeclareSector(
+      id, sector, SectorFileType::FTCache, false));
   EXPECT_OUTCOME_TRUE_1(
       sector_index_->storageDropSector(id, sector, SectorFileType::FTCache));
-  EXPECT_OUTCOME_TRUE(
-      storages,
-      sector_index_->storageFindSector(sector, SectorFileType::FTCache, false));
+  EXPECT_OUTCOME_TRUE(storages,
+                      sector_index_->storageFindSector(
+                          sector, SectorFileType::FTCache, boost::none));
   ASSERT_TRUE(storages.empty());
 }
 
@@ -342,11 +342,11 @@ TEST_F(SectorIndexTest, StorageFindSector) {
 
   EXPECT_OUTCOME_TRUE_1(
       sector_index_->storageAttach(storage_info, file_system_stat));
-  EXPECT_OUTCOME_TRUE_1(
-      sector_index_->storageDeclareSector(id, sector, SectorFileType::FTCache));
-  EXPECT_OUTCOME_TRUE(
-      storages,
-      sector_index_->storageFindSector(sector, SectorFileType::FTCache, false));
+  EXPECT_OUTCOME_TRUE_1(sector_index_->storageDeclareSector(
+      id, sector, SectorFileType::FTCache, false));
+  EXPECT_OUTCOME_TRUE(storages,
+                      sector_index_->storageFindSector(
+                          sector, SectorFileType::FTCache, boost::none));
   ASSERT_FALSE(storages.empty());
   auto store = storages[0];
   ASSERT_FALSE(store.urls.empty());
@@ -367,12 +367,12 @@ TEST_F(SectorIndexTest, StorageFindSectorFetch) {
       .id = id,
       .urls = urls,
       .weight = 0,
-      .can_seal = false,
+      .can_seal = true,
       .can_store = false,
   };
   FsStat file_system_stat{
-      .capacity = 100,
-      .available = 100,
+      .capacity = 14336,
+      .available = 14336,
       .used = 0,
   };
 
@@ -385,7 +385,9 @@ TEST_F(SectorIndexTest, StorageFindSectorFetch) {
       sector_index_->storageAttach(storage_info, file_system_stat));
   EXPECT_OUTCOME_TRUE(
       storages,
-      sector_index_->storageFindSector(sector, SectorFileType::FTCache, true));
+      sector_index_->storageFindSector(sector,
+                                       SectorFileType::FTCache,
+                                       RegisteredProof::StackedDRG2KiBSeal));
   ASSERT_FALSE(storages.empty());
   auto store = storages[0];
   ASSERT_FALSE(store.urls.empty());

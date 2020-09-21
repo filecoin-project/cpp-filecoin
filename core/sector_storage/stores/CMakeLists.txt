@@ -13,6 +13,7 @@ target_link_libraries(sector_index
         outcome
         uri_parser
         Boost::filesystem
+        logger
         )
 
 add_library(store

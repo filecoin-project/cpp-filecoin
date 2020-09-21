@@ -29,9 +29,13 @@ namespace fc::sector_storage::stores {
         RegisteredProof seal_proof_type,
         SectorFileType existing,
         SectorFileType allocate,
-        bool can_seal) override;
+        PathType path_type,
+        AcquireMode mode) override;
 
     outcome::result<void> remove(SectorId sector, SectorFileType type) override;
+
+    outcome::result<void> removeCopies(SectorId sector,
+                                       SectorFileType type) override;
 
     outcome::result<void> moveStorage(SectorId sector,
                                       RegisteredProof seal_proof_type,
@@ -50,6 +54,10 @@ namespace fc::sector_storage::stores {
     LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
                    std::shared_ptr<SectorIndex> index,
                    gsl::span<const std::string> urls);
+
+    outcome::result<void> removeSector(SectorId sector,
+                                       SectorFileType type,
+                                       const StorageID &storage);
 
     std::shared_ptr<LocalStorage> storage_;
     std::shared_ptr<SectorIndex> index_;

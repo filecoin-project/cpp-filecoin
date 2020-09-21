@@ -25,6 +25,16 @@ namespace fc::sector_storage::stores {
     SectorPaths storages;
   };
 
+  enum PathType {
+    kStorage,
+    kSealing,
+  };
+
+  enum AcquireMode {
+    kMove,
+    kCopy,
+  };
+
   class Store {
    public:
     virtual ~Store() = default;
@@ -34,10 +44,18 @@ namespace fc::sector_storage::stores {
         RegisteredProof seal_proof_type,
         SectorFileType existing,
         SectorFileType allocate,
-        bool can_seal) = 0;
+        PathType path_type,
+        AcquireMode mode) = 0;
 
     virtual outcome::result<void> remove(SectorId sector,
                                          SectorFileType type) = 0;
+
+    /**
+     * @note like remove, but doesn't remove the primary sector copy, nor the
+     * last non-primary copy if there no primary copies
+     */
+    virtual outcome::result<void> removeCopies(SectorId sector,
+                                               SectorFileType type) = 0;
 
     virtual outcome::result<void> moveStorage(SectorId sector,
                                               RegisteredProof seal_proof_type,
