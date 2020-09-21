@@ -232,6 +232,7 @@ namespace fc::markets::storage::test {
             return MinerInfo{.owner = {},
                              .worker = miner_actor_address,
                              .control = {},
+                             .pending_worker_key = {},
                              .peer_id = {},
                              .multiaddrs = {},
                              .seal_proof_type = {},
