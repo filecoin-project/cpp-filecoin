@@ -22,6 +22,7 @@ namespace fc::api {
   using crypto::bls::BlsProvider;
   using drand::Beaconizer;
   using drand::DrandSchedule;
+  using pubsub::PubSub;
   using storage::blockchain::ChainStore;
   using storage::blockchain::MsgWaiter;
   using storage::keystore::KeyStore;
@@ -41,6 +42,7 @@ namespace fc::api {
                std::shared_ptr<MsgWaiter> msg_waiter,
                std::shared_ptr<Beaconizer> beaconizer,
                std::shared_ptr<DrandSchedule> drand_schedule,
+               std::shared_ptr<PubSub> pubsub,
                std::shared_ptr<KeyStore> key_store);
 }  // namespace fc::api
 

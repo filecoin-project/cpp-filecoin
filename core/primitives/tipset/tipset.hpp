@@ -57,6 +57,8 @@ namespace fc::primitives::tipset {
     outcome::result<void> visitMessages(
         IpldPtr ipld, const MessageVisitor::Visitor &visitor) const;
 
+    outcome::result<BigInt> nextBaseFee(IpldPtr ipld) const;
+
     outcome::result<Randomness> beaconRandomness(
         Ipld &ipld,
         DomainSeparationTag tag,

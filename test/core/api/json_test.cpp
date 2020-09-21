@@ -16,7 +16,6 @@ using fc::api::BigInt;
 using fc::api::BlockHeader;
 using fc::api::BlsSignature;
 using fc::api::Buffer;
-using fc::api::MsgWait;
 using fc::api::RleBitset;
 using fc::api::Secp256k1Signature;
 using fc::api::Signature;
@@ -108,55 +107,4 @@ TEST(ApiJsonTest, BigInt) {
   expectJson(BigInt{0}, "\"0\"");
   expectJson(BigInt{-1}, "\"-1\"");
   expectJson(BigInt{1}, "\"1\"");
-}
-
-TEST(ApiJsonTest, MsgWait) {
-  expectJson(
-      MsgWait{
-          {fc::vm::VMExitCode{1}, Buffer{"DEAD"_unhex}, 2},
-          {
-              {"010001020001"_cid},
-              {BlockHeader{
-                  Address::makeFromId(1),
-                  Ticket{Buffer{b96}},
-                  {3, fc::common::Buffer{"F00D"_unhex}},
-                  {fc::primitives::block::BeaconEntry{
-                      4,
-                      "F00D"_unhex,
-                  }},
-                  {fc::primitives::sector::PoStProof{
-                      fc::primitives::sector::RegisteredProof::
-                          StackedDRG2KiBSeal,
-                      "F00D"_unhex,
-                  }},
-                  {"010001020002"_cid},
-                  3,
-                  4,
-                  "010001020005"_cid,
-                  "010001020006"_cid,
-                  "010001020007"_cid,
-                  Signature{b65},
-                  8,
-                  Signature{Secp256k1Signature{b65}},
-                  9,
-                  10,
-              }},
-              3,
-          },
-      },
-      "{\"Receipt\":{\"ExitCode\":1,\"Return\":\"3q0=\",\"GasUsed\":2},"
-      "\"TipSet\":{\"Cids\":[{\"/"
-      "\":\"baeaacaqaae\"}],\"Blocks\":[{\"Miner\":\"t01\",\"Ticket\":{"
-      "\"VRFProof\":" J96
-      "},\"ElectionProof\":{\"WinCount\":3,\"VRFProof\":\"8A0=\"},"
-      "\"BeaconEntries\":[{"
-      "\"Round\":4,\"Data\":\"8A0=\"}],\"WinPoStProof\":[{\"RegisteredProof\":"
-      "0,\"ProofBytes\":\"8A0=\"}],\"Parents\":[{\"/"
-      "\":\"baeaacaqaai\"}],\"ParentWeight\":\"3\",\"Height\":4,"
-      "\"ParentStateRoot\":{\"/"
-      "\":\"baeaacaqaau\"},\"ParentMessageReceipts\":{\"/"
-      "\":\"baeaacaqaay\"},\"Messages\":{\"/"
-      "\":\"baeaacaqaa4\"},\"BLSAggregate\":{\"Type\":1,\"Data\":" J65
-      "},\"Timestamp\":8,\"BlockSig\":{\"Type\":1,\"Data\":" J65
-      "},\"ForkSignaling\":9,\"ParentBaseFee\":\"10\"}],\"Height\":3}}");
 }

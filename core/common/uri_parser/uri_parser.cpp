@@ -173,7 +173,7 @@ namespace fc::common {
       ss << '#' << _fragment;
     }
 
-    _thisAsString = std::move(ss.str());
+    _thisAsString = ss.str();
 
     return _thisAsString;
   }

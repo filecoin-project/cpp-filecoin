@@ -42,23 +42,27 @@ namespace fc::blocksync {
   CBOR_TUPLE(Request, blocks, depth, options)
 
   struct Response {
-    struct Tipset {
-      using Indices = std::vector<std::vector<size_t>>;
+    using Indices = std::vector<std::vector<size_t>>;
 
-      std::vector<BlockHeader> blocks;
+    struct Messages {
       std::vector<UnsignedMessage> bls_messages;
       Indices bls_indices;
       std::vector<SignedMessage> secp_messages;
       Indices secp_indices;
     };
 
+    struct Tipset {
+      std::vector<BlockHeader> blocks;
+      boost::optional<Messages> messages;
+    };
+
     std::vector<Tipset> chain;
     Error status;
     std::string message;
   };
-  CBOR_TUPLE(Response, chain, status, message)
-  CBOR_TUPLE(Response::Tipset,
-             blocks,
+  CBOR_TUPLE(Response, status, message, chain)
+  CBOR_TUPLE(Response::Tipset, blocks, messages)
+  CBOR_TUPLE(Response::Messages,
              bls_messages,
              bls_indices,
              secp_messages,
@@ -78,9 +82,12 @@ namespace fc::blocksync {
       }
       return true;
     }};
-    if (!safe(packed.bls_messages, packed.bls_indices)
-        || !safe(packed.secp_messages, packed.secp_indices)) {
-      return Error::kInconsistent;
+    auto &_msgs{packed.messages};
+    if (_msgs) {
+      if (!safe(_msgs->bls_messages, _msgs->bls_indices)
+          || !safe(_msgs->secp_messages, _msgs->secp_indices)) {
+        return Error::kInconsistent;
+      }
     }
     std::vector<BlockHeader> blocks;
     for (auto &block : packed.blocks) {
@@ -88,23 +95,27 @@ namespace fc::blocksync {
       blocks.push_back(std::move(block));
     }
     std::vector<CID> bls_cids, secp_cids;
-    for (auto &message : packed.bls_messages) {
-      OUTCOME_TRY(cid, ipld->setCbor(message));
-      bls_cids.push_back(std::move(cid));
-    }
-    for (auto &message : packed.secp_messages) {
-      OUTCOME_TRY(cid, ipld->setCbor(message));
-      secp_cids.push_back(std::move(cid));
+    if (_msgs) {
+      for (auto &message : _msgs->bls_messages) {
+        OUTCOME_TRY(cid, ipld->setCbor(message));
+        bls_cids.push_back(std::move(cid));
+      }
+      for (auto &message : _msgs->secp_messages) {
+        OUTCOME_TRY(cid, ipld->setCbor(message));
+        secp_cids.push_back(std::move(cid));
+      }
     }
     auto i{0};
     for (auto &block : blocks) {
       MsgMeta messages;
       ipld->load(messages);
-      for (auto &j : packed.bls_indices[i]) {
-        OUTCOME_TRY(messages.bls_messages.append(bls_cids[j]));
-      }
-      for (auto &j : packed.secp_indices[i]) {
-        OUTCOME_TRY(messages.secp_messages.append(secp_cids[j]));
+      if (_msgs) {
+        for (auto &j : _msgs->bls_indices[i]) {
+          OUTCOME_TRY(messages.bls_messages.append(bls_cids[j]));
+        }
+        for (auto &j : _msgs->secp_indices[i]) {
+          OUTCOME_TRY(messages.secp_messages.append(secp_cids[j]));
+        }
       }
       OUTCOME_TRY(cid, ipld->setCbor(messages));
       if (cid != block.messages) {
@@ -167,7 +178,7 @@ namespace fc::blocksync {
 
     IpldPtr &ipld;
     std::vector<T> &messages;
-    Response::Tipset::Indices &indices;
+    Response::Indices &indices;
     std::map<CID, size_t> visited{};
   };
 
@@ -178,17 +189,19 @@ namespace fc::blocksync {
     while (true) {
       Response::Tipset packed;
       if (request.options & Request::MESSAGES) {
+        Response::Messages msgs;
         MessageVisitor<UnsignedMessage> bls_visitor{
-            ipld, packed.bls_messages, packed.bls_indices};
+            ipld, msgs.bls_messages, msgs.bls_indices};
         MessageVisitor<SignedMessage> secp_visitor{
-            ipld, packed.secp_messages, packed.secp_indices};
+            ipld, msgs.secp_messages, msgs.secp_indices};
         for (auto &block : ts.blks) {
           OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
-          packed.bls_indices.emplace_back();
+          msgs.bls_indices.emplace_back();
           OUTCOME_TRY(meta.bls_messages.visit(bls_visitor));
-          packed.secp_indices.emplace_back();
+          msgs.secp_indices.emplace_back();
           OUTCOME_TRY(meta.secp_messages.visit(secp_visitor));
         }
+        packed.messages = std::move(msgs);
       }
       if (request.options & Request::BLOCKS) {
         packed.blocks = ts.blks;

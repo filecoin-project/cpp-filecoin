@@ -9,14 +9,17 @@
 #include "adt/address_key.hpp"
 #include "adt/multimap.hpp"
 #include "adt/uvarint_key.hpp"
+#include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
   using common::Buffer;
   using primitives::ChainEpoch;
+  using primitives::FilterEstimate;
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::address::Address;
+  using primitives::sector::SealVerifyInfo;
   using ChainEpochKeyer = adt::VarintKeyer;
 
   struct Claim {
@@ -43,13 +46,23 @@ namespace fc::vm::actor::builtin::storage_power {
     outcome::result<void> appendCronEvent(const ChainEpoch &epoch,
                                           const CronEvent &event);
 
-    StoragePower total_raw_power, total_qa_power;
+    StoragePower total_raw_power;
+    StoragePower total_raw_commited;
+    StoragePower total_qa_power;
+    StoragePower total_qa_commited;
     TokenAmount total_pledge;
+    StoragePower this_epoch_raw_power;
+    StoragePower this_epoch_qa_power;
+    TokenAmount this_epoch_pledge;
+    FilterEstimate this_epoch_qa_power_smoothed;
     size_t miner_count;
+    size_t num_miners_meeting_min_power;
     adt::Map<adt::Array<CronEvent>, ChainEpochKeyer> cron_event_queue;
+    ChainEpoch first_cron_epoch;
     ChainEpoch last_epoch_tick;
     adt::Map<Claim, adt::AddressKeyer> claims;
-    size_t num_miners_meeting_min_power;
+    boost::optional<adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer>>
+        proof_validation_batch;
   };
 
   using StoragePowerActorState = State;
@@ -57,13 +70,21 @@ namespace fc::vm::actor::builtin::storage_power {
 
   CBOR_TUPLE(StoragePowerActorState,
              total_raw_power,
+             total_raw_commited,
              total_qa_power,
+             total_qa_commited,
              total_pledge,
+             this_epoch_raw_power,
+             this_epoch_qa_power,
+             this_epoch_pledge,
+             this_epoch_qa_power_smoothed,
              miner_count,
+             num_miners_meeting_min_power,
              cron_event_queue,
+             first_cron_epoch,
              last_epoch_tick,
              claims,
-             num_miners_meeting_min_power)
+             proof_validation_batch)
 
 }  // namespace fc::vm::actor::builtin::storage_power
 
@@ -75,6 +96,9 @@ namespace fc {
                      const Visitor &visit) {
       visit(state.cron_event_queue);
       visit(state.claims);
+      if (state.proof_validation_batch) {
+        visit(*state.proof_validation_batch);
+      }
     }
   };
 }  // namespace fc

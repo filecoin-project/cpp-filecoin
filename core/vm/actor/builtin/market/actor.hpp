@@ -31,6 +31,17 @@ namespace fc::vm::actor::builtin::market {
   using primitives::piece::PaddedPieceSize;
   using primitives::sector::RegisteredProof;
 
+  struct CidKeyer {
+    using Key = CID;
+    static std::string encode(const Key &key) {
+      OUTCOME_EXCEPT(bytes, key.toBytes());
+      return {bytes.begin(), bytes.end()};
+    }
+    static outcome::result<Key> decode(const std::string &key) {
+      return CID::fromBytes(common::span::cbytes(key));
+    }
+  };
+
   struct DealProposal {
     inline TokenAmount clientBalanceRequirement() const {
       return client_collateral + getTotalStorageFee();
@@ -55,6 +66,7 @@ namespace fc::vm::actor::builtin::market {
     bool verified;
     Address client;
     Address provider;
+    std::string label;
     ChainEpoch start_epoch;
     ChainEpoch end_epoch;
     TokenAmount storage_price_per_epoch;
@@ -67,6 +79,7 @@ namespace fc::vm::actor::builtin::market {
              verified,
              client,
              provider,
+             label,
              start_epoch,
              end_epoch,
              storage_price_per_epoch,
@@ -95,6 +108,7 @@ namespace fc::vm::actor::builtin::market {
 
     adt::Array<DealProposal> proposals;
     adt::Array<DealState> states;
+    adt::Map<DealProposal, CidKeyer> pending_proposals;
     BalanceTable escrow_table;
     BalanceTable locked_table;
     DealId next_deal;
@@ -104,6 +118,7 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(State,
              proposals,
              states,
+             pending_proposals,
              escrow_table,
              locked_table,
              next_deal,
@@ -206,6 +221,7 @@ namespace fc {
                      const Visitor &visit) {
       visit(state.proposals);
       visit(state.states);
+      visit(state.pending_proposals);
       visit(state.escrow_table);
       visit(state.locked_table);
       visit(state.deals_by_epoch);

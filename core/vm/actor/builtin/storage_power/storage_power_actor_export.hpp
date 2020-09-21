@@ -6,7 +6,6 @@
 #ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_ACTOR_HPP
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_ACTOR_HPP
 
-#include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/actor_method.hpp"
@@ -26,7 +25,7 @@ namespace fc::vm::actor::builtin::storage_power {
     struct Params {
       Address owner, worker;
       RegisteredProof seal_proof_type;
-      PeerId peer_id{codec::cbor::kDefaultT<PeerId>()};
+      Buffer peer_id;
     };
 
     struct Result {
