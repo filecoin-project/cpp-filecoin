@@ -334,12 +334,17 @@ namespace fc::api {
       v = BigInt{AsString(j)};
     }
 
-    ENCODE(MinerInfo2) {
+    ENCODE(MinerInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "Owner", v.owner);
       Set(j, "Worker", v.worker);
       Set(j, "ControlAddresses", v.control);
-      Set(j, "PeerId", v.peer_id);
+      boost::optional<std::string> peer_id;
+      if (!v.peer_id.empty()) {
+        OUTCOME_EXCEPT(peer, PeerId::fromBytes(v.peer_id));
+        peer_id = peer.toBase58();
+      }
+      Set(j, "PeerId", peer_id);
       Set(j, "Multiaddrs", v.multiaddrs);
       Set(j, "SealProofType", common::to_int(v.seal_proof_type));
       Set(j, "SectorSize", v.sector_size);

@@ -655,25 +655,11 @@ namespace fc::api {
           }
           return faults;
         }},
-        .StateMinerInfo = {[=](auto &address, auto &tipset_key)
-                               -> outcome::result<MinerInfo2> {
+        .StateMinerInfo = {[=](auto &address,
+                               auto &tipset_key) -> outcome::result<MinerInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
-          OUTCOME_TRY(minfo, miner_state.info.get());
-          MinerInfo2 info;
-          info.owner = minfo.owner;
-          info.worker = minfo.worker;
-          info.control = minfo.control;
-          auto peer_id{PeerId::fromBytes(minfo.peer_id)};
-          if (peer_id) {
-            info.peer_id = std::move(peer_id.value());
-          }
-          info.multiaddrs = minfo.multiaddrs;
-          info.seal_proof_type = minfo.seal_proof_type;
-          info.sector_size = minfo.sector_size;
-          info.window_post_partition_sectors =
-              minfo.window_post_partition_sectors;
-          return info;
+          return miner_state.info.get();
         }},
         .StateMinerPartitions =
             {[=](auto &miner,

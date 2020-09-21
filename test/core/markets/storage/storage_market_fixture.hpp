@@ -67,11 +67,11 @@ namespace fc::markets::storage::test {
   using provider::StorageProviderImpl;
   using vm::VMExitCode;
   using vm::actor::builtin::market::PublishStorageDeals;
+  using vm::actor::builtin::miner::MinerInfo;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::runtime::MessageReceipt;
   using BlsKeyPair = fc::crypto::bls::KeyPair;
-  using MinerInfo = api::MinerInfo2;
 
   /** Shared resources */
   static std::shared_ptr<libp2p::Host> host;
@@ -232,7 +232,7 @@ namespace fc::markets::storage::test {
             return MinerInfo{.owner = {},
                              .worker = miner_actor_address,
                              .control = {},
-                             .peer_id = fc::codec::cbor::kDefaultT<PeerId>(),
+                             .peer_id = {},
                              .multiaddrs = {},
                              .seal_proof_type = {},
                              .sector_size = {},

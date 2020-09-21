@@ -76,6 +76,7 @@ namespace fc::api {
   using vm::actor::builtin::market::StorageParticipantBalance;
   using vm::actor::builtin::miner::DeadlineInfo;
   using vm::actor::builtin::miner::Deadlines;
+  using vm::actor::builtin::miner::MinerInfo;
   using vm::actor::builtin::miner::Partition;
   using vm::actor::builtin::miner::SectorOnChainInfo;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
@@ -272,15 +273,6 @@ namespace fc::api {
     uint64_t partition;
   };
 
-  struct MinerInfo2 {
-    Address owner, worker;
-    std::vector<Address> control;
-    boost::optional<PeerId> peer_id;
-    std::vector<Multiaddress> multiaddrs;
-    RegisteredProof seal_proof_type;
-    SectorSize sector_size;
-    uint64_t window_post_partition_sectors;
-  };
 
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
@@ -385,7 +377,7 @@ namespace fc::api {
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
-    API_METHOD(StateMinerInfo, MinerInfo2, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
     API_METHOD(StateMinerPartitions,
                std::vector<Partition>,
                const Address &,
