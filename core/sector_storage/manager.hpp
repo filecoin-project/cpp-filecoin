@@ -63,8 +63,10 @@ namespace fc::sector_storage {
         const Commit1Output &commit_1_output,
         uint64_t priority) = 0;
 
-    virtual outcome::result<void> finalizeSector(const SectorId &sector,
-                                                 uint64_t priority) = 0;
+    virtual outcome::result<void> finalizeSector(
+        const SectorId &sector,
+        const gsl::span<const Range> &keep_unsealed,
+        uint64_t priority) = 0;
 
     virtual outcome::result<void> remove(const SectorId &sector) = 0;
 
@@ -80,6 +82,8 @@ namespace fc::sector_storage {
   enum class ManagerErrors {
     kCannotGetHomeDir = 1,
     kSomeSectorSkipped,
+    kCannotLock,
+    kReadOnly,
   };
 }  // namespace fc::sector_storage
 
