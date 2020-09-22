@@ -6,31 +6,9 @@
 #include "sector_storage/impl/existing_selector.hpp"
 
 #include <unordered_set>
+#include "primitives/types.hpp"
 
 namespace fc::sector_storage {
-  outcome::result<std::unique_ptr<WorkerSelector>>
-  ExistingSelector::newExistingSelector(
-      const std::shared_ptr<stores::SectorIndex> &index,
-      const SectorId &sector,
-      SectorFileType allocate,
-      bool allow_fetch) {
-    OUTCOME_TRY(best, index->storageFindSector(sector, allocate, allow_fetch));
-
-    struct make_unique_enabler : public ExistingSelector {
-      explicit make_unique_enabler(std::set<primitives::StorageID> best)
-          : ExistingSelector{std::move(best)} {};
-    };
-
-    std::set<primitives::StorageID> storages;
-    for (const auto &storage : best) {
-      storages.insert(storage.id);
-    }
-
-    std::unique_ptr<ExistingSelector> selector =
-        std::make_unique<make_unique_enabler>(storages);
-
-    return std::move(selector);
-  }
 
   outcome::result<bool> ExistingSelector::is_satisfying(
       const TaskType &task,
@@ -43,8 +21,19 @@ namespace fc::sector_storage {
 
     OUTCOME_TRY(paths, worker->worker->getAccessiblePaths());
 
+    std::set<primitives::StorageID> storages = {};
     for (const auto &path : paths) {
-      if (best_.find(path.id) != best_.end()) {
+      storages.insert(path.id);
+    }
+
+    OUTCOME_TRY(best,
+                index_->storageFindSector(
+                    sector_,
+                    allocate_,
+                    ((allow_fetch_) ? boost::make_optional(seal_proof_type)
+                                    : boost::none)));
+    for (const auto &info : best) {
+      if (storages.find(info.id) != storages.end()) {
         return true;
       }
     }
@@ -60,6 +49,12 @@ namespace fc::sector_storage {
            < current_best->active.utilization(current_best->info.resources);
   }
 
-  ExistingSelector::ExistingSelector(std::set<primitives::StorageID> best)
-      : best_(std::move(best)) {}
+  ExistingSelector::ExistingSelector(std::shared_ptr<stores::SectorIndex> index,
+                                     SectorId sector,
+                                     SectorFileType allocate,
+                                     bool allow_fetch)
+      : index_(std::move(index)),
+        sector_(sector),
+        allocate_(allocate),
+        allow_fetch_(allow_fetch) {}
 }  // namespace fc::sector_storage

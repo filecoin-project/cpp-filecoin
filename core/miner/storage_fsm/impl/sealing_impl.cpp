@@ -1123,8 +1123,9 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     // TODO: Maybe wait for some finality
 
-    auto maybe_error = sealer_->finalizeSector(minerSector(info->sector_number),
-                                               info->sealingPriority());
+    // TODO(artyom-yurin): [FIL-245] add Keep Unsealed
+    auto maybe_error = sealer_->finalizeSector(
+        minerSector(info->sector_number), {}, info->sealingPriority());
     if (maybe_error.has_error()) {
       logger_->error("finalize sector: {}", maybe_error.error().message());
       return fsm_->send(info, std::make_shared<SectorFinalizeFailedEvent>());

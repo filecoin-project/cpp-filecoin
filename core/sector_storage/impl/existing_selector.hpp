@@ -13,11 +13,10 @@
 namespace fc::sector_storage {
   class ExistingSelector : public WorkerSelector {
    public:
-    static outcome::result<std::unique_ptr<WorkerSelector>> newExistingSelector(
-        const std::shared_ptr<stores::SectorIndex> &index,
-        const SectorId &sector,
-        SectorFileType allocate,
-        bool allow_fetch);
+    ExistingSelector(std::shared_ptr<stores::SectorIndex> index,
+                     SectorId sector,
+                     SectorFileType allocate,
+                     bool allow_fetch);
 
     outcome::result<bool> is_satisfying(
         const TaskType &task,
@@ -30,9 +29,10 @@ namespace fc::sector_storage {
         const std::shared_ptr<WorkerHandle> &current_best) override;
 
    private:
-    explicit ExistingSelector(std::set<primitives::StorageID> best);
-
-    std::set<primitives::StorageID> best_;
+    std::shared_ptr<stores::SectorIndex> index_;
+    SectorId sector_;
+    SectorFileType allocate_;
+    bool allow_fetch_;
   };
 }  // namespace fc::sector_storage
 

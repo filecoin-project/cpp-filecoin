@@ -77,8 +77,10 @@ namespace fc::sector_storage {
                                        const Commit1Output &commit_1_output,
                                        uint64_t priority) override;
 
-    outcome::result<void> finalizeSector(const SectorId &sector,
-                                         uint64_t priority) override;
+    outcome::result<void> finalizeSector(
+        const SectorId &sector,
+        const gsl::span<const Range> &keep_unsealed,
+        uint64_t priority) override;
 
     outcome::result<void> remove(const SectorId &sector) override;
 
@@ -106,9 +108,20 @@ namespace fc::sector_storage {
                 std::shared_ptr<stores::RemoteStore> store,
                 std::shared_ptr<Scheduler> scheduler);
 
+    struct Response {
+      stores::SectorPaths paths;
+      std::unique_ptr<stores::Lock> lock;
+    };
+
+    outcome::result<Response> acquireSector(SectorId sector_id,
+                                            SectorFileType exisitng,
+                                            SectorFileType allocate,
+                                            PathType path);
+
     struct PubToPrivateResponse {
       proofs::SortedPrivateSectorInfo private_info;
       std::vector<SectorId> skipped;
+      std::vector<std::unique_ptr<stores::Lock>> locks;
     };
 
     outcome::result<PubToPrivateResponse> publicSectorToPrivate(
