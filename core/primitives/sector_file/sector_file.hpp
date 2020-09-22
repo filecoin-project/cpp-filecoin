@@ -55,7 +55,7 @@ namespace fc::primitives::sector_file {
 
     void setPathByType(const SectorFileType &file_type,
                        const std::string &path);
-    outcome::result<std::string> getPathByType(const SectorFileType &file_type);
+    outcome::result<std::string> getPathByType(const SectorFileType &file_type) const;
   };
 
   enum class SectorFileTypeErrors {

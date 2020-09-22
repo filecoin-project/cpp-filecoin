@@ -13,6 +13,7 @@
 #include "primitives/sector/sector.hpp"
 #include "primitives/sector_file/sector_file.hpp"
 #include "proofs/proofs.hpp"
+#include "sector_storage/stores/store.hpp"
 
 namespace fc::sector_storage {
   using fc::primitives::piece::PieceInfo;
@@ -28,6 +29,12 @@ namespace fc::sector_storage {
   using fc::primitives::sector::InteractiveRandomness;
   using fc::primitives::sector::Proof;
   using fc::primitives::sector::SealRandomness;
+  using stores::AcquireMode;
+  using stores::PathType;
+
+  struct Range{
+
+  };
 
   class Worker {
    public:
@@ -37,7 +44,8 @@ namespace fc::sector_storage {
 
     virtual outcome::result<void> fetch(const SectorId &sector,
                                         const SectorFileType &file_type,
-                                        bool can_seal) = 0;
+                                        PathType path_type,
+                                        AcquireMode mode) = 0;
 
     virtual outcome::result<void> unsealPiece(const SectorId &sector,
                                               UnpaddedByteIndex offset,
@@ -80,7 +88,8 @@ namespace fc::sector_storage {
     virtual outcome::result<Proof> sealCommit2(
         const SectorId &sector, const Commit1Output &commit_1_output) = 0;
 
-    virtual outcome::result<void> finalizeSector(const SectorId &sector) = 0;
+    virtual outcome::result<void> finalizeSector(const SectorId &sector,
+            const gsl::span<const Range> &keep_unsealed) = 0;
 
     virtual outcome::result<void> remove(const SectorId &sector) = 0;
 
@@ -103,6 +112,7 @@ namespace fc::sector_storage {
     kCannotOpenMemInfoFile,
     kCannotRemoveSector,
     kUnsupportedPlatform,
+    kOutOfBound,
   };
 }  // namespace fc::sector_storage
 

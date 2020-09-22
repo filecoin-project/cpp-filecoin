@@ -22,10 +22,11 @@ namespace fc::sector_storage::stores {
     MOCK_METHOD2(storageReportHealth,
                  outcome::result<void>(const StorageID &storage_id,
                                        const HealthReport &report));
-    MOCK_METHOD3(storageDeclareSector,
+    MOCK_METHOD4(storageDeclareSector,
                  outcome::result<void>(const StorageID &storage_id,
                                        const SectorId &sector,
-                                       const SectorFileType &file_type));
+                                       const SectorFileType &file_type,
+                                       bool primary));
 
     MOCK_METHOD3(storageDropSector,
                  outcome::result<void>(const StorageID &storage_id,
@@ -36,13 +37,13 @@ namespace fc::sector_storage::stores {
                  outcome::result<std::vector<StorageInfo>>(
                      const SectorId &sector,
                      const SectorFileType &file_type,
-                     bool allow_fetch));
+                     boost::optional<RegisteredProof> fetch_seal_proof_type));
 
     MOCK_METHOD3(storageBestAlloc,
                  outcome::result<std::vector<StorageInfo>>(
                      const SectorFileType &allocate,
                      RegisteredProof seal_proof_type,
-                     bool sealing));
+                     bool sealing_mode));
 
     MOCK_METHOD3(storageLock,
                  outcome::result<std::unique_ptr<Lock>>(const SectorId &,

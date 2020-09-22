@@ -58,7 +58,7 @@ namespace fc::primitives::sector_file {
   }
 
   outcome::result<std::string> SectorPaths::getPathByType(
-      const SectorFileType &file_type) {
+      const SectorFileType &file_type) const {
     switch (file_type) {
       case FTCache:
         return cache;

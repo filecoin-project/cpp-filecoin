@@ -18,14 +18,17 @@ namespace fc::sector_storage::stores {
     MOCK_METHOD0(getAccessiblePaths,
                  outcome::result<std::vector<primitives::StoragePath>>());
 
-    MOCK_METHOD5(acquireSector,
+    MOCK_METHOD6(acquireSector,
                  outcome::result<AcquireSectorResponse>(SectorId,
                                                         RegisteredProof,
                                                         SectorFileType,
                                                         SectorFileType,
-                                                        bool));
+                                                        PathType path_type,
+                                                        AcquireMode mode));
 
     MOCK_METHOD2(remove, outcome::result<void>(SectorId, SectorFileType));
+
+    MOCK_METHOD2(removeCopies, outcome::result<void>(SectorId, SectorFileType));
 
     MOCK_METHOD3(moveStorage,
                  outcome::result<void>(SectorId,
