@@ -7,20 +7,24 @@
 #define FILECOIN_CORE_STORAGE_REPOSITORY_HPP
 
 #include "common/outcome.hpp"
+#include "boost/filesystem.hpp"
 #include "storage/config/config.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/keystore/keystore.hpp"
+#include "sector_storage/stores/storage.hpp"
 
 namespace fc::storage::repository {
 
   using fc::storage::config::Config;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::keystore::KeyStore;
+  using fc::sector_storage::stores::LocalStorage;
+  using fc::sector_storage::stores::StorageConfig;
 
   /**
    * @brief Class represents all persistent data on node
    */
-  class Repository {
+  class Repository :  public LocalStorage {
    public:
     using Version = unsigned int;
 
@@ -62,6 +66,8 @@ namespace fc::storage::repository {
      * @return error code in case of failure
      */
     outcome::result<void> loadConfig(const std::string &filename);
+    outcome::result<StorageConfig> storageFromFile(const boost::filesystem::path& path);
+    outcome::result<void> writeStorage(const boost::filesystem::path& path, StorageConfig config);
 
    private:
     std::shared_ptr<IpfsDatastore> ipld_store_;

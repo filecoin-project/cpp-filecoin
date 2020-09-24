@@ -9,7 +9,7 @@
 #include "storage/repository/repository.hpp"
 
 namespace fc::storage::repository {
-
+  using sector_storage::stores::StorageConfig;
   using Version = Repository::Version;
 
   static constexpr Version kInMemoryRepositoryVersion = 1;
@@ -19,6 +19,7 @@ namespace fc::storage::repository {
    */
   class InMemoryRepository : public Repository {
    public:
+
     InMemoryRepository();
 
     /**
@@ -31,6 +32,16 @@ namespace fc::storage::repository {
 
     /** @copydoc Repository::getVersion() */
     outcome::result<Version> getVersion() const override;
+    outcome::result<primitives::FsStat> getStat(const std::string &path) override;
+    outcome::result<StorageConfig> getStorage() override;
+    outcome::result<void> setStorage(std::function<void(StorageConfig &)> action) override;
+    outcome::result<boost::filesystem::path> path();
+   private:
+    std::mutex storage_mutex_;
+    StorageConfig storageConfig_;
+    boost::filesystem::path tempDir;
+
+    outcome::result<StorageConfig> nonBlockGetStorage();
   };
 
 }  // namespace fc::storage::repository

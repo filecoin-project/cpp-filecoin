@@ -13,6 +13,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::repository, RepositoryError, e) {
       return "RepositoryError: wrong version";
     case RepositoryError::kOpenFileError:
       return "RepositoryError: cannot open file";
+    case RepositoryError::kInvalidStorageConfig:
+      return "RepositoryError: can not open or parse the storage config";
     default:
       return "RepositoryError: unknown error";
   }
