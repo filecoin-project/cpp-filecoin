@@ -28,7 +28,7 @@ class InMemoryRepositoryTest : public test::BaseFS_Test {
   }
 };
 
-TEST_F(InMemoryRepositoryTest, getConfigTest) {
+TEST_F(InMemoryRepositoryTest, GetStorage) {
   InMemoryRepository repository;
   auto config_path = fs::canonical(createFile("storage.json")).string();
   std::ofstream config_file(config_path);
@@ -49,7 +49,7 @@ TEST_F(InMemoryRepositoryTest, getConfigTest) {
   ASSERT_EQ(config.storage_paths, paths);
 }
 
-TEST_F(InMemoryRepositoryTest, setConfigTest) {
+TEST_F(InMemoryRepositoryTest, SetStorage) {
   InMemoryRepository repository;
   auto config_path = fs::canonical(createFile("storage.json")).string();
   std::ofstream config_file(config_path);
