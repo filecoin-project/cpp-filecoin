@@ -35,7 +35,7 @@ namespace fc::primitives::sector_file {
         return SectorFileTypeErrors::kInvalidSectorFileType;
       }
 
-      result += overhead_iter->second * sector_size / 10;
+      result += overhead_iter->second * sector_size / kOverheadDenominator;
     }
     return result;
   }

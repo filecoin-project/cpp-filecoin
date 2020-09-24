@@ -179,8 +179,8 @@ TEST_F(SectorIndexTest, BestAllocation) {
       .can_store = true,
   };
   FsStat file_system_stat1{
-      .capacity = 7 * 2048,
-      .available = 7 * 2048,
+      .capacity = 28876,
+      .available = 28876,
       .reserved = 0,
   };
 
@@ -213,8 +213,8 @@ TEST_F(SectorIndexTest, BestAllocation) {
       .can_store = true,
   };
   FsStat file_system_stat3{
-      .capacity = 8 * 2048,
-      .available = 8 * 2048,
+      .capacity = 30000,
+      .available = 30000,
       .reserved = 0,
   };
 
@@ -371,8 +371,8 @@ TEST_F(SectorIndexTest, StorageFindSectorFetch) {
       .can_store = false,
   };
   FsStat file_system_stat{
-      .capacity = 14336,
-      .available = 14336,
+      .capacity = 28876,
+      .available = 28876,
       .reserved = 0,
   };
 

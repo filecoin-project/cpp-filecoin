@@ -313,6 +313,16 @@ TEST_F(LocalWorkerTest, Sealer) {
   ASSERT_TRUE(boost::filesystem::create_directory(
       base_path / toString(SectorFileType::FTCache)));
 
+  bool is_storage_clear = false;
+  EXPECT_CALL(*local_store_,
+              reserve(RegisteredProof::StackedDRG2KiBSeal,
+                      static_cast<SectorFileType>(SectorFileType::FTCache
+                                                  | SectorFileType::FTSealed),
+                      _,
+                      PathType::kSealing))
+      .WillOnce(testing::Return(
+          fc::outcome::success([&]() { is_storage_clear = true; })));
+
   EXPECT_CALL(
       *sector_index_,
       storageDeclareSector(
@@ -457,6 +467,8 @@ TEST_F(LocalWorkerTest, Sealer) {
     read(piece[0], &piece_ch, 1);
     ASSERT_EQ(original_ch, piece_ch);
   }
+
+  ASSERT_TRUE(is_storage_clear);
 }
 
 /**
