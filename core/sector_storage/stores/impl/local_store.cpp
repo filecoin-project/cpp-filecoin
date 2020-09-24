@@ -438,16 +438,17 @@ namespace fc::sector_storage::stores {
                 primitives::sector::getSectorSize(seal_proof_type));
 
     std::unique_lock lock(mutex_);
-    std::function<void()> release_function;
-
-    std::function<void()> global_release_function = [&]() {
-      lock.unlock();
-      release_function();
+    std::vector<std::pair<std::shared_ptr<Path>, int64_t>> items;
+    auto release_function = [](auto &items) {
+      for (auto &[path, overhead] : items) {
+        path->reserved -= overhead;
+      }
     };
 
     auto _ = gsl::finally([&]() {
-      if (global_release_function) {
-        global_release_function();
+      lock.unlock();
+      if (!items.empty()) {
+        release_function(items);
       }
     });
 
@@ -477,21 +478,12 @@ namespace fc::sector_storage::stores {
 
       path_iter->second->reserved += overhead;
 
-      release_function = [prev_release = std::move(release_function),
-                          this,
-                          path = path_iter->second,
-                          overhead]() {
-        prev_release();
-
-        std::lock_guard lock(mutex_);
-
-        path->reserved -= overhead;
-      };
+      items.emplace_back(path_iter->second, overhead);
     }
 
-    global_release_function = {};
-
-    return std::move(release_function);
+    return [clear = std::move(release_function), items = std::move(items)]() {
+      clear(items);
+    };
   }
 
   std::string LocalStoreImpl::Path::sectorPath(const SectorId &sid,

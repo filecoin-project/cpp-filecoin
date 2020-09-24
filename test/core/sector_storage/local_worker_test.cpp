@@ -263,6 +263,16 @@ TEST_F(LocalWorkerTest, Sealer) {
                             PathType::kSealing,
                             AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
+
+  bool is_storage_clear_unseal_a = false;
+  EXPECT_CALL(*local_store_,
+              reserve(RegisteredProof::StackedDRG2KiBSeal,
+                      SectorFileType::FTUnsealed,
+                      _,
+                      PathType::kSealing))
+      .WillOnce(testing::Return(
+          fc::outcome::success([&]() { is_storage_clear_unseal_a = true; })));
+
   EXPECT_CALL(*sector_index_,
               storageDeclareSector(response.storages.unsealed,
                                    sector,
@@ -281,6 +291,15 @@ TEST_F(LocalWorkerTest, Sealer) {
                             PathType::kSealing,
                             AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
+
+  bool is_storage_clear_unseal_b = false;
+  EXPECT_CALL(*local_store_,
+              reserve(RegisteredProof::StackedDRG2KiBSeal,
+                      SectorFileType::FTNone,
+                      _,
+                      PathType::kSealing))
+      .WillOnce(testing::Return(
+          fc::outcome::success([&]() { is_storage_clear_unseal_b = true; })));
 
   EXPECT_OUTCOME_TRUE(b_info,
                       local_worker_->addPiece(sector,
@@ -469,6 +488,8 @@ TEST_F(LocalWorkerTest, Sealer) {
   }
 
   ASSERT_TRUE(is_storage_clear);
+  ASSERT_TRUE(is_storage_clear_unseal_a);
+  ASSERT_TRUE(is_storage_clear_unseal_b);
 }
 
 /**
