@@ -27,13 +27,18 @@ namespace fc::primitives::sector_file {
       SectorFileType::FTSealed,
       SectorFileType::FTCache};
 
+  constexpr int64_t kOverheadDenominator = 10;
+
   // 10x overheads
-  const std::unordered_map<SectorFileType, int> kOverheadSeal{
-      {SectorFileType::FTUnsealed, 10},
-      {SectorFileType::FTSealed, 10},
-      {SectorFileType::FTCache,
-       70}  // TODO(artyom-yurin): [FIL-199] confirm for 32G
-  };
+  const std::unordered_map<SectorFileType, int64_t> kOverheadSeal{
+      {SectorFileType::FTUnsealed, kOverheadDenominator},
+      {SectorFileType::FTSealed, kOverheadDenominator},
+      {SectorFileType::FTCache, 141}};
+
+  const std::unordered_map<SectorFileType, int64_t> kOverheadFinalized{
+      {SectorFileType::FTUnsealed, kOverheadDenominator},
+      {SectorFileType::FTSealed, kOverheadDenominator},
+      {SectorFileType::FTCache, 2}};
 
   std::string toString(const SectorFileType &file_type);
   /**
@@ -55,7 +60,8 @@ namespace fc::primitives::sector_file {
 
     void setPathByType(const SectorFileType &file_type,
                        const std::string &path);
-    outcome::result<std::string> getPathByType(const SectorFileType &file_type) const;
+    outcome::result<std::string> getPathByType(
+        const SectorFileType &file_type) const;
   };
 
   enum class SectorFileTypeErrors {

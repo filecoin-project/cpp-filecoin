@@ -237,7 +237,8 @@ namespace fc::sector_storage::stores {
           continue;
         }
 
-        if (required_space > storage_info.fs_stat.available) {
+        if (required_space
+            > static_cast<uint64_t>(storage_info.fs_stat.available)) {
           logger_->debug(
               "not selecting on {}, out of space (available: {}, need: {})",
               storage_info.info.id,
@@ -302,7 +303,7 @@ namespace fc::sector_storage::stores {
         continue;
       }
 
-      if (req_space > storage.fs_stat.available) {
+      if (req_space > static_cast<uint64_t>(storage.fs_stat.available)) {
         continue;
       }
 

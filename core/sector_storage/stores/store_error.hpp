@@ -32,6 +32,7 @@ namespace fc::sector_storage::stores {
     kUnknownContentType,
     kCannotRemovePath,
     kCannotMoveFile,
+    kCannotReserve,
   };
 }  // namespace fc::sector_storage::stores
 

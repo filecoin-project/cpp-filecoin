@@ -36,6 +36,7 @@ using fc::primitives::sector_file::SectorFileType;
 using fc::sector_storage::stores::AcquireMode;
 using fc::sector_storage::stores::AcquireSectorResponse;
 using fc::sector_storage::stores::PathType;
+using testing::_;
 
 class LocalWorkerTest : public test::BaseFS_Test {
  public:
@@ -150,6 +151,15 @@ TEST_F(LocalWorkerTest, PreCommit_MatchSumError) {
   EXPECT_CALL(*store_, remove(sector, SectorFileType::FTCache))
       .WillOnce(testing::Return(fc::outcome::success()));
 
+  bool is_storage_clear = false;
+  EXPECT_CALL(*local_store_,
+              reserve(RegisteredProof::StackedDRG2KiBSeal,
+                      static_cast<SectorFileType>(SectorFileType::FTCache
+                                                  | SectorFileType::FTSealed),
+                      _,
+                      PathType::kSealing))
+      .WillOnce(testing::Return(
+          fc::outcome::success([&]() { is_storage_clear = true; })));
 
   EXPECT_CALL(
       *sector_index_,
@@ -182,6 +192,8 @@ TEST_F(LocalWorkerTest, PreCommit_MatchSumError) {
   EXPECT_OUTCOME_ERROR(
       fc::sector_storage::WorkerErrors::kPiecesDoNotMatchSectorSize,
       local_worker_->sealPreCommit1(sector, ticket, {}));
+
+  ASSERT_TRUE(is_storage_clear);
 }
 
 /**

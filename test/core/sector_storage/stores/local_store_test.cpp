@@ -199,7 +199,7 @@ TEST_F(LocalStoreTest, AcquireSectorAllocateSuccess) {
   FsStat stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   createStorage(storage_path, storage_meta, stat);
@@ -265,7 +265,7 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
   FsStat stat{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   createStorage(storage_path, storage_meta, stat);
@@ -332,7 +332,7 @@ TEST_F(LocalStoreTest, getFSStatSuccess) {
   FsStat res_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   createStorage(storage_path, storage_meta, res_stat);
@@ -380,7 +380,7 @@ TEST_F(LocalStoreTest, openPathExistingSector) {
   FsStat stat{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -443,7 +443,7 @@ TEST_F(LocalStoreTest, openPathInvalidSectorName) {
   FsStat stat{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   std::string sector_file =
@@ -490,7 +490,7 @@ TEST_F(LocalStoreTest, openPathDuplicateStorage) {
   FsStat stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   createStorage(storage_path, storage_meta, stat);
@@ -606,7 +606,7 @@ TEST_F(LocalStoreTest, removeSuccess) {
   FsStat stat{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -682,7 +682,7 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
   FsStat stat{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -731,7 +731,7 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
   FsStat stat2{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   createStorage(storage_path_2.string(), storage_meta2, stat2);

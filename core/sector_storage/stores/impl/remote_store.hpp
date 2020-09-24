@@ -53,9 +53,6 @@ namespace fc::sector_storage::stores {
 
     outcome::result<void> deleteFromRemote(const std::string &url);
 
-    outcome::result<std::string> tempFetchDest(const std::string &dest,
-                                               bool allow_creation);
-
     std::shared_ptr<LocalStore> local_;
     std::shared_ptr<SectorIndex> sector_index_;
 

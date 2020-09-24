@@ -12,6 +12,7 @@
 #include "api/rpc/json.hpp"
 #include "common/tarutil.hpp"
 #include "common/uri_parser/uri_parser.hpp"
+#include "sector_storage/stores/impl/util.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fs = boost::filesystem;
@@ -102,8 +103,12 @@ namespace fc::sector_storage::stores {
                                       path_type,
                                       mode));
 
-    // TODO: overhead table
-    // TODO: reserve
+    OUTCOME_TRY(release_storage,
+                local_->reserve(seal_proof_type,
+                                static_cast<SectorFileType>(to_fetch),
+                                additional_paths.storages,
+                                path_type));
+    auto _1 = gsl::finally([&]() { release_storage(); });
 
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
       if ((type & existing) == 0) {
@@ -262,22 +267,6 @@ namespace fc::sector_storage::stores {
     }
 
     return api::decode<FsStat>(j_file);
-  }
-
-  outcome::result<std::string> RemoteStoreImpl::tempFetchDest(
-      const std::string &dest, bool allow_creation) {
-    static std::string kFetchTempName = "fetching";
-    fs::path dest_path(dest);
-    auto temp_dir = dest_path.parent_path() / kFetchTempName;
-    if (allow_creation) {
-      boost::system::error_code ec;
-      fs::create_directories(temp_dir, ec);
-      if (ec.failed()) {
-        logger_->error("can't create temp dir: {}", ec.message());
-        return StoreErrors::kCannotCreateDir;
-      }
-    }
-    return (temp_dir / dest_path.filename()).string();
   }
 
   outcome::result<std::string> RemoteStoreImpl::acquireFromRemote(

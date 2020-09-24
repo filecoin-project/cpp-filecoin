@@ -52,6 +52,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage::stores, StoreErrors, e) {
       return "Store: cannot remove path";
     case (StoreErrors::kCannotMoveFile):
       return "Store: cannot move file";
+    case (StoreErrors::kCannotReserve):
+      return "Store: not enough bytes. Cannot reserve";
     default:
       return "Store: unknown error";
   }

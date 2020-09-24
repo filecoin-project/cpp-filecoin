@@ -36,7 +36,11 @@ namespace fc::sector_storage {
                                              path,
                                              mode));
 
-    // TODO: Reserve
+    OUTCOME_TRY(release_storage,
+                remote_store_->getLocalStore()->reserve(config_.seal_proof_type,
+                                                        allocate,
+                                                        sector_meta.storages,
+                                                        PathType::kSealing));
 
     return LocalWorker::Response{
         .paths = sector_meta.paths,
@@ -44,9 +48,11 @@ namespace fc::sector_storage {
             [this,
              allocate,
              storages = std::move(sector_meta.storages),
+             release = std::move(release_storage),
              sector_id,
              mode]() {
-              // release function of reserve
+              release();
+
               for (const auto &type :
                    primitives::sector_file::kSectorFileTypes) {
                 if ((type & allocate) == 0) {

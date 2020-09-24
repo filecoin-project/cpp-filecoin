@@ -76,6 +76,12 @@ namespace fc::sector_storage::stores {
     getAccessiblePaths() = 0;
 
     virtual std::shared_ptr<LocalStorage> getLocalStorage() const = 0;
+
+    virtual outcome::result<std::function<void()>> reserve(
+        RegisteredProof seal_proof_type,
+        SectorFileType file_type,
+        const SectorPaths &storages,
+        PathType path_type) = 0;
   };
 
   class RemoteStore : public Store {

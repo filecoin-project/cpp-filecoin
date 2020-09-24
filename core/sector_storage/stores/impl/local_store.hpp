@@ -50,6 +50,12 @@ namespace fc::sector_storage::stores {
 
     std::shared_ptr<LocalStorage> getLocalStorage() const override;
 
+    outcome::result<std::function<void()>> reserve(
+        RegisteredProof seal_proof_type,
+        SectorFileType file_type,
+        const SectorPaths &storages,
+        PathType path_type) override;
+
    private:
     LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
                    std::shared_ptr<SectorIndex> index,
@@ -59,10 +65,27 @@ namespace fc::sector_storage::stores {
                                        SectorFileType type,
                                        const StorageID &storage);
 
+    struct Path {
+      static std::shared_ptr<Path> newPath(std::string path);
+
+      std::string local_path;
+
+      int64_t reserved = 0;
+      std::map<SectorId, SectorFileType> reservations = {};
+
+      outcome::result<FsStat> getStat(
+          const std::shared_ptr<LocalStorage> &local_storage) const;
+
+      std::string sectorPath(const SectorId &sid, SectorFileType type) const;
+
+     protected:
+      Path(std::string path);
+    };
+
     std::shared_ptr<LocalStorage> storage_;
     std::shared_ptr<SectorIndex> index_;
     std::vector<std::string> urls_;
-    std::unordered_map<StorageID, std::string> paths_;
+    std::unordered_map<StorageID, std::shared_ptr<Path>> paths_;
     fc::common::Logger logger_;
 
     mutable std::shared_mutex mutex_;

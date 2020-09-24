@@ -16,6 +16,13 @@ target_link_libraries(sector_index
         logger
         )
 
+add_library(storage_error
+        impl/storage_error.cpp
+        )
+target_link_libraries(storage_error
+        outcome
+        )
+
 add_library(store
         impl/local_store.cpp
         impl/store_error.cpp
@@ -29,4 +36,5 @@ target_link_libraries(store
         rpc
         sector_index
         tarutil
+        storage_error
         )
