@@ -62,6 +62,7 @@ namespace fc::blockchain::production {
     // TODO: the only caller of "generate" is MinerCreateBlock, it signs block
     b.header.block_sig = {};
     b.header.fork_signaling = 0;
+    OUTCOME_TRYA(b.header.parent_base_fee, parent_tipset.nextBaseFee(ipld));
     return std::move(b);
   }
 }  // namespace fc::blockchain::production

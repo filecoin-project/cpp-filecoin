@@ -63,29 +63,6 @@ TEST(MarketActorCborTest, DealState) {
   expectEncodeAndReencode(DealState{1, 2, 3}, "83010203"_unhex);
 }
 
-/// ClientDealProposal cbor encoding
-TEST(MarketActorCborTest, ClientDealProposal) {
-  expectEncodeAndReencode(
-      ClientDealProposal{
-          .proposal =
-              DealProposal{
-                  .piece_cid = "010001020001"_cid,
-                  .piece_size = PaddedPieceSize{1},
-                  .verified = false,
-                  .client = Address::makeFromId(1),
-                  .provider = Address::makeFromId(2),
-                  .start_epoch = 2,
-                  .end_epoch = 3,
-                  .storage_price_per_epoch = 4,
-                  .provider_collateral = 5,
-                  .client_collateral = 6,
-              },
-          .client_signature = kSampleSecp256k1Signature,
-      },
-      "828ad82a470001000102000101f4420001420002020342000442000542000"
-      "6" SAMPLE_SECP256K1_SIGNATURE_HEX ""_unhex);
-}
-
 struct MarketActorTest : testing::Test {
   void SetUp() override {
     ON_CALL_3(runtime, getIpfsDatastore(), ipld);

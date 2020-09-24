@@ -177,6 +177,7 @@ namespace fc::vm::actor::builtin::market {
     State state{
         .proposals = {},
         .states = {},
+        .pending_proposals = {},
         .escrow_table = {},
         .locked_table = {},
         .next_deal = 0,

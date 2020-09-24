@@ -186,6 +186,10 @@ namespace fc::common {
 
     std::vector<uint8_t> &toVector();
 
+    inline operator std::vector<uint8_t> &&() && {
+      return std::move(data_);
+    }
+
     /**
      * Returns a copy of a part of the buffer
      * Works alike subspan() of gsl::span

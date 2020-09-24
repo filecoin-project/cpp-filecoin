@@ -5,11 +5,22 @@
 
 #pragma once
 
-// TODO: config
+#include <boost/multiprecision/cpp_int.hpp>
+
 namespace fc {
+  using BigInt = boost::multiprecision::cpp_int;
+
+  constexpr auto kBaseFeeMaxChangeDenom{8};
   constexpr auto kBlockGasLimit{10000000000};
+  constexpr auto kBlockGasTarget{kBlockGasLimit / 2};
   constexpr auto kBlockMessageLimit{10000};
+  constexpr auto kConsensusMinerMinMiners{3};
   constexpr auto kEpochDurationSeconds{30};
+  constexpr auto kMinimumBaseFee{100};
   constexpr auto kBlockDelaySecs{kEpochDurationSeconds};
+  constexpr auto kPackingEfficiencyDenom{5};
+  constexpr auto kPackingEfficiencyNum{4};
   constexpr auto kPropagationDelaySecs{6};
+
+  extern BigInt kConsensusMinerMinPower;
 }  // namespace fc

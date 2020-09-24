@@ -109,7 +109,8 @@ namespace fc::markets::storage::client {
     std::vector<StorageProviderInfo> storage_providers;
     for (const auto &miner_address : miners) {
       OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address, tipset_key));
-      PeerInfo peer_info{.id = miner_info.peer_id, .addresses = {}};
+      OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
+      PeerInfo peer_info{.id = std::move(peer_id), .addresses = {}};
       storage_providers.push_back(
           StorageProviderInfo{.address = miner_address,
                               .owner = {},
@@ -213,6 +214,7 @@ namespace fc::markets::storage::client {
         .verified = false,
         .client = client_address,
         .provider = provider_info.address,
+        .label = {},
         .start_epoch = start_epoch,
         .end_epoch = end_epoch,
         .storage_price_per_epoch = price,

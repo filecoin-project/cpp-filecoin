@@ -21,7 +21,7 @@ namespace fc::vm::actor::builtin::miner {
       Address owner;
       Address worker;
       RegisteredProof seal_proof_type;
-      PeerId peer_id{codec::cbor::kDefaultT<PeerId>()};
+      Buffer peer_id;
     };
     ACTOR_METHOD_DECL();
   };
@@ -46,7 +46,7 @@ namespace fc::vm::actor::builtin::miner {
 
   struct ChangePeerId : ActorMethodBase<4> {
     struct Params {
-      PeerId new_id{codec::cbor::kDefaultT<PeerId>()};
+      Buffer new_id;
     };
     ACTOR_METHOD_DECL();
   };

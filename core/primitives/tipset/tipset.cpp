@@ -6,9 +6,11 @@
 #include "primitives/tipset/tipset.hpp"
 
 #include "common/logger.hpp"
+#include "const.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
+#include "vm/message/message.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
   using fc::primitives::tipset::TipsetError;
@@ -28,6 +30,9 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
 }
 
 namespace fc::primitives::tipset {
+  using vm::message::SignedMessage;
+  using vm::message::UnsignedMessage;
+
   outcome::result<void> MessageVisitor::visit(const BlockHeader &block,
                                               const Visitor &visitor) {
     auto onMessage = [&](auto bls, auto &cid) -> outcome::result<void> {
@@ -151,6 +156,33 @@ namespace fc::primitives::tipset {
       OUTCOME_TRY(message_visitor.visit(block, visitor));
     }
     return outcome::success();
+  }
+
+  outcome::result<BigInt> Tipset::nextBaseFee(IpldPtr ipld) const {
+    GasAmount gas_limit{};
+    OUTCOME_TRY(visitMessages(
+        ipld, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
+          if (bls) {
+            OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+            gas_limit += message.gas_limit;
+          } else {
+            OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+            gas_limit += message.message.gas_limit;
+          }
+          return outcome::success();
+        }));
+    auto delta{std::max<GasAmount>(
+        -kBlockGasTarget,
+        std::min<GasAmount>(
+            kBlockGasTarget,
+            kPackingEfficiencyDenom * gas_limit
+                    / ((int64_t)blks.size() * kPackingEfficiencyNum)
+                - kBlockGasTarget))};
+    auto base{getParentBaseFee()};
+    return std::max<BigInt>(kMinimumBaseFee,
+                            base
+                                + bigdiv(bigdiv(base * delta, kBlockGasTarget),
+                                         kBaseFeeMaxChangeDenom));
   }
 
   outcome::result<Randomness> Tipset::beaconRandomness(
