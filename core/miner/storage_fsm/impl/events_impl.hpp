@@ -8,20 +8,25 @@
 
 #include "miner/storage_fsm/events.hpp"
 
+#include "api/api.hpp"
 #include "common/logger.hpp"
 #include "miner/storage_fsm/tipset_cache.hpp"
-#include "storage/chain/chain_store.hpp"
 
 namespace fc::mining {
+  using adt::Channel;
+  using api::Api;
   using primitives::tipset::HeadChange;
   using primitives::tipset::HeadChangeType;
-  using storage::blockchain::ChainStore;
 
-  class EventsImpl : public Events {
+  class EventsImpl : public Events,
+                     public std::enable_shared_from_this<EventsImpl> {
    public:
-    // TODO(artyom-yurin): [FIL-242] change ChainStore to ChainNotifier
-    EventsImpl(const std::shared_ptr<ChainStore> &chain_store,
+    EventsImpl(std::shared_ptr<Api> api,
                std::shared_ptr<TipsetCache> tipset_cache);
+
+    outcome::result<void> subscribeHeadChanges() override;
+
+    void unsubscribeHeadChanges() override;
 
     outcome::result<void> chainAt(HeightHandler handler,
                                   RevertHandler revert_handler,
@@ -37,9 +42,15 @@ namespace fc::mining {
       RevertHandler revert;
     };
 
-    void callback_function(const HeadChange &change);
+    bool callback_function(const HeadChange &change);
 
-    fc::storage::blockchain::ChainStore::connection_t connection_;
+    std::shared_ptr<Api> api_;
+
+    /**
+     * Subscription to chain head changes
+     * Is alive until the channel object exists
+     */
+    std::shared_ptr<Channel<std::vector<HeadChange>>> channel_;
 
     uint64_t global_id_;
 

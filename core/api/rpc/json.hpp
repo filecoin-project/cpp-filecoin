@@ -37,7 +37,6 @@ namespace fc::api {
   using primitives::block::Ticket;
   using primitives::cid::getCidOfCbor;
   using primitives::sector::PoStProof;
-  using primitives::sector::RegisteredProof;
   using primitives::tipset::HeadChangeType;
   using rapidjson::Document;
   using rapidjson::Value;
@@ -315,14 +314,14 @@ namespace fc::api {
 
     ENCODE(PoStProof) {
       Value j{rapidjson::kObjectType};
-      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "PoStProof", common::to_int(v.registered_proof));
       Set(j, "ProofBytes", gsl::make_span(v.proof));
       return j;
     }
 
     DECODE(PoStProof) {
       std::underlying_type_t<RegisteredProof> registered_proof;
-      decode(registered_proof, Get(j, "RegisteredProof"));
+      decode(registered_proof, Get(j, "PoStProof"));
       v.registered_proof = RegisteredProof{registered_proof};
       decode(v.proof, Get(j, "ProofBytes"));
     }
@@ -339,8 +338,14 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Owner", v.owner);
       Set(j, "Worker", v.worker);
-      Set(j, "PendingWorkerKey", v.pending_worker_key);
-      Set(j, "PeerId", v.peer_id);
+      Set(j, "ControlAddresses", v.control);
+      boost::optional<std::string> peer_id;
+      if (!v.peer_id.empty()) {
+        OUTCOME_EXCEPT(peer, PeerId::fromBytes(v.peer_id));
+        peer_id = peer.toBase58();
+      }
+      Set(j, "PeerId", peer_id);
+      Set(j, "Multiaddrs", v.multiaddrs);
       Set(j, "SealProofType", common::to_int(v.seal_proof_type));
       Set(j, "SectorSize", v.sector_size);
       Set(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
@@ -482,14 +487,18 @@ namespace fc::api {
 
     ENCODE(MsgWait) {
       Value j{rapidjson::kObjectType};
+      Set(j, "Message", v.message);
       Set(j, "Receipt", v.receipt);
       Set(j, "TipSet", v.tipset);
+      Set(j, "Height", v.height);
       return j;
     }
 
     DECODE(MsgWait) {
+      decode(v.message, Get(j, "Message"));
       decode(v.receipt, Get(j, "Receipt"));
       decode(v.tipset, Get(j, "TipSet"));
+      decode(v.height, Get(j, "Height"));
     }
 
     ENCODE(MpoolUpdate) {

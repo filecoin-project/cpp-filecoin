@@ -878,11 +878,9 @@ namespace fc::mining {
                         std::make_shared<SectorChainPreCommitFailedEvent>());
     }
 
-    OUTCOME_TRY(tipset_key, maybe_lookup.value().tipset.makeKey());
-
     std::shared_ptr<SectorPreCommitLandedEvent> event =
         std::make_shared<SectorPreCommitLandedEvent>();
-    event->tipset_key = tipset_key;
+    event->tipset_key = maybe_lookup.value().tipset;
 
     return fsm_->send(info, event);
   }
@@ -1103,10 +1101,10 @@ namespace fc::mining {
       return fsm_->send(info, std::make_shared<SectorCommitFailedEvent>());
     }
 
-    OUTCOME_TRY(tipset_key, maybe_message_lookup.value().tipset.makeKey());
-
-    auto maybe_error = api_->StateSectorGetInfo(
-        miner_address_, info->sector_number, tipset_key);
+    auto maybe_error =
+        api_->StateSectorGetInfo(miner_address_,
+                                 info->sector_number,
+                                 maybe_message_lookup.value().tipset);
 
     if (maybe_error.has_error()) {
       logger_->error(

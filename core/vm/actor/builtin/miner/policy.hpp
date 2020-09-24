@@ -43,6 +43,14 @@ namespace fc::vm::actor::builtin::miner {
 
   constexpr auto kMinSectorExpiration = 180 * kEpochsInDay;
 
+  /**
+   * Maximum number of epochs past the current epoch a sector may be set to
+   * expire. The actual maximum extension will be the minimum of CurrEpoch +
+   * MaximumSectorExpirationExtension and
+   * sector.ActivationEpoch+sealProof.SectorMaximumLifetime()
+   */
+  constexpr auto kMaxSectorExpirationExtension = 540 * kEpochsInDay;
+
   inline outcome::result<EpochDuration> maxSealDuration(RegisteredProof type) {
     switch (type) {
       case RegisteredProof::StackedDRG32GiBSeal:

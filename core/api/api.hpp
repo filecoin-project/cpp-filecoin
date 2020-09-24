@@ -63,6 +63,7 @@ namespace fc::api {
   using primitives::block::BlockTemplate;
   using primitives::block::BlockWithCids;
   using primitives::cid::Comm;
+  using primitives::sector::RegisteredProof;
   using primitives::sector::SectorInfo;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
@@ -162,8 +163,10 @@ namespace fc::api {
   };
 
   struct MsgWait {
+    CID message;
     MessageReceipt receipt;
-    Tipset tipset;
+    TipsetKey tipset;
+    ChainEpoch height;
   };
 
   struct BlockMessages {
@@ -269,6 +272,7 @@ namespace fc::api {
     uint64_t deadline;
     uint64_t partition;
   };
+
 
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)

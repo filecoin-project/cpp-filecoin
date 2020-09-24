@@ -9,7 +9,9 @@
 #include <libp2p/peer/peer_id.hpp>
 
 #include "blockchain/production/block_producer.hpp"
+#include "const.hpp"
 #include "drand/beaconizer.hpp"
+#include "node/pubsub.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
@@ -51,6 +53,14 @@ namespace fc::api {
   using connection_t = boost::signals2::connection;
   using MarketActorState = vm::actor::builtin::market::State;
 
+  // TODO: reuse for block validation
+  inline bool minerHasMinPower(const StoragePower &claim_qa,
+                               size_t min_power_miners) {
+    return min_power_miners < kConsensusMinerMinMiners
+               ? !claim_qa.is_zero()
+               : claim_qa > kConsensusMinerMinPower;
+  }
+
   constexpr EpochDuration kWinningPoStSectorSetLookback{10};
 
   void beaconEntriesForBlock(const DrandSchedule &schedule,
@@ -63,7 +73,6 @@ namespace fc::api {
       return cb(outcome::success());
     }
     auto round{prev == 0 ? max : prev + 1};
-    ++max;
     auto async{std::make_shared<AsyncAll<BeaconEntry>>(max - round + 1,
                                                        std::move(cb))};
     for (auto i{0u}; round <= max; ++round, ++i) {
@@ -118,6 +127,7 @@ namespace fc::api {
                std::shared_ptr<MsgWaiter> msg_waiter,
                std::shared_ptr<Beaconizer> beaconizer,
                std::shared_ptr<DrandSchedule> drand_schedule,
+               std::shared_ptr<PubSub> pubsub,
                std::shared_ptr<KeyStore> key_store) {
     auto tipsetContext = [=](const TipsetKey &tipset_key,
                              bool interpret =
@@ -403,8 +413,9 @@ namespace fc::api {
                     OUTCOME_CB(auto minfo, state.info.get());
                     OUTCOME_CB(info.worker, context.accountKey(minfo.worker));
                     info.sector_size = minfo.sector_size;
-                    // TODO: HasMinPower
-                    info.has_min_power = true;
+                    info.has_min_power = minerHasMinPower(
+                        claim.qa_power,
+                        power_state.num_miners_meeting_min_power);
                     cb(std::move(info));
                   });
             }),
@@ -753,18 +764,14 @@ namespace fc::api {
           // TODO(artyom-yurin): FIL-165 implement method
           return outcome::success();
         }},
-        .StateWaitMsg = {[=](auto &cid) -> outcome::result<Wait<MsgWait>> {
-          auto channel = std::make_shared<Channel<outcome::result<MsgWait>>>();
-          msg_waiter->wait(cid, [=](auto &result) {
-            auto ts{Tipset::load(*ipld, result.second.cids)};
-            if (ts) {
-              channel->write(MsgWait{result.first, std::move(ts.value())});
-            } else {
-              channel->write(ts.error());
-            }
+        .StateWaitMsg = waitCb<MsgWait>([=](auto &&cid, auto &&cb) {
+          msg_waiter->wait(cid, [=, MOVE(cb)](auto &result) {
+            OUTCOME_CB(auto ts, Tipset::load(*ipld, result.second.cids));
+            OUTCOME_CB(auto key, ts.makeKey());
+            cb(MsgWait{
+                cid, result.first, std::move(key), (ChainEpoch)ts.height});
           });
-          return Wait{channel};
-        }},
+        }),
         .SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
           // TODO(turuslan): chain store must validate blocks before adding
           MsgMeta meta;
@@ -780,6 +787,7 @@ namespace fc::api {
             return TodoError::kError;
           }
           OUTCOME_TRY(chain_store->addBlock(block.header));
+          OUTCOME_TRY(pubsub->publish(block));
           return outcome::success();
         }},
         .Version = {[]() {

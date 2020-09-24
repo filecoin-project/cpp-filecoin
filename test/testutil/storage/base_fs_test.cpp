@@ -8,7 +8,7 @@
 namespace test {
 
   BaseFS_Test::BaseFS_Test(const fs::path &path)
-      : base_path(std::move(fs::temp_directory_path() / path)) {
+      : base_path{fs::temp_directory_path() / path} {
     clear();
     mkdir();
 

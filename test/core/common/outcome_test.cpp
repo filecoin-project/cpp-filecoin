@@ -54,7 +54,7 @@ namespace fc {
    * Throw on failure result with value returned
    */
   TEST(OutcomeExcept, ValueReturnedExcept) {
-    EXPECT_THROW(OUTCOME_EXCEPT(res, funcFailureReturn()), std::system_error);
+    EXPECT_THROW(OUTCOME_EXCEPT(funcFailureReturn()), std::system_error);
   }
 
 }  // namespace fc

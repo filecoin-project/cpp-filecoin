@@ -10,7 +10,6 @@
 #include "adt/map.hpp"
 #include "adt/uvarint_key.hpp"
 #include "common/libp2p/multi/cbor_multiaddress.hpp"
-#include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
@@ -139,7 +138,7 @@ namespace fc::vm::actor::builtin::miner {
     std::vector<Address> control;
     boost::optional<WorkerKeyChange> pending_worker_key;
     /// Libp2p identity that should be used when connecting to this miner.
-    PeerId peer_id{codec::cbor::kDefaultT<PeerId>()};
+    Buffer peer_id;
     std::vector<Multiaddress> multiaddrs;
     RegisteredProof seal_proof_type;
     /// Amount of space in each sector committed to the network by this miner.
