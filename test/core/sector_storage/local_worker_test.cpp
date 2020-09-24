@@ -292,14 +292,12 @@ TEST_F(LocalWorkerTest, Sealer) {
                             AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
 
-  bool is_storage_clear_unseal_b = false;
   EXPECT_CALL(*local_store_,
               reserve(RegisteredProof::StackedDRG2KiBSeal,
                       SectorFileType::FTNone,
                       _,
                       PathType::kSealing))
-      .WillOnce(testing::Return(
-          fc::outcome::success([&]() { is_storage_clear_unseal_b = true; })));
+      .WillRepeatedly(testing::Return(fc::outcome::success([]() {})));
 
   EXPECT_OUTCOME_TRUE(b_info,
                       local_worker_->addPiece(sector,
@@ -430,7 +428,7 @@ TEST_F(LocalWorkerTest, Sealer) {
                             config_.seal_proof_type,
                             SectorFileType::FTUnsealed,
                             SectorFileType::FTNone,
-                            PathType::kSealing,
+                            PathType::kStorage,
                             AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::failure(
           fc::sector_storage::stores::StoreErrors::kNotFoundSector)));
@@ -489,7 +487,6 @@ TEST_F(LocalWorkerTest, Sealer) {
 
   ASSERT_TRUE(is_storage_clear);
   ASSERT_TRUE(is_storage_clear_unseal_a);
-  ASSERT_TRUE(is_storage_clear_unseal_b);
 }
 
 /**
