@@ -48,7 +48,7 @@ TEST_F(SectorIndexTest, AttachNewStorage) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_TRUE_1(
@@ -86,7 +86,7 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_TRUE_1(
@@ -133,7 +133,7 @@ TEST_F(SectorIndexTest, AttachStorageWithInvalidUrl) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_ERROR(
@@ -181,7 +181,7 @@ TEST_F(SectorIndexTest, BestAllocation) {
   FsStat file_system_stat1{
       .capacity = 7 * 2048,
       .available = 7 * 2048,
-      .used = 0,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_TRUE_1(
@@ -198,7 +198,7 @@ TEST_F(SectorIndexTest, BestAllocation) {
   FsStat file_system_stat2{
       .capacity = 6 * 2048,
       .available = 6 * 2048,
-      .used = 0,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_TRUE_1(
@@ -215,7 +215,7 @@ TEST_F(SectorIndexTest, BestAllocation) {
   FsStat file_system_stat3{
       .capacity = 8 * 2048,
       .available = 8 * 2048,
-      .used = 0,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_TRUE_1(
@@ -252,7 +252,7 @@ TEST_F(SectorIndexTest, StorageDeclareSector) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -292,7 +292,7 @@ TEST_F(SectorIndexTest, StorageDropSector) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -332,7 +332,7 @@ TEST_F(SectorIndexTest, StorageFindSector) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -373,7 +373,7 @@ TEST_F(SectorIndexTest, StorageFindSectorFetch) {
   FsStat file_system_stat{
       .capacity = 14336,
       .available = 14336,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
