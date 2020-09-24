@@ -29,6 +29,7 @@ using fc::sector_storage::stores::SectorIndexMock;
 using fc::sector_storage::stores::StorageConfig;
 using fc::sector_storage::stores::StorageInfo;
 using fc::sector_storage::stores::StoreErrors;
+using fc::sector_storage::stores::LocalPath;
 using testing::_;
 
 template <typename T>
@@ -61,7 +62,7 @@ class LocalStoreTest : public test::BaseFS_Test {
 
     EXPECT_CALL(*storage_, getStorage())
         .WillOnce(testing::Return(fc::outcome::success(
-            StorageConfig{.storage_paths = std::vector<std::string>({})})));
+            StorageConfig{.storage_paths = std::vector<LocalPath>({})})));
 
     EXPECT_CALL(*storage_, setStorage(_))
         .WillRepeatedly(testing::Return(fc::outcome::success()));
