@@ -26,6 +26,13 @@ class InMemoryRepositoryTest : public test::BaseFS_Test {
   }
 };
 
+/**
+ * @given Repository with a .json file with a config
+ * @when Parse .json file and create a temp directory and a LocalStorageMeta
+ * object and then write parsed Storage config file and LocalStorageMeta to the
+ * temp dir
+ * @then Storage config with a path of the temp directory
+ */
 TEST_F(InMemoryRepositoryTest, GetStorage) {
   InMemoryRepository repository;
   auto config_path = fs::canonical(createFile("storage.json")).string();
@@ -47,6 +54,12 @@ TEST_F(InMemoryRepositoryTest, GetStorage) {
   ASSERT_EQ(config.storage_paths, paths);
 }
 
+/**
+ * @given Repository with a .json config file
+ * @when Get a Storage config from a parsed json and apply some function to the
+ * storage config
+ * @then Storage config with an update paths
+ */
 TEST_F(InMemoryRepositoryTest, SetStorage) {
   InMemoryRepository repository;
   auto config_path = fs::canonical(createFile("storage.json")).string();

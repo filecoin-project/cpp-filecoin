@@ -16,10 +16,7 @@ namespace fc::sector_storage::stores {
   };
 
   inline bool operator==(const LocalPath &path1, const LocalPath &path2) {
-    if (path1.path == path2.path)
-      return true;
-    else
-      return false;
+    return path1.path == path2.path;
   }
 
   // .lotusstorage/storage.json

@@ -169,6 +169,11 @@ TEST_F(FilesSystemRepositoryTest, InvalidVersion) {
                            base_path.string(), api_address, leveldb_options));
 }
 
+/**
+ * @given Repository with .json config
+ * @when Get storage config from parsed .json file
+ * @then Storage with paths from parsed .json file
+ */
 TEST_F(FilesSystemRepositoryTest, GetStorage) {
   auto config_path = fs::canonical(createFile("storage.json")).string();
   std::ofstream config_file(config_path);
@@ -191,6 +196,12 @@ TEST_F(FilesSystemRepositoryTest, GetStorage) {
   ASSERT_EQ(config.storage_paths, paths);
 }
 
+/**
+ * @given Repository with .json config
+ * @when Get storage from a .json parsed file, then apply some function for the
+ * storage and after that write result to .json file
+ * @then .json file with an updated storage config
+ */
 TEST_F(FilesSystemRepositoryTest, SetStorage) {
   auto config_path = fs::canonical(createFile("storage.json")).string();
   std::ofstream config_file(config_path);

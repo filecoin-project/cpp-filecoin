@@ -266,15 +266,16 @@ namespace fc::api {
     ENCODE(Signature) {
       uint64_t type;
       gsl::span<const uint8_t> data;
-      visit_in_place(v,
-                     [&](const BlsSignature &bls) {
-                       type = SignatureType::BLS;
-                       data = gsl::make_span(bls);
-                     },
-                     [&](const Secp256k1Signature &secp) {
-                       type = SignatureType::SECP256K1;
-                       data = gsl::make_span(secp);
-                     });
+      visit_in_place(
+          v,
+          [&](const BlsSignature &bls) {
+            type = SignatureType::BLS;
+            data = gsl::make_span(bls);
+          },
+          [&](const Secp256k1Signature &secp) {
+            type = SignatureType::SECP256K1;
+            data = gsl::make_span(secp);
+          });
       Value j{rapidjson::kObjectType};
       Set(j, "Type", type);
       Set(j, "Data", data);
