@@ -438,9 +438,23 @@ TEST_F(LocalWorkerTest, Sealer) {
                             config_.seal_proof_type,
                             SectorFileType::FTNone,
                             SectorFileType::FTUnsealed,
-                            PathType::kSealing,
+                            PathType::kStorage,
                             AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(unseal_response)));
+
+  EXPECT_CALL(*local_store_,
+              reserve(RegisteredProof::StackedDRG2KiBSeal,
+                      SectorFileType::FTUnsealed,
+                      _,
+                      PathType::kSealing))
+      .WillOnce(testing::Return(fc::outcome::success([&]() {})));
+
+  EXPECT_CALL(*sector_index_,
+              storageDeclareSector(response.storages.unsealed,
+                                   sector,
+                                   SectorFileType::FTUnsealed,
+                                   false))
+      .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_CALL(
       *store_,
@@ -449,9 +463,15 @@ TEST_F(LocalWorkerTest, Sealer) {
                     static_cast<SectorFileType>(SectorFileType::FTSealed
                                                 | SectorFileType::FTCache),
                     SectorFileType::FTNone,
-                    PathType::kSealing,
+                    PathType::kStorage,
                     AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
+
+  EXPECT_CALL(*store_, removeCopies(sector, SectorFileType::FTSealed))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(*store_, removeCopies(sector, SectorFileType::FTCache))
+      .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(local_worker_->unsealPiece(
       sector, 0, piece_commitment_a_size, ticket, cids.unsealed_cid));
@@ -464,7 +484,7 @@ TEST_F(LocalWorkerTest, Sealer) {
                             config_.seal_proof_type,
                             SectorFileType::FTUnsealed,
                             SectorFileType::FTNone,
-                            PathType::kSealing,
+                            PathType::kStorage,
                             AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(unseal_response)));
 
