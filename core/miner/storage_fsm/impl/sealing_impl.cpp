@@ -737,7 +737,6 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     auto maybe_cid = sealer_->sealPreCommit2(minerSector(info->sector_number),
                                              info->precommit1_output,
-
                                              info->sealingPriority());
     if (maybe_cid.has_error()) {
       logger_->error("Seal pre commit 2 error: {}",
