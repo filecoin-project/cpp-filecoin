@@ -14,9 +14,9 @@
 #include "api/rpc/rpc.hpp"
 #include "common/enum.hpp"
 #include "payment_channel_manager/payment_channel_manager.hpp"
-#include "sector_storage/stores/storage.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
+#include "sector_storage/stores/storage.hpp"
 
 #define COMMA ,
 
@@ -39,10 +39,10 @@ namespace fc::api {
   using primitives::cid::getCidOfCbor;
   using primitives::sector::PoStProof;
   using primitives::tipset::HeadChangeType;
-  using sector_storage::stores::LocalPath;
-  using sector_storage::stores::StorageConfig;
   using rapidjson::Document;
   using rapidjson::Value;
+  using sector_storage::stores::LocalPath;
+  using sector_storage::stores::StorageConfig;
   using vm::actor::builtin::miner::PowerPair;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
   using vm::actor::builtin::miner::WorkerKeyChange;
@@ -266,16 +266,15 @@ namespace fc::api {
     ENCODE(Signature) {
       uint64_t type;
       gsl::span<const uint8_t> data;
-      visit_in_place(
-          v,
-          [&](const BlsSignature &bls) {
-            type = SignatureType::BLS;
-            data = gsl::make_span(bls);
-          },
-          [&](const Secp256k1Signature &secp) {
-            type = SignatureType::SECP256K1;
-            data = gsl::make_span(secp);
-          });
+      visit_in_place(v,
+                     [&](const BlsSignature &bls) {
+                       type = SignatureType::BLS;
+                       data = gsl::make_span(bls);
+                     },
+                     [&](const Secp256k1Signature &secp) {
+                       type = SignatureType::SECP256K1;
+                       data = gsl::make_span(secp);
+                     });
       Value j{rapidjson::kObjectType};
       Set(j, "Type", type);
       Set(j, "Data", data);

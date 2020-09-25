@@ -22,7 +22,7 @@ namespace fc::storage::repository {
     kTempDirectoryCreationError,
   };
 
-}  // namespace fc::storage::keystore
+}  // namespace fc::storage::repository
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::repository, RepositoryError);
 

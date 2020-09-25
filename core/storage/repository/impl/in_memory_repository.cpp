@@ -10,24 +10,24 @@
 
 #include "storage/repository/impl/in_memory_repository.hpp"
 
-#include "storage/repository/impl/filesystem_repository.hpp"
-#include "storage/repository/repository_error.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
+#include "primitives/types.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
-#include "primitives/types.hpp"
+#include "storage/repository/impl/filesystem_repository.hpp"
+#include "storage/repository/repository_error.hpp"
 
 using fc::crypto::bls::BlsProviderImpl;
 using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
+using fc::primitives::LocalStorageMeta;
+using fc::sector_storage::stores::LocalPath;
+using fc::sector_storage::stores::StorageConfig;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::storage::keystore::InMemoryKeyStore;
 using fc::storage::repository::InMemoryRepository;
 using fc::storage::repository::Repository;
-using fc::sector_storage::stores::StorageConfig;
-using fc::sector_storage::stores::LocalPath;
-using fc::primitives::LocalStorageMeta;
 
 InMemoryRepository::InMemoryRepository()
     : Repository(std::make_shared<InMemoryDatastore>(),
@@ -47,7 +47,8 @@ fc::outcome::result<unsigned int> InMemoryRepository::getVersion() const {
   return kInMemoryRepositoryVersion;
 }
 
-fc::outcome::result<fc::primitives::FsStat> InMemoryRepository::getStat(const std::string &path) {
+fc::outcome::result<fc::primitives::FsStat> InMemoryRepository::getStat(
+    const std::string &path) {
   return fc::outcome::success();
 }
 
@@ -59,7 +60,8 @@ fc::outcome::result<StorageConfig> InMemoryRepository::getStorage() {
 fc::outcome::result<StorageConfig> InMemoryRepository::nonBlockGetStorage() {
   if (storageConfig_.storage_paths.empty()) {
     OUTCOME_TRY(storage_path, path());
-    storageConfig_ = StorageConfig{std::vector<LocalPath> {{storage_path.string()}}};
+    storageConfig_ =
+        StorageConfig{std::vector<LocalPath>{{storage_path.string()}}};
   }
   return storageConfig_;
 }
@@ -74,11 +76,15 @@ fc::outcome::result<boost::filesystem::path> InMemoryRepository::path() {
   }
   boost::filesystem::path filePath = tempPath;
   filePath /= FileSystemRepository::kStorageConfig;
-  if (true) { // check if repository type is StorageMiner
-    OUTCOME_TRY(writeStorage(filePath, StorageConfig{std::vector<LocalPath> {{tempPath.string()}}}));
+  if (true) {  // check if repository type is StorageMiner
+    OUTCOME_TRY(writeStorage(
+        filePath, StorageConfig{std::vector<LocalPath>{{tempPath.string()}}}));
   }
-  LocalStorageMeta meta_storage{.id = boost::uuids::to_string(boost::uuids::random_generator()()),
-  .weight = 10, .can_seal = true, .can_store = true};
+  LocalStorageMeta meta_storage{
+      .id = boost::uuids::to_string(boost::uuids::random_generator()()),
+      .weight = 10,
+      .can_seal = true,
+      .can_store = true};
   boost::filesystem::path sector_path = tempPath;
   sector_path /= "sectorstore.json";
   std::ofstream file{(sector_path).string()};
@@ -99,7 +105,8 @@ fc::outcome::result<boost::filesystem::path> InMemoryRepository::path() {
   return tempPath;
 }
 
-fc::outcome::result<void> InMemoryRepository::setStorage(std::function<void(StorageConfig &)> action) {
+fc::outcome::result<void> InMemoryRepository::setStorage(
+    std::function<void(StorageConfig &)> action) {
   const std::lock_guard<std::mutex> lock(storage_mutex_);
   OUTCOME_TRY(nonBlockGetStorage());
   action(storageConfig_);

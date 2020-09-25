@@ -22,6 +22,7 @@ using fc::primitives::LocalStorageMeta;
 using fc::primitives::StorageID;
 using fc::primitives::sector_file::SectorFileType;
 using fc::sector_storage::stores::kMetaFileName;
+using fc::sector_storage::stores::LocalPath;
 using fc::sector_storage::stores::LocalStorageMock;
 using fc::sector_storage::stores::LocalStore;
 using fc::sector_storage::stores::LocalStoreImpl;
@@ -29,7 +30,6 @@ using fc::sector_storage::stores::SectorIndexMock;
 using fc::sector_storage::stores::StorageConfig;
 using fc::sector_storage::stores::StorageInfo;
 using fc::sector_storage::stores::StoreErrors;
-using fc::sector_storage::stores::LocalPath;
 using testing::_;
 
 template <typename T>

@@ -4,17 +4,17 @@
  */
 
 #include "storage/repository/repository.hpp"
-#include "storage/repository/repository_error.hpp"
 #include "api/rpc/json.hpp"
+#include "storage/repository/repository_error.hpp"
 
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
 
+using fc::sector_storage::stores::StorageConfig;
 using fc::storage::config::Config;
 using fc::storage::ipfs::IpfsDatastore;
 using fc::storage::keystore::KeyStore;
 using fc::storage::repository::Repository;
-using fc::sector_storage::stores::StorageConfig;
 
 Repository::Repository(std::shared_ptr<IpfsDatastore> ipldStore,
                        std::shared_ptr<KeyStore> keystore,
@@ -39,9 +39,9 @@ fc::outcome::result<void> Repository::loadConfig(const std::string &filename) {
   return config_->load(filename);
 }
 
-fc::outcome::result<StorageConfig>  Repository::storageFromFile(const boost::filesystem::path& path) {
-  std::ifstream file{(path).string(),
-                     std::ios::binary | std::ios::ate};
+fc::outcome::result<StorageConfig> Repository::storageFromFile(
+    const boost::filesystem::path &path) {
+  std::ifstream file{(path).string(), std::ios::binary | std::ios::ate};
   if (!file.good()) {
     return RepositoryError::kInvalidStorageConfig;
   }
@@ -59,7 +59,8 @@ fc::outcome::result<StorageConfig>  Repository::storageFromFile(const boost::fil
   return api::decode<StorageConfig>(j_file);
 }
 
-fc::outcome::result<void> Repository::writeStorage(const boost::filesystem::path& path, StorageConfig config) {
+fc::outcome::result<void> Repository::writeStorage(
+    const boost::filesystem::path &path, StorageConfig config) {
   std::ofstream file{(path).string()};
   if (!file.good()) {
     return RepositoryError::kInvalidStorageConfig;

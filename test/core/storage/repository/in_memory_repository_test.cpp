@@ -10,15 +10,13 @@
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
-using fc::storage::repository::InMemoryRepository;
 using fc::sector_storage::stores::LocalPath;
 using fc::sector_storage::stores::StorageConfig;
-
+using fc::storage::repository::InMemoryRepository;
 
 class InMemoryRepositoryTest : public test::BaseFS_Test {
  public:
-  InMemoryRepositoryTest()
-      : test::BaseFS_Test("in_memory_repository_test") {}
+  InMemoryRepositoryTest() : test::BaseFS_Test("in_memory_repository_test") {}
 
   /**
    * Create a test repository with an empty file.
@@ -64,9 +62,8 @@ TEST_F(InMemoryRepositoryTest, SetStorage) {
                  "  ]\n"
                  "}";
   config_file.close();
-  EXPECT_OUTCOME_TRUE_1(repository.setStorage(([](StorageConfig& cfg) {
-                          cfg.storage_paths.push_back({"test1"});
-                        })));
+  EXPECT_OUTCOME_TRUE_1(repository.setStorage(
+      ([](StorageConfig &cfg) { cfg.storage_paths.push_back({"test1"}); })));
   EXPECT_OUTCOME_TRUE(path, repository.path())
   EXPECT_OUTCOME_TRUE(config, repository.getStorage())
   std::vector<LocalPath> paths = {{path.string()}, {"test1"}};

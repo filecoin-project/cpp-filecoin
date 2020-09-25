@@ -19,13 +19,13 @@
 
 using fc::crypto::bls::BlsProviderImpl;
 using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
+using fc::sector_storage::stores::LocalPath;
+using fc::sector_storage::stores::StorageConfig;
 using fc::storage::ipfs::LeveldbDatastore;
 using fc::storage::keystore::FileSystemKeyStore;
 using fc::storage::repository::FileSystemRepository;
 using fc::storage::repository::Repository;
 using fc::storage::repository::RepositoryError;
-using fc::sector_storage::stores::StorageConfig;
-using fc::sector_storage::stores::LocalPath;
 using Version = fc::storage::repository::Repository::Version;
 
 FileSystemRepository::FileSystemRepository(
@@ -122,7 +122,8 @@ fc::outcome::result<StorageConfig> FileSystemRepository::nonBlockGetStorage() {
   return storageFromFile(root_path);
 }
 
-fc::outcome::result<void> FileSystemRepository::setStorage(std::function<void(StorageConfig &)> action) {
+fc::outcome::result<void> FileSystemRepository::setStorage(
+    std::function<void(StorageConfig &)> action) {
   const std::lock_guard<std::mutex> lock(storage_mutex_);
   OUTCOME_TRY(storage_conf, nonBlockGetStorage());
   action(storage_conf);
@@ -131,6 +132,7 @@ fc::outcome::result<void> FileSystemRepository::setStorage(std::function<void(St
   return writeStorage(root_path, storage_conf);
 }
 
-fc::outcome::result<fc::primitives::FsStat> FileSystemRepository::getStat(const std::string &path) {
+fc::outcome::result<fc::primitives::FsStat> FileSystemRepository::getStat(
+    const std::string &path) {
   return fc::outcome::success();
 }

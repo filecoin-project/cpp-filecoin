@@ -15,8 +15,8 @@ namespace fc::sector_storage::stores {
     std::string path;
   };
 
-  inline bool operator==(const LocalPath& path1, const LocalPath& path2) {
-    if(path1.path == path2.path)
+  inline bool operator==(const LocalPath &path1, const LocalPath &path2) {
+    if (path1.path == path2.path)
       return true;
     else
       return false;

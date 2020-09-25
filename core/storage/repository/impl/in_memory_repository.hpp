@@ -19,7 +19,6 @@ namespace fc::storage::repository {
    */
   class InMemoryRepository : public Repository {
    public:
-
     InMemoryRepository();
 
     /**
@@ -32,10 +31,13 @@ namespace fc::storage::repository {
 
     /** @copydoc Repository::getVersion() */
     outcome::result<Version> getVersion() const override;
-    outcome::result<primitives::FsStat> getStat(const std::string &path) override;
+    outcome::result<primitives::FsStat> getStat(
+        const std::string &path) override;
     outcome::result<StorageConfig> getStorage() override;
-    outcome::result<void> setStorage(std::function<void(StorageConfig &)> action) override;
+    outcome::result<void> setStorage(
+        std::function<void(StorageConfig &)> action) override;
     outcome::result<boost::filesystem::path> path();
+
    private:
     std::mutex storage_mutex_;
     StorageConfig storageConfig_;

@@ -6,8 +6,8 @@
 #ifndef FILECOIN_CORE_STORAGE_IMPL_FILESYSTEM_REPOSITORY_HPP
 #define FILECOIN_CORE_STORAGE_IMPL_FILESYSTEM_REPOSITORY_HPP
 
-#include <iostream>
 #include <boost/filesystem.hpp>
+#include <iostream>
 
 #include "fslock/fslock.hpp"
 #include "storage/filestore/path.hpp"
@@ -65,8 +65,10 @@ namespace fc::storage::repository {
 
     outcome::result<Version> getVersion() const override;
     outcome::result<StorageConfig> getStorage() override;
-    outcome::result<void> setStorage(std::function<void(StorageConfig &)> action) override;
-    outcome::result<primitives::FsStat> getStat(const std::string &path) override;
+    outcome::result<void> setStorage(
+        std::function<void(StorageConfig &)> action) override;
+    outcome::result<primitives::FsStat> getStat(
+        const std::string &path) override;
 
    private:
     std::mutex storage_mutex_;
