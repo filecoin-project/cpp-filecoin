@@ -48,7 +48,7 @@ TEST_F(SectorIndexTest, AttachNewStorage) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_TRUE_1(
@@ -86,7 +86,7 @@ TEST_F(SectorIndexTest, AttachExistStorage) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_TRUE_1(
@@ -133,7 +133,7 @@ TEST_F(SectorIndexTest, AttachStorageWithInvalidUrl) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_ERROR(
@@ -179,9 +179,9 @@ TEST_F(SectorIndexTest, BestAllocation) {
       .can_store = true,
   };
   FsStat file_system_stat1{
-      .capacity = 7 * 2048,
-      .available = 7 * 2048,
-      .used = 0,
+      .capacity = 28876,
+      .available = 28876,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_TRUE_1(
@@ -198,7 +198,7 @@ TEST_F(SectorIndexTest, BestAllocation) {
   FsStat file_system_stat2{
       .capacity = 6 * 2048,
       .available = 6 * 2048,
-      .used = 0,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_TRUE_1(
@@ -213,9 +213,9 @@ TEST_F(SectorIndexTest, BestAllocation) {
       .can_store = true,
   };
   FsStat file_system_stat3{
-      .capacity = 8 * 2048,
-      .available = 8 * 2048,
-      .used = 0,
+      .capacity = 30000,
+      .available = 30000,
+      .reserved = 0,
   };
 
   EXPECT_OUTCOME_TRUE_1(
@@ -252,7 +252,7 @@ TEST_F(SectorIndexTest, StorageDeclareSector) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -262,11 +262,11 @@ TEST_F(SectorIndexTest, StorageDeclareSector) {
 
   EXPECT_OUTCOME_TRUE_1(
       sector_index_->storageAttach(storage_info, file_system_stat));
-  EXPECT_OUTCOME_TRUE_1(
-      sector_index_->storageDeclareSector(id, sector, SectorFileType::FTCache));
-  EXPECT_OUTCOME_TRUE(
-      storages,
-      sector_index_->storageFindSector(sector, SectorFileType::FTCache, false));
+  EXPECT_OUTCOME_TRUE_1(sector_index_->storageDeclareSector(
+      id, sector, SectorFileType::FTCache, false));
+  EXPECT_OUTCOME_TRUE(storages,
+                      sector_index_->storageFindSector(
+                          sector, SectorFileType::FTCache, boost::none));
   ASSERT_EQ(storages.size(), 1);
   ASSERT_EQ(storages[0].id, id);
 }
@@ -292,7 +292,7 @@ TEST_F(SectorIndexTest, StorageDropSector) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -302,13 +302,13 @@ TEST_F(SectorIndexTest, StorageDropSector) {
 
   EXPECT_OUTCOME_TRUE_1(
       sector_index_->storageAttach(storage_info, file_system_stat));
-  EXPECT_OUTCOME_TRUE_1(
-      sector_index_->storageDeclareSector(id, sector, SectorFileType::FTCache));
+  EXPECT_OUTCOME_TRUE_1(sector_index_->storageDeclareSector(
+      id, sector, SectorFileType::FTCache, false));
   EXPECT_OUTCOME_TRUE_1(
       sector_index_->storageDropSector(id, sector, SectorFileType::FTCache));
-  EXPECT_OUTCOME_TRUE(
-      storages,
-      sector_index_->storageFindSector(sector, SectorFileType::FTCache, false));
+  EXPECT_OUTCOME_TRUE(storages,
+                      sector_index_->storageFindSector(
+                          sector, SectorFileType::FTCache, boost::none));
   ASSERT_TRUE(storages.empty());
 }
 
@@ -332,7 +332,7 @@ TEST_F(SectorIndexTest, StorageFindSector) {
   FsStat file_system_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -342,11 +342,11 @@ TEST_F(SectorIndexTest, StorageFindSector) {
 
   EXPECT_OUTCOME_TRUE_1(
       sector_index_->storageAttach(storage_info, file_system_stat));
-  EXPECT_OUTCOME_TRUE_1(
-      sector_index_->storageDeclareSector(id, sector, SectorFileType::FTCache));
-  EXPECT_OUTCOME_TRUE(
-      storages,
-      sector_index_->storageFindSector(sector, SectorFileType::FTCache, false));
+  EXPECT_OUTCOME_TRUE_1(sector_index_->storageDeclareSector(
+      id, sector, SectorFileType::FTCache, false));
+  EXPECT_OUTCOME_TRUE(storages,
+                      sector_index_->storageFindSector(
+                          sector, SectorFileType::FTCache, boost::none));
   ASSERT_FALSE(storages.empty());
   auto store = storages[0];
   ASSERT_FALSE(store.urls.empty());
@@ -367,13 +367,13 @@ TEST_F(SectorIndexTest, StorageFindSectorFetch) {
       .id = id,
       .urls = urls,
       .weight = 0,
-      .can_seal = false,
+      .can_seal = true,
       .can_store = false,
   };
   FsStat file_system_stat{
-      .capacity = 100,
-      .available = 100,
-      .used = 0,
+      .capacity = 28876,
+      .available = 28876,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -385,7 +385,9 @@ TEST_F(SectorIndexTest, StorageFindSectorFetch) {
       sector_index_->storageAttach(storage_info, file_system_stat));
   EXPECT_OUTCOME_TRUE(
       storages,
-      sector_index_->storageFindSector(sector, SectorFileType::FTCache, true));
+      sector_index_->storageFindSector(sector,
+                                       SectorFileType::FTCache,
+                                       RegisteredProof::StackedDRG2KiBSeal));
   ASSERT_FALSE(storages.empty());
   auto store = storages[0];
   ASSERT_FALSE(store.urls.empty());

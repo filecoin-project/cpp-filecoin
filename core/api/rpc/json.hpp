@@ -1161,14 +1161,14 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Capacity", v.capacity);
       Set(j, "Available", v.available);
-      Set(j, "Used", v.used);
+      Set(j, "Reserved", v.reserved);
       return j;
     }
 
     DECODE(FsStat) {
       decode(v.capacity, Get(j, "Capacity"));
       decode(v.available, Get(j, "Available"));
-      decode(v.used, Get(j, "Used"));
+      decode(v.reserved, Get(j, "Reserved"));
     }
 
     template <typename T>

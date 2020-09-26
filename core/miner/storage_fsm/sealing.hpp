@@ -16,6 +16,7 @@ namespace fc::mining {
   using primitives::SectorNumber;
   using primitives::address::Address;
   using primitives::piece::UnpaddedPieceSize;
+  using proofs::PieceData;
   using types::DealInfo;
   using types::PieceAttributes;
   using types::SectorInfo;
@@ -35,7 +36,8 @@ namespace fc::mining {
 
     virtual Address getAddress() const = 0;
 
-    virtual std::vector<std::shared_ptr<const SectorInfo>> getListSectors() const = 0;
+    virtual std::vector<std::shared_ptr<const SectorInfo>> getListSectors()
+        const = 0;
 
     virtual outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber id) const = 0;
@@ -52,18 +54,18 @@ namespace fc::mining {
     virtual outcome::result<void> pledgeSector() = 0;
   };
 
-    enum class SealingError {
-        kPieceNotFit = 1,
-        kCannotAllocatePiece,
-        kCannotFindSector,
-        kAlreadyUpgradeMarked,
-        kNotProvingState,
-        kUpgradeSeveralPiece,
-        kUpgradeWithDeal,
-        kTooManySectors,
-        kNoFaultMessage,
-        kFailSubmit,
-    };
+  enum class SealingError {
+    kPieceNotFit = 1,
+    kCannotAllocatePiece,
+    kCannotFindSector,
+    kAlreadyUpgradeMarked,
+    kNotProvingState,
+    kUpgradeSeveralPiece,
+    kUpgradeWithDeal,
+    kTooManySectors,
+    kNoFaultMessage,
+    kFailSubmit,
+  };
 }  // namespace fc::mining
 
 OUTCOME_HPP_DECLARE_ERROR(fc::mining, SealingError);

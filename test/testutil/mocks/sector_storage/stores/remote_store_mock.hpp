@@ -13,14 +13,17 @@
 namespace fc::sector_storage::stores {
   class RemoteStoreMock : public RemoteStore {
    public:
-    MOCK_METHOD5(acquireSector,
+    MOCK_METHOD6(acquireSector,
                  outcome::result<AcquireSectorResponse>(SectorId,
                                                         RegisteredProof,
                                                         SectorFileType,
                                                         SectorFileType,
-                                                        bool));
+                                                        PathType path_type,
+                                                        AcquireMode mode));
 
     MOCK_METHOD2(remove, outcome::result<void>(SectorId, SectorFileType));
+
+    MOCK_METHOD2(removeCopies, outcome::result<void>(SectorId, SectorFileType));
 
     MOCK_METHOD3(moveStorage,
                  outcome::result<void>(SectorId,

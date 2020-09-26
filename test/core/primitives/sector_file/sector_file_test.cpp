@@ -18,7 +18,9 @@ using namespace fc::primitives::sector_file;
 TEST(SealSpaceUse, Success) {
   RegisteredProof seal_proof_type = RegisteredProof::StackedDRG2KiBSeal;
   SectorFileType file_type = SectorFileType::FTCache;
-  uint64_t result = 7 * 2048;
+  EXPECT_OUTCOME_TRUE(sector_size,
+                      fc::primitives::sector::getSectorSize(seal_proof_type));
+  uint64_t result = kOverheadSeal.at(file_type) * sector_size / kOverheadDenominator;
   EXPECT_OUTCOME_TRUE(seal_size, sealSpaceUse(file_type, seal_proof_type));
   ASSERT_EQ(result, seal_size);
 }
