@@ -23,22 +23,6 @@ using test::BaseFS_Test;
  */
 TEST(InMemoryRepositoryTest, GetStorage) {
   InMemoryRepository repository;
-  auto config_path = boost::filesystem::unique_path();
-  config_path /= "storage.json";
-  boost::filesystem::ofstream ofs(config_path);
-  ofs.close();
-  std::ofstream config_file(config_path.string());
-  config_file << "{\n"
-                 "  \"StoragePaths\": [\n"
-                 "    {\n"
-                 "      \"Path\": \"preseal1\"\n"
-                 "    },\n"
-                 "    {\n"
-                 "      \"Path\": \"miner1\"\n"
-                 "    }\n"
-                 "  ]\n"
-                 "}";
-  config_file.close();
   EXPECT_OUTCOME_TRUE(config, repository.getStorage());
   EXPECT_OUTCOME_TRUE(path, repository.path())
   std::vector<LocalPath> paths = {{path.string()}};
@@ -53,22 +37,6 @@ TEST(InMemoryRepositoryTest, GetStorage) {
  */
 TEST(InMemoryRepositoryTest, SetStorage) {
   InMemoryRepository repository;
-  auto config_path = boost::filesystem::unique_path();
-  config_path /= "storage.json";
-  boost::filesystem::ofstream ofs(config_path);
-  ofs.close();
-  std::ofstream config_file(config_path.string());
-  config_file << "{\n"
-                 "  \"StoragePaths\": [\n"
-                 "    {\n"
-                 "      \"Path\": \"preseal1\"\n"
-                 "    },\n"
-                 "    {\n"
-                 "      \"Path\": \"miner1\"\n"
-                 "    }\n"
-                 "  ]\n"
-                 "}";
-  config_file.close();
   EXPECT_OUTCOME_TRUE_1(repository.setStorage(
       ([](StorageConfig &cfg) { cfg.storage_paths.push_back({"test1"}); })));
   EXPECT_OUTCOME_TRUE(path, repository.path())
