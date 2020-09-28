@@ -69,7 +69,7 @@ namespace fc::storage::repository {
         std::function<void(StorageConfig &)> action) override;
     outcome::result<primitives::FsStat> getStat(
         const std::string &path) override;
-    outcome::result<int64_t> getDiskUsage(const std::string &path);
+    outcome::result<int64_t> getDiskUsage(const std::string &path) override;
 
    private:
     std::mutex storage_mutex_;
