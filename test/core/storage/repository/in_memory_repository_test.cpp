@@ -6,25 +6,13 @@
 #include "storage/repository/impl/in_memory_repository.hpp"
 
 #include "storage/repository/repository_error.hpp"
-#include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/storage/base_fs_test.hpp"
 
 using fc::sector_storage::stores::LocalPath;
 using fc::sector_storage::stores::StorageConfig;
 using fc::storage::repository::InMemoryRepository;
-
-class InMemoryRepositoryTest : public test::BaseFS_Test {
- public:
-  InMemoryRepositoryTest() : test::BaseFS_Test("in_memory_repository_test") {}
-
-  /**
-   * Create a test repository with an empty file.
-   */
-  void SetUp() override {
-    BaseFS_Test::SetUp();
-  }
-};
+using test::BaseFS_Test;
 
 /**
  * @given Repository with a .json file with a config
@@ -33,10 +21,13 @@ class InMemoryRepositoryTest : public test::BaseFS_Test {
  * temp dir
  * @then Storage config with a path of the temp directory
  */
-TEST_F(InMemoryRepositoryTest, GetStorage) {
+TEST(InMemoryRepositoryTest, GetStorage) {
   InMemoryRepository repository;
-  auto config_path = fs::canonical(createFile("storage.json")).string();
-  std::ofstream config_file(config_path);
+  auto config_path = boost::filesystem::unique_path();
+  config_path /= "storage.json";
+  boost::filesystem::ofstream ofs(config_path);
+  ofs.close();
+  std::ofstream config_file(config_path.string());
   config_file << "{\n"
                  "  \"StoragePaths\": [\n"
                  "    {\n"
@@ -60,10 +51,13 @@ TEST_F(InMemoryRepositoryTest, GetStorage) {
  * storage config
  * @then Storage config with an update paths
  */
-TEST_F(InMemoryRepositoryTest, SetStorage) {
+TEST(InMemoryRepositoryTest, SetStorage) {
   InMemoryRepository repository;
-  auto config_path = fs::canonical(createFile("storage.json")).string();
-  std::ofstream config_file(config_path);
+  auto config_path = boost::filesystem::unique_path();
+  config_path /= "storage.json";
+  boost::filesystem::ofstream ofs(config_path);
+  ofs.close();
+  std::ofstream config_file(config_path.string());
   config_file << "{\n"
                  "  \"StoragePaths\": [\n"
                  "    {\n"
