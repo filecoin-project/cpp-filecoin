@@ -37,6 +37,7 @@ namespace fc::storage::repository {
     outcome::result<void> setStorage(
         std::function<void(StorageConfig &)> action) override;
     outcome::result<boost::filesystem::path> path();
+    outcome::result<int64_t> getDiskUsage(const std::string &path);
 
    private:
     std::mutex storage_mutex_;
