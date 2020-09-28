@@ -3,6 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(cbor)
-add_subdirectory(json)
-add_subdirectory(rle)
+add_library(json
+    json.cpp
+    )
+target_link_libraries(json
+    cid
+    )

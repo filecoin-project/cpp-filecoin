@@ -24,6 +24,11 @@ namespace fc::vm::message {
     return gas_limit * gas_fee_cap;
   }
 
+  size_t UnsignedMessage::chainSize() const {
+    OUTCOME_EXCEPT(bytes, codec::cbor::encode(*this));
+    return bytes.size();
+  }
+
   CID SignedMessage::getCid() const {
     if (signature.isBls()) {
       OUTCOME_EXCEPT(data, codec::cbor::encode(message));
@@ -35,6 +40,13 @@ namespace fc::vm::message {
     return res;
   }
 
+  size_t SignedMessage::chainSize() const {
+    if (signature.isBls()) {
+      return message.chainSize();
+    }
+    OUTCOME_EXCEPT(bytes, codec::cbor::encode(*this));
+    return bytes.size();
+  }
 }  // namespace fc::vm::message
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::message, MessageError, e) {

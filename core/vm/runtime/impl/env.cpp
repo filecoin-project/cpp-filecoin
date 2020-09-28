@@ -183,11 +183,11 @@ namespace fc::vm::runtime {
 
   outcome::result<Actor> Execution::tryCreateAccountActor(
       const Address &address) {
+    OUTCOME_TRY(chargeGas(env->pricelist.onCreateActor()));
+    OUTCOME_TRY(id, state_tree->registerNewAddress(address));
     if (!address.isKeyType()) {
       return VMExitCode::kSysErrInvalidReceiver;
     }
-    OUTCOME_TRY(chargeGas(env->pricelist.onCreateActor()));
-    OUTCOME_TRY(id, state_tree->registerNewAddress(address));
     OUTCOME_TRY(state_tree->set(
         id, {actor::kAccountCodeCid, actor::kEmptyObjectCid, {}, {}}));
     OUTCOME_TRY(params, actor::encodeActorParams(address));
@@ -233,7 +233,9 @@ namespace fc::vm::runtime {
     RuntimeImpl runtime{shared_from_this(), message, caller_id};
 
     if (message.value != 0) {
-      BOOST_ASSERT(message.value > 0);
+      if (message.value < 0) {
+        return VMExitCode::kSysErrForbidden;
+      }
       OUTCOME_TRY(to_id, state_tree->lookupId(message.to));
       if (to_id != caller_id) {
         OUTCOME_TRY(from_actor, state_tree->get(caller_id));

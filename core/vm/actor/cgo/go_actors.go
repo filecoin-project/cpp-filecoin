@@ -26,8 +26,10 @@ import (
 	"github.com/filecoin-project/specs-actors/actors/builtin/system"
 	"github.com/filecoin-project/specs-actors/actors/builtin/verifreg"
 	"github.com/filecoin-project/specs-actors/actors/crypto"
+	"github.com/filecoin-project/specs-actors/actors/puppet"
 	"github.com/filecoin-project/specs-actors/actors/runtime"
 	"github.com/filecoin-project/specs-actors/actors/runtime/exitcode"
+	"github.com/filecoin-project/test-vectors/chaos"
 	"github.com/ipfs/go-cid"
 	"github.com/whyrusleeping/cbor-gen"
 	"reflect"
@@ -63,6 +65,7 @@ type rt struct {
 	now      int64
 	value    abi.TokenAmount
 	tx       bool
+	cv       bool
 	ctx      context.Context
 }
 
@@ -77,9 +80,11 @@ func (rt *rt) CurrEpoch() abi.ChainEpoch {
 }
 
 func (rt *rt) ValidateImmediateCallerAcceptAny() {
+	rt.validateCallerOnce()
 }
 
 func (rt *rt) ValidateImmediateCallerIs(addrs ...address.Address) {
+	rt.validateCallerOnce()
 	for _, a := range addrs {
 		if rt.Caller() == a {
 			return
@@ -89,6 +94,7 @@ func (rt *rt) ValidateImmediateCallerIs(addrs ...address.Address) {
 }
 
 func (rt *rt) ValidateImmediateCallerType(codes ...cid.Cid) {
+	rt.validateCallerOnce()
 	code, ok := rt.GetActorCodeCID(rt.Caller())
 	if !ok {
 		rt.Abort(ExitFatal)
@@ -155,7 +161,7 @@ func (rt *rt) Send(to address.Address, method abi.MethodNum, o runtime.CBORMarsh
 	if exit == 0 {
 		return &into{ret.bytes()}, exit
 	}
-	return nil, exit
+	return &into{}, exit
 }
 
 func (rt *rt) Abortf(exit exitcode.ExitCode, _ string, _ ...interface{}) {
@@ -174,9 +180,8 @@ func (rt *rt) CreateActor(code cid.Cid, addr address.Address) {
 	rt.gocRet(C.gocRtCreateActor(rt.gocArg().cid(code).addr(addr).arg()))
 }
 
-func (rt *rt) DeleteActor(address.Address) {
-	// TODO: implement
-	panic(cgoErrors("NOT IMPLEMENTED DeleteActor"))
+func (rt *rt) DeleteActor(to address.Address) {
+	rt.gocRet(C.gocRtDeleteActor(rt.gocArg().addr(to).arg()))
 }
 
 func (rt *rt) Syscalls() runtime.Syscalls {
@@ -372,6 +377,13 @@ func (rt *rt) rand(beacon bool, tag crypto.DomainSeparationTag, round abi.ChainE
 	return ret.bytes()
 }
 
+func (rt *rt) validateCallerOnce() {
+	if rt.cv {
+		rt.Abort(exitcode.SysErrorIllegalActor)
+	}
+	rt.cv = true
+}
+
 func (rt *rt) gocArg() *cborOut {
 	return CborOut().uint(rt.id)
 }
@@ -386,7 +398,7 @@ func (rt *rt) gocRet(raw C.Raw) *cborIn {
 }
 
 type exporter interface{ Exports() []interface{} }
-type method = func(rt runtime.Runtime, params []byte) []byte
+type method = func(rt *rt, params []byte) []byte
 type methods = map[uint64]method
 
 var actors = map[cid.Cid]methods{
@@ -401,6 +413,9 @@ var actors = map[cid.Cid]methods{
 	builtin.PaymentChannelActorCodeID:   export(paych.Actor{}),
 	builtin.VerifiedRegistryActorCodeID: export(verifreg.Actor{}),
 	builtin.AccountActorCodeID:          export(account.Actor{}),
+
+	puppet.PuppetActorCodeID:            export(puppet.Actor{}),
+	chaos.ChaosActorCodeCID:             export(chaos.Actor{}),
 }
 
 func export(exporter exporter) methods {
@@ -408,7 +423,7 @@ func export(exporter exporter) methods {
 	for i, method := range exporter.Exports() {
 		if method != nil {
 			rMethod := reflect.ValueOf(method)
-			methods[uint64(i)] = func(rt runtime.Runtime, params []byte) []byte {
+			methods[uint64(i)] = func(rt *rt, params []byte) []byte {
 				rParams := reflect.New(rMethod.Type().In(1).Elem())
 				e := rParams.Interface().(typegen.CBORUnmarshaler).UnmarshalCBOR(bytes.NewReader(params))
 				if e != nil {
@@ -416,6 +431,9 @@ func export(exporter exporter) methods {
 				}
 				w := new(bytes.Buffer)
 				rResult := rMethod.Call([]reflect.Value{reflect.ValueOf(rt), rParams})[0]
+				if !rt.cv {
+					abort(exitcode.SysErrorIllegalActor)
+				}
 				e = rResult.Interface().(typegen.CBORMarshaler).MarshalCBOR(w)
 				if e != nil {
 					abort(exitcode.ExitCode(2))
@@ -458,7 +476,7 @@ func invoke(rt *rt, code cid.Cid, method uint64, params []byte) (exit exitcode.E
 func cgoActorsInvoke(raw C.Raw) C.Raw {
 	arg := cgoArgCbor(raw)
 	id, from, to, now, value, code, method, params := arg.uint(), arg.addr(), arg.addr(), arg.int(), arg.big(), arg.cid(), arg.uint(), arg.bytes()
-	exit, ret := invoke(&rt{id, from, to, now, value, false, context.Background()}, code, method, params)
+	exit, ret := invoke(&rt{id, from, to, now, value, false, false, context.Background()}, code, method, params)
 	return CborOut().int(int64(exit)).bytes(ret).ret()
 }
 

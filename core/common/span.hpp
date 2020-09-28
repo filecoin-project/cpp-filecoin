@@ -28,6 +28,10 @@ namespace fc::common::span {
   constexpr auto string(gsl::span<uint8_t> span) {
     return cast<char>(span);
   }
+
+  constexpr auto bytestr(gsl::span<const uint8_t> span) {
+    return std::string_view(cstring(span).data(), span.size());
+  }
 }  // namespace fc::common::span
 
 #endif  // CPP_FILECOIN_CORE_COMMON_SPAN_HPP

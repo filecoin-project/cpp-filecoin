@@ -46,6 +46,9 @@ namespace fc::vm::runtime {
     GasAmount onCreateActor() const {
       return make(1108454, 36 + 40);
     }
+    GasAmount onDeleteActor() const {
+      return make(0, -(36 + 40));
+    }
     GasAmount onVerifySignature(bool bls) const {
       return make(bls ? 16598605 : 1637292, 0);
     }
