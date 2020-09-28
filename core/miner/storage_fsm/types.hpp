@@ -26,6 +26,8 @@ namespace fc::mining::types {
   using sector_storage::PreCommit1Output;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
 
+  constexpr uint64_t kDealSectorPriority = 1024;
+
   /**
    * DealSchedule communicates the time interval of a storage deal. The deal
    * must appear in a sealed (proven) sector no later than StartEpoch, otherwise
@@ -105,6 +107,16 @@ namespace fc::mining::types {
       }
 
       return result;
+    }
+
+    inline uint64_t sealingPriority() const {
+      for (const auto &piece : pieces) {
+        if (piece.deal_info.has_value()) {
+          return kDealSectorPriority;
+        }
+      }
+
+      return 0;
     }
   };
 

@@ -43,13 +43,16 @@ namespace fc::sector_storage {
     outcome::result<Proof> sealCommit2(
         const SectorId &sector, const Commit1Output &commit_1_output) override;
 
-    outcome::result<void> finalizeSector(const SectorId &sector) override;
+    outcome::result<void> finalizeSector(
+        const SectorId &sector,
+        const gsl::span<const Range> &keep_unsealed) override;
 
     outcome::result<void> moveStorage(const SectorId &sector) override;
 
     outcome::result<void> fetch(const SectorId &sector,
                                 const SectorFileType &file_type,
-                                bool can_seal) override;
+                                PathType path_type,
+                                AcquireMode mode) override;
 
     outcome::result<void> unsealPiece(const SectorId &sector,
                                       UnpaddedByteIndex offset,
@@ -78,8 +81,19 @@ namespace fc::sector_storage {
         const proofs::PieceData &piece_data) override;
 
    private:
+    struct Response {
+      stores::SectorPaths paths;
+      std::function<void()> release_function;
+    };
+
+    outcome::result<Response> acquireSector(
+        SectorId sector_id,
+        SectorFileType exisitng,
+        SectorFileType allocate,
+        PathType path,
+        AcquireMode mode = AcquireMode::kCopy);
+
     std::shared_ptr<stores::RemoteStore> remote_store_;
-    std::shared_ptr<stores::LocalStore> local_store_;
     std::shared_ptr<stores::SectorIndex> index_;
 
     WorkerConfig config_;

@@ -15,7 +15,7 @@ namespace fc::sector_storage {
    public:
     AllocateSelector(std::shared_ptr<stores::SectorIndex> index,
                      SectorFileType allocate,
-                     bool sealing);
+                     PathType path_type);
 
     outcome::result<bool> is_satisfying(
         const TaskType &task,
@@ -30,7 +30,7 @@ namespace fc::sector_storage {
    private:
     std::shared_ptr<stores::SectorIndex> sector_index_;
     SectorFileType allocate_;
-    bool sealing_;
+    PathType path_type_;
   };
 }  // namespace fc::sector_storage
 

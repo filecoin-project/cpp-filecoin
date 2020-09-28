@@ -666,20 +666,10 @@ namespace fc::proofs {
       return ProofsError::kCannotOpenFile;
     }
 
-    OUTCOME_TRY(max_size, primitives::sector::getSectorSize(proof_type));
-
-    UnpaddedPieceSize offset;
+    UnpaddedPieceSize offset(0);
 
     for (const auto &piece_size : existing_piece_sizes) {
       offset += piece_size;
-    }
-
-    if ((offset.padded() + piece_bytes.padded()) > max_size) {
-      // NOLINTNEXTLINE(readability-implicit-bool-conversion)
-      if (close(staged_sector_fd))
-        logger_->warn("writeWithAlignment: error in closing file "
-                      + staged_sector_file_path);
-      return ProofsError::kOutOfBound;
     }
 
     if (lseek(staged_sector_fd, offset.padded(), SEEK_SET) == -1) {
