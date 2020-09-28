@@ -46,11 +46,13 @@ namespace fc::fsm {
    *
    * @tparam EventEnumType - enum class with events listed
    * @tparam StateEnumType - enum class with states listed
+   * @tparam EventContextType - user-defined struct to parametrize event
    * @tparam Entity - type of entity to be tracked. Required for enabling
    * callbacks on transitions
    */
   template <typename EventEnumType,
             typename StateEnumType,
+            typename EventContextType,
             typename Entity = void>
   class Transition final {
    public:
@@ -58,6 +60,7 @@ namespace fc::fsm {
     using ActionFunction = std::function<void(
         std::shared_ptr<Entity> /* pointer to tracked entity */,
         EventEnumType /* event that caused state transition */,
+        EventContextType /* event parameters */,
         StateEnumType /* transition source state */,
         StateEnumType /* transition destination state */)>;
 
@@ -185,6 +188,7 @@ namespace fc::fsm {
      */
     boost::optional<StateEnumType> dispatch(
         StateEnumType from_state,
+        EventContextType event_ctx,
         const std::shared_ptr<Entity> &entity_ptr) const {
       if (from_any_) {
         if (1 != intermediary_.size()) {
@@ -199,7 +203,8 @@ namespace fc::fsm {
         }
         auto to_state = *intermediary_.begin();
         if (transition_action_) {
-          transition_action_.get()(entity_ptr, event_, from_state, to_state);
+          transition_action_.get()(
+              entity_ptr, event_, std::move(event_ctx), from_state, to_state);
         }
         return to_state;
       }
@@ -209,8 +214,11 @@ namespace fc::fsm {
         return boost::none;
       }
       if (transition_action_) {
-        transition_action_.get()(
-            entity_ptr, event_, from_state, lookup->second);
+        transition_action_.get()(entity_ptr,
+                                 event_,
+                                 std::move(event_ctx),
+                                 from_state,
+                                 lookup->second);
       }
       return lookup->second;
     }
@@ -227,19 +235,26 @@ namespace fc::fsm {
   /**
    * Finite State Machine implementation
    * @tparam EventEnumType - enum class with list of events
+   * @tparam EventContextType - user-defined struct to parametrize event
    * @tparam StateEnumType - enum class with list of states
    * @tparam Entity - type of handled objects, actually std::shared_ptr<Entity>
    */
-  template <typename EventEnumType, typename StateEnumType, typename Entity>
+  template <typename EventEnumType,
+            typename EventContextType,
+            typename StateEnumType,
+            typename Entity>
   class FSM {
    public:
     using EntityPtr = std::shared_ptr<Entity>;
-    using TransitionRule = Transition<EventEnumType, StateEnumType, Entity>;
-    using EventQueueItem = std::pair<EntityPtr, EventEnumType>;
+    using TransitionRule =
+        Transition<EventEnumType, StateEnumType, EventContextType, Entity>;
+    using ParametrizedEvent = std::pair<EventEnumType, EventContextType>;
+    using EventQueueItem = std::pair<EntityPtr, ParametrizedEvent>;
     using HostContext = std::shared_ptr<fc::host::HostContext>;
     using ActionFunction = std::function<void(
         std::shared_ptr<Entity> /* pointer to tracked entity */,
         EventEnumType /* event that caused state transition */,
+        EventContextType /* event context to pass event's parameters */,
         StateEnumType /* transition source state */,
         StateEnumType /* transition destination state */)>;
 
@@ -299,19 +314,22 @@ namespace fc::fsm {
       return outcome::success();
     }
 
-    // schedule an event for an object
+    /// schedule an event for an object
     outcome::result<void> send(const EntityPtr &entity_ptr,
-                               EventEnumType event) {
+                               EventEnumType event,
+                               EventContextType event_context) {
       if (not running_) {
         return FsmError::kMachineStopped;
       }
       std::lock_guard lock(event_queue_mutex_);
-      event_queue_.emplace(entity_ptr, event);
+      event_queue_.emplace(entity_ptr,
+                           std::make_pair(event, std::move(event_context)));
       return outcome::success();
     }
 
     /*
-     * outcome::result<void> sendSync(const Entity &object, EventEnumType event)
+     * outcome::result<void> sendSync(const Entity &object, EventEnumType event,
+     * EventContextType event_context)
      *
      * The method is non-trivial in implementation and is not used in golang
      * implementation. Only async send method is used there.
@@ -407,21 +425,25 @@ namespace fc::fsm {
         // copy to prevent invalidation of iterator
         source_state = current_state->second;
       }
-      auto event_handler = transitions_.find(event_pair.second);
+      auto parametrized_event = event_pair.second;
+      auto event_to = parametrized_event.first;
+      auto event_ctx = parametrized_event.second;
+      auto event_handler = transitions_.find(event_to);
       if (transitions_.end() == event_handler) {
         return;  // transition from the state by the event is not set
       }
-      auto resulting_state =
-          event_handler->second.dispatch(source_state, event_pair.first);
+      auto resulting_state = event_handler->second.dispatch(
+          source_state, event_ctx, event_pair.first);
       if (resulting_state) {
         {
           std::unique_lock lock(states_mutex_);
           states_[event_pair.first] = resulting_state.get();
         }
         if (any_change_cb_) {
-          any_change_cb_.get()(event_pair.first,        // pointer to entity
-                               event_pair.second,       // trigger event
-                               source_state,            // source state
+          any_change_cb_.get()(event_pair.first,      // pointer to entity
+                               event_to,              // trigger event
+                               std::move(event_ctx),  // event context or params
+                               source_state,          // source state
                                resulting_state.get());  // destination state
         }
       }
@@ -443,7 +465,7 @@ namespace fc::fsm {
     mutable std::shared_mutex states_mutex_;
     std::unordered_map<EntityPtr, StateEnumType> states_;
 
-    /// optional callback for any transition
+    /// optional callback called after any transition
     boost::optional<ActionFunction> any_change_cb_;
   };
 
