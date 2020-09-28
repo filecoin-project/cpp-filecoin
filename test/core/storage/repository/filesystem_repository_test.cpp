@@ -175,7 +175,8 @@ TEST_F(FilesSystemRepositoryTest, InvalidVersion) {
  * @then Storage with paths from parsed .json file
  */
 TEST_F(FilesSystemRepositoryTest, GetStorage) {
-  auto config_path = fs::canonical(createFile("storage.json")).string();
+  auto const config_path =
+      fs::canonical(createFile(FileSystemRepository::kStorageConfig)).string();
   std::ofstream config_file(config_path);
   config_file << "{\n"
                  "  \"StoragePaths\": [\n"
@@ -203,7 +204,8 @@ TEST_F(FilesSystemRepositoryTest, GetStorage) {
  * @then .json file with an updated storage config
  */
 TEST_F(FilesSystemRepositoryTest, SetStorage) {
-  auto config_path = fs::canonical(createFile("storage.json")).string();
+  auto config_path =
+      fs::canonical(createFile(FileSystemRepository::kStorageConfig)).string();
   std::ofstream config_file(config_path);
   config_file << "{\n"
                  "  \"StoragePaths\": [\n"

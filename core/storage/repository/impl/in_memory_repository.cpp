@@ -7,6 +7,7 @@
 #include <api/rpc/json.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
+#include <sector_storage/stores/store.hpp>
 
 #include "storage/repository/impl/in_memory_repository.hpp"
 
@@ -22,6 +23,7 @@
 using fc::crypto::bls::BlsProviderImpl;
 using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
 using fc::primitives::LocalStorageMeta;
+using fc::sector_storage::stores::kMetaFileName;
 using fc::sector_storage::stores::LocalPath;
 using fc::sector_storage::stores::StorageConfig;
 using fc::storage::ipfs::InMemoryDatastore;
@@ -86,7 +88,7 @@ fc::outcome::result<boost::filesystem::path> InMemoryRepository::path() {
       .can_seal = true,
       .can_store = true};
   boost::filesystem::path sector_path = tempPath;
-  sector_path /= "sectorstore.json";
+  sector_path /= kMetaFileName;
   std::ofstream file{(sector_path).string()};
   if (!file.good()) {
     return RepositoryError::kInvalidStorageConfig;
