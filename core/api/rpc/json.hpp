@@ -16,6 +16,7 @@
 #include "payment_channel_manager/payment_channel_manager.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
+#include "sector_storage/stores/storage.hpp"
 
 #define COMMA ,
 
@@ -40,6 +41,8 @@ namespace fc::api {
   using primitives::tipset::HeadChangeType;
   using rapidjson::Document;
   using rapidjson::Value;
+  using sector_storage::stores::LocalPath;
+  using sector_storage::stores::StorageConfig;
   using vm::actor::builtin::miner::PowerPair;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
   using vm::actor::builtin::miner::WorkerKeyChange;
@@ -607,6 +610,26 @@ namespace fc::api {
     DECODE(SignedMessage) {
       decode(v.message, Get(j, "Message"));
       decode(v.signature, Get(j, "Signature"));
+    }
+
+    ENCODE(StorageConfig) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "StoragePaths", v.storage_paths);
+      return j;
+    }
+
+    DECODE(StorageConfig) {
+      decode(v.storage_paths, Get(j, "StoragePaths"));
+    }
+
+    ENCODE(LocalPath) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Path", v.path);
+      return j;
+    }
+
+    DECODE(LocalPath) {
+      decode(v.path, Get(j, "Path"));
     }
 
     ENCODE(BlockMessages) {

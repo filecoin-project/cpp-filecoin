@@ -363,7 +363,7 @@ namespace fc::sector_storage::stores {
     }
 
     OUTCOME_TRY(storage_->setStorage([path](stores::StorageConfig &config) {
-      config.storage_paths.push_back(std::move(path));
+      config.storage_paths.push_back({std::move(path)});
     }));
     paths_[meta.id] = out;
 
@@ -391,7 +391,7 @@ namespace fc::sector_storage::stores {
     OUTCOME_TRY(config, local->storage_->getStorage());
 
     for (const auto &path : config.storage_paths) {
-      OUTCOME_TRY(local->openPath(path));
+      OUTCOME_TRY(local->openPath(path.path));
     }
 
     return std::move(local);

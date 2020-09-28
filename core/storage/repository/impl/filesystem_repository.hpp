@@ -6,6 +6,7 @@
 #ifndef FILECOIN_CORE_STORAGE_IMPL_FILESYSTEM_REPOSITORY_HPP
 #define FILECOIN_CORE_STORAGE_IMPL_FILESYSTEM_REPOSITORY_HPP
 
+#include <boost/filesystem.hpp>
 #include <iostream>
 
 #include "fslock/fslock.hpp"
@@ -16,6 +17,7 @@
 namespace fc::storage::repository {
 
   using filestore::Path;
+  using sector_storage::stores::StorageConfig;
   using Version = Repository::Version;
 
   /**
@@ -47,6 +49,7 @@ namespace fc::storage::repository {
     inline static const std::string kDatastore = "datastore";
     inline static const std::string kRepositoryLock = "repo.lock";
     inline static const std::string kVersionFilename = "version";
+    inline static const std::string kStorageConfig = "storage.json";
     inline static const Version kFileSystemRepositoryVersion = 1;
 
     FileSystemRepository(std::shared_ptr<IpfsDatastore> ipld_store,
@@ -61,11 +64,19 @@ namespace fc::storage::repository {
         const leveldb::Options &leveldb_options);
 
     outcome::result<Version> getVersion() const override;
+    outcome::result<StorageConfig> getStorage() override;
+    outcome::result<void> setStorage(
+        std::function<void(StorageConfig &)> action) override;
+    outcome::result<primitives::FsStat> getStat(
+        const std::string &path) override;
+    outcome::result<int64_t> getDiskUsage(const std::string &path) override;
 
    private:
+    std::mutex storage_mutex_;
     Path repository_path_;
     std::unique_ptr<fslock::Locker> fs_locker_;
     inline static common::Logger logger_ = common::createLogger("repository");
+    outcome::result<StorageConfig> nonBlockGetStorage();
   };
 
 }  // namespace fc::storage::repository
