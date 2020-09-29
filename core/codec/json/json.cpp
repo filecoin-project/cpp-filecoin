@@ -11,6 +11,7 @@
 #include "common/span.hpp"
 
 namespace fc::codec::json {
+  using rapidjson::StringBuffer;
   using base64 = cppcodec::base64_rfc4648;
 
   Outcome<Document> parse(std::string_view input) {
@@ -24,6 +25,16 @@ namespace fc::codec::json {
 
   Outcome<Document> parse(BytesIn input) {
     return parse(common::span::bytestr(input));
+  }
+
+  Outcome<Buffer> format(JIn j) {
+    StringBuffer buffer;
+    rapidjson::Writer<StringBuffer> writer{buffer};
+    if (j->Accept(writer)) {
+      std::string_view s{buffer.GetString(), buffer.GetSize()};
+      return Buffer{common::span::cbytes(s)};
+    }
+    return {};
   }
 
   Outcome<JIn> jGet(JIn j, std::string_view key) {

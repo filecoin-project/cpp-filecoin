@@ -7,7 +7,6 @@
 
 #include <queue>
 
-#include <rapidjson/writer.h>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/core.hpp>
@@ -15,6 +14,7 @@
 
 #include "api/rpc/json.hpp"
 #include "api/rpc/make.hpp"
+#include "codec/json/json.hpp"
 
 namespace fc::api {
   namespace beast = boost::beast;
@@ -22,7 +22,6 @@ namespace fc::api {
   namespace websocket = beast::websocket;
   namespace net = boost::asio;
   using tcp = boost::asio::ip::tcp;
-  using rapidjson::StringBuffer;
   using rpc::OkCb;
 
   constexpr auto kParseError = INT64_C(-32700);
@@ -59,10 +58,9 @@ namespace fc::api {
     void onRead() {
       std::string_view s_req{static_cast<const char *>(buffer.cdata().data()),
                              buffer.cdata().size()};
-      rapidjson::Document j_req;
-      j_req.Parse(s_req.data(), s_req.size());
+      auto j_req{codec::json::parse(s_req)};
       buffer.clear();
-      if (j_req.HasParseError()) {
+      if (!j_req) {
         return _write(Response{{}, Response::Error{kParseError, "Parse error"}},
                       {});
       }
@@ -100,10 +98,8 @@ namespace fc::api {
 
     template <typename T>
     void _write(const T &v, OkCb cb) {
-      StringBuffer buffer;
-      rapidjson::Writer<StringBuffer> writer{buffer};
-      encode(v).Accept(writer);
-      pending_writes.emplace(std::move(buffer), std::move(cb));
+      auto j{encode(v)};
+      pending_writes.emplace(*codec::json::format(&j), std::move(cb));
       _flush();
     }
 
@@ -112,7 +108,7 @@ namespace fc::api {
         auto &[buffer, cb] = pending_writes.front();
         writing = true;
         socket.async_write(
-            net::buffer(buffer.GetString(), buffer.GetSize()),
+            net::buffer(buffer.data(), buffer.size()),
             [self{shared_from_this()}, cb{std::move(cb)}](auto e, auto) {
               self->writing = false;
               auto ok = !e;
@@ -129,7 +125,7 @@ namespace fc::api {
       }
     }
 
-    std::queue<std::pair<StringBuffer, OkCb>> pending_writes;
+    std::queue<std::pair<Buffer, OkCb>> pending_writes;
     bool writing{false};
     uint64_t next_channel{}, next_request{};
     websocket::stream<tcp::socket> socket;

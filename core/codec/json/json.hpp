@@ -20,6 +20,8 @@ namespace fc::codec::json {
 
   Outcome<Document> parse(BytesIn input);
 
+  Outcome<Buffer> format(JIn j);
+
   Outcome<JIn> jGet(JIn j, std::string_view key);
 
   Outcome<std::string_view> jStr(JIn j);

@@ -6,9 +6,10 @@
 #include "sector_storage/stores/store.hpp"
 
 #include <gtest/gtest.h>
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/writer.h>
+
 #include "api/rpc/json.hpp"
+#include "codec/json/json.hpp"
+#include "common/file.hpp"
 #include "common/outcome.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/stores/store_error.hpp"
@@ -52,8 +53,9 @@ void createMetaFile(const std::string &storage_path,
                     const LocalStorageMeta &meta) {
   boost::filesystem::path file(storage_path);
   file /= kMetaFileName;
-
-  writeToJSON(meta, file.string());
+  auto doc{fc::api::encode(meta)};
+  OUTCOME_EXCEPT(text, fc::codec::json::format(&doc));
+  OUTCOME_EXCEPT(fc::common::writeFile(file.string(), text));
 }
 
 class LocalStoreTest : public test::BaseFS_Test {

@@ -5,12 +5,14 @@
 
 #include "sector_storage/stores/impl/local_store.hpp"
 
-#include <rapidjson/document.h>
 #include <boost/filesystem.hpp>
 #include <fstream>
 #include <regex>
 #include <utility>
+
 #include "api/rpc/json.hpp"
+#include "codec/json/json.hpp"
+#include "common/file.hpp"
 #include "primitives/sector_file/sector_file.hpp"
 #include "sector_storage/stores/impl/util.hpp"
 #include "sector_storage/stores/storage_error.hpp"
@@ -304,22 +306,8 @@ namespace fc::sector_storage::stores {
   outcome::result<void> LocalStoreImpl::openPath(const std::string &path) {
     std::unique_lock lock(mutex_);
     auto root = boost::filesystem::path(path);
-    std::ifstream file{(root / kMetaFileName).string(),
-                       std::ios::binary | std::ios::ate};
-    if (!file.good()) {
-      return StoreErrors::kInvalidStorageConfig;
-    }
-    fc::common::Buffer buffer;
-    buffer.resize(file.tellg());
-    file.seekg(0, std::ios::beg);
-    file.read(fc::common::span::string(buffer).data(), buffer.size());
-
-    rapidjson::Document j_file;
-    j_file.Parse(fc::common::span::cstring(buffer).data(), buffer.size());
-    buffer.clear();
-    if (j_file.HasParseError()) {
-      return StoreErrors::kInvalidStorageConfig;
-    }
+    OUTCOME_TRY(text, common::readFile((root / kMetaFileName).string()));
+    OUTCOME_TRY(j_file, codec::json::parse(text));
     OUTCOME_TRY(meta, api::decode<LocalStorageMeta>(j_file));
 
     auto path_iter = paths_.find(meta.id);

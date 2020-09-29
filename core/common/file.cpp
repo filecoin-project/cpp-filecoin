@@ -21,4 +21,14 @@ namespace fc::common {
     }
     return {};
   }
+
+  outcome::result<void> writeFile(std::string_view path, BytesIn input) {
+    // TODO: mkdir
+    std::ofstream file{path, std::ios::binary};
+    if (file.good()) {
+      file.write(span::bytestr(input.data()), input.size());
+      return outcome::success();
+    }
+    return OutcomeError::kDefault;
+  }
 }  // namespace fc::common

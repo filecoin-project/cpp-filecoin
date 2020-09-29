@@ -12,10 +12,6 @@
 namespace fc::drand::http {
   using boost::asio::io_context;
 
-  enum class Error {
-    kJson = 1,
-  };
-
   void getInfo(io_context &io, std::string host, CbT<ChainInfo> cb);
 
   void getEntry(io_context &io,
@@ -23,5 +19,3 @@ namespace fc::drand::http {
                 uint64_t round,
                 CbT<PublicRandResponse> cb);
 }  // namespace fc::drand::http
-
-OUTCOME_HPP_DECLARE_ERROR(fc::drand::http, Error);

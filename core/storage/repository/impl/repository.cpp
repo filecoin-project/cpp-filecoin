@@ -7,8 +7,8 @@
 #include "api/rpc/json.hpp"
 #include "storage/repository/repository_error.hpp"
 
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/writer.h>
+#include "codec/json/json.hpp"
+#include "common/file.hpp"
 
 using fc::sector_storage::stores::StorageConfig;
 using fc::storage::config::Config;
@@ -41,39 +41,15 @@ fc::outcome::result<void> Repository::loadConfig(const std::string &filename) {
 
 fc::outcome::result<StorageConfig> Repository::storageFromFile(
     const boost::filesystem::path &path) {
-  std::ifstream file{(path).string(), std::ios::binary | std::ios::ate};
-  if (!file.good()) {
-    return RepositoryError::kInvalidStorageConfig;
-  }
-  fc::common::Buffer buffer;
-  buffer.resize(file.tellg());
-  file.seekg(0, std::ios::beg);
-  file.read(fc::common::span::string(buffer).data(), buffer.size());
-
-  rapidjson::Document j_file;
-  j_file.Parse(fc::common::span::cstring(buffer).data(), buffer.size());
-  buffer.clear();
-  if (j_file.HasParseError()) {
-    return RepositoryError::kInvalidStorageConfig;
-  }
+  OUTCOME_TRY(text, common::readFile(path.string()));
+  OUTCOME_TRY(j_file, codec::json::parse(text));
   return api::decode<StorageConfig>(j_file);
 }
 
 fc::outcome::result<void> Repository::writeStorage(
     const boost::filesystem::path &path, StorageConfig config) {
-  std::ofstream file{(path).string()};
-  if (!file.good()) {
-    return RepositoryError::kInvalidStorageConfig;
-  }
   auto doc = api::encode<StorageConfig>(config);
-  if (doc.HasParseError()) {
-    return RepositoryError::kParseJsonError;
-  }
-
-  rapidjson::OStreamWrapper osw{file};
-  rapidjson::Writer<rapidjson::OStreamWrapper> writer{osw};
-  if (!doc.Accept(writer)) {
-    return RepositoryError::kWriteJsonError;
-  }
+  OUTCOME_TRY(text, codec::json::format(&doc));
+  OUTCOME_TRY(common::writeFile(path.string(), text));
   return outcome::success();
 }

@@ -5,10 +5,11 @@
 
 #include "drand/impl/http.hpp"
 
-#include <rapidjson/document.h>
 #include <boost/asio/strand.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
+
+#include "codec/json/json.hpp"
 
 #define MOVE(x)  \
   x {            \
@@ -20,69 +21,21 @@
     return cb(ec); \
   }
 
-OUTCOME_CPP_DEFINE_CATEGORY(fc::drand::http, Error, e) {
-  using E = decltype(e);
-  switch (e) {
-    case E::kJson:
-      return "Drand bad json";
-  }
-}
-
 namespace fc::drand::http {
   namespace beast = boost::beast;
   namespace http = beast::http;
   namespace net = boost::asio;
   using tcp = net::ip::tcp;
 
-  using rapidjson::Value;
+  namespace Json = codec::json;
 
   template <typename Parse, typename Next>
-  inline auto withJson(Parse &&parse, Next &&next) {
-    return [MOVE(parse), MOVE(next)](auto &&_str) {
-      if (!_str) {
-        return next(_str.error());
-      }
-      auto &str{_str.value()};
-      rapidjson::Document j;
-      j.Parse(str.data(), str.size());
-      if (j.HasParseError()) {
-        return next(Error::kJson);
-      }
-      next(parse(std::move(j)));
+  inline auto withJson(Parse &&parse, Next &&cb) {
+    return [MOVE(parse), MOVE(cb)](auto &&_str) {
+      OUTCOME_CB(auto str, _str);
+      OUTCOME_CB(auto jdoc, Json::parse(str));
+      cb(outcomeCatch([&] { return parse(&jdoc); }).o());
     };
-  }
-
-  const Value *get(const Value &j, const char *key) {
-    if (j.IsObject()) {
-      auto it{j.FindMember(key)};
-      if (it != j.MemberEnd()) {
-        return &it->value;
-      }
-    }
-    return {};
-  }
-
-  outcome::result<uint64_t> getUint(const Value *j) {
-    if (!j || !j->IsUint64()) {
-      return Error::kJson;
-    }
-    return j->GetUint64();
-  }
-
-  outcome::result<int64_t> getInt(const Value *j) {
-    if (!j || !j->IsInt64()) {
-      return Error::kJson;
-    }
-    return j->GetInt64();
-  }
-
-  template <typename T>
-  outcome::result<void> unhex(T &t, const Value *j) {
-    if (!j || !j->IsString()) {
-      return Error::kJson;
-    }
-    OUTCOME_TRYA(t, T::fromHex({j->GetString(), j->GetStringLength()}));
-    return outcome::success();
   }
 
   struct ClientSession {
@@ -134,21 +87,21 @@ namespace fc::drand::http {
   void getInfo(io_context &io,
                std::string host,
                std::function<void(outcome::result<ChainInfo>)> cb) {
-    ClientSession::get(io,
-                       host,
-                       "/info",
-                       withJson(
-                           [](auto &&j) -> outcome::result<ChainInfo> {
-                             ChainInfo r;
-                             OUTCOME_TRY(unhex(r.key, get(j, "public_key")));
-                             OUTCOME_TRY(period, getUint(get(j, "period")));
-                             r.period = seconds{period};
-                             OUTCOME_TRY(genesis,
-                                         getInt(get(j, "genesis_time")));
-                             r.genesis = seconds{genesis};
-                             return r;
-                           },
-                           std::move(cb)));
+    ClientSession::get(
+        io,
+        host,
+        "/info",
+        withJson(
+            [](auto &&j) {
+              using namespace Json;
+              return ChainInfo{
+                  BlsPublicKey::fromSpan(*jUnhex(jGet(j, "public_key")))
+                      .value(),
+                  seconds{*jInt(jGet(j, "genesis_time"))},
+                  seconds{*jUint(jGet(j, "period"))},
+              };
+            },
+            std::move(cb)));
   }
 
   void getEntry(io_context &io,
@@ -166,15 +119,17 @@ namespace fc::drand::http {
         host,
         url,
         withJson(
-            [](auto &&j) -> outcome::result<PublicRandResponse> {
-              PublicRandResponse r;
-              OUTCOME_TRYA(r.round, getUint(get(j, "round")));
-              OUTCOME_TRY(unhex(r.signature, get(j, "signature")));
-              OUTCOME_TRY(unhex(r.prev, get(j, "previous_signature")));
+            [](auto &&j) {
+              using namespace Json;
+              PublicRandResponse r{
+                  *jUint(jGet(j, "round")),
+                  BlsSignature::fromSpan(*jUnhex(jGet(j, "signature"))).value(),
+                  *jUnhex(jGet(j, "previous_signature")),
+              };
               if (r.prev.size()
                   != (r.round == 1 ? common::Hash256::size()
                                    : BlsSignature::size())) {
-                return common::BlobError::kIncorrectLength;
+                outcome::raise(common::BlobError::kIncorrectLength);
               }
               return r;
             },

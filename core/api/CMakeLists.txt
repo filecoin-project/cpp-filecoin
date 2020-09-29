@@ -27,5 +27,6 @@ add_library(rpc
     )
 target_link_libraries(rpc
     api
+    json
     tipset
     )
