@@ -24,7 +24,7 @@ namespace fc::common {
 
   outcome::result<void> writeFile(std::string_view path, BytesIn input) {
     // TODO: mkdir
-    std::ofstream file{path, std::ios::binary};
+    std::ofstream file{path.data(), std::ios::binary};
     if (file.good()) {
       file.write(span::bytestr(input.data()), input.size());
       return outcome::success();
