@@ -32,6 +32,7 @@ add_library(store
 target_link_libraries(store
         buffer
         CURL::libcurl
+        file
         logger
         rpc
         sector_index

@@ -36,19 +36,6 @@ using fc::sector_storage::stores::StoreErrors;
 using testing::_;
 using testing::Eq;
 
-template <typename T>
-void writeToJSON(const T &obj, const std::string &path) {
-  auto doc = fc::api::encode(obj);
-  ASSERT_FALSE(doc.HasParseError());
-
-  std::ofstream ofs{path};
-  ASSERT_TRUE(ofs.is_open());
-
-  rapidjson::OStreamWrapper osw{ofs};
-  rapidjson::Writer<rapidjson::OStreamWrapper> writer{osw};
-  doc.Accept(writer);
-}
-
 void createMetaFile(const std::string &storage_path,
                     const LocalStorageMeta &meta) {
   boost::filesystem::path file(storage_path);
