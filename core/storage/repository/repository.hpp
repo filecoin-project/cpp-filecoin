@@ -15,12 +15,12 @@
 
 namespace fc::storage::repository {
 
+  using fc::primitives::FsStat;
   using fc::sector_storage::stores::LocalStorage;
   using fc::sector_storage::stores::StorageConfig;
   using fc::storage::config::Config;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::keystore::KeyStore;
-  using fc::primitives::FsStat;
 
   /**
    * @brief Class represents all persistent data on node
@@ -71,7 +71,7 @@ namespace fc::storage::repository {
         const boost::filesystem::path &path);
     outcome::result<void> writeStorage(const boost::filesystem::path &path,
                                        StorageConfig config);
-    outcome::result<FsStat> statFs(std::string path);
+    outcome::result<FsStat> statFs(const std::string &path);
 
    private:
     std::shared_ptr<IpfsDatastore> ipld_store_;

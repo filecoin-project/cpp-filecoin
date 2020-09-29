@@ -51,7 +51,7 @@ fc::outcome::result<unsigned int> InMemoryRepository::getVersion() const {
 
 fc::outcome::result<fc::primitives::FsStat> InMemoryRepository::getStat(
     const std::string &path) {
-  return fc::outcome::success();
+  return statFs(path);
 }
 
 fc::outcome::result<StorageConfig> InMemoryRepository::getStorage() {

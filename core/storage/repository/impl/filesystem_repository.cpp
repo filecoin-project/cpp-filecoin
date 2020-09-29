@@ -134,7 +134,7 @@ fc::outcome::result<void> FileSystemRepository::setStorage(
 
 fc::outcome::result<fc::primitives::FsStat> FileSystemRepository::getStat(
     const std::string &path) {
-  return fc::outcome::success();
+  return statFs(path);
 }
 
 fc::outcome::result<int64_t> FileSystemRepository::getDiskUsage(

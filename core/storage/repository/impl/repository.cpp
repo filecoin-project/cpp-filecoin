@@ -84,13 +84,23 @@ fc::outcome::result<void> Repository::writeStorage(
   return outcome::success();
 }
 
-fc::outcome::result<FsStat> Repository::statFs(std::string path) {
+fc::outcome::result<FsStat> Repository::statFs(const std::string &path) {
 #if __APPLE__
-#elif __linux__
-  struct statfs stat;
-  if (statfs(path.c_str(), & stat) != 0) {
+  struct statfs64 stat;
+  if (statfs64(path.c_str(), &stat) != 0) {
     return RepositoryError::kFilesystemStatError;
   }
+  return FsStat{.capacity = static_cast<int64_t>(stat.f_blocks * stat.f_bsize),
+                .available = static_cast<int64_t>(stat.f_bavail * stat.f_bsize),
+                .reserved = 0};
+#elif __linux__
+  struct statfs stat;
+  if (statfs(path.c_str(), &stat) != 0) {
+    return RepositoryError::kFilesystemStatError;
+  }
+  return FsStat{.capacity = static_cast<int64_t>(stat.f_blocks * stat.f_bsize),
+                .available = static_cast<int64_t>(stat.f_bavail * stat.f_bsize),
+                .reserved = 0};
 #endif
   return fc::outcome::success();
 }
