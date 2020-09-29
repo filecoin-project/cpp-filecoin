@@ -508,8 +508,7 @@ TEST_F(LocalStoreTest, openPathInvalidConfig) {
 
   file.close();
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::kInvalidStorageConfig,
-                       local_store_->openPath(storage_path.string()));
+  EXPECT_FALSE(local_store_->openPath(storage_path.string()));
 }
 
 /**
@@ -523,8 +522,7 @@ TEST_F(LocalStoreTest, openPathNoConfig) {
 
   boost::filesystem::create_directory(storage_path);
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::kInvalidStorageConfig,
-                       local_store_->openPath(storage_path.string()));
+  EXPECT_FALSE(local_store_->openPath(storage_path.string()));
 }
 
 /**

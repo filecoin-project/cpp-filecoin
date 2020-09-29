@@ -11,7 +11,7 @@
 
 namespace fc::common {
   Outcome<Buffer> readFile(std::string_view path) {
-    std::ifstream file{path, std::ios::binary | std::ios::ate};
+    std::ifstream file{path.data(), std::ios::binary | std::ios::ate};
     if (file.good()) {
       Buffer buffer;
       buffer.resize(file.tellg());
