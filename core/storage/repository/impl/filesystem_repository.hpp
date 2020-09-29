@@ -19,6 +19,7 @@ namespace fc::storage::repository {
   using filestore::Path;
   using sector_storage::stores::StorageConfig;
   using Version = Repository::Version;
+  using primitives::FsStat;
 
   /**
    * @brief FileSystem implementation of Repository.
@@ -67,7 +68,7 @@ namespace fc::storage::repository {
     outcome::result<StorageConfig> getStorage() override;
     outcome::result<void> setStorage(
         std::function<void(StorageConfig &)> action) override;
-    outcome::result<primitives::FsStat> getStat(
+    outcome::result<FsStat> getStat(
         const std::string &path) override;
     outcome::result<int64_t> getDiskUsage(const std::string &path) override;
 

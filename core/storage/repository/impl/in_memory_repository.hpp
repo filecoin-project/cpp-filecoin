@@ -11,6 +11,7 @@
 namespace fc::storage::repository {
   using sector_storage::stores::StorageConfig;
   using Version = Repository::Version;
+  using primitives::FsStat;
 
   static constexpr Version kInMemoryRepositoryVersion = 1;
 
@@ -31,7 +32,7 @@ namespace fc::storage::repository {
 
     /** @copydoc Repository::getVersion() */
     outcome::result<Version> getVersion() const override;
-    outcome::result<primitives::FsStat> getStat(
+    outcome::result<FsStat> getStat(
         const std::string &path) override;
     outcome::result<StorageConfig> getStorage() override;
     outcome::result<void> setStorage(

@@ -9,7 +9,13 @@
 
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
-
+#if __APPLE__
+#include <sys/mount.h>
+#include <sys/param.h>
+#elif __linux__
+#include <sys/statfs.h>
+#endif
+using fc::primitives::FsStat;
 using fc::sector_storage::stores::StorageConfig;
 using fc::storage::config::Config;
 using fc::storage::ipfs::IpfsDatastore;
@@ -76,4 +82,15 @@ fc::outcome::result<void> Repository::writeStorage(
     return RepositoryError::kWriteJsonError;
   }
   return outcome::success();
+}
+
+fc::outcome::result<FsStat> Repository::statFs(std::string path) {
+#if __APPLE__
+#elif __linux__
+  struct statfs stat;
+  if (statfs(path.c_str(), & stat) != 0) {
+    return RepositoryError::kFilesystemStatError;
+  }
+#endif
+  return fc::outcome::success();
 }

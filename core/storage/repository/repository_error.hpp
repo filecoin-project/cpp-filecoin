@@ -20,6 +20,7 @@ namespace fc::storage::repository {
     kParseJsonError,
     kWriteJsonError,
     kTempDirectoryCreationError,
+    kFilesystemStatError,
   };
 
 }  // namespace fc::storage::repository
