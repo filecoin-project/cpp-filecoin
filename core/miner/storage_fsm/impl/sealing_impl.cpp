@@ -552,11 +552,12 @@ namespace fc::mining {
     };
   }
 
-  void SealingImpl::callbackHandle(const std::shared_ptr<SectorInfo> &info,
-                                   SealingEvent event,
-                                   const EventContext &event_context,
-                                   SealingState from,
-                                   SealingState to) {
+  void SealingImpl::callbackHandle(
+      const std::shared_ptr<SectorInfo> &info,
+      SealingEvent event,
+      const std::shared_ptr<SealingEventContext> &event_context,
+      SealingState from,
+      SealingState to) {
     stat_->updateSector(minerSector(info->sector_number), to);
 
     auto maybe_error = [&]() -> outcome::result<void> {

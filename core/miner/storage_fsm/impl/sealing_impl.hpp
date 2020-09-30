@@ -25,11 +25,10 @@ namespace fc::mining {
   using proofs::SealRandomness;
   using sector_storage::Manager;
   using types::PieceInfo;
-  using EventContext = std::shared_ptr<SealingEventContext>;
-  using SealingTransition =
-      fsm::Transition<SealingEvent, SealingState, EventContext, SectorInfo>;
+  using SealingTransition = fsm::
+      Transition<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
   using StorageFSM =
-      fsm::FSM<SealingEvent, EventContext, SealingState, SectorInfo>;
+      fsm::FSM<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
   using libp2p::protocol::Scheduler;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
   using primitives::Counter;
@@ -118,11 +117,12 @@ namespace fc::mining {
     /**
      * callback for fsm to track activity
      */
-    void callbackHandle(const std::shared_ptr<SectorInfo> &info,
-                        SealingEvent event,
-                        const EventContext &event_context,
-                        SealingState from,
-                        SealingState to);
+    void callbackHandle(
+        const std::shared_ptr<SectorInfo> &info,
+        SealingEvent event,
+        const std::shared_ptr<SealingEventContext> &event_context,
+        SealingState from,
+        SealingState to);
 
     /**
      * @brief Handle incoming in kPacking state

@@ -51,8 +51,8 @@ namespace fc::fsm {
    * callbacks on transitions
    */
   template <typename EventEnumType,
-            typename StateEnumType,
             typename EventContextType,
+            typename StateEnumType,
             typename Entity = void>
   class Transition final {
    public:
@@ -60,7 +60,7 @@ namespace fc::fsm {
     using ActionFunction = std::function<void(
         std::shared_ptr<Entity> /* pointer to tracked entity */,
         EventEnumType /* event that caused state transition */,
-        EventContextType /* event parameters */,
+        std::shared_ptr<EventContextType> /* event parameters */,
         StateEnumType /* transition source state */,
         StateEnumType /* transition destination state */)>;
 
@@ -188,7 +188,7 @@ namespace fc::fsm {
      */
     boost::optional<StateEnumType> dispatch(
         StateEnumType from_state,
-        EventContextType event_ctx,
+        const std::shared_ptr<EventContextType> &event_ctx_ptr,
         const std::shared_ptr<Entity> &entity_ptr) const {
       if (from_any_) {
         if (1 != intermediary_.size()) {
@@ -204,7 +204,7 @@ namespace fc::fsm {
         auto to_state = *intermediary_.begin();
         if (transition_action_) {
           transition_action_.get()(
-              entity_ptr, event_, std::move(event_ctx), from_state, to_state);
+              entity_ptr, event_, event_ctx_ptr, from_state, to_state);
         }
         return to_state;
       }
@@ -214,11 +214,8 @@ namespace fc::fsm {
         return boost::none;
       }
       if (transition_action_) {
-        transition_action_.get()(entity_ptr,
-                                 event_,
-                                 std::move(event_ctx),
-                                 from_state,
-                                 lookup->second);
+        transition_action_.get()(
+            entity_ptr, event_, event_ctx_ptr, from_state, lookup->second);
       }
       return lookup->second;
     }
@@ -246,15 +243,18 @@ namespace fc::fsm {
   class FSM {
    public:
     using EntityPtr = std::shared_ptr<Entity>;
+    using EventContextPtr = std::shared_ptr<EventContextType>;
     using TransitionRule =
-        Transition<EventEnumType, StateEnumType, EventContextType, Entity>;
-    using ParametrizedEvent = std::pair<EventEnumType, EventContextType>;
+        Transition<EventEnumType, EventContextType, StateEnumType, Entity>;
+    using ParametrizedEvent = std::pair<EventEnumType, EventContextPtr>;
     using EventQueueItem = std::pair<EntityPtr, ParametrizedEvent>;
     using HostContext = std::shared_ptr<fc::host::HostContext>;
     using ActionFunction = std::function<void(
         std::shared_ptr<Entity> /* pointer to tracked entity */,
         EventEnumType /* event that caused state transition */,
-        EventContextType /* event context to pass event's parameters */,
+        EventContextPtr /* pointer to event context to pass event's parameters
+                         */
+        ,
         StateEnumType /* transition source state */,
         StateEnumType /* transition destination state */)>;
 
@@ -317,7 +317,7 @@ namespace fc::fsm {
     /// schedule an event for an object
     outcome::result<void> send(const EntityPtr &entity_ptr,
                                EventEnumType event,
-                               EventContextType event_context) {
+                               const EventContextPtr &event_context) {
       if (not running_) {
         return FsmError::kMachineStopped;
       }

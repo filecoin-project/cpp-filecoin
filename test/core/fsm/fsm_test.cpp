@@ -17,6 +17,9 @@ using HostContext = fc::host::HostContextImpl;
 enum class Events { START, STOP };
 
 struct EventContext {
+  EventContext(int mult, const std::string msg)
+      : multiplier(mult), message(msg){};
+
   int multiplier;
   std::string message;
 };
@@ -37,7 +40,7 @@ TEST(Dev, Main) {
                .from(States::READY)
                .to(States::WORKING)
                .action([](auto data, auto, auto ctx, auto, auto) {
-                 data->x = ctx.multiplier;
+                 data->x = ctx->multiplier;
                  ASSERT_NE(data->content, "stopped");
                }),
            Transition(Events::STOP)
@@ -45,17 +48,19 @@ TEST(Dev, Main) {
                .to(States::STOPPED)
                .action([](auto data, auto, auto ctx, auto, auto) {
                  ASSERT_EQ(data->x, 1);
-                 data->x *= ctx.multiplier;
+                 data->x *= ctx->multiplier;
                  data->content = "stopped";
                })},
           context};
   auto entity = std::make_shared<Data>();
   fsm.setAnyChangeAction([](auto entity, auto, auto ctx, auto, auto) {
-    entity->content = entity->content + std::string(" after ") + ctx.message;
+    entity->content = entity->content + std::string(" after ") + ctx->message;
   });
   EXPECT_OUTCOME_TRUE_1(fsm.begin(entity, States::READY))
-  EXPECT_OUTCOME_TRUE_1(fsm.send(entity, Events::START, {1, "starting"}))
-  EXPECT_OUTCOME_TRUE_1(fsm.send(entity, Events::STOP, {2, "stopping"}))
+  EXPECT_OUTCOME_TRUE_1(fsm.send(
+      entity, Events::START, std::make_shared<EventContext>(1, "starting")))
+  EXPECT_OUTCOME_TRUE_1(fsm.send(
+      entity, Events::STOP, std::make_shared<EventContext>(2, "stopping")))
   context->runIoContext(2);
   ASSERT_EQ(entity->x, 2);
   ASSERT_EQ(entity->content, "stopped after stopping");
