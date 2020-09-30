@@ -16,9 +16,13 @@ namespace fc::storage::repository {
   enum class RepositoryError {
     kWrongVersion = 1,
     kOpenFileError,
+    kInvalidStorageConfig,
+    kParseJsonError,
+    kWriteJsonError,
+    kTempDirectoryCreationError,
   };
 
-}  // namespace fc::storage::keystore
+}  // namespace fc::storage::repository
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::repository, RepositoryError);
 

@@ -23,6 +23,7 @@ using fc::primitives::StorageID;
 using fc::primitives::sector_file::SectorFileType;
 using fc::sector_storage::stores::AcquireMode;
 using fc::sector_storage::stores::kMetaFileName;
+using fc::sector_storage::stores::LocalPath;
 using fc::sector_storage::stores::LocalStorageMock;
 using fc::sector_storage::stores::LocalStore;
 using fc::sector_storage::stores::LocalStoreImpl;
@@ -64,7 +65,7 @@ class LocalStoreTest : public test::BaseFS_Test {
 
     EXPECT_CALL(*storage_, getStorage())
         .WillOnce(testing::Return(fc::outcome::success(
-            StorageConfig{.storage_paths = std::vector<std::string>({})})));
+            StorageConfig{.storage_paths = std::vector<LocalPath>({})})));
 
     EXPECT_CALL(*storage_, setStorage(_))
         .WillRepeatedly(testing::Return(fc::outcome::success()));
