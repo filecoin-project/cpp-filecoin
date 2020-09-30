@@ -107,6 +107,9 @@ namespace fc::node {
         }
       } else {
         config.genesis_cid = roots[0];
+        log()->debug("Genesis found in {}: {}",
+                     config.car_file_name,
+                     config.genesis_cid.value().toString().value());
       }
 
       return fc::outcome::success();
@@ -190,9 +193,8 @@ namespace fc::node {
 
     log()->debug("Creating host...");
 
-    //config.gossip_config.protocol_version = "/floodsub/1.0.0";
-
-    config.gossip_config.D = 2;
+    // config.gossip_config.protocol_version = "/floodsub/1.0.0";
+    // config.gossip_config.D = 2;
 
     auto injector = libp2p::injector::makeGossipInjector<
         boost::di::extension::shared_config>(
