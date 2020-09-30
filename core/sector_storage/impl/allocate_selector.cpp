@@ -27,7 +27,8 @@ namespace fc::sector_storage {
 
     OUTCOME_TRY(
         best,
-        sector_index_->storageBestAlloc(allocate_, seal_proof_type, sealing_));
+        sector_index_->storageBestAlloc(
+            allocate_, seal_proof_type, path_type_ == PathType::kSealing));
 
     for (const auto &info : best) {
       if (storages.find(info.id) != storages.end()) {
@@ -48,9 +49,9 @@ namespace fc::sector_storage {
 
   AllocateSelector::AllocateSelector(std::shared_ptr<stores::SectorIndex> index,
                                      SectorFileType allocate,
-                                     bool sealing)
+                                     PathType path_type)
       : sector_index_(std::move(index)),
         allocate_(allocate),
-        sealing_(sealing) {}
+        path_type_(path_type) {}
 
 }  // namespace fc::sector_storage

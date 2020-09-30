@@ -6,6 +6,8 @@
 #ifndef CPP_FILECOIN_CORE_COMMON_ENUM_HPP
 #define CPP_FILECOIN_CORE_COMMON_ENUM_HPP
 
+#include <type_traits>
+
 namespace fc::common {
 
   /**

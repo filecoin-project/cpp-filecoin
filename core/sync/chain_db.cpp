@@ -253,8 +253,7 @@ namespace fc::sync {
         break;
       }
       if (height > 0) {
-        OUTCOME_TRY(parent_key, tipset->getParents());
-        h = parent_key.hash();
+        h = tipset->getParents().hash();
       }
       cb(std::move(tipset));
     }

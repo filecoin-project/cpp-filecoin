@@ -17,6 +17,7 @@ using fc::sector_storage::Manager;
 using fc::sector_storage::ManagerImpl;
 using fc::sector_storage::SchedulerMock;
 using fc::sector_storage::SealerConfig;
+using fc::sector_storage::StorageID;
 using fc::sector_storage::stores::LocalStorageMock;
 using fc::sector_storage::stores::LocalStoreMock;
 using fc::sector_storage::stores::RemoteStoreMock;

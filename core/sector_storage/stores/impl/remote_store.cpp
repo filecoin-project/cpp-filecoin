@@ -6,12 +6,14 @@
 #include "sector_storage/stores/impl/remote_store.hpp"
 
 #include <curl/curl.h>
-#include <rapidjson/document.h>
 #include <boost/filesystem.hpp>
 #include <utility>
+
 #include "api/rpc/json.hpp"
+#include "codec/json/json.hpp"
 #include "common/tarutil.hpp"
 #include "common/uri_parser/uri_parser.hpp"
+#include "sector_storage/stores/impl/util.hpp"
 #include "sector_storage/stores/store_error.hpp"
 
 namespace fs = boost::filesystem;
@@ -51,7 +53,8 @@ namespace fc::sector_storage::stores {
       RegisteredProof seal_proof_type,
       SectorFileType existing,
       SectorFileType allocate,
-      bool can_seal) {
+      PathType path_type,
+      AcquireMode mode) {
     if ((existing & allocate) != 0) {
       return StoreErrors::kFindAndAllocate;
     }
@@ -77,14 +80,36 @@ namespace fc::sector_storage::stores {
       cv_.notify_all();
     });
 
-    auto maybe_response = local_->acquireSector(
-        sector, seal_proof_type, existing, allocate, can_seal);
+    OUTCOME_TRY(
+        response,
+        local_->acquireSector(
+            sector, seal_proof_type, existing, allocate, path_type, mode));
 
-    if (maybe_response.has_error()) {
-      return maybe_response.error();
+    int to_fetch = SectorFileType::FTNone;
+    for (const auto &type : primitives::sector_file::kSectorFileTypes) {
+      if ((type & existing) == 0) {
+        continue;
+      }
+
+      if (response.paths.getPathByType(type).value().empty()) {
+        to_fetch = to_fetch | type;
+      }
     }
 
-    auto response = maybe_response.value();
+    OUTCOME_TRY(additional_paths,
+                local_->acquireSector(sector,
+                                      seal_proof_type,
+                                      SectorFileType::FTNone,
+                                      static_cast<SectorFileType>(to_fetch),
+                                      path_type,
+                                      mode));
+
+    OUTCOME_TRY(release_storage,
+                local_->reserve(seal_proof_type,
+                                static_cast<SectorFileType>(to_fetch),
+                                additional_paths.storages,
+                                path_type));
+    auto _1 = gsl::finally([&]() { release_storage(); });
 
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
       if ((type & existing) == 0) {
@@ -95,24 +120,32 @@ namespace fc::sector_storage::stores {
         continue;
       }
 
-      auto maybe_remote_response =
-          acquireFromRemote(sector, seal_proof_type, type, can_seal);
+      OUTCOME_TRY(dest, additional_paths.paths.getPathByType(type));
+      OUTCOME_TRY(storage_id, additional_paths.storages.getPathByType(type));
 
-      if (maybe_remote_response.has_error()) {
-        return maybe_remote_response.error();
-      }
+      OUTCOME_TRY(url, acquireFromRemote(sector, type, dest));
 
-      response.paths.setPathByType(type, maybe_remote_response.value().path);
-      response.storages.setPathByType(type,
-                                      maybe_remote_response.value().storage_id);
+      response.paths.setPathByType(type, dest);
+      response.storages.setPathByType(type, storage_id);
 
       auto maybe_err = sector_index_->storageDeclareSector(
-          maybe_remote_response.value().storage_id, sector, type);
+          storage_id, sector, type, mode == AcquireMode::kMove);
       if (maybe_err.has_error()) {
         logger_->warn("acquireSector: failed to declare sector {} - {}",
                       primitives::sector_file::sectorName(sector),
                       maybe_err.error().message());
         continue;
+      }
+
+      if (mode == AcquireMode::kMove) {
+        auto maybe_error = deleteFromRemote(url);
+        if (maybe_error.has_error()) {
+          logger_->warn("deleting sector {} from {} (delete {}): {}",
+                        primitives::sector_file::sectorName(sector),
+                        storage_id,
+                        url,
+                        maybe_error.error().message());
+        }
       }
     }
 
@@ -122,7 +155,8 @@ namespace fc::sector_storage::stores {
   outcome::result<void> RemoteStoreImpl::remove(SectorId sector,
                                                 SectorFileType type) {
     OUTCOME_TRY(local_->remove(sector, type));
-    OUTCOME_TRY(infos, sector_index_->storageFindSector(sector, type, false));
+    OUTCOME_TRY(infos,
+                sector_index_->storageFindSector(sector, type, boost::none));
 
     for (const auto &info : infos) {
       for (const auto &url : info.urls) {
@@ -140,10 +174,20 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
+  outcome::result<void> RemoteStoreImpl::removeCopies(SectorId sector,
+                                                      SectorFileType type) {
+    // TODO: maybe move to LocalStore only
+    return local_->removeCopies(sector, type);
+  }
+
   outcome::result<void> RemoteStoreImpl::moveStorage(
       SectorId sector, RegisteredProof seal_proof_type, SectorFileType types) {
-    OUTCOME_TRY(acquireSector(
-        sector, seal_proof_type, types, SectorFileType::FTNone, false));
+    OUTCOME_TRY(acquireSector(sector,
+                              seal_proof_type,
+                              types,
+                              SectorFileType::FTNone,
+                              PathType::kStorage,
+                              AcquireMode::kMove));
     return local_->moveStorage(sector, seal_proof_type, types);
   }
 
@@ -216,23 +260,15 @@ namespace fc::sector_storage::stores {
         break;
     }
 
-    rapidjson::Document j_file;
-    j_file.Parse(body.data(), body.size());
-    body.clear();
-    if (j_file.HasParseError()) {
-      return StoreErrors::kInvalidFsStatResponse;
-    }
-
+    OUTCOME_TRY(j_file, codec::json::parse(body));
     return api::decode<FsStat>(j_file);
   }
 
-  outcome::result<RemoteStoreImpl::RemoveAcquireSectorResponse>
-  RemoteStoreImpl::acquireFromRemote(SectorId sector,
-                                     RegisteredProof seal_proof_type,
-                                     SectorFileType file_type,
-                                     bool can_seal) {
-    OUTCOME_TRY(infos,
-                sector_index_->storageFindSector(sector, file_type, false));
+  outcome::result<std::string> RemoteStoreImpl::acquireFromRemote(
+      SectorId sector, SectorFileType file_type, const std::string &dest) {
+    OUTCOME_TRY(
+        infos,
+        sector_index_->storageFindSector(sector, file_type, boost::none));
 
     if (infos.empty()) {
       return StoreErrors::kNotFoundSector;
@@ -244,20 +280,17 @@ namespace fc::sector_storage::stores {
                 return lhs.weight < rhs.weight;
               });
 
-    OUTCOME_TRY(response,
-                local_->acquireSector(sector,
-                                      seal_proof_type,
-                                      SectorFileType::FTNone,
-                                      file_type,
-                                      can_seal));
-
-    RemoveAcquireSectorResponse res{};
-    OUTCOME_TRYA(res.path, response.paths.getPathByType(file_type));
-    OUTCOME_TRYA(res.storage_id, response.storages.getPathByType(file_type));
-
     for (const auto &info : infos) {
+      OUTCOME_TRY(temp_dest, tempFetchDest(dest, true));
       for (const auto &url : info.urls) {
-        auto maybe_error = fetch(url, res.path);
+        boost::system::error_code ec;
+        fs::remove_all(temp_dest, ec);
+        if (ec.failed()) {
+          logger_->error("cannot remove temp path: {}", ec.message());
+          return StoreErrors::kCannotRemovePath;
+        }
+
+        auto maybe_error = fetch(url, temp_dest);
         if (maybe_error.has_error()) {
           logger_->warn("acquireFromRemote: failed to acqiure from {} - {}",
                         url,
@@ -265,9 +298,13 @@ namespace fc::sector_storage::stores {
           continue;
         }
 
-        res.url = url;
+        fs::rename(temp_dest, dest, ec);
+        if (ec.failed()) {
+          logger_->error("cannot move from temp to dest: {}", ec.message());
+          return StoreErrors::kCannotMoveFile;
+        }
 
-        return res;
+        return url;
       }
     }
 
@@ -338,7 +375,7 @@ namespace fc::sector_storage::stores {
 
     if (ec.failed()) {
       logger_->error("Cannot remove output path: {}", ec.message());
-      return StoreErrors::kCannotRemoveOutputPath;
+      return StoreErrors::kCannotRemovePath;
     }
     ec.clear();
 

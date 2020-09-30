@@ -24,7 +24,9 @@ FileSystemKeyStore::FileSystemKeyStore(
     std::shared_ptr<Secp256k1ProviderDefault> secp256K1Provider)
     : KeyStore(std::move(blsProvider), std::move(secp256K1Provider)),
       keystore_path_(std::move(path)),
-      filestore_(std::make_shared<FileSystemFileStore>()) {}
+      filestore_(std::make_shared<FileSystemFileStore>()) {
+  OUTCOME_EXCEPT(filestore_->createDirectories(keystore_path_));
+}
 
 fc::outcome::result<bool> FileSystemKeyStore::has(const Address &address) const
     noexcept {

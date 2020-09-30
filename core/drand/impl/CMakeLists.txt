@@ -3,20 +3,14 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(drand_marshaller
-    parser.cpp
+add_library(drand_http
+    http.cpp
     )
-target_link_libraries(drand_marshaller
-    drand_proto
-    )
-
-add_library(drand_client
-    client.cpp
-    )
-target_link_libraries(drand_client
-    Boost::boost
-    drand_grpc_proto
-    drand_marshaller
+target_link_libraries(drand_http
+    blob
+    buffer
+    outcome
+    json
     )
 
 add_library(drand_beacon
@@ -24,7 +18,7 @@ add_library(drand_beacon
     )
 target_link_libraries(drand_beacon
     bls_provider
-    drand_client
+    drand_http
     p2p::p2p_byteutil
     p2p::p2p_sha
     )

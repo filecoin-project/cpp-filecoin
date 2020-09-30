@@ -37,11 +37,14 @@ namespace fc::sector_storage::stores {
 
     bool can_seal;
     bool can_store;
+
+    bool is_primary;
   };
 
   inline bool operator==(const StorageInfo &lhs, const StorageInfo &rhs) {
     return lhs.id == rhs.id && lhs.urls == rhs.urls && lhs.weight == rhs.weight
-           && lhs.can_seal == rhs.can_seal && lhs.can_store == rhs.can_store;
+           && lhs.can_seal == rhs.can_seal && lhs.can_store == rhs.can_store
+           && lhs.is_primary == rhs.is_primary;
   }
 
   struct HealthReport {
@@ -65,22 +68,26 @@ namespace fc::sector_storage::stores {
     virtual outcome::result<void> storageDeclareSector(
         const StorageID &storage_id,
         const SectorId &sector,
-        const SectorFileType &file_type) = 0;
+        const SectorFileType &file_type,
+        bool primary) = 0;
 
     virtual outcome::result<void> storageDropSector(
         const StorageID &storage_id,
         const SectorId &sector,
         const SectorFileType &file_type) = 0;
 
+    /**
+     * @note for unable fetch, need to specify proof type
+     */
     virtual outcome::result<std::vector<StorageInfo>> storageFindSector(
         const SectorId &sector,
         const SectorFileType &file_type,
-        bool allow_fetch) = 0;
+        boost::optional<RegisteredProof> fetch_seal_proof_type) = 0;
 
     virtual outcome::result<std::vector<StorageInfo>> storageBestAlloc(
         const SectorFileType &allocate,
         RegisteredProof seal_proof_type,
-        bool sealing) = 0;
+        bool sealing_mode) = 0;
 
     virtual outcome::result<std::unique_ptr<Lock>> storageLock(
         const SectorId &sector, SectorFileType read, SectorFileType write) = 0;

@@ -6,8 +6,8 @@
 #include "api/rpc/json.hpp"
 
 #include <gtest/gtest.h>
-#include <rapidjson/writer.h>
 
+#include "codec/json/json.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -16,9 +16,6 @@ using fc::api::BigInt;
 using fc::api::BlockHeader;
 using fc::api::BlsSignature;
 using fc::api::Buffer;
-using fc::api::EPostProof;
-using fc::api::EPostTicket;
-using fc::api::MsgWait;
 using fc::api::RleBitset;
 using fc::api::Secp256k1Signature;
 using fc::api::Signature;
@@ -41,22 +38,16 @@ const auto b96 =
     "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 
 auto jsonEncode(const rapidjson::Value &value) {
-  rapidjson::StringBuffer buffer;
-  auto writer = rapidjson::Writer<rapidjson::StringBuffer>{buffer};
-  value.Accept(writer);
-  return std::string{buffer.GetString(), buffer.GetSize()};
+  return *fc::codec::json::format(&value);
 }
 
-auto jsonDecode(const std::string &str) {
-  rapidjson::Document document;
-  document.Parse(str.data(), str.size());
-  EXPECT_FALSE(document.HasParseError());
-  return document;
+auto jsonDecode(fc::BytesIn str) {
+  return *fc::codec::json::parse(str);
 }
 
 template <typename T>
-void expectJson(const T &value, std::string expected) {
-  expected = jsonEncode(jsonDecode(expected));
+void expectJson(const T &value, std::string _expected) {
+  auto expected{jsonEncode(jsonDecode(fc::common::span::cbytes(_expected)))};
   EXPECT_EQ(jsonEncode(fc::api::encode(value)), expected);
   EXPECT_OUTCOME_TRUE(decoded, fc::api::decode<T>(jsonDecode(expected)));
   EXPECT_EQ(jsonEncode(fc::api::encode(decoded)), expected);
@@ -66,7 +57,8 @@ void expectJson(const T &value, std::string expected) {
 
 TEST(ApiJsonTest, WrongType) {
   EXPECT_OUTCOME_ERROR(fc::api::JsonError::kWrongType,
-                       fc::api::decode<Ticket>(jsonDecode("4")));
+                       fc::api::decode<Ticket>(jsonDecode(
+                           fc::common::span::cbytes(std::string_view{"4"}))));
 }
 
 TEST(ApiJsonTest, Misc) {
@@ -87,7 +79,7 @@ TEST(ApiJsonTest, CID) {
 }
 
 TEST(ApiJsonTest, Ticket) {
-  expectJson(Ticket{b96}, "{\"VRFProof\":" J96 "}");
+  expectJson(Ticket{Buffer{b96}}, "{\"VRFProof\":" J96 "}");
 }
 
 TEST(ApiJsonTest, TipsetKey) {
@@ -107,96 +99,9 @@ TEST(ApiJsonTest, Signature) {
              "{\"Type\":1,\"Data\":" J65 "}");
 }
 
-TEST(ApiJsonTest, EPostProof) {
-  expectJson(
-      EPostProof{
-          {fc::primitives::sector::PoStProof{
-              fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
-              "DEAD"_unhex,
-          }},
-          b96,
-          {EPostTicket{b32, 1, 2}}},
-      "{\"Proofs\":[{\"RegisteredProof\":3,\"ProofBytes\":\"3q0=\"}],"
-      "\"PostRand\":" J96 ",\"Candidates\":[{\"Partial\":" J32
-      ",\"SectorID\":1,\"ChallengeIndex\":2}]}");
-}
-
 TEST(ApiJsonTest, BigInt) {
   expectJson(BigInt{0}, "\"0\"");
   expectJson(BigInt{-1}, "\"-1\"");
   expectJson(BigInt{1}, "\"1\"");
 }
 
-TEST(ApiJsonTest, MsgWait) {
-  OUTCOME_EXCEPT(tipset, fc::primitives::tipset::Tipset::create(
-      {BlockHeader{
-          Address::makeFromId(1),
-          Ticket{b96},
-          {fc::common::Buffer{"F00D"_unhex}},
-          {fc::primitives::block::BeaconEntry{
-              4,
-              fc::common::Buffer{"F00D"_unhex}.toVector(),
-          }},
-          {fc::primitives::sector::PoStProof{
-              fc::primitives::sector::RegisteredProof::
-              StackedDRG2KiBSeal,
-              "F00D"_unhex,
-          }},
-          {"010001020002"_cid},
-          3,
-          4,
-          "010001020005"_cid,
-          "010001020006"_cid,
-          "010001020007"_cid,
-          Signature{b65},
-          8,
-          Signature{Secp256k1Signature{b65}},
-          9,
-      }}));
-
-  expectJson(
-      MsgWait{
-          {fc::vm::VMExitCode{1}, Buffer{"DEAD"_unhex}, 2},
-          std::make_shared<fc::primitives::tipset::Tipset>(
-              TipsetKey::create({"010001020001"_cid}).value(),
-              std::vector<BlockHeader>({BlockHeader{
-                  Address::makeFromId(1),
-                  Ticket{b96},
-                  {fc::common::Buffer{"F00D"_unhex}},
-                  {fc::primitives::block::BeaconEntry{
-                      4,
-                      "F00D"_unhex,
-                  }},
-                  {fc::primitives::sector::PoStProof{
-                      fc::primitives::sector::RegisteredProof::
-                          StackedDRG2KiBSeal,
-                      "F00D"_unhex,
-                  }},
-                  {"010001020002"_cid},
-                  3,
-                  4,
-                  "010001020005"_cid,
-                  "010001020006"_cid,
-                  "010001020007"_cid,
-                  Signature{b65},
-                  8,
-                  Signature{Secp256k1Signature{b65}},
-                  9,
-              }}))
-          },
-
-      "{\"Receipt\":{\"ExitCode\":1,\"Return\":\"3q0=\",\"GasUsed\":2},"
-      "\"TipSet\":{\"Cids\":[{\"/"
-      "\":\"baeaacaqaae\"}],\"Blocks\":[{\"Miner\":\"t01\",\"Ticket\":{"
-      "\"VRFProof\":" J96
-      "},\"ElectionProof\":{\"VRFProof\":\"8A0=\"},\"BeaconEntries\":[{"
-      "\"Round\":4,\"Data\":\"8A0=\"}],\"WinPoStProof\":[{\"RegisteredProof\":"
-      "3,\"ProofBytes\":\"8A0=\"}],\"Parents\":[{\"/"
-      "\":\"baeaacaqaai\"}],\"ParentWeight\":\"3\",\"Height\":4,"
-      "\"ParentStateRoot\":{\"/"
-      "\":\"baeaacaqaau\"},\"ParentMessageReceipts\":{\"/"
-      "\":\"baeaacaqaay\"},\"Messages\":{\"/"
-      "\":\"baeaacaqaa4\"},\"BLSAggregate\":{\"Type\":1,\"Data\":" J65
-      "},\"Timestamp\":8,\"BlockSig\":{\"Type\":1,\"Data\":" J65
-      "},\"ForkSignaling\":9}],\"Height\":3}}");
-}

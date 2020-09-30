@@ -9,18 +9,19 @@
 #include "markets/storage/chain_events/chain_events.hpp"
 
 #include <shared_mutex>
+
 #include "api/api.hpp"
+#include "common/logger.hpp"
 
 namespace fc::markets::storage::chain_events {
 
   using adt::Channel;
   using api::Api;
-  using api::Chan;
   using primitives::tipset::HeadChange;
   using vm::message::UnsignedMessage;
 
   class ChainEventsImpl : public ChainEvents,
-                     public std::enable_shared_from_this<ChainEventsImpl> {
+                          public std::enable_shared_from_this<ChainEventsImpl> {
    public:
     ChainEventsImpl(std::shared_ptr<Api> api);
 
@@ -37,11 +38,18 @@ namespace fc::markets::storage::chain_events {
     outcome::result<void> onMessage(const UnsignedMessage &message);
 
     std::shared_ptr<Api> api_;
+
+    /**
+     * Subscription to chain head changes
+     * Is alive until the channel object exists
+     */
+    std::shared_ptr<Channel<std::vector<HeadChange>>> channel_;
+
     mutable std::shared_mutex watched_events_mutex_;
     std::vector<EventWatch> watched_events_;
 
     common::Logger logger_ = common::createLogger("StorageMarketEvents");
   };
-}  // namespace fc::markets::storage::events
+}  // namespace fc::markets::storage::chain_events
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE_EVENTS_IMPL_EVENTS_IMPL_HPP

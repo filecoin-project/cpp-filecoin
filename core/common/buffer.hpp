@@ -41,7 +41,8 @@ namespace fc::common {
     /**
      * @brief lvalue construct buffer from a byte vector
      */
-    explicit Buffer(std::vector<uint8_t> v);
+    Buffer(std::vector<uint8_t> &&v);
+    explicit Buffer(const std::vector<uint8_t> &v);
     explicit Buffer(gsl::span<const uint8_t> s);
 
     Buffer(const uint8_t *begin, const uint8_t *end);
@@ -185,6 +186,10 @@ namespace fc::common {
 
     std::vector<uint8_t> &toVector();
 
+    inline operator std::vector<uint8_t> &&() && {
+      return std::move(data_);
+    }
+
     /**
      * Returns a copy of a part of the buffer
      * Works alike subspan() of gsl::span
@@ -246,6 +251,11 @@ namespace fc::common {
   std::ostream &operator<<(std::ostream &os, const Buffer &buffer);
 
 }  // namespace fc::common
+
+namespace fc {
+  using common::Buffer;
+  using BytesIn = gsl::span<const uint8_t>;
+}  // namespace fc
 
 namespace std {
   template <>

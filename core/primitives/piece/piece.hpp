@@ -52,6 +52,8 @@ namespace fc::primitives::piece {
 
     PaddedPieceSize &operator=(uint64_t rhs);
 
+    PaddedPieceSize &operator+=(uint64_t rhs);
+
     UnpaddedPieceSize unpadded() const;
 
     outcome::result<void> validate() const;
@@ -73,6 +75,7 @@ namespace fc::primitives::piece {
     PaddedPieceSize size;
     CID cid;
   };
+  CBOR_TUPLE(PieceInfo, size, cid)
 
   inline bool operator==(const PieceInfo &lhs, const PieceInfo &rhs) {
     return lhs.size == rhs.size && lhs.cid == rhs.cid;

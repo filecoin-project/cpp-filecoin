@@ -91,6 +91,8 @@ namespace fc::storage::keystore {
                                          const Signature &signature) const
         noexcept;
 
+    outcome::result<Address> put(bool bls, TPrivateKey key);
+
    protected:
     /**
      * @brief Check address and key are valid

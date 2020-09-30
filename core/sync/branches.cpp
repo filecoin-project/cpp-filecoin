@@ -5,6 +5,8 @@
 
 #include "branches.hpp"
 
+#include "common/logger.hpp"
+
 namespace fc::sync {
 
   namespace {

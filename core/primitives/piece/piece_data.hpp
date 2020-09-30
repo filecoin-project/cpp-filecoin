@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_PIECE_DATA_HPP
 #define CPP_FILECOIN_PIECE_DATA_HPP
 
+#include <fcntl.h>
 #include <string>
 
 namespace fc::primitives::piece {
@@ -14,7 +15,7 @@ namespace fc::primitives::piece {
 
   class PieceData {
    public:
-    explicit PieceData(const std::string &path_to_file);
+    explicit PieceData(const std::string &path_to_file, int flags = O_RDWR);
     explicit PieceData(int &pipe_fd);
 
     PieceData(PieceData &&other) noexcept;

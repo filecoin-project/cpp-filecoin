@@ -4,6 +4,7 @@
 #
 
 add_subdirectory(builtin)
+add_subdirectory(cgo)
 
 add_library(actor
     actor.cpp

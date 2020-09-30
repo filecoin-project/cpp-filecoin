@@ -6,7 +6,11 @@
 #include "primitives/tipset/tipset.hpp"
 
 #include "common/logger.hpp"
+#include "const.hpp"
+#include "crypto/blake2/blake2b160.hpp"
+#include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
+#include "vm/message/message.hpp"
 
 #include "crypto/blake2/blake2b.h"
 #include "crypto/blake2/blake2b160.hpp"
@@ -73,6 +77,8 @@ namespace fc::primitives::tipset {
     }
 
   }  // namespace
+  using vm::message::SignedMessage;
+  using vm::message::UnsignedMessage;
 
   outcome::result<void> MessageVisitor::visit(const BlockHeader &block,
                                               const Visitor &visitor) {
@@ -110,7 +116,7 @@ namespace fc::primitives::tipset {
       return TipsetError::kMismatchingParents;
     }
 
-    for (const auto& b : blks_) {
+    for (const auto &b : blks_) {
       if (b.miner == hdr.miner) {
         return TipsetError::kMinerAlreadyExists;
       }
@@ -296,7 +302,49 @@ namespace fc::primitives::tipset {
     return outcome::success();
   }
 
-  outcome::result<Randomness> Tipset::randomness(
+  outcome::result<BigInt> Tipset::nextBaseFee(IpldPtr ipld) const {
+    GasAmount gas_limit{};
+    OUTCOME_TRY(visitMessages(
+        ipld, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
+          if (bls) {
+            OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
+            gas_limit += message.gas_limit;
+          } else {
+            OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
+            gas_limit += message.message.gas_limit;
+          }
+          return outcome::success();
+        }));
+    auto delta{std::max<GasAmount>(
+        -kBlockGasTarget,
+        std::min<GasAmount>(
+            kBlockGasTarget,
+            kPackingEfficiencyDenom * gas_limit
+                    / ((int64_t)blks.size() * kPackingEfficiencyNum)
+                - kBlockGasTarget))};
+    auto base{getParentBaseFee()};
+    return std::max<BigInt>(kMinimumBaseFee,
+                            base
+                                + bigdiv(bigdiv(base * delta, kBlockGasTarget),
+                                         kBaseFeeMaxChangeDenom));
+  }
+
+  outcome::result<Randomness> Tipset::beaconRandomness(
+      Ipld &ipld,
+      DomainSeparationTag tag,
+      ChainEpoch round,
+      gsl::span<const uint8_t> entropy) const {
+    auto ts{this};
+    TipsetCPtr parent;
+    while (ts->height() != 0 && static_cast<ChainEpoch>(ts->height()) > round) {
+      OUTCOME_TRYA(parent, ts->loadParent(ipld));
+      ts = parent.get();
+    }
+    OUTCOME_TRY(beacon, ts->latestBeacon(ipld));
+    return crypto::randomness::drawRandomness(beacon.data, tag, round, entropy);
+  }
+
+  outcome::result<Randomness> Tipset::ticketRandomness(
       Ipld &ipld,
       DomainSeparationTag tag,
       ChainEpoch round,
@@ -311,8 +359,9 @@ namespace fc::primitives::tipset {
         ts->getMinTicketBlock().ticket->bytes, tag, round, entropy);
   }
 
-  outcome::result<TipsetKey> Tipset::getParents() const {
-    return blks.empty() ? TipsetKey() : TipsetKey::create(blks[0].parents);
+  TipsetKey Tipset::getParents() const {
+    return blks.empty() ? TipsetKey()
+                        : TipsetKey::create(blks[0].parents).value();
   }
 
   uint64_t Tipset::getMinTimestamp() const {
@@ -347,14 +396,17 @@ namespace fc::primitives::tipset {
     return blks.empty() ? 0 : blks[0].height;
   }
 
+  const BigInt &Tipset::getParentBaseFee() const {
+    return blks[0].parent_base_fee;
+  }
+
   bool Tipset::contains(const CID &cid) const {
     const auto &cids = key.cids();
     return std::find(cids.begin(), cids.end(), cid) != std::end(cids);
   }
 
   bool operator==(const Tipset &lhs, const Tipset &rhs) {
-    if (lhs.blks.size() != rhs.blks.size()) return false;
-    return std::equal(lhs.blks.begin(), lhs.blks.end(), rhs.blks.begin());
+    return lhs.blks == rhs.blks;
   }
 
   bool operator!=(const Tipset &l, const Tipset &r) {

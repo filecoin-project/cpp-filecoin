@@ -54,7 +54,7 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD1(chargeGas, outcome::result<void>(GasAmount amount));
 
-    MOCK_METHOD0(getCurrentActorState, CID());
+    MOCK_METHOD0(getCurrentActorState, outcome::result<CID>());
 
     MOCK_METHOD1(commit, outcome::result<void>(const CID &new_state));
 
@@ -68,8 +68,6 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD1(verifyPoSt,
                  outcome::result<bool>(const WindowPoStVerifyInfo &info));
-
-    MOCK_METHOD1(verifySeal, outcome::result<bool>(const SealVerifyInfo &info));
 
     MOCK_METHOD2(computeUnsealedSectorCid,
                  outcome::result<CID>(RegisteredProof,

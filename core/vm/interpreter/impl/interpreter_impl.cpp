@@ -5,10 +5,10 @@
 
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
+#include "const.hpp"
 #include "vm/actor/builtin/cron/cron_actor.hpp"
 #include "vm/actor/builtin/reward/reward_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
-#include "vm/runtime/gas_cost.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
@@ -39,7 +39,6 @@ namespace fc::vm::interpreter {
   using primitives::block::MsgMeta;
   using primitives::tipset::MessageVisitor;
   using runtime::Env;
-  using runtime::kInfiniteGas;
   using runtime::MessageReceipt;
 
   outcome::result<Result> InterpreterImpl::interpret(
@@ -56,26 +55,52 @@ namespace fc::vm::interpreter {
     }
 
     auto env =
-        std::make_shared<Env>(std::make_shared<InvokerImpl>(), ipld, tipset);
+        std::make_shared<Env>(std::make_shared<InvokerImpl>(), ipld, *tipset);
+
+    auto cron{[&] {
+      return env->applyImplicitMessage(UnsignedMessage{
+          kCronAddress,
+          kSystemActorAddress,
+          {},
+          0,
+          0,
+          kBlockGasLimit * 10000,
+          EpochTick::Number,
+          {},
+      });
+    }};
+
+    if (tipset->height() > 1) {
+      OUTCOME_TRY(parent, tipset->loadParent(*ipld));
+      for (auto epoch{parent->height() + 1}; epoch < tipset->height(); ++epoch) {
+
+        //TODO (XXX)
+        env->tipset.height_ = epoch;
+        OUTCOME_TRY(cron());
+      }
+      env->tipset.height_ = tipset->height();
+    }
 
     adt::Array<MessageReceipt> receipts{ipld};
     MessageVisitor message_visitor{ipld};
     for (auto &block : tipset->blks) {
-      AwardBlockReward::Params reward{block.miner, 0, 0, 1};
+      AwardBlockReward::Params reward{
+          block.miner, 0, 0, block.election_proof.win_count};
       OUTCOME_TRY(message_visitor.visit(
           block, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
             UnsignedMessage message;
+            OUTCOME_TRY(raw, ipld->get(cid));
             if (bls) {
-              OUTCOME_TRYA(message, ipld->getCbor<UnsignedMessage>(cid));
+              OUTCOME_TRYA(message, codec::cbor::decode<UnsignedMessage>(raw));
             } else {
-              OUTCOME_TRY(signed_message, ipld->getCbor<SignedMessage>(cid));
+              OUTCOME_TRY(signed_message,
+                          codec::cbor::decode<SignedMessage>(raw));
               message = std::move(signed_message.message);
             }
-            TokenAmount penalty;
-            OUTCOME_TRY(receipt, env->applyMessage(message, penalty));
-            reward.gas_reward += message.gasPrice * receipt.gas_used;
-            reward.penalty += penalty;
-            OUTCOME_TRY(receipts.append(std::move(receipt)));
+            OUTCOME_TRY(apply, env->applyMessage(message, raw.size()));
+            reward.penalty += apply.penalty;
+            reward.gas_reward += apply.reward;
+            OUTCOME_TRY(receipts.append(std::move(apply.receipt)));
             return outcome::success();
           }));
 
@@ -86,22 +111,13 @@ namespace fc::vm::interpreter {
           {},
           0,
           0,
-          kInfiniteGas,
+          1 << 30,
           AwardBlockReward::Number,
           MethodParams{reward_encoded},
       }));
     }
 
-    OUTCOME_TRY(env->applyImplicitMessage(UnsignedMessage{
-        kCronAddress,
-        kSystemActorAddress,
-        {},
-        0,
-        0,
-        kInfiniteGas,
-        EpochTick::Number,
-        {},
-    }));
+    OUTCOME_TRY(cron());
 
     OUTCOME_TRY(new_state_root, env->state_tree->flush());
 

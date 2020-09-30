@@ -44,3 +44,23 @@ target_link_libraries(node_builder
 #    )
 
 add_subdirectory(integration)
+
+add_library(node
+    blocksync.cpp
+    hello.cpp
+    peermgr.cpp
+    pubsub.cpp
+    sync.cpp
+    )
+target_link_libraries(node
+    cbor_stream
+    )
+
+add_executable(node_main
+    main.cpp
+    )
+target_link_libraries(node_main
+    Boost::program_options
+    node
+    rpc
+    )

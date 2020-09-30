@@ -9,10 +9,6 @@
 #include <vector>
 
 #include "codec/cbor/cbor.hpp"
-#include "common/buffer.hpp"
-#include "common/logger.hpp"
-#include "common/outcome.hpp"
-#include "primitives/cid/cid.hpp"
 #include "storage/ipfs/ipfs_datastore_error.hpp"
 
 namespace fc::storage::ipfs {
@@ -63,7 +59,7 @@ namespace fc::storage::ipfs {
     outcome::result<CID> setCbor(const T &value) {
       OUTCOME_TRY(bytes, encode(value));
       OUTCOME_TRY(key, common::getCidOf(bytes));
-      OUTCOME_TRY(set(key, Value(bytes)));
+      OUTCOME_TRY(set(key, std::move(bytes)));
       return std::move(key);
     }
 
@@ -129,6 +125,25 @@ namespace fc::storage::ipfs {
 namespace fc {
   using Ipld = storage::ipfs::IpfsDatastore;
   using IpldPtr = std::shared_ptr<Ipld>;
+
+  template <typename T>
+  struct CIDT : public CID {
+    auto get() const {
+      return ipld->getCbor<T>(*this);
+    }
+    outcome::result<void> set(const T &value) {
+      OUTCOME_TRYA(*this, ipld->setCbor(value));
+      return outcome::success();
+    }
+    IpldPtr ipld;
+  };
+
+  template <typename T>
+  struct Ipld::Load<CIDT<T>> {
+    static void call(Ipld &ipld, CIDT<T> &cid) {
+      cid.ipld = ipld.shared();
+    }
+  };
 }  // namespace fc
 
 #endif  // CPP_FILECOIN_CORE_STORAGE_IPFS_DATASTORE_HPP

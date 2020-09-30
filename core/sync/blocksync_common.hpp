@@ -65,7 +65,7 @@ namespace fc::sync::blocksync {
   CBOR_TUPLE(Response, chain, status, message);
 
   using OnBlockStored =
-      std::function<void(CID block_cid, outcome::result<BlockMsg>)>;
+      std::function<void(CID block_cid, outcome::result<BlockWithCids>)>;
 
   outcome::result<void> storeResponse(
       const std::shared_ptr<storage::ipfs::IpfsDatastore> &ipld,

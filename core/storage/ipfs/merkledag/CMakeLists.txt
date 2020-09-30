@@ -10,6 +10,5 @@ add_library(ipfs_merkledag_service
 target_link_libraries(ipfs_merkledag_service
     Boost::boost
     ipld_node
-    ipfs_blockservice
     ipfs_datastore_in_memory
     )

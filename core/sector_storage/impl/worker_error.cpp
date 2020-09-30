@@ -30,6 +30,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, WorkerErrors, e) {
       return "Worker: some errors occurred while removing sector";
     case (WorkerErrors::kUnsupportedPlatform):
       return "Worker: the platfrom not supported ";
+    case (WorkerErrors::kOutOfBound):
+      return "Worker: Piece will exceed the maximum size";
     default:
       return "Worker: unknown error";
   }

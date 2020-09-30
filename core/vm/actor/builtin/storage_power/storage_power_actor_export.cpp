@@ -5,6 +5,7 @@
 
 #include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 
+#include "common/logger.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 #include "vm/actor/builtin/reward/reward_actor.hpp"

@@ -74,7 +74,15 @@ namespace fc::primitives::tipset {
     outcome::result<void> visitMessages(
         IpldPtr ipld, const MessageVisitor::Visitor &visitor) const;
 
-    outcome::result<Randomness> randomness(
+    outcome::result<BigInt> nextBaseFee(IpldPtr ipld) const;
+
+    outcome::result<Randomness> beaconRandomness(
+        Ipld &ipld,
+        DomainSeparationTag tag,
+        ChainEpoch round,
+        gsl::span<const uint8_t> entropy) const;
+
+    outcome::result<Randomness> ticketRandomness(
         Ipld &ipld,
         DomainSeparationTag tag,
         ChainEpoch round,
@@ -83,7 +91,7 @@ namespace fc::primitives::tipset {
     /**
      * @return key made of parents
      */
-    outcome::result<TipsetKey> getParents() const;
+    TipsetKey getParents() const;
 
     /**
      * @return min timestamp
@@ -109,6 +117,8 @@ namespace fc::primitives::tipset {
      */
     const BigInt &getParentWeight() const;
 
+    const BigInt &getParentBaseFee() const;
+
     /**
      * @brief checks whether tipset contains block by cid
      * @param cid content identifier to look for
@@ -119,10 +129,16 @@ namespace fc::primitives::tipset {
     Tipset() = default;
 
     Tipset(TipsetKey _key, std::vector<block::BlockHeader> _blks)
-        : key(std::move(_key)), blks(std::move(_blks)) {}
+        : key(std::move(_key)), blks(std::move(_blks)) {
+      height_ = height();
+    }
 
     TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers
+
+    // TODO (XXX) - This is for interpreter's Env - make tipset immutable
+    // structure
+    uint64_t height_ = 0;
   };
 
   /**
@@ -185,8 +201,9 @@ namespace fc::codec::cbor {
   outcome::result<fc::primitives::tipset::TipsetCPtr>
   decode<fc::primitives::tipset::TipsetCPtr>(gsl::span<const uint8_t> input);
 
-  template <> inline
-  outcome::result<common::Buffer> encode<fc::primitives::tipset::TipsetCPtr>(
+  template <>
+  inline outcome::result<common::Buffer>
+  encode<fc::primitives::tipset::TipsetCPtr>(
       const fc::primitives::tipset::TipsetCPtr &ts) {
     assert(ts);
     return encode<fc::primitives::tipset::Tipset>(*ts);

@@ -18,11 +18,8 @@
 #include "markets/storage/deal_protocol.hpp"
 #include "markets/storage/types.hpp"
 #include "primitives/big_int.hpp"
-#include "primitives/block/block.hpp"
 #include "primitives/cid/comm_cid.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
-#include "primitives/ticket/epost_ticket.hpp"
-#include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
@@ -33,6 +30,7 @@
 
 #define API_METHOD(_name, _result, ...)                                    \
   struct _##_name : std::function<outcome::result<_result>(__VA_ARGS__)> { \
+    using function::function;                                              \
     using Result = _result;                                                \
     using Params = ParamsTuple<__VA_ARGS__>;                               \
     static constexpr auto name = "Filecoin." #_name;                       \
@@ -41,7 +39,6 @@
 namespace fc::api {
   using adt::Channel;
   using common::Buffer;
-  using common::Comm;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
@@ -63,11 +60,11 @@ namespace fc::api {
   using primitives::address::Address;
   using primitives::block::BeaconEntry;
   using primitives::block::BlockHeader;
-  using primitives::block::BlockMsg;
   using primitives::block::BlockTemplate;
+  using primitives::block::BlockWithCids;
+  using primitives::cid::Comm;
+  using primitives::sector::RegisteredProof;
   using primitives::sector::SectorInfo;
-  using primitives::ticket::EPostProof;
-  using primitives::ticket::Ticket;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
@@ -81,7 +78,10 @@ namespace fc::api {
   using vm::actor::builtin::miner::DeadlineInfo;
   using vm::actor::builtin::miner::Deadlines;
   using vm::actor::builtin::miner::MinerInfo;
+  using vm::actor::builtin::miner::Partition;
   using vm::actor::builtin::miner::SectorOnChainInfo;
+  using vm::actor::builtin::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::miner::SectorPreCommitOnChainInfo;
   using vm::actor::builtin::payment_channel::LaneId;
   using vm::actor::builtin::payment_channel::SignedVoucher;
   using vm::actor::builtin::storage_power::Claim;
@@ -89,6 +89,7 @@ namespace fc::api {
   using vm::message::UnsignedMessage;
   using vm::runtime::ExecutionResult;
   using vm::runtime::MessageReceipt;
+  using SignatureType = crypto::signature::Type;
 
   template <typename... T>
   using ParamsTuple =
@@ -163,8 +164,10 @@ namespace fc::api {
   };
 
   struct MsgWait {
+    CID message;
     MessageReceipt receipt;
-    TipsetCPtr tipset;
+    TipsetKey tipset;
+    ChainEpoch height;
   };
 
   struct BlockMessages {
@@ -197,6 +200,11 @@ namespace fc::api {
     SectorSize sector_size;
     BeaconEntry prev_beacon;
     std::vector<BeaconEntry> beacons;
+    bool has_min_power;
+
+    auto &beacon() const {
+      return beacons.empty() ? prev_beacon : beacons.back();
+    }
   };
 
   struct ActorState {
@@ -256,8 +264,21 @@ namespace fc::api {
     CID channel_message;  // message cid
   };
 
+  struct KeyInfo {
+    SignatureType type;
+    common::Blob<32> private_key;
+  };
+
+  struct SectorLocation {
+    uint64_t deadline;
+    uint64_t partition;
+  };
+
+
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
+
+    API_METHOD(BeaconGetEntry, Wait<BeaconEntry>, ChainEpoch)
 
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
@@ -266,7 +287,13 @@ namespace fc::api {
     API_METHOD(ChainGetMessage, UnsignedMessage, const CID &)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
     API_METHOD(ChainGetParentReceipts, std::vector<MessageReceipt>, const CID &)
-    API_METHOD(ChainGetRandomness,
+    API_METHOD(ChainGetRandomnessFromBeacon,
+               Randomness,
+               const TipsetKey &,
+               DomainSeparationTag,
+               ChainEpoch,
+               const Buffer &)
+    API_METHOD(ChainGetRandomnessFromTickets,
                Randomness,
                const TipsetKey &,
                DomainSeparationTag,
@@ -275,8 +302,7 @@ namespace fc::api {
     API_METHOD(ChainGetTipSet, TipsetCPtr, const TipsetKey &)
     API_METHOD(ChainGetTipSetByHeight,
                TipsetCPtr,
-               ChainEpoch,
-               const TipsetKey &)
+               ChainEpoch)
     API_METHOD(ChainHead, TipsetCPtr)
     API_METHOD(ChainNotify, Chan<std::vector<HeadChange>>)
     API_METHOD(ChainReadObj, Buffer, CID)
@@ -314,9 +340,9 @@ namespace fc::api {
                const TokenAmount &,
                const TipsetKey &)
 
-    API_METHOD(MinerCreateBlock, BlockMsg, const BlockTemplate &)
+    API_METHOD(MinerCreateBlock, BlockWithCids, const BlockTemplate &)
     API_METHOD(MinerGetBaseInfo,
-               boost::optional<MiningBaseInfo>,
+               Wait<boost::optional<MiningBaseInfo>>,
                const Address &,
                ChainEpoch,
                const TipsetKey &)
@@ -355,13 +381,14 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(StateMinerFaults, RleBitset, const Address &, const TipsetKey &)
     API_METHOD(StateMinerInfo, MinerInfo, const Address &, const TipsetKey &)
+    API_METHOD(StateMinerPartitions,
+               std::vector<Partition>,
+               const Address &,
+               uint64_t,
+               const TipsetKey &)
     API_METHOD(StateMinerPower, MinerPower, const Address &, const TipsetKey &)
     API_METHOD(StateMinerProvingDeadline,
                DeadlineInfo,
-               const Address &,
-               const TipsetKey &)
-    API_METHOD(StateMinerProvingSet,
-               std::vector<ChainSectorInfo>,
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerSectors,
@@ -376,9 +403,35 @@ namespace fc::api {
                const TipsetKey &)
     API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
     API_METHOD(StateNetworkName, std::string)
+    API_METHOD(StateMinerPreCommitDepositForPower,
+               TokenAmount,
+               const Address &,
+               const SectorPreCommitInfo &,
+               const TipsetKey &)
+    API_METHOD(StateMinerInitialPledgeCollateral,
+               TokenAmount,
+               const Address &,
+               SectorNumber,
+               const TipsetKey &);
+    API_METHOD(StateSectorPreCommitInfo,
+               boost::optional<SectorPreCommitOnChainInfo>,
+               const Address &,
+               SectorNumber,
+               const TipsetKey &);
+    API_METHOD(StateSectorGetInfo,
+               SectorOnChainInfo,
+               const Address &,
+               SectorNumber,
+               const TipsetKey &);
+    API_METHOD(StateSectorPartition,
+               SectorLocation,
+               const Address &,
+               SectorNumber,
+               const TipsetKey &);
+    API_METHOD(StateSearchMsg, boost::optional<MsgWait>, const CID &)
     API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &)
 
-    API_METHOD(SyncSubmitBlock, void, const BlockMsg &)
+    API_METHOD(SyncSubmitBlock, void, const BlockWithCids &)
 
     API_METHOD(Version, VersionResult)
 
@@ -386,6 +439,7 @@ namespace fc::api {
     API_METHOD(WalletBalance, TokenAmount, const Address &)
     API_METHOD(WalletDefaultAddress, Address)
     API_METHOD(WalletHas, bool, const Address &)
+    API_METHOD(WalletImport, Address, const KeyInfo &)
     API_METHOD(WalletSign, Signature, const Address &, const Buffer &)
     /** Verify signature by address (may be id or key address) */
     API_METHOD(

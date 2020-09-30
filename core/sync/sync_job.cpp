@@ -76,9 +76,8 @@ namespace fc::sync {
 
     try {
       OUTCOME_EXCEPT(tipset, result);
-      OUTCOME_EXCEPT(parent_key, tipset->getParents());
       OUTCOME_EXCEPT(maybe_next_target,
-                     chain_db_.storeTipset(tipset, parent_key));
+                     chain_db_.storeTipset(tipset, tipset->getParents()));
 
       nextTarget(std::move(maybe_next_target));
 
@@ -114,7 +113,7 @@ namespace fc::sync {
     auto &roots = last_loaded.value();
 
     status_.last_loaded = roots->key.hash();
-    OUTCOME_EXCEPT(next_key, roots->getParents());
+    auto next_key = roots->getParents();
     status_.next = next_key.hash();
 
     OUTCOME_EXCEPT(tipset_loader_.loadTipsetAsync(

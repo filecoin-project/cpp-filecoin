@@ -12,6 +12,9 @@
 #include "common/enum.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm, VMExitCode, e) {
+  if (e == fc::vm::VMExitCode::kFatal) {
+    return "VMExitCode::kFatal";
+  }
   return "vm exit code";
 }
 
@@ -23,6 +26,9 @@ namespace fc::vm {
   boost::optional<VMExitCode> normalizeVMExitCode(VMExitCode error) {
     using E = VMExitCode;
     switch (error) {
+      case E::kFatal:
+        return {};
+
       case E::kOk:
       case E::kSysErrSenderInvalid:
       case E::kSysErrSenderStateInvalid:
@@ -138,6 +144,9 @@ namespace fc::vm {
 
       case E::kAssert:
         return E{1};
+
+      case E::kNotImplemented:
+        return {};
     }
     return {};
   }

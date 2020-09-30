@@ -36,14 +36,14 @@ namespace fc::primitives {
   using StorageID = std::string;
 
   struct FsStat {
-    uint64_t capacity;
-    uint64_t available;  // Available to use for sector storage
-    uint64_t used;
+    int64_t capacity;
+    int64_t available;  // Available to use for sector storage
+    int64_t reserved;
   };
 
   inline bool operator==(const FsStat &lhs, const FsStat &rhs) {
     return lhs.capacity == rhs.capacity && lhs.available == rhs.available
-           && lhs.used == rhs.used;
+           && lhs.reserved == rhs.reserved;
   };
 
   struct StoragePath {
@@ -115,6 +115,11 @@ namespace fc::primitives {
   using SectorQuality = BigInt;
 
   CBOR_TUPLE(SectorStorageWeightDesc, sector_size, duration, deal_weight)
+
+  struct FilterEstimate {
+    BigInt position, velocity;
+  };
+  CBOR_TUPLE(FilterEstimate, position, velocity)
 }  // namespace fc::primitives
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TYPES_HPP

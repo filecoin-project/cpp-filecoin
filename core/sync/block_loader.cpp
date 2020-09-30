@@ -8,6 +8,7 @@
 #include <cassert>
 
 #include "primitives/cid/cid_of_cbor.hpp"
+#include "common/logger.hpp"
 
 namespace fc::sync {
   namespace {
@@ -33,7 +34,7 @@ namespace fc::sync {
     assert(callback);
     callback_ = std::move(callback);
     blocksync_->init(
-        [this](CID block_cid, outcome::result<BlockMsg> result) {
+        [this](CID block_cid, outcome::result<BlockWithCids> result) {
           onBlockStored(std::move(block_cid), std::move(result));
         },
         [](const PeerId &peer, std::error_code error) {
@@ -100,7 +101,7 @@ namespace fc::sync {
   }
 
   void BlockLoader::onBlockStored(CID block_cid,
-                                  outcome::result<BlockMsg> result) {
+                                  outcome::result<BlockWithCids> result) {
     bool was_requested = false;
     if (!result) {
       log()->error("blocksync failure, cid: {}, error: {}",
@@ -108,7 +109,7 @@ namespace fc::sync {
                    result.error().message());
       was_requested = onBlockHeader(block_cid, boost::none, false);
     } else {
-      BlockMsg &m = result.value();
+      BlockWithCids &m = result.value();
       was_requested = onBlockHeader(block_cid, std::move(m.header), true);
     }
     if (!was_requested) {

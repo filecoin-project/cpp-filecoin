@@ -17,10 +17,7 @@
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
-#include "primitives/ticket/epost_ticket.hpp"
-#include "primitives/ticket/epost_ticket_codec.hpp"
-#include "primitives/ticket/ticket.hpp"
-#include "primitives/ticket/ticket_codec.hpp"
+#include "primitives/sector/sector.hpp"
 #include "vm/message/message.hpp"
 
 namespace fc::primitives::block {
@@ -30,18 +27,25 @@ namespace fc::primitives::block {
   using primitives::BigInt;
   using primitives::address::Address;
   using primitives::sector::PoStProof;
-  using primitives::ticket::EPostProof;
-  using primitives::ticket::Ticket;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
+  struct Ticket {
+    Buffer bytes;
+  };
+  inline bool operator==(const Ticket &lhs, const Ticket &rhs) {
+    return lhs.bytes == rhs.bytes;
+  }
+  CBOR_TUPLE(Ticket, bytes)
+
   struct ElectionProof {
+    int64_t win_count;
     Buffer vrf_proof;
   };
   inline bool operator==(const ElectionProof &lhs, const ElectionProof &rhs) {
     return lhs.vrf_proof == rhs.vrf_proof;
   }
-  CBOR_TUPLE(ElectionProof, vrf_proof)
+  CBOR_TUPLE(ElectionProof, win_count, vrf_proof)
 
   struct BlockTemplate {
     Address miner;
@@ -71,6 +75,7 @@ namespace fc::primitives::block {
     uint64_t timestamp;
     boost::optional<Signature> block_sig;
     uint64_t fork_signaling;
+    BigInt parent_base_fee;
   };
 
   struct MsgMeta {
@@ -79,17 +84,18 @@ namespace fc::primitives::block {
   };
   CBOR_TUPLE(MsgMeta, bls_messages, secp_messages)
 
-  struct Block {
+  struct BlockWithMessages {
     BlockHeader header;
     std::vector<UnsignedMessage> bls_messages;
     std::vector<SignedMessage> secp_messages;
   };
 
-  struct BlockMsg {
+  struct BlockWithCids {
     BlockHeader header;
     std::vector<CID> bls_messages;
     std::vector<CID> secp_messages;
   };
+  CBOR_TUPLE(BlockWithCids, header, bls_messages, secp_messages)
 
   inline bool operator==(const BlockHeader &lhs, const BlockHeader &rhs) {
     return lhs.miner == rhs.miner && lhs.ticket == rhs.ticket
@@ -121,7 +127,8 @@ namespace fc::primitives::block {
              bls_aggregate,
              timestamp,
              block_sig,
-             fork_signaling)
+             fork_signaling,
+             parent_base_fee)
 }  // namespace fc::primitives::block
 
 namespace fc {

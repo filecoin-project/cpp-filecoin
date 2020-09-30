@@ -17,6 +17,7 @@ add_subdirectory(fsm)
 add_subdirectory(host)
 add_subdirectory(markets)
 add_subdirectory(miner)
+add_subdirectory(node)
 add_subdirectory(payment_channel_manager)
 add_subdirectory(power)
 add_subdirectory(primitives)
@@ -25,4 +26,11 @@ add_subdirectory(sector_storage)
 add_subdirectory(storage)
 add_subdirectory(vm)
 add_subdirectory(sync)
-add_subdirectory(node)
+
+
+add_library(const
+    const.cpp
+    )
+target_link_libraries(const
+    Boost::boost
+    )

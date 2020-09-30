@@ -6,9 +6,10 @@
 #include "sector_storage/stores/store.hpp"
 
 #include <gtest/gtest.h>
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/writer.h>
+
 #include "api/rpc/json.hpp"
+#include "codec/json/json.hpp"
+#include "common/file.hpp"
 #include "common/outcome.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/stores/store_error.hpp"
@@ -21,35 +22,27 @@ using fc::primitives::FsStat;
 using fc::primitives::LocalStorageMeta;
 using fc::primitives::StorageID;
 using fc::primitives::sector_file::SectorFileType;
+using fc::sector_storage::stores::AcquireMode;
 using fc::sector_storage::stores::kMetaFileName;
+using fc::sector_storage::stores::LocalPath;
 using fc::sector_storage::stores::LocalStorageMock;
 using fc::sector_storage::stores::LocalStore;
 using fc::sector_storage::stores::LocalStoreImpl;
+using fc::sector_storage::stores::PathType;
 using fc::sector_storage::stores::SectorIndexMock;
 using fc::sector_storage::stores::StorageConfig;
 using fc::sector_storage::stores::StorageInfo;
 using fc::sector_storage::stores::StoreErrors;
 using testing::_;
-
-template <typename T>
-void writeToJSON(const T &obj, const std::string &path) {
-  auto doc = fc::api::encode(obj);
-  ASSERT_FALSE(doc.HasParseError());
-
-  std::ofstream ofs{path};
-  ASSERT_TRUE(ofs.is_open());
-
-  rapidjson::OStreamWrapper osw{ofs};
-  rapidjson::Writer<rapidjson::OStreamWrapper> writer{osw};
-  doc.Accept(writer);
-}
+using testing::Eq;
 
 void createMetaFile(const std::string &storage_path,
                     const LocalStorageMeta &meta) {
   boost::filesystem::path file(storage_path);
   file /= kMetaFileName;
-
-  writeToJSON(meta, file.string());
+  auto doc{fc::api::encode(meta)};
+  OUTCOME_EXCEPT(text, fc::codec::json::format(&doc));
+  OUTCOME_EXCEPT(fc::common::writeFile(file.string(), text));
 }
 
 class LocalStoreTest : public test::BaseFS_Test {
@@ -61,7 +54,7 @@ class LocalStoreTest : public test::BaseFS_Test {
 
     EXPECT_CALL(*storage_, getStorage())
         .WillOnce(testing::Return(fc::outcome::success(
-            StorageConfig{.storage_paths = std::vector<std::string>({})})));
+            StorageConfig{.storage_paths = std::vector<LocalPath>({})})));
 
     EXPECT_CALL(*storage_, setStorage(_))
         .WillRepeatedly(testing::Return(fc::outcome::success()));
@@ -127,7 +120,8 @@ TEST_F(LocalStoreTest, AcquireSectorFindAndAllocate) {
                                                    seal_proof_type,
                                                    file_type_existing,
                                                    file_type_allocate,
-                                                   false))
+                                                   PathType::kStorage,
+                                                   AcquireMode::kCopy))
 }
 
 /**
@@ -160,7 +154,8 @@ TEST_F(LocalStoreTest, AcquireSectorNotFoundPath) {
                                                    seal_proof_type,
                                                    SectorFileType::FTNone,
                                                    SectorFileType::FTCache,
-                                                   false))
+                                                   PathType::kStorage,
+                                                   AcquireMode::kCopy))
 }
 
 /**
@@ -194,7 +189,7 @@ TEST_F(LocalStoreTest, AcquireSectorAllocateSuccess) {
   FsStat stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   createStorage(storage_path, storage_meta, stat);
@@ -212,10 +207,13 @@ TEST_F(LocalStoreTest, AcquireSectorAllocateSuccess) {
   EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type, false))
       .WillOnce(testing::Return(fc::outcome::success(res)));
 
-  EXPECT_OUTCOME_TRUE(
-      sectors,
-      local_store_->acquireSector(
-          sector, seal_proof_type, SectorFileType::FTNone, file_type, false));
+  EXPECT_OUTCOME_TRUE(sectors,
+                      local_store_->acquireSector(sector,
+                                                  seal_proof_type,
+                                                  SectorFileType::FTNone,
+                                                  file_type,
+                                                  PathType::kStorage,
+                                                  AcquireMode::kCopy));
 
   std::string res_path =
       (boost::filesystem::path(storage_path) / toString(file_type)
@@ -257,7 +255,7 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
   FsStat stat{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   createStorage(storage_path, storage_meta, stat);
@@ -272,13 +270,16 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
 
   std::vector res = {storage_info};
 
-  EXPECT_CALL(*index_, storageFindSector(sector, file_type, false))
+  EXPECT_CALL(*index_, storageFindSector(sector, file_type, Eq(boost::none)))
       .WillOnce(testing::Return(fc::outcome::success(res)));
 
-  EXPECT_OUTCOME_TRUE(
-      sectors,
-      local_store_->acquireSector(
-          sector, seal_proof_type, file_type, SectorFileType::FTNone, false));
+  EXPECT_OUTCOME_TRUE(sectors,
+                      local_store_->acquireSector(sector,
+                                                  seal_proof_type,
+                                                  file_type,
+                                                  SectorFileType::FTNone,
+                                                  PathType::kStorage,
+                                                  AcquireMode::kCopy));
 
   std::string res_path =
       (boost::filesystem::path(storage_path) / toString(file_type)
@@ -321,7 +322,7 @@ TEST_F(LocalStoreTest, getFSStatSuccess) {
   FsStat res_stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   createStorage(storage_path, storage_meta, res_stat);
@@ -369,7 +370,7 @@ TEST_F(LocalStoreTest, openPathExistingSector) {
   FsStat stat{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -398,7 +399,8 @@ TEST_F(LocalStoreTest, openPathExistingSector) {
                   stat))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_CALL(*index_, storageDeclareSector(storage_id, sector, file_type))
+  EXPECT_CALL(*index_,
+              storageDeclareSector(storage_id, sector, file_type, true))
       .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
@@ -431,7 +433,7 @@ TEST_F(LocalStoreTest, openPathInvalidSectorName) {
   FsStat stat{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   std::string sector_file =
@@ -478,7 +480,7 @@ TEST_F(LocalStoreTest, openPathDuplicateStorage) {
   FsStat stat{
       .capacity = 100,
       .available = 100,
-      .used = 0,
+      .reserved = 0,
   };
 
   createStorage(storage_path, storage_meta, stat);
@@ -506,8 +508,7 @@ TEST_F(LocalStoreTest, openPathInvalidConfig) {
 
   file.close();
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::kInvalidStorageConfig,
-                       local_store_->openPath(storage_path.string()));
+  EXPECT_FALSE(local_store_->openPath(storage_path.string()));
 }
 
 /**
@@ -521,8 +522,7 @@ TEST_F(LocalStoreTest, openPathNoConfig) {
 
   boost::filesystem::create_directory(storage_path);
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::kInvalidStorageConfig,
-                       local_store_->openPath(storage_path.string()));
+  EXPECT_FALSE(local_store_->openPath(storage_path.string()));
 }
 
 /**
@@ -559,7 +559,7 @@ TEST_F(LocalStoreTest, removeNotExistSector) {
 
   SectorFileType type = SectorFileType::FTCache;
 
-  EXPECT_CALL(*index_, storageFindSector(sector, type, false))
+  EXPECT_CALL(*index_, storageFindSector(sector, type, Eq(boost::none)))
       .WillOnce(
           testing::Return(fc::outcome::success(std::vector<StorageInfo>())));
 
@@ -594,7 +594,7 @@ TEST_F(LocalStoreTest, removeSuccess) {
   FsStat stat{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -622,14 +622,15 @@ TEST_F(LocalStoreTest, removeSuccess) {
   EXPECT_CALL(*index_, storageAttach(info, stat))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_CALL(*index_, storageDeclareSector(storage_id, sector, file_type))
+  EXPECT_CALL(*index_,
+              storageDeclareSector(storage_id, sector, file_type, true))
       .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
 
   std::vector<StorageInfo> res = {info};
 
-  EXPECT_CALL(*index_, storageFindSector(sector, file_type, false))
+  EXPECT_CALL(*index_, storageFindSector(sector, file_type, Eq(boost::none)))
       .WillOnce(testing::Return(fc::outcome::success(res)));
 
   EXPECT_CALL(*index_, storageDropSector(storage_id, sector, file_type))
@@ -669,7 +670,7 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
   FsStat stat{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   SectorId sector{
@@ -697,7 +698,8 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
   EXPECT_CALL(*index_, storageAttach(info, stat))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_CALL(*index_, storageDeclareSector(storage_id, sector, file_type))
+  EXPECT_CALL(*index_,
+              storageDeclareSector(storage_id, sector, file_type, false))
       .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(local_store_->openPath(storage_path.string()));
@@ -717,7 +719,7 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
   FsStat stat2{
       .capacity = 200,
       .available = 200,
-      .used = 0,
+      .reserved = 0,
   };
 
   createStorage(storage_path_2.string(), storage_meta2, stat2);
@@ -739,7 +741,8 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
   EXPECT_CALL(*index_, storageDropSector(storage_id, sector, file_type))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_CALL(*index_, storageDeclareSector(storage_id2, sector, file_type))
+  EXPECT_CALL(*index_,
+              storageDeclareSector(storage_id2, sector, file_type, true))
       .WillOnce(testing::Return(fc::outcome::success()));
 
   std::string moved_sector_file =
@@ -750,7 +753,7 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
   ASSERT_FALSE(boost::filesystem::exists(moved_sector_file));
   ASSERT_TRUE(boost::filesystem::exists(sector_file));
 
-  EXPECT_CALL(*index_, storageFindSector(sector, file_type, false))
+  EXPECT_CALL(*index_, storageFindSector(sector, file_type, Eq(boost::none)))
       .WillOnce(testing::Return(fc::outcome::success(std::vector({info}))));
 
   EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type, false))

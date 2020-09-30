@@ -7,6 +7,8 @@
 
 #include "index_db_backend.hpp"
 
+#include "common/logger.hpp"
+
 namespace fc::sync {
 
   namespace {

@@ -16,6 +16,7 @@
 #include "payment_channel_manager/payment_channel_manager.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
+#include "sector_storage/stores/storage.hpp"
 
 #define COMMA ,
 
@@ -33,23 +34,21 @@ namespace fc::api {
   using primitives::BigInt;
   using primitives::FsStat;
   using primitives::LocalStorageMeta;
-  using primitives::block::BlockHeader;
   using primitives::block::ElectionProof;
+  using primitives::block::Ticket;
   using primitives::cid::getCidOfCbor;
   using primitives::sector::PoStProof;
-  using primitives::sector::RegisteredProof;
-  using primitives::ticket::EPostProof;
-  using primitives::ticket::EPostTicket;
-  using primitives::ticket::Ticket;
   using primitives::tipset::HeadChangeType;
   using rapidjson::Document;
   using rapidjson::Value;
+  using sector_storage::stores::LocalPath;
+  using sector_storage::stores::StorageConfig;
+  using vm::actor::builtin::miner::PowerPair;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
   using vm::actor::builtin::miner::WorkerKeyChange;
   using vm::actor::builtin::payment_channel::Merge;
   using vm::actor::builtin::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
-  using SignatureType = crypto::signature::Type;
 
   struct Codec {
     rapidjson::MemoryPoolAllocator<> &allocator;
@@ -299,46 +298,38 @@ namespace fc::api {
       }
     }
 
-    ENCODE(EPostTicket) {
+    ENCODE(KeyInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "Partial", gsl::make_span(v.partial));
-      Set(j, "SectorID", v.sector_id);
-      Set(j, "ChallengeIndex", v.challenge_index);
+      Set(j, "Type", v.type == SignatureType::BLS ? "bls" : "secp256k1");
+      Set(j, "PrivateKey", v.private_key);
       return j;
     }
 
-    DECODE(EPostTicket) {
-      decode(v.partial, Get(j, "Partial"));
-      decode(v.sector_id, Get(j, "SectorID"));
-      decode(v.challenge_index, Get(j, "ChallengeIndex"));
+    DECODE(KeyInfo) {
+      std::string type;
+      decode(type, Get(j, "Type"));
+      decode(v.private_key, Get(j, "PrivateKey"));
+      if (type == "bls") {
+        v.type = SignatureType::BLS;
+      } else if (type == "secp256k1") {
+        v.type = SignatureType::SECP256K1;
+      } else {
+        outcome::raise(JsonError::kWrongEnum);
+      }
     }
 
     ENCODE(PoStProof) {
       Value j{rapidjson::kObjectType};
-      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "PoStProof", common::to_int(v.registered_proof));
       Set(j, "ProofBytes", gsl::make_span(v.proof));
       return j;
     }
 
     DECODE(PoStProof) {
       std::underlying_type_t<RegisteredProof> registered_proof;
-      decode(registered_proof, Get(j, "RegisteredProof"));
+      decode(registered_proof, Get(j, "PoStProof"));
       v.registered_proof = RegisteredProof{registered_proof};
       decode(v.proof, Get(j, "ProofBytes"));
-    }
-
-    ENCODE(EPostProof) {
-      Value j{rapidjson::kObjectType};
-      Set(j, "Proofs", v.proofs);
-      Set(j, "PostRand", gsl::make_span(v.post_rand));
-      Set(j, "Candidates", v.candidates);
-      return j;
-    }
-
-    DECODE(EPostProof) {
-      decode(v.proofs, Get(j, "Proofs"));
-      decode(v.post_rand, Get(j, "PostRand"));
-      decode(v.candidates, Get(j, "Candidates"));
     }
 
     ENCODE(BigInt) {
@@ -353,8 +344,14 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Owner", v.owner);
       Set(j, "Worker", v.worker);
-      Set(j, "PendingWorkerKey", v.pending_worker_key);
-      Set(j, "PeerId", v.peer_id);
+      Set(j, "ControlAddresses", v.control);
+      boost::optional<std::string> peer_id;
+      if (!v.peer_id.empty()) {
+        OUTCOME_EXCEPT(peer, PeerId::fromBytes(v.peer_id));
+        peer_id = peer.toBase58();
+      }
+      Set(j, "PeerId", peer_id);
+      Set(j, "Multiaddrs", v.multiaddrs);
       Set(j, "SealProofType", common::to_int(v.seal_proof_type));
       Set(j, "SectorSize", v.sector_size);
       Set(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
@@ -407,6 +404,7 @@ namespace fc::api {
       Set(j, "Timestamp", v.timestamp);
       Set(j, "BlockSig", v.block_sig);
       Set(j, "ForkSignaling", v.fork_signaling);
+      Set(j, "ParentBaseFee", v.parent_base_fee);
       return j;
     }
 
@@ -426,6 +424,7 @@ namespace fc::api {
       decode(v.timestamp, Get(j, "Timestamp"));
       decode(v.block_sig, Get(j, "BlockSig"));
       decode(v.fork_signaling, Get(j, "ForkSignaling"));
+      decode(v.parent_base_fee, Get(j, "ParentBaseFee"));
     }
 
     DECODE(BlockTemplate) {
@@ -442,11 +441,13 @@ namespace fc::api {
 
     ENCODE(ElectionProof) {
       Value j{rapidjson::kObjectType};
+      Set(j, "WinCount", v.win_count);
       Set(j, "VRFProof", v.vrf_proof);
       return j;
     }
 
     DECODE(ElectionProof) {
+      decode(v.win_count, Get(j, "WinCount"));
       decode(v.vrf_proof, Get(j, "VRFProof"));
     }
 
@@ -497,14 +498,18 @@ namespace fc::api {
 
     ENCODE(MsgWait) {
       Value j{rapidjson::kObjectType};
+      Set(j, "Message", v.message);
       Set(j, "Receipt", v.receipt);
       Set(j, "TipSet", v.tipset);
+      Set(j, "Height", v.height);
       return j;
     }
 
     DECODE(MsgWait) {
+      decode(v.message, Get(j, "Message"));
       decode(v.receipt, Get(j, "Receipt"));
       decode(v.tipset, Get(j, "TipSet"));
+      decode(v.height, Get(j, "Height"));
     }
 
     ENCODE(MpoolUpdate) {
@@ -579,8 +584,9 @@ namespace fc::api {
       Set(j, "From", v.from);
       Set(j, "Nonce", v.nonce);
       Set(j, "Value", v.value);
-      Set(j, "GasPrice", v.gasPrice);
-      Set(j, "GasLimit", v.gasLimit);
+      Set(j, "GasLimit", v.gas_limit);
+      Set(j, "GasFeeCap", v.gas_fee_cap);
+      Set(j, "GasPremium", v.gas_premium);
       Set(j, "Method", v.method.method_number);
       Set(j, "Params", gsl::make_span(v.params));
       return j;
@@ -592,8 +598,9 @@ namespace fc::api {
       decode(v.from, Get(j, "From"));
       decode(v.nonce, Get(j, "Nonce"));
       decode(v.value, Get(j, "Value"));
-      decode(v.gasPrice, Get(j, "GasPrice"));
-      decode(v.gasLimit, Get(j, "GasLimit"));
+      decode(v.gas_limit, Get(j, "GasLimit"));
+      decode(v.gas_fee_cap, Get(j, "GasFeeCap"));
+      decode(v.gas_premium, Get(j, "GasPremium"));
       decode(v.method.method_number, Get(j, "Method"));
       decode(v.params, Get(j, "Params"));
     }
@@ -611,6 +618,26 @@ namespace fc::api {
     DECODE(SignedMessage) {
       decode(v.message, Get(j, "Message"));
       decode(v.signature, Get(j, "Signature"));
+    }
+
+    ENCODE(StorageConfig) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "StoragePaths", v.storage_paths);
+      return j;
+    }
+
+    DECODE(StorageConfig) {
+      decode(v.storage_paths, Get(j, "StoragePaths"));
+    }
+
+    ENCODE(LocalPath) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Path", v.path);
+      return j;
+    }
+
+    DECODE(LocalPath) {
+      decode(v.path, Get(j, "Path"));
     }
 
     ENCODE(BlockMessages) {
@@ -647,6 +674,27 @@ namespace fc::api {
       return j;
     }
 
+    ENCODE(PowerPair) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Raw", v.raw);
+      Set(j, "QA", v.qa);
+      return j;
+    }
+
+    ENCODE(Partition) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Sectors", v.sectors);
+      Set(j, "Faults", v.faults);
+      Set(j, "Recoveries", v.recoveries);
+      Set(j, "Terminated", v.terminated);
+      Set(j, "ExpirationsEpochs", v.expirations_epochs);
+      Set(j, "EarlyTerminated", v.early_terminated);
+      Set(j, "LivePower", v.live_power);
+      Set(j, "FaultyPower", v.faulty_power);
+      Set(j, "RecoveringPower", v.recovering_power);
+      return j;
+    }
+
     ENCODE(SectorPreCommitInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "RegisteredProof", common::to_int(v.registered_proof));
@@ -667,20 +715,52 @@ namespace fc::api {
       decode(v.expiration, Get(j, "Expiration"));
     }
 
-    ENCODE(SectorOnChainInfo) {
+    ENCODE(SectorPreCommitOnChainInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "Info", v.info);
-      Set(j, "ActivationEpoch", v.activation_epoch);
+      Set(j, "PreCommitDeposit", v.precommit_deposit);
+      Set(j, "PreCommitEpoch", v.precommit_epoch);
       Set(j, "DealWeight", v.deal_weight);
       Set(j, "VerifiedDealWeight", v.verified_deal_weight);
       return j;
     }
 
-    DECODE(SectorOnChainInfo) {
+    DECODE(SectorPreCommitOnChainInfo) {
       decode(v.info, Get(j, "Info"));
-      decode(v.activation_epoch, Get(j, "ActivationEpoch"));
+      decode(v.precommit_deposit, Get(j, "PreCommitDeposit"));
+      decode(v.precommit_epoch, Get(j, "PreCommitEpoch"));
       decode(v.deal_weight, Get(j, "DealWeight"));
       decode(v.verified_deal_weight, Get(j, "VerifiedDealWeight"));
+    }
+
+    ENCODE(SectorOnChainInfo) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "SectorNumber", v.sector);
+      Set(j, "SealProof", common::to_int(v.seal_proof));
+      Set(j, "SealedCID", v.sealed_cid);
+      Set(j, "DealIDs", v.deals);
+      Set(j, "Activation", v.activation_epoch);
+      Set(j, "Expiration", v.expiration);
+      Set(j, "DealWeight", v.deal_weight);
+      Set(j, "VerifiedDealWeight", v.verified_deal_weight);
+      Set(j, "InitialPledge", v.init_pledge);
+      Set(j, "ExpectedDayReward", v.expected_day_reward);
+      Set(j, "ExpectedStoragePledge", v.expected_storage_pledge);
+      return j;
+    }
+
+    DECODE(SectorOnChainInfo) {
+      decode(v.sector, Get(j, "SectorNumber"));
+      decodeEnum(v.seal_proof, Get(j, "SealProof"));
+      decode(v.sealed_cid, Get(j, "SealedCID"));
+      decode(v.deals, Get(j, "DealIDs"));
+      decode(v.activation_epoch, Get(j, "Activation"));
+      decode(v.expiration, Get(j, "Expiration"));
+      decode(v.deal_weight, Get(j, "DealWeight"));
+      decode(v.verified_deal_weight, Get(j, "VerifiedDealWeight"));
+      decode(v.init_pledge, Get(j, "InitialPledge"));
+      decode(v.expected_day_reward, Get(j, "ExpectedDayReward"));
+      decode(v.expected_storage_pledge, Get(j, "ExpectedStoragePledge"));
     }
 
     ENCODE(ChainSectorInfo) {
@@ -972,6 +1052,7 @@ namespace fc::api {
       Set(j, "SectorSize", v.sector_size);
       Set(j, "PrevBeaconEntry", v.prev_beacon);
       Set(j, "BeaconEntries", v.beacons);
+      Set(j, "HasMinPower", v.has_min_power);
       return j;
     }
 
@@ -1027,7 +1108,19 @@ namespace fc::api {
       decode(v.state, Get(j, "State"));
     }
 
-    ENCODE(BlockMsg) {
+    ENCODE(SectorLocation) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Deadline", v.deadline);
+      Set(j, "Partition", v.partition);
+      return j;
+    }
+
+    DECODE(SectorLocation) {
+      decode(v.deadline, Get(j, "Deadline"));
+      decode(v.partition, Get(j, "Partition"));
+    }
+
+    ENCODE(BlockWithCids) {
       Value j{rapidjson::kObjectType};
       Set(j, "Header", v.header);
       Set(j, "BlsMessages", v.bls_messages);
@@ -1035,7 +1128,7 @@ namespace fc::api {
       return j;
     }
 
-    DECODE(BlockMsg) {
+    DECODE(BlockWithCids) {
       decode(v.header, Get(j, "Header"));
       decode(v.bls_messages, Get(j, "BlsMessages"));
       decode(v.secp_messages, Get(j, "SecpkMessages"));
@@ -1099,14 +1192,19 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Capacity", v.capacity);
       Set(j, "Available", v.available);
-      Set(j, "Used", v.used);
+      Set(j, "Reserved", v.reserved);
       return j;
     }
 
     DECODE(FsStat) {
       decode(v.capacity, Get(j, "Capacity"));
       decode(v.available, Get(j, "Available"));
-      decode(v.used, Get(j, "Used"));
+      decode(v.reserved, Get(j, "Reserved"));
+    }
+
+    template <typename T>
+    ENCODE(adt::Array<T>) {
+      return encode(v.amt.cid());
     }
 
     template <typename T>

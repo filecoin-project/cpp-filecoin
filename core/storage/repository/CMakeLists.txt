@@ -6,6 +6,8 @@ add_library(repository
     impl/repository_error.cpp
     )
 target_link_libraries(repository
+    file
+    json
     keystore
     outcome
     )
@@ -21,6 +23,7 @@ target_link_libraries(filesystem_repository
     keystore
     outcome
     repository
+    rpc
     )
 
 add_library(in_memory_repository
@@ -28,4 +31,8 @@ add_library(in_memory_repository
     )
 target_link_libraries(in_memory_repository
     repository
+    Boost::filesystem
+    rpc
+    ipfs_datastore_in_memory
+    config
     )

@@ -10,8 +10,9 @@ namespace fc::vm::message {
 
   bool UnsignedMessage::operator==(const UnsignedMessage &other) const {
     return to == other.to && from == other.from && nonce == other.nonce
-           && value == other.value && gasPrice == other.gasPrice
-           && gasLimit == other.gasLimit && method == other.method
+           && value == other.value && gas_limit == other.gas_limit
+           && gas_fee_cap == other.gas_fee_cap
+           && gas_premium == other.gas_premium && method == other.method
            && params == other.params;
   }
 
@@ -20,7 +21,12 @@ namespace fc::vm::message {
   }
 
   BigInt UnsignedMessage::requiredFunds() const {
-    return value + gasLimit * gasPrice;
+    return gas_limit * gas_fee_cap;
+  }
+
+  size_t UnsignedMessage::chainSize() const {
+    OUTCOME_EXCEPT(bytes, codec::cbor::encode(*this));
+    return bytes.size();
   }
 
   CID SignedMessage::getCid() const {
@@ -34,6 +40,13 @@ namespace fc::vm::message {
     return res;
   }
 
+  size_t SignedMessage::chainSize() const {
+    if (signature.isBls()) {
+      return message.chainSize();
+    }
+    OUTCOME_EXCEPT(bytes, codec::cbor::encode(*this));
+    return bytes.size();
+  }
 }  // namespace fc::vm::message
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::message, MessageError, e) {

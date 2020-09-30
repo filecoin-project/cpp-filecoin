@@ -210,13 +210,12 @@ namespace fc::storage::keystore {
    * @when Sign() called with bls crypto
    * @then correct signature returned
    */
-  TEST_F(FileSystemKeyStoreTest, SignCorrectSecp256k1) {
+  TEST_F(FileSystemKeyStoreTest, CorrectSecp256k1) {
     EXPECT_OUTCOME_TRUE_1(
         ks->put(secp256k1_address_, secp256k1_keypair_.private_key));
     EXPECT_OUTCOME_TRUE(signature, ks->sign(secp256k1_address_, data_));
-    auto secp256k1_signature = boost::get<Secp256k1Signature>(signature);
-    ASSERT_TRUE(checkSignature(
-        data_, secp256k1_signature, secp256k1_keypair_.public_key));
+    EXPECT_OUTCOME_TRUE_1(ks->remove(secp256k1_address_));
+    EXPECT_OUTCOME_EQ(ks->verify(secp256k1_address_, data_, signature), true);
   }
 
   /**
@@ -255,20 +254,6 @@ namespace fc::storage::keystore {
     EXPECT_OUTCOME_ERROR(
         Secp256k1Error::kSignatureParseError,
         ks->verify(secp256k1_address_, data_, invalid_signature));
-  }
-
-  /**
-   * @given Kestore and secp256k1 signature and public key
-   * @when Verify() called with signature
-   * @then true returned
-   */
-  TEST_F(FileSystemKeyStoreTest, VerifySecp256k1Signature) {
-    EXPECT_OUTCOME_TRUE(
-        wrong_signature,
-        secp256k1_provider_->sign(data_, secp256k1_keypair_.private_key));
-    EXPECT_OUTCOME_TRUE(res,
-                        ks->verify(secp256k1_address_, data_, wrong_signature));
-    ASSERT_TRUE(res);
   }
 
   /**

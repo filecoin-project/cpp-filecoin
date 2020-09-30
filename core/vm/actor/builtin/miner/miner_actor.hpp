@@ -11,6 +11,8 @@
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/miner/types.hpp"
 
+// TODO: update methods
+
 namespace fc::vm::actor::builtin::miner {
   using primitives::sector::PoStProof;
 
@@ -19,7 +21,7 @@ namespace fc::vm::actor::builtin::miner {
       Address owner;
       Address worker;
       RegisteredProof seal_proof_type;
-      PeerId peer_id{codec::cbor::kDefaultT<PeerId>()};
+      Buffer peer_id;
     };
     ACTOR_METHOD_DECL();
   };
@@ -44,7 +46,7 @@ namespace fc::vm::actor::builtin::miner {
 
   struct ChangePeerId : ActorMethodBase<4> {
     struct Params {
-      PeerId new_id{codec::cbor::kDefaultT<PeerId>()};
+      Buffer new_id;
     };
     ACTOR_METHOD_DECL();
   };
@@ -52,14 +54,26 @@ namespace fc::vm::actor::builtin::miner {
 
   struct SubmitWindowedPoSt : ActorMethodBase<5> {
     struct Params {
+      struct Partition {
+        uint64_t index;
+        RleBitset skipped;
+      };
+
       uint64_t deadline{};
-      std::vector<uint64_t> partitions;
+      std::vector<Partition> partitions;
       std::vector<PoStProof> proofs;
-      RleBitset skipped;
+      ChainEpoch chain_commit_epoch;
+      Randomness chain_commit_rand;
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(SubmitWindowedPoSt::Params, deadline, partitions, proofs, skipped)
+  CBOR_TUPLE(SubmitWindowedPoSt::Params::Partition, index, skipped)
+  CBOR_TUPLE(SubmitWindowedPoSt::Params,
+             deadline,
+             partitions,
+             proofs,
+             chain_commit_epoch,
+             chain_commit_rand)
 
   struct PreCommitSector : ActorMethodBase<6> {
     using Params = SectorPreCommitInfo;

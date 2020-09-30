@@ -34,7 +34,7 @@ namespace fc::sync {
 
     using OnBlockAvailable = void(const PeerId &from,
                                   const CID &block_cid,
-                                  const BlockMsg &msg);
+                                  const BlockWithCids &msg);
     connection_t subscribeToBlocks(
         const std::function<OnBlockAvailable> &subscriber);
 

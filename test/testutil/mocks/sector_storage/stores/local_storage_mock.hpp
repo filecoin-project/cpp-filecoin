@@ -19,6 +19,8 @@ namespace fc::sector_storage::stores {
 
     MOCK_METHOD1(setStorage,
                  outcome::result<void>(std::function<void(StorageConfig &)>));
+    MOCK_METHOD1(getDiskUsage,
+                 outcome::result<int64_t>(const std::string &path));
   };
 }  // namespace fc::sector_storage::stores
 

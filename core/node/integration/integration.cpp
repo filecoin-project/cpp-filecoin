@@ -24,7 +24,8 @@ namespace fc {
       return logger.get();
     }
 
-    [[maybe_unused]] std::vector<std::string> toStrings(const std::vector<CID> &cids) {
+    [[maybe_unused]] std::vector<std::string> toStrings(
+        const std::vector<CID> &cids) {
       std::vector<std::string> v;
       v.reserve(cids.size());
       for (const auto &cid : cids) {
@@ -49,14 +50,15 @@ namespace fc {
 
     void start() {
       pubsub->start(network_name, "X");
-      blocks_subscr = pubsub->subscribeToBlocks([](const sync::PeerId &from,
-                                                   const CID &block_cid,
-                                                   const sync::BlockMsg &msg) {
-        log()->info("New block from {}, cid={}, height={}",
-                    from.toBase58(),
-                    block_cid.toString().value(),
-                    msg.header.height);
-      });
+      blocks_subscr =
+          pubsub->subscribeToBlocks([](const sync::PeerId &from,
+                                       const CID &block_cid,
+                                       const sync::BlockWithCids &msg) {
+            log()->info("New block from {}, cid={}, height={}",
+                        from.toBase58(),
+                        block_cid.toString().value(),
+                        msg.header.height);
+          });
 
       msg_subscr = pubsub->subscribeToMessages(
           [](const sync::PeerId &from,
@@ -308,7 +310,6 @@ namespace fc {
 
       o.host->start();
 
-
       auto res = o.peer_manager->start(
           o.chain_db->genesisCID(),
           heads.begin()->second->key.cids(),
@@ -341,7 +342,7 @@ namespace fc {
               ctx.start();
             }
 
-   //         o.gossip->addBootstrapPeer(peer, boost::none);
+            //         o.gossip->addBootstrapPeer(peer, boost::none);
           });
 
       if (!res) {
@@ -350,7 +351,7 @@ namespace fc {
 
       for (const auto &pi : config.bootstrap_list) {
         o.host->connect(pi);
-       // o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
+        // o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
       }
 
       o.gossip->start();

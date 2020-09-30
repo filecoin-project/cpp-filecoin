@@ -17,11 +17,6 @@ namespace fc::sector_storage::stores {
   using primitives::sector_file::sectorName;
   using std::chrono::system_clock;
 
-  std::string toSectorsID(const SectorId &sector_id,
-                          const SectorFileType &file_type) {
-    return sectorName(sector_id) + "_" + toString(file_type);
-  }
-
   bool isValidUrl(const std::string &url) {
     static std::regex url_regex(
         "https?:\\/\\/"
@@ -90,7 +85,8 @@ namespace fc::sector_storage::stores {
   outcome::result<void> SectorIndexImpl::storageDeclareSector(
       const StorageID &storage_id,
       const SectorId &sector,
-      const SectorFileType &file_type) {
+      const SectorFileType &file_type,
+      bool primary) {
     std::unique_lock lock(mutex_);
 
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
@@ -98,21 +94,39 @@ namespace fc::sector_storage::stores {
         continue;
       }
 
-      std::string sector_id = toSectorsID(sector, type);
+      Decl index{
+          .sector_id = sector,
+          .type = type,
+      };
 
-      auto sector_iter = sectors_.find(sector_id);
+      auto sector_iter = sectors_.find(index);
       if (sector_iter == sectors_.end()) {
-        sectors_[sector_id] = {};
-        sector_iter = sectors_.find(sector_id);
+        sectors_[index] = {};
+        sector_iter = sectors_.find(index);
       }
-      for (const auto &s_id : sector_iter->second) {
-        if (storage_id == s_id) {
-          // already there
-          return outcome::success();
+
+      bool is_duplicate = false;
+      for (auto &sid : sector_iter->second) {
+        if (storage_id == sid.id) {
+          if (!sid.is_primary && primary) {
+            sid.is_primary = true;
+          } else {
+            logger_->warn(
+                "sector {} redeclared in {}", sectorName(sector), storage_id);
+          }
+          is_duplicate = true;
+          break;
         }
       }
 
-      sector_iter->second.push_back(storage_id);
+      if (is_duplicate) {
+        continue;
+      }
+
+      sector_iter->second.push_back(DeclMeta{
+          .id = storage_id,
+          .is_primary = primary,
+      });
     }
 
     return outcome::success();
@@ -129,20 +143,23 @@ namespace fc::sector_storage::stores {
         continue;
       }
 
-      std::string sector_id = toSectorsID(sector, type);
+      Decl index{
+          .sector_id = sector,
+          .type = type,
+      };
 
-      auto sector_iter = sectors_.find(sector_id);
+      auto sector_iter = sectors_.find(index);
       if (sector_iter == sectors_.end()) {
         return outcome::success();
       }
-      std::vector<StorageID> sectors;
-      for (const auto &s_id : sector_iter->second) {
-        if (storage_id == s_id) {
+      std::vector<DeclMeta> sectors;
+      for (const auto &sid : sector_iter->second) {
+        if (storage_id == sid.id) {
           continue;
         }
-        sectors.push_back(s_id);
+        sectors.push_back(sid);
       }
-      if (sectors.size() == 0) {
+      if (sectors.empty()) {
         sectors_.erase(sector_iter);
         return outcome::success();
       }
@@ -156,27 +173,36 @@ namespace fc::sector_storage::stores {
   outcome::result<std::vector<StorageInfo>> SectorIndexImpl::storageFindSector(
       const SectorId &sector,
       const fc::primitives::sector_file::SectorFileType &file_type,
-      bool allow_fetch) {
+      boost::optional<RegisteredProof> fetch_seal_proof_type) {
     std::shared_lock lock(mutex_);
-    std::unordered_map<StorageID, uint64_t> storage_ids;
+    struct StorageMeta {
+      uint64_t storage_count;
+      bool is_primary;
+    };
+    std::unordered_map<StorageID, StorageMeta> storages;
 
     for (const auto &type : primitives::sector_file::kSectorFileTypes) {
       if ((file_type & type) == 0) {
         continue;
       }
 
-      std::string sector_id = toSectorsID(sector, type);
-      auto sector_iter = sectors_.find(sector_id);
+      Decl index{
+          .sector_id = sector,
+          .type = type,
+      };
+      auto sector_iter = sectors_.find(index);
       if (sector_iter == sectors_.end()) {
         continue;
       }
-      for (const auto &id : sector_iter->second) {
-        ++storage_ids[id];
+      for (const auto &storage : sector_iter->second) {
+        ++(storages[storage.id].storage_count);
+        storages[storage.id].is_primary =
+            storages[storage.id].is_primary || storage.is_primary;
       }
     }
 
     std::vector<StorageInfo> result;
-    for (const auto &[id, count] : storage_ids) {
+    for (const auto &[id, meta] : storages) {
       if (stores_.find(id) == stores_.end()) {
         // logger
         continue;
@@ -197,16 +223,43 @@ namespace fc::sector_storage::stores {
         store.urls[i] = uri.str();
       }
 
-      store.weight = store.weight * count;
+      store.weight = store.weight * meta.storage_count;
+      store.is_primary = storages[id].is_primary;
       result.push_back(store);
     }
 
-    if (allow_fetch) {
+    if (fetch_seal_proof_type.has_value()) {
+      OUTCOME_TRY(required_space,
+                  primitives::sector_file::sealSpaceUse(
+                      file_type, fetch_seal_proof_type.get()));
       for (const auto &[id, storage_info] : stores_) {
-        if (storage_ids.find(id) != storage_ids.end()) {
+        if (!storage_info.info.can_seal) {
           continue;
         }
-        auto store = stores_[id].info;
+
+        if (required_space
+            > static_cast<uint64_t>(storage_info.fs_stat.available)) {
+          logger_->debug(
+              "not selecting on {}, out of space (available: {}, need: {})",
+              storage_info.info.id,
+              storage_info.fs_stat.available,
+              required_space);
+          continue;
+        }
+
+        // TODO: check last heartbeat time
+
+        if (storage_info.error.has_value()) {
+          logger_->debug("not selecting on {}, heartbeat error: {}",
+                         storage_info.info.id,
+                         storage_info.error.get());
+          continue;
+        }
+
+        if (storages.find(id) != storages.end()) {
+          continue;
+        }
+        auto store = storage_info.info;
 
         for (uint64_t i = 0; i < store.urls.size(); i++) {
           HttpUri uri;
@@ -222,6 +275,7 @@ namespace fc::sector_storage::stores {
         }
 
         store.weight = 0;
+        store.is_primary = false;
         result.push_back(store);
       }
     }
@@ -232,7 +286,7 @@ namespace fc::sector_storage::stores {
   outcome::result<std::vector<StorageInfo>> SectorIndexImpl::storageBestAlloc(
       const fc::primitives::sector_file::SectorFileType &allocate,
       fc::primitives::sector::RegisteredProof seal_proof_type,
-      bool sealing) {
+      bool sealing_mode) {
     std::shared_lock lock(mutex_);
 
     OUTCOME_TRY(
@@ -242,14 +296,14 @@ namespace fc::sector_storage::stores {
     std::vector<StorageEntry> candidates;
 
     for (const auto &[id, storage] : stores_) {
-      if (sealing && !storage.info.can_seal) {
+      if (sealing_mode && !storage.info.can_seal) {
         continue;
       }
-      if (!sealing && !storage.info.can_store) {
+      if (!sealing_mode && !storage.info.can_store) {
         continue;
       }
 
-      if (req_space > storage.fs_stat.available) {
+      if (req_space > static_cast<uint64_t>(storage.fs_stat.available)) {
         continue;
       }
 
@@ -314,6 +368,11 @@ namespace fc::sector_storage::stores {
     }
 
     return nullptr;
+  }
+
+  SectorIndexImpl::SectorIndexImpl() {
+    index_lock_ = std::make_shared<IndexLock>();
+    logger_ = common::createLogger("sector index");
   }
 
 }  // namespace fc::sector_storage::stores

@@ -105,7 +105,7 @@ namespace fc::sync {
 
     void onBlockFromPubSub(const PeerId &from,
                            const CID &cid,
-                           const BlockMsg &msg);
+                           const BlockWithCids &msg);
 
     void onMessageFromPubSub(
         const PeerId &from,

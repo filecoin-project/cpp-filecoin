@@ -13,6 +13,14 @@ target_link_libraries(sector_index
         outcome
         uri_parser
         Boost::filesystem
+        logger
+        )
+
+add_library(storage_error
+        impl/storage_error.cpp
+        )
+target_link_libraries(storage_error
+        outcome
         )
 
 add_library(store
@@ -24,8 +32,10 @@ add_library(store
 target_link_libraries(store
         buffer
         CURL::libcurl
+        file
         logger
         rpc
         sector_index
         tarutil
+        storage_error
         )

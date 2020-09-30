@@ -233,8 +233,10 @@ namespace fc::markets::storage::test {
               auto &address, auto &tipset_key) -> outcome::result<MinerInfo> {
             return MinerInfo{.owner = {},
                              .worker = miner_actor_address,
-                             .pending_worker_key = boost::none,
-                             .peer_id = fc::codec::cbor::kDefaultT<PeerId>(),
+                             .control = {},
+                             .pending_worker_key = {},
+                             .peer_id = {},
+                             .multiaddrs = {},
                              .seal_proof_type = {},
                              .sector_size = {},
                              .window_post_partition_sectors = {}};
@@ -294,11 +296,14 @@ namespace fc::markets::storage::test {
                 codec::cbor::encode(publish_deal_result).value();
 
             MsgWait message_result{
+                .message = message_cid,
                 .receipt =
                     MessageReceipt{.exit_code = VMExitCode::kOk,
                                    .return_value = publish_deal_result_encoded,
                                    .gas_used = GasAmount{0}},
-                .tipset = chain_head};
+                .tipset = chain_head->key,
+                .height = (ChainEpoch)chain_head->height(),
+            };
             auto channel = std::make_shared<Channel<Wait<MsgWait>::Result>>();
             channel->write(message_result);
             channel->closeWrite();

@@ -55,6 +55,8 @@ namespace fc::storage::blockchain {
     virtual const std::string& getNetworkName() const = 0;
 
     virtual const CID& genesisCID() const = 0;
+
+    virtual primitives::BigInt getHeaviestWeight() = 0;
   };
 
 }  // namespace fc::storage::blockchain

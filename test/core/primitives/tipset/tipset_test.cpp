@@ -21,7 +21,7 @@ struct TipsetTest : public ::testing::Test {
   using BlockHeader = fc::primitives::block::BlockHeader;
   using CID = fc::CID;
   using Signature = fc::primitives::block::Signature;
-  using Ticket = fc::primitives::ticket::Ticket;
+  using Ticket = fc::primitives::block::Ticket;
   using Tipset = fc::primitives::tipset::Tipset;
   using TipsetError = fc::primitives::tipset::TipsetError;
 
@@ -31,13 +31,13 @@ struct TipsetTest : public ::testing::Test {
     auto bls2 =
         "020101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 
-    ticket1 = Ticket{bls1};
-    ticket2 = Ticket{bls2};
+    ticket1 = Ticket{fc::Buffer{bls1}};
+    ticket2 = Ticket{fc::Buffer{bls2}};
 
     BlockHeader block_header{
         fc::primitives::address::Address::makeFromId(1),
         ticket2,
-        {fc::common::Buffer{"F00D"_unhex}},
+        {},
         {fc::primitives::block::BeaconEntry{
             4,
             "F00D"_unhex,
@@ -56,6 +56,7 @@ struct TipsetTest : public ::testing::Test {
         8,
         boost::none,
         9,
+        {},
     };
     return block_header;
   }
@@ -135,22 +136,10 @@ TEST_F(TipsetTest, CreateSuccess) {
   ASSERT_EQ(ts.height(), bh1.height);
   ASSERT_EQ(ts.blks, headers);
   ASSERT_EQ(ts.getMinTimestamp(), 7u);
-  ASSERT_EQ(ts.getMinTicketBlock(), bh2);
+  ASSERT_EQ(ts.getMinTicketBlock(), bh1);
   ASSERT_EQ(ts.getParentStateRoot(), parent_state_root);
   ASSERT_EQ(ts.getParentWeight(), parent_weight);
   ASSERT_TRUE(ts.contains(cid1));
   ASSERT_TRUE(ts.contains(cid2));
   ASSERT_FALSE(ts.contains(cid3));
-}
-
-/**
- * @given tipset and its serialized representation from go
- * @when encode @and decode the tipset
- * @then decoded version matches the original @and encoded matches the go ones
- */
-TEST_F(TipsetTest, LotusCrossTestSuccess) {
-  EXPECT_OUTCOME_TRUE(ts, Tipset::create({bh1}));
-  expectEncodeAndReencode(
-      ts,
-      "8381D82A5827000171A0E402209C9796303464DF1DC914244249A0A8DA032BF08B5782A6E9121C44BAF185DBC2818F4200018158600201010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101018142F00D81820442F00D81820342F00D81D82A470001000102000242000304D82A4700010001020005D82A4700010001020006D82A4700010001020007F608F60904"_unhex);
 }

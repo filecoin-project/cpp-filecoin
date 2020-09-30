@@ -4,7 +4,13 @@
  */
 
 #include "storage/repository/repository.hpp"
+#include "api/rpc/json.hpp"
+#include "storage/repository/repository_error.hpp"
 
+#include "codec/json/json.hpp"
+#include "common/file.hpp"
+
+using fc::sector_storage::stores::StorageConfig;
 using fc::storage::config::Config;
 using fc::storage::ipfs::IpfsDatastore;
 using fc::storage::keystore::KeyStore;
@@ -31,4 +37,19 @@ std::shared_ptr<Config> Repository::getConfig() const noexcept {
 
 fc::outcome::result<void> Repository::loadConfig(const std::string &filename) {
   return config_->load(filename);
+}
+
+fc::outcome::result<StorageConfig> Repository::storageFromFile(
+    const boost::filesystem::path &path) {
+  OUTCOME_TRY(text, common::readFile(path.string()));
+  OUTCOME_TRY(j_file, codec::json::parse(text));
+  return api::decode<StorageConfig>(j_file);
+}
+
+fc::outcome::result<void> Repository::writeStorage(
+    const boost::filesystem::path &path, StorageConfig config) {
+  auto doc = api::encode<StorageConfig>(config);
+  OUTCOME_TRY(text, codec::json::format(&doc));
+  OUTCOME_TRY(common::writeFile(path.string(), text));
+  return outcome::success();
 }

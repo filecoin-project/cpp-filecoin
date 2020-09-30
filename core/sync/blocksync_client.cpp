@@ -8,6 +8,7 @@
 #include <libp2p/host/host.hpp>
 
 #include "storage/ipfs/datastore.hpp"
+#include "common/logger.hpp"
 
 namespace fc::sync::blocksync {
 

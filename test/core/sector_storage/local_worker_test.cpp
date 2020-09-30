@@ -33,7 +33,10 @@ using fc::sector_storage::stores::RemoteStoreMock;
 using fc::sector_storage::stores::SectorIndexMock;
 using proofs = fc::proofs::Proofs;
 using fc::primitives::sector_file::SectorFileType;
+using fc::sector_storage::stores::AcquireMode;
 using fc::sector_storage::stores::AcquireSectorResponse;
+using fc::sector_storage::stores::PathType;
+using testing::_;
 
 class LocalWorkerTest : public test::BaseFS_Test {
  public:
@@ -148,14 +151,26 @@ TEST_F(LocalWorkerTest, PreCommit_MatchSumError) {
   EXPECT_CALL(*store_, remove(sector, SectorFileType::FTCache))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_CALL(*sector_index_,
-              storageDeclareSector(
-                  response.storages.cache, sector, SectorFileType::FTCache))
+  bool is_storage_clear = false;
+  EXPECT_CALL(*local_store_,
+              reserve(RegisteredProof::StackedDRG2KiBSeal,
+                      static_cast<SectorFileType>(SectorFileType::FTCache
+                                                  | SectorFileType::FTSealed),
+                      _,
+                      PathType::kSealing))
+      .WillOnce(testing::Return(
+          fc::outcome::success([&]() { is_storage_clear = true; })));
+
+  EXPECT_CALL(
+      *sector_index_,
+      storageDeclareSector(
+          response.storages.cache, sector, SectorFileType::FTCache, false))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_CALL(*sector_index_,
-              storageDeclareSector(
-                  response.storages.sealed, sector, SectorFileType::FTSealed))
+  EXPECT_CALL(
+      *sector_index_,
+      storageDeclareSector(
+          response.storages.sealed, sector, SectorFileType::FTSealed, false))
       .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_CALL(
@@ -165,7 +180,8 @@ TEST_F(LocalWorkerTest, PreCommit_MatchSumError) {
                     SectorFileType::FTUnsealed,
                     static_cast<SectorFileType>(SectorFileType::FTSealed
                                                 | SectorFileType::FTCache),
-                    true))
+                    PathType::kSealing,
+                    AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
 
   ASSERT_TRUE(boost::filesystem::create_directory(
@@ -176,6 +192,8 @@ TEST_F(LocalWorkerTest, PreCommit_MatchSumError) {
   EXPECT_OUTCOME_ERROR(
       fc::sector_storage::WorkerErrors::kPiecesDoNotMatchSectorSize,
       local_worker_->sealPreCommit1(sector, ticket, {}));
+
+  ASSERT_TRUE(is_storage_clear);
 }
 
 /**
@@ -242,12 +260,24 @@ TEST_F(LocalWorkerTest, Sealer) {
                             seal_proof_type_,
                             SectorFileType::FTNone,
                             SectorFileType::FTUnsealed,
-                            true))
+                            PathType::kSealing,
+                            AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
-  EXPECT_CALL(
-      *sector_index_,
-      storageDeclareSector(
-          response.storages.unsealed, sector, SectorFileType::FTUnsealed))
+
+  bool is_storage_clear_unseal_a = false;
+  EXPECT_CALL(*local_store_,
+              reserve(RegisteredProof::StackedDRG2KiBSeal,
+                      SectorFileType::FTUnsealed,
+                      _,
+                      PathType::kSealing))
+      .WillOnce(testing::Return(
+          fc::outcome::success([&]() { is_storage_clear_unseal_a = true; })));
+
+  EXPECT_CALL(*sector_index_,
+              storageDeclareSector(response.storages.unsealed,
+                                   sector,
+                                   SectorFileType::FTUnsealed,
+                                   false))
       .WillOnce(testing::Return(fc::outcome::success()));
   EXPECT_OUTCOME_TRUE(
       a_info,
@@ -258,8 +288,16 @@ TEST_F(LocalWorkerTest, Sealer) {
                             seal_proof_type_,
                             SectorFileType::FTUnsealed,
                             SectorFileType::FTNone,
-                            true))
+                            PathType::kSealing,
+                            AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
+
+  EXPECT_CALL(*local_store_,
+              reserve(RegisteredProof::StackedDRG2KiBSeal,
+                      SectorFileType::FTNone,
+                      _,
+                      PathType::kSealing))
+      .WillRepeatedly(testing::Return(fc::outcome::success([]() {})));
 
   EXPECT_OUTCOME_TRUE(b_info,
                       local_worker_->addPiece(sector,
@@ -292,14 +330,26 @@ TEST_F(LocalWorkerTest, Sealer) {
   ASSERT_TRUE(boost::filesystem::create_directory(
       base_path / toString(SectorFileType::FTCache)));
 
-  EXPECT_CALL(*sector_index_,
-              storageDeclareSector(
-                  response.storages.cache, sector, SectorFileType::FTCache))
+  bool is_storage_clear = false;
+  EXPECT_CALL(*local_store_,
+              reserve(RegisteredProof::StackedDRG2KiBSeal,
+                      static_cast<SectorFileType>(SectorFileType::FTCache
+                                                  | SectorFileType::FTSealed),
+                      _,
+                      PathType::kSealing))
+      .WillOnce(testing::Return(
+          fc::outcome::success([&]() { is_storage_clear = true; })));
+
+  EXPECT_CALL(
+      *sector_index_,
+      storageDeclareSector(
+          response.storages.cache, sector, SectorFileType::FTCache, false))
       .WillOnce(testing::Return(fc::outcome::success()));
 
-  EXPECT_CALL(*sector_index_,
-              storageDeclareSector(
-                  response.storages.sealed, sector, SectorFileType::FTSealed))
+  EXPECT_CALL(
+      *sector_index_,
+      storageDeclareSector(
+          response.storages.sealed, sector, SectorFileType::FTSealed, false))
       .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_CALL(
@@ -309,7 +359,8 @@ TEST_F(LocalWorkerTest, Sealer) {
                     SectorFileType::FTUnsealed,
                     static_cast<SectorFileType>(SectorFileType::FTSealed
                                                 | SectorFileType::FTCache),
-                    true))
+                    PathType::kSealing,
+                    AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
 
   EXPECT_OUTCOME_TRUE(pc1o,
@@ -325,7 +376,8 @@ TEST_F(LocalWorkerTest, Sealer) {
                     static_cast<SectorFileType>(SectorFileType::FTSealed
                                                 | SectorFileType::FTCache),
                     SectorFileType::FTNone,
-                    true))
+                    PathType::kSealing,
+                    AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
 
   EXPECT_OUTCOME_TRUE(cids, local_worker_->sealPreCommit2(sector, pc1o));
@@ -339,7 +391,8 @@ TEST_F(LocalWorkerTest, Sealer) {
                     static_cast<SectorFileType>(SectorFileType::FTSealed
                                                 | SectorFileType::FTCache),
                     SectorFileType::FTNone,
-                    true))
+                    PathType::kSealing,
+                    AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
 
   EXPECT_OUTCOME_TRUE(
@@ -349,19 +402,13 @@ TEST_F(LocalWorkerTest, Sealer) {
 
   EXPECT_OUTCOME_TRUE(valid,
                       proofs::verifySeal(SealVerifyInfo{
+                          .seal_proof = seal_proof_type_,
                           .sector = sector,
-                          .info =
-                              OnChainSealVerifyInfo{
-                                  .sealed_cid = cids.sealed_cid,
-                                  .interactive_epoch = 42,
-                                  .registered_proof = seal_proof_type_,
-                                  .proof = proof,
-                                  .deals = {},
-                                  .sector = sector.sector,
-                                  .seal_rand_epoch = 42,
-                              },
+                          .deals = {},
                           .randomness = ticket,
                           .interactive_randomness = seed,
+                          .proof = proof,
+                          .sealed_cid = cids.sealed_cid,
                           .unsealed_cid = cids.unsealed_cid,
                       }));
 
@@ -381,18 +428,33 @@ TEST_F(LocalWorkerTest, Sealer) {
                             config_.seal_proof_type,
                             SectorFileType::FTUnsealed,
                             SectorFileType::FTNone,
-                            false))
-      .WillOnce(testing::Return(
-          fc::outcome::failure(fc::sector_storage::stores::StoreErrors::
-                                   kNotFoundRequestedSectorType)));
+                            PathType::kStorage,
+                            AcquireMode::kCopy))
+      .WillOnce(testing::Return(fc::outcome::failure(
+          fc::sector_storage::stores::StoreErrors::kNotFoundSector)));
 
   EXPECT_CALL(*store_,
               acquireSector(sector,
                             config_.seal_proof_type,
                             SectorFileType::FTNone,
                             SectorFileType::FTUnsealed,
-                            false))
+                            PathType::kStorage,
+                            AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(unseal_response)));
+
+  EXPECT_CALL(*local_store_,
+              reserve(RegisteredProof::StackedDRG2KiBSeal,
+                      SectorFileType::FTUnsealed,
+                      _,
+                      PathType::kSealing))
+      .WillOnce(testing::Return(fc::outcome::success([&]() {})));
+
+  EXPECT_CALL(*sector_index_,
+              storageDeclareSector(response.storages.unsealed,
+                                   sector,
+                                   SectorFileType::FTUnsealed,
+                                   false))
+      .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_CALL(
       *store_,
@@ -401,8 +463,15 @@ TEST_F(LocalWorkerTest, Sealer) {
                     static_cast<SectorFileType>(SectorFileType::FTSealed
                                                 | SectorFileType::FTCache),
                     SectorFileType::FTNone,
-                    false))
+                    PathType::kStorage,
+                    AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
+
+  EXPECT_CALL(*store_, removeCopies(sector, SectorFileType::FTSealed))
+      .WillOnce(testing::Return(fc::outcome::success()));
+
+  EXPECT_CALL(*store_, removeCopies(sector, SectorFileType::FTCache))
+      .WillOnce(testing::Return(fc::outcome::success()));
 
   EXPECT_OUTCOME_TRUE_1(local_worker_->unsealPiece(
       sector, 0, piece_commitment_a_size, ticket, cids.unsealed_cid));
@@ -415,7 +484,8 @@ TEST_F(LocalWorkerTest, Sealer) {
                             config_.seal_proof_type,
                             SectorFileType::FTUnsealed,
                             SectorFileType::FTNone,
-                            false))
+                            PathType::kStorage,
+                            AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(unseal_response)));
 
   EXPECT_OUTCOME_TRUE_1(local_worker_->readPiece(
@@ -434,6 +504,9 @@ TEST_F(LocalWorkerTest, Sealer) {
     read(piece[0], &piece_ch, 1);
     ASSERT_EQ(original_ch, piece_ch);
   }
+
+  ASSERT_TRUE(is_storage_clear);
+  ASSERT_TRUE(is_storage_clear_unseal_a);
 }
 
 /**

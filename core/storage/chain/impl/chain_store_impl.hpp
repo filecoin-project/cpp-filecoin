@@ -10,7 +10,6 @@
 
 #include <libp2p/protocol/common/scheduler.hpp>
 
-#include "blockchain/block_validator/block_validator.hpp"
 #include "blockchain/weight_calculator.hpp"
 #include "sync/common.hpp"
 
@@ -123,7 +122,6 @@ namespace fc::storage::blockchain {
     /// when head tipset changes, need to notify all subscribers
     boost::signals2::signal<HeadChangeSignature> head_change_signal_;
 
-    // common::Logger logger_;
   };
 }  // namespace fc::storage::blockchain
 

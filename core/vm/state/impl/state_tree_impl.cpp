@@ -61,4 +61,9 @@ namespace fc::vm::state {
   std::shared_ptr<IpfsDatastore> StateTreeImpl::getStore() {
     return store_;
   }
+
+  outcome::result<void> StateTreeImpl::remove(const Address &address) {
+    OUTCOME_TRY(address_id, lookupId(address));
+    return by_id.remove(address_id);
+  }
 }  // namespace fc::vm::state

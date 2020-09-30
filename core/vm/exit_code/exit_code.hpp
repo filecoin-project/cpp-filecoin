@@ -20,6 +20,8 @@ namespace fc::vm {
    * specs-actors and custom exit code enum for outcome errors.
    */
   enum class VMExitCode : int64_t {
+    kFatal = -1,
+
     kOk = 0,
     kSysErrSenderInvalid = 1,
     kSysErrSenderStateInvalid = 2,
@@ -100,6 +102,8 @@ namespace fc::vm {
     kRewardActorWrongCaller,
 
     kAssert,
+
+    kNotImplemented,
   };
 
   /// Distinguish VMExitCode errors from other errors

@@ -18,14 +18,17 @@ namespace fc::sector_storage::stores {
     MOCK_METHOD0(getAccessiblePaths,
                  outcome::result<std::vector<primitives::StoragePath>>());
 
-    MOCK_METHOD5(acquireSector,
+    MOCK_METHOD6(acquireSector,
                  outcome::result<AcquireSectorResponse>(SectorId,
                                                         RegisteredProof,
                                                         SectorFileType,
                                                         SectorFileType,
-                                                        bool));
+                                                        PathType path_type,
+                                                        AcquireMode mode));
 
     MOCK_METHOD2(remove, outcome::result<void>(SectorId, SectorFileType));
+
+    MOCK_METHOD2(removeCopies, outcome::result<void>(SectorId, SectorFileType));
 
     MOCK_METHOD3(moveStorage,
                  outcome::result<void>(SectorId,
@@ -37,6 +40,13 @@ namespace fc::sector_storage::stores {
     MOCK_CONST_METHOD0(getLocalStorage, std::shared_ptr<LocalStorage>());
 
     MOCK_CONST_METHOD0(getSectorIndex, std::shared_ptr<SectorIndex>());
+
+    MOCK_METHOD4(
+        reserve,
+        outcome::result<std::function<void()>>(RegisteredProof seal_proof_type,
+                                               SectorFileType file_type,
+                                               const SectorPaths &storages,
+                                               PathType path_type));
   };
 }  // namespace fc::sector_storage::stores
 

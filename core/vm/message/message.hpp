@@ -34,6 +34,7 @@ namespace fc::vm::message {
   using crypto::signature::Signature;
   using primitives::BigInt;
   using primitives::GasAmount;
+  using primitives::TokenAmount;
   using primitives::address::Address;
 
   static constexpr int64_t kMessageVersion = 0;
@@ -50,8 +51,8 @@ namespace fc::vm::message {
                     Address from,
                     uint64_t nonce,
                     BigInt value,
-                    BigInt gasPrice,
-                    GasAmount gasLimit,
+                    TokenAmount gas_fee_cap,
+                    GasAmount gas_limit,
                     MethodNumber method,
                     MethodParams params)
         : version{kMessageVersion},
@@ -59,12 +60,13 @@ namespace fc::vm::message {
           from{std::move(from)},
           nonce{nonce},
           value{std::move(value)},
-          gasPrice{std::move(gasPrice)},
-          gasLimit{std::move(gasLimit)},
+          gas_limit{std::move(gas_limit)},
+          gas_fee_cap{std::move(gas_fee_cap)},
+          gas_premium{},
           method{method},
           params{std::move(params)} {}
 
-    int64_t version;
+    int64_t version{kMessageVersion};
 
     Address to;
     Address from;
@@ -73,8 +75,9 @@ namespace fc::vm::message {
 
     BigInt value{};
 
-    BigInt gasPrice{};
-    GasAmount gasLimit{};
+    GasAmount gas_limit{};
+    TokenAmount gas_fee_cap;
+    TokenAmount gas_premium;
 
     MethodNumber method{};
     MethodParams params{};
@@ -90,6 +93,8 @@ namespace fc::vm::message {
     bool operator!=(const UnsignedMessage &other) const;
 
     BigInt requiredFunds() const;
+
+    size_t chainSize() const;
   };
 
   CBOR_TUPLE(UnsignedMessage,
@@ -98,8 +103,9 @@ namespace fc::vm::message {
              from,
              nonce,
              value,
-             gasPrice,
-             gasLimit,
+             gas_limit,
+             gas_fee_cap,
+             gas_premium,
              method,
              params)
 
@@ -115,6 +121,8 @@ namespace fc::vm::message {
      * @return CID
      */
     CID getCid() const;
+
+    size_t chainSize() const;
   };
 
   CBOR_TUPLE(SignedMessage, message, signature)

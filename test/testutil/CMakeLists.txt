@@ -3,7 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(primitives)
 add_subdirectory(resources)
 add_subdirectory(storage)
 add_subdirectory(vm)

@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <boost/container_hash/hash.hpp>
+
 #include "primitives/tipset/tipset_key.hpp"
 
 #include "crypto/blake2/blake2b.h"

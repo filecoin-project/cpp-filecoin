@@ -5,6 +5,7 @@
 
 #include "blocksync_common.hpp"
 
+#include "common/logger.hpp"
 #include "storage/ipfs/datastore.hpp"
 
 namespace fc::sync::blocksync {
@@ -25,7 +26,7 @@ namespace fc::sync::blocksync {
         const std::vector<uint64_t> &bls_includes,
         bool store_messages,
         const OnBlockStored &callback) {
-      BlockMsg m{std::move(header), {}, {}};
+      BlockWithCids m{std::move(header), {}, {}};
 
       if (store_messages) {
         MsgMeta meta;

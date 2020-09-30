@@ -49,7 +49,7 @@ auto signMessage(const UnsignedMessage &message, const BlsPrivateKey &key) {
 }
 
 /// Message JSON and CBOR
-TEST(SerializationVectorsTest, UnsignedMessage) {
+TEST(SerializationVectorsTest, DISABLED_UnsignedMessage) {
   auto tests = loadJson("unsigned_messages.json");
   for (auto it = tests.Begin(); it != tests.End(); ++it) {
     auto message = Codec::decode<UnsignedMessage>(Codec::Get(*it, "message"));
@@ -60,7 +60,7 @@ TEST(SerializationVectorsTest, UnsignedMessage) {
 }
 
 /// Message signing
-TEST(SerializationVectorsTest, SignedMessage) {
+TEST(SerializationVectorsTest, DISABLED_SignedMessage) {
   auto tests = loadJson("message_signing.json");
   for (auto it = tests.Begin(); it != tests.End(); ++it) {
     auto message = Codec::decode<UnsignedMessage>(Codec::Get(*it, "Unsigned"));

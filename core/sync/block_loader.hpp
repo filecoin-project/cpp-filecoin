@@ -35,7 +35,7 @@ namespace fc::sync {
    private:
     // Block and all its subobjects are in local storage if result has value,
     // otherwise error
-    void onBlockStored(CID block_cid, outcome::result<BlockMsg> result);
+    void onBlockStored(CID block_cid, outcome::result<BlockWithCids> result);
 
     bool onBlockHeader(const CID &cid,
                        boost::optional<BlockHeader> header,

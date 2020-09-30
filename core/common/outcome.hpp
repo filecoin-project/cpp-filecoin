@@ -70,4 +70,15 @@ namespace fc::outcome {
 #define OUTCOME_ALTERNATIVE(var, expression, alternative) \
   _OUTCOME_ALTERNATIVE(UNIQUE_NAME(_r), var, expression, alternative)
 
+#define _OUTCOME_CB1(u, r) \
+  auto &&u{r};             \
+  if (!u) {                \
+    return cb(u.error());  \
+  }
+#define OUTCOME_CB1(r) _OUTCOME_CB1(BOOST_OUTCOME_TRY_UNIQUE_NAME, r)
+#define _OUTCOME_CB(u, l, r) \
+  _OUTCOME_CB1(u, r)         \
+  l = std::move(u.value());
+#define OUTCOME_CB(l, r) _OUTCOME_CB(BOOST_OUTCOME_TRY_UNIQUE_NAME, l, r)
+
 #endif  // CPP_FILECOIN_CORE_COMMON_OUTCOME_HPP

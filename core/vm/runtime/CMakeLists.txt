@@ -11,7 +11,9 @@ target_link_libraries(runtime
     actor
     blake2
     bls_provider
+    cgo_actors
     keystore
+    message
     proofs
     secp256k1_provider
     tipset

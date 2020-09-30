@@ -7,6 +7,8 @@
 
 #include <cassert>
 
+#include "common/logger.hpp"
+
 namespace fc::sync {
   namespace {
     auto log() {

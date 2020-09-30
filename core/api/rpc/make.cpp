@@ -69,6 +69,7 @@ namespace fc::api {
 
   void setupRpc(Rpc &rpc, const Api &api) {
     setup(rpc, api.AuthNew);
+    setup(rpc, api.BeaconGetEntry);
     setup(rpc, api.ChainGetBlock);
     setup(rpc, api.ChainGetBlockMessages);
     setup(rpc, api.ChainGetGenesis);
@@ -76,6 +77,8 @@ namespace fc::api {
     setup(rpc, api.ChainGetMessage);
     setup(rpc, api.ChainGetParentMessages);
     setup(rpc, api.ChainGetParentReceipts);
+    setup(rpc, api.ChainGetRandomnessFromBeacon);
+    setup(rpc, api.ChainGetRandomnessFromTickets);
     setup(rpc, api.ChainGetTipSet);
     setup(rpc, api.ChainGetTipSetByHeight);
     setup(rpc, api.ChainHead);
@@ -112,19 +115,26 @@ namespace fc::api {
     setup(rpc, api.StateMinerDeadlines);
     setup(rpc, api.StateMinerFaults);
     setup(rpc, api.StateMinerInfo);
+    setup(rpc, api.StateMinerPartitions);
     setup(rpc, api.StateMinerPower);
     setup(rpc, api.StateMinerProvingDeadline);
-    setup(rpc, api.StateMinerProvingSet);
     setup(rpc, api.StateMinerSectors);
     setup(rpc, api.StateMinerSectorSize);
     setup(rpc, api.StateMinerWorker);
     setup(rpc, api.StateNetworkName);
+    setup(rpc, api.StateMinerPreCommitDepositForPower);
+    setup(rpc, api.StateMinerInitialPledgeCollateral);
+    setup(rpc, api.StateSectorPreCommitInfo);
+    setup(rpc, api.StateSectorGetInfo);
+    setup(rpc, api.StateSectorPartition);
+    setup(rpc, api.StateSearchMsg);
     setup(rpc, api.StateWaitMsg);
     setup(rpc, api.SyncSubmitBlock);
     setup(rpc, api.Version);
     setup(rpc, api.WalletBalance);
     setup(rpc, api.WalletDefaultAddress);
     setup(rpc, api.WalletHas);
+    setup(rpc, api.WalletImport);
     setup(rpc, api.WalletSign);
     setup(rpc, api.WalletVerify);
 

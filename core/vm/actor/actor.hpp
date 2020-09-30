@@ -56,15 +56,7 @@ namespace fc::vm::actor {
 
   using MethodParams = Buffer;
 
-  /**
-   * CodeID identifies an actor's code (either one of the builtin actors, or, in
-   * the future, potentially a CID of VM code for a custom actor)
-   */
-  class CodeId : public CID {
-   public:
-    CodeId() = default;
-    explicit CodeId(CID cid) : CID{std::move(cid)} {}
-  };
+  using CodeId = CID;
 
   /**
    * Common actor state interface represents the on-chain storage all actors

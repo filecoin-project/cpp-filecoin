@@ -14,13 +14,21 @@ namespace fc::vm::actor::builtin::storage_power {
   State State::empty(IpldPtr ipld) {
     State state{
         .total_raw_power = 0,
+        .total_raw_commited = {},
         .total_qa_power = 0,
+        .total_qa_commited = {},
         .total_pledge = 0,
+        .this_epoch_raw_power = {},
+        .this_epoch_qa_power = {},
+        .this_epoch_pledge = {},
+        .this_epoch_qa_power_smoothed = {},
         .miner_count = 0,
+        .num_miners_meeting_min_power = {},
         .cron_event_queue = {},
+        .first_cron_epoch = {},
         .last_epoch_tick = 0,
         .claims = {},
-        .num_miners_meeting_min_power = 0,
+        .proof_validation_batch = {},
     };
     ipld->load(state);
     return state;

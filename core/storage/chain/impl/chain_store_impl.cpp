@@ -126,6 +126,7 @@ namespace fc::storage::blockchain {
     try {
       auto [tipset, weight] = chooseNewHead(added);
 
+
       if (!tipset) {
         // heads are worse than present
         return;
@@ -158,7 +159,7 @@ namespace fc::storage::blockchain {
   }
 
   void ChainStoreImpl::switchToHead(TipsetCPtr new_head, BigInt new_weight) {
-    OUTCOME_EXCEPT(parent_key, new_head->getParents());
+    auto parent_key = new_head->getParents();
     if (!head_) {
       // initial head apply
       head_ = new_head;
@@ -238,7 +239,6 @@ namespace fc::storage::blockchain {
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {
   using fc::storage::blockchain::ChainStoreError;
-
   switch (e) {
     case ChainStoreError::kNoHeaviestTipset:
       return "ChainStore: no heaviest tipset yet";
@@ -251,6 +251,5 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::blockchain, ChainStoreError, e) {
     case ChainStoreError::kIllegalState:
       return "ChainStore: illegal state";
   }
-
   return "ChainStoreError: unknown error";
 }

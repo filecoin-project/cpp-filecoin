@@ -9,6 +9,7 @@
 #include "codec/cbor/cbor.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
+#include "common/logger.hpp"
 
 namespace fc::sync {
 
@@ -147,7 +148,7 @@ namespace fc::sync {
 
   void PubSubGate::onBlock(const PeerId &from, const Bytes &raw) {
     try {
-      BlockMsg bm;
+      BlockWithCids bm;
       codec::cbor::CborDecodeStream decoder(raw);
       decoder.list() >> bm.header >> bm.bls_messages >> bm.secp_messages;
 

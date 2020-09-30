@@ -19,13 +19,12 @@ namespace fc::markets::storage::chain_events {
 
   outcome::result<void> ChainEventsImpl::init() {
     OUTCOME_TRY(chan, api_->ChainNotify());
-    chan.channel->read(
+    channel_ = chan.channel;
+    channel_->read(
         [self_weak{weak_from_this()}](
-            boost::optional<std::vector<HeadChange>> update) -> bool {
-          if (auto self = self_weak.lock())
-            return self->onRead(update);
-          else
-            return false;
+            const boost::optional<std::vector<HeadChange>> &update) -> bool {
+          if (auto self = self_weak.lock()) return self->onRead(update);
+          return false;
         });
     return outcome::success();
   }

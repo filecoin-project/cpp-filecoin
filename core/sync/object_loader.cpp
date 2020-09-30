@@ -7,6 +7,7 @@
 
 #include "peer_manager.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
+#include "common/logger.hpp"
 
 namespace fc::sync {
 
@@ -47,7 +48,7 @@ namespace fc::sync {
     assert(msg_cb_);
 
     blocks_subscr_ = pub_sub_->subscribeToBlocks(
-        [this](const PeerId &from, const CID &cid, const BlockMsg &msg) {
+        [this](const PeerId &from, const CID &cid, const BlockWithCids &msg) {
           onBlockFromPubSub(from, cid, msg);
         });
 
@@ -273,7 +274,7 @@ namespace fc::sync {
 
   void ObjectLoader::onBlockFromPubSub(const PeerId &from,
                                        const CID &cid,
-                                       const BlockMsg &msg) {
+                                       const BlockWithCids &msg) {
     // TODO peer feedback on failures
 
     if (!initialized_) {

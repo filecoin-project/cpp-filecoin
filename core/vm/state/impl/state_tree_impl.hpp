@@ -33,6 +33,7 @@ namespace fc::vm::state {
     outcome::result<void> revert(const CID &root) override;
     /// Get store
     std::shared_ptr<IpfsDatastore> getStore() override;
+    outcome::result<void> remove(const Address &address);
 
    private:
     std::shared_ptr<IpfsDatastore> store_;

@@ -6,8 +6,6 @@
 #include "blockchain/impl/sync_manager_impl.hpp"
 
 #include <boost/assert.hpp>
-#include <gsl/gsl_util>
-#include "primitives/cid/json_codec.hpp"
 
 namespace fc::blockchain::sync_manager {
 
@@ -119,8 +117,8 @@ namespace fc::blockchain::sync_manager {
 
   outcome::result<void> SyncManagerImpl::processIncomingTipset(
       const Tipset &tipset) {
-    OUTCOME_TRY(cids_json, codec::json::encodeCidVector(tipset.cids));
-    logger_->info("scheduling incoming tipset sync %s", cids_json);
+    logger_->info("scheduling incoming tipset sync %s",
+                  fmt::join(tipset.cids, ","));
 
     if (getBootstrapState() == BootstrapState::STATE_SELECTED) {
       setBootstrapState(BootstrapState::STATE_SCHEDULED);
@@ -130,9 +128,8 @@ namespace fc::blockchain::sync_manager {
     bool is_related_to_active_sync = false;
     for (auto &[_, acts] : active_syncs_) {
       if (tipset == acts) break;
-      OUTCOME_TRY(parents, tipset.getParents());
       OUTCOME_TRY(key, acts.makeKey());
-      if (parents == key) {
+      if (tipset.getParents() == key) {
         is_related_to_active_sync = true;
         break;
       }

@@ -7,10 +7,3 @@ addtest(tipset_test
 target_link_libraries(tipset_test
     tipset
     )
-
-addtest(tipset_key_test
-    tipset_key_test.cpp
-    )
-target_link_libraries(tipset_key_test
-    tipset
-    )

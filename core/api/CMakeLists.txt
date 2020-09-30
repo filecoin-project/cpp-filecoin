@@ -12,6 +12,7 @@ target_link_libraries(api
     block_producer
     chain_store
     cid
+    const
     interpreter
     message
     msg_waiter
@@ -26,5 +27,6 @@ add_library(rpc
     )
 target_link_libraries(rpc
     api
+    json
     tipset
     )
