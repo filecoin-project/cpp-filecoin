@@ -49,11 +49,6 @@ fc::outcome::result<unsigned int> InMemoryRepository::getVersion() const {
   return kInMemoryRepositoryVersion;
 }
 
-fc::outcome::result<fc::primitives::FsStat> InMemoryRepository::getStat(
-    const std::string &path) {
-  return statFs(path);
-}
-
 fc::outcome::result<StorageConfig> InMemoryRepository::getStorage() {
   const std::lock_guard<std::mutex> lock(storage_mutex_);
   return nonBlockGetStorage();
@@ -113,9 +108,4 @@ fc::outcome::result<void> InMemoryRepository::setStorage(
   OUTCOME_TRY(nonBlockGetStorage());
   action(storageConfig_);
   return fc::outcome::success();
-}
-
-fc::outcome::result<uint64_t> InMemoryRepository::getDiskUsage(
-    const std::string &path) {
-  return fileSize(path);
 }
