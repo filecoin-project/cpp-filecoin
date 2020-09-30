@@ -27,15 +27,15 @@ namespace fc::primitives::sector_file {
       SectorFileType::FTSealed,
       SectorFileType::FTCache};
 
-  constexpr int64_t kOverheadDenominator = 10;
+  constexpr uint64_t kOverheadDenominator = 10;
 
   // 10x overheads
-  const std::unordered_map<SectorFileType, int64_t> kOverheadSeal{
+  const std::unordered_map<SectorFileType, uint64_t> kOverheadSeal{
       {SectorFileType::FTUnsealed, kOverheadDenominator},
       {SectorFileType::FTSealed, kOverheadDenominator},
       {SectorFileType::FTCache, 141}};
 
-  const std::unordered_map<SectorFileType, int64_t> kOverheadFinalized{
+  const std::unordered_map<SectorFileType, uint64_t> kOverheadFinalized{
       {SectorFileType::FTUnsealed, kOverheadDenominator},
       {SectorFileType::FTSealed, kOverheadDenominator},
       {SectorFileType::FTCache, 2}};

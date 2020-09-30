@@ -115,7 +115,7 @@ fc::outcome::result<void> InMemoryRepository::setStorage(
   return fc::outcome::success();
 }
 
-fc::outcome::result<int64_t> InMemoryRepository::getDiskUsage(
+fc::outcome::result<uint64_t> InMemoryRepository::getDiskUsage(
     const std::string &path) {
   return fc::outcome::success();
 }

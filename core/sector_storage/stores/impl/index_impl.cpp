@@ -303,7 +303,7 @@ namespace fc::sector_storage::stores {
         continue;
       }
 
-      if (req_space > static_cast<uint64_t>(storage.fs_stat.available)) {
+      if (req_space > storage.fs_stat.available) {
         continue;
       }
 

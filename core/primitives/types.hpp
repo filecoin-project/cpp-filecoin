@@ -36,9 +36,9 @@ namespace fc::primitives {
   using StorageID = std::string;
 
   struct FsStat {
-    int64_t capacity;
-    int64_t available;  // Available to use for sector storage
-    int64_t reserved;
+    uint64_t capacity;
+    uint64_t available;  // Available to use for sector storage
+    uint64_t reserved;
   };
 
   inline bool operator==(const FsStat &lhs, const FsStat &rhs) {
