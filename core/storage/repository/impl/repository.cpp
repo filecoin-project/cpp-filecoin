@@ -6,6 +6,7 @@
 #include "storage/repository/repository.hpp"
 #include "api/rpc/json.hpp"
 #include "storage/repository/repository_error.hpp"
+#include "sector_storage/stores/storage_error.hpp"
 
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
@@ -21,6 +22,7 @@ using fc::storage::config::Config;
 using fc::storage::ipfs::IpfsDatastore;
 using fc::storage::keystore::KeyStore;
 using fc::storage::repository::Repository;
+using fc::sector_storage::stores::StorageError;
 
 Repository::Repository(std::shared_ptr<IpfsDatastore> ipldStore,
                        std::shared_ptr<KeyStore> keystore,
@@ -105,6 +107,9 @@ fc::outcome::result<FsStat> Repository::statFs(const std::string &path) {
 }
 
 fc::outcome::result<uint64_t> Repository::fileSize(const std::string &path) {
+  if (!boost::filesystem::exists(path)) {
+    return StorageError::kFileNotExist;
+  }
 #if __APPLE__
   struct statfs64 stat;
   if (statfs64(path.c_str(), &stat) != 0) {
