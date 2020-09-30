@@ -65,7 +65,7 @@ namespace fc::mining {
     virtual void apply(const std::shared_ptr<types::SectorInfo> &info) = 0;
   };
 
-  struct SectorStartEvent final : public SealingEventContext {
+  struct SectorStartContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->sector_number = sector_id;
@@ -76,7 +76,7 @@ namespace fc::mining {
     RegisteredProof seal_proof_type;
   };
 
-  struct SectorStartWithPiecesEvent final : public SealingEventContext {
+  struct SectorStartWithPiecesContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->sector_number = sector_id;
@@ -89,7 +89,7 @@ namespace fc::mining {
     std::vector<types::Piece> pieces;
   };
 
-  struct SectorAddPieceEvent final : public SealingEventContext {
+  struct SectorAddPieceContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->pieces.push_back(piece);
@@ -98,7 +98,7 @@ namespace fc::mining {
     types::Piece piece;
   };
 
-  struct SectorPackedEvent final : public SealingEventContext {
+  struct SectorPackedContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       for (const auto &piece : filler_pieces) {
@@ -112,7 +112,7 @@ namespace fc::mining {
     std::vector<types::PieceInfo> filler_pieces;
   };
 
-  struct SectorPreCommit1Event final : public SealingEventContext {
+  struct SectorPreCommit1Context final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->precommit1_output = precommit1_output;
@@ -126,7 +126,7 @@ namespace fc::mining {
     types::ChainEpoch epoch;
   };
 
-  struct SectorPreCommit2Event final : public SealingEventContext {
+  struct SectorPreCommit2Context final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->comm_d = unsealed;
@@ -137,7 +137,7 @@ namespace fc::mining {
     CID sealed;
   };
 
-  struct SectorPreCommitLandedEvent final : public SealingEventContext {
+  struct SectorPreCommitLandedContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->precommit_tipset = tipset_key;
@@ -146,7 +146,7 @@ namespace fc::mining {
     types::TipsetKey tipset_key;
   };
 
-  struct SectorPreCommittedEvent final : public SealingEventContext {
+  struct SectorPreCommittedContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->precommit_message = precommit_message;
@@ -159,7 +159,7 @@ namespace fc::mining {
     types::SectorPreCommitInfo precommit_info;
   };
 
-  struct SectorSeedReadyEvent final : public SealingEventContext {
+  struct SectorSeedReadyContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->seed = seed;
@@ -170,7 +170,7 @@ namespace fc::mining {
     ChainEpoch epoch;
   };
 
-  struct SectorCommittedEvent final : public SealingEventContext {
+  struct SectorCommittedContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->proof = proof;
@@ -181,43 +181,9 @@ namespace fc::mining {
     proofs::Proof proof;
   };
 
-  // ERROR
-
-  struct SectorSealPreCommit1FailedEvent final : public SealingEventContext {
-   public:
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
-      info->invalid_proofs = 0;
-      info->precommit2_fails = 0;
-    }
-  };
-
-  struct SectorSealPreCommit2FailedEvent final : public SealingEventContext {
-   public:
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
-      info->invalid_proofs = 0;
-      info->precommit2_fails++;
-    }
-  };
-
-  // RETRY
-
-  struct SectorRetryComputeProofEvent final : public SealingEventContext {
-   public:
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
-      info->invalid_proofs++;
-    }
-  };
-
-  struct SectorRetryInvalidProofEvent final : public SealingEventContext {
-   public:
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
-      info->invalid_proofs++;
-    }
-  };
-
   // FAULTS
 
-  struct SectorFaultReportedEvent final : public SealingEventContext {
+  struct SectorFaultReportedContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->fault_report_message = report_message;
@@ -228,7 +194,7 @@ namespace fc::mining {
 
   // EXTERNAL EVENTS
 
-  struct SectorForceEvent final : public SealingEventContext {
+  struct SectorForceContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
 
