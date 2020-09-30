@@ -72,6 +72,7 @@ namespace fc::storage::repository {
     outcome::result<void> writeStorage(const boost::filesystem::path &path,
                                        StorageConfig config);
     outcome::result<FsStat> statFs(const std::string &path);
+    outcome::result<uint64_t> fileSize(const std::string &path);
 
    private:
     std::shared_ptr<IpfsDatastore> ipld_store_;

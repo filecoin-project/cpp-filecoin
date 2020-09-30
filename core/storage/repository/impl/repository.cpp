@@ -90,17 +90,32 @@ fc::outcome::result<FsStat> Repository::statFs(const std::string &path) {
   if (statfs64(path.c_str(), &stat) != 0) {
     return RepositoryError::kFilesystemStatError;
   }
-  return FsStat{.capacity = static_cast<int64_t>(stat.f_blocks * stat.f_bsize),
-                .available = static_cast<int64_t>(stat.f_bavail * stat.f_bsize),
+  return FsStat{.capacity = stat.f_blocks * stat.f_bsize,
+                .available = stat.f_bavail * stat.f_bsize,
                 .reserved = 0};
 #elif __linux__
   struct statfs stat;
   if (statfs(path.c_str(), &stat) != 0) {
     return RepositoryError::kFilesystemStatError;
   }
-  return FsStat{.capacity = static_cast<int64_t>(stat.f_blocks * stat.f_bsize),
-                .available = static_cast<int64_t>(stat.f_bavail * stat.f_bsize),
+  return FsStat{.capacity = stat.f_blocks * stat.f_bsize,
+                .available = stat.f_bavail * stat.f_bsize,
                 .reserved = 0};
 #endif
-  return fc::outcome::success();
+}
+
+fc::outcome::result<uint64_t> Repository::fileSize(const std::string &path) {
+#if __APPLE__
+  struct statfs64 stat;
+  if (statfs64(path.c_str(), &stat) != 0) {
+    return RepositoryError::kFilesystemStatError;
+  }
+  return stat.f_blocks * 512;
+#elif __linux__
+  struct statfs stat;
+  if (statfs(path.c_str(), &stat) != 0) {
+    return RepositoryError::kFilesystemStatError;
+  }
+  return stat.f_blocks * 512;
+#endif
 }

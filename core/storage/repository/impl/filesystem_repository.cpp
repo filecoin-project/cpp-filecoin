@@ -139,5 +139,5 @@ fc::outcome::result<fc::primitives::FsStat> FileSystemRepository::getStat(
 
 fc::outcome::result<uint64_t> FileSystemRepository::getDiskUsage(
     const std::string &path) {
-  return fc::outcome::success();
+  return fileSize(path);
 }
