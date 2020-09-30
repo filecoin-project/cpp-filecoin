@@ -120,7 +120,7 @@ namespace fc::node {
 
     std::shared_ptr<vm::interpreter::Interpreter> vm_interpreter;
 
-    // std::shared_ptr<libp2p::protocol::gossip::Gossip> gossip;
+    std::shared_ptr<libp2p::protocol::gossip::Gossip> gossip;
 
     // std::shared_ptr<storage::ipfs::graphsync::Graphsync> graphsync;
 

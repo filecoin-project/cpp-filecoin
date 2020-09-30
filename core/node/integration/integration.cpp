@@ -14,6 +14,7 @@
 #include "vm/interpreter/interpreter.hpp"
 
 #include "sync/index_db_backend.hpp"
+#include "sync/pubsub_gate.hpp"
 
 namespace fc {
 
@@ -23,7 +24,7 @@ namespace fc {
       return logger.get();
     }
 
-    std::vector<std::string> toStrings(const std::vector<CID> &cids) {
+    [[maybe_unused]] std::vector<std::string> toStrings(const std::vector<CID> &cids) {
       std::vector<std::string> v;
       v.reserve(cids.size());
       for (const auto &cid : cids) {
@@ -33,6 +34,44 @@ namespace fc {
     }
 
   }  // namespace
+
+  struct PubsubCtx {
+    node::NodeObjects &o;
+    std::string network_name;
+    std::shared_ptr<sync::PubSubGate> pubsub;
+    sync::PubSubGate::connection_t blocks_subscr;
+    sync::PubSubGate::connection_t msg_subscr;
+
+    PubsubCtx(node::NodeObjects &objects, const std::string &nname)
+        : o(objects),
+          network_name(std::move(nname)),
+          pubsub(std::make_shared<sync::PubSubGate>(o.utc_clock, o.gossip)) {}
+
+    void start() {
+      pubsub->start(network_name, "X");
+      blocks_subscr = pubsub->subscribeToBlocks([](const sync::PeerId &from,
+                                                   const CID &block_cid,
+                                                   const sync::BlockMsg &msg) {
+        log()->info("New block from {}, cid={}, height={}",
+                    from.toBase58(),
+                    block_cid.toString().value(),
+                    msg.header.height);
+      });
+
+      msg_subscr = pubsub->subscribeToMessages(
+          [](const sync::PeerId &from,
+             const CID &cid,
+             const common::Buffer &raw,
+             const sync::UnsignedMessage &msg,
+             boost::optional<std::reference_wrapper<const sync::Signature>>
+                 signature) {
+            log()->info("New msg from {}, cid={}, secp={}",
+                        from.toBase58(),
+                        cid.toString().value(),
+                        signature.has_value());
+          });
+    }
+  };
 
   struct SyncerCtx {
     node::NodeObjects &o;
@@ -45,18 +84,17 @@ namespace fc {
           syncer(o.scheduler,
                  o.tipset_loader,
                  o.chain_db,
-                 [this](sync::SyncStatus st) {
+                 [](sync::SyncStatus st) {
                    log()->info("Sync status {}, total={}", st.code, st.total);
-                   o.io_context->stop();
+                   // o.io_context->stop();
                  }) {}
 
     void start() {
       if (!started) {
-        if (!o.chain_db->start(
-                [](std::vector<sync::TipsetHash> removed,
-                   std::vector<sync::TipsetHash> added) {
-                  log()->info("Head change callback called");
-                })) {
+        if (!o.chain_db->start([](std::vector<sync::TipsetHash> removed,
+                                  std::vector<sync::TipsetHash> added) {
+              log()->info("Head change callback called");
+            })) {
           o.io_context->stop();
           return;
         }
@@ -97,10 +135,8 @@ namespace fc {
     return 0;
   }
 
-  int verify(const std::string& db) {
-    OUTCOME_EXCEPT(
-        new_idx,
-        sync::IndexDbBackend::create(db));
+  int verify(const std::string &db) {
+    OUTCOME_EXCEPT(new_idx, sync::IndexDbBackend::create(db));
 
     auto branches = new_idx->initDb().value();
 
@@ -121,7 +157,6 @@ namespace fc {
     return 0;
   }
 
-
   int main(int argc, char *argv[]) {
     using primitives::tipset::Tipset;
     using primitives::tipset::TipsetHash;
@@ -133,10 +168,8 @@ namespace fc {
     }
 
     // suppress verbose logging from secio
-    if (config.log_level >= spdlog::level::debug) {
-      common::createLogger("SECCONN")->set_level(spdlog::level::info);
-      common::createLogger("SECIO")->set_level(spdlog::level::info);
-    }
+    common::createLogger("SECCONN")->set_level(spdlog::level::info);
+    common::createLogger("SECIO")->set_level(spdlog::level::info);
 
     auto res = node::createNodeObjects(config);
 
@@ -161,12 +194,12 @@ namespace fc {
 
     std::map<TipsetHash, sync::TipsetCPtr> heads;
 
-    auto res3 = o.chain_db->getHeads([&](std::vector<TipsetHash> removed,
-                                         std::vector<TipsetHash> added) {
-      for (auto& hash : added) {
-        heads.insert({std::move(hash), {}});
-      }
-    });
+    auto res3 = o.chain_db->getHeads(
+        [&](std::vector<TipsetHash> removed, std::vector<TipsetHash> added) {
+          for (auto &hash : added) {
+            heads.insert({std::move(hash), {}});
+          }
+        });
 
     if (!res3) {
       log()->error("getHeads: {}", res3.error().message());
@@ -261,6 +294,8 @@ namespace fc {
 
     SyncerCtx ctx(o);
 
+    PubsubCtx pubsub_ctx(o, config.network_name);
+
     o.io_context->post([&] {
       auto listen_res = o.host->listen(config.listen_address);
       if (!listen_res) {
@@ -272,6 +307,7 @@ namespace fc {
       }
 
       o.host->start();
+
 
       auto res = o.peer_manager->start(
           o.chain_db->genesisCID(),
@@ -304,6 +340,8 @@ namespace fc {
                                    s.heaviest_tipset_height);
               ctx.start();
             }
+
+   //         o.gossip->addBootstrapPeer(peer, boost::none);
           });
 
       if (!res) {
@@ -312,9 +350,12 @@ namespace fc {
 
       for (const auto &pi : config.bootstrap_list) {
         o.host->connect(pi);
+       // o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
       }
 
-      // o.gossip->start();
+      o.gossip->start();
+
+      pubsub_ctx.start();
 
       log()->info("Node started");
     });

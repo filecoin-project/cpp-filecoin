@@ -145,7 +145,7 @@ namespace fc::node {
       leveldb::Options options;
       if (!config.car_file_name.empty()) {
         options.create_if_missing = true;
-  //      options.error_if_exists = true;
+        //      options.error_if_exists = true;
         creating_new_db = true;
       }
       auto leveldb_res =
@@ -189,6 +189,10 @@ namespace fc::node {
     log()->info("Genesis: {}", config.genesis_cid.value().toString().value());
 
     log()->debug("Creating host...");
+
+    //config.gossip_config.protocol_version = "/floodsub/1.0.0";
+
+    config.gossip_config.D = 2;
 
     auto injector = libp2p::injector::makeGossipInjector<
         boost::di::extension::shared_config>(
@@ -270,9 +274,9 @@ namespace fc::node {
     o.chain_store = std::move(chain_store_res.value());
   */
 
-    //    o.gossip =
-    //        injector.create<std::shared_ptr<libp2p::protocol::gossip::Gossip>>();
-    //
+    o.gossip =
+        injector.create<std::shared_ptr<libp2p::protocol::gossip::Gossip>>();
+
     //    o.graphsync =
     //    std::make_shared<storage::ipfs::graphsync::GraphsyncImpl>(
     //        o.host, o.scheduler);
