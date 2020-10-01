@@ -35,8 +35,8 @@ namespace fc::markets::storage::client {
   using libp2p::Host;
   using pieceio::PieceIO;
   using ClientTransition =
-      fsm::Transition<ClientEvent, StorageDealStatus, ClientDeal>;
-  using ClientFSM = fsm::FSM<ClientEvent, StorageDealStatus, ClientDeal>;
+      fsm::Transition<ClientEvent, void, StorageDealStatus, ClientDeal>;
+  using ClientFSM = fsm::FSM<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
   using DataTransfer = data_transfer::Manager;
