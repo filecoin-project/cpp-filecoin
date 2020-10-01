@@ -39,8 +39,9 @@ namespace fc::markets::storage::provider {
   using primitives::GasAmount;
   using primitives::sector::RegisteredProof;
   using ProviderTransition =
-      fsm::Transition<ProviderEvent, StorageDealStatus, MinerDeal>;
-  using ProviderFSM = fsm::FSM<ProviderEvent, StorageDealStatus, MinerDeal>;
+      fsm::Transition<ProviderEvent, void, StorageDealStatus, MinerDeal>;
+  using ProviderFSM =
+      fsm::FSM<ProviderEvent, void, StorageDealStatus, MinerDeal>;
   using DataTransfer = data_transfer::Manager;
 
   const EpochDuration kDefaultDealAcceptanceBuffer{100};
