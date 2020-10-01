@@ -19,7 +19,6 @@ namespace fc::storage::repository {
   using filestore::Path;
   using sector_storage::stores::StorageConfig;
   using Version = Repository::Version;
-  using primitives::FsStat;
 
   /**
    * @brief FileSystem implementation of Repository.

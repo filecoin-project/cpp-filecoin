@@ -11,7 +11,6 @@
 namespace fc::storage::repository {
   using sector_storage::stores::StorageConfig;
   using Version = Repository::Version;
-  using primitives::FsStat;
 
   static constexpr Version kInMemoryRepositoryVersion = 1;
 
