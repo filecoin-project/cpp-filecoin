@@ -10,6 +10,7 @@
 
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
+#include <sys/stat.h>
 #if __APPLE__
 #include <sys/mount.h>
 #include <sys/param.h>
@@ -87,7 +88,6 @@ fc::outcome::result<void> Repository::writeStorage(
 }
 
 fc::outcome::result<FsStat> Repository::getStat(const std::string &path) {
-#if __APPLE__
   struct statfs64 stat;
   if (statfs64(path.c_str(), &stat) != 0) {
     return RepositoryError::kFilesystemStatError;
@@ -95,15 +95,6 @@ fc::outcome::result<FsStat> Repository::getStat(const std::string &path) {
   return FsStat{.capacity = stat.f_blocks * stat.f_bsize,
                 .available = stat.f_bavail * stat.f_bsize,
                 .reserved = 0};
-#elif __linux__
-  struct statfs stat;
-  if (statfs(path.c_str(), &stat) != 0) {
-    return RepositoryError::kFilesystemStatError;
-  }
-  return FsStat{.capacity = stat.f_blocks * stat.f_bsize,
-                .available = stat.f_bavail * stat.f_bsize,
-                .reserved = 0};
-#endif
 }
 
 fc::outcome::result<uint64_t> Repository::getDiskUsage(
@@ -111,17 +102,9 @@ fc::outcome::result<uint64_t> Repository::getDiskUsage(
   if (!boost::filesystem::exists(path)) {
     return StorageError::kFileNotExist;
   }
-#if __APPLE__
-  struct statfs64 stat;
-  if (statfs64(path.c_str(), &stat) != 0) {
+  struct stat64 fstat;
+  if (stat64(path.c_str(), &fstat) != 0) {
     return RepositoryError::kFilesystemStatError;
   }
-  return stat.f_blocks * 512;
-#elif __linux__
-  struct statfs stat;
-  if (statfs(path.c_str(), &stat) != 0) {
-    return RepositoryError::kFilesystemStatError;
-  }
-  return stat.f_blocks * 512;
-#endif
+  return fstat.st_blocks * 512;
 }
