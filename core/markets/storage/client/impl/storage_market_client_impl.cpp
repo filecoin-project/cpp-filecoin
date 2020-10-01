@@ -19,11 +19,11 @@
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 
-#define CALLBACK_ACTION(_action)                      \
-  [this](auto deal, auto event, auto from, auto to) { \
-    logger_->debug("Client FSM " #_action);           \
-    _action(deal, event, from, to);                   \
-    deal->state = to;                                 \
+#define CALLBACK_ACTION(_action)                                    \
+  [this](auto deal, auto event, auto context, auto from, auto to) { \
+    logger_->debug("Client FSM " #_action);                         \
+    _action(deal, event, from, to);                                 \
+    deal->state = to;                                               \
   }
 
 #define FSM_HALT_ON_ERROR(result, msg, deal)                            \
@@ -605,7 +605,7 @@ namespace fc::markets::storage::client {
       StorageDealStatus from,
       StorageDealStatus to) {
     // TODO (a.chernyshov) verify deal activated - on deal sector commit
-    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealActivated));
+    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealActivated, {}));
   }
 
   void StorageMarketClientImpl::onClientEventDealActivated(

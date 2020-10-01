@@ -12,7 +12,8 @@
 #include "markets/storage/provider/provider_events.hpp"
 
 namespace fc::markets::storage::provider {
-  using ProviderFSM = fsm::FSM<ProviderEvent, StorageDealStatus, MinerDeal>;
+  using ProviderFSM =
+      fsm::FSM<ProviderEvent, void, StorageDealStatus, MinerDeal>;
   using ProviderStateStore = fsm::StateStore<CID, MinerDeal>;
 
   /**

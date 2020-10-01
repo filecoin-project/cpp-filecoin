@@ -12,7 +12,7 @@
 #include "markets/storage/deal_protocol.hpp"
 
 namespace fc::markets::storage::client {
-  using ClientFSM = fsm::FSM<ClientEvent, StorageDealStatus, ClientDeal>;
+  using ClientFSM = fsm::FSM<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using ClientStateStore = fsm::StateStore<CID, ClientDeal>;
 
   /**
