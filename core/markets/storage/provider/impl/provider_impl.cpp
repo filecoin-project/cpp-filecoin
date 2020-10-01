@@ -19,11 +19,11 @@
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/market/actor.hpp"
 
-#define CALLBACK_ACTION(_action)                      \
-  [this](auto deal, auto event, auto from, auto to) { \
-    logger_->debug("Provider FSM " #_action);         \
-    _action(deal, event, from, to);                   \
-    deal->state = to;                                 \
+#define CALLBACK_ACTION(_action)                                    \
+  [this](auto deal, auto event, auto context, auto from, auto to) { \
+    logger_->debug("Provider FSM " #_action);                       \
+    _action(deal, event, from, to);                                 \
+    deal->state = to;                                               \
   }
 
 #define FSM_HALT_ON_ERROR(result, msg, deal)                            \
@@ -200,7 +200,7 @@ namespace fc::markets::storage::provider {
     deal->piece_path = path;
     OUTCOME_TRY(file->write(0, data));
 
-    OUTCOME_TRY(fsm_->send(deal, ProviderEvent::ProviderEventVerifiedData));
+    OUTCOME_TRY(fsm_->send(deal, ProviderEvent::ProviderEventVerifiedData, {}));
     return outcome::success();
   }
 

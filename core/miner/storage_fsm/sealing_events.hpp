@@ -14,7 +14,7 @@ namespace fc::mining {
   /**
    * SealingEventId is an id event that occurs in a sealing lifecycle
    */
-  enum class SealingEventId {
+  enum class SealingEvent {
     kSectorStart = 1,
     kSectorStartWithPieces,
     kSectorAddPiece,
@@ -58,31 +58,15 @@ namespace fc::mining {
     kSectorForce,
   };
 
-  class SealingEvent {
+  class SealingEventContext {
    public:
-    virtual ~SealingEvent() = default;
+    virtual ~SealingEventContext() = default;
 
     virtual void apply(const std::shared_ptr<types::SectorInfo> &info) = 0;
-
-   protected:
-    SealingEvent(SealingEventId event_id) : event_id_(event_id) {}
-
-   private:
-    const SealingEventId event_id_;
-
-    friend bool operator==(const std::shared_ptr<SealingEvent> &lhs,
-                           const std::shared_ptr<SealingEvent> &rhs);
   };
 
-  bool operator==(const std::shared_ptr<SealingEvent> &lhs,
-                  const std::shared_ptr<SealingEvent> &rhs) {
-    return lhs->event_id_ == rhs->event_id_;
-  };
-
-  struct SectorStartEvent final : public SealingEvent {
+  struct SectorStartContext final : public SealingEventContext {
    public:
-    SectorStartEvent() : SealingEvent(SealingEventId::kSectorStart){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->sector_number = sector_id;
       info->sector_type = seal_proof_type;
@@ -92,11 +76,8 @@ namespace fc::mining {
     RegisteredProof seal_proof_type;
   };
 
-  struct SectorStartWithPiecesEvent final : public SealingEvent {
+  struct SectorStartWithPiecesContext final : public SealingEventContext {
    public:
-    SectorStartWithPiecesEvent()
-        : SealingEvent(SealingEventId::kSectorStartWithPieces){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->sector_number = sector_id;
       info->sector_type = seal_proof_type;
@@ -108,10 +89,8 @@ namespace fc::mining {
     std::vector<types::Piece> pieces;
   };
 
-  struct SectorAddPieceEvent final : public SealingEvent {
+  struct SectorAddPieceContext final : public SealingEventContext {
    public:
-    SectorAddPieceEvent() : SealingEvent(SealingEventId::kSectorAddPiece){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->pieces.push_back(piece);
     }
@@ -119,18 +98,8 @@ namespace fc::mining {
     types::Piece piece;
   };
 
-  struct SectorStartPackingEvent final : public SealingEvent {
+  struct SectorPackedContext final : public SealingEventContext {
    public:
-    SectorStartPackingEvent()
-        : SealingEvent(SealingEventId::kSectorStartPacking){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorPackedEvent final : public SealingEvent {
-   public:
-    SectorPackedEvent() : SealingEvent(SealingEventId::kSectorPacked){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       for (const auto &piece : filler_pieces) {
         info->pieces.push_back({
@@ -143,10 +112,8 @@ namespace fc::mining {
     std::vector<types::PieceInfo> filler_pieces;
   };
 
-  struct SectorPreCommit1Event final : public SealingEvent {
+  struct SectorPreCommit1Context final : public SealingEventContext {
    public:
-    SectorPreCommit1Event() : SealingEvent(SealingEventId::kSectorPreCommit1){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->precommit1_output = precommit1_output;
       info->ticket = ticket;
@@ -159,10 +126,8 @@ namespace fc::mining {
     types::ChainEpoch epoch;
   };
 
-  struct SectorPreCommit2Event final : public SealingEvent {
+  struct SectorPreCommit2Context final : public SealingEventContext {
    public:
-    SectorPreCommit2Event() : SealingEvent(SealingEventId::kSectorPreCommit2){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->comm_d = unsealed;
       info->comm_r = sealed;
@@ -172,11 +137,8 @@ namespace fc::mining {
     CID sealed;
   };
 
-  struct SectorPreCommitLandedEvent final : public SealingEvent {
+  struct SectorPreCommitLandedContext final : public SealingEventContext {
    public:
-    SectorPreCommitLandedEvent()
-        : SealingEvent(SealingEventId::kSectorPreCommitLanded){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->precommit_tipset = tipset_key;
     }
@@ -184,11 +146,8 @@ namespace fc::mining {
     types::TipsetKey tipset_key;
   };
 
-  struct SectorPreCommittedEvent final : public SealingEvent {
+  struct SectorPreCommittedContext final : public SealingEventContext {
    public:
-    SectorPreCommittedEvent()
-        : SealingEvent(SealingEventId::kSectorPreCommitted){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->precommit_message = precommit_message;
       info->precommit_deposit = precommit_deposit;
@@ -200,10 +159,8 @@ namespace fc::mining {
     types::SectorPreCommitInfo precommit_info;
   };
 
-  struct SectorSeedReadyEvent final : public SealingEvent {
+  struct SectorSeedReadyContext final : public SealingEventContext {
    public:
-    SectorSeedReadyEvent() : SealingEvent(SealingEventId::kSectorSeedReady){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->seed = seed;
       info->seed_epoch = epoch;
@@ -213,10 +170,8 @@ namespace fc::mining {
     ChainEpoch epoch;
   };
 
-  struct SectorCommittedEvent final : public SealingEvent {
+  struct SectorCommittedContext final : public SealingEventContext {
    public:
-    SectorCommittedEvent() : SealingEvent(SealingEventId::kSectorCommitted){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->proof = proof;
       info->message = message;
@@ -226,176 +181,10 @@ namespace fc::mining {
     proofs::Proof proof;
   };
 
-  struct SectorProvingEvent final : public SealingEvent {
-   public:
-    SectorProvingEvent() : SealingEvent(SealingEventId::kSectorProving){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorFinalizedEvent final : public SealingEvent {
-   public:
-    SectorFinalizedEvent() : SealingEvent(SealingEventId::kSectorFinalized){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  // ERROR
-
-  struct SectorPackingFailedEvent final : public SealingEvent {
-   public:
-    SectorPackingFailedEvent()
-        : SealingEvent(SealingEventId::kSectorPackingFailed){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorSealPreCommit1FailedEvent final : public SealingEvent {
-   public:
-    SectorSealPreCommit1FailedEvent()
-        : SealingEvent(SealingEventId::kSectorSealPreCommit1Failed){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
-      info->invalid_proofs = 0;
-      info->precommit2_fails = 0;
-    }
-  };
-
-  struct SectorSealPreCommit2FailedEvent final : public SealingEvent {
-   public:
-    SectorSealPreCommit2FailedEvent()
-        : SealingEvent(SealingEventId::kSectorSealPreCommit2Failed){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
-      info->invalid_proofs = 0;
-      info->precommit2_fails++;
-    }
-  };
-
-  struct SectorChainPreCommitFailedEvent final : public SealingEvent {
-   public:
-    SectorChainPreCommitFailedEvent()
-        : SealingEvent(SealingEventId::kSectorChainPreCommitFailed){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorComputeProofFailedEvent final : public SealingEvent {
-   public:
-    SectorComputeProofFailedEvent()
-        : SealingEvent(SealingEventId::kSectorComputeProofFailed){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorCommitFailedEvent final : public SealingEvent {
-   public:
-    SectorCommitFailedEvent()
-        : SealingEvent(SealingEventId::kSectorCommitFailed){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorFinalizeFailedEvent final : public SealingEvent {
-   public:
-    SectorFinalizeFailedEvent()
-        : SealingEvent(SealingEventId::kSectorFinalizeFailed){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  // RETRY
-
-  struct SectorRetryFinalizeEvent final : public SealingEvent {
-   public:
-    SectorRetryFinalizeEvent()
-        : SealingEvent(SealingEventId::kSectorRetryFinalize){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorRetrySealPreCommit1Event final : public SealingEvent {
-   public:
-    SectorRetrySealPreCommit1Event()
-        : SealingEvent(SealingEventId::kSectorRetrySealPreCommit1){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorRetrySealPreCommit2Event final : public SealingEvent {
-   public:
-    SectorRetrySealPreCommit2Event()
-        : SealingEvent(SealingEventId::kSectorRetrySealPreCommit2){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorRetryPreCommitEvent final : public SealingEvent {
-   public:
-    SectorRetryPreCommitEvent()
-        : SealingEvent(SealingEventId::kSectorRetryPreCommit){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorRetryWaitSeedEvent final : public SealingEvent {
-   public:
-    SectorRetryWaitSeedEvent()
-        : SealingEvent(SealingEventId::kSectorRetryWaitSeed){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorRetryPreCommitWaitEvent final : public SealingEvent {
-   public:
-    SectorRetryPreCommitWaitEvent()
-        : SealingEvent(SealingEventId::kSectorRetryPreCommitWait){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorRetryComputeProofEvent final : public SealingEvent {
-   public:
-    SectorRetryComputeProofEvent()
-        : SealingEvent(SealingEventId::kSectorRetryComputeProof){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
-      info->invalid_proofs++;
-    }
-  };
-
-  struct SectorRetryInvalidProofEvent final : public SealingEvent {
-   public:
-    SectorRetryInvalidProofEvent()
-        : SealingEvent(SealingEventId::kSectorRetryInvalidProof){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {
-      info->invalid_proofs++;
-    }
-  };
-
-  struct SectorRetryCommitWaitEvent final : public SealingEvent {
-   public:
-    SectorRetryCommitWaitEvent()
-        : SealingEvent(SealingEventId::kSectorRetryCommitWait){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
   // FAULTS
 
-  struct SectorFaultyEvent final : public SealingEvent {
+  struct SectorFaultReportedContext final : public SealingEventContext {
    public:
-    SectorFaultyEvent() : SealingEvent(SealingEventId::kSectorFaulty){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorFaultReportedEvent final : public SealingEvent {
-   public:
-    SectorFaultReportedEvent()
-        : SealingEvent(SealingEventId::kSectorFaultReported){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
       info->fault_report_message = report_message;
     }
@@ -403,42 +192,10 @@ namespace fc::mining {
     CID report_message;
   };
 
-  struct SectorFaultedFinalEvent final : public SealingEvent {
-   public:
-    SectorFaultedFinalEvent()
-        : SealingEvent(SealingEventId::kSectorFaultedFinal){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
   // EXTERNAL EVENTS
 
-  struct SectorRemoveEvent final : public SealingEvent {
+  struct SectorForceContext final : public SealingEventContext {
    public:
-    SectorRemoveEvent() : SealingEvent(SealingEventId::kSectorRemove){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorRemovedEvent final : public SealingEvent {
-   public:
-    SectorRemovedEvent() : SealingEvent(SealingEventId::kSectorRemoved){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorRemoveFailedEvent final : public SealingEvent {
-   public:
-    SectorRemoveFailedEvent()
-        : SealingEvent(SealingEventId::kSectorRemoveFailed){};
-
-    void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
-  };
-
-  struct SectorForceEvent final : public SealingEvent {
-   public:
-    SectorForceEvent() : SealingEvent(SealingEventId::kSectorForce){};
-
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {}
 
     SealingState state;
