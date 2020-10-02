@@ -55,7 +55,7 @@ namespace fc::vm::interpreter {
     }
 
     auto env =
-        std::make_shared<Env>(std::make_shared<InvokerImpl>(), ipld, *tipset);
+        std::make_shared<Env>(std::make_shared<InvokerImpl>(), ipld, tipset);
 
     auto cron{[&] {
       return env->applyImplicitMessage(UnsignedMessage{
@@ -74,11 +74,10 @@ namespace fc::vm::interpreter {
       OUTCOME_TRY(parent, tipset->loadParent(*ipld));
       for (auto epoch{parent->height() + 1}; epoch < tipset->height(); ++epoch) {
 
-        //TODO (XXX)
-        env->tipset.height_ = epoch;
+        env->epoch = epoch;
         OUTCOME_TRY(cron());
       }
-      env->tipset.height_ = tipset->height();
+      env->epoch = tipset->height();
     }
 
     adt::Array<MessageReceipt> receipts{ipld};

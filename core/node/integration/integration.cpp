@@ -16,6 +16,8 @@
 #include "sync/index_db_backend.hpp"
 #include "sync/pubsub_gate.hpp"
 
+#include "storage/car/car.hpp"
+
 namespace fc {
 
   namespace {
@@ -32,6 +34,14 @@ namespace fc {
         v.push_back(cid.toString().value());
       }
       return v;
+    }
+
+    bool checkEnvOption(const char* env_var) {
+      const char* value = std::getenv(env_var);
+      if (value == nullptr) {
+        return false;
+      }
+      return !strcmp(value, "1");
     }
 
   }  // namespace
@@ -172,6 +182,8 @@ namespace fc {
     // suppress verbose logging from secio
     common::createLogger("SECCONN")->set_level(spdlog::level::info);
     common::createLogger("SECIO")->set_level(spdlog::level::info);
+    common::createLogger("tls")->set_level(spdlog::level::info);
+    common::createLogger("gossip")->set_level(spdlog::level::trace);
 
     auto res = node::createNodeObjects(config);
 
@@ -182,7 +194,7 @@ namespace fc {
 
     auto &o = res.value();
 
-    if (std::getenv("REINDEX") != nullptr) {
+    if (checkEnvOption("REINDEX")) {
       int r = reindex(o, config);
       if (r == 0) {
         r = verify(config.storage_path + "/index.db.new");
@@ -190,7 +202,7 @@ namespace fc {
       return r;
     }
 
-    if (std::getenv("VERIFY_INDEX") != nullptr) {
+    if (checkEnvOption("VERIFY_INDEX")) {
       return verify(config.storage_path + "/index.db");
     }
 
@@ -221,7 +233,7 @@ namespace fc {
 
     OUTCOME_EXCEPT(o.chain_db->setCurrentHead(heads.begin()->first));
 
-    if (std::getenv("VM_INTERPRET") != nullptr) {
+    if (checkEnvOption("VM_INTERPRET")) {
       size_t tipsets_interpreted = 0;
       size_t mismatches = 0;
       bool interpret_error = false;
@@ -261,7 +273,15 @@ namespace fc {
       return 0;
     }
 
-    if (std::getenv("WALK_FWD") != nullptr) {
+    if (checkEnvOption("MAKE_CAR")) {
+      OUTCOME_EXCEPT(tipset, o.chain_db->getTipsetByHeight(999));
+      OUTCOME_EXCEPT(car, fc::storage::car::makeCar(*o.ipld, tipset->key.cids()));
+      std::string car_name = fmt::format("{}-999.car", config.network_name);
+      std::ofstream(car_name, std::ios::binary).write((const char*)car.data(), car.size());
+      return 0;
+    }
+
+    if (checkEnvOption("WALK_FWD")) {
       size_t tipsets_visited = 0;
       OUTCOME_EXCEPT(
           o.chain_db->walkForward(0, 10000, [&](sync::TipsetCPtr tipset) {
@@ -274,7 +294,7 @@ namespace fc {
       return 0;
     }
 
-    if (std::getenv("WALK_BWD") != nullptr) {
+    if (checkEnvOption("WALK_BWD")) {
       size_t tipsets_visited = 0;
       TipsetHash from;
       if (heads.begin()->second->height() <= 10000) {
@@ -310,6 +330,7 @@ namespace fc {
 
       o.host->start();
 
+      /*
       auto res = o.peer_manager->start(
           o.chain_db->genesisCID(),
           heads.begin()->second->key.cids(),
@@ -342,16 +363,17 @@ namespace fc {
               ctx.start();
             }
 
-            //         o.gossip->addBootstrapPeer(peer, boost::none);
+            //o.gossip->addBootstrapPeer(peer, boost::none);
           });
 
       if (!res) {
         o.io_context->stop();
       }
+       */
 
       for (const auto &pi : config.bootstrap_list) {
-        o.host->connect(pi);
-        // o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
+        //o.host->connect(pi);
+        o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
       }
 
       o.gossip->start();

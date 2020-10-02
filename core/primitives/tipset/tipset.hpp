@@ -129,16 +129,10 @@ namespace fc::primitives::tipset {
     Tipset() = default;
 
     Tipset(TipsetKey _key, std::vector<block::BlockHeader> _blks)
-        : key(std::move(_key)), blks(std::move(_blks)) {
-      height_ = height();
-    }
+        : key(std::move(_key)), blks(std::move(_blks)) {}
 
     TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers
-
-    // TODO (XXX) - This is for interpreter's Env - make tipset immutable
-    // structure
-    uint64_t height_ = 0;
   };
 
   /**

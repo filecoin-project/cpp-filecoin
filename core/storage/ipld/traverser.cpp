@@ -57,7 +57,8 @@ namespace fc::storage::ipld::traverser {
   outcome::result<std::vector<CID>> Traverser::traverseAll() {
     // TODO(turuslan): implement selectors
     while (!isCompleted()) {
-      OUTCOME_TRY(advance());
+      // TODO (XXX) OUTCOME_TRY(advance());
+      std::ignore = advance();
     }
     return std::vector<CID>(visit_order_.begin(), visit_order_.end());
   }
@@ -69,8 +70,9 @@ namespace fc::storage::ipld::traverser {
     CID cid = to_visit_.front();
     to_visit_.pop();
     if (visited_.insert(cid).second) {
-      visit_order_.push_back(cid);
       OUTCOME_TRY(bytes, store.get(cid));
+      visit_order_.push_back(cid);
+
       // TODO(turuslan): what about other types?
       if (cid.content_type == libp2p::multi::MulticodecType::DAG_CBOR) {
         CborDecodeStream s{bytes};

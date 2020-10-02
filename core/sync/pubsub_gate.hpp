@@ -47,7 +47,7 @@ namespace fc::sync {
     using OnMessageAvailable = void(
         const PeerId &from,
         const CID &cid,
-        const common::Buffer& raw,
+        const common::Buffer &raw,
         const UnsignedMessage &msg,
         boost::optional<std::reference_wrapper<const Signature>> signature);
 
@@ -68,11 +68,11 @@ namespace fc::sync {
 
     uint64_t clockNano();
 
-    // gossip callbacks. They decode raw data and broadcast
-
-    void onBlock(const PeerId &from, const Bytes &raw);
-    void onHead(const PeerId &from, const Bytes &raw);
-    void onMsg(const PeerId &from, const Bytes &raw);
+    // Validation callbacks: decode, validate, and broadcast to signal
+    // subscribers
+    bool onBlock(const PeerId &from, const Bytes &raw);
+    bool onHead(const PeerId &from, const Bytes &raw);
+    bool onMsg(const PeerId &from, const Bytes &raw);
 
     std::shared_ptr<clock::UTCClock> clock_;
     std::shared_ptr<Gossip> gossip_;

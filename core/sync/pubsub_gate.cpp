@@ -7,9 +7,9 @@
 
 #include "clock/utc_clock.hpp"
 #include "codec/cbor/cbor.hpp"
+#include "common/logger.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
-#include "common/logger.hpp"
 
 namespace fc::sync {
 
@@ -28,10 +28,6 @@ namespace fc::sync {
     }
   }  // namespace
 
-  // uint64_t timestamp;
-  // uint64_t nonce;
-  // std::string node_name;
-
   PubSubGate::PubSubGate(std::shared_ptr<clock::UTCClock> clock,
                          std::shared_ptr<Gossip> gossip)
       : clock_(std::move(clock)), gossip_(std::move(gossip)) {}
@@ -44,33 +40,31 @@ namespace fc::sync {
     heads_topic_ = std::string("/fil/headnotifs/") + network_name;
     msgs_topic_ = std::string("/fil/msgs/") + network_name;
 
-#define SUBSCRIBE_TO_TOPIC(WHICH_TOPIC, WHICH_SIGNAL, WHICH_CALLBACK)       \
-  gossip_->subscribe(                                                       \
-      {WHICH_TOPIC},                                                        \
-      [wptr = weak_from_this()](boost::optional<const GossipMessage &> m) { \
-        if (!m) {                                                           \
-          return;                                                           \
-        }                                                                   \
-        auto self = wptr.lock();                                            \
-        if (!self) {                                                        \
-          return;                                                           \
-        }                                                                   \
-        if (self->WHICH_SIGNAL.empty()) {                                   \
-          return;                                                           \
-        }                                                                   \
-        auto peer_expected = decodeSender(m->from);                         \
-        if (!peer_expected) {                                               \
-          log()->error("cannot decode sender of gossip msg");               \
-          return;                                                           \
-        }                                                                   \
-        self->WHICH_CALLBACK(peer_expected.value(), m->data);               \
+#define SUBSCRIBE_TO_TOPIC(WHICH_TOPIC, WHICH_CALLBACK)                 \
+  gossip_->subscribe({WHICH_TOPIC},                                     \
+                     [](boost::optional<const GossipMessage &> m) {     \
+                       if (m) {                                         \
+                         log()->debug("gossip msg forwarded");          \
+                       }                                                \
+                     });                                                \
+  gossip_->setValidator(                                                \
+      WHICH_TOPIC,                                                      \
+      [wptr = weak_from_this()](const Bytes &from, const Bytes &data) { \
+        auto self = wptr.lock();                                        \
+        if (!self) {                                                    \
+          return false;                                                 \
+        }                                                               \
+        auto peer_expected = decodeSender(from);                     \
+        if (!peer_expected) {                                           \
+          log()->error("cannot decode sender of gossip msg");           \
+          return false;                                                 \
+        }                                                               \
+        return self->WHICH_CALLBACK(peer_expected.value(), data);       \
       })
 
-    blocks_subscription_ =
-        SUBSCRIBE_TO_TOPIC(blocks_topic_, blocks_signal_, onBlock);
-    heads_subscription_ =
-        SUBSCRIBE_TO_TOPIC(heads_topic_, heads_signal_, onHead);
-    msgs_subscription_ = SUBSCRIBE_TO_TOPIC(msgs_topic_, msgs_signal_, onMsg);
+    blocks_subscription_ = SUBSCRIBE_TO_TOPIC(blocks_topic_, onBlock);
+    heads_subscription_ = SUBSCRIBE_TO_TOPIC(heads_topic_, onHead);
+    msgs_subscription_ = SUBSCRIBE_TO_TOPIC(msgs_topic_, onMsg);
 
 #undef SUBSCRIBE_TO_TOPIC
 
@@ -146,7 +140,7 @@ namespace fc::sync {
     return clock_->nowUTC().unixTimeNano().count();
   }
 
-  void PubSubGate::onBlock(const PeerId &from, const Bytes &raw) {
+  bool PubSubGate::onBlock(const PeerId &from, const Bytes &raw) {
     try {
       BlockWithCids bm;
       codec::cbor::CborDecodeStream decoder(raw);
@@ -156,15 +150,17 @@ namespace fc::sync {
                      primitives::cid::getCidOfCbor<BlockHeader>(bm.header));
 
       blocks_signal_(from, cid, bm);
+
+      return true;
     } catch (std::system_error &e) {
       // TODO peer feedbacks
       log()->error(
           "cannot decode BlockMsg from peer {}, {}", from.toBase58(), e.what());
-      return;
+      return false;
     }
   }
 
-  void PubSubGate::onHead(const PeerId &from, const Bytes &raw) {
+  bool PubSubGate::onHead(const PeerId &from, const Bytes &raw) {
     std::vector<CID> cids;
     std::vector<BlockHeader> blks;
     uint64_t height;
@@ -184,24 +180,24 @@ namespace fc::sync {
       // TODO validate cids and other fields
 
       head_msg.tipset = std::move(tipset);
+      heads_signal_(from, head_msg);
 
+      return true;
     } catch (std::system_error &e) {
       // TODO peer feedbacks
       log()->error(
           "cannot decode HeadMsg from peer {}, {}", from.toBase58(), e.what());
-      return;
+      return false;
     }
-
-    heads_signal_(from, head_msg);
   }
 
-  void PubSubGate::onMsg(const PeerId &from, const Bytes &raw) {
+  bool PubSubGate::onMsg(const PeerId &from, const Bytes &raw) {
     constexpr uint8_t kCborTwoElementsArrayHeader = 0x82;
 
     if (raw.empty()) {
       // TODO peer feedbacks
       log()->error("pubsub: empty message from peer {}", from.toBase58());
-      return;
+      return false;
     }
 
     std::error_code e;
@@ -242,7 +238,10 @@ namespace fc::sync {
       log()->error("pubsub: cannot decode message from peer {}, {}",
                    from.toBase58(),
                    e.message());
+      return false;
     }
+
+    return true;
   }
 
 }  // namespace fc::sync

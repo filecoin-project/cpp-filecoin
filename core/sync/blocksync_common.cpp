@@ -68,26 +68,26 @@ namespace fc::sync::blocksync {
           "storing tipset bundle of {} blocks, {} bls messages, {} secp "
           "messages",
           sz,
-          bundle.bls_msgs.size(),
-          bundle.secp_msgs.size());
+          bundle.messages.bls_msgs.size(),
+          bundle.messages.secp_msgs.size());
 
       std::vector<CID> secp_cids;
       std::vector<CID> bls_cids;
 
       if (store_messages) {
-        if (bundle.secp_msg_includes.size() != sz
-            || bundle.bls_msg_includes.size() != sz) {
+        if (bundle.messages.secp_msg_includes.size() != sz
+            || bundle.messages.bls_msg_includes.size() != sz) {
           return Error::SYNC_INCONSISTENT_BLOCKSYNC_RESPONSE;
         }
 
-        secp_cids.reserve(bundle.secp_msgs.size());
-        for (const auto &msg : bundle.secp_msgs) {
+        secp_cids.reserve(bundle.messages.secp_msgs.size());
+        for (const auto &msg : bundle.messages.secp_msgs) {
           OUTCOME_TRY(cid, ipld->setCbor<SignedMessage>(msg));
           secp_cids.push_back(std::move(cid));
         }
 
-        bls_cids.reserve(bundle.bls_msgs.size());
-        for (const auto &msg : bundle.bls_msgs) {
+        bls_cids.reserve(bundle.messages.bls_msgs.size());
+        for (const auto &msg : bundle.messages.bls_msgs) {
           OUTCOME_TRY(cid, ipld->setCbor<UnsignedMessage>(msg));
           bls_cids.push_back(std::move(cid));
         }
@@ -97,9 +97,9 @@ namespace fc::sync::blocksync {
         OUTCOME_TRY(storeBlock(ipld,
                                std::move(bundle.blocks[i]),
                                secp_cids,
-                               bundle.secp_msg_includes[i],
+                               bundle.messages.secp_msg_includes[i],
                                bls_cids,
-                               bundle.bls_msg_includes[i],
+                               bundle.messages.bls_msg_includes[i],
                                store_messages,
                                callback));
       }
