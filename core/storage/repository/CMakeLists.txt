@@ -8,6 +8,7 @@ add_library(repository
 target_link_libraries(repository
     keystore
     outcome
+    storage_error
     )
 
 add_library(filesystem_repository

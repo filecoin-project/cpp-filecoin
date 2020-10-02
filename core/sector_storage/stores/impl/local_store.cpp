@@ -466,7 +466,7 @@ namespace fc::sector_storage::stores {
 
       OUTCOME_TRY(stat, path_iter->second->getStat(storage_));
 
-      int64_t overhead =
+      uint64_t overhead =
           (path_type == PathType::kStorage
                ? primitives::sector_file::kOverheadFinalized.at(type)
                : primitives::sector_file::kOverheadSeal.at(type))
@@ -521,17 +521,22 @@ namespace fc::sector_storage::stores {
           }
         }
 
-        stat.reserved -= maybe_used.value();
+        if (stat.reserved < maybe_used.value()) {
+          stat.reserved = 0;
+          break;
+        } else {
+          stat.reserved -= maybe_used.value();
+        }
+      }
+      if (stat.reserved == 0) {
+        break;
       }
     }
 
-    if (stat.reserved < 0) {
-      stat.reserved = 0;
-    }
-
-    stat.available -= stat.reserved;
-    if (stat.available < 0) {
-      stat.available = 0;  // TODO: as for me it is error
+    if (stat.available < stat.reserved) {
+      stat.available = 0;
+    } else {
+      stat.available -= stat.reserved;
     }
 
     return stat;

@@ -15,6 +15,7 @@
 
 namespace fc::storage::repository {
 
+  using fc::primitives::FsStat;
   using fc::sector_storage::stores::LocalStorage;
   using fc::sector_storage::stores::StorageConfig;
   using fc::storage::config::Config;
@@ -58,6 +59,8 @@ namespace fc::storage::repository {
      * @return version number
      */
     virtual fc::outcome::result<Version> getVersion() const = 0;
+    outcome::result<FsStat> getStat(const std::string &path) override;
+    outcome::result<uint64_t> getDiskUsage(const std::string &path) override;
 
    protected:
     /**

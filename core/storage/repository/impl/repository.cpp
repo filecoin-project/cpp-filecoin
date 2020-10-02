@@ -5,12 +5,21 @@
 
 #include "storage/repository/repository.hpp"
 #include "api/rpc/json.hpp"
+#include "sector_storage/stores/storage_error.hpp"
 #include "storage/repository/repository_error.hpp"
 
 #include <rapidjson/ostreamwrapper.h>
 #include <rapidjson/writer.h>
-
+#include <sys/stat.h>
+#if __APPLE__
+#include <sys/mount.h>
+#include <sys/param.h>
+#elif __linux__
+#include <sys/statfs.h>
+#endif
+using fc::primitives::FsStat;
 using fc::sector_storage::stores::StorageConfig;
+using fc::sector_storage::stores::StorageError;
 using fc::storage::config::Config;
 using fc::storage::ipfs::IpfsDatastore;
 using fc::storage::keystore::KeyStore;
@@ -76,4 +85,26 @@ fc::outcome::result<void> Repository::writeStorage(
     return RepositoryError::kWriteJsonError;
   }
   return outcome::success();
+}
+
+fc::outcome::result<FsStat> Repository::getStat(const std::string &path) {
+  struct statfs64 stat;
+  if (statfs64(path.c_str(), &stat) != 0) {
+    return RepositoryError::kFilesystemStatError;
+  }
+  return FsStat{.capacity = stat.f_blocks * stat.f_bsize,
+                .available = stat.f_bavail * stat.f_bsize,
+                .reserved = 0};
+}
+
+fc::outcome::result<uint64_t> Repository::getDiskUsage(
+    const std::string &path) {
+  if (!boost::filesystem::exists(path)) {
+    return StorageError::kFileNotExist;
+  }
+  struct stat64 fstat;
+  if (stat64(path.c_str(), &fstat) != 0) {
+    return RepositoryError::kFilesystemStatError;
+  }
+  return fstat.st_blocks * 512;
 }
