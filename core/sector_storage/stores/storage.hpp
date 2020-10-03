@@ -36,7 +36,7 @@ namespace fc::sector_storage::stores {
         std::function<void(StorageConfig &)> action) = 0;
 
     // when file doesn't exist should return StorageError::kFileNotExist
-    virtual outcome::result<int64_t> getDiskUsage(const std::string &path) = 0;
+    virtual outcome::result<uint64_t> getDiskUsage(const std::string &path) = 0;
   };
 }  // namespace fc::sector_storage::stores
 

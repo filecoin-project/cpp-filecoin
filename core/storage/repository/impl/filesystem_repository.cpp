@@ -131,13 +131,3 @@ fc::outcome::result<void> FileSystemRepository::setStorage(
   root_path /= kStorageConfig;
   return writeStorage(root_path, storage_conf);
 }
-
-fc::outcome::result<fc::primitives::FsStat> FileSystemRepository::getStat(
-    const std::string &path) {
-  return fc::outcome::success();
-}
-
-fc::outcome::result<int64_t> FileSystemRepository::getDiskUsage(
-    const std::string &path) {
-  return fc::outcome::success();
-}

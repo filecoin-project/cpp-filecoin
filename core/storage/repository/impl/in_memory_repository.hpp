@@ -31,13 +31,10 @@ namespace fc::storage::repository {
 
     /** @copydoc Repository::getVersion() */
     outcome::result<Version> getVersion() const override;
-    outcome::result<primitives::FsStat> getStat(
-        const std::string &path) override;
     outcome::result<StorageConfig> getStorage() override;
     outcome::result<void> setStorage(
         std::function<void(StorageConfig &)> action) override;
     outcome::result<boost::filesystem::path> path();
-    outcome::result<int64_t> getDiskUsage(const std::string &path) override;
 
    private:
     std::mutex storage_mutex_;
