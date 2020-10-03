@@ -6,6 +6,8 @@ add_library(repository
     impl/repository_error.cpp
     )
 target_link_libraries(repository
+    file
+    json
     keystore
     outcome
     storage_error

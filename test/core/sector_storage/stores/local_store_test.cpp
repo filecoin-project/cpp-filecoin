@@ -6,9 +6,10 @@
 #include "sector_storage/stores/store.hpp"
 
 #include <gtest/gtest.h>
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/writer.h>
+
 #include "api/rpc/json.hpp"
+#include "codec/json/json.hpp"
+#include "common/file.hpp"
 #include "common/outcome.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/stores/store_error.hpp"
@@ -35,25 +36,13 @@ using fc::sector_storage::stores::StoreErrors;
 using testing::_;
 using testing::Eq;
 
-template <typename T>
-void writeToJSON(const T &obj, const std::string &path) {
-  auto doc = fc::api::encode(obj);
-  ASSERT_FALSE(doc.HasParseError());
-
-  std::ofstream ofs{path};
-  ASSERT_TRUE(ofs.is_open());
-
-  rapidjson::OStreamWrapper osw{ofs};
-  rapidjson::Writer<rapidjson::OStreamWrapper> writer{osw};
-  doc.Accept(writer);
-}
-
 void createMetaFile(const std::string &storage_path,
                     const LocalStorageMeta &meta) {
   boost::filesystem::path file(storage_path);
   file /= kMetaFileName;
-
-  writeToJSON(meta, file.string());
+  auto doc{fc::api::encode(meta)};
+  OUTCOME_EXCEPT(text, fc::codec::json::format(&doc));
+  OUTCOME_EXCEPT(fc::common::writeFile(file.string(), text));
 }
 
 class LocalStoreTest : public test::BaseFS_Test {
@@ -519,8 +508,7 @@ TEST_F(LocalStoreTest, openPathInvalidConfig) {
 
   file.close();
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::kInvalidStorageConfig,
-                       local_store_->openPath(storage_path.string()));
+  EXPECT_FALSE(local_store_->openPath(storage_path.string()));
 }
 
 /**
@@ -534,8 +522,7 @@ TEST_F(LocalStoreTest, openPathNoConfig) {
 
   boost::filesystem::create_directory(storage_path);
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::kInvalidStorageConfig,
-                       local_store_->openPath(storage_path.string()));
+  EXPECT_FALSE(local_store_->openPath(storage_path.string()));
 }
 
 /**

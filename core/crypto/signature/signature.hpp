@@ -9,7 +9,7 @@
 #include <boost/variant.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/outcome.hpp"
+#include "common/buffer.hpp"
 #include "common/visitor.hpp"
 #include "crypto/bls/bls_types.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
@@ -46,55 +46,20 @@ namespace fc::crypto::signature {
           [](const BlsSignature &) { return true; },
           [](const auto &) { return false; });
     }
+
+    Buffer toBytes() const;
+    static outcome::result<Signature> fromBytes(BytesIn input);
   };
 
   CBOR_ENCODE(Signature, signature) {
-    std::vector<uint8_t> bytes{};
-    visit_in_place(
-        signature,
-        [&bytes](const BlsSignature &v) {
-          bytes.push_back(BLS);
-          return bytes.insert(bytes.end(), v.begin(), v.end());
-        },
-        [&bytes](const Secp256k1Signature &v) {
-          bytes.push_back(SECP256K1);
-          return bytes.insert(bytes.end(), v.begin(), v.end());
-        });
-    return s << bytes;
+    return s << signature.toBytes();
   }
 
   CBOR_DECODE(Signature, signature) {
     std::vector<uint8_t> data{};
     s >> data;
-    if (data.empty() || data.size() > kSignatureMaxLength) {
-      outcome::raise(SignatureError::kInvalidSignatureLength);
-    }
-    switch (data[0]) {
-      case (SECP256K1): {
-        Secp256k1Signature secp256K1Signature{};
-        if (data.size() != secp256K1Signature.size() + 1) {
-          outcome::raise(SignatureError::kInvalidSignatureLength);
-        }
-        std::copy_n(std::make_move_iterator(std::next(data.begin())),
-                    secp256K1Signature.size(),
-                    secp256K1Signature.begin());
-        signature = secp256K1Signature;
-        break;
-      }
-      case (BLS): {
-        BlsSignature blsSig{};
-        if (data.size() != blsSig.size() + 1) {
-          outcome::raise(SignatureError::kInvalidSignatureLength);
-        }
-        std::copy_n(std::make_move_iterator(std::next(data.begin())),
-                    blsSig.size(),
-                    blsSig.begin());
-        signature = blsSig;
-        break;
-      }
-      default:
-        outcome::raise(SignatureError::kWrongSignatureType);
-    };
+    OUTCOME_EXCEPT(sig, Signature::fromBytes(data));
+    signature = std::move(sig);
     return s;
   }
 

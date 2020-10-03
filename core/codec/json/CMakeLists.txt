@@ -3,11 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(blake2
-    blake2b.c
-    blake2b160.cpp
+add_library(json
+    json.cpp
     )
-target_link_libraries(blake2
-    blob
-    outcome
+target_link_libraries(json
+    cid
     )

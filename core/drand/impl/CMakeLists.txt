@@ -10,6 +10,7 @@ target_link_libraries(drand_http
     blob
     buffer
     outcome
+    json
     )
 
 add_library(drand_beacon

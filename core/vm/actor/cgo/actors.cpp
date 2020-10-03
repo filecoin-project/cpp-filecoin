@@ -34,6 +34,8 @@ namespace fc::vm::actor::cgo {
   using runtime::resolveKey;
   using storage::hamt::HamtError;
 
+  bool test_vectors{false};
+
   void config(const StoragePower &min_verified_deal_size,
               const StoragePower &consensus_miner_min_power,
               const std::vector<RegisteredProof> &supported_proofs) {
@@ -212,14 +214,18 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtVerifySig) {
-    auto sig{arg.get<Signature>()};
-    if (charge(
-            ret, rt, rt.exec->env->pricelist.onVerifySignature(sig.isBls()))) {
+    auto _sig{arg.get<Buffer>()};
+    auto bls{!_sig.empty() && _sig[0] == crypto::signature::BLS};
+    if (charge(ret, rt, rt.exec->env->pricelist.onVerifySignature(bls))) {
       auto ok{false};
-      if (auto _key{resolveKey(*rt.exec->state_tree, arg.get<Address>())}) {
-        auto input{arg.get<Buffer>()};
-        auto r{keystore.verify(_key.value(), input, sig)};
-        ok = r && r.value();
+      if (test_vectors) {
+        ok = true;
+      } else if (auto sig{Signature::fromBytes(_sig)}) {
+        if (auto _key{resolveKey(*rt.exec->state_tree, arg.get<Address>())}) {
+          auto input{arg.get<Buffer>()};
+          auto r{keystore.verify(_key.value(), input, sig.value())};
+          ok = r && r.value();
+        }
       }
       ret << kOk << ok;
     }
@@ -324,6 +330,44 @@ namespace fc::vm::actor::cgo {
         }
       } else {
         ret << kFatal;
+      }
+    }
+  }
+
+  RUNTIME_METHOD(gocRtDeleteActor) {
+    if (charge(ret, rt, rt.exec->env->pricelist.onDeleteActor())) {
+      auto to{arg.get<Address>()};
+      auto &state{*rt.exec->state_tree};
+      if (auto _actor{state.get(rt.to)}) {
+        auto &balance{_actor.value().balance};
+        auto transfer{[&]() -> outcome::result<void> {
+          OUTCOME_TRY(from_id, state.lookupId(rt.to));
+          OUTCOME_TRY(to_id, state.lookupId(to));
+          if (from_id != to_id) {
+            OUTCOME_TRY(from_actor, state.get(from_id));
+            OUTCOME_TRY(to_actor, state.get(to_id));
+            from_actor.balance -= balance;
+            to_actor.balance += balance;
+            OUTCOME_TRY(state.set(from_id, from_actor));
+            OUTCOME_TRY(state.set(to_id, to_actor));
+          }
+          return outcome::success();
+        }};
+        if (balance.is_zero() || transfer()) {
+          if (state.remove(rt.to)) {
+            ret << kOk;
+          } else {
+            ret << kFatal;
+          }
+        } else {
+          ret << kFatal;
+        }
+      } else {
+        if (_actor.error() == HamtError::kNotFound) {
+          ret << VMExitCode::kSysErrorIllegalActor;
+        } else {
+          ret << kFatal;
+        }
       }
     }
   }

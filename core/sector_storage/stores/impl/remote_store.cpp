@@ -6,10 +6,11 @@
 #include "sector_storage/stores/impl/remote_store.hpp"
 
 #include <curl/curl.h>
-#include <rapidjson/document.h>
 #include <boost/filesystem.hpp>
 #include <utility>
+
 #include "api/rpc/json.hpp"
+#include "codec/json/json.hpp"
 #include "common/tarutil.hpp"
 #include "common/uri_parser/uri_parser.hpp"
 #include "sector_storage/stores/impl/util.hpp"
@@ -259,13 +260,7 @@ namespace fc::sector_storage::stores {
         break;
     }
 
-    rapidjson::Document j_file;
-    j_file.Parse(body.data(), body.size());
-    body.clear();
-    if (j_file.HasParseError()) {
-      return StoreErrors::kInvalidFsStatResponse;
-    }
-
+    OUTCOME_TRY(j_file, codec::json::parse(body));
     return api::decode<FsStat>(j_file);
   }
 

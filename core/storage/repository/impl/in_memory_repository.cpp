@@ -2,8 +2,6 @@
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
  */
-#include <rapidjson/ostreamwrapper.h>
-#include <rapidjson/writer.h>
 #include <api/rpc/json.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -11,6 +9,8 @@
 
 #include "storage/repository/impl/in_memory_repository.hpp"
 
+#include "codec/json/json.hpp"
+#include "common/file.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_provider.hpp"
@@ -84,20 +84,9 @@ fc::outcome::result<boost::filesystem::path> InMemoryRepository::path() {
       .can_store = true};
   boost::filesystem::path sector_path = tempPath;
   sector_path /= kMetaFileName;
-  std::ofstream file{(sector_path).string()};
-  if (!file.good()) {
-    return RepositoryError::kInvalidStorageConfig;
-  }
   auto doc = api::encode<LocalStorageMeta>(meta_storage);
-  if (doc.HasParseError()) {
-    return RepositoryError::kParseJsonError;
-  }
-
-  rapidjson::OStreamWrapper osw{file};
-  rapidjson::Writer<rapidjson::OStreamWrapper> writer{osw};
-  if (!doc.Accept(writer)) {
-    return RepositoryError::kWriteJsonError;
-  }
+  OUTCOME_TRY(text, codec::json::format(&doc));
+  OUTCOME_TRY(common::writeFile(sector_path.string(), text));
   tempDir = tempPath;
   return tempPath;
 }

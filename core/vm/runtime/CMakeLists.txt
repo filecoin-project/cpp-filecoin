@@ -13,6 +13,7 @@ target_link_libraries(runtime
     bls_provider
     cgo_actors
     keystore
+    message
     proofs
     secp256k1_provider
     tipset

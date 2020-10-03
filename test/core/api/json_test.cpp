@@ -6,8 +6,8 @@
 #include "api/rpc/json.hpp"
 
 #include <gtest/gtest.h>
-#include <rapidjson/writer.h>
 
+#include "codec/json/json.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
 
@@ -38,22 +38,16 @@ const auto b96 =
     "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 
 auto jsonEncode(const rapidjson::Value &value) {
-  rapidjson::StringBuffer buffer;
-  auto writer = rapidjson::Writer<rapidjson::StringBuffer>{buffer};
-  value.Accept(writer);
-  return std::string{buffer.GetString(), buffer.GetSize()};
+  return *fc::codec::json::format(&value);
 }
 
-auto jsonDecode(const std::string &str) {
-  rapidjson::Document document;
-  document.Parse(str.data(), str.size());
-  EXPECT_FALSE(document.HasParseError());
-  return document;
+auto jsonDecode(fc::BytesIn str) {
+  return *fc::codec::json::parse(str);
 }
 
 template <typename T>
-void expectJson(const T &value, std::string expected) {
-  expected = jsonEncode(jsonDecode(expected));
+void expectJson(const T &value, std::string _expected) {
+  auto expected{jsonEncode(jsonDecode(fc::common::span::cbytes(_expected)))};
   EXPECT_EQ(jsonEncode(fc::api::encode(value)), expected);
   EXPECT_OUTCOME_TRUE(decoded, fc::api::decode<T>(jsonDecode(expected)));
   EXPECT_EQ(jsonEncode(fc::api::encode(decoded)), expected);
@@ -63,7 +57,8 @@ void expectJson(const T &value, std::string expected) {
 
 TEST(ApiJsonTest, WrongType) {
   EXPECT_OUTCOME_ERROR(fc::api::JsonError::kWrongType,
-                       fc::api::decode<Ticket>(jsonDecode("4")));
+                       fc::api::decode<Ticket>(jsonDecode(
+                           fc::common::span::cbytes(std::string_view{"4"}))));
 }
 
 TEST(ApiJsonTest, Misc) {

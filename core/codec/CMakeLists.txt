@@ -4,4 +4,5 @@
 #
 
 add_subdirectory(cbor)
+add_subdirectory(json)
 add_subdirectory(rle)

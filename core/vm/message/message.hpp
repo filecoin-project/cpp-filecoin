@@ -66,7 +66,7 @@ namespace fc::vm::message {
           method{method},
           params{std::move(params)} {}
 
-    int64_t version;
+    int64_t version{kMessageVersion};
 
     Address to;
     Address from;
@@ -93,6 +93,8 @@ namespace fc::vm::message {
     bool operator!=(const UnsignedMessage &other) const;
 
     BigInt requiredFunds() const;
+
+    size_t chainSize() const;
   };
 
   CBOR_TUPLE(UnsignedMessage,
@@ -119,6 +121,8 @@ namespace fc::vm::message {
      * @return CID
      */
     CID getCid() const;
+
+    size_t chainSize() const;
   };
 
   CBOR_TUPLE(SignedMessage, message, signature)
