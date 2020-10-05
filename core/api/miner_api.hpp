@@ -24,27 +24,7 @@ namespace fc::api {
   };
 
   // TODO(a.chernyshov): FIL-165 implement methods
-  struct MinerApi {
-    /**
-     * Add piece to sector blocks
-     * @param piece_size - unpadded size of added piece
-     * @param data - piece data
-     * @param deal_info - info about commited storage deal
-     */
-    API_METHOD(AddPiece,
-               void,
-               const UnpaddedPieceSize &,
-               const Buffer &,
-               const DealInfo &)
-
-    /**
-     * Get location for the data for storage deal
-     */
-    API_METHOD(LocatePieceForDealWithinSector,
-               PieceLocation,
-               const DealId &,
-               const TipsetKey &)
-  };
+  struct StorageMinerApi {};
 
 }  // namespace fc::api
 

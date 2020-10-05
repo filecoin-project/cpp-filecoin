@@ -194,10 +194,7 @@ namespace fc::mining {
 
     OUTCOME_TRY(sector_info, getSectorInfo(id));
 
-    OUTCOME_TRY(state,
-                fsm_->get(sector_info));  // TODO: maybe save state in info
-
-    if (state != SealingState::kProving) {
+    if (sector_info->state != SealingState::kProving) {
       return SealingError::kNotProvingState;
     }
 
@@ -559,6 +556,7 @@ namespace fc::mining {
       SealingState from,
       SealingState to) {
     stat_->updateSector(minerSector(info->sector_number), to);
+    info->state = to;
 
     auto maybe_error = [&]() -> outcome::result<void> {
       switch (to) {
@@ -613,7 +611,9 @@ namespace fc::mining {
         case SealingState::kForce: {
           std::shared_ptr<SectorForceContext> force_context =
               std::static_pointer_cast<SectorForceContext>(event_context);
-          return fsm_->force(info, force_context->state);
+          OUTCOME_TRY(fsm_->force(info, force_context->state));
+          info->state = force_context->state;
+          return outcome::success();
         }
         case SealingState::kStateUnknown: {
           logger_->error("sector update with undefined state!");

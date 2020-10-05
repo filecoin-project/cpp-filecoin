@@ -72,6 +72,11 @@ namespace fc::miner {
     sealing_->stop();
   }
 
+  outcome::result<std::shared_ptr<SectorInfo>> Miner::getSectorInfo(
+      SectorNumber sector_id) const {
+    return sealing_->getSectorInfo(sector_id);
+  }
+
   outcome::result<void> Miner::runPreflightChecks() {
     OUTCOME_TRY(has, api_->WalletHas(worker_address_));
     if (!has) {

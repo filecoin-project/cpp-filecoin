@@ -19,12 +19,12 @@
 #include "markets/storage/provider/provider.hpp"
 #include "markets/storage/provider/provider_events.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
+#include "sectorblocks/blocks.hpp"
 #include "storage/filestore/filestore.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::storage::provider {
-  using api::MinerApi;
   using api::PieceLocation;
   using chain_events::ChainEvents;
   using common::libp2p::CborHost;
@@ -38,6 +38,7 @@ namespace fc::markets::storage::provider {
   using primitives::EpochDuration;
   using primitives::GasAmount;
   using primitives::sector::RegisteredProof;
+  using sectorblocks::SectorBlocks;
   using ProviderTransition =
       fsm::Transition<ProviderEvent, void, StorageDealStatus, MinerDeal>;
   using ProviderFSM =
@@ -57,7 +58,7 @@ namespace fc::markets::storage::provider {
                         std::shared_ptr<boost::asio::io_context> context,
                         std::shared_ptr<Datastore> datastore,
                         std::shared_ptr<Api> api,
-                        std::shared_ptr<MinerApi> miner_api,
+                        std::shared_ptr<SectorBlocks> sector_blocks,
                         std::shared_ptr<ChainEvents> events,
                         const Address &miner_actor_address,
                         std::shared_ptr<PieceIO> piece_io,
@@ -367,7 +368,7 @@ namespace fc::markets::storage::provider {
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<StoredAsk> stored_ask_;
     std::shared_ptr<Api> api_;
-    std::shared_ptr<MinerApi> miner_api_;
+    std::shared_ptr<SectorBlocks> sector_blocks_;
     std::shared_ptr<ChainEvents> chain_events_;
     Address miner_actor_address_;
     std::shared_ptr<PieceIO> piece_io_;

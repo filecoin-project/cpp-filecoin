@@ -19,7 +19,9 @@
 namespace fc::miner {
   using api::Api;
   using mining::Sealing;
+  using mining::types::SectorInfo;
   using primitives::Counter;
+  using primitives::SectorNumber;
   using primitives::address::Address;
   using sector_storage::Manager;
 
@@ -35,6 +37,9 @@ namespace fc::miner {
     outcome::result<void> run();
 
     void stop();
+
+    outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
+        SectorNumber sector_id) const;
 
    private:
     /**
