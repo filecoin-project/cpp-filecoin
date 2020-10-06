@@ -9,6 +9,7 @@
 #include "host/context/impl/host_context_impl.hpp"
 #include "miner/storage_fsm/impl/checks.hpp"
 #include "miner/storage_fsm/impl/sector_stat_impl.hpp"
+#include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 
 #define FSM_SEND_CONTEXT(info, event, context) \
   OUTCOME_TRY(fsm_->send(info, event, context))
@@ -908,7 +909,6 @@ namespace fc::mining {
     logger_->info("Sector precommitted: {}", info->sector_number);
     OUTCOME_TRY(channel, api_->StateWaitMsg(info->precommit_message.value()));
 
-    auto maybe_lookup = channel.waitSync();
     channel.wait([c{channel.channel}, info, this](auto &&maybe_lookup) {
       if (maybe_lookup.has_error()) {
         logger_->error("sector precommit failed: {}",
@@ -952,9 +952,6 @@ namespace fc::mining {
     auto random_height = precommit_info->precommit_epoch
                          + vm::actor::builtin::miner::kPreCommitChallengeDelay;
 
-    logger_->info("handleWaitSeed chainAt {} {}",
-                  random_height,
-                  types::kInteractivePoRepConfidence);
     auto maybe_error = events_->chainAt(
         [=](const Tipset &,
             ChainEpoch current_height) -> outcome::result<void> {
@@ -1592,9 +1589,7 @@ namespace fc::mining {
     auto replace = maybeUpgradableSector();
     if (replace) {
       auto maybe_location = api_->StateSectorPartition(
-          miner_address_,
-          *replace,
-          api::TipsetKey());  // TODO: Check empty tipsetkey
+          miner_address_, *replace, api::TipsetKey());
       if (maybe_location.has_error()) {
         // TODO: log it
         return 0;
@@ -1641,9 +1636,9 @@ namespace fc::mining {
                                            const TipsetKey &tipset_key) {
     OUTCOME_TRY(actor, api_->StateGetActor(address, tipset_key));
 
-    OUTCOME_TRY(encoded_state, api_->ChainReadObj(actor.head));
+    auto api_ipld = std::make_shared<storage::ipfs::ApiIpfsDatastore>(api_);
 
-    OUTCOME_TRY(state, codec::cbor::decode<miner::State>(encoded_state));
+    OUTCOME_TRY(state, api_ipld->getCbor<miner::State>(actor.head));
 
     OUTCOME_TRY(contains, state.precommitted_sectors.has(sector_number));
 
