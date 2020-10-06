@@ -114,7 +114,7 @@ namespace fc::api {
 
     outcome::result<Address> accountKey(const Address &id) {
       // TODO(turuslan): error if not account
-      OUTCOME_TRY(state, state_tree.state<AccountActorState>(id));
+      OUTCOME_EXCEPT(state, state_tree.state<AccountActorState>(id));
       return state.address;
     }
   };
@@ -740,8 +740,7 @@ namespace fc::api {
             }},
         .StateSectorPreCommitInfo =
             {[=](auto address, auto sector_number, auto tipset_key)
-                 -> outcome::result<
-                     boost::optional<SectorPreCommitOnChainInfo>> {
+                 -> outcome::result<SectorPreCommitOnChainInfo> {
               // TODO(artyom-yurin): FIL-165 implement method
               return outcome::success();
             }},

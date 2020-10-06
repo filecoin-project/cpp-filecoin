@@ -50,6 +50,7 @@ namespace fc::markets::storage::provider {
   using fc::storage::piece::PieceStorageImpl;
   using host::HostContext;
   using host::HostContextImpl;
+  using mining::SealingState;
   using vm::VMExitCode;
   using vm::actor::MethodParams;
   using vm::actor::builtin::market::PublishStorageDeals;
@@ -57,7 +58,6 @@ namespace fc::markets::storage::provider {
   using vm::message::kDefaultGasPrice;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
-  using mining::SealingState;
 
   StorageProviderImpl::StorageProviderImpl(
       const RegisteredProof &registered_proof,
@@ -361,7 +361,7 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(worker_info,
                 api_->StateMinerInfo(
                     deal->client_deal_proposal.proposal.provider, tipset_key));
-    std::vector<ClientDealProposal> params{deal->client_deal_proposal};
+    PublishStorageDeals::Params params{{deal->client_deal_proposal}};
     OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
     UnsignedMessage unsigned_message(vm::actor::kStorageMarketAddress,
                                      worker_info.worker,
@@ -423,13 +423,14 @@ namespace fc::markets::storage::provider {
 
     boost::optional<PieceLocation> piece_location;
 
-    for (const auto& ref: piece_refs) {
-        OUTCOME_TRY(sector_info, sector_blocks_->getMiner()->getSectorInfo(ref.sector_number));
+    for (const auto &ref : piece_refs) {
+      OUTCOME_TRY(sector_info,
+                  sector_blocks_->getMiner()->getSectorInfo(ref.sector_number));
 
-        if(sector_info->state == SealingState::kProving){
-            piece_location = ref;
-            break;
-        }
+      if (sector_info->state == SealingState::kProving) {
+        piece_location = ref;
+        break;
+      }
     }
 
     if (!piece_location.has_value()) {

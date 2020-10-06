@@ -19,7 +19,7 @@ namespace fc::primitives {
     uint64_t min_memory;  // What Must be in RAM for decent perf
     uint64_t max_memory;  // Memory required (swap + ram)
 
-    boost::optional<uint64_t> threads;  // multithread = boost::none
+    boost::optional<int64_t> threads;  // multithread = boost::none
 
     bool can_gpu;
 

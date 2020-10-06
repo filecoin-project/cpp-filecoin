@@ -273,7 +273,6 @@ namespace fc::api {
     uint64_t partition;
   };
 
-
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
@@ -411,7 +410,7 @@ namespace fc::api {
                SectorNumber,
                const TipsetKey &);
     API_METHOD(StateSectorPreCommitInfo,
-               boost::optional<SectorPreCommitOnChainInfo>,
+               SectorPreCommitOnChainInfo,
                const Address &,
                SectorNumber,
                const TipsetKey &);

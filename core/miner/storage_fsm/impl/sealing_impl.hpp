@@ -16,6 +16,7 @@
 #include "miner/storage_fsm/sealing_events.hpp"
 #include "miner/storage_fsm/sector_stat.hpp"
 #include "primitives/stored_counter/stored_counter.hpp"
+#include "primitives/tipset/tipset_key.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 
 namespace fc::mining {
@@ -31,7 +32,9 @@ namespace fc::mining {
       fsm::FSM<SealingEvent, SealingEventContext, SealingState, SectorInfo>;
   using libp2p::protocol::Scheduler;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
+  using api::SectorPreCommitOnChainInfo;
   using primitives::Counter;
+  using primitives::tipset::TipsetKey;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
 
   struct Config {
@@ -107,6 +110,11 @@ namespace fc::mining {
     TokenAmount tryUpgradeSector(SectorPreCommitInfo &params);
 
     boost::optional<SectorNumber> maybeUpgradableSector();
+
+    outcome::result<boost::optional<SectorPreCommitOnChainInfo>>
+    getStateSectorPreCommitInfo(const Address &address,
+                                SectorNumber sector_number,
+                                const TipsetKey &tipset_key);
 
     /**
      * Creates all FSM transitions
