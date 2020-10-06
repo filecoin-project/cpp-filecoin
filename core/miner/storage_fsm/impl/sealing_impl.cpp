@@ -31,6 +31,12 @@ namespace fc::mining {
   using vm::actor::builtin::miner::maxSealDuration;
   using vm::actor::builtin::miner::ProveCommitSector;
 
+  Ticks getWaitingTime(uint64_t errors_count = 0) {
+    // TODO: Exponential backoff when we see consecutive failures
+
+    return 60000;  // 1 minute
+  }
+
   SealingImpl::SealingImpl(std::shared_ptr<Api> api,
                            std::shared_ptr<Events> events,
                            const Address &miner_address,
@@ -313,7 +319,7 @@ namespace fc::mining {
       // TODO: check get one before max or several every time
       for (size_t i = 0; i < 10; i++) {
         if (i) {
-          // TODO: wait 1 second
+          std::this_thread::sleep_for(std::chrono::seconds(1));
         }
         uint64_t best_id;
         {
@@ -1212,22 +1218,40 @@ namespace fc::mining {
 
   outcome::result<void> SealingImpl::handleSealPreCommit1Fail(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: wait some time
+    auto time = getWaitingTime();
 
-    FSM_SEND(info, SealingEvent::kSectorRetrySealPreCommit1);
+    scheduler_
+        ->schedule(time,
+                   [=] {
+                     OUTCOME_EXCEPT(fsm_->send(
+                         info, SealingEvent::kSectorRetrySealPreCommit1, {}));
+                   })
+        .detach();
     return outcome::success();
   }
 
   outcome::result<void> SealingImpl::handleSealPreCommit2Fail(
       const std::shared_ptr<SectorInfo> &info) {
-    // TODO: wait some time
+    auto time = getWaitingTime(info->precommit2_fails);
 
     if (info->precommit2_fails > 1) {
-      FSM_SEND(info, SealingEvent::kSectorRetrySealPreCommit1);
+      scheduler_
+          ->schedule(time,
+                     [=] {
+                       OUTCOME_EXCEPT(fsm_->send(
+                           info, SealingEvent::kSectorRetrySealPreCommit1, {}));
+                     })
+          .detach();
       return outcome::success();
     }
 
-    FSM_SEND(info, SealingEvent::kSectorRetrySealPreCommit2);
+    scheduler_
+        ->schedule(time,
+                   [=] {
+                     OUTCOME_EXCEPT(fsm_->send(
+                         info, SealingEvent::kSectorRetrySealPreCommit2, {}));
+                   })
+        .detach();
     return outcome::success();
   }
 
@@ -1306,9 +1330,15 @@ namespace fc::mining {
                                     // re-precommit
       }
 
-      // TODO: wait some type
+      auto time = getWaitingTime();
 
-      FSM_SEND(info, SealingEvent::kSectorRetryWaitSeed);
+      scheduler_
+          ->schedule(time,
+                     [=] {
+                       OUTCOME_EXCEPT(fsm_->send(
+                           info, SealingEvent::kSectorRetryWaitSeed, {}));
+                     })
+          .detach();
       return outcome::success();
     }
 
@@ -1317,9 +1347,15 @@ namespace fc::mining {
           "retrying precommit even though the message failed to apply");
     }
 
-    // TODO: wait some time
+    auto time = getWaitingTime();
 
-    FSM_SEND(info, SealingEvent::kSectorRetryPreCommit);
+    scheduler_
+        ->schedule(time,
+                   [=] {
+                     OUTCOME_EXCEPT(fsm_->send(
+                         info, SealingEvent::kSectorRetryPreCommit, {}));
+                   })
+        .detach();
     return outcome::success();
   }
 
@@ -1327,15 +1363,28 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     // TODO: Check sector files
 
-    // TODO: wait some time
+    auto time = getWaitingTime(info->invalid_proofs);
 
     if (info->invalid_proofs > 1) {
       logger_->error("consecutive compute fails");
-      FSM_SEND(info, SealingEvent::kSectorSealPreCommit1Failed);
+      scheduler_
+          ->schedule(
+              time,
+              [=] {
+                OUTCOME_EXCEPT(fsm_->send(
+                    info, SealingEvent::kSectorSealPreCommit1Failed, {}));
+              })
+          .detach();
       return outcome::success();
     }
 
-    FSM_SEND(info, SealingEvent::kSectorRetryComputeProof);
+    scheduler_
+        ->schedule(time,
+                   [=] {
+                     OUTCOME_EXCEPT(fsm_->send(
+                         info, SealingEvent::kSectorRetryComputeProof, {}));
+                   })
+        .detach();
     return outcome::success();
   }
 
@@ -1386,15 +1435,28 @@ namespace fc::mining {
         return outcome::success();
       }
       if (maybe_error == outcome::failure(ChecksError::kInvalidProof)) {
-        // TODO: wait some time
+        auto time = getWaitingTime();
 
         if (info->invalid_proofs > 0) {
           logger_->error("consecutive invalid proofs");
-          FSM_SEND(info, SealingEvent::kSectorSealPreCommit1Failed);
+          scheduler_
+              ->schedule(
+                  time,
+                  [=] {
+                    OUTCOME_EXCEPT(fsm_->send(
+                        info, SealingEvent::kSectorSealPreCommit1Failed, {}));
+                  })
+              .detach();
           return outcome::success();
         }
 
-        FSM_SEND(info, SealingEvent::kSectorRetryInvalidProof);
+        scheduler_
+            ->schedule(time,
+                       [=] {
+                         OUTCOME_EXCEPT(fsm_->send(
+                             info, SealingEvent::kSectorRetryInvalidProof, {}));
+                       })
+            .detach();
         return outcome::success();
       }
 
@@ -1411,8 +1473,15 @@ namespace fc::mining {
       }
 
       if (maybe_error == outcome::failure(ChecksError::kCommitWaitFail)) {
-        // TODO: wait some time
-        FSM_SEND(info, SealingEvent::kSectorRetryCommitWait);
+        auto time = getWaitingTime();
+
+        scheduler_
+            ->schedule(time,
+                       [=] {
+                         OUTCOME_EXCEPT(fsm_->send(
+                             info, SealingEvent::kSectorRetryCommitWait, {}));
+                       })
+            .detach();
         return outcome::success();
       }
 
@@ -1421,9 +1490,14 @@ namespace fc::mining {
 
     // TODO: Check sector files
 
-    // TODO: wait some time
-
-    FSM_SEND(info, SealingEvent::kSectorRetryComputeProof);
+    auto time = getWaitingTime(info->invalid_proofs);
+    scheduler_
+        ->schedule(time,
+                   [=] {
+                     OUTCOME_EXCEPT(fsm_->send(
+                         info, SealingEvent::kSectorRetryComputeProof, {}));
+                   })
+        .detach();
     return outcome::success();
   }
 
@@ -1431,9 +1505,15 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     // TODO: Check sector files
 
-    // TODO: wait some type
+    auto time = getWaitingTime();
+    scheduler_
+        ->schedule(time,
+                   [=] {
+                     OUTCOME_EXCEPT(fsm_->send(
+                         info, SealingEvent::kSectorRetryFinalize, {}));
+                   })
+        .detach();
 
-    FSM_SEND(info, SealingEvent::kSectorRetryFinalize);
     return outcome::success();
   }
 
