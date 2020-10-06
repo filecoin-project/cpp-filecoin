@@ -721,14 +721,10 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto res =
-        chain_events_
-            ->onDealSectorCommitted(
-                deal->client_deal_proposal.proposal.provider, deal->deal_id)
-            ->get_future()
-            .get();
-    FSM_HALT_ON_ERROR(res, "OnDealSectorCommitted error", deal);
-    FSM_SEND(deal, ProviderEvent::ProviderEventDealActivated);
+    chain_events_->onDealSectorCommitted(
+        deal->client_deal_proposal.proposal.provider, deal->deal_id, [=] {
+          FSM_SEND(deal, ProviderEvent::ProviderEventDealActivated);
+        });
   }
 
   void StorageProviderImpl::onProviderEventDealActivated(

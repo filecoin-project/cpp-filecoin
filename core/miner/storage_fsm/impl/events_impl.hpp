@@ -64,7 +64,7 @@ namespace fc::mining {
 
     std::shared_ptr<TipsetCache> tipset_cache_;
 
-    common::Logger logger_;
+    common::Logger logger_ = = common::createLogger("height events");
   };
 
 }  // namespace fc::mining

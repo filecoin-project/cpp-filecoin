@@ -946,6 +946,9 @@ namespace fc::mining {
     auto random_height = precommit_info->precommit_epoch
                          + vm::actor::builtin::miner::kPreCommitChallengeDelay;
 
+    logger_->info("handleWaitSeed chainAt {} {}",
+                  random_height,
+                  types::kInteractivePoRepConfidence);
     auto maybe_error = events_->chainAt(
         [=](const Tipset &,
             ChainEpoch current_height) -> outcome::result<void> {
@@ -1101,8 +1104,8 @@ namespace fc::mining {
 
     // TODO: check seed / ticket are up to date
     auto maybe_signed_msg = api_->MpoolPushMessage(vm::message::UnsignedMessage(
-        worker_addr,
         miner_address_,
+        worker_addr,
         0,
         collateral,
         1,
@@ -1137,39 +1140,42 @@ namespace fc::mining {
 
     OUTCOME_TRY(channel, api_->StateWaitMsg(info->message.get()));
 
-    auto maybe_message_lookup = channel.waitSync();
+    channel.wait([=](auto &&maybe_message_lookup) {
+      if (maybe_message_lookup.has_error()) {
+        logger_->error("failed to wait for porep inclusion: {}",
+                       maybe_message_lookup.error().message());
+        OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
+        return;
+      }
 
-    if (maybe_message_lookup.has_error()) {
-      logger_->error("failed to wait for porep inclusion: {}",
-                     maybe_message_lookup.error().message());
-      FSM_SEND(info, SealingEvent::kSectorCommitFailed);
-      return outcome::success();
-    }
+      if (maybe_message_lookup.value().receipt.exit_code
+          != vm::VMExitCode::kOk) {
+        logger_->error(
+            "submitting sector proof failed with code {}, message cid: {}",
+            maybe_message_lookup.value().receipt.exit_code,
+            info->message.get());
+        OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
+        return;
+      }
 
-    if (maybe_message_lookup.value().receipt.exit_code != vm::VMExitCode::kOk) {
-      logger_->error(
-          "submitting sector proof failed with code {}, message cid: {}",
-          maybe_message_lookup.value().receipt.exit_code,
-          info->message.get());
-      FSM_SEND(info, SealingEvent::kSectorCommitFailed);
-      return outcome::success();
-    }
+      auto maybe_error =
+          api_->StateSectorGetInfo(miner_address_,
+                                   info->sector_number,
+                                   maybe_message_lookup.value().tipset);
 
-    auto maybe_error =
-        api_->StateSectorGetInfo(miner_address_,
-                                 info->sector_number,
-                                 maybe_message_lookup.value().tipset);
+      if (maybe_error.has_error()) {
+        logger_->error(
+            "proof validation failed, sector not found in sector set after "
+            "cron: "
+            "{}",
+            maybe_error.error().message());
+        OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorCommitFailed, {}));
+        return;
+      }
 
-    if (maybe_error.has_error()) {
-      logger_->error(
-          "proof validation failed, sector not found in sector set after cron: "
-          "{}",
-          maybe_error.error().message());
-      FSM_SEND(info, SealingEvent::kSectorCommitFailed);
-      return outcome::success();
-    }
+      OUTCOME_EXCEPT(fsm_->send(info, SealingEvent::kSectorProving, {}));
+    });
 
-    FSM_SEND(info, SealingEvent::kSectorProving);
     return outcome::success();
   }
 

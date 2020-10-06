@@ -114,7 +114,7 @@ namespace fc::api {
 
     outcome::result<Address> accountKey(const Address &id) {
       // TODO(turuslan): error if not account
-      OUTCOME_EXCEPT(state, state_tree.state<AccountActorState>(id));
+      OUTCOME_TRY(state, state_tree.state<AccountActorState>(id));
       return state.address;
     }
   };
@@ -748,8 +748,9 @@ namespace fc::api {
                                    auto sector_number,
                                    auto tipset_key)
                                    -> outcome::result<SectorOnChainInfo> {
-          // TODO(artyom-yurin): FIL-165 implement method
-          return outcome::success();
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.minerState(address));
+          return state.sectors.get(sector_number);
         }},
         .StateSectorPartition = {[=](auto address,
                                      auto sector_number,

@@ -572,7 +572,7 @@ namespace fc::markets::storage::client {
         return;
       }
       deal->publish_message = response.value().response.publish_message;
-      closeStreamGracefully(stream, self->logger_);
+      self->finalizeDeal(deal);
       SELF_FSM_SEND(deal, ClientEvent::ClientEventDealAccepted);
     });
   }
