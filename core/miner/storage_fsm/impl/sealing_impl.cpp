@@ -230,7 +230,68 @@ namespace fc::mining {
   }
 
   outcome::result<void> SealingImpl::pledgeSector() {
-    // TODO: Implement me
+    if (config_.max_sealing_sectors > 0
+        && stat_->currentSealing() > config_.max_sealing_sectors) {
+      return outcome::success();  // cur sealing
+    }
+
+    scheduler_
+        ->schedule([self{shared_from_this()}] {
+          UnpaddedPieceSize size =
+              PaddedPieceSize(self->sealer_->getSectorSize()).unpadded();
+
+          auto maybe_sid = self->counter_->next();
+          if (maybe_sid.has_error()) {
+            self->logger_->error(maybe_sid.error().message());
+            return;
+          }
+          auto &sid{maybe_sid.value()};
+
+          std::vector<UnpaddedPieceSize> sizes = {size};
+          auto maybe_pieces =
+              self->pledgeSector(self->minerSector(sid), {}, sizes);
+          if (maybe_pieces.has_error()) {
+            self->logger_->error(maybe_pieces.error().message());
+            return;
+          }
+
+          std::vector<Piece> pieces;
+          for (auto &piece : maybe_pieces.value()) {
+            pieces.push_back(Piece{
+                .piece = std::move(piece),
+                .deal_info = boost::none,
+            });
+          }
+
+          auto maybe_error = self->newSectorWithPieces(sid, pieces);
+          if (maybe_error.has_error()) {
+            self->logger_->error(maybe_error.error().message());
+          }
+        })
+        .detach();
+
+    return outcome::success();
+  }
+
+  outcome::result<void> SealingImpl::newSectorWithPieces(
+      SectorNumber sector_id, std::vector<Piece> &pieces) {
+    OUTCOME_TRY(seal_proof_type,
+                primitives::sector::sealProofTypeFromSectorSize(
+                    sealer_->getSectorSize()));
+
+    logger_->info("Creating sector with pieces {}", sector_id);
+    auto sector = std::make_shared<SectorInfo>();
+    OUTCOME_TRY(fsm_->begin(sector, SealingState::kStateUnknown));
+    {
+      std::lock_guard lock(sectors_mutex_);
+      sectors_[sector_id] = sector;
+    }
+    std::shared_ptr<SectorStartWithPiecesContext> context =
+        std::make_shared<SectorStartWithPiecesContext>();
+    context->sector_id = sector_id;
+    context->seal_proof_type = seal_proof_type;
+    context->pieces = std::move(pieces);
+    FSM_SEND_CONTEXT(sector, SealingEvent::kSectorStartWithPieces, context);
     return outcome::success();
   }
 
@@ -686,7 +747,7 @@ namespace fc::mining {
   outcome::result<std::vector<PieceInfo>> SealingImpl::pledgeSector(
       SectorId sector,
       std::vector<UnpaddedPieceSize> existing_piece_sizes,
-      gsl::span<const UnpaddedPieceSize> sizes) {
+      gsl::span<UnpaddedPieceSize> sizes) {
     if (sizes.empty()) {
       return outcome::success();
     }

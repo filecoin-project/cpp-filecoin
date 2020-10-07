@@ -50,7 +50,8 @@ namespace fc::mining {
     uint64_t wait_deals_delay;  // in milliseconds
   };
 
-  class SealingImpl : public Sealing {
+  class SealingImpl : public Sealing,
+                      public std::enable_shared_from_this<SealingImpl> {
    public:
     SealingImpl(std::shared_ptr<Api> api,
                 std::shared_ptr<Events> events,
@@ -251,7 +252,10 @@ namespace fc::mining {
     outcome::result<std::vector<PieceInfo>> pledgeSector(
         SectorId sector,
         std::vector<UnpaddedPieceSize> existing_piece_sizes,
-        gsl::span<const UnpaddedPieceSize> sizes);
+        gsl::span<UnpaddedPieceSize> sizes);
+
+    outcome::result<void> newSectorWithPieces(
+        SectorNumber sector_id, std::vector<types::Piece> &pieces);
 
     SectorId minerSector(SectorNumber num);
 
