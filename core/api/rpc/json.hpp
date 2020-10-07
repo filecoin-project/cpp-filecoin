@@ -178,6 +178,13 @@ namespace fc::api {
       v = j.GetUint64();
     }
 
+    DECODE(double) {
+      if (!j.IsDouble()) {
+        outcome::raise(JsonError::kWrongType);
+      }
+      v = j.GetDouble();
+    }
+
     DECODE(bool) {
       if (!j.IsBool()) {
         outcome::raise(JsonError::kWrongType);
@@ -689,7 +696,7 @@ namespace fc::api {
 
     ENCODE(SectorPreCommitInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "SealProof", common::to_int(v.registered_proof));
       Set(j, "SectorNumber", v.sector);
       Set(j, "SealedCID", v.sealed_cid);
       Set(j, "SealRandEpoch", v.seal_epoch);
@@ -699,7 +706,7 @@ namespace fc::api {
     }
 
     DECODE(SectorPreCommitInfo) {
-      decodeEnum(v.registered_proof, Get(j, "RegisteredProof"));
+      decodeEnum(v.registered_proof, Get(j, "SealProof"));
       decode(v.sector, Get(j, "SectorNumber"));
       decode(v.sealed_cid, Get(j, "SealedCID"));
       decode(v.seal_epoch, Get(j, "SealRandEpoch"));

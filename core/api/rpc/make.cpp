@@ -98,6 +98,7 @@ namespace fc::api {
     setup(rpc, api.MinerGetBaseInfo);
     setup(rpc, api.MpoolPending);
     setup(rpc, api.MpoolPushMessage);
+    setup(rpc, api.MpoolSelect);
     setup(rpc, api.MpoolSub);
     setup(rpc, api.NetAddrsListen);
     setup(rpc, api.StateAccountKey);

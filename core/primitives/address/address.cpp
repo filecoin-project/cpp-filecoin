@@ -42,6 +42,13 @@ namespace fc::primitives::address {
         [](const auto &) { return false; });
   }
 
+  bool Address::isBls() const {
+    return visit_in_place(
+        data,
+        [](const BLSPublicKeyHash &v) { return true; },
+        [](const auto &) { return false; });
+  }
+
   Protocol Address::getProtocol() const {
     return visit_in_place(
         data,
