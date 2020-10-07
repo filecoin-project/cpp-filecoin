@@ -104,7 +104,7 @@ namespace fc::mining {
   }
 
   void SealingImpl::stop() {
-    // TODO: log it
+    logger_->info("Sealing is stopped");
     fsm_->stop();
   }
 
@@ -349,15 +349,16 @@ namespace fc::mining {
         }
         auto maybe_error = startPacking(best_id);
         if (maybe_error.has_error()) {
-          // TODO: log it
+          logger_->error("newDealSector StartPacking error: {}",
+                         maybe_error.error().message());
         }
       }
     }
 
-    // TODO: log it
     OUTCOME_TRY(sector_id, counter_->next());
 
     auto sector = std::make_shared<SectorInfo>();
+    logger_->info("Creating sector {}", sector_id);
     OUTCOME_TRY(fsm_->begin(sector, SealingState::kStateUnknown));
     {
       std::lock_guard lock(sectors_mutex_);
@@ -883,7 +884,9 @@ namespace fc::mining {
       if (params.replace_capacity) {
         maybe_error = markForUpgrade(params.replace_sector);
         if (maybe_error.has_error()) {
-          // TODO: log it
+          logger_->error("error re-marking sector {} as for upgrade: {}",
+                         info->sector_number,
+                         maybe_error.error().message());
         }
       }
       logger_->error("pushing message to mpool: {}",
@@ -1560,7 +1563,9 @@ namespace fc::mining {
       auto maybe_location = api_->StateSectorPartition(
           miner_address_, *replace, api::TipsetKey());
       if (maybe_location.has_error()) {
-        // TODO: log it
+        logger_->error(
+            "error calling StateSectorPartition for replaced sector: {}",
+            maybe_location.error().message());
         return 0;
       }
 
@@ -1572,7 +1577,9 @@ namespace fc::mining {
       auto maybe_replace_info =
           api_->StateSectorGetInfo(miner_address_, *replace, api::TipsetKey());
       if (maybe_replace_info.has_error()) {
-        // TODO: log it
+        logger_->error(
+            "error calling StateSectorGetInfo for replaced sector: {}",
+            maybe_replace_info.error().message());
         return 0;
       }
 
