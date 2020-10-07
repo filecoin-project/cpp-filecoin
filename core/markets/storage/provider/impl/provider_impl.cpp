@@ -434,7 +434,7 @@ namespace fc::markets::storage::provider {
     }
 
     if (!piece_location.has_value()) {
-      return outcome::success();  // TODO: error
+      return StorageProviderError::kNotFoundSector;
     }
 
     return std::move(piece_location.get());

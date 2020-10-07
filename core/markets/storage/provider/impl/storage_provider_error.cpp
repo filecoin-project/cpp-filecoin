@@ -14,6 +14,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider,
       return "StorageProviderError: cannot start provider";
     case E::kStreamLookupError:
       return "StorageProviderError: stream lookup error";
+    case E::kNotFoundSector:
+      return "StorageProviderError: no sealed sector found";
     default:
       return "StorageProviderError: unknown error";
   }

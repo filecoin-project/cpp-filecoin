@@ -32,6 +32,13 @@ namespace fc::sectorblocks {
 
     virtual std::shared_ptr<Miner> getMiner() const = 0;
   };
+
+    enum class Error {
+        kNotFound = 1,
+    };
+
 }  // namespace fc::sectorblocks
+
+OUTCOME_HPP_DECLARE_ERROR(fc::sectorblocks, Error);
 
 #endif  // CPP_FILECOIN_CORE_SECTORBLOCKS_BLOCKS_HPP

@@ -77,6 +77,11 @@ namespace fc::miner {
     return sealing_->getSectorInfo(sector_id);
   }
 
+  outcome::result<PieceAttributes> Miner::addPieceToAnySector(
+      UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) {
+    return sealing_->addPieceToAnySector(size, piece_data, deal);
+  }
+
   outcome::result<void> Miner::runPreflightChecks() {
     OUTCOME_TRY(has, api_->WalletHas(worker_address_));
     if (!has) {

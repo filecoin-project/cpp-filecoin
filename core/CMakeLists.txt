@@ -23,6 +23,7 @@ add_subdirectory(power)
 add_subdirectory(primitives)
 add_subdirectory(proofs)
 add_subdirectory(sector_storage)
+add_subdirectory(sectorblocks)
 add_subdirectory(storage)
 add_subdirectory(vm)
 

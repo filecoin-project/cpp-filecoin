@@ -18,11 +18,15 @@
 
 namespace fc::miner {
   using api::Api;
+  using mining::DealInfo;
+  using mining::PieceAttributes;
   using mining::Sealing;
   using mining::types::SectorInfo;
   using primitives::Counter;
   using primitives::SectorNumber;
   using primitives::address::Address;
+  using primitives::piece::PieceData;
+  using primitives::piece::UnpaddedPieceSize;
   using sector_storage::Manager;
 
   class Miner {
@@ -40,6 +44,9 @@ namespace fc::miner {
 
     outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
         SectorNumber sector_id) const;
+
+    outcome::result<PieceAttributes> addPieceToAnySector(
+        UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal);
 
    private:
     /**
