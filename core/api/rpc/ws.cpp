@@ -72,7 +72,9 @@ namespace fc::api {
       }
       auto &req = maybe_req.value();
       auto respond = [id{req.id}, self{shared_from_this()}](auto res) {
-        self->_write(Response{id, std::move(res)}, {});
+        if (id) {
+          self->_write(Response{*id, std::move(res)}, {});
+        }
       };
       auto it = rpc.ms.find(req.method);
       if (it == rpc.ms.end() || !it->second) {
