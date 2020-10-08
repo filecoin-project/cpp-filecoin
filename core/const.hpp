@@ -14,8 +14,10 @@ namespace fc {
   constexpr auto kBlockGasLimit{10000000000};
   constexpr auto kBlockGasTarget{kBlockGasLimit / 2};
   constexpr auto kBlockMessageLimit{10000};
+  constexpr auto kBlocksPerEpoch{5};
   constexpr auto kConsensusMinerMinMiners{3};
   constexpr auto kEpochDurationSeconds{30};
+  constexpr auto kGasLimitOverestimation{1.25};
   constexpr auto kMinimumBaseFee{100};
   constexpr auto kBlockDelaySecs{kEpochDurationSeconds};
   constexpr auto kPackingEfficiencyDenom{5};

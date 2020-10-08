@@ -13,7 +13,7 @@ namespace boost::asio {
 }  // namespace boost::asio
 
 namespace fc::api {
-  void serve(Api api,
+  void serve(std::shared_ptr<Api> api,
              boost::asio::io_context &ioc,
              std::string_view ip,
              unsigned short port);

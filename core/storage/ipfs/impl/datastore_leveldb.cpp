@@ -20,7 +20,7 @@ namespace fc::storage::ipfs {
     }
   }  // namespace
 
-  LeveldbDatastore::LeveldbDatastore(std::shared_ptr<LevelDB> leveldb)
+  LeveldbDatastore::LeveldbDatastore(std::shared_ptr<BufferMap> leveldb)
       : leveldb_{std::move(leveldb)} {
     BOOST_ASSERT_MSG(leveldb_ != nullptr, "leveldb argument is nullptr");
   }

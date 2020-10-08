@@ -135,7 +135,7 @@ namespace fc::api {
   };
 
   struct Server : std::enable_shared_from_this<Server> {
-    Server(tcp::acceptor &&acceptor, Api api)
+    Server(tcp::acceptor &&acceptor, std::shared_ptr<Api> api)
         : acceptor{std::move(acceptor)}, api{api} {}
 
     void run() {
@@ -147,16 +147,16 @@ namespace fc::api {
         if (ec) {
           return;
         }
-        std::make_shared<ServerSession>(std::move(socket), self->api)->run();
+        std::make_shared<ServerSession>(std::move(socket), *self->api)->run();
         self->doAccept();
       });
     }
 
     tcp::acceptor acceptor;
-    Api api;
+    std::shared_ptr<Api> api;
   };
 
-  void serve(Api api,
+  void serve(std::shared_ptr<Api> api,
              boost::asio::io_context &ioc,
              std::string_view ip,
              unsigned short port) {

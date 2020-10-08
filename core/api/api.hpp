@@ -113,6 +113,7 @@ namespace fc::api {
     using Type = T;
     using Result = outcome::result<T>;
 
+    Wait() = default;
     Wait(std::shared_ptr<Channel<Result>> channel)
         : channel{std::move(channel)} {}
 
@@ -273,7 +274,6 @@ namespace fc::api {
     uint64_t partition;
   };
 
-
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
@@ -346,6 +346,10 @@ namespace fc::api {
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
     API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &)
+    API_METHOD(MpoolSelect,
+               std::vector<SignedMessage>,
+               const TipsetKey &,
+               double)
     API_METHOD(MpoolSub, Chan<MpoolUpdate>)
 
     API_METHOD(NetAddrsListen, PeerInfo)
