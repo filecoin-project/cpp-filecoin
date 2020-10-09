@@ -5,6 +5,7 @@
 
 #include "api/rpc/make.hpp"
 #include "api/rpc/json.hpp"
+#include "api/visit.hpp"
 
 namespace fc::api {
   template <typename M>
@@ -45,21 +46,21 @@ namespace fc::api {
               respond(api::encode(result));
             }
             if constexpr (is_chan<Result>{}) {
-              result.channel->read([send{std::move(send)},
-                                    chan{result}](auto opt) {
-                if (opt) {
-                  send("xrpc.ch.val",
-                       encode(std::make_tuple(chan.id, std::move(*opt))),
-                       [chan](auto ok) {
-                         if (!ok) {
-                           chan.channel->closeRead();
-                         }
-                       });
-                } else {
-                  send("xrpc.ch.close", encode(std::make_tuple(chan.id)), {});
-                }
-                return true;
-              });
+              result.channel->read(
+                  [send{std::move(send)}, chan{result}](auto opt) {
+                    if (opt) {
+                      send(kRpcChVal,
+                           encode(std::make_tuple(chan.id, std::move(*opt))),
+                           [chan](auto ok) {
+                             if (!ok) {
+                               chan.channel->closeRead();
+                             }
+                           });
+                    } else {
+                      send(kRpcChClose, encode(std::make_tuple(chan.id)), {});
+                    }
+                    return true;
+                  });
             }
             return;
           }
@@ -68,81 +69,6 @@ namespace fc::api {
   }
 
   void setupRpc(Rpc &rpc, const Api &api) {
-    setup(rpc, api.AuthNew);
-    setup(rpc, api.BeaconGetEntry);
-    setup(rpc, api.ChainGetBlock);
-    setup(rpc, api.ChainGetBlockMessages);
-    setup(rpc, api.ChainGetGenesis);
-    setup(rpc, api.ChainGetNode);
-    setup(rpc, api.ChainGetMessage);
-    setup(rpc, api.ChainGetParentMessages);
-    setup(rpc, api.ChainGetParentReceipts);
-    setup(rpc, api.ChainGetRandomnessFromBeacon);
-    setup(rpc, api.ChainGetRandomnessFromTickets);
-    setup(rpc, api.ChainGetTipSet);
-    setup(rpc, api.ChainGetTipSetByHeight);
-    setup(rpc, api.ChainHead);
-    setup(rpc, api.ChainNotify);
-    setup(rpc, api.ChainReadObj);
-    setup(rpc, api.ChainSetHead);
-    setup(rpc, api.ChainTipSetWeight);
-    setup(rpc, api.ClientFindData);
-    setup(rpc, api.ClientHasLocal);
-    setup(rpc, api.ClientImport);
-    setup(rpc, api.ClientListImports);
-    setup(rpc, api.ClientQueryAsk);
-    setup(rpc, api.ClientRetrieve);
-    setup(rpc, api.ClientStartDeal);
-    setup(rpc, api.MarketEnsureAvailable);
-    setup(rpc, api.MinerCreateBlock);
-    setup(rpc, api.MinerGetBaseInfo);
-    setup(rpc, api.MpoolPending);
-    setup(rpc, api.MpoolPushMessage);
-    setup(rpc, api.MpoolSelect);
-    setup(rpc, api.MpoolSub);
-    setup(rpc, api.NetAddrsListen);
-    setup(rpc, api.StateAccountKey);
-    setup(rpc, api.StateCall);
-    setup(rpc, api.StateListMessages);
-    setup(rpc, api.StateGetActor);
-    setup(rpc, api.StateReadState);
-    setup(rpc, api.StateGetReceipt);
-    setup(rpc, api.StateListMiners);
-    setup(rpc, api.StateListActors);
-    setup(rpc, api.StateMarketBalance);
-    setup(rpc, api.StateMarketDeals);
-    setup(rpc, api.StateLookupID);
-    setup(rpc, api.StateMarketStorageDeal);
-    setup(rpc, api.StateMinerDeadlines);
-    setup(rpc, api.StateMinerFaults);
-    setup(rpc, api.StateMinerInfo);
-    setup(rpc, api.StateMinerPartitions);
-    setup(rpc, api.StateMinerPower);
-    setup(rpc, api.StateMinerProvingDeadline);
-    setup(rpc, api.StateMinerSectors);
-    setup(rpc, api.StateMinerSectorSize);
-    setup(rpc, api.StateMinerWorker);
-    setup(rpc, api.StateNetworkName);
-    setup(rpc, api.StateMinerPreCommitDepositForPower);
-    setup(rpc, api.StateMinerInitialPledgeCollateral);
-    setup(rpc, api.StateSectorPreCommitInfo);
-    setup(rpc, api.StateSectorGetInfo);
-    setup(rpc, api.StateSectorPartition);
-    setup(rpc, api.StateSearchMsg);
-    setup(rpc, api.StateWaitMsg);
-    setup(rpc, api.SyncSubmitBlock);
-    setup(rpc, api.Version);
-    setup(rpc, api.WalletBalance);
-    setup(rpc, api.WalletDefaultAddress);
-    setup(rpc, api.WalletHas);
-    setup(rpc, api.WalletImport);
-    setup(rpc, api.WalletSign);
-    setup(rpc, api.WalletVerify);
-
-    setup(rpc, api.PaychAllocateLane);
-    setup(rpc, api.PaychGet);
-    setup(rpc, api.PaychVoucherAdd);
-    setup(rpc, api.PaychVoucherCheckValid);
-    setup(rpc, api.PaychVoucherCreate);
+    visit(api, [&](auto &m) { setup(rpc, m); });
   }
 }  // namespace fc::api

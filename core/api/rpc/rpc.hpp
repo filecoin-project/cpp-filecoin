@@ -9,6 +9,7 @@
 #include <map>
 
 #include <rapidjson/document.h>
+#include <boost/variant.hpp>
 
 #include "common/outcome.hpp"
 
@@ -16,7 +17,7 @@ namespace fc::api {
   using rapidjson::Document;
 
   struct Request {
-    uint64_t id;
+    boost::optional<uint64_t> id;
     std::string method;
     Document params;
   };
@@ -33,6 +34,9 @@ namespace fc::api {
 
   constexpr auto kInvalidParams = INT64_C(-32602);
   constexpr auto kInternalError = INT64_C(-32603);
+
+  constexpr auto kRpcChVal{"xrpc.ch.val"};
+  constexpr auto kRpcChClose{"xrpc.ch.close"};
 }  // namespace fc::api
 
 namespace fc::api::rpc {
