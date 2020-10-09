@@ -22,4 +22,5 @@ target_link_libraries(storage_market_test
     storage_market_client
     storage_market_provider
     keystore
+    api_ipfs_datastore
     )

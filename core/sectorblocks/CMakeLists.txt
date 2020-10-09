@@ -10,6 +10,6 @@ add_library(sectorblocks
 target_link_libraries(sectorblocks
         outcome
         miner
-        pieces
+        piece
         logger
         )

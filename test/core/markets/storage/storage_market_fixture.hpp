@@ -11,7 +11,6 @@
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/security/plaintext.hpp>
 #include "api/api.hpp"
-#include "api/miner_api.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
@@ -26,12 +25,13 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/markets/storage/chain_events/chain_events_mock.hpp"
+#include "testutil/mocks/miner/miner_mock.hpp"
+#include "testutil/mocks/sectorblocks/blocks_mock.hpp"
 
 namespace fc::markets::storage::test {
   using adt::Channel;
   using api::Api;
   using api::MarketBalance;
-  using api::MinerApi;
   using api::MsgWait;
   using api::PieceLocation;
   using api::Wait;
@@ -56,6 +56,8 @@ namespace fc::markets::storage::test {
   using libp2p::crypto::PrivateKey;
   using libp2p::crypto::PublicKey;
   using libp2p::multi::Multiaddress;
+  using miner::MinerMock;
+  using miner::PieceAttributes;
   using pieceio::PieceIO;
   using pieceio::PieceIOImpl;
   using primitives::GasAmount;
@@ -65,6 +67,7 @@ namespace fc::markets::storage::test {
   using provider::Datastore;
   using provider::StorageProvider;
   using provider::StorageProviderImpl;
+  using sectorblocks::SectorBlocksMock;
   using vm::VMExitCode;
   using vm::actor::builtin::market::PublishStorageDeals;
   using vm::actor::builtin::miner::MinerInfo;
@@ -72,6 +75,7 @@ namespace fc::markets::storage::test {
   using vm::message::UnsignedMessage;
   using vm::runtime::MessageReceipt;
   using BlsKeyPair = fc::crypto::bls::KeyPair;
+  using testing::_;
 
   /** Shared resources */
   static std::shared_ptr<libp2p::Host> host;
@@ -144,7 +148,25 @@ namespace fc::markets::storage::test {
                              bls_provider,
                              account_keys,
                              private_keys);
-      auto miner_api = makeMinerApi();
+      std::shared_ptr<SectorBlocksMock> sector_blocks =
+          std::make_shared<SectorBlocksMock>();
+
+      EXPECT_CALL(*sector_blocks, addPiece(_, _, _))
+          .WillRepeatedly(testing::Return(outcome::success(PieceAttributes{})));
+
+      EXPECT_CALL(*sector_blocks, getRefs(_))
+          .WillRepeatedly(testing::Return(
+              outcome::success(std::vector({PieceLocation{}}))));
+
+      std::shared_ptr<MinerMock> miner = std::make_shared<MinerMock>();
+      std::shared_ptr<mining::types::SectorInfo> state =
+          std::make_shared<mining::types::SectorInfo>();
+      state->state = mining::SealingState::kProving;
+      EXPECT_CALL(*miner, getSectorInfo(_))
+          .WillRepeatedly(testing::Return(outcome::success(state)));
+
+      EXPECT_CALL(*sector_blocks, getMiner())
+          .WillRepeatedly(testing::Return(miner));
 
       provider = makeProvider(*provider_multiaddress,
                               registered_proof,
@@ -155,7 +177,7 @@ namespace fc::markets::storage::test {
                               host,
                               context_,
                               node_api,
-                              miner_api,
+                              sector_blocks,
                               chain_events_,
                               miner_actor_address);
       OUTCOME_EXCEPT(provider->start());
@@ -330,22 +352,6 @@ namespace fc::markets::storage::test {
       return api;
     }
 
-    /**
-     * Makes miner API
-     * @return
-     */
-    std::shared_ptr<MinerApi> makeMinerApi() {
-      std::shared_ptr<MinerApi> miner_api = std::make_shared<MinerApi>();
-
-      miner_api->LocatePieceForDealWithinSector = {
-          [](auto &deal_id,
-             auto &tipset_key) -> outcome::result<PieceLocation> {
-            return PieceLocation{};
-          }};
-
-      return miner_api;
-    }
-
     std::shared_ptr<StorageProviderImpl> makeProvider(
         const Multiaddress &provider_multiaddress,
         const RegisteredProof &registered_proof,
@@ -356,7 +362,7 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<libp2p::Host> &provider_host,
         const std::shared_ptr<boost::asio::io_context> &context,
         const std::shared_ptr<Api> &api,
-        const std::shared_ptr<MinerApi> &miner_api,
+        const std::shared_ptr<SectorBlocksMock> &sector_blocks,
         const std::shared_ptr<ChainEventsMock> &chain_events,
         const Address &miner_actor_address) {
       std::shared_ptr<FileStore> filestore =
@@ -368,7 +374,7 @@ namespace fc::markets::storage::test {
                                                 context,
                                                 datastore,
                                                 api,
-                                                miner_api,
+                                                sector_blocks,
                                                 chain_events,
                                                 miner_actor_address,
                                                 piece_io_,

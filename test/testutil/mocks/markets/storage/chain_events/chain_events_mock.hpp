@@ -14,9 +14,8 @@ namespace fc::markets::storage::chain_events {
 
   class ChainEventsMock : public ChainEvents {
    public:
-    MOCK_METHOD2(onDealSectorCommitted,
-                 std::shared_ptr<PromiseResult>(const Address &,
-                                                const DealId &));
+    MOCK_METHOD3(onDealSectorCommitted,
+                 void(const Address &, const DealId &, Cb));
   };
 
 }  // namespace fc::markets::storage::chain_events

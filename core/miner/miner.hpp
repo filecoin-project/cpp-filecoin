@@ -6,62 +6,30 @@
 #ifndef CPP_FILECOIN_MINER_MINER_HPP
 #define CPP_FILECOIN_MINER_MINER_HPP
 
-#include <boost/asio.hpp>
-
-#include "api/api.hpp"
-#include "common/outcome.hpp"
-#include "miner/storage_fsm/sealing.hpp"
-#include "primitives/address/address.hpp"
-#include "primitives/stored_counter/stored_counter.hpp"
-#include "sector_storage/manager.hpp"
-#include "storage/chain/chain_store.hpp"
+#include "primitives/types.hpp"
+#include "miner/storage_fsm/types.hpp"
 
 namespace fc::miner {
-  using api::Api;
-  using mining::DealInfo;
-  using mining::PieceAttributes;
-  using mining::Sealing;
+  using mining::types::DealInfo;
+  using mining::types::PieceAttributes;
   using mining::types::SectorInfo;
-  using primitives::Counter;
   using primitives::SectorNumber;
-  using primitives::address::Address;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedPieceSize;
-  using sector_storage::Manager;
 
   class Miner {
    public:
-    Miner(std::shared_ptr<Api> api,
-          Address miner_address,
-          Address worker_address,
-          std::shared_ptr<Counter> counter,
-          std::shared_ptr<Manager> sector_manager,
-          std::shared_ptr<boost::asio::io_context> context);
+    virtual ~Miner() = default;
 
-    outcome::result<void> run();
+    virtual outcome::result<void> run() = 0;
 
-    void stop();
+    virtual void stop() = 0;
 
-    outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
-        SectorNumber sector_id) const;
+    virtual outcome::result<std::shared_ptr<SectorInfo>> getSectorInfo(
+        SectorNumber sector_id) const = 0;
 
-    outcome::result<PieceAttributes> addPieceToAnySector(
-        UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal);
-
-   private:
-    /**
-     * Checks miner worker address
-     * @return error if worker address is incorrect
-     */
-    outcome::result<void> runPreflightChecks();
-
-    std::shared_ptr<Api> api_;
-    Address miner_address_;
-    Address worker_address_;
-    std::shared_ptr<Sealing> sealing_;
-    std::shared_ptr<Counter> counter_;
-    std::shared_ptr<Manager> sector_manager_;
-    std::shared_ptr<boost::asio::io_context> context_;
+    virtual outcome::result<PieceAttributes> addPieceToAnySector(
+        UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) = 0;
   };
 
   enum class MinerError {

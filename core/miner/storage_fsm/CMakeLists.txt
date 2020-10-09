@@ -51,4 +51,5 @@ target_link_libraries(storage_fsm
         stored_counter
         api_ipfs_datastore
         zerocomm
+        sector_file
         )

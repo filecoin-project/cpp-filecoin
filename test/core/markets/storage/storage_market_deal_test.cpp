@@ -3,7 +3,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include <future>
 #include "storage_market_fixture.hpp"
 #include "testutil/outcome.hpp"
 #include "testutil/read_file.hpp"
@@ -18,10 +17,8 @@ namespace fc::markets::storage::test {
    * @then deal activated
    */
   TEST_F(StorageMarketTest, Deal) {
-    auto promise = std::make_shared<std::promise<outcome::result<void>>>();
-    promise->set_value(outcome::success());
-    EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _))
-        .WillOnce(testing::Return(promise));
+    EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _, _))
+        .WillOnce(testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
 
     CID root_cid = "010001020001"_cid;
     auto data = readFile(CAR_FROM_PAYLOAD_FILE);
@@ -101,10 +98,8 @@ namespace fc::markets::storage::test {
    * @then when funding completed, proposal sent and deal activated
    */
   TEST_F(StorageMarketTest, WaitFundingDeal) {
-    auto promise = std::make_shared<std::promise<outcome::result<void>>>();
-    promise->set_value(outcome::success());
-    EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _))
-        .WillOnce(testing::Return(promise));
+    EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _, _))
+        .WillOnce(testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
 
     // some unique valid CID of funding message
     CID client_funding_cid = "010001020002"_cid;
