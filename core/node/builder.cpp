@@ -194,7 +194,7 @@ namespace fc::node {
     log()->debug("Creating host...");
 
     // config.gossip_config.protocol_version = "/floodsub/1.0.0";
-    // config.gossip_config.D = 2;
+    config.gossip_config.D_max = config.gossip_config.D_min = 0;
 
     auto injector = libp2p::injector::makeGossipInjector<
         boost::di::extension::shared_config>(

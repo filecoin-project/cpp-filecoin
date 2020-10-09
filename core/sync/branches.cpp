@@ -209,7 +209,7 @@ namespace fc::sync {
     assert(pos.old_id != kNoBranch);
     assert(pos.new_id != kNoBranch);
     assert(pos.new_id != pos.old_id);
-    assert(pos.above_height > 0);
+    assert(pos.above_height >= 0);
     assert(all_branches_.count(pos.new_id) == 0);
 
     auto parent = getBranch(pos.old_id);

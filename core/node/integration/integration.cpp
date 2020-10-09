@@ -5,6 +5,7 @@
 
 #include <libp2p/host/host.hpp>
 
+#include "blockchain/impl/weight_calculator_impl.hpp"
 #include "common/logger.hpp"
 #include "node/builder.hpp"
 #include "sync/chain_db.hpp"
@@ -17,6 +18,8 @@
 #include "sync/pubsub_gate.hpp"
 
 #include "storage/car/car.hpp"
+
+#include "crypto/blake2/blake2b160.hpp"
 
 namespace fc {
 
@@ -36,8 +39,8 @@ namespace fc {
       return v;
     }
 
-    bool checkEnvOption(const char* env_var) {
-      const char* value = std::getenv(env_var);
+    bool checkEnvOption(const char *env_var) {
+      const char *value = std::getenv(env_var);
       if (value == nullptr) {
         return false;
       }
@@ -45,45 +48,6 @@ namespace fc {
     }
 
   }  // namespace
-
-  struct PubsubCtx {
-    node::NodeObjects &o;
-    std::string network_name;
-    std::shared_ptr<sync::PubSubGate> pubsub;
-    sync::PubSubGate::connection_t blocks_subscr;
-    sync::PubSubGate::connection_t msg_subscr;
-
-    PubsubCtx(node::NodeObjects &objects, const std::string &nname)
-        : o(objects),
-          network_name(std::move(nname)),
-          pubsub(std::make_shared<sync::PubSubGate>(o.utc_clock, o.gossip)) {}
-
-    void start() {
-      pubsub->start(network_name, "X");
-      blocks_subscr =
-          pubsub->subscribeToBlocks([](const sync::PeerId &from,
-                                       const CID &block_cid,
-                                       const sync::BlockWithCids &msg) {
-            log()->info("New block from {}, cid={}, height={}",
-                        from.toBase58(),
-                        block_cid.toString().value(),
-                        msg.header.height);
-          });
-
-      msg_subscr = pubsub->subscribeToMessages(
-          [](const sync::PeerId &from,
-             const CID &cid,
-             const common::Buffer &raw,
-             const sync::UnsignedMessage &msg,
-             boost::optional<std::reference_wrapper<const sync::Signature>>
-                 signature) {
-            log()->info("New msg from {}, cid={}, secp={}",
-                        from.toBase58(),
-                        cid.toString().value(),
-                        signature.has_value());
-          });
-    }
-  };
 
   struct SyncerCtx {
     node::NodeObjects &o;
@@ -113,6 +77,58 @@ namespace fc {
         started = true;
         sch_handle = o.scheduler->schedule(2000, [this] { syncer.start(); });
       }
+    }
+  };
+
+  struct PubsubCtx {
+    SyncerCtx &syncer;
+    node::NodeObjects &o;
+    std::string network_name;
+    std::shared_ptr<sync::PubSubGate> pubsub;
+    sync::PubSubGate::connection_t blocks_subscr;
+    sync::PubSubGate::connection_t msg_subscr;
+
+    PubsubCtx(SyncerCtx &ctx,
+              node::NodeObjects &objects,
+              const std::string &nname)
+        : syncer(ctx),
+          o(objects),
+          network_name(std::move(nname)),
+          pubsub(std::make_shared<sync::PubSubGate>(o.utc_clock, o.gossip)) {}
+
+    void start() {
+      pubsub->start(network_name, "X");
+      blocks_subscr =
+          pubsub->subscribeToBlocks([this](const sync::PeerId &from,
+                                           const CID &block_cid,
+                                           const sync::BlockWithCids &msg) {
+            log()->info("New block from {}, cid={}, height={}",
+                        from.toBase58(),
+                        block_cid.toString().value(),
+                        msg.header.height);
+
+            auto tk = primitives::tipset::TipsetKey::create(msg.header.parents);
+            if (tk) {
+              // TODO here we may check connectiveness and pass the peer
+              syncer.syncer.newTarget(boost::none,
+                                      std::move(tk.value()),
+                                      msg.header.parent_weight,
+                                      msg.header.height - 1);
+            }
+          });
+
+      msg_subscr = pubsub->subscribeToMessages(
+          [](const sync::PeerId &from,
+             const CID &cid,
+             const common::Buffer &raw,
+             const sync::UnsignedMessage &msg,
+             boost::optional<std::reference_wrapper<const sync::Signature>>
+                 signature) {
+            log()->info("New msg from {}, cid={}, secp={}",
+                        from.toBase58(),
+                        cid.toString().value(),
+                        signature.has_value());
+          });
     }
   };
 
@@ -275,9 +291,11 @@ namespace fc {
 
     if (checkEnvOption("MAKE_CAR")) {
       OUTCOME_EXCEPT(tipset, o.chain_db->getTipsetByHeight(999));
-      OUTCOME_EXCEPT(car, fc::storage::car::makeCar(*o.ipld, tipset->key.cids()));
+      OUTCOME_EXCEPT(car,
+                     fc::storage::car::makeCar(*o.ipld, tipset->key.cids()));
       std::string car_name = fmt::format("{}-999.car", config.network_name);
-      std::ofstream(car_name, std::ios::binary).write((const char*)car.data(), car.size());
+      std::ofstream(car_name, std::ios::binary)
+          .write((const char *)car.data(), car.size());
       return 0;
     }
 
@@ -316,7 +334,7 @@ namespace fc {
 
     SyncerCtx ctx(o);
 
-    PubsubCtx pubsub_ctx(o, config.network_name);
+    PubsubCtx pubsub_ctx(ctx, o, config.network_name);
 
     o.io_context->post([&] {
       auto listen_res = o.host->listen(config.listen_address);
@@ -330,57 +348,86 @@ namespace fc {
 
       o.host->start();
 
-      /*
-      auto res = o.peer_manager->start(
-          o.chain_db->genesisCID(),
-          heads.begin()->second->key.cids(),
-          0,
-          0,
-          [&](const libp2p::peer::PeerId &peer,
-              fc::outcome::result<fc::sync::Hello::Message> state) {
-            if (!state) {
-              log()->info("hello feedback failed for peer {}: {}",
-                          peer.toBase58(),
-                          state.error().message());
-              return;
-            }
+      o.scheduler->schedule(100, [&] {
+        auto tipset = o.chain_db->getTipsetByHeight(0).value();
+        auto r = o.vm_interpreter->interpret(o.ipld, tipset);
+        if (!r) {
+          log()->error("Interpret error {}", r.error().message());
+          o.io_context->stop();
+        }
+        auto weight_calculator =
+            std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
+        auto weight_res = weight_calculator->calculateWeight(*tipset);
+        if (!weight_res) {
+          log()->error("WC error {}", weight_res.error().message());
+          o.io_context->stop();
+        }
 
-            auto &s = state.value();
+        auto res = o.peer_manager->start(
+            o.chain_db->genesisCID(),
+            heads.begin()->second->key.cids(),
+            weight_res.value(),
+            0,
+            [&](const libp2p::peer::PeerId &peer,
+                fc::outcome::result<fc::sync::Hello::Message> state) {
+              if (!state) {
+                log()->info("hello feedback failed for peer {}: {}",
+                            peer.toBase58(),
+                            state.error().message());
+                return;
+              }
 
-            log()->info(
-                "hello feedback from peer:{}, cids:{}, height:{}, weight:{}",
-                peer.toBase58(),
-                fmt::join(toStrings(s.heaviest_tipset), ","),
-                s.heaviest_tipset_height,
-                s.heaviest_tipset_weight.str());
+              auto &s = state.value();
 
-            auto tk = primitives::tipset::TipsetKey::create(s.heaviest_tipset);
-            if (tk) {
-              ctx.syncer.newTarget(peer,
-                                   std::move(tk.value()),
-                                   s.heaviest_tipset_weight,
-                                   s.heaviest_tipset_height);
-              ctx.start();
-            }
+              auto tk =
+                  primitives::tipset::TipsetKey::create(s.heaviest_tipset);
+              if (tk) {
+                ctx.syncer.newTarget(peer,
+                                     std::move(tk.value()),
+                                     s.heaviest_tipset_weight,
+                                     s.heaviest_tipset_height);
+                ctx.start();
+              }
 
-            //o.gossip->addBootstrapPeer(peer, boost::none);
-          });
+              // o.gossip->addBootstrapPeer(peer, boost::none);
+            });
 
-      if (!res) {
-        o.io_context->stop();
-      }
-       */
+        if (!res) {
+          o.io_context->stop();
+        }
 
-      for (const auto &pi : config.bootstrap_list) {
-        //o.host->connect(pi);
-        o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
-      }
+        for (const auto &pi : config.bootstrap_list) {
+          o.host->connect(pi);
+        }
+      });
 
-      o.gossip->start();
+      o.scheduler->schedule(60000, [&] {
+        for (const auto &pi : config.bootstrap_list) {
+          // o.host->connect(pi);
+          o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
+        }
 
-      pubsub_ctx.start();
+        //   o.scheduler->schedule(10000, [&]
+        //   {
 
-      log()->info("Node started");
+        using libp2p::protocol::gossip::ByteArray;
+        o.gossip->setMessageIdFn([](const ByteArray &from,
+                                    const ByteArray &seq,
+                                    const ByteArray &data) {
+          auto h = crypto::blake2b::blake2b_256(data);
+          return ByteArray(h.data(), h.data() + h.size());
+        });
+
+        o.gossip->start();
+        pubsub_ctx.start();
+        //        for (const auto &pi : config.bootstrap_list) {
+        //          //o.host->connect(pi);
+        //          o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
+        //        }
+        //   }).detach();
+
+        log()->info("Node started");
+      });
     });
 
     // gracefully shutdown on signal

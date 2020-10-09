@@ -66,8 +66,8 @@ namespace fc::sync {
     return status_;
   }
 
-  void SyncJob::onTipsetLoaded(
-      TipsetHash hash, outcome::result<TipsetCPtr> result) {
+  void SyncJob::onTipsetLoaded(TipsetHash hash,
+                               outcome::result<TipsetCPtr> result) {
     if (status_.code != SyncStatus::IN_PROGRESS || !status_.next.has_value()
         || hash != status_.next.value()) {
       // dont need this tipset
@@ -148,19 +148,27 @@ namespace fc::sync {
     }
   }
 
-  void Syncer::newTarget(PeerId peer,
+  void Syncer::newTarget(boost::optional<PeerId> peer,
                          TipsetKey head_tipset,
                          BigInt weight,
                          uint64_t height) {
-    if (weight <= current_weight_) {
+    if (weight < current_weight_ && height < current_height_) {
       // not a sync target
       return;
     }
 
+    if (!peer) {
+      if (last_good_peer_) {
+        peer = last_good_peer_;
+      } else {
+        return;
+      }
+    }
+
     if (started_ && !isActive()) {
-      startJob(std::move(peer), std::move(head_tipset), height);
+      startJob(std::move(peer.value()), std::move(head_tipset), height);
     } else {
-      pending_targets_[peer] =
+      pending_targets_[peer.value()] =
           Target{std::move(head_tipset), std::move(weight), std::move(height)};
     }
   }
@@ -174,7 +182,8 @@ namespace fc::sync {
     current_height_ = h;
 
     for (auto it = pending_targets_.begin(); it != pending_targets_.end();) {
-      if (it->second.weight <= current_weight_) {
+      if (it->second.weight <= current_weight_
+          && it->second.height <= current_height_) {
         it = pending_targets_.erase(it);
       } else {
         ++it;
@@ -190,10 +199,15 @@ namespace fc::sync {
     boost::optional<PendingTargets::iterator> target;
     if (!pending_targets_.empty()) {
       BigInt max_weight = current_weight_;
+      Height max_height = current_height_;
       for (auto it = pending_targets_.begin(); it != pending_targets_.end();
            ++it) {
         if (it->second.weight > max_weight) {
           max_weight = it->second.weight;
+          target = it;
+        } else if (it->second.weight == max_weight
+                   && it->second.height > current_height_) {
+          max_height = current_height_;
           target = it;
         }
       }
@@ -222,8 +236,8 @@ namespace fc::sync {
     assert(!current_job_->isActive());
 
     uint64_t probable_depth = height;
-    if (height > current_height_) {
-      probable_depth = height - current_height_;
+    if (height > probable_height_) {
+      probable_depth = height - probable_height_;
     }
 
     current_job_->start(
@@ -233,11 +247,15 @@ namespace fc::sync {
   void Syncer::onTipsetLoaded(TipsetHash hash,
                               outcome::result<TipsetCPtr> tipset_res) {
     if (isActive()) {
+      probable_height_ = tipset_res.value()->height();
       current_job_->onTipsetLoaded(std::move(hash), std::move(tipset_res));
     }
   }
 
   void Syncer::onSyncJobFinished(SyncStatus status) {
+    if (status.code == SyncStatus::SYNCED_TO_GENESIS) {
+      last_good_peer_ = status.peer.value();
+    }
     callback_(std::move(status));
   }
 

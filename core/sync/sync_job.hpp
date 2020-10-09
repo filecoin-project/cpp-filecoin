@@ -79,7 +79,7 @@ namespace fc::sync {
 
     void start();
 
-    void newTarget(PeerId peer,
+    void newTarget(boost::optional<PeerId> peer,
                    TipsetKey head_tipset,
                    BigInt weight,
                    uint64_t height);
@@ -123,6 +123,9 @@ namespace fc::sync {
     // one job at the moment, they could be parallel
     std::unique_ptr<SyncJob> current_job_;
     bool started_ = false;
+
+    boost::optional<PeerId> last_good_peer_;
+    Height probable_height_ = 0;
   };
 
 }  // namespace fc::sync
