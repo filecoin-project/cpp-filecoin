@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_STORAGE_MPOOL_MPOOL_HPP
 #define CPP_FILECOIN_CORE_STORAGE_MPOOL_MPOOL_HPP
 
+#include "node/fwd.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "vm/message/message.hpp"
 
@@ -15,7 +16,9 @@ namespace fc::storage::mpool {
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
   using storage::blockchain::ChainStore;
+  using vm::interpreter::Interpreter;
   using vm::message::SignedMessage;
+  using vm::message::UnsignedMessage;
   using connection_t = boost::signals2::connection;
 
   struct MpoolUpdate {
@@ -32,11 +35,13 @@ namespace fc::storage::mpool {
     };
     using Subscriber = void(const MpoolUpdate &);
 
-    explicit Mpool(IpldPtr ipld);
     static std::shared_ptr<Mpool> create(
-        IpldPtr ipld, std::shared_ptr<ChainStore> chain_store);
+        IpldPtr ipld,
+        std::shared_ptr<Interpreter> interpreter,
+        std::shared_ptr<ChainStore> chain_store);
     std::vector<SignedMessage> pending() const;
     outcome::result<uint64_t> nonce(const Address &from) const;
+    outcome::result<void> estimate(UnsignedMessage &message) const;
     outcome::result<void> add(const SignedMessage &message);
     void remove(const Address &from, uint64_t nonce);
     outcome::result<void> onHeadChange(const HeadChange &change);
@@ -46,6 +51,7 @@ namespace fc::storage::mpool {
 
    private:
     IpldPtr ipld;
+    std::shared_ptr<Interpreter> interpreter;
     ChainStore::connection_t head_sub;
     Tipset head;
     std::map<Address, Pending> by_from;

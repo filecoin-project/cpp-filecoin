@@ -20,7 +20,8 @@ namespace fc::vm::runtime {
   using storage::hamt::HamtError;
 
   outcome::result<Address> resolveKey(StateTree &state_tree,
-                                      const Address &address) {
+                                      const Address &address,
+                                      bool no_actor) {
     if (address.isKeyType()) {
       return address;
     }
@@ -31,7 +32,10 @@ namespace fc::vm::runtime {
                 state_tree.getStore()
                     ->getCbor<actor::builtin::account::AccountActorState>(
                         actor.head)}) {
-          return _state.value().address;
+          auto &key{_state.value().address};
+          if (!no_actor || key.isKeyType()) {
+            return key;
+          }
         }
       }
     }

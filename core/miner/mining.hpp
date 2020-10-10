@@ -5,13 +5,12 @@
 
 #pragma once
 
-#include <boost/asio/io_context.hpp>
-#include <boost/asio/system_timer.hpp>
 #include <boost/functional/hash.hpp>
+#include <libp2p/protocol/common/scheduler.hpp>
 #include <unordered_set>
 
 #include "api/api.hpp"
-#include "const.hpp"
+#include "clock/utc_clock.hpp"
 #include "sector_storage/spec_interfaces/prover.hpp"
 
 namespace fc::mining {
@@ -19,11 +18,13 @@ namespace fc::mining {
   using api::Api;
   using api::BigInt;
   using api::BlockTemplate;
+  using api::ChainEpoch;
+  using api::MiningBaseInfo;
   using api::SignedMessage;
   using api::Tipset;
   using api::TipsetKey;
-  using boost::asio::io_context;
-  using boost::asio::system_timer;
+  using clock::UTCClock;
+  using libp2p::protocol::Scheduler;
   using sector_storage::Prover;
 
   struct pair_hash {
@@ -34,28 +35,24 @@ namespace fc::mining {
   };
 
   struct Mining : std::enable_shared_from_this<Mining> {
-    static constexpr std::chrono::seconds kBlockDelay{kBlockDelaySecs};
-    static constexpr std::chrono::seconds kPropagationDelay{
-        kPropagationDelaySecs};
-    static std::shared_ptr<Mining> create(std::shared_ptr<io_context> io,
+    static std::shared_ptr<Mining> create(std::shared_ptr<Scheduler> scheduler,
+                                          std::shared_ptr<UTCClock> clock,
                                           std::shared_ptr<Api> api,
                                           std::shared_ptr<Prover> prover,
                                           const Address &miner);
     void start();
     void waitParent();
+    outcome::result<void> waitBeacon();
+    outcome::result<void> waitInfo();
     outcome::result<void> prepare();
     outcome::result<void> submit(BlockTemplate block1);
     outcome::result<void> bestParent();
-    template <typename F>
-    void asyncWait(F f) {
-      timer->async_wait([f{std::move(f)}](auto ec) {
-        if (!ec) {
-          f();
-        }
-      });
-    }
-    std::shared_ptr<io_context> io;
-    std::unique_ptr<system_timer> timer;
+    ChainEpoch height() const;
+    void wait(int64_t sec, bool abs, Scheduler::Callback cb);
+    outcome::result<boost::optional<BlockTemplate>> prepareBlock();
+
+    std::shared_ptr<Scheduler> scheduler;
+    std::shared_ptr<UTCClock> clock;
     std::shared_ptr<Api> api;
     std::shared_ptr<Prover> prover;
     Address miner;
@@ -63,19 +60,12 @@ namespace fc::mining {
     BigInt weight;
     size_t skip{};
     std::unordered_set<std::pair<TipsetKey, size_t>, pair_hash> mined;
+    boost::optional<MiningBaseInfo> info;
   };
 
-  bool isTicketWinner(BytesIn ticket,
-                      const BigInt &power,
-                      const BigInt &total_power);
+  int64_t computeWinCount(BytesIn ticket,
+                          const BigInt &power,
+                          const BigInt &total_power);
 
-  outcome::result<boost::optional<BlockTemplate>> prepareBlock(
-      const Address &miner,
-      const Tipset &ts,
-      uint64_t height,
-      std::shared_ptr<Api> api,
-      std::shared_ptr<Prover> prover);
-
-  outcome::result<std::vector<SignedMessage>> selectMessages(
-      std::shared_ptr<Api> api, const Tipset &ts);
+  double ticketQuality(BytesIn ticket);
 }  // namespace fc::mining

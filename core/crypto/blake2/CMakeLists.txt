@@ -4,7 +4,6 @@
 #
 
 add_library(blake2
-    blake2b.c
     blake2b160.cpp
     )
 target_link_libraries(blake2
