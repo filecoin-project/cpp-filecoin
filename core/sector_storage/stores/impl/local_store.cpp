@@ -7,8 +7,10 @@
 
 #include <boost/filesystem.hpp>
 #include <fstream>
+#include <functional>
 #include <host/context/impl/host_context_impl.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
+#include <map>
 #include <regex>
 #include <utility>
 
@@ -372,7 +374,7 @@ namespace fc::sector_storage::stores {
       const std::shared_ptr<LocalStorage> &storage,
       const std::shared_ptr<SectorIndex> &index,
       gsl::span<const std::string> urls,
-      const std::shared_ptr<boost::asio::io_context>& context,
+      const std::shared_ptr<boost::asio::io_context> &context,
       Ticks ticks) {
     struct make_unique_enabler : public LocalStoreImpl {
       make_unique_enabler(const std::shared_ptr<LocalStorage> &storage,
@@ -486,6 +488,34 @@ namespace fc::sector_storage::stores {
     return [clear = std::move(release_function), items = std::move(items)]() {
       clear(items);
     };
+  }
+
+  void LocalStoreImpl::reportHealth() {
+    std::lock_guard<std::shared_mutex> shared_lock(mutex_);
+    std::map<StorageID, HealthReport> toReport;
+    for (auto path : paths_) {
+      auto stat = path.second->getStat(storage_);
+      std::pair<StorageID, HealthReport> report;
+      if (stat.has_error()) {
+        report = std::make_pair(path.first,
+                                HealthReport{
+                                    .stat = {},
+                                    .error = stat.error().message(),
+                                });
+      } else {
+        report = std::make_pair(
+            path.first,
+            HealthReport{.stat = stat.value(), .error = boost::none});
+      }
+      toReport.insert(report);
+      for (auto report : toReport) {
+        auto maybe_error =
+            index_->storageReportHealth(report.first, report.second);
+        logger_->warn("Error reporting storage health for {}: {}",
+                      report.first,
+                      report.second);
+      }
+    }
   }
 
   std::string LocalStoreImpl::Path::sectorPath(const SectorId &sid,

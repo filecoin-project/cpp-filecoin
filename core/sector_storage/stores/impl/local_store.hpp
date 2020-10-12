@@ -71,6 +71,7 @@ namespace fc::sector_storage::stores {
     outcome::result<void> removeSector(SectorId sector,
                                        SectorFileType type,
                                        const StorageID &storage);
+    void reportHealth();
     struct Path {
       static std::shared_ptr<Path> newPath(std::string path);
 
