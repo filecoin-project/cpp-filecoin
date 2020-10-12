@@ -99,7 +99,7 @@ namespace fc::primitives {
     uint64_t max_used_memory;
 
     bool is_gpu_used;
-    int64_t cpu_use;
+    uint64_t cpu_use;
   };
 
   struct PieceDescriptor {

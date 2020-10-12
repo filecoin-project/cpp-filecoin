@@ -23,8 +23,9 @@ namespace fc::api {
     uint64_t length;
   };
 
-  // TODO(a.chernyshov): FIL-165 implement methods
-  struct StorageMinerApi {};
+  struct StorageMinerApi {
+    // TODO(a.chernyshov): FIL-165 implement methods
+  };
 
 }  // namespace fc::api
 

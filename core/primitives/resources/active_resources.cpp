@@ -28,8 +28,7 @@ namespace fc::primitives {
     }
 
     if (need_resources.threads) {
-      if ((active.cpu_use + *need_resources.threads)
-          > static_cast<int64_t>(resources.cpus)) {
+      if ((active.cpu_use + *need_resources.threads) > resources.cpus) {
         return false;
       }
     } else {
