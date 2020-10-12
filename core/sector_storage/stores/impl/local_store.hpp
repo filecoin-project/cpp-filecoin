@@ -24,7 +24,7 @@ namespace fc::sector_storage::stores {
         const std::shared_ptr<LocalStorage> &storage,
         const std::shared_ptr<SectorIndex> &index,
         gsl::span<const std::string> urls,
-        const std::shared_ptr<boost::asio::io_context>& context,
+        const std::shared_ptr<boost::asio::io_context> &context,
         Ticks ticks);
 
     outcome::result<void> openPath(const std::string &path) override;
