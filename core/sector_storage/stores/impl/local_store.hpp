@@ -20,7 +20,7 @@ namespace fc::sector_storage::stores {
   // TODO(artyom-yurin): [FIL-231] Health Report for storages
   class LocalStoreImpl : public LocalStore {
    public:
-    static outcome::result<std::unique_ptr<LocalStore>> newLocalStore(
+    static outcome::result<std::shared_ptr<LocalStore>> newLocalStore(
         const std::shared_ptr<LocalStorage> &storage,
         const std::shared_ptr<SectorIndex> &index,
         gsl::span<const std::string> urls,
@@ -71,7 +71,7 @@ namespace fc::sector_storage::stores {
     outcome::result<void> removeSector(SectorId sector,
                                        SectorFileType type,
                                        const StorageID &storage);
-    void reportHealth();
+    void reportHealth(int heartbeat);
     struct Path {
       static std::shared_ptr<Path> newPath(std::string path);
 
@@ -96,6 +96,7 @@ namespace fc::sector_storage::stores {
     fc::common::Logger logger_;
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<Scheduler> scheduler_;
+    Scheduler::Handle handler_;
 
     mutable std::shared_mutex mutex_;
   };

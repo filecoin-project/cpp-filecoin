@@ -6,6 +6,8 @@
 #include "sector_storage/stores/impl/local_store.hpp"
 
 #include <boost/filesystem.hpp>
+#include <boost/generator_iterator.hpp>
+#include <boost/random.hpp>
 #include <fstream>
 #include <functional>
 #include <host/context/impl/host_context_impl.hpp>
@@ -370,7 +372,7 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<std::unique_ptr<LocalStore>> LocalStoreImpl::newLocalStore(
+  outcome::result<std::shared_ptr<LocalStore>> LocalStoreImpl::newLocalStore(
       const std::shared_ptr<LocalStorage> &storage,
       const std::shared_ptr<SectorIndex> &index,
       gsl::span<const std::string> urls,
@@ -384,7 +386,7 @@ namespace fc::sector_storage::stores {
                           Ticks ticks)
           : LocalStoreImpl{storage, index, urls, std::move(context), ticks} {};
     };
-    std::unique_ptr<LocalStoreImpl> local =
+    std::shared_ptr<LocalStoreImpl> local =
         std::make_unique<make_unique_enabler>(
             storage, index, urls, context, ticks);
 
@@ -393,11 +395,17 @@ namespace fc::sector_storage::stores {
     }
 
     OUTCOME_TRY(config, local->storage_->getStorage());
-
+    boost::random::mt19937 rng;
+    boost::random::uniform_int_distribution<> gen(0, 10000);
+    int heartbeat_interval =
+        (kHeartbeatInterval.count() * 100000 + gen(rng)) / 100000;
     for (const auto &path : config.storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
     }
-
+    local->handler_ = local->scheduler_->schedule(
+        heartbeat_interval, [self{local}, heartbeat{heartbeat_interval}]() {
+          self->reportHealth(heartbeat);
+        });
     return std::move(local);
   }
 
@@ -490,32 +498,37 @@ namespace fc::sector_storage::stores {
     };
   }
 
-  void LocalStoreImpl::reportHealth() {
-    std::lock_guard<std::shared_mutex> shared_lock(mutex_);
+  void LocalStoreImpl::reportHealth(int heartbeat) {
     std::map<StorageID, HealthReport> toReport;
-    for (auto path : paths_) {
-      auto stat = path.second->getStat(storage_);
-      std::pair<StorageID, HealthReport> report;
-      if (stat.has_error()) {
-        report = std::make_pair(path.first,
-                                HealthReport{
-                                    .stat = {},
-                                    .error = stat.error().message(),
-                                });
-      } else {
-        report = std::make_pair(
-            path.first,
-            HealthReport{.stat = stat.value(), .error = boost::none});
-      }
-      toReport.insert(report);
-      for (auto report : toReport) {
-        auto maybe_error =
-            index_->storageReportHealth(report.first, report.second);
-        logger_->warn("Error reporting storage health for {}: {}",
-                      report.first,
-                      report.second);
+    {
+      std::shared_lock lock(mutex_);
+      for (auto path : paths_) {
+        auto stat = path.second->getStat(storage_);
+        std::pair<StorageID, HealthReport> report;
+        if (stat.has_error()) {
+          report = std::make_pair(path.first,
+                                  HealthReport{
+                                      .stat = {},
+                                      .error = stat.error().message(),
+                                  });
+        } else {
+          report = std::make_pair(
+              path.first,
+              HealthReport{.stat = stat.value(), .error = boost::none});
+        }
+        toReport.insert(report);
       }
     }
+
+    for (const auto &report : toReport) {
+      auto maybe_error =
+          index_->storageReportHealth(report.first, report.second);
+      logger_->warn("Error reporting storage health for {}: {}",
+                    report.first,
+                    report.second);
+    }
+
+    handler_.reschedule(heartbeat);
   }
 
   std::string LocalStoreImpl::Path::sectorPath(const SectorId &sid,
