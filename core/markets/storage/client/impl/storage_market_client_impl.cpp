@@ -403,9 +403,10 @@ namespace fc::markets::storage::client {
     }
 
     // check publish contains proposal cid
-    OUTCOME_TRY(proposals,
-                codec::cbor::decode<std::vector<ClientDealProposal>>(
+    OUTCOME_TRY(params,
+                codec::cbor::decode<PublishStorageDeals::Params>(
                     publish_message.params));
+    auto &proposals{params.deals};
     auto it = std::find(
         proposals.begin(), proposals.end(), deal->client_deal_proposal);
     if (it == proposals.end()) {
@@ -571,7 +572,7 @@ namespace fc::markets::storage::client {
         return;
       }
       deal->publish_message = response.value().response.publish_message;
-      closeStreamGracefully(stream, self->logger_);
+      self->finalizeDeal(deal);
       SELF_FSM_SEND(deal, ClientEvent::ClientEventDealAccepted);
     });
   }

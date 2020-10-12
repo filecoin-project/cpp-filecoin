@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "miner/miner.hpp"
+#include "miner_impl.hpp"
 #include "miner/storage_fsm/impl/basic_precommit_policy.hpp"
 #include "miner/storage_fsm/impl/events_impl.hpp"
 #include "miner/storage_fsm/impl/sealing_impl.hpp"
@@ -25,12 +25,12 @@ namespace fc::miner {
   using vm::actor::builtin::miner::kMaxSectorExpirationExtension;
   using vm::actor::builtin::miner::kWPoStProvingPeriod;
 
-  Miner::Miner(std::shared_ptr<Api> api,
-               Address miner_address,
-               Address worker_address,
-               std::shared_ptr<Counter> counter,
-               std::shared_ptr<Manager> sector_manager,
-               std::shared_ptr<boost::asio::io_context> context)
+  MinerImpl::MinerImpl(std::shared_ptr<Api> api,
+                       Address miner_address,
+                       Address worker_address,
+                       std::shared_ptr<Counter> counter,
+                       std::shared_ptr<Manager> sector_manager,
+                       std::shared_ptr<boost::asio::io_context> context)
       : api_{std::move(api)},
         miner_address_{std::move(miner_address)},
         worker_address_{std::move(worker_address)},
@@ -38,7 +38,7 @@ namespace fc::miner {
         sector_manager_{std::move(sector_manager)},
         context_{std::move(context)} {}
 
-  outcome::result<void> Miner::run() {
+  outcome::result<void> MinerImpl::run() {
     OUTCOME_TRY(runPreflightChecks());
 
     // use empty TipsetKey
@@ -68,11 +68,21 @@ namespace fc::miner {
     return outcome::success();
   }
 
-  void Miner::stop() {
+  void MinerImpl::stop() {
     sealing_->stop();
   }
 
-  outcome::result<void> Miner::runPreflightChecks() {
+  outcome::result<std::shared_ptr<SectorInfo>> MinerImpl::getSectorInfo(
+      SectorNumber sector_id) const {
+    return sealing_->getSectorInfo(sector_id);
+  }
+
+  outcome::result<PieceAttributes> MinerImpl::addPieceToAnySector(
+      UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) {
+    return sealing_->addPieceToAnySector(size, piece_data, deal);
+  }
+
+  outcome::result<void> MinerImpl::runPreflightChecks() {
     OUTCOME_TRY(has, api_->WalletHas(worker_address_));
     if (!has) {
       return MinerError::kWorkerNotFound;

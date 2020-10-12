@@ -196,7 +196,7 @@ namespace fc::vm::actor::builtin::market {
   };
   CBOR_TUPLE(OnMinerSectorsTerminate::Params, deals)
 
-  struct ComputeDataCommitment : ActorMethodBase<7> {
+  struct ComputeDataCommitment : ActorMethodBase<8> {
     struct Params {
       std::vector<DealId> deals;
       RegisteredProof sector_type;
@@ -206,7 +206,7 @@ namespace fc::vm::actor::builtin::market {
   };
   CBOR_TUPLE(ComputeDataCommitment::Params, deals, sector_type)
 
-  struct CronTick : ActorMethodBase<8> {
+  struct CronTick : ActorMethodBase<9> {
     ACTOR_METHOD_DECL();
   };
 

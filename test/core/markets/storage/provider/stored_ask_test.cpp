@@ -13,6 +13,7 @@
 
 namespace fc::markets::storage::provider {
 
+  using api::TipsetKey;
   using crypto::signature::Signature;
   using fc::crypto::bls::BlsProvider;
   using fc::crypto::bls::BlsProviderImpl;
@@ -20,6 +21,7 @@ namespace fc::markets::storage::provider {
   using fc::crypto::secp256k1::Secp256k1ProviderDefault;
   using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
   using fc::storage::InMemoryStorage;
+  using vm::actor::builtin::miner::MinerInfo;
   using BlsSignature = fc::crypto::bls::Signature;
 
   class StoredAskTest : public ::testing::Test {
@@ -53,6 +55,13 @@ namespace fc::markets::storage::provider {
                 bls_provider_->sign(buffer, bls_keypair.private_key).value()};
           }};
 
+      api->StateMinerInfo = {
+          [=](const Address &,
+              const TipsetKey &) -> outcome::result<MinerInfo> {
+            MinerInfo info;
+            info.worker = actor_address;
+            return info;
+          }};
       api->StateAccountKey = {[=](auto &address, auto &tipset_key) {
         if (address == actor_address) return bls_address;
         throw "API StateAccountKey: Unexpected address";
