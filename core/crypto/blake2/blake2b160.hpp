@@ -6,11 +6,10 @@
 #ifndef CPP_FILECOIN_BLAKE2B160_HPP
 #define CPP_FILECOIN_BLAKE2B160_HPP
 
-#include <gsl/span>
+#include <iosfwd>
 
 #include "common/blob.hpp"
-#include "common/outcome.hpp"
-#include <fstream>
+#include "common/buffer.hpp"
 
 namespace fc::crypto::blake2b {
 
@@ -21,6 +20,21 @@ namespace fc::crypto::blake2b {
   using Blake2b160Hash = common::Blob<BLAKE2B160_HASH_LENGTH>;
   using Blake2b256Hash = common::Blob<BLAKE2B256_HASH_LENGTH>;
   using Blake2b512Hash = common::Blob<BLAKE2B512_HASH_LENGTH>;
+
+  struct Ctx {
+    Ctx(size_t outlen, BytesIn key = {});
+    void update(BytesIn in);
+    void _compress(bool last);
+    void final(gsl::span<uint8_t> hash);
+
+    uint8_t b[128]{};
+    uint64_t h[8];
+    uint64_t t[2]{};
+    size_t c{};
+    size_t outlen;
+  };
+
+  void hashn(gsl::span<uint8_t> hash, BytesIn input, BytesIn key = {});
 
   /**
    * @brief Get blake2b-160 hash

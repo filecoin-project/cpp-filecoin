@@ -70,6 +70,13 @@ namespace fc::crypto::bls {
 
   outcome::result<Signature> BlsProviderImpl::aggregateSignatures(
       gsl::span<const Signature> signatures) const {
+    // for empty signatures fil_aggregate returns error
+    if (signatures.empty()) {
+      Signature empty;
+      // output from https://github.com/supranational/blst
+      empty[0] = 0xC0;
+      return empty;
+    }
     auto response{ffi::wrap(
         fil_aggregate(common::span::cast<const uint8_t>(signatures).data(),
                       signatures.size_bytes()),

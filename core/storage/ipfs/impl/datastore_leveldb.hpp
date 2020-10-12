@@ -26,7 +26,7 @@ namespace fc::storage::ipfs {
      * @brief constructor
      * @param leveldb shared pointer to leveldb instance
      */
-    explicit LeveldbDatastore(std::shared_ptr<LevelDB> leveldb);
+    explicit LeveldbDatastore(std::shared_ptr<BufferMap> leveldb);
 
     ~LeveldbDatastore() override = default;
 
@@ -52,7 +52,7 @@ namespace fc::storage::ipfs {
     }
 
    private:
-    std::shared_ptr<LevelDB> leveldb_;  ///< underlying db wrapper
+    std::shared_ptr<BufferMap> leveldb_;  ///< underlying db wrapper
   };
 
 }  // namespace fc::storage::ipfs

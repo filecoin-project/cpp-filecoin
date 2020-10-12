@@ -5,7 +5,9 @@
 
 #include "storage/mpool/mpool.hpp"
 #include "common/logger.hpp"
-#include "vm/interpreter/impl/interpreter_impl.hpp"
+#include "const.hpp"
+#include "vm/interpreter/interpreter.hpp"
+#include "vm/runtime/env.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::storage::mpool {
@@ -13,11 +15,13 @@ namespace fc::storage::mpool {
   using primitives::tipset::HeadChangeType;
   using vm::message::UnsignedMessage;
 
-  Mpool::Mpool(IpldPtr ipld) : ipld{ipld} {}
-
   std::shared_ptr<Mpool> Mpool::create(
-      IpldPtr ipld, std::shared_ptr<ChainStore> chain_store) {
-    auto mpool{std::make_shared<Mpool>(ipld)};
+      IpldPtr ipld,
+      std::shared_ptr<Interpreter> interpreter,
+      std::shared_ptr<ChainStore> chain_store) {
+    auto mpool{std::make_shared<Mpool>()};
+    mpool->ipld = std::move(ipld);
+    mpool->interpreter = std::move(interpreter);
     mpool->head_sub = chain_store->subscribeHeadChanges([=](auto &change) {
       auto res{mpool->onHeadChange(change)};
       if (!res) {
@@ -40,8 +44,7 @@ namespace fc::storage::mpool {
   }
 
   outcome::result<uint64_t> Mpool::nonce(const Address &from) const {
-    OUTCOME_TRY(interpeted,
-                vm::interpreter::InterpreterImpl{}.interpret(ipld, head));
+    OUTCOME_TRY(interpeted, interpreter->interpret(ipld, head));
     OUTCOME_TRY(
         actor, vm::state::StateTreeImpl{ipld, interpeted.state_root}.get(from));
     auto by_from_it{by_from.find(from)};
@@ -49,6 +52,46 @@ namespace fc::storage::mpool {
       return by_from_it->second.nonce;
     }
     return actor.nonce;
+  }
+
+  outcome::result<void> Mpool::estimate(UnsignedMessage &message) const {
+    assert(message.from.isKeyType());
+    if (message.gas_limit == 0) {
+      auto msg{message};
+      msg.gas_limit = kBlockGasLimit;
+      msg.gas_fee_cap = kMinimumBaseFee + 1;
+      msg.gas_premium = 1;
+      OUTCOME_TRY(interpeted, interpreter->interpret(ipld, head));
+      auto env{std::make_shared<vm::runtime::Env>(nullptr, ipld, head)};
+      env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
+          ipld, interpeted.state_root);
+      ++env->tipset.height;
+      auto _pending{by_from.find(msg.from)};
+      if (_pending != by_from.end()) {
+        for (auto &_msg : _pending->second.by_nonce) {
+          auto &msg{_msg.second};
+          OUTCOME_TRY(env->applyMessage(msg.message, msg.chainSize()));
+        }
+      }
+      OUTCOME_TRY(actor, env->state_tree->get(msg.from));
+      msg.nonce = actor.nonce;
+      OUTCOME_TRY(
+          apply,
+          env->applyMessage(
+              msg,
+              msg.from.isBls()
+                  ? msg.chainSize()
+                  : SignedMessage{msg, crypto::signature::Secp256k1Signature{}}
+                        .chainSize()));
+      if (apply.receipt.exit_code != vm::VMExitCode::kOk) {
+        return apply.receipt.exit_code;
+      }
+      // TODO: paych.collect
+      message.gas_limit = apply.receipt.gas_used * kGasLimitOverestimation;
+    }
+    // TODO: premium
+    // TODO: fee cap
+    return outcome::success();
   }
 
   outcome::result<void> Mpool::add(const SignedMessage &message) {

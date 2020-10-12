@@ -6,7 +6,7 @@
 #include <gtest/gtest.h>
 #include <stdio.h>
 
-#include "crypto/blake2/blake2b.h"
+#include "crypto/blake2/blake2b160.hpp"
 #include "testutil/literals.hpp"
 
 // Deterministic sequences (Fibonacci generator).
@@ -31,35 +31,30 @@ TEST(Blake2b, Correctness) {
   auto blake2b_res =
       "C23A7800D98123BD10F506C61E29DA5603D763B8BBAD2E737F5E765A7BCCD475"_unhex;
   // parameter sets
-  const size_t b2b_md_len[4] = {20, 32, 48, 64};
-  const size_t b2b_in_len[6] = {0, 3, 128, 129, 255, 1024};
+  const ssize_t b2b_md_len[4] = {20, 32, 48, 64};
+  const ssize_t b2b_in_len[6] = {0, 3, 128, 129, 255, 1024};
 
-  size_t i, j, outlen, inlen;
+  size_t i, j;
   uint8_t in[1024], md[64], key[64];
-  blake2b_ctx ctx;
-
-  // 256-bit hash for testing
-  if (blake2b_init(&ctx, 32, NULL, 0)) {
-    FAIL() << "Can not init";
-  }
+  fc::crypto::blake2b::Ctx ctx(32);
 
   for (i = 0; i < 4; i++) {
-    outlen = b2b_md_len[i];
+    auto outlen{b2b_md_len[i]};
     for (j = 0; j < 6; j++) {
-      inlen = b2b_in_len[j];
+      auto inlen{b2b_in_len[j]};
 
       selftest_seq(in, inlen, inlen);  // unkeyed hash
-      blake2b(md, outlen, NULL, 0, in, inlen);
-      blake2b_update(&ctx, md, outlen);  // hash the hash
+      fc::crypto::blake2b::hashn({md, outlen}, {in, inlen}, {});
+      ctx.update({md, outlen});  // hash the hash
 
       selftest_seq(key, outlen, outlen);  // keyed hash
-      blake2b(md, outlen, key, outlen, in, inlen);
-      blake2b_update(&ctx, md, outlen);  // hash the hash
+      fc::crypto::blake2b::hashn({md, outlen}, {in, inlen}, {key, outlen});
+      ctx.update({md, outlen});  // hash the hash
     }
   }
 
   // compute and compare the hash of hashes
-  blake2b_final(&ctx, md);
+  ctx.final(md);
 
   EXPECT_EQ(memcmp(md, blake2b_res.data(), 32), 0) << "hashes are different";
 }

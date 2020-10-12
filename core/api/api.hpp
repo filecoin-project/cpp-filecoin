@@ -97,7 +97,11 @@ namespace fc::api {
   template <typename T>
   struct Chan {
     using Type = T;
+    Chan() = default;
     Chan(std::shared_ptr<Channel<T>> channel) : channel{std::move(channel)} {}
+    static Chan make() {
+      return std::make_shared<Channel<T>>();
+    }
     uint64_t id{};
     std::shared_ptr<Channel<T>> channel;
   };
@@ -113,8 +117,12 @@ namespace fc::api {
     using Type = T;
     using Result = outcome::result<T>;
 
+    Wait() = default;
     Wait(std::shared_ptr<Channel<Result>> channel)
         : channel{std::move(channel)} {}
+    static Wait make() {
+      return std::make_shared<Channel<Result>>();
+    }
 
     void wait(std::function<void(Result)> cb) {
       channel->read([cb{std::move(cb)}](auto opt) {
@@ -345,6 +353,10 @@ namespace fc::api {
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
     API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &)
+    API_METHOD(MpoolSelect,
+               std::vector<SignedMessage>,
+               const TipsetKey &,
+               double)
     API_METHOD(MpoolSub, Chan<MpoolUpdate>)
 
     API_METHOD(NetAddrsListen, PeerInfo)
