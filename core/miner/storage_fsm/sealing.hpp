@@ -65,6 +65,7 @@ namespace fc::mining {
     kTooManySectors,
     kNoFaultMessage,
     kFailSubmit,
+    kSectorAllocatedError,
   };
 }  // namespace fc::mining
 

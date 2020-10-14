@@ -20,13 +20,13 @@ namespace fc::markets::storage::chain_events {
    */
   class ChainEvents {
    public:
-    using PromiseResult = std::promise<outcome::result<void>>;
+    using Cb = std::function<void(void)>;
 
     struct EventWatch {
       Address provider;
       DealId deal_id;
       boost::optional<SectorNumber> sector_number;
-      std::shared_ptr<PromiseResult> result;
+      Cb cb;
     };
 
     virtual ~ChainEvents() = default;
@@ -36,10 +36,11 @@ namespace fc::markets::storage::chain_events {
      * called
      * @param provider - provider address
      * @param deal_id - id of committed deal
-     * @return promise of method invocations
+     * @param cb - callback
      */
-    virtual std::shared_ptr<PromiseResult> onDealSectorCommitted(
-        const Address &provider, const DealId &deal_id) = 0;
+    virtual void onDealSectorCommitted(const Address &provider,
+                                       const DealId &deal_id,
+                                       Cb cb) = 0;
   };
 }  // namespace fc::markets::storage::chain_events
 

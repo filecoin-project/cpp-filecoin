@@ -747,8 +747,7 @@ namespace fc::api {
             }},
         .StateSectorPreCommitInfo =
             {[=](auto address, auto sector_number, auto tipset_key)
-                 -> outcome::result<
-                     boost::optional<SectorPreCommitOnChainInfo>> {
+                 -> outcome::result<SectorPreCommitOnChainInfo> {
               // TODO(artyom-yurin): FIL-165 implement method
               return outcome::success();
             }},
@@ -756,8 +755,9 @@ namespace fc::api {
                                    auto sector_number,
                                    auto tipset_key)
                                    -> outcome::result<SectorOnChainInfo> {
-          // TODO(artyom-yurin): FIL-165 implement method
-          return outcome::success();
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.minerState(address));
+          return state.sectors.get(sector_number);
         }},
         .StateSectorPartition = {[=](auto address,
                                      auto sector_number,

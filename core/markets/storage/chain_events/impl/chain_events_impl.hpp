@@ -30,8 +30,9 @@ namespace fc::markets::storage::chain_events {
      */
     outcome::result<void> init();
 
-    std::shared_ptr<PromiseResult> onDealSectorCommitted(
-        const Address &provider, const DealId &deal_id) override;
+    void onDealSectorCommitted(const Address &provider,
+                               const DealId &deal_id,
+                               Cb cb) override;
 
    private:
     bool onRead(const boost::optional<std::vector<HeadChange>> &changes);

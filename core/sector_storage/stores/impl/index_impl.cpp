@@ -21,11 +21,13 @@ namespace fc::sector_storage::stores {
   using std::chrono::system_clock;
 
   bool isValidUrl(const std::string &url) {
-    static std::regex url_regex(
-        "https?:\\/\\/"
-        "(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{2,256}\\.[a-z]{2,4}\\b([-a-zA-Z0-9@:%"
-        "_\\+.~#?&//=]*)");
-    return std::regex_match(url, url_regex);
+    HttpUri uri;
+    try {
+      uri.parse(url);
+      return true;
+    } catch (const std::runtime_error &err) {
+      return false;
+    }
   }
 
   outcome::result<void> SectorIndexImpl::storageAttach(

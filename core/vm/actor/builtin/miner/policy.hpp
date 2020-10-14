@@ -33,7 +33,7 @@ namespace fc::vm::actor::builtin::miner {
                                          / kWPoStChallengeWindow};
   constexpr size_t kSectorsMax{32 << 20};
   constexpr size_t kNewSectorsPerPeriodMax{128 << 10};
-  constexpr EpochDuration kChainFinalityish{500};
+  constexpr EpochDuration kChainFinalityish{900};
   constexpr EpochDuration kPreCommitChallengeDelay{10};
   constexpr EpochDuration kElectionLookback{1};
   constexpr EpochDuration kWPoStChallengeLookback{20};

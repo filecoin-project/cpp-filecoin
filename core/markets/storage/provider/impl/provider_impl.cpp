@@ -50,6 +50,7 @@ namespace fc::markets::storage::provider {
   using fc::storage::piece::PieceStorageImpl;
   using host::HostContext;
   using host::HostContextImpl;
+  using mining::SealingState;
   using vm::VMExitCode;
   using vm::actor::MethodParams;
   using vm::actor::builtin::market::PublishStorageDeals;
@@ -64,7 +65,7 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<boost::asio::io_context> context,
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
-      std::shared_ptr<MinerApi> miner_api,
+      std::shared_ptr<SectorBlocks> sector_blocks,
       std::shared_ptr<ChainEvents> chain_events,
       const Address &miner_actor_address,
       std::shared_ptr<PieceIO> piece_io,
@@ -75,7 +76,7 @@ namespace fc::markets::storage::provider {
         stored_ask_{
             std::make_shared<StoredAsk>(datastore, api, miner_actor_address)},
         api_{std::move(api)},
-        miner_api_{std::move(miner_api)},
+        sector_blocks_{std::move(sector_blocks)},
         chain_events_{std::move(chain_events)},
         miner_actor_address_{miner_actor_address},
         piece_io_{std::move(piece_io)},
@@ -360,7 +361,7 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(worker_info,
                 api_->StateMinerInfo(
                     deal->client_deal_proposal.proposal.provider, tipset_key));
-    std::vector<ClientDealProposal> params{deal->client_deal_proposal};
+    PublishStorageDeals::Params params{{deal->client_deal_proposal}};
     OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
     UnsignedMessage unsigned_message(vm::actor::kStorageMarketAddress,
                                      worker_info.worker,
@@ -418,12 +419,25 @@ namespace fc::markets::storage::provider {
 
   outcome::result<PieceLocation> StorageProviderImpl::locatePiece(
       std::shared_ptr<MinerDeal> deal) {
-    OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(
-        piece_location,
-        miner_api_->LocatePieceForDealWithinSector(deal->deal_id, tipset_key));
-    return std::move(piece_location);
+    OUTCOME_TRY(piece_refs, sector_blocks_->getRefs(deal->deal_id));
+
+    boost::optional<PieceLocation> piece_location;
+
+    for (const auto &ref : piece_refs) {
+      OUTCOME_TRY(sector_info,
+                  sector_blocks_->getMiner()->getSectorInfo(ref.sector_number));
+
+      if (sector_info->state == SealingState::kProving) {
+        piece_location = ref;
+        break;
+      }
+    }
+
+    if (!piece_location.has_value()) {
+      return StorageProviderError::kNotFoundSector;
+    }
+
+    return std::move(piece_location.get());
   }
 
   outcome::result<void> StorageProviderImpl::recordPieceInfo(
@@ -694,7 +708,11 @@ namespace fc::markets::storage::provider {
       StorageDealStatus from,
       StorageDealStatus to) {
     // TODO hand off
-    // miner_node_api.addPiece
+    auto &p{deal->client_deal_proposal.proposal};
+    OUTCOME_EXCEPT(sector_blocks_->addPiece(
+        p.piece_size.unpadded(),
+        deal->piece_path,
+        {deal->deal_id, {p.start_epoch, p.end_epoch}}));
     FSM_SEND(deal, ProviderEvent::ProviderEventDealHandedOff);
   }
 
@@ -703,14 +721,10 @@ namespace fc::markets::storage::provider {
       ProviderEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto res =
-        chain_events_
-            ->onDealSectorCommitted(
-                deal->client_deal_proposal.proposal.provider, deal->deal_id)
-            ->get_future()
-            .get();
-    FSM_HALT_ON_ERROR(res, "OnDealSectorCommitted error", deal);
-    FSM_SEND(deal, ProviderEvent::ProviderEventDealActivated);
+    chain_events_->onDealSectorCommitted(
+        deal->client_deal_proposal.proposal.provider, deal->deal_id, [=] {
+          FSM_SEND(deal, ProviderEvent::ProviderEventDealActivated);
+        });
   }
 
   void StorageProviderImpl::onProviderEventDealActivated(

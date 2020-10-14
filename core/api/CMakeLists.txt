@@ -24,6 +24,7 @@ add_library(rpc
     rpc/json_errors.cpp
     rpc/make.cpp
     rpc/ws.cpp
+    rpc/wsc.cpp
     )
 target_link_libraries(rpc
     api

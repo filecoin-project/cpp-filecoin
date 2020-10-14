@@ -6,6 +6,8 @@
 #ifndef CPP_FILECOIN_CORE_MINER_STORAGE_FSM_COMMON_HPP
 #define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_COMMON_HPP
 
+#include "miner/storage_fsm/sealing_states.hpp"
+#include "miner/storage_fsm/types.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/tipset/tipset_key.hpp"
@@ -50,6 +52,8 @@ namespace fc::mining::types {
   };
 
   struct SectorInfo {
+    SealingState state;
+
     SectorNumber sector_number;
     RegisteredProof sector_type;
     std::vector<Piece> pieces;

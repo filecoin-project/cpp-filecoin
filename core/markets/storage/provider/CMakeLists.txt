@@ -19,6 +19,7 @@ target_link_libraries(storage_market_provider
     market_actor
     todo_error
     piece_storage
+    sectorblocks
     )
 
 add_library(fuhon_stored_ask

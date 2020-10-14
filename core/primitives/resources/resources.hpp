@@ -124,7 +124,7 @@ namespace fc::primitives {
            Resources{
                .min_memory = uint64_t(64) << 30,
                .max_memory = uint64_t(64) << 30,
-               .threads = -1,
+               .threads = boost::none,
                .can_gpu = true,
                .base_min_memory = uint64_t(60) << 30,
            }},
@@ -132,7 +132,7 @@ namespace fc::primitives {
            Resources{
                .min_memory = uint64_t(32) << 30,
                .max_memory = uint64_t(32) << 30,
-               .threads = -1,
+               .threads = boost::none,
                .can_gpu = true,
                .base_min_memory = uint64_t(30) << 30,
            }},
@@ -140,7 +140,7 @@ namespace fc::primitives {
            Resources{
                .min_memory = uint64_t(1) << 30,
                .max_memory = uint64_t(3) << 29,
-               .threads = -1,
+               .threads = boost::none,
                .can_gpu = false,
                .base_min_memory = uint64_t(1) << 30,
            }},
@@ -148,7 +148,7 @@ namespace fc::primitives {
            Resources{
                .min_memory = uint64_t(8) << 20,
                .max_memory = uint64_t(8) << 20,
-               .threads = -1,
+               .threads = boost::none,
                .can_gpu = false,
                .base_min_memory = uint64_t(8) << 20,
            }},
@@ -156,7 +156,7 @@ namespace fc::primitives {
            Resources{
                .min_memory = uint64_t(2) << 10,
                .max_memory = uint64_t(2) << 10,
-               .threads = -1,
+               .threads = boost::none,
                .can_gpu = false,
                .base_min_memory = uint64_t(2) << 10,
            }},
@@ -208,7 +208,7 @@ namespace fc::primitives {
            Resources{
                .min_memory = uint64_t(60) << 30,
                .max_memory = uint64_t(190) << 30,
-               .threads = -1,
+               .threads = boost::none,
                .can_gpu = true,
                .base_min_memory = uint64_t(64) << 30,
            }},
@@ -216,7 +216,7 @@ namespace fc::primitives {
            Resources{
                .min_memory = uint64_t(30) << 30,
                .max_memory = uint64_t(150) << 30,
-               .threads = -1,
+               .threads = boost::none,
                .can_gpu = true,
                .base_min_memory = uint64_t(32) << 30,
            }},
