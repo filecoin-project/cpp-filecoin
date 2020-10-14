@@ -21,8 +21,8 @@ namespace fc::storage::piece {
   struct DealInfo {
     DealId deal_id;
     SectorNumber sector_id;
-    uint64_t offset;
-    uint64_t length;
+    PaddedPieceSize offset;
+    PaddedPieceSize length;
 
     bool operator==(const DealInfo &) const;
   };

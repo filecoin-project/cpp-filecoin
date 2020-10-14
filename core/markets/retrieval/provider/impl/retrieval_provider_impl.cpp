@@ -6,6 +6,7 @@
 #include "markets/retrieval/provider/impl/retrieval_provider_impl.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "markets/common.hpp"
+#include "storage/car/car.hpp"
 #include "storage/piece/impl/piece_storage_error.hpp"
 
 #define _SELF_IF_ERROR_RESPOND_AND_RETURN(res, expr, status, stream)        \
@@ -19,6 +20,7 @@
 
 namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceStorageError;
+  using primitives::piece::UnpaddedByteIndex;
 
   RetrievalProviderImpl::RetrievalProviderImpl(
       std::shared_ptr<Host> host,
@@ -122,16 +124,55 @@ namespace fc::markets::retrieval::provider {
 
   void RetrievalProviderImpl::handleRetrievalDeal(
       const std::shared_ptr<CborStream> &stream) {
-    stream->read<DealProposal>(
-        [self{shared_from_this()}, stream](auto proposal_res) {
-          SELF_IF_ERROR_RESPOND_AND_RETURN(
-              proposal_res, DealStatus::kDealStatusErrored, stream);
-          auto deal_state = std::make_shared<DealState>(
-              self->ipld_, proposal_res.value(), stream);
-          SELF_IF_ERROR_RESPOND_AND_RETURN(self->receiveDeal(deal_state),
-                                           DealStatus::kDealStatusErrored,
-                                           stream);
-        });
+    stream->read<DealProposal>([self{shared_from_this()},
+                                stream](auto proposal_res) {
+      SELF_IF_ERROR_RESPOND_AND_RETURN(
+          proposal_res, DealStatus::kDealStatusErrored, stream);
+
+      auto maybe_error = [&]() -> outcome::result<void> {
+        OUTCOME_TRY(piece_info,
+                    self->piece_storage_->getPieceInfoFromCid(
+                        proposal_res.value().payload_cid,
+                        proposal_res.value().params.piece));
+
+        boost::optional<PieceData> reader_opt = boost::none;
+        size_t size = 0;
+        outcome::result<void> last_error = outcome::success();
+        for (const auto &deal : piece_info.deals) {
+          auto maybe_reader = self->unsealSector(
+              deal.sector_id, deal.offset.unpadded(), deal.length.unpadded());
+          if (maybe_reader.has_value()) {
+            size = deal.length.unpadded();
+            reader_opt = std::move(maybe_reader.value());
+            break;
+          }
+          last_error = maybe_reader.error();
+        }
+
+        if (not reader_opt.has_value()) {
+          return last_error.error();
+        }
+
+        // TODO(artyom-yurin): [FIL-247] Dangerous place
+        Buffer input;
+        input.resize(size);
+        size_t bytes = read(reader_opt.get().getFd(), input.data(), size);
+        assert(bytes == size);
+
+        OUTCOME_TRY(::fc::storage::car::loadCar(*(self->ipld_), input));
+
+        return outcome::success();
+      }();
+
+      SELF_IF_ERROR_RESPOND_AND_RETURN(
+          maybe_error, DealStatus::kDealStatusErrored, stream);
+
+      auto deal_state = std::make_shared<DealState>(
+          self->ipld_, proposal_res.value(), stream);
+      SELF_IF_ERROR_RESPOND_AND_RETURN(self->receiveDeal(deal_state),
+                                       DealStatus::kDealStatusErrored,
+                                       stream);
+    });
   }
 
   outcome::result<void> RetrievalProviderImpl::receiveDeal(
@@ -187,7 +228,6 @@ namespace fc::markets::retrieval::provider {
 
   outcome::result<DealResponse::Block> RetrievalProviderImpl::prepareNextBlock(
       const std::shared_ptr<DealState> &deal_state) {
-    // TODO if block not found, attempt unseal
     OUTCOME_TRY(block_cid, deal_state->traverser.advance());
     OUTCOME_TRY(data, ipld_->get(block_cid));
     OUTCOME_TRY(prefix, block_cid.getPrefix());
@@ -315,6 +355,34 @@ namespace fc::markets::retrieval::provider {
               written, DealStatus::kDealStatusErrored, deal_state->stream);
           closeStreamGracefully(deal_state->stream, self->logger_);
         });
+  }
+
+  outcome::result<PieceData> RetrievalProviderImpl::unsealSector(
+      SectorNumber sid, UnpaddedPieceSize offset, UnpaddedPieceSize size) {
+    OUTCOME_TRY(sector_info, miner_->getSectorInfo(sid));
+
+    auto miner_id = miner_->getAddress().getId();
+
+    SectorId sector_id{
+        .miner = miner_id,
+        .sector = sid,
+    };
+
+    int p[2];
+    auto status = pipe(p);  // TODO: error
+    assert(status == 0);
+    PieceData reader(p[0]);
+
+    CID comm_d = sector_info->comm_d.get_value_or(CID());
+
+    OUTCOME_TRY(sealer_->readPiece(PieceData(p[1]),
+                                   sector_id,
+                                   UnpaddedByteIndex(offset),
+                                   size,
+                                   sector_info->ticket,
+                                   comm_d));
+
+    return std::move(reader);
   }
 
 }  // namespace fc::markets::retrieval::provider
