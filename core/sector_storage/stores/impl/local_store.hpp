@@ -17,7 +17,7 @@
 namespace fc::sector_storage::stores {
   using libp2p::protocol::Scheduler;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
-  // TODO(artyom-yurin): [FIL-231] Health Report for storages
+
   class LocalStoreImpl : public LocalStore {
    public:
     static outcome::result<std::shared_ptr<LocalStore>> newLocalStore(
@@ -26,6 +26,8 @@ namespace fc::sector_storage::stores {
         gsl::span<const std::string> urls,
         const std::shared_ptr<boost::asio::io_context> &context,
         Ticks ticks);
+
+    ~LocalStoreImpl();
 
     outcome::result<void> openPath(const std::string &path) override;
 
@@ -71,7 +73,7 @@ namespace fc::sector_storage::stores {
     outcome::result<void> removeSector(SectorId sector,
                                        SectorFileType type,
                                        const StorageID &storage);
-    void reportHealth(int heartbeat);
+    void reportHealth();
     struct Path {
       static std::shared_ptr<Path> newPath(std::string path);
 
@@ -97,7 +99,7 @@ namespace fc::sector_storage::stores {
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<Scheduler> scheduler_;
     Scheduler::Handle handler_;
-
+    int64_t heartbeat_;
     mutable std::shared_mutex mutex_;
   };
 

@@ -5,13 +5,16 @@
 
 #include "sector_storage/stores/store.hpp"
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <host/context/impl/host_context_impl.hpp>
 
 #include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
 #include "common/outcome.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
+#include "sector_storage/stores/index.hpp"
 #include "sector_storage/stores/store_error.hpp"
 #include "testutil/mocks/sector_storage/stores/local_storage_mock.hpp"
 #include "testutil/mocks/sector_storage/stores/sector_index_mock.hpp"
@@ -23,6 +26,7 @@ using fc::primitives::LocalStorageMeta;
 using fc::primitives::StorageID;
 using fc::primitives::sector_file::SectorFileType;
 using fc::sector_storage::stores::AcquireMode;
+using fc::sector_storage::stores::HealthReport;
 using fc::sector_storage::stores::kMetaFileName;
 using fc::sector_storage::stores::LocalPath;
 using fc::sector_storage::stores::LocalStorageMock;
@@ -33,6 +37,7 @@ using fc::sector_storage::stores::SectorIndexMock;
 using fc::sector_storage::stores::StorageConfig;
 using fc::sector_storage::stores::StorageInfo;
 using fc::sector_storage::stores::StoreErrors;
+using HostContext = fc::host::HostContextImpl;
 using testing::_;
 using testing::Eq;
 
@@ -51,6 +56,7 @@ class LocalStoreTest : public test::BaseFS_Test {
     index_ = std::make_shared<SectorIndexMock>();
     storage_ = std::make_shared<LocalStorageMock>();
     urls_ = {"http://url1.com", "http://url2.com"};
+    context_ = std::make_shared<HostContext>();
 
     EXPECT_CALL(*storage_, getStorage())
         .WillOnce(testing::Return(fc::outcome::success(
@@ -59,7 +65,8 @@ class LocalStoreTest : public test::BaseFS_Test {
     EXPECT_CALL(*storage_, setStorage(_))
         .WillRepeatedly(testing::Return(fc::outcome::success()));
 
-    auto maybe_local = LocalStoreImpl::newLocalStore(storage_, index_, urls_);
+    auto maybe_local = LocalStoreImpl::newLocalStore(
+        storage_, index_, urls_, context_->getIoContext(), 50);
     local_store_ = std::move(maybe_local.value());
   }
 
@@ -90,10 +97,11 @@ class LocalStoreTest : public test::BaseFS_Test {
   }
 
  protected:
-  std::unique_ptr<LocalStore> local_store_;
+  std::shared_ptr<LocalStore> local_store_;
   std::shared_ptr<SectorIndexMock> index_;
   std::shared_ptr<LocalStorageMock> storage_;
   std::vector<std::string> urls_;
+  std::shared_ptr<HostContext> context_;
 };
 
 /**
@@ -764,4 +772,38 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
 
   ASSERT_TRUE(boost::filesystem::exists(moved_sector_file));
   ASSERT_FALSE(boost::filesystem::exists(sector_file));
+}
+
+/**
+ * @given one storage
+ * @when try to get storage health during the predefined time period
+ * @then storage successfully reported one time about its health status
+ */
+TEST_F(LocalStoreTest, storageHealthSuccess) {
+  auto storage_path = boost::filesystem::unique_path(
+                          fs::canonical(base_path).append("%%%%%-storage"))
+                          .string();
+
+  StorageID storage_id = "storage_id";
+
+  fc::primitives::LocalStorageMeta storage_meta{
+      .id = storage_id,
+      .weight = 0,
+      .can_seal = true,
+      .can_store = true,
+  };
+
+  FsStat stat{
+      .capacity = 200,
+      .available = 200,
+      .reserved = 0,
+  };
+
+  createStorage(storage_path, storage_meta, stat);
+  EXPECT_CALL(*index_, storageReportHealth(storage_id, _))
+      .WillOnce(testing::Return(fc::outcome::success()));
+  EXPECT_CALL(*storage_, getStat(storage_path))
+      .WillOnce(testing::Return(fc::outcome::success(stat)));
+  const int seconds = 12;
+  context_->runIoContext(seconds);
 }

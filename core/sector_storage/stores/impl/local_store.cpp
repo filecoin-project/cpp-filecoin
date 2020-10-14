@@ -5,10 +5,10 @@
 
 #include "sector_storage/stores/impl/local_store.hpp"
 
+#include <time.h>
 #include <boost/filesystem.hpp>
 #include <boost/generator_iterator.hpp>
 #include <boost/random.hpp>
-#include <fstream>
 #include <functional>
 #include <host/context/impl/host_context_impl.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
@@ -63,6 +63,10 @@ namespace fc::sector_storage::stores {
         std::make_shared<host::HostContextImpl>(context_);
     scheduler_ = std::make_shared<libp2p::protocol::AsioScheduler>(
         *fsm_context->getIoContext(), libp2p::protocol::SchedulerConfig{ticks});
+  }
+
+  LocalStoreImpl::~LocalStoreImpl() {
+    handler_.cancel();
   }
 
   outcome::result<AcquireSectorResponse> LocalStoreImpl::acquireSector(
@@ -377,7 +381,7 @@ namespace fc::sector_storage::stores {
       const std::shared_ptr<SectorIndex> &index,
       gsl::span<const std::string> urls,
       const std::shared_ptr<boost::asio::io_context> &context,
-      Ticks ticks) {
+      Ticks ticks = 50) {
     struct make_unique_enabler : public LocalStoreImpl {
       make_unique_enabler(const std::shared_ptr<LocalStorage> &storage,
                           const std::shared_ptr<SectorIndex> &index,
@@ -395,17 +399,15 @@ namespace fc::sector_storage::stores {
     }
 
     OUTCOME_TRY(config, local->storage_->getStorage());
-    boost::random::mt19937 rng;
-    boost::random::uniform_int_distribution<> gen(0, 10000);
-    int heartbeat_interval =
-        (kHeartbeatInterval.count() * 100000 + gen(rng)) / 100000;
+    boost::random::mt19937 rng(std::time(0));
+    boost::random::uniform_int_distribution<> gen(0, 1000);
+    local->heartbeat_ = kHeartbeatInterval.count() * 1000 + gen(rng);
     for (const auto &path : config.storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
     }
     local->handler_ = local->scheduler_->schedule(
-        heartbeat_interval, [self{local}, heartbeat{heartbeat_interval}]() {
-          self->reportHealth(heartbeat);
-        });
+        local->heartbeat_,
+        [self = std::weak_ptr{local}]() { self.lock()->reportHealth(); });
     return std::move(local);
   }
 
@@ -498,7 +500,7 @@ namespace fc::sector_storage::stores {
     };
   }
 
-  void LocalStoreImpl::reportHealth(int heartbeat) {
+  void LocalStoreImpl::reportHealth() {
     std::map<StorageID, HealthReport> toReport;
     {
       std::shared_lock lock(mutex_);
@@ -516,19 +518,21 @@ namespace fc::sector_storage::stores {
               path.first,
               HealthReport{.stat = stat.value(), .error = boost::none});
         }
-        toReport.insert(report);
+        toReport.insert(std::move(report));
       }
     }
 
     for (const auto &report : toReport) {
       auto maybe_error =
           index_->storageReportHealth(report.first, report.second);
-      logger_->warn("Error reporting storage health for {}: {}",
-                    report.first,
-                    report.second);
+      if (maybe_error.has_error()) {
+        logger_->warn("Error reporting storage health for {}: {}",
+                      report.first,
+                      maybe_error.error().message());
+      }
     }
 
-    handler_.reschedule(heartbeat);
+    handler_.reschedule(heartbeat_);
   }
 
   std::string LocalStoreImpl::Path::sectorPath(const SectorId &sid,

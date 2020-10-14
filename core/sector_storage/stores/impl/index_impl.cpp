@@ -6,6 +6,7 @@
 #include "sector_storage/stores/impl/index_impl.hpp"
 
 #include <boost/filesystem/path.hpp>
+#include <chrono>
 #include <regex>
 #include "common/uri_parser/uri_parser.hpp"
 #include "primitives/types.hpp"
@@ -15,6 +16,8 @@ namespace fc::sector_storage::stores {
   using fc::common::HttpUri;
   using fc::primitives::TokenAmount;
   using primitives::sector_file::sectorName;
+  using std::chrono::duration_cast;
+  using std::chrono::high_resolution_clock;
   using std::chrono::system_clock;
 
   bool isValidUrl(const std::string &url) {
@@ -247,7 +250,16 @@ namespace fc::sector_storage::stores {
           continue;
         }
 
-        // TODO: check last heartbeat time
+        if (duration_cast<std::chrono::seconds>(high_resolution_clock::now()
+                                                - storage_info.last_heartbeat)
+            > kSkippedHeartbeatThreshold) {
+          logger_->warn(
+              "not selecting on {}, didn't receive heartbeats for {}",
+              storage_info.info.id,
+              duration_cast<std::chrono::seconds>(high_resolution_clock::now()
+                                                  - storage_info.last_heartbeat)
+                  .count());
+        }
 
         if (storage_info.error.has_value()) {
           logger_->debug("not selecting on {}, heartbeat error: {}",
