@@ -252,8 +252,9 @@ namespace fc::sector_storage::stores {
           continue;
         }
 
-        if (duration_cast<std::chrono::seconds>(high_resolution_clock::now()
-                                                - storage_info.last_heartbeat)
+        if (duration_cast<std::chrono::seconds>(
+                high_resolution_clock::now().time_since_epoch()
+                - storage_info.last_heartbeat.time_since_epoch())
             > kSkippedHeartbeatThreshold) {
           logger_->warn("not selecting on {}, didn't receive heartbeats for {}",
                         storage_info.info.id,
