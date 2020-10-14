@@ -155,12 +155,20 @@ namespace fc::vm::runtime {
     return apply;
   }
 
-  outcome::result<InvocationOutput> Env::applyImplicitMessage(
+  outcome::result<MessageReceipt> Env::applyImplicitMessage(
       UnsignedMessage message) {
     OUTCOME_TRY(from, state_tree->get(message.from));
     message.nonce = from.nonce;
     auto execution = Execution::make(shared_from_this(), message);
-    return execution->send(message);
+    MessageReceipt receipt{VMExitCode::kOk, {}, execution->gas_used};
+    if (auto result{execution->send(message)}) {
+      receipt.return_value = std::move(result.value());
+    } else if (isVMExitCode(result.error())) {
+      receipt.exit_code = VMExitCode{result.error().value()};
+    } else {
+      return result.error();
+    }
+    return receipt;
   }
 
   outcome::result<void> Execution::chargeGas(GasAmount amount) {

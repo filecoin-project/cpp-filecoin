@@ -43,12 +43,23 @@ namespace fc::vm::interpreter {
 
   outcome::result<Result> InterpreterImpl::interpret(
       const IpldPtr &ipld, const Tipset &tipset) const {
+    return interpret(ipld, tipset, {});
+  }
+  outcome::result<Result> InterpreterImpl::interpret(
+      const IpldPtr &ipld,
+      const Tipset &tipset,
+      std::vector<MessageReceipt> *all_receipts) const {
     if (tipset.height == 0) {
       return Result{
           tipset.getParentStateRoot(),
           tipset.getParentMessageReceipts(),
       };
     }
+    auto on_receipt{[&](auto &receipt) {
+      if (all_receipts) {
+        all_receipts->push_back(receipt);
+      }
+    }};
 
     if (hasDuplicateMiners(tipset.blks)) {
       return InterpreterError::kDuplicateMiner;
@@ -74,7 +85,8 @@ namespace fc::vm::interpreter {
       OUTCOME_TRY(parent, tipset.loadParent(*ipld));
       for (auto epoch{parent.height + 1}; epoch < tipset.height; ++epoch) {
         env->tipset.height = epoch;
-        OUTCOME_TRY(cron());
+        OUTCOME_TRY(receipt, cron());
+        on_receipt(receipt);
       }
       env->tipset.height = tipset.height;
     }
@@ -98,24 +110,28 @@ namespace fc::vm::interpreter {
             OUTCOME_TRY(apply, env->applyMessage(message, raw.size()));
             reward.penalty += apply.penalty;
             reward.gas_reward += apply.reward;
+            on_receipt(apply.receipt);
             OUTCOME_TRY(receipts.append(std::move(apply.receipt)));
             return outcome::success();
           }));
 
       OUTCOME_TRY(reward_encoded, codec::cbor::encode(reward));
-      OUTCOME_TRY(env->applyImplicitMessage(UnsignedMessage{
-          kRewardAddress,
-          kSystemActorAddress,
-          {},
-          0,
-          0,
-          1 << 30,
-          AwardBlockReward::Number,
-          MethodParams{reward_encoded},
-      }));
+      OUTCOME_TRY(receipt,
+                  env->applyImplicitMessage(UnsignedMessage{
+                      kRewardAddress,
+                      kSystemActorAddress,
+                      {},
+                      0,
+                      0,
+                      1 << 30,
+                      AwardBlockReward::Number,
+                      MethodParams{reward_encoded},
+                  }));
+      on_receipt(receipt);
     }
 
-    OUTCOME_TRY(cron());
+    OUTCOME_TRY(receipt, cron());
+    on_receipt(receipt);
 
     OUTCOME_TRY(new_state_root, env->state_tree->flush());
 

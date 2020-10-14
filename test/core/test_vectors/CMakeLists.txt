@@ -10,6 +10,7 @@ target_link_libraries(test_vectors_test
     Boost::iostreams
     car
     file
+    interpreter
     ipfs_datastore_in_memory
     json
     state_tree

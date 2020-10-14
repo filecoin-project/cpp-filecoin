@@ -70,8 +70,11 @@ namespace fc::vm::actor::cgo {
                                  BytesIn params) {
     CborEncodeStream arg;
     auto id{next_runtime++};  // TODO: mod
-    arg << id << message.from << message.to << exec->env->tipset.height
-        << message.value << code << method << params;
+    // TODO: version
+    auto version{0};
+    arg << id << version << message.from << message.to
+        << exec->env->tipset.height << message.value << code << method
+        << params;
     runtimes.emplace(id, Runtime{exec, message.to});
     auto ret{cgoCall<cgoActorsInvoke>(arg)};
     runtimes.erase(id);
