@@ -406,8 +406,12 @@ namespace fc::sector_storage::stores {
       OUTCOME_TRY(local->openPath(path.path));
     }
     local->handler_ = local->scheduler_->schedule(
-        local->heartbeat_,
-        [self = std::weak_ptr{local}]() { self.lock()->reportHealth(); });
+        local->heartbeat_, [self = std::weak_ptr<LocalStoreImpl>(local)]() {
+          auto shared_self = self.lock();
+          if (shared_self) {
+            shared_self->reportHealth();
+          }
+        });
     return std::move(local);
   }
 
