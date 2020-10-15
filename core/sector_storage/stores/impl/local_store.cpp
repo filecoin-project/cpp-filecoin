@@ -382,7 +382,7 @@ namespace fc::sector_storage::stores {
       const std::shared_ptr<SectorIndex> &index,
       gsl::span<const std::string> urls,
       const std::shared_ptr<boost::asio::io_context> &context,
-      Ticks ticks = 50) {
+      Ticks ticks) {
     struct make_unique_enabler : public LocalStoreImpl {
       make_unique_enabler(const std::shared_ptr<LocalStorage> &storage,
                           const std::shared_ptr<SectorIndex> &index,
@@ -402,12 +402,12 @@ namespace fc::sector_storage::stores {
     OUTCOME_TRY(config, local->storage_->getStorage());
     std::mt19937 rng(std::time(0));
     std::uniform_int_distribution<> gen(0, 1000);
-    local->heartbeat_ = kHeartbeatInterval.count() * 1000 + gen(rng);
+    local->heartbeat_interval_ = kHeartbeatInterval.count() * 1000 + gen(rng);
     for (const auto &path : config.storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
     }
     local->handler_ = local->scheduler_->schedule(
-        local->heartbeat_, [self = std::weak_ptr<LocalStoreImpl>(local)]() {
+        local->heartbeat_interval_, [self = std::weak_ptr<LocalStoreImpl>(local)]() {
           auto shared_self = self.lock();
           if (shared_self) {
             shared_self->reportHealth();
@@ -537,7 +537,7 @@ namespace fc::sector_storage::stores {
       }
     }
 
-    handler_.reschedule(heartbeat_);
+    handler_.reschedule(heartbeat_interval_);
   }
 
   std::string LocalStoreImpl::Path::sectorPath(const SectorId &sid,

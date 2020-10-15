@@ -265,7 +265,7 @@ namespace fc::sector_storage::stores {
         }
 
         if (storage_info.error.has_value()) {
-          logger_->debug("not selecting on {}, heartbeat error: {}",
+          logger_->debug("not selecting on {}, heartbeat_interval_ error: {}",
                          storage_info.info.id,
                          storage_info.error.get());
           continue;

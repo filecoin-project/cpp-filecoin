@@ -99,7 +99,7 @@ namespace fc::sector_storage::stores {
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<Scheduler> scheduler_;
     Scheduler::Handle handler_;
-    int64_t heartbeat_;
+    int64_t heartbeat_interval_;
     mutable std::shared_mutex mutex_;
   };
 
