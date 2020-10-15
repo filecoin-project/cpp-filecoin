@@ -7,10 +7,7 @@
 
 #include <time.h>
 #include <boost/filesystem.hpp>
-#include <boost/generator_iterator.hpp>
 #include <chrono>
-#include <functional>
-#include <host/context/impl/host_context_impl.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <map>
 #include <random>
@@ -53,18 +50,11 @@ namespace fc::sector_storage::stores {
   LocalStoreImpl::LocalStoreImpl(
       std::shared_ptr<LocalStorage> storage,
       std::shared_ptr<SectorIndex> index,
-      gsl::span<const std::string> urls,
-      std::shared_ptr<boost::asio::io_context> context,
-      Ticks ticks)
+      gsl::span<const std::string> urls)
       : storage_(std::move(storage)),
         index_(std::move(index)),
-        urls_(urls.begin(), urls.end()),
-        context_(std::move(context)) {
+        urls_(urls.begin(), urls.end()) {
     logger_ = common::createLogger("Local Store");
-    std::shared_ptr<host::HostContext> fsm_context =
-        std::make_shared<host::HostContextImpl>(context_);
-    scheduler_ = std::make_shared<libp2p::protocol::AsioScheduler>(
-        *fsm_context->getIoContext(), libp2p::protocol::SchedulerConfig{ticks});
   }
 
   outcome::result<AcquireSectorResponse> LocalStoreImpl::acquireSector(
@@ -378,19 +368,16 @@ namespace fc::sector_storage::stores {
       const std::shared_ptr<LocalStorage> &storage,
       const std::shared_ptr<SectorIndex> &index,
       gsl::span<const std::string> urls,
-      const std::shared_ptr<boost::asio::io_context> &context,
-      Ticks ticks) {
+      std::shared_ptr<Scheduler> scheduler) {
     struct make_unique_enabler : public LocalStoreImpl {
       make_unique_enabler(const std::shared_ptr<LocalStorage> &storage,
                           const std::shared_ptr<SectorIndex> &index,
-                          gsl::span<const std::string> urls,
-                          std::shared_ptr<boost::asio::io_context> context,
-                          Ticks ticks)
-          : LocalStoreImpl{storage, index, urls, std::move(context), ticks} {};
+                          gsl::span<const std::string> urls)
+          : LocalStoreImpl{storage, index, urls} {};
     };
     std::shared_ptr<LocalStoreImpl> local =
         std::make_unique<make_unique_enabler>(
-            storage, index, urls, context, ticks);
+            storage, index, urls);
 
     if (local->logger_ == nullptr) {
       return StoreErrors::kCannotInitLogger;
@@ -405,7 +392,7 @@ namespace fc::sector_storage::stores {
     for (const auto &path : config.storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
     }
-    local->handler_ = local->scheduler_->schedule(
+    local->handler_ = scheduler->schedule(
         local->heartbeat_interval_,
         [self = std::weak_ptr<LocalStoreImpl>(local)]() {
           auto shared_self = self.lock();

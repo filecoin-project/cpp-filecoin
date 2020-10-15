@@ -16,7 +16,6 @@
 
 namespace fc::sector_storage::stores {
   using libp2p::protocol::Scheduler;
-  using Ticks = libp2p::protocol::Scheduler::Ticks;
 
   class LocalStoreImpl : public LocalStore {
    public:
@@ -24,8 +23,7 @@ namespace fc::sector_storage::stores {
         const std::shared_ptr<LocalStorage> &storage,
         const std::shared_ptr<SectorIndex> &index,
         gsl::span<const std::string> urls,
-        const std::shared_ptr<boost::asio::io_context> &context,
-        Ticks ticks = 50);
+        std::shared_ptr<Scheduler> scheduler);
 
     outcome::result<void> openPath(const std::string &path) override;
 
@@ -64,9 +62,7 @@ namespace fc::sector_storage::stores {
    private:
     LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
                    std::shared_ptr<SectorIndex> index,
-                   gsl::span<const std::string> urls,
-                   std::shared_ptr<boost::asio::io_context> context,
-                   Ticks ticks);
+                   gsl::span<const std::string> urls);
 
     outcome::result<void> removeSector(SectorId sector,
                                        SectorFileType type,
@@ -94,8 +90,6 @@ namespace fc::sector_storage::stores {
     std::vector<std::string> urls_;
     std::unordered_map<StorageID, std::shared_ptr<Path>> paths_;
     fc::common::Logger logger_;
-    std::shared_ptr<boost::asio::io_context> context_;
-    std::shared_ptr<Scheduler> scheduler_;
     Scheduler::Handle handler_;
     int64_t heartbeat_interval_;
     mutable std::shared_mutex mutex_;
