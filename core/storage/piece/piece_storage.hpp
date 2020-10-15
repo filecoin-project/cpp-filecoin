@@ -8,11 +8,13 @@
 
 #include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
+#include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::storage::piece {
   using primitives::DealId;
+  using primitives::piece::PaddedPieceSize;
   using primitives::sector::SectorNumber;
 
   /**

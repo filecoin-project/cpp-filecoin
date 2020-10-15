@@ -14,6 +14,7 @@ namespace fc::miner {
   using mining::types::PieceAttributes;
   using mining::types::SectorInfo;
   using primitives::SectorNumber;
+  using primitives::address::Address;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedPieceSize;
 

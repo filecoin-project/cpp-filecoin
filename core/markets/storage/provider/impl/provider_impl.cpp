@@ -455,8 +455,8 @@ namespace fc::markets::storage::provider {
         deal->client_deal_proposal.proposal.piece_cid,
         DealInfo{.deal_id = deal->deal_id,
                  .sector_id = piece_location.sector_number,
-                 .offset = piece_location.offset,
-                 .length = piece_location.length}));
+                 .offset = PaddedPieceSize(piece_location.offset),
+                 .length = PaddedPieceSize(piece_location.length)}));
     return outcome::success();
   }
 
