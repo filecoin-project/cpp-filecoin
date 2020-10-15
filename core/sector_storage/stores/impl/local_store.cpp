@@ -8,14 +8,14 @@
 #include <time.h>
 #include <boost/filesystem.hpp>
 #include <boost/generator_iterator.hpp>
-#include <boost/random.hpp>
+#include <chrono>
 #include <functional>
 #include <host/context/impl/host_context_impl.hpp>
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <map>
+#include <random>
 #include <regex>
 #include <utility>
-#include <random>
 
 #include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
@@ -27,6 +27,7 @@
 
 using fc::primitives::LocalStorageMeta;
 using fc::primitives::sector_file::kSectorFileTypes;
+using std::chrono::duration_cast;
 
 namespace fc::sector_storage::stores {
   namespace fs = boost::filesystem;
@@ -64,10 +65,6 @@ namespace fc::sector_storage::stores {
         std::make_shared<host::HostContextImpl>(context_);
     scheduler_ = std::make_shared<libp2p::protocol::AsioScheduler>(
         *fsm_context->getIoContext(), libp2p::protocol::SchedulerConfig{ticks});
-  }
-
-  LocalStoreImpl::~LocalStoreImpl() {
-    handler_.cancel();
   }
 
   outcome::result<AcquireSectorResponse> LocalStoreImpl::acquireSector(
@@ -402,12 +399,15 @@ namespace fc::sector_storage::stores {
     OUTCOME_TRY(config, local->storage_->getStorage());
     std::mt19937 rng(std::time(0));
     std::uniform_int_distribution<> gen(0, 1000);
-    local->heartbeat_interval_ = kHeartbeatInterval.count() * 1000 + gen(rng);
+    local->heartbeat_interval_ =
+        duration_cast<std::chrono::milliseconds>(kHeartbeatInterval).count()
+        + gen(rng);
     for (const auto &path : config.storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
     }
     local->handler_ = local->scheduler_->schedule(
-        local->heartbeat_interval_, [self = std::weak_ptr<LocalStoreImpl>(local)]() {
+        local->heartbeat_interval_,
+        [self = std::weak_ptr<LocalStoreImpl>(local)]() {
           auto shared_self = self.lock();
           if (shared_self) {
             shared_self->reportHealth();

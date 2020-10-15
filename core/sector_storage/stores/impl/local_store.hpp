@@ -27,8 +27,6 @@ namespace fc::sector_storage::stores {
         const std::shared_ptr<boost::asio::io_context> &context,
         Ticks ticks = 50);
 
-    ~LocalStoreImpl();
-
     outcome::result<void> openPath(const std::string &path) override;
 
     outcome::result<AcquireSectorResponse> acquireSector(
