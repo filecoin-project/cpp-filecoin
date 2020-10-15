@@ -20,6 +20,8 @@ namespace fc::primitives::piece {
 
     PieceData(PieceData &&other) noexcept;
 
+    PieceData &operator=(PieceData &&other) noexcept;
+
     ~PieceData();
 
     int getFd() const;

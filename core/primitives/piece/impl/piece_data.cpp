@@ -38,4 +38,10 @@ namespace fc::primitives::piece {
   PieceData::PieceData(int &pipe_fd) : fd_(pipe_fd) {
     pipe_fd = kUnopenedFileDescriptor;
   }
+
+  PieceData &PieceData::operator=(PieceData &&other) noexcept {
+    fd_ = other.fd_;
+    other.fd_ = kUnopenedFileDescriptor;
+    return *this;
+  }
 }  // namespace fc::primitives::piece
