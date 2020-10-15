@@ -25,7 +25,7 @@ namespace fc::sector_storage::stores {
         const std::shared_ptr<SectorIndex> &index,
         gsl::span<const std::string> urls,
         const std::shared_ptr<boost::asio::io_context> &context,
-        Ticks ticks);
+        Ticks ticks = 50);
 
     ~LocalStoreImpl();
 
