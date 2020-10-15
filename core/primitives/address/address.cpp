@@ -49,6 +49,13 @@ namespace fc::primitives::address {
         [](const auto &) { return false; });
   }
 
+  bool Address::isSecp256k1() const {
+    return visit_in_place(
+        data,
+        [](const Secp256k1PublicKeyHash &v) { return true; },
+        [](const auto &) { return false; });
+  }
+
   Protocol Address::getProtocol() const {
     return visit_in_place(
         data,

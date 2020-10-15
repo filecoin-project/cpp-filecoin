@@ -198,12 +198,14 @@ void testTipsets(const MessageVector &mv, IpldPtr ipld) {
         if (msg.from.isBls()) {
           OUTCOME_EXCEPT(cid, ipld->setCbor(msg));
           OUTCOME_EXCEPT(meta.bls_messages.append(cid));
-        } else {
+        } else if (msg.from.isSecp256k1()) {
           OUTCOME_EXCEPT(
               cid,
               ipld->setCbor(fc::vm::message::SignedMessage{
                   msg, fc::crypto::signature::Secp256k1Signature{}}));
           OUTCOME_EXCEPT(meta.secp_messages.append(cid));
+        } else {
+          FAIL();
         }
       }
       block.messages = ipld->setCbor(meta).value();
@@ -239,7 +241,13 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
   for (auto &[epoch, message] : mv.messages) {
     auto &receipt{mv.receipts[i]};
     env->tipset.height = epoch;
-    OUTCOME_EXCEPT(apply, env->applyMessage(message, message.chainSize()));
+    auto size = message.from.isSecp256k1()
+                    ? fc::vm::message::SignedMessage{message,
+                                                     fc::crypto::signature::
+                                                         Secp256k1Signature{}}
+                          .chainSize()
+                    : message.chainSize();
+    OUTCOME_EXCEPT(apply, env->applyMessage(message, size));
     EXPECT_EQ(apply.receipt.exit_code, receipt.exit_code);
     EXPECT_EQ(apply.receipt.return_value, receipt.return_value);
     EXPECT_EQ(apply.receipt.gas_used, receipt.gas_used);
