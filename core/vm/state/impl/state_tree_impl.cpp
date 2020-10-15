@@ -7,6 +7,8 @@
 
 #include "vm/actor/builtin/init/init_actor.hpp"
 
+#include "dvm"
+
 namespace fc::vm::state {
   using actor::builtin::init::InitActorState;
 
@@ -20,6 +22,7 @@ namespace fc::vm::state {
   outcome::result<void> StateTreeImpl::set(const Address &address,
                                            const Actor &actor) {
     OUTCOME_TRY(address_id, lookupId(address));
+    dvm::onActor(*this, address, actor);
     return by_id.set(address_id, actor);
   }
 

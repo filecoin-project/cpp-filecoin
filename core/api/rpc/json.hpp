@@ -687,7 +687,7 @@ namespace fc::api {
       Set(j, "GasLimit", v.gas_limit);
       Set(j, "GasFeeCap", v.gas_fee_cap);
       Set(j, "GasPremium", v.gas_premium);
-      Set(j, "Method", v.method.method_number);
+      Set(j, "Method", v.method);
       Set(j, "Params", gsl::make_span(v.params));
       return j;
     }
@@ -701,7 +701,7 @@ namespace fc::api {
       decode(v.gas_limit, Get(j, "GasLimit"));
       decode(v.gas_fee_cap, Get(j, "GasFeeCap"));
       decode(v.gas_premium, Get(j, "GasPremium"));
-      decode(v.method.method_number, Get(j, "Method"));
+      decode(v.method, Get(j, "Method"));
       decode(v.params, Get(j, "Params"));
     }
 
@@ -901,14 +901,14 @@ namespace fc::api {
     ENCODE(ModularVerificationParameter) {
       Value j{rapidjson::kObjectType};
       Set(j, "Actor", v.actor);
-      Set(j, "Method", v.method.method_number);
+      Set(j, "Method", v.method);
       Set(j, "Data", gsl::make_span(v.data));
       return j;
     }
 
     DECODE(ModularVerificationParameter) {
       decode(v.actor, Get(j, "Actor"));
-      decode(v.method.method_number, Get(j, "Method"));
+      decode(v.method, Get(j, "Method"));
       decode(v.data, Get(j, "Data"));
     }
 

@@ -477,19 +477,6 @@ namespace fc::api {
           InvocResult result;
           result.message = message;
           OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
-          auto maybe_result = ;
-          if (maybe_result) {
-            result.receipt = {VMExitCode::kOk, maybe_result.value(), 0};
-          } else {
-            if (isVMExitCode(maybe_result.error())) {
-              auto ret_code =
-                  normalizeVMExitCode(VMExitCode{maybe_result.error().value()});
-              BOOST_ASSERT_MSG(ret_code,
-                               "c++ actor code returned unknown error");
-            } else {
-              return maybe_result.error();
-            }
-          }
           return result;
         }},
         .StateListMessages = {[=](auto &match, auto &tipset_key, auto to_height)

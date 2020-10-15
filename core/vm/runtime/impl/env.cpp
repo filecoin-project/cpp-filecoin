@@ -11,6 +11,8 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"
 
+#include "dvm"
+
 namespace fc::vm::runtime {
   using actor::kAccountCodeCid;
   using actor::kEmptyObjectCid;
@@ -152,6 +154,9 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(add_locked(message.from, locked));
     apply.receipt.exit_code = exit_code;
     apply.receipt.gas_used = used;
+
+    dvm::onReceipt(apply.receipt);
+
     return apply;
   }
 
@@ -168,10 +173,15 @@ namespace fc::vm::runtime {
     } else {
       return result.error();
     }
+
+    dvm::onReceipt(receipt);
+
     return receipt;
   }
 
   outcome::result<void> Execution::chargeGas(GasAmount amount) {
+    dvm::onCharge(amount);
+
     gas_used += amount;
     if (gas_used > gas_limit) {
       gas_used = gas_limit;
@@ -227,6 +237,9 @@ namespace fc::vm::runtime {
 
   outcome::result<InvocationOutput> Execution::send(
       const UnsignedMessage &message, GasAmount charge) {
+    dvm::onSend(message);
+    DVM_INDENT;
+
     OUTCOME_TRY(chargeGas(charge));
     Actor to_actor;
     auto maybe_to_actor = state_tree->get(message.to);
@@ -239,8 +252,8 @@ namespace fc::vm::runtime {
     } else {
       to_actor = maybe_to_actor.value();
     }
-    OUTCOME_TRY(chargeGas(env->pricelist.onMethodInvocation(
-        message.value, message.method.method_number)));
+    OUTCOME_TRY(chargeGas(
+        env->pricelist.onMethodInvocation(message.value, message.method)));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
     RuntimeImpl runtime{shared_from_this(), message, caller_id};
 
@@ -268,7 +281,7 @@ namespace fc::vm::runtime {
       return actor::cgo::invoke(shared_from_this(),
                                 _message,
                                 to_actor.code,
-                                message.method.method_number,
+                                message.method,
                                 message.params);
     }
 

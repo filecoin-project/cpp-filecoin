@@ -21,7 +21,8 @@
 
 const auto kCorpusRoot{resourcePath("test-vectors/corpus")};
 auto brief(const std::string &path) {
-  return path.substr(kCorpusRoot.size() + 1);
+  auto n{kCorpusRoot.size() + 1};
+  return path.substr(n, path.size() - n - 5);
 }
 
 using fc::Buffer;
@@ -35,7 +36,6 @@ using fc::primitives::block::BlockHeader;
 using fc::primitives::tipset::Tipset;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MessageReceipt;
-using Param = std::string;
 namespace Json = fc::codec::json;
 
 auto gunzip(BytesIn input) {
@@ -46,22 +46,6 @@ auto gunzip(BytesIn input) {
   filter.push(in);
   bio::copy(filter, out);
   return Buffer{fc::common::span::cbytes(out.str())};
-}
-
-auto search() {
-  std::vector<Param> paths;
-  for (auto &item :
-       boost::filesystem::recursive_directory_iterator{kCorpusRoot}) {
-    auto &path{item.path()};
-    if (item.status().type() == boost::filesystem::file_type::regular_file
-        && path.extension() == ".json") {
-      if (boost::algorithm::starts_with(path.filename().string(), "x--")) {
-        continue;
-      }
-      paths.push_back(path.string());
-    }
-  }
-  return paths;
 }
 
 struct MessageVector {
@@ -86,10 +70,19 @@ struct MessageVector {
     mv.state_before = *jCid(jGet(jGet(pre, "state_tree"), "root_cid"));
     mv.parent_epoch = *jInt(jGet(pre, "epoch"));
     mv.state_after = *jCid(jGet(jGet(post, "state_tree"), "root_cid"));
+    if (auto selector{jGet(j, "selector")}) {
+      if (auto chaos{jGet(selector, "chaos_actor")}) {
+        mv.chaos = *jStr(chaos) == "true";
+      }
+    }
     if (auto messages{jGet(j, "apply_messages")}) {
       mv.messages = *jList(messages, [&](auto j) {
+        ChainEpoch epoch{};
+        if (auto _epoch{jGet(j, "epoch")}) {
+          epoch = *jInt(_epoch);
+        }
         return std::make_pair(
-            *jInt(jGet(j, "epoch")),
+            epoch,
             fc::codec::cbor::decode<UnsignedMessage>(*jBytes(jGet(j, "bytes")))
                 .value());
       });
@@ -130,6 +123,13 @@ struct MessageVector {
     return mv;
   }
 
+  static auto read(std::string path) {
+    auto jdoc{*Json::parse(*fc::common::readFile(path))};
+    auto mv{MessageVector::decode(&jdoc)};
+    mv.path = path;
+    return mv;
+  }
+
   std::string type;
   Buffer car;
   std::vector<Ts> tipsets;
@@ -138,9 +138,37 @@ struct MessageVector {
   std::vector<MessageReceipt> receipts;
   CID state_before, state_after;
   std::vector<CID> receipts_roots;
+  bool chaos{false};
+  std::string path;
 };
 
-struct TestVectors : testing::TestWithParam<Param> {};
+auto search(bool enabled) {
+  static auto all_vectors{[] {
+    std::vector<MessageVector> vectors;
+    for (auto &item :
+         boost::filesystem::recursive_directory_iterator{kCorpusRoot}) {
+      auto &path{item.path()};
+      if (item.status().type() == boost::filesystem::file_type::regular_file
+          && path.extension() == ".json") {
+        if (boost::algorithm::starts_with(path.filename().string(), "x--")) {
+          continue;
+        }
+        vectors.push_back(MessageVector::read(path.string()));
+      }
+    }
+    return vectors;
+  }()};
+  std::vector<MessageVector> vectors;
+  for (auto &mv : all_vectors) {
+    auto _enabled{!mv.chaos};
+    if (_enabled == enabled) {
+      vectors.push_back(mv);
+    }
+  }
+  return vectors;
+}
+
+struct TestVectors : testing::TestWithParam<MessageVector> {};
 
 void testTipsets(const MessageVector &mv, IpldPtr ipld) {
   fc::vm::interpreter::InterpreterImpl vmi;
@@ -222,11 +250,9 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
 }
 
 TEST_P(TestVectors, Vector) {
-  auto &path{GetParam()};
+  auto &mv{GetParam()};
   fc::vm::actor::cgo::test_vectors = true;
 
-  OUTCOME_EXCEPT(jdoc, Json::parse(*fc::common::readFile(path)));
-  auto mv{MessageVector::decode(&jdoc)};
   auto ipld{std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
   OUTCOME_EXCEPT(fc::storage::car::loadCar(*ipld, mv.car));
 
@@ -239,15 +265,22 @@ TEST_P(TestVectors, Vector) {
   }
 }
 
+static auto testName{[](auto &&p) {
+  auto s{brief(p.param.path)};
+  for (auto &c : s) {
+    if (!isalnum(c)) {
+      c = '_';
+    }
+  }
+  return s;
+}};
+
 INSTANTIATE_TEST_CASE_P(Vectors,
                         TestVectors,
-                        testing::ValuesIn(search()),
-                        [](auto &&p) {
-                          auto s{brief(p.param)};
-                          for (auto &c : s) {
-                            if (!isalnum(c)) {
-                              c = '_';
-                            }
-                          }
-                          return s;
-                        });
+                        testing::ValuesIn(search(true)),
+                        testName);
+
+INSTANTIATE_TEST_CASE_P(DISABLED_Vectors,
+                        TestVectors,
+                        testing::ValuesIn(search(false)),
+                        testName);

@@ -14,6 +14,8 @@
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/runtime/env.hpp"
 
+#include "dvm"
+
 #define RUNTIME_METHOD(name)                                         \
   void rt_##name(Runtime &, CborDecodeStream &, CborEncodeStream &); \
   CBOR_METHOD(name) {                                                \
@@ -210,9 +212,14 @@ namespace fc::vm::actor::cgo {
         ret << kFatal;
       } else {
         ret << kOk << e.value();
+
+        dvm::onReceipt({VMExitCode{e.value()}, {}, rt.exec->gas_used});
       }
     } else {
       ret << kOk << kOk << r.value();
+
+      dvm::onReceipt(
+          {VMExitCode::kOk, std::move(r.value()), rt.exec->gas_used});
     }
   }
 

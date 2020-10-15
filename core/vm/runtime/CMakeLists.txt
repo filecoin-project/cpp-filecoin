@@ -4,6 +4,7 @@
 #
 
 add_library(runtime
+    ../../dvm.cpp
     impl/env.cpp
     impl/runtime_impl.cpp
     impl/runtime_error.cpp)
