@@ -15,6 +15,7 @@
 #include <map>
 #include <regex>
 #include <utility>
+#include <random>
 
 #include "api/rpc/json.hpp"
 #include "codec/json/json.hpp"
@@ -399,8 +400,8 @@ namespace fc::sector_storage::stores {
     }
 
     OUTCOME_TRY(config, local->storage_->getStorage());
-    boost::random::mt19937 rng(std::time(0));
-    boost::random::uniform_int_distribution<> gen(0, 1000);
+    std::mt19937 rng(std::time(0));
+    std::uniform_int_distribution<> gen(0, 1000);
     local->heartbeat_ = kHeartbeatInterval.count() * 1000 + gen(rng);
     for (const auto &path : config.storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
