@@ -55,6 +55,14 @@ namespace fc {
     struct Hello;
   }  // namespace hello
 
+  namespace markets {
+    namespace storage {
+      namespace provider {
+        class StoredAsk;
+      }  // namespace provider
+    }    // namespace storage
+  }      // namespace markets
+
   namespace primitives {
     namespace block {
       struct BlockWithCids;

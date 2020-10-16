@@ -92,12 +92,8 @@ namespace fc::markets::storage::provider {
   outcome::result<void> StorageProviderImpl::init() {
     OUTCOME_TRY(filestore_->createDirectories(kFilestoreTempDir));
 
-    host_->setCborProtocolHandler(kAskProtocolId,
-                                  [self_wptr{weak_from_this()}](auto stream) {
-                                    if (auto self = self_wptr.lock()) {
-                                      self->handleAskStream(stream);
-                                    }
-                                  });
+    serveAsk(*host_->host_, stored_ask_);
+
     host_->setCborProtocolHandler(kDealProtocolId,
                                   [self_wptr{weak_from_this()}](auto stream) {
                                     if (auto self = self_wptr.lock()) {
@@ -136,19 +132,6 @@ namespace fc::markets::storage::provider {
       closeStreamGracefully(stream, logger_);
     }
     return outcome::success();
-  }
-
-  outcome::result<void> StorageProviderImpl::addAsk(const TokenAmount &price,
-                                                    ChainEpoch duration) {
-    return stored_ask_->addAsk(price, duration);
-  }
-
-  outcome::result<std::vector<SignedStorageAsk>> StorageProviderImpl::listAsks(
-      const Address &address) {
-    std::vector<SignedStorageAsk> result;
-    OUTCOME_TRY(signed_storage_ask, stored_ask_->getAsk(address));
-    result.push_back(signed_storage_ask);
-    return result;
   }
 
   outcome::result<MinerDeal> StorageProviderImpl::getDeal(
@@ -203,25 +186,6 @@ namespace fc::markets::storage::provider {
 
     OUTCOME_TRY(fsm_->send(deal, ProviderEvent::ProviderEventVerifiedData, {}));
     return outcome::success();
-  }
-
-  void StorageProviderImpl::handleAskStream(
-      const std::shared_ptr<CborStream> &stream) {
-    logger_->debug("New ask stream");
-    stream->read<AskRequest>([self{shared_from_this()},
-                              stream](outcome::result<AskRequest> request_res) {
-      if (!self->hasValue(request_res, "Ask request error ", stream)) return;
-      auto maybe_ask = self->stored_ask_->getAsk(request_res.value().miner);
-      if (!self->hasValue(maybe_ask, "Get stored ask error ", stream)) return;
-      AskResponse response{.ask = maybe_ask.value()};
-      stream->write(
-          response, [self, stream](outcome::result<size_t> maybe_res) {
-            if (!self->hasValue(maybe_res, "Write ask response error ", stream))
-              return;
-            closeStreamGracefully(stream, self->logger_);
-            self->logger_->debug("Ask response written, connection closed");
-          });
-    });
   }
 
   void StorageProviderImpl::handleDealStream(
@@ -771,6 +735,26 @@ namespace fc::markets::storage::provider {
     }
   }
 
+  void serveAsk(libp2p::Host &host, std::weak_ptr<StoredAsk> _asker) {
+    auto handle{[&](auto &&protocol) {
+      host.setProtocolHandler(protocol, [_asker](auto _stream) {
+        auto stream{std::make_shared<common::libp2p::CborStream>(_stream)};
+        stream->template read<AskRequest>([_asker, stream](auto _request) {
+          if (_request) {
+            if (auto asker{_asker.lock()}) {
+              if (auto _ask{asker->getAsk(_request.value().miner)}) {
+                return stream->write(AskResponse{_ask.value()},
+                                     [stream](auto) { stream->close(); });
+              }
+            }
+          }
+          stream->stream()->reset();
+        });
+      });
+    }};
+    handle(kAskProtocolId0);
+    handle(kAskProtocolId);
+  }
 }  // namespace fc::markets::storage::provider
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::storage::provider,

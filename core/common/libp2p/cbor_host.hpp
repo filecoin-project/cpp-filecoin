@@ -48,7 +48,6 @@ namespace fc::common::libp2p {
       return host_->getPeerInfo();
     }
 
-   private:
     std::shared_ptr<Host> host_;
   };
 

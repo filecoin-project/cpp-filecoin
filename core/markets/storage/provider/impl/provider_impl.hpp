@@ -70,12 +70,6 @@ namespace fc::markets::storage::provider {
 
     auto stop() -> outcome::result<void> override;
 
-    auto addAsk(const TokenAmount &price, ChainEpoch duration)
-        -> outcome::result<void> override;
-
-    auto listAsks(const Address &address)
-        -> outcome::result<std::vector<SignedStorageAsk>> override;
-
     auto getDeal(const CID &proposal_cid) const
         -> outcome::result<MinerDeal> override;
 
@@ -88,12 +82,6 @@ namespace fc::markets::storage::provider {
         -> outcome::result<void> override;
 
    private:
-    /**
-     * Handle incoming ask stream
-     * @param stream
-     */
-    auto handleAskStream(const std::shared_ptr<CborStream> &stream) -> void;
-
     /**
      * Handle incoming deal proposal stream
      * @param stream
