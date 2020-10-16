@@ -23,6 +23,7 @@ namespace fc {
   constexpr auto kPackingEfficiencyDenom{5};
   constexpr auto kPackingEfficiencyNum{4};
   constexpr auto kPropagationDelaySecs{6};
+  constexpr auto kUpgradeSmokeHeight{51000};
 
   extern BigInt kConsensusMinerMinPower;
 }  // namespace fc

@@ -931,15 +931,17 @@ namespace fc::mining {
     deposit = std::max(deposit, collateral);
 
     logger_->info("submitting precommit for sector: {}", info->sector_number);
-    auto maybe_signed_msg = api_->MpoolPushMessage(vm::message::UnsignedMessage(
-        miner_address_,
-        worker_addr,
-        0,
-        deposit,
-        1,
-        1000000,
-        vm::actor::builtin::miner::PreCommitSector::Number,
-        MethodParams{maybe_params.value()}));  // TODO: max fee options
+    auto maybe_signed_msg = api_->MpoolPushMessage(
+        vm::message::UnsignedMessage(
+            miner_address_,
+            worker_addr,
+            0,
+            deposit,
+            1,
+            1000000,
+            vm::actor::builtin::miner::PreCommitSector::Number,
+            MethodParams{maybe_params.value()}),
+        api::kPushNoSpec);  // TODO: max fee options
 
     if (maybe_signed_msg.has_error()) {
       if (params.replace_capacity) {
@@ -1174,15 +1176,17 @@ namespace fc::mining {
     }
 
     // TODO: check seed / ticket are up to date
-    auto maybe_signed_msg = api_->MpoolPushMessage(vm::message::UnsignedMessage(
-        miner_address_,
-        worker_addr,
-        0,
-        collateral,
-        1,
-        1000000,
-        vm::actor::builtin::miner::ProveCommitSector::Number,
-        MethodParams{maybe_params_encoded.value()}));
+    auto maybe_signed_msg = api_->MpoolPushMessage(
+        vm::message::UnsignedMessage(
+            miner_address_,
+            worker_addr,
+            0,
+            collateral,
+            1,
+            1000000,
+            vm::actor::builtin::miner::ProveCommitSector::Number,
+            MethodParams{maybe_params_encoded.value()}),
+        api::kPushNoSpec);
 
     if (maybe_signed_msg.has_error()) {
       logger_->error("pushing message to mpool: {}",

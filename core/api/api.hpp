@@ -281,6 +281,8 @@ namespace fc::api {
     uint64_t partition;
   };
 
+  constexpr None kPushNoSpec{};
+
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
@@ -352,7 +354,7 @@ namespace fc::api {
                const TipsetKey &)
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
-    API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &)
+    API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &, None)
     API_METHOD(MpoolSelect,
                std::vector<SignedMessage>,
                const TipsetKey &,

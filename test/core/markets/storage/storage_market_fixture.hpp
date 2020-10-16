@@ -289,7 +289,7 @@ namespace fc::markets::storage::test {
 
       api->MpoolPushMessage = {
           [this, bls_provider, miner_worker_keypair, miner_actor_address](
-              auto &unsigned_message) -> outcome::result<SignedMessage> {
+              auto &unsigned_message, auto) -> outcome::result<SignedMessage> {
             if (unsigned_message.from == miner_actor_address) {
               OUTCOME_TRY(encoded_message,
                           codec::cbor::encode(unsigned_message));

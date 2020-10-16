@@ -428,8 +428,8 @@ namespace fc::api {
           }
           return mpool->pending();
         }},
-        .MpoolPushMessage = {[=](auto message)
-                                 -> outcome::result<SignedMessage> {
+        .MpoolPushMessage = {[=](auto message,
+                                 auto) -> outcome::result<SignedMessage> {
           OUTCOME_TRY(context, tipsetContext({}));
           if (message.from.isId()) {
             OUTCOME_TRYA(message.from,

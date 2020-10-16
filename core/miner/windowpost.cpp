@@ -102,16 +102,18 @@ namespace fc {
                          api::DomainSeparationTag::PoStChainCommit,
                          params.chain_commit_epoch,
                          {}));
-        OUTCOME_TRY(api->MpoolPushMessage({
-            miner,
-            worker,
-            0,
-            kValue,
-            kGasPrice,
-            kGasLimit,
-            SubmitWindowedPoSt::Number,
-            codec::cbor::encode(params).value(),
-        }));
+        OUTCOME_TRY(api->MpoolPushMessage(
+            {
+                miner,
+                worker,
+                0,
+                kValue,
+                kGasPrice,
+                kGasLimit,
+                SubmitWindowedPoSt::Number,
+                codec::cbor::encode(params).value(),
+            },
+            api::kPushNoSpec));
         // TODO: should wait result and retry?
       }
     }

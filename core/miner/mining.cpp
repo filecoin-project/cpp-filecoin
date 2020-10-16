@@ -155,7 +155,7 @@ namespace fc::mining {
           election_vrf, info->miner_power, info->network_power)};
       if (win_count > 0) {
         auto ticket_seed{miner_seed};
-        if (info->beacons.empty()) {
+        if (height() > kUpgradeSmokeHeight) {
           ticket_seed.put(ts->getMinTicketBlock().ticket->bytes);
         }
         OUTCOME_TRY(ticket_vrf,

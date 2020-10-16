@@ -281,7 +281,8 @@ namespace fc::markets::storage::client {
         kDefaultGasLimit,
         vm::actor::builtin::market::AddBalance::Number,
         {}};
-    OUTCOME_TRY(signed_message, api_->MpoolPushMessage(unsigned_message));
+    OUTCOME_TRY(signed_message,
+                api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
     OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
     OUTCOME_TRY(msg_wait, api_->StateWaitMsg(message_cid));
     OUTCOME_TRY(msg_state, msg_wait.waitSync());
