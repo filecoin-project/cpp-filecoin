@@ -5,8 +5,12 @@
 
 #include "sector_storage/stores/impl/local_store.hpp"
 
+#include <time.h>
 #include <boost/filesystem.hpp>
-#include <fstream>
+#include <chrono>
+#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
+#include <map>
+#include <random>
 #include <regex>
 #include <utility>
 
@@ -20,6 +24,7 @@
 
 using fc::primitives::LocalStorageMeta;
 using fc::primitives::sector_file::kSectorFileTypes;
+using std::chrono::duration_cast;
 
 namespace fc::sector_storage::stores {
   namespace fs = boost::filesystem;
@@ -42,9 +47,10 @@ namespace fc::sector_storage::stores {
     return StoreErrors::kInvalidSectorName;
   }
 
-  LocalStoreImpl::LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
-                                 std::shared_ptr<SectorIndex> index,
-                                 gsl::span<const std::string> urls)
+  LocalStoreImpl::LocalStoreImpl(
+      std::shared_ptr<LocalStorage> storage,
+      std::shared_ptr<SectorIndex> index,
+      gsl::span<const std::string> urls)
       : storage_(std::move(storage)),
         index_(std::move(index)),
         urls_(urls.begin(), urls.end()) {
@@ -358,30 +364,42 @@ namespace fc::sector_storage::stores {
     return outcome::success();
   }
 
-  outcome::result<std::unique_ptr<LocalStore>> LocalStoreImpl::newLocalStore(
+  outcome::result<std::shared_ptr<LocalStore>> LocalStoreImpl::newLocalStore(
       const std::shared_ptr<LocalStorage> &storage,
       const std::shared_ptr<SectorIndex> &index,
-      gsl::span<const std::string> urls) {
+      gsl::span<const std::string> urls,
+      std::shared_ptr<Scheduler> scheduler) {
     struct make_unique_enabler : public LocalStoreImpl {
       make_unique_enabler(const std::shared_ptr<LocalStorage> &storage,
                           const std::shared_ptr<SectorIndex> &index,
                           gsl::span<const std::string> urls)
           : LocalStoreImpl{storage, index, urls} {};
     };
-
-    std::unique_ptr<LocalStoreImpl> local =
-        std::make_unique<make_unique_enabler>(storage, index, urls);
+    std::shared_ptr<LocalStoreImpl> local =
+        std::make_unique<make_unique_enabler>(
+            storage, index, urls);
 
     if (local->logger_ == nullptr) {
       return StoreErrors::kCannotInitLogger;
     }
 
     OUTCOME_TRY(config, local->storage_->getStorage());
-
+    std::mt19937 rng(std::time(0));
+    std::uniform_int_distribution<> gen(0, 1000);
+    local->heartbeat_interval_ =
+        duration_cast<std::chrono::milliseconds>(kHeartbeatInterval).count()
+        + gen(rng);
     for (const auto &path : config.storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
     }
-
+    local->handler_ = scheduler->schedule(
+        local->heartbeat_interval_,
+        [self = std::weak_ptr<LocalStoreImpl>(local)]() {
+          auto shared_self = self.lock();
+          if (shared_self) {
+            shared_self->reportHealth();
+          }
+        });
     return std::move(local);
   }
 
@@ -472,6 +490,41 @@ namespace fc::sector_storage::stores {
     return [clear = std::move(release_function), items = std::move(items)]() {
       clear(items);
     };
+  }
+
+  void LocalStoreImpl::reportHealth() {
+    std::map<StorageID, HealthReport> toReport;
+    {
+      std::shared_lock lock(mutex_);
+      for (auto path : paths_) {
+        auto stat = path.second->getStat(storage_);
+        std::pair<StorageID, HealthReport> report;
+        if (stat.has_error()) {
+          report = std::make_pair(path.first,
+                                  HealthReport{
+                                      .stat = {},
+                                      .error = stat.error().message(),
+                                  });
+        } else {
+          report = std::make_pair(
+              path.first,
+              HealthReport{.stat = stat.value(), .error = boost::none});
+        }
+        toReport.insert(std::move(report));
+      }
+    }
+
+    for (const auto &report : toReport) {
+      auto maybe_error =
+          index_->storageReportHealth(report.first, report.second);
+      if (maybe_error.has_error()) {
+        logger_->warn("Error reporting storage health for {}: {}",
+                      report.first,
+                      maybe_error.error().message());
+      }
+    }
+
+    handler_.reschedule(heartbeat_interval_);
   }
 
   std::string LocalStoreImpl::Path::sectorPath(const SectorId &sid,
