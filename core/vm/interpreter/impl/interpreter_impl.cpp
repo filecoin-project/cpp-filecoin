@@ -43,18 +43,19 @@ namespace fc::vm::interpreter {
 
   outcome::result<Result> InterpreterImpl::interpret(
       const IpldPtr &ipld, const Tipset &tipset) const {
-    return interpret(ipld, tipset, {});
-  }
-  outcome::result<Result> InterpreterImpl::interpret(
-      const IpldPtr &ipld,
-      const Tipset &tipset,
-      std::vector<MessageReceipt> *all_receipts) const {
     if (tipset.height == 0) {
       return Result{
           tipset.getParentStateRoot(),
           tipset.getParentMessageReceipts(),
       };
     }
+    return applyBlocks(ipld, tipset, {});
+  }
+
+  outcome::result<Result> InterpreterImpl::applyBlocks(
+      const IpldPtr &ipld,
+      const Tipset &tipset,
+      std::vector<MessageReceipt> *all_receipts) const {
     auto on_receipt{[&](auto &receipt) {
       if (all_receipts) {
         all_receipts->push_back(receipt);

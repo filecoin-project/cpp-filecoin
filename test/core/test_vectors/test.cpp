@@ -214,7 +214,8 @@ void testTipsets(const MessageVector &mv, IpldPtr ipld) {
       tipset.cids.push_back(cid);
     }
     std::vector<MessageReceipt> receipts;
-    OUTCOME_EXCEPT(res, vmi.interpret(ipld, tipset, &receipts));
+    OUTCOME_EXCEPT(res, vmi.applyBlocks(ipld, tipset, &receipts));
+    state = res.state_root;
     EXPECT_EQ(res.message_receipts, mv.receipts_roots[i]);
     for (auto &actual : receipts) {
       auto &expected{mv.receipts[j++]};

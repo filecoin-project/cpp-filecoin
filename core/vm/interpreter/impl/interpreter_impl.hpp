@@ -18,7 +18,7 @@ namespace fc::vm::interpreter {
    public:
     outcome::result<Result> interpret(const IpldPtr &store,
                                       const Tipset &tipset) const override;
-    outcome::result<Result> interpret(
+    outcome::result<Result> applyBlocks(
         const IpldPtr &store,
         const Tipset &tipset,
         std::vector<MessageReceipt> *all_receipts) const;
