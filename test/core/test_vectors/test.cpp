@@ -205,7 +205,11 @@ void testTipsets(const MessageVector &mv, IpldPtr ipld) {
                   msg, fc::crypto::signature::Secp256k1Signature{}}));
           OUTCOME_EXCEPT(meta.secp_messages.append(cid));
         } else {
-          FAIL();
+          // sneak in messages originating from other addresses as both kinds.
+          // these should fail, as they are actually invalid senders.
+          OUTCOME_EXCEPT(cid, ipld->setCbor(msg));
+          OUTCOME_EXCEPT(meta.bls_messages.append(cid));
+          OUTCOME_EXCEPT(meta.secp_messages.append(cid));
         }
       }
       block.messages = ipld->setCbor(meta).value();
