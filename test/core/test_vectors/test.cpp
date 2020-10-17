@@ -69,6 +69,11 @@ struct MessageVector {
     auto pre{jGet(j, "preconditions")}, post{jGet(j, "postconditions")};
     mv.state_before = *jCid(jGet(jGet(pre, "state_tree"), "root_cid"));
     mv.parent_epoch = *jInt(jGet(pre, "epoch"));
+    if (auto base_fee{jGet(pre, "basefee")}) {
+      mv.parent_base_fee = *jBigInt(base_fee);
+    } else {
+      mv.parent_base_fee = 100;
+    }
     mv.state_after = *jCid(jGet(jGet(post, "state_tree"), "root_cid"));
     if (auto selector{jGet(j, "selector")}) {
       if (auto chaos{jGet(selector, "chaos_actor")}) {
@@ -134,6 +139,7 @@ struct MessageVector {
   Buffer car;
   std::vector<Ts> tipsets;
   ChainEpoch parent_epoch;
+  BigInt parent_base_fee;
   std::vector<std::pair<ChainEpoch, UnsignedMessage>> messages;
   std::vector<MessageReceipt> receipts;
   CID state_before, state_after;
@@ -239,7 +245,7 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
   b.ticket.emplace();
   b.messages = b.parent_message_receipts = b.parent_state_root =
       mv.state_before;
-  b.parent_base_fee = 100;
+  b.parent_base_fee = mv.parent_base_fee;
   OUTCOME_EXCEPT(ts, Tipset::create({b}));
   auto env{std::make_shared<fc::vm::runtime::Env>(nullptr, ipld, ts)};
   auto i{0};
