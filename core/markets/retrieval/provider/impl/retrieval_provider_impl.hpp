@@ -66,7 +66,9 @@ namespace fc::markets::retrieval::provider {
                           std::shared_ptr<api::Api> api,
                           std::shared_ptr<PieceStorage> piece_storage,
                           IpldPtr ipld,
-                          const ProviderConfig &config);
+                          const ProviderConfig &config,
+                          std::shared_ptr<Manager> sealer,
+                          std::shared_ptr<Miner> miner);
 
     void start() override;
 

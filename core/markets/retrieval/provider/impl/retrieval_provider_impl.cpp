@@ -27,12 +27,16 @@ namespace fc::markets::retrieval::provider {
       std::shared_ptr<api::Api> api,
       std::shared_ptr<PieceStorage> piece_storage,
       std::shared_ptr<Ipld> ipld,
-      const ProviderConfig &config)
+      const ProviderConfig &config,
+      std::shared_ptr<Manager> sealer,
+      std::shared_ptr<Miner> miner)
       : host_{std::make_shared<CborHost>(host)},
         api_{std::move(api)},
         piece_storage_{std::move(piece_storage)},
         ipld_{std::move(ipld)},
-        config_{config} {}
+        config_{config},
+        sealer_{std::move(sealer)},
+        miner_{std::move(miner)} {}
 
   void RetrievalProviderImpl::start() {
     host_->setCborProtocolHandler(
