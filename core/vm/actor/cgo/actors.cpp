@@ -36,8 +36,6 @@ namespace fc::vm::actor::cgo {
   using runtime::resolveKey;
   using storage::hamt::HamtError;
 
-  bool test_vectors{false};
-
   void config(const StoragePower &min_verified_deal_size,
               const StoragePower &consensus_miner_min_power,
               const std::vector<RegisteredProof> &supported_proofs) {
@@ -230,9 +228,7 @@ namespace fc::vm::actor::cgo {
     auto bls{!_sig.empty() && _sig[0] == crypto::signature::BLS};
     if (charge(ret, rt, rt.exec->env->pricelist.onVerifySignature(bls))) {
       auto ok{false};
-      if (test_vectors) {
-        ok = true;
-      } else if (auto sig{Signature::fromBytes(_sig)}) {
+      if (auto sig{Signature::fromBytes(_sig)}) {
         if (auto _key{resolveKey(*rt.exec->state_tree, arg.get<Address>())}) {
           auto input{arg.get<Buffer>()};
           auto r{keystore.verify(_key.value(), input, sig.value())};
