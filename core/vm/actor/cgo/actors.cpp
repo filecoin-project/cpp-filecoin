@@ -10,6 +10,7 @@
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/runtime/env.hpp"
@@ -24,6 +25,7 @@
   void rt_##name(Runtime &rt, CborDecodeStream &arg, CborEncodeStream &ret)
 
 namespace fc::vm::actor::cgo {
+  using builtin::account::AccountActorState;
   using crypto::randomness::DomainSeparationTag;
   using crypto::signature::Signature;
   using primitives::ChainEpoch;
@@ -227,12 +229,29 @@ namespace fc::vm::actor::cgo {
     auto _sig{arg.get<Buffer>()};
     auto bls{!_sig.empty() && _sig[0] == crypto::signature::BLS};
     if (charge(ret, rt, rt.exec->env->pricelist.onVerifySignature(bls))) {
-      auto ok{false};
-      if (auto sig{Signature::fromBytes(_sig)}) {
-        if (auto _key{resolveKey(*rt.exec->state_tree, arg.get<Address>())}) {
+      auto address{arg.get<Address>()};
+      auto ok{address.isKeyType()};
+      if (address.isId()) {
+        // resolve id address to key address
+        if (auto actor{rt.exec->state_tree->get(address)}) {
+          if (auto state{ipldGet(ret, rt, actor.value().head)}) {
+            if (auto account{
+                    codec::cbor::decode<AccountActorState>(state.value())}) {
+              address = account.value().address;
+              ok = true;
+            }
+          } else {
+            return;
+          }
+        }
+      }
+      if (ok) {
+        if (auto sig{Signature::fromBytes(_sig)}) {
           auto input{arg.get<Buffer>()};
-          auto r{keystore.verify(_key.value(), input, sig.value())};
+          auto r{keystore.verify(address, input, sig.value())};
           ok = r && r.value();
+        } else {
+          ok = false;
         }
       }
       ret << kOk << ok;
