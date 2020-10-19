@@ -52,6 +52,10 @@ namespace fc::dvm {
     }
   }
 
+  void onIpldSet(const CID &cid, const Buffer &data) {
+    DVM_LOG("IPLD PUT: {} {}", dumpCid(cid), dumpCbor(data));
+  }
+
   void onSend(const UnsignedMessage &msg) {
     DVM_LOG("SEND m={} n={} v={} to={} {}",
             msg.method,
@@ -75,7 +79,9 @@ namespace fc::dvm {
         auto _b{old.balance != actor.balance}, _n{old.nonce != actor.nonce},
             _h{old.head != actor.head};
         if (_b || _n || _h) {
-          DVM_LOG("ACTOR {}", address);
+          auto code_multihash{old.code.content_address.getHash()};
+          DVM_LOG(
+              "ACTOR {} {}", address, common::span::bytestr(code_multihash));
           DVM_INDENT;
           if (_b) {
             DVM_LOG("balance {} -> {}", old.balance, actor.balance);

@@ -134,7 +134,9 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtIpldPut) {
-    if (auto cid{ipldPut(ret, rt, arg.get<Buffer>())}) {
+    auto buf = arg.get<Buffer>();
+    if (auto cid{ipldPut(ret, rt, buf)}) {
+      dvm::onIpldSet(*cid, buf);
       ret << kOk << *cid;
     }
   }
