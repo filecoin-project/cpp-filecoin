@@ -14,6 +14,7 @@
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/runtime/env.hpp"
+#include "vm/version.hpp"
 
 #include "dvm"
 
@@ -37,6 +38,7 @@ namespace fc::vm::actor::cgo {
   using primitives::sector::WindowPoStVerifyInfo;
   using runtime::resolveKey;
   using storage::hamt::HamtError;
+  using vm::version::getNetworkVersion;
 
   void config(const StoragePower &min_verified_deal_size,
               const StoragePower &consensus_miner_min_power,
@@ -72,8 +74,7 @@ namespace fc::vm::actor::cgo {
                                  BytesIn params) {
     CborEncodeStream arg;
     auto id{next_runtime++};  // TODO: mod
-    // TODO: version
-    auto version{0};
+    auto version{getNetworkVersion(exec->env->tipset.height)};
     arg << id << version << message.from << message.to
         << exec->env->tipset.height << message.value << code << method
         << params;
