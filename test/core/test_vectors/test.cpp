@@ -85,6 +85,8 @@ struct MessageVector {
         ChainEpoch epoch{};
         if (auto _epoch{jGet(j, "epoch")}) {
           epoch = *jInt(_epoch);
+        } else {
+          epoch = mv.parent_epoch;
         }
         return std::make_pair(
             epoch,
