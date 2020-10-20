@@ -14,6 +14,8 @@ namespace fc::vm::actor::cgo {
   using primitives::sector::RegisteredProof;
   using runtime::Execution;
 
+  extern bool test_vectors;
+
   void config(const StoragePower &min_verified_deal_size,
               const StoragePower &consensus_miner_min_power,
               const std::vector<RegisteredProof> &supported_proofs);

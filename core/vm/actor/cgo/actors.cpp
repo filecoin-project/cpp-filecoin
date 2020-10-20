@@ -28,6 +28,7 @@
 namespace fc::vm::actor::cgo {
   using builtin::account::AccountActorState;
   using crypto::randomness::DomainSeparationTag;
+  using crypto::randomness::Randomness;
   using crypto::signature::Signature;
   using primitives::ChainEpoch;
   using primitives::GasAmount;
@@ -39,6 +40,8 @@ namespace fc::vm::actor::cgo {
   using runtime::resolveKey;
   using storage::hamt::HamtError;
   using vm::version::getNetworkVersion;
+
+  bool test_vectors{false};
 
   void config(const StoragePower &min_verified_deal_size,
               const StoragePower &consensus_miner_min_power,
@@ -128,6 +131,18 @@ namespace fc::vm::actor::cgo {
     return {};
   }
 
+  inline outcome::result<Randomness> generateRandomness(Runtime &rt,
+                                                        CborDecodeStream &arg) {
+    auto beacon{arg.get<bool>()};
+    auto tag{arg.get<DomainSeparationTag>()};
+    auto round{arg.get<ChainEpoch>()};
+    auto seed{arg.get<Buffer>()};
+    auto &ts{rt.exec->env->tipset};
+    auto &ipld{*rt.exec->env->ipld};
+    return beacon ? ts.beaconRandomness(ipld, tag, round, seed)
+                  : ts.ticketRandomness(ipld, tag, round, seed);
+  }
+
   RUNTIME_METHOD(gocRtIpldGet) {
     if (auto value{ipldGet(ret, rt, arg.get<CID>())}) {
       ret << kOk << *value;
@@ -149,14 +164,11 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtRand) {
-    auto beacon{arg.get<bool>()};
-    auto tag{arg.get<DomainSeparationTag>()};
-    auto round{arg.get<ChainEpoch>()};
-    auto seed{arg.get<Buffer>()};
-    auto &ts{rt.exec->env->tipset};
-    auto &ipld{*rt.exec->env->ipld};
-    auto r{beacon ? ts.beaconRandomness(ipld, tag, round, seed)
-                  : ts.ticketRandomness(ipld, tag, round, seed)};
+    // see lotus conformance tests v0.10.0
+    // (https://github.com/filecoin-project/lotus/blob/v0.10.0/conformance/rand_fixed.go)
+    auto r = test_vectors ? crypto::randomness::Randomness::fromString(
+                 "i_am_random_____i_am_random_____")
+                          : generateRandomness(rt, arg);
     if (!r) {
       ret << kFatal;
     } else {
