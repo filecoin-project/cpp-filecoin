@@ -91,7 +91,6 @@ namespace fc::codec::json {
     if (j->IsString()) {
       return BigInt{j->GetString()};
     }
-    // TODO check if it is correct
-    return BigInt{};
+    return {};
   }
 }  // namespace fc::codec::json
