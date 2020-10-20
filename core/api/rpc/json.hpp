@@ -210,10 +210,13 @@ namespace fc::api {
     }
 
     DECODE(int64_t) {
-      if (!j.IsInt64()) {
+      if (j.IsInt64()) {
+        v = j.GetInt64();
+      } else if (j.IsString()) {
+        v = strtoll(j.GetString(), nullptr, 10);
+      } else {
         outcome::raise(JsonError::kWrongType);
       }
-      v = j.GetInt64();
     }
 
     ENCODE(uint64_t) {
@@ -221,10 +224,13 @@ namespace fc::api {
     }
 
     DECODE(uint64_t) {
-      if (!j.IsUint64()) {
+      if (j.IsUint64()) {
+        v = j.GetUint64();
+      } else if (j.IsString()) {
+        v = strtoull(j.GetString(), nullptr, 10);
+      } else {
         outcome::raise(JsonError::kWrongType);
       }
-      v = j.GetUint64();
     }
 
     ENCODE(double) {
@@ -232,10 +238,13 @@ namespace fc::api {
     }
 
     DECODE(double) {
-      if (!j.IsDouble()) {
+      if (j.IsDouble()) {
+        v = j.GetDouble();
+      } else if (j.IsString()) {
+        v = strtod(j.GetString(), nullptr);
+      } else {
         outcome::raise(JsonError::kWrongType);
       }
-      v = j.GetDouble();
     }
 
     DECODE(bool) {
