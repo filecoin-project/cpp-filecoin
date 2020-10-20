@@ -297,8 +297,8 @@ namespace fc::vm::runtime {
 
   outcome::result<Ipld::Value> ChargingIpld::get(const CID &key) const {
     auto execution{execution_.lock()};
-    OUTCOME_TRY(value, execution->env->ipld->get(key));
     OUTCOME_TRY(execution->chargeGas(execution->env->pricelist.onIpldGet()));
+    OUTCOME_TRY(value, execution->env->ipld->get(key));
     return std::move(value);
   }
 }  // namespace fc::vm::runtime
