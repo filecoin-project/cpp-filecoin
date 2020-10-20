@@ -25,11 +25,11 @@ namespace fc::sector_storage {
                                     const UnpaddedPieceSize &size,
                                     const SealRandomness &randomness,
                                     const CID &cid) override {
-      return doReadPiece(output, sector, offset, size, randomness, cid);
+      return doReadPiece(output.getFd(), sector, offset, size, randomness, cid);
     }
 
     MOCK_METHOD6(doReadPiece,
-                 outcome::result<void>(const PieceData &,
+                 outcome::result<void>(int fd,
                                        const SectorId &,
                                        UnpaddedByteIndex,
                                        const UnpaddedPieceSize &,

@@ -37,7 +37,7 @@ namespace fc::markets::retrieval::test {
                  .deals = {{.deal_id = 18,
                             .sector_id = 4,
                             .offset = PaddedPieceSize(128),
-                            .length = PaddedPieceSize(64)}}},
+                            .length = PaddedPieceSize(105)}}},
         .payloads = {
             {.cid =
                  "12209139839e65fabea9efd230898ad8b574509147e48d7c1e87a33d6da70fd2efbf"_cid,

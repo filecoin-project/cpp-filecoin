@@ -51,7 +51,7 @@ namespace fc::miner {
         const PieceData &piece_data,
         DealInfo deal) override;
 
-    Address getAddress() const;
+    Address getAddress() const override;
 
    private:
     /**

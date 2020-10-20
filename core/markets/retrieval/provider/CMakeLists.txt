@@ -16,4 +16,6 @@ target_link_libraries(retrieval_market_provider
     piece
     piece_data
     car
+    miner
+    manager
     )

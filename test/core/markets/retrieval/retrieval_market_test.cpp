@@ -4,10 +4,14 @@
  */
 
 #include "core/markets/retrieval/fixture.hpp"
+#include "proofs/proofs_error.hpp"
 #include "testutil/outcome.hpp"
 
 namespace fc::markets::retrieval::test {
   using fc::storage::ipld::kAllSelector;
+  using primitives::piece::UnpaddedByteIndex;
+  using proofs::ProofsError;
+  using testing::_;
 
   /**
    * @given Piece, which was stored to a Piece Storage
@@ -41,6 +45,33 @@ namespace fc::markets::retrieval::test {
   TEST_F(RetrievalMarketFixture, RetrieveSuccess) {
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), false);
 
+    auto sector_info = std::make_shared<mining::types::SectorInfo>();
+    EXPECT_CALL(*miner, getSectorInfo(deal.sector_id))
+        .WillOnce(testing::Return(outcome::success(sector_info)));
+
+    const Address result_address = Address::makeFromId(1000);
+    EXPECT_CALL(*miner, getAddress()).WillOnce(testing::Return(result_address));
+
+    EXPECT_CALL(*sealer,
+                doReadPiece(_,
+                            SectorId{.miner = result_address.getId(),
+                                     .sector = deal.sector_id},
+                            UnpaddedByteIndex(deal.offset.unpadded()),
+                            deal.length.unpadded(),
+                            common::Hash256(),
+                            CID()))
+        .WillOnce(
+            testing::Invoke([ipfs{provider_ipfs}, cid{payload_cid}](
+                                auto output_fd, auto, auto, auto, auto, auto)
+                                -> outcome::result<void> {
+              EXPECT_OUTCOME_TRUE(car, fc::storage::car::makeCar(*ipfs, {cid}));
+              auto bytes = write(output_fd, car.data(), car.size());
+              if ((bytes < 0) || (static_cast<size_t>(bytes) != car.size())) {
+                return ProofsError::kNotWriteEnough;
+              }
+              return outcome::success();
+            }));
+
     DealProposalParams params{.selector = kAllSelector,
                               .piece = boost::none,
                               .price_per_byte = 2,
@@ -62,5 +93,9 @@ namespace fc::markets::retrieval::test {
     EXPECT_OUTCOME_TRUE_1(future.get());
 
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), true);
+
+    // Note: otherwise 2 mock objects are leaked
+    miner->~MinerMock();
+    sealer->~ManagerMock();
   }
 }  // namespace fc::markets::retrieval::test
