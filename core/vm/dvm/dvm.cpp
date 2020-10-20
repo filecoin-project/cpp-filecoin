@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "dvm"
+#include "vm/dvm/dvm.hpp"
 
 #include <spdlog/sinks/basic_file_sink.h>
 

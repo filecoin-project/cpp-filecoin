@@ -7,7 +7,7 @@
 
 #include "vm/actor/builtin/init/init_actor.hpp"
 
-#include "dvm"
+#include "vm/dvm/dvm.hpp"
 
 namespace fc::vm::state {
   using actor::builtin::init::InitActorState;

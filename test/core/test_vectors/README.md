@@ -11,7 +11,7 @@ The similar logs for lotus implementation in Go can be found at https://github.c
 
 To run a single tests, add the following code:
 ```
-#include "dvm"
+#include "vm/dvm/dvm.hpp"
 
 ...
 

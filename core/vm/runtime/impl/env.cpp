@@ -11,7 +11,7 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"
 
-#include "dvm"
+#include "vm/dvm/dvm.hpp"
 
 namespace fc::vm::runtime {
   using actor::kAccountCodeCid;

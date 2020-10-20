@@ -16,7 +16,7 @@
 #include "vm/runtime/env.hpp"
 #include "vm/version.hpp"
 
-#include "dvm"
+#include "vm/dvm/dvm.hpp"
 
 #define RUNTIME_METHOD(name)                                         \
   void rt_##name(Runtime &, CborDecodeStream &, CborEncodeStream &); \

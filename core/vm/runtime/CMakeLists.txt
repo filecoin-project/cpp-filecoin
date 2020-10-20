@@ -4,7 +4,6 @@
 #
 
 add_library(runtime
-    ../../dvm.cpp
     impl/env.cpp
     impl/runtime_impl.cpp
     impl/runtime_error.cpp)
@@ -13,6 +12,7 @@ target_link_libraries(runtime
     blake2
     bls_provider
     cgo_actors
+    dvm
     keystore
     message
     proofs
