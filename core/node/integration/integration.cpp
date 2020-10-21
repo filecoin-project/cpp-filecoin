@@ -64,9 +64,13 @@ namespace fc {
           syncer(o.scheduler,
                  o.tipset_loader,
                  o.chain_db,
-                 [](sync::SyncStatus st) {
-                   log()->info("Sync status {}, total={}", st.code, st.total);
-                   // o.io_context->stop();
+                 o.kv_store,
+                 o.ipld,
+                 [](const sync::InterpreterJob::Result &result) {
+                   if (result.result) {
+                     log()->info("Head is now {}:{}", result.head->height(),
+                                 result.head->key.toPrettyString());
+                   }
                  }) {}
 
     void start() {
@@ -149,7 +153,7 @@ namespace fc {
 
     auto cb = [&](sync::IndexDbBackend::TipsetIdx idx) {
       if (idx.height % 1000 == 0) log()->info("reindex height {}", idx.height);
-      OUTCOME_EXCEPT(buffer, o.kvstorage->get(common::Buffer(idx.hash)));
+      OUTCOME_EXCEPT(buffer, o.kv_store->get(common::Buffer(idx.hash)));
       OUTCOME_EXCEPT(cids, codec::cbor::decode<std::vector<CID>>(buffer));
       sync::TipsetInfo info{
           sync::TipsetKey::create(std::move(cids), std::move(idx.hash)),
@@ -284,6 +288,7 @@ namespace fc {
                 ++tipsets_interpreted;
               }
             }
+            return !interpret_error;
           }));
 
       log()->info("interpreted {} tipsets, found {} mismatches",
@@ -311,6 +316,7 @@ namespace fc {
               log()->info("walking fwd at {}", tipset->height());
             }
             ++tipsets_visited;
+            return true;
           }));
       log()->info("visited {} tipsets", tipsets_visited);
       return 0;
@@ -331,6 +337,7 @@ namespace fc {
               log()->info("walking bwd at {}", tipset->height());
             }
             ++tipsets_visited;
+            return true;
           }));
       log()->info("visited {} tipsets", tipsets_visited);
       return 0;

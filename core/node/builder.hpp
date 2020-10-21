@@ -90,10 +90,6 @@ namespace fc::node {
   };
 
   struct NodeObjects {
-    std::shared_ptr<
-        storage::face::PersistentMap<common::Buffer, common::Buffer>>
-        kvstorage;
-
     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld;
 
     std::shared_ptr<boost::asio::io_context> io_context;
@@ -104,7 +100,7 @@ namespace fc::node {
 
     std::shared_ptr<clock::UTCClock> utc_clock;
 
-    // std::shared_ptr<sync::IndexDbBackend> index_db_backend;
+    std::shared_ptr<storage::PersistentBufferMap> kv_store;
 
     std::shared_ptr<sync::IndexDb> index_db;
 

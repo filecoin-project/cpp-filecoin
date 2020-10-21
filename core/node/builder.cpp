@@ -142,7 +142,7 @@ namespace fc::node {
     if (config.storage_path == "memory") {
       OUTCOME_TRYA(index_db_backend, sync::IndexDbBackend::create(":memory:"));
       o.ipld = std::make_shared<storage::ipfs::InMemoryDatastore>();
-      o.kvstorage = std::make_shared<storage::InMemoryStorage>();
+      o.kv_store = std::make_shared<storage::InMemoryStorage>();
       creating_new_db = true;
     } else {
       leveldb::Options options;
@@ -158,7 +158,7 @@ namespace fc::node {
       }
       o.ipld = std::make_shared<storage::ipfs::LeveldbDatastore>(
           leveldb_res.value());
-      o.kvstorage = std::move(leveldb_res.value());
+      o.kv_store = std::move(leveldb_res.value());
 
       OUTCOME_TRYA(
           index_db_backend,
@@ -174,10 +174,9 @@ namespace fc::node {
 
     // o.index_db_backend = std::move(index_db_backend);
     o.index_db = std::make_shared<sync::IndexDb>(
-        /*o.kvstorage,*/ std::move(index_db_backend));
+        std::move(index_db_backend));
     o.chain_db = std::make_shared<sync::ChainDb>();
     OUTCOME_TRY(o.chain_db->init(
-        /*o.kvstorage,*/
         o.ipld,
         o.index_db,
         config.genesis_cid,

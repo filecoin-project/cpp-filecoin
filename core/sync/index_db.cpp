@@ -117,10 +117,10 @@ namespace fc::sync {
                                              Height from_height,
                                              Height to_height,
                                              const WalkCallback &cb) {
-    if (to_height <= from_height) {
+    if (to_height < from_height) {
       return outcome::success();
     }
-    auto limit = to_height - from_height;
+    auto limit = to_height - from_height + 1;
     std::error_code e;
     auto res = backend_->walk(
         branch,

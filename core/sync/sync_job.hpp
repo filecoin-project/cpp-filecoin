@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_SYNC_JOB_HPP
 
 #include <libp2p/protocol/common/scheduler.hpp>
-#include "chain_db.hpp"
+#include "interpreter_job.hpp"
 
 namespace fc::sync {
 
@@ -70,11 +70,13 @@ namespace fc::sync {
 
   class Syncer {
    public:
-    using Callback = std::function<void(SyncStatus status)>;
+    using Callback = InterpreterJob::Callback;
 
     Syncer(std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
            std::shared_ptr<TipsetLoader> tipset_loader,
            std::shared_ptr<ChainDb> chain_db,
+           std::shared_ptr<storage::PersistentBufferMap> kv_store,
+           IpfsStoragePtr ipld,
            Callback callback);
 
     void start();
@@ -107,6 +109,8 @@ namespace fc::sync {
 
     void onSyncJobFinished(SyncStatus status);
 
+    void onInterpreterResult(const InterpreterJob::Result& result);
+
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<TipsetLoader> tipset_loader_;
     std::shared_ptr<ChainDb> chain_db_;
@@ -126,6 +130,8 @@ namespace fc::sync {
 
     boost::optional<PeerId> last_good_peer_;
     Height probable_height_ = 0;
+
+    std::shared_ptr<InterpreterJob> interpreter_job_;
   };
 
 }  // namespace fc::sync

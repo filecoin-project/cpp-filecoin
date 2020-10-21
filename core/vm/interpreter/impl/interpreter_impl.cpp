@@ -144,26 +144,51 @@ namespace fc::vm::interpreter {
     return false;
   }
 
+  namespace {
+    const common::Buffer &getBadTipsetMarker() {
+      static const uint8_t z[] = {0x00};
+      static const common::Buffer kBadTipsetMark(
+          gsl::span<const uint8_t>(z, 1));
+      return kBadTipsetMark;
+    }
+
+    outcome::result<boost::optional<Result>> getSavedResult(
+        const PersistentBufferMap &store, const common::Buffer &key) {
+      if (store.contains(key)) {
+        OUTCOME_TRY(raw, store.get(key));
+        if (raw == getBadTipsetMarker()) {
+          return InterpreterError::kTipsetMarkedBad;
+        }
+        OUTCOME_TRY(result, codec::cbor::decode<Result>(raw));
+        return std::move(result);
+      }
+      return boost::none;
+    }
+
+  }  // namespace
+
+  outcome::result<boost::optional<Result>> getSavedResult(
+      const PersistentBufferMap &store,
+      const primitives::tipset::TipsetCPtr &tipset) {
+    common::Buffer key(tipset->key.hash());
+    return getSavedResult(store, key);
+  }
+
   outcome::result<Result> CachedInterpreter::interpret(
       const IpldPtr &ipld, const TipsetCPtr &tipset) const {
-    static const uint8_t z[] = {0x00};
-    static const common::Buffer kBadTipsetMark(gsl::span<const uint8_t>(z, 1));
-
     common::Buffer key(tipset->key.hash());
-    if (store->contains(key)) {
-      OUTCOME_TRY(raw, store->get(key));
-      if (raw == kBadTipsetMark) {
-        return InterpreterError::kTipsetMarkedBad;
-      }
-      return codec::cbor::decode<Result>(raw);
+    OUTCOME_TRY(saved_result, getSavedResult(*store, key));
+    if (saved_result) {
+      return saved_result.value();
     }
     auto result = interpreter->interpret(ipld, tipset);
     if (!result) {
-      OUTCOME_TRY(store->put(key, kBadTipsetMark));
+      OUTCOME_TRY(store->put(key, getBadTipsetMarker()));
     } else {
       OUTCOME_TRY(raw, codec::cbor::encode(result.value()));
       OUTCOME_TRY(store->put(key, raw));
     }
     return result;
   }
+
 }  // namespace fc::vm::interpreter

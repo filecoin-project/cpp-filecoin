@@ -223,7 +223,8 @@ namespace fc::sync {
 
     for (;;) {
       OUTCOME_TRY(branch_id, branches_.getBranchAtHeight(from_height, false));
-      if (branch_id == kNoBranch || last_height > to_height) {
+      if (branch_id == kNoBranch || last_height > to_height
+          || from_height > to_height) {
         break;
       }
       OUTCOME_TRY(index_db_->walkForward(
@@ -255,7 +256,7 @@ namespace fc::sync {
       if (height > 0) {
         h = tipset->getParents().hash();
       }
-      cb(std::move(tipset));
+      if (!cb(std::move(tipset))) break;
     }
     return outcome::success();
   }

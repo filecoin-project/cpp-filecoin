@@ -123,11 +123,21 @@ namespace fc::sync {
   Syncer::Syncer(std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
                  std::shared_ptr<TipsetLoader> tipset_loader,
                  std::shared_ptr<ChainDb> chain_db,
+                 std::shared_ptr<storage::PersistentBufferMap> kv_store,
+                 IpfsStoragePtr ipld,
                  Callback callback)
       : scheduler_(std::move(scheduler)),
         tipset_loader_(std::move(tipset_loader)),
         chain_db_(std::move(chain_db)),
-        callback_(std::move(callback)) {}
+        callback_(std::move(callback)),
+        interpreter_job_(std::make_shared<InterpreterJob>(
+            std::move(kv_store),
+            *scheduler_,
+            *chain_db_,
+            std::move(ipld),
+            [this](const InterpreterJob::Result &result) {
+              onInterpreterResult(result);
+            })) {}
 
   void Syncer::start() {
     if (!started_) {
@@ -256,8 +266,22 @@ namespace fc::sync {
   void Syncer::onSyncJobFinished(SyncStatus status) {
     if (status.code == SyncStatus::SYNCED_TO_GENESIS) {
       last_good_peer_ = status.peer.value();
+      auto res = interpreter_job_->start(status.head.value());
+      if (!res) {
+        // ~~log
+        // XXX ???? callback_(interpreter_job_->getResult());
+      }
+    } else {
+      // ~~log
     }
-    callback_(std::move(status));
+  }
+
+  void Syncer::onInterpreterResult(const InterpreterJob::Result& result) {
+    if (result.result) {
+      callback_(result);
+    } else {
+      //~~~ ????
+    }
   }
 
 }  // namespace fc::sync

@@ -17,6 +17,7 @@ add_library(sync
     blocksync_client.cpp
     blocksync_server.cpp
     sync_job.cpp
+    interpreter_job.cpp
     chain_db.cpp
     branches.cpp
     index_db.cpp
