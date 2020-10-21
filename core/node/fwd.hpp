@@ -68,6 +68,10 @@ namespace fc {
   }      // namespace markets
 
   namespace primitives {
+    namespace address {
+      struct Address;
+    }  // namespace address
+
     namespace block {
       struct BlockWithCids;
     }  // namespace block
@@ -92,6 +96,10 @@ namespace fc {
   }    // namespace storage
 
   namespace vm {
+    namespace actor {
+      struct Actor;
+    }  // namespace actor
+
     namespace interpreter {
       class Interpreter;
     }  // namespace interpreter
@@ -103,7 +111,13 @@ namespace fc {
 
     namespace runtime {
       struct Execution;
+      struct MessageReceipt;
     }  // namespace runtime
+
+    namespace state {
+      class StateTree;
+      class StateTreeImpl;
+    }  // namespace state
   }    // namespace vm
 }  // namespace fc
 

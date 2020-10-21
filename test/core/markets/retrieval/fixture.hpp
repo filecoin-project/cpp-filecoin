@@ -13,9 +13,12 @@
 #include "core/markets/retrieval/config.hpp"
 #include "core/markets/retrieval/data.hpp"
 #include "primitives/tipset/tipset.hpp"
+#include "storage/car/car.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
+#include "testutil/mocks/miner/miner_mock.hpp"
+#include "testutil/mocks/sector_storage/manager_mock.hpp"
 
 namespace fc::markets::retrieval::test {
   using api::AddChannelInfo;
@@ -25,6 +28,7 @@ namespace fc::markets::retrieval::test {
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::piece::DealInfo;
   using fc::storage::piece::PayloadLocation;
+  using primitives::piece::UnpaddedPieceSize;
   using primitives::tipset::Tipset;
   using provider::ProviderConfig;
   using vm::actor::builtin::payment_channel::SignedVoucher;
@@ -44,6 +48,8 @@ namespace fc::markets::retrieval::test {
     using StorageShPtr = std::shared_ptr<::fc::storage::InMemoryStorage>;
     using Multiaddress = libp2p::multi::Multiaddress;
     using ApiShPtr = std::shared_ptr<api::Api>;
+    using MinerMockShPtr = std::shared_ptr<miner::MinerMock>;
+    using ManagerMockShPtr = std::shared_ptr<sector_storage::ManagerMock>;
 
     static void SetUpTestCase() {
       auto injector = libp2p::injector::makeHostInjector(
@@ -82,6 +88,12 @@ namespace fc::markets::retrieval::test {
     /* Common application interface */
     ApiShPtr api;
 
+    ManagerMockShPtr sealer;
+
+    MinerMockShPtr miner;
+
+    DealInfo deal;
+
     /** IPFS datastore */
     std::shared_ptr<IpfsDatastore> client_ipfs{
         std::make_shared<InMemoryDatastore>()};
@@ -107,8 +119,13 @@ namespace fc::markets::retrieval::test {
       ProviderConfig config{.price_per_byte = 2,
                             .payment_interval = 100,
                             .interval_increase = 10};
+
+      sealer = std::make_shared<sector_storage::ManagerMock>();
+
+      miner = std::make_shared<miner::MinerMock>();
+
       provider = std::make_shared<provider::RetrievalProviderImpl>(
-          host, api, piece_storage, provider_ipfs, config);
+          host, api, piece_storage, provider_ipfs, config, sealer, miner);
       client =
           std::make_shared<client::RetrievalClientImpl>(host, api, client_ipfs);
       provider->start();
@@ -164,7 +181,10 @@ namespace fc::markets::retrieval::test {
       OUTCOME_TRYA(payload_cid, common::getCidOf(bytes));
       CID piece_cid =
           "12209139839e65fabea9efd230898ad8b574509147e48d7c1e87a33d6da70fd2efae"_cid;
-      DealInfo deal{.deal_id = 18, .sector_id = 4, .offset = 128, .length = 64};
+      deal = DealInfo{.deal_id = 18,
+                      .sector_id = 4,
+                      .offset = PaddedPieceSize(128),
+                      .length = PaddedPieceSize(105)};
       PayloadLocation location{.relative_offset = 16, .block_size = 4};
       OUTCOME_TRY(piece_storage->addDealForPiece(piece_cid, deal));
       OUTCOME_TRY(piece_storage->addPayloadLocations(

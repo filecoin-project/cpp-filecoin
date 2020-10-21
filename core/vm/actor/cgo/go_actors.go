@@ -11,8 +11,13 @@ import (
 	"errors"
 	"fmt"
 	"github.com/filecoin-project/go-address"
-	"github.com/filecoin-project/specs-actors/actors/abi"
-	"github.com/filecoin-project/specs-actors/actors/abi/big"
+	"github.com/filecoin-project/go-state-types/abi"
+	"github.com/filecoin-project/go-state-types/big"
+	"github.com/filecoin-project/go-state-types/cbor"
+	"github.com/filecoin-project/go-state-types/crypto"
+	"github.com/filecoin-project/go-state-types/exitcode"
+	"github.com/filecoin-project/go-state-types/network"
+	rtt "github.com/filecoin-project/go-state-types/rt"
 	"github.com/filecoin-project/specs-actors/actors/builtin"
 	"github.com/filecoin-project/specs-actors/actors/builtin/account"
 	"github.com/filecoin-project/specs-actors/actors/builtin/cron"
@@ -25,11 +30,8 @@ import (
 	"github.com/filecoin-project/specs-actors/actors/builtin/reward"
 	"github.com/filecoin-project/specs-actors/actors/builtin/system"
 	"github.com/filecoin-project/specs-actors/actors/builtin/verifreg"
-	"github.com/filecoin-project/specs-actors/actors/crypto"
-	"github.com/filecoin-project/specs-actors/actors/puppet"
 	"github.com/filecoin-project/specs-actors/actors/runtime"
-	"github.com/filecoin-project/specs-actors/actors/runtime/exitcode"
-	"github.com/filecoin-project/test-vectors/chaos"
+	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
 	"github.com/ipfs/go-cid"
 	"github.com/whyrusleeping/cbor-gen"
 	"reflect"
@@ -55,12 +57,13 @@ var empty = func() cid.Cid {
 
 type into struct{ b []byte }
 
-func (into *into) Into(o runtime.CBORUnmarshaler) error {
+func (into *into) Into(o cbor.Er) error {
 	return o.UnmarshalCBOR(bytes.NewReader(into.b))
 }
 
 type rt struct {
 	id       uint64
+	version  uint64
 	from, to address.Address
 	now      int64
 	value    abi.TokenAmount
@@ -71,8 +74,8 @@ type rt struct {
 
 var _ runtime.Runtime = &rt{}
 
-func (rt *rt) Message() runtime.Message {
-	return rt
+func (rt *rt) NetworkVersion() network.Version {
+	return network.Version(rt.version)
 }
 
 func (rt *rt) CurrEpoch() abi.ChainEpoch {
@@ -136,15 +139,7 @@ func (rt *rt) GetRandomnessFromTickets(tag crypto.DomainSeparationTag, round abi
 	return rt.rand(false, tag, round, seed)
 }
 
-func (rt *rt) State() runtime.StateHandle {
-	return rt
-}
-
-func (rt *rt) Store() runtime.Store {
-	return rt
-}
-
-func (rt *rt) Send(to address.Address, method abi.MethodNum, o runtime.CBORMarshaler, value abi.TokenAmount) (runtime.SendReturn, exitcode.ExitCode) {
+func (rt *rt) Send(to address.Address, method abi.MethodNum, o cbor.Marshaler, value abi.TokenAmount, out cbor.Er) exitcode.ExitCode {
 	if rt.tx {
 		rt.Abort(exitcode.SysErrorIllegalActor)
 	}
@@ -152,16 +147,19 @@ func (rt *rt) Send(to address.Address, method abi.MethodNum, o runtime.CBORMarsh
 	if o != nil {
 		w := new(bytes.Buffer)
 		if e := o.MarshalCBOR(w); e != nil {
-			rt.Abort(exitcode.SysErrInvalidParameters)
+			rt.Abort(exitcode.ErrSerialization)
 		}
 		params = w.Bytes()
 	}
 	ret := rt.gocRet(C.gocRtSend(rt.gocArg().addr(to).uint(uint64(method)).bytes(params).big(value).arg()))
 	exit := exitcode.ExitCode(ret.int())
 	if exit == 0 {
-		return &into{ret.bytes()}, exit
+		if out.UnmarshalCBOR(bytes.NewReader(ret.bytes())) != nil {
+			rt.Abort(exitcode.ErrSerialization)
+		}
+		return exit
 	}
-	return &into{}, exit
+	return exit
 }
 
 func (rt *rt) Abortf(exit exitcode.ExitCode, _ string, _ ...interface{}) {
@@ -174,7 +172,7 @@ func (rt *rt) NewActorAddress() address.Address {
 }
 
 func (rt *rt) CreateActor(code cid.Cid, addr address.Address) {
-	if !builtin.IsBuiltinActor(code) || builtin.IsSingletonActor(code) {
+	if !builtin.IsBuiltinActor(code) || IsSingletonActor(code) {
 		rt.Abort(exitcode.SysErrorIllegalArgument)
 	}
 	rt.gocRet(C.gocRtCreateActor(rt.gocArg().cid(code).addr(addr).arg()))
@@ -182,10 +180,6 @@ func (rt *rt) CreateActor(code cid.Cid, addr address.Address) {
 
 func (rt *rt) DeleteActor(to address.Address) {
 	rt.gocRet(C.gocRtDeleteActor(rt.gocArg().addr(to).arg()))
-}
-
-func (rt *rt) Syscalls() runtime.Syscalls {
-	return rt
 }
 
 func (rt *rt) TotalFilCircSupply() abi.TokenAmount {
@@ -197,7 +191,7 @@ func (rt *rt) Context() context.Context {
 	return rt.ctx
 }
 
-func (rt *rt) StartSpan(string) runtime.TraceSpan {
+func (rt *rt) StartSpan(string) (EndSpan func()) {
 	panic(cgoErrors("NOT IMPLEMENTED StartSpan"))
 }
 
@@ -205,20 +199,20 @@ func (rt *rt) ChargeGas(_ string, gas int64, _ int64) {
 	rt.gocRet(C.gocRtCharge(rt.gocArg().int(gas).arg()))
 }
 
-func (rt *rt) Log(runtime.LogLevel, string, ...interface{}) {
+func (rt *rt) Log(rtt.LogLevel, string, ...interface{}) {
 }
 
 var _ runtime.StateHandle = &rt{}
 
-func (rt *rt) Create(o runtime.CBORMarshaler) {
+func (rt *rt) StateCreate(o cbor.Marshaler) {
 	rt.commit(empty, o)
 }
 
-func (rt *rt) Readonly(o runtime.CBORUnmarshaler) {
+func (rt *rt) StateReadonly(o cbor.Unmarshaler) {
 	rt.stateGet(o, exitcode.SysErrorIllegalArgument, false)
 }
 
-func (rt *rt) Transaction(o runtime.CBORer, f func()) {
+func (rt *rt) StateTransaction(o cbor.Er, f func()) {
 	if o == nil {
 		rt.Abort(exitcode.SysErrorIllegalActor)
 	}
@@ -231,7 +225,7 @@ func (rt *rt) Transaction(o runtime.CBORer, f func()) {
 
 var _ runtime.Store = &rt{}
 
-func (rt *rt) Get(c cid.Cid, o runtime.CBORUnmarshaler) bool {
+func (rt *rt) StoreGet(c cid.Cid, o cbor.Unmarshaler) bool {
 	ret := rt.gocRet(C.gocRtIpldGet(rt.gocArg().cid(c).arg()))
 	if e := o.UnmarshalCBOR(bytes.NewReader(ret.bytes())); e != nil {
 		rt.Abort(ExitFatal)
@@ -239,7 +233,7 @@ func (rt *rt) Get(c cid.Cid, o runtime.CBORUnmarshaler) bool {
 	return true
 }
 
-func (rt *rt) Put(o runtime.CBORMarshaler) cid.Cid {
+func (rt *rt) StorePut(o cbor.Marshaler) cid.Cid {
 	w := new(bytes.Buffer)
 	if e := o.MarshalCBOR(w); e != nil {
 		rt.Abort(exitcode.ErrSerialization)
@@ -299,12 +293,12 @@ func (rt *rt) ComputeUnsealedSectorCID(reg abi.RegisteredSealProof, ps []abi.Pie
 	return cid.Undef, errors.New("ComputeUnsealedSectorCID")
 }
 
-func (rt *rt) VerifySeal(abi.SealVerifyInfo) error {
+func (rt *rt) VerifySeal(proof.SealVerifyInfo) error {
 	// TODO: implement
 	panic(cgoErrors("NOT IMPLEMENTED VerifySeal"))
 }
 
-func (rt *rt) BatchVerifySeals(batch map[address.Address][]abi.SealVerifyInfo) (map[address.Address][]bool, error) {
+func (rt *rt) BatchVerifySeals(batch map[address.Address][]proof.SealVerifyInfo) (map[address.Address][]bool, error) {
 	n := 0
 	for _, seals := range batch {
 		n += len(seals)
@@ -328,7 +322,7 @@ func (rt *rt) BatchVerifySeals(batch map[address.Address][]abi.SealVerifyInfo) (
 	return out, nil
 }
 
-func (rt *rt) VerifyPoSt(info abi.WindowPoStVerifyInfo) error {
+func (rt *rt) VerifyPoSt(info proof.WindowPoStVerifyInfo) error {
 	arg := rt.gocArg()
 	if e := info.MarshalCBOR(arg.w); e != nil {
 		panic(cgoErrors("VerifyPoSt MarshalCBOR"))
@@ -349,7 +343,7 @@ func (rt *rt) Abort(exit exitcode.ExitCode) {
 	abort(exit)
 }
 
-func (rt *rt) stateGet(o runtime.CBORUnmarshaler, exit exitcode.ExitCode, cid_ bool) cid.Cid {
+func (rt *rt) stateGet(o cbor.Unmarshaler, exit exitcode.ExitCode, cid_ bool) cid.Cid {
 	ret := rt.gocRet(C.gocRtStateGet(rt.gocArg().bool(cid_).arg()))
 	if ret.bool() {
 		if e := o.UnmarshalCBOR(bytes.NewReader(ret.bytes())); e != nil {
@@ -364,7 +358,7 @@ func (rt *rt) stateGet(o runtime.CBORUnmarshaler, exit exitcode.ExitCode, cid_ b
 	return cid.Undef
 }
 
-func (rt *rt) commit(base cid.Cid, o runtime.CBORMarshaler) {
+func (rt *rt) commit(base cid.Cid, o cbor.Marshaler) {
 	w := new(bytes.Buffer)
 	if e := o.MarshalCBOR(w); e != nil {
 		rt.Abort(exitcode.ErrSerialization)
@@ -397,26 +391,29 @@ func (rt *rt) gocRet(raw C.Raw) *cborIn {
 	return ret
 }
 
+func IsSingletonActor(code cid.Cid) bool {
+	actor, ok := _actors[code]
+	return ok && rtt.IsSingletonActor(actor)
+}
+
 type exporter interface{ Exports() []interface{} }
 type method = func(rt *rt, params []byte) []byte
 type methods = map[uint64]method
 
-var actors = map[cid.Cid]methods{
-	builtin.SystemActorCodeID:           export(system.Actor{}),
-	builtin.InitActorCodeID:             export(init_.Actor{}),
-	builtin.RewardActorCodeID:           export(reward.Actor{}),
-	builtin.CronActorCodeID:             export(cron.Actor{}),
-	builtin.StoragePowerActorCodeID:     export(power.Actor{}),
-	builtin.StorageMarketActorCodeID:    export(market.Actor{}),
-	builtin.StorageMinerActorCodeID:     export(miner.Actor{}),
-	builtin.MultisigActorCodeID:         export(multisig.Actor{}),
-	builtin.PaymentChannelActorCodeID:   export(paych.Actor{}),
-	builtin.VerifiedRegistryActorCodeID: export(verifreg.Actor{}),
-	builtin.AccountActorCodeID:          export(account.Actor{}),
-
-	puppet.PuppetActorCodeID:            export(puppet.Actor{}),
-	chaos.ChaosActorCodeCID:             export(chaos.Actor{}),
+var _actors = map[cid.Cid]rtt.VMActor{
+	builtin.SystemActorCodeID:           system.Actor{},
+	builtin.InitActorCodeID:             init_.Actor{},
+	builtin.RewardActorCodeID:           reward.Actor{},
+	builtin.CronActorCodeID:             cron.Actor{},
+	builtin.StoragePowerActorCodeID:     power.Actor{},
+	builtin.StorageMarketActorCodeID:    market.Actor{},
+	builtin.StorageMinerActorCodeID:     miner.Actor{},
+	builtin.MultisigActorCodeID:         multisig.Actor{},
+	builtin.PaymentChannelActorCodeID:   paych.Actor{},
+	builtin.VerifiedRegistryActorCodeID: verifreg.Actor{},
+	builtin.AccountActorCodeID:          account.Actor{},
 }
+var actors = map[cid.Cid]methods{}
 
 func export(exporter exporter) methods {
 	methods := make(methods)
@@ -475,8 +472,8 @@ func invoke(rt *rt, code cid.Cid, method uint64, params []byte) (exit exitcode.E
 //export cgoActorsInvoke
 func cgoActorsInvoke(raw C.Raw) C.Raw {
 	arg := cgoArgCbor(raw)
-	id, from, to, now, value, code, method, params := arg.uint(), arg.addr(), arg.addr(), arg.int(), arg.big(), arg.cid(), arg.uint(), arg.bytes()
-	exit, ret := invoke(&rt{id, from, to, now, value, false, false, context.Background()}, code, method, params)
+	id, version, from, to, now, value, code, method, params := arg.uint(), arg.uint(), arg.addr(), arg.addr(), arg.int(), arg.big(), arg.cid(), arg.uint(), arg.bytes()
+	exit, ret := invoke(&rt{id, version, from, to, now, value, false, false, context.Background()}, code, method, params)
 	return CborOut().int(int64(exit)).bytes(ret).ret()
 }
 
@@ -491,6 +488,12 @@ func cgoActorsConfig(raw C.Raw) C.Raw {
 		miner.SupportedProofTypes[abi.RegisteredSealProof(arg.int())] = struct{}{}
 	}
 	return cgoRet(nil)
+}
+
+func init() {
+	for k, v := range _actors {
+		actors[k] = export(v)
+	}
 }
 
 func main() {}

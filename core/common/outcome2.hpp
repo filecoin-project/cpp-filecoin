@@ -20,7 +20,7 @@ namespace fc {
   template <typename T>
   struct Outcome : outcome::result<T> {
     using O = outcome::result<T>;
-    Outcome() : O{OutcomeError::kDefault} {}
+    Outcome() : O{outcome::failure(OutcomeError::kDefault)} {}
     template <typename... A>
     Outcome(A &&... a) : O{std::forward<A>(a)...} {}
     const T &operator*() const & {

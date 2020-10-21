@@ -18,7 +18,10 @@ namespace fc::primitives::piece {
     explicit PieceData(const std::string &path_to_file, int flags = O_RDWR);
     explicit PieceData(int &pipe_fd);
 
+    PieceData(const PieceData &) = delete;
+    PieceData &operator=(const PieceData &) = delete;
     PieceData(PieceData &&other) noexcept;
+    PieceData &operator=(PieceData &&other) noexcept;
 
     ~PieceData();
 

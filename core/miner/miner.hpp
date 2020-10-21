@@ -6,14 +6,15 @@
 #ifndef CPP_FILECOIN_MINER_MINER_HPP
 #define CPP_FILECOIN_MINER_MINER_HPP
 
-#include "primitives/types.hpp"
 #include "miner/storage_fsm/types.hpp"
+#include "primitives/types.hpp"
 
 namespace fc::miner {
   using mining::types::DealInfo;
   using mining::types::PieceAttributes;
   using mining::types::SectorInfo;
   using primitives::SectorNumber;
+  using primitives::address::Address;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedPieceSize;
 
@@ -30,6 +31,8 @@ namespace fc::miner {
 
     virtual outcome::result<PieceAttributes> addPieceToAnySector(
         UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) = 0;
+
+    virtual Address getAddress() const = 0;
   };
 
   enum class MinerError {

@@ -78,6 +78,12 @@ namespace fc::primitives::address {
 
     bool isBls() const;
 
+    /**
+     * Checks if the address is a Secp256k1
+     * @return true if it is a Secp256k1
+     */
+    bool isSecp256k1() const;
+
     /// id - number assigned to actors in a Filecoin Chain
     static Address makeFromId(uint64_t id, Network network = kDefaultNetwork);
 

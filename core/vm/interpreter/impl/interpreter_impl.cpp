@@ -49,6 +49,19 @@ namespace fc::vm::interpreter {
           tipset.getParentMessageReceipts(),
       };
     }
+    return applyBlocks(ipld, tipset, {});
+  }
+
+  outcome::result<Result> InterpreterImpl::applyBlocks(
+      const IpldPtr &ipld,
+      const Tipset &tipset,
+      std::vector<MessageReceipt> *all_receipts) const {
+    auto on_receipt{[&](auto &receipt) {
+      if (all_receipts) {
+        all_receipts->push_back(receipt);
+      }
+      return outcome::success();
+    }};
 
     if (hasDuplicateMiners(tipset.blks)) {
       return InterpreterError::kDuplicateMiner;
@@ -57,17 +70,23 @@ namespace fc::vm::interpreter {
     auto env =
         std::make_shared<Env>(std::make_shared<InvokerImpl>(), ipld, tipset);
 
-    auto cron{[&] {
-      return env->applyImplicitMessage(UnsignedMessage{
-          kCronAddress,
-          kSystemActorAddress,
-          {},
-          0,
-          0,
-          kBlockGasLimit * 10000,
-          EpochTick::Number,
-          {},
-      });
+    auto cron{[&]() -> outcome::result<void> {
+      OUTCOME_TRY(receipt,
+                  env->applyImplicitMessage(UnsignedMessage{
+                      kCronAddress,
+                      kSystemActorAddress,
+                      {},
+                      0,
+                      0,
+                      kBlockGasLimit * 10000,
+                      EpochTick::Number,
+                      {},
+                  }));
+      if (receipt.exit_code != VMExitCode::kOk) {
+        return receipt.exit_code;
+      }
+      on_receipt(receipt);
+      return outcome::success();
     }};
 
     if (tipset.height > 1) {
@@ -98,21 +117,27 @@ namespace fc::vm::interpreter {
             OUTCOME_TRY(apply, env->applyMessage(message, raw.size()));
             reward.penalty += apply.penalty;
             reward.gas_reward += apply.reward;
+            on_receipt(apply.receipt);
             OUTCOME_TRY(receipts.append(std::move(apply.receipt)));
             return outcome::success();
           }));
 
       OUTCOME_TRY(reward_encoded, codec::cbor::encode(reward));
-      OUTCOME_TRY(env->applyImplicitMessage(UnsignedMessage{
-          kRewardAddress,
-          kSystemActorAddress,
-          {},
-          0,
-          0,
-          1 << 30,
-          AwardBlockReward::Number,
-          MethodParams{reward_encoded},
-      }));
+      OUTCOME_TRY(receipt,
+                  env->applyImplicitMessage(UnsignedMessage{
+                      kRewardAddress,
+                      kSystemActorAddress,
+                      {},
+                      0,
+                      0,
+                      1 << 30,
+                      AwardBlockReward::Number,
+                      MethodParams{reward_encoded},
+                  }));
+      if (receipt.exit_code != VMExitCode::kOk) {
+        return receipt.exit_code;
+      }
+      on_receipt(receipt);
     }
 
     OUTCOME_TRY(cron());

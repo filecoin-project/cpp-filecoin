@@ -12,6 +12,7 @@ target_link_libraries(runtime
     blake2
     bls_provider
     cgo_actors
+    dvm
     keystore
     message
     proofs

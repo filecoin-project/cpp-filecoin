@@ -82,6 +82,10 @@ namespace fc::miner {
     return sealing_->addPieceToAnySector(size, piece_data, deal);
   }
 
+  Address MinerImpl::getAddress() const {
+    return sealing_->getAddress();
+  }
+
   outcome::result<void> MinerImpl::runPreflightChecks() {
     OUTCOME_TRY(has, api_->WalletHas(worker_address_));
     if (!has) {

@@ -9,9 +9,11 @@
 
 #include "common/buffer.hpp"
 #include "common/outcome2.hpp"
+#include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::codec::json {
+  using fc::primitives::BigInt;
   using rapidjson::Document;
   using rapidjson::Value;
   using JIn = const Value *;
@@ -49,4 +51,6 @@ namespace fc::codec::json {
   Outcome<int64_t> jInt(JIn j);
 
   Outcome<uint64_t> jUint(JIn j);
+
+  Outcome<BigInt> jBigInt(JIn j);
 }  // namespace fc::codec::json

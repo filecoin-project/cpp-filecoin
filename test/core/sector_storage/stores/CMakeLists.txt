@@ -16,6 +16,7 @@ addtest(local_store_test
 target_link_libraries(local_store_test
         base_fs_test
         store
+        fuhon_host
         )
 
 
