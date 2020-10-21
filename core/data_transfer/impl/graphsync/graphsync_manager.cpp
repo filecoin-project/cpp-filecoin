@@ -19,42 +19,46 @@ namespace fc::data_transfer::graphsync {
         network_(std::make_shared<Libp2pDataTransferNetwork>(std::move(host))),
         graphsync_(std::move(graphsync)) {}
 
+  void GraphSyncManager::subscribe(
+      const std::shared_ptr<Subscriber> &subscriber) {
+    receiver->subscribeToEvents(subscriber);
+  }
+
   outcome::result<void> GraphSyncManager::init(
       const std::string &voucher_type,
       std::shared_ptr<RequestValidator> validator) {
-    auto receiver = std::make_shared<GraphsyncReceiver>(
+    receiver = std::make_shared<GraphsyncReceiver>(
         network_, graphsync_, weak_from_this(), peer_);
     OUTCOME_TRY(receiver->registerVoucherType(voucher_type, validator));
     return network_->setDelegate(receiver);
   }
 
-  outcome::result<ChannelId> GraphSyncManager::openPushDataChannel(
+  outcome::result<ChannelId> GraphSyncManager::openDataChannel(
       const PeerInfo &to,
+      bool pull,
       const Voucher &voucher,
       CID base_cid,
       std::shared_ptr<Selector> selector) {
-    OUTCOME_TRY(transfer_id,
-                sendDtRequest(selector, false, voucher, base_cid, to));
-    // initiator = us, sender = us, receiver = them
-    OUTCOME_TRY(
-        channel_id,
-        createChannel(
-            transfer_id, base_cid, selector, voucher.bytes, peer_, peer_, to));
-    return std::move(channel_id);
-  }
-
-  outcome::result<ChannelId> GraphSyncManager::openPullDataChannel(
-      const PeerInfo &to,
-      const Voucher &voucher,
-      CID base_cid,
-      std::shared_ptr<Selector> selector) {
-    OUTCOME_TRY(transfer_id,
-                sendDtRequest(selector, true, voucher, base_cid, to));
-    // initiator = us, sender = them, receiver = us
-    OUTCOME_TRY(
-        channel_id,
-        createChannel(
-            transfer_id, base_cid, selector, voucher.bytes, peer_, to, peer_));
+    auto transfer_id{++last_tx_id};
+    OUTCOME_TRY(channel_id,
+                createChannel(transfer_id,
+                              base_cid,
+                              selector,
+                              voucher.bytes,
+                              peer_,
+                              pull ? to : peer_,
+                              pull ? peer_ : to));
+    assert(!voucher.bytes.empty());
+    network_->sendMessage(to,
+                          DataTransferRequest{base_cid,
+                                              MessageType::kNewMessage,
+                                              false,
+                                              false,
+                                              pull,
+                                              *selector,
+                                              CborRaw{Buffer{voucher.bytes}},
+                                              voucher.type,
+                                              transfer_id});
     return std::move(channel_id);
   }
 
@@ -62,7 +66,7 @@ namespace fc::data_transfer::graphsync {
       const TransferId &transfer_id,
       const CID &base_cid,
       std::shared_ptr<Selector> selector,
-      const std::vector<uint8_t> &voucher,
+      BytesIn voucher,
       const PeerInfo &initiator,
       const PeerInfo &sender_peer,
       const PeerInfo &receiver_peer) {
@@ -70,7 +74,7 @@ namespace fc::data_transfer::graphsync {
     Channel channel{.transfer_id = 0,
                     .base_cid = base_cid,
                     .selector = std::move(selector),
-                    .voucher = voucher,
+                    .voucher = Buffer{voucher},
                     .sender = sender_peer,
                     .recipient = receiver_peer,
                     .total_size = 0};
@@ -88,27 +92,6 @@ namespace fc::data_transfer::graphsync {
     return outcome::success();
   }
 
-  outcome::result<TransferId> GraphSyncManager::sendDtRequest(
-      const std::shared_ptr<Selector> &selector,
-      bool is_pull,
-      const Voucher &voucher,
-      const CID &base_cid,
-      const PeerInfo &to) {
-    // TODO (a.chernyshov) implement selectors and serialize
-    std::vector<uint8_t> selector_bytes{};
-
-    TransferId tx_id = ++last_tx_id;
-    OUTCOME_TRY(base_cid_str, base_cid.toString());
-    DataTransferMessage message = createRequest(base_cid_str,
-                                                is_pull,
-                                                selector_bytes,
-                                                voucher.bytes,
-                                                voucher.type,
-                                                tx_id);
-    network_->sendMessage(to, message);
-    return tx_id;
-  }
-
   boost::optional<ChannelState> GraphSyncManager::getChannelByIdAndSender(
       const ChannelId &channel_id, const PeerInfo &sender) {
     // TODO check thread-safety of channels_
@@ -119,15 +102,6 @@ namespace fc::data_transfer::graphsync {
 
     return found->second;
   }
-
-  outcome::result<void> GraphSyncManager::sendResponse(bool is_accepted,
-                                                       const PeerInfo &to,
-                                                       TransferId transfer_id) {
-    DataTransferMessage message = createResponse(is_accepted, transfer_id);
-    network_->sendMessage(to, message);
-    return outcome::success();
-  }
-
 }  // namespace fc::data_transfer::graphsync
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::data_transfer::graphsync,

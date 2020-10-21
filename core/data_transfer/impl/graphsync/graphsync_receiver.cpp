@@ -26,6 +26,13 @@ namespace fc::data_transfer {
 
   outcome::result<void> GraphsyncReceiver::receiveRequest(
       const PeerInfo &initiator, const DataTransferRequest &request) {
+    if (request.type != MessageType::kNewMessage) {
+      logger_->error(
+          "GraphsyncReceiver::receiveRequest not implemented type {}",
+          request.type);
+      return sendResponse(initiator, false, request.transfer_id);
+    }
+
     auto validated = validateVoucher(initiator, request);
     if (!validated) {
       logger_->warn("Voucher is not valid: " + validated.error().message());
@@ -34,15 +41,14 @@ namespace fc::data_transfer {
 
     // TODO (a.chernyshov) implement selectors and deserialize from
     // request.selector
-    auto selector = std::make_shared<Selector>();
-    OUTCOME_TRY(base_cid, CID::fromString(request.base_cid));
+    auto selector{std::make_shared<Selector>(request.selector)};
 
     if (auto manager = graphsync_manager_.lock()) {
       if (request.is_pull) {
         auto channel = manager->createChannel(request.transfer_id,
-                                              base_cid,
+                                              request.base_cid,
                                               selector,
-                                              request.voucher,
+                                              request.voucher->b,
                                               initiator,
                                               peer_,
                                               initiator);
@@ -51,16 +57,25 @@ namespace fc::data_transfer {
           return sendResponse(initiator, false, request.transfer_id);
         }
       } else {
+        DataTransferResponse res{
+            .type = MessageType::kCompleteMessage,
+            .is_accepted = true,
+            .is_pause = {},
+            .transfer_id = request.transfer_id,
+            .voucher = {},
+            .voucher_type = {},
+        };
         OUTCOME_TRY(sendGraphSyncRequest(initiator,
                                          request.transfer_id,
                                          request.is_pull,
                                          initiator,
-                                         base_cid,
-                                         request.selector));
+                                         request.base_cid,
+                                         res,
+                                         request.selector.b));
         auto channel = manager->createChannel(request.transfer_id,
-                                              base_cid,
+                                              request.base_cid,
                                               selector,
-                                              request.voucher,
+                                              request.voucher->b,
                                               initiator,
                                               initiator,
                                               peer_);
@@ -95,6 +110,8 @@ namespace fc::data_transfer {
               true,
               sender,
               channel_state->channel.base_cid,
+              // TODO
+              {},
               // TODO (a.chernyshov) implement selectors and
               // serialize channel_state->channel.selector
               {}));
@@ -112,9 +129,14 @@ namespace fc::data_transfer {
 
   outcome::result<void> GraphsyncReceiver::sendResponse(
       const PeerInfo &peer, bool is_accepted, const TransferId &transfer_id) {
-    DataTransferMessage response = createResponse(is_accepted, transfer_id);
     if (auto network = network_.lock()) {
-      network->sendMessage(peer, response);
+      network->sendMessage(peer,
+                           DataTransferResponse{MessageType::kNewMessage,
+                                                is_accepted,
+                                                false,
+                                                transfer_id,
+                                                {},
+                                                {}});
     }
     return outcome::success();
   }
@@ -137,20 +159,19 @@ namespace fc::data_transfer {
       bool is_pull,
       const PeerInfo &sender,
       const CID &root,
+      DataTransferMessage message,
       gsl::span<const uint8_t> selector) {
-    ExtensionDataTransferData extension_data{
-        .transfer_id = transfer_id,
-        .initiator = peerInfoToPrettyString(initiator),
-        .is_pull = is_pull};
-    OUTCOME_TRY(extension, encodeDataTransferExtension(extension_data));
+    Extension extension{std::string{kDataTransferExtensionName}, {}};
+    OUTCOME_TRYA(extension.data, codec::cbor::encode(message));
 
-    graphsync_->makeRequest(
+    auto _sub{std::make_shared<libp2p::protocol::Subscription>()};
+    *_sub = graphsync_->makeRequest(
         sender.id,
         boost::none,
         root,
         selector,
         {extension},
-        [this, initiator, transfer_id, sender](
+        [this, initiator, transfer_id, sender, _sub](
             ResponseStatusCode code, std::vector<Extension> extensions) {
           Event event{.code = EventCode::ERROR,
                       .message = "",

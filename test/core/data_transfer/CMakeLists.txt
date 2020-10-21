@@ -4,7 +4,6 @@
 #
 
 addtest(data_transfer_test
-    message_test.cpp
     libp2p_data_transfer_network_test.cpp
     stream_message_sender_test.cpp
     graphsync/data_transfer_extension_test.cpp

@@ -51,10 +51,14 @@ namespace fc::markets::storage::provider {
 
   class StorageProviderImpl
       : public StorageProvider,
+        public data_transfer::Subscriber,
         public std::enable_shared_from_this<StorageProviderImpl> {
    public:
     StorageProviderImpl(const RegisteredProof &registered_proof,
                         std::shared_ptr<Host> host,
+                        IpldPtr ipld,
+                        std::shared_ptr<DataTransfer> datatransfer,
+                        std::shared_ptr<StoredAsk> stored_ask,
                         std::shared_ptr<boost::asio::io_context> context,
                         std::shared_ptr<Datastore> datastore,
                         std::shared_ptr<Api> api,
@@ -63,6 +67,9 @@ namespace fc::markets::storage::provider {
                         const Address &miner_actor_address,
                         std::shared_ptr<PieceIO> piece_io,
                         std::shared_ptr<FileStore> filestore);
+
+    void notify(const data_transfer::Event &event,
+                const data_transfer::ChannelState &channel_state) override;
 
     auto init() -> outcome::result<void> override;
 
@@ -80,6 +87,8 @@ namespace fc::markets::storage::provider {
 
     auto importDataForDeal(const CID &proposal_cid, const Buffer &data)
         -> outcome::result<void> override;
+
+    outcome::result<Signature> sign(const Buffer &input);
 
    private:
     /**
@@ -362,10 +371,14 @@ namespace fc::markets::storage::provider {
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<PieceStorage> piece_storage_;
     std::shared_ptr<FileStore> filestore_;
+    IpldPtr ipld_;
     std::shared_ptr<DataTransfer> datatransfer_;
 
     common::Logger logger_ = common::createLogger("StorageMarketProvider");
   };
+
+  void serveDealStatus(libp2p::Host &host,
+                       std::weak_ptr<StorageProviderImpl> _provider);
 
   /**
    * @brief Type of errors returned by Storage Market Provider

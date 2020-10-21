@@ -30,7 +30,7 @@ namespace fc::data_transfer {
      */
     virtual outcome::result<void> validatePush(
         const PeerInfo &sender,
-        std::vector<uint8_t> voucher,
+        BytesIn voucher,
         CID base_cid,
         std::shared_ptr<Selector> selector) = 0;
     /**
@@ -39,7 +39,7 @@ namespace fc::data_transfer {
      */
     virtual outcome::result<void> validatePull(
         const PeerInfo &receiver,
-        std::vector<uint8_t> voucher,
+        BytesIn voucher,
         CID base_cid,
         std::shared_ptr<Selector> selector) = 0;
   };

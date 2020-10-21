@@ -233,7 +233,8 @@ namespace fc::payment_channel_manager {
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
     OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
-    OUTCOME_TRY(message_wait, api_->StateWaitMsg(message_cid));
+    OUTCOME_TRY(message_wait,
+                api_->StateWaitMsg(message_cid, api::kNoConfidence));
     OUTCOME_TRY(message_state, message_wait.waitSync());
     if (message_state.receipt.exit_code != VMExitCode::kOk) {
       return PaymentChannelManagerError::kSendFundsErrored;
@@ -267,7 +268,8 @@ namespace fc::payment_channel_manager {
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
     OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
-    OUTCOME_TRY(message_wait, api_->StateWaitMsg(message_cid));
+    OUTCOME_TRY(message_wait,
+                api_->StateWaitMsg(message_cid, api::kNoConfidence));
     OUTCOME_TRY(message_state, message_wait.waitSync());
     if (message_state.receipt.exit_code != VMExitCode::kOk) {
       return PaymentChannelManagerError::kCreateChannelActorErrored;

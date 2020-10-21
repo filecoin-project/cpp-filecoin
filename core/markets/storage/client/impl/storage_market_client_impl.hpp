@@ -47,9 +47,14 @@ namespace fc::markets::storage::client {
    public:
     StorageMarketClientImpl(std::shared_ptr<Host> host,
                             std::shared_ptr<boost::asio::io_context> context,
+                            std::shared_ptr<DataTransfer> datatransfer,
                             std::shared_ptr<Datastore> datastore,
                             std::shared_ptr<Api> api,
                             std::shared_ptr<PieceIO> piece_io);
+
+    bool pollWaiting();
+
+    void askDealStatus(std::shared_ptr<ClientDeal> deal);
 
     outcome::result<void> init() override;
 
@@ -283,6 +288,10 @@ namespace fc::markets::storage::client {
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<Discovery> discovery_;
     std::shared_ptr<DataTransfer> datatransfer_;
+
+    std::mutex waiting_mutex;
+    std::shared_ptr<void> waiting_sub;
+    std::vector<std::shared_ptr<ClientDeal>> waiting_deals;
 
     // connection manager
     std::mutex connections_mutex_;

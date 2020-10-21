@@ -461,6 +461,10 @@ namespace fc::api {
       Get(j, "FaultCutoff", v.fault_cutoff);
     }
 
+    ENCODE(DomainSeparationTag) {
+      return encode(common::to_int(v));
+    }
+
     DECODE(DomainSeparationTag) {
       decodeEnum(v, j);
     }
@@ -1114,7 +1118,6 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Msg", v.message);
       Set(j, "MsgRct", v.receipt);
-      Set(j, "InternalExecutions", v.internal_executions);
       Set(j, "Error", v.error);
       return j;
     }
@@ -1122,7 +1125,6 @@ namespace fc::api {
     DECODE(InvocResult) {
       decode(v.message, Get(j, "Msg"));
       decode(v.receipt, Get(j, "MsgRct"));
-      decode(v.internal_executions, Get(j, "InternalExecutions"));
       v.error = AsString(Get(j, "Error"));
     }
 

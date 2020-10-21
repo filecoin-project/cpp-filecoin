@@ -21,7 +21,7 @@ namespace fc::markets::storage::test {
   TEST_F(StorageMarketTest, Ask) {
     TokenAmount provider_price = 1334;
     ChainEpoch duration = 2334;
-    EXPECT_OUTCOME_TRUE_1(provider->addAsk(provider_price, duration));
+    EXPECT_OUTCOME_TRUE_1(stored_ask->addAsk(provider_price, duration));
 
     std::promise<outcome::result<SignedStorageAsk>> promise_ask_res;
     client->getAsk(*storage_provider_info,
@@ -56,7 +56,7 @@ namespace fc::markets::storage::test {
 
     TokenAmount provider_price = 1334;
     ChainEpoch duration = 2334;
-    EXPECT_OUTCOME_TRUE_1(provider->addAsk(provider_price, duration));
+    EXPECT_OUTCOME_TRUE_1(stored_ask->addAsk(provider_price, duration));
 
     std::promise<outcome::result<SignedStorageAsk>> promise_ask_res;
     client->getAsk(*storage_provider_info,

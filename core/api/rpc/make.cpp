@@ -33,7 +33,7 @@ namespace fc::api {
               result.id = make_chan();
             }
             if constexpr (is_wait<Result>{}) {
-              result.wait([respond{std::move(respond)}](auto maybe_result) {
+              result.waitOwn([respond{std::move(respond)}](auto maybe_result) {
                 if (!maybe_result) {
                   respond(Response::Error{kInternalError,
                                           maybe_result.error().message()});

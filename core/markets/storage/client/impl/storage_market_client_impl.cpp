@@ -9,6 +9,7 @@
 #include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include "codec/cbor/cbor.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
+#include "common/ptr.hpp"
 #include "data_transfer/impl/graphsync/graphsync_manager.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/common.hpp"
@@ -18,6 +19,11 @@
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
+
+#define MOVE(x)  \
+  x {            \
+    std::move(x) \
+  }
 
 #define CALLBACK_ACTION(_action)                                    \
   [this](auto deal, auto event, auto context, auto from, auto to) { \
@@ -60,6 +66,7 @@ namespace fc::markets::storage::client {
   StorageMarketClientImpl::StorageMarketClientImpl(
       std::shared_ptr<Host> host,
       std::shared_ptr<boost::asio::io_context> context,
+      std::shared_ptr<DataTransfer> datatransfer,
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
       std::shared_ptr<PieceIO> piece_io)
@@ -67,12 +74,70 @@ namespace fc::markets::storage::client {
         context_{std::move(context)},
         api_{std::move(api)},
         piece_io_{std::move(piece_io)},
-        discovery_{std::make_shared<Discovery>(datastore)} {
-    auto scheduler = std::make_shared<libp2p::protocol::AsioScheduler>(
-        *context_, libp2p::protocol::SchedulerConfig{});
-    auto graphsync =
-        std::make_shared<GraphsyncImpl>(host, std::move(scheduler));
-    datatransfer_ = std::make_shared<GraphSyncManager>(host, graphsync);
+        discovery_{std::make_shared<Discovery>(datastore)},
+        datatransfer_{std::move(datatransfer)} {}
+
+  bool StorageMarketClientImpl::pollWaiting() {
+    std::lock_guard lock{waiting_mutex};
+    auto any{!waiting_deals.empty()};
+    for (auto &deal : waiting_deals) {
+      askDealStatus(deal);
+    }
+    waiting_deals.clear();
+    return any;
+  }
+
+  void StorageMarketClientImpl::askDealStatus(
+      std::shared_ptr<ClientDeal> deal) {
+    auto cb{weakCb0(
+        weak_from_this(), [=](outcome::result<DealStatusResponse> &&_res) {
+          if (_res) {
+            auto &res{_res.value()};
+            auto state{res.state.status};
+            if (state == StorageDealStatus::STORAGE_DEAL_STAGED
+                || state == StorageDealStatus::STORAGE_DEAL_SEALING
+                || state == StorageDealStatus::STORAGE_DEAL_ACTIVE
+                || state == StorageDealStatus::STORAGE_DEAL_EXPIRED
+                || state == StorageDealStatus::STORAGE_DEAL_SLASHED) {
+              deal->publish_message = *res.state.publish_cid;
+              FSM_SEND(deal, ClientEvent::ClientEventDealAccepted);
+            } else if (state == StorageDealStatus::STORAGE_DEAL_FAILING
+                       || state == StorageDealStatus::STORAGE_DEAL_ERROR) {
+              FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
+            } else {
+              std::lock_guard lock{waiting_mutex};
+              waiting_deals.push_back(deal);
+            }
+          } else {
+            spdlog::error(
+                "askDealStatus {} {}", deal->proposal_cid, _res.error());
+          }
+        })};
+    DealStatusRequest req;
+    req.proposal = deal->proposal_cid;
+    OUTCOME_EXCEPT(bytes, codec::cbor::encode(req.proposal));
+    OUTCOME_CB(
+        req.signature,
+        api_->WalletSign(deal->client_deal_proposal.proposal.client, bytes));
+    host_->host_->newStream(
+        deal->miner,
+        kDealStatusProtocolId,
+        [MOVE(cb), MOVE(req)](auto &&_stream) {
+          OUTCOME_CB1(_stream);
+          auto stream{std::make_shared<common::libp2p::CborStream>(
+              std::move(_stream.value()))};
+          stream->write(req, [MOVE(cb), stream](auto &&_n) {
+            if (!_n) {
+              stream->close();
+            }
+            OUTCOME_CB1(_n);
+            stream->template read<DealStatusResponse>(
+                [MOVE(cb), stream](auto &&_res) {
+                  stream->close();
+                  cb(std::move(_res));
+                });
+          });
+        });
   }
 
   outcome::result<void> StorageMarketClientImpl::init() {
@@ -284,7 +349,7 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
     OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
-    OUTCOME_TRY(msg_wait, api_->StateWaitMsg(message_cid));
+    OUTCOME_TRY(msg_wait, api_->StateWaitMsg(message_cid, api::kNoConfidence));
     OUTCOME_TRY(msg_state, msg_wait.waitSync());
     if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       return StorageMarketClientError::kAddFundsCallError;
@@ -346,15 +411,12 @@ namespace fc::markets::storage::client {
 
   outcome::result<boost::optional<CID>> StorageMarketClientImpl::ensureFunds(
       std::shared_ptr<ClientDeal> deal) {
-    OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
     OUTCOME_TRY(
         maybe_cid,
         api_->MarketEnsureAvailable(
             deal->client_deal_proposal.proposal.client,
             deal->client_deal_proposal.proposal.client,
-            deal->client_deal_proposal.proposal.clientBalanceRequirement(),
-            tipset_key));
+            deal->client_deal_proposal.proposal.clientBalanceRequirement()));
     return std::move(maybe_cid);
   }
 
@@ -372,7 +434,8 @@ namespace fc::markets::storage::client {
 
   outcome::result<bool> StorageMarketClientImpl::verifyDealPublished(
       std::shared_ptr<ClientDeal> deal) {
-    OUTCOME_TRY(msg_wait, api_->StateWaitMsg(deal->publish_message));
+    OUTCOME_TRY(msg_wait,
+                api_->StateWaitMsg(deal->publish_message, api::kNoConfidence));
     OUTCOME_TRY(msg_state, msg_wait.waitSync());
     if (msg_state.receipt.exit_code != VMExitCode::kOk) {
       deal->message =
@@ -511,9 +574,10 @@ namespace fc::markets::storage::client {
       ClientEvent event,
       StorageDealStatus from,
       StorageDealStatus to) {
-    auto maybe_wait = api_->StateWaitMsg(deal->add_funds_cid.get());
+    auto maybe_wait =
+        api_->StateWaitMsg(deal->add_funds_cid.get(), api::kNoConfidence);
     FSM_HALT_ON_ERROR(maybe_wait, "Wait for funding error", deal);
-    maybe_wait.value().wait(
+    maybe_wait.value().waitOwn(
         [self{shared_from_this()}, deal](outcome::result<MsgWait> result) {
           SELF_FSM_HALT_ON_ERROR(result, "Wait for funding error", deal);
           if (result.value().receipt.exit_code != VMExitCode::kOk) {
@@ -566,15 +630,28 @@ namespace fc::markets::storage::client {
         SELF_FSM_SEND(deal, ClientEvent::ClientEventFailed);
         return;
       }
-      if (response.value().response.state
-          != StorageDealStatus::STORAGE_DEAL_PUBLISHING) {
-        deal->message = response.value().response.message;
+      auto &res{response.value().response};
+      if (res.state != StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA) {
+        deal->message = res.message;
         SELF_FSM_SEND(deal, ClientEvent::ClientEventDealRejected);
         return;
       }
-      deal->publish_message = response.value().response.publish_message;
-      self->finalizeDeal(deal);
-      SELF_FSM_SEND(deal, ClientEvent::ClientEventDealAccepted);
+
+      OUTCOME_EXCEPT(
+          voucher,
+          codec::cbor::encode(StorageDataTransferVoucher{deal->proposal_cid}));
+      static auto selector{
+          std::make_shared<Selector>(fc::storage::ipld::kAllSelector)};
+      auto _channel{self->datatransfer_->openDataChannel(
+          deal->miner,
+          true,
+          {StorageDataTransferVoucherType, std::move(voucher)},
+          deal->data_ref.root,
+          selector)};
+      SELF_FSM_HALT_ON_ERROR(_channel, "openDataChannel", deal);
+
+      std::lock_guard lock{self->waiting_mutex};
+      self->waiting_deals.push_back(deal);
     });
   }
 

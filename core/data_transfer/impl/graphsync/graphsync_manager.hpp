@@ -11,6 +11,7 @@
 #include <libp2p/host/host.hpp>
 #include "data_transfer/impl/libp2p_data_transfer_network.hpp"
 #include "data_transfer/types.hpp"
+#include "node/fwd.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
 
 namespace fc::data_transfer::graphsync {
@@ -25,18 +26,15 @@ namespace fc::data_transfer::graphsync {
     GraphSyncManager(std::shared_ptr<Host> host,
                      std::shared_ptr<Graphsync> graphsync);
 
+    void subscribe(const std::shared_ptr<Subscriber> &subscriber) override;
+
     outcome::result<void> init(
         const std::string &voucher_type,
         std::shared_ptr<RequestValidator> validator) override;
 
-    outcome::result<ChannelId> openPushDataChannel(
+    outcome::result<ChannelId> openDataChannel(
         const PeerInfo &to,
-        const Voucher &voucher,
-        CID base_cid,
-        std::shared_ptr<Selector> selector) override;
-
-    outcome::result<ChannelId> openPullDataChannel(
-        const PeerInfo &to,
+        bool pull,
         const Voucher &voucher,
         CID base_cid,
         std::shared_ptr<Selector> selector) override;
@@ -45,7 +43,7 @@ namespace fc::data_transfer::graphsync {
         const TransferId &transfer_id,
         const CID &base_cid,
         std::shared_ptr<Selector> selector,
-        const std::vector<uint8_t> &voucher,
+        BytesIn voucher,
         const PeerInfo &initiator,
         const PeerInfo &sender_peer,
         const PeerInfo &receiver_peer) override;
@@ -56,35 +54,12 @@ namespace fc::data_transfer::graphsync {
         const ChannelId &channel_id, const PeerInfo &sender) override;
 
    private:
-    /**
-     * Encapsulates message creation and posting to the data transfer network
-     * with the provided parameters
-     * @param selector
-     * @param is_pool
-     * @param voucher
-     * @param base_cid
-     * @param to - destination peer info
-     * @return transfer id
-     */
-    outcome::result<TransferId> sendDtRequest(
-        const std::shared_ptr<Selector> &selector,
-        bool is_pull,
-        const Voucher &voucher,
-        const CID &base_cid,
-        const PeerInfo &to);
-
-    /**
-     * Sends response
-     */
-    outcome::result<void> sendResponse(bool is_accepted,
-                                       const PeerInfo &to,
-                                       TransferId transfer_id);
-
     std::atomic<TransferId> last_tx_id{0};
     PeerInfo peer_;
     std::shared_ptr<Libp2pDataTransferNetwork> network_;
     std::shared_ptr<Graphsync> graphsync_;
     std::map<ChannelId, ChannelState> channels_;
+    std::shared_ptr<GraphsyncReceiver> receiver;
   };
 
   /**

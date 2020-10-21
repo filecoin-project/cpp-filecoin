@@ -15,7 +15,7 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> ClientDataTransferRequestValidator::validatePush(
       const PeerInfo &sender,
-      std::vector<uint8_t> voucher,
+      BytesIn voucher,
       CID base_cid,
       std::shared_ptr<Selector> selector) {
     return ClientRequestValidatorError::kErrorNoPushAccepted;
@@ -23,7 +23,7 @@ namespace fc::markets::storage::client {
 
   outcome::result<void> ClientDataTransferRequestValidator::validatePull(
       const PeerInfo &receiver,
-      std::vector<uint8_t> encoded_voucher,
+      BytesIn encoded_voucher,
       CID base_cid,
       std::shared_ptr<Selector> selector) {
     OUTCOME_TRY(

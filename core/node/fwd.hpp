@@ -46,6 +46,10 @@ namespace fc {
     }  // namespace bls
   }    // namespace crypto
 
+  namespace data_transfer {
+    class GraphsyncReceiver;
+  }  // namespace data_transfer
+
   namespace drand {
     class Beaconizer;
     struct DrandSchedule;

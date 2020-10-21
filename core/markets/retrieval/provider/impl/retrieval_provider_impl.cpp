@@ -81,8 +81,7 @@ namespace fc::markets::retrieval::provider {
       const QueryRequest &query) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
     OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(miner_worker_address,
-                api_->StateMinerWorker(miner_address, tipset_key));
+    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address, tipset_key));
 
     OUTCOME_TRY(piece_available,
                 piece_storage_->hasPieceInfo(query.payload_cid,
@@ -99,7 +98,7 @@ namespace fc::markets::retrieval::provider {
         .response_status = QueryResponseStatus::kQueryResponseAvailable,
         .item_status = QueryItemStatus::kQueryItemAvailable,
         .item_size = piece_size,
-        .payment_address = miner_worker_address,
+        .payment_address = minfo.worker,
         .min_price_per_byte = config_.price_per_byte,
         .payment_interval = config_.payment_interval,
         .interval_increase = config_.interval_increase};

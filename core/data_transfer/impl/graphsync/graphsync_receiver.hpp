@@ -32,7 +32,6 @@ namespace fc::data_transfer {
 
     void receiveError() override;
 
-   private:
     outcome::result<void> sendResponse(const PeerInfo &peer,
                                        bool is_accepted,
                                        const TransferId &transfer_id);
@@ -52,6 +51,7 @@ namespace fc::data_transfer {
         bool is_pull,
         const PeerInfo &sender,
         const CID &root,
+        DataTransferMessage message,
         gsl::span<const uint8_t> selector);
 
     void notifySubscribers(const Event &event,
