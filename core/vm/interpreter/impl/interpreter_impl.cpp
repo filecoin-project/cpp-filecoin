@@ -21,7 +21,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
       return "Miner submit failed";
     case E::kCronTickFailed:
       return "Cron tick failed";
+    case E::kTipsetMarkedBad:
+      return "Tipset marked as bad";
+    default:
+      break;
   }
+  return "InterpreterError: unknown code";
 }
 
 namespace fc::vm::interpreter {
@@ -72,8 +77,8 @@ namespace fc::vm::interpreter {
 
     if (tipset->height() > 1) {
       OUTCOME_TRY(parent, tipset->loadParent(*ipld));
-      for (auto epoch{parent->height() + 1}; epoch < tipset->height(); ++epoch) {
-
+      for (auto epoch{parent->height() + 1}; epoch < tipset->height();
+           ++epoch) {
         env->epoch = epoch;
         OUTCOME_TRY(cron());
       }
@@ -141,20 +146,24 @@ namespace fc::vm::interpreter {
 
   outcome::result<Result> CachedInterpreter::interpret(
       const IpldPtr &ipld, const TipsetCPtr &tipset) const {
-    // TODO: TipsetKey from art-gor
-    common::Buffer key;
-    for (auto &cid : tipset->key.cids()) {
-      OUTCOME_TRY(encoded, cid.toBytes());
-      key.put(encoded);
-    }
+    static const uint8_t z[] = {0x00};
+    static const common::Buffer kBadTipsetMark(gsl::span<const uint8_t>(z, 1));
 
+    common::Buffer key(tipset->key.hash());
     if (store->contains(key)) {
       OUTCOME_TRY(raw, store->get(key));
+      if (raw == kBadTipsetMark) {
+        return InterpreterError::kTipsetMarkedBad;
+      }
       return codec::cbor::decode<Result>(raw);
     }
-    OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
-    OUTCOME_TRY(raw, codec::cbor::encode(result));
-    OUTCOME_TRY(store->put(key, raw));
-    return std::move(result);
+    auto result = interpreter->interpret(ipld, tipset);
+    if (!result) {
+      OUTCOME_TRY(store->put(key, kBadTipsetMark));
+    } else {
+      OUTCOME_TRY(raw, codec::cbor::encode(result.value()));
+      OUTCOME_TRY(store->put(key, raw));
+    }
+    return result;
   }
 }  // namespace fc::vm::interpreter

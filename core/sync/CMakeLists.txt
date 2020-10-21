@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(gossip)
+
 add_library(sync
     common.cpp
     peer_manager.cpp
@@ -13,6 +15,7 @@ add_library(sync
     tipset_loader.cpp
     blocksync_common.cpp
     blocksync_client.cpp
+    blocksync_server.cpp
     sync_job.cpp
     chain_db.cpp
     branches.cpp
@@ -23,5 +26,7 @@ add_library(sync
 target_link_libraries(sync
     cbor_stream
     p2p::libp2p_sqlite
-    p2p::p2p_gossip
+#    p2p::p2p_gossip
+    gossip_local
+
     p2p::p2p_identify)

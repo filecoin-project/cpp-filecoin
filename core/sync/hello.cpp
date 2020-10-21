@@ -131,7 +131,7 @@ namespace fc::sync {
       auto it2 = active_requests_.find(peer_id);
       assert(it2 != active_requests_.end());
 
-      it2->second.stream->stream()->reset();
+      it2->second.stream->close();
       active_requests_.erase(it2);
 
       latency_feedback_(peer_id, Error::HELLO_TIMEOUT);
@@ -237,7 +237,7 @@ namespace fc::sync {
     }
     auto sent = it->second.sent;
     if (it->second.stream) {
-      it->second.stream->stream()->reset();
+      it->second.stream->close();
     }
     active_requests_.erase(it);
     active_requests_by_sent_time_.erase({sent, peer_id});
@@ -265,7 +265,7 @@ namespace fc::sync {
     if (!result) {
       log()->error("Hello request read failed: {}", result.error().message());
       hello_feedback_(peer_res.value(), result.error());
-      stream->stream()->reset();
+      stream->close();
       return;
     }
 
@@ -273,7 +273,7 @@ namespace fc::sync {
       log()->error("Peer {} has other genesis: {}", peer_res.value().toBase58(),
 result.value().genesis.toString().value());
       hello_feedback_(peer_res.value(), Error::HELLO_GENESIS_MISMATCH);
-      stream->stream()->reset();
+      stream->close();
       return;
     }
 
@@ -283,7 +283,7 @@ result.value().genesis.toString().value());
     auto sent = clock_->nowUTC().unixTimeNano().count();
 
     stream->write(LatencyMessage{arrival, sent}, [stream](auto) {
-      stream->stream()->reset();
+      stream->close();
     });
   }
 

@@ -213,7 +213,14 @@ namespace fc::sync {
         });
 
     started_ = true;
-
+/*
+    sub_ = host_->getBus().getChannel<libp2p::network::event::OnNewConnectionChannel>().subscribe(
+        [self{weak_from_this()}](std::weak_ptr<libp2p::connection::CapableConnection> conn) {
+          if (auto s = self.lock()) {
+            s->hello_->sayHello(conn.lock()->remotePeer().value());
+          }
+        });
+*/
     return outcome::success();
   }
 

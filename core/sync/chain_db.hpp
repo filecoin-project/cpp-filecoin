@@ -74,7 +74,6 @@ namespace fc::sync {
     outcome::result<TipsetCPtr> loadTipsetFromIpld(const TipsetKey &key);
 
     std::error_code state_error_;
-    // KeyValueStoragePtr key_value_storage_;
     IpfsStoragePtr ipld_;
     std::shared_ptr<IndexDb> index_db_;
     TipsetCPtr genesis_tipset_;

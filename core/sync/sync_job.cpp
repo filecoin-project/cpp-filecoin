@@ -197,6 +197,7 @@ namespace fc::sync {
 
   boost::optional<Syncer::PendingTargets::iterator> Syncer::chooseNextTarget() {
     boost::optional<PendingTargets::iterator> target;
+
     if (!pending_targets_.empty()) {
       BigInt max_weight = current_weight_;
       Height max_height = current_height_;

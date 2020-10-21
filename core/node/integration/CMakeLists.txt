@@ -4,7 +4,8 @@
 #
 
 add_executable(integration
-    integration.cpp)
+    integration.cpp
+    ../pubsub_workaround.cpp)
 
 target_link_libraries(integration
     node_builder

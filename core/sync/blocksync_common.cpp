@@ -8,6 +8,8 @@
 #include "common/logger.hpp"
 #include "storage/ipfs/datastore.hpp"
 
+#define TRACE_ENABLED 0
+
 namespace fc::sync::blocksync {
 
   namespace {
@@ -15,6 +17,14 @@ namespace fc::sync::blocksync {
     auto log() {
       static common::Logger logger = common::createLogger("sync");
       return logger.get();
+    }
+
+    template <typename... Args>
+    inline void trace(spdlog::string_view_t fmt,
+                                   const Args &... args) {
+#if TRACE_ENABLED
+      log()->trace(fmt, args...);
+#endif
     }
 
     outcome::result<void> storeBlock(
@@ -64,7 +74,7 @@ namespace fc::sync::blocksync {
         const OnBlockStored &callback) {
       size_t sz = bundle.blocks.size();
 
-      log()->debug(
+      trace(
           "storing tipset bundle of {} blocks, {} bls messages, {} secp "
           "messages",
           sz,

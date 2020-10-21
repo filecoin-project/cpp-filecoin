@@ -97,21 +97,7 @@ namespace fc::primitives::tipset {
   }
 
   std::string TipsetKey::toPrettyString() const {
-    if (cids_.empty()) {
-      return "{}";
-    }
-
-    std::string result = "{";
-    auto size = cids_.size();
-    for (size_t i = 0; i < size; ++i) {
-      result += cids_[i].toString().value();
-      if (i != size - 1) {
-        result += ", ";
-      }
-    }
-    result += "}";
-
-    return result;
+    return cidsToString(cids_);
   }
 
   outcome::result<TipsetKey> TipsetKey::create(std::vector<CID> cids) {

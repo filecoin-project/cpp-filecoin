@@ -19,8 +19,6 @@ namespace fc::sync::blocksync {
 
   class BlocksyncClient : public std::enable_shared_from_this<BlocksyncClient> {
    public:
-    static constexpr auto protocol_id = "/fil/sync/blk/0.0.1";
-
     BlocksyncClient(std::shared_ptr<libp2p::Host> host,
                     std::shared_ptr<storage::ipfs::IpfsDatastore> ipld);
 

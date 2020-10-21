@@ -123,6 +123,8 @@ namespace fc::sync {
         static std::unordered_map<PeerId, std::string> cache;
       };
     } peers_;
+
+    libp2p::event::Handle sub_;
   };
 
 }  // namespace fc::sync

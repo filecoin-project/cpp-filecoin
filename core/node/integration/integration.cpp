@@ -21,6 +21,10 @@
 
 #include "crypto/blake2/blake2b160.hpp"
 
+#include "sync/blocksync_server.hpp"
+
+#include "node/pubsub_workaround.hpp"
+
 namespace fc {
 
   namespace {
@@ -247,7 +251,7 @@ namespace fc {
       ptr = p;
     }
 
-    OUTCOME_EXCEPT(o.chain_db->setCurrentHead(heads.begin()->first));
+    //   OUTCOME_EXCEPT(o.chain_db->setCurrentHead(heads.begin()->first));
 
     if (checkEnvOption("VM_INTERPRET")) {
       size_t tipsets_interpreted = 0;
@@ -336,6 +340,11 @@ namespace fc {
 
     PubsubCtx pubsub_ctx(ctx, o, config.network_name);
 
+    auto blocksync_server =
+        std::make_shared<sync::blocksync::BlocksyncServer>(o.host, o.ipld);
+
+    node::PubsubWorkaround pubsub2(o.io_context, config);
+
     o.io_context->post([&] {
       auto listen_res = o.host->listen(config.listen_address);
       if (!listen_res) {
@@ -348,87 +357,95 @@ namespace fc {
 
       o.host->start();
 
-      o.scheduler->schedule(100, [&] {
-        auto tipset = o.chain_db->getTipsetByHeight(0).value();
-        auto r = o.vm_interpreter->interpret(o.ipld, tipset);
-        if (!r) {
-          log()->error("Interpret error {}", r.error().message());
-          o.io_context->stop();
-        }
-        auto weight_calculator =
-            std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
-        auto weight_res = weight_calculator->calculateWeight(*tipset);
-        if (!weight_res) {
-          log()->error("WC error {}", weight_res.error().message());
-          o.io_context->stop();
-        }
+      //     o.scheduler->schedule(100, [&] {
+      auto tipset = o.chain_db->getTipsetByHeight(0).value();
+      auto r = o.vm_interpreter->interpret(o.ipld, tipset);
+      if (!r) {
+        log()->error("Interpret error {}", r.error().message());
+        o.io_context->stop();
+      }
+      auto weight_calculator =
+          std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
+      auto weight_res = weight_calculator->calculateWeight(*tipset);
+      if (!weight_res) {
+        log()->error("WC error {}", weight_res.error().message());
+        o.io_context->stop();
+      }
 
-        auto res = o.peer_manager->start(
-            o.chain_db->genesisCID(),
-            heads.begin()->second->key.cids(),
-            weight_res.value(),
-            0,
-            [&](const libp2p::peer::PeerId &peer,
-                fc::outcome::result<fc::sync::Hello::Message> state) {
-              if (!state) {
-                log()->info("hello feedback failed for peer {}: {}",
-                            peer.toBase58(),
-                            state.error().message());
-                return;
-              }
 
-              auto &s = state.value();
+      auto res = o.peer_manager->start(
+          o.chain_db->genesisCID(),
+          {o.chain_db->genesisCID()},
+          weight_res.value(),
+          0,
+          [&](const libp2p::peer::PeerId &peer,
+              fc::outcome::result<fc::sync::Hello::Message> state) {
+            if (!state) {
+              log()->info("hello feedback failed for peer {}: {}",
+                          peer.toBase58(),
+                          state.error().message());
+              return;
+            }
 
-              auto tk =
-                  primitives::tipset::TipsetKey::create(s.heaviest_tipset);
-              if (tk) {
-                ctx.syncer.newTarget(peer,
-                                     std::move(tk.value()),
-                                     s.heaviest_tipset_weight,
-                                     s.heaviest_tipset_height);
-                ctx.start();
-              }
+            auto &s = state.value();
 
-              // o.gossip->addBootstrapPeer(peer, boost::none);
-            });
+            auto tk = primitives::tipset::TipsetKey::create(s.heaviest_tipset);
+            if (tk) {
+              ctx.syncer.newTarget(peer,
+                                   std::move(tk.value()),
+                                   s.heaviest_tipset_weight,
+                                   s.heaviest_tipset_height);
+              ctx.start();
+            }
 
-        if (!res) {
-          o.io_context->stop();
-        }
+            // o.gossip->addBootstrapPeer(peer, boost::none);
+          });
 
-        for (const auto &pi : config.bootstrap_list) {
-          o.host->connect(pi);
-        }
+      if (!res) {
+        o.io_context->stop();
+      }
+
+      //        for (const auto &pi : config.bootstrap_list) {
+      //          o.host->connect(pi);
+      //        }
+      //      });
+
+      //      o.scheduler->schedule(60000, [&] {
+      for (const auto &pi : config.bootstrap_list) {
+        o.host->connect(pi);
+        // o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
+      }
+
+      // std::ignore =
+      // o.gossip->addBootstrapPeer("/ip4/192.168.0.103/tcp/42775/p2p/12D3KooWE6MPsm2kY9kWuiqM4GzmWcA8P9CBDdqFAt1WHHvVdGk3");
+
+      //   o.scheduler->schedule(10000, [&]
+      //   {
+
+      using libp2p::protocol::gossip::ByteArray;
+      o.gossip->setMessageIdFn([](const ByteArray &from,
+                                  const ByteArray &seq,
+                                  const ByteArray &data) {
+        auto h = crypto::blake2b::blake2b_256(data);
+        return ByteArray(h.data(), h.data() + h.size());
       });
 
-      o.scheduler->schedule(60000, [&] {
-        for (const auto &pi : config.bootstrap_list) {
-          // o.host->connect(pi);
-          o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
-        }
+      o.gossip->start();
+      pubsub_ctx.start();
+      //        for (const auto &pi : config.bootstrap_list) {
+      //          //o.host->connect(pi);
+      //          o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
+      //        }
+      //   }).detach();
 
-        //   o.scheduler->schedule(10000, [&]
-        //   {
+      blocksync_server->start();
 
-        using libp2p::protocol::gossip::ByteArray;
-        o.gossip->setMessageIdFn([](const ByteArray &from,
-                                    const ByteArray &seq,
-                                    const ByteArray &data) {
-          auto h = crypto::blake2b::blake2b_256(data);
-          return ByteArray(h.data(), h.data() + h.size());
-        });
+      OUTCOME_EXCEPT(pubsub2_pi, pubsub2.start(7777));
+      o.gossip->addBootstrapPeer(pubsub2_pi.id, pubsub2_pi.addresses[0]);
 
-        o.gossip->start();
-        pubsub_ctx.start();
-        //        for (const auto &pi : config.bootstrap_list) {
-        //          //o.host->connect(pi);
-        //          o.gossip->addBootstrapPeer(pi.id, pi.addresses[0]);
-        //        }
-        //   }).detach();
-
-        log()->info("Node started");
-      });
+      log()->info("Node started");
     });
+    //    });
 
     // gracefully shutdown on signal
     boost::asio::signal_set signals(*o.io_context, SIGINT, SIGTERM);

@@ -194,10 +194,12 @@ namespace fc::node {
     log()->debug("Creating host...");
 
     // config.gossip_config.protocol_version = "/floodsub/1.0.0";
-    config.gossip_config.D_max = config.gossip_config.D_min = 0;
+    //config.gossip_config.D_max = config.gossip_config.D_min = 0;
 
     auto injector = libp2p::injector::makeGossipInjector<
         boost::di::extension::shared_config>(
+//        boost::di::bind<libp2p::security::SecurityAdaptor *[]>().template to<libp2p::security::TlsAdaptor>()[boost::di::override],  // NOLINT
+
         boost::di::bind<clock::UTCClock>.template to<clock::UTCClockImpl>(),
         libp2p::injector::useGossipConfig(config.gossip_config));
 

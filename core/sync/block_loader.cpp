@@ -10,6 +10,8 @@
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "common/logger.hpp"
 
+#define TRACE_ENABLED 0
+
 namespace fc::sync {
   namespace {
     auto log() {
@@ -113,8 +115,10 @@ namespace fc::sync {
       was_requested = onBlockHeader(block_cid, std::move(m.header), true);
     }
     if (!was_requested) {
+#if TRACE_ENABLED
       log()->trace("block cid {} was not requested",
                    block_cid.toString().value());
+#endif
     }
   }
 

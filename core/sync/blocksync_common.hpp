@@ -16,6 +16,8 @@ namespace fc::storage::ipfs {
 
 namespace fc::sync::blocksync {
 
+  constexpr auto protocol_id = "/fil/sync/blk/0.0.1";
+
   enum RequestOptions {
     BLOCKS_ONLY = 1,
     MESSAGES_ONLY = 2,

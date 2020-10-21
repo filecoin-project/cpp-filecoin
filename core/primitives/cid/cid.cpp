@@ -139,6 +139,27 @@ namespace fc {
     boost::hash_range(seed, hash.begin(), hash.end());
     return seed;
   }
+
+  std::string cidsToString(const std::vector<CID> &cids) {
+    if (cids.empty()) {
+      return "{}";
+    }
+
+    std::string result;
+    result.reserve(cids.size() * 60);
+    result = "{";
+    auto size = cids.size();
+    for (size_t i = 0; i < size; ++i) {
+      result += cids[i].toString().value();
+      if (i != size - 1) {
+        result += ", ";
+      }
+    }
+    result += "}";
+
+    return result;
+  }
+
 }  // namespace fc
 
 namespace fc::common {
