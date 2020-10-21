@@ -60,6 +60,7 @@ namespace fc::vm::interpreter {
       if (all_receipts) {
         all_receipts->push_back(receipt);
       }
+      return outcome::success();
     }};
 
     if (hasDuplicateMiners(tipset.blks)) {
@@ -69,25 +70,30 @@ namespace fc::vm::interpreter {
     auto env =
         std::make_shared<Env>(std::make_shared<InvokerImpl>(), ipld, tipset);
 
-    auto cron{[&] {
-      return env->applyImplicitMessage(UnsignedMessage{
-          kCronAddress,
-          kSystemActorAddress,
-          {},
-          0,
-          0,
-          kBlockGasLimit * 10000,
-          EpochTick::Number,
-          {},
-      });
+    auto cron{[&]() -> outcome::result<void> {
+      OUTCOME_TRY(receipt,
+                  env->applyImplicitMessage(UnsignedMessage{
+                      kCronAddress,
+                      kSystemActorAddress,
+                      {},
+                      0,
+                      0,
+                      kBlockGasLimit * 10000,
+                      EpochTick::Number,
+                      {},
+                  }));
+      if (receipt.exit_code != VMExitCode::kOk) {
+        return receipt.exit_code;
+      }
+      on_receipt(receipt);
+      return outcome::success();
     }};
 
     if (tipset.height > 1) {
       OUTCOME_TRY(parent, tipset.loadParent(*ipld));
       for (auto epoch{parent.height + 1}; epoch < tipset.height; ++epoch) {
         env->tipset.height = epoch;
-        OUTCOME_TRY(receipt, cron());
-        on_receipt(receipt);
+        OUTCOME_TRY(cron());
       }
       env->tipset.height = tipset.height;
     }
@@ -128,11 +134,13 @@ namespace fc::vm::interpreter {
                       AwardBlockReward::Number,
                       MethodParams{reward_encoded},
                   }));
+      if (receipt.exit_code != VMExitCode::kOk) {
+        return receipt.exit_code;
+      }
       on_receipt(receipt);
     }
 
-    OUTCOME_TRY(receipt, cron());
-    on_receipt(receipt);
+    OUTCOME_TRY(cron());
 
     OUTCOME_TRY(new_state_root, env->state_tree->flush());
 
