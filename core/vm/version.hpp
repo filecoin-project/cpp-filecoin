@@ -20,7 +20,7 @@ namespace fc::vm::version {
     kVersion2,
     kVersion3,
     kVersion4,
-    kVersion5
+    kVersion5,
   };
 
   /**

@@ -279,8 +279,6 @@ TEST_P(TestVectors, Vector) {
       {fc::primitives::sector::RegisteredProof::StackedDRG32GiBSeal,
        fc::primitives::sector::RegisteredProof::StackedDRG64GiBSeal});
 
-  std::cout << "Test path: " << mv.path << std::endl;
-
   auto ipld{std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
   OUTCOME_EXCEPT(fc::storage::car::loadCar(*ipld, mv.car));
 
