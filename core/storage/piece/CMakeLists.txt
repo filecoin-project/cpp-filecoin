@@ -11,4 +11,5 @@ target_link_libraries(piece_storage
     buffer
     cbor
     outcome
+    piece
     )
