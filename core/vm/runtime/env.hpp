@@ -40,7 +40,7 @@ namespace fc::vm::runtime {
     outcome::result<Apply> applyMessage(const UnsignedMessage &message,
                                         size_t size);
 
-    outcome::result<InvocationOutput> applyImplicitMessage(
+    outcome::result<MessageReceipt> applyImplicitMessage(
         UnsignedMessage message);
 
     std::shared_ptr<StateTreeImpl> state_tree;

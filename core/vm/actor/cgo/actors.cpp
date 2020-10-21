@@ -10,9 +10,13 @@
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
+#include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/runtime/env.hpp"
+#include "vm/version.hpp"
+
+#include "vm/dvm/dvm.hpp"
 
 #define RUNTIME_METHOD(name)                                         \
   void rt_##name(Runtime &, CborDecodeStream &, CborEncodeStream &); \
@@ -22,7 +26,9 @@
   void rt_##name(Runtime &rt, CborDecodeStream &arg, CborEncodeStream &ret)
 
 namespace fc::vm::actor::cgo {
+  using builtin::account::AccountActorState;
   using crypto::randomness::DomainSeparationTag;
+  using crypto::randomness::Randomness;
   using crypto::signature::Signature;
   using primitives::ChainEpoch;
   using primitives::GasAmount;
@@ -33,6 +39,7 @@ namespace fc::vm::actor::cgo {
   using primitives::sector::WindowPoStVerifyInfo;
   using runtime::resolveKey;
   using storage::hamt::HamtError;
+  using vm::version::getNetworkVersion;
 
   bool test_vectors{false};
 
@@ -70,8 +77,10 @@ namespace fc::vm::actor::cgo {
                                  BytesIn params) {
     CborEncodeStream arg;
     auto id{next_runtime++};  // TODO: mod
-    arg << id << message.from << message.to << exec->env->tipset.height
-        << message.value << code << method << params;
+    auto version{getNetworkVersion(exec->env->tipset.height)};
+    arg << id << version << message.from << message.to
+        << exec->env->tipset.height << message.value << code << method
+        << params;
     runtimes.emplace(id, Runtime{exec, message.to});
     auto ret{cgoCall<cgoActorsInvoke>(arg)};
     runtimes.erase(id);
@@ -122,6 +131,18 @@ namespace fc::vm::actor::cgo {
     return {};
   }
 
+  inline outcome::result<Randomness> generateRandomness(Runtime &rt,
+                                                        CborDecodeStream &arg) {
+    auto beacon{arg.get<bool>()};
+    auto tag{arg.get<DomainSeparationTag>()};
+    auto round{arg.get<ChainEpoch>()};
+    auto seed{arg.get<Buffer>()};
+    auto &ts{rt.exec->env->tipset};
+    auto &ipld{*rt.exec->env->ipld};
+    return beacon ? ts.beaconRandomness(ipld, tag, round, seed)
+                  : ts.ticketRandomness(ipld, tag, round, seed);
+  }
+
   RUNTIME_METHOD(gocRtIpldGet) {
     if (auto value{ipldGet(ret, rt, arg.get<CID>())}) {
       ret << kOk << *value;
@@ -129,7 +150,9 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtIpldPut) {
-    if (auto cid{ipldPut(ret, rt, arg.get<Buffer>())}) {
+    auto buf = arg.get<Buffer>();
+    if (auto cid{ipldPut(ret, rt, buf)}) {
+      dvm::onIpldSet(*cid, buf);
       ret << kOk << *cid;
     }
   }
@@ -141,14 +164,11 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtRand) {
-    auto beacon{arg.get<bool>()};
-    auto tag{arg.get<DomainSeparationTag>()};
-    auto round{arg.get<ChainEpoch>()};
-    auto seed{arg.get<Buffer>()};
-    auto &ts{rt.exec->env->tipset};
-    auto &ipld{*rt.exec->env->ipld};
-    auto r{beacon ? ts.beaconRandomness(ipld, tag, round, seed)
-                  : ts.ticketRandomness(ipld, tag, round, seed)};
+    // see lotus conformance tests v0.10.0
+    // (https://github.com/filecoin-project/lotus/blob/v0.10.0/conformance/rand_fixed.go)
+    auto r = test_vectors ? crypto::randomness::Randomness::fromString(
+                 "i_am_random_____i_am_random_____")
+                          : generateRandomness(rt, arg);
     if (!r) {
       ret << kFatal;
     } else {
@@ -207,9 +227,14 @@ namespace fc::vm::actor::cgo {
         ret << kFatal;
       } else {
         ret << kOk << e.value();
+
+        dvm::onReceipt({VMExitCode{e.value()}, {}, rt.exec->gas_used});
       }
     } else {
       ret << kOk << kOk << r.value();
+
+      dvm::onReceipt(
+          {VMExitCode::kOk, std::move(r.value()), rt.exec->gas_used});
     }
   }
 
@@ -217,14 +242,29 @@ namespace fc::vm::actor::cgo {
     auto _sig{arg.get<Buffer>()};
     auto bls{!_sig.empty() && _sig[0] == crypto::signature::BLS};
     if (charge(ret, rt, rt.exec->env->pricelist.onVerifySignature(bls))) {
-      auto ok{false};
-      if (test_vectors) {
-        ok = true;
-      } else if (auto sig{Signature::fromBytes(_sig)}) {
-        if (auto _key{resolveKey(*rt.exec->state_tree, arg.get<Address>())}) {
+      auto address{arg.get<Address>()};
+      auto ok{address.isKeyType()};
+      if (address.isId()) {
+        // resolve id address to key address
+        if (auto actor{rt.exec->state_tree->get(address)}) {
+          if (auto state{ipldGet(ret, rt, actor.value().head)}) {
+            if (auto account{
+                    codec::cbor::decode<AccountActorState>(state.value())}) {
+              address = account.value().address;
+              ok = true;
+            }
+          } else {
+            return;
+          }
+        }
+      }
+      if (ok) {
+        if (auto sig{Signature::fromBytes(_sig)}) {
           auto input{arg.get<Buffer>()};
-          auto r{keystore.verify(_key.value(), input, sig.value())};
+          auto r{keystore.verify(address, input, sig.value())};
           ok = r && r.value();
+        } else {
+          ok = false;
         }
       }
       ret << kOk << ok;

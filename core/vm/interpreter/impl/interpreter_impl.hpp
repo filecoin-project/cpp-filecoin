@@ -8,14 +8,20 @@
 
 #include "storage/buffer_map.hpp"
 #include "vm/interpreter/interpreter.hpp"
+#include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::interpreter {
   using storage::PersistentBufferMap;
+  using vm::runtime::MessageReceipt;
 
   class InterpreterImpl : public Interpreter {
    public:
     outcome::result<Result> interpret(const IpldPtr &store,
                                       const Tipset &tipset) const override;
+    outcome::result<Result> applyBlocks(
+        const IpldPtr &store,
+        const Tipset &tipset,
+        std::vector<MessageReceipt> *all_receipts) const;
 
    protected:
     using BlockHeader = primitives::block::BlockHeader;

@@ -476,20 +476,7 @@ namespace fc::api {
               std::make_shared<InvokerImpl>(), ipld, context.tipset);
           InvocResult result;
           result.message = message;
-          auto maybe_result = env->applyImplicitMessage(message);
-          if (maybe_result) {
-            result.receipt = {VMExitCode::kOk, maybe_result.value(), 0};
-          } else {
-            if (isVMExitCode(maybe_result.error())) {
-              auto ret_code =
-                  normalizeVMExitCode(VMExitCode{maybe_result.error().value()});
-              BOOST_ASSERT_MSG(ret_code,
-                               "c++ actor code returned unknown error");
-              result.receipt = {*ret_code, {}, 0};
-            } else {
-              return maybe_result.error();
-            }
-          }
+          OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
           return result;
         }},
         .StateListMessages = {[=](auto &match, auto &tipset_key, auto to_height)

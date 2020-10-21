@@ -47,10 +47,9 @@ auto jsonDecode(fc::BytesIn str) {
 
 template <typename T>
 void expectJson(const T &value, std::string _expected) {
-  auto expected{jsonEncode(jsonDecode(fc::common::span::cbytes(_expected)))};
-  EXPECT_EQ(jsonEncode(fc::api::encode(value)), expected);
-  EXPECT_OUTCOME_TRUE(decoded, fc::api::decode<T>(jsonDecode(expected)));
-  EXPECT_EQ(jsonEncode(fc::api::encode(decoded)), expected);
+  EXPECT_EQ(jsonEncode(fc::api::encode(value)), fc::common::span::cbytes(_expected));
+  EXPECT_OUTCOME_TRUE(decoded, fc::api::decode<T>(jsonDecode(fc::common::span::cbytes(_expected))));
+  EXPECT_EQ(decoded, value);
 }
 
 /// Following tests check json encoding and decoding
