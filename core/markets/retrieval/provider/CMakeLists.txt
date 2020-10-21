@@ -13,4 +13,9 @@ target_link_libraries(retrieval_market_provider
     cbor_stream
     tipset
     ipld_traverser
+    piece
+    piece_data
+    car
+    miner
+    manager
     )

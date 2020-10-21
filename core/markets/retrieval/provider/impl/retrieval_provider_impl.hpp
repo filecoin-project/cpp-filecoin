@@ -13,17 +13,23 @@
 #include "markets/retrieval/protocols/query_protocol.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "markets/retrieval/provider/retrieval_provider.hpp"
+#include "miner/miner.hpp"
 #include "storage/ipld/traverser.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::retrieval::provider {
   using common::libp2p::CborHost;
   using common::libp2p::CborStream;
+  using ::fc::miner::Miner;
+  using ::fc::sector_storage::Manager;
   using ::fc::storage::ipld::traverser::Traverser;
   using ::fc::storage::piece::PieceInfo;
   using ::fc::storage::piece::PieceStorage;
   using libp2p::Host;
   using primitives::BigInt;
+  using primitives::SectorNumber;
+  using primitives::piece::UnpaddedPieceSize;
+  using primitives::piece::PieceData;
 
   /**
    * @struct Provider config
@@ -60,7 +66,9 @@ namespace fc::markets::retrieval::provider {
                           std::shared_ptr<api::Api> api,
                           std::shared_ptr<PieceStorage> piece_storage,
                           IpldPtr ipld,
-                          const ProviderConfig &config);
+                          const ProviderConfig &config,
+                          std::shared_ptr<Manager> sealer,
+                          std::shared_ptr<Miner> miner);
 
     void start() override;
 
@@ -153,12 +161,26 @@ namespace fc::markets::retrieval::provider {
      */
     void finalizeDeal(const std::shared_ptr<DealState> &deal_state);
 
+    /**
+     * Unseal sector
+     * @param sector_id - id of sector
+     * @param offset - offset of piece
+     * @param size - size of piece
+     * @return Read PieceData
+     */
+    outcome::result<PieceData> unsealSector(
+        SectorNumber sector_id,
+        UnpaddedPieceSize offset,
+        UnpaddedPieceSize size);
+
     std::shared_ptr<CborHost> host_;
     std::shared_ptr<api::Api> api_;
     Address miner_address;
     std::shared_ptr<PieceStorage> piece_storage_;
     std::shared_ptr<Ipld> ipld_;
     ProviderConfig config_;
+    std::shared_ptr<Manager> sealer_;
+    std::shared_ptr<Miner> miner_;
     common::Logger logger_ = common::createLogger("RetrievalProvider");
   };
 }  // namespace fc::markets::retrieval::provider

@@ -18,6 +18,8 @@ namespace fc::miner {
 
     MOCK_METHOD0(stop, void());
 
+    MOCK_CONST_METHOD0(getAddress, Address());
+
     MOCK_CONST_METHOD1(
         getSectorInfo,
         outcome::result<std::shared_ptr<SectorInfo>>(SectorNumber));

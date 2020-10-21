@@ -9,6 +9,8 @@
 #include "testutil/literals.hpp"
 
 namespace fc::markets::retrieval::test {
+  using primitives::piece::PaddedPieceSize;
+
   /**
    * @brief Payload - one of the blocks, of which consists Piece
    */
@@ -34,8 +36,8 @@ namespace fc::markets::retrieval::test {
                               "1e87a33d6da70fd2efae"_cid,
                  .deals = {{.deal_id = 18,
                             .sector_id = 4,
-                            .offset = 128,
-                            .length = 64}}},
+                            .offset = PaddedPieceSize(128),
+                            .length = PaddedPieceSize(105)}}},
         .payloads = {
             {.cid =
                  "12209139839e65fabea9efd230898ad8b574509147e48d7c1e87a33d6da70fd2efbf"_cid,
