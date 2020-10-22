@@ -17,7 +17,7 @@ namespace fc::sync {
   class InterpreterJob : public std::enable_shared_from_this<InterpreterJob> {
    public:
     struct Result {
-      TipsetCPtr head;
+      TipsetCPtr last_interpreted;
       outcome::result<vm::interpreter::Result> result;
     };
 
@@ -51,6 +51,7 @@ namespace fc::sync {
     void nextStep();
 
     void fillNextSteps();
+    TipsetCPtr getNextTipset();
 
     std::shared_ptr<storage::PersistentBufferMap> kv_store_;
     std::shared_ptr<vm::interpreter::Interpreter> interpreter_;
@@ -61,6 +62,7 @@ namespace fc::sync {
     Status status_;
     Callback callback_;
     Result result_;
+    TipsetCPtr target_head_;
     std::vector<TipsetCPtr> next_steps_;
     size_t step_cursor_ = 0;
     libp2p::protocol::scheduler::Handle cb_handle_;

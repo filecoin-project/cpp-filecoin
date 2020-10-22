@@ -56,8 +56,9 @@ namespace fc::sync {
     /// returns true to proceed walking, false to stop
     using WalkCallback = std::function<bool(TipsetCPtr tipset)>;
 
-    outcome::result<void> walkForward(Height from_height,
-                                      Height to_height,
+    outcome::result<void> walkForward(const TipsetCPtr &from,
+                                      const TipsetCPtr &to,
+                                      size_t limit,
                                       const WalkCallback &cb);
 
     outcome::result<void> walkBackward(const TipsetHash &from,

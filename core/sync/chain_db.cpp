@@ -193,46 +193,42 @@ namespace fc::sync {
     return std::move(tipset);
   }
 
-  outcome::result<void> ChainDb::walkForward(Height from_height,
-                                             Height to_height,
+  outcome::result<void> ChainDb::walkForward(const TipsetCPtr &from,
+                                             const TipsetCPtr &to,
+                                             size_t limit,
                                              const WalkCallback &cb) {
     OUTCOME_TRY(stateIsConsistent());
 
-    if (from_height == 0) {
-      cb(genesis_tipset_);
-      from_height = 1;
-    }
-
-    if (from_height > to_height) {
+    if (limit == 0 || from->height() >= to->height()) {
       return outcome::success();
     }
 
-    Height last_height = 0;
-    std::error_code e;
-    auto internal_cb = [&, this](TipsetInfoCPtr info) {
-      if (!e) {
-        auto res = getTipsetByKey(info->key);
-        if (res) {
-          last_height = info->height;
-          cb(std::move(res.value()));
-        } else {
-          e = res.error();
-        }
-      }
-    };
+    OUTCOME_TRY(from_meta, index_db_->get(from->key.hash()));
+    OUTCOME_TRY(to_meta, index_db_->get(to->key.hash()));
+    OUTCOME_TRY(route, branches_.getRoute(from_meta->branch, to_meta->branch));
 
-    for (;;) {
-      OUTCOME_TRY(branch_id, branches_.getBranchAtHeight(from_height, false));
-      if (branch_id == kNoBranch || last_height > to_height
-          || from_height > to_height) {
-        break;
-      }
+    Height from_height = from->height() + 1;
+    Height to_height = to->height();
+    std::error_code e;
+    bool proceed = true;
+    for (auto branch_id : route) {
       OUTCOME_TRY(index_db_->walkForward(
-          branch_id, from_height, to_height, internal_cb));
-      if (e) {
+          branch_id, from_height, to_height,
+          [&, this](TipsetInfoCPtr info) {
+            if (!e) {
+              auto res = getTipsetByKey(info->key);
+              if (res) {
+                if (res.value()->height() <= to_height) {
+                  proceed = cb(std::move(res.value()));
+                }
+              } else {
+                e = res.error();
+              }
+            }
+          }));
+      if (e || !proceed) {
         break;
       }
-      from_height = last_height + 1;
     }
 
     if (e) {

@@ -27,6 +27,9 @@ namespace fc::sync {
 
     outcome::result<BranchCPtr> getCommonRoot(BranchId a, BranchId b) const;
 
+    outcome::result<std::vector<BranchId>> getRoute(BranchId from,
+                                                    BranchId to) const;
+
     struct StorePosition {
       BranchId assigned_branch = kNoBranch;
       BranchId at_bottom_of_branch = kNoBranch;
@@ -51,8 +54,8 @@ namespace fc::sync {
     };
 
     HeadChanges storeTipset(const TipsetCPtr &tipset,
-                                        const TipsetHash &parent_hash,
-                                        const StorePosition &pos);
+                            const TipsetHash &parent_hash,
+                            const StorePosition &pos);
 
     outcome::result<BranchCPtr> getBranch(BranchId id) const;
 
@@ -75,14 +78,11 @@ namespace fc::sync {
                        BranchPtr &parent_branch,
                        HeadChanges &changes);
 
-    void updateHeads(BranchPtr &branch,
-                     bool synced,
-                     HeadChanges &changes);
+    void updateHeads(BranchPtr &branch, bool synced, HeadChanges &changes);
 
     BranchPtr getBranch(BranchId id);
 
     BranchId newBranchId() const;
-
 
     std::map<BranchId, BranchPtr> all_branches_;
     std::map<TipsetHash, BranchPtr> heads_;

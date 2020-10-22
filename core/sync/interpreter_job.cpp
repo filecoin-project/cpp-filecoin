@@ -31,7 +31,9 @@ namespace fc::sync {
         chain_db_(chain_db),
         ipld_(std::move(ipld)),
         callback_(std::move(callback)),
-        result_{nullptr, vm::interpreter::InterpreterError::kTipsetMarkedBad} {
+        result_{nullptr,
+                nullptr,
+                vm::interpreter::InterpreterError::kTipsetMarkedBad} {
     assert(callback_);
   }
 
@@ -141,7 +143,7 @@ namespace fc::sync {
     ++step_cursor_;
 
     status_.current_height = tipset->height();
-    log()->info("syncing {}/{}", status_.current_height, status_.target_height);
+    log()->info("doing {}/{}", status_.current_height, status_.target_height);
 
     result_.result = interpreter_->interpret(ipld_, tipset);
     if (!result_.result) {
@@ -196,6 +198,71 @@ namespace fc::sync {
                    next_steps_.size(),
                    status_.current_height + 1);
     }
+  }
+
+  TipsetCPtr InterpreterJob::getNextTipset() {
+    // step is cached
+    if (step_cursor_ < next_steps_.size()) {
+      return std::move(next_steps_[step_cursor_++]);
+    }
+
+    // clear cache
+    next_steps_.clear();
+    step_cursor_ = 0;
+
+    assert(active_);
+    assert(status_.target_height >= status_.current_height);
+
+    size_t limit = status_.target_height - status_.current_height;
+    if (limit == 0) {
+      // done
+      scheduleResult();
+      return nullptr;
+    }
+
+    // dont walk forward too far, it takes time
+    static constexpr size_t kQueryLimit = 100;
+    if (limit > kQueryLimit) {
+      limit = kQueryLimit;
+    }
+
+    TipsetCPtr ret;
+
+    auto res =
+        chain_db_.walkForward(result_.last_interpreted,
+                              target_head_,
+                              limit,
+                              [&, this](TipsetCPtr tipset) {
+                                if (tipset->height() > status_.target_height) {
+                                  log()->error("walks behind height limit");
+                                  return false;
+                                }
+                                if (ret) {
+                                  next_steps_.push_back(std::move(tipset));
+                                } else {
+                                  ret = std::move(tipset);
+                                }
+                                return true;
+                              });
+    if (!res) {
+      log()->error("failed to load {} tipsets starting from height {}",
+                   limit,
+                   status_.current_height + 1);
+      result_.result = res.error();
+      next_steps_.clear();
+      ret.reset();
+    }
+
+    if (ret) {
+      log()->debug("scheduled {} tipsets starting from height {}",
+                   next_steps_.size() + 1,
+                   status_.current_height + 1);
+      return ret;
+    }
+
+
+    scheduleResult();
+    return nullptr;
   }
 
 }  // namespace fc::sync

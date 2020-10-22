@@ -55,7 +55,7 @@ namespace fc::sync {
   }
 
   outcome::result<BranchCPtr> Branches::getCommonRoot(BranchId a,
-                                                    BranchId b) const {
+                                                      BranchId b) const {
     if (a == kNoBranch || b == kNoBranch) {
       return Error::BRANCHES_NO_COMMON_ROOT;
     }
@@ -82,6 +82,42 @@ namespace fc::sync {
     assert(A == B);
 
     return std::move(A);
+  }
+
+  outcome::result<std::vector<BranchId>> Branches::getRoute(BranchId from,
+                                                            BranchId to) const {
+    if (from == kNoBranch || to == kNoBranch) {
+      return Error::BRANCHES_NO_ROUTE;
+    }
+
+    std::vector<BranchId> route;
+
+    if (from == to) {
+      route.push_back(from);
+      return route;
+    }
+
+    bool route_found = false;
+    for (;;) {
+      route.push_back(to);
+      OUTCOME_TRY(info, getBranch(to));
+      to = info->parent;
+      if (to == from) {
+        route_found = true;
+        break;
+      }
+      if (to == kNoBranch || to == kGenesisBranch) {
+        break;
+      }
+    }
+
+    if (!route_found) {
+      return Error::BRANCHES_NO_ROUTE;
+    }
+
+    route.push_back(from);
+    std::reverse(route.begin(), route.end());
+    return route;
   }
 
   outcome::result<void> Branches::setCurrentHead(BranchId head_branch,
