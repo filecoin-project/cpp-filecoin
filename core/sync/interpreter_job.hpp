@@ -36,8 +36,8 @@ namespace fc::sync {
 
     outcome::result<void> start(const TipsetKey &head);
 
-    // returns last status
-    const Status &cancel();
+    // returns last status and clears all
+    Status cancel();
 
     const Status &getStatus() const;
 
@@ -50,7 +50,6 @@ namespace fc::sync {
 
     void nextStep();
 
-    void fillNextSteps();
     TipsetCPtr getNextTipset();
 
     std::shared_ptr<storage::PersistentBufferMap> kv_store_;
@@ -58,9 +57,10 @@ namespace fc::sync {
     libp2p::protocol::Scheduler &scheduler_;
     ChainDb &chain_db_;
     IpfsStoragePtr ipld_;
+    Callback callback_;
+
     bool active_ = false;
     Status status_;
-    Callback callback_;
     Result result_;
     TipsetCPtr target_head_;
     std::vector<TipsetCPtr> next_steps_;

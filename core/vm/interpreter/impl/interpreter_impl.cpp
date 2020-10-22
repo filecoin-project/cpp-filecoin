@@ -16,13 +16,15 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
   using E = fc::vm::interpreter::InterpreterError;
   switch (e) {
     case E::kDuplicateMiner:
-      return "Duplicate miner";
+      return "InterpreterError: Duplicate miner";
     case E::kMinerSubmitFailed:
-      return "Miner submit failed";
+      return "InterpreterError: Miner submit failed";
     case E::kCronTickFailed:
-      return "Cron tick failed";
+      return "InterpreterError: Cron tick failed";
     case E::kTipsetMarkedBad:
-      return "Tipset marked as bad";
+      return "InterpreterError: Tipset marked as bad";
+    case E::kChainInconsistency:
+      return "InterpreterError: chain inconsistency";
     default:
       break;
   }

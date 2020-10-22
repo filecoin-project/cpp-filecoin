@@ -15,7 +15,8 @@ namespace fc::vm::interpreter {
     kDuplicateMiner = 1,
     kMinerSubmitFailed,
     kCronTickFailed,
-    kTipsetMarkedBad
+    kTipsetMarkedBad,
+    kChainInconsistency,
   };
 
   struct Result {

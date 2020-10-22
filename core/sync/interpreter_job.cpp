@@ -32,8 +32,7 @@ namespace fc::sync {
         ipld_(std::move(ipld)),
         callback_(std::move(callback)),
         result_{nullptr,
-                nullptr,
-                vm::interpreter::InterpreterError::kTipsetMarkedBad} {
+                vm::interpreter::InterpreterError::kChainInconsistency} {
     assert(callback_);
   }
 
@@ -45,39 +44,35 @@ namespace fc::sync {
       std::ignore = cancel();
     }
 
-    OUTCOME_TRYA(result_.head, chain_db_.getTipsetByKey(head));
-    status_.target_height = result_.head->height();
+    OUTCOME_TRYA(target_head_, chain_db_.getTipsetByKey(head));
+    status_.target_height = target_head_->height();
 
-    const auto &hash = result_.head->key.hash();
+    const auto &hash = target_head_->key.hash();
 
     // maybe already interpreted
     OUTCOME_TRY(maybe_result,
-                vm::interpreter::getSavedResult(*kv_store_, result_.head));
+                vm::interpreter::getSavedResult(*kv_store_, target_head_));
     if (maybe_result) {
+      result_.last_interpreted = target_head_;
       result_.result = std::move(maybe_result.value());
       status_.current_height = status_.target_height;
       scheduleResult();
       return outcome::success();
     }
 
-    // set current head to enable moving forward
-    OUTCOME_TRY(chain_db_.setCurrentHead(result_.head->key.hash()));
-
     std::error_code e;
 
-    // find the highest interpreted tipset in chain
-    OUTCOME_TRY(chain_db_.walkBackward(hash, 0, [this, &e](TipsetCPtr tipset) {
+    // find the highest interpreted tipset in chain backwards from the target
+    OUTCOME_TRY(chain_db_.walkBackward(hash, 0, [&, this](TipsetCPtr tipset) {
       if (e) {
         return false;
       }
       auto res = vm::interpreter::getSavedResult(*kv_store_, tipset);
       if (!res) {
         e = res.error();
-      } else {
-        if (res.value()) {
-          status_.current_height = tipset->height();
-          return false;
-        }
+      } else if (res.value()) {
+        result_.last_interpreted = std::move(tipset);
+        return false;
       }
       return (!e);
     }));
@@ -86,6 +81,13 @@ namespace fc::sync {
       return e;
     }
 
+    if (!result_.last_interpreted) {
+      // at least genesis tipset must be interpreted
+      cancel();
+      return vm::interpreter::InterpreterError::kChainInconsistency;
+    }
+
+    status_.current_height = result_.last_interpreted->height();
     log()->info(
         "starting {} -> {}", status_.current_height, status_.target_height);
     active_ = true;
@@ -94,10 +96,17 @@ namespace fc::sync {
     return outcome::success();
   }
 
-  const InterpreterJob::Status &InterpreterJob::cancel() {
+  InterpreterJob::Status InterpreterJob::cancel() {
+    Status status = std::move(status_);
     active_ = false;
+    status_.current_height = status_.target_height = 0;
+    result_.last_interpreted.reset();
+    result_.result = vm::interpreter::InterpreterError::kChainInconsistency;
+    target_head_.reset();
+    next_steps_.clear();
+    step_cursor_ = 0;
     cb_handle_.cancel();
-    return status_;
+    return status;
   }
 
   const InterpreterJob::Status &InterpreterJob::getStatus() const {
@@ -132,72 +141,47 @@ namespace fc::sync {
     if (!active_) {
       return;
     }
-    fillNextSteps();
-    if (next_steps_.empty()) {
+
+    TipsetCPtr tipset = getNextTipset();
+    if (!tipset) {
+      return;
+    }
+
+    assert(result_.result);
+    assert(tipset->getParents() == result_.last_interpreted->key);
+
+    const auto &parent_res = result_.result.value();
+    if (tipset->getParentStateRoot() != parent_res.state_root
+        || tipset->getParentMessageReceipts() != parent_res.message_receipts) {
+      log()->error("detected chain inconsistency at height {}",
+                   tipset->height());
+      // TODO (artem) maybe mark tipset as bad ???
+      std::ignore = kv_store_->remove(common::Buffer(tipset->key.hash()));
+      result_.result = vm::interpreter::InterpreterError::kChainInconsistency;
       scheduleResult();
       return;
     }
 
-    assert(step_cursor_ < next_steps_.size());
-    const auto &tipset = next_steps_[step_cursor_];
-    ++step_cursor_;
-
     status_.current_height = tipset->height();
     log()->info("doing {}/{}", status_.current_height, status_.target_height);
-
     result_.result = interpreter_->interpret(ipld_, tipset);
+
     if (!result_.result) {
-      log()->error("syncing stopped at height {}: {}",
+      log()->error("stopped at height {} with error: {}",
                    status_.current_height,
                    result_.result.error().message());
-      active_ = false;
+      scheduleResult();
+      return;
+    }
+
+    result_.last_interpreted = std::move(tipset);
+    if (status_.current_height == status_.target_height) {
+      log()->info("done");
       scheduleResult();
       return;
     }
 
     scheduleStep();
-  }
-
-  void InterpreterJob::fillNextSteps() {
-    if (step_cursor_ < next_steps_.size()) {
-      return;
-    }
-    next_steps_.clear();
-    step_cursor_ = 0;
-
-    assert(active_);
-    assert(status_.target_height >= status_.current_height);
-
-    size_t diff = status_.target_height - status_.current_height;
-    if (diff == 0) {
-      return;
-    }
-
-    static constexpr size_t kQueryLimit = 100;
-    if (diff > kQueryLimit) {
-      diff = kQueryLimit;
-    }
-
-    auto res =
-        chain_db_.walkForward(status_.current_height + 1,
-                              status_.current_height + diff - 1,
-                              [this](TipsetCPtr tipset) {
-                                if (tipset->height() <= status_.target_height) {
-                                  next_steps_.push_back(tipset);
-                                }
-                                return true;
-                              });
-    if (!res) {
-      log()->error("failed to load {} tipsets starting from height {}",
-                   diff,
-                   status_.current_height + 1);
-      result_.result = res.error();
-      next_steps_.clear();
-    } else {
-      log()->debug("scheduled {} tipsets starting from height {}",
-                   next_steps_.size(),
-                   status_.current_height + 1);
-    }
   }
 
   TipsetCPtr InterpreterJob::getNextTipset() {
@@ -215,7 +199,7 @@ namespace fc::sync {
 
     size_t limit = status_.target_height - status_.current_height;
     if (limit == 0) {
-      // done
+      // done, though should not get here
       scheduleResult();
       return nullptr;
     }
@@ -226,7 +210,7 @@ namespace fc::sync {
       limit = kQueryLimit;
     }
 
-    TipsetCPtr ret;
+    TipsetCPtr next;
 
     auto res =
         chain_db_.walkForward(result_.last_interpreted,
@@ -237,10 +221,10 @@ namespace fc::sync {
                                   log()->error("walks behind height limit");
                                   return false;
                                 }
-                                if (ret) {
+                                if (next) {
                                   next_steps_.push_back(std::move(tipset));
                                 } else {
-                                  ret = std::move(tipset);
+                                  next = std::move(tipset);
                                 }
                                 return true;
                               });
@@ -250,16 +234,15 @@ namespace fc::sync {
                    status_.current_height + 1);
       result_.result = res.error();
       next_steps_.clear();
-      ret.reset();
+      next.reset();
     }
 
-    if (ret) {
+    if (next) {
       log()->debug("scheduled {} tipsets starting from height {}",
                    next_steps_.size() + 1,
                    status_.current_height + 1);
-      return ret;
+      return next;
     }
-
 
     scheduleResult();
     return nullptr;

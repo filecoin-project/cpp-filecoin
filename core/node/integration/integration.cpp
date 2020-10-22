@@ -68,8 +68,9 @@ namespace fc {
                  o.ipld,
                  [](const sync::InterpreterJob::Result &result) {
                    if (result.result) {
-                     log()->info("Head is now {}:{}", result.head->height(),
-                                 result.head->key.toPrettyString());
+                     log()->info("Head is now {}:{}",
+                                 result.last_interpreted->height(),
+                                 result.last_interpreted->key.toPrettyString());
                    }
                  }) {}
 
@@ -256,7 +257,7 @@ namespace fc {
     }
 
     //   OUTCOME_EXCEPT(o.chain_db->setCurrentHead(heads.begin()->first));
-
+/*
     if (checkEnvOption("VM_INTERPRET")) {
       size_t tipsets_interpreted = 0;
       size_t mismatches = 0;
@@ -297,7 +298,7 @@ namespace fc {
 
       return 0;
     }
-
+*/
     if (checkEnvOption("MAKE_CAR")) {
       OUTCOME_EXCEPT(tipset, o.chain_db->getTipsetByHeight(999));
       OUTCOME_EXCEPT(car,
@@ -308,6 +309,7 @@ namespace fc {
       return 0;
     }
 
+    /*
     if (checkEnvOption("WALK_FWD")) {
       size_t tipsets_visited = 0;
       OUTCOME_EXCEPT(
@@ -321,6 +323,7 @@ namespace fc {
       log()->info("visited {} tipsets", tipsets_visited);
       return 0;
     }
+     */
 
     if (checkEnvOption("WALK_BWD")) {
       size_t tipsets_visited = 0;
@@ -378,7 +381,6 @@ namespace fc {
         log()->error("WC error {}", weight_res.error().message());
         o.io_context->stop();
       }
-
 
       auto res = o.peer_manager->start(
           o.chain_db->genesisCID(),
