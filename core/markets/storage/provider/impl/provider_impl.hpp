@@ -9,7 +9,6 @@
 #include <libp2p/host/host.hpp>
 #include <mutex>
 #include "api/miner_api.hpp"
-#include "common/libp2p/cbor_host.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/manager.hpp"
 #include "fsm/fsm.hpp"
@@ -27,7 +26,6 @@
 namespace fc::markets::storage::provider {
   using api::PieceLocation;
   using chain_events::ChainEvents;
-  using common::libp2p::CborHost;
   using common::libp2p::CborStream;
   using fc::storage::filestore::FileStore;
   using fc::storage::filestore::Path;
@@ -361,7 +359,7 @@ namespace fc::markets::storage::provider {
     /** State machine */
     std::shared_ptr<ProviderFSM> fsm_;
 
-    std::shared_ptr<CborHost> host_;
+    std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
     std::shared_ptr<StoredAsk> stored_ask_;
     std::shared_ptr<Api> api_;

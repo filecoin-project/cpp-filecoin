@@ -26,7 +26,7 @@ namespace fc::data_transfer::graphsync {
     GraphSyncManager(std::shared_ptr<Host> host,
                      std::shared_ptr<Graphsync> graphsync);
 
-    void subscribe(const std::shared_ptr<Subscriber> &subscriber) override;
+    void subscribe(std::weak_ptr<Subscriber> subscriber) override;
 
     outcome::result<void> init(
         const std::string &voucher_type,

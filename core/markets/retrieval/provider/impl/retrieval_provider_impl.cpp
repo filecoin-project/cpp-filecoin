@@ -30,7 +30,7 @@ namespace fc::markets::retrieval::provider {
       const ProviderConfig &config,
       std::shared_ptr<Manager> sealer,
       std::shared_ptr<Miner> miner)
-      : host_{std::make_shared<CborHost>(host)},
+      : host_{std::move(host)},
         api_{std::move(api)},
         piece_storage_{std::move(piece_storage)},
         ipld_{std::move(ipld)},
@@ -39,13 +39,14 @@ namespace fc::markets::retrieval::provider {
         miner_{std::move(miner)} {}
 
   void RetrievalProviderImpl::start() {
-    host_->setCborProtocolHandler(
-        kQueryProtocolId,
-        [self{shared_from_this()}](auto stream) { self->handleQuery(stream); });
-    host_->setCborProtocolHandler(kRetrievalProtocolId,
-                                  [self{shared_from_this()}](auto stream) {
-                                    self->handleRetrievalDeal(stream);
-                                  });
+    host_->setProtocolHandler(
+        kQueryProtocolId, [self{shared_from_this()}](auto stream) {
+          self->handleQuery(std::make_shared<CborStream>(stream));
+        });
+    host_->setProtocolHandler(
+        kRetrievalProtocolId, [self{shared_from_this()}](auto stream) {
+          self->handleRetrievalDeal(std::make_shared<CborStream>(stream));
+        });
     logger_->info("has been launched with ID "
                   + peerInfoToPrettyString(host_->getPeerInfo()));
   }

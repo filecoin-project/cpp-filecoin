@@ -6,6 +6,7 @@
 #include "data_transfer/impl/graphsync/graphsync_receiver.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
+#include "common/ptr.hpp"
 #include "data_transfer/impl/graphsync/data_transfer_extension.hpp"
 
 namespace fc::data_transfer {
@@ -142,14 +143,16 @@ namespace fc::data_transfer {
   }
 
   void GraphsyncReceiver::subscribeToEvents(
-      const std::shared_ptr<Subscriber> &subscriber) {
+      std::weak_ptr<Subscriber> subscriber) {
     subscribers_.push_back(subscriber);
   }
 
-  void GraphsyncReceiver::unsubscribe(
-      const std::shared_ptr<Subscriber> &subscriber) {
+  void GraphsyncReceiver::unsubscribe(std::weak_ptr<Subscriber> subscriber) {
     subscribers_.erase(
-        std::remove(subscribers_.begin(), subscribers_.end(), subscriber),
+        std::remove_if(
+            subscribers_.begin(),
+            subscribers_.end(),
+            [&](auto &w) { return w.expired() || weakEq(w, subscriber); }),
         subscribers_.end());
   }
 
@@ -198,9 +201,7 @@ namespace fc::data_transfer {
 
   void GraphsyncReceiver::notifySubscribers(const Event &event,
                                             const ChannelState &channel_state) {
-    for (auto &subscriber : subscribers_) {
-      subscriber->notify(event, channel_state);
-    }
+    weakFor(subscribers_, [&](auto &s) { s->notify(event, channel_state); });
   }
 
 }  // namespace fc::data_transfer

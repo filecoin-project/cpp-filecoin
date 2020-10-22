@@ -70,7 +70,7 @@ namespace fc::markets::storage::client {
       std::shared_ptr<Datastore> datastore,
       std::shared_ptr<Api> api,
       std::shared_ptr<PieceIO> piece_io)
-      : host_{std::make_shared<CborHost>(host)},
+      : host_{std::move(host)},
         context_{std::move(context)},
         api_{std::move(api)},
         piece_io_{std::move(piece_io)},
@@ -119,25 +119,24 @@ namespace fc::markets::storage::client {
     OUTCOME_CB(
         req.signature,
         api_->WalletSign(deal->client_deal_proposal.proposal.client, bytes));
-    host_->host_->newStream(
-        deal->miner,
-        kDealStatusProtocolId,
-        [MOVE(cb), MOVE(req)](auto &&_stream) {
-          OUTCOME_CB1(_stream);
-          auto stream{std::make_shared<common::libp2p::CborStream>(
-              std::move(_stream.value()))};
-          stream->write(req, [MOVE(cb), stream](auto &&_n) {
-            if (!_n) {
-              stream->close();
-            }
-            OUTCOME_CB1(_n);
-            stream->template read<DealStatusResponse>(
-                [MOVE(cb), stream](auto &&_res) {
-                  stream->close();
-                  cb(std::move(_res));
-                });
-          });
-        });
+    host_->newStream(deal->miner,
+                     kDealStatusProtocolId,
+                     [MOVE(cb), MOVE(req)](auto &&_stream) {
+                       OUTCOME_CB1(_stream);
+                       auto stream{std::make_shared<common::libp2p::CborStream>(
+                           std::move(_stream.value()))};
+                       stream->write(req, [MOVE(cb), stream](auto &&_n) {
+                         if (!_n) {
+                           stream->close();
+                         }
+                         OUTCOME_CB1(_n);
+                         stream->template read<DealStatusResponse>(
+                             [MOVE(cb), stream](auto &&_res) {
+                               stream->close();
+                               cb(std::move(_res));
+                             });
+                       });
+                     });
   }
 
   outcome::result<void> StorageMarketClientImpl::init() {
@@ -222,7 +221,7 @@ namespace fc::markets::storage::client {
   void StorageMarketClientImpl::getAsk(
       const StorageProviderInfo &info,
       const SignedAskHandler &signed_ask_handler) {
-    host_->newCborStream(
+    host_->newStream(
         info.peer_info,
         kAskProtocolId,
         [self{shared_from_this()}, info, signed_ask_handler](
@@ -234,7 +233,7 @@ namespace fc::markets::storage::client {
             signed_ask_handler(outcome::failure(stream_res.error()));
             return;
           }
-          auto stream = std::move(stream_res.value());
+          auto stream{std::make_shared<CborStream>(stream_res.value())};
           AskRequest request{.miner = info.address};
           stream->write(request,
                         [self, info, stream, signed_ask_handler](
@@ -302,11 +301,11 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(
         fsm_->begin(client_deal, StorageDealStatus::STORAGE_DEAL_UNKNOWN));
 
-    host_->newCborStream(
+    host_->newStream(
         provider_info.peer_info,
         kDealProtocolId,
         [self{shared_from_this()}, provider_info, client_deal, proposal_cid](
-            outcome::result<std::shared_ptr<CborStream>> stream) {
+            auto &&stream) {
           SELF_FSM_HALT_ON_ERROR(
               stream,
               "Cannot open stream to "
@@ -317,7 +316,8 @@ namespace fc::markets::storage::client {
               + peerInfoToPrettyString(provider_info.peer_info));
 
           std::lock_guard<std::mutex> lock(self->connections_mutex_);
-          self->connections_.emplace(proposal_cid, stream.value());
+          self->connections_.emplace(
+              proposal_cid, std::make_shared<CborStream>(stream.value()));
           SELF_FSM_SEND(client_deal, ClientEvent::ClientEventOpen);
         });
 

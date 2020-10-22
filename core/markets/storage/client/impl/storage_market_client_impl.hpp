@@ -9,7 +9,6 @@
 #include <libp2p/host/host.hpp>
 #include <mutex>
 #include "api/api.hpp"
-#include "common/libp2p/cbor_host.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/manager.hpp"
 #include "fsm/fsm.hpp"
@@ -26,7 +25,6 @@ namespace fc::markets::storage::client {
 
   using api::Api;
   using common::Buffer;
-  using common::libp2p::CborHost;
   using common::libp2p::CborStream;
   using discovery::Discovery;
   using fc::storage::filestore::FileStore;
@@ -281,7 +279,7 @@ namespace fc::markets::storage::client {
     };
 
     /** libp2p host */
-    std::shared_ptr<CborHost> host_;
+    std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
 
     std::shared_ptr<Api> api_;

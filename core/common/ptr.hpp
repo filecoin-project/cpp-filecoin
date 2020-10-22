@@ -16,4 +16,23 @@ namespace fc {
       }
     };
   }
+
+  template <typename T, typename F>
+  void weakFor(std::vector<std::weak_ptr<T>> ws, const F &f) {
+    ws.erase(std::remove_if(ws.begin(),
+                            ws.end(),
+                            [&](auto &w) {
+                              if (auto s{w.lock()}) {
+                                f(s);
+                                return false;
+                              }
+                              return true;
+                            }),
+             ws.end());
+  }
+
+  template <typename T>
+  bool weakEq(const std::weak_ptr<T> &l, const std::weak_ptr<T> &r) {
+    return !l.owner_before(r) && !r.owner_before(l);
+  }
 }  // namespace fc

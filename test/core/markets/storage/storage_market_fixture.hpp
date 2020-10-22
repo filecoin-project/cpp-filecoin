@@ -51,6 +51,7 @@ namespace fc::markets::storage::test {
   using fc::storage::filestore::FileSystemFileStore;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
+  using fc::storage::ipfs::graphsync::GraphsyncImpl;
   using fc::storage::piece::PieceInfo;
   using libp2p::Host;
   using libp2p::crypto::Key;
@@ -203,12 +204,12 @@ namespace fc::markets::storage::test {
     }
 
     void TearDown() override {
+      for (auto &p : graphsync_to_stop) {
+        p->stop();
+      }
+      graphsync_to_stop.clear();
       OUTCOME_EXCEPT(provider->stop());
       OUTCOME_EXCEPT(client->stop());
-
-      provider.reset();
-      sector_blocks->~SectorBlocksMock();
-      chain_events_->~ChainEventsMock();
     }
 
    protected:
@@ -337,13 +338,17 @@ namespace fc::markets::storage::test {
             return wait_msg;
           }};
 
-      api->WalletSign = {[=](const Address &address, const Buffer &buffer)
-                             -> outcome::result<Signature> {
-        auto it = private_keys.find(api->StateAccountKey(address, {}).value());
-        if (it == private_keys.end()) throw "API WalletSign: address not found";
-        return Signature{
-            bls_provider->sign(buffer, it->second.private_key).value()};
-      }};
+      std::weak_ptr<Api> _api{api};
+      api->WalletSign = {
+          [=](const Address &address,
+              const Buffer &buffer) -> outcome::result<Signature> {
+            auto it = private_keys.find(
+                _api.lock()->StateAccountKey(address, {}).value());
+            if (it == private_keys.end())
+              throw "API WalletSign: address not found";
+            return Signature{
+                bls_provider->sign(buffer, it->second.private_key).value()};
+          }};
 
       api->WalletVerify = {
           [](const Address &address,
@@ -366,6 +371,8 @@ namespace fc::markets::storage::test {
                   io, libp2p::protocol::SchedulerConfig{}))};
       graphsync->start(
           fc::storage::ipfs::graphsync::MerkleDagBridge::create(nullptr), cb);
+      graphsync->start(nullptr, cb);
+      graphsync_to_stop.push_back(graphsync);
       return std::make_shared<data_transfer::graphsync::GraphSyncManager>(
           host, graphsync);
     }
@@ -512,6 +519,7 @@ namespace fc::markets::storage::test {
     std::shared_ptr<StoredAsk> stored_ask;
     IpldPtr ipld;
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
+    std::vector<std::shared_ptr<GraphsyncImpl>> graphsync_to_stop;
 
     RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
     std::shared_ptr<PieceIO> piece_io_;

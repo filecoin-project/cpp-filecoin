@@ -14,7 +14,7 @@ namespace fc::data_transfer {
 
   class ManagerMock : public Manager {
    public:
-    MOCK_METHOD1(subscribe, void(const std::shared_ptr<Subscriber> &));
+    MOCK_METHOD1(subscribe, void(std::weak_ptr<Subscriber>));
 
     MOCK_METHOD2(
         init,

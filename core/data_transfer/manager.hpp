@@ -26,7 +26,7 @@ namespace fc::data_transfer {
    public:
     virtual ~Manager() = default;
 
-    virtual void subscribe(const std::shared_ptr<Subscriber> &subscriber) = 0;
+    virtual void subscribe(std::weak_ptr<Subscriber> subscriber) = 0;
 
     virtual outcome::result<void> init(
         const std::string &voucher_type,

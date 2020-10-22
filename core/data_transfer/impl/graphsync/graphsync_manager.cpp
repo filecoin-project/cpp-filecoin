@@ -19,8 +19,7 @@ namespace fc::data_transfer::graphsync {
         network_(std::make_shared<Libp2pDataTransferNetwork>(std::move(host))),
         graphsync_(std::move(graphsync)) {}
 
-  void GraphSyncManager::subscribe(
-      const std::shared_ptr<Subscriber> &subscriber) {
+  void GraphSyncManager::subscribe(std::weak_ptr<Subscriber> subscriber) {
     receiver->subscribeToEvents(subscriber);
   }
 

@@ -71,7 +71,7 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<PieceIO> piece_io,
       std::shared_ptr<FileStore> filestore)
       : registered_proof_{registered_proof},
-        host_{std::make_shared<CborHost>(host)},
+        host_{std::move(host)},
         context_{std::move(context)},
         stored_ask_{std::move(stored_ask)},
         api_{std::move(api)},
@@ -103,16 +103,16 @@ namespace fc::markets::storage::provider {
   outcome::result<void> StorageProviderImpl::init() {
     OUTCOME_TRY(filestore_->createDirectories(kFilestoreTempDir));
 
-    serveAsk(*host_->host_, stored_ask_);
+    serveAsk(*host_, stored_ask_);
 
-    serveDealStatus(*host_->host_, weak_from_this());
+    serveDealStatus(*host_, weak_from_this());
 
-    host_->setCborProtocolHandler(kDealProtocolId,
-                                  [self_wptr{weak_from_this()}](auto stream) {
-                                    if (auto self = self_wptr.lock()) {
-                                      self->handleDealStream(stream);
-                                    }
-                                  });
+    host_->setProtocolHandler(
+        kDealProtocolId, [self_wptr{weak_from_this()}](auto stream) {
+          if (auto self = self_wptr.lock()) {
+            self->handleDealStream(std::make_shared<CborStream>(stream));
+          }
+        });
 
     // init fsm transitions
     std::shared_ptr<HostContext> fsm_context =
@@ -125,7 +125,7 @@ namespace fc::markets::storage::provider {
         std::make_shared<ProviderDataTransferRequestValidator>(state_store);
     OUTCOME_TRY(datatransfer_->init(StorageDataTransferVoucherType, validator));
 
-    datatransfer_->subscribe(shared_from_this());
+    datatransfer_->subscribe(weak_from_this());
 
     return outcome::success();
   }
