@@ -29,6 +29,7 @@ namespace fc::sync {
     using Callback = std::function<void(const Result &result)>;
 
     InterpreterJob(std::shared_ptr<storage::PersistentBufferMap> kv_store,
+                   std::shared_ptr<vm::interpreter::Interpreter> interpreter,
                    libp2p::protocol::Scheduler &scheduler,
                    ChainDb &chain_db,
                    IpfsStoragePtr ipld,

@@ -19,14 +19,13 @@ namespace fc::sync {
 
   InterpreterJob::InterpreterJob(
       std::shared_ptr<storage::PersistentBufferMap> kv_store,
+      std::shared_ptr<vm::interpreter::Interpreter> interpreter,
       libp2p::protocol::Scheduler &scheduler,
       ChainDb &chain_db,
       IpfsStoragePtr ipld,
       Callback callback)
       : kv_store_(kv_store),
-        interpreter_(std::make_shared<vm::interpreter::CachedInterpreter>(
-            std::make_shared<vm::interpreter::InterpreterImpl>(),
-            std::move(kv_store))),
+        interpreter_(std::move(interpreter)),
         scheduler_(scheduler),
         chain_db_(chain_db),
         ipld_(std::move(ipld)),
@@ -72,6 +71,7 @@ namespace fc::sync {
         e = res.error();
       } else if (res.value()) {
         result_.last_interpreted = std::move(tipset);
+        result_.result = std::move(res.value().value());
         return false;
       }
       return (!e);
@@ -83,6 +83,9 @@ namespace fc::sync {
 
     if (!result_.last_interpreted) {
       // at least genesis tipset must be interpreted
+      log()->error("cannot find highest interpreted tipset down from {}:{}",
+                   target_head_->height(),
+                   target_head_->key.toPrettyString());
       cancel();
       return vm::interpreter::InterpreterError::kChainInconsistency;
     }

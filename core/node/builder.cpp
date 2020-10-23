@@ -173,14 +173,10 @@ namespace fc::node {
     log()->debug("Creating chain DB...");
 
     // o.index_db_backend = std::move(index_db_backend);
-    o.index_db = std::make_shared<sync::IndexDb>(
-        std::move(index_db_backend));
+    o.index_db = std::make_shared<sync::IndexDb>(std::move(index_db_backend));
     o.chain_db = std::make_shared<sync::ChainDb>();
     OUTCOME_TRY(o.chain_db->init(
-        o.ipld,
-        o.index_db,
-        config.genesis_cid,
-        creating_new_db));
+        o.ipld, o.index_db, config.genesis_cid, creating_new_db));
 
     if (!config.genesis_cid) {
       config.genesis_cid = o.chain_db->genesisCID();
@@ -193,11 +189,14 @@ namespace fc::node {
     log()->debug("Creating host...");
 
     // config.gossip_config.protocol_version = "/floodsub/1.0.0";
-    //config.gossip_config.D_max = config.gossip_config.D_min = 0;
+    // config.gossip_config.D_max = config.gossip_config.D_min = 0;
 
     auto injector = libp2p::injector::makeGossipInjector<
         boost::di::extension::shared_config>(
-//        boost::di::bind<libp2p::security::SecurityAdaptor *[]>().template to<libp2p::security::TlsAdaptor>()[boost::di::override],  // NOLINT
+        //        boost::di::bind<libp2p::security::SecurityAdaptor
+        //        *[]>().template
+        //        to<libp2p::security::TlsAdaptor>()[boost::di::override],  //
+        //        NOLINT
 
         boost::di::bind<clock::UTCClock>.template to<clock::UTCClockImpl>(),
         libp2p::injector::useGossipConfig(config.gossip_config));
@@ -254,7 +253,8 @@ namespace fc::node {
     //        bls_provider, secp_provider);
     //
 
-    o.vm_interpreter = std::make_shared<vm::interpreter::InterpreterImpl>();
+    o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
+        std::make_shared<vm::interpreter::InterpreterImpl>(), o.kv_store);
 
     //    o.block_validator =
     //        std::make_shared<blockchain::block_validator::BlockValidatorImpl>(

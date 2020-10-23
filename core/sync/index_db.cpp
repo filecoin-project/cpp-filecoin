@@ -116,11 +116,13 @@ namespace fc::sync {
   outcome::result<void> IndexDb::walkForward(BranchId branch,
                                              Height from_height,
                                              Height to_height,
+                                             size_t limit,
                                              const WalkCallback &cb) {
-    if (to_height < from_height) {
+    if (to_height < from_height || limit == 0) {
       return outcome::success();
     }
-    auto limit = to_height - from_height + 1;
+    auto diff = to_height - from_height + 1;
+    limit = std::min(limit, diff);
     std::error_code e;
     auto res = backend_->walk(
         branch,

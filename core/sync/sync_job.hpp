@@ -76,6 +76,7 @@ namespace fc::sync {
            std::shared_ptr<TipsetLoader> tipset_loader,
            std::shared_ptr<ChainDb> chain_db,
            std::shared_ptr<storage::PersistentBufferMap> kv_store,
+           std::shared_ptr<vm::interpreter::Interpreter> interpreter,
            IpfsStoragePtr ipld,
            Callback callback);
 

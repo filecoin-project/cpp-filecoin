@@ -65,6 +65,7 @@ namespace fc {
                  o.tipset_loader,
                  o.chain_db,
                  o.kv_store,
+                 o.vm_interpreter,
                  o.ipld,
                  [](const sync::InterpreterJob::Result &result) {
                    if (result.result) {
@@ -208,7 +209,7 @@ namespace fc {
     common::createLogger("SECCONN")->set_level(spdlog::level::info);
     common::createLogger("SECIO")->set_level(spdlog::level::info);
     common::createLogger("tls")->set_level(spdlog::level::info);
-    common::createLogger("gossip")->set_level(spdlog::level::trace);
+    common::createLogger("gossip")->set_level(spdlog::level::info);
 
     auto res = node::createNodeObjects(config);
 

@@ -213,7 +213,7 @@ namespace fc::sync {
     bool proceed = true;
     for (auto branch_id : route) {
       OUTCOME_TRY(index_db_->walkForward(
-          branch_id, from_height, to_height,
+          branch_id, from_height, to_height, limit,
           [&, this](TipsetInfoCPtr info) {
             if (!e) {
               auto res = getTipsetByKey(info->key);
@@ -246,7 +246,7 @@ namespace fc::sync {
     for (;;) {
       OUTCOME_TRY(tipset, getTipsetByHash(h));
       auto height = tipset->height();
-      if (height <= to_height) {
+      if (height < to_height) {
         break;
       }
       if (height > 0) {

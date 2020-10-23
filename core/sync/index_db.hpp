@@ -47,6 +47,7 @@ namespace fc::sync {
     outcome::result<void> walkForward(BranchId branch,
                                       Height from_height,
                                       Height to_height,
+                                      size_t limit,
                                       const WalkCallback &cb);
 
     outcome::result<void> walkBackward(const TipsetHash &from,

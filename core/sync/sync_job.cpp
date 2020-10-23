@@ -124,6 +124,7 @@ namespace fc::sync {
                  std::shared_ptr<TipsetLoader> tipset_loader,
                  std::shared_ptr<ChainDb> chain_db,
                  std::shared_ptr<storage::PersistentBufferMap> kv_store,
+                 std::shared_ptr<vm::interpreter::Interpreter> interpreter,
                  IpfsStoragePtr ipld,
                  Callback callback)
       : scheduler_(std::move(scheduler)),
@@ -132,6 +133,7 @@ namespace fc::sync {
         callback_(std::move(callback)),
         interpreter_job_(std::make_shared<InterpreterJob>(
             std::move(kv_store),
+            std::move(interpreter),
             *scheduler_,
             *chain_db_,
             std::move(ipld),
