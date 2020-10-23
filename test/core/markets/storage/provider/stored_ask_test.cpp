@@ -10,6 +10,7 @@
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/literals.hpp"
 
 namespace fc::markets::storage::provider {
 
@@ -35,18 +36,44 @@ namespace fc::markets::storage::provider {
 
     ChainEpoch epoch = 100;
     std::shared_ptr<Api> api = std::make_shared<Api>();
-    std::shared_ptr<Tipset> chain_head = std::make_shared<Tipset>();
+    std::shared_ptr<const Tipset> chain_head;
     Address actor_address = Address::makeFromId(1);
     Address bls_address;
     KeyPair bls_keypair;
     StoredAsk stored_ask{datastore, api, actor_address};
 
-    void SetUp() override {
-      // TODO generate valid chain_head with proper height
-      //chain_head.height = epoch;
+    static fc::primitives::block::BlockHeader makeBlock(uint64_t epoch) {
+      auto bls1 =
+          "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
 
-      // BlockHeader { .... height = epoch, ... }
-      // chain_head = Tipset::create( { header} ).value();
+      return fc::primitives::block::BlockHeader {
+          fc::primitives::address::Address::makeFromId(1),
+          fc::primitives::block::Ticket{ fc::Buffer{bls1} },
+          {},
+          {fc::primitives::block::BeaconEntry{
+              4,
+              "F00D"_unhex,
+          }},
+          {fc::primitives::sector::PoStProof{
+              fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+              "F00D"_unhex,
+          }},
+          {"010001020002"_cid},
+          fc::primitives::BigInt(3),
+          epoch,
+          "010001020005"_cid,
+          "010001020006"_cid,
+          "010001020007"_cid,
+          boost::none,
+          8,
+          boost::none,
+          9,
+          {},
+      };
+    }
+
+    void SetUp() override {
+      chain_head = Tipset::create({ makeBlock(epoch) }).value();
 
       api->ChainHead = {[=]() { return chain_head; }};
 
