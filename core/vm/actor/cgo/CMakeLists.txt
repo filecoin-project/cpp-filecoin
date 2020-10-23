@@ -24,6 +24,7 @@ add_library(cgo_actors
     actors.cpp
     )
 target_link_libraries(cgo_actors
+    dvm
     go_actors
     runtime
     zerocomm

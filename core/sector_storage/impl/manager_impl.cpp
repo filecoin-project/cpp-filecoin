@@ -180,7 +180,7 @@ namespace fc::sector_storage {
     return 0;
   }
 
-  outcome::result<void> ManagerImpl::ReadPiece(proofs::PieceData output,
+  outcome::result<void> ManagerImpl::readPiece(proofs::PieceData output,
                                                const SectorId &sector,
                                                UnpaddedByteIndex offset,
                                                const UnpaddedPieceSize &size,

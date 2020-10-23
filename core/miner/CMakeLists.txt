@@ -6,7 +6,7 @@
 add_subdirectory(storage_fsm)
 
 add_library(miner
-    miner.cpp
+        impl/miner_impl.cpp
     )
 target_link_libraries(miner
     api

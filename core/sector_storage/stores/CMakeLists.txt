@@ -38,4 +38,5 @@ target_link_libraries(store
         sector_index
         tarutil
         storage_error
+        p2p::asio_scheduler
         )

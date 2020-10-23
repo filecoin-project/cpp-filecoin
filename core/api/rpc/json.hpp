@@ -13,6 +13,7 @@
 #include "api/rpc/json_errors.hpp"
 #include "api/rpc/rpc.hpp"
 #include "common/enum.hpp"
+#include "common/libp2p/peer/cbor_peer_info.hpp"
 #include "payment_channel_manager/payment_channel_manager.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
@@ -23,6 +24,13 @@
 #define ENCODE(type) Value encode(const type &v)
 
 #define DECODE(type) static void decode(type &v, const Value &j)
+
+namespace fc::codec::cbor {
+  template <>
+  inline fc::api::QueryOffer kDefaultT<fc::api::QueryOffer>() {
+    return {{}, {}, {}, {}, {}, {}, {}, kDefaultT<PeerId>()};
+  }
+}  // namespace fc::codec::cbor
 
 namespace fc::api {
   using codec::cbor::CborDecodeStream;
@@ -37,6 +45,8 @@ namespace fc::api {
   using primitives::block::ElectionProof;
   using primitives::block::Ticket;
   using primitives::cid::getCidOfCbor;
+  using primitives::piece::PaddedPieceSize;
+  using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::PoStProof;
   using primitives::tipset::HeadChangeType;
   using rapidjson::Document;
@@ -85,6 +95,11 @@ namespace fc::api {
       Set(j, key, encode(v));
     }
 
+    template <typename T>
+    static void Get(const Value &j, const char *key, T &v) {
+      decode(v, Get(j, key));
+    }
+
     static std::vector<uint8_t> decodeBase64(const Value &j) {
       if (j.IsNull()) {
         return {};
@@ -98,6 +113,10 @@ namespace fc::api {
       return document;
     }
 
+    DECODE(Document) {
+      v = AsDocument(j);
+    }
+
     ENCODE(Request) {
       Value j{rapidjson::kObjectType};
       Set(j, "jsonrpc", "2.0");
@@ -108,7 +127,11 @@ namespace fc::api {
     }
 
     DECODE(Request) {
-      decode(v.id, Get(j, "id"));
+      if (j.HasMember("id")) {
+        Get(j, "id", v.id);
+      } else {
+        v.id = {};
+      }
       v.method = AsString(Get(j, "method"));
       v.params = AsDocument(Get(j, "params"));
     }
@@ -152,19 +175,48 @@ namespace fc::api {
       return Value{v};
     }
 
+    ENCODE(PaddedPieceSize) {
+      return encode((uint64_t)v);
+    }
+
+    DECODE(PaddedPieceSize) {
+      v = decode<uint64_t>(j);
+    }
+
+    ENCODE(UnpaddedPieceSize) {
+      return encode((uint64_t)v);
+    }
+
+    DECODE(UnpaddedPieceSize) {
+      v = decode<uint64_t>(j);
+    }
+
+    ENCODE(RegisteredProof) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(RegisteredProof) {
+      decodeEnum(v, j);
+    }
+
     ENCODE(None) {
       return {};
     }
+
+    DECODE(None) {}
 
     ENCODE(int64_t) {
       return Value{v};
     }
 
     DECODE(int64_t) {
-      if (!j.IsInt64()) {
+      if (j.IsInt64()) {
+        v = j.GetInt64();
+      } else if (j.IsString()) {
+        v = strtoll(j.GetString(), nullptr, 10);
+      } else {
         outcome::raise(JsonError::kWrongType);
       }
-      v = j.GetInt64();
     }
 
     ENCODE(uint64_t) {
@@ -172,10 +224,27 @@ namespace fc::api {
     }
 
     DECODE(uint64_t) {
-      if (!j.IsUint64()) {
+      if (j.IsUint64()) {
+        v = j.GetUint64();
+      } else if (j.IsString()) {
+        v = strtoull(j.GetString(), nullptr, 10);
+      } else {
         outcome::raise(JsonError::kWrongType);
       }
-      v = j.GetUint64();
+    }
+
+    ENCODE(double) {
+      return Value{v};
+    }
+
+    DECODE(double) {
+      if (j.IsDouble()) {
+        v = j.GetDouble();
+      } else if (j.IsString()) {
+        v = strtod(j.GetString(), nullptr);
+      } else {
+        outcome::raise(JsonError::kWrongType);
+      }
     }
 
     DECODE(bool) {
@@ -320,15 +389,13 @@ namespace fc::api {
 
     ENCODE(PoStProof) {
       Value j{rapidjson::kObjectType};
-      Set(j, "PoStProof", common::to_int(v.registered_proof));
+      Set(j, "PoStProof", v.registered_proof);
       Set(j, "ProofBytes", gsl::make_span(v.proof));
       return j;
     }
 
     DECODE(PoStProof) {
-      std::underlying_type_t<RegisteredProof> registered_proof;
-      decode(registered_proof, Get(j, "PoStProof"));
-      v.registered_proof = RegisteredProof{registered_proof};
+      Get(j, "PoStProof", v.registered_proof);
       decode(v.proof, Get(j, "ProofBytes"));
     }
 
@@ -352,10 +419,27 @@ namespace fc::api {
       }
       Set(j, "PeerId", peer_id);
       Set(j, "Multiaddrs", v.multiaddrs);
-      Set(j, "SealProofType", common::to_int(v.seal_proof_type));
+      Set(j, "SealProofType", v.seal_proof_type);
       Set(j, "SectorSize", v.sector_size);
       Set(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
       return j;
+    }
+
+    DECODE(MinerInfo) {
+      Get(j, "Owner", v.owner);
+      Get(j, "Worker", v.worker);
+      Get(j, "ControlAddresses", v.control);
+      boost::optional<PeerId> peer_id;
+      Get(j, "PeerId", peer_id);
+      if (peer_id) {
+        v.peer_id = Buffer{peer_id->toVector()};
+      } else {
+        v.peer_id.clear();
+      }
+      Get(j, "Multiaddrs", v.multiaddrs);
+      Get(j, "SealProofType", v.seal_proof_type);
+      Get(j, "SectorSize", v.sector_size);
+      Get(j, "WindowPoStPartitionSectors", v.window_post_partition_sectors);
     }
 
     ENCODE(WorkerKeyChange) {
@@ -377,6 +461,16 @@ namespace fc::api {
       return j;
     }
 
+    DECODE(DeadlineInfo) {
+      Get(j, "CurrentEpoch", v.current_epoch);
+      Get(j, "PeriodStart", v.period_start);
+      Get(j, "Index", v.index);
+      Get(j, "Open", v.open);
+      Get(j, "Close", v.close);
+      Get(j, "Challenge", v.challenge);
+      Get(j, "FaultCutoff", v.fault_cutoff);
+    }
+
     DECODE(DomainSeparationTag) {
       decodeEnum(v, j);
     }
@@ -385,6 +479,10 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Due", v.due);
       return j;
+    }
+
+    DECODE(Deadlines) {
+      Get(j, "Due", v.due);
     }
 
     ENCODE(BlockHeader) {
@@ -425,6 +523,20 @@ namespace fc::api {
       decode(v.block_sig, Get(j, "BlockSig"));
       decode(v.fork_signaling, Get(j, "ForkSignaling"));
       decode(v.parent_base_fee, Get(j, "ParentBaseFee"));
+    }
+
+    ENCODE(BlockTemplate) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Miner", v.miner);
+      Set(j, "Parents", v.parents);
+      Set(j, "Ticket", v.ticket);
+      Set(j, "Eproof", v.election_proof);
+      Set(j, "BeaconValues", v.beacon_entries);
+      Set(j, "Messages", v.messages);
+      Set(j, "Epoch", v.height);
+      Set(j, "Timestamp", v.timestamp);
+      Set(j, "WinningPoStProof", v.win_post_proof);
+      return j;
     }
 
     DECODE(BlockTemplate) {
@@ -555,6 +667,11 @@ namespace fc::api {
       return j;
     }
 
+    DECODE(MarketBalance) {
+      Get(j, "Escrow", v.escrow);
+      Get(j, "Locked", v.locked);
+    }
+
     ENCODE(StorageParticipantBalance) {
       Value j{rapidjson::kObjectType};
       Set(j, "Locked", v.locked);
@@ -587,7 +704,7 @@ namespace fc::api {
       Set(j, "GasLimit", v.gas_limit);
       Set(j, "GasFeeCap", v.gas_fee_cap);
       Set(j, "GasPremium", v.gas_premium);
-      Set(j, "Method", v.method.method_number);
+      Set(j, "Method", v.method);
       Set(j, "Params", gsl::make_span(v.params));
       return j;
     }
@@ -601,7 +718,7 @@ namespace fc::api {
       decode(v.gas_limit, Get(j, "GasLimit"));
       decode(v.gas_fee_cap, Get(j, "GasFeeCap"));
       decode(v.gas_premium, Get(j, "GasPremium"));
-      decode(v.method.method_number, Get(j, "Method"));
+      decode(v.method, Get(j, "Method"));
       decode(v.params, Get(j, "Params"));
     }
 
@@ -668,10 +785,16 @@ namespace fc::api {
 
     ENCODE(SectorInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "RegisteredProof", v.registered_proof);
       Set(j, "SectorNumber", v.sector);
       Set(j, "SealedCID", v.sealed_cid);
       return j;
+    }
+
+    DECODE(SectorInfo) {
+      Get(j, "RegisteredProof", v.registered_proof);
+      Get(j, "SectorNumber", v.sector);
+      Get(j, "SealedCID", v.sealed_cid);
     }
 
     ENCODE(PowerPair) {
@@ -679,6 +802,11 @@ namespace fc::api {
       Set(j, "Raw", v.raw);
       Set(j, "QA", v.qa);
       return j;
+    }
+
+    DECODE(PowerPair) {
+      Get(j, "Raw", v.raw);
+      Get(j, "QA", v.qa);
     }
 
     ENCODE(Partition) {
@@ -695,9 +823,21 @@ namespace fc::api {
       return j;
     }
 
+    DECODE(Partition) {
+      Get(j, "Sectors", v.sectors);
+      Get(j, "Faults", v.faults);
+      Get(j, "Recoveries", v.recoveries);
+      Get(j, "Terminated", v.terminated);
+      Get(j, "ExpirationsEpochs", v.expirations_epochs);
+      Get(j, "EarlyTerminated", v.early_terminated);
+      Get(j, "LivePower", v.live_power);
+      Get(j, "FaultyPower", v.faulty_power);
+      Get(j, "RecoveringPower", v.recovering_power);
+    }
+
     ENCODE(SectorPreCommitInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "RegisteredProof", common::to_int(v.registered_proof));
+      Set(j, "SealProof", v.registered_proof);
       Set(j, "SectorNumber", v.sector);
       Set(j, "SealedCID", v.sealed_cid);
       Set(j, "SealRandEpoch", v.seal_epoch);
@@ -707,7 +847,7 @@ namespace fc::api {
     }
 
     DECODE(SectorPreCommitInfo) {
-      decodeEnum(v.registered_proof, Get(j, "RegisteredProof"));
+      Get(j, "SealProof", v.registered_proof);
       decode(v.sector, Get(j, "SectorNumber"));
       decode(v.sealed_cid, Get(j, "SealedCID"));
       decode(v.seal_epoch, Get(j, "SealRandEpoch"));
@@ -736,7 +876,7 @@ namespace fc::api {
     ENCODE(SectorOnChainInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "SectorNumber", v.sector);
-      Set(j, "SealProof", common::to_int(v.seal_proof));
+      Set(j, "SealProof", v.seal_proof);
       Set(j, "SealedCID", v.sealed_cid);
       Set(j, "DealIDs", v.deals);
       Set(j, "Activation", v.activation_epoch);
@@ -751,7 +891,7 @@ namespace fc::api {
 
     DECODE(SectorOnChainInfo) {
       decode(v.sector, Get(j, "SectorNumber"));
-      decodeEnum(v.seal_proof, Get(j, "SealProof"));
+      Get(j, "SealProof", v.seal_proof);
       decode(v.sealed_cid, Get(j, "SealedCID"));
       decode(v.deals, Get(j, "DealIDs"));
       decode(v.activation_epoch, Get(j, "Activation"));
@@ -778,14 +918,14 @@ namespace fc::api {
     ENCODE(ModularVerificationParameter) {
       Value j{rapidjson::kObjectType};
       Set(j, "Actor", v.actor);
-      Set(j, "Method", v.method.method_number);
+      Set(j, "Method", v.method);
       Set(j, "Data", gsl::make_span(v.data));
       return j;
     }
 
     DECODE(ModularVerificationParameter) {
       decode(v.actor, Get(j, "Actor"));
-      decode(v.method.method_number, Get(j, "Method"));
+      decode(v.method, Get(j, "Method"));
       decode(v.data, Get(j, "Data"));
     }
 
@@ -862,11 +1002,21 @@ namespace fc::api {
       return encode(v.getStringAddress());
     }
 
+    DECODE(libp2p::multi::Multiaddress) {
+      OUTCOME_EXCEPT(_v, libp2p::multi::Multiaddress::create(AsString(j)));
+      v = std::move(_v);
+    }
+
     ENCODE(PeerInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "ID", v.id.toBase58());
+      Set(j, "ID", v.id);
       Set(j, "Addrs", v.addresses);
       return j;
+    }
+
+    DECODE(PeerInfo) {
+      Get(j, "ID", v.id);
+      Get(j, "Addrs", v.addresses);
     }
 
     ENCODE(StorageAsk) {
@@ -878,6 +1028,15 @@ namespace fc::api {
       Set(j, "Expiry", v.expiry);
       Set(j, "SeqNo", v.seq_no);
       return j;
+    }
+
+    DECODE(StorageAsk) {
+      Get(j, "Price", v.price);
+      Get(j, "MinPieceSize", v.min_piece_size);
+      Get(j, "Miner", v.miner);
+      Get(j, "Timestamp", v.timestamp);
+      Get(j, "Expiry", v.expiry);
+      Get(j, "SeqNo", v.seq_no);
     }
 
     ENCODE(AddChannelInfo) {
@@ -899,11 +1058,36 @@ namespace fc::api {
       return j;
     }
 
+    DECODE(SignedStorageAsk) {
+      Get(j, "Ask", v.ask);
+      Get(j, "Signature", v.signature);
+    }
+
+    ENCODE(DataRef) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "TransferType", v.transfer_type);
+      Set(j, "Root", v.root);
+      Set(j, "PieceCid", v.piece_cid);
+      Set(j, "PieceSize", v.piece_size);
+      return j;
+    }
+
     DECODE(DataRef) {
       decode(v.transfer_type, Get(j, "TransferType"));
       decode(v.root, Get(j, "Root"));
       decode(v.piece_cid, Get(j, "PieceCid"));
       v.piece_size = decode<uint64_t>(Get(j, "PieceSize"));
+    }
+
+    ENCODE(StartDealParams) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Data", v.data);
+      Set(j, "Wallet", v.wallet);
+      Set(j, "Miner", v.miner);
+      Set(j, "EpochPrice", v.epoch_price);
+      Set(j, "MinBlocksDuration", v.min_blocks_duration);
+      Set(j, "DealStartEpoch", v.deal_start_epoch);
+      return j;
     }
 
     DECODE(StartDealParams) {
@@ -1043,6 +1227,12 @@ namespace fc::api {
       return j;
     }
 
+    DECODE(VersionResult) {
+      Get(j, "Version", v.version);
+      Get(j, "APIVersion", v.api_version);
+      Get(j, "BlockDelay", v.block_delay);
+    }
+
     ENCODE(MiningBaseInfo) {
       Value j{rapidjson::kObjectType};
       Set(j, "MinerPower", v.miner_power);
@@ -1056,10 +1246,21 @@ namespace fc::api {
       return j;
     }
 
+    DECODE(MiningBaseInfo) {
+      Get(j, "MinerPower", v.miner_power);
+      Get(j, "NetworkPower", v.network_power);
+      Get(j, "Sectors", v.sectors);
+      Get(j, "WorkerKey", v.worker);
+      Get(j, "SectorSize", v.sector_size);
+      Get(j, "PrevBeaconEntry", v.prev_beacon);
+      Get(j, "BeaconEntries", v.beacons);
+      Get(j, "HasMinPower", v.has_min_power);
+    }
+
     ENCODE(DealProposal) {
       Value j{rapidjson::kObjectType};
       Set(j, "PieceCID", v.piece_cid);
-      Set(j, "PieceSize", static_cast<uint64_t>(v.piece_size));
+      Set(j, "PieceSize", v.piece_size);
       Set(j, "Client", v.client);
       Set(j, "Provider", v.provider);
       Set(j, "StartEpoch", v.start_epoch);
@@ -1147,9 +1348,40 @@ namespace fc::api {
       return j;
     }
 
+    DECODE(QueryOffer) {
+      Get(j, "Err", v.error);
+      Get(j, "Root", v.root);
+      Get(j, "Size", v.size);
+      Get(j, "MinPrice", v.min_price);
+      Get(j, "PaymentInterval", v.payment_interval);
+      Get(j, "PaymentIntervalIncrease", v.payment_interval_increase);
+      Get(j, "Miner", v.miner);
+      Get(j, "MinerPeerID", v.peer);
+    }
+
+    ENCODE(FileRef) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Path", v.path);
+      Set(j, "IsCAR", v.is_car);
+      return j;
+    }
+
     DECODE(FileRef) {
       decode(v.path, Get(j, "Path"));
       decode(v.is_car, Get(j, "IsCAR"));
+    }
+
+    ENCODE(RetrievalOrder) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "Root", v.root);
+      Set(j, "Size", v.size);
+      Set(j, "Total", v.total);
+      Set(j, "PaymentInterval", v.interval);
+      Set(j, "PaymentIntervalIncrease", v.interval_inc);
+      Set(j, "Client", v.client);
+      Set(j, "Miner", v.miner);
+      Set(j, "MinerPeerID", v.peer);
+      return j;
     }
 
     DECODE(RetrievalOrder) {
@@ -1170,6 +1402,13 @@ namespace fc::api {
       Set(j, "FilePath", v.path);
       Set(j, "Size", v.size);
       return j;
+    }
+
+    DECODE(Import) {
+      Get(j, "Status", v.status);
+      Get(j, "Key", v.key);
+      Get(j, "FilePath", v.path);
+      Get(j, "Size", v.size);
     }
 
     ENCODE(LocalStorageMeta) {
@@ -1205,6 +1444,11 @@ namespace fc::api {
     template <typename T>
     ENCODE(adt::Array<T>) {
       return encode(v.amt.cid());
+    }
+
+    template <typename T>
+    DECODE(adt::Array<T>) {
+      v.amt = {nullptr, decode<CID>(j)};
     }
 
     template <typename T>
@@ -1311,10 +1555,14 @@ namespace fc::api {
 
   template <typename T>
   outcome::result<T> decode(const Value &j) {
-    try {
-      return Codec::decode<T>(j);
-    } catch (std::system_error &e) {
-      return outcome::failure(e.code());
+    if constexpr (std::is_void_v<T>) {
+      return outcome::success();
+    } else {
+      try {
+        return Codec::decode<T>(j);
+      } catch (std::system_error &e) {
+        return outcome::failure(e.code());
+      }
     }
   }
 }  // namespace fc::api

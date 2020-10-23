@@ -5,18 +5,31 @@
 
 #include "codec/json/json.hpp"
 
+<<<<<<< HEAD
+=======
+#include <rapidjson/reader.h>
+>>>>>>> master
 #include <rapidjson/writer.h>
 #include <cppcodec/base64_rfc4648.hpp>
 
 #include "common/span.hpp"
 
 namespace fc::codec::json {
+<<<<<<< HEAD
+=======
+  using rapidjson::ParseFlag;
+>>>>>>> master
   using rapidjson::StringBuffer;
   using base64 = cppcodec::base64_rfc4648;
 
   Outcome<Document> parse(std::string_view input) {
     Document doc;
+<<<<<<< HEAD
     doc.Parse(input.data(), input.size());
+=======
+    doc.Parse<ParseFlag::kParseNumbersAsStringsFlag>(input.data(),
+                                                     input.size());
+>>>>>>> master
     if (doc.HasParseError()) {
       return {};
     }
@@ -71,15 +84,32 @@ namespace fc::codec::json {
   }
 
   Outcome<int64_t> jInt(JIn j) {
+<<<<<<< HEAD
     if (j->IsInt64()) {
       return j->GetInt64();
+=======
+    if (j->IsString()) {
+      return strtoll(j->GetString(), nullptr, 10);
+>>>>>>> master
     }
     return {};
   }
 
   Outcome<uint64_t> jUint(JIn j) {
+<<<<<<< HEAD
     if (j->IsUint64()) {
       return j->GetUint64();
+=======
+    if (j->IsString()) {
+      return strtoull(j->GetString(), nullptr, 10);
+    }
+    return {};
+  }
+
+  Outcome<BigInt> jBigInt(JIn j) {
+    if (j->IsString()) {
+      return BigInt{j->GetString()};
+>>>>>>> master
     }
     return {};
   }

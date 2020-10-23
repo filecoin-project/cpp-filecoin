@@ -10,5 +10,6 @@ target_link_libraries(state_tree
     actor
     address_key
     Boost::boost
+    dvm
     hamt
     )

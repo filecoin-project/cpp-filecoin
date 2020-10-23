@@ -88,14 +88,13 @@ namespace fc::markets::storage::chain_events {
           return Chan{std::move(channel)};
         }};
 
-    auto res = events->onDealSectorCommitted(provider, deal_id);
+    bool is_called = false;
+    events->onDealSectorCommitted(
+        provider, deal_id, [&]() { is_called = true; });
 
     EXPECT_OUTCOME_TRUE_1(events->init());
 
-    auto future = res->get_future();
-    EXPECT_EQ(std::future_status::ready,
-              future.wait_for(std::chrono::seconds(0)));
-    EXPECT_OUTCOME_TRUE_1(future.get());
+    EXPECT_TRUE(is_called);
   }
 
   /**
@@ -110,10 +109,10 @@ namespace fc::markets::storage::chain_events {
     }};
 
     EXPECT_OUTCOME_TRUE_1(events->init());
-    auto res = events->onDealSectorCommitted(provider, deal_id);
-    auto future = res->get_future();
-    EXPECT_EQ(std::future_status::timeout,
-              future.wait_for(std::chrono::seconds(0)));
+    bool is_called = false;
+    events->onDealSectorCommitted(
+        provider, deal_id, [&]() { is_called = true; });
+    EXPECT_FALSE(is_called);
   }
 
 }  // namespace fc::markets::storage::chain_events

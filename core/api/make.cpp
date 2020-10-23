@@ -119,6 +119,45 @@ namespace fc::api {
     }
   };
 
+  outcome::result<std::vector<SectorInfo>> getSectorsForWinningPoSt(
+      const Address &miner,
+      MinerActorState &state,
+      const Randomness &post_rand) {
+    std::vector<SectorInfo> sectors;
+    RleBitset sectors_bitset;
+    OUTCOME_TRY(deadlines, state.deadlines.get());
+    for (auto &_deadline : deadlines.due) {
+      OUTCOME_TRY(deadline, _deadline.get());
+      OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
+        for (auto sector : part.sectors) {
+          if (!part.faults.has(sector)) {
+            sectors_bitset.insert(sector);
+          }
+        }
+        return outcome::success();
+      }));
+    }
+    if (!sectors_bitset.empty()) {
+      OUTCOME_TRY(minfo, state.info.get());
+      OUTCOME_TRY(
+          seal_type,
+          primitives::sector::sealProofTypeFromSectorSize(minfo.sector_size));
+      OUTCOME_TRY(win_type,
+                  primitives::sector::getRegisteredWinningPoStProof(seal_type));
+      OUTCOME_TRY(
+          indices,
+          proofs::Proofs::generateWinningPoStSectorChallenge(
+              win_type, miner.getId(), post_rand, sectors_bitset.size()));
+      std::vector<uint64_t> sector_ids{sectors_bitset.begin(),
+                                       sectors_bitset.end()};
+      for (auto &i : indices) {
+        OUTCOME_TRY(sector, state.sectors.get(sector_ids[i]));
+        sectors.push_back({win_type, sector.sector, sector.sealed_cid});
+      }
+    }
+    return sectors;
+  }
+
   Api makeImpl(std::shared_ptr<ChainStore> chain_store,
                std::shared_ptr<WeightCalculator> weight_calculator,
                std::shared_ptr<Ipld> ipld,
@@ -156,45 +195,6 @@ namespace fc::api {
       OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
       return TipsetContext{
           std::move(tipset), {ipld, std::move(result.state_root)}, {}};
-    };
-    auto getSectorsForWinningPoSt =
-        [=](auto &miner,
-            auto &state,
-            auto &post_rand) -> outcome::result<std::vector<SectorInfo>> {
-      std::vector<SectorInfo> sectors;
-      RleBitset sectors_bitset;
-      OUTCOME_TRY(deadlines, state.deadlines.get());
-      for (auto &_deadline : deadlines.due) {
-        OUTCOME_TRY(deadline, _deadline.get());
-        OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
-          for (auto sector : part.sectors) {
-            if (!part.faults.has(sector)) {
-              sectors_bitset.insert(sector);
-            }
-          }
-          return outcome::success();
-        }));
-      }
-      if (!sectors_bitset.empty()) {
-        OUTCOME_TRY(minfo, state.info.get());
-        OUTCOME_TRY(
-            seal_type,
-            primitives::sector::sealProofTypeFromSectorSize(minfo.sector_size));
-        OUTCOME_TRY(
-            win_type,
-            primitives::sector::getRegisteredWinningPoStProof(seal_type));
-        OUTCOME_TRY(
-            indices,
-            proofs::Proofs::generateWinningPoStSectorChallenge(
-                win_type, miner.getId(), post_rand, sectors_bitset.size()));
-        std::vector<uint64_t> sector_ids{sectors_bitset.begin(),
-                                         sectors_bitset.end()};
-        for (auto &i : indices) {
-          OUTCOME_TRY(sector, state.sectors.get(sector_ids[i]));
-          sectors.push_back({win_type, sector.sector, sector.sealed_cid});
-        }
-      }
-      return sectors;
     };
     return {
         .AuthNew = {[](auto) {
@@ -420,14 +420,21 @@ namespace fc::api {
                                  -> outcome::result<SignedMessage> {
           OUTCOME_TRY(context, tipsetContext({}));
           if (message.from.isId()) {
-            OUTCOME_TRYA(message.from, context.accountKey(message.from));
+            OUTCOME_TRYA(message.from,
+                         vm::runtime::resolveKey(
+                             context.state_tree, message.from, true));
           }
+          OUTCOME_TRY(mpool->estimate(message));
           OUTCOME_TRYA(message.nonce, mpool->nonce(message.from));
           OUTCOME_TRY(signed_message,
                       vm::message::MessageSignerImpl{key_store}.sign(
                           message.from, message));
           OUTCOME_TRY(mpool->add(signed_message));
           return std::move(signed_message);
+        }},
+        .MpoolSelect = {[=](auto &, auto) {
+          // TODO: implement
+          return mpool->pending();
         }},
         .MpoolSub = {[=]() {
           auto channel{std::make_shared<Channel<MpoolUpdate>>()};
@@ -457,20 +464,7 @@ namespace fc::api {
               std::make_shared<InvokerImpl>(), ipld, *context.tipset);
           InvocResult result;
           result.message = message;
-          auto maybe_result = env->applyImplicitMessage(message);
-          if (maybe_result) {
-            result.receipt = {VMExitCode::kOk, maybe_result.value(), 0};
-          } else {
-            if (isVMExitCode(maybe_result.error())) {
-              auto ret_code =
-                  normalizeVMExitCode(VMExitCode{maybe_result.error().value()});
-              BOOST_ASSERT_MSG(ret_code,
-                               "c++ actor code returned unknown error");
-              result.receipt = {*ret_code, {}, 0};
-            } else {
-              return maybe_result.error();
-            }
-          }
+          OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
           return result;
         }},
         .StateListMessages = {[=](auto &match, auto &tipset_key, auto to_height)
@@ -741,8 +735,7 @@ namespace fc::api {
             }},
         .StateSectorPreCommitInfo =
             {[=](auto address, auto sector_number, auto tipset_key)
-                 -> outcome::result<
-                     boost::optional<SectorPreCommitOnChainInfo>> {
+                 -> outcome::result<SectorPreCommitOnChainInfo> {
               // TODO(artyom-yurin): FIL-165 implement method
               return outcome::success();
             }},
@@ -750,8 +743,9 @@ namespace fc::api {
                                    auto sector_number,
                                    auto tipset_key)
                                    -> outcome::result<SectorOnChainInfo> {
-          // TODO(artyom-yurin): FIL-165 implement method
-          return outcome::success();
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          OUTCOME_TRY(state, context.minerState(address));
+          return state.sectors.get(sector_number);
         }},
         .StateSectorPartition = {[=](auto address,
                                      auto sector_number,

@@ -10,6 +10,7 @@ target_link_libraries(repository
     json
     keystore
     outcome
+    storage_error
     )
 
 add_library(filesystem_repository

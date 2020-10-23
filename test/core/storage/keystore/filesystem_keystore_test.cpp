@@ -6,7 +6,6 @@
 #include "storage/keystore/impl/filesystem/filesystem_keystore.hpp"
 
 #include <gtest/gtest.h>
-#include "crypto/blake2/blake2b.h"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "crypto/secp256k1/secp256k1_error.hpp"

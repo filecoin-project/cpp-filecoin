@@ -13,6 +13,7 @@ namespace fc::markets::storage::provider {
   enum class StorageProviderError {
     kProviderStartError = 1,
     kStreamLookupError,
+    kNotFoundSector,
   };
 
 }  // namespace fc::markets::storage::provider

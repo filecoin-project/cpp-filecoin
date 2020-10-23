@@ -11,6 +11,8 @@
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/runtime/runtime_error.hpp"
 
+#include "vm/dvm/dvm.hpp"
+
 namespace fc::vm::runtime {
   using actor::kAccountCodeCid;
   using actor::kEmptyObjectCid;
@@ -20,7 +22,8 @@ namespace fc::vm::runtime {
   using storage::hamt::HamtError;
 
   outcome::result<Address> resolveKey(StateTree &state_tree,
-                                      const Address &address) {
+                                      const Address &address,
+                                      bool no_actor) {
     if (address.isKeyType()) {
       return address;
     }
@@ -31,7 +34,10 @@ namespace fc::vm::runtime {
                 state_tree.getStore()
                     ->getCbor<actor::builtin::account::AccountActorState>(
                         actor.head)}) {
-          return _state.value().address;
+          auto &key{_state.value().address};
+          if (!no_actor || key.isKeyType()) {
+            return key;
+          }
         }
       }
     }
@@ -133,12 +139,11 @@ namespace fc::vm::runtime {
         * limit;
     OUTCOME_TRY(add_locked(kRewardAddress, apply.reward));
     auto over{limit - 11 * used / 10};
-    auto gas_burned{
-        used == 0
-            ? limit
-            : over < 0 ? 0
-                       : (GasAmount)bigdiv(
-                           BigInt{limit - used} * std::min(used, over), used)};
+    auto gas_burned{used == 0 ? limit
+                    : over < 0
+                        ? 0
+                        : (GasAmount)bigdiv(
+                            BigInt{limit - used} * std::min(used, over), used)};
     if (gas_burned != 0) {
       OUTCOME_TRY(add_locked(actor::kBurntFundsActorAddress,
                              base_fee_pay * gas_burned));
@@ -148,18 +153,35 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(add_locked(message.from, locked));
     apply.receipt.exit_code = exit_code;
     apply.receipt.gas_used = used;
+
+    dvm::onReceipt(apply.receipt);
+
     return apply;
   }
 
-  outcome::result<InvocationOutput> Env::applyImplicitMessage(
+  outcome::result<MessageReceipt> Env::applyImplicitMessage(
       UnsignedMessage message) {
     OUTCOME_TRY(from, state_tree->get(message.from));
     message.nonce = from.nonce;
     auto execution = Execution::make(shared_from_this(), message);
-    return execution->send(message);
+    auto result = execution->send(message);
+    if (result.has_error() && !isVMExitCode(result.error())) {
+      return result.error();
+    }
+    MessageReceipt receipt{result.has_value()
+                               ? VMExitCode::kOk
+                               : VMExitCode{result.error().value()},
+                           result.has_value() ? result.value() : Buffer{},
+                           0};
+
+    dvm::onReceipt(receipt);
+
+    return receipt;
   }
 
   outcome::result<void> Execution::chargeGas(GasAmount amount) {
+    dvm::onCharge(amount);
+
     gas_used += amount;
     if (gas_used > gas_limit) {
       gas_used = gas_limit;
@@ -215,6 +237,9 @@ namespace fc::vm::runtime {
 
   outcome::result<InvocationOutput> Execution::send(
       const UnsignedMessage &message, GasAmount charge) {
+    dvm::onSend(message);
+    DVM_INDENT;
+
     OUTCOME_TRY(chargeGas(charge));
     Actor to_actor;
     auto maybe_to_actor = state_tree->get(message.to);
@@ -227,8 +252,8 @@ namespace fc::vm::runtime {
     } else {
       to_actor = maybe_to_actor.value();
     }
-    OUTCOME_TRY(chargeGas(env->pricelist.onMethodInvocation(
-        message.value, message.method.method_number)));
+    OUTCOME_TRY(chargeGas(
+        env->pricelist.onMethodInvocation(message.value, message.method)));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
     RuntimeImpl runtime{shared_from_this(), message, caller_id};
 
@@ -256,7 +281,7 @@ namespace fc::vm::runtime {
       return actor::cgo::invoke(shared_from_this(),
                                 _message,
                                 to_actor.code,
-                                message.method.method_number,
+                                message.method,
                                 message.params);
     }
 
@@ -272,8 +297,8 @@ namespace fc::vm::runtime {
 
   outcome::result<Ipld::Value> ChargingIpld::get(const CID &key) const {
     auto execution{execution_.lock()};
-    OUTCOME_TRY(value, execution->env->ipld->get(key));
     OUTCOME_TRY(execution->chargeGas(execution->env->pricelist.onIpldGet()));
+    OUTCOME_TRY(value, execution->env->ipld->get(key));
     return std::move(value);
   }
 }  // namespace fc::vm::runtime

@@ -20,7 +20,8 @@ namespace fc::vm::runtime {
   using state::StateTreeImpl;
 
   outcome::result<Address> resolveKey(StateTree &state_tree,
-                                      const Address &address);
+                                      const Address &address,
+                                      bool no_actor = false);
 
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {
@@ -40,7 +41,7 @@ namespace fc::vm::runtime {
     outcome::result<Apply> applyMessage(const UnsignedMessage &message,
                                         size_t size);
 
-    outcome::result<InvocationOutput> applyImplicitMessage(
+    outcome::result<MessageReceipt> applyImplicitMessage(
         UnsignedMessage message);
 
     std::shared_ptr<StateTreeImpl> state_tree;

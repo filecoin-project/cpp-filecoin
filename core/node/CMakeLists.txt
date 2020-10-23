@@ -61,6 +61,7 @@ add_executable(node_main
     )
 target_link_libraries(node_main
     Boost::program_options
+    clock
     node
     rpc
     )

@@ -19,11 +19,11 @@
 #include "vm/message/message.hpp"
 #include "vm/message/message_util.hpp"
 
-#define CALLBACK_ACTION(_action)                      \
-  [this](auto deal, auto event, auto from, auto to) { \
-    logger_->debug("Client FSM " #_action);           \
-    _action(deal, event, from, to);                   \
-    deal->state = to;                                 \
+#define CALLBACK_ACTION(_action)                                    \
+  [this](auto deal, auto event, auto context, auto from, auto to) { \
+    logger_->debug("Client FSM " #_action);                         \
+    _action(deal, event, from, to);                                 \
+    deal->state = to;                                               \
   }
 
 #define FSM_HALT_ON_ERROR(result, msg, deal)                            \
@@ -398,9 +398,10 @@ namespace fc::markets::storage::client {
     }
 
     // check publish contains proposal cid
-    OUTCOME_TRY(proposals,
-                codec::cbor::decode<std::vector<ClientDealProposal>>(
+    OUTCOME_TRY(params,
+                codec::cbor::decode<PublishStorageDeals::Params>(
                     publish_message.params));
+    auto &proposals{params.deals};
     auto it = std::find(
         proposals.begin(), proposals.end(), deal->client_deal_proposal);
     if (it == proposals.end()) {
@@ -566,7 +567,7 @@ namespace fc::markets::storage::client {
         return;
       }
       deal->publish_message = response.value().response.publish_message;
-      closeStreamGracefully(stream, self->logger_);
+      self->finalizeDeal(deal);
       SELF_FSM_SEND(deal, ClientEvent::ClientEventDealAccepted);
     });
   }
@@ -600,7 +601,7 @@ namespace fc::markets::storage::client {
       StorageDealStatus from,
       StorageDealStatus to) {
     // TODO (a.chernyshov) verify deal activated - on deal sector commit
-    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealActivated));
+    OUTCOME_EXCEPT(fsm_->send(deal, ClientEvent::ClientEventDealActivated, {}));
   }
 
   void StorageMarketClientImpl::onClientEventDealActivated(

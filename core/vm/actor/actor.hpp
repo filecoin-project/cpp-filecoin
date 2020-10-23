@@ -29,30 +29,7 @@ namespace fc::vm::actor {
    * number is not reused accidentally. The same should apply to the MethodNum
    * associated with methods in Filecoin VM Actors.
    */
-  struct MethodNumber : boost::totally_ordered<MethodNumber> {
-    constexpr MethodNumber() : method_number{} {}
-
-    constexpr MethodNumber(uint64_t method_number)
-        : method_number{method_number} {}
-
-    inline bool operator==(const MethodNumber &other) const {
-      return method_number == other.method_number;
-    }
-
-    inline bool operator<(const MethodNumber &other) const {
-      return method_number < other.method_number;
-    }
-
-    uint64_t method_number;
-  };
-
-  CBOR_ENCODE(MethodNumber, method) {
-    return s << method.method_number;
-  }
-
-  CBOR_DECODE(MethodNumber, method) {
-    return s >> method.method_number;
-  }
+  using MethodNumber = uint64_t;
 
   using MethodParams = Buffer;
 

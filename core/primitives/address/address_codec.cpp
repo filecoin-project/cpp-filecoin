@@ -10,7 +10,6 @@
 #include <stdexcept>
 
 #include "common/visitor.hpp"
-#include "crypto/blake2/blake2b.h"
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/bls/bls_types.hpp"
 
@@ -206,9 +205,7 @@ namespace fc::primitives::address {
           ingest.insert(ingest.end(), v.begin(), v.end());
           return ingest;
         });
-
-    size_t outlen = 4;
-    blake2b(res.data(), outlen, nullptr, 0, ingest.data(), ingest.size());
+    crypto::blake2b::hashn(res, ingest);
     return res;
   }
 

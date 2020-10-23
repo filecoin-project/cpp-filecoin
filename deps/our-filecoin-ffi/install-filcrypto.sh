@@ -6,7 +6,6 @@ set -Eeo pipefail
 ffi_dir="../filecoin-ffi"
 release_sha1=$(cd $ffi_dir && git rev-parse HEAD)
 if [ -e filecoin_ffi_commit_installed ] && [ "$(cat filecoin_ffi_commit_installed)" = "$release_sha1" ]; then
-  (>&2 echo "filecoin-ffi is already installed")
   exit 0
 fi
 

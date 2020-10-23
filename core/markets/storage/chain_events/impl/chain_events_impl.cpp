@@ -12,7 +12,6 @@ namespace fc::markets::storage::chain_events {
   using vm::actor::builtin::miner::ProveCommitSector;
   using vm::actor::builtin::miner::SectorPreCommitInfo;
   using vm::message::SignedMessage;
-  using PromiseResult = ChainEvents::PromiseResult;
 
   ChainEventsImpl::ChainEventsImpl(std::shared_ptr<Api> api)
       : api_{std::move(api)} {}
@@ -29,15 +28,14 @@ namespace fc::markets::storage::chain_events {
     return outcome::success();
   }
 
-  std::shared_ptr<PromiseResult> ChainEventsImpl::onDealSectorCommitted(
-      const Address &provider, const DealId &deal_id) {
-    auto result = std::make_shared<PromiseResult>();
+  void ChainEventsImpl::onDealSectorCommitted(const Address &provider,
+                                              const DealId &deal_id,
+                                              Cb cb) {
     std::unique_lock lock(watched_events_mutex_);
     watched_events_.emplace_back(EventWatch{.provider = provider,
                                             .deal_id = deal_id,
                                             .sector_number = boost::none,
-                                            .result = result});
-    return result;
+                                            .cb = std::move(cb)});
   }
 
   /**
@@ -124,7 +122,7 @@ namespace fc::markets::storage::chain_events {
       }
 
       if (prove_sector_committed) {
-        watch_it->result->set_value(outcome::success());
+        watch_it->cb();
         watched_events_.erase(watch_it);
       }
     }
