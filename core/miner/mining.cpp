@@ -59,29 +59,10 @@ namespace fc::mining {
 
   outcome::result<void> Mining::waitInfo() {
     OUTCOME_TRY(bestParent());
-<<<<<<< HEAD
-    if (mined.emplace(ts->key, skip).second) {
-      OUTCOME_TRY(block1,
-                  prepareBlock(miner, *ts, ts->height() + skip + 1, api, prover));
-      timer->expires_at(
-          system_timer::time_point{std::chrono::seconds{ts->getMinTimestamp()}
-                                   + (skip + 1) * kBlockDelay});
-      if (block1) {
-        OUTCOME_TRYA(block1->messages, selectMessages(api, *ts));
-        asyncWait([self{shared_from_this()}, block1{std::move(*block1)}]() {
-          OUTCOME_LOG("Mining::submit error", self->submit(std::move(block1)));
-        });
-        return outcome::success();
-      } else {
-        ++skip;
-      }
-=======
-    OUTCOME_TRY(ts_key, ts->makeKey());
-    if (!mined.emplace(ts_key, skip).second) {
+    if (!mined.emplace(ts->key, skip).second) {
       wait(kBlockDelaySecs, false, [this] { waitParent(); });
->>>>>>> master
     } else {
-      OUTCOME_TRY(_wait, api->MinerGetBaseInfo(miner, height(), ts_key));
+      OUTCOME_TRY(_wait, api->MinerGetBaseInfo(miner, height(), ts->key));
       _wait.wait([self{shared_from_this()}, _wait](auto _info) {
         OUTCOME_LOG("Mining::waitInfo error", _info);
         self->info = std::move(_info.value());
@@ -131,12 +112,12 @@ namespace fc::mining {
   }
 
   ChainEpoch Mining::height() const {
-    return ts->height + skip + 1;
+    return ts->height() + skip + 1;
   }
 
   void Mining::wait(int64_t sec, bool abs, Scheduler::Callback cb) {
     if (abs) {
-      sec -= clock->nowUTC().count();
+      sec -= clock->nowUTC().unixTimeNano().count() / 1000000000;
     }
     cb = [cb{std::move(cb)}, self{shared_from_this()}] {
       // stop condition or weak_ptr
@@ -150,21 +131,8 @@ namespace fc::mining {
   }
 
   constexpr auto kTicketRandomnessLookback{1};
-<<<<<<< HEAD
-  outcome::result<boost::optional<BlockTemplate>> prepareBlock(
-      const Address &miner,
-      const Tipset &ts,
-      uint64_t height,
-      std::shared_ptr<Api> api,
-      std::shared_ptr<Prover> prover) {
-    assert(height > ts.height());
-    OUTCOME_TRY(wait_info, api->MinerGetBaseInfo(miner, height, ts.key));
-    OUTCOME_TRY(info, wait_info.waitSync());
-    if (info && info->miner_power > 0) {
-=======
   outcome::result<boost::optional<BlockTemplate>> Mining::prepareBlock() {
     if (info && info->has_min_power) {
->>>>>>> master
       auto vrf{[&](auto tag,
                    auto height,
                    auto &seed) -> outcome::result<BlsSignature> {
@@ -202,14 +170,10 @@ namespace fc::mining {
                                miner_seed)));
         OUTCOME_TRY(
             messages,
-            api->MpoolSelect(ts->makeKey().value(), ticketQuality(ticket_vrf)));
+            api->MpoolSelect(ts->key, ticketQuality(ticket_vrf)));
         return BlockTemplate{
             miner,
-<<<<<<< HEAD
-            ts.key.cids(),
-=======
-            ts->cids,
->>>>>>> master
+            ts->key.cids(),
             primitives::block::Ticket{Buffer{ticket_vrf}},
             primitives::block::ElectionProof{win_count, Buffer{election_vrf}},
             std::move(info->beacons),
@@ -223,43 +187,6 @@ namespace fc::mining {
     return boost::none;
   }
 
-<<<<<<< HEAD
-  outcome::result<std::vector<SignedMessage>> selectMessages(
-      std::shared_ptr<Api> api, const Tipset &ts) {
-    OUTCOME_TRY(messages1, api->MpoolPending(ts.key));
-    std::vector<SignedMessage> messages2;
-    vm::runtime::Pricelist pricelist;
-    std::map<Address, vm::actor::Actor> actors;
-    for (auto &_msg : messages1) {
-      auto &msg{_msg.message};
-      if (msg.version != vm::message::kMessageVersion
-          || msg.gas_limit > kBlockGasLimit || msg.value < 0
-          || msg.value > vm::actor::builtin::market::kTotalFilecoin
-          || msg.gas_fee_cap < 0) {
-        continue;
-      }
-      OUTCOME_TRY(message_bytes,
-                  _msg.signature.isBls() ? codec::cbor::encode(msg)
-                                         : codec::cbor::encode(_msg));
-      if (msg.gas_limit < pricelist.onChainMessage(message_bytes.size())) {
-        continue;
-      }
-      auto _actor{actors.find(msg.from)};
-      if (_actor == actors.end()) {
-        OUTCOME_TRY(actor, api->StateGetActor(msg.from, ts.key));
-        _actor = actors.emplace(msg.from, std::move(actor)).first;
-      }
-      auto &actor{_actor->second};
-      if (msg.nonce != actor.nonce || actor.balance < msg.requiredFunds()) {
-        continue;
-      }
-      actor.balance -= msg.requiredFunds();
-      ++actor.nonce;
-      messages2.push_back(std::move(_msg));
-      if (messages2.size() > kBlockMessageLimit) {
-        break;
-      }
-=======
   auto bigblake(BytesIn vrf) {
     auto _hash{crypto::blake2b::blake2b_256(vrf)};
     BigInt hash;
@@ -316,7 +243,6 @@ namespace fc::mining {
       ++k;
       pmf = (bigdiv(pmf, k) * lambda) >> P;
       icdf -= pmf;
->>>>>>> master
     }
     return k;
   }

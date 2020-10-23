@@ -355,10 +355,10 @@ namespace fc::markets::storage::provider {
   outcome::result<CID> StorageProviderImpl::publishDeal(
       std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(
-                    deal->client_deal_proposal.proposal.provider, tipset_key));
+    OUTCOME_TRY(
+        worker_info,
+        api_->StateMinerInfo(deal->client_deal_proposal.proposal.provider,
+                             chain_head->key));
     PublishStorageDeals::Params params{{deal->client_deal_proposal}};
     OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
     UnsignedMessage unsigned_message(vm::actor::kStorageMarketAddress,

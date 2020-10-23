@@ -12,9 +12,6 @@
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "vm/message/message.hpp"
 
-#include "crypto/blake2/blake2b.h"
-#include "crypto/blake2/blake2b160.hpp"
-
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
   using fc::primitives::tipset::TipsetError;
   switch (e) {
@@ -55,19 +52,13 @@ namespace fc::primitives::tipset {
         return TipsetError::kTicketHasNoValue;
       }
 
-      blake2b_ctx ctx;
-
-      if (blake2b_init(
-              &ctx, crypto::blake2b::BLAKE2B256_HASH_LENGTH, nullptr, 0)
-          != 0) {
-        return HashError::HASH_INITIALIZE_ERROR;
-      }
+      crypto::blake2b::Ctx ctx(crypto::blake2b::BLAKE2B256_HASH_LENGTH);
 
       const auto &ticket_bytes = hdr.ticket.value().bytes;
 
-      blake2b_update(&ctx, ticket_bytes.data(), ticket_bytes.size());
+      ctx.update(ticket_bytes);
       TicketHash hash;
-      blake2b_final(&ctx, hash.data());
+      ctx.final(hash);
       return hash;
     }
 

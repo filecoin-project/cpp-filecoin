@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <fstream>
+
 #include <libp2p/host/host.hpp>
 
 #include "blockchain/impl/weight_calculator_impl.hpp"

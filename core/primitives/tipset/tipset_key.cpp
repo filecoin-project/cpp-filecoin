@@ -7,7 +7,6 @@
 
 #include "primitives/tipset/tipset_key.hpp"
 
-#include "crypto/blake2/blake2b.h"
 #include "crypto/blake2/blake2b160.hpp"
 
 namespace fc::primitives::tipset {
@@ -30,12 +29,7 @@ namespace fc::primitives::tipset {
       return emptyTipsetHash();
     }
 
-    blake2b_ctx ctx;
-
-    if (blake2b_init(&ctx, crypto::blake2b::BLAKE2B256_HASH_LENGTH, nullptr, 0)
-        != 0) {
-      return HashError::HASH_INITIALIZE_ERROR;
-    }
+    crypto::blake2b::Ctx ctx(crypto::blake2b::BLAKE2B256_HASH_LENGTH);
 
     size_t sz = cids.size();
     auto indices = (size_t *)alloca(sizeof(size_t) * sz);
@@ -53,13 +47,13 @@ namespace fc::primitives::tipset {
     std::vector<uint8_t> bytes;
     for (size_t i = 0; i < sz; ++i) {
       OUTCOME_TRYA(bytes, cids[indices[i]].toBytes());
-      blake2b_update(&ctx, bytes.data(), bytes.size());
+      ctx.update(bytes);
     }
 
     TipsetHash hash;
     hash.resize(crypto::blake2b::BLAKE2B256_HASH_LENGTH);
 
-    blake2b_final(&ctx, hash.data());
+    ctx.final(hash);
     return hash;
   }
 

@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-add_library(chain_store
-    impl/chain_store_impl.cpp
-    )
-target_link_libraries(chain_store
-    sync
-    )
+#add_library(chain_store
+#    impl/chain_store_impl.cpp
+#    )
+#target_link_libraries(chain_store
+#    sync
+#    )
 
 add_library(msg_waiter
     msg_waiter.cpp

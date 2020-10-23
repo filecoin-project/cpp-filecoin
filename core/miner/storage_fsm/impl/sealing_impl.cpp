@@ -889,7 +889,7 @@ namespace fc::mining {
       if (maybe_error == outcome::failure(ChecksError::kPrecommitOnChain)) {
         std::shared_ptr<SectorPreCommitLandedContext> context =
             std::make_shared<SectorPreCommitLandedContext>();
-        context->tipset_key = key;
+        context->tipset_key = head->key;
         FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommitLanded, context);
         return outcome::success();
       }
@@ -1008,7 +1008,7 @@ namespace fc::mining {
     OUTCOME_TRY(head, api_->ChainHead());
     OUTCOME_TRY(precommit_info,
                 getStateSectorPreCommitInfo(
-                    miner_address_, info->sector_number, tipset_key));
+                    miner_address_, info->sector_number, head->key));
     if (!precommit_info.has_value()) {
       logger_->error("precommit info not found on chain");
       FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
@@ -1153,7 +1153,7 @@ namespace fc::mining {
 
     OUTCOME_TRY(precommit_info_opt,
                 getStateSectorPreCommitInfo(
-                    miner_address_, info->sector_number, tipset_key));
+                    miner_address_, info->sector_number, head->key));
     if (!precommit_info_opt.has_value()) {
       logger_->error("precommit info not found on chain");
       FSM_SEND(info, SealingEvent::kSectorCommitFailed);
@@ -1353,7 +1353,7 @@ namespace fc::mining {
     }
 
     auto maybe_info_opt = getStateSectorPreCommitInfo(
-        miner_address_, info->sector_number, tipset_key);
+        miner_address_, info->sector_number, head->key);
     if (maybe_info_opt.has_error()) {
       logger_->error("Check precommit error: {}",
                      maybe_info_opt.error().message());
@@ -1365,7 +1365,7 @@ namespace fc::mining {
             info->sector_number);
         std::shared_ptr<SectorPreCommitLandedContext> context =
             std::make_shared<SectorPreCommitLandedContext>();
-        context->tipset_key = tipset_key;
+        context->tipset_key = head->key;
         FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommitLanded, context);
         return outcome::success();
       }
@@ -1587,7 +1587,7 @@ namespace fc::mining {
 
     OUTCOME_TRY(precommit_info,
                 getStateSectorPreCommitInfo(
-                    miner_address_, info->sector_number, tipset_key));
+                    miner_address_, info->sector_number, head->key));
 
     if (precommit_info.has_value()) {
       ticket_epoch = precommit_info->info.seal_epoch;

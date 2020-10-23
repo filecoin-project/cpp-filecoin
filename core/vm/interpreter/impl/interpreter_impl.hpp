@@ -20,7 +20,7 @@ namespace fc::vm::interpreter {
                                       const TipsetCPtr &tipset) const override;
     outcome::result<Result> applyBlocks(
         const IpldPtr &store,
-        const Tipset &tipset,
+        const TipsetCPtr &tipset,
         std::vector<MessageReceipt> *all_receipts) const;
 
    protected:

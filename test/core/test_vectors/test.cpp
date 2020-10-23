@@ -190,15 +190,14 @@ void testTipsets(const MessageVector &mv, IpldPtr ipld) {
   OUTCOME_EXCEPT(parents, Tipset::create({parent}));
   auto i{0}, j{0};
   for (auto &ts : mv.tipsets) {
-    Tipset tipset;
-    tipset.height = ts.epoch;
+    fc::primitives::tipset::TipsetCreator cr;
     for (auto &blk : ts.blocks) {
-      auto &block{tipset.blks.emplace_back()};
+      fc::primitives::block::BlockHeader block;
       block.ticket.emplace();
       block.miner = blk.miner;
       block.election_proof.win_count = blk.win_count;
       block.height = ts.epoch;
-      block.parents = parents.cids;
+      block.parents = parents->key.cids();
       block.parent_base_fee = ts.base_fee;
       fc::primitives::block::MsgMeta meta;
       ipld->load(meta);
@@ -223,9 +222,13 @@ void testTipsets(const MessageVector &mv, IpldPtr ipld) {
       block.messages = ipld->setCbor(meta).value();
       block.parent_message_receipts = block.parent_state_root = state;
       OUTCOME_EXCEPT(cid, ipld->setCbor(block));
-      tipset.cids.push_back(cid);
+
+      OUTCOME_EXCEPT(cr.expandTipset(block));
     }
     std::vector<MessageReceipt> receipts;
+
+    auto tipset = cr.getTipset(true);
+
     OUTCOME_EXCEPT(res, vmi.applyBlocks(ipld, tipset, &receipts));
     state = res.state_root;
     EXPECT_EQ(res.message_receipts, mv.receipts_roots[i]);
@@ -253,7 +256,7 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
   auto i{0};
   for (auto &[epoch, message] : mv.messages) {
     auto &receipt{mv.receipts[i]};
-    env->tipset.height = epoch;
+    env->epoch = epoch;
     auto size = message.from.isSecp256k1()
                     ? fc::vm::message::SignedMessage{message,
                                                      fc::crypto::signature::

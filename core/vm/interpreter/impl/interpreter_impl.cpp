@@ -61,7 +61,7 @@ namespace fc::vm::interpreter {
 
   outcome::result<Result> InterpreterImpl::applyBlocks(
       const IpldPtr &ipld,
-      const Tipset &tipset,
+      const TipsetCPtr &tipset,
       std::vector<MessageReceipt> *all_receipts) const {
     auto on_receipt{[&](auto &receipt) {
       if (all_receipts) {
@@ -92,7 +92,7 @@ namespace fc::vm::interpreter {
       if (receipt.exit_code != VMExitCode::kOk) {
         return receipt.exit_code;
       }
-      on_receipt(receipt);
+      std::ignore = on_receipt(receipt);
       return outcome::success();
     }};
 
@@ -125,7 +125,7 @@ namespace fc::vm::interpreter {
             OUTCOME_TRY(apply, env->applyMessage(message, raw.size()));
             reward.penalty += apply.penalty;
             reward.gas_reward += apply.reward;
-            on_receipt(apply.receipt);
+            std::ignore = on_receipt(apply.receipt);
             OUTCOME_TRY(receipts.append(std::move(apply.receipt)));
             return outcome::success();
           }));
@@ -145,7 +145,7 @@ namespace fc::vm::interpreter {
       if (receipt.exit_code != VMExitCode::kOk) {
         return receipt.exit_code;
       }
-      on_receipt(receipt);
+      std::ignore = on_receipt(receipt);
     }
 
     OUTCOME_TRY(cron());

@@ -65,7 +65,7 @@ namespace fc::storage::mpool {
       auto env{std::make_shared<vm::runtime::Env>(nullptr, ipld, head)};
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
           ipld, interpeted.state_root);
-      ++env->tipset.height;
+      ++env->epoch;
       auto _pending{by_from.find(msg.from)};
       if (_pending != by_from.end()) {
         for (auto &_msg : _pending->second.by_nonce) {

@@ -42,7 +42,7 @@ namespace fc::storage::blockchain {
 
     // note, 2 calls due to performance, not to spoil the creator
     OUTCOME_TRY(creator.canExpandTipset(block));
-    OUTCOME_TRY(cid, creator.expandTipset(block));
+//    OUTCOME_TRY(cid, creator.expandTipset(block));
 
     // TODO store block into ipld, to make sure the tipset is loaded w/o errors
     // see TODO above

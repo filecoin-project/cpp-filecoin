@@ -81,9 +81,9 @@ namespace fc::markets::storage::provider {
 
   outcome::result<SignedStorageAsk> StoredAsk::signAsk(
       const StorageAsk &ask, const Tipset &chain_head) {
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
     OUTCOME_TRY(minfo, api_->StateMinerInfo(actor_, {}));
-    OUTCOME_TRY(key_address, api_->StateAccountKey(minfo.worker, tipset_key));
+    OUTCOME_TRY(key_address,
+                api_->StateAccountKey(minfo.worker, chain_head.key));
     OUTCOME_TRY(ask_bytes, codec::cbor::encode(ask));
     OUTCOME_TRY(signature, api_->WalletSign(key_address, ask_bytes));
     return SignedStorageAsk{.ask = ask, .signature = signature};
