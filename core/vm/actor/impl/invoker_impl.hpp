@@ -25,11 +25,8 @@ namespace fc::vm::actor {
                 const StoragePower &consensus_miner_min_power,
                 const std::vector<RegisteredProof> &supported_proofs) override;
 
-    outcome::result<InvocationOutput> invoke(
-        const Actor &actor,
-        Runtime &runtime,
-        MethodNumber method,
-        const MethodParams &params) override;
+    outcome::result<InvocationOutput> invoke(const Actor &actor,
+                                             Runtime &runtime) override;
 
    private:
     std::map<CID, ActorExports> builtin_;

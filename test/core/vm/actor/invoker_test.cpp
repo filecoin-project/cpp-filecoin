@@ -25,18 +25,20 @@ TEST(InvokerTest, InvokeCron) {
   InvokerImpl invoker;
   MockRuntime runtime;
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::kSysErrorIllegalActor,
-      invoker.invoke({CodeId{kEmptyObjectCid}}, runtime, MethodNumber{0}, {}));
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::kSysErrInvalidMethod,
-      invoker.invoke({kCronCodeCid}, runtime, MethodNumber{1000}, {}));
+  EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrorIllegalActor,
+                       invoker.invoke({CodeId{kEmptyObjectCid}}, runtime));
+
+  message.method = MethodNumber{1000};
+  EXPECT_CALL(runtime, getMessage()).WillOnce(::testing::Return(message));
+  EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrInvalidMethod,
+                       invoker.invoke({kCronCodeCid}, runtime));
+
   EXPECT_CALL(runtime, getImmediateCaller())
       .WillOnce(testing::Return(kInitAddress));
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::kSysErrForbidden,
-      invoker.invoke(
-          {kCronCodeCid}, runtime, builtin::cron::EpochTick::Number, {}));
+  message.method = builtin::cron::EpochTick::Number;
+  EXPECT_CALL(runtime, getMessage()).WillOnce(::testing::Return(message));
+  EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
+                       invoker.invoke({kCronCodeCid}, runtime));
 }
 
 /// decodeActorParams returns error or decoded params

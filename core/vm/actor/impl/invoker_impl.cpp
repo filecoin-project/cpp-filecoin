@@ -38,20 +38,18 @@ namespace fc::vm::actor {
     // TODO (a.chernyshov) implement
   }
 
-  outcome::result<InvocationOutput> InvokerImpl::invoke(
-      const Actor &actor,
-      Runtime &runtime,
-      MethodNumber method,
-      const MethodParams &params) {
+  outcome::result<InvocationOutput> InvokerImpl::invoke(const Actor &actor,
+                                                        Runtime &runtime) {
     auto maybe_builtin_actor = builtin_.find(actor.code);
     if (maybe_builtin_actor == builtin_.end()) {
       return VMExitCode::kSysErrorIllegalActor;
     }
     auto builtin_actor = maybe_builtin_actor->second;
-    auto maybe_builtin_method = builtin_actor.find(method);
+    auto message = runtime.getMessage();
+    auto maybe_builtin_method = builtin_actor.find(message.get().method);
     if (maybe_builtin_method == builtin_actor.end()) {
       return VMExitCode::kSysErrInvalidMethod;
     }
-    return maybe_builtin_method->second(runtime, params);
+    return maybe_builtin_method->second(runtime, message.get().params);
   }
 }  // namespace fc::vm::actor

@@ -18,13 +18,14 @@ namespace fc::vm::actor::cgo {
         min_verified_deal_size, consensus_miner_min_power, supported_proofs);
   }
 
-  outcome::result<InvocationOutput> CgoInvoker::invoke(
-      const Actor &actor,
-      Runtime &runtime,
-      MethodNumber method,
-      const MethodParams &params) {
-    return ::fc::vm::actor::cgo::invoke(
-        runtime.execution(), runtime.getMessage(), actor.code, method, params);
+  outcome::result<InvocationOutput> CgoInvoker::invoke(const Actor &actor,
+                                                       Runtime &runtime) {
+    auto message = runtime.getMessage();
+    return ::fc::vm::actor::cgo::invoke(runtime.execution(),
+                                        message,
+                                        actor.code,
+                                        message.get().method,
+                                        message.get().params);
   }
 
 }  // namespace fc::vm::actor::cgo

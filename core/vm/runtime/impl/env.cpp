@@ -279,7 +279,7 @@ namespace fc::vm::runtime {
       auto _message{message};
       _message.from = caller_id;
       RuntimeImpl runtime{shared_from_this(), _message, caller_id};
-      return invoker->invoke(to_actor, runtime, message.method, message.params);
+      return invoker->invoke(to_actor, runtime);
     }
 
     return outcome::success();
