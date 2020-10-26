@@ -16,6 +16,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/resources/resources.hpp"
 #include "vm/actor/cgo/actors.hpp"
+#include "vm/actor/cgo/cgo_invoker.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/env.hpp"
 
@@ -34,6 +35,8 @@ using fc::primitives::ChainEpoch;
 using fc::primitives::address::Address;
 using fc::primitives::block::BlockHeader;
 using fc::primitives::tipset::Tipset;
+using fc::vm::actor::Invoker;
+using fc::vm::actor::cgo::CgoInvoker;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MessageReceipt;
 namespace Json = fc::codec::json;
@@ -179,7 +182,8 @@ auto search(bool enabled) {
 struct TestVectors : testing::TestWithParam<MessageVector> {};
 
 void testTipsets(const MessageVector &mv, IpldPtr ipld) {
-  fc::vm::interpreter::InterpreterImpl vmi;
+  std::shared_ptr<Invoker> cgo_invoker = std::make_shared<CgoInvoker>(true);
+  fc::vm::interpreter::InterpreterImpl vmi{cgo_invoker};
   CID state{mv.state_before};
   BlockHeader parent;
   parent.ticket.emplace();
@@ -249,7 +253,8 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
       mv.state_before;
   b.parent_base_fee = mv.parent_base_fee;
   OUTCOME_EXCEPT(ts, Tipset::create({b}));
-  auto env{std::make_shared<fc::vm::runtime::Env>(nullptr, ipld, ts)};
+  std::shared_ptr<Invoker> cgo_invoker = std::make_shared<CgoInvoker>(true);
+  auto env{std::make_shared<fc::vm::runtime::Env>(cgo_invoker, ipld, ts)};
   auto i{0};
   for (auto &[epoch, message] : mv.messages) {
     auto &receipt{mv.receipts[i]};

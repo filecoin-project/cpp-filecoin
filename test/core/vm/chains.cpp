@@ -12,11 +12,14 @@
 #include "testutil/read_file.hpp"
 #include "testutil/resources/resources.hpp"
 #include "vm/actor/cgo/actors.hpp"
+#include "vm/actor/cgo/cgo_invoker.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
 using fc::primitives::StoragePower;
 using fc::primitives::sector::RegisteredProof;
 using fc::primitives::tipset::Tipset;
+using fc::vm::actor::Invoker;
+using fc::vm::actor::cgo::CgoInvoker;
 
 TEST(ChainsTest, Testnet_v054_h341) {
   spdlog::info("loading");
@@ -46,8 +49,10 @@ TEST(ChainsTest, Testnet_v054_h341) {
         << "state differs at " << ts.height - 1;
     EXPECT_EQ(last.second, ts.getParentMessageReceipts())
         << "receipts differ at " << ts.height - 1;
+    std::shared_ptr<Invoker> invoker = std::make_shared<CgoInvoker>(false);
     EXPECT_OUTCOME_TRUE(
-        result, fc::vm::interpreter::InterpreterImpl{}.interpret(ipld, ts));
+        result,
+        fc::vm::interpreter::InterpreterImpl{invoker}.interpret(ipld, ts));
     last = {result.state_root, result.message_receipts};
   }
   spdlog::info("done");

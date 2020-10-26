@@ -26,6 +26,10 @@ namespace fc::vm::runtime {
         message_{std::move(message)},
         caller_id{caller_id} {}
 
+  std::shared_ptr<Execution> RuntimeImpl::execution() const {
+    return execution_;
+  }
+
   ChainEpoch RuntimeImpl::getCurrentEpoch() const {
     return execution_->env->tipset.height;
   }

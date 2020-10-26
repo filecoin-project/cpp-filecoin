@@ -22,6 +22,7 @@ endif ()
 
 add_library(cgo_actors
     actors.cpp
+    cgo_invoker.cpp
     )
 target_link_libraries(cgo_actors
     dvm

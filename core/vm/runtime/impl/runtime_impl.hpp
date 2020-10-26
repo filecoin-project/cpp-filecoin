@@ -21,6 +21,8 @@ namespace fc::vm::runtime {
                 UnsignedMessage message,
                 const Address &caller_id);
 
+    std::shared_ptr<Execution> execution() const override;
+
     /** \copydoc Runtime::getCurrentEpoch() */
     ChainEpoch getCurrentEpoch() const override;
 

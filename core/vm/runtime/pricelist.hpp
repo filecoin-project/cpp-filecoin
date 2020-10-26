@@ -12,6 +12,7 @@
 namespace fc::vm::runtime {
   using primitives::GasAmount;
   using primitives::TokenAmount;
+  using primitives::sector::RegisteredProof;
   using primitives::sector::WindowPoStVerifyInfo;
 
   struct Pricelist {

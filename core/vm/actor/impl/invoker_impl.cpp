@@ -31,6 +31,13 @@ namespace fc::vm::actor {
     builtin_[kAccountCodeCid] = builtin::account::exports;
   }
 
+  void InvokerImpl::config(
+      const StoragePower &min_verified_deal_size,
+      const StoragePower &consensus_miner_min_power,
+      const std::vector<RegisteredProof> &supported_proofs) {
+    // TODO (a.chernyshov) implement
+  }
+
   outcome::result<InvocationOutput> InvokerImpl::invoke(
       const Actor &actor,
       Runtime &runtime,

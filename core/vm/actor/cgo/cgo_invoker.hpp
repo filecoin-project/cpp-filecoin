@@ -3,23 +3,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_INVOKER_IMPL_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_INVOKER_IMPL_HPP
+#ifndef CPP_FILECOIN_CORE_VM_ACTOR_CGO_CGO_INVOKER_HPP
+#define CPP_FILECOIN_CORE_VM_ACTOR_CGO_CGO_INVOKER_HPP
 
 #include "vm/actor/invoker.hpp"
 
-#include "vm/actor/actor_method.hpp"
+namespace fc::vm::actor::cgo {
 
-namespace fc::vm::actor {
-
-  using runtime::InvocationOutput;
-
-  /// Finds and loads actor code, invokes actor methods
-  class InvokerImpl : public Invoker {
+  /**
+   * Invoker implementation that invokes GoLang specs-actors using cgo
+   */
+  class CgoInvoker : public Invoker {
    public:
-    InvokerImpl();
-
-    ~InvokerImpl() override = default;
+    explicit CgoInvoker(bool test_vectors);
 
     void config(const StoragePower &min_verified_deal_size,
                 const StoragePower &consensus_miner_min_power,
@@ -32,8 +28,9 @@ namespace fc::vm::actor {
         const MethodParams &params) override;
 
    private:
-    std::map<CID, ActorExports> builtin_;
+    bool _test_vectors{false};
   };
-}  // namespace fc::vm::actor
 
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_INVOKER_IMPL_HPP
+}  // namespace fc::vm::actor::cgo
+
+#endif  // CPP_FILECOIN_CORE_VM_ACTOR_CGO_CGO_INVOKER_HPP

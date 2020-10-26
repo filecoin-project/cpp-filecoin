@@ -15,6 +15,8 @@ namespace fc::vm::runtime {
 
   class MockRuntime : public Runtime {
    public:
+    MOCK_CONST_METHOD0(execution, std::shared_ptr<Execution>());
+
     MOCK_CONST_METHOD0(getCurrentEpoch, ChainEpoch());
 
     MOCK_CONST_METHOD3(

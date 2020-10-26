@@ -60,7 +60,7 @@ namespace fc::vm::runtime {
     if (message.gas_limit <= 0) {
       return RuntimeError::kUnknown;
     }
-    auto execution = Execution::make(shared_from_this(), message);
+    auto execution = Execution::make(shared_from_this(), message, invoker);
     Apply apply;
     auto msg_gas_cost{pricelist.onChainMessage(size)};
     if (msg_gas_cost > message.gas_limit) {
@@ -163,7 +163,7 @@ namespace fc::vm::runtime {
       UnsignedMessage message) {
     OUTCOME_TRY(from, state_tree->get(message.from));
     message.nonce = from.nonce;
-    auto execution = Execution::make(shared_from_this(), message);
+    auto execution = Execution::make(shared_from_this(), message, invoker);
     auto result = execution->send(message);
     if (result.has_error() && !isVMExitCode(result.error())) {
       return result.error();
@@ -191,7 +191,8 @@ namespace fc::vm::runtime {
   }
 
   std::shared_ptr<Execution> Execution::make(std::shared_ptr<Env> env,
-                                             const UnsignedMessage &message) {
+                                             const UnsignedMessage &message,
+                                             std::shared_ptr<Invoker> invoker) {
     auto execution = std::make_shared<Execution>();
     execution->env = env;
     execution->state_tree = env->state_tree;
@@ -200,6 +201,7 @@ namespace fc::vm::runtime {
     execution->gas_limit = message.gas_limit;
     execution->origin = message.from;
     execution->origin_nonce = message.nonce;
+    execution->invoker = std::move(invoker);
     return execution;
   }
 
@@ -255,7 +257,6 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(chargeGas(
         env->pricelist.onMethodInvocation(message.value, message.method)));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
-    RuntimeImpl runtime{shared_from_this(), message, caller_id};
 
     if (message.value != 0) {
       if (message.value < 0) {
@@ -277,12 +278,8 @@ namespace fc::vm::runtime {
     if (message.method != kSendMethodNumber) {
       auto _message{message};
       _message.from = caller_id;
-      // TODO: check cpp actor
-      return actor::cgo::invoke(shared_from_this(),
-                                _message,
-                                to_actor.code,
-                                message.method,
-                                message.params);
+      RuntimeImpl runtime{shared_from_this(), _message, caller_id};
+      return invoker->invoke(to_actor, runtime, message.method, message.params);
     }
 
     return outcome::success();

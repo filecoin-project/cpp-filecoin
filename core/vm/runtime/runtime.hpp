@@ -45,12 +45,16 @@ namespace fc::vm::runtime {
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
 
+  struct Execution;
+
   /**
    * @class Runtime is the VM's internal runtime object exposed to actors
    */
   class Runtime {
    public:
     virtual ~Runtime() = default;
+
+    virtual std::shared_ptr<Execution> execution() const = 0;
 
     /**
      * Returns current chain epoch which is equal to block chain height.

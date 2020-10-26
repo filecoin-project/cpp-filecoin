@@ -14,6 +14,7 @@
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::vm::runtime {
+  using actor::Actor;
   using actor::Invoker;
   using primitives::tipset::Tipset;
   using state::StateTree;
@@ -52,7 +53,8 @@ namespace fc::vm::runtime {
 
   struct Execution : std::enable_shared_from_this<Execution> {
     static std::shared_ptr<Execution> make(std::shared_ptr<Env> env,
-                                           const UnsignedMessage &message);
+                                           const UnsignedMessage &message,
+                                           std::shared_ptr<Invoker> invoker);
 
     outcome::result<void> chargeGas(GasAmount amount);
 
@@ -72,6 +74,7 @@ namespace fc::vm::runtime {
     Address origin;
     uint64_t origin_nonce;
     size_t actors_created{};
+    std::shared_ptr<Invoker> invoker;
   };
 
   struct ChargingIpld : public Ipld,
