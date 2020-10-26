@@ -26,26 +26,15 @@ namespace fc::data_transfer {
    public:
     virtual ~Manager() = default;
 
+    virtual void subscribe(std::weak_ptr<Subscriber> subscriber) = 0;
+
     virtual outcome::result<void> init(
         const std::string &voucher_type,
         std::shared_ptr<RequestValidator> validator) = 0;
 
-    /**
-     * Open a data transfer that will send data to the recipient peer and
-     * transfer parts of the piece that match the selector
-     */
-    virtual outcome::result<ChannelId> openPushDataChannel(
+    virtual outcome::result<ChannelId> openDataChannel(
         const PeerInfo &to,
-        const Voucher &voucher,
-        CID base_cid,
-        std::shared_ptr<Selector> selector) = 0;
-
-    /**
-     * Open a data transfer that will request data from the sending peer and
-     * transfer parts of the piece that match the selector
-     */
-    virtual outcome::result<ChannelId> openPullDataChannel(
-        const PeerInfo &to,
+        bool pull,
         const Voucher &voucher,
         CID base_cid,
         std::shared_ptr<Selector> selector) = 0;
@@ -58,7 +47,7 @@ namespace fc::data_transfer {
         const TransferId &transfer_id,
         const CID &base_cid,
         std::shared_ptr<Selector> selector,
-        const std::vector<uint8_t> &voucher,
+        BytesIn voucher,
         const PeerInfo &initiator,
         const PeerInfo &sender_peer,
         const PeerInfo &receiver_peer) = 0;

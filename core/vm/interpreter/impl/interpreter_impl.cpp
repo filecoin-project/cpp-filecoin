@@ -63,7 +63,6 @@ namespace fc::vm::interpreter {
       if (all_receipts) {
         all_receipts->push_back(receipt);
       }
-      return outcome::success();
     }};
 
     if (hasDuplicateMiners(tipset.blks)) {

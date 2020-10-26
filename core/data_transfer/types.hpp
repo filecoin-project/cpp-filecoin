@@ -84,7 +84,7 @@ namespace fc::data_transfer {
     std::shared_ptr<Selector> selector;
 
     /** used to verify this channel */
-    std::vector<uint8_t> voucher;
+    Buffer voucher;
 
     /** the party that is sending the data (not who initiated the request) */
     PeerInfo sender;

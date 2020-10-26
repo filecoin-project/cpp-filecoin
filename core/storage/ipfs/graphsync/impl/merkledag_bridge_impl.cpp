@@ -19,7 +19,6 @@ namespace fc::storage::ipfs::graphsync {
   MerkleDagBridgeImpl::MerkleDagBridgeImpl(
       std::shared_ptr<merkledag::MerkleDagService> service)
       : service_(std::move(service)) {
-    assert(service_);
   }
 
   outcome::result<size_t> MerkleDagBridgeImpl::select(

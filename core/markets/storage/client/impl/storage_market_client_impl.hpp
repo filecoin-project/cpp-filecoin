@@ -9,7 +9,6 @@
 #include <libp2p/host/host.hpp>
 #include <mutex>
 #include "api/api.hpp"
-#include "common/libp2p/cbor_host.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/manager.hpp"
 #include "fsm/fsm.hpp"
@@ -26,7 +25,6 @@ namespace fc::markets::storage::client {
 
   using api::Api;
   using common::Buffer;
-  using common::libp2p::CborHost;
   using common::libp2p::CborStream;
   using discovery::Discovery;
   using fc::storage::filestore::FileStore;
@@ -47,9 +45,14 @@ namespace fc::markets::storage::client {
    public:
     StorageMarketClientImpl(std::shared_ptr<Host> host,
                             std::shared_ptr<boost::asio::io_context> context,
+                            std::shared_ptr<DataTransfer> datatransfer,
                             std::shared_ptr<Datastore> datastore,
                             std::shared_ptr<Api> api,
                             std::shared_ptr<PieceIO> piece_io);
+
+    bool pollWaiting();
+
+    void askDealStatus(std::shared_ptr<ClientDeal> deal);
 
     outcome::result<void> init() override;
 
@@ -276,13 +279,17 @@ namespace fc::markets::storage::client {
     };
 
     /** libp2p host */
-    std::shared_ptr<CborHost> host_;
+    std::shared_ptr<Host> host_;
     std::shared_ptr<boost::asio::io_context> context_;
 
     std::shared_ptr<Api> api_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<Discovery> discovery_;
     std::shared_ptr<DataTransfer> datatransfer_;
+
+    std::mutex waiting_mutex;
+    std::shared_ptr<void> waiting_sub;
+    std::vector<std::shared_ptr<ClientDeal>> waiting_deals;
 
     // connection manager
     std::mutex connections_mutex_;

@@ -31,7 +31,6 @@ namespace fc::storage::ipfs::graphsync {
 
   void GraphsyncImpl::start(std::shared_ptr<MerkleDagBridge> dag,
                             Graphsync::BlockCallback callback) {
-    assert(dag);
     assert(callback);
 
     network_->start(shared_from_this());

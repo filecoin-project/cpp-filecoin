@@ -41,10 +41,10 @@ namespace fc::markets::storage::test {
     EXPECT_OUTCOME_TRUE_1(provider->importDataForDeal(proposal_cid, data));
 
     waitForProviderDealStatus(proposal_cid,
-                              StorageDealStatus::STORAGE_DEAL_COMPLETED);
+                              StorageDealStatus::STORAGE_DEAL_ACTIVE);
     EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
     EXPECT_EQ(provider_deal_state.state,
-              StorageDealStatus::STORAGE_DEAL_COMPLETED);
+              StorageDealStatus::STORAGE_DEAL_ACTIVE);
 
     waitForClientDealStatus(proposal_cid,
                             StorageDealStatus::STORAGE_DEAL_ACTIVE);
@@ -106,8 +106,7 @@ namespace fc::markets::storage::test {
     CID provider_funding_cid = "010001020003"_cid;
     node_api->MarketEnsureAvailable = {
         [this, client_funding_cid, provider_funding_cid](
-            auto address, auto wallet, auto amount, auto &tipset_key)
-            -> boost::optional<CID> {
+            auto address, auto wallet, auto amount) -> boost::optional<CID> {
           boost::optional<CID> result = boost::none;
           if (address == client_id_address) result = client_funding_cid;
           if (address == miner_actor_address) result = provider_funding_cid;
@@ -138,10 +137,10 @@ namespace fc::markets::storage::test {
     EXPECT_OUTCOME_TRUE_1(provider->importDataForDeal(proposal_cid, data));
 
     waitForProviderDealStatus(proposal_cid,
-                              StorageDealStatus::STORAGE_DEAL_COMPLETED);
+                              StorageDealStatus::STORAGE_DEAL_ACTIVE);
     EXPECT_OUTCOME_TRUE(provider_deal_state, provider->getDeal(proposal_cid));
     EXPECT_EQ(provider_deal_state.state,
-              StorageDealStatus::STORAGE_DEAL_COMPLETED);
+              StorageDealStatus::STORAGE_DEAL_ACTIVE);
 
     waitForClientDealStatus(proposal_cid,
                             StorageDealStatus::STORAGE_DEAL_ACTIVE);

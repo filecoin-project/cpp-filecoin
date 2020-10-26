@@ -16,13 +16,13 @@ namespace fc::data_transfer {
    public:
     MOCK_METHOD4(validatePush,
                  outcome::result<void>(const PeerInfo &sender,
-                                       std::vector<uint8_t> voucher,
+                                       BytesIn voucher,
                                        CID base_cid,
                                        std::shared_ptr<Selector> selector));
 
     MOCK_METHOD4(validatePull,
                  outcome::result<void>(const PeerInfo &receiver,
-                                       std::vector<uint8_t> voucher,
+                                       BytesIn voucher,
                                        CID base_cid,
                                        std::shared_ptr<Selector> selector));
   };

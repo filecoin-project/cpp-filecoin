@@ -153,8 +153,10 @@ namespace fc::api {
       decode(v.id, Get(j, "id"));
       if (j.HasMember("error")) {
         v.result = decode<Response::Error>(Get(j, "error"));
-      } else {
+      } else if (j.HasMember("result")) {
         v.result = AsDocument(Get(j, "result"));
+      } else {
+        v.result = Document{};
       }
     }
 
@@ -468,6 +470,10 @@ namespace fc::api {
       Get(j, "FaultCutoff", v.fault_cutoff);
     }
 
+    ENCODE(DomainSeparationTag) {
+      return encode(common::to_int(v));
+    }
+
     DECODE(DomainSeparationTag) {
       decodeEnum(v, j);
     }
@@ -777,14 +783,14 @@ namespace fc::api {
 
     ENCODE(SectorInfo) {
       Value j{rapidjson::kObjectType};
-      Set(j, "RegisteredProof", v.registered_proof);
+      Set(j, "SealProof", v.registered_proof);
       Set(j, "SectorNumber", v.sector);
       Set(j, "SealedCID", v.sealed_cid);
       return j;
     }
 
     DECODE(SectorInfo) {
-      Get(j, "RegisteredProof", v.registered_proof);
+      Get(j, "SealProof", v.registered_proof);
       Get(j, "SectorNumber", v.sector);
       Get(j, "SealedCID", v.sealed_cid);
     }
@@ -1121,7 +1127,6 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Msg", v.message);
       Set(j, "MsgRct", v.receipt);
-      Set(j, "InternalExecutions", v.internal_executions);
       Set(j, "Error", v.error);
       return j;
     }
@@ -1129,7 +1134,6 @@ namespace fc::api {
     DECODE(InvocResult) {
       decode(v.message, Get(j, "Msg"));
       decode(v.receipt, Get(j, "MsgRct"));
-      decode(v.internal_executions, Get(j, "InternalExecutions"));
       v.error = AsString(Get(j, "Error"));
     }
 
@@ -1234,7 +1238,7 @@ namespace fc::api {
       Set(j, "SectorSize", v.sector_size);
       Set(j, "PrevBeaconEntry", v.prev_beacon);
       Set(j, "BeaconEntries", v.beacons);
-      Set(j, "HasMinPower", v.has_min_power);
+      Set(j, "EligibleForMining", v.has_min_power);
       return j;
     }
 
@@ -1246,7 +1250,7 @@ namespace fc::api {
       Get(j, "SectorSize", v.sector_size);
       Get(j, "PrevBeaconEntry", v.prev_beacon);
       Get(j, "BeaconEntries", v.beacons);
-      Get(j, "HasMinPower", v.has_min_power);
+      Get(j, "EligibleForMining", v.has_min_power);
     }
 
     ENCODE(DealProposal) {

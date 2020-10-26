@@ -6,6 +6,8 @@
 #include "sectorblocks/impl/blocks_impl.hpp"
 
 namespace fc::sectorblocks {
+  SectorBlocksImpl::SectorBlocksImpl(std::shared_ptr<Miner> miner)
+      : miner_{miner} {}
 
   outcome::result<PieceAttributes> SectorBlocksImpl::addPiece(
       UnpaddedPieceSize size, const std::string &piece_data, DealInfo deal) {

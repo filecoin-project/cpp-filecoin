@@ -61,21 +61,14 @@ namespace fc::data_transfer {
    * @then got response not accepted
    */
   TEST_F(GraphsyncReceiverTest, VoucherNotFound) {
-    DataTransferRequest request{.base_cid = "base_cid",
-                                .is_cancel = true,
-                                .pid = {},
-                                .is_part = false,
-                                .is_pull = false,
-                                .selector = {},
-                                .voucher = {},
-                                .voucher_type = "not_found",
-                                .transfer_id = 1};
-    DataTransferMessage expected_response{
-        .is_request = false,
-        .request = boost::none,
-        .response =
-            DataTransferResponse{.is_accepted = false, .transfer_id = 1}};
-    EXPECT_CALL(*network, sendMessage(Eq(initiator), Eq(expected_response)))
+    DataTransferRequest request;
+    request.transfer_id = 1;
+    request.voucher_type = "not_found";
+    DataTransferResponse response;
+    response.is_accepted = false;
+    response.transfer_id = 1;
+    EXPECT_CALL(*network,
+                sendMessage(Eq(initiator), Eq(DataTransferMessage{response})))
         .WillOnce(::testing::Return());
     EXPECT_FALSE(receiver.receiveRequest(initiator, request).has_error());
   }
@@ -89,17 +82,13 @@ namespace fc::data_transfer {
     std::string voucher_type = "registered";
     TransferId transfer_id = 1;
     CID base_cid = "010001020005"_cid;
-    EXPECT_OUTCOME_TRUE(bace_cid_str, base_cid.toString());
 
-    DataTransferRequest request{.base_cid = bace_cid_str,
-                                .is_cancel = true,
-                                .pid = {},
-                                .is_part = false,
-                                .is_pull = true,
-                                .selector = {},
-                                .voucher = {},
-                                .voucher_type = voucher_type,
-                                .transfer_id = transfer_id};
+    DataTransferRequest request;
+    request.base_cid = base_cid;
+    request.is_pull = true;
+    request.voucher = CborRaw{Buffer{0}};
+    request.voucher_type = voucher_type;
+    request.transfer_id = transfer_id;
     EXPECT_CALL(*graphsync_manager,
                 createChannel(Eq(transfer_id),
                               Eq(base_cid),
@@ -116,13 +105,11 @@ namespace fc::data_transfer {
     EXPECT_OUTCOME_TRUE_1(
         receiver.registerVoucherType(voucher_type, request_validator));
 
-    DataTransferMessage expected_response{
-        .is_request = false,
-        .request = boost::none,
-        .response = DataTransferResponse{.is_accepted = true,
-                                         .transfer_id = transfer_id}};
-
-    EXPECT_CALL(*network, sendMessage(Eq(initiator), Eq(expected_response)))
+    DataTransferResponse response;
+    response.is_accepted = true;
+    response.transfer_id = transfer_id;
+    EXPECT_CALL(*network,
+                sendMessage(Eq(initiator), Eq(DataTransferMessage{response})))
         .WillOnce(::testing::Return());
     EXPECT_FALSE(receiver.receiveRequest(initiator, request).has_error());
   }
@@ -136,17 +123,12 @@ namespace fc::data_transfer {
     std::string voucher_type = "registered";
     TransferId transfer_id = 1;
     CID base_cid = "010001020005"_cid;
-    EXPECT_OUTCOME_TRUE(bace_cid_str, base_cid.toString());
 
-    DataTransferRequest request{.base_cid = bace_cid_str,
-                                .is_cancel = true,
-                                .pid = {},
-                                .is_part = false,
-                                .is_pull = false,
-                                .selector = {},
-                                .voucher = {},
-                                .voucher_type = voucher_type,
-                                .transfer_id = transfer_id};
+    DataTransferRequest request;
+    request.base_cid = base_cid;
+    request.voucher = CborRaw{Buffer{0}};
+    request.voucher_type = voucher_type;
+    request.transfer_id = transfer_id;
     EXPECT_CALL(*graphsync_manager,
                 createChannel(Eq(transfer_id),
                               Eq(base_cid),
@@ -166,12 +148,11 @@ namespace fc::data_transfer {
     EXPECT_OUTCOME_TRUE_1(
         receiver.registerVoucherType(voucher_type, request_validator));
 
-    DataTransferMessage expected_response{
-        .is_request = false,
-        .request = boost::none,
-        .response = DataTransferResponse{.is_accepted = true,
-                                         .transfer_id = transfer_id}};
-    EXPECT_CALL(*network, sendMessage(Eq(initiator), Eq(expected_response)))
+    DataTransferResponse response;
+    response.is_accepted = true;
+    response.transfer_id = transfer_id;
+    EXPECT_CALL(*network,
+                sendMessage(Eq(initiator), Eq(DataTransferMessage{response})))
         .WillOnce(::testing::Return());
     EXPECT_FALSE(receiver.receiveRequest(initiator, request).has_error());
   }

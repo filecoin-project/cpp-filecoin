@@ -35,7 +35,7 @@ namespace fc::mining {
     return outcome::success();
   }
 
-  void  EventsImpl::unsubscribeHeadChanges() {
+  void EventsImpl::unsubscribeHeadChanges() {
     channel_ = nullptr;
   }
 
@@ -245,8 +245,7 @@ namespace fc::mining {
       return true;
     }
 
-    logger_->warn("Unexpected head change notification type");
-    return false;
+    return true;
   }
 
 }  // namespace fc::mining

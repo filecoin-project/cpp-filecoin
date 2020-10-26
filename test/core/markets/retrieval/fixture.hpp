@@ -22,6 +22,7 @@
 
 namespace fc::markets::retrieval::test {
   using api::AddChannelInfo;
+  using api::MinerInfo;
   using common::Buffer;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
@@ -141,10 +142,11 @@ namespace fc::markets::retrieval::test {
       Tipset chain_head;
       api->ChainHead = {[=]() { return chain_head; }};
 
-      api->StateMinerWorker = {
-          [=](auto &address, auto &tipset_key) -> outcome::result<Address> {
-            return miner_worker_address;
-          }};
+      api->StateMinerInfo = [=](auto &address, auto &tipset_key) {
+        MinerInfo info;
+        info.worker = miner_worker_address;
+        return info;
+      };
 
       api->PaychGet = {
           [=](auto &, auto &, auto &) -> outcome::result<AddChannelInfo> {
