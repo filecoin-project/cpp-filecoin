@@ -21,6 +21,11 @@ namespace fc::vm::actor::builtin::cron {
   };
   CBOR_TUPLE(State, entries)
 
+  struct Construct : ActorMethodBase<1> {
+    using Params = std::vector<CronTableEntry>;
+    ACTOR_METHOD_DECL();
+  };
+
   /**
    * @brief EpochTick executes built-in periodic actions, run at every Epoch.
    */
