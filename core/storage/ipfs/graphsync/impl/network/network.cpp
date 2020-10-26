@@ -46,6 +46,7 @@ namespace fc::storage::ipfs::graphsync {
   void Network::stop() {
     started_ = false;
     closeAllPeers();
+    feedback_.reset();
   }
 
   bool Network::canSendRequest(const PeerId &peer) {

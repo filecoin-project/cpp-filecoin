@@ -50,7 +50,7 @@ namespace fc::mining {
 
   outcome::result<void> Mining::waitBeacon() {
     OUTCOME_TRY(_wait, api->BeaconGetEntry(height()));
-    _wait.wait([self{shared_from_this()}, _wait](auto _beacon) {
+    _wait.waitOwn([self{shared_from_this()}](auto _beacon) {
       OUTCOME_LOG("Mining::waitBeacon error", _beacon);
       OUTCOME_LOG("Mining::waitInfo error", self->waitInfo());
     });
@@ -64,7 +64,7 @@ namespace fc::mining {
       wait(kBlockDelaySecs, false, [this] { waitParent(); });
     } else {
       OUTCOME_TRY(_wait, api->MinerGetBaseInfo(miner, height(), ts_key));
-      _wait.wait([self{shared_from_this()}, _wait](auto _info) {
+      _wait.waitOwn([self{shared_from_this()}](auto _info) {
         OUTCOME_LOG("Mining::waitInfo error", _info);
         self->info = std::move(_info.value());
         OUTCOME_LOG("Mining::prepare error", self->prepare());
@@ -155,7 +155,7 @@ namespace fc::mining {
           election_vrf, info->miner_power, info->network_power)};
       if (win_count > 0) {
         auto ticket_seed{miner_seed};
-        if (info->beacons.empty()) {
+        if (height() > kUpgradeSmokeHeight) {
           ticket_seed.put(ts->getMinTicketBlock().ticket->bytes);
         }
         OUTCOME_TRY(ticket_vrf,

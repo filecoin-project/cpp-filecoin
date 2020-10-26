@@ -46,6 +46,10 @@ namespace fc {
     }  // namespace bls
   }    // namespace crypto
 
+  namespace data_transfer {
+    class GraphsyncReceiver;
+  }  // namespace data_transfer
+
   namespace drand {
     class Beaconizer;
     struct DrandSchedule;
@@ -54,6 +58,14 @@ namespace fc {
   namespace hello {
     struct Hello;
   }  // namespace hello
+
+  namespace markets {
+    namespace storage {
+      namespace provider {
+        class StoredAsk;
+      }  // namespace provider
+    }    // namespace storage
+  }      // namespace markets
 
   namespace primitives {
     namespace address {

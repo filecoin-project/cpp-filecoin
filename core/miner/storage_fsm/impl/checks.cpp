@@ -202,9 +202,9 @@ namespace fc::mining::checks {
       return ChecksError::kBadSeed;
     }
 
-    OUTCOME_TRY(sector_size,
-                api->StateMinerSectorSize(miner_address, tipset_key));
-    OUTCOME_TRY(seal_proof_type, sealProofTypeFromSectorSize(sector_size));
+    OUTCOME_TRY(minfo, api->StateMinerInfo(miner_address, tipset_key));
+    OUTCOME_TRY(seal_proof_type,
+                sealProofTypeFromSectorSize(minfo.sector_size));
 
     if (sector_info->comm_r != state_sector_precommit_info->info.sealed_cid) {
       return ChecksError::kBadSealedCid;

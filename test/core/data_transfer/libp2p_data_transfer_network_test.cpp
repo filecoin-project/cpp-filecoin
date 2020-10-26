@@ -14,8 +14,6 @@
 #include "testutil/outcome.hpp"
 #include "testutil/peer_id.hpp"
 
-using fc::data_transfer::createRequest;
-using fc::data_transfer::createResponse;
 using fc::data_transfer::DataTransferMessage;
 using fc::data_transfer::DataTransferNetwork;
 using fc::data_transfer::kDataTransferLibp2pProtocol;

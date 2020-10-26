@@ -6,6 +6,8 @@
 #ifndef CPP_FILECOIN_MARKETS_STORAGE_COMMON_HPP
 #define CPP_FILECOIN_MARKETS_STORAGE_COMMON_HPP
 
+#include "common/libp2p/cbor_stream.hpp"
+
 #define FSM_SEND(deal, event) OUTCOME_EXCEPT(fsm_->send(deal, event, {}))
 
 #define SELF_FSM_SEND(deal, event) \

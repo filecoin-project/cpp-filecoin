@@ -866,7 +866,7 @@ namespace fc::mining {
     OUTCOME_TRY(head, api_->ChainHead());
     OUTCOME_TRY(key, head.makeKey());
 
-    OUTCOME_TRY(worker_addr, api_->StateMinerWorker(miner_address_, key));
+    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, key));
 
     auto maybe_error =
         checks::checkPrecommit(miner_address_, info, key, head.height, api_);
@@ -931,15 +931,17 @@ namespace fc::mining {
     deposit = std::max(deposit, collateral);
 
     logger_->info("submitting precommit for sector: {}", info->sector_number);
-    auto maybe_signed_msg = api_->MpoolPushMessage(vm::message::UnsignedMessage(
-        miner_address_,
-        worker_addr,
-        0,
-        deposit,
-        1,
-        1000000,
-        vm::actor::builtin::miner::PreCommitSector::Number,
-        MethodParams{maybe_params.value()}));  // TODO: max fee options
+    auto maybe_signed_msg = api_->MpoolPushMessage(
+        vm::message::UnsignedMessage(
+            miner_address_,
+            minfo.worker,
+            0,
+            deposit,
+            {},
+            {},
+            vm::actor::builtin::miner::PreCommitSector::Number,
+            MethodParams{maybe_params.value()}),
+        api::kPushNoSpec);  // TODO: max fee options
 
     if (maybe_signed_msg.has_error()) {
       if (params.replace_capacity) {
@@ -975,9 +977,11 @@ namespace fc::mining {
     }
 
     logger_->info("Sector precommitted: {}", info->sector_number);
-    OUTCOME_TRY(channel, api_->StateWaitMsg(info->precommit_message.value()));
+    OUTCOME_TRY(channel,
+                api_->StateWaitMsg(info->precommit_message.value(),
+                                   api::kNoConfidence));
 
-    channel.wait([c{channel.channel}, info, this](auto &&maybe_lookup) {
+    channel.waitOwn([info, this](auto &&maybe_lookup) {
       if (maybe_lookup.has_error()) {
         logger_->error("sector precommit failed: {}",
                        maybe_lookup.error().message());
@@ -1084,7 +1088,7 @@ namespace fc::mining {
 
     logger_->info(
         "commit {} sector; ticket(epoch): {}({});"
-        "seed(epoch): {}({}); ticket(epoch): {}({})",
+        "seed(epoch): {}({})",
         info->sector_number,
         info->ticket,
         info->ticket_epoch,
@@ -1152,8 +1156,7 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    OUTCOME_TRY(worker_addr,
-                api_->StateMinerWorker(miner_address_, tipset_key));
+    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, tipset_key));
 
     OUTCOME_TRY(precommit_info_opt,
                 getStateSectorPreCommitInfo(
@@ -1166,7 +1169,7 @@ namespace fc::mining {
 
     OUTCOME_TRY(collateral,
                 api_->StateMinerInitialPledgeCollateral(
-                    miner_address_, info->sector_number, tipset_key));
+                    miner_address_, precommit_info_opt->info, tipset_key));
 
     collateral -= precommit_info_opt->precommit_deposit;
     if (collateral < 0) {
@@ -1174,15 +1177,17 @@ namespace fc::mining {
     }
 
     // TODO: check seed / ticket are up to date
-    auto maybe_signed_msg = api_->MpoolPushMessage(vm::message::UnsignedMessage(
-        miner_address_,
-        worker_addr,
-        0,
-        collateral,
-        1,
-        1000000,
-        vm::actor::builtin::miner::ProveCommitSector::Number,
-        MethodParams{maybe_params_encoded.value()}));
+    auto maybe_signed_msg = api_->MpoolPushMessage(
+        vm::message::UnsignedMessage(
+            miner_address_,
+            minfo.worker,
+            0,
+            collateral,
+            {},
+            {},
+            vm::actor::builtin::miner::ProveCommitSector::Number,
+            MethodParams{maybe_params_encoded.value()}),
+        api::kPushNoSpec);
 
     if (maybe_signed_msg.has_error()) {
       logger_->error("pushing message to mpool: {}",
@@ -1209,9 +1214,10 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    OUTCOME_TRY(channel, api_->StateWaitMsg(info->message.get()));
+    OUTCOME_TRY(channel,
+                api_->StateWaitMsg(info->message.get(), api::kNoConfidence));
 
-    channel.wait([=](auto &&maybe_message_lookup) {
+    channel.waitOwn([=](auto &&maybe_message_lookup) {
       if (maybe_message_lookup.has_error()) {
         logger_->error("failed to wait for porep inclusion: {}",
                        maybe_message_lookup.error().message());
@@ -1553,7 +1559,9 @@ namespace fc::mining {
       return SealingError::kNoFaultMessage;
     }
 
-    OUTCOME_TRY(channel, api_->StateWaitMsg(info->fault_report_message.get()));
+    OUTCOME_TRY(channel,
+                api_->StateWaitMsg(info->fault_report_message.get(),
+                                   api::kNoConfidence));
     OUTCOME_TRY(message, channel.waitSync());
 
     if (message.receipt.exit_code != vm::VMExitCode::kOk) {

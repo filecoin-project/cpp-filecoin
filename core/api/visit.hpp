@@ -65,9 +65,7 @@ namespace fc::api {
     f(a.StateMinerPower);
     f(a.StateMinerPreCommitDepositForPower);
     f(a.StateMinerProvingDeadline);
-    f(a.StateMinerSectorSize);
     f(a.StateMinerSectors);
-    f(a.StateMinerWorker);
     f(a.StateNetworkName);
     f(a.StateReadState);
     f(a.StateSearchMsg);
