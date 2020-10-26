@@ -22,16 +22,15 @@ namespace fc::data_transfer {
     if (validator == voucher_validators_.end()) {
       return MessageReceiverError::kVoucherValidatorNotFound;
     }
-    OUTCOME_TRY(base_cid, CID::fromString(request.base_cid));
     // TODO (a.chernyshov) implement selectors and deserialize from
     // request.selector
-    auto selector = std::make_shared<Selector>();
+    auto selector{std::make_shared<Selector>(request.selector)};
     if (request.is_pull) {
       OUTCOME_TRY(validator->second->validatePull(
-          sender, request.voucher, base_cid, selector));
+          sender, request.voucher->b, request.base_cid, selector));
     } else {
       OUTCOME_TRY(validator->second->validatePush(
-          sender, request.voucher, base_cid, selector));
+          sender, request.voucher->b, request.base_cid, selector));
     }
 
     return outcome::success();

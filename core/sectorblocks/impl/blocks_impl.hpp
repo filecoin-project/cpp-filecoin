@@ -14,6 +14,8 @@ namespace fc::sectorblocks {
 
   class SectorBlocksImpl : public SectorBlocks {
    public:
+    SectorBlocksImpl(std::shared_ptr<Miner> miner);
+
     outcome::result<PieceAttributes> addPiece(UnpaddedPieceSize size,
                                               const std::string &piece_data,
                                               DealInfo deal) override;

@@ -52,9 +52,10 @@ namespace fc::vm::runtime {
   };
 
   struct Execution : std::enable_shared_from_this<Execution> {
-    static std::shared_ptr<Execution> make(std::shared_ptr<Env> env,
-                                           const UnsignedMessage &message,
-                                           std::shared_ptr<Invoker> invoker);
+    static std::shared_ptr<Execution> make(
+        const std::shared_ptr<Env> &env,
+        const UnsignedMessage &message,
+        const std::shared_ptr<Invoker> &invoker);
 
     outcome::result<void> chargeGas(GasAmount amount);
 

@@ -53,18 +53,21 @@ namespace fc::markets::storage {
     STORAGE_DEAL_PROPOSAL_ACCEPTED,
     STORAGE_DEAL_STAGED,
     STORAGE_DEAL_SEALING,
+    STORAGE_DEAL_FINALIZING,
     STORAGE_DEAL_ACTIVE,
+    STORAGE_DEAL_EXPIRED,
+    STORAGE_DEAL_SLASHED,
+    STORAGE_DEAL_REJECTING,
     STORAGE_DEAL_FAILING,
-    STORAGE_DEAL_NOT_FOUND,
-
     // Internal
 
     /** Deposited funds as neccesary to create a deal, ready to move forward */
     STORAGE_DEAL_FUNDS_ENSURED,
-
+    STORAGE_DEAL_CHECK_FOR_ACCEPTANCE,
     /** Verifying that deal parameters are good */
     STORAGE_DEAL_VALIDATING,
-
+    STORAGE_DEAL_ACCEPT_WAIT,
+    STORAGE_DEAL_START_DATA_TRANSFER,
     /** Moving data */
     STORAGE_DEAL_TRANSFERRING,
 
@@ -94,12 +97,6 @@ namespace fc::markets::storage {
 
     /** deal failed with an unexpected error */
     STORAGE_DEAL_ERROR,
-
-    /**
-     * On provider side, indicates deal is active and info for retrieval is
-     * recorded
-     */
-    STORAGE_DEAL_COMPLETED
   };
 
   struct MinerDeal {
@@ -186,10 +183,10 @@ namespace fc::markets::storage {
     CID proposal;
 
     // StorageDealProposalAccepted
-    CID publish_message;
+    boost::optional<CID> _unused;
   };
 
-  CBOR_TUPLE(Response, state, message, proposal, publish_message)
+  CBOR_TUPLE(Response, state, message, proposal, _unused)
 
   /**
    * SignedResponse is a response that is signed
@@ -201,6 +198,40 @@ namespace fc::markets::storage {
 
   CBOR_TUPLE(SignedResponse, response, signature)
 
+  const libp2p::peer::Protocol kDealStatusProtocolId{
+      "/fil/storage/status/1.0.1"};
+
+  struct ProviderDealState {
+    StorageDealStatus status{};
+    std::string message;
+    DealProposal proposal;
+    CID proposal_cid;
+    boost::optional<CID> add_funds_cid;
+    boost::optional<CID> publish_cid;
+    DealId id{};
+    bool fast_retrieval{};
+  };
+  CBOR_TUPLE(ProviderDealState,
+             status,
+             message,
+             proposal,
+             proposal_cid,
+             add_funds_cid,
+             publish_cid,
+             id,
+             fast_retrieval)
+
+  struct DealStatusRequest {
+    CID proposal;
+    Signature signature;
+  };
+  CBOR_TUPLE(DealStatusRequest, proposal, signature)
+
+  struct DealStatusResponse {
+    ProviderDealState state;
+    Signature signature;
+  };
+  CBOR_TUPLE(DealStatusResponse, state, signature)
 }  // namespace fc::markets::storage
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE__PROTOCOL_DEAL_PROTOCOL_HPP

@@ -18,20 +18,33 @@ import (
 	"github.com/filecoin-project/go-state-types/exitcode"
 	"github.com/filecoin-project/go-state-types/network"
 	rtt "github.com/filecoin-project/go-state-types/rt"
-	"github.com/filecoin-project/specs-actors/actors/builtin"
-	"github.com/filecoin-project/specs-actors/actors/builtin/account"
-	"github.com/filecoin-project/specs-actors/actors/builtin/cron"
-	init_ "github.com/filecoin-project/specs-actors/actors/builtin/init"
-	"github.com/filecoin-project/specs-actors/actors/builtin/market"
-	"github.com/filecoin-project/specs-actors/actors/builtin/miner"
-	"github.com/filecoin-project/specs-actors/actors/builtin/multisig"
-	"github.com/filecoin-project/specs-actors/actors/builtin/paych"
-	"github.com/filecoin-project/specs-actors/actors/builtin/power"
-	"github.com/filecoin-project/specs-actors/actors/builtin/reward"
-	"github.com/filecoin-project/specs-actors/actors/builtin/system"
-	"github.com/filecoin-project/specs-actors/actors/builtin/verifreg"
-	"github.com/filecoin-project/specs-actors/actors/runtime"
-	"github.com/filecoin-project/specs-actors/actors/runtime/proof"
+	builtin1 "github.com/filecoin-project/specs-actors/actors/builtin"
+	account1 "github.com/filecoin-project/specs-actors/actors/builtin/account"
+	cron1 "github.com/filecoin-project/specs-actors/actors/builtin/cron"
+	init1 "github.com/filecoin-project/specs-actors/actors/builtin/init"
+	market1 "github.com/filecoin-project/specs-actors/actors/builtin/market"
+	miner1 "github.com/filecoin-project/specs-actors/actors/builtin/miner"
+	multisig1 "github.com/filecoin-project/specs-actors/actors/builtin/multisig"
+	paych1 "github.com/filecoin-project/specs-actors/actors/builtin/paych"
+	power1 "github.com/filecoin-project/specs-actors/actors/builtin/power"
+	reward1 "github.com/filecoin-project/specs-actors/actors/builtin/reward"
+	system1 "github.com/filecoin-project/specs-actors/actors/builtin/system"
+	verifreg1 "github.com/filecoin-project/specs-actors/actors/builtin/verifreg"
+	rt1 "github.com/filecoin-project/specs-actors/actors/runtime"
+	proof1 "github.com/filecoin-project/specs-actors/actors/runtime/proof"
+	builtin2 "github.com/filecoin-project/specs-actors/v2/actors/builtin"
+	account2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/account"
+	cron2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/cron"
+	init2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/init"
+	market2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/market"
+	miner2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/miner"
+	multisig2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/multisig"
+	paych2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/paych"
+	power2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/power"
+	reward2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/reward"
+	system2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/system"
+	verifreg2 "github.com/filecoin-project/specs-actors/v2/actors/builtin/verifreg"
+	rt2 "github.com/filecoin-project/specs-actors/v2/actors/runtime"
 	"github.com/ipfs/go-cid"
 	"github.com/whyrusleeping/cbor-gen"
 	"reflect"
@@ -55,12 +68,6 @@ var empty = func() cid.Cid {
 	return c
 }()
 
-type into struct{ b []byte }
-
-func (into *into) Into(o cbor.Er) error {
-	return o.UnmarshalCBOR(bytes.NewReader(into.b))
-}
-
 type rt struct {
 	id       uint64
 	version  uint64
@@ -72,7 +79,8 @@ type rt struct {
 	ctx      context.Context
 }
 
-var _ runtime.Runtime = &rt{}
+var _ rt1.Runtime = &rt{}
+var _ rt2.Runtime = &rt{}
 
 func (rt *rt) NetworkVersion() network.Version {
 	return network.Version(rt.version)
@@ -172,7 +180,7 @@ func (rt *rt) NewActorAddress() address.Address {
 }
 
 func (rt *rt) CreateActor(code cid.Cid, addr address.Address) {
-	if !builtin.IsBuiltinActor(code) || IsSingletonActor(code) {
+	if !(builtin2.IsBuiltinActor(code) || builtin1.IsBuiltinActor(code)) || IsSingletonActor(code) {
 		rt.Abort(exitcode.SysErrorIllegalArgument)
 	}
 	rt.gocRet(C.gocRtCreateActor(rt.gocArg().cid(code).addr(addr).arg()))
@@ -202,7 +210,8 @@ func (rt *rt) ChargeGas(_ string, gas int64, _ int64) {
 func (rt *rt) Log(rtt.LogLevel, string, ...interface{}) {
 }
 
-var _ runtime.StateHandle = &rt{}
+var _ rt1.StateHandle = &rt{}
+var _ rt2.StateHandle = &rt{}
 
 func (rt *rt) StateCreate(o cbor.Marshaler) {
 	rt.commit(empty, o)
@@ -223,7 +232,8 @@ func (rt *rt) StateTransaction(o cbor.Er, f func()) {
 	rt.commit(base, o)
 }
 
-var _ runtime.Store = &rt{}
+var _ rt1.Store = &rt{}
+var _ rt2.Store = &rt{}
 
 func (rt *rt) StoreGet(c cid.Cid, o cbor.Unmarshaler) bool {
 	ret := rt.gocRet(C.gocRtIpldGet(rt.gocArg().cid(c).arg()))
@@ -242,7 +252,8 @@ func (rt *rt) StorePut(o cbor.Marshaler) cid.Cid {
 	return ret.cid()
 }
 
-var _ runtime.Message = &rt{}
+var _ rt1.Message = &rt{}
+var _ rt2.Message = &rt{}
 
 func (rt *rt) Caller() address.Address {
 	return rt.from
@@ -256,7 +267,8 @@ func (rt *rt) ValueReceived() abi.TokenAmount {
 	return rt.value
 }
 
-var _ runtime.Syscalls = &rt{}
+var _ rt1.Syscalls = &rt{}
+var _ rt2.Syscalls = &rt{}
 
 func (rt *rt) VerifySignature(sig crypto.Signature, addr address.Address, input []byte) error {
 	b, e := sig.MarshalBinary()
@@ -293,12 +305,12 @@ func (rt *rt) ComputeUnsealedSectorCID(reg abi.RegisteredSealProof, ps []abi.Pie
 	return cid.Undef, errors.New("ComputeUnsealedSectorCID")
 }
 
-func (rt *rt) VerifySeal(proof.SealVerifyInfo) error {
+func (rt *rt) VerifySeal(proof1.SealVerifyInfo) error {
 	// TODO: implement
 	panic(cgoErrors("NOT IMPLEMENTED VerifySeal"))
 }
 
-func (rt *rt) BatchVerifySeals(batch map[address.Address][]proof.SealVerifyInfo) (map[address.Address][]bool, error) {
+func (rt *rt) BatchVerifySeals(batch map[address.Address][]proof1.SealVerifyInfo) (map[address.Address][]bool, error) {
 	n := 0
 	for _, seals := range batch {
 		n += len(seals)
@@ -322,7 +334,7 @@ func (rt *rt) BatchVerifySeals(batch map[address.Address][]proof.SealVerifyInfo)
 	return out, nil
 }
 
-func (rt *rt) VerifyPoSt(info proof.WindowPoStVerifyInfo) error {
+func (rt *rt) VerifyPoSt(info proof1.WindowPoStVerifyInfo) error {
 	arg := rt.gocArg()
 	if e := info.MarshalCBOR(arg.w); e != nil {
 		panic(cgoErrors("VerifyPoSt MarshalCBOR"))
@@ -334,7 +346,7 @@ func (rt *rt) VerifyPoSt(info proof.WindowPoStVerifyInfo) error {
 	return errors.New("VerifyPost")
 }
 
-func (rt *rt) VerifyConsensusFault([]byte, []byte, []byte) (*runtime.ConsensusFault, error) {
+func (rt *rt) VerifyConsensusFault([]byte, []byte, []byte) (*rt1.ConsensusFault, error) {
 	// TODO: implement
 	panic(cgoErrors("NOT IMPLEMENTED VerifyConsensusFault"))
 }
@@ -401,17 +413,29 @@ type method = func(rt *rt, params []byte) []byte
 type methods = map[uint64]method
 
 var _actors = map[cid.Cid]rtt.VMActor{
-	builtin.SystemActorCodeID:           system.Actor{},
-	builtin.InitActorCodeID:             init_.Actor{},
-	builtin.RewardActorCodeID:           reward.Actor{},
-	builtin.CronActorCodeID:             cron.Actor{},
-	builtin.StoragePowerActorCodeID:     power.Actor{},
-	builtin.StorageMarketActorCodeID:    market.Actor{},
-	builtin.StorageMinerActorCodeID:     miner.Actor{},
-	builtin.MultisigActorCodeID:         multisig.Actor{},
-	builtin.PaymentChannelActorCodeID:   paych.Actor{},
-	builtin.VerifiedRegistryActorCodeID: verifreg.Actor{},
-	builtin.AccountActorCodeID:          account.Actor{},
+	builtin1.SystemActorCodeID:           system1.Actor{},
+	builtin1.InitActorCodeID:             init1.Actor{},
+	builtin1.RewardActorCodeID:           reward1.Actor{},
+	builtin1.CronActorCodeID:             cron1.Actor{},
+	builtin1.StoragePowerActorCodeID:     power1.Actor{},
+	builtin1.StorageMarketActorCodeID:    market1.Actor{},
+	builtin1.StorageMinerActorCodeID:     miner1.Actor{},
+	builtin1.MultisigActorCodeID:         multisig1.Actor{},
+	builtin1.PaymentChannelActorCodeID:   paych1.Actor{},
+	builtin1.VerifiedRegistryActorCodeID: verifreg1.Actor{},
+	builtin1.AccountActorCodeID:          account1.Actor{},
+
+	builtin2.SystemActorCodeID:           system2.Actor{},
+	builtin2.InitActorCodeID:             init2.Actor{},
+	builtin2.RewardActorCodeID:           reward2.Actor{},
+	builtin2.CronActorCodeID:             cron2.Actor{},
+	builtin2.StoragePowerActorCodeID:     power2.Actor{},
+	builtin2.StorageMarketActorCodeID:    market2.Actor{},
+	builtin2.StorageMinerActorCodeID:     miner2.Actor{},
+	builtin2.MultisigActorCodeID:         multisig2.Actor{},
+	builtin2.PaymentChannelActorCodeID:   paych2.Actor{},
+	builtin2.VerifiedRegistryActorCodeID: verifreg2.Actor{},
+	builtin2.AccountActorCodeID:          account2.Actor{},
 }
 var actors = map[cid.Cid]methods{}
 
@@ -480,12 +504,16 @@ func cgoActorsInvoke(raw C.Raw) C.Raw {
 //export cgoActorsConfig
 func cgoActorsConfig(raw C.Raw) C.Raw {
 	arg := cgoArgCbor(raw)
-	verifreg.MinVerifiedDealSize = arg.big()
-	power.ConsensusMinerMinPower = arg.big()
+	verifreg1.MinVerifiedDealSize = arg.big()
+	power1.ConsensusMinerMinPower = arg.big()
+	verifreg2.MinVerifiedDealSize = verifreg1.MinVerifiedDealSize
 	n := int(arg.int())
-	miner.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
+	miner1.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
+	miner2.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
 	for i := 0; i < n; i++ {
-		miner.SupportedProofTypes[abi.RegisteredSealProof(arg.int())] = struct{}{}
+		proof := arg.int()
+		miner1.SupportedProofTypes[abi.RegisteredSealProof(proof)] = struct{}{}
+		miner2.SupportedProofTypes[abi.RegisteredSealProof(proof)] = struct{}{}
 	}
 	return cgoRet(nil)
 }

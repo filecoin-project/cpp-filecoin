@@ -15,7 +15,7 @@ namespace fc::markets::storage::provider {
 
   outcome::result<void> ProviderDataTransferRequestValidator::validatePush(
       const PeerInfo &sender,
-      std::vector<uint8_t> encoded_voucher,
+      BytesIn encoded_voucher,
       CID base_cid,
       std::shared_ptr<Selector> selector) {
     OUTCOME_TRY(
@@ -30,6 +30,7 @@ namespace fc::markets::storage::provider {
       return ProviderRequestValidatorError::kWrongPayloadCID;
     }
     if (deal.state != StorageDealStatus::STORAGE_DEAL_UNKNOWN
+        && deal.state != StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA
         && deal.state != StorageDealStatus::STORAGE_DEAL_VALIDATING) {
       return ProviderRequestValidatorError::kInacceptableDealState;
     }
@@ -39,7 +40,7 @@ namespace fc::markets::storage::provider {
 
   outcome::result<void> ProviderDataTransferRequestValidator::validatePull(
       const PeerInfo &receiver,
-      std::vector<uint8_t> encoded_voucher,
+      BytesIn encoded_voucher,
       CID base_cid,
       std::shared_ptr<Selector> selector) {
     return ProviderRequestValidatorError::kErrorNoPushAccepted;

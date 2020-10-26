@@ -14,21 +14,17 @@ namespace fc::data_transfer {
 
   class ManagerMock : public Manager {
    public:
+    MOCK_METHOD1(subscribe, void(std::weak_ptr<Subscriber>));
+
     MOCK_METHOD2(
         init,
         outcome::result<void>(const std::string &voucher_type,
                               std::shared_ptr<RequestValidator> validator));
 
-    MOCK_METHOD4(
-        openPushDataChannel,
+    MOCK_METHOD5(
+        openDataChannel,
         outcome::result<ChannelId>(const PeerInfo &to,
-                                   const Voucher &voucher,
-                                   CID base_cid,
-                                   std::shared_ptr<Selector> selector));
-
-    MOCK_METHOD4(
-        openPullDataChannel,
-        outcome::result<ChannelId>(const PeerInfo &to,
+                                   bool,
                                    const Voucher &voucher,
                                    CID base_cid,
                                    std::shared_ptr<Selector> selector));
@@ -37,7 +33,7 @@ namespace fc::data_transfer {
                  outcome::result<ChannelId>(const TransferId &transfer_id,
                                             const CID &base_cid,
                                             std::shared_ptr<Selector> selector,
-                                            const std::vector<uint8_t> &voucher,
+                                            BytesIn voucher,
                                             const PeerInfo &initiator,
                                             const PeerInfo &sender_peer,
                                             const PeerInfo &receiver_peer));
