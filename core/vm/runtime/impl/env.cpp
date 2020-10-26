@@ -190,9 +190,10 @@ namespace fc::vm::runtime {
     return outcome::success();
   }
 
-  std::shared_ptr<Execution> Execution::make(std::shared_ptr<Env> env,
-                                             const UnsignedMessage &message,
-                                             std::shared_ptr<Invoker> invoker) {
+  std::shared_ptr<Execution> Execution::make(
+      const std::shared_ptr<Env> &env,
+      const UnsignedMessage &message,
+      const std::shared_ptr<Invoker> &invoker) {
     auto execution = std::make_shared<Execution>();
     execution->env = env;
     execution->state_tree = env->state_tree;
@@ -201,7 +202,7 @@ namespace fc::vm::runtime {
     execution->gas_limit = message.gas_limit;
     execution->origin = message.from;
     execution->origin_nonce = message.nonce;
-    execution->invoker = std::move(invoker);
+    execution->invoker = invoker;
     return execution;
   }
 
