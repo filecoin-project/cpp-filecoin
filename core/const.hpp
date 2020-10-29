@@ -18,11 +18,13 @@ namespace fc {
   constexpr auto kConsensusMinerMinMiners{3};
   constexpr auto kEpochDurationSeconds{30};
   constexpr auto kGasLimitOverestimation{1.25};
+  constexpr auto kMessageConfidence{5};
   constexpr auto kMinimumBaseFee{100};
   constexpr auto kBlockDelaySecs{kEpochDurationSeconds};
   constexpr auto kPackingEfficiencyDenom{5};
   constexpr auto kPackingEfficiencyNum{4};
   constexpr auto kPropagationDelaySecs{6};
+  constexpr auto kUpgradeSmokeHeight{51000};
 
   extern BigInt kConsensusMinerMinPower;
 }  // namespace fc

@@ -230,9 +230,11 @@ namespace fc::payment_channel_manager {
         kDefaultGasLimit,
         vm::actor::builtin::market::AddBalance::Number,
         {}};
-    OUTCOME_TRY(signed_message, api_->MpoolPushMessage(unsigned_message));
+    OUTCOME_TRY(signed_message,
+                api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
     OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
-    OUTCOME_TRY(message_wait, api_->StateWaitMsg(message_cid));
+    OUTCOME_TRY(message_wait,
+                api_->StateWaitMsg(message_cid, api::kNoConfidence));
     OUTCOME_TRY(message_state, message_wait.waitSync());
     if (message_state.receipt.exit_code != VMExitCode::kOk) {
       return PaymentChannelManagerError::kSendFundsErrored;
@@ -263,9 +265,11 @@ namespace fc::payment_channel_manager {
                                      kDefaultGasLimit,
                                      InitActorExec::Number,
                                      MethodParams{encoded_init_params}};
-    OUTCOME_TRY(signed_message, api_->MpoolPushMessage(unsigned_message));
+    OUTCOME_TRY(signed_message,
+                api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
     OUTCOME_TRY(message_cid, vm::message::cid(signed_message));
-    OUTCOME_TRY(message_wait, api_->StateWaitMsg(message_cid));
+    OUTCOME_TRY(message_wait,
+                api_->StateWaitMsg(message_cid, api::kNoConfidence));
     OUTCOME_TRY(message_state, message_wait.waitSync());
     if (message_state.receipt.exit_code != VMExitCode::kOk) {
       return PaymentChannelManagerError::kCreateChannelActorErrored;

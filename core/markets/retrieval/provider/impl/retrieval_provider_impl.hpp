@@ -7,7 +7,6 @@
 #define CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROVIDER_IMPL_HPP
 
 #include "api/api.hpp"
-#include "common/libp2p/cbor_host.hpp"
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
 #include "markets/retrieval/protocols/query_protocol.hpp"
@@ -18,7 +17,6 @@
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::retrieval::provider {
-  using common::libp2p::CborHost;
   using common::libp2p::CborStream;
   using ::fc::miner::Miner;
   using ::fc::sector_storage::Manager;
@@ -28,8 +26,8 @@ namespace fc::markets::retrieval::provider {
   using libp2p::Host;
   using primitives::BigInt;
   using primitives::SectorNumber;
-  using primitives::piece::UnpaddedPieceSize;
   using primitives::piece::PieceData;
+  using primitives::piece::UnpaddedPieceSize;
 
   /**
    * @struct Provider config
@@ -168,12 +166,11 @@ namespace fc::markets::retrieval::provider {
      * @param size - size of piece
      * @return Read PieceData
      */
-    outcome::result<PieceData> unsealSector(
-        SectorNumber sector_id,
-        UnpaddedPieceSize offset,
-        UnpaddedPieceSize size);
+    outcome::result<PieceData> unsealSector(SectorNumber sector_id,
+                                            UnpaddedPieceSize offset,
+                                            UnpaddedPieceSize size);
 
-    std::shared_ptr<CborHost> host_;
+    std::shared_ptr<Host> host_;
     std::shared_ptr<api::Api> api_;
     Address miner_address;
     std::shared_ptr<PieceStorage> piece_storage_;

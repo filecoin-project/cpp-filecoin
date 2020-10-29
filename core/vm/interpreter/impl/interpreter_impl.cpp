@@ -67,7 +67,6 @@ namespace fc::vm::interpreter {
       if (all_receipts) {
         all_receipts->push_back(receipt);
       }
-      return outcome::success();
     }};
 
     if (hasDuplicateMiners(tipset->blks)) {
@@ -92,7 +91,7 @@ namespace fc::vm::interpreter {
       if (receipt.exit_code != VMExitCode::kOk) {
         return receipt.exit_code;
       }
-      std::ignore = on_receipt(receipt);
+      on_receipt(receipt);
       return outcome::success();
     }};
 
@@ -125,7 +124,7 @@ namespace fc::vm::interpreter {
             OUTCOME_TRY(apply, env->applyMessage(message, raw.size()));
             reward.penalty += apply.penalty;
             reward.gas_reward += apply.reward;
-            std::ignore = on_receipt(apply.receipt);
+            on_receipt(apply.receipt);
             OUTCOME_TRY(receipts.append(std::move(apply.receipt)));
             return outcome::success();
           }));
@@ -145,7 +144,7 @@ namespace fc::vm::interpreter {
       if (receipt.exit_code != VMExitCode::kOk) {
         return receipt.exit_code;
       }
-      std::ignore = on_receipt(receipt);
+      on_receipt(receipt);
     }
 
     OUTCOME_TRY(cron());

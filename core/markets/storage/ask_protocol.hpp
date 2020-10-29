@@ -23,11 +23,13 @@ namespace fc::markets::storage {
   using primitives::address::Address;
   using primitives::piece::PaddedPieceSize;
 
-  const libp2p::peer::Protocol kAskProtocolId = "/fil/storage/ask/1.0.1";
+  const libp2p::peer::Protocol kAskProtocolId0 = "/fil/storage/ask/1.0.1";
+  const libp2p::peer::Protocol kAskProtocolId = "/fil/storage/ask/1.1.1";
 
   struct StorageAsk {
     // Price per GiB / Epoch
     TokenAmount price;
+    TokenAmount verified_price;
     PaddedPieceSize min_piece_size;
     PaddedPieceSize max_piece_size;
     Address miner;
@@ -38,6 +40,7 @@ namespace fc::markets::storage {
 
   CBOR_TUPLE(StorageAsk,
              price,
+             verified_price,
              min_piece_size,
              max_piece_size,
              miner,

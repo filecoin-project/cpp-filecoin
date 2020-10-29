@@ -117,6 +117,7 @@ namespace fc::api {
   struct Wait {
     using Type = T;
     using Result = outcome::result<T>;
+    using Cb = std::function<void(Result)>;
 
     Wait() = default;
     Wait(std::shared_ptr<Channel<Result>> channel)
@@ -125,7 +126,11 @@ namespace fc::api {
       return std::make_shared<Channel<Result>>();
     }
 
-    void wait(std::function<void(Result)> cb) {
+    void waitOwn(Cb cb) {
+      wait([c{channel}, cb{std::move(cb)}](auto &&v) { cb(v); });
+    }
+
+    void wait(Cb cb) {
       channel->read([cb{std::move(cb)}](auto opt) {
         if (opt) {
           cb(std::move(*opt));
@@ -156,7 +161,6 @@ namespace fc::api {
   struct InvocResult {
     UnsignedMessage message;
     MessageReceipt receipt;
-    std::vector<ExecutionResult> internal_executions;
     std::string error;
   };
 
@@ -282,6 +286,10 @@ namespace fc::api {
     uint64_t partition;
   };
 
+  constexpr None kPushNoSpec{};
+
+  constexpr uint64_t kNoConfidence{};
+
   struct Api {
     API_METHOD(AuthNew, Buffer, const std::vector<std::string> &)
 
@@ -344,8 +352,7 @@ namespace fc::api {
                boost::optional<CID>,
                const Address &,
                const Address &,
-               const TokenAmount &,
-               const TipsetKey &)
+               const TokenAmount &)
 
     API_METHOD(MinerCreateBlock, BlockWithCids, const BlockTemplate &)
     API_METHOD(MinerGetBaseInfo,
@@ -355,7 +362,7 @@ namespace fc::api {
                const TipsetKey &)
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
-    API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &)
+    API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &, None)
     API_METHOD(MpoolSelect,
                std::vector<SignedMessage>,
                const TipsetKey &,
@@ -408,11 +415,6 @@ namespace fc::api {
                const boost::optional<RleBitset> &,
                bool,
                const TipsetKey &)
-    API_METHOD(StateMinerSectorSize,
-               SectorSize,
-               const Address &,
-               const TipsetKey &)
-    API_METHOD(StateMinerWorker, Address, const Address &, const TipsetKey &)
     API_METHOD(StateNetworkName, std::string)
     API_METHOD(StateMinerPreCommitDepositForPower,
                TokenAmount,
@@ -422,7 +424,7 @@ namespace fc::api {
     API_METHOD(StateMinerInitialPledgeCollateral,
                TokenAmount,
                const Address &,
-               SectorNumber,
+               const SectorPreCommitInfo &,
                const TipsetKey &);
     API_METHOD(StateSectorPreCommitInfo,
                SectorPreCommitOnChainInfo,
@@ -440,7 +442,7 @@ namespace fc::api {
                SectorNumber,
                const TipsetKey &);
     API_METHOD(StateSearchMsg, boost::optional<MsgWait>, const CID &)
-    API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &)
+    API_METHOD(StateWaitMsg, Wait<MsgWait>, const CID &, uint64_t)
 
     API_METHOD(SyncSubmitBlock, void, const BlockWithCids &)
 

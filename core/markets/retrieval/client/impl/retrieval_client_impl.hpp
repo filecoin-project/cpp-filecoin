@@ -10,6 +10,7 @@
 
 #include <libp2p/host/host.hpp>
 #include "api/api.hpp"
+#include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
 #include "markets/retrieval/client/retrieval_client.hpp"
 #include "markets/retrieval/client/retrieval_client_error.hpp"
@@ -19,7 +20,6 @@
 
 namespace fc::markets::retrieval::client {
   using api::Api;
-  using common::libp2p::CborHost;
   using common::libp2p::CborStream;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::ipld::verifier::Verifier;
@@ -160,7 +160,7 @@ namespace fc::markets::retrieval::client {
                   const std::error_code &error);
 
     DealId next_deal_id;
-    std::shared_ptr<CborHost> host_;
+    std::shared_ptr<Host> host_;
     std::shared_ptr<Api> api_;
     std::shared_ptr<IpfsDatastore> ipfs_;
     common::Logger logger_ = common::createLogger("RetrievalMarketClient");

@@ -5,8 +5,6 @@
 
 #include "markets/storage/provider/stored_ask.hpp"
 
-#include "common/todo_error.hpp"
-
 namespace fc::markets::storage::provider {
 
   // Key to store last ask in datastore
@@ -25,6 +23,7 @@ namespace fc::markets::storage::provider {
     ChainEpoch timestamp = chain_head->height();
     ChainEpoch expiry = chain_head->height() + duration;
     StorageAsk ask{.price = price,
+                   .verified_price = price,
                    .min_piece_size = kDefaultMinPieceSize,
                    .max_piece_size = kDefaultMaxPieceSize,
                    .miner = actor_,
@@ -62,6 +61,7 @@ namespace fc::markets::storage::provider {
     ChainEpoch timestamp = chain_head->height();
     ChainEpoch expiry = chain_head->height() + kDefaultDuration;
     StorageAsk default_ask{.price = kDefaultPrice,
+                           .verified_price = kDefaultPrice,
                            .min_piece_size = kDefaultMinPieceSize,
                            .max_piece_size = kDefaultMaxPieceSize,
                            .miner = actor_,

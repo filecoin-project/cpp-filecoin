@@ -34,7 +34,7 @@ namespace fc::markets::storage::provider {
      */
     outcome::result<void> validatePush(
         const PeerInfo &sender,
-        std::vector<uint8_t> encoded_voucher,
+        BytesIn encoded_voucher,
         CID base_cid,
         std::shared_ptr<Selector> selector) override;
 
@@ -45,7 +45,7 @@ namespace fc::markets::storage::provider {
      */
     outcome::result<void> validatePull(
         const PeerInfo &receiver,
-        std::vector<uint8_t> encoded_voucher,
+        BytesIn encoded_voucher,
         CID base_cid,
         std::shared_ptr<Selector> selector) override;
 

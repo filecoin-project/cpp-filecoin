@@ -35,12 +35,6 @@ namespace fc::markets::storage::provider {
 
     virtual auto stop() -> outcome::result<void> = 0;
 
-    virtual auto addAsk(const TokenAmount &price, ChainEpoch duration)
-        -> outcome::result<void> = 0;
-
-    virtual auto listAsks(const Address &address)
-        -> outcome::result<std::vector<SignedStorageAsk>> = 0;
-
     /**
      * Get deal by proposal cid
      * @param proposal_cid - proposal data cid
@@ -57,6 +51,8 @@ namespace fc::markets::storage::provider {
     virtual auto importDataForDeal(const CID &proposal_cid, const Buffer &data)
         -> outcome::result<void> = 0;
   };
+
+  void serveAsk(libp2p::Host &host, std::weak_ptr<StoredAsk> _asker);
 }  // namespace fc::markets::storage::provider
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE__PROVIDER_PROVIDER_HPP

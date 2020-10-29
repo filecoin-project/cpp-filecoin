@@ -22,9 +22,7 @@ namespace fc::markets::retrieval::client {
   RetrievalClientImpl::RetrievalClientImpl(std::shared_ptr<Host> host,
                                            std::shared_ptr<Api> api,
                                            std::shared_ptr<IpfsDatastore> ipfs)
-      : host_{std::make_shared<CborHost>(host)},
-        api_{std::move(api)},
-        ipfs_{std::move(ipfs)} {}
+      : host_{std::move(host)}, api_{std::move(api)}, ipfs_{std::move(ipfs)} {}
 
   outcome::result<std::vector<PeerInfo>> RetrievalClientImpl::findProviders(
       const CID &piece_cid) const {
@@ -36,7 +34,7 @@ namespace fc::markets::retrieval::client {
       const PeerInfo &peer,
       const QueryRequest &request,
       const QueryResponseHandler &response_handler) {
-    host_->newCborStream(
+    host_->newStream(
         peer,
         kQueryProtocolId,
         [self{shared_from_this()}, peer, request, response_handler](
@@ -47,10 +45,9 @@ namespace fc::markets::retrieval::client {
           }
           self->logger_->debug("connected to provider ID "
                                + peerInfoToPrettyString(peer));
-          stream_res.value()->write(
-              request,
-              [self, stream{stream_res.value()}, response_handler](
-                  auto written_res) {
+          auto stream{std::make_shared<CborStream>(stream_res.value())};
+          stream->write(
+              request, [self, stream, response_handler](auto written_res) {
                 if (written_res.has_error()) {
                   response_handler(written_res.error());
                   self->closeQueryStream(stream, response_handler);
@@ -87,27 +84,27 @@ namespace fc::markets::retrieval::client {
     DealProposal proposal{.payload_cid = payload_cid,
                           .deal_id = next_deal_id++,
                           .params = deal_params};
-    host_->newCborStream(provider_peer,
-                         kRetrievalProtocolId,
-                         [self{shared_from_this()},
-                          proposal,
-                          client_wallet,
-                          miner_wallet,
-                          total_funds,
-                          handler](auto stream_res) {
-                           if (stream_res.has_error()) {
-                             handler(stream_res.error());
-                             return;
-                           }
-                           auto deal_state =
-                               std::make_shared<DealState>(proposal,
-                                                           stream_res.value(),
-                                                           handler,
-                                                           client_wallet,
-                                                           miner_wallet,
-                                                           total_funds);
-                           self->proposeDeal(deal_state);
-                         });
+    host_->newStream(provider_peer,
+                     kRetrievalProtocolId,
+                     [self{shared_from_this()},
+                      proposal,
+                      client_wallet,
+                      miner_wallet,
+                      total_funds,
+                      handler](auto stream_res) {
+                       if (stream_res.has_error()) {
+                         handler(stream_res.error());
+                         return;
+                       }
+                       auto deal_state = std::make_shared<DealState>(
+                           proposal,
+                           std::make_shared<CborStream>(stream_res.value()),
+                           handler,
+                           client_wallet,
+                           miner_wallet,
+                           total_funds);
+                       self->proposeDeal(deal_state);
+                     });
   }
 
   void RetrievalClientImpl::proposeDeal(
@@ -289,7 +286,8 @@ namespace fc::markets::retrieval::client {
           SELF_IF_ERROR_FAIL_AND_RETURN(written);
 
           deal_state->funds_spent += payment_requested;
-          BigInt bytes_paid_in_round = bigdiv(payment_requested, deal_state->proposal.params.price_per_byte);
+          BigInt bytes_paid_in_round = bigdiv(
+              payment_requested, deal_state->proposal.params.price_per_byte);
           if (bytes_paid_in_round >= deal_state->current_interval) {
             deal_state->current_interval +=
                 deal_state->proposal.params.payment_interval_increase;

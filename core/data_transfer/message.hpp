@@ -10,24 +10,32 @@
 #include "data_transfer/types.hpp"
 
 namespace fc::data_transfer {
+  enum class MessageType {
+    kNewMessage,
+    kUpdateMessage,
+    kCancelMessage,
+    kCompleteMessage,
+    kVoucherMessage,
+    kVoucherResultMessage,
+  };
 
   /**
    * DataTransferRequest is a request message for the data transfer protocol
    */
   struct DataTransferRequest {
-    std::string base_cid;
-    bool is_cancel;
-    std::vector<uint8_t> pid;
-    bool is_part;
-    bool is_pull;
-    std::vector<uint8_t> selector;
-    std::vector<uint8_t> voucher;
+    CID base_cid;
+    MessageType type{};
+    bool is_pause{};
+    bool is_part{};
+    bool is_pull{};
+    Selector selector;
+    boost::optional<CborRaw> voucher;
     std::string voucher_type;
-    TransferId transfer_id;
+    TransferId transfer_id{};
 
     inline bool operator==(const DataTransferRequest &other) const {
-      return base_cid == other.base_cid && is_cancel == other.is_cancel
-             && pid == other.pid && is_part == other.is_part
+      return base_cid == other.base_cid && type == other.type
+             && is_pause == other.is_pause && is_part == other.is_part
              && is_pull == other.is_pull && selector == other.selector
              && voucher == other.voucher && voucher_type == other.voucher_type
              && transfer_id == other.transfer_id;
@@ -38,12 +46,17 @@ namespace fc::data_transfer {
    * DataTransferResponse is a response message for the data transfer protocol
    */
   struct DataTransferResponse {
-    bool is_accepted;
-    TransferId transfer_id;
+    MessageType type{};
+    bool is_accepted{};
+    bool is_pause{};
+    TransferId transfer_id{};
+    boost::optional<CborRaw> voucher;
+    std::string voucher_type;
 
     inline bool operator==(const DataTransferResponse &other) const {
-      return is_accepted == other.is_accepted
-             && transfer_id == other.transfer_id;
+      return type == other.type && is_accepted == other.is_accepted
+             && is_pause == other.is_pause && transfer_id == other.transfer_id
+             && voucher == other.voucher && voucher_type == other.voucher_type;
     }
   };
 
@@ -52,7 +65,13 @@ namespace fc::data_transfer {
    * request or response) that can serialize to a protobuf
    */
   struct DataTransferMessage {
-    bool is_request;
+    DataTransferMessage() = default;
+    DataTransferMessage(DataTransferRequest request)
+        : is_request{true}, request{std::move(request)} {}
+    DataTransferMessage(DataTransferResponse response)
+        : is_request{false}, response{std::move(response)} {}
+
+    bool is_request{};
     boost::optional<DataTransferRequest> request;
     boost::optional<DataTransferResponse> response;
 
@@ -62,35 +81,10 @@ namespace fc::data_transfer {
     }
   };
 
-  /**
-   * Creates datatransfer request message
-   * @param base_cid
-   * @param is_pull
-   * @param selector
-   * @param voucher
-   * @param voucher_type
-   * @param transfer_id
-   * @return request message
-   */
-  DataTransferMessage createRequest(std::string base_cid,
-                                    bool is_pull,
-                                    std::vector<uint8_t> selector,
-                                    std::vector<uint8_t> voucher,
-                                    std::string voucher_type,
-                                    TransferId transfer_id);
-
-  /**
-   * Creates response data transfer message
-   * @param is_accepted
-   * @param transfer_id
-   * @return response message
-   */
-  DataTransferMessage createResponse(bool is_accepted, TransferId transfer_id);
-
   CBOR_TUPLE(DataTransferRequest,
              base_cid,
-             is_cancel,
-             pid,
+             type,
+             is_pause,
              is_part,
              is_pull,
              selector,
@@ -98,7 +92,13 @@ namespace fc::data_transfer {
              voucher_type,
              transfer_id)
 
-  CBOR_TUPLE(DataTransferResponse, is_accepted, transfer_id)
+  CBOR_TUPLE(DataTransferResponse,
+             type,
+             is_accepted,
+             is_pause,
+             transfer_id,
+             voucher,
+             voucher_type)
 
   CBOR_TUPLE(DataTransferMessage, is_request, request, response)
 

@@ -26,11 +26,9 @@ namespace fc::data_transfer {
    * @then Message encoded and sent
    */
   TEST_F(StreamMessageSenderTest, SendMessage) {
-    DataTransferResponse response{.is_accepted = true, .transfer_id = 1};
-    DataTransferMessage message{
-        .is_request = false, .request = boost::none, .response = response};
     EXPECT_CALL(*stream, write(_, _, _)).WillOnce(testing::Return());
-    EXPECT_OUTCOME_TRUE_1(stream_message_sender.sendMessage(message));
+    EXPECT_OUTCOME_TRUE_1(
+        stream_message_sender.sendMessage(DataTransferResponse{}));
   }
 
   /**

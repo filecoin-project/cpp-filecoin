@@ -82,7 +82,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto... args) {
+    return [f{std::forward<F>(f)}](auto &&... args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -416,8 +416,8 @@ namespace fc::api {
           }
           return mpool->pending();
         }},
-        .MpoolPushMessage = {[=](auto message)
-                                 -> outcome::result<SignedMessage> {
+        .MpoolPushMessage = {[=](auto message,
+                                 auto) -> outcome::result<SignedMessage> {
           OUTCOME_TRY(context, tipsetContext({}));
           if (message.from.isId()) {
             OUTCOME_TRYA(message.from,
@@ -687,58 +687,15 @@ namespace fc::api {
               }));
               return sectors;
             }},
-        .StateMinerSectorSize = {[=](auto address, auto tipset_key)
-                                     -> outcome::result<SectorSize> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          OUTCOME_TRY(state, context.minerState(address));
-          OUTCOME_TRY(minfo, state.info.get());
-          return minfo.sector_size;
-        }},
-        .StateMinerWorker = {[=](auto address,
-                                 auto tipset_key) -> outcome::result<Address> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          OUTCOME_TRY(state, context.minerState(address));
-          OUTCOME_TRY(minfo, state.info.get());
-          return minfo.worker;
-        }},
         .StateNetworkName = {[=]() -> outcome::result<std::string> {
           return chain_store->getNetworkName();
         }},
-        //        .StateWaitMsg = {[=](auto &cid) ->
-        //        outcome::result<Wait<MsgWait>> {
-        //          auto channel =
-        //          std::make_shared<Channel<outcome::result<MsgWait>>>();
-        //          msg_waiter->wait(cid, [=](auto &result) {
-        //            auto ts{Tipset::load(*ipld, result.second.cids())};
-        //            if (ts) {
-        //              channel->write(MsgWait{result.first,
-        //              std::move(ts.value())});
-        //            } else {
-        //              channel->write(ts.error());
-        //            }
-        //          });
-        //          return Wait{channel};
-        //        }},
-        .StateMinerPreCommitDepositForPower =
-            {[=](auto address,
-                 auto precommit_info,
-                 auto tipset_key) -> outcome::result<TokenAmount> {
-              // TODO(artyom-yurin): FIL-165 implement method
-              return outcome::success();
-            }},
-        .StateMinerInitialPledgeCollateral =
-            {[=](auto address,
-                 auto sector_number,
-                 auto tipset_key) -> outcome::result<TokenAmount> {
-              // TODO(artyom-yurin): FIL-165 implement method
-              return outcome::success();
-            }},
-        .StateSectorPreCommitInfo =
-            {[=](auto address, auto sector_number, auto tipset_key)
-                 -> outcome::result<SectorPreCommitOnChainInfo> {
-              // TODO(artyom-yurin): FIL-165 implement method
-              return outcome::success();
-            }},
+        // TODO(artyom-yurin): FIL-165 implement method
+        .StateMinerPreCommitDepositForPower = {},
+        // TODO(artyom-yurin): FIL-165 implement method
+        .StateMinerInitialPledgeCollateral = {},
+        // TODO(artyom-yurin): FIL-165 implement method
+        .StateSectorPreCommitInfo = {},
         .StateSectorGetInfo = {[=](auto address,
                                    auto sector_number,
                                    auto tipset_key)
@@ -747,24 +704,18 @@ namespace fc::api {
           OUTCOME_TRY(state, context.minerState(address));
           return state.sectors.get(sector_number);
         }},
-        .StateSectorPartition = {[=](auto address,
-                                     auto sector_number,
-                                     auto tipset_key)
-                                     -> outcome::result<SectorLocation> {
-          // TODO(artyom-yurin): FIL-165 implement method
-          return outcome::success();
-        }},
-        .StateSearchMsg = {[=](auto &cid)
-                               -> outcome::result<boost::optional<MsgWait>> {
-          // TODO(artyom-yurin): FIL-165 implement method
-          return outcome::success();
-        }},
-        .StateWaitMsg = waitCb<MsgWait>([=](auto &&cid, auto &&cb) {
-          msg_waiter->wait(cid, [=, MOVE(cb)](auto &result) {
-            OUTCOME_CB(auto ts, Tipset::load(*ipld, result.second.cids()));
-            cb(MsgWait{cid, result.first, ts->key, (ChainEpoch)ts->height()});
-          });
-        }),
+        // TODO(artyom-yurin): FIL-165 implement method
+        .StateSectorPartition = {},
+        // TODO(artyom-yurin): FIL-165 implement method
+        .StateSearchMsg = {},
+        .StateWaitMsg =
+            waitCb<MsgWait>([=](auto &&cid, auto &&confidence, auto &&cb) {
+              msg_waiter->wait(cid, [=, MOVE(cb)](auto &result) {
+                OUTCOME_CB(auto ts, Tipset::load(*ipld, result.second.cids()));
+                cb(MsgWait{
+                    cid, result.first, ts->key, (ChainEpoch)ts->height()});
+              });
+            }),
         .SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
           // TODO(turuslan): chain store must validate blocks before adding
           MsgMeta meta;

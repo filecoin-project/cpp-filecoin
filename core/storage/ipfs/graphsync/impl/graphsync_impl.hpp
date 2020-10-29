@@ -35,7 +35,6 @@ namespace fc::storage::ipfs::graphsync {
 
     ~GraphsyncImpl() override;
 
-   private:
     /// Callback from LocalRequests module. Cancels a request made by this host
     /// \param request_id request ID
     /// \param body request wire protocol data

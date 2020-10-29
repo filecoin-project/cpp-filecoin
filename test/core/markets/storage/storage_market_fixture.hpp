@@ -14,6 +14,7 @@
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
+#include "data_transfer/impl/graphsync/graphsync_manager.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/impl/storage_market_client_impl.hpp"
 #include "markets/storage/provider/impl/provider_impl.hpp"
@@ -22,6 +23,7 @@
 #include "storage/filestore/filestore.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_filestore.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/markets/storage/chain_events/chain_events_mock.hpp"
@@ -49,6 +51,7 @@ namespace fc::markets::storage::test {
   using fc::storage::filestore::FileSystemFileStore;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
+  using fc::storage::ipfs::graphsync::GraphsyncImpl;
   using fc::storage::piece::PieceInfo;
   using libp2p::Host;
   using libp2p::crypto::Key;
@@ -67,6 +70,7 @@ namespace fc::markets::storage::test {
   using provider::Datastore;
   using provider::StorageProvider;
   using provider::StorageProviderImpl;
+  using provider::StoredAsk;
   using sectorblocks::SectorBlocksMock;
   using vm::VMExitCode;
   using vm::actor::builtin::market::PublishStorageDeals;
@@ -126,9 +130,8 @@ namespace fc::markets::storage::test {
           std::make_shared<Secp256k1Sha256ProviderImpl>();
       std::shared_ptr<Datastore> datastore =
           std::make_shared<InMemoryStorage>();
-      std::shared_ptr<IpfsDatastore> ipfs_datastore =
-          std::make_shared<InMemoryDatastore>();
-      piece_io_ = std::make_shared<PieceIOImpl>(ipfs_datastore);
+      ipld = std::make_shared<InMemoryDatastore>();
+      piece_io_ = std::make_shared<PieceIOImpl>(ipld);
 
       OUTCOME_EXCEPT(miner_worker_keypair, bls_provider->generateKeyPair());
       miner_worker_address = Address::makeBls(miner_worker_keypair.public_key);
@@ -148,8 +151,7 @@ namespace fc::markets::storage::test {
                              bls_provider,
                              account_keys,
                              private_keys);
-      std::shared_ptr<SectorBlocksMock> sector_blocks =
-          std::make_shared<SectorBlocksMock>();
+      sector_blocks = std::make_shared<SectorBlocksMock>();
 
       EXPECT_CALL(*sector_blocks, addPiece(_, _, _))
           .WillRepeatedly(testing::Return(outcome::success(PieceAttributes{})));
@@ -158,7 +160,7 @@ namespace fc::markets::storage::test {
           .WillRepeatedly(testing::Return(
               outcome::success(std::vector({PieceLocation{}}))));
 
-      std::shared_ptr<MinerMock> miner = std::make_shared<MinerMock>();
+      miner = std::make_shared<MinerMock>();
       std::shared_ptr<mining::types::SectorInfo> state =
           std::make_shared<mining::types::SectorInfo>();
       state->state = mining::SealingState::kProving;
@@ -202,6 +204,10 @@ namespace fc::markets::storage::test {
     }
 
     void TearDown() override {
+      for (auto &p : graphsync_to_stop) {
+        p->stop();
+      }
+      graphsync_to_stop.clear();
       OUTCOME_EXCEPT(provider->stop());
       OUTCOME_EXCEPT(client->stop());
     }
@@ -226,7 +232,7 @@ namespace fc::markets::storage::test {
       ChainEpoch epoch = 100;
 
       // TODO generate valid chain head with proper height
-      //chain_head.height = epoch;
+      // chain_head.height = epoch;
 
       std::shared_ptr<Api> api = std::make_shared<Api>();
 
@@ -274,7 +280,7 @@ namespace fc::markets::storage::test {
           }};
 
       api->MarketEnsureAvailable = {
-          [](auto, auto, auto, auto) -> outcome::result<boost::optional<CID>> {
+          [](auto, auto, auto) -> outcome::result<boost::optional<CID>> {
             // funds ensured
             return boost::none;
           }};
@@ -291,7 +297,7 @@ namespace fc::markets::storage::test {
 
       api->MpoolPushMessage = {
           [this, bls_provider, miner_worker_keypair, miner_actor_address](
-              auto &unsigned_message) -> outcome::result<SignedMessage> {
+              auto &unsigned_message, auto) -> outcome::result<SignedMessage> {
             if (unsigned_message.from == miner_actor_address) {
               OUTCOME_TRY(encoded_message,
                           codec::cbor::encode(unsigned_message));
@@ -303,13 +309,14 @@ namespace fc::markets::storage::test {
               this->messages[signed_message.getCid()] = signed_message;
               this->logger->debug("MpoolPushMessage: message committed "
                                   + signed_message.getCid().toString().value());
+              this->context_->post([this] { this->client->pollWaiting(); });
               return signed_message;
             };
             throw "MpoolPushMessage: Wrong from address parameter";
           }};
 
       api->StateWaitMsg = {
-          [this](auto &message_cid) -> outcome::result<Wait<MsgWait>> {
+          [this](auto &message_cid, auto) -> outcome::result<Wait<MsgWait>> {
             logger->debug("StateWaitMsg called for message cid "
                           + message_cid.toString().value());
             PublishStorageDeals::Result publish_deal_result{};
@@ -333,11 +340,12 @@ namespace fc::markets::storage::test {
             return wait_msg;
           }};
 
+      std::weak_ptr<Api> _api{api};
       api->WalletSign = {
-          [private_keys, bls_provider](
-              const Address &address,
+          [=](const Address &address,
               const Buffer &buffer) -> outcome::result<Signature> {
-            auto it = private_keys.find(address);
+            auto it = private_keys.find(
+                _api.lock()->StateAccountKey(address, {}).value());
             if (it == private_keys.end())
               throw "API WalletSign: address not found";
             return Signature{
@@ -352,6 +360,27 @@ namespace fc::markets::storage::test {
           }};
 
       return api;
+    }
+
+    template <typename F>
+    auto makeDatatransfer(std::shared_ptr<libp2p::Host> host,
+                          boost::asio::io_context &io,
+                          F cb) {
+      auto graphsync{
+          std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
+              host,
+              std::make_shared<libp2p::protocol::AsioScheduler>(
+                  io, libp2p::protocol::SchedulerConfig{}))};
+      // TODO (artem): XXX correct this after changing GS interface
+      graphsync->subscribe(
+          [cb = std::move(cb)](const libp2p::peer::PeerId &from,
+                               const CID &cid,
+                               const common::Buffer &data) { cb(cid, data); });
+      graphsync->start(
+          fc::storage::ipfs::graphsync::MerkleDagBridge::create(nullptr));
+      graphsync_to_stop.push_back(graphsync);
+      return std::make_shared<data_transfer::graphsync::GraphSyncManager>(
+          host, graphsync);
     }
 
     std::shared_ptr<StorageProviderImpl> makeProvider(
@@ -370,9 +399,21 @@ namespace fc::markets::storage::test {
       std::shared_ptr<FileStore> filestore =
           std::make_shared<FileSystemFileStore>();
 
+      stored_ask = std::make_shared<markets::storage::provider::StoredAsk>(
+          std::make_shared<InMemoryStorage>(), api, miner_actor_address);
+
+      auto ipld{std::make_shared<InMemoryDatastore>()};
+      auto datatransfer{
+          makeDatatransfer(provider_host, *context, [&](auto c, auto b) {
+            OUTCOME_EXCEPT(ipld->set(c, b));
+          })};
+
       std::shared_ptr<StorageProviderImpl> new_provider =
           std::make_shared<StorageProviderImpl>(registered_proof,
                                                 provider_host,
+                                                ipld,
+                                                datatransfer,
+                                                stored_ask,
                                                 context,
                                                 datastore,
                                                 api,
@@ -398,7 +439,7 @@ namespace fc::markets::storage::test {
           .peer_info = PeerInfo{provider_host->getId(), {multi_address}}});
     }
 
-    std::shared_ptr<StorageMarketClient> makeClient(
+    std::shared_ptr<StorageMarketClientImpl> makeClient(
         const BlsKeyPair &client_keypair,
         const std::shared_ptr<BlsProvider> &bls_provider,
         const std::shared_ptr<Secp256k1ProviderDefault> &secp256k1_provider,
@@ -406,8 +447,11 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<boost::asio::io_context> &context,
         const std::shared_ptr<Datastore> &datastore,
         const std::shared_ptr<Api> &api) {
+      auto datatransfer{
+          makeDatatransfer(client_host, *context, [&](auto, auto) {})};
+
       auto new_client = std::make_shared<StorageMarketClientImpl>(
-          client_host, context, datastore, api, piece_io_);
+          client_host, context, datatransfer, datastore, api, piece_io_);
       OUTCOME_EXCEPT(new_client->init());
       return new_client;
     }
@@ -474,9 +518,14 @@ namespace fc::markets::storage::test {
     std::shared_ptr<Api> node_api;
     std::shared_ptr<ChainEventsMock> chain_events_ =
         std::make_shared<ChainEventsMock>();
-    std::shared_ptr<StorageMarketClient> client;
+    std::shared_ptr<SectorBlocksMock> sector_blocks;
+    std::shared_ptr<MinerMock> miner;
+    std::shared_ptr<StorageMarketClientImpl> client;
     std::shared_ptr<StorageProvider> provider;
+    std::shared_ptr<StoredAsk> stored_ask;
+    IpldPtr ipld;
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
+    std::vector<std::shared_ptr<GraphsyncImpl>> graphsync_to_stop;
 
     RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
     std::shared_ptr<PieceIO> piece_io_;

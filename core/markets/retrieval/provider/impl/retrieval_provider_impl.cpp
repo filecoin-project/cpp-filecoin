@@ -30,7 +30,7 @@ namespace fc::markets::retrieval::provider {
       const ProviderConfig &config,
       std::shared_ptr<Manager> sealer,
       std::shared_ptr<Miner> miner)
-      : host_{std::make_shared<CborHost>(host)},
+      : host_{std::move(host)},
         api_{std::move(api)},
         piece_storage_{std::move(piece_storage)},
         ipld_{std::move(ipld)},
@@ -39,13 +39,14 @@ namespace fc::markets::retrieval::provider {
         miner_{std::move(miner)} {}
 
   void RetrievalProviderImpl::start() {
-    host_->setCborProtocolHandler(
-        kQueryProtocolId,
-        [self{shared_from_this()}](auto stream) { self->handleQuery(stream); });
-    host_->setCborProtocolHandler(kRetrievalProtocolId,
-                                  [self{shared_from_this()}](auto stream) {
-                                    self->handleRetrievalDeal(stream);
-                                  });
+    host_->setProtocolHandler(
+        kQueryProtocolId, [self{shared_from_this()}](auto stream) {
+          self->handleQuery(std::make_shared<CborStream>(stream));
+        });
+    host_->setProtocolHandler(
+        kRetrievalProtocolId, [self{shared_from_this()}](auto stream) {
+          self->handleRetrievalDeal(std::make_shared<CborStream>(stream));
+        });
     logger_->info("has been launched with ID "
                   + peerInfoToPrettyString(host_->getPeerInfo()));
   }
@@ -85,9 +86,8 @@ namespace fc::markets::retrieval::provider {
 
   outcome::result<QueryResponse> RetrievalProviderImpl::makeQueryResponse(
       const QueryRequest &query) {
-    OUTCOME_TRY(chain_head, api_->ChainHead());;
-    OUTCOME_TRY(miner_worker_address,
-                api_->StateMinerWorker(miner_address, chain_head->key));
+    OUTCOME_TRY(chain_head, api_->ChainHead());
+    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address, chain_head->key));
 
     OUTCOME_TRY(piece_available,
                 piece_storage_->hasPieceInfo(query.payload_cid,
@@ -104,7 +104,7 @@ namespace fc::markets::retrieval::provider {
         .response_status = QueryResponseStatus::kQueryResponseAvailable,
         .item_status = QueryItemStatus::kQueryItemAvailable,
         .item_size = piece_size,
-        .payment_address = miner_worker_address,
+        .payment_address = minfo.worker,
         .min_price_per_byte = config_.price_per_byte,
         .payment_interval = config_.payment_interval,
         .interval_increase = config_.interval_increase};
