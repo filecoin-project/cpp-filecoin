@@ -10,7 +10,6 @@
 #include "common/outcome.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/cid/cid.hpp"
-#include "primitives/ticket/ticket.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::primitives::tipset {

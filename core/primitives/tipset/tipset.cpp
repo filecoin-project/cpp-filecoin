@@ -52,19 +52,9 @@ namespace fc::primitives::tipset {
         return TipsetError::kTicketHasNoValue;
       }
 
-      crypto::blake2b::Ctx ctx(crypto::blake2b::BLAKE2B256_HASH_LENGTH);
-
       const auto &ticket_bytes = hdr.ticket.value().bytes;
 
-      ctx.update(ticket_bytes);
-      TicketHash hash;
-      ctx.final(hash);
-      return hash;
-    }
-
-    int compareHashes(const TicketHash &a, const TicketHash &b) {
-      return memcmp(
-          a.data(), b.data(), crypto::blake2b::BLAKE2B256_HASH_LENGTH);
+      return crypto::blake2b::blake2b_256(ticket_bytes);
     }
 
   }  // namespace
@@ -140,21 +130,31 @@ namespace fc::primitives::tipset {
       return outcome::success();
     }
 
-    auto it = ticket_hashes_.begin();
     OUTCOME_TRY(ticket_hash, ticketHash(hdr));
     size_t idx = 0;
-    for (auto e = ticket_hashes_.end(); it != e; ++it, ++idx) {
-      int c = compareHashes(ticket_hash, *it);
-      if (c == 0) {
-        return TipsetError::kTicketsCollision;
+    auto sz = ticket_hashes_.size();
+    for (; idx != sz; ++idx) {
+      const auto& h = ticket_hashes_[idx];
+      if (ticket_hash == h) {
+        // TODO (artem): Need to double check where in the spec
+        // duplicate tickets are allowed, and how to arrange blocks in that case
+
+        // return TipsetError::kTicketsCollision;
+
+        if (cid.toBytes().value() > cids_[idx].toBytes().value()) {
+          continue;
+        } else {
+          break;
+        }
+
       }
-      if (c < 0) {
+      if (ticket_hash > h) {
         continue;
       }
       break;
     }
 
-    if (++it == ticket_hashes_.end()) {
+    if (idx == sz) {
       // most likely they come in proper order
       blks_.push_back(std::move(hdr));
       cids_.push_back(std::move(cid));
@@ -217,6 +217,10 @@ namespace fc::primitives::tipset {
 
   outcome::result<TipsetCPtr> Tipset::create(
       std::vector<block::BlockHeader> blocks) {
+    if (blocks.empty()) {
+      return TipsetError::kNoBlocks;
+    }
+
     TipsetCreator creator;
 
     for (auto &hdr : blocks) {
