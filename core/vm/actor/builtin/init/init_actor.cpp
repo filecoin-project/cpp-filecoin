@@ -9,6 +9,24 @@
 #include "storage/hamt/hamt.hpp"
 
 namespace fc::vm::actor::builtin::init {
+  bool canExec(const CID &caller_code_id, const CID &exec_code_id) {
+    bool result = false;
+    if (exec_code_id == kStorageMinerCodeCid) {
+      result = caller_code_id == kStoragePowerCodeCid;
+    } else if (exec_code_id == kPaymentChannelCodeCid
+               || exec_code_id == kMultisigCodeCid) {
+      result = true;
+    }
+    return result;
+  }
+
+  ACTOR_METHOD_IMPL(Construct) {
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
+    InitActorState state{};
+    state.network_name = params.network_name;
+    OUTCOME_TRY(runtime.commitState(state));
+    return outcome::success();
+  }
 
   outcome::result<Address> InitActorState::addActor(const Address &address) {
     auto id = next_id;
@@ -18,27 +36,28 @@ namespace fc::vm::actor::builtin::init {
   }
 
   ACTOR_METHOD_IMPL(Exec) {
-    if (!isBuiltinActor(params.code)) {
-      return VMExitCode::kInitActorNotBuiltinActor;
+    OUTCOME_TRY(caller_code_id,
+                runtime.getActorCodeID(runtime.getImmediateCaller()));
+    if (!canExec(caller_code_id, params.code)) {
+      return VMExitCode::kErrForbidden;
     }
-    if (isSingletonActor(params.code)) {
-      return VMExitCode::kInitActorSingletonActor;
-    }
-    auto &message = runtime.getMessage().get();
-    auto actor_address{Address::makeActorExec(
-        Buffer{primitives::address::encode(message.from)}.putUint64(
-            message.nonce))};
+    OUTCOME_TRY(actor_address, runtime.createNewActorAddress());
+
     OUTCOME_TRY(init_actor, runtime.getCurrentActorStateCbor<InitActorState>());
     OUTCOME_TRY(id_address, init_actor.addActor(actor_address));
+    OUTCOME_TRY(runtime.commitState(init_actor));
+
     OUTCOME_TRY(runtime.createActor(id_address,
                                     Actor{params.code, kEmptyObjectCid, 0, 0}));
-    OUTCOME_TRY(runtime.send(
-        id_address, kConstructorMethodNumber, params.params, message.value));
-    OUTCOME_TRY(runtime.commitState(init_actor));
+    OUTCOME_TRY(runtime.send(id_address,
+                             kConstructorMethodNumber,
+                             params.params,
+                             runtime.getMessage().get().value));
     return Result{id_address, actor_address};
   }
 
   const ActorExports exports{
+      exportMethod<Construct>(),
       exportMethod<Exec>(),
   };
 }  // namespace fc::vm::actor::builtin::init

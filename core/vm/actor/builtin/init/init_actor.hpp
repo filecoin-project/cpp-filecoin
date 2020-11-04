@@ -22,6 +22,14 @@ namespace fc::vm::actor::builtin::init {
   };
   CBOR_TUPLE(InitActorState, address_map, next_id, network_name)
 
+  struct Construct : ActorMethodBase<1> {
+    struct Params {
+      std::string network_name;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(Construct::Params, network_name)
+
   struct Exec : ActorMethodBase<2> {
     struct Params {
       CodeId code;
