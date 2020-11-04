@@ -9,6 +9,7 @@
 #include "common/logger.hpp"
 #include "node/fwd.hpp"
 #include "primitives/types.hpp"
+#include "vm/runtime/runtime_types.hpp"
 
 #define _CAT1(a, b) _CAT2(a, b)
 #define _CAT2(a, b) _CAT3(~, a##b)
@@ -26,6 +27,7 @@ namespace fc::dvm {
   using primitives::address::Address;
   using vm::actor::Actor;
   using vm::message::UnsignedMessage;
+  using vm::runtime::InvocationOutput;
   using vm::runtime::MessageReceipt;
   using vm::state::StateTree;
 
@@ -45,6 +47,8 @@ namespace fc::dvm {
   void onIpldSet(const CID &cid, const Buffer &data);
   void onCharge(GasAmount gas);
   void onSend(const UnsignedMessage &msg);
+  void onReceipt(const outcome::result<InvocationOutput> &invocation_output,
+                 const GasAmount &gas_used);
   void onReceipt(const MessageReceipt &receipt);
   void onActor(StateTree &tree, const Address &address, const Actor &actor);
 }  // namespace fc::dvm

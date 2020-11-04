@@ -102,6 +102,18 @@ namespace fc::vm::runtime {
                                                    MethodParams params,
                                                    BigInt value) = 0;
 
+    /** Computes an address for a new actor.
+     *
+     * The returned address is intended to uniquely refer to the actor even in
+     * the event of a chain re-org (whereas an ID-address might refer to a
+     * different actor after messages are re-ordered). Always an ActorExec
+     * address.
+     *
+     * @return new unique actor address
+     */
+
+    virtual outcome::result<Address> createNewActorAddress() = 0;
+
     /**
      * @brief Creates an actor in the state tree, with empty state. May only be
      * called by InitActor

@@ -53,6 +53,9 @@ namespace fc::vm::runtime {
                                                MethodParams params,
                                                BigInt value) override;
 
+    /** \copydoc Runtime::createNewActorAddress() */
+    outcome::result<Address> createNewActorAddress() override;
+
     /** \copydoc Runtime::createActor() */
     outcome::result<void> createActor(const Address &address,
                                       const Actor &actor) override;
@@ -95,7 +98,6 @@ namespace fc::vm::runtime {
 
    private:
     std::shared_ptr<Execution> execution_;
-    std::shared_ptr<StateTree> state_tree_;
     UnsignedMessage message_;
     Address caller_id;
   };

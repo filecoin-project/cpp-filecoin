@@ -42,7 +42,7 @@ namespace fc::vm::runtime {
                                                    MethodParams params,
                                                    BigInt value));
 
-    MOCK_METHOD0(createNewActorAddress, Address());
+    MOCK_METHOD0(createNewActorAddress, outcome::result<Address>());
 
     MOCK_METHOD2(createActor,
                  outcome::result<void>(const Address &address,

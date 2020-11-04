@@ -16,7 +16,6 @@
 #include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 
 namespace fc::vm::actor {
-
   using runtime::InvocationOutput;
 
   InvokerImpl::InvokerImpl() {
@@ -38,18 +37,20 @@ namespace fc::vm::actor {
     // TODO (a.chernyshov) implement
   }
 
-  outcome::result<InvocationOutput> InvokerImpl::invoke(const Actor &actor,
-                                                        Runtime &runtime) {
+  outcome::result<InvocationOutput> InvokerImpl::invoke(
+      const Actor &actor, const std::shared_ptr<Runtime> &runtime) {
     auto maybe_builtin_actor = builtin_.find(actor.code);
     if (maybe_builtin_actor == builtin_.end()) {
       return VMExitCode::kSysErrorIllegalActor;
     }
     auto builtin_actor = maybe_builtin_actor->second;
-    auto message = runtime.getMessage();
+    auto message = runtime->getMessage();
     auto maybe_builtin_method = builtin_actor.find(message.get().method);
     if (maybe_builtin_method == builtin_actor.end()) {
       return VMExitCode::kSysErrInvalidMethod;
     }
-    return maybe_builtin_method->second(runtime, message.get().params);
+    const auto &res =
+        maybe_builtin_method->second(*runtime, message.get().params);
+    return res;
   }
 }  // namespace fc::vm::actor

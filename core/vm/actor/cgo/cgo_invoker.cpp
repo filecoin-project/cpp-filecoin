@@ -18,10 +18,10 @@ namespace fc::vm::actor::cgo {
         min_verified_deal_size, consensus_miner_min_power, supported_proofs);
   }
 
-  outcome::result<InvocationOutput> CgoInvoker::invoke(const Actor &actor,
-                                                       Runtime &runtime) {
-    auto message = runtime.getMessage();
-    return ::fc::vm::actor::cgo::invoke(runtime.execution(),
+  outcome::result<InvocationOutput> CgoInvoker::invoke(
+      const Actor &actor, const std::shared_ptr<Runtime> &runtime) {
+    auto message = runtime->getMessage();
+    return ::fc::vm::actor::cgo::invoke(runtime->execution(),
                                         message,
                                         actor.code,
                                         message.get().method,

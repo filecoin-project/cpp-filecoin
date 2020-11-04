@@ -16,6 +16,8 @@
 
 namespace fc::dvm {
   using primitives::address::Address;
+  using vm::isVMExitCode;
+  using vm::VMExitCode;
   using vm::actor::Actor;
 
   struct Formatter : public spdlog::formatter {
@@ -63,6 +65,18 @@ namespace fc::dvm {
             msg.value,
             msg.to,
             dumpCbor(msg.params));
+  }
+
+  void onReceipt(const outcome::result<InvocationOutput> &invocation_output,
+                 const GasAmount &gas_used) {
+    if (invocation_output.has_error()) {
+      const auto &error{invocation_output.error()};
+      if (isVMExitCode(error) && error != VMExitCode::kFatal) {
+        dvm::onReceipt({VMExitCode{error.value()}, {}, gas_used});
+      }
+    } else {
+      dvm::onReceipt({VMExitCode::kOk, invocation_output.value(), gas_used});
+    }
   }
 
   void onReceipt(const MessageReceipt &receipt) {

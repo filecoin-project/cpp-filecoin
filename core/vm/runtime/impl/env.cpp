@@ -21,6 +21,12 @@ namespace fc::vm::runtime {
   using actor::kSystemActorAddress;
   using storage::hamt::HamtError;
 
+  /**
+   * Returns the public key type of address (`BLS`/`SECP256K1`) of an account
+   * actor identified by `address`.
+   * @param address - account actor address
+   * @return key address
+   */
   outcome::result<Address> resolveKey(StateTree &state_tree,
                                       const Address &address,
                                       bool no_actor) {
@@ -235,6 +241,7 @@ namespace fc::vm::runtime {
       OUTCOME_TRY(state_tree->revert(snapshot));
       return result.error();
     }
+    dvm::onReceipt(result, gas_used);
     return result;
   }
 
@@ -279,7 +286,8 @@ namespace fc::vm::runtime {
     if (message.method != kSendMethodNumber) {
       auto _message{message};
       _message.from = caller_id;
-      RuntimeImpl runtime{shared_from_this(), _message, caller_id};
+      auto runtime = std::make_shared<RuntimeImpl>(
+          shared_from_this(), _message, caller_id);
       return invoker->invoke(to_actor, runtime);
     }
 
@@ -290,6 +298,7 @@ namespace fc::vm::runtime {
     auto execution{execution_.lock()};
     OUTCOME_TRY(execution->chargeGas(
         execution->env->pricelist.onIpldPut(value.size())));
+    dvm::onIpldSet(key, value);
     return execution->env->ipld->set(key, std::move(value));
   }
 

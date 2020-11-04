@@ -23,20 +23,20 @@ TEST(InvokerTest, InvokeCron) {
   auto message =
       UnsignedMessage{kInitAddress, kInitAddress, {}, {}, {}, {}, {}, {}};
   InvokerImpl invoker;
-  MockRuntime runtime;
+  auto runtime = std::make_shared<MockRuntime>();
 
   EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrorIllegalActor,
                        invoker.invoke({CodeId{kEmptyObjectCid}}, runtime));
 
   message.method = MethodNumber{1000};
-  EXPECT_CALL(runtime, getMessage()).WillOnce(::testing::Return(message));
+  EXPECT_CALL(*runtime, getMessage()).WillOnce(::testing::Return(message));
   EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrInvalidMethod,
                        invoker.invoke({kCronCodeCid}, runtime));
 
-  EXPECT_CALL(runtime, getImmediateCaller())
+  EXPECT_CALL(*runtime, getImmediateCaller())
       .WillOnce(testing::Return(kInitAddress));
   message.method = builtin::cron::EpochTick::Number;
-  EXPECT_CALL(runtime, getMessage()).WillOnce(::testing::Return(message));
+  EXPECT_CALL(*runtime, getMessage()).WillOnce(::testing::Return(message));
   EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
                        invoker.invoke({kCronCodeCid}, runtime));
 }

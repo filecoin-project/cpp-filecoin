@@ -9,10 +9,11 @@
 #include "vm/actor/invoker.hpp"
 
 #include "vm/actor/actor_method.hpp"
+#include "vm/runtime/runtime.hpp"
 
 namespace fc::vm::actor {
-
   using runtime::InvocationOutput;
+  using runtime::Runtime;
 
   /// Finds and loads actor code, invokes actor methods
   class InvokerImpl : public Invoker {
@@ -25,8 +26,8 @@ namespace fc::vm::actor {
                 const StoragePower &consensus_miner_min_power,
                 const std::vector<RegisteredProof> &supported_proofs) override;
 
-    outcome::result<InvocationOutput> invoke(const Actor &actor,
-                                             Runtime &runtime) override;
+    outcome::result<InvocationOutput> invoke(
+        const Actor &actor, const std::shared_ptr<Runtime> &runtime) override;
 
    private:
     std::map<CID, ActorExports> builtin_;

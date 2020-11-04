@@ -31,8 +31,8 @@ namespace fc::vm::actor {
         const StoragePower &consensus_miner_min_power,
         const std::vector<RegisteredProof> &supported_proofs) = 0;
 
-    virtual outcome::result<InvocationOutput> invoke(const Actor &actor,
-                                                     Runtime &runtime) = 0;
+    virtual outcome::result<InvocationOutput> invoke(
+        const Actor &actor, const std::shared_ptr<Runtime> &runtime) = 0;
   };
 }  // namespace fc::vm::actor
 
