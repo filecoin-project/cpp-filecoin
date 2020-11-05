@@ -17,8 +17,17 @@ namespace fc::storage::ipfs::graphsync {
     MOCK_METHOD1(subscribe,
                  DataConnection(std::function<OnDataReceived>));
 
-    MOCK_METHOD1(start,
-                 void(std::shared_ptr<MerkleDagBridge> dag));
+    MOCK_METHOD0(start,
+                 void());
+
+    MOCK_METHOD1(setDefaultRequestHandler,
+        void(std::function<RequestHandler>));
+
+    MOCK_METHOD2(setRequestHandler,
+                 void(std::function<RequestHandler>, std::string));
+
+    MOCK_METHOD2(postResponse, void(const FullRequestId &id,
+                              const Response &response));
 
     MOCK_METHOD0(stop, void());
 

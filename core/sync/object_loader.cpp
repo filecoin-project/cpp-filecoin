@@ -63,8 +63,8 @@ namespace fc::sync {
         });
 
     graphsync_subscr_ = graphsync_->subscribe(
-        [this](const PeerId &from, const CID &cid, const common::Buffer &data) {
-          onGraphsyncData(from, cid, data);
+        [this](const PeerId &from, const storage::ipfs::graphsync::Data &data) {
+          onGraphsyncData(from, data.cid, data.content);
         });
 
     initialized_ = true;

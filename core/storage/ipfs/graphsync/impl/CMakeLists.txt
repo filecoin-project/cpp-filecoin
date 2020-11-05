@@ -9,7 +9,7 @@ add_library(graphsync
     common.cpp
     extension.cpp
     graphsync_impl.cpp
-    merkledag_bridge_impl.cpp
+#    merkledag_bridge_impl.cpp
     local_requests.cpp
     network/network.cpp
     network/peer_context.cpp

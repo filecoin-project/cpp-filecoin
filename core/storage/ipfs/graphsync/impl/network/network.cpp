@@ -116,36 +116,18 @@ namespace fc::storage::ipfs::graphsync {
     }
   }
 
-  bool Network::addBlockToResponse(const PeerId &peer,
-                                   RequestId request_id,
-                                   const CID &cid,
-                                   const common::Buffer &data) {
-    if (!started_) {
-      return false;
-    }
-
-    auto ctx = findContext(peer, false);
-    if (!ctx) {
-      return false;
-    }
-
-    return ctx->addBlockToResponse(request_id, cid, data);
-  }
-
-  void Network::sendResponse(const PeerId &peer,
-                             int request_id,
-                             ResponseStatusCode status,
-                             const std::vector<Extension> &extensions) {
+  void Network::sendResponse(const FullRequestId &id,
+                             const Response &response) {
     if (!started_) {
       return;
     }
 
-    auto ctx = findContext(peer, false);
+    auto ctx = findContext(id.peer, false);
     if (!ctx) {
       return;
     }
 
-    ctx->sendResponse(request_id, status, extensions);
+    ctx->sendResponse(id, response);
   }
 
   void Network::peerClosed(const PeerId &peer, ResponseStatusCode status) {

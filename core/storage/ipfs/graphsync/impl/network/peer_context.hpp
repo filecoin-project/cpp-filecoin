@@ -86,24 +86,8 @@ namespace fc::storage::ipfs::graphsync {
     /// to send anything to the peer
     void cancelRequest(RequestId request_id, SharedData request_body);
 
-    /// Adds data block to response
-    /// \param request_id request ID
-    /// \param cid CID of the block
-    /// \param data data block, raw bytes
-    /// \return true if block is added to the response body
-    /// and response object itself can be sent
-    bool addBlockToResponse(RequestId request_id,
-                            const CID &cid,
-                            const common::Buffer &data);
-
-    /// Sends response to peer. Data blocks may be added previously
-    /// to this response
-    /// \param request_id request ID
-    /// \param status status code
-    /// \param extensions - data for protocol extensions
-    void sendResponse(RequestId request_id,
-                      ResponseStatusCode status,
-                      const std::vector<Extension> &extensions);
+    /// Sends response to peer.
+    void sendResponse(const FullRequestId &id, const Response &response);
 
     /// Closes all streams to/from this peer
     /// \param status close reason to be forwarded to local request callback,

@@ -211,32 +211,9 @@ namespace fc::storage::ipfs::graphsync {
     return s_iter;
   }
 
-  bool PeerContext::addBlockToResponse(RequestId request_id,
-                                       const CID &cid,
-                                       const common::Buffer &data) {
-    auto it = findResponseSink(request_id);
-    if (it == streams_.end()) {
-      return false;
-    }
-    auto &ctx = it->second;
-
-    createResponseEndpoint(it->first, ctx);
-
-    auto res = ctx.response_endpoint->addBlockToResponse(request_id, cid, data);
-    if (!res) {
-      logger()->error(
-          "addBlockToResponse: {}, peer={}", res.error().message(), str);
-
-      close(RS_SLOW_STREAM);
-      return false;
-    }
-    return true;
-  }
-
-  void PeerContext::sendResponse(RequestId request_id,
-                                 ResponseStatusCode status,
-                                 const std::vector<Extension> &extensions) {
-    auto it = findResponseSink(request_id);
+  void PeerContext::sendResponse(const FullRequestId &id,
+                                 const Response &response) {
+    auto it = findResponseSink(id.id);
     if (it == streams_.end()) {
       return;
     }
@@ -244,8 +221,7 @@ namespace fc::storage::ipfs::graphsync {
 
     createResponseEndpoint(it->first, ctx);
 
-    auto res =
-        ctx.response_endpoint->sendResponse(request_id, status, extensions);
+    auto res = ctx.response_endpoint->sendResponse(id, response);
     if (!res) {
       logger()->error("sendResponse: {}, peer={}", res.error().message(), str);
 
@@ -345,7 +321,8 @@ namespace fc::storage::ipfs::graphsync {
     } else {
       createResponseEndpoint(stream, ctx);
       if (remote_requests_streams_.count(request.id)) {
-        sendResponse(request.id, RS_REJECTED, {});
+        sendResponse(FullRequestId{peer, request.id},
+                     Response{RS_REJECTED, {}, {}});
       } else {
         remote_requests_streams_.emplace(request.id, stream);
         ctx.remote_request_ids.insert(request.id);
@@ -414,8 +391,8 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     for (auto &item : msg.data) {
-      graphsync_feedback_.onBlock(
-          peer, std::move(item.first), std::move(item.second));
+      graphsync_feedback_.onDataBlock(
+          peer, {std::move(item.first), std::move(item.second)});
     }
 
     for (auto &item : msg.responses) {

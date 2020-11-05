@@ -19,6 +19,8 @@
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/env.hpp"
 
+#include "vm/dvm/dvm.hpp"
+
 const auto kCorpusRoot{resourcePath("test-vectors/corpus")};
 auto brief(const std::string &path) {
   auto n{kCorpusRoot.size() + 1};
@@ -150,6 +152,8 @@ struct MessageVector {
   std::string path;
 };
 
+static std::string run_test_pattern{};
+
 auto search(bool enabled) {
   static auto all_vectors{[] {
     std::vector<MessageVector> vectors;
@@ -167,12 +171,26 @@ auto search(bool enabled) {
     return vectors;
   }()};
   std::vector<MessageVector> vectors;
+  bool has_pattern = !run_test_pattern.empty();
+
   for (auto &mv : all_vectors) {
-    auto _enabled{!mv.chaos};
-    if (_enabled == enabled) {
-      vectors.push_back(mv);
+    if (has_pattern) {
+      if (mv.path.find(run_test_pattern) != std::string::npos) {
+        vectors.push_back(mv);
+      }
+    } else {
+      auto _enabled{!mv.chaos};
+      if (_enabled == enabled) {
+        vectors.push_back(mv);
+      }
     }
   }
+
+  if (getenv("DVM_LOG")) {
+    fc::dvm::logging = true;
+    fc::dvm::logger->flush_on(spdlog::level::info);
+  }
+
   return vectors;
 }
 
@@ -313,3 +331,13 @@ INSTANTIATE_TEST_CASE_P(DISABLED_Vectors,
                         TestVectors,
                         testing::ValuesIn(search(false)),
                         testName);
+
+int main(int argc, char *argv[]) {
+  if (argc > 2 && std::string("run") == argv[1]) {
+    run_test_pattern = argv[2];
+    argc -= 2;
+    argv += 2;
+  }
+  ::testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
+}

@@ -23,9 +23,10 @@ namespace fc::storage::ipfs::graphsync {
   class Network;
 
   /// Core graphsync component. The central module
-  class GraphsyncImpl : public Graphsync,
-                        public std::enable_shared_from_this<GraphsyncImpl>,
-                        public PeerToGraphsyncFeedback {
+  class GraphsyncImpl final
+      : public Graphsync,
+        public std::enable_shared_from_this<GraphsyncImpl>,
+        public PeerToGraphsyncFeedback {
    public:
     /// Ctor.
     /// \param host libp2p host object
@@ -42,7 +43,13 @@ namespace fc::storage::ipfs::graphsync {
 
     // Graphsync interface overrides
     DataConnection subscribe(std::function<OnDataReceived> handler) override;
-    void start(std::shared_ptr<MerkleDagBridge> dag) override;
+    void setDefaultRequestHandler(
+        std::function<RequestHandler> handler) override;
+    void setRequestHandler(std::function<RequestHandler> handler,
+                           std::string extension_name) override;
+    void postResponse(const FullRequestId &id,
+                      const Response &response) override;
+    void start() override;
     void stop() override;
     Subscription makeRequest(
         const libp2p::peer::PeerId &peer,
@@ -57,7 +64,7 @@ namespace fc::storage::ipfs::graphsync {
                     RequestId request_id,
                     ResponseStatusCode status,
                     std::vector<Extension> extensions) override;
-    void onBlock(const PeerId &from, CID cid, common::Buffer data) override;
+    void onDataBlock(const PeerId &from, Data data) override;
     void onRemoteRequest(const PeerId &from, Message::Request request) override;
 
     /// NVI for stop()
@@ -72,8 +79,8 @@ namespace fc::storage::ipfs::graphsync {
     /// Local requests handling module
     std::shared_ptr<LocalRequests> local_requests_;
 
-    /// Interface to MerkleDAG component
-    std::shared_ptr<MerkleDagBridge> dag_;
+    std::function<RequestHandler> default_request_handler_;
+    std::map<std::string, std::function<RequestHandler>> request_handlers_;
 
     /// Subscriptions to data to blocks
     boost::signals2::signal<OnDataReceived> data_signal_;
