@@ -30,8 +30,8 @@ namespace fc::storage::ipfs::graphsync::test {
     // n_responses_expected: count of responses received by the node after which
     // io->stop() is called
     Node(std::shared_ptr<boost::asio::io_context> io,
-         std::shared_ptr<MerkleDagBridge> data_service,
-         Graphsync::BlockCallback cb,
+         std::shared_ptr<TestDataService> data_service,
+         std::function<Graphsync::OnDataReceived> cb,
          size_t n_responses_expected)
         : io_(std::move(io)),
           data_service_(std::move(data_service)),
@@ -89,7 +89,28 @@ namespace fc::storage::ipfs::graphsync::test {
    private:
     void start() {
       if (!started_) {
-        graphsync_->start(data_service_, block_cb_);
+        graphsync_->setDefaultRequestHandler(
+            [this](FullRequestId id, Request request) {
+              Response response;
+              auto handler = [&](const CID &cid, const common::Buffer &data) {
+                response.data.push_back(Data{cid, data});
+                return true;
+              };
+
+              auto res = data_service_->select(
+                  request.root_cid, request.selector, handler);
+              if (!res) {
+                response.status = RS_INTERNAL_ERROR;
+              } else {
+                response.status =
+                    response.data.empty() ? RS_NOT_FOUND : RS_FULL_CONTENT;
+              }
+
+              // may be done asynchronously as well
+              graphsync_->postResponse(id, response);
+            });
+        graphsync_->start();
+        graphsync_->subscribe(std::move(block_cb_));
         host_->start();
         started_ = true;
       }
@@ -125,9 +146,9 @@ namespace fc::storage::ipfs::graphsync::test {
 
     std::shared_ptr<libp2p::Host> host_;
 
-    std::shared_ptr<MerkleDagBridge> data_service_;
+    std::shared_ptr<TestDataService> data_service_;
 
-    Graphsync::BlockCallback block_cb_;
+    std::function<Graphsync::OnDataReceived> block_cb_;
 
     // keeping subscriptions alive, otherwise they cancel themselves
     std::vector<Subscription> requests_;
@@ -160,13 +181,15 @@ namespace fc::storage::ipfs::graphsync::test {
     auto server_data = std::make_shared<TestDataService>();
 
     // server block callback expects no blocks
-    auto server_cb = [&unexpected](CID, common::Buffer) { ++unexpected; };
+    auto server_cb = [&unexpected](const libp2p::peer::PeerId &from,
+                                   const Data &data) { ++unexpected; };
 
     auto client_data = std::make_shared<TestDataService>();
 
     // clienc block callback expect 3 blocks from the string above
-    auto client_cb = [&client_data, &unexpected](CID cid, common::Buffer data) {
-      if (!client_data->onDataBlock(std::move(cid), std::move(data))) {
+    auto client_cb = [&client_data, &unexpected](
+                         const libp2p::peer::PeerId &from, const Data &data) {
+      if (!client_data->onDataBlock(data)) {
         ++unexpected;
       }
     };
@@ -274,13 +297,14 @@ namespace fc::storage::ipfs::graphsync::test {
                  &expected,
                  &unexpected_responses,
                  &total_responses,
-                 &io](CID cid, common::Buffer data) {
-        logger->trace("data block received, {}:{}, {}/{}",
-                      cid.toString().value(),
-                      std::string((const char *)data.data(), data.size()),
-                      total_responses + 1,
-                      expected);
-        if (!ds->onDataBlock(std::move(cid), std::move(data))) {
+                 &io](const libp2p::peer::PeerId &from, const Data &data) {
+        logger->trace(
+            "data block received, {}:{}, {}/{}",
+            data.cid.toString().value(),
+            std::string((const char *)data.content.data(), data.content.size()),
+            total_responses + 1,
+            expected);
+        if (!ds->onDataBlock(data)) {
           ++unexpected_responses;
         } else if (++total_responses == expected) {
           io->stop();

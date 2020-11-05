@@ -15,31 +15,13 @@ namespace fc::storage::ipfs::graphsync {
     assert(queue_);
   }
 
-  outcome::result<void> InboundEndpoint::addBlockToResponse(
-      int request_id, const CID &cid, const common::Buffer &data) {
-    auto serialized_size = response_builder_.getSerializedSize();
-
-    if (queue_->getState().pending_bytes + serialized_size + data.size()
-        > max_pending_bytes_) {
-      return Error::kWriteQueueOverflow;
-    }
-
-    if (serialized_size + data.size() > kMaxMessageSize) {
-      auto res = sendPartialResponse(request_id);
-      if (!res) {
-        return res;
-      }
-    }
-
-    response_builder_.addDataBlock(cid, data);
-    return outcome::success();
-  }
-
   outcome::result<void> InboundEndpoint::sendResponse(
-      int request_id,
-      ResponseStatusCode status,
-      const std::vector<Extension> &extensions) {
-    response_builder_.addResponse(request_id, status, extensions);
+      const FullRequestId &id, const Response &response) {
+    for (const auto &block : response.data) {
+      OUTCOME_TRY(addBlockToResponse(id, block.cid, block.content));
+    }
+
+    response_builder_.addResponse(id.id, response.status, response.extensions);
     auto res = response_builder_.serialize();
     response_builder_.clear();
     if (!res) {
@@ -54,9 +36,24 @@ namespace fc::storage::ipfs::graphsync {
     return outcome::success();
   }
 
-  outcome::result<void> InboundEndpoint::sendPartialResponse(int request_id) {
-    static const std::vector<Extension> dummy_extensions;
-    return sendResponse(request_id, RS_PARTIAL_CONTENT, dummy_extensions);
+  outcome::result<void> InboundEndpoint::addBlockToResponse(
+      const FullRequestId &request_id,
+      const CID &cid,
+      const common::Buffer &data) {
+    auto serialized_size = response_builder_.getSerializedSize();
+
+    if (queue_->getState().pending_bytes + serialized_size + data.size()
+        > max_pending_bytes_) {
+      return Error::kWriteQueueOverflow;
+    }
+
+    if (serialized_size + data.size() > kMaxMessageSize) {
+      static const Response partial{RS_PARTIAL_CONTENT, {}, {}};
+      OUTCOME_TRY(sendResponse(request_id, partial));
+    }
+
+    response_builder_.addDataBlock(cid, data);
+    return outcome::success();
   }
 
 }  // namespace fc::storage::ipfs::graphsync

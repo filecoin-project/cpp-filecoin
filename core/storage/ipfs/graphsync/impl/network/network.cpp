@@ -116,36 +116,18 @@ namespace fc::storage::ipfs::graphsync {
     }
   }
 
-  bool Network::addBlockToResponse(const PeerId &peer,
-                                   RequestId request_id,
-                                   const CID &cid,
-                                   const common::Buffer &data) {
-    if (!started_) {
-      return false;
-    }
-
-    auto ctx = findContext(peer, false);
-    if (!ctx) {
-      return false;
-    }
-
-    return ctx->addBlockToResponse(request_id, cid, data);
-  }
-
-  void Network::sendResponse(const PeerId &peer,
-                             int request_id,
-                             ResponseStatusCode status,
-                             const std::vector<Extension> &extensions) {
+  void Network::sendResponse(const FullRequestId &id,
+                             const Response &response) {
     if (!started_) {
       return;
     }
 
-    auto ctx = findContext(peer, false);
+    auto ctx = findContext(id.peer, false);
     if (!ctx) {
       return;
     }
 
-    ctx->sendResponse(request_id, status, extensions);
+    ctx->sendResponse(id, response);
   }
 
   void Network::peerClosed(const PeerId &peer, ResponseStatusCode status) {
@@ -163,7 +145,7 @@ namespace fc::storage::ipfs::graphsync {
 
     auto it = peers_.find(peer);
     if (it != peers_.end()) {
-      ctx = *it;
+      ctx = it->second;
       if (ctx->getState() == PeerContext::is_closed) {
         peers_.erase(it);
         ctx.reset();
@@ -172,7 +154,7 @@ namespace fc::storage::ipfs::graphsync {
 
     if (!ctx && create_if_not_found) {
       ctx = std::make_shared<PeerContext>(peer, *feedback_, *this, *scheduler_);
-      peers_.insert(ctx);
+      peers_.insert({peer, ctx});
     }
 
     return ctx;
@@ -227,7 +209,7 @@ namespace fc::storage::ipfs::graphsync {
 
   void Network::closeAllPeers() {
     PeerSet peers = std::move(peers_);
-    for (auto &ctx : peers) {
+    for (auto &[_, ctx] : peers) {
       ctx->close(RS_REJECTED_LOCALLY);
     }
 

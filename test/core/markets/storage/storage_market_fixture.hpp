@@ -369,9 +369,12 @@ namespace fc::markets::storage::test {
               host,
               std::make_shared<libp2p::protocol::AsioScheduler>(
                   io, libp2p::protocol::SchedulerConfig{}))};
-      graphsync->start(
-          fc::storage::ipfs::graphsync::MerkleDagBridge::create(nullptr), cb);
-      graphsync->start(nullptr, cb);
+      graphsync->subscribe(
+          [cb{std::move(cb)}](const libp2p::peer::PeerId &from,
+                              const fc::storage::ipfs::graphsync::Data &data) {
+            cb(data.cid, data.content);
+          });
+      graphsync->start();
       graphsync_to_stop.push_back(graphsync);
       return std::make_shared<data_transfer::graphsync::GraphSyncManager>(
           host, graphsync);
