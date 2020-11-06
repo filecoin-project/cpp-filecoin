@@ -9,15 +9,20 @@
 #include <libp2p/protocol/common/scheduler.hpp>
 #include "marshalling/message.hpp"
 
-namespace libp2p::connection {
-  // libp2p stream forward decl
-  class Stream;
-}  // namespace libp2p::connection
+namespace libp2p {
+  struct Host;
+  namespace connection {
+    class Stream;
+  }  // namespace connection
+}  // namespace libp2p
 
 namespace fc::storage::ipfs::graphsync {
 
   /// Libp2p stream, used by shared ptr
   using StreamPtr = std::shared_ptr<libp2p::connection::Stream>;
+
+  /// Libp2p host
+  using Host = libp2p::Host;
 
   /// Libp2p scheduler
   using Scheduler = libp2p::protocol::Scheduler;

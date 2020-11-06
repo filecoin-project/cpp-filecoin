@@ -72,10 +72,6 @@ namespace fc::storage::ipfs::graphsync {
     /// \return PeerContext as shared_ptr
     PeerContextPtr findContext(const PeerId &peer, bool create_if_not_found);
 
-    /// Tries to connect to peer
-    /// \param ctx PeerContext
-    void tryConnect(const PeerContextPtr &ctx);
-
     /// Libp2p network server callback
     /// \param rstream Accept result, contains a new inbound stream on success
     void onStreamAccepted(outcome::result<StreamPtr> rstream);

@@ -77,10 +77,6 @@ namespace fc::storage::ipfs::graphsync {
     logger()->trace("makeRequest: {} has state {}", ctx->str, ctx->getState());
 
     ctx->setOutboundAddress(std::move(address));
-    if (ctx->needToConnect()) {
-      tryConnect(ctx);
-    }
-
     ctx->enqueueRequest(request_id, std::move(request_body));
   }
 
@@ -153,34 +149,12 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (!ctx && create_if_not_found) {
-      ctx = std::make_shared<PeerContext>(peer, *feedback_, *this, *scheduler_);
+      ctx = std::make_shared<PeerContext>(
+          peer, *feedback_, *this, *host_, *scheduler_);
       peers_.insert({peer, ctx});
     }
 
     return ctx;
-  }
-
-  void Network::tryConnect(const PeerContextPtr &ctx) {
-    libp2p::peer::PeerInfo pi = ctx->getOutboundPeerInfo();
-
-    logger()->trace(
-        "connecting to {}, {}",
-        ctx->str,
-        pi.addresses.empty() ? "''" : pi.addresses[0].getStringAddress());
-
-    // clang-format off
-    host_->newStream(
-        pi,
-        protocol_id_,
-        [wptr{ctx->weak_from_this()}]
-        (outcome::result<StreamPtr> rstream) {
-          auto ctx = wptr.lock();
-          if (ctx) {
-            ctx->onStreamConnected(std::move(rstream));
-          }
-        }
-    );
-    // clang-format on
   }
 
   void Network::onStreamAccepted(outcome::result<StreamPtr> rstream) {
