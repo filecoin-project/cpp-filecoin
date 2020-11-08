@@ -7,9 +7,6 @@
 
 #include <cassert>
 
-#include "inbound_endpoint.hpp"
-#include "message_reader.hpp"
-#include "outbound_endpoint.hpp"
 #include "peer_context.hpp"
 
 namespace fc::storage::ipfs::graphsync {
