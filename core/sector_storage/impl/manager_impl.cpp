@@ -6,8 +6,15 @@
 #include "sector_storage/impl/manager_impl.hpp"
 
 #include <pwd.h>
+#include <boost/asio.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/version.hpp>
 #include <boost/filesystem.hpp>
+#include <regex>
 #include <unordered_set>
+#include "api/rpc/json.hpp"
+#include "codec/json/json.hpp"
+#include "common/tarutil.hpp"
 #include "sector_storage/impl/allocate_selector.hpp"
 #include "sector_storage/impl/existing_selector.hpp"
 #include "sector_storage/impl/local_worker.hpp"
@@ -776,6 +783,208 @@ namespace fc::sector_storage {
 
     return Response{.paths = res.paths, .lock = std::move(locked)};
     ;
+  }
+
+  void ManagerImpl::serveHTTP(const http::request<http::dynamic_body> &request,
+                              http::response<http::dynamic_body> &response) {
+    response.version(request.version());
+    response.keep_alive(false);
+
+    switch (request.method()) {
+      case http::verb::get:
+        createResponseGet(request, response);
+        break;
+      case http::verb::delete_:
+        createResponseDelete(request, response);
+        break;
+      default:
+        response.result(http::status::method_not_allowed);
+        break;
+    }
+  }
+
+  void ManagerImpl::createResponseGet(
+      const http::request<http::dynamic_body> &request,
+      http::response<http::dynamic_body> &response) {
+    std::regex stat_rgx(R"(\/remote\/stat\/([\w-]+))");
+    std::regex get_sector_rgx(R"(\/remote\/([\w]+)\/([\w-]+))");
+    std::smatch matches;
+
+    auto target = request.target().to_string();
+    if (std::regex_search(target.cbegin(), target.cend(), matches, stat_rgx)) {
+      remoteStatFs(response, matches[1]);
+    } else if (std::regex_search(
+                   target.cbegin(), target.cend(), matches, get_sector_rgx)) {
+      remoteGetSector(response, matches[1], matches[2]);
+    } else {
+      logger_->error("Unknown route: {}", target);
+      response.result(http::status::internal_server_error);
+    }
+  }
+
+  void ManagerImpl::createResponseDelete(
+      const http::request<http::dynamic_body> &request,
+      http::response<http::dynamic_body> &response) {
+    std::regex delete_sector_rgx(R"(\/remote\/([\w]+)\/([\w-]+))");
+    std::smatch matches;
+
+    auto target = request.target().to_string();
+    if (std::regex_search(
+            target.cbegin(), target.cend(), matches, delete_sector_rgx)) {
+      response.set(http::field::content_type, "text/plain");
+      remoteRemoveSector(response, matches[1], matches[2]);
+    } else {
+      logger_->error("Unknown route: {}", target);
+      response.result(http::status::internal_server_error);
+    }
+  }
+
+  void ManagerImpl::remoteStatFs(http::response<http::dynamic_body> &response,
+                                 const fc::primitives::StorageID &storage_id) {
+    auto maybe_stat = local_store_->getFsStat(storage_id);
+    if (maybe_stat.has_error()) {
+      if (maybe_stat
+          == fc::outcome::failure(
+              fc::sector_storage::stores::StoreErrors::kNotFoundStorage)) {
+        response.result(404);
+        return;
+      }
+      logger_->error("Error remote stat fs: {}", maybe_stat.error().message());
+      response.result(500);
+      return;
+    }
+
+    auto json_doc = fc::api::encode(maybe_stat.value());
+
+    auto maybe_json = fc::codec::json::format(&json_doc);
+
+    if (maybe_json.has_error()) {
+      logger_->error("Error with encoding in remote stat fs: {}",
+                     maybe_json.error().message());
+      response.result(500);
+      return;
+    }
+
+    response.set(http::field::content_type, "application/json");
+    beast::ostream(response.body())
+        .write(fc::common::span::bytestr(maybe_json.value().data()),
+               maybe_json.value().size());
+  }
+
+  void ManagerImpl::remoteGetSector(
+      http::response<http::dynamic_body> &response,
+      const std::string &type,
+      const std::string &sector) {
+    auto maybe_sector = fc::primitives::sector_file::parseSectorName(sector);
+
+    if (maybe_sector.has_error()) {
+      logger_->error("Error remote get sector: {}",
+                     maybe_sector.error().message());
+      response.result(500);
+      return;
+    }
+
+    auto maybe_type = fc::primitives::sector_file::fromString(type);
+    if (maybe_type.has_error()) {
+      logger_->error("Error remote get sector: {}",
+                     maybe_type.error().message());
+      response.result(500);
+      return;
+    }
+
+    // Proof type is 0 because we don't allocate anything
+    auto maybe_paths = local_store_->acquireSector(
+        maybe_sector.value(),
+        static_cast<RegisteredProof>(0),
+        fc::primitives::sector_file::SectorFileType::FTNone,
+        maybe_type.value(),
+        fc::sector_storage::stores::PathType::kStorage,
+        fc::sector_storage::stores::AcquireMode::kMove);
+    if (maybe_paths.error()) {
+      logger_->error("Error remote get sector: {}",
+                     maybe_paths.error().message());
+      response.result(500);
+      return;
+    }
+
+    auto maybe_path =
+        maybe_paths.value().paths.getPathByType(maybe_type.value());
+    if (maybe_path.has_error()) {
+      logger_->error("Error remote get sector: {}",
+                     maybe_path.error().message());
+      response.result(500);
+      return;
+    }
+    if (maybe_path.value().empty()) {
+      logger_->error("Error remote get sector: acquired path was empty");
+      response.result(500);
+      return;
+    }
+
+    int fd = -1;
+    auto _ = gsl::finally([&]() {
+      if (fd != -1) {
+        close(fd);
+      }
+    });
+    if (boost::filesystem::is_directory(maybe_path.value())) {
+      auto maybe_tar = fc::common::zipTar(maybe_path.value());
+      if (maybe_tar.has_error()) {
+        logger_->error("Error remote get sector: {}",
+                       maybe_tar.error().message());
+        response.result(500);
+        return;
+      }
+      response.set(http::field::content_type, "application/x-tar");
+      fd = maybe_tar.value();
+    } else {
+      fd = open(maybe_path.value().c_str(), O_RDONLY);
+      if (fd < 0) {
+        logger_->error("Error remote get sector: cannot open file");
+        response.result(500);
+        return;
+      }
+      response.set(http::field::content_type, "application/octet-stream");
+    }
+
+    auto o = beast::ostream(response.body());
+
+    char buff[8192];
+    int len = read(fd, buff, sizeof(buff));
+    while (len > 0) {
+      o.write(buff, len);
+      len = read(fd, buff, sizeof(buff));
+    }
+  }
+
+  void ManagerImpl::remoteRemoveSector(
+      http::response<http::dynamic_body> &response,
+      const std::string &type,
+      const std::string &sector) {
+    auto maybe_sector = fc::primitives::sector_file::parseSectorName(sector);
+
+    if (maybe_sector.has_error()) {
+      logger_->error("Error remote remove sector: {}",
+                     maybe_sector.error().message());
+      response.result(500);
+      return;
+    }
+
+    auto maybe_type = fc::primitives::sector_file::fromString(type);
+    if (maybe_type.has_error()) {
+      logger_->error("Error remote remove sector: {}",
+                     maybe_type.error().message());
+      response.result(500);
+      return;
+    }
+
+    auto maybe_error =
+        local_store_->remove(maybe_sector.value(), maybe_type.value());
+    if (maybe_error.has_error()) {
+      logger_->error("Error remote remove sector: {}",
+                     maybe_error.error().message());
+      response.result(500);
+    }
   }
 
 }  // namespace fc::sector_storage

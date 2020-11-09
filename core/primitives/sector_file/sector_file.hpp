@@ -41,6 +41,8 @@ namespace fc::primitives::sector_file {
       {SectorFileType::FTCache, 2}};
 
   std::string toString(const SectorFileType &file_type);
+  outcome::result<SectorFileType> fromString(const std::string &file_type_str);
+
   /**
    * Get amount of used memory for sealing
    * @param file_type - type of sector file
@@ -50,6 +52,7 @@ namespace fc::primitives::sector_file {
   outcome::result<uint64_t> sealSpaceUse(SectorFileType file_type,
                                          RegisteredProof seal_proof_type);
   std::string sectorName(const SectorId &sid);
+  outcome::result<SectorId> parseSectorName(const std::string &sector_str);
 
   struct SectorPaths {
    public:
@@ -66,6 +69,7 @@ namespace fc::primitives::sector_file {
 
   enum class SectorFileTypeErrors {
     kInvalidSectorFileType = 1,
+    kInvalidSectorName,
   };
 
 }  // namespace fc::primitives::sector_file

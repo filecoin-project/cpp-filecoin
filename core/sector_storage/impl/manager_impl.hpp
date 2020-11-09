@@ -31,6 +31,9 @@ namespace fc::sector_storage {
         const std::shared_ptr<Scheduler> &scheduler,
         const SealerConfig &config);
 
+    void serveHTTP(const http::request<http::dynamic_body> &request,
+                   http::response<http::dynamic_body> &response) override;
+
     outcome::result<std::vector<SectorId>> checkProvable(
         RegisteredProof seal_proof_type,
         gsl::span<const SectorId> sectors) override;
@@ -101,6 +104,22 @@ namespace fc::sector_storage {
     outcome::result<FsStat> getFsStat(StorageID storage_id) override;
 
    private:
+    void createResponseGet(const http::request<http::dynamic_body> &request,
+                           http::response<http::dynamic_body> &response);
+
+    void createResponseDelete(const http::request<http::dynamic_body> &request,
+                              http::response<http::dynamic_body> &response);
+
+    void remoteStatFs(http::response<http::dynamic_body> &response,
+                      const fc::primitives::StorageID &storage_id);
+
+    void remoteGetSector(http::response<http::dynamic_body> &response,
+                         const std::string &type,
+                         const std::string &sector);
+    void remoteRemoveSector(http::response<http::dynamic_body> &response,
+                            const std::string &type,
+                            const std::string &sector);
+
     ManagerImpl(std::shared_ptr<stores::SectorIndex> sector_index,
                 RegisteredProof seal_proof_type,
                 std::shared_ptr<stores::LocalStorage> local_storage,

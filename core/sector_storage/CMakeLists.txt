@@ -54,4 +54,5 @@ target_link_libraries(manager
         store
         sector_index
         sector
+        tarutil
         )

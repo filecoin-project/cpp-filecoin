@@ -30,14 +30,15 @@ namespace fc::api {
 
   const auto kChanCloseDelay{boost::posix_time::milliseconds(100)};
 
-  struct ServerSession : std::enable_shared_from_this<ServerSession> {
-    ServerSession(tcp::socket &&socket, const Api &api)
+  struct SocketSession : std::enable_shared_from_this<SocketSession> {
+    SocketSession(tcp::socket &&socket, const Api &api)
         : socket{std::move(socket)}, timer{this->socket.get_executor()} {
       setupRpc(rpc, api);
     }
 
-    void run() {
-      socket.async_accept([self{shared_from_this()}](auto ec) {
+    template <class Body, class Allocator>
+    void doAccept(http::request<Body, http::basic_fields<Allocator>> req) {
+      socket.async_accept(req, [self{shared_from_this()}](auto ec) {
         if (ec) {
           return;
         }
@@ -136,9 +137,105 @@ namespace fc::api {
     Rpc rpc;
   };
 
+  struct HttpSession : public std::enable_shared_from_this<HttpSession> {
+    HttpSession(tcp::socket &&socket, std::shared_ptr<Api> api, Routes routes)
+        : socket(std::move(socket)),
+          timer(this->socket.get_executor(),
+                (std::chrono::steady_clock::time_point::max)()),
+          routes(std::move(routes)),
+          api{std::move(api)} {}
+
+    void run() {
+      onTimer({});
+
+      doRead();
+    }
+
+    void onTimer(boost::system::error_code ec) {
+      if (ec && ec != boost::asio::error::operation_aborted) return;
+
+      if (ec == boost::asio::error::operation_aborted) {
+        socket.shutdown(tcp::socket::shutdown_both, ec);
+        socket.close(ec);
+        return;
+      }
+
+      timer.async_wait([self{shared_from_this()}](beast::error_code ec) {
+        self->onTimer(ec);
+      });
+    }
+
+    void doRead() {
+      request = {};
+
+      http::async_read(
+          socket,
+          buffer,
+          request,
+          [self{shared_from_this()}](beast::error_code ec,
+                                     std::size_t bytes_transferred) {
+            self->onRead(ec);
+          });
+    }
+
+    void onRead(boost::system::error_code ec) {
+      if (ec == http::error::end_of_stream) return doClose();
+
+      if (ec) return;
+
+      if (websocket::is_upgrade(request)) {
+        std::make_shared<SocketSession>(std::move(socket), *api)
+            ->doAccept(std::move(request));
+        return;
+      }
+
+      handleRequest();
+    }
+
+    void handleRequest() {
+      for (auto &route : routes) {
+        if (request.target().starts_with(route.first)) {
+          route.second(request, response);
+          writeResponse();
+          break;
+        }
+      }
+    }
+
+    void writeResponse() {
+      response.content_length(response.body().size());
+
+      http::async_write(
+          socket,
+          response,
+          [self = shared_from_this()](beast::error_code ec, std::size_t) {
+            self->socket.shutdown(tcp::socket::shutdown_send, ec);
+          });
+    }
+
+    void doClose() {
+      boost::system::error_code ec;
+      socket.shutdown(tcp::socket::shutdown_send, ec);
+    }
+
+    // TODO: maybe add queue for requests
+
+    tcp::socket socket;
+    boost::beast::flat_buffer buffer;
+    net::steady_timer timer;
+    http::request<http::dynamic_body> request;
+    http::response<http::dynamic_body> response;
+    std::map<std::string, RouteHandler, std::greater<>> routes;
+    std::shared_ptr<Api> api;
+  };
+
   struct Server : std::enable_shared_from_this<Server> {
-    Server(tcp::acceptor &&acceptor, std::shared_ptr<Api> api)
-        : acceptor{std::move(acceptor)}, api{api} {}
+    Server(tcp::acceptor &&acceptor,
+           std::shared_ptr<Api> api,
+           std::shared_ptr<Routes> routes)
+        : acceptor{std::move(acceptor)},
+          api{std::move(api)},
+          routes{std::move(routes)} {}
 
     void run() {
       doAccept();
@@ -149,21 +246,27 @@ namespace fc::api {
         if (ec) {
           return;
         }
-        std::make_shared<ServerSession>(std::move(socket), *self->api)->run();
+        std::make_shared<HttpSession>(
+            std::move(socket), self->api, *self->routes)
+            ->run();
         self->doAccept();
       });
     }
 
     tcp::acceptor acceptor;
     std::shared_ptr<Api> api;
+    std::shared_ptr<Routes> routes;
   };
 
   void serve(std::shared_ptr<Api> api,
+             std::shared_ptr<Routes> routes,
              boost::asio::io_context &ioc,
              std::string_view ip,
              unsigned short port) {
     std::make_shared<Server>(
-        tcp::acceptor{ioc, {net::ip::make_address(ip), port}}, std::move(api))
+        tcp::acceptor{ioc, {net::ip::make_address(ip), port}},
+        std::move(api),
+        std::move(routes))
         ->run();
   }
 }  // namespace fc::api
