@@ -31,6 +31,12 @@ namespace fc::vm::actor::builtin::market {
             Hasher::blake2b_256(bytes)};
   }
 
+  CID ClientDealProposal::cid() const {
+    OUTCOME_EXCEPT(bytes, codec::cbor::encode(*this));
+    return {
+        CID::Version::V1, CID::Multicodec::DAG_CBOR, Hasher::sha2_256(bytes)};
+  }
+
   outcome::result<State> loadState(Runtime &runtime) {
     return runtime.getCurrentActorStateCbor<State>();
   }

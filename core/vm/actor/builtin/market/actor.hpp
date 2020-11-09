@@ -135,6 +135,8 @@ namespace fc::vm::actor::builtin::market {
     DealProposal proposal;
     Signature client_signature;
 
+    CID cid() const;
+
     inline bool operator==(const ClientDealProposal &rhs) const {
       return proposal == rhs.proposal
              && client_signature == rhs.client_signature;
