@@ -15,15 +15,14 @@
 namespace fc::vm::actor::builtin::storage_power {
   outcome::result<TokenAmount> computeInitialPledge(
       Runtime &runtime, State &state, const SectorStorageWeightDesc &weight) {
-    OUTCOME_TRY(
-        epoch_reward,
-        runtime.sendM<reward::LastPerEpochReward>(kRewardAddress, {}, 0));
+    OUTCOME_TRY(epoch_reward,
+                runtime.sendM<reward::ThisEpochReward>(kRewardAddress, {}, 0));
     TokenAmount circ_supply;  // unused yet, TODO: runtime
     return initialPledgeForWeight(qaPowerForWeight(weight),
                                   state.total_qa_power,
                                   circ_supply,
                                   state.total_pledge,
-                                  epoch_reward);
+                                  epoch_reward.this_epoch_reward);
   }
 
   outcome::result<void> processDeferredCronEvents(Runtime &runtime,
@@ -210,6 +209,11 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
+  // TODO (a.chernyshov) implement
+  ACTOR_METHOD_IMPL(CurrentTotalPower) {
+    return outcome::success();
+  }
+
   const ActorExports exports{
       exportMethod<Construct>(),
       exportMethod<CreateMiner>(),
@@ -223,5 +227,6 @@ namespace fc::vm::actor::builtin::storage_power {
       exportMethod<OnEpochTickEnd>(),
       exportMethod<UpdatePledgeTotal>(),
       exportMethod<OnConsensusFault>(),
+      exportMethod<CurrentTotalPower>(),
   };
 }  // namespace fc::vm::actor::builtin::storage_power

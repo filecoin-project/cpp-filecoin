@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::miner {
   using primitives::TokenAmount;
   using primitives::sector::RegisteredProof;
 
-  constexpr size_t kEpochDurationSeconds{25};
+  constexpr size_t kEpochDurationSeconds{30};
   constexpr size_t kSecondsInHour{3600};
   constexpr size_t kSecondsInDay{86400};
   constexpr size_t kSecondsInYear{31556925};

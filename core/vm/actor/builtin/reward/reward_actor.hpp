@@ -10,6 +10,7 @@
 
 namespace fc::vm::actor::builtin::reward {
   using primitives::ChainEpoch;
+  using primitives::FilterEstimate;
   using primitives::SpaceTime;
   using primitives::StoragePower;
   using primitives::TokenAmount;
@@ -48,10 +49,18 @@ namespace fc::vm::actor::builtin::reward {
   };
   CBOR_TUPLE(AwardBlockReward::Params, miner, penalty, gas_reward, tickets)
 
-  struct LastPerEpochReward : ActorMethodBase<3> {
-    using Result = TokenAmount;
+  struct ThisEpochReward : ActorMethodBase<3> {
+    struct Result {
+      TokenAmount this_epoch_reward;
+      FilterEstimate this_epoch_reward_smoothed;
+      StoragePower this_epoch_baseline_power;
+    };
     ACTOR_METHOD_DECL();
   };
+  CBOR_TUPLE(ThisEpochReward::Result,
+             this_epoch_reward,
+             this_epoch_reward_smoothed,
+             this_epoch_baseline_power)
 
   struct UpdateNetworkKPI : ActorMethodBase<4> {
     using Params = StoragePower;

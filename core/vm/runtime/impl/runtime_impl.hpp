@@ -23,10 +23,17 @@ namespace fc::vm::runtime {
 
     std::shared_ptr<Execution> execution() const override;
 
+    NetworkVersion getNetworkVersion() const override;
+
     /** \copydoc Runtime::getCurrentEpoch() */
     ChainEpoch getCurrentEpoch() const override;
 
-    outcome::result<Randomness> getRandomness(
+    outcome::result<Randomness> getRandomnessFromTickets(
+        DomainSeparationTag tag,
+        ChainEpoch epoch,
+        gsl::span<const uint8_t> seed) const override;
+
+    outcome::result<Randomness> getRandomnessFromBeacon(
         DomainSeparationTag tag,
         ChainEpoch epoch,
         gsl::span<const uint8_t> seed) const override;
@@ -62,6 +69,10 @@ namespace fc::vm::runtime {
 
     /** \copydoc Runtime::deleteActor() */
     outcome::result<void> deleteActor() override;
+
+    /** \copydoc Runtime::getTotalFilCirculationSupply() */
+    fc::outcome::result<TokenAmount> getTotalFilCirculationSupply()
+        const override;
 
     /** \copydoc Runtime::getIpfsDatastore() */
     std::shared_ptr<IpfsDatastore> getIpfsDatastore() override;

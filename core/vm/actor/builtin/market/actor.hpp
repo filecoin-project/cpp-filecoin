@@ -114,6 +114,9 @@ namespace fc::vm::actor::builtin::market {
     DealId next_deal;
     adt::Map<DealSet, UvarintKeyer> deals_by_epoch;
     ChainEpoch last_cron;
+    TokenAmount total_client_locked_collateral;
+    TokenAmount total_provider_locked_collateral;
+    TokenAmount total_client_storage_fee;
   };
   CBOR_TUPLE(State,
              proposals,
@@ -123,13 +126,14 @@ namespace fc::vm::actor::builtin::market {
              locked_table,
              next_deal,
              deals_by_epoch,
-             last_cron)
+             last_cron,
+             total_client_locked_collateral,
+             total_provider_locked_collateral,
+             total_client_storage_fee)
 
   struct ClientDealProposal {
     DealProposal proposal;
     Signature client_signature;
-
-    CID cid() const;
 
     inline bool operator==(const ClientDealProposal &rhs) const {
       return proposal == rhs.proposal
@@ -147,11 +151,19 @@ namespace fc::vm::actor::builtin::market {
     ACTOR_METHOD_DECL();
   };
 
+  /**
+   * Deposits the received value into the balance held in escrow
+   */
   struct AddBalance : ActorMethodBase<2> {
     using Params = Address;
     ACTOR_METHOD_DECL();
   };
 
+  /**
+   * Attempt to withdraw the specified amount from the balance held in escrow.
+   * If less than the specified amount is available, yields the entire available
+   * balance.
+   */
   struct WithdrawBalance : ActorMethodBase<3> {
     struct Params {
       Address address;
@@ -161,6 +173,9 @@ namespace fc::vm::actor::builtin::market {
   };
   CBOR_TUPLE(WithdrawBalance::Params, address, amount)
 
+  /**
+   * Publish a new set of storage deals (not yet included in a sector).
+   */
   struct PublishStorageDeals : ActorMethodBase<4> {
     struct Params {
       std::vector<ClientDealProposal> deals;
@@ -173,28 +188,58 @@ namespace fc::vm::actor::builtin::market {
   CBOR_TUPLE(PublishStorageDeals::Params, deals)
   CBOR_TUPLE(PublishStorageDeals::Result, deals)
 
-  struct VerifyDealsOnSectorProveCommit : ActorMethodBase<5> {
+  /**
+   * Verify that a given set of storage deals is valid for a sector currently
+   * being PreCommitted and return DealWeight of the set of storage deals given.
+   * The weight is defined as the sum, over all deals in the set, of the product
+   * of deal size and duration.
+   */
+  struct VerifyDealsForActivation : ActorMethodBase<5> {
+    struct Params {
+      std::vector<DealId> deals;
+      ChainEpoch sector_expiry;
+      ChainEpoch sector_start;
+    };
+    struct Result {
+      DealWeight deal_weight;
+      DealWeight verified_deal_weight;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(VerifyDealsForActivation::Params,
+             deals,
+             sector_expiry,
+             sector_start)
+  CBOR_TUPLE(VerifyDealsForActivation::Result,
+             deal_weight,
+             verified_deal_weight)
+
+  /**
+   * Verify that a given set of storage deals is valid for a sector currently
+   * being ProveCommitted, update the market's internal state accordingly.
+   */
+  struct ActivateDeals : ActorMethodBase<6> {
     struct Params {
       std::vector<DealId> deals;
       ChainEpoch sector_expiry;
     };
-    struct Result {
-      DealWeight deal_weight, verified_deal_weight;
-    };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(VerifyDealsOnSectorProveCommit::Params, deals, sector_expiry)
-  CBOR_TUPLE(VerifyDealsOnSectorProveCommit::Result,
-             deal_weight,
-             verified_deal_weight)
+  CBOR_TUPLE(ActivateDeals::Params, deals, sector_expiry)
 
-  struct OnMinerSectorsTerminate : ActorMethodBase<6> {
+  /**
+   * Terminate a set of deals in response to their containing sector being
+   * terminated. Slash provider collateral, refund client collateral, and refund
+   * partial unpaid escrow amount to client.
+   */
+  struct OnMinerSectorsTerminate : ActorMethodBase<7> {
     struct Params {
+      ChainEpoch epoch;
       std::vector<DealId> deals;
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(OnMinerSectorsTerminate::Params, deals)
+  CBOR_TUPLE(OnMinerSectorsTerminate::Params, epoch, deals)
 
   struct ComputeDataCommitment : ActorMethodBase<8> {
     struct Params {

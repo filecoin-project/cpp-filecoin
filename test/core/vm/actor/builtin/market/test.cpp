@@ -23,6 +23,7 @@
 #include "vm/actor/builtin/market/policy.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/version.hpp"
 
 #define ON_CALL_3(a, b, c) \
   EXPECT_CALL(a, b).Times(testing::AnyNumber()).WillRepeatedly(Return(c))
@@ -49,6 +50,7 @@ using fc::vm::actor::kStorageMinerCodeCid;
 using fc::vm::actor::kSystemActorAddress;
 using fc::vm::runtime::MockRuntime;
 using fc::vm::state::StateTreeImpl;
+using fc::vm::version::NetworkVersion;
 using MarketActor::ClientDealProposal;
 using MarketActor::DealProposal;
 using MarketActor::DealState;
@@ -164,7 +166,7 @@ TEST_F(MarketActorTest, AddBalanceNominalNotOwnerOrWorker) {
   runtime.expectSendM<MinerActor::ControlAddresses>(
       miner_address, {}, 0, {owner_address, worker_address});
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::kMarketActorWrongCaller,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kErrForbidden,
                        MarketActor::AddBalance::call(runtime, miner_address));
 }
 
@@ -211,7 +213,9 @@ ClientDealProposal MarketActorTest::setupPublishStorageDeals() {
   deal.storage_price_per_epoch =
       MarketActor::dealPricePerEpochBounds(deal.piece_size, duration).min + 1;
   deal.provider_collateral =
-      MarketActor::dealProviderCollateralBounds(deal.piece_size, duration).min
+      MarketActor::dealProviderCollateralBounds(
+          deal.piece_size, deal.verified, 0, 0, 0, 0, NetworkVersion::kVersion0)
+          .min
       + 1;
   deal.client_collateral =
       MarketActor::dealClientCollateralBounds(deal.piece_size, duration).min
@@ -266,7 +270,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsNonPositiveDuration)) {
   proposal.proposal.end_epoch = proposal.proposal.start_epoch;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kMarketActorIllegalArgument,
+      VMExitCode::kErrIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -275,7 +279,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsWrongClientSignature)) {
   proposal.proposal.client = owner_address;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kMarketActorIllegalArgument,
+      VMExitCode::kErrIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -284,7 +288,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsStartTimeout)) {
   proposal.proposal.start_epoch = epoch - 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kMarketActorIllegalArgument,
+      VMExitCode::kErrIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -295,7 +299,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsDurationOutOfBounds)) {
                    + MarketActor::dealDurationBounds(deal.piece_size).max + 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kMarketActorIllegalArgument,
+      VMExitCode::kErrIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -308,7 +312,7 @@ TEST_F(MarketActorTest,
       + 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kMarketActorIllegalArgument,
+      VMExitCode::kErrIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -316,13 +320,14 @@ TEST_F(MarketActorTest,
        GCC_DISABLE(PublishStorageDealsProviderCollateralOutOfBounds)) {
   auto proposal = setupPublishStorageDeals();
   auto &deal = proposal.proposal;
-  deal.provider_collateral = MarketActor::dealProviderCollateralBounds(
-                                 deal.piece_size, deal.duration())
-                                 .max
-                             + 1;
+  deal.provider_collateral =
+      MarketActor::dealProviderCollateralBounds(
+          deal.piece_size, deal.verified, 0, 0, 0, 0, NetworkVersion::kVersion0)
+          .max
+      + 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kMarketActorIllegalArgument,
+      VMExitCode::kErrIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -336,7 +341,7 @@ TEST_F(MarketActorTest,
       + 1;
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kMarketActorIllegalArgument,
+      VMExitCode::kErrIllegalArgument,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -357,7 +362,7 @@ TEST_F(MarketActorTest,
   EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(miner_address, 0));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kMarketActorInsufficientFunds,
+      VMExitCode::kErrInsufficientFunds,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -368,7 +373,7 @@ TEST_F(MarketActorTest,
   EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(client_address, 0));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kMarketActorInsufficientFunds,
+      VMExitCode::kErrInsufficientFunds,
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -410,7 +415,7 @@ TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitCallerNotMiner) {
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::kSysErrForbidden,
-      MarketActor::VerifyDealsOnSectorProveCommit::call(runtime, {{}, {}}));
+      MarketActor::VerifyDealsForActivation::call(runtime, {{}, {}}));
 }
 
 TEST_F(MarketActorTest,
@@ -418,18 +423,18 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit(
       [&](auto &deal) { deal.provider = client_address; });
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
-                       MarketActor::VerifyDealsOnSectorProveCommit::call(
-                           runtime, {{deal_1_id}, {}}));
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::kAssert,
+      MarketActor::VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}}));
 }
 
 TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitAlreadyStarted) {
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
   EXPECT_OUTCOME_TRUE_1(state.states.set(deal_1_id, {1, {}, {}}));
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
-                       MarketActor::VerifyDealsOnSectorProveCommit::call(
-                           runtime, {{deal_1_id}, {}}));
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::kAssert,
+      MarketActor::VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}}));
 }
 
 TEST_F(MarketActorTest,
@@ -437,9 +442,9 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit(
       [&](auto &deal) { deal.start_epoch = epoch - 1; });
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
-                       MarketActor::VerifyDealsOnSectorProveCommit::call(
-                           runtime, {{deal_1_id}, {}}));
+  EXPECT_OUTCOME_ERROR(
+      VMExitCode::kAssert,
+      MarketActor::VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}}));
 }
 
 TEST_F(MarketActorTest,
@@ -447,14 +452,14 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
 
   EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
-                       MarketActor::VerifyDealsOnSectorProveCommit::call(
+                       MarketActor::VerifyDealsForActivation::call(
                            runtime, {{deal_1_id}, deal.end_epoch - 1}));
 }
 
-TEST_F(MarketActorTest, GCC_DISABLE(VerifyDealsOnSectorProveCommit)) {
+TEST_F(MarketActorTest, GCC_DISABLE(VerifyDealsForActivation)) {
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
 
-  EXPECT_OUTCOME_TRUE_1(MarketActor::VerifyDealsOnSectorProveCommit::call(
+  EXPECT_OUTCOME_TRUE_1(MarketActor::VerifyDealsForActivation::call(
       runtime, {{deal_1_id}, deal.end_epoch}));
 
   EXPECT_OUTCOME_TRUE(deal_state, state.states.get(deal_1_id));
@@ -471,10 +476,10 @@ TEST_F(MarketActorTest, GCC_DISABLE(OnMinerSectorsTerminateNotDealMiner)) {
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::kAssert,
-      MarketActor::OnMinerSectorsTerminate::call(runtime, {{deal_1_id}}));
+      MarketActor::ActivateDeals::call(runtime, {{deal_1_id}}));
 }
 
-TEST_F(MarketActorTest, GCC_DISABLE(OnMinerSectorsTerminate)) {
+TEST_F(MarketActorTest, GCC_DISABLE(ActivateDeals)) {
   DealProposal deal;
   deal.piece_cid = some_cid;
   deal.provider = miner_address;
@@ -485,7 +490,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(OnMinerSectorsTerminate)) {
 
   callerIs(miner_address);
   EXPECT_OUTCOME_TRUE_1(
-      MarketActor::OnMinerSectorsTerminate::call(runtime, {{deal_1_id}}));
+      MarketActor::ActivateDeals::call(runtime, {{deal_1_id}}));
 
   EXPECT_OUTCOME_TRUE(deal_state, state.states.get(deal_1_id));
   EXPECT_EQ(deal_state.slash_epoch, epoch);

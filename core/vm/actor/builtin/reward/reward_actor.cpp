@@ -83,9 +83,9 @@ namespace fc::vm::actor::builtin::reward {
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(LastPerEpochReward) {
+  ACTOR_METHOD_IMPL(ThisEpochReward) {
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    return state.last_per_epoch_reward;
+    return Result{.this_epoch_reward = state.last_per_epoch_reward};
   }
 
   ACTOR_METHOD_IMPL(UpdateNetworkKPI) {
@@ -108,7 +108,7 @@ namespace fc::vm::actor::builtin::reward {
   const ActorExports exports{
       exportMethod<Constructor>(),
       exportMethod<AwardBlockReward>(),
-      exportMethod<LastPerEpochReward>(),
+      exportMethod<ThisEpochReward>(),
       exportMethod<UpdateNetworkKPI>(),
   };
 }  // namespace fc::vm::actor::builtin::reward

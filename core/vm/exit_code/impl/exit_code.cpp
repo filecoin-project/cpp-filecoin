@@ -89,16 +89,6 @@ namespace fc::vm {
       case E::kMinerActorIllegalState:
         return E::kErrIllegalState;
 
-      case E::kMarketActorIllegalArgument:
-        return E::kErrIllegalArgument;
-      case E::kMarketActorWrongCaller:
-      case E::kMarketActorForbidden:
-        return E::kErrForbidden;
-      case E::kMarketActorInsufficientFunds:
-        return E::kErrInsufficientFunds;
-      case E::kMarketActorIllegalState:
-        return E::kErrIllegalState;
-
       case E::kMultisigActorWrongCaller:
         return E{1};
       case E::kMultisigActorIllegalArgument:

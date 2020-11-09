@@ -13,6 +13,7 @@
 #include "vm/actor/builtin/account/account_actor.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime_error.hpp"
+#include "vm/version.hpp"
 
 namespace fc::vm::runtime {
   using fc::primitives::BigInt;
@@ -30,16 +31,30 @@ namespace fc::vm::runtime {
     return execution_;
   }
 
+  NetworkVersion RuntimeImpl::getNetworkVersion() const {
+    return version::getNetworkVersion(getCurrentEpoch());
+  }
+
   ChainEpoch RuntimeImpl::getCurrentEpoch() const {
     return execution_->env->tipset.height;
   }
 
-  outcome::result<Randomness> RuntimeImpl::getRandomness(
+  outcome::result<Randomness> RuntimeImpl::getRandomnessFromTickets(
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
     return execution_->env->tipset.ticketRandomness(
         *execution_->env->ipld, tag, epoch, seed);
+  }
+
+  outcome::result<Randomness> RuntimeImpl::getRandomnessFromBeacon(
+      DomainSeparationTag tag,
+      ChainEpoch epoch,
+      gsl::span<const uint8_t> seed) const {
+    // TODO (a.chernyshov) implement
+    // test vector randomness
+    return crypto::randomness::Randomness::fromString(
+        "i_am_random_____i_am_random_____");
   }
 
   Address RuntimeImpl::getImmediateCaller() const {
@@ -105,6 +120,13 @@ namespace fc::vm::runtime {
     return fc::outcome::failure(RuntimeError::kUnknown);
   }
 
+  fc::outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
+      const {
+    // TODO(a.chernyshov) implement
+    // 0 is for test vectors
+    return 0;
+  }
+
   std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() {
     return execution_->charging_ipld;
   }
@@ -144,15 +166,13 @@ namespace fc::vm::runtime {
       const Address &address,
       gsl::span<const uint8_t> data) {
     OUTCOME_TRY(
-        chargeGas(execution_->env->pricelist.onVerifySignature(data.size())));
-    OUTCOME_TRY(
-        account,
-        execution_->state_tree
-            ->state<actor::builtin::account::AccountActorState>(address));
+        chargeGas(execution_->env->pricelist.onVerifySignature(signature.isBls())));
+    OUTCOME_TRY(account,
+                resolveKey(*execution_->state_tree, address));
     return storage::keystore::InMemoryKeyStore{
         std::make_shared<crypto::bls::BlsProviderImpl>(),
         std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}
-        .verify(account.address, data, signature);
+        .verify(account, data, signature);
   }
 
   outcome::result<bool> RuntimeImpl::verifyPoSt(

@@ -15,7 +15,6 @@
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
-#include "vm/version.hpp"
 
 #define RUNTIME_METHOD(name)                                         \
   void rt_##name(Runtime &, CborDecodeStream &, CborEncodeStream &); \
@@ -39,7 +38,6 @@ namespace fc::vm::actor::cgo {
   using runtime::resolveKey;
   using runtime::RuntimeImpl;
   using storage::hamt::HamtError;
-  using vm::version::getNetworkVersion;
 
   bool test_vectors{false};
 
@@ -72,11 +70,11 @@ namespace fc::vm::actor::cgo {
                                  BytesIn params) {
     CborEncodeStream arg;
     auto id{next_runtime++};  // TODO: mod
-    auto version{getNetworkVersion(exec->env->tipset.height)};
+    auto runtime = RuntimeImpl(exec, message, message.from);
+    auto version{runtime.getNetworkVersion()};
     arg << id << version << message.from << message.to
         << exec->env->tipset.height << message.value << code << method
         << params;
-    auto runtime = RuntimeImpl(exec, message, message.from);
     runtimes.emplace(id, runtime);
     auto ret{cgoCall<cgoActorsInvoke>(arg)};
     runtimes.erase(id);

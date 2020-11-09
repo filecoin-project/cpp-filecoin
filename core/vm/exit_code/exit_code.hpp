@@ -69,12 +69,6 @@ namespace fc::vm {
     kMinerActorInsufficientFunds,
     kMinerActorIllegalState,
 
-    kMarketActorIllegalArgument,
-    kMarketActorWrongCaller,
-    kMarketActorForbidden,
-    kMarketActorInsufficientFunds,
-    kMarketActorIllegalState,
-
     kMultisigActorWrongCaller,
     kMultisigActorIllegalArgument,
     kMultisigActorNotFound,

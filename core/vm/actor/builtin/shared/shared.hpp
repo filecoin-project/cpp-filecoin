@@ -18,14 +18,26 @@ namespace fc::vm::actor::builtin {
 
   using runtime::Runtime;
 
+  /// Quality multiplier for committed capacity (no deals) in a sector
+  const uint64_t kQualityBaseMultiplier{10};
+
+  /// Quality multiplier for unverified deals in a sector
+  const uint64_t kDealWeightMultiplier{10};
+
+  /// Quality multiplier for verified deals in a sector
+  const uint64_t kVerifiedDealWeightMultiplier{100};
+
+  /// Precision used for making QA power calculations
+  const uint64_t kSectorQualityPrecision{20};
+
   /**
    * Get worker address
    * @param runtime
    * @param miner
    * @return
    */
-  inline outcome::result<miner::ControlAddresses::Result> requestMinerControlAddress(
-      Runtime &runtime, const Address &miner) {
+  inline outcome::result<miner::ControlAddresses::Result>
+  requestMinerControlAddress(Runtime &runtime, const Address &miner) {
     return runtime.sendM<miner::ControlAddresses>(miner, {}, 0);
   }
 }  // namespace fc::vm::actor::builtin

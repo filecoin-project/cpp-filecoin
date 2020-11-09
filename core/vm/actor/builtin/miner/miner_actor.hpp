@@ -31,10 +31,11 @@ namespace fc::vm::actor::builtin::miner {
     struct Result {
       Address owner;
       Address worker;
+      std::vector<Address> control;
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(ControlAddresses::Result, owner, worker)
+  CBOR_TUPLE(ControlAddresses::Result, owner, worker, control)
 
   struct ChangeWorkerAddress : ActorMethodBase<3> {
     struct Params {

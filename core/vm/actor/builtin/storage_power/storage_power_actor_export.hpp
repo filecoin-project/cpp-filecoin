@@ -90,7 +90,35 @@ namespace fc::vm::actor::builtin::storage_power {
   };
   CBOR_TUPLE(OnSectorModifyWeightDesc::Params, prev_weight, new_weight)
 
-  struct EnrollCronEvent : ActorMethodBase<9> {
+  struct CurrentTotalPower : ActorMethodBase<9> {
+    /**
+     * Alpha Beta Filter "position" (value) and "velocity" (rate of change of
+     * value) estimates
+     * Estimates are in Q.128 format
+     */
+    struct FilterEstimate {
+      BigInt position_estimate;
+      BigInt velocity_estimate;
+    };
+    struct Result {
+      StoragePower raw_byte_power;
+      StoragePower quality_adj_power;
+      TokenAmount pledge_collateral;
+      FilterEstimate quality_adj_power_smoothed;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(CurrentTotalPower::FilterEstimate,
+             position_estimate,
+             velocity_estimate)
+  CBOR_TUPLE(CurrentTotalPower::Result,
+             raw_byte_power,
+             quality_adj_power,
+             pledge_collateral,
+             quality_adj_power_smoothed)
+
+  // TODO (a.chernyshov) update storage power actor
+  struct EnrollCronEvent : ActorMethodBase<13> {
     struct Params {
       ChainEpoch event_epoch;
       Buffer payload;
