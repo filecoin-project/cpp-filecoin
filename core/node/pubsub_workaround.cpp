@@ -6,7 +6,7 @@
 #include "pubsub_workaround.hpp"
 
 #include <boost/di/extension/scopes/shared.hpp>
-#include <libp2p/injector/gossip_injector.hpp>
+#include <libp2p/injector/host_injector.hpp>
 
 #include "common/logger.hpp"
 #include "crypto/blake2/blake2b160.hpp"
@@ -96,14 +96,16 @@ namespace fc::node {
   PubsubWorkaround::PubsubWorkaround(
       std::shared_ptr<boost::asio::io_context> io_context,
       const Config &config) {
-    auto injector = libp2p::injector::makeGossipInjector<
+    auto injector = libp2p::injector::makeHostInjector<
         boost::di::extension::shared_config>(
         boost::di::bind<boost::asio::io_context>.template to(
-            io_context)[boost::di::override],
-        libp2p::injector::useGossipConfig(config.gossip_config));
+            io_context)[boost::di::override]);
     auto host = injector.create<std::shared_ptr<libp2p::Host>>();
     auto gossip =
-        injector.create<std::shared_ptr<libp2p::protocol::gossip::Gossip>>();
+        libp2p::protocol::gossip::create(
+            injector.create<std::shared_ptr<libp2p::protocol::Scheduler>>(),
+            host,
+            config.gossip_config);
     for (const auto &b : config.bootstrap_list) {
       gossip->addBootstrapPeer(b.id, b.addresses[0]);
     }

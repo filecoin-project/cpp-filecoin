@@ -6,8 +6,9 @@
 #include "builder.hpp"
 
 #include <boost/di/extension/scopes/shared.hpp>
+#include <libp2p/injector/host_injector.hpp>
 
-#include <libp2p/injector/gossip_injector.hpp>
+#include <libp2p/protocol/gossip/gossip.hpp>
 #include <libp2p/protocol/identify/identify.hpp>
 #include <libp2p/protocol/identify/identify_delta.hpp>
 #include <libp2p/protocol/identify/identify_push.hpp>
@@ -191,15 +192,14 @@ namespace fc::node {
     // config.gossip_config.protocol_version = "/floodsub/1.0.0";
     // config.gossip_config.D_max = config.gossip_config.D_min = 0;
 
-    auto injector = libp2p::injector::makeGossipInjector<
+    auto injector = libp2p::injector::makeHostInjector<
         boost::di::extension::shared_config>(
         //        boost::di::bind<libp2p::security::SecurityAdaptor
         //        *[]>().template
         //        to<libp2p::security::TlsAdaptor>()[boost::di::override],  //
         //        NOLINT
 
-        boost::di::bind<clock::UTCClock>.template to<clock::UTCClockImpl>(),
-        libp2p::injector::useGossipConfig(config.gossip_config));
+        boost::di::bind<clock::UTCClock>.template to<clock::UTCClockImpl>());
 
     o.io_context = injector.create<std::shared_ptr<boost::asio::io_context>>();
 
@@ -277,8 +277,8 @@ namespace fc::node {
     o.chain_store = std::move(chain_store_res.value());
   */
 
-    o.gossip =
-        injector.create<std::shared_ptr<libp2p::protocol::gossip::Gossip>>();
+    o.gossip = libp2p::protocol::gossip::create(
+        o.scheduler, o.host, config.gossip_config);
 
     //    o.graphsync =
     //    std::make_shared<storage::ipfs::graphsync::GraphsyncImpl>(
