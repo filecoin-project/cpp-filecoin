@@ -227,10 +227,10 @@ namespace fc::vm::actor::builtin::market {
 
   outcome::result<std::pair<DealWeight, DealWeight>> validateDealsForActivation(
       Runtime &runtime,
+      State &state,
       const std::vector<DealId> &deals,
       const ChainEpoch &sector_expiry) {
     auto miner = runtime.getImmediateCaller();
-    OUTCOME_TRY(state, loadState(runtime));
     // load root to charge gas in order to conform lotus implementation
     OUTCOME_TRY(state.proposals.amt.loadRoot());
 
@@ -418,19 +418,20 @@ namespace fc::vm::actor::builtin::market {
 
   ACTOR_METHOD_IMPL(VerifyDealsForActivation) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(state, loadState(runtime));
     OUTCOME_TRY(result,
                 validateDealsForActivation(
-                    runtime, params.deals, params.sector_expiry));
+                    runtime, state, params.deals, params.sector_expiry));
     return Result{result.first, result.second};
   }
 
   ACTOR_METHOD_IMPL(ActivateDeals) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
+    OUTCOME_TRY(state, loadState(runtime));
     OUTCOME_TRY(validateDealsForActivation(
-        runtime, params.deals, params.sector_expiry));
+        runtime, state, params.deals, params.sector_expiry));
 
     auto miner = runtime.getImmediateCaller();
-    OUTCOME_TRY(state, loadState(runtime));
     for (auto deal_id : params.deals) {
       OUTCOME_TRY(has_deal_state, state.states.has(deal_id));
       OUTCOME_TRY(runtime.validateArgument(!has_deal_state));
