@@ -14,7 +14,7 @@ namespace boost {
 }  // namespace boost
 
 namespace libp2p {
-  class Host;
+  struct Host;
 
   namespace peer {
     class PeerId;

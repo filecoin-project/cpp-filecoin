@@ -12,11 +12,6 @@
 
 #include "network/network_fwd.hpp"
 
-namespace libp2p {
-  // libp2p host interface forward declaration
-  class Host;
-}  // namespace libp2p
-
 namespace fc::storage::ipfs::graphsync {
 
   class LocalRequests;

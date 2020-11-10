@@ -366,15 +366,14 @@ namespace fc::markets::storage::test {
     auto makeDatatransfer(std::shared_ptr<libp2p::Host> host,
                           boost::asio::io_context &io,
                           F cb) {
-      std::shared_ptr<libp2p::protocol::Scheduler> scheduler =
-          std::make_shared<libp2p::protocol::AsioScheduler>(
-              io, libp2p::protocol::SchedulerConfig{});
       auto graphsync{
           std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
-              host, std::move(scheduler))};
+              host,
+              std::make_shared<libp2p::protocol::AsioScheduler>(
+                  io, libp2p::protocol::SchedulerConfig{}))};
       graphsync->subscribe(
-          [cb = std::move(cb)](const libp2p::peer::PeerId &from,
-                               const fc::storage::ipfs::graphsync::Data &data) {
+          [cb{std::move(cb)}](const libp2p::peer::PeerId &from,
+                              const fc::storage::ipfs::graphsync::Data &data) {
             cb(data.cid, data.content);
           });
       graphsync->start();

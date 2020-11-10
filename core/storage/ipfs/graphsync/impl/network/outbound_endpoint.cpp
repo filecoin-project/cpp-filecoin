@@ -39,10 +39,6 @@ namespace fc::storage::ipfs::graphsync {
     return is_connecting_;
   }
 
-  bool OutboundEndpoint::isConnected() const {
-    return queue_ != nullptr;
-  }
-
   outcome::result<void> OutboundEndpoint::enqueue(SharedData data) {
     if (!data || data->empty()) {
       return outcome::success();
@@ -62,6 +58,37 @@ namespace fc::storage::ipfs::graphsync {
       pending_buffers_.emplace_back(std::move(data));
     }
 
+    return outcome::success();
+  }
+
+  outcome::result<void> OutboundEndpoint::sendResponse(
+      const FullRequestId &id, const Response &response) {
+    for (const auto &block : response.data) {
+      OUTCOME_TRY(addBlockToResponse(id, block.cid, block.content));
+    }
+
+    response_builder_.addResponse(id.id, response.status, response.extensions);
+    auto res = response_builder_.serialize();
+    response_builder_.clear();
+    if (!res) {
+      return res.error();
+    }
+
+    return enqueue(std::move(res.value()));
+  }
+
+  outcome::result<void> OutboundEndpoint::addBlockToResponse(
+      const FullRequestId &request_id,
+      const CID &cid,
+      const common::Buffer &data) {
+    auto serialized_size = response_builder_.getSerializedSize();
+
+    if (serialized_size + data.size() > kMaxMessageSize) {
+      static const Response partial{RS_PARTIAL_CONTENT, {}, {}};
+      OUTCOME_TRY(sendResponse(request_id, partial));
+    }
+
+    response_builder_.addDataBlock(cid, data);
     return outcome::success();
   }
 

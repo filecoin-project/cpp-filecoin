@@ -16,7 +16,7 @@
 
 // fwd declarations go here
 namespace libp2p {
-  class Host;
+  struct Host;
 
   namespace protocol {
     class Scheduler;

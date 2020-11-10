@@ -11,7 +11,7 @@
 #include "common/libp2p/cbor_stream.hpp"
 
 namespace libp2p {
-  class Host;
+  struct Host;
 }
 
 namespace fc::sync::blocksync {
