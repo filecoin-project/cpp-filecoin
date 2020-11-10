@@ -54,11 +54,11 @@ struct MessageVector {
   struct Ts {
     struct Blk {
       Address miner;
-      int64_t win_count;
+      int64_t win_count{};
       std::vector<UnsignedMessage> messages;
     };
 
-    ChainEpoch epoch;
+    ChainEpoch epoch{};
     BigInt base_fee;
     std::vector<Blk> blocks;
   };
@@ -142,7 +142,7 @@ struct MessageVector {
   std::string type;
   Buffer car;
   std::vector<Ts> tipsets;
-  ChainEpoch parent_epoch;
+  ChainEpoch parent_epoch{};
   BigInt parent_base_fee;
   std::vector<std::pair<ChainEpoch, UnsignedMessage>> messages;
   std::vector<MessageReceipt> receipts;

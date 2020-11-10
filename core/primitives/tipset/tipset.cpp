@@ -141,11 +141,13 @@ namespace fc::primitives::tipset {
 
         // return TipsetError::kTicketsCollision;
 
-        if (cid.toBytes().value() > cids_[idx].toBytes().value()) {
-          continue;
-        } else {
-          break;
-        }
+//        if (cid.toBytes().value() >= cids_[idx].toBytes().value()) {
+//          continue;
+//        } else {
+//          break;
+//        }
+
+        continue;
 
       }
       if (ticket_hash > h) {
