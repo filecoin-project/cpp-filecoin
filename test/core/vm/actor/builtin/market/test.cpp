@@ -7,7 +7,7 @@
 
 // TODO: some tests fail on gcc
 #if BOOST_COMP_GNUC
-#define GCC_DISABLE(name) name
+#define GCC_DISABLE(name) DISABLED_##name
 #else
 #define GCC_DISABLE(name) name
 #endif

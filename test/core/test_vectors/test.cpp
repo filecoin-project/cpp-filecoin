@@ -113,7 +113,7 @@ struct MessageVector {
                              jGet(j, "messages"),
                              [](auto j) {
                                return fc::codec::cbor::decode<UnsignedMessage>(
-                                          *jBytes(j))
+                                   *jBytes(j))
                                    .value();
                              }),
                      };
@@ -157,7 +157,7 @@ auto search(bool enabled) {
   static auto all_vectors{[] {
     std::vector<MessageVector> vectors;
     for (auto &item :
-         boost::filesystem::recursive_directory_iterator{kCorpusRoot}) {
+        boost::filesystem::recursive_directory_iterator{kCorpusRoot}) {
       auto &path{item.path()};
       if (item.status().type() == boost::filesystem::file_type::regular_file
           && path.extension() == ".json") {
@@ -260,11 +260,11 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
     auto &receipt{mv.receipts[i]};
     env->tipset.height = epoch;
     auto size = message.from.isSecp256k1()
-                    ? fc::vm::message::SignedMessage{message,
-                                                     fc::crypto::signature::
-                                                         Secp256k1Signature{}}
-                          .chainSize()
-                    : message.chainSize();
+                ? fc::vm::message::SignedMessage{message,
+                                                 fc::crypto::signature::
+                                                 Secp256k1Signature{}}
+                    .chainSize()
+                : message.chainSize();
     OUTCOME_EXCEPT(apply, env->applyMessage(message, size));
     EXPECT_EQ(apply.receipt.exit_code, receipt.exit_code);
     EXPECT_EQ(apply.receipt.return_value, receipt.return_value);
