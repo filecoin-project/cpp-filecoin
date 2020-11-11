@@ -26,9 +26,6 @@ namespace fc::codec::cbor {
 
 namespace libp2p::peer {
 
-  /*
-   *TODO testnet integration
-   *
   CBOR_ENCODE(PeerId, peer) {
     return s << peer.toVector();
   }
@@ -36,20 +33,6 @@ namespace libp2p::peer {
   CBOR_DECODE(PeerId, peer) {
     OUTCOME_EXCEPT(peer_id,
                    PeerId::fromBytes(s.template get<std::vector<uint8_t>>()));
-    peer = std::move(peer_id);
-    return s;
-  }
-   */
-
-  CBOR_ENCODE(PeerId, peer) {
-    auto bytes = peer.toVector();
-    return s << bytes;
-  }
-
-  CBOR_DECODE(PeerId, peer) {
-    std::vector<uint8_t> bytes;
-    s >> bytes;
-    OUTCOME_EXCEPT(peer_id, PeerId::fromBytes(bytes));
     peer = std::move(peer_id);
     return s;
   }

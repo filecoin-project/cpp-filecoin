@@ -50,10 +50,8 @@ namespace fc::hello {
   }
 
   void Hello::say(const PeerInfo &peer) {
-    // TODO (XXX)
-    OUTCOME_EXCEPT(ts, chain_store->heaviestTipset());
-
-    State hello{std::move(ts->key.cids()),
+    auto ts{chain_store->heaviestTipset()};
+    State hello{ts->key.cids(),
                 ts->height(),
                 chain_store->getHeaviestWeight(),
                 chain_store->genesisCID()};

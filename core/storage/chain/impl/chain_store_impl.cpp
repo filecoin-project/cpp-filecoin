@@ -90,10 +90,8 @@ namespace fc::storage::blockchain {
     return ChainStoreError::kNoTipsetAtHeight;
   }
 
-  outcome::result<TipsetCPtr> ChainStoreImpl::heaviestTipset() const {
-    if (!head_) {
-      return ChainStoreError::kNoHeaviestTipset;
-    }
+  TipsetCPtr ChainStoreImpl::heaviestTipset() const {
+    assert(head_);
     return head_;
   }
 

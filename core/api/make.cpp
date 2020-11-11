@@ -173,9 +173,9 @@ namespace fc::api {
                                  false) -> outcome::result<TipsetContext> {
       TipsetCPtr tipset;
       if (tipset_key.cids().empty()) {
-        OUTCOME_TRYA(tipset, chain_store->heaviestTipset());
+        tipset = chain_store->heaviestTipset();
       } else {
-        OUTCOME_TRYA(tipset, Tipset::load(*ipld, tipset_key.cids()));
+        OUTCOME_TRYA(tipset, chain_store->loadTipset(tipset_key));
       }
       TipsetContext context{tipset, {ipld, tipset->getParentStateRoot()}, {}};
       if (interpret) {
@@ -296,8 +296,8 @@ namespace fc::api {
         .ChainGetTipSet = {[=](auto &tipset_key) {
           return chain_store->loadTipset(tipset_key);
         }},
-
-        .ChainGetTipSetByHeight = {[=](auto height2) {
+        .ChainGetTipSetByHeight = {[=](auto height2, auto &) {
+          // TODO: use tipset key
           auto height = static_cast<uint64_t>(height2);
           return chain_store->loadTipsetByHeight(height);
         }},
@@ -409,8 +409,8 @@ namespace fc::api {
         .MpoolPending = {[=](auto &tipset_key)
                              -> outcome::result<std::vector<SignedMessage>> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          OUTCOME_TRY(heaviest, chain_store->heaviestTipset());
-          if (context.tipset->height() > heaviest->height()) {
+          if (context.tipset->height()
+              > chain_store->heaviestTipset()->height()) {
             // tipset from future requested
             return TodoError::kError;
           }
@@ -708,14 +708,14 @@ namespace fc::api {
         .StateSectorPartition = {},
         // TODO(artyom-yurin): FIL-165 implement method
         .StateSearchMsg = {},
-        .StateWaitMsg =
-            waitCb<MsgWait>([=](auto &&cid, auto &&confidence, auto &&cb) {
-              msg_waiter->wait(cid, [=, MOVE(cb)](auto &result) {
-                OUTCOME_CB(auto ts, Tipset::load(*ipld, result.second.cids()));
-                cb(MsgWait{
-                    cid, result.first, ts->key, (ChainEpoch)ts->height()});
-              });
-            }),
+        .StateWaitMsg = waitCb<MsgWait>([=](auto &&cid,
+                                            auto &&confidence,
+                                            auto &&cb) {
+          msg_waiter->wait(cid, [=, MOVE(cb)](auto &result) {
+            OUTCOME_CB(auto ts, chain_store->loadTipset(result.second));
+            cb(MsgWait{cid, result.first, ts->key, (ChainEpoch)ts->height()});
+          });
+        }),
         .SyncSubmitBlock = {[=](auto block) -> outcome::result<void> {
           // TODO(turuslan): chain store must validate blocks before adding
           MsgMeta meta;

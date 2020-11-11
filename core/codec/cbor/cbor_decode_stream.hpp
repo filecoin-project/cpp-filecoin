@@ -14,8 +14,6 @@
 #include <gsl/span>
 
 #include "codec/cbor/streams_annotation.hpp"
-#include "common/hexutil.hpp"
-#include "common/buffer.hpp"
 
 namespace fc::codec::cbor {
   /** Decodes CBOR */
@@ -160,77 +158,6 @@ namespace fc::codec::cbor {
     std::shared_ptr<CborParser> parser_;
     CborValue value_{};
   };
-
-  /*
-  namespace {
-
-    inline std::string dH(BytesIn b) {
-      return common::hex_lower(b);
-    }
-    inline std::string dC(const CID &c) {
-      auto &mh{c.content_address}; auto h{mh.getHash()};
-      if (c.version == CID::Version::V1 && c.content_type == CID::Multicodec::DAG_CBOR && mh.getType() == libp2p::multi::HashType::blake2b_256) {
-        return dH(h);
-      }
-      OUTCOME_EXCEPT(p, c.toBytes());
-      return dH(gsl::make_span(p).subspan(0, p.size() - mh.toBuffer().size())) + "_" + dH(h);
-    }
-    struct LessCborKey {
-      bool operator()(const std::string &l, const std::string &r) const {
-        if (ssize_t diff = l.size() - r.size()) {
-          return diff < 0;
-        }
-        return memcmp(l.data(), r.data(), l.size()) < 0;
-      }
-    };
-    inline void dCb(std::string &o, codec::cbor::CborDecodeStream &s) {
-      auto _s{[&](auto &s) { o += "^" + s; }};
-      if (s.isCid()) {
-        CID c; s >> c; o += "@" + dC(c);
-      } else if (s.isList()) {
-        o += "[";
-        auto n{s.listLength()}; auto l{s.list()};
-        for (auto i{0u}; i < n; ++i) {
-          if (i) o += ",";
-          dCb(o, l);
-        }
-        o += "]";
-      } else if (s.isMap()) {
-        o += "{";
-        auto c{false};
-        auto _m{s.map()};
-        std::map<std::string, codec::cbor::CborDecodeStream, LessCborKey> m{_m.begin(), _m.end()};
-        for (auto &p : m) {
-          if (c) o += ","; else c = true;
-          _s(p.first); o += ":";
-          dCb(o, p.second);
-        }
-        o += "}";
-      } else if (s.isBytes()) {
-        Buffer b; s >> b; if (b.empty()) o += "~"; else o += dH(b);
-      } else if (s.isStr()) {
-        std::string b; s >> b; _s(b);
-      } else if (s.isInt()) {
-        int64_t i; s >> i; if (i >= 0) o += "+"; o += std::to_string(i);
-      } else if (s.isBool()) {
-        bool b; s >> b; o += b ? "T" : "F";
-      } else if (s.isNull()) {
-        o += "N"; s.next();
-      } else {
-        assert(false);
-      }
-    }
-    inline std::string dCb(BytesIn b) {
-      if (b.empty()) { return "(empty)"; }
-      try {
-        std::string o; codec::cbor::CborDecodeStream s{b}; dCb(o, s); return o;
-      } catch (std::system_error &) {
-        return "(error:" + dH(b) + ")";
-      }
-    }
-
-  }
-*/
 }  // namespace fc::codec::cbor
 
 #endif  // CPP_FILECOIN_CORE_CODEC_CBOR_CBOR_DECODE_STREAM_HPP

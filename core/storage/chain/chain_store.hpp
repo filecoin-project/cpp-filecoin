@@ -44,7 +44,7 @@ namespace fc::storage::blockchain {
 
     virtual outcome::result<TipsetCPtr> loadTipsetByHeight(uint64_t height) = 0;
 
-    virtual outcome::result<TipsetCPtr> heaviestTipset() const = 0;
+    virtual TipsetCPtr heaviestTipset() const = 0;
 
     using connection_t = boost::signals2::connection;
     using HeadChangeSignature = void(const HeadChange &);

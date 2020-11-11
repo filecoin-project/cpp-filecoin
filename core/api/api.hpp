@@ -317,7 +317,8 @@ namespace fc::api {
     API_METHOD(ChainGetTipSet, TipsetCPtr, const TipsetKey &)
     API_METHOD(ChainGetTipSetByHeight,
                TipsetCPtr,
-               ChainEpoch)
+               ChainEpoch,
+               const TipsetKey &)
     API_METHOD(ChainHead, TipsetCPtr)
     API_METHOD(ChainNotify, Chan<std::vector<HeadChange>>)
     API_METHOD(ChainReadObj, Buffer, CID)

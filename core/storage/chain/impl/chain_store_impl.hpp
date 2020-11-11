@@ -58,7 +58,7 @@ namespace fc::storage::blockchain {
 
     outcome::result<TipsetCPtr> loadTipsetByHeight(uint64_t height) override;
 
-    outcome::result<TipsetCPtr> heaviestTipset() const override;
+    TipsetCPtr heaviestTipset() const override;
 
     using connection_t = boost::signals2::connection;
     using HeadChangeSignature = void(const HeadChange &);

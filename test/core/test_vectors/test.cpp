@@ -19,8 +19,6 @@
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/env.hpp"
 
-#include "vm/dvm/dvm.hpp"
-
 const auto kCorpusRoot{resourcePath("test-vectors/corpus")};
 auto brief(const std::string &path) {
   auto n{kCorpusRoot.size() + 1};
@@ -152,8 +150,6 @@ struct MessageVector {
   std::string path;
 };
 
-static std::string run_test_pattern{};
-
 auto search(bool enabled) {
   static auto all_vectors{[] {
     std::vector<MessageVector> vectors;
@@ -171,26 +167,12 @@ auto search(bool enabled) {
     return vectors;
   }()};
   std::vector<MessageVector> vectors;
-  bool has_pattern = !run_test_pattern.empty();
-
   for (auto &mv : all_vectors) {
-    if (has_pattern) {
-      if (mv.path.find(run_test_pattern) != std::string::npos) {
-        vectors.push_back(mv);
-      }
-    } else {
-      auto _enabled{!mv.chaos};
-      if (_enabled == enabled) {
-        vectors.push_back(mv);
-      }
+    auto _enabled{!mv.chaos};
+    if (_enabled == enabled) {
+      vectors.push_back(mv);
     }
   }
-
-  if (getenv("DVM_LOG")) {
-    fc::dvm::logging = true;
-    fc::dvm::logger->flush_on(spdlog::level::info);
-  }
-
   return vectors;
 }
 
@@ -239,14 +221,11 @@ void testTipsets(const MessageVector &mv, IpldPtr ipld) {
       }
       block.messages = ipld->setCbor(meta).value();
       block.parent_message_receipts = block.parent_state_root = state;
-      OUTCOME_EXCEPT(cid, ipld->setCbor(block));
-
+      OUTCOME_EXCEPT(ipld->setCbor(block));
       OUTCOME_EXCEPT(cr.expandTipset(block));
     }
     std::vector<MessageReceipt> receipts;
-
-    auto tipset = cr.getTipset(true);
-
+    auto tipset{cr.getTipset(true)};
     OUTCOME_EXCEPT(res, vmi.applyBlocks(ipld, tipset, &receipts));
     state = res.state_root;
     EXPECT_EQ(res.message_receipts, mv.receipts_roots[i]);
@@ -331,13 +310,3 @@ INSTANTIATE_TEST_CASE_P(DISABLED_Vectors,
                         TestVectors,
                         testing::ValuesIn(search(false)),
                         testName);
-
-int main(int argc, char *argv[]) {
-  if (argc > 2 && std::string("run") == argv[1]) {
-    run_test_pattern = argv[2];
-    argc -= 2;
-    argv += 2;
-  }
-  ::testing::InitGoogleTest(&argc, argv);
-  return RUN_ALL_TESTS();
-}

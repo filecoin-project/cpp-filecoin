@@ -128,9 +128,7 @@ namespace fc::sync {
              std::shared_ptr<ChainStore> chain_store)
       : MOVE(ipld), MOVE(ts_sync), MOVE(chain_store) {
     this->ts_sync->valid.emplace(
-        chain_store->loadTipsetByHeight(0).value()->key,
-        //TipsetKey{this->chain_store->genesisCid()},
-                                 true);
+        TipsetKey::create({this->chain_store->genesisCID()}).value(), true);
   }
 
   void Sync::onHello(const TipsetKey &key, const PeerId &peer) {

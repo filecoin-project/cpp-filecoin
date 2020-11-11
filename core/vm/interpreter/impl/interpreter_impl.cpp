@@ -171,21 +171,14 @@ namespace fc::vm::interpreter {
   }
 
   namespace {
-    const common::Buffer &getBadTipsetMarker() {
-      static const uint8_t z[] = {0x00};
-      static const common::Buffer kBadTipsetMark(
-          gsl::span<const uint8_t>(z, 1));
-      return kBadTipsetMark;
-    }
-
     outcome::result<boost::optional<Result>> getSavedResult(
         const PersistentBufferMap &store, const common::Buffer &key) {
       if (store.contains(key)) {
         OUTCOME_TRY(raw, store.get(key));
-        if (raw == getBadTipsetMarker()) {
+        OUTCOME_TRY(result, codec::cbor::decode<boost::optional<Result>>(raw));
+        if (!result) {
           return InterpreterError::kTipsetMarkedBad;
         }
-        OUTCOME_TRY(result, codec::cbor::decode<Result>(raw));
         return std::move(result);
       }
       return boost::none;
@@ -209,12 +202,12 @@ namespace fc::vm::interpreter {
     }
     auto result = interpreter->interpret(ipld, tipset);
     if (!result) {
-      OUTCOME_TRY(store->put(key, getBadTipsetMarker()));
+      OUTCOME_TRY(raw, codec::cbor::encode(boost::optional<Result>{}));
+      OUTCOME_TRY(store->put(key, raw));
     } else {
       OUTCOME_TRY(raw, codec::cbor::encode(result.value()));
       OUTCOME_TRY(store->put(key, raw));
     }
     return result;
   }
-
 }  // namespace fc::vm::interpreter

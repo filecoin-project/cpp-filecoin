@@ -9,8 +9,7 @@
 #include "codec/cbor/cbor_decode_stream.hpp"
 #include "codec/cbor/cbor_encode_stream.hpp"
 #include "codec/cbor/cbor_resolve.hpp"
-//#include "common/buffer.hpp"
-//#include "common/logger.hpp"
+#include "common/buffer.hpp"
 
 namespace fc::codec::cbor {
   using common::Buffer;
@@ -47,8 +46,6 @@ namespace fc::codec::cbor {
       decoder >> data;
       return data;
     } catch (std::system_error &e) {
-//      spdlog::error(
-//          "cbor decode error: {}\n{}", e.code().message(), dCb(input));
       return outcome::failure(e.code());
     }
   }
