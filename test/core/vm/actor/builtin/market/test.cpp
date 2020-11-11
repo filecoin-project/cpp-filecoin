@@ -268,7 +268,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsNonPositiveDuration)) {
   proposal.proposal.end_epoch = proposal.proposal.start_epoch;
 
   runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
+      kRewardAddress, {}, 0, {});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
 
@@ -282,7 +282,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsWrongClientSignature)) {
   proposal.proposal.client = owner_address;
 
   runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
+      kRewardAddress, {}, 0, {});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
 
@@ -296,7 +296,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsStartTimeout)) {
   proposal.proposal.start_epoch = epoch - 1;
 
   runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
+      kRewardAddress, {}, 0, {});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
 
@@ -312,7 +312,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsDurationOutOfBounds)) {
                    + MarketActor::dealDurationBounds(deal.piece_size).max + 1;
 
   runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
+      kRewardAddress, {}, 0, {});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
 
@@ -330,7 +330,7 @@ TEST_F(MarketActorTest,
       + 1;
 
   runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
+      kRewardAddress, {}, 0, {});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
 
@@ -350,7 +350,7 @@ TEST_F(MarketActorTest,
       + 1;
 
   runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
+      kRewardAddress, {}, 0, {});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
   EXPECT_CALL(runtime, getTotalFilCirculationSupply()).WillOnce(Return(0));
@@ -371,8 +371,7 @@ TEST_F(MarketActorTest,
           .max
       + 1;
 
-  runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {0, 0, 0, {}});
+  runtime.expectSendM<RewardActor::ThisEpochReward>(kRewardAddress, {}, 0, {});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
 
@@ -387,9 +386,9 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsDifferentProviders)) {
   proposal2.proposal.provider = client_address;
 
   runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {RewardActor::ThisEpochReward::Result{}});
+      kRewardAddress, {}, 0, {});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
-      kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
+      kStoragePowerAddress, {}, 0, {});
   EXPECT_CALL(runtime, getTotalFilCirculationSupply())
       .WillRepeatedly(Return(0));
   EXPECT_CALL(runtime, getNetworkVersion())
@@ -409,8 +408,7 @@ TEST_F(MarketActorTest,
 
   EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(miner_address, 0));
 
-  runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {0, 0, 0, {}});
+  runtime.expectSendM<RewardActor::ThisEpochReward>(kRewardAddress, {}, 0, {});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
   EXPECT_CALL(runtime, getTotalFilCirculationSupply()).WillOnce(Return(0));
@@ -428,8 +426,7 @@ TEST_F(MarketActorTest,
 
   EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(client_address, 0));
 
-  runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {0, 0, 0, {}});
+  runtime.expectSendM<RewardActor::ThisEpochReward>(kRewardAddress, {}, 0, {});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
   EXPECT_CALL(runtime, getTotalFilCirculationSupply()).WillOnce(Return(0));
@@ -446,8 +443,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDeals)) {
   auto &deal = proposal.proposal;
   state.next_deal = deal_1_id;
 
-  runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {0, 0, 0, {}});
+  runtime.expectSendM<RewardActor::ThisEpochReward>(kRewardAddress, {}, 0, {});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
   EXPECT_CALL(runtime, getTotalFilCirculationSupply()).WillOnce(Return(0));
@@ -490,7 +486,7 @@ TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitCallerNotMiner) {
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::kSysErrForbidden,
-      MarketActor::VerifyDealsForActivation::call(runtime, {{}, {}}));
+      MarketActor::VerifyDealsForActivation::call(runtime, {}));
 }
 
 TEST_F(MarketActorTest,
@@ -498,18 +494,18 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit(
       [&](auto &deal) { deal.provider = client_address; });
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::kErrForbidden,
-      MarketActor::VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}}));
+  EXPECT_OUTCOME_ERROR(VMExitCode::kErrForbidden,
+                       MarketActor::VerifyDealsForActivation::call(
+                           runtime, {{deal_1_id}, {}, {}}));
 }
 
 TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitAlreadyStarted) {
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
   EXPECT_OUTCOME_TRUE_1(state.states.set(deal_1_id, {1, {}, {}}));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::kErrIllegalArgument,
-      MarketActor::VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}}));
+  EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+                       MarketActor::VerifyDealsForActivation::call(
+                           runtime, {{deal_1_id}, {}, {}}));
 }
 
 TEST_F(MarketActorTest,
@@ -517,9 +513,9 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit(
       [&](auto &deal) { deal.start_epoch = epoch - 1; });
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::kErrIllegalArgument,
-      MarketActor::VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}}));
+  EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+                       MarketActor::VerifyDealsForActivation::call(
+                           runtime, {{deal_1_id}, {}, {}}));
 }
 
 TEST_F(MarketActorTest,

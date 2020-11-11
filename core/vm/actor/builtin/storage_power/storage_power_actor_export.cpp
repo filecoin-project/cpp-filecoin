@@ -92,12 +92,14 @@ namespace fc::vm::actor::builtin::storage_power {
 
   ACTOR_METHOD_IMPL(CreateMiner) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
-    OUTCOME_TRY(
-        miner_params,
-        encodeActorParams(miner::Construct::Params{params.owner,
-                                                   params.worker,
-                                                   params.seal_proof_type,
-                                                   params.peer_id}));
+    OUTCOME_TRY(miner_params,
+                encodeActorParams(miner::Construct::Params{
+                    .owner = params.owner,
+                    .worker = params.worker,
+                    .control_addresses = {},
+                    .seal_proof_type = params.seal_proof_type,
+                    .peer_id = params.peer_id,
+                    .multiaddresses = params.multiaddresses}));
     OUTCOME_TRY(addresses_created,
                 runtime.sendM<init::Exec>(kInitAddress,
                                           {kStorageMinerCodeCid, miner_params},
