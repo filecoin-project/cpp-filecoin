@@ -229,11 +229,6 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<BlsProvider> &bls_provider,
         const std::map<Address, Address> &account_keys,
         const std::map<Address, BlsKeyPair> &private_keys) {
-      ChainEpoch epoch = 100;
-
-      // TODO generate valid chain head with proper height
-      // chain_head.height = epoch;
-
       std::shared_ptr<Api> api = std::make_shared<Api>();
 
       api->ChainGetMessage = {

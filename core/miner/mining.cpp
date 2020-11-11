@@ -117,7 +117,7 @@ namespace fc::mining {
 
   void Mining::wait(int64_t sec, bool abs, Scheduler::Callback cb) {
     if (abs) {
-      sec -= clock->nowUTC().unixTimeNano().count() / 1000000000;
+      sec -= clock->nowUTC().count();
     }
     cb = [cb{std::move(cb)}, self{shared_from_this()}] {
       // stop condition or weak_ptr
