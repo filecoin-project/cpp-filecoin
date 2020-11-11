@@ -65,8 +65,7 @@ namespace fc::blockchain::block_validator {
     OUTCOME_TRY(parent_tipset, getParentTipset(block));
     OUTCOME_TRY(ConsensusRules::parentWeight(
         block, *parent_tipset.get(), weight_calculator_));
-    OUTCOME_TRY(chain_epoch,
-                epoch_clock_->epochAtTime(clock_->nowUTC().unixTime()));
+    OUTCOME_TRY(chain_epoch, epoch_clock_->epochAtTime(clock_->nowUTC()));
     OUTCOME_TRY(ConsensusRules::epoch(block, chain_epoch));
     return outcome::success();
   }

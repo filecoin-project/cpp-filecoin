@@ -122,7 +122,7 @@ namespace fc::sync {
       return outcome::success();
     }
     auto diff = to_height - from_height + 1;
-    limit = std::min(limit, diff);
+    limit = std::min<size_t>(limit, diff);
     std::error_code e;
     auto res = backend_->walk(
         branch,

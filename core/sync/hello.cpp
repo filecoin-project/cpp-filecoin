@@ -117,11 +117,11 @@ namespace fc::sync {
   }
 
   void Hello::onHeartbeat() {
-    auto expire_time = clock_->nowUTC().unixTime() - std::chrono::seconds(10);
+    auto expire_time = clock_->nowUTC() - std::chrono::seconds(10);
 
     while (!active_requests_by_sent_time_.empty()) {
       auto it = active_requests_by_sent_time_.begin();
-      if (it->t.unixTime() > expire_time) {
+      if (it->t > expire_time) {
         break;
       }
 
@@ -222,7 +222,7 @@ namespace fc::sync {
 
     // TODO(artem): do smth with clock results
 
-    auto latency = clock_->nowUTC().unixTimeNano() - ctx.sent.unixTimeNano();
+    auto latency = clock_->nowUTC() - ctx.sent;
     clearRequest(peer_id);
 
     log()->debug("got hello response from {}", peer_id.toBase58());
@@ -277,10 +277,10 @@ result.value().genesis.toString().value());
       return;
     }
 
-    auto arrival = clock_->nowUTC().unixTimeNano().count();
+    auto arrival = clock_->nowUTC().count();
     hello_feedback_(peer_res.value(), std::move(result));
 
-    auto sent = clock_->nowUTC().unixTimeNano().count();
+    auto sent = clock_->nowUTC().count();
 
     stream->write(LatencyMessage{arrival, sent}, [stream](auto) {
       stream->close();

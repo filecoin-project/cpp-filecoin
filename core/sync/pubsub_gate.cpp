@@ -137,7 +137,7 @@ namespace fc::sync {
   }
 
   uint64_t PubSubGate::clockNano() {
-    return clock_->nowUTC().unixTimeNano().count();
+    return clock_->nowUTC().count();
   }
 
   bool PubSubGate::onBlock(const PeerId &from, const Bytes &raw) {

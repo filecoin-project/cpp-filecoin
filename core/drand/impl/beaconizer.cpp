@@ -94,7 +94,7 @@ namespace fc::drand {
                        return cb(error);
                      });
     }};
-    auto now{clock->nowUTC().unixTime()};
+    auto now{clock->nowUTC()};
     auto time{info.genesis + round * info.period};
     if (now < time) {
       scheduler
