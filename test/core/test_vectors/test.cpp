@@ -191,9 +191,11 @@ void testTipsets(const MessageVector &mv, IpldPtr ipld) {
   auto i{0}, j{0};
   for (auto &ts : mv.tipsets) {
     fc::primitives::tipset::TipsetCreator cr;
+    fc::primitives::block::Ticket ticket{{0}};
     for (auto &blk : ts.blocks) {
       fc::primitives::block::BlockHeader block;
-      block.ticket.emplace();
+      block.ticket.emplace(ticket);
+      ++ticket.bytes[0];
       block.miner = blk.miner;
       block.election_proof.win_count = blk.win_count;
       block.height = ts.epoch;

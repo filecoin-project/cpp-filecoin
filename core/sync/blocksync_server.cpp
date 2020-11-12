@@ -197,7 +197,7 @@ namespace fc::sync::blocksync {
         log()->debug("request from {}: depth={} from {}",
                      peerStr(stream->stream()),
                      request.value().depth,
-                     cidsToString(request.value().block_cids));
+                     fmt::join(request.value().block_cids, ","));
         getChain(ipld_, request.value(), response);
       } else {
         response.status = ResponseStatus::BAD_REQUEST;

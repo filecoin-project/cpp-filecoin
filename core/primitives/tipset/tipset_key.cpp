@@ -24,7 +24,7 @@ namespace fc::primitives::tipset {
 
   }  // namespace
 
-  outcome::result<TipsetHash> tipsetHash(const std::vector<CID> &cids) {
+  TipsetHash TipsetKey::hash(const std::vector<CID> &cids) {
     if (cids.empty()) {
       return emptyTipsetHash();
     }
@@ -46,7 +46,8 @@ namespace fc::primitives::tipset {
 
     std::vector<uint8_t> bytes;
     for (size_t i = 0; i < sz; ++i) {
-      OUTCOME_TRYA(bytes, cids[indices[i]].toBytes());
+      // TODO: may manually hash cid parts to avoid exceptions
+      bytes = cids[indices[i]].toBytes().value();
       ctx.update(bytes);
     }
 
@@ -57,14 +58,10 @@ namespace fc::primitives::tipset {
     return hash;
   }
 
-  std::string tipsetHashToString(const TipsetHash &hash) {
-    return common::hex_lower(hash);
-  }
-
   TipsetKey::TipsetKey() : hash_(emptyTipsetHash()) {}
 
-  TipsetKey::TipsetKey(std::vector<CID> c, TipsetHash h)
-      : cids_(std::move(c)), hash_(std::move(h)) {}
+  TipsetKey::TipsetKey(std::vector<CID> c)
+      : hash_{hash(c)}, cids_{std::move(c)} {}
 
   bool TipsetKey::operator==(const TipsetKey &rhs) const {
     return hash_ == rhs.hash_;
@@ -87,43 +84,19 @@ namespace fc::primitives::tipset {
   }
 
   std::string TipsetKey::toString() const {
-    return tipsetHashToString(hash_);
+    return common::hex_lower(hash_);
   }
 
   std::string TipsetKey::toPrettyString() const {
-    return cidsToString(cids_);
+    return fmt::format("{{{}}}", fmt::join(cids_, ","));
   }
-
-  outcome::result<TipsetKey> TipsetKey::create(std::vector<CID> cids) {
-    OUTCOME_TRY(hash, tipsetHash(cids));
-    return TipsetKey{std::move(cids), std::move(hash)};
-  }
-
-  TipsetKey TipsetKey::create(std::vector<CID> cids, TipsetHash hash) {
-    assert(tipsetHash(cids).value() == hash);
-    return TipsetKey{std::move(cids), std::move(hash)};
-  }
-
 }  // namespace fc::primitives::tipset
 
 namespace std {
-  size_t hash<fc::primitives::tipset::TipsetKey>::operator()(
-      const fc::primitives::tipset::TipsetKey &x) const {
+  size_t hash<fc::TipsetKey>::operator()(
+      const fc::TipsetKey &x) const {
     size_t h;
     memcpy(&h, x.hash().data(), sizeof(size_t));
     return h;
   }
 }  // namespace std
-
-OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, HashError, e) {
-  using fc::primitives::tipset::HashError;
-
-  switch (e) {
-    case HashError::HASH_INITIALIZE_ERROR:
-      return "Hash engine ctx initialization error";
-    default:
-      break;
-  }
-
-  return "Unknown error";
-}

@@ -22,7 +22,6 @@ namespace fc::markets::storage::chain_events {
   using primitives::tipset::HeadChange;
   using primitives::tipset::HeadChangeType;
   using primitives::tipset::Tipset;
-  using primitives::tipset::TipsetKey;
   using vm::actor::MethodParams;
   using vm::actor::builtin::miner::PreCommitSector;
   using vm::actor::builtin::miner::ProveCommitSector;
@@ -81,7 +80,7 @@ namespace fc::markets::storage::chain_events {
           auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
 
           auto tipset = std::make_shared<Tipset>();
-          tipset->key = TipsetKey::create({block_cid}).value();
+          tipset->key = TipsetKey{{block_cid}};
           HeadChange change{.type = HeadChangeType::APPLY, .value = tipset};
           channel->write({change});
 

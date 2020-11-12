@@ -48,7 +48,7 @@ namespace fc::sync {
         if (!branches_map.empty()) {
           throw std::system_error(Error::SYNC_DATA_INTEGRITY_ERROR);
         }
-        OUTCOME_EXCEPT(gt, Tipset::loadGenesis(*ipld_, genesis_cid.value()));
+        OUTCOME_EXCEPT(gt, Tipset::load(*ipld_, {genesis_cid.value()}));
 
         assert(gt->key.cids()[0] == genesis_cid.value());
 
@@ -66,8 +66,7 @@ namespace fc::sync {
             throw std::system_error(Error::SYNC_GENESIS_MISMATCH);
           }
         }
-        OUTCOME_TRYA(genesis_tipset_,
-                     Tipset::loadGenesis(*ipld_, info->key.cids()[0]));
+        OUTCOME_TRYA(genesis_tipset_, Tipset::load(*ipld_, info->key.cids()));
       }
 
     } catch (const std::system_error &e) {

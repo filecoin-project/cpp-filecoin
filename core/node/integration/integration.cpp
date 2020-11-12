@@ -119,14 +119,11 @@ namespace fc {
                         block_cid.toString().value(),
                         msg.header.height);
 
-            auto tk = primitives::tipset::TipsetKey::create(msg.header.parents);
-            if (tk) {
-              // TODO here we may check connectiveness and pass the peer
-              syncer.syncer.newTarget(boost::none,
-                                      std::move(tk.value()),
-                                      msg.header.parent_weight,
-                                      msg.header.height - 1);
-            }
+            // TODO here we may check connectiveness and pass the peer
+            syncer.syncer.newTarget(boost::none,
+                                    msg.header.parents,
+                                    msg.header.parent_weight,
+                                    msg.header.height - 1);
           });
 
       msg_subscr = pubsub->subscribeToMessages(
@@ -159,8 +156,9 @@ namespace fc {
       if (idx.height % 1000 == 0) log()->info("reindex height {}", idx.height);
       OUTCOME_EXCEPT(buffer, o.kv_store->get(common::Buffer(idx.hash)));
       OUTCOME_EXCEPT(cids, codec::cbor::decode<std::vector<CID>>(buffer));
+      assert(idx.hash == TipsetKey::hash(cids));
       sync::TipsetInfo info{
-          sync::TipsetKey::create(std::move(cids), std::move(idx.hash)),
+          std::move(cids),
           idx.branch,
           idx.height,
           std::move(idx.parent_hash)};
@@ -184,7 +182,7 @@ namespace fc {
       if (idx.height % 1000 == 0) log()->info("verify height {}", idx.height);
       OUTCOME_EXCEPT(info, sync::IndexDbBackend::decode(idx));
       if (info->key.hash()
-          != primitives::tipset::tipsetHash(info->key.cids()).value()) {
+          != TipsetKey::hash(info->key.cids())) {
         log()->error("verify error at height {}", idx.height);
       }
     };
@@ -401,14 +399,11 @@ namespace fc {
 
             auto &s = state.value();
 
-            auto tk = primitives::tipset::TipsetKey::create(s.heaviest_tipset);
-            if (tk) {
-              ctx.syncer.newTarget(peer,
-                                   std::move(tk.value()),
-                                   s.heaviest_tipset_weight,
-                                   s.heaviest_tipset_height);
-              ctx.start();
-            }
+            ctx.syncer.newTarget(peer,
+                                  s.heaviest_tipset,
+                                  s.heaviest_tipset_weight,
+                                  s.heaviest_tipset_height);
+            ctx.start();
 
             // o.gossip->addBootstrapPeer(peer, boost::none);
           });

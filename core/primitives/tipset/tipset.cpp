@@ -37,24 +37,18 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
 
 namespace fc::primitives::tipset {
 
-  using TicketHash =
-      std::array<uint8_t, crypto::blake2b::BLAKE2B256_HASH_LENGTH>;
-
   namespace {
 
-    outcome::result<TicketHash> ticketHash(const block::BlockHeader &hdr) {
-      if (hdr.height == 0) {
-        // Genesis block may not have ticket
-        return TicketHash{};
-      }
-
+    outcome::result<Hash256> ticketHash(const block::BlockHeader &hdr) {
       if (!hdr.ticket.has_value()) {
+        if (hdr.height == 0) {
+          // Genesis block may not have ticket
+          return Hash256{};
+        }
         return TipsetError::kTicketHasNoValue;
       }
 
-      const auto &ticket_bytes = hdr.ticket.value().bytes;
-
-      return crypto::blake2b::blake2b_256(ticket_bytes);
+      return crypto::blake2b::blake2b_256(hdr.ticket.value().bytes);
     }
 
   }  // namespace
@@ -134,21 +128,13 @@ namespace fc::primitives::tipset {
     size_t idx = 0;
     auto sz = ticket_hashes_.size();
     for (; idx != sz; ++idx) {
-      const auto& h = ticket_hashes_[idx];
+      const auto &h = ticket_hashes_[idx];
       if (ticket_hash == h) {
-        // TODO (artem): Need to double check where in the spec
-        // duplicate tickets are allowed, and how to arrange blocks in that case
-
-        // return TipsetError::kTicketsCollision;
-
-//        if (cid.toBytes().value() >= cids_[idx].toBytes().value()) {
-//          continue;
-//        } else {
-//          break;
-//        }
-
-        continue;
-
+        if (cid.toBytes().value() >= cids_[idx].toBytes().value()) {
+          continue;
+        } else {
+          break;
+        }
       }
       if (ticket_hash > h) {
         continue;
@@ -176,13 +162,9 @@ namespace fc::primitives::tipset {
       return std::make_shared<Tipset>();
     }
     if (clear) {
-      OUTCOME_EXCEPT(key, TipsetKey::create(std::move(cids_)));
-      return std::make_shared<Tipset>(std::move(key), std::move(blks_));
+      return std::make_shared<Tipset>(std::move(cids_), std::move(blks_));
     }
-
-    // make copy, don't erase
-    OUTCOME_EXCEPT(key, TipsetKey::create(cids_));
-    return std::make_shared<Tipset>(key, blks_);
+    return std::make_shared<Tipset>(cids_, blks_);
   }
 
   void TipsetCreator::clear() {
@@ -242,28 +224,6 @@ namespace fc::primitives::tipset {
       blocks.emplace_back(std::move(block));
     }
     return create(std::move(blocks));
-  }
-
-  outcome::result<TipsetCPtr> Tipset::loadGenesis(Ipld &ipld, const CID &cid) {
-    BlockHeader block;
-    OUTCOME_TRY(bytes, ipld.get(cid));
-    std::vector<std::vector<uint8_t>> dummy;
-    try {
-      codec::cbor::CborDecodeStream decoder(bytes);
-      decoder.list() >> block.miner >> dummy >> block.election_proof
-          >> block.beacon_entries >> block.win_post_proof >> block.parents
-          >> block.parent_weight >> block.height >> block.parent_state_root
-          >> block.parent_message_receipts >> block.messages
-          >> block.bls_aggregate >> block.timestamp >> block.block_sig
-          >> block.fork_signaling;
-
-    } catch (std::system_error &e) {
-      return e.code();
-    }
-
-    OUTCOME_TRY(key, TipsetKey::create({std::move(cid)}));
-    std::vector<BlockHeader> blocks{std::move(block)};
-    return std::make_shared<Tipset>(std::move(key), std::move(blocks));
   }
 
   outcome::result<TipsetCPtr> Tipset::loadParent(Ipld &ipld) const {
@@ -357,12 +317,10 @@ namespace fc::primitives::tipset {
   }
 
   TipsetKey Tipset::getParents() const {
-    return blks.empty() ? TipsetKey()
-                        : TipsetKey::create(blks[0].parents).value();
+    return blks[0].parents;
   }
 
   uint64_t Tipset::getMinTimestamp() const {
-    if (blks.empty()) return 0;
     return std::min_element(blks.begin(),
                             blks.end(),
                             [](const auto &b1, const auto &b2) -> bool {
@@ -381,8 +339,7 @@ namespace fc::primitives::tipset {
   }
 
   const BigInt &Tipset::getParentWeight() const {
-    static const BigInt zero;
-    return blks.empty() ? zero : blks[0].parent_weight;
+    return blks[0].parent_weight;
   }
 
   const CID &Tipset::getParentMessageReceipts() const {

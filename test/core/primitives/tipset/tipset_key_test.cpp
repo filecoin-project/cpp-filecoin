@@ -21,10 +21,10 @@ struct TipsetKeyTest : public ::testing::Test {
     EXPECT_OUTCOME_TRUE(c2, fc::common::getCidOf(v2));
     EXPECT_OUTCOME_TRUE(c3, fc::common::getCidOf(v3));
 
-    key1 = TipsetKey::create({}).value();
-    key2 = TipsetKey::create({c1}).value();
-    key3 = TipsetKey::create({c1, c2}).value();
-    key4 = TipsetKey::create({c1, c2, c3}).value();
+    key1 = TipsetKey{{}};
+    key2 = TipsetKey{{c1}};
+    key3 = TipsetKey{{c1, c2}};
+    key4 = TipsetKey{{c1, c2, c3}};
   }
 
   boost::optional<TipsetKey> key1;

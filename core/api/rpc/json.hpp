@@ -321,10 +321,7 @@ namespace fc::api {
     }
 
     DECODE(TipsetKey) {
-      std::vector<CID> cids;
-      decode(cids, j);
-      OUTCOME_EXCEPT(key, primitives::tipset::TipsetKey::create(cids));
-      v = std::move(key);
+      v = decode<std::vector<CID>>(j);
     }
 
     ENCODE(Address) {

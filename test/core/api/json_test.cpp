@@ -82,8 +82,7 @@ TEST(ApiJsonTest, Ticket) {
 }
 
 TEST(ApiJsonTest, TipsetKey) {
-  expectJson(TipsetKey::create({{"010001020001"_cid}}).value(),
-             "[{\"/\":\"baeaacaqaae\"}]");
+  expectJson(TipsetKey{{"010001020001"_cid}}, "[{\"/\":\"baeaacaqaae\"}]");
 }
 
 TEST(ApiJsonTest, Address) {
@@ -103,4 +102,3 @@ TEST(ApiJsonTest, BigInt) {
   expectJson(BigInt{-1}, "\"-1\"");
   expectJson(BigInt{1}, "\"1\"");
 }
-

@@ -75,8 +75,6 @@ namespace fc {
   };
 
   size_t hash_value(const CID &cid);
-
-  std::string cidsToString(const std::vector<CID>& cids);
 }  // namespace fc
 
 namespace std {

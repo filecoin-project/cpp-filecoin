@@ -150,8 +150,9 @@ namespace fc::sync {
   outcome::result<std::shared_ptr<TipsetInfo>> IndexDbBackend::decode(
       TipsetIdx raw) {
     OUTCOME_TRY(cids, decodeCids(raw.cids));
+    assert(raw.hash == TipsetKey::hash(cids));
     return std::make_shared<TipsetInfo>(
-        TipsetInfo{TipsetKey::create(std::move(cids), std::move(raw.hash)),
+        TipsetInfo{std::move(cids),
                    raw.branch,
                    raw.height,
                    std::move(raw.parent_hash)});

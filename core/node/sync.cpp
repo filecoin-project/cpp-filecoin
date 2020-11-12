@@ -127,8 +127,7 @@ namespace fc::sync {
              std::shared_ptr<TsSync> ts_sync,
              std::shared_ptr<ChainStore> chain_store)
       : MOVE(ipld), MOVE(ts_sync), MOVE(chain_store) {
-    this->ts_sync->valid.emplace(
-        TipsetKey::create({this->chain_store->genesisCID()}).value(), true);
+    this->ts_sync->valid.emplace(TipsetKey{{this->chain_store->genesisCID()}}, true);
   }
 
   void Sync::onHello(const TipsetKey &key, const PeerId &peer) {
@@ -171,7 +170,7 @@ namespace fc::sync {
       }
     }
     OUTCOME_TRY(cid, ts_sync->ipld->setCbor(block.header));
-    ts_sync->sync(TipsetKey::create({cid}).value(),
+    ts_sync->sync(TipsetKey{{cid}},
                   peer,
                   [self{shared_from_this()}, block{std::move(block.header)}](
                       auto &, auto valid) {

@@ -6,10 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP
 
-#include <boost/optional.hpp>
-#include "common/outcome.hpp"
 #include "primitives/block/block.hpp"
-#include "primitives/cid/cid.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::primitives::tipset {
@@ -34,6 +31,7 @@ OUTCOME_HPP_DECLARE_ERROR(fc::primitives::tipset, TipsetError);
 namespace fc::primitives::tipset {
   using block::BeaconEntry;
   using block::BlockHeader;
+  using common::Hash256;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
 
@@ -63,8 +61,6 @@ namespace fc::primitives::tipset {
 
     static outcome::result<TipsetCPtr> load(Ipld &ipld,
                                             const std::vector<CID> &cids);
-
-    static outcome::result<TipsetCPtr> loadGenesis(Ipld &ipld, const CID &cid);
 
     outcome::result<TipsetCPtr> loadParent(Ipld &ipld) const;
 
@@ -183,7 +179,7 @@ namespace fc::primitives::tipset {
    private:
     std::vector<block::BlockHeader> blks_;
     std::vector<CID> cids_;
-    std::vector<std::array<uint8_t, 32>> ticket_hashes_;
+    std::vector<Hash256> ticket_hashes_;
   };
 
 }  // namespace fc::primitives::tipset

@@ -30,7 +30,7 @@ namespace fc::storage::blockchain {
       return ChainStoreError::kBlockRejected;
     }
 
-    OUTCOME_TRY(parent_key, TipsetKey::create(block.parents));
+    TipsetKey parent_key{block.parents};
 
     // TODO validate block even if its parent is not yet in chain_db,
     // it is possible that parent will be catched by syncer during this epoch
