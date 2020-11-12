@@ -47,13 +47,14 @@ namespace fc::vm::actor::builtin::storage_power {
              multiaddresses)
   CBOR_TUPLE(CreateMiner::Result, id_address, robust_address)
 
-  struct DeleteMiner : ActorMethodBase<3> {
+  struct UpdateClaimedPower : ActorMethodBase<3> {
     struct Params {
-      Address miner;
+      StoragePower raw_byte_delta;
+      StoragePower quality_adjusted_delta;
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(DeleteMiner::Params, miner)
+  CBOR_TUPLE(UpdateClaimedPower::Params, raw_byte_delta, quality_adjusted_delta)
 
   struct OnSectorProveCommit : ActorMethodBase<4> {
     struct Params {

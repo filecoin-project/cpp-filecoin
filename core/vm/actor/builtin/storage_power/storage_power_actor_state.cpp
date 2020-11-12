@@ -38,20 +38,26 @@ namespace fc::vm::actor::builtin::storage_power {
                                           const StoragePower &raw,
                                           const StoragePower &qa) {
     OUTCOME_TRY(claim, claims.get(miner));
-    auto old_nominal{claim.qa_power};
+
+    // TotalBytes always update directly
+    total_raw_commited += raw;
+    total_qa_commited += qa;
+
+    auto old_claim{claim};
     claim.raw_power += raw;
     claim.qa_power += qa;
-    auto new_nominal{claim.qa_power};
-    auto prev_below{old_nominal < kConsensusMinerMinPower};
-    auto still_below{new_nominal < kConsensusMinerMinPower};
+
+    auto prev_below{old_claim.qa_power < kConsensusMinerMinPower};
+    auto still_below{claim.qa_power < kConsensusMinerMinPower};
+
     if (prev_below && !still_below) {
       ++num_miners_meeting_min_power;
       total_raw_power += claim.raw_power;
-      total_qa_power += new_nominal;
+      total_qa_power += claim.qa_power;
     } else if (!prev_below && still_below) {
       --num_miners_meeting_min_power;
-      total_raw_power -= claim.raw_power;
-      total_qa_power -= old_nominal;
+      total_raw_power -= old_claim.raw_power;
+      total_qa_power -= old_claim.qa_power;
     } else if (!prev_below && !still_below) {
       total_raw_power += raw;
       total_qa_power += qa;
@@ -60,6 +66,7 @@ namespace fc::vm::actor::builtin::storage_power {
     VM_ASSERT(claim.qa_power >= 0);
     VM_ASSERT(num_miners_meeting_min_power >= 0);
     OUTCOME_TRY(claims.set(miner, claim));
+
     return outcome::success();
   }
 

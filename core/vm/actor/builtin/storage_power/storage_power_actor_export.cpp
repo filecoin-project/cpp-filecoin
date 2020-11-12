@@ -112,20 +112,12 @@ namespace fc::vm::actor::builtin::storage_power {
                   addresses_created.robust_address};
   }
 
-  ACTOR_METHOD_IMPL(DeleteMiner) {
-    OUTCOME_TRY(nominal, runtime.resolveAddress(params.miner));
-    OUTCOME_TRY(miner, requestMinerControlAddress(runtime, nominal));
-    if (runtime.getImmediateCaller() != miner.worker
-        && runtime.getImmediateCaller() != miner.owner) {
-      return VMExitCode::kSysErrForbidden;
-    }
+  ACTOR_METHOD_IMPL(UpdateClaimedPower) {
+    OUTCOME_TRY(runtime.validateImmediateCallerIsMiner());
+    Address miner_address = runtime.getImmediateCaller();
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(claim, state.claims.get(nominal));
-    VM_ASSERT(claim.raw_power >= 0);
-    VM_ASSERT(claim.qa_power >= 0);
-    state.total_raw_power -= claim.raw_power;
-    state.total_qa_power -= claim.qa_power;
-    OUTCOME_TRY(deleteMinerActor(state, nominal));
+    OUTCOME_TRY(state.addToClaim(
+        miner_address, params.raw_byte_delta, params.quality_adjusted_delta));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -219,7 +211,7 @@ namespace fc::vm::actor::builtin::storage_power {
   const ActorExports exports{
       exportMethod<Construct>(),
       exportMethod<CreateMiner>(),
-      exportMethod<DeleteMiner>(),
+      exportMethod<UpdateClaimedPower>(),
       exportMethod<OnSectorProveCommit>(),
       exportMethod<OnSectorTerminate>(),
       exportMethod<OnFaultBegin>(),

@@ -14,8 +14,12 @@ namespace fc::vm::actor::builtin::storage_power {
   using fc::primitives::StoragePower;
   using fc::primitives::TokenAmount;
 
-  // TODO: config, default 1<<40
-  static const StoragePower kConsensusMinerMinPower{2048};
+  /**
+   * Minimum power of an individual miner to meet the threshold for leader
+   * election.
+   * 1 << 40
+   */
+  static const StoragePower kConsensusMinerMinPower{10995116277760};
   constexpr size_t kSectorQualityPrecision{20};
 
   enum class SectorTerminationType {

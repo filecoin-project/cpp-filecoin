@@ -51,10 +51,16 @@ namespace fc::vm::actor::builtin::storage_power {
     StoragePower total_qa_power;
     StoragePower total_qa_commited;
     TokenAmount total_pledge;
+
+    /**
+     * These fields are set once per epoch in the previous cron tick and used
+     * for consistent values across a single epoch's state transition.
+     */
     StoragePower this_epoch_raw_power;
     StoragePower this_epoch_qa_power;
     TokenAmount this_epoch_pledge;
     FilterEstimate this_epoch_qa_power_smoothed;
+
     size_t miner_count;
     size_t num_miners_meeting_min_power;
     adt::Map<adt::Array<CronEvent>, ChainEpochKeyer> cron_event_queue;
