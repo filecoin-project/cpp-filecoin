@@ -24,4 +24,5 @@ target_link_libraries(actor
     cron_actor
     reward_actor
     payment_channel_actor
+    system_actor
     )
