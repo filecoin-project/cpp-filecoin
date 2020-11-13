@@ -9,7 +9,6 @@
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/actor/builtin/miner/miner_actor.hpp"
 #include "vm/actor/builtin/reward/reward_actor.hpp"
-#include "vm/actor/builtin/shared/shared.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::storage_power {
@@ -122,15 +121,16 @@ namespace fc::vm::actor::builtin::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(OnSectorProveCommit) {
+  ACTOR_METHOD_IMPL(EnrollCronEvent) {
     OUTCOME_TRY(runtime.validateImmediateCallerIsMiner());
+    OUTCOME_TRY(runtime.validateArgument(params.event_epoch >= 0));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(pledge, computeInitialPledge(runtime, state, params.weight));
-    OUTCOME_TRY(state.addToClaim(runtime.getImmediateCaller(),
-                                 params.weight.sector_size,
-                                 qaPowerForWeight(params.weight)));
+    OUTCOME_TRY(
+        state.appendCronEvent(params.event_epoch,
+                              {.miner_address = runtime.getImmediateCaller(),
+                               .callback_payload = params.payload}));
     OUTCOME_TRY(runtime.commitState(state));
-    return std::move(pledge);
+    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(OnSectorTerminate) {
@@ -159,15 +159,6 @@ namespace fc::vm::actor::builtin::storage_power {
                                  qaPowerForWeight(params.new_weight)));
     OUTCOME_TRY(runtime.commitState(state));
     return std::move(pledge);
-  }
-
-  ACTOR_METHOD_IMPL(EnrollCronEvent) {
-    OUTCOME_TRY(runtime.validateImmediateCallerIsMiner());
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(state.appendCronEvent(
-        params.event_epoch, {runtime.getImmediateCaller(), params.payload}));
-    OUTCOME_TRY(runtime.commitState(state));
-    return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(OnEpochTickEnd) {
@@ -212,12 +203,11 @@ namespace fc::vm::actor::builtin::storage_power {
       exportMethod<Construct>(),
       exportMethod<CreateMiner>(),
       exportMethod<UpdateClaimedPower>(),
-      exportMethod<OnSectorProveCommit>(),
+      exportMethod<EnrollCronEvent>(),
       exportMethod<OnSectorTerminate>(),
       exportMethod<OnFaultBegin>(),
       exportMethod<OnFaultEnd>(),
       exportMethod<OnSectorModifyWeightDesc>(),
-      exportMethod<EnrollCronEvent>(),
       exportMethod<OnEpochTickEnd>(),
       exportMethod<UpdatePledgeTotal>(),
       exportMethod<OnConsensusFault>(),

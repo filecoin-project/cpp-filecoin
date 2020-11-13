@@ -56,14 +56,14 @@ namespace fc::vm::actor::builtin::storage_power {
   };
   CBOR_TUPLE(UpdateClaimedPower::Params, raw_byte_delta, quality_adjusted_delta)
 
-  struct OnSectorProveCommit : ActorMethodBase<4> {
+  struct EnrollCronEvent : ActorMethodBase<4> {
     struct Params {
-      SectorStorageWeightDesc weight;
+      ChainEpoch event_epoch;
+      Buffer payload;
     };
-    using Result = TokenAmount;
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(OnSectorProveCommit::Params, weight)
+  CBOR_TUPLE(EnrollCronEvent::Params, event_epoch, payload)
 
   struct OnSectorTerminate : ActorMethodBase<5> {
     struct Params {
@@ -126,16 +126,6 @@ namespace fc::vm::actor::builtin::storage_power {
              quality_adj_power,
              pledge_collateral,
              quality_adj_power_smoothed)
-
-  // TODO (a.chernyshov) update storage power actor
-  struct EnrollCronEvent : ActorMethodBase<13> {
-    struct Params {
-      ChainEpoch event_epoch;
-      Buffer payload;
-    };
-    ACTOR_METHOD_DECL();
-  };
-  CBOR_TUPLE(EnrollCronEvent::Params, event_epoch, payload)
 
   struct OnEpochTickEnd : ActorMethodBase<10> {
     ACTOR_METHOD_DECL();
