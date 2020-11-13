@@ -12,22 +12,13 @@ namespace fc::vm::actor::builtin::system {
 
   /// System actor state
   struct State {
-      //todo
-      std::string s;
     // empty state
   };
-  //todo
-  CBOR_TUPLE(State, s)
+  CBOR_TUPLE_0(State)
 
   struct Construct : ActorMethodBase<1> {
-    struct Params {
-        //todo
-        std::string s;
-    };
     ACTOR_METHOD_DECL();
   };
-  //todo
-  CBOR_TUPLE(Construct::Params, s)
 
   extern const ActorExports exports;
 

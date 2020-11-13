@@ -8,13 +8,12 @@
 namespace fc::vm::actor::builtin::system {
 
   ACTOR_METHOD_IMPL(Construct) {
-    //OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    //State state;
-    //OUTCOME_TRY(runtime.commitState(state));
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
+    State state;
+    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
-  
-  const ActorExports exports{
-      exportMethod<Construct>()
-  };
+
+  const ActorExports exports{exportMethod<Construct>()};
+
 }  // namespace fc::vm::actor::builtin::system
