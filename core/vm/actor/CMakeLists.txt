@@ -25,4 +25,5 @@ target_link_libraries(actor
     reward_actor
     payment_channel_actor
     system_actor
+    cgo_actors
     )

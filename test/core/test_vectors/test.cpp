@@ -16,7 +16,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/resources/resources.hpp"
 #include "vm/actor/cgo/actors.hpp"
-#include "vm/actor/cgo/cgo_invoker.hpp"
+#include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/env.hpp"
 
@@ -36,7 +36,7 @@ using fc::primitives::address::Address;
 using fc::primitives::block::BlockHeader;
 using fc::primitives::tipset::Tipset;
 using fc::vm::actor::Invoker;
-using fc::vm::actor::cgo::CgoInvoker;
+using fc::vm::actor::InvokerImpl;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::MessageReceipt;
 namespace Json = fc::codec::json;
@@ -113,7 +113,7 @@ struct MessageVector {
                              jGet(j, "messages"),
                              [](auto j) {
                                return fc::codec::cbor::decode<UnsignedMessage>(
-                                   *jBytes(j))
+                                          *jBytes(j))
                                    .value();
                              }),
                      };
@@ -157,7 +157,7 @@ auto search(bool enabled) {
   static auto all_vectors{[] {
     std::vector<MessageVector> vectors;
     for (auto &item :
-        boost::filesystem::recursive_directory_iterator{kCorpusRoot}) {
+         boost::filesystem::recursive_directory_iterator{kCorpusRoot}) {
       auto &path{item.path()};
       if (item.status().type() == boost::filesystem::file_type::regular_file
           && path.extension() == ".json") {
@@ -182,8 +182,8 @@ auto search(bool enabled) {
 struct TestVectors : testing::TestWithParam<MessageVector> {};
 
 void testTipsets(const MessageVector &mv, IpldPtr ipld) {
-  std::shared_ptr<Invoker> cgo_invoker = std::make_shared<CgoInvoker>(true);
-  fc::vm::interpreter::InterpreterImpl vmi{cgo_invoker};
+  std::shared_ptr<Invoker> invoker = std::make_shared<InvokerImpl>();
+  fc::vm::interpreter::InterpreterImpl vmi{invoker};
   CID state{mv.state_before};
   BlockHeader parent;
   parent.ticket.emplace();
@@ -253,18 +253,18 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
       mv.state_before;
   b.parent_base_fee = mv.parent_base_fee;
   OUTCOME_EXCEPT(ts, Tipset::create({b}));
-  std::shared_ptr<Invoker> cgo_invoker = std::make_shared<CgoInvoker>(true);
-  auto env{std::make_shared<fc::vm::runtime::Env>(cgo_invoker, ipld, ts)};
+  std::shared_ptr<Invoker> invoker = std::make_shared<InvokerImpl>();
+  auto env{std::make_shared<fc::vm::runtime::Env>(invoker, ipld, ts)};
   auto i{0};
   for (auto &[epoch, message] : mv.messages) {
     auto &receipt{mv.receipts[i]};
     env->tipset.height = epoch;
     auto size = message.from.isSecp256k1()
-                ? fc::vm::message::SignedMessage{message,
-                                                 fc::crypto::signature::
-                                                 Secp256k1Signature{}}
-                    .chainSize()
-                : message.chainSize();
+                    ? fc::vm::message::SignedMessage{message,
+                                                     fc::crypto::signature::
+                                                         Secp256k1Signature{}}
+                          .chainSize()
+                    : message.chainSize();
     OUTCOME_EXCEPT(apply, env->applyMessage(message, size));
     EXPECT_EQ(apply.receipt.exit_code, receipt.exit_code);
     EXPECT_EQ(apply.receipt.return_value, receipt.return_value);

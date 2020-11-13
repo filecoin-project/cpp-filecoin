@@ -15,6 +15,7 @@
 #include "vm/actor/builtin/reward/reward_actor.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
 #include "vm/actor/builtin/system/system_actor.hpp"
+#include "vm/actor/cgo/actors.hpp"
 
 namespace fc::vm::actor {
   using runtime::InvocationOutput;
@@ -41,6 +42,28 @@ namespace fc::vm::actor {
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(
       const Actor &actor, const std::shared_ptr<Runtime> &runtime) {
+    // TODO (a.chernyshov) remove after all cpp actors are implemented
+    if (
+        // (actor.code == kAccountCodeCid) // < tested OK
+        // || (actor.code == kCronCodeCid) // < tested OK
+        // || (actor.code == kInitCodeCid) // < tested OK
+        // || (actor.code == kStorageMarketCodeCid) // < tested OK
+        (actor.code == kStorageMinerCodeCid)       //
+        || (actor.code == kMultisigCodeCid)        //
+        || (actor.code == kPaymentChannelCodeCid)  //
+        // || (actor.code == kStoragePowerCodeCid) // < WiP
+        || (actor.code == kRewardActorCodeID)  //
+                                               // System
+                                               // Verified Registry
+    ) {
+      auto message = runtime->getMessage();
+      return ::fc::vm::actor::cgo::invoke(runtime->execution(),
+                                          message,
+                                          actor.code,
+                                          message.get().method,
+                                          message.get().params);
+    }
+
     auto maybe_builtin_actor = builtin_.find(actor.code);
     if (maybe_builtin_actor == builtin_.end()) {
       return VMExitCode::kSysErrorIllegalActor;
