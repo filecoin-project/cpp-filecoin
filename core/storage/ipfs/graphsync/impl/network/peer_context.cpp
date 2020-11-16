@@ -344,7 +344,7 @@ namespace fc::storage::ipfs::graphsync {
     for (auto &item : msg.requests) {
       onRequest(stream, item);
     }
-//
+
     for (auto &item : msg.data) {
       graphsync_feedback_.onDataBlock(
           peer, {std::move(item.first), std::move(item.second)});

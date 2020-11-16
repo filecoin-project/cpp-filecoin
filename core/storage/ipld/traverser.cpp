@@ -57,8 +57,7 @@ namespace fc::storage::ipld::traverser {
   outcome::result<std::vector<CID>> Traverser::traverseAll() {
     // TODO(turuslan): implement selectors
     while (!isCompleted()) {
-      // TODO (XXX) OUTCOME_TRY(advance());
-      std::ignore = advance();
+      OUTCOME_TRY(advance());
     }
     return std::vector<CID>(visit_order_.begin(), visit_order_.end());
   }

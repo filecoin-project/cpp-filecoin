@@ -171,7 +171,6 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(miners, api_->StateListMiners(chain_head->key));
     std::vector<StorageProviderInfo> storage_providers;
     for (const auto &miner_address : miners) {
-      /// TODO(XXX) was tipset_key unreferenced
       OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address, chain_head->key));
       OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
       PeerInfo peer_info{.id = std::move(peer_id), .addresses = {}};

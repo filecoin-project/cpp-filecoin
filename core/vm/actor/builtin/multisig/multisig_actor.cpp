@@ -119,7 +119,6 @@ namespace fc::vm::actor::builtin::multisig {
 
       // send messsage ignoring value returned
       // https://github.com/filecoin-project/specs-actors/issues/113
-      // NOLINTNEXTLINE(clang-diagnostic-unused-result)
       std::ignore = runtime.send(pending_tx.to,
                    pending_tx.method,
                    pending_tx.params,
