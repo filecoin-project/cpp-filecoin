@@ -6,7 +6,6 @@
 #include "primitives/tipset/tipset_key.hpp"
 
 #include <gtest/gtest.h>
-#include "common/hexutil.hpp"
 #include "testutil/cbor.hpp"
 
 struct TipsetKeyTest : public ::testing::Test {
