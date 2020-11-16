@@ -133,9 +133,8 @@ namespace fc::sync {
   void Sync::onHello(const TipsetKey &key, const PeerId &peer) {
     ts_sync->sync(key, peer, [self{shared_from_this()}](auto &key, auto valid) {
       if (valid) {
-        //OUTCOME_EXCEPT(ts, Tipset::load(*self->ipld, key.cids()));
-        // TODO (XXX)
-        //std::ignore = self->chain_store->updateHeaviestTipset(ts);
+        // TODO: notify chain store about new head
+        std::ignore = self;
       }
     });
   }

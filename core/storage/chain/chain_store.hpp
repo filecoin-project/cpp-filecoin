@@ -23,11 +23,6 @@ namespace fc::storage::blockchain {
     kNoTipsetAtHeight,
     kBlockRejected,
     kIllegalState,
-    //    NO_MIN_TICKET_BLOCK,
-
-//    NO_GENESIS_BLOCK,
-//    STORE_NOT_INITIALIZED,
-//    DATA_INTEGRITY_ERROR,
   };
 
   class ChainStore {
