@@ -15,6 +15,7 @@
 
 using fc::blockchain::weight::WeightCalculatorError;
 using fc::blockchain::weight::WeightCalculatorImpl;
+using fc::primitives::StoragePower;
 using fc::primitives::address::Address;
 using fc::primitives::block::BlockHeader;
 using fc::primitives::tipset::Tipset;
@@ -25,7 +26,6 @@ using fc::vm::actor::kStoragePowerCodeCid;
 using fc::vm::actor::builtin::storage_power::StoragePowerActorState;
 using fc::vm::state::StateTreeImpl;
 using Weight = fc::primitives::BigInt;
-using fc::primitives::StoragePower;
 
 struct Params {
   Weight parent_weight;
@@ -50,31 +50,34 @@ fc::outcome::result<Weight> calculateWeight(const Params &params) {
                                            .balance = {},
                                        }));
   EXPECT_OUTCOME_TRUE(state_root, state_tree.flush());
-  EXPECT_OUTCOME_TRUE_2(tipset, Tipset::create(
-      {params.block_count,
-       BlockHeader{
-           Address::makeFromId(0),
-           {},
-           {fc::common::Buffer{"F00D"_unhex}},
-           {fc::primitives::block::BeaconEntry{
-               4,
-               "F00D"_unhex,
-           }},
-           {fc::primitives::sector::PoStProof{
-               fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
-               "F00D"_unhex,
-           }},
-           {},
-           params.parent_weight,
-           {},
-           state_root,
-           some_cid,
-           some_cid,
-           {},
-           {},
-           {},
-           {},
-       }}));
+  std::vector<BlockHeader> block_headers;
+  for (size_t i = 0; i < params.block_count; ++i) {
+    block_headers.push_back(BlockHeader{
+        .miner = Address::makeFromId(i),
+        .ticket = {},
+        .election_proof = {1, fc::common::Buffer{"F00D"_unhex}},
+        .beacon_entries = {fc::primitives::block::BeaconEntry{
+            4,
+            "F00D"_unhex,
+        }},
+        .win_post_proof = {fc::primitives::sector::PoStProof{
+            fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+            "F00D"_unhex,
+        }},
+        .parents = {},
+        .parent_weight = params.parent_weight,
+        .height = {},
+        .parent_state_root = state_root,
+        .parent_message_receipts = some_cid,
+        .messages = some_cid,
+        .bls_aggregate = {},
+        .timestamp = {},
+        .block_sig = {},
+        .fork_signaling = {},
+        .parent_base_fee = {},
+    });
+  }
+  EXPECT_OUTCOME_TRUE_2(tipset, Tipset::create(block_headers));
 
   return WeightCalculatorImpl{ipld}.calculateWeight(*tipset);
 }

@@ -5,3 +5,4 @@
 
 add_subdirectory(message_pool)
 add_subdirectory(validation)
+add_subdirectory(weight_calculator)
