@@ -40,7 +40,6 @@ namespace fc::storage::ipfs::graphsync {
 
     /// Called on new block from the network
     /// \param from originating peer ID
-    /// \param cid root CID
     /// \param data block data, raw bytes
     virtual void onDataBlock(const PeerId &from, Data data) = 0;
 
