@@ -26,8 +26,6 @@ add_subdirectory(sector_storage)
 add_subdirectory(sectorblocks)
 add_subdirectory(storage)
 add_subdirectory(vm)
-add_subdirectory(sync)
-
 
 add_library(const
     const.cpp
