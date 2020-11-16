@@ -125,7 +125,6 @@ namespace fc::storage::ipfs::graphsync {
                               const Response &response) = 0;
 
     /// Starts instance and subscribes to blocks
-    /// \param callback Callback which receives blocks of data from the network
     virtual void start() = 0;
 
     /// Stops the instance. Active requests will be cancelled and return
