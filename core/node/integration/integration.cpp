@@ -35,16 +35,6 @@ namespace fc {
       return logger.get();
     }
 
-    [[maybe_unused]] std::vector<std::string> toStrings(
-        const std::vector<CID> &cids) {
-      std::vector<std::string> v;
-      v.reserve(cids.size());
-      for (const auto &cid : cids) {
-        v.push_back(cid.toString().value());
-      }
-      return v;
-    }
-
     bool checkEnvOption(const char *env_var) {
       const char *value = std::getenv(env_var);
       if (value == nullptr) {

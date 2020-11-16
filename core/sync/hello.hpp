@@ -50,11 +50,7 @@ namespace fc::sync {
     enum class Error {
       HELLO_NO_CONNECTION = 1,
       HELLO_TIMEOUT,
-      HELLO_MALFORMED_MESSAGE,
       HELLO_GENESIS_MISMATCH,
-
-      // internal error for partial data received
-      HELLO_INTERNAL_PARTIAL_DATA,
     };
 
     /// Starts accepting streams
@@ -69,9 +65,6 @@ namespace fc::sync {
     void stop();
 
     void sayHello(const PeerId &peer_id);
-
-    /// Periodic callback to detect timed out requests
-    void onHeartbeat();
 
     void onHeadChanged(Message state);
 

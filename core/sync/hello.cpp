@@ -116,28 +116,6 @@ namespace fc::sync {
     log()->debug("saying hello to {}", peer_id.toBase58());
   }
 
-  void Hello::onHeartbeat() {
-    auto expire_time = clock_->nowUTC() - std::chrono::seconds(10);
-
-    while (!active_requests_by_sent_time_.empty()) {
-      auto it = active_requests_by_sent_time_.begin();
-      if (it->t > expire_time) {
-        break;
-      }
-
-      auto peer_id = it->p;
-      active_requests_by_sent_time_.erase(it);
-
-      auto it2 = active_requests_.find(peer_id);
-      assert(it2 != active_requests_.end());
-
-      it2->second.stream->close();
-      active_requests_.erase(it2);
-
-      latency_feedback_(peer_id, Error::HELLO_TIMEOUT);
-    }
-  }
-
   void Hello::onHeadChanged(Message state) {
     if (current_tipset_ == state.heaviest_tipset) {
       // request body is cached and didnt change
@@ -297,8 +275,6 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sync, Hello::Error, e) {
       return "Hello protocol: no connection";
     case E::HELLO_TIMEOUT:
       return "Hello protocol: timeout";
-    case E::HELLO_MALFORMED_MESSAGE:
-      return "Hello protocol: malformed message";
     case E::HELLO_GENESIS_MISMATCH:
       return "Hello protocol: genesis mismatch";
     default:

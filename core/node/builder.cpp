@@ -18,6 +18,7 @@
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
+#include "common/file.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "power/impl/power_table_impl.hpp"
@@ -49,44 +50,24 @@ namespace fc::node {
       return logger.get();
     }
 
-    gsl::span<const uint8_t> toSpanU8(const std::string &s) {
-      return gsl::span<const uint8_t>((const uint8_t *)s.data(), s.size());
-    }
-
-    std::vector<std::string> toStrings(const std::vector<CID> &cids) {
-      std::vector<std::string> v;
-      v.reserve(cids.size());
-      for (const auto &cid : cids) {
-        v.push_back(cid.toString().value());
-      }
-      return v;
-    }
-
     outcome::result<void> loadCar(storage::ipfs::IpfsDatastore &storage,
                                   Config &config) {
-      std::ifstream file{config.car_file_name,
-                         std::ios::binary | std::ios::ate};
-      if (!file.good()) {
+      auto file{common::readFile(config.car_file_name)};
+      if (!file) {
         log()->error("cannot open file {}", config.car_file_name);
         return Error::CAR_FILE_OPEN_ERROR;
       }
 
       static const size_t kMaxSize = 64 * 1024 * 1024;
-      auto size = static_cast<size_t>(file.tellg());
-      if (size > kMaxSize) {
+      if (file->size() > kMaxSize) {
         log()->error("car file size above expected, file:{}, size:{}, limit:{}",
                      config.car_file_name,
-                     size,
+                     file->size(),
                      kMaxSize);
         return Error::CAR_FILE_SIZE_ABOVE_LIMIT;
       }
 
-      std::string buffer;
-      buffer.resize(size);
-      file.seekg(0, std::ios::beg);
-      file.read(buffer.data(), buffer.size());
-
-      auto result = fc::storage::car::loadCar(storage, toSpanU8(buffer));
+      auto result = fc::storage::car::loadCar(storage, *file);
       if (!result) {
         log()->error("cannot load car file {}: {}",
                      config.car_file_name,
@@ -102,7 +83,7 @@ namespace fc::node {
       if (config.genesis_cid) {
         if (config.genesis_cid.value() != roots[0]) {
           log()->error("Genesis mismatch: got cids:{}, expected:{}",
-                       fmt::join(toStrings(roots), " "),
+                       fmt::join(roots, " "),
                        config.genesis_cid.value().toString().value());
           return Error::GENESIS_MISMATCH;
         }

@@ -31,19 +31,6 @@ namespace fc::sync {
           });
     }
 
-    std::vector<std::string> toStrings(const std::vector<fc::CID> &cids) {
-      std::vector<std::string> v;
-      v.reserve(cids.size());
-      for (const auto &cid : cids) {
-        if (auto str_res = cid.toString()) {
-          v.push_back(str_res.value());
-          continue;
-        }
-        log()->error("Cannot convert CID to string");
-      }
-      return v;
-    }
-
     template <typename T>
     decltype(auto) vecFind(const std::vector<T> &vec, const T &elem) {
       auto it = std::find(vec.begin(), vec.end(), elem);
@@ -349,7 +336,7 @@ namespace fc::sync {
     auto &s = hello_message.value();
     log()->info("hello feedback from peer:{}, cids:{}, height:{}, weight:{}",
                 peer_id.toBase58(),
-                fmt::join(toStrings(s.heaviest_tipset), ","),
+                fmt::join(s.heaviest_tipset, ","),
                 s.heaviest_tipset_height,
                 s.heaviest_tipset_weight.str());
 

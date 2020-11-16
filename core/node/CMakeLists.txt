@@ -19,6 +19,7 @@ target_link_libraries(node_builder
     graphsync
     clock
     car
+    file
  #   chain_store
  #   chain_data_store
     block_validator

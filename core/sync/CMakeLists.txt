@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-#add_subdirectory(gossip)
-
 add_library(sync
     common.cpp
     peer_manager.cpp

@@ -12,54 +12,15 @@
 
 #include "common/outcome.hpp"
 #include "config.hpp"
+#include "node/fwd.hpp"
 #include "storage/buffer_map.hpp"
 
-// fwd declarations go here
-namespace libp2p {
-  struct Host;
-
-  namespace protocol {
-    class Scheduler;
-    class Identify;
-    class IdentifyPush;
-    class IdentifyDelta;
-
-    namespace gossip {
-      class Gossip;
-    }
-  }  // namespace protocol
-}  // namespace libp2p
-
 namespace fc {
-  namespace clock {
-    class UTCClock;
-    class ChainEpochClock;
-  }  // namespace clock
-
-  namespace storage {
-    namespace ipfs {
-      class IpfsDatastore;
-      class PersistentBufferMap;
-
-      namespace graphsync {
-        class Graphsync;
-      }
-    }  // namespace ipfs
-
-    namespace blockchain {
-      class ChainStore;
-    }
-  }  // namespace storage
-
   namespace blockchain {
     namespace block_validator {
       class BlockValidator;
     }
   }  // namespace blockchain
-
-  namespace api {
-    struct Api;
-  }  // namespace api
 
   namespace sync {
     class TipsetLoader;
@@ -73,10 +34,6 @@ namespace fc {
       class BlocksyncClient;
     }
   }  // namespace sync
-
-  namespace vm::interpreter {
-    class Interpreter;
-  }
 }  // namespace fc
 
 namespace fc::node {
