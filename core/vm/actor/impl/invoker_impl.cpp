@@ -14,6 +14,7 @@
 #include "vm/actor/builtin/payment_channel/payment_channel_actor.hpp"
 #include "vm/actor/builtin/reward/reward_actor.hpp"
 #include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/system/system_actor.hpp"
 #include "vm/actor/cgo/actors.hpp"
 
 namespace fc::vm::actor {
@@ -29,6 +30,7 @@ namespace fc::vm::actor {
     builtin_[kMultisigCodeCid] = builtin::multisig::exports;
     builtin_[kPaymentChannelCodeCid] = builtin::payment_channel::exports;
     builtin_[kAccountCodeCid] = builtin::account::exports;
+    builtin_[kSystemActorCodeID] = builtin::system::exports;
   }
 
   void InvokerImpl::config(
