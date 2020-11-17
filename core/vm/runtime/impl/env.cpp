@@ -64,11 +64,11 @@ namespace fc::vm::runtime {
     Apply apply;
     auto msg_gas_cost{pricelist.onChainMessage(size)};
     if (msg_gas_cost > message.gas_limit) {
-      apply.penalty = msg_gas_cost * tipset.getParentBaseFee();
+      apply.penalty = msg_gas_cost * tipset->getParentBaseFee();
       apply.receipt.exit_code = VMExitCode::kSysErrOutOfGas;
       return apply;
     }
-    apply.penalty = message.gas_limit * tipset.getParentBaseFee();
+    apply.penalty = message.gas_limit * tipset->getParentBaseFee();
     auto maybe_from = state_tree->get(message.from);
     if (!maybe_from) {
       if (maybe_from.error() == HamtError::kNotFound) {
@@ -128,7 +128,7 @@ namespace fc::vm::runtime {
       used = 0;
     }
     BOOST_ASSERT_MSG(used <= limit, "runtime charged gas over limit");
-    auto base_fee{tipset.getParentBaseFee()}, fee_cap{message.gas_fee_cap},
+    auto base_fee{tipset->getParentBaseFee()}, fee_cap{message.gas_fee_cap},
         base_fee_pay{std::min(base_fee, fee_cap)};
     apply.penalty = base_fee > fee_cap ? TokenAmount{base_fee - fee_cap} * used
                                        : TokenAmount{0};

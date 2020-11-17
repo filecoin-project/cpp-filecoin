@@ -50,7 +50,7 @@ namespace fc::mining {
       return EventsError::kNotFoundTipset;
     }
 
-    ChainEpoch best_height = best_tipset->height;
+    ChainEpoch best_height = best_tipset->height();
 
     if (best_height >= height + confidence) {
       OUTCOME_TRY(tipset, tipset_cache_->getNonNull(height));
@@ -65,7 +65,7 @@ namespace fc::mining {
       if (!best_tipset) {
         return EventsError::kNotFoundTipset;
       }
-      best_height = best_tipset->height;
+      best_height = best_tipset->height();
     }
 
     if (best_height >= height + confidence + kGlobalChainConfidence) {
@@ -93,7 +93,7 @@ namespace fc::mining {
     if (change.type == HeadChangeType::APPLY) {
       std::unique_lock<std::mutex> lock(mutex_);
 
-      auto maybe_error = tipset_cache_->add(change.value);
+      auto maybe_error = tipset_cache_->add(*change.value);
       if (maybe_error.has_error()) {
         logger_->error("Adding tipset into cache failed: {}",
                        maybe_error.error().message());
@@ -124,7 +124,7 @@ namespace fc::mining {
         return outcome::success();
       };
       auto tipset = change.value;
-      maybe_error = apply(tipset.height);
+      maybe_error = apply(tipset->height());
 
       if (maybe_error.has_error()) {
         logger_->error("Applying tipset failed: {}",
@@ -132,7 +132,7 @@ namespace fc::mining {
         return false;
       }
 
-      ChainEpoch sub_height = tipset.height - 1;
+      ChainEpoch sub_height = tipset->height() - 1;
       while (true) {
         auto maybe_tipset_opt = tipset_cache_->get(sub_height);
 
@@ -170,7 +170,7 @@ namespace fc::mining {
         return false;
       }
 
-      ChainEpoch best_height = best_tipset->height;
+      ChainEpoch best_height = best_tipset->height();
 
       auto revert = [&](ChainEpoch height, const Tipset &tipset) {
         if (best_height >= height + kGlobalChainConfidence) {
@@ -181,7 +181,7 @@ namespace fc::mining {
             auto maybe_error = trigger.revert(tipset);
             if (maybe_error.has_error()) {
               logger_->error("Revert tipset (height {}) is failed: {}",
-                             tipset.height,
+                             tipset.height(),
                              maybe_error.has_error());
             }
             height_to_trigger_[id].erase(tid);
@@ -210,15 +210,15 @@ namespace fc::mining {
             return;
           }
 
-          best_height = best_tipset->height;
+          best_height = best_tipset->height();
         }
       };
 
       auto tipset = change.value;
 
-      revert(tipset.height, tipset);
+      revert(tipset->height(), *tipset);
 
-      ChainEpoch sub_height = tipset.height - 1;
+      ChainEpoch sub_height = tipset->height() - 1;
       while (true) {
         auto maybe_tipset_opt = tipset_cache_->get(sub_height);
 
@@ -232,11 +232,11 @@ namespace fc::mining {
           break;
         }
 
-        revert(sub_height, tipset);
+        revert(sub_height, *tipset);
         sub_height--;
       }
 
-      auto maybe_error = tipset_cache_->revert(tipset);
+      auto maybe_error = tipset_cache_->revert(*tipset);
       if (maybe_error.has_error()) {
         logger_->error("Reverting tipset failed: {}",
                        maybe_error.error().message());

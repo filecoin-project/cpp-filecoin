@@ -50,7 +50,7 @@ namespace fc::blockchain::production {
     b.header.parents = std::move(t.parents);
     OUTCOME_TRYA(
         b.header.parent_weight,
-        weight::WeightCalculatorImpl{ipld}.calculateWeight(parent_tipset));
+        weight::WeightCalculatorImpl{ipld}.calculateWeight(*parent_tipset));
     b.header.height = t.height;
     b.header.parent_state_root = std::move(vm_result.state_root);
     b.header.parent_message_receipts = std::move(vm_result.message_receipts);
@@ -62,7 +62,7 @@ namespace fc::blockchain::production {
     // TODO: the only caller of "generate" is MinerCreateBlock, it signs block
     b.header.block_sig = {};
     b.header.fork_signaling = 0;
-    OUTCOME_TRYA(b.header.parent_base_fee, parent_tipset.nextBaseFee(ipld));
+    OUTCOME_TRYA(b.header.parent_base_fee, parent_tipset->nextBaseFee(ipld));
     return std::move(b);
   }
 }  // namespace fc::blockchain::production

@@ -52,11 +52,11 @@ struct MessageVector {
   struct Ts {
     struct Blk {
       Address miner;
-      int64_t win_count;
+      int64_t win_count{};
       std::vector<UnsignedMessage> messages;
     };
 
-    ChainEpoch epoch;
+    ChainEpoch epoch{};
     BigInt base_fee;
     std::vector<Blk> blocks;
   };
@@ -140,7 +140,7 @@ struct MessageVector {
   std::string type;
   Buffer car;
   std::vector<Ts> tipsets;
-  ChainEpoch parent_epoch;
+  ChainEpoch parent_epoch{};
   BigInt parent_base_fee;
   std::vector<std::pair<ChainEpoch, UnsignedMessage>> messages;
   std::vector<MessageReceipt> receipts;
@@ -190,15 +190,16 @@ void testTipsets(const MessageVector &mv, IpldPtr ipld) {
   OUTCOME_EXCEPT(parents, Tipset::create({parent}));
   auto i{0}, j{0};
   for (auto &ts : mv.tipsets) {
-    Tipset tipset;
-    tipset.height = ts.epoch;
+    fc::primitives::tipset::TipsetCreator cr;
+    fc::primitives::block::Ticket ticket{{0}};
     for (auto &blk : ts.blocks) {
-      auto &block{tipset.blks.emplace_back()};
-      block.ticket.emplace();
+      fc::primitives::block::BlockHeader block;
+      block.ticket.emplace(ticket);
+      ++ticket.bytes[0];
       block.miner = blk.miner;
       block.election_proof.win_count = blk.win_count;
       block.height = ts.epoch;
-      block.parents = parents.cids;
+      block.parents = parents->key.cids();
       block.parent_base_fee = ts.base_fee;
       fc::primitives::block::MsgMeta meta;
       ipld->load(meta);
@@ -222,10 +223,11 @@ void testTipsets(const MessageVector &mv, IpldPtr ipld) {
       }
       block.messages = ipld->setCbor(meta).value();
       block.parent_message_receipts = block.parent_state_root = state;
-      OUTCOME_EXCEPT(cid, ipld->setCbor(block));
-      tipset.cids.push_back(cid);
+      OUTCOME_EXCEPT(ipld->setCbor(block));
+      OUTCOME_EXCEPT(cr.expandTipset(block));
     }
     std::vector<MessageReceipt> receipts;
+    auto tipset{cr.getTipset(true)};
     OUTCOME_EXCEPT(res, vmi.applyBlocks(ipld, tipset, &receipts));
     state = res.state_root;
     EXPECT_EQ(res.message_receipts, mv.receipts_roots[i]);
@@ -253,7 +255,7 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
   auto i{0};
   for (auto &[epoch, message] : mv.messages) {
     auto &receipt{mv.receipts[i]};
-    env->tipset.height = epoch;
+    env->epoch = epoch;
     auto size = message.from.isSecp256k1()
                     ? fc::vm::message::SignedMessage{message,
                                                      fc::crypto::signature::

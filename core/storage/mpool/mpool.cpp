@@ -65,7 +65,7 @@ namespace fc::storage::mpool {
       auto env{std::make_shared<vm::runtime::Env>(nullptr, ipld, head)};
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
           ipld, interpeted.state_root);
-      ++env->tipset.height;
+      ++env->epoch;
       auto _pending{by_from.find(msg.from)};
       if (_pending != by_from.end()) {
         for (auto &_msg : _pending->second.by_nonce) {
@@ -131,7 +131,7 @@ namespace fc::storage::mpool {
       head = change.value;
     } else {
       auto apply{change.type == HeadChangeType::APPLY};
-      OUTCOME_TRY(change.value.visitMessages(
+      OUTCOME_TRY(change.value->visitMessages(
           ipld, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
             if (bls) {
               OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
@@ -156,7 +156,7 @@ namespace fc::storage::mpool {
       if (apply) {
         head = change.value;
       } else {
-        OUTCOME_TRYA(head, change.value.loadParent(*ipld));
+        OUTCOME_TRYA(head, change.value->loadParent(*ipld));
       }
     }
     return outcome::success();

@@ -16,7 +16,8 @@ namespace fc::mining {
   class TipsetCacheImpl : public TipsetCache {
    public:
     using GetTipsetFunction =
-        std::function<outcome::result<Tipset>(ChainEpoch, const TipsetKey &)>;
+        std::function<outcome::result<primitives::tipset::TipsetCPtr>(
+            ChainEpoch)>;
 
     TipsetCacheImpl(uint64_t capability, GetTipsetFunction get_function);
 

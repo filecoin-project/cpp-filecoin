@@ -229,9 +229,6 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<BlsProvider> &bls_provider,
         const std::map<Address, Address> &account_keys,
         const std::map<Address, BlsKeyPair> &private_keys) {
-      ChainEpoch epoch = 100;
-      chain_head.height = epoch;
-
       std::shared_ptr<Api> api = std::make_shared<Api>();
 
       api->ChainGetMessage = {
@@ -328,8 +325,8 @@ namespace fc::markets::storage::test {
                     MessageReceipt{.exit_code = VMExitCode::kOk,
                                    .return_value = publish_deal_result_encoded,
                                    .gas_used = GasAmount{0}},
-                .tipset = chain_head.makeKey().value(),
-                .height = (ChainEpoch)chain_head.height,
+                .tipset = chain_head->key,
+                .height = (ChainEpoch)chain_head->height(),
             };
             auto channel = std::make_shared<Channel<Wait<MsgWait>::Result>>();
             channel->write(message_result);
@@ -369,9 +366,12 @@ namespace fc::markets::storage::test {
               host,
               std::make_shared<libp2p::protocol::AsioScheduler>(
                   io, libp2p::protocol::SchedulerConfig{}))};
-      graphsync->start(
-          fc::storage::ipfs::graphsync::MerkleDagBridge::create(nullptr), cb);
-      graphsync->start(nullptr, cb);
+      graphsync->subscribe(
+          [cb{std::move(cb)}](const libp2p::peer::PeerId &from,
+                              const fc::storage::ipfs::graphsync::Data &data) {
+            cb(data.cid, data.content);
+          });
+      graphsync->start();
       graphsync_to_stop.push_back(graphsync);
       return std::make_shared<data_transfer::graphsync::GraphSyncManager>(
           host, graphsync);
@@ -508,7 +508,7 @@ namespace fc::markets::storage::test {
     Address miner_worker_address;
     Address client_id_address = Address::makeFromId(102);
     Address client_bls_address;
-    Tipset chain_head;
+    std::shared_ptr<Tipset> chain_head = std::make_shared<Tipset>();
     std::shared_ptr<Api> node_api;
     std::shared_ptr<ChainEventsMock> chain_events_ =
         std::make_shared<ChainEventsMock>();

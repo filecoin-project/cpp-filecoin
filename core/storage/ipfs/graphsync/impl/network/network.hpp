@@ -56,28 +56,8 @@ namespace fc::storage::ipfs::graphsync {
     /// \param request_body serialized request body
     void cancelRequest(RequestId request_id, SharedData request_body);
 
-    /// Adds data block to response
-    /// \param peer peer ID
-    /// \param request_id request ID
-    /// \param cid CID of the block
-    /// \param data data block, raw bytes
-    /// \return true if block is added to the response body
-    /// and response object itself can be sent
-    bool addBlockToResponse(const PeerId &peer,
-                            RequestId request_id,
-                            const CID &cid,
-                            const common::Buffer &data);
-
-    /// Sends response to peer. Data blocks may be added previously
-    /// to this response
-    /// \param peer peer ID
-    /// \param request_id request ID
-    /// \param status status code
-    /// \param extensions - data for protocol extensions
-    void sendResponse(const PeerId &peer,
-                      RequestId request_id,
-                      ResponseStatusCode status,
-                      const std::vector<Extension> &extensions);
+    /// Sends response to peer.
+    void sendResponse(const FullRequestId &id, const Response &response);
 
    private:
     /// Callback from peer context that it's closed
@@ -91,10 +71,6 @@ namespace fc::storage::ipfs::graphsync {
     /// if needed
     /// \return PeerContext as shared_ptr
     PeerContextPtr findContext(const PeerId &peer, bool create_if_not_found);
-
-    /// Tries to connect to peer
-    /// \param ctx PeerContext
-    void tryConnect(const PeerContextPtr &ctx);
 
     /// Libp2p network server callback
     /// \param rstream Accept result, contains a new inbound stream on success
@@ -125,7 +101,7 @@ namespace fc::storage::ipfs::graphsync {
     std::shared_ptr<PeerToGraphsyncFeedback> feedback_;
 
     /// Peer set, where item can be found by const PeerID& (see operators <)
-    using PeerSet = std::set<PeerContextPtr, std::less<>>;
+    using PeerSet = std::unordered_map<PeerId, PeerContextPtr>;
 
     /// Set of peers, where item can be found by const PeerID&
     PeerSet peers_;

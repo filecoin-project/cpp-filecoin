@@ -29,7 +29,7 @@ namespace fc {
         // single CURRENT or last APPLY
         auto &change{*changes->rbegin()};
         if (change.type != primitives::tipset::HeadChangeType::REVERT) {
-          auto result{scheduler->onTipset(change.value)};
+          auto result{scheduler->onTipset(*change.value)};
           if (!result) {
             spdlog::warn("WindowPoStScheduler ChainNotify handler: {}",
                          result.error().message());
@@ -44,15 +44,14 @@ namespace fc {
   }
 
   outcome::result<void> WindowPoStScheduler::onTipset(const Tipset &ts) {
-    OUTCOME_TRY(ts_key, ts.makeKey());
-    OUTCOME_TRY(deadline, api->StateMinerProvingDeadline(miner, ts_key));
+    OUTCOME_TRY(deadline, api->StateMinerProvingDeadline(miner, ts.key));
     auto same{last_deadline
               && last_deadline->period_start == deadline.period_start
               && last_deadline->index == deadline.index
               && last_deadline->challenge == deadline.challenge};
     if (!same && deadline.periodStarted()
         && deadline.challenge + kStartConfidence
-               < static_cast<int64_t>(ts.height)) {
+               < static_cast<int64_t>(ts.height())) {
       last_deadline = deadline;
 
       // TODO: check recoveries and faults
@@ -61,7 +60,7 @@ namespace fc {
       SubmitWindowedPoSt::Params params;
       params.deadline = deadline.index;
       OUTCOME_TRY(parts,
-                  api->StateMinerPartitions(miner, deadline.index, ts_key));
+                  api->StateMinerPartitions(miner, deadline.index, ts.key));
       std::map<api::SectorNumber, size_t> part_of;
       std::vector<api::SectorInfo> sectors2;
       for (auto i{0u}; i < parts.size(); ++i) {
@@ -70,7 +69,7 @@ namespace fc {
                       - (part.faults - part.recoveries)};
         auto good{to_prove};  // TODO: check provable
         OUTCOME_TRY(sectors1,
-                    api->StateMinerSectors(miner, good, false, ts_key));
+                    api->StateMinerSectors(miner, good, false, ts.key));
         for (auto &sector : sectors1) {
           part_of.emplace(sector.id, i);
           sectors2.push_back(
@@ -84,7 +83,7 @@ namespace fc {
         OUTCOME_TRY(seed, codec::cbor::encode(miner));
         OUTCOME_TRY(rand,
                     api->ChainGetRandomnessFromBeacon(
-                        ts_key,
+                        ts.key,
                         api::DomainSeparationTag::WindowedPoStChallengeSeed,
                         deadline.challenge,
                         seed));
@@ -98,7 +97,7 @@ namespace fc {
         params.chain_commit_epoch = deadline.open;
         OUTCOME_TRYA(params.chain_commit_rand,
                      api->ChainGetRandomnessFromTickets(
-                         ts_key,
+                         ts.key,
                          api::DomainSeparationTag::PoStChainCommit,
                          params.chain_commit_epoch,
                          {}));

@@ -317,11 +317,11 @@ namespace fc::api {
     }
 
     ENCODE(TipsetKey) {
-      return encode(v.cids);
+      return encode(v.cids());
     }
 
     DECODE(TipsetKey) {
-      return decode(v.cids, j);
+      v = decode<std::vector<CID>>(j);
     }
 
     ENCODE(Address) {
@@ -578,18 +578,23 @@ namespace fc::api {
       decode(v.data, Get(j, "Data"));
     }
 
-    ENCODE(Tipset) {
+    ENCODE(TipsetCPtr) {
       Value j{rapidjson::kObjectType};
-      Set(j, "Cids", v.cids);
-      Set(j, "Blocks", v.blks);
-      Set(j, "Height", v.height);
+      Set(j, "Cids", v->key.cids());
+      Set(j, "Blocks", v->blks);
+      Set(j, "Height", v->height());
       return j;
     }
 
-    DECODE(Tipset) {
-      decode(v.cids, Get(j, "Cids"));
-      decode(v.blks, Get(j, "Blocks"));
-      decode(v.height, Get(j, "Height"));
+    DECODE(TipsetCPtr) {
+      std::vector<primitives::block::BlockHeader> blks;
+      decode(blks, Get(j, "Blocks"));
+
+      // TODO decode and verify excessive values
+
+      OUTCOME_EXCEPT(tipset,
+                     primitives::tipset::Tipset::create(std::move(blks)));
+      v = std::move(tipset);
     }
 
     ENCODE(MessageReceipt) {
