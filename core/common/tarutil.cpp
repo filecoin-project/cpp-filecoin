@@ -39,29 +39,24 @@ namespace fc::common {
     }
   }
 
-  void createDir(const fs::path &absolute_path, const std::string &base) {}
-
-  outcome::result<int> zipTar(const std::string &input_path) {
+  outcome::result<void> zipTar(const std::string &input_path,
+                               const std::string &output_path) {
     if (!fs::exists(input_path)) {
       logger->error("Zip tar: {} doesn't exists", input_path);
       return TarErrors::kCannotZipTarArchive;
     }
-
-    int p[2];
-
-    if (pipe(p) < 0) {
+    if (!fs::is_directory(input_path)) {
+      logger->error("Zip tar: {} is not a directory", input_path);
+      return TarErrors::kCannotZipTarArchive;
+    }
+    if (fs::exists(output_path) && !fs::is_regular_file(output_path)) {
+      logger->error("Zip tar: {} is not a file", output_path);
       return TarErrors::kCannotZipTarArchive;
     }
 
-    std::function<void()> clear = [&]() {
-      close(p[1]);
-      close(p[0]);
-    };
-    auto _ = gsl::finally([&]() { clear(); });
-
     auto a = ffi::wrap(archive_write_new(), archive_write_free);
     archive_write_set_format_v7tar(a.get());
-    int r = archive_write_open_fd(a.get(), p[1]);
+    int r = archive_write_open_filename(a.get(), output_path.c_str());
     if (r < ARCHIVE_OK) {
       if (r < ARCHIVE_WARN) {
         logger->error("Zip tar: {}", archive_error_string(a.get()));
@@ -143,9 +138,7 @@ namespace fc::common {
     OUTCOME_TRY(zipDir(input_path, base));
     archive_write_close(a.get());
 
-    clear = [&]() { close(p[1]); };
-
-    return p[0];
+    return outcome::success();
   }
 
   outcome::result<void> extractTar(const std::string &tar_path,

@@ -8,7 +8,6 @@
 #include <queue>
 
 #include <boost/asio/deadline_timer.hpp>
-#include <boost/asio/ip/tcp.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 
@@ -21,7 +20,6 @@ namespace fc::api {
   namespace http = beast::http;
   namespace websocket = beast::websocket;
   namespace net = boost::asio;
-  using tcp = boost::asio::ip::tcp;
   using rpc::OkCb;
 
   constexpr auto kParseError = INT64_C(-32700);
@@ -195,22 +193,10 @@ namespace fc::api {
     void handleRequest() {
       for (auto &route : routes) {
         if (request.target().starts_with(route.first)) {
-          route.second(request, response);
-          writeResponse();
+          response = route.second(socket, request);
           break;
         }
       }
-    }
-
-    void writeResponse() {
-      response.content_length(response.body().size());
-
-      http::async_write(
-          socket,
-          response,
-          [self = shared_from_this()](beast::error_code ec, std::size_t) {
-            self->socket.shutdown(tcp::socket::shutdown_send, ec);
-          });
     }
 
     void doClose() {
@@ -224,7 +210,7 @@ namespace fc::api {
     boost::beast::flat_buffer buffer;
     net::steady_timer timer;
     http::request<http::dynamic_body> request;
-    http::response<http::dynamic_body> response;
+    WrapperResponse response;
     std::map<std::string, RouteHandler, std::greater<>> routes;
     std::shared_ptr<Api> api;
   };

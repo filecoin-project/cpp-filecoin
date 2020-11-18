@@ -72,19 +72,9 @@ TEST_F(TarUtilTest, zipTar) {
   input << result_string;
   input.close();
 
-  EXPECT_OUTCOME_TRUE(fd, fc::common::zipTar(root_path.string()));
-  auto _ = gsl::final_action([&]() { close(fd); });
+  EXPECT_OUTCOME_TRUE_1(
+      fc::common::zipTar(root_path.string(), tar_path.string()));
   fs::remove_all(root_path);
-
-  std::ofstream archive(tar_path.string(), std::ios_base::binary);
-
-  char buff[8192];
-  int len = read(fd, buff, sizeof(buff));
-  while (len > 0) {
-    archive.write(buff, len);
-    len = read(fd, buff, sizeof(buff));
-  }
-  archive.close();
 
   EXPECT_OUTCOME_TRUE_1(
       fc::common::extractTar(tar_path.string(), base_path.string()));

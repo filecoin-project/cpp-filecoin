@@ -13,12 +13,8 @@ namespace fc::common {
 
   constexpr int kTarBlockSize = 10240;
 
-  /**
-   * zip path to temp tar
-   * @note don't forget to close
-   * @return fd of temp tar
-   */
-  outcome::result<int> zipTar(const std::string &input_path);
+  outcome::result<void> zipTar(const std::string &input_path,
+                               const std::string &output_path);
 
   outcome::result<void> extractTar(const std::string &tar_path,
                                    const std::string &output_path);

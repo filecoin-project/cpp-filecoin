@@ -6,15 +6,12 @@
 #ifndef CPP_FILECOIN_CORE_SECTOR_STORAGE_MANAGER_HPP
 #define CPP_FILECOIN_CORE_SECTOR_STORAGE_MANAGER_HPP
 
-#include <boost/beast/http.hpp>
 #include "common/outcome.hpp"
 #include "sector_storage/fault_tracker.hpp"
 #include "sector_storage/spec_interfaces/prover.hpp"
 #include "sector_storage/worker.hpp"
 
 namespace fc::sector_storage {
-  namespace beast = boost::beast;
-  namespace http = beast::http;
   using primitives::FsStat;
   using primitives::SectorSize;
   using primitives::StorageID;
@@ -23,8 +20,6 @@ namespace fc::sector_storage {
 
   class Manager : public Prover, public FaultTracker {
    public:
-    virtual void serveHTTP(const http::request<http::dynamic_body> &request,
-                           http::response<http::dynamic_body> &response) = 0;
 
     virtual SectorSize getSectorSize() = 0;
 
