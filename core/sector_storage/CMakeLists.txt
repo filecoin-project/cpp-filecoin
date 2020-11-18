@@ -14,6 +14,8 @@ target_link_libraries(fetch_handler
         outcome
         store
         logger
+        tarutil
+        Boost::boost
         )
 
 add_library(worker

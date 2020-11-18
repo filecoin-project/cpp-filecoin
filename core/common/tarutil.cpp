@@ -74,62 +74,50 @@ namespace fc::common {
       fs::directory_iterator dir_iter(absolute_path), end;
 
       while (dir_iter != end) {
+        auto type = AE_IFREG;
         if (fs::is_directory(dir_iter->path())) {
           if (fs::directory_iterator(dir_iter->path())
               != fs::directory_iterator()) {
             OUTCOME_TRY(zipDir(dir_iter->path(),
                                relative_path / dir_iter->path().filename()));
-          } else {
-            stat(dir_iter->path().c_str(), &st);
-            entry = archive_entry_new();  // Note 2
-            archive_entry_set_pathname(
-                entry, (relative_path / dir_iter->path().filename()).c_str());
-            archive_entry_set_size(entry, st.st_size);  // Note 3
-            archive_entry_set_filetype(entry, AE_IFDIR);
-            archive_entry_set_perm(entry, 0644);
-            r = archive_write_header(a.get(), entry);
-            if (r < ARCHIVE_OK) {
-              if (r < ARCHIVE_WARN) {
-                logger->error("Zip tar: {}", archive_error_string(a.get()));
-                return TarErrors::kCannotZipTarArchive;
-              } else {
-                logger->warn("Zip tar: {}", archive_error_string(a.get()));
-              }
-            }
-            archive_entry_free(entry);
+            ++dir_iter;
+            continue;
           }
-        } else if (fs::is_regular_file(dir_iter->path())) {
-          if (stat(dir_iter->path().c_str(), &st) < 0) {
+          type = AE_IFDIR;
+        }
+        if (stat(dir_iter->path().c_str(), &st) < 0) {
+          return TarErrors::kCannotZipTarArchive;
+        }
+        entry = archive_entry_new();
+        archive_entry_set_pathname(
+            entry, (relative_path / dir_iter->path().filename()).c_str());
+        archive_entry_set_size(entry, st.st_size);
+        archive_entry_set_filetype(entry, type);
+        archive_entry_set_perm(entry, 0644);
+        r = archive_write_header(a.get(), entry);
+        if (r < ARCHIVE_OK) {
+          if (r < ARCHIVE_WARN) {
+            logger->error("Zip tar: {}", archive_error_string(a.get()));
             return TarErrors::kCannotZipTarArchive;
+          } else {
+            logger->warn("Zip tar: {}", archive_error_string(a.get()));
           }
-          entry = archive_entry_new();
-          archive_entry_set_pathname(
-              entry, (relative_path / dir_iter->path().filename()).c_str());
-          archive_entry_set_size(entry, st.st_size);
-          archive_entry_set_filetype(entry, AE_IFREG);
-          archive_entry_set_perm(entry, 0644);
-          r = archive_write_header(a.get(), entry);
-          if (r < ARCHIVE_OK) {
-            if (r < ARCHIVE_WARN) {
-              logger->error("Zip tar: {}", archive_error_string(a.get()));
-              return TarErrors::kCannotZipTarArchive;
-            } else {
-              logger->warn("Zip tar: {}", archive_error_string(a.get()));
-            }
-          }
+        }
+        if (type == AE_IFREG) {
           int fd = open(dir_iter->path().c_str(), O_RDONLY);
           int len = read(fd, buff, sizeof(buff));
           while (len > 0) {
-            archive_write_data(a.get(), buff, len);
+            if (archive_write_data(a.get(), buff, len) == -1) {
+              logger->error("Zip tar: {}", archive_error_string(a.get()));
+              return TarErrors::kCannotZipTarArchive;
+            }
             len = read(fd, buff, sizeof(buff));
           }
           close(fd);
-          archive_entry_free(entry);
-        } else {
-          logger->warn("Unsupported entry type of {}", dir_iter->path());
         }
+        archive_entry_free(entry);
 
-        dir_iter++;
+        ++dir_iter;
       }
       return outcome::success();
     };

@@ -79,8 +79,8 @@ TEST_F(TarUtilTest, zipTar) {
   EXPECT_OUTCOME_TRUE_1(
       fc::common::extractTar(tar_path.string(), base_path.string()));
   ASSERT_TRUE(fs::exists(root_path) && fs::is_directory(root_path));
-  ASSERT_TRUE(fs::exists(dir_path) && fs::is_directory(root_path));
-  ASSERT_TRUE(fs::exists(empty_dir_path) && fs::is_directory(root_path));
+  ASSERT_TRUE(fs::exists(dir_path) && fs::is_directory(dir_path));
+  ASSERT_TRUE(fs::exists(empty_dir_path) && fs::is_directory(empty_dir_path));
   ASSERT_TRUE(fs::exists(file_path) && fs::is_regular_file(file_path));
 
   ASSERT_EQ(std::distance(fs::directory_iterator(root_path),
@@ -94,6 +94,5 @@ TEST_F(TarUtilTest, zipTar) {
             0);
 
   EXPECT_OUTCOME_EQ(fc::common::readFile(file_path.string()),
-                    fc::common::span::cbytes(gsl::make_span(
-                        result_string.data(), result_string.size())));
+                    fc::common::span::cbytes(result_string));
 }

@@ -17,7 +17,6 @@
 
 namespace fc::api {
   namespace beast = boost::beast;
-  namespace http = beast::http;
   namespace websocket = beast::websocket;
   namespace net = boost::asio;
   using rpc::OkCb;
@@ -207,7 +206,7 @@ namespace fc::api {
     // TODO: maybe add queue for requests
 
     tcp::socket socket;
-    boost::beast::flat_buffer buffer;
+    beast::flat_buffer buffer;
     net::steady_timer timer;
     http::request<http::dynamic_body> request;
     WrapperResponse response;
