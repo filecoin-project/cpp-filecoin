@@ -7,9 +7,6 @@
 
 #include <cassert>
 
-#include "inbound_endpoint.hpp"
-#include "message_reader.hpp"
-#include "outbound_endpoint.hpp"
 #include "peer_context.hpp"
 
 namespace fc::storage::ipfs::graphsync {
@@ -77,10 +74,6 @@ namespace fc::storage::ipfs::graphsync {
     logger()->trace("makeRequest: {} has state {}", ctx->str, ctx->getState());
 
     ctx->setOutboundAddress(std::move(address));
-    if (ctx->needToConnect()) {
-      tryConnect(ctx);
-    }
-
     ctx->enqueueRequest(request_id, std::move(request_body));
   }
 
@@ -116,36 +109,18 @@ namespace fc::storage::ipfs::graphsync {
     }
   }
 
-  bool Network::addBlockToResponse(const PeerId &peer,
-                                   RequestId request_id,
-                                   const CID &cid,
-                                   const common::Buffer &data) {
-    if (!started_) {
-      return false;
-    }
-
-    auto ctx = findContext(peer, false);
-    if (!ctx) {
-      return false;
-    }
-
-    return ctx->addBlockToResponse(request_id, cid, data);
-  }
-
-  void Network::sendResponse(const PeerId &peer,
-                             int request_id,
-                             ResponseStatusCode status,
-                             const std::vector<Extension> &extensions) {
+  void Network::sendResponse(const FullRequestId &id,
+                             const Response &response) {
     if (!started_) {
       return;
     }
 
-    auto ctx = findContext(peer, false);
+    auto ctx = findContext(id.peer, false);
     if (!ctx) {
       return;
     }
 
-    ctx->sendResponse(request_id, status, extensions);
+    ctx->sendResponse(id, response);
   }
 
   void Network::peerClosed(const PeerId &peer, ResponseStatusCode status) {
@@ -163,7 +138,7 @@ namespace fc::storage::ipfs::graphsync {
 
     auto it = peers_.find(peer);
     if (it != peers_.end()) {
-      ctx = *it;
+      ctx = it->second;
       if (ctx->getState() == PeerContext::is_closed) {
         peers_.erase(it);
         ctx.reset();
@@ -171,34 +146,12 @@ namespace fc::storage::ipfs::graphsync {
     }
 
     if (!ctx && create_if_not_found) {
-      ctx = std::make_shared<PeerContext>(peer, *feedback_, *this, *scheduler_);
-      peers_.insert(ctx);
+      ctx = std::make_shared<PeerContext>(
+          peer, *feedback_, *this, *host_, *scheduler_);
+      peers_.insert({peer, ctx});
     }
 
     return ctx;
-  }
-
-  void Network::tryConnect(const PeerContextPtr &ctx) {
-    libp2p::peer::PeerInfo pi = ctx->getOutboundPeerInfo();
-
-    logger()->trace(
-        "connecting to {}, {}",
-        ctx->str,
-        pi.addresses.empty() ? "''" : pi.addresses[0].getStringAddress());
-
-    // clang-format off
-    host_->newStream(
-        pi,
-        protocol_id_,
-        [wptr{ctx->weak_from_this()}]
-        (outcome::result<StreamPtr> rstream) {
-          auto ctx = wptr.lock();
-          if (ctx) {
-            ctx->onStreamConnected(std::move(rstream));
-          }
-        }
-    );
-    // clang-format on
   }
 
   void Network::onStreamAccepted(outcome::result<StreamPtr> rstream) {
@@ -227,7 +180,7 @@ namespace fc::storage::ipfs::graphsync {
 
   void Network::closeAllPeers() {
     PeerSet peers = std::move(peers_);
-    for (auto &ctx : peers) {
+    for (auto &[_, ctx] : peers) {
       ctx->close(RS_REJECTED_LOCALLY);
     }
 

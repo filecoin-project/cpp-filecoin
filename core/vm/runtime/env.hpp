@@ -15,7 +15,7 @@
 
 namespace fc::vm::runtime {
   using actor::Invoker;
-  using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetCPtr;
   using state::StateTree;
   using state::StateTreeImpl;
 
@@ -25,11 +25,12 @@ namespace fc::vm::runtime {
 
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {
-    Env(std::shared_ptr<Invoker> invoker, IpldPtr ipld, Tipset tipset)
+    Env(std::shared_ptr<Invoker> invoker, IpldPtr ipld, TipsetCPtr tipset)
         : state_tree{std::make_shared<StateTreeImpl>(
-            ipld, tipset.getParentStateRoot())},
+            ipld, tipset->getParentStateRoot())},
           invoker{std::move(invoker)},
           ipld{std::move(ipld)},
+          epoch{tipset->height()},
           tipset{std::move(tipset)} {}
 
     struct Apply {
@@ -46,7 +47,8 @@ namespace fc::vm::runtime {
     std::shared_ptr<StateTreeImpl> state_tree;
     std::shared_ptr<Invoker> invoker;
     IpldPtr ipld;
-    Tipset tipset;
+    uint64_t epoch; // mutable epoch for cron()
+    TipsetCPtr tipset;
     Pricelist pricelist;
   };
 

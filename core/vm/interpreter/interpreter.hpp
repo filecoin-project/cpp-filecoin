@@ -8,12 +8,15 @@
 
 #include "primitives/tipset/tipset.hpp"
 #include "storage/ipfs/datastore.hpp"
+#include "storage/buffer_map.hpp"
 
 namespace fc::vm::interpreter {
   enum class InterpreterError {
     kDuplicateMiner = 1,
     kMinerSubmitFailed,
     kCronTickFailed,
+    kTipsetMarkedBad,
+    kChainInconsistency,
   };
 
   struct Result {
@@ -24,14 +27,21 @@ namespace fc::vm::interpreter {
 
   class Interpreter {
    protected:
-    using Tipset = primitives::tipset::Tipset;
+    using TipsetCPtr = primitives::tipset::TipsetCPtr;
 
    public:
     virtual ~Interpreter() = default;
 
-    virtual outcome::result<Result> interpret(const IpldPtr &store,
-                                              const Tipset &tipset) const = 0;
+    virtual outcome::result<Result> interpret(
+        const IpldPtr &store, const TipsetCPtr &tipset) const = 0;
   };
+
+  /// returns persisted interpreter result for tipset, if exists,
+  /// empty value if tipset is not yet interpreted,
+  /// error if tipset is bad or store access error occured
+  outcome::result<boost::optional<Result>> getSavedResult(
+      const storage::PersistentBufferMap &store,
+      const primitives::tipset::TipsetCPtr &tipset);
 
 }  // namespace fc::vm::interpreter
 

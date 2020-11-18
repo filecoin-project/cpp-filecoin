@@ -16,12 +16,19 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::vm::interpreter, InterpreterError, e) {
   using E = fc::vm::interpreter::InterpreterError;
   switch (e) {
     case E::kDuplicateMiner:
-      return "Duplicate miner";
+      return "InterpreterError: Duplicate miner";
     case E::kMinerSubmitFailed:
-      return "Miner submit failed";
+      return "InterpreterError: Miner submit failed";
     case E::kCronTickFailed:
-      return "Cron tick failed";
+      return "InterpreterError: Cron tick failed";
+    case E::kTipsetMarkedBad:
+      return "InterpreterError: Tipset marked as bad";
+    case E::kChainInconsistency:
+      return "InterpreterError: chain inconsistency";
+    default:
+      break;
   }
+  return "InterpreterError: unknown code";
 }
 
 namespace fc::vm::interpreter {
@@ -42,11 +49,11 @@ namespace fc::vm::interpreter {
   using runtime::MessageReceipt;
 
   outcome::result<Result> InterpreterImpl::interpret(
-      const IpldPtr &ipld, const Tipset &tipset) const {
-    if (tipset.height == 0) {
+      const IpldPtr &ipld, const TipsetCPtr &tipset) const {
+    if (tipset->height() == 0) {
       return Result{
-          tipset.getParentStateRoot(),
-          tipset.getParentMessageReceipts(),
+          tipset->getParentStateRoot(),
+          tipset->getParentMessageReceipts(),
       };
     }
     return applyBlocks(ipld, tipset, {});
@@ -54,7 +61,7 @@ namespace fc::vm::interpreter {
 
   outcome::result<Result> InterpreterImpl::applyBlocks(
       const IpldPtr &ipld,
-      const Tipset &tipset,
+      const TipsetCPtr &tipset,
       std::vector<MessageReceipt> *all_receipts) const {
     auto on_receipt{[&](auto &receipt) {
       if (all_receipts) {
@@ -62,7 +69,7 @@ namespace fc::vm::interpreter {
       }
     }};
 
-    if (hasDuplicateMiners(tipset.blks)) {
+    if (hasDuplicateMiners(tipset->blks)) {
       return InterpreterError::kDuplicateMiner;
     }
 
@@ -88,18 +95,19 @@ namespace fc::vm::interpreter {
       return outcome::success();
     }};
 
-    if (tipset.height > 1) {
-      OUTCOME_TRY(parent, tipset.loadParent(*ipld));
-      for (auto epoch{parent.height + 1}; epoch < tipset.height; ++epoch) {
-        env->tipset.height = epoch;
+    if (tipset->height() > 1) {
+      OUTCOME_TRY(parent, tipset->loadParent(*ipld));
+      for (auto epoch{parent->height() + 1}; epoch < tipset->height();
+           ++epoch) {
+        env->epoch = epoch;
         OUTCOME_TRY(cron());
       }
-      env->tipset.height = tipset.height;
+      env->epoch = tipset->height();
     }
 
     adt::Array<MessageReceipt> receipts{ipld};
     MessageVisitor message_visitor{ipld};
-    for (auto &block : tipset.blks) {
+    for (auto &block : tipset->blks) {
       AwardBlockReward::Params reward{
           block.miner, 0, 0, block.election_proof.win_count};
       OUTCOME_TRY(message_visitor.visit(
@@ -162,22 +170,44 @@ namespace fc::vm::interpreter {
     return false;
   }
 
-  outcome::result<Result> CachedInterpreter::interpret(
-      const IpldPtr &ipld, const Tipset &tipset) const {
-    // TODO: TipsetKey from art-gor
-    common::Buffer key;
-    for (auto &cid : tipset.cids) {
-      OUTCOME_TRY(encoded, cid.toBytes());
-      key.put(encoded);
+  namespace {
+    outcome::result<boost::optional<Result>> getSavedResult(
+        const PersistentBufferMap &store, const common::Buffer &key) {
+      if (store.contains(key)) {
+        OUTCOME_TRY(raw, store.get(key));
+        OUTCOME_TRY(result, codec::cbor::decode<boost::optional<Result>>(raw));
+        if (!result) {
+          return InterpreterError::kTipsetMarkedBad;
+        }
+        return std::move(result);
+      }
+      return boost::none;
     }
 
-    if (store->contains(key)) {
-      OUTCOME_TRY(raw, store->get(key));
-      return codec::cbor::decode<Result>(raw);
+  }  // namespace
+
+  outcome::result<boost::optional<Result>> getSavedResult(
+      const PersistentBufferMap &store,
+      const primitives::tipset::TipsetCPtr &tipset) {
+    common::Buffer key(tipset->key.hash());
+    return getSavedResult(store, key);
+  }
+
+  outcome::result<Result> CachedInterpreter::interpret(
+      const IpldPtr &ipld, const TipsetCPtr &tipset) const {
+    common::Buffer key(tipset->key.hash());
+    OUTCOME_TRY(saved_result, getSavedResult(*store, key));
+    if (saved_result) {
+      return saved_result.value();
     }
-    OUTCOME_TRY(result, interpreter->interpret(ipld, tipset));
-    OUTCOME_TRY(raw, codec::cbor::encode(result));
-    OUTCOME_TRY(store->put(key, raw));
-    return std::move(result);
+    auto result = interpreter->interpret(ipld, tipset);
+    if (!result) {
+      OUTCOME_TRY(raw, codec::cbor::encode(boost::optional<Result>{}));
+      OUTCOME_TRY(store->put(key, raw));
+    } else {
+      OUTCOME_TRY(raw, codec::cbor::encode(result.value()));
+      OUTCOME_TRY(store->put(key, raw));
+    }
+    return result;
   }
 }  // namespace fc::vm::interpreter

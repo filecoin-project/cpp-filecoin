@@ -31,7 +31,7 @@ namespace fc::storage::ipfs::graphsync {
     outcome::result<SharedData> serialize();
 
     /// Clears all entries added
-    void clear();
+    virtual void clear();
 
    protected:
     /// Protobuf message, reused by derived classes

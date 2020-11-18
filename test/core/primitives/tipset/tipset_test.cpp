@@ -7,6 +7,7 @@
 
 #include <gtest/gtest.h>
 #include "common/hexutil.hpp"
+#include "crypto/blake2/blake2b160.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "testutil/cbor.hpp"
 #include "testutil/crypto/sample_signatures.hpp"
@@ -128,11 +129,26 @@ TEST_F(TipsetTest, CreateMismatchingParentsFailure) {
  * @then creation succeeds and methods return expected values
  */
 TEST_F(TipsetTest, CreateSuccess) {
-  EXPECT_OUTCOME_TRUE(ts, Tipset::create({bh2, bh1}));
+  EXPECT_OUTCOME_TRUE(tipset, Tipset::create({bh1, bh2}));
+  const auto &ts = *tipset;
+
+  auto ticket_hash_1 =
+      fc::crypto::blake2b::blake2b_256(bh1.ticket.value().bytes);
+  auto ticket_hash_2 =
+      fc::crypto::blake2b::blake2b_256(bh2.ticket.value().bytes);
+
   std::vector<CID> cids{cid1, cid2};
-  ASSERT_EQ(ts.cids, cids);
+  std::vector<CID> cids_reverse{cid2, cid1};
   std::vector<BlockHeader> headers{bh1, bh2};
-  ASSERT_EQ(ts.height, bh1.height);
+  std::vector<BlockHeader> headers_reverse{bh2, bh1};
+
+  if (ticket_hash_2 < ticket_hash_1) {
+    cids.swap(cids_reverse);
+    headers.swap(headers_reverse);
+  }
+
+  ASSERT_EQ(ts.key.cids(), cids);
+  ASSERT_EQ(ts.height(), bh1.height);
   ASSERT_EQ(ts.blks, headers);
   ASSERT_EQ(ts.getMinTimestamp(), 7u);
   ASSERT_EQ(ts.getMinTicketBlock(), bh1);
@@ -141,4 +157,9 @@ TEST_F(TipsetTest, CreateSuccess) {
   ASSERT_TRUE(ts.contains(cid1));
   ASSERT_TRUE(ts.contains(cid2));
   ASSERT_FALSE(ts.contains(cid3));
+
+  EXPECT_OUTCOME_TRUE(tipset2, Tipset::create({bh2, bh1}));
+  const auto &ts2 = *tipset2;
+  ASSERT_EQ(ts.key.cids(), ts2.key.cids());
+  ASSERT_EQ(ts.blks, ts2.blks);
 }

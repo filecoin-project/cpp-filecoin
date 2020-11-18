@@ -16,7 +16,7 @@ namespace fc::mining {
       return 0;
     }
 
-    ChainEpoch epoch = maybe_head.value().height;
+    ChainEpoch epoch = maybe_head.value()->height();
 
     boost::optional<ChainEpoch> end = boost::none;
 

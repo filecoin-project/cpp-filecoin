@@ -289,7 +289,7 @@ namespace fc::payment_channel_manager {
       const Address &channel_address) const {
     OUTCOME_TRY(tipset, api_->ChainHead());
     auto state_tree =
-        std::make_shared<StateTreeImpl>(ipld_, tipset.getParentStateRoot());
+        std::make_shared<StateTreeImpl>(ipld_, tipset->getParentStateRoot());
     return state_tree->state<PaymentChannelState>(channel_address);
   }
 

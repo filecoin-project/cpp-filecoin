@@ -17,10 +17,10 @@ namespace fc::vm::interpreter {
   class InterpreterImpl : public Interpreter {
    public:
     outcome::result<Result> interpret(const IpldPtr &store,
-                                      const Tipset &tipset) const override;
+                                      const TipsetCPtr &tipset) const override;
     outcome::result<Result> applyBlocks(
         const IpldPtr &store,
-        const Tipset &tipset,
+        const TipsetCPtr &tipset,
         std::vector<MessageReceipt> *all_receipts) const;
 
    protected:
@@ -36,7 +36,7 @@ namespace fc::vm::interpreter {
                       std::shared_ptr<PersistentBufferMap> store)
         : interpreter{std::move(interpreter)}, store{std::move(store)} {}
     outcome::result<Result> interpret(const IpldPtr &store,
-                                      const Tipset &tipset) const override;
+                                      const TipsetCPtr &tipset) const override;
 
    private:
     std::shared_ptr<Interpreter> interpreter;

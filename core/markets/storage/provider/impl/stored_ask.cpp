@@ -20,8 +20,8 @@ namespace fc::markets::storage::provider {
   outcome::result<void> StoredAsk::addAsk(const TokenAmount &price,
                                           ChainEpoch duration) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    ChainEpoch timestamp = chain_head.height;
-    ChainEpoch expiry = chain_head.height + duration;
+    ChainEpoch timestamp = chain_head->height();
+    ChainEpoch expiry = chain_head->height() + duration;
     StorageAsk ask{.price = price,
                    .verified_price = price,
                    .min_piece_size = kDefaultMinPieceSize,
@@ -32,7 +32,7 @@ namespace fc::markets::storage::provider {
                    .seq_no = last_signed_storage_ask_
                                  ? last_signed_storage_ask_->ask.seq_no + 1
                                  : 0};
-    OUTCOME_TRY(signed_ask, signAsk(ask, chain_head));
+    OUTCOME_TRY(signed_ask, signAsk(ask, *chain_head));
     OUTCOME_TRY(saveSignedAsk(signed_ask));
     return outcome::success();
   }
@@ -58,8 +58,8 @@ namespace fc::markets::storage::provider {
 
     // otherwise return default which 'not actively accepting deals'
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    ChainEpoch timestamp = chain_head.height;
-    ChainEpoch expiry = chain_head.height + kDefaultDuration;
+    ChainEpoch timestamp = chain_head->height();
+    ChainEpoch expiry = chain_head->height() + kDefaultDuration;
     StorageAsk default_ask{.price = kDefaultPrice,
                            .verified_price = kDefaultPrice,
                            .min_piece_size = kDefaultMinPieceSize,
@@ -68,7 +68,7 @@ namespace fc::markets::storage::provider {
                            .timestamp = timestamp,
                            .expiry = expiry,
                            .seq_no = 0};
-    OUTCOME_TRY(signed_ask, signAsk(default_ask, chain_head));
+    OUTCOME_TRY(signed_ask, signAsk(default_ask, *chain_head));
     return std::move(signed_ask);
   }
 
@@ -81,9 +81,9 @@ namespace fc::markets::storage::provider {
 
   outcome::result<SignedStorageAsk> StoredAsk::signAsk(
       const StorageAsk &ask, const Tipset &chain_head) {
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
     OUTCOME_TRY(minfo, api_->StateMinerInfo(actor_, {}));
-    OUTCOME_TRY(key_address, api_->StateAccountKey(minfo.worker, tipset_key));
+    OUTCOME_TRY(key_address,
+                api_->StateAccountKey(minfo.worker, chain_head.key));
     OUTCOME_TRY(ask_bytes, codec::cbor::encode(ask));
     OUTCOME_TRY(signature, api_->WalletSign(key_address, ask_bytes));
     return SignedStorageAsk{.ask = ask, .signature = signature};

@@ -13,9 +13,10 @@
 
 namespace fc::storage::ipfs::graphsync {
 
-  MessageReader::MessageReader(StreamPtr stream,
-                               EndpointToPeerFeedback &feedback)
-      : feedback_(feedback) {
+  MessageReader::MessageReader(EndpointToPeerFeedback &feedback)
+      : feedback_(feedback) {}
+
+  bool MessageReader::read(StreamPtr stream) {
     assert(stream);
     assert(!stream->isClosedForRead());
 
@@ -26,7 +27,7 @@ namespace fc::storage::ipfs::graphsync {
           },
           kMaxMessageSize);
     }
-    stream_reader_->read(std::move(stream));
+    return stream_reader_->read(std::move(stream));
   }
 
   MessageReader::~MessageReader() {

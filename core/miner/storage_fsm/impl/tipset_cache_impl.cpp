@@ -19,17 +19,17 @@ namespace fc::mining {
 
   outcome::result<void> TipsetCacheImpl::add(const Tipset &tipset) {
     if (len_ > 0) {
-      if (cache_[start_]->height >= tipset.height) {
+      if (cache_[start_]->height() >= tipset.height()) {
         return TipsetCacheError::kSmallerHeight;
       }
     }
 
-    auto current_height = tipset.height;
+    auto current_height = tipset.height();
     if (len_ > 0) {
-      current_height = cache_[start_]->height;
+      current_height = cache_[start_]->height();
     }
 
-    while (current_height <= tipset.height) {
+    while (current_height <= tipset.height()) {
       start_ = mod(start_ + 1);
       cache_[start_] = boost::none;
       if (len_ < cache_.size()) {
@@ -76,12 +76,12 @@ namespace fc::mining {
   outcome::result<boost::optional<Tipset>> TipsetCacheImpl::get(
       uint64_t height) {
     if (len_ == 0) {
-      OUTCOME_TRY(tipset, get_function_(height, TipsetKey()));
-      OUTCOME_TRY(add(tipset));
-      return std::move(tipset);
+      OUTCOME_TRY(tipset, get_function_(height));
+      OUTCOME_TRY(add(*tipset));
+      return std::move(*tipset);
     }
 
-    auto head_height = cache_[start_]->height;
+    auto head_height = cache_[start_]->height();
 
     if (height > head_height) {
       return TipsetCacheError::kNotInCache;
@@ -96,14 +96,13 @@ namespace fc::mining {
       }
     }
 
-    if (height < tail->height) {
-      OUTCOME_TRY(key, tail->makeKey());
-      OUTCOME_TRY(tipset, get_function_(height, key));
-      if (i > (tail->height - height)) {
-        cache_[mod(start_ - len_ + i - (tail->height - height))] = tipset;
+    if (height < tail->height()) {
+      OUTCOME_TRY(tipset, get_function_(height));
+      if (i > (tail->height() - height)) {
+        cache_[mod(start_ - len_ + i - (tail->height() - height))] = *tipset;
         // TODO: Maybe extend cache, if len less than cache size
       }
-      return std::move(tipset);
+      return std::move(*tipset);
     }
 
     return cache_[mod(start_ - (head_height - height))];

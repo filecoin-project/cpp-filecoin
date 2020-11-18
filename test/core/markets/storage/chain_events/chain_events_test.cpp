@@ -79,7 +79,8 @@ namespace fc::markets::storage::chain_events {
         [block_cid]() -> outcome::result<Chan<std::vector<HeadChange>>> {
           auto channel{std::make_shared<Channel<std::vector<HeadChange>>>()};
 
-          Tipset tipset{.cids = {block_cid}};
+          auto tipset = std::make_shared<Tipset>();
+          tipset->key = TipsetKey{{block_cid}};
           HeadChange change{.type = HeadChangeType::APPLY, .value = tipset};
           channel->write({change});
 

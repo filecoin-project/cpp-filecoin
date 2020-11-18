@@ -27,14 +27,14 @@ namespace fc::vm::runtime {
         caller_id{caller_id} {}
 
   ChainEpoch RuntimeImpl::getCurrentEpoch() const {
-    return execution_->env->tipset.height;
+    return execution_->env->epoch;
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomness(
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return execution_->env->tipset.ticketRandomness(
+    return execution_->env->tipset->ticketRandomness(
         *execution_->env->ipld, tag, epoch, seed);
   }
 

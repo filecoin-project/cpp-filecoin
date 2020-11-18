@@ -864,12 +864,11 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     logger_->info("PreCommitting sector {}", info->sector_number);
     OUTCOME_TRY(head, api_->ChainHead());
-    OUTCOME_TRY(key, head.makeKey());
 
-    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, key));
+    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, head->key));
 
-    auto maybe_error =
-        checks::checkPrecommit(miner_address_, info, key, head.height, api_);
+    auto maybe_error = checks::checkPrecommit(
+        miner_address_, info, head->key, head->height(), api_);
 
     if (maybe_error.has_error()) {
       if (maybe_error == outcome::failure(ChecksError::kBadCommD)) {
@@ -890,7 +889,7 @@ namespace fc::mining {
       if (maybe_error == outcome::failure(ChecksError::kPrecommitOnChain)) {
         std::shared_ptr<SectorPreCommitLandedContext> context =
             std::make_shared<SectorPreCommitLandedContext>();
-        context->tipset_key = key;
+        context->tipset_key = head->key;
         FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommitLanded, context);
         return outcome::success();
       }
@@ -899,7 +898,7 @@ namespace fc::mining {
 
     auto expiration = std::min(
         policy_->expiration(info->pieces),
-        static_cast<ChainEpoch>(head.height
+        static_cast<ChainEpoch>(head->height()
                                 + maxSealDuration(info->sector_type).value()
                                 + kMinSectorExpiration + 10));
 
@@ -924,9 +923,9 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    OUTCOME_TRY(
-        collateral,
-        api_->StateMinerPreCommitDepositForPower(miner_address_, params, key));
+    OUTCOME_TRY(collateral,
+                api_->StateMinerPreCommitDepositForPower(
+                    miner_address_, params, head->key));
 
     deposit = std::max(deposit, collateral);
 
@@ -1011,10 +1010,9 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handleWaitSeed(
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, head.makeKey());
     OUTCOME_TRY(precommit_info,
                 getStateSectorPreCommitInfo(
-                    miner_address_, info->sector_number, tipset_key));
+                    miner_address_, info->sector_number, head->key));
     if (!precommit_info.has_value()) {
       logger_->error("precommit info not found on chain");
       FSM_SEND(info, SealingEvent::kSectorChainPreCommitFailed);
@@ -1028,13 +1026,12 @@ namespace fc::mining {
         [=](const Tipset &,
             ChainEpoch current_height) -> outcome::result<void> {
           OUTCOME_TRY(head, api_->ChainHead());
-          OUTCOME_TRY(tipset_key, head.makeKey());
 
           OUTCOME_TRY(miner_address_encoded,
                       codec::cbor::encode(miner_address_));
 
           auto maybe_randomness = api_->ChainGetRandomnessFromBeacon(
-              tipset_key,
+              head->key,
               crypto::randomness::DomainSeparationTag::
                   InteractiveSealChallengeSeed,
               random_height,
@@ -1131,10 +1128,9 @@ namespace fc::mining {
     }
 
     OUTCOME_TRY(head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, head.makeKey());
 
     auto maybe_error = checks::checkCommit(
-        miner_address_, info, maybe_proof.value(), tipset_key, api_);
+        miner_address_, info, maybe_proof.value(), head->key, api_);
     if (maybe_error.has_error()) {
       logger_->error("commit check error: {}", maybe_error.error().message());
       FSM_SEND(info, SealingEvent::kSectorCommitFailed);
@@ -1156,11 +1152,11 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, tipset_key));
+    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address_, head->key));
 
     OUTCOME_TRY(precommit_info_opt,
                 getStateSectorPreCommitInfo(
-                    miner_address_, info->sector_number, tipset_key));
+                    miner_address_, info->sector_number, head->key));
     if (!precommit_info_opt.has_value()) {
       logger_->error("precommit info not found on chain");
       FSM_SEND(info, SealingEvent::kSectorCommitFailed);
@@ -1169,7 +1165,7 @@ namespace fc::mining {
 
     OUTCOME_TRY(collateral,
                 api_->StateMinerInitialPledgeCollateral(
-                    miner_address_, precommit_info_opt->info, tipset_key));
+                    miner_address_, precommit_info_opt->info, head->key));
 
     collateral -= precommit_info_opt->precommit_deposit;
     if (collateral < 0) {
@@ -1324,10 +1320,9 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handlePreCommitFail(
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, head.makeKey());
 
     auto maybe_error = checks::checkPrecommit(
-        miner_address_, info, tipset_key, head.height, api_);
+        miner_address_, info, head->key, head->height(), api_);
     if (maybe_error.has_error()) {
       if (maybe_error == outcome::failure(ChecksError::kBadCommD)) {
         logger_->error("bad CommD error: {}", maybe_error.error().message());
@@ -1364,7 +1359,7 @@ namespace fc::mining {
     }
 
     auto maybe_info_opt = getStateSectorPreCommitInfo(
-        miner_address_, info->sector_number, tipset_key);
+        miner_address_, info->sector_number, head->key);
     if (maybe_info_opt.has_error()) {
       logger_->error("Check precommit error: {}",
                      maybe_info_opt.error().message());
@@ -1376,7 +1371,7 @@ namespace fc::mining {
             info->sector_number);
         std::shared_ptr<SectorPreCommitLandedContext> context =
             std::make_shared<SectorPreCommitLandedContext>();
-        context->tipset_key = tipset_key;
+        context->tipset_key = head->key;
         FSM_SEND_CONTEXT(info, SealingEvent::kSectorPreCommitLanded, context);
         return outcome::success();
       }
@@ -1446,10 +1441,9 @@ namespace fc::mining {
   outcome::result<void> SealingImpl::handleCommitFail(
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, head.makeKey());
 
     auto maybe_error = checks::checkPrecommit(
-        miner_address_, info, tipset_key, head.height, api_);
+        miner_address_, info, head->key, head->height(), api_);
     if (maybe_error.has_error()) {
       if (maybe_error == outcome::failure(ChecksError::kBadCommD)) {
         logger_->error("bad CommD error: {}", maybe_error.error().message());
@@ -1481,7 +1475,7 @@ namespace fc::mining {
     }
 
     maybe_error = checks::checkCommit(
-        miner_address_, info, info->proof, tipset_key, api_);
+        miner_address_, info, info->proof, head->key, api_);
     if (maybe_error.has_error()) {
       if (maybe_error == outcome::failure(ChecksError::kBadSeed)) {
         logger_->error("seed changed, will retry: {}",
@@ -1594,16 +1588,14 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     OUTCOME_TRY(head, api_->ChainHead());
 
-    OUTCOME_TRY(tipset_key, head.makeKey());
-
     ChainEpoch ticket_epoch =
-        head.height - vm::actor::builtin::miner::kChainFinalityish;
+        head->height() - vm::actor::builtin::miner::kChainFinalityish;
 
     OUTCOME_TRY(address_encoded, codec::cbor::encode(miner_address_));
 
     OUTCOME_TRY(precommit_info,
                 getStateSectorPreCommitInfo(
-                    miner_address_, info->sector_number, tipset_key));
+                    miner_address_, info->sector_number, head->key));
 
     if (precommit_info.has_value()) {
       ticket_epoch = precommit_info->info.seal_epoch;
@@ -1611,7 +1603,7 @@ namespace fc::mining {
 
     OUTCOME_TRY(randomness,
                 api_->ChainGetRandomnessFromTickets(
-                    tipset_key,
+                    head->key,
                     api::DomainSeparationTag::SealRandomness,
                     ticket_epoch,
                     MethodParams{address_encoded}));

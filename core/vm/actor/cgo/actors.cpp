@@ -77,9 +77,9 @@ namespace fc::vm::actor::cgo {
                                  BytesIn params) {
     CborEncodeStream arg;
     auto id{next_runtime++};  // TODO: mod
-    auto version{getNetworkVersion(exec->env->tipset.height)};
+    auto version{getNetworkVersion(exec->env->epoch)};
     arg << id << version << message.from << message.to
-        << exec->env->tipset.height << message.value << code << method
+        << exec->env->epoch << message.value << code << method
         << params;
     runtimes.emplace(id, Runtime{exec, message.to});
     auto ret{cgoCall<cgoActorsInvoke>(arg)};
@@ -139,8 +139,8 @@ namespace fc::vm::actor::cgo {
     auto seed{arg.get<Buffer>()};
     auto &ts{rt.exec->env->tipset};
     auto &ipld{*rt.exec->env->ipld};
-    return beacon ? ts.beaconRandomness(ipld, tag, round, seed)
-                  : ts.ticketRandomness(ipld, tag, round, seed);
+    return beacon ? ts->beaconRandomness(ipld, tag, round, seed)
+                  : ts->ticketRandomness(ipld, tag, round, seed);
   }
 
   RUNTIME_METHOD(gocRtIpldGet) {
