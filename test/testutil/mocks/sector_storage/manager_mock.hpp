@@ -13,10 +13,6 @@
 namespace fc::sector_storage {
   class ManagerMock : public Manager {
    public:
-    MOCK_METHOD2(serveHTTP,
-                 void(const http::request<http::dynamic_body> &request,
-                      http::response<http::dynamic_body> &response));
-
     MOCK_METHOD2(checkProvable,
                  outcome::result<std::vector<SectorId>>(
                      RegisteredProof, gsl::span<const SectorId>));
