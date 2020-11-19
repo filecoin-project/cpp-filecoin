@@ -10,7 +10,7 @@
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
-#include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/runtime/env.hpp"
@@ -26,7 +26,7 @@
   void rt_##name(Runtime &rt, CborDecodeStream &arg, CborEncodeStream &ret)
 
 namespace fc::vm::actor::cgo {
-  using builtin::account::AccountActorState;
+  using builtin::v0::account::AccountActorState;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
@@ -75,6 +75,7 @@ namespace fc::vm::actor::cgo {
                                  const CID &code,
                                  size_t method,
                                  BytesIn params) {
+    auto sss = code.toString().value();
     CborEncodeStream arg;
     auto id{next_runtime++};  // TODO: mod
     auto version{getNetworkVersion(exec->env->tipset.height)};
@@ -152,7 +153,6 @@ namespace fc::vm::actor::cgo {
   RUNTIME_METHOD(gocRtIpldPut) {
     auto buf = arg.get<Buffer>();
     if (auto cid{ipldPut(ret, rt, buf)}) {
-      dvm::onIpldSet(*cid, buf);
       ret << kOk << *cid;
     }
   }

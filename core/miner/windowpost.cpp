@@ -4,7 +4,7 @@
  */
 
 #include "miner/windowpost.hpp"
-#include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc {
   inline constexpr auto kValue{1000};
@@ -57,7 +57,7 @@ namespace fc {
 
       // TODO: check recoveries and faults
 
-      using vm::actor::builtin::miner::SubmitWindowedPoSt;
+      using vm::actor::builtin::v0::miner::SubmitWindowedPoSt;
       SubmitWindowedPoSt::Params params;
       params.deadline = deadline.index;
       OUTCOME_TRY(parts,

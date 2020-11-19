@@ -54,6 +54,12 @@ namespace fc::vm::actor {
 
   CBOR_TUPLE(Actor, code, head, nonce, balance)
 
+  /** Checks if code is an account actor */
+  bool isAccountActor(const CodeId &code);
+
+  /** Checks if code is miner actor */
+  bool isStorageMinerActor(const CodeId &code);
+
   /** Check if code specifies builtin actor implementation */
   bool isBuiltinActor(const CodeId &code);
 
@@ -63,6 +69,9 @@ namespace fc::vm::actor {
   /** Check if actor code can represent external signing parties */
   bool isSignableActor(const CodeId &code);
 
+  /** Make code cid from raw string */
+  CID makeRawIdentityCid(const std::string &str);
+
   /** Reserved method number for send operation */
   constexpr MethodNumber kSendMethodNumber{0};
 
@@ -70,11 +79,6 @@ namespace fc::vm::actor {
   constexpr MethodNumber kConstructorMethodNumber{1};
 
   extern const CID kEmptyObjectCid;
-
-  extern const CodeId kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
-      kStorageMarketCodeCid, kStorageMinerCodeCid, kMultisigCodeCid,
-      kInitCodeCid, kPaymentChannelCodeCid, kRewardActorCodeID,
-      kSystemActorCodeID, kVerifiedRegistryCode;
 
   inline static const auto kSystemActorAddress = Address::makeFromId(0);
   inline static const auto kInitAddress = Address::makeFromId(1);

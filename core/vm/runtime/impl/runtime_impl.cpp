@@ -10,7 +10,7 @@
 #include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
-#include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/runtime/runtime_error.hpp"
 
 namespace fc::vm::runtime {
@@ -131,7 +131,7 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(
         account,
         execution_->state_tree
-            ->state<actor::builtin::account::AccountActorState>(address));
+            ->state<actor::builtin::v0::account::AccountActorState>(address));
     return storage::keystore::InMemoryKeyStore{
         std::make_shared<crypto::bls::BlsProviderImpl>(),
         std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}

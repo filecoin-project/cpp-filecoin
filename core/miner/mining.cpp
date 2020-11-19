@@ -6,7 +6,7 @@
 #include "miner/mining.hpp"
 
 #include "const.hpp"
-#include "vm/actor/builtin/market/policy.hpp"
+#include "vm/actor/builtin/v0/market/policy.hpp"
 #include "vm/runtime/pricelist.hpp"
 
 #define OUTCOME_LOG(tag, r)                               \

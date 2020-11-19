@@ -36,6 +36,13 @@ namespace fc::vm::state {
     outcome::result<void> remove(const Address &address);
 
    private:
+    /**
+     * Sets root of StateTree
+     * @param root - cid of hamt for StateTree v0 or cid of struct StateRoot for
+     * StateTree v1
+     */
+    void setRoot(const CID &root);
+
     std::shared_ptr<IpfsDatastore> store_;
     adt::Map<actor::Actor, adt::AddressKeyer> by_id;
   };

@@ -7,32 +7,54 @@
 
 #include <string>
 #include <vector>
-
 #include "crypto/hasher/hasher.hpp"
+#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v2/codes.hpp"
 
 namespace fc::vm::actor {
+
+  using namespace builtin;
 
   bool operator==(const Actor &lhs, const Actor &rhs) {
     return lhs.code == rhs.code && lhs.head == rhs.head
            && lhs.nonce == rhs.nonce && lhs.balance == rhs.balance;
   }
 
+  bool isAccountActor(const CodeId &code) {
+    return code == v0::kAccountCodeCid || code == v2::kAccountCodeCid;
+  }
+
+  bool isStorageMinerActor(const CodeId &code) {
+    return code == v0::kStorageMinerCodeCid || code == v2::kStorageMinerCodeCid;
+  }
+
   bool isBuiltinActor(const CodeId &code) {
-    return code == kStorageMarketCodeCid || code == kStoragePowerCodeCid
-           || code == kStorageMinerCodeCid || code == kAccountCodeCid
-           || code == kInitCodeCid || code == kMultisigCodeCid
-           || code == kPaymentChannelCodeCid || code == kCronCodeCid
-           || code == kRewardActorCodeID || code == kSystemActorCodeID;
+    return code == v0::kStorageMarketCodeCid || code == v0::kStoragePowerCodeCid
+           || code == v0::kStorageMinerCodeCid || code == v0::kAccountCodeCid
+           || code == v0::kInitCodeCid || code == v0::kMultisigCodeCid
+           || code == v0::kPaymentChannelCodeCid || code == v0::kCronCodeCid
+           || code == v0::kRewardActorCodeID || code == v0::kSystemActorCodeID
+           || code == v2::kStorageMarketCodeCid
+           || code == v2::kStoragePowerCodeCid
+           || code == v2::kStorageMinerCodeCid || code == v2::kAccountCodeCid
+           || code == v2::kInitCodeCid || code == v2::kMultisigCodeCid
+           || code == v2::kPaymentChannelCodeCid || code == v2::kCronCodeCid
+           || code == v2::kRewardActorCodeID || code == v2::kSystemActorCodeID;
   }
 
   bool isSingletonActor(const CodeId &code) {
-    return code == kStoragePowerCodeCid || code == kStorageMarketCodeCid
-           || code == kInitCodeCid || code == kCronCodeCid
-           || code == kRewardActorCodeID || code == kSystemActorCodeID;
+    return code == v0::kStoragePowerCodeCid || code == v0::kStorageMarketCodeCid
+           || code == v0::kInitCodeCid || code == v0::kCronCodeCid
+           || code == v0::kRewardActorCodeID || code == v0::kSystemActorCodeID
+           || code == v2::kStoragePowerCodeCid
+           || code == v2::kStorageMarketCodeCid || code == v2::kInitCodeCid
+           || code == v2::kCronCodeCid || code == v2::kRewardActorCodeID
+           || code == v2::kSystemActorCodeID;
   }
 
   bool isSignableActor(const CodeId &code) {
-    return code == kAccountCodeCid || code == kMultisigCodeCid;
+    return code == v0::kAccountCodeCid || code == v0::kMultisigCodeCid
+           || code == v2::kAccountCodeCid || code == v2::kMultisigCodeCid;
   }
 
   static uint8_t kCborEmptyList[]{0x80};
@@ -48,22 +70,5 @@ namespace fc::vm::actor {
                                              bytes)
                 .value()};
   }
-
-  const CodeId kAccountCodeCid = CodeId(makeRawIdentityCid("fil/1/account"));
-  const CodeId kCronCodeCid = CodeId(makeRawIdentityCid("fil/1/cron"));
-  const CodeId kStoragePowerCodeCid =
-      CodeId(makeRawIdentityCid("fil/1/storagepower"));
-  const CodeId kStorageMarketCodeCid =
-      CodeId(makeRawIdentityCid("fil/1/storagemarket"));
-  const CodeId kStorageMinerCodeCid =
-      CodeId(makeRawIdentityCid("fil/1/storageminer"));
-  const CodeId kMultisigCodeCid = CodeId(makeRawIdentityCid("fil/1/multisig"));
-  const CodeId kInitCodeCid = CodeId(makeRawIdentityCid("fil/1/init"));
-  const CodeId kPaymentChannelCodeCid =
-      CodeId(makeRawIdentityCid("fil/1/paymentchannel"));
-  const CodeId kRewardActorCodeID = CodeId(makeRawIdentityCid("fil/1/reward"));
-  const CodeId kSystemActorCodeID = CodeId(makeRawIdentityCid("fil/1/system"));
-  const CodeId kVerifiedRegistryCode =
-      CodeId(makeRawIdentityCid("fil/1/verifiedregistry"));
 
 }  // namespace fc::vm::actor

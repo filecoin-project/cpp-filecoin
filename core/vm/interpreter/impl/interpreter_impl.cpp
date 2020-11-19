@@ -6,8 +6,8 @@
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
 #include "const.hpp"
-#include "vm/actor/builtin/cron/cron_actor.hpp"
-#include "vm/actor/builtin/reward/reward_actor.hpp"
+#include "vm/actor/builtin/v0/cron/cron_actor.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -31,8 +31,8 @@ namespace fc::vm::interpreter {
   using actor::kRewardAddress;
   using actor::kSystemActorAddress;
   using actor::MethodParams;
-  using actor::builtin::cron::EpochTick;
-  using actor::builtin::reward::AwardBlockReward;
+  using actor::builtin::v0::cron::EpochTick;
+  using actor::builtin::v0::reward::AwardBlockReward;
   using message::SignedMessage;
   using message::UnsignedMessage;
   using primitives::TokenAmount;

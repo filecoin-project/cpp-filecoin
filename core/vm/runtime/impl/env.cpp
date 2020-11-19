@@ -5,7 +5,9 @@
 
 #include "vm/runtime/env.hpp"
 
-#include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
@@ -14,7 +16,7 @@
 #include "vm/dvm/dvm.hpp"
 
 namespace fc::vm::runtime {
-  using actor::kAccountCodeCid;
+  using actor::isAccountActor;
   using actor::kEmptyObjectCid;
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
@@ -29,10 +31,11 @@ namespace fc::vm::runtime {
     }
     if (auto _actor{state_tree.get(address)}) {
       auto &actor{_actor.value()};
-      if (actor.code == kAccountCodeCid) {
+      if (actor.code == actor::builtin::v0::kAccountCodeCid
+          || actor.code == actor::builtin::v2::kAccountCodeCid) {
         if (auto _state{
                 state_tree.getStore()
-                    ->getCbor<actor::builtin::account::AccountActorState>(
+                    ->getCbor<actor::builtin::v0::account::AccountActorState>(
                         actor.head)}) {
           auto &key{_state.value().address};
           if (!no_actor || key.isKeyType()) {
@@ -78,7 +81,7 @@ namespace fc::vm::runtime {
       return maybe_from.error();
     }
     auto &from = maybe_from.value();
-    if (from.code != actor::kAccountCodeCid) {
+    if (!isAccountActor(from.code)) {
       apply.receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
       return apply;
     }
@@ -211,7 +214,8 @@ namespace fc::vm::runtime {
       return VMExitCode::kSysErrInvalidReceiver;
     }
     OUTCOME_TRY(state_tree->set(
-        id, {actor::kAccountCodeCid, actor::kEmptyObjectCid, {}, {}}));
+        id,
+        {actor::builtin::v0::kAccountCodeCid, actor::kEmptyObjectCid, {}, {}}));
     OUTCOME_TRY(params, actor::encodeActorParams(address));
     OUTCOME_TRY(sendWithRevert({id,
                                 kSystemActorAddress,
@@ -219,7 +223,7 @@ namespace fc::vm::runtime {
                                 {},
                                 {},
                                 {},
-                                actor::builtin::account::Construct::Number,
+                                actor::builtin::v0::account::Construct::Number,
                                 params}));
     return state_tree->get(id);
   }
@@ -292,6 +296,7 @@ namespace fc::vm::runtime {
     auto execution{execution_.lock()};
     OUTCOME_TRY(execution->chargeGas(
         execution->env->pricelist.onIpldPut(value.size())));
+    dvm::onIpldSet(key, value);
     return execution->env->ipld->set(key, std::move(value));
   }
 

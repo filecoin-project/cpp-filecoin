@@ -5,19 +5,20 @@
 
 #include "vm/state/impl/state_tree_impl.hpp"
 
-#include "vm/actor/builtin/init/init_actor.hpp"
-
+#include "vm/actor/builtin/v0/init/init_actor.hpp"
 #include "vm/dvm/dvm.hpp"
 
 namespace fc::vm::state {
-  using actor::builtin::init::InitActorState;
+  using actor::builtin::v0::init::InitActorState;
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store)
       : store_{store}, by_id{store} {}
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store,
                                const CID &root)
-      : store_{store}, by_id{root, store} {}
+      : store_{store} {
+    setRoot(root);
+  }
 
   outcome::result<void> StateTreeImpl::set(const Address &address,
                                            const Actor &actor) {
@@ -53,11 +54,15 @@ namespace fc::vm::state {
 
   outcome::result<CID> StateTreeImpl::flush() {
     OUTCOME_TRY(Ipld::flush(by_id));
-    return by_id.hamt.cid();
+    auto new_root = by_id.hamt.cid();
+    OUTCOME_TRY(info_cid, store_->setCbor(StateTreeInfo{}));
+    return store_->setCbor(StateRoot{.version = StateTreeVersion::kVersion1,
+                                     .actor_tree_root = new_root,
+                                     .info = info_cid});
   }
 
   outcome::result<void> StateTreeImpl::revert(const CID &root) {
-    by_id = {root, store_};
+    setRoot(root);
     return outcome::success();
   }
 
@@ -69,4 +74,16 @@ namespace fc::vm::state {
     OUTCOME_TRY(address_id, lookupId(address));
     return by_id.remove(address_id);
   }
+
+  void StateTreeImpl::setRoot(const CID &root) {
+    // Try load StateRoot as version >= 1
+    auto maybe_state_root = store_->getCbor<StateRoot>(root);
+    if (maybe_state_root.has_value()) {
+      by_id = {maybe_state_root.value().actor_tree_root, store_};
+    } else {
+      // if failed to load as version >= 1, must be version 0
+      by_id = {root, store_};
+    }
+  }
+
 }  // namespace fc::vm::state

@@ -73,8 +73,8 @@ namespace fc::markets::storage::test {
   using provider::StoredAsk;
   using sectorblocks::SectorBlocksMock;
   using vm::VMExitCode;
-  using vm::actor::builtin::market::PublishStorageDeals;
-  using vm::actor::builtin::miner::MinerInfo;
+  using vm::actor::builtin::v0::market::PublishStorageDeals;
+  using vm::actor::builtin::v0::miner::MinerInfo;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::runtime::MessageReceipt;

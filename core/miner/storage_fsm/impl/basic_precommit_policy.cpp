@@ -6,7 +6,7 @@
 #include "miner/storage_fsm/impl/basic_precommit_policy.hpp"
 
 namespace fc::mining {
-  using vm::actor::builtin::miner::kWPoStProvingPeriod;
+  using vm::actor::builtin::v0::miner::kWPoStProvingPeriod;
 
   ChainEpoch BasicPreCommitPolicy::expiration(
       gsl::span<const types::Piece> pieces) {

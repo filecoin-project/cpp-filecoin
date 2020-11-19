@@ -15,7 +15,7 @@
 #include "primitives/piece/piece.hpp"
 #include "primitives/types.hpp"
 #include "storage/filestore/path.hpp"
-#include "vm/actor/builtin/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
 
 namespace fc::markets::storage {
 
@@ -26,10 +26,10 @@ namespace fc::markets::storage {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::UnpaddedPieceSize;
-  using vm::actor::builtin::market::ClientDealProposal;
-  using vm::actor::builtin::market::DealProposal;
-  using vm::actor::builtin::market::DealState;
-  using vm::actor::builtin::market::StorageParticipantBalance;
+  using vm::actor::builtin::v0::market::ClientDealProposal;
+  using vm::actor::builtin::v0::market::DealProposal;
+  using vm::actor::builtin::v0::market::DealState;
+  using vm::actor::builtin::v0::market::StorageParticipantBalance;
 
   const libp2p::peer::Protocol kDealProtocolId = "/fil/storage/mk/1.0.1";
 
