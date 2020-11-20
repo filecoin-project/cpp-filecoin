@@ -5,9 +5,10 @@
 
 #pragma once
 
+#include <boost/asio.hpp>
+
 #include "common/async.hpp"
 #include "drand/messages.hpp"
-#include "node/fwd.hpp"
 
 namespace fc::drand::http {
   using boost::asio::io_context;

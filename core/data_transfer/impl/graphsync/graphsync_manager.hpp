@@ -14,6 +14,10 @@
 #include "node/fwd.hpp"
 #include "storage/ipfs/graphsync/graphsync.hpp"
 
+namespace fc::data_transfer {
+  class GraphsyncReceiver;
+}
+
 namespace fc::data_transfer::graphsync {
 
   using libp2p::Host;

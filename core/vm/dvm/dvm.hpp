@@ -7,8 +7,8 @@
 
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
-#include "node/fwd.hpp"
 #include "primitives/types.hpp"
+#include "primitives/cid/cid.hpp"
 
 #define _CAT1(a, b) _CAT2(a, b)
 #define _CAT2(a, b) _CAT3(~, a##b)
@@ -19,6 +19,17 @@
   if (fc::dvm::logger && fc::dvm::logging) { \
     fc::dvm::logger->info(__VA_ARGS__);      \
   }
+
+namespace fc::vm {
+  namespace runtime { struct MessageReceipt; }
+  namespace state { class StateTree; }
+  namespace actor { struct Actor; }
+  namespace message { struct UnsignedMessage; }
+}
+
+namespace fc::primitives::address {
+  struct Address;
+}
 
 namespace fc::dvm {
   using common::Buffer;

@@ -10,23 +10,31 @@
 #include "blockchain/weight_calculator.hpp"
 #include "common/logger.hpp"
 #include "common/todo_error.hpp"
-#include "node/fwd.hpp"
 #include "storage/chain/chain_store.hpp"
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/keystore/keystore.hpp"
 #include "storage/mpool/mpool.hpp"
 #include "vm/interpreter/interpreter.hpp"
 
+namespace fc::drand {
+  class Beaconizer;
+  struct DrandSchedule;
+}
+
+namespace fc::sync {
+  class PubSubGate;
+}
+
 namespace fc::api {
   using blockchain::weight::WeightCalculator;
   using crypto::bls::BlsProvider;
   using drand::Beaconizer;
   using drand::DrandSchedule;
-  using pubsub::PubSub;
   using storage::blockchain::ChainStore;
   using storage::blockchain::MsgWaiter;
   using storage::keystore::KeyStore;
   using storage::mpool::Mpool;
+  using sync::PubSubGate;
   using vm::interpreter::Interpreter;
   using Logger = common::Logger;
 
@@ -42,7 +50,7 @@ namespace fc::api {
                std::shared_ptr<MsgWaiter> msg_waiter,
                std::shared_ptr<Beaconizer> beaconizer,
                std::shared_ptr<DrandSchedule> drand_schedule,
-               std::shared_ptr<PubSub> pubsub,
+               std::shared_ptr<PubSubGate> pubsub,
                std::shared_ptr<KeyStore> key_store);
 }  // namespace fc::api
 
