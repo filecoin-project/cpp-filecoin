@@ -5,6 +5,7 @@
 
 #include <gtest/gtest.h>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/assert.hpp>
 #include <boost/filesystem/directory.hpp>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -29,6 +30,8 @@ using fc::Buffer;
 using fc::BytesIn;
 using fc::CID;
 using fc::IpldPtr;
+using fc::crypto::randomness::DomainSeparationTag;
+using fc::crypto::randomness::Randomness;
 using fc::primitives::BigInt;
 using fc::primitives::ChainEpoch;
 using fc::primitives::EpochDuration;
@@ -63,6 +66,16 @@ struct MessageVector {
     unsigned int network_version;
   };
 
+  enum class RandomnessType { kChain, kBeacon };
+
+  struct TestVectorRandomness {
+    RandomnessType type;
+    DomainSeparationTag domain_separation_tag;
+    ChainEpoch epoch;
+    std::vector<uint8_t> entropy;
+    Randomness ret;
+  };
+
   struct Ts {
     struct Blk {
       Address miner;
@@ -80,11 +93,40 @@ struct MessageVector {
     MessageVector mv;
     mv.type = *jStr(jGet(j, "class"));
     mv.car = gunzip(*jBytes(jGet(j, "car")));
+
+    if (auto randomness{jGet(j, "randomness")}) {
+      mv.randomness = *jList(randomness, [](auto j) {
+        TestVectorRandomness new_randomness;
+        // "on" in randomness is an array
+        auto it = j->FindMember("on")->value.Begin();
+        // 1st element is randomness type in string
+        auto randomness_type = *jStr(it);
+        if (randomness_type == "chain") {
+          new_randomness.type = RandomnessType::kChain;
+        } else if (randomness_type == "beacon") {
+          new_randomness.type = RandomnessType::kBeacon;
+        } else {
+          BOOST_ASSERT_MSG(false, "Wrong randomness type");
+        }
+        // 2nd element is domain separation tag
+        new_randomness.domain_separation_tag = DomainSeparationTag{*jUint(++it)};
+        // 3rd element is epoch
+        new_randomness.epoch = *jInt(++it);
+        // 4th element is entropy
+        new_randomness.entropy = jBytes(++it)->toVector();
+
+        auto ret = jBytes(jGet(j, "ret"))->toVector();
+        BOOST_ASSERT_MSG(ret.size() == new_randomness.ret.size(),
+                         "Wrong randomness size");
+        std::move(
+            ret.begin(), ret.begin() + ret.size(), new_randomness.ret.begin());
+        return new_randomness;
+      });
+    }
+
     auto pre{jGet(j, "preconditions")};
     mv.state_before = *jCid(jGet(jGet(pre, "state_tree"), "root_cid"));
-
-    auto variants = jGet(pre, "variants");
-    mv.precondition_variants = *jList(variants, [&](auto j) {
+    mv.precondition_variants = *jList(jGet(pre, "variants"), [&](auto j) {
       PreconditionVariant precondition_variant;
       precondition_variant.id = *jStr(jGet(j, "id"));
       precondition_variant.epoch = *jInt(jGet(j, "epoch"));
@@ -162,6 +204,7 @@ struct MessageVector {
   std::string type;
   Buffer car;
   std::vector<Ts> tipsets;
+  std::vector<TestVectorRandomness> randomness;
   std::vector<PreconditionVariant> precondition_variants;
   BigInt parent_base_fee;
   // chain epoch offset and message
