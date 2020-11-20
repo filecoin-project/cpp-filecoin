@@ -43,6 +43,7 @@ namespace fc::vm::state {
      */
     void setRoot(const CID &root);
 
+    StateTreeVersion version_;
     std::shared_ptr<IpfsDatastore> store_;
     adt::Map<actor::Actor, adt::AddressKeyer> by_id;
   };

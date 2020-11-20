@@ -12,11 +12,11 @@ namespace fc::vm::state {
   using actor::builtin::v0::init::InitActorState;
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store)
-      : store_{store}, by_id{store} {}
+      : version_{StateTreeVersion::kVersion0}, store_{store}, by_id{store} {}
 
   StateTreeImpl::StateTreeImpl(const std::shared_ptr<IpfsDatastore> &store,
                                const CID &root)
-      : store_{store} {
+      : version_{StateTreeVersion::kVersion0}, store_{store} {
     setRoot(root);
   }
 
@@ -55,10 +55,12 @@ namespace fc::vm::state {
   outcome::result<CID> StateTreeImpl::flush() {
     OUTCOME_TRY(Ipld::flush(by_id));
     auto new_root = by_id.hamt.cid();
+    if (version_ == StateTreeVersion::kVersion0) {
+      return new_root;
+    }
     OUTCOME_TRY(info_cid, store_->setCbor(StateTreeInfo{}));
-    return store_->setCbor(StateRoot{.version = StateTreeVersion::kVersion1,
-                                     .actor_tree_root = new_root,
-                                     .info = info_cid});
+    return store_->setCbor(StateRoot{
+        .version = version_, .actor_tree_root = new_root, .info = info_cid});
   }
 
   outcome::result<void> StateTreeImpl::revert(const CID &root) {
@@ -79,9 +81,12 @@ namespace fc::vm::state {
     // Try load StateRoot as version >= 1
     auto maybe_state_root = store_->getCbor<StateRoot>(root);
     if (maybe_state_root.has_value()) {
-      by_id = {maybe_state_root.value().actor_tree_root, store_};
+      auto state_root = maybe_state_root.value();
+      version_ = state_root.version;
+      by_id = {state_root.actor_tree_root, store_};
     } else {
       // if failed to load as version >= 1, must be version 0
+      version_ = StateTreeVersion::kVersion0;
       by_id = {root, store_};
     }
   }
