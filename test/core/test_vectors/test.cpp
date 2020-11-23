@@ -13,7 +13,7 @@
 
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
-#include "core/test_vectors/fixed_randomness.hpp"
+#include "core/test_vectors/replaying_randomness.hpp"
 #include "storage/car/car.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/resources/resources.hpp"
@@ -42,7 +42,10 @@ using fc::primitives::tipset::Tipset;
 using fc::vm::message::UnsignedMessage;
 using fc::vm::runtime::FixedRandomness;
 using fc::vm::runtime::MessageReceipt;
+using fc::vm::runtime::RandomnessType;
+using fc::vm::runtime::ReplayingRandomness;
 using fc::vm::runtime::RuntimeRandomness;
+using fc::vm::runtime::TestVectorRandomness;
 namespace Json = fc::codec::json;
 
 auto gunzip(BytesIn input) {
@@ -67,16 +70,6 @@ struct MessageVector {
     ChainEpoch epoch;
     // network version with which to run
     unsigned int network_version;
-  };
-
-  enum class RandomnessType { kChain, kBeacon };
-
-  struct TestVectorRandomness {
-    RandomnessType type;
-    DomainSeparationTag domain_separation_tag;
-    ChainEpoch epoch;
-    std::vector<uint8_t> entropy;
-    Randomness ret;
   };
 
   struct Ts {
@@ -112,7 +105,8 @@ struct MessageVector {
           BOOST_ASSERT_MSG(false, "Wrong randomness type");
         }
         // 2nd element is domain separation tag
-        new_randomness.domain_separation_tag = DomainSeparationTag{*jUint(++it)};
+        new_randomness.domain_separation_tag =
+            DomainSeparationTag{*jUint(++it)};
         // 3rd element is epoch
         new_randomness.epoch = *jInt(++it);
         // 4th element is entropy
@@ -251,7 +245,7 @@ struct TestVectors : testing::TestWithParam<MessageVector> {};
 void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
   for (const auto &precondition : mv.precondition_variants) {
     std::shared_ptr<RuntimeRandomness> randomness =
-        std::make_shared<FixedRandomness>();
+        std::make_shared<ReplayingRandomness>(mv.randomness);
     fc::vm::interpreter::InterpreterImpl vmi{randomness};
     CID state{mv.state_before};
     BlockHeader parent;
@@ -263,15 +257,16 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
     OUTCOME_EXCEPT(parents, Tipset::create({parent}));
     auto i{0}, j{0};
     for (const auto &ts : mv.tipsets) {
-      Tipset tipset;
-      tipset.height = precondition.epoch + ts.epoch_offset;
+      fc::primitives::tipset::TipsetCreator cr;
+      fc::primitives::block::Ticket ticket{{0}};
       for (const auto &blk : ts.blocks) {
-        auto &block{tipset.blks.emplace_back()};
-        block.ticket.emplace();
+        fc::primitives::block::BlockHeader block;
+        block.ticket.emplace(ticket);
+        ++ticket.bytes[0];
         block.miner = blk.miner;
         block.election_proof.win_count = blk.win_count;
-        block.height = tipset.height;
-        block.parents = parents.cids;
+        block.height = precondition.epoch + ts.epoch_offset;
+        block.parents = parents->key.cids();
         block.parent_base_fee = ts.base_fee;
         fc::primitives::block::MsgMeta meta;
         ipld->load(meta);
@@ -296,9 +291,10 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
         block.messages = ipld->setCbor(meta).value();
         block.parent_message_receipts = block.parent_state_root = state;
         OUTCOME_EXCEPT(cid, ipld->setCbor(block));
-        tipset.cids.push_back(cid);
+        OUTCOME_EXCEPT(cr.expandTipset(block));
       }
       std::vector<MessageReceipt> receipts;
+      auto tipset{cr.getTipset(true)};
       OUTCOME_EXCEPT(res, vmi.applyBlocks(ipld, tipset, &receipts));
       state = res.state_root;
       EXPECT_EQ(res.message_receipts, mv.receipts_roots[i]);
@@ -325,9 +321,9 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
     b.parent_base_fee = mv.parent_base_fee;
     OUTCOME_EXCEPT(ts, Tipset::create({b}));
     std::shared_ptr<RuntimeRandomness> randomness =
-      std::make_shared<FixedRandomness>();
-  auto env{
-      std::make_shared<fc::vm::runtime::Env>(nullptr, randomness,ipld, ts)};
+        std::make_shared<ReplayingRandomness>(mv.randomness);
+    auto env{
+        std::make_shared<fc::vm::runtime::Env>(nullptr, randomness, ipld, ts)};
     auto i{0};
     for (const auto &[epoch_offset, message] : mv.messages) {
       const auto &receipt{mv.receipts[i]};

@@ -6,6 +6,7 @@
 addtest(test_vectors_test
     test.cpp
     fixed_randomness.cpp
+    replaying_randomness.cpp
     )
 target_link_libraries(test_vectors_test
     Boost::iostreams
