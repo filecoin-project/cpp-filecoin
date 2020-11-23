@@ -18,6 +18,16 @@
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>> \
   Stream &operator>>(Stream &&s, type &var)
 
+#define CBOR2_DECODE(type)                       \
+  fc::codec::cbor::CborDecodeStream &operator>>( \
+      fc::codec::cbor::CborDecodeStream &s, type &v)
+#define CBOR2_ENCODE(type)                       \
+  fc::codec::cbor::CborEncodeStream &operator<<( \
+      fc::codec::cbor::CborEncodeStream &s, const type &v)
+#define CBOR2_DECODE_ENCODE(type) \
+  CBOR2_DECODE(type);             \
+  CBOR2_ENCODE(type);
+
 #define _CBOR_TUPLE_1(op, m) op t.m
 #define _CBOR_TUPLE_2(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_1(op, __VA_ARGS__)
@@ -111,6 +121,9 @@ namespace fc::codec::cbor {
   inline T kDefaultT() {
     return {};
   }
+
+  class CborDecodeStream;
+  class CborEncodeStream;
 }  // namespace fc::codec::cbor
 
 #endif  // CPP_FILECOIN_STREAMS_ANNOTATION_HPP

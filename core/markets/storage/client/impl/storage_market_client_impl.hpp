@@ -10,7 +10,7 @@
 #include <mutex>
 #include "api/api.hpp"
 #include "common/logger.hpp"
-#include "data_transfer/manager.hpp"
+#include "data_transfer/dt.hpp"
 #include "fsm/fsm.hpp"
 #include "host/context/host_context.hpp"
 #include "markets/common.hpp"
@@ -37,7 +37,7 @@ namespace fc::markets::storage::client {
   using ClientFSM = fsm::FSM<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
-  using DataTransfer = data_transfer::Manager;
+  using DataTransfer = data_transfer::Dt;
 
   class StorageMarketClientImpl
       : public StorageMarketClient,
@@ -45,8 +45,9 @@ namespace fc::markets::storage::client {
    public:
     StorageMarketClientImpl(std::shared_ptr<Host> host,
                             std::shared_ptr<boost::asio::io_context> context,
+                            IpldPtr ipld,
                             std::shared_ptr<DataTransfer> datatransfer,
-                            std::shared_ptr<Datastore> datastore,
+                            std::shared_ptr<Discovery> discovery,
                             std::shared_ptr<Api> api,
                             std::shared_ptr<PieceIO> piece_io);
 
@@ -285,6 +286,7 @@ namespace fc::markets::storage::client {
     std::shared_ptr<Api> api_;
     std::shared_ptr<PieceIO> piece_io_;
     std::shared_ptr<Discovery> discovery_;
+    IpldPtr ipld;
     std::shared_ptr<DataTransfer> datatransfer_;
 
     std::mutex waiting_mutex;

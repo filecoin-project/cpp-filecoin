@@ -14,17 +14,19 @@
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
-#include "data_transfer/impl/graphsync/graphsync_manager.hpp"
+#include "data_transfer/dt.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
 #include "markets/storage/client/impl/storage_market_client_impl.hpp"
 #include "markets/storage/provider/impl/provider_impl.hpp"
 #include "primitives/cid/cid_of_cbor.hpp"
 #include "primitives/sector/sector.hpp"
+#include "storage/car/car.hpp"
 #include "storage/filestore/filestore.hpp"
 #include "storage/filestore/impl/filesystem/filesystem_filestore.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "storage/piece/impl/piece_storage_impl.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/mocks/markets/storage/chain_events/chain_events_mock.hpp"
 #include "testutil/mocks/miner/miner_mock.hpp"
@@ -46,6 +48,7 @@ namespace fc::markets::storage::test {
   using crypto::bls::BlsProviderImpl;
   using crypto::secp256k1::Secp256k1ProviderDefault;
   using crypto::secp256k1::Secp256k1Sha256ProviderImpl;
+  using data_transfer::Dt;
   using fc::storage::InMemoryStorage;
   using fc::storage::filestore::FileStore;
   using fc::storage::filestore::FileSystemFileStore;
@@ -130,8 +133,9 @@ namespace fc::markets::storage::test {
           std::make_shared<Secp256k1Sha256ProviderImpl>();
       std::shared_ptr<Datastore> datastore =
           std::make_shared<InMemoryStorage>();
-      ipld = std::make_shared<InMemoryDatastore>();
-      piece_io_ = std::make_shared<PieceIOImpl>(ipld);
+      ipld_client = std::make_shared<InMemoryDatastore>();
+      ipld_provider = std::make_shared<InMemoryDatastore>();
+      piece_io_ = std::make_shared<PieceIOImpl>(ipld_client);
 
       OUTCOME_EXCEPT(miner_worker_keypair, bls_provider->generateKeyPair());
       miner_worker_address = Address::makeBls(miner_worker_keypair.public_key);
@@ -170,6 +174,17 @@ namespace fc::markets::storage::test {
       EXPECT_CALL(*sector_blocks, getMiner())
           .WillRepeatedly(testing::Return(miner));
 
+      auto graphsync{
+          std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
+              host,
+              std::make_shared<libp2p::protocol::AsioScheduler>(
+                  *context_, libp2p::protocol::SchedulerConfig{}))};
+      graphsync->subscribe([this](auto &from, auto &data) {
+        OUTCOME_EXCEPT(ipld_provider->set(data.cid, data.content));
+      });
+      graphsync->start();
+      datatransfer = Dt::make(host, graphsync);
+
       provider = makeProvider(*provider_multiaddress,
                               registered_proof,
                               miner_worker_keypair,
@@ -204,10 +219,6 @@ namespace fc::markets::storage::test {
     }
 
     void TearDown() override {
-      for (auto &p : graphsync_to_stop) {
-        p->stop();
-      }
-      graphsync_to_stop.clear();
       OUTCOME_EXCEPT(provider->stop());
       OUTCOME_EXCEPT(client->stop());
     }
@@ -357,26 +368,6 @@ namespace fc::markets::storage::test {
       return api;
     }
 
-    template <typename F>
-    auto makeDatatransfer(std::shared_ptr<libp2p::Host> host,
-                          boost::asio::io_context &io,
-                          F cb) {
-      auto graphsync{
-          std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
-              host,
-              std::make_shared<libp2p::protocol::AsioScheduler>(
-                  io, libp2p::protocol::SchedulerConfig{}))};
-      graphsync->subscribe(
-          [cb{std::move(cb)}](const libp2p::peer::PeerId &from,
-                              const fc::storage::ipfs::graphsync::Data &data) {
-            cb(data.cid, data.content);
-          });
-      graphsync->start();
-      graphsync_to_stop.push_back(graphsync);
-      return std::make_shared<data_transfer::graphsync::GraphSyncManager>(
-          host, graphsync);
-    }
-
     std::shared_ptr<StorageProviderImpl> makeProvider(
         const Multiaddress &provider_multiaddress,
         const RegisteredProof &registered_proof,
@@ -396,26 +387,21 @@ namespace fc::markets::storage::test {
       stored_ask = std::make_shared<markets::storage::provider::StoredAsk>(
           std::make_shared<InMemoryStorage>(), api, miner_actor_address);
 
-      auto ipld{std::make_shared<InMemoryDatastore>()};
-      auto datatransfer{
-          makeDatatransfer(provider_host, *context, [&](auto c, auto b) {
-            OUTCOME_EXCEPT(ipld->set(c, b));
-          })};
-
       std::shared_ptr<StorageProviderImpl> new_provider =
-          std::make_shared<StorageProviderImpl>(registered_proof,
-                                                provider_host,
-                                                ipld,
-                                                datatransfer,
-                                                stored_ask,
-                                                context,
-                                                datastore,
-                                                api,
-                                                sector_blocks,
-                                                chain_events,
-                                                miner_actor_address,
-                                                piece_io_,
-                                                filestore);
+          std::make_shared<StorageProviderImpl>(
+              registered_proof,
+              provider_host,
+              ipld_provider,
+              datatransfer,
+              stored_ask,
+              context,
+              std::make_shared<fc::storage::piece::PieceStorageImpl>(datastore),
+              api,
+              sector_blocks,
+              chain_events,
+              miner_actor_address,
+              std::make_shared<PieceIOImpl>(ipld_provider),
+              filestore);
       OUTCOME_EXCEPT(new_provider->init());
       return new_provider;
     }
@@ -441,21 +427,24 @@ namespace fc::markets::storage::test {
         const std::shared_ptr<boost::asio::io_context> &context,
         const std::shared_ptr<Datastore> &datastore,
         const std::shared_ptr<Api> &api) {
-      auto datatransfer{
-          makeDatatransfer(client_host, *context, [&](auto, auto) {})};
-
       auto new_client = std::make_shared<StorageMarketClientImpl>(
-          client_host, context, datatransfer, datastore, api, piece_io_);
+          client_host,
+          context,
+          ipld_client,
+          datatransfer,
+          std::make_shared<markets::discovery::Discovery>(datastore),
+          api,
+          piece_io_);
       OUTCOME_EXCEPT(new_client->init());
       return new_client;
     }
 
-    outcome::result<DataRef> makeDataRef(const CID &root_cid,
-                                         const Buffer &data) {
+    outcome::result<DataRef> makeDataRef(const Buffer &data) {
       OUTCOME_TRY(piece_commitment,
                   piece_io_->generatePieceCommitment(registered_proof, data));
+      OUTCOME_TRY(roots, fc::storage::car::loadCar(*ipld_client, data));
       return DataRef{.transfer_type = kTransferTypeManual,
-                     .root = root_cid,
+                     .root = roots[0],
                      .piece_cid = piece_commitment.first,
                      .piece_size = piece_commitment.second};
     }
@@ -517,9 +506,9 @@ namespace fc::markets::storage::test {
     std::shared_ptr<StorageMarketClientImpl> client;
     std::shared_ptr<StorageProvider> provider;
     std::shared_ptr<StoredAsk> stored_ask;
-    IpldPtr ipld;
+    IpldPtr ipld_client, ipld_provider;
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
-    std::vector<std::shared_ptr<GraphsyncImpl>> graphsync_to_stop;
+    std::shared_ptr<Dt> datatransfer;
 
     RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
     std::shared_ptr<PieceIO> piece_io_;

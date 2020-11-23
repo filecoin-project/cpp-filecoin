@@ -36,7 +36,8 @@ namespace fc::markets::storage::chain_events {
 
    private:
     bool onRead(const boost::optional<std::vector<HeadChange>> &changes);
-    outcome::result<void> onMessage(const UnsignedMessage &message);
+    outcome::result<void> onMessage(const UnsignedMessage &message,
+                                    const CID &cid);
 
     std::shared_ptr<Api> api_;
 

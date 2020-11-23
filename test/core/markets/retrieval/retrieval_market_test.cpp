@@ -19,6 +19,8 @@ namespace fc::markets::retrieval::test {
    * @then Provider must answer with QueryResponse with available item status
    */
   TEST_F(RetrievalMarketFixture, QuerySuccess) {
+    EXPECT_CALL(*miner, getAddress())
+        .WillOnce(testing::Return(Address::makeFromId(1000)));
     QueryRequest request{
         .payload_cid = payload_cid,
         .params = {.piece_cid = data::green_piece.info.piece_cid}};

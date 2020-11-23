@@ -8,6 +8,7 @@
 
 #include <gtest/gtest.h>
 #include <libp2p/injector/host_injector.hpp>
+#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <libp2p/security/plaintext.hpp>
 #include "api/api.hpp"
 #include "core/markets/retrieval/config.hpp"
@@ -15,6 +16,7 @@
 #include "primitives/tipset/tipset.hpp"
 #include "storage/car/car.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "testutil/mocks/miner/miner_mock.hpp"
@@ -24,6 +26,7 @@ namespace fc::markets::retrieval::test {
   using api::AddChannelInfo;
   using api::MinerInfo;
   using common::Buffer;
+  using data_transfer::Dt;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::piece::DealInfo;
@@ -73,6 +76,8 @@ namespace fc::markets::retrieval::test {
       host.reset();
       context.reset();
     }
+
+    std::shared_ptr<Dt> datatransfer;
 
     /* Retrieval market client */
     ClientShPtr client;
@@ -125,10 +130,28 @@ namespace fc::markets::retrieval::test {
 
       miner = std::make_shared<miner::MinerMock>();
 
-      provider = std::make_shared<provider::RetrievalProviderImpl>(
-          host, api, piece_storage, provider_ipfs, config, sealer, miner);
-      client =
-          std::make_shared<client::RetrievalClientImpl>(host, api, client_ipfs);
+      auto graphsync{
+          std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
+              host,
+              std::make_shared<libp2p::protocol::AsioScheduler>(
+                  *context, libp2p::protocol::SchedulerConfig{}))};
+      graphsync->subscribe([this](auto &from, auto &data) {
+        OUTCOME_EXCEPT(client_ipfs->set(data.cid, data.content));
+      });
+      graphsync->start();
+      datatransfer = Dt::make(host, graphsync);
+
+      provider =
+          std::make_shared<provider::RetrievalProviderImpl>(host,
+                                                            datatransfer,
+                                                            api,
+                                                            piece_storage,
+                                                            provider_ipfs,
+                                                            config,
+                                                            sealer,
+                                                            miner);
+      client = std::make_shared<client::RetrievalClientImpl>(
+          host, datatransfer, api, client_ipfs);
       provider->start();
     }
 

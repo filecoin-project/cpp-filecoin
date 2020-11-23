@@ -33,20 +33,23 @@ namespace fc::markets::retrieval {
     /* New deal, nothing happened with it */
     kDealStatusNew,
 
+    kDealStatusUnsealing,
+    kDealStatusUnsealed,
+    kDealStatusWaitForAcceptance,
+
     /* Waiting for the payment channel creation to complete */
     kDealStatusPaymentChannelCreating,
 
     /* Waiting for funds to finish being sent to the payment channel */
     kDealStatusPaymentChannelAddingFunds,
 
-    /* Waiting for the lane allocation to complete */
-    kDealStatusPaymentChannelAllocatingLane,
-
-    /* Payment channel and lane are ready */
-    kDealStatusPaymentChannelReady,
+    // kDealStatusPaymentChannelAllocatingLane,
+    // kDealStatusPaymentChannelReady,
 
     /* Ready to proceed with retrieval */
     kDealStatusAccepted,
+
+    kDealStatusFundsNeededUnseal,
 
     /* Something went wrong during retrieval */
     kDealStatusFailed,
@@ -56,6 +59,9 @@ namespace fc::markets::retrieval {
 
     /* Provider needs a payment voucher to continue */
     kDealStatusFundsNeeded,
+
+    kDealStatusSendFunds,
+    kDealStatusSendFundsLastPayment,
 
     /* Provider is continuing to process a deal */
     kDealStatusOngoing,
@@ -69,8 +75,7 @@ namespace fc::markets::retrieval {
     /* Deal couldn't be identified */
     kDealStatusDealNotFound,
 
-    /* Deal had been verified as having right params */
-    kDealStatusVerified,
+    // kDealStatusVerified,
 
     /* Something went wrong with deal */
     kDealStatusErrored,
@@ -79,8 +84,17 @@ namespace fc::markets::retrieval {
     kDealStatusBlocksComplete,
 
     /* Last payment has been received, confirming deal */
-    kDealStatusFinalizing
+    kDealStatusFinalizing,
 
+    kDealStatusCompleting,
+    kDealStatusCheckComplete,
+    kDealStatusCheckFunds,
+    kDealStatusInsufficientFunds,
+    kDealStatusPaymentChannelAllocatingLane,
+    kDealStatusCancelling,
+    kDealStatusCancelled,
+    kDealStatusRetryLegacy,
+    kDealStatusWaitForAcceptanceLegacy,
   };
 }  // namespace fc::markets::retrieval
 

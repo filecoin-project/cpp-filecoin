@@ -24,6 +24,12 @@ namespace fc::vm::message {
     return gas_limit * gas_fee_cap;
   }
 
+  CID UnsignedMessage::getCid() const {
+    OUTCOME_EXCEPT(data, codec::cbor::encode(*this));
+    OUTCOME_EXCEPT(res, getCidOf(data));
+    return res;
+  }
+
   size_t UnsignedMessage::chainSize() const {
     OUTCOME_EXCEPT(bytes, codec::cbor::encode(*this));
     return bytes.size();
@@ -31,9 +37,7 @@ namespace fc::vm::message {
 
   CID SignedMessage::getCid() const {
     if (signature.isBls()) {
-      OUTCOME_EXCEPT(data, codec::cbor::encode(message));
-      OUTCOME_EXCEPT(res, getCidOf(data));
-      return res;
+      return message.getCid();
     }
     OUTCOME_EXCEPT(data, codec::cbor::encode(*this));
     OUTCOME_EXCEPT(res, getCidOf(data));
