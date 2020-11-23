@@ -29,13 +29,48 @@ namespace fc::storage::ipfs::graphsync {
     doStop();
   }
 
-  void GraphsyncImpl::start(std::shared_ptr<MerkleDagBridge> dag,
-                            Graphsync::BlockCallback callback) {
-    assert(callback);
+  Graphsync::DataConnection GraphsyncImpl::subscribe(
+      std::function<OnDataReceived> handler) {
+    return data_signal_.connect(handler);
+  }
+
+  void GraphsyncImpl::setDefaultRequestHandler(
+      std::function<RequestHandler> handler) {
+    assert(handler);
+    if (default_request_handler_) {
+      logger()->warn("overriding default request handler");
+    }
+    default_request_handler_ = std::move(handler);
+  }
+
+  void GraphsyncImpl::setRequestHandler(std::function<RequestHandler> handler,
+                                        std::string extension_name) {
+    assert(handler);
+    assert(!extension_name.empty());
+    if (extension_name.empty()) {
+      return;
+    }
+    if (request_handlers_.count(extension_name) != 0) {
+      logger()->warn("overriding request handler for extension ");
+    }
+    request_handlers_.insert({std::move(extension_name), std::move(handler)});
+  }
+
+  void GraphsyncImpl::postResponse(const FullRequestId &id,
+                                   const Response &response) {
+    network_->sendResponse(id, response);
+  }
+
+  void GraphsyncImpl::start() {
+    if (started_) {
+      return;
+    }
+
+    if (!default_request_handler_) {
+      logger()->warn("default request handler not set");
+    }
 
     network_->start(shared_from_this());
-    dag_ = std::move(dag);
-    block_cb_ = std::move(callback);
     started_ = true;
   }
 
@@ -46,8 +81,8 @@ namespace fc::storage::ipfs::graphsync {
   void GraphsyncImpl::doStop() {
     if (started_) {
       started_ = false;
-      block_cb_ = Graphsync::BlockCallback{};
-      dag_.reset();
+      default_request_handler_ = decltype(default_request_handler_){};
+      request_handlers_.clear();
       network_->stop();
       local_requests_->cancelAll();
     }
@@ -93,8 +128,6 @@ namespace fc::storage::ipfs::graphsync {
                                  int request_id,
                                  ResponseStatusCode status,
                                  std::vector<Extension> extensions) {
-    // TODO peer ratings according to status
-
     if (!started_) {
       return;
     }
@@ -102,56 +135,51 @@ namespace fc::storage::ipfs::graphsync {
     local_requests_->onResponse(request_id, status, std::move(extensions));
   }
 
-  void GraphsyncImpl::onBlock(const PeerId &from,
-                              CID cid,
-                              common::Buffer data) {
-    // TODO peer ratings according to status
-
+  void GraphsyncImpl::onDataBlock(const PeerId &from, Data data) {
     if (!started_) {
       return;
     }
 
-    block_cb_(std::move(cid), std::move(data));
+    data_signal_(from, std::move(data));
   }
 
   void GraphsyncImpl::onRemoteRequest(const PeerId &from,
                                       Message::Request request) {
-    // TODO make this asynchronous
-
-    bool send_response = true;
-
-    auto data_handler = [&](const CID &cid,
-                            const common::Buffer &data) -> bool {
-      bool data_present = !data.empty();
-
-      if (data_present) {
-        if (!network_->addBlockToResponse(from, request.id, cid, data)) {
-          send_response = false;
-          return false;
+    auto contains = [](const std::string &name,
+                       const std::vector<Extension> &extensions) {
+      for (const auto& e : extensions) {
+        if (e.name == name) {
+          return true;
         }
       }
-
-      return true;
+      return false;
     };
 
-    auto select_res =
-        dag_->select(request.root_cid, request.selector, data_handler);
+    auto call_request =
+        [](const PeerId &from, Message::Request request, const auto &handler) {
+          handler(FullRequestId{from, request.id},
+                  Request{std::move(request.root_cid),
+                          std::move(request.selector),
+                          std::move(request.extensions),
+                          request.cancel});
+        };
 
-    if (!send_response) {
-      // ignore response due to network side
+    if (!request.extensions.empty() && !request_handlers_.empty()) {
+      for (const auto &[ext_name, handler] : request_handlers_) {
+        if (contains(ext_name, request.extensions)) {
+          call_request(from, std::move(request), handler);
+          return;
+        }
+      }
+    }
+
+    if (!default_request_handler_) {
+      postResponse(FullRequestId{from, request.id},
+                   Response{RS_REJECTED, {}, {}});
       return;
     }
 
-    ResponseStatusCode status = RS_REQUEST_FAILED;
-    if (select_res) {
-      if (select_res.value() > 0) {
-        status = RS_FULL_CONTENT;
-      } else {
-        status = RS_NOT_FOUND;
-      }
-    }
-
-    network_->sendResponse(from, request.id, status, request.extensions);
+    call_request(from, std::move(request), default_request_handler_);
   }
 
   void GraphsyncImpl::cancelLocalRequest(RequestId request_id,

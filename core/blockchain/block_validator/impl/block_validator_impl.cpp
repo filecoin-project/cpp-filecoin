@@ -64,7 +64,7 @@ namespace fc::blockchain::block_validator {
     OUTCOME_TRY(ConsensusRules::activeMiner(block, power_table_));
     OUTCOME_TRY(parent_tipset, getParentTipset(block));
     OUTCOME_TRY(ConsensusRules::parentWeight(
-        block, parent_tipset.get(), weight_calculator_));
+        block, *parent_tipset.get(), weight_calculator_));
     OUTCOME_TRY(chain_epoch, epoch_clock_->epochAtTime(clock_->nowUTC()));
     OUTCOME_TRY(ConsensusRules::epoch(block, chain_epoch));
     return outcome::success();
@@ -140,7 +140,8 @@ namespace fc::blockchain::block_validator {
   outcome::result<void> BlockValidatorImpl::stateTree(
       const BlockHeader &block) const {
     OUTCOME_TRY(parent_tipset, getParentTipset(block));
-    OUTCOME_TRY(result, vm_interpreter_->interpret(datastore_, parent_tipset));
+    OUTCOME_TRY(result,
+                vm_interpreter_->interpret(datastore_, parent_tipset.get()));
     if (result.state_root == block.parent_state_root
         && result.message_receipts == block.parent_message_receipts) {
       return outcome::success();
@@ -148,7 +149,7 @@ namespace fc::blockchain::block_validator {
     return ValidatorError::kInvalidParentState;
   }
 
-  outcome::result<std::reference_wrapper<BlockValidatorImpl::Tipset>>
+  outcome::result<std::reference_wrapper<BlockValidatorImpl::TipsetCPtr>>
   BlockValidatorImpl::getParentTipset(const BlockHeader &block) const {
     IPLDBlock ipld_block = IPLDBlock::create(block);
     if (parent_tipset_cache_

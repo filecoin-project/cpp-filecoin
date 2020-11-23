@@ -46,8 +46,9 @@ namespace fc::miner {
                 api_->StateMinerProvingDeadline(miner_address_, TipsetKey{}));
 
     std::shared_ptr<TipsetCache> tipset_cache =
-        std::make_shared<TipsetCacheImpl>(2 * kGlobalChainConfidence,
-                                          api_->ChainGetTipSetByHeight);
+        std::make_shared<TipsetCacheImpl>(
+            2 * kGlobalChainConfidence,
+            [=](auto h) { return api_->ChainGetTipSetByHeight(h, {}); });
     std::shared_ptr<Events> events =
         std::make_shared<EventsImpl>(api_, tipset_cache);
     OUTCOME_TRY(events->subscribeHeadChanges());

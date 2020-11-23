@@ -8,19 +8,23 @@
 
 #include "storage/buffer_map.hpp"
 #include "vm/interpreter/interpreter.hpp"
+#include "vm/runtime/runtime_randomness.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::interpreter {
+  using runtime::MessageReceipt;
+  using runtime::RuntimeRandomness;
   using storage::PersistentBufferMap;
-  using vm::runtime::MessageReceipt;
 
   class InterpreterImpl : public Interpreter {
    public:
+    explicit InterpreterImpl(std::shared_ptr<RuntimeRandomness> randomness);
+
     outcome::result<Result> interpret(const IpldPtr &store,
-                                      const Tipset &tipset) const override;
+                                      const TipsetCPtr &tipset) const override;
     outcome::result<Result> applyBlocks(
         const IpldPtr &store,
-        const Tipset &tipset,
+        const TipsetCPtr &tipset,
         std::vector<MessageReceipt> *all_receipts) const;
 
    protected:
@@ -28,6 +32,8 @@ namespace fc::vm::interpreter {
 
    private:
     bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const;
+
+    std::shared_ptr<RuntimeRandomness> randomness_;
   };
 
   class CachedInterpreter : public Interpreter {
@@ -36,7 +42,7 @@ namespace fc::vm::interpreter {
                       std::shared_ptr<PersistentBufferMap> store)
         : interpreter{std::move(interpreter)}, store{std::move(store)} {}
     outcome::result<Result> interpret(const IpldPtr &store,
-                                      const Tipset &tipset) const override;
+                                      const TipsetCPtr &tipset) const override;
 
    private:
     std::shared_ptr<Interpreter> interpreter;

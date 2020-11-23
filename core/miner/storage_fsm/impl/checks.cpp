@@ -40,7 +40,6 @@ namespace fc::mining::checks {
       const std::shared_ptr<SectorInfo> &sector_info,
       const std::shared_ptr<Api> &api) {
     OUTCOME_TRY(chain_head, api->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
 
     for (const auto &piece : sector_info->pieces) {
       if (!piece.deal_info.has_value()) {
@@ -52,9 +51,9 @@ namespace fc::mining::checks {
         continue;
       }
 
-      OUTCOME_TRY(
-          proposal,
-          api->StateMarketStorageDeal(piece.deal_info->deal_id, tipset_key));
+      OUTCOME_TRY(proposal,
+                  api->StateMarketStorageDeal(piece.deal_info->deal_id,
+                                              chain_head->key));
 
       if (piece.piece.cid != proposal.proposal.piece_cid) {
         return ChecksError::kInvalidDeal;
@@ -64,7 +63,7 @@ namespace fc::mining::checks {
         return ChecksError::kInvalidDeal;
       }
 
-      if (static_cast<ChainEpoch>(chain_head.height)
+      if (static_cast<ChainEpoch>(chain_head->height())
           >= proposal.proposal.start_epoch) {
         return ChecksError::kExpiredDeal;
       }

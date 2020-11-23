@@ -6,6 +6,8 @@
 #ifndef CPP_FILECOIN_GRAPHSYNC_RESPONSE_BUILDER_HPP
 #define CPP_FILECOIN_GRAPHSYNC_RESPONSE_BUILDER_HPP
 
+#include <storage/ipfs/graphsync/extension.hpp>
+
 #include "message_builder.hpp"
 
 namespace fc::storage::ipfs::graphsync {
@@ -25,6 +27,12 @@ namespace fc::storage::ipfs::graphsync {
     /// \param cid CID of data block
     /// \param data Raw data
     void addDataBlock(const CID &cid, const common::Buffer &data);
+
+    /// Clears meta_ and calls base's clear()
+    void clear() override;
+
+   private:
+    ResponseMetadata meta_;
   };
 
 }  // namespace fc::storage::ipfs::graphsync

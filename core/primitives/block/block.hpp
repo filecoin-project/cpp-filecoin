@@ -54,8 +54,8 @@ namespace fc::primitives::block {
     ElectionProof election_proof;
     std::vector<BeaconEntry> beacon_entries;
     std::vector<SignedMessage> messages;
-    uint64_t height;
-    uint64_t timestamp;
+    uint64_t height{};
+    uint64_t timestamp{};
     std::vector<PoStProof> win_post_proof;
   };
 
@@ -67,14 +67,14 @@ namespace fc::primitives::block {
     std::vector<PoStProof> win_post_proof;
     std::vector<CID> parents;
     BigInt parent_weight;
-    uint64_t height;
+    uint64_t height{};
     CID parent_state_root;
     CID parent_message_receipts;
     CID messages;
     boost::optional<Signature> bls_aggregate;
-    uint64_t timestamp;
+    uint64_t timestamp{};
     boost::optional<Signature> block_sig;
-    uint64_t fork_signaling;
+    uint64_t fork_signaling{};
     BigInt parent_base_fee;
   };
 

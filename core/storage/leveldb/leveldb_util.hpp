@@ -8,9 +8,9 @@
 
 #include <leveldb/status.h>
 #include <gsl/span>
-#include "common/outcome.hpp"
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
+#include "common/outcome.hpp"
 #include "storage/leveldb/leveldb_error.hpp"
 
 namespace fc::storage {
@@ -43,7 +43,10 @@ namespace fc::storage {
   template <typename T>
   inline outcome::result<T> error_as_result(const leveldb::Status &s,
                                             const common::Logger &logger) {
-    logger->error(s.ToString());
+    // "not found" is not an error of leveldb
+    if (!s.IsNotFound()) {
+      logger->error(s.ToString());
+    }
     return error_as_result<T>(s);
   }
 

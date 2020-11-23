@@ -41,7 +41,7 @@ namespace fc::vm::version {
    * @param height - blockchain height
    * @return network version
    */
-  NetworkVersion getNetworkVersion(const ChainEpoch &height) {
+  inline NetworkVersion getNetworkVersion(const ChainEpoch &height) {
     if (height >= kUpgradeKumquatHeight) return NetworkVersion::kVersion7;
     if (height >= kUpgradeLiftoffHeight) return NetworkVersion::kVersion6;
     if (height >= kUpgradeTapeHeight) return NetworkVersion::kVersion5;

@@ -87,8 +87,7 @@ namespace fc::markets::retrieval::provider {
   outcome::result<QueryResponse> RetrievalProviderImpl::makeQueryResponse(
       const QueryRequest &query) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address, tipset_key));
+    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address, chain_head->key));
 
     OUTCOME_TRY(piece_available,
                 piece_storage_->hasPieceInfo(query.payload_cid,

@@ -13,6 +13,7 @@
 
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
+#include "core/test_vectors/fixed_randomness.hpp"
 #include "storage/car/car.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/resources/resources.hpp"
@@ -39,7 +40,9 @@ using fc::primitives::address::Address;
 using fc::primitives::block::BlockHeader;
 using fc::primitives::tipset::Tipset;
 using fc::vm::message::UnsignedMessage;
+using fc::vm::runtime::FixedRandomness;
 using fc::vm::runtime::MessageReceipt;
+using fc::vm::runtime::RuntimeRandomness;
 namespace Json = fc::codec::json;
 
 auto gunzip(BytesIn input) {
@@ -79,7 +82,7 @@ struct MessageVector {
   struct Ts {
     struct Blk {
       Address miner;
-      int64_t win_count;
+      int64_t win_count{};
       std::vector<UnsignedMessage> messages;
     };
 
@@ -247,7 +250,9 @@ struct TestVectors : testing::TestWithParam<MessageVector> {};
 
 void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
   for (const auto &precondition : mv.precondition_variants) {
-    fc::vm::interpreter::InterpreterImpl vmi;
+    std::shared_ptr<RuntimeRandomness> randomness =
+        std::make_shared<FixedRandomness>();
+    fc::vm::interpreter::InterpreterImpl vmi{randomness};
     CID state{mv.state_before};
     BlockHeader parent;
     parent.ticket.emplace();
@@ -319,11 +324,14 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
         mv.state_before;
     b.parent_base_fee = mv.parent_base_fee;
     OUTCOME_EXCEPT(ts, Tipset::create({b}));
-    auto env{std::make_shared<fc::vm::runtime::Env>(nullptr, ipld, ts)};
+    std::shared_ptr<RuntimeRandomness> randomness =
+      std::make_shared<FixedRandomness>();
+  auto env{
+      std::make_shared<fc::vm::runtime::Env>(nullptr, randomness,ipld, ts)};
     auto i{0};
     for (const auto &[epoch_offset, message] : mv.messages) {
       const auto &receipt{mv.receipts[i]};
-      env->tipset.height = precondition.epoch + epoch_offset;
+      env->epoch = precondition.epoch + epoch_offset;
       auto size = message.from.isSecp256k1()
                       ? fc::vm::message::SignedMessage{message,
                                                        fc::crypto::signature::
@@ -343,7 +351,6 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
 
 TEST_P(TestVectors, Vector) {
   auto &mv{GetParam()};
-  fc::vm::actor::cgo::test_vectors = true;
   fc::vm::actor::cgo::config(
       1 << 20,
       UINT64_C(10) << 40,
