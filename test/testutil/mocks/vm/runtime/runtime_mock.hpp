@@ -15,10 +15,20 @@ namespace fc::vm::runtime {
 
   class MockRuntime : public Runtime {
    public:
+    MOCK_CONST_METHOD0(execution, std::shared_ptr<Execution>());
+
+    MOCK_CONST_METHOD0(getNetworkVersion, NetworkVersion());
+
     MOCK_CONST_METHOD0(getCurrentEpoch, ChainEpoch());
 
     MOCK_CONST_METHOD3(
-        getRandomness,
+        getRandomnessFromTickets,
+        outcome::result<Randomness>(DomainSeparationTag tag,
+                                    ChainEpoch epoch,
+                                    gsl::span<const uint8_t> seed));
+
+    MOCK_CONST_METHOD3(
+        getRandomnessFromBeacon,
         outcome::result<Randomness>(DomainSeparationTag tag,
                                     ChainEpoch epoch,
                                     gsl::span<const uint8_t> seed));
@@ -40,13 +50,16 @@ namespace fc::vm::runtime {
                                                    MethodParams params,
                                                    BigInt value));
 
-    MOCK_METHOD0(createNewActorAddress, Address());
+    MOCK_METHOD0(createNewActorAddress, outcome::result<Address>());
 
     MOCK_METHOD2(createActor,
                  outcome::result<void>(const Address &address,
                                        const Actor &actor));
 
     MOCK_METHOD0(deleteActor, outcome::result<void>());
+
+    MOCK_CONST_METHOD0(getTotalFilCirculationSupply,
+                       fc::outcome::result<TokenAmount>());
 
     MOCK_METHOD0(getIpfsDatastore, std::shared_ptr<IpfsDatastore>());
 

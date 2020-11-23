@@ -21,6 +21,7 @@
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
 #include "vm/runtime/runtime_types.hpp"
+#include "vm/version.hpp"
 
 namespace fc::vm::runtime {
 
@@ -44,6 +45,9 @@ namespace fc::vm::runtime {
   using primitives::sector::RegisteredProof;
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
+  using version::NetworkVersion;
+
+  struct Execution;
 
   /**
    * @class Runtime is the VM's internal runtime object exposed to actors
@@ -51,6 +55,10 @@ namespace fc::vm::runtime {
   class Runtime {
    public:
     virtual ~Runtime() = default;
+
+    virtual std::shared_ptr<Execution> execution() const = 0;
+
+    virtual NetworkVersion getNetworkVersion() const = 0;
 
     /**
      * Returns current chain epoch which is equal to block chain height.
@@ -61,7 +69,12 @@ namespace fc::vm::runtime {
     /**
      * @brief Returns a (pseudo)random string for the given epoch and tag.
      */
-    virtual outcome::result<Randomness> getRandomness(
+    virtual outcome::result<Randomness> getRandomnessFromTickets(
+        DomainSeparationTag tag,
+        ChainEpoch epoch,
+        gsl::span<const uint8_t> seed) const = 0;
+
+    virtual outcome::result<Randomness> getRandomnessFromBeacon(
         DomainSeparationTag tag,
         ChainEpoch epoch,
         gsl::span<const uint8_t> seed) const = 0;
@@ -98,6 +111,17 @@ namespace fc::vm::runtime {
                                                    MethodParams params,
                                                    BigInt value) = 0;
 
+    /** Computes an address for a new actor.
+     *
+     * The returned address is intended to uniquely refer to the actor even in
+     * the event of a chain re-org (whereas an ID-address might refer to a
+     * different actor after messages are re-ordered). Always an ActorExec
+     * address.
+     *
+     * @return new unique actor address
+     */
+    virtual outcome::result<Address> createNewActorAddress() = 0;
+
     /**
      * @brief Creates an actor in the state tree, with empty state. May only be
      * called by InitActor
@@ -114,6 +138,21 @@ namespace fc::vm::runtime {
      * May only be called by the actor itself
      */
     virtual outcome::result<void> deleteActor() = 0;
+
+    /**
+     * Returns the total token supply in circulation at the beginning of the
+     * current epoch.
+     * The circulating supply is the sum of:
+     * - rewards emitted by the reward actor,
+     * - funds vested from lock-ups in the genesis state,
+     * less the sum of:
+     * - funds burnt,
+     * - pledge collateral locked in storage miner actors (recorded in the
+     * storage power actor)
+     * - deal collateral locked by the storage market actor
+     */
+    virtual fc::outcome::result<TokenAmount> getTotalFilCirculationSupply()
+        const = 0;
 
     /**
      * @brief Returns IPFS datastore
@@ -233,10 +272,27 @@ namespace fc::vm::runtime {
       return getBalance(getCurrentReceiver());
     }
 
+    inline outcome::result<void> validateArgument(bool assertion) const {
+      if (!assertion) {
+        return VMExitCode::kErrIllegalArgument;
+      }
+      return outcome::success();
+    }
+
     inline outcome::result<void> validateImmediateCallerIs(
         const Address &address) {
       if (getImmediateCaller() == address) {
         return outcome::success();
+      }
+      return VMExitCode::kSysErrForbidden;
+    }
+
+    inline outcome::result<void> validateImmediateCallerIs(
+        std::initializer_list<Address> addresses) {
+      for (const auto &address : addresses) {
+        if (getImmediateCaller() == address) {
+          return outcome::success();
+        }
       }
       return VMExitCode::kSysErrForbidden;
     }
