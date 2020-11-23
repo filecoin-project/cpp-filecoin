@@ -258,7 +258,8 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
   OUTCOME_EXCEPT(ts, Tipset::create({b}));
   std::shared_ptr<RuntimeRandomness> randomness =
       std::make_shared<FixedRandomness>();
-  auto env{std::make_shared<fc::vm::runtime::Env>(nullptr, randomness, ipld, ts)};
+  auto env{
+      std::make_shared<fc::vm::runtime::Env>(nullptr, randomness, ipld, ts)};
   auto i{0};
   for (auto &[epoch, message] : mv.messages) {
     auto &receipt{mv.receipts[i]};
@@ -281,7 +282,6 @@ void testMessages(const MessageVector &mv, IpldPtr ipld) {
 
 TEST_P(TestVectors, Vector) {
   auto &mv{GetParam()};
-  fc::vm::actor::cgo::test_vectors = true;
   fc::vm::actor::cgo::config(
       1 << 20,
       UINT64_C(10) << 40,

@@ -10,6 +10,11 @@
 
 namespace fc::vm::runtime {
 
+  /**
+   * Returns fixed random for conformance tests
+   * See lotus implementation
+   * https://github.com/filecoin-project/lotus/blob/v0.10.0/conformance/rand_fixed.go
+   */
   class FixedRandomness : public RuntimeRandomness {
    public:
     outcome::result<Randomness> getRandomnessFromTickets(
@@ -23,6 +28,6 @@ namespace fc::vm::runtime {
         gsl::span<const uint8_t> seed) const override;
   };
 
-}
+}  // namespace fc::vm::runtime
 
 #endif  // CPP_FILECOIN_TEST_CORE_TEST_VECTORS_FIXED_RANDOMNESS_HPP
