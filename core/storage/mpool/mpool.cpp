@@ -8,12 +8,14 @@
 #include "const.hpp"
 #include "vm/interpreter/interpreter.hpp"
 #include "vm/runtime/env.hpp"
+#include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::storage::mpool {
   using primitives::block::MsgMeta;
   using primitives::tipset::HeadChangeType;
   using vm::message::UnsignedMessage;
+  using vm::runtime::TipsetRandomness;
 
   std::shared_ptr<Mpool> Mpool::create(
       IpldPtr ipld,
@@ -62,7 +64,9 @@ namespace fc::storage::mpool {
       msg.gas_fee_cap = kMinimumBaseFee + 1;
       msg.gas_premium = 1;
       OUTCOME_TRY(interpeted, interpreter->interpret(ipld, head));
-      auto env{std::make_shared<vm::runtime::Env>(nullptr, ipld, head)};
+      auto randomness = std::make_shared<TipsetRandomness>(ipld, head);
+      auto env{
+          std::make_shared<vm::runtime::Env>(nullptr, randomness, ipld, head)};
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
           ipld, interpeted.state_root);
       ++env->epoch;

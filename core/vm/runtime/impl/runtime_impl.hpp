@@ -9,6 +9,7 @@
 #include "vm/actor/invoker.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime.hpp"
+#include "vm/runtime/runtime_randomness.hpp"
 #include "vm/state/state_tree.hpp"
 
 namespace fc::vm::runtime {
@@ -18,13 +19,23 @@ namespace fc::vm::runtime {
   class RuntimeImpl : public Runtime {
    public:
     RuntimeImpl(std::shared_ptr<Execution> execution,
+                std::shared_ptr<RuntimeRandomness> randomness,
                 UnsignedMessage message,
                 const Address &caller_id);
+
+    std::shared_ptr<Execution> execution() const override;
+
+    NetworkVersion getNetworkVersion() const override;
 
     /** \copydoc Runtime::getCurrentEpoch() */
     ChainEpoch getCurrentEpoch() const override;
 
-    outcome::result<Randomness> getRandomness(
+    outcome::result<Randomness> getRandomnessFromTickets(
+        DomainSeparationTag tag,
+        ChainEpoch epoch,
+        gsl::span<const uint8_t> seed) const override;
+
+    outcome::result<Randomness> getRandomnessFromBeacon(
         DomainSeparationTag tag,
         ChainEpoch epoch,
         gsl::span<const uint8_t> seed) const override;
@@ -51,12 +62,19 @@ namespace fc::vm::runtime {
                                                MethodParams params,
                                                BigInt value) override;
 
+    /** \copydoc Runtime::createNewActorAddress() */
+    outcome::result<Address> createNewActorAddress() override;
+
     /** \copydoc Runtime::createActor() */
     outcome::result<void> createActor(const Address &address,
                                       const Actor &actor) override;
 
     /** \copydoc Runtime::deleteActor() */
     outcome::result<void> deleteActor() override;
+
+    /** \copydoc Runtime::getTotalFilCirculationSupply() */
+    fc::outcome::result<TokenAmount> getTotalFilCirculationSupply()
+        const override;
 
     /** \copydoc Runtime::getIpfsDatastore() */
     std::shared_ptr<IpfsDatastore> getIpfsDatastore() override;
@@ -93,7 +111,7 @@ namespace fc::vm::runtime {
 
    private:
     std::shared_ptr<Execution> execution_;
-    std::shared_ptr<StateTree> state_tree_;
+    std::shared_ptr<RuntimeRandomness> randomness_;
     UnsignedMessage message_;
     Address caller_id;
   };

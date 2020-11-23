@@ -6,7 +6,9 @@
 add_library(runtime
     impl/env.cpp
     impl/runtime_impl.cpp
-    impl/runtime_error.cpp)
+    impl/runtime_error.cpp
+    impl/tipset_randomness.cpp
+    )
 target_link_libraries(runtime
     actor
     blake2

@@ -48,6 +48,10 @@ namespace fc::vm::interpreter {
   using runtime::Env;
   using runtime::MessageReceipt;
 
+  InterpreterImpl::InterpreterImpl(
+      std::shared_ptr<RuntimeRandomness> randomness)
+      : randomness_{std::move(randomness)} {}
+
   outcome::result<Result> InterpreterImpl::interpret(
       const IpldPtr &ipld, const TipsetCPtr &tipset) const {
     if (tipset->height() == 0) {
@@ -73,8 +77,8 @@ namespace fc::vm::interpreter {
       return InterpreterError::kDuplicateMiner;
     }
 
-    auto env =
-        std::make_shared<Env>(std::make_shared<InvokerImpl>(), ipld, tipset);
+    auto env = std::make_shared<Env>(
+        std::make_shared<InvokerImpl>(), randomness_, ipld, tipset);
 
     auto cron{[&]() -> outcome::result<void> {
       OUTCOME_TRY(receipt,

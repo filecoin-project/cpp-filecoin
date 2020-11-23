@@ -11,7 +11,9 @@
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime_error.hpp"
+#include "vm/version.hpp"
 
 namespace fc::vm::runtime {
   using fc::primitives::BigInt;
@@ -19,23 +21,38 @@ namespace fc::vm::runtime {
   using fc::storage::hamt::HamtError;
 
   RuntimeImpl::RuntimeImpl(std::shared_ptr<Execution> execution,
+                           std::shared_ptr<RuntimeRandomness> randomness,
                            UnsignedMessage message,
                            const Address &caller_id)
       : execution_{std::move(execution)},
-        state_tree_{execution_->state_tree},
+        randomness_{std::move(randomness)},
         message_{std::move(message)},
         caller_id{caller_id} {}
+
+  std::shared_ptr<Execution> RuntimeImpl::execution() const {
+    return execution_;
+  }
+
+  NetworkVersion RuntimeImpl::getNetworkVersion() const {
+    return version::getNetworkVersion(getCurrentEpoch());
+  }
 
   ChainEpoch RuntimeImpl::getCurrentEpoch() const {
     return execution_->env->epoch;
   }
 
-  outcome::result<Randomness> RuntimeImpl::getRandomness(
+  outcome::result<Randomness> RuntimeImpl::getRandomnessFromTickets(
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return execution_->env->tipset->ticketRandomness(
-        *execution_->env->ipld, tag, epoch, seed);
+    return randomness_->getRandomnessFromTickets(tag, epoch, seed);
+  }
+
+  outcome::result<Randomness> RuntimeImpl::getRandomnessFromBeacon(
+      DomainSeparationTag tag,
+      ChainEpoch epoch,
+      gsl::span<const uint8_t> seed) const {
+    return randomness_->getRandomnessFromBeacon(tag, epoch, seed);
   }
 
   Address RuntimeImpl::getImmediateCaller() const {
@@ -48,7 +65,7 @@ namespace fc::vm::runtime {
 
   fc::outcome::result<BigInt> RuntimeImpl::getBalance(
       const Address &address) const {
-    auto actor_state = state_tree_->get(address);
+    auto actor_state = execution_->state_tree->get(address);
     if (!actor_state) {
       if (actor_state.error() == HamtError::kNotFound) return BigInt(0);
       return actor_state.error();
@@ -62,7 +79,7 @@ namespace fc::vm::runtime {
 
   fc::outcome::result<CodeId> RuntimeImpl::getActorCodeID(
       const Address &address) const {
-    OUTCOME_TRY(actor_state, state_tree_->get(address));
+    OUTCOME_TRY(actor_state, execution_->state_tree->get(address));
     return actor_state.code;
   }
 
@@ -75,9 +92,22 @@ namespace fc::vm::runtime {
         {to_address, message_.to, {}, value, {}, {}, method_number, params});
   }
 
+  outcome::result<Address> RuntimeImpl::createNewActorAddress() {
+    OUTCOME_TRY(caller_address,
+                resolveKey(*execution_->state_tree, execution()->origin));
+    OUTCOME_TRY(encoded_address, codec::cbor::encode(caller_address));
+    auto actor_address{Address::makeActorExec(
+        encoded_address.putUint64(execution()->origin_nonce)
+            .putUint64(execution_->actors_created))};
+
+    ++execution_->actors_created;
+    return actor_address;
+  }
+
   fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,
                                                      const Actor &actor) {
-    OUTCOME_TRY(state_tree_->set(address, actor));
+    OUTCOME_TRY(execution_->state_tree->set(address, actor));
+    OUTCOME_TRY(chargeGas(execution_->env->pricelist.onCreateActor()));
     return fc::outcome::success();
   }
 
@@ -86,6 +116,13 @@ namespace fc::vm::runtime {
     // TODO(a.chernyshov) FIL-137 implement state_tree remove if needed
     // return state_tree_->remove(address);
     return fc::outcome::failure(RuntimeError::kUnknown);
+  }
+
+  fc::outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
+      const {
+    // TODO(a.chernyshov) implement
+    // 0 is for test vectors
+    return 0;
   }
 
   std::shared_ptr<IpfsDatastore> RuntimeImpl::getIpfsDatastore() {
@@ -97,14 +134,14 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<CID> RuntimeImpl::getCurrentActorState() {
-    OUTCOME_TRY(actor, state_tree_->get(getCurrentReceiver()));
+    OUTCOME_TRY(actor, execution_->state_tree->get(getCurrentReceiver()));
     return actor.head;
   }
 
   fc::outcome::result<void> RuntimeImpl::commit(const CID &new_state) {
-    OUTCOME_TRY(actor, state_tree_->get(getCurrentReceiver()));
+    OUTCOME_TRY(actor, execution_->state_tree->get(getCurrentReceiver()));
     actor.head = new_state;
-    OUTCOME_TRY(state_tree_->set(getCurrentReceiver(), actor));
+    OUTCOME_TRY(execution_->state_tree->set(getCurrentReceiver(), actor));
     return outcome::success();
   }
 
@@ -119,23 +156,20 @@ namespace fc::vm::runtime {
 
   fc::outcome::result<Address> RuntimeImpl::resolveAddress(
       const Address &address) {
-    return state_tree_->lookupId(address);
+    return execution_->state_tree->lookupId(address);
   }
 
   outcome::result<bool> RuntimeImpl::verifySignature(
       const Signature &signature,
       const Address &address,
       gsl::span<const uint8_t> data) {
-    OUTCOME_TRY(
-        chargeGas(execution_->env->pricelist.onVerifySignature(data.size())));
-    OUTCOME_TRY(
-        account,
-        execution_->state_tree
-            ->state<actor::builtin::account::AccountActorState>(address));
+    OUTCOME_TRY(chargeGas(
+        execution_->env->pricelist.onVerifySignature(signature.isBls())));
+    OUTCOME_TRY(account, resolveKey(*execution_->state_tree, address));
     return storage::keystore::InMemoryKeyStore{
         std::make_shared<crypto::bls::BlsProviderImpl>(),
         std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}
-        .verify(account.address, data, signature);
+        .verify(account, data, signature);
   }
 
   outcome::result<bool> RuntimeImpl::verifyPoSt(
