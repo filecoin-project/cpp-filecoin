@@ -43,9 +43,6 @@ namespace fc::markets::retrieval {
     /* Waiting for funds to finish being sent to the payment channel */
     kDealStatusPaymentChannelAddingFunds,
 
-    // kDealStatusPaymentChannelAllocatingLane,
-    // kDealStatusPaymentChannelReady,
-
     /* Ready to proceed with retrieval */
     kDealStatusAccepted,
 
@@ -74,8 +71,6 @@ namespace fc::markets::retrieval {
 
     /* Deal couldn't be identified */
     kDealStatusDealNotFound,
-
-    // kDealStatusVerified,
 
     /* Something went wrong with deal */
     kDealStatusErrored,

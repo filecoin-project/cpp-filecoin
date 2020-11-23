@@ -8,6 +8,7 @@
 #include <libp2p/host/host.hpp>
 
 #include "common/libp2p/cbor_stream.hpp"
+#include "common/ptr.hpp"
 #include "storage/ipld/traverser.hpp"
 
 #define MOVE(x)  \
@@ -54,7 +55,11 @@ namespace fc::data_transfer {
     dt->host = host;
     dt->gs = gs;
     gs->setRequestHandler(
-        [dt](auto pgsid, auto req) {
+        [_dt{weaken(dt)}](auto pgsid, auto req) {
+          auto dt{_dt.lock()};
+          if (!dt) {
+            return;
+          }
           auto ext{*gsns::Extension::find(kExtension, req.extensions)};
           OUTCOME_EXCEPT(msg, codec::cbor::decode<DataTransferMessage>(ext));
           PeerDtId pdtid{pgsid.peer, msg.dtid()};
@@ -106,11 +111,13 @@ namespace fc::data_transfer {
           }
         },
         kExtension);
-    host->setProtocolHandler(kProtocol, [dt](auto s) {
-      if (!s->remotePeerId()) {
-        return s->reset();
+    host->setProtocolHandler(kProtocol, [_dt{weaken(dt)}](auto s) {
+      if (auto dt{_dt.lock()}) {
+        if (s->remotePeerId()) {
+          return _read(_dt, std::make_shared<CborStream>(s));
+        }
       }
-      _read(dt, std::make_shared<CborStream>(s));
+      s->reset();
     });
     return dt;
   }

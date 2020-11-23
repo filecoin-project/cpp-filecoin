@@ -120,10 +120,10 @@ namespace fc::markets::retrieval {
     void block(uint64_t size) {
       assert(!owed);
       bytes += size;
-      TokenAmount over{(bytes < interval ? 0 : bytes - interval)
-                       * params.price_per_byte};
-      if (over >= paid - params.unseal_price) {
-        owed = over;
+      TokenAmount unpaid{bytes * params.price_per_byte
+                         - (paid - params.unseal_price)};
+      if (unpaid >= interval * params.price_per_byte) {
+        owed = unpaid;
       }
     }
 
