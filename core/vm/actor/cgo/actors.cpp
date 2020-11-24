@@ -68,7 +68,6 @@ namespace fc::vm::actor::cgo {
                                  const CID &code,
                                  size_t method,
                                  BytesIn params) {
-    auto sss = code.toString().value();
     CborEncodeStream arg;
     auto id{next_runtime++};  // TODO: mod
     auto runtime =
@@ -124,6 +123,10 @@ namespace fc::vm::actor::cgo {
       chargeFatal(ret, r);
     }
     return {};
+  }
+
+  RUNTIME_METHOD(gocRtReceiver) {
+    ret << kOk << rt.getCurrentReceiver();
   }
 
   RUNTIME_METHOD(gocRtIpldGet) {

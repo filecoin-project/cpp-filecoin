@@ -22,6 +22,7 @@ namespace fc::vm::runtime {
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
   using storage::hamt::HamtError;
+  using vm::version::getNetworkVersion;
 
   outcome::result<Address> resolveKey(StateTree &state_tree,
                                       const Address &address,
@@ -259,14 +260,19 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(chargeGas(
         env->pricelist.onMethodInvocation(message.value, message.method)));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
-    RuntimeImpl runtime{
-        shared_from_this(), env->randomness, message, caller_id};
+    auto _message{message};
+    _message.from = caller_id;
+
+    OUTCOME_TRY(to_id, state_tree->lookupId(message.to));
+    if (getNetworkVersion(static_cast<ChainEpoch>(env->epoch))
+        >= NetworkVersion::kVersion4) {
+      _message.to = to_id;
+    }
 
     if (message.value != 0) {
       if (message.value < 0) {
         return VMExitCode::kSysErrForbidden;
       }
-      OUTCOME_TRY(to_id, state_tree->lookupId(message.to));
       if (to_id != caller_id) {
         OUTCOME_TRY(from_actor, state_tree->get(caller_id));
         if (from_actor.balance < message.value) {
@@ -280,14 +286,14 @@ namespace fc::vm::runtime {
     }
 
     if (message.method != kSendMethodNumber) {
-      auto _message{message};
-      _message.from = caller_id;
+      RuntimeImpl runtime{
+          shared_from_this(), env->randomness, _message, caller_id};
       // TODO: check cpp actor
       return actor::cgo::invoke(shared_from_this(),
                                 _message,
                                 to_actor.code,
-                                message.method,
-                                message.params);
+                                _message.method,
+                                _message.params);
     }
 
     return outcome::success();

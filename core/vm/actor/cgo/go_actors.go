@@ -172,7 +172,8 @@ func (rt *rt) Send(to address.Address, method abi.MethodNum, o cbor.Marshaler, v
 	return exit
 }
 
-func (rt *rt) Abortf(exit exitcode.ExitCode, _ string, _ ...interface{}) {
+func (rt *rt) Abortf(exit exitcode.ExitCode, msg string, args ...interface{}) {
+    fmt.Printf("Abort: " + msg, args...)
 	rt.Abort(exit)
 }
 
@@ -262,7 +263,7 @@ func (rt *rt) Caller() address.Address {
 }
 
 func (rt *rt) Receiver() address.Address {
-	return rt.to
+	return rt.gocRet(C.gocRtReceiver(rt.gocArg().arg())).addr()
 }
 
 func (rt *rt) ValueReceived() abi.TokenAmount {

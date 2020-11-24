@@ -11,6 +11,7 @@
 extern "C" {
 #endif
 
+Raw gocRtReceiver(Raw);
 Raw gocRtIpldGet(Raw);
 Raw gocRtIpldPut(Raw);
 Raw gocRtCharge(Raw);
