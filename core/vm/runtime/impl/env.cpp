@@ -255,7 +255,8 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(chargeGas(
         env->pricelist.onMethodInvocation(message.value, message.method)));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
-    RuntimeImpl runtime{shared_from_this(), message, caller_id};
+    RuntimeImpl runtime{
+        shared_from_this(), env->randomness, message, caller_id};
 
     if (message.value != 0) {
       if (message.value < 0) {

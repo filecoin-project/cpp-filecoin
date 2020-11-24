@@ -140,11 +140,13 @@ func (rt *rt) GetActorCodeCID(addr address.Address) (cid.Cid, bool) {
 }
 
 func (rt *rt) GetRandomnessFromBeacon(tag crypto.DomainSeparationTag, round abi.ChainEpoch, seed []byte) abi.Randomness {
-	return rt.rand(true, tag, round, seed)
+	ret := rt.gocRet(C.gocRtRandomnessFromBeacon(rt.gocArg().int(int64(tag)).int(int64(round)).bytes(seed).arg()))
+	return ret.bytes()
 }
 
 func (rt *rt) GetRandomnessFromTickets(tag crypto.DomainSeparationTag, round abi.ChainEpoch, seed []byte) abi.Randomness {
-	return rt.rand(false, tag, round, seed)
+	ret := rt.gocRet(C.gocRtRandomnessFromTickets(rt.gocArg().int(int64(tag)).int(int64(round)).bytes(seed).arg()))
+	return ret.bytes()
 }
 
 func (rt *rt) Send(to address.Address, method abi.MethodNum, o cbor.Marshaler, value abi.TokenAmount, out cbor.Er) exitcode.ExitCode {
@@ -376,11 +378,6 @@ func (rt *rt) commit(base cid.Cid, o cbor.Marshaler) {
 		rt.Abort(exitcode.ErrSerialization)
 	}
 	rt.gocRet(C.gocRtStateCommit(rt.gocArg().bytes(w.Bytes()).cid(base).arg()))
-}
-
-func (rt *rt) rand(beacon bool, tag crypto.DomainSeparationTag, round abi.ChainEpoch, seed []byte) abi.Randomness {
-	ret := rt.gocRet(C.gocRtRand(rt.gocArg().bool(beacon).int(int64(tag)).int(int64(round)).bytes(seed).arg()))
-	return ret.bytes()
 }
 
 func (rt *rt) validateCallerOnce() {

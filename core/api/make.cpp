@@ -22,6 +22,7 @@
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/runtime/env.hpp"
+#include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 #define MOVE(x)  \
@@ -49,6 +50,7 @@ namespace fc::api {
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
   using vm::runtime::Env;
+  using vm::runtime::TipsetRandomness;
   using vm::state::StateTreeImpl;
   using connection_t = boost::signals2::connection;
   using MarketActorState = vm::actor::builtin::market::State;
@@ -473,8 +475,12 @@ namespace fc::api {
         .StateCall = {[=](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          auto env = std::make_shared<Env>(
-              std::make_shared<InvokerImpl>(), ipld, context.tipset);
+          auto randomness =
+              std::make_shared<TipsetRandomness>(ipld, context.tipset);
+          auto env = std::make_shared<Env>(std::make_shared<InvokerImpl>(),
+                                           randomness,
+                                           ipld,
+                                           context.tipset);
           InvocResult result;
           result.message = message;
           OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
