@@ -95,9 +95,5 @@ namespace fc::markets::retrieval::test {
     EXPECT_OUTCOME_TRUE_1(future.get());
 
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), true);
-
-    // Note: otherwise 2 mock objects are leaked
-    miner->~MinerMock();
-    sealer->~ManagerMock();
   }
 }  // namespace fc::markets::retrieval::test

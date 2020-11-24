@@ -277,7 +277,11 @@ namespace fc::markets::retrieval::provider {
 
   void RetrievalProviderImpl::start() {
     host_->setProtocolHandler(
-        kQueryProtocolId, [self{shared_from_this()}](auto stream) {
+        kQueryProtocolId, [_self{weak_from_this()}](auto stream) {
+          auto self{_self.lock()};
+          if (!self) {
+            return;
+          }
           self->handleQuery(std::make_shared<CborStream>(stream));
         });
     logger_->info("has been launched with ID "

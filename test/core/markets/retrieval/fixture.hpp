@@ -196,7 +196,7 @@ namespace fc::markets::retrieval::test {
               const TokenAmount &) -> outcome::result<TokenAmount> {
             return TokenAmount{0};
           }};
-    };
+    }
 
     outcome::result<void> addPieceSample(
         const SamplePiece &piece, const std::shared_ptr<IpfsDatastore> &ipfs) {
