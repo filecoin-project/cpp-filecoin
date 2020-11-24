@@ -3,19 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "retrieval_client_impl.hpp"
+#include "markets/retrieval/client/impl/retrieval_client_impl.hpp"
+
 #include "codec/cbor/cbor.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
-#include "markets/retrieval/protocols/query_protocol.hpp"
-
-#define _SELF_IF_ERROR_FAIL_AND_RETURN(var, expr) \
-  auto &&var = (expr);                            \
-  if (var.has_error()) {                          \
-    self->failDeal(deal_state, var.error());      \
-    return;                                       \
-  }
-#define SELF_IF_ERROR_FAIL_AND_RETURN(expr) \
-  _SELF_IF_ERROR_FAIL_AND_RETURN(UNIQUE_NAME(_r), expr)
 
 namespace fc::markets::retrieval::client {
 
@@ -127,8 +118,9 @@ namespace fc::markets::retrieval::client {
             deal->lane_id = _lane.value();
           }
           if (res.status == DealStatus::kDealStatusCompleted) {
+            deal->handler(outcome::success());
             datatransfer_->pulling_out.erase(deal->pdtid);
-            return deal->handler(outcome::success());
+            return;
           }
           if (res.payment_owed) {
             processPaymentRequest(deal, deal->state.owed);
@@ -144,7 +136,11 @@ namespace fc::markets::retrieval::client {
                 deal->state.last();
               }
               return;
+            } else {
+              failDeal(deal, _done.error());
             }
+          } else {
+            failDeal(deal, _data.error());
           }
         });
   }
@@ -186,8 +182,8 @@ namespace fc::markets::retrieval::client {
   void RetrievalClientImpl::failDeal(
       const std::shared_ptr<DealState> &deal_state,
       const std::error_code &error) {
-    datatransfer_->pulling_out.erase(deal_state->pdtid);
     deal_state->handler(error);
+    datatransfer_->pulling_out.erase(deal_state->pdtid);
   }
 
 }  // namespace fc::markets::retrieval::client
