@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_TEST_CORE_MARKETS_STORAGE_STORAGE_MARKET_FIXTURE_HPP
 
 #include <gtest/gtest.h>
+#include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/security/plaintext.hpp>
@@ -84,20 +85,18 @@ namespace fc::markets::storage::test {
   using BlsKeyPair = fc::crypto::bls::KeyPair;
   using testing::_;
 
-  /** Shared resources */
-  static std::shared_ptr<libp2p::Host> host;
-  static std::shared_ptr<boost::asio::io_context> context;
-  static std::shared_ptr<Multiaddress> provider_multiaddress;
+  static auto port{40010};
 
   class StorageMarketTest : public ::testing::Test {
    public:
     static constexpr auto kWaitTime = std::chrono::milliseconds(100);
     static const int kNumberOfWaitCycles = 50;  // 5 sec
 
-    static void SetUpTestCase() {
-      std::string address_string =
-          "/ip4/127.0.0.1/tcp/40010/ipfs/"
-          "12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV";
+    void SetUp() override {
+      std::string address_string = fmt::format(
+          "/ip4/127.0.0.1/tcp/{}/ipfs/"
+          "12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV",
+          port++);
 
       // resulting PeerId should be
       // 12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV
@@ -108,24 +107,17 @@ namespace fc::markets::storage::test {
                                   "4a9361c525840f7086b893d584ebbe475b4ec"
                                   "7069951d2e897e8bceb0a3f35ce"_unhex}}};
 
-      auto injector = libp2p::injector::makeHostInjector(
+      auto injector = libp2p::injector::makeHostInjector<
+          boost::di::extension::shared_config>(
           libp2p::injector::useKeyPair(keypair),
           libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
       host = injector.create<std::shared_ptr<libp2p::Host>>();
-      provider_multiaddress = std::make_shared<Multiaddress>(
+      auto provider_multiaddress = std::make_shared<Multiaddress>(
           Multiaddress::create(address_string).value());
       OUTCOME_EXCEPT(host->listen(*provider_multiaddress));
       host->start();
       context = injector.create<std::shared_ptr<boost::asio::io_context>>();
-    }
 
-    static void TearDownTestCase() {
-      host.reset();
-      context.reset();
-      provider_multiaddress.reset();
-    }
-
-    void SetUp() override {
       context_ = context;
       std::shared_ptr<BlsProvider> bls_provider =
           std::make_shared<BlsProviderImpl>();
@@ -493,6 +485,8 @@ namespace fc::markets::storage::test {
 
     common::Logger logger = common::createLogger("StorageMarketTest");
 
+    std::shared_ptr<libp2p::Host> host;
+    std::shared_ptr<boost::asio::io_context> context;
     Address miner_actor_address = Address::makeFromId(100);
     Address miner_worker_address;
     Address client_id_address = Address::makeFromId(102);

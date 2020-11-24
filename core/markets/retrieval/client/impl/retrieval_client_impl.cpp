@@ -104,13 +104,14 @@ namespace fc::markets::retrieval::client {
             deal->accepted =
                 unseal || res.status == DealStatus::kDealStatusAccepted;
             if (!deal->accepted) {
-              datatransfer_->pulling_out.erase(deal->pdtid);
-              return deal->handler(
+              deal->handler(
                   res.status == DealStatus::kDealStatusRejected
                       ? RetrievalClientError::kResponseDealRejected
                       : res.status == DealStatus::kDealStatusDealNotFound
                             ? RetrievalClientError::kResponseNotFound
                             : RetrievalClientError::kUnknownResponseReceived);
+              datatransfer_->pulling_out.erase(deal->pdtid);
+              return;
             }
             auto _paych{api_->PaychGet(
                 deal->client_wallet, deal->miner_wallet, deal->total_funds)};
