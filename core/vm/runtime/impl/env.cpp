@@ -166,7 +166,6 @@ namespace fc::vm::runtime {
   outcome::result<MessageReceipt> Env::applyImplicitMessage(
       UnsignedMessage message) {
     OUTCOME_TRY(from, state_tree->get(message.from));
-    message.nonce = from.nonce;
     auto execution = Execution::make(shared_from_this(), message);
     auto result = execution->send(message);
     if (result.has_error() && !isVMExitCode(result.error())) {

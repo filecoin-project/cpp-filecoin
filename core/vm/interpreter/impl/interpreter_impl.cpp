@@ -85,7 +85,7 @@ namespace fc::vm::interpreter {
                   env->applyImplicitMessage(UnsignedMessage{
                       kCronAddress,
                       kSystemActorAddress,
-                      {},
+                      tipset->height(),
                       0,
                       0,
                       kBlockGasLimit * 10000,
@@ -138,7 +138,7 @@ namespace fc::vm::interpreter {
                   env->applyImplicitMessage(UnsignedMessage{
                       kRewardAddress,
                       kSystemActorAddress,
-                      {},
+                      tipset->height(),
                       0,
                       0,
                       1 << 30,

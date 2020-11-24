@@ -329,15 +329,10 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtActorBalance) {
-    if (auto _actor{
-            rt.execution()->state_tree->get(rt.getMessage().get().to)}) {
-      ret << kOk << _actor.value().balance;
+    if (auto balance{rt.getBalance(rt.getMessage().get().to)}) {
+      ret << kOk << balance.value();
     } else {
-      if (_actor.error() == HamtError::kNotFound) {
-        ret << kOk << TokenAmount{0};
-      } else {
-        ret << kFatal;
-      }
+      ret << kFatal;
     }
   }
 
