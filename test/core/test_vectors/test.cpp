@@ -21,6 +21,10 @@
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/env.hpp"
 
+// TODO (a.chernyshov) add chaos actor and enable
+/** Enable tests with chaos actor. */
+const bool kEnableChaos = false;
+
 const auto kCorpusRoot{resourcePath("test-vectors/corpus")};
 auto brief(const std::string &path) {
   auto n{kCorpusRoot.size() + 1};
@@ -218,7 +222,7 @@ struct MessageVector {
  * @param chaos_enabled - do not skip tests with chaos actor
  * @return vector of tests
  */
-auto search(bool chaos_enabled) {
+auto search() {
   std::vector<MessageVector> vectors;
 
   for (auto &item :
@@ -261,7 +265,7 @@ auto search(bool chaos_enabled) {
 
       auto vector = MessageVector::read(path.string());
       // skip tests with chaos actors
-      if (!chaos_enabled && vector.chaos) {
+      if (!kEnableChaos && vector.chaos) {
         continue;
       }
       vectors.push_back(vector);
@@ -407,10 +411,5 @@ static const auto testName{[](auto &&p) {
 
 INSTANTIATE_TEST_CASE_P(Vectors,
                         TestVectors,
-                        testing::ValuesIn(search(false)),
-                        testName);
-
-INSTANTIATE_TEST_CASE_P(DISABLED_Vectors,
-                        TestVectors,
-                        testing::ValuesIn(search(true)),
+                        testing::ValuesIn(search()),
                         testName);
