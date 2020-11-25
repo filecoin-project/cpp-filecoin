@@ -215,7 +215,7 @@ namespace fc::vm::runtime {
     }
     OUTCOME_TRY(state_tree->set(
         id,
-        {actor::builtin::v0::kAccountCodeCid, actor::kEmptyObjectCid, {}, {}}));
+        {actor::builtin::v2::kAccountCodeCid, actor::kEmptyObjectCid, {}, {}}));
     OUTCOME_TRY(params, actor::encodeActorParams(address));
     OUTCOME_TRY(sendWithRevert({id,
                                 kSystemActorAddress,
