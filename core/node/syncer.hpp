@@ -6,14 +6,13 @@
 #ifndef CPP_FILECOIN_SYNC_SYNCER_HPP
 #define CPP_FILECOIN_SYNC_SYNCER_HPP
 
-#include <libp2p/protocol/common/scheduler.hpp>
 #include "interpret_job.hpp"
+#include "peers.hpp"
+#include "subchain_loader.hpp"
 
 namespace fc::sync {
 
   class TipsetLoader;
-  class SubchainLoader;
-  class InterpretJob;
 
   class Syncer {
    public:
@@ -27,51 +26,51 @@ namespace fc::sync {
     void start(std::shared_ptr<events::Events> events);
 
    private:
-    void newTarget(boost::optional<PeerId> peer,
-                   TipsetKey head_tipset,
-                   BigInt weight,
-                   uint64_t height);
+    void downloaderCallback(SubchainLoader::Status status);
 
-    void excludePeer(const PeerId &peer);
+    void interpreterCallback(InterpretJob::Result result);
 
-    void setCurrentWeightAndHeight(BigInt w, uint64_t h);
+    void newInterpretJob(TipsetKey key);
 
-    bool isActive();
+    void onPossibleHead(const events::PossibleHead &e);
 
-    struct Target {
+    boost::optional<PeerId> choosePeer(boost::optional<PeerId> candidate);
+
+    void newDownloadJob(PeerId peer,
+                        TipsetKey head,
+                        Height height,
+                        bool make_deep_request);
+
+    struct DownloadTarget {
       TipsetKey head_tipset;
-      BigInt weight;
       uint64_t height;
     };
 
-    using PendingTargets = std::unordered_map<PeerId, Target>;
-
-    boost::optional<PendingTargets::iterator> chooseNextTarget();
-
-    void startJob(PeerId peer, TipsetKey head_tipset, uint64_t height);
+    using DownloadTargets = std::unordered_map<PeerId, DownloadTarget>;
+    using InterpretTargets = std::deque<TipsetKey>;
 
     std::shared_ptr<libp2p::protocol::Scheduler> scheduler_;
     std::shared_ptr<TipsetLoader> tipset_loader_;
     std::shared_ptr<ChainDb> chain_db_;
 
-    PendingTargets pending_targets_;
+    /// One download job at the moment, they could be parallel
+    SubchainLoader downloader_;
 
-    // max weight of local node
-    BigInt current_weight_;
+    /// Interpreter job, no need to parallel them, they may intersect
+    InterpretJob interpreter_;
 
-    // height of local node
-    uint64_t current_height_ = 0;
+    Peers peers_;
 
-    boost::optional<PeerId> last_good_peer_;
-    Height probable_height_ = 0;
+    DownloadTargets pending_targets_;
+    InterpretTargets pending_interpret_targets_;
 
-    // one job at the moment, they could be parallel
-    std::unique_ptr<SubchainLoader> downloader_;
-    std::shared_ptr<InterpretJob> interpreter_;
-
-    bool started_ = false;
+    /// Last known height needed to limit the depth of sync queries if possible
+    Height last_known_height_ = 0;
 
     std::shared_ptr<events::Events> events_;
+    events::Connection possible_head_event_;
+    events::Connection tipset_stored_event_;
+    events::Connection peer_disconnected_event_;
   };
 
 }  // namespace fc::sync

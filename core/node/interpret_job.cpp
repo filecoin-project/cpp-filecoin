@@ -23,20 +23,21 @@ namespace fc::sync {
       libp2p::protocol::Scheduler &scheduler,
       ChainDb &chain_db,
       IpfsStoragePtr ipld,
-      std::shared_ptr<events::Events> events)
+      Callback callback)
       : kv_store_(kv_store),
         interpreter_(std::move(interpreter)),
         scheduler_(scheduler),
         chain_db_(chain_db),
         ipld_(std::move(ipld)),
-        events_(std::move(events)),
+        callback_(std::move(callback)),
         result_{nullptr,
                 vm::interpreter::InterpreterError::kChainInconsistency} {
-    assert(events_);
+    assert(callback_);
   }
 
-  outcome::result<void> InterpretJob::start(const TipsetKey &head) {
-    if (active_) {
+  outcome::result<boost::optional<InterpretJob::Result>> InterpretJob::start(
+      const TipsetKey &head) {
+    if (status_.active) {
       log()->warn("current job ({} -> {}) is still active, cancelling it",
                   status_.current_height,
                   status_.target_height);
@@ -44,7 +45,6 @@ namespace fc::sync {
     }
 
     OUTCOME_TRYA(target_head_, chain_db_.getTipsetByKey(head));
-    status_.target_height = target_head_->height();
 
     const auto &hash = target_head_->key.hash();
 
@@ -52,11 +52,8 @@ namespace fc::sync {
     OUTCOME_TRY(maybe_result,
                 vm::interpreter::getSavedResult(*kv_store_, target_head_));
     if (maybe_result) {
-      result_.head = target_head_;
-      result_.result = std::move(maybe_result.value());
-      status_.current_height = status_.target_height;
-      scheduleResult();
-      return outcome::success();
+      return Result{.head = target_head_,
+                    .result = std::move(maybe_result.value())};
     }
 
     std::error_code e;
@@ -90,18 +87,19 @@ namespace fc::sync {
       return vm::interpreter::InterpreterError::kChainInconsistency;
     }
 
+    status_.target_height = target_head_->height();
     status_.current_height = result_.head->height();
     log()->info(
         "starting {} -> {}", status_.current_height, status_.target_height);
-    active_ = true;
+    status_.active = true;
 
     scheduleStep();
-    return outcome::success();
+    return boost::none;
   }
 
   InterpretJob::Status InterpretJob::cancel() {
     Status status = std::move(status_);
-    active_ = false;
+    status_.active = false;
     status_.current_height = status_.target_height = 0;
     result_.head.reset();
     result_.result = vm::interpreter::InterpreterError::kChainInconsistency;
@@ -115,27 +113,28 @@ namespace fc::sync {
     return status_;
   }
 
-  void InterpretJob::scheduleResult() {
-    active_ = false;
+  void InterpretJob::done() {
+    log()->debug(
+        "done ({})",
+        result_.result.has_value() ? "OK" : result_.result.error().message());
+    status_.active = false;
+    status_.current_height = status_.target_height = 0;
     next_steps_.clear();
     step_cursor_ = 0;
-    events_->signalHeadInterpreted(result_);
+    callback_(std::move(result_));
   }
 
   void InterpretJob::scheduleStep() {
-    if (!active_) {
+    if (!status_.active) {
       return;
     }
-    cb_handle_ = scheduler_.schedule([wptr{weak_from_this()}] {
-      auto self = wptr.lock();
-      if (self) {
-        self->nextStep();
-      }
+    cb_handle_ = scheduler_.schedule([this] {
+      nextStep();
     });
   }
 
   void InterpretJob::nextStep() {
-    if (!active_) {
+    if (!status_.active) {
       return;
     }
 
@@ -155,7 +154,7 @@ namespace fc::sync {
       // TODO (artem) maybe mark tipset as bad ???
       std::ignore = kv_store_->remove(common::Buffer(tipset->key.hash()));
       result_.result = vm::interpreter::InterpreterError::kChainInconsistency;
-      scheduleResult();
+      done();
       return;
     }
 
@@ -164,17 +163,15 @@ namespace fc::sync {
     result_.result = interpreter_->interpret(ipld_, tipset);
 
     if (!result_.result) {
-      log()->error("stopped at height {} with error: {}",
-                   status_.current_height,
-                   result_.result.error().message());
-      scheduleResult();
+      log()->error("stopped at height {}",
+                   status_.current_height);
+      done();
       return;
     }
 
     result_.head = std::move(tipset);
     if (status_.current_height == status_.target_height) {
-      log()->info("done");
-      scheduleResult();
+      done();
       return;
     }
 
@@ -191,13 +188,13 @@ namespace fc::sync {
     next_steps_.clear();
     step_cursor_ = 0;
 
-    assert(active_);
+    assert(status_.active);
     assert(status_.target_height >= status_.current_height);
 
     size_t limit = status_.target_height - status_.current_height;
     if (limit == 0) {
       // done, though should not get here
-      scheduleResult();
+      done();
       return nullptr;
     }
 
@@ -209,22 +206,19 @@ namespace fc::sync {
 
     TipsetCPtr next;
 
-    auto res =
-        chain_db_.walkForward(result_.head,
-                              target_head_,
-                              limit,
-                              [&, this](TipsetCPtr tipset) {
-                                if (tipset->height() > status_.target_height) {
-                                  log()->error("walks behind height limit");
-                                  return false;
-                                }
-                                if (next) {
-                                  next_steps_.push_back(std::move(tipset));
-                                } else {
-                                  next = std::move(tipset);
-                                }
-                                return true;
-                              });
+    auto res = chain_db_.walkForward(
+        result_.head, target_head_, limit, [&, this](TipsetCPtr tipset) {
+          if (tipset->height() > status_.target_height) {
+            log()->error("walks behind height limit");
+            return false;
+          }
+          if (next) {
+            next_steps_.push_back(std::move(tipset));
+          } else {
+            next = std::move(tipset);
+          }
+          return true;
+        });
     if (!res) {
       log()->error("failed to load {} tipsets starting from height {}",
                    limit,
@@ -241,7 +235,7 @@ namespace fc::sync {
       return next;
     }
 
-    scheduleResult();
+    done();
     return nullptr;
   }
 

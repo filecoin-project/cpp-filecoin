@@ -4,6 +4,7 @@
 #
 
 add_library(sync
+    peers.cpp
     identify.cpp
     say_hello.cpp
     receive_hello.cpp
@@ -12,12 +13,14 @@ add_library(sync
     blocksync_client.cpp
     blocksync_server.cpp
     subchain_loader.cpp
-#    syncer.cpp
+    syncer.cpp
     interpret_job.cpp
     chain_db.cpp
     branches.cpp
     index_db.cpp
     index_db_backend.cpp
+    head_constructor.cpp
+    chain_store_impl.cpp
     )
 
 target_link_libraries(sync

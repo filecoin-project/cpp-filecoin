@@ -176,6 +176,8 @@ namespace fc::primitives::tipset {
 
     uint64_t height() const;
 
+    TipsetKey key() const;
+
    private:
     std::vector<block::BlockHeader> blks_;
     std::vector<CID> cids_;

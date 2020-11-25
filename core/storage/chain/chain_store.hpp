@@ -29,8 +29,6 @@ namespace fc::storage::blockchain {
    public:
     virtual ~ChainStore() = default;
 
-    virtual outcome::result<void> start() = 0;
-
     virtual outcome::result<void> addBlock(const BlockHeader &block) = 0;
 
     virtual outcome::result<TipsetCPtr> loadTipset(const TipsetHash &hash) = 0;
@@ -51,7 +49,7 @@ namespace fc::storage::blockchain {
 
     virtual const CID& genesisCID() const = 0;
 
-    virtual primitives::BigInt getHeaviestWeight() = 0;
+    virtual primitives::BigInt getHeaviestWeight() const = 0;
   };
 
 }  // namespace fc::storage::blockchain

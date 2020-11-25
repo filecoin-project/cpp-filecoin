@@ -3,16 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "common/logger.hpp"
 #include "subchain_loader.hpp"
-#include "tipset_loader.hpp"
 #include "chain_db.hpp"
+#include "tipset_loader.hpp"
+#include "events.hpp"
 
 namespace fc::sync {
 
+  namespace {
+    auto log() {
+      static common::Logger logger = common::createLogger("subchain_loader");
+      return logger.get();
+    }
+  }  // namespace
+
   SubchainLoader::SubchainLoader(libp2p::protocol::Scheduler &scheduler,
-                   TipsetLoader &tipset_loader,
-                   ChainDb &chain_db,
-                   Callback callback)
+                                 TipsetLoader &tipset_loader,
+                                 ChainDb &chain_db,
+                                 Callback callback)
       : scheduler_(scheduler),
         tipset_loader_(tipset_loader),
         chain_db_(chain_db),
@@ -20,9 +29,11 @@ namespace fc::sync {
     assert(callback_);
   }
 
-  void SubchainLoader::start(PeerId peer, TipsetKey head, uint64_t probable_depth) {
+  void SubchainLoader::start(PeerId peer,
+                             TipsetKey head,
+                             uint64_t probable_depth) {
     if (active_) {
-      // log~~
+      log()->error("current job is still active, ignoring the new one");
       return;
     }
     active_ = true;
@@ -45,7 +56,6 @@ namespace fc::sync {
       nextTarget(std::move(maybe_next_target));
 
     } catch (const std::system_error &e) {
-      // log ~~~
       internalError(e.code());
     }
   }
@@ -67,20 +77,16 @@ namespace fc::sync {
     return status_;
   }
 
-  void SubchainLoader::onTipsetLoaded(TipsetHash hash,
-                               outcome::result<TipsetCPtr> result) {
+  void SubchainLoader::onTipsetStored(const events::TipsetStored &e) {
     if (status_.code != Status::IN_PROGRESS || !status_.next.has_value()
-        || hash != status_.next.value()) {
+        || e.hash != status_.next.value()) {
       // dont need this tipset
       return;
     }
 
     try {
-      OUTCOME_EXCEPT(tipset, result);
-      OUTCOME_EXCEPT(maybe_next_target,
-                     chain_db_.storeTipset(tipset, tipset->getParents()));
-
-      nextTarget(std::move(maybe_next_target));
+      OUTCOME_EXCEPT(e.tipset);
+      nextTarget(std::move(e.proceed_sync_from));
 
     } catch (const std::system_error &e) {
       // TODO (artem) separate bad blocks error vs. other errors
@@ -89,6 +95,7 @@ namespace fc::sync {
   }
 
   void SubchainLoader::internalError(std::error_code e) {
+    log()->error("internal error, {}", e.message());
     status_.error = e;
     status_.code = Status::INTERNAL_ERROR;
     scheduleCallback();

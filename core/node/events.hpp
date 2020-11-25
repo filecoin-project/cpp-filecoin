@@ -14,6 +14,7 @@
 #include <libp2p/protocol/common/scheduler.hpp>
 
 #include "vm/interpreter/interpreter.hpp"
+#include "primitives/tipset/tipset.hpp"
 
 namespace libp2p {
   namespace peer {
@@ -21,17 +22,9 @@ namespace libp2p {
   }  // namespace peer
 }  // namespace libp2p
 
-namespace fc {
-
-  namespace primitives {
-    namespace tipset {
-      struct Tipset;
-    }  // namespace tipset
-  }    // namespace primitives
-
-}  // namespace fc
-
 namespace fc::sync::events {
+
+  using primitives::tipset::HeadChange;
 
   struct PeerConnected {
     PeerId peer_id;
@@ -62,7 +55,7 @@ namespace fc::sync::events {
   struct BlockFromPubSub {
     PeerId from;
     CID block_cid;
-    BlockWithCids msg;
+    BlockWithCids block;
   };
 
   struct MessageFromPubSub {
@@ -85,6 +78,12 @@ namespace fc::sync::events {
 
     // bottom of unsynced chain: tipset whose parents are not yet stored
     boost::optional<TipsetCPtr> proceed_sync_from;
+  };
+
+  struct PossibleHead {
+    boost::optional<PeerId> source;
+    TipsetKey head;
+    Height height = 0;
   };
 
   struct HeadInterpreted {
@@ -126,7 +125,9 @@ namespace fc::sync::events {
     DEFINE_EVENT(MessageFromPubSub);
     DEFINE_EVENT(BlockStored);
     DEFINE_EVENT(TipsetStored);
+    DEFINE_EVENT(PossibleHead);
     DEFINE_EVENT(HeadInterpreted);
+    DEFINE_EVENT(HeadChange);
 
 #undef DEFINE_EVENT
 

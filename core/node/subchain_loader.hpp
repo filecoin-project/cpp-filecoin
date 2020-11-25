@@ -12,6 +12,10 @@
 
 namespace fc::sync {
 
+  namespace events {
+    struct TipsetStored;
+  }
+
   class TipsetLoader;
   class ChainDb;
 
@@ -39,9 +43,9 @@ namespace fc::sync {
     using Callback = std::function<void(Status status)>;
 
     SubchainLoader(libp2p::protocol::Scheduler &scheduler,
-            TipsetLoader &tipset_loader,
-            ChainDb &chain_db,
-            Callback callback);
+                   TipsetLoader &tipset_loader,
+                   ChainDb &chain_db,
+                   Callback callback);
 
     void start(PeerId peer, TipsetKey head, uint64_t probable_depth);
 
@@ -51,8 +55,7 @@ namespace fc::sync {
 
     const Status &getStatus() const;
 
-    void onTipsetLoaded(TipsetHash hash,
-                        outcome::result<TipsetCPtr> result);
+    void onTipsetStored(const events::TipsetStored &e);
 
    private:
     void internalError(std::error_code e);

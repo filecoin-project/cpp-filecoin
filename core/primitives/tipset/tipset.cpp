@@ -177,6 +177,10 @@ namespace fc::primitives::tipset {
     return blks_.empty() ? 0 : blks_[0].height;
   }
 
+  TipsetKey TipsetCreator::key() const {
+    return TipsetKey(cids_);
+  }
+
   outcome::result<TipsetCPtr> Tipset::create(const TipsetHash &hash,
                                              BlocksFromNetwork blocks) {
     TipsetCreator creator;

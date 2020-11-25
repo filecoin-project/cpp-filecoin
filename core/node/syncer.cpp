@@ -5,11 +5,17 @@
 
 #include "syncer.hpp"
 
+#include "common/logger.hpp"
 #include "tipset_loader.hpp"
-#include "interpret_job.hpp"
-#include "subchain_loader.hpp"
 
 namespace fc::sync {
+
+  namespace {
+    auto log() {
+      static common::Logger logger = common::createLogger("syncer");
+      return logger.get();
+    }
+  }  // namespace
 
   Syncer::Syncer(std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
                  std::shared_ptr<TipsetLoader> tipset_loader,
@@ -20,159 +26,150 @@ namespace fc::sync {
       : scheduler_(std::move(scheduler)),
         tipset_loader_(std::move(tipset_loader)),
         chain_db_(std::move(chain_db)),
-        interpreter_(std::make_shared<InterpretJob>(
-            std::move(kv_store),
-            std::move(interpreter),
-            *scheduler_,
-            *chain_db_,
-            std::move(ipld),
-            [this](const InterpreterJob::Result &result) {
-              onInterpreterResult(result);
-            })) {}
+        downloader_(*scheduler_,
+                    *tipset_loader_,
+                    *chain_db_,
+                    [this](SubchainLoader::Status status) {
+                      downloaderCallback(std::move(status));
+                    }),
+        interpreter_(std::move(kv_store),
+                     std::move(interpreter),
+                     *scheduler_,
+                     *chain_db_,
+                     std::move(ipld),
+                     [this](InterpretJob::Result result) {
+                       interpreterCallback(std::move(result));
+                     }) {}
 
-  void Syncer::start() {
-    if (!started_) {
-      started_ = true;
-      tipset_loader_->init([this](sync::TipsetHash hash,
-                                  outcome::result<sync::TipsetCPtr> tipset) {
-        onTipsetLoaded(std::move(hash), std::move(tipset));
-      });
-    }
-
-    if (!isActive()) {
-      auto target = chooseNextTarget();
-      if (target) {
-        auto &t = target.value()->second;
-        startJob(target.value()->first, std::move(t.head_tipset), t.height);
-        pending_targets_.erase(target.value());
-      }
-    }
-  }
-
-  void Syncer::newTarget(boost::optional<PeerId> peer,
-                         TipsetKey head_tipset,
-                         BigInt weight,
-                         uint64_t height) {
-    if (weight < current_weight_ && height < current_height_) {
-      // not a sync target
+  void Syncer::start(std::shared_ptr<events::Events> events) {
+    if (events_) {
+      log()->error("already started");
       return;
     }
 
-    if (!peer) {
-      if (last_good_peer_) {
-        peer = last_good_peer_;
-      } else {
-        return;
-      }
-    }
+    events_ = std::move(events);
+    assert(events_);
 
-    if (started_ && !isActive()) {
-      startJob(std::move(peer.value()), std::move(head_tipset), height);
+    possible_head_event_ = events_->subscribePossibleHead(
+        [this](const events::PossibleHead &e) { onPossibleHead(e); });
+
+    tipset_stored_event_ =
+        events_->subscribeTipsetStored([this](const events::TipsetStored &e) {
+          if (e.tipset.has_value()) {
+            if (e.tipset.value()->height() > last_known_height_) {
+              last_known_height_ = e.tipset.value()->height();
+            }
+          }
+          downloader_.onTipsetStored(e);
+        });
+
+    peer_disconnected_event_ = events_->subscribePeerDisconnected(
+        [this](const events::PeerDisconnected &e) {
+          pending_targets_.erase(e.peer_id);
+        });
+
+    peers_.start({"/blocksync/"}, *events);
+  }
+
+  void Syncer::downloaderCallback(SubchainLoader::Status status) {
+    if (status.code == SubchainLoader::Status::SYNCED_TO_GENESIS) {
+      peers_.changeRating(status.peer.value(), 100);
+      newInterpretJob(std::move(status.head.value()));
     } else {
-      pending_targets_[peer.value()] =
-          Target{std::move(head_tipset), std::move(weight), std::move(height)};
+      // TODO (maybe restart with another peer)
+      peers_.changeRating(status.peer.value(), -100);
     }
-  }
 
-  void Syncer::excludePeer(const PeerId &peer) {
-    pending_targets_.erase(peer);
-  }
-
-  void Syncer::setCurrentWeightAndHeight(BigInt w, uint64_t h) {
-    current_weight_ = std::move(w);
-    current_height_ = h;
-
-    for (auto it = pending_targets_.begin(); it != pending_targets_.end();) {
-      if (it->second.weight <= current_weight_
-          && it->second.height <= current_height_) {
-        it = pending_targets_.erase(it);
-      } else {
-        ++it;
-      }
-    }
-  }
-
-  bool Syncer::isActive() {
-    return started_ && current_job_ && current_job_->isActive();
-  }
-
-  boost::optional<Syncer::PendingTargets::iterator> Syncer::chooseNextTarget() {
-    boost::optional<PendingTargets::iterator> target;
-
-    if (!pending_targets_.empty()) {
-      BigInt max_weight = current_weight_;
-      Height max_height = current_height_;
-      for (auto it = pending_targets_.begin(); it != pending_targets_.end();
-           ++it) {
-        if (it->second.weight > max_weight) {
-          max_weight = it->second.weight;
-          target = it;
-        } else if (it->second.weight == max_weight
-                   && it->second.height > current_height_) {
-          max_height = current_height_;
-          target = it;
+    while (!pending_targets_.empty() && !downloader_.isActive()) {
+      auto it = pending_targets_.begin();
+      auto res = chain_db_->getUnsyncedBottom(it->second.head_tipset);
+      if (res) {
+        auto &lowest_loaded = res.value();
+        if (!lowest_loaded) {
+          newInterpretJob(std::move(it->second.head_tipset));
+        } else {
+          onPossibleHead({.source = it->first,
+                          .head = lowest_loaded.value()->getParents(),
+                          .height = lowest_loaded.value()->height()});
         }
+      } else {
+        onPossibleHead({.source = it->first,
+                        .head = it->second.head_tipset,
+                        .height = it->second.height});
       }
-      if (!target) {
-        // all targets are obsolete, forget them
-        pending_targets_.clear();
+      pending_targets_.erase(it);
+    }
+  }
+
+  void Syncer::interpreterCallback(InterpretJob::Result result) {
+    events_->signalHeadInterpreted(std::move(result));
+    if (!pending_interpret_targets_.empty()) {
+      auto target = std::move(pending_interpret_targets_.front());
+      pending_interpret_targets_.pop_front();
+      newInterpretJob(std::move(target));
+    }
+  }
+
+  void Syncer::newInterpretJob(TipsetKey key) {
+    if (interpreter_.getStatus().active) {
+      pending_interpret_targets_.push_back(std::move(key));
+    } else {
+      auto res = interpreter_.start(std::move(key));
+      if (res) {
+        if (res.value().has_value()) {
+          interpreterCallback(std::move(res.value().value()));
+        }
+      } else {
+        log()->error("interpreter start error {}", res.error().message());
       }
     }
-
-    // TODO (artem) choose peer by minimal latency among connected peers with
-    // the same weight. Using PeerManager
-
-    return target;
   }
 
-  void Syncer::startJob(PeerId peer, TipsetKey head_tipset, uint64_t height) {
-    assert(started_);
-
-    if (!current_job_) {
-      current_job_ = std::make_unique<SyncJob>(
-          *scheduler_, *tipset_loader_, *chain_db_, [this](SyncStatus status) {
-            onSyncJobFinished(std::move(status));
-          });
+  void Syncer::onPossibleHead(const events::PossibleHead &e) {
+    auto maybe_peer = choosePeer(e.source);
+    if (!maybe_peer) {
+      log()->debug("ignoring sync target, no peers connected");
+      return;
     }
 
-    assert(!current_job_->isActive());
-
-    uint64_t probable_depth = height;
-    if (height > probable_height_) {
-      probable_depth = height - probable_height_;
-    }
-
-    current_job_->start(
-        std::move(peer), std::move(head_tipset), probable_depth);
-  }
-
-  void Syncer::onTipsetLoaded(TipsetHash hash,
-                              outcome::result<TipsetCPtr> tipset_res) {
-    if (isActive()) {
-      probable_height_ = tipset_res.value()->height();
-      current_job_->onTipsetLoaded(std::move(hash), std::move(tipset_res));
-    }
-  }
-
-  void Syncer::onSyncJobFinished(SyncStatus status) {
-    if (status.code == SyncStatus::SYNCED_TO_GENESIS) {
-      last_good_peer_ = status.peer.value();
-      auto res = interpreter_job_->start(status.head.value());
-      if (!res) {
-        // ~~log
-        // XXX ???? callback_(interpreter_job_->getResult());
+    PeerId &peer = maybe_peer.value();
+    if (downloader_.isActive()) {
+      auto it = pending_targets_.find(peer);
+      if (it == pending_targets_.end()) {
+        pending_targets_[peer] = DownloadTarget{e.head, e.height};
+      } else if (it->second.height <= e.height
+                 && it->second.head_tipset != e.head) {
+        // prefer more fresh update
+        it->second = DownloadTarget{e.head, e.height};
       }
     } else {
-      // ~~log
+      // if e.source is null then try to make the 1st request with depth
+      newDownloadJob(std::move(peer), e.head, e.height, !e.source.has_value());
     }
   }
 
-  void Syncer::onInterpreterResult(const InterpreterJob::Result& result) {
-    if (result.result) {
-      callback_(result);
-    } else {
-      //~~~ ????
+  boost::optional<PeerId> Syncer::choosePeer(
+      boost::optional<PeerId> candidate) {
+    if (candidate && peers_.isConnected(candidate.value())) {
+      return candidate;
     }
+    return peers_.selectBestPeer();
+  }
+
+  void Syncer::newDownloadJob(PeerId peer,
+                              TipsetKey head,
+                              Height height,
+                              bool make_deep_request) {
+    assert(!downloader_.isActive());
+
+    uint64_t probable_depth = 1;
+    if (make_deep_request) {
+      // if e.source is null then try to make the 1st request with depth
+      if (height > last_known_height_) {
+        probable_depth = height - last_known_height_;
+      }
+    }
+    downloader_.start(std::move(peer), std::move(head), probable_depth);
   }
 
 }  // namespace fc::sync
