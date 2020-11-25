@@ -53,6 +53,15 @@ namespace fc::vm::runtime {
         gsl::span<const uint8_t> seed) const override;
 
    private:
+    /**
+     * Returns predefined randomness if present or none otherwise
+     */
+    boost::optional<Randomness> getReplayingRandomness(
+        RandomnessType type,
+        DomainSeparationTag tag,
+        ChainEpoch epoch,
+        gsl::span<const uint8_t> seed) const;
+
     std::vector<TestVectorRandomness> test_vector_randomness_;
   };
 

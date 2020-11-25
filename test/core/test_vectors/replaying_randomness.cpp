@@ -15,15 +15,10 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    for (const auto &rand : test_vector_randomness_) {
-      if (rand.type == RandomnessType::kChain
-          && rand.domain_separation_tag == tag && rand.epoch == epoch
-          && std::equal(rand.entropy.cbegin(),
-                        rand.entropy.cend(),
-                        seed.cbegin(),
-                        seed.cend())) {
-        return rand.ret;
-      }
+    auto maybe_randomness =
+        getReplayingRandomness(RandomnessType::kChain, tag, epoch, seed);
+    if (maybe_randomness) {
+      return maybe_randomness.value();
     }
     return FixedRandomness::getRandomnessFromTickets(tag, epoch, seed);
   }
@@ -32,7 +27,30 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
+    auto maybe_randomness =
+        getReplayingRandomness(RandomnessType::kBeacon, tag, epoch, seed);
+    if (maybe_randomness) {
+      return maybe_randomness.value();
+    }
     return FixedRandomness::getRandomnessFromBeacon(tag, epoch, seed);
+  }
+
+  boost::optional<Randomness> ReplayingRandomness::getReplayingRandomness(
+      RandomnessType type,
+      DomainSeparationTag tag,
+      ChainEpoch epoch,
+      gsl::span<const uint8_t> seed) const {
+    for (const auto &rand : test_vector_randomness_) {
+      if (rand.type == type && rand.domain_separation_tag == tag
+          && rand.epoch == epoch
+          && std::equal(rand.entropy.cbegin(),
+                        rand.entropy.cend(),
+                        seed.cbegin(),
+                        seed.cend())) {
+        return rand.ret;
+      }
+    }
+    return boost::none;
   }
 
 }  // namespace fc::vm::runtime
