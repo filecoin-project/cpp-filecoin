@@ -3,9 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage_power_actor_state.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 
-#include "policy.hpp"
+#include "vm/actor/builtin/v0/storage_power/policy.hpp"
 #include "vm/exit_code/exit_code.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {

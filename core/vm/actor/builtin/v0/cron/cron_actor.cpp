@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "cron_actor.hpp"
+#include "vm/actor/builtin/v0/cron/cron_actor.hpp"
 
 namespace fc::vm::actor::builtin::v0::cron {
   ACTOR_METHOD_IMPL(EpochTick) {

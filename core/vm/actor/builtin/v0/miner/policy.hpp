@@ -82,6 +82,6 @@ namespace fc::vm::actor::builtin::v0::miner {
                     bigdiv(collateral * init.first * pow(grow.first, age),
                            init.second * pow(grow.second, age)));
   }
-}  // namespace fc::vm::actor::builtin::miner
+}  // namespace fc::vm::actor::builtin::v0::miner
 
 #endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MINER_POLICY_HPP

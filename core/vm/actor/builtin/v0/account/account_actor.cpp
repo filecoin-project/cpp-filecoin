@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "account_actor.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
 
 #include "vm/exit_code/exit_code.hpp"
 

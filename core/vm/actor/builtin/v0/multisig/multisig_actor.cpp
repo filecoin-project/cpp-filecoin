@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "multisig_actor.hpp"
+#include "vm/actor/builtin/v0/multisig/multisig_actor.hpp"
 
 #include "common/buffer.hpp"
 #include "common/outcome.hpp"
@@ -120,9 +120,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
       // send messsage ignoring value returned
       // https://github.com/filecoin-project/specs-actors/issues/113
       std::ignore = runtime.send(pending_tx.to,
-                   pending_tx.method,
-                   pending_tx.params,
-                   pending_tx.value);
+                                 pending_tx.method,
+                                 pending_tx.params,
+                                 pending_tx.value);
 
       OUTCOME_TRY(deletePendingTransaction(tx_number));
     } else {

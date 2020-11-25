@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "miner_actor.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   DeadlineInfo DeadlineInfo::make(ChainEpoch start,

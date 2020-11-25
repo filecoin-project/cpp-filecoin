@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "init_actor.hpp"
+#include "vm/actor/builtin/v0/init/init_actor.hpp"
 
 #include "adt/address_key.hpp"
 #include "storage/hamt/hamt.hpp"

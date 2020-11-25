@@ -10,12 +10,12 @@
 #include "adt/map.hpp"
 #include "adt/uvarint_key.hpp"
 #include "common/libp2p/multi/cbor_multiaddress.hpp"
-#include "policy.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "primitives/sector/sector.hpp"
+#include "vm/actor/builtin/v0/miner/policy.hpp"
 
 namespace fc::vm::actor::builtin::v0::miner {
   using adt::UvarintKeyer;

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "policy.hpp"
+#include "vm/actor/builtin/v0/storage_power/policy.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
   using primitives::SectorQuality;

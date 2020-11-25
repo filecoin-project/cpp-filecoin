@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "actor.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
 
 #include "crypto/hasher/hasher.hpp"
 #include "policy.hpp"

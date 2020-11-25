@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "actor.hpp"
+#include "vm/actor/builtin/v0/verified_registry/actor.hpp"
 
 namespace fc::vm::actor::builtin::v0::verified_registry {
   ACTOR_METHOD_IMPL(Constructor) {
