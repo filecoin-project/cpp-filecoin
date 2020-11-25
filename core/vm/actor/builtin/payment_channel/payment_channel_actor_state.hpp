@@ -43,8 +43,8 @@ namespace fc::vm::actor::builtin::payment_channel {
     Address to;
     /** Token amount to send on collect after voucher was redeemed */
     TokenAmount to_send{};
-    ChainEpoch settling_at;
-    ChainEpoch min_settling_height;
+    ChainEpoch settling_at{};
+    ChainEpoch min_settling_height{};
     std::vector<LaneState> lanes{};
   };
   CBOR_TUPLE(State, from, to, to_send, settling_at, min_settling_height, lanes)
@@ -65,15 +65,16 @@ namespace fc::vm::actor::builtin::payment_channel {
   struct ModularVerificationParameter {
     Address actor;
     MethodNumber method;
-    Buffer data;
+    Buffer params;
 
     inline bool operator==(const ModularVerificationParameter &rhs) const {
-      return actor == rhs.actor && method == rhs.method && data == rhs.data;
+      return actor == rhs.actor && method == rhs.method && params == rhs.params;
     }
   };
-  CBOR_TUPLE(ModularVerificationParameter, actor, method, data)
+  CBOR_TUPLE(ModularVerificationParameter, actor, method, params)
 
   struct SignedVoucher {
+    Address channel_addr;
     ChainEpoch time_lock_min{};
     ChainEpoch time_lock_max{};
     Buffer secret_preimage;
@@ -86,7 +87,8 @@ namespace fc::vm::actor::builtin::payment_channel {
     boost::optional<Signature> signature;
 
     inline bool operator==(const SignedVoucher &rhs) const {
-      return time_lock_min == rhs.time_lock_min
+      return channel_addr == rhs.channel_addr
+             && time_lock_min == rhs.time_lock_min
              && time_lock_max == rhs.time_lock_max
              && secret_preimage == rhs.secret_preimage && extra == rhs.extra
              && lane == rhs.lane && nonce == rhs.nonce && amount == rhs.amount
@@ -95,6 +97,7 @@ namespace fc::vm::actor::builtin::payment_channel {
     }
   };
   CBOR_TUPLE(SignedVoucher,
+             channel_addr,
              time_lock_min,
              time_lock_max,
              secret_preimage,
@@ -108,9 +111,8 @@ namespace fc::vm::actor::builtin::payment_channel {
 
   struct PaymentVerifyParams {
     Buffer extra;
-    Buffer proof;
   };
-  CBOR_TUPLE(PaymentVerifyParams, extra, proof);
+  CBOR_TUPLE(PaymentVerifyParams, extra);
 }  // namespace fc::vm::actor::builtin::payment_channel
 
 #endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP

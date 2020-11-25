@@ -50,7 +50,7 @@ namespace fc::vm::actor {
         // || (actor.code == kStorageMarketCodeCid) // < tested OK
         (actor.code == kStorageMinerCodeCid)       //
         || (actor.code == kMultisigCodeCid)        //
-        || (actor.code == kPaymentChannelCodeCid)  //
+        // || (actor.code == kPaymentChannelCodeCid)  // < WiP
         // || (actor.code == kStoragePowerCodeCid) // < WiP
         || (actor.code == kRewardActorCodeID)  //
                                                // System

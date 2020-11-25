@@ -371,40 +371,13 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtDeleteActor) {
-    if (charge(ret, rt, rt.execution()->env->pricelist.onDeleteActor())) {
-      auto to{arg.get<Address>()};
-      auto &state{*rt.execution()->state_tree};
-      if (auto _actor{state.get(rt.getMessage().get().to)}) {
-        auto &balance{_actor.value().balance};
-        auto transfer{[&]() -> outcome::result<void> {
-          OUTCOME_TRY(from_id, state.lookupId(rt.getMessage().get().to));
-          OUTCOME_TRY(to_id, state.lookupId(to));
-          if (from_id != to_id) {
-            OUTCOME_TRY(from_actor, state.get(from_id));
-            OUTCOME_TRY(to_actor, state.get(to_id));
-            from_actor.balance -= balance;
-            to_actor.balance += balance;
-            OUTCOME_TRY(state.set(from_id, from_actor));
-            OUTCOME_TRY(state.set(to_id, to_actor));
-          }
-          return outcome::success();
-        }};
-        if (balance.is_zero() || transfer()) {
-          if (state.remove(rt.getMessage().get().to)) {
-            ret << kOk;
-          } else {
-            ret << kFatal;
-          }
-        } else {
-          ret << kFatal;
-        }
-      } else {
-        if (_actor.error() == HamtError::kNotFound) {
-          ret << VMExitCode::kSysErrorIllegalActor;
-        } else {
-          ret << kFatal;
-        }
-      }
+    if (rt.deleteActor(arg.get<Address>()))
+    {
+      ret << kOk;
+    }
+    else
+    {
+      ret << kFatal;
     }
   }
 }  // namespace fc::vm::actor::cgo

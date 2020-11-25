@@ -113,11 +113,50 @@ namespace fc::vm::runtime {
     return fc::outcome::success();
   }
 
-  fc::outcome::result<void> RuntimeImpl::deleteActor() {
-    // TODO: transfer to kBurntFundsActorAddress
-    // TODO(a.chernyshov) FIL-137 implement state_tree remove if needed
-    // return state_tree_->remove(address);
-    return fc::outcome::failure(RuntimeError::kUnknown);
+  fc::outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {
+    OUTCOME_TRY(chargeGas(execution_->env->pricelist.onDeleteActor()));
+    auto &state{*execution()->state_tree};
+    if (auto _actor{state.get(getCurrentReceiver())}) {
+      if (_actor.has_error() && _actor.error() == HamtError::kNotFound) {
+        return VMExitCode::kSysErrorIllegalActor;
+      }
+      const auto &balance{_actor.value().balance};
+      if (balance.is_zero()
+          || transfer(getCurrentReceiver(), address, balance)) {
+        if (state.remove(getCurrentReceiver())) {
+          return outcome::success();
+        }
+      }
+    }
+    return VMExitCode::kSysErrorIllegalActor;
+  }
+
+  fc::outcome::result<void> RuntimeImpl::transfer(const Address &debitFrom,
+                                                  const Address &creditTo,
+                                                  const TokenAmount &amount) {
+    if (amount < 0) {
+      return VMExitCode::kSysErrForbidden;
+    }
+
+    auto &state{*execution()->state_tree};
+
+    OUTCOME_TRY(from_id, state.lookupId(debitFrom));
+    OUTCOME_TRY(to_id, state.lookupId(creditTo));
+    if (from_id != to_id) {
+      OUTCOME_TRY(from_actor, state.get(from_id));
+      OUTCOME_TRY(to_actor, state.get(to_id));
+
+      if (from_actor.balance < amount) {
+        return VMExitCode::kSysErrInsufficientFunds;
+      }
+
+      from_actor.balance -= amount;
+      to_actor.balance += amount;
+      OUTCOME_TRY(state.set(from_id, from_actor));
+      OUTCOME_TRY(state.set(to_id, to_actor));
+    }
+
+    return outcome::success();
   }
 
   fc::outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
@@ -144,15 +183,6 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(actor, execution_->state_tree->get(getCurrentReceiver()));
     actor.head = new_state;
     OUTCOME_TRY(execution_->state_tree->set(getCurrentReceiver(), actor));
-    return outcome::success();
-  }
-
-  fc::outcome::result<void> RuntimeImpl::transfer(Actor &from,
-                                                  Actor &to,
-                                                  const BigInt &amount) {
-    if (from.balance < amount) return RuntimeError::kNotEnoughFunds;
-    from.balance = from.balance - amount;
-    to.balance = to.balance + amount;
     return outcome::success();
   }
 
