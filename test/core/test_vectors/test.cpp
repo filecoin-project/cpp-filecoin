@@ -261,6 +261,7 @@ auto search(bool chaos_enabled) {
         if (boost::algorithm::starts_with(path.filename().string(), "x--")) {
           continue;
         }
+
         auto vector = MessageVector::read(path.string());
         // skip tests with chaos actors
         if (!chaos_enabled && vector.chaos) {

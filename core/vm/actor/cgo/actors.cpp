@@ -72,9 +72,8 @@ namespace fc::vm::actor::cgo {
     auto id{next_runtime++};  // TODO: mod
     auto runtime =
         RuntimeImpl(exec, exec->env->randomness, message, message.from);
-    auto version{runtime.getNetworkVersion()};
-    arg << id << version << message.from << message.to << exec->env->epoch
-        << message.value << code << method << params;
+    arg << id << message.from << message.to << exec->env->epoch << message.value
+        << code << method << params;
     runtimes.emplace(id, runtime);
     auto ret{cgoCall<cgoActorsInvoke>(arg)};
     runtimes.erase(id);
@@ -146,6 +145,10 @@ namespace fc::vm::actor::cgo {
     if (charge(ret, rt, arg.get<GasAmount>())) {
       ret << kOk;
     }
+  }
+
+  RUNTIME_METHOD(gocRtNetworkVersion) {
+    ret << kOk << rt.getNetworkVersion();
   }
 
   RUNTIME_METHOD(gocRtRandomnessFromTickets) {

@@ -15,6 +15,7 @@ Raw gocRtReceiver(Raw);
 Raw gocRtIpldGet(Raw);
 Raw gocRtIpldPut(Raw);
 Raw gocRtCharge(Raw);
+Raw gocRtNetworkVersion(Raw);
 Raw gocRtRandomnessFromTickets(Raw);
 Raw gocRtRandomnessFromBeacon(Raw);
 Raw gocRtBlake(Raw);

@@ -70,7 +70,6 @@ var empty = func() cid.Cid {
 
 type rt struct {
 	id       uint64
-	version  uint64
 	from, to address.Address
 	now      int64
 	value    abi.TokenAmount
@@ -83,7 +82,7 @@ var _ rt1.Runtime = &rt{}
 var _ rt2.Runtime = &rt{}
 
 func (rt *rt) NetworkVersion() network.Version {
-	return network.Version(rt.version)
+	return network.Version(rt.gocRet(C.gocRtNetworkVersion(rt.gocArg().arg())).uint())
 }
 
 func (rt *rt) CurrEpoch() abi.ChainEpoch {
@@ -494,8 +493,8 @@ func invoke(rt *rt, code cid.Cid, method uint64, params []byte) (exit exitcode.E
 //export cgoActorsInvoke
 func cgoActorsInvoke(raw C.Raw) C.Raw {
 	arg := cgoArgCbor(raw)
-	id, version, from, to, now, value, code, method, params := arg.uint(), arg.uint(), arg.addr(), arg.addr(), arg.int(), arg.big(), arg.cid(), arg.uint(), arg.bytes()
-	exit, ret := invoke(&rt{id, version, from, to, now, value, false, false, context.Background()}, code, method, params)
+	id, from, to, now, value, code, method, params := arg.uint(), arg.addr(), arg.addr(), arg.int(), arg.big(), arg.cid(), arg.uint(), arg.bytes()
+	exit, ret := invoke(&rt{id, from, to, now, value, false, false, context.Background()}, code, method, params)
 	return CborOut().int(int64(exit)).bytes(ret).ret()
 }
 
