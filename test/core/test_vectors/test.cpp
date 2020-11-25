@@ -213,8 +213,13 @@ struct MessageVector {
   std::string path;
 };
 
-auto search(bool enabled) {
-  static auto all_vectors{[] {
+/**
+ * Search kCorpusRoot ("resources/test-vectors/corpus") for test vector files
+ * @param chaos_enabled - do not skip tests with chaos actor
+ * @return vector of tests
+ */
+auto search(bool chaos_enabled) {
+  static auto all_vectors{[chaos_enabled] {
     std::vector<MessageVector> vectors;
     for (auto &item :
          boost::filesystem::recursive_directory_iterator{kCorpusRoot}) {
@@ -225,19 +230,18 @@ auto search(bool enabled) {
         if (boost::algorithm::starts_with(path.filename().string(), "x--")) {
           continue;
         }
-        vectors.push_back(MessageVector::read(path.string()));
+        auto vector = MessageVector::read(path.string());
+        // skip tests with chaos actors
+        if (!chaos_enabled && vector.chaos) {
+          continue;
+        }
+        vectors.push_back(vector);
       }
     }
     return vectors;
   }()};
-  std::vector<MessageVector> vectors;
-  for (auto &mv : all_vectors) {
-    auto _enabled{!mv.chaos};
-    if (_enabled == enabled) {
-      vectors.push_back(mv);
-    }
-  }
-  return vectors;
+
+  return all_vectors;
 }
 
 struct TestVectors : testing::TestWithParam<MessageVector> {};
@@ -290,7 +294,7 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
         }
         block.messages = ipld->setCbor(meta).value();
         block.parent_message_receipts = block.parent_state_root = state;
-        OUTCOME_EXCEPT(cid, ipld->setCbor(block));
+        OUTCOME_EXCEPT(ipld->setCbor(block));
         OUTCOME_EXCEPT(cr.expandTipset(block));
       }
       std::vector<MessageReceipt> receipts;
@@ -377,10 +381,10 @@ static const auto testName{[](auto &&p) {
 
 INSTANTIATE_TEST_CASE_P(Vectors,
                         TestVectors,
-                        testing::ValuesIn(search(true)),
+                        testing::ValuesIn(search(false)),
                         testName);
 
 INSTANTIATE_TEST_CASE_P(DISABLED_Vectors,
                         TestVectors,
-                        testing::ValuesIn(search(false)),
+                        testing::ValuesIn(search(true)),
                         testName);
