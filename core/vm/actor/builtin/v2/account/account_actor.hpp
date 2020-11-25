@@ -11,7 +11,7 @@
 namespace fc::vm::actor::builtin::v2::account {
 
   /**
-   * Account actor v2 identical to Account actor v0
+   * Account actor v2 is identical to Account actor v0
    */
   using AccountActorState = v0::account::AccountActorState;
   using Construct = v0::account::Construct;

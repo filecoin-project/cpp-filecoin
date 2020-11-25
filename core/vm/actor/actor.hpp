@@ -86,7 +86,7 @@ namespace fc::vm::actor {
    * Returns actor version for network version
    *
    * Network version [0..3] => Actor version v0
-   * Network version [4..7] => Actor version v2
+   * Network version [4..?] => Actor version v2
    *
    * @param network_version - version of network
    * @return v0 or v2 actor version
