@@ -9,7 +9,7 @@
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/address/address.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/minertypes.hpp"
+#include "vm/actor/builtin/v0/miner/types.hpp"
 
 // TODO: update methods
 
