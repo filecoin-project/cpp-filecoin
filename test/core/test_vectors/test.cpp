@@ -226,6 +226,37 @@ auto search(bool chaos_enabled) {
       const auto &path{item.path()};
       if (item.status().type() == boost::filesystem::file_type::regular_file
           && path.extension() == ".json") {
+        // Skip tests that fail in lotus
+        // TODO (a.chernyshov) these tests should be enabled as soon as lotus is
+        // able to pass them
+        static auto fail_in_lotus{[] {
+          return std::vector<std::string> {
+            kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-1.json",
+            kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-10.json",
+            kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-2.json",
+            kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-4.json",
+            kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-6.json",
+            kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-7.json",
+            kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-8.json",
+            kCorpusRoot + "/extracted/0001-initial-extraction/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0001-fil_1_storageminer-SubmitWindowedPoSt-Ok-9.json",
+            kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-1.json",
+            kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-10.json",
+            kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-2.json",
+            kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-3.json",
+            kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-4.json",
+            kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-5.json",
+            kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-6.json",
+            kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-7.json",
+            kCorpusRoot + "/extracted/0004-coverage-boost/fil_1_storageminer/SubmitWindowedPoSt/Ok/ext-0004-fil_1_storageminer-SubmitWindowedPoSt-Ok-9.json"
+          };
+        }()};
+
+        if (std::find(
+                fail_in_lotus.cbegin(), fail_in_lotus.cend(), path.string())
+            != fail_in_lotus.cend()) {
+          continue;
+        }
+
         // ignore broken/incorrect vectors that starts with "x--"
         if (boost::algorithm::starts_with(path.filename().string(), "x--")) {
           continue;
