@@ -26,7 +26,7 @@ namespace fc::vm::runtime {
     ChainEpoch epoch;
 
     /** Seed */
-    std::vector<uint8_t> entropy;
+    Buffer entropy;
 
     /** Randomness result */
     Randomness ret;

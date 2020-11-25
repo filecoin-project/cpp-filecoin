@@ -43,8 +43,8 @@ namespace fc::vm::runtime {
     for (const auto &rand : test_vector_randomness_) {
       if (rand.type == type && rand.domain_separation_tag == tag
           && rand.epoch == epoch
-          && std::equal(rand.entropy.cbegin(),
-                        rand.entropy.cend(),
+          && std::equal(rand.entropy.begin(),
+                        rand.entropy.end(),
                         seed.cbegin(),
                         seed.cend())) {
         return rand.ret;
