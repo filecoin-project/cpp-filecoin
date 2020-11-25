@@ -71,4 +71,20 @@ namespace fc::vm::actor {
                 .value()};
   }
 
+  ActorVersion getActorVersionForNetwork(
+      const NetworkVersion &network_version) {
+    switch (network_version) {
+      case NetworkVersion::kVersion0:
+      case NetworkVersion::kVersion1:
+      case NetworkVersion::kVersion2:
+      case NetworkVersion::kVersion3:
+        return ActorVersion::kVersion0;
+      case NetworkVersion::kVersion4:
+      case NetworkVersion::kVersion5:
+      case NetworkVersion::kVersion6:
+      case NetworkVersion::kVersion7:
+        return ActorVersion::kVersion2;
+    }
+  }
+
 }  // namespace fc::vm::actor
