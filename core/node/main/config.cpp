@@ -163,6 +163,7 @@ namespace fc::node {
 
       if (raw.port != 0) {
         config.listen_address = getListenAddress(raw.port);
+        config.port = raw.port;
       }
 
       std::string summary = fmt::format(

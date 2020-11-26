@@ -65,7 +65,7 @@ namespace fc::primitives::tipset {
 
   TipsetKey::TipsetKey(TipsetHash h, std::vector<CID> c)
       : hash_{std::move(h)}, cids_{std::move(c)} {
-    assert(hash_ == hash(c));
+    assert(hash_ == hash(cids_));
   }
 
   bool TipsetKey::operator==(const TipsetKey &rhs) const {

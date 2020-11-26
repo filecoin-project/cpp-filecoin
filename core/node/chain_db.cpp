@@ -118,12 +118,14 @@ namespace fc::sync {
     assert(callback);
     OUTCOME_TRY(stateIsConsistent());
     auto heads = branches_.getAllHeads();
+    std::vector<TipsetHash> added;
+    added.reserve(heads.size());
     for (const auto &[hash, info] : heads) {
-      std::vector<TipsetHash> added;
-      added.reserve(heads.size());
       if (info->synced_to_genesis) {
         added.push_back(hash);
       }
+    }
+    if (!added.empty()) {
       callback({}, std::move(added));
     }
     return outcome::success();

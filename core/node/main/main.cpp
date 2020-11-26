@@ -63,7 +63,28 @@ namespace fc {
     // will start listening/connecting only after current chain head is set
     sync::events::Connection network_start = events->subscribeCurrentHead(
         [&](const sync::events::CurrentHead &head) {
+          if (!o.host->listen(config.listen_address)) {
+            log()->error("Cannot listen to {}: {}",
+                         config.listen_address.getStringAddress(),
+                         res.error().message());
+            o.io_context->stop();
+            return;
+          }
+
           o.host->start();
+          auto peer_info = o.host->getPeerInfo();
+          if (peer_info.addresses.empty()) {
+            log()->error("Cannot listen to {}: {}",
+                         config.listen_address.getStringAddress());
+            o.io_context->stop();
+            return;
+          }
+
+          log()->info("Node started at /ip4/{}/tcp/{}/p2p/{}",
+                      config.local_ip,
+                      config.port,
+                      peer_info.id.toBase58());
+
           for (const auto &pi : config.bootstrap_list) {
             o.host->connect(pi);
           }
@@ -105,12 +126,13 @@ namespace fc {
 }  // namespace fc
 
 int main(int argc, char *argv[]) {
-  try {
-    return fc::main(argc, argv);
-  } catch (const std::exception &e) {
-    std::cerr << "UNEXPECTED EXCEPTION, " << e.what() << "\n";
-  } catch (...) {
-    std::cerr << "UNEXPECTED EXCEPTION\n";
-  }
-  return 127;
+  return fc::main(argc, argv);
+  //  try {
+  //    return fc::main(argc, argv);
+  //  } catch (const std::exception &e) {
+  //    std::cerr << "UNEXPECTED EXCEPTION, " << e.what() << "\n";
+  //  } catch (...) {
+  //    std::cerr << "UNEXPECTED EXCEPTION\n";
+  //  }
+  //  return 127;
 }

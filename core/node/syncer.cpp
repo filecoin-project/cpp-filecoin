@@ -68,7 +68,9 @@ namespace fc::sync {
           pending_targets_.erase(e.peer_id);
         });
 
-    peers_.start({"/blocksync/"}, *events);
+    peers_.start({"/blocksync/"}, *events_);
+
+    log()->debug("started");
   }
 
   void Syncer::downloaderCallback(SubchainLoader::Status status) {

@@ -27,6 +27,7 @@
 #include "node/chain_store_impl.hpp"
 #include "node/identify.hpp"
 #include "node/index_db_backend.hpp"
+#include "node/pubsub_gate.hpp"
 #include "node/receive_hello.hpp"
 #include "node/say_hello.hpp"
 #include "node/syncer.hpp"
@@ -190,19 +191,17 @@ namespace fc::node {
     OUTCOME_TRY(initNetworkName(o.chain_db->genesisTipset(), o.ipld, config));
     log()->info("Network name: {}", config.network_name);
 
-    auto genesis_timestamp = o.chain_db->genesisTipset().blks[0].timestamp;
-
-    // TODO (artem): ts in nanosec ? resolve
-    genesis_timestamp /= 1000000000;
+    auto genesis_timestamp =
+        clock::UnixTime(o.chain_db->genesisTipset().blks[0].timestamp);
 
     log()->info("Genesis: {}, timestamp {}",
                 config.genesis_cid.value().toString().value(),
-                genesis_timestamp);
+                clock::unixTimeToString(genesis_timestamp));
 
     o.utc_clock = std::make_shared<clock::UTCClockImpl>();
 
-    o.chain_epoch_clock = std::make_shared<clock::ChainEpochClockImpl>(
-        clock::UnixTime(genesis_timestamp));
+    o.chain_epoch_clock =
+        std::make_shared<clock::ChainEpochClockImpl>(genesis_timestamp);
 
     log()->debug("Creating host...");
 
@@ -217,8 +216,6 @@ namespace fc::node {
         injector.create<std::shared_ptr<libp2p::protocol::Scheduler>>();
 
     o.host = injector.create<std::shared_ptr<libp2p::Host>>();
-
-    OUTCOME_TRY(o.host->listen(config.listen_address));
 
     log()->debug("Creating protocols...");
 
@@ -249,6 +246,8 @@ namespace fc::node {
           auto h = crypto::blake2b::blake2b_256(data);
           return ByteArray(h.data(), h.data() + h.size());
         });
+
+    o.pubsub_gate = std::make_shared<sync::PubSubGate>(o.gossip);
 
     // o.graphsync =
     // TODO (artem) default service handler for GS

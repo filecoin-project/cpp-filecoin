@@ -19,6 +19,7 @@ namespace fc::node {
     spdlog::level::level_enum log_level;
     libp2p::multi::Multiaddress listen_address;
     std::string local_ip;
+    int port = -1;
     std::string car_file_name;
     boost::optional<CID> genesis_cid;
     std::string network_name;
