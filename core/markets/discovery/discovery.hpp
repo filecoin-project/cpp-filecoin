@@ -27,8 +27,6 @@ namespace fc::markets::discovery {
    public:
     explicit Discovery(std::shared_ptr<Datastore> datastore);
 
-    virtual ~Discovery() = default;
-
     /**
      * Add peer
      * @param cid - payload root cid

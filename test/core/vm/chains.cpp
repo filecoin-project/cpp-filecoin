@@ -56,7 +56,7 @@ TEST(ChainsTest, Testnet_v054_h341) {
     std::shared_ptr<Invoker> invoker = std::make_shared<CgoInvoker>(false);
     auto randomness = std::make_shared<TipsetRandomness>(ipld, ts);
     EXPECT_OUTCOME_TRUE(
-        result, InterpreterImpl{invoker, randomness}.interpret(ipld, ts));
+        result, (InterpreterImpl{invoker, randomness}.interpret(ipld, ts)));
     last = {result.state_root, result.message_receipts};
   }
   spdlog::info("done");

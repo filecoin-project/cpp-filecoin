@@ -7,7 +7,9 @@
 #include "markets/retrieval/provider/impl/retrieval_provider_impl.hpp"
 
 #include <gtest/gtest.h>
+#include <boost/di/extension/scopes/shared.hpp>
 #include <libp2p/injector/host_injector.hpp>
+#include <libp2p/protocol/common/asio/asio_scheduler.hpp>
 #include <libp2p/security/plaintext.hpp>
 #include "api/api.hpp"
 #include "core/markets/retrieval/config.hpp"
@@ -15,6 +17,7 @@
 #include "primitives/tipset/tipset.hpp"
 #include "storage/car/car.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
+#include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
 #include "testutil/mocks/miner/miner_mock.hpp"
@@ -24,6 +27,7 @@ namespace fc::markets::retrieval::test {
   using api::AddChannelInfo;
   using api::MinerInfo;
   using common::Buffer;
+  using data_transfer::DataTransfer;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::piece::DealInfo;
@@ -34,9 +38,7 @@ namespace fc::markets::retrieval::test {
   using provider::ProviderConfig;
   using vm::actor::builtin::v0::payment_channel::SignedVoucher;
 
-  /** Shared resources */
-  static std::shared_ptr<libp2p::Host> host;
-  static std::shared_ptr<boost::asio::io_context> context;
+  static auto port{40010};
 
   struct RetrievalMarketFixture : public ::testing::Test {
     /* Types */
@@ -52,27 +54,10 @@ namespace fc::markets::retrieval::test {
     using MinerMockShPtr = std::shared_ptr<miner::MinerMock>;
     using ManagerMockShPtr = std::shared_ptr<sector_storage::ManagerMock>;
 
-    static void SetUpTestCase() {
-      auto injector = libp2p::injector::makeHostInjector(
-          libp2p::injector::useKeyPair(config::provider::keypair),
-          libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
-      host = injector.create<std::shared_ptr<libp2p::Host>>();
-      context = injector.create<std::shared_ptr<boost::asio::io_context>>();
-      auto listen_address =
-          Multiaddress::create(config::provider::multiaddress);
-      BOOST_ASSERT_MSG(listen_address.has_value(),
-                       "Failed to create server multiaddress");
-      auto listen_status = host->listen(listen_address.value());
-      BOOST_ASSERT_MSG(listen_status.has_value(),
-                       "Failed to listen on provider multiaddress");
-      host->start();
-      std::thread([]() { context->run(); }).detach();
-    }
-
-    static void TearDownTestCase() {
-      host.reset();
-      context.reset();
-    }
+    std::shared_ptr<libp2p::Host> host;
+    std::shared_ptr<boost::asio::io_context> context;
+    std::thread thread;
+    std::shared_ptr<DataTransfer> datatransfer;
 
     /* Retrieval market client */
     ClientShPtr client;
@@ -109,10 +94,21 @@ namespace fc::markets::retrieval::test {
 
     common::Logger logger = common::createLogger("RetrievalMarketTest");
 
-    /**
-     * @brief Constructor
-     */
-    RetrievalMarketFixture() {
+    void SetUp() override {
+      std::string address_string = fmt::format(
+          "/ip4/127.0.0.1/tcp/{}/ipfs/"
+          "12D3KooWEgUjBV5FJAuBSoNMRYFRHjV7PjZwRQ7b43EKX9g7D6xV",
+          port++);
+      auto injector = libp2p::injector::makeHostInjector<
+          boost::di::extension::shared_config>(
+          libp2p::injector::useKeyPair(config::provider::keypair),
+          libp2p::injector::useSecurityAdaptors<libp2p::security::Plaintext>());
+      host = injector.create<std::shared_ptr<libp2p::Host>>();
+      context = injector.create<std::shared_ptr<boost::asio::io_context>>();
+      OUTCOME_EXCEPT(listen_address, Multiaddress::create(address_string));
+      OUTCOME_EXCEPT(host->listen(listen_address));
+      host->start();
+
       storage_backend = std::make_shared<::fc::storage::InMemoryStorage>();
       api = std::make_shared<api::Api>();
       piece_storage = std::make_shared<::fc::storage::piece::PieceStorageImpl>(
@@ -125,17 +121,30 @@ namespace fc::markets::retrieval::test {
 
       miner = std::make_shared<miner::MinerMock>();
 
-      provider = std::make_shared<provider::RetrievalProviderImpl>(
-          host, api, piece_storage, provider_ipfs, config, sealer, miner);
-      client =
-          std::make_shared<client::RetrievalClientImpl>(host, api, client_ipfs);
-      provider->start();
-    }
+      auto graphsync{
+          std::make_shared<fc::storage::ipfs::graphsync::GraphsyncImpl>(
+              host,
+              std::make_shared<libp2p::protocol::AsioScheduler>(
+                  *context, libp2p::protocol::SchedulerConfig{}))};
+      graphsync->subscribe([this](auto &from, auto &data) {
+        OUTCOME_EXCEPT(client_ipfs->set(data.cid, data.content));
+      });
+      graphsync->start();
+      datatransfer = DataTransfer::make(host, graphsync);
 
-    /**
-     * @brief On before all test cases
-     */
-    void SetUp() override {
+      provider =
+          std::make_shared<provider::RetrievalProviderImpl>(host,
+                                                            datatransfer,
+                                                            api,
+                                                            piece_storage,
+                                                            provider_ipfs,
+                                                            config,
+                                                            sealer,
+                                                            miner);
+      client = std::make_shared<client::RetrievalClientImpl>(
+          host, datatransfer, api, client_ipfs);
+      provider->start();
+
       BOOST_ASSERT_MSG(
           addPieceSample(data::green_piece, provider_ipfs).has_value(),
           "Failed to add sample green piece");
@@ -173,7 +182,14 @@ namespace fc::markets::retrieval::test {
               const TokenAmount &) -> outcome::result<TokenAmount> {
             return TokenAmount{0};
           }};
-    };
+
+      thread = std::thread{[this] { context->run(); }};
+    }
+
+    void TearDown() override {
+      context->stop();
+      thread.join();
+    }
 
     outcome::result<void> addPieceSample(
         const SamplePiece &piece, const std::shared_ptr<IpfsDatastore> &ipfs) {

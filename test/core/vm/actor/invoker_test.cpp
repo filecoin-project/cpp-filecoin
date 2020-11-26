@@ -25,22 +25,15 @@ namespace fc::vm::actor {
     InvokerImpl invoker;
     auto runtime = std::make_shared<MockRuntime>();
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrorIllegalActor,
-                       invoker.invoke({CodeId{kEmptyObjectCid}}, runtime));
+    // Error on wrong actor
+    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrorIllegalActor,
+                         invoker.invoke({CodeId{kEmptyObjectCid}}, runtime));
 
-    EXPECT_OUTCOME_ERROR(
-        VMExitCode::kSysErrorIllegalActor,
-        invoker.invoke(
-            {CodeId{kEmptyObjectCid}}, runtime, MethodNumber{0}, {}));
-    EXPECT_OUTCOME_ERROR(
-        VMExitCode::kSysErrInvalidMethod,
-        invoker.invoke({kCronCodeCid}, runtime, MethodNumber{1000}, {}));
-    EXPECT_CALL(runtime, getImmediateCaller())
-        .WillOnce(testing::Return(kInitAddress));
-    EXPECT_OUTCOME_ERROR(
-        VMExitCode::kSysErrForbidden,
-        invoker.invoke(
-            {kCronCodeCid}, runtime, builtin::v0::cron::EpochTick::Number, {}));
+    // Error on wrong method
+    message.method = MethodNumber{1000};
+    EXPECT_CALL(*runtime, getMessage()).WillOnce(testing::Return(message));
+    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrInvalidMethod,
+                         invoker.invoke({kCronCodeCid}, runtime));
   }
 
   /// decodeActorParams returns error or decoded params

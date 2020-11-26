@@ -24,8 +24,8 @@
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v0/market/policy.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/reward/reward_actor.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/version.hpp"
 
@@ -34,8 +34,8 @@
 
 namespace MarketActor = fc::vm::actor::builtin::v0::market;
 namespace MinerActor = fc::vm::actor::builtin::v0::miner;
-namespace RewardActor = fc::vm::actor::builtin::reward;
-namespace PowerActor = fc::vm::actor::builtin::storage_power;
+namespace RewardActor = fc::vm::actor::builtin::v0::reward;
+namespace PowerActor = fc::vm::actor::builtin::v0::storage_power;
 using fc::crypto::bls::Signature;
 using fc::crypto::randomness::Randomness;
 using fc::primitives::ChainEpoch;
@@ -51,10 +51,8 @@ using fc::storage::ipfs::InMemoryDatastore;
 using fc::vm::VMExitCode;
 using fc::vm::actor::kBurntFundsActorAddress;
 using fc::vm::actor::kInitAddress;
-using fc::vm::actor::kInitCodeCid;
 using fc::vm::actor::kRewardAddress;
 using fc::vm::actor::kSendMethodNumber;
-using fc::vm::actor::kStorageMinerCodeCid;
 using fc::vm::actor::kStoragePowerAddress;
 using fc::vm::actor::kSystemActorAddress;
 using fc::vm::actor::builtin::v0::kAccountCodeCid;
@@ -375,7 +373,7 @@ TEST_F(MarketActorTest,
       + 1;
 
   runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {0, 0, 0, {}});
+      kRewardAddress, {}, 0, {0, {0, 0}, {}});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
 
@@ -413,7 +411,7 @@ TEST_F(MarketActorTest,
   EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(miner_address, 0));
 
   runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {0, 0, 0, {}});
+      kRewardAddress, {}, 0, {0, {0, 0}, {}});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
   EXPECT_CALL(runtime, getTotalFilCirculationSupply()).WillOnce(Return(0));
@@ -432,7 +430,7 @@ TEST_F(MarketActorTest,
   EXPECT_OUTCOME_TRUE_1(state.escrow_table.set(client_address, 0));
 
   runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {0, 0, 0, {}});
+      kRewardAddress, {}, 0, {0, {0, 0}, {}});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
   EXPECT_CALL(runtime, getTotalFilCirculationSupply()).WillOnce(Return(0));
@@ -450,7 +448,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDeals)) {
   state.next_deal = deal_1_id;
 
   runtime.expectSendM<RewardActor::ThisEpochReward>(
-      kRewardAddress, {}, 0, {0, 0, 0, {}});
+      kRewardAddress, {}, 0, {0, {0, 0}, {}});
   runtime.expectSendM<PowerActor::CurrentTotalPower>(
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
   EXPECT_CALL(runtime, getTotalFilCirculationSupply()).WillOnce(Return(0));
@@ -493,7 +491,7 @@ TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitCallerNotMiner) {
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::kSysErrForbidden,
-      MarketActor::VerifyDealsForActivation::call(runtime, {{}, {}}));
+      MarketActor::VerifyDealsForActivation::call(runtime, {{}, {}, {}}));
 }
 
 TEST_F(MarketActorTest,
@@ -501,18 +499,18 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit(
       [&](auto &deal) { deal.provider = client_address; });
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::kErrForbidden,
-      MarketActor::VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}}));
+  EXPECT_OUTCOME_ERROR(VMExitCode::kErrForbidden,
+                       MarketActor::VerifyDealsForActivation::call(
+                           runtime, {{deal_1_id}, {}, {}}));
 }
 
 TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitAlreadyStarted) {
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
   EXPECT_OUTCOME_TRUE_1(state.states.set(deal_1_id, {1, {}, {}}));
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::kErrIllegalArgument,
-      MarketActor::VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}}));
+  EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+                       MarketActor::VerifyDealsForActivation::call(
+                           runtime, {{deal_1_id}, {}, {}}));
 }
 
 TEST_F(MarketActorTest,
@@ -520,9 +518,9 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit(
       [&](auto &deal) { deal.start_epoch = epoch - 1; });
 
-  EXPECT_OUTCOME_ERROR(
-      VMExitCode::kErrIllegalArgument,
-      MarketActor::VerifyDealsForActivation::call(runtime, {{deal_1_id}, {}}));
+  EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+                       MarketActor::VerifyDealsForActivation::call(
+                           runtime, {{deal_1_id}, {}, {}}));
 }
 
 TEST_F(MarketActorTest,

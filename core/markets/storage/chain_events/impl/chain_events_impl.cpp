@@ -57,14 +57,15 @@ namespace fc::markets::storage::chain_events {
               continue;
             }
             for (const auto &message : block_messages.value().bls) {
-              auto message_processed = onMessage(message);
-              if (onMessage(message).has_error()) {
+              auto message_processed = onMessage(message, message.getCid());
+              if (message_processed.has_error()) {
                 logger_->error("Message process error: "
                                + message_processed.error().message());
               }
             }
             for (const auto &message : block_messages.value().secp) {
-              auto message_processed = onMessage(message.message);
+              auto message_processed =
+                  onMessage(message.message, message.getCid());
               if (message_processed.has_error()) {
                 logger_->error("Message process error: "
                                + message_processed.error().message());
@@ -78,7 +79,7 @@ namespace fc::markets::storage::chain_events {
   };
 
   outcome::result<void> ChainEventsImpl::onMessage(
-      const UnsignedMessage &message) {
+      const UnsignedMessage &message, const CID &cid) {
     std::vector<EventWatch>::iterator watch_it;
     boost::optional<SectorNumber> update_sector_number;
     bool prove_sector_committed = false;
@@ -122,7 +123,12 @@ namespace fc::markets::storage::chain_events {
       }
 
       if (prove_sector_committed) {
-        watch_it->cb();
+        OUTCOME_TRY(wait, api_->StateWaitMsg(cid, api::kNoConfidence));
+        wait.waitOwn([cb{std::move(watch_it->cb)}](auto _r) {
+          if (_r) {
+            cb();
+          }
+        });
         watched_events_.erase(watch_it);
       }
     }

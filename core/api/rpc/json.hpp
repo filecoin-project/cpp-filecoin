@@ -946,6 +946,7 @@ namespace fc::api {
 
     ENCODE(SignedVoucher) {
       Value j{rapidjson::kObjectType};
+      Set(j, "ChannelAddr", v.channel);
       Set(j, "TimeLockMin", v.time_lock_min);
       Set(j, "TimeLockMax", v.time_lock_max);
       Set(j, "SecretPreimage", gsl::make_span(v.secret_preimage));
@@ -960,6 +961,7 @@ namespace fc::api {
     }
 
     DECODE(SignedVoucher) {
+      Get(j, "ChannelAddr", v.channel);
       decode(v.time_lock_min, Get(j, "TimeLockMin"));
       decode(v.time_lock_max, Get(j, "TimeLockMax"));
       decode(v.secret_preimage, Get(j, "SecretPreimage"));
