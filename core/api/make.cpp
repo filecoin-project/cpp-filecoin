@@ -14,11 +14,11 @@
 #include "node/pubsub.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/hamt/hamt.hpp"
-#include "vm/actor/builtin/account/account_actor.hpp"
-#include "vm/actor/builtin/init/init_actor.hpp"
-#include "vm/actor/builtin/market/actor.hpp"
-#include "vm/actor/builtin/miner/types.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/init/init_actor.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/miner/types.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/runtime/env.hpp"
@@ -35,11 +35,11 @@ namespace fc::api {
   using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
-  using vm::actor::builtin::account::AccountActorState;
-  using vm::actor::builtin::init::InitActorState;
-  using vm::actor::builtin::market::DealState;
-  using vm::actor::builtin::miner::MinerActorState;
-  using vm::actor::builtin::storage_power::StoragePowerActorState;
+  using vm::actor::builtin::v0::account::AccountActorState;
+  using vm::actor::builtin::v0::init::InitActorState;
+  using vm::actor::builtin::v0::market::DealState;
+  using vm::actor::builtin::v0::miner::MinerActorState;
+  using vm::actor::builtin::v0::storage_power::StoragePowerActorState;
   using InterpreterResult = vm::interpreter::Result;
   using crypto::randomness::DomainSeparationTag;
   using crypto::signature::BlsSignature;
@@ -53,7 +53,7 @@ namespace fc::api {
   using vm::runtime::TipsetRandomness;
   using vm::state::StateTreeImpl;
   using connection_t = boost::signals2::connection;
-  using MarketActorState = vm::actor::builtin::market::State;
+  using MarketActorState = vm::actor::builtin::v0::market::State;
 
   // TODO: reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,

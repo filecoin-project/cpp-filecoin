@@ -52,7 +52,7 @@ namespace fc::markets::storage::client {
   using primitives::BigInt;
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
-  using vm::actor::builtin::market::PublishStorageDeals;
+  using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::SignedMessage;
@@ -332,7 +332,7 @@ namespace fc::markets::storage::client {
         amount,
         kDefaultGasPrice,
         kDefaultGasLimit,
-        vm::actor::builtin::market::AddBalance::Number,
+        vm::actor::builtin::v0::market::AddBalance::Number,
         {}};
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));

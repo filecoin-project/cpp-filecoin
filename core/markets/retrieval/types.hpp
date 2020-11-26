@@ -12,11 +12,11 @@
 #include "common/buffer.hpp"
 #include "primitives/address/address.hpp"
 #include "storage/ipld/ipld_block.hpp"
-#include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval {
   using primitives::address::Address;
-  using vm::actor::builtin::payment_channel::LaneId;
+  using vm::actor::builtin::v0::payment_channel::LaneId;
 
   /**
    * @struct Payment info

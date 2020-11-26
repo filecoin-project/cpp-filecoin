@@ -110,6 +110,16 @@
     return s;                              \
   }
 
+#define CBOR_TUPLE_0(T) \
+  CBOR_ENCODE(T, t) {   \
+    s << s.list();      \
+    return s;           \
+  }                     \
+  CBOR_DECODE(T, t) {   \
+    s.list();           \
+    return s;           \
+  }
+
 namespace fc::codec::cbor {
   /**
    * Default value for CBORed value instantiation

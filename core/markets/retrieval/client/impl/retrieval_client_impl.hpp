@@ -17,7 +17,7 @@
 #include "markets/retrieval/client/retrieval_client_error.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/ipld/verifier.hpp"
-#include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval::client {
   using api::Api;
@@ -28,7 +28,7 @@ namespace fc::markets::retrieval::client {
   using fc::storage::ipld::verifier::Verifier;
   using libp2p::Host;
   using primitives::BigInt;
-  using vm::actor::builtin::payment_channel::LaneId;
+  using vm::actor::builtin::v0::payment_channel::LaneId;
 
   /**
    * State of ongoing retrieval deal.

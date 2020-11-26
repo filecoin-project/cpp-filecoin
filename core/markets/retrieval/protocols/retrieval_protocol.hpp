@@ -16,7 +16,7 @@
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
 #include "storage/ipld/selector.hpp"
-#include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval {
   using common::Buffer;
@@ -24,7 +24,7 @@ namespace fc::markets::retrieval {
   using primitives::DealId;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using vm::actor::builtin::payment_channel::SignedVoucher;
+  using vm::actor::builtin::v0::payment_channel::SignedVoucher;
 
   /**
    * @struct Deal proposal params

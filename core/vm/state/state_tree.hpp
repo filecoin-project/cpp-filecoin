@@ -15,9 +15,36 @@ namespace fc::vm::state {
   using primitives::address::Address;
   using storage::ipfs::IpfsDatastore;
 
+  /**
+   * StateTreeVersion is the version of the state tree itself, independent of
+   * the network version or the actors version.
+   */
+  enum class StateTreeVersion : uint64_t {
+    // kVersion0 corresponds to actors < v2.
+    kVersion0,
+    // kVersion1 corresponds to actors >= v2.
+    kVersion1
+  };
+
   /// State tree
   class StateTree {
    public:
+    /** Used in StateRoot v1 */
+    struct StateTreeInfo {
+      // empty
+    };
+
+    /**
+     * State tree stored in ipld as:
+     *  - version 0 is sipmple cid
+     *  - version >= 1 contains version number and additional info (StateRoot)
+     */
+    struct StateRoot {
+      StateTreeVersion version;
+      CID actor_tree_root;
+      CID info;
+    };
+
     virtual ~StateTree() = default;
 
     /// Set actor state, does not write to storage
@@ -49,6 +76,10 @@ namespace fc::vm::state {
       return getStore()->template getCbor<T>(actor.head);
     }
   };
+
+  CBOR_TUPLE_0(StateTree::StateTreeInfo)
+  CBOR_TUPLE(StateTree::StateRoot, version, actor_tree_root, info)
+
 }  // namespace fc::vm::state
 
 #endif  // CPP_FILECOIN_CORE_VM_STATE_STATE_TREE_HPP
