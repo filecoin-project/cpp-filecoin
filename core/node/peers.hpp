@@ -10,9 +10,12 @@
 
 #include "fwd.hpp"
 
+#include <libp2p/peer/peer_id.hpp>
+
 namespace fc::sync {
   class Peers {
    public:
+    using PeerId = libp2p::peer::PeerId;
     using Rating = int64_t;
     using PeersAndRatings = std::unordered_map<PeerId, Rating>;
     using RatingChangeFunction =

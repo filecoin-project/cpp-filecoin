@@ -8,13 +8,8 @@
 #include "api/rpc/json.hpp"
 #include "api/visit.hpp"
 #include "codec/json/json.hpp"
+#include "common/ptr.hpp"
 #include "common/which.hpp"
-
-// TODO: move to other file
-template <typename T>
-std::weak_ptr<T> weaken(const std::shared_ptr<T> &ptr) {
-  return ptr;
-}
 
 namespace fc::api::rpc {
   Client::Client(io_context &io2)

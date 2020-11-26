@@ -8,14 +8,18 @@
 
 #include "storage/buffer_map.hpp"
 #include "vm/interpreter/interpreter.hpp"
+#include "vm/runtime/runtime_randomness.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 namespace fc::vm::interpreter {
+  using runtime::MessageReceipt;
+  using runtime::RuntimeRandomness;
   using storage::PersistentBufferMap;
-  using vm::runtime::MessageReceipt;
 
   class InterpreterImpl : public Interpreter {
    public:
+    explicit InterpreterImpl(std::shared_ptr<RuntimeRandomness> randomness);
+
     outcome::result<Result> interpret(const IpldPtr &store,
                                       const TipsetCPtr &tipset) const override;
     outcome::result<Result> applyBlocks(
@@ -28,6 +32,8 @@ namespace fc::vm::interpreter {
 
    private:
     bool hasDuplicateMiners(const std::vector<BlockHeader> &blocks) const;
+
+    std::shared_ptr<RuntimeRandomness> randomness_;
   };
 
   class CachedInterpreter : public Interpreter {

@@ -41,9 +41,9 @@
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
+#include "vm/actor/builtin/v0/init/init_actor.hpp"
 
 namespace fc::node {
 
@@ -127,7 +127,7 @@ namespace fc::node {
       OUTCOME_TRY(init_state,
                   vm::state::StateTreeImpl(
                       ipld, genesis_tipset.blks[0].parent_state_root)
-                      .state<vm::actor::builtin::init::InitActorState>(
+                      .state<vm::actor::builtin::v0::init::InitActorState>(
                           vm::actor::kInitAddress));
       config.network_name = init_state.network_name;
       return outcome::success();

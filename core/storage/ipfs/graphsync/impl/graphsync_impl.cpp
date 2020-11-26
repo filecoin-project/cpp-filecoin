@@ -145,16 +145,6 @@ namespace fc::storage::ipfs::graphsync {
 
   void GraphsyncImpl::onRemoteRequest(const PeerId &from,
                                       Message::Request request) {
-    auto contains = [](const std::string &name,
-                       const std::vector<Extension> &extensions) {
-      for (const auto& e : extensions) {
-        if (e.name == name) {
-          return true;
-        }
-      }
-      return false;
-    };
-
     auto call_request =
         [](const PeerId &from, Message::Request request, const auto &handler) {
           handler(FullRequestId{from, request.id},
@@ -166,7 +156,7 @@ namespace fc::storage::ipfs::graphsync {
 
     if (!request.extensions.empty() && !request_handlers_.empty()) {
       for (const auto &[ext_name, handler] : request_handlers_) {
-        if (contains(ext_name, request.extensions)) {
+        if (Extension::find(ext_name, request.extensions)) {
           call_request(from, std::move(request), handler);
           return;
         }

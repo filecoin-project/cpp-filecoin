@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_SYNC_HEAD_CONSTRUCTOR_HPP
 #define CPP_FILECOIN_SYNC_HEAD_CONSTRUCTOR_HPP
 
-#include "fwd.hpp"
+#include "common.hpp"
 
 namespace fc::sync {
   class HeadConstructor {

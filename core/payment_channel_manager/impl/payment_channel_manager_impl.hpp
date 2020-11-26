@@ -15,9 +15,9 @@
 namespace fc::payment_channel_manager {
   using api::Api;
   using common::Buffer;
-  using vm::actor::builtin::payment_channel::SignedVoucher;
+  using vm::actor::builtin::v0::payment_channel::SignedVoucher;
   using Ipld = fc::storage::ipfs::IpfsDatastore;
-  using PaymentChannelState = vm::actor::builtin::payment_channel::State;
+  using PaymentChannelState = vm::actor::builtin::v0::payment_channel::State;
 
   struct ChannelInfo {
     Address channel_actor;

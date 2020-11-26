@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_SYNC_EVENTS_HPP
 #define CPP_FILECOIN_SYNC_EVENTS_HPP
 
-#include "fwd.hpp"
+#include "common.hpp"
 
 #include <set>
 #include <string>
@@ -14,13 +14,6 @@
 #include <libp2p/protocol/common/scheduler.hpp>
 
 #include "vm/interpreter/interpreter.hpp"
-#include "primitives/tipset/tipset.hpp"
-
-namespace libp2p {
-  namespace peer {
-    class PeerInfo;
-  }  // namespace peer
-}  // namespace libp2p
 
 namespace fc::sync::events {
 

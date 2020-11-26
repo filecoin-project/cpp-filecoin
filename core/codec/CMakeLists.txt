@@ -6,3 +6,11 @@
 add_subdirectory(cbor)
 add_subdirectory(json)
 add_subdirectory(rle)
+
+add_library(cbor_types
+    cbor_types.cpp
+    )
+target_link_libraries(cbor_types
+    address
+    signature
+    )

@@ -53,11 +53,11 @@ namespace fc::api {
   using rapidjson::Value;
   using sector_storage::stores::LocalPath;
   using sector_storage::stores::StorageConfig;
-  using vm::actor::builtin::miner::PowerPair;
-  using vm::actor::builtin::miner::SectorPreCommitInfo;
-  using vm::actor::builtin::miner::WorkerKeyChange;
-  using vm::actor::builtin::payment_channel::Merge;
-  using vm::actor::builtin::payment_channel::ModularVerificationParameter;
+  using vm::actor::builtin::v0::miner::PowerPair;
+  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::v0::miner::WorkerKeyChange;
+  using vm::actor::builtin::v0::payment_channel::Merge;
+  using vm::actor::builtin::v0::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
 
   struct Codec {
@@ -946,6 +946,7 @@ namespace fc::api {
 
     ENCODE(SignedVoucher) {
       Value j{rapidjson::kObjectType};
+      Set(j, "ChannelAddr", v.channel);
       Set(j, "TimeLockMin", v.time_lock_min);
       Set(j, "TimeLockMax", v.time_lock_max);
       Set(j, "SecretPreimage", gsl::make_span(v.secret_preimage));
@@ -960,6 +961,7 @@ namespace fc::api {
     }
 
     DECODE(SignedVoucher) {
+      Get(j, "ChannelAddr", v.channel);
       decode(v.time_lock_min, Get(j, "TimeLockMin"));
       decode(v.time_lock_max, Get(j, "TimeLockMax"));
       decode(v.secret_preimage, Get(j, "SecretPreimage"));

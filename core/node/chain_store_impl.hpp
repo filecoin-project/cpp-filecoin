@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_SYNC_CHAIN_STORE_IMPL_HPP
 #define CPP_FILECOIN_SYNC_CHAIN_STORE_IMPL_HPP
 
-#include "fwd.hpp"
+#include "common.hpp"
 
 #include "blockchain/block_validator/block_validator.hpp"
 #include "blockchain/weight_calculator.hpp"

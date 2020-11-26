@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_SYNC_BLOCKSYNC_COMMON_HPP
 #define CPP_FILECOIN_SYNC_BLOCKSYNC_COMMON_HPP
 
-#include "fwd.hpp"
+#include "common.hpp"
 
 #include "codec/cbor/cbor.hpp"
 

@@ -6,9 +6,9 @@
 #ifndef CPP_FILECOIN_SYNC_BRANCHES_HPP
 #define CPP_FILECOIN_SYNC_BRANCHES_HPP
 
-#include "fwd.hpp"
-
 #include <set>
+
+#include "common.hpp"
 
 namespace fc::sync {
 

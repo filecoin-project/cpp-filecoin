@@ -6,9 +6,7 @@
 #ifndef CPP_FILECOIN_SYNC_SUBCHAIN_LOADER_HPP
 #define CPP_FILECOIN_SYNC_SUBCHAIN_LOADER_HPP
 
-#include "fwd.hpp"
-
-#include <libp2p/protocol/common/scheduler.hpp>
+#include "common.hpp"
 
 namespace fc::sync {
 

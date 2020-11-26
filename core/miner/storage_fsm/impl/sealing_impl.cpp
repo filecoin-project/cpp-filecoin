@@ -27,14 +27,14 @@
 
 namespace fc::mining {
   using api::SectorSize;
-  namespace miner = vm::actor::builtin::miner;
+  namespace miner = vm::actor::builtin::v0::miner;
   using checks::ChecksError;
   using types::kDealSectorPriority;
   using types::Piece;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::miner::kMinSectorExpiration;
-  using vm::actor::builtin::miner::maxSealDuration;
-  using vm::actor::builtin::miner::ProveCommitSector;
+  using vm::actor::builtin::v0::miner::kMinSectorExpiration;
+  using vm::actor::builtin::v0::miner::maxSealDuration;
+  using vm::actor::builtin::v0::miner::ProveCommitSector;
 
   Ticks getWaitingTime(uint64_t errors_count = 0) {
     // TODO: Exponential backoff when we see consecutive failures
@@ -938,7 +938,7 @@ namespace fc::mining {
             deposit,
             {},
             {},
-            vm::actor::builtin::miner::PreCommitSector::Number,
+            vm::actor::builtin::v0::miner::PreCommitSector::Number,
             MethodParams{maybe_params.value()}),
         api::kPushNoSpec);  // TODO: max fee options
 
@@ -1019,8 +1019,9 @@ namespace fc::mining {
       return outcome::success();
     }
 
-    auto random_height = precommit_info->precommit_epoch
-                         + vm::actor::builtin::miner::kPreCommitChallengeDelay;
+    auto random_height =
+        precommit_info->precommit_epoch
+        + vm::actor::builtin::v0::miner::kPreCommitChallengeDelay;
 
     auto maybe_error = events_->chainAt(
         [=](const Tipset &,
@@ -1181,7 +1182,7 @@ namespace fc::mining {
             collateral,
             {},
             {},
-            vm::actor::builtin::miner::ProveCommitSector::Number,
+            vm::actor::builtin::v0::miner::ProveCommitSector::Number,
             MethodParams{maybe_params_encoded.value()}),
         api::kPushNoSpec);
 
@@ -1589,7 +1590,7 @@ namespace fc::mining {
     OUTCOME_TRY(head, api_->ChainHead());
 
     ChainEpoch ticket_epoch =
-        head->height() - vm::actor::builtin::miner::kChainFinalityish;
+        head->height() - vm::actor::builtin::v0::miner::kChainFinalityish;
 
     OUTCOME_TRY(address_encoded, codec::cbor::encode(miner_address_));
 

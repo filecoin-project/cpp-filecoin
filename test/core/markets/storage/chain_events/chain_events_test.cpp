@@ -8,7 +8,7 @@
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/literals.hpp"
 #include "testutil/outcome.hpp"
-#include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::markets::storage::chain_events {
   using adt::Channel;
@@ -23,9 +23,9 @@ namespace fc::markets::storage::chain_events {
   using primitives::tipset::HeadChangeType;
   using primitives::tipset::Tipset;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::miner::PreCommitSector;
-  using vm::actor::builtin::miner::ProveCommitSector;
-  using vm::actor::builtin::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::v0::miner::PreCommitSector;
+  using vm::actor::builtin::v0::miner::ProveCommitSector;
+  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
@@ -86,6 +86,12 @@ namespace fc::markets::storage::chain_events {
 
           return Chan{std::move(channel)};
         }};
+
+    api->StateWaitMsg = [](auto &, auto) {
+      auto wait{api::Wait<api::MsgWait>::make()};
+      wait.channel->write(outcome::success());
+      return wait;
+    };
 
     bool is_called = false;
     events->onDealSectorCommitted(
