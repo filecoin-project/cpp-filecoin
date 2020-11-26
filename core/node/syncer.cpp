@@ -126,6 +126,11 @@ namespace fc::sync {
   }
 
   void Syncer::onPossibleHead(const events::PossibleHead &e) {
+    if (e.downloaded) {
+      newInterpretJob(e.head);
+      return;
+    }
+
     auto maybe_peer = choosePeer(e.source);
     if (!maybe_peer) {
       log()->debug("ignoring sync target, no peers connected");

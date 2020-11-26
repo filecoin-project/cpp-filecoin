@@ -27,6 +27,7 @@ target_link_libraries(node_builder
     in_memory_storage
     weight_calculator
     secp256k1_provider
+    rpc
     Boost::program_options
     )
 
@@ -36,5 +37,4 @@ add_executable(node
 
 target_link_libraries(node
     node_builder
-    rpc
     )

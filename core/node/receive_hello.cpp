@@ -88,7 +88,7 @@ namespace fc::sync {
       return;
     }
 
-    auto arrival = clock_->nowUTC().count();
+    auto arrival = clock_->microsecSinceEpoch();
 
     events_->signalTipsetFromHello(events::TipsetFromHello {
         .peer_id = std::move(peer_res.value()),
@@ -97,9 +97,9 @@ namespace fc::sync {
         .weight = std::move(msg.heaviest_tipset_weight)
     });
 
-    auto sent = clock_->nowUTC().count();
+    auto sent = clock_->microsecSinceEpoch();
 
-    stream->write(LatencyMessage{arrival, sent},
+    stream->write(LatencyMessage{arrival * 1000, sent * 1000},
                   [stream](auto) { stream->close(); });
   }
 

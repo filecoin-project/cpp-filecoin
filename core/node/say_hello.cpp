@@ -86,7 +86,7 @@ namespace fc::sync {
     log()->debug("started");
   }
 
-  SayHello::RequestCtx::RequestCtx(clock::Time t) : sent(t) {}
+  SayHello::RequestCtx::RequestCtx(clock::Microseconds t) : sent(t) {}
 
   bool SayHello::TimeAndPeerId::operator<(const TimeAndPeerId &other) const {
     return t < other.t;
@@ -100,7 +100,7 @@ namespace fc::sync {
     if (active_requests_.count(peer_id) != 0) {
       return;
     }
-    auto sent = clock_->nowUTC();
+    auto sent = clock_->microsecSinceEpoch();
     active_requests_.insert(std::make_pair(peer_id, RequestCtx(sent)));
     active_requests_by_sent_time_.insert({sent, peer_id});
 
@@ -182,7 +182,7 @@ namespace fc::sync {
       return;
     }
 
-    auto time_sent = it->second.sent.count();
+    auto time_sent = it->second.sent;
 
     clearRequest(peer_id);
 
@@ -195,7 +195,7 @@ namespace fc::sync {
 
     // TODO(artem): do smth with clock results
 
-    auto latency = (clock_->nowUTC().count() - time_sent) / 1000;
+    auto latency = clock_->microsecSinceEpoch() - time_sent;
 
     log()->debug("peer {} latency: {} usec", peer_id.toBase58(), latency);
 
@@ -204,7 +204,7 @@ namespace fc::sync {
   }
 
   void SayHello::onHeartbeat() {
-    auto expire_time = clock_->nowUTC() - std::chrono::seconds(10);
+    auto expire_time = clock_->microsecSinceEpoch() - kHeartbeatInterval * 1000;
 
     while (!active_requests_by_sent_time_.empty()) {
       auto it = active_requests_by_sent_time_.begin();

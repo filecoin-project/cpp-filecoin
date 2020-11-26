@@ -12,6 +12,7 @@ namespace fc::clock {
   class UTCClockImpl : public UTCClock {
    public:
     UnixTime nowUTC() const override;
+    Microseconds microsecSinceEpoch() const override;
   };
 }  // namespace fc::clock
 

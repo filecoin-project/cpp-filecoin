@@ -28,3 +28,5 @@ target_link_libraries(sync
     p2p::libp2p_sqlite
     p2p::p2p_gossip
     p2p::p2p_identify)
+
+add_subdirectory(main)

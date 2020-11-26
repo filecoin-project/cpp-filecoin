@@ -449,3 +449,23 @@ namespace fc::sync::blocksync {
   }
 
 }  // namespace fc::sync::blocksync
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::sync::blocksync, BlocksyncClient::Error, e) {
+  using E = fc::sync::blocksync::BlocksyncClient::Error;
+
+  switch (e) {
+    case E::BLOCKSYNC_CLIENT_NOT_INITALIZED:
+      return "blocksync client: not initialized";
+    case E::BLOCKSYNC_FEATURE_NYI:
+      return "blocksync client: feature NYI";
+    case E::BLOCKSYNC_STORE_ERROR_CIDS_MISMATCH:
+      return "blocksync client: CIDs mismatch";
+    case E::BLOCKSYNC_INCONSISTENT_RESPONSE:
+      return "blocksync client: inconsistent response";
+    case E::BLOCKSYNC_INCOMPLETE_RESPONSE:
+      return "blocksync client: incomplete response";
+    default:
+      break;
+  }
+  return "BlocksyncClient::Error: unknown error";
+}

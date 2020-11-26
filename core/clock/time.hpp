@@ -16,6 +16,7 @@ namespace fc::clock {
 
   using UnixTime = std::chrono::seconds;
   using Time = UnixTime;
+  using Microseconds = uint64_t;
 
   std::string unixTimeToString(UnixTime);
   outcome::result<UnixTime> unixTimeFromString(const std::string &str);

@@ -36,9 +36,6 @@ namespace fc::sync::blocksync {
                                       uint64_t depth,
                                       RequestOptions options);
 
-    /// Closes all streams
-    void stop();
-
    private:
     using StreamPtr = std::shared_ptr<CborStream>;
 

@@ -199,3 +199,19 @@ namespace fc::sync {
   }
 
 }  // namespace fc::sync
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::sync, TipsetLoader::Error, e) {
+  using E = fc::sync::TipsetLoader::Error;
+
+  switch (e) {
+    case E::TIPSET_LOADER_NOT_INITIALIZED:
+      return "tipset loader: not initialized";
+    case E::TIPSET_LOADER_NO_PEERS:
+      return "tipset loader: no peers";
+    case E::TIPSET_LOADER_BAD_TIPSET:
+      return "tipset loader: bad tipset";
+    default:
+      break;
+  }
+  return "TipsetLoader::Error: unknown error";
+}

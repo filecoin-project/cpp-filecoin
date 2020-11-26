@@ -20,8 +20,18 @@
 #include "clock/impl/utc_clock_impl.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
+#include "drand/impl/beaconizer.hpp"
+#include "node/blocksync_client.hpp"
+#include "node/blocksync_server.hpp"
+#include "node/chain_db.hpp"
+#include "node/chain_store_impl.hpp"
+#include "node/identify.hpp"
+#include "node/index_db_backend.hpp"
+#include "node/receive_hello.hpp"
+#include "node/say_hello.hpp"
+#include "node/syncer.hpp"
+#include "node/tipset_loader.hpp"
 #include "power/impl/power_table_impl.hpp"
-//#include "storage/chain/impl/chain_store_impl.hpp"
 #include "storage/car/car.hpp"
 #include "storage/chain/msg_waiter.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
@@ -31,12 +41,6 @@
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "sync/block_loader.hpp"
-#include "sync/blocksync_client.hpp"
-#include "sync/chain_db.hpp"
-#include "sync/identify.hpp"
-#include "sync/index_db_backend.hpp"
-#include "sync/tipset_loader.hpp"
 #include "vm/actor/builtin/init/init_actor.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -149,7 +153,7 @@ namespace fc::node {
       leveldb::Options options;
       if (!config.car_file_name.empty()) {
         options.create_if_missing = true;
-        //      options.error_if_exists = true;
+        options.error_if_exists = true;
         creating_new_db = true;
       }
       auto leveldb_res =
@@ -173,7 +177,6 @@ namespace fc::node {
 
     log()->debug("Creating chain DB...");
 
-    // o.index_db_backend = std::move(index_db_backend);
     o.index_db = std::make_shared<sync::IndexDb>(std::move(index_db_backend));
     o.chain_db = std::make_shared<sync::ChainDb>();
     OUTCOME_TRY(o.chain_db->init(
@@ -185,20 +188,26 @@ namespace fc::node {
 
     OUTCOME_TRY(initNetworkName(o.chain_db->genesisTipset(), o.ipld, config));
     log()->info("Network name: {}", config.network_name);
-    log()->info("Genesis: {}", config.genesis_cid.value().toString().value());
+
+    auto genesis_timestamp = o.chain_db->genesisTipset().blks[0].timestamp;
+
+    // TODO (artem): ts in nanosec ? resolve
+    genesis_timestamp /= 1000000000;
+
+    log()->info("Genesis: {}, timestamp {}",
+                config.genesis_cid.value().toString().value(),
+                genesis_timestamp);
+
+    o.utc_clock = std::make_shared<clock::UTCClockImpl>();
+
+    o.chain_epoch_clock = std::make_shared<clock::ChainEpochClockImpl>(
+        clock::UnixTime(genesis_timestamp));
 
     log()->debug("Creating host...");
 
-    // config.gossip_config.protocol_version = "/floodsub/1.0.0";
-    // config.gossip_config.D_max = config.gossip_config.D_min = 0;
-
+    // TODO useKeypair
     auto injector = libp2p::injector::makeHostInjector<
         boost::di::extension::shared_config>(
-        //        boost::di::bind<libp2p::security::SecurityAdaptor
-        //        *[]>().template
-        //        to<libp2p::security::TlsAdaptor>()[boost::di::override],  //
-        //        NOLINT
-
         boost::di::bind<clock::UTCClock>.template to<clock::UTCClockImpl>());
 
     o.io_context = injector.create<std::shared_ptr<boost::asio::io_context>>();
@@ -208,7 +217,9 @@ namespace fc::node {
 
     o.host = injector.create<std::shared_ptr<libp2p::Host>>();
 
-    o.utc_clock = injector.create<std::shared_ptr<clock::UTCClock>>();
+    OUTCOME_TRY(o.host->listen(config.listen_address));
+
+    log()->debug("Creating protocols...");
 
     auto identify_protocol =
         injector.create<std::shared_ptr<libp2p::protocol::Identify>>();
@@ -217,93 +228,121 @@ namespace fc::node {
     auto identify_delta_protocol =
         injector.create<std::shared_ptr<libp2p::protocol::IdentifyDelta>>();
 
-    log()->debug("Creating peer manager...");
+    o.identify =
+        std::make_shared<sync::Identify>(o.host,
+                                         std::move(identify_protocol),
+                                         std::move(identify_push_protocol),
+                                         std::move(identify_delta_protocol));
 
-    o.peer_manager =
-        std::make_shared<fc::sync::PeerManager>(o.host,
-                                                o.utc_clock,
-                                                identify_protocol,
-                                                identify_push_protocol,
-                                                identify_delta_protocol);
+    o.say_hello =
+        std::make_shared<sync::SayHello>(o.host, o.scheduler, o.utc_clock);
+
+    o.receive_hello = std::make_shared<sync::ReceiveHello>(o.host, o.utc_clock);
+
+    o.gossip = libp2p::protocol::gossip::create(
+        o.scheduler, o.host, config.gossip_config);
+
+    using libp2p::protocol::gossip::ByteArray;
+    o.gossip->setMessageIdFn(
+        [](const ByteArray &from, const ByteArray &seq, const ByteArray &data) {
+          auto h = crypto::blake2b::blake2b_256(data);
+          return ByteArray(h.data(), h.data() + h.size());
+        });
+
+    // o.graphsync =
+    // TODO (artem) default service handler for GS
 
     log()->debug("Creating chain loaders...");
 
     o.blocksync_client =
         std::make_shared<fc::sync::blocksync::BlocksyncClient>(o.host, o.ipld);
 
-    o.block_loader = std::make_shared<fc::sync::BlockLoader>(
-        o.ipld, o.scheduler, o.blocksync_client);
+    o.blocksync_server =
+        std::make_shared<fc::sync::blocksync::BlocksyncServer>(o.host, o.ipld);
 
-    o.tipset_loader =
-        std::make_shared<fc::sync::TipsetLoader>(o.scheduler, o.block_loader);
-
-    //    auto weight_calculator =
-    //        std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
-    //
-    //    auto power_table = std::make_shared<power::PowerTableImpl>();
-    //
-    //    auto bls_provider = std::make_shared<crypto::bls::BlsProviderImpl>();
-    //
-    //    auto secp_provider =
-    //        std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>();
-    //
-    //    // TODO: persistent keystore
-    //    auto key_store =
-    //    std::make_shared<storage::keystore::InMemoryKeyStore>(
-    //        bls_provider, secp_provider);
-    //
+    o.tipset_loader = std::make_shared<fc::sync::TipsetLoader>(
+        o.blocksync_client, o.chain_db);
 
     o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
         std::make_shared<vm::interpreter::InterpreterImpl>(), o.kv_store);
 
-    //    o.block_validator =
-    //        std::make_shared<blockchain::block_validator::BlockValidatorImpl>(
-    //            o.ipfs_datastore,
-    //            o.utc_clock,
-    //            o.chain_epoch_clock,
-    //            weight_calculator,
-    //            power_table,
-    //            bls_provider,
-    //            secp_provider,
-    //            vm_interpreter);
+    o.syncer = std::make_shared<sync::Syncer>(o.scheduler,
+                                              o.tipset_loader,
+                                              o.chain_db,
+                                              o.kv_store,
+                                              o.vm_interpreter,
+                                              o.ipld);
 
-    /*
+    log()->debug("Creating chain store...");
 
-    auto chain_store_res = storage::blockchain::ChainStoreImpl::create(
-        block_service, o.block_validator, weight_calculator);
-    if (!chain_store_res) {
-      return chain_store_res.error();
-    }
-    o.chain_store = std::move(chain_store_res.value());
-  */
+    auto weight_calculator =
+        std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
 
-    o.gossip = libp2p::protocol::gossip::create(
-        o.scheduler, o.host, config.gossip_config);
+    auto power_table = std::make_shared<power::PowerTableImpl>();
 
-    //    o.graphsync =
-    //    std::make_shared<storage::ipfs::graphsync::GraphsyncImpl>(
-    //        o.host, o.scheduler);
+    auto bls_provider = std::make_shared<crypto::bls::BlsProviderImpl>();
 
-    // ARTEM, why all the todos above are without jira ids?
+    auto secp_provider =
+        std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>();
 
-    // TODO Artem - replace two stubs below with proper implementations
-    //    auto mpool = storage::mpool::Mpool::create(o.ipfs_datastore,
-    //    o.chain_store); auto msg_waiter =
-    //        storage::blockchain::MsgWaiter::create(o.ipfs_datastore,
-    //        o.chain_store);
-    //
-    //    // TODO Artem - pass the correct interpreter below
-    //    o.api = std::make_shared<api::Api>(api::makeImpl(o.chain_store,
-    //                                                     weight_calculator,
-    //                                                     o.ipfs_datastore,
-    //                                                     bls_provider,
-    //                                                     mpool,
-    //                                                     vm_interpreter,
-    //                                                     msg_waiter,
-    //                                                     key_store));
-    //    // TODO: genesis time
-    //    o.chain_epoch_clock = std::make_shared<clock::ChainEpochClockImpl>(
-    //        clock::Time{std::chrono::nanoseconds(0)}.unixTime());
+    auto block_validator =
+        std::make_shared<blockchain::block_validator::BlockValidatorImpl>(
+            o.ipld,
+            o.utc_clock,
+            o.chain_epoch_clock,
+            weight_calculator,
+            power_table,
+            bls_provider,
+            secp_provider,
+            o.vm_interpreter);
+
+    o.chain_store =
+        std::make_shared<sync::ChainStoreImpl>(o.chain_db,
+                                               o.ipld,
+                                               o.kv_store,
+                                               weight_calculator,
+                                               std::move(block_validator));
+
+    /* TODO(artem): miner api methods in node, keystore, etc (??? resolve)
+
+       auto mpool =
+           storage::mpool::Mpool::create(o.ipld, o.vm_interpreter,
+       o.chain_store);
+
+       auto msg_waiter =
+           storage::blockchain::MsgWaiter::create(o.ipld, o.chain_store);
+
+       auto key_store = std::make_shared<storage::keystore::InMemoryKeyStore>(
+           bls_provider, secp_provider);
+
+       OUTCOME_TRY(keypair, bls_provider->generateKeyPair());
+
+       drand::ChainInfo info {
+           .key{keypair.public_key},
+           .genesis{genesis_timestamp},
+           .period{clock::kEpochDuration}
+       };
+
+       std::vector<std::string> drand_servers;
+
+       auto beaconizer = std::make_shared<drand::BeaconizerImpl>(
+           o.io_context, o.utc_clock, o.scheduler, info, drand_servers, 111);
+
+       auto drand_schedule = std::make_shared<drand::DrandScheduleImpl>(
+           // TODO (???)
+       );
+
+       o.api = std::make_shared<api::Api>(o.chain_store,
+                                          weight_calculator,
+                                          o.ipld,
+                                          mpool,
+                                          o.vm_interpreter,
+                                          msg_waiter,
+                                          beaconizer,
+                                          drand_schedule,
+                                          o.pubsub_gate,
+                                          key_store);
+   */
     return o;
   }
 

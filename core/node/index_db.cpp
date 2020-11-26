@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <algorithm>
+
 #include "index_db_backend.hpp"
 
 #include "common/logger.hpp"
@@ -10,24 +12,14 @@
 namespace fc::sync {
 
   namespace {
-
     auto log() {
       static common::Logger logger = common::createLogger("indexdb");
       return logger.get();
     }
-
-    // TODO more fields here
- //   CBOR_ENCODE_TUPLE(TipsetInfo, key.cids());
-
-
-
-
   }  // namespace
 
-  IndexDb::IndexDb(/*KeyValueStoragePtr kv_store,*/
-                   std::shared_ptr<IndexDbBackend> backend)
-      : /*kv_store_(std::move(kv_store)),*/
-        backend_(std::move(backend)),
+  IndexDb::IndexDb(std::shared_ptr<IndexDbBackend> backend)
+      : backend_(std::move(backend)),
         cache_(1000, [](const TipsetInfo &info) { return info.key.hash(); }) {}
 
   outcome::result<std::map<BranchId, std::shared_ptr<BranchInfo>>>
@@ -52,8 +44,6 @@ namespace fc::sync {
 
     auto tx = backend_->beginTx();
     OUTCOME_TRY(backend_->store(*info, branch_rename));
-    //OUTCOME_TRY(buffer, codec::cbor::encode(info->key.cids()));
-    // OUTCOME_TRY(kv_store_->put(hash, std::move(buffer)));
     if (branch_rename) {
       cache_.modifyValues([branch_rename](TipsetInfo &v) {
         if (v.branch == branch_rename->old_id
@@ -77,14 +67,9 @@ namespace fc::sync {
     if (cached) {
       return cached;
     }
-    //OUTCOME_TRY(buffer, kv_store_->get(common::Buffer(hash)));
-    //OUTCOME_TRY(cids, codec::cbor::decode<std::vector<CID>>(buffer));
-    //auto key = TipsetKey::create(std::move(cids), hash);
     OUTCOME_TRY(idx, backend_->get(hash));
     OUTCOME_TRY(info, IndexDbBackend::decode(std::move(idx)));
-//
-//    auto info = std::make_shared<TipsetInfo>(TipsetInfo{
-//        std::move(key), idx.branch, idx.height, std::move(idx.parent_hash)});
+
     cache_.put(info, false);
 
     log()->debug("get: {}:{}", info->height, info->key.toPrettyString());
@@ -99,12 +84,6 @@ namespace fc::sync {
       return cached;
     }
     OUTCOME_TRY(info, IndexDbBackend::decode(std::move(idx)));
-
-//    OUTCOME_TRY(buffer, kv_store_->get(common::Buffer(idx.hash)));
-//    OUTCOME_TRY(cids, codec::cbor::decode<std::vector<CID>>(buffer));
-//    auto key = TipsetKey::create(std::move(cids), idx.hash);
-//    auto info = std::make_shared<TipsetInfo>(TipsetInfo{
-//        std::move(key), idx.branch, idx.height, std::move(idx.parent_hash)});
 
     cache_.put(info, false);
 

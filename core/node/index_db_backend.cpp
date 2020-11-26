@@ -320,3 +320,24 @@ namespace fc::sync {
   }
 
 }  // namespace fc::sync
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::sync, IndexDbBackend::Error, e) {
+  using E = fc::sync::IndexDbBackend::Error;
+
+  switch (e) {
+    case E::INDEXDB_CANNOT_CREATE:
+      return "index db: cannot create";
+    case E::INDEXDB_DATA_INTEGRITY_ERROR:
+      return "index db: data integrity error";
+    case E::INDEXDB_ALREADY_EXISTS:
+      return "index db: already exists";
+    case E::INDEXDB_EXECUTE_ERROR:
+      return "index db: execute error";
+    case E::INDEXDB_TIPSET_NOT_FOUND:
+      return "index db: tipset not found";
+
+    default:
+      break;
+  }
+  return "IndexDbBackend::Error: unknown error";
+}

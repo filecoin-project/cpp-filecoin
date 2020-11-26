@@ -8,6 +8,7 @@
 
 #include "clock/time.hpp"
 #include "primitives/chain_epoch/chain_epoch.hpp"
+#include "const.hpp"
 
 namespace fc::clock {
   enum class EpochAtTimeError { kBeforeGenesis = 1 };
@@ -24,7 +25,7 @@ namespace fc::clock {
     virtual ~ChainEpochClock() = default;
   };
 
-  constexpr UnixTime kEpochDuration{15};
+  constexpr UnixTime kEpochDuration{kEpochDurationSeconds};
 }  // namespace fc::clock
 
 OUTCOME_HPP_DECLARE_ERROR(fc::clock, EpochAtTimeError);

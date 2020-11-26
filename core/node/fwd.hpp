@@ -42,6 +42,19 @@ namespace fc::sync {
     using Connection = boost::signals2::connection;
 
     struct Events;
+
+    // event types
+    struct PeerConnected;
+    struct PeerDisconnected;
+    struct PeerLatency;
+    struct TipsetFromHello;
+    struct BlockFromPubSub;
+    struct MessageFromPubSub;
+    struct BlockStored;
+    struct TipsetStored;
+    struct PossibleHead;
+    struct HeadInterpreted;
+    struct CurrentHead;
   }
 }  // namespace fc::sync
 

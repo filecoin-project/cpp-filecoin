@@ -54,6 +54,8 @@ namespace fc::sync {
     // topic names
     std::string blocks_topic_;
     std::string msgs_topic_;
+
+    events::Connection peer_connected_event_;
   };
 
 }  // namespace fc::sync

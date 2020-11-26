@@ -68,6 +68,11 @@ namespace fc::sync {
     msgs_subscription_ = SUBSCRIBE_TO_TOPIC(msgs_topic_, onMsg);
 
 #undef SUBSCRIBE_TO_TOPIC
+
+    peer_connected_event_ = events_->subscribePeerConnected(
+        [this](const events::PeerConnected &e) {
+          gossip_->addBootstrapPeer(e.peer_id, boost::none);
+        });
   }
 
   void PubSubGate::stop() {
@@ -79,7 +84,6 @@ namespace fc::sync {
     OUTCOME_TRY(buffer, codec::cbor::encode(block));
     if (!gossip_->publish({blocks_topic_}, buffer.toVector())) {
       log()->warn("cannot publish block");
-
     }
     return outcome::success();
   }

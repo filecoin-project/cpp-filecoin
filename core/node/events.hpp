@@ -37,7 +37,7 @@ namespace fc::sync::events {
 
   struct PeerLatency {
     PeerId peer_id;
-    int64_t latency_usec;
+    uint64_t latency_usec;
   };
 
   struct TipsetFromHello {
@@ -84,6 +84,7 @@ namespace fc::sync::events {
     boost::optional<PeerId> source;
     TipsetKey head;
     Height height = 0;
+    bool downloaded = false;
   };
 
   struct HeadInterpreted {

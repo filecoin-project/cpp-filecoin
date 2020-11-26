@@ -15,6 +15,7 @@ namespace fc::clock {
   class UTCClock {
    public:
     virtual UnixTime nowUTC() const = 0;
+    virtual Microseconds microsecSinceEpoch() const = 0;
     virtual ~UTCClock() = default;
   };
 }  // namespace fc::clock

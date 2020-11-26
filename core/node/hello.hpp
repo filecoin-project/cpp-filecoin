@@ -23,7 +23,7 @@ namespace fc::sync {
   };
 
   struct LatencyMessage {
-    int64_t arrival, sent;
+    uint64_t arrival, sent;
   };
 
   CBOR_TUPLE(HelloMessage,

@@ -353,3 +353,23 @@ namespace fc::sync {
   }
 
 }  // namespace fc::sync
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::sync, ChainDb::Error, e) {
+  using E = fc::sync::ChainDb::Error;
+
+  switch (e) {
+    case E::CHAIN_DB_NOT_INITIALIZED:
+      return "chain db: not initialized";
+    case E::CHAIN_DB_BAD_TIPSET:
+      return "chain db: bad tipset";
+    case E::CHAIN_DB_NO_GENESIS:
+      return "chain db: no genesis tipset";
+    case E::CHAIN_DB_GENESIS_MISMATCH:
+      return "chain db: genesis mismatch";
+    case E::CHAIN_DB_DATA_INTEGRITY_ERROR:
+      return "chain db: data integrity error";
+    default:
+      break;
+  }
+  return "ChainDb::Error: unknown error";
+}

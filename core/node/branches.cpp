@@ -631,3 +631,38 @@ namespace fc::sync {
   }
 
 }  // namespace fc::sync
+
+OUTCOME_CPP_DEFINE_CATEGORY(fc::sync, Branches::Error, e) {
+  using E = fc::sync::Branches::Error;
+
+  switch (e) {
+    case E::BRANCHES_LOAD_ERROR:
+      return "branches: cannot load branches";
+    case E::BRANCHES_NO_GENESIS_BRANCH:
+      return "branches: no genesis branch";
+    case E::BRANCHES_PARENT_EXPECTED:
+      return "branches: parent expected";
+    case E::BRANCHES_NO_CURRENT_CHAIN:
+      return "branches: no current chain";
+    case E::BRANCHES_BRANCH_NOT_FOUND:
+      return "branches: branch not found";
+    case E::BRANCHES_HEAD_NOT_FOUND:
+      return "branches: head not found";
+    case E::BRANCHES_HEAD_NOT_SYNCED:
+      return "branches: head not synced";
+    case E::BRANCHES_CYCLE_DETECTED:
+      return "branches: cycle detected";
+    case E::BRANCHES_STORE_ERROR:
+      return "branches: store error";
+    case E::BRANCHES_HEIGHT_MISMATCH:
+      return "branches: height mismatch";
+    case E::BRANCHES_NO_COMMON_ROOT:
+      return "branches: no common root";
+    case E::BRANCHES_NO_ROUTE:
+      return "branches: no route";
+
+    default:
+      break;
+  }
+  return "Branches::Error: unknown error";
+}
