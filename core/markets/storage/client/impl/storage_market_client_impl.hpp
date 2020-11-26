@@ -37,7 +37,7 @@ namespace fc::markets::storage::client {
   using ClientFSM = fsm::FSM<ClientEvent, void, StorageDealStatus, ClientDeal>;
   using Datastore = fc::storage::face::PersistentMap<Buffer, Buffer>;
   using Ticks = libp2p::protocol::Scheduler::Ticks;
-  using DataTransfer = data_transfer::Dt;
+  using data_transfer::DataTransfer;
 
   class StorageMarketClientImpl
       : public StorageMarketClient,

@@ -36,7 +36,7 @@ namespace fc::data_transfer {
     return l.peer == r.peer && l.id == r.id;
   }
 
-  struct Dt {
+  struct DataTransfer {
     static inline const std::string kProtocol{"/fil/datatransfer/1.0.0"};
     static inline const std::string kExtension{"fil/data-transfer"};
 
@@ -56,8 +56,8 @@ namespace fc::data_transfer {
 
     static gsns::Extension makeExt(const DataTransferMessage &msg);
 
-    static std::shared_ptr<Dt> make(std::shared_ptr<Host> host,
-                                    std::shared_ptr<Graphsync> gs);
+    static std::shared_ptr<DataTransfer> make(std::shared_ptr<Host> host,
+                                              std::shared_ptr<Graphsync> gs);
 
     void push(const PeerInfo &peer,
               const CID &root,

@@ -49,7 +49,7 @@ namespace fc::markets::storage::test {
   using crypto::bls::BlsProviderImpl;
   using crypto::secp256k1::Secp256k1ProviderDefault;
   using crypto::secp256k1::Secp256k1Sha256ProviderImpl;
-  using data_transfer::Dt;
+  using data_transfer::DataTransfer;
   using fc::storage::InMemoryStorage;
   using fc::storage::filestore::FileStore;
   using fc::storage::filestore::FileSystemFileStore;
@@ -175,7 +175,7 @@ namespace fc::markets::storage::test {
         OUTCOME_EXCEPT(ipld_provider->set(data.cid, data.content));
       });
       graphsync->start();
-      datatransfer = Dt::make(host, graphsync);
+      datatransfer = DataTransfer::make(host, graphsync);
 
       provider = makeProvider(*provider_multiaddress,
                               registered_proof,
@@ -502,7 +502,7 @@ namespace fc::markets::storage::test {
     std::shared_ptr<StoredAsk> stored_ask;
     IpldPtr ipld_client, ipld_provider;
     std::shared_ptr<StorageProviderInfo> storage_provider_info;
-    std::shared_ptr<Dt> datatransfer;
+    std::shared_ptr<DataTransfer> datatransfer;
 
     RegisteredProof registered_proof{RegisteredProof::StackedDRG32GiBSeal};
     std::shared_ptr<PieceIO> piece_io_;

@@ -29,7 +29,7 @@ namespace fc::data_transfer {
   using libp2p::protocol::Subscription;
   using storage::ipld::kAllSelector;
 
-  void _read(std::weak_ptr<Dt> _dt, std::shared_ptr<CborStream> s) {
+  void _read(std::weak_ptr<DataTransfer> _dt, std::shared_ptr<CborStream> s) {
     if (_dt.expired()) {
       return s->close();
     }
@@ -45,13 +45,13 @@ namespace fc::data_transfer {
     });
   }
 
-  gsns::Extension Dt::makeExt(const DataTransferMessage &msg) {
+  gsns::Extension DataTransfer::makeExt(const DataTransferMessage &msg) {
     return {kExtension, codec::cbor::encode(msg).value()};
   }
 
-  std::shared_ptr<Dt> Dt::make(std::shared_ptr<Host> host,
-                               std::shared_ptr<Graphsync> gs) {
-    auto dt{std::make_shared<Dt>()};
+  std::shared_ptr<DataTransfer> DataTransfer::make(
+      std::shared_ptr<Host> host, std::shared_ptr<Graphsync> gs) {
+    auto dt{std::make_shared<DataTransfer>()};
     dt->host = host;
     dt->gs = gs;
     gs->setRequestHandler(
@@ -122,13 +122,13 @@ namespace fc::data_transfer {
     return dt;
   }
 
-  void Dt::push(const PeerInfo &peer,
-                const CID &root,
-                IpldPtr ipld,
-                std::string type,
-                Buffer voucher,
-                OkCb on_begin,
-                OkCb on_end) {
+  void DataTransfer::push(const PeerInfo &peer,
+                          const CID &root,
+                          IpldPtr ipld,
+                          std::string type,
+                          Buffer voucher,
+                          OkCb on_begin,
+                          OkCb on_end) {
     auto dtid{next_dtid++};
     assert(on_begin);
     pushing_out.emplace(
@@ -148,7 +148,9 @@ namespace fc::data_transfer {
            });
   }
 
-  void Dt::acceptPush(const PeerDtId &pdtid, const CID &root, OkCb on_end) {
+  void DataTransfer::acceptPush(const PeerDtId &pdtid,
+                                const CID &root,
+                                OkCb on_end) {
     auto sub{std::make_shared<Subscription>()};
     *sub = gs->makeRequest(
         pdtid.peer,
@@ -182,19 +184,19 @@ namespace fc::data_transfer {
         });
   }
 
-  void Dt::rejectPush(const PeerDtId &pdtid) {
+  void DataTransfer::rejectPush(const PeerDtId &pdtid) {
     dtSend(pdtid.peer,
            DataTransferResponse{
                MessageType::kCompleteMessage, false, false, pdtid.id, {}, {}});
   }
 
-  PeerDtId Dt::pull(const PeerInfo &peer,
-                    const CID &root,
-                    Selector selector,
-                    std::string type,
-                    Buffer vocuher,
-                    OnData on_reply,
-                    OnCid on_cid) {
+  PeerDtId DataTransfer::pull(const PeerInfo &peer,
+                              const CID &root,
+                              Selector selector,
+                              std::string type,
+                              Buffer vocuher,
+                              OnData on_reply,
+                              OnCid on_cid) {
     auto dtid{next_dtid++};
     PeerDtId pdtid{peer.id, dtid};
     pulling_out.emplace(pdtid, std::move(on_reply));
@@ -237,7 +239,9 @@ namespace fc::data_transfer {
     return pdtid;
   }
 
-  void Dt::pullOut(const PeerDtId &pdtid, std::string type, Buffer voucher) {
+  void DataTransfer::pullOut(const PeerDtId &pdtid,
+                             std::string type,
+                             Buffer voucher) {
     dtSend(pdtid.peer,
            DataTransferRequest{
                {},
@@ -252,30 +256,31 @@ namespace fc::data_transfer {
            });
   }
 
-  void Dt::acceptPull(const PeerDtId &pdtid,
-                      const PeerGsId &pgsid,
-                      std::string type,
-                      Buffer voucher) {
+  void DataTransfer::acceptPull(const PeerDtId &pdtid,
+                                const PeerGsId &pgsid,
+                                std::string type,
+                                Buffer voucher) {
     assert(pdtid.peer == pgsid.peer);
-    gs->postResponse(pgsid,
-                     {
-                         gsns::ResponseStatusCode::RS_PARTIAL_RESPONSE,
-                         {Dt::makeExt(data_transfer::DataTransferResponse{
-                             data_transfer::MessageType::kNewMessage,
-                             true,
-                             false,
-                             pdtid.id,
-                             CborRaw{std::move(voucher)},
-                             std::move(type),
-                         })},
-                         {},
-                     });
+    gs->postResponse(
+        pgsid,
+        {
+            gsns::ResponseStatusCode::RS_PARTIAL_RESPONSE,
+            {DataTransfer::makeExt(data_transfer::DataTransferResponse{
+                data_transfer::MessageType::kNewMessage,
+                true,
+                false,
+                pdtid.id,
+                CborRaw{std::move(voucher)},
+                std::move(type),
+            })},
+            {},
+        });
   }
 
-  void Dt::rejectPull(const PeerDtId &pdtid,
-                      const PeerGsId &pgsid,
-                      std::string type,
-                      boost::optional<CborRaw> voucher) {
+  void DataTransfer::rejectPull(const PeerDtId &pdtid,
+                                const PeerGsId &pgsid,
+                                std::string type,
+                                boost::optional<CborRaw> voucher) {
     assert(pdtid.peer == pgsid.peer);
     gs->postResponse(pgsid,
                      {
@@ -292,7 +297,7 @@ namespace fc::data_transfer {
                      });
   }
 
-  void Dt::onMsg(const PeerId &peer, const DataTransferMessage &msg) {
+  void DataTransfer::onMsg(const PeerId &peer, const DataTransferMessage &msg) {
     PeerDtId pdtid{peer, msg.dtid()};
     if (msg.is_request) {
       auto &req{*msg.request};
@@ -331,11 +336,13 @@ namespace fc::data_transfer {
     }
   }
 
-  void Dt::dtSend(const PeerId &peer, const DataTransferMessage &msg) {
+  void DataTransfer::dtSend(const PeerId &peer,
+                            const DataTransferMessage &msg) {
     dtSend({peer, {}}, msg);
   }
 
-  void Dt::dtSend(const PeerInfo &peer, const DataTransferMessage &msg) {
+  void DataTransfer::dtSend(const PeerInfo &peer,
+                            const DataTransferMessage &msg) {
     host->newStream(peer, kProtocol, [msg](auto _s) {
       if (_s) {
         auto s{std::make_shared<CborStream>(_s.value())};

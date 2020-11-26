@@ -27,7 +27,7 @@ namespace fc::markets::retrieval::test {
   using api::AddChannelInfo;
   using api::MinerInfo;
   using common::Buffer;
-  using data_transfer::Dt;
+  using data_transfer::DataTransfer;
   using fc::storage::ipfs::InMemoryDatastore;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::piece::DealInfo;
@@ -57,7 +57,7 @@ namespace fc::markets::retrieval::test {
     std::shared_ptr<libp2p::Host> host;
     std::shared_ptr<boost::asio::io_context> context;
     std::thread thread;
-    std::shared_ptr<Dt> datatransfer;
+    std::shared_ptr<DataTransfer> datatransfer;
 
     /* Retrieval market client */
     ClientShPtr client;
@@ -130,7 +130,7 @@ namespace fc::markets::retrieval::test {
         OUTCOME_EXCEPT(client_ipfs->set(data.cid, data.content));
       });
       graphsync->start();
-      datatransfer = Dt::make(host, graphsync);
+      datatransfer = DataTransfer::make(host, graphsync);
 
       provider =
           std::make_shared<provider::RetrievalProviderImpl>(host,

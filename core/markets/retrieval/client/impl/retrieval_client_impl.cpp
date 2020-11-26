@@ -10,10 +10,11 @@
 
 namespace fc::markets::retrieval::client {
 
-  RetrievalClientImpl::RetrievalClientImpl(std::shared_ptr<Host> host,
-                                           std::shared_ptr<Dt> datatransfer,
-                                           std::shared_ptr<Api> api,
-                                           std::shared_ptr<IpfsDatastore> ipfs)
+  RetrievalClientImpl::RetrievalClientImpl(
+      std::shared_ptr<Host> host,
+      std::shared_ptr<DataTransfer> datatransfer,
+      std::shared_ptr<Api> api,
+      std::shared_ptr<IpfsDatastore> ipfs)
       : host_{std::move(host)},
         datatransfer_{std::move(datatransfer)},
         api_{std::move(api)},

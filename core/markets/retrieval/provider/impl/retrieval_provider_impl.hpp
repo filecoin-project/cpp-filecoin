@@ -19,7 +19,7 @@
 
 namespace fc::markets::retrieval::provider {
   using common::libp2p::CborStream;
-  using data_transfer::Dt;
+  using data_transfer::DataTransfer;
   using data_transfer::PeerDtId;
   using data_transfer::PeerGsId;
   using ::fc::miner::Miner;
@@ -68,7 +68,7 @@ namespace fc::markets::retrieval::provider {
         public std::enable_shared_from_this<RetrievalProviderImpl> {
    public:
     RetrievalProviderImpl(std::shared_ptr<Host> host,
-                          std::shared_ptr<Dt> datatransfer,
+                          std::shared_ptr<DataTransfer> datatransfer,
                           std::shared_ptr<api::Api> api,
                           std::shared_ptr<PieceStorage> piece_storage,
                           IpldPtr ipld,
@@ -127,7 +127,7 @@ namespace fc::markets::retrieval::provider {
                                             UnpaddedPieceSize size);
 
     std::shared_ptr<Host> host_;
-    std::shared_ptr<Dt> datatransfer_;
+    std::shared_ptr<DataTransfer> datatransfer_;
     std::shared_ptr<api::Api> api_;
     std::shared_ptr<PieceStorage> piece_storage_;
     std::shared_ptr<Ipld> ipld_;

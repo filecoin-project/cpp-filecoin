@@ -32,7 +32,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::codec::cbor, CborDecodeError, e) {
       return "Invalid CID";
     case CborDecodeError::kWrongSize:
       return "Wrong size";
-    case CborDecodeError::kKey:
+    case CborDecodeError::kKeyNotFound:
       return "Key not found";
     default:
       return "Unknown error";

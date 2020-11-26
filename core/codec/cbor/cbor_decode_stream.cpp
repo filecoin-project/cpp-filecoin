@@ -236,7 +236,7 @@ namespace fc::codec::cbor {
       std::map<std::string, CborDecodeStream> &map, const std::string &name) {
     auto it{map.find(name)};
     if (it == map.end()) {
-      outcome::raise(CborDecodeError::kKey);
+      outcome::raise(CborDecodeError::kKeyNotFound);
     }
     return it->second;
   }

@@ -41,7 +41,7 @@ namespace fc::markets::storage::provider {
       fsm::Transition<ProviderEvent, void, StorageDealStatus, MinerDeal>;
   using ProviderFSM =
       fsm::FSM<ProviderEvent, void, StorageDealStatus, MinerDeal>;
-  using DataTransfer = data_transfer::Dt;
+  using data_transfer::DataTransfer;
 
   const EpochDuration kDefaultDealAcceptanceBuffer{100};
 

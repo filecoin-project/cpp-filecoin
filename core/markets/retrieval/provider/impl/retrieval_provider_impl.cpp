@@ -24,7 +24,7 @@ namespace fc::markets::retrieval::provider {
 
   RetrievalProviderImpl::RetrievalProviderImpl(
       std::shared_ptr<Host> host,
-      std::shared_ptr<Dt> datatransfer,
+      std::shared_ptr<DataTransfer> datatransfer,
       std::shared_ptr<api::Api> api,
       std::shared_ptr<PieceStorage> piece_storage,
       std::shared_ptr<Ipld> ipld,
@@ -218,7 +218,7 @@ namespace fc::markets::retrieval::provider {
     datatransfer_->gs->postResponse(
         deal->pgsid,
         {GsResStatus::RS_FULL_CONTENT,
-         {Dt::makeExt(data_transfer::DataTransferResponse{
+         {DataTransfer::makeExt(data_transfer::DataTransferResponse{
              data_transfer::MessageType::kCompleteMessage,
              true,
              false,
@@ -236,7 +236,7 @@ namespace fc::markets::retrieval::provider {
     datatransfer_->gs->postResponse(
         deal->pgsid,
         {GsResStatus::RS_PARTIAL_RESPONSE,
-         {Dt::makeExt(data_transfer::DataTransferResponse{
+         {DataTransfer::makeExt(data_transfer::DataTransferResponse{
              data_transfer::MessageType::kVoucherResultMessage,
              true,
              false,

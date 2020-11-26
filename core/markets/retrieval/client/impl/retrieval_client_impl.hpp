@@ -22,7 +22,7 @@
 namespace fc::markets::retrieval::client {
   using api::Api;
   using common::libp2p::CborStream;
-  using data_transfer::Dt;
+  using data_transfer::DataTransfer;
   using data_transfer::PeerDtId;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::ipld::verifier::Verifier;
@@ -80,7 +80,7 @@ namespace fc::markets::retrieval::client {
      * @param IpfsDatastore - ipfs datastore
      */
     RetrievalClientImpl(std::shared_ptr<Host> host,
-                        std::shared_ptr<Dt> datatransfer,
+                        std::shared_ptr<DataTransfer> datatransfer,
                         std::shared_ptr<Api> api,
                         std::shared_ptr<IpfsDatastore> ipfs);
 
@@ -111,7 +111,7 @@ namespace fc::markets::retrieval::client {
 
     DealId next_deal_id;
     std::shared_ptr<Host> host_;
-    std::shared_ptr<Dt> datatransfer_;
+    std::shared_ptr<DataTransfer> datatransfer_;
     std::shared_ptr<Api> api_;
     std::shared_ptr<IpfsDatastore> ipfs_;
     common::Logger logger_ = common::createLogger("RetrievalMarketClient");
