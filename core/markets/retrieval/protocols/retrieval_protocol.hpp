@@ -26,15 +26,12 @@ namespace fc::markets::retrieval {
   using primitives::address::Address;
   using vm::actor::builtin::v0::payment_channel::SignedVoucher;
 
-  /*
-   * @brief Retrieval Protocol ID V0
-   */
-  const libp2p::peer::Protocol kRetrievalProtocolId = "/fil/retrieval/0.0.1";
-
   /**
    * @struct Deal proposal params
    */
   struct DealProposalParams {
+    struct Named;
+
     Selector selector;
     boost::optional<CID> piece;
 
@@ -46,19 +43,19 @@ namespace fc::markets::retrieval {
 
     /* Rate at which payment interval value increases */
     uint64_t payment_interval_increase;
+
+    TokenAmount unseal_price;
   };
 
-  CBOR_TUPLE(DealProposalParams,
-             selector,
-             piece,
-             price_per_byte,
-             payment_interval,
-             payment_interval_increase);
+  struct DealProposalParams::Named : DealProposalParams {};
+  CBOR2_DECODE_ENCODE(DealProposalParams::Named)
 
   /**
    * Deal proposal
    */
   struct DealProposal {
+    struct Named;
+
     /* Identifier of the requested item */
     CID payload_cid;
 
@@ -69,18 +66,16 @@ namespace fc::markets::retrieval {
     DealProposalParams params;
   };
 
-  CBOR_TUPLE(DealProposal, payload_cid, deal_id, params);
+  struct DealProposal::Named : DealProposal {
+    inline static const std::string type{"RetrievalDealProposal/1"};
+  };
+  CBOR2_DECODE_ENCODE(DealProposal::Named)
 
   /**
    * Deal proposal response
    */
   struct DealResponse {
-    /// ipld block
-    struct Block {
-      /// CID bytes with multihash without hash bytes
-      Buffer prefix;
-      Buffer data;
-    };
+    struct Named;
 
     /* Current deal status */
     DealStatus status;
@@ -93,23 +88,62 @@ namespace fc::markets::retrieval {
 
     /* Optional message */
     std::string message;
-
-    /* Requested data */
-    std::vector<Block> blocks;
   };
-  CBOR_TUPLE(DealResponse, status, deal_id, payment_owed, message, blocks)
-  CBOR_TUPLE(DealResponse::Block, prefix, data)
+
+  struct DealResponse::Named : DealResponse {
+    inline static const std::string type{"RetrievalDealResponse/1"};
+  };
+  CBOR2_DECODE_ENCODE(DealResponse::Named)
 
   /**
    * Payment for an in progress retrieval deal
    */
   struct DealPayment {
+    struct Named;
+
     DealId deal_id;
     Address payment_channel;
     SignedVoucher payment_voucher;
   };
-  CBOR_TUPLE(DealPayment, deal_id, payment_channel, payment_voucher);
 
+  struct DealPayment::Named : DealPayment {
+    inline static const std::string type{"RetrievalDealPayment/1"};
+  };
+  CBOR2_DECODE_ENCODE(DealPayment::Named)
+
+  struct State {
+    State(const DealProposalParams &params)
+        : params{params},
+          interval{params.payment_interval},
+          owed{params.unseal_price} {}
+
+    void block(uint64_t size) {
+      assert(!owed);
+      bytes += size;
+      TokenAmount unpaid{bytes * params.price_per_byte
+                         - (paid - params.unseal_price)};
+      if (unpaid >= interval * params.price_per_byte) {
+        owed = unpaid;
+      }
+    }
+
+    void last() {
+      owed = params.unseal_price + bytes * params.price_per_byte - paid;
+    }
+
+    void pay(const TokenAmount &amount) {
+      assert(amount <= owed);
+      paid += amount;
+      owed -= amount;
+      if (!owed) {
+        interval += params.payment_interval_increase;
+      }
+    }
+
+    DealProposalParams params;
+    uint64_t interval, bytes{};
+    TokenAmount paid, owed;
+  };
 }  // namespace fc::markets::retrieval
 
 #endif

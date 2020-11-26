@@ -70,13 +70,6 @@ namespace fc::storage::ipfs::graphsync::test {
       start();
 
       std::vector<Extension> extensions;
-      ResponseMetadata response_metadata{};
-      Extension response_metadata_extension =
-          encodeResponseMetadata(response_metadata);
-      extensions.push_back(response_metadata_extension);
-      std::vector<CID> cids;
-      Extension do_not_send_cids_extension = encodeDontSendCids(cids);
-      extensions.push_back(do_not_send_cids_extension);
       requests_.push_back(graphsync_->makeRequest(peer,
                                                   std::move(address),
                                                   root_cid,

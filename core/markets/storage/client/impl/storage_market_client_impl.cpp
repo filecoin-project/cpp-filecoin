@@ -10,11 +10,9 @@
 #include "codec/cbor/cbor.hpp"
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "common/ptr.hpp"
-#include "data_transfer/impl/graphsync/graphsync_manager.hpp"
 #include "host/context/impl/host_context_impl.hpp"
 #include "markets/common.hpp"
 #include "markets/pieceio/pieceio_impl.hpp"
-#include "markets/storage/client/impl/client_data_transfer_request_validator.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "vm/message/message.hpp"
@@ -48,13 +46,10 @@
 
 namespace fc::markets::storage::client {
   using api::MsgWait;
-  using data_transfer::graphsync::GraphSyncManager;
-  using fc::storage::ipfs::graphsync::GraphsyncImpl;
   using host::HostContext;
   using host::HostContextImpl;
   using libp2p::peer::PeerId;
   using primitives::BigInt;
-  using primitives::GasAmount;
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
@@ -66,15 +61,17 @@ namespace fc::markets::storage::client {
   StorageMarketClientImpl::StorageMarketClientImpl(
       std::shared_ptr<Host> host,
       std::shared_ptr<boost::asio::io_context> context,
+      IpldPtr ipld,
       std::shared_ptr<DataTransfer> datatransfer,
-      std::shared_ptr<Datastore> datastore,
+      std::shared_ptr<Discovery> discovery,
       std::shared_ptr<Api> api,
       std::shared_ptr<PieceIO> piece_io)
       : host_{std::move(host)},
         context_{std::move(context)},
         api_{std::move(api)},
         piece_io_{std::move(piece_io)},
-        discovery_{std::make_shared<Discovery>(datastore)},
+        discovery_{std::move(discovery)},
+        ipld{ipld},
         datatransfer_{std::move(datatransfer)} {}
 
   bool StorageMarketClientImpl::pollWaiting() {
@@ -144,13 +141,6 @@ namespace fc::markets::storage::client {
     std::shared_ptr<HostContext> fsm_context =
         std::make_shared<HostContextImpl>(context_);
     fsm_ = std::make_shared<ClientFSM>(makeFSMTransitions(), fsm_context);
-
-    // register request validator
-    auto state_store = std::make_shared<ClientFsmStateStore>(fsm_);
-    auto validator =
-        std::make_shared<ClientDataTransferRequestValidator>(state_store);
-    OUTCOME_TRY(datatransfer_->init(StorageDataTransferVoucherType, validator));
-
     return outcome::success();
   }
 
@@ -171,7 +161,8 @@ namespace fc::markets::storage::client {
     OUTCOME_TRY(miners, api_->StateListMiners(chain_head->key));
     std::vector<StorageProviderInfo> storage_providers;
     for (const auto &miner_address : miners) {
-      OUTCOME_TRY(miner_info, api_->StateMinerInfo(miner_address, chain_head->key));
+      OUTCOME_TRY(miner_info,
+                  api_->StateMinerInfo(miner_address, chain_head->key));
       OUTCOME_TRY(peer_id, PeerId::fromBytes(miner_info.peer_id));
       PeerInfo peer_info{.id = std::move(peer_id), .addresses = {}};
       storage_providers.push_back(
@@ -365,7 +356,8 @@ namespace fc::markets::storage::client {
       return StorageMarketClientError::kWrongMiner;
     }
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(miner_info, api_->StateMinerInfo(info.address, chain_head->key));
+    OUTCOME_TRY(miner_info,
+                api_->StateMinerInfo(info.address, chain_head->key));
     OUTCOME_TRY(ask_bytes, codec::cbor::encode(response.value().ask.ask));
     OUTCOME_TRY(
         signature_valid,
@@ -635,15 +627,14 @@ namespace fc::markets::storage::client {
       OUTCOME_EXCEPT(
           voucher,
           codec::cbor::encode(StorageDataTransferVoucher{deal->proposal_cid}));
-      static auto selector{
-          std::make_shared<Selector>(fc::storage::ipld::kAllSelector)};
-      auto _channel{self->datatransfer_->openDataChannel(
+      self->datatransfer_->push(
           deal->miner,
-          true,
-          {StorageDataTransferVoucherType, std::move(voucher)},
           deal->data_ref.root,
-          selector)};
-      SELF_FSM_HALT_ON_ERROR(_channel, "openDataChannel", deal);
+          self->ipld,
+          StorageDataTransferVoucherType,
+          voucher,
+          [](auto) {},
+          [](auto) {});
 
       std::lock_guard lock{self->waiting_mutex};
       self->waiting_deals.push_back(deal);

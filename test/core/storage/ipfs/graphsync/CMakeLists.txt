@@ -12,10 +12,3 @@ target_link_libraries(graphsync_acceptance_test
     ipfs_merkledag_service
     p2p::asio_scheduler
     )
-
-addtest(graphsync_extension_test
-    extensions_test.cpp
-    )
-target_link_libraries(graphsync_extension_test
-    graphsync
-    )

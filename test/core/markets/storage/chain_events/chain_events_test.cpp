@@ -87,6 +87,12 @@ namespace fc::markets::storage::chain_events {
           return Chan{std::move(channel)};
         }};
 
+    api->StateWaitMsg = [](auto &, auto) {
+      auto wait{api::Wait<api::MsgWait>::make()};
+      wait.channel->write(outcome::success());
+      return wait;
+    };
+
     bool is_called = false;
     events->onDealSectorCommitted(
         provider, deal_id, [&]() { is_called = true; });

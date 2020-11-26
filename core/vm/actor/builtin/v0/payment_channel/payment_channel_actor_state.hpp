@@ -74,6 +74,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   CBOR_TUPLE(ModularVerificationParameter, actor, method, data)
 
   struct SignedVoucher {
+    Address channel;
     ChainEpoch time_lock_min{};
     ChainEpoch time_lock_max{};
     Buffer secret_preimage;
@@ -86,7 +87,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     boost::optional<Signature> signature;
 
     inline bool operator==(const SignedVoucher &rhs) const {
-      return time_lock_min == rhs.time_lock_min
+      return channel == rhs.channel && time_lock_min == rhs.time_lock_min
              && time_lock_max == rhs.time_lock_max
              && secret_preimage == rhs.secret_preimage && extra == rhs.extra
              && lane == rhs.lane && nonce == rhs.nonce && amount == rhs.amount
@@ -95,6 +96,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     }
   };
   CBOR_TUPLE(SignedVoucher,
+             channel,
              time_lock_min,
              time_lock_max,
              secret_preimage,
