@@ -8,6 +8,7 @@
 
 #include "primitives/block/block.hpp"
 #include "primitives/tipset/tipset_key.hpp"
+#include "crypto/randomness/randomness_types.hpp"
 
 namespace fc::primitives::tipset {
 

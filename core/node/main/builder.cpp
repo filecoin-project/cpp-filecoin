@@ -41,9 +41,10 @@
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "vm/interpreter/impl/interpreter_impl.hpp"
-#include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/actor/builtin/v0/init/init_actor.hpp"
+#include "vm/interpreter/impl/interpreter_impl.hpp"
+#include "vm/runtime/impl/tipset_randomness.hpp"
+#include "vm/state/impl/state_tree_impl.hpp"
 
 namespace fc::node {
 
@@ -264,7 +265,9 @@ namespace fc::node {
         o.blocksync_client, o.chain_db);
 
     o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
-        std::make_shared<vm::interpreter::InterpreterImpl>(), o.kv_store);
+        std::make_shared<vm::interpreter::InterpreterImpl>(
+            std::make_shared<vm::runtime::TipsetRandomness>(o.ipld)),
+        o.kv_store);
 
     o.syncer = std::make_shared<sync::Syncer>(o.scheduler,
                                               o.tipset_loader,

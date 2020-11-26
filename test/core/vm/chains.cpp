@@ -50,7 +50,7 @@ TEST(ChainsTest, Testnet_v054_h341) {
         << "state differs at " << ts->height() - 1;
     EXPECT_EQ(last.second, ts->getParentMessageReceipts())
         << "receipts differ at " << ts->height() - 1;
-    auto randomness = std::make_shared<TipsetRandomness>(ipld, ts);
+    auto randomness = std::make_shared<TipsetRandomness>(ipld);
     EXPECT_OUTCOME_TRUE(result,
                         InterpreterImpl{randomness}.interpret(ipld, ts));
     last = {result.state_root, result.message_receipts};

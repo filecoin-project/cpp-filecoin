@@ -7,22 +7,23 @@
 
 namespace fc::vm::runtime {
 
-  TipsetRandomness::TipsetRandomness(std::shared_ptr<Ipld> ipld,
-                                     TipsetCPtr tipset)
-      : ipld_{std::move(ipld)}, tipset_{std::move(tipset)} {}
+  TipsetRandomness::TipsetRandomness(std::shared_ptr<Ipld> ipld)
+      : ipld_{std::move(ipld)} {}
 
   outcome::result<Randomness> TipsetRandomness::getRandomnessFromTickets(
+      const TipsetCPtr& tipset,
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return tipset_->ticketRandomness(*ipld_, tag, epoch, seed);
+    return tipset->ticketRandomness(*ipld_, tag, epoch, seed);
   }
 
   outcome::result<Randomness> TipsetRandomness::getRandomnessFromBeacon(
+      const TipsetCPtr& tipset,
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return tipset_->beaconRandomness(*ipld_, tag, epoch, seed);
+    return tipset->beaconRandomness(*ipld_, tag, epoch, seed);
   }
 
 }  // namespace fc::vm::runtime
