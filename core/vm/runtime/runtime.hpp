@@ -17,6 +17,7 @@
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/ipfs/datastore.hpp"
+#include "vm/actor/actor.hpp"
 #include "vm/actor/actor_encoding.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
@@ -27,6 +28,7 @@ namespace fc::vm::runtime {
 
   using actor::Actor;
   using actor::CodeId;
+  using actor::isStorageMinerActor;
   using actor::kSendMethodNumber;
   using actor::MethodNumber;
   using actor::MethodParams;
@@ -314,8 +316,12 @@ namespace fc::vm::runtime {
       return VMExitCode::kSysErrForbidden;
     }
 
-    inline auto validateImmediateCallerIsMiner() {
-      return validateImmediateCallerType(actor::kStorageMinerCodeCid);
+    inline outcome::result<void> validateImmediateCallerIsMiner() {
+      OUTCOME_TRY(actual_code, getActorCodeID(getImmediateCaller()));
+      if (isStorageMinerActor(actual_code)) {
+        return outcome::success();
+      }
+      return VMExitCode::kSysErrForbidden;
     }
   };
 

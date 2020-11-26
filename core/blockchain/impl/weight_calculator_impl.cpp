@@ -5,7 +5,7 @@
 
 #include "blockchain/impl/weight_calculator_impl.hpp"
 
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
@@ -19,7 +19,7 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
 namespace fc::blockchain::weight {
   using primitives::BigInt;
   using vm::actor::kStoragePowerAddress;
-  using vm::actor::builtin::storage_power::StoragePowerActorState;
+  using vm::actor::builtin::v0::storage_power::StoragePowerActorState;
   using vm::state::StateTreeImpl;
 
   constexpr uint64_t kWRatioNum{1};

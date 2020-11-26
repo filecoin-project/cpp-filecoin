@@ -13,7 +13,7 @@
 #include "primitives/tipset/tipset_key.hpp"
 #include "primitives/types.hpp"
 #include "sector_storage/manager.hpp"
-#include "vm/actor/builtin/miner/types.hpp"
+#include "vm/actor/builtin/v0/miner/types.hpp"
 
 namespace fc::mining::types {
   using primitives::ChainEpoch;
@@ -26,7 +26,7 @@ namespace fc::mining::types {
   using proofs::SealRandomness;
   using sector_storage::InteractiveRandomness;
   using sector_storage::PreCommit1Output;
-  using vm::actor::builtin::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
 
   constexpr uint64_t kDealSectorPriority = 1024;
 

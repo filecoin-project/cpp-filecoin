@@ -32,7 +32,7 @@ namespace fc::markets::retrieval::test {
   using primitives::tipset::Tipset;
   using primitives::tipset::TipsetCPtr;
   using provider::ProviderConfig;
-  using vm::actor::builtin::payment_channel::SignedVoucher;
+  using vm::actor::builtin::v0::payment_channel::SignedVoucher;
 
   /** Shared resources */
   static std::shared_ptr<libp2p::Host> host;

@@ -172,7 +172,8 @@ func (rt *rt) Send(to address.Address, method abi.MethodNum, o cbor.Marshaler, v
 	return exit
 }
 
-func (rt *rt) Abortf(exit exitcode.ExitCode, _ string, _ ...interface{}) {
+func (rt *rt) Abortf(exit exitcode.ExitCode, msg string, args ...interface{}) {
+    fmt.Printf("Abort: " + msg, args...)
 	rt.Abort(exit)
 }
 

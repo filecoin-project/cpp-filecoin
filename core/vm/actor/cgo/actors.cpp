@@ -10,7 +10,7 @@
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
-#include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
 #include "vm/dvm/dvm.hpp"
@@ -25,7 +25,7 @@
   void rt_##name(Runtime &rt, CborDecodeStream &arg, CborEncodeStream &ret)
 
 namespace fc::vm::actor::cgo {
-  using builtin::account::AccountActorState;
+  using builtin::v0::account::AccountActorState;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
@@ -134,7 +134,6 @@ namespace fc::vm::actor::cgo {
   RUNTIME_METHOD(gocRtIpldPut) {
     auto buf = arg.get<Buffer>();
     if (auto cid{ipldPut(ret, rt, buf)}) {
-      dvm::onIpldSet(*cid, buf);
       ret << kOk << *cid;
     }
   }
@@ -326,15 +325,10 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtActorBalance) {
-    if (auto _actor{
-            rt.execution()->state_tree->get(rt.getMessage().get().to)}) {
-      ret << kOk << _actor.value().balance;
+    if (auto balance{rt.getBalance(rt.getMessage().get().to)}) {
+      ret << kOk << balance.value();
     } else {
-      if (_actor.error() == HamtError::kNotFound) {
-        ret << kOk << TokenAmount{0};
-      } else {
-        ret << kFatal;
-      }
+      ret << kFatal;
     }
   }
 

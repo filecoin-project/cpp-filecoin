@@ -16,7 +16,7 @@
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "storage/car/car.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
-#include "vm/actor/builtin/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
 
 #define CALLBACK_ACTION(_action)                                    \
   [this](auto deal, auto event, auto context, auto from, auto to) { \
@@ -50,7 +50,7 @@ namespace fc::markets::storage::provider {
   using mining::SealingState;
   using vm::VMExitCode;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::market::PublishStorageDeals;
+  using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::SignedMessage;

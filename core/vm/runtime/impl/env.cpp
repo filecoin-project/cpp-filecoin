@@ -5,7 +5,10 @@
 
 #include "vm/runtime/env.hpp"
 
-#include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v2/account/account_actor.hpp"
+#include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
@@ -14,12 +17,15 @@
 #include "vm/dvm/dvm.hpp"
 
 namespace fc::vm::runtime {
-  using actor::kAccountCodeCid;
+  using actor::ActorVersion;
+  using actor::getActorVersionForNetwork;
+  using actor::isAccountActor;
   using actor::kEmptyObjectCid;
   using actor::kRewardAddress;
   using actor::kSendMethodNumber;
   using actor::kSystemActorAddress;
   using storage::hamt::HamtError;
+  using version::getNetworkVersion;
 
   outcome::result<Address> resolveKey(StateTree &state_tree,
                                       const Address &address,
@@ -29,10 +35,21 @@ namespace fc::vm::runtime {
     }
     if (auto _actor{state_tree.get(address)}) {
       auto &actor{_actor.value()};
-      if (actor.code == kAccountCodeCid) {
+      if (actor.code == actor::builtin::v0::kAccountCodeCid) {
         if (auto _state{
                 state_tree.getStore()
-                    ->getCbor<actor::builtin::account::AccountActorState>(
+                    ->getCbor<actor::builtin::v0::account::AccountActorState>(
+                        actor.head)}) {
+          auto &key{_state.value().address};
+          if (!no_actor || key.isKeyType()) {
+            return key;
+          }
+        }
+      }
+      if (actor.code == actor::builtin::v2::kAccountCodeCid) {
+        if (auto _state{
+                state_tree.getStore()
+                    ->getCbor<actor::builtin::v2::account::AccountActorState>(
                         actor.head)}) {
           auto &key{_state.value().address};
           if (!no_actor || key.isKeyType()) {
@@ -78,7 +95,7 @@ namespace fc::vm::runtime {
       return maybe_from.error();
     }
     auto &from = maybe_from.value();
-    if (from.code != actor::kAccountCodeCid) {
+    if (!isAccountActor(from.code)) {
       apply.receipt.exit_code = VMExitCode::kSysErrSenderInvalid;
       return apply;
     }
@@ -139,11 +156,11 @@ namespace fc::vm::runtime {
         * limit;
     OUTCOME_TRY(add_locked(kRewardAddress, apply.reward));
     auto over{limit - 11 * used / 10};
-    auto gas_burned{used == 0 ? limit
-                    : over < 0
-                        ? 0
-                        : (GasAmount)bigdiv(
-                            BigInt{limit - used} * std::min(used, over), used)};
+    auto gas_burned{
+        used == 0  ? limit
+        : over < 0 ? 0
+                   : static_cast<GasAmount>(bigdiv(
+                       BigInt{limit - used} * std::min(used, over), used))};
     if (gas_burned != 0) {
       OUTCOME_TRY(add_locked(actor::kBurntFundsActorAddress,
                              base_fee_pay * gas_burned));
@@ -161,8 +178,6 @@ namespace fc::vm::runtime {
 
   outcome::result<MessageReceipt> Env::applyImplicitMessage(
       UnsignedMessage message) {
-    OUTCOME_TRY(from, state_tree->get(message.from));
-    message.nonce = from.nonce;
     auto execution = Execution::make(shared_from_this(), message);
     auto result = execution->send(message);
     if (result.has_error() && !isVMExitCode(result.error())) {
@@ -210,8 +225,26 @@ namespace fc::vm::runtime {
     if (!address.isKeyType()) {
       return VMExitCode::kSysErrInvalidReceiver;
     }
+
+    // Get correct version of actor to create
+    CID account_code_cid_to_create;
+    MethodNumber account_actor_create_method_number;
+    switch (getActorVersionForNetwork(
+        getNetworkVersion(static_cast<ChainEpoch>(env->epoch)))) {
+      case ActorVersion::kVersion0:
+        account_code_cid_to_create = actor::builtin::v0::kAccountCodeCid;
+        account_actor_create_method_number =
+            actor::builtin::v0::account::Construct::Number;
+        break;
+      case ActorVersion::kVersion2:
+        account_code_cid_to_create = actor::builtin::v2::kAccountCodeCid;
+        account_actor_create_method_number =
+            actor::builtin::v2::account::Construct::Number;
+        break;
+    }
+
     OUTCOME_TRY(state_tree->set(
-        id, {actor::kAccountCodeCid, actor::kEmptyObjectCid, {}, {}}));
+        id, {account_code_cid_to_create, actor::kEmptyObjectCid, {}, {}}));
     OUTCOME_TRY(params, actor::encodeActorParams(address));
     OUTCOME_TRY(sendWithRevert({id,
                                 kSystemActorAddress,
@@ -219,7 +252,7 @@ namespace fc::vm::runtime {
                                 {},
                                 {},
                                 {},
-                                actor::builtin::account::Construct::Number,
+                                account_actor_create_method_number,
                                 params}));
     return state_tree->get(id);
   }
@@ -255,14 +288,19 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(chargeGas(
         env->pricelist.onMethodInvocation(message.value, message.method)));
     OUTCOME_TRY(caller_id, state_tree->lookupId(message.from));
-    RuntimeImpl runtime{
-        shared_from_this(), env->randomness, message, caller_id};
+    auto _message{message};
+    _message.from = caller_id;
+
+    OUTCOME_TRY(to_id, state_tree->lookupId(message.to));
+    if (getNetworkVersion(static_cast<ChainEpoch>(env->epoch))
+        >= NetworkVersion::kVersion4) {
+      _message.to = to_id;
+    }
 
     if (message.value != 0) {
       if (message.value < 0) {
         return VMExitCode::kSysErrForbidden;
       }
-      OUTCOME_TRY(to_id, state_tree->lookupId(message.to));
       if (to_id != caller_id) {
         OUTCOME_TRY(from_actor, state_tree->get(caller_id));
         if (from_actor.balance < message.value) {
@@ -276,14 +314,14 @@ namespace fc::vm::runtime {
     }
 
     if (message.method != kSendMethodNumber) {
-      auto _message{message};
-      _message.from = caller_id;
+      RuntimeImpl runtime{
+          shared_from_this(), env->randomness, _message, caller_id};
       // TODO: check cpp actor
       return actor::cgo::invoke(shared_from_this(),
                                 _message,
                                 to_actor.code,
-                                message.method,
-                                message.params);
+                                _message.method,
+                                _message.params);
     }
 
     return outcome::success();
@@ -293,6 +331,7 @@ namespace fc::vm::runtime {
     auto execution{execution_.lock()};
     OUTCOME_TRY(execution->chargeGas(
         execution->env->pricelist.onIpldPut(value.size())));
+    dvm::onIpldSet(key, value);
     return execution->env->ipld->set(key, std::move(value));
   }
 

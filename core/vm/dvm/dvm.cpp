@@ -57,11 +57,12 @@ namespace fc::dvm {
   }
 
   void onSend(const UnsignedMessage &msg) {
-    DVM_LOG("SEND m={} n={} v={} to={} {}",
+    DVM_LOG("SEND m={} n={} v={} to={} from={} {}",
             msg.method,
             msg.nonce,
             msg.value,
             msg.to,
+            msg.from,
             dumpCbor(msg.params));
   }
 
