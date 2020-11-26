@@ -19,13 +19,13 @@ namespace fc::storage::ipfs::graphsync::test {
   std::pair<std::shared_ptr<Graphsync>, std::shared_ptr<libp2p::Host>>
   createNodeObjects(std::shared_ptr<boost::asio::io_context> io);
 
-  inline std::ostream& operator << (std::ostream& os, const CID& cid) {
+  inline std::ostream &operator<<(std::ostream &os, const CID &cid) {
     os << cid.toString().value();
     return os;
   }
 
   // MerkleDAG bridge interface for test purposes
-  class TestDataService : public MerkleDagBridge {
+  class TestDataService {
    public:
     using Storage = std::map<CID, common::Buffer>;
 
@@ -52,16 +52,16 @@ namespace fc::storage::ipfs::graphsync::test {
     }
 
     // places into data_, returns true if expected
-    bool onDataBlock(CID cid, common::Buffer data);
-
-   private:
-    static void insertNode(Storage &dst, const std::string &data_str);
+    bool onDataBlock(const Data &data);
 
     outcome::result<size_t> select(
         const CID &cid,
         gsl::span<const uint8_t> selector,
         std::function<bool(const CID &cid, const common::Buffer &data)> handler)
-    const override;
+        const;
+
+   private:
+    static void insertNode(Storage &dst, const std::string &data_str);
 
     Storage data_;
     Storage expected_;

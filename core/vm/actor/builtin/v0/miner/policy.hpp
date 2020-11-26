@@ -1,0 +1,87 @@
+/**
+ * Copyright Soramitsu Co., Ltd. All Rights Reserved.
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#ifndef CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MINER_POLICY_HPP
+#define CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MINER_POLICY_HPP
+
+#include "common/outcome.hpp"
+#include "primitives/sector/sector.hpp"
+#include "primitives/types.hpp"
+#include "vm/exit_code/exit_code.hpp"
+
+namespace fc::vm::actor::builtin::v0::miner {
+  using primitives::ChainEpoch;
+  using primitives::EpochDuration;
+  using primitives::SectorSize;
+  using primitives::SectorStorageWeightDesc;
+  using primitives::TokenAmount;
+  using primitives::sector::RegisteredProof;
+
+  constexpr size_t kEpochDurationSeconds{30};
+  constexpr size_t kSecondsInHour{3600};
+  constexpr size_t kSecondsInDay{86400};
+  constexpr size_t kSecondsInYear{31556925};
+  constexpr size_t kEpochsInHour{kSecondsInHour / kEpochDurationSeconds};
+  constexpr size_t kEpochsInDay{kSecondsInDay / kEpochDurationSeconds};
+  constexpr size_t kEpochsInYear{kSecondsInYear / kEpochDurationSeconds};
+
+  constexpr ChainEpoch kWPoStProvingPeriod{kEpochsInDay};
+  constexpr EpochDuration kWPoStChallengeWindow{3600 / kEpochDurationSeconds};
+  constexpr size_t kWPoStPeriodDeadlines{kWPoStProvingPeriod
+                                         / kWPoStChallengeWindow};
+  constexpr size_t kSectorsMax{32 << 20};
+  constexpr size_t kNewSectorsPerPeriodMax{128 << 10};
+  constexpr EpochDuration kChainFinalityish{900};
+  constexpr EpochDuration kPreCommitChallengeDelay{10};
+  constexpr EpochDuration kElectionLookback{1};
+  constexpr EpochDuration kWPoStChallengeLookback{20};
+  constexpr EpochDuration kFaultDeclarationCutoff{kWPoStChallengeLookback};
+  constexpr EpochDuration kFaultMaxAge{kWPoStProvingPeriod * 14 - 1};
+  constexpr auto kWorkerKeyChangeDelay{2 * kElectionLookback};
+
+  constexpr auto kMinSectorExpiration = 180 * kEpochsInDay;
+
+  /**
+   * Maximum number of epochs past the current epoch a sector may be set to
+   * expire. The actual maximum extension will be the minimum of CurrEpoch +
+   * MaximumSectorExpirationExtension and
+   * sector.ActivationEpoch+sealProof.SectorMaximumLifetime()
+   */
+  constexpr auto kMaxSectorExpirationExtension = 540 * kEpochsInDay;
+
+  inline outcome::result<EpochDuration> maxSealDuration(RegisteredProof type) {
+    switch (type) {
+      case RegisteredProof::StackedDRG32GiBSeal:
+      case RegisteredProof::StackedDRG2KiBSeal:
+      case RegisteredProof::StackedDRG8MiBSeal:
+      case RegisteredProof::StackedDRG512MiBSeal:
+      case RegisteredProof::StackedDRG64GiBSeal:
+        return 10000;
+      default:
+        return VMExitCode::kMinerActorIllegalArgument;
+    }
+  }
+
+  inline auto windowPoStMessagePartitionsMax(uint64_t partitions) {
+    return 100000 / partitions;
+  }
+
+  inline TokenAmount precommitDeposit(SectorSize sector_size,
+                                      ChainEpoch duration) {
+    return 0;
+  }
+
+  inline TokenAmount rewardForConsensusSlashReport(EpochDuration age,
+                                                   TokenAmount collateral) {
+    const auto init{std::make_pair(1, 1000)};
+    const auto grow{std::make_pair(TokenAmount{101251}, TokenAmount{100000})};
+    using boost::multiprecision::pow;
+    return std::min(bigdiv(collateral, 2),
+                    bigdiv(collateral * init.first * pow(grow.first, age),
+                           init.second * pow(grow.second, age)));
+  }
+}  // namespace fc::vm::actor::builtin::v0::miner
+
+#endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MINER_POLICY_HPP

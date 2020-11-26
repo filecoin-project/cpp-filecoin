@@ -9,7 +9,6 @@ add_library(graphsync
     common.cpp
     extension.cpp
     graphsync_impl.cpp
-    merkledag_bridge_impl.cpp
     local_requests.cpp
     network/network.cpp
     network/peer_context.cpp
@@ -17,7 +16,6 @@ add_library(graphsync
     network/message_reader.cpp
     network/message_queue.cpp
     network/outbound_endpoint.cpp
-    network/inbound_endpoint.cpp
     network/marshalling/serialize.cpp
     network/marshalling/message_parser.cpp
     network/marshalling/message_builder.cpp

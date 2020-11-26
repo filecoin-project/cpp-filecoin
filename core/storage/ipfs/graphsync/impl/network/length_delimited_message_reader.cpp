@@ -43,6 +43,8 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
+    reading_ = true;
+
     // clang-format off
     libp2p::basic::VarintReader::readVarint(
         stream_,
@@ -56,8 +58,6 @@ namespace fc::storage::ipfs::graphsync {
         }
     );
     // clang-format on
-
-    reading_ = true;
   }
 
   void LengthDelimitedMessageReader::onLengthRead(size_t length) {

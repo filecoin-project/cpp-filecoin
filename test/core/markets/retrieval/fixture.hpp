@@ -30,8 +30,9 @@ namespace fc::markets::retrieval::test {
   using fc::storage::piece::PayloadLocation;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetCPtr;
   using provider::ProviderConfig;
-  using vm::actor::builtin::payment_channel::SignedVoucher;
+  using vm::actor::builtin::v0::payment_channel::SignedVoucher;
 
   /** Shared resources */
   static std::shared_ptr<libp2p::Host> host;
@@ -139,7 +140,7 @@ namespace fc::markets::retrieval::test {
           addPieceSample(data::green_piece, provider_ipfs).has_value(),
           "Failed to add sample green piece");
 
-      Tipset chain_head;
+      TipsetCPtr chain_head = std::make_shared<Tipset>();
       api->ChainHead = {[=]() { return chain_head; }};
 
       api->StateMinerInfo = [=](auto &address, auto &tipset_key) {

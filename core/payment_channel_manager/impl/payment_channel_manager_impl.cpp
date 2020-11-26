@@ -6,8 +6,9 @@
 #include "payment_channel_manager/impl/payment_channel_manager_impl.hpp"
 #include "common/todo_error.hpp"
 #include "payment_channel_manager/impl/payment_channel_manager_error.hpp"
-#include "vm/actor/builtin/init/init_actor.hpp"
-#include "vm/actor/builtin/payment_channel/payment_channel_actor.hpp"
+#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v0/init/init_actor.hpp"
+#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
 #include "vm/message/message_util.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
@@ -16,16 +17,16 @@ namespace fc::payment_channel_manager {
   using fc::vm::message::cid;
   using vm::VMExitCode;
   using vm::actor::kInitAddress;
-  using vm::actor::kPaymentChannelCodeCid;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::payment_channel::State;
+  using vm::actor::builtin::v0::kPaymentChannelCodeCid;
+  using vm::actor::builtin::v0::payment_channel::State;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
   using vm::state::StateTreeImpl;
-  using InitActorExec = vm::actor::builtin::init::Exec;
+  using InitActorExec = vm::actor::builtin::v0::init::Exec;
   using PaymentChannelConstruct =
-      vm::actor::builtin::payment_channel::Construct;
+      vm::actor::builtin::v0::payment_channel::Construct;
 
   PaymentChannelManagerImpl::PaymentChannelManagerImpl(
       std::shared_ptr<Api> api, std::shared_ptr<Ipld> ipld)
@@ -228,7 +229,7 @@ namespace fc::payment_channel_manager {
         amount,
         kDefaultGasPrice,
         kDefaultGasLimit,
-        vm::actor::builtin::market::AddBalance::Number,
+        vm::actor::builtin::v0::market::AddBalance::Number,
         {}};
     OUTCOME_TRY(signed_message,
                 api_->MpoolPushMessage(unsigned_message, api::kPushNoSpec));
@@ -289,7 +290,7 @@ namespace fc::payment_channel_manager {
       const Address &channel_address) const {
     OUTCOME_TRY(tipset, api_->ChainHead());
     auto state_tree =
-        std::make_shared<StateTreeImpl>(ipld_, tipset.getParentStateRoot());
+        std::make_shared<StateTreeImpl>(ipld_, tipset->getParentStateRoot());
     return state_tree->state<PaymentChannelState>(channel_address);
   }
 

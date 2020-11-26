@@ -10,13 +10,11 @@
 #include <set>
 
 #include <libp2p/peer/peer_info.hpp>
-
 #include "network_fwd.hpp"
 
 namespace fc::storage::ipfs::graphsync {
 
   class OutboundEndpoint;
-  class InboundEndpoint;
   class MessageReader;
   class MessageQueue;
 
@@ -38,7 +36,8 @@ namespace fc::storage::ipfs::graphsync {
     PeerContext(PeerId peer_id,
                 PeerToGraphsyncFeedback &graphsync_feedback,
                 PeerToNetworkFeedback &network_feedback,
-                libp2p::protocol::Scheduler &scheduler);
+                Host &host,
+                Scheduler &scheduler);
 
     /// Dtor.
     ~PeerContext() override;
@@ -54,21 +53,11 @@ namespace fc::storage::ipfs::graphsync {
     void setOutboundAddress(
         boost::optional<libp2p::multi::Multiaddress> connect_to);
 
-    /// Returns true if there's no streams to this peer yet
-    bool needToConnect();
-
-    /// Internal state, used by Network module
+    /// Internal state
     enum State { can_connect, is_connecting, is_connected, is_closed };
 
     /// Returns internal state
     State getState() const;
-
-    /// Returns PeerInfo object used to initiate outbound connection
-    libp2p::peer::PeerInfo getOutboundPeerInfo() const;
-
-    /// Called on new outbound stream, connected to this peer
-    /// \param rstream libp2p stream or error
-    void onStreamConnected(outcome::result<StreamPtr> rstream);
 
     /// Called on new accepted stream from the peer
     /// \param stream libp2p stream
@@ -86,24 +75,8 @@ namespace fc::storage::ipfs::graphsync {
     /// to send anything to the peer
     void cancelRequest(RequestId request_id, SharedData request_body);
 
-    /// Adds data block to response
-    /// \param request_id request ID
-    /// \param cid CID of the block
-    /// \param data data block, raw bytes
-    /// \return true if block is added to the response body
-    /// and response object itself can be sent
-    bool addBlockToResponse(RequestId request_id,
-                            const CID &cid,
-                            const common::Buffer &data);
-
-    /// Sends response to peer. Data blocks may be added previously
-    /// to this response
-    /// \param request_id request ID
-    /// \param status status code
-    /// \param extensions - data for protocol extensions
-    void sendResponse(RequestId request_id,
-                      ResponseStatusCode status,
-                      const std::vector<Extension> &extensions);
+    /// Sends response to peer.
+    void sendResponse(const FullRequestId &id, const Response &response);
 
     /// Closes all streams to/from this peer
     /// \param status close reason to be forwarded to local request callback,
@@ -120,18 +93,9 @@ namespace fc::storage::ipfs::graphsync {
       /// Message reader, exists for each connected stream. Purely RAII object
       std::unique_ptr<MessageReader> reader;
 
-      /// Outgoing messages queue
-      std::shared_ptr<MessageQueue> queue;
-
-      /// Request IDs from this stream
-      std::set<RequestId> remote_request_ids;
-
-      /// Endpoint to responses for this stream
-      std::unique_ptr<InboundEndpoint> response_endpoint;
-
       /// Stream's expire time in Scheduler ticks (milliseconds in real life).
       /// Stream which is inactive during some cleanup period is closed
-      /// (activity depends on remote peeris well)
+      /// (activity depends on remote peer)
       uint64_t expire_time = 0;
     };
 
@@ -153,7 +117,7 @@ namespace fc::storage::ipfs::graphsync {
     /// Called on new stream. The common part of handling connected
     /// and accepted streams
     /// \param stream libp2p stream
-    void onNewStream(StreamPtr stream);
+    void onNewStream(StreamPtr stream, bool is_outbound);
 
     /// Closes a stream
     /// \param stream libp2p stream
@@ -169,21 +133,6 @@ namespace fc::storage::ipfs::graphsync {
     /// \param response response wire protocol object
     void onRequest(const StreamPtr &stream, Message::Request &request);
 
-    /// Creates MessageQueue object in stream context (if doesn't exist yet)
-    /// \param stream stream
-    /// \param ctx per stream context
-    void createMessageQueue(const StreamPtr &stream, StreamCtx &ctx);
-
-    /// Creates responses endpoint object in stream context
-    /// (if doesn't exist yet)
-    /// \param stream stream
-    /// \param ctx per stream context
-    void createResponseEndpoint(const StreamPtr &stream, StreamCtx &ctx);
-
-    /// Shifts stream expiration time due to network activity on this stream
-    /// \param ctx per stream context
-    void shiftExpireTime(StreamCtx &ctx);
-
     /// Finds context by stream and shifts stream expiration time
     /// \param stream stream
     void shiftExpireTime(const StreamPtr &stream);
@@ -195,10 +144,12 @@ namespace fc::storage::ipfs::graphsync {
     /// Timer function, performs expired streams cleanup
     void onStreamCleanupTimer();
 
-    /// Finds stream context by remote request id
-    /// \param request_id request id made by peer
-    /// \return iterator (streams_.end() if not found)
-    Streams::iterator findResponseSink(RequestId request_id);
+    /// Tries to connect to peer if no outbound stream yet
+    void connectIfNeeded();
+
+    /// Called on new outbound stream, connected to this peer
+    /// \param rstream libp2p stream or error
+    void onStreamConnected(outcome::result<StreamPtr> rstream);
 
     /// Feedback to GraphsyncImpl module
     PeerToGraphsyncFeedback &graphsync_feedback_;
@@ -206,22 +157,25 @@ namespace fc::storage::ipfs::graphsync {
     /// Feedback to Network module
     PeerToNetworkFeedback &network_feedback_;
 
+    /// Libp2p host
+    Host &host_;
+
     /// Scheduler
     Scheduler &scheduler_;
 
     /// Outbound address
     boost::optional<libp2p::multi::Multiaddress> connect_to_;
 
-    /// The only one per peer requests sending endpoint
-    std::unique_ptr<OutboundEndpoint> requests_endpoint_;
+    /// The only one per peer sending endpoint
+    std::unique_ptr<OutboundEndpoint> outbound_endpoint_;
 
     /// IDs of requests made by this node to the peer
     std::set<RequestId> local_request_ids_;
 
-    /// IDs of requests made by peer mapped to streams they were made through
-    std::map<RequestId, StreamPtr> remote_requests_streams_;
+    /// IDs of requests made by peer
+    std::set<RequestId> remote_request_ids_;
 
-    /// Active streams collection
+    /// Active streams being read
     Streams streams_;
 
     /// Scheduler's handle, expiration timer

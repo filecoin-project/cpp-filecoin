@@ -10,7 +10,7 @@
 #include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
-#include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/runtime_error.hpp"
 #include "vm/version.hpp"
@@ -36,25 +36,22 @@ namespace fc::vm::runtime {
   }
 
   ChainEpoch RuntimeImpl::getCurrentEpoch() const {
-    return execution_->env->tipset.height;
+    return execution_->env->epoch;
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomnessFromTickets(
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return execution_->env->tipset.ticketRandomness(
-        *execution_->env->ipld, tag, epoch, seed);
+    return execution_->env->randomness->getRandomnessFromTickets(
+        tag, epoch, seed);
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomnessFromBeacon(
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    // TODO (a.chernyshov) implement
-    // test vector randomness
-    return crypto::randomness::Randomness::fromString(
-        "i_am_random_____i_am_random_____");
+    return execution_->env->randomness->getRandomnessFromBeacon(tag, epoch, seed);
   }
 
   Address RuntimeImpl::getImmediateCaller() const {
@@ -165,10 +162,9 @@ namespace fc::vm::runtime {
       const Signature &signature,
       const Address &address,
       gsl::span<const uint8_t> data) {
-    OUTCOME_TRY(
-        chargeGas(execution_->env->pricelist.onVerifySignature(signature.isBls())));
-    OUTCOME_TRY(account,
-                resolveKey(*execution_->state_tree, address));
+    OUTCOME_TRY(chargeGas(
+        execution_->env->pricelist.onVerifySignature(signature.isBls())));
+    OUTCOME_TRY(account, resolveKey(*execution_->state_tree, address));
     return storage::keystore::InMemoryKeyStore{
         std::make_shared<crypto::bls::BlsProviderImpl>(),
         std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}

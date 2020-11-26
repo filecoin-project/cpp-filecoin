@@ -10,9 +10,10 @@
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
-#include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
+#include "vm/dvm/dvm.hpp"
 #include "vm/runtime/env.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 
@@ -24,7 +25,7 @@
   void rt_##name(Runtime &rt, CborDecodeStream &arg, CborEncodeStream &ret)
 
 namespace fc::vm::actor::cgo {
-  using builtin::account::AccountActorState;
+  using builtin::v0::account::AccountActorState;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
@@ -38,8 +39,6 @@ namespace fc::vm::actor::cgo {
   using runtime::resolveKey;
   using runtime::RuntimeImpl;
   using storage::hamt::HamtError;
-
-  bool test_vectors{false};
 
   void config(const StoragePower &min_verified_deal_size,
               const StoragePower &consensus_miner_min_power,
@@ -72,9 +71,8 @@ namespace fc::vm::actor::cgo {
     auto id{next_runtime++};  // TODO: mod
     auto runtime = RuntimeImpl(exec, message, message.from);
     auto version{runtime.getNetworkVersion()};
-    arg << id << version << message.from << message.to
-        << exec->env->tipset.height << message.value << code << method
-        << params;
+    arg << id << version << message.from << message.to << exec->env->epoch
+        << message.value << code << method << params;
     runtimes.emplace(id, runtime);
     auto ret{cgoCall<cgoActorsInvoke>(arg)};
     runtimes.erase(id);
@@ -125,18 +123,6 @@ namespace fc::vm::actor::cgo {
     return {};
   }
 
-  inline outcome::result<Randomness> generateRandomness(Runtime &rt,
-                                                        CborDecodeStream &arg) {
-    auto beacon{arg.get<bool>()};
-    auto tag{arg.get<DomainSeparationTag>()};
-    auto round{arg.get<ChainEpoch>()};
-    auto seed{arg.get<Buffer>()};
-    auto &ts{rt.execution()->env->tipset};
-    auto &ipld{*rt.execution()->env->ipld};
-    return beacon ? ts.beaconRandomness(ipld, tag, round, seed)
-                  : ts.ticketRandomness(ipld, tag, round, seed);
-  }
-
   RUNTIME_METHOD(gocRtIpldGet) {
     if (auto value{ipldGet(ret, rt, arg.get<CID>())}) {
       ret << kOk << *value;
@@ -156,12 +142,23 @@ namespace fc::vm::actor::cgo {
     }
   }
 
-  RUNTIME_METHOD(gocRtRand) {
-    // see lotus conformance tests v0.10.0
-    // (https://github.com/filecoin-project/lotus/blob/v0.10.0/conformance/rand_fixed.go)
-    auto r = test_vectors ? crypto::randomness::Randomness::fromString(
-                 "i_am_random_____i_am_random_____")
-                          : generateRandomness(rt, arg);
+  RUNTIME_METHOD(gocRtRandomnessFromTickets) {
+    auto tag{arg.get<DomainSeparationTag>()};
+    auto round{arg.get<ChainEpoch>()};
+    auto seed{arg.get<Buffer>()};
+    auto r = rt.getRandomnessFromTickets(tag, round, seed);
+    if (!r) {
+      ret << kFatal;
+    } else {
+      ret << kOk << r.value();
+    }
+  }
+
+  RUNTIME_METHOD(gocRtRandomnessFromBeacon) {
+    auto tag{arg.get<DomainSeparationTag>()};
+    auto round{arg.get<ChainEpoch>()};
+    auto seed{arg.get<Buffer>()};
+    auto r = rt.getRandomnessFromBeacon(tag, round, seed);
     if (!r) {
       ret << kFatal;
     } else {
@@ -220,9 +217,14 @@ namespace fc::vm::actor::cgo {
         ret << kFatal;
       } else {
         ret << kOk << e.value();
+
+        dvm::onReceipt({VMExitCode{e.value()}, {}, rt.execution()->gas_used});
       }
     } else {
       ret << kOk << kOk << r.value();
+
+      dvm::onReceipt(
+          {VMExitCode::kOk, std::move(r.value()), rt.execution()->gas_used});
     }
   }
 
@@ -321,15 +323,10 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtActorBalance) {
-    if (auto _actor{
-            rt.execution()->state_tree->get(rt.getMessage().get().to)}) {
-      ret << kOk << _actor.value().balance;
+    if (auto balance{rt.getBalance(rt.getMessage().get().to)}) {
+      ret << kOk << balance.value();
     } else {
-      if (_actor.error() == HamtError::kNotFound) {
-        ret << kOk << TokenAmount{0};
-      } else {
-        ret << kFatal;
-      }
+      ret << kFatal;
     }
   }
 

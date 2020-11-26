@@ -17,7 +17,7 @@
 #include "miner/storage_fsm/sector_stat.hpp"
 #include "primitives/stored_counter/stored_counter.hpp"
 #include "primitives/tipset/tipset_key.hpp"
-#include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::mining {
   using adt::TokenAmount;
@@ -35,7 +35,7 @@ namespace fc::mining {
   using api::SectorPreCommitOnChainInfo;
   using primitives::Counter;
   using primitives::tipset::TipsetKey;
-  using vm::actor::builtin::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
 
   struct Config {
     // 0 = no limit

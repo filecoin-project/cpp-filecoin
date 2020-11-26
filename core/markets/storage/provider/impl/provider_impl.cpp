@@ -16,7 +16,7 @@
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "storage/car/car.hpp"
 #include "storage/piece/impl/piece_storage_impl.hpp"
-#include "vm/actor/builtin/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
 
 #define CALLBACK_ACTION(_action)                                    \
   [this](auto deal, auto event, auto context, auto from, auto to) { \
@@ -50,7 +50,7 @@ namespace fc::markets::storage::provider {
   using mining::SealingState;
   using vm::VMExitCode;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::market::PublishStorageDeals;
+  using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::SignedMessage;
@@ -205,11 +205,10 @@ namespace fc::markets::storage::provider {
 
   outcome::result<Signature> StorageProviderImpl::sign(const Buffer &input) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
     OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(miner_actor_address_, tipset_key));
+                api_->StateMinerInfo(miner_actor_address_, chain_head->key));
     OUTCOME_TRY(worker_key_address,
-                api_->StateAccountKey(worker_info.worker, tipset_key));
+                api_->StateAccountKey(worker_info.worker, chain_head->key));
     return api_->WalletSign(worker_key_address, input);
   }
 
@@ -273,8 +272,7 @@ namespace fc::markets::storage::provider {
     }
 
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    if (static_cast<ChainEpoch>(chain_head.height)
+    if (static_cast<ChainEpoch>(chain_head->height())
         > proposal.start_epoch - kDefaultDealAcceptanceBuffer) {
       deal->message =
           "Deal proposal verification failed, deal start epoch is too soon or "
@@ -314,7 +312,7 @@ namespace fc::markets::storage::provider {
     // This doesn't guarantee that the client won't withdraw / lock those funds
     // but it's a decent first filter
     OUTCOME_TRY(client_balance,
-                api_->StateMarketBalance(proposal.client, tipset_key));
+                api_->StateMarketBalance(proposal.client, chain_head->key));
     TokenAmount available = client_balance.escrow - client_balance.locked;
     if (available < proposal.getTotalStorageFee()) {
       std::stringstream ss;
@@ -331,10 +329,9 @@ namespace fc::markets::storage::provider {
   outcome::result<boost::optional<CID>>
   StorageProviderImpl::ensureProviderFunds(std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
     auto proposal = deal->client_deal_proposal.proposal;
     OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(proposal.provider, tipset_key));
+                api_->StateMinerInfo(proposal.provider, chain_head->key));
     OUTCOME_TRY(maybe_cid,
                 api_->MarketEnsureAvailable(proposal.provider,
                                             worker_info.worker,
@@ -345,10 +342,10 @@ namespace fc::markets::storage::provider {
   outcome::result<CID> StorageProviderImpl::publishDeal(
       std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(
-                    deal->client_deal_proposal.proposal.provider, tipset_key));
+    OUTCOME_TRY(
+        worker_info,
+        api_->StateMinerInfo(deal->client_deal_proposal.proposal.provider,
+                             chain_head->key));
     PublishStorageDeals::Params params{{deal->client_deal_proposal}};
     OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
     UnsignedMessage unsigned_message(vm::actor::kStorageMarketAddress,
