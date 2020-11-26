@@ -56,6 +56,12 @@ namespace fc::sync {
                     .result = std::move(maybe_result.value())};
     }
 
+    if (target_head_->height() == 0) {
+      // genesis not yet interpreted
+      return Result{.head = target_head_,
+          .result = interpreter_->interpret(ipld_, target_head_)};
+    }
+
     std::error_code e;
 
     // find the highest interpreted tipset in chain backwards from the target

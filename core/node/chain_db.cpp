@@ -254,7 +254,7 @@ namespace fc::sync {
       if (height > 0) {
         h = tipset->getParents().hash();
       }
-      if (!cb(std::move(tipset))) break;
+      if (!cb(std::move(tipset)) || height == to_height) break;
     }
     return outcome::success();
   }

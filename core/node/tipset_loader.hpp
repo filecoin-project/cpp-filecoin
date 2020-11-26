@@ -69,6 +69,7 @@ namespace fc::sync {
     std::shared_ptr<events::Events> events_;
     std::map<TipsetHash, RequestCtx> tipset_requests_;
     Wantlist global_wantlist_;
+    std::vector<TipsetHash> completed_list_;
     events::Connection block_stored_event_;
     boost::optional<PeerId> last_peer_;
     bool initialized_ = false;

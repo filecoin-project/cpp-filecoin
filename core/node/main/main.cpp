@@ -15,6 +15,7 @@
 #include "node/events.hpp"
 #include "node/identify.hpp"
 #include "node/pubsub_gate.hpp"
+#include "node/pubsub_workaround.hpp"
 #include "node/receive_hello.hpp"
 #include "node/say_hello.hpp"
 #include "node/syncer.hpp"
@@ -41,32 +42,48 @@ namespace fc {
     node::Config config;
 
     if (!config.init(argc, argv)) {
-      return 1;
+      return __LINE__;
     }
 
     if (config.log_level <= spdlog::level::debug) {
       suppressVerboseLoggers();
     }
 
-    auto res = node::createNodeObjects(config);
-    if (!res) {
-      log()->error("Cannot initialize node: {}", res.error().message());
-      return 2;
+    auto obj_res = node::createNodeObjects(config);
+    if (!obj_res) {
+      log()->error("Cannot initialize node: {}", obj_res.error().message());
+      return __LINE__;
     }
-
-    auto &o = res.value();
+    auto &o = obj_res.value();
 
     log()->info("Starting components");
 
     auto events = std::make_shared<sync::events::Events>(o.scheduler);
 
+    bool started = false;
+
+    node::PubsubWorkaround pubsub2(o.io_context,
+                                   config.bootstrap_list,
+                                   config.gossip_config,
+                                   config.network_name);
+
     // will start listening/connecting only after current chain head is set
-    sync::events::Connection network_start = events->subscribeCurrentHead(
+    auto conn = events->subscribeCurrentHead(
         [&](const sync::events::CurrentHead &head) {
-          if (!o.host->listen(config.listen_address)) {
+          log()->info(
+              "\n============================ {} ============================",
+              head.tipset->height());
+
+          if (started) {
+            return;
+          }
+
+          started = true;
+
+          if (auto r = o.host->listen(config.listen_address); !r) {
             log()->error("Cannot listen to {}: {}",
                          config.listen_address.getStringAddress(),
-                         res.error().message());
+                         r.error().message());
             o.io_context->stop();
             return;
           }
@@ -89,8 +106,14 @@ namespace fc {
             o.host->connect(pi);
           }
 
-          // this is one-shot event
-          events->CurrentHead_signal_.disconnect(network_start);
+          auto p2_res = pubsub2.start(config.port + 1);
+          if (!p2_res) {
+            log()->warn("cannot start pubsub workaround, {}",
+                        p2_res.error().message());
+          } else {
+            o.gossip->addBootstrapPeer(p2_res.value().id,
+                                       p2_res.value().addresses[0]);
+          }
         });
 
     o.identify->start(events);
@@ -104,11 +127,11 @@ namespace fc {
     o.tipset_loader->start(events);
     o.syncer->start(events);
 
-    // chain store starts after all, it chooses current head and emits possible
-    // heads
-    auto started = o.chain_store->start(events, config.network_name);
-    if (!started) {
-      log()->error("Cannot start node: {}", started.error().message());
+    // chain store starts after all other components, it chooses current head
+    // and emits possible heads
+    if (auto r = o.chain_store->start(events, config.network_name); !r) {
+      log()->error("Cannot start node: {}", r.error().message());
+      return __LINE__;
     }
 
     // gracefully shutdown on signal
@@ -126,13 +149,16 @@ namespace fc {
 }  // namespace fc
 
 int main(int argc, char *argv[]) {
+#ifdef NDEBUG
+  try {
+    return fc::main(argc, argv);
+  } catch (const std::exception &e) {
+    std::cerr << "UNEXPECTED EXCEPTION, " << e.what() << "\n";
+  } catch (...) {
+    std::cerr << "UNEXPECTED EXCEPTION\n";
+  }
+  return __LINE__;
+#else
   return fc::main(argc, argv);
-  //  try {
-  //    return fc::main(argc, argv);
-  //  } catch (const std::exception &e) {
-  //    std::cerr << "UNEXPECTED EXCEPTION, " << e.what() << "\n";
-  //  } catch (...) {
-  //    std::cerr << "UNEXPECTED EXCEPTION\n";
-  //  }
-  //  return 127;
+#endif
 }

@@ -51,7 +51,7 @@ namespace fc::sync {
       return outcome::success();
     }
 
-    auto maybe_tipset = chain_db_->getTipsetByKey(key);
+    auto maybe_tipset = chain_db_->getTipsetByHash(key.hash());
     if (maybe_tipset) {
       events::TipsetStored event{.hash = key.hash(),
                                  .tipset = std::move(maybe_tipset.value()),
@@ -158,7 +158,7 @@ namespace fc::sync {
 
   void TipsetLoader::onRequestCompleted(TipsetHash hash,
                                         outcome::result<TipsetCPtr> result) {
-    tipset_requests_.erase(hash);
+    completed_list_.push_back(hash);
 
     events::TipsetStored event{.hash = std::move(hash),
                                .tipset = std::move(result),
@@ -196,6 +196,11 @@ namespace fc::sync {
         ctx.onError(event.block_cid, event.block.error());
       }
     }
+
+    for (const auto& hash : completed_list_) {
+      tipset_requests_.erase(hash);
+    }
+    completed_list_.clear();
   }
 
 }  // namespace fc::sync

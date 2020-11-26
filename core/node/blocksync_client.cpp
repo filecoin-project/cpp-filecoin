@@ -95,7 +95,7 @@ namespace fc::sync::blocksync {
       std::vector<CID> reduced;
       reduced.reserve(blocks.size());
       for (auto& cid : blocks) {
-        if (findBlockInLocalStore(cid, ipld, events)) {
+        if (!findBlockInLocalStore(cid, ipld, events)) {
           reduced.push_back(std::move(cid));
         }
       }

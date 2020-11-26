@@ -21,6 +21,7 @@ add_library(sync
     index_db_backend.cpp
     head_constructor.cpp
     chain_store_impl.cpp
+    pubsub_workaround.cpp
     )
 
 target_link_libraries(sync

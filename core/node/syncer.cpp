@@ -68,7 +68,7 @@ namespace fc::sync {
           pending_targets_.erase(e.peer_id);
         });
 
-    peers_.start({"/blocksync/"}, *events_);
+    peers_.start({"/fil/sync/blk/"}, *events_);
 
     log()->debug("started");
   }
@@ -157,8 +157,13 @@ namespace fc::sync {
 
   boost::optional<PeerId> Syncer::choosePeer(
       boost::optional<PeerId> candidate) {
-    if (candidate && peers_.isConnected(candidate.value())) {
-      return candidate;
+    // TODO (artem): resolve issue when sync over the same connection starts
+    // before identify received
+    if (candidate) {
+      if (peers_.isConnected(candidate.value())
+          || peers_.getAllPeers().empty()) {
+        return candidate;
+      }
     }
     return peers_.selectBestPeer();
   }

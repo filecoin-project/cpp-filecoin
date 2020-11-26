@@ -124,7 +124,7 @@ namespace fc {
 
   namespace sync {
     namespace events {
-      using Connection = boost::signals2::connection;
+      using Connection = boost::signals2::scoped_connection;
 
       struct Events;
 

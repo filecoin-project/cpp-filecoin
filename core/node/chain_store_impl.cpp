@@ -48,6 +48,9 @@ namespace fc::sync {
 
     head_constructor_.start(events_);
 
+    head_interpreted_event_ = events_->subscribeHeadInterpreted(
+        [this](const events::HeadInterpreted &e) { onHeadInterpreted(e); });
+
     OUTCOME_TRY(chain_db_->start(
         [wptr = weak_from_this()](std::vector<TipsetHash> removed,
                                   std::vector<TipsetHash> added) {
@@ -62,13 +65,10 @@ namespace fc::sync {
           headsChangedInStore(std::move(removed), std::move(added));
         }));
 
-    if (!head_) {
+    if (!head_ && possible_heads_.empty()) {
       // at least genesis must be chosen
       return storage::blockchain::ChainStoreError::kNoHeaviestTipset;
     }
-
-    head_interpreted_event_ = events_->subscribeHeadInterpreted(
-        [this](const events::HeadInterpreted &e) { onHeadInterpreted(e); });
 
     return outcome::success();
   }
