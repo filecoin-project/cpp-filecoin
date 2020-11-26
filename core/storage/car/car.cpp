@@ -4,7 +4,10 @@
  */
 
 #include "storage/car/car.hpp"
+#include <boost/iostreams/device/mapped_file.hpp>
+#include <fstream>
 #include "codec/uvarint.hpp"
+#include "common/span.hpp"
 #include "storage/ipld/traverser.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
@@ -12,10 +15,13 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
   switch (e) {
     case E::kDecodeError:
       return "Decode error";
+    case E::kCannotOpenFileError:
+      return "Cannot open file";
   }
 }
 
 namespace fc::storage::car {
+  using mapped_file = boost::iostreams::mapped_file_source;
   using ipld::kAllSelector;
   using ipld::traverser::Traverser;
 
@@ -32,6 +38,19 @@ namespace fc::storage::car {
       OUTCOME_TRY(store.set(cid, common::Buffer{node}));
     }
     return std::move(header.roots);
+  }
+
+  outcome::result<std::vector<CID>> loadCar(Ipld &store,
+                                            const std::string &car_path) {
+    mapped_file car_file(car_path);
+    if (!car_file.is_open()) {
+      return outcome::success();
+    }
+    return loadCar(
+        store,
+        common::span::cbytes(
+            {car_file.data(),
+             static_cast<gsl::span<const char>::index_type>(car_file.size())}));
   }
 
   void writeUvarint(Buffer &output, uint64_t value) {
@@ -94,5 +113,73 @@ namespace fc::storage::car {
       }
     }
     return makeCar(store, roots, cid_order);
+  }
+
+  void writeUvarint(std::ostream &output, uint64_t value) {
+    output << common::span::bytestr(libp2p::multi::UVarint{value}.toBytes());
+  }
+
+  void writeHeader(std::ostream &output, const std::vector<CID> &roots) {
+    OUTCOME_EXCEPT(bytes, codec::cbor::encode(CarHeader{roots, CarHeader::V1}));
+    writeUvarint(output, bytes.size());
+    std::copy(bytes.begin(),
+              bytes.end(),
+              std::ostream_iterator<unsigned char>(output));
+  }
+
+  void writeItem(std::ostream &output, const CID &cid, Input bytes) {
+    OUTCOME_EXCEPT(cid_bytes, cid.toBytes());
+    writeUvarint(output, cid_bytes.size() + bytes.size());
+    std::copy(cid_bytes.cbegin(),
+              cid_bytes.cend(),
+              std::ostream_iterator<unsigned char>(output));
+    std::copy(bytes.cbegin(),
+              bytes.cend(),
+              std::ostream_iterator<unsigned char>(output));
+  }
+
+  outcome::result<void> writeItem(std::ostream &output,
+                                  Ipld &store,
+                                  const CID &cid) {
+    OUTCOME_TRY(bytes, store.get(cid));
+    writeItem(output, cid, bytes);
+    return outcome::success();
+  }
+
+  outcome::result<void> makeCar(std::ostream &output,
+                                Ipld &store,
+                                const std::vector<CID> &roots,
+                                const std::vector<CID> &cids) {
+    writeHeader(output, roots);
+    for (auto &cid : cids) {
+      OUTCOME_TRY(writeItem(output, store, cid));
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<void> makeSelectiveCar(
+      Ipld &store,
+      const std::vector<std::pair<CID, Selector>> &dags,
+      const std::string &output_path) {
+    std::ofstream output(output_path,
+                         std::ios_base::out | std::ios_base::binary);
+    if (!output.good()) {
+      return CarError::kCannotOpenFileError;
+    }
+    std::vector<CID> roots;
+    std::vector<CID> cid_order;
+    std::set<CID> cids;
+    for (auto &dag : dags) {
+      Traverser traverser{store, dag.first, dag.second};
+      OUTCOME_TRY(visited, traverser.traverseAll());
+      roots.push_back(dag.first);
+      for (auto &cid : visited) {
+        if (cids.insert(cid).second) {
+          cid_order.push_back(cid);
+        }
+      }
+    }
+    return makeCar(output, store, roots, cid_order);
   }
 }  // namespace fc::storage::car

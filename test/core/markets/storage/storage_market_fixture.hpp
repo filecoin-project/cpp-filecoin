@@ -431,10 +431,11 @@ namespace fc::markets::storage::test {
       return new_client;
     }
 
-    outcome::result<DataRef> makeDataRef(const Buffer &data) {
-      OUTCOME_TRY(piece_commitment,
-                  piece_io_->generatePieceCommitment(registered_proof, data));
-      OUTCOME_TRY(roots, fc::storage::car::loadCar(*ipld_client, data));
+    outcome::result<DataRef> makeDataRef(const std::string &file_path) {
+      OUTCOME_TRY(
+          piece_commitment,
+          piece_io_->generatePieceCommitment(registered_proof, file_path));
+      OUTCOME_TRY(roots, fc::storage::car::loadCar(*ipld_client, file_path));
       return DataRef{.transfer_type = kTransferTypeManual,
                      .root = roots[0],
                      .piece_cid = piece_commitment.first,

@@ -6,12 +6,13 @@
 #include "markets/pieceio/pieceio_impl.hpp"
 
 #include <unistd.h>
+#include <boost/filesystem.hpp>
 #include "markets/pieceio/pieceio_error.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/car/car.hpp"
 
 namespace fc::markets::pieceio {
-
+  namespace fs = boost::filesystem;
   using primitives::piece::paddedSize;
   using primitives::piece::PieceData;
   using proofs::Proofs;
@@ -50,6 +51,31 @@ namespace fc::markets::pieceio {
     OUTCOME_TRY(commitment,
                 Proofs::generatePieceCID(
                     registered_proof, PieceData{fds[0]}, padded_size));
+
+    return {commitment, padded_size};
+  }
+
+  outcome::result<std::pair<CID, UnpaddedPieceSize>>
+  PieceIOImpl::generatePieceCommitment(const RegisteredProof &registered_proof,
+                                       const std::string &path) {
+    if (!fs::exists(path)) {
+      return PieceIOError::kFileNotExist;
+    }
+    uint64_t original_size = fs::file_size(path);
+    UnpaddedPieceSize padded_size = paddedSize(original_size);
+
+    auto copy_path = fs::temp_directory_path() / fs::unique_path();
+
+    fs::copy_file(path, copy_path);
+
+    auto _ = gsl::finally([&copy_path]() { fs::remove_all(copy_path); });
+
+    fs::resize_file(copy_path, padded_size);
+
+    OUTCOME_TRY(
+        commitment,
+        Proofs::generatePieceCID(
+            registered_proof, PieceData(copy_path.string()), padded_size));
 
     return {commitment, padded_size};
   }
