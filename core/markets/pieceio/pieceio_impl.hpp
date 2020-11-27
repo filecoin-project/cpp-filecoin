@@ -19,7 +19,7 @@ namespace fc::markets::pieceio {
 
   class PieceIOImpl : public PieceIO {
    public:
-    explicit PieceIOImpl(std::shared_ptr<Ipld> ipld);
+    explicit PieceIOImpl(std::shared_ptr<Ipld> ipld, std::string temp_dir);
 
     outcome::result<std::pair<CID, UnpaddedPieceSize>> generatePieceCommitment(
         const RegisteredProof &registered_proof,
@@ -35,6 +35,7 @@ namespace fc::markets::pieceio {
 
    private:
     std::shared_ptr<Ipld> ipld_;
+    std::string temp_dir_;
   };
 
 }  // namespace fc::markets::pieceio

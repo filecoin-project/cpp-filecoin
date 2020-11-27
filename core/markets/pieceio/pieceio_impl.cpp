@@ -18,16 +18,29 @@ namespace fc::markets::pieceio {
   using proofs::Proofs;
   using storage::car::makeSelectiveCar;
 
-  PieceIOImpl::PieceIOImpl(std::shared_ptr<Ipld> ipld)
-      : ipld_{std::move(ipld)} {}
+  PieceIOImpl::PieceIOImpl(std::shared_ptr<Ipld> ipld, std::string temp_dir)
+      : ipld_{std::move(ipld)}, temp_dir_{std::move(temp_dir)} {}
 
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
   PieceIOImpl::generatePieceCommitment(const RegisteredProof &registered_proof,
                                        const CID &payload_cid,
                                        const Selector &selector) {
-    OUTCOME_TRY(selective_car,
-                makeSelectiveCar(*ipld_, {{payload_cid, selector}}));
-    return generatePieceCommitment(registered_proof, selective_car);
+    auto car_file = fs::path(temp_dir_) / fs::unique_path();
+    auto _ = gsl::finally([&car_file]() {
+      fs::remove_all(car_file);
+    });  // or we can store it like cache
+    OUTCOME_TRY(
+        makeSelectiveCar(*ipld_, {{payload_cid, selector}}, car_file.string()));
+
+    UnpaddedPieceSize padded_size = paddedSize(fs::file_size(car_file));
+    fs::resize_file(car_file, padded_size);
+
+    OUTCOME_TRY(
+        commitment,
+        Proofs::generatePieceCID(
+            registered_proof, PieceData(car_file.string()), padded_size));
+
+    return {commitment, padded_size};
   }
 
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
@@ -64,7 +77,7 @@ namespace fc::markets::pieceio {
     uint64_t original_size = fs::file_size(path);
     UnpaddedPieceSize padded_size = paddedSize(original_size);
 
-    auto copy_path = fs::temp_directory_path() / fs::unique_path();
+    auto copy_path = fs::path(temp_dir_) / fs::unique_path();
 
     fs::copy_file(path, copy_path);
 
