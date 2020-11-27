@@ -53,7 +53,7 @@ TEST(ChainsTest, Testnet_v054_h341) {
         << "state differs at " << ts->height() - 1;
     EXPECT_EQ(last.second, ts->getParentMessageReceipts())
         << "receipts differ at " << ts->height() - 1;
-    std::shared_ptr<Invoker> invoker = std::make_shared<CgoInvoker>(false);
+    std::shared_ptr<Invoker> invoker = std::make_shared<CgoInvoker>();
     auto randomness = std::make_shared<TipsetRandomness>(ipld, ts);
     EXPECT_OUTCOME_TRUE(
         result, (InterpreterImpl{invoker, randomness}.interpret(ipld, ts)));
