@@ -63,7 +63,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       return VMExitCode::kErrIllegalArgument;
     }
     const auto paych_addr = runtime.getCurrentReceiver();
-    OUTCOME_TRY(voucher_addr, runtime.resolveAddress(voucher.channel_addr));
+    OUTCOME_TRY(voucher_addr, runtime.resolveAddress(voucher.channel));
     if (paych_addr != voucher_addr) {
       return VMExitCode::kErrIllegalArgument;
     }

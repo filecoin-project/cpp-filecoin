@@ -370,7 +370,7 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtDeleteActor) {
-    if (rt.deleteActor(arg.get<Address>())) {
+    if (rt->deleteActor(arg.get<Address>())) {
       ret << kOk;
     } else {
       ret << kFatal;

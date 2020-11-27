@@ -164,7 +164,7 @@ PaymentChannelActorTest::setupUpdateChannelState() {
 
   PaymentChannel::SignedVoucher voucher;
   caller = from_address;
-  voucher.channel_addr = actor_address;
+  voucher.channel = actor_address;
   voucher.signature = Secp256k1Signature{};
   const auto &sig = *voucher.signature;
   ON_CALL_3(runtime,
