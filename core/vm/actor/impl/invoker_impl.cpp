@@ -58,12 +58,7 @@ namespace fc::vm::actor {
         && (actor.code != builtin::v0::kSystemActorCodeID)      // < tested OK
 //        && (actor.code != builtin::v0::kVerifiedRegistryCode)   // TODO
     ) {
-      auto message = runtime->getMessage();
-      return ::fc::vm::actor::cgo::invoke(runtime->execution(),
-                                          message,
-                                          actor.code,
-                                          message.get().method,
-                                          message.get().params);
+      return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
     }
 
     auto maybe_builtin_actor = builtin_.find(actor.code);

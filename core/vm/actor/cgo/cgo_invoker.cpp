@@ -8,7 +8,7 @@
 
 namespace fc::vm::actor::cgo {
 
-  CgoInvoker::CgoInvoker(bool test_vectors) : _test_vectors{test_vectors} {}
+  CgoInvoker::CgoInvoker() {}
 
   void CgoInvoker::config(
       const StoragePower &min_verified_deal_size,
@@ -20,12 +20,7 @@ namespace fc::vm::actor::cgo {
 
   outcome::result<InvocationOutput> CgoInvoker::invoke(
       const Actor &actor, const std::shared_ptr<Runtime> &runtime) {
-    auto message = runtime->getMessage();
-    return ::fc::vm::actor::cgo::invoke(runtime->execution(),
-                                        message,
-                                        actor.code,
-                                        message.get().method,
-                                        message.get().params);
+    return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
   }
 
 }  // namespace fc::vm::actor::cgo
