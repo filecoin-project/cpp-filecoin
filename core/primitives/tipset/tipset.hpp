@@ -16,6 +16,9 @@ namespace fc::primitives::tipset {
     kMismatchingHeights,  // cannot create tipset, mismatching blocks heights
     kMismatchingParents,  // cannot create tipset, mismatching block parents
     kTicketHasNoValue,    // optional ticket is not initialized
+    kTicketsCollision,    // duplicate tickets in tipset
+    kBlockOrderFailure,   // wrong order of blocks
+    kMinerAlreadyExists,  // miner already in tipset
     kNoBeacons,
   };
 }
@@ -28,6 +31,7 @@ OUTCOME_HPP_DECLARE_ERROR(fc::primitives::tipset, TipsetError);
 namespace fc::primitives::tipset {
   using block::BeaconEntry;
   using block::BlockHeader;
+  using common::Hash256;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
 
@@ -40,17 +44,25 @@ namespace fc::primitives::tipset {
     std::set<CID> visited{};
   };
 
-  /**
-   * @struct Tipset implemented according to
-   * https://github.com/filecoin-project/lotus/blob/6e94377469e49fa4e643f9204b6f46ef3cb3bf04/chain/types/tipset.go#L18
-   */
+  struct Tipset;
+  using TipsetCPtr = std::shared_ptr<const Tipset>;
+
   struct Tipset {
-    static outcome::result<Tipset> create(std::vector<BlockHeader> blocks);
+    /// Blocks from network, they may come in improper order
+    using BlocksFromNetwork = std::vector<boost::optional<block::BlockHeader>>;
 
-    static outcome::result<Tipset> load(Ipld &ipld,
-                                        const std::vector<CID> &cids);
+    /// Creates tipset from loaded blocks, every block must have value,
+    /// hashes must match
+    static outcome::result<TipsetCPtr> create(const TipsetHash &hash,
+                                              BlocksFromNetwork blocks);
 
-    outcome::result<Tipset> loadParent(Ipld &ipld) const;
+    static outcome::result<TipsetCPtr> create(
+        std::vector<block::BlockHeader> blocks);
+
+    static outcome::result<TipsetCPtr> load(Ipld &ipld,
+                                            const std::vector<CID> &cids);
+
+    outcome::result<TipsetCPtr> loadParent(Ipld &ipld) const;
 
     outcome::result<BeaconEntry> latestBeacon(Ipld &ipld) const;
 
@@ -70,11 +82,6 @@ namespace fc::primitives::tipset {
         DomainSeparationTag tag,
         ChainEpoch round,
         gsl::span<const uint8_t> entropy) const;
-
-    /**
-     * @brief makes key of cids
-     */
-    outcome::result<TipsetKey> makeKey() const;
 
     /**
      * @return key made of parents
@@ -98,6 +105,8 @@ namespace fc::primitives::tipset {
 
     const CID &getParentMessageReceipts() const;
 
+    uint64_t height() const;
+
     /**
      * @return parent weight
      */
@@ -112,9 +121,13 @@ namespace fc::primitives::tipset {
      */
     bool contains(const CID &cid) const;
 
-    std::vector<CID> cids;                 ///< block cids
+    Tipset() = default;
+
+    Tipset(TipsetKey _key, std::vector<block::BlockHeader> _blks)
+        : key(std::move(_key)), blks(std::move(_blks)) {}
+
+    TipsetKey key;
     std::vector<block::BlockHeader> blks;  ///< block headers
-    uint64_t height{};                     ///< height
   };
 
   /**
@@ -133,7 +146,7 @@ namespace fc::primitives::tipset {
    */
   bool operator!=(const Tipset &l, const Tipset &r);
 
-  CBOR_TUPLE(Tipset, cids, blks, height)
+  CBOR_ENCODE_TUPLE(Tipset, key.cids(), blks, height())
 
   /**
    * @brief change type
@@ -145,8 +158,46 @@ namespace fc::primitives::tipset {
    */
   struct HeadChange {
     HeadChangeType type;
-    Tipset value;
+    TipsetCPtr value;
   };
+
+  class TipsetCreator {
+   public:
+    /// returns success if the tipset created can be expanded with this block
+    outcome::result<void> canExpandTipset(const block::BlockHeader &hdr) const;
+
+    outcome::result<CID> expandTipset(block::BlockHeader hdr);
+
+    outcome::result<void> expandTipset(CID cid, block::BlockHeader hdr);
+
+    TipsetCPtr getTipset(bool clear);
+
+    void clear();
+
+    uint64_t height() const;
+
+   private:
+    std::vector<block::BlockHeader> blks_;
+    std::vector<CID> cids_;
+    std::vector<Hash256> ticket_hashes_;
+  };
+
 }  // namespace fc::primitives::tipset
+
+namespace fc::codec::cbor {
+
+  template <>
+  outcome::result<fc::primitives::tipset::TipsetCPtr>
+  decode<fc::primitives::tipset::TipsetCPtr>(gsl::span<const uint8_t> input);
+
+  template <>
+  inline outcome::result<common::Buffer>
+  encode<fc::primitives::tipset::TipsetCPtr>(
+      const fc::primitives::tipset::TipsetCPtr &ts) {
+    assert(ts);
+    return encode<fc::primitives::tipset::Tipset>(*ts);
+  }
+
+}  // namespace fc::codec::cbor
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TIPSET_TIPSET_HPP

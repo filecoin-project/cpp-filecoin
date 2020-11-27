@@ -159,6 +159,10 @@ namespace fc::codec::cbor {
     return cbor_value_is_byte_string(&value_);
   }
 
+  bool CborDecodeStream::isEOF() const {
+    return value_.ptr == value_.parser->end;
+  }
+
   size_t CborDecodeStream::listLength() const {
     if (!isList()) {
       outcome::raise(CborDecodeError::kWrongType);
@@ -226,5 +230,14 @@ namespace fc::codec::cbor {
       outcome::raise(CborDecodeError::kInvalidCbor);
     }
     return stream;
+  }
+
+  CborDecodeStream &CborDecodeStream::named(
+      std::map<std::string, CborDecodeStream> &map, const std::string &name) {
+    auto it{map.find(name)};
+    if (it == map.end()) {
+      outcome::raise(CborDecodeError::kKeyNotFound);
+    }
+    return it->second;
   }
 }  // namespace fc::codec::cbor

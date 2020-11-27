@@ -23,6 +23,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
       return "Cannot create tipset, mismatching block parents";
     case TipsetError::kTicketHasNoValue:
       return "An optional ticket is not initialized";
+    case TipsetError::kTicketsCollision:
+      return "Duplicate tickets in tipset";
+    case TipsetError::kBlockOrderFailure:
+      return "Wrong order of blocks in tipset";
+    case TipsetError::kMinerAlreadyExists:
+      return "Same miner already in tipset";
     case TipsetError::kNoBeacons:
       return "No beacons in chain";
   }
@@ -30,6 +36,22 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::tipset, TipsetError, e) {
 }
 
 namespace fc::primitives::tipset {
+
+  namespace {
+
+    outcome::result<Hash256> ticketHash(const block::BlockHeader &hdr) {
+      if (!hdr.ticket.has_value()) {
+        if (hdr.height == 0) {
+          // Genesis block may not have ticket
+          return Hash256{};
+        }
+        return TipsetError::kTicketHasNoValue;
+      }
+
+      return crypto::blake2b::blake2b_256(hdr.ticket.value().bytes);
+    }
+
+  }  // namespace
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
 
@@ -49,75 +71,152 @@ namespace fc::primitives::tipset {
     return outcome::success();
   }
 
-  outcome::result<Tipset> Tipset::create(std::vector<BlockHeader> blocks) {
-    // required to have at least one block
+  outcome::result<void> TipsetCreator::canExpandTipset(
+      const block::BlockHeader &hdr) const {
+    if (blks_.empty()) {
+      return outcome::success();
+    }
+
+    if (hdr.height > 0 && !hdr.ticket.has_value()) {
+      return TipsetError::kTicketHasNoValue;
+    }
+
+    const auto &first_block = blks_[0];
+
+    if (hdr.height != first_block.height) {
+      return TipsetError::kMismatchingHeights;
+    }
+
+    if (hdr.parents != first_block.parents) {
+      return TipsetError::kMismatchingParents;
+    }
+
+    for (const auto &b : blks_) {
+      if (b.miner == hdr.miner) {
+        return TipsetError::kMinerAlreadyExists;
+      }
+    }
+
+    return outcome::success();
+  }
+
+  outcome::result<CID> TipsetCreator::expandTipset(block::BlockHeader hdr) {
+    OUTCOME_TRY(cid, fc::primitives::cid::getCidOfCbor(hdr));
+    OUTCOME_TRY(expandTipset(cid, std::move(hdr)));
+    return std::move(cid);
+  }
+
+  outcome::result<void> TipsetCreator::expandTipset(CID cid,
+                                                    block::BlockHeader hdr) {
+    // must be called prior to expand()
+    assert(canExpandTipset(hdr));
+
+    constexpr auto kReserveSize = 5;
+
+    if (blks_.empty()) {
+      blks_.reserve(kReserveSize);
+      cids_.reserve(kReserveSize);
+      ticket_hashes_.reserve(kReserveSize);
+      OUTCOME_TRY(hash, ticketHash(hdr));
+      ticket_hashes_.emplace_back(std::move(hash));
+      cids_.emplace_back(std::move(cid));
+      blks_.emplace_back(std::move(hdr));
+      return outcome::success();
+    }
+
+    OUTCOME_TRY(ticket_hash, ticketHash(hdr));
+    size_t idx = 0;
+    auto sz = ticket_hashes_.size();
+    for (; idx != sz; ++idx) {
+      const auto &h = ticket_hashes_[idx];
+      if (ticket_hash == h) {
+        if (cid.toBytes().value() >= cids_[idx].toBytes().value()) {
+          continue;
+        } else {
+          break;
+        }
+      }
+      if (ticket_hash > h) {
+        continue;
+      }
+      break;
+    }
+
+    if (idx == sz) {
+      // most likely they come in proper order
+      blks_.push_back(std::move(hdr));
+      cids_.push_back(std::move(cid));
+      ticket_hashes_.push_back(std::move(ticket_hash));
+    } else {
+      blks_.insert(blks_.begin() + idx, std::move(hdr));
+      cids_.insert(cids_.begin() + idx, std::move(cid));
+      ticket_hashes_.insert(ticket_hashes_.begin() + idx,
+                            std::move(ticket_hash));
+    }
+
+    return outcome::success();
+  }
+
+  TipsetCPtr TipsetCreator::getTipset(bool clear) {
+    if (blks_.empty()) {
+      return std::make_shared<Tipset>();
+    }
+    if (clear) {
+      return std::make_shared<Tipset>(std::move(cids_), std::move(blks_));
+    }
+    return std::make_shared<Tipset>(cids_, blks_);
+  }
+
+  void TipsetCreator::clear() {
+    blks_.clear();
+    cids_.clear();
+    ticket_hashes_.clear();
+  }
+
+  uint64_t TipsetCreator::height() const {
+    return blks_.empty() ? 0 : blks_[0].height;
+  }
+
+  outcome::result<TipsetCPtr> Tipset::create(const TipsetHash &hash,
+                                             BlocksFromNetwork blocks) {
+    TipsetCreator creator;
+
+    for (auto &b : blocks) {
+      if (!b.has_value()) {
+        return TipsetError::kNoBlocks;
+      }
+
+      auto &hdr = b.value();
+      OUTCOME_TRY(creator.canExpandTipset(hdr));
+      OUTCOME_TRY(creator.expandTipset(std::move(hdr)));
+    }
+
+    TipsetCPtr tipset = creator.getTipset(true);
+    if (tipset->key.hash() != hash) {
+      return TipsetError::kBlockOrderFailure;
+    }
+
+    return std::move(tipset);
+  }
+
+  outcome::result<TipsetCPtr> Tipset::create(
+      std::vector<block::BlockHeader> blocks) {
     if (blocks.empty()) {
       return TipsetError::kNoBlocks;
     }
 
-    // check for blocks consistency
-    const auto height0 = blocks[0].height;
-    const auto &parents = blocks[0].parents;
-    for (size_t i = 1; i < blocks.size(); ++i) {
-      const auto &b = blocks[i];
-      if (height0 != b.height) {
-        return TipsetError::kMismatchingHeights;
-      }
-      if (parents != b.parents) {
-        return TipsetError::kMismatchingParents;
-      }
+    TipsetCreator creator;
+
+    for (auto &hdr : blocks) {
+      OUTCOME_TRY(creator.canExpandTipset(hdr));
+      OUTCOME_TRY(creator.expandTipset(std::move(hdr)));
     }
 
-    std::vector<std::pair<block::BlockHeader, CID>> items;
-    items.reserve(blocks.size());
-    for (auto &block : blocks) {
-      assert(block.ticket);
-      OUTCOME_TRY(cid, fc::primitives::cid::getCidOfCbor(block));
-      OUTCOME_TRY(cid.toBytes());
-      // need to ensure that all cids are calculated before sort,
-      // since it will terminate program in case of exception
-      items.emplace_back(std::make_pair(std::move(block), cid));
-    }
-
-    // the sort function shouldn't throw exceptions
-    // if an exception is thrown from std::sort, program will be terminated
-    std::sort(
-        items.begin(),
-        items.end(),
-        [logger = common::createLogger("tipset")](auto &p1, auto &p2) -> bool {
-          if (&p1 == &p2) {
-            return false;
-          }
-          auto &[b1, cid1] = p1;
-          auto &[b2, cid2] = p2;
-          auto &t1 = b1.ticket;
-          auto &t2 = b2.ticket;
-          if (t1 == t2) {
-            logger->warn("blocks have same ticket {} ({} {})",
-                         b1.height,
-                         b1.miner,
-                         b2.miner);
-            return cid1.toBytes().value() < cid2.toBytes().value();
-          }
-          return crypto::blake2b::blake2b_256(t1->bytes)
-                 < crypto::blake2b::blake2b_256(t2->bytes);
-        });
-
-    Tipset ts{};
-    ts.height = height0;
-    ts.cids.reserve(items.size());
-    ts.blks.reserve(items.size());
-
-    for (auto &[b, c] : items) {
-      ts.blks.push_back(std::move(b));
-      ts.cids.push_back(std::move(c));
-    }
-
-    return ts;
+    return creator.getTipset(true);
   }
 
-  outcome::result<Tipset> Tipset::load(Ipld &ipld,
-                                       const std::vector<CID> &cids) {
+  outcome::result<TipsetCPtr> Tipset::load(Ipld &ipld,
+                                           const std::vector<CID> &cids) {
     std::vector<BlockHeader> blocks;
     blocks.reserve(cids.size());
     for (auto &cid : cids) {
@@ -127,24 +226,26 @@ namespace fc::primitives::tipset {
     return create(std::move(blocks));
   }
 
-  outcome::result<Tipset> Tipset::loadParent(Ipld &ipld) const {
+  outcome::result<TipsetCPtr> Tipset::loadParent(Ipld &ipld) const {
     return load(ipld, blks[0].parents);
   }
 
   outcome::result<BeaconEntry> Tipset::latestBeacon(Ipld &ipld) const {
     auto ts{this};
-    Tipset parent;
+    TipsetCPtr parent;
+
     // TODO: magic number from lotus
     for (auto i{0}; i < 20; ++i) {
       auto beacons{ts->blks[0].beacon_entries};
       if (!beacons.empty()) {
         return *beacons.rbegin();
       }
-      if (ts->height == 0) {
+
+      if (ts->height() == 0) {
         break;
       }
       OUTCOME_TRYA(parent, ts->loadParent(ipld));
-      ts = &parent;
+      ts = parent.get();
     }
     return TipsetError::kNoBeacons;
   }
@@ -191,10 +292,10 @@ namespace fc::primitives::tipset {
       ChainEpoch round,
       gsl::span<const uint8_t> entropy) const {
     auto ts{this};
-    Tipset parent;
-    while (ts->height != 0 && static_cast<ChainEpoch>(ts->height) > round) {
+    TipsetCPtr parent;
+    while (ts->height() != 0 && static_cast<ChainEpoch>(ts->height()) > round) {
       OUTCOME_TRYA(parent, ts->loadParent(ipld));
-      ts = &parent;
+      ts = parent.get();
     }
     OUTCOME_TRY(beacon, ts->latestBeacon(ipld));
     return crypto::randomness::drawRandomness(beacon.data, tag, round, entropy);
@@ -206,10 +307,10 @@ namespace fc::primitives::tipset {
       ChainEpoch round,
       gsl::span<const uint8_t> entropy) const {
     auto ts{this};
-    Tipset parent;
-    while (ts->height != 0 && static_cast<ChainEpoch>(ts->height) > round) {
+    TipsetCPtr parent;
+    while (ts->height() != 0 && static_cast<ChainEpoch>(ts->height()) > round) {
       OUTCOME_TRYA(parent, ts->loadParent(ipld));
-      ts = &parent;
+      ts = parent.get();
     }
     return crypto::randomness::drawRandomness(
         ts->getMinTicketBlock().ticket->bytes, tag, round, entropy);
@@ -217,10 +318,6 @@ namespace fc::primitives::tipset {
 
   TipsetKey Tipset::getParents() const {
     return blks[0].parents;
-  }
-
-  outcome::result<TipsetKey> Tipset::makeKey() const {
-    return TipsetKey{cids};
   }
 
   uint64_t Tipset::getMinTimestamp() const {
@@ -241,12 +338,16 @@ namespace fc::primitives::tipset {
     return blks[0].parent_state_root;
   }
 
+  const BigInt &Tipset::getParentWeight() const {
+    return blks[0].parent_weight;
+  }
+
   const CID &Tipset::getParentMessageReceipts() const {
     return blks[0].parent_message_receipts;
   }
 
-  const BigInt &Tipset::getParentWeight() const {
-    return blks[0].parent_weight;
+  uint64_t Tipset::height() const {
+    return blks.empty() ? 0 : blks[0].height;
   }
 
   const BigInt &Tipset::getParentBaseFee() const {
@@ -254,6 +355,7 @@ namespace fc::primitives::tipset {
   }
 
   bool Tipset::contains(const CID &cid) const {
+    const auto &cids = key.cids();
     return std::find(cids.begin(), cids.end(), cid) != std::end(cids);
   }
 
@@ -265,3 +367,34 @@ namespace fc::primitives::tipset {
     return !(l == r);
   }
 }  // namespace fc::primitives::tipset
+
+namespace fc::codec::cbor {
+
+  namespace {
+    struct TipsetDecodeCandidate {
+      std::vector<CID> cids;
+      std::vector<fc::primitives::block::BlockHeader> blks;
+      uint64_t height;
+    };
+
+    CBOR_TUPLE(TipsetDecodeCandidate, cids, blks, height);
+
+  }  // namespace
+
+  template <>
+  outcome::result<fc::primitives::tipset::TipsetCPtr>
+  decode<fc::primitives::tipset::TipsetCPtr>(gsl::span<const uint8_t> input) {
+    using namespace fc::primitives::tipset;
+
+    OUTCOME_TRY(decoded, decode<TipsetDecodeCandidate>(input));
+    if (decoded.blks.empty() && decoded.height != 0) {
+      return TipsetError::kMismatchingHeights;
+    }
+    OUTCOME_TRY(tipset, Tipset::create(std::move(decoded.blks)));
+    if (tipset->key.cids() != decoded.cids) {
+      return TipsetError::kBlockOrderFailure;
+    }
+    return std::move(tipset);
+  }
+
+}  // namespace fc::codec::cbor

@@ -20,6 +20,7 @@ namespace fc::storage::mpool {
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using connection_t = boost::signals2::connection;
+  using primitives::tipset::TipsetCPtr;
 
   struct MpoolUpdate {
     enum class Type : int64_t { ADD, REMOVE };
@@ -53,7 +54,7 @@ namespace fc::storage::mpool {
     IpldPtr ipld;
     std::shared_ptr<Interpreter> interpreter;
     ChainStore::connection_t head_sub;
-    Tipset head;
+    TipsetCPtr head;
     std::map<Address, Pending> by_from;
     std::map<CID, Signature> bls_cache;
     boost::signals2::signal<Subscriber> signal;

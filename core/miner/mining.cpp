@@ -6,7 +6,7 @@
 #include "miner/mining.hpp"
 
 #include "const.hpp"
-#include "vm/actor/builtin/market/policy.hpp"
+#include "vm/actor/builtin/v0/market/policy.hpp"
 #include "vm/runtime/pricelist.hpp"
 
 #define OUTCOME_LOG(tag, r)                               \
@@ -59,11 +59,10 @@ namespace fc::mining {
 
   outcome::result<void> Mining::waitInfo() {
     OUTCOME_TRY(bestParent());
-    OUTCOME_TRY(ts_key, ts->makeKey());
-    if (!mined.emplace(ts_key, skip).second) {
+    if (!mined.emplace(ts->key, skip).second) {
       wait(kBlockDelaySecs, false, [this] { waitParent(); });
     } else {
-      OUTCOME_TRY(_wait, api->MinerGetBaseInfo(miner, height(), ts_key));
+      OUTCOME_TRY(_wait, api->MinerGetBaseInfo(miner, height(), ts->key));
       _wait.waitOwn([self{shared_from_this()}](auto _info) {
         OUTCOME_LOG("Mining::waitInfo error", _info);
         self->info = std::move(_info.value());
@@ -98,16 +97,14 @@ namespace fc::mining {
 
   outcome::result<void> Mining::bestParent() {
     OUTCOME_TRY(ts2, api->ChainHead());
-    OUTCOME_TRY(ts2_key, ts2.makeKey());
     if (ts) {
-      OUTCOME_TRY(ts_key, ts->makeKey());
-      if (ts2_key == ts_key) {
+      if (ts2->key == ts->key) {
         return outcome::success();
       }
     }
-    OUTCOME_TRY(weight2, api->ChainTipSetWeight(ts2_key));
+    OUTCOME_TRY(weight2, api->ChainTipSetWeight(ts2->key));
     if (!ts || weight2 > weight) {
-      ts = std::move(ts2);
+      ts = std::move(*ts2);
       weight = weight2;
       skip = 0;
     }
@@ -115,7 +112,7 @@ namespace fc::mining {
   }
 
   ChainEpoch Mining::height() const {
-    return ts->height + skip + 1;
+    return ts->height() + skip + 1;
   }
 
   void Mining::wait(int64_t sec, bool abs, Scheduler::Callback cb) {
@@ -173,10 +170,10 @@ namespace fc::mining {
                                miner_seed)));
         OUTCOME_TRY(
             messages,
-            api->MpoolSelect(ts->makeKey().value(), ticketQuality(ticket_vrf)));
+            api->MpoolSelect(ts->key, ticketQuality(ticket_vrf)));
         return BlockTemplate{
             miner,
-            ts->cids,
+            ts->key.cids(),
             primitives::block::Ticket{Buffer{ticket_vrf}},
             primitives::block::ElectionProof{win_count, Buffer{election_vrf}},
             std::move(info->beacons),

@@ -8,6 +8,11 @@
 #include <memory>
 
 namespace fc {
+  template <typename T>
+  std::weak_ptr<T> weaken(const std::shared_ptr<T> &ptr) {
+    return ptr;
+  }
+
   template <typename T, typename F>
   auto weakCb0(std::weak_ptr<T> weak, F &&f) {
     return [weak, f{std::forward<F>(f)}](auto &&... args) {

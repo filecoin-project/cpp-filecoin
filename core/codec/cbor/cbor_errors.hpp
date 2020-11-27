@@ -18,6 +18,7 @@ namespace fc::codec::cbor {
     kInvalidCborCID,
     kInvalidCID,
     kWrongSize,
+    kKeyNotFound,
   };
 }  // namespace fc::codec::cbor
 

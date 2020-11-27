@@ -68,7 +68,8 @@ namespace fc::blocksync {
              secp_messages,
              secp_indices)
 
-  outcome::result<Tipset> unpack(const IpldPtr &ipld, Response::Tipset packed) {
+  outcome::result<std::shared_ptr<const Tipset>> unpack(
+      const IpldPtr &ipld, Response::Tipset packed) {
     auto safe{[&](auto &messages, auto &indices) {
       if (indices.size() != packed.blocks.size()) {
         return false;
@@ -194,7 +195,7 @@ namespace fc::blocksync {
             ipld, msgs.bls_messages, msgs.bls_indices};
         MessageVisitor<SignedMessage> secp_visitor{
             ipld, msgs.secp_messages, msgs.secp_indices};
-        for (auto &block : ts.blks) {
+        for (auto &block : ts->blks) {
           OUTCOME_TRY(meta, ipld->getCbor<MsgMeta>(block.messages));
           msgs.bls_indices.emplace_back();
           OUTCOME_TRY(meta.bls_messages.visit(bls_visitor));
@@ -204,13 +205,13 @@ namespace fc::blocksync {
         packed.messages = std::move(msgs);
       }
       if (request.options & Request::BLOCKS) {
-        packed.blocks = ts.blks;
+        packed.blocks = ts->blks;
       }
       chain.push_back(std::move(packed));
-      if (chain.size() >= request.depth || ts.height == 0) {
+      if (chain.size() >= request.depth || ts->height() == 0) {
         break;
       }
-      OUTCOME_TRYA(ts, ts.loadParent(*ipld));
+      OUTCOME_TRYA(ts, ts->loadParent(*ipld));
     }
     return chain;
   }

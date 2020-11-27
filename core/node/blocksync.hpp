@@ -23,7 +23,7 @@ namespace fc::blocksync {
   };
 
   // TODO: depth/count
-  using Cb = std::function<void(outcome::result<Tipset>)>;
+  using Cb = std::function<void(outcome::result<std::shared_ptr<const Tipset>>)>;
   void fetch(std::shared_ptr<Host> host,
              const PeerInfo &peer,
              IpldPtr ipld,

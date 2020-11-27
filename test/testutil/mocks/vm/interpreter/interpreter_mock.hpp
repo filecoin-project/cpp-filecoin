@@ -15,7 +15,7 @@ namespace fc::vm::interpreter {
    public:
     MOCK_CONST_METHOD2(interpret,
                        outcome::result<Result>(const IpldPtr &store,
-                                               const Tipset &tipset));
+                                               const TipsetCPtr &tipset));
   };
 }  // namespace fc::vm::interpreter
 

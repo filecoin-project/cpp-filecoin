@@ -50,13 +50,13 @@ namespace fc::storage::ipfs::graphsync::test {
     return objects;
   }
 
-  bool TestDataService::onDataBlock(CID cid, common::Buffer data) {
+  bool TestDataService::onDataBlock(const Data& data) {
     bool expected = false;
-    auto it = expected_.find(cid);
-    if (it != expected_.end() && it->second == data) {
-      expected = (received_.count(cid) == 0);
+    auto it = expected_.find(data.cid);
+    if (it != expected_.end() && it->second == data.content) {
+      expected = (received_.count(data.cid) == 0);
     }
-    received_[cid] = std::move(data);
+    received_[data.cid] = data.content;
     return expected;
   }
 

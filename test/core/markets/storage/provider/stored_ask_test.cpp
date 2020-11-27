@@ -10,6 +10,7 @@
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
 #include "storage/in_memory/in_memory_storage.hpp"
 #include "testutil/outcome.hpp"
+#include "testutil/literals.hpp"
 
 namespace fc::markets::storage::provider {
 
@@ -21,7 +22,7 @@ namespace fc::markets::storage::provider {
   using fc::crypto::secp256k1::Secp256k1ProviderDefault;
   using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
   using fc::storage::InMemoryStorage;
-  using vm::actor::builtin::miner::MinerInfo;
+  using vm::actor::builtin::v0::miner::MinerInfo;
   using BlsSignature = fc::crypto::bls::Signature;
 
   class StoredAskTest : public ::testing::Test {
@@ -35,14 +36,45 @@ namespace fc::markets::storage::provider {
 
     ChainEpoch epoch = 100;
     std::shared_ptr<Api> api = std::make_shared<Api>();
-    Tipset chain_head;
+    std::shared_ptr<const Tipset> chain_head;
     Address actor_address = Address::makeFromId(1);
     Address bls_address;
     KeyPair bls_keypair;
     StoredAsk stored_ask{datastore, api, actor_address};
 
+    static fc::primitives::block::BlockHeader makeBlock(uint64_t epoch) {
+      auto bls1 =
+          "010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101010101"_blob96;
+
+      return fc::primitives::block::BlockHeader {
+          fc::primitives::address::Address::makeFromId(1),
+          fc::primitives::block::Ticket{ fc::Buffer{bls1} },
+          {},
+          {fc::primitives::block::BeaconEntry{
+              4,
+              "F00D"_unhex,
+          }},
+          {fc::primitives::sector::PoStProof{
+              fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+              "F00D"_unhex,
+          }},
+          {"010001020002"_cid},
+          fc::primitives::BigInt(3),
+          epoch,
+          "010001020005"_cid,
+          "010001020006"_cid,
+          "010001020007"_cid,
+          boost::none,
+          8,
+          boost::none,
+          9,
+          {},
+      };
+    }
+
     void SetUp() override {
-      chain_head.height = epoch;
+      chain_head = Tipset::create({ makeBlock(epoch) }).value();
+
       api->ChainHead = {[=]() { return chain_head; }};
 
       bls_keypair = bls_provider_->generateKeyPair().value();

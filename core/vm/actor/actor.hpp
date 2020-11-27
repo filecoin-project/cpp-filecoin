@@ -13,12 +13,22 @@
 #include "primitives/address/address.hpp"
 #include "primitives/big_int.hpp"
 #include "primitives/cid/cid.hpp"
+#include "vm/version.hpp"
 
 namespace fc::vm::actor {
 
   using fc::common::Buffer;
   using primitives::BigInt;
   using primitives::address::Address;
+  using version::NetworkVersion;
+
+  /**
+   * Actor version v0 or v2
+   */
+  enum class ActorVersion {
+    kVersion0 = 0,
+    kVersion2 = 2,
+  };
 
   /**
    * Consider MethodNum numbers to be similar in concerns as for offsets in
@@ -54,6 +64,12 @@ namespace fc::vm::actor {
 
   CBOR_TUPLE(Actor, code, head, nonce, balance)
 
+  /** Checks if code is an account actor */
+  bool isAccountActor(const CodeId &code);
+
+  /** Checks if code is miner actor */
+  bool isStorageMinerActor(const CodeId &code);
+
   /** Check if code specifies builtin actor implementation */
   bool isBuiltinActor(const CodeId &code);
 
@@ -63,6 +79,20 @@ namespace fc::vm::actor {
   /** Check if actor code can represent external signing parties */
   bool isSignableActor(const CodeId &code);
 
+  /** Make code cid from raw string */
+  CID makeRawIdentityCid(const std::string &str);
+
+  /**
+   * Returns actor version for network version
+   *
+   * Network version [0..3] => Actor version v0
+   * Network version [4..?] => Actor version v2
+   *
+   * @param network_version - version of network
+   * @return v0 or v2 actor version
+   */
+  ActorVersion getActorVersionForNetwork(const NetworkVersion &network_version);
+
   /** Reserved method number for send operation */
   constexpr MethodNumber kSendMethodNumber{0};
 
@@ -70,11 +100,6 @@ namespace fc::vm::actor {
   constexpr MethodNumber kConstructorMethodNumber{1};
 
   extern const CID kEmptyObjectCid;
-
-  extern const CodeId kAccountCodeCid, kCronCodeCid, kStoragePowerCodeCid,
-      kStorageMarketCodeCid, kStorageMinerCodeCid, kMultisigCodeCid,
-      kInitCodeCid, kPaymentChannelCodeCid, kRewardActorCodeID,
-      kSystemActorCodeID, kVerifiedRegistryCode;
 
   inline static const auto kSystemActorAddress = Address::makeFromId(0);
   inline static const auto kInitAddress = Address::makeFromId(1);

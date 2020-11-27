@@ -22,10 +22,10 @@
 #include "primitives/rle_bitset/rle_bitset.hpp"
 #include "primitives/tipset/tipset.hpp"
 #include "storage/mpool/mpool.hpp"
-#include "vm/actor/builtin/market/actor.hpp"
-#include "vm/actor/builtin/miner/types.hpp"
-#include "vm/actor/builtin/payment_channel/payment_channel_actor_state.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/miner/types.hpp"
+#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
 #define API_METHOD(_name, _result, ...)                                    \
@@ -67,23 +67,24 @@ namespace fc::api {
   using primitives::sector::SectorInfo;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
+  using primitives::tipset::TipsetCPtr;
   using primitives::tipset::TipsetKey;
   using storage::mpool::MpoolUpdate;
   using vm::actor::Actor;
-  using vm::actor::builtin::market::ClientDealProposal;
-  using vm::actor::builtin::market::DealProposal;
-  using vm::actor::builtin::market::DealState;
-  using vm::actor::builtin::market::StorageParticipantBalance;
-  using vm::actor::builtin::miner::DeadlineInfo;
-  using vm::actor::builtin::miner::Deadlines;
-  using vm::actor::builtin::miner::MinerInfo;
-  using vm::actor::builtin::miner::Partition;
-  using vm::actor::builtin::miner::SectorOnChainInfo;
-  using vm::actor::builtin::miner::SectorPreCommitInfo;
-  using vm::actor::builtin::miner::SectorPreCommitOnChainInfo;
-  using vm::actor::builtin::payment_channel::LaneId;
-  using vm::actor::builtin::payment_channel::SignedVoucher;
-  using vm::actor::builtin::storage_power::Claim;
+  using vm::actor::builtin::v0::market::ClientDealProposal;
+  using vm::actor::builtin::v0::market::DealProposal;
+  using vm::actor::builtin::v0::market::DealState;
+  using vm::actor::builtin::v0::market::StorageParticipantBalance;
+  using vm::actor::builtin::v0::miner::DeadlineInfo;
+  using vm::actor::builtin::v0::miner::Deadlines;
+  using vm::actor::builtin::v0::miner::MinerInfo;
+  using vm::actor::builtin::v0::miner::Partition;
+  using vm::actor::builtin::v0::miner::SectorOnChainInfo;
+  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::v0::miner::SectorPreCommitOnChainInfo;
+  using vm::actor::builtin::v0::payment_channel::LaneId;
+  using vm::actor::builtin::v0::payment_channel::SignedVoucher;
+  using vm::actor::builtin::v0::storage_power::Claim;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
   using vm::runtime::ExecutionResult;
@@ -296,7 +297,7 @@ namespace fc::api {
 
     API_METHOD(ChainGetBlock, BlockHeader, const CID &)
     API_METHOD(ChainGetBlockMessages, BlockMessages, const CID &)
-    API_METHOD(ChainGetGenesis, Tipset)
+    API_METHOD(ChainGetGenesis, TipsetCPtr)
     API_METHOD(ChainGetNode, IpldObject, const std::string &)
     API_METHOD(ChainGetMessage, UnsignedMessage, const CID &)
     API_METHOD(ChainGetParentMessages, std::vector<CidMessage>, const CID &)
@@ -313,9 +314,12 @@ namespace fc::api {
                DomainSeparationTag,
                ChainEpoch,
                const Buffer &)
-    API_METHOD(ChainGetTipSet, Tipset, const TipsetKey &)
-    API_METHOD(ChainGetTipSetByHeight, Tipset, ChainEpoch, const TipsetKey &)
-    API_METHOD(ChainHead, Tipset)
+    API_METHOD(ChainGetTipSet, TipsetCPtr, const TipsetKey &)
+    API_METHOD(ChainGetTipSetByHeight,
+               TipsetCPtr,
+               ChainEpoch,
+               const TipsetKey &)
+    API_METHOD(ChainHead, TipsetCPtr)
     API_METHOD(ChainNotify, Chan<std::vector<HeadChange>>)
     API_METHOD(ChainReadObj, Buffer, CID)
     API_METHOD(ChainSetHead, void, const TipsetKey &)

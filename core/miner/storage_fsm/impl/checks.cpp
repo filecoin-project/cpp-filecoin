@@ -26,12 +26,12 @@ namespace fc::mining::checks {
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::market::ComputeDataCommitment;
-  using vm::actor::builtin::miner::kChainFinalityish;
-  using vm::actor::builtin::miner::kPreCommitChallengeDelay;
-  using vm::actor::builtin::miner::maxSealDuration;
-  using vm::actor::builtin::miner::MinerActorState;
-  using vm::actor::builtin::miner::SectorPreCommitOnChainInfo;
+  using vm::actor::builtin::v0::market::ComputeDataCommitment;
+  using vm::actor::builtin::v0::miner::kChainFinalityish;
+  using vm::actor::builtin::v0::miner::kPreCommitChallengeDelay;
+  using vm::actor::builtin::v0::miner::maxSealDuration;
+  using vm::actor::builtin::v0::miner::MinerActorState;
+  using vm::actor::builtin::v0::miner::SectorPreCommitOnChainInfo;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
@@ -40,7 +40,6 @@ namespace fc::mining::checks {
       const std::shared_ptr<SectorInfo> &sector_info,
       const std::shared_ptr<Api> &api) {
     OUTCOME_TRY(chain_head, api->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
 
     for (const auto &piece : sector_info->pieces) {
       if (!piece.deal_info.has_value()) {
@@ -52,9 +51,9 @@ namespace fc::mining::checks {
         continue;
       }
 
-      OUTCOME_TRY(
-          proposal,
-          api->StateMarketStorageDeal(piece.deal_info->deal_id, tipset_key));
+      OUTCOME_TRY(proposal,
+                  api->StateMarketStorageDeal(piece.deal_info->deal_id,
+                                              chain_head->key));
 
       if (piece.piece.cid != proposal.proposal.piece_cid) {
         return ChecksError::kInvalidDeal;
@@ -64,7 +63,7 @@ namespace fc::mining::checks {
         return ChecksError::kInvalidDeal;
       }
 
-      if (static_cast<ChainEpoch>(chain_head.height)
+      if (static_cast<ChainEpoch>(chain_head->height())
           >= proposal.proposal.start_epoch) {
         return ChecksError::kExpiredDeal;
       }
