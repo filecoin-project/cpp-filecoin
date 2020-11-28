@@ -8,11 +8,8 @@
 #include <boost/filesystem.hpp>
 
 namespace fc::primitives::piece {
-  PieceData::PieceData(const std::string &path_to_file, int flags)
-      : fd_(kUnopenedFileDescriptor) {
-    if (boost::filesystem::exists(path_to_file)) {
-      fd_ = open(path_to_file.c_str(), flags);
-    }
+  PieceData::PieceData(const std::string &path_to_file, int flags) {
+    fd_ = open(path_to_file.c_str(), flags, 0644);
   }
 
   int PieceData::getFd() const {

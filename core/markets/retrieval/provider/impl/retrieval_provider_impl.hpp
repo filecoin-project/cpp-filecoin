@@ -32,7 +32,10 @@ namespace fc::markets::retrieval::provider {
   using primitives::SectorNumber;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedPieceSize;
+  using storage::Path;
   using GsResStatus = ::fc::storage::ipfs::graphsync::ResponseStatusCode;
+
+  const Path kFilestoreTempDir = "/tmp/fuhon/retrieval-market/";
 
   /**
    * @struct Provider config
@@ -122,9 +125,10 @@ namespace fc::markets::retrieval::provider {
      * @param size - size of piece
      * @return Read PieceData
      */
-    outcome::result<PieceData> unsealSector(SectorNumber sector_id,
-                                            UnpaddedPieceSize offset,
-                                            UnpaddedPieceSize size);
+    outcome::result<void> unsealSector(SectorNumber sector_id,
+                                       UnpaddedPieceSize offset,
+                                       UnpaddedPieceSize size,
+                                       const std::string &output_path);
 
     std::shared_ptr<Host> host_;
     std::shared_ptr<DataTransfer> datatransfer_;

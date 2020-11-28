@@ -4,6 +4,8 @@
  */
 
 #include "markets/retrieval/provider/impl/retrieval_provider_impl.hpp"
+
+#include <boost/filesystem.hpp>
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "markets/common.hpp"
 #include "storage/car/car.hpp"
@@ -21,6 +23,7 @@
 namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceStorageError;
   using primitives::piece::UnpaddedByteIndex;
+  namespace fs = boost::filesystem;
 
   RetrievalProviderImpl::RetrievalProviderImpl(
       std::shared_ptr<Host> host,
@@ -150,16 +153,22 @@ namespace fc::markets::retrieval::provider {
     if (!_piece) {
       return doFail(deal, _piece.error().message());
     }
+    if (!fs::exists(kFilestoreTempDir)) {
+      fs::create_directories(kFilestoreTempDir);
+    }
+    auto car_path = fs::path(kFilestoreTempDir) / fs::unique_path();
+    auto _ = gsl::finally([&car_path]() {
+      if (fs::exists(car_path)) {
+        fs::remove_all(car_path);
+      }
+    });
     for (auto &info : _piece.value().deals) {
-      if (auto _data{unsealSector(info.sector_id,
-                                  info.offset.unpadded(),
-                                  info.length.unpadded())}) {
-        // TODO(artyom-yurin): [FIL-247] Dangerous place
-        Buffer car;
-        car.resize(info.length.unpadded());
-        size_t _read = read(_data.value().getFd(), car.data(), car.size());
-        assert(_read == car.size());
-        auto _load{::fc::storage::car::loadCar(*ipld_, car)};
+      if (auto _error{unsealSector(info.sector_id,
+                                   info.offset.unpadded(),
+                                   info.length.unpadded(),
+                                   car_path.string())}) {
+        assert(info.length.unpadded() == fs::file_size(car_path));
+        auto _load{::fc::storage::car::loadCar(*ipld_, car_path.string())};
         if (!_load) {
           return doFail(deal, _piece.error().message());
         }
@@ -363,8 +372,11 @@ namespace fc::markets::retrieval::provider {
     });
   }
 
-  outcome::result<PieceData> RetrievalProviderImpl::unsealSector(
-      SectorNumber sid, UnpaddedPieceSize offset, UnpaddedPieceSize size) {
+  outcome::result<void> RetrievalProviderImpl::unsealSector(
+      SectorNumber sid,
+      UnpaddedPieceSize offset,
+      UnpaddedPieceSize size,
+      const std::string &output_path) {
     OUTCOME_TRY(sector_info, miner_->getSectorInfo(sid));
 
     auto miner_id = miner_->getAddress().getId();
@@ -374,21 +386,15 @@ namespace fc::markets::retrieval::provider {
         .sector = sid,
     };
 
-    int p[2];
-    auto status = pipe(p);  // TODO: error
-    assert(status == 0);
-    PieceData reader(p[0]);
-
     CID comm_d = sector_info->comm_d.get_value_or(CID());
 
-    OUTCOME_TRY(sealer_->readPiece(PieceData(p[1]),
-                                   sector_id,
-                                   UnpaddedByteIndex(offset),
-                                   size,
-                                   sector_info->ticket,
-                                   comm_d));
-
-    return std::move(reader);
+    return sealer_->readPiece(
+        PieceData(output_path.c_str(), O_WRONLY | O_CREAT),
+        sector_id,
+        UnpaddedByteIndex(offset),
+        size,
+        sector_info->ticket,
+        comm_d);
   }
 
 }  // namespace fc::markets::retrieval::provider
