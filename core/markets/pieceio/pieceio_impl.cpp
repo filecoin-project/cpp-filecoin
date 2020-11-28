@@ -19,7 +19,11 @@ namespace fc::markets::pieceio {
   using storage::car::makeSelectiveCar;
 
   PieceIOImpl::PieceIOImpl(std::shared_ptr<Ipld> ipld, std::string temp_dir)
-      : ipld_{std::move(ipld)}, temp_dir_{std::move(temp_dir)} {}
+      : ipld_{std::move(ipld)}, temp_dir_{std::move(temp_dir)} {
+    if (!fs::exists(temp_dir_)) {
+      fs::create_directories(temp_dir_);
+    }
+  }
 
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
   PieceIOImpl::generatePieceCommitment(const RegisteredProof &registered_proof,
