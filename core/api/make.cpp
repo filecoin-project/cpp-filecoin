@@ -352,6 +352,8 @@ namespace fc::api {
         // TODO(turuslan): FIL-165 implement method
         .ClientStartDeal = {},
         // TODO(turuslan): FIL-165 implement method
+        .GasEstimateMessageGas = {},
+        // TODO(turuslan): FIL-165 implement method
         .MarketEnsureAvailable = {},
         .MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
           OUTCOME_TRY(context, tipsetContext(t.parents, true));
