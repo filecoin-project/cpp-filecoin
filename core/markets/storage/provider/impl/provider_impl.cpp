@@ -273,7 +273,7 @@ namespace fc::markets::storage::provider {
     }
 
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    if (static_cast<ChainEpoch>(chain_head->height())
+    if (chain_head->epoch()
         > proposal.start_epoch - kDefaultDealAcceptanceBuffer) {
       deal->message =
           "Deal proposal verification failed, deal start epoch is too soon or "

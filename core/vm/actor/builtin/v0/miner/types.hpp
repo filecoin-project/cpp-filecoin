@@ -187,6 +187,11 @@ namespace fc::vm::actor::builtin::v0::miner {
     auto last() const {
       return close - 1;
     }
+    auto next() const {
+      return index == kWPoStPeriodDeadlines
+                 ? make(period_start + kWPoStProvingPeriod, 0, current_epoch)
+                 : make(period_start, index + 1, current_epoch);
+    }
   };
 
   struct ExpirationSet {

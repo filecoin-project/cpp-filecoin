@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::TokenAmount;
   using primitives::sector::RegisteredProof;
 
-  constexpr size_t kEpochDurationSeconds{25};
+  constexpr size_t kEpochDurationSeconds{30};
   constexpr size_t kSecondsInHour{3600};
   constexpr size_t kSecondsInDay{86400};
   constexpr size_t kSecondsInYear{31556925};
@@ -28,9 +28,9 @@ namespace fc::vm::actor::builtin::v0::miner {
   constexpr size_t kEpochsInYear{kSecondsInYear / kEpochDurationSeconds};
 
   constexpr ChainEpoch kWPoStProvingPeriod{kEpochsInDay};
-  constexpr EpochDuration kWPoStChallengeWindow{3600 / kEpochDurationSeconds};
-  constexpr size_t kWPoStPeriodDeadlines{kWPoStProvingPeriod
-                                         / kWPoStChallengeWindow};
+  constexpr EpochDuration kWPoStChallengeWindow{30 * 60
+                                                / kEpochDurationSeconds};
+  constexpr size_t kWPoStPeriodDeadlines{48};
   constexpr size_t kSectorsMax{32 << 20};
   constexpr size_t kNewSectorsPerPeriodMax{128 << 10};
   constexpr EpochDuration kChainFinalityish{900};
@@ -42,6 +42,8 @@ namespace fc::vm::actor::builtin::v0::miner {
   constexpr auto kWorkerKeyChangeDelay{2 * kElectionLookback};
 
   constexpr auto kMinSectorExpiration = 180 * kEpochsInDay;
+
+  constexpr auto kAddressedSectorsMax{10000};
 
   /**
    * Maximum number of epochs past the current epoch a sector may be set to

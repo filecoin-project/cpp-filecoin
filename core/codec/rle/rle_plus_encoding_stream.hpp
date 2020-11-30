@@ -6,12 +6,13 @@
 #ifndef CPP_FILECOIN_RLE_PLUS_ENCODING_STREAM_HPP
 #define CPP_FILECOIN_RLE_PLUS_ENCODING_STREAM_HPP
 
-#include <vector>
 #include <set>
+#include <vector>
 
 #include <boost/dynamic_bitset.hpp>
 
 #include "codec/rle/rle_plus_config.hpp"
+#include "common/outcome.hpp"
 
 namespace fc::codec::rle {
   /**
@@ -129,6 +130,11 @@ namespace fc::codec::rle {
       return periods;
     }
   };
+
+  using Set64 = std::set<uint64_t>;
+  using Runs64 = std::vector<uint64_t>;
+  Runs64 toRuns(const Set64 &set);
+  Set64 fromRuns(const Runs64 &runs);
 };  // namespace fc::codec::rle
 
 #endif

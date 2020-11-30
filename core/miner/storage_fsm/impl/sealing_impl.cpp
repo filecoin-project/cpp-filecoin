@@ -896,11 +896,10 @@ namespace fc::mining {
       return maybe_error.error();
     }
 
-    auto expiration = std::min(
+    auto expiration = std::min<ChainEpoch>(
         policy_->expiration(info->pieces),
-        static_cast<ChainEpoch>(head->height()
-                                + maxSealDuration(info->sector_type).value()
-                                + kMinSectorExpiration + 10));
+        head->epoch() + maxSealDuration(info->sector_type).value()
+            + kMinSectorExpiration + 10);
 
     SectorPreCommitInfo params;
     params.expiration = expiration;
@@ -1475,8 +1474,8 @@ namespace fc::mining {
       }
     }
 
-    maybe_error = checks::checkCommit(
-        miner_address_, info, info->proof, head->key, api_);
+    maybe_error =
+        checks::checkCommit(miner_address_, info, info->proof, head->key, api_);
     if (maybe_error.has_error()) {
       if (maybe_error == outcome::failure(ChecksError::kBadSeed)) {
         logger_->error("seed changed, will retry: {}",

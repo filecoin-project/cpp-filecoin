@@ -17,3 +17,17 @@ TEST(RleBitsetTest, RleBitsetCbor) {
   using fc::primitives::RleBitset;
   expectEncodeAndReencode(RleBitset{2, 7}, "43504a01"_unhex);
 }
+
+TEST(RleBitsetTest, Runs) {
+  using namespace fc::codec::rle;
+  auto expect{[](Set64 set, Runs64 runs) {
+    EXPECT_EQ(toRuns(set), runs);
+    EXPECT_EQ(fromRuns(runs), set);
+  }};
+  expect({}, {});
+  expect({0}, {0, 1});
+  expect({0, 1}, {0, 2});
+  expect({0, 2}, {0, 1, 1, 1});
+  expect({1}, {1, 1});
+  expect({1, 2}, {1, 2});
+}

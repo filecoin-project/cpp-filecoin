@@ -21,6 +21,9 @@ namespace fc::codec::rle {
    */
   template <typename T, typename A>
   std::vector<uint8_t> encode(const std::set<T, A> &input) {
+    if (input.empty()) {
+      return {};
+    }
     RLEPlusEncodingStream encoder;
     encoder << input;
     return encoder.data();
