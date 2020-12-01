@@ -8,6 +8,7 @@ add_library(payment_channel_actor
     )
 target_link_libraries(payment_channel_actor
     actor
+    array
     outcome
     signature
     )

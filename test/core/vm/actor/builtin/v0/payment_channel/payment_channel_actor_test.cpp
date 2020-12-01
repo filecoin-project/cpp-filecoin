@@ -155,7 +155,9 @@ TEST_F(PaymentChannelActorTest, ConstructSuccess) {
   EXPECT_EQ(state.to_send, 0);
   EXPECT_EQ(state.settling_at, 0);
   EXPECT_EQ(state.min_settling_height, 0);
-  EXPECT_EQ(state.lanes.size(), 0);
+
+  EXPECT_OUTCOME_TRUE(lanes_size, state.lanes.size());
+  EXPECT_EQ(lanes_size, 0);
 }
 
 PaymentChannel::SignedVoucher
@@ -256,7 +258,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateExtraFailed) {
 /// PaymentChannelActor UpdateChannelState error: expired voucher lane nonce
 TEST_F(PaymentChannelActorTest, UpdateChannelStateInvalidVoucherNonce) {
   auto voucher = setupUpdateChannelState();
-  state.lanes.push_back(LaneState{voucher.lane, {}, voucher.nonce + 1});
+  EXPECT_OUTCOME_TRUE_1(state.lanes.set(voucher.lane, LaneState{{}, voucher.nonce + 1}));
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::kErrIllegalArgument,
@@ -277,9 +279,10 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateMergeSelf) {
 /// nonce
 TEST_F(PaymentChannelActorTest, UpdateChannelStateInvalidMergeNonce) {
   auto voucher = setupUpdateChannelState();
-  LaneState lane{102, {}, 5};
-  state.lanes.push_back(lane);
-  voucher.merges.push_back(Merge{lane.id, lane.nonce});
+  const uint64_t lane_id = 102;
+  LaneState lane{{}, 5};
+  EXPECT_OUTCOME_TRUE_1(state.lanes.set(lane_id, lane));
+  voucher.merges.push_back(Merge{lane_id, lane.nonce});
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::kErrIllegalArgument,
@@ -290,8 +293,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateInvalidMergeNonce) {
 TEST_F(PaymentChannelActorTest, UpdateChannelStateNegative) {
   auto voucher = setupUpdateChannelState();
   state.to_send = 10;
-  state.lanes.push_back(LaneState{
-      voucher.lane, voucher.amount + state.to_send + 1, voucher.nonce - 1});
+  EXPECT_OUTCOME_TRUE_1(state.lanes.set(voucher.lane, LaneState{voucher.amount + state.to_send + 1, voucher.nonce - 1}));
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::kErrIllegalArgument,
@@ -339,9 +341,10 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateMinHeight) {
 /// PaymentChannelActor UpdateChannelState success: voucher with merge
 TEST_F(PaymentChannelActorTest, UpdateChannelStateMerge) {
   auto voucher = setupUpdateChannelState();
-  LaneState lane{102, {}, 5};
-  state.lanes.push_back(lane);
-  voucher.merges.push_back(Merge{lane.id, lane.nonce + 1});
+  const uint64_t lane_id = 102;
+  LaneState lane{{}, 5};
+  EXPECT_OUTCOME_TRUE_1(state.lanes.set(lane_id, lane));
+  voucher.merges.push_back(Merge{lane_id, lane.nonce + 1});
   auto to_send = voucher.amount - lane.redeem;
   balance = to_send;
 
@@ -349,7 +352,9 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateMerge) {
       PaymentChannel::UpdateChannelState::call(runtime, {voucher, {}}));
 
   EXPECT_EQ(state.to_send, to_send);
-  EXPECT_EQ(state.findLane(voucher.lane)->redeem, voucher.amount);
+
+  EXPECT_OUTCOME_TRUE(state_lane, state.lanes.get(voucher.lane));
+  EXPECT_EQ(state_lane.redeem, voucher.amount);
 }
 
 /// PaymentChannelActor Settle error: caller not in channel

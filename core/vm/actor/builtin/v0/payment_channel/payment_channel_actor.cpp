@@ -34,7 +34,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     }
     OUTCOME_TRY(to, resolveAccount(runtime, params.to));
     OUTCOME_TRY(from, resolveAccount(runtime, params.from));
-    OUTCOME_TRY(runtime.commitState(State{from, to, 0, 0, 0, {}}));
+    OUTCOME_TRY(runtime.commitState(State{from, to, 0, 0, 0, {runtime.getIpfsDatastore()}}));
     return fc::outcome::success();
   }
 
@@ -90,17 +90,17 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
           voucher.extra->actor, voucher.extra->method, params2, 0));
     }
 
-    if (state.lanes.size() > kLaneLimit || voucher.lane > kLaneLimit) {
+    OUTCOME_TRY(lanes_size, state.lanes.size());
+    if (lanes_size > kLaneLimit || voucher.lane > kLaneLimit) {
       return VMExitCode::kErrIllegalArgument;
     }
-    auto state_lane_it = state.findLane(voucher.lane);
-    if (state_lane_it != state.lanes.end()) {
-      if (state_lane_it->nonce >= voucher.nonce) {
+    OUTCOME_TRY(state_lane, state.lanes.tryGet(voucher.lane));
+    if (!state_lane) {
+      if (state_lane->nonce >= voucher.nonce) {
         return VMExitCode::kErrIllegalArgument;
       }
     } else {
-      state.lanes.push_back(LaneState{voucher.lane, {}, {}});
-      state_lane_it = state.lanes.end() - 1;
+      OUTCOME_TRY(state.lanes.set(voucher.lane, LaneState{{}, {}}));
     }
     BigInt redeem = 0;
     for (auto &merge : voucher.merges) {
@@ -110,17 +110,18 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       if (merge.lane > kLaneLimit) {
         return VMExitCode::kErrIllegalArgument;
       }
-      auto lane_it = state.findLane(merge.lane);
-      if (lane_it == state.lanes.end() || lane_it->nonce >= merge.nonce) {
+      OUTCOME_TRY(lane, state.lanes.tryGet(merge.lane));
+      if (!lane || lane->nonce >= merge.nonce) {
         return VMExitCode::kErrIllegalArgument;
       }
-      redeem += lane_it->redeem;
-      lane_it->nonce = merge.nonce;
+      redeem += lane->redeem;
+      lane->nonce = merge.nonce;
+      OUTCOME_TRY(state.lanes.set(merge.lane, *lane));
     }
-    state_lane_it->nonce = voucher.nonce;
+    state_lane->nonce = voucher.nonce;
     TokenAmount balance_delta =
-        voucher.amount - (redeem + state_lane_it->redeem);
-    state_lane_it->redeem = voucher.amount;
+        voucher.amount - (redeem + state_lane->redeem);
+    state_lane->redeem = voucher.amount;
     TokenAmount send_balance = state.to_send + balance_delta;
 
     OUTCOME_TRY(balance, runtime.getCurrentBalance());
@@ -138,6 +139,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
           std::max(state.min_settling_height, voucher.min_close_height);
     }
 
+    OUTCOME_TRY(state.lanes.set(voucher.lane, *state_lane));
     OUTCOME_TRY(runtime.commitState(state));
     return fc::outcome::success();
   }
