@@ -95,12 +95,12 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       return VMExitCode::kErrIllegalArgument;
     }
     OUTCOME_TRY(state_lane, state.lanes.tryGet(voucher.lane));
-    if (!state_lane) {
+    if (state_lane) {
       if (state_lane->nonce >= voucher.nonce) {
         return VMExitCode::kErrIllegalArgument;
       }
     } else {
-      OUTCOME_TRY(state.lanes.set(voucher.lane, LaneState{{}, {}}));
+      state_lane = LaneState{{}, {}};
     }
     BigInt redeem = 0;
     for (auto &merge : voucher.merges) {
