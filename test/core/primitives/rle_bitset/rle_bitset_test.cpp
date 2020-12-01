@@ -18,6 +18,7 @@ TEST(RleBitsetTest, RleBitsetCbor) {
   expectEncodeAndReencode(RleBitset{2, 7}, "43504a01"_unhex);
 }
 
+/// Converting between set and runs
 TEST(RleBitsetTest, Runs) {
   using namespace fc::codec::rle;
   auto expect{[](Set64 set, Runs64 runs) {
