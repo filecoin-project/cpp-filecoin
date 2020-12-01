@@ -44,7 +44,7 @@ namespace fc::storage::car {
                                             const std::string &car_path) {
     mapped_file car_file(car_path);
     if (!car_file.is_open()) {
-      return outcome::success();
+      return CarError::kCannotOpenFileError;
     }
     return loadCar(
         store,
@@ -122,20 +122,14 @@ namespace fc::storage::car {
   void writeHeader(std::ostream &output, const std::vector<CID> &roots) {
     OUTCOME_EXCEPT(bytes, codec::cbor::encode(CarHeader{roots, CarHeader::V1}));
     writeUvarint(output, bytes.size());
-    std::copy(bytes.begin(),
-              bytes.end(),
-              std::ostream_iterator<unsigned char>(output));
+    output << common::span::bytestr(bytes);
   }
 
   void writeItem(std::ostream &output, const CID &cid, Input bytes) {
     OUTCOME_EXCEPT(cid_bytes, cid.toBytes());
     writeUvarint(output, cid_bytes.size() + bytes.size());
-    std::copy(cid_bytes.cbegin(),
-              cid_bytes.cend(),
-              std::ostream_iterator<unsigned char>(output));
-    std::copy(bytes.cbegin(),
-              bytes.cend(),
-              std::ostream_iterator<unsigned char>(output));
+    output << common::span::bytestr(cid_bytes);
+    output << common::span::bytestr(bytes);
   }
 
   outcome::result<void> writeItem(std::ostream &output,

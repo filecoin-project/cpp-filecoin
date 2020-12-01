@@ -153,10 +153,10 @@ namespace fc::markets::retrieval::provider {
     if (!_piece) {
       return doFail(deal, _piece.error().message());
     }
-    if (!fs::exists(kFilestoreTempDir)) {
-      fs::create_directories(kFilestoreTempDir);
+    if (!fs::exists(config_.filestore_path)) {
+      fs::create_directories(config_.filestore_path);
     }
-    auto car_path = fs::path(kFilestoreTempDir) / fs::unique_path();
+    auto car_path = fs::path(config_.filestore_path) / fs::unique_path();
     auto _ = gsl::finally([&car_path]() {
       if (fs::exists(car_path)) {
         fs::remove_all(car_path);

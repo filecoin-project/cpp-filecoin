@@ -39,6 +39,11 @@ TEST(CarTest, LoadSuccess) {
           "0171a0e402202d4c00840d4227f198ec6c5343b8c70af7f008a7775d67393d10430ea2fa012f"_cid));
 }
 
+/**
+ * @given correct car file
+ * @when loadCar via path
+ * @then success
+ */
 TEST(CarTest, LoadFromFileSuccess) {
   InMemoryDatastore ipld;
   EXPECT_OUTCOME_TRUE(roots, loadCar(ipld, resourcePath("genesis.car")));
@@ -116,6 +121,13 @@ TEST(SelectiveCar, MakeSelectiveCar) {
                                          << expected_car << std::endl;
 }
 
+/**
+ * Interop test with go-fil-markets/storagemarket/integration_test.go
+ * @given PAYLOAD_FILE with some data, cid_root of dag and selective_car bytes
+ * from go implementation CAR_FROM_PAYLOAD_FILE
+ * @when make selective_car file from PAYLOAD_FILE data and save it
+ * @then selective_car file are equal to CAR_FROM_PAYLOAD_FILE
+ */
 TEST(SelectiveCar, MakeSelectiveCarToFile) {
   std::string root_cid_expected{
       "QmXFz92Uc9gCyAVGKkCzD84HEiR9fmrFzPSrvUypaN2Yzx"};

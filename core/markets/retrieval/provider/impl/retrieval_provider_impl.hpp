@@ -45,6 +45,7 @@ namespace fc::markets::retrieval::provider {
     uint64_t payment_interval;
     uint64_t interval_increase;
     TokenAmount unseal_price;
+    Path filestore_path = kFilestoreTempDir;
   };
 
   struct DealState {
