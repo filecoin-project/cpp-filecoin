@@ -9,10 +9,8 @@
 #include <gtest/gtest.h>
 
 #include "adt/address_key.hpp"
-#include "storage/hamt/hamt.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/cbor.hpp"
-#include "testutil/init_actor.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 
 namespace fc::vm::actor::builtin::v0::init {
@@ -42,6 +40,8 @@ namespace fc::vm::actor::builtin::v0::init {
           }));
     }
 
+    const std::string network_name = "test_network_name";
+
     MockRuntime runtime;
     std::shared_ptr<InMemoryDatastore> ipld{
         std::make_shared<InMemoryDatastore>()};
@@ -69,7 +69,6 @@ namespace fc::vm::actor::builtin::v0::init {
    */
   TEST_F(InitActorTest, ConstructSuccess) {
     caller = kSystemActorAddress;
-    std::string network_name = "test_network_name";
 
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, {network_name}));
 
@@ -85,14 +84,13 @@ namespace fc::vm::actor::builtin::v0::init {
    * @then Actor address is mapped to id
    */
   TEST_F(InitActorTest, AddActor) {
-    using fc::primitives::address::Address;
-    using fc::storage::hamt::Hamt;
-    auto store = std::make_shared<fc::storage::ipfs::InMemoryDatastore>();
-    InitActorState state{{store}, 3, "n"};
-    Address address{fc::primitives::address::TESTNET,
-                    fc::primitives::address::ActorExecHash{}};
-    auto expected = Address::makeFromId(state.next_id);
+    state = {{ipld}, 3, network_name};
+    const Address address{primitives::address::TESTNET,
+                          primitives::address::ActorExecHash{}};
+    const auto expected = Address::makeFromId(state.next_id);
+
     EXPECT_OUTCOME_EQ(state.addActor(address), expected);
+
     EXPECT_EQ(state.next_id, 4);
     EXPECT_OUTCOME_EQ(state.address_map.get(address), 3);
   }
