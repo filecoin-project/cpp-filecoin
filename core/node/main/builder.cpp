@@ -18,6 +18,7 @@
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
+#include "common/hexutil.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "drand/impl/beaconizer.hpp"
@@ -305,46 +306,47 @@ namespace fc::node {
                                                weight_calculator,
                                                std::move(block_validator));
 
-    /* TODO(artem): miner api methods in node, keystore, etc (??? resolve)
+    log()->debug("Creating API...");
 
-       auto mpool =
-           storage::mpool::Mpool::create(o.ipld, o.vm_interpreter,
-       o.chain_store);
+    auto mpool =
+        storage::mpool::Mpool::create(o.ipld, o.vm_interpreter, o.chain_store);
 
-       auto msg_waiter =
-           storage::blockchain::MsgWaiter::create(o.ipld, o.chain_store);
+    auto msg_waiter =
+        storage::blockchain::MsgWaiter::create(o.ipld, o.chain_store);
 
-       auto key_store = std::make_shared<storage::keystore::InMemoryKeyStore>(
-           bls_provider, secp_provider);
+    auto key_store = std::make_shared<storage::keystore::InMemoryKeyStore>(
+        bls_provider, secp_provider);
 
-       OUTCOME_TRY(keypair, bls_provider->generateKeyPair());
+    drand::ChainInfo drand_chain_info{.key{config.drand_bls_pubkey},
+                                      .genesis{config.drand_genesis},
+                                      .period{config.drand_period}};
 
-       drand::ChainInfo info {
-           .key{keypair.public_key},
-           .genesis{genesis_timestamp},
-           .period{clock::kEpochDuration}
-       };
+    std::vector<std::string> drand_servers;
 
-       std::vector<std::string> drand_servers;
+    auto beaconizer =
+        std::make_shared<drand::BeaconizerImpl>(o.io_context,
+                                                o.utc_clock,
+                                                o.scheduler,
+                                                drand_chain_info,
+                                                config.drand_servers,
+                                                config.beaconizer_cache_size);
 
-       auto beaconizer = std::make_shared<drand::BeaconizerImpl>(
-           o.io_context, o.utc_clock, o.scheduler, info, drand_servers, 111);
+    auto drand_schedule = std::make_shared<drand::DrandScheduleImpl>(
+        drand_chain_info,
+        genesis_timestamp,
+        std::chrono::seconds(kEpochDurationSeconds));
 
-       auto drand_schedule = std::make_shared<drand::DrandScheduleImpl>(
-           // TODO (???)
-       );
+    o.api = std::make_shared<api::Api>(api::makeImpl(o.chain_store,
+                                                     weight_calculator,
+                                                     o.ipld,
+                                                     mpool,
+                                                     o.vm_interpreter,
+                                                     msg_waiter,
+                                                     beaconizer,
+                                                     drand_schedule,
+                                                     o.pubsub_gate,
+                                                     key_store));
 
-       o.api = std::make_shared<api::Api>(o.chain_store,
-                                          weight_calculator,
-                                          o.ipld,
-                                          mpool,
-                                          o.vm_interpreter,
-                                          msg_waiter,
-                                          beaconizer,
-                                          drand_schedule,
-                                          o.pubsub_gate,
-                                          key_store);
-   */
     return o;
   }
 

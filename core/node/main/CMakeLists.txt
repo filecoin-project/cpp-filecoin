@@ -28,6 +28,9 @@ target_link_libraries(node_builder
     weight_calculator
     secp256k1_provider
     rpc
+    mpool
+    drand_http
+    drand_beacon
     Boost::program_options
     )
 

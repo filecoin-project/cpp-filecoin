@@ -287,7 +287,9 @@ namespace fc::sync {
       log()->info(
           "new current head: height={}, weight={}", tipset->height(), weight);
 
-      event.type = HeadChangeType::CURRENT;
+      // отправляем CURRENT когда только появилась голова
+
+      event.type = HeadChangeType::APPLY;
       event.value = tipset;
       head_change_signal_(event);
       events_->signalHeadChange(event);

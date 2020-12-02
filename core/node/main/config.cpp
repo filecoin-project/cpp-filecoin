@@ -97,6 +97,10 @@ namespace fc::node {
       std::string storage_path;
       std::string genesis_cid;
       std::vector<std::string> bootstrap_list;
+      std::vector<std::string> drand_list;
+      std::string drand_pubkey;
+      uint64_t drand_genesis_time = 0;
+      uint64_t drand_period = 0;
     };
 
     bool parseCommandLine(int argc, char **argv, ConfigRaw &raw) {
@@ -104,20 +108,37 @@ namespace fc::node {
       std::string config_file;
 
       po::options_description desc("Fuhon node options");
-      desc.add_options()("help,h", "print usage message")(
-          "config,c",
-          po::value(&config_file),
-          "config file name (default.cfg)")(
-          "storage,s", po::value(&raw.storage_path), "storage path")(
-          "port,p", po::value(&raw.port), "port to listen to")(
-          "bootstrap,b",
-          po::value(&raw.bootstrap_list)->composing(),
-          "remote bootstrap peer uri to connect to")(
-          "log,l", po::value(&raw.log_level), "log level, [e,w,i,d,t]")(
-          "init",
-          po::value(&raw.car_file_name),
-          "initialize new storage: genesis car file name")(
-          "genesis-cid,g", po::value(&raw.genesis_cid), "genesis CID");
+
+      // clang-format off
+      desc.add_options()("help,h", "print usage message")
+
+       ("config,c", po::value(&config_file), "config file name (default.cfg)")
+
+       ("storage,s", po::value(&raw.storage_path), "storage path")
+
+       ("port,p", po::value(&raw.port), "port to listen to")
+
+       ("bootstrap,b", po::value(&raw.bootstrap_list)->composing(),
+          "remote bootstrap peer uri to connect to")
+
+       ("log,l", po::value(&raw.log_level), "log level, [e,w,i,d,t]")
+
+       ("init", po::value(&raw.car_file_name),
+          "initialize new storage: genesis car file name")
+
+       ("genesis-cid,g", po::value(&raw.genesis_cid), "genesis CID")
+
+       ("drand-server", po::value(&raw.drand_list)->composing(),
+           "drand server uri")
+
+       ("drand-pubkey", po::value(&raw.drand_pubkey), "drand public key (bls)")
+
+       ("drand-genesis-time", po::value(&raw.drand_genesis_time),
+          "drand genesis time (seconds)")
+
+       ("drand-period", po::value(&raw.drand_period),
+           "drand period (seconds)");
+      // clang-format on
 
       po::variables_map vm;
       po::store(parse_command_line(argc, argv, desc), vm);
@@ -210,6 +231,26 @@ namespace fc::node {
       spdlog::set_level(config.log_level);
       summary += fmt::format(
           "\tLog level: {}\n\tLocal IP: {}", raw.log_level, config.local_ip);
+
+      if (!raw.drand_list.empty()) {
+        config.drand_servers = std::move(raw.drand_list);
+
+        if (raw.drand_pubkey.size() != BlsPublicKey::size() * 2) {
+          std::cerr << "Invalid drand public key format " << raw.drand_pubkey
+                    << "\n";
+          return false;
+        }
+        auto unhex_res = BlsPublicKey::fromHex(raw.drand_pubkey);
+        if (!unhex_res) {
+          std::cerr << "Cannot decode drand public key, "
+                    << unhex_res.error().message() << "\n";
+          return false;
+        }
+
+        config.drand_bls_pubkey = std::move(unhex_res.value());
+        config.drand_genesis = raw.drand_genesis_time;
+        config.drand_period = raw.drand_period;
+      }
 
       spdlog::info(summary);
 
