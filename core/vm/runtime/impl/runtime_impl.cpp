@@ -93,7 +93,9 @@ namespace fc::vm::runtime {
 
   outcome::result<Address> RuntimeImpl::createNewActorAddress() {
     OUTCOME_TRY(caller_address,
-                resolveKey(*execution_->state_tree, execution()->origin));
+                resolveKey(*execution_->state_tree,
+                           execution_->env->ipld,
+                           execution()->origin));
     OUTCOME_TRY(encoded_address, codec::cbor::encode(caller_address));
     auto actor_address{Address::makeActorExec(
         encoded_address.putUint64(execution()->origin_nonce)
@@ -194,7 +196,10 @@ namespace fc::vm::runtime {
       gsl::span<const uint8_t> data) {
     OUTCOME_TRY(chargeGas(
         execution_->env->pricelist.onVerifySignature(signature.isBls())));
-    OUTCOME_TRY(account, resolveKey(*execution_->state_tree, address));
+    OUTCOME_TRY(
+        account,
+        resolveKey(
+            *execution_->state_tree, execution_->charging_ipld, address));
     return storage::keystore::InMemoryKeyStore{
         std::make_shared<crypto::bls::BlsProviderImpl>(),
         std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}

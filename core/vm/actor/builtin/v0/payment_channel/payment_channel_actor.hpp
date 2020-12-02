@@ -32,10 +32,11 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     struct Params {
       SignedVoucher signed_voucher;
       Buffer secret;
+      Buffer proof;
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(UpdateChannelState::Params, signed_voucher, secret)
+  CBOR_TUPLE(UpdateChannelState::Params, signed_voucher, secret, proof)
 
   struct Settle : ActorMethodBase<3> {
     ACTOR_METHOD_DECL();

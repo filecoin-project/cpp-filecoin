@@ -280,7 +280,7 @@ namespace fc::vm::actor::cgo {
 
   RUNTIME_METHOD(gocRtNewAddress) {
     auto &exec{*rt->execution()};
-    if (auto _key{resolveKey(*exec.state_tree, exec.origin)}) {
+    if (auto _key{resolveKey(*exec.state_tree, exec.env->ipld, exec.origin)}) {
       if (auto _seed{codec::cbor::encode(_key.value())}) {
         auto &seed{_seed.value()};
         seed.putUint64(exec.origin_nonce);

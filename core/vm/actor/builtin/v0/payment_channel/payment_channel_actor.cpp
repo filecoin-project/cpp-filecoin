@@ -34,18 +34,24 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     }
     OUTCOME_TRY(to, resolveAccount(runtime, params.to));
     OUTCOME_TRY(from, resolveAccount(runtime, params.from));
-    OUTCOME_TRY(runtime.commitState(State{from, to, 0, 0, 0, {runtime.getIpfsDatastore()}}));
+
+    State state{from, to, 0, 0, 0, {}};
+    IpldPtr {
+      runtime
+    }
+    ->load(state);
+    OUTCOME_TRY(runtime.commitState(state));
     return fc::outcome::success();
   }
 
   ACTOR_METHOD_IMPL(UpdateChannelState) {
-    OUTCOME_TRY(state, assertCallerInChannel(runtime));
+    OUTCOME_TRY(readonly_state, assertCallerInChannel(runtime));
     auto &voucher = params.signed_voucher;
     if (!voucher.signature) {
       return VMExitCode::kErrIllegalArgument;
     }
-    if (state.settling_at != 0
-        && runtime.getCurrentEpoch() >= state.settling_at) {
+    if (readonly_state.settling_at != 0
+        && runtime.getCurrentEpoch() >= readonly_state.settling_at) {
       return VMExitCode::kErrFirstActorSpecificExitCode;
     }
     if (params.secret.size() > kMaxSecretSize) {
@@ -54,8 +60,9 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     auto voucher_signable = voucher;
     voucher_signable.signature = boost::none;
     OUTCOME_TRY(voucher_signable_bytes, codec::cbor::encode(voucher_signable));
-    auto &signer =
-        runtime.getImmediateCaller() != state.to ? state.to : state.from;
+    auto &signer = runtime.getImmediateCaller() != readonly_state.to
+                       ? readonly_state.to
+                       : readonly_state.from;
     OUTCOME_TRY(verified,
                 runtime.verifySignature(
                     *voucher.signature, signer, voucher_signable_bytes));
@@ -63,8 +70,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       return VMExitCode::kErrIllegalArgument;
     }
     const auto paych_addr = runtime.getCurrentReceiver();
-    OUTCOME_TRY(voucher_addr, runtime.resolveAddress(voucher.channel));
-    if (paych_addr != voucher_addr) {
+    if (paych_addr != voucher.channel) {
       return VMExitCode::kErrIllegalArgument;
     }
     if (runtime.getCurrentEpoch() < voucher.time_lock_min) {
@@ -89,6 +95,8 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       OUTCOME_TRY(runtime.send(
           voucher.extra->actor, voucher.extra->method, params2, 0));
     }
+
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
     OUTCOME_TRY(lanes_size, state.lanes.size());
     if (lanes_size > kLaneLimit || voucher.lane > kLaneLimit) {
@@ -119,8 +127,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       OUTCOME_TRY(state.lanes.set(merge.lane, *lane));
     }
     state_lane->nonce = voucher.nonce;
-    TokenAmount balance_delta =
-        voucher.amount - (redeem + state_lane->redeem);
+    TokenAmount balance_delta = voucher.amount - (redeem + state_lane->redeem);
     state_lane->redeem = voucher.amount;
     TokenAmount send_balance = state.to_send + balance_delta;
 

@@ -27,15 +27,10 @@ namespace fc::vm::runtime {
   using storage::hamt::HamtError;
   using version::getNetworkVersion;
 
-  /**
-   * Returns the public key type of address (`BLS`/`SECP256K1`) of an account
-   * actor identified by `address`.
-   * @param address - account actor address
-   * @return key address
-   */
   outcome::result<Address> resolveKey(StateTree &state_tree,
+                                      IpldPtr ipld,
                                       const Address &address,
-                                      bool no_actor) {
+                                      bool is_actor) {
     if (address.isKeyType()) {
       return address;
     }
@@ -43,22 +38,20 @@ namespace fc::vm::runtime {
       auto &actor{_actor.value()};
       if (actor.code == actor::builtin::v0::kAccountCodeCid) {
         if (auto _state{
-                state_tree.getStore()
-                    ->getCbor<actor::builtin::v0::account::AccountActorState>(
-                        actor.head)}) {
+                ipld->getCbor<actor::builtin::v0::account::AccountActorState>(
+                    actor.head)}) {
           auto &key{_state.value().address};
-          if (!no_actor || key.isKeyType()) {
+          if (is_actor || key.isKeyType()) {
             return key;
           }
         }
       }
       if (actor.code == actor::builtin::v2::kAccountCodeCid) {
         if (auto _state{
-                state_tree.getStore()
-                    ->getCbor<actor::builtin::v2::account::AccountActorState>(
-                        actor.head)}) {
+                ipld->getCbor<actor::builtin::v2::account::AccountActorState>(
+                    actor.head)}) {
           auto &key{_state.value().address};
-          if (!no_actor || key.isKeyType()) {
+          if (is_actor || key.isKeyType()) {
             return key;
           }
         }
