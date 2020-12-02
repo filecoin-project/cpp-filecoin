@@ -259,7 +259,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateExtraFailed) {
 
 /// PaymentChannelActor UpdateChannelState error: expired voucher lane nonce
 TEST_F(PaymentChannelActorTest, UpdateChannelStateInvalidVoucherNonce) {
-  auto voucher = setupUpdateChannelState();
+  const auto voucher = setupUpdateChannelState();
   EXPECT_OUTCOME_TRUE_1(state.lanes.set(voucher.lane, LaneState{{}, voucher.nonce + 1}));
 
   EXPECT_OUTCOME_ERROR(
@@ -282,7 +282,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateMergeSelf) {
 TEST_F(PaymentChannelActorTest, UpdateChannelStateInvalidMergeNonce) {
   auto voucher = setupUpdateChannelState();
   const uint64_t lane_id = 102;
-  LaneState lane{{}, 5};
+  const LaneState lane{{}, 5};
   EXPECT_OUTCOME_TRUE_1(state.lanes.set(lane_id, lane));
   voucher.merges.push_back(Merge{lane_id, lane.nonce});
 
@@ -293,7 +293,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateInvalidMergeNonce) {
 
 /// PaymentChannelActor UpdateChannelState error: "to send" is negative
 TEST_F(PaymentChannelActorTest, UpdateChannelStateNegative) {
-  auto voucher = setupUpdateChannelState();
+  const auto voucher = setupUpdateChannelState();
   state.to_send = 10;
   EXPECT_OUTCOME_TRUE_1(state.lanes.set(voucher.lane, LaneState{voucher.amount + state.to_send + 1, voucher.nonce - 1}));
 
@@ -304,7 +304,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateNegative) {
 
 /// PaymentChannelActor UpdateChannelState error: "to send" exceeds balance
 TEST_F(PaymentChannelActorTest, UpdateChannelStateAboveBalance) {
-  auto voucher = setupUpdateChannelState();
+  const auto voucher = setupUpdateChannelState();
   state.to_send = 10;
   balance = state.to_send + voucher.amount - 1;
 
@@ -315,8 +315,8 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateAboveBalance) {
 
 /// PaymentChannelActor UpdateChannelState success
 TEST_F(PaymentChannelActorTest, UpdateChannelState) {
-  auto voucher = setupUpdateChannelState();
-  auto to_send = 10;
+  const auto voucher = setupUpdateChannelState();
+  const auto to_send = 10;
   state.to_send = to_send;
   balance = state.to_send + voucher.amount;
 
@@ -344,10 +344,10 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateMinHeight) {
 TEST_F(PaymentChannelActorTest, UpdateChannelStateMerge) {
   auto voucher = setupUpdateChannelState();
   const uint64_t lane_id = 102;
-  LaneState lane{{}, 5};
+  const LaneState lane{{}, 5};
   EXPECT_OUTCOME_TRUE_1(state.lanes.set(lane_id, lane));
   voucher.merges.push_back(Merge{lane_id, lane.nonce + 1});
-  auto to_send = voucher.amount - lane.redeem;
+  const auto to_send = voucher.amount - lane.redeem;
   balance = to_send;
 
   EXPECT_OUTCOME_TRUE_1(

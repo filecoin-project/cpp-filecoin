@@ -46,7 +46,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
 
   ACTOR_METHOD_IMPL(UpdateChannelState) {
     OUTCOME_TRY(readonly_state, assertCallerInChannel(runtime));
-    auto &voucher = params.signed_voucher;
+    const auto &voucher = params.signed_voucher;
     if (!voucher.signature) {
       return VMExitCode::kErrIllegalArgument;
     }
@@ -96,6 +96,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
           voucher.extra->actor, voucher.extra->method, params2, 0));
     }
 
+    // To be consistence with Lotus to charge gas
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
     OUTCOME_TRY(lanes_size, state.lanes.size());
@@ -111,7 +112,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       state_lane = LaneState{{}, {}};
     }
     BigInt redeem = 0;
-    for (auto &merge : voucher.merges) {
+    for (const auto &merge : voucher.merges) {
       if (merge.lane == voucher.lane) {
         return VMExitCode::kErrIllegalArgument;
       }
