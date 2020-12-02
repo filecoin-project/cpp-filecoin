@@ -7,4 +7,5 @@ add_library(car
 target_link_libraries(car
     ipld_traverser
     p2p::p2p_uvarint
+    Boost::iostreams
     )
