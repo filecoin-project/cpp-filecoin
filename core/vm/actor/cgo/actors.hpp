@@ -8,8 +8,6 @@
 #include "node/fwd.hpp"
 #include "primitives/sector/sector.hpp"
 
-namespace fc::vm::runtime { struct Execution; }
-
 namespace fc::vm::actor::cgo {
   using message::UnsignedMessage;
   using primitives::StoragePower;

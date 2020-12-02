@@ -19,10 +19,6 @@
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
 
-namespace libp2p {
-  struct Host;
-}
-
 namespace fc::markets::storage::provider {
   using common::Buffer;
   using primitives::ChainEpoch;
@@ -56,7 +52,7 @@ namespace fc::markets::storage::provider {
         -> outcome::result<void> = 0;
   };
 
-  void serveAsk(libp2p::Host &host, std::weak_ptr<class StoredAsk> _asker);
+  void serveAsk(libp2p::Host &host, std::weak_ptr<StoredAsk> _asker);
 }  // namespace fc::markets::storage::provider
 
 #endif  // CPP_FILECOIN_CORE_MARKETS_STORAGE__PROVIDER_PROVIDER_HPP
