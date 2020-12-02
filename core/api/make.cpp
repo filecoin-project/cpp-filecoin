@@ -352,6 +352,8 @@ namespace fc::api {
         // TODO(turuslan): FIL-165 implement method
         .ClientStartDeal = {},
         // TODO(turuslan): FIL-165 implement method
+        .GasEstimateMessageGas = {},
+        // TODO(turuslan): FIL-165 implement method
         .MarketEnsureAvailable = {},
         .MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
           OUTCOME_TRY(context, tipsetContext(t.parents, true));
@@ -670,7 +672,18 @@ namespace fc::api {
               OUTCOME_TRY(state, context.minerState(miner));
               OUTCOME_TRY(deadlines, state.deadlines.get());
               OUTCOME_TRY(deadline, deadlines.due[_deadline].get());
-              return deadline.partitions.values();
+              std::vector<Partition> parts;
+              OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &v) {
+                parts.push_back({
+                    v.sectors,
+                    v.faults,
+                    v.recoveries,
+                    v.sectors - v.terminated,
+                    v.sectors - v.terminated - v.faults,
+                });
+                return outcome::success();
+              }));
+              return parts;
             }},
         .StateMinerPower = {[=](auto &address, auto &tipset_key)
                                 -> outcome::result<MinerPower> {
@@ -689,18 +702,14 @@ namespace fc::api {
           return state.deadlineInfo(context.tipset->height());
         }},
         .StateMinerSectors =
-            {[=](auto &address, auto &filter, auto filter_out, auto &tipset_key)
-                 -> outcome::result<std::vector<ChainSectorInfo>> {
+            {[=](auto &address, auto &filter, auto &tipset_key)
+                 -> outcome::result<std::vector<SectorOnChainInfo>> {
               OUTCOME_TRY(context, tipsetContext(tipset_key));
               OUTCOME_TRY(state, context.minerState(address));
-              std::vector<ChainSectorInfo> sectors;
+              std::vector<SectorOnChainInfo> sectors;
               OUTCOME_TRY(state.sectors.visit([&](auto id, auto &info) {
-                if (!filter
-                    || filter_out == (filter->find(id) == filter->end())) {
-                  sectors.push_back({
-                      .info = info,
-                      .id = id,
-                  });
+                if (!filter || filter->count(id)) {
+                  sectors.push_back(info);
                 }
                 return outcome::success();
               }));

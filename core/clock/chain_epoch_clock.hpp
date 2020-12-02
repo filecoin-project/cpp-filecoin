@@ -23,8 +23,6 @@ namespace fc::clock {
     virtual outcome::result<ChainEpoch> epochAtTime(UnixTime time) const = 0;
     virtual ~ChainEpochClock() = default;
   };
-
-  constexpr UnixTime kEpochDuration{15};
 }  // namespace fc::clock
 
 OUTCOME_HPP_DECLARE_ERROR(fc::clock, EpochAtTimeError);

@@ -63,8 +63,7 @@ namespace fc::mining::checks {
         return ChecksError::kInvalidDeal;
       }
 
-      if (static_cast<ChainEpoch>(chain_head->height())
-          >= proposal.proposal.start_epoch) {
+      if (chain_head->epoch() >= proposal.proposal.start_epoch) {
         return ChecksError::kExpiredDeal;
       }
     }
