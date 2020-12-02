@@ -81,7 +81,7 @@ namespace fc::markets::storage::provider {
 
     auto getStorageCollateral() -> outcome::result<TokenAmount> override;
 
-    auto importDataForDeal(const CID &proposal_cid, const Buffer &data)
+    auto importDataForDeal(const CID &proposal_cid, const std::string &path)
         -> outcome::result<void> override;
 
     outcome::result<Signature> sign(const Buffer &input);

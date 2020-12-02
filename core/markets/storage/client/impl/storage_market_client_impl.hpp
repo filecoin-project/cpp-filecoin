@@ -39,6 +39,8 @@ namespace fc::markets::storage::client {
   using Ticks = libp2p::protocol::Scheduler::Ticks;
   using data_transfer::DataTransfer;
 
+  const Path kFilestoreTempDir = "/tmp/fuhon/storage-market/";
+
   class StorageMarketClientImpl
       : public StorageMarketClient,
         public std::enable_shared_from_this<StorageMarketClientImpl> {

@@ -127,7 +127,8 @@ namespace fc::markets::storage::test {
           std::make_shared<InMemoryStorage>();
       ipld_client = std::make_shared<InMemoryDatastore>();
       ipld_provider = std::make_shared<InMemoryDatastore>();
-      piece_io_ = std::make_shared<PieceIOImpl>(ipld_client);
+      piece_io_ =
+          std::make_shared<PieceIOImpl>(ipld_client, client::kFilestoreTempDir);
 
       OUTCOME_EXCEPT(miner_worker_keypair, bls_provider->generateKeyPair());
       miner_worker_address = Address::makeBls(miner_worker_keypair.public_key);
@@ -392,7 +393,8 @@ namespace fc::markets::storage::test {
               sector_blocks,
               chain_events,
               miner_actor_address,
-              std::make_shared<PieceIOImpl>(ipld_provider),
+              std::make_shared<PieceIOImpl>(ipld_provider,
+                                            provider::kFilestoreTempDir),
               filestore);
       OUTCOME_EXCEPT(new_provider->init());
       return new_provider;
@@ -431,10 +433,11 @@ namespace fc::markets::storage::test {
       return new_client;
     }
 
-    outcome::result<DataRef> makeDataRef(const Buffer &data) {
-      OUTCOME_TRY(piece_commitment,
-                  piece_io_->generatePieceCommitment(registered_proof, data));
-      OUTCOME_TRY(roots, fc::storage::car::loadCar(*ipld_client, data));
+    outcome::result<DataRef> makeDataRef(const std::string &file_path) {
+      OUTCOME_TRY(
+          piece_commitment,
+          piece_io_->generatePieceCommitment(registered_proof, file_path));
+      OUTCOME_TRY(roots, fc::storage::car::loadCar(*ipld_client, file_path));
       return DataRef{.transfer_type = kTransferTypeManual,
                      .root = roots[0],
                      .piece_cid = piece_commitment.first,
