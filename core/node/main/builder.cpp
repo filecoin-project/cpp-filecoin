@@ -321,7 +321,9 @@ namespace fc::node {
                                       .genesis{config.drand_genesis},
                                       .period{config.drand_period}};
 
-    std::vector<std::string> drand_servers;
+    if (config.drand_servers.empty()) {
+      config.drand_servers.push_back("https://127.0.0.1:8080");
+    }
 
     auto beaconizer =
         std::make_shared<drand::BeaconizerImpl>(o.io_context,
