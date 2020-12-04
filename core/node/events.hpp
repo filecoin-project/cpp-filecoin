@@ -40,11 +40,6 @@ namespace fc::sync::events {
     BigInt weight;
   };
 
-  struct CurrentHead {
-    TipsetCPtr tipset;
-    BigInt weight;
-  };
-
   struct BlockFromPubSub {
     PeerId from;
     CID block_cid;
@@ -85,6 +80,15 @@ namespace fc::sync::events {
     outcome::result<vm::interpreter::Result> result;
   };
 
+  struct CurrentHead {
+    TipsetCPtr tipset;
+    BigInt weight;
+  };
+
+  struct FatalError {
+    std::string message;
+  };
+
   struct Events : std::enable_shared_from_this<Events> {
     explicit Events(std::shared_ptr<libp2p::protocol::Scheduler> scheduler)
         : scheduler_(std::move(scheduler)) {}
@@ -122,6 +126,7 @@ namespace fc::sync::events {
     DEFINE_EVENT(PossibleHead);
     DEFINE_EVENT(HeadInterpreted);
     DEFINE_EVENT(HeadChange);
+    DEFINE_EVENT(FatalError);
 
 #undef DEFINE_EVENT
 

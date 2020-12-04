@@ -131,6 +131,14 @@ namespace fc {
     o.tipset_loader->start(events);
     o.syncer->start(events);
 
+    bool fatal_error_occured = false;
+    auto fatal_error_conn =
+        events->subscribeFatalError([&](const sync::events::FatalError &e) {
+          fatal_error_occured = true;
+          o.io_context->stop();
+          log()->error("Fatal error: {}", e.message);
+        });
+
     // chain store starts after all other components, it chooses current head
     // and emits possible heads
     if (auto r = o.chain_store->start(events, config.network_name); !r) {
@@ -147,7 +155,7 @@ namespace fc {
     o.io_context->run();
     log()->info("Node stopped");
 
-    return 0;
+    return fatal_error_occured ? __LINE__ : 0;
   }
 
 }  // namespace fc

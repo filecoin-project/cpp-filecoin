@@ -28,6 +28,7 @@ namespace fc::sync {
     struct PossibleHead;
     struct HeadInterpreted;
     struct CurrentHead;
+    struct FatalError;
   }  // namespace events
 }  // namespace fc::sync
 
