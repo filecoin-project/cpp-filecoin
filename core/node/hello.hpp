@@ -5,8 +5,7 @@
 
 #pragma once
 
-#include "node/fwd.hpp"
-#include "primitives/big_int.hpp"
+#include "events_fwd.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::sync {
@@ -16,7 +15,7 @@ namespace fc::sync {
   struct HelloMessage {
     std::vector<CID> heaviest_tipset;
     uint64_t heaviest_tipset_height;
-    primitives::BigInt heaviest_tipset_weight;
+    BigInt heaviest_tipset_weight;
     CID genesis;
   };
 

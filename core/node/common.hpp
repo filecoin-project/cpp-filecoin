@@ -6,7 +6,7 @@
 #ifndef CPP_FILECOIN_SYNC_COMMON_HPP
 #define CPP_FILECOIN_SYNC_COMMON_HPP
 
-#include "fwd.hpp"
+#include "events_fwd.hpp"
 
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>

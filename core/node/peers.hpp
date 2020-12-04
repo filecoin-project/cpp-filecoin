@@ -9,7 +9,7 @@
 #include <map>
 #include <unordered_map>
 
-#include "fwd.hpp"
+#include "events_fwd.hpp"
 
 #include <libp2p/peer/peer_id.hpp>
 

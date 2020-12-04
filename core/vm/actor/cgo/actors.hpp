@@ -5,7 +5,8 @@
 
 #pragma once
 
-#include "node/fwd.hpp"
+#include "fwd.hpp"
+
 #include "primitives/sector/sector.hpp"
 
 namespace fc::vm::actor::cgo {

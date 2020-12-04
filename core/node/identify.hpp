@@ -6,15 +6,9 @@
 #ifndef CPP_FILECOIN_SYNC_IDENTIFY_HPP
 #define CPP_FILECOIN_SYNC_IDENTIFY_HPP
 
-#include "fwd.hpp"
+#include "events_fwd.hpp"
 
 #include <libp2p/peer/peer_info.hpp>
-
-namespace libp2p::protocol {
-  class Identify;
-  class IdentifyPush;
-  class IdentifyDelta;
-}  // namespace libp2p::protocol
 
 namespace fc::sync {
 

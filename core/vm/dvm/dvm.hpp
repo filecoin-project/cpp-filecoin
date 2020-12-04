@@ -5,9 +5,10 @@
 
 #pragma once
 
+#include "fwd.hpp"
+
 #include "common/buffer.hpp"
 #include "common/logger.hpp"
-#include "node/fwd.hpp"
 #include "primitives/types.hpp"
 
 #define _CAT1(a, b) _CAT2(a, b)

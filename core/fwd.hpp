@@ -5,8 +5,9 @@
 
 #pragma once
 
-#include <boost/signals2.hpp>
 #include <memory>
+
+#include "const.hpp"
 
 namespace boost {
   namespace asio {
@@ -103,26 +104,7 @@ namespace fc {
 
   namespace sync {
     class PubSubGate;
-
-    namespace events {
-      using Connection = boost::signals2::scoped_connection;
-
-      struct Events;
-
-      // event types
-      struct PeerConnected;
-      struct PeerDisconnected;
-      struct PeerLatency;
-      struct TipsetFromHello;
-      struct BlockFromPubSub;
-      struct MessageFromPubSub;
-      struct BlockStored;
-      struct TipsetStored;
-      struct PossibleHead;
-      struct HeadInterpreted;
-      struct CurrentHead;
-    }  // namespace events
-  }    // namespace sync
+  }
 
   namespace vm {
     namespace actor {
