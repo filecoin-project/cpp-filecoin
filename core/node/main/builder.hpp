@@ -64,7 +64,6 @@ namespace fc {
   namespace sync {
     class ChainStoreImpl;
     class TipsetLoader;
-    class BlockLoader;
     class IndexDb;
     class ChainDb;
     class Identify;
@@ -93,6 +92,8 @@ namespace fc::node {
 
   enum Error {
     STORAGE_INIT_ERROR = 1,
+    KEY_READ_ERROR,
+    KEY_WRITE_ERROR,
     CAR_FILE_OPEN_ERROR,
     CAR_FILE_SIZE_ABOVE_LIMIT,
     NO_GENESIS_BLOCK,
