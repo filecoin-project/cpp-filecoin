@@ -222,7 +222,9 @@ namespace fc::sync {
     try {
       HeadChange event;
 
-      if (head_) {
+      bool first_head_apply = (head_ == nullptr);
+
+      if (!first_head_apply) {
         assert(*head_ != *tipset);
 
         auto res = chain_db_->findHighestCommonAncestor(head_, tipset);
@@ -287,9 +289,8 @@ namespace fc::sync {
       log()->info(
           "new current head: height={}, weight={}", tipset->height(), weight);
 
-      // отправляем CURRENT когда только появилась голова
-
-      event.type = HeadChangeType::APPLY;
+      event.type =
+          first_head_apply ? HeadChangeType::CURRENT : HeadChangeType::APPLY;
       event.value = tipset;
       head_change_signal_(event);
       events_->signalHeadChange(event);
