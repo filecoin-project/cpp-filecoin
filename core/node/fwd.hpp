@@ -3,10 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_NODE_FWD_HPP
-#define CPP_FILECOIN_NODE_FWD_HPP
+#pragma once
 
 #include <boost/signals2.hpp>
+#include <memory>
+
+namespace boost {
+  namespace asio {
+    class io_context;
+  }  // namespace asio
+}  // namespace boost
 
 namespace libp2p {
   struct Host;
@@ -21,6 +27,9 @@ namespace libp2p {
   }  // namespace peer
 
   namespace protocol {
+    class Identify;
+    class IdentifyPush;
+    class IdentifyDelta;
     class Scheduler;
 
     namespace gossip {
@@ -92,6 +101,29 @@ namespace fc {
     }    // namespace ipfs
   }      // namespace storage
 
+  namespace sync {
+    class PubSubGate;
+
+    namespace events {
+      using Connection = boost::signals2::scoped_connection;
+
+      struct Events;
+
+      // event types
+      struct PeerConnected;
+      struct PeerDisconnected;
+      struct PeerLatency;
+      struct TipsetFromHello;
+      struct BlockFromPubSub;
+      struct MessageFromPubSub;
+      struct BlockStored;
+      struct TipsetStored;
+      struct PossibleHead;
+      struct HeadInterpreted;
+      struct CurrentHead;
+    }  // namespace events
+  }    // namespace sync
+
   namespace vm {
     namespace actor {
       struct Actor;
@@ -121,27 +153,4 @@ namespace fc {
 namespace fc {
   using Ipld = storage::ipfs::IpfsDatastore;
   using IpldPtr = std::shared_ptr<Ipld>;
-
-  namespace sync {
-    namespace events {
-      using Connection = boost::signals2::scoped_connection;
-
-      struct Events;
-
-      // event types
-      struct PeerConnected;
-      struct PeerDisconnected;
-      struct PeerLatency;
-      struct TipsetFromHello;
-      struct BlockFromPubSub;
-      struct MessageFromPubSub;
-      struct BlockStored;
-      struct TipsetStored;
-      struct PossibleHead;
-      struct HeadInterpreted;
-      struct CurrentHead;
-    }  // namespace events
-  }    // namespace sync
 }  // namespace fc
-
-#endif  // CPP_FILECOIN_NODE_FWD_HPP

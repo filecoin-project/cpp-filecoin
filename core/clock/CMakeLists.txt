@@ -11,5 +11,6 @@ add_library(clock
     )
 target_link_libraries(clock
     Boost::date_time
+    const
     outcome
     )

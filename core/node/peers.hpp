@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_SYNC_PEERS_HPP
 
 #include <map>
+#include <unordered_map>
 
 #include "fwd.hpp"
 
