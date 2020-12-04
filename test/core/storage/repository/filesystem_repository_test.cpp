@@ -111,7 +111,7 @@ TEST_F(FilesSystemRepositoryTest, PersistenceRepository) {
   auto datastore = repository_old->getIpldStore();
 
   CID cid{CID::Version::V1,
-          MulticodecType::SHA2_256,
+          MulticodecType::Code::SHA2_256,
           Multihash::create(HashType::sha256,
                             "0123456789ABCDEF0123456789ABCDEF"_unhex)
               .value()};

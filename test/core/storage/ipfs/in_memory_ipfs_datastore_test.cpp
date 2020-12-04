@@ -22,13 +22,13 @@ class InMemoryIpfsDatastoreTest : public ::testing::Test {
  public:
   CID cid1{
       CID::Version::V1,
-      MulticodecType::SHA2_256,
+      MulticodecType::Code::SHA2_256,
       Multihash::create(HashType::sha256,
                         "0123456789ABCDEF0123456789ABCDEF"_unhex)
           .value()};
   CID cid2{
       CID::Version::V1,
-      MulticodecType::SHA2_256,
+      MulticodecType::Code::SHA2_256,
       Multihash::create(HashType::sha256,
                         "FEDCBA9876543210FEDCBA9876543210"_unhex)
           .value()};

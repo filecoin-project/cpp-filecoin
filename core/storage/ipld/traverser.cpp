@@ -73,10 +73,11 @@ namespace fc::storage::ipld::traverser {
       visit_order_.push_back(cid);
 
       // TODO(turuslan): what about other types?
-      if (cid.content_type == libp2p::multi::MulticodecType::DAG_CBOR) {
+      if (cid.content_type == libp2p::multi::MulticodecType::Code::DAG_CBOR) {
         CborDecodeStream s{bytes};
         OUTCOME_TRY(parseCbor(s));
-      } else if (cid.content_type == libp2p::multi::MulticodecType::DAG_PB) {
+      } else if (cid.content_type
+                 == libp2p::multi::MulticodecType::Code::DAG_PB) {
         OUTCOME_TRY(cids, PbNodeDecoder::links(bytes));
         for (auto &&c : cids) {
           to_visit_.push(c);
