@@ -17,6 +17,7 @@ target_link_libraries(actor
     exit_code
     account_actor_v0
     account_actor_v2
+    account_actor_v3
     init_actor_v0
     market_actor_v0
     miner_actor_v0
@@ -26,7 +27,9 @@ target_link_libraries(actor
     reward_actor_v0
     payment_channel_actor_v0
     payment_channel_actor_v2
+    payment_channel_actor_v3
     system_actor_v0
     system_actor_v2
+    system_actor_v3
     cgo_actors
     )
