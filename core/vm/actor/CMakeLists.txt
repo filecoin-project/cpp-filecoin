@@ -12,6 +12,7 @@ add_library(actor
     )
 target_link_libraries(actor
     account_actor
+    account_actor_v2
     address
     buffer
     cid
