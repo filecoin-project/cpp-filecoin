@@ -15,7 +15,7 @@ target_link_libraries(storage_market_provider
     fuhon_stored_ask
     outcome
     piece
-    market_actor
+    market_actor_v0
     todo_error
     piece_storage
     sectorblocks

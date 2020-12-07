@@ -4,3 +4,5 @@
 #
 
 add_subdirectory(account)
+add_subdirectory(payment_channel)
+add_subdirectory(system)

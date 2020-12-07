@@ -3,10 +3,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/payment_channel/payment_channel_actor.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v2/payment_channel/payment_channel_actor.hpp"
+#include "vm/actor/builtin/v2/codes.hpp"
 
-namespace fc::vm::actor::builtin::v0::payment_channel {
+namespace fc::vm::actor::builtin::v2::payment_channel {
+  using primitives::TokenAmount;
   using primitives::address::Protocol;
 
   outcome::result<Address> resolveAccount(Runtime &runtime,
@@ -50,7 +51,13 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     if (!voucher.signature) {
       return VMExitCode::kErrIllegalArgument;
     }
-
+    if (readonly_state.settling_at != 0
+        && runtime.getCurrentEpoch() >= readonly_state.settling_at) {
+      return VMExitCode::kErrFirstActorSpecificExitCode;
+    }
+    if (params.secret.size() > kMaxSecretSize) {
+      return VMExitCode::kErrIllegalArgument;
+    }
     auto voucher_signable = voucher;
     voucher_signable.signature = boost::none;
     OUTCOME_TRY(voucher_signable_bytes, codec::cbor::encode(voucher_signable));
@@ -64,7 +71,8 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       return VMExitCode::kErrIllegalArgument;
     }
     const auto paych_addr = runtime.getCurrentReceiver();
-    if (paych_addr != voucher.channel) {
+    OUTCOME_TRY(voucher_addr, runtime.resolveAddress(voucher.channel));
+    if (paych_addr != voucher_addr) {
       return VMExitCode::kErrIllegalArgument;
     }
     if (runtime.getCurrentEpoch() < voucher.time_lock_min) {
@@ -83,9 +91,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
       return VMExitCode::kErrIllegalArgument;
     }
     if (voucher.extra) {
-      OUTCOME_TRY(params_extra,
-                  encodeActorParams(PaymentVerifyParams{voucher.extra->params,
-                                                        params.proof}));
+      OUTCOME_TRY(params_extra, encodeActorParams(voucher.extra->params));
       OUTCOME_TRY(runtime.send(
           voucher.extra->actor, voucher.extra->method, params_extra, 0));
     }
@@ -146,34 +152,10 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     return fc::outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(Settle) {
-    OUTCOME_TRY(state, assertCallerInChannel(runtime));
-    if (state.settling_at != 0) {
-      return VMExitCode::kErrIllegalState;
-    }
-    state.settling_at = std::max(state.min_settling_height,
-                                 runtime.getCurrentEpoch() + kSettleDelay);
-    OUTCOME_TRY(runtime.commitState(state));
-    return fc::outcome::success();
-  }
-
-  ACTOR_METHOD_IMPL(Collect) {
-    OUTCOME_TRY(state, assertCallerInChannel(runtime));
-    if (state.settling_at == 0
-        || runtime.getCurrentEpoch() < state.settling_at) {
-      return VMExitCode::kErrForbidden;
-    }
-
-    OUTCOME_TRY(runtime.sendFunds(state.to, state.to_send));
-    OUTCOME_TRY(runtime.deleteActor(state.from));
-
-    return fc::outcome::success();
-  }
-
   const ActorExports exports{
       exportMethod<Construct>(),
       exportMethod<UpdateChannelState>(),
       exportMethod<Settle>(),
       exportMethod<Collect>(),
   };
-}  // namespace fc::vm::actor::builtin::v0::payment_channel
+}  // namespace fc::vm::actor::builtin::v2::payment_channel

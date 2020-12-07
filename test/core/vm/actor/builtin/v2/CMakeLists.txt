@@ -2,5 +2,4 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_subdirectory(v0)
-add_subdirectory(v2)
+add_subdirectory(payment_channel)

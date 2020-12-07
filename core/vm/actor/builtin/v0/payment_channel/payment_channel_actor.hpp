@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_HPP
+#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_HPP
+#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_HPP
 
 #include <climits>
 #include "const.hpp"
@@ -49,4 +49,4 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::v0::payment_channel
 
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_HPP
+#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_HPP

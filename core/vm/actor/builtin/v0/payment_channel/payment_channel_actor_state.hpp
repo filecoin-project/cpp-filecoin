@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
+#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_STATE_HPP
+#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_STATE_HPP
 
 #include "adt/array.hpp"
 #include "crypto/signature/signature.hpp"
@@ -103,6 +103,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
 
   struct PaymentVerifyParams {
     Buffer extra;
+    Buffer proof;
   };
   CBOR_TUPLE(PaymentVerifyParams, extra);
 }  // namespace fc::vm::actor::builtin::v0::payment_channel
@@ -118,4 +119,4 @@ namespace fc {
   };
 }  // namespace fc
 
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
+#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_STATE_HPP

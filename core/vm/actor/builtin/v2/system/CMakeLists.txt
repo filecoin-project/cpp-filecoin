@@ -3,10 +3,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(account_actor_v0
-    account_actor.cpp
+add_library(system_actor_v2
+    system_actor.cpp
     )
-target_link_libraries(account_actor_v0
+target_link_libraries(system_actor_v2
     actor
-    outcome
     )

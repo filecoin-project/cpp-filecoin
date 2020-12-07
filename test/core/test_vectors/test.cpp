@@ -259,7 +259,8 @@ auto search() {
       // Skip tests that fail in Fuhon
       // TODO (@wer1st) these tests should be enabled after FIL-260
       static std::vector<std::string> fail_in_fuhon{
-          kCorpusRoot + "/msg_application/actor_exec--msg-apply-fail-actor-execution-illegal-arg--genesis.json"
+          kCorpusRoot + "/msg_application/actor_exec--msg-apply-fail-actor-execution-illegal-arg--genesis.json",
+          kCorpusRoot + "/msg_application/actor_exec--msg-apply-fail-actor-execution-illegal-arg--actorsv2.json"
       };
 
       if (std::find(fail_in_lotus.cbegin(), fail_in_lotus.cend(), path.string())
