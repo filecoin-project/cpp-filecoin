@@ -4,3 +4,4 @@
 #
 
 add_subdirectory(account)
+add_subdirectory(cron)

@@ -12,6 +12,7 @@ add_library(actor
     )
 target_link_libraries(actor
     account_actor
+    account_actor_v2
     address
     buffer
     cid
@@ -22,6 +23,7 @@ target_link_libraries(actor
     multisig_actor
     storage_power_actor
     cron_actor
+    cron_actor_v2
     reward_actor
     payment_channel_actor
     system_actor
