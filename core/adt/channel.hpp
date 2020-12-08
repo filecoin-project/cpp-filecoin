@@ -31,7 +31,7 @@ namespace fc::adt {
       closeRead();
     }
 
-    bool canWrite() {
+    bool canWrite() const {
       std::lock_guard lock{mutex};
       return visit_in_place(
           state,

@@ -38,15 +38,15 @@ namespace fc::adt {
     Map(const CID &root, IpldPtr ipld = nullptr)
         : hamt{ipld, root, bit_width} {}
 
-    outcome::result<boost::optional<Value>> tryGet(const Key &key) {
+    outcome::result<boost::optional<Value>> tryGet(const Key &key) const {
       return hamt.tryGetCbor<Value>(Keyer::encode(key));
     }
 
-    outcome::result<bool> has(const Key &key) {
+    outcome::result<bool> has(const Key &key) const {
       return hamt.contains(Keyer::encode(key));
     }
 
-    outcome::result<Value> get(const Key &key) {
+    outcome::result<Value> get(const Key &key) const {
       return hamt.getCbor<Value>(Keyer::encode(key));
     }
 
@@ -58,7 +58,7 @@ namespace fc::adt {
       return hamt.remove(Keyer::encode(key));
     }
 
-    outcome::result<void> visit(const Visitor &visitor) {
+    outcome::result<void> visit(const Visitor &visitor) const {
       return hamt.visit([&](auto &key, auto &value) -> outcome::result<void> {
         OUTCOME_TRY(key2, Keyer::decode(key));
         OUTCOME_TRY(value2, hamt.ipld->decode<Value>(value));
@@ -66,7 +66,7 @@ namespace fc::adt {
       });
     }
 
-    outcome::result<std::vector<Key>> keys() {
+    outcome::result<std::vector<Key>> keys() const {
       std::vector<Key> keys;
       OUTCOME_TRY(hamt.visit([&](auto &key, auto &) -> outcome::result<void> {
         OUTCOME_TRY(key2, Keyer::decode(key));
