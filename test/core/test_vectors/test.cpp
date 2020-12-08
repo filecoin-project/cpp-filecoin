@@ -258,6 +258,11 @@ auto search() {
 
       // Skip tests that fail in Fuhon
       // TODO (@wer1st) these tests should be enabled after FIL-260
+      // Problem: we have a class for Signature that is parsed and partially
+      // verified during CBOR parsing. In case when node gets wrong signature,
+      // the error returns at the beginning of some actor’s methods. On the
+      // contrary, Lotus doesn’t parse it until VerifySignature method and
+      // charges a gas before it. We need to have the same behaviour.
       static std::vector<std::string> fail_in_fuhon{
           kCorpusRoot + "/msg_application/actor_exec--msg-apply-fail-actor-execution-illegal-arg--genesis.json",
           kCorpusRoot + "/msg_application/actor_exec--msg-apply-fail-actor-execution-illegal-arg--actorsv2.json"
