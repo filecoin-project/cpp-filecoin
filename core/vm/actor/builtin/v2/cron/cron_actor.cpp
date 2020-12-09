@@ -11,4 +11,4 @@ namespace fc::vm::actor::builtin::v2::cron {
       exportMethod<Construct>(),
       exportMethod<EpochTick>(),
   };
-}  // namespace fc::vm::actor::builtin::v0::cron
+}  // namespace fc::vm::actor::builtin::v2::cron
