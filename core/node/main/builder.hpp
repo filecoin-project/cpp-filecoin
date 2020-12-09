@@ -71,6 +71,7 @@ namespace fc {
     class ReceiveHello;
     class PubSubGate;
     class Syncer;
+    class PeerDiscovery;
 
     namespace blocksync {
       class BlocksyncClient;
@@ -120,6 +121,9 @@ namespace fc::node {
     std::shared_ptr<sync::Identify> identify;
     std::shared_ptr<sync::SayHello> say_hello;
     std::shared_ptr<sync::ReceiveHello> receive_hello;
+
+    // peer discovery
+    std::shared_ptr<sync::PeerDiscovery> peer_discovery;
 
     // pubsub
     std::shared_ptr<libp2p::protocol::gossip::Gossip> gossip;

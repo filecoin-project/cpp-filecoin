@@ -13,13 +13,19 @@
 #include <libp2p/protocol/identify/identify.hpp>
 #include <libp2p/protocol/identify/identify_delta.hpp>
 #include <libp2p/protocol/identify/identify_push.hpp>
+#include <libp2p/protocol/kademlia/config.hpp>
+#include <libp2p/protocol/kademlia/impl/content_routing_table_impl.hpp>
+#include <libp2p/protocol/kademlia/impl/kademlia_impl.hpp>
+#include <libp2p/protocol/kademlia/impl/peer_routing_table_impl.hpp>
+#include <libp2p/protocol/kademlia/impl/storage_backend_default.hpp>
+#include <libp2p/protocol/kademlia/impl/storage_impl.hpp>
+#include <libp2p/protocol/kademlia/impl/validator_default.hpp>
 
 #include "api/make.hpp"
 #include "blockchain/block_validator/impl/block_validator_impl.hpp"
 #include "blockchain/impl/weight_calculator_impl.hpp"
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 #include "clock/impl/utc_clock_impl.hpp"
-#include "common/hexutil.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "drand/impl/beaconizer.hpp"
@@ -29,6 +35,7 @@
 #include "node/chain_store_impl.hpp"
 #include "node/identify.hpp"
 #include "node/index_db_backend.hpp"
+#include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
 #include "node/receive_hello.hpp"
 #include "node/say_hello.hpp"
@@ -216,6 +223,50 @@ namespace fc::node {
       return keypair;
     }
 
+    std::shared_ptr<libp2p::protocol::kademlia::Kademlia> createKademlia(
+        const Config &config,
+        const NodeObjects &o,
+        std::shared_ptr<libp2p::peer::IdentityManager> id_manager,
+        std::shared_ptr<libp2p::event::Bus> bus) {
+      libp2p::protocol::kademlia::Config kad_config;
+      kad_config.protocolId = std::string("/fil/kad/") + config.network_name;
+
+      std::shared_ptr<libp2p::protocol::kademlia::Storage> kad_storage =
+          std::make_shared<libp2p::protocol::kademlia::StorageImpl>(
+              kad_config,
+              std::make_shared<
+                  libp2p::protocol::kademlia::StorageBackendDefault>(),
+              o.scheduler);
+
+      std::shared_ptr<libp2p::protocol::kademlia::ContentRoutingTable>
+          content_routing_table = std::make_shared<
+              libp2p::protocol::kademlia::ContentRoutingTableImpl>(
+              kad_config, *o.scheduler, bus);
+
+      std::shared_ptr<libp2p::protocol::kademlia::PeerRoutingTable>
+          peer_routing_table = std::make_shared<
+              libp2p::protocol::kademlia::PeerRoutingTableImpl>(
+              kad_config, id_manager, bus);
+
+      std::shared_ptr<libp2p::protocol::kademlia::Validator> validator =
+          std::make_shared<libp2p::protocol::kademlia::ValidatorDefault>();
+
+      std::shared_ptr<libp2p::crypto::random::RandomGenerator>
+          random_generator =
+              std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
+
+      return std::make_shared<libp2p::protocol::kademlia::KademliaImpl>(
+          kad_config,
+          o.host,
+          std::move(kad_storage),
+          std::move(content_routing_table),
+          std::move(peer_routing_table),
+          std::move(validator),
+          o.scheduler,
+          std::move(bus),
+          std::move(random_generator));
+    }
+
   }  // namespace
 
   outcome::result<NodeObjects> createNodeObjects(Config &config) {
@@ -331,6 +382,15 @@ namespace fc::node {
         });
 
     o.pubsub_gate = std::make_shared<sync::PubSubGate>(o.gossip);
+
+    auto id_manager =
+        injector.create<std::shared_ptr<libp2p::peer::IdentityManager>>();
+    auto bus = injector.create<std::shared_ptr<libp2p::event::Bus>>();
+
+    o.peer_discovery = std::make_shared<sync::PeerDiscovery>(
+        o.host,
+        o.scheduler,
+        createKademlia(config, o, std::move(id_manager), std::move(bus)));
 
     // o.graphsync =
     // TODO (artem) default service handler for GS

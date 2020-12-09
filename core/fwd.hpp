@@ -33,6 +33,10 @@ namespace libp2p {
     class IdentifyDelta;
     class Scheduler;
 
+    namespace kademlia {
+      class Kademlia;
+    }
+
     namespace gossip {
       class Gossip;
     }  // namespace gossip

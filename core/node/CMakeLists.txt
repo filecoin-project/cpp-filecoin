@@ -22,12 +22,14 @@ add_library(sync
     head_constructor.cpp
     chain_store_impl.cpp
     pubsub_workaround.cpp
+    peer_discovery.cpp
     )
 
 target_link_libraries(sync
     cbor_stream
     p2p::libp2p_sqlite
     p2p::p2p_gossip
-    p2p::p2p_identify)
+    p2p::p2p_identify
+    p2p::p2p_kademlia)
 
 add_subdirectory(main)

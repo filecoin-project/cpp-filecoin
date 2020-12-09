@@ -21,6 +21,7 @@
 #include "node/say_hello.hpp"
 #include "node/syncer.hpp"
 #include "node/tipset_loader.hpp"
+#include "node/peer_discovery.hpp"
 
 namespace fc {
 
@@ -130,6 +131,7 @@ namespace fc {
     o.blocksync_client->start(events);
     o.tipset_loader->start(events);
     o.syncer->start(events);
+    o.peer_discovery->start(*events);
 
     bool fatal_error_occured = false;
     auto fatal_error_conn =
