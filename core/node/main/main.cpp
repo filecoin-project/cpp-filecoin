@@ -22,6 +22,7 @@
 #include "node/syncer.hpp"
 #include "node/tipset_loader.hpp"
 #include "node/peer_discovery.hpp"
+#include "node/graphsync_server.hpp"
 
 namespace fc {
 
@@ -126,7 +127,7 @@ namespace fc {
     o.receive_hello->start(config.genesis_cid.value(), events);
     o.gossip->start();
     o.pubsub_gate->start(config.network_name, events);
-    // o.graphsync->start();
+    o.graphsync_server->start();
     o.blocksync_server->start();
     o.blocksync_client->start(events);
     o.tipset_loader->start(events);

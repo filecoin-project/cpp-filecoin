@@ -41,6 +41,7 @@
 #include "node/say_hello.hpp"
 #include "node/syncer.hpp"
 #include "node/tipset_loader.hpp"
+#include "node/graphsync_server.hpp"
 #include "power/impl/power_table_impl.hpp"
 #include "storage/car/car.hpp"
 #include "storage/chain/msg_waiter.hpp"
@@ -48,6 +49,7 @@
 #include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
+#include "storage/ipfs/merkledag/impl/merkledag_service_impl.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/mpool/mpool.hpp"
@@ -396,8 +398,15 @@ namespace fc::node {
     o.peer_discovery = std::make_shared<sync::PeerDiscovery>(
         o.host, o.scheduler, std::move(kademlia));
 
-    // o.graphsync =
-    // TODO (artem) default service handler for GS
+    o.graphsync = std::make_shared<storage::ipfs::graphsync::GraphsyncImpl>(
+        o.host, o.scheduler);
+
+    auto merkledag_service =
+        std::make_shared<storage::ipfs::merkledag::MerkleDagServiceImpl>(
+            o.ipld);
+
+    o.graphsync_server = std::make_shared<sync::GraphsyncServer>(
+        o.graphsync, std::move(merkledag_service));
 
     log()->debug("Creating chain loaders...");
 

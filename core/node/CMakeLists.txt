@@ -12,6 +12,7 @@ add_library(sync
     tipset_loader.cpp
     blocksync_client.cpp
     blocksync_server.cpp
+    graphsync_server.cpp
     subchain_loader.cpp
     syncer.cpp
     interpret_job.cpp

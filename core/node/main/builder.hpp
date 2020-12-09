@@ -72,6 +72,7 @@ namespace fc {
     class PubSubGate;
     class Syncer;
     class PeerDiscovery;
+    class GraphsyncServer;
 
     namespace blocksync {
       class BlocksyncClient;
@@ -131,6 +132,7 @@ namespace fc::node {
 
     // graphsync
     std::shared_ptr<storage::ipfs::graphsync::Graphsync> graphsync;
+    std::shared_ptr<sync::GraphsyncServer> graphsync_server;
 
     // chain sync components
     std::shared_ptr<sync::blocksync::BlocksyncClient> blocksync_client;

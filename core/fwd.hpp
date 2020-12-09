@@ -103,8 +103,13 @@ namespace fc {
       namespace graphsync {
         class Graphsync;
       }  // namespace graphsync
-    }    // namespace ipfs
-  }      // namespace storage
+
+      namespace merkledag {
+        class MerkleDagService;
+      }
+
+    }  // namespace ipfs
+  }    // namespace storage
 
   namespace sync {
     class PubSubGate;

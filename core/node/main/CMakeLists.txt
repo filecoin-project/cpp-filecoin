@@ -17,6 +17,7 @@ target_link_libraries(node_builder
     p2p::p2p_inmem_protocol_repository
     p2p::asio_scheduler
     graphsync
+    ipfs_merkledag_service
     clock
     car
     block_validator
