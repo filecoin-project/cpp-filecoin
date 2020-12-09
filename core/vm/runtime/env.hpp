@@ -27,13 +27,13 @@ namespace fc::vm::runtime {
    * @param state_tree - state tree
    * @param ipld - regular or charging ipld
    * @param address - account actor address
-   * @param is_actor - true if address is an actor
+   * @param allow_actor - is actor type address allowed
    * @return key address
    */
   outcome::result<Address> resolveKey(StateTree &state_tree,
                                       IpldPtr ipld,
                                       const Address &address,
-                                      bool is_actor = true);
+                                      bool allow_actor = true);
 
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {

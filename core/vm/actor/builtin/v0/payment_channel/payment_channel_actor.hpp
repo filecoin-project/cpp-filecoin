@@ -6,7 +6,6 @@
 #ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_HPP
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_HPP
 
-#include <climits>
 #include "const.hpp"
 #include "primitives/address/address_codec.hpp"
 #include "vm/actor/actor_method.hpp"
@@ -15,7 +14,7 @@
 namespace fc::vm::actor::builtin::v0::payment_channel {
   using primitives::EpochDuration;
 
-  constexpr size_t kLaneLimit{LLONG_MAX};
+  constexpr size_t kLaneLimit{INT64_MAX};
   constexpr EpochDuration kSettleDelay{fc::kEpochsInHour * 12};
   constexpr size_t kMaxSecretSize{256};
 

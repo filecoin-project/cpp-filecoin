@@ -30,7 +30,7 @@ namespace fc::vm::runtime {
   outcome::result<Address> resolveKey(StateTree &state_tree,
                                       IpldPtr ipld,
                                       const Address &address,
-                                      bool is_actor) {
+                                      bool allow_actor) {
     if (address.isKeyType()) {
       return address;
     }
@@ -41,7 +41,7 @@ namespace fc::vm::runtime {
                 ipld->getCbor<actor::builtin::v0::account::AccountActorState>(
                     actor.head)}) {
           auto &key{_state.value().address};
-          if (is_actor || key.isKeyType()) {
+          if (allow_actor || key.isKeyType()) {
             return key;
           }
         }
@@ -51,7 +51,7 @@ namespace fc::vm::runtime {
                 ipld->getCbor<actor::builtin::v2::account::AccountActorState>(
                     actor.head)}) {
           auto &key{_state.value().address};
-          if (is_actor || key.isKeyType()) {
+          if (allow_actor || key.isKeyType()) {
             return key;
           }
         }

@@ -243,11 +243,12 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateExtraFailed) {
       123,
       {},
   };
-  EXPECT_OUTCOME_TRUE(params,
-                      fc::vm::actor::encodeActorParams(voucher.extra->params));
-  EXPECT_CALL(
-      runtime,
-      send(voucher.extra->actor, voucher.extra->method, params, TokenAmount{0}))
+
+  EXPECT_CALL(runtime,
+              send(voucher.extra->actor,
+                   voucher.extra->method,
+                   voucher.extra->params,
+                   TokenAmount{0}))
       .WillOnce(Return(VMExitCode::kSysErrForbidden));
 
   EXPECT_OUTCOME_ERROR(

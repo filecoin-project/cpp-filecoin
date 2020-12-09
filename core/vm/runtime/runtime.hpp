@@ -137,7 +137,7 @@ namespace fc::vm::runtime {
     /**
      * @brief Deletes an actor in the state tree
      *
-     * @param address - Address of actor that should be deleted
+     * @param address - Address of actor that receives remaining balance
      * 
      * May only be called by the actor itself
      */

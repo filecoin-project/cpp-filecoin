@@ -67,7 +67,9 @@ namespace fc::vm::actor {
   outcome::result<InvocationOutput> InvokerImpl::invoke(
       const Actor &actor, const std::shared_ptr<Runtime> &runtime) {
     // TODO (a.chernyshov) remove after all cpp actors are implemented
-    if ((actor.code != builtin::v0::kAccountCodeCid)            // < tested OK
+    if (
+        // v0
+        (actor.code != builtin::v0::kAccountCodeCid)            // < tested OK
         && (actor.code != builtin::v0::kCronCodeCid)            // < tested OK
         && (actor.code != builtin::v0::kInitCodeCid)            // < tested OK
         && (actor.code != builtin::v0::kStorageMarketCodeCid)   // < tested OK
@@ -79,6 +81,7 @@ namespace fc::vm::actor {
         && (actor.code != builtin::v0::kSystemActorCodeID)      // < tested OK
 //        && (actor.code != builtin::v0::kVerifiedRegistryCode)   // TODO
 
+        // v2
         && (actor.code != builtin::v2::kAccountCodeCid)         // < tested OK
 //        && (actor.code != builtin::v2::kCronCodeCid)            // TODO
 //        && (actor.code != builtin::v2::kInitCodeCid)            // TODO

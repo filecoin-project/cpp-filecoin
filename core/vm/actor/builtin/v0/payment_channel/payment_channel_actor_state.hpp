@@ -105,7 +105,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     Buffer extra;
     Buffer proof;
   };
-  CBOR_TUPLE(PaymentVerifyParams, extra);
+  CBOR_TUPLE(PaymentVerifyParams, extra, proof);
 }  // namespace fc::vm::actor::builtin::v0::payment_channel
 
 namespace fc {

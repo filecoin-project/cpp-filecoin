@@ -116,15 +116,16 @@ namespace fc::vm::runtime {
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onDeleteActor()));
     auto &state{*execution()->state_tree};
     if (auto _actor{state.get(getCurrentReceiver())}) {
-      if (_actor.has_error() && _actor.error() == HamtError::kNotFound) {
-        return VMExitCode::kSysErrorIllegalActor;
-      }
       const auto &balance{_actor.value().balance};
       if (balance.is_zero()
           || transfer(getCurrentReceiver(), address, balance)) {
         if (state.remove(getCurrentReceiver())) {
           return outcome::success();
         }
+      }
+    } else {
+      if (_actor.error() == HamtError::kNotFound) {
+        return VMExitCode::kSysErrorIllegalActor;
       }
     }
     return VMExitCode::kSysErrorIllegalActor;
