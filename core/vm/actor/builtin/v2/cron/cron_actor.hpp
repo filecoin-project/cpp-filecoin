@@ -21,4 +21,4 @@ namespace fc::vm::actor::builtin::v2::cron {
 
 }  // namespace fc::vm::actor::builtin::v2::cron
 
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_CRON_ACTOR_HPP
+#endif  // CPP_FILECOIN_CORE_VM_ACTOR_V2_CRON_ACTOR_HPP
