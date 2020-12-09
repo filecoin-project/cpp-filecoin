@@ -137,9 +137,22 @@ namespace fc::vm::runtime {
     /**
      * @brief Deletes an actor in the state tree
      *
+     * @param address - Address of actor that receives remaining balance
+     * 
      * May only be called by the actor itself
      */
-    virtual outcome::result<void> deleteActor() = 0;
+    virtual outcome::result<void> deleteActor(const Address &address) = 0;
+
+    /**
+     * @brief Transfer debits money from one account and credits it to another
+     *
+     * @param debitFrom - money sender
+     * @param creditTo - money receiver
+     * @param amount - amount of money that is transfered
+     */
+    virtual outcome::result<void> transfer(const Address &debitFrom,
+                                           const Address &creditTo,
+                                           const TokenAmount &amount) = 0;
 
     /**
      * Returns the total token supply in circulation at the beginning of the

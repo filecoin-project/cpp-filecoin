@@ -102,15 +102,6 @@ namespace fc::vm {
       case E::kMultisigActorIllegalState:
         return E::kErrIllegalState;
 
-      case E::kPaymentChannelWrongCaller:
-        return E{1};
-      case E::kPaymentChannelIllegalArgument:
-        return E::kErrIllegalArgument;
-      case E::kPaymentChannelForbidden:
-        return E::kErrForbidden;
-      case E::kPaymentChannelIllegalState:
-        return E::kErrIllegalState;
-
       // TODO(turuslan): FIL-128 StoragePowerActor
       case E::kStoragePowerActorWrongCaller:
       case E::kStoragePowerActorOutOfBound:

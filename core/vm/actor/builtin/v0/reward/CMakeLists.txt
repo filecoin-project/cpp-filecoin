@@ -3,10 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(reward_actor
+add_library(reward_actor_v0
     reward_actor.cpp
     )
-target_link_libraries(reward_actor
+target_link_libraries(reward_actor_v0
     Boost::boost
     actor
     address

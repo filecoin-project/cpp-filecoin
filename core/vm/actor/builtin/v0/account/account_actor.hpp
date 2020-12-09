@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_ACCOUNT_ACTOR_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_ACCOUNT_ACTOR_HPP
+#ifndef CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V0_ACCOUNT_ACTOR_HPP
+#define CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V0_ACCOUNT_ACTOR_HPP
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "primitives/address/address_codec.hpp"
@@ -35,4 +35,4 @@ namespace fc::vm::actor::builtin::v0::account {
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::v0::account
 
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACCOUNT_ACTOR_HPP
+#endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V0_ACCOUNT_ACTOR_HPP

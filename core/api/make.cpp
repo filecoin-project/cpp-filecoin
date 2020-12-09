@@ -437,7 +437,7 @@ namespace fc::api {
           if (message.from.isId()) {
             OUTCOME_TRYA(message.from,
                          vm::runtime::resolveKey(
-                             context.state_tree, message.from, true));
+                             context.state_tree, ipld, message.from, false));
           }
           OUTCOME_TRY(mpool->estimate(message));
           OUTCOME_TRYA(message.nonce, mpool->nonce(message.from));
