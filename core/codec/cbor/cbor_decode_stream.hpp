@@ -130,6 +130,10 @@ namespace fc::codec::cbor {
     bool isInt() const;
     bool isStr() const;
     bool isBytes() const;
+
+    // no more bytes to decode
+    bool isEOF() const;
+
     /** Returns count of items in current element list container */
     size_t listLength() const;
     /** Reads CBOR bytes of current element (and advances to the next element)
@@ -137,6 +141,8 @@ namespace fc::codec::cbor {
     std::vector<uint8_t> raw();
     /** Creates map container decode substream map */
     std::map<std::string, CborDecodeStream> map();
+    static CborDecodeStream &named(std::map<std::string, CborDecodeStream> &map,
+                                   const std::string &name);
     /// Returns bytestring length
     size_t bytesLength() const;
 

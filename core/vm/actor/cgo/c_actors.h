@@ -14,7 +14,8 @@ extern "C" {
 Raw gocRtIpldGet(Raw);
 Raw gocRtIpldPut(Raw);
 Raw gocRtCharge(Raw);
-Raw gocRtRand(Raw);
+Raw gocRtRandomnessFromTickets(Raw);
+Raw gocRtRandomnessFromBeacon(Raw);
 Raw gocRtBlake(Raw);
 Raw gocRtVerifyPost(Raw);
 Raw gocRtVerifySeals(Raw);

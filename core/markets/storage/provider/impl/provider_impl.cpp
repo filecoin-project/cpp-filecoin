@@ -10,13 +10,11 @@
 #include "common/todo_error.hpp"
 #include "host/context/host_context.hpp"
 #include "host/context/impl/host_context_impl.hpp"
-#include "markets/storage/provider/impl/provider_data_transfer_request_validator.hpp"
 #include "markets/storage/provider/storage_provider_error.hpp"
 #include "markets/storage/provider/stored_ask.hpp"
 #include "markets/storage/storage_datatransfer_voucher.hpp"
 #include "storage/car/car.hpp"
-#include "storage/piece/impl/piece_storage_impl.hpp"
-#include "vm/actor/builtin/market/actor.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
 
 #define CALLBACK_ACTION(_action)                                    \
   [this](auto deal, auto event, auto context, auto from, auto to) { \
@@ -41,16 +39,15 @@
 
 namespace fc::markets::storage::provider {
   using api::MsgWait;
-  using data_transfer::Voucher;
+  using data_transfer::Selector;
   using fc::storage::piece::DealInfo;
   using fc::storage::piece::PayloadLocation;
-  using fc::storage::piece::PieceStorageImpl;
   using host::HostContext;
   using host::HostContextImpl;
   using mining::SealingState;
   using vm::VMExitCode;
   using vm::actor::MethodParams;
-  using vm::actor::builtin::market::PublishStorageDeals;
+  using vm::actor::builtin::v0::market::PublishStorageDeals;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::SignedMessage;
@@ -63,7 +60,7 @@ namespace fc::markets::storage::provider {
       std::shared_ptr<DataTransfer> datatransfer,
       std::shared_ptr<StoredAsk> stored_ask,
       std::shared_ptr<boost::asio::io_context> context,
-      std::shared_ptr<Datastore> datastore,
+      std::shared_ptr<PieceStorage> piece_storage,
       std::shared_ptr<Api> api,
       std::shared_ptr<SectorBlocks> sector_blocks,
       std::shared_ptr<ChainEvents> chain_events,
@@ -79,25 +76,19 @@ namespace fc::markets::storage::provider {
         chain_events_{std::move(chain_events)},
         miner_actor_address_{miner_actor_address},
         piece_io_{std::move(piece_io)},
-        piece_storage_{std::make_shared<PieceStorageImpl>(datastore)},
+        piece_storage_{std::move(piece_storage)},
         filestore_{filestore},
         ipld_{ipld},
         datatransfer_{datatransfer} {}
 
-  void StorageProviderImpl::notify(
-      const data_transfer::Event &event,
-      const data_transfer::ChannelState &channel_state) {
-    OUTCOME_EXCEPT(voucher,
-                   codec::cbor::decode<StorageDataTransferVoucher>(
-                       channel_state.channel.voucher));
+  std::shared_ptr<MinerDeal> StorageProviderImpl::getDealPtr(
+      const CID &proposal_cid) {
     for (auto &it : fsm_->list()) {
-      if (it.first->proposal_cid == voucher.proposal_cid) {
-        using data_transfer::EventCode;
-        if (event.code == EventCode::COMPLETE) {
-          FSM_SEND(it.first, ProviderEvent::ProviderEventDataTransferCompleted);
-        }
+      if (it.first->proposal_cid == proposal_cid) {
+        return it.first;
       }
     }
+    return {};
   }
 
   outcome::result<void> StorageProviderImpl::init() {
@@ -119,13 +110,23 @@ namespace fc::markets::storage::provider {
         std::make_shared<HostContextImpl>(context_);
     fsm_ = std::make_shared<ProviderFSM>(makeFSMTransitions(), fsm_context);
 
-    // register request validator
-    auto state_store = std::make_shared<ProviderFsmStateStore>(fsm_);
-    auto validator =
-        std::make_shared<ProviderDataTransferRequestValidator>(state_store);
-    OUTCOME_TRY(datatransfer_->init(StorageDataTransferVoucherType, validator));
-
-    datatransfer_->subscribe(weak_from_this());
+    datatransfer_->on_push.emplace(
+        StorageDataTransferVoucherType,
+        [this](auto &pdtid, auto &root, auto &, auto _voucher) {
+          if (auto _voucher2{
+                  codec::cbor::decode<StorageDataTransferVoucher>(_voucher)}) {
+            if (auto deal{getDealPtr(_voucher2.value().proposal_cid)}) {
+              return datatransfer_->acceptPush(
+                  pdtid, root, [this, deal](auto ok) {
+                    FSM_SEND(
+                        deal,
+                        ok ? ProviderEvent::ProviderEventDataTransferCompleted
+                           : ProviderEvent::ProviderEventFailed);
+                  });
+            }
+          }
+          datatransfer_->rejectPush(pdtid);
+        });
 
     return outcome::success();
   }
@@ -205,11 +206,10 @@ namespace fc::markets::storage::provider {
 
   outcome::result<Signature> StorageProviderImpl::sign(const Buffer &input) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
     OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(miner_actor_address_, tipset_key));
+                api_->StateMinerInfo(miner_actor_address_, chain_head->key));
     OUTCOME_TRY(worker_key_address,
-                api_->StateAccountKey(worker_info.worker, tipset_key));
+                api_->StateAccountKey(worker_info.worker, chain_head->key));
     return api_->WalletSign(worker_key_address, input);
   }
 
@@ -273,8 +273,7 @@ namespace fc::markets::storage::provider {
     }
 
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    if (static_cast<ChainEpoch>(chain_head.height)
+    if (static_cast<ChainEpoch>(chain_head->height())
         > proposal.start_epoch - kDefaultDealAcceptanceBuffer) {
       deal->message =
           "Deal proposal verification failed, deal start epoch is too soon or "
@@ -314,7 +313,7 @@ namespace fc::markets::storage::provider {
     // This doesn't guarantee that the client won't withdraw / lock those funds
     // but it's a decent first filter
     OUTCOME_TRY(client_balance,
-                api_->StateMarketBalance(proposal.client, tipset_key));
+                api_->StateMarketBalance(proposal.client, chain_head->key));
     TokenAmount available = client_balance.escrow - client_balance.locked;
     if (available < proposal.getTotalStorageFee()) {
       std::stringstream ss;
@@ -331,10 +330,9 @@ namespace fc::markets::storage::provider {
   outcome::result<boost::optional<CID>>
   StorageProviderImpl::ensureProviderFunds(std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
     auto proposal = deal->client_deal_proposal.proposal;
     OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(proposal.provider, tipset_key));
+                api_->StateMinerInfo(proposal.provider, chain_head->key));
     OUTCOME_TRY(maybe_cid,
                 api_->MarketEnsureAvailable(proposal.provider,
                                             worker_info.worker,
@@ -345,10 +343,10 @@ namespace fc::markets::storage::provider {
   outcome::result<CID> StorageProviderImpl::publishDeal(
       std::shared_ptr<MinerDeal> deal) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(tipset_key, chain_head.makeKey());
-    OUTCOME_TRY(worker_info,
-                api_->StateMinerInfo(
-                    deal->client_deal_proposal.proposal.provider, tipset_key));
+    OUTCOME_TRY(
+        worker_info,
+        api_->StateMinerInfo(deal->client_deal_proposal.proposal.provider,
+                             chain_head->key));
     PublishStorageDeals::Params params{{deal->client_deal_proposal}};
     OUTCOME_TRY(encoded_params, codec::cbor::encode(params));
     UnsignedMessage unsigned_message(vm::actor::kStorageMarketAddress,

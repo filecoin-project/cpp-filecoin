@@ -103,6 +103,8 @@ namespace fc::markets::retrieval {
 
     /* Optional text message */
     std::string message;
+
+    TokenAmount unseal_price;
   };
 
   CBOR_TUPLE(QueryResponse,
@@ -113,7 +115,8 @@ namespace fc::markets::retrieval {
              min_price_per_byte,
              payment_interval,
              interval_increase,
-             message);
+             message,
+             unseal_price);
 
 }  // namespace fc::markets::retrieval
 

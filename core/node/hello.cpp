@@ -25,7 +25,7 @@ namespace fc::hello {
       : MOVE(host), chain_store{chain_store} {
     this->host->setProtocolHandler(
         kProtocolId,
-        [genesis{chain_store->genesisCid()}, MOVE(state_cb)](auto _stream) {
+        [genesis{chain_store->genesisCID()}, MOVE(state_cb)](auto _stream) {
           auto stream{std::make_shared<CborStream>(_stream)};
           stream->template read<State>([stream, MOVE(genesis), MOVE(state_cb)](
                                            auto _state) {
@@ -50,11 +50,11 @@ namespace fc::hello {
   }
 
   void Hello::say(const PeerInfo &peer) {
-    auto &ts{chain_store->heaviestTipset()};
-    State hello{std::move(ts.cids),
-                ts.height,
+    auto ts{chain_store->heaviestTipset()};
+    State hello{ts->key.cids(),
+                ts->height(),
                 chain_store->getHeaviestWeight(),
-                chain_store->genesisCid()};
+                chain_store->genesisCID()};
     host->newStream(peer, kProtocolId, [MOVE(hello)](auto _stream) {
       if (_stream) {
         auto stream{std::make_shared<CborStream>(_stream.value())};

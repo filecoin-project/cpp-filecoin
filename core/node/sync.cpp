@@ -38,11 +38,11 @@ namespace fc::sync {
 
   void TsSync::walkDown(TipsetKey key, const PeerId &peer) {
     while (true) {
-      auto _ts{Tipset::load(*ipld, key.cids)};
+      auto _ts{Tipset::load(*ipld, key.cids())};
       if (_ts) {
         auto &ts{_ts.value()};
         auto have_messages{true};
-        for (auto &block : ts.blks) {
+        for (auto &block : ts->blks) {
           auto _have{ipld->contains(block.messages)};
           if (!_have || !_have.value()) {
             have_messages = false;
@@ -50,7 +50,7 @@ namespace fc::sync {
           }
         }
         if (have_messages) {
-          auto parent{ts.getParents()};
+          auto parent{ts->getParents()};
           children[parent].push_back(std::move(key));
           if (children.at(parent).size() != 1) {
             return;
@@ -65,7 +65,7 @@ namespace fc::sync {
       return blocksync::fetch(host,
                               {peer, {}},
                               ipld,
-                              key.cids,
+                              key.cids(),
                               [self{shared_from_this()}, key, peer](auto _ts) {
                                 // TODO: bad block vs network failure
                                 if (_ts) {
@@ -91,19 +91,19 @@ namespace fc::sync {
       auto _children{children.find(key)};
       if (_children != children.end()) {
         if (_valid) {
-          OUTCOME_EXCEPT(ts, Tipset::load(*ipld, key.cids));
+          OUTCOME_EXCEPT(ts, Tipset::load(*ipld, key.cids()));
           blockchain::weight::WeightCalculatorImpl weighter{ipld};
-          OUTCOME_EXCEPT(weight, weighter.calculateWeight(ts));
+          OUTCOME_EXCEPT(weight, weighter.calculateWeight(*ts));
           OUTCOME_EXCEPT(vm, interpreter->interpret(ipld, ts));
           for (auto &_child : _children->second) {
-            OUTCOME_EXCEPT(child, Tipset::load(*ipld, _child.cids));
-            auto child_valid{child.getParentStateRoot() == vm.state_root
-                             && child.getParentMessageReceipts()
+            OUTCOME_EXCEPT(child, Tipset::load(*ipld, _child.cids()));
+            auto child_valid{child->getParentStateRoot() == vm.state_root
+                             && child->getParentMessageReceipts()
                                     == vm.message_receipts
-                             && child.getParentWeight() == weight};
+                             && child->getParentWeight() == weight};
             if (child_valid) {
               auto _vm{interpreter->interpret(ipld, child)};
-              auto _weight{weighter.calculateWeight(child)};
+              auto _weight{weighter.calculateWeight(*child)};
               if (!_vm || !_weight) {
                 child_valid = false;
               }
@@ -127,15 +127,14 @@ namespace fc::sync {
              std::shared_ptr<TsSync> ts_sync,
              std::shared_ptr<ChainStore> chain_store)
       : MOVE(ipld), MOVE(ts_sync), MOVE(chain_store) {
-    this->ts_sync->valid.emplace(TipsetKey{this->chain_store->genesisCid()},
-                                 true);
+    this->ts_sync->valid.emplace(TipsetKey{{this->chain_store->genesisCID()}}, true);
   }
 
   void Sync::onHello(const TipsetKey &key, const PeerId &peer) {
     ts_sync->sync(key, peer, [self{shared_from_this()}](auto &key, auto valid) {
       if (valid) {
-        OUTCOME_EXCEPT(ts, Tipset::load(*self->ipld, key.cids));
-        std::ignore = self->chain_store->updateHeaviestTipset(ts);
+        // TODO: notify chain store about new head
+        std::ignore = self;
       }
     });
   }
@@ -170,7 +169,7 @@ namespace fc::sync {
       }
     }
     OUTCOME_TRY(cid, ts_sync->ipld->setCbor(block.header));
-    ts_sync->sync({cid},
+    ts_sync->sync(TipsetKey{{cid}},
                   peer,
                   [self{shared_from_this()}, block{std::move(block.header)}](
                       auto &, auto valid) {

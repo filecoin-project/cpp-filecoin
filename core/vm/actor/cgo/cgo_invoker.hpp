@@ -15,7 +15,7 @@ namespace fc::vm::actor::cgo {
    */
   class CgoInvoker : public Invoker {
    public:
-    explicit CgoInvoker(bool test_vectors);
+    explicit CgoInvoker();
 
     void config(const StoragePower &min_verified_deal_size,
                 const StoragePower &consensus_miner_min_power,
@@ -23,9 +23,6 @@ namespace fc::vm::actor::cgo {
 
     outcome::result<InvocationOutput> invoke(
         const Actor &actor, const std::shared_ptr<Runtime> &runtime) override;
-
-   private:
-    bool _test_vectors;
   };
 
 }  // namespace fc::vm::actor::cgo

@@ -4,5 +4,4 @@
 #
 
 add_subdirectory(message_pool)
-add_subdirectory(sync_manager)
 add_subdirectory(validation)

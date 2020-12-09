@@ -9,6 +9,8 @@
 #include <set>
 #include <string>
 
+#include "codec/cbor/streams_annotation.hpp"
+#include "common/buffer.hpp"
 #include "primitives/cid/cid.hpp"
 
 namespace fc::storage::ipfs::graphsync {
@@ -28,27 +30,26 @@ namespace fc::storage::ipfs::graphsync {
     inline bool operator==(const Extension &other) const {
       return name == other.name && data == other.data;
     }
+
+    static inline boost::optional<BytesIn> find(
+        std::string_view name, const std::vector<Extension> &xs) {
+      auto it = std::find_if(
+          xs.begin(), xs.end(), [&](auto &x) { return x.name == name; });
+      if (it == xs.end()) {
+        return boost::none;
+      }
+      return BytesIn{it->data};
+    }
   };
 
-  /// Returns "graphsync/response-metadata":true extension
-  Extension encodeMetadataRequest();
+  struct ResMeta {
+    CID cid;
+    bool present;
+  };
+  CBOR2_DECODE_ENCODE(ResMeta)
 
   /// Response metadata indicates whether the responder has certain CIDs
-  using ResponseMetadata = std::vector<std::pair<CID, bool>>;
-
-  /// Encodes response metadata pairs
-  Extension encodeResponseMetadata(const ResponseMetadata &metadata);
-
-  /// Decodes metadata pairs
-  outcome::result<ResponseMetadata> decodeResponseMetadata(
-      const Extension &extension);
-
-  /// Encodes CIDS for "graphsync/do-not-send-cids" extension
-  Extension encodeDontSendCids(const std::vector<CID> &dont_send_cids);
-
-  /// Decodes CID subset not to be included into response
-  outcome::result<std::set<CID>> decodeDontSendCids(const Extension &extension);
-
+  using ResponseMetadata = std::vector<ResMeta>;
 }  // namespace fc::storage::ipfs::graphsync
 
 #endif  // CPP_FILECOIN_GRAPHSYNC_EXTENSION_HPP

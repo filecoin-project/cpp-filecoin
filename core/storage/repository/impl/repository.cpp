@@ -9,8 +9,12 @@
 #if __APPLE__
 #include <sys/mount.h>
 #include <sys/param.h>
+
+#define STAT64(x) x
 #elif __linux__
 #include <sys/statfs.h>
+
+#define STAT64(x) x##64
 #endif
 
 #include "api/rpc/json.hpp"
@@ -66,8 +70,8 @@ fc::outcome::result<void> Repository::writeStorage(
 }
 
 fc::outcome::result<FsStat> Repository::getStat(const std::string &path) {
-  struct statfs64 stat;
-  if (statfs64(path.c_str(), &stat) != 0) {
+  struct STAT64(statfs) stat;
+  if (STAT64(statfs)(path.c_str(), &stat) != 0) {
     return RepositoryError::kFilesystemStatError;
   }
   return FsStat{.capacity = stat.f_blocks * stat.f_bsize,
@@ -80,8 +84,8 @@ fc::outcome::result<uint64_t> Repository::getDiskUsage(
   if (!boost::filesystem::exists(path)) {
     return StorageError::kFileNotExist;
   }
-  struct stat64 fstat;
-  if (stat64(path.c_str(), &fstat) != 0) {
+  struct STAT64(stat) fstat;
+  if (STAT64(stat)(path.c_str(), &fstat) != 0) {
     return RepositoryError::kFilesystemStatError;
   }
   return fstat.st_blocks * 512;

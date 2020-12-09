@@ -94,6 +94,8 @@ namespace fc::vm::message {
 
     BigInt requiredFunds() const;
 
+    CID getCid() const;
+
     size_t chainSize() const;
   };
 

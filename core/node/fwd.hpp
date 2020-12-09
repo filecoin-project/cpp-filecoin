@@ -14,7 +14,11 @@ namespace boost {
 }  // namespace boost
 
 namespace libp2p {
-  class Host;
+  struct Host;
+
+  namespace connection {
+    class Stream;
+  }  // namespace connection
 
   namespace peer {
     class PeerId;
@@ -36,8 +40,13 @@ namespace libp2p {
 namespace fc {
   class CID;
 
+  namespace api {
+    struct Api;
+  }  // namespace api
+
   namespace clock {
     class UTCClock;
+    class ChainEpochClock;
   }  // namespace clock
 
   namespace crypto {
@@ -92,8 +101,12 @@ namespace fc {
 
     namespace ipfs {
       class IpfsDatastore;
-    }  // namespace ipfs
-  }    // namespace storage
+
+      namespace graphsync {
+        class Graphsync;
+      }  // namespace graphsync
+    }    // namespace ipfs
+  }      // namespace storage
 
   namespace vm {
     namespace actor {

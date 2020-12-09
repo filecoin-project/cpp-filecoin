@@ -10,7 +10,7 @@
 #include "miner/storage_fsm/impl/tipset_cache_impl.hpp"
 #include "miner/storage_fsm/precommit_policy.hpp"
 #include "primitives/tipset/tipset_key.hpp"
-#include "vm/actor/builtin/miner/policy.hpp"
+#include "vm/actor/builtin/v0/miner/policy.hpp"
 
 namespace fc::miner {
   using mining::BasicPreCommitPolicy;
@@ -22,8 +22,8 @@ namespace fc::miner {
   using mining::TipsetCache;
   using mining::TipsetCacheImpl;
   using primitives::tipset::TipsetKey;
-  using vm::actor::builtin::miner::kMaxSectorExpirationExtension;
-  using vm::actor::builtin::miner::kWPoStProvingPeriod;
+  using vm::actor::builtin::v0::miner::kMaxSectorExpirationExtension;
+  using vm::actor::builtin::v0::miner::kWPoStProvingPeriod;
 
   MinerImpl::MinerImpl(std::shared_ptr<Api> api,
                        Address miner_address,
@@ -46,8 +46,9 @@ namespace fc::miner {
                 api_->StateMinerProvingDeadline(miner_address_, TipsetKey{}));
 
     std::shared_ptr<TipsetCache> tipset_cache =
-        std::make_shared<TipsetCacheImpl>(2 * kGlobalChainConfidence,
-                                          api_->ChainGetTipSetByHeight);
+        std::make_shared<TipsetCacheImpl>(
+            2 * kGlobalChainConfidence,
+            [=](auto h) { return api_->ChainGetTipSetByHeight(h, {}); });
     std::shared_ptr<Events> events =
         std::make_shared<EventsImpl>(api_, tipset_cache);
     OUTCOME_TRY(events->subscribeHeadChanges());
