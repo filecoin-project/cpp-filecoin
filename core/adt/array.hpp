@@ -21,7 +21,7 @@ namespace fc::adt {
 
     Array(const CID &root, IpldPtr ipld = nullptr) : amt{ipld, root} {}
 
-    outcome::result<boost::optional<Value>> tryGet(Key key) {
+    outcome::result<boost::optional<Value>> tryGet(Key key) const {
       auto maybe = get(key);
       if (!maybe) {
         if (maybe.error() != storage::amt::AmtError::kNotFound) {
@@ -32,11 +32,11 @@ namespace fc::adt {
       return maybe.value();
     }
 
-    outcome::result<bool> has(Key key) {
+    outcome::result<bool> has(Key key) const {
       return amt.contains(key);
     }
 
-    outcome::result<Value> get(Key key) {
+    outcome::result<Value> get(Key key) const {
       return amt.getCbor<Value>(key);
     }
 
@@ -53,14 +53,19 @@ namespace fc::adt {
       return set(count, value);
     }
 
-    outcome::result<void> visit(const Visitor &visitor) {
+    outcome::result<uint64_t> size() const {
+      OUTCOME_TRY(size, amt.count());
+      return size;
+    }
+
+    outcome::result<void> visit(const Visitor &visitor) const {
       return amt.visit([&](auto key, auto &value) -> outcome::result<void> {
         OUTCOME_TRY(value2, amt.ipld->decode<Value>(value));
         return visitor(key, value2);
       });
     }
 
-    outcome::result<std::vector<Value>> values() {
+    outcome::result<std::vector<Value>> values() const {
       std::vector<Value> values;
       OUTCOME_TRY(visit([&](auto, auto &value) {
         values.push_back(value);
