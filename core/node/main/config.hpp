@@ -9,6 +9,7 @@
 #include <spdlog/logger.h>
 #include <libp2p/peer/peer_info.hpp>
 #include <libp2p/protocol/gossip/gossip.hpp>
+#include <libp2p/protocol/kademlia/config.hpp>
 
 #include "crypto/bls/bls_types.hpp"
 #include "primitives/cid/cid.hpp"
@@ -26,6 +27,7 @@ namespace fc::node {
     std::string network_name;
     std::vector<libp2p::peer::PeerInfo> bootstrap_list;
     libp2p::protocol::gossip::Config gossip_config;
+    libp2p::protocol::kademlia::Config kademlia_config;
 
     // drand config
     std::vector<std::string> drand_servers;

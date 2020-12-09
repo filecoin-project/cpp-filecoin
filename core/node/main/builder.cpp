@@ -223,17 +223,19 @@ namespace fc::node {
       return keypair;
     }
 
-    std::shared_ptr<libp2p::protocol::kademlia::Kademlia> createKademlia(
-        const Config &config,
+    std::shared_ptr<libp2p::protocol::kademlia::KademliaImpl> createKademlia(
+        Config &config,
         const NodeObjects &o,
         std::shared_ptr<libp2p::peer::IdentityManager> id_manager,
         std::shared_ptr<libp2p::event::Bus> bus) {
-      libp2p::protocol::kademlia::Config kad_config;
-      kad_config.protocolId = std::string("/fil/kad/") + config.network_name;
+      config.kademlia_config.protocolId =
+          std::string("/fil/kad/") + config.network_name + "/kad/1.0.0";
+
+      config.kademlia_config.randomWalk.enabled = false;
 
       std::shared_ptr<libp2p::protocol::kademlia::Storage> kad_storage =
           std::make_shared<libp2p::protocol::kademlia::StorageImpl>(
-              kad_config,
+              config.kademlia_config,
               std::make_shared<
                   libp2p::protocol::kademlia::StorageBackendDefault>(),
               o.scheduler);
@@ -241,12 +243,12 @@ namespace fc::node {
       std::shared_ptr<libp2p::protocol::kademlia::ContentRoutingTable>
           content_routing_table = std::make_shared<
               libp2p::protocol::kademlia::ContentRoutingTableImpl>(
-              kad_config, *o.scheduler, bus);
+              config.kademlia_config, *o.scheduler, bus);
 
       std::shared_ptr<libp2p::protocol::kademlia::PeerRoutingTable>
           peer_routing_table = std::make_shared<
               libp2p::protocol::kademlia::PeerRoutingTableImpl>(
-              kad_config, id_manager, bus);
+              config.kademlia_config, id_manager, bus);
 
       std::shared_ptr<libp2p::protocol::kademlia::Validator> validator =
           std::make_shared<libp2p::protocol::kademlia::ValidatorDefault>();
@@ -256,7 +258,7 @@ namespace fc::node {
               std::make_shared<libp2p::crypto::random::BoostRandomGenerator>();
 
       return std::make_shared<libp2p::protocol::kademlia::KademliaImpl>(
-          kad_config,
+          config.kademlia_config,
           o.host,
           std::move(kad_storage),
           std::move(content_routing_table),
@@ -385,12 +387,14 @@ namespace fc::node {
 
     auto id_manager =
         injector.create<std::shared_ptr<libp2p::peer::IdentityManager>>();
+
     auto bus = injector.create<std::shared_ptr<libp2p::event::Bus>>();
 
+    auto kademlia =
+        createKademlia(config, o, std::move(id_manager), std::move(bus));
+
     o.peer_discovery = std::make_shared<sync::PeerDiscovery>(
-        o.host,
-        o.scheduler,
-        createKademlia(config, o, std::move(id_manager), std::move(bus)));
+        o.host, o.scheduler, std::move(kademlia));
 
     // o.graphsync =
     // TODO (artem) default service handler for GS
