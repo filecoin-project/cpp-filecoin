@@ -21,9 +21,19 @@ namespace fc::vm::runtime {
   using state::StateTree;
   using state::StateTreeImpl;
 
+  /**
+   * Returns the public key type of address (`BLS`/`SECP256K1`) of an account
+   * actor identified by `address`.
+   * @param state_tree - state tree
+   * @param ipld - regular or charging ipld
+   * @param address - account actor address
+   * @param allow_actor - is actor type address allowed
+   * @return key address
+   */
   outcome::result<Address> resolveKey(StateTree &state_tree,
+                                      IpldPtr ipld,
                                       const Address &address,
-                                      bool no_actor = false);
+                                      bool allow_actor = true);
 
   /// Environment contains objects that are shared by runtime contexts
   struct Env : std::enable_shared_from_this<Env> {

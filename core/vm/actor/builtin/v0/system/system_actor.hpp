@@ -3,12 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_SYSTEM_ACTOR_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_SYSTEM_ACTOR_HPP
+#ifndef CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V0_SYSTEM_ACTOR_HPP
+#define CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V0_SYSTEM_ACTOR_HPP
 
 #include "vm/actor/actor_method.hpp"
 
-namespace fc::vm::actor::builtin::system {
+namespace fc::vm::actor::builtin::v0::system {
 
   /// System actor state
   struct State {
@@ -22,6 +22,6 @@ namespace fc::vm::actor::builtin::system {
 
   extern const ActorExports exports;
 
-}  // namespace fc::vm::actor::builtin::system
+}  // namespace fc::vm::actor::builtin::v0::system
 
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_SYSTEM_ACTOR_HPP
+#endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V0_SYSTEM_ACTOR_HPP

@@ -46,6 +46,8 @@ namespace fc::vm {
     kErrIllegalState,
     kErrSerialization,
 
+    kErrFirstActorSpecificExitCode = 32,
+
     kErrPlaceholder = 1000,
 
     kDecodeActorParamsError,
@@ -75,11 +77,6 @@ namespace fc::vm {
     kMultisigActorForbidden,
     kMultisigActorInsufficientFunds,
     kMultisigActorIllegalState,
-
-    kPaymentChannelWrongCaller,
-    kPaymentChannelIllegalArgument,
-    kPaymentChannelForbidden,
-    kPaymentChannelIllegalState,
 
     kStoragePowerActorWrongCaller,
     kStoragePowerActorOutOfBound,

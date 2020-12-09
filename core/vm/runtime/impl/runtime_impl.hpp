@@ -68,7 +68,12 @@ namespace fc::vm::runtime {
                                       const Actor &actor) override;
 
     /** \copydoc Runtime::deleteActor() */
-    outcome::result<void> deleteActor() override;
+    outcome::result<void> deleteActor(const Address &address) override;
+
+    /** \copydoc Runtime::transfer() */
+    outcome::result<void> transfer(const Address &debitFrom,
+                                   const Address &creditTo,
+                                   const TokenAmount &amount) override;
 
     /** \copydoc Runtime::getTotalFilCirculationSupply() */
     fc::outcome::result<TokenAmount> getTotalFilCirculationSupply()
@@ -85,10 +90,6 @@ namespace fc::vm::runtime {
     outcome::result<CID> getCurrentActorState() override;
 
     outcome::result<void> commit(const CID &new_state) override;
-
-    static outcome::result<void> transfer(Actor &from,
-                                          Actor &to,
-                                          const BigInt &amount);
 
     outcome::result<Address> resolveAddress(const Address &address) override;
 

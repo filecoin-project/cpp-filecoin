@@ -111,8 +111,8 @@ namespace fc::payment_channel_manager {
 
     // get redeemed
     TokenAmount redeemed{0};
-    auto lane_lookup = payment_channel_actor_state.findLane(voucher.lane);
-    if (lane_lookup != payment_channel_actor_state.lanes.end()) {
+    OUTCOME_TRY(lane_lookup, payment_channel_actor_state.lanes.tryGet(voucher.lane));
+    if (lane_lookup) {
       redeemed = lane_lookup->redeem;
     }
 
@@ -141,8 +141,8 @@ namespace fc::payment_channel_manager {
 
     // check lane nonce if any lane exists
     auto voucher_send_amount = voucher.amount;
-    auto lane_lookup = payment_channel_actor_state.findLane(voucher.lane);
-    if (lane_lookup != payment_channel_actor_state.lanes.end()) {
+    OUTCOME_TRY(lane_lookup, payment_channel_actor_state.lanes.tryGet(voucher.lane));
+    if (lane_lookup) {
       if (lane_lookup->nonce >= voucher.nonce) {
         return PaymentChannelManagerError::kWrongNonce;
       }
