@@ -922,14 +922,14 @@ namespace fc::api {
       Value j{rapidjson::kObjectType};
       Set(j, "Actor", v.actor);
       Set(j, "Method", v.method);
-      Set(j, "Data", gsl::make_span(v.data));
+      Set(j, "Params", gsl::make_span(v.params));
       return j;
     }
 
     DECODE(ModularVerificationParameter) {
       decode(v.actor, Get(j, "Actor"));
       decode(v.method, Get(j, "Method"));
-      decode(v.data, Get(j, "Data"));
+      decode(v.params, Get(j, "Params"));
     }
 
     ENCODE(Merge) {

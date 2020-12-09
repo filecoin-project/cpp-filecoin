@@ -25,6 +25,10 @@ namespace fc {
   constexpr auto kPackingEfficiencyNum{4};
   constexpr auto kPropagationDelaySecs{6};
   constexpr auto kUpgradeSmokeHeight{51000};
+  constexpr auto kSecondsInHour {60 * 60};
+  constexpr auto kSecondsInDay {24 * kSecondsInHour};
+  constexpr auto kEpochsInHour {kSecondsInHour / kEpochDurationSeconds};
+  constexpr auto kEpochsInDay {24 * kEpochsInHour};
 
   extern BigInt kConsensusMinerMinPower;
 }  // namespace fc

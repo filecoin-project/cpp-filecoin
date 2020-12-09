@@ -53,6 +53,11 @@ namespace fc::adt {
       return set(count, value);
     }
 
+    outcome::result<uint64_t> size() {
+      OUTCOME_TRY(size, amt.count());
+      return size;
+    }
+
     outcome::result<void> visit(const Visitor &visitor) {
       return amt.visit([&](auto key, auto &value) -> outcome::result<void> {
         OUTCOME_TRY(value2, amt.ipld->decode<Value>(value));

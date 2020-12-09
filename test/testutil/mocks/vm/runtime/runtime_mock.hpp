@@ -56,7 +56,12 @@ namespace fc::vm::runtime {
                  outcome::result<void>(const Address &address,
                                        const Actor &actor));
 
-    MOCK_METHOD0(deleteActor, outcome::result<void>());
+    MOCK_METHOD1(deleteActor, outcome::result<void>(const Address &address));
+
+    MOCK_METHOD3(transfer,
+                 outcome::result<void>(const Address &debitFrom,
+                                       const Address &creditTo,
+                                       const TokenAmount &amount));
 
     MOCK_CONST_METHOD0(getTotalFilCirculationSupply,
                        fc::outcome::result<TokenAmount>());

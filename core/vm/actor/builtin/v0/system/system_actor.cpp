@@ -5,7 +5,7 @@
 
 #include "vm/actor/builtin/v0/system/system_actor.hpp"
 
-namespace fc::vm::actor::builtin::system {
+namespace fc::vm::actor::builtin::v0::system {
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
@@ -16,4 +16,4 @@ namespace fc::vm::actor::builtin::system {
 
   const ActorExports exports{exportMethod<Construct>()};
 
-}  // namespace fc::vm::actor::builtin::system
+}  // namespace fc::vm::actor::builtin::v0::system

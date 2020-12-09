@@ -23,7 +23,8 @@ namespace fc::vm::actor::builtin::v0::init {
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    InitActorState state{};
+    InitActorState state;
+    runtime.getIpfsDatastore()->load(state);
     state.network_name = params.network_name;
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();

@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_VERIFIED_REGISTRY_ACTOR_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_VERIFIED_REGISTRY_ACTOR_HPP
+#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_VERIFIED_REGISTRY_ACTOR_HPP
+#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_VERIFIED_REGISTRY_ACTOR_HPP
 
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
@@ -71,4 +71,4 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::v0::verified_registry
 
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_VERIFIED_REGISTRY_ACTOR_HPP
+#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_VERIFIED_REGISTRY_ACTOR_HPP
