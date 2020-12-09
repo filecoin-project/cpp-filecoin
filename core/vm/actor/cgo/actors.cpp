@@ -206,13 +206,11 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtSend) {
-    UnsignedMessage m;
-    m.from = rt->getMessage().get().to;
-    m.to = arg.get<Address>();
-    m.method = arg.get<uint64_t>();
-    m.params = arg.get<Buffer>();
-    m.value = arg.get<TokenAmount>();
-    auto r{rt->execution()->sendWithRevert(m)};
+    auto to = arg.get<Address>();
+    auto method = arg.get<uint64_t>();
+    auto params = arg.get<Buffer>();
+    auto value = arg.get<TokenAmount>();
+    auto r{rt->send(to, method, params, value)};
     if (!r) {
       auto &e{r.error()};
       if (!isVMExitCode(e) || e == kFatal) {
@@ -231,65 +229,30 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtVerifySig) {
-    auto _sig{arg.get<Buffer>()};
-    auto bls{!_sig.empty() && _sig[0] == crypto::signature::BLS};
-    if (charge(
-            ret, rt, rt->execution()->env->pricelist.onVerifySignature(bls))) {
-      auto address{arg.get<Address>()};
-      auto ok{address.isKeyType()};
-      if (address.isId()) {
-        // resolve id address to key address
-        if (auto actor{rt->execution()->state_tree->get(address)}) {
-          if (auto state{ipldGet(ret, rt, actor.value().head)}) {
-            if (auto account{
-                    codec::cbor::decode<AccountActorState>(state.value())}) {
-              address = account.value().address;
-              ok = true;
-            }
-          } else {
-            return;
-          }
-        }
-      }
-      if (ok) {
-        if (auto sig{Signature::fromBytes(_sig)}) {
-          auto input{arg.get<Buffer>()};
-          auto r{keystore.verify(address, input, sig.value())};
-          ok = r && r.value();
-        } else {
-          ok = false;
-        }
-      }
-      ret << kOk << ok;
+    auto signature{Signature::fromBytes(arg.get<Buffer>())};
+    auto address{arg.get<Address>()};
+    auto data{arg.get<Buffer>()};
+    if (auto ok{rt->verifySignature(signature.value(), address, data)}) {
+      ret << kOk << ok.value();
+    } else {
+      ret << kFatal;
     }
   }
 
   RUNTIME_METHOD(gocRtCommD) {
-    if (charge(ret,
-               rt,
-               rt->execution()->env->pricelist.onComputeUnsealedSectorCid())) {
-      auto type{arg.get<RegisteredProof>()};
-      auto pieces{arg.get<std::vector<PieceInfo>>()};
-      if (auto r{proofs::Proofs::generateUnsealedCID(type, pieces, true)}) {
-        ret << kOk << true << r.value();
-      } else {
-        ret << kOk << false;
-      }
+    auto type{arg.get<RegisteredProof>()};
+    auto pieces{arg.get<std::vector<PieceInfo>>()};
+
+    if (auto cid{rt->computeUnsealedSectorCid(type, pieces)}) {
+      ret << kOk << true << cid.value();
+    } else {
+      ret << kOk << false;
     }
   }
 
   RUNTIME_METHOD(gocRtNewAddress) {
-    auto &exec{*rt->execution()};
-    if (auto _key{resolveKey(*exec.state_tree, exec.origin)}) {
-      if (auto _seed{codec::cbor::encode(_key.value())}) {
-        auto &seed{_seed.value()};
-        seed.putUint64(exec.origin_nonce);
-        seed.putUint64(exec.actors_created);
-        ++exec.actors_created;
-        ret << kOk << Address::makeActorExec(seed);
-      } else {
-        ret << kFatal;
-      }
+    if (auto address{rt->createNewActorAddress()}) {
+      ret << kOk << address.value();
     } else {
       ret << kFatal;
     }
@@ -370,40 +333,10 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtDeleteActor) {
-    if (charge(ret, rt, rt->execution()->env->pricelist.onDeleteActor())) {
-      auto to{arg.get<Address>()};
-      auto &state{*rt->execution()->state_tree};
-      if (auto _actor{state.get(rt->getMessage().get().to)}) {
-        auto &balance{_actor.value().balance};
-        auto transfer{[&]() -> outcome::result<void> {
-          OUTCOME_TRY(from_id, state.lookupId(rt->getMessage().get().to));
-          OUTCOME_TRY(to_id, state.lookupId(to));
-          if (from_id != to_id) {
-            OUTCOME_TRY(from_actor, state.get(from_id));
-            OUTCOME_TRY(to_actor, state.get(to_id));
-            from_actor.balance -= balance;
-            to_actor.balance += balance;
-            OUTCOME_TRY(state.set(from_id, from_actor));
-            OUTCOME_TRY(state.set(to_id, to_actor));
-          }
-          return outcome::success();
-        }};
-        if (balance.is_zero() || transfer()) {
-          if (state.remove(rt->getMessage().get().to)) {
-            ret << kOk;
-          } else {
-            ret << kFatal;
-          }
-        } else {
-          ret << kFatal;
-        }
-      } else {
-        if (_actor.error() == HamtError::kNotFound) {
-          ret << VMExitCode::kSysErrorIllegalActor;
-        } else {
-          ret << kFatal;
-        }
-      }
+    if (rt->deleteActor(arg.get<Address>())) {
+      ret << kOk;
+    } else {
+      ret << kFatal;
     }
   }
 }  // namespace fc::vm::actor::cgo

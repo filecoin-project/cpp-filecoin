@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MARKET_POLICY_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MARKET_POLICY_HPP
+#ifndef CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V0_MARKET_POLICY_HPP
+#define CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V0_MARKET_POLICY_HPP
 
 #include "primitives/piece/piece.hpp"
 #include "vm/actor/builtin/v0/miner/policy.hpp"
@@ -111,4 +111,4 @@ namespace fc::vm::actor::builtin::v0::market {
   }
 }  // namespace fc::vm::actor::builtin::v0::market
 
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_MARKET_POLICY_HPP
+#endif  // CPP_FILECOIN_CORE_VM_ACTOR_BUILTIN_V0_MARKET_POLICY_HPP

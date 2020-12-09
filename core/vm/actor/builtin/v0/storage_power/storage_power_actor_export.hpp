@@ -3,8 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_ACTOR_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_ACTOR_HPP
+#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_ACTOR_HPP
+#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_ACTOR_HPP
 
 #include <libp2p/multi/multiaddress.hpp>
 #include "primitives/sector/sector.hpp"
@@ -151,4 +151,4 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::v0::storage_power
 
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_ACTOR_HPP
+#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_ACTOR_HPP

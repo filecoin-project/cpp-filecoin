@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
+#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_STATE_HPP
+#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_STATE_HPP
 
+#include "adt/array.hpp"
 #include "crypto/signature/signature.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/actor.hpp"
@@ -20,32 +21,24 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   using LaneId = uint64_t;
 
   struct LaneState {
-    LaneId id{};
     /** Total amount for vouchers have been redeemed from the lane */
     TokenAmount redeem{};
     uint64_t nonce{};
 
     inline bool operator==(const LaneState &other) const {
-      return id == other.id && redeem == other.redeem && nonce == other.nonce;
+      return redeem == other.redeem && nonce == other.nonce;
     }
   };
-  CBOR_TUPLE(LaneState, id, redeem, nonce)
+  CBOR_TUPLE(LaneState, redeem, nonce)
 
   struct State {
-    inline auto findLane(LaneId lane_id) {
-      return std::lower_bound(
-          lanes.begin(), lanes.end(), lane_id, [](auto &lane, auto lane_id) {
-            return lane.id < lane_id;
-          });
-    }
-
     Address from;
     Address to;
     /** Token amount to send on collect after voucher was redeemed */
     TokenAmount to_send{};
-    ChainEpoch settling_at;
-    ChainEpoch min_settling_height;
-    std::vector<LaneState> lanes{};
+    ChainEpoch settling_at{};
+    ChainEpoch min_settling_height{};
+    adt::Array<LaneState> lanes;
   };
   CBOR_TUPLE(State, from, to, to_send, settling_at, min_settling_height, lanes)
 
@@ -65,13 +58,13 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   struct ModularVerificationParameter {
     Address actor;
     MethodNumber method;
-    Buffer data;
+    Buffer params;
 
     inline bool operator==(const ModularVerificationParameter &rhs) const {
-      return actor == rhs.actor && method == rhs.method && data == rhs.data;
+      return actor == rhs.actor && method == rhs.method && params == rhs.params;
     }
   };
-  CBOR_TUPLE(ModularVerificationParameter, actor, method, data)
+  CBOR_TUPLE(ModularVerificationParameter, actor, method, params)
 
   struct SignedVoucher {
     Address channel;
@@ -115,4 +108,15 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
   CBOR_TUPLE(PaymentVerifyParams, extra, proof);
 }  // namespace fc::vm::actor::builtin::v0::payment_channel
 
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_PAYMENT_CHANNEL_ACTOR_STATE_HPP
+namespace fc {
+  template <>
+  struct Ipld::Visit<vm::actor::builtin::v0::payment_channel::State> {
+    template <typename Visitor>
+    static void call(vm::actor::builtin::v0::payment_channel::State &state,
+                     const Visitor &visit) {
+      visit(state.lanes);
+    }
+  };
+}  // namespace fc
+
+#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_PAYMENT_CHANNEL_ACTOR_STATE_HPP

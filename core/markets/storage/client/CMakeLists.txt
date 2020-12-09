@@ -17,7 +17,7 @@ target_link_libraries(storage_market_client
     logger
     piece
     signature
-    market_actor
+    market_actor_v0
     message
     tipset
     )
