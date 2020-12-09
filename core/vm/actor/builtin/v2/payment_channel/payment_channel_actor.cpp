@@ -91,7 +91,6 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
       return VMExitCode::kErrIllegalArgument;
     }
     if (voucher.extra) {
-      //OUTCOME_TRY(params_extra, encodeActorParams(voucher.extra->params));
       OUTCOME_TRY(runtime.send(
           voucher.extra->actor, voucher.extra->method, voucher.extra->params, 0));
     }
