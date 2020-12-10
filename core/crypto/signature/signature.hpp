@@ -49,6 +49,7 @@ namespace fc::crypto::signature {
 
     Buffer toBytes() const;
     static outcome::result<Signature> fromBytes(BytesIn input);
+    static outcome::result<bool> isBls(const BytesIn &input);
   };
 
   CBOR_ENCODE(Signature, signature) {

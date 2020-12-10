@@ -138,7 +138,7 @@ namespace fc::vm::runtime {
      * @brief Deletes an actor in the state tree
      *
      * @param address - Address of actor that receives remaining balance
-     * 
+     *
      * May only be called by the actor itself
      */
     virtual outcome::result<void> deleteActor(const Address &address) = 0;
@@ -195,6 +195,11 @@ namespace fc::vm::runtime {
     /// Verify signature
     virtual outcome::result<bool> verifySignature(
         const Signature &signature,
+        const Address &address,
+        gsl::span<const uint8_t> data) = 0;
+
+    virtual outcome::result<bool> verifySignatureBytes(
+        const Buffer &signature_bytes,
         const Address &address,
         gsl::span<const uint8_t> data) = 0;
 
