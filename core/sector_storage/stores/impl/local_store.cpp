@@ -47,10 +47,9 @@ namespace fc::sector_storage::stores {
     return StoreErrors::kInvalidSectorName;
   }
 
-  LocalStoreImpl::LocalStoreImpl(
-      std::shared_ptr<LocalStorage> storage,
-      std::shared_ptr<SectorIndex> index,
-      gsl::span<const std::string> urls)
+  LocalStoreImpl::LocalStoreImpl(std::shared_ptr<LocalStorage> storage,
+                                 std::shared_ptr<SectorIndex> index,
+                                 gsl::span<const std::string> urls)
       : storage_(std::move(storage)),
         index_(std::move(index)),
         urls_(urls.begin(), urls.end()) {
@@ -167,10 +166,6 @@ namespace fc::sector_storage::stores {
 
     OUTCOME_TRY(storages_info,
                 index_->storageFindSector(sector, type, boost::none));
-
-    if (storages_info.empty()) {
-      return StoreErrors::kNotFoundSector;
-    }
 
     for (const auto &info : storages_info) {
       OUTCOME_TRY(removeSector(sector, type, info.id));
@@ -357,7 +352,12 @@ namespace fc::sector_storage::stores {
     }
 
     OUTCOME_TRY(storage_->setStorage([path](stores::StorageConfig &config) {
-      config.storage_paths.push_back({std::move(path)});
+      auto &xs{config.storage_paths};
+      if (std::find_if(
+              xs.begin(), xs.end(), [&](auto &x) { return x.path == path; })
+          == xs.end()) {
+        xs.push_back({std::move(path)});
+      }
     }));
     paths_[meta.id] = out;
 
@@ -376,8 +376,7 @@ namespace fc::sector_storage::stores {
           : LocalStoreImpl{storage, index, urls} {};
     };
     std::shared_ptr<LocalStoreImpl> local =
-        std::make_unique<make_unique_enabler>(
-            storage, index, urls);
+        std::make_unique<make_unique_enabler>(storage, index, urls);
 
     if (local->logger_ == nullptr) {
       return StoreErrors::kCannotInitLogger;
@@ -392,14 +391,14 @@ namespace fc::sector_storage::stores {
     for (const auto &path : config.storage_paths) {
       OUTCOME_TRY(local->openPath(path.path));
     }
-    local->handler_ = scheduler->schedule(
-        local->heartbeat_interval_,
-        [self = std::weak_ptr<LocalStoreImpl>(local)]() {
-          auto shared_self = self.lock();
-          if (shared_self) {
-            shared_self->reportHealth();
-          }
-        });
+    local->handler_ =
+        scheduler->schedule(local->heartbeat_interval_,
+                            [self = std::weak_ptr<LocalStoreImpl>(local)]() {
+                              auto shared_self = self.lock();
+                              if (shared_self) {
+                                shared_self->reportHealth();
+                              }
+                            });
     return std::move(local);
   }
 

@@ -17,8 +17,6 @@ using fc::common::Buffer;
 using fc::crypto::bls::BlsProviderImpl;
 using fc::primitives::address::Address;
 using fc::primitives::address::Network;
-using fc::sector_storage::stores::LocalPath;
-using fc::sector_storage::stores::StorageConfig;
 using fc::storage::repository::FileSystemRepository;
 using fc::storage::repository::Repository;
 using fc::storage::repository::RepositoryError;
@@ -167,63 +165,4 @@ TEST_F(FilesSystemRepositoryTest, InvalidVersion) {
   EXPECT_OUTCOME_ERROR(RepositoryError::kWrongVersion,
                        FileSystemRepository::create(
                            base_path.string(), api_address, leveldb_options));
-}
-
-/**
- * @given Repository with .json config
- * @when Get storage config from parsed .json file
- * @then Storage with paths from parsed .json file
- */
-TEST_F(FilesSystemRepositoryTest, GetStorage) {
-  auto const config_path =
-      fs::canonical(createFile(FileSystemRepository::kStorageConfig)).string();
-  std::ofstream config_file(config_path);
-  config_file << "{\n"
-                 "  \"StoragePaths\": [\n"
-                 "    {\n"
-                 "      \"Path\": \"preseal1\"\n"
-                 "    },\n"
-                 "    {\n"
-                 "      \"Path\": \"miner1\"\n"
-                 "    }\n"
-                 "  ]\n"
-                 "}";
-  config_file.close();
-  EXPECT_OUTCOME_TRUE(rep,
-                      FileSystemRepository::create(
-                          base_path.string(), api_address, leveldb_options));
-  EXPECT_OUTCOME_TRUE(config, rep->getStorage());
-  std::vector<LocalPath> paths = {{"preseal1"}, {"miner1"}};
-  ASSERT_EQ(config.storage_paths, paths);
-}
-
-/**
- * @given Repository with .json config
- * @when Get storage from a .json parsed file, then apply some function for the
- * storage and after that write result to .json file
- * @then .json file with an updated storage config
- */
-TEST_F(FilesSystemRepositoryTest, SetStorage) {
-  auto config_path =
-      fs::canonical(createFile(FileSystemRepository::kStorageConfig)).string();
-  std::ofstream config_file(config_path);
-  config_file << "{\n"
-                 "  \"StoragePaths\": [\n"
-                 "    {\n"
-                 "      \"Path\": \"preseal1\"\n"
-                 "    },\n"
-                 "    {\n"
-                 "      \"Path\": \"miner1\"\n"
-                 "    }\n"
-                 "  ]\n"
-                 "}";
-  config_file.close();
-  EXPECT_OUTCOME_TRUE(rep,
-                      FileSystemRepository::create(
-                          base_path.string(), api_address, leveldb_options));
-  EXPECT_OUTCOME_TRUE_1(rep->setStorage(
-      [](StorageConfig &cfg) { cfg.storage_paths.push_back({"test1"}); }))
-  EXPECT_OUTCOME_TRUE(config, rep->getStorage());
-  std::vector<LocalPath> paths = {{"preseal1"}, {"miner1"}, {"test1"}};
-  ASSERT_EQ(config.storage_paths, paths);
 }

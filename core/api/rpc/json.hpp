@@ -201,6 +201,14 @@ namespace fc::api {
       decodeEnum(v, j);
     }
 
+    ENCODE(NetworkVersion) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(NetworkVersion) {
+      decodeEnum(v, j);
+    }
+
     ENCODE(None) {
       return {};
     }

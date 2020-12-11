@@ -6,18 +6,13 @@
 #ifndef FILECOIN_CORE_STORAGE_REPOSITORY_HPP
 #define FILECOIN_CORE_STORAGE_REPOSITORY_HPP
 
-#include "boost/filesystem.hpp"
-#include "common/outcome.hpp"
-#include "sector_storage/stores/storage.hpp"
+#include <boost/filesystem.hpp>
+
 #include "storage/config/config.hpp"
 #include "storage/ipfs/datastore.hpp"
 #include "storage/keystore/keystore.hpp"
 
 namespace fc::storage::repository {
-
-  using fc::primitives::FsStat;
-  using fc::sector_storage::stores::LocalStorage;
-  using fc::sector_storage::stores::StorageConfig;
   using fc::storage::config::Config;
   using fc::storage::ipfs::IpfsDatastore;
   using fc::storage::keystore::KeyStore;
@@ -25,7 +20,7 @@ namespace fc::storage::repository {
   /**
    * @brief Class represents all persistent data on node
    */
-  class Repository : public LocalStorage {
+  class Repository {
    public:
     using Version = unsigned int;
 
@@ -59,8 +54,6 @@ namespace fc::storage::repository {
      * @return version number
      */
     virtual fc::outcome::result<Version> getVersion() const = 0;
-    outcome::result<FsStat> getStat(const std::string &path) override;
-    outcome::result<uint64_t> getDiskUsage(const std::string &path) override;
 
    protected:
     /**
@@ -69,10 +62,6 @@ namespace fc::storage::repository {
      * @return error code in case of failure
      */
     outcome::result<void> loadConfig(const std::string &filename);
-    outcome::result<StorageConfig> storageFromFile(
-        const boost::filesystem::path &path);
-    outcome::result<void> writeStorage(const boost::filesystem::path &path,
-                                       StorageConfig config);
 
    private:
     std::shared_ptr<IpfsDatastore> ipld_store_;

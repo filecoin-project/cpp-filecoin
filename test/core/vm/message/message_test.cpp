@@ -115,7 +115,7 @@ struct MessageTest : public testing::Test {
 
     msigner = std::make_shared<MessageSignerImpl>(keystore);
 
-    message = makeMessage(bls, Address{Network::TESTNET, 1001}, 0);
+    message = makeMessage(bls, Address{1001}, 0);
   }
 };
 

@@ -53,7 +53,6 @@ namespace fc::miner {
 
     Address getAddress() const override;
 
-   private:
     /**
      * Checks miner worker address
      * @return error if worker address is incorrect

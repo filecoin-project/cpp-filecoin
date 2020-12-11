@@ -70,8 +70,7 @@ TEST_F(StateTreeTest, SetRevert) {
  */
 TEST_F(StateTreeTest, RegisterNewAddressLookupId) {
   auto tree = setupInitActor(nullptr, 13);
-  Address address{fc::primitives::address::TESTNET,
-                  fc::primitives::address::ActorExecHash{}};
+  Address address{fc::primitives::address::ActorExecHash{}};
   EXPECT_OUTCOME_EQ(tree->registerNewAddress(address), kAddressId);
   EXPECT_OUTCOME_EQ(tree->lookupId(address), kAddressId);
 }

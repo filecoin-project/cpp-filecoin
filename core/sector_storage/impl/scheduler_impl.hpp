@@ -54,15 +54,12 @@ namespace fc::sector_storage {
   };
 
   inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
-    if (lhs.priority != rhs.priority) {
-      return lhs.priority > rhs.priority;
-    }
-
-    if (lhs.task_type != rhs.task_type) {
-      return lhs.task_type < rhs.task_type;
-    }
-
-    return lhs.sector.sector < rhs.sector.sector;
+    return less(rhs.priority,
+                lhs.priority,
+                lhs.task_type,
+                rhs.task_type,
+                lhs.sector.sector,
+                rhs.sector.sector);
   }
 
   class SchedulerImpl : public Scheduler {
