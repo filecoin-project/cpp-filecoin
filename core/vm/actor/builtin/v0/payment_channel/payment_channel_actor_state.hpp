@@ -77,7 +77,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
     TokenAmount amount;
     ChainEpoch min_close_height{};
     std::vector<Merge> merges{};
-    boost::optional<Signature> signature;
+    boost::optional<Buffer> signature_bytes;
 
     inline bool operator==(const SignedVoucher &rhs) const {
       return channel == rhs.channel && time_lock_min == rhs.time_lock_min
@@ -85,7 +85,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
              && secret_preimage == rhs.secret_preimage && extra == rhs.extra
              && lane == rhs.lane && nonce == rhs.nonce && amount == rhs.amount
              && min_close_height == rhs.min_close_height && merges == rhs.merges
-             && signature == rhs.signature;
+             && signature_bytes == rhs.signature_bytes;
     }
   };
   CBOR_TUPLE(SignedVoucher,
@@ -99,7 +99,7 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
              amount,
              min_close_height,
              merges,
-             signature)
+             signature_bytes)
 
   struct PaymentVerifyParams {
     Buffer extra;

@@ -956,7 +956,7 @@ namespace fc::api {
       Set(j, "Amount", v.amount);
       Set(j, "MinSettleHeight", v.min_close_height);
       Set(j, "Merges", v.merges);
-      Set(j, "Signature", v.signature);
+      Set(j, "SignatureBytes", v.signature_bytes);
       return j;
     }
 
@@ -971,7 +971,7 @@ namespace fc::api {
       decode(v.amount, Get(j, "Amount"));
       decode(v.min_close_height, Get(j, "MinSettleHeight"));
       decode(v.merges, Get(j, "Merges"));
-      decode(v.signature, Get(j, "Signature"));
+      decode(v.signature_bytes, Get(j, "SignatureBytes"));
     }
 
     ENCODE(HeadChange) {
