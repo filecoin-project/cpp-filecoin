@@ -213,7 +213,7 @@ namespace fc::vm::runtime {
       const Address &address,
       gsl::span<const uint8_t> data) {
     const auto bls = Signature::isBls(signature_bytes);
-    if (!bls) {
+    if (bls.has_error()) {
       return false;
     }
     OUTCOME_TRY(
