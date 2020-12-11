@@ -577,8 +577,7 @@ TEST_F(LocalStoreTest, removeNotExistSector) {
       .WillOnce(
           testing::Return(fc::outcome::success(std::vector<StorageInfo>())));
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::kNotFoundSector,
-                       local_store_->remove(sector, type));
+  EXPECT_OUTCOME_TRUE_1(local_store_->remove(sector, type));
 }
 
 /**

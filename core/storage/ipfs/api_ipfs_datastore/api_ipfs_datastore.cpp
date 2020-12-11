@@ -13,9 +13,6 @@ namespace fc::storage::ipfs {
   outcome::result<bool> ApiIpfsDatastore::contains(const CID &key) const {
     auto res = api_->ChainReadObj(key);
     if (res.has_error()) {
-      if (res.error() == IpfsDatastoreError::kNotFound) {
-        return false;
-      }
       return res.error();
     }
     return true;
