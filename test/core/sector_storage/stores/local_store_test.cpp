@@ -563,7 +563,7 @@ TEST_F(LocalStoreTest, removeSeveralSectorTypes) {
 /**
  * @given non existing sector info
  * @when try to remove this sector
- * @then StoreErrors::NotFoundSector error occurs
+ * @then success
  */
 TEST_F(LocalStoreTest, removeNotExistSector) {
   SectorId sector{

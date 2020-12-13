@@ -719,7 +719,6 @@ namespace fc::api {
         .StateNetworkName = {[=]() -> outcome::result<std::string> {
           return chain_store->getNetworkName();
         }},
-        // TODO(artyom-yurin): FIL-165 implement method
         .StateNetworkVersion =
             [=](auto &tipset_key) -> outcome::result<NetworkVersion> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));

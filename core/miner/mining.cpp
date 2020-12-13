@@ -95,8 +95,9 @@ namespace fc::mining {
   outcome::result<void> Mining::submit(BlockTemplate block1) {
     // TODO: slash filter
     OUTCOME_TRY(block2, api->MinerCreateBlock(block1));
+    auto result{api->SyncSubmitBlock(block2)};
     waitParent();
-    OUTCOME_TRY(api->SyncSubmitBlock(block2));
+    OUTCOME_TRY(result);
     return outcome::success();
   }
 
