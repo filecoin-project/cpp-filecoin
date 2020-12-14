@@ -13,6 +13,7 @@ target_link_libraries(miner_main
     manager
     miner
     mining
+    proof_param_provider
     p2p::p2p
     rpc
     store

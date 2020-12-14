@@ -18,6 +18,7 @@
 #include "miner/impl/miner_impl.hpp"
 #include "miner/mining.hpp"
 #include "miner/windowpost.hpp"
+#include "proofs/proof_param_provider.hpp"
 #include "sector_storage/impl/manager_impl.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
 #include "sector_storage/stores/impl/index_impl.hpp"
@@ -102,6 +103,13 @@ namespace fc {
   outcome::result<void> setupMiner(Config &config,
                                    BufferMap &kv,
                                    const PeerId &peer_id) {
+    OUTCOME_TRY(
+        params,
+        proofs::ProofParamProvider::readJson(config.join("proof-params.json")));
+    OUTCOME_TRY(sector_size,
+                primitives::sector::getSectorSize(config.seal_type));
+    OUTCOME_TRY(proofs::ProofParamProvider::getParams(params, sector_size));
+
     io_context io;
     boost::asio::executor_work_guard<io_context::executor_type> work_guard{
         io.get_executor()};
