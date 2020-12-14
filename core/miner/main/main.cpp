@@ -263,7 +263,7 @@ namespace fc {
         manager,
         io)};
     OUTCOME_TRY(miner->run());
-    auto sealing{miner->sealing_};
+    auto sealing{miner->getSealing()};
 
     OUTCOME_TRY(
         mining,
