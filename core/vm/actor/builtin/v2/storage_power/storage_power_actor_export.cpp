@@ -3,18 +3,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
-
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 #include "common/logger.hpp"
-#include "storage_power_actor_state.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v0/init/init_actor.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
+#include "vm/actor/builtin/v2/codes.hpp"
+#include "vm/actor/builtin/v2/init/init_actor.hpp"
+#include "vm/actor/builtin/v2/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v2/reward/reward_actor.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
 
-namespace fc::vm::actor::builtin::v0::storage_power {
+namespace fc::vm::actor::builtin::v2::storage_power {
   using adt::Multimap;
   using primitives::SectorNumber;
+  using v0::storage_power::kErrTooManyProveCommits;
+  using v0::storage_power::kGasOnSubmitVerifySeal;
+  using v0::storage_power::kMaxMinerProveCommitsPerEpoch;
 
   outcome::result<void> processDeferredCronEvents(Runtime &runtime,
                                                   State &state) {
@@ -22,7 +24,16 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     for (auto epoch = state.first_cron_epoch; epoch <= now; ++epoch) {
       OUTCOME_TRY(events, state.cron_event_queue.tryGet(epoch));
       if (events) {
-        OUTCOME_TRY(events->visit([&](auto, auto &event) {
+        OUTCOME_TRY(events->visit([&](auto,
+                                      auto &event) -> outcome::result<void> {
+          // refuse to process proofs for miner with no claim
+          OUTCOME_TRY(has_claim, state.claims.has(event.miner_address));
+          if (!has_claim) {
+            spdlog::warn("skipping batch verifies for unknown miner {}",
+                         encodeToString(event.miner_address));
+            return outcome::success();
+          }
+
           auto res{runtime.send(event.miner_address,
                                 miner::OnDeferredCronEvent::Number,
                                 MethodParams{event.callback_payload},
@@ -37,36 +48,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
                 event.miner_address,
                 common::hex_lower(event.callback_payload));
 
-            // Failures are unexpected here but will result in removal of miner
-            // power
-            auto maybe_claim = state.claims.tryGet(event.miner_address);
-            if (maybe_claim.has_error()) {
-              spdlog::warn(
-                  "failed to get claim for miner {} after failing "
-                  "OnDeferredCronEvent: {}",
-                  event.miner_address,
-                  maybe_claim.error().message());
-            } else {
-              if (!maybe_claim.value().has_value()) {
-                spdlog::warn(
-                    "miner OnDeferredCronEvent failed for miner %s with no "
-                    "power",
-                    event.miner_address);
-              } else {
-                if (state
-                        .addToClaim(event.miner_address,
-                                    -maybe_claim.value().get().raw_power,
-                                    -maybe_claim.value().get().qa_power)
-                        .has_error()) {
-                  spdlog::warn(
-                      "failed to remove ({}, {}) power for miner {} after to "
-                      "failed cron",
-                      maybe_claim.value().get().raw_power,
-                      maybe_claim.value().get().qa_power,
-                      event.miner_address);
-                }
-              }
-            }
+            OUTCOME_TRY(state.deleteClaim(event.miner_address));
           }
           return outcome::success();
         }));
@@ -92,6 +74,14 @@ namespace fc::vm::actor::builtin::v0::storage_power {
           runtime.verifyBatchSeals(state.proof_validation_batch.value()));
       OUTCOME_TRY(miners, state.proof_validation_batch.value().keys());
       for (const auto &miner : miners) {
+        // refuse to process proofs for miner with no claim
+        OUTCOME_TRY(has_claim, state.claims.has(miner));
+        if (!has_claim) {
+          spdlog::warn("skipping batch verifies for unknown miner {}",
+                       encodeToString(miner));
+          break;
+        }
+
         auto found = verified.find(miner);
         if (found == verified.end()) {
           spdlog::warn("batch verify seals syscall implemented incorrectly");
@@ -120,35 +110,6 @@ namespace fc::vm::actor::builtin::v0::storage_power {
       OUTCOME_TRY(runtime.commitState(state));
     }
 
-    return outcome::success();
-  }
-
-  outcome::result<void> deleteMinerActor(State &state, const Address &miner) {
-    OUTCOME_TRY(state.claims.remove(miner));
-    --state.miner_count;
-    return outcome::success();
-  }
-
-  std::pair<StoragePower, StoragePower> powersForWeights(
-      const std::vector<SectorStorageWeightDesc> &weights) {
-    StoragePower raw{}, qa{};
-    for (auto &w : weights) {
-      raw += w.sector_size;
-      qa += qaPowerForWeight(w);
-    }
-    return {raw, qa};
-  }
-
-  outcome::result<None> addToClaim(
-      Runtime &runtime,
-      bool add,
-      const std::vector<SectorStorageWeightDesc> &weights) {
-    OUTCOME_TRY(runtime.validateImmediateCallerIsMiner());
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    auto [raw, qa] = powersForWeights(weights);
-    OUTCOME_TRY(state.addToClaim(
-        runtime.getImmediateCaller(), add ? raw : -raw, add ? qa : -qa));
-    OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
 
@@ -206,8 +167,8 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kCronAddress));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
-    OUTCOME_TRY(processDeferredCronEvents(runtime, state));
     OUTCOME_TRY(processBatchProofVerifiers(runtime, state));
+    OUTCOME_TRY(processDeferredCronEvents(runtime, state));
 
     // charge gas to conform lotus implementation
     OUTCOME_TRY(runtime.getCurrentActorStateCbor<State>());
@@ -217,10 +178,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     state.this_epoch_raw_power = raw_power;
     state.this_epoch_qa_power = qa_power;
 
-    auto delta = runtime.getCurrentEpoch() - state.last_processed_cron_epoch;
-    state.updateSmoothedEstimate(delta);
-
-    state.last_processed_cron_epoch = runtime.getCurrentEpoch();
+    state.updateSmoothedEstimate(1);
 
     OUTCOME_TRY(runtime.commitState(state));
     OUTCOME_TRY(runtime.sendM<reward::UpdateNetworkKPI>(
@@ -236,24 +194,18 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(OnConsensusFault) {
-    OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
-    auto miner{runtime.getImmediateCaller()};
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(claim, state.claims.get(miner));
-    VM_ASSERT(claim.raw_power >= 0);
-    VM_ASSERT(claim.qa_power >= 0);
-    OUTCOME_TRY(state.addToClaim(miner, -claim.raw_power, -claim.qa_power));
-    OUTCOME_TRY(state.addPledgeTotal(-params));
-    OUTCOME_TRY(deleteMinerActor(state, miner));
-    OUTCOME_TRY(runtime.commitState(state));
-    return outcome::success();
-  }
-
   ACTOR_METHOD_IMPL(SubmitPoRepForBulkVerify) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
     auto miner{runtime.getImmediateCaller()};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+
+    OUTCOME_TRY(has_claim, state.claims.has(miner));
+    if (!has_claim) {
+      spdlog::warn("unknown miner {} forbidden to interact with power actor",
+                   encodeToString(miner));
+      return VMExitCode::kErrForbidden;
+    }
+
     if (!state.proof_validation_batch.has_value()) {
       state.proof_validation_batch =
           adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer>{};
@@ -292,8 +244,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
       exportMethod<EnrollCronEvent>(),
       exportMethod<OnEpochTickEnd>(),
       exportMethod<UpdatePledgeTotal>(),
-      exportMethod<OnConsensusFault>(),
       exportMethod<SubmitPoRepForBulkVerify>(),
       exportMethod<CurrentTotalPower>(),
   };
-}  // namespace fc::vm::actor::builtin::v0::storage_power
+}  // namespace fc::vm::actor::builtin::v2::storage_power

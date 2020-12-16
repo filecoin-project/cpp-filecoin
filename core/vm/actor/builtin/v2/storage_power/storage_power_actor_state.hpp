@@ -12,54 +12,26 @@
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 
-namespace fc::vm::actor::builtin::v0::storage_power {
-  using common::Buffer;
+namespace fc::vm::actor::builtin::v2::storage_power {
   using common::smoothing::FilterEstimate;
-  using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::SealVerifyInfo;
+  using v0::storage_power::Claim;
+  using v0::storage_power::CronEvent;
   using ChainEpochKeyer = adt::VarintKeyer;
 
-  /** genesis power in bytes = 750,000 GiB */
-  static const BigInt kInitialQAPowerEstimatePosition =
-      BigInt(750000) * BigInt(1 << 30);
-
-  /**
-   * Max chain throughput in bytes per epoch = 120 ProveCommits / epoch = 3,840
-   * GiB
-   */
-  static const BigInt kInitialQAPowerEstimateVelocity =
-      BigInt(3840) * BigInt(1 << 30);
-
-  struct Claim {
-    /** Sum of raw byte power for a miner's sectors */
-    StoragePower raw_power;
-
-    /** Sum of quality adjusted power for a miner's sectors */
-    StoragePower qa_power;
-
-    inline bool operator==(const Claim &other) const {
-      return raw_power == other.raw_power && qa_power == other.qa_power;
-    }
-  };
-  CBOR_TUPLE(Claim, raw_power, qa_power)
-
-  struct CronEvent {
-    Address miner_address;
-    Buffer callback_payload;
-  };
-  CBOR_TUPLE(CronEvent, miner_address, callback_payload)
-
   struct State {
-    static State empty(IpldPtr ipld);
+    static State empty(const IpldPtr &ipld);
 
     outcome::result<void> addToClaim(const Address &miner,
                                      const StoragePower &raw,
                                      const StoragePower &qa);
+    outcome::result<void> deleteClaim(const Address &miner);
     outcome::result<void> addPledgeTotal(const TokenAmount &amount);
     outcome::result<void> appendCronEvent(const ChainEpoch &epoch,
                                           const CronEvent &event);
@@ -95,7 +67,6 @@ namespace fc::vm::actor::builtin::v0::storage_power {
      * inclusively to find tasks to execute.
      */
     ChainEpoch first_cron_epoch;
-    ChainEpoch last_processed_cron_epoch;
     adt::Map<Claim, adt::AddressKeyer> claims;
     boost::optional<adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer>>
         proof_validation_batch;
@@ -117,17 +88,16 @@ namespace fc::vm::actor::builtin::v0::storage_power {
              num_miners_meeting_min_power,
              cron_event_queue,
              first_cron_epoch,
-             last_processed_cron_epoch,
              claims,
              proof_validation_batch)
 
-}  // namespace fc::vm::actor::builtin::v0::storage_power
+}  // namespace fc::vm::actor::builtin::v2::storage_power
 
 namespace fc {
   template <>
-  struct Ipld::Visit<vm::actor::builtin::v0::storage_power::State> {
+  struct Ipld::Visit<vm::actor::builtin::v2::storage_power::State> {
     template <typename Visitor>
-    static void call(vm::actor::builtin::v0::storage_power::State &state,
+    static void call(vm::actor::builtin::v2::storage_power::State &state,
                      const Visitor &visit) {
       visit(state.cron_event_queue);
       visit(state.claims);
