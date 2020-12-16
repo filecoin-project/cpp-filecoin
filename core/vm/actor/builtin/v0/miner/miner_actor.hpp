@@ -175,6 +175,14 @@ namespace fc::vm::actor::builtin::v0::miner {
   };
   CBOR_TUPLE(WithdrawBalance::Params, amount)
 
+  struct ConfirmSectorProofsValid : ActorMethodBase<17> {
+    struct Params {
+      std::vector<SectorNumber> sectors;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(ConfirmSectorProofsValid::Params, sectors)
+
   extern const ActorExports exports;
 
 }  // namespace fc::vm::actor::builtin::v0::miner

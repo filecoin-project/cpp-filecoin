@@ -5,6 +5,7 @@
 
 #include "vm/runtime/impl/runtime_impl.hpp"
 
+#include "codec/cbor/cbor.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "primitives/cid/comm_cid.hpp"
@@ -51,7 +52,8 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return execution_->env->randomness->getRandomnessFromBeacon(tag, epoch, seed);
+    return execution_->env->randomness->getRandomnessFromBeacon(
+        tag, epoch, seed);
   }
 
   Address RuntimeImpl::getImmediateCaller() const {
@@ -212,6 +214,31 @@ namespace fc::vm::runtime {
     WindowPoStVerifyInfo preprocess_info = info;
     preprocess_info.randomness[31] = 0;
     return proofs::Proofs::verifyWindowPoSt(preprocess_info);
+  }
+
+  outcome::result<std::map<Address, std::vector<bool>>>
+  RuntimeImpl::verifyBatchSeals(
+      const adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer> &seals) {
+    std::map<Address, std::vector<bool>> res;
+    OUTCOME_TRY(seals.hamt.visit(
+        [&](auto &miner, auto &seal_infos_bytes) -> outcome::result<void> {
+          OUTCOME_TRY(seal_infos,
+                      codec::cbor::decode<adt::Array<SealVerifyInfo>>(
+                          seal_infos_bytes));
+          OUTCOME_TRY(count, seal_infos.size());
+          std::vector<bool> seal_verified_for_miner(count);
+          OUTCOME_TRY(seal_infos.visit(
+              [&](auto i, auto &seal_info) -> outcome::result<void> {
+                OUTCOME_TRYA(seal_verified_for_miner[i],
+                             proofs::Proofs::verifySeal(seal_info));
+                return outcome::success();
+              }));
+          OUTCOME_TRY(miner_address, adt::AddressKeyer::decode(miner));
+          res[miner_address] = seal_verified_for_miner;
+          return outcome::success();
+        }));
+
+    return res;
   }
 
   fc::outcome::result<fc::CID> RuntimeImpl::computeUnsealedSectorCid(

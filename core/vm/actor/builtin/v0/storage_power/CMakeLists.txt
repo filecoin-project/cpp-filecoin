@@ -10,6 +10,7 @@ add_library(storage_power_actor_v0
     )
 target_link_libraries(storage_power_actor_v0
     actor
+    alpha_beta_filter
     block
     balance_table
     hamt

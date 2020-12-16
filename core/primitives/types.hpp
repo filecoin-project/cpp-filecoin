@@ -115,11 +115,6 @@ namespace fc::primitives {
   using SectorQuality = BigInt;
 
   CBOR_TUPLE(SectorStorageWeightDesc, sector_size, duration, deal_weight)
-
-  struct FilterEstimate {
-    BigInt position, velocity;
-  };
-  CBOR_TUPLE(FilterEstimate, position, velocity)
 }  // namespace fc::primitives
 
 #endif  // CPP_FILECOIN_CORE_PRIMITIVES_TYPES_HPP

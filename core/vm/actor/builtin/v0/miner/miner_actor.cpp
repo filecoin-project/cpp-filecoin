@@ -96,6 +96,10 @@ namespace fc::vm::actor::builtin::v0::miner {
     return VMExitCode::kNotImplemented;
   }
 
+  ACTOR_METHOD_IMPL(ConfirmSectorProofsValid) {
+    return VMExitCode::kNotImplemented;
+  }
+
   const ActorExports exports{
       exportMethod<Construct>(),
       exportMethod<ControlAddresses>(),
@@ -113,5 +117,6 @@ namespace fc::vm::actor::builtin::v0::miner {
       exportMethod<AddLockedFund>(),
       exportMethod<ReportConsensusFault>(),
       exportMethod<WithdrawBalance>(),
+      exportMethod<ConfirmSectorProofsValid>(),
   };
 }  // namespace fc::vm::actor::builtin::v0::miner

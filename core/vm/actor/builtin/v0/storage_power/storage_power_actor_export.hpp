@@ -7,18 +7,23 @@
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_ACTOR_HPP
 
 #include <libp2p/multi/multiaddress.hpp>
+#include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/storage_power/policy.hpp"
 #include "vm/actor/builtin/v0/storage_power/policy.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
+  using common::smoothing::FilterEstimate;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
   using primitives::SectorStorageWeightDesc;
   using primitives::TokenAmount;
   using primitives::sector::RegisteredProof;
+  using primitives::sector::SealVerifyInfo;
+
+  const auto kErrTooManyProveCommits =
+      VMExitCode::kErrFirstActorSpecificExitCode;
 
   struct Construct : ActorMethodBase<1> {
     ACTOR_METHOD_DECL();
@@ -66,51 +71,26 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   };
   CBOR_TUPLE(EnrollCronEvent::Params, event_epoch, payload)
 
-  struct OnSectorTerminate : ActorMethodBase<5> {
-    struct Params {
-      SectorTerminationType termination_type;
-      std::vector<SectorStorageWeightDesc> weights;
-    };
+  struct OnEpochTickEnd : ActorMethodBase<5> {
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(OnSectorTerminate::Params, termination_type, weights)
 
-  struct OnFaultBegin : ActorMethodBase<6> {
-    struct Params {
-      std::vector<SectorStorageWeightDesc> weights;
-    };
+  struct UpdatePledgeTotal : ActorMethodBase<6> {
+    using Params = TokenAmount;  // pledgeDelta
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(OnFaultBegin::Params, weights)
 
-  struct OnFaultEnd : ActorMethodBase<7> {
-    struct Params {
-      std::vector<SectorStorageWeightDesc> weights;
-    };
+  struct OnConsensusFault : ActorMethodBase<7> {
+    using Params = TokenAmount;  // pledgeAmount
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(OnFaultEnd::Params, weights)
 
-  struct OnSectorModifyWeightDesc : ActorMethodBase<8> {
-    struct Params {
-      SectorStorageWeightDesc prev_weight;
-      SectorStorageWeightDesc new_weight;
-    };
-    using Result = TokenAmount;
+  struct SubmitPoRepForBulkVerify : ActorMethodBase<8> {
+    using Params = SealVerifyInfo;
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(OnSectorModifyWeightDesc::Params, prev_weight, new_weight)
 
   struct CurrentTotalPower : ActorMethodBase<9> {
-    /**
-     * Alpha Beta Filter "position" (value) and "velocity" (rate of change of
-     * value) estimates
-     * Estimates are in Q.128 format
-     */
-    struct FilterEstimate {
-      BigInt position_estimate;
-      BigInt velocity_estimate;
-    };
     struct Result {
       StoragePower raw_byte_power;
       StoragePower quality_adj_power;
@@ -119,28 +99,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(CurrentTotalPower::FilterEstimate,
-             position_estimate,
-             velocity_estimate)
   CBOR_TUPLE(CurrentTotalPower::Result,
              raw_byte_power,
              quality_adj_power,
              pledge_collateral,
              quality_adj_power_smoothed)
-
-  struct OnEpochTickEnd : ActorMethodBase<10> {
-    ACTOR_METHOD_DECL();
-  };
-
-  struct UpdatePledgeTotal : ActorMethodBase<11> {
-    using Params = TokenAmount;
-    ACTOR_METHOD_DECL();
-  };
-
-  struct OnConsensusFault : ActorMethodBase<12> {
-    using Params = TokenAmount;
-    ACTOR_METHOD_DECL();
-  };
 
   inline bool operator==(const CreateMiner::Result &lhs,
                          const CreateMiner::Result &rhs) {

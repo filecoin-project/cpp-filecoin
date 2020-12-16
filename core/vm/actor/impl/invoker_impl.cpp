@@ -78,7 +78,7 @@ namespace fc::vm::actor {
         // && (actor.code != builtin::v0::kStorageMinerCodeCid)    // TODO
         // && (actor.code != builtin::v0::kMultisigCodeCid)        // TODO
         && (actor.code != builtin::v0::kPaymentChannelCodeCid)  // < tested OK
-        // && (actor.code != builtin::v0::kStoragePowerCodeCid)    // < WiP
+        && (actor.code != builtin::v0::kStoragePowerCodeCid)    // < WiP
         // && (actor.code != builtin::v0::kRewardActorCodeID)      // TODO
         && (actor.code != builtin::v0::kSystemActorCodeID)  // < tested OK
         // && (actor.code != builtin::v0::kVerifiedRegistryCode)   // TODO

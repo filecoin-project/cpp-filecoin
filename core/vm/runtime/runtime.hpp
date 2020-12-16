@@ -8,6 +8,8 @@
 
 #include <tuple>
 
+#include "adt/address_key.hpp"
+#include "adt/map.hpp"
 #include "common/outcome.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/randomness/randomness_types.hpp"
@@ -45,6 +47,7 @@ namespace fc::vm::runtime {
   using primitives::block::BlockHeader;
   using primitives::piece::PieceInfo;
   using primitives::sector::RegisteredProof;
+  using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using version::NetworkVersion;
@@ -138,7 +141,7 @@ namespace fc::vm::runtime {
      * @brief Deletes an actor in the state tree
      *
      * @param address - Address of actor that receives remaining balance
-     * 
+     *
      * May only be called by the actor itself
      */
     virtual outcome::result<void> deleteActor(const Address &address) = 0;
@@ -201,6 +204,10 @@ namespace fc::vm::runtime {
     /// Verify PoSt
     virtual outcome::result<bool> verifyPoSt(
         const WindowPoStVerifyInfo &info) = 0;
+
+    virtual outcome::result<std::map<Address, std::vector<bool>>>
+    verifyBatchSeals(const adt::Map<adt::Array<SealVerifyInfo>,
+                                    adt::AddressKeyer> &seals) = 0;
 
     /// Compute unsealed sector cid
     virtual outcome::result<CID> computeUnsealedSectorCid(

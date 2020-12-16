@@ -6,11 +6,12 @@
 #ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_REWARD_ACTOR_HPP
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_REWARD_ACTOR_HPP
 
+#include "common/smoothing/alpha_beta_filter.hpp"
 #include "vm/actor/actor_method.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
+  using common::smoothing::FilterEstimate;
   using primitives::ChainEpoch;
-  using primitives::FilterEstimate;
   using primitives::SpaceTime;
   using primitives::StoragePower;
   using primitives::TokenAmount;
