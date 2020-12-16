@@ -50,7 +50,7 @@ namespace fc::storage::hamt {
     return set(*boost::get<Node::Ptr>(root_), keyToIndices(key), key, value);
   }
 
-  outcome::result<Value> Hamt::get(const std::string &key) {
+  outcome::result<Value> Hamt::get(const std::string &key) const {
     OUTCOME_TRY(loadItem(root_));
     auto node = boost::get<Node::Ptr>(root_);
     for (auto index : keyToIndices(key)) {
@@ -78,7 +78,7 @@ namespace fc::storage::hamt {
     return remove(*boost::get<Node::Ptr>(root_), keyToIndices(key), key);
   }
 
-  outcome::result<bool> Hamt::contains(const std::string &key) {
+  outcome::result<bool> Hamt::contains(const std::string &key) const {
     auto res = get(key);
     if (!res) {
       if (res.error() == HamtError::kNotFound) return false;
@@ -236,11 +236,11 @@ namespace fc::storage::hamt {
     return outcome::success();
   }
 
-  outcome::result<void> Hamt::visit(const Visitor &visitor) {
+  outcome::result<void> Hamt::visit(const Visitor &visitor) const {
     return visit(root_, visitor);
   }
 
-  outcome::result<void> Hamt::visit(Node::Item &item, const Visitor &visitor) {
+  outcome::result<void> Hamt::visit(Node::Item &item, const Visitor &visitor) const {
     OUTCOME_TRY(loadItem(item));
     if (which<Node::Ptr>(item)) {
       for (auto &item2 : boost::get<Node::Ptr>(item)->items) {

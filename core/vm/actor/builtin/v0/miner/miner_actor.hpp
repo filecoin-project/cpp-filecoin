@@ -108,30 +108,23 @@ namespace fc::vm::actor::builtin::v0::miner {
   CBOR_TUPLE(TerminateSectors::Params, sectors)
 
   struct DeclareFaults : ActorMethodBase<10> {
-    struct FaultDeclaration {
+    struct Declaration {
       uint64_t deadline;
+      uint64_t partition;
       RleBitset sectors;
     };
     struct Params {
-      std::vector<FaultDeclaration> faults;
+      std::vector<Declaration> declarations;
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(DeclareFaults::FaultDeclaration, deadline, sectors)
-  CBOR_TUPLE(DeclareFaults::Params, faults)
+  CBOR_TUPLE(DeclareFaults::Declaration, deadline, partition, sectors)
+  CBOR_TUPLE(DeclareFaults::Params, declarations)
 
   struct DeclareFaultsRecovered : ActorMethodBase<11> {
-    struct RecoveryDeclaration {
-      uint64_t deadline;
-      RleBitset sectors;
-    };
-    struct Params {
-      std::vector<RecoveryDeclaration> recoveries;
-    };
+    using Params = DeclareFaults::Params;
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(DeclareFaultsRecovered::RecoveryDeclaration, deadline, sectors)
-  CBOR_TUPLE(DeclareFaultsRecovered::Params, recoveries)
 
   struct OnDeferredCronEvent : ActorMethodBase<12> {
     using Params = CronEventPayload;

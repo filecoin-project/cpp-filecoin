@@ -5,6 +5,8 @@
 
 #include "clock/impl/chain_epoch_clock_impl.hpp"
 
+#include "const.hpp"
+
 namespace fc::clock {
   ChainEpochClockImpl::ChainEpochClockImpl(UnixTime genesis_time)
       : genesis_time_(genesis_time) {}
@@ -19,6 +21,6 @@ namespace fc::clock {
       return outcome::failure(EpochAtTimeError::kBeforeGenesis);
     }
     auto difference = time - genesis_time_;
-    return ChainEpoch(difference / kEpochDuration);
+    return difference.count() / kEpochDurationSeconds;
   }
 }  // namespace fc::clock

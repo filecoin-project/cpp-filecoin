@@ -20,8 +20,7 @@ namespace fc::markets::storage::test {
     EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _, _))
         .WillOnce(testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
 
-    auto data = readFile(CAR_FROM_PAYLOAD_FILE);
-    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(data));
+    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     ChainEpoch start_epoch{210};
     ChainEpoch end_epoch{300};
     TokenAmount client_price{20000};
@@ -63,8 +62,7 @@ namespace fc::markets::storage::test {
           return outcome::success(false);
         }};
 
-    auto data = readFile(CAR_FROM_PAYLOAD_FILE);
-    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(data));
+    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     ChainEpoch start_epoch{210};
     ChainEpoch end_epoch{300};
     TokenAmount client_price{20000};
@@ -113,8 +111,7 @@ namespace fc::markets::storage::test {
           return result;
         }};
 
-    auto data = readFile(CAR_FROM_PAYLOAD_FILE);
-    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(data));
+    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     ChainEpoch start_epoch{210};
     ChainEpoch end_epoch{300};
     TokenAmount client_price{20000};

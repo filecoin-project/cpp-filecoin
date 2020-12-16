@@ -293,7 +293,7 @@ namespace fc::primitives::tipset {
       gsl::span<const uint8_t> entropy) const {
     auto ts{this};
     TipsetCPtr parent;
-    while (ts->height() != 0 && static_cast<ChainEpoch>(ts->height()) > round) {
+    while (ts->height() != 0 && ts->epoch() > round) {
       OUTCOME_TRYA(parent, ts->loadParent(ipld));
       ts = parent.get();
     }
@@ -308,7 +308,7 @@ namespace fc::primitives::tipset {
       gsl::span<const uint8_t> entropy) const {
     auto ts{this};
     TipsetCPtr parent;
-    while (ts->height() != 0 && static_cast<ChainEpoch>(ts->height()) > round) {
+    while (ts->height() != 0 && ts->epoch() > round) {
       OUTCOME_TRYA(parent, ts->loadParent(ipld));
       ts = parent.get();
     }
@@ -348,6 +348,10 @@ namespace fc::primitives::tipset {
 
   uint64_t Tipset::height() const {
     return blks.empty() ? 0 : blks[0].height;
+  }
+
+  ChainEpoch Tipset::epoch() const {
+    return height();
   }
 
   const BigInt &Tipset::getParentBaseFee() const {

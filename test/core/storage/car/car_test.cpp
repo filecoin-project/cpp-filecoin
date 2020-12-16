@@ -7,6 +7,7 @@
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
+#include <boost/filesystem/operations.hpp>
 
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/unixfs/unixfs.hpp"
@@ -21,6 +22,7 @@ using fc::storage::car::loadCar;
 using fc::storage::car::makeCar;
 using fc::storage::car::makeSelectiveCar;
 using fc::storage::ipfs::InMemoryDatastore;
+namespace fs = boost::filesystem;
 
 /**
  * @given correct car file
@@ -31,6 +33,20 @@ TEST(CarTest, LoadSuccess) {
   InMemoryDatastore ipld;
   auto input = readFile(resourcePath("genesis.car"));
   EXPECT_OUTCOME_TRUE(roots, loadCar(ipld, input));
+  EXPECT_THAT(
+      roots,
+      testing::ElementsAre(
+          "0171a0e402202d4c00840d4227f198ec6c5343b8c70af7f008a7775d67393d10430ea2fa012f"_cid));
+}
+
+/**
+ * @given correct car file
+ * @when loadCar via path
+ * @then success
+ */
+TEST(CarTest, LoadFromFileSuccess) {
+  InMemoryDatastore ipld;
+  EXPECT_OUTCOME_TRUE(roots, loadCar(ipld, resourcePath("genesis.car")));
   EXPECT_THAT(
       roots,
       testing::ElementsAre(
@@ -98,6 +114,34 @@ TEST(SelectiveCar, MakeSelectiveCar) {
   EXPECT_OUTCOME_TRUE(selective_car, makeSelectiveCar(ipld, {{root_cid, {}}}));
 
   auto expected_car = readFile(CAR_FROM_PAYLOAD_FILE);
+  EXPECT_EQ(selective_car, expected_car) << std::endl
+                                         << "actual" << std::endl
+                                         << selective_car << std::endl
+                                         << "expected" << std::endl
+                                         << expected_car << std::endl;
+}
+
+/**
+ * Interop test with go-fil-markets/storagemarket/integration_test.go
+ * @given PAYLOAD_FILE with some data, cid_root of dag and selective_car bytes
+ * from go implementation CAR_FROM_PAYLOAD_FILE
+ * @when make selective_car file from PAYLOAD_FILE data and save it
+ * @then selective_car file are equal to CAR_FROM_PAYLOAD_FILE
+ */
+TEST(SelectiveCar, MakeSelectiveCarToFile) {
+  std::string root_cid_expected{
+      "QmXFz92Uc9gCyAVGKkCzD84HEiR9fmrFzPSrvUypaN2Yzx"};
+
+  InMemoryDatastore ipld;
+  auto input = readFile(PAYLOAD_FILE);
+  auto car_path = fs::temp_directory_path() / fs::unique_path();
+  EXPECT_OUTCOME_TRUE(root_cid, fc::storage::unixfs::wrapFile(ipld, input));
+  EXPECT_OUTCOME_EQ(root_cid.toString(), root_cid_expected);
+  EXPECT_OUTCOME_TRUE_1(
+      makeSelectiveCar(ipld, {{root_cid, {}}}, car_path.string()));
+
+  auto expected_car = readFile(CAR_FROM_PAYLOAD_FILE);
+  auto selective_car = readFile(car_path.string());
   EXPECT_EQ(selective_car, expected_car) << std::endl
                                          << "actual" << std::endl
                                          << selective_car << std::endl
