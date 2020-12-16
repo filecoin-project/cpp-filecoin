@@ -237,7 +237,6 @@ namespace fc {
       if (config2.storage_paths.empty()) {
         boost::filesystem::path path{config.join("sectors")};
         boost::filesystem::create_directories(path);
-        // TODO(artyom-yurin): check meta
         OUTCOME_EXCEPT(common::writeFile(
             (path / sector_storage::stores::kMetaFileName).string(),
             *codec::json::format(api::encode(primitives::LocalStorageMeta{
