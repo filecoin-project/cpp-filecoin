@@ -9,12 +9,3 @@ target_link_libraries(filesystem_repository_test
     base_fs_test
     secp256k1_provider
     )
-
-addtest(in_memory_repository_test
-        in_memory_repository_test.cpp
-)
-target_link_libraries(in_memory_repository_test
-        in_memory_repository
-        base_fs_test
-        secp256k1_provider
-        )

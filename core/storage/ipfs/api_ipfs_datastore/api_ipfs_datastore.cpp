@@ -11,14 +11,7 @@ namespace fc::storage::ipfs {
   ApiIpfsDatastore::ApiIpfsDatastore(std::shared_ptr<Api> api) : api_{api} {}
 
   outcome::result<bool> ApiIpfsDatastore::contains(const CID &key) const {
-    auto res = api_->ChainReadObj(key);
-    if (res.has_error()) {
-      if (res.error() == IpfsDatastoreError::kNotFound) {
-        return false;
-      }
-      return res.error();
-    }
-    return true;
+    return api_->ChainReadObj(key).has_value();
   }
 
   outcome::result<void> ApiIpfsDatastore::set(const CID &key, Value value) {

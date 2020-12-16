@@ -17,6 +17,11 @@ namespace fc::api::rpc {
     thread = std::thread{[=]() { io.run(); }};
   }
 
+  Client::~Client() {
+    io.stop();
+    thread.join();
+  }
+
   outcome::result<void> Client::connect(const Multiaddress &address,
                                         const std::string &token) {
     OUTCOME_TRY(
@@ -47,8 +52,7 @@ namespace fc::api::rpc {
   void Client::call(Request &&req, ResultCb &&cb) {
     std::lock_guard lock{mutex};
     req.id = next_req++;
-    auto j{encode(req)};
-    write_queue.emplace(*req.id, *codec::json::format(&j));
+    write_queue.emplace(*req.id, *codec::json::format(encode(req)));
     result_queue.emplace(*req.id, std::move(cb));
     _flush();
   }

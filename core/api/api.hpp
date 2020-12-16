@@ -89,6 +89,7 @@ namespace fc::api {
   using vm::message::UnsignedMessage;
   using vm::runtime::ExecutionResult;
   using vm::runtime::MessageReceipt;
+  using vm::version::NetworkVersion;
   using SignatureType = crypto::signature::Type;
 
   template <typename... T>
@@ -390,6 +391,8 @@ namespace fc::api {
 
     API_METHOD(NetAddrsListen, PeerInfo)
 
+    API_METHOD(PledgeSector, void)
+
     API_METHOD(StateAccountKey, Address, const Address &, const TipsetKey &)
     API_METHOD(StateCall,
                InvocResult,
@@ -434,6 +437,7 @@ namespace fc::api {
                const boost::optional<RleBitset> &,
                const TipsetKey &)
     API_METHOD(StateNetworkName, std::string)
+    API_METHOD(StateNetworkVersion, NetworkVersion, const TipsetKey &)
     API_METHOD(StateMinerPreCommitDepositForPower,
                TokenAmount,
                const Address &,

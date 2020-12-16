@@ -53,6 +53,10 @@ namespace fc::miner {
 
     Address getAddress() const override;
 
+    auto getSealing() {
+      return sealing_;
+    }
+
    private:
     /**
      * Checks miner worker address

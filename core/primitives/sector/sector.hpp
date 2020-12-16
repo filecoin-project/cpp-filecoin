@@ -8,6 +8,7 @@
 
 #include "common/blob.hpp"
 #include "common/buffer.hpp"
+#include "common/cmp.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/types.hpp"
@@ -25,7 +26,7 @@ namespace fc::primitives::sector {
     SectorNumber sector;
   };
   inline bool operator<(const SectorId &lhs, const SectorId &rhs) {
-    return lhs.miner < rhs.miner && lhs.sector < rhs.sector;
+    return less(lhs.miner, rhs.miner, lhs.sector, rhs.sector);
   }
   inline bool operator==(const SectorId &lhs, const SectorId &rhs) {
     return lhs.miner == rhs.miner && lhs.sector == rhs.sector;
