@@ -144,7 +144,8 @@ namespace fc::storage::amt {
     const CID &cid() const;
     /// Apply visitor for key value pairs
     outcome::result<void> visit(const Visitor &visitor) const;
-
+    /// Loads root item
+    outcome::result<void> loadRoot() const;
     /// Store CBOR encoded value by key
     template <typename T>
     outcome::result<void> setCbor(uint64_t key, const T &value) {
@@ -172,7 +173,6 @@ namespace fc::storage::amt {
                                 uint64_t height,
                                 uint64_t offset,
                                 const Visitor &visitor) const;
-    outcome::result<void> loadRoot() const;
     outcome::result<Node::Ptr> loadLink(Node &node,
                                         uint64_t index,
                                         bool create) const;
