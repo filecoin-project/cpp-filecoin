@@ -127,9 +127,9 @@ namespace fc::proofs {
   using primitives::cid::kCommitmentBytesLen;
   using primitives::cid::pieceCommitmentV1ToCID;
   using primitives::cid::replicaCommitmentV1ToCID;
-  using primitives::sector::getRegisteredSealProof;
   using primitives::sector::getRegisteredWindowPoStProof;
   using primitives::sector::getRegisteredWinningPoStProof;
+  using primitives::sector::RegisteredSealProof;
   using primitives::sector::SectorId;
   using sector_storage::zerocomm::getZeroPieceCommitment;
 
@@ -294,23 +294,39 @@ namespace fc::proofs {
 
   outcome::result<fil_RegisteredSealProof> cRegisteredSealProof(
       RegisteredProof proof_type) {
-    OUTCOME_TRY(seal_proof, getRegisteredSealProof(proof_type));
+    // TODO(turuslan): use RegisteredSealProof instead of RegisteredProof
+    RegisteredSealProof seal_proof{(int64_t)proof_type};
     switch (seal_proof) {
-      case RegisteredProof::StackedDRG2KiBSeal:
+      case RegisteredSealProof::StackedDrg2KiBV1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg2KiBV1;
-      case RegisteredProof::StackedDRG8MiBSeal:
+      case RegisteredSealProof::StackedDrg8MiBV1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg8MiBV1;
-      case RegisteredProof::StackedDRG512MiBSeal:
+      case RegisteredSealProof::StackedDrg512MiBV1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg512MiBV1;
-      case RegisteredProof::StackedDRG32GiBSeal:
+      case RegisteredSealProof::StackedDrg32GiBV1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg32GiBV1;
-      case RegisteredProof::StackedDRG64GiBSeal:
+      case RegisteredSealProof::StackedDrg64GiBV1:
         return fil_RegisteredSealProof::
             fil_RegisteredSealProof_StackedDrg64GiBV1;
+      case RegisteredSealProof::StackedDrg2KiBV1_1:
+        return fil_RegisteredSealProof::
+            fil_RegisteredSealProof_StackedDrg2KiBV1_1;
+      case RegisteredSealProof::StackedDrg8MiBV1_1:
+        return fil_RegisteredSealProof::
+            fil_RegisteredSealProof_StackedDrg8MiBV1_1;
+      case RegisteredSealProof::StackedDrg512MiBV1_1:
+        return fil_RegisteredSealProof::
+            fil_RegisteredSealProof_StackedDrg512MiBV1_1;
+      case RegisteredSealProof::StackedDrg32GiBV1_1:
+        return fil_RegisteredSealProof::
+            fil_RegisteredSealProof_StackedDrg32GiBV1_1;
+      case RegisteredSealProof::StackedDrg64GiBV1_1:
+        return fil_RegisteredSealProof::
+            fil_RegisteredSealProof_StackedDrg64GiBV1_1;
       default:
         return ProofsError::kNoSuchSealProof;
     }

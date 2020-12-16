@@ -3,6 +3,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+include(FindHwloc.cmake)
+
 set(FILECOIN_FFI_PATH "${PROJECT_SOURCE_DIR}/deps/our-filecoin-ffi")
 
 set(FILECOIN_FFI_INCLUDES
@@ -54,7 +56,7 @@ target_link_libraries(filecoin_ffi INTERFACE ${PKG_FILECOIN_LIBRARIES})
 
 #TODO: get from .pc file
 if (APPLE)
-    target_link_libraries(filecoin_ffi INTERFACE "-framework OpenCL")
+    target_link_libraries(filecoin_ffi INTERFACE "-framework OpenCL" ${HWLOC_LIBRARIES})
 endif (APPLE)
 
 add_dependencies(filecoin_ffi
