@@ -84,7 +84,7 @@ namespace fc::sync {
     auto res = kademlia_->findPeer(
         peer_id, [this](outcome::result<libp2p::peer::PeerInfo> pi) {
           if (!pi) {
-            log()->error("kademlia called back with error: {}",
+            log()->debug("kademlia called back with error: {}",
                          pi.error().message());
             requests_in_progress_.clear();
           } else {

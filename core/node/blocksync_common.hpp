@@ -10,10 +10,6 @@
 
 #include "codec/cbor/cbor.hpp"
 
-namespace fc::storage::ipfs {
-  class IpfsDataStore;
-}
-
 namespace fc::sync::blocksync {
 
   constexpr auto kProtocolId = "/fil/sync/blk/0.0.1";

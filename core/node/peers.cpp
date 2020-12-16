@@ -8,11 +8,16 @@
 #include "events.hpp"
 
 namespace fc::sync {
-  void Peers::start(std::vector<std::string> protocols_required,
+  void Peers::start(std::shared_ptr<libp2p::Host> host,
                     events::Events &events,
+                    PeerSelectFunction select_fn,
                     RatingChangeFunction rating_fn,
                     RatingChangeLatencyFunction rating_latency_fn) {
-    protocols_ = std::move(protocols_required);
+    host_ = std::move(host);
+    select_fn_ = std::move(select_fn);
+
+    assert(host_);
+    assert(select_fn_);
 
     if (rating_fn) {
       rating_fn_ = std::move(rating_fn);
@@ -41,26 +46,10 @@ namespace fc::sync {
 
     peer_connected_event_ =
         events.subscribePeerConnected([this](const events::PeerConnected &e) {
-          if (!protocols_.empty()) {
-            // TODO(artem): consider moving this operation to event emitter
-            // and dont repeat it everytime
-
-            std::string all;
-            all.reserve(2048);
-            for (const auto &p : e.protocols) {
-              all.append(p);
-              all += ":";
-            }
-
-            for (const auto &p : protocols_) {
-              if (all.find(p) == std::string::npos) {
-                // required protocol is not supported by peer
-                return;
-              }
-            }
+          if (select_fn_(e.protocols)) {
+            peers_[e.peer_id] = 0;
+            ratings_.insert({0, e.peer_id});
           }
-          peers_[e.peer_id] = 0;
-          ratings_.insert({0, e.peer_id});
         });
 
     peer_disconnected_event_ = events.subscribePeerDisconnected(
@@ -85,15 +74,23 @@ namespace fc::sync {
     return peers_.count(peer) != 0;
   }
 
-  const Peers::PeersAndRatings & Peers::getAllPeers() const {
+  const Peers::PeersAndRatings &Peers::getPeers() const {
     return peers_;
   }
 
-  boost::optional<PeerId> Peers::selectBestPeer() const {
-    // TODO(artem): select random peer weighted by rating
+  const Peers::RatingsAndPeers &Peers::getPeersWithRatings() const {
+    return ratings_;
+  }
 
+  boost::optional<PeerId> Peers::selectBestPeer(
+      const std::unordered_set<PeerId> &preferred) const {
     if (ratings_.empty()) {
       return boost::none;
+    }
+    for (const auto &r : ratings_) {
+      if (preferred.count(r.second)) {
+        return r.second;
+      }
     }
     return ratings_.begin()->second;
   }
@@ -120,7 +117,7 @@ namespace fc::sync {
   void Peers::changeRating(PeersAndRatings::iterator &it, Rating new_rating) {
     if (new_rating != it->second) {
       removeFromRatings(it);
-      ratings_.insert( {new_rating, it->first} );
+      ratings_.insert({new_rating, it->first});
       it->second = new_rating;
     }
   }

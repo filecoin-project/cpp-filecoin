@@ -23,9 +23,8 @@ namespace fc::sync {
     struct TipsetFromHello;
     struct BlockFromPubSub;
     struct MessageFromPubSub;
-    struct BlockStored;
-    struct TipsetStored;
     struct PossibleHead;
+    struct HeadDownloaded;
     struct HeadInterpreted;
     struct CurrentHead;
     struct FatalError;

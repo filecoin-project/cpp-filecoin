@@ -46,9 +46,17 @@ namespace fc::sync {
 
     const Tipset &genesisTipset() const;
 
-    bool tipsetIsStored(const TipsetHash &hash) const;
+    struct SyncState {
+      bool tipset_indexed = false;
+      bool chain_indexed = false;
+      TipsetCPtr unsynced_bottom;
+    };
+
+    outcome::result<SyncState> getSyncState(const TipsetHash &hash);
 
     outcome::result<void> getHeads(const HeadCallback &callback);
+
+    bool isHead(const TipsetHash &hash);
 
     outcome::result<TipsetCPtr> getTipsetByHash(const TipsetHash &hash);
 
@@ -73,12 +81,8 @@ namespace fc::sync {
                                        Height to_height,
                                        const WalkCallback &cb);
 
-    /// returns next unsynced tipset to be loaded, if any
-    outcome::result<boost::optional<TipsetCPtr>> storeTipset(
-        TipsetCPtr tipset, const TipsetKey &parent);
-
-    outcome::result<boost::optional<TipsetCPtr>> getUnsyncedBottom(
-        const TipsetKey &key);
+    outcome::result<SyncState> storeTipset(TipsetCPtr tipset,
+                                           const TipsetKey &parent);
 
    private:
     outcome::result<TipsetCPtr> loadTipsetFromIpld(const TipsetKey &key);

@@ -153,10 +153,7 @@ namespace fc::sync {
     if (!info.is_bad && info.weight == 0) {
       // this head has been downloaded, but not interpreted/validated,
       // lets do it in async manner (and wait for HeadInterpreted)
-      events_->signalPossibleHead({.source = boost::none,
-                                   .head = info.tipset->key,
-                                   .height = info.tipset->height(),
-                                   .downloaded = true});
+      events_->signalHeadDownloaded({info.tipset});
     }
 
     return info;

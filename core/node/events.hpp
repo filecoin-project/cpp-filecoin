@@ -53,31 +53,20 @@ namespace fc::sync::events {
     boost::optional<Signature> signature;
   };
 
-  struct BlockStored {
-    boost::optional<PeerId> from;
-    CID block_cid;
-    outcome::result<BlockWithCids> block;
-    bool messages_stored = false;
-  };
-
-  struct TipsetStored {
-    TipsetHash hash;
-    outcome::result<TipsetCPtr> tipset;
-
-    // bottom of unsynced chain: tipset whose parents are not yet stored
-    boost::optional<TipsetCPtr> proceed_sync_from;
-  };
-
   struct PossibleHead {
     boost::optional<PeerId> source;
     TipsetKey head;
     Height height = 0;
-    bool downloaded = false;
+  };
+
+  struct HeadDownloaded {
+    TipsetCPtr head;
   };
 
   struct HeadInterpreted {
     TipsetCPtr head;
     outcome::result<vm::interpreter::Result> result;
+    BigInt weight;
   };
 
   struct CurrentHead {
@@ -121,9 +110,8 @@ namespace fc::sync::events {
     DEFINE_EVENT(CurrentHead);
     DEFINE_EVENT(BlockFromPubSub);
     DEFINE_EVENT(MessageFromPubSub);
-    DEFINE_EVENT(BlockStored);
-    DEFINE_EVENT(TipsetStored);
     DEFINE_EVENT(PossibleHead);
+    DEFINE_EVENT(HeadDownloaded);
     DEFINE_EVENT(HeadInterpreted);
     DEFINE_EVENT(HeadChange);
     DEFINE_EVENT(FatalError);

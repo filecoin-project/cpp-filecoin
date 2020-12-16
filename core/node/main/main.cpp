@@ -10,19 +10,18 @@
 #include "api/rpc/ws.hpp"
 #include "builder.hpp"
 #include "common/logger.hpp"
-#include "node/blocksync_client.hpp"
 #include "node/blocksync_server.hpp"
 #include "node/chain_store_impl.hpp"
 #include "node/events.hpp"
+#include "node/graphsync_server.hpp"
 #include "node/identify.hpp"
+#include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
 #include "node/pubsub_workaround.hpp"
 #include "node/receive_hello.hpp"
 #include "node/say_hello.hpp"
-#include "node/syncer.hpp"
-#include "node/tipset_loader.hpp"
-#include "node/peer_discovery.hpp"
-#include "node/graphsync_server.hpp"
+#include "node/sync_job.hpp"
+#include "node/interpret_job.hpp"
 
 namespace fc {
 
@@ -36,7 +35,18 @@ namespace fc {
       common::createLogger("SECCONN")->set_level(spdlog::level::info);
       common::createLogger("SECIO")->set_level(spdlog::level::info);
       common::createLogger("tls")->set_level(spdlog::level::info);
-      common::createLogger("gossip")->set_level(spdlog::level::info);
+      common::createLogger("gossip")->set_level(spdlog::level::warn);
+      common::createLogger("kad")->set_level(spdlog::level::info);
+      common::createLogger("IdentifyMsgProcessor")
+          ->set_level(spdlog::level::warn);
+      common::createLogger("NoiseHandshake")->set_level(spdlog::level::warn);
+      common::createLogger("Noise")->set_level(spdlog::level::warn);
+      common::createLogger("yx-conn")->set_level(spdlog::level::critical);
+      common::createLogger("pubsub-2")->set_level(spdlog::level::info);
+      common::createLogger("pubsub_gate")->set_level(spdlog::level::info);
+      common::createLogger("say_hello")->set_level(spdlog::level::info);
+      common::createLogger("peer_discovery")->set_level(spdlog::level::info);
+      common::createLogger("identify")->set_level(spdlog::level::info);
     }
 
   }  // namespace
@@ -129,9 +139,8 @@ namespace fc {
     o.pubsub_gate->start(config.network_name, events);
     o.graphsync_server->start();
     o.blocksync_server->start();
-    o.blocksync_client->start(events);
-    o.tipset_loader->start(events);
-    o.syncer->start(events);
+    o.sync_job->start(events);
+    o.interpret_job->start(events);
     o.peer_discovery->start(*events);
 
     bool fatal_error_occured = false;

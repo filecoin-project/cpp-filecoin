@@ -58,16 +58,22 @@ namespace fc::sync {
   }
 
   bool IndexDb::contains(const TipsetHash &hash) {
-    auto res = get(hash);
+    auto res = get(hash, true);
     return res.has_value();
   }
 
-  outcome::result<TipsetInfoCPtr> IndexDb::get(const TipsetHash &hash) {
+  outcome::result<TipsetInfoCPtr> IndexDb::get(const TipsetHash &hash,
+                                               bool error_if_not_found) {
     TipsetInfoCPtr cached = cache_.get(hash);
     if (cached) {
       return cached;
     }
-    OUTCOME_TRY(idx, backend_->get(hash));
+    OUTCOME_TRY(idx, backend_->get(hash, error_if_not_found));
+
+    if (!error_if_not_found && idx.hash.empty()) {
+      return nullptr;
+    }
+
     OUTCOME_TRY(info, IndexDbBackend::decode(std::move(idx)));
 
     cache_.put(info, false);
@@ -130,9 +136,9 @@ namespace fc::sync {
                                               Height to_height,
                                               const WalkCallback &cb) {
     TipsetInfoCPtr info;
-    OUTCOME_TRYA(info, get(from));
+    OUTCOME_TRYA(info, get(from, true));
     for (;;) {
-      OUTCOME_TRYA(info, get(info->parent_hash));
+      OUTCOME_TRYA(info, get(info->parent_hash, true));
       if (info->height <= to_height) {
         break;
       }

@@ -41,17 +41,17 @@ namespace fc::sync {
       Blob cids;
     };
 
-    outcome::result<TipsetIdx> get(const TipsetHash &hash);
+    outcome::result<TipsetIdx> get(const TipsetHash &hash,
+                                   bool error_if_not_found);
 
     outcome::result<TipsetIdx> get(BranchId branch, Height height);
 
     static outcome::result<std::shared_ptr<TipsetInfo>> decode(TipsetIdx raw);
 
-    outcome::result<void> walk(
-        BranchId branch,
-        Height height,
-        uint64_t limit,
-        const std::function<void(TipsetIdx)> &cb);
+    outcome::result<void> walk(BranchId branch,
+                               Height height,
+                               uint64_t limit,
+                               const std::function<void(TipsetIdx)> &cb);
 
     /// RAII tx helper
     class Tx {
@@ -69,6 +69,7 @@ namespace fc::sync {
     [[nodiscard]] Tx beginTx();
 
     explicit IndexDbBackend(const std::string &db_filename);
+
    private:
     using StatementHandle = libp2p::storage::SQLite::StatementHandle;
 

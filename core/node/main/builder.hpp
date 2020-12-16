@@ -63,19 +63,18 @@ namespace fc {
 
   namespace sync {
     class ChainStoreImpl;
-    class TipsetLoader;
     class IndexDb;
     class ChainDb;
     class Identify;
     class SayHello;
     class ReceiveHello;
     class PubSubGate;
-    class Syncer;
     class PeerDiscovery;
     class GraphsyncServer;
+    class SyncJob;
+    class InterpretJob;
 
     namespace blocksync {
-      class BlocksyncClient;
       class BlocksyncServer;
     }  // namespace blocksync
   }    // namespace sync
@@ -135,11 +134,10 @@ namespace fc::node {
     std::shared_ptr<sync::GraphsyncServer> graphsync_server;
 
     // chain sync components
-    std::shared_ptr<sync::blocksync::BlocksyncClient> blocksync_client;
     std::shared_ptr<sync::blocksync::BlocksyncServer> blocksync_server;
-    std::shared_ptr<sync::TipsetLoader> tipset_loader;
     std::shared_ptr<vm::interpreter::Interpreter> vm_interpreter;
-    std::shared_ptr<sync::Syncer> syncer;
+    std::shared_ptr<sync::SyncJob> sync_job;
+    std::shared_ptr<sync::InterpretJob> interpret_job;
 
     // high level objects
     std::shared_ptr<sync::ChainStoreImpl> chain_store;

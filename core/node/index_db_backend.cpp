@@ -113,7 +113,7 @@ namespace fc::sync {
   }
 
   outcome::result<IndexDbBackend::TipsetIdx> IndexDbBackend::get(
-      const TipsetHash &hash) {
+      const TipsetHash &hash, bool error_if_not_found) {
     TipsetIdx idx;
     auto cb = [&idx](TipsetHash hash,
                      BranchId branch,
@@ -130,7 +130,7 @@ namespace fc::sync {
     if (!res) {
       return Error::INDEXDB_EXECUTE_ERROR;
     }
-    if (idx.hash.empty()) {
+    if (error_if_not_found && idx.hash.empty()) {
       return Error::INDEXDB_TIPSET_NOT_FOUND;
     }
     return idx;

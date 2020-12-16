@@ -115,6 +115,12 @@ namespace fc {
     class PubSubGate;
   }
 
+  namespace blockchain {
+    namespace weight {
+      class WeightCalculator;
+    }
+  }
+
   namespace vm {
     namespace actor {
       struct Actor;

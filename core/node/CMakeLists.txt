@@ -9,12 +9,11 @@ add_library(sync
     say_hello.cpp
     receive_hello.cpp
     pubsub_gate.cpp
-    tipset_loader.cpp
-    blocksync_client.cpp
+    tipset_request.cpp
+    blocksync_request.cpp
     blocksync_server.cpp
     graphsync_server.cpp
-    subchain_loader.cpp
-    syncer.cpp
+    sync_job.cpp
     interpret_job.cpp
     chain_db.cpp
     branches.cpp

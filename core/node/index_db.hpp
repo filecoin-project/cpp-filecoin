@@ -6,9 +6,9 @@
 #ifndef CPP_FILECOIN_SYNC_INDEX_DB_HPP
 #define CPP_FILECOIN_SYNC_INDEX_DB_HPP
 
+#include "branches.hpp"
 #include "lru_cache.hpp"
 #include "storage/buffer_map.hpp"
-#include "branches.hpp"
 
 namespace fc::sync {
 
@@ -30,14 +30,15 @@ namespace fc::sync {
 
     outcome::result<std::map<BranchId, std::shared_ptr<BranchInfo>>> init();
 
-    outcome::result<void> storeGenesis(const Tipset& genesis_tipset);
+    outcome::result<void> storeGenesis(const Tipset &genesis_tipset);
 
     outcome::result<void> store(
         TipsetInfoPtr info, const boost::optional<RenameBranch> &branch_rename);
 
     bool contains(const TipsetHash &hash);
 
-    outcome::result<TipsetInfoCPtr> get(const TipsetHash &hash);
+    outcome::result<TipsetInfoCPtr> get(const TipsetHash &hash,
+                                        bool error_if_not_found);
 
     outcome::result<TipsetInfoCPtr> get(BranchId branch, Height height);
 

@@ -29,19 +29,18 @@
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "drand/impl/beaconizer.hpp"
-#include "node/blocksync_client.hpp"
 #include "node/blocksync_server.hpp"
 #include "node/chain_db.hpp"
 #include "node/chain_store_impl.hpp"
+#include "node/graphsync_server.hpp"
 #include "node/identify.hpp"
 #include "node/index_db_backend.hpp"
+#include "node/interpret_job.hpp"
 #include "node/peer_discovery.hpp"
 #include "node/pubsub_gate.hpp"
 #include "node/receive_hello.hpp"
 #include "node/say_hello.hpp"
-#include "node/syncer.hpp"
-#include "node/tipset_loader.hpp"
-#include "node/graphsync_server.hpp"
+#include "node/sync_job.hpp"
 #include "power/impl/power_table_impl.hpp"
 #include "storage/car/car.hpp"
 #include "storage/chain/msg_waiter.hpp"
@@ -410,31 +409,28 @@ namespace fc::node {
 
     log()->debug("Creating chain loaders...");
 
-    o.blocksync_client =
-        std::make_shared<fc::sync::blocksync::BlocksyncClient>(o.host, o.ipld);
-
     o.blocksync_server =
         std::make_shared<fc::sync::blocksync::BlocksyncServer>(o.host, o.ipld);
-
-    o.tipset_loader = std::make_shared<fc::sync::TipsetLoader>(
-        o.blocksync_client, o.chain_db);
 
     o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
         std::make_shared<vm::interpreter::InterpreterImpl>(
             std::make_shared<vm::runtime::TipsetRandomness>(o.ipld)),
         o.kv_store);
 
-    o.syncer = std::make_shared<sync::Syncer>(o.scheduler,
-                                              o.tipset_loader,
-                                              o.chain_db,
-                                              o.kv_store,
-                                              o.vm_interpreter,
-                                              o.ipld);
-
-    log()->debug("Creating chain store...");
+    o.sync_job = std::make_shared<sync::SyncJob>(
+        o.chain_db, o.host, o.scheduler, o.ipld);
 
     auto weight_calculator =
         std::make_shared<blockchain::weight::WeightCalculatorImpl>(o.ipld);
+
+    o.interpret_job = sync::InterpretJob::create(o.kv_store,
+                                                 o.vm_interpreter,
+                                                 o.scheduler,
+                                                 o.chain_db,
+                                                 o.ipld,
+                                                 weight_calculator);
+
+    log()->debug("Creating chain store...");
 
     auto power_table = std::make_shared<power::PowerTableImpl>();
 

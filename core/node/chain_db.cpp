@@ -66,8 +66,7 @@ namespace fc::sync {
             throw std::system_error(Error::CHAIN_DB_GENESIS_MISMATCH);
           }
         }
-        OUTCOME_TRYA(genesis_tipset_,
-                     Tipset::load(*ipld_, info->key.cids()));
+        OUTCOME_TRYA(genesis_tipset_, Tipset::load(*ipld_, info->key.cids()));
       }
 
     } catch (const std::system_error &e) {
@@ -105,13 +104,23 @@ namespace fc::sync {
     return *genesis_tipset_;
   }
 
-  bool ChainDb::tipsetIsStored(const TipsetHash &hash) const {
-    OUTCOME_EXCEPT(stateIsConsistent());
+  outcome::result<ChainDb::SyncState> ChainDb::getSyncState(
+      const TipsetHash &hash) {
+    SyncState state;
 
-    return index_db_->contains(hash);
-
-    // TODO revert back after restoring db
-    // return key_value_storage_->contains(common::Buffer(hash));
+    OUTCOME_TRY(stateIsConsistent());
+    OUTCOME_TRY(tipset_info, index_db_->get(hash, false));
+    if (!tipset_info) {
+      return state;
+    }
+    OUTCOME_TRY(branch_info, branches_.getRootBranch(tipset_info->branch));
+    if (branch_info->id != kGenesisBranch) {
+      OUTCOME_TRYA(state.unsynced_bottom, getTipsetByHash(branch_info->bottom));
+    } else {
+      state.chain_indexed = true;
+    }
+    state.tipset_indexed = true;
+    return state;
   }
 
   outcome::result<void> ChainDb::getHeads(const HeadCallback &callback) {
@@ -131,6 +140,12 @@ namespace fc::sync {
     return outcome::success();
   }
 
+  bool ChainDb::isHead(const TipsetHash &hash) {
+    const auto &heads = branches_.getAllHeads();
+    auto it = heads.find(hash);
+    return (it != heads.end() && it->second->synced_to_genesis);
+  }
+
   outcome::result<TipsetCPtr> ChainDb::getTipsetByHash(const TipsetHash &hash) {
     OUTCOME_TRY(stateIsConsistent());
     if (hash == genesis_tipset_->key.hash()) {
@@ -141,13 +156,13 @@ namespace fc::sync {
     if (tipset) {
       return tipset;
     }
-    OUTCOME_TRY(info, index_db_->get(hash));
+    OUTCOME_TRY(info, index_db_->get(hash, true));
     return loadTipsetFromIpld(info->key);
   }
 
   outcome::result<void> ChainDb::setCurrentHead(const TipsetHash &head) {
     OUTCOME_TRY(stateIsConsistent());
-    OUTCOME_TRY(info, index_db_->get(head));
+    OUTCOME_TRY(info, index_db_->get(head, true));
     return branches_.setCurrentHead(info->branch, info->height);
   }
 
@@ -174,8 +189,8 @@ namespace fc::sync {
   outcome::result<TipsetCPtr> ChainDb::findHighestCommonAncestor(
       const TipsetCPtr &a, const TipsetCPtr &b) {
     OUTCOME_TRY(stateIsConsistent());
-    OUTCOME_TRY(A, index_db_->get(a->key.hash()));
-    OUTCOME_TRY(B, index_db_->get(b->key.hash()));
+    OUTCOME_TRY(A, index_db_->get(a->key.hash(), true));
+    OUTCOME_TRY(B, index_db_->get(b->key.hash(), true));
     if (A->branch == B->branch) {
       return (a->height() < b->height()) ? a : b;
     }
@@ -205,8 +220,8 @@ namespace fc::sync {
       return outcome::success();
     }
 
-    OUTCOME_TRY(from_meta, index_db_->get(from->key.hash()));
-    OUTCOME_TRY(to_meta, index_db_->get(to->key.hash()));
+    OUTCOME_TRY(from_meta, index_db_->get(from->key.hash(), true));
+    OUTCOME_TRY(to_meta, index_db_->get(to->key.hash(), true));
     OUTCOME_TRY(route, branches_.getRoute(from_meta->branch, to_meta->branch));
 
     Height from_height = from->height() + 1;
@@ -214,20 +229,23 @@ namespace fc::sync {
     std::error_code e;
     bool proceed = true;
     for (auto branch_id : route) {
-      OUTCOME_TRY(index_db_->walkForward(
-          branch_id, from_height, to_height, limit,
-          [&, this](TipsetInfoCPtr info) {
-            if (!e) {
-              auto res = getTipsetByKey(info->key);
-              if (res) {
-                if (res.value()->height() <= to_height) {
-                  proceed = cb(std::move(res.value()));
-                }
-              } else {
-                e = res.error();
-              }
-            }
-          }));
+      OUTCOME_TRY(
+          index_db_->walkForward(branch_id,
+                                 from_height,
+                                 to_height,
+                                 limit,
+                                 [&, this](TipsetInfoCPtr info) {
+                                   if (!e) {
+                                     auto res = getTipsetByKey(info->key);
+                                     if (res) {
+                                       if (res.value()->height() <= to_height) {
+                                         proceed = cb(std::move(res.value()));
+                                       }
+                                     } else {
+                                       e = res.error();
+                                     }
+                                   }
+                                 }));
       if (e || !proceed) {
         break;
       }
@@ -259,18 +277,21 @@ namespace fc::sync {
     return outcome::success();
   }
 
-  outcome::result<boost::optional<TipsetCPtr>> ChainDb::storeTipset(
+  outcome::result<ChainDb::SyncState> ChainDb::storeTipset(
       TipsetCPtr tipset, const TipsetKey &parent) {
-    OUTCOME_TRY(stateIsConsistent());
     if (!started_) {
       return Error::CHAIN_DB_NOT_INITIALIZED;
     }
 
     assert(tipset);
 
-    if (tipsetIsStored(tipset->key.hash())) {
-      return getUnsyncedBottom(tipset->key);
+    SyncState state;
+
+    OUTCOME_TRYA(state, getSyncState(tipset->key.hash()));
+    if (state.tipset_indexed) {
+      return state;
     }
+
     if (tipset->height() == 0) {
       return Error::CHAIN_DB_BAD_TIPSET;
     }
@@ -279,13 +300,12 @@ namespace fc::sync {
       return Error::CHAIN_DB_BAD_TIPSET;
     }
 
-    bool parent_must_exist = tipsetIsStored(parent.hash());
+    OUTCOME_TRY(parent_stored, index_db_->get(parent.hash(), false));
     BranchId parent_branch = kNoBranch;
     Height parent_height = 0;
-    if (parent_must_exist) {
-      OUTCOME_TRY(info, index_db_->get(parent.hash()));
-      parent_branch = info->branch;
-      parent_height = info->height;
+    if (parent_stored) {
+      parent_branch = parent_stored->branch;
+      parent_height = parent_stored->height;
     }
 
     OUTCOME_TRY(store_position,
@@ -320,40 +340,35 @@ namespace fc::sync {
     auto head_changes =
         branches_.storeTipset(tipset, parent.hash(), store_position);
 
+    state.tipset_indexed = true;
+
     if (head_changes.added.empty()) {
       // no heads appeared, this branch is unsynced
       if (store_position.at_bottom_of_branch
           == store_position.assigned_branch) {
-        return TipsetCPtr(tipset);
+        state.unsynced_bottom = tipset;
+        return state;
       }
 
       // need to search for bottom
       OUTCOME_TRY(branch_info,
                   branches_.getRootBranch(store_position.assigned_branch));
       if (branch_info->id != kGenesisBranch) {
-        OUTCOME_TRY(last_loaded, getTipsetByHash(branch_info->bottom));
-        return std::move(last_loaded);
+        OUTCOME_TRYA(state.unsynced_bottom,
+                     getTipsetByHash(branch_info->bottom));
+        return state;
       }
 
     } else {
       head_callback_(std::move(head_changes.removed),
                      std::move(head_changes.added));
+
+      // chain indexed down to genesis
+      state.chain_indexed = true;
     }
 
-    return boost::none;
+    return state;
   }
-
-  outcome::result<boost::optional<TipsetCPtr>> ChainDb::getUnsyncedBottom(
-      const TipsetKey &key) {
-    OUTCOME_TRY(tipset_info, index_db_->get(key.hash()));
-    OUTCOME_TRY(branch_info, branches_.getRootBranch(tipset_info->branch));
-    if (branch_info->id != kGenesisBranch) {
-      OUTCOME_TRY(last_loaded, getTipsetByHash(branch_info->bottom));
-      return std::move(last_loaded);
-    }
-    return boost::none;
-  }
-
 }  // namespace fc::sync
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::sync, ChainDb::Error, e) {

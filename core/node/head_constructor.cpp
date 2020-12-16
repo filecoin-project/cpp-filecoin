@@ -42,9 +42,10 @@ namespace fc::sync {
                          min_weight_);
             return;
           }
-          log()->debug("possible head from {}, weight={}",
+          log()->debug("possible head from {}, weight={}, height={}",
                        e.peer_id.toBase58(),
-                       e.weight);
+                       e.weight,
+                       e.height);
           events_->signalPossibleHead({.source = e.peer_id,
                                        .head = TipsetKey(e.tipset),
                                        .height = e.height});
@@ -99,7 +100,7 @@ namespace fc::sync {
     }
 
     log()->debug("new possible head");
-    events_->signalPossibleHead({.source = std::move(source),
+    events_->signalPossibleHead({.source = boost::none, //std::move(source),
                                  .head = creator.key(),
                                  .height = current_height_});
   }
