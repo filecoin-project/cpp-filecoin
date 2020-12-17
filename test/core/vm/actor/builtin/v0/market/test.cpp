@@ -164,10 +164,16 @@ TEST_F(MarketActorTest, Constructor) {
   EXPECT_OUTCOME_TRUE_1(MarketActor::Construct::call(runtime, {}));
 }
 
+/**
+ * @given value send > 0 and caller is not signable
+ * @when call AddBalance
+ * @then kSysErrForbidden vm exit code returned
+ */
 TEST_F(MarketActorTest, AddBalanceNominalNotSignable) {
+  EXPECT_CALL(runtime, getValueReceived()).WillOnce(testing::Return(100));
   callerIs(kInitAddress);
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+  EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
                        MarketActor::AddBalance::call(runtime, kInitAddress));
 }
 
@@ -507,6 +513,7 @@ TEST_F(MarketActorTest,
 TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitAlreadyStarted) {
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
   EXPECT_OUTCOME_TRUE_1(state.states.set(deal_1_id, {1, {}, {}}));
+  callerIs(miner_address);
 
   EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
                        MarketActor::VerifyDealsForActivation::call(
