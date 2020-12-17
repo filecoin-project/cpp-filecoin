@@ -62,7 +62,7 @@ namespace fc::sync {
     events::Connection possible_head_event_;
     events::Connection peer_connected_event_;
 
-    boost::optional<TipsetRequest> request_;
+    TipsetRequest request_;
     boost::optional<DownloadTarget> now_active_;
   };
 

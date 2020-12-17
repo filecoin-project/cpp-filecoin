@@ -225,6 +225,7 @@ namespace fc::sync::blocksync {
     }
   }  // namespace
 
+  // XXX
   static int xxx = 0;
 
   class BlocksyncRequest::Impl
@@ -237,6 +238,9 @@ namespace fc::sync::blocksync {
 
     ~Impl() {
       log()->debug("------ {}", --xxx);
+      if (stream_) {
+        stream_->close();
+      }
     }
 
     void makeRequest(PeerId peer,
@@ -268,7 +272,7 @@ namespace fc::sync::blocksync {
         return;
       }
 
-      waitlist_.insert(blocks.begin(), blocks.end());
+      waitlist_.insert(blocks_reduced.begin(), blocks_reduced.end());
 
       if (depth == 0) {
         depth = 1;
@@ -420,6 +424,7 @@ namespace fc::sync::blocksync {
       }
 
       if (!result) {
+        log()->debug("error from {}: {}", result.error().message());
         result_->error = result.error();
       } else {
         auto &response = result.value();
@@ -541,16 +546,21 @@ namespace fc::sync::blocksync {
     bool in_progress_ = true;
   };
 
-  BlocksyncRequest::BlocksyncRequest(libp2p::Host &host,
-                                     libp2p::protocol::Scheduler &scheduler,
-                                     Ipld &ipld,
-                                     PeerId peer,
-                                     std::vector<CID> blocks,
-                                     uint64_t depth,
-                                     RequestOptions options,
-                                     uint64_t timeoutMsec,
-                                     std::function<void(Result)> callback) {
+  void BlocksyncRequest::newRequest(libp2p::Host &host,
+                                    libp2p::protocol::Scheduler &scheduler,
+                                    Ipld &ipld,
+                                    PeerId peer,
+                                    std::vector<CID> blocks,
+                                    uint64_t depth,
+                                    RequestOptions options,
+                                    uint64_t timeoutMsec,
+                                    std::function<void(Result)> callback) {
     assert(callback);
+
+    if (impl_) {
+      impl_->cancel();
+    }
+
     impl_ = std::make_shared<Impl>(host, scheduler, ipld);
 
     // need shared_from_this there

@@ -44,7 +44,10 @@ namespace fc::sync::blocksync {
       bool messages_stored = false;
     };
 
-    BlocksyncRequest(libp2p::Host &host,
+    ~BlocksyncRequest();
+
+    /// Cancels existing request if still active and makes the new one
+    void newRequest(libp2p::Host &host,
                      libp2p::protocol::Scheduler &scheduler,
                      Ipld &ipld,
                      PeerId peer,
@@ -54,8 +57,7 @@ namespace fc::sync::blocksync {
                      uint64_t timeoutMsec,
                      std::function<void(Result)> callback);
 
-    ~BlocksyncRequest();
-
+    /// Cancels request if any
     void cancel();
 
    private:

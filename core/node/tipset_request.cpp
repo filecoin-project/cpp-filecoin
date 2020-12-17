@@ -33,27 +33,25 @@ namespace fc::sync {
                      std::function<void(Result)> callback) {
       index_head_tipset_ = index_head_tipset;
       callback_ = std::move(callback);
-      request_.emplace(
-          host,
-          scheduler,
-          ipld,
-          std::move(peer),
-          std::move(blocks),
-          depth,
-          blocksync::BLOCKS_AND_MESSAGES,
-          timeoutMsec + 5000,
-          [wptr = weak_from_this(),
-           this](blocksync::BlocksyncRequest::Result r) {
-            if (wptr.expired()) {
-              return;
-            }
-            indexAndForward(std::move(r));
-          });
+      request_.newRequest(host,
+                          scheduler,
+                          ipld,
+                          std::move(peer),
+                          std::move(blocks),
+                          depth,
+                          blocksync::BLOCKS_AND_MESSAGES,
+                          timeoutMsec + 5000,
+                          [wptr = weak_from_this(),
+                           this](blocksync::BlocksyncRequest::Result r) {
+                            if (wptr.expired()) {
+                              return;
+                            }
+                            indexAndForward(std::move(r));
+                          });
     }
 
     void cancel() {
-      assert(request_);
-      request_->cancel();
+      request_.cancel();
     }
 
    private:
@@ -129,20 +127,25 @@ namespace fc::sync {
     std::function<void(Result)> callback_;
 
     /// Blocksync request. Other protocols can be added here
-    boost::optional<blocksync::BlocksyncRequest> request_;
+    blocksync::BlocksyncRequest request_;
   };
 
-  TipsetRequest::TipsetRequest(ChainDb &db,
-                               libp2p::Host &host,
-                               libp2p::protocol::Scheduler &scheduler,
-                               Ipld &ipld,
-                               PeerId peer,
-                               std::vector<CID> blocks,
-                               uint64_t depth,
-                               uint64_t timeoutMsec,
-                               bool index_head_tipset,
-                               std::function<void(Result)> callback) {
+  void TipsetRequest::newRequest(ChainDb &db,
+                                 libp2p::Host &host,
+                                 libp2p::protocol::Scheduler &scheduler,
+                                 Ipld &ipld,
+                                 PeerId peer,
+                                 std::vector<CID> blocks,
+                                 uint64_t depth,
+                                 uint64_t timeoutMsec,
+                                 bool index_head_tipset,
+                                 std::function<void(Result)> callback) {
     assert(callback);
+
+    if (impl_) {
+      cancel();
+    }
+
     impl_ = std::make_shared<Impl>(db);
 
     // need shared_from_this there

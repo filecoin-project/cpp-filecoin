@@ -144,7 +144,11 @@ namespace fc::sync {
       }
     }
 
-    request_.emplace(
+    log()->debug("new job, peer={}, height={}",
+                 target.active_peer.value().toBase58(),
+                 target.height);
+
+    request_.newRequest(
         *chain_db_,
         *host_,
         *scheduler_,
@@ -152,7 +156,7 @@ namespace fc::sync {
         target.active_peer.value(),
         target.head.cids(),
         probable_depth,
-        30000,
+        70000,
         true,  // TODO index head tipset (?)
         [this](TipsetRequest::Result r) { downloaderCallback(std::move(r)); });
 
@@ -160,8 +164,6 @@ namespace fc::sync {
   }
 
   void SyncJob::downloaderCallback(TipsetRequest::Result r) {
-    request_.reset();
-
     if (r.from && r.delta_rating != 0) {
       peers_.changeRating(r.from.value(), r.delta_rating);
     }
@@ -191,7 +193,7 @@ namespace fc::sync {
 
     auto new_target = dequeue();
     if (new_target) {
-       newJob(new_target.value(), false);
+      newJob(new_target.value(), false);
     }
   }
 

@@ -145,8 +145,7 @@ namespace fc::sync {
       bool proceed = false;
 
       // maybe this head already interpreted
-      auto maybe_result =
-          vm::interpreter::getSavedResult(*kv_store_, target_head_);
+      auto maybe_result = vm::interpreter::getSavedResult(*kv_store_, head);
       if (!maybe_result) {
         // bad tipset or internal error
         event.result = maybe_result.error();
@@ -164,7 +163,7 @@ namespace fc::sync {
       } else if (head->height() == 0) {
         // genesis is not yet interpreted i.e. we are running node 1st time
         bool genesis_ok = false;
-        event.result = interpreter_->interpret(ipld_, target_head_);
+        event.result = interpreter_->interpret(ipld_, head);
         if (event.result) {
           auto weight = weight_calculator_->calculateWeight(*head);
           if (!weight) {
@@ -270,8 +269,6 @@ namespace fc::sync {
         return;
       }
 
-      target_head_ = std::move(head);
-
       log()->info("starting new job {} -> {}", currentHeight(), targetHeight());
 
       scheduleStep();
@@ -302,9 +299,20 @@ namespace fc::sync {
       assert(tipset->getParents() == current_head_->key);
 
       const auto &parent_res = current_result_.value();
-      if (tipset->getParentStateRoot() != parent_res.state_root
-          || tipset->getParentMessageReceipts()
-                 != parent_res.message_receipts) {
+
+      bool inconsistency_found = false;
+
+      if (tipset->getParentStateRoot() != parent_res.state_root) {
+        log()->error("interpreted state root unexpected");
+        inconsistency_found = true;
+      }
+
+      if (tipset->getParentMessageReceipts() != parent_res.message_receipts) {
+        log()->error("interpreted message receipts unexpected");
+        inconsistency_found = true;
+      }
+
+      if (inconsistency_found) {
         log()->error("detected chain inconsistency at height {}",
                      tipset->height());
 
@@ -332,7 +340,6 @@ namespace fc::sync {
         return;
       }
 
-      current_head_ = std::move(tipset);
       if (currentHeight() == targetHeight()) {
         done();
       } else {

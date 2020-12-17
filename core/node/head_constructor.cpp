@@ -8,6 +8,9 @@
 #include "common/logger.hpp"
 #include "events.hpp"
 
+// XXX
+#include "primitives/cid/cid_of_cbor.hpp"
+
 namespace fc::sync {
 
   namespace {
@@ -90,19 +93,29 @@ namespace fc::sync {
     if (!res) {
       log()->debug("cannot expand tipset with new block, {}",
                    res.error().message());
+      return;
     }
     res = creator.expandTipset(block_cid, header);
     if (!res) {
-      if (!res) {
-        log()->error("cannot expand tipset with new block, {}",
+      log()->error("cannot expand tipset with new block, {}",
                      res.error().message());
-      }
+      return;
     }
 
     log()->debug("new possible head");
-    events_->signalPossibleHead({.source = boost::none, //std::move(source),
-                                 .head = creator.key(),
-                                 .height = current_height_});
+
+    // XXX
+
+//    events_->signalPossibleHead({.source = boost::none, //std::move(source),
+//                                 .head = creator.key(),
+//                                 .height = current_height_});
+
+    // check if parents are already synced / downloaded
+
+
+    events_->signalPossibleHead({.source = boost::none,
+                                 .head = TipsetKey(header.parents),
+                                 .height = current_height_ - 1});
   }
 
 }  // namespace fc::sync
