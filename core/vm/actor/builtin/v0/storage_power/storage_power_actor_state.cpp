@@ -44,7 +44,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   outcome::result<void> State::addToClaim(const Address &miner,
                                           const StoragePower &raw,
                                           const StoragePower &qa) {
-    OUTCOME_TRY(claim, claims.get(miner));
+    OUTCOME_TRY(claim_found, claims.tryGet(miner));
+    if (!claim_found.has_value()) {
+      return VMExitCode::kErrNotFound;
+    }
+    auto claim{claim_found.value()};
 
     // TotalBytes always update directly
     total_raw_commited += raw;
