@@ -3,8 +3,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-include(FindHwloc.cmake)
-
 set(FILECOIN_FFI_PATH "${PROJECT_SOURCE_DIR}/deps/our-filecoin-ffi")
 
 set(FILECOIN_FFI_INCLUDES
@@ -25,14 +23,14 @@ set(ENV{PKG_CONFIG_PATH}  "${PKG_CONFIG_PATH}:${FILECOIN_FFI_PKG}")
 #set(ENV{FFI_BUILD_FROM_SOURCE}  "1")
 
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(PKG_FILECOIN filcrypto)
+pkg_check_modules(PKG_FILECOIN IMPORTED_TARGET filcrypto)
 
 if (NOT PKG_FILECOIN_FOUND)
     message("Installing filecoin-ffi")
     execute_process(COMMAND ./install-filcrypto.sh
             WORKING_DIRECTORY ${FILECOIN_FFI_PATH})
 
-    pkg_check_modules(PKG_FILECOIN REQUIRED filcrypto)
+    pkg_check_modules(PKG_FILECOIN REQUIRED IMPORTED_TARGET filcrypto)
 endif (NOT PKG_FILECOIN_FOUND)
 
 
@@ -52,12 +50,7 @@ set_target_properties(filecoin_ffi PROPERTIES
         IMPORTED_LOCATION ${FILECOIN_FFI_LIB}
         )
 
-target_link_libraries(filecoin_ffi INTERFACE ${PKG_FILECOIN_LIBRARIES})
-
-#TODO: get from .pc file
-if (APPLE)
-    target_link_libraries(filecoin_ffi INTERFACE "-framework OpenCL" ${HWLOC_LIBRARIES})
-endif (APPLE)
+target_link_libraries(filecoin_ffi INTERFACE PkgConfig::PKG_FILECOIN)
 
 add_dependencies(filecoin_ffi
         filecoin_ffi_build
