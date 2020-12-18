@@ -3,8 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "storage/car/car.hpp"
+#include <boost/interprocess/file_mapping.hpp>
+#include <boost/interprocess/mapped_region.hpp>
+
 #include "codec/uvarint.hpp"
+#include "common/logger.hpp"
+#include "storage/car/car.hpp"
 #include "storage/ipld/traverser.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
@@ -12,6 +16,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::storage::car, CarError, e) {
   switch (e) {
     case E::kDecodeError:
       return "Decode error";
+    case E::kReadFileError:
+      return "Read car file error";
   }
 }
 
@@ -30,6 +36,57 @@ namespace fc::storage::car {
                                             CarError::kDecodeError>(input));
       OUTCOME_TRY(cid, CID::read(node));
       OUTCOME_TRY(store.set(cid, common::Buffer{node}));
+    }
+    return std::move(header.roots);
+  }
+
+  outcome::result<std::vector<CID>> loadCar(Ipld &store,
+                                            const std::string &file_name) {
+    namespace bip = boost::interprocess;
+
+    auto log = common::createLogger("load_car");
+
+    gsl::span<const uint8_t> input;
+
+    try {
+      bip::file_mapping file(file_name.c_str(), bip::read_only);
+      bip::mapped_region region(file, bip::read_only);
+      void *addr = region.get_address();
+      std::size_t size = region.get_size();
+      input =
+          gsl::span<const uint8_t>(static_cast<const uint8_t *>(addr), size);
+      log->info("reading file {} of size {}", file_name, size);
+    } catch (const std::exception &e) {
+      log->error("exception while reading {}: {}", file_name, e.what());
+      return CarError::kReadFileError;
+    } catch (...) {
+      log->error("unknown exception while reading {}", file_name);
+      return CarError::kReadFileError;
+    }
+
+    size_t reported_percent = 0;
+    size_t total_bytes = input.size();
+    auto progress = [&](size_t current) {
+      auto x = current * 100 / total_bytes;
+      if (x > reported_percent) {
+        reported_percent = x;
+        log->info("{}%", reported_percent);
+      }
+    };
+
+    OUTCOME_TRY(header_bytes,
+                codec::uvarint::readBytes<CarError::kDecodeError,
+                                          CarError::kDecodeError>(input));
+    OUTCOME_TRY(header, codec::cbor::decode<CarHeader>(header_bytes));
+    log->info("read header, {} roots", header.roots.size());
+
+    while (!input.empty()) {
+      OUTCOME_TRY(node,
+                  codec::uvarint::readBytes<CarError::kDecodeError,
+                                            CarError::kDecodeError>(input));
+      OUTCOME_TRY(cid, CID::read(node));
+      OUTCOME_TRY(store.set(cid, common::Buffer{node}));
+      progress(input.size());
     }
     return std::move(header.roots);
   }

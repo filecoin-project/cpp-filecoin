@@ -42,3 +42,13 @@ add_executable(node
 target_link_libraries(node
     node_builder
     )
+
+add_executable(load_snapshot
+    load_snapshot.cpp
+    )
+
+target_link_libraries(load_snapshot
+    car
+    ipfs_datastore_leveldb
+
+    )

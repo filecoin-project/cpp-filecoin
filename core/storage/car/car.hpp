@@ -15,7 +15,7 @@ namespace fc::storage::car {
   using common::Buffer;
   using ipld::Selector;
 
-  enum class CarError { kDecodeError = 1 };
+  enum class CarError { kDecodeError = 1, kReadFileError };
 
   struct CarHeader {
     static constexpr uint64_t V1 = 1;
@@ -37,6 +37,9 @@ namespace fc::storage::car {
   }
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input);
+
+  outcome::result<std::vector<CID>> loadCar(Ipld &store,
+                                            const std::string &file_name);
 
   void writeHeader(Buffer &output, const std::vector<CID> &roots);
 
