@@ -80,12 +80,12 @@ jobs:
         CTEST_OUTPUT_ON_FAILURE: 1
       run: cmake --build build --target test
     - name: prepare coverage report
-      run: cmake --build build --target ctest_coverage
+      run: cmake --build build --target ctest_coverage_norun
     - name: upload report to codecov
       uses: codecov/codecov-action@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./build/ctest_coverage.xml
+        file: ./build/ctest_coverage_norun.xml
         name: codecov-umbrella
