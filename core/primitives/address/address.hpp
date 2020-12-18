@@ -85,22 +85,18 @@ namespace fc::primitives::address {
     bool isSecp256k1() const;
 
     /// id - number assigned to actors in a Filecoin Chain
-    static Address makeFromId(uint64_t id, Network network = kDefaultNetwork);
+    static Address makeFromId(uint64_t id);
 
-    static Address makeSecp256k1(const Sec256k1PublicKey &public_key,
-                                 Network network = kDefaultNetwork);
+    static Address makeSecp256k1(const Sec256k1PublicKey &public_key);
 
-    static Address makeActorExec(gsl::span<const uint8_t> data,
-                                 Network network = kDefaultNetwork);
+    static Address makeActorExec(gsl::span<const uint8_t> data);
 
-    static Address makeBls(const BlsPublicKey &public_key,
-                           Network network = kDefaultNetwork);
+    static Address makeBls(const BlsPublicKey &public_key);
 
     uint64_t getId() const;
 
     bool verifySyntax(gsl::span<const uint8_t> seed_data) const;
 
-    Network network;
     Payload data;
   };
 

@@ -466,6 +466,7 @@ namespace fc::api {
         }},
         // TODO(turuslan): FIL-165 implement method
         .NetAddrsListen = {},
+        .PledgeSector = {},
         .StateAccountKey = {[=](auto &address,
                                 auto &tipset_key) -> outcome::result<Address> {
           if (address.isKeyType()) {
@@ -718,6 +719,11 @@ namespace fc::api {
         .StateNetworkName = {[=]() -> outcome::result<std::string> {
           return chain_store->getNetworkName();
         }},
+        .StateNetworkVersion =
+            [=](auto &tipset_key) -> outcome::result<NetworkVersion> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          return vm::version::getNetworkVersion(context.tipset->height());
+        },
         // TODO(artyom-yurin): FIL-165 implement method
         .StateMinerPreCommitDepositForPower = {},
         // TODO(artyom-yurin): FIL-165 implement method

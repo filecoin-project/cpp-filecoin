@@ -26,7 +26,7 @@ namespace fc::sector_storage {
 
   class ManagerImpl : public Manager {
    public:
-    static outcome::result<std::unique_ptr<Manager>> newManager(
+    static outcome::result<std::shared_ptr<Manager>> newManager(
         const std::shared_ptr<stores::RemoteStore> &remote,
         const std::shared_ptr<Scheduler> &scheduler,
         const SealerConfig &config);

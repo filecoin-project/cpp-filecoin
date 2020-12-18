@@ -88,7 +88,8 @@ namespace fc::miner {
   }
 
   outcome::result<void> MinerImpl::runPreflightChecks() {
-    OUTCOME_TRY(has, api_->WalletHas(worker_address_));
+    OUTCOME_TRY(key, api_->StateAccountKey(worker_address_, {}));
+    OUTCOME_TRY(has, api_->WalletHas(key));
     if (!has) {
       return MinerError::kWorkerNotFound;
     }

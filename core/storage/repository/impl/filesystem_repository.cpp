@@ -8,7 +8,6 @@
 #include <mutex>
 #include <utility>
 
-#include "api/rpc/json.hpp"
 #include "boost/filesystem.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_sha256_provider_impl.hpp"
@@ -19,8 +18,6 @@
 
 using fc::crypto::bls::BlsProviderImpl;
 using fc::crypto::secp256k1::Secp256k1Sha256ProviderImpl;
-using fc::sector_storage::stores::LocalPath;
-using fc::sector_storage::stores::StorageConfig;
 using fc::storage::ipfs::LeveldbDatastore;
 using fc::storage::keystore::FileSystemKeyStore;
 using fc::storage::repository::FileSystemRepository;
@@ -109,25 +106,4 @@ fc::outcome::result<std::shared_ptr<Repository>> FileSystemRepository::create(
 
 fc::outcome::result<Version> FileSystemRepository::getVersion() const {
   return kFileSystemRepositoryVersion;
-}
-
-fc::outcome::result<StorageConfig> FileSystemRepository::getStorage() {
-  const std::lock_guard<std::mutex> lock(storage_mutex_);
-  return nonBlockGetStorage();
-}
-
-fc::outcome::result<StorageConfig> FileSystemRepository::nonBlockGetStorage() {
-  boost::filesystem::path root_path{repository_path_};
-  root_path /= kStorageConfig;
-  return storageFromFile(root_path);
-}
-
-fc::outcome::result<void> FileSystemRepository::setStorage(
-    std::function<void(StorageConfig &)> action) {
-  const std::lock_guard<std::mutex> lock(storage_mutex_);
-  OUTCOME_TRY(storage_conf, nonBlockGetStorage());
-  action(storage_conf);
-  boost::filesystem::path root_path{repository_path_};
-  root_path /= kStorageConfig;
-  return writeStorage(root_path, storage_conf);
 }
