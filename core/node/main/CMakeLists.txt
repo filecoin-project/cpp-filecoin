@@ -50,5 +50,6 @@ add_executable(load_snapshot
 target_link_libraries(load_snapshot
     car
     ipfs_datastore_leveldb
-
+    runtime
+    interpreter
     )

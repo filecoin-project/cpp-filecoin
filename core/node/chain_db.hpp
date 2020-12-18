@@ -84,6 +84,8 @@ namespace fc::sync {
     outcome::result<SyncState> storeTipset(TipsetCPtr tipset,
                                            const TipsetKey &parent);
 
+    outcome::result<SyncState> storeChainDownFrom(TipsetCPtr tipset);
+
    private:
     outcome::result<TipsetCPtr> loadTipsetFromIpld(const TipsetKey &key);
 
