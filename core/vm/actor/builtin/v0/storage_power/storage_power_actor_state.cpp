@@ -31,10 +31,10 @@ namespace fc::vm::actor::builtin::v0::storage_power {
              .velocity = kInitialQAPowerEstimateVelocity << kPrecision},
         .miner_count = 0,
         .num_miners_meeting_min_power = {},
-        .cron_event_queue = {},
+        .cron_event_queue = {ipld},
         .first_cron_epoch = {},
         .last_processed_cron_epoch = kChainEpochUndefined,
-        .claims = {},
+        .claims = {ipld},
         .proof_validation_batch = {},
     };
     ipld->load(state);

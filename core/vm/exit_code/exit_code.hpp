@@ -78,14 +78,6 @@ namespace fc::vm {
     kMultisigActorInsufficientFunds,
     kMultisigActorIllegalState,
 
-    kStoragePowerActorWrongCaller,
-    kStoragePowerActorOutOfBound,
-    kStoragePowerActorAlreadyExists,
-    kStoragePowerActorDeletionError,
-    kStoragePowerActorIllegalArgument,
-    kStoragePowerActorIllegalState,
-    kStoragePowerActorForbidden,
-
     kInitActorNotBuiltinActor,
     kInitActorSingletonActor,
 

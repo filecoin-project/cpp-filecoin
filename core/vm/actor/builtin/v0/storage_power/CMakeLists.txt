@@ -13,6 +13,7 @@ target_link_libraries(storage_power_actor_v0
     alpha_beta_filter
     block
     balance_table
+    const
     hamt
     multimap
     uvarint_key

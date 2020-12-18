@@ -3,27 +3,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include <libp2p/peer/peer_id.hpp>
+#include "const.hpp"
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
-#include "vm/actor/builtin/v0/init/init_actor.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v2/codes.hpp"
+#include "vm/actor/builtin/v2/init/init_actor.hpp"
+#include "vm/actor/builtin/v2/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 
-namespace fc::vm::actor::builtin::v0::storage_power {
+namespace fc::vm::actor::builtin::v2::storage_power {
   using libp2p::multi::Multihash;
   using libp2p::peer::PeerId;
   using primitives::kChainEpochUndefined;
   using primitives::SectorNumber;
+  using primitives::sector::RegisteredProof;
   using runtime::MockRuntime;
   using storage::ipfs::InMemoryDatastore;
   using testing::Return;
+  using v0::storage_power::kGasOnSubmitVerifySeal;
 
-  class StoragePowerActorV0Test : public testing::Test {
+  class StoragePowerActorV2Test : public testing::Test {
     void SetUp() override {
       EXPECT_CALL(runtime, getCurrentEpoch())
           .WillRepeatedly(Return(current_epoch));
@@ -131,12 +135,12 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    * @when Costruction is called
    * @then state is saved and default values are correct
    */
-  TEST_F(StoragePowerActorV0Test, SimpleConstruction) {
+  TEST_F(StoragePowerActorV2Test, SimpleConstruction) {
     caller = kSystemActorAddress;
 
     EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, {}));
 
-    // values from lotus specs-actors v0.9
+    // values from lotus specs-actors
     EXPECT_EQ(state.total_raw_power, StoragePower{0});
     EXPECT_EQ(state.total_raw_commited, StoragePower{0});
     EXPECT_EQ(state.total_qa_power, StoragePower{0});
@@ -152,7 +156,6 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     EXPECT_EQ(state.miner_count, 0);
     EXPECT_EQ(state.num_miners_meeting_min_power, 0);
     EXPECT_EQ(state.first_cron_epoch, ChainEpoch{0});
-    EXPECT_EQ(state.last_processed_cron_epoch, kChainEpochUndefined);
     EXPECT_OUTCOME_EQ(state.claims.size(), 0);
     EXPECT_OUTCOME_EQ(state.cron_event_queue.size(), 0);
   }
@@ -162,7 +165,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    * @when create miner called
    * @then new miner is created
    */
-  TEST_F(StoragePowerActorV0Test, CreateMiner) {
+  TEST_F(StoragePowerActorV2Test, CreateMiner) {
     constructed();
 
     Address owner = Address::makeFromId(101);
@@ -185,7 +188,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    * @when create miner called
    * @then error kSysErrForbidden returned
    */
-  TEST_F(StoragePowerActorV0Test, CreateMinerCallerNotSignable) {
+  TEST_F(StoragePowerActorV2Test, CreateMinerCallerNotSignable) {
     constructed();
     callerCodeIdIs(kEmptyObjectCid);
 
@@ -198,7 +201,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    * @when UpdateClaimedPower called
    * @then error kSysErrForbidden returned
    */
-  TEST_F(StoragePowerActorV0Test, UpdateClaimedPowerCallerNotMiner) {
+  TEST_F(StoragePowerActorV2Test, UpdateClaimedPowerCallerNotMiner) {
     constructed();
     callerCodeIdIs(kEmptyObjectCid);
 
@@ -212,7 +215,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    * @when UpdateClaimedPower called
    * @then error kErrNotFound returned
    */
-  TEST_F(StoragePowerActorV0Test, UpdateClaimedPowerMinerNotFound) {
+  TEST_F(StoragePowerActorV2Test, UpdateClaimedPowerMinerNotFound) {
     constructed();
     callerCodeIdIs(kStorageMinerCodeCid);
 
@@ -222,129 +225,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   }
 
   /**
-   * @given storage power actor with miner created and miner power is under
-   * threshold
-   * @when OnConsensusFault called
-   * @then total power committed changed
-   */
-  TEST_F(StoragePowerActorV0Test, OnConsensusFaultWasBelowThreshold) {
-    constructed();
-    Address owner = Address::makeFromId(101);
-    Address worker = Address::makeFromId(103);
-    Address miner_address = Address::makeFromId(1001);
-    StoragePower small_power_unit{1000000};
-    createMiner(owner, worker, miner_address, miner_address);
-    updateClaimedPower(miner_address, small_power_unit, small_power_unit);
-
-    EXPECT_EQ(state.num_miners_meeting_min_power, 0);
-    EXPECT_EQ(state.total_raw_commited, small_power_unit);
-    EXPECT_EQ(state.total_qa_commited, small_power_unit);
-    EXPECT_EQ(state.total_raw_power, 0);
-    EXPECT_EQ(state.total_qa_power, 0);
-
-    caller = miner_address;
-    callerCodeIdIs(kStorageMinerCodeCid);
-    EXPECT_OUTCOME_TRUE_1(OnConsensusFault::call(runtime, {0}));
-
-    EXPECT_EQ(state.num_miners_meeting_min_power, 0);
-    EXPECT_EQ(state.total_raw_commited, 0);
-    EXPECT_EQ(state.total_qa_commited, 0);
-    EXPECT_EQ(state.total_raw_power, 0);
-    EXPECT_EQ(state.total_qa_power, 0);
-  }
-
-  /**
-   * @given storage power actor with miner created and miner power is above
-   * threshold
-   * @when OnConsensusFault called
-   * @then miner claim removed
-   */
-  TEST_F(StoragePowerActorV0Test, OnConsensusFaultWasAboveThreshold) {
-    constructed();
-    Address owner = Address::makeFromId(101);
-    Address worker = Address::makeFromId(103);
-    Address miner_address = Address::makeFromId(1001);
-    StoragePower power{kConsensusMinerMinPower};
-    createMiner(owner, worker, miner_address, miner_address);
-    updateClaimedPower(miner_address, power, power);
-
-    EXPECT_EQ(state.num_miners_meeting_min_power, 1);
-    EXPECT_EQ(state.total_raw_commited, power);
-    EXPECT_EQ(state.total_qa_commited, power);
-    EXPECT_EQ(state.total_raw_power, power);
-    EXPECT_EQ(state.total_qa_power, power);
-
-    TokenAmount pledge_delta{100};
-    updateClaimedPower(miner_address, pledge_delta);
-
-    caller = miner_address;
-    callerCodeIdIs(kStorageMinerCodeCid);
-    TokenAmount slash{50};
-    EXPECT_OUTCOME_TRUE_1(OnConsensusFault::call(runtime, {50}));
-
-    EXPECT_EQ(state.num_miners_meeting_min_power, 0);
-    EXPECT_EQ(state.total_raw_commited, 0);
-    EXPECT_EQ(state.total_qa_commited, 0);
-    EXPECT_EQ(state.total_raw_power, 0);
-    EXPECT_EQ(state.total_qa_power, 0);
-    EXPECT_EQ(state.total_pledge, pledge_delta - slash);
-  }
-
-  /**
-   * @given storage power actor with miner created and miner claim is zero
-   * @when OnConsensusFault called
-   * @then error kAssert returned
-   */
-  TEST_F(StoragePowerActorV0Test, OnConsensusFaultPledgeBelowZero) {
-    constructed();
-    Address owner = Address::makeFromId(101);
-    Address worker = Address::makeFromId(103);
-    Address miner_address = Address::makeFromId(1001);
-    StoragePower power{kConsensusMinerMinPower};
-    createMiner(owner, worker, miner_address, miner_address);
-
-    caller = miner_address;
-    callerCodeIdIs(kStorageMinerCodeCid);
-    TokenAmount slash{50};
-    EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
-                         OnConsensusFault::call(runtime, {50}));
-  }
-
-  /**
-   * @given storage power actor
-   * @when OnConsensusFault called by not a miner
-   * @then error kSysErrForbidden returned
-   */
-  TEST_F(StoragePowerActorV0Test, OnConsensusFaultWrongCaller) {
-    constructed();
-
-    callerCodeIdIs(kEmptyObjectCid);
-    TokenAmount slash{50};
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
-                         OnConsensusFault::call(runtime, {50}));
-  }
-
-  /**
-   * @given storage power actor and miner has no claim
-   * @when OnConsensusFault called
-   * @then error kErrNotFound returned
-   */
-  TEST_F(StoragePowerActorV0Test, OnConsensusFaultNoMiner) {
-    constructed();
-
-    caller = Address::makeFromId(1001);
-    callerCodeIdIs(kStorageMinerCodeCid);
-    TokenAmount slash{50};
-    EXPECT_OUTCOME_ERROR(VMExitCode::kErrNotFound,
-                         OnConsensusFault::call(runtime, {50}));
-  }
-
-  /**
    * @given storage power actor and miner created and one proof submitted
    * @when OnEpochTickEnd called by cron address
    * @then proof verified
    */
-  TEST_F(StoragePowerActorV0Test, OneMinerOneSectorPoRepForBulkVerify) {
+  TEST_F(StoragePowerActorV2Test, OneMinerOneSectorPoRepForBulkVerify) {
     constructed();
     Address owner = Address::makeFromId(101);
     Address worker = Address::makeFromId(103);
@@ -377,4 +262,4 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     caller = kCronAddress;
     EXPECT_OUTCOME_TRUE_1(OnEpochTickEnd::call(runtime, {}));
   }
-}  // namespace fc::vm::actor::builtin::v0::storage_power
+}  // namespace fc::vm::actor::builtin::v2::storage_power

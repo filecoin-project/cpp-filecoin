@@ -208,7 +208,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
 
     if (!state.proof_validation_batch.has_value()) {
       state.proof_validation_batch =
-          adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer>{};
+          adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer>{
+              runtime.getIpfsDatastore()};
     }
     OUTCOME_TRY(found, state.proof_validation_batch->tryGet(miner));
     if (found.has_value()) {

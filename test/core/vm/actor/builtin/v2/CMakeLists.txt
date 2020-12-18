@@ -5,3 +5,4 @@
 add_subdirectory(account)
 add_subdirectory(cron)
 add_subdirectory(payment_channel)
+add_subdirectory(power)

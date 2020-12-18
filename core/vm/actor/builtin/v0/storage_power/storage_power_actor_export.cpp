@@ -217,10 +217,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     state.this_epoch_raw_power = raw_power;
     state.this_epoch_qa_power = qa_power;
 
-    auto delta = runtime.getCurrentEpoch() - state.last_processed_cron_epoch;
+    auto now{runtime.getCurrentEpoch()};
+    auto delta = now - state.last_processed_cron_epoch;
     state.updateSmoothedEstimate(delta);
 
-    state.last_processed_cron_epoch = runtime.getCurrentEpoch();
+    state.last_processed_cron_epoch = now;
 
     OUTCOME_TRY(runtime.commitState(state));
     OUTCOME_TRY(runtime.sendM<reward::UpdateNetworkKPI>(
@@ -240,7 +241,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
     auto miner{runtime.getImmediateCaller()};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(claim, state.claims.get(miner));
+    OUTCOME_TRY(found_claim, state.claims.tryGet(miner));
+    if (!found_claim.has_value()) {
+      return VMExitCode::kErrNotFound;
+    }
+    auto claim{found_claim.value()};
     VM_ASSERT(claim.raw_power >= 0);
     VM_ASSERT(claim.qa_power >= 0);
     OUTCOME_TRY(state.addToClaim(miner, -claim.raw_power, -claim.qa_power));
@@ -256,7 +261,8 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     if (!state.proof_validation_batch.has_value()) {
       state.proof_validation_batch =
-          adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer>{};
+          adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer>{
+              runtime.getIpfsDatastore()};
     }
     OUTCOME_TRY(found, state.proof_validation_batch->tryGet(miner));
     if (found.has_value()) {
