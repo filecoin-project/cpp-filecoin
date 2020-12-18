@@ -36,7 +36,7 @@ namespace fc::miner {
         miner_address_{std::move(miner_address)},
         worker_address_{std::move(worker_address)},
         counter_{std::move(counter)},
-        sealing_fsm_kv{sealing_fsm_kv},
+        sealing_fsm_kv_{std::move(sealing_fsm_kv)},
         sector_manager_{std::move(sector_manager)},
         context_{std::move(context)} {}
 
@@ -63,7 +63,7 @@ namespace fc::miner {
                                              events,
                                              miner_address_,
                                              counter_,
-                                             sealing_fsm_kv,
+                                             sealing_fsm_kv_,
                                              sector_manager_,
                                              precommit_policy,
                                              context_);

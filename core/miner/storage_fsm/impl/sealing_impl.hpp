@@ -286,7 +286,7 @@ namespace fc::mining {
     std::shared_ptr<PreCommitPolicy> policy_;
 
     std::shared_ptr<Counter> counter_;
-    std::shared_ptr<BufferMap> fsm_kv;
+    std::shared_ptr<BufferMap> fsm_kv_;
 
     std::shared_ptr<SectorStat> stat_;
 

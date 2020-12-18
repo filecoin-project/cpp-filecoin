@@ -72,7 +72,7 @@ namespace fc::miner {
     Address worker_address_;
     std::shared_ptr<Sealing> sealing_;
     std::shared_ptr<Counter> counter_;
-    std::shared_ptr<BufferMap> sealing_fsm_kv;
+    std::shared_ptr<BufferMap> sealing_fsm_kv_;
     std::shared_ptr<Manager> sector_manager_;
     std::shared_ptr<boost::asio::io_context> context_;
   };

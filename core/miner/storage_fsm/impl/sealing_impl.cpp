@@ -55,7 +55,7 @@ namespace fc::mining {
         events_(std::move(events)),
         policy_(std::move(policy)),
         counter_(std::move(counter)),
-        fsm_kv{fsm_kv},
+        fsm_kv_{std::move(fsm_kv)},
         miner_address_(miner_address),
         sealer_(std::move(sealer)) {
     std::shared_ptr<host::HostContext> fsm_context =
@@ -111,7 +111,7 @@ namespace fc::mining {
   }
 
   outcome::result<void> SealingImpl::fsmLoad() {
-    if (auto it{fsm_kv->cursor()}) {
+    if (auto it{fsm_kv_->cursor()}) {
       for (it->seekToFirst(); it->isValid(); it->next()) {
         OUTCOME_TRY(_info, codec::cbor::decode<SectorInfo>(it->value()));
         auto info{std::make_shared<SectorInfo>(std::move(_info))};
@@ -124,7 +124,7 @@ namespace fc::mining {
   }
 
   void SealingImpl::fsmSave(const std::shared_ptr<SectorInfo> &info) {
-    OUTCOME_EXCEPT(fsm_kv->put(
+    OUTCOME_EXCEPT(fsm_kv_->put(
         Buffer{common::span::cbytes(std::to_string(info->sector_number))},
         codec::cbor::encode(*info).value()));
   }
