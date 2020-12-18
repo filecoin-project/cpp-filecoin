@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
 #include <libp2p/injector/host_injector.hpp>
@@ -35,8 +36,8 @@ namespace fc {
   using boost::asio::io_context;
   using common::span::cbytes;
   using libp2p::multi::Multiaddress;
+  using primitives::sector::RegisteredSealProof;
   using storage::BufferMap;
-  using storage::MapPrefix;
 
   static const Buffer kActor{cbytes("actor")};
 
@@ -45,7 +46,7 @@ namespace fc {
     std::pair<Multiaddress, std::string> node_api{
         codec::cbor::kDefaultT<Multiaddress>(), {}};
     boost::optional<Address> actor, owner, worker;
-    RegisteredProof seal_type{RegisteredProof::StackedDRG2KiBSeal};
+    boost::optional<RegisteredSealProof> seal_type;
     int api_port;
 
     auto join(const std::string &path) const {
@@ -60,6 +61,7 @@ namespace fc {
       std::string repo;
       std::string node_repo;
       std::string actor, owner, worker;
+      std::string sector_size;
     } raw;
 
     po::options_description desc("Fuhon miner options");
@@ -70,6 +72,7 @@ namespace fc {
     option("actor", po::value(&raw.actor));
     option("owner", po::value(&raw.owner));
     option("worker", po::value(&raw.worker));
+    option("sector-size", po::value(&raw.sector_size));
 
     po::variables_map vm;
     po::store(parse_command_line(argc, argv, desc), vm);
@@ -96,6 +99,23 @@ namespace fc {
     address(config.actor, raw.actor);
     address(config.owner, raw.owner);
     address(config.worker, raw.worker);
+    if (!raw.sector_size.empty()) {
+      boost::algorithm::to_lower(raw.sector_size);
+      if (raw.sector_size == "2kib") {
+        config.seal_type = RegisteredSealProof::StackedDrg2KiBV1;
+      } else if (raw.sector_size == "8mib") {
+        config.seal_type = RegisteredSealProof::StackedDrg8MiBV1;
+      } else if (raw.sector_size == "512mib") {
+        config.seal_type = RegisteredSealProof::StackedDrg512MiBV1;
+      } else if (raw.sector_size == "32gib") {
+        config.seal_type = RegisteredSealProof::StackedDrg32GiBV1;
+      } else if (raw.sector_size == "64gib") {
+        config.seal_type = RegisteredSealProof::StackedDrg64GiBV1;
+      } else {
+        spdlog::error("invalid --sector-size value");
+        exit(-1);
+      }
+    }
 
     return config;
   }
@@ -103,13 +123,6 @@ namespace fc {
   outcome::result<void> setupMiner(Config &config,
                                    BufferMap &kv,
                                    const PeerId &peer_id) {
-    OUTCOME_TRY(
-        params,
-        proofs::ProofParamProvider::readJson(config.join("proof-params.json")));
-    OUTCOME_TRY(sector_size,
-                primitives::sector::getSectorSize(config.seal_type));
-    OUTCOME_TRY(proofs::ProofParamProvider::getParams(params, sector_size));
-
     io_context io;
     boost::asio::executor_work_guard<io_context::executor_type> work_guard{
         io.get_executor()};
@@ -128,9 +141,27 @@ namespace fc {
       if (!config.actor) {
         spdlog::info("creating miner actor");
         OUTCOME_TRY(version, api.StateNetworkVersion({}));
-        if (version >= api::NetworkVersion{7}) {
-          spdlog::warn("TODO: (network.v7) check new seal-type");
-          exit(-1);
+        assert(config.seal_type);
+        if (version >= api::NetworkVersion::kVersion7) {
+          switch (*config.seal_type) {
+            case RegisteredSealProof::StackedDrg2KiBV1:
+              config.seal_type = RegisteredSealProof::StackedDrg2KiBV1_1;
+              break;
+            case RegisteredSealProof::StackedDrg8MiBV1:
+              config.seal_type = RegisteredSealProof::StackedDrg8MiBV1_1;
+              break;
+            case RegisteredSealProof::StackedDrg512MiBV1:
+              config.seal_type = RegisteredSealProof::StackedDrg512MiBV1_1;
+              break;
+            case RegisteredSealProof::StackedDrg32GiBV1:
+              config.seal_type = RegisteredSealProof::StackedDrg32GiBV1_1;
+              break;
+            case RegisteredSealProof::StackedDrg64GiBV1:
+              config.seal_type = RegisteredSealProof::StackedDrg64GiBV1_1;
+              break;
+            default:
+              break;
+          }
         }
         assert(config.owner);
         if (!config.worker) {
@@ -141,7 +172,7 @@ namespace fc {
                     codec::cbor::encode(CreateMiner::Params{
                         *config.owner,
                         *config.worker,
-                        config.seal_type,
+                        (RegisteredProof)*config.seal_type,
                         _peer_id,
                         {},
                     }));
@@ -159,7 +190,11 @@ namespace fc {
             "msg {}: CreateMiner owner={}", smsg.getCid(), *config.owner);
         OUTCOME_TRY(wait, api.StateWaitMsg(smsg.getCid(), kMessageConfidence));
         OUTCOME_TRY(result, wait.waitSync());
-        assert(result.receipt.exit_code == vm::VMExitCode::kOk);
+        if (result.receipt.exit_code != vm::VMExitCode::kOk) {
+          spdlog::error("failed to create miner actor: {}",
+                        result.receipt.exit_code);
+          exit(-1);
+        }
         OUTCOME_TRY(created,
                     codec::cbor::decode<CreateMiner::Result>(
                         result.receipt.return_value));
@@ -203,6 +238,13 @@ namespace fc {
         }
       });
     }
+
+    OUTCOME_TRY(
+        params,
+        proofs::ProofParamProvider::readJson(config.join("proof-params.json")));
+    OUTCOME_TRY(
+        proofs::ProofParamProvider::getParams(params, minfo.sector_size));
+
     return outcome::success();
   }
 
@@ -210,6 +252,9 @@ namespace fc {
     auto clock{std::make_shared<clock::UTCClockImpl>()};
 
     OUTCOME_TRY(leveldb, storage::LevelDB::create(config.join("leveldb")));
+    auto prefixed{[&](auto s) {
+      return std::make_shared<storage::MapPrefix>(s, leveldb);
+    }};
 
     OUTCOME_TRY(peer_key, loadPeerKey(config.join("peer_ed25519.key")));
 
@@ -226,6 +271,7 @@ namespace fc {
     api::rpc::Client wsc{*io};
     wsc.setup(*napi);
     OUTCOME_TRY(wsc.connect(config.node_api.first, config.node_api.second));
+    OUTCOME_TRY(minfo, napi->StateMinerInfo(*config.actor, {}));
 
     host->start();
     OUTCOME_TRY(node_peer, napi->NetAddrsListen());
@@ -260,13 +306,15 @@ namespace fc {
         sector_storage::ManagerImpl::newManager(
             std::make_shared<sector_storage::stores::RemoteStoreImpl>(
                 local_store, std::unordered_map<std::string, std::string>{}),
-            std::make_shared<sector_storage::SchedulerImpl>(config.seal_type),
+            std::make_shared<sector_storage::SchedulerImpl>(
+                minfo.seal_proof_type),
             {true, true, true, true}));
     auto miner{std::make_shared<miner::MinerImpl>(
         napi,
         *config.actor,
         *config.worker,
         std::make_shared<primitives::StoredCounter>(leveldb, "sector_counter"),
+        prefixed("sealing_fsm/"),
         manager,
         io)};
     OUTCOME_TRY(miner->run());

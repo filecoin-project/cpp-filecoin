@@ -9,6 +9,22 @@
 
 namespace fc::storage {
   struct MapPrefix : PersistentBufferMap {
+    struct Cursor : BufferMapCursor {
+      Cursor(MapPrefix &map, std::unique_ptr<BufferMapCursor> cursor);
+
+      void seekToFirst() override;
+      void seek(const Buffer &key) override;
+      void seekToLast() override;
+      bool isValid() const override;
+      void next() override;
+      void prev() override;
+      Buffer key() const override;
+      Buffer value() const override;
+
+      MapPrefix &map;
+      std::unique_ptr<BufferMapCursor> cursor;
+    };
+
     MapPrefix(BytesIn prefix, std::shared_ptr<BufferMap> map);
     MapPrefix(std::string_view prefix, std::shared_ptr<BufferMap> map);
     Buffer _key(BytesIn key) const;

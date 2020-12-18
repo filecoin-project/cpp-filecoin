@@ -15,6 +15,7 @@
 #include "primitives/address/address.hpp"
 #include "primitives/stored_counter/stored_counter.hpp"
 #include "sector_storage/manager.hpp"
+#include "storage/buffer_map.hpp"
 #include "storage/chain/chain_store.hpp"
 
 namespace fc::miner {
@@ -29,6 +30,7 @@ namespace fc::miner {
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedPieceSize;
   using sector_storage::Manager;
+  using storage::BufferMap;
 
   class MinerImpl : public Miner {
    public:
@@ -36,6 +38,7 @@ namespace fc::miner {
               Address miner_address,
               Address worker_address,
               std::shared_ptr<Counter> counter,
+              std::shared_ptr<BufferMap> sealing_fsm_kv,
               std::shared_ptr<Manager> sector_manager,
               std::shared_ptr<boost::asio::io_context> context);
 
@@ -69,6 +72,7 @@ namespace fc::miner {
     Address worker_address_;
     std::shared_ptr<Sealing> sealing_;
     std::shared_ptr<Counter> counter_;
+    std::shared_ptr<BufferMap> sealing_fsm_kv_;
     std::shared_ptr<Manager> sector_manager_;
     std::shared_ptr<boost::asio::io_context> context_;
   };

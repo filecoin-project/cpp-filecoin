@@ -18,6 +18,11 @@ setup_target_for_coverage_gcovr_xml(
     EXECUTABLE ctest
 )
 
+setup_target_for_coverage_gcovr_xml(
+    NAME ctest_coverage_norun
+    EXECUTABLE true
+)
+
 setup_target_for_coverage_gcovr_html(
     NAME ctest_coverage_html
     EXECUTABLE ctest

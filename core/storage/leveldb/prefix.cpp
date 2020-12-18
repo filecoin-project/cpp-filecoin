@@ -8,6 +8,49 @@
 #include "common/span.hpp"
 
 namespace fc::storage {
+  MapPrefix::Cursor::Cursor(MapPrefix &map,
+                            std::unique_ptr<BufferMapCursor> cursor)
+      : map{map}, cursor{std::move(cursor)} {}
+
+  void MapPrefix::Cursor::seekToFirst() {
+    cursor->seek(map.prefix);
+  }
+
+  void MapPrefix::Cursor::seek(const Buffer &key) {
+    cursor->seek(Buffer{map.prefix}.put(key));
+  }
+
+  void MapPrefix::Cursor::seekToLast() {
+    throw "not implemented";
+  }
+
+  bool MapPrefix::Cursor::isValid() const {
+    if (!cursor->isValid()) {
+      return false;
+    }
+    auto key{cursor->key()};
+    return key.size() >= map.prefix.size()
+           && std::equal(map.prefix.begin(), map.prefix.end(), key.begin());
+  }
+
+  void MapPrefix::Cursor::next() {
+    assert(isValid());
+    cursor->next();
+  }
+
+  void MapPrefix::Cursor::prev() {
+    assert(isValid());
+    cursor->prev();
+  }
+
+  Buffer MapPrefix::Cursor::key() const {
+    return cursor->key().subbuffer(map.prefix.size());
+  }
+
+  Buffer MapPrefix::Cursor::value() const {
+    return cursor->value();
+  }
+
   MapPrefix::MapPrefix(BytesIn prefix, std::shared_ptr<BufferMap> map)
       : prefix{prefix}, map{map} {}
 
@@ -43,6 +86,6 @@ namespace fc::storage {
   }
 
   std::unique_ptr<BufferMapCursor> MapPrefix::cursor() {
-    throw "not implemented";
+    return std::make_unique<Cursor>(*this, map->cursor());
   }
 }  // namespace fc::storage
