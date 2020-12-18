@@ -55,12 +55,20 @@ namespace fc::sync {
       target.peers.insert(e.source.value());
     }
 
+    if (peers_.getPeers().empty()) {
+      enqueue(std::move(target));
+      return;
+    }
+
     if (!adjustTarget(target)) {
       return;
     }
 
     if (now_active_) {
       enqueue(std::move(target));
+    } else if (!pending_targets_.empty()) {
+      enqueue(std::move(target));
+      newJob(dequeue().value(), false);
     } else {
       // try to make the 1st request with depth=1
       newJob(std::move(target), e.head != target.head);
@@ -171,10 +179,19 @@ namespace fc::sync {
     auto target = std::move(now_active_);
     now_active_.reset();
 
+    assert(target.has_value());
+
     if (r.head) {
       if (last_known_height_ < r.head->height()) {
         last_known_height_ = r.head->height();
       }
+    } else {
+      // nothing was downloaded
+      if (target->active_peer.has_value()) {
+        target->peers.erase(target->active_peer.value());
+        target->active_peer.reset();
+      }
+      enqueue(std::move(target.value()));
     }
 
     if (r.next_target) {

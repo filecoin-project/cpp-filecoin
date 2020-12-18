@@ -276,8 +276,8 @@ namespace fc::sync::blocksync {
 
       if (depth == 0) {
         depth = 1;
-      } else if (depth > 100) {
-        depth = 100;
+      } else if (depth > 10) {
+        depth = 10;
       }
 
       auto binary_request = codec::cbor::encode<Request>(
@@ -334,6 +334,10 @@ namespace fc::sync::blocksync {
     }
 
     void scheduleResult(bool call_now = false) {
+      if (!in_progress_) {
+        return;
+      }
+
       done();
 
       if (result_->error) {
@@ -424,7 +428,9 @@ namespace fc::sync::blocksync {
       }
 
       if (!result) {
-        log()->debug("error from {}: {}", result.error().message());
+        log()->debug("error from {}: {}",
+                     result_->from->toBase58(),
+                     result.error().message());
         result_->error = result.error();
       } else {
         auto &response = result.value();
@@ -437,8 +443,14 @@ namespace fc::sync::blocksync {
         if (response.status == ResponseStatus::RESPONSE_COMPLETE) {
           result_->delta_rating += 100;
         }
-
-        storeChain(std::move(response.chain));
+        if (response.chain.size() > 0) {
+          result_->delta_rating += 50;
+          storeChain(std::move(response.chain));
+        } else {
+          result_->delta_rating -= 50;
+          result_->error =
+              BlocksyncRequest::Error::BLOCKSYNC_INCOMPLETE_RESPONSE;
+        }
       }
       scheduleResult(true);
     }
@@ -559,6 +571,7 @@ namespace fc::sync::blocksync {
 
     if (impl_) {
       impl_->cancel();
+      impl_.reset();
     }
 
     impl_ = std::make_shared<Impl>(host, scheduler, ipld);
@@ -569,7 +582,12 @@ namespace fc::sync::blocksync {
                        depth,
                        options,
                        timeoutMsec,
-                       std::move(callback));
+                       [this, cb = std::move(callback)](Result r) {
+                         if (impl_) {
+                           impl_.reset();
+                           cb(std::move(r));
+                         }
+                       });
   }
 
   BlocksyncRequest::~BlocksyncRequest() {

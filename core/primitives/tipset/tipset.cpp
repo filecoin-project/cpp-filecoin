@@ -154,6 +154,7 @@ namespace fc::primitives::tipset {
       return std::make_shared<Tipset>();
     }
     if (clear) {
+      ticket_hashes_.clear();
       return std::make_shared<Tipset>(std::move(cids_), std::move(blks_));
     }
     return std::make_shared<Tipset>(cids_, blks_);
