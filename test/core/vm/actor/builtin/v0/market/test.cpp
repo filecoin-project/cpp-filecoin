@@ -510,7 +510,8 @@ TEST_F(MarketActorTest,
                            runtime, {{deal_1_id}, {}, {}}));
 }
 
-TEST_F(MarketActorTest, VerifyDealsOnSectorProveCommitAlreadyStarted) {
+TEST_F(MarketActorTest,
+       GCC_DISABLE(VerifyDealsOnSectorProveCommitAlreadyStarted)) {
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
   EXPECT_OUTCOME_TRUE_1(state.states.set(deal_1_id, {1, {}, {}}));
   callerIs(miner_address);
