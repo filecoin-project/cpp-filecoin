@@ -16,7 +16,7 @@ namespace fc::blockchain::message_pool {
   /**
    * Compare messages by sender address and nonce
    */
-  auto compareMessagesFunctor = [](const SignedMessage &lhs,
+  constexpr auto compareMessagesFunctor = [](const SignedMessage &lhs,
                                    const SignedMessage &rhs) {
     return (lhs.message.from < rhs.message.from)
            || ((lhs.message.from == rhs.message.from)
@@ -26,7 +26,7 @@ namespace fc::blockchain::message_pool {
   /**
    * Comparator based on gas price for scoring
    */
-  auto compareGasFunctor = [](const SignedMessage &lhs,
+  constexpr auto compareGasFunctor = [](const SignedMessage &lhs,
                               const SignedMessage &rhs) {
     return (lhs.message.gas_fee_cap > rhs.message.gas_fee_cap)
            || ((lhs.message.gas_fee_cap == rhs.message.gas_fee_cap)
