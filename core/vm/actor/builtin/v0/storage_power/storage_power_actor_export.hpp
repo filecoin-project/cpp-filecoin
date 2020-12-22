@@ -22,7 +22,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   using primitives::sector::RegisteredProof;
   using primitives::sector::SealVerifyInfo;
 
-  const auto kErrTooManyProveCommits =
+  constexpr auto kErrTooManyProveCommits =
       VMExitCode::kErrFirstActorSpecificExitCode;
 
   struct Construct : ActorMethodBase<1> {

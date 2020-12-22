@@ -31,7 +31,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    * Amount of gas charged for SubmitPoRepForBulkVerify. This number is
    * empirically determined
    */
-  static const GasAmount kGasOnSubmitVerifySeal{34721049};
+  static constexpr GasAmount kGasOnSubmitVerifySeal{34721049};
 
   StoragePower qaPowerForWeight(const SectorStorageWeightDesc &weight);
 

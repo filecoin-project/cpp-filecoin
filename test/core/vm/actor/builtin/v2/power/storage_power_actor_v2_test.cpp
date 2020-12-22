@@ -168,12 +168,12 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   TEST_F(StoragePowerActorV2Test, CreateMiner) {
     constructed();
 
-    Address owner = Address::makeFromId(101);
-    Address worker = Address::makeFromId(103);
-    Address id_address = Address::makeFromId(1001);
-    Address robust_address = Address::makeFromId(1003);
+    const Address owner = Address::makeFromId(101);
+    const Address worker = Address::makeFromId(103);
+    const Address id_address = Address::makeFromId(1001);
+    const Address robust_address = Address::makeFromId(1003);
 
-    auto res = createMiner(owner, worker, id_address, robust_address);
+    const auto res = createMiner(owner, worker, id_address, robust_address);
 
     EXPECT_EQ(state.miner_count, 1);
     EXPECT_OUTCOME_TRUE(claim, state.claims.get(id_address));
@@ -231,18 +231,18 @@ namespace fc::vm::actor::builtin::v2::storage_power {
    */
   TEST_F(StoragePowerActorV2Test, OneMinerOneSectorPoRepForBulkVerify) {
     constructed();
-    Address owner = Address::makeFromId(101);
-    Address worker = Address::makeFromId(103);
-    Address miner_address = Address::makeFromId(1001);
-    StoragePower power{kConsensusMinerMinPower};
+    const Address owner = Address::makeFromId(101);
+    const Address worker = Address::makeFromId(103);
+    const Address miner_address = Address::makeFromId(1001);
+    const StoragePower power{kConsensusMinerMinPower};
     createMiner(owner, worker, miner_address, miner_address);
 
     caller = miner_address;
     callerCodeIdIs(kStorageMinerCodeCid);
-    SectorNumber verified_sector_number = 25;
-    SealVerifyInfo seal{.sector = {.sector = verified_sector_number},
-                        .sealed_cid = kEmptyObjectCid,
-                        .unsealed_cid = kEmptyObjectCid};
+    const SectorNumber verified_sector_number = 25;
+    const SealVerifyInfo seal{.sector = {.sector = verified_sector_number},
+                              .sealed_cid = kEmptyObjectCid,
+                              .unsealed_cid = kEmptyObjectCid};
     EXPECT_CALL(runtime, chargeGas(kGasOnSubmitVerifySeal))
         .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_TRUE_1(SubmitPoRepForBulkVerify::call(runtime, seal));

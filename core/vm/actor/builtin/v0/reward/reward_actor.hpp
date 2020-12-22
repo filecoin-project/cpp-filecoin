@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_REWARD_ACTOR_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_REWARD_ACTOR_HPP
+#pragma once
 
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "vm/actor/actor_method.hpp"
@@ -70,5 +69,3 @@ namespace fc::vm::actor::builtin::v0::reward {
 
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::v0::reward
-
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_REWARD_ACTOR_HPP

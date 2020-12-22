@@ -1,9 +1,6 @@
 /**
  * Copyright Soramitsu Co., Ltd. All Rights Reserved.
  * SPDX-License-Identifier: Apache-2.0
- *//**
- * Copyright Soramitsu Co., Ltd. All Rights Reserved.
- * SPDX-License-Identifier: Apache-2.0
  */
 
 #pragma once
@@ -14,4 +11,4 @@ namespace fc::vm::actor::builtin::v2::init {
 
   using Exec = v0::init::Exec;
 
-}
+}  // namespace fc::vm::actor::builtin::v2::init

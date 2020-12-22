@@ -18,15 +18,15 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
   outcome::result<void> processDeferredCronEvents(Runtime &runtime,
                                                   State &state) {
-    auto now{runtime.getCurrentEpoch()};
+    const auto now{runtime.getCurrentEpoch()};
     for (auto epoch = state.first_cron_epoch; epoch <= now; ++epoch) {
       OUTCOME_TRY(events, state.cron_event_queue.tryGet(epoch));
       if (events) {
         OUTCOME_TRY(events->visit([&](auto, auto &event) {
-          auto res{runtime.send(event.miner_address,
-                                miner::OnDeferredCronEvent::Number,
-                                MethodParams{event.callback_payload},
-                                0)};
+          const auto res{runtime.send(event.miner_address,
+                                      miner::OnDeferredCronEvent::Number,
+                                      MethodParams{event.callback_payload},
+                                      0)};
           if (!res) {
             spdlog::warn(
                 "PowerActor.processDeferredCronEvents: error {} \"{}\", epoch "
@@ -92,7 +92,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
           runtime.verifyBatchSeals(state.proof_validation_batch.value()));
       OUTCOME_TRY(miners, state.proof_validation_batch.value().keys());
       for (const auto &miner : miners) {
-        auto seals_verified = verified.find(miner);
+        const auto seals_verified = verified.find(miner);
         if (seals_verified == verified.end()) {
           spdlog::warn("batch verify seals syscall implemented incorrectly");
           return VMExitCode::kErrNotFound;
@@ -184,7 +184,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
   ACTOR_METHOD_IMPL(UpdateClaimedPower) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
-    Address miner_address = runtime.getImmediateCaller();
+    const Address miner_address = runtime.getImmediateCaller();
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(state.addToClaim(
         miner_address, params.raw_byte_delta, params.quality_adjusted_delta));
@@ -214,13 +214,13 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     // Lotus gas conformance
     OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
 
-    auto [raw_power, qa_power] = state.getCurrentTotalPower();
+    const auto [raw_power, qa_power] = state.getCurrentTotalPower();
     state.this_epoch_pledge = state.total_pledge;
     state.this_epoch_raw_power = raw_power;
     state.this_epoch_qa_power = qa_power;
 
-    auto now{runtime.getCurrentEpoch()};
-    auto delta = now - state.last_processed_cron_epoch;
+    const auto now{runtime.getCurrentEpoch()};
+    const auto delta = now - state.last_processed_cron_epoch;
     state.updateSmoothedEstimate(delta);
 
     state.last_processed_cron_epoch = now;
@@ -241,7 +241,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
   ACTOR_METHOD_IMPL(OnConsensusFault) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
-    auto miner{runtime.getImmediateCaller()};
+    const auto miner{runtime.getImmediateCaller()};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(found_claim, state.claims.tryGet(miner));
     if (!found_claim.has_value()) {
@@ -259,12 +259,10 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
   ACTOR_METHOD_IMPL(SubmitPoRepForBulkVerify) {
     OUTCOME_TRY(runtime.validateImmediateCallerType(kStorageMinerCodeCid));
-    auto miner{runtime.getImmediateCaller()};
+    const auto miner{runtime.getImmediateCaller()};
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     if (!state.proof_validation_batch.has_value()) {
-      state.proof_validation_batch =
-          adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer>{
-              runtime.getIpfsDatastore()};
+      state.proof_validation_batch.emplace(runtime.getIpfsDatastore());
     }
     OUTCOME_TRY(found, state.proof_validation_batch->tryGet(miner));
     if (found.has_value()) {

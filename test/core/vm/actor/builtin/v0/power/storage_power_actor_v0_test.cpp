@@ -165,12 +165,12 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   TEST_F(StoragePowerActorV0Test, CreateMiner) {
     constructed();
 
-    Address owner = Address::makeFromId(101);
-    Address worker = Address::makeFromId(103);
-    Address id_address = Address::makeFromId(1001);
-    Address robust_address = Address::makeFromId(1003);
+    const Address owner = Address::makeFromId(101);
+    const Address worker = Address::makeFromId(103);
+    const Address id_address = Address::makeFromId(1001);
+    const Address robust_address = Address::makeFromId(1003);
 
-    auto res = createMiner(owner, worker, id_address, robust_address);
+    const auto res = createMiner(owner, worker, id_address, robust_address);
 
     EXPECT_EQ(state.miner_count, 1);
     EXPECT_OUTCOME_TRUE(claim, state.claims.get(id_address));
@@ -202,7 +202,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     constructed();
     callerCodeIdIs(kEmptyObjectCid);
 
-    UpdateClaimedPower::Params params{};
+    const UpdateClaimedPower::Params params{};
     EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
                          UpdateClaimedPower::call(runtime, params));
   }
@@ -229,10 +229,10 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    */
   TEST_F(StoragePowerActorV0Test, OnConsensusFaultWasBelowThreshold) {
     constructed();
-    Address owner = Address::makeFromId(101);
-    Address worker = Address::makeFromId(103);
-    Address miner_address = Address::makeFromId(1001);
-    StoragePower small_power_unit{1000000};
+    const Address owner = Address::makeFromId(101);
+    const Address worker = Address::makeFromId(103);
+    const Address miner_address = Address::makeFromId(1001);
+    const StoragePower small_power_unit{1000000};
     createMiner(owner, worker, miner_address, miner_address);
     updateClaimedPower(miner_address, small_power_unit, small_power_unit);
 
@@ -261,10 +261,10 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    */
   TEST_F(StoragePowerActorV0Test, OnConsensusFaultWasAboveThreshold) {
     constructed();
-    Address owner = Address::makeFromId(101);
-    Address worker = Address::makeFromId(103);
-    Address miner_address = Address::makeFromId(1001);
-    StoragePower power{kConsensusMinerMinPower};
+    const Address owner = Address::makeFromId(101);
+    const Address worker = Address::makeFromId(103);
+    const Address miner_address = Address::makeFromId(1001);
+    const StoragePower power{kConsensusMinerMinPower};
     createMiner(owner, worker, miner_address, miner_address);
     updateClaimedPower(miner_address, power, power);
 
@@ -274,12 +274,12 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     EXPECT_EQ(state.total_raw_power, power);
     EXPECT_EQ(state.total_qa_power, power);
 
-    TokenAmount pledge_delta{100};
+    const TokenAmount pledge_delta{100};
     updateClaimedPower(miner_address, pledge_delta);
 
     caller = miner_address;
     callerCodeIdIs(kStorageMinerCodeCid);
-    TokenAmount slash{50};
+    const TokenAmount slash{50};
     EXPECT_OUTCOME_TRUE_1(OnConsensusFault::call(runtime, {50}));
 
     EXPECT_EQ(state.num_miners_meeting_min_power, 0);
@@ -297,15 +297,15 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    */
   TEST_F(StoragePowerActorV0Test, OnConsensusFaultPledgeBelowZero) {
     constructed();
-    Address owner = Address::makeFromId(101);
-    Address worker = Address::makeFromId(103);
-    Address miner_address = Address::makeFromId(1001);
-    StoragePower power{kConsensusMinerMinPower};
+    const Address owner = Address::makeFromId(101);
+    const Address worker = Address::makeFromId(103);
+    const Address miner_address = Address::makeFromId(1001);
+    const StoragePower power{kConsensusMinerMinPower};
     createMiner(owner, worker, miner_address, miner_address);
 
     caller = miner_address;
     callerCodeIdIs(kStorageMinerCodeCid);
-    TokenAmount slash{50};
+    const TokenAmount slash{50};
     EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
                          OnConsensusFault::call(runtime, {50}));
   }
@@ -319,7 +319,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     constructed();
 
     callerCodeIdIs(kEmptyObjectCid);
-    TokenAmount slash{50};
+    const TokenAmount slash{50};
     EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
                          OnConsensusFault::call(runtime, {50}));
   }
@@ -334,7 +334,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
     caller = Address::makeFromId(1001);
     callerCodeIdIs(kStorageMinerCodeCid);
-    TokenAmount slash{50};
+    const TokenAmount slash{50};
     EXPECT_OUTCOME_ERROR(VMExitCode::kErrNotFound,
                          OnConsensusFault::call(runtime, {50}));
   }
@@ -346,18 +346,18 @@ namespace fc::vm::actor::builtin::v0::storage_power {
    */
   TEST_F(StoragePowerActorV0Test, OneMinerOneSectorPoRepForBulkVerify) {
     constructed();
-    Address owner = Address::makeFromId(101);
-    Address worker = Address::makeFromId(103);
-    Address miner_address = Address::makeFromId(1001);
-    StoragePower power{kConsensusMinerMinPower};
+    const Address owner = Address::makeFromId(101);
+    const Address worker = Address::makeFromId(103);
+    const Address miner_address = Address::makeFromId(1001);
+    const StoragePower power{kConsensusMinerMinPower};
     createMiner(owner, worker, miner_address, miner_address);
 
     caller = miner_address;
     callerCodeIdIs(kStorageMinerCodeCid);
     SectorNumber verified_sector_number = 25;
-    SealVerifyInfo seal{.sector = {.sector = verified_sector_number},
-                        .sealed_cid = kEmptyObjectCid,
-                        .unsealed_cid = kEmptyObjectCid};
+    const SealVerifyInfo seal{.sector = {.sector = verified_sector_number},
+                              .sealed_cid = kEmptyObjectCid,
+                              .unsealed_cid = kEmptyObjectCid};
     EXPECT_CALL(runtime, chargeGas(kGasOnSubmitVerifySeal))
         .WillOnce(Return(outcome::success()));
     EXPECT_OUTCOME_TRUE_1(SubmitPoRepForBulkVerify::call(runtime, seal));

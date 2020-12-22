@@ -54,12 +54,12 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     total_raw_commited += raw;
     total_qa_commited += qa;
 
-    auto old_claim{claim};
+    const auto old_claim{claim};
     claim.raw_power += raw;
     claim.qa_power += qa;
 
-    auto prev_below{old_claim.qa_power < kConsensusMinerMinPower};
-    auto still_below{claim.qa_power < kConsensusMinerMinPower};
+    const auto prev_below{old_claim.qa_power < kConsensusMinerMinPower};
+    const auto still_below{claim.qa_power < kConsensusMinerMinPower};
 
     if (prev_below && !still_below) {
       ++num_miners_meeting_min_power;
@@ -102,9 +102,9 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
   std::tuple<StoragePower, StoragePower> State::getCurrentTotalPower() const {
     if (num_miners_meeting_min_power < kConsensusMinerMinMiners) {
-      return {total_raw_commited, total_qa_commited};
+      return std::make_tuple(total_raw_commited, total_qa_commited);
     }
-    return {total_raw_power, total_qa_power};
+    return std::make_tuple(total_raw_power, total_qa_power);
   }
 
 }  // namespace fc::vm::actor::builtin::v0::storage_power
