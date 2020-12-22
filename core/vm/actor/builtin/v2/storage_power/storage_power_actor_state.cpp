@@ -29,9 +29,9 @@ namespace fc::vm::actor::builtin::v2::storage_power {
                          << kPrecision},
         .miner_count = 0,
         .num_miners_meeting_min_power = {},
-        .cron_event_queue = {ipld},
+        .cron_event_queue = {},
         .first_cron_epoch = {},
-        .claims = {ipld},
+        .claims = {},
         .proof_validation_batch = {},
     };
     ipld->load(state);
