@@ -26,8 +26,8 @@ class GasPricedScoredMessageStorageTest : public testing::Test {
  public:
   GasPriceScoredMessageStorage message_storage;
 
-  Address to{Network::TESTNET, 1001};
-  Address from{Network::TESTNET, 1002};
+  Address to{1001};
+  Address from{1002};
   UnsignedMessage unsigned_message{
       to,                     // to Address
       from,                   // from Address

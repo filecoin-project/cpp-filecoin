@@ -172,7 +172,7 @@ namespace fc::markets::storage::provider {
   }
 
   outcome::result<void> StorageProviderImpl::importDataForDeal(
-      const CID &proposal_cid, const Buffer &data) {
+      const CID &proposal_cid, const std::string &path) {
     auto fsm_state_table = fsm_->list();
     auto found_fsm_entity =
         std::find_if(fsm_state_table.begin(),
@@ -187,18 +187,13 @@ namespace fc::markets::storage::provider {
     auto deal = found_fsm_entity->first;
 
     OUTCOME_TRY(piece_commitment,
-                piece_io_->generatePieceCommitment(registered_proof_, data));
+                piece_io_->generatePieceCommitment(registered_proof_, path));
 
     if (piece_commitment.first
         != deal->client_deal_proposal.proposal.piece_cid) {
       return StorageMarketProviderError::kPieceCIDDoesNotMatch;
     }
-
-    OUTCOME_TRY(cid_str, proposal_cid.toString());
-    Path path = kFilestoreTempDir + cid_str;
-    OUTCOME_TRY(file, filestore_->create(path));
     deal->piece_path = path;
-    OUTCOME_TRY(file->write(0, data));
 
     OUTCOME_TRY(fsm_->send(deal, ProviderEvent::ProviderEventVerifiedData, {}));
     return outcome::success();
@@ -273,7 +268,7 @@ namespace fc::markets::storage::provider {
     }
 
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    if (static_cast<ChainEpoch>(chain_head->height())
+    if (chain_head->epoch()
         > proposal.start_epoch - kDefaultDealAcceptanceBuffer) {
       deal->message =
           "Deal proposal verification failed, deal start epoch is too soon or "
@@ -610,12 +605,14 @@ namespace fc::markets::storage::provider {
     // if compare pieceCid != deal.Proposal.PieceCID error
     // else ok
 
-    auto _car{fc::storage::car::makeSelectiveCar(
-        *ipld_, {{deal->ref.root, Selector{}}})};
-    FSM_HALT_ON_ERROR(_car, "makeSelectiveCar", deal);
-    auto &car{_car.value()};
-    car.resize(primitives::piece::paddedSize(car.size()));
-    auto _import{importDataForDeal(deal->proposal_cid, car)};
+    auto _cid_str{deal->proposal_cid.toString()};
+    FSM_HALT_ON_ERROR(_cid_str, "CIDtoString", deal);
+    auto &cid_str{_cid_str.value()};
+    Path car_path = kFilestoreTempDir + cid_str;
+    auto _error{fc::storage::car::makeSelectiveCar(
+        *ipld_, {{deal->ref.root, Selector{}}}, car_path)};
+    FSM_HALT_ON_ERROR(_error, "makeSelectiveCar", deal);
+    auto _import{importDataForDeal(deal->proposal_cid, car_path)};
     FSM_HALT_ON_ERROR(_import, "importDataForDeal", deal);
   }
 

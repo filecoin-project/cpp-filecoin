@@ -29,12 +29,14 @@ namespace fc::miner {
                        Address miner_address,
                        Address worker_address,
                        std::shared_ptr<Counter> counter,
+                       std::shared_ptr<BufferMap> sealing_fsm_kv,
                        std::shared_ptr<Manager> sector_manager,
                        std::shared_ptr<boost::asio::io_context> context)
       : api_{std::move(api)},
         miner_address_{std::move(miner_address)},
         worker_address_{std::move(worker_address)},
         counter_{std::move(counter)},
+        sealing_fsm_kv_{std::move(sealing_fsm_kv)},
         sector_manager_{std::move(sector_manager)},
         context_{std::move(context)} {}
 
@@ -61,6 +63,7 @@ namespace fc::miner {
                                              events,
                                              miner_address_,
                                              counter_,
+                                             sealing_fsm_kv_,
                                              sector_manager_,
                                              precommit_policy,
                                              context_);
@@ -88,7 +91,8 @@ namespace fc::miner {
   }
 
   outcome::result<void> MinerImpl::runPreflightChecks() {
-    OUTCOME_TRY(has, api_->WalletHas(worker_address_));
+    OUTCOME_TRY(key, api_->StateAccountKey(worker_address_, {}));
+    OUTCOME_TRY(has, api_->WalletHas(key));
     if (!has) {
       return MinerError::kWorkerNotFound;
     }

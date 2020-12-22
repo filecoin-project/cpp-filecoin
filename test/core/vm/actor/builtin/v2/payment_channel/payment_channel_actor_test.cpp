@@ -22,6 +22,7 @@ namespace PaymentChannel = fc::vm::actor::builtin::v2::payment_channel;
 using fc::common::Buffer;
 using fc::crypto::blake2b::blake2b_256;
 using fc::crypto::signature::Secp256k1Signature;
+using fc::crypto::signature::Signature;
 using fc::primitives::ChainEpoch;
 using fc::primitives::TokenAmount;
 using fc::primitives::address::Address;
@@ -169,14 +170,16 @@ PaymentChannelActorTest::setupUpdateChannelState() {
   PaymentChannel::SignedVoucher voucher;
   caller = from_address;
   voucher.channel = actor_address;
-  voucher.signature = Secp256k1Signature{};
-  const auto &sig = *voucher.signature;
+  voucher.signature_bytes = Signature{Secp256k1Signature{}}.toBytes();
   ON_CALL_3(runtime,
-            verifySignature(sig, testing::_, testing::_),
+            verifySignatureBytes(
+                voucher.signature_bytes.get(), testing::_, testing::_),
             fc::outcome::success(true));
-  ON_CALL_3(runtime,
-            verifySignature(testing::Not(sig), testing::_, testing::_),
-            fc::outcome::success(false));
+  ON_CALL_3(
+      runtime,
+      verifySignatureBytes(
+          testing::Not(voucher.signature_bytes.get()), testing::_, testing::_),
+      fc::outcome::success(false));
   voucher.time_lock_min = epoch;
   voucher.time_lock_max = epoch;
   voucher.lane = 100;
@@ -188,7 +191,7 @@ PaymentChannelActorTest::setupUpdateChannelState() {
 /// PaymentChannelActor UpdateChannelState error: voucher has no signature
 TEST_F(PaymentChannelActorTest, UpdateChannelStateNoSignature) {
   auto voucher = setupUpdateChannelState();
-  voucher.signature = boost::none;
+  voucher.signature_bytes = boost::none;
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::kErrIllegalArgument,
@@ -198,7 +201,7 @@ TEST_F(PaymentChannelActorTest, UpdateChannelStateNoSignature) {
 /// PaymentChannelActor UpdateChannelState error: invalid voucher signature
 TEST_F(PaymentChannelActorTest, UpdateChannelStateSignatureNotVerified) {
   auto voucher = setupUpdateChannelState();
-  voucher.signature = Secp256k1Signature{1};
+  voucher.signature_bytes = Signature{Secp256k1Signature{1}}.toBytes();
 
   EXPECT_OUTCOME_ERROR(
       VMExitCode::kErrIllegalArgument,

@@ -229,10 +229,10 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtVerifySig) {
-    auto signature{Signature::fromBytes(arg.get<Buffer>())};
+    auto signature_bytes{arg.get<Buffer>()};
     auto address{arg.get<Address>()};
     auto data{arg.get<Buffer>()};
-    if (auto ok{rt->verifySignature(signature.value(), address, data)}) {
+    if (auto ok{rt->verifySignatureBytes(signature_bytes, address, data)}) {
       ret << kOk << ok.value();
     } else {
       ret << kFatal;

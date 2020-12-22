@@ -201,6 +201,11 @@ namespace fc::vm::runtime {
         const Address &address,
         gsl::span<const uint8_t> data) = 0;
 
+    virtual outcome::result<bool> verifySignatureBytes(
+        const Buffer &signature_bytes,
+        const Address &address,
+        gsl::span<const uint8_t> data) = 0;
+
     /// Verify PoSt
     virtual outcome::result<bool> verifyPoSt(
         const WindowPoStVerifyInfo &info) = 0;

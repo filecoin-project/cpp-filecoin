@@ -31,6 +31,10 @@ namespace fc::markets::pieceio {
     virtual outcome::result<std::pair<CID, UnpaddedPieceSize>>
     generatePieceCommitment(const RegisteredProof &registered_proof,
                             const Buffer &piece) = 0;
+
+    virtual outcome::result<std::pair<CID, UnpaddedPieceSize>>
+    generatePieceCommitment(const RegisteredProof &registered_proof,
+                            const std::string &piece_path) = 0;
   };
 
 }  // namespace fc::markets::pieceio

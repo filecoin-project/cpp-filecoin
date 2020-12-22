@@ -29,12 +29,12 @@ namespace fc::sector_storage::stores {
   };
 
   inline bool operator<(const Decl &lhs, const Decl &rhs) {
-    return lhs.sector_id < rhs.sector_id && lhs.type < rhs.type;
+    return less(lhs.sector_id, rhs.sector_id, lhs.type, rhs.type);
   }
 
   class SectorIndexImpl : public SectorIndex {
    public:
-      SectorIndexImpl();
+    SectorIndexImpl();
 
     outcome::result<void> storageAttach(const StorageInfo &storage_info,
                                         const FsStat &stat) override;

@@ -82,6 +82,8 @@ namespace fc::vm::actor {
       case NetworkVersion::kVersion4:
       case NetworkVersion::kVersion5:
       case NetworkVersion::kVersion6:
+      case NetworkVersion::kVersion7:
+      case NetworkVersion::kVersion8:
         return ActorVersion::kVersion2;
     }
   }

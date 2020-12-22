@@ -84,6 +84,11 @@ namespace fc::vm::runtime {
                                        const Address &address,
                                        gsl::span<const uint8_t> data));
 
+    MOCK_METHOD3(verifySignatureBytes,
+                 outcome::result<bool>(const Buffer &signature_bytes,
+                                       const Address &address,
+                                       gsl::span<const uint8_t> data));
+
     MOCK_METHOD1(verifyPoSt,
                  outcome::result<bool>(const WindowPoStVerifyInfo &info));
 

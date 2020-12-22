@@ -145,7 +145,7 @@ namespace fc::storage::hamt {
                               gsl::span<const uint8_t> value);
 
     /** Get value by key */
-    outcome::result<Value> get(const std::string &key);
+    outcome::result<Value> get(const std::string &key) const;
 
     /**
      * Remove value by key, does not write to storage.
@@ -156,7 +156,7 @@ namespace fc::storage::hamt {
     /**
      * Checks if key is present
      */
-    outcome::result<bool> contains(const std::string &key);
+    outcome::result<bool> contains(const std::string &key) const;
 
     /**
      * Write changes made by set and remove to storage
@@ -168,7 +168,7 @@ namespace fc::storage::hamt {
     const CID &cid() const;
 
     /** Apply visitor for key value pairs */
-    outcome::result<void> visit(const Visitor &visitor);
+    outcome::result<void> visit(const Visitor &visitor) const;
 
     /** Loads root item */
     outcome::result<void> loadRoot();
@@ -182,14 +182,14 @@ namespace fc::storage::hamt {
 
     /// Get CBOR decoded value by key
     template <typename T>
-    outcome::result<T> getCbor(const std::string &key) {
+    outcome::result<T> getCbor(const std::string &key) const {
       OUTCOME_TRY(bytes, get(key));
       return ipld->decode<T>(bytes);
     }
 
     /// Get CBOR decoded value by key
     template <typename T>
-    outcome::result<boost::optional<T>> tryGetCbor(const std::string &key) {
+    outcome::result<boost::optional<T>> tryGetCbor(const std::string &key) const {
       auto maybe = get(key);
       if (!maybe) {
         if (maybe.error() != HamtError::kNotFound) {
@@ -215,9 +215,9 @@ namespace fc::storage::hamt {
     static outcome::result<void> cleanShard(Node::Item &item);
     outcome::result<void> flush(Node::Item &item);
     outcome::result<void> loadItem(Node::Item &item) const;
-    outcome::result<void> visit(Node::Item &item, const Visitor &visitor);
+    outcome::result<void> visit(Node::Item &item, const Visitor &visitor) const;
 
-    Node::Item root_;
+    mutable Node::Item root_;
     size_t bit_width_;
   };
 }  // namespace fc::storage::hamt

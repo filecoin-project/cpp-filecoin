@@ -208,6 +208,32 @@ namespace fc::vm::runtime {
         .verify(account, data, signature);
   }
 
+  outcome::result<bool> RuntimeImpl::verifySignatureBytes(
+      const Buffer &signature_bytes,
+      const Address &address,
+      gsl::span<const uint8_t> data) {
+    const auto bls = Signature::isBls(signature_bytes);
+    if (bls.has_error()) {
+      return false;
+    }
+    OUTCOME_TRY(
+        chargeGas(execution_->env->pricelist.onVerifySignature(bls.value())));
+    OUTCOME_TRY(
+        account,
+        resolveKey(
+            *execution_->state_tree, execution_->charging_ipld, address));
+
+    const auto signature = Signature::fromBytes(signature_bytes);
+    if (!signature) {
+      return false;
+    }
+
+    return storage::keystore::InMemoryKeyStore{
+        std::make_shared<crypto::bls::BlsProviderImpl>(),
+        std::make_shared<crypto::secp256k1::Secp256k1ProviderImpl>()}
+        .verify(account, data, signature.value());
+  }
+
   outcome::result<bool> RuntimeImpl::verifyPoSt(
       const WindowPoStVerifyInfo &info) {
     WindowPoStVerifyInfo preprocess_info = info;

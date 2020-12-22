@@ -14,7 +14,7 @@ namespace fc::vm::version {
   /**
    * Enumeration of network upgrades where actor behaviour can change
    */
-  enum class NetworkVersion {
+  enum class NetworkVersion : int64_t {
     kVersion0,
     kVersion1,
     kVersion2,
@@ -22,9 +22,11 @@ namespace fc::vm::version {
     kVersion4,
     kVersion5,
     kVersion6,
+    kVersion7,
+    kVersion8,
   };
 
-  const NetworkVersion kLatestVersion = NetworkVersion::kVersion6;
+  const NetworkVersion kLatestVersion = NetworkVersion::kVersion8;
 
   /**
    * Network version end heights
@@ -52,6 +54,8 @@ namespace fc::vm::version {
 
   /** UpgradeKumquat, <= v5 network */
   const ChainEpoch kUpgradeKumquatHeight = 170000;
+  const ChainEpoch kUpgradeCalicoHeight = 265200;
+  const ChainEpoch kUpgradePersianHeight = 272400;
 
   /**
    * Returns network version for blockchain height
@@ -67,6 +71,8 @@ namespace fc::vm::version {
     if (height <= kUpgradeTapeHeight) return NetworkVersion::kVersion4;
     if (height <= kUpgradeLiftoffHeight) return NetworkVersion::kVersion5;
     if (height <= kUpgradeKumquatHeight) return NetworkVersion::kVersion5;
+    if (height <= kUpgradeCalicoHeight) return NetworkVersion::kVersion6;
+    if (height <= kUpgradePersianHeight) return NetworkVersion::kVersion7;
     return kLatestVersion;
   }
 }  // namespace fc::vm::version

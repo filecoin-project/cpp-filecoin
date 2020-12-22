@@ -201,6 +201,14 @@ namespace fc::api {
       decodeEnum(v, j);
     }
 
+    ENCODE(NetworkVersion) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(NetworkVersion) {
+      decodeEnum(v, j);
+    }
+
     ENCODE(None) {
       return {};
     }
@@ -478,6 +486,16 @@ namespace fc::api {
       decodeEnum(v, j);
     }
 
+    ENCODE(MessageSendSpec) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "MaxFee", v.max_fee);
+      return j;
+    }
+
+    DECODE(MessageSendSpec) {
+      Get(j, "MaxFee", v.max_fee);
+    }
+
     ENCODE(Deadlines) {
       Value j{rapidjson::kObjectType};
       Set(j, "Due", v.due);
@@ -688,13 +706,11 @@ namespace fc::api {
     }
 
     ENCODE(RleBitset) {
-      return encode(std::vector<uint64_t>{v.begin(), v.end()});
+      return encode(codec::rle::toRuns(v));
     }
 
     DECODE(RleBitset) {
-      std::vector<uint64_t> values;
-      decode(values, j);
-      v = {values.begin(), values.end()};
+      v = codec::rle::fromRuns(decode<codec::rle::Runs64>(j));
     }
 
     ENCODE(UnsignedMessage) {
@@ -814,28 +830,20 @@ namespace fc::api {
 
     ENCODE(Partition) {
       Value j{rapidjson::kObjectType};
-      Set(j, "Sectors", v.sectors);
-      Set(j, "Faults", v.faults);
-      Set(j, "Recoveries", v.recoveries);
-      Set(j, "Terminated", v.terminated);
-      Set(j, "ExpirationsEpochs", v.expirations_epochs);
-      Set(j, "EarlyTerminated", v.early_terminated);
-      Set(j, "LivePower", v.live_power);
-      Set(j, "FaultyPower", v.faulty_power);
-      Set(j, "RecoveringPower", v.recovering_power);
+      Set(j, "AllSectors", v.all);
+      Set(j, "FaultySectors", v.faulty);
+      Set(j, "RecoveringSectors", v.recovering);
+      Set(j, "LiveSectors", v.live);
+      Set(j, "ActiveSectors", v.active);
       return j;
     }
 
     DECODE(Partition) {
-      Get(j, "Sectors", v.sectors);
-      Get(j, "Faults", v.faults);
-      Get(j, "Recoveries", v.recoveries);
-      Get(j, "Terminated", v.terminated);
-      Get(j, "ExpirationsEpochs", v.expirations_epochs);
-      Get(j, "EarlyTerminated", v.early_terminated);
-      Get(j, "LivePower", v.live_power);
-      Get(j, "FaultyPower", v.faulty_power);
-      Get(j, "RecoveringPower", v.recovering_power);
+      Get(j, "AllSectors", v.all);
+      Get(j, "FaultySectors", v.faulty);
+      Get(j, "RecoveringSectors", v.recovering);
+      Get(j, "LiveSectors", v.live);
+      Get(j, "ActiveSectors", v.active);
     }
 
     ENCODE(SectorPreCommitInfo) {
@@ -906,18 +914,6 @@ namespace fc::api {
       decode(v.expected_storage_pledge, Get(j, "ExpectedStoragePledge"));
     }
 
-    ENCODE(ChainSectorInfo) {
-      Value j{rapidjson::kObjectType};
-      Set(j, "Info", v.info);
-      Set(j, "ID", v.id);
-      return j;
-    }
-
-    DECODE(ChainSectorInfo) {
-      decode(v.info, Get(j, "Info"));
-      decode(v.id, Get(j, "ID"));
-    }
-
     ENCODE(ModularVerificationParameter) {
       Value j{rapidjson::kObjectType};
       Set(j, "Actor", v.actor);
@@ -956,7 +952,7 @@ namespace fc::api {
       Set(j, "Amount", v.amount);
       Set(j, "MinSettleHeight", v.min_close_height);
       Set(j, "Merges", v.merges);
-      Set(j, "Signature", v.signature);
+      Set(j, "SignatureBytes", v.signature_bytes);
       return j;
     }
 
@@ -971,7 +967,7 @@ namespace fc::api {
       decode(v.amount, Get(j, "Amount"));
       decode(v.min_close_height, Get(j, "MinSettleHeight"));
       decode(v.merges, Get(j, "Merges"));
-      decode(v.signature, Get(j, "Signature"));
+      decode(v.signature_bytes, Get(j, "SignatureBytes"));
     }
 
     ENCODE(HeadChange) {

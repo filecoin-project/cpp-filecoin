@@ -7,6 +7,7 @@
 #include "vm/actor/builtin/v0/codes.hpp"
 
 namespace fc::vm::actor::builtin::v0::payment_channel {
+  using crypto::signature::Signature;
   using primitives::address::Protocol;
 
   outcome::result<Address> resolveAccount(Runtime &runtime,
@@ -46,20 +47,20 @@ namespace fc::vm::actor::builtin::v0::payment_channel {
 
   ACTOR_METHOD_IMPL(UpdateChannelState) {
     OUTCOME_TRY(readonly_state, assertCallerInChannel(runtime));
-    const auto &voucher = params.signed_voucher;
-    if (!voucher.signature) {
-      return VMExitCode::kErrIllegalArgument;
-    }
 
+    const auto &voucher = params.signed_voucher;
     auto voucher_signable = voucher;
-    voucher_signable.signature = boost::none;
+    voucher_signable.signature_bytes = boost::none;
     OUTCOME_TRY(voucher_signable_bytes, codec::cbor::encode(voucher_signable));
     auto &signer = runtime.getImmediateCaller() != readonly_state.to
                        ? readonly_state.to
                        : readonly_state.from;
+
+    const Buffer signature_bytes =
+        voucher.signature_bytes ? voucher.signature_bytes.get() : Buffer{};
     OUTCOME_TRY(verified,
-                runtime.verifySignature(
-                    *voucher.signature, signer, voucher_signable_bytes));
+                runtime.verifySignatureBytes(
+                    signature_bytes, signer, voucher_signable_bytes));
     if (!verified) {
       return VMExitCode::kErrIllegalArgument;
     }

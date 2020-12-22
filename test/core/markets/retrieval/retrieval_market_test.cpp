@@ -66,6 +66,9 @@ namespace fc::markets::retrieval::test {
             testing::Invoke([ipfs{provider_ipfs}, cid{payload_cid}](
                                 auto output_fd, auto, auto, auto, auto, auto)
                                 -> outcome::result<void> {
+              if (output_fd == -1) {
+                return ProofsError::kCannotOpenFile;
+              }
               EXPECT_OUTCOME_TRUE(car, fc::storage::car::makeCar(*ipfs, {cid}));
               auto bytes = write(output_fd, car.data(), car.size());
               if ((bytes < 0) || (static_cast<size_t>(bytes) != car.size())) {

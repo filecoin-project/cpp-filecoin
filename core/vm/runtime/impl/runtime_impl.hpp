@@ -98,6 +98,11 @@ namespace fc::vm::runtime {
         const Address &address,
         gsl::span<const uint8_t> data) override;
 
+    outcome::result<bool> verifySignatureBytes(
+        const Buffer &signature_bytes,
+        const Address &address,
+        gsl::span<const uint8_t> data) override;
+
     outcome::result<bool> verifyPoSt(const WindowPoStVerifyInfo &info) override;
 
     outcome::result<std::map<Address, std::vector<bool>>> verifyBatchSeals(

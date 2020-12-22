@@ -107,6 +107,8 @@ namespace fc::primitives::tipset {
 
     uint64_t height() const;
 
+    ChainEpoch epoch() const;
+
     /**
      * @return parent weight
      */
