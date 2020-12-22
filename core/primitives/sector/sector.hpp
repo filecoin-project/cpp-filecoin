@@ -32,6 +32,20 @@ namespace fc::primitives::sector {
     return lhs.miner == rhs.miner && lhs.sector == rhs.sector;
   }
 
+  enum class RegisteredSealProof : int64_t {
+    StackedDrg2KiBV1,
+    StackedDrg8MiBV1,
+    StackedDrg512MiBV1,
+    StackedDrg32GiBV1,
+    StackedDrg64GiBV1,
+
+    StackedDrg2KiBV1_1,
+    StackedDrg8MiBV1_1,
+    StackedDrg512MiBV1_1,
+    StackedDrg32GiBV1_1,
+    StackedDrg64GiBV1_1,
+  };
+
   /// This ordering, defines mappings to UInt in a way which MUST never change.
   enum class RegisteredProof : int64_t {
     StackedDRG2KiBSeal,
@@ -57,12 +71,9 @@ namespace fc::primitives::sector {
       RegisteredProof proof);
   outcome::result<RegisteredProof> getRegisteredWinningPoStProof(
       RegisteredProof proof);
-  outcome::result<RegisteredProof> getRegisteredSealProof(
-      RegisteredProof proof);
 
+  outcome::result<SectorSize> getSectorSize(RegisteredSealProof proof);
   outcome::result<SectorSize> getSectorSize(RegisteredProof proof);
-
-  outcome::result<RegisteredProof> sealProofTypeFromSectorSize(SectorSize size);
 
   outcome::result<size_t> getWindowPoStPartitionSectors(RegisteredProof proof);
 

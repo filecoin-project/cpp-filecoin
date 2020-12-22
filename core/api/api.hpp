@@ -454,7 +454,7 @@ namespace fc::api {
                SectorNumber,
                const TipsetKey &);
     API_METHOD(StateSectorGetInfo,
-               SectorOnChainInfo,
+               boost::optional<SectorOnChainInfo>,
                const Address &,
                SectorNumber,
                const TipsetKey &);
