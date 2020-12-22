@@ -57,9 +57,9 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     }
     state.first_cron_epoch = now + 1;
 
-    // charge gas to conform lotus implementation
+    // Lotus gas conformance
     OUTCOME_TRY(runtime.commitState(state));
-    OUTCOME_TRY(runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(state.claims.hamt.loadRoot());
     OUTCOME_TRY(runtime.commitState(state));
 
@@ -82,31 +82,33 @@ namespace fc::vm::actor::builtin::v2::storage_power {
           break;
         }
 
-        auto found = verified.find(miner);
-        if (found == verified.end()) {
+        auto seals_verified = verified.find(miner);
+        if (seals_verified == verified.end()) {
           spdlog::warn("batch verify seals syscall implemented incorrectly");
           return VMExitCode::kErrNotFound;
         }
-        std::set<SectorNumber> successful;
+        std::vector<SectorNumber> successful;
         OUTCOME_TRY(verifies, state.proof_validation_batch.value().get(miner));
         OUTCOME_TRY(verifies.visit(
             [&](auto i, auto &seal_info) -> outcome::result<void> {
-              successful.insert(seal_info.sector.sector);
+              auto sector{seal_info.sector.sector};
+              if (seals_verified->second.at(i)
+                  && (std::find(successful.begin(), successful.end(), sector)
+                      == successful.end())) {
+                successful.push_back(sector);
+              }
               return outcome::success();
             }));
 
-        std::vector<SectorNumber> params(successful.size());
-        std::copy(successful.begin(), successful.end(), params.begin());
-
         // The exit code is explicitly ignored
-        std::ignore =
-            runtime.sendM<miner::ConfirmSectorProofsValid>(miner, {params}, 0);
+        std::ignore = runtime.sendM<miner::ConfirmSectorProofsValid>(
+            miner, {successful}, 0);
       }
 
       state.proof_validation_batch = boost::none;
 
-      // charge gas to conform lotus implementation
-      OUTCOME_TRY(runtime.getCurrentActorStateCbor<State>());
+      // Lotus gas conformance
+      OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
       OUTCOME_TRY(runtime.commitState(state));
     }
 
@@ -170,8 +172,8 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     OUTCOME_TRY(processBatchProofVerifiers(runtime, state));
     OUTCOME_TRY(processDeferredCronEvents(runtime, state));
 
-    // charge gas to conform lotus implementation
-    OUTCOME_TRY(runtime.getCurrentActorStateCbor<State>());
+    // Lotus gas conformance
+    OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
 
     auto [raw_power, qa_power] = state.getCurrentTotalPower();
     state.this_epoch_pledge = state.total_pledge;
@@ -221,7 +223,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
     OUTCOME_TRY(
         Multimap::append(state.proof_validation_batch.value(), miner, params));
 
-    // charge gas to conform lotus implementation
+    // Lotus gas conformance
     OUTCOME_TRY(state.proof_validation_batch->hamt.flush());
 
     OUTCOME_TRY(runtime.chargeGas(kGasOnSubmitVerifySeal));
