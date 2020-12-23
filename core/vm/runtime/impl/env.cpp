@@ -317,7 +317,13 @@ namespace fc::vm::runtime {
       _message.from = caller_id;
       auto runtime = std::make_shared<RuntimeImpl>(
           shared_from_this(), _message, caller_id);
-      return env->invoker->invoke(to_actor, runtime);
+      auto result = env->invoker->invoke(to_actor, runtime);
+      // Transform VMAbortExitCode code to VMExitCode
+      if (result.has_error() && isAbortExitCode(result.error())) {
+        return VMExitCode{result.error().value()};
+      }
+      return result;
+
     }
 
     return outcome::success();
