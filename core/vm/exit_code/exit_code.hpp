@@ -106,13 +106,35 @@ namespace fc::vm {
     kNotImplemented,
   };
 
+  /**
+   * Fatal VM error
+   */
+  enum class VMFatal : int64_t {
+    kFatal = 1,
+  };
+
+  /**
+   * VMExitCode that aborts execution and shouldn't be replaced
+   */
+  enum class VMAbortExitCode : int64_t {};
+
   /// Distinguish VMExitCode errors from other errors
   bool isVMExitCode(const std::error_code &error);
+
+  /// Fatal VM error that should not be ignored
+  bool isFatal(const std::error_code &error);
+
+  /// VMExitCode that aborts execution
+  bool isAbortExitCode(const std::error_code &error);
 
   /// Get specs-actors VMExitCode
   boost::optional<VMExitCode> normalizeVMExitCode(VMExitCode error);
 }  // namespace fc::vm
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMExitCode);
+
+OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMFatal);
+
+OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMAbortExitCode);
 
 #endif  // CPP_FILECOIN_CORE_VM_EXITCODE_EXITCODE_HPP
