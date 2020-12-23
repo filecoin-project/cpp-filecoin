@@ -71,13 +71,6 @@ namespace fc::vm {
     kMinerActorInsufficientFunds,
     kMinerActorIllegalState,
 
-    kMultisigActorWrongCaller,
-    kMultisigActorIllegalArgument,
-    kMultisigActorNotFound,
-    kMultisigActorForbidden,
-    kMultisigActorInsufficientFunds,
-    kMultisigActorIllegalState,
-
     kStoragePowerActorWrongCaller,
     kStoragePowerActorOutOfBound,
     kStoragePowerActorAlreadyExists,

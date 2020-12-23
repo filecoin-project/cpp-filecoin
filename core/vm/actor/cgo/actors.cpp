@@ -169,8 +169,11 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtBlake) {
-    if (charge(ret, rt, rt->execution()->env->pricelist.onHashing())) {
-      ret << kOk << crypto::blake2b::blake2b_256(arg.get<Buffer>());
+    auto data{arg.get<Buffer>()};
+    if (auto hash{rt->hashBlake2b(data)}) {
+      ret << kOk << hash.value();
+    } else {
+      ret << kFatal;
     }
   }
 

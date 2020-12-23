@@ -215,9 +215,9 @@ namespace fc::vm::runtime {
     virtual outcome::result<ConsensusFault> verifyConsensusFault(
         const Buffer &block1, const Buffer &block2, const Buffer &extra) = 0;
 
-    static inline Blake2b256Hash hashBlake2b(gsl::span<const uint8_t> data) {
-      return crypto::blake2b::blake2b_256(data);
-    }
+    /// Return a hash of data
+    virtual outcome::result<Blake2b256Hash> hashBlake2b(
+        gsl::span<const uint8_t> data) = 0;
 
     /// Send typed method with typed params and result
     template <typename M>

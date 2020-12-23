@@ -89,19 +89,6 @@ namespace fc::vm {
       case E::kMinerActorIllegalState:
         return E::kErrIllegalState;
 
-      case E::kMultisigActorWrongCaller:
-        return E{1};
-      case E::kMultisigActorIllegalArgument:
-        return E::kErrIllegalArgument;
-      case E::kMultisigActorNotFound:
-        return E::kErrNotFound;
-      case E::kMultisigActorForbidden:
-        return E::kErrForbidden;
-      case E::kMultisigActorInsufficientFunds:
-        return E::kErrInsufficientFunds;
-      case E::kMultisigActorIllegalState:
-        return E::kErrIllegalState;
-
       // TODO(turuslan): FIL-128 StoragePowerActor
       case E::kStoragePowerActorWrongCaller:
       case E::kStoragePowerActorOutOfBound:
