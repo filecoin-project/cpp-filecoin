@@ -245,11 +245,8 @@ namespace fc::vm::runtime {
   RuntimeImpl::verifyBatchSeals(
       const adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer> &seals) {
     std::map<Address, std::vector<bool>> res;
-    OUTCOME_TRY(seals.hamt.visit(
-        [&](auto &miner, auto &seal_infos_bytes) -> outcome::result<void> {
-          OUTCOME_TRY(seal_infos,
-                      codec::cbor::decode<adt::Array<SealVerifyInfo>>(
-                          seal_infos_bytes));
+    OUTCOME_TRY(seals.visit(
+        [&](auto &miner_address, auto &seal_infos) -> outcome::result<void> {
           OUTCOME_TRY(count, seal_infos.size());
           std::vector<bool> seal_verified_for_miner(count);
           OUTCOME_TRY(seal_infos.visit(
@@ -258,7 +255,6 @@ namespace fc::vm::runtime {
                              proofs::Proofs::verifySeal(seal_info));
                 return outcome::success();
               }));
-          OUTCOME_TRY(miner_address, adt::AddressKeyer::decode(miner));
           res[miner_address] = seal_verified_for_miner;
           return outcome::success();
         }));
