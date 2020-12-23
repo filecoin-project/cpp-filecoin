@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_SECTOR_STORES_STORAGE_HPP
 #define CPP_FILECOIN_CORE_SECTOR_STORES_STORAGE_HPP
 
+#include "common/outcome.hpp"
 #include "primitives/types.hpp"
 
 namespace fc::sector_storage::stores {

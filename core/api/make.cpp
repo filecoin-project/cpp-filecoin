@@ -141,11 +141,9 @@ namespace fc::api {
     }
     if (!sectors_bitset.empty()) {
       OUTCOME_TRY(minfo, state.info.get());
-      OUTCOME_TRY(
-          seal_type,
-          primitives::sector::sealProofTypeFromSectorSize(minfo.sector_size));
       OUTCOME_TRY(win_type,
-                  primitives::sector::getRegisteredWinningPoStProof(seal_type));
+                  primitives::sector::getRegisteredWinningPoStProof(
+                      minfo.seal_proof_type));
       OUTCOME_TRY(
           indices,
           proofs::Proofs::generateWinningPoStSectorChallenge(
@@ -466,6 +464,7 @@ namespace fc::api {
         }},
         // TODO(turuslan): FIL-165 implement method
         .NetAddrsListen = {},
+        .PledgeSector = {},
         .StateAccountKey = {[=](auto &address,
                                 auto &tipset_key) -> outcome::result<Address> {
           if (address.isKeyType()) {
@@ -718,20 +717,24 @@ namespace fc::api {
         .StateNetworkName = {[=]() -> outcome::result<std::string> {
           return chain_store->getNetworkName();
         }},
+        .StateNetworkVersion =
+            [=](auto &tipset_key) -> outcome::result<NetworkVersion> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          return vm::version::getNetworkVersion(context.tipset->height());
+        },
         // TODO(artyom-yurin): FIL-165 implement method
         .StateMinerPreCommitDepositForPower = {},
         // TODO(artyom-yurin): FIL-165 implement method
         .StateMinerInitialPledgeCollateral = {},
         // TODO(artyom-yurin): FIL-165 implement method
         .StateSectorPreCommitInfo = {},
-        .StateSectorGetInfo = {[=](auto address,
-                                   auto sector_number,
-                                   auto tipset_key)
-                                   -> outcome::result<SectorOnChainInfo> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          OUTCOME_TRY(state, context.minerState(address));
-          return state.sectors.get(sector_number);
-        }},
+        .StateSectorGetInfo =
+            {[=](auto address, auto sector_number, auto tipset_key)
+                 -> outcome::result<boost::optional<SectorOnChainInfo>> {
+              OUTCOME_TRY(context, tipsetContext(tipset_key));
+              OUTCOME_TRY(state, context.minerState(address));
+              return state.sectors.tryGet(sector_number);
+            }},
         // TODO(artyom-yurin): FIL-165 implement method
         .StateSectorPartition = {},
         // TODO(artyom-yurin): FIL-165 implement method

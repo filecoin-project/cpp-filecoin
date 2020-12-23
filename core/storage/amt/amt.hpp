@@ -129,21 +129,21 @@ namespace fc::storage::amt {
     explicit Amt(std::shared_ptr<ipfs::IpfsDatastore> store);
     Amt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root);
     /// Get values quantity
-    outcome::result<uint64_t> count();
+    outcome::result<uint64_t> count() const;
     /// Set value by key, does not write to storage
     outcome::result<void> set(uint64_t key, gsl::span<const uint8_t> value);
     /// Get value by key
-    outcome::result<Value> get(uint64_t key);
+    outcome::result<Value> get(uint64_t key) const;
     /// Remove value by key, does not write to storage
     outcome::result<void> remove(uint64_t key);
     /// Checks if key is present
-    outcome::result<bool> contains(uint64_t key);
+    outcome::result<bool> contains(uint64_t key) const;
     /// Write changes made by set and remove to storage
     outcome::result<CID> flush();
     /// Get root CID if flushed, throw otherwise
     const CID &cid() const;
     /// Apply visitor for key value pairs
-    outcome::result<void> visit(const Visitor &visitor);
+    outcome::result<void> visit(const Visitor &visitor) const;
 
     /// Store CBOR encoded value by key
     template <typename T>
@@ -154,7 +154,7 @@ namespace fc::storage::amt {
 
     /// Get CBOR decoded value by key
     template <typename T>
-    outcome::result<T> getCbor(uint64_t key) {
+    outcome::result<T> getCbor(uint64_t key) const {
       OUTCOME_TRY(bytes, get(key));
       return ipld->decode<T>(bytes);
     }
@@ -171,13 +171,13 @@ namespace fc::storage::amt {
     outcome::result<void> visit(Node &node,
                                 uint64_t height,
                                 uint64_t offset,
-                                const Visitor &visitor);
-    outcome::result<void> loadRoot();
+                                const Visitor &visitor) const;
+    outcome::result<void> loadRoot() const;
     outcome::result<Node::Ptr> loadLink(Node &node,
                                         uint64_t index,
-                                        bool create);
+                                        bool create) const;
 
-    boost::variant<CID, Root> root_;
+    mutable boost::variant<CID, Root> root_;
   };
 }  // namespace fc::storage::amt
 

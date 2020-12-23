@@ -40,6 +40,10 @@ namespace fc::codec::json {
     return {};
   }
 
+  Outcome<Buffer> format(Document &&doc) {
+    return format(&doc);
+  }
+
   Outcome<JIn> jGet(JIn j, std::string_view key) {
     if (j->IsObject()) {
       auto it{j->FindMember(key.data())};

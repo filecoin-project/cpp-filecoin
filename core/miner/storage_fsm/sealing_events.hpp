@@ -140,7 +140,7 @@ namespace fc::mining {
   struct SectorPreCommitLandedContext final : public SealingEventContext {
    public:
     void apply(const std::shared_ptr<types::SectorInfo> &info) override {
-      info->precommit_tipset = tipset_key;
+      info->precommit_tipset = tipset_key.cids();
     }
 
     types::TipsetKey tipset_key;

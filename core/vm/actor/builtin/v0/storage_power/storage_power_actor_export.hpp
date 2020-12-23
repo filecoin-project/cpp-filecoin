@@ -6,12 +6,15 @@
 #ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_ACTOR_HPP
 #define CPP_FILECOIN_VM_ACTOR_BUILTIN_STORAGE_POWER_ACTOR_HPP
 
-#include "vm/actor/builtin/v0/storage_power/policy.hpp"
+#include <libp2p/multi/multiaddress.hpp>
+
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/actor_method.hpp"
+#include "vm/actor/builtin/v0/storage_power/policy.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
+  using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
   using primitives::SectorStorageWeightDesc;
   using primitives::TokenAmount;
@@ -26,6 +29,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
       Address owner, worker;
       RegisteredProof seal_proof_type;
       Buffer peer_id;
+      std::vector<Multiaddress> multiaddrs;
     };
 
     struct Result {
@@ -35,7 +39,8 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(CreateMiner::Params, owner, worker, seal_proof_type, peer_id)
+  CBOR_TUPLE(
+      CreateMiner::Params, owner, worker, seal_proof_type, peer_id, multiaddrs)
   CBOR_TUPLE(CreateMiner::Result, id_address, robust_address)
 
   struct DeleteMiner : ActorMethodBase<3> {
