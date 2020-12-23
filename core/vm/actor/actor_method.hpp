@@ -21,6 +21,13 @@
 #define ACTOR_METHOD_IMPL(M) \
   outcome::result<M::Result> M::call(Runtime &runtime, const Params &params)
 
+/**
+ * Aborts execution if res has error and aborts with default_error if res has
+ * error and the error is not fatal or abort
+ */
+#define REQUIRE_NO_ERROR(expr, err_code) \
+  OUTCOME_TRY(runtime.requireNoError((expr), (err_code)));
+
 namespace fc::vm::actor {
   using common::Buffer;
   using runtime::InvocationOutput;

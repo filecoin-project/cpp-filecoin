@@ -317,13 +317,17 @@ namespace fc::vm::runtime {
       RuntimeImpl runtime{
           shared_from_this(), env->randomness, _message, caller_id};
       // TODO: check cpp actor
-      return actor::cgo::invoke(shared_from_this(),
-                                _message,
-                                to_actor.code,
-                                _message.method,
-                                _message.params);
+      auto result = actor::cgo::invoke(shared_from_this(),
+                                       _message,
+                                       to_actor.code,
+                                       _message.method,
+                                       _message.params);
+      // Transform VMAbortExitCode code to VMExitCode
+      if (result.has_error() && isAbortExitCode(result.error())) {
+        return VMExitCode{result.error().value()};
+      }
+      return result;
     }
-
     return outcome::success();
   }
 
