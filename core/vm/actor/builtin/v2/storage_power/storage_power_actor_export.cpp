@@ -100,9 +100,12 @@ namespace fc::vm::actor::builtin::v2::storage_power {
               return outcome::success();
             }));
 
-        // The exit code is explicitly ignored
-        std::ignore = runtime.sendM<miner::ConfirmSectorProofsValid>(
+        // The non-fatal exit code is explicitly ignored
+        const auto result = runtime.sendM<miner::ConfirmSectorProofsValid>(
             miner, {successful}, 0);
+        if (result.has_error() && isFatal(result.error())) {
+          return result.error();
+        }
       }
 
       state.proof_validation_batch = boost::none;

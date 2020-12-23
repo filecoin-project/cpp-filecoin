@@ -39,7 +39,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
             // Failures are unexpected here but will result in removal of miner
             // power
-            auto maybe_claim = state.claims.tryGet(event.miner_address);
+            const auto maybe_claim = state.claims.tryGet(event.miner_address);
             if (maybe_claim.has_error()) {
               spdlog::warn(
                   "failed to get claim for miner {} after failing "
@@ -110,9 +110,12 @@ namespace fc::vm::actor::builtin::v0::storage_power {
               return outcome::success();
             }));
 
-        // The exit code is explicitly ignored
-        std::ignore = runtime.sendM<miner::ConfirmSectorProofsValid>(
+        // The non-fatal exit code is explicitly ignored
+        const auto result = runtime.sendM<miner::ConfirmSectorProofsValid>(
             miner, {successful}, 0);
+        if (result.has_error() && isFatal(result.error())) {
+          return result.error();
+        }
       }
 
       state.proof_validation_batch = boost::none;
