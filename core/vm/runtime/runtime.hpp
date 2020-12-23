@@ -215,6 +215,39 @@ namespace fc::vm::runtime {
     virtual outcome::result<ConsensusFault> verifyConsensusFault(
         const Buffer &block1, const Buffer &block2, const Buffer &extra) = 0;
 
+    /**
+     * Aborts execution if res has error
+     * @tparam T - result type
+     * @param res - result to check
+     * @param default_error - default VMExitCode to abort with.
+     * @return If res has no error, success() returned. Otherwise if res.error()
+     * is VMAbortExitCode or VMFatal, the res.error() returned, else
+     * default_error returned
+     */
+    template <typename T>
+    outcome::result<void> requireNoError(const outcome::result<T> &res,
+                                         const VMExitCode &default_error) {
+      if (res.has_error()) {
+        if (isFatal(res.error()) || isAbortExitCode(res.error())) {
+          return res.error();
+        }
+        if (isVMExitCode(res.error())) {
+          return abort(VMExitCode{res.error().value()});
+        }
+        return abort(default_error);
+      }
+      return outcome::success();
+    }
+
+    /**
+     * Abort execution with VMExitCode
+     * @param error_code - error code that should be passed to the caller
+     * @return error_code as VMAbortExitCode
+     */
+    outcome::result<void> abort(const VMExitCode &error_code) {
+      return VMAbortExitCode{error_code};
+    }
+
     static inline Blake2b256Hash hashBlake2b(gsl::span<const uint8_t> data) {
       return crypto::blake2b::blake2b_256(data);
     }
