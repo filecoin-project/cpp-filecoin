@@ -9,20 +9,29 @@
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
-  using fc::primitives::EpochDuration;
+  using fc::primitives::GasAmount;
   using fc::primitives::SectorStorageWeightDesc;
   using fc::primitives::StoragePower;
   using fc::primitives::TokenAmount;
 
-  // TODO: config, default 1<<40
-  static const StoragePower kConsensusMinerMinPower{2048};
+  /**
+   * Minimum power of an individual miner to meet the threshold for leader
+   * election.
+   * 1 << 40
+   */
+  static const StoragePower kConsensusMinerMinPower{10995116277760};
   constexpr size_t kSectorQualityPrecision{20};
 
-  enum class SectorTerminationType {
-    EXPIRED,
-    MANUAL,
-    FAULTY,
-  };
+  /**
+   * Maximum number of prove commits a miner can submit in one epoch
+   */
+  constexpr size_t kMaxMinerProveCommitsPerEpoch{200};
+
+  /**
+   * Amount of gas charged for SubmitPoRepForBulkVerify. This number is
+   * empirically determined
+   */
+  static constexpr GasAmount kGasOnSubmitVerifySeal{34721049};
 
   StoragePower qaPowerForWeight(const SectorStorageWeightDesc &weight);
 

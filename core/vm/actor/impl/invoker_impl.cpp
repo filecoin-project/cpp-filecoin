@@ -20,6 +20,7 @@
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 #include "vm/actor/builtin/v2/system/system_actor.hpp"
 #include "vm/actor/cgo/actors.hpp"
 
@@ -54,8 +55,8 @@ namespace fc::vm::actor {
     // builtin_[builtin::v2::kMultisigCodeCid] = builtin::v2::multisig::exports;
     builtin_[builtin::v2::kPaymentChannelCodeCid] =
         builtin::v2::payment_channel::exports;
-    // builtin_[builtin::v2::kStoragePowerCodeCid] =
-    //    builtin::v2::storage_power::exports;
+    builtin_[builtin::v2::kStoragePowerCodeCid] =
+        builtin::v2::storage_power::exports;
     builtin_[builtin::v2::kSystemActorCodeID] = builtin::v2::system::exports;
   }
 
@@ -78,7 +79,7 @@ namespace fc::vm::actor {
         // && (actor.code != builtin::v0::kStorageMinerCodeCid)    // TODO
         && (actor.code != builtin::v0::kMultisigCodeCid)        // < tested OK
         && (actor.code != builtin::v0::kPaymentChannelCodeCid)  // < tested OK
-        // && (actor.code != builtin::v0::kStoragePowerCodeCid)    // < WiP
+        && (actor.code != builtin::v0::kStoragePowerCodeCid)    // < tested OK
         // && (actor.code != builtin::v0::kRewardActorCodeID)      // TODO
         && (actor.code != builtin::v0::kSystemActorCodeID)  // < tested OK
         // && (actor.code != builtin::v0::kVerifiedRegistryCode)   // TODO
@@ -91,7 +92,7 @@ namespace fc::vm::actor {
         // && (actor.code != builtin::v2::kStorageMinerCodeCid)    // TODO
         // && (actor.code != builtin::v2::kMultisigCodeCid)        // TODO
         && (actor.code != builtin::v2::kPaymentChannelCodeCid)  // < tested OK
-        // && (actor.code != builtin::v2::kStoragePowerCodeCid)    // TODO
+        && (actor.code != builtin::v2::kStoragePowerCodeCid)    // < tested OK
         // && (actor.code != builtin::v2::kRewardActorCodeID)      // TODO
         && (actor.code != builtin::v2::kSystemActorCodeID)  // < tested OK
         // && (actor.code != builtin::v2::kVerifiedRegistryCode)   // TODO

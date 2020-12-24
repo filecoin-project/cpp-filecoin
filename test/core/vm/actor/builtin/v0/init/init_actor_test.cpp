@@ -85,8 +85,7 @@ namespace fc::vm::actor::builtin::v0::init {
    */
   TEST_F(InitActorTest, AddActor) {
     state = {{ipld}, 3, network_name};
-    const Address address{primitives::address::TESTNET,
-                          primitives::address::ActorExecHash{}};
+    const Address address{primitives::address::ActorExecHash{}};
     const auto expected = Address::makeFromId(state.next_id);
 
     EXPECT_OUTCOME_EQ(state.addActor(address), expected);

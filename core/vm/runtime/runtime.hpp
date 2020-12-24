@@ -8,6 +8,8 @@
 
 #include <tuple>
 
+#include "adt/address_key.hpp"
+#include "adt/map.hpp"
 #include "common/outcome.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 #include "crypto/randomness/randomness_types.hpp"
@@ -45,6 +47,7 @@ namespace fc::vm::runtime {
   using primitives::block::BlockHeader;
   using primitives::piece::PieceInfo;
   using primitives::sector::RegisteredProof;
+  using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using version::NetworkVersion;
@@ -207,6 +210,10 @@ namespace fc::vm::runtime {
     virtual outcome::result<bool> verifyPoSt(
         const WindowPoStVerifyInfo &info) = 0;
 
+    virtual outcome::result<std::map<Address, std::vector<bool>>>
+    verifyBatchSeals(const adt::Map<adt::Array<SealVerifyInfo>,
+                                    adt::AddressKeyer> &seals) = 0;
+
     /// Compute unsealed sector cid
     virtual outcome::result<CID> computeUnsealedSectorCid(
         RegisteredProof type, const std::vector<PieceInfo> &pieces) = 0;
@@ -218,6 +225,39 @@ namespace fc::vm::runtime {
     /// Return a hash of data
     virtual outcome::result<Blake2b256Hash> hashBlake2b(
         gsl::span<const uint8_t> data) = 0;
+
+    /**
+     * Aborts execution if res has error
+     * @tparam T - result type
+     * @param res - result to check
+     * @param default_error - default VMExitCode to abort with.
+     * @return If res has no error, success() returned. Otherwise if res.error()
+     * is VMAbortExitCode or VMFatal, the res.error() returned, else
+     * default_error returned
+     */
+    template <typename T>
+    outcome::result<void> requireNoError(const outcome::result<T> &res,
+                                         const VMExitCode &default_error) {
+      if (res.has_error()) {
+        if (isFatal(res.error()) || isAbortExitCode(res.error())) {
+          return res.error();
+        }
+        if (isVMExitCode(res.error())) {
+          return abort(VMExitCode{res.error().value()});
+        }
+        return abort(default_error);
+      }
+      return outcome::success();
+    }
+
+    /**
+     * Abort execution with VMExitCode
+     * @param error_code - error code that should be passed to the caller
+     * @return error_code as VMAbortExitCode
+     */
+    outcome::result<void> abort(const VMExitCode &error_code) {
+      return VMAbortExitCode{error_code};
+    }
 
     /// Send typed method with typed params and result
     template <typename M>

@@ -11,11 +11,11 @@
 #include <libp2p/multi/multihash.hpp>
 
 namespace fc::crypto {
-    /**
-     * @class Supported methods:
-     *        sha2-256
-     *        blakeb2-256
-     */
+  /**
+   * @class Supported methods:
+   *        sha2-256
+   *        blakeb2-256
+   */
   class Hasher {
    protected:
     using HashType = libp2p::multi::HashType;

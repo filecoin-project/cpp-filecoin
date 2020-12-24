@@ -5,9 +5,9 @@
 
 #include "vm/runtime/impl/runtime_impl.hpp"
 
+#include "codec/cbor/cbor.hpp"
 #include "crypto/bls/impl/bls_provider_impl.hpp"
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
-#include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
@@ -238,6 +238,27 @@ namespace fc::vm::runtime {
     WindowPoStVerifyInfo preprocess_info = info;
     preprocess_info.randomness[31] = 0;
     return proofs::Proofs::verifyWindowPoSt(preprocess_info);
+  }
+
+  outcome::result<std::map<Address, std::vector<bool>>>
+  RuntimeImpl::verifyBatchSeals(
+      const adt::Map<adt::Array<SealVerifyInfo>, adt::AddressKeyer> &seals) {
+    std::map<Address, std::vector<bool>> res;
+    OUTCOME_TRY(seals.visit(
+        [&](auto &miner_address, auto &seal_infos) -> outcome::result<void> {
+          OUTCOME_TRY(count, seal_infos.size());
+          std::vector<bool> seal_verified_for_miner(count);
+          OUTCOME_TRY(seal_infos.visit(
+              [&](auto i, auto &seal_info) -> outcome::result<void> {
+                OUTCOME_TRYA(seal_verified_for_miner[i],
+                             proofs::Proofs::verifySeal(seal_info));
+                return outcome::success();
+              }));
+          res[miner_address] = seal_verified_for_miner;
+          return outcome::success();
+        }));
+
+    return res;
   }
 
   outcome::result<CID> RuntimeImpl::computeUnsealedSectorCid(

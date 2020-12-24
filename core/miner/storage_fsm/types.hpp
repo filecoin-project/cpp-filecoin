@@ -39,17 +39,20 @@ namespace fc::mining::types {
     ChainEpoch start_epoch;
     ChainEpoch end_epoch;
   };
+  CBOR_TUPLE(DealSchedule, start_epoch, end_epoch)
 
   /** DealInfo is a tuple of deal identity and its schedule */
   struct DealInfo {
     DealId deal_id;
     DealSchedule deal_schedule;
   };
+  CBOR_TUPLE(DealInfo, deal_id, deal_schedule)
 
   struct Piece {
     PieceInfo piece;
     boost::optional<DealInfo> deal_info;
   };
+  CBOR_TUPLE(Piece, piece, deal_info)
 
   struct SectorInfo {
     SealingState state;
@@ -70,7 +73,7 @@ namespace fc::mining::types {
     primitives::TokenAmount precommit_deposit;
     boost::optional<SectorPreCommitInfo> precommit_info;
 
-    TipsetKey precommit_tipset;
+    std::vector<CID> precommit_tipset;
 
     InteractiveRandomness seed;
     ChainEpoch seed_epoch;
@@ -123,6 +126,27 @@ namespace fc::mining::types {
       return 0;
     }
   };
+  CBOR_TUPLE(SectorInfo,
+             state,
+             sector_number,
+             sector_type,
+             pieces,
+             ticket,
+             ticket_epoch,
+             precommit1_output,
+             precommit2_fails,
+             comm_d,
+             comm_r,
+             precommit_message,
+             precommit_deposit,
+             precommit_info,
+             precommit_tipset,
+             seed,
+             seed_epoch,
+             proof,
+             message,
+             invalid_proofs,
+             fault_report_message)
 
   // Epochs
   constexpr int kInteractivePoRepConfidence = 6;

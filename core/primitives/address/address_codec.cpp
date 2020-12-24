@@ -38,16 +38,13 @@ namespace fc::primitives::address {
   outcome::result<Address> decode(gsl::span<const uint8_t> v) {
     if (v.size() < 2) return outcome::failure(AddressError::kInvalidPayload);
 
-    // TODO(ekovalev): [FIL-118] make network configurable; hardcoded for now
-    Network net{Network::TESTNET};
-
     auto p = static_cast<Protocol>(v[0]);
     std::vector<uint8_t> payload(std::next(v.begin()), v.end());
     switch (p) {
       case Protocol::ID: {
         boost::optional<UVarint> value = UVarint::create(payload);
         if (value) {
-          return Address{net, value->toUInt64()};
+          return Address{value->toUInt64()};
         }
         return outcome::failure(AddressError::kInvalidPayload);
       }
@@ -59,7 +56,7 @@ namespace fc::primitives::address {
         std::copy_n(std::make_move_iterator(payload.begin()),
                     fc::crypto::blake2b::BLAKE2B160_HASH_LENGTH,
                     hash.begin());
-        return Address{net, hash};
+        return Address{hash};
       }
       case Protocol::ACTOR: {
         if (payload.size() != fc::crypto::blake2b::BLAKE2B160_HASH_LENGTH) {
@@ -69,7 +66,7 @@ namespace fc::primitives::address {
         std::copy_n(std::make_move_iterator(payload.begin()),
                     fc::crypto::blake2b::BLAKE2B160_HASH_LENGTH,
                     hash.begin());
-        return Address{net, hash};
+        return Address{hash};
       }
       case Protocol::BLS: {
         if (payload.size() != kBlsPublicKeySize) {
@@ -79,7 +76,7 @@ namespace fc::primitives::address {
         std::copy_n(std::make_move_iterator(payload.begin()),
                     kBlsPublicKeySize,
                     hash.begin());
-        return Address{net, hash};
+        return Address{hash};
       }
       default:
         return outcome::failure(AddressError::kUnknownProtocol);
@@ -89,7 +86,7 @@ namespace fc::primitives::address {
   std::string encodeToString(const Address &address) {
     std::string res{};
 
-    char networkPrefix = address.network == Network::TESTNET ? 't' : 'f';
+    char networkPrefix = kDefaultNetwork == Network::TESTNET ? 't' : 'f';
     res.push_back(networkPrefix);
 
     Protocol p = address.getProtocol();
@@ -135,7 +132,6 @@ namespace fc::primitives::address {
       return outcome::failure(AddressError::kUnknownNetwork);
 
     std::vector<uint8_t> buffer{};
-    Network net = s[0] == 't' ? Network::TESTNET : Network::MAINNET;
 
     int protocol = int(s[1]) - int('0');
     if (protocol < Protocol::ID || protocol > Protocol::BLS)
@@ -145,7 +141,7 @@ namespace fc::primitives::address {
     if (protocol == Protocol::ID) {
       try {
         auto value = static_cast<uint64_t>(std::stoul(tail));
-        return Address{net, value};
+        return Address{value};
 
       } catch (std::invalid_argument &e) {
         return outcome::failure(AddressError::kInvalidPayload);
@@ -179,7 +175,6 @@ namespace fc::primitives::address {
                   std::make_move_iterator(payload.end()) - 4);
 
     OUTCOME_TRY(address, decode(buffer));
-    address.network = net;
     return std::move(address);
   }
 

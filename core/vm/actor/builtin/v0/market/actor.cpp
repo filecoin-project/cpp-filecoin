@@ -510,6 +510,15 @@ namespace fc::vm::actor::builtin::v0::market {
     TokenAmount slashed_sum;
     std::map<ChainEpoch, std::vector<DealId>> updates_needed;
     std::vector<DealProposal> timed_out_verified;
+
+    // charge gas to conform lotus implementation
+    OUTCOME_TRY(state.states.amt.loadRoot());
+    OUTCOME_TRY(state.locked_table.hamt.loadRoot());
+    OUTCOME_TRY(state.escrow_table.hamt.loadRoot());
+    OUTCOME_TRY(state.deals_by_epoch.hamt.loadRoot());
+    OUTCOME_TRY(state.proposals.amt.loadRoot());
+    OUTCOME_TRY(state.pending_proposals.hamt.loadRoot());
+
     for (auto epoch{state.last_cron + 1}; epoch <= now; ++epoch) {
       OUTCOME_TRY(set, state.deals_by_epoch.tryGet(epoch));
       if (set) {

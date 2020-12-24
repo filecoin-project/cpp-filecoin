@@ -49,8 +49,7 @@ void createMetaFile(const std::string &storage_path,
                     const LocalStorageMeta &meta) {
   boost::filesystem::path file(storage_path);
   file /= kMetaFileName;
-  auto doc{fc::api::encode(meta)};
-  OUTCOME_EXCEPT(text, fc::codec::json::format(&doc));
+  OUTCOME_EXCEPT(text, fc::codec::json::format(fc::api::encode(meta)));
   OUTCOME_EXCEPT(fc::common::writeFile(file.string(), text));
 }
 
@@ -564,7 +563,7 @@ TEST_F(LocalStoreTest, removeSeveralSectorTypes) {
 /**
  * @given non existing sector info
  * @when try to remove this sector
- * @then StoreErrors::NotFoundSector error occurs
+ * @then success
  */
 TEST_F(LocalStoreTest, removeNotExistSector) {
   SectorId sector{
@@ -578,8 +577,7 @@ TEST_F(LocalStoreTest, removeNotExistSector) {
       .WillOnce(
           testing::Return(fc::outcome::success(std::vector<StorageInfo>())));
 
-  EXPECT_OUTCOME_ERROR(StoreErrors::kNotFoundSector,
-                       local_store_->remove(sector, type));
+  EXPECT_OUTCOME_TRUE_1(local_store_->remove(sector, type));
 }
 
 /**

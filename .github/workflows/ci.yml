@@ -53,11 +53,10 @@ jobs:
       run: |
         set -e
         if [ "$RUNNER_OS" = "macOS" ]; then
-          brew install ninja libb2
-          brew install pkg-config
+          brew install ninja pkg-config libb2 hwloc
         else
-          sudo apt-get update || true
-          sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers
+          sudo apt-get update
+          sudo apt-get install -y ninja-build python-setuptools pkg-config ocl-icd-* opencl-headers libhwloc-dev
         fi
 
         pip3 -V || sudo python3 -m pip install --upgrade pip
@@ -81,12 +80,12 @@ jobs:
         CTEST_OUTPUT_ON_FAILURE: 1
       run: cmake --build build --target test
     - name: prepare coverage report
-      run: cmake --build build --target ctest_coverage
+      run: cmake --build build --target ctest_coverage_norun
     - name: upload report to codecov
       uses: codecov/codecov-action@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # has to be included to access other secrets
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        file: ./build/ctest_coverage.xml
+        file: ./build/ctest_coverage_norun.xml
         name: codecov-umbrella
