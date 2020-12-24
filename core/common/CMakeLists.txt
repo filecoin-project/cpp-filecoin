@@ -3,6 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
+add_subdirectory(libp2p)
+add_subdirectory(smoothing)
+add_subdirectory(uri_parser)
+
 add_library(hexutil
     hexutil.hpp
     hexutil.cpp
@@ -45,7 +49,7 @@ target_link_libraries(logger
     )
 
 add_library(tarutil
-        tarutil.cpp
+    tarutil.cpp
     )
 
 target_link_libraries(tarutil
@@ -53,9 +57,6 @@ target_link_libraries(tarutil
     logger
     libarchive::archive
     )
-
-add_subdirectory(libp2p)
-add_subdirectory(uri_parser)
 
 add_library(todo_error
     todo_error.hpp

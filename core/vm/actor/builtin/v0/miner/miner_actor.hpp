@@ -20,12 +20,20 @@ namespace fc::vm::actor::builtin::v0::miner {
     struct Params {
       Address owner;
       Address worker;
+      std::vector<Address> control_addresses;
       RegisteredProof seal_proof_type;
       Buffer peer_id;
+      std::vector<Multiaddress> multiaddresses;
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(Construct::Params, owner, worker, seal_proof_type, peer_id)
+  CBOR_TUPLE(Construct::Params,
+             owner,
+             worker,
+             control_addresses,
+             seal_proof_type,
+             peer_id,
+             multiaddresses)
 
   struct ControlAddresses : ActorMethodBase<2> {
     struct Result {
@@ -159,6 +167,14 @@ namespace fc::vm::actor::builtin::v0::miner {
     ACTOR_METHOD_DECL();
   };
   CBOR_TUPLE(WithdrawBalance::Params, amount)
+
+  struct ConfirmSectorProofsValid : ActorMethodBase<17> {
+    struct Params {
+      std::vector<SectorNumber> sectors;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(ConfirmSectorProofsValid::Params, sectors)
 
   extern const ActorExports exports;
 

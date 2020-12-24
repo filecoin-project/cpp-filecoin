@@ -3,20 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
-
-#include "common/smoothing/alpha_beta_filter.hpp"
+#include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
 #include "const.hpp"
 #include "vm/actor/builtin/v0/storage_power/policy.hpp"
-#include "vm/exit_code/exit_code.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 
-namespace fc::vm::actor::builtin::v0::storage_power {
+namespace fc::vm::actor::builtin::v2::storage_power {
   using adt::Multimap;
   using common::smoothing::kPrecision;
-  using common::smoothing::nextEstimate;
-  using primitives::kChainEpochUndefined;
 
-  State State::empty(IpldPtr ipld) {
+  State State::empty(const IpldPtr &ipld) {
     State state{
         .total_raw_power = 0,
         .total_raw_commited = {},
@@ -27,13 +23,14 @@ namespace fc::vm::actor::builtin::v0::storage_power {
         .this_epoch_qa_power = {},
         .this_epoch_pledge = {},
         .this_epoch_qa_power_smoothed =
-            {.position = kInitialQAPowerEstimatePosition << kPrecision,
-             .velocity = kInitialQAPowerEstimateVelocity << kPrecision},
+            {.position = v0::storage_power::kInitialQAPowerEstimatePosition
+                         << kPrecision,
+             .velocity = v0::storage_power::kInitialQAPowerEstimateVelocity
+                         << kPrecision},
         .miner_count = 0,
         .num_miners_meeting_min_power = {},
         .cron_event_queue = {},
         .first_cron_epoch = {},
-        .last_processed_cron_epoch = kChainEpochUndefined,
         .claims = {},
         .proof_validation_batch = {},
     };
@@ -58,8 +55,10 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     claim.raw_power += raw;
     claim.qa_power += qa;
 
-    const auto prev_below{old_claim.qa_power < kConsensusMinerMinPower};
-    const auto still_below{claim.qa_power < kConsensusMinerMinPower};
+    const auto prev_below{old_claim.qa_power
+                          < v0::storage_power::kConsensusMinerMinPower};
+    const auto still_below{claim.qa_power
+                           < v0::storage_power::kConsensusMinerMinPower};
 
     if (prev_below && !still_below) {
       ++num_miners_meeting_min_power;
@@ -78,6 +77,19 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     VM_ASSERT(num_miners_meeting_min_power >= 0);
     OUTCOME_TRY(claims.set(miner, claim));
 
+    return outcome::success();
+  }
+
+  outcome::result<void> State::deleteClaim(const Address &miner) {
+    OUTCOME_TRY(claim_found, claims.tryGet(miner));
+    if (!claim_found.has_value()) {
+      return outcome::success();
+    }
+    // subtract from stats as if we were simply removing power
+    OUTCOME_TRY(addToClaim(
+        miner, -claim_found.value().raw_power, -claim_found.value().qa_power));
+    // delete claim from state to invalidate miner
+    OUTCOME_TRY(claims.remove(miner));
     return outcome::success();
   }
 
@@ -106,5 +118,4 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     }
     return std::make_tuple(total_raw_power, total_qa_power);
   }
-
-}  // namespace fc::vm::actor::builtin::v0::storage_power
+}  // namespace fc::vm::actor::builtin::v2::storage_power

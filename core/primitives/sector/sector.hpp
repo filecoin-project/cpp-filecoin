@@ -115,6 +115,7 @@ namespace fc::primitives::sector {
     SealRandomness randomness;
     InteractiveRandomness interactive_randomness;
     Proof proof;
+    /// CommR
     CID sealed_cid;
     /// CommD
     CID unsealed_cid;

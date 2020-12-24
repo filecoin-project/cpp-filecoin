@@ -23,6 +23,7 @@ target_link_libraries(actor
     miner_actor_v0
     multisig_actor_v0
     storage_power_actor_v0
+    storage_power_actor_v2
     cron_actor_v0
     cron_actor_v2
     reward_actor_v0

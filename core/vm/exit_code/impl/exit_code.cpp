@@ -115,19 +115,6 @@ namespace fc::vm {
       case E::kMultisigActorIllegalState:
         return E::kErrIllegalState;
 
-      // TODO(turuslan): FIL-128 StoragePowerActor
-      case E::kStoragePowerActorWrongCaller:
-      case E::kStoragePowerActorOutOfBound:
-      case E::kStoragePowerActorAlreadyExists:
-      case E::kStoragePowerActorDeletionError:
-        break;
-      case E::kStoragePowerActorIllegalArgument:
-        return E::kErrIllegalArgument;
-      case E::kStoragePowerActorForbidden:
-        return E::kErrForbidden;
-      case E::kStoragePowerActorIllegalState:
-        return E::kErrIllegalState;
-
       case E::kInitActorNotBuiltinActor:
       case E::kInitActorSingletonActor:
         return E{1};

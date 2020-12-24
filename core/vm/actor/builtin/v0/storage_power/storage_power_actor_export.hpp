@@ -3,22 +3,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_ACTOR_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_ACTOR_HPP
+#pragma once
 
 #include <libp2p/multi/multiaddress.hpp>
-
+#include "common/libp2p/multi/cbor_multiaddress.hpp"
+#include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/sector/sector.hpp"
 #include "primitives/types.hpp"
 #include "vm/actor/actor_method.hpp"
 #include "vm/actor/builtin/v0/storage_power/policy.hpp"
 
 namespace fc::vm::actor::builtin::v0::storage_power {
+  using common::smoothing::FilterEstimate;
   using libp2p::multi::Multiaddress;
   using primitives::ChainEpoch;
   using primitives::SectorStorageWeightDesc;
   using primitives::TokenAmount;
   using primitives::sector::RegisteredProof;
+  using primitives::sector::SealVerifyInfo;
+
+  constexpr auto kErrTooManyProveCommits =
+      VMExitCode::kErrFirstActorSpecificExitCode;
 
   struct Construct : ActorMethodBase<1> {
     ACTOR_METHOD_DECL();
@@ -26,104 +31,38 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
   struct CreateMiner : ActorMethodBase<2> {
     struct Params {
-      Address owner, worker;
+      Address owner;
+      Address worker;
       RegisteredProof seal_proof_type;
       Buffer peer_id;
-      std::vector<Multiaddress> multiaddrs;
+      std::vector<Multiaddress> multiaddresses;
     };
 
     struct Result {
       Address id_address;      // The canonical ID-based address for the actor
-      Address robust_address;  // A mre expensive but re-org-safe address for
+      Address robust_address;  // A more expensive but re-org-safe address for
                                // the newly created actor
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(
-      CreateMiner::Params, owner, worker, seal_proof_type, peer_id, multiaddrs)
+  CBOR_TUPLE(CreateMiner::Params,
+             owner,
+             worker,
+             seal_proof_type,
+             peer_id,
+             multiaddresses)
   CBOR_TUPLE(CreateMiner::Result, id_address, robust_address)
 
-  struct DeleteMiner : ActorMethodBase<3> {
+  struct UpdateClaimedPower : ActorMethodBase<3> {
     struct Params {
-      Address miner;
+      StoragePower raw_byte_delta;
+      StoragePower quality_adjusted_delta;
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(DeleteMiner::Params, miner)
+  CBOR_TUPLE(UpdateClaimedPower::Params, raw_byte_delta, quality_adjusted_delta)
 
-  struct OnSectorProveCommit : ActorMethodBase<4> {
-    struct Params {
-      SectorStorageWeightDesc weight;
-    };
-    using Result = TokenAmount;
-    ACTOR_METHOD_DECL();
-  };
-  CBOR_TUPLE(OnSectorProveCommit::Params, weight)
-
-  struct OnSectorTerminate : ActorMethodBase<5> {
-    struct Params {
-      SectorTerminationType termination_type;
-      std::vector<SectorStorageWeightDesc> weights;
-    };
-    ACTOR_METHOD_DECL();
-  };
-  CBOR_TUPLE(OnSectorTerminate::Params, termination_type, weights)
-
-  struct OnFaultBegin : ActorMethodBase<6> {
-    struct Params {
-      std::vector<SectorStorageWeightDesc> weights;
-    };
-    ACTOR_METHOD_DECL();
-  };
-  CBOR_TUPLE(OnFaultBegin::Params, weights)
-
-  struct OnFaultEnd : ActorMethodBase<7> {
-    struct Params {
-      std::vector<SectorStorageWeightDesc> weights;
-    };
-    ACTOR_METHOD_DECL();
-  };
-  CBOR_TUPLE(OnFaultEnd::Params, weights)
-
-  struct OnSectorModifyWeightDesc : ActorMethodBase<8> {
-    struct Params {
-      SectorStorageWeightDesc prev_weight;
-      SectorStorageWeightDesc new_weight;
-    };
-    using Result = TokenAmount;
-    ACTOR_METHOD_DECL();
-  };
-  CBOR_TUPLE(OnSectorModifyWeightDesc::Params, prev_weight, new_weight)
-
-  struct CurrentTotalPower : ActorMethodBase<9> {
-    /**
-     * Alpha Beta Filter "position" (value) and "velocity" (rate of change of
-     * value) estimates
-     * Estimates are in Q.128 format
-     */
-    struct FilterEstimate {
-      BigInt position_estimate;
-      BigInt velocity_estimate;
-    };
-    struct Result {
-      StoragePower raw_byte_power;
-      StoragePower quality_adj_power;
-      TokenAmount pledge_collateral;
-      FilterEstimate quality_adj_power_smoothed;
-    };
-    ACTOR_METHOD_DECL();
-  };
-  CBOR_TUPLE(CurrentTotalPower::FilterEstimate,
-             position_estimate,
-             velocity_estimate)
-  CBOR_TUPLE(CurrentTotalPower::Result,
-             raw_byte_power,
-             quality_adj_power,
-             pledge_collateral,
-             quality_adj_power_smoothed)
-
-  // TODO (a.chernyshov) update storage power actor
-  struct EnrollCronEvent : ActorMethodBase<13> {
+  struct EnrollCronEvent : ActorMethodBase<4> {
     struct Params {
       ChainEpoch event_epoch;
       Buffer payload;
@@ -132,19 +71,39 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   };
   CBOR_TUPLE(EnrollCronEvent::Params, event_epoch, payload)
 
-  struct OnEpochTickEnd : ActorMethodBase<10> {
+  struct OnEpochTickEnd : ActorMethodBase<5> {
     ACTOR_METHOD_DECL();
   };
 
-  struct UpdatePledgeTotal : ActorMethodBase<11> {
-    using Params = TokenAmount;
+  struct UpdatePledgeTotal : ActorMethodBase<6> {
+    using Params = TokenAmount;  // pledgeDelta
     ACTOR_METHOD_DECL();
   };
 
-  struct OnConsensusFault : ActorMethodBase<12> {
-    using Params = TokenAmount;
+  struct OnConsensusFault : ActorMethodBase<7> {
+    using Params = TokenAmount;  // pledgeAmount
     ACTOR_METHOD_DECL();
   };
+
+  struct SubmitPoRepForBulkVerify : ActorMethodBase<8> {
+    using Params = SealVerifyInfo;
+    ACTOR_METHOD_DECL();
+  };
+
+  struct CurrentTotalPower : ActorMethodBase<9> {
+    struct Result {
+      StoragePower raw_byte_power;
+      StoragePower quality_adj_power;
+      TokenAmount pledge_collateral;
+      FilterEstimate quality_adj_power_smoothed;
+    };
+    ACTOR_METHOD_DECL();
+  };
+  CBOR_TUPLE(CurrentTotalPower::Result,
+             raw_byte_power,
+             quality_adj_power,
+             pledge_collateral,
+             quality_adj_power_smoothed)
 
   inline bool operator==(const CreateMiner::Result &lhs,
                          const CreateMiner::Result &rhs) {
@@ -154,5 +113,3 @@ namespace fc::vm::actor::builtin::v0::storage_power {
 
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::v0::storage_power
-
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_STORAGE_POWER_ACTOR_HPP
