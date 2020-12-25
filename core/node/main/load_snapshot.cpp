@@ -17,7 +17,7 @@ namespace fc {
   int main(int argc, char *argv[]) {
     if (argc != 4) {
       fmt::print(stderr,
-                 "Usage: load_snapshot car_file genesis_file storage_dir");
+                 "Usage: load_snapshot car_file genesis_file storage_dir\n");
       return __LINE__;
     }
 
@@ -27,11 +27,11 @@ namespace fc {
 
     leveldb::Options options;
     options.create_if_missing = true;
-    options.error_if_exists = true;
+    options.error_if_exists = false;  // XXXtrue;
 
     auto leveldb_res = storage::LevelDB::create(storage_dir, options);
     if (!leveldb_res) {
-      fmt::print(stderr, "Cannot create leveldb store at {}", storage_dir);
+      fmt::print(stderr, "Cannot create leveldb store at {}\n", storage_dir);
       return __LINE__;
     }
 
@@ -39,13 +39,14 @@ namespace fc {
 
     auto load_res = storage::car::loadCar(*leveldb, genesis_file);
     if (!load_res) {
-      fmt::print(stderr, "Load genesis failed, {}", load_res.error().message());
+      fmt::print(
+          stderr, "Load genesis failed, {}\n", load_res.error().message());
       return __LINE__;
     }
 
     if (load_res.value().size() != 1) {
       fmt::print(stderr,
-                 "Genesis car file has {} != 1 roots",
+                 "Genesis car file has {} != 1 roots\n",
                  load_res.value().size());
       return __LINE__;
     }
@@ -59,7 +60,7 @@ namespace fc {
 
     auto roots = load_res.value();
 
-    fmt::print(stderr, "{} roots loaded", roots.size());
+    fmt::print(stderr, "{} roots loaded\n", roots.size());
 
     // roots must be a tipset
 
@@ -73,7 +74,7 @@ namespace fc {
       auto header_res = ipld->getCbor<BlockHeader>(cid);
       if (!header_res) {
         fmt::print(stderr,
-                   "Root is not a block header, cid={}, {}",
+                   "Root is not a block header, cid={}, {}\n",
                    cid.toString().value(),
                    header_res.error().message());
         return __LINE__;
@@ -82,7 +83,7 @@ namespace fc {
 
       if (auto r = creator.canExpandTipset(header); !r) {
         fmt::print(stderr,
-                   "Cannot expand highest tipset with header, cid={}, {}",
+                   "Cannot expand highest tipset with header, cid={}, {}\n",
                    cid.toString().value(),
                    header_res.error().message());
         return __LINE__;
@@ -90,7 +91,7 @@ namespace fc {
 
       if (auto r = creator.expandTipset(cid, header); !r) {
         fmt::print(stderr,
-                   "Cannot expand highest tipset with header, cid={}, {}",
+                   "Cannot expand highest tipset with header, cid={}, {}\n",
                    cid.toString().value(),
                    header_res.error().message());
         return __LINE__;
@@ -100,7 +101,7 @@ namespace fc {
     auto tipset = creator.getTipset(true);
 
     if (!ipld->contains(tipset->getParentStateRoot())) {
-      fmt::print(stderr, "Snapshot doesnt contain state root");
+      fmt::print(stderr, "Snapshot doesnt contain state root\n");
       return __LINE__;
     }
 
@@ -110,15 +111,20 @@ namespace fc {
         sync::IndexDbBackend::create(storage_dir + node::kIndexDbFileName);
     if (!indexdb_res) {
       fmt::print(
-          stderr, "Cannot create index db, {}", load_res.error().message());
+          stderr, "Cannot create index db, {}\n", load_res.error().message());
       return __LINE__;
     }
 
     auto &indexdb = indexdb_res.value();
+    auto branches = indexdb->initDb();
+    if (!branches || !branches.value().empty()) {
+      fmt::print(stderr, "Cannot init index db\n");
+      return __LINE__;
+    }
 
     auto tx = indexdb->beginTx();
 
-    fmt::print(stderr, "Indexing from height, {}", tipset->height());
+    fmt::print(stderr, "Indexing from height, {}\n", tipset->height());
 
     sync::TipsetInfo info;
     info.branch = sync::kGenesisBranch;
@@ -126,10 +132,10 @@ namespace fc {
     size_t reported_percent = 0;
     size_t max_height = tipset->height();
     auto index_progress = [&](size_t height) {
-      auto x = height * 100 / max_height;
+      auto x = (max_height - height) * 100 / max_height;
       if (x > reported_percent) {
         reported_percent = x;
-        fmt::print("index: {}%", reported_percent);
+        fmt::print("index: {}%\n", reported_percent);
       }
     };
 
@@ -140,7 +146,7 @@ namespace fc {
         auto parent_res = tipset->loadParent(*ipld);
         if (!parent_res) {
           fmt::print(stderr,
-                     "Cannot load parent at height {}, {}",
+                     "Cannot load parent at height {}, {}\n",
                      tipset->height(),
                      parent_res.error().message());
           return __LINE__;
@@ -153,7 +159,7 @@ namespace fc {
       auto index_res = indexdb->store(info, boost::none);
       if (!index_res) {
         fmt::print(stderr,
-                   "Cannot index tipset at height {}, {}",
+                   "Cannot index tipset at height {}, {}\n",
                    info.height,
                    index_res.error().message());
         return __LINE__;
@@ -166,15 +172,15 @@ namespace fc {
 
     tx.commit();
 
-    fmt::print(stderr, "Indexing done");
+    fmt::print(stderr, "Indexing done\n");
 
     if (!node::persistLibp2pKey(storage_dir + node::kKeyFileName,
                                 boost::none)) {
-      fmt::print(stderr, "Cannot write libp2p key");
+      fmt::print(stderr, "Cannot write libp2p key\n");
       return __LINE__;
     }
 
-    fmt::print(stderr, "Done");
+    fmt::print(stderr, "Done\n");
 
     return 0;
   }
