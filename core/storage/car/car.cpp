@@ -40,7 +40,7 @@ namespace fc::storage::car {
     return std::move(header.roots);
   }
 
-  outcome::result<std::vector<CID>> loadCar(Ipld &store,
+  outcome::result<std::vector<CID>> loadCar(storage::PersistentBufferMap &store,
                                             const std::string &file_name) {
     namespace bip = boost::interprocess;
 
@@ -56,6 +56,60 @@ namespace fc::storage::car {
       input =
           gsl::span<const uint8_t>(static_cast<const uint8_t *>(addr), size);
       log->info("reading file {} of size {}", file_name, size);
+
+      size_t reported_percent = 0;
+      const size_t total_bytes = input.size();
+      size_t objects_count = 0;
+      auto progress = [&](size_t current) {
+        auto x = current * 100 / total_bytes;
+        if (x > reported_percent) {
+          reported_percent = x;
+          log->info("{}%, {} objects stored", reported_percent, objects_count);
+        }
+      };
+
+      OUTCOME_TRY(header_bytes,
+                  codec::uvarint::readBytes<CarError::kDecodeError,
+                                            CarError::kDecodeError>(input));
+      OUTCOME_TRY(header, codec::cbor::decode<CarHeader>(header_bytes));
+      log->info("read header, {} roots", header.roots.size());
+      if (header.roots.size() < 100) {
+        for (const auto &r : header.roots) {
+          log->info(r.toString().value());
+        }
+      }
+
+      static constexpr size_t kBatchSize = 100000;
+      size_t current_batch_size = 0;
+      auto batch = store.batch();
+
+      while (!input.empty()) {
+        OUTCOME_TRY(node,
+                    codec::uvarint::readBytes<CarError::kDecodeError,
+                                              CarError::kDecodeError>(input));
+        auto cid_bytes = node;
+        OUTCOME_TRY(cid, CID::read(node));
+        std::ignore = cid;
+        cid_bytes = cid_bytes.first(cid_bytes.size() - node.size());
+
+        OUTCOME_TRY(
+            batch->put(common::Buffer{cid_bytes}, common::Buffer{node}));
+
+        if (++current_batch_size >= kBatchSize) {
+          OUTCOME_TRY(batch->commit());
+          batch->clear();
+          current_batch_size = 0;
+        }
+
+        OUTCOME_TRY(batch->commit());
+        batch->clear();
+
+        ++objects_count;
+        progress(total_bytes - input.size());
+      }
+
+      return std::move(header.roots);
+
     } catch (const std::exception &e) {
       log->error("exception while reading {}: {}", file_name, e.what());
       return CarError::kReadFileError;
@@ -63,32 +117,6 @@ namespace fc::storage::car {
       log->error("unknown exception while reading {}", file_name);
       return CarError::kReadFileError;
     }
-
-    size_t reported_percent = 0;
-    size_t total_bytes = input.size();
-    auto progress = [&](size_t current) {
-      auto x = current * 100 / total_bytes;
-      if (x > reported_percent) {
-        reported_percent = x;
-        log->info("{}%", reported_percent);
-      }
-    };
-
-    OUTCOME_TRY(header_bytes,
-                codec::uvarint::readBytes<CarError::kDecodeError,
-                                          CarError::kDecodeError>(input));
-    OUTCOME_TRY(header, codec::cbor::decode<CarHeader>(header_bytes));
-    log->info("read header, {} roots", header.roots.size());
-
-    while (!input.empty()) {
-      OUTCOME_TRY(node,
-                  codec::uvarint::readBytes<CarError::kDecodeError,
-                                            CarError::kDecodeError>(input));
-      OUTCOME_TRY(cid, CID::read(node));
-      OUTCOME_TRY(store.set(cid, common::Buffer{node}));
-      progress(input.size());
-    }
-    return std::move(header.roots);
   }
 
   void writeUvarint(Buffer &output, uint64_t value) {

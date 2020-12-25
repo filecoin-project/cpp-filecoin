@@ -146,6 +146,13 @@ namespace fc::node {
 
   outcome::result<NodeObjects> createNodeObjects(Config &config);
 
+  static constexpr auto kIndexDbFileName = "/index.db";
+  static constexpr auto kKeyFileName = "/PK";
+
+  outcome::result<void> persistLibp2pKey(
+      const std::string &filename,
+      boost::optional<std::array<uint8_t, 32u>> key);
+
 }  // namespace fc::node
 
 OUTCOME_HPP_DECLARE_ERROR(fc::node, Error);

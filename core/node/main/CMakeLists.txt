@@ -16,6 +16,7 @@ target_link_libraries(node_builder
     p2p::p2p_inmem_key_repository
     p2p::p2p_inmem_protocol_repository
     p2p::asio_scheduler
+    p2p::p2p_random_generator
     graphsync
     ipfs_merkledag_service
     clock
@@ -33,6 +34,7 @@ target_link_libraries(node_builder
     drand_http
     drand_beacon
     Boost::program_options
+    Boost::random
     )
 
 add_executable(node
@@ -48,8 +50,5 @@ add_executable(load_snapshot
     )
 
 target_link_libraries(load_snapshot
-    car
-    ipfs_datastore_leveldb
-    runtime
-    interpreter
+    node_builder
     )

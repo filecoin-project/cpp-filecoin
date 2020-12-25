@@ -8,6 +8,7 @@
 
 #include "storage/ipfs/datastore.hpp"
 #include "storage/ipld/selector.hpp"
+#include "storage/buffer_map.hpp"
 
 namespace fc::storage::car {
   using Ipld = ipfs::IpfsDatastore;
@@ -38,7 +39,7 @@ namespace fc::storage::car {
 
   outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input);
 
-  outcome::result<std::vector<CID>> loadCar(Ipld &store,
+  outcome::result<std::vector<CID>> loadCar(storage::PersistentBufferMap &store,
                                             const std::string &file_name);
 
   void writeHeader(Buffer &output, const std::vector<CID> &roots);

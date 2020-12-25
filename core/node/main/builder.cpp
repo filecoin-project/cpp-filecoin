@@ -151,21 +151,7 @@ namespace fc::node {
         const std::string &file_name) {
       OUTCOME_TRY(keypair,
                   libp2p::crypto::ed25519::Ed25519ProviderImpl{}.generate());
-
-      std::ofstream ofs{file_name, std::ios::binary | std::ios::trunc};
-
-      if (!ofs.good()) {
-        log()->error("cannot open file {}", file_name);
-        return Error::KEY_WRITE_ERROR;
-      }
-      // NOLINTNEXTLINE
-      ofs.write((const char *)keypair.private_key.data(), kKeySize);
-
-      if (!ofs.good()) {
-        log()->error("cannot write file {}", file_name);
-        return Error::KEY_WRITE_ERROR;
-      }
-
+      OUTCOME_TRY(persistLibp2pKey(file_name, keypair.private_key));
       return keypair;
     }
 
@@ -205,7 +191,7 @@ namespace fc::node {
                                                          bool creating_new_db) {
       libp2p::crypto::KeyPair keypair;
 
-      auto file_name = config.storage_path + "/PK";
+      auto file_name = config.storage_path + kKeyFileName;
 
       libp2p::crypto::ed25519::Keypair keypair_raw;
       if (creating_new_db) {
@@ -304,7 +290,7 @@ namespace fc::node {
 
       OUTCOME_TRYA(
           index_db_backend,
-          sync::IndexDbBackend::create(config.storage_path + "/index.db"));
+          sync::IndexDbBackend::create(config.storage_path + kIndexDbFileName));
     }
 
     if (creating_new_db) {
@@ -501,6 +487,33 @@ namespace fc::node {
                                                      key_store));
 
     return o;
+  }
+
+  outcome::result<void> persistLibp2pKey(
+      const std::string &file_name,
+      boost::optional<std::array<uint8_t, 32u>> key) {
+
+    if (!key) {
+      OUTCOME_TRY(keypair,
+                  libp2p::crypto::ed25519::Ed25519ProviderImpl{}.generate());
+      key = std::move(keypair.private_key);
+    }
+
+    std::ofstream ofs{file_name, std::ios::binary | std::ios::trunc};
+
+    if (!ofs.good()) {
+      log()->error("cannot open file {}", file_name);
+      return Error::KEY_WRITE_ERROR;
+    }
+    // NOLINTNEXTLINE
+    ofs.write((const char *)key->data(), kKeySize);
+
+    if (!ofs.good()) {
+      log()->error("cannot write file {}", file_name);
+      return Error::KEY_WRITE_ERROR;
+    }
+
+    return outcome::success();
   }
 
 }  // namespace fc::node
