@@ -25,7 +25,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
   using runtime::Runtime;
   using TransactionId = int64_t;
   using TransactionKeyer = adt::VarintKeyer;
-  using ApproveTransactionResult = std::tuple<bool, Buffer, VMExitCode>;
 
   /**
    * Multisignaure pending transaction
@@ -102,17 +101,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
     }
 
     /**
-     * Check if address is signer and allows to get iterator of this signer
-     * @param address - address to check
-     * @return iterator and true if address is signer
-     */
-    inline auto checkSigner(const Address &address) const {
-      auto it = std::find(signers.begin(), signers.end(), address);
-      const bool result = it != signers.end();
-      return std::make_tuple(result, it);
-    }
-
-    /**
      * Get pending transaction
      * @param tx_id - transaction id
      * @return transaction
@@ -130,25 +118,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
         Runtime &runtime,
         const TransactionId &tx_id,
         const Buffer &proposal_hash) const;
-
-    /**
-     * Get amount locked for elapsed epoch
-     * @param elapsed_epoch - elapsed block number
-     * @return - return amount locked
-     */
-    BigInt amountLocked(const ChainEpoch &elapsed_epoch) const;
-
-    /**
-     * Check availability of funds
-     * @param current_balance - current balance
-     * @param amount_to_spend - amount of money to spend
-     * @param current_epoch - current epoch
-     * @return nothing or error occurred
-     */
-    outcome::result<void> assertAvailable(
-        const TokenAmount &current_balance,
-        const TokenAmount &amount_to_spend,
-        const ChainEpoch &current_epoch) const;
   };
   CBOR_TUPLE(State,
              signers,
@@ -158,33 +127,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
              start_epoch,
              unlock_duration,
              pending_transactions)
-
-  /**
-   * Approve pending transaction and try to execute.
-   * @param runtime - execution context
-   * @param tx_id - transaction id
-   * @param transaction - transaction to approve
-   * @return applied flag, result of sending a message and result code of
-   * sending a message
-   */
-  outcome::result<ApproveTransactionResult> approveTransaction(
-      Runtime &runtime, const TransactionId &tx_id, Transaction &transaction);
-
-  /**
-   * Execute transaction if approved. Send pending transaction if threshold is
-   * met.
-   * @param runtime - execution context
-   * @param state - actor state
-   * @param tx_id - transaction id
-   * @param transaction - transaction to approve
-   * @return applied flag, result of sending a message and result code of
-   * sending a message
-   */
-  outcome::result<ApproveTransactionResult> executeTransaction(
-      Runtime &runtime,
-      State &state,
-      const TransactionId &tx_id,
-      const Transaction &transaction);
 
 }  // namespace fc::vm::actor::builtin::v0::multisig
 
