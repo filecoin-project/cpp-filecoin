@@ -14,25 +14,6 @@ namespace fc::vm::actor::builtin::v0::reward {
   using primitives::SpaceTime;
   using primitives::StoragePower;
   using primitives::TokenAmount;
-  using NetworkTime = BigInt;
-
-  struct State {
-    StoragePower baseline_power, realized_power;
-    SpaceTime sum_baseline, sum_realized;
-    NetworkTime effective_time;
-    TokenAmount simple_supply, baseline_supply, last_per_epoch_reward;
-    ChainEpoch reward_epochs_paid{};
-  };
-  CBOR_TUPLE(State,
-             baseline_power,
-             realized_power,
-             sum_baseline,
-             sum_realized,
-             effective_time,
-             simple_supply,
-             baseline_supply,
-             last_per_epoch_reward,
-             reward_epochs_paid)
 
   struct Constructor : ActorMethodBase<1> {
     ACTOR_METHOD_DECL();

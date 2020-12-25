@@ -5,6 +5,7 @@
 
 #include "miner/mining.hpp"
 
+#include "common/math/math.hpp"
 #include "const.hpp"
 #include "vm/actor/builtin/v0/market/policy.hpp"
 #include "vm/runtime/pricelist.hpp"
@@ -20,6 +21,8 @@
 
 namespace fc::mining {
   using api::DomainSeparationTag;
+  using common::math::expneg;
+  using common::math::kPrecision256;
   using crypto::randomness::drawRandomness;
   using BlsSignature = crypto::bls::Signature;
 
@@ -209,50 +212,15 @@ namespace fc::mining {
   int64_t computeWinCount(BytesIn ticket,
                           const BigInt &power,
                           const BigInt &total_power) {
-    constexpr auto P{256};
-    static auto poly{[P](std::initializer_list<std::string> s) {
-      return [P, p{std::vector<BigInt>{s.begin(), s.end()}}](const BigInt &x) {
-        BigInt r;
-        for (auto &c : p) {
-          r = ((r * x) >> P) + c;
-        }
-        return r;
-      };
-    }};
-    static auto pn{poly({
-        "-648770010757830093818553637600",
-        "67469480939593786226847644286976",
-        "-3197587544499098424029388939001856",
-        "89244641121992890118377641805348864",
-        "-1579656163641440567800982336819953664",
-        "17685496037279256458459817590917169152",
-        "-115682590513835356866803355398940131328",
-        "340282366920938463463374607431768211456",
-    })};
-    static auto pd{poly({
-        "1225524182432722209606361",
-        "114095592300906098243859450",
-        "5665570424063336070530214243",
-        "194450132448609991765137938448",
-        "5068267641632683791026134915072",
-        "104716890604972796896895427629056",
-        "1748338658439454459487681798864896",
-        "23704654329841312470660182937960448",
-        "259380097567996910282699886670381056",
-        "2250336698853390384720606936038375424",
-        "14978272436876548034486263159246028800",
-        "72144088983913131323343765784380833792",
-        "224599776407103106596571252037123047424",
-        "340282366920938463463374607431768211456",
-    })};
     auto hash{bigblake(ticket)};
-    auto lambda{bigdiv((power * kBlocksPerEpoch) << P, total_power)};
-    auto pmf{bigdiv(pn(lambda) << P, pd(lambda))};
-    BigInt icdf{(BigInt{1} << P) - pmf};
+    auto lambda{
+        bigdiv((power * kBlocksPerEpoch) << kPrecision256, total_power)};
+    auto pmf{expneg(lambda, kPrecision256)};
+    BigInt icdf{(BigInt{1} << kPrecision256) - pmf};
     auto k{0};
     while (hash < icdf && k < kMaxWinCount) {
       ++k;
-      pmf = (bigdiv(pmf, k) * lambda) >> P;
+      pmf = (bigdiv(pmf, k) * lambda) >> kPrecision256;
       icdf -= pmf;
     }
     return k;
