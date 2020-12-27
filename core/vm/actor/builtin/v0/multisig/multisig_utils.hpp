@@ -104,5 +104,15 @@ namespace fc::vm::actor::builtin::utils::multisig {
         State &state,
         const TransactionId &tx_id,
         const Transaction &transaction) const = 0;
+
+    /**
+     * Iterates all pending transactions and removes an address from each list
+     * of approvals, if present. If an approval list becomes empty, the pending
+     * transaction is deleted.
+     * @param state - actor state
+     * @param address - address to purge
+     */
+    virtual outcome::result<void> purgeApprovals(
+        State &state, const Address &address) const = 0;
   };
 }  // namespace fc::vm::actor::builtin::utils::multisig

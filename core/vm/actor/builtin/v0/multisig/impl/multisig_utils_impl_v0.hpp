@@ -43,5 +43,11 @@ namespace fc::vm::actor::builtin::v0::multisig {
         State &state,
         const TransactionId &tx_id,
         const Transaction &transaction) const override;
+
+    outcome::result<void> purgeApprovals(
+        State &state, const Address &address) const override {
+      // Not implemented for v0
+      return outcome::success();
+    }
   };
 }  // namespace fc::vm::actor::builtin::v0::multisig

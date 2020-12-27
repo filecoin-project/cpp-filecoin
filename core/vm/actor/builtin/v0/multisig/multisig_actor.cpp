@@ -30,17 +30,17 @@ namespace fc::vm::actor::builtin::v0::multisig {
   }
 
   outcome::result<void> Construct::checkEmptySigners(
-      const Construct::Params &params) {
-    if (params.signers.empty()) {
+      const std::vector<Address> &signers) {
+    if (signers.empty()) {
       return VMExitCode::kErrIllegalArgument;
     }
     return outcome::success();
   }
 
   outcome::result<std::vector<Address>> Construct::getResolvedSigners(
-      Runtime &runtime, const Construct::Params &params) {
+      Runtime &runtime, const std::vector<Address> &signers) {
     std::vector<Address> resolved_signers;
-    for (const auto &signer : params.signers) {
+    for (const auto &signer : signers) {
       const auto resolved = runtime.resolveAddress(signer);
       if (resolved.has_error()) {
         return VMExitCode::kErrIllegalState;
@@ -56,24 +56,26 @@ namespace fc::vm::actor::builtin::v0::multisig {
   }
 
   outcome::result<void> Construct::checkParams(
-      const Construct::Params &params) {
-    if (params.threshold > params.signers.size()) {
+      const std::vector<Address> &signers,
+      size_t threshold,
+      const EpochDuration &unlock_duration) {
+    if (threshold > signers.size()) {
       return VMExitCode::kErrIllegalArgument;
     }
-    if (params.threshold < 1) {
+    if (threshold < 1) {
       return VMExitCode::kErrIllegalArgument;
     }
-    if (params.unlock_duration < 0) {
+    if (unlock_duration < 0) {
       return VMExitCode::kErrIllegalArgument;
     }
     return outcome::success();
   }
 
   State Construct::createState(Runtime &runtime,
-                               const Construct::Params &params,
+                               size_t threshold,
                                const std::vector<Address> &signers) {
     State state{signers,
-                params.threshold,
+                threshold,
                 TransactionId{0},
                 BigInt{0},
                 ChainEpoch{0},
@@ -89,22 +91,23 @@ namespace fc::vm::actor::builtin::v0::multisig {
   }
 
   void Construct::setLocked(const Runtime &runtime,
-                            const Construct::Params &params,
+                            const EpochDuration &unlock_duration,
                             State &state) {
-    if (params.unlock_duration != 0) {
+    if (unlock_duration != 0) {
       state.setLocked(runtime.getCurrentEpoch(),
-                      params.unlock_duration,
+                      unlock_duration,
                       runtime.getValueReceived());
     }
   }
 
   ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(checkCaller(runtime));
-    OUTCOME_TRY(checkEmptySigners(params));
-    OUTCOME_TRY(resolved_signers, getResolvedSigners(runtime, params));
-    OUTCOME_TRY(checkParams(params));
-    State state = createState(runtime, params, resolved_signers);
-    setLocked(runtime, params, state);
+    OUTCOME_TRY(checkEmptySigners(params.signers));
+    OUTCOME_TRY(resolved_signers, getResolvedSigners(runtime, params.signers));
+    OUTCOME_TRY(
+        checkParams(params.signers, params.threshold, params.unlock_duration));
+    State state = createState(runtime, params.threshold, resolved_signers);
+    setLocked(runtime, params.unlock_duration, state);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }

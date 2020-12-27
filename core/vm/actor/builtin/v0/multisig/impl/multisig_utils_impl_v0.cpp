@@ -74,7 +74,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     if (remaining_balance < amount_locked) {
       return VMExitCode::kErrInsufficientFunds;
     }
-    return fc::outcome::success();
+    return outcome::success();
   }
 
   outcome::result<ApproveTransactionResult>

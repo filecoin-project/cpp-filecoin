@@ -5,6 +5,7 @@
 
 add_subdirectory(account)
 add_subdirectory(cron)
+add_subdirectory(multisig)
 add_subdirectory(payment_channel)
 add_subdirectory(storage_power)
 add_subdirectory(system)

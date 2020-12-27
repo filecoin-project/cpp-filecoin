@@ -23,15 +23,19 @@ namespace fc::vm::actor::builtin::v0::multisig {
     ACTOR_METHOD_DECL();
 
     static outcome::result<void> checkCaller(const Runtime &runtime);
-    static outcome::result<void> checkEmptySigners(const Params &params);
+    static outcome::result<void> checkEmptySigners(
+        const std::vector<Address> &signers);
     static outcome::result<std::vector<Address>> getResolvedSigners(
-        Runtime &runtime, const Params &params);
-    static outcome::result<void> checkParams(const Params &params);
+        Runtime &runtime, const std::vector<Address> &signers);
+    static outcome::result<void> checkParams(
+        const std::vector<Address> &signers,
+        size_t threshold,
+        const EpochDuration &unlock_duration);
     static State createState(Runtime &runtime,
-                             const Params &params,
+                             size_t threshold,
                              const std::vector<Address> &signers);
     static void setLocked(const Runtime &runtime,
-                          const Params &params,
+                          const EpochDuration &unlock_duration,
                           State &state);
   };
   CBOR_TUPLE(Construct::Params, signers, threshold, unlock_duration)
