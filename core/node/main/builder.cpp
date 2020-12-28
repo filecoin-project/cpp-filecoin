@@ -454,9 +454,10 @@ namespace fc::node {
     auto key_store = std::make_shared<storage::keystore::InMemoryKeyStore>(
         bls_provider, secp_provider);
 
-    drand::ChainInfo drand_chain_info{.key{config.drand_bls_pubkey},
-                                      .genesis{config.drand_genesis},
-                                      .period{config.drand_period}};
+    drand::ChainInfo drand_chain_info{
+        .key{config.drand_bls_pubkey},
+        .genesis{std::chrono::seconds(config.drand_genesis)},
+        .period{std::chrono::seconds(config.drand_period)}};
 
     if (config.drand_servers.empty()) {
       config.drand_servers.push_back("https://127.0.0.1:8080");
@@ -492,7 +493,6 @@ namespace fc::node {
   outcome::result<void> persistLibp2pKey(
       const std::string &file_name,
       boost::optional<std::array<uint8_t, 32u>> key) {
-
     if (!key) {
       OUTCOME_TRY(keypair,
                   libp2p::crypto::ed25519::Ed25519ProviderImpl{}.generate());

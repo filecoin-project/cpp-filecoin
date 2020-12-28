@@ -32,8 +32,8 @@ namespace fc::node {
     // drand config
     std::vector<std::string> drand_servers;
     BlsPublicKey drand_bls_pubkey;
-    uint64_t drand_genesis = 0;
-    uint64_t drand_period = 0;
+    int64_t drand_genesis = 0;
+    int64_t drand_period = 0;
     unsigned beaconizer_cache_size = 100;
 
     Config();
