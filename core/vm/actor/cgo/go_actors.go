@@ -506,13 +506,58 @@ func cgoActorsConfig(raw C.Raw) C.Raw {
 	power1.ConsensusMinerMinPower = arg.big()
 	verifreg2.MinVerifiedDealSize = verifreg1.MinVerifiedDealSize
 	n := int(arg.int())
+
 	miner1.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
-	miner2.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
-	for i := 0; i < n; i++ {
+	miner2.PreCommitSealProofTypesV0 = make(map[abi.RegisteredSealProof]struct{})
+    miner2.PreCommitSealProofTypesV7 = make(map[abi.RegisteredSealProof]struct{})
+    miner2.PreCommitSealProofTypesV8 = make(map[abi.RegisteredSealProof]struct{})
+
+    for i := 0; i < n; i++ {
 		proof := arg.int()
 		miner1.SupportedProofTypes[abi.RegisteredSealProof(proof)] = struct{}{}
-		miner2.SupportedProofTypes[abi.RegisteredSealProof(proof)] = struct{}{}
+		miner2.PreCommitSealProofTypesV0[abi.RegisteredSealProof(proof)] = struct{}{}
+        miner2.PreCommitSealProofTypesV7[abi.RegisteredSealProof(proof)] = struct{}{}
+        miner2.PreCommitSealProofTypesV8[abi.RegisteredSealProof(proof)] = struct{}{}
 	}
+
+//  Was previously here
+//
+// 	miner1.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
+// 	miner2.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
+// 	for i := 0; i < n; i++ {
+// 		proof := arg.int()
+// 		miner1.SupportedProofTypes[abi.RegisteredSealProof(proof)] = struct{}{}
+// 		miner2.SupportedProofTypes[abi.RegisteredSealProof(proof)] = struct{}{}
+// 	}
+//
+//
+
+// From v2.2.0
+//
+// var SupportedProofTypes = map[abi.RegisteredSealProof]struct{}{
+// 	abi.RegisteredSealProof_StackedDrg32GiBV1: {},
+// 	abi.RegisteredSealProof_StackedDrg64GiBV1: {},
+// }
+
+// From v.2.3.3
+//
+// 	var PreCommitSealProofTypesV0 = map[abi.RegisteredSealProof]struct{}{
+//     	abi.RegisteredSealProof_StackedDrg32GiBV1: {},
+//     	abi.RegisteredSealProof_StackedDrg64GiBV1: {},
+//     }
+//     var PreCommitSealProofTypesV7 = map[abi.RegisteredSealProof]struct{}{
+//     	abi.RegisteredSealProof_StackedDrg32GiBV1:   {},
+//     	abi.RegisteredSealProof_StackedDrg64GiBV1:   {},
+//     	abi.RegisteredSealProof_StackedDrg32GiBV1_1: {},
+//     	abi.RegisteredSealProof_StackedDrg64GiBV1_1: {},
+//     }
+//
+//     // From network version 8, sectors sealed with the V1 seal proof types cannot be committed.
+//     var PreCommitSealProofTypesV8 = map[abi.RegisteredSealProof]struct{}{
+//     	abi.RegisteredSealProof_StackedDrg32GiBV1_1: {},
+//     	abi.RegisteredSealProof_StackedDrg64GiBV1_1: {},
+//     }
+
 	return cgoRet(nil)
 }
 
