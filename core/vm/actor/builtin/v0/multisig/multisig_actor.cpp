@@ -100,7 +100,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
     }
   }
 
-  ACTOR_METHOD_IMPL(Construct) {
+  outcome::result<Construct::Result> Construct::execute(
+      Runtime &runtime,
+      const Construct::Params &params,
+      const MultisigUtils &utils) {
     OUTCOME_TRY(checkCaller(runtime));
     OUTCOME_TRY(checkEmptySigners(params.signers));
     OUTCOME_TRY(resolved_signers, getResolvedSigners(runtime, params.signers));
@@ -110,6 +113,11 @@ namespace fc::vm::actor::builtin::v0::multisig {
     setLocked(runtime, params.unlock_duration, state);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
+  }
+
+  ACTOR_METHOD_IMPL(Construct) {
+    const MultisigUtilsImplV0 utils;
+    return execute(runtime, params, utils);
   }
 
   // Propose
@@ -130,9 +138,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return std::make_tuple(tx_id, transaction);
   }
 
-  ACTOR_METHOD_IMPL(Propose) {
-    const MultisigUtilsImplV0 utils;
-
+  outcome::result<Propose::Result> Propose::execute(
+      Runtime &runtime,
+      const Propose::Params &params,
+      const MultisigUtils &utils) {
     OUTCOME_TRY(utils.assertCallerIsSignable(runtime));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(utils.assertCallerIsSigner(runtime, state));
@@ -143,6 +152,11 @@ namespace fc::vm::actor::builtin::v0::multisig {
     const auto &[applied, return_value, code] = approve;
 
     return Result{tx_id, applied, code, return_value};
+  }
+
+  ACTOR_METHOD_IMPL(Propose) {
+    const MultisigUtilsImplV0 utils;
+    return execute(runtime, params, utils);
   }
 
   // Approve
@@ -174,14 +188,20 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return Approve::Result{applied, code, return_value};
   }
 
-  ACTOR_METHOD_IMPL(Approve) {
-    const MultisigUtilsImplV0 utils;
-
+  outcome::result<Approve::Result> Approve::execute(
+      Runtime &runtime,
+      const Approve::Params &params,
+      const MultisigUtils &utils) {
     OUTCOME_TRY(utils.assertCallerIsSignable(runtime));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(utils.assertCallerIsSigner(runtime, state));
 
     return approveTransaction(runtime, params, state, utils);
+  }
+
+  ACTOR_METHOD_IMPL(Approve) {
+    const MultisigUtilsImplV0 utils;
+    return execute(runtime, params, utils);
   }
 
   // Cancel
@@ -223,9 +243,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(Cancel) {
-    const MultisigUtilsImplV0 utils;
-
+  outcome::result<Cancel::Result> Cancel::execute(Runtime &runtime,
+                                                  const Cancel::Params &params,
+                                                  const MultisigUtils &utils) {
     OUTCOME_TRY(utils.assertCallerIsSignable(runtime));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(utils.assertCallerIsSigner(runtime, state));
@@ -233,6 +253,11 @@ namespace fc::vm::actor::builtin::v0::multisig {
     OUTCOME_TRY(removeTransaction(params, state));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
+  }
+
+  ACTOR_METHOD_IMPL(Cancel) {
+    const MultisigUtilsImplV0 utils;
+    return execute(runtime, params, utils);
   }
 
   // AddSigner
@@ -252,9 +277,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(AddSigner) {
-    const MultisigUtilsImplV0 utils;
-
+  outcome::result<AddSigner::Result> AddSigner::execute(
+      Runtime &runtime,
+      const AddSigner::Params &params,
+      const MultisigUtils &utils) {
     OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
     OUTCOME_TRY(resolved_signer,
                 utils.getResolvedAddress(runtime, params.signer));
@@ -262,6 +288,11 @@ namespace fc::vm::actor::builtin::v0::multisig {
     OUTCOME_TRY(addSigner(params, state, resolved_signer));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
+  }
+
+  ACTOR_METHOD_IMPL(AddSigner) {
+    const MultisigUtilsImplV0 utils;
+    return execute(runtime, params, utils);
   }
 
   // RemoveSigner
@@ -297,9 +328,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
         std::find(state.signers.begin(), state.signers.end(), signer));
   }
 
-  ACTOR_METHOD_IMPL(RemoveSigner) {
-    const MultisigUtilsImplV0 utils;
-
+  outcome::result<RemoveSigner::Result> RemoveSigner::execute(
+      Runtime &runtime,
+      const RemoveSigner::Params &params,
+      const MultisigUtils &utils) {
     OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
     OUTCOME_TRY(resolved_signer,
                 utils.getResolvedAddress(runtime, params.signer));
@@ -308,6 +340,11 @@ namespace fc::vm::actor::builtin::v0::multisig {
     removeSigner(params, state, resolved_signer);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
+  }
+
+  ACTOR_METHOD_IMPL(RemoveSigner) {
+    const MultisigUtilsImplV0 utils;
+    return execute(runtime, params, utils);
   }
 
   // SwapSigner
@@ -328,9 +365,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(SwapSigner) {
-    const MultisigUtilsImplV0 utils;
-
+  outcome::result<SwapSigner::Result> SwapSigner::execute(
+      Runtime &runtime,
+      const SwapSigner::Params &params,
+      const MultisigUtils &utils) {
     OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
     OUTCOME_TRY(from_resolved, utils.getResolvedAddress(runtime, params.from));
     OUTCOME_TRY(to_resolved, utils.getResolvedAddress(runtime, params.to));
@@ -338,6 +376,11 @@ namespace fc::vm::actor::builtin::v0::multisig {
     OUTCOME_TRY(swapSigner(state, from_resolved, to_resolved));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
+  }
+
+  ACTOR_METHOD_IMPL(SwapSigner) {
+    const MultisigUtilsImplV0 utils;
+    return execute(runtime, params, utils);
   }
 
   // ChangeThreshold
@@ -354,14 +397,20 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(ChangeThreshold) {
-    const MultisigUtilsImplV0 utils;
-
+  outcome::result<ChangeThreshold::Result> ChangeThreshold::execute(
+      Runtime &runtime,
+      const ChangeThreshold::Params &params,
+      const MultisigUtils &utils) {
     OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(changeThreshold(params, state));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
+  }
+
+  ACTOR_METHOD_IMPL(ChangeThreshold) {
+    const MultisigUtilsImplV0 utils;
+    return execute(runtime, params, utils);
   }
 
   // LockBalance
@@ -393,9 +442,10 @@ namespace fc::vm::actor::builtin::v0::multisig {
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(LockBalance) {
-    const MultisigUtilsImplV0 utils;
-
+  outcome::result<LockBalance::Result> LockBalance::execute(
+      Runtime &runtime,
+      const LockBalance::Params &params,
+      const MultisigUtils &utils) {
     OUTCOME_TRY(checkNetwork(runtime));
     OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
     OUTCOME_TRY(checkUnlockDuration(params));
@@ -404,6 +454,13 @@ namespace fc::vm::actor::builtin::v0::multisig {
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
+
+  ACTOR_METHOD_IMPL(LockBalance) {
+    const MultisigUtilsImplV0 utils;
+    return execute(runtime, params, utils);
+  }
+
+  //============================================================================
 
   const ActorExports exports{
       exportMethod<Construct>(),

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v2/multisig/multisig_actor.hpp"
+#include "vm/actor/builtin/v3/multisig/multisig_actor.hpp"
 
 #include <gtest/gtest.h>
 #include "primitives/address/address.hpp"
@@ -12,7 +12,7 @@
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v2/codes.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/version.hpp"
 
@@ -21,7 +21,7 @@
       .Times(testing::AnyNumber())      \
       .WillRepeatedly(Return(result))
 
-namespace fc::vm::actor::builtin::v2::multisig {
+namespace fc::vm::actor::builtin::v3::multisig {
   using fc::CID;
   using fc::common::Buffer;
   using fc::primitives::BigInt;
@@ -1019,4 +1019,4 @@ namespace fc::vm::actor::builtin::v2::multisig {
     EXPECT_EQ(state.initial_balance, amount);
   }
 
-}  // namespace fc::vm::actor::builtin::v2::multisig
+}  // namespace fc::vm::actor::builtin::v3::multisig

@@ -21,6 +21,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
+    static outcome::result<Result> execute(Runtime &runtime,
+                                           const Params &params,
+                                           const MultisigUtils &utils);
 
     static outcome::result<void> checkCaller(const Runtime &runtime);
     static outcome::result<void> checkEmptySigners(
@@ -60,6 +63,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
+    static outcome::result<Result> execute(Runtime &runtime,
+                                           const Params &params,
+                                           const MultisigUtils &utils);
 
     static outcome::result<std::tuple<TransactionId, Transaction>>
     createTransaction(const Params &params, State &state);
@@ -84,6 +90,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
+    static outcome::result<Result> execute(Runtime &runtime,
+                                           const Params &params,
+                                           const MultisigUtils &utils);
 
     static outcome::result<Result> approveTransaction(
         Runtime &runtime,
@@ -101,6 +110,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
+    static outcome::result<Result> execute(Runtime &runtime,
+                                           const Params &params,
+                                           const MultisigUtils &utils);
 
     static outcome::result<void> checkTransaction(Runtime &runtime,
                                                   const Params &params,
@@ -117,6 +129,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
+    static outcome::result<Result> execute(Runtime &runtime,
+                                           const Params &params,
+                                           const MultisigUtils &utils);
 
     static outcome::result<void> addSigner(const Params &params,
                                            State &state,
@@ -131,6 +146,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
+    static outcome::result<Result> execute(Runtime &runtime,
+                                           const Params &params,
+                                           const MultisigUtils &utils);
 
     static outcome::result<void> checkState(const Params &params,
                                             const State &state,
@@ -148,6 +166,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
+    static outcome::result<Result> execute(Runtime &runtime,
+                                           const Params &params,
+                                           const MultisigUtils &utils);
 
     static outcome::result<void> swapSigner(State &state,
                                             const Address &from,
@@ -161,6 +182,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
+    static outcome::result<Result> execute(Runtime &runtime,
+                                           const Params &params,
+                                           const MultisigUtils &utils);
 
     static outcome::result<void> changeThreshold(const Params &params,
                                                  State &state);
@@ -175,6 +199,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     };
 
     ACTOR_METHOD_DECL();
+    static outcome::result<Result> execute(Runtime &runtime,
+                                           const Params &params,
+                                           const MultisigUtils &utils);
 
     static outcome::result<void> checkNetwork(const Runtime &runtime);
     static outcome::result<void> checkUnlockDuration(const Params &params);

@@ -19,7 +19,7 @@
 
 /// Define actor method function
 #define ACTOR_METHOD_IMPL(M) \
-  outcome::result<M::Result> M::call(Runtime &runtime, const Params &params)
+  outcome::result<M::Result> M::call(Runtime &runtime, const M::Params &params)
 
 /**
  * Aborts execution if res has error and aborts with default_error if res has
