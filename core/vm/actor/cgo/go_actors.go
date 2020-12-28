@@ -49,6 +49,8 @@ import (
 	"github.com/whyrusleeping/cbor-gen"
 	"reflect"
 	"runtime/debug"
+	"encoding/hex"
+	cbg "github.com/whyrusleeping/cbor-gen"
 )
 
 //#include "c_actors.h"
@@ -174,6 +176,7 @@ func (rt *rt) Send(to address.Address, method abi.MethodNum, o cbor.Marshaler, v
 
 func (rt *rt) Abortf(exit exitcode.ExitCode, msg string, args ...interface{}) {
     fmt.Printf("Abort: " + msg, args...)
+    fmt.Println()
 	rt.Abort(exit)
 }
 
@@ -337,9 +340,27 @@ func (rt *rt) BatchVerifySeals(batch map[address.Address][]proof1.SealVerifyInfo
 	return out, nil
 }
 
+var lengthBufWindowPoStVerifyInfo = []byte{132}
+
+func MarshalCBOR(out *cborOut, t *proof1.WindowPoStVerifyInfo) error {
+ w := out.w
+ if _, err := w.Write(lengthBufWindowPoStVerifyInfo); err != nil { return err }
+ scratch := make([]byte, 9)
+ if err := cbg.WriteMajorTypeHeaderBuf(scratch, w, cbg.MajByteString, uint64(len(t.Randomness))); err != nil { return err }
+ if _, err := w.Write(t.Randomness[:]); err != nil { return err }
+ if err := cbg.WriteMajorTypeHeaderBuf(scratch, w, cbg.MajArray, uint64(len(t.Proofs))); err != nil { return err }
+ for _, v := range t.Proofs { if err := v.MarshalCBOR(w); err != nil { return err } }
+ if err := cbg.WriteMajorTypeHeaderBuf(scratch, w, cbg.MajArray, uint64(len(t.ChallengedSectors))); err != nil { return err }
+ for _, v := range t.ChallengedSectors { if err := v.MarshalCBOR(w); err != nil { return err } }
+ if err := cbg.WriteMajorTypeHeaderBuf(scratch, w, cbg.MajUnsignedInt, uint64(t.Prover)); err != nil { return err }
+ return nil
+}
+
 func (rt *rt) VerifyPoSt(info proof1.WindowPoStVerifyInfo) error {
 	arg := rt.gocArg()
-	if e := info.MarshalCBOR(arg.w); e != nil {
+	if e := MarshalCBOR(arg, &info); e != nil {
+	    fmt.Printf("VerifyPoSt MarshalCBOR %s\n", hex.EncodeToString(arg.data()))
+		fmt.Println(e)
 		panic(cgoErrors("VerifyPoSt MarshalCBOR"))
 	}
 	ret := rt.gocRet(C.gocRtVerifyPost(arg.arg()))

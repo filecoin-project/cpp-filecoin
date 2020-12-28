@@ -13,6 +13,7 @@
 #include "storage/car/car.hpp"
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/leveldb/leveldb.hpp"
+#include "vm/actor/cgo/actors.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
 
@@ -282,6 +283,14 @@ namespace fc {
       ASSERT2(c.ipld);
       ASSERT2(c.root_tipset);
 
+      using RP = primitives::sector::RegisteredProof;
+      vm::actor::cgo::config(1 << 20,
+                             primitives::StoragePower{10} << 40,
+                             {RP::StackedDRG32GiBWinningPoSt,
+                              RP::StackedDRG64GiBWinningPoSt,
+                              RP::StackedDRG32GiBWindowPoSt,
+                              RP::StackedDRG64GiBWindowPoSt});
+
       auto interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
           std::make_shared<vm::interpreter::InterpreterImpl>(
               std::make_shared<vm::runtime::TipsetRandomness>(c.ipld)),
@@ -290,9 +299,11 @@ namespace fc {
       auto tipset = c.root_tipset;
       unsigned tipsets_interpreted = 0;
 
+      boost::optional<vm::interpreter::Result> expected_result;
+
       while (tipset->height() > 0) {
- //       common::Buffer key(tipset->key.hash());
- //       std::ignore = c.leveldb->remove(key);
+        //       common::Buffer key(tipset->key.hash());
+        //       std::ignore = c.leveldb->remove(key);
 
         auto res = interpreter->interpret(c.ipld, tipset);
         if (!res) {
@@ -303,7 +314,31 @@ namespace fc {
           return __LINE__;
         }
 
+        if (expected_result.has_value()) {
+          auto& result = res.value();
+          if (result.state_root != expected_result->state_root) {
+            fmt::print(stderr,
+                       "State roots dont match at height {}\n",
+                       tipset->height());
+            return __LINE__;
+          }
+          if (result.message_receipts != expected_result->message_receipts) {
+            fmt::print(stderr,
+                       "Message receipts dont match at height {}\n",
+                       tipset->height());
+            return __LINE__;
+          }
+        }
+
+        expected_result = vm::interpreter::Result {
+            .state_root = tipset->getParentStateRoot(),
+            .message_receipts = tipset->getParentMessageReceipts()
+        };
+
         ++tipsets_interpreted;
+
+        fmt::print("Interpreted height {}\n",
+                   tipset->height());
 
         auto parent_res = tipset->loadParent(*c.ipld);
         if (!parent_res) {
