@@ -24,7 +24,8 @@ namespace fc::proofs {
     kNotReadEnough,
     kNotWriteEnough,
     kCannotCreateUnsealedFile,
-    kCannotCreateTempFile,
+    kCannotCreatePipe,
+    kCannotWriteData,
     kUnknown = 1000
   };
 

@@ -29,8 +29,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofsError, e) {
       return "Proofs: cannot write chunk";
     case (ProofsError::kCannotCreateUnsealedFile):
       return "Proofs: cannot create unsealed file";
-    case (ProofsError::kCannotCreateTempFile):
-      return "Proofs: cannot create temp file";
+    case (ProofsError::kCannotCreatePipe):
+      return "Proofs: cannot create pipe";
+    case (ProofsError::kCannotWriteData):
+      return "Proofs: cannot write data from piece";
     default:
       return "Proofs: unknown error";
   }

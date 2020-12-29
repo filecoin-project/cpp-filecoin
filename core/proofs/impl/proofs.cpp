@@ -9,6 +9,7 @@
 #include <filecoin-ffi/filcrypto.h>
 
 #include <boost/filesystem.hpp>
+#include <thread>
 #include "common/bitsutil.hpp"
 #include "common/ffi.hpp"
 #include "primitives/address/address.hpp"
@@ -1103,36 +1104,29 @@ namespace fc::proofs {
   outcome::result<CID> Proofs::generatePieceCID(RegisteredProof proof_type,
                                                 gsl::span<const uint8_t> data) {
     assert(UnpaddedPieceSize(data.size()).validate());
-    auto temp_file_path = fs::temp_directory_path() / fs::unique_path();
 
-    auto _ = gsl::finally([&temp_file_path]() {
-      if (fs::exists(temp_file_path)) {
-        fs::remove_all(temp_file_path);
+    int fds[2];
+    if (pipe(fds) < 0) {
+      return ProofsError::kCannotCreatePipe;
+    }
+
+    std::error_code ec;
+    std::thread t([output = PieceData(fds[1]), &data, &ec]() {
+      if (write(output.getFd(), (char *)data.data(), data.size()) == -1) {
+        ec = ProofsError::kCannotWriteData;
       }
     });
 
-    // TODO: can be made by thread + pipe (it gives little performance)
-    // only pipe is too slow
-    {
-      std::ofstream temp_file(temp_file_path.string());
+    auto maybe_cid = Proofs::generatePieceCID(
+        proof_type, PieceData(fds[0]), UnpaddedPieceSize(data.size()));
 
-      if (not temp_file.is_open()) {
-        return ProofsError::kCannotCreateTempFile;
-      }
+    t.join();
 
-      temp_file.write((char *)data.data(), data.size());
-
-      if (not temp_file.good()) {
-        return ProofsError::kCannotCreateTempFile;
-      }
+    if (ec) {
+      return ec;
     }
 
-    OUTCOME_TRY(cid,
-                Proofs::generatePieceCID(proof_type,
-                                         PieceData(temp_file_path.string()),
-                                         UnpaddedPieceSize(data.size())));
-
-    return std::move(cid);
+    return maybe_cid;
   }
 
 }  // namespace fc::proofs
