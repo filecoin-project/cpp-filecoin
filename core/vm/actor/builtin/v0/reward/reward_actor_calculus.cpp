@@ -55,7 +55,7 @@ namespace fc::vm::actor::builtin::v0::reward {
 
   BigInt computeBaselineSupply(const BigInt &theta) {
     // Q.128
-    BigInt theta_lam = (theta * kLambda) >> kPrecision128;
+    const BigInt theta_lam = (theta * kLambda) >> kPrecision128;
 
     const BigInt one_sub = (BigInt{1} << kPrecision128) - expneg(theta_lam);
 
@@ -69,10 +69,10 @@ namespace fc::vm::actor::builtin::v0::reward {
     // Q.0 * Q.128 => Q.128
     TokenAmount simple_reward = kSimpleTotal * kExpLamSubOne;
     // Q.0 * Q.128 => Q.128
-    const BigInt epochLam = epoch * kLambda;
+    const BigInt epoch_lam = epoch * kLambda;
 
     // Q.128 * Q.128 => Q.256
-    simple_reward *= expneg(epochLam);
+    simple_reward *= expneg(epoch_lam);
     // Q.256 >> 128 => Q.128
     simple_reward >>= kPrecision128;
 

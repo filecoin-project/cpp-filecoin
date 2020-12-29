@@ -72,6 +72,8 @@ namespace fc::vm::actor::builtin::v0::reward {
     void updateToNextEpochWithReward(const StoragePower &current_realized_power,
                                      NetworkVersion network_version);
 
+    void updateSmoothedEstimates(const ChainEpoch &delta);
+
     /**
      * Target CumsumRealized needs to reach for EffectiveNetworkTime to
      * increase. Expressed in byte-epochs.

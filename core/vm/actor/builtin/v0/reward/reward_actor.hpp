@@ -16,20 +16,43 @@ namespace fc::vm::actor::builtin::v0::reward {
   using primitives::TokenAmount;
 
   struct Constructor : ActorMethodBase<1> {
+    using Params = StoragePower;  // current realized power
     ACTOR_METHOD_DECL();
   };
 
+  /**
+   * Awards a reward to a block producer.
+   * This method is called only by the system actor, implicitly, as the last
+   * message in the evaluation of a block. The system actor thus computes the
+   * parameters and attached value.
+   *
+   * The reward includes two components:
+   * - the epoch block reward, computed and paid from the reward actor's
+   * balance,
+   * - the block gas reward, expected to be transferred to the reward actor with
+   * this invocation. The reward is reduced before the residual is credited to
+   * the block producer, by:
+   * - a penalty amount, provided as a parameter, which is burnt,
+   */
   struct AwardBlockReward : ActorMethodBase<2> {
     struct Params {
       Address miner;
+      /// penalty for including bad messages in a block, >= 0
       TokenAmount penalty;
+      /// gas reward from all gas fees in a block, >= 0
       TokenAmount gas_reward;
-      int64_t tickets;
+      /// number of reward units won, > 0
+      int64_t win_count;
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(AwardBlockReward::Params, miner, penalty, gas_reward, tickets)
+  CBOR_TUPLE(AwardBlockReward::Params, miner, penalty, gas_reward, win_count)
 
+  /**
+   * The award value used for the current epoch, updated at the end of an epoch
+   * through cron tick.  In the case previous epochs were null blocks this is
+   * the reward value as calculated at the last non-null epoch.
+   */
   struct ThisEpochReward : ActorMethodBase<3> {
     struct Result {
       TokenAmount this_epoch_reward;
@@ -43,6 +66,11 @@ namespace fc::vm::actor::builtin::v0::reward {
              this_epoch_reward_smoothed,
              this_epoch_baseline_power)
 
+  /**
+   * Called at the end of each epoch by the power actor (in turn by its cron
+   * hook). This is only invoked for non-empty tipsets, but catches up any
+   * number of null epochs to compute the next epoch reward.
+   */
   struct UpdateNetworkKPI : ActorMethodBase<4> {
     using Params = StoragePower;
     ACTOR_METHOD_DECL();

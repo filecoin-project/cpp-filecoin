@@ -60,4 +60,9 @@ namespace fc::vm::actor::builtin::v0::reward {
         computeReward(epoch, prev_reward_theta, current_reward_theta);
   }
 
+  void State::updateSmoothedEstimates(const ChainEpoch &delta) {
+    this_epoch_reward_smoothed =
+        nextEstimate(this_epoch_reward_smoothed, this_epoch_reward, delta);
+  }
+
 }  // namespace fc::vm::actor::builtin::v0::reward

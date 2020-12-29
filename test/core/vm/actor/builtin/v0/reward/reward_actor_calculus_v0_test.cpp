@@ -52,7 +52,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    * 'actors/builtin/reward/reward_logic_test.go'
    */
   TEST(RewardActorCalculusV0, TestComputeRTeta) {
-    ChainEpoch epoch{1};
+    const ChainEpoch epoch{1};
     ASSERT_DOUBLE_EQ(
         0.5,
         q128ToF(computeRTheta(
@@ -69,7 +69,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    */
   TEST(RewardActorCalculusV0, TestComputeRTetaCumSum) {
     BigInt cumsum;
-    ChainEpoch epoch{16};
+    const ChainEpoch epoch{16};
     for (ChainEpoch i = 0; i < epoch; ++i) {
       cumsum += baselinePowerAt(i);
     }
@@ -122,9 +122,9 @@ namespace fc::vm::actor::builtin::v0::reward {
    */
   TEST_P(RewardActorCalculusV0, TestBaselineRewardGrowth) {
     const auto [start, err_bound] = GetParam();
-    auto end = baselineInYears(start, ChainEpoch{1});
-    auto expected = start * 3;
-    auto err = BigFloat{expected - end} / BigFloat{expected};
+    const auto end = baselineInYears(start, ChainEpoch{1});
+    const auto expected = start * 3;
+    const auto err = BigFloat{expected - end} / BigFloat{expected};
 
     ASSERT_LT(err, err_bound);
   }

@@ -106,7 +106,7 @@ namespace fc::vm::runtime {
                                                  const Buffer &block2,
                                                  const Buffer &extra));
 
-    /// Expect call to send with params returing result
+    /// Expect call to send with params returning result
     template <typename M>
     void expectSendM(const Address &address,
                      const typename M::Params &params,

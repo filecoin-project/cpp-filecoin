@@ -48,6 +48,7 @@ using fc::primitives::piece::PaddedPieceSize;
 using fc::primitives::piece::PieceInfo;
 using fc::primitives::sector::RegisteredProof;
 using fc::storage::ipfs::InMemoryDatastore;
+using fc::vm::VMAbortExitCode;
 using fc::vm::VMExitCode;
 using fc::vm::actor::kBurntFundsActorAddress;
 using fc::vm::actor::kInitAddress;
@@ -252,7 +253,7 @@ ClientDealProposal MarketActorTest::setupPublishStorageDeals() {
 TEST_F(MarketActorTest, PublishStorageDealsNoDeals) {
   callerIs(owner_address);
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+  EXPECT_OUTCOME_ERROR(VMAbortExitCode{VMExitCode::kErrIllegalArgument},
                        MarketActor::PublishStorageDeals::call(runtime, {{}}));
 }
 
@@ -294,7 +295,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsWrongClientSignature)) {
       kStoragePowerAddress, {}, 0, {0, 0, 0, {}});
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kErrIllegalArgument,
+      VMAbortExitCode{VMExitCode::kErrIllegalArgument},
       MarketActor::PublishStorageDeals::call(runtime, {{proposal}}));
 }
 
@@ -406,7 +407,7 @@ TEST_F(MarketActorTest, GCC_DISABLE(PublishStorageDealsDifferentProviders)) {
           Return(Randomness::fromString("i_am_random_____i_am_random_____")));
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kErrIllegalArgument,
+      VMAbortExitCode{VMExitCode::kErrIllegalArgument},
       MarketActor::PublishStorageDeals::call(runtime, {{proposal, proposal2}}));
 }
 
@@ -516,7 +517,7 @@ TEST_F(MarketActorTest,
   EXPECT_OUTCOME_TRUE_1(state.states.set(deal_1_id, {1, {}, {}}));
   callerIs(miner_address);
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+  EXPECT_OUTCOME_ERROR(VMAbortExitCode{VMExitCode::kErrIllegalArgument},
                        MarketActor::VerifyDealsForActivation::call(
                            runtime, {{deal_1_id}, {}, {}}));
 }
@@ -526,7 +527,7 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit(
       [&](auto &deal) { deal.start_epoch = epoch - 1; });
 
-  EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
+  EXPECT_OUTCOME_ERROR(VMAbortExitCode{VMExitCode::kErrIllegalArgument},
                        MarketActor::VerifyDealsForActivation::call(
                            runtime, {{deal_1_id}, {}, {}}));
 }
@@ -536,7 +537,7 @@ TEST_F(MarketActorTest,
   auto deal = setupVerifyDealsOnSectorProveCommit([](auto &) {});
 
   EXPECT_OUTCOME_ERROR(
-      VMExitCode::kErrIllegalArgument,
+      VMAbortExitCode{VMExitCode::kErrIllegalArgument},
       MarketActor::VerifyDealsForActivation::call(
           runtime, {{deal_1_id}, deal.end_epoch - 1, kChainEpochUndefined}));
 }
