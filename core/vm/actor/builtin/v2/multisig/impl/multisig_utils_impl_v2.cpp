@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
     const auto remaining_duration = state.unlock_duration - elapsed_epoch;
     const auto numerator = state.initial_balance * remaining_duration;
     const auto quot = bigdiv(numerator, state.unlock_duration);
-    const auto rem = numerator % state.unlock_duration;
+    const auto rem = bigmod(numerator, state.unlock_duration);
 
     const auto locked = (rem == 0) ? quot : quot + 1;
     return locked;
