@@ -173,7 +173,7 @@ namespace fc::vm::actor::cgo {
     if (auto hash{rt->hashBlake2b(data)}) {
       ret << kOk << hash.value();
     } else {
-      ret << kFatal;
+      ret << hash.error().value();
     }
   }
 

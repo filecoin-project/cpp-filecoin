@@ -153,7 +153,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
       Runtime &runtime,
       const LockBalance::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(v0::multisig::LockBalance::checkUnlockDuration(params));
     OUTCOME_TRY(checkAmount(runtime, params));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());

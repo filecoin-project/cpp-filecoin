@@ -142,7 +142,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       Runtime &runtime,
       const Propose::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsSignable(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(utils.assertCallerIsSigner(runtime, state));
     OUTCOME_TRY(tx, createTransaction(params, state));
@@ -192,7 +192,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       Runtime &runtime,
       const Approve::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsSignable(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(utils.assertCallerIsSigner(runtime, state));
 
@@ -246,7 +246,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   outcome::result<Cancel::Result> Cancel::execute(Runtime &runtime,
                                                   const Cancel::Params &params,
                                                   const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsSignable(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsSignable());
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(utils.assertCallerIsSigner(runtime, state));
     OUTCOME_TRY(checkTransaction(runtime, params, state));
@@ -281,7 +281,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       Runtime &runtime,
       const AddSigner::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(resolved_signer,
                 utils.getResolvedAddress(runtime, params.signer));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
@@ -332,7 +332,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       Runtime &runtime,
       const RemoveSigner::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(resolved_signer,
                 utils.getResolvedAddress(runtime, params.signer));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
@@ -369,7 +369,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       Runtime &runtime,
       const SwapSigner::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(from_resolved, utils.getResolvedAddress(runtime, params.from));
     OUTCOME_TRY(to_resolved, utils.getResolvedAddress(runtime, params.to));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
@@ -401,7 +401,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       Runtime &runtime,
       const ChangeThreshold::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(changeThreshold(params, state));
     OUTCOME_TRY(runtime.commitState(state));
@@ -447,7 +447,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       const LockBalance::Params &params,
       const MultisigUtils &utils) {
     OUTCOME_TRY(checkNetwork(runtime));
-    OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(checkUnlockDuration(params));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(lockBalance(params, state));

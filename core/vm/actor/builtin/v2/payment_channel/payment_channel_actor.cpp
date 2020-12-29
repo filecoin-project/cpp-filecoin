@@ -89,8 +89,9 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
     }
     if (!voucher.secret_preimage.empty()) {
       OUTCOME_TRY(hash, runtime.hashBlake2b(params.secret));
-      if (gsl::make_span(std::move(hash))
-          != gsl::make_span(voucher.secret_preimage)) {
+      auto secret_preimage_copy = voucher.secret_preimage;
+      if (gsl::make_span(hash)
+          != gsl::make_span(secret_preimage_copy)) {
         return VMExitCode::kErrIllegalArgument;
       }
     }

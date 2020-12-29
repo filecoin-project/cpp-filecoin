@@ -122,7 +122,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
       Runtime &runtime,
       const AddSigner::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(resolved_signer,
                 utils.getResolvedAddress(runtime, params.signer));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
@@ -159,7 +159,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
       Runtime &runtime,
       const RemoveSigner::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(resolved_signer,
                 utils.getResolvedAddress(runtime, params.signer));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
@@ -183,7 +183,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
       Runtime &runtime,
       const SwapSigner::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(from_resolved, utils.getResolvedAddress(runtime, params.from));
     OUTCOME_TRY(to_resolved, utils.getResolvedAddress(runtime, params.to));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
@@ -230,7 +230,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
       Runtime &runtime,
       const LockBalance::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(utils.assertCallerIsReceiver(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIsCurrentReceiver());
     OUTCOME_TRY(v0::multisig::LockBalance::checkUnlockDuration(params));
     OUTCOME_TRY(checkAmount(runtime, params));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());

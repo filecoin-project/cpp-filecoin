@@ -381,6 +381,13 @@ namespace fc::vm::runtime {
       }
       return VMExitCode::kSysErrForbidden;
     }
+
+    inline outcome::result<void> validateImmediateCallerIsCurrentReceiver() {
+      if (getImmediateCaller() == getCurrentReceiver()) {
+        return outcome::success();
+      }
+      return VMExitCode::kSysErrForbidden;
+    }
   };
 
 }  // namespace fc::vm::runtime

@@ -23,20 +23,6 @@ namespace fc::vm::actor::builtin::utils::multisig {
     virtual ~MultisigUtils() = default;
 
     /**
-     * Check that caller is signable
-     * @param runtime - execution context
-     */
-    virtual outcome::result<void> assertCallerIsSignable(
-        const Runtime &runtime) const = 0;
-
-    /**
-     * Check that caller is a current receiver
-     * @param runtime - execution context
-     */
-    virtual outcome::result<void> assertCallerIsReceiver(
-        const Runtime &runtime) const = 0;
-
-    /**
      * Check that caller is a signer
      * @param runtime - execution context
      * @param state - actor state

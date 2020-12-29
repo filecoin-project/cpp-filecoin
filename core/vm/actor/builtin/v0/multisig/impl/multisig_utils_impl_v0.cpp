@@ -7,23 +7,6 @@
 
 namespace fc::vm::actor::builtin::v0::multisig {
 
-  outcome::result<void> MultisigUtilsImplV0::assertCallerIsSignable(
-      const Runtime &runtime) const {
-    OUTCOME_TRY(code, runtime.getActorCodeID(runtime.getImmediateCaller()));
-    if (!isSignableActor(code)) {
-      return VMExitCode::kSysErrForbidden;
-    }
-    return outcome::success();
-  }
-
-  outcome::result<void> MultisigUtilsImplV0::assertCallerIsReceiver(
-      const Runtime &runtime) const {
-    if (runtime.getImmediateCaller() != runtime.getCurrentReceiver()) {
-      return VMExitCode::kSysErrForbidden;
-    }
-    return outcome::success();
-  }
-
   outcome::result<void> MultisigUtilsImplV0::assertCallerIsSigner(
       const Runtime &runtime, const State &state) const {
     const auto proposer = runtime.getImmediateCaller();
