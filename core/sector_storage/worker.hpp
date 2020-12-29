@@ -32,8 +32,9 @@ namespace fc::sector_storage {
   using stores::AcquireMode;
   using stores::PathType;
 
-  struct Range{
-
+  struct Range {
+    UnpaddedPieceSize offset;
+    UnpaddedPieceSize size;
   };
 
   class Worker {
@@ -56,7 +57,7 @@ namespace fc::sector_storage {
     /**
      * @param output is PieceData with write part of pipe
      */
-    virtual outcome::result<void> readPiece(PieceData output,
+    virtual outcome::result<bool> readPiece(PieceData output,
                                             const SectorId &sector,
                                             UnpaddedByteIndex offset,
                                             const UnpaddedPieceSize &size) = 0;
@@ -88,8 +89,9 @@ namespace fc::sector_storage {
     virtual outcome::result<Proof> sealCommit2(
         const SectorId &sector, const Commit1Output &commit_1_output) = 0;
 
-    virtual outcome::result<void> finalizeSector(const SectorId &sector,
-            const gsl::span<const Range> &keep_unsealed) = 0;
+    virtual outcome::result<void> finalizeSector(
+        const SectorId &sector,
+        const gsl::span<const Range> &keep_unsealed) = 0;
 
     virtual outcome::result<void> remove(const SectorId &sector) = 0;
 
@@ -113,6 +115,7 @@ namespace fc::sector_storage {
     kCannotRemoveSector,
     kUnsupportedPlatform,
     kOutOfBound,
+    kCannotOpenFile,
   };
 }  // namespace fc::sector_storage
 
