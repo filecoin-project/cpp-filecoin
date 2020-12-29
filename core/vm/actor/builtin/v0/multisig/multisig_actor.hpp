@@ -25,7 +25,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
                                            const Params &params,
                                            const MultisigUtils &utils);
 
-    static outcome::result<void> checkCaller(const Runtime &runtime);
     static outcome::result<void> checkEmptySigners(
         const std::vector<Address> &signers);
     static outcome::result<std::vector<Address>> getResolvedSigners(

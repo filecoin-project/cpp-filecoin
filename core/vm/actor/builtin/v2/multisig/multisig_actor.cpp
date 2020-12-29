@@ -43,7 +43,7 @@ namespace fc::vm::actor::builtin::v2::multisig {
       Runtime &runtime,
       const Construct::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(v0::multisig::Construct::checkCaller(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
     OUTCOME_TRY(v0::multisig::Construct::checkEmptySigners(params.signers));
     OUTCOME_TRY(checkSignersCount(params.signers));
     OUTCOME_TRY(

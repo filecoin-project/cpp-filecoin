@@ -22,13 +22,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
   // Construct
   //============================================================================
 
-  outcome::result<void> Construct::checkCaller(const Runtime &runtime) {
-    if (runtime.getImmediateCaller() != kInitAddress) {
-      return VMExitCode::kSysErrForbidden;
-    }
-    return outcome::success();
-  }
-
   outcome::result<void> Construct::checkEmptySigners(
       const std::vector<Address> &signers) {
     if (signers.empty()) {
@@ -104,7 +97,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       Runtime &runtime,
       const Construct::Params &params,
       const MultisigUtils &utils) {
-    OUTCOME_TRY(checkCaller(runtime));
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
     OUTCOME_TRY(checkEmptySigners(params.signers));
     OUTCOME_TRY(resolved_signers, getResolvedSigners(runtime, params.signers));
     OUTCOME_TRY(
