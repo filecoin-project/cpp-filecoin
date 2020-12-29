@@ -119,10 +119,6 @@ namespace fc::vm {
       case E::kInitActorSingletonActor:
         return E{1};
 
-      case E::kRewardActorNegativeWithdrawable:
-      case E::kRewardActorWrongCaller:
-        return E{1};
-
       case E::kAssert:
         return E{1};
 

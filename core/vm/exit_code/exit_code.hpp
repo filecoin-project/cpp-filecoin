@@ -81,9 +81,6 @@ namespace fc::vm {
     kInitActorNotBuiltinActor,
     kInitActorSingletonActor,
 
-    kRewardActorNegativeWithdrawable,
-    kRewardActorWrongCaller,
-
     kAssert,
 
     kNotImplemented,
