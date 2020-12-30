@@ -45,15 +45,11 @@ namespace fc::vm::actor::builtin::v3::multisig {
       // error
 
       const auto tx_exists = state.pending_transactions.has(tx_id);
-      if (tx_exists.has_error()) {
-        return VMExitCode::kErrIllegalState;
-      }
+      REQUIRE_NO_ERROR(tx_exists, VMExitCode::kErrIllegalState);
 
       if (tx_exists.value()) {
         const auto result = state.pending_transactions.remove(tx_id);
-        if (result.has_error()) {
-          return VMExitCode::kErrIllegalState;
-        }
+        REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
       }
       OUTCOME_TRY(runtime.commitState(state));
     }

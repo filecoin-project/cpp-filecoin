@@ -35,9 +35,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     std::vector<Address> resolved_signers;
     for (const auto &signer : signers) {
       const auto resolved = runtime.resolveAddress(signer);
-      if (resolved.has_error()) {
-        return VMExitCode::kErrIllegalState;
-      }
+      REQUIRE_NO_ERROR(resolved, VMExitCode::kErrIllegalState);
       const auto duplicate = std::find(
           resolved_signers.begin(), resolved_signers.end(), resolved.value());
       if (duplicate != resolved_signers.end()) {
@@ -124,9 +122,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     Transaction transaction{
         params.to, params.value, params.method, params.params, {}};
     const auto result = state.pending_transactions.set(tx_id, transaction);
-    if (result.has_error()) {
-      return VMExitCode::kErrIllegalState;
-    }
+    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
 
     return std::make_tuple(tx_id, transaction);
   }
@@ -204,9 +200,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
                                                  const Cancel::Params &params,
                                                  const State &state) {
     const auto transaction = state.getPendingTransaction(params.tx_id);
-    if (transaction.has_error()) {
-      return VMExitCode::kErrNotFound;
-    }
+    REQUIRE_NO_ERROR(transaction, VMExitCode::kErrNotFound);
 
     const auto caller = runtime.getImmediateCaller();
     const auto proposer = !transaction.value().approved.empty()
@@ -217,9 +211,8 @@ namespace fc::vm::actor::builtin::v0::multisig {
     }
 
     const auto hash = transaction.value().hash(runtime);
-    if (hash.has_error()) {
-      return VMExitCode::kErrIllegalState;
-    }
+    REQUIRE_NO_ERROR(hash, VMExitCode::kErrIllegalState);
+
     if (!params.proposal_hash.empty()
         && (params.proposal_hash != hash.value())) {
       return VMExitCode::kErrIllegalState;
@@ -230,9 +223,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   outcome::result<void> Cancel::removeTransaction(const Cancel::Params &params,
                                                   State &state) {
     const auto result = state.pending_transactions.remove(params.tx_id);
-    if (result.has_error()) {
-      return VMExitCode::kErrIllegalState;
-    }
+    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
     return outcome::success();
   }
 

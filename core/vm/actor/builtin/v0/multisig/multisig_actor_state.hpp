@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_MULTISIG_ACTOR_STATE_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_MULTISIG_ACTOR_STATE_HPP
+#pragma once
 
 #include "adt/map.hpp"
 #include "adt/uvarint_key.hpp"
@@ -140,5 +139,3 @@ namespace fc {
     }
   };
 }  // namespace fc
-
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_MULTISIG_ACTOR_STATE_HPP

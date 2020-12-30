@@ -43,9 +43,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       const Buffer &proposal_hash) const {
     OUTCOME_TRY(transaction, getPendingTransaction(tx_id));
     const auto hash = transaction.hash(runtime);
-    if (hash.has_error()) {
-      return VMExitCode::kErrIllegalState;
-    }
+    REQUIRE_NO_ERROR(hash, VMExitCode::kErrIllegalState);
     if (!proposal_hash.empty() && (proposal_hash != hash.value())) {
       return VMExitCode::kErrIllegalArgument;
     }

@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_HPP
-#define CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_HPP
+#pragma once
 
 #include <tuple>
 
@@ -25,6 +24,18 @@
 #include "vm/message/message.hpp"
 #include "vm/runtime/runtime_types.hpp"
 #include "vm/version.hpp"
+
+/**
+ * Aborts execution if res has error and aborts with default_error if res has
+ * error and the error is not fatal or abort
+ */
+#define REQUIRE_NO_ERROR(expr, err_code) \
+  OUTCOME_TRY(Runtime::requireNoError((expr), (err_code)));
+
+/**
+ * Return VMExitCode as VMAbortExitCode for special handling
+ */
+#define ABORT(err_code) static_cast<VMAbortExitCode>(err_code)
 
 namespace fc::vm::runtime {
 
@@ -236,27 +247,18 @@ namespace fc::vm::runtime {
      * default_error returned
      */
     template <typename T>
-    outcome::result<void> requireNoError(const outcome::result<T> &res,
+    static outcome::result<void> requireNoError(const outcome::result<T> &res,
                                          const VMExitCode &default_error) {
       if (res.has_error()) {
         if (isFatal(res.error()) || isAbortExitCode(res.error())) {
           return res.error();
         }
         if (isVMExitCode(res.error())) {
-          return abort(VMExitCode{res.error().value()});
+          return ABORT(VMExitCode{res.error().value()});
         }
-        return abort(default_error);
+        return ABORT(default_error);
       }
       return outcome::success();
-    }
-
-    /**
-     * Abort execution with VMExitCode
-     * @param error_code - error code that should be passed to the caller
-     * @return error_code as VMAbortExitCode
-     */
-    outcome::result<void> abort(const VMExitCode &error_code) {
-      return VMAbortExitCode{error_code};
     }
 
     /// Send typed method with typed params and result
@@ -391,5 +393,3 @@ namespace fc::vm::runtime {
   };
 
 }  // namespace fc::vm::runtime
-
-#endif  // CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_HPP

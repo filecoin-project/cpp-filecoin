@@ -19,9 +19,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
   outcome::result<Address> MultisigUtilsImplV0::getResolvedAddress(
       Runtime &runtime, const Address &address) const {
     const auto resolved_address = runtime.resolveAddress(address);
-    if (resolved_address.has_error()) {
-      return VMExitCode::kErrIllegalState;
-    }
+    REQUIRE_NO_ERROR(resolved_address, VMExitCode::kErrIllegalState);
     return std::move(resolved_address.value());
   }
 
@@ -75,9 +73,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
 
     const auto result = state.pending_transactions.set(tx_id, transaction);
-    if (result.has_error()) {
-      return VMExitCode::kErrIllegalState;
-    }
+    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
 
     OUTCOME_TRY(runtime.commitState(state));
 
@@ -117,9 +113,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
       OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
 
       const auto result = state.pending_transactions.remove(tx_id);
-      if (result.has_error()) {
-        return VMExitCode::kErrIllegalState;
-      }
+      REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
       OUTCOME_TRY(runtime.commitState(state));
     }
 

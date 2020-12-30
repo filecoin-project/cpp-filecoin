@@ -92,17 +92,13 @@ namespace fc::vm::actor::builtin::v2::multisig {
       // error
       if (runtime.getNetworkVersion() >= NetworkVersion::kVersion6) {
         const auto tx_exists = state.pending_transactions.has(tx_id);
-        if (tx_exists.has_error()) {
-          return VMExitCode::kErrIllegalState;
-        }
+        REQUIRE_NO_ERROR(tx_exists, VMExitCode::kErrIllegalState);
         should_delete = tx_exists.value();
       }
 
       if (should_delete) {
         const auto result = state.pending_transactions.remove(tx_id);
-        if (result.has_error()) {
-          return VMExitCode::kErrIllegalState;
-        }
+        REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
       }
       OUTCOME_TRY(runtime.commitState(state));
     }

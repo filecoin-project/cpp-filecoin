@@ -12,7 +12,6 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   class MultisigUtilsImplV0 : public utils::multisig::MultisigUtils {
    public:
-
     outcome::result<void> assertCallerIsSigner(
         const Runtime &runtime, const State &state) const override;
 

@@ -166,7 +166,8 @@ namespace fc::vm::actor::builtin::v2::multisig {
     OUTCOME_TRY(
         v0::multisig::RemoveSigner::checkState(params, state, resolved_signer));
     OUTCOME_TRY(removeSigner(params, state, resolved_signer));
-    OUTCOME_TRY(utils.purgeApprovals(state, resolved_signer));
+    const auto result = utils.purgeApprovals(state, resolved_signer);
+    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -189,7 +190,8 @@ namespace fc::vm::actor::builtin::v2::multisig {
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(v0::multisig::SwapSigner::swapSigner(
         state, from_resolved, to_resolved));
-    OUTCOME_TRY(utils.purgeApprovals(state, from_resolved));
+    const auto result = utils.purgeApprovals(state, from_resolved);
+    REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
