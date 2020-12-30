@@ -6,6 +6,7 @@
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor_calculus.hpp"
 #include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
@@ -19,7 +20,8 @@ namespace fc::vm::actor::builtin::v0::reward {
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(AwardBlockReward) {
+  outcome::result<TokenAmount> AwardBlockReward::validateParams(
+      Runtime &runtime, const Params &params) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
     OUTCOME_TRY(runtime.validateArgument(params.penalty >= 0));
     OUTCOME_TRY(runtime.validateArgument(params.gas_reward >= 0));
@@ -28,16 +30,33 @@ namespace fc::vm::actor::builtin::v0::reward {
     if (balance < params.gas_reward) {
       OUTCOME_TRY(runtime.abort(VMExitCode::kErrIllegalState));
     }
-    OUTCOME_TRY(miner, runtime.resolveAddress(params.miner));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    TokenAmount block_reward = bigdiv(
-        state.this_epoch_reward * params.win_count, kExpectedLeadersPerEpoch);
+    return std::move(balance);
+  }
+
+  outcome::result<std::tuple<TokenAmount, TokenAmount>>
+  AwardBlockReward::calculateReward(Runtime &runtime,
+                                    const Params &params,
+                                    const TokenAmount &this_epoch_reward,
+                                    const TokenAmount &balance) {
+    TokenAmount block_reward =
+        bigdiv(this_epoch_reward * params.win_count, kExpectedLeadersPerEpoch);
     TokenAmount total_reward = block_reward + params.gas_reward;
     if (total_reward > balance) {
       total_reward = balance;
       block_reward = total_reward - params.gas_reward;
       VM_ASSERT(block_reward >= 0);
     }
+    return std::make_tuple(block_reward, total_reward);
+  }
+
+  ACTOR_METHOD_IMPL(AwardBlockReward) {
+    OUTCOME_TRY(balance, validateParams(runtime, params));
+    OUTCOME_TRY(miner, runtime.resolveAddress(params.miner));
+    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(
+        reward,
+        calculateReward(runtime, params, state.this_epoch_reward, balance));
+    const auto [block_reward, total_reward] = reward;
     state.total_mined += block_reward;
     OUTCOME_TRY(runtime.commitState(state));
 
@@ -75,20 +94,10 @@ namespace fc::vm::actor::builtin::v0::reward {
   ACTOR_METHOD_IMPL(UpdateNetworkKPI) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kStoragePowerAddress));
     const NetworkVersion network_version = runtime.getNetworkVersion();
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    const ChainEpoch prev_epoch = state.epoch;
-    const ChainEpoch now = runtime.getCurrentEpoch();
-    while (state.epoch < now) {
-      state.updateToNextEpoch(params, network_version);
-    }
-
-    state.updateToNextEpochWithReward(params, network_version);
-    // only update smoothed estimates after updating reward and epoch
-    state.updateSmoothedEstimates(state.epoch - prev_epoch);
-
-    // Lotus gas conformance
-    OUTCOME_TRY(runtime.commitState(state));
-
+    const BigInt baseline_exponent = network_version < NetworkVersion::kVersion3
+                                         ? kBaselineExponentV0
+                                         : kBaselineExponentV3;
+    OUTCOME_TRY(updateKPI<State>(runtime, params, baseline_exponent));
     return outcome::success();
   }
 

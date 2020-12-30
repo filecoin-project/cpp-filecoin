@@ -3,23 +3,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
-#include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
+#include "vm/actor/builtin/v2/miner/miner_actor.hpp"
+#include "vm/actor/builtin/v2/reward/reward_actor.hpp"
+#include "vm/actor/builtin/v2/reward/reward_actor_state.hpp"
 
 #include <gtest/gtest.h>
 #include "testutil/vm/actor/builtin/reward/reward_actor_test_fixture.hpp"
-#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
-namespace fc::vm::actor::builtin::v0::reward {
+namespace fc::vm::actor::builtin::v2::reward {
   using testing::Eq;
   using testing::Return;
   using testutil::vm::actor::builtin::reward::kEpochZeroReward;
   using testutil::vm::actor::builtin::reward::RewardActorFixture;
+  using v0::reward::kInitialRewardPositionEstimate;
+  using v0::reward::kInitialRewardVelocityEstimate;
 
   /**
-   * Fixture with state of Reward Actor v0
+   * Fixture with state of Reward Actor v2
    */
-  class RewardActorV0Test : public RewardActorFixture<State> {
+  class RewardActorV2Test : public RewardActorFixture<State> {
    public:
     /**
      * Expect successful call AwardBlockReward
@@ -35,16 +37,11 @@ namespace fc::vm::actor::builtin::v0::reward {
       EXPECT_CALL(runtime, resolveAddress(Eq(winner)))
           .WillOnce(Return(outcome::success(miner)));
 
-      runtime.expectSendM<miner::AddLockedFund>(
-          miner, expected_reward, expected_reward, {});
-      if (penalty > 0) {
-        EXPECT_CALL(runtime,
-                    send(Eq(kBurntFundsActorAddress),
-                         Eq(kSendMethodNumber),
-                         Eq(Buffer{}),
-                         Eq(penalty)))
-            .WillOnce(Return(outcome::success()));
-      }
+      runtime.expectSendM<miner::ApplyRewards>(
+          miner,
+          {expected_reward, kPenaltyMultiplier * penalty},
+          expected_reward,
+          {});
 
       EXPECT_OUTCOME_TRUE_1(
           AwardBlockReward::call(runtime, {winner, penalty, gas_reward, 1}));
@@ -56,7 +53,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @when construct reward actor with 0 current realized power
    * @then state is equal to lotus ones
    */
-  TEST_F(RewardActorV0Test, Construct0Power) {
+  TEST_F(RewardActorV2Test, Construct0Power) {
     caller = kSystemActorAddress;
     const TokenAmount start_realized_power{0};
 
@@ -66,17 +63,19 @@ namespace fc::vm::actor::builtin::v0::reward {
     EXPECT_EQ(SpaceTime{0}, state.cumsum_baseline);
     EXPECT_EQ(SpaceTime{0}, state.cumsum_realized);
     EXPECT_EQ(ChainEpoch{0}, state.effective_network_time);
-    EXPECT_EQ(kBaselineInitialValueV0, state.effective_baseline_power);
+    EXPECT_EQ(kBaselineInitialValueV2, state.effective_baseline_power);
     EXPECT_EQ(kEpochZeroReward, state.this_epoch_reward);
     EXPECT_EQ(kInitialRewardPositionEstimate,
               state.this_epoch_reward_smoothed.position);
     EXPECT_EQ(kInitialRewardVelocityEstimate,
               state.this_epoch_reward_smoothed.velocity);
     // account for rounding error of one byte during construction
-    const auto epoch_zero_baseline = kBaselineInitialValueV0 - 1;
+    const auto epoch_zero_baseline = kBaselineInitialValueV2 - 1;
     EXPECT_EQ(epoch_zero_baseline, state.this_epoch_baseline_power);
     EXPECT_EQ(ChainEpoch{0}, state.epoch);
-    EXPECT_EQ(TokenAmount{0}, state.total_mined);
+    EXPECT_EQ(TokenAmount{0}, state.total_storage_power_reward);
+    EXPECT_EQ(kDefaultSimpleTotal, state.simple_total);
+    EXPECT_EQ(kDefaultBaselineTotal, state.baseline_total);
   }
 
   /**
@@ -84,20 +83,30 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @when construct reward actor power less than baseline
    * @then state is equal to lotus ones
    */
-  TEST_F(RewardActorV0Test, ConstructPowerLessBaseline) {
+  TEST_F(RewardActorV2Test, ConstructPowerLessBaseline) {
     caller = kSystemActorAddress;
     const TokenAmount start_realized_power = BigInt{1} << 39;
 
     EXPECT_OUTCOME_TRUE_1(Constructor::call(runtime, start_realized_power));
-    EXPECT_EQ(ChainEpoch{0}, state.epoch);
-    EXPECT_EQ(start_realized_power, state.cumsum_realized);
 
     // from Lotus
-    EXPECT_EQ(TokenAmount{"36266304644305024178"}, state.this_epoch_reward);
-    EXPECT_EQ(StoragePower{"1152921504606846975"},
-              state.this_epoch_baseline_power);
-    EXPECT_EQ(StoragePower{"1152922709529216365"},
+    EXPECT_EQ(SpaceTime{"2888890784895207676"}, state.cumsum_baseline);
+    EXPECT_EQ(start_realized_power, state.cumsum_realized);
+    EXPECT_EQ(ChainEpoch{1}, state.effective_network_time);
+    EXPECT_EQ(StoragePower{"2888890784895207676"},
               state.effective_baseline_power);
+    EXPECT_EQ(TokenAmount{"36266280397203470018"}, state.this_epoch_reward);
+    EXPECT_EQ(kInitialRewardPositionEstimate,
+              state.this_epoch_reward_smoothed.position);
+    EXPECT_EQ(kInitialRewardVelocityEstimate,
+              state.this_epoch_reward_smoothed.velocity);
+    // account for rounding error of one byte during construction
+    const auto epoch_zero_baseline = kBaselineInitialValueV2 - 1;
+    EXPECT_EQ(epoch_zero_baseline, state.this_epoch_baseline_power);
+    EXPECT_EQ(ChainEpoch{0}, state.epoch);
+    EXPECT_EQ(TokenAmount{0}, state.total_storage_power_reward);
+    EXPECT_EQ(kDefaultSimpleTotal, state.simple_total);
+    EXPECT_EQ(kDefaultBaselineTotal, state.baseline_total);
   }
 
   /**
@@ -105,16 +114,16 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @when construct reward actor power more than baseline
    * @then state is equal to lotus ones
    */
-  TEST_F(RewardActorV0Test, ConstructPowerMoreBaseline) {
+  TEST_F(RewardActorV2Test, ConstructPowerMoreBaseline) {
     caller = kSystemActorAddress;
 
-    const TokenAmount start_realized_power_1 = BigInt{1} << 60;
+    const TokenAmount start_realized_power_1 = kBaselineInitialValueV2;
     EXPECT_OUTCOME_TRUE_1(Constructor::call(runtime, start_realized_power_1));
 
     const TokenAmount reward = state.this_epoch_reward;
 
     // start with 2x power
-    const TokenAmount start_realized_power_2 = BigInt{2} << 60;
+    const TokenAmount start_realized_power_2 = kBaselineInitialValueV2 * 2;
     EXPECT_OUTCOME_TRUE_1(Constructor::call(runtime, start_realized_power_2));
 
     // Reward value is the same; realized power impact on reward is capped at
@@ -127,7 +136,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @when AwardBlockReward with reward > B is called
    * @then vm aborted with kErrIllegalState
    */
-  TEST_F(RewardActorV0Test, RewardExceedsBalance) {
+  TEST_F(RewardActorV2Test, RewardExceedsBalance) {
     constructRewardActor<Constructor>();
     const TokenAmount balance{9};
     setCurrentBalance(balance);
@@ -147,7 +156,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @when AwardBlockReward called with penalty < 0
    * @then vm aborted with kErrIllegalArgument
    */
-  TEST_F(RewardActorV0Test, RejectNegativePenalty) {
+  TEST_F(RewardActorV2Test, RejectNegativePenalty) {
     constructRewardActor<Constructor>();
 
     const Address winner = Address::makeFromId(1000);
@@ -165,7 +174,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @when AwardBlockReward called with penalty < 0
    * @then vm aborted with kErrIllegalArgument
    */
-  TEST_F(RewardActorV0Test, RejectNegativeReward) {
+  TEST_F(RewardActorV2Test, RejectNegativeReward) {
     constructRewardActor<Constructor>();
 
     const Address winner = Address::makeFromId(1000);
@@ -184,7 +193,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @when AwardBlockReward called with win count == 0
    * @then vm aborted with kErrIllegalArgument
    */
-  TEST_F(RewardActorV0Test, RejectZeroWinCount) {
+  TEST_F(RewardActorV2Test, RejectZeroWinCount) {
     constructRewardActor<Constructor>();
 
     const Address winner = Address::makeFromId(1000);
@@ -200,9 +209,9 @@ namespace fc::vm::actor::builtin::v0::reward {
   /**
    * @given reward actor with balance
    * @when AwardBlockReward called
-   * @then reward is paid and penalty is burnt
+   * @then reward is paid off
    */
-  TEST_F(RewardActorV0Test, RewardPaidPenaltyBurnt) {
+  TEST_F(RewardActorV2Test, RewardPaid) {
     constructRewardActor<Constructor>();
 
     const TokenAmount balance = TokenAmount(1e9) * BigInt(1e18);
@@ -210,7 +219,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     const TokenAmount penalty{100};
     const TokenAmount gas_reward{200};
     const TokenAmount expected_reward =
-        bigdiv(kEpochZeroReward, 5) + gas_reward - penalty;
+        bigdiv(kEpochZeroReward, 5) + gas_reward;
 
     expectAwardBlockReward(penalty, gas_reward, expected_reward);
   }
@@ -220,7 +229,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @when AwardBlockReward called
    * @then balance is paid off
    */
-  TEST_F(RewardActorV0Test, PayOutBalanceLessReward) {
+  TEST_F(RewardActorV2Test, PayOutBalanceLessReward) {
     constructRewardActor<Constructor>(StoragePower{1});
 
     // Total reward upon writing ~1e18, so 300 should be way less
@@ -228,7 +237,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     setCurrentBalance(balance);
     const TokenAmount penalty{100};
     const TokenAmount gas_reward{0};
-    const TokenAmount expected_reward = balance - penalty;
+    const TokenAmount expected_reward = balance;
 
     expectAwardBlockReward(penalty, gas_reward, expected_reward);
   }
@@ -238,7 +247,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @when reward is paid off
    * @then total mined increased
    */
-  TEST_F(RewardActorV0Test, TotalReward) {
+  TEST_F(RewardActorV2Test, TotalReward) {
     constructRewardActor<Constructor>(StoragePower{1});
     const TokenAmount total_payout{3500};
     TokenAmount balance = total_payout;
@@ -265,7 +274,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     expected_reward = 500;
     expectAwardBlockReward(penalty, gas_reward, expected_reward);
 
-    EXPECT_EQ(total_payout, state.total_mined);
+    EXPECT_EQ(total_payout, state.total_storage_power_reward);
   }
 
   /**
@@ -273,7 +282,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @when AwardBlockReward called and AddLockedFund fails
    * @then reward is burnt
    */
-  TEST_F(RewardActorV0Test, RewardBurnsOnSendFail) {
+  TEST_F(RewardActorV2Test, RewardBurnsOnSendFail) {
     constructRewardActor<Constructor>(StoragePower{1});
     const TokenAmount balance{1000};
     setCurrentBalance(balance);
@@ -286,11 +295,13 @@ namespace fc::vm::actor::builtin::v0::reward {
     const TokenAmount penalty{0};
     const TokenAmount gas_reward{0};
     const TokenAmount expected_reward{1000};
-
-    EXPECT_OUTCOME_TRUE(params, actor::encodeActorParams(expected_reward));
-    EXPECT_CALL(
-        runtime,
-        send(miner, miner::AddLockedFund::Number, params, expected_reward))
+    const miner::ApplyRewards::Params params{expected_reward, penalty};
+    EXPECT_OUTCOME_TRUE(encoded_params, actor::encodeActorParams(params));
+    EXPECT_CALL(runtime,
+                send(miner,
+                     miner::ApplyRewards::Number,
+                     encoded_params,
+                     expected_reward))
         .WillOnce(testing::Return(VMExitCode::kErrForbidden));
     EXPECT_CALL(runtime,
                 send(Eq(kBurntFundsActorAddress),
@@ -308,11 +319,10 @@ namespace fc::vm::actor::builtin::v0::reward {
    * @when method ThisEpochReward called
    * @then actual state returned
    */
-  TEST_F(RewardActorV0Test, ThisEpochReward) {
+  TEST_F(RewardActorV2Test, ThisEpochReward) {
     StoragePower power = BigInt{1} << 50;
     constructRewardActor<Constructor>(power);
     EXPECT_OUTCOME_TRUE(res, ThisEpochReward::call(runtime, {}));
-    EXPECT_EQ(res.this_epoch_reward, state.this_epoch_reward);
     EXPECT_EQ(res.this_epoch_reward_smoothed.position,
               state.this_epoch_reward_smoothed.position);
     EXPECT_EQ(res.this_epoch_reward_smoothed.velocity,
@@ -320,4 +330,4 @@ namespace fc::vm::actor::builtin::v0::reward {
     EXPECT_EQ(res.this_epoch_baseline_power, state.this_epoch_baseline_power);
   }
 
-}  // namespace fc::vm::actor::builtin::v0::reward
+}  // namespace fc::vm::actor::builtin::v2::reward

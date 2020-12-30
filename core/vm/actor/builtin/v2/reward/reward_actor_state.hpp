@@ -7,53 +7,29 @@
 
 #include "common/smoothing/alpha_beta_filter.hpp"
 #include "primitives/types.hpp"
-#include "vm/version.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 
-namespace fc::vm::actor::builtin::v0::reward {
+namespace fc::vm::actor::builtin::v2::reward {
   using common::smoothing::FilterEstimate;
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::SpaceTime;
   using primitives::StoragePower;
   using primitives::TokenAmount;
-  using version::NetworkVersion;
 
-  /// 1EiB
-  static const StoragePower kBaselineInitialValueV0 = BigInt(1) << 60;
-
-  /**
-   * 36.266260308195979333 FIL
-   * https://www.wolframalpha.com/input/?i=IntegerPart%5B330%2C000%2C000+*+%281+-+Exp%5B-Log%5B2%5D+%2F+%286+*+%281+year+%2F+30+seconds%29%29%5D%29+*+10%5E18%5D
-   */
-  static const BigInt kInitialRewardPositionEstimate{"36266260308195979333"};
+  /// 2.5057116798121726 EiB
+  static const StoragePower kBaselineInitialValueV2{"2888888880000000000"};
 
   /**
-   * -1.0982489*10^-7 FIL per epoch.
-   * Change of simple minted tokens between epochs 0 and 1
-   * https://www.wolframalpha.com/input/?i=IntegerPart%5B%28Exp%5B-Log%5B2%5D+%2F+%286+*+%281+year+%2F+30+seconds%29%29%5D+-+1%29+*+10%5E18%5D
+   * These numbers are estimates of the onchain constants. They are good for
+   * initializing state in devnets and testing but will not match the on chain
+   * values exactly which depend on storage onboarding and upgrade epoch
+   * history. They are in units of attoFIL, 10^-18 FIL
    */
-  static const BigInt kInitialRewardVelocityEstimate{-109897758509};
-
-  /**
-   * Baseline exponent for network version 0
-   * Floor(e^(ln[1 + 200%] / epochsInYear) * 2^128
-   * Q.128 formatted number such that f(epoch) = baseExponent^epoch grows 200%
-   * in one year of epochs Calculation here:
-   * https://www.wolframalpha.com/input/?i=IntegerPart%5BExp%5BLog%5B1%2B200%25%5D%2F%28%28365+days%29%2F%2830+seconds%29%29%5D*2%5E128%5D
-   */
-  static const BigInt kBaselineExponentV0{
-      "340282722551251692435795578557183609728"};
-
-  /**
-   * Baseline exponent for network version 3
-   * Floor(e^(ln[1 + 100%] / epochsInYear) * 2^128
-   * Q.128 formatted number such that f(epoch) = baseExponent^epoch grows 100%
-   * in one year of epochs
-   * Calculation here:
-   * https://www.wolframalpha.com/input/?i=IntegerPart%5BExp%5BLog%5B1%2B100%25%5D%2F%28%28365+days%29%2F%2830+seconds%29%29%5D*2%5E128%5D
-   */
-  static const BigInt kBaselineExponentV3{
-      "340282591298641078465964189926313473653"};
+  // 330M
+  static const TokenAmount kDefaultSimpleTotal = BigInt{330e6} * BigInt{1e18};
+  // 770M
+  static const TokenAmount kDefaultBaselineTotal = BigInt{770e6} * BigInt{1e18};
 
   struct State {
     static State construct(const StoragePower &current_realized_power);
@@ -109,7 +85,17 @@ namespace fc::vm::actor::builtin::v0::reward {
     /**
      * Tracks the total FIL awarded to block miners
      */
-    TokenAmount total_mined;
+    TokenAmount total_storage_power_reward;
+
+    /**
+     * Simple and Baseline totals are constants used for computing rewards.
+     * They are on chain because of a historical fix resetting baseline value
+     * in a way that depended on the history leading immediately up to the
+     * migration fixing the value. These values can be moved from state back
+     * into a code constant in a subsequent upgrade.
+     */
+    TokenAmount simple_total;
+    TokenAmount baseline_total;
   };
   CBOR_TUPLE(State,
              cumsum_baseline,
@@ -120,6 +106,8 @@ namespace fc::vm::actor::builtin::v0::reward {
              this_epoch_reward_smoothed,
              this_epoch_baseline_power,
              epoch,
-             total_mined)
+             total_storage_power_reward,
+             simple_total,
+             baseline_total)
 
-}  // namespace fc::vm::actor::builtin::v0::reward
+}  // namespace fc::vm::actor::builtin::v2::reward

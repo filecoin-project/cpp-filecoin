@@ -20,6 +20,7 @@
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/cron/cron_actor.hpp"
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor.hpp"
+#include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
 #include "vm/actor/builtin/v2/system/system_actor.hpp"
 #include "vm/actor/cgo/actors.hpp"
@@ -50,8 +51,7 @@ namespace fc::vm::actor {
     // builtin::v2::market::exports;
     // builtin_[builtin::v2::kStorageMinerCodeCid]
     // = builtin::v2::miner::exports;
-    // builtin_[builtin::v2::kRewardActorCodeID]
-    // = builtin::v2::reward::exports;
+    builtin_[builtin::v2::kRewardActorCodeID] = builtin::v2::reward::exports;
     // builtin_[builtin::v2::kMultisigCodeCid] = builtin::v2::multisig::exports;
     builtin_[builtin::v2::kPaymentChannelCodeCid] =
         builtin::v2::payment_channel::exports;
@@ -93,8 +93,8 @@ namespace fc::vm::actor {
         // && (actor.code != builtin::v2::kMultisigCodeCid)        // TODO
         && (actor.code != builtin::v2::kPaymentChannelCodeCid)  // < tested OK
         && (actor.code != builtin::v2::kStoragePowerCodeCid)    // < tested OK
-        // && (actor.code != builtin::v2::kRewardActorCodeID)      // TODO
-        && (actor.code != builtin::v2::kSystemActorCodeID)  // < tested OK
+        && (actor.code != builtin::v2::kRewardActorCodeID)      // < tested OK
+        && (actor.code != builtin::v2::kSystemActorCodeID)      // < tested OK
         // && (actor.code != builtin::v2::kVerifiedRegistryCode)   // TODO
     ) {
       return ::fc::vm::actor::cgo::invoke(actor.code, runtime);

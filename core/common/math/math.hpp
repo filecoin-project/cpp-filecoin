@@ -10,6 +10,14 @@
 namespace fc::common::math {
   using primitives::BigInt;
 
+  /**
+   * lambda = ln(2) / (6 * epochsInYear)
+   * for Q.128: int(lambda * 2^128)
+   * Calculation here:
+   * https://www.wolframalpha.com/input/?i=IntegerPart%5BLog%5B2%5D+%2F+%286+*+%281+year+%2F+30+seconds%29%29+*+2%5E128%5D
+   */
+  static const BigInt kLambda{"37396271439864487274534522888786"};
+
   static constexpr uint kPrecision128 = 128;
   static constexpr uint kPrecision256 = 256;
 

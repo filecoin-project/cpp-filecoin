@@ -42,7 +42,7 @@ namespace fc::vm::actor::builtin::v0::reward {
                                const ChainEpoch &epoch) {
     auto baseline = start;
     for (ChainEpoch i = 0; i < epoch * kEpochsInYear; ++i) {
-      baseline = baselinePowerFromPrev(baseline, NetworkVersion::kVersion0);
+      baseline = baselinePowerFromPrev(baseline, kBaselineExponentV0);
     }
     return baseline;
   }
@@ -91,7 +91,11 @@ namespace fc::vm::actor::builtin::v0::reward {
 
     for (const auto &[epoch, expected_reward] : test_data) {
       ASSERT_EQ(expected_reward,
-                computeReward(epoch.convert_to<ChainEpoch>(), 0, 0));
+                computeReward(epoch.convert_to<ChainEpoch>(),
+                              0,
+                              0,
+                              kSimpleTotal,
+                              kBaselineTotal));
     }
   }
 
@@ -102,9 +106,11 @@ namespace fc::vm::actor::builtin::v0::reward {
   TEST(RewardActorCalculusV0, TestBaselineReward) {
     const auto test_data = parseCsvTriples(
         resourcePath("vm/actor/builtin/v0/reward/test_baseline_reward.txt"));
-    const auto simple = computeReward(0, 0, 0);
+    const auto simple = computeReward(0, 0, 0, kSimpleTotal, kBaselineTotal);
     for (const auto &[prev_theta, theta, expected_reward] : test_data) {
-      auto reward = computeReward(0, prev_theta, theta) - simple;
+      auto reward =
+          computeReward(0, prev_theta, theta, kSimpleTotal, kBaselineTotal)
+          - simple;
       ASSERT_EQ(expected_reward, reward);
     }
   }

@@ -20,49 +20,14 @@ namespace fc::vm::actor::builtin::v0::reward {
         .this_epoch_reward_smoothed =
             FilterEstimate{.position = kInitialRewardPositionEstimate,
                            .velocity = kInitialRewardVelocityEstimate},
-        .this_epoch_baseline_power = initBaselinePower(),
+        .this_epoch_baseline_power =
+            initBaselinePower(kBaselineInitialValueV0, kBaselineExponentV0),
         .epoch = kChainEpochUndefined,
         .total_mined = {0},
     };
-    state.updateToNextEpochWithReward(current_realized_power,
-                                      NetworkVersion::kVersion0);
+    updateToNextEpochWithReward(
+        state, current_realized_power, kBaselineExponentV0);
     return state;
-  }
-
-  void State::updateToNextEpoch(const StoragePower &current_realized_power,
-                                NetworkVersion network_version) {
-    ++epoch;
-    this_epoch_baseline_power =
-        baselinePowerFromPrev(this_epoch_baseline_power, network_version);
-    cumsum_realized +=
-        std::min(this_epoch_baseline_power, current_realized_power);
-    if (cumsum_realized > cumsum_baseline) {
-      ++effective_network_time;
-      effective_baseline_power =
-          baselinePowerFromPrev(effective_baseline_power, network_version);
-      cumsum_baseline += effective_baseline_power;
-    }
-  }
-
-  void State::updateToNextEpochWithReward(
-      const StoragePower &current_realized_power,
-      NetworkVersion network_version) {
-    const auto prev_reward_theta = computeRTheta(effective_network_time,
-                                                 effective_baseline_power,
-                                                 cumsum_realized,
-                                                 cumsum_baseline);
-    updateToNextEpoch(current_realized_power, network_version);
-    const auto current_reward_theta = computeRTheta(effective_network_time,
-                                                    effective_baseline_power,
-                                                    cumsum_realized,
-                                                    cumsum_baseline);
-    this_epoch_reward =
-        computeReward(epoch, prev_reward_theta, current_reward_theta);
-  }
-
-  void State::updateSmoothedEstimates(const ChainEpoch &delta) {
-    this_epoch_reward_smoothed =
-        nextEstimate(this_epoch_reward_smoothed, this_epoch_reward, delta);
   }
 
 }  // namespace fc::vm::actor::builtin::v0::reward

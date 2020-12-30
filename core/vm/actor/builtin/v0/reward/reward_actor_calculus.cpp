@@ -10,35 +10,36 @@
 
 namespace fc::vm::actor::builtin::v0::reward {
   using common::math::expneg;
+  using common::math::kLambda;
   using common::math::kPrecision128;
 
-  StoragePower initBaselinePower() {
+  StoragePower initBaselinePower(const BigInt &initial_value,
+                                 const BigInt &baseline_exponent) {
     // Q.0 => Q.256
     const auto baselineInitialValue256 =
-        BigInt(kBaselineInitialValueV0 << 2 * kPrecision128);
+        BigInt(initial_value << 2 * kPrecision128);
     // Q.256 / Q.128 => Q.128
     const auto baselineAtMinusOne =
-        (baselineInitialValue256 / kBaselineExponentV0);
+        (baselineInitialValue256 / baseline_exponent);
     // Q.128 => Q.0
     return baselineAtMinusOne >> kPrecision128;
   }
 
   StoragePower baselinePowerFromPrev(
       const StoragePower &prev_epoch_baseline_power,
-      NetworkVersion network_version) {
+      const BigInt &baseline_exponent) {
     // Q.0 * Q.128 => Q.128
     const BigInt this_epoch_baseline_power =
-        prev_epoch_baseline_power
-        * (network_version < NetworkVersion::kVersion3 ? kBaselineExponentV0
-                                                       : kBaselineExponentV3);
+        prev_epoch_baseline_power * baseline_exponent;
     // Q.128 => Q.0
     return this_epoch_baseline_power >> kPrecision128;
   }
 
-  BigInt computeRTheta(ChainEpoch effective_network_time,
-                       StoragePower baseline_power_at_effective_network_time,
-                       SpaceTime cumsum_realized,
-                       SpaceTime cumsum_baseline) {
+  BigInt computeRTheta(
+      const ChainEpoch &effective_network_time,
+      const StoragePower &baseline_power_at_effective_network_time,
+      const SpaceTime &cumsum_realized,
+      const SpaceTime &cumsum_baseline) {
     BigInt reward_theta{0};
     if (effective_network_time != 0) {
       // Q.128
@@ -53,19 +54,22 @@ namespace fc::vm::actor::builtin::v0::reward {
     return reward_theta;
   }
 
-  BigInt computeBaselineSupply(const BigInt &theta) {
+  BigInt computeBaselineSupply(const BigInt &theta,
+                               const BigInt &baseline_total) {
     // Q.128
     const BigInt theta_lam = (theta * kLambda) >> kPrecision128;
 
     const BigInt one_sub = (BigInt{1} << kPrecision128) - expneg(theta_lam);
 
     // Q.0 * Q.128 => Q.128
-    return kBaselineTotal * one_sub;
+    return baseline_total * one_sub;
   }
 
   TokenAmount computeReward(const ChainEpoch &epoch,
                             const BigInt &prev_theta,
-                            const BigInt &curr_theta) {
+                            const BigInt &curr_theta,
+                            const BigInt &simple_total,
+                            const BigInt &baseline_total) {
     // Q.0 * Q.128 => Q.128
     TokenAmount simple_reward = kSimpleTotal * kExpLamSubOne;
     // Q.0 * Q.128 => Q.128
@@ -78,7 +82,8 @@ namespace fc::vm::actor::builtin::v0::reward {
 
     // Q.128
     const TokenAmount baseline_reward =
-        computeBaselineSupply(curr_theta) - computeBaselineSupply(prev_theta);
+        computeBaselineSupply(curr_theta, baseline_total)
+        - computeBaselineSupply(prev_theta, baseline_total);
     // Q.128
     const TokenAmount reward = simple_reward + baseline_reward;
 
