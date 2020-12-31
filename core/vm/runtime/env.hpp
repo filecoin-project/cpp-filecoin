@@ -10,6 +10,7 @@
 #include "primitives/types.hpp"
 #include "storage/hamt/hamt.hpp"
 #include "vm/actor/invoker.hpp"
+#include "vm/runtime/circulating.hpp"
 #include "vm/runtime/pricelist.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -36,7 +37,9 @@ namespace fc::vm::runtime {
           randomness{std::move(randomness)},
           ipld{std::move(ipld)},
           epoch{tipset->height()},
-          tipset{std::move(tipset)} {}
+          tipset{std::move(tipset)} {
+      pricelist.calico = epoch >= vm::version::kUpgradeCalicoHeight;
+    }
 
     struct Apply {
       MessageReceipt receipt;
@@ -56,6 +59,7 @@ namespace fc::vm::runtime {
     uint64_t epoch;  // mutable epoch for cron()
     TipsetCPtr tipset;
     Pricelist pricelist;
+    std::shared_ptr<Circulating> circulating;
   };
 
   struct Execution : std::enable_shared_from_this<Execution> {

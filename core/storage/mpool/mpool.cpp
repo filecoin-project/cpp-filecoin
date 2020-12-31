@@ -136,23 +136,19 @@ namespace fc::storage::mpool {
     } else {
       auto apply{change.type == HeadChangeType::APPLY};
       OUTCOME_TRY(change.value->visitMessages(
-          ipld, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
-            if (bls) {
-              OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
-              if (apply) {
-                remove(message.from, message.nonce);
-              } else {
+          {ipld, false, true},
+          [&](auto, auto bls, auto &cid, auto *smsg, auto *msg)
+              -> outcome::result<void> {
+            if (apply) {
+              remove(msg->from, msg->nonce);
+            } else {
+              if (bls) {
                 auto sig{bls_cache.find(cid)};
                 if (sig != bls_cache.end()) {
-                  OUTCOME_TRY(add({message, sig->second}));
+                  OUTCOME_TRY(add({*msg, sig->second}));
                 }
-              }
-            } else {
-              OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
-              if (apply) {
-                remove(message.message.from, message.message.nonce);
               } else {
-                OUTCOME_TRY(add(message));
+                OUTCOME_TRY(add(*smsg));
               }
             }
             return outcome::success();
