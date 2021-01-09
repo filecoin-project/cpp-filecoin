@@ -15,16 +15,7 @@ namespace fc::vm::actor::builtin::v3::multisig {
   using primitives::EpochDuration;
   using utils::multisig::MultisigUtils;
 
-  struct Construct : ActorMethodBase<1> {
-    using Params = v2::multisig::Construct::Params;
-
-    ACTOR_METHOD_DECL();
-    static outcome::result<Result> execute(Runtime &runtime,
-                                           const Params &params,
-                                           const MultisigUtils &utils);
-  };
-  CBOR_TUPLE(
-      Construct::Params, signers, threshold, unlock_duration, start_epoch)
+  using Construct = v2::multisig::Construct;
 
   struct Propose : ActorMethodBase<2> {
     using Params = v2::multisig::Propose::Params;

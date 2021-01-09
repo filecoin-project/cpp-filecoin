@@ -19,21 +19,6 @@ namespace fc::vm::actor::builtin::v3::multisig {
   using fc::vm::runtime::Runtime;
   namespace outcome = fc::outcome;
 
-  // Construct
-  //============================================================================
-
-  outcome::result<Construct::Result> Construct::execute(
-      Runtime &runtime,
-      const Construct::Params &params,
-      const MultisigUtils &utils) {
-    return v2::multisig::Construct::execute(runtime, params, utils);
-  }
-
-  ACTOR_METHOD_IMPL(Construct) {
-    const MultisigUtilsImplV3 utils;
-    return execute(runtime, params, utils);
-  }
-
   // Propose
   //============================================================================
 
