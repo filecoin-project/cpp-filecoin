@@ -32,7 +32,8 @@ namespace fc::vm::actor::builtin::v2::reward {
   static const TokenAmount kDefaultBaselineTotal = BigInt{770e6} * BigInt{1e18};
 
   struct State {
-    static State construct(const StoragePower &current_realized_power);
+    State();
+    explicit State(const StoragePower &current_realized_power);
 
     /**
      * Target CumsumRealized needs to reach for EffectiveNetworkTime to

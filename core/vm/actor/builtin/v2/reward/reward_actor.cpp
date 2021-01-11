@@ -17,7 +17,7 @@ namespace fc::vm::actor::builtin::v2::reward {
 
   ACTOR_METHOD_IMPL(Constructor) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    OUTCOME_TRY(runtime.commitState(State::construct(params)));
+    OUTCOME_TRY(runtime.commitState(State(params)));
     return outcome::success();
   }
 

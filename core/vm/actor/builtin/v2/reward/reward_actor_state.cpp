@@ -16,27 +16,21 @@ namespace fc::vm::actor::builtin::v2::reward {
   using v0::reward::kBaselineExponentV3;
   using v0::reward::updateToNextEpochWithReward;
 
-  State State::construct(const StoragePower &current_realized_power) {
-    State state{
-        .cumsum_baseline = {0},
-        .cumsum_realized = {0},
-        .effective_network_time = 0,
-        .effective_baseline_power = kBaselineInitialValueV2,
-        .this_epoch_reward = {0},
-        .this_epoch_reward_smoothed =
-            FilterEstimate{
-                .position = v0::reward::kInitialRewardPositionEstimate,
-                .velocity = v0::reward::kInitialRewardVelocityEstimate},
-        .this_epoch_baseline_power = initBaselinePower(
-            kBaselineInitialValueV2, v0::reward::kBaselineExponentV3),
-        .epoch = kChainEpochUndefined,
-        .total_storage_power_reward = {0},
-        .simple_total = kDefaultSimpleTotal,
-        .baseline_total = kDefaultBaselineTotal,
-    };
+  State::State() {}
+
+  State::State(const StoragePower &current_realized_power) {
+    effective_network_time = 0;
+    effective_baseline_power = kBaselineInitialValueV2;
+    this_epoch_reward_smoothed =
+        FilterEstimate{.position = v0::reward::kInitialRewardPositionEstimate,
+                       .velocity = v0::reward::kInitialRewardVelocityEstimate};
+    this_epoch_baseline_power = initBaselinePower(
+        kBaselineInitialValueV2, v0::reward::kBaselineExponentV3);
+    epoch = kChainEpochUndefined;
+    simple_total = kDefaultSimpleTotal;
+    baseline_total = kDefaultBaselineTotal;
     updateToNextEpochWithReward(
-        state, current_realized_power, kBaselineExponentV3);
-    return state;
+        *this, current_realized_power, kBaselineExponentV3);
   }
 
 }  // namespace fc::vm::actor::builtin::v2::reward
