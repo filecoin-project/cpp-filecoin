@@ -11,16 +11,28 @@
 
 namespace fc::mining::checks {
   using api::Api;
+  using api::NetworkVersion;
+  using api::SectorPreCommitOnChainInfo;
   using common::Buffer;
   using primitives::ChainEpoch;
+  using primitives::EpochDuration;
   using primitives::address::Address;
   using primitives::sector::Proof;
   using primitives::tipset::TipsetKey;
   using types::SectorInfo;
 
+  outcome::result<EpochDuration> getMaxProveCommitDuration(
+      NetworkVersion network, const std::shared_ptr<SectorInfo> &sector_info);
+
   outcome::result<void> checkPieces(
       const std::shared_ptr<SectorInfo> &sector_info,
       const std::shared_ptr<Api> &api);
+
+  outcome::result<boost::optional<SectorPreCommitOnChainInfo>>
+  getStateSectorPreCommitInfo(const Address &miner_address,
+                              const std::shared_ptr<SectorInfo> &sector_info,
+                              const TipsetKey &tipset_key,
+                              const std::shared_ptr<Api> &api);
 
   /**
    * Checks that data commitment generated in the sealing process matches
@@ -54,6 +66,7 @@ namespace fc::mining::checks {
     kBadSealedCid,
     kInvalidProof,
     kCommitWaitFail,
+    kMinerVersion,
   };
 
 }  // namespace fc::mining::checks

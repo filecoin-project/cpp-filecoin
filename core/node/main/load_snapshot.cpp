@@ -35,6 +35,7 @@ namespace fc {
       std::string storage_dir;
       std::shared_ptr<storage::LevelDB> leveldb;
       std::shared_ptr<storage::ipfs::IpfsDatastore> ipld;
+      boost::optional<CID> genesis_cid;
       std::vector<CID> roots;
       primitives::tipset::TipsetCPtr root_tipset;
       std::shared_ptr<sync::IndexDbBackend> indexdb;
@@ -89,6 +90,8 @@ namespace fc {
                    load_res.value().size());
         return __LINE__;
       }
+
+      c.genesis_cid = load_res.value()[0];
 
       return 0;
     }
@@ -282,6 +285,7 @@ namespace fc {
       ASSERT2(c.leveldb);
       ASSERT2(c.ipld);
       ASSERT2(c.root_tipset);
+      ASSERT2(c.genesis_cid.has_value());
 
       using RP = primitives::sector::RegisteredProof;
       vm::actor::cgo::config(1 << 20,
@@ -293,7 +297,8 @@ namespace fc {
 
       auto interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
           std::make_shared<vm::interpreter::InterpreterImpl>(
-              std::make_shared<vm::runtime::TipsetRandomness>(c.ipld)),
+              std::make_shared<vm::runtime::TipsetRandomness>(c.ipld),
+              vm::Circulating::make(c.ipld, c.genesis_cid.value()).value()),
           c.leveldb);
 
       auto tipset = c.root_tipset;
@@ -386,8 +391,8 @@ namespace fc {
         !boost::filesystem::exists(boost::filesystem::canonical(c.storage_dir));
 
     TRY_STEP(create_leveldb(must_be_empty));
+    TRY_STEP(load_genesis());
     if (must_be_empty) {
-      TRY_STEP(load_genesis());
       TRY_STEP(load_snapshot());
     }
 

@@ -16,7 +16,11 @@ namespace fc::storage::car {
   using common::Buffer;
   using ipld::Selector;
 
-  enum class CarError { kDecodeError = 1, kReadFileError };
+  enum class CarError {
+    kDecodeError = 1,
+    kReadFileError,
+    kCannotOpenFileError,
+  };
 
   struct CarHeader {
     static constexpr uint64_t V1 = 1;
@@ -44,14 +48,20 @@ namespace fc::storage::car {
 
   void writeHeader(Buffer &output, const std::vector<CID> &roots);
 
-  void writeItem(Buffer &output, const CID &cid, Input bytes);
+  outcome::result<std::vector<CID>> loadCar(Ipld &store,
+                                            const std::string &car_path);
 
-  outcome::result<void> writeItem(Buffer &output, Ipld &store, const CID &cid);
+  outcome::result<std::vector<CID>> loadCar(Ipld &store, Input input);
 
   outcome::result<Buffer> makeCar(Ipld &store, const std::vector<CID> &roots);
 
   outcome::result<Buffer> makeSelectiveCar(
       Ipld &store, const std::vector<std::pair<CID, Selector>> &dags);
+
+  outcome::result<void> makeSelectiveCar(
+      Ipld &store,
+      const std::vector<std::pair<CID, Selector>> &dags,
+      const std::string &output_path);
 }  // namespace fc::storage::car
 
 OUTCOME_HPP_DECLARE_ERROR(fc::storage::car, CarError);

@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"github.com/filecoin-project/go-address"
 	"github.com/filecoin-project/go-state-types/abi"
-	"github.com/filecoin-project/go-state-types/big"
 	"github.com/filecoin-project/go-state-types/cbor"
 	"github.com/filecoin-project/go-state-types/crypto"
 	"github.com/filecoin-project/go-state-types/exitcode"
@@ -49,8 +48,8 @@ import (
 	"github.com/whyrusleeping/cbor-gen"
 	"reflect"
 	"runtime/debug"
-	"encoding/hex"
-	cbg "github.com/whyrusleeping/cbor-gen"
+//	"encoding/hex"
+//	cbg "github.com/whyrusleeping/cbor-gen"
 )
 
 //#include "c_actors.h"
@@ -175,8 +174,11 @@ func (rt *rt) Send(to address.Address, method abi.MethodNum, o cbor.Marshaler, v
 }
 
 func (rt *rt) Abortf(exit exitcode.ExitCode, msg string, args ...interface{}) {
-    fmt.Printf("Abort: " + msg, args...)
-    fmt.Println()
+	s := fmt.Sprintf("Abort: "+msg, args...)
+	if s[len(s)-1] != '\n' {
+		s += "\n"
+	}
+	fmt.Print(s)
 	rt.Abort(exit)
 }
 
@@ -197,8 +199,7 @@ func (rt *rt) DeleteActor(to address.Address) {
 }
 
 func (rt *rt) TotalFilCircSupply() abi.TokenAmount {
-	// TODO: implement, dataset unavailable, seen only as zero in testnet
-	return big.NewInt(0)
+	return rt.gocRet(C.gocRtCirc(rt.gocArg().arg())).big()
 }
 
 func (rt *rt) Context() context.Context {
@@ -322,7 +323,9 @@ func (rt *rt) BatchVerifySeals(batch map[address.Address][]proof1.SealVerifyInfo
 		n += len(seals)
 	}
 	arg := rt.gocArg().int(int64(n))
-	for _, seals := range batch {
+	miners := make([]address.Address, 0, len(batch))
+	for miner, seals := range batch {
+		miners = append(miners, miner)
 		for _, seal := range seals {
 			if e := seal.MarshalCBOR(arg.w); e != nil {
 				panic(cgoErrors("BatchVerifySeals MarshalCBOR"))
@@ -331,7 +334,8 @@ func (rt *rt) BatchVerifySeals(batch map[address.Address][]proof1.SealVerifyInfo
 	}
 	ret := rt.gocRet(C.gocRtVerifySeals(arg.arg()))
 	out := make(map[address.Address][]bool)
-	for miner, seals := range batch {
+	for _, miner := range miners {
+		seals := batch[miner]
 		out[miner] = make([]bool, len(seals))
 		for i := range seals {
 			out[miner][i] = ret.bool()
@@ -343,24 +347,42 @@ func (rt *rt) BatchVerifySeals(batch map[address.Address][]proof1.SealVerifyInfo
 var lengthBufWindowPoStVerifyInfo = []byte{132}
 
 func MarshalCBOR(out *cborOut, t *proof1.WindowPoStVerifyInfo) error {
- w := out.w
- if _, err := w.Write(lengthBufWindowPoStVerifyInfo); err != nil { return err }
- scratch := make([]byte, 9)
- if err := cbg.WriteMajorTypeHeaderBuf(scratch, w, cbg.MajByteString, uint64(len(t.Randomness))); err != nil { return err }
- if _, err := w.Write(t.Randomness[:]); err != nil { return err }
- if err := cbg.WriteMajorTypeHeaderBuf(scratch, w, cbg.MajArray, uint64(len(t.Proofs))); err != nil { return err }
- for _, v := range t.Proofs { if err := v.MarshalCBOR(w); err != nil { return err } }
- if err := cbg.WriteMajorTypeHeaderBuf(scratch, w, cbg.MajArray, uint64(len(t.ChallengedSectors))); err != nil { return err }
- for _, v := range t.ChallengedSectors { if err := v.MarshalCBOR(w); err != nil { return err } }
- if err := cbg.WriteMajorTypeHeaderBuf(scratch, w, cbg.MajUnsignedInt, uint64(t.Prover)); err != nil { return err }
- return nil
+	w := out.w
+	if _, e := w.Write(lengthBufWindowPoStVerifyInfo); e != nil {
+		return e
+	}
+	s := make([]byte, 9)
+	if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajByteString, uint64(len(t.Randomness))); e != nil {
+		return e
+	}
+	if _, e := w.Write(t.Randomness[:]); e != nil {
+		return e
+	}
+	if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajArray, uint64(len(t.Proofs))); e != nil {
+		return e
+	}
+	for _, v := range t.Proofs {
+		if e := v.MarshalCBOR(w); e != nil {
+			return e
+		}
+	}
+	if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajArray, uint64(len(t.ChallengedSectors))); e != nil {
+		return e
+	}
+	for _, v := range t.ChallengedSectors {
+		if e := v.MarshalCBOR(w); e != nil {
+			return e
+		}
+	}
+	if e := typegen.WriteMajorTypeHeaderBuf(s, w, typegen.MajUnsignedInt, uint64(t.Prover)); e != nil {
+		return e
+	}
+	return nil
 }
 
 func (rt *rt) VerifyPoSt(info proof1.WindowPoStVerifyInfo) error {
 	arg := rt.gocArg()
 	if e := MarshalCBOR(arg, &info); e != nil {
-	    fmt.Printf("VerifyPoSt MarshalCBOR %s\n", hex.EncodeToString(arg.data()))
-		fmt.Println(e)
 		panic(cgoErrors("VerifyPoSt MarshalCBOR"))
 	}
 	ret := rt.gocRet(C.gocRtVerifyPost(arg.arg()))
@@ -530,55 +552,29 @@ func cgoActorsConfig(raw C.Raw) C.Raw {
 
 	miner1.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
 	miner2.PreCommitSealProofTypesV0 = make(map[abi.RegisteredSealProof]struct{})
-    miner2.PreCommitSealProofTypesV7 = make(map[abi.RegisteredSealProof]struct{})
-    miner2.PreCommitSealProofTypesV8 = make(map[abi.RegisteredSealProof]struct{})
-
-    for i := 0; i < n; i++ {
-		proof := arg.int()
-		miner1.SupportedProofTypes[abi.RegisteredSealProof(proof)] = struct{}{}
-		miner2.PreCommitSealProofTypesV0[abi.RegisteredSealProof(proof)] = struct{}{}
-        miner2.PreCommitSealProofTypesV7[abi.RegisteredSealProof(proof)] = struct{}{}
-        miner2.PreCommitSealProofTypesV8[abi.RegisteredSealProof(proof)] = struct{}{}
+	miner2.PreCommitSealProofTypesV7 = make(map[abi.RegisteredSealProof]struct{})
+	miner2.PreCommitSealProofTypesV8 = make(map[abi.RegisteredSealProof]struct{})
+	v11 := abi.RegisteredSealProof_StackedDrg2KiBV1_1
+	for i := 0; i < n; i++ {
+		proof := abi.RegisteredSealProof(arg.int())
+		if proof >= v11 {
+			panic("must specify v1 proof types only")
+		}
+		miner1.SupportedProofTypes[proof] = struct{}{}
+		miner2.PreCommitSealProofTypesV0[proof] = struct{}{}
+		miner2.PreCommitSealProofTypesV7[proof] = struct{}{}
+		miner2.PreCommitSealProofTypesV7[proof+v11] = struct{}{}
+		miner2.PreCommitSealProofTypesV8[proof+v11] = struct{}{}
 	}
+	return cgoRet(nil)
+}
 
-//  Was previously here
-//
-// 	miner1.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
-// 	miner2.SupportedProofTypes = make(map[abi.RegisteredSealProof]struct{})
-// 	for i := 0; i < n; i++ {
-// 		proof := arg.int()
-// 		miner1.SupportedProofTypes[abi.RegisteredSealProof(proof)] = struct{}{}
-// 		miner2.SupportedProofTypes[abi.RegisteredSealProof(proof)] = struct{}{}
-// 	}
-//
-//
-
-// From v2.2.0
-//
-// var SupportedProofTypes = map[abi.RegisteredSealProof]struct{}{
-// 	abi.RegisteredSealProof_StackedDrg32GiBV1: {},
-// 	abi.RegisteredSealProof_StackedDrg64GiBV1: {},
-// }
-
-// From v.2.3.3
-//
-// 	var PreCommitSealProofTypesV0 = map[abi.RegisteredSealProof]struct{}{
-//     	abi.RegisteredSealProof_StackedDrg32GiBV1: {},
-//     	abi.RegisteredSealProof_StackedDrg64GiBV1: {},
-//     }
-//     var PreCommitSealProofTypesV7 = map[abi.RegisteredSealProof]struct{}{
-//     	abi.RegisteredSealProof_StackedDrg32GiBV1:   {},
-//     	abi.RegisteredSealProof_StackedDrg64GiBV1:   {},
-//     	abi.RegisteredSealProof_StackedDrg32GiBV1_1: {},
-//     	abi.RegisteredSealProof_StackedDrg64GiBV1_1: {},
-//     }
-//
-//     // From network version 8, sectors sealed with the V1 seal proof types cannot be committed.
-//     var PreCommitSealProofTypesV8 = map[abi.RegisteredSealProof]struct{}{
-//     	abi.RegisteredSealProof_StackedDrg32GiBV1_1: {},
-//     	abi.RegisteredSealProof_StackedDrg64GiBV1_1: {},
-//     }
-
+//export cgoActorsConfigMainnet
+func cgoActorsConfigMainnet(C.Raw) C.Raw {
+	power1.ConsensusMinerMinPower = abi.NewStoragePower(10 << 40)
+	for _, x := range builtin2.SealProofPolicies {
+		x.ConsensusMinerMinPower = power1.ConsensusMinerMinPower
+	}
 	return cgoRet(nil)
 }
 

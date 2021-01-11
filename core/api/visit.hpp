@@ -33,6 +33,7 @@ namespace fc::api {
     f(a.ClientQueryAsk);
     f(a.ClientRetrieve);
     f(a.ClientStartDeal);
+    f(a.GasEstimateMessageGas);
     f(a.MarketEnsureAvailable);
     f(a.MinerCreateBlock);
     f(a.MinerGetBaseInfo);
@@ -46,6 +47,7 @@ namespace fc::api {
     f(a.PaychVoucherAdd);
     f(a.PaychVoucherCheckValid);
     f(a.PaychVoucherCreate);
+    f(a.PledgeSector);
     f(a.StateAccountKey);
     f(a.StateCall);
     f(a.StateGetActor);
@@ -67,6 +69,7 @@ namespace fc::api {
     f(a.StateMinerProvingDeadline);
     f(a.StateMinerSectors);
     f(a.StateNetworkName);
+    f(a.StateNetworkVersion);
     f(a.StateReadState);
     f(a.StateSearchMsg);
     f(a.StateSectorGetInfo);

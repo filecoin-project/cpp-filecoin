@@ -50,7 +50,7 @@ namespace fc::storage::amt {
   Amt::Amt(std::shared_ptr<ipfs::IpfsDatastore> store, const CID &root)
       : ipld(std::move(store)), root_(root) {}
 
-  outcome::result<uint64_t> Amt::count() {
+  outcome::result<uint64_t> Amt::count() const {
     OUTCOME_TRY(loadRoot());
     return boost::get<Root>(root_).count;
   }
@@ -76,7 +76,7 @@ namespace fc::storage::amt {
     return outcome::success();
   }
 
-  outcome::result<Value> Amt::get(uint64_t key) {
+  outcome::result<Value> Amt::get(uint64_t key) const {
     if (key >= kMaxIndex) {
       return AmtError::kIndexTooBig;
     }
@@ -138,7 +138,7 @@ namespace fc::storage::amt {
     return boost::get<CID>(root_);
   }
 
-  outcome::result<void> Amt::visit(const Visitor &visitor) {
+  outcome::result<void> Amt::visit(const Visitor &visitor) const {
     OUTCOME_TRY(loadRoot());
     auto &root = boost::get<Root>(root_);
     return visit(root.node, root.height, 0, visitor);
@@ -184,7 +184,7 @@ namespace fc::storage::amt {
     return outcome::success();
   }
 
-  outcome::result<bool> Amt::contains(uint64_t key) {
+  outcome::result<bool> Amt::contains(uint64_t key) const {
     auto res = get(key);
     if (res) {
       return true;
@@ -213,7 +213,7 @@ namespace fc::storage::amt {
   outcome::result<void> Amt::visit(Node &node,
                                    uint64_t height,
                                    uint64_t offset,
-                                   const Visitor &visitor) {
+                                   const Visitor &visitor) const {
     if (height == 0) {
       for (auto &it : boost::get<Node::Values>(node.items)) {
         OUTCOME_TRY(visitor(offset + it.first, it.second));
@@ -231,7 +231,7 @@ namespace fc::storage::amt {
     return outcome::success();
   }
 
-  outcome::result<void> Amt::loadRoot() {
+  outcome::result<void> Amt::loadRoot() const {
     if (which<CID>(root_)) {
       OUTCOME_TRY(root, ipld->getCbor<Root>(boost::get<CID>(root_)));
       root_ = root;
@@ -241,7 +241,7 @@ namespace fc::storage::amt {
 
   outcome::result<Node::Ptr> Amt::loadLink(Node &parent,
                                            uint64_t index,
-                                           bool create) {
+                                           bool create) const {
     if (which<Node::Values>(parent.items)
         && boost::get<Node::Values>(parent.items).empty()) {
       parent.items = Node::Links{};

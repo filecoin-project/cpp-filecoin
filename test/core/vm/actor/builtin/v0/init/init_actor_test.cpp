@@ -53,8 +53,7 @@ TEST(InitActorTest, AddActor) {
   using fc::storage::hamt::Hamt;
   auto store = std::make_shared<fc::storage::ipfs::InMemoryDatastore>();
   InitActorState state{{store}, 3, "n"};
-  Address address{fc::primitives::address::TESTNET,
-                  fc::primitives::address::ActorExecHash{}};
+  Address address{fc::primitives::address::ActorExecHash{}};
   auto expected = Address::makeFromId(state.next_id);
   EXPECT_OUTCOME_EQ(state.addActor(address), expected);
   EXPECT_EQ(state.next_id, 4);

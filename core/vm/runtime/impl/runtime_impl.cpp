@@ -122,8 +122,10 @@ namespace fc::vm::runtime {
 
   fc::outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
       const {
-    // TODO(a.chernyshov) implement
-    // 0 is for test vectors
+    if (auto circulating{execution_->env->circulating}) {
+      return circulating->circulating(execution_->state_tree,
+                                      getCurrentEpoch());
+    }
     return 0;
   }
 

@@ -108,6 +108,7 @@ namespace fc::vm::actor {
   inline static const auto kStoragePowerAddress = Address::makeFromId(4);
   inline static const auto kStorageMarketAddress = Address::makeFromId(5);
   inline static const auto kVerifiedRegistryAddress = Address::makeFromId(6);
+  inline static const auto kReserveActorAddress = Address::makeFromId(90);
   inline static const auto kBurntFundsActorAddress = Address::makeFromId(99);
 }  // namespace fc::vm::actor
 

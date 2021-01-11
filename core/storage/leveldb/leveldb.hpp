@@ -31,7 +31,9 @@ namespace fc::storage {
      * @return instance of LevelDB
      */
     static outcome::result<std::shared_ptr<LevelDB>> create(
-        std::string_view path, leveldb::Options options = leveldb::Options());
+        std::string_view path, leveldb::Options options);
+    static outcome::result<std::shared_ptr<LevelDB>> create(
+        std::string_view path);
 
     /**
      * @brief Set read options, which are used in @see LevelDB#get

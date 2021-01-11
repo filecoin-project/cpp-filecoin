@@ -11,6 +11,9 @@
 #include "sector_storage/zerocomm/zerocomm.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore.hpp"
 #include "storage/ipfs/api_ipfs_datastore/api_ipfs_datastore_error.hpp"
+#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v2/codes.hpp"
+#include "vm/actor/builtin/v2/miner/actor.hpp"
 
 namespace fc::mining::checks {
   using crypto::randomness::DomainSeparationTag;
@@ -18,7 +21,6 @@ namespace fc::mining::checks {
   using primitives::ChainEpoch;
   using primitives::DealId;
   using primitives::sector::OnChainSealVerifyInfo;
-  using primitives::sector::sealProofTypeFromSectorSize;
   using primitives::sector::SealVerifyInfo;
   using proofs::Proofs;
   using sector_storage::zerocomm::getZeroPieceCommitment;
@@ -30,11 +32,21 @@ namespace fc::mining::checks {
   using vm::actor::builtin::v0::miner::kChainFinalityish;
   using vm::actor::builtin::v0::miner::kPreCommitChallengeDelay;
   using vm::actor::builtin::v0::miner::maxSealDuration;
-  using vm::actor::builtin::v0::miner::MinerActorState;
   using vm::actor::builtin::v0::miner::SectorPreCommitOnChainInfo;
   using vm::message::kDefaultGasLimit;
   using vm::message::kDefaultGasPrice;
   using vm::message::UnsignedMessage;
+
+  outcome::result<EpochDuration> getMaxProveCommitDuration(
+      NetworkVersion network, const std::shared_ptr<SectorInfo> &sector_info) {
+    auto version{vm::actor::getActorVersionForNetwork(network)};
+    switch (version) {
+      case vm::actor::ActorVersion::kVersion0:
+        return maxSealDuration(sector_info->sector_type);
+      case vm::actor::ActorVersion::kVersion2:
+        return vm::actor::builtin::v2::miner::kMaxProveCommitDuration;
+    }
+  }
 
   outcome::result<void> checkPieces(
       const std::shared_ptr<SectorInfo> &sector_info,
@@ -63,8 +75,7 @@ namespace fc::mining::checks {
         return ChecksError::kInvalidDeal;
       }
 
-      if (static_cast<ChainEpoch>(chain_head->height())
-          >= proposal.proposal.start_epoch) {
+      if (chain_head->epoch() >= proposal.proposal.start_epoch) {
         return ChecksError::kExpiredDeal;
       }
     }
@@ -111,7 +122,18 @@ namespace fc::mining::checks {
 
     OUTCOME_TRY(actor, api->StateGetActor(miner_address, tipset_key));
     auto ipfs = std::make_shared<ApiIpfsDatastore>(api);
-    OUTCOME_TRY(state, ipfs->getCbor<MinerActorState>(actor.head));
+    vm::actor::builtin::v0::miner::MinerActorState state;
+    if (actor.code == vm::actor::builtin::v0::kStorageMinerCodeCid) {
+      OUTCOME_TRYA(state, ipfs->getCbor<decltype(state)>(actor.head));
+    } else if (actor.code == vm::actor::builtin::v2::kStorageMinerCodeCid) {
+      OUTCOME_TRY(
+          state2,
+          ipfs->getCbor<vm::actor::builtin::v2::miner::State>(actor.head));
+      state.precommitted_sectors = state2.precommitted_sectors;
+      state.allocated_sectors = state2.allocated_sectors;
+    } else {
+      return ChecksError::kMinerVersion;
+    }
     OUTCOME_TRY(has,
                 state.precommitted_sectors.has(sector_info->sector_number));
     if (has) {
@@ -138,7 +160,8 @@ namespace fc::mining::checks {
       return ChecksError::kBadCommD;
     }
 
-    OUTCOME_TRY(seal_duration, maxSealDuration(sector_info->sector_type));
+    OUTCOME_TRY(network, api->StateNetworkVersion(tipset_key));
+    OUTCOME_TRY(seal_duration, getMaxProveCommitDuration(network, sector_info));
     if (height - (sector_info->ticket_epoch + kChainFinalityish)
         > seal_duration) {
       return ChecksError::kExpiredTicket;
@@ -202,15 +225,13 @@ namespace fc::mining::checks {
     }
 
     OUTCOME_TRY(minfo, api->StateMinerInfo(miner_address, tipset_key));
-    OUTCOME_TRY(seal_proof_type,
-                sealProofTypeFromSectorSize(minfo.sector_size));
 
     if (sector_info->comm_r != state_sector_precommit_info->info.sealed_cid) {
       return ChecksError::kBadSealedCid;
     }
     OUTCOME_TRY(verified,
                 Proofs::verifySeal(SealVerifyInfo{
-                    .seal_proof = seal_proof_type,
+                    .seal_proof = minfo.seal_proof_type,
                     .sector = SectorId{.miner = miner_address.getId(),
                                        .sector = sector_info->sector_number},
                     .deals = {},
@@ -257,6 +278,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::mining::checks, ChecksError, e) {
       return "ChecksError: invalid proof";
     case E::kCommitWaitFail:
       return "ChecksError: need to wait commit";
+    case E::kMinerVersion:
+      return "ChecksError::kMinerVersion";
     default:
       return "ChecksError: unknown error";
   }

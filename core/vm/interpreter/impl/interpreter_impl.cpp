@@ -40,6 +40,7 @@ namespace fc::vm::interpreter {
   using actor::MethodParams;
   using actor::builtin::v0::cron::EpochTick;
   using actor::builtin::v0::reward::AwardBlockReward;
+  using message::Address;
   using message::SignedMessage;
   using message::UnsignedMessage;
   using primitives::TokenAmount;
@@ -49,8 +50,10 @@ namespace fc::vm::interpreter {
   using runtime::MessageReceipt;
 
   InterpreterImpl::InterpreterImpl(
-      std::shared_ptr<RuntimeRandomness> randomness)
-      : randomness_{std::move(randomness)} {}
+      std::shared_ptr<RuntimeRandomness> randomness,
+      std::shared_ptr<Circulating> circulating)
+      : randomness_{std::move(randomness)},
+        circulating_{std::move(circulating)} {}
 
   outcome::result<Result> InterpreterImpl::interpret(
       const IpldPtr &ipld, const TipsetCPtr &tipset) const {
@@ -79,6 +82,7 @@ namespace fc::vm::interpreter {
 
     auto env = std::make_shared<Env>(
         std::make_shared<InvokerImpl>(), randomness_, ipld, tipset);
+    env->circulating = circulating_;
 
     auto cron{[&]() -> outcome::result<void> {
       OUTCOME_TRY(receipt,
@@ -110,22 +114,16 @@ namespace fc::vm::interpreter {
     }
 
     adt::Array<MessageReceipt> receipts{ipld};
-    MessageVisitor message_visitor{ipld};
+    MessageVisitor message_visitor{ipld, true, true};
     for (auto &block : tipset->blks) {
       AwardBlockReward::Params reward{
           block.miner, 0, 0, block.election_proof.win_count};
       OUTCOME_TRY(message_visitor.visit(
-          block, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
-            UnsignedMessage message;
+          block,
+          [&](auto, auto bls, auto &cid, auto, auto *msg)
+              -> outcome::result<void> {
             OUTCOME_TRY(raw, ipld->get(cid));
-            if (bls) {
-              OUTCOME_TRYA(message, codec::cbor::decode<UnsignedMessage>(raw));
-            } else {
-              OUTCOME_TRY(signed_message,
-                          codec::cbor::decode<SignedMessage>(raw));
-              message = std::move(signed_message.message);
-            }
-            OUTCOME_TRY(apply, env->applyMessage(message, raw.size()));
+            OUTCOME_TRY(apply, env->applyMessage(*msg, raw.size()));
             reward.penalty += apply.penalty;
             reward.gas_reward += apply.reward;
             on_receipt(apply.receipt);

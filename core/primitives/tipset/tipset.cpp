@@ -59,7 +59,31 @@ namespace fc::primitives::tipset {
                                               const Visitor &visitor) {
     auto onMessage = [&](auto bls, auto &cid) -> outcome::result<void> {
       if (visited.insert(cid).second) {
-        OUTCOME_TRY(visitor(visited.size() - 1, bls, cid));
+        SignedMessage smsg;
+        auto &msg{smsg.message};
+        if (load) {
+          if (bls) {
+            OUTCOME_TRYA(msg, ipld->getCbor<UnsignedMessage>(cid));
+          } else {
+            OUTCOME_TRYA(smsg, ipld->getCbor<SignedMessage>(cid));
+          }
+        }
+        if (nonce) {
+          auto it{nonces.find(msg.from)};
+          if (it == nonces.end()) {
+            it = nonces.emplace(msg.from, msg.nonce).first;
+          }
+          if (msg.nonce != it->second) {
+            return outcome::success();
+          }
+          ++it->second;
+        }
+        OUTCOME_TRY(visitor(index,
+                            bls,
+                            cid,
+                            load && !bls ? &smsg : nullptr,
+                            load ? &msg : nullptr));
+        ++index;
       }
       return outcome::success();
     };
@@ -248,8 +272,8 @@ namespace fc::primitives::tipset {
   }
 
   outcome::result<void> Tipset::visitMessages(
-      IpldPtr ipld, const MessageVisitor::Visitor &visitor) const {
-    MessageVisitor message_visitor{ipld};
+      MessageVisitor message_visitor,
+      const MessageVisitor::Visitor &visitor) const {
     for (auto &block : blks) {
       OUTCOME_TRY(message_visitor.visit(block, visitor));
     }
@@ -258,17 +282,13 @@ namespace fc::primitives::tipset {
 
   outcome::result<BigInt> Tipset::nextBaseFee(IpldPtr ipld) const {
     GasAmount gas_limit{};
-    OUTCOME_TRY(visitMessages(
-        ipld, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
-          if (bls) {
-            OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
-            gas_limit += message.gas_limit;
-          } else {
-            OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
-            gas_limit += message.message.gas_limit;
-          }
-          return outcome::success();
-        }));
+    OUTCOME_TRY(
+        visitMessages({ipld, false, true},
+                      [&](auto, auto bls, auto &cid, auto *smsg, auto *msg)
+                          -> outcome::result<void> {
+                        gas_limit += msg->gas_limit;
+                        return outcome::success();
+                      }));
     auto delta{std::max<GasAmount>(
         -kBlockGasTarget,
         std::min<GasAmount>(
@@ -290,7 +310,7 @@ namespace fc::primitives::tipset {
       gsl::span<const uint8_t> entropy) const {
     auto ts{this};
     TipsetCPtr parent;
-    while (ts->height() != 0 && static_cast<ChainEpoch>(ts->height()) > round) {
+    while (ts->height() != 0 && ts->epoch() > round) {
       OUTCOME_TRYA(parent, ts->loadParent(ipld));
       ts = parent.get();
     }
@@ -305,7 +325,7 @@ namespace fc::primitives::tipset {
       gsl::span<const uint8_t> entropy) const {
     auto ts{this};
     TipsetCPtr parent;
-    while (ts->height() != 0 && static_cast<ChainEpoch>(ts->height()) > round) {
+    while (ts->height() != 0 && ts->epoch() > round) {
       OUTCOME_TRYA(parent, ts->loadParent(ipld));
       ts = parent.get();
     }
@@ -350,6 +370,10 @@ namespace fc::primitives::tipset {
 
   uint64_t Tipset::height() const {
     return blks.empty() ? 0 : blks[0].height;
+  }
+
+  ChainEpoch Tipset::epoch() const {
+    return height();
   }
 
   const BigInt &Tipset::getParentBaseFee() const {

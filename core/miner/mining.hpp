@@ -35,11 +35,12 @@ namespace fc::mining {
   };
 
   struct Mining : std::enable_shared_from_this<Mining> {
-    static std::shared_ptr<Mining> create(std::shared_ptr<Scheduler> scheduler,
-                                          std::shared_ptr<UTCClock> clock,
-                                          std::shared_ptr<Api> api,
-                                          std::shared_ptr<Prover> prover,
-                                          const Address &miner);
+    static outcome::result<std::shared_ptr<Mining>> create(
+        std::shared_ptr<Scheduler> scheduler,
+        std::shared_ptr<UTCClock> clock,
+        std::shared_ptr<Api> api,
+        std::shared_ptr<Prover> prover,
+        const Address &miner);
     void start();
     void waitParent();
     outcome::result<void> waitBeacon();
@@ -56,6 +57,7 @@ namespace fc::mining {
     std::shared_ptr<Api> api;
     std::shared_ptr<Prover> prover;
     Address miner;
+    uint64_t block_delay, propagation;
     boost::optional<Tipset> ts;
     BigInt weight;
     size_t skip{};

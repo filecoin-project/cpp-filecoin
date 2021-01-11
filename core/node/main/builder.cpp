@@ -398,9 +398,13 @@ namespace fc::node {
     o.blocksync_server =
         std::make_shared<fc::sync::blocksync::BlocksyncServer>(o.host, o.ipld);
 
+    OUTCOME_TRY(circulating,
+                vm::Circulating::make(o.ipld, config.genesis_cid.value()));
+
     o.vm_interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
         std::make_shared<vm::interpreter::InterpreterImpl>(
-            std::make_shared<vm::runtime::TipsetRandomness>(o.ipld)),
+            std::make_shared<vm::runtime::TipsetRandomness>(o.ipld),
+            std::move(circulating)),
         o.kv_store);
 
     o.sync_job = std::make_shared<sync::SyncJob>(

@@ -13,6 +13,7 @@
 #include "adt/channel.hpp"
 #include "common/libp2p/peer/cbor_peer_id.hpp"
 #include "common/todo_error.hpp"
+#include "const.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
@@ -78,7 +79,6 @@ namespace fc::api {
   using vm::actor::builtin::v0::miner::DeadlineInfo;
   using vm::actor::builtin::v0::miner::Deadlines;
   using vm::actor::builtin::v0::miner::MinerInfo;
-  using vm::actor::builtin::v0::miner::Partition;
   using vm::actor::builtin::v0::miner::SectorOnChainInfo;
   using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
   using vm::actor::builtin::v0::miner::SectorPreCommitOnChainInfo;
@@ -89,6 +89,7 @@ namespace fc::api {
   using vm::message::UnsignedMessage;
   using vm::runtime::ExecutionResult;
   using vm::runtime::MessageReceipt;
+  using vm::version::NetworkVersion;
   using SignatureType = crypto::signature::Type;
 
   template <typename... T>
@@ -168,11 +169,6 @@ namespace fc::api {
 
   struct MinerPower {
     Claim miner, total;
-  };
-
-  struct ChainSectorInfo {
-    SectorOnChainInfo info;
-    SectorNumber id;
   };
 
   struct MsgWait {
@@ -281,12 +277,26 @@ namespace fc::api {
     common::Blob<32> private_key;
   };
 
+  struct Partition {
+    RleBitset all, faulty, recovering, live, active;
+  };
+
   struct SectorLocation {
     uint64_t deadline;
     uint64_t partition;
   };
 
-  constexpr None kPushNoSpec{};
+  struct MessageSendSpec {
+    static TokenAmount maxFee(const boost::optional<MessageSendSpec> &spec) {
+      if (spec) {
+        return spec->max_fee;
+      }
+      return kFilecoinPrecision / 10;
+    };
+    TokenAmount max_fee;
+  };
+
+  inline const boost::optional<MessageSendSpec> kPushNoSpec;
 
   constexpr uint64_t kNoConfidence{};
 
@@ -339,6 +349,12 @@ namespace fc::api {
                const FileRef &)
     API_METHOD(ClientStartDeal, Wait<CID>, const StartDealParams &)
 
+    API_METHOD(GasEstimateMessageGas,
+               UnsignedMessage,
+               const UnsignedMessage &,
+               const boost::optional<MessageSendSpec> &,
+               const TipsetKey &)
+
     /**
      * Ensures that a storage market participant has a certain amount of
      * available funds. If additional funds are needed, they will be sent from
@@ -363,7 +379,10 @@ namespace fc::api {
                const TipsetKey &)
 
     API_METHOD(MpoolPending, std::vector<SignedMessage>, const TipsetKey &)
-    API_METHOD(MpoolPushMessage, SignedMessage, const UnsignedMessage &, None)
+    API_METHOD(MpoolPushMessage,
+               SignedMessage,
+               const UnsignedMessage &,
+               const boost::optional<MessageSendSpec> &)
     API_METHOD(MpoolSelect,
                std::vector<SignedMessage>,
                const TipsetKey &,
@@ -371,6 +390,8 @@ namespace fc::api {
     API_METHOD(MpoolSub, Chan<MpoolUpdate>)
 
     API_METHOD(NetAddrsListen, PeerInfo)
+
+    API_METHOD(PledgeSector, void)
 
     API_METHOD(StateAccountKey, Address, const Address &, const TipsetKey &)
     API_METHOD(StateCall,
@@ -411,12 +432,12 @@ namespace fc::api {
                const Address &,
                const TipsetKey &)
     API_METHOD(StateMinerSectors,
-               std::vector<ChainSectorInfo>,
+               std::vector<SectorOnChainInfo>,
                const Address &,
                const boost::optional<RleBitset> &,
-               bool,
                const TipsetKey &)
     API_METHOD(StateNetworkName, std::string)
+    API_METHOD(StateNetworkVersion, NetworkVersion, const TipsetKey &)
     API_METHOD(StateMinerPreCommitDepositForPower,
                TokenAmount,
                const Address &,
@@ -433,7 +454,7 @@ namespace fc::api {
                SectorNumber,
                const TipsetKey &);
     API_METHOD(StateSectorGetInfo,
-               SectorOnChainInfo,
+               boost::optional<SectorOnChainInfo>,
                const Address &,
                SectorNumber,
                const TipsetKey &);

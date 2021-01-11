@@ -19,6 +19,8 @@ namespace fc::vm::actor::cgo {
               const StoragePower &consensus_miner_min_power,
               const std::vector<RegisteredProof> &supported_proofs);
 
+  void configMainnet();
+
   outcome::result<Buffer> invoke(const std::shared_ptr<Execution> &exec,
                                  const UnsignedMessage &message,
                                  const CID &code,

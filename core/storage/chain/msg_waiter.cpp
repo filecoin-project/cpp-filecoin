@@ -31,7 +31,8 @@ namespace fc::storage::blockchain {
       OUTCOME_TRY(parent, ts->loadParent(*ipld));
       adt::Array<MessageReceipt> receipts{ts->getParentMessageReceipts(), ipld};
       OUTCOME_TRY(parent->visitMessages(
-          ipld, [&](auto i, auto, auto &cid) -> outcome::result<void> {
+          {ipld, true, false},
+          [&](auto i, auto, auto &cid, auto, auto) -> outcome::result<void> {
             if (apply) {
               OUTCOME_TRY(receipt, receipts.get(i));
               auto result{

@@ -98,7 +98,7 @@ class ManagerTest : public ::testing::Test {
   std::shared_ptr<LocalStoreMock> local_store_;
   std::shared_ptr<RemoteStoreMock> remote_store_;
   std::shared_ptr<SchedulerMock> scheduler_;
-  std::unique_ptr<Manager> manager_;
+  std::shared_ptr<Manager> manager_;
 
   std::string home_dir_;
 
