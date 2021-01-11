@@ -6,6 +6,7 @@
 #ifndef CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RLE_BITVEC_HPP
 #define CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RLE_BITVEC_HPP
 
+#include <cstdint>
 #include <vector>
 
 namespace fc::primitives {
