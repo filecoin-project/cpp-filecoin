@@ -236,6 +236,7 @@ namespace fc::markets::storage::provider {
                         .state = StorageDealStatus::STORAGE_DEAL_UNKNOWN,
                         .piece_path = {},
                         .metadata_path = {},
+                        .is_fast_retrieval = proposal.value().is_fast_retrieval,
                         .message = {},
                         .ref = proposal.value().piece,
                         .deal_id = {}});
@@ -675,10 +676,12 @@ namespace fc::markets::storage::provider {
       StorageDealStatus to) {
     // TODO hand off
     auto &p{deal->client_deal_proposal.proposal};
-    OUTCOME_EXCEPT(sector_blocks_->addPiece(
-        p.piece_size.unpadded(),
-        deal->piece_path,
-        {deal->deal_id, {p.start_epoch, p.end_epoch}}));
+    OUTCOME_EXCEPT(sector_blocks_->addPiece(p.piece_size.unpadded(),
+                                            deal->piece_path,
+                                            {deal->publish_cid,
+                                             deal->deal_id,
+                                             {p.start_epoch, p.end_epoch},
+                                             deal->is_fast_retrieval}));
     FSM_SEND(deal, ProviderEvent::ProviderEventDealHandedOff);
   }
 
@@ -779,8 +782,7 @@ namespace fc::markets::storage::provider {
                             deal.add_funds_cid,
                             deal.publish_cid,
                             deal.deal_id,
-                            // TODO: fast retrieval
-                            false,
+                            deal.is_fast_retrieval,
                         },
                         {}};
                     OUTCOME_EXCEPT(input, codec::cbor::encode(response.state));

@@ -108,6 +108,7 @@ namespace fc::markets::storage {
     StorageDealStatus state;
     Path piece_path;
     Path metadata_path;
+    bool is_fast_retrieval;
     std::string message;
     DataRef ref;
     DealId deal_id;
@@ -122,6 +123,7 @@ namespace fc::markets::storage {
              state,
              piece_path,
              metadata_path,
+             is_fast_retrieval,
              message,
              ref,
              deal_id)
@@ -135,6 +137,7 @@ namespace fc::markets::storage {
     Address miner_worker;
     DealId deal_id;
     DataRef data_ref;
+    bool is_fast_retrieval;
     std::string message;
     CID publish_message;
   };
@@ -148,6 +151,7 @@ namespace fc::markets::storage {
              miner_worker,
              deal_id,
              data_ref,
+             is_fast_retrieval,
              message,
              publish_message)
 
@@ -168,9 +172,10 @@ namespace fc::markets::storage {
   struct Proposal {
     ClientDealProposal deal_proposal;
     DataRef piece;
+    bool is_fast_retrieval;
   };
 
-  CBOR_TUPLE(Proposal, deal_proposal, piece)
+  CBOR_TUPLE(Proposal, deal_proposal, piece, is_fast_retrieval)
 
   /**
    * Response is a response to a proposal sent over the network

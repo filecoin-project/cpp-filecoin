@@ -131,7 +131,16 @@ namespace fc::mining {
 
   outcome::result<PieceAttributes> SealingImpl::addPieceToAnySector(
       UnpaddedPieceSize size, const PieceData &piece_data, DealInfo deal) {
-    logger_->info("Adding piece({}) to sector", size);
+    if (not deal.publish_cid.has_value()) {
+      return SealingError::kNotPublishedDeal;
+    }
+
+    OUTCOME_TRY(cid_str, deal.publish_cid.get().toString());
+
+    logger_->info("Adding piece (size = {}) for deal {} (publish msg: {})",
+                  size,
+                  deal.deal_id,
+                  cid_str);
 
     if (primitives::piece::paddedSize(size) != size) {
       return SealingError::kCannotAllocatePiece;
@@ -1284,9 +1293,9 @@ namespace fc::mining {
       const std::shared_ptr<SectorInfo> &info) {
     // TODO: Maybe wait for some finality
 
-    // TODO(artyom-yurin): [FIL-245] add Keep Unsealed
-    auto maybe_error = sealer_->finalizeSector(
-        minerSector(info->sector_number), {}, info->sealingPriority());
+    auto maybe_error = sealer_->finalizeSector(minerSector(info->sector_number),
+                                               info->keepUnsealedRanges(),
+                                               info->sealingPriority());
     if (maybe_error.has_error()) {
       logger_->error("finalize sector: {}", maybe_error.error().message());
       FSM_SEND(info, SealingEvent::kSectorFinalizeFailed);
@@ -1303,7 +1312,7 @@ namespace fc::mining {
 
     logger_->info("Proving sector {}", info->sector_number);
 
-    // TODO: release unsealed, when it will be implemented
+    // TODO: release unsealed
 
     // TODO: Watch termination
     // TODO: Auto-extend if set
@@ -1729,6 +1738,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::mining, SealingError, e) {
     case E::kSectorAllocatedError:
       return "SealingError: sectorNumber is allocated, but PreCommit info "
              "wasn't found on chain";
+    case E::kNotPublishedDeal:
+      return "SealingError: deal cid is none";
     default:
       return "SealingError: unknown error";
   }
