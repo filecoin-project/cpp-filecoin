@@ -287,13 +287,7 @@ namespace fc {
       ASSERT2(c.root_tipset);
       ASSERT2(c.genesis_cid.has_value());
 
-      using RP = primitives::sector::RegisteredProof;
-      vm::actor::cgo::config(1 << 20,
-                             primitives::StoragePower{10} << 40,
-                             {RP::StackedDRG32GiBWinningPoSt,
-                              RP::StackedDRG64GiBWinningPoSt,
-                              RP::StackedDRG32GiBWindowPoSt,
-                              RP::StackedDRG64GiBWindowPoSt});
+      vm::actor::cgo::configMainnet();
 
       auto interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
           std::make_shared<vm::interpreter::InterpreterImpl>(
