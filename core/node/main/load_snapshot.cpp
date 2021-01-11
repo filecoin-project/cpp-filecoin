@@ -314,7 +314,7 @@ namespace fc {
         }
 
         if (expected_result.has_value()) {
-          auto& result = res.value();
+          auto &result = res.value();
           if (result.state_root != expected_result->state_root) {
             fmt::print(stderr,
                        "State roots dont match at height {}\n",
@@ -329,15 +329,13 @@ namespace fc {
           }
         }
 
-        expected_result = vm::interpreter::Result {
+        expected_result = vm::interpreter::Result{
             .state_root = tipset->getParentStateRoot(),
-            .message_receipts = tipset->getParentMessageReceipts()
-        };
+            .message_receipts = tipset->getParentMessageReceipts()};
 
         ++tipsets_interpreted;
 
-        fmt::print("Interpreted height {}\n",
-                   tipset->height());
+        fmt::print("Interpreted height {}\n", tipset->height());
 
         auto parent_res = tipset->loadParent(*c.ipld);
         if (!parent_res) {
@@ -381,8 +379,8 @@ namespace fc {
   int main(int argc, char *argv[]) {
     TRY_STEP(parse_args(argc, argv));
 
-    bool must_be_empty =
-        !boost::filesystem::exists(boost::filesystem::canonical(c.storage_dir));
+    bool must_be_empty = !boost::filesystem::exists(
+        boost::filesystem::weakly_canonical(c.storage_dir));
 
     TRY_STEP(create_leveldb(must_be_empty));
     TRY_STEP(load_genesis());
@@ -390,8 +388,9 @@ namespace fc {
       TRY_STEP(load_snapshot());
     }
 
-    must_be_empty = !boost::filesystem::exists(
-        boost::filesystem::canonical(c.storage_dir + node::kIndexDbFileName));
+    must_be_empty =
+        !boost::filesystem::exists(boost::filesystem::weakly_canonical(
+            c.storage_dir + node::kIndexDbFileName));
 
     TRY_STEP(create_indexdb(must_be_empty));
     TRY_STEP(make_root_tipset());
