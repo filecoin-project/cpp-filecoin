@@ -10,9 +10,10 @@
 
 #include "common/outcome.hpp"
 
-#define VM_ASSERT(condition)                                       \
-  if (!(condition)) {                                              \
-    return outcome::failure(VMAbortExitCode{VMExitCode::kAssert}); \
+#define VM_ASSERT(condition)                                \
+  if (!(condition)) {                                       \
+    return outcome::failure(                                \
+        static_cast<VMAbortExitCode>(VMExitCode::kAssert)); \
   }
 
 namespace fc::vm {
