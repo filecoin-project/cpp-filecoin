@@ -56,7 +56,7 @@ namespace fc::vm::actor::builtin::v0::reward {
     OUTCOME_TRY(
         reward,
         calculateReward(runtime, params, state.this_epoch_reward, balance));
-    const auto [block_reward, total_reward] = reward;
+    const auto &[block_reward, total_reward] = reward;
     state.total_mined += block_reward;
     OUTCOME_TRY(runtime.commitState(state));
 

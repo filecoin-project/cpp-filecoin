@@ -140,15 +140,11 @@ namespace fc::vm::actor::builtin::v2::reward {
     constructRewardActor<Constructor>();
     const TokenAmount balance{9};
     setCurrentBalance(balance);
-
     const Address winner = Address::makeFromId(1000);
     const TokenAmount gas_reward{10};
-    auto res = AwardBlockReward::call(runtime, {winner, 0, gas_reward, 1});
-
-    EXPECT_TRUE(res.has_error());
-    auto error = res.error();
-    EXPECT_TRUE(isAbortExitCode(error));
-    EXPECT_EQ(VMAbortExitCode{VMExitCode::kErrIllegalState}, error);
+    EXPECT_OUTCOME_ERROR(
+        VMAbortExitCode{VMExitCode::kErrIllegalState},
+        AwardBlockReward::call(runtime, {winner, 0, gas_reward, 1}));
   }
 
   /**
@@ -158,15 +154,11 @@ namespace fc::vm::actor::builtin::v2::reward {
    */
   TEST_F(RewardActorV2Test, RejectNegativePenalty) {
     constructRewardActor<Constructor>();
-
     const Address winner = Address::makeFromId(1000);
     const TokenAmount penalty{-1};
-    const auto res = AwardBlockReward::call(runtime, {winner, penalty, 0, 1});
-
-    EXPECT_TRUE(res.has_error());
-    const auto error = res.error();
-    EXPECT_TRUE(isAbortExitCode(error));
-    EXPECT_EQ(VMAbortExitCode{VMExitCode::kErrIllegalArgument}, error);
+    EXPECT_OUTCOME_ERROR(
+        VMAbortExitCode{VMExitCode::kErrIllegalArgument},
+        AwardBlockReward::call(runtime, {winner, penalty, 0, 1}));
   }
 
   /**
@@ -176,16 +168,11 @@ namespace fc::vm::actor::builtin::v2::reward {
    */
   TEST_F(RewardActorV2Test, RejectNegativeReward) {
     constructRewardActor<Constructor>();
-
     const Address winner = Address::makeFromId(1000);
     const TokenAmount gas_reward{-1};
-    const auto res =
-        AwardBlockReward::call(runtime, {winner, 0, gas_reward, 1});
-
-    EXPECT_TRUE(res.has_error());
-    const auto error = res.error();
-    EXPECT_TRUE(isAbortExitCode(error));
-    EXPECT_EQ(VMAbortExitCode{VMExitCode::kErrIllegalArgument}, error);
+    EXPECT_OUTCOME_ERROR(
+        VMAbortExitCode{VMExitCode::kErrIllegalArgument},
+        AwardBlockReward::call(runtime, {winner, 0, gas_reward, 1}));
   }
 
   /**
@@ -195,15 +182,11 @@ namespace fc::vm::actor::builtin::v2::reward {
    */
   TEST_F(RewardActorV2Test, RejectZeroWinCount) {
     constructRewardActor<Constructor>();
-
     const Address winner = Address::makeFromId(1000);
     const int64_t win_count{0};
-    const auto res = AwardBlockReward::call(runtime, {winner, 0, 0, win_count});
-
-    EXPECT_TRUE(res.has_error());
-    const auto error = res.error();
-    EXPECT_TRUE(isAbortExitCode(error));
-    EXPECT_EQ(VMAbortExitCode{VMExitCode::kErrIllegalArgument}, error);
+    EXPECT_OUTCOME_ERROR(
+        VMAbortExitCode{VMExitCode::kErrIllegalArgument},
+        AwardBlockReward::call(runtime, {winner, 0, 0, win_count}));
   }
 
   /**

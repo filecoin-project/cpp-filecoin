@@ -29,7 +29,7 @@ namespace fc::vm::actor::builtin::v2::reward {
     OUTCOME_TRY(reward,
                 v0::reward::AwardBlockReward::calculateReward(
                     runtime, params, state.this_epoch_reward, balance));
-    const auto [block_reward, total_reward] = reward;
+    const auto &[block_reward, total_reward] = reward;
     state.total_storage_power_reward += block_reward;
     OUTCOME_TRY(runtime.commitState(state));
 
@@ -38,7 +38,6 @@ namespace fc::vm::actor::builtin::v2::reward {
     const TokenAmount penalty = kPenaltyMultiplier * params.penalty;
     const ApplyRewards::Params reward_params{.reward = total_reward,
                                              .penalty = penalty};
-    auto expected = penalty.str();
     const auto res =
         runtime.sendM<ApplyRewards>(miner, reward_params, total_reward);
     if (res.has_error()) {

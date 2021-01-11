@@ -127,7 +127,7 @@ namespace fc::vm::actor::builtin::v0::reward {
    * 2. serve as documentation of current error bounds
    */
   TEST_P(RewardActorCalculusV0, TestBaselineRewardGrowth) {
-    const auto [start, err_bound] = GetParam();
+    const auto &[start, err_bound] = GetParam();
     const auto end = baselineInYears(start, ChainEpoch{1});
     const auto expected = start * 3;
     const auto err = BigFloat{expected - end} / BigFloat{expected};
