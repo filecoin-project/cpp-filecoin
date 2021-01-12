@@ -16,6 +16,7 @@
 #include "vm/actor/cgo/actors.hpp"
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 #include "vm/runtime/impl/tipset_randomness.hpp"
+#include "vm/dvm/dvm.hpp"
 
 namespace fc {
 
@@ -289,6 +290,11 @@ namespace fc {
 
       vm::actor::cgo::configMainnet();
 
+      if (dvm::logger) {
+        dvm::logging = true;
+        dvm::logger->flush_on(spdlog::level::info);
+      }
+
       auto interpreter = std::make_shared<vm::interpreter::CachedInterpreter>(
           std::make_shared<vm::interpreter::InterpreterImpl>(
               std::make_shared<vm::runtime::TipsetRandomness>(c.ipld),
@@ -301,8 +307,10 @@ namespace fc {
       boost::optional<vm::interpreter::Result> expected_result;
 
       while (tipset->height() > 0) {
-        //       common::Buffer key(tipset->key.hash());
-        //       std::ignore = c.leveldb->remove(key);
+        fmt::print("Interpreting height {}\n", tipset->height());
+
+        common::Buffer key(tipset->key.hash());
+        std::ignore = c.leveldb->remove(key);
 
         auto res = interpreter->interpret(c.ipld, tipset);
         if (!res) {
@@ -334,8 +342,6 @@ namespace fc {
             .message_receipts = tipset->getParentMessageReceipts()};
 
         ++tipsets_interpreted;
-
-        fmt::print("Interpreted height {}\n", tipset->height());
 
         auto parent_res = tipset->loadParent(*c.ipld);
         if (!parent_res) {

@@ -9,6 +9,10 @@
 #include "common.hpp"
 
 namespace fc::sync {
+
+  /// Active object which constructs head tipsets from blocks coming from
+  /// pubsub. Also it keeps track of Hello protocol messages.
+  /// Emits PossibleHead events
   class HeadConstructor {
    public:
     void start(std::shared_ptr<events::Events> events);

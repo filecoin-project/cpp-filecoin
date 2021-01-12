@@ -12,6 +12,8 @@
 
 namespace fc::sync {
 
+  /// Active object which downloads and indexes tipsets. Keeps track of peers
+  /// which are also nodes (to make requests to them)
   class SyncJob {
    public:
     SyncJob(std::shared_ptr<ChainDb> chain_db,
@@ -19,6 +21,7 @@ namespace fc::sync {
             std::shared_ptr<libp2p::protocol::Scheduler> scheduler,
             IpldPtr ipld);
 
+    /// Listens to PossibleHead and PeerConnected events
     void start(std::shared_ptr<events::Events> events);
 
    private:
@@ -37,7 +40,7 @@ namespace fc::sync {
 
     void onPossibleHead(const events::PossibleHead &e);
 
-    bool adjustTarget(DownloadTarget& target);
+    bool adjustTarget(DownloadTarget &target);
 
     void enqueue(DownloadTarget target);
 

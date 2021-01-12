@@ -14,6 +14,8 @@ namespace fc::sync {
 
   class ChainDb;
 
+  /// Active objects which interprets parts of chain which are downloaded but
+  /// not yet interpreted
   class InterpretJob {
    public:
     static std::shared_ptr<InterpretJob> create(
@@ -27,6 +29,8 @@ namespace fc::sync {
 
     virtual ~InterpretJob() = default;
 
+    /// Listens to HeadDownloaded events, interprets subchains not yet
+    /// interpreted, emits HeadInterpreted events
     virtual void start(std::shared_ptr<events::Events> events) = 0;
   };
 
