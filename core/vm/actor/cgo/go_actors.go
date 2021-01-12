@@ -487,6 +487,9 @@ func export(exporter exporter) methods {
 				rParams := reflect.New(rMethod.Type().In(1).Elem())
 				e := rParams.Interface().(typegen.CBORUnmarshaler).UnmarshalCBOR(bytes.NewReader(params))
 				if e != nil {
+					if rt.NetworkVersion() >= network.Version7 {
+						abort(exitcode.ErrSerialization)
+					}
 					abort(exitcode.ExitCode(1))
 				}
 				w := new(bytes.Buffer)

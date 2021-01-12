@@ -46,7 +46,6 @@ namespace fc::api {
   using libp2p::peer::PeerId;
   using primitives::block::MsgMeta;
   using vm::isVMExitCode;
-  using vm::normalizeVMExitCode;
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
   using vm::runtime::Env;
