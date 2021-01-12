@@ -6,8 +6,8 @@
 #include "vm/interpreter/impl/interpreter_impl.hpp"
 
 #include "const.hpp"
-#include "vm/actor/builtin/cron/cron_actor.hpp"
-#include "vm/actor/builtin/reward/reward_actor.hpp"
+#include "vm/actor/builtin/v0/cron/cron_actor.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/runtime/impl/runtime_impl.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
@@ -38,8 +38,8 @@ namespace fc::vm::interpreter {
   using actor::kRewardAddress;
   using actor::kSystemActorAddress;
   using actor::MethodParams;
-  using actor::builtin::cron::EpochTick;
-  using actor::builtin::reward::AwardBlockReward;
+  using actor::builtin::v0::cron::EpochTick;
+  using actor::builtin::v0::reward::AwardBlockReward;
   using message::SignedMessage;
   using message::UnsignedMessage;
   using primitives::TokenAmount;
@@ -47,6 +47,10 @@ namespace fc::vm::interpreter {
   using primitives::tipset::MessageVisitor;
   using runtime::Env;
   using runtime::MessageReceipt;
+
+  InterpreterImpl::InterpreterImpl(
+      std::shared_ptr<RuntimeRandomness> randomness)
+      : randomness_{std::move(randomness)} {}
 
   outcome::result<Result> InterpreterImpl::interpret(
       const IpldPtr &ipld, const TipsetCPtr &tipset) const {
@@ -73,15 +77,15 @@ namespace fc::vm::interpreter {
       return InterpreterError::kDuplicateMiner;
     }
 
-    auto env =
-        std::make_shared<Env>(std::make_shared<InvokerImpl>(), ipld, tipset);
+    auto env = std::make_shared<Env>(
+        std::make_shared<InvokerImpl>(), randomness_, ipld, tipset);
 
     auto cron{[&]() -> outcome::result<void> {
       OUTCOME_TRY(receipt,
                   env->applyImplicitMessage(UnsignedMessage{
                       kCronAddress,
                       kSystemActorAddress,
-                      {},
+                      env->epoch,
                       0,
                       0,
                       kBlockGasLimit * 10000,
@@ -134,7 +138,7 @@ namespace fc::vm::interpreter {
                   env->applyImplicitMessage(UnsignedMessage{
                       kRewardAddress,
                       kSystemActorAddress,
-                      {},
+                      tipset->height(),
                       0,
                       0,
                       1 << 30,

@@ -5,6 +5,7 @@
 
 #include "primitives/address/address.hpp"
 
+#include "common/cmp.hpp"
 #include "common/visitor.hpp"
 #include "crypto/blake2/blake2b160.hpp"
 
@@ -65,22 +66,20 @@ namespace fc::primitives::address {
         [](const BLSPublicKeyHash &v) { return Protocol::BLS; });
   }
 
-  Address Address::makeFromId(uint64_t id, Network network) {
-    return {network, id};
+  Address Address::makeFromId(uint64_t id) {
+    return {id};
   }
 
-  Address Address::makeSecp256k1(const Sec256k1PublicKey &public_key,
-                                 Network network) {
-    return {network, Secp256k1PublicKeyHash{blake2b_160(public_key)}};
+  Address Address::makeSecp256k1(const Sec256k1PublicKey &public_key) {
+    return {Secp256k1PublicKeyHash{blake2b_160(public_key)}};
   }
 
-  Address Address::makeActorExec(gsl::span<const uint8_t> data,
-                                 Network network) {
-    return {network, ActorExecHash{blake2b_160(data)}};
+  Address Address::makeActorExec(gsl::span<const uint8_t> data) {
+    return {ActorExecHash{blake2b_160(data)}};
   }
 
-  Address Address::makeBls(const BlsPublicKey &public_key, Network network) {
-    return {network, BLSPublicKeyHash{public_key}};
+  Address Address::makeBls(const BlsPublicKey &public_key) {
+    return {BLSPublicKeyHash{public_key}};
   }
 
   uint64_t Address::getId() const {
@@ -112,7 +111,7 @@ namespace fc::primitives::address {
   }
 
   bool operator==(const Address &lhs, const Address &rhs) {
-    return lhs.network == rhs.network && lhs.data == rhs.data;
+    return lhs.data == rhs.data;
   }
 
   bool operator!=(const Address &lhs, const Address &rhs) {
@@ -120,11 +119,7 @@ namespace fc::primitives::address {
   }
 
   bool operator<(const Address &lhs, const Address &rhs) {
-    return lhs.network < rhs.network
-           || (lhs.network == rhs.network
-               && (lhs.getProtocol() < rhs.getProtocol()
-                   || (lhs.getProtocol() == rhs.getProtocol()
-                       && lhs.data < rhs.data)));
+    return less(lhs.getProtocol(), rhs.getProtocol(), lhs.data, rhs.data);
   }
 
 };  // namespace fc::primitives::address

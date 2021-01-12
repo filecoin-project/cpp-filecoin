@@ -27,6 +27,7 @@ namespace fc::api::rpc {
     using ChanCb = std::function<bool(boost::optional<Document>)>;
 
     Client(io_context &io2);
+    ~Client();
     outcome::result<void> connect(const Multiaddress &address,
                                   const std::string &token);
     void call(Request &&req, ResultCb &&cb);

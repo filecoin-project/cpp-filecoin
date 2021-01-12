@@ -18,6 +18,16 @@
                 std::remove_reference_t<Stream>::is_cbor_decoder_stream>> \
   Stream &operator>>(Stream &&s, type &var)
 
+#define CBOR2_DECODE(type)                       \
+  fc::codec::cbor::CborDecodeStream &operator>>( \
+      fc::codec::cbor::CborDecodeStream &s, type &v)
+#define CBOR2_ENCODE(type)                       \
+  fc::codec::cbor::CborEncodeStream &operator<<( \
+      fc::codec::cbor::CborEncodeStream &s, const type &v)
+#define CBOR2_DECODE_ENCODE(type) \
+  CBOR2_DECODE(type);             \
+  CBOR2_ENCODE(type);
+
 #define _CBOR_TUPLE_1(op, m) op t.m
 #define _CBOR_TUPLE_2(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_1(op, __VA_ARGS__)
@@ -49,6 +59,14 @@
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_14(op, __VA_ARGS__)
 #define _CBOR_TUPLE_16(op, m, ...) \
   _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_15(op, __VA_ARGS__)
+#define _CBOR_TUPLE_17(op, m, ...) \
+  _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_16(op, __VA_ARGS__)
+#define _CBOR_TUPLE_18(op, m, ...) \
+  _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_17(op, __VA_ARGS__)
+#define _CBOR_TUPLE_19(op, m, ...) \
+  _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_18(op, __VA_ARGS__)
+#define _CBOR_TUPLE_20(op, m, ...) \
+  _CBOR_TUPLE_1(op, m) _CBOR_TUPLE_19(op, __VA_ARGS__)
 #define _CBOR_TUPLE_V(_1,  \
                       _2,  \
                       _3,  \
@@ -65,11 +83,19 @@
                       _14, \
                       _15, \
                       _16, \
+                      _17, \
+                      _18, \
+                      _19, \
+                      _20, \
                       f,   \
                       ...) \
   f
 #define _CBOR_TUPLE(op, ...)    \
   _CBOR_TUPLE_V(__VA_ARGS__,    \
+                _CBOR_TUPLE_20, \
+                _CBOR_TUPLE_19, \
+                _CBOR_TUPLE_18, \
+                _CBOR_TUPLE_17, \
                 _CBOR_TUPLE_16, \
                 _CBOR_TUPLE_15, \
                 _CBOR_TUPLE_14, \
@@ -100,6 +126,16 @@
     return s;                              \
   }
 
+#define CBOR_TUPLE_0(T) \
+  CBOR_ENCODE(T, t) {   \
+    s << s.list();      \
+    return s;           \
+  }                     \
+  CBOR_DECODE(T, t) {   \
+    s.list();           \
+    return s;           \
+  }
+
 namespace fc::codec::cbor {
   /**
    * Default value for CBORed value instantiation
@@ -111,6 +147,9 @@ namespace fc::codec::cbor {
   inline T kDefaultT() {
     return {};
   }
+
+  class CborDecodeStream;
+  class CborEncodeStream;
 }  // namespace fc::codec::cbor
 
 #endif  // CPP_FILECOIN_STREAMS_ANNOTATION_HPP

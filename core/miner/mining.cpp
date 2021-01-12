@@ -6,7 +6,7 @@
 #include "miner/mining.hpp"
 
 #include "const.hpp"
-#include "vm/actor/builtin/market/policy.hpp"
+#include "vm/actor/builtin/v0/market/policy.hpp"
 #include "vm/runtime/pricelist.hpp"
 
 #define OUTCOME_LOG(tag, r)                               \
@@ -23,17 +23,22 @@ namespace fc::mining {
   using crypto::randomness::drawRandomness;
   using BlsSignature = crypto::bls::Signature;
 
-  std::shared_ptr<Mining> Mining::create(std::shared_ptr<Scheduler> scheduler,
-                                         std::shared_ptr<UTCClock> clock,
-                                         std::shared_ptr<Api> api,
-                                         std::shared_ptr<Prover> prover,
-                                         const Address &miner) {
+  outcome::result<std::shared_ptr<Mining>> Mining::create(
+      std::shared_ptr<Scheduler> scheduler,
+      std::shared_ptr<UTCClock> clock,
+      std::shared_ptr<Api> api,
+      std::shared_ptr<Prover> prover,
+      const Address &miner) {
+    OUTCOME_TRY(version, api->Version());
     auto mining{std::make_shared<Mining>()};
     mining->scheduler = scheduler;
     mining->clock = clock;
     mining->api = api;
     mining->prover = prover;
     mining->miner = miner;
+    mining->block_delay = version.block_delay;
+    mining->propagation =
+        std::min<uint64_t>(kPropagationDelaySecs, mining->block_delay * 0.3f);
     return mining;
   }
 
@@ -43,7 +48,7 @@ namespace fc::mining {
 
   void Mining::waitParent() {
     OUTCOME_LOG("Mining::waitParent error", bestParent());
-    wait(ts->getMinTimestamp() + kPropagationDelaySecs, true, [this] {
+    wait(ts->getMinTimestamp() + propagation, true, [this] {
       OUTCOME_LOG("Mining::waitBeacon error", waitBeacon());
     });
   }
@@ -60,7 +65,7 @@ namespace fc::mining {
   outcome::result<void> Mining::waitInfo() {
     OUTCOME_TRY(bestParent());
     if (!mined.emplace(ts->key, skip).second) {
-      wait(kBlockDelaySecs, false, [this] { waitParent(); });
+      wait(block_delay, false, [this] { waitParent(); });
     } else {
       OUTCOME_TRY(_wait, api->MinerGetBaseInfo(miner, height(), ts->key));
       _wait.waitOwn([self{shared_from_this()}](auto _info) {
@@ -74,7 +79,7 @@ namespace fc::mining {
 
   outcome::result<void> Mining::prepare() {
     OUTCOME_TRY(block1, prepareBlock());
-    auto time{ts->getMinTimestamp() + (skip + 1) * kBlockDelaySecs};
+    auto time{ts->getMinTimestamp() + (skip + 1) * block_delay};
     if (block1) {
       block1->timestamp = time;
       wait(time, true, [this, block1{std::move(*block1)}]() {
@@ -82,7 +87,7 @@ namespace fc::mining {
       });
     } else {
       ++skip;
-      wait(time + kPropagationDelaySecs, true, [this] { waitParent(); });
+      wait(time + propagation, true, [this] { waitParent(); });
     }
     return outcome::success();
   }
@@ -90,8 +95,9 @@ namespace fc::mining {
   outcome::result<void> Mining::submit(BlockTemplate block1) {
     // TODO: slash filter
     OUTCOME_TRY(block2, api->MinerCreateBlock(block1));
-    OUTCOME_TRY(api->SyncSubmitBlock(block2));
+    auto result{api->SyncSubmitBlock(block2)};
     waitParent();
+    OUTCOME_TRY(result);
     return outcome::success();
   }
 
@@ -151,6 +157,12 @@ namespace fc::mining {
       auto win_count{computeWinCount(
           election_vrf, info->miner_power, info->network_power)};
       if (win_count > 0) {
+        spdlog::info("height={} win={} power={}% ticket={}",
+                     height(),
+                     win_count,
+                     bigdiv(100 * info->miner_power, info->network_power),
+                     common::hex_lower(election_vrf));
+
         auto ticket_seed{miner_seed};
         if (height() > kUpgradeSmokeHeight) {
           ticket_seed.put(ts->getMinTicketBlock().ticket->bytes);
@@ -168,9 +180,8 @@ namespace fc::mining {
                                DomainSeparationTag::WinningPoStChallengeSeed,
                                height(),
                                miner_seed)));
-        OUTCOME_TRY(
-            messages,
-            api->MpoolSelect(ts->key, ticketQuality(ticket_vrf)));
+        OUTCOME_TRY(messages,
+                    api->MpoolSelect(ts->key, ticketQuality(ticket_vrf)));
         return BlockTemplate{
             miner,
             ts->key.cids(),

@@ -10,13 +10,12 @@
 #include "crypto/secp256k1/impl/secp256k1_provider_impl.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/keystore/impl/in_memory/in_memory_keystore.hpp"
-#include "vm/actor/builtin/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/cgo/c_actors.h"
 #include "vm/actor/cgo/go_actors.h"
-#include "vm/runtime/env.hpp"
-#include "vm/version.hpp"
-
 #include "vm/dvm/dvm.hpp"
+#include "vm/runtime/env.hpp"
+#include "vm/runtime/impl/runtime_impl.hpp"
 
 #define RUNTIME_METHOD(name)                                         \
   void rt_##name(Runtime &, CborDecodeStream &, CborEncodeStream &); \
@@ -26,7 +25,7 @@
   void rt_##name(Runtime &rt, CborDecodeStream &arg, CborEncodeStream &ret)
 
 namespace fc::vm::actor::cgo {
-  using builtin::account::AccountActorState;
+  using builtin::v0::account::AccountActorState;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
@@ -38,10 +37,9 @@ namespace fc::vm::actor::cgo {
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using runtime::resolveKey;
+  using runtime::RuntimeImpl;
   using storage::hamt::HamtError;
   using vm::version::getNetworkVersion;
-
-  bool test_vectors{false};
 
   void config(const StoragePower &min_verified_deal_size,
               const StoragePower &consensus_miner_min_power,
@@ -58,12 +56,7 @@ namespace fc::vm::actor::cgo {
   constexpr auto kFatal{VMExitCode::kFatal};
   constexpr auto kOk{VMExitCode::kOk};
 
-  struct Runtime {
-    std::shared_ptr<Execution> exec;
-    Address to;
-  };
-
-  static std::map<size_t, Runtime> runtimes;
+  static std::map<size_t, RuntimeImpl> runtimes;
   static size_t next_runtime{0};
 
   static storage::keystore::InMemoryKeyStore keystore{
@@ -77,11 +70,12 @@ namespace fc::vm::actor::cgo {
                                  BytesIn params) {
     CborEncodeStream arg;
     auto id{next_runtime++};  // TODO: mod
-    auto version{getNetworkVersion(exec->env->epoch)};
-    arg << id << version << message.from << message.to
-        << exec->env->epoch << message.value << code << method
-        << params;
-    runtimes.emplace(id, Runtime{exec, message.to});
+    auto runtime =
+        RuntimeImpl(exec, exec->env->randomness, message, message.from);
+    auto version{runtime.getNetworkVersion()};
+    arg << id << version << message.from << message.to << exec->env->epoch
+        << message.value << code << method << params;
+    runtimes.emplace(id, runtime);
     auto ret{cgoCall<cgoActorsInvoke>(arg)};
     runtimes.erase(id);
     auto exit{ret.get<VMExitCode>()};
@@ -105,13 +99,13 @@ namespace fc::vm::actor::cgo {
   }
 
   inline auto charge(CborEncodeStream &ret, Runtime &rt, GasAmount gas) {
-    return !chargeFatal(ret, rt.exec->chargeGas(gas));
+    return !chargeFatal(ret, rt.execution()->chargeGas(gas));
   }
 
   inline boost::optional<Buffer> ipldGet(CborEncodeStream &ret,
                                          Runtime &rt,
                                          const CID &cid) {
-    if (auto r{rt.exec->charging_ipld->get(cid)}) {
+    if (auto r{rt.execution()->charging_ipld->get(cid)}) {
       return std::move(r.value());
     } else {
       chargeFatal(ret, r);
@@ -123,24 +117,12 @@ namespace fc::vm::actor::cgo {
                                       Runtime &rt,
                                       BytesIn value) {
     OUTCOME_EXCEPT(cid, common::getCidOf(value));
-    if (auto r{rt.exec->charging_ipld->set(cid, Buffer{value})}) {
+    if (auto r{rt.execution()->charging_ipld->set(cid, Buffer{value})}) {
       return std::move(cid);
     } else {
       chargeFatal(ret, r);
     }
     return {};
-  }
-
-  inline outcome::result<Randomness> generateRandomness(Runtime &rt,
-                                                        CborDecodeStream &arg) {
-    auto beacon{arg.get<bool>()};
-    auto tag{arg.get<DomainSeparationTag>()};
-    auto round{arg.get<ChainEpoch>()};
-    auto seed{arg.get<Buffer>()};
-    auto &ts{rt.exec->env->tipset};
-    auto &ipld{*rt.exec->env->ipld};
-    return beacon ? ts->beaconRandomness(ipld, tag, round, seed)
-                  : ts->ticketRandomness(ipld, tag, round, seed);
   }
 
   RUNTIME_METHOD(gocRtIpldGet) {
@@ -152,7 +134,6 @@ namespace fc::vm::actor::cgo {
   RUNTIME_METHOD(gocRtIpldPut) {
     auto buf = arg.get<Buffer>();
     if (auto cid{ipldPut(ret, rt, buf)}) {
-      dvm::onIpldSet(*cid, buf);
       ret << kOk << *cid;
     }
   }
@@ -163,12 +144,23 @@ namespace fc::vm::actor::cgo {
     }
   }
 
-  RUNTIME_METHOD(gocRtRand) {
-    // see lotus conformance tests v0.10.0
-    // (https://github.com/filecoin-project/lotus/blob/v0.10.0/conformance/rand_fixed.go)
-    auto r = test_vectors ? crypto::randomness::Randomness::fromString(
-                 "i_am_random_____i_am_random_____")
-                          : generateRandomness(rt, arg);
+  RUNTIME_METHOD(gocRtRandomnessFromTickets) {
+    auto tag{arg.get<DomainSeparationTag>()};
+    auto round{arg.get<ChainEpoch>()};
+    auto seed{arg.get<Buffer>()};
+    auto r = rt.getRandomnessFromTickets(tag, round, seed);
+    if (!r) {
+      ret << kFatal;
+    } else {
+      ret << kOk << r.value();
+    }
+  }
+
+  RUNTIME_METHOD(gocRtRandomnessFromBeacon) {
+    auto tag{arg.get<DomainSeparationTag>()};
+    auto round{arg.get<ChainEpoch>()};
+    auto seed{arg.get<Buffer>()};
+    auto r = rt.getRandomnessFromBeacon(tag, round, seed);
     if (!r) {
       ret << kFatal;
     } else {
@@ -177,14 +169,14 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtBlake) {
-    if (charge(ret, rt, rt.exec->env->pricelist.onHashing())) {
+    if (charge(ret, rt, rt.execution()->env->pricelist.onHashing())) {
       ret << kOk << crypto::blake2b::blake2b_256(arg.get<Buffer>());
     }
   }
 
   RUNTIME_METHOD(gocRtVerifyPost) {
     auto info{arg.get<WindowPoStVerifyInfo>()};
-    if (charge(ret, rt, rt.exec->env->pricelist.onVerifyPost(info))) {
+    if (charge(ret, rt, rt.execution()->env->pricelist.onVerifyPost(info))) {
       info.randomness[31] &= 0x3f;
       auto r{proofs::Proofs::verifyWindowPoSt(info)};
       ret << kOk << (r && r.value());
@@ -201,7 +193,7 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtActorId) {
-    auto r{rt.exec->state_tree->lookupId(arg.get<Address>())};
+    auto r{rt.execution()->state_tree->lookupId(arg.get<Address>())};
     if (!r) {
       if (r.error() == HamtError::kNotFound) {
         ret << kOk << false;
@@ -215,12 +207,12 @@ namespace fc::vm::actor::cgo {
 
   RUNTIME_METHOD(gocRtSend) {
     UnsignedMessage m;
-    m.from = rt.to;
+    m.from = rt.getMessage().get().to;
     m.to = arg.get<Address>();
     m.method = arg.get<uint64_t>();
     m.params = arg.get<Buffer>();
     m.value = arg.get<TokenAmount>();
-    auto r{rt.exec->sendWithRevert(m)};
+    auto r{rt.execution()->sendWithRevert(m)};
     if (!r) {
       auto &e{r.error()};
       if (!isVMExitCode(e) || e == kFatal) {
@@ -228,25 +220,26 @@ namespace fc::vm::actor::cgo {
       } else {
         ret << kOk << e.value();
 
-        dvm::onReceipt({VMExitCode{e.value()}, {}, rt.exec->gas_used});
+        dvm::onReceipt({VMExitCode{e.value()}, {}, rt.execution()->gas_used});
       }
     } else {
       ret << kOk << kOk << r.value();
 
       dvm::onReceipt(
-          {VMExitCode::kOk, std::move(r.value()), rt.exec->gas_used});
+          {VMExitCode::kOk, std::move(r.value()), rt.execution()->gas_used});
     }
   }
 
   RUNTIME_METHOD(gocRtVerifySig) {
     auto _sig{arg.get<Buffer>()};
     auto bls{!_sig.empty() && _sig[0] == crypto::signature::BLS};
-    if (charge(ret, rt, rt.exec->env->pricelist.onVerifySignature(bls))) {
+    if (charge(
+            ret, rt, rt.execution()->env->pricelist.onVerifySignature(bls))) {
       auto address{arg.get<Address>()};
       auto ok{address.isKeyType()};
       if (address.isId()) {
         // resolve id address to key address
-        if (auto actor{rt.exec->state_tree->get(address)}) {
+        if (auto actor{rt.execution()->state_tree->get(address)}) {
           if (auto state{ipldGet(ret, rt, actor.value().head)}) {
             if (auto account{
                     codec::cbor::decode<AccountActorState>(state.value())}) {
@@ -272,7 +265,9 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtCommD) {
-    if (charge(ret, rt, rt.exec->env->pricelist.onComputeUnsealedSectorCid())) {
+    if (charge(ret,
+               rt,
+               rt.execution()->env->pricelist.onComputeUnsealedSectorCid())) {
       auto type{arg.get<RegisteredProof>()};
       auto pieces{arg.get<std::vector<PieceInfo>>()};
       if (auto r{proofs::Proofs::generateUnsealedCID(type, pieces, true)}) {
@@ -284,7 +279,7 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtNewAddress) {
-    auto &exec{*rt.exec};
+    auto &exec{*rt.execution()};
     if (auto _key{resolveKey(*exec.state_tree, exec.origin)}) {
       if (auto _seed{codec::cbor::encode(_key.value())}) {
         auto &seed{_seed.value()};
@@ -304,11 +299,12 @@ namespace fc::vm::actor::cgo {
     auto code{arg.get<CID>()};
     auto address{arg.get<Address>()};
     if (!actor::isBuiltinActor(code) || actor::isSingletonActor(code)
-        || rt.exec->state_tree->get(address)) {
+        || rt.execution()->state_tree->get(address)) {
       ret << VMExitCode::kSysErrorIllegalArgument;
-    } else if (charge(ret, rt, rt.exec->env->pricelist.onCreateActor())) {
-      if (rt.exec->state_tree->set(address,
-                                   {code, actor::kEmptyObjectCid, 0, 0})) {
+    } else if (charge(
+                   ret, rt, rt.execution()->env->pricelist.onCreateActor())) {
+      if (rt.execution()->state_tree->set(
+              address, {code, actor::kEmptyObjectCid, 0, 0})) {
         ret << kOk;
       } else {
         ret << kFatal;
@@ -317,7 +313,7 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtActorCode) {
-    if (auto _actor{rt.exec->state_tree->get(arg.get<Address>())}) {
+    if (auto _actor{rt.execution()->state_tree->get(arg.get<Address>())}) {
       ret << kOk << true << _actor.value().code;
     } else {
       if (_actor.error() == HamtError::kNotFound) {
@@ -329,19 +325,16 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtActorBalance) {
-    if (auto _actor{rt.exec->state_tree->get(rt.to)}) {
-      ret << kOk << _actor.value().balance;
+    if (auto balance{rt.getBalance(rt.getMessage().get().to)}) {
+      ret << kOk << balance.value();
     } else {
-      if (_actor.error() == HamtError::kNotFound) {
-        ret << kOk << TokenAmount{0};
-      } else {
-        ret << kFatal;
-      }
+      ret << kFatal;
     }
   }
 
   RUNTIME_METHOD(gocRtStateGet) {
-    if (auto _actor{rt.exec->state_tree->get(rt.to)}) {
+    if (auto _actor{
+            rt.execution()->state_tree->get(rt.getMessage().get().to)}) {
       auto &head{_actor.value().head};
       if (auto state{ipldGet(ret, rt, head)}) {
         ret << kOk << true << *state;
@@ -356,13 +349,15 @@ namespace fc::vm::actor::cgo {
 
   RUNTIME_METHOD(gocRtStateCommit) {
     if (auto cid{ipldPut(ret, rt, arg.get<Buffer>())}) {
-      if (auto _actor{rt.exec->state_tree->get(rt.to)}) {
+      if (auto _actor{
+              rt.execution()->state_tree->get(rt.getMessage().get().to)}) {
         auto &actor{_actor.value()};
         if (actor.head != arg.get<CID>()) {
           ret << kFatal;
         } else {
           actor.head = *cid;
-          if (rt.exec->state_tree->set(rt.to, actor)) {
+          if (rt.execution()->state_tree->set(rt.getMessage().get().to,
+                                              actor)) {
             ret << kOk;
           } else {
             ret << kFatal;
@@ -375,13 +370,13 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtDeleteActor) {
-    if (charge(ret, rt, rt.exec->env->pricelist.onDeleteActor())) {
+    if (charge(ret, rt, rt.execution()->env->pricelist.onDeleteActor())) {
       auto to{arg.get<Address>()};
-      auto &state{*rt.exec->state_tree};
-      if (auto _actor{state.get(rt.to)}) {
+      auto &state{*rt.execution()->state_tree};
+      if (auto _actor{state.get(rt.getMessage().get().to)}) {
         auto &balance{_actor.value().balance};
         auto transfer{[&]() -> outcome::result<void> {
-          OUTCOME_TRY(from_id, state.lookupId(rt.to));
+          OUTCOME_TRY(from_id, state.lookupId(rt.getMessage().get().to));
           OUTCOME_TRY(to_id, state.lookupId(to));
           if (from_id != to_id) {
             OUTCOME_TRY(from_actor, state.get(from_id));
@@ -394,7 +389,7 @@ namespace fc::vm::actor::cgo {
           return outcome::success();
         }};
         if (balance.is_zero() || transfer()) {
-          if (state.remove(rt.to)) {
+          if (state.remove(rt.getMessage().get().to)) {
             ret << kOk;
           } else {
             ret << kFatal;

@@ -53,11 +53,11 @@ namespace fc::api {
   using rapidjson::Value;
   using sector_storage::stores::LocalPath;
   using sector_storage::stores::StorageConfig;
-  using vm::actor::builtin::miner::PowerPair;
-  using vm::actor::builtin::miner::SectorPreCommitInfo;
-  using vm::actor::builtin::miner::WorkerKeyChange;
-  using vm::actor::builtin::payment_channel::Merge;
-  using vm::actor::builtin::payment_channel::ModularVerificationParameter;
+  using vm::actor::builtin::v0::miner::PowerPair;
+  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
+  using vm::actor::builtin::v0::miner::WorkerKeyChange;
+  using vm::actor::builtin::v0::payment_channel::Merge;
+  using vm::actor::builtin::v0::payment_channel::ModularVerificationParameter;
   using base64 = cppcodec::base64_rfc4648;
 
   struct Codec {
@@ -198,6 +198,14 @@ namespace fc::api {
     }
 
     DECODE(RegisteredProof) {
+      decodeEnum(v, j);
+    }
+
+    ENCODE(NetworkVersion) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(NetworkVersion) {
       decodeEnum(v, j);
     }
 
@@ -478,6 +486,16 @@ namespace fc::api {
       decodeEnum(v, j);
     }
 
+    ENCODE(MessageSendSpec) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "MaxFee", v.max_fee);
+      return j;
+    }
+
+    DECODE(MessageSendSpec) {
+      Get(j, "MaxFee", v.max_fee);
+    }
+
     ENCODE(Deadlines) {
       Value j{rapidjson::kObjectType};
       Set(j, "Due", v.due);
@@ -688,13 +706,11 @@ namespace fc::api {
     }
 
     ENCODE(RleBitset) {
-      return encode(std::vector<uint64_t>{v.begin(), v.end()});
+      return encode(codec::rle::toRuns(v));
     }
 
     DECODE(RleBitset) {
-      std::vector<uint64_t> values;
-      decode(values, j);
-      v = {values.begin(), values.end()};
+      v = codec::rle::fromRuns(decode<codec::rle::Runs64>(j));
     }
 
     ENCODE(UnsignedMessage) {
@@ -814,28 +830,20 @@ namespace fc::api {
 
     ENCODE(Partition) {
       Value j{rapidjson::kObjectType};
-      Set(j, "Sectors", v.sectors);
-      Set(j, "Faults", v.faults);
-      Set(j, "Recoveries", v.recoveries);
-      Set(j, "Terminated", v.terminated);
-      Set(j, "ExpirationsEpochs", v.expirations_epochs);
-      Set(j, "EarlyTerminated", v.early_terminated);
-      Set(j, "LivePower", v.live_power);
-      Set(j, "FaultyPower", v.faulty_power);
-      Set(j, "RecoveringPower", v.recovering_power);
+      Set(j, "AllSectors", v.all);
+      Set(j, "FaultySectors", v.faulty);
+      Set(j, "RecoveringSectors", v.recovering);
+      Set(j, "LiveSectors", v.live);
+      Set(j, "ActiveSectors", v.active);
       return j;
     }
 
     DECODE(Partition) {
-      Get(j, "Sectors", v.sectors);
-      Get(j, "Faults", v.faults);
-      Get(j, "Recoveries", v.recoveries);
-      Get(j, "Terminated", v.terminated);
-      Get(j, "ExpirationsEpochs", v.expirations_epochs);
-      Get(j, "EarlyTerminated", v.early_terminated);
-      Get(j, "LivePower", v.live_power);
-      Get(j, "FaultyPower", v.faulty_power);
-      Get(j, "RecoveringPower", v.recovering_power);
+      Get(j, "AllSectors", v.all);
+      Get(j, "FaultySectors", v.faulty);
+      Get(j, "RecoveringSectors", v.recovering);
+      Get(j, "LiveSectors", v.live);
+      Get(j, "ActiveSectors", v.active);
     }
 
     ENCODE(SectorPreCommitInfo) {
@@ -906,18 +914,6 @@ namespace fc::api {
       decode(v.expected_storage_pledge, Get(j, "ExpectedStoragePledge"));
     }
 
-    ENCODE(ChainSectorInfo) {
-      Value j{rapidjson::kObjectType};
-      Set(j, "Info", v.info);
-      Set(j, "ID", v.id);
-      return j;
-    }
-
-    DECODE(ChainSectorInfo) {
-      decode(v.info, Get(j, "Info"));
-      decode(v.id, Get(j, "ID"));
-    }
-
     ENCODE(ModularVerificationParameter) {
       Value j{rapidjson::kObjectType};
       Set(j, "Actor", v.actor);
@@ -946,6 +942,7 @@ namespace fc::api {
 
     ENCODE(SignedVoucher) {
       Value j{rapidjson::kObjectType};
+      Set(j, "ChannelAddr", v.channel);
       Set(j, "TimeLockMin", v.time_lock_min);
       Set(j, "TimeLockMax", v.time_lock_max);
       Set(j, "SecretPreimage", gsl::make_span(v.secret_preimage));
@@ -960,6 +957,7 @@ namespace fc::api {
     }
 
     DECODE(SignedVoucher) {
+      Get(j, "ChannelAddr", v.channel);
       decode(v.time_lock_min, Get(j, "TimeLockMin"));
       decode(v.time_lock_max, Get(j, "TimeLockMax"));
       decode(v.secret_preimage, Get(j, "SecretPreimage"));

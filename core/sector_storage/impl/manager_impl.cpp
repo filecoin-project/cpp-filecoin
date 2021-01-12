@@ -675,7 +675,7 @@ namespace fc::sector_storage {
     return std::move(result);
   }
 
-  outcome::result<std::unique_ptr<Manager>> ManagerImpl::newManager(
+  outcome::result<std::shared_ptr<Manager>> ManagerImpl::newManager(
       const std::shared_ptr<stores::RemoteStore> &remote,
       const std::shared_ptr<Scheduler> &scheduler,
       const SealerConfig &config) {

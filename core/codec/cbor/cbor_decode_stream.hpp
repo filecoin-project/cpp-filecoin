@@ -141,6 +141,8 @@ namespace fc::codec::cbor {
     std::vector<uint8_t> raw();
     /** Creates map container decode substream map */
     std::map<std::string, CborDecodeStream> map();
+    static CborDecodeStream &named(std::map<std::string, CborDecodeStream> &map,
+                                   const std::string &name);
     /// Returns bytestring length
     size_t bytesLength() const;
 

@@ -23,12 +23,12 @@ namespace fc::data_transfer {
    * DataTransferRequest is a request message for the data transfer protocol
    */
   struct DataTransferRequest {
-    CID base_cid;
+    boost::optional<CID> base_cid;
     MessageType type{};
     bool is_pause{};
     bool is_part{};
     bool is_pull{};
-    Selector selector;
+    boost::optional<Selector> selector;
     boost::optional<CborRaw> voucher;
     std::string voucher_type;
     TransferId transfer_id{};
@@ -78,6 +78,10 @@ namespace fc::data_transfer {
     inline bool operator==(const DataTransferMessage &other) const {
       return is_request == other.is_request && request == other.request
              && response == other.response;
+    }
+
+    inline auto dtid() const {
+      return is_request ? request->transfer_id : response->transfer_id;
     }
   };
 

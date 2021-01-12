@@ -10,7 +10,7 @@
 #include <mutex>
 #include "api/miner_api.hpp"
 #include "common/logger.hpp"
-#include "data_transfer/manager.hpp"
+#include "data_transfer/dt.hpp"
 #include "fsm/fsm.hpp"
 #include "markets/common.hpp"
 #include "markets/pieceio/pieceio.hpp"
@@ -41,7 +41,7 @@ namespace fc::markets::storage::provider {
       fsm::Transition<ProviderEvent, void, StorageDealStatus, MinerDeal>;
   using ProviderFSM =
       fsm::FSM<ProviderEvent, void, StorageDealStatus, MinerDeal>;
-  using DataTransfer = data_transfer::Manager;
+  using data_transfer::DataTransfer;
 
   const EpochDuration kDefaultDealAcceptanceBuffer{100};
 
@@ -49,7 +49,6 @@ namespace fc::markets::storage::provider {
 
   class StorageProviderImpl
       : public StorageProvider,
-        public data_transfer::Subscriber,
         public std::enable_shared_from_this<StorageProviderImpl> {
    public:
     StorageProviderImpl(const RegisteredProof &registered_proof,
@@ -58,7 +57,7 @@ namespace fc::markets::storage::provider {
                         std::shared_ptr<DataTransfer> datatransfer,
                         std::shared_ptr<StoredAsk> stored_ask,
                         std::shared_ptr<boost::asio::io_context> context,
-                        std::shared_ptr<Datastore> datastore,
+                        std::shared_ptr<PieceStorage> piece_storage,
                         std::shared_ptr<Api> api,
                         std::shared_ptr<SectorBlocks> sector_blocks,
                         std::shared_ptr<ChainEvents> events,
@@ -66,8 +65,7 @@ namespace fc::markets::storage::provider {
                         std::shared_ptr<PieceIO> piece_io,
                         std::shared_ptr<FileStore> filestore);
 
-    void notify(const data_transfer::Event &event,
-                const data_transfer::ChannelState &channel_state) override;
+    std::shared_ptr<MinerDeal> getDealPtr(const CID &proposal_cid);
 
     auto init() -> outcome::result<void> override;
 
@@ -83,7 +81,7 @@ namespace fc::markets::storage::provider {
 
     auto getStorageCollateral() -> outcome::result<TokenAmount> override;
 
-    auto importDataForDeal(const CID &proposal_cid, const Buffer &data)
+    auto importDataForDeal(const CID &proposal_cid, const std::string &path)
         -> outcome::result<void> override;
 
     outcome::result<Signature> sign(const Buffer &input);

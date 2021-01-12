@@ -16,6 +16,10 @@ namespace boost {
 namespace libp2p {
   struct Host;
 
+  namespace connection {
+    class Stream;
+  }  // namespace connection
+
   namespace peer {
     class PeerId;
     class PeerInfo;

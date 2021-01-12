@@ -7,17 +7,17 @@
 
 #include <gtest/gtest.h>
 
+#include "const.hpp"
 #include "testutil/outcome.hpp"
 
 using fc::clock::ChainEpoch;
 using fc::clock::ChainEpochClockImpl;
-using fc::clock::kEpochDuration;
 using fc::clock::UnixTime;
 
 static UnixTime kGenesisTime{1};
 static UnixTime kSec1{1};
 static ChainEpoch kEpoch(3);
-static UnixTime kSecEpoch{kEpoch * kEpochDuration};
+static UnixTime kSecEpoch{kEpoch * fc::kEpochDurationSeconds};
 
 class ChainEpochClockTest : public ::testing::Test {
  public:

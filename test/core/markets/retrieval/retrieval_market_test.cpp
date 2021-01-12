@@ -19,6 +19,8 @@ namespace fc::markets::retrieval::test {
    * @then Provider must answer with QueryResponse with available item status
    */
   TEST_F(RetrievalMarketFixture, QuerySuccess) {
+    EXPECT_CALL(*miner, getAddress())
+        .WillOnce(testing::Return(Address::makeFromId(1000)));
     QueryRequest request{
         .payload_cid = payload_cid,
         .params = {.piece_cid = data::green_piece.info.piece_cid}};
@@ -64,6 +66,9 @@ namespace fc::markets::retrieval::test {
             testing::Invoke([ipfs{provider_ipfs}, cid{payload_cid}](
                                 auto output_fd, auto, auto, auto, auto, auto)
                                 -> outcome::result<void> {
+              if (output_fd == -1) {
+                return ProofsError::kCannotOpenFile;
+              }
               EXPECT_OUTCOME_TRUE(car, fc::storage::car::makeCar(*ipfs, {cid}));
               auto bytes = write(output_fd, car.data(), car.size());
               if ((bytes < 0) || (static_cast<size_t>(bytes) != car.size())) {
@@ -93,9 +98,5 @@ namespace fc::markets::retrieval::test {
     EXPECT_OUTCOME_TRUE_1(future.get());
 
     EXPECT_OUTCOME_EQ(client_ipfs->contains(payload_cid), true);
-
-    // Note: otherwise 2 mock objects are leaked
-    miner->~MinerMock();
-    sealer->~ManagerMock();
   }
 }  // namespace fc::markets::retrieval::test

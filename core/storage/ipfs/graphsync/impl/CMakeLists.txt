@@ -7,7 +7,6 @@ add_subdirectory(network/marshalling/protobuf)
 
 add_library(graphsync
     common.cpp
-    extension.cpp
     graphsync_impl.cpp
     local_requests.cpp
     network/network.cpp
@@ -32,6 +31,7 @@ target_link_libraries(graphsync
     cid
     buffer
     cbor
+    cbor_types
     filecoin_hasher
     logger
     graphsync_proto

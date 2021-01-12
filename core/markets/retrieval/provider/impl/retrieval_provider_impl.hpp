@@ -9,6 +9,7 @@
 #include "api/api.hpp"
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
+#include "data_transfer/dt.hpp"
 #include "markets/retrieval/protocols/query_protocol.hpp"
 #include "markets/retrieval/protocols/retrieval_protocol.hpp"
 #include "markets/retrieval/provider/retrieval_provider.hpp"
@@ -18,6 +19,9 @@
 
 namespace fc::markets::retrieval::provider {
   using common::libp2p::CborStream;
+  using data_transfer::DataTransfer;
+  using data_transfer::PeerDtId;
+  using data_transfer::PeerGsId;
   using ::fc::miner::Miner;
   using ::fc::sector_storage::Manager;
   using ::fc::storage::ipld::traverser::Traverser;
@@ -28,6 +32,10 @@ namespace fc::markets::retrieval::provider {
   using primitives::SectorNumber;
   using primitives::piece::PieceData;
   using primitives::piece::UnpaddedPieceSize;
+  using storage::Path;
+  using GsResStatus = ::fc::storage::ipfs::graphsync::ResponseStatusCode;
+
+  const Path kFilestoreTempDir = "/tmp/fuhon/retrieval-market/";
 
   /**
    * @struct Provider config
@@ -36,23 +44,26 @@ namespace fc::markets::retrieval::provider {
     TokenAmount price_per_byte;
     uint64_t payment_interval;
     uint64_t interval_increase;
+    TokenAmount unseal_price;
+    Path filestore_path = kFilestoreTempDir;
   };
 
   struct DealState {
     DealState(std::shared_ptr<Ipld> ipld,
-              DealProposal proposal,
-              std::shared_ptr<CborStream> stream)
+              const PeerDtId &pdtid,
+              const PeerGsId &pgsid,
+              const DealProposal &proposal)
         : proposal{proposal},
-          stream{std::move(stream)},
-          current_interval{proposal.params.payment_interval},
+          state{proposal.params},
+          pdtid{pdtid},
+          pgsid{pgsid},
           traverser{*ipld, proposal.payload_cid, proposal.params.selector} {}
 
     DealProposal proposal;
-    std::shared_ptr<CborStream> stream;
-    BigInt current_interval;
-    BigInt total_sent;
-    TokenAmount funds_received;
-    TokenAmount payment_owed;
+    State state;
+    PeerDtId pdtid;
+    PeerGsId pgsid;
+    bool unsealed{false};
     Traverser traverser;
   };
 
@@ -61,12 +72,23 @@ namespace fc::markets::retrieval::provider {
         public std::enable_shared_from_this<RetrievalProviderImpl> {
    public:
     RetrievalProviderImpl(std::shared_ptr<Host> host,
+                          std::shared_ptr<DataTransfer> datatransfer,
                           std::shared_ptr<api::Api> api,
                           std::shared_ptr<PieceStorage> piece_storage,
                           IpldPtr ipld,
                           const ProviderConfig &config,
                           std::shared_ptr<Manager> sealer,
                           std::shared_ptr<Miner> miner);
+
+    void onProposal(const PeerDtId &pdtid,
+                    const PeerGsId &pgsid,
+                    const DealProposal &proposal);
+    void onPayment(std::shared_ptr<DealState> deal, const DealPayment &payment);
+    void doUnseal(std::shared_ptr<DealState> deal);
+    void doBlocks(std::shared_ptr<DealState> deal);
+    void doComplete(std::shared_ptr<DealState> deal);
+    bool hasOwed(std::shared_ptr<DealState> deal);
+    void doFail(std::shared_ptr<DealState> deal, std::string error);
 
     void start() override;
 
@@ -98,81 +120,20 @@ namespace fc::markets::retrieval::provider {
                                    const std::string &message);
 
     /**
-     * Handle deal stream
-     * @param stream - cbor stream
-     */
-    void handleRetrievalDeal(const std::shared_ptr<CborStream> &stream);
-
-    /**
-     * Read deal proposal and validate
-     * @param deal_state
-     * @return
-     */
-    outcome::result<void> receiveDeal(
-        const std::shared_ptr<DealState> &deal_state);
-
-    /**
-     * Run decision logic
-     * @param deal_state
-     */
-    void decideOnDeal(const std::shared_ptr<DealState> &deal_state);
-
-    /**
-     * Prepares single block for deal
-     * @param deal state
-     * @return block in retrieval market response format
-     */
-    outcome::result<DealResponse::Block> prepareNextBlock(
-        const std::shared_ptr<DealState> &deal_state);
-
-    /**
-     * Prepare blocks to send (up to size of deal interval) and requests next
-     * payment (owed)
-     * @param deal_state
-     */
-    void prepareBlocks(const std::shared_ptr<DealState> &deal_state);
-
-    /**
-     * Sends response - possibly payload blocks and payment request
-     * @param deal_state
-     * @param response
-     */
-    void sendRetrievalResponse(const std::shared_ptr<DealState> &deal_state,
-                               const DealResponse &response);
-
-    void processPayment(const std::shared_ptr<DealState> &deal_state,
-                        const DealStatus &payment_status);
-
-    /**
-     * Send error response for retrieval proposal and close stream
-     * @param stream to communicate through and close
-     * @param status - response deal status
-     * @param message - error description
-     */
-    void respondErrorRetrievalDeal(const std::shared_ptr<CborStream> &stream,
-                                   const DealStatus &status,
-                                   const std::string &message);
-
-    /**
-     * Finalize deal - send deal complete response and close stream
-     * @param deal_state
-     */
-    void finalizeDeal(const std::shared_ptr<DealState> &deal_state);
-
-    /**
      * Unseal sector
      * @param sector_id - id of sector
      * @param offset - offset of piece
      * @param size - size of piece
      * @return Read PieceData
      */
-    outcome::result<PieceData> unsealSector(SectorNumber sector_id,
-                                            UnpaddedPieceSize offset,
-                                            UnpaddedPieceSize size);
+    outcome::result<void> unsealSector(SectorNumber sector_id,
+                                       UnpaddedPieceSize offset,
+                                       UnpaddedPieceSize size,
+                                       const std::string &output_path);
 
     std::shared_ptr<Host> host_;
+    std::shared_ptr<DataTransfer> datatransfer_;
     std::shared_ptr<api::Api> api_;
-    Address miner_address;
     std::shared_ptr<PieceStorage> piece_storage_;
     std::shared_ptr<Ipld> ipld_;
     ProviderConfig config_;

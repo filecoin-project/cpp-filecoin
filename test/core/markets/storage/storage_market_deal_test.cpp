@@ -20,9 +20,7 @@ namespace fc::markets::storage::test {
     EXPECT_CALL(*chain_events_, onDealSectorCommitted(_, _, _))
         .WillOnce(testing::Invoke([](auto arg1, auto arg2, auto cb) { cb(); }));
 
-    CID root_cid = "010001020001"_cid;
-    auto data = readFile(CAR_FROM_PAYLOAD_FILE);
-    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(root_cid, data));
+    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     ChainEpoch start_epoch{210};
     ChainEpoch end_epoch{300};
     TokenAmount client_price{20000};
@@ -38,7 +36,6 @@ namespace fc::markets::storage::test {
                                                    registered_proof));
     waitForProviderDealStatus(proposal_cid,
                               StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA);
-    EXPECT_OUTCOME_TRUE_1(provider->importDataForDeal(proposal_cid, data));
 
     waitForProviderDealStatus(proposal_cid,
                               StorageDealStatus::STORAGE_DEAL_ACTIVE);
@@ -65,9 +62,7 @@ namespace fc::markets::storage::test {
           return outcome::success(false);
         }};
 
-    CID root_cid = "010001020001"_cid;
-    auto data = readFile(CAR_FROM_PAYLOAD_FILE);
-    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(root_cid, data));
+    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     ChainEpoch start_epoch{210};
     ChainEpoch end_epoch{300};
     TokenAmount client_price{20000};
@@ -116,9 +111,7 @@ namespace fc::markets::storage::test {
           return result;
         }};
 
-    CID root_cid = "010001020001"_cid;
-    auto data = readFile(CAR_FROM_PAYLOAD_FILE);
-    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(root_cid, data));
+    EXPECT_OUTCOME_TRUE(data_ref, makeDataRef(CAR_FROM_PAYLOAD_FILE));
     ChainEpoch start_epoch{210};
     ChainEpoch end_epoch{300};
     TokenAmount client_price{20000};
@@ -134,7 +127,6 @@ namespace fc::markets::storage::test {
                                                    registered_proof));
     waitForProviderDealStatus(proposal_cid,
                               StorageDealStatus::STORAGE_DEAL_WAITING_FOR_DATA);
-    EXPECT_OUTCOME_TRUE_1(provider->importDataForDeal(proposal_cid, data));
 
     waitForProviderDealStatus(proposal_cid,
                               StorageDealStatus::STORAGE_DEAL_ACTIVE);

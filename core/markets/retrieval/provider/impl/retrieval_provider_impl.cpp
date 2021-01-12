@@ -4,6 +4,8 @@
  */
 
 #include "markets/retrieval/provider/impl/retrieval_provider_impl.hpp"
+
+#include <boost/filesystem.hpp>
 #include "common/libp2p/peer/peer_info_helper.hpp"
 #include "markets/common.hpp"
 #include "storage/car/car.hpp"
@@ -21,9 +23,11 @@
 namespace fc::markets::retrieval::provider {
   using ::fc::storage::piece::PieceStorageError;
   using primitives::piece::UnpaddedByteIndex;
+  namespace fs = boost::filesystem;
 
   RetrievalProviderImpl::RetrievalProviderImpl(
       std::shared_ptr<Host> host,
+      std::shared_ptr<DataTransfer> datatransfer,
       std::shared_ptr<api::Api> api,
       std::shared_ptr<PieceStorage> piece_storage,
       std::shared_ptr<Ipld> ipld,
@@ -31,21 +35,263 @@ namespace fc::markets::retrieval::provider {
       std::shared_ptr<Manager> sealer,
       std::shared_ptr<Miner> miner)
       : host_{std::move(host)},
+        datatransfer_{std::move(datatransfer)},
         api_{std::move(api)},
         piece_storage_{std::move(piece_storage)},
         ipld_{std::move(ipld)},
         config_{config},
         sealer_{std::move(sealer)},
-        miner_{std::move(miner)} {}
+        miner_{std::move(miner)} {
+    datatransfer_->on_pull.emplace(
+        DealProposal::Named::type,
+        [this](auto &pdtid, auto &pgsid, auto &, auto _voucher) {
+          if (auto _proposal{
+                  codec::cbor::decode<DealProposal::Named>(_voucher)}) {
+            return onProposal(pdtid, pgsid, _proposal.value());
+          }
+          datatransfer_->rejectPull(pdtid, pgsid, {}, {});
+        });
+  }
+
+  void RetrievalProviderImpl::onProposal(const PeerDtId &pdtid,
+                                         const PeerGsId &pgsid,
+                                         const DealProposal &proposal) {
+    auto reject{[&](auto status, auto message) {
+      datatransfer_->rejectPull(
+          pdtid,
+          pgsid,
+          DealResponse::Named::type,
+          CborRaw{
+              codec::cbor::encode(
+                  DealResponse::Named{{status, proposal.deal_id, {}, message}})
+                  .value()});
+    }};
+
+    if (proposal.params.price_per_byte < config_.price_per_byte
+        || proposal.params.payment_interval > config_.payment_interval
+        || proposal.params.payment_interval_increase > config_.interval_increase
+        || proposal.params.unseal_price < config_.unseal_price) {
+      return reject(DealStatus::kDealStatusRejected,
+                    "Deal parameters not accepted");
+    }
+
+    auto _found{piece_storage_->hasPieceInfo(proposal.payload_cid,
+                                             proposal.params.piece)};
+    if (!_found || !_found.value()) {
+      return reject(DealStatus::kDealStatusFailed, "Payload not found");
+    }
+
+    auto deal{std::make_shared<DealState>(ipld_, pdtid, pgsid, proposal)};
+    auto &unseal{deal->state.owed};
+
+    datatransfer_->acceptPull(
+        pdtid,
+        pgsid,
+        DealResponse::Named::type,
+        codec::cbor::encode(
+            DealResponse::Named{{unseal
+                                     ? DealStatus::kDealStatusFundsNeededUnseal
+                                     : DealStatus::kDealStatusAccepted,
+                                 proposal.deal_id,
+                                 unseal,
+                                 {}}})
+            .value());
+
+    datatransfer_->pulling_in.emplace(
+        pdtid, [this, deal](auto &type, auto _voucher) {
+          if (auto _payment{
+                  codec::cbor::decode<DealPayment::Named>(_voucher)}) {
+            onPayment(deal, _payment.value());
+          } else {
+            doFail(deal, _payment.error().message());
+          }
+        });
+
+    if (!unseal) {
+      doUnseal(deal);
+    }
+  }
+
+  void RetrievalProviderImpl::onPayment(std::shared_ptr<DealState> deal,
+                                        const DealPayment &payment) {
+    auto _received{api_->PaychVoucherAdd(payment.payment_channel,
+                                         payment.payment_voucher,
+                                         {},
+                                         deal->state.owed)};
+    if (!_received) {
+      return doFail(deal, _received.error().message());
+    }
+    auto &received{_received.value()};
+    if (received == 0) {
+      received = payment.payment_voucher.amount - deal->state.paid;
+      if (received > deal->state.owed) {
+        received = deal->state.owed;
+      }
+    }
+
+    deal->state.pay(received);
+
+    if (hasOwed(deal)) {
+      return;
+    }
+
+    if (!deal->unsealed) {
+      return doUnseal(deal);
+    }
+    if (!deal->traverser.isCompleted()) {
+      return doBlocks(deal);
+    }
+    doComplete(deal);
+  }
+
+  void RetrievalProviderImpl::doUnseal(std::shared_ptr<DealState> deal) {
+    if (hasOwed(deal)) {
+      return;
+    }
+    auto _piece{piece_storage_->getPieceInfoFromCid(
+        deal->proposal.payload_cid, deal->proposal.params.piece)};
+    if (!_piece) {
+      return doFail(deal, _piece.error().message());
+    }
+    if (!fs::exists(config_.filestore_path)) {
+      fs::create_directories(config_.filestore_path);
+    }
+    auto car_path = fs::path(config_.filestore_path) / fs::unique_path();
+    auto _ = gsl::finally([&car_path]() {
+      if (fs::exists(car_path)) {
+        fs::remove_all(car_path);
+      }
+    });
+    for (auto &info : _piece.value().deals) {
+      if (auto _error{unsealSector(info.sector_id,
+                                   info.offset.unpadded(),
+                                   info.length.unpadded(),
+                                   car_path.string())}) {
+        assert(info.length.unpadded() == fs::file_size(car_path));
+        auto _load{::fc::storage::car::loadCar(*ipld_, car_path.string())};
+        if (!_load) {
+          return doFail(deal, _piece.error().message());
+        }
+        deal->unsealed = true;
+        doBlocks(deal);
+        return;
+      }
+    }
+    doFail(deal, "unsealing all failed");
+  }
+
+  void RetrievalProviderImpl::doBlocks(std::shared_ptr<DealState> deal) {
+    if (hasOwed(deal)) {
+      return;
+    }
+    while (true) {
+      auto _cid{deal->traverser.advance()};
+      if (!_cid) {
+        return doFail(deal, _cid.error().message());
+      }
+      auto &cid{_cid.value()};
+      auto _data{ipld_->get(cid)};
+      if (!_data) {
+        return doFail(deal, _data.error().message());
+      }
+      auto &data{_data.value()};
+      deal->state.block(data.size());
+      datatransfer_->gs->postResponse(deal->pgsid,
+                                      {GsResStatus::RS_PARTIAL_RESPONSE,
+                                       {},
+                                       {{std::move(cid), std::move(data)}}});
+
+      if (deal->traverser.isCompleted()) {
+        return doComplete(deal);
+      }
+
+      if (deal->state.owed) {
+        return doBlocks(deal);
+      }
+    }
+  }
+
+  void RetrievalProviderImpl::doComplete(std::shared_ptr<DealState> deal) {
+    deal->state.last();
+
+    if (hasOwed(deal)) {
+      return;
+    }
+
+    DealResponse::Named res{{
+        DealStatus::kDealStatusCompleted,
+        deal->proposal.deal_id,
+        {},
+        {},
+    }};
+    datatransfer_->gs->postResponse(
+        deal->pgsid,
+        {GsResStatus::RS_FULL_CONTENT,
+         {DataTransfer::makeExt(data_transfer::DataTransferResponse{
+             data_transfer::MessageType::kCompleteMessage,
+             true,
+             false,
+             deal->pdtid.id,
+             CborRaw{codec::cbor::encode(res).value()},
+             DealResponse::Named::type,
+         })},
+         {}});
+  }
+
+  bool RetrievalProviderImpl::hasOwed(std::shared_ptr<DealState> deal) {
+    if (!deal->state.owed) {
+      return false;
+    }
+    datatransfer_->gs->postResponse(
+        deal->pgsid,
+        {GsResStatus::RS_PARTIAL_RESPONSE,
+         {DataTransfer::makeExt(data_transfer::DataTransferResponse{
+             data_transfer::MessageType::kVoucherResultMessage,
+             true,
+             false,
+             deal->pdtid.id,
+             CborRaw{codec::cbor::encode(
+                         DealResponse::Named{{
+                             deal->unsealed
+                                 ? deal->traverser.isCompleted()
+                                       ? DealStatus::
+                                           kDealStatusFundsNeededLastPayment
+                                       : DealStatus::kDealStatusFundsNeeded
+                                 : DealStatus::kDealStatusFundsNeededUnseal,
+                             deal->proposal.deal_id,
+                             deal->state.owed,
+                             {},
+                         }})
+                         .value()},
+             DealResponse::Named::type,
+         })},
+         {}});
+    return true;
+  }
+
+  void RetrievalProviderImpl::doFail(std::shared_ptr<DealState> deal,
+                                     std::string error) {
+    datatransfer_->pulling_in.erase(deal->pdtid);
+    datatransfer_->rejectPull(
+        deal->pdtid,
+        deal->pgsid,
+        DealResponse::Named::type,
+        CborRaw{codec::cbor::encode(
+                    DealResponse::Named{{DealStatus::kDealStatusErrored,
+                                         deal->proposal.deal_id,
+                                         {},
+                                         std::move(error)}})
+                    .value()});
+  }
 
   void RetrievalProviderImpl::start() {
     host_->setProtocolHandler(
-        kQueryProtocolId, [self{shared_from_this()}](auto stream) {
+        kQueryProtocolId, [_self{weak_from_this()}](auto stream) {
+          auto self{_self.lock()};
+          if (!self) {
+            return;
+          }
           self->handleQuery(std::make_shared<CborStream>(stream));
-        });
-    host_->setProtocolHandler(
-        kRetrievalProtocolId, [self{shared_from_this()}](auto stream) {
-          self->handleRetrievalDeal(std::make_shared<CborStream>(stream));
         });
     logger_->info("has been launched with ID "
                   + peerInfoToPrettyString(host_->getPeerInfo()));
@@ -87,7 +333,8 @@ namespace fc::markets::retrieval::provider {
   outcome::result<QueryResponse> RetrievalProviderImpl::makeQueryResponse(
       const QueryRequest &query) {
     OUTCOME_TRY(chain_head, api_->ChainHead());
-    OUTCOME_TRY(minfo, api_->StateMinerInfo(miner_address, chain_head->key));
+    OUTCOME_TRY(minfo,
+                api_->StateMinerInfo(miner_->getAddress(), chain_head->key));
 
     OUTCOME_TRY(piece_available,
                 piece_storage_->hasPieceInfo(query.payload_cid,
@@ -125,243 +372,11 @@ namespace fc::markets::retrieval::provider {
     });
   }
 
-  void RetrievalProviderImpl::handleRetrievalDeal(
-      const std::shared_ptr<CborStream> &stream) {
-    stream->read<DealProposal>([self{shared_from_this()},
-                                stream](auto proposal_res) {
-      SELF_IF_ERROR_RESPOND_AND_RETURN(
-          proposal_res, DealStatus::kDealStatusErrored, stream);
-
-      auto maybe_error = [&]() -> outcome::result<void> {
-        OUTCOME_TRY(piece_info,
-                    self->piece_storage_->getPieceInfoFromCid(
-                        proposal_res.value().payload_cid,
-                        proposal_res.value().params.piece));
-
-        boost::optional<PieceData> reader_opt = boost::none;
-        size_t size = 0;
-        outcome::result<void> last_error = outcome::success();
-        for (const auto &deal : piece_info.deals) {
-          auto maybe_reader = self->unsealSector(
-              deal.sector_id, deal.offset.unpadded(), deal.length.unpadded());
-          if (maybe_reader.has_value()) {
-            size = deal.length.unpadded();
-            reader_opt = std::move(maybe_reader.value());
-            break;
-          }
-          last_error = maybe_reader.error();
-        }
-
-        if (not reader_opt.has_value()) {
-          return last_error.error();
-        }
-
-        // TODO(artyom-yurin): [FIL-247] Dangerous place
-        Buffer input;
-        input.resize(size);
-        size_t bytes = read(reader_opt.get().getFd(), input.data(), size);
-        assert(bytes == size);
-
-        OUTCOME_TRY(::fc::storage::car::loadCar(*(self->ipld_), input));
-
-        return outcome::success();
-      }();
-
-      SELF_IF_ERROR_RESPOND_AND_RETURN(
-          maybe_error, DealStatus::kDealStatusErrored, stream);
-
-      auto deal_state = std::make_shared<DealState>(
-          self->ipld_, proposal_res.value(), stream);
-      SELF_IF_ERROR_RESPOND_AND_RETURN(self->receiveDeal(deal_state),
-                                       DealStatus::kDealStatusErrored,
-                                       stream);
-    });
-  }
-
-  outcome::result<void> RetrievalProviderImpl::receiveDeal(
-      const std::shared_ptr<DealState> &deal_state) {
-    OUTCOME_TRY(piece_available,
-                piece_storage_->hasPieceInfo(deal_state->proposal.payload_cid,
-                                             boost::none));
-    if (!piece_available) {
-      respondErrorRetrievalDeal(deal_state->stream,
-                                DealStatus::kDealStatusFailed,
-                                "Payload not found");
-      return outcome::success();
-    }
-
-    if (deal_state->proposal.params.price_per_byte < config_.price_per_byte
-        || deal_state->proposal.params.payment_interval
-               > config_.payment_interval
-        || deal_state->proposal.params.payment_interval_increase
-               > config_.interval_increase) {
-      respondErrorRetrievalDeal(deal_state->stream,
-                                DealStatus::kDealStatusRejected,
-                                "Deal parameters not accepted");
-      return outcome::success();
-    }
-
-    decideOnDeal(deal_state);
-
-    return outcome::success();
-  }
-
-  void RetrievalProviderImpl::decideOnDeal(
-      const std::shared_ptr<DealState> &deal_state) {
-    // TODO (a.chernyshov) run decision logic
-    bool deal_accepted = true;
-    if (!deal_accepted) {
-      respondErrorRetrievalDeal(deal_state->stream,
-                                DealStatus::kDealStatusRejected,
-                                "Deal not accepted");
-    } else {
-      DealResponse response;
-      response.deal_id = deal_state->proposal.deal_id;
-      response.status = DealStatus::kDealStatusAccepted;
-      deal_state->stream->write(
-          response,
-          [self{shared_from_this()},
-           deal_state{std::move(deal_state)}](auto written) {
-            SELF_IF_ERROR_RESPOND_AND_RETURN(
-                written, DealStatus::kDealStatusErrored, deal_state->stream);
-            self->prepareBlocks(deal_state);
-          });
-    }
-  }
-
-  outcome::result<DealResponse::Block> RetrievalProviderImpl::prepareNextBlock(
-      const std::shared_ptr<DealState> &deal_state) {
-    OUTCOME_TRY(block_cid, deal_state->traverser.advance());
-    OUTCOME_TRY(data, ipld_->get(block_cid));
-    OUTCOME_TRY(prefix, block_cid.getPrefix());
-    return DealResponse::Block{.prefix = Buffer{prefix}, .data = data};
-  }
-
-  void RetrievalProviderImpl::prepareBlocks(
-      const std::shared_ptr<DealState> &deal_state) {
-    BigInt total_paid_for = bigdiv(deal_state->funds_received,
-                                   deal_state->proposal.params.price_per_byte);
-    DealResponse response;
-    response.deal_id = deal_state->proposal.deal_id;
-    response.status = DealStatus::kDealStatusFundsNeeded;
-    while (deal_state->total_sent - total_paid_for
-           < deal_state->current_interval) {
-      auto maybe_block = prepareNextBlock(deal_state);
-      if (maybe_block.has_error()) {
-        respondErrorRetrievalDeal(deal_state->stream,
-                                  DealStatus::kDealStatusErrored,
-                                  maybe_block.error().message());
-        return;
-      }
-      response.blocks.push_back(maybe_block.value());
-      deal_state->total_sent += maybe_block.value().data.size();
-
-      if (deal_state->traverser.isCompleted()) {
-        response.status = DealStatus::kDealStatusFundsNeededLastPayment;
-        break;
-      }
-    }
-
-    response.payment_owed = (deal_state->total_sent - total_paid_for)
-                            * deal_state->proposal.params.price_per_byte;
-
-    sendRetrievalResponse(deal_state, response);
-  }
-
-  void RetrievalProviderImpl::sendRetrievalResponse(
-      const std::shared_ptr<DealState> &deal_state,
-      const DealResponse &response) {
-    deal_state->stream->write(
-        response,
-        [self{shared_from_this()},
-         deal_state{std::move(deal_state)},
-         payment_owed{response.payment_owed},
-         payment_status{response.status}](auto written) {
-          SELF_IF_ERROR_RESPOND_AND_RETURN(
-              written, DealStatus::kDealStatusErrored, deal_state->stream);
-
-          // data sent, now client have to pay
-          deal_state->payment_owed = payment_owed;
-          self->processPayment(deal_state, payment_status);
-        });
-  }
-
-  void RetrievalProviderImpl::processPayment(
-      const std::shared_ptr<DealState> &deal_state,
-      const DealStatus &payment_status) {
-    deal_state->stream->read<DealPayment>([self{shared_from_this()},
-                                           deal_state{std::move(deal_state)},
-                                           payment_status](auto payment_res) {
-      SELF_IF_ERROR_RESPOND_AND_RETURN(
-          payment_res, DealStatus::kDealStatusErrored, deal_state->stream);
-      SELF_IF_ERROR_RESPOND_AND_RETURN(
-          self->api_->PaychVoucherAdd(payment_res.value().payment_channel,
-                                      payment_res.value().payment_voucher,
-                                      {},
-                                      {}),
-          DealStatus::kDealStatusFailed,
-          deal_state->stream);
-
-      deal_state->funds_received += payment_res.value().payment_voucher.amount;
-      deal_state->payment_owed -= payment_res.value().payment_voucher.amount;
-      // if not full current round payment received, ask to send owed amount
-      if (deal_state->payment_owed > 0) {
-        DealResponse response;
-        response.deal_id = deal_state->proposal.deal_id;
-        response.status = payment_status;
-        response.payment_owed = deal_state->payment_owed;
-        self->sendRetrievalResponse(deal_state, response);
-        return;
-      } else {
-        // full payment for current round received, decide on next
-        // last payment received => deal completed
-        if (payment_status == DealStatus::kDealStatusFundsNeededLastPayment) {
-          self->finalizeDeal(deal_state);
-        } else {
-          deal_state->current_interval +=
-              deal_state->proposal.params.payment_interval_increase;
-          self->prepareBlocks(deal_state);
-        }
-      }
-    });
-  }
-
-  void RetrievalProviderImpl::respondErrorRetrievalDeal(
-      const std::shared_ptr<CborStream> &stream,
-      const DealStatus &status,
-      const std::string &message) {
-    logger_->error("Retrieval deal status " + message);
-
-    DealResponse response;
-    response.status = status;
-    response.message = message;
-
-    stream->write(response, [self{shared_from_this()}, stream](auto written) {
-      if (written.has_error()) {
-        self->logger_->error("Error while error response "
-                             + written.error().message());
-      }
-      closeStreamGracefully(stream, self->logger_);
-    });
-  }
-
-  void RetrievalProviderImpl::finalizeDeal(
-      const std::shared_ptr<DealState> &deal_state) {
-    DealResponse response;
-    response.deal_id = deal_state->proposal.deal_id;
-    response.status = DealStatus::kDealStatusCompleted;
-    deal_state->stream->write(
-        response,
-        [self{shared_from_this()},
-         deal_state{std::move(deal_state)}](auto written) {
-          SELF_IF_ERROR_RESPOND_AND_RETURN(
-              written, DealStatus::kDealStatusErrored, deal_state->stream);
-          closeStreamGracefully(deal_state->stream, self->logger_);
-        });
-  }
-
-  outcome::result<PieceData> RetrievalProviderImpl::unsealSector(
-      SectorNumber sid, UnpaddedPieceSize offset, UnpaddedPieceSize size) {
+  outcome::result<void> RetrievalProviderImpl::unsealSector(
+      SectorNumber sid,
+      UnpaddedPieceSize offset,
+      UnpaddedPieceSize size,
+      const std::string &output_path) {
     OUTCOME_TRY(sector_info, miner_->getSectorInfo(sid));
 
     auto miner_id = miner_->getAddress().getId();
@@ -371,21 +386,15 @@ namespace fc::markets::retrieval::provider {
         .sector = sid,
     };
 
-    int p[2];
-    auto status = pipe(p);  // TODO: error
-    assert(status == 0);
-    PieceData reader(p[0]);
-
     CID comm_d = sector_info->comm_d.get_value_or(CID());
 
-    OUTCOME_TRY(sealer_->readPiece(PieceData(p[1]),
-                                   sector_id,
-                                   UnpaddedByteIndex(offset),
-                                   size,
-                                   sector_info->ticket,
-                                   comm_d));
-
-    return std::move(reader);
+    return sealer_->readPiece(
+        PieceData(output_path.c_str(), O_WRONLY | O_CREAT),
+        sector_id,
+        UnpaddedByteIndex(offset),
+        size,
+        sector_info->ticket,
+        comm_d);
   }
 
 }  // namespace fc::markets::retrieval::provider

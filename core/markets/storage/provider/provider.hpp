@@ -48,7 +48,8 @@ namespace fc::markets::storage::provider {
 
     virtual auto getStorageCollateral() -> outcome::result<TokenAmount> = 0;
 
-    virtual auto importDataForDeal(const CID &proposal_cid, const Buffer &data)
+    virtual auto importDataForDeal(const CID &proposal_cid,
+                                   const std::string &path)
         -> outcome::result<void> = 0;
   };
 

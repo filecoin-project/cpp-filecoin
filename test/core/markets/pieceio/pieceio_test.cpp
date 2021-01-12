@@ -7,6 +7,7 @@
 
 #include <gmock/gmock.h>
 
+#include <boost/filesystem.hpp>
 #include "storage/ipfs/impl/in_memory_datastore.hpp"
 #include "storage/unixfs/unixfs.hpp"
 #include "testutil/outcome.hpp"
@@ -32,7 +33,7 @@ TEST(PieceIO, DISABLED_generatePieceCommitment) {
   auto input = readFile(PAYLOAD_FILE);
   EXPECT_OUTCOME_TRUE(payload_cid, fc::storage::unixfs::wrapFile(*ipld, input));
 
-  PieceIOImpl piece_io{ipld};
+  PieceIOImpl piece_io{ipld, boost::filesystem::temp_directory_path().string()};
   EXPECT_OUTCOME_TRUE(
       res,
       piece_io.generatePieceCommitment(

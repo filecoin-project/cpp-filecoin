@@ -98,8 +98,7 @@ namespace fc::api {
 
     template <typename T>
     void _write(const T &v, OkCb cb) {
-      auto j{encode(v)};
-      pending_writes.emplace(*codec::json::format(&j), std::move(cb));
+      pending_writes.emplace(*codec::json::format(encode(v)), std::move(cb));
       _flush();
     }
 

@@ -8,18 +8,18 @@
 #include "api/rpc/json.hpp"
 #include "api/visit.hpp"
 #include "codec/json/json.hpp"
+#include "common/ptr.hpp"
 #include "common/which.hpp"
-
-// TODO: move to other file
-template <typename T>
-std::weak_ptr<T> weaken(const std::shared_ptr<T> &ptr) {
-  return ptr;
-}
 
 namespace fc::api::rpc {
   Client::Client(io_context &io2)
       : io2{io2}, work_guard{io.get_executor()}, socket{io} {
     thread = std::thread{[=]() { io.run(); }};
+  }
+
+  Client::~Client() {
+    io.stop();
+    thread.join();
   }
 
   outcome::result<void> Client::connect(const Multiaddress &address,
@@ -52,8 +52,7 @@ namespace fc::api::rpc {
   void Client::call(Request &&req, ResultCb &&cb) {
     std::lock_guard lock{mutex};
     req.id = next_req++;
-    auto j{encode(req)};
-    write_queue.emplace(*req.id, *codec::json::format(&j));
+    write_queue.emplace(*req.id, *codec::json::format(encode(req)));
     result_queue.emplace(*req.id, std::move(cb));
     _flush();
   }

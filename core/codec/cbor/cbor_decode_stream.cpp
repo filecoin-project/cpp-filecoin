@@ -231,4 +231,13 @@ namespace fc::codec::cbor {
     }
     return stream;
   }
+
+  CborDecodeStream &CborDecodeStream::named(
+      std::map<std::string, CborDecodeStream> &map, const std::string &name) {
+    auto it{map.find(name)};
+    if (it == map.end()) {
+      outcome::raise(CborDecodeError::kKeyNotFound);
+    }
+    return it->second;
+  }
 }  // namespace fc::codec::cbor

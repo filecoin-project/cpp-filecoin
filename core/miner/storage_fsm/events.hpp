@@ -7,7 +7,7 @@
 #define CPP_FILECOIN_CORE_MINER_STORAGE_FSM_EVENTS_HPP
 
 #include "primitives/tipset/tipset.hpp"
-#include "vm/actor/builtin/miner/policy.hpp"
+#include "vm/actor/builtin/v0/miner/policy.hpp"
 
 namespace fc::mining {
   using primitives::ChainEpoch;
@@ -15,7 +15,7 @@ namespace fc::mining {
   using primitives::tipset::Tipset;
 
   constexpr ChainEpoch kGlobalChainConfidence =
-      2 * vm::actor::builtin::miner::kChainFinalityish;
+      2 * vm::actor::builtin::v0::miner::kChainFinalityish;
 
   class Events {
    public:

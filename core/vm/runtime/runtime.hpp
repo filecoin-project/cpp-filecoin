@@ -17,15 +17,18 @@
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
 #include "storage/ipfs/datastore.hpp"
+#include "vm/actor/actor.hpp"
 #include "vm/actor/actor_encoding.hpp"
 #include "vm/exit_code/exit_code.hpp"
 #include "vm/message/message.hpp"
 #include "vm/runtime/runtime_types.hpp"
+#include "vm/version.hpp"
 
 namespace fc::vm::runtime {
 
   using actor::Actor;
   using actor::CodeId;
+  using actor::isStorageMinerActor;
   using actor::kSendMethodNumber;
   using actor::MethodNumber;
   using actor::MethodParams;
@@ -44,6 +47,9 @@ namespace fc::vm::runtime {
   using primitives::sector::RegisteredProof;
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
+  using version::NetworkVersion;
+
+  struct Execution;
 
   /**
    * @class Runtime is the VM's internal runtime object exposed to actors
@@ -51,6 +57,10 @@ namespace fc::vm::runtime {
   class Runtime {
    public:
     virtual ~Runtime() = default;
+
+    virtual std::shared_ptr<Execution> execution() const = 0;
+
+    virtual NetworkVersion getNetworkVersion() const = 0;
 
     /**
      * Returns current chain epoch which is equal to block chain height.
@@ -61,7 +71,12 @@ namespace fc::vm::runtime {
     /**
      * @brief Returns a (pseudo)random string for the given epoch and tag.
      */
-    virtual outcome::result<Randomness> getRandomness(
+    virtual outcome::result<Randomness> getRandomnessFromTickets(
+        DomainSeparationTag tag,
+        ChainEpoch epoch,
+        gsl::span<const uint8_t> seed) const = 0;
+
+    virtual outcome::result<Randomness> getRandomnessFromBeacon(
         DomainSeparationTag tag,
         ChainEpoch epoch,
         gsl::span<const uint8_t> seed) const = 0;
@@ -98,6 +113,17 @@ namespace fc::vm::runtime {
                                                    MethodParams params,
                                                    BigInt value) = 0;
 
+    /** Computes an address for a new actor.
+     *
+     * The returned address is intended to uniquely refer to the actor even in
+     * the event of a chain re-org (whereas an ID-address might refer to a
+     * different actor after messages are re-ordered). Always an ActorExec
+     * address.
+     *
+     * @return new unique actor address
+     */
+    virtual outcome::result<Address> createNewActorAddress() = 0;
+
     /**
      * @brief Creates an actor in the state tree, with empty state. May only be
      * called by InitActor
@@ -114,6 +140,21 @@ namespace fc::vm::runtime {
      * May only be called by the actor itself
      */
     virtual outcome::result<void> deleteActor() = 0;
+
+    /**
+     * Returns the total token supply in circulation at the beginning of the
+     * current epoch.
+     * The circulating supply is the sum of:
+     * - rewards emitted by the reward actor,
+     * - funds vested from lock-ups in the genesis state,
+     * less the sum of:
+     * - funds burnt,
+     * - pledge collateral locked in storage miner actors (recorded in the
+     * storage power actor)
+     * - deal collateral locked by the storage market actor
+     */
+    virtual fc::outcome::result<TokenAmount> getTotalFilCirculationSupply()
+        const = 0;
 
     /**
      * @brief Returns IPFS datastore
@@ -155,6 +196,39 @@ namespace fc::vm::runtime {
     /// Verify consensus fault
     virtual outcome::result<ConsensusFault> verifyConsensusFault(
         const Buffer &block1, const Buffer &block2, const Buffer &extra) = 0;
+
+    /**
+     * Aborts execution if res has error
+     * @tparam T - result type
+     * @param res - result to check
+     * @param default_error - default VMExitCode to abort with.
+     * @return If res has no error, success() returned. Otherwise if res.error()
+     * is VMAbortExitCode or VMFatal, the res.error() returned, else
+     * default_error returned
+     */
+    template <typename T>
+    outcome::result<void> requireNoError(const outcome::result<T> &res,
+                                         const VMExitCode &default_error) {
+      if (res.has_error()) {
+        if (isFatal(res.error()) || isAbortExitCode(res.error())) {
+          return res.error();
+        }
+        if (isVMExitCode(res.error())) {
+          return abort(VMExitCode{res.error().value()});
+        }
+        return abort(default_error);
+      }
+      return outcome::success();
+    }
+
+    /**
+     * Abort execution with VMExitCode
+     * @param error_code - error code that should be passed to the caller
+     * @return error_code as VMAbortExitCode
+     */
+    outcome::result<void> abort(const VMExitCode &error_code) {
+      return VMAbortExitCode{error_code};
+    }
 
     static inline Blake2b256Hash hashBlake2b(gsl::span<const uint8_t> data) {
       return crypto::blake2b::blake2b_256(data);
@@ -233,10 +307,27 @@ namespace fc::vm::runtime {
       return getBalance(getCurrentReceiver());
     }
 
+    inline outcome::result<void> validateArgument(bool assertion) const {
+      if (!assertion) {
+        return VMExitCode::kErrIllegalArgument;
+      }
+      return outcome::success();
+    }
+
     inline outcome::result<void> validateImmediateCallerIs(
         const Address &address) {
       if (getImmediateCaller() == address) {
         return outcome::success();
+      }
+      return VMExitCode::kSysErrForbidden;
+    }
+
+    inline outcome::result<void> validateImmediateCallerIs(
+        std::initializer_list<Address> addresses) {
+      for (const auto &address : addresses) {
+        if (getImmediateCaller() == address) {
+          return outcome::success();
+        }
       }
       return VMExitCode::kSysErrForbidden;
     }
@@ -258,8 +349,12 @@ namespace fc::vm::runtime {
       return VMExitCode::kSysErrForbidden;
     }
 
-    inline auto validateImmediateCallerIsMiner() {
-      return validateImmediateCallerType(actor::kStorageMinerCodeCid);
+    inline outcome::result<void> validateImmediateCallerIsMiner() {
+      OUTCOME_TRY(actual_code, getActorCodeID(getImmediateCaller()));
+      if (isStorageMinerActor(actual_code)) {
+        return outcome::success();
+      }
+      return VMExitCode::kSysErrForbidden;
     }
   };
 

@@ -17,7 +17,8 @@
 #include "miner/storage_fsm/sector_stat.hpp"
 #include "primitives/stored_counter/stored_counter.hpp"
 #include "primitives/tipset/tipset_key.hpp"
-#include "vm/actor/builtin/miner/miner_actor.hpp"
+#include "storage/buffer_map.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
 namespace fc::mining {
   using adt::TokenAmount;
@@ -35,7 +36,8 @@ namespace fc::mining {
   using api::SectorPreCommitOnChainInfo;
   using primitives::Counter;
   using primitives::tipset::TipsetKey;
-  using vm::actor::builtin::miner::SectorPreCommitInfo;
+  using storage::BufferMap;
+  using vm::actor::builtin::v0::miner::SectorPreCommitInfo;
 
   struct Config {
     // 0 = no limit
@@ -57,6 +59,7 @@ namespace fc::mining {
                 std::shared_ptr<Events> events,
                 const Address &miner_address,
                 std::shared_ptr<Counter> counter,
+                std::shared_ptr<BufferMap> fsm_kv,
                 std::shared_ptr<Manager> sealer,
                 std::shared_ptr<PreCommitPolicy> policy,
                 std::shared_ptr<boost::asio::io_context> context,
@@ -65,6 +68,9 @@ namespace fc::mining {
     outcome::result<void> run() override;
 
     void stop() override;
+
+    outcome::result<void> fsmLoad();
+    void fsmSave(const std::shared_ptr<SectorInfo> &info);
 
     outcome::result<PieceAttributes> addPieceToAnySector(
         UnpaddedPieceSize size,
@@ -111,11 +117,6 @@ namespace fc::mining {
     TokenAmount tryUpgradeSector(SectorPreCommitInfo &params);
 
     boost::optional<SectorNumber> maybeUpgradableSector();
-
-    outcome::result<boost::optional<SectorPreCommitOnChainInfo>>
-    getStateSectorPreCommitInfo(const Address &address,
-                                SectorNumber sector_number,
-                                const TipsetKey &tipset_key);
 
     /**
      * Creates all FSM transitions
@@ -285,6 +286,7 @@ namespace fc::mining {
     std::shared_ptr<PreCommitPolicy> policy_;
 
     std::shared_ptr<Counter> counter_;
+    std::shared_ptr<BufferMap> fsm_kv_;
 
     std::shared_ptr<SectorStat> stat_;
 

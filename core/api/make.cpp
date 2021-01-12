@@ -14,14 +14,15 @@
 #include "node/pubsub.hpp"
 #include "proofs/proofs.hpp"
 #include "storage/hamt/hamt.hpp"
-#include "vm/actor/builtin/account/account_actor.hpp"
-#include "vm/actor/builtin/init/init_actor.hpp"
-#include "vm/actor/builtin/market/actor.hpp"
-#include "vm/actor/builtin/miner/types.hpp"
-#include "vm/actor/builtin/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/init/init_actor.hpp"
+#include "vm/actor/builtin/v0/market/actor.hpp"
+#include "vm/actor/builtin/v0/miner/types.hpp"
+#include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 #include "vm/actor/impl/invoker_impl.hpp"
 #include "vm/message/impl/message_signer_impl.hpp"
 #include "vm/runtime/env.hpp"
+#include "vm/runtime/impl/tipset_randomness.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 #define MOVE(x)  \
@@ -34,11 +35,11 @@ namespace fc::api {
   using vm::actor::kInitAddress;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::kStoragePowerAddress;
-  using vm::actor::builtin::account::AccountActorState;
-  using vm::actor::builtin::init::InitActorState;
-  using vm::actor::builtin::market::DealState;
-  using vm::actor::builtin::miner::MinerActorState;
-  using vm::actor::builtin::storage_power::StoragePowerActorState;
+  using vm::actor::builtin::v0::account::AccountActorState;
+  using vm::actor::builtin::v0::init::InitActorState;
+  using vm::actor::builtin::v0::market::DealState;
+  using vm::actor::builtin::v0::miner::MinerActorState;
+  using vm::actor::builtin::v0::storage_power::StoragePowerActorState;
   using InterpreterResult = vm::interpreter::Result;
   using crypto::randomness::DomainSeparationTag;
   using crypto::signature::BlsSignature;
@@ -49,9 +50,10 @@ namespace fc::api {
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
   using vm::runtime::Env;
+  using vm::runtime::TipsetRandomness;
   using vm::state::StateTreeImpl;
   using connection_t = boost::signals2::connection;
-  using MarketActorState = vm::actor::builtin::market::State;
+  using MarketActorState = vm::actor::builtin::v0::market::State;
 
   // TODO: reuse for block validation
   inline bool minerHasMinPower(const StoragePower &claim_qa,
@@ -139,11 +141,9 @@ namespace fc::api {
     }
     if (!sectors_bitset.empty()) {
       OUTCOME_TRY(minfo, state.info.get());
-      OUTCOME_TRY(
-          seal_type,
-          primitives::sector::sealProofTypeFromSectorSize(minfo.sector_size));
       OUTCOME_TRY(win_type,
-                  primitives::sector::getRegisteredWinningPoStProof(seal_type));
+                  primitives::sector::getRegisteredWinningPoStProof(
+                      minfo.seal_proof_type));
       OUTCOME_TRY(
           indices,
           proofs::Proofs::generateWinningPoStSectorChallenge(
@@ -350,6 +350,8 @@ namespace fc::api {
         // TODO(turuslan): FIL-165 implement method
         .ClientStartDeal = {},
         // TODO(turuslan): FIL-165 implement method
+        .GasEstimateMessageGas = {},
+        // TODO(turuslan): FIL-165 implement method
         .MarketEnsureAvailable = {},
         .MinerCreateBlock = {[=](auto &t) -> outcome::result<BlockWithCids> {
           OUTCOME_TRY(context, tipsetContext(t.parents, true));
@@ -462,6 +464,7 @@ namespace fc::api {
         }},
         // TODO(turuslan): FIL-165 implement method
         .NetAddrsListen = {},
+        .PledgeSector = {},
         .StateAccountKey = {[=](auto &address,
                                 auto &tipset_key) -> outcome::result<Address> {
           if (address.isKeyType()) {
@@ -473,8 +476,12 @@ namespace fc::api {
         .StateCall = {[=](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          auto env = std::make_shared<Env>(
-              std::make_shared<InvokerImpl>(), ipld, context.tipset);
+          auto randomness =
+              std::make_shared<TipsetRandomness>(ipld, context.tipset);
+          auto env = std::make_shared<Env>(std::make_shared<InvokerImpl>(),
+                                           randomness,
+                                           ipld,
+                                           context.tipset);
           InvocResult result;
           result.message = message;
           OUTCOME_TRYA(result.receipt, env->applyImplicitMessage(message));
@@ -664,7 +671,18 @@ namespace fc::api {
               OUTCOME_TRY(state, context.minerState(miner));
               OUTCOME_TRY(deadlines, state.deadlines.get());
               OUTCOME_TRY(deadline, deadlines.due[_deadline].get());
-              return deadline.partitions.values();
+              std::vector<Partition> parts;
+              OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &v) {
+                parts.push_back({
+                    v.sectors,
+                    v.faults,
+                    v.recoveries,
+                    v.sectors - v.terminated,
+                    v.sectors - v.terminated - v.faults,
+                });
+                return outcome::success();
+              }));
+              return parts;
             }},
         .StateMinerPower = {[=](auto &address, auto &tipset_key)
                                 -> outcome::result<MinerPower> {
@@ -683,18 +701,14 @@ namespace fc::api {
           return state.deadlineInfo(context.tipset->height());
         }},
         .StateMinerSectors =
-            {[=](auto &address, auto &filter, auto filter_out, auto &tipset_key)
-                 -> outcome::result<std::vector<ChainSectorInfo>> {
+            {[=](auto &address, auto &filter, auto &tipset_key)
+                 -> outcome::result<std::vector<SectorOnChainInfo>> {
               OUTCOME_TRY(context, tipsetContext(tipset_key));
               OUTCOME_TRY(state, context.minerState(address));
-              std::vector<ChainSectorInfo> sectors;
+              std::vector<SectorOnChainInfo> sectors;
               OUTCOME_TRY(state.sectors.visit([&](auto id, auto &info) {
-                if (!filter
-                    || filter_out == (filter->find(id) == filter->end())) {
-                  sectors.push_back({
-                      .info = info,
-                      .id = id,
-                  });
+                if (!filter || filter->count(id)) {
+                  sectors.push_back(info);
                 }
                 return outcome::success();
               }));
@@ -703,20 +717,24 @@ namespace fc::api {
         .StateNetworkName = {[=]() -> outcome::result<std::string> {
           return chain_store->getNetworkName();
         }},
+        .StateNetworkVersion =
+            [=](auto &tipset_key) -> outcome::result<NetworkVersion> {
+          OUTCOME_TRY(context, tipsetContext(tipset_key));
+          return vm::version::getNetworkVersion(context.tipset->height());
+        },
         // TODO(artyom-yurin): FIL-165 implement method
         .StateMinerPreCommitDepositForPower = {},
         // TODO(artyom-yurin): FIL-165 implement method
         .StateMinerInitialPledgeCollateral = {},
         // TODO(artyom-yurin): FIL-165 implement method
         .StateSectorPreCommitInfo = {},
-        .StateSectorGetInfo = {[=](auto address,
-                                   auto sector_number,
-                                   auto tipset_key)
-                                   -> outcome::result<SectorOnChainInfo> {
-          OUTCOME_TRY(context, tipsetContext(tipset_key));
-          OUTCOME_TRY(state, context.minerState(address));
-          return state.sectors.get(sector_number);
-        }},
+        .StateSectorGetInfo =
+            {[=](auto address, auto sector_number, auto tipset_key)
+                 -> outcome::result<boost::optional<SectorOnChainInfo>> {
+              OUTCOME_TRY(context, tipsetContext(tipset_key));
+              OUTCOME_TRY(state, context.minerState(address));
+              return state.sectors.tryGet(sector_number);
+            }},
         // TODO(artyom-yurin): FIL-165 implement method
         .StateSectorPartition = {},
         // TODO(artyom-yurin): FIL-165 implement method

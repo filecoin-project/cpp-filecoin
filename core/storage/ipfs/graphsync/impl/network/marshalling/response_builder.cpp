@@ -5,7 +5,7 @@
 
 #include "response_builder.hpp"
 
-#include "codec/cbor/cbor_encode_stream.hpp"
+#include "codec/cbor/cbor.hpp"
 
 #include "protobuf/message.pb.h"
 
@@ -22,18 +22,16 @@ namespace fc::storage::ipfs::graphsync {
     dst->set_id(request_id);
     dst->set_status(status);
 
-    auto insertExtension = [](pb::Message_Response* dst, const Extension &e) {
+    auto insertExtension = [&](std::string name, BytesIn data) {
       dst->mutable_extensions()->insert(
-          {std::string(e.name),
-           std::string(e.data.begin(), e.data.end())});
+          {std::move(name), std::string(data.begin(), data.end())});
     };
 
-    if (!meta_.empty()) {
-      insertExtension(dst, encodeResponseMetadata(meta_));
-    }
+    insertExtension(std::string{kResponseMetadataProtocol},
+                    codec::cbor::encode(meta_).value());
 
     for (auto extension : extensions) {
-      insertExtension(dst, extension);
+      insertExtension(extension.name, extension.data);
     }
 
     empty_ = false;

@@ -14,6 +14,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::markets::pieceio, PieceIOError, e) {
       return "PieceIOError: cannot write to pipe";
     case PieceIOError::kCannotClosePipe:
       return "PieceIOError: cannot close pipe";
+    case PieceIOError::kFileNotExist:
+      return "PieceIOError: file doesn't exist";
     default:
       return "Unknown error";
   }

@@ -12,5 +12,6 @@ target_link_libraries(retrieval_market_client
     logger
     cbor
     cbor_stream
+    data_transfer
     ipld_verifier
     )
