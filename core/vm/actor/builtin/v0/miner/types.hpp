@@ -34,6 +34,24 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::OnChainPoStVerifyInfo;
   using primitives::sector::Proof;
 
+  /**
+   * Type used in actor method parameters
+   */
+  struct SectorDeclaration {
+    /**
+     * The deadline to which the sectors are assigned, in range
+     * [0..WPoStPeriodDeadlines)
+     */
+    uint64_t deadline{0};
+
+    /** Partition index within the deadline containing the sectors. */
+    uint64_t partition{0};
+
+    /** Sectors in the partition being declared faulty. */
+    RleBitset sectors;
+  };
+  CBOR_TUPLE(SectorDeclaration, deadline, partition, sectors)
+
   struct PowerPair {
     StoragePower raw, qa;
   };

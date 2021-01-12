@@ -100,6 +100,19 @@ namespace fc::vm::actor::builtin::v0::miner {
     return VMExitCode::kNotImplemented;
   }
 
+  ACTOR_METHOD_IMPL(ChangeMultiaddresses) {
+    return VMExitCode::kNotImplemented;
+  }
+
+  ACTOR_METHOD_IMPL(CompactPartitions) {
+    return VMExitCode::kNotImplemented;
+  }
+
+  ACTOR_METHOD_IMPL(CompactSectorNumbers) {
+    return VMExitCode::kNotImplemented;
+  }
+
+
   const ActorExports exports{
       exportMethod<Construct>(),
       exportMethod<ControlAddresses>(),
@@ -118,5 +131,8 @@ namespace fc::vm::actor::builtin::v0::miner {
       exportMethod<ReportConsensusFault>(),
       exportMethod<WithdrawBalance>(),
       exportMethod<ConfirmSectorProofsValid>(),
+      exportMethod<ChangeMultiaddresses>(),
+      exportMethod<CompactPartitions>(),
+      exportMethod<CompactSectorNumbers>(),
   };
 }  // namespace fc::vm::actor::builtin::v0::miner
