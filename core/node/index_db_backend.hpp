@@ -12,6 +12,7 @@
 
 namespace fc::sync {
 
+  /// Persistent (sqlite) index db backend
   class IndexDbBackend {
    public:
     enum class Error {
@@ -22,32 +23,53 @@ namespace fc::sync {
       INDEXDB_TIPSET_NOT_FOUND,
     };
 
+    /// Just to utilize sqliet_modern_cpp lib, but this is suboptimal
     using Blob = std::vector<uint8_t>;
 
+    /// Creates or opens sqlite db
     static outcome::result<std::shared_ptr<IndexDbBackend>> create(
         const std::string &db_filename);
 
+    /// Initializes statements, reads graph info from db
     outcome::result<std::map<BranchId, std::shared_ptr<BranchInfo>>> initDb();
 
+    /// Stores new tipset index and (optionally) renames branches, the latter
+    /// occurs when mergin or splitting branches in graph
     outcome::result<void> store(
         const TipsetInfo &info,
         const boost::optional<RenameBranch> &branch_rename);
 
+    /// Index internal repe
     struct TipsetIdx {
+      /// Tipste hash
       TipsetHash hash;
+
+      /// Tipset branch ID
       BranchId branch = kNoBranch;
+
+      /// Tipset height
       Height height = 0;
+
+      /// Hash of parent tipset
       TipsetHash parent_hash;
+
+      /// Cids compressed
       Blob cids;
     };
 
+    /// Returns tipset index by hash, if error_if_not_found==true then 'not
+    /// found' condition leads to error outcome, otherwise nullptr
     outcome::result<TipsetIdx> get(const TipsetHash &hash,
                                    bool error_if_not_found);
 
+    /// Returns tipset index by branch and height
     outcome::result<TipsetIdx> get(BranchId branch, Height height);
 
+    /// Decodes interbnal repr to external
     static outcome::result<std::shared_ptr<TipsetInfo>> decode(TipsetIdx raw);
 
+    /// Walks through index entries within a given branch, from given height,
+    /// limited by given limit (SELECT query inside)
     outcome::result<void> walk(BranchId branch,
                                Height height,
                                uint64_t limit,
@@ -66,6 +88,7 @@ namespace fc::sync {
       bool done_ = false;
     };
 
+    /// Begins a TX, return RAII object
     [[nodiscard]] Tx beginTx();
 
     explicit IndexDbBackend(const std::string &db_filename);

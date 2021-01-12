@@ -10,6 +10,8 @@
 
 namespace fc::sync::blocksync {
 
+  /// Client request to blocksync server
+  /// 1) Makes request (with timeout), 2) Saves blocks and messages to Ipld
   class BlocksyncRequest {
    public:
     enum class Error : int {

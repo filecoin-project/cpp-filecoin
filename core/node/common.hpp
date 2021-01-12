@@ -11,8 +11,8 @@
 #include <libp2p/peer/peer_id.hpp>
 #include <libp2p/protocol/common/scheduler.hpp>
 
-#include "primitives/big_int.hpp"
 #include "crypto/signature/signature.hpp"
+#include "primitives/big_int.hpp"
 #include "primitives/block/block.hpp"
 #include "primitives/tipset/tipset.hpp"
 
@@ -25,15 +25,19 @@ namespace fc::sync {
   using primitives::block::BlockWithMessages;
   using primitives::block::SignedMessage;
   using primitives::tipset::Tipset;
-  using primitives::tipset::TipsetKey;
-  using vm::message::UnsignedMessage;
   using primitives::tipset::TipsetCPtr;
   using primitives::tipset::TipsetHash;
+  using primitives::tipset::TipsetKey;
+  using vm::message::UnsignedMessage;
   using BranchId = uint64_t;
   using Height = uint64_t;
 
+  /// Non-existent branch marked as 0
   constexpr BranchId kNoBranch = 0;
+
+  /// Branch which contains genesis has ID==1, other branches are assigned IDs
+  /// > 1
   constexpr BranchId kGenesisBranch = 1;
-}
+}  // namespace fc::sync
 
 #endif  // CPP_FILECOIN_SYNC_COMMON_HPP

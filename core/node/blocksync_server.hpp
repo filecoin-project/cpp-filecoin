@@ -15,6 +15,8 @@ namespace libp2p {
 }
 
 namespace fc::sync::blocksync {
+
+  /// Serves blocksync protocol
   class BlocksyncServer : public std::enable_shared_from_this<BlocksyncServer> {
    public:
     BlocksyncServer(std::shared_ptr<libp2p::Host> host,

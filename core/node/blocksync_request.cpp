@@ -55,6 +55,11 @@ namespace fc::sync::blocksync {
       return std::string("unknown status ") + std::to_string(int(status));
     }
 
+    /// Tries to find block in local store
+    /// \param cid Block CID
+    /// \param ipld Local store
+    /// \param require_meta If set when all messages are required too
+    /// \return Non-empty object if block found
     boost::optional<BlockHeader> findBlockInLocalStore(const CID &cid,
                                                        Ipld &ipld,
                                                        bool require_meta) {
@@ -107,6 +112,13 @@ namespace fc::sync::blocksync {
       return header.value();
     }
 
+    /// Tries to reduce blocksync request if some data is available locally
+    /// \param blocks CIDs of blocks
+    /// \param blocks_available (out) blocks found locally are written here
+    /// \param ipld Local store
+    /// \param require_meta If set when block considered found if all maeeages
+    /// are in store
+    /// \return Reduced block CIDs
     std::vector<CID> tryReduceRequest(
         std::vector<CID> blocks,
         std::vector<BlockHeader> &blocks_available,
@@ -126,6 +138,7 @@ namespace fc::sync::blocksync {
       return reduced;
     }
 
+    /// Stores block into Ipld store
     outcome::result<void> storeBlock(
         Ipld &ipld,
         BlockHeader header,
@@ -167,6 +180,7 @@ namespace fc::sync::blocksync {
       return outcome::success();
     }
 
+    /// Stores part of blocksync response (i.e. tipset bundle)
     outcome::result<void> storeTipsetBundle(
         Ipld &ipld,
         TipsetBundle &bundle,
@@ -226,18 +240,18 @@ namespace fc::sync::blocksync {
   }  // namespace
 
   // XXX
-  static int xxx = 0;
+  //static int xxx = 0;
 
   class BlocksyncRequest::Impl
       : public std::enable_shared_from_this<BlocksyncRequest::Impl> {
    public:
     Impl(libp2p::Host &host, libp2p::protocol::Scheduler &scheduler, Ipld &ipld)
         : host_(host), scheduler_(scheduler), ipld_(ipld) {
-      log()->debug("++++++ {}", ++xxx);
+      //log()->debug("++++++ {}", ++xxx);
     }
 
     ~Impl() {
-      log()->debug("------ {}", --xxx);
+      //log()->debug("------ {}", --xxx);
       if (stream_) {
         stream_->close();
       }
