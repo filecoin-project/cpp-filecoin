@@ -222,9 +222,6 @@ namespace fc::vm::actor::cgo {
       }
     } else {
       ret << kOk << kOk << r.value();
-
-      dvm::onReceipt(
-          {VMExitCode::kOk, std::move(r.value()), rt->execution()->gas_used});
     }
   }
 

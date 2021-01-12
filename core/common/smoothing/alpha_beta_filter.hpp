@@ -6,12 +6,12 @@
 #pragma once
 
 #include "codec/cbor/streams_annotation.hpp"
+#include "common/math/math.hpp"
 #include "primitives/big_int.hpp"
 
 namespace fc::common::smoothing {
+  using common::math::kPrecision128;
   using primitives::BigInt;
-
-  static constexpr uint kPrecision = 128;
 
   /// Q.128 value of 9.25e-4
   static const BigInt kDefaultAlpha("314760000000000000000000000000000000");

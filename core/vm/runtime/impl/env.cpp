@@ -323,7 +323,6 @@ namespace fc::vm::runtime {
         return VMExitCode{result.error().value()};
       }
       return result;
-
     }
 
     return outcome::success();

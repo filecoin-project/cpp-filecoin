@@ -306,7 +306,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     caller = miner_address;
     callerCodeIdIs(kStorageMinerCodeCid);
     const TokenAmount slash{50};
-    EXPECT_OUTCOME_ERROR(VMExitCode::kAssert,
+    EXPECT_OUTCOME_ERROR(VMAbortExitCode{VMExitCode::kAssert},
                          OnConsensusFault::call(runtime, {50}));
   }
 
