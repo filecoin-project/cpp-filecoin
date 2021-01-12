@@ -475,8 +475,7 @@ namespace fc::api {
         .StateCall = {[=](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          auto randomness =
-              std::make_shared<TipsetRandomness>(ipld, context.tipset);
+          auto randomness = std::make_shared<TipsetRandomness>(ipld);
           auto env = std::make_shared<Env>(std::make_shared<InvokerImpl>(),
                                            randomness,
                                            ipld,

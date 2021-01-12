@@ -49,7 +49,8 @@ namespace fc::primitives::tipset {
     outcome::result<void> visit(const BlockHeader &block,
                                 const Visitor &visitor);
     IpldPtr ipld;
-    bool nonce{}, load{};
+    bool nonce{};
+    bool load{};
     std::set<CID> visited;
     std::map<Address, uint64_t> nonces;
     size_t index{};

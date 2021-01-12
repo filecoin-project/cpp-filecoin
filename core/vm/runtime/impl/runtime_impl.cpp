@@ -45,14 +45,16 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return randomness_->getRandomnessFromTickets(tag, epoch, seed);
+    return randomness_->getRandomnessFromTickets(
+        execution_->env->tipset, tag, epoch, seed);
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomnessFromBeacon(
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return randomness_->getRandomnessFromBeacon(tag, epoch, seed);
+    return randomness_->getRandomnessFromBeacon(
+        execution_->env->tipset, tag, epoch, seed);
   }
 
   Address RuntimeImpl::getImmediateCaller() const {

@@ -19,8 +19,8 @@ namespace fc::vm::interpreter {
 
   class InterpreterImpl : public Interpreter {
    public:
-    explicit InterpreterImpl(std::shared_ptr<RuntimeRandomness> randomness,
-                             std::shared_ptr<Circulating> circulating);
+    InterpreterImpl(std::shared_ptr<RuntimeRandomness> randomness,
+                    std::shared_ptr<Circulating> circulating);
 
     outcome::result<Result> interpret(const IpldPtr &store,
                                       const TipsetCPtr &tipset) const override;
