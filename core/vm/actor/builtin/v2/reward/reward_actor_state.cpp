@@ -16,8 +16,6 @@ namespace fc::vm::actor::builtin::v2::reward {
   using v0::reward::kBaselineExponentV3;
   using v0::reward::updateToNextEpochWithReward;
 
-  State::State() {}
-
   State::State(const StoragePower &current_realized_power) {
     effective_network_time = 0;
     effective_baseline_power = kBaselineInitialValueV2;

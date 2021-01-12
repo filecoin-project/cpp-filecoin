@@ -56,7 +56,7 @@ namespace fc::vm::actor::builtin::v0::reward {
       "340282591298641078465964189926313473653"};
 
   struct State {
-    State();
+    State() = default;
     explicit State(const StoragePower &current_realized_power);
 
     /**

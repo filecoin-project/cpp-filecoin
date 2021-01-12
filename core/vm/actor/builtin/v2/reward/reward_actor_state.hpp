@@ -32,7 +32,7 @@ namespace fc::vm::actor::builtin::v2::reward {
   static const TokenAmount kDefaultBaselineTotal = BigInt{770e6} * BigInt{1e18};
 
   struct State {
-    State();
+    State() = default;
     explicit State(const StoragePower &current_realized_power);
 
     /**

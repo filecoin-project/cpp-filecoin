@@ -10,8 +10,6 @@
 namespace fc::vm::actor::builtin::v0::reward {
   using primitives::kChainEpochUndefined;
 
-  State::State() {}
-
   State::State(const StoragePower &current_realized_power) {
     effective_network_time = 0;
     effective_baseline_power = kBaselineInitialValueV0;
