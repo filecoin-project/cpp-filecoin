@@ -51,10 +51,11 @@ namespace fc::vm::actor::builtin::v0::miner {
   struct ChangeWorkerAddress : ActorMethodBase<3> {
     struct Params {
       Address new_worker;
+      std::vector<Address> new_control_addresses;
     };
     ACTOR_METHOD_DECL();
   };
-  CBOR_TUPLE(ChangeWorkerAddress::Params, new_worker)
+  CBOR_TUPLE(ChangeWorkerAddress::Params, new_worker, new_control_addresses)
 
   struct ChangePeerId : ActorMethodBase<4> {
     struct Params {

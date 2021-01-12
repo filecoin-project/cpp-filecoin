@@ -19,6 +19,7 @@
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/cron/cron_actor.hpp"
+#include "vm/actor/builtin/v2/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
@@ -49,8 +50,7 @@ namespace fc::vm::actor {
     // builtin_[builtin::v2::kInitCodeCid] = builtin::v2::init::exports;
     // builtin_[builtin::v2::kStorageMarketCodeCid] =
     // builtin::v2::market::exports;
-    // builtin_[builtin::v2::kStorageMinerCodeCid]
-    // = builtin::v2::miner::exports;
+    builtin_[builtin::v2::kStorageMinerCodeCid] = builtin::v2::miner::exports;
     builtin_[builtin::v2::kRewardActorCodeID] = builtin::v2::reward::exports;
     // builtin_[builtin::v2::kMultisigCodeCid] = builtin::v2::multisig::exports;
     builtin_[builtin::v2::kPaymentChannelCodeCid] =

@@ -112,7 +112,6 @@ namespace fc::vm::actor::builtin::v0::miner {
     return VMExitCode::kNotImplemented;
   }
 
-
   const ActorExports exports{
       exportMethod<Construct>(),
       exportMethod<ControlAddresses>(),
