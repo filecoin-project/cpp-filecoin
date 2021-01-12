@@ -19,22 +19,22 @@ namespace fc::common {
   static Logger logger = createLogger("tar util");
 
   int copy_data(struct archive *ar, struct archive *aw) {
-    int r;
-    const void *buff;
+    int return_code;
+    const void *buff = nullptr;
     size_t size;
     la_int64_t offset;
 
     for (;;) {
-      r = archive_read_data_block(ar, &buff, &size, &offset);
-      if (r == ARCHIVE_EOF) {
+      return_code = archive_read_data_block(ar, &buff, &size, &offset);
+      if (return_code == ARCHIVE_EOF) {
         return (ARCHIVE_OK);
       }
-      if (r < ARCHIVE_OK) {
-        return (r);
+      if (return_code < ARCHIVE_OK) {
+        return (return_code);
       }
-      r = archive_write_data_block(aw, buff, size, offset);
-      if (r < ARCHIVE_OK) {
-        return (r);
+      return_code = archive_write_data_block(aw, buff, size, offset);
+      if (return_code < ARCHIVE_OK) {
+        return (return_code);
       }
     }
   }
@@ -54,22 +54,23 @@ namespace fc::common {
       return TarErrors::kCannotZipTarArchive;
     }
 
-    auto a = ffi::wrap(archive_write_new(), archive_write_free);
-    archive_write_set_format_v7tar(a.get());
-    int r = archive_write_open_filename(a.get(), output_path.c_str());
-    if (r < ARCHIVE_OK) {
-      if (r < ARCHIVE_WARN) {
-        logger->error("Zip tar: {}", archive_error_string(a.get()));
+    auto archive = ffi::wrap(archive_write_new(), archive_write_free);
+    archive_write_set_format_v7tar(archive.get());
+    int return_code =
+        archive_write_open_filename(archive.get(), output_path.c_str());
+    if (return_code < ARCHIVE_OK) {
+      if (return_code < ARCHIVE_WARN) {
+        logger->error("Zip tar: {}", archive_error_string(archive.get()));
         return TarErrors::kCannotZipTarArchive;
       } else {
-        logger->warn("Zip tar: {}", archive_error_string(a.get()));
+        logger->warn("Zip tar: {}", archive_error_string(archive.get()));
       }
     }
     std::function<outcome::result<void>(const fs::path &, const fs::path &)>
         zipDir = [&](const fs::path &absolute_path,
                      const fs::path &relative_path) -> outcome::result<void> {
-      struct archive_entry *entry;
-      struct stat st {};
+      struct archive_entry *entry = nullptr;
+      struct stat entry_stat {};
       char buff[8192];
       fs::directory_iterator dir_iter(absolute_path), end;
 
@@ -85,30 +86,30 @@ namespace fc::common {
           }
           type = AE_IFDIR;
         }
-        if (stat(dir_iter->path().c_str(), &st) < 0) {
+        if (stat(dir_iter->path().c_str(), &entry_stat) < 0) {
           return TarErrors::kCannotZipTarArchive;
         }
         entry = archive_entry_new();
         archive_entry_set_pathname(
             entry, (relative_path / dir_iter->path().filename()).c_str());
-        archive_entry_set_size(entry, st.st_size);
+        archive_entry_set_size(entry, entry_stat.st_size);
         archive_entry_set_filetype(entry, type);
         archive_entry_set_perm(entry, 0644);
-        r = archive_write_header(a.get(), entry);
-        if (r < ARCHIVE_OK) {
-          if (r < ARCHIVE_WARN) {
-            logger->error("Zip tar: {}", archive_error_string(a.get()));
+        return_code = archive_write_header(archive.get(), entry);
+        if (return_code < ARCHIVE_OK) {
+          if (return_code < ARCHIVE_WARN) {
+            logger->error("Zip tar: {}", archive_error_string(archive.get()));
             return TarErrors::kCannotZipTarArchive;
           } else {
-            logger->warn("Zip tar: {}", archive_error_string(a.get()));
+            logger->warn("Zip tar: {}", archive_error_string(archive.get()));
           }
         }
         if (type == AE_IFREG) {
           int fd = open(dir_iter->path().c_str(), O_RDONLY);
           int len = read(fd, buff, sizeof(buff));
           while (len > 0) {
-            if (archive_write_data(a.get(), buff, len) == -1) {
-              logger->error("Zip tar: {}", archive_error_string(a.get()));
+            if (archive_write_data(archive.get(), buff, len) == -1) {
+              logger->error("Zip tar: {}", archive_error_string(archive.get()));
               return TarErrors::kCannotZipTarArchive;
             }
             len = read(fd, buff, sizeof(buff));
@@ -124,7 +125,7 @@ namespace fc::common {
 
     fs::path base = fs::path(input_path).filename();
     OUTCOME_TRY(zipDir(input_path, base));
-    archive_write_close(a.get());
+    archive_write_close(archive.get());
 
     return outcome::success();
   }
@@ -141,9 +142,9 @@ namespace fc::common {
       }
     }
 
-    struct archive_entry *entry;
+    struct archive_entry *entry = nullptr;
     int flags;
-    int r;
+    int return_code;
 
     /* Select which attributes we want to restore. */
     flags = ARCHIVE_EXTRACT_TIME;
@@ -151,59 +152,60 @@ namespace fc::common {
     flags |= ARCHIVE_EXTRACT_ACL;
     flags |= ARCHIVE_EXTRACT_FFLAGS;
 
-    auto a = ffi::wrap(archive_read_new(), archive_read_free);
-    archive_read_support_format_tar(a.get());
+    auto archive = ffi::wrap(archive_read_new(), archive_read_free);
+    archive_read_support_format_tar(archive.get());
     auto ext = ffi::wrap(archive_write_disk_new(), archive_write_free);
     archive_write_disk_set_options(ext.get(), flags);
     archive_write_disk_set_standard_lookup(ext.get());
-    if (archive_read_open_filename(a.get(), tar_path.c_str(), kTarBlockSize)
+    if (archive_read_open_filename(
+            archive.get(), tar_path.c_str(), kTarBlockSize)
         != ARCHIVE_OK) {
-      logger->error("Extract tar: {}", archive_error_string(a.get()));
+      logger->error("Extract tar: {}", archive_error_string(archive.get()));
       return TarErrors::kCannotUntarArchive;
     }
     for (;;) {
-      r = archive_read_next_header(a.get(), &entry);
-      if (r == ARCHIVE_EOF) {
+      return_code = archive_read_next_header(archive.get(), &entry);
+      if (return_code == ARCHIVE_EOF) {
         break;
       }
-      if (r < ARCHIVE_WARN) {
-        logger->error("Extract tar: {}", archive_error_string(a.get()));
+      if (return_code < ARCHIVE_WARN) {
+        logger->error("Extract tar: {}", archive_error_string(archive.get()));
         return TarErrors::kCannotUntarArchive;
       }
-      if (r < ARCHIVE_OK) {
-        logger->warn("Extract tar: {}", archive_error_string(a.get()));
+      if (return_code < ARCHIVE_OK) {
+        logger->warn("Extract tar: {}", archive_error_string(archive.get()));
       }
 
       std::string currentFile(archive_entry_pathname(entry));
       archive_entry_set_pathname(entry,
                                  (fs::path(output_path) / currentFile).c_str());
-      r = archive_write_header(ext.get(), entry);
-      if (r < ARCHIVE_OK) {
-        if (r < ARCHIVE_WARN) {
-          logger->error("Extract tar: {}", archive_error_string(a.get()));
+      return_code = archive_write_header(ext.get(), entry);
+      if (return_code < ARCHIVE_OK) {
+        if (return_code < ARCHIVE_WARN) {
+          logger->error("Extract tar: {}", archive_error_string(archive.get()));
         } else {
-          logger->warn("Extract tar: {}", archive_error_string(a.get()));
+          logger->warn("Extract tar: {}", archive_error_string(archive.get()));
         }
       } else if (archive_entry_size(entry) > 0) {
-        r = copy_data(a.get(), ext.get());
-        if (r < ARCHIVE_WARN) {
-          logger->error("Extract tar: {}", archive_error_string(a.get()));
+        return_code = copy_data(archive.get(), ext.get());
+        if (return_code < ARCHIVE_WARN) {
+          logger->error("Extract tar: {}", archive_error_string(archive.get()));
           return TarErrors::kCannotUntarArchive;
         }
-        if (r < ARCHIVE_OK) {
-          logger->warn("Extract tar: {}", archive_error_string(a.get()));
+        if (return_code < ARCHIVE_OK) {
+          logger->warn("Extract tar: {}", archive_error_string(archive.get()));
         }
       }
-      r = archive_write_finish_entry(ext.get());
-      if (r < ARCHIVE_WARN) {
-        logger->error("Extract tar: {}", archive_error_string(a.get()));
+      return_code = archive_write_finish_entry(ext.get());
+      if (return_code < ARCHIVE_WARN) {
+        logger->error("Extract tar: {}", archive_error_string(archive.get()));
         return TarErrors::kCannotUntarArchive;
       }
-      if (r < ARCHIVE_OK) {
-        logger->warn("Extract tar: {}", archive_error_string(a.get()));
+      if (return_code < ARCHIVE_OK) {
+        logger->warn("Extract tar: {}", archive_error_string(archive.get()));
       }
     }
-    archive_read_close(a.get());
+    archive_read_close(archive.get());
     archive_write_close(ext.get());
 
     return outcome::success();
