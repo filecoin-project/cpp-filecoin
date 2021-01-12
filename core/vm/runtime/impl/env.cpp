@@ -7,6 +7,7 @@
 
 #include "vm/actor/builtin/v0/account/account_actor.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/cgo/actors.hpp"
@@ -144,23 +145,38 @@ namespace fc::vm::runtime {
     if (used < 0) {
       used = 0;
     }
+    auto no_fee{false};
+    if (epoch > vm::version::kUpgradeClausHeight && exit_code == VMExitCode::kOk
+        && message.method
+               == vm::actor::builtin::v0::miner::SubmitWindowedPoSt::Number) {
+      if (auto _to{state_tree->get(message.to)}) {
+        no_fee = vm::actor::isStorageMinerActor(_to.value().code);
+      } else {
+        if (_to.error() != HamtError::kNotFound) {
+          return _to.error();
+        }
+      }
+    }
     BOOST_ASSERT_MSG(used <= limit, "runtime charged gas over limit");
     auto base_fee{tipset->getParentBaseFee()}, fee_cap{message.gas_fee_cap},
         base_fee_pay{std::min(base_fee, fee_cap)};
     apply.penalty = base_fee > fee_cap ? TokenAmount{base_fee - fee_cap} * used
                                        : TokenAmount{0};
-    OUTCOME_TRY(
-        add_locked(actor::kBurntFundsActorAddress, base_fee_pay * used));
+    if (!no_fee) {
+      OUTCOME_TRY(
+          add_locked(actor::kBurntFundsActorAddress, base_fee_pay * used));
+    }
     apply.reward =
         std::min(message.gas_premium, TokenAmount{fee_cap - base_fee_pay})
         * limit;
     OUTCOME_TRY(add_locked(kRewardAddress, apply.reward));
     auto over{limit - 11 * used / 10};
     auto gas_burned{
-        used == 0  ? limit
-        : over < 0 ? 0
-                   : static_cast<GasAmount>(bigdiv(
-                       BigInt{limit - used} * std::min(used, over), used))};
+        used == 0
+            ? limit
+            : over < 0 ? 0
+                       : static_cast<GasAmount>(bigdiv(
+                           BigInt{limit - used} * std::min(used, over), used))};
     if (gas_burned != 0) {
       OUTCOME_TRY(add_locked(actor::kBurntFundsActorAddress,
                              base_fee_pay * gas_burned));

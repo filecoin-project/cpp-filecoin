@@ -53,6 +53,10 @@ namespace fc::vm::actor::cgo {
     cgoCall<cgoActorsConfig>(arg);
   }
 
+  void configMainnet() {
+    cgoCall<cgoActorsConfigMainnet>(BytesIn{});
+  }
+
   constexpr auto kFatal{VMExitCode::kFatal};
   constexpr auto kOk{VMExitCode::kOk};
 
@@ -404,6 +408,14 @@ namespace fc::vm::actor::cgo {
           ret << kFatal;
         }
       }
+    }
+  }
+
+  RUNTIME_METHOD(gocRtCirc) {
+    if (auto _amount{rt.getTotalFilCirculationSupply()}) {
+      ret << kOk << _amount.value();
+    } else {
+      ret << VMExitCode::kErrIllegalState;
     }
   }
 }  // namespace fc::vm::actor::cgo
