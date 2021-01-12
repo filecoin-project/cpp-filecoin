@@ -69,7 +69,6 @@ namespace fc::common {
     std::function<outcome::result<void>(const fs::path &, const fs::path &)>
         zipDir = [&](const fs::path &absolute_path,
                      const fs::path &relative_path) -> outcome::result<void> {
-      struct archive_entry *entry = nullptr;
       struct stat entry_stat {};
       char buff[8192];
       fs::directory_iterator dir_iter(absolute_path), end;
@@ -89,13 +88,13 @@ namespace fc::common {
         if (stat(dir_iter->path().c_str(), &entry_stat) < 0) {
           return TarErrors::kCannotZipTarArchive;
         }
-        entry = archive_entry_new();
+        auto entry = ffi::wrap(archive_entry_new(), archive_entry_free);
         archive_entry_set_pathname(
-            entry, (relative_path / dir_iter->path().filename()).c_str());
-        archive_entry_set_size(entry, entry_stat.st_size);
-        archive_entry_set_filetype(entry, type);
-        archive_entry_set_perm(entry, 0644);
-        return_code = archive_write_header(archive.get(), entry);
+            entry.get(), (relative_path / dir_iter->path().filename()).c_str());
+        archive_entry_set_size(entry.get(), entry_stat.st_size);
+        archive_entry_set_filetype(entry.get(), type);
+        archive_entry_set_perm(entry.get(), 0644);
+        return_code = archive_write_header(archive.get(), entry.get());
         if (return_code < ARCHIVE_OK) {
           if (return_code < ARCHIVE_WARN) {
             logger->error("Zip tar: {}", archive_error_string(archive.get()));
@@ -105,18 +104,24 @@ namespace fc::common {
           }
         }
         if (type == AE_IFREG) {
-          int fd = open(dir_iter->path().c_str(), O_RDONLY);
-          int len = read(fd, buff, sizeof(buff));
-          while (len > 0) {
-            if (archive_write_data(archive.get(), buff, len) == -1) {
+          std::ifstream file(dir_iter->path().c_str());
+          if (not file.is_open()) {
+            return TarErrors::kCannotOpenFile;
+          }
+
+          while (not file.eof()) {
+            file.read(buff, sizeof(buff));
+
+            if (not file.good() && not file.eof()) {
+              return TarErrors::kCannotReadFile;
+            }
+
+            if (archive_write_data(archive.get(), buff, file.gcount()) == -1) {
               logger->error("Zip tar: {}", archive_error_string(archive.get()));
               return TarErrors::kCannotZipTarArchive;
             }
-            len = read(fd, buff, sizeof(buff));
           }
-          close(fd);
         }
-        archive_entry_free(entry);
 
         ++dir_iter;
       }
@@ -222,6 +227,10 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::common, TarErrors, e) {
       return "Tar Util: cannot untar archive";
     case (TarErrors::kCannotZipTarArchive):
       return "Tar Util: cannot zip tar archive";
+    case (TarErrors::kCannotOpenFile):
+      return "Tar Util: cannot open file for write to archive";
+    case (TarErrors::kCannotReadFile):
+      return "Tar Util: cannot read data from file";
     default:
       return "Tar Util: unknown error";
   }

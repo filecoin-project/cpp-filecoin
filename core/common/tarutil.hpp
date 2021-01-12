@@ -23,6 +23,8 @@ namespace fc::common {
     kCannotCreateDir = 1,
     kCannotUntarArchive,
     kCannotZipTarArchive,
+    kCannotOpenFile,
+    kCannotReadFile,
   };
 
 }  // namespace fc::common
