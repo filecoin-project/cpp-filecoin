@@ -15,19 +15,20 @@ namespace fc::vm::runtime {
   using primitives::sector::WindowPoStVerifyInfo;
 
   struct Pricelist {
-    GasAmount make(GasAmount compute, GasAmount storage) const {
+    inline GasAmount make(GasAmount compute, GasAmount storage) const {
       return compute + storage;
     }
-    GasAmount storage(GasAmount gas) const {
+    inline GasAmount storage(GasAmount gas) const {
       return (calico ? 1300 : 1000) * gas;
     }
-    GasAmount onChainMessage(size_t size) const {
+    inline GasAmount onChainMessage(size_t size) const {
       return make(38863, storage(36 + size));
     }
-    GasAmount onChainReturnValue(size_t size) const {
+    inline GasAmount onChainReturnValue(size_t size) const {
       return make(0, storage(size));
     }
-    GasAmount onMethodInvocation(TokenAmount value, uint64_t method) const {
+    inline GasAmount onMethodInvocation(TokenAmount value,
+                                        uint64_t method) const {
       GasAmount gas{29233};
       if (value != 0) {
         gas += 27500;
@@ -40,31 +41,31 @@ namespace fc::vm::runtime {
       }
       return make(gas, 0);
     }
-    GasAmount onIpldGet() const {
+    inline GasAmount onIpldGet() const {
       return make(calico ? 114617 : 75242, 0);
     }
-    GasAmount onIpldPut(size_t size) const {
+    inline GasAmount onIpldPut(size_t size) const {
       return make(calico ? 353640 : 84070, storage(size));
     }
-    GasAmount onCreateActor() const {
+    inline GasAmount onCreateActor() const {
       return make(1108454, storage(36 + 40));
     }
-    GasAmount onDeleteActor() const {
+    inline GasAmount onDeleteActor() const {
       return make(0, storage(-(36 + 40)));
     }
-    GasAmount onVerifySignature(bool bls) const {
+    inline GasAmount onVerifySignature(bool bls) const {
       return make(bls ? 16598605 : 1637292, 0);
     }
-    GasAmount onHashing() const {
+    inline GasAmount onHashing() const {
       return make(31355, 0);
     }
-    GasAmount onComputeUnsealedSectorCid() const {
+    inline GasAmount onComputeUnsealedSectorCid() const {
       return make(98647, 0);
     }
-    GasAmount onVerifySeal() const {
+    inline GasAmount onVerifySeal() const {
       return make(2000, 0);
     }
-    GasAmount onVerifyPost(const WindowPoStVerifyInfo &info) const {
+    inline GasAmount onVerifyPost(const WindowPoStVerifyInfo &info) const {
       int64_t flat{123861062}, scale{9226981};
       if (calico) {
         flat = 117680921;
@@ -83,7 +84,7 @@ namespace fc::vm::runtime {
       }
       return make(gas, 0);
     }
-    GasAmount onVerifyConsensusFault() const {
+    inline GasAmount onVerifyConsensusFault() const {
       return make(495422, 0);
     }
 

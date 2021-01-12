@@ -46,7 +46,6 @@ namespace fc::api {
   using libp2p::peer::PeerId;
   using primitives::block::MsgMeta;
   using vm::isVMExitCode;
-  using vm::normalizeVMExitCode;
   using vm::VMExitCode;
   using vm::actor::InvokerImpl;
   using vm::runtime::Env;
@@ -476,8 +475,7 @@ namespace fc::api {
         .StateCall = {[=](auto &message,
                           auto &tipset_key) -> outcome::result<InvocResult> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
-          auto randomness =
-              std::make_shared<TipsetRandomness>(ipld);
+          auto randomness = std::make_shared<TipsetRandomness>(ipld);
           auto env = std::make_shared<Env>(std::make_shared<InvokerImpl>(),
                                            randomness,
                                            ipld,

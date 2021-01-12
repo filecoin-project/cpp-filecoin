@@ -21,7 +21,7 @@
 
 namespace fc::vm {
   outcome::result<TokenAmount> getLocked(StateTreePtr state_tree) {
-    auto ipld{state_tree->getStore()};
+    const auto ipld{state_tree->getStore()};
     TokenAmount locked;
     OUTCOME_TRY(market, state_tree->get(actor::kStorageMarketAddress));
     if (market.code == actor::builtin::v0::kStorageMarketCodeCid
@@ -64,8 +64,9 @@ namespace fc::vm {
 
   outcome::result<TokenAmount> Circulating::circulating(
       StateTreePtr state_tree, ChainEpoch epoch) const {
-    auto ipld{state_tree->getStore()};
-    TokenAmount vested, mined;
+    const auto ipld{state_tree->getStore()};
+    TokenAmount vested;
+    TokenAmount mined;
 
     auto vest{[&](auto days, TokenAmount amount) {
       ChainEpoch duration(days * vm::actor::builtin::v0::miner::kEpochsInDay);
@@ -80,7 +81,8 @@ namespace fc::vm {
         vested += amount - (duration - elapsed) * bigdiv(amount, duration);
       }
     }};
-    constexpr auto sixMonths{183}, year{365};
+    constexpr auto sixMonths{183};
+    constexpr auto year{365};
     auto calico{epoch > version::kUpgradeCalicoHeight};
     vest(sixMonths, (calico ? 19015887 : 49929341) + 32787700);
     vest(year, 22421712 + (calico ? 9400000 : 0));

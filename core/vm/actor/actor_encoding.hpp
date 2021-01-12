@@ -26,13 +26,15 @@ namespace fc::vm::actor {
 
   /// Decode actor params, raises appropriate error
   template <typename T>
-  outcome::result<T> decodeActorParams(MethodParams params_bytes) {
+  outcome::result<T> decodeActorParams(MethodParams params_bytes,
+                                       bool v7) {
     if constexpr (std::is_same_v<T, None>) {
       return T{};
     }
     auto maybe_params = codec::cbor::decode<T>(params_bytes);
     if (!maybe_params) {
-      return outcome::failure(VMExitCode::kDecodeActorParamsError);
+      return outcome::failure(v7 ? VMExitCode::kErrSerialization
+                                 : VMExitCode::kErrSerializationPre7);
     }
     return maybe_params;
   }

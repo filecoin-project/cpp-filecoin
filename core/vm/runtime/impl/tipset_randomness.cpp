@@ -11,7 +11,7 @@ namespace fc::vm::runtime {
       : ipld_{std::move(ipld)} {}
 
   outcome::result<Randomness> TipsetRandomness::getRandomnessFromTickets(
-      const TipsetCPtr& tipset,
+      const TipsetCPtr &tipset,
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
@@ -19,7 +19,7 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<Randomness> TipsetRandomness::getRandomnessFromBeacon(
-      const TipsetCPtr& tipset,
+      const TipsetCPtr &tipset,
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {

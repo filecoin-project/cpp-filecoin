@@ -6,6 +6,8 @@
 #ifndef CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_RANDOMNESS_HPP
 #define CPP_FILECOIN_CORE_VM_RUNTIME_RUNTIME_RANDOMNESS_HPP
 
+#include "fwd.hpp"
+
 #include "common/outcome.hpp"
 #include "crypto/randomness/randomness_types.hpp"
 #include "primitives/tipset/tipset.hpp"
