@@ -87,10 +87,13 @@ namespace fc::vm::actor::builtin::v2::payment_channel {
     if (voucher.amount.sign() < 0) {
       return VMExitCode::kErrIllegalArgument;
     }
-    if (!voucher.secret_preimage.empty()
-        && gsl::make_span(runtime.hashBlake2b(params.secret))
-               != gsl::make_span(voucher.secret_preimage)) {
-      return VMExitCode::kErrIllegalArgument;
+    if (!voucher.secret_preimage.empty()) {
+      OUTCOME_TRY(hash, runtime.hashBlake2b(params.secret));
+      auto secret_preimage_copy = voucher.secret_preimage;
+      if (gsl::make_span(hash)
+          != gsl::make_span(secret_preimage_copy)) {
+        return VMExitCode::kErrIllegalArgument;
+      }
     }
     if (voucher.extra) {
       OUTCOME_TRY(runtime.send(voucher.extra->actor,

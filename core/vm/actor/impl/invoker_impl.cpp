@@ -19,6 +19,7 @@
 #include "vm/actor/builtin/v2/account/account_actor.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
 #include "vm/actor/builtin/v2/cron/cron_actor.hpp"
+#include "vm/actor/builtin/v2/multisig/multisig_actor.hpp"
 #include "vm/actor/builtin/v2/payment_channel/payment_channel_actor.hpp"
 #include "vm/actor/builtin/v2/reward/reward_actor.hpp"
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_export.hpp"
@@ -52,7 +53,7 @@ namespace fc::vm::actor {
     // builtin_[builtin::v2::kStorageMinerCodeCid]
     // = builtin::v2::miner::exports;
     builtin_[builtin::v2::kRewardActorCodeID] = builtin::v2::reward::exports;
-    // builtin_[builtin::v2::kMultisigCodeCid] = builtin::v2::multisig::exports;
+    builtin_[builtin::v2::kMultisigCodeCid] = builtin::v2::multisig::exports;
     builtin_[builtin::v2::kPaymentChannelCodeCid] =
         builtin::v2::payment_channel::exports;
     builtin_[builtin::v2::kStoragePowerCodeCid] =
@@ -77,7 +78,7 @@ namespace fc::vm::actor {
         && (actor.code != builtin::v0::kInitCodeCid)           // < tested OK
         && (actor.code != builtin::v0::kStorageMarketCodeCid)  // < tested OK
         // && (actor.code != builtin::v0::kStorageMinerCodeCid)    // TODO
-        // && (actor.code != builtin::v0::kMultisigCodeCid)        // TODO
+        && (actor.code != builtin::v0::kMultisigCodeCid)        // < tested OK
         && (actor.code != builtin::v0::kPaymentChannelCodeCid)  // < tested OK
         && (actor.code != builtin::v0::kStoragePowerCodeCid)    // < tested OK
         && (actor.code != builtin::v0::kRewardActorCodeID)      // < tested OK
@@ -90,7 +91,7 @@ namespace fc::vm::actor {
         // && (actor.code != builtin::v2::kInitCodeCid)            // TODO
         // && (actor.code != builtin::v2::kStorageMarketCodeCid)   // TODO
         // && (actor.code != builtin::v2::kStorageMinerCodeCid)    // TODO
-        // && (actor.code != builtin::v2::kMultisigCodeCid)        // TODO
+        && (actor.code != builtin::v2::kMultisigCodeCid)        // < tested OK
         && (actor.code != builtin::v2::kPaymentChannelCodeCid)  // < tested OK
         && (actor.code != builtin::v2::kStoragePowerCodeCid)    // < tested OK
         && (actor.code != builtin::v2::kRewardActorCodeID)      // < tested OK

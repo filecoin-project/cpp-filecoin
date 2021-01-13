@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_METHOD_HPP
-#define CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_METHOD_HPP
+#pragma once
 
 #include "codec/cbor/cbor.hpp"
 #include "common/outcome.hpp"
@@ -19,14 +18,7 @@
 
 /// Define actor method function
 #define ACTOR_METHOD_IMPL(M) \
-  outcome::result<M::Result> M::call(Runtime &runtime, const Params &params)
-
-/**
- * Aborts execution if res has error and aborts with default_error if res has
- * error and the error is not fatal or abort
- */
-#define REQUIRE_NO_ERROR(expr, err_code) \
-  OUTCOME_TRY(runtime.requireNoError((expr), (err_code)));
+  outcome::result<M::Result> M::call(Runtime &runtime, const M::Params &params)
 
 namespace fc::vm::actor {
   using common::Buffer;
@@ -67,5 +59,3 @@ namespace fc::vm::actor {
         }});
   }
 }  // namespace fc::vm::actor
-
-#endif  // CPP_FILECOIN_CORE_VM_ACTOR_ACTOR_METHOD_HPP

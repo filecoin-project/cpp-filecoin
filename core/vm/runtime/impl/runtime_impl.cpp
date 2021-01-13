@@ -63,7 +63,7 @@ namespace fc::vm::runtime {
     return message_.to;
   }
 
-  fc::outcome::result<BigInt> RuntimeImpl::getBalance(
+  outcome::result<BigInt> RuntimeImpl::getBalance(
       const Address &address) const {
     auto actor_state = execution_->state_tree->get(address);
     if (!actor_state) {
@@ -83,7 +83,7 @@ namespace fc::vm::runtime {
     return actor_state.code;
   }
 
-  fc::outcome::result<InvocationOutput> RuntimeImpl::send(
+  outcome::result<InvocationOutput> RuntimeImpl::send(
       Address to_address,
       MethodNumber method_number,
       MethodParams params,
@@ -106,14 +106,14 @@ namespace fc::vm::runtime {
     return actor_address;
   }
 
-  fc::outcome::result<void> RuntimeImpl::createActor(const Address &address,
-                                                     const Actor &actor) {
+  outcome::result<void> RuntimeImpl::createActor(const Address &address,
+                                                 const Actor &actor) {
     OUTCOME_TRY(execution_->state_tree->set(address, actor));
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onCreateActor()));
     return fc::outcome::success();
   }
 
-  fc::outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {
+  outcome::result<void> RuntimeImpl::deleteActor(const Address &address) {
     OUTCOME_TRY(chargeGas(execution_->env->pricelist.onDeleteActor()));
     auto &state{*execution()->state_tree};
     if (auto _actor{state.get(getCurrentReceiver())}) {
@@ -132,9 +132,9 @@ namespace fc::vm::runtime {
     return VMExitCode::kSysErrorIllegalActor;
   }
 
-  fc::outcome::result<void> RuntimeImpl::transfer(const Address &debitFrom,
-                                                  const Address &creditTo,
-                                                  const TokenAmount &amount) {
+  outcome::result<void> RuntimeImpl::transfer(const Address &debitFrom,
+                                              const Address &creditTo,
+                                              const TokenAmount &amount) {
     if (amount < 0) {
       return VMExitCode::kSysErrForbidden;
     }
@@ -160,7 +160,7 @@ namespace fc::vm::runtime {
     return outcome::success();
   }
 
-  fc::outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
+  outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
       const {
     // TODO(a.chernyshov) implement
     // 0 is for test vectors
@@ -180,15 +180,14 @@ namespace fc::vm::runtime {
     return actor.head;
   }
 
-  fc::outcome::result<void> RuntimeImpl::commit(const CID &new_state) {
+  outcome::result<void> RuntimeImpl::commit(const CID &new_state) {
     OUTCOME_TRY(actor, execution_->state_tree->get(getCurrentReceiver()));
     actor.head = new_state;
     OUTCOME_TRY(execution_->state_tree->set(getCurrentReceiver(), actor));
     return outcome::success();
   }
 
-  fc::outcome::result<Address> RuntimeImpl::resolveAddress(
-      const Address &address) {
+  outcome::result<Address> RuntimeImpl::resolveAddress(const Address &address) {
     return execution_->state_tree->lookupId(address);
   }
 
@@ -262,20 +261,26 @@ namespace fc::vm::runtime {
     return res;
   }
 
-  fc::outcome::result<fc::CID> RuntimeImpl::computeUnsealedSectorCid(
+  outcome::result<CID> RuntimeImpl::computeUnsealedSectorCid(
       RegisteredProof type, const std::vector<PieceInfo> &pieces) {
     OUTCOME_TRY(
         chargeGas(execution_->env->pricelist.onComputeUnsealedSectorCid()));
     return proofs::Proofs::generateUnsealedCID(type, pieces, true);
   }
 
-  fc::outcome::result<ConsensusFault> RuntimeImpl::verifyConsensusFault(
+  outcome::result<ConsensusFault> RuntimeImpl::verifyConsensusFault(
       const Buffer &block1, const Buffer &block2, const Buffer &extra) {
     // TODO(a.chernyshov): implement
     return RuntimeError::kUnknown;
   }
 
-  fc::outcome::result<void> RuntimeImpl::chargeGas(GasAmount amount) {
+  outcome::result<Blake2b256Hash> RuntimeImpl::hashBlake2b(
+      gsl::span<const uint8_t> data) {
+    OUTCOME_TRY(chargeGas(execution_->env->pricelist.onHashing()));
+    return crypto::blake2b::blake2b_256(data);
+  }
+
+  outcome::result<void> RuntimeImpl::chargeGas(GasAmount amount) {
     return execution_->chargeGas(amount);
   }
 }  // namespace fc::vm::runtime
