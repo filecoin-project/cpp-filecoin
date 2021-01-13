@@ -6,6 +6,7 @@
 #include "blockchain/impl/weight_calculator_impl.hpp"
 
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
+#include "vm/actor/builtin/v2/power/actor.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
@@ -14,13 +15,18 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::blockchain::weight, WeightCalculatorError, e) {
     case E::kNoNetworkPower:
       return "No network power";
   }
+  return "WeightCalculatorError: unknown error";
 }
 
 namespace fc::blockchain::weight {
   using primitives::BigInt;
   using vm::actor::kStoragePowerAddress;
-  using vm::actor::builtin::v0::storage_power::StoragePowerActorState;
   using vm::state::StateTreeImpl;
+  using vm::state::StateTreeVersion;
+
+  using StoragePowerActorState_v0 =
+      vm::actor::builtin::v0::storage_power::StoragePowerActorState;
+  using StoragePowerActorState_v2 = vm::actor::builtin::v2::power::State;
 
   constexpr uint64_t kWRatioNum{1};
   constexpr uint64_t kWRatioDen{2};
@@ -31,10 +37,22 @@ namespace fc::blockchain::weight {
 
   outcome::result<BigInt> WeightCalculatorImpl::calculateWeight(
       const Tipset &tipset) {
-    OUTCOME_TRY(state,
-                StateTreeImpl{ipld_, tipset.getParentStateRoot()}
-                    .state<StoragePowerActorState>(kStoragePowerAddress));
-    auto network_power = state.total_qa_power;
+    auto state_tree = StateTreeImpl{ipld_, tipset.getParentStateRoot()};
+
+    BigInt network_power;
+
+    if (state_tree.version() > StateTreeVersion::kVersion0) {
+      OUTCOME_TRY(
+          state,
+          state_tree.state<StoragePowerActorState_v2>(kStoragePowerAddress));
+      network_power = state.total_qa_power;
+    } else {
+      OUTCOME_TRY(
+          state,
+          state_tree.state<StoragePowerActorState_v0>(kStoragePowerAddress));
+      network_power = state.total_qa_power;
+    }
+
     if (network_power <= 0) {
       return outcome::failure(WeightCalculatorError::kNoNetworkPower);
     }

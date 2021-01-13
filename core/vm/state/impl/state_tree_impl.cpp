@@ -20,6 +20,10 @@ namespace fc::vm::state {
     setRoot(root).assume_value();
   }
 
+  StateTreeVersion StateTreeImpl::version() const {
+    return version_;
+  }
+
   outcome::result<void> StateTreeImpl::set(const Address &address,
                                            const Actor &actor) {
     OUTCOME_TRY(address_id, lookupId(address));

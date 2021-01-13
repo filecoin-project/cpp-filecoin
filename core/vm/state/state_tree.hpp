@@ -47,6 +47,9 @@ namespace fc::vm::state {
 
     virtual ~StateTree() = default;
 
+    /// Returns state tree version
+    virtual StateTreeVersion version() const = 0;
+
     /// Set actor state, does not write to storage
     virtual outcome::result<void> set(const Address &address,
                                       const Actor &actor) = 0;
