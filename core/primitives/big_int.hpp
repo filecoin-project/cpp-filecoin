@@ -20,10 +20,18 @@ namespace fc::primitives {
     }
     return n / d;
   }
+
+  /// mod with round-floor, like `big.Mod` from go
+  inline BigInt bigmod(const BigInt &n, const BigInt &d) {
+    const auto r = bigdiv(n, d);
+    return n - r * d;
+  }
+
 }  // namespace fc::primitives
 
 namespace fc {
   using primitives::bigdiv;
+  using primitives::bigmod;
 }
 
 namespace boost::multiprecision {
