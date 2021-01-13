@@ -102,19 +102,6 @@ namespace fc::vm {
       case E::kMinerActorIllegalState:
         return E::kErrIllegalState;
 
-      case E::kMultisigActorWrongCaller:
-        return E{1};
-      case E::kMultisigActorIllegalArgument:
-        return E::kErrIllegalArgument;
-      case E::kMultisigActorNotFound:
-        return E::kErrNotFound;
-      case E::kMultisigActorForbidden:
-        return E::kErrForbidden;
-      case E::kMultisigActorInsufficientFunds:
-        return E::kErrInsufficientFunds;
-      case E::kMultisigActorIllegalState:
-        return E::kErrIllegalState;
-
       case E::kInitActorNotBuiltinActor:
       case E::kInitActorSingletonActor:
         return E{1};

@@ -97,6 +97,6 @@ namespace fc {
   constexpr decltype(auto) match_in_place(T &&t, Fs &&... fs) {
     return match(std::forward<T>(t), make_visitor(std::forward<Fs>(fs)...));
   }
-}  // namespace kagome
+}  // namespace fc
 
 #endif  // CPP_FILECOIN_VISITOR_HPP

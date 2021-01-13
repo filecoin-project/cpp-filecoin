@@ -55,10 +55,10 @@ namespace fc::vm::runtime {
         const Address &address) const override;
 
     /** \copydoc Runtime::send() */
-    fc::outcome::result<InvocationOutput> send(Address to_address,
-                                               MethodNumber method_number,
-                                               MethodParams params,
-                                               BigInt value) override;
+    outcome::result<InvocationOutput> send(Address to_address,
+                                           MethodNumber method_number,
+                                           MethodParams params,
+                                           BigInt value) override;
 
     /** \copydoc Runtime::createNewActorAddress() */
     outcome::result<Address> createNewActorAddress() override;
@@ -117,6 +117,9 @@ namespace fc::vm::runtime {
         const Buffer &block1,
         const Buffer &block2,
         const Buffer &extra) override;
+
+    outcome::result<Blake2b256Hash> hashBlake2b(
+        gsl::span<const uint8_t> data) override;
 
    private:
     std::shared_ptr<Execution> execution_;

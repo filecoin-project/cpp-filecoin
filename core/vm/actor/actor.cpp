@@ -10,6 +10,7 @@
 #include "crypto/hasher/hasher.hpp"
 #include "vm/actor/builtin/v0/codes.hpp"
 #include "vm/actor/builtin/v2/codes.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
 
 namespace fc::vm::actor {
 
@@ -21,7 +22,8 @@ namespace fc::vm::actor {
   }
 
   bool isAccountActor(const CodeId &code) {
-    return code == v0::kAccountCodeCid || code == v2::kAccountCodeCid;
+    return code == v0::kAccountCodeCid || code == v2::kAccountCodeCid
+           || code == v3::kAccountCodeCid;
   }
 
   bool isStorageMinerActor(const CodeId &code) {
@@ -39,7 +41,13 @@ namespace fc::vm::actor {
            || code == v2::kStorageMinerCodeCid || code == v2::kAccountCodeCid
            || code == v2::kInitCodeCid || code == v2::kMultisigCodeCid
            || code == v2::kPaymentChannelCodeCid || code == v2::kCronCodeCid
-           || code == v2::kRewardActorCodeID || code == v2::kSystemActorCodeID;
+           || code == v2::kRewardActorCodeID || code == v2::kSystemActorCodeID
+           || code == v3::kStorageMarketCodeCid
+           || code == v3::kStoragePowerCodeCid
+           || code == v3::kStorageMinerCodeCid || code == v3::kAccountCodeCid
+           || code == v3::kInitCodeCid || code == v3::kMultisigCodeCid
+           || code == v3::kPaymentChannelCodeCid || code == v3::kCronCodeCid
+           || code == v3::kRewardActorCodeID || code == v3::kSystemActorCodeID;
   }
 
   bool isSingletonActor(const CodeId &code) {
@@ -49,7 +57,10 @@ namespace fc::vm::actor {
            || code == v2::kStoragePowerCodeCid
            || code == v2::kStorageMarketCodeCid || code == v2::kInitCodeCid
            || code == v2::kCronCodeCid || code == v2::kRewardActorCodeID
-           || code == v2::kSystemActorCodeID;
+           || code == v2::kSystemActorCodeID || code == v3::kStoragePowerCodeCid
+           || code == v3::kStorageMarketCodeCid || code == v3::kInitCodeCid
+           || code == v3::kCronCodeCid || code == v3::kRewardActorCodeID
+           || code == v3::kSystemActorCodeID;
   }
 
   bool isSignableActorV0(const CodeId &code) {
@@ -58,7 +69,8 @@ namespace fc::vm::actor {
 
   bool isSignableActor(const CodeId &code) {
     return code == v0::kAccountCodeCid || code == v0::kMultisigCodeCid
-           || code == v2::kAccountCodeCid || code == v2::kMultisigCodeCid;
+           || code == v2::kAccountCodeCid || code == v2::kMultisigCodeCid
+           || code == v3::kAccountCodeCid || code == v3::kMultisigCodeCid;
   }
 
   static uint8_t kCborEmptyList[]{0x80};

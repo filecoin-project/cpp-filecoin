@@ -22,11 +22,10 @@ namespace fc::vm::runtime {
    * @then exit_code converted to VMAbortExitCode and code is preserved
    */
   TEST(RuntimeTest, RequireNoErrorVMExitCodeToAbort) {
-    MockRuntime runtime;
     VMExitCode exit_code{VMExitCode::kSysErrInternal};
 
     outcome::result<void> req{exit_code};
-    auto res = runtime.requireNoError(req, VMExitCode::kOk);
+    auto res = Runtime::requireNoError(req, VMExitCode::kOk);
     EXPECT_TRUE(isAbortExitCode(res.error()));
     EXPECT_FALSE(isVMExitCode(res.error()));
 
@@ -42,10 +41,8 @@ namespace fc::vm::runtime {
    * @then fatal error returned
    */
   TEST(RuntimeTest, RequireNoErrorFatal) {
-    MockRuntime runtime;
-
     outcome::result<void> req{VMFatal::kFatal};
-    auto res = runtime.requireNoError(req, VMExitCode::kOk);
+    auto res = Runtime::requireNoError(req, VMExitCode::kOk);
     EXPECT_TRUE(isFatal(res.error()));
   }
 
@@ -55,11 +52,10 @@ namespace fc::vm::runtime {
    * @then default VMExitCode error returned
    */
   TEST(RuntimeTest, RequireNoErrorDefault) {
-    MockRuntime runtime;
     VMExitCode default_exit_code{VMExitCode::kOk};
 
     outcome::result<void> req{SampleError(1)};
-    auto res = runtime.requireNoError(req, default_exit_code);
+    auto res = Runtime::requireNoError(req, default_exit_code);
     EXPECT_TRUE(isAbortExitCode(res.error()));
     EXPECT_FALSE(isVMExitCode(res.error()));
 
