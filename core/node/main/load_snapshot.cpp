@@ -309,31 +309,35 @@ namespace fc {
       while (tipset->height() > 0) {
         fmt::print("Interpreting height {}\n", tipset->height());
 
-        common::Buffer key(tipset->key.hash());
-        std::ignore = c.leveldb->remove(key);
-
         auto res = interpreter->interpret(c.ipld, tipset);
         if (!res) {
           fmt::print(stderr,
                      "Cannot interpret at height {}, {}\n",
                      tipset->height(),
                      res.error().message());
+          common::Buffer key(tipset->key.hash());
+          std::ignore = c.leveldb->remove(key);
           return __LINE__;
         }
 
         if (expected_result.has_value()) {
           auto &result = res.value();
+          bool unexpected = false;
           if (result.state_root != expected_result->state_root) {
             fmt::print(stderr,
                        "State roots dont match at height {}\n",
                        tipset->height());
-            return __LINE__;
+            unexpected = true;
           }
           if (result.message_receipts != expected_result->message_receipts) {
             fmt::print(stderr,
                        "Message receipts dont match at height {}\n",
                        tipset->height());
-            return __LINE__;
+            unexpected = true;
+          }
+          if (unexpected) {
+            common::Buffer key(tipset->key.hash());
+            std::ignore = c.leveldb->remove(key);
           }
         }
 
