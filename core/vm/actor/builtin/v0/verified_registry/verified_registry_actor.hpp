@@ -3,24 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_VERIFIED_REGISTRY_ACTOR_HPP
-#define CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_VERIFIED_REGISTRY_ACTOR_HPP
+#pragma once
 
-#include "adt/address_key.hpp"
-#include "adt/map.hpp"
-#include "codec/cbor/streams_annotation.hpp"
 #include "vm/actor/actor_method.hpp"
+#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::verified_registry {
-  using primitives::StoragePower;
-
-  inline const StoragePower kMinVerifiedDealSize{1 << 20};
-
-  struct State {
-    Address root_key;
-    adt::Map<StoragePower, adt::AddressKeyer> verifiers, verified_clients;
-  };
-  CBOR_TUPLE(State, root_key, verifiers, verified_clients)
 
   struct Constructor : ActorMethodBase<1> {
     using Params = Address;
@@ -30,7 +18,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   struct AddVerifier : ActorMethodBase<2> {
     struct Params {
       Address address;
-      StoragePower allowance;
+      DataCap allowance;
     };
     ACTOR_METHOD_DECL();
   };
@@ -44,7 +32,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   struct AddVerifiedClient : ActorMethodBase<4> {
     struct Params {
       Address address;
-      StoragePower allowance;
+      DataCap allowance;
     };
     ACTOR_METHOD_DECL();
   };
@@ -70,5 +58,3 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
   extern const ActorExports exports;
 }  // namespace fc::vm::actor::builtin::v0::verified_registry
-
-#endif  // CPP_FILECOIN_VM_ACTOR_BUILTIN_V0_VERIFIED_REGISTRY_ACTOR_HPP
