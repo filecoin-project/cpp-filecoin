@@ -193,7 +193,8 @@ namespace fc::vm::runtime {
     virtual outcome::result<void> commit(const CID &new_state) = 0;
 
     /// Resolve address to id-address
-    virtual outcome::result<Address> resolveAddress(const Address &address) = 0;
+    virtual outcome::result<Address> resolveAddress(
+        const Address &address) const = 0;
 
     /// Verify signature
     virtual outcome::result<bool> verifySignature(

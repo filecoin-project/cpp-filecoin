@@ -76,6 +76,9 @@ namespace fc::vm::actor {
   /** Check if only one instance of actor should exists */
   bool isSingletonActor(const CodeId &code);
 
+  /** Check if actor code can represent external signing parties V0 */
+  bool isSignableActorV0(const CodeId &code);
+
   /** Check if actor code can represent external signing parties */
   bool isSignableActor(const CodeId &code);
 

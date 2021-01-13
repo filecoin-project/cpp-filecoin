@@ -188,7 +188,7 @@ namespace fc::vm::runtime {
   }
 
   fc::outcome::result<Address> RuntimeImpl::resolveAddress(
-      const Address &address) {
+      const Address &address) const {
     return execution_->state_tree->lookupId(address);
   }
 

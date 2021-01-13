@@ -18,6 +18,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::SectorStorageWeightDesc;
   using primitives::TokenAmount;
   using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
 
   constexpr size_t kEpochDurationSeconds{30};
   constexpr size_t kSecondsInHour{3600};
@@ -44,6 +45,14 @@ namespace fc::vm::actor::builtin::v0::miner {
   constexpr auto kMinSectorExpiration = 180 * kEpochsInDay;
 
   constexpr auto kAddressedSectorsMax{10000};
+
+  /**
+   * List of proof types which can be used when creating new miner actors
+   */
+  static const std::set<RegisteredSealProof> kSupportedProofs{
+      RegisteredSealProof::StackedDrg32GiBV1,
+      RegisteredSealProof::StackedDrg64GiBV1,
+  };
 
   /**
    * Maximum number of epochs past the current epoch a sector may be set to

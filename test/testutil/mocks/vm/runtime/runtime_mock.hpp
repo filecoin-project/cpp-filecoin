@@ -76,8 +76,8 @@ namespace fc::vm::runtime {
 
     MOCK_METHOD1(commit, outcome::result<void>(const CID &new_state));
 
-    MOCK_METHOD1(resolveAddress,
-                 outcome::result<Address>(const Address &address));
+    MOCK_CONST_METHOD1(resolveAddress,
+                       outcome::result<Address>(const Address &address));
 
     MOCK_METHOD3(verifySignature,
                  outcome::result<bool>(const Signature &signature,

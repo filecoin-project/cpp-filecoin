@@ -5,6 +5,9 @@
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 
+#include "vm/actor/builtin/v0/account/account_actor.hpp"
+#include "vm/actor/builtin/v0/codes.hpp"
+
 namespace fc::vm::actor::builtin::v0::miner {
   DeadlineInfo DeadlineInfo::make(ChainEpoch start,
                                   size_t index,
@@ -32,7 +35,62 @@ namespace fc::vm::actor::builtin::v0::miner {
     return DeadlineInfo::make(proving_period_start, deadline, now);
   }
 
+  /**
+   * Resolves an address to an ID address and verifies that it is address of an
+   * account or multisig actor
+   * @param address to resolve
+   * @return resolved address
+   */
+  outcome::result<Address> resolveControlAddress(Runtime &runtime,
+                                                 const Address &address) {
+    OUTCOME_TRY(resolved, runtime.resolveAddress(address));
+    VM_ASSERT(resolved.isId());
+    const auto resolved_code = runtime.getActorCodeID(resolved);
+    OUTCOME_TRY(
+        runtime.requireNoError(resolved_code, VMExitCode::kErrIllegalArgument));
+    OUTCOME_TRY(
+        runtime.validateArgument(isSignableActorV0(resolved_code.value())));
+    return std::move(resolved);
+  }
+
+  /**
+   * Resolves an address to an ID address and verifies that it is address of an
+   * account actor with an associated BLS key. The worker must be BLS since the
+   * worker key will be used alongside a BLS-VRF.
+   * @param runtime
+   * @param address to resolve
+   * @return resolved address
+   */
+  outcome::result<Address> resolveWorkerAddress(Runtime &runtime,
+                                                const Address &address) {
+    OUTCOME_TRY(resolved, runtime.resolveAddress(address));
+    VM_ASSERT(resolved.isId());
+    const auto resolved_code = runtime.getActorCodeID(resolved);
+    OUTCOME_TRY(
+        runtime.requireNoError(resolved_code, VMExitCode::kErrIllegalArgument));
+    OUTCOME_TRY(
+        runtime.validateArgument(resolved_code.value() == kAccountCodeCid));
+
+    if (!address.isBls()) {
+      OUTCOME_TRY(pubkey_addres,
+                  runtime.sendM<account::PubkeyAddress>(resolved, {}, 0));
+      OUTCOME_TRY(runtime.validateArgument(pubkey_addres.isBls()));
+    }
+
+    return std::move(resolved);
+  }
+
   ACTOR_METHOD_IMPL(Construct) {
+    OUTCOME_TRY(runtime.validateImmediateCallerIs(kInitAddress));
+
+    // proof is supported
+    OUTCOME_TRY(
+        runtime.validateArgument(kSupportedProofs.find(params.seal_proof_type)
+                                 != kSupportedProofs.end()));
+    OUTCOME_TRY(owner, resolveControlAddress(runtime, params.owner));
+    OUTCOME_TRY(worker, resolveWorkerAddress(runtime, params.worker));
+    //    worker := resolveWorkerAddress(rt, params.WorkerAddr)
+
     return VMExitCode::kNotImplemented;
   }
 
