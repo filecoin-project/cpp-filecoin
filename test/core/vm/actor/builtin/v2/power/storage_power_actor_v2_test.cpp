@@ -21,7 +21,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
   using libp2p::peer::PeerId;
   using primitives::kChainEpochUndefined;
   using primitives::SectorNumber;
-  using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
   using runtime::MockRuntime;
   using storage::ipfs::InMemoryDatastore;
   using testing::Return;
@@ -85,7 +85,7 @@ namespace fc::vm::actor::builtin::v2::storage_power {
       CreateMiner::Params params{
           .owner = owner,
           .worker = worker,
-          .seal_proof_type = RegisteredProof::StackedDRG2KiBSeal,
+          .seal_proof_type = RegisteredSealProof::StackedDrg32GiBV1,
           .peer_id = peer_id,
           .multiaddresses = {}};
       EXPECT_OUTCOME_TRUE(miner_params,

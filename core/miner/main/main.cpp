@@ -172,7 +172,7 @@ namespace fc {
                     codec::cbor::encode(CreateMiner::Params{
                         *config.owner,
                         *config.worker,
-                        (RegisteredProof)*config.seal_type,
+                        *config.seal_type,
                         _peer_id,
                         {},
                     }));

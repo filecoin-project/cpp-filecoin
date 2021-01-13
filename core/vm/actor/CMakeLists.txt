@@ -21,6 +21,7 @@ target_link_libraries(actor
     init_actor_v0
     market_actor_v0
     miner_actor_v0
+    miner_actor_v2
     multisig_actor_v0
     multisig_actor_v2
     multisig_actor_v3

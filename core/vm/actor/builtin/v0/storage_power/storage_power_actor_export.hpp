@@ -19,7 +19,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
   using primitives::ChainEpoch;
   using primitives::SectorStorageWeightDesc;
   using primitives::TokenAmount;
-  using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
   using primitives::sector::SealVerifyInfo;
 
   constexpr auto kErrTooManyProveCommits =
@@ -33,7 +33,7 @@ namespace fc::vm::actor::builtin::v0::storage_power {
     struct Params {
       Address owner;
       Address worker;
-      RegisteredProof seal_proof_type;
+      RegisteredSealProof seal_proof_type;
       Buffer peer_id;
       std::vector<Multiaddress> multiaddresses;
     };
