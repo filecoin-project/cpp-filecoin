@@ -247,8 +247,8 @@ namespace fc::vm::runtime {
      * default_error returned
      */
     template <typename T>
-    static outcome::result<void> requireNoError(const outcome::result<T> &res,
-                                         const VMExitCode &default_error) {
+    outcome::result<void> requireNoError(
+        const outcome::result<T> &res, const VMExitCode &default_error) const {
       if (res.has_error()) {
         if (isFatal(res.error()) || isAbortExitCode(res.error())) {
           return res.error();
@@ -259,6 +259,19 @@ namespace fc::vm::runtime {
         return ABORT(default_error);
       }
       return outcome::success();
+    }
+
+    /**
+     * Abort execution with VMExitCode
+     * @param error_code - error code that should be passed to the caller
+     * @return error_code as VMAbortExitCode
+     */
+    outcome::result<void> abort(const VMExitCode &error_code) const {
+      return VMAbortExitCode{error_code};
+    }
+
+    static inline Blake2b256Hash hashBlake2b(gsl::span<const uint8_t> data) {
+      return crypto::blake2b::blake2b_256(data);
     }
 
     /// Send typed method with typed params and result
@@ -336,7 +349,7 @@ namespace fc::vm::runtime {
 
     inline outcome::result<void> validateArgument(bool assertion) const {
       if (!assertion) {
-        return VMExitCode::kErrIllegalArgument;
+        return abort(VMExitCode::kErrIllegalArgument);
       }
       return outcome::success();
     }

@@ -29,6 +29,7 @@ target_link_libraries(actor
     cron_actor_v0
     cron_actor_v2
     reward_actor_v0
+    reward_actor_v2
     payment_channel_actor_v0
     payment_channel_actor_v2
     payment_channel_actor_v3

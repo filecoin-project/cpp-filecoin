@@ -11,19 +11,19 @@ namespace fc::common::smoothing {
                               const BigInt &observation,
                               uint64_t delta) {
     // to Q.128 format
-    const BigInt delta_t = BigInt(delta) << kPrecision;
+    const BigInt delta_t = BigInt(delta) << kPrecision128;
     // Q.128 * Q.128 => Q.256
     BigInt delta_x = delta_t * previous_estimate.velocity;
     // Q.256 => Q.128
-    delta_x >>= kPrecision;
+    delta_x >>= kPrecision128;
     BigInt position = previous_estimate.position + delta_x;
 
     // observation Q.0 => Q.128
-    const BigInt residual = (observation << kPrecision) - position;
+    const BigInt residual = (observation << kPrecision128) - position;
     // Q.128 * Q.128 => Q.256
     BigInt revision_x = kDefaultAlpha * residual;
     // Q.256 => Q.128
-    revision_x >>= kPrecision;
+    revision_x >>= kPrecision128;
     position += revision_x;
 
     // Q.128 * Q.128 => Q.256

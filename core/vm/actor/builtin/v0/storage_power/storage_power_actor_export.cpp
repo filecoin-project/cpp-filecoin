@@ -119,11 +119,11 @@ namespace fc::vm::actor::builtin::v0::storage_power {
       }
 
       state.proof_validation_batch = boost::none;
-
-      // Lotus gas conformance
-      OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
-      OUTCOME_TRY(runtime.commitState(state));
     }
+
+    // Lotus gas conformance
+    OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
+    OUTCOME_TRY(runtime.commitState(state));
 
     return outcome::success();
   }
