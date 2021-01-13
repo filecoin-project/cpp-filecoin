@@ -6,102 +6,98 @@
 #include "vm/actor/builtin/v0/reward/reward_actor.hpp"
 
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
-#include "vm/actor/builtin/v0/miner/policy.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor_calculus.hpp"
+#include "vm/actor/builtin/v0/reward/reward_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v0::reward {
-  constexpr auto kMintingInputFixedPoint{30};
-  constexpr auto kMintingOutputFixedPoint{97};
-  inline const StoragePower kBaselinePower{1ll << 50};
+
+  /// The expected number of block producers in each epoch.
   constexpr auto kExpectedLeadersPerEpoch{5};
-
-  BigInt taylorSeriesExpansion(BigInt ln, BigInt ld, BigInt t) {
-    BigInt nb{-ln * t}, db{ld << kMintingInputFixedPoint};
-    BigInt n{-nb}, d{db};
-    BigInt res;
-    for (auto i{1}; i < 25; ++i) {
-      d *= i;
-      res += bigdiv(n << kMintingOutputFixedPoint, d);
-      n *= nb;
-      d *= db;
-      auto b{0};
-      for (auto d2{d}; !d2.is_zero(); d2 >>= 1) {
-        ++b;
-      }
-      b = std::max(0, b - kMintingOutputFixedPoint);
-      n >>= b;
-      d >>= b;
-    }
-    return res;
-  }
-
-  BigInt mintingFunction(BigInt f, BigInt t) {
-    return (f
-            * taylorSeriesExpansion(
-                miner::kEpochDurationSeconds
-                    * TokenAmount{"6931471805599453094172321215"},
-                6 * miner::kSecondsInYear
-                    * TokenAmount{"10000000000000000000000000000"},
-                t))
-           >> kMintingOutputFixedPoint;
-  }
-
-  void computePerEpochReward(State &state, int64_t tickets) {
-    using boost::multiprecision::pow;
-    auto old_simple{state.simple_supply};
-    BigInt e6e18{pow(BigInt{10}, 6 + 18)};
-    state.simple_supply = mintingFunction(
-        100 * e6e18,
-        BigInt{state.reward_epochs_paid} << kMintingInputFixedPoint);
-    auto old_baseline{state.baseline_supply};
-    state.baseline_supply = mintingFunction(900 * e6e18, state.effective_time);
-    state.last_per_epoch_reward =
-        std::max<TokenAmount>(0, state.baseline_supply - old_baseline)
-        + std::max<TokenAmount>(0, state.simple_supply - old_simple);
-  }
 
   ACTOR_METHOD_IMPL(Constructor) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
-    OUTCOME_TRY(runtime.commitState(State{}));
+    OUTCOME_TRY(runtime.commitState(State(params)));
     return outcome::success();
   }
 
-  ACTOR_METHOD_IMPL(AwardBlockReward) {
+  outcome::result<TokenAmount> AwardBlockReward::validateParams(
+      Runtime &runtime, const Params &params) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
+    OUTCOME_TRY(runtime.validateArgument(params.penalty >= 0));
+    OUTCOME_TRY(runtime.validateArgument(params.gas_reward >= 0));
+    OUTCOME_TRY(runtime.validateArgument(params.win_count > 0));
     OUTCOME_TRY(balance, runtime.getCurrentBalance());
-    VM_ASSERT(balance >= params.gas_reward);
-    VM_ASSERT(params.tickets > 0);
+    if (balance < params.gas_reward) {
+      OUTCOME_TRY(runtime.abort(VMExitCode::kErrIllegalState));
+    }
+    return std::move(balance);
+  }
+
+  outcome::result<std::tuple<TokenAmount, TokenAmount>>
+  AwardBlockReward::calculateReward(Runtime &runtime,
+                                    const Params &params,
+                                    const TokenAmount &this_epoch_reward,
+                                    const TokenAmount &balance) {
+    TokenAmount block_reward =
+        bigdiv(this_epoch_reward * params.win_count, kExpectedLeadersPerEpoch);
+    TokenAmount total_reward = block_reward + params.gas_reward;
+    if (total_reward > balance) {
+      total_reward = balance;
+      block_reward = total_reward - params.gas_reward;
+      VM_ASSERT(block_reward >= 0);
+    }
+    return std::make_tuple(block_reward, total_reward);
+  }
+
+  ACTOR_METHOD_IMPL(AwardBlockReward) {
+    OUTCOME_TRY(balance, validateParams(runtime, params));
     OUTCOME_TRY(miner, runtime.resolveAddress(params.miner));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    TokenAmount total{
-        params.gas_reward
-        + bigdiv(state.last_per_epoch_reward, kExpectedLeadersPerEpoch)};
-    auto penalty{std::min(params.penalty, total)};
-    TokenAmount payable{total - penalty};
-    VM_ASSERT(balance >= payable + penalty);
-    OUTCOME_TRY(runtime.sendM<miner::AddLockedFund>(miner, payable, payable));
-    OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, penalty));
+    OUTCOME_TRY(
+        reward,
+        calculateReward(runtime, params, state.this_epoch_reward, balance));
+    const auto &[block_reward, total_reward] = reward;
+    state.total_mined += block_reward;
+    OUTCOME_TRY(runtime.commitState(state));
+
+    // Cap the penalty at the total reward value.
+    const TokenAmount penalty = std::min(params.penalty, total_reward);
+
+    // Reduce the payable reward by the penalty.
+    const TokenAmount reward_payable = total_reward - penalty;
+    VM_ASSERT(reward_payable + penalty <= balance);
+
+    // if this fails, we can assume the miner is responsible and avoid failing
+    // here.
+    const auto res = runtime.sendM<miner::AddLockedFund>(
+        miner, reward_payable, reward_payable);
+    if (res.has_error()) {
+      OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, reward_payable));
+    }
+
+    // Burn the penalty amount
+    if (penalty > 0) {
+      OUTCOME_TRY(runtime.sendFunds(kBurntFundsActorAddress, penalty));
+    }
+
     return outcome::success();
   }
 
   ACTOR_METHOD_IMPL(ThisEpochReward) {
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    return Result{.this_epoch_reward = state.last_per_epoch_reward};
+    return Result{
+        .this_epoch_reward = state.this_epoch_reward,
+        .this_epoch_reward_smoothed = state.this_epoch_reward_smoothed,
+        .this_epoch_baseline_power = state.this_epoch_baseline_power};
   }
 
   ACTOR_METHOD_IMPL(UpdateNetworkKPI) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kStoragePowerAddress));
-    OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    ++state.reward_epochs_paid;
-    state.realized_power = params;
-    state.baseline_power = kBaselinePower;
-    state.sum_realized += state.realized_power;
-    state.sum_baseline += state.baseline_power;
-    state.effective_time =
-        bigdiv(std::min(state.sum_baseline, state.sum_realized)
-                   << kMintingInputFixedPoint,
-               kBaselinePower);
-    computePerEpochReward(state, 1);
-    OUTCOME_TRY(runtime.commitState(state));
+    const NetworkVersion network_version = runtime.getNetworkVersion();
+    const BigInt baseline_exponent = network_version < NetworkVersion::kVersion3
+                                         ? kBaselineExponentV0
+                                         : kBaselineExponentV3;
+    OUTCOME_TRY(updateKPI<State>(runtime, params, baseline_exponent));
     return outcome::success();
   }
 

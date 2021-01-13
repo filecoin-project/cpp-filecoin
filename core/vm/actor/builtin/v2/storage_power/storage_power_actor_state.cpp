@@ -4,13 +4,14 @@
  */
 
 #include "vm/actor/builtin/v2/storage_power/storage_power_actor_state.hpp"
+#include "common/math/math.hpp"
 #include "const.hpp"
 #include "vm/actor/builtin/v0/storage_power/policy.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_state.hpp"
 
 namespace fc::vm::actor::builtin::v2::storage_power {
   using adt::Multimap;
-  using common::smoothing::kPrecision;
+  using common::math::kPrecision128;
 
   State State::empty(const IpldPtr &ipld) {
     State state{
@@ -24,9 +25,9 @@ namespace fc::vm::actor::builtin::v2::storage_power {
         .this_epoch_pledge = {},
         .this_epoch_qa_power_smoothed =
             {.position = v0::storage_power::kInitialQAPowerEstimatePosition
-                         << kPrecision,
+                         << kPrecision128,
              .velocity = v0::storage_power::kInitialQAPowerEstimateVelocity
-                         << kPrecision},
+                         << kPrecision128},
         .miner_count = 0,
         .num_miners_meeting_min_power = {},
         .cron_event_queue = {},
