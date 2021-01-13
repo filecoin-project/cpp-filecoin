@@ -18,7 +18,7 @@ namespace fc::vm::actor::builtin::v0::miner {
       Address owner;
       Address worker;
       std::vector<Address> control_addresses;
-      RegisteredProof seal_proof_type;
+      RegisteredSealProof seal_proof_type;
       Buffer peer_id;
       std::vector<Multiaddress> multiaddresses;
     };
