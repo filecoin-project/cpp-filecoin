@@ -247,8 +247,8 @@ namespace fc::vm::runtime {
      * default_error returned
      */
     template <typename T>
-    outcome::result<void> requireNoError(
-        const outcome::result<T> &res, const VMExitCode &default_error) const {
+    static outcome::result<void> requireNoError(
+        const outcome::result<T> &res, const VMExitCode &default_error) {
       if (res.has_error()) {
         if (isFatal(res.error()) || isAbortExitCode(res.error())) {
           return res.error();
@@ -268,10 +268,6 @@ namespace fc::vm::runtime {
      */
     outcome::result<void> abort(const VMExitCode &error_code) const {
       return VMAbortExitCode{error_code};
-    }
-
-    static inline Blake2b256Hash hashBlake2b(gsl::span<const uint8_t> data) {
-      return crypto::blake2b::blake2b_256(data);
     }
 
     /// Send typed method with typed params and result
