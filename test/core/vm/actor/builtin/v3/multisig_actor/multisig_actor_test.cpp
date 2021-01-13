@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/multisig/multisig_actor.hpp"
+#include "vm/actor/builtin/v3/multisig/multisig_actor.hpp"
 
 #include <gtest/gtest.h>
 #include "primitives/address/address.hpp"
@@ -12,7 +12,7 @@
 #include "testutil/mocks/vm/runtime/runtime_mock.hpp"
 #include "testutil/outcome.hpp"
 #include "vm/actor/actor_method.hpp"
-#include "vm/actor/builtin/v0/codes.hpp"
+#include "vm/actor/builtin/v3/codes.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 #include "vm/version.hpp"
 
@@ -21,7 +21,7 @@
       .Times(testing::AnyNumber())      \
       .WillRepeatedly(Return(result))
 
-namespace fc::vm::actor::builtin::v0::multisig {
+namespace fc::vm::actor::builtin::v3::multisig {
   using fc::CID;
   using fc::common::Buffer;
   using fc::primitives::BigInt;
@@ -173,6 +173,22 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   /**
    * @given Runtime and multisig actor
+   * @when constructor is called with empty signers
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, ConstructMaxSigners) {
+    caller = kInitAddress;
+    std::vector<Address> signers;
+    signers.resize(256, Address{});
+    const size_t threshold{2};
+
+    EXPECT_OUTCOME_ERROR(
+        VMExitCode::kErrIllegalArgument,
+        Construct::call(runtime, {signers, threshold, {}, {}}));
+  }
+
+  /**
+   * @given Runtime and multisig actor
    * @when constructor is called with duplicate signers
    * @then error returned
    */
@@ -181,8 +197,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     const std::vector<Address> signers{caller, caller};
     const size_t threshold{2};
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
-                         Construct::call(runtime, {signers, threshold, {}}));
+    EXPECT_OUTCOME_ERROR(
+        VMExitCode::kErrIllegalArgument,
+        Construct::call(runtime, {signers, threshold, {}, {}}));
   }
 
   /**
@@ -195,8 +212,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     const std::vector<Address> signers{caller};
     const size_t threshold{5};
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
-                         Construct::call(runtime, {signers, threshold, {}}));
+    EXPECT_OUTCOME_ERROR(
+        VMExitCode::kErrIllegalArgument,
+        Construct::call(runtime, {signers, threshold, {}, {}}));
   }
 
   /**
@@ -209,8 +227,9 @@ namespace fc::vm::actor::builtin::v0::multisig {
     const std::vector<Address> signers{caller};
     const size_t threshold{0};
 
-    EXPECT_OUTCOME_ERROR(VMExitCode::kErrIllegalArgument,
-                         Construct::call(runtime, {signers, threshold, {}}));
+    EXPECT_OUTCOME_ERROR(
+        VMExitCode::kErrIllegalArgument,
+        Construct::call(runtime, {signers, threshold, {}, {}}));
   }
 
   /**
@@ -226,7 +245,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
     EXPECT_OUTCOME_ERROR(
         VMExitCode::kErrIllegalArgument,
-        Construct::call(runtime, {signers, threshold, duration}));
+        Construct::call(runtime, {signers, threshold, duration, {}}));
   }
 
   /**
@@ -236,12 +255,13 @@ namespace fc::vm::actor::builtin::v0::multisig {
    */
   TEST_F(MultisigActorTest, ConstrucCorrect) {
     caller = kInitAddress;
-    epoch = 42;
+    ChainEpoch start_epoch = 42;
 
     const std::vector<Address> signers{caller};
     const size_t threshold{1};
 
-    EXPECT_OUTCOME_TRUE_1(Construct::call(runtime, {signers, threshold, {}}));
+    EXPECT_OUTCOME_TRUE_1(
+        Construct::call(runtime, {signers, threshold, start_epoch}));
   }
 
   /**
@@ -646,6 +666,21 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   /**
    * @given Runtime and multisig actor
+   * @when addSigner is called state already contains max count of signers
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, AddSignerMaxSigners) {
+    caller = actor_address;
+    resetSigners();
+    state.signers.resize(256, Address{});
+    pushSigner(kInitAddress);
+
+    EXPECT_OUTCOME_ERROR(VMExitCode::kErrForbidden,
+                         AddSigner::call(runtime, {caller}));
+  }
+
+  /**
+   * @given Runtime and multisig actor
    * @when addSigner is called with address already is signer
    * @then error returned
    */
@@ -915,22 +950,12 @@ namespace fc::vm::actor::builtin::v0::multisig {
 
   /**
    * @given Runtime and multisig actor
-   * @when lockBalance is called with epoch < network version 2
-   * @then error returned
-   */
-  TEST_F(MultisigActorTest, LockBalanceWrongNetwork) {
-    EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrInvalidMethod,
-                         LockBalance::call(runtime, {}));
-  }
-
-  /**
-   * @given Runtime and multisig actor
    * @when lockBalance is called with immediate caller is not receiver
    * @then error returned
    */
   TEST_F(MultisigActorTest, LockBalanceWrongCaller) {
     caller = wrong_caller;
-    epoch = 94001;
+    epoch = 272401;
 
     EXPECT_OUTCOME_ERROR(VMExitCode::kSysErrForbidden,
                          LockBalance::call(runtime, {}));
@@ -943,11 +968,30 @@ namespace fc::vm::actor::builtin::v0::multisig {
    */
   TEST_F(MultisigActorTest, LockBalanceWrongDuration) {
     caller = actor_address;
-    epoch = 94001;
+    epoch = 272401;
 
     const ChainEpoch start_epoch = 42;
     const EpochDuration unlock_duration = 0;
     const TokenAmount amount = 100;
+
+    EXPECT_OUTCOME_ERROR(
+        VMExitCode::kErrIllegalArgument,
+        LockBalance::call(runtime, {start_epoch, unlock_duration, amount}));
+  }
+
+  /**
+   * @given Runtime and multisig actor
+   * @when lockBalance is called with epoch > network version 2 and negative
+   * amount
+   * @then error returned
+   */
+  TEST_F(MultisigActorTest, LockBalanceWrongAmount) {
+    caller = actor_address;
+    epoch = 272401;
+
+    const ChainEpoch start_epoch = 42;
+    const EpochDuration unlock_duration = 1;
+    const TokenAmount amount = -1;
 
     EXPECT_OUTCOME_ERROR(
         VMExitCode::kErrIllegalArgument,
@@ -961,7 +1005,7 @@ namespace fc::vm::actor::builtin::v0::multisig {
    */
   TEST_F(MultisigActorTest, LockBalanceSuccess) {
     caller = actor_address;
-    epoch = 94001;
+    epoch = 272401;
 
     const ChainEpoch start_epoch = 42;
     const EpochDuration unlock_duration = 3;
@@ -975,4 +1019,4 @@ namespace fc::vm::actor::builtin::v0::multisig {
     EXPECT_EQ(state.initial_balance, amount);
   }
 
-}  // namespace fc::vm::actor::builtin::v0::multisig
+}  // namespace fc::vm::actor::builtin::v3::multisig

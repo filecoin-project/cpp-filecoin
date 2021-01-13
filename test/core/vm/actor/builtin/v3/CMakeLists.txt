@@ -3,4 +3,5 @@
 #
 
 add_subdirectory(account)
+add_subdirectory(multisig_actor)
 add_subdirectory(payment_channel)

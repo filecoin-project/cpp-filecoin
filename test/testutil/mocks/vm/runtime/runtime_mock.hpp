@@ -89,6 +89,10 @@ namespace fc::vm::runtime {
                                        const Address &address,
                                        gsl::span<const uint8_t> data));
 
+    MOCK_METHOD1(
+        hashBlake2b,
+        outcome::result<Blake2b256Hash>(gsl::span<const uint8_t> data));
+
     MOCK_METHOD1(verifyPoSt,
                  outcome::result<bool>(const WindowPoStVerifyInfo &info));
 

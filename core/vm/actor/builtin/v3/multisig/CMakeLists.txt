@@ -3,12 +3,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 
-add_library(multisig_actor_v0
-    multisig_actor_state.cpp
-    impl/multisig_utils_impl_v0.cpp
+add_library(multisig_actor_v3
+    impl/multisig_utils_impl_v3.cpp
     multisig_actor.cpp
     )
-target_link_libraries(multisig_actor_v0
+target_link_libraries(multisig_actor_v3
     actor
     outcome
     )

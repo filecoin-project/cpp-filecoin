@@ -64,6 +64,11 @@ struct PaymentChannelActorTest : testing::Test {
     ON_CALL_3(runtime, getActorCodeID(from_address), kAccountCodeCid);
     ON_CALL_3(runtime, getActorCodeID(to_address), kAccountCodeCid);
 
+    EXPECT_CALL(runtime, hashBlake2b(testing::_))
+        .Times(testing::AnyNumber())
+        .WillRepeatedly(testing::Invoke(
+            [&](auto &data) { return blake2b_256(data); }));
+
     ipld->load(state);
 
     EXPECT_CALL(runtime, getCurrentActorState())
