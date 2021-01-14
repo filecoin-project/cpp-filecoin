@@ -34,6 +34,9 @@ namespace fc::storage::car {
       OUTCOME_TRY(node,
                   codec::uvarint::readBytes<CarError::kDecodeError,
                                             CarError::kDecodeError>(input));
+      if (node.empty()) {
+        break;
+      }
       OUTCOME_TRY(cid, CID::read(node));
       OUTCOME_TRY(store.set(cid, common::Buffer{node}));
     }

@@ -27,9 +27,6 @@ namespace fc::markets::pieceio {
         const Selector &selector) override;
 
     outcome::result<std::pair<CID, UnpaddedPieceSize>> generatePieceCommitment(
-        const RegisteredProof &registered_proof, const Buffer &piece) override;
-
-    outcome::result<std::pair<CID, UnpaddedPieceSize>> generatePieceCommitment(
         const RegisteredProof &registered_proof,
         const std::string &path) override;
 

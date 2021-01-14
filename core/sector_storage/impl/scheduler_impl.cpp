@@ -48,16 +48,7 @@ namespace fc::sector_storage {
       }
     }
 
-    while (true) {
-      if (request->response) {
-        break;
-      }
-
-      std::unique_lock<std::mutex> lock(request->mutex_);
-      request->cv_.wait(lock, [&] { return request->response; });
-    }
-
-    return *request->response;
+    return request->response.get_future().get();
   }
 
   void SchedulerImpl::newWorker(std::unique_ptr<WorkerHandle> worker) {
@@ -99,7 +90,9 @@ namespace fc::sector_storage {
 
       if (!primitives::canHandleRequest(
               need_resources, worker->info.resources, worker->preparing)) {
-        continue;
+        if (workers_.size() > 1 || active_jobs) {
+          continue;
+        }
       }
 
       acceptable.push_back(wid);
@@ -167,7 +160,10 @@ namespace fc::sector_storage {
           return;
         }
 
+        auto force{workers_.size() == 1 && !active_jobs};
+        ++active_jobs;
         maybe_err = worker->active.withResources(
+            force,
             worker->info.resources,
             need_resources,
             workers_lock_,
@@ -186,6 +182,7 @@ namespace fc::sector_storage {
               lock.lock();
               return outcome::success();
             });
+        --active_jobs;
         if (maybe_err.has_error()) {
           logger_->error("worker's execution: " + maybe_err.error().message());
         }

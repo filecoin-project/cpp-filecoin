@@ -1040,10 +1040,10 @@ namespace fc::proofs {
 
     uint64_t left = piece_size;
     constexpr auto kDefaultBufferSize = uint64_t(32 * 1024);
-    std::vector<uint8_t> buffer(kDefaultBufferSize);
     auto chunks = kDefaultBufferSize / 127;
     PaddedPieceSize outTwoPow =
         primitives::piece::paddedSize(chunks * 128).padded();
+    std::vector<uint8_t> buffer(outTwoPow.unpadded());
 
     while (left > 0) {
       if (left < outTwoPow.unpadded()) {
@@ -1129,4 +1129,12 @@ namespace fc::proofs {
     return maybe_cid;
   }
 
+  UnpaddedPieceSize padPiece(const std::string &path) {
+    auto size{fs::file_size(path)};
+    auto unpadded{primitives::piece::paddedSize(size)};
+    if (size != unpadded) {
+      fs::resize_file(path, unpadded);
+    }
+    return unpadded;
+  }
 }  // namespace fc::proofs

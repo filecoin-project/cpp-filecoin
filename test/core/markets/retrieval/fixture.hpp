@@ -132,13 +132,16 @@ namespace fc::markets::retrieval::test {
       graphsync->start();
       datatransfer = DataTransfer::make(host, graphsync);
 
+      auto config_key{
+          std::make_shared<fc::storage::OneKey>("config", storage_backend)};
+      config_key->setCbor(config);
       provider =
           std::make_shared<provider::RetrievalProviderImpl>(host,
                                                             datatransfer,
                                                             api,
                                                             piece_storage,
                                                             provider_ipfs,
-                                                            config,
+                                                            config_key,
                                                             sealer,
                                                             miner);
       client = std::make_shared<client::RetrievalClientImpl>(

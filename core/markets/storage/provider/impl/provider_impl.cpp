@@ -186,6 +186,10 @@ namespace fc::markets::storage::provider {
     }
     auto deal = found_fsm_entity->first;
 
+    auto unpadded{proofs::padPiece(path)};
+    if (unpadded.padded() != deal->client_deal_proposal.proposal.piece_size) {
+      return StorageMarketProviderError::kPieceCIDDoesNotMatch;
+    }
     OUTCOME_TRY(piece_commitment,
                 piece_io_->generatePieceCommitment(registered_proof_, path));
 
@@ -330,9 +334,9 @@ namespace fc::markets::storage::provider {
     OUTCOME_TRY(worker_info,
                 api_->StateMinerInfo(proposal.provider, chain_head->key));
     OUTCOME_TRY(maybe_cid,
-                api_->MarketEnsureAvailable(proposal.provider,
-                                            worker_info.worker,
-                                            proposal.provider_collateral));
+                api_->MarketReserveFunds(worker_info.worker,
+                                         proposal.provider,
+                                         proposal.provider_collateral));
     return std::move(maybe_cid);
   }
 
@@ -424,8 +428,8 @@ namespace fc::markets::storage::provider {
         deal->client_deal_proposal.proposal.piece_cid,
         DealInfo{.deal_id = deal->deal_id,
                  .sector_id = piece_location.sector_number,
-                 .offset = PaddedPieceSize(piece_location.offset),
-                 .length = PaddedPieceSize(piece_location.length)}));
+                 .offset = piece_location.offset,
+                 .length = piece_location.length}));
     return outcome::success();
   }
 

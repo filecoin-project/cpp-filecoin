@@ -24,9 +24,10 @@ namespace fc::vm::version {
     kVersion6,
     kVersion7,
     kVersion8,
+    kVersion9,
   };
 
-  const NetworkVersion kLatestVersion = NetworkVersion::kVersion8;
+  const NetworkVersion kLatestVersion = NetworkVersion::kVersion9;
 
   /**
    * Network version end heights
@@ -75,6 +76,7 @@ namespace fc::vm::version {
     if (height <= kUpgradeKumquatHeight) return NetworkVersion::kVersion5;
     if (height <= kUpgradeCalicoHeight) return NetworkVersion::kVersion6;
     if (height <= kUpgradePersianHeight) return NetworkVersion::kVersion7;
+    if (height <= kUpgradeOrangeHeight) return NetworkVersion::kVersion8;
     return kLatestVersion;
   }
 }  // namespace fc::vm::version

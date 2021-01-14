@@ -15,7 +15,13 @@
 #include "clock/impl/utc_clock_impl.hpp"
 #include "codec/json/json.hpp"
 #include "common/file.hpp"
+#include "common/io_thread.hpp"
 #include "common/peer_key.hpp"
+#include "data_transfer/dt.hpp"
+#include "markets/pieceio/pieceio_impl.hpp"
+#include "markets/retrieval/provider/impl/retrieval_provider_impl.hpp"
+#include "markets/storage/chain_events/impl/chain_events_impl.hpp"
+#include "markets/storage/provider/impl/provider_impl.hpp"
 #include "miner/impl/miner_impl.hpp"
 #include "miner/mining.hpp"
 #include "miner/windowpost.hpp"
@@ -25,8 +31,13 @@
 #include "sector_storage/stores/impl/index_impl.hpp"
 #include "sector_storage/stores/impl/local_store.hpp"
 #include "sector_storage/stores/impl/storage_impl.hpp"
+#include "sectorblocks/impl/blocks_impl.hpp"
+#include "storage/filestore/impl/filesystem/filesystem_filestore.hpp"
+#include "storage/ipfs/graphsync/impl/graphsync_impl.hpp"
+#include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "storage/leveldb/leveldb.hpp"
 #include "storage/leveldb/prefix.hpp"
+#include "storage/piece/impl/piece_storage_impl.hpp"
 #include "vm/actor/builtin/v0/miner/miner_actor.hpp"
 #include "vm/actor/builtin/v0/storage_power/storage_power_actor_export.hpp"
 
@@ -123,16 +134,10 @@ namespace fc {
   outcome::result<void> setupMiner(Config &config,
                                    BufferMap &kv,
                                    const PeerId &peer_id) {
+    IoThread io_thread;
     io_context io;
-    boost::asio::executor_work_guard<io_context::executor_type> work_guard{
-        io.get_executor()};
-    std::thread thread{[&] { io.run(); }};
-    auto BOOST_OUTCOME_TRY_UNIQUE_NAME{gsl::finally([&] {
-      io.stop();
-      thread.join();
-    })};
     api::Api api;
-    api::rpc::Client wsc{io};
+    api::rpc::Client wsc{*io_thread.io};
     wsc.setup(api);
     OUTCOME_TRY(wsc.connect(config.node_api.first, config.node_api.second));
 
@@ -255,6 +260,9 @@ namespace fc {
     auto prefixed{[&](auto s) {
       return std::make_shared<storage::MapPrefix>(s, leveldb);
     }};
+    auto one_key{[&](auto s, auto m) {
+      return std::make_shared<storage::OneKey>(s, m);
+    }};
 
     OUTCOME_TRY(peer_key, loadPeerKey(config.join("peer_ed25519.key")));
 
@@ -264,6 +272,8 @@ namespace fc {
     auto host{injector.create<std::shared_ptr<libp2p::Host>>()};
     auto scheduler{
         injector.create<std::shared_ptr<libp2p::protocol::AsioScheduler>>()};
+
+    IoThread sealing_thread;
 
     OUTCOME_TRY(setupMiner(config, *leveldb, host->getId()));
 
@@ -316,7 +326,7 @@ namespace fc {
         std::make_shared<primitives::StoredCounter>(leveldb, "sector_counter"),
         prefixed("sealing_fsm/"),
         manager,
-        io)};
+        sealing_thread.io)};
     OUTCOME_TRY(miner->run());
     auto sealing{miner->getSealing()};
 
@@ -328,14 +338,69 @@ namespace fc {
     auto window{mining::WindowPoStScheduler::create(
         napi, manager, manager, *config.actor)};
 
+    auto graphsync{std::make_shared<storage::ipfs::graphsync::GraphsyncImpl>(
+        host, scheduler)};
+    graphsync->start();
+    auto datatransfer{data_transfer::DataTransfer::make(host, graphsync)};
+
+    auto markets_ipld{std::make_shared<storage::ipfs::LeveldbDatastore>(
+        prefixed("markets_ipld/"))};
+    auto gs_sub{graphsync->subscribe([&](auto &, auto &data) {
+      OUTCOME_EXCEPT(markets_ipld->set(data.cid, data.content));
+    })};
+    auto stored_ask{std::make_shared<markets::storage::provider::StoredAsk>(
+        prefixed("stored_ask/"), napi, *config.actor)};
+    auto piece_storage{std::make_shared<storage::piece::PieceStorageImpl>(
+        prefixed("storage_provider/"))};
+    auto sector_blocks{std::make_shared<sectorblocks::SectorBlocksImpl>(miner)};
+    auto chain_events{
+        std::make_shared<markets::storage::chain_events::ChainEventsImpl>(
+            napi)};
+    OUTCOME_TRY(chain_events->init());
+    auto piece_io{std::make_shared<markets::pieceio::PieceIOImpl>(
+        markets_ipld, config.join("piece_io"))};
+    auto filestore{std::make_shared<storage::filestore::FileSystemFileStore>()};
+    auto storage_provider{
+        std::make_shared<markets::storage::provider::StorageProviderImpl>(
+            minfo.seal_proof_type,
+            host,
+            markets_ipld,
+            datatransfer,
+            stored_ask,
+            io,
+            piece_storage,
+            napi,
+            sector_blocks,
+            chain_events,
+            *config.actor,
+            piece_io,
+            filestore)};
+    OUTCOME_TRY(storage_provider->init());
+    auto retrieval_provider{
+        std::make_shared<markets::retrieval::provider::RetrievalProviderImpl>(
+            host,
+            datatransfer,
+            napi,
+            piece_storage,
+            markets_ipld,
+            one_key("retrieval_provider_ask", leveldb),
+            manager,
+            miner)};
+    retrieval_provider->start();
+
     auto mapi{std::make_shared<api::Api>()};
+    mapi->DealsImportData = [&](auto &proposal, auto &path) {
+      return storage_provider->importDataForDeal(proposal, path);
+    };
     mapi->PledgeSector = [&]() -> outcome::result<void> {
       return sealing->pledgeSector();
     };
+    mapi->Version = [] { return api::VersionResult{"fuhon-miner", 0, 0}; };
     api::serve(mapi, *io, "127.0.0.1", config.api_port);
     api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
 
     spdlog::info("fuhon miner started");
+    spdlog::info("peer id {}", host->getId().toBase58());
 
     io->run();
     return outcome::success();

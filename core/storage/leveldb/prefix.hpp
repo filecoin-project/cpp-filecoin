@@ -5,9 +5,12 @@
 
 #pragma once
 
+#include "codec/cbor/fwd.hpp"
 #include "storage/buffer_map.hpp"
 
 namespace fc::storage {
+  using MapPtr = std::shared_ptr<BufferMap>;
+
   struct MapPrefix : PersistentBufferMap {
     struct Cursor : BufferMapCursor {
       Cursor(MapPrefix &map, std::unique_ptr<BufferMapCursor> cursor);
@@ -25,8 +28,8 @@ namespace fc::storage {
       std::unique_ptr<BufferMapCursor> cursor;
     };
 
-    MapPrefix(BytesIn prefix, std::shared_ptr<BufferMap> map);
-    MapPrefix(std::string_view prefix, std::shared_ptr<BufferMap> map);
+    MapPrefix(BytesIn prefix, MapPtr map);
+    MapPrefix(std::string_view prefix, MapPtr map);
     Buffer _key(BytesIn key) const;
 
     outcome::result<Buffer> get(const Buffer &key) const override;
@@ -38,6 +41,25 @@ namespace fc::storage {
     std::unique_ptr<BufferMapCursor> cursor() override;
 
     Buffer prefix;
-    std::shared_ptr<BufferMap> map;
+    MapPtr map;
+  };
+
+  struct OneKey {
+    OneKey(BytesIn key, MapPtr map);
+    OneKey(std::string_view key, MapPtr map);
+    bool has() const;
+    Buffer get() const;
+    void set(Buffer value);
+    template <typename T>
+    auto getCbor() const {
+      return codec::cbor::decode<T>(get()).value();
+    }
+    template <typename T>
+    void setCbor(const T &value) {
+      return set(codec::cbor::encode(value).value());
+    }
+
+    Buffer key;
+    MapPtr map;
   };
 }  // namespace fc::storage

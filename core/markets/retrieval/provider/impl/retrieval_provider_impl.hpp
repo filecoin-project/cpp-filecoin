@@ -7,6 +7,7 @@
 #define CPP_FILECOIN_CORE_MARKETS_RETRIEVAL_PROVIDER_IMPL_HPP
 
 #include "api/api.hpp"
+#include "common/io_thread.hpp"
 #include "common/libp2p/cbor_stream.hpp"
 #include "common/logger.hpp"
 #include "data_transfer/dt.hpp"
@@ -15,6 +16,7 @@
 #include "markets/retrieval/provider/retrieval_provider.hpp"
 #include "miner/miner.hpp"
 #include "storage/ipld/traverser.hpp"
+#include "storage/leveldb/prefix.hpp"
 #include "storage/piece/piece_storage.hpp"
 
 namespace fc::markets::retrieval::provider {
@@ -24,6 +26,7 @@ namespace fc::markets::retrieval::provider {
   using data_transfer::PeerGsId;
   using ::fc::miner::Miner;
   using ::fc::sector_storage::Manager;
+  using ::fc::storage::OneKey;
   using ::fc::storage::ipld::traverser::Traverser;
   using ::fc::storage::piece::PieceInfo;
   using ::fc::storage::piece::PieceStorage;
@@ -45,8 +48,12 @@ namespace fc::markets::retrieval::provider {
     uint64_t payment_interval;
     uint64_t interval_increase;
     TokenAmount unseal_price;
-    Path filestore_path = kFilestoreTempDir;
   };
+  CBOR_TUPLE(ProviderConfig,
+             price_per_byte,
+             payment_interval,
+             interval_increase,
+             unseal_price)
 
   struct DealState {
     DealState(std::shared_ptr<Ipld> ipld,
@@ -76,7 +83,7 @@ namespace fc::markets::retrieval::provider {
                           std::shared_ptr<api::Api> api,
                           std::shared_ptr<PieceStorage> piece_storage,
                           IpldPtr ipld,
-                          const ProviderConfig &config,
+                          std::shared_ptr<OneKey> config_key,
                           std::shared_ptr<Manager> sealer,
                           std::shared_ptr<Miner> miner);
 
@@ -136,10 +143,12 @@ namespace fc::markets::retrieval::provider {
     std::shared_ptr<api::Api> api_;
     std::shared_ptr<PieceStorage> piece_storage_;
     std::shared_ptr<Ipld> ipld_;
+    std::shared_ptr<OneKey> config_key_;
     ProviderConfig config_;
     std::shared_ptr<Manager> sealer_;
     std::shared_ptr<Miner> miner_;
     common::Logger logger_ = common::createLogger("RetrievalProvider");
+    IoThread io_;
   };
 }  // namespace fc::markets::retrieval::provider
 

@@ -402,7 +402,7 @@ namespace fc::markets::storage::client {
       std::shared_ptr<ClientDeal> deal) {
     OUTCOME_TRY(
         maybe_cid,
-        api_->MarketEnsureAvailable(
+        api_->MarketReserveFunds(
             deal->client_deal_proposal.proposal.client,
             deal->client_deal_proposal.proposal.client,
             deal->client_deal_proposal.proposal.clientBalanceRequirement()));
