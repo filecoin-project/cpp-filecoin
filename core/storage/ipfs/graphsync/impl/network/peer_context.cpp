@@ -79,7 +79,7 @@ namespace fc::storage::ipfs::graphsync {
     if (!outbound_endpoint_) {
       outbound_endpoint_ = std::make_unique<OutboundEndpoint>();
 
-      logger()->trace("connecting to {}, {}",
+      logger()->debug("connecting to {}, {}",
                       str,
                       connect_to_ ? connect_to_->getStringAddress()
                                   : "existing connection");
@@ -178,15 +178,20 @@ namespace fc::storage::ipfs::graphsync {
 
   void PeerContext::onStreamAccepted(StreamPtr stream) {
     if (closed_) {
+      logger()->debug(
+          "inbound stream from peer {}, but ctx is closed, ignoring", str);
       stream->reset();
       return;
     }
+    logger()->debug("inbound stream from peer {}", str);
     onNewStream(std::move(stream), false);
   }
 
   void PeerContext::enqueueRequest(RequestId request_id,
                                    SharedData request_body) {
     connectIfNeeded();
+    logger()->debug(
+        "enqueueing request to peer {}, size=", str, request_body->size());
     auto res = outbound_endpoint_->enqueue(std::move(request_body));
     if (res) {
       local_request_ids_.insert(request_id);
@@ -252,7 +257,8 @@ namespace fc::storage::ipfs::graphsync {
       return;
     }
 
-    logger()->trace("closeStream: peer={}", str);
+    logger()->debug(
+        "closeStream: peer={}, {}", str, statusCodeToString(status));
 
     streams_.erase(it);
 
@@ -282,9 +288,14 @@ namespace fc::storage::ipfs::graphsync {
           response.id,
           str);
     }
+
+    logger()->debug(
+        "response from peer={}, {}", str, statusCodeToString(response.status));
+
     if (isTerminal(response.status)) {
       local_request_ids_.erase(it);
     }
+
     graphsync_feedback_.onResponse(
         peer, response.id, response.status, std::move(response.extensions));
   }

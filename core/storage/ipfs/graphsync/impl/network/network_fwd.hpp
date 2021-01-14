@@ -107,7 +107,7 @@ namespace fc::storage::ipfs::graphsync {
   constexpr unsigned kPeerCloseDelayMsec = 30000;
 
   /// Cleanup delay for stream, msec
-  constexpr unsigned kStreamCloseDelayMsec = 60000;
+  constexpr unsigned kStreamCloseDelayMsec = 900000;
 
 }  // namespace fc::storage::ipfs::graphsync
 
