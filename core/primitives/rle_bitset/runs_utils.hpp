@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RUNS_UTILS_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RUNS_UTILS_HPP
+#pragma once
 
 #include <gsl/span>
 #include "common/outcome.hpp"
@@ -84,5 +83,3 @@ namespace fc::primitives {
 }  // namespace fc::primitives
 
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives, RunsError);
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RUNS_UTILS_HPP

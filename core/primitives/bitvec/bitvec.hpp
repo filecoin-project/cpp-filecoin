@@ -3,13 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RLE_BITVEC_HPP
-#define CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RLE_BITVEC_HPP
+#pragma once
 
 #include <cstdint>
 #include <vector>
 
-namespace fc::primitives {
+namespace fc::primitives::bitvec {
 
   class BitvecReader {
    public:
@@ -120,7 +119,7 @@ namespace fc::primitives {
         buffer.push_back(uint8_t(bits));
       }
       if (bitsCap > 8) {
-        buffer.push_back(uint8_t(uint8_t(bits >> 8)));
+        buffer.push_back(uint8_t(bits >> 8));
       }
       bitsCap = 0;
       bits = 0;
@@ -160,5 +159,3 @@ namespace fc::primitives {
   };
 
 }  // namespace fc::primitives
-
-#endif  // CPP_FILECOIN_CORE_PRIMITIVES_RLE_BITSET_RLE_BITVEC_HPP
