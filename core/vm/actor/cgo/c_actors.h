@@ -30,6 +30,7 @@ Raw gocRtActorBalance(Raw);
 Raw gocRtStateGet(Raw);
 Raw gocRtStateCommit(Raw);
 Raw gocRtDeleteActor(Raw);
+Raw gocRtCirc(Raw);
 
 #ifdef __cplusplus
 }
