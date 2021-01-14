@@ -45,14 +45,16 @@ namespace fc::vm::runtime {
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return randomness_->getRandomnessFromTickets(tag, epoch, seed);
+    return randomness_->getRandomnessFromTickets(
+        execution_->env->tipset, tag, epoch, seed);
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomnessFromBeacon(
       DomainSeparationTag tag,
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
-    return randomness_->getRandomnessFromBeacon(tag, epoch, seed);
+    return randomness_->getRandomnessFromBeacon(
+        execution_->env->tipset, tag, epoch, seed);
   }
 
   Address RuntimeImpl::getImmediateCaller() const {
@@ -120,8 +122,10 @@ namespace fc::vm::runtime {
 
   fc::outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
       const {
-    // TODO(a.chernyshov) implement
-    // 0 is for test vectors
+    if (auto circulating{execution_->env->circulating}) {
+      return circulating->circulating(execution_->state_tree,
+                                      getCurrentEpoch());
+    }
     return 0;
   }
 

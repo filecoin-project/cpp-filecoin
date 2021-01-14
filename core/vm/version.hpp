@@ -56,6 +56,8 @@ namespace fc::vm::version {
   const ChainEpoch kUpgradeKumquatHeight = 170000;
   const ChainEpoch kUpgradeCalicoHeight = 265200;
   const ChainEpoch kUpgradePersianHeight = 272400;
+  const ChainEpoch kUpgradeOrangeHeight = 336458;
+  const ChainEpoch kUpgradeClausHeight = 343200;
 
   /**
    * Returns network version for blockchain height
