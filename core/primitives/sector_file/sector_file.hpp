@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_SECTOR_FILE_HPP
-#define CPP_FILECOIN_SECTOR_FILE_HPP
+#pragma once
 
 #include <fstream>
 #include <string>
@@ -157,5 +156,3 @@ namespace fc::primitives::sector_file {
 
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::sector_file, SectorFileTypeErrors);
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::sector_file, SectorFileError);
-
-#endif  // CPP_FILECOIN_SECTOR_FILE_HPP
