@@ -238,7 +238,9 @@ namespace fc::sector_storage {
     selector = std::make_shared<ExistingSelector>(
         index_, sector, SectorFileType::FTUnsealed, false);
 
-    return scheduler_->schedule(
+    bool is_read_success = false;
+
+    OUTCOME_TRY(scheduler_->schedule(
         sector,
         primitives::kTTReadUnsealed,
         selector,
@@ -247,8 +249,17 @@ namespace fc::sector_storage {
                    PathType::kSealing,
                    AcquireMode::kMove),
         [&](const std::shared_ptr<Worker> &worker) -> outcome::result<void> {
-          return worker->readPiece(std::move(output), sector, offset, size);
-        });
+          OUTCOME_TRYA(
+              is_read_success,
+              worker->readPiece(std::move(output), sector, offset, size));
+          return outcome::success();
+        }));
+
+    if (is_read_success) {
+      return outcome::success();
+    }
+
+    return ManagerErrors::kCannotReadData;
   }
 
   outcome::result<std::vector<PoStProof>> ManagerImpl::generateWinningPoSt(
@@ -792,6 +803,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, ManagerErrors, e) {
       return "Manager: cannot lock sector";
     case (ManagerErrors::kReadOnly):
       return "Manager: read-only storage";
+    case (ManagerErrors::kCannotReadData):
+      return "Manager: failed to read unsealed piece";
     default:
       return "Manager: unknown error";
   }

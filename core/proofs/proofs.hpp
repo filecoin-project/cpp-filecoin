@@ -23,6 +23,7 @@ namespace fc::proofs {
   using Phase1Output = std::vector<uint8_t>;
   using ChallengeIndexes = std::vector<uint64_t>;
   using fc::primitives::sector::RegisteredProof;
+  using fc::primitives::sector::RegisteredSealProof;
   using primitives::ActorId;
   using primitives::SectorNumber;
   using primitives::SectorSize;
@@ -119,13 +120,6 @@ namespace fc::proofs {
                                            const PaddedPieceSize &offset,
                                            const UnpaddedPieceSize &piece_size);
 
-    static outcome::result<void> writeUnsealPiece(
-        const std::string &unseal_piece_file_path,
-        const std::string &staged_sector_file_path,
-        RegisteredProof seal_proof_type,
-        const PaddedPieceSize &offset,
-        const UnpaddedPieceSize &piece_size);
-
     /**
      * @brief  Seals the staged sector at staged_sector_path in place, saving
      * the resulting replica to sealed_sector_path
@@ -170,6 +164,13 @@ namespace fc::proofs {
         RegisteredProof proof_type,
         const std::string &piece_file_path,
         UnpaddedPieceSize piece_size);
+
+    /**
+     * generatePieceCID produces a piece CID for the provided data
+     * stored in a given pieceData.
+     */
+    static outcome::result<CID> generatePieceCID(RegisteredProof proof_type,
+                                                 gsl::span<const uint8_t> data);
 
     /**
      * generatePieceCID produces a piece CID for the provided data
@@ -226,6 +227,17 @@ namespace fc::proofs {
                                         ActorId miner_id,
                                         const Ticket &ticket,
                                         const UnsealedCID &unsealed_cid);
+
+    static outcome::result<void> unsealRange(RegisteredProof proof_type,
+                                             const std::string &cache_dir_path,
+                                             const PieceData &seal_fd,
+                                             const PieceData &unseal_fd,
+                                             SectorNumber sector_num,
+                                             ActorId miner_id,
+                                             const Ticket &ticket,
+                                             const UnsealedCID &unsealed_cid,
+                                             uint64_t offset,
+                                             uint64_t length);
 
     /**
      * @brief Unseals the sector at @sealed_path and returns the bytes for a

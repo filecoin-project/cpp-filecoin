@@ -84,6 +84,7 @@ namespace fc::sector_storage {
     kSomeSectorSkipped,
     kCannotLock,
     kReadOnly,
+    kCannotReadData,
   };
 }  // namespace fc::sector_storage
 

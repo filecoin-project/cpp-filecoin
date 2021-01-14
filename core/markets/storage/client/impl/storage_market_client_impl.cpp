@@ -253,7 +253,8 @@ namespace fc::markets::storage::client {
       const ChainEpoch &end_epoch,
       const TokenAmount &price,
       const TokenAmount &collateral,
-      const RegisteredProof &registered_proof) {
+      const RegisteredProof &registered_proof,
+      bool is_fast_retrieval) {
     OUTCOME_TRY(comm_p_res, calculateCommP(registered_proof, data_ref));
     CID comm_p = comm_p_res.first;
     UnpaddedPieceSize piece_size = comm_p_res.second;
@@ -285,6 +286,7 @@ namespace fc::markets::storage::client {
                    .miner_worker = provider_info.worker,
                    .deal_id = {},
                    .data_ref = data_ref,
+                   .is_fast_retrieval = is_fast_retrieval,
                    .message = {},
                    .publish_message = {}});
     OUTCOME_TRY(
@@ -587,7 +589,8 @@ namespace fc::markets::storage::client {
     FSM_HALT_ON_ERROR(stream, "Stream not found.", deal);
 
     Proposal proposal{.deal_proposal = deal->client_deal_proposal,
-                      .piece = deal->data_ref};
+                      .piece = deal->data_ref,
+                      .is_fast_retrieval = deal->is_fast_retrieval};
     stream.value()->write(
         proposal,
         [self{shared_from_this()}, deal, stream](
