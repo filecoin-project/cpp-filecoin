@@ -18,6 +18,7 @@
 namespace fc::primitives::sector_file {
 
   namespace fs = boost::filesystem;
+  using bitvec::BitvecWriter;
   using piece::PieceInfo;
   using proofs::Proofs;
   using sector::RegisteredSealProof;
@@ -488,7 +489,7 @@ namespace fc::primitives::sector_file {
       }
 
       if (left < output_size.unpadded()) {
-          break;
+        break;
       }
       left -= output_size.unpadded();
     }
