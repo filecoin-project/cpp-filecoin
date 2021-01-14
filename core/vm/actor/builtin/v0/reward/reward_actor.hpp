@@ -10,28 +10,32 @@
 
 namespace fc::vm::actor::builtin::v0::reward {
   using primitives::ChainEpoch;
+  using primitives::FilterEstimate;
   using primitives::SpaceTime;
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using NetworkTime = BigInt;
 
   struct State {
-    StoragePower baseline_power, realized_power;
-    SpaceTime sum_baseline, sum_realized;
-    NetworkTime effective_time;
-    TokenAmount simple_supply, baseline_supply, last_per_epoch_reward;
-    ChainEpoch reward_epochs_paid{};
+    StoragePower cumsum_baseline, cumsum_realized;
+    ChainEpoch effective_network_time{};
+    StoragePower effective_baseline_power;
+    TokenAmount this_epoch_reward;
+    FilterEstimate this_epoch_reward_smoothed;
+    StoragePower this_epoch_baseline_power;
+    ChainEpoch epoch{};
+    TokenAmount total_mined;
   };
   CBOR_TUPLE(State,
-             baseline_power,
-             realized_power,
-             sum_baseline,
-             sum_realized,
-             effective_time,
-             simple_supply,
-             baseline_supply,
-             last_per_epoch_reward,
-             reward_epochs_paid)
+             cumsum_baseline,
+             cumsum_realized,
+             effective_network_time,
+             effective_baseline_power,
+             this_epoch_reward,
+             this_epoch_reward_smoothed,
+             this_epoch_baseline_power,
+             epoch,
+             total_mined)
 
   struct Constructor : ActorMethodBase<1> {
     ACTOR_METHOD_DECL();

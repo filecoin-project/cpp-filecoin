@@ -31,6 +31,16 @@ auto brief(const std::string &path) {
   return path.substr(n, path.size() - n - 5);
 }
 
+auto testName(std::string s) {
+  s = brief(s);
+  for (auto &c : s) {
+    if (!isalnum(c)) {
+      c = '_';
+    }
+  }
+  return s;
+}
+
 using fc::Buffer;
 using fc::BytesIn;
 using fc::CID;
@@ -280,7 +290,7 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
   for (const auto &precondition : mv.precondition_variants) {
     std::shared_ptr<RuntimeRandomness> randomness =
         std::make_shared<ReplayingRandomness>(mv.randomness);
-    fc::vm::interpreter::InterpreterImpl vmi{randomness};
+    fc::vm::interpreter::InterpreterImpl vmi{randomness, nullptr};
     CID state{mv.state_before};
     BlockHeader parent;
     parent.ticket.emplace();
@@ -305,21 +315,20 @@ void testTipsets(const MessageVector &mv, const IpldPtr &ipld) {
         fc::primitives::block::MsgMeta meta;
         ipld->load(meta);
         for (const auto &msg : blk.messages) {
+          OUTCOME_EXCEPT(unsigned_cid, ipld->setCbor(msg));
+          OUTCOME_EXCEPT(
+              signed_cid,
+              ipld->setCbor(fc::vm::message::SignedMessage{
+                  msg, fc::crypto::signature::Secp256k1Signature{}}));
           if (msg.from.isBls()) {
-            OUTCOME_EXCEPT(cid, ipld->setCbor(msg));
-            OUTCOME_EXCEPT(meta.bls_messages.append(cid));
+            OUTCOME_EXCEPT(meta.bls_messages.append(unsigned_cid));
           } else if (msg.from.isSecp256k1()) {
-            OUTCOME_EXCEPT(
-                cid,
-                ipld->setCbor(fc::vm::message::SignedMessage{
-                    msg, fc::crypto::signature::Secp256k1Signature{}}));
-            OUTCOME_EXCEPT(meta.secp_messages.append(cid));
+            OUTCOME_EXCEPT(meta.secp_messages.append(signed_cid));
           } else {
             // sneak in messages originating from other addresses as both kinds.
             // these should fail, as they are actually invalid senders.
-            OUTCOME_EXCEPT(cid, ipld->setCbor(msg));
-            OUTCOME_EXCEPT(meta.bls_messages.append(cid));
-            OUTCOME_EXCEPT(meta.secp_messages.append(cid));
+            OUTCOME_EXCEPT(meta.bls_messages.append(unsigned_cid));
+            OUTCOME_EXCEPT(meta.secp_messages.append(signed_cid));
           }
         }
         block.messages = ipld->setCbor(meta).value();
@@ -399,17 +408,7 @@ TEST_P(TestVectors, Vector) {
   }
 }
 
-static const auto testName{[](auto &&p) {
-  auto s{brief(p.param.path)};
-  for (auto &c : s) {
-    if (!isalnum(c)) {
-      c = '_';
-    }
-  }
-  return s;
-}};
-
 INSTANTIATE_TEST_CASE_P(Vectors,
                         TestVectors,
                         testing::ValuesIn(search()),
-                        testName);
+                        [](auto &&p) { return testName(p.param.path); });

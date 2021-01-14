@@ -64,7 +64,7 @@ namespace fc::storage::mpool {
       msg.gas_fee_cap = kMinimumBaseFee + 1;
       msg.gas_premium = 1;
       OUTCOME_TRY(interpeted, interpreter->interpret(ipld, head));
-      auto randomness = std::make_shared<TipsetRandomness>(ipld, head);
+      auto randomness = std::make_shared<TipsetRandomness>(ipld);
       auto env{
           std::make_shared<vm::runtime::Env>(nullptr, randomness, ipld, head)};
       env->state_tree = std::make_shared<vm::state::StateTreeImpl>(
@@ -136,23 +136,19 @@ namespace fc::storage::mpool {
     } else {
       auto apply{change.type == HeadChangeType::APPLY};
       OUTCOME_TRY(change.value->visitMessages(
-          ipld, [&](auto, auto bls, auto &cid) -> outcome::result<void> {
-            if (bls) {
-              OUTCOME_TRY(message, ipld->getCbor<UnsignedMessage>(cid));
-              if (apply) {
-                remove(message.from, message.nonce);
-              } else {
+          {ipld, false, true},
+          [&](auto, auto bls, auto &cid, auto *smsg, auto *msg)
+              -> outcome::result<void> {
+            if (apply) {
+              remove(msg->from, msg->nonce);
+            } else {
+              if (bls) {
                 auto sig{bls_cache.find(cid)};
                 if (sig != bls_cache.end()) {
-                  OUTCOME_TRY(add({message, sig->second}));
+                  OUTCOME_TRY(add({*msg, sig->second}));
                 }
-              }
-            } else {
-              OUTCOME_TRY(message, ipld->getCbor<SignedMessage>(cid));
-              if (apply) {
-                remove(message.message.from, message.message.nonce);
               } else {
-                OUTCOME_TRY(add(message));
+                OUTCOME_TRY(add(*smsg));
               }
             }
             return outcome::success();
