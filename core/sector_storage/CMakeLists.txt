@@ -15,6 +15,7 @@ target_link_libraries(fetch_handler
         store
         logger
         tarutil
+        rpc
         Boost::boost
         )
 

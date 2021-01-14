@@ -89,7 +89,7 @@ namespace fc::primitives::sector_file {
     ActorId miner_id;
 
     auto count =
-        std::sscanf(sector_str.c_str(), "s-t0%lld-%lld", &sector_id, &miner_id);
+        std::sscanf(sector_str.c_str(), "s-t0%lld-%lld", &miner_id, &sector_id);
 
     if (count != 2) {
       return SectorFileTypeErrors::kInvalidSectorName;

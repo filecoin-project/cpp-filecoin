@@ -8,6 +8,7 @@
 #include <queue>
 
 #include <boost/asio/deadline_timer.hpp>
+#include <boost/asio/dispatch.hpp>
 #include <boost/beast/core.hpp>
 #include <boost/beast/websocket.hpp>
 
@@ -135,37 +136,20 @@ namespace fc::api {
 
   struct HttpSession : public std::enable_shared_from_this<HttpSession> {
     HttpSession(tcp::socket &&socket, std::shared_ptr<Api> api, Routes routes)
-        : socket(std::move(socket)),
-          timer(this->socket.get_executor(),
-                (std::chrono::steady_clock::time_point::max)()),
+        : stream(std::move(socket)),
           routes(std::move(routes)),
           api{std::move(api)} {}
 
     void run() {
-      onTimer({});
-
-      doRead();
-    }
-
-    void onTimer(boost::system::error_code ec) {
-      if (ec && ec != boost::asio::error::operation_aborted) return;
-
-      if (ec == boost::asio::error::operation_aborted) {
-        socket.shutdown(tcp::socket::shutdown_both, ec);
-        socket.close(ec);
-        return;
-      }
-
-      timer.async_wait([self{shared_from_this()}](beast::error_code ec) {
-        self->onTimer(ec);
-      });
+      net::dispatch(stream.get_executor(),
+                    [self{shared_from_this()}]() { self->doRead(); });
     }
 
     void doRead() {
       request = {};
 
       http::async_read(
-          socket,
+          stream,
           buffer,
           request,
           [self{shared_from_this()}](beast::error_code ec,
@@ -180,7 +164,7 @@ namespace fc::api {
       if (ec) return;
 
       if (websocket::is_upgrade(request)) {
-        std::make_shared<SocketSession>(std::move(socket), *api)
+        std::make_shared<SocketSession>(stream.release_socket(), *api)
             ->doAccept(std::move(request));
         return;
       }
@@ -191,25 +175,51 @@ namespace fc::api {
     void handleRequest() {
       for (auto &route : routes) {
         if (request.target().starts_with(route.first)) {
-          response = route.second(socket, request);
+          w_response = route.second(request);
+          doWrite();
           break;
         }
       }
+      // TODO: What if not handler
+    }
+
+    // aka visitor
+    void doWrite() {
+      if (auto d_response = std::get_if<http::response<http::dynamic_body>>(
+              &(w_response.response))) {
+        doWrite(*d_response);
+      } else if (auto f_response = std::get_if<http::response<http::file_body>>(
+                     &(w_response.response))) {
+        doWrite(*f_response);
+      } else {
+        // TODO: ERROR
+      }
+    }
+
+    template <typename T>
+    void doWrite(http::response<T> &response) {
+      response.content_length(response.body().size());
+
+      http::async_write(
+          stream,
+          response,
+          [self{shared_from_this()}](boost::beast::error_code ec, std::size_t) {
+            self->stream.socket().shutdown(tcp::socket::shutdown_send, ec);
+          });
     }
 
     void doClose() {
       boost::system::error_code ec;
-      socket.shutdown(tcp::socket::shutdown_send, ec);
+      stream.socket().shutdown(tcp::socket::shutdown_send, ec);
     }
 
     // TODO: maybe add queue for requests
 
-    tcp::socket socket;
+    beast::tcp_stream stream;
     beast::flat_buffer buffer;
-    net::steady_timer timer;
     http::request<http::dynamic_body> request;
-    WrapperResponse response;
-    std::map<std::string, RouteHandler, std::greater<>> routes;
+    WrapperResponse w_response;
+    Routes routes;
     std::shared_ptr<Api> api;
   };
 
@@ -253,4 +263,29 @@ namespace fc::api {
         std::move(routes))
         ->run();
   }
+
+  WrapperResponse &WrapperResponse::operator=(
+      WrapperResponse &&other) noexcept {
+    response = std::move(other.response);
+    release_resources = std::move(other.release_resources);
+    return *this;
+  }
+
+  WrapperResponse::~WrapperResponse() {
+    if (release_resources) {
+      release_resources();
+    }
+  }
+
+  WrapperResponse::WrapperResponse(WrapperResponse &&other) noexcept {
+    response = std::move(other.response);
+    release_resources = std::move(other.release_resources);
+  }
+
+  WrapperResponse::WrapperResponse(ResponseType &&response)
+      : response(std::move(response)) {}
+
+  WrapperResponse::WrapperResponse(ResponseType &&response,
+                                   std::function<void()> &&clear)
+      : response(std::move(response)), release_resources(std::move(clear)) {}
 }  // namespace fc::api

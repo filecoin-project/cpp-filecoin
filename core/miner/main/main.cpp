@@ -20,6 +20,7 @@
 #include "miner/mining.hpp"
 #include "miner/windowpost.hpp"
 #include "proofs/proof_param_provider.hpp"
+#include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/manager_impl.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
 #include "sector_storage/stores/impl/index_impl.hpp"
@@ -301,14 +302,17 @@ namespace fc {
                     std::make_shared<sector_storage::stores::SectorIndexImpl>(),
                     std::vector<std::string>{"http://127.0.0.1"},
                     scheduler));
-    OUTCOME_TRY(
-        manager,
-        sector_storage::ManagerImpl::newManager(
-            std::make_shared<sector_storage::stores::RemoteStoreImpl>(
-                local_store, std::unordered_map<std::string, std::string>{}),
-            std::make_shared<sector_storage::SchedulerImpl>(
-                minfo.seal_proof_type),
-            {true, true, true, true}));
+
+    // TODO: auth headers should be here
+    auto remote_store{std::make_shared<sector_storage::stores::RemoteStoreImpl>(
+        local_store, std::unordered_map<std::string, std::string>{})};
+
+    OUTCOME_TRY(manager,
+                sector_storage::ManagerImpl::newManager(
+                    remote_store,
+                    std::make_shared<sector_storage::SchedulerImpl>(
+                        minfo.seal_proof_type),
+                    {true, true, true, true}));
     auto miner{std::make_shared<miner::MinerImpl>(
         napi,
         *config.actor,
@@ -332,7 +336,11 @@ namespace fc {
     mapi->PledgeSector = [&]() -> outcome::result<void> {
       return sealing->pledgeSector();
     };
-    api::serve(mapi, *io, "127.0.0.1", config.api_port);
+    auto mroutes{std::make_shared<api::Routes>()};
+
+    mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
+
+    api::serve(mapi, mroutes, *io, "127.0.0.1", config.api_port);
     api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
 
     spdlog::info("fuhon miner started");

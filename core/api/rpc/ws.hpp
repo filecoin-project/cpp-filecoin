@@ -18,14 +18,30 @@ namespace fc::api {
   namespace http = boost::beast::http;
   using tcp = boost::asio::ip::tcp;
 
+  using ResponseType = std::variant<http::response<http::file_body>,
+                                    http::response<http::dynamic_body>>;
+
   // Wrapper for any type of response
   // This is necessary in order not to lose the response before recording
-  struct WrapperResponse {
-    std::shared_ptr<void> response;
+  class WrapperResponse {
+   public:
+    ~WrapperResponse();
+    WrapperResponse() = default;
+
+    WrapperResponse(ResponseType &&response);
+
+    WrapperResponse(ResponseType &&response, std::function<void()> &&clear);
+
+    WrapperResponse(WrapperResponse &&other) noexcept;
+
+    WrapperResponse &operator=(WrapperResponse &&other) noexcept;
+
+    ResponseType response;
+    std::function<void()> release_resources;
   };
-  // RouteHandler should write response(and close socket)
+  // RouteHandler should write response
   using RouteHandler = std::function<WrapperResponse(
-      tcp::socket &socket, const http::request<http::dynamic_body> &request)>;
+      const http::request<http::dynamic_body> &request)>;
   using Routes = std::map<std::string, RouteHandler, std::greater<>>;
 
   void serve(std::shared_ptr<Api> api,

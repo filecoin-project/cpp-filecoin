@@ -11,7 +11,7 @@
 
 namespace fc::sector_storage {
 
-  api::RouteHandler serveHttp(std::shared_ptr<stores::LocalStore> local_store);
+  api::RouteHandler serveHttp(const std::shared_ptr<stores::LocalStore>& local_store);
 
 }  // namespace fc::sector_storage
 
