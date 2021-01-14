@@ -449,16 +449,15 @@ namespace fc::primitives::sector_file {
 
     uint64_t left = size.unpadded();
     constexpr auto kDefaultBufferSize = uint64_t(32 * 1024);
-    std::vector<uint8_t> buffer(kDefaultBufferSize);
-    auto chunks = kDefaultBufferSize / 127;
     PaddedPieceSize output_size =
-        primitives::piece::paddedSize(chunks * 128).padded();
+        primitives::piece::paddedSize(kDefaultBufferSize).padded();
+    std::vector<uint8_t> read(output_size);
+    std::vector<uint8_t> buffer(output_size.unpadded());
 
     while (left > 0) {
       if (left < output_size.unpadded()) {
         output_size = primitives::piece::paddedSize(left).padded();
       }
-      std::vector<uint8_t> read(output_size);
 
       file_.read((char *)read.data(), output_size);
 
