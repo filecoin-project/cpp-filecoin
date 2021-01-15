@@ -45,7 +45,6 @@ namespace fc::api {
   using primitives::block::ElectionProof;
   using primitives::block::Ticket;
   using primitives::cid::getCidOfCbor;
-  using primitives::piece::PaddedPieceSize;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::PoStProof;
   using primitives::tipset::HeadChangeType;
@@ -1038,6 +1037,22 @@ namespace fc::api {
       Get(j, "Timestamp", v.timestamp);
       Get(j, "Expiry", v.expiry);
       Get(j, "SeqNo", v.seq_no);
+    }
+
+    ENCODE(RetrievalAsk) {
+      Value j{rapidjson::kObjectType};
+      Set(j, "PricePerByte", v.price_per_byte);
+      Set(j, "UnsealPrice", v.unseal_price);
+      Set(j, "PaymentInterval", v.payment_interval);
+      Set(j, "PaymentIntervalIncrease", v.interval_increase);
+      return j;
+    }
+
+    DECODE(RetrievalAsk) {
+      Get(j, "PricePerByte", v.price_per_byte);
+      Get(j, "UnsealPrice", v.unseal_price);
+      Get(j, "PaymentInterval", v.payment_interval);
+      Get(j, "PaymentIntervalIncrease", v.interval_increase);
     }
 
     ENCODE(AddChannelInfo) {

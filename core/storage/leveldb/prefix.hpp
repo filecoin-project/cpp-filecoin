@@ -55,6 +55,10 @@ namespace fc::storage {
       return codec::cbor::decode<T>(get()).value();
     }
     template <typename T>
+    void getCbor(T &value) const {
+      value = getCbor<T>();
+    }
+    template <typename T>
     void setCbor(const T &value) {
       return set(codec::cbor::encode(value).value());
     }

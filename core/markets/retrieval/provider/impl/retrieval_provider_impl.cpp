@@ -40,12 +40,13 @@ namespace fc::markets::retrieval::provider {
         piece_storage_{std::move(piece_storage)},
         ipld_{std::move(ipld)},
         config_key_{std::move(config_key)},
+        config_{2, 0, 1 << 20, 1 << 20},
         sealer_{std::move(sealer)},
         miner_{std::move(miner)} {
     if (!config_key_->has()) {
-      config_key_->setCbor(ProviderConfig{2, 1 << 20, 1 << 20, 0});
+      config_key_->setCbor(config_);
     }
-    config_ = config_key_->getCbor<ProviderConfig>();
+    config_key_->getCbor(config_);
     datatransfer_->on_pull.emplace(
         DealProposal::Named::type,
         [this](auto &pdtid, auto &pgsid, auto &, auto _voucher) {
@@ -56,6 +57,15 @@ namespace fc::markets::retrieval::provider {
           }
           datatransfer_->rejectPull(pdtid, pgsid, {}, {});
         });
+  }
+
+  RetrievalAsk RetrievalProviderImpl::getAsk() const {
+    return config_;
+  }
+
+  void RetrievalProviderImpl::setAsk(const RetrievalAsk &ask) {
+    config_key_->setCbor(ask);
+    config_ = ask;
   }
 
   void RetrievalProviderImpl::onProposal(const PeerDtId &pdtid,

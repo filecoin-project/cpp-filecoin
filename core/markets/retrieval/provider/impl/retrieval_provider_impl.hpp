@@ -40,21 +40,6 @@ namespace fc::markets::retrieval::provider {
 
   const Path kFilestoreTempDir = "/tmp/fuhon/retrieval-market/";
 
-  /**
-   * @struct Provider config
-   */
-  struct ProviderConfig {
-    TokenAmount price_per_byte;
-    uint64_t payment_interval;
-    uint64_t interval_increase;
-    TokenAmount unseal_price;
-  };
-  CBOR_TUPLE(ProviderConfig,
-             price_per_byte,
-             payment_interval,
-             interval_increase,
-             unseal_price)
-
   struct DealState {
     DealState(std::shared_ptr<Ipld> ipld,
               const PeerDtId &pdtid,
@@ -86,6 +71,9 @@ namespace fc::markets::retrieval::provider {
                           std::shared_ptr<OneKey> config_key,
                           std::shared_ptr<Manager> sealer,
                           std::shared_ptr<Miner> miner);
+
+    RetrievalAsk getAsk() const;
+    void setAsk(const RetrievalAsk &ask);
 
     void onProposal(const PeerDtId &pdtid,
                     const PeerGsId &pgsid,
@@ -144,7 +132,7 @@ namespace fc::markets::retrieval::provider {
     std::shared_ptr<PieceStorage> piece_storage_;
     std::shared_ptr<Ipld> ipld_;
     std::shared_ptr<OneKey> config_key_;
-    ProviderConfig config_;
+    RetrievalAsk config_;
     std::shared_ptr<Manager> sealer_;
     std::shared_ptr<Miner> miner_;
     common::Logger logger_ = common::createLogger("RetrievalProvider");

@@ -44,6 +44,8 @@
 namespace fc {
   using api::Address;
   using api::RegisteredProof;
+  using api::RetrievalAsk;
+  using api::SignedStorageAsk;
   using boost::asio::io_context;
   using common::span::cbytes;
   using libp2p::multi::Multiaddress;
@@ -391,6 +393,31 @@ namespace fc {
     auto mapi{std::make_shared<api::Api>()};
     mapi->DealsImportData = [&](auto &proposal, auto &path) {
       return storage_provider->importDataForDeal(proposal, path);
+    };
+    mapi->MarketGetAsk = [&]() -> outcome::result<SignedStorageAsk> {
+      return stored_ask->getAsk(*config.actor);
+    };
+    mapi->MarketGetRetrievalAsk = [&]() -> outcome::result<RetrievalAsk> {
+      return retrieval_provider->getAsk();
+    };
+    mapi->MarketSetAsk = [&](auto &price,
+                             auto &verified_price,
+                             auto duration,
+                             auto min_piece_size,
+                             auto max_piece_size) -> outcome::result<void> {
+      return stored_ask->addAsk(
+          {
+              .price = price,
+              .verified_price = verified_price,
+              .min_piece_size = min_piece_size,
+              .max_piece_size = max_piece_size,
+              .miner = *config.actor,
+          },
+          duration);
+    };
+    mapi->MarketSetRetrievalAsk = [&](auto &ask) -> outcome::result<void> {
+      retrieval_provider->setAsk(ask);
+      return outcome::success();
     };
     mapi->PledgeSector = [&]() -> outcome::result<void> {
       return sealing->pledgeSector();

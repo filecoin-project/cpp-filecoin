@@ -15,8 +15,21 @@
 #include "vm/actor/builtin/v0/payment_channel/payment_channel_actor_state.hpp"
 
 namespace fc::markets::retrieval {
+  using primitives::TokenAmount;
   using primitives::address::Address;
   using vm::actor::builtin::v0::payment_channel::LaneId;
+
+  struct RetrievalAsk {
+    TokenAmount price_per_byte;
+    TokenAmount unseal_price;
+    uint64_t payment_interval;
+    uint64_t interval_increase;
+  };
+  CBOR_TUPLE(RetrievalAsk,
+             price_per_byte,
+             unseal_price,
+             payment_interval,
+             interval_increase)
 
   /**
    * @struct Payment info
