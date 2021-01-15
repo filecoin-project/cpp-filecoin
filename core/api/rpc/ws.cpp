@@ -15,12 +15,15 @@
 #include "api/rpc/json.hpp"
 #include "api/rpc/make.hpp"
 #include "codec/json/json.hpp"
+#include "common/logger.hpp"
 
 namespace fc::api {
   namespace beast = boost::beast;
   namespace websocket = beast::websocket;
   namespace net = boost::asio;
   using rpc::OkCb;
+
+  common::Logger logger = common::createLogger("sector server");
 
   constexpr auto kParseError = INT64_C(-32700);
   constexpr auto kInvalidRequest = INT64_C(-32600);
@@ -161,7 +164,10 @@ namespace fc::api {
     void onRead(boost::system::error_code ec) {
       if (ec == http::error::end_of_stream) return doClose();
 
-      if (ec) return;
+      if (ec) {
+        logger->error(ec.message());
+        return;
+      }
 
       if (websocket::is_upgrade(request)) {
         std::make_shared<SocketSession>(stream.release_socket(), *api)
@@ -173,26 +179,36 @@ namespace fc::api {
     }
 
     void handleRequest() {
+      bool is_handled = false;
       for (auto &route : routes) {
         if (request.target().starts_with(route.first)) {
           w_response = route.second(request);
-          doWrite();
+          is_handled = true;
           break;
         }
       }
-      // TODO: What if not handler
+      if (not is_handled) {
+        http::response<http::empty_body> response;
+        response.version(request.version());
+        response.keep_alive(false);
+        response.result(http::status::bad_request);
+        w_response.response = std::move(response);
+      }
+      doWrite();
     }
 
     // aka visitor
     void doWrite() {
-      if (auto d_response = std::get_if<http::response<http::dynamic_body>>(
+      if (auto d_response = std::get_if<http::response<http::string_body>>(
               &(w_response.response))) {
         doWrite(*d_response);
       } else if (auto f_response = std::get_if<http::response<http::file_body>>(
                      &(w_response.response))) {
         doWrite(*f_response);
-      } else {
-        // TODO: ERROR
+      } else if (auto e_response =
+                     std::get_if<http::response<http::empty_body>>(
+                         &(w_response.response))) {
+        doWrite(*e_response);
       }
     }
 
@@ -200,6 +216,16 @@ namespace fc::api {
     void doWrite(http::response<T> &response) {
       response.content_length(response.body().size());
 
+      http::async_write(
+          stream,
+          response,
+          [self{shared_from_this()}](boost::beast::error_code ec, std::size_t) {
+            self->stream.socket().shutdown(tcp::socket::shutdown_send, ec);
+          });
+    }
+
+    template <>
+    void doWrite(http::response<http::empty_body> &response) {
       http::async_write(
           stream,
           response,

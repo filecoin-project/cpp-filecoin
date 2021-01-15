@@ -5,7 +5,6 @@
 
 #include "sector_storage/fetch_handler.hpp"
 
-#include <boost/beast/core/ostream.hpp>
 #include <boost/filesystem.hpp>
 #include <regex>
 #include "api/rpc/json.hpp"
@@ -31,7 +30,7 @@ namespace fc::sector_storage {
 
   api::WrapperResponse makeErrorResponse(
       const http::request<http::dynamic_body> &request, http::status status) {
-    http::response<http::dynamic_body> response;
+    http::response<http::empty_body> response;
     setupResponse(request, response);
     response.result(status);
     return api::WrapperResponse(std::move(response));
@@ -63,12 +62,10 @@ namespace fc::sector_storage {
       return makeErrorResponse(request, http::status::internal_server_error);
     }
 
-    http::response<http::dynamic_body> response;
+    http::response<http::string_body> response;
     setupResponse(request, response);
     response.set(http::field::content_type, "application/json");
-    boost::beast::ostream(response.body())
-        .write(fc::common::span::bytestr(maybe_json.value().data()),
-               maybe_json.value().size());
+    response.body() = common::span::bytestr(maybe_json.value());
     return api::WrapperResponse(std::move(response));
   }
 
@@ -184,7 +181,7 @@ namespace fc::sector_storage {
       return makeErrorResponse(request, http::status::internal_server_error);
     }
 
-    http::response<http::dynamic_body> response;
+    http::response<http::empty_body> response;
     setupResponse(request, response);
     response.result(http::status::ok);
     return api::WrapperResponse(std::move(response));

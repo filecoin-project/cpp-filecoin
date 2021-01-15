@@ -6,6 +6,8 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <libp2p/injector/host_injector.hpp>
 
 #include "api/rpc/info.hpp"
@@ -39,6 +41,7 @@ namespace fc {
   using libp2p::multi::Multiaddress;
   using primitives::sector::RegisteredSealProof;
   using storage::BufferMap;
+  namespace uuids = boost::uuids;
 
   static const Buffer kActor{cbytes("actor")};
 
@@ -287,7 +290,7 @@ namespace fc {
         OUTCOME_EXCEPT(common::writeFile(
             (path / sector_storage::stores::kMetaFileName).string(),
             *codec::json::format(api::encode(primitives::LocalStorageMeta{
-                "default",
+                uuids::to_string(uuids::random_generator()()),
                 1,
                 true,
                 true,

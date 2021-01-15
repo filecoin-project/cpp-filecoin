@@ -19,7 +19,8 @@ namespace fc::api {
   using tcp = boost::asio::ip::tcp;
 
   using ResponseType = std::variant<http::response<http::file_body>,
-                                    http::response<http::dynamic_body>>;
+                                    http::response<http::string_body>,
+                                    http::response<http::empty_body>>;
 
   // Wrapper for any type of response
   // This is necessary in order not to lose the response before recording
