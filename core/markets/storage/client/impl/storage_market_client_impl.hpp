@@ -85,7 +85,8 @@ namespace fc::markets::storage::client {
         const ChainEpoch &end_epoch,
         const TokenAmount &price,
         const TokenAmount &collateral,
-        const RegisteredProof &registered_proof) override;
+        const RegisteredProof &registered_proof,
+        bool is_fast_retrieval) override;
 
     outcome::result<StorageParticipantBalance> getPaymentEscrow(
         const Address &address) const override;

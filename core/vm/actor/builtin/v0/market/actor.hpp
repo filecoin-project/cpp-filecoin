@@ -114,6 +114,9 @@ namespace fc::vm::actor::builtin::v0::market {
     DealId next_deal;
     adt::Map<DealSet, UvarintKeyer> deals_by_epoch;
     ChainEpoch last_cron;
+    TokenAmount total_client_locked_collateral;
+    TokenAmount total_provider_locked_collateral;
+    TokenAmount total_client_storage_fee;
   };
   CBOR_TUPLE(State,
              proposals,
@@ -123,7 +126,10 @@ namespace fc::vm::actor::builtin::v0::market {
              locked_table,
              next_deal,
              deals_by_epoch,
-             last_cron)
+             last_cron,
+             total_client_locked_collateral,
+             total_provider_locked_collateral,
+             total_client_storage_fee)
 
   struct ClientDealProposal {
     DealProposal proposal;

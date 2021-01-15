@@ -22,6 +22,8 @@ namespace fc::vm {
   enum class VMExitCode : int64_t {
     kFatal = -1,
 
+    kErrSerializationPre7 = 1,
+
     kOk = 0,
     kSysErrSenderInvalid = 1,
     kSysErrSenderStateInvalid = 2,
@@ -48,7 +50,6 @@ namespace fc::vm {
 
     kErrPlaceholder = 1000,
 
-    kDecodeActorParamsError,
     kEncodeActorResultError,
 
     kSendTransferInsufficient,
@@ -126,9 +127,6 @@ namespace fc::vm {
 
   /// VMExitCode that aborts execution
   bool isAbortExitCode(const std::error_code &error);
-
-  /// Get specs-actors VMExitCode
-  boost::optional<VMExitCode> normalizeVMExitCode(VMExitCode error);
 }  // namespace fc::vm
 
 OUTCOME_HPP_DECLARE_ERROR(fc::vm, VMExitCode);

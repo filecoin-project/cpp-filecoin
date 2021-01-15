@@ -87,6 +87,7 @@ namespace fc {
 
     namespace tipset {
       struct Tipset;
+      using TipsetCPtr = std::shared_ptr<const Tipset>;
     }  // namespace tipset
   }    // namespace primitives
 

@@ -9,6 +9,7 @@
 #include <filecoin-ffi/filcrypto.h>
 
 #include <boost/filesystem.hpp>
+#include <thread>
 #include "common/bitsutil.hpp"
 #include "common/ffi.hpp"
 #include "primitives/address/address.hpp"
@@ -16,99 +17,6 @@
 #include "primitives/cid/comm_cid.hpp"
 #include "proofs/proofs_error.hpp"
 #include "sector_storage/zerocomm/zerocomm.hpp"
-
-namespace {
-  void unpad(gsl::span<const uint8_t> in, gsl::span<uint8_t> out) {
-    auto chunks = in.size() / 128;
-    for (auto chunk = 0; chunk < chunks; chunk++) {
-      auto input_offset_next = chunk * 128 + 1;
-      auto output_offset = chunk * 127;
-
-      auto current = in[chunk * 128];
-
-      for (size_t i = 0; i < 32; i++) {
-        out[output_offset + i] = current;
-
-        current = in[i + input_offset_next];
-      }
-
-      out[output_offset + 31] |= current << 6;
-
-      for (size_t i = 32; i < 64; i++) {
-        auto next = in[i + input_offset_next];
-
-        out[output_offset + i] = current >> 2;
-        out[output_offset + i] |= next << 6;
-
-        current = next;
-      }
-
-      out[output_offset + 63] ^= (current << 6) ^ (current << 4);
-
-      for (size_t i = 64; i < 96; i++) {
-        auto next = in[i + input_offset_next];
-
-        out[output_offset + i] = current >> 4;
-        out[output_offset + i] |= next << 4;
-
-        current = next;
-      }
-
-      out[output_offset + 95] ^= (current << 4) ^ (current << 2);
-
-      for (size_t i = 96; i < 127; i++) {
-        auto next = in[i + input_offset_next];
-
-        out[output_offset + i] = current >> 6;
-        out[output_offset + i] |= next << 2;
-
-        current = next;
-      }
-    }
-  }
-
-  void pad(gsl::span<const uint8_t> in, gsl::span<uint8_t> out) {
-    auto chunks = out.size() / 128;
-    for (auto chunk = 0; chunk < chunks; chunk++) {
-      size_t input_offset = chunk * 127;
-      size_t output_offset = chunk * 128;
-
-      std::copy(in.begin() + input_offset,
-                in.begin() + input_offset + 31,
-                out.begin() + output_offset);
-
-      auto t = in[input_offset + 31] >> 6;
-      out[output_offset + 31] = in[input_offset + 31] & 0x3f;
-      uint8_t v;
-
-      for (int i = 32; i < 64; i++) {
-        v = in[input_offset + i];
-        out[output_offset + i] = (v << 2) | t;
-        t = v >> 6;
-      }
-
-      t = v >> 4;
-      out[output_offset + 63] &= 0x3f;
-
-      for (size_t i = 64; i < 96; i++) {
-        v = in[input_offset + i];
-        out[output_offset + i] = (v << 4) | t;
-        t = v >> 4;
-      }
-
-      t = v >> 2;
-      out[output_offset + 95] &= 0x3f;
-
-      for (size_t i = 96; i < 127; i++) {
-        v = in[input_offset + i];
-        out[output_offset + i] = (v << 6) | t;
-        t = v >> 2;
-      }
-
-      out[output_offset + 127] = t & 0x3f;
-    }
-  }
-}  // namespace
 
 namespace fc::proofs {
   namespace ffi = common::ffi;
@@ -868,35 +776,25 @@ namespace fc::proofs {
                        PaddedPieceSize{size}.unpadded());
   }
 
-  outcome::result<void> Proofs::unsealRange(
-      RegisteredProof proof_type,
-      const std::string &cache_dir_path,
-      const std::string &sealed_sector_path,
-      const std::string &unseal_output_path,
-      SectorNumber sector_num,
-      ActorId miner_id,
-      const Ticket &ticket,
-      const UnsealedCID &unsealed_cid,
-      uint64_t offset,
-      uint64_t length) {
+  outcome::result<void> Proofs::unsealRange(RegisteredProof proof_type,
+                                            const std::string &cache_dir_path,
+                                            const PieceData &seal_fd,
+                                            const PieceData &unseal_fd,
+                                            SectorNumber sector_num,
+                                            ActorId miner_id,
+                                            const Ticket &ticket,
+                                            const UnsealedCID &unsealed_cid,
+                                            uint64_t offset,
+                                            uint64_t length) {
     OUTCOME_TRY(c_proof_type, cRegisteredSealProof(proof_type));
 
     OUTCOME_TRY(comm_d, CIDToDataCommitmentV1(unsealed_cid));
 
-    PieceData sealed{sealed_sector_path, O_RDONLY};
-    if (!sealed.isOpened()) {
-      return ProofsError::kCannotOpenFile;
-    }
-    PieceData unsealed{unseal_output_path};
-    if (!unsealed.isOpened()) {
-      return ProofsError::kCannotCreateUnsealedFile;
-    }
-
     auto prover_id = toProverID(miner_id);
     auto res_ptr = ffi::wrap(fil_unseal_range(c_proof_type,
                                               cache_dir_path.c_str(),
-                                              sealed.getFd(),
-                                              unsealed.getFd(),
+                                              seal_fd.getFd(),
+                                              unseal_fd.getFd(),
                                               sector_num,
                                               prover_id,
                                               c32ByteArray(ticket),
@@ -912,6 +810,39 @@ namespace fc::proofs {
     }
 
     return outcome::success();
+  }
+
+  outcome::result<void> Proofs::unsealRange(
+      RegisteredProof proof_type,
+      const std::string &cache_dir_path,
+      const std::string &sealed_sector_path,
+      const std::string &unseal_output_path,
+      SectorNumber sector_num,
+      ActorId miner_id,
+      const Ticket &ticket,
+      const UnsealedCID &unsealed_cid,
+      uint64_t offset,
+      uint64_t length) {
+    PieceData unsealed{unseal_output_path};
+    if (!unsealed.isOpened()) {
+      return ProofsError::kCannotCreateUnsealedFile;
+    }
+
+    PieceData sealed{sealed_sector_path, O_RDONLY};
+    if (!sealed.isOpened()) {
+      return ProofsError::kCannotOpenFile;
+    }
+
+    return unsealRange(proof_type,
+                       cache_dir_path,
+                       sealed,
+                       unsealed,
+                       sector_num,
+                       miner_id,
+                       ticket,
+                       unsealed_cid,
+                       offset,
+                       length);
   }
 
   SortedPrivateSectorInfo Proofs::newSortedPrivateSectorInfo(
@@ -1131,8 +1062,9 @@ namespace fc::proofs {
         return ProofsError::kNotReadEnough;
       }
 
-      unpad(gsl::make_span(read.data(), outTwoPow),
-            gsl::make_span(buffer.data(), outTwoPow.unpadded()));
+      primitives::piece::unpad(
+          gsl::make_span(read.data(), outTwoPow),
+          gsl::make_span(buffer.data(), outTwoPow.unpadded()));
 
       uint64_t write_size =
           write(output.getFd(), buffer.data(), outTwoPow.unpadded());
@@ -1143,84 +1075,6 @@ namespace fc::proofs {
 
       left -= outTwoPow.unpadded();
     }
-    return outcome::success();
-  }
-
-  outcome::result<void> Proofs::writeUnsealPiece(
-      const std::string &unseal_piece_file_path,
-      const std::string &staged_sector_file_path,
-      RegisteredProof seal_proof_type,
-      const PaddedPieceSize &offset,
-      const UnpaddedPieceSize &piece_size) {
-    std::ifstream input(unseal_piece_file_path);
-
-    if (!input.good()) {
-      return ProofsError::kCannotOpenFile;
-    }
-
-    if (!fs::exists(staged_sector_file_path)) {
-      std::ofstream ofs(staged_sector_file_path,
-                        std::ios::binary | std::ios::out);
-
-      if (!ofs.good()) {
-        return ProofsError::kCannotCreateUnsealedFile;
-      }
-
-      OUTCOME_TRY(size, getSectorSize(seal_proof_type));
-
-      char ch = 0;
-      size_t i;
-      for (i = 0; i < size && ofs; i++) {
-        ofs.write(&ch, 1);
-      }
-
-      if (i != size) {
-        return ProofsError::kNotWriteEnough;
-      }
-    }
-
-    auto size = fs::file_size(staged_sector_file_path);
-
-    if (offset + piece_size.padded() > size) {
-      return ProofsError::kOutOfBound;
-    }
-
-    std::fstream unsealed_file(staged_sector_file_path,
-                               std::ios::in | std::ios::out);
-
-    if (!unsealed_file.good()) {
-      return ProofsError::kCannotOpenFile;
-    }
-
-    if (!unsealed_file.seekg(offset, std::ios_base::beg)) {
-      return ProofsError::kUnableMoveCursor;
-    }
-
-    std::vector<uint8_t> in(127);
-    std::vector<uint8_t> out(128);
-
-    for (size_t read = 0; read < piece_size; read += 127) {
-      char ch;
-      size_t i;
-      for (i = 0; i < 127 && input; i++) {
-        input.get(ch);
-        in[i] = ch;
-      }
-
-      if (i != 127) {
-        return ProofsError::kNotReadEnough;
-      }
-
-      pad(in, out);
-      for (i = 0; i < 128 && unsealed_file; i++) {
-        ch = out[i];
-        unsealed_file.write(&ch, 1);
-      }
-      if (i != 128) {
-        return ProofsError::kNotWriteEnough;
-      }
-    }
-
     return outcome::success();
   }
 
@@ -1245,6 +1099,34 @@ namespace fc::proofs {
         .pads = std::move(pad_pieces),
         .size = sum,
     };
+  }
+
+  outcome::result<CID> Proofs::generatePieceCID(RegisteredProof proof_type,
+                                                gsl::span<const uint8_t> data) {
+    assert(UnpaddedPieceSize(data.size()).validate());
+
+    int fds[2];
+    if (pipe(fds) < 0) {
+      return ProofsError::kCannotCreatePipe;
+    }
+
+    std::error_code ec;
+    std::thread t([output = PieceData(fds[1]), &data, &ec]() {
+      if (write(output.getFd(), (char *)data.data(), data.size()) == -1) {
+        ec = ProofsError::kCannotWriteData;
+      }
+    });
+
+    auto maybe_cid = Proofs::generatePieceCID(
+        proof_type, PieceData(fds[0]), UnpaddedPieceSize(data.size()));
+
+    t.join();
+
+    if (ec) {
+      return ec;
+    }
+
+    return maybe_cid;
   }
 
 }  // namespace fc::proofs

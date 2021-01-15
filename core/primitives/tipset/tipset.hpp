@@ -29,19 +29,31 @@ namespace fc::primitives::tipset {
 OUTCOME_HPP_DECLARE_ERROR(fc::primitives::tipset, TipsetError);
 
 namespace fc::primitives::tipset {
+  using block::Address;
   using block::BeaconEntry;
   using block::BlockHeader;
   using common::Hash256;
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
+  using vm::message::SignedMessage;
+  using vm::message::UnsignedMessage;
 
   struct MessageVisitor {
-    using Visitor =
-        std::function<outcome::result<void>(size_t, bool bls, const CID &)>;
+    using Visitor = std::function<outcome::result<void>(size_t,
+                                                        bool bls,
+                                                        const CID &,
+                                                        SignedMessage *smsg,
+                                                        UnsignedMessage *msg)>;
+    MessageVisitor(IpldPtr ipld, bool nonce, bool load)
+        : ipld{ipld}, nonce{nonce}, load{load || nonce} {}
     outcome::result<void> visit(const BlockHeader &block,
                                 const Visitor &visitor);
     IpldPtr ipld;
-    std::set<CID> visited{};
+    bool nonce{};
+    bool load{};
+    std::set<CID> visited;
+    std::map<Address, uint64_t> nonces;
+    size_t index{};
   };
 
   struct Tipset;
@@ -67,7 +79,8 @@ namespace fc::primitives::tipset {
     outcome::result<BeaconEntry> latestBeacon(Ipld &ipld) const;
 
     outcome::result<void> visitMessages(
-        IpldPtr ipld, const MessageVisitor::Visitor &visitor) const;
+        MessageVisitor message_visitor,
+        const MessageVisitor::Visitor &visitor) const;
 
     outcome::result<BigInt> nextBaseFee(IpldPtr ipld) const;
 
