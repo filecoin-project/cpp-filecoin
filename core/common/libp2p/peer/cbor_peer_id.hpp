@@ -3,17 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_LIBP2P_PEER_CBOR_PEER_ID_HPP
-#define CPP_FILECOIN_CORE_COMMON_LIBP2P_PEER_CBOR_PEER_ID_HPP
+#pragma once
 
 #include <libp2p/peer/peer_id.hpp>
 
 #include "codec/cbor/streams_annotation.hpp"
 #include "common/outcome.hpp"
 
-using libp2p::peer::PeerId;
-
 namespace fc::codec::cbor {
+  using libp2p::peer::PeerId;
+
   /// Default value of PeerId for CBOR stream decoder
   template <>
   inline PeerId kDefaultT<PeerId>() {
@@ -38,5 +37,3 @@ namespace libp2p::peer {
   }
 
 }  // namespace libp2p::peer
-
-#endif  // CPP_FILECOIN_CORE_COMMON_LIBP2P_PEER_CBOR_PEER_ID_HPP

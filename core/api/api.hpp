@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_API_API_HPP
-#define CPP_FILECOIN_CORE_API_API_HPP
+#pragma once
 
 #include <future>
 
@@ -43,6 +42,7 @@ namespace fc::api {
   using crypto::randomness::DomainSeparationTag;
   using crypto::randomness::Randomness;
   using crypto::signature::Signature;
+  using libp2p::peer::PeerId;
   using libp2p::peer::PeerInfo;
   using markets::storage::DataRef;
   using markets::storage::SignedStorageAsk;
@@ -544,5 +544,3 @@ namespace fc::api {
                const LaneId &)
   };
 }  // namespace fc::api
-
-#endif  // CPP_FILECOIN_CORE_API_API_HPP
