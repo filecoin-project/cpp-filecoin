@@ -86,7 +86,7 @@ namespace fc::vm::actor {
         && (actor.code != builtin::v0::kStoragePowerCodeCid)    // < tested OK
         && (actor.code != builtin::v0::kRewardActorCodeID)      // < tested OK
         && (actor.code != builtin::v0::kSystemActorCodeID)      // < tested OK
-        && (actor.code != builtin::v0::kVerifiedRegistryCode)   // WiP
+        && (actor.code != builtin::v0::kVerifiedRegistryCode)   // < OK, but not tested
 
         // v2
         && (actor.code != builtin::v2::kAccountCodeCid)  // < tested OK

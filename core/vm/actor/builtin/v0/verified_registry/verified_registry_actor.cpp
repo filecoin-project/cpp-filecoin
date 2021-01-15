@@ -6,7 +6,7 @@
 #include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
 
 namespace fc::vm::actor::builtin::v0::verified_registry {
-  ACTOR_METHOD_IMPL(Constructor) {
+  ACTOR_METHOD_IMPL(Construct) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
 
     const auto id_addr = runtime.resolveAddress(params);
@@ -31,6 +31,10 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(runtime.validateImmediateCallerIs(state.root_key));
+
+    if (state.root_key == params.address) {
+      OUTCOME_TRY(runtime.abort(VMExitCode::kErrIllegalArgument));
+    }
 
     // Lotus gas conformance
     OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
@@ -131,7 +135,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     }
 
     VM_ASSERT(client_cap.value().value() >= 0);
-    if (params.deal_size <= client_cap.value().value()) {
+    if (params.deal_size > client_cap.value().value()) {
       OUTCOME_TRY(runtime.abort(VMExitCode::kErrIllegalArgument));
     }
 
@@ -164,6 +168,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     // Lotus gas conformance
     OUTCOME_TRYA(state, runtime.getCurrentActorStateCbor<State>());
+
     const auto verifier_cap = state.verifiers.tryGet(params.address);
     REQUIRE_NO_ERROR(verifier_cap, VMExitCode::kErrIllegalState);
     if (verifier_cap.value()) {
@@ -185,7 +190,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   }
 
   const ActorExports exports{
-      exportMethod<Constructor>(),
+      exportMethod<Construct>(),
       exportMethod<AddVerifier>(),
       exportMethod<RemoveVerifier>(),
       exportMethod<AddVerifiedClient>(),

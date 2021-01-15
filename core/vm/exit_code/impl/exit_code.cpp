@@ -66,6 +66,7 @@ namespace fc::vm {
       case E::kErrInsufficientFunds:
       case E::kErrIllegalState:
       case E::kErrSerialization:
+      case E::kErrFirstActorSpecificExitCode:
         return error;
 
       case E::kErrPlaceholder:

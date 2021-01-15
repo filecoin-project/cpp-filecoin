@@ -36,6 +36,6 @@ target_link_libraries(actor
     system_actor_v0
     system_actor_v2
     system_actor_v3
-    verified_registry_v0
+    verified_registry_actor_v0
     cgo_actors
     )

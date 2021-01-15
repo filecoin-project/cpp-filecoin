@@ -10,7 +10,7 @@
 
 namespace fc::vm::actor::builtin::v0::verified_registry {
 
-  struct Constructor : ActorMethodBase<1> {
+  struct Construct : ActorMethodBase<1> {
     using Params = Address;
     ACTOR_METHOD_DECL();
   };

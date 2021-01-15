@@ -35,7 +35,7 @@
 /**
  * Return VMExitCode as VMAbortExitCode for special handling
  */
-#define ABORT(err_code) static_cast<VMAbortExitCode>(err_code)
+#define ABORT_CAST(err_code) static_cast<VMAbortExitCode>(err_code)
 
 namespace fc::vm::runtime {
 
@@ -254,9 +254,9 @@ namespace fc::vm::runtime {
           return res.error();
         }
         if (isVMExitCode(res.error())) {
-          return ABORT(VMExitCode{res.error().value()});
+          return ABORT_CAST(VMExitCode{res.error().value()});
         }
-        return ABORT(default_error);
+        return ABORT_CAST(default_error);
       }
       return outcome::success();
     }
