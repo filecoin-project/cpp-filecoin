@@ -224,7 +224,6 @@ namespace fc::api {
           });
     }
 
-    template <>
     void doWrite(http::response<http::empty_body> &response) {
       http::async_write(
           stream,
