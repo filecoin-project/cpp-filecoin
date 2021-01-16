@@ -33,6 +33,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::address::Address;
   using primitives::sector::OnChainPoStVerifyInfo;
   using primitives::sector::Proof;
+  using primitives::sector::RegisteredSealProof;
 
   struct PowerPair {
     StoragePower raw, qa;
@@ -50,7 +51,7 @@ namespace fc::vm::actor::builtin::v0::miner {
   CBOR_TUPLE(VestingFunds, funds)
 
   struct SectorPreCommitInfo {
-    RegisteredProof registered_proof;
+    RegisteredSealProof registered_proof;
     SectorNumber sector;
     /// CommR
     CID sealed_cid;
@@ -90,7 +91,7 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   struct SectorOnChainInfo {
     SectorNumber sector;
-    RegisteredProof seal_proof;
+    RegisteredSealProof seal_proof;
     CID sealed_cid;
     std::vector<DealId> deals;
     ChainEpoch activation_epoch;
@@ -140,7 +141,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     /// Libp2p identity that should be used when connecting to this miner.
     Buffer peer_id;
     std::vector<Multiaddress> multiaddrs;
-    RegisteredProof seal_proof_type;
+    RegisteredSealProof seal_proof_type;
     /// Amount of space in each sector committed to the network by this miner.
     SectorSize sector_size;
     uint64_t window_post_partition_sectors;

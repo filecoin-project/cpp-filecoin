@@ -25,7 +25,6 @@ using fc::primitives::SectorSize;
 using fc::primitives::piece::PaddedPieceSize;
 using fc::primitives::piece::PieceData;
 using fc::primitives::piece::UnpaddedPieceSize;
-using fc::primitives::sector::OnChainSealVerifyInfo;
 using fc::primitives::sector::SealVerifyInfo;
 using fc::primitives::sector::SectorId;
 using fc::primitives::sector::SectorInfo;
@@ -64,10 +63,10 @@ class ProofsTest : public test::BaseFS_Test {
 TEST_F(ProofsTest, Lifecycle) {
   ActorId miner_id = 42;
   Randomness randomness{{9, 9, 9}};
-  fc::proofs::RegisteredProof seal_proof_type =
-      fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal;
-  fc::proofs::RegisteredProof winning_post_proof_type =
-      fc::primitives::sector::RegisteredProof::StackedDRG2KiBWinningPoSt;
+  fc::proofs::RegisteredSealProof seal_proof_type =
+      fc::primitives::sector::RegisteredSealProof::StackedDrg2KiBV1;
+  fc::proofs::RegisteredPoStProof winning_post_proof_type =
+      fc::primitives::sector::RegisteredPoStProof::StackedDRG2KiBWinningPoSt;
   SectorNumber sector_num = 42;
   EXPECT_OUTCOME_TRUE(sector_size,
                       fc::primitives::sector::getSectorSize(seal_proof_type));
@@ -293,7 +292,7 @@ TEST_F(ProofsTest, Lifecycle) {
   private_replicas_info.push_back(PrivateSectorInfo{
       .info =
           SectorInfo{
-              .registered_proof = winning_post_proof_type,
+              .registered_proof = seal_proof_type,
               .sector = sector_num,
               .sealed_cid = sealed_and_unsealed_cid.sealed_cid,
           },
@@ -339,8 +338,8 @@ TEST_F(ProofsTest, Lifecycle) {
  * @then pieces are identical
  */
 TEST_F(ProofsTest, WriteAndReadPiecesFile) {
-  fc::proofs::RegisteredProof seal_proof_type =
-      fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal;
+  fc::proofs::RegisteredSealProof seal_proof_type =
+      fc::primitives::sector::RegisteredSealProof::StackedDrg2KiBV1;
 
   fc::common::Blob<2032> some_bytes;
   std::random_device rd;

@@ -82,11 +82,11 @@ namespace fc::sector_storage::stores {
     virtual outcome::result<std::vector<StorageInfo>> storageFindSector(
         const SectorId &sector,
         const SectorFileType &file_type,
-        boost::optional<RegisteredProof> fetch_seal_proof_type) = 0;
+        boost::optional<RegisteredSealProof> fetch_seal_proof_type) = 0;
 
     virtual outcome::result<std::vector<StorageInfo>> storageBestAlloc(
         const SectorFileType &allocate,
-        RegisteredProof seal_proof_type,
+        RegisteredSealProof seal_proof_type,
         bool sealing_mode) = 0;
 
     virtual outcome::result<std::unique_ptr<Lock>> storageLock(

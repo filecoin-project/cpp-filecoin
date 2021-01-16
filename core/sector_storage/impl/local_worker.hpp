@@ -15,7 +15,7 @@ namespace fc::sector_storage {
 
   struct WorkerConfig {
     std::string hostname;
-    primitives::sector::RegisteredProof seal_proof_type;
+    primitives::sector::RegisteredSealProof seal_proof_type;
     std::set<primitives::TaskType> task_types;
   };
 

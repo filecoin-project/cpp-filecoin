@@ -37,7 +37,7 @@ namespace fc::primitives::sector_file {
   }
 
   outcome::result<uint64_t> sealSpaceUse(SectorFileType file_type,
-                                         RegisteredProof seal_proof_type) {
+                                         RegisteredSealProof seal_proof_type) {
     OUTCOME_TRY(sector_size,
                 fc::primitives::sector::getSectorSize(seal_proof_type));
 
@@ -317,7 +317,7 @@ namespace fc::primitives::sector_file {
       const PieceData &data,
       PaddedByteIndex offset,
       PaddedPieceSize size,
-      const boost::optional<RegisteredProof> &maybe_seal_proof_type) {
+      const boost::optional<RegisteredSealProof> &maybe_seal_proof_type) {
     if (not data.isOpened()) {
       return SectorFileError::kPipeNotOpen;
     }

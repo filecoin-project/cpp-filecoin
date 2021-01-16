@@ -13,7 +13,7 @@ namespace fc::sector_storage {
   using primitives::Resources;
   using primitives::WorkerResources;
 
-  SchedulerImpl::SchedulerImpl(RegisteredProof seal_proof_type)
+  SchedulerImpl::SchedulerImpl(RegisteredSealProof seal_proof_type)
       : seal_proof_type_(seal_proof_type),
         current_worker_id_(0),
         logger_(common::createLogger("scheduler")) {
@@ -238,7 +238,7 @@ namespace fc::sector_storage {
     }
   }
 
-  RegisteredProof SchedulerImpl::getSealProofType() const {
+  RegisteredSealProof SchedulerImpl::getSealProofType() const {
     return seal_proof_type_;
   }
 }  // namespace fc::sector_storage

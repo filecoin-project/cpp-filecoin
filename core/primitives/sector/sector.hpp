@@ -46,6 +46,20 @@ namespace fc::primitives::sector {
     StackedDrg64GiBV1_1,
   };
 
+  enum class RegisteredPoStProof : int64_t {
+    StackedDRG2KiBWinningPoSt,
+    StackedDRG8MiBWinningPoSt,
+    StackedDRG512MiBWinningPoSt,
+    StackedDRG32GiBWinningPoSt,
+    StackedDRG64GiBWinningPoSt,
+
+    StackedDRG2KiBWindowPoSt,
+    StackedDRG8MiBWindowPoSt,
+    StackedDRG512MiBWindowPoSt,
+    StackedDRG32GiBWindowPoSt,
+    StackedDRG64GiBWindowPoSt,
+  };
+
   /// This ordering, defines mappings to UInt in a way which MUST never change.
   enum class RegisteredProof : int64_t {
     StackedDRG2KiBSeal,
@@ -67,15 +81,16 @@ namespace fc::primitives::sector {
     StackedDRG64GiBWindowPoSt,
   };
 
-  outcome::result<RegisteredProof> getRegisteredWindowPoStProof(
-      RegisteredProof proof);
-  outcome::result<RegisteredProof> getRegisteredWinningPoStProof(
-      RegisteredProof proof);
+  outcome::result<RegisteredPoStProof> getRegisteredWindowPoStProof(
+      RegisteredSealProof proof);
+  outcome::result<RegisteredPoStProof> getRegisteredWinningPoStProof(
+      RegisteredSealProof proof);
 
   outcome::result<SectorSize> getSectorSize(RegisteredSealProof proof);
-  outcome::result<SectorSize> getSectorSize(RegisteredProof proof);
+  outcome::result<SectorSize> getSectorSize(RegisteredPoStProof proof);
 
-  outcome::result<size_t> getWindowPoStPartitionSectors(RegisteredProof proof);
+  outcome::result<size_t> getWindowPoStPartitionSectors(
+      RegisteredPoStProof proof);
 
   using SealRandomness = Randomness;
 
@@ -109,7 +124,7 @@ namespace fc::primitives::sector {
    * verify a Seal.
    */
   struct SealVerifyInfo {
-    RegisteredProof seal_proof;
+    RegisteredSealProof seal_proof;
     SectorId sector;
     std::vector<DealId> deals;
     SealRandomness randomness;
@@ -132,7 +147,7 @@ namespace fc::primitives::sector {
   using PoStRandomness = Randomness;
 
   struct PoStProof {
-    RegisteredProof registered_proof;
+    RegisteredPoStProof registered_proof;
     Proof proof;
   };
 
@@ -168,7 +183,7 @@ namespace fc::primitives::sector {
   struct SectorInfo {
     // RegisteredProof used when sealing - needs to be mapped to PoSt registered
     // proof when used to verify a PoSt
-    RegisteredProof registered_proof;
+    RegisteredSealProof registered_proof;
     uint64_t sector;
     /// CommR
     CID sealed_cid;

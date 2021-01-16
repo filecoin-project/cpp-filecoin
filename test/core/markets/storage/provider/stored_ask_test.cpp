@@ -55,7 +55,7 @@ namespace fc::markets::storage::provider {
               "F00D"_unhex,
           }},
           {fc::primitives::sector::PoStProof{
-              fc::primitives::sector::RegisteredProof::StackedDRG2KiBSeal,
+              fc::primitives::sector::RegisteredPoStProof::StackedDRG2KiBWinningPoSt,
               "F00D"_unhex,
           }},
           {"010001020002"_cid},

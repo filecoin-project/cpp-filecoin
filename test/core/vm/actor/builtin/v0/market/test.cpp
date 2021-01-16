@@ -39,6 +39,7 @@ using fc::primitives::address::Address;
 using fc::primitives::piece::PaddedPieceSize;
 using fc::primitives::piece::PieceInfo;
 using fc::primitives::sector::RegisteredProof;
+using fc::primitives::sector::RegisteredSealProof;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::vm::VMExitCode;
 using fc::vm::actor::kBurntFundsActorAddress;
@@ -501,7 +502,7 @@ TEST_F(MarketActorTest, ComputeDataCommitmentCallerNotMiner) {
 
 TEST_F(MarketActorTest, GCC_DISABLE(ComputeDataCommitment)) {
   auto comm_d = "010001020001"_cid;
-  auto sector_type = RegisteredProof::StackedDRG32GiBSeal;
+  auto sector_type = RegisteredSealProof::StackedDrg32GiBV1;
   std::vector<DealId> deal_ids{deal_1_id, deal_2_id};
   std::vector<PieceInfo> pieces{
       {PaddedPieceSize(31), "010001020002"_cid},

@@ -35,7 +35,7 @@ namespace fc::markets::storage::provider {
   using primitives::BigInt;
   using primitives::EpochDuration;
   using primitives::GasAmount;
-  using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
   using sectorblocks::SectorBlocks;
   using ProviderTransition =
       fsm::Transition<ProviderEvent, void, StorageDealStatus, MinerDeal>;
@@ -51,7 +51,7 @@ namespace fc::markets::storage::provider {
       : public StorageProvider,
         public std::enable_shared_from_this<StorageProviderImpl> {
    public:
-    StorageProviderImpl(const RegisteredProof &registered_proof,
+    StorageProviderImpl(const RegisteredSealProof &registered_proof,
                         std::shared_ptr<Host> host,
                         IpldPtr ipld,
                         std::shared_ptr<DataTransfer> datatransfer,
@@ -348,7 +348,7 @@ namespace fc::markets::storage::provider {
       return true;
     };
 
-    RegisteredProof registered_proof_;
+    RegisteredSealProof registered_proof_;
 
     // coonnection manager
     std::mutex connections_mutex_;

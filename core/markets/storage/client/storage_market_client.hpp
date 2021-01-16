@@ -24,6 +24,7 @@ namespace fc::markets::storage::client {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
 
   class StorageMarketClient {
    public:
@@ -83,7 +84,7 @@ namespace fc::markets::storage::client {
         const ChainEpoch &end_epoch,
         const TokenAmount &price,
         const TokenAmount &collateral,
-        const RegisteredProof &registered_proof,
+        const RegisteredSealProof &registered_proof,
         bool is_fast_retrieval) = 0;
 
     virtual outcome::result<StorageParticipantBalance> getPaymentEscrow(

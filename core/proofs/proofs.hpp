@@ -22,7 +22,7 @@ namespace fc::proofs {
   using Devices = std::vector<std::string>;
   using Phase1Output = std::vector<uint8_t>;
   using ChallengeIndexes = std::vector<uint64_t>;
-  using fc::primitives::sector::RegisteredProof;
+  using fc::primitives::sector::RegisteredPoStProof;
   using fc::primitives::sector::RegisteredSealProof;
   using primitives::ActorId;
   using primitives::SectorNumber;
@@ -47,7 +47,7 @@ namespace fc::proofs {
   using Seed = primitives::sector::InteractiveRandomness;
 
   struct PublicSectorInfo {
-    RegisteredProof post_proof_type;
+    RegisteredPoStProof post_proof_type;
     CID sealed_cid;
     SectorNumber sector_num;
   };
@@ -60,7 +60,7 @@ namespace fc::proofs {
   struct PrivateSectorInfo {
     SectorInfo info;
     std::string cache_dir_path;
-    RegisteredProof post_proof_type;
+    RegisteredPoStProof post_proof_type;
     std::string sealed_sector_path;
   };
 
@@ -103,13 +103,13 @@ namespace fc::proofs {
         gsl::span<const PublicSectorInfo> sector_info);
 
     static outcome::result<WriteWithoutAlignmentResult> writeWithoutAlignment(
-        RegisteredProof proof_type,
+        RegisteredSealProof proof_type,
         const PieceData &piece_data,
         const UnpaddedPieceSize &piece_bytes,
         const std::string &staged_sector_file_path);
 
     static outcome::result<WriteWithAlignmentResult> writeWithAlignment(
-        RegisteredProof proof_type,
+        RegisteredSealProof proof_type,
         const PieceData &piece_data,
         const UnpaddedPieceSize &piece_bytes,
         const std::string &staged_sector_file_path,
@@ -125,7 +125,7 @@ namespace fc::proofs {
      * the resulting replica to sealed_sector_path
      */
     static outcome::result<Phase1Output> sealPreCommitPhase1(
-        RegisteredProof proof_type,
+        RegisteredSealProof proof_type,
         const std::string &cache_dir_path,
         const std::string &staged_sector_path,
         const std::string &sealed_sector_path,
@@ -140,7 +140,7 @@ namespace fc::proofs {
         const std::string &sealed_sector_path);
 
     static outcome::result<Phase1Output> sealCommitPhase1(
-        RegisteredProof proof_type,
+        RegisteredSealProof proof_type,
         const CID &sealed_cid,
         const CID &unsealed_cid,
         const std::string &cache_dir_path,
@@ -161,7 +161,7 @@ namespace fc::proofs {
      * stored in a given file(via path).
      */
     static outcome::result<CID> generatePieceCIDFromFile(
-        RegisteredProof proof_type,
+        RegisteredSealProof proof_type,
         const std::string &piece_file_path,
         UnpaddedPieceSize piece_size);
 
@@ -169,14 +169,14 @@ namespace fc::proofs {
      * generatePieceCID produces a piece CID for the provided data
      * stored in a given pieceData.
      */
-    static outcome::result<CID> generatePieceCID(RegisteredProof proof_type,
+    static outcome::result<CID> generatePieceCID(RegisteredSealProof proof_type,
                                                  gsl::span<const uint8_t> data);
 
     /**
      * generatePieceCID produces a piece CID for the provided data
      * stored in a given pieceData.
      */
-    static outcome::result<CID> generatePieceCID(RegisteredProof proof_type,
+    static outcome::result<CID> generatePieceCID(RegisteredSealProof proof_type,
                                                  const PieceData &piece,
                                                  UnpaddedPieceSize piece_size);
 
@@ -184,12 +184,12 @@ namespace fc::proofs {
      * the provided pieces.
      */
     static outcome::result<CID> generateUnsealedCID(
-        RegisteredProof proof_type,
+        RegisteredSealProof proof_type,
         gsl::span<const PieceInfo> pieces,
         bool pad = false);
 
     static outcome::result<ChallengeIndexes> generateWinningPoStSectorChallenge(
-        RegisteredProof proof_type,
+        RegisteredPoStProof proof_type,
         ActorId miner_id,
         const PoStRandomness &randomness,
         uint64_t eligible_sectors_len);
@@ -219,7 +219,7 @@ namespace fc::proofs {
     /**
      * Unseals sector
      */
-    static outcome::result<void> unseal(RegisteredProof proof_type,
+    static outcome::result<void> unseal(RegisteredSealProof proof_type,
                                         const std::string &cache_dir_path,
                                         const std::string &sealed_sector_path,
                                         const std::string &unseal_output_path,
@@ -228,7 +228,7 @@ namespace fc::proofs {
                                         const Ticket &ticket,
                                         const UnsealedCID &unsealed_cid);
 
-    static outcome::result<void> unsealRange(RegisteredProof proof_type,
+    static outcome::result<void> unsealRange(RegisteredSealProof proof_type,
                                              const std::string &cache_dir_path,
                                              const PieceData &seal_fd,
                                              const PieceData &unseal_fd,
@@ -245,7 +245,7 @@ namespace fc::proofs {
      * plus @length, inclusive
      */
     static outcome::result<void> unsealRange(
-        RegisteredProof proof_type,
+        RegisteredSealProof proof_type,
         const std::string &cache_dir_path,
         const std::string &sealed_sector_path,
         const std::string &unseal_output_path,
@@ -263,13 +263,13 @@ namespace fc::proofs {
      * @brief Returns the version of the provided PoSt proof
      */
     static outcome::result<std::string> getPoStVersion(
-        RegisteredProof proof_type);
+        RegisteredPoStProof proof_type);
 
     /**
      * @brief  Returns the version of the provided seal proof type
      */
     static outcome::result<std::string> getSealVersion(
-        RegisteredProof proof_type);
+        RegisteredSealProof proof_type);
 
     /**
      * @brief Returns an array of strings containing the device names that can

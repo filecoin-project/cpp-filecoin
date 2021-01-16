@@ -10,7 +10,7 @@
 #include "common/outcome.hpp"
 #include "primitives/sector/sector.hpp"
 
-using fc::primitives::sector::RegisteredProof;
+using fc::primitives::sector::RegisteredSealProof;
 using fc::primitives::sector::SectorId;
 
 namespace fc::sector_storage {
@@ -20,7 +20,8 @@ namespace fc::sector_storage {
     virtual ~FaultTracker() = default;
 
     virtual outcome::result<std::vector<SectorId>> checkProvable(
-        RegisteredProof seal_proof_type, gsl::span<const SectorId> sectors) = 0;
+        RegisteredSealProof seal_proof_type,
+        gsl::span<const SectorId> sectors) = 0;
   };
 
 }  // namespace fc::sector_storage

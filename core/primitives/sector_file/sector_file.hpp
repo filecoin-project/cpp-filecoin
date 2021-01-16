@@ -19,7 +19,7 @@ using fc::primitives::piece::PieceData;
 using fc::primitives::piece::PieceInfo;
 using fc::primitives::piece::UnpaddedByteIndex;
 using fc::primitives::piece::UnpaddedPieceSize;
-using fc::primitives::sector::RegisteredProof;
+using fc::primitives::sector::RegisteredSealProof;
 using fc::primitives::sector::SectorId;
 
 namespace fc::primitives::sector_file {
@@ -57,7 +57,7 @@ namespace fc::primitives::sector_file {
    * @return amount of used memory
    */
   outcome::result<uint64_t> sealSpaceUse(SectorFileType file_type,
-                                         RegisteredProof seal_proof_type);
+                                         RegisteredSealProof seal_proof_type);
   std::string sectorName(const SectorId &sid);
 
   struct SectorPaths {
@@ -91,7 +91,7 @@ namespace fc::primitives::sector_file {
         const PieceData &data,
         PaddedByteIndex offset,
         PaddedPieceSize size,
-        const boost::optional<RegisteredProof> &maybe_seal_proof_type =
+        const boost::optional<RegisteredSealProof> &maybe_seal_proof_type =
             boost::none);
 
     outcome::result<bool> read(const PieceData &output,

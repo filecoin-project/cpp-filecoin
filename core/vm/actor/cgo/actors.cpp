@@ -34,6 +34,7 @@ namespace fc::vm::actor::cgo {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::PieceInfo;
+  using primitives::sector::RegisteredSealProof;
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using runtime::resolveKey;
@@ -272,7 +273,7 @@ namespace fc::vm::actor::cgo {
     if (charge(ret,
                rt,
                rt.execution()->env->pricelist.onComputeUnsealedSectorCid())) {
-      auto type{arg.get<RegisteredProof>()};
+      auto type{arg.get<RegisteredSealProof>()};
       auto pieces{arg.get<std::vector<PieceInfo>>()};
       if (auto r{proofs::Proofs::generateUnsealedCID(type, pieces, true)}) {
         ret << kOk << true << r.value();

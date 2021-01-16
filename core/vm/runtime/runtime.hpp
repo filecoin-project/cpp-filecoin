@@ -45,6 +45,7 @@ namespace fc::vm::runtime {
   using primitives::block::BlockHeader;
   using primitives::piece::PieceInfo;
   using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;
   using version::NetworkVersion;
@@ -191,7 +192,7 @@ namespace fc::vm::runtime {
 
     /// Compute unsealed sector cid
     virtual outcome::result<CID> computeUnsealedSectorCid(
-        RegisteredProof type, const std::vector<PieceInfo> &pieces) = 0;
+        RegisteredSealProof type, const std::vector<PieceInfo> &pieces) = 0;
 
     /// Verify consensus fault
     virtual outcome::result<ConsensusFault> verifyConsensusFault(

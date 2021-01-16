@@ -12,6 +12,7 @@
 namespace fc::vm::runtime {
   using primitives::GasAmount;
   using primitives::TokenAmount;
+  using primitives::sector::RegisteredPoStProof;
   using primitives::sector::WindowPoStVerifyInfo;
 
   struct Pricelist {
@@ -72,8 +73,8 @@ namespace fc::vm::runtime {
         scale = 43780;
       } else if (!info.proofs.empty()) {
         auto type{info.proofs[0].registered_proof};
-        if (type == RegisteredProof::StackedDRG32GiBWindowPoSt
-            || type == RegisteredProof::StackedDRG64GiBWindowPoSt) {
+        if (type == RegisteredPoStProof::StackedDRG32GiBWindowPoSt
+            || type == RegisteredPoStProof::StackedDRG64GiBWindowPoSt) {
           flat = 748593537;
           scale = 85639;
         }

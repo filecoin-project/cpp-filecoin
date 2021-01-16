@@ -83,7 +83,7 @@ namespace fc::vm::runtime {
                  outcome::result<bool>(const WindowPoStVerifyInfo &info));
 
     MOCK_METHOD2(computeUnsealedSectorCid,
-                 outcome::result<CID>(RegisteredProof,
+                 outcome::result<CID>(RegisteredSealProof,
                                       const std::vector<PieceInfo> &));
 
     MOCK_METHOD3(verifyConsensusFault,

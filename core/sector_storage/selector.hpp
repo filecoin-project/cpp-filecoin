@@ -31,7 +31,7 @@ namespace fc::sector_storage {
 
     virtual outcome::result<bool> is_satisfying(
         const TaskType &task,
-        RegisteredProof seal_proof_type,
+        RegisteredSealProof seal_proof_type,
         const std::shared_ptr<WorkerHandle> &worker) = 0;
 
     virtual outcome::result<bool> is_preferred(

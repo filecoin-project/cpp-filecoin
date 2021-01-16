@@ -159,8 +159,9 @@ TEST_F(SectorIndexTest, NotFoundStorage) {
 TEST_F(SectorIndexTest, BestAllocationNoSuitableStorage) {
   EXPECT_OUTCOME_ERROR(
       IndexErrors::kNoSuitableCandidate,
-      sector_index_->storageBestAlloc(
-          SectorFileType::FTCache, RegisteredProof::StackedDRG2KiBSeal, false));
+      sector_index_->storageBestAlloc(SectorFileType::FTCache,
+                                      RegisteredSealProof::StackedDrg2KiBV1,
+                                      false));
 }
 
 /**
@@ -223,8 +224,9 @@ TEST_F(SectorIndexTest, BestAllocation) {
 
   EXPECT_OUTCOME_TRUE(
       candidates,
-      sector_index_->storageBestAlloc(
-          SectorFileType::FTCache, RegisteredProof::StackedDRG2KiBSeal, false));
+      sector_index_->storageBestAlloc(SectorFileType::FTCache,
+                                      RegisteredSealProof::StackedDrg2KiBV1,
+                                      false));
 
   ASSERT_EQ(candidates.size(), 2);
   ASSERT_EQ(candidates.at(0).id, id3);
@@ -387,7 +389,7 @@ TEST_F(SectorIndexTest, StorageFindSectorFetch) {
       storages,
       sector_index_->storageFindSector(sector,
                                        SectorFileType::FTCache,
-                                       RegisteredProof::StackedDRG2KiBSeal));
+                                       RegisteredSealProof::StackedDrg2KiBV1));
   ASSERT_FALSE(storages.empty());
   auto store = storages[0];
   ASSERT_FALSE(store.urls.empty());
