@@ -26,6 +26,9 @@ namespace fc::proofs {
     kCannotCreateUnsealedFile,
     kCannotCreatePipe,
     kCannotWriteData,
+    kUnclassifiedError,
+    kCallerError,
+    kReceiverError,
     kUnknown = 1000
   };
 
