@@ -23,7 +23,6 @@ namespace fc::markets::storage::client {
   using primitives::ChainEpoch;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using primitives::sector::RegisteredProof;
   using primitives::sector::RegisteredSealProof;
 
   class StorageMarketClient {

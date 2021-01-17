@@ -31,7 +31,6 @@ namespace fc::vm::actor::builtin::v0::miner {
   using primitives::StoragePower;
   using primitives::TokenAmount;
   using primitives::address::Address;
-  using primitives::sector::OnChainPoStVerifyInfo;
   using primitives::sector::Proof;
   using primitives::sector::RegisteredSealProof;
 

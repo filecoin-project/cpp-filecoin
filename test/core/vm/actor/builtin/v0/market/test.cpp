@@ -38,7 +38,6 @@ using fc::primitives::TokenAmount;
 using fc::primitives::address::Address;
 using fc::primitives::piece::PaddedPieceSize;
 using fc::primitives::piece::PieceInfo;
-using fc::primitives::sector::RegisteredProof;
 using fc::primitives::sector::RegisteredSealProof;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::vm::VMExitCode;

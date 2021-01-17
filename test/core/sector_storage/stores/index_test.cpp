@@ -9,7 +9,6 @@
 #include <memory>
 #include "testutil/outcome.hpp"
 
-using fc::primitives::sector::RegisteredProof;
 using fc::primitives::sector_file::SectorFileType;
 using fc::sector_storage::stores::FsStat;
 using fc::sector_storage::stores::IndexErrors;

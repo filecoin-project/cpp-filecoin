@@ -44,7 +44,6 @@ namespace fc::vm::runtime {
   using primitives::address::Address;
   using primitives::block::BlockHeader;
   using primitives::piece::PieceInfo;
-  using primitives::sector::RegisteredProof;
   using primitives::sector::RegisteredSealProof;
   using primitives::sector::WindowPoStVerifyInfo;
   using storage::ipfs::IpfsDatastore;

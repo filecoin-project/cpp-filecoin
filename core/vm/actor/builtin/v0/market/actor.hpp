@@ -29,7 +29,6 @@ namespace fc::vm::actor::builtin::v0::market {
   using primitives::SectorSize;
   using primitives::TokenAmount;
   using primitives::piece::PaddedPieceSize;
-  using primitives::sector::RegisteredProof;
   using primitives::sector::RegisteredSealProof;
 
   struct CidKeyer {

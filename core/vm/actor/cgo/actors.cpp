@@ -44,7 +44,7 @@ namespace fc::vm::actor::cgo {
 
   void config(const StoragePower &min_verified_deal_size,
               const StoragePower &consensus_miner_min_power,
-              const std::vector<RegisteredProof> &supported_proofs) {
+              const std::vector<RegisteredSealProof> &supported_proofs) {
     CborEncodeStream arg;
     arg << min_verified_deal_size << consensus_miner_min_power;
     arg << supported_proofs.size();

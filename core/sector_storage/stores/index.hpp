@@ -18,7 +18,6 @@ namespace fc::sector_storage::stores {
     virtual ~Lock() = default;
   };
 
-  using fc::primitives::sector::RegisteredProof;
   using fc::primitives::sector::SectorId;
   using fc::primitives::sector_file::SectorFileType;
   using primitives::FsStat;

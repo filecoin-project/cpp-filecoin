@@ -15,7 +15,6 @@
 namespace fc::sector_storage {
   using primitives::ActiveResources;
   using primitives::TaskType;
-  using primitives::sector::RegisteredProof;
 
   struct WorkerHandle {
     std::shared_ptr<Worker> worker;

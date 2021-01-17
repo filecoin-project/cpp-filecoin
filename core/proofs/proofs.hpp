@@ -31,7 +31,6 @@ namespace fc::proofs {
   using primitives::piece::PieceData;
   using primitives::piece::PieceInfo;
   using primitives::piece::UnpaddedPieceSize;
-  using primitives::sector::PoStCandidate;
   using primitives::sector::PoStProof;
   using primitives::sector::PoStRandomness;
   using primitives::sector::Proof;

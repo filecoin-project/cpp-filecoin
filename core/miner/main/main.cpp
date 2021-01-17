@@ -32,7 +32,6 @@
 
 namespace fc {
   using api::Address;
-  using api::RegisteredProof;
   using boost::asio::io_context;
   using common::span::cbytes;
   using libp2p::multi::Multiaddress;

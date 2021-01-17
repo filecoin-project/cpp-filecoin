@@ -32,7 +32,6 @@ using fc::primitives::sector::Ticket;
 using fc::primitives::sector::WinningPoStVerifyInfo;
 using fc::proofs::ActorId;
 using fc::proofs::PieceInfo;
-using fc::proofs::PoStCandidate;
 using fc::proofs::PrivateSectorInfo;
 using fc::proofs::Proofs;
 using fc::proofs::PublicSectorInfo;

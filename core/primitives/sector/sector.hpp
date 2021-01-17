@@ -60,27 +60,6 @@ namespace fc::primitives::sector {
     StackedDRG64GiBWindowPoSt,
   };
 
-  /// This ordering, defines mappings to UInt in a way which MUST never change.
-  enum class RegisteredProof : int64_t {
-    StackedDRG2KiBSeal,
-    StackedDRG8MiBSeal,
-    StackedDRG512MiBSeal,
-    StackedDRG32GiBSeal,
-    StackedDRG64GiBSeal,
-
-    StackedDRG2KiBWinningPoSt = 0,
-    StackedDRG8MiBWinningPoSt,
-    StackedDRG512MiBWinningPoSt,
-    StackedDRG32GiBWinningPoSt,
-    StackedDRG64GiBWinningPoSt,
-
-    StackedDRG2KiBWindowPoSt,
-    StackedDRG8MiBWindowPoSt,
-    StackedDRG512MiBWindowPoSt,
-    StackedDRG32GiBWindowPoSt,
-    StackedDRG64GiBWindowPoSt,
-  };
-
   outcome::result<RegisteredPoStProof> getRegisteredWindowPoStProof(
       RegisteredSealProof proof);
   outcome::result<RegisteredPoStProof> getRegisteredWinningPoStProof(
@@ -99,25 +78,6 @@ namespace fc::primitives::sector {
   using InteractiveRandomness = Randomness;
 
   using Proof = std::vector<uint8_t>;
-
-  /**
-   * OnChainSealVerifyInfo is the structure of information that must be sent
-   * with a message to commit a sector. Most of this information is not needed
-   * in the state tree but will be verified in sm.CommitSector. See
-   * SealCommitment for data stored on the state tree for each sector.
-   */
-  struct OnChainSealVerifyInfo {
-    /// CommR
-    CID sealed_cid;
-    /// Used to derive the interactive PoRep challenge.
-    ChainEpoch interactive_epoch;
-    RegisteredProof registered_proof;
-    Proof proof;
-    std::vector<DealId> deals;
-    SectorNumber sector;
-    /// Used to tie the seal to a chain.
-    ChainEpoch seal_rand_epoch;
-  };
 
   /**
    * SealVerifyInfo is the structure of all the information a verifier needs to
@@ -156,30 +116,6 @@ namespace fc::primitives::sector {
            && lhs.proof == rhs.proof;
   }
 
-  struct PrivatePoStCandidateProof {
-    RegisteredProof registered_proof;
-    Buffer externalized;
-  };
-
-  struct PoStCandidate {
-    RegisteredProof registered_proof;
-    /**
-     * Optional — will eventually be omitted for SurprisePoSt verification,
-     * needed for now.
-     */
-    Ticket partial_ticket;
-    /// Optional — should be ommitted for verification.
-    PrivatePoStCandidateProof private_proof;
-    SectorId sector;
-    uint64_t challenge_index;
-  };
-
-  struct OnChainPoStVerifyInfo {
-    RegisteredProof proof_type;
-    std::vector<PoStCandidate> candidates;
-    std::vector<PoStProof> proofs;
-  };
-
   struct SectorInfo {
     // RegisteredProof used when sealing - needs to be mapped to PoSt registered
     // proof when used to verify a PoSt
@@ -213,27 +149,7 @@ namespace fc::primitives::sector {
 
   CBOR_TUPLE(SectorId, miner, sector)
 
-  CBOR_TUPLE(OnChainSealVerifyInfo,
-             sealed_cid,
-             interactive_epoch,
-             registered_proof,
-             proof,
-             deals,
-             sector,
-             seal_rand_epoch)
-
   CBOR_TUPLE(PoStProof, registered_proof, proof)
-
-  CBOR_TUPLE(PrivatePoStCandidateProof, registered_proof, externalized)
-
-  CBOR_TUPLE(PoStCandidate,
-             registered_proof,
-             partial_ticket,
-             private_proof,
-             sector,
-             challenge_index)
-
-  CBOR_TUPLE(OnChainPoStVerifyInfo, proof_type, candidates, proofs)
 
   enum class Errors {
     kInvalidPoStProof = 1,
