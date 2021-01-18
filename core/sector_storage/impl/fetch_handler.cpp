@@ -93,7 +93,7 @@ namespace fc::sector_storage {
     // Proof type is 0 because we don't allocate anything
     auto maybe_paths = local_store->acquireSector(
         maybe_sector.value(),
-        static_cast<RegisteredProof>(0),
+        static_cast<RegisteredSealProof>(0),
         maybe_type.value(),
         fc::primitives::sector_file::SectorFileType::FTNone,
 
