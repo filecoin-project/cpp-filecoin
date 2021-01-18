@@ -57,9 +57,10 @@ namespace fc::sector_storage::stores {
     virtual outcome::result<void> removeCopies(SectorId sector,
                                                SectorFileType type) = 0;
 
-    virtual outcome::result<void> moveStorage(SectorId sector,
-                                              RegisteredSealProof seal_proof_type,
-                                              SectorFileType types) = 0;
+    virtual outcome::result<void> moveStorage(
+        SectorId sector,
+        RegisteredSealProof seal_proof_type,
+        SectorFileType types) = 0;
 
     virtual outcome::result<FsStat> getFsStat(StorageID id) = 0;
 

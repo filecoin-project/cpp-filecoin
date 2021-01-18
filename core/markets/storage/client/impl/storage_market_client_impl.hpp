@@ -100,7 +100,8 @@ namespace fc::markets::storage::client {
         const StorageProviderInfo &info) const;
 
     outcome::result<std::pair<CID, UnpaddedPieceSize>> calculateCommP(
-        const RegisteredSealProof &registered_proof, const DataRef &data_ref) const;
+        const RegisteredSealProof &registered_proof,
+        const DataRef &data_ref) const;
 
     outcome::result<ClientDealProposal> signProposal(
         const Address &address, const DealProposal &proposal) const;

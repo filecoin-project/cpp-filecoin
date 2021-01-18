@@ -276,6 +276,8 @@ namespace fc::proofs {
      */
     static outcome::result<Devices> getGPUDevices();
 
+    static UnpaddedPieceSize padPiece(const std::string &path);
+
    private:
     static fc::common::Logger logger_;
   };

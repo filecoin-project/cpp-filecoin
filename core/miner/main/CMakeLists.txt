@@ -19,5 +19,12 @@ target_link_libraries(miner_main
     store
     fetch_handler
 
+    chain_events
+    data_transfer
+    ipfs_datastore_leveldb
+    pieceio
+    retrieval_market_provider
+    storage_market_provider
+
     ipfs_datastore_in_memory
     )

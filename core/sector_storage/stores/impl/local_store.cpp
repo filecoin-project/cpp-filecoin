@@ -239,7 +239,9 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<void> LocalStoreImpl::moveStorage(
-      SectorId sector, RegisteredSealProof seal_proof_type, SectorFileType types) {
+      SectorId sector,
+      RegisteredSealProof seal_proof_type,
+      SectorFileType types) {
     OUTCOME_TRY(dest,
                 acquireSector(sector,
                               seal_proof_type,

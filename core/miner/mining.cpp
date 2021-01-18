@@ -211,7 +211,11 @@ namespace fc::mining {
                           const BigInt &total_power) {
     constexpr auto P{256};
     static auto poly{[P](std::initializer_list<std::string> s) {
-      return [P, p{std::vector<BigInt>{s.begin(), s.end()}}](const BigInt &x) {
+      std::vector<BigInt> p{s.begin(), s.end()};
+      for (auto &c : p) {
+        c <<= P - 128;
+      }
+      return [P, p{std::move(p)}](const BigInt &x) {
         BigInt r;
         for (auto &c : p) {
           r = ((r * x) >> P) + c;
