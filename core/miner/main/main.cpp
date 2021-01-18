@@ -6,6 +6,8 @@
 #include <boost/algorithm/string/case_conv.hpp>
 #include <boost/filesystem.hpp>
 #include <boost/program_options.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <libp2p/injector/host_injector.hpp>
 
 #include "api/rpc/info.hpp"
@@ -26,6 +28,7 @@
 #include "miner/mining.hpp"
 #include "miner/windowpost.hpp"
 #include "proofs/proof_param_provider.hpp"
+#include "sector_storage/fetch_handler.hpp"
 #include "sector_storage/impl/manager_impl.hpp"
 #include "sector_storage/impl/scheduler_impl.hpp"
 #include "sector_storage/stores/impl/index_impl.hpp"
@@ -51,6 +54,7 @@ namespace fc {
   using libp2p::multi::Multiaddress;
   using primitives::sector::RegisteredSealProof;
   using storage::BufferMap;
+  namespace uuids = boost::uuids;
 
   static const Buffer kActor{cbytes("actor")};
 
@@ -298,7 +302,7 @@ namespace fc {
         OUTCOME_EXCEPT(common::writeFile(
             (path / sector_storage::stores::kMetaFileName).string(),
             *codec::json::format(api::encode(primitives::LocalStorageMeta{
-                "default",
+                uuids::to_string(uuids::random_generator()()),
                 1,
                 true,
                 true,
@@ -313,14 +317,17 @@ namespace fc {
                     std::make_shared<sector_storage::stores::SectorIndexImpl>(),
                     std::vector<std::string>{"http://127.0.0.1"},
                     scheduler));
-    OUTCOME_TRY(
-        manager,
-        sector_storage::ManagerImpl::newManager(
-            std::make_shared<sector_storage::stores::RemoteStoreImpl>(
-                local_store, std::unordered_map<std::string, std::string>{}),
-            std::make_shared<sector_storage::SchedulerImpl>(
-                minfo.seal_proof_type),
-            {true, true, true, true}));
+
+    // TODO: auth headers should be here
+    auto remote_store{std::make_shared<sector_storage::stores::RemoteStoreImpl>(
+        local_store, std::unordered_map<std::string, std::string>{})};
+
+    OUTCOME_TRY(manager,
+                sector_storage::ManagerImpl::newManager(
+                    remote_store,
+                    std::make_shared<sector_storage::SchedulerImpl>(
+                        minfo.seal_proof_type),
+                    {true, true, true, true}));
     auto miner{std::make_shared<miner::MinerImpl>(
         napi,
         *config.actor,
@@ -423,7 +430,11 @@ namespace fc {
       return sealing->pledgeSector();
     };
     mapi->Version = [] { return api::VersionResult{"fuhon-miner", 0, 0}; };
-    api::serve(mapi, *io, "127.0.0.1", config.api_port);
+    auto mroutes{std::make_shared<api::Routes>()};
+
+    mroutes->insert({"/remote", sector_storage::serveHttp(local_store)});
+
+    api::serve(mapi, mroutes, *io, "127.0.0.1", config.api_port);
     api::rpc::saveInfo(config.repo_path, config.api_port, "stub");
 
     spdlog::info("fuhon miner started");

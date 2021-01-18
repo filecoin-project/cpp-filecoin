@@ -17,6 +17,7 @@ target_link_libraries(miner_main
     p2p::p2p
     rpc
     store
+    fetch_handler
 
     chain_events
     data_transfer

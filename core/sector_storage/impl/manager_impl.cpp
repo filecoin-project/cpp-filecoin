@@ -6,8 +6,15 @@
 #include "sector_storage/impl/manager_impl.hpp"
 
 #include <pwd.h>
+#include <boost/asio.hpp>
+#include <boost/beast/core.hpp>
+#include <boost/beast/version.hpp>
 #include <boost/filesystem.hpp>
+#include <regex>
 #include <unordered_set>
+#include "api/rpc/json.hpp"
+#include "codec/json/json.hpp"
+#include "common/tarutil.hpp"
 #include "sector_storage/impl/allocate_selector.hpp"
 #include "sector_storage/impl/existing_selector.hpp"
 #include "sector_storage/impl/local_worker.hpp"
@@ -786,7 +793,6 @@ namespace fc::sector_storage {
                                             AcquireMode::kMove));
 
     return Response{.paths = res.paths, .lock = std::move(locked)};
-    ;
   }
 
 }  // namespace fc::sector_storage

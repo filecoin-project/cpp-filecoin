@@ -6,6 +6,19 @@
 add_subdirectory(stores)
 add_subdirectory(zerocomm)
 
+add_library(fetch_handler
+        impl/fetch_handler.cpp
+        )
+
+target_link_libraries(fetch_handler
+        outcome
+        store
+        logger
+        tarutil
+        rpc
+        Boost::boost
+        )
+
 add_library(worker
         impl/local_worker.cpp
         impl/worker_error.cpp
@@ -54,4 +67,5 @@ target_link_libraries(manager
         store
         sector_index
         sector
+        tarutil
         )

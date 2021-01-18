@@ -20,6 +20,7 @@ namespace fc::sector_storage {
 
   class Manager : public Prover, public FaultTracker {
    public:
+
     virtual SectorSize getSectorSize() = 0;
 
     virtual outcome::result<void> readPiece(PieceData output,

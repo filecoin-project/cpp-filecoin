@@ -117,8 +117,6 @@ namespace fc::primitives::sector {
   }
 
   struct SectorInfo {
-    // RegisteredProof used when sealing - needs to be mapped to PoSt registered
-    // proof when used to verify a PoSt
     RegisteredSealProof registered_proof;
     uint64_t sector;
     /// CommR

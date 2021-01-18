@@ -6,7 +6,6 @@
 #include <gtest/gtest.h>
 
 #include <boost/filesystem.hpp>
-#include <boost/uuid/uuid.hpp>
 
 #include "storage/ipfs/impl/datastore_leveldb.hpp"
 #include "testutil/literals.hpp"
