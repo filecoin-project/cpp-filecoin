@@ -135,14 +135,16 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
   outcome::result<void> UseBytes::useBytes(State &state,
                                            const Address &client,
-                                           const StoragePower &deal_size) {
+                                           const StoragePower &deal_size,
+                                           CapAssert cap_assert) {
     const auto client_cap = state.verified_clients.tryGet(client);
     REQUIRE_NO_ERROR(client_cap, VMExitCode::kErrIllegalState);
     if (!client_cap.value()) {
       return ABORT_CAST(VMExitCode::kErrNotFound);
     }
 
-    VM_ASSERT(client_cap.value().value() >= 0);
+    OUTCOME_TRY(cap_assert(client_cap.value().value() >= 0));
+
     if (deal_size > client_cap.value().value()) {
       return ABORT_CAST(VMExitCode::kErrIllegalArgument);
     }
@@ -159,11 +161,17 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     return outcome::success();
   }
 
+  outcome::result<void> UseBytes::clientCapAssert(bool condition) {
+    VM_ASSERT(condition);
+    return outcome::success();
+  }
+
   ACTOR_METHOD_IMPL(UseBytes) {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kStorageMarketAddress));
     OUTCOME_TRY(Utils::checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(useBytes(state, params.address, params.deal_size));
+    OUTCOME_TRY(
+        useBytes(state, params.address, params.deal_size, clientCapAssert));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }

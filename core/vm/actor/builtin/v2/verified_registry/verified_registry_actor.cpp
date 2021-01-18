@@ -81,7 +81,10 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     OUTCOME_TRY(Utils::checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(v0::verified_registry::UseBytes::useBytes(
-        state, client.value(), params.deal_size));
+        state,
+        client.value(),
+        params.deal_size,
+        v0::verified_registry::UseBytes::clientCapAssert));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
