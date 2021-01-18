@@ -20,6 +20,7 @@ namespace fc::mining::checks {
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::DealId;
+  using primitives::RleBitset;
   using primitives::sector::OnChainSealVerifyInfo;
   using primitives::sector::SealVerifyInfo;
   using proofs::Proofs;
@@ -140,7 +141,8 @@ namespace fc::mining::checks {
       OUTCOME_TRYA(result,
                    state.precommitted_sectors.get(sector_info->sector_number));
     } else {
-      OUTCOME_TRY(allocated_bitset, state.allocated_sectors.get());
+      OUTCOME_TRY(allocated_bitset,
+                  ipfs->getCbor<RleBitset>(state.allocated_sectors));
       if (allocated_bitset.has(sector_info->sector_number)) {
         return ChecksError::kSectorAllocated;
       }

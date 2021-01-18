@@ -465,6 +465,11 @@ namespace fc::api {
       Set(j, "Close", v.close);
       Set(j, "Challenge", v.challenge);
       Set(j, "FaultCutoff", v.fault_cutoff);
+      Set(j, "WPoStPeriodDeadlines", v.wpost_period_deadlines);
+      Set(j, "WPoStProvingPeriod", v.wpost_proving_period);
+      Set(j, "WPoStChallengeWindow", v.wpost_challenge_window);
+      Set(j, "WPoStChallengeLookback", v.wpost_challenge_lookback);
+      Set(j, "FaultDeclarationCutoff", v.fault_declaration_cutoff);
       return j;
     }
 
@@ -476,6 +481,11 @@ namespace fc::api {
       Get(j, "Close", v.close);
       Get(j, "Challenge", v.challenge);
       Get(j, "FaultCutoff", v.fault_cutoff);
+      Get(j, "WPoStPeriodDeadlines", v.wpost_period_deadlines);
+      Get(j, "WPoStProvingPeriod", v.wpost_proving_period);
+      Get(j, "WPoStChallengeWindow", v.wpost_challenge_window);
+      Get(j, "WPoStChallengeLookback", v.wpost_challenge_lookback);
+      Get(j, "FaultDeclarationCutoff", v.fault_declaration_cutoff);
     }
 
     ENCODE(DomainSeparationTag) {

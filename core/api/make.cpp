@@ -38,6 +38,7 @@ namespace fc::api {
   using vm::actor::builtin::v0::account::AccountActorState;
   using vm::actor::builtin::v0::init::InitActorState;
   using vm::actor::builtin::v0::market::DealState;
+  using vm::actor::builtin::v0::miner::Deadline;
   using vm::actor::builtin::v0::miner::MinerActorState;
   using vm::actor::builtin::v0::storage_power::StoragePowerActorState;
   using InterpreterResult = vm::interpreter::Result;
@@ -84,7 +85,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&... args) {
+    return [f{std::forward<F>(f)}](auto &&...args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -122,14 +123,15 @@ namespace fc::api {
   };
 
   outcome::result<std::vector<SectorInfo>> getSectorsForWinningPoSt(
+      IpldPtr ipld,
       const Address &miner,
       MinerActorState &state,
       const Randomness &post_rand) {
     std::vector<SectorInfo> sectors;
     RleBitset sectors_bitset;
-    OUTCOME_TRY(deadlines, state.deadlines.get());
+    OUTCOME_TRY(deadlines, ipld->getCbor<Deadlines>(state.deadlines));
     for (auto &_deadline : deadlines.due) {
-      OUTCOME_TRY(deadline, _deadline.get());
+      OUTCOME_TRY(deadline, ipld->getCbor<Deadline>(_deadline));
       OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
         for (auto sector : part.sectors) {
           if (!part.faults.has(sector)) {
@@ -140,7 +142,7 @@ namespace fc::api {
       }));
     }
     if (!sectors_bitset.empty()) {
-      OUTCOME_TRY(minfo, state.info.get());
+      OUTCOME_TRY(minfo, ipld->getCbor<MinerInfo>(state.info));
       OUTCOME_TRY(win_type,
                   primitives::sector::getRegisteredWinningPoStProof(
                       minfo.seal_proof_type));
@@ -361,7 +363,7 @@ namespace fc::api {
                           *interpreter, ipld, std::move(t)));
 
           OUTCOME_TRY(block_signable, codec::cbor::encode(block.header));
-          OUTCOME_TRY(minfo, miner_state.info.get());
+          OUTCOME_TRY(minfo, ipld->getCbor<MinerInfo>(miner_state.info));
           OUTCOME_TRY(worker_key, context.accountKey(minfo.worker));
           OUTCOME_TRY(block_sig, key_store->sign(worker_key, block_signable));
           block.header.block_sig = block_sig;
@@ -402,9 +404,9 @@ namespace fc::api {
                         DomainSeparationTag::WinningPoStChallengeSeed,
                         epoch,
                         seed)};
-                    OUTCOME_CB(
-                        info.sectors,
-                        getSectorsForWinningPoSt(miner, state, post_rand));
+                    OUTCOME_CB(info.sectors,
+                               getSectorsForWinningPoSt(
+                                   ipld, miner, state, post_rand));
                     if (info.sectors.empty()) {
                       return cb(boost::none);
                     }
@@ -412,7 +414,8 @@ namespace fc::api {
                     OUTCOME_CB(auto claim, power_state.claims.get(miner));
                     info.miner_power = claim.qa_power;
                     info.network_power = power_state.total_qa_power;
-                    OUTCOME_CB(auto minfo, state.info.get());
+                    OUTCOME_CB(auto minfo,
+                               ipld->getCbor<MinerInfo>(state.info));
                     OUTCOME_CB(info.worker, context.accountKey(minfo.worker));
                     info.sector_size = minfo.sector_size;
                     info.has_min_power = minerHasMinPower(
@@ -640,16 +643,16 @@ namespace fc::api {
                                     -> outcome::result<Deadlines> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          return state.deadlines.get();
+          return ipld->getCbor<Deadlines>(state.deadlines);
         }},
         .StateMinerFaults = {[=](auto address, auto tipset_key)
                                  -> outcome::result<RleBitset> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          OUTCOME_TRY(deadlines, state.deadlines.get());
+          OUTCOME_TRY(deadlines, ipld->getCbor<Deadlines>(state.deadlines));
           RleBitset faults;
           for (auto &_deadline : deadlines.due) {
-            OUTCOME_TRY(deadline, _deadline.get());
+            OUTCOME_TRY(deadline, ipld->getCbor<Deadline>(_deadline));
             OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &part) {
               faults += part.faults;
               return outcome::success();
@@ -661,7 +664,7 @@ namespace fc::api {
                                auto &tipset_key) -> outcome::result<MinerInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(miner_state, context.minerState(address));
-          return miner_state.info.get();
+          return ipld->getCbor<MinerInfo>(miner_state.info);
         }},
         .StateMinerPartitions =
             {[=](auto &miner,
@@ -669,8 +672,9 @@ namespace fc::api {
                  auto &tsk) -> outcome::result<std::vector<Partition>> {
               OUTCOME_TRY(context, tipsetContext(tsk));
               OUTCOME_TRY(state, context.minerState(miner));
-              OUTCOME_TRY(deadlines, state.deadlines.get());
-              OUTCOME_TRY(deadline, deadlines.due[_deadline].get());
+              OUTCOME_TRY(deadlines, ipld->getCbor<Deadlines>(state.deadlines));
+              OUTCOME_TRY(deadline,
+                          ipld->getCbor<Deadline>(deadlines.due[_deadline]));
               std::vector<Partition> parts;
               OUTCOME_TRY(deadline.partitions.visit([&](auto, auto &v) {
                 parts.push_back({
@@ -698,7 +702,9 @@ namespace fc::api {
                                           -> outcome::result<DeadlineInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          return state.deadlineInfo(context.tipset->height());
+          const auto deadline_info =
+              state.deadlineInfo(context.tipset->height());
+          return deadline_info.nextNotElapsed();
         }},
         .StateMinerSectors =
             {[=](auto &address, auto &filter, auto &tipset_key)

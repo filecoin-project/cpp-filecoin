@@ -117,6 +117,34 @@ namespace fc::primitives::sector {
         return Errors::kInvalidPoStProof;
     }
   }
+
+  outcome::result<size_t> getSealProofWindowPoStPartitionSectors(
+      RegisteredSealProof proof) {
+    // TODO (a.chernyshov) remove cast to RegisteredProof after RegisteredProof
+    // is replaced with RegisteredSealProof #FIL-271
+    OUTCOME_TRY(
+        wpost_proof_type,
+        getRegisteredWindowPoStProof(static_cast<RegisteredProof>(proof)));
+    return getPoStProofWindowPoStPartitionSectors(wpost_proof_type);
+  }
+
+  outcome::result<size_t> getPoStProofWindowPoStPartitionSectors(
+      RegisteredProof proof) {
+    switch (proof) {
+      case RegisteredProof::StackedDRG2KiBWindowPoSt:
+        return 2;
+      case RegisteredProof::StackedDRG8MiBWindowPoSt:
+        return 2;
+      case RegisteredProof::StackedDRG512MiBWindowPoSt:
+        return 2;
+      case RegisteredProof::StackedDRG32GiBWindowPoSt:
+        return 2349;
+      case RegisteredProof::StackedDRG64GiBWindowPoSt:
+        return 2300;
+      default:
+        return Errors::kInvalidPoStProof;
+    }
+  }
 };  // namespace fc::primitives::sector
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::sector, Errors, e) {

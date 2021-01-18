@@ -40,7 +40,7 @@ namespace fc {
       std::string y;
       std::getline(ss, y);
 
-      res.push_back(std::make_pair(BigInt(x), BigInt(y)));
+      res.emplace_back(std::make_pair(BigInt(x), BigInt(y)));
     };
 
     parseFile(path, parsePair);

@@ -67,6 +67,10 @@ namespace fc::primitives::sector {
     StackedDRG64GiBWindowPoSt,
   };
 
+  /**
+   * Produces the PoSt-specific RegisteredProof corresponding to the receiving
+   * RegisteredSealProof.
+   */
   outcome::result<RegisteredProof> getRegisteredWindowPoStProof(
       RegisteredProof proof);
   outcome::result<RegisteredProof> getRegisteredWinningPoStProof(
@@ -76,6 +80,23 @@ namespace fc::primitives::sector {
   outcome::result<SectorSize> getSectorSize(RegisteredProof proof);
 
   outcome::result<size_t> getWindowPoStPartitionSectors(RegisteredProof proof);
+
+  /**
+   * Returns the partition size, in sectors, associated with a seal proof type.
+   * The partition size is the number of sectors proved in a single PoSt proof.
+   * @param proof
+   * @return
+   */
+  outcome::result<size_t> getSealProofWindowPoStPartitionSectors(
+      RegisteredSealProof proof);
+
+  /**
+   * Returns the partition size, in sectors, associated with a Window PoSt proof
+   * type. The partition size is the number of sectors proved in a single PoSt
+   * proof.
+   */
+  outcome::result<size_t> getPoStProofWindowPoStPartitionSectors(
+      RegisteredProof proof);
 
   using SealRandomness = Randomness;
 
@@ -105,8 +126,8 @@ namespace fc::primitives::sector {
   };
 
   /**
-   * SealVerifyInfo is the structure of all the information a verifier needs to
-   * verify a Seal.
+   * SealVerifyInfo is the structure of all the information a verifier needs
+   * to verify a Seal.
    */
   struct SealVerifyInfo {
     RegisteredProof seal_proof;
@@ -167,8 +188,8 @@ namespace fc::primitives::sector {
   };
 
   struct SectorInfo {
-    // RegisteredProof used when sealing - needs to be mapped to PoSt registered
-    // proof when used to verify a PoSt
+    // RegisteredProof used when sealing - needs to be mapped to PoSt
+    // registered proof when used to verify a PoSt
     RegisteredProof registered_proof;
     uint64_t sector;
     /// CommR
