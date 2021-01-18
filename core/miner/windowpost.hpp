@@ -49,6 +49,6 @@ namespace fc::mining {
     Address miner, worker;
     std::map<ChainEpoch, Cached> cache;
     uint64_t part_size;
-    RegisteredProof proof_type;
+    RegisteredSealProof proof_type;
   };
 }  // namespace fc::mining

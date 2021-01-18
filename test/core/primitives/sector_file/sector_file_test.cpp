@@ -18,9 +18,10 @@ namespace fc::primitives::sector_file {
     SectorFileTest() : test::BaseFS_Test("fc_sector_file_test") {}
 
    protected:
-    RegisteredProof min_seal_proof_type = RegisteredProof::StackedDRG2KiBSeal;
-    RegisteredProof border_seal_proof_type =
-        RegisteredProof::StackedDRG8MiBSeal;
+    RegisteredSealProof min_seal_proof_type =
+        RegisteredSealProof::StackedDrg2KiBV1;
+    RegisteredSealProof border_seal_proof_type =
+        RegisteredSealProof::StackedDrg8MiBV1;
     SectorFileType file_type = SectorFileType::FTCache;
   };
 

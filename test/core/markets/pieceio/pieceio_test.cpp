@@ -37,7 +37,7 @@ TEST(PieceIO, DISABLED_generatePieceCommitment) {
   EXPECT_OUTCOME_TRUE(
       res,
       piece_io.generatePieceCommitment(
-          fc::primitives::sector::RegisteredProof::StackedDRG2KiBWindowPoSt,
+          fc::primitives::sector::RegisteredSealProof::StackedDrg2KiBV1,
           payload_cid,
           {}));
 

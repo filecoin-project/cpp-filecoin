@@ -11,12 +11,12 @@
 namespace fc::vm::actor::cgo {
   using message::UnsignedMessage;
   using primitives::StoragePower;
-  using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
   using runtime::Execution;
 
   void config(const StoragePower &min_verified_deal_size,
               const StoragePower &consensus_miner_min_power,
-              const std::vector<RegisteredProof> &supported_proofs);
+              const std::vector<RegisteredSealProof> &supported_proofs);
 
   void configMainnet();
 

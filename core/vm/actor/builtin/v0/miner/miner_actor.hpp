@@ -20,7 +20,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     struct Params {
       Address owner;
       Address worker;
-      RegisteredProof seal_proof_type;
+      RegisteredSealProof seal_proof_type;
       Buffer peer_id;
     };
     ACTOR_METHOD_DECL();

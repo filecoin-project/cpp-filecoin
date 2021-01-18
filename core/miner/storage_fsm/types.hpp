@@ -61,7 +61,7 @@ namespace fc::mining::types {
     SealingState state;
 
     SectorNumber sector_number;
-    RegisteredProof sector_type;
+    RegisteredSealProof sector_type;
     std::vector<Piece> pieces;
 
     SealRandomness ticket;

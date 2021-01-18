@@ -7,7 +7,7 @@
 
 libp2p::outcome::result<bool> fc::sector_storage::TaskSelector::is_satisfying(
     const fc::primitives::TaskType &task,
-    RegisteredProof seal_proof_type,
+    RegisteredSealProof seal_proof_type,
     const std::shared_ptr<WorkerHandle> &worker) {
   OUTCOME_TRY(tasks, worker->worker->getSupportedTask());
   return tasks.find(task) != tasks.end();

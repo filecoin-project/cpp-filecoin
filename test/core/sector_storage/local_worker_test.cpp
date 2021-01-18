@@ -22,7 +22,6 @@ using fc::primitives::StoragePath;
 using fc::primitives::piece::PieceData;
 using fc::primitives::piece::UnpaddedPieceSize;
 using fc::primitives::sector::InteractiveRandomness;
-using fc::primitives::sector::OnChainSealVerifyInfo;
 using fc::proofs::PieceInfo;
 using fc::proofs::ProofParamProvider;
 using fc::proofs::SealVerifyInfo;
@@ -46,7 +45,7 @@ class LocalWorkerTest : public test::BaseFS_Test {
         fc::primitives::kTTPreCommit1,
         fc::primitives::kTTPreCommit2,
     };
-    seal_proof_type_ = RegisteredProof::StackedDRG2KiBSeal;
+    seal_proof_type_ = RegisteredSealProof::StackedDrg2KiBV1;
     worker_name_ = "local worker";
 
     config_ = WorkerConfig{.hostname = worker_name_,
@@ -70,7 +69,7 @@ class LocalWorkerTest : public test::BaseFS_Test {
 
  protected:
   std::set<fc::primitives::TaskType> tasks_;
-  RegisteredProof seal_proof_type_;
+  RegisteredSealProof seal_proof_type_;
   std::string worker_name_;
   WorkerConfig config_;
   std::shared_ptr<RemoteStoreMock> store_;
@@ -153,7 +152,7 @@ TEST_F(LocalWorkerTest, PreCommit_MatchSumError) {
 
   bool is_storage_clear = false;
   EXPECT_CALL(*local_store_,
-              reserve(RegisteredProof::StackedDRG2KiBSeal,
+              reserve(seal_proof_type_,
                       static_cast<SectorFileType>(SectorFileType::FTCache
                                                   | SectorFileType::FTSealed),
                       _,
@@ -266,7 +265,7 @@ TEST_F(LocalWorkerTest, Sealer) {
 
   bool is_storage_clear_unseal_a = false;
   EXPECT_CALL(*local_store_,
-              reserve(RegisteredProof::StackedDRG2KiBSeal,
+              reserve(seal_proof_type_,
                       SectorFileType::FTUnsealed,
                       _,
                       PathType::kSealing))
@@ -293,7 +292,7 @@ TEST_F(LocalWorkerTest, Sealer) {
       .WillOnce(testing::Return(fc::outcome::success(response)));
 
   EXPECT_CALL(*local_store_,
-              reserve(RegisteredProof::StackedDRG2KiBSeal,
+              reserve(seal_proof_type_,
                       SectorFileType::FTNone,
                       _,
                       PathType::kSealing))
@@ -332,7 +331,7 @@ TEST_F(LocalWorkerTest, Sealer) {
 
   bool is_storage_clear = false;
   EXPECT_CALL(*local_store_,
-              reserve(RegisteredProof::StackedDRG2KiBSeal,
+              reserve(seal_proof_type_,
                       static_cast<SectorFileType>(SectorFileType::FTCache
                                                   | SectorFileType::FTSealed),
                       _,
@@ -443,7 +442,7 @@ TEST_F(LocalWorkerTest, Sealer) {
       .WillOnce(testing::Return(fc::outcome::success(unseal_response)));
 
   EXPECT_CALL(*local_store_,
-              reserve(RegisteredProof::StackedDRG2KiBSeal,
+              reserve(seal_proof_type_,
                       SectorFileType::FTUnsealed,
                       _,
                       PathType::kSealing))
