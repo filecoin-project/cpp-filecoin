@@ -276,11 +276,11 @@ namespace fc::proofs {
      */
     static outcome::result<Devices> getGPUDevices();
 
+    static UnpaddedPieceSize padPiece(const std::string &path);
+
    private:
     static fc::common::Logger logger_;
   };
-
-  UnpaddedPieceSize padPiece(const std::string &path);
 }  // namespace fc::proofs
 
 #endif  // CPP_FILECOIN_CORE_PROOFS_HPP

@@ -1162,7 +1162,7 @@ namespace fc::proofs {
     return maybe_cid;
   }
 
-  UnpaddedPieceSize padPiece(const std::string &path) {
+  UnpaddedPieceSize Proofs::padPiece(const std::string &path) {
     auto size{fs::file_size(path)};
     auto unpadded{primitives::piece::paddedSize(size)};
     if (size != unpadded) {

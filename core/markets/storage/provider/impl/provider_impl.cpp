@@ -186,7 +186,7 @@ namespace fc::markets::storage::provider {
     }
     auto deal = found_fsm_entity->first;
 
-    auto unpadded{proofs::padPiece(path)};
+    auto unpadded{proofs::Proofs::padPiece(path)};
     if (unpadded.padded() != deal->client_deal_proposal.proposal.piece_size) {
       return StorageMarketProviderError::kPieceCIDDoesNotMatch;
     }
