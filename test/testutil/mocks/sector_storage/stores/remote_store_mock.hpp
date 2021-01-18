@@ -15,7 +15,7 @@ namespace fc::sector_storage::stores {
    public:
     MOCK_METHOD6(acquireSector,
                  outcome::result<AcquireSectorResponse>(SectorId,
-                                                        RegisteredProof,
+                                                        RegisteredSealProof,
                                                         SectorFileType,
                                                         SectorFileType,
                                                         PathType path_type,
@@ -27,7 +27,7 @@ namespace fc::sector_storage::stores {
 
     MOCK_METHOD3(moveStorage,
                  outcome::result<void>(SectorId,
-                                       RegisteredProof,
+                                       RegisteredSealProof,
                                        SectorFileType));
 
     MOCK_METHOD1(getFsStat, outcome::result<FsStat>(StorageID));

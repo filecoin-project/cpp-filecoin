@@ -56,6 +56,7 @@ void createMetaFile(const std::string &storage_path,
 class LocalStoreTest : public test::BaseFS_Test {
  public:
   LocalStoreTest() : test::BaseFS_Test("fc_local_store_test") {
+    seal_proof_type_ = RegisteredSealProof::StackedDrg2KiBV1;
     index_ = std::make_shared<SectorIndexMock>();
     storage_ = std::make_shared<LocalStorageMock>();
     urls_ = {"http://url1.com", "http://url2.com"};
@@ -102,6 +103,7 @@ class LocalStoreTest : public test::BaseFS_Test {
   }
 
  protected:
+  RegisteredSealProof seal_proof_type_;
   std::shared_ptr<LocalStore> local_store_;
   std::shared_ptr<SectorIndexMock> index_;
   std::shared_ptr<LocalStorageMock> storage_;
@@ -121,8 +123,6 @@ TEST_F(LocalStoreTest, AcquireSectorFindAndAllocate) {
       .sector = 1,
   };
 
-  RegisteredProof seal_proof_type = RegisteredProof::StackedDRG2KiBSeal;
-
   auto file_type_allocate = static_cast<SectorFileType>(
       SectorFileType::FTCache | SectorFileType::FTUnsealed);
 
@@ -131,7 +131,7 @@ TEST_F(LocalStoreTest, AcquireSectorFindAndAllocate) {
 
   EXPECT_OUTCOME_ERROR(StoreErrors::kFindAndAllocate,
                        local_store_->acquireSector(sector,
-                                                   seal_proof_type,
+                                                   seal_proof_type_,
                                                    file_type_existing,
                                                    file_type_allocate,
                                                    PathType::kStorage,
@@ -149,8 +149,6 @@ TEST_F(LocalStoreTest, AcquireSectorNotFoundPath) {
       .sector = 1,
   };
 
-  RegisteredProof seal_proof_type = RegisteredProof::StackedDRG2KiBSeal;
-
   std::vector res = {StorageInfo{
       .id = "not_found_id",
       .urls = {},
@@ -159,13 +157,14 @@ TEST_F(LocalStoreTest, AcquireSectorNotFoundPath) {
       .can_store = false,
   }};
 
-  EXPECT_CALL(*index_,
-              storageBestAlloc(SectorFileType::FTCache, seal_proof_type, false))
+  EXPECT_CALL(
+      *index_,
+      storageBestAlloc(SectorFileType::FTCache, seal_proof_type_, false))
       .WillOnce(testing::Return(fc::outcome::success(res)));
 
   EXPECT_OUTCOME_ERROR(StoreErrors::kNotFoundPath,
                        local_store_->acquireSector(sector,
-                                                   seal_proof_type,
+                                                   seal_proof_type_,
                                                    SectorFileType::FTNone,
                                                    SectorFileType::FTCache,
                                                    PathType::kStorage,
@@ -182,8 +181,6 @@ TEST_F(LocalStoreTest, AcquireSectorAllocateSuccess) {
       .miner = 42,
       .sector = 1,
   };
-
-  RegisteredProof seal_proof_type = RegisteredProof::StackedDRG2KiBSeal;
 
   SectorFileType file_type = SectorFileType::FTCache;
 
@@ -218,12 +215,12 @@ TEST_F(LocalStoreTest, AcquireSectorAllocateSuccess) {
 
   std::vector res = {storage_info};
 
-  EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type, false))
+  EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type_, false))
       .WillOnce(testing::Return(fc::outcome::success(res)));
 
   EXPECT_OUTCOME_TRUE(sectors,
                       local_store_->acquireSector(sector,
-                                                  seal_proof_type,
+                                                  seal_proof_type_,
                                                   SectorFileType::FTNone,
                                                   file_type,
                                                   PathType::kStorage,
@@ -248,8 +245,6 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
       .miner = 42,
       .sector = 1,
   };
-
-  RegisteredProof seal_proof_type = RegisteredProof::StackedDRG2KiBSeal;
 
   SectorFileType file_type = SectorFileType::FTCache;
 
@@ -289,7 +284,7 @@ TEST_F(LocalStoreTest, AcqireSectorExistSuccess) {
 
   EXPECT_OUTCOME_TRUE(sectors,
                       local_store_->acquireSector(sector,
-                                                  seal_proof_type,
+                                                  seal_proof_type_,
                                                   file_type,
                                                   SectorFileType::FTNone,
                                                   PathType::kStorage,
@@ -665,8 +660,6 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
 
   SectorFileType file_type = SectorFileType::FTCache;
 
-  RegisteredProof seal_proof_type = RegisteredProof::StackedDRG2KiBSeal;
-
   boost::filesystem::create_directories((storage_path / toString(file_type)));
 
   StorageID storage_id = "storage_id";
@@ -769,11 +762,11 @@ TEST_F(LocalStoreTest, moveStorageSuccess) {
   EXPECT_CALL(*index_, storageFindSector(sector, file_type, Eq(boost::none)))
       .WillOnce(testing::Return(fc::outcome::success(std::vector({info}))));
 
-  EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type, false))
+  EXPECT_CALL(*index_, storageBestAlloc(file_type, seal_proof_type_, false))
       .WillOnce(testing::Return(fc::outcome::success(std::vector({info2}))));
 
   EXPECT_OUTCOME_TRUE_1(
-      local_store_->moveStorage(sector, seal_proof_type, file_type));
+      local_store_->moveStorage(sector, seal_proof_type_, file_type));
 
   ASSERT_TRUE(boost::filesystem::exists(moved_sector_file));
   ASSERT_FALSE(boost::filesystem::exists(sector_file));

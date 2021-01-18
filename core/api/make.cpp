@@ -151,7 +151,8 @@ namespace fc::api {
                                        sectors_bitset.end()};
       for (auto &i : indices) {
         OUTCOME_TRY(sector, state.sectors.get(sector_ids[i]));
-        sectors.push_back({win_type, sector.sector, sector.sealed_cid});
+        sectors.push_back(
+            {minfo.seal_proof_type, sector.sector, sector.sealed_cid});
       }
     }
     return sectors;

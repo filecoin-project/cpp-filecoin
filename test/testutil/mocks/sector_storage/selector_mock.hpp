@@ -11,10 +11,10 @@
 namespace fc::sector_storage {
 
   class SelectorMock : public WorkerSelector {
-  public:
+   public:
     MOCK_METHOD3(is_satisfying,
                  outcome::result<bool>(const TaskType &,
-                                       RegisteredProof,
+                                       RegisteredSealProof,
                                        const std::shared_ptr<WorkerHandle> &));
 
     MOCK_METHOD3(is_preferred,

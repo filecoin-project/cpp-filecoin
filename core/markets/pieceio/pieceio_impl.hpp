@@ -6,8 +6,9 @@
 #ifndef CPP_FILECOIN_CORE_MARKETS_PIECEIO_PIECEIO_IMPL_HPP
 #define CPP_FILECOIN_CORE_MARKETS_PIECEIO_PIECEIO_IMPL_HPP
 
-#include "common/outcome.hpp"
 #include "markets/pieceio/pieceio.hpp"
+
+#include "common/outcome.hpp"
 #include "primitives/cid/cid.hpp"
 #include "primitives/piece/piece.hpp"
 #include "primitives/sector/sector.hpp"
@@ -22,12 +23,12 @@ namespace fc::markets::pieceio {
     explicit PieceIOImpl(std::shared_ptr<Ipld> ipld, std::string temp_dir);
 
     outcome::result<std::pair<CID, UnpaddedPieceSize>> generatePieceCommitment(
-        const RegisteredProof &registered_proof,
+        const RegisteredSealProof &registered_proof,
         const CID &payload_cid,
         const Selector &selector) override;
 
     outcome::result<std::pair<CID, UnpaddedPieceSize>> generatePieceCommitment(
-        const RegisteredProof &registered_proof,
+        const RegisteredSealProof &registered_proof,
         const std::string &path) override;
 
    private:

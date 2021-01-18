@@ -33,6 +33,12 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::proofs, ProofsError, e) {
       return "Proofs: cannot create pipe";
     case (ProofsError::kCannotWriteData):
       return "Proofs: cannot write data from piece";
+    case (ProofsError::kUnclassifiedError):
+      return "Proofs: Unclassified ffi error";
+    case (ProofsError::kCallerError):
+      return "Proofs: ffi error from caller side";
+    case (ProofsError::kReceiverError):
+      return "Proofs: ffi error from receiver side";
     default:
       return "Proofs: unknown error";
   }

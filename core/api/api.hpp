@@ -67,7 +67,6 @@ namespace fc::api {
   using primitives::block::BlockWithCids;
   using primitives::cid::Comm;
   using primitives::piece::PaddedPieceSize;
-  using primitives::sector::RegisteredProof;
   using primitives::sector::SectorInfo;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;

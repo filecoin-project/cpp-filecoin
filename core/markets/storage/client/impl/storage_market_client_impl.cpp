@@ -50,6 +50,7 @@ namespace fc::markets::storage::client {
   using host::HostContextImpl;
   using libp2p::peer::PeerId;
   using primitives::BigInt;
+  using primitives::sector::RegisteredSealProof;
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
@@ -253,7 +254,7 @@ namespace fc::markets::storage::client {
       const ChainEpoch &end_epoch,
       const TokenAmount &price,
       const TokenAmount &collateral,
-      const RegisteredProof &registered_proof,
+      const RegisteredSealProof &registered_proof,
       bool is_fast_retrieval) {
     OUTCOME_TRY(comm_p_res, calculateCommP(registered_proof, data_ref));
     CID comm_p = comm_p_res.first;
@@ -374,7 +375,8 @@ namespace fc::markets::storage::client {
 
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
   StorageMarketClientImpl::calculateCommP(
-      const RegisteredProof &registered_proof, const DataRef &data_ref) const {
+      const RegisteredSealProof &registered_proof,
+      const DataRef &data_ref) const {
     if (data_ref.piece_cid.has_value()) {
       return std::pair(data_ref.piece_cid.value(), data_ref.piece_size);
     }

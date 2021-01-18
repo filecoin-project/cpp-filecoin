@@ -20,7 +20,6 @@ namespace fc::mining::checks {
   using primitives::BigInt;
   using primitives::ChainEpoch;
   using primitives::DealId;
-  using primitives::sector::OnChainSealVerifyInfo;
   using primitives::sector::SealVerifyInfo;
   using proofs::Proofs;
   using sector_storage::zerocomm::getZeroPieceCommitment;

@@ -54,7 +54,7 @@ namespace fc::markets::storage::provider {
   using vm::message::UnsignedMessage;
 
   StorageProviderImpl::StorageProviderImpl(
-      const RegisteredProof &registered_proof,
+      const RegisteredSealProof &registered_proof,
       std::shared_ptr<Host> host,
       IpldPtr ipld,
       std::shared_ptr<DataTransfer> datatransfer,

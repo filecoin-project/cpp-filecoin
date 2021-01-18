@@ -26,9 +26,10 @@ namespace fc::markets::pieceio {
   }
 
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
-  PieceIOImpl::generatePieceCommitment(const RegisteredProof &registered_proof,
-                                       const CID &payload_cid,
-                                       const Selector &selector) {
+  PieceIOImpl::generatePieceCommitment(
+      const RegisteredSealProof &registered_proof,
+      const CID &payload_cid,
+      const Selector &selector) {
     auto car_file = fs::path(temp_dir_) / fs::unique_path();
     auto _ = gsl::finally([&car_file]() {
       fs::remove_all(car_file);
@@ -40,8 +41,8 @@ namespace fc::markets::pieceio {
   }
 
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
-  PieceIOImpl::generatePieceCommitment(const RegisteredProof &registered_proof,
-                                       const std::string &path) {
+  PieceIOImpl::generatePieceCommitment(
+      const RegisteredSealProof &registered_proof, const std::string &path) {
     if (!fs::exists(path)) {
       return PieceIOError::kFileNotExist;
     }

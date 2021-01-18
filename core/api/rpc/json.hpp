@@ -47,6 +47,8 @@ namespace fc::api {
   using primitives::cid::getCidOfCbor;
   using primitives::piece::UnpaddedPieceSize;
   using primitives::sector::PoStProof;
+  using primitives::sector::RegisteredPoStProof;
+  using primitives::sector::RegisteredSealProof;
   using primitives::tipset::HeadChangeType;
   using rapidjson::Document;
   using rapidjson::Value;
@@ -192,11 +194,19 @@ namespace fc::api {
       v = decode<uint64_t>(j);
     }
 
-    ENCODE(RegisteredProof) {
+    ENCODE(RegisteredSealProof) {
       return encode(common::to_int(v));
     }
 
-    DECODE(RegisteredProof) {
+    DECODE(RegisteredSealProof) {
+      decodeEnum(v, j);
+    }
+
+    ENCODE(RegisteredPoStProof) {
+      return encode(common::to_int(v));
+    }
+
+    DECODE(RegisteredPoStProof) {
       decodeEnum(v, j);
     }
 

@@ -61,7 +61,7 @@ namespace fc::sector_storage {
 
   class SchedulerImpl : public Scheduler {
    public:
-    explicit SchedulerImpl(RegisteredProof seal_proof_type);
+    explicit SchedulerImpl(RegisteredSealProof seal_proof_type);
 
     outcome::result<void> schedule(
         const SectorId &sector,
@@ -73,7 +73,7 @@ namespace fc::sector_storage {
 
     void newWorker(std::unique_ptr<WorkerHandle> worker) override;
 
-    RegisteredProof getSealProofType() const override;
+    RegisteredSealProof getSealProofType() const override;
 
    private:
     outcome::result<bool> maybeScheduleRequest(
@@ -85,7 +85,7 @@ namespace fc::sector_storage {
 
     void freeWorker(WorkerID wid);
 
-    RegisteredProof seal_proof_type_;
+    RegisteredSealProof seal_proof_type_;
 
     std::mutex workers_lock_;
     WorkerID current_worker_id_;
