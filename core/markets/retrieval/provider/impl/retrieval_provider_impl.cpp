@@ -40,7 +40,12 @@ namespace fc::markets::retrieval::provider {
         piece_storage_{std::move(piece_storage)},
         ipld_{std::move(ipld)},
         config_key_{std::move(config_key)},
-        config_{2, 0, 1 << 20, 1 << 20},
+        config_{
+            kDefaultPricePerByte,
+            kDefaultUnsealPrice,
+            kDefaultPaymentInterval,
+            kDefaultPaymentIntervalIncrease,
+        },
         sealer_{std::move(sealer)},
         miner_{std::move(miner)} {
     if (!config_key_->has()) {

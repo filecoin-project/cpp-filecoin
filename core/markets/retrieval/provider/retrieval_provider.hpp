@@ -11,6 +11,11 @@
 namespace fc::markets::retrieval::provider {
   using primitives::TokenAmount;
 
+  inline const TokenAmount kDefaultPricePerByte{2};
+  inline const TokenAmount kDefaultUnsealPrice{0};
+  constexpr uint64_t kDefaultPaymentInterval{1 << 20};
+  constexpr uint64_t kDefaultPaymentIntervalIncrease{1 << 20};
+
   /**
    * @class Retrieval market provider
    */
