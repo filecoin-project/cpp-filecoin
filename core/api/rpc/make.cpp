@@ -10,6 +10,7 @@
 namespace fc::api {
   template <typename M>
   void setup(Rpc &rpc, const M &method) {
+    if (!method) return;
     using Result = typename M::Result;
     rpc.setup(
         M::name,

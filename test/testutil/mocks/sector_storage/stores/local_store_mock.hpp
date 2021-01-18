@@ -41,12 +41,12 @@ namespace fc::sector_storage::stores {
 
     MOCK_CONST_METHOD0(getSectorIndex, std::shared_ptr<SectorIndex>());
 
-    MOCK_METHOD4(
-        reserve,
-        outcome::result<std::function<void()>>(RegisteredSealProof seal_proof_type,
-                                               SectorFileType file_type,
-                                               const SectorPaths &storages,
-                                               PathType path_type));
+    MOCK_METHOD4(reserve,
+                 outcome::result<std::function<void()>>(
+                     RegisteredSealProof seal_proof_type,
+                     SectorFileType file_type,
+                     const SectorPaths &storages,
+                     PathType path_type));
   };
 }  // namespace fc::sector_storage::stores
 

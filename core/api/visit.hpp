@@ -33,8 +33,13 @@ namespace fc::api {
     f(a.ClientQueryAsk);
     f(a.ClientRetrieve);
     f(a.ClientStartDeal);
+    f(a.DealsImportData);
     f(a.GasEstimateMessageGas);
-    f(a.MarketEnsureAvailable);
+    f(a.MarketGetAsk);
+    f(a.MarketGetRetrievalAsk);
+    f(a.MarketReserveFunds);
+    f(a.MarketSetAsk);
+    f(a.MarketSetRetrievalAsk);
     f(a.MinerCreateBlock);
     f(a.MinerGetBaseInfo);
     f(a.MpoolPending);

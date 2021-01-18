@@ -264,11 +264,10 @@ TEST_F(LocalWorkerTest, Sealer) {
       .WillOnce(testing::Return(fc::outcome::success(response)));
 
   bool is_storage_clear_unseal_a = false;
-  EXPECT_CALL(*local_store_,
-              reserve(seal_proof_type_,
-                      SectorFileType::FTUnsealed,
-                      _,
-                      PathType::kSealing))
+  EXPECT_CALL(
+      *local_store_,
+      reserve(
+          seal_proof_type_, SectorFileType::FTUnsealed, _, PathType::kSealing))
       .WillOnce(testing::Return(
           fc::outcome::success([&]() { is_storage_clear_unseal_a = true; })));
 
@@ -291,11 +290,9 @@ TEST_F(LocalWorkerTest, Sealer) {
                             AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(response)));
 
-  EXPECT_CALL(*local_store_,
-              reserve(seal_proof_type_,
-                      SectorFileType::FTNone,
-                      _,
-                      PathType::kSealing))
+  EXPECT_CALL(
+      *local_store_,
+      reserve(seal_proof_type_, SectorFileType::FTNone, _, PathType::kSealing))
       .WillRepeatedly(testing::Return(fc::outcome::success([]() {})));
 
   EXPECT_OUTCOME_TRUE(b_info,
@@ -441,11 +438,10 @@ TEST_F(LocalWorkerTest, Sealer) {
                             AcquireMode::kCopy))
       .WillOnce(testing::Return(fc::outcome::success(unseal_response)));
 
-  EXPECT_CALL(*local_store_,
-              reserve(seal_proof_type_,
-                      SectorFileType::FTUnsealed,
-                      _,
-                      PathType::kSealing))
+  EXPECT_CALL(
+      *local_store_,
+      reserve(
+          seal_proof_type_, SectorFileType::FTUnsealed, _, PathType::kSealing))
       .WillOnce(testing::Return(fc::outcome::success([&]() {})));
 
   EXPECT_CALL(*sector_index_,

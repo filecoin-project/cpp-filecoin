@@ -101,9 +101,9 @@ namespace fc::markets::storage::test {
     // some unique valid CID of funding message
     CID client_funding_cid = "010001020002"_cid;
     CID provider_funding_cid = "010001020003"_cid;
-    node_api->MarketEnsureAvailable = {
+    node_api->MarketReserveFunds = {
         [this, client_funding_cid, provider_funding_cid](
-            auto address, auto wallet, auto amount) -> boost::optional<CID> {
+            auto wallet, auto address, auto amount) -> boost::optional<CID> {
           boost::optional<CID> result = boost::none;
           if (address == client_id_address) result = client_funding_cid;
           if (address == miner_actor_address) result = provider_funding_cid;

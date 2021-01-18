@@ -50,6 +50,7 @@ namespace fc::markets::storage::client {
   using host::HostContextImpl;
   using libp2p::peer::PeerId;
   using primitives::BigInt;
+  using primitives::sector::RegisteredSealProof;
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
@@ -57,7 +58,6 @@ namespace fc::markets::storage::client {
   using vm::message::kDefaultGasPrice;
   using vm::message::SignedMessage;
   using vm::message::UnsignedMessage;
-  using primitives::sector::RegisteredSealProof;
 
   StorageMarketClientImpl::StorageMarketClientImpl(
       std::shared_ptr<Host> host,
@@ -375,7 +375,8 @@ namespace fc::markets::storage::client {
 
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
   StorageMarketClientImpl::calculateCommP(
-      const RegisteredSealProof &registered_proof, const DataRef &data_ref) const {
+      const RegisteredSealProof &registered_proof,
+      const DataRef &data_ref) const {
     if (data_ref.piece_cid.has_value()) {
       return std::pair(data_ref.piece_cid.value(), data_ref.piece_size);
     }
@@ -403,7 +404,7 @@ namespace fc::markets::storage::client {
       std::shared_ptr<ClientDeal> deal) {
     OUTCOME_TRY(
         maybe_cid,
-        api_->MarketEnsureAvailable(
+        api_->MarketReserveFunds(
             deal->client_deal_proposal.proposal.client,
             deal->client_deal_proposal.proposal.client,
             deal->client_deal_proposal.proposal.clientBalanceRequirement()));

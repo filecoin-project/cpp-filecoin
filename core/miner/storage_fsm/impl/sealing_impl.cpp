@@ -173,7 +173,9 @@ namespace fc::mining {
 
       is_start_packing =
           unsealed_sectors_[sector_and_padding.sector].deals_number
-          >= getDealPerSectorLimit(sector_size);
+              >= getDealPerSectorLimit(sector_size)
+          || (SectorSize)piece.offset + (SectorSize)piece.size.padded()
+                 == sector_size;
     }
 
     if (is_start_packing) {
@@ -343,7 +345,7 @@ namespace fc::mining {
     for (const auto &[key, value] : unsealed_sectors_) {
       auto pads =
           proofs::Proofs::GetRequiredPadding(value.stored, size.padded());
-      if (value.stored + size.padded() + pads.size < sector_size) {
+      if (value.stored + size.padded() + pads.size <= sector_size) {
         return SectorPaddingResponse{
             .sector = key,
             .pads = std::move(pads.pads),
@@ -926,7 +928,7 @@ namespace fc::mining {
     OUTCOME_TRY(network, api_->StateNetworkVersion(head->key));
     OUTCOME_TRY(seal_duration,
                 checks::getMaxProveCommitDuration(network, info));
-    auto expiration = std::min<ChainEpoch>(
+    auto expiration = std::max<ChainEpoch>(
         policy_->expiration(info->pieces),
         head->epoch() + seal_duration + kMinSectorExpiration + 10);
 

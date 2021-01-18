@@ -278,7 +278,7 @@ namespace fc::markets::storage::test {
             throw "StateMarketBalance: wrong address";
           }};
 
-      api->MarketEnsureAvailable = {
+      api->MarketReserveFunds = {
           [](auto, auto, auto) -> outcome::result<boost::optional<CID>> {
             // funds ensured
             return boost::none;

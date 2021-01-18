@@ -44,7 +44,8 @@ struct TipsetTest : public ::testing::Test {
             "F00D"_unhex,
         }},
         {fc::primitives::sector::PoStProof{
-            fc::primitives::sector::RegisteredPoStProof::StackedDRG2KiBWinningPoSt,
+            fc::primitives::sector::RegisteredPoStProof::
+                StackedDRG2KiBWinningPoSt,
             "F00D"_unhex,
         }},
         {"010001020002"_cid},

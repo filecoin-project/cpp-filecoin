@@ -9,6 +9,7 @@
 #include "sector_storage/scheduler.hpp"
 
 #include <boost/asio/thread_pool.hpp>
+#include <future>
 #include <mutex>
 #include <unordered_map>
 #include <utility>
@@ -28,8 +29,7 @@ namespace fc::sector_storage {
           priority(priority),
           sel(std::move(sel)),
           prepare(std::move(prepare)),
-          work(std::move(work)),
-          response(boost::none){};
+          work(std::move(work)){};
 
     SectorId sector;
     TaskType task_type;
@@ -41,16 +41,13 @@ namespace fc::sector_storage {
 
     inline void respond(const std::error_code &resp) {
       if (resp) {
-        response = resp;
+        response.set_value(resp);
       } else {
-        response = outcome::success();
+        response.set_value(outcome::success());
       }
-      cv_.notify_one();
     }
 
-    boost::optional<outcome::result<void>> response;
-    std::mutex mutex_;
-    std::condition_variable cv_;
+    std::promise<outcome::result<void>> response;
   };
 
   inline bool operator<(const TaskRequest &lhs, const TaskRequest &rhs) {
@@ -102,6 +99,8 @@ namespace fc::sector_storage {
     std::unique_ptr<boost::asio::thread_pool> pool_;
 
     common::Logger logger_;
+
+    size_t active_jobs{};
   };
 
 }  // namespace fc::sector_storage
