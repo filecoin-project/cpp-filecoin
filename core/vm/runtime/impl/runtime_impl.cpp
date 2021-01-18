@@ -187,7 +187,7 @@ namespace fc::vm::runtime {
   }
 
   fc::outcome::result<fc::CID> RuntimeImpl::computeUnsealedSectorCid(
-      RegisteredProof type, const std::vector<PieceInfo> &pieces) {
+      RegisteredSealProof type, const std::vector<PieceInfo> &pieces) {
     OUTCOME_TRY(
         chargeGas(execution_->env->pricelist.onComputeUnsealedSectorCid()));
     return proofs::Proofs::generateUnsealedCID(type, pieces, true);

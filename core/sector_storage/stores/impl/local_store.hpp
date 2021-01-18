@@ -29,7 +29,7 @@ namespace fc::sector_storage::stores {
 
     outcome::result<AcquireSectorResponse> acquireSector(
         SectorId sector,
-        RegisteredProof seal_proof_type,
+        RegisteredSealProof seal_proof_type,
         SectorFileType existing,
         SectorFileType allocate,
         PathType path_type,
@@ -41,7 +41,7 @@ namespace fc::sector_storage::stores {
                                        SectorFileType type) override;
 
     outcome::result<void> moveStorage(SectorId sector,
-                                      RegisteredProof seal_proof_type,
+                                      RegisteredSealProof seal_proof_type,
                                       SectorFileType types) override;
 
     outcome::result<FsStat> getFsStat(StorageID id) override;
@@ -54,7 +54,7 @@ namespace fc::sector_storage::stores {
     std::shared_ptr<LocalStorage> getLocalStorage() const override;
 
     outcome::result<std::function<void()>> reserve(
-        RegisteredProof seal_proof_type,
+        RegisteredSealProof seal_proof_type,
         SectorFileType file_type,
         const SectorPaths &storages,
         PathType path_type) override;

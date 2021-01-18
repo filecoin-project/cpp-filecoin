@@ -35,7 +35,6 @@
 
 namespace fc {
   using api::Address;
-  using api::RegisteredProof;
   using boost::asio::io_context;
   using common::span::cbytes;
   using libp2p::multi::Multiaddress;
@@ -176,7 +175,7 @@ namespace fc {
                     codec::cbor::encode(CreateMiner::Params{
                         *config.owner,
                         *config.worker,
-                        (RegisteredProof)*config.seal_type,
+                        *config.seal_type,
                         _peer_id,
                         {},
                     }));

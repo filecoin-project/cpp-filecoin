@@ -14,7 +14,7 @@ namespace fc::sector_storage {
   public:
     MOCK_METHOD3(is_satisfying,
                  outcome::result<bool>(const TaskType &,
-                                       RegisteredProof,
+                                       RegisteredSealProof,
                                        const std::shared_ptr<WorkerHandle> &));
 
     MOCK_METHOD3(is_preferred,

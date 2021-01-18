@@ -393,8 +393,8 @@ TEST_P(TestVectors, Vector) {
   fc::vm::actor::cgo::config(
       1 << 20,
       UINT64_C(10) << 40,
-      {fc::primitives::sector::RegisteredProof::StackedDRG32GiBSeal,
-       fc::primitives::sector::RegisteredProof::StackedDRG64GiBSeal});
+      {fc::primitives::sector::RegisteredSealProof::StackedDrg32GiBV1,
+       fc::primitives::sector::RegisteredSealProof::StackedDrg64GiBV1});
 
   auto ipld{std::make_shared<fc::storage::ipfs::InMemoryDatastore>()};
   OUTCOME_EXCEPT(fc::storage::car::loadCar(*ipld, mv.car));

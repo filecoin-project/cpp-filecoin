@@ -94,7 +94,7 @@ namespace fc::sector_storage {
   }
 
   outcome::result<std::vector<SectorId>> ManagerImpl::checkProvable(
-      RegisteredProof seal_proof_type, gsl::span<const SectorId> sectors) {
+      RegisteredSealProof seal_proof_type, gsl::span<const SectorId> sectors) {
     std::vector<SectorId> bad{};
 
     OUTCOME_TRY(ssize, primitives::sector::getSectorSize(seal_proof_type));
@@ -637,8 +637,8 @@ namespace fc::sector_storage {
       ActorId miner,
       gsl::span<const SectorInfo> sector_info,
       gsl::span<const SectorNumber> faults,
-      const std::function<outcome::result<RegisteredProof>(RegisteredProof)>
-          &to_post_transform) {
+      const std::function<outcome::result<RegisteredPoStProof>(
+          RegisteredSealProof)> &to_post_transform) {
     PubToPrivateResponse result;
 
     std::unordered_set<SectorNumber> faults_set;
@@ -692,7 +692,7 @@ namespace fc::sector_storage {
       const SealerConfig &config) {
     struct make_unique_enabler : public ManagerImpl {
       make_unique_enabler(std::shared_ptr<stores::SectorIndex> sector_index,
-                          RegisteredProof seal_proof_type,
+                          RegisteredSealProof seal_proof_type,
                           std::shared_ptr<stores::LocalStorage> local_storage,
                           std::shared_ptr<stores::LocalStore> local_store,
                           std::shared_ptr<stores::RemoteStore> store,
@@ -755,7 +755,7 @@ namespace fc::sector_storage {
   }
 
   ManagerImpl::ManagerImpl(std::shared_ptr<stores::SectorIndex> sector_index,
-                           RegisteredProof seal_proof_type,
+                           RegisteredSealProof seal_proof_type,
                            std::shared_ptr<stores::LocalStorage> local_storage,
                            std::shared_ptr<stores::LocalStore> local_store,
                            std::shared_ptr<stores::RemoteStore> store,
