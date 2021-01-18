@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "primitives/types.hpp"
 #include "adt/address_key.hpp"
 #include "adt/map.hpp"
 #include "codec/cbor/streams_annotation.hpp"

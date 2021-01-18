@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "vm/actor/builtin/v0/verified_registry/verified_registry_actor.hpp"
+#include "vm/actor/builtin/v2/verified_registry/verified_registry_actor.hpp"
 
 #include <gtest/gtest.h>
 
@@ -12,7 +12,7 @@
 #include "vm/actor/actor.hpp"
 #include "vm/state/impl/state_tree_impl.hpp"
 
-namespace VerifiedRegistry = fc::vm::actor::builtin::v0::verified_registry;
+namespace VerifiedRegistry = fc::vm::actor::builtin::v2::verified_registry;
 using fc::primitives::address::Address;
 using fc::storage::ipfs::InMemoryDatastore;
 using fc::vm::VMAbortExitCode;

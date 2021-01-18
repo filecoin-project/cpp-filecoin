@@ -21,6 +21,10 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
       DataCap allowance;
     };
     ACTOR_METHOD_DECL();
+
+    static outcome::result<void> addVerifier(State &state,
+                                             const Address &verifier,
+                                             const DataCap &allowance);
   };
   CBOR_TUPLE(AddVerifier::Params, address, allowance)
 
@@ -35,6 +39,11 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
       DataCap allowance;
     };
     ACTOR_METHOD_DECL();
+
+    static outcome::result<void> addClient(const Runtime &runtime,
+                                           State &state,
+                                           const Address &client,
+                                           const DataCap &allowance);
   };
   CBOR_TUPLE(AddVerifiedClient::Params, address, allowance)
 
@@ -44,6 +53,10 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
       StoragePower deal_size;
     };
     ACTOR_METHOD_DECL();
+
+    static outcome::result<void> useBytes(State &state,
+                                          const Address &client,
+                                          const StoragePower &deal_size);
   };
   CBOR_TUPLE(UseBytes::Params, address, deal_size)
 
@@ -53,6 +66,10 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
       StoragePower deal_size;
     };
     ACTOR_METHOD_DECL();
+
+    static outcome::result<void> restoreBytes(State &state,
+                                              const Address &client,
+                                              const StoragePower &deal_size);
   };
   CBOR_TUPLE(RestoreBytes::Params, address, deal_size)
 
