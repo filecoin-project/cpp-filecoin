@@ -70,14 +70,21 @@ namespace fc::vm::actor {
 
   outcome::result<InvocationOutput> InvokerImpl::invoke(
       const Actor &actor, const std::shared_ptr<Runtime> &runtime) {
+    if (actor.code == builtin::v0::kStorageMinerCodeCid) {
+      if (runtime->getMessage().get().method
+          != builtin::v0::miner::Construct::Number) {
+        return ::fc::vm::actor::cgo::invoke(actor.code, runtime);
+      }
+    }
+
     // TODO (a.chernyshov) remove after all cpp actors are implemented
     if (
         // v0
-        (actor.code != builtin::v0::kAccountCodeCid)           // < tested OK
-        && (actor.code != builtin::v0::kCronCodeCid)           // < tested OK
-        && (actor.code != builtin::v0::kInitCodeCid)           // < tested OK
-        && (actor.code != builtin::v0::kStorageMarketCodeCid)  // < tested OK
-        // && (actor.code != builtin::v0::kStorageMinerCodeCid)    // TODO
+        (actor.code != builtin::v0::kAccountCodeCid)            // < tested OK
+        && (actor.code != builtin::v0::kCronCodeCid)            // < tested OK
+        && (actor.code != builtin::v0::kInitCodeCid)            // < tested OK
+        && (actor.code != builtin::v0::kStorageMarketCodeCid)   // < tested OK
+        && (actor.code != builtin::v0::kStorageMinerCodeCid)    // WiP
         && (actor.code != builtin::v0::kMultisigCodeCid)        // < tested OK
         && (actor.code != builtin::v0::kPaymentChannelCodeCid)  // < tested OK
         && (actor.code != builtin::v0::kStoragePowerCodeCid)    // < tested OK

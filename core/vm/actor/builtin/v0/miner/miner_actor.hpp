@@ -24,6 +24,27 @@ namespace fc::vm::actor::builtin::v0::miner {
       std::vector<Multiaddress> multiaddresses;
     };
     ACTOR_METHOD_DECL();
+
+    /**
+     * Assigns proving period offset randomly in the range [0,
+     * WPoStProvingPeriod) by hashing the actor's address and current epoch
+     * @param runtime - runtime
+     * @param current_epoch - current epoch
+     * @return random offset
+     */
+    static outcome::result<ChainEpoch> assignProvingPeriodOffset(
+        Runtime &runtime, ChainEpoch current_epoch);
+
+    /**
+     * Computes the epoch at which a proving period should start such that it is
+     * greater than the current epoch, and has a defined offset from being an
+     * exact multiple of WPoStProvingPeriod. A miner is exempt from Winow PoSt
+     * until the first full proving period starts.
+     * @param abi
+     * @return
+     */
+    static ChainEpoch nextProvingPeriodStart(ChainEpoch current_epoch,
+                                             ChainEpoch offset);
   };
   CBOR_TUPLE(Construct::Params,
              owner,
@@ -46,8 +67,8 @@ namespace fc::vm::actor::builtin::v0::miner {
   /**
    * ChangeWorkerAddress will ALWAYS overwrite the existing control addresses
    * with the control addresses passed in the params. A worker change will be
-   * scheduled if the worker passed in the params is different from the existing
-   * worker.
+   * scheduled if the worker passed in the params is different from the
+   * existing worker.
    */
   struct ChangeWorkerAddress : ActorMethodBase<3> {
     struct Params {
@@ -88,10 +109,10 @@ namespace fc::vm::actor::builtin::v0::miner {
       std::vector<Partition> partitions;
 
       /**
-       * Array of proofs, one per distinct registered proof type present in the
-       * sectors being proven. In the usual case of a single proof type, this
-       * array will always have a single element (independent of number of
-       * partitions).
+       * Array of proofs, one per distinct registered proof type present in
+       * the sectors being proven. In the usual case of a single proof type,
+       * this array will always have a single element (independent of number
+       * of partitions).
        */
       std::vector<PoStProof> proofs;
 
@@ -102,8 +123,8 @@ namespace fc::vm::actor::builtin::v0::miner {
       ChainEpoch chain_commit_epoch;
 
       /**
-       * The ticket randomness on the chain at the ChainCommitEpoch on the chain
-       * this post is committed to
+       * The ticket randomness on the chain at the ChainCommitEpoch on the
+       * chain this post is committed to
        */
       Randomness chain_commit_rand;
     };
@@ -123,10 +144,10 @@ namespace fc::vm::actor::builtin::v0::miner {
   };
 
   /**
-   * Checks state of the corresponding sector pre-commitment, then schedules the
-   * proof to be verified in bulk by the power actor. If valid, the power actor
-   * will call ConfirmSectorProofsValid at the end of the same epoch as this
-   * message
+   * Checks state of the corresponding sector pre-commitment, then schedules
+   * the proof to be verified in bulk by the power actor. If valid, the power
+   * actor will call ConfirmSectorProofsValid at the end of the same epoch as
+   * this message
    */
   struct ProveCommitSector : ActorMethodBase<7> {
     struct Params {
@@ -139,8 +160,8 @@ namespace fc::vm::actor::builtin::v0::miner {
 
   /**
    * Changes the expiration epoch for a sector to a new, later one. The sector
-   * must not be terminated or faulty. The sector's power is recomputed for the
-   * new expiration.
+   * must not be terminated or faulty. The sector's power is recomputed for
+   * the new expiration.
    */
   struct ExtendSectorExpiration : ActorMethodBase<8> {
     struct Params {
@@ -176,12 +197,12 @@ namespace fc::vm::actor::builtin::v0::miner {
    *
    * The sectors are immediately ignored for Window PoSt proofs, and should be
    * masked in the same way as faulty sectors. A miner terminating sectors in
-   * the current deadline must be careful to compute an appropriate Window PoSt
-   * proof for the sectors that will be active at the time the PoSt is
+   * the current deadline must be careful to compute an appropriate Window
+   * PoSt proof for the sectors that will be active at the time the PoSt is
    * submitted.
    *
-   * This function may be invoked with no new sectors to explicitly process the
-   * next batch of sectors.
+   * This function may be invoked with no new sectors to explicitly process
+   * the next batch of sectors.
    */
   struct TerminateSectors : ActorMethodBase<9> {
     struct Params {
@@ -298,12 +319,12 @@ namespace fc::vm::actor::builtin::v0::miner {
    * Compacts sector number allocations to reduce the size of the allocated
    * sector number bitfield.
    *
-   * When allocating sector numbers sequentially, or in sequential groups, this
-   * bitfield should remain fairly small. However, if the bitfield grows large
-   * enough such that PreCommitSector fails (or becomes expensive), this method
-   * can be called to mask out (throw away) entire ranges of unused sector IDs.
-   * For example, if sectors 1-99 and 101-200 have been allocated, sector number
-   * 99 can be masked out to collapse these two ranges into one.
+   * When allocating sector numbers sequentially, or in sequential groups,
+   * this bitfield should remain fairly small. However, if the bitfield grows
+   * large enough such that PreCommitSector fails (or becomes expensive), this
+   * method can be called to mask out (throw away) entire ranges of unused
+   * sector IDs. For example, if sectors 1-99 and 101-200 have been allocated,
+   * sector number 99 can be masked out to collapse these two ranges into one.
    */
   struct CompactSectorNumbers : ActorMethodBase<20> {
     struct Params {

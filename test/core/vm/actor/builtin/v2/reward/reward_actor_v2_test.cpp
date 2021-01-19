@@ -14,15 +14,18 @@ namespace fc::vm::actor::builtin::v2::reward {
   using testing::Eq;
   using testing::Return;
   using testutil::vm::actor::builtin::reward::kEpochZeroReward;
-  using testutil::vm::actor::builtin::reward::RewardActorFixture;
+  using testutil::vm::actor::builtin::reward::RewardActorTestFixture;
   using v0::reward::kInitialRewardPositionEstimate;
   using v0::reward::kInitialRewardVelocityEstimate;
 
   /**
    * Fixture with state of Reward Actor v2
    */
-  class RewardActorV2Test : public RewardActorFixture<State> {
+  class RewardActorV2Test : public RewardActorTestFixture<State> {
    public:
+    using ActorTestFixture<State>::runtime;
+    using ActorTestFixture<State>::callerIs;
+
     /**
      * Expect successful call AwardBlockReward
      * @param penalty - penalty burnt
@@ -54,7 +57,7 @@ namespace fc::vm::actor::builtin::v2::reward {
    * @then state is equal to lotus ones
    */
   TEST_F(RewardActorV2Test, Construct0Power) {
-    caller = kSystemActorAddress;
+    callerIs(kSystemActorAddress);
     const TokenAmount start_realized_power{0};
 
     EXPECT_OUTCOME_TRUE_1(Constructor::call(runtime, start_realized_power));
@@ -84,7 +87,7 @@ namespace fc::vm::actor::builtin::v2::reward {
    * @then state is equal to lotus ones
    */
   TEST_F(RewardActorV2Test, ConstructPowerLessBaseline) {
-    caller = kSystemActorAddress;
+    callerIs(kSystemActorAddress);
     const TokenAmount start_realized_power = BigInt{1} << 39;
 
     EXPECT_OUTCOME_TRUE_1(Constructor::call(runtime, start_realized_power));
@@ -115,7 +118,7 @@ namespace fc::vm::actor::builtin::v2::reward {
    * @then state is equal to lotus ones
    */
   TEST_F(RewardActorV2Test, ConstructPowerMoreBaseline) {
-    caller = kSystemActorAddress;
+    callerIs(kSystemActorAddress);
 
     const TokenAmount start_realized_power_1 = kBaselineInitialValueV2;
     EXPECT_OUTCOME_TRUE_1(Constructor::call(runtime, start_realized_power_1));

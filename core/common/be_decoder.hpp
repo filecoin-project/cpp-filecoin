@@ -3,14 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef CPP_FILECOIN_CORE_COMMON_BE_DECODER_HPP
-#define CPP_FILECOIN_CORE_COMMON_BE_DECODER_HPP
+#pragma once
 
 #include "common/blob.hpp"
 
 namespace fc::common {
 
-  uint64_t decodeBE(gsl::span<const byte_t> bytes) {
+  inline uint64_t decodeBE(gsl::span<const byte_t> bytes) {
     return static_cast<uint64_t>(bytes[7])
            | (static_cast<uint64_t>(bytes[6]) << 8)
            | (static_cast<uint64_t>(bytes[5]) << 16)
@@ -22,5 +21,3 @@ namespace fc::common {
   }
 
 }  // namespace fc::common
-
-#endif  // CPP_FILECOIN_CORE_COMMON_BE_DECODER_HPP

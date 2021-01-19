@@ -118,6 +118,12 @@ namespace fc::primitives::sector {
         return Errors::kInvalidPoStProof;
     }
   }
+
+  outcome::result<size_t> getSealProofWindowPoStPartitionSectors(
+      RegisteredSealProof proof) {
+    OUTCOME_TRY(wpost_proof_type, getRegisteredWindowPoStProof(proof));
+    return getWindowPoStPartitionSectors(wpost_proof_type);
+  }
 };  // namespace fc::primitives::sector
 
 OUTCOME_CPP_DEFINE_CATEGORY(fc::primitives::sector, Errors, e) {

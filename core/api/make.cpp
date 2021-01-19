@@ -83,7 +83,7 @@ namespace fc::api {
 
   template <typename T, typename F>
   auto waitCb(F &&f) {
-    return [f{std::forward<F>(f)}](auto &&... args) {
+    return [f{std::forward<F>(f)}](auto &&...args) {
       auto channel{std::make_shared<Channel<outcome::result<T>>>()};
       f(std::forward<decltype(args)>(args)..., [channel](auto &&_r) {
         channel->write(std::forward<decltype(_r)>(_r));
@@ -707,7 +707,9 @@ namespace fc::api {
                                           -> outcome::result<DeadlineInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
           OUTCOME_TRY(state, context.minerState(address));
-          return state.deadlineInfo(context.tipset->height());
+          const auto deadline_info =
+              state.deadlineInfo(context.tipset->height());
+          return deadline_info.nextNotElapsed();
         }},
         .StateMinerSectors =
             {[=](auto &address, auto &filter, auto &tipset_key)
