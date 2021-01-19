@@ -57,8 +57,8 @@ namespace fc::miner {
     std::shared_ptr<PreCommitPolicy> precommit_policy =
         std::make_shared<BasicPreCommitPolicy>(
             api_,
-            kMaxSectorExpirationExtension - 2 * kWPoStProvingPeriod,
-            deadline_info.period_start % kWPoStProvingPeriod);
+            deadline_info.period_start % kWPoStProvingPeriod,
+            kMaxSectorExpirationExtension - 2 * kWPoStProvingPeriod);
     sealing_ = std::make_shared<SealingImpl>(api_,
                                              events,
                                              miner_address_,

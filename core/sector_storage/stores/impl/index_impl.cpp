@@ -178,7 +178,7 @@ namespace fc::sector_storage::stores {
   outcome::result<std::vector<StorageInfo>> SectorIndexImpl::storageFindSector(
       const SectorId &sector,
       const fc::primitives::sector_file::SectorFileType &file_type,
-      boost::optional<RegisteredProof> fetch_seal_proof_type) {
+      boost::optional<RegisteredSealProof> fetch_seal_proof_type) {
     std::shared_lock lock(mutex_);
     struct StorageMeta {
       uint64_t storage_count;
@@ -256,12 +256,13 @@ namespace fc::sector_storage::stores {
                 high_resolution_clock::now().time_since_epoch()
                 - storage_info.last_heartbeat.time_since_epoch())
             > kSkippedHeartbeatThreshold) {
-          logger_->debug("not selecting on {}, didn't receive heartbeats for {}",
-                        storage_info.info.id,
-                        duration_cast<std::chrono::seconds>(
-                            high_resolution_clock::now().time_since_epoch()
-                            - storage_info.last_heartbeat.time_since_epoch())
-                            .count());
+          logger_->debug(
+              "not selecting on {}, didn't receive heartbeats for {}",
+              storage_info.info.id,
+              duration_cast<std::chrono::seconds>(
+                  high_resolution_clock::now().time_since_epoch()
+                  - storage_info.last_heartbeat.time_since_epoch())
+                  .count());
         }
 
         if (storage_info.error.has_value()) {
@@ -300,7 +301,7 @@ namespace fc::sector_storage::stores {
 
   outcome::result<std::vector<StorageInfo>> SectorIndexImpl::storageBestAlloc(
       const fc::primitives::sector_file::SectorFileType &allocate,
-      fc::primitives::sector::RegisteredProof seal_proof_type,
+      RegisteredSealProof seal_proof_type,
       bool sealing_mode) {
     std::shared_lock lock(mutex_);
 

@@ -29,7 +29,7 @@ namespace fc::sectorblocks {
     storage_[deal_id].push_back(PieceLocation{
         .sector_number = sector,
         .offset = offset,
-        .length = size,
+        .length = size.padded(),
     });
     return outcome::success();
   }

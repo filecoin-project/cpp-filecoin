@@ -12,6 +12,7 @@ target_link_libraries(retrieval_market_test
     piece_storage
     in_memory_storage
     ipfs_datastore_in_memory
+    leveldb
     p2p::p2p
     p2p::p2p_literals
     )

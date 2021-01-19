@@ -17,6 +17,14 @@ target_link_libraries(miner_main
     p2p::p2p
     rpc
     store
+    fetch_handler
+
+    chain_events
+    data_transfer
+    ipfs_datastore_leveldb
+    pieceio
+    retrieval_market_provider
+    storage_market_provider
 
     ipfs_datastore_in_memory
     )

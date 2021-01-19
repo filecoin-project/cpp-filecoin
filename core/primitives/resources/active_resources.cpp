@@ -80,11 +80,12 @@ namespace fc::primitives {
   }
 
   outcome::result<void> ActiveResources::withResources(
+      bool force,
       const WorkerResources &worker_resources,
       const Resources &resources,
       std::mutex &locker,
       const std::function<outcome::result<void>()> &callback) {
-    while (!canHandleRequest(resources, worker_resources, *this)) {
+    while (!force && !canHandleRequest(resources, worker_resources, *this)) {
       std::unique_lock<std::mutex> lock(locker);
       cv_.wait(lock, [&]() { return unlock_; });
     }

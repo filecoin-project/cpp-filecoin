@@ -37,6 +37,7 @@ namespace fc::vm::actor::cgo {
   using primitives::TokenAmount;
   using primitives::address::Address;
   using primitives::piece::PieceInfo;
+  using primitives::sector::RegisteredSealProof;
   using primitives::sector::SealVerifyInfo;
   using primitives::sector::WindowPoStVerifyInfo;
   using runtime::resolveKey;
@@ -44,7 +45,7 @@ namespace fc::vm::actor::cgo {
 
   void config(const StoragePower &min_verified_deal_size,
               const StoragePower &consensus_miner_min_power,
-              const std::vector<RegisteredProof> &supported_proofs) {
+              const std::vector<RegisteredSealProof> &supported_proofs) {
     CborEncodeStream arg;
     arg << min_verified_deal_size << consensus_miner_min_power;
     arg << supported_proofs.size();
@@ -52,6 +53,10 @@ namespace fc::vm::actor::cgo {
       arg << proof;
     }
     cgoCall<cgoActorsConfig>(arg);
+  }
+
+  void configMainnet() {
+    cgoCall<cgoActorsConfigMainnet>(BytesIn{});
   }
 
   constexpr auto kFatal{VMExitCode::kFatal};
@@ -240,7 +245,7 @@ namespace fc::vm::actor::cgo {
   }
 
   RUNTIME_METHOD(gocRtCommD) {
-    auto type{arg.get<RegisteredProof>()};
+    auto type{arg.get<RegisteredSealProof>()};
     auto pieces{arg.get<std::vector<PieceInfo>>()};
 
     if (auto cid{rt->computeUnsealedSectorCid(type, pieces)}) {
@@ -337,6 +342,14 @@ namespace fc::vm::actor::cgo {
       ret << kOk;
     } else {
       ret << kFatal;
+    }
+  }
+
+  RUNTIME_METHOD(gocRtCirc) {
+    if (auto _amount{rt->getTotalFilCirculationSupply()}) {
+      ret << kOk << _amount.value();
+    } else {
+      ret << VMExitCode::kErrIllegalState;
     }
   }
 }  // namespace fc::vm::actor::cgo

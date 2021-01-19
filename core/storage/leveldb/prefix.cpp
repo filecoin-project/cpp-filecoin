@@ -51,10 +51,9 @@ namespace fc::storage {
     return cursor->value();
   }
 
-  MapPrefix::MapPrefix(BytesIn prefix, std::shared_ptr<BufferMap> map)
-      : prefix{prefix}, map{map} {}
+  MapPrefix::MapPrefix(BytesIn prefix, MapPtr map) : prefix{prefix}, map{map} {}
 
-  MapPrefix::MapPrefix(std::string_view prefix, std::shared_ptr<BufferMap> map)
+  MapPrefix::MapPrefix(std::string_view prefix, MapPtr map)
       : MapPrefix{common::span::cbytes(prefix), map} {}
 
   Buffer MapPrefix::_key(BytesIn key) const {
@@ -87,5 +86,22 @@ namespace fc::storage {
 
   std::unique_ptr<BufferMapCursor> MapPrefix::cursor() {
     return std::make_unique<Cursor>(*this, map->cursor());
+  }
+
+  OneKey::OneKey(BytesIn key, MapPtr map) : key{key}, map{map} {}
+
+  OneKey::OneKey(std::string_view key, MapPtr map)
+      : OneKey{common::span::cbytes(key), map} {}
+
+  bool OneKey::has() const {
+    return map->contains(key);
+  }
+
+  Buffer OneKey::get() const {
+    return map->get(key).value();
+  }
+
+  void OneKey::set(Buffer value) {
+    map->put(key, std::move(value)).assume_value();
   }
 }  // namespace fc::storage

@@ -11,7 +11,7 @@ namespace fc::sector_storage {
 
   outcome::result<bool> AllocateSelector::is_satisfying(
       const TaskType &task,
-      RegisteredProof seal_proof_type,
+      RegisteredSealProof seal_proof_type,
       const std::shared_ptr<WorkerHandle> &worker) {
     OUTCOME_TRY(tasks, worker->worker->getSupportedTask());
     if (tasks.find(task) == tasks.end()) {

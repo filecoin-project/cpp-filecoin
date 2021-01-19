@@ -73,7 +73,7 @@ namespace fc::mining {
     }
 
     SectorNumber sector_id;
-    RegisteredProof seal_proof_type;
+    RegisteredSealProof seal_proof_type;
   };
 
   struct SectorStartWithPiecesContext final : public SealingEventContext {
@@ -85,7 +85,7 @@ namespace fc::mining {
     }
 
     SectorNumber sector_id;
-    RegisteredProof seal_proof_type;
+    RegisteredSealProof seal_proof_type;
     std::vector<types::Piece> pieces;
   };
 

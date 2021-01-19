@@ -50,7 +50,7 @@ namespace fc::sector_storage::stores {
 
   outcome::result<AcquireSectorResponse> RemoteStoreImpl::acquireSector(
       SectorId sector,
-      RegisteredProof seal_proof_type,
+      RegisteredSealProof seal_proof_type,
       SectorFileType existing,
       SectorFileType allocate,
       PathType path_type,
@@ -181,7 +181,9 @@ namespace fc::sector_storage::stores {
   }
 
   outcome::result<void> RemoteStoreImpl::moveStorage(
-      SectorId sector, RegisteredProof seal_proof_type, SectorFileType types) {
+      SectorId sector,
+      RegisteredSealProof seal_proof_type,
+      SectorFileType types) {
     OUTCOME_TRY(acquireSector(sector,
                               seal_proof_type,
                               types,

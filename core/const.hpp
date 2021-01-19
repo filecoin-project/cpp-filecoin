@@ -17,6 +17,7 @@ namespace fc {
   constexpr auto kBlocksPerEpoch{5};
   constexpr auto kConsensusMinerMinMiners{3};
   constexpr auto kEpochDurationSeconds{30};
+  constexpr uint64_t kFilReserve{300000000};
   constexpr uint64_t kFilecoinPrecision{1000000000000000000};
   constexpr auto kGasLimitOverestimation{1.25};
   constexpr auto kMessageConfidence{5};

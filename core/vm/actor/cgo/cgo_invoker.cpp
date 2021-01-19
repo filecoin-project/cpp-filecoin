@@ -13,7 +13,7 @@ namespace fc::vm::actor::cgo {
   void CgoInvoker::config(
       const StoragePower &min_verified_deal_size,
       const StoragePower &consensus_miner_min_power,
-      const std::vector<RegisteredProof> &supported_proofs) {
+      const std::vector<RegisteredSealProof> &supported_proofs) {
     ::fc::vm::actor::cgo::config(
         min_verified_deal_size, consensus_miner_min_power, supported_proofs);
   }

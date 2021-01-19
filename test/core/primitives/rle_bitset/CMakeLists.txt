@@ -10,3 +10,11 @@ target_link_libraries(rle_bitset_test
     rle_bitset
     hexutil
     )
+
+addtest(runs_utils_test
+    runs_utils_test.cpp
+    )
+
+target_link_libraries(runs_utils_test
+    runs_utils
+    )

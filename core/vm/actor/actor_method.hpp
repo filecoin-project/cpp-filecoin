@@ -53,7 +53,11 @@ namespace fc::vm::actor {
         M::Number,
         ActorMethod{[](auto &runtime,
                        auto &params) -> outcome::result<InvocationOutput> {
-          OUTCOME_TRY(params2, decodeActorParams<typename M::Params>(params));
+          OUTCOME_TRY(
+              params2,
+              decodeActorParams<typename M::Params>(
+                  params,
+                  runtime.getNetworkVersion() >= NetworkVersion::kVersion7));
           OUTCOME_TRY(result, M::call(runtime, params2));
           return encodeActorReturn(result);
         }});

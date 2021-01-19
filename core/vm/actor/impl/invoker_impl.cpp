@@ -69,7 +69,7 @@ namespace fc::vm::actor {
   void InvokerImpl::config(
       const StoragePower &min_verified_deal_size,
       const StoragePower &consensus_miner_min_power,
-      const std::vector<RegisteredProof> &supported_proofs) {
+      const std::vector<RegisteredSealProof> &supported_proofs) {
     // TODO (a.chernyshov) implement
   }
 

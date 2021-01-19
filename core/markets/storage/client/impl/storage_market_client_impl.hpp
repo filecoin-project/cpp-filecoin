@@ -85,7 +85,8 @@ namespace fc::markets::storage::client {
         const ChainEpoch &end_epoch,
         const TokenAmount &price,
         const TokenAmount &collateral,
-        const RegisteredProof &registered_proof) override;
+        const RegisteredSealProof &registered_proof,
+        bool is_fast_retrieval) override;
 
     outcome::result<StorageParticipantBalance> getPaymentEscrow(
         const Address &address) const override;
@@ -99,7 +100,8 @@ namespace fc::markets::storage::client {
         const StorageProviderInfo &info) const;
 
     outcome::result<std::pair<CID, UnpaddedPieceSize>> calculateCommP(
-        const RegisteredProof &registered_proof, const DataRef &data_ref) const;
+        const RegisteredSealProof &registered_proof,
+        const DataRef &data_ref) const;
 
     outcome::result<ClientDealProposal> signProposal(
         const Address &address, const DealProposal &proposal) const;
