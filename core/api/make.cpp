@@ -706,6 +706,7 @@ namespace fc::api {
         .StateMinerProvingDeadline = {[=](auto &address, auto &tipset_key)
                                           -> outcome::result<DeadlineInfo> {
           OUTCOME_TRY(context, tipsetContext(tipset_key));
+          // TODO (a.chernyshov) miner version depends on height
           OUTCOME_TRY(state, context.minerState(address));
           const auto deadline_info =
               state.deadlineInfo(context.tipset->height());
