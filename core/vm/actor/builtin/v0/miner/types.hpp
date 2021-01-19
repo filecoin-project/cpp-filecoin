@@ -330,10 +330,11 @@ namespace fc::vm::actor::builtin::v0::miner {
                                                 const CID &empty_amt_cid) {
       OUTCOME_TRY(deadline, Deadline::makeEmpty(ipld, empty_amt_cid));
       OUTCOME_TRY(deadline_cid, ipld->setCbor(deadline));
-      return Deadlines{std::vector(kWPoStPeriodDeadlines, deadline_cid)};
+      return Deadlines{
+          std::vector(kWPoStPeriodDeadlines, CIDT<Deadline>(deadline_cid))};
     }
 
-    std::vector<CID> due;
+    std::vector<CIDT<Deadline>> due;
   };
   CBOR_TUPLE(Deadlines, due)
 

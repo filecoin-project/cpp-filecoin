@@ -120,20 +120,15 @@ namespace fc::vm::actor::builtin::v0::miner {
     OUTCOME_TRY(empty_amt_cid, state.precommitted_setctors_expiry.amt.flush());
 
     RleBitset allocated_sectors;
-    OUTCOME_TRY(allocated_sectors_cid,
-                runtime.getIpfsDatastore()->setCbor(allocated_sectors));
-    state.allocated_sectors = allocated_sectors_cid;
+    OUTCOME_TRY(state.allocated_sectors.set(allocated_sectors));
 
     OUTCOME_TRY(
         deadlines,
         Deadlines::makeEmpty(runtime.getIpfsDatastore(), empty_amt_cid));
-    OUTCOME_TRY(deadlines_cid, runtime.getIpfsDatastore()->setCbor(deadlines));
-    state.deadlines = deadlines_cid;
+    OUTCOME_TRY(state.deadlines.set(deadlines));
 
     VestingFunds vesting_funds;
-    OUTCOME_TRY(vesting_funds_cid,
-                runtime.getIpfsDatastore()->setCbor(vesting_funds));
-    state.vesting_funds = vesting_funds_cid;
+    OUTCOME_TRY(state.vesting_funds.set(vesting_funds));
 
     const auto current_epoch = runtime.getCurrentEpoch();
     const auto offset = assignProvingPeriodOffset(runtime, current_epoch);
@@ -150,9 +145,7 @@ namespace fc::vm::actor::builtin::v0::miner {
                                 params.peer_id,
                                 params.multiaddresses,
                                 params.seal_proof_type));
-    OUTCOME_TRY(miner_info_cid,
-                runtime.getIpfsDatastore()->setCbor(miner_info));
-    state.info = miner_info_cid;
+    OUTCOME_TRY(state.info.set(miner_info));
 
     // construct with empty already cid stored in ipld to avoid gas charge
     state.sectors = adt::Array<SectorOnChainInfo>(empty_amt_cid,

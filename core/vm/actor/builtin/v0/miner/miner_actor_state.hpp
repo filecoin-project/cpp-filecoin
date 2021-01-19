@@ -25,11 +25,11 @@ namespace fc::vm::actor::builtin::v0::miner {
    * the sum of PCD, LF and InitialPledgeRequirements, and this is a bad
    * state (IP Debt) that limits a miner actor's behavior (i.e. no balance
    * withdrawals) Excess balance as computed by st.GetAvailableBalance will be
-   * withdrawable or usable for pre-commit deposit or pledge lock-up.
+   * withdrawable or usable for pre-commit deposit <or> pledge lock-up.
    */
   struct State {
     /** Information not related to sectors. */
-    CID info;  // MinerInfo
+    CIDT<MinerInfo> info;
 
     /** Total funds locked as PreCommitDeposits */
     TokenAmount precommit_deposit;
@@ -38,7 +38,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     TokenAmount locked_funds;
 
     /** VestingFunds (Vesting Funds schedule for the miner). */
-    CID vesting_funds;  // VestingFunds
+    CIDT<VestingFunds> vesting_funds;
 
     /// Sum of initial pledge requirements of all active sectors
     TokenAmount initial_pledge_requirement;
@@ -58,7 +58,7 @@ namespace fc::vm::actor::builtin::v0::miner {
      * Allocated sector IDs. Sector IDs can never be reused once allocated.
      * RleBitset
      */
-    CID allocated_sectors;
+    CIDT<RleBitset> allocated_sectors;
 
     /**
      * Information for all proven and not-yet-garbage-collected sectors.
@@ -92,7 +92,7 @@ namespace fc::vm::actor::builtin::v0::miner {
      * removed at proving period boundary. Faults are not subtracted from this
      * in state, but on the fly.
      */
-    CID deadlines;
+    CIDT<Deadlines> deadlines;
 
     /** Deadlines with outstanding fees for early sector termination. */
     RleBitset early_terminations;
