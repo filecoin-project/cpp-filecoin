@@ -7,35 +7,23 @@
 
 #include <gtest/gtest.h>
 
-#include "storage/ipfs/impl/in_memory_datastore.hpp"
-#include "testutil/mocks/vm/runtime/runtime_mock.hpp"
-#include "vm/actor/actor.hpp"
-#include "vm/state/impl/state_tree_impl.hpp"
+#include "testutil/vm/actor/builtin/actor_test_fixture.hpp"
 
 namespace VerifiedRegistry = fc::vm::actor::builtin::v2::verified_registry;
 using fc::primitives::address::Address;
-using fc::storage::ipfs::InMemoryDatastore;
+using fc::testutil::vm::actor::builtin::ActorTestFixture;
 using fc::vm::VMAbortExitCode;
 using fc::vm::VMExitCode;
 using fc::vm::actor::kStorageMarketAddress;
 using fc::vm::actor::kSystemActorAddress;
-using fc::vm::runtime::MockRuntime;
-using fc::vm::state::StateTreeImpl;
-using testing::Return;
 using VerifiedRegistry::DataCap;
 using VerifiedRegistry::kMinVerifiedDealSize;
 using VerifiedRegistry::StoragePower;
 
-struct VerifiedRegistryActorTest : testing::Test {
+struct VerifiedRegistryActorTest
+    : public ActorTestFixture<VerifiedRegistry::State> {
   void SetUp() override {
-    EXPECT_CALL(runtime, getIpfsDatastore())
-        .Times(testing::AnyNumber())
-        .WillRepeatedly(Return(ipld));
-
-    EXPECT_CALL(runtime, resolveAddress(testing::_))
-        .Times(testing::AnyNumber())
-        .WillRepeatedly(testing::Invoke(
-            [&](auto &address) { return state_tree.lookupId(address); }));
+    ActorTestFixture<VerifiedRegistry::State>::SetUp();
 
     EXPECT_CALL(runtime, getImmediateCaller())
         .Times(testing::AnyNumber())
@@ -48,15 +36,6 @@ struct VerifiedRegistryActorTest : testing::Test {
           return std::move(cid);
         }));
 
-    EXPECT_CALL(runtime, commit(testing::_))
-        .Times(testing::AtMost(1))
-        .WillOnce(testing::Invoke([&](auto &cid) {
-          EXPECT_OUTCOME_TRUE(new_state,
-                              ipld->getCbor<VerifiedRegistry::State>(cid));
-          state = std::move(new_state);
-          return fc::outcome::success();
-        }));
-
     ipld->load(state);
     setupState();
   }
@@ -65,21 +44,12 @@ struct VerifiedRegistryActorTest : testing::Test {
     state.root_key = root_key;
   }
 
-  MockRuntime runtime;
-
-  std::shared_ptr<InMemoryDatastore> ipld{
-      std::make_shared<InMemoryDatastore>()};
-
   Address caller{Address::makeFromId(101)};
   Address root_key{Address::makeFromId(102)};
   Address wrong_caller{Address::makeFromId(999)};
 
   Address verifier{Address::makeFromId(103)};
   Address verified_client{Address::makeFromId(104)};
-
-  VerifiedRegistry::State state;
-
-  StateTreeImpl state_tree{ipld};
 };
 
 /// VerifiedRegistryActor Construct error: caller is not system actor
