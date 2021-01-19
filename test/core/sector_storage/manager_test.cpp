@@ -38,7 +38,7 @@ class ManagerTest : public ::testing::Test {
       setenv("HOME", home_dir_.c_str(), 1);
     }
 
-    seal_proof_type_ = RegisteredProof::StackedDRG2KiBSeal;
+    seal_proof_type_ = RegisteredSealProof::StackedDrg2KiBV1;
 
     sector_index_ = std::make_shared<SectorIndexMock>();
 
@@ -91,7 +91,7 @@ class ManagerTest : public ::testing::Test {
   }
 
  protected:
-  RegisteredProof seal_proof_type_;
+  RegisteredSealProof seal_proof_type_;
 
   std::shared_ptr<SectorIndexMock> sector_index_;
   std::shared_ptr<LocalStorageMock> local_storage_;

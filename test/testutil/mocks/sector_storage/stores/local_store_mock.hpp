@@ -20,7 +20,7 @@ namespace fc::sector_storage::stores {
 
     MOCK_METHOD6(acquireSector,
                  outcome::result<AcquireSectorResponse>(SectorId,
-                                                        RegisteredProof,
+                                                        RegisteredSealProof,
                                                         SectorFileType,
                                                         SectorFileType,
                                                         PathType path_type,
@@ -32,7 +32,7 @@ namespace fc::sector_storage::stores {
 
     MOCK_METHOD3(moveStorage,
                  outcome::result<void>(SectorId,
-                                       RegisteredProof,
+                                       RegisteredSealProof,
                                        SectorFileType));
 
     MOCK_METHOD1(getFsStat, outcome::result<FsStat>(StorageID));
@@ -41,12 +41,12 @@ namespace fc::sector_storage::stores {
 
     MOCK_CONST_METHOD0(getSectorIndex, std::shared_ptr<SectorIndex>());
 
-    MOCK_METHOD4(
-        reserve,
-        outcome::result<std::function<void()>>(RegisteredProof seal_proof_type,
-                                               SectorFileType file_type,
-                                               const SectorPaths &storages,
-                                               PathType path_type));
+    MOCK_METHOD4(reserve,
+                 outcome::result<std::function<void()>>(
+                     RegisteredSealProof seal_proof_type,
+                     SectorFileType file_type,
+                     const SectorPaths &storages,
+                     PathType path_type));
   };
 }  // namespace fc::sector_storage::stores
 

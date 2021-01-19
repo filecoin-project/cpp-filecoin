@@ -48,9 +48,14 @@ namespace fc::vm::actor {
     using fc::vm::actor::decodeActorParams;
 
     // 80 is cbor empty list, not int
-    EXPECT_OUTCOME_ERROR(VMExitCode::kDecodeActorParamsError,
-                         decodeActorParams<int>(MethodParams{"80"_unhex}));
-    EXPECT_OUTCOME_EQ(decodeActorParams<int>(MethodParams{"03"_unhex}), 3);
+    EXPECT_OUTCOME_ERROR(
+        VMExitCode::kErrSerializationPre7,
+        decodeActorParams<int>(MethodParams{"80"_unhex}, false));
+    EXPECT_OUTCOME_ERROR(
+        VMExitCode::kErrSerialization,
+        decodeActorParams<int>(MethodParams{"80"_unhex}, true));
+    EXPECT_OUTCOME_EQ(decodeActorParams<int>(MethodParams{"03"_unhex}, false),
+                      3);
   }
 
   /// encodeActorParams returns error or encoded params

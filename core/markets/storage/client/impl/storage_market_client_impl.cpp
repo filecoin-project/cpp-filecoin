@@ -50,6 +50,7 @@ namespace fc::markets::storage::client {
   using host::HostContextImpl;
   using libp2p::peer::PeerId;
   using primitives::BigInt;
+  using primitives::sector::RegisteredSealProof;
   using vm::VMExitCode;
   using vm::actor::kStorageMarketAddress;
   using vm::actor::builtin::v0::market::PublishStorageDeals;
@@ -253,7 +254,8 @@ namespace fc::markets::storage::client {
       const ChainEpoch &end_epoch,
       const TokenAmount &price,
       const TokenAmount &collateral,
-      const RegisteredProof &registered_proof) {
+      const RegisteredSealProof &registered_proof,
+      bool is_fast_retrieval) {
     OUTCOME_TRY(comm_p_res, calculateCommP(registered_proof, data_ref));
     CID comm_p = comm_p_res.first;
     UnpaddedPieceSize piece_size = comm_p_res.second;
@@ -285,6 +287,7 @@ namespace fc::markets::storage::client {
                    .miner_worker = provider_info.worker,
                    .deal_id = {},
                    .data_ref = data_ref,
+                   .is_fast_retrieval = is_fast_retrieval,
                    .message = {},
                    .publish_message = {}});
     OUTCOME_TRY(
@@ -372,7 +375,8 @@ namespace fc::markets::storage::client {
 
   outcome::result<std::pair<CID, UnpaddedPieceSize>>
   StorageMarketClientImpl::calculateCommP(
-      const RegisteredProof &registered_proof, const DataRef &data_ref) const {
+      const RegisteredSealProof &registered_proof,
+      const DataRef &data_ref) const {
     if (data_ref.piece_cid.has_value()) {
       return std::pair(data_ref.piece_cid.value(), data_ref.piece_size);
     }
@@ -400,7 +404,7 @@ namespace fc::markets::storage::client {
       std::shared_ptr<ClientDeal> deal) {
     OUTCOME_TRY(
         maybe_cid,
-        api_->MarketEnsureAvailable(
+        api_->MarketReserveFunds(
             deal->client_deal_proposal.proposal.client,
             deal->client_deal_proposal.proposal.client,
             deal->client_deal_proposal.proposal.clientBalanceRequirement()));
@@ -587,7 +591,8 @@ namespace fc::markets::storage::client {
     FSM_HALT_ON_ERROR(stream, "Stream not found.", deal);
 
     Proposal proposal{.deal_proposal = deal->client_deal_proposal,
-                      .piece = deal->data_ref};
+                      .piece = deal->data_ref,
+                      .is_fast_retrieval = deal->is_fast_retrieval};
     stream.value()->write(
         proposal,
         [self{shared_from_this()}, deal, stream](

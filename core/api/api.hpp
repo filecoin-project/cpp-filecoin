@@ -14,6 +14,7 @@
 #include "common/todo_error.hpp"
 #include "const.hpp"
 #include "crypto/randomness/randomness_types.hpp"
+#include "markets/retrieval/types.hpp"
 #include "markets/storage/ask_protocol.hpp"
 #include "markets/storage/deal_protocol.hpp"
 #include "markets/storage/types.hpp"
@@ -44,6 +45,7 @@ namespace fc::api {
   using crypto::signature::Signature;
   using libp2p::peer::PeerId;
   using libp2p::peer::PeerInfo;
+  using markets::retrieval::RetrievalAsk;
   using markets::storage::DataRef;
   using markets::storage::SignedStorageAsk;
   using markets::storage::StorageDeal;
@@ -64,7 +66,7 @@ namespace fc::api {
   using primitives::block::BlockTemplate;
   using primitives::block::BlockWithCids;
   using primitives::cid::Comm;
-  using primitives::sector::RegisteredProof;
+  using primitives::piece::PaddedPieceSize;
   using primitives::sector::SectorInfo;
   using primitives::tipset::HeadChange;
   using primitives::tipset::Tipset;
@@ -349,27 +351,39 @@ namespace fc::api {
                const FileRef &)
     API_METHOD(ClientStartDeal, Wait<CID>, const StartDealParams &)
 
+    API_METHOD(DealsImportData, void, const CID &, const std::string &)
+
     API_METHOD(GasEstimateMessageGas,
                UnsignedMessage,
                const UnsignedMessage &,
                const boost::optional<MessageSendSpec> &,
                const TipsetKey &)
 
+    API_METHOD(MarketGetAsk, SignedStorageAsk)
+    API_METHOD(MarketGetRetrievalAsk, RetrievalAsk)
     /**
      * Ensures that a storage market participant has a certain amount of
      * available funds. If additional funds are needed, they will be sent from
      * the 'wallet' address callback is immediately called if sufficient funds
      * are available
-     * @param address to ensure
      * @param wallet to send from
+     * @param address to ensure
      * @param amount to ensure
      * @return CID of transfer message if message was sent
      */
-    API_METHOD(MarketEnsureAvailable,
+    API_METHOD(MarketReserveFunds,
                boost::optional<CID>,
                const Address &,
                const Address &,
                const TokenAmount &)
+    API_METHOD(MarketSetAsk,
+               void,
+               const TokenAmount &,
+               const TokenAmount &,
+               ChainEpoch,
+               PaddedPieceSize,
+               PaddedPieceSize)
+    API_METHOD(MarketSetRetrievalAsk, void, const RetrievalAsk &)
 
     API_METHOD(MinerCreateBlock, BlockWithCids, const BlockTemplate &)
     API_METHOD(MinerGetBaseInfo,

@@ -9,6 +9,7 @@
 #include "storage/buffer_map.hpp"
 #include "vm/actor/invoker.hpp"
 #include "vm/interpreter/interpreter.hpp"
+#include "vm/runtime/circulating.hpp"
 #include "vm/runtime/runtime_randomness.hpp"
 #include "vm/runtime/runtime_types.hpp"
 
@@ -21,8 +22,9 @@ namespace fc::vm::interpreter {
 
   class InterpreterImpl : public Interpreter {
    public:
-    explicit InterpreterImpl(std::shared_ptr<Invoker> invoker,
-                             std::shared_ptr<RuntimeRandomness> randomness);
+    InterpreterImpl(std::shared_ptr<Invoker> invoker,
+                    std::shared_ptr<RuntimeRandomness> randomness,
+                    std::shared_ptr<Circulating> circulating);
 
     outcome::result<Result> interpret(const IpldPtr &store,
                                       const TipsetCPtr &tipset) const override;
@@ -39,6 +41,7 @@ namespace fc::vm::interpreter {
 
     std::shared_ptr<Invoker> invoker_;
     std::shared_ptr<RuntimeRandomness> randomness_;
+    std::shared_ptr<Circulating> circulating_;
   };
 
   class CachedInterpreter : public Interpreter {

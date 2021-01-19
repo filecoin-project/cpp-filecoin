@@ -93,5 +93,10 @@ namespace fc::primitives::piece {
   PaddedByteIndex paddedIndex(UnpaddedByteIndex index);
   UnpaddedByteIndex unpaddedIndex(PaddedByteIndex index);
 
+  const uint64_t kMultithreadingTreshold = uint64_t(32) << 20;
+
+  void pad(gsl::span<const uint8_t> in, gsl::span<uint8_t> out);
+  void unpad(gsl::span<const uint8_t> in, gsl::span<uint8_t> out);
+
 };      // namespace fc::primitives::piece
 #endif  // CPP_FILECOIN_PIECE_HPP

@@ -19,7 +19,7 @@ namespace fc::sector_storage {
 
     outcome::result<bool> is_satisfying(
         const TaskType &task,
-        RegisteredProof seal_proof_type,
+        RegisteredSealProof seal_proof_type,
         const std::shared_ptr<WorkerHandle> &worker) override;
 
     outcome::result<bool> is_preferred(

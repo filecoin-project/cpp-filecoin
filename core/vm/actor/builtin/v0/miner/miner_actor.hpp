@@ -206,7 +206,6 @@ namespace fc::vm::actor::builtin::v0::miner {
     struct Params {
       std::vector<SectorDeclaration> faults;
     };
-
     ACTOR_METHOD_DECL();
   };
   CBOR_TUPLE(DeclareFaults::Params, faults)

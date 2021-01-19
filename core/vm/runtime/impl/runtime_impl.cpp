@@ -44,7 +44,7 @@ namespace fc::vm::runtime {
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
     return execution_->env->randomness->getRandomnessFromTickets(
-        tag, epoch, seed);
+        execution_->env->tipset, tag, epoch, seed);
   }
 
   outcome::result<Randomness> RuntimeImpl::getRandomnessFromBeacon(
@@ -52,7 +52,7 @@ namespace fc::vm::runtime {
       ChainEpoch epoch,
       gsl::span<const uint8_t> seed) const {
     return execution_->env->randomness->getRandomnessFromBeacon(
-        tag, epoch, seed);
+        execution_->env->tipset, tag, epoch, seed);
   }
 
   Address RuntimeImpl::getImmediateCaller() const {
@@ -162,8 +162,10 @@ namespace fc::vm::runtime {
 
   outcome::result<TokenAmount> RuntimeImpl::getTotalFilCirculationSupply()
       const {
-    // TODO(a.chernyshov) implement
-    // 0 is for test vectors
+    if (auto circulating{execution_->env->circulating}) {
+      return circulating->circulating(execution_->state_tree,
+                                      getCurrentEpoch());
+    }
     return 0;
   }
 
@@ -262,7 +264,7 @@ namespace fc::vm::runtime {
   }
 
   outcome::result<CID> RuntimeImpl::computeUnsealedSectorCid(
-      RegisteredProof type, const std::vector<PieceInfo> &pieces) {
+      RegisteredSealProof type, const std::vector<PieceInfo> &pieces) {
     OUTCOME_TRY(
         chargeGas(execution_->env->pricelist.onComputeUnsealedSectorCid()));
     return proofs::Proofs::generateUnsealedCID(type, pieces, true);

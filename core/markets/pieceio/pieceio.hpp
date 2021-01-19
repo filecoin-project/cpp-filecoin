@@ -17,23 +17,19 @@ namespace fc::markets::pieceio {
   using common::Buffer;
   using fc::storage::ipld::Selector;
   using primitives::piece::UnpaddedPieceSize;
-  using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredSealProof;
 
   class PieceIO {
    public:
     virtual ~PieceIO() = default;
 
     virtual outcome::result<std::pair<CID, UnpaddedPieceSize>>
-    generatePieceCommitment(const RegisteredProof &registered_proof,
+    generatePieceCommitment(const RegisteredSealProof &registered_proof,
                             const CID &payload_cid,
                             const Selector &selector) = 0;
 
     virtual outcome::result<std::pair<CID, UnpaddedPieceSize>>
-    generatePieceCommitment(const RegisteredProof &registered_proof,
-                            const Buffer &piece) = 0;
-
-    virtual outcome::result<std::pair<CID, UnpaddedPieceSize>>
-    generatePieceCommitment(const RegisteredProof &registered_proof,
+    generatePieceCommitment(const RegisteredSealProof &registered_proof,
                             const std::string &piece_path) = 0;
   };
 

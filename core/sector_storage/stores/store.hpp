@@ -41,7 +41,7 @@ namespace fc::sector_storage::stores {
 
     virtual outcome::result<AcquireSectorResponse> acquireSector(
         SectorId sector,
-        RegisteredProof seal_proof_type,
+        RegisteredSealProof seal_proof_type,
         SectorFileType existing,
         SectorFileType allocate,
         PathType path_type,
@@ -57,9 +57,10 @@ namespace fc::sector_storage::stores {
     virtual outcome::result<void> removeCopies(SectorId sector,
                                                SectorFileType type) = 0;
 
-    virtual outcome::result<void> moveStorage(SectorId sector,
-                                              RegisteredProof seal_proof_type,
-                                              SectorFileType types) = 0;
+    virtual outcome::result<void> moveStorage(
+        SectorId sector,
+        RegisteredSealProof seal_proof_type,
+        SectorFileType types) = 0;
 
     virtual outcome::result<FsStat> getFsStat(StorageID id) = 0;
 
@@ -78,7 +79,7 @@ namespace fc::sector_storage::stores {
     virtual std::shared_ptr<LocalStorage> getLocalStorage() const = 0;
 
     virtual outcome::result<std::function<void()>> reserve(
-        RegisteredProof seal_proof_type,
+        RegisteredSealProof seal_proof_type,
         SectorFileType file_type,
         const SectorPaths &storages,
         PathType path_type) = 0;

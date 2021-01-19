@@ -15,7 +15,7 @@ namespace fc::sector_storage {
    public:
     MOCK_METHOD2(checkProvable,
                  outcome::result<std::vector<SectorId>>(
-                     RegisteredProof, gsl::span<const SectorId>));
+                     RegisteredSealProof, gsl::span<const SectorId>));
 
     MOCK_METHOD0(getSectorSize, SectorSize());
 

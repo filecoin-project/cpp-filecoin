@@ -12,20 +12,24 @@
 namespace fc::vm::runtime {
   using primitives::GasAmount;
   using primitives::TokenAmount;
-  using primitives::sector::RegisteredProof;
+  using primitives::sector::RegisteredPoStProof;
   using primitives::sector::WindowPoStVerifyInfo;
 
   struct Pricelist {
-    GasAmount make(GasAmount compute, GasAmount storage) const {
-      return compute + storage * 1000;
+    inline GasAmount make(GasAmount compute, GasAmount storage) const {
+      return compute + storage;
     }
-    GasAmount onChainMessage(size_t size) const {
-      return make(38863, 36 + size);
+    inline GasAmount storage(GasAmount gas) const {
+      return (calico ? 1300 : 1000) * gas;
     }
-    GasAmount onChainReturnValue(size_t size) const {
-      return make(0, size);
+    inline GasAmount onChainMessage(size_t size) const {
+      return make(38863, storage(36 + size));
     }
-    GasAmount onMethodInvocation(TokenAmount value, uint64_t method) const {
+    inline GasAmount onChainReturnValue(size_t size) const {
+      return make(0, storage(size));
+    }
+    inline GasAmount onMethodInvocation(TokenAmount value,
+                                        uint64_t method) const {
       GasAmount gas{29233};
       if (value != 0) {
         gas += 27500;
@@ -38,45 +42,54 @@ namespace fc::vm::runtime {
       }
       return make(gas, 0);
     }
-    GasAmount onIpldGet() const {
-      return make(75242, 0);
+    inline GasAmount onIpldGet() const {
+      return make(calico ? 114617 : 75242, 0);
     }
-    GasAmount onIpldPut(size_t size) const {
-      return make(84070, size);
+    inline GasAmount onIpldPut(size_t size) const {
+      return make(calico ? 353640 : 84070, storage(size));
     }
-    GasAmount onCreateActor() const {
-      return make(1108454, 36 + 40);
+    inline GasAmount onCreateActor() const {
+      return make(1108454, storage(36 + 40));
     }
-    GasAmount onDeleteActor() const {
-      return make(0, -(36 + 40));
+    inline GasAmount onDeleteActor() const {
+      return make(0, storage(-(36 + 40)));
     }
-    GasAmount onVerifySignature(bool bls) const {
+    inline GasAmount onVerifySignature(bool bls) const {
       return make(bls ? 16598605 : 1637292, 0);
     }
-    GasAmount onHashing() const {
+    inline GasAmount onHashing() const {
       return make(31355, 0);
     }
-    GasAmount onComputeUnsealedSectorCid() const {
+    inline GasAmount onComputeUnsealedSectorCid() const {
       return make(98647, 0);
     }
-    GasAmount onVerifySeal() const {
+    inline GasAmount onVerifySeal() const {
       return make(2000, 0);
     }
-    GasAmount onVerifyPost(const WindowPoStVerifyInfo &info) const {
+    inline GasAmount onVerifyPost(const WindowPoStVerifyInfo &info) const {
       int64_t flat{123861062}, scale{9226981};
-      if (!info.proofs.empty()) {
+      if (calico) {
+        flat = 117680921;
+        scale = 43780;
+      } else if (!info.proofs.empty()) {
         auto type{info.proofs[0].registered_proof};
-        if (type == RegisteredProof::StackedDRG32GiBWindowPoSt
-            || type == RegisteredProof::StackedDRG64GiBWindowPoSt) {
+        if (type == RegisteredPoStProof::StackedDRG32GiBWindowPoSt
+            || type == RegisteredPoStProof::StackedDRG64GiBWindowPoSt) {
           flat = 748593537;
           scale = 85639;
         }
       }
-      return make((flat + scale * info.challenged_sectors.size()) / 2, 0);
+      auto gas{flat + scale * info.challenged_sectors.size()};
+      if (!calico) {
+        gas /= 2;
+      }
+      return make(gas, 0);
     }
-    GasAmount onVerifyConsensusFault() const {
+    inline GasAmount onVerifyConsensusFault() const {
       return make(495422, 0);
     }
+
+    bool calico{};
   };
 }  // namespace fc::vm::runtime
 

@@ -32,6 +32,8 @@ OUTCOME_CPP_DEFINE_CATEGORY(fc::sector_storage, WorkerErrors, e) {
       return "Worker: the platfrom not supported ";
     case (WorkerErrors::kOutOfBound):
       return "Worker: Piece will exceed the maximum size";
+    case (WorkerErrors::kCannotOpenFile):
+      return "Worker: Cannot open file";
     default:
       return "Worker: unknown error";
   }

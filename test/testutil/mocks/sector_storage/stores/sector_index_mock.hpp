@@ -33,16 +33,17 @@ namespace fc::sector_storage::stores {
                                        const SectorId &sector,
                                        const SectorFileType &file_type));
 
-    MOCK_METHOD3(storageFindSector,
-                 outcome::result<std::vector<StorageInfo>>(
-                     const SectorId &sector,
-                     const SectorFileType &file_type,
-                     boost::optional<RegisteredProof> fetch_seal_proof_type));
+    MOCK_METHOD3(
+        storageFindSector,
+        outcome::result<std::vector<StorageInfo>>(
+            const SectorId &sector,
+            const SectorFileType &file_type,
+            boost::optional<RegisteredSealProof> fetch_seal_proof_type));
 
     MOCK_METHOD3(storageBestAlloc,
                  outcome::result<std::vector<StorageInfo>>(
                      const SectorFileType &allocate,
-                     RegisteredProof seal_proof_type,
+                     RegisteredSealProof seal_proof_type,
                      bool sealing_mode));
 
     MOCK_METHOD3(storageLock,
