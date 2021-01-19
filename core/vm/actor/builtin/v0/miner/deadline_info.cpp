@@ -13,9 +13,9 @@ namespace fc::vm::actor::builtin::v0::miner {
                              size_t deadline_index,
                              ChainEpoch now) {
     if (deadline_index < kWPoStPeriodDeadlines) {
-      auto deadline_open{start
-                         + static_cast<ChainEpoch>(deadline_index)
-                               * kWPoStChallengeWindow};
+      const auto deadline_open{start
+                               + static_cast<ChainEpoch>(deadline_index)
+                                     * kWPoStChallengeWindow};
       current_epoch = now;
       period_start = start;
       index = deadline_index;
