@@ -16,9 +16,8 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kSystemActorAddress));
 
     const auto id_addr = runtime.resolveAddress(params);
-    if (id_addr.has_error()) {
-      return ABORT_CAST(VMExitCode::kErrIllegalArgument);
-    }
+
+    OUTCOME_TRY(runtime.validateArgument(!id_addr.has_error()));
 
     State state(id_addr.value());
     IpldPtr {
@@ -33,14 +32,12 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   // AddVerifier
   //============================================================================
 
-  outcome::result<void> AddVerifier::addVerifier(State &state,
+  outcome::result<void> AddVerifier::addVerifier(const Runtime &runtime,
+                                                 State &state,
                                                  const Address &verifier,
                                                  const DataCap &allowance) {
     const auto found = state.verified_clients.tryGet(verifier);
-    REQUIRE_NO_ERROR(found, VMExitCode::kErrIllegalState);
-    if (found.value()) {
-      return ABORT_CAST(VMExitCode::kErrIllegalArgument);
-    }
+    OUTCOME_TRY(runtime.validateArgument(!found.value().has_value()));
 
     const auto result = state.verifiers.set(verifier, allowance);
     REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
@@ -55,7 +52,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     OUTCOME_TRYA(
         state,
         runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
-    OUTCOME_TRY(addVerifier(state, params.address, params.allowance));
+    OUTCOME_TRY(addVerifier(runtime, state, params.address, params.allowance));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -94,14 +91,11 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     // Validate client to be added isn't a verifier
     const auto address_cap = state.verifiers.tryGet(client);
     REQUIRE_NO_ERROR(address_cap, VMExitCode::kErrIllegalState);
-    if (address_cap.value()) {
-      return ABORT_CAST(VMExitCode::kErrIllegalArgument);
-    }
+    OUTCOME_TRY(runtime.validateArgument(!address_cap.value().has_value()));
 
     // Compute new verifier cap and update.
-    if (verifier_cap.value().value() < allowance) {
-      return ABORT_CAST(VMExitCode::kErrIllegalArgument);
-    }
+    OUTCOME_TRY(
+        runtime.validateArgument(verifier_cap.value().value() >= allowance));
 
     const DataCap new_verifier_cap = verifier_cap.value().value() - allowance;
     const auto update_result = state.verifiers.set(verifier, new_verifier_cap);
@@ -109,9 +103,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     const auto client_cap = state.verified_clients.tryGet(client);
     REQUIRE_NO_ERROR(client_cap, VMExitCode::kErrIllegalState);
-    if (client_cap.value()) {
-      return ABORT_CAST(VMExitCode::kErrIllegalArgument);
-    }
+    OUTCOME_TRY(runtime.validateArgument(!client_cap.value().has_value()));
 
     const auto result = state.verified_clients.set(client, allowance);
     REQUIRE_NO_ERROR(result, VMExitCode::kErrIllegalState);
@@ -133,7 +125,8 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   // UseBytes
   //============================================================================
 
-  outcome::result<void> UseBytes::useBytes(State &state,
+  outcome::result<void> UseBytes::useBytes(const Runtime &runtime,
+                                           State &state,
                                            const Address &client,
                                            const StoragePower &deal_size,
                                            CapAssert cap_assert) {
@@ -145,9 +138,8 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     OUTCOME_TRY(cap_assert(client_cap.value().value() >= 0));
 
-    if (deal_size > client_cap.value().value()) {
-      return ABORT_CAST(VMExitCode::kErrIllegalArgument);
-    }
+    OUTCOME_TRY(
+        runtime.validateArgument(deal_size <= client_cap.value().value()));
 
     const DataCap new_client_cap = client_cap.value().value() - deal_size;
 
@@ -170,8 +162,8 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     OUTCOME_TRY(runtime.validateImmediateCallerIs(kStorageMarketAddress));
     OUTCOME_TRY(Utils::checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
-    OUTCOME_TRY(
-        useBytes(state, params.address, params.deal_size, clientCapAssert));
+    OUTCOME_TRY(useBytes(
+        runtime, state, params.address, params.deal_size, clientCapAssert));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -180,12 +172,13 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
   //============================================================================
 
   outcome::result<void> RestoreBytes::restoreBytes(
-      State &state, const Address &client, const StoragePower &deal_size) {
+      const Runtime &runtime,
+      State &state,
+      const Address &client,
+      const StoragePower &deal_size) {
     const auto verifier_cap = state.verifiers.tryGet(client);
     REQUIRE_NO_ERROR(verifier_cap, VMExitCode::kErrIllegalState);
-    if (verifier_cap.value()) {
-      return ABORT_CAST(VMExitCode::kErrIllegalArgument);
-    }
+    OUTCOME_TRY(runtime.validateArgument(!verifier_cap.value().has_value()));
 
     const auto client_cap = state.verified_clients.tryGet(client);
     REQUIRE_NO_ERROR(verifier_cap, VMExitCode::kErrIllegalState);
@@ -205,7 +198,7 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     OUTCOME_TRYA(
         state,
         runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
-    OUTCOME_TRY(restoreBytes(state, params.address, params.deal_size));
+    OUTCOME_TRY(restoreBytes(runtime, state, params.address, params.deal_size));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }

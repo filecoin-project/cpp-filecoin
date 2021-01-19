@@ -22,7 +22,8 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     };
     ACTOR_METHOD_DECL();
 
-    static outcome::result<void> addVerifier(State &state,
+    static outcome::result<void> addVerifier(const Runtime &runtime,
+                                             State &state,
                                              const Address &verifier,
                                              const DataCap &allowance);
   };
@@ -56,7 +57,8 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
 
     using CapAssert = std::function<outcome::result<void>(bool)>;
 
-    static outcome::result<void> useBytes(State &state,
+    static outcome::result<void> useBytes(const Runtime &runtime,
+                                          State &state,
                                           const Address &client,
                                           const StoragePower &deal_size,
                                           CapAssert cap_assert);
@@ -71,7 +73,8 @@ namespace fc::vm::actor::builtin::v0::verified_registry {
     };
     ACTOR_METHOD_DECL();
 
-    static outcome::result<void> restoreBytes(State &state,
+    static outcome::result<void> restoreBytes(const Runtime &runtime,
+                                              State &state,
                                               const Address &client,
                                               const StoragePower &deal_size);
   };

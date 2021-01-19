@@ -9,5 +9,4 @@ addtest(verified_registry_actor_test_v3
 target_link_libraries(verified_registry_actor_test_v3
     ipfs_datastore_in_memory
     verified_registry_actor_v3
-    state_tree
     )

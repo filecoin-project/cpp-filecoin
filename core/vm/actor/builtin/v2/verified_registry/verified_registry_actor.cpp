@@ -25,7 +25,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
         state,
         runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
     OUTCOME_TRY(v0::verified_registry::AddVerifier::addVerifier(
-        state, verifier.value(), params.allowance));
+        runtime, state, verifier.value(), params.allowance));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }
@@ -81,6 +81,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
     OUTCOME_TRY(Utils::checkDealSize(params.deal_size));
     OUTCOME_TRY(state, runtime.getCurrentActorStateCbor<State>());
     OUTCOME_TRY(v0::verified_registry::UseBytes::useBytes(
+        runtime,
         state,
         client.value(),
         params.deal_size,
@@ -105,7 +106,7 @@ namespace fc::vm::actor::builtin::v2::verified_registry {
         state,
         runtime.getCurrentActorStateCbor<State>());  // Lotus gas conformance
     OUTCOME_TRY(v0::verified_registry::RestoreBytes::restoreBytes(
-        state, client.value(), params.deal_size));
+        runtime, state, client.value(), params.deal_size));
     OUTCOME_TRY(runtime.commitState(state));
     return outcome::success();
   }

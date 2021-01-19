@@ -9,5 +9,4 @@ addtest(payment_channel_actor_test_v3
 target_link_libraries(payment_channel_actor_test_v3
     ipfs_datastore_in_memory
     payment_channel_actor_v3
-    state_tree
     )

@@ -9,5 +9,4 @@ addtest(storage_power_actor_v0_test
 target_link_libraries(storage_power_actor_v0_test
     ipfs_datastore_in_memory
     storage_power_actor_v0
-    state_tree
     )
