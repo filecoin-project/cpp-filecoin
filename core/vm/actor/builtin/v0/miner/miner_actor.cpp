@@ -27,7 +27,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     const auto resolved_code = runtime.getActorCodeID(resolved);
     REQUIRE_NO_ERROR(resolved_code, VMExitCode::kErrIllegalArgument);
     OUTCOME_TRY(
-        runtime.validateArgument(isSignableActorV0(resolved_code.value())));
+        runtime.validateArgument(isSignableActor(resolved_code.value())));
     return std::move(resolved);
   }
 
@@ -117,6 +117,7 @@ namespace fc::vm::actor::builtin::v0::miner {
     // Lotus gas conformance - flush empty hamt
     state.precommitted_setctors_expiry = {};
     runtime.getIpfsDatastore()->load(state);
+
     OUTCOME_TRY(empty_amt_cid, state.precommitted_setctors_expiry.amt.flush());
 
     RleBitset allocated_sectors;

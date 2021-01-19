@@ -63,10 +63,6 @@ namespace fc::vm::actor {
            || code == v3::kSystemActorCodeID;
   }
 
-  bool isSignableActorV0(const CodeId &code) {
-    return code == v0::kAccountCodeCid || code == v0::kMultisigCodeCid;
-  }
-
   bool isSignableActor(const CodeId &code) {
     return code == v0::kAccountCodeCid || code == v0::kMultisigCodeCid
            || code == v2::kAccountCodeCid || code == v2::kMultisigCodeCid
