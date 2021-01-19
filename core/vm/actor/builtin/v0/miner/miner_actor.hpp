@@ -12,6 +12,7 @@
 
 namespace fc::vm::actor::builtin::v0::miner {
   using primitives::sector::PoStProof;
+  using primitives::sector::RegisteredSealProof;
 
   struct Construct : ActorMethodBase<1> {
     struct Params {
