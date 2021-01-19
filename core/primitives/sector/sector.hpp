@@ -60,6 +60,10 @@ namespace fc::primitives::sector {
     StackedDRG64GiBWindowPoSt,
   };
 
+  /**
+   * Produces the PoSt-specific RegisteredProof corresponding to the receiving
+   * RegisteredSealProof.
+   */
   outcome::result<RegisteredPoStProof> getRegisteredWindowPoStProof(
       RegisteredSealProof proof);
   outcome::result<RegisteredPoStProof> getRegisteredWinningPoStProof(
@@ -71,6 +75,15 @@ namespace fc::primitives::sector {
   outcome::result<size_t> getWindowPoStPartitionSectors(
       RegisteredPoStProof proof);
 
+  /**
+   * Returns the partition size, in sectors, associated with a seal proof type.
+   * The partition size is the number of sectors proved in a single PoSt proof.
+   * @param proof
+   * @return
+   */
+  outcome::result<size_t> getSealProofWindowPoStPartitionSectors(
+      RegisteredSealProof proof);
+
   using SealRandomness = Randomness;
 
   using Ticket = SealRandomness;
@@ -80,8 +93,8 @@ namespace fc::primitives::sector {
   using Proof = std::vector<uint8_t>;
 
   /**
-   * SealVerifyInfo is the structure of all the information a verifier needs to
-   * verify a Seal.
+   * SealVerifyInfo is the structure of all the information a verifier needs
+   * to verify a Seal.
    */
   struct SealVerifyInfo {
     RegisteredSealProof seal_proof;
