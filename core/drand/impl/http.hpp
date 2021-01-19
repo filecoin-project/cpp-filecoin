@@ -7,7 +7,7 @@
 
 #include "common/async.hpp"
 #include "drand/messages.hpp"
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 
 namespace fc::drand::http {
   using boost::asio::io_context;

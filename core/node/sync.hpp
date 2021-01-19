@@ -7,7 +7,7 @@
 
 #include <unordered_map>
 
-#include "node/fwd.hpp"
+#include "fwd.hpp"
 #include "primitives/tipset/tipset_key.hpp"
 
 namespace fc::sync {

@@ -34,6 +34,10 @@ namespace libp2p {
     namespace gossip {
       class Gossip;
     }  // namespace gossip
+
+    namespace kademlia {
+      class Kademlia;
+    }  // namespace kademlia
   }    // namespace protocol
 }  // namespace libp2p
 
@@ -43,6 +47,12 @@ namespace fc {
   namespace api {
     struct Api;
   }  // namespace api
+
+  namespace blockchain {
+    namespace weight {
+      class WeightCalculator;
+    }  // namespace weight
+  }    // namespace blockchain
 
   namespace clock {
     class UTCClock;
