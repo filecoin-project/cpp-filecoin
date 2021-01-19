@@ -40,6 +40,7 @@ namespace fc::sync {
                        uint64_t depth,
                        uint64_t timeoutMsec,
                        bool index_head_tipset,
+                       bool request_messages,
                        std::function<void(Result)> callback) {
         index_head_tipset_ = index_head_tipset;
         callback_ = std::move(callback);
@@ -54,7 +55,8 @@ namespace fc::sync {
             std::move(peer),
             std::move(blocks),
             depth,
-            blocksync::BLOCKS_AND_MESSAGES,
+            request_messages ? blocksync::BLOCKS_AND_MESSAGES
+                             : blocksync::BLOCKS_ONLY,
             timeoutMsec + 5000,
             [wptr = std::move(wptr)](blocksync::BlocksyncRequest::Result r) {
               auto self = wptr.lock();
@@ -161,6 +163,7 @@ namespace fc::sync {
       uint64_t depth,
       uint64_t timeoutMsec,
       bool index_head_tipset,
+      bool request_messages,
       std::function<void(Result)> callback) {
     assert(callback);
 
@@ -176,6 +179,7 @@ namespace fc::sync {
                       depth,
                       timeoutMsec,
                       index_head_tipset,
+                      request_messages,
                       std::move(callback));
 
     return impl;

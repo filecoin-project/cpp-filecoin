@@ -46,6 +46,7 @@ namespace fc::sync {
         uint64_t depth,
         uint64_t timeoutMsec,
         bool index_head_tipset,
+        bool request_messages,
         std::function<void(Result)> callback);
 
     virtual ~TipsetRequest() = default;

@@ -142,6 +142,9 @@ namespace fc::sync {
     assert(!now_active_);
     assert(target.active_peer);
 
+    static constexpr size_t kFinality = 900;
+    bool request_messages = true;
+
     uint64_t probable_depth = 1;
     if (make_deep_request) {
       // if e.source is null then try to make the 1st request with depth
@@ -152,9 +155,19 @@ namespace fc::sync {
       }
     }
 
-    log()->debug("new job, peer={}, height={}",
+    if (target.height > kFinality
+        && last_known_height_ > target.height
+        && target.height < last_known_height_ - kFinality) {
+      // dont request messages for old tipsets which should never become our
+      // head
+      request_messages = false;
+    }
+
+    log()->debug("new job, peer={}, height={}, messages={}, deep={}",
                  target.active_peer.value().toBase58(),
-                 target.height);
+                 target.height,
+                 request_messages,
+                 make_deep_request);
 
     if (request_) {
       request_->cancel();
@@ -170,6 +183,7 @@ namespace fc::sync {
         probable_depth,
         60000,
         true,  // TODO index head tipset (?)
+        request_messages,
         [this](TipsetRequest::Result r) { downloaderCallback(std::move(r)); });
 
     now_active_ = std::move(target);
