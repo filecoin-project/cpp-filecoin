@@ -95,7 +95,7 @@ namespace fc::sync {
 
     if (!target.active_peer
         || !peers_.isConnected(target.active_peer.value())) {
-      target.active_peer = peers_.selectBestPeer(target.peers);
+      target.active_peer = peers_.selectBestPeer(target.peers, boost::none);
     }
 
     if (!target.active_peer) {
@@ -156,7 +156,11 @@ namespace fc::sync {
                  target.active_peer.value().toBase58(),
                  target.height);
 
-    request_.newRequest(
+    if (request_) {
+      request_->cancel();
+    }
+
+    request_ = TipsetRequest::newRequest(
         *chain_db_,
         *host_,
         *scheduler_,
@@ -164,7 +168,7 @@ namespace fc::sync {
         target.active_peer.value(),
         target.head.cids(),
         probable_depth,
-        70000,
+        60000,
         true,  // TODO index head tipset (?)
         [this](TipsetRequest::Result r) { downloaderCallback(std::move(r)); });
 
@@ -172,6 +176,11 @@ namespace fc::sync {
   }
 
   void SyncJob::downloaderCallback(TipsetRequest::Result r) {
+    if (request_) {
+      request_->cancel();
+      request_.reset();
+    }
+
     if (r.from && r.delta_rating != 0) {
       peers_.changeRating(r.from.value(), r.delta_rating);
     }
@@ -200,9 +209,13 @@ namespace fc::sync {
       if (r.from && r.delta_rating > 0) {
         // something was downloaded, better continue with this peer
         target->active_peer = std::move(r.from);
+      } else {
+        target->active_peer = peers_.selectBestPeer(target->peers, r.from);
+      }
+
+      if (target->active_peer.has_value()) {
         newJob(std::move(target.value()), true);
         return;
-
       } else {
         enqueue(std::move(target.value()));
       }

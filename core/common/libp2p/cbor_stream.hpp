@@ -56,7 +56,7 @@ namespace fc::common::libp2p {
     }
 
     void close() {
-      stream_->close([](auto) {});
+      stream_->close([s=shared_from_this()](auto) {});
     }
 
    private:

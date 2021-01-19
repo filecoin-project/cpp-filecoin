@@ -36,7 +36,10 @@ namespace fc::sync {
         kHelloProtocol,
         [wptr =
              weak_from_this()](std::shared_ptr<libp2p::connection::Stream> s) {
-          assert(s && !s->isClosedForRead());
+          assert(s);
+          if (s->isClosedForRead()) {
+            return;
+          }
 
           auto self = wptr.lock();
           if (self) {

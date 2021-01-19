@@ -20,6 +20,8 @@ namespace fc::sync::blocksync {
   using common::libp2p::CborStream;
 
   namespace {
+    constexpr size_t kMaxDepth = 100;
+
     using primitives::block::MsgMeta;
 
     auto log() {
@@ -237,382 +239,372 @@ namespace fc::sync::blocksync {
 
       return outcome::success();
     }
-  }  // namespace
 
-  // XXX
-  //static int xxx = 0;
+    // XXX
+    static int xxx = 0;
 
-  class BlocksyncRequest::Impl
-      : public std::enable_shared_from_this<BlocksyncRequest::Impl> {
-   public:
-    Impl(libp2p::Host &host, libp2p::protocol::Scheduler &scheduler, Ipld &ipld)
-        : host_(host), scheduler_(scheduler), ipld_(ipld) {
-      //log()->debug("++++++ {}", ++xxx);
-    }
-
-    ~Impl() {
-      //log()->debug("------ {}", --xxx);
-      if (stream_) {
-        stream_->close();
-      }
-    }
-
-    void makeRequest(PeerId peer,
-                     std::vector<CID> blocks,
-                     uint64_t depth,
-                     RequestOptions options,
-                     uint64_t timeoutMsec,
-                     std::function<void(Result)> callback) {
-      callback_ = std::move(callback);
-      result_ = BlocksyncRequest::Result{.blocks_requested = std::move(blocks)};
-
-      result_->messages_stored = (options & MESSAGES_ONLY);
-
-      std::vector<CID> blocks_reduced =
-          tryReduceRequest(result_->blocks_requested,
-                           result_->blocks_available,
-                           ipld_,
-                           result_->messages_stored);
-
-      if (blocks_reduced.empty()) {
-        scheduleResult();
-        return;
+    class BlocksyncRequestImpl
+        : public BlocksyncRequest,
+          public std::enable_shared_from_this<BlocksyncRequestImpl> {
+     public:
+      BlocksyncRequestImpl(libp2p::Host &host,
+                           libp2p::protocol::Scheduler &scheduler,
+                           Ipld &ipld)
+          : host_(host), scheduler_(scheduler), ipld_(ipld) {
+        log()->debug("++++++ {}", ++xxx);
       }
 
-      if (options == MESSAGES_ONLY) {
-        // not supported yet
-        result_->error = BlocksyncRequest::Error::BLOCKSYNC_FEATURE_NYI;
-        scheduleResult();
-        return;
+      ~BlocksyncRequestImpl() {
+        log()->debug("------ {}", --xxx);
+        cancel();
       }
 
-      waitlist_.insert(blocks_reduced.begin(), blocks_reduced.end());
+      void makeRequest(PeerId peer,
+                       std::vector<CID> blocks,
+                       uint64_t depth,
+                       RequestOptions options,
+                       uint64_t timeoutMsec,
+                       std::function<void(Result)> callback) {
+        callback_ = std::move(callback);
+        result_ =
+            BlocksyncRequest::Result{.blocks_requested = std::move(blocks)};
 
-      if (depth == 0) {
-        depth = 1;
-      } else if (depth > 10) {
-        depth = 10;
-      }
+        result_->messages_stored = (options & MESSAGES_ONLY);
 
-      auto binary_request = codec::cbor::encode<Request>(
-          {std::move(blocks_reduced), depth, options});
+        std::vector<CID> blocks_reduced =
+            tryReduceRequest(result_->blocks_requested,
+                             result_->blocks_available,
+                             ipld_,
+                             result_->messages_stored);
 
-      if (!binary_request) {
-        result_->error = binary_request.error();
-        scheduleResult();
-        return;
-      }
-
-      options_ = options;
-      result_->from = peer;
-
-      host_.newStream(
-          // peer must be already connected
-          libp2p::peer::PeerInfo{std::move(peer), {}},
-          kProtocolId,
-          [wptr = weak_from_this(),
-           binary_request = std::move(binary_request.value())](auto rstream) {
-            auto self = wptr.lock();
-            if (self) {
-              if (rstream) {
-                self->onConnected(
-                    std::move(binary_request),
-                    std::make_shared<CborStream>(rstream.value()));
-              } else {
-                self->onConnected(common::Buffer{}, rstream.error());
-              }
-            }
-          });
-
-      if (timeoutMsec > 0) {
-        handle_ = scheduler_.schedule(timeoutMsec + depth * 100, [this] {
-          result_->error = BlocksyncRequest::Error::BLOCKSYNC_TIMEOUT;
-          scheduleResult(true);
-        });
-      }
-    }
-
-    void cancel() {
-      done();
-    }
-
-   private:
-    using StreamPtr = std::shared_ptr<CborStream>;
-
-    void done() {
-      handle_.cancel();
-      in_progress_ = false;
-      if (stream_) {
-        stream_->close();
-      }
-    }
-
-    void scheduleResult(bool call_now = false) {
-      if (!in_progress_) {
-        return;
-      }
-
-      done();
-
-      if (result_->error) {
-        int64_t dr = 0;
-        auto &category =
-            std::error_code(BlocksyncRequest::Error::BLOCKSYNC_TIMEOUT)
-                .category();
-        if (result_->error.category() == category) {
-          switch (result_->error.value()) {
-            case int(
-                BlocksyncRequest::Error::BLOCKSYNC_STORE_ERROR_CIDS_MISMATCH):
-              dr = -700;
-              break;
-            case int(BlocksyncRequest::Error::BLOCKSYNC_INCONSISTENT_RESPONSE):
-              dr = -500;
-              break;
-            case int(BlocksyncRequest::Error::BLOCKSYNC_TIMEOUT):
-              dr = -200;
-              break;
-            default:
-              break;
-          }
-        } else {
-          // stream and other errors
-          dr -= 200;
+        if (blocks_reduced.empty()) {
+          scheduleResult();
+          return;
         }
-        log()->debug(
-            "peer {}, error {}, dr={}",
-            (result_->from.has_value() ? result_->from->toBase58() : "unknown"),
-            result_->error.message(),
-            dr);
-        result_->delta_rating += dr;
-      }
 
-      if (call_now) {
-        callback_(std::move(result_.value()));
-      } else {
-        handle_ = scheduler_.schedule(
-            [this] { callback_(std::move(result_.value())); });
-      }
-    }
+        if (options == MESSAGES_ONLY) {
+          // not supported yet
+          result_->error = BlocksyncRequest::Error::BLOCKSYNC_FEATURE_NYI;
+          scheduleResult();
+          return;
+        }
 
-    void onConnected(common::Buffer binary_request,
-                     outcome::result<StreamPtr> rstream) {
-      if (!in_progress_) {
-        return;
-      }
+        waitlist_.insert(blocks_reduced.begin(), blocks_reduced.end());
 
-      if (rstream) {
-        stream_ = std::move(rstream.value());
-        stream_->stream()->write(
-            binary_request,
-            binary_request.size(),
-            [wptr = weak_from_this(), buf = binary_request](auto res) {
+        if (depth == 0) {
+          depth = 1;
+        } else if (depth > kMaxDepth) {
+          depth = kMaxDepth;
+        }
+
+        auto binary_request = codec::cbor::encode<Request>(
+            {std::move(blocks_reduced), depth, options});
+
+        if (!binary_request) {
+          result_->error = binary_request.error();
+          scheduleResult();
+          return;
+        }
+
+        options_ = options;
+        result_->from = peer;
+
+        host_.newStream(
+            // peer must be already connected
+            libp2p::peer::PeerInfo{std::move(peer), {}},
+            kProtocolId,
+            [wptr = weak_from_this(),
+             binary_request = std::move(binary_request.value())](auto rstream) {
               auto self = wptr.lock();
               if (self) {
-                self->onRequestWritten(res);
-              }
-            });
-      } else {
-        result_->error = rstream.error();
-        scheduleResult(true);
-      }
-    }
-
-    void onRequestWritten(outcome::result<size_t> result) {
-      if (!in_progress_) {
-        return;
-      }
-
-      if (!result) {
-        result_->error = result.error();
-        scheduleResult(true);
-        return;
-      }
-
-      stream_->read<Response>([wptr = weak_from_this()](auto res) {
-        auto self = wptr.lock();
-        if (self) {
-          self->onResponseRead(std::move(res));
-        }
-      });
-    }
-
-    void onResponseRead(outcome::result<Response> result) {
-      if (!in_progress_) {
-        return;
-      }
-
-      if (!result) {
-        log()->debug("error from {}: {}",
-                     result_->from->toBase58(),
-                     result.error().message());
-        result_->error = result.error();
-      } else {
-        auto &response = result.value();
-        log()->debug("got response from {}: status={}, msg=({}), size={}",
-                     result_->from->toBase58(),
-                     statusToString(response.status),
-                     response.message,
-                     response.chain.size());
-
-        if (response.status == ResponseStatus::RESPONSE_COMPLETE) {
-          result_->delta_rating += 100;
-        }
-        if (response.chain.size() > 0) {
-          result_->delta_rating += 50;
-          storeChain(std::move(response.chain));
-        } else {
-          result_->delta_rating -= 50;
-          result_->error =
-              BlocksyncRequest::Error::BLOCKSYNC_INCOMPLETE_RESPONSE;
-        }
-      }
-      scheduleResult(true);
-    }
-
-    void storeChain(std::vector<TipsetBundle> chain) {
-      auto sz = chain.size();
-      if (sz == 0) {
-        return;
-      }
-
-      boost::optional<TipsetHash> expected_parent;
-
-      auto res = storeTipsetBundle(
-          ipld_,
-          chain[0],
-          result_->messages_stored,
-          [&, this](CID cid, BlockHeader header) {
-            if (auto it = waitlist_.find(cid); it != waitlist_.end()) {
-              waitlist_.erase(it);
-              if (sz > 1 && !expected_parent) {
-                expected_parent = TipsetKey::hash(header.parents);
-              }
-              result_->blocks_available.push_back(std::move(header));
-            }
-          });
-
-      if (!res) {
-        log()->error("store tipset bundle error, {}", res.error().message());
-        result_->error = res.error();
-      } else if (!waitlist_.empty()) {
-        log()->debug("got incomplete response, got {} of {}",
-                     result_->blocks_available.size(),
-                     result_->blocks_requested.size());
-        result_->error = Error::BLOCKSYNC_INCOMPLETE_RESPONSE;
-      }
-
-      if (sz == 1 || !expected_parent) {
-        return;
-      }
-
-      result_->parents.reserve(sz - 1);
-
-      primitives::tipset::TipsetCreator creator;
-
-      for (size_t i = 1; i < sz; ++i) {
-        res = storeTipsetBundle(
-            ipld_,
-            chain[i],
-            result_->messages_stored,
-            [&](CID cid, BlockHeader header) {
-              if (expected_parent) {
-                if (auto r = creator.canExpandTipset(header); !r) {
-                  log()->warn("cannot expand tipset, {}", r.error().message());
-                  result_->error = Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
-                  expected_parent.reset();
-                } else if (auto r1 = creator.expandTipset(std::move(cid),
-                                                          std::move(header));
-                           !r1) {
-                  log()->warn("cannot expand tipset, {}", r1.error().message());
-                  result_->error = Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
-                  expected_parent.reset();
+                if (rstream) {
+                  self->onConnected(
+                      std::move(binary_request),
+                      std::make_shared<CborStream>(rstream.value()));
+                } else {
+                  self->onConnected(common::Buffer{}, rstream.error());
                 }
               }
             });
 
-        if (res) {
-          if (expected_parent) {
-            auto tipset = creator.getTipset(true);
-            if (tipset->key.hash() != expected_parent.value()) {
-              log()->warn("unexpected parent returned");
-              // dont try to save parents anymore
-              expected_parent.reset();
-              result_->error = Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
-            } else {
-              expected_parent = tipset->getParents().hash();
-              result_->parents.push_back(std::move(tipset));
+        if (timeoutMsec > 0) {
+          handle_ = scheduler_.schedule(timeoutMsec + depth * 100, [this] {
+            result_->error = BlocksyncRequest::Error::BLOCKSYNC_TIMEOUT;
+            scheduleResult(true);
+          });
+        }
+      }
+
+      void cancel() override {
+        done();
+      }
+
+     private:
+      using StreamPtr = std::shared_ptr<CborStream>;
+
+      void done() {
+        handle_.cancel();
+        in_progress_ = false;
+        if (stream_) {
+          stream_->close();
+        }
+      }
+
+      void scheduleResult(bool call_now = false) {
+        if (!in_progress_) {
+          return;
+        }
+
+        done();
+
+        if (result_->error) {
+          int64_t dr = 0;
+          auto &category =
+              std::error_code(BlocksyncRequest::Error::BLOCKSYNC_TIMEOUT)
+                  .category();
+          if (result_->error.category() == category) {
+            switch (result_->error.value()) {
+              case int(
+                  BlocksyncRequest::Error::BLOCKSYNC_STORE_ERROR_CIDS_MISMATCH):
+                dr = -700;
+                break;
+              case int(
+                  BlocksyncRequest::Error::BLOCKSYNC_INCONSISTENT_RESPONSE):
+                dr = -500;
+                break;
+              case int(BlocksyncRequest::Error::BLOCKSYNC_TIMEOUT):
+                dr = -200;
+                break;
+              default:
+                break;
             }
+          } else {
+            // stream and other errors
+            dr -= 200;
           }
+          log()->debug("peer {}, error {}, dr={}",
+                       (result_->from.has_value() ? result_->from->toBase58()
+                                                  : "unknown"),
+                       result_->error.message(),
+                       dr);
+          result_->delta_rating += dr;
+        }
+
+        if (call_now) {
+          callback_(std::move(result_.value()));
         } else {
+          handle_ = scheduler_.schedule(
+              [this] { callback_(std::move(result_.value())); });
+        }
+      }
+
+      void onConnected(common::Buffer binary_request,
+                       outcome::result<StreamPtr> rstream) {
+        if (!in_progress_) {
+          return;
+        }
+
+        if (rstream) {
+          stream_ = std::move(rstream.value());
+          stream_->stream()->write(
+              binary_request,
+              binary_request.size(),
+              [wptr = weak_from_this(), buf = binary_request](auto res) {
+                auto self = wptr.lock();
+                if (self) {
+                  self->onRequestWritten(res);
+                }
+              });
+        } else {
+          result_->error = rstream.error();
+          scheduleResult(false);
+        }
+      }
+
+      void onRequestWritten(outcome::result<size_t> result) {
+        if (!in_progress_) {
+          return;
+        }
+
+        if (!result) {
+          result_->error = result.error();
+          scheduleResult(true);
+          return;
+        }
+
+        stream_->read<Response>([wptr = weak_from_this()](auto res) {
+          auto self = wptr.lock();
+          if (self) {
+            self->onResponseRead(std::move(res));
+          }
+        });
+      }
+
+      void onResponseRead(outcome::result<Response> result) {
+        if (!in_progress_) {
+          return;
+        }
+
+        if (!result) {
+          log()->debug("error from {}: {}",
+                       result_->from->toBase58(),
+                       result.error().message());
+          result_->error = result.error();
+        } else {
+          auto &response = result.value();
+          log()->debug("got response from {}: status={}, msg=({}), size={}",
+                       result_->from->toBase58(),
+                       statusToString(response.status),
+                       response.message,
+                       response.chain.size());
+
+          if (response.status == ResponseStatus::RESPONSE_COMPLETE) {
+            result_->delta_rating += 100;
+          }
+          if (response.chain.size() > 0) {
+            result_->delta_rating += 50;
+            storeChain(std::move(response.chain));
+          } else {
+            result_->delta_rating -= 50;
+            result_->error =
+                BlocksyncRequest::Error::BLOCKSYNC_INCOMPLETE_RESPONSE;
+          }
+        }
+        scheduleResult(true);
+      }
+
+      void storeChain(std::vector<TipsetBundle> chain) {
+        auto sz = chain.size();
+        if (sz == 0) {
+          return;
+        }
+
+        boost::optional<TipsetHash> expected_parent;
+
+        auto res = storeTipsetBundle(
+            ipld_,
+            chain[0],
+            result_->messages_stored,
+            [&, this](CID cid, BlockHeader header) {
+              if (auto it = waitlist_.find(cid); it != waitlist_.end()) {
+                waitlist_.erase(it);
+                if (sz > 1 && !expected_parent) {
+                  expected_parent = TipsetKey::hash(header.parents);
+                }
+                result_->blocks_available.push_back(std::move(header));
+              }
+            });
+
+        if (!res) {
           log()->error("store tipset bundle error, {}", res.error().message());
-          // dont try to save parents anymore
-          break;
+          result_->error = res.error();
+        } else if (!waitlist_.empty()) {
+          log()->debug("got incomplete response, got {} of {}",
+                       result_->blocks_available.size(),
+                       result_->blocks_requested.size());
+          result_->error = Error::BLOCKSYNC_INCOMPLETE_RESPONSE;
         }
 
-        if (!expected_parent) {
-          break;
+        if (sz == 1 || !expected_parent) {
+          return;
+        }
+
+        result_->parents.reserve(sz - 1);
+
+        primitives::tipset::TipsetCreator creator;
+
+        for (size_t i = 1; i < sz; ++i) {
+          res = storeTipsetBundle(
+              ipld_,
+              chain[i],
+              result_->messages_stored,
+              [&](CID cid, BlockHeader header) {
+                if (expected_parent) {
+                  if (auto r = creator.canExpandTipset(header); !r) {
+                    log()->warn("cannot expand tipset, {}",
+                                r.error().message());
+                    result_->error = Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
+                    expected_parent.reset();
+                  } else if (auto r1 = creator.expandTipset(std::move(cid),
+                                                            std::move(header));
+                             !r1) {
+                    log()->warn("cannot expand tipset, {}",
+                                r1.error().message());
+                    result_->error = Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
+                    expected_parent.reset();
+                  }
+                }
+              });
+
+          if (res) {
+            if (expected_parent) {
+              auto tipset = creator.getTipset(true);
+              if (tipset->key.hash() != expected_parent.value()) {
+                log()->warn("unexpected parent returned");
+                // dont try to save parents anymore
+                expected_parent.reset();
+                result_->error = Error::BLOCKSYNC_INCONSISTENT_RESPONSE;
+              } else {
+                expected_parent = tipset->getParents().hash();
+                result_->parents.push_back(std::move(tipset));
+              }
+            }
+          } else {
+            log()->error("store tipset bundle error, {}",
+                         res.error().message());
+            // dont try to save parents anymore
+            break;
+          }
+
+          if (!expected_parent) {
+            break;
+          }
+        }
+
+        if (!result_->blocks_available.empty()) {
+          result_->delta_rating +=
+              (result_->blocks_available.size() + result_->parents.size()) * 5;
         }
       }
 
-      if (!result_->blocks_available.empty()) {
-        result_->delta_rating +=
-            (result_->blocks_available.size() + result_->parents.size()) * 5;
-      }
-    }
+      libp2p::Host &host_;
+      libp2p::protocol::Scheduler &scheduler_;
+      Ipld &ipld_;
+      std::function<void(Result)> callback_;
+      boost::optional<Result> result_;
+      RequestOptions options_ = BLOCKS_AND_MESSAGES;
+      std::unordered_set<CID> waitlist_;
+      libp2p::protocol::scheduler::Handle handle_;
+      StreamPtr stream_;
+      bool in_progress_ = true;
+    };
 
-    libp2p::Host &host_;
-    libp2p::protocol::Scheduler &scheduler_;
-    Ipld &ipld_;
-    std::function<void(Result)> callback_;
-    boost::optional<Result> result_;
-    RequestOptions options_ = BLOCKS_AND_MESSAGES;
-    std::unordered_set<CID> waitlist_;
-    libp2p::protocol::scheduler::Handle handle_;
-    StreamPtr stream_;
-    bool in_progress_ = true;
-  };
+  }  // namespace
 
-  void BlocksyncRequest::newRequest(libp2p::Host &host,
-                                    libp2p::protocol::Scheduler &scheduler,
-                                    Ipld &ipld,
-                                    PeerId peer,
-                                    std::vector<CID> blocks,
-                                    uint64_t depth,
-                                    RequestOptions options,
-                                    uint64_t timeoutMsec,
-                                    std::function<void(Result)> callback) {
+  std::shared_ptr<BlocksyncRequest> BlocksyncRequest::newRequest(
+      libp2p::Host &host,
+      libp2p::protocol::Scheduler &scheduler,
+      Ipld &ipld,
+      PeerId peer,
+      std::vector<CID> blocks,
+      uint64_t depth,
+      RequestOptions options,
+      uint64_t timeoutMsec,
+      std::function<void(Result)> callback) {
     assert(callback);
 
-    if (impl_) {
-      impl_->cancel();
-      impl_.reset();
-    }
-
-    impl_ = std::make_shared<Impl>(host, scheduler, ipld);
+    std::shared_ptr<BlocksyncRequestImpl> impl =
+        std::make_shared<BlocksyncRequestImpl>(host, scheduler, ipld);
 
     // need shared_from_this there
-    impl_->makeRequest(std::move(peer),
-                       std::move(blocks),
-                       depth,
-                       options,
-                       timeoutMsec,
-                       [this, cb = std::move(callback)](Result r) {
-                         if (impl_) {
-                           impl_.reset();
-                           cb(std::move(r));
-                         }
-                       });
-  }
+    impl->makeRequest(std::move(peer),
+                      std::move(blocks),
+                      depth,
+                      options,
+                      timeoutMsec,
+                      std::move(callback));
 
-  BlocksyncRequest::~BlocksyncRequest() {
-    cancel();
-  }
-
-  void BlocksyncRequest::cancel() {
-    if (impl_) {
-      impl_->cancel();
-      impl_.reset();
-    }
+    return impl;
   }
 
 }  // namespace fc::sync::blocksync

@@ -46,25 +46,22 @@ namespace fc::sync::blocksync {
       bool messages_stored = false;
     };
 
-    ~BlocksyncRequest();
-
     /// Cancels existing request if still active and makes the new one
-    void newRequest(libp2p::Host &host,
-                     libp2p::protocol::Scheduler &scheduler,
-                     Ipld &ipld,
-                     PeerId peer,
-                     std::vector<CID> blocks,
-                     uint64_t depth,
-                     RequestOptions options,
-                     uint64_t timeoutMsec,
-                     std::function<void(Result)> callback);
+    static std::shared_ptr<BlocksyncRequest> newRequest(
+        libp2p::Host &host,
+        libp2p::protocol::Scheduler &scheduler,
+        Ipld &ipld,
+        PeerId peer,
+        std::vector<CID> blocks,
+        uint64_t depth,
+        RequestOptions options,
+        uint64_t timeoutMsec,
+        std::function<void(Result)> callback);
+
+    virtual ~BlocksyncRequest() = default;
 
     /// Cancels request if any
-    void cancel();
-
-   private:
-    class Impl;
-    std::shared_ptr<Impl> impl_;
+    virtual void cancel() = 0;
   };
 
 }  // namespace fc::sync::blocksync

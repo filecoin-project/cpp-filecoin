@@ -5,9 +5,17 @@
 
 #include "peers.hpp"
 
+#include <libp2p/host/host.hpp>
+
+#include "common/logger.hpp"
 #include "events.hpp"
 
 namespace fc::sync {
+  auto log() {
+    static common::Logger logger = common::createLogger("peers");
+    return logger.get();
+  }
+
   void Peers::start(std::shared_ptr<libp2p::Host> host,
                     events::Events &events,
                     PeerSelectFunction select_fn,
@@ -49,16 +57,13 @@ namespace fc::sync {
           if (select_fn_(e.protocols)) {
             peers_[e.peer_id] = 0;
             ratings_.insert({0, e.peer_id});
+            log()->debug("added {}", e.peer_id.toBase58());
           }
         });
 
     peer_disconnected_event_ = events.subscribePeerDisconnected(
         [this](const events::PeerDisconnected &event) {
-          auto it = peers_.find(event.peer_id);
-          if (it != peers_.end()) {
-            removeFromRatings(it);
-            peers_.erase(it);
-          }
+          removePeer(event.peer_id);
         });
 
     peer_latency_event_ =
@@ -68,10 +73,22 @@ namespace fc::sync {
             changeRating(it, rating_latency_fn_(it->second, e.latency_usec));
           }
         });
+
+    log()->debug("started");
   }
 
-  bool Peers::isConnected(const PeerId &peer) const {
-    return peers_.count(peer) != 0;
+  bool Peers::isConnected(const PeerId &peer) {
+    auto it = peers_.find(peer);
+    if (it == peers_.end()) {
+      return false;
+    }
+    auto connected = host_->getNetwork().getConnectionManager().connectedness(
+        libp2p::peer::PeerInfo{peer, {}});
+    if (connected
+        != libp2p::network::ConnectionManager::Connectedness::CONNECTED) {
+      return false;
+    }
+    return true;
   }
 
   const Peers::PeersAndRatings &Peers::getPeers() const {
@@ -83,24 +100,76 @@ namespace fc::sync {
   }
 
   boost::optional<PeerId> Peers::selectBestPeer(
-      const std::unordered_set<PeerId> &preferred) const {
+      const std::unordered_set<PeerId> &preferred_peers,
+      boost::optional<PeerId> ignored_peer) {
     if (ratings_.empty()) {
       return boost::none;
     }
-    for (const auto &r : ratings_) {
-      if (preferred.count(r.second)) {
-        return r.second;
+
+    boost::optional<PeerId> result;
+
+    std::vector<PeerId> dead_peers;
+
+    // first try to select among preferred peers
+    if (!preferred_peers.empty()) {
+      for (const auto &r : ratings_) {
+        if (!isConnected(r.second)) {
+          dead_peers.push_back(r.second);
+        } else if (ignored_peer.has_value()
+                   && r.second == ignored_peer.value()) {
+          continue;
+        } else if (preferred_peers.count(r.second)) {
+          result = r.second;
+          break;
+        }
       }
     }
-    return ratings_.begin()->second;
+
+    // if no preferred peers connected then select one with best rating
+    if (!result.has_value()) {
+      bool connectedness_checked = !preferred_peers.empty();
+
+      for (const auto &r : ratings_) {
+        if (!connectedness_checked && !isConnected(r.second)) {
+          dead_peers.push_back(r.second);
+        } else if (ignored_peer.has_value()
+                   && r.second == ignored_peer.value()) {
+          continue;
+        } else {
+          result = r.second;
+          break;
+        }
+      }
+    }
+
+    // cleanup if dead peers found
+    for (const auto &peer : dead_peers) {
+      removePeer(peer);
+    }
+
+    return result;
   }
 
   void Peers::changeRating(const PeerId &peer, Rating delta) {
     if (delta != 0) {
       auto it = peers_.find(peer);
       if (it != peers_.end()) {
-        changeRating(it, rating_fn_(it->second, delta));
+        auto new_rating = rating_fn_(it->second, delta);
+        changeRating(it, new_rating);
+        log()->debug("rating changed, peer={}, delta={}, new_rating={}",
+                     peer.toBase58(),
+                     delta,
+                     new_rating);
       }
+    }
+  }
+
+  void Peers::removePeer(const PeerId &peer) {
+    auto it = peers_.find(peer);
+    if (it != peers_.end()) {
+      log()->debug("removing {}", peer.toBase58());
+      removeFromRatings(it);
+      peers_.erase(it);
     }
   }
 

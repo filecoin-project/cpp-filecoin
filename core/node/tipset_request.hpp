@@ -36,24 +36,21 @@ namespace fc::sync {
       bool head_indexed = false;
     };
 
-    ~TipsetRequest();
+    static std::shared_ptr<TipsetRequest> newRequest(
+        ChainDb &db,
+        libp2p::Host &host,
+        libp2p::protocol::Scheduler &scheduler,
+        Ipld &ipld,
+        PeerId peer,
+        std::vector<CID> blocks,
+        uint64_t depth,
+        uint64_t timeoutMsec,
+        bool index_head_tipset,
+        std::function<void(Result)> callback);
 
-    void newRequest(ChainDb &db,
-                    libp2p::Host &host,
-                    libp2p::protocol::Scheduler &scheduler,
-                    Ipld &ipld,
-                    PeerId peer,
-                    std::vector<CID> blocks,
-                    uint64_t depth,
-                    uint64_t timeoutMsec,
-                    bool index_head_tipset,
-                    std::function<void(Result)> callback);
+    virtual ~TipsetRequest() = default;
 
-    void cancel();
-
-   private:
-    class Impl;
-    std::shared_ptr<Impl> impl_;
+    virtual void cancel() = 0;
   };
 
 }  // namespace fc::sync

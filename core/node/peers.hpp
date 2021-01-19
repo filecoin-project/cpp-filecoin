@@ -36,18 +36,21 @@ namespace fc::sync {
                RatingChangeLatencyFunction rating_latency_fn =
                    RatingChangeLatencyFunction{});
 
-    bool isConnected(const PeerId &peer) const;
+    bool isConnected(const PeerId &peer);
 
     const PeersAndRatings &getPeers() const;
 
     const RatingsAndPeers &getPeersWithRatings() const;
 
     boost::optional<PeerId> selectBestPeer(
-        const std::unordered_set<PeerId> &prefer) const;
+        const std::unordered_set<PeerId> &preferred_peers,
+        boost::optional<PeerId> ignored_peer);
 
     void changeRating(const PeerId &peer, Rating delta);
 
    private:
+    void removePeer(const PeerId& peer);
+
     void removeFromRatings(const PeersAndRatings::iterator &it);
 
     void changeRating(PeersAndRatings::iterator &it, Rating new_rating);
