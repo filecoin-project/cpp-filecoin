@@ -166,12 +166,12 @@ namespace fc::vm::actor::builtin::v0::miner {
     const Address control1 = Address::makeFromId(501);
     const Address controlId1 = Address::makeFromId(555);
     control_addresses.emplace_back(control1);
-    resloveAddressAs(control1, controlId1);
+    resolveAddressAs(control1, controlId1);
 
     const Address control2 = Address::makeFromId(502);
     const Address controlId2 = Address::makeFromId(655);
     control_addresses.emplace_back(control2);
-    resloveAddressAs(control2, controlId2);
+    resolveAddressAs(control2, controlId2);
 
     EXPECT_CALL(runtime, getCurrentReceiver())
         .WillRepeatedly(Return(Address::makeFromId(1000)));

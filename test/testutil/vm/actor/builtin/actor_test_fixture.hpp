@@ -98,7 +98,7 @@ namespace fc::testutil::vm::actor::builtin {
       code_id_any = code_id;
     }
 
-    void resloveAddressAs(const Address &address, const Address &resolved) {
+    void resolveAddressAs(const Address &address, const Address &resolved) {
       resolve_addresses[address] = resolved;
     }
 
